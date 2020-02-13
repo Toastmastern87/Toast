@@ -1,0 +1,3 @@
+[submodule "Toast/vendor/spdlog"]
+	path = Toast/vendor/spdlog
+	url = https://github.com/gabime/spdlog
