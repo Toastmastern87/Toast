@@ -4,6 +4,9 @@
     <Filter Include="Toast">
       <UniqueIdentifier>{70942D0E-DCA8-55BF-A52A-F91E11FE51F0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Toast\Events">
+      <UniqueIdentifier>{54E2E1F0-4045-7195-E9CA-A94BD50C3D18}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Toast.h" />
@@ -15,6 +18,18 @@
     </ClInclude>
     <ClInclude Include="src\Toast\EntryPoint.h">
       <Filter>Toast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Toast\Events\ApplicationEvent.h">
+      <Filter>Toast\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Toast\Events\Event.h">
+      <Filter>Toast\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Toast\Events\KeyEvent.h">
+      <Filter>Toast\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Toast\Events\MouseEvent.h">
+      <Filter>Toast\Events</Filter>
     </ClInclude>
     <ClInclude Include="src\Toast\Log.h">
       <Filter>Toast</Filter>
