@@ -2,9 +2,6 @@
 
 #include "Toast/Core.h"
 
-#include <string>
-#include <functional>
-
 namespace Toast 
 {
 	// Events in Toast right now is handled right away when they are happening aka being dispatched directly.

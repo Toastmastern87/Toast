@@ -1,3 +1,4 @@
+#include "tpch.h"
 #include "Application.h"
 
 #include "Toast/Events/ApplicationEvent.h"
@@ -14,7 +15,7 @@ namespace Toast {
 
 	void Application::Run() 
 	{
-		WindowResizeEvent e(1280, 720);
+		WindowResizeEvent e(1280, 720); 
 		TOAST_TRACE(e);
 
 		while (true);
