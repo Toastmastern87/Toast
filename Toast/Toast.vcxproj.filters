@@ -34,6 +34,7 @@
     <ClInclude Include="src\Toast\Log.h">
       <Filter>Toast</Filter>
     </ClInclude>
+    <ClInclude Include="src\tpch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Toast\Application.cpp">
@@ -42,5 +43,6 @@
     <ClCompile Include="src\Toast\Log.cpp">
       <Filter>Toast</Filter>
     </ClCompile>
+    <ClCompile Include="src\tpch.cpp" />
   </ItemGroup>
 </Project>

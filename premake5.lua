@@ -18,6 +18,9 @@ project "Toast"
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
+	pchheader "tpch.h"
+	pchsource "Toast/src/tpch.cpp"
+
 	files
 	{
 		"%{prj.name}/src/**.h",

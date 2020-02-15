@@ -2,8 +2,6 @@
 
 #include "Event.h"
 
-#include <sstream>
-
 namespace Toast 
 {
 	class TOAST_API KeyEvent : public Event
