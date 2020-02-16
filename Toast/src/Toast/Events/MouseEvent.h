@@ -10,13 +10,13 @@ namespace Toast
 		MouseMovedEvent(float x, float y)
 			: mMouseX(x), mMouseY(y) {}
 
-		inline float GetX() const { return m_MouseX; }
-		inline float GetY() const { return m_MouseY; }
+		inline float GetX() const { return mMouseX; }
+		inline float GetY() const { return mMouseY; }
 
 		std::string ToString() const override
 		{
 			std::stringstream ss;
-			ss << "MouseMovedEvent: " << m_MouseX << ", " << m_MouseY;
+			ss << "MouseMovedEvent: " << mMouseX << ", " << mMouseY;
 			return ss.str();
 		}
 
@@ -32,13 +32,13 @@ namespace Toast
 		MouseScrolledEvent(float xOffset, float yOffset)
 			: mXOffset(xOffset), mYOffset(yOffset) {}
 
-		inline float GetXOffset() const { return m_XOffset; }
-		inline float GetYOffset() const { return m_YOffset; }
+		inline float GetXOffset() const { return mXOffset; }
+		inline float GetYOffset() const { return mYOffset; }
 
 		std::string ToString() const override
 		{
 			std::stringstream ss;
-			ss << "MouseScrolledEvent: " << GetXOffset() << ", " << GetYOffset;
+			ss << "MouseScrolledEvent: " << GetXOffset() << ", " << GetYOffset();
 			return ss.str();
 		}
 
@@ -51,7 +51,7 @@ namespace Toast
 	class TOAST_API MouseButtonEvent : public Event
 	{
 	public:
-		inline int GetMouseButton() const { return m_Button; }
+		inline int GetMouseButton() const { return mButton; }
 
 		EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput)
 	protected:
@@ -65,7 +65,7 @@ namespace Toast
 	{
 	public:
 		MouseButtonPressedEvent(int button)
-			: mButton(button) {}
+			: MouseButtonEvent(button) {}
 
 		std::string ToString() const override
 		{
@@ -76,14 +76,14 @@ namespace Toast
 
 		EVENT_CLASS_TYPE(MouseButtonPressed)
 	private:
-		float mButton
+		float mButton;
 	};
 
 	class TOAST_API MouseButtonReleasedEvent : public MouseButtonEvent
 	{
 	public:
 		MouseButtonReleasedEvent(int button)
-			: mButton(button) {}
+			: MouseButtonEvent(button) {}
 
 		std::string ToString() const override
 		{
@@ -94,6 +94,6 @@ namespace Toast
 
 		EVENT_CLASS_TYPE(MouseButtonReleased)
 	private:
-		float mButton
+		float mButton;
 	};
 }
