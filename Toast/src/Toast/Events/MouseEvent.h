@@ -8,7 +8,7 @@ namespace Toast
 	{
 	public:
 		MouseMovedEvent(float x, float y)
-			: m_MouseX(x), m_MouseY(y) {}
+			: mMouseX(x), mMouseY(y) {}
 
 		inline float GetX() const { return m_MouseX; }
 		inline float GetY() const { return m_MouseY; }
@@ -23,14 +23,14 @@ namespace Toast
 		EVENT_CLASS_TYPE(MouseMoved)
 		EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput)
 	private:
-		float m_MouseX, m_MouseY;
+		float mMouseX, mMouseY;
 	};
 
 	class TOAST_API MouseScrolledEvent : public Event
 	{
 	public:
 		MouseScrolledEvent(float xOffset, float yOffset)
-			: m_XOffset(xOffset), m_YOffset(yOffset) {}
+			: mXOffset(xOffset), mYOffset(yOffset) {}
 
 		inline float GetXOffset() const { return m_XOffset; }
 		inline float GetYOffset() const { return m_YOffset; }
@@ -45,7 +45,7 @@ namespace Toast
 		EVENT_CLASS_TYPE(MouseScrolled)
 		EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput)
 	private:
-		float m_XOffset, m_YOffset;
+		float mXOffset, mYOffset;
 	};
 
 	class TOAST_API MouseButtonEvent : public Event
@@ -56,44 +56,44 @@ namespace Toast
 		EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput)
 	protected:
 		MouseButtonEvent(int button)
-			: m_Button(button) {}
+			: mButton(button) {}
 
-		int m_Button;
+		int mButton;
 	};
 
 	class TOAST_API MouseButtonPressedEvent : public MouseButtonEvent
 	{
 	public:
 		MouseButtonPressedEvent(int button)
-			: m_Button(button) {}
+			: mButton(button) {}
 
 		std::string ToString() const override
 		{
 			std::stringstream ss;
-			ss << "MouseButtonPressedEvent: " <<  m_Button;
+			ss << "MouseButtonPressedEvent: " <<  mButton;
 			return ss.str();
 		}
 
 		EVENT_CLASS_TYPE(MouseButtonPressed)
 	private:
-		float m_Button
+		float mButton
 	};
 
 	class TOAST_API MouseButtonReleasedEvent : public MouseButtonEvent
 	{
 	public:
 		MouseButtonReleasedEvent(int button)
-			: m_Button(button) {}
+			: mButton(button) {}
 
 		std::string ToString() const override
 		{
 			std::stringstream ss;
-			ss << "MouseButtonReleasedEvent: " << m_Button;
+			ss << "MouseButtonReleasedEvent: " << mButton;
 			return ss.str();
 		}
 
 		EVENT_CLASS_TYPE(MouseButtonReleased)
 	private:
-		float m_Button
+		float mButton
 	};
 }

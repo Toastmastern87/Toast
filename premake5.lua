@@ -10,6 +10,12 @@ workspace "Toast"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
+-- Include directories relative to root folder (solution directory)
+IncludeDir = {}
+IncludeDir["GLFW"] = "Toast/vendor/GLFW/include"
+
+include "Toast/vendor/GLFW"
+
 project "Toast"
 	location "Toast"
 	kind "SharedLib"
@@ -30,7 +36,14 @@ project "Toast"
 	includedirs
 	{
 		"%{prj.name}/src",
-		"%{prj.name}/vendor/spdlog/include"
+		"%{prj.name}/vendor/spdlog/include",
+		"%{IncludeDir.GLFW}"
+	}
+
+	links
+	{
+		"GLFW",
+		"opengl32.lib"
 	}
 
 	filter "system:windows"

@@ -7,6 +7,12 @@
     <Filter Include="Toast\Events">
       <UniqueIdentifier>{54E2E1F0-4045-7195-E9CA-A94BD50C3D18}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Toast\Platform">
+      <UniqueIdentifier>{C4CE01CD-B09C-F5D2-9930-66F9859DD137}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Toast\Platform\Windows">
+      <UniqueIdentifier>{FEFC4316-EAF6-6C68-D363-0379BFFCD2D4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Toast.h" />
@@ -34,6 +40,12 @@
     <ClInclude Include="src\Toast\Log.h">
       <Filter>Toast</Filter>
     </ClInclude>
+    <ClInclude Include="src\Toast\Platform\Windows\WindowsWindow.h">
+      <Filter>Toast\Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Toast\Window.h">
+      <Filter>Toast</Filter>
+    </ClInclude>
     <ClInclude Include="src\tpch.h" />
   </ItemGroup>
   <ItemGroup>
@@ -42,6 +54,9 @@
     </ClCompile>
     <ClCompile Include="src\Toast\Log.cpp">
       <Filter>Toast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Toast\Platform\Windows\WindowsWindow.cpp">
+      <Filter>Toast\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\tpch.cpp" />
   </ItemGroup>
