@@ -48,7 +48,7 @@ namespace Toast
 			return GetCategoryFlags() & category;
 		}
 	protected:
-		bool m_Handled = false;
+		bool mHandled = false;
 	};
 
 	class EventDispatcher 
@@ -66,7 +66,7 @@ namespace Toast
 		{
 			if (mEvent.GetEventType() == T::GetStaticType())
 			{
-				mEvent.m_Handled = func(*(T*)&m_Event);
+				mEvent.mHandled = func(*(T*)&mEvent);
 				return true;
 			}
 			return false;
