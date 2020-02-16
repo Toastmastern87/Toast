@@ -1,5 +1,6 @@
 #pragma once
 
+#include "tpch.h"
 #include "Toast/Core.h"
 
 namespace Toast 
@@ -56,22 +57,22 @@ namespace Toast
 		using EventFn = std::function<bool(T&)>;
 	public:
 		EventDispatcher(Event& event) 
-			: m_Event(event) 
+			: mEvent(event) 
 		{
 		}
 
 		template<typename T>
 		bool Dispatcher(EventFn<T> func)
 		{
-			if (m_Event.GetEventType() == T::GetStaticType())
+			if (mEvent.GetEventType() == T::GetStaticType())
 			{
-				m_Event.m_Handled = func(*(T*)&m_Event);
+				mEvent.m_Handled = func(*(T*)&m_Event);
 				return true;
 			}
 			return false;
 		}
 	private:
-		Event& m_Event;
+		Event& mEvent;
 	};
 
 	inline std::ostream& operator<<(std::ostream& os, const Event& e) 
