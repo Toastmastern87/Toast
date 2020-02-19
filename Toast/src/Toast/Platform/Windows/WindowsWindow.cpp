@@ -7,11 +7,14 @@
 
 namespace Toast 
 {
-	static bool sGLFWInitialized = false;
+	static bool sWin32Initialized = false;
 
-	static void GLFWErrorCallback(int error, const char* description) 
+	
+	HINSTANCE hInstance;
+
+	static void Win32ErrorCallback(int error, const char* description) 
 	{
-		TOAST_CORE_ERROR("GLFW Error ({0}): {1}", error, description);
+		TOAST_CORE_ERROR("Win32 Error ({0}): {1}", error, description);
 	}
 
 	Window* Window::Create(const WindowProps& props) 
@@ -37,131 +40,175 @@ namespace Toast
 
 		TOAST_CORE_INFO("Creating window {0} {1} {2}", props.Title, props.Width, props.Height);
 
-		if (!sGLFWInitialized)
-		{
-			int success = glfwInit();
-			TOAST_CORE_ASSERT(success, "Could not initialize Win32!");
-			glfwSetErrorCallback(GLFWErrorCallback);
+		hInstance = GetModuleHandle(0);
 
-			sGLFWInitialized = true;
+		WNDCLASSEX wc = {};
+		wc.lpfnWndProc = WindowProc;
+		wc.hInstance = hInstance;
+		wc.lpszClassName = "Toast Win32 Window";
+		wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+		wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+		wc.hIcon = LoadIcon(NULL, IDI_WINLOGO);
+		wc.hIconSm = wc.hIcon;
+		wc.cbClsExtra = 0;
+		wc.cbWndExtra = sizeof(WindowData*);
+		wc.lpszMenuName = NULL;
+		wc.cbSize = sizeof(WNDCLASSEX);
+
+		if (!RegisterClassEx(&wc)) 
+		{
+			TOAST_CORE_ERROR("Could not initialize the window class!");
 		}
 
-		mWindow = glfwCreateWindow((int)props.Width, (int)props.Height, mData.Title.c_str(), nullptr, nullptr);
-		glfwMakeContextCurrent(mWindow);
-		glfwSetWindowUserPointer(mWindow, &mData);
-		SetVSync(true);
+		mWin32Window = CreateWindowEx(0, wc.lpszClassName, mData.Title.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,										CW_USEDEFAULT, mData.Width, mData.Height, NULL, NULL, hInstance, NULL);
 
-		// Set GLHF callbacks
-		glfwSetWindowSizeCallback(mWindow, [](GLFWwindow* window, int width, int height)
+		if (!sWin32Initialized)
 		{
-			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-			data.Width = width;
-			data.Height = height;
+			TOAST_CORE_ASSERT((win32Window == NULL), "Could not initialize Win32!");
 
-			WindowResizeEvent event(width, height);
-			data.EventCallback(event);
-		});
+			sWin32Initialized = true;
+		}
 
-		glfwSetWindowCloseCallback(mWindow, [](GLFWwindow* window)
-		{
-			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-
-			WindowCloseEvent event;
- 			data.EventCallback(event);
-		});
-
-		glfwSetKeyCallback(mWindow, [](GLFWwindow* window, int key, int scancode, int action, int mods)
-		{
-			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-
-			switch (action)
-			{
-				case GLFW_PRESS:
-				{
-					KeyPressedEvent event(key, 0);
-					data.EventCallback(event);
-					break;
-				}
-				case GLFW_RELEASE:
-				{
-					KeyReleasedEvent event(key);
-					data.EventCallback(event);
-					break;
-				}
-				case GLFW_REPEAT:
-				{
-					KeyPressedEvent event(key, 1);
-					data.EventCallback(event);
-					break;
-				}
-			}
-		});
-
-		glfwSetMouseButtonCallback(mWindow, [](GLFWwindow* window, int button, int action, int mods)
-		{
-			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-
-			switch (action)
-			{
-				case GLFW_PRESS:
-				{
-					MouseButtonPressedEvent event(button);
-					data.EventCallback(event);
-					break;
-				}
-				case GLFW_RELEASE:
-				{
-					MouseButtonReleasedEvent event(button);
-					data.EventCallback(event);
-					break;
-				}
-			}
-		});
-
-		glfwSetScrollCallback(mWindow, [](GLFWwindow* window, double xOffset, double yOffset)
-		{
-			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-
-			MouseScrolledEvent event((float)xOffset, (float)yOffset);
-			data.EventCallback(event);
-		});
-
-		glfwSetCursorPosCallback(mWindow, [](GLFWwindow* window, double xPos, double yPos)
-		{
-			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
-
-			MouseMovedEvent event((float)xPos, (float)yPos);
-			data.EventCallback(event);
-		});
+		SetWindowLongPtr(mWin32Window, 0, (LONG_PTR)&mData);
+		ShowWindow(mWin32Window, SW_SHOW);
+		SetFocus(mWin32Window);
 	}
 
 	void WindowsWindow::Shutdown() 
 	{
-		glfwDestroyWindow(mWindow);
+		DestroyWindow(mWin32Window);
 	}
 
 	void WindowsWindow::OnUpdate() 
 	{
-		glfwPollEvents();
-		glfwSwapBuffers(mWindow);
+		MSG message;
+
+		while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE) > 0)
+		{
+			TranslateMessage(&message);
+			DispatchMessage(&message);
+		}
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)
 	{
-		if (enabled) 
-		{
-			glfwSwapInterval(1);
-		}
-		else
-		{
-			glfwSwapInterval(0);
-		}
-
 		mData.VSync = enabled;
 	}
 
 	bool WindowsWindow::IsVSync() const 
 	{
 		return mData.VSync;
+	}
+
+	LRESULT CALLBACK WindowsWindow::WindowProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
+	{
+		LRESULT result = NULL;
+
+		switch (uMessage)
+		{
+			case WM_SIZING:
+			{
+				RECT rect = *((PRECT)lParam);
+
+				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+				WindowResizeEvent event((unsigned int)(rect.right - rect.left), (unsigned int)(rect.bottom - rect.top));
+				data->EventCallback(event);
+				break;
+			}
+			case WM_CLOSE:
+			case WM_DESTROY:
+			{
+				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+
+				WindowCloseEvent event;
+				data->EventCallback(event);
+				break;
+			}
+			case WM_KEYUP:
+			{
+				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+
+				KeyReleasedEvent event(static_cast<int>(wParam));
+				data->EventCallback(event);
+				break;
+			}
+			case WM_KEYDOWN:
+			{
+				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+				int repeatCount = (lParam & 0xffff);
+				
+				KeyPressedEvent event(static_cast<int>(wParam), repeatCount);
+				data->EventCallback(event);
+				break;
+			}
+			case WM_MOUSEMOVE:
+			{
+				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+
+				MouseMovedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam));
+				data->EventCallback(event) ;
+				break;
+			}
+			case WM_MOUSEWHEEL:
+			{
+				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+
+				MouseScrolledEvent event(GET_WHEEL_DELTA_WPARAM(wParam));
+				data->EventCallback(event);
+				break;
+			}
+			case WM_LBUTTONDOWN:
+			{
+				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+
+				MouseButtonPressedEvent event(MK_LBUTTON);
+				data->EventCallback(event);
+				break;
+			}
+			case WM_LBUTTONUP:
+			{
+				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+
+				MouseButtonReleasedEvent event(MK_LBUTTON);
+				data->EventCallback(event);
+				break;
+			}
+			case WM_MBUTTONDOWN:
+			{
+				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+
+				MouseButtonPressedEvent event(MK_MBUTTON);
+				data->EventCallback(event);
+				break;
+			}
+			case WM_MBUTTONUP:
+			{
+				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+
+				MouseButtonReleasedEvent event(MK_MBUTTON);
+				data->EventCallback(event);
+				break;
+			}
+			case WM_RBUTTONDOWN:
+			{
+				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+
+				MouseButtonPressedEvent event(MK_RBUTTON);
+				data->EventCallback(event);
+				break;
+			}
+			case WM_RBUTTONUP:
+			{
+				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+
+				MouseButtonReleasedEvent event(MK_RBUTTON);
+				data->EventCallback(event);
+				break;
+			}
+			default:
+				result = DefWindowProc(hWnd, uMessage, wParam, lParam);
+		}
+
+		return result; 
 	}
 }

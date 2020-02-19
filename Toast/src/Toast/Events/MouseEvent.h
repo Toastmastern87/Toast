@@ -29,23 +29,22 @@ namespace Toast
 	class TOAST_API MouseScrolledEvent : public Event
 	{
 	public:
-		MouseScrolledEvent(float xOffset, float yOffset)
-			: mXOffset(xOffset), mYOffset(yOffset) {}
+		MouseScrolledEvent(float delta)
+			: mDelta(delta) {}
 
-		inline float GetXOffset() const { return mXOffset; }
-		inline float GetYOffset() const { return mYOffset; }
+		inline float GetDelta() const { return mDelta; }
 
 		std::string ToString() const override
 		{
 			std::stringstream ss;
-			ss << "MouseScrolledEvent: " << GetXOffset() << ", " << GetYOffset();
+			ss << "MouseScrolledEvent: " << GetDelta();
 			return ss.str();
 		}
 
 		EVENT_CLASS_TYPE(MouseScrolled)
 		EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput)
 	private:
-		float mXOffset, mYOffset;
+		float mDelta;
 	};
 
 	class TOAST_API MouseButtonEvent : public Event
@@ -75,8 +74,6 @@ namespace Toast
 		}
 
 		EVENT_CLASS_TYPE(MouseButtonPressed)
-	private:
-		float mButton;
 	};
 
 	class TOAST_API MouseButtonReleasedEvent : public MouseButtonEvent
@@ -93,7 +90,5 @@ namespace Toast
 		}
 
 		EVENT_CLASS_TYPE(MouseButtonReleased)
-	private:
-		float mButton;
 	};
 }

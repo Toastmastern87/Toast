@@ -2,8 +2,6 @@
 
 #include "Toast/Window.h"
 
-#include <GLFW/glfw3.h>
-
 namespace Toast 
 {
 	class WindowsWindow : public Window 
@@ -20,11 +18,15 @@ namespace Toast
 		inline void SetEventCallback(const EventCallbackFn& callback) override { mData.EventCallback = callback; }
 		void SetVSync(bool enabled) override;
 		bool IsVSync() const override;
+
+		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam);
+
 	private:
 		virtual void Init(const WindowProps& props);
 		virtual void Shutdown();
+
 	private:
-		GLFWwindow* mWindow;
+		HWND mWin32Window;
 
 		struct WindowData 
 		{

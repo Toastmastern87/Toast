@@ -3,8 +3,6 @@
 
 #include "Toast/Log.h"
 
-#include <GLFW/glfw3.h>
-
 namespace Toast {
 
 #define BIND_EVENT_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
@@ -31,8 +29,6 @@ namespace Toast {
 	{
 		while (mRunning) 
 		{
-			glClearColor(0, 1, 0, 1);
-			glClear(GL_COLOR_BUFFER_BIT);
 			mWindow->OnUpdate();
 		}
 	}
