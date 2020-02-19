@@ -16,4 +16,5 @@
 
 #ifdef TOAST_PLATFORM_WINDOWS
 	#include <Windows.h>
+	#include <windowsx.h>
 #endif
