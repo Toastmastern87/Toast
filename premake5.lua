@@ -52,14 +52,17 @@ project "Toast"
 
 	filter "configurations:Debug"
 		defines "TOAST_DEBUG"
+		buildoptions "/MDd"
 		symbols "On"
 
 	filter "configurations:Release"
 		defines "TOAST_RELEASE"
+		buildoptions "/MD"
 		optimize "On"
 
 	filter "configurations:Dist"
 		defines "TOAST_DIST"
+		buildoptions "/MD"
 		optimize "On"
 
 project "Mars"
@@ -99,12 +102,15 @@ project "Mars"
 
 	filter "configurations:Debug"
 		defines "TOAST_DEBUG"
+		buildoptions "/MDd"
 		symbols "On"
 
 	filter "configurations:Release"
 		defines "TOAST_RELEASE"
+		buildoptions "/MD"
 		optimize "On"
 
 	filter "configurations:Dist"
 		defines "TOAST_DIST"
+		buildoptions "/MD"
 		optimize "On"
