@@ -37,6 +37,12 @@
     <ClInclude Include="src\Toast\Events\MouseEvent.h">
       <Filter>Toast\Events</Filter>
     </ClInclude>
+    <ClInclude Include="src\Toast\Layer.h">
+      <Filter>Toast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Toast\LayerStack.h">
+      <Filter>Toast</Filter>
+    </ClInclude>
     <ClInclude Include="src\Toast\Log.h">
       <Filter>Toast</Filter>
     </ClInclude>
@@ -50,6 +56,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Toast\Application.cpp">
+      <Filter>Toast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Toast\Layer.cpp">
+      <Filter>Toast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Toast\LayerStack.cpp">
       <Filter>Toast</Filter>
     </ClCompile>
     <ClCompile Include="src\Toast\Log.cpp">

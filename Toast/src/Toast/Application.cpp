@@ -17,18 +17,36 @@ namespace Toast {
 	{
 	}
 
+	void Application::PushLayer(Layer* layer) 
+	{
+		mLayerStack.PushLayer(layer);
+	}
+
+	void Application::PushOverlay(Layer* overlay)
+	{
+		mLayerStack.PushOverlay(overlay);
+	}
+
 	void Application::OnEvent(Event& e)
 	{
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatcher<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
 
-		TOAST_CORE_TRACE("{0}", e);
+		for (auto it = mLayerStack.end(); it != mLayerStack.begin(); ) 
+		{
+			(*--it)->OnEvent(e);
+			if (e.Handled)
+				break;
+		}
 	}
 
 	void Application::Run() 
 	{
 		while (mRunning) 
 		{
+			for (Layer* layer : mLayerStack)
+				layer->OnUpdate();
+
 			mWindow->OnUpdate();
 		}
 	}

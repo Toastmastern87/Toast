@@ -3,6 +3,7 @@
 //For use by game using the Toast engine
 
 #include "Toast/Application.h"
+#include "Toast/Layer.h"
 #include "Toast/Log.h"
 
 //-------Entry Point---------------------
