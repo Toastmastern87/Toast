@@ -80,7 +80,7 @@
       <PrecompiledHeaderFile>tpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>TOAST_PLATFORM_WINDOWS;TOAST_BUILD_DLL;TOAST_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -102,7 +102,7 @@
       <PrecompiledHeaderFile>tpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>TOAST_PLATFORM_WINDOWS;TOAST_BUILD_DLL;TOAST_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -128,7 +128,7 @@
       <PrecompiledHeaderFile>tpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>TOAST_PLATFORM_WINDOWS;TOAST_BUILD_DLL;TOAST_DIST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -157,22 +157,31 @@
     <ClInclude Include="src\Toast\Events\Event.h" />
     <ClInclude Include="src\Toast\Events\KeyEvent.h" />
     <ClInclude Include="src\Toast\Events\MouseEvent.h" />
+    <ClInclude Include="src\Toast\ImGui\ImGuiLayer.h" />
     <ClInclude Include="src\Toast\Layer.h" />
     <ClInclude Include="src\Toast\LayerStack.h" />
     <ClInclude Include="src\Toast\Log.h" />
+    <ClInclude Include="src\Toast\Platform\DirectX\imgui_impl_dx11.h" />
     <ClInclude Include="src\Toast\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Toast\Window.h" />
     <ClInclude Include="src\tpch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Toast\Application.cpp" />
+    <ClCompile Include="src\Toast\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="src\Toast\Layer.cpp" />
     <ClCompile Include="src\Toast\LayerStack.cpp" />
     <ClCompile Include="src\Toast\Log.cpp" />
+    <ClCompile Include="src\Toast\Platform\DirectX\imgui_impl_dx11.cpp" />
     <ClCompile Include="src\Toast\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\tpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="vendor\imgui\ImGui.vcxproj">
+      <Project>{C0FF640D-2C14-8DBE-F595-301E616989EF}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

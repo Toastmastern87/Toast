@@ -15,7 +15,7 @@ namespace Toast
 
 		WindowProps(const std::string& title = "Toast Engine",
 					unsigned int width = 1280,
-					unsigned int height = 720)
+					unsigned int height = 750)
 			: Title(title), Width(width), Height(height)
 		{
 		}
@@ -33,6 +33,8 @@ namespace Toast
 
 		virtual unsigned int GetWidth() const = 0;
 		virtual unsigned int GetHeight() const = 0;
+
+		virtual HWND GetWindowHandle() const = 0;
 
 		// Window attributes
 		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;

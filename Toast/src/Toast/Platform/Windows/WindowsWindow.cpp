@@ -9,7 +9,6 @@ namespace Toast
 {
 	static bool sWin32Initialized = false;
 
-	
 	HINSTANCE hInstance;
 
 	static void Win32ErrorCallback(int error, const char* description) 
@@ -60,7 +59,7 @@ namespace Toast
 			TOAST_CORE_ERROR("Could not initialize the window class!");
 		}
 
-		mWin32Window = CreateWindowEx(0, wc.lpszClassName, mData.Title.c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,										CW_USEDEFAULT, mData.Width, mData.Height, NULL, NULL, hInstance, NULL);
+		mWin32Window = CreateWindowEx(0, wc.lpszClassName, mData.Title.c_str(), WS_OVERLAPPEDWINDOW, 0,										0, mData.Width, mData.Height, NULL, NULL, hInstance, NULL);
 
 		if (!sWin32Initialized)
 		{

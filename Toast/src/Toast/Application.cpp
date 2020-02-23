@@ -7,8 +7,14 @@ namespace Toast {
 
 #define BIND_EVENT_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
 
+	Application* Application::sInstance = nullptr;
+	
 	Application::Application()
 	{
+		TOAST_CORE_ASSERT(!sInstance, "Application already exists");
+
+		sInstance = this;
+
 		mWindow = std::unique_ptr<Window>(Window::Create());
 		mWindow->SetEventCallback(BIND_EVENT_FN(OnEvent));
 	}
@@ -20,11 +26,13 @@ namespace Toast {
 	void Application::PushLayer(Layer* layer) 
 	{
 		mLayerStack.PushLayer(layer);
+		layer->OnAttach();
 	}
 
-	void Application::PushOverlay(Layer* overlay)
+	void Application::PushOverlay(Layer* layer)
 	{
-		mLayerStack.PushOverlay(overlay);
+		mLayerStack.PushOverlay(layer);
+		layer->OnAttach();
 	}
 
 	void Application::OnEvent(Event& e)
