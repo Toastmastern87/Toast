@@ -6,6 +6,8 @@
 #include "Toast/Layer.h"
 #include "Toast/Log.h"
 
+#include "Toast/ImGui/ImGuiLayer.h"
+
 //-------Entry Point---------------------
 #include "Toast/EntryPoint.h"
 //---------------------------------------

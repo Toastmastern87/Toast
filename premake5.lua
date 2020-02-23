@@ -10,6 +10,11 @@ workspace "Toast"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
+IncludeDir = {}
+IncludeDir["ImGui"] = "Toast/vendor/imgui"
+
+include "Toast/vendor/imgui"
+
 project "Toast"
 	location "Toast"
 	kind "SharedLib"
@@ -32,6 +37,12 @@ project "Toast"
 	{
 		"%{prj.name}/src",
 		"%{prj.name}/vendor/spdlog/include",
+		"%{IncludeDir.ImGui}"
+	}
+
+	links
+	{
+		"ImGui"
 	}
 
 	filter "system:windows"

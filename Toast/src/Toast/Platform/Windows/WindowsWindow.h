@@ -19,6 +19,8 @@ namespace Toast
 		void SetVSync(bool enabled) override;
 		bool IsVSync() const override;
 
+		inline HWND GetWindowHandle() const override { return mWin32Window; }
+
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam);
 
 	private:

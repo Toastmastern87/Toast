@@ -53,6 +53,8 @@
       <Filter>Toast</Filter>
     </ClInclude>
     <ClInclude Include="src\tpch.h" />
+    <ClInclude Include="src\Toast\ImGui\ImGuiLayer.h" />
+    <ClInclude Include="src\Toast\Platform\DirectX\imgui_impl_dx11.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Toast\Application.cpp">
@@ -71,5 +73,7 @@
       <Filter>Toast\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\tpch.cpp" />
+    <ClCompile Include="src\Toast\ImGui\ImGuiLayer.cpp" />
+    <ClCompile Include="src\Toast\Platform\DirectX\imgui_impl_dx11.cpp" />
   </ItemGroup>
 </Project>
