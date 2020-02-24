@@ -1,6 +1,6 @@
 workspace "Toast"
-	startproject "Mars"
 	architecture "x64"
+	startproject "Mars"
 
 	configurations
 	{
@@ -14,12 +14,16 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 IncludeDir = {}
 IncludeDir["ImGui"] = "Toast/vendor/imgui"
 
-include "Toast/vendor/imgui"
+group "Dependencies"
+	include "Toast/vendor/imgui"
+
+group ""
 
 project "Toast"
 	location "Toast"
 	kind "SharedLib"
 	language "C++"
+	staticruntime "off"
 	characterset "MBCS"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
@@ -49,7 +53,6 @@ project "Toast"
 
 	filter "system:windows"
 		cppdialect "C++17"
-		staticruntime "On"
 		systemversion "latest"
 
 		defines
@@ -60,28 +63,29 @@ project "Toast"
 
 		postbuildcommands
 		{
-			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Mars")
+			("{COPY} %{cfg.buildtarget.relpath} \"../bin/" .. outputdir .. "/Mars/\"")
 		}
 
 	filter "configurations:Debug"
 		defines "TOAST_DEBUG"
-		buildoptions "/MDd"
+		runtime "Debug"
 		symbols "On"
 
 	filter "configurations:Release"
 		defines "TOAST_RELEASE"
-		buildoptions "/MD"
+		runtime "Release"
 		optimize "On"
 
 	filter "configurations:Dist"
 		defines "TOAST_DIST"
-		buildoptions "/MD"
+		runtime "Release"
 		optimize "On"
 
 project "Mars"
 	location "Mars"
 	kind "ConsoleApp"
 	language "C++"
+	staticruntime "off"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -105,7 +109,6 @@ project "Mars"
 
 	filter "system:windows"
 		cppdialect "C++17"
-		staticruntime "On"
 		systemversion "latest"
 
 		defines
@@ -115,15 +118,15 @@ project "Mars"
 
 	filter "configurations:Debug"
 		defines "TOAST_DEBUG"
-		buildoptions "/MDd"
+		runtime "Debug"
 		symbols "On"
 
 	filter "configurations:Release"
 		defines "TOAST_RELEASE"
-		buildoptions "/MD"
+		runtime "Release"
 		optimize "On"
 
 	filter "configurations:Dist"
 		defines "TOAST_DIST"
-		buildoptions "/MD"
+		runtime "Release"
 		optimize "On"

@@ -83,8 +83,7 @@
       <AdditionalIncludeDirectories>src;vendor\spdlog\include;vendor\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalOptions>/MDd %(AdditionalOptions)</AdditionalOptions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -94,7 +93,7 @@
       <ImportLibrary>..\bin\Debug-windows-x86_64\Toast\Toast.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
-      <Command>IF EXIST ..\bin\Debug-windows-x86_64\Toast\Toast.dll\ (xcopy /Q /E /Y /I ..\bin\Debug-windows-x86_64\Toast\Toast.dll ..\bin\Debug-windows-x86_64\Mars &gt; nul) ELSE (xcopy /Q /Y /I ..\bin\Debug-windows-x86_64\Toast\Toast.dll ..\bin\Debug-windows-x86_64\Mars &gt; nul)</Command>
+      <Command>IF EXIST ..\bin\Debug-windows-x86_64\Toast\Toast.dll\ (xcopy /Q /E /Y /I ..\bin\Debug-windows-x86_64\Toast\Toast.dll "..\bin\Debug-windows-x86_64\Mars\" &gt; nul) ELSE (xcopy /Q /Y /I ..\bin\Debug-windows-x86_64\Toast\Toast.dll "..\bin\Debug-windows-x86_64\Mars\" &gt; nul)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -109,8 +108,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
       <StringPooling>true</StringPooling>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalOptions>/MD %(AdditionalOptions)</AdditionalOptions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -121,7 +119,7 @@
       <ImportLibrary>..\bin\Release-windows-x86_64\Toast\Toast.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
-      <Command>IF EXIST ..\bin\Release-windows-x86_64\Toast\Toast.dll\ (xcopy /Q /E /Y /I ..\bin\Release-windows-x86_64\Toast\Toast.dll ..\bin\Release-windows-x86_64\Mars &gt; nul) ELSE (xcopy /Q /Y /I ..\bin\Release-windows-x86_64\Toast\Toast.dll ..\bin\Release-windows-x86_64\Mars &gt; nul)</Command>
+      <Command>IF EXIST ..\bin\Release-windows-x86_64\Toast\Toast.dll\ (xcopy /Q /E /Y /I ..\bin\Release-windows-x86_64\Toast\Toast.dll "..\bin\Release-windows-x86_64\Mars\" &gt; nul) ELSE (xcopy /Q /Y /I ..\bin\Release-windows-x86_64\Toast\Toast.dll "..\bin\Release-windows-x86_64\Mars\" &gt; nul)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Dist|x64'">
@@ -136,8 +134,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
       <StringPooling>true</StringPooling>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalOptions>/MD %(AdditionalOptions)</AdditionalOptions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -148,7 +145,7 @@
       <ImportLibrary>..\bin\Dist-windows-x86_64\Toast\Toast.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
-      <Command>IF EXIST ..\bin\Dist-windows-x86_64\Toast\Toast.dll\ (xcopy /Q /E /Y /I ..\bin\Dist-windows-x86_64\Toast\Toast.dll ..\bin\Dist-windows-x86_64\Mars &gt; nul) ELSE (xcopy /Q /Y /I ..\bin\Dist-windows-x86_64\Toast\Toast.dll ..\bin\Dist-windows-x86_64\Mars &gt; nul)</Command>
+      <Command>IF EXIST ..\bin\Dist-windows-x86_64\Toast\Toast.dll\ (xcopy /Q /E /Y /I ..\bin\Dist-windows-x86_64\Toast\Toast.dll "..\bin\Dist-windows-x86_64\Mars\" &gt; nul) ELSE (xcopy /Q /Y /I ..\bin\Dist-windows-x86_64\Toast\Toast.dll "..\bin\Dist-windows-x86_64\Mars\" &gt; nul)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -161,10 +158,12 @@
     <ClInclude Include="src\Toast\Events\KeyEvent.h" />
     <ClInclude Include="src\Toast\Events\MouseEvent.h" />
     <ClInclude Include="src\Toast\ImGui\ImGuiLayer.h" />
+    <ClInclude Include="src\Toast\Input.h" />
     <ClInclude Include="src\Toast\Layer.h" />
     <ClInclude Include="src\Toast\LayerStack.h" />
     <ClInclude Include="src\Toast\Log.h" />
     <ClInclude Include="src\Toast\Platform\DirectX\imgui_impl_dx11.h" />
+    <ClInclude Include="src\Toast\Platform\Windows\WindowsInput.h" />
     <ClInclude Include="src\Toast\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Toast\Window.h" />
     <ClInclude Include="src\tpch.h" />
@@ -176,6 +175,7 @@
     <ClCompile Include="src\Toast\LayerStack.cpp" />
     <ClCompile Include="src\Toast\Log.cpp" />
     <ClCompile Include="src\Toast\Platform\DirectX\imgui_impl_dx11.cpp" />
+    <ClCompile Include="src\Toast\Platform\Windows\WindowsInput.cpp" />
     <ClCompile Include="src\Toast\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\tpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

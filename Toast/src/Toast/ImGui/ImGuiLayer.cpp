@@ -81,7 +81,7 @@ namespace Toast
 
 		Application& app = Application::Get();	
 
-		if (CreateDeviceD3D(app.GetWindow().GetWindowHandle()) < 0)
+		if (CreateDeviceD3D(app.GetWindow().GetNativeWindow()) < 0)
 			TOAST_ERROR("Error creating the D3D object");
 
 		ImGui::CreateContext();
@@ -135,7 +135,7 @@ namespace Toast
 		ImGui_ImplDX11_NewFrame();
 		ImGui::NewFrame();
 
-		ImVec4 clear_color = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
+		ImVec4 clear_color = ImVec4(0.45f, 0.0f, 0.0f, 1.0f);
 		static bool show = true;
 		ImGui::ShowDemoWindow(&show);
 
@@ -245,7 +245,7 @@ namespace Toast
 	{
 		CleanupRenderTarget();
 		g_pSwapChain->ResizeBuffers(0, (UINT)(e.GetWidth()), (UINT)(e.GetHeight()), DXGI_FORMAT_UNKNOWN, 0);
-		CreateRenderTarget();
+		CreateRenderTarget();	
 
 		ImGuiIO& io = ImGui::GetIO();
 		io.DisplaySize = ImVec2(e.GetWidth(), e.GetHeight());

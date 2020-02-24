@@ -65,6 +65,8 @@
       <Filter>Toast</Filter>
     </ClInclude>
     <ClInclude Include="src\tpch.h" />
+    <ClInclude Include="src\Toast\Input.h" />
+    <ClInclude Include="src\Toast\Platform\Windows\WindowsInput.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Toast\Application.cpp">
@@ -89,5 +91,6 @@
       <Filter>Toast\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\tpch.cpp" />
+    <ClCompile Include="src\Toast\Platform\Windows\WindowsInput.cpp" />
   </ItemGroup>
 </Project>
