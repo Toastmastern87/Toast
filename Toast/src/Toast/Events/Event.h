@@ -14,7 +14,7 @@ namespace Toast
 		None = 0,
 		WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMoved,
 		AppTick, AppUpdate, AppRender,
-		KeyPressed, KeyReleased,
+		KeyPressed, KeyReleased, KeyTyped,
 		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
 	};
 
@@ -61,7 +61,7 @@ namespace Toast
 		}
 
 		template<typename T>
-		bool Dispatcher(EventFn<T> func)
+		bool Dispatch(EventFn<T> func)
 		{
 			if (mEvent.GetEventType() == T::GetStaticType())
 			{

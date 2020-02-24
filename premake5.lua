@@ -1,4 +1,5 @@
 workspace "Toast"
+	startproject "Mars"
 	architecture "x64"
 
 	configurations
@@ -42,7 +43,8 @@ project "Toast"
 
 	links
 	{
-		"ImGui"
+		"ImGui",
+		"d3d11.lib"
 	}
 
 	filter "system:windows"

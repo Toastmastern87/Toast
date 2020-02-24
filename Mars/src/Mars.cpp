@@ -10,12 +10,12 @@ public:
 
 	void OnUpdate() override 
 	{
-		TOAST_INFO("ExampleLayer::Update");
+		//TOAST_INFO("ExampleLayer::Update");
 	}
 
 	void OnEvent(Toast::Event& e) override
 	{
-		TOAST_TRACE("{0}", e);
+		//TOAST_TRACE("{0}", e);
 	}
 };
 
