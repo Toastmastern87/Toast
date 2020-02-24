@@ -9,7 +9,7 @@
 #include <sysinfoapi.h>
 #include <d3d11.h>
 
-#pragma comment(lib, "d3d11.lib")
+//#pragma comment(lib, "d3d11.lib")
 
 namespace Toast 
 {
@@ -18,12 +18,20 @@ namespace Toast
 	static IDXGISwapChain* g_pSwapChain = NULL;
 	static ID3D11RenderTargetView* g_mainRenderTargetView = NULL;
 
+	static INT64 sTime = 0;
+	static INT64 sTicksPerSecond = 0;
+
 	void CreateRenderTarget()
 	{
 		ID3D11Texture2D* pBackBuffer;
 		g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
 		g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
 		pBackBuffer->Release();
+	}
+
+	void CleanupRenderTarget()
+	{
+		if (g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = NULL; }
 	}
 
 	HRESULT CreateDeviceD3D(HWND hWnd)
@@ -68,7 +76,8 @@ namespace Toast
 
 	void ImGuiLayer::OnAttach()
 	{
-		mOldTime = GetTickCount();
+		::QueryPerformanceFrequency((LARGE_INTEGER*)&sTicksPerSecond);
+		::QueryPerformanceCounter((LARGE_INTEGER*)&sTime);
 
 		Application& app = Application::Get();	
 
@@ -114,13 +123,14 @@ namespace Toast
 
 	void ImGuiLayer::OnUpdate()
 	{
-		mCurrentTime = GetTickCount();
-
 		ImGuiIO& io = ImGui::GetIO();
 		Application& app = Application::Get();
 		io.DisplaySize = ImVec2(app.GetWindow().GetWidth(), app.GetWindow().GetHeight());
 
-		io.DeltaTime = (double)(mCurrentTime - mOldTime);
+		INT64 currentTime;
+		::QueryPerformanceCounter((LARGE_INTEGER*)&currentTime);
+		io.DeltaTime = (float)(currentTime - sTime) / sTicksPerSecond;
+		sTime = currentTime;
 
 		ImGui_ImplDX11_NewFrame();
 		ImGui::NewFrame();
@@ -141,5 +151,106 @@ namespace Toast
 
 	void ImGuiLayer::OnEvent(Event& e)
 	{
+		EventDispatcher dispatcher(e);
+		dispatcher.Dispatch<MouseButtonPressedEvent>(TOAST_BIND_EVENT_FN(ImGuiLayer::OnMouseButtonPressedEvent));
+		dispatcher.Dispatch<MouseButtonReleasedEvent>(TOAST_BIND_EVENT_FN(ImGuiLayer::OnMouseButtonReleasedEvent));
+		dispatcher.Dispatch<MouseMovedEvent>(TOAST_BIND_EVENT_FN(ImGuiLayer::OnMouseMovedEvent));
+		dispatcher.Dispatch<MouseScrolledEvent>(TOAST_BIND_EVENT_FN(ImGuiLayer::OnMouseScrolledEvent));
+		dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(ImGuiLayer::OnKeyPressedEvent));
+		dispatcher.Dispatch<KeyReleasedEvent>(TOAST_BIND_EVENT_FN(ImGuiLayer::OnKeyReleasedEvent));
+		dispatcher.Dispatch<KeyTypedEvent>(TOAST_BIND_EVENT_FN(ImGuiLayer::OnKeyTypedEvent));
+		dispatcher.Dispatch<WindowResizeEvent>(TOAST_BIND_EVENT_FN(ImGuiLayer::OnWindowResizeEvent));
+	}
+
+	bool ImGuiLayer::OnMouseButtonPressedEvent(MouseButtonPressedEvent& e)
+	{
+		int button;
+
+		// Due to Win32 we need to remap the button for ImGui
+		if(e.GetMouseButton() == 1) { button = 0; }
+		if(e.GetMouseButton() == 2) { button = 1; }
+		if(e.GetMouseButton() == 16) { button = 2; }
+
+		ImGuiIO& io = ImGui::GetIO();
+		io.MouseDown[button] = true;
+
+		return false;
+	}
+
+	bool ImGuiLayer::OnMouseButtonReleasedEvent(MouseButtonReleasedEvent& e)
+	{
+		int button;
+
+		// Due to Win32 we need to remap the button for ImGui
+		if (e.GetMouseButton() == 1) { button = 0; }
+		if (e.GetMouseButton() == 2) { button = 1; }
+		if (e.GetMouseButton() == 16) { button = 2; }
+
+		ImGuiIO& io = ImGui::GetIO();
+		io.MouseDown[button] = false;
+
+		return false;
+	}
+
+	bool ImGuiLayer::OnMouseMovedEvent(MouseMovedEvent& e)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		io.MousePos = ImVec2(e.GetX(), e.GetY());
+
+		return false;
+	}
+
+	bool ImGuiLayer::OnMouseScrolledEvent(MouseScrolledEvent& e)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		io.MouseWheel += e.GetDelta() / (float)WHEEL_DELTA;
+
+		return false;
+	}
+
+	bool ImGuiLayer::OnKeyPressedEvent(KeyPressedEvent& e)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		io.KeysDown[e.GetKeyCode()] = true;
+
+		io.KeyCtrl = (::GetKeyState(VK_CONTROL) & 0x8000) != 0;
+		io.KeyShift = (::GetKeyState(VK_SHIFT) & 0x8000) != 0;
+		io.KeyAlt = (::GetKeyState(VK_MENU) & 0x8000) != 0;
+		io.KeySuper = false;
+
+		return false;
+	}
+
+	bool ImGuiLayer::OnKeyReleasedEvent(KeyReleasedEvent& e)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		io.KeysDown[e.GetKeyCode()] = false;
+
+		return false;
+	}
+
+	bool ImGuiLayer::OnKeyTypedEvent(KeyTypedEvent& e)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		int keycode = e.GetKeyCode();
+
+		if (keycode > 0 && keycode < 0x10000)
+			io.AddInputCharacter((unsigned short)keycode);
+
+		return false;
+	}
+
+	bool ImGuiLayer::OnWindowResizeEvent(WindowResizeEvent& e)
+	{
+		CleanupRenderTarget();
+		g_pSwapChain->ResizeBuffers(0, (UINT)(e.GetWidth()), (UINT)(e.GetHeight()), DXGI_FORMAT_UNKNOWN, 0);
+		CreateRenderTarget();
+
+		ImGuiIO& io = ImGui::GetIO();
+		io.DisplaySize = ImVec2(e.GetWidth(), e.GetHeight());
+		io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+
+		return false;
 	}
 }

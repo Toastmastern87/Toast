@@ -131,6 +131,14 @@ namespace Toast
 				data->EventCallback(event);
 				break;
 			}
+			case WM_CHAR:
+			{
+				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+
+				KeyTypedEvent event(static_cast<int>(wParam));
+				data->EventCallback(event);
+				break;
+			}
 			case WM_KEYDOWN:
 			{
 				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
