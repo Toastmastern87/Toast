@@ -10,6 +10,10 @@
 	#error Toast only supports Windows!
 #endif 
 
+#ifdef TOAST_DEBUG
+	#define TOAST_ENABLE_ASSERTS
+#endif
+
 #ifdef TOAST_ENABLE_ASSERTS
 	#define TOAST_ASSERT(x, ...) { if(!(x)) { TOAST_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } } 
 	#define TOAST_CORE_ASSERT(x, ...) { if(!(x)) { TOAST_CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } } 
