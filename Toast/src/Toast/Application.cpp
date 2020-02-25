@@ -3,7 +3,7 @@
 
 #include "Toast/Log.h"
 
-#include "Input.h"
+#include "Toast/Input.h"
 
 namespace Toast {
 

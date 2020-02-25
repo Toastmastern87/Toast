@@ -6,6 +6,10 @@
 #include "Toast/Layer.h"
 #include "Toast/Log.h"
 
+#include "Toast/Input.h"
+#include "Toast/KeyCodes.h"
+#include "Toast/MouseButtonCodes.h"
+
 #include "Toast/ImGui/ImGuiLayer.h"
 
 //-------Entry Point---------------------

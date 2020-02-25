@@ -159,9 +159,11 @@
     <ClInclude Include="src\Toast\Events\MouseEvent.h" />
     <ClInclude Include="src\Toast\ImGui\ImGuiLayer.h" />
     <ClInclude Include="src\Toast\Input.h" />
+    <ClInclude Include="src\Toast\KeyCodes.h" />
     <ClInclude Include="src\Toast\Layer.h" />
     <ClInclude Include="src\Toast\LayerStack.h" />
     <ClInclude Include="src\Toast\Log.h" />
+    <ClInclude Include="src\Toast\MouseButtonCodes.h" />
     <ClInclude Include="src\Toast\Platform\DirectX\imgui_impl_dx11.h" />
     <ClInclude Include="src\Toast\Platform\Windows\WindowsInput.h" />
     <ClInclude Include="src\Toast\Platform\Windows\WindowsWindow.h" />

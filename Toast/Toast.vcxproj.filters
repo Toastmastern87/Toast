@@ -67,6 +67,8 @@
     <ClInclude Include="src\tpch.h" />
     <ClInclude Include="src\Toast\Input.h" />
     <ClInclude Include="src\Toast\Platform\Windows\WindowsInput.h" />
+    <ClInclude Include="src\Toast\KeyCodes.h" />
+    <ClInclude Include="src\Toast\MouseButtonCodes.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Toast\Application.cpp">
