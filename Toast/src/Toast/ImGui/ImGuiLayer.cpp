@@ -5,6 +5,7 @@
 #include "Toast/Platform/DirectX/imgui_impl_dx11.h"
 
 #include "Toast/Application.h"
+#include "Toast/KeyCodes.h"
 
 #include <sysinfoapi.h>
 #include <d3d11.h>
@@ -91,28 +92,27 @@ namespace Toast
 		io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
 		io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
 
-		// Temporary, will use Toast key codes
-		io.KeyMap[ImGuiKey_Tab] = VK_TAB;
-		io.KeyMap[ImGuiKey_LeftArrow] = VK_LEFT;
-		io.KeyMap[ImGuiKey_RightArrow] = VK_RIGHT;
-		io.KeyMap[ImGuiKey_UpArrow] = VK_UP;
-		io.KeyMap[ImGuiKey_DownArrow] = VK_DOWN;
-		io.KeyMap[ImGuiKey_PageUp] = VK_PRIOR;
-		io.KeyMap[ImGuiKey_PageDown] = VK_NEXT;
-		io.KeyMap[ImGuiKey_Home] = VK_HOME;
-		io.KeyMap[ImGuiKey_End] = VK_END;
-		io.KeyMap[ImGuiKey_Insert] = VK_INSERT;
-		io.KeyMap[ImGuiKey_Delete] = VK_DELETE;
-		io.KeyMap[ImGuiKey_Backspace] = VK_BACK;
-		io.KeyMap[ImGuiKey_Space] = VK_SPACE;
-		io.KeyMap[ImGuiKey_Enter] = VK_RETURN;
-		io.KeyMap[ImGuiKey_Escape] = VK_ESCAPE;
-		io.KeyMap[ImGuiKey_A] = 'A';
-		io.KeyMap[ImGuiKey_C] = 'C';
-		io.KeyMap[ImGuiKey_V] = 'V';
-		io.KeyMap[ImGuiKey_X] = 'X';
-		io.KeyMap[ImGuiKey_Y] = 'Y';
-		io.KeyMap[ImGuiKey_Z] = 'Z';
+		io.KeyMap[ImGuiKey_Tab] = TOAST_TAB;
+		io.KeyMap[ImGuiKey_LeftArrow] = TOAST_LEFT;
+		io.KeyMap[ImGuiKey_RightArrow] = TOAST_RIGHT;
+		io.KeyMap[ImGuiKey_UpArrow] = TOAST_UP;
+		io.KeyMap[ImGuiKey_DownArrow] = TOAST_DOWN;
+		io.KeyMap[ImGuiKey_PageUp] = TOAST_PRIOR;
+		io.KeyMap[ImGuiKey_PageDown] = TOAST_NEXT;
+		io.KeyMap[ImGuiKey_Home] = TOAST_HOME;
+		io.KeyMap[ImGuiKey_End] = TOAST_END;
+		io.KeyMap[ImGuiKey_Insert] = TOAST_INSERT;
+		io.KeyMap[ImGuiKey_Delete] = TOAST_DELETE;
+		io.KeyMap[ImGuiKey_Backspace] = TOAST_BACK;
+		io.KeyMap[ImGuiKey_Space] = TOAST_SPACE;
+		io.KeyMap[ImGuiKey_Enter] = TOAST_RETURN;
+		io.KeyMap[ImGuiKey_Escape] = TOAST_ESCAPE;
+		io.KeyMap[ImGuiKey_A] = TOAST_A;
+		io.KeyMap[ImGuiKey_C] = TOAST_C;
+		io.KeyMap[ImGuiKey_V] = TOAST_V;
+		io.KeyMap[ImGuiKey_X] = TOAST_X;
+		io.KeyMap[ImGuiKey_Y] = TOAST_Y;
+		io.KeyMap[ImGuiKey_Z] = TOAST_Z;
 
 		ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
 	}
@@ -164,7 +164,7 @@ namespace Toast
 
 	bool ImGuiLayer::OnMouseButtonPressedEvent(MouseButtonPressedEvent& e)
 	{
-		int button;
+		int button = 0;
 
 		// Due to Win32 we need to remap the button for ImGui
 		if(e.GetMouseButton() == 1) { button = 0; }
@@ -179,12 +179,12 @@ namespace Toast
 
 	bool ImGuiLayer::OnMouseButtonReleasedEvent(MouseButtonReleasedEvent& e)
 	{
-		int button;
+		int button = 0;
 
 		// Due to Win32 we need to remap the button for ImGui
 		if (e.GetMouseButton() == 1) { button = 0; }
 		if (e.GetMouseButton() == 2) { button = 1; }
-		if (e.GetMouseButton() == 16) { button = 2; }
+		if (e.GetMouseButton() == 4) { button = 2; }
 
 		ImGuiIO& io = ImGui::GetIO();
 		io.MouseDown[button] = false;
@@ -213,9 +213,9 @@ namespace Toast
 		ImGuiIO& io = ImGui::GetIO();
 		io.KeysDown[e.GetKeyCode()] = true;
 
-		io.KeyCtrl = (::GetKeyState(VK_CONTROL) & 0x8000) != 0;
-		io.KeyShift = (::GetKeyState(VK_SHIFT) & 0x8000) != 0;
-		io.KeyAlt = (::GetKeyState(VK_MENU) & 0x8000) != 0;
+		io.KeyCtrl = (::GetKeyState(TOAST_CONTROL) & 0x8000) != 0;
+		io.KeyShift = (::GetKeyState(TOAST_SHIFT) & 0x8000) != 0;
+		io.KeyAlt = (::GetKeyState(TOAST_MENU) & 0x8000) != 0;
 		io.KeySuper = false;
 
 		return false;

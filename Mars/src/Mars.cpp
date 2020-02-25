@@ -11,6 +11,9 @@ public:
 	void OnUpdate() override 
 	{
 		//TOAST_INFO("ExampleLayer::Update");
+
+		if(Toast::Input::IsKeyPressed(TOAST_TAB))
+			TOAST_INFO("Tab key is pressed");
 	}
 
 	void OnEvent(Toast::Event& e) override
