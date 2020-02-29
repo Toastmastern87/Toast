@@ -13,9 +13,6 @@
     <Filter Include="Toast\Platform">
       <UniqueIdentifier>{C4CE01CD-B09C-F5D2-9930-66F9859DD137}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Toast\Platform\DirectX">
-      <UniqueIdentifier>{8635FA5F-722F-23B2-5B9C-B9C24735891E}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Toast\Platform\Windows">
       <UniqueIdentifier>{FEFC4316-EAF6-6C68-D363-0379BFFCD2D4}</UniqueIdentifier>
     </Filter>
@@ -46,6 +43,12 @@
     <ClInclude Include="src\Toast\ImGui\ImGuiLayer.h">
       <Filter>Toast\ImGui</Filter>
     </ClInclude>
+    <ClInclude Include="src\Toast\Input.h">
+      <Filter>Toast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Toast\KeyCodes.h">
+      <Filter>Toast</Filter>
+    </ClInclude>
     <ClInclude Include="src\Toast\Layer.h">
       <Filter>Toast</Filter>
     </ClInclude>
@@ -55,8 +58,11 @@
     <ClInclude Include="src\Toast\Log.h">
       <Filter>Toast</Filter>
     </ClInclude>
-    <ClInclude Include="src\Toast\Platform\DirectX\imgui_impl_dx11.h">
-      <Filter>Toast\Platform\DirectX</Filter>
+    <ClInclude Include="src\Toast\MouseButtonCodes.h">
+      <Filter>Toast</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Toast\Platform\Windows\WindowsInput.h">
+      <Filter>Toast\Platform\Windows</Filter>
     </ClInclude>
     <ClInclude Include="src\Toast\Platform\Windows\WindowsWindow.h">
       <Filter>Toast\Platform\Windows</Filter>
@@ -65,14 +71,13 @@
       <Filter>Toast</Filter>
     </ClInclude>
     <ClInclude Include="src\tpch.h" />
-    <ClInclude Include="src\Toast\Input.h" />
-    <ClInclude Include="src\Toast\Platform\Windows\WindowsInput.h" />
-    <ClInclude Include="src\Toast\KeyCodes.h" />
-    <ClInclude Include="src\Toast\MouseButtonCodes.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Toast\Application.cpp">
       <Filter>Toast</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Toast\ImGui\ImGuiBuild.cpp">
+      <Filter>Toast\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="src\Toast\ImGui\ImGuiLayer.cpp">
       <Filter>Toast\ImGui</Filter>
@@ -86,13 +91,12 @@
     <ClCompile Include="src\Toast\Log.cpp">
       <Filter>Toast</Filter>
     </ClCompile>
-    <ClCompile Include="src\Toast\Platform\DirectX\imgui_impl_dx11.cpp">
-      <Filter>Toast\Platform\DirectX</Filter>
+    <ClCompile Include="src\Toast\Platform\Windows\WindowsInput.cpp">
+      <Filter>Toast\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\Toast\Platform\Windows\WindowsWindow.cpp">
       <Filter>Toast\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\tpch.cpp" />
-    <ClCompile Include="src\Toast\Platform\Windows\WindowsInput.cpp" />
   </ItemGroup>
 </Project>

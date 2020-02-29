@@ -1,10 +1,13 @@
 #pragma once
 
+#include "Core.h"
+
 #include "Window.h"
 #include "Toast/LayerStack.h"
-#include "Core.h"
-#include "Events/Event.h"
+#include "Toast/Events/Event.h"
 #include "Toast/Events/ApplicationEvent.h"
+
+#include "Toast/ImGui/ImGuiLayer.h"
 
 namespace Toast {
 	class TOAST_API Application
@@ -27,6 +30,7 @@ namespace Toast {
 		bool OnWindowClose(WindowCloseEvent& e);
 
 		std::unique_ptr<Window> mWindow;
+		ImGuiLayer* mImGuiLayer;
 		bool mRunning = true;
 		LayerStack mLayerStack;
 
