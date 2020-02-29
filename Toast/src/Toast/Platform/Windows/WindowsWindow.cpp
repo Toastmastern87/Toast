@@ -5,6 +5,9 @@
 #include "Toast/Events/KeyEvent.h"
 #include "Toast/Events/MouseEvent.h"
 
+#include "imgui.h"
+IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 namespace Toast 
 {
 	static bool sWin32Initialized = false;
@@ -99,11 +102,14 @@ namespace Toast
 		return mData.VSync;
 	}
 
-	LRESULT CALLBACK WindowsWindow::WindowProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
+	LRESULT CALLBACK WindowsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		LRESULT result = NULL;
 
-		switch (uMessage)
+		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+			return true;
+
+		switch (msg)
 		{
 			case WM_SIZING:
 			{
@@ -216,7 +222,7 @@ namespace Toast
 				break;
 			}
 			default:
-				result = DefWindowProc(hWnd, uMessage, wParam, lParam);
+				result = DefWindowProc(hWnd, msg, wParam, lParam);
 		}
 
 		return result; 

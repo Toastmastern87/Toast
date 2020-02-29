@@ -21,7 +21,7 @@ namespace Toast
 
 		inline virtual HWND GetNativeWindow() const override { return mWin32Window; }
 
-		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam);
+		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
 	private:
 		virtual void Init(const WindowProps& props);

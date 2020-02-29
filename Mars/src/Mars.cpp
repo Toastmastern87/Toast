@@ -28,7 +28,6 @@ public:
 	Mars()
 	{
 		PushLayer(new ExampleLayer());
-		PushOverlay(new Toast::ImGuiLayer());
 	}
 
 	~Mars()

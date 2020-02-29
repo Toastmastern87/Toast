@@ -19,6 +19,9 @@ namespace Toast {
 
 		mWindow = std::unique_ptr<Window>(Window::Create());
 		mWindow->SetEventCallback(BIND_EVENT_FN(OnEvent));
+
+		mImGuiLayer = new ImGuiLayer();
+		PushOverlay(mImGuiLayer);
 	}
 
 	Application::~Application()
@@ -57,8 +60,10 @@ namespace Toast {
 			for (Layer* layer : mLayerStack)
 				layer->OnUpdate();
 
-			//auto [x, y] = Input::GetMousePosition();
-			//TOAST_CORE_TRACE("{0}, {1}", x, y	);
+			mImGuiLayer->Begin();
+			for (Layer* layer : mLayerStack)
+				layer->OnImGuiRender();
+			mImGuiLayer->End();
 
 			mWindow->OnUpdate();
 		}

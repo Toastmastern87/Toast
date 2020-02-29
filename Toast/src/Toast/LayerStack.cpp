@@ -5,7 +5,6 @@ namespace Toast
 {
 	LayerStack::LayerStack() 
 	{
-		mLayerInsert = mLayers.begin();
 	}
 
 	LayerStack::~LayerStack() 
@@ -16,7 +15,8 @@ namespace Toast
 
 	void LayerStack::PushLayer(Layer* layer) 
 	{
-		mLayerInsert = mLayers.emplace(mLayerInsert, layer);
+		mLayers.emplace(mLayers.begin() + mLayerInsertIndex, layer);
+		mLayerInsertIndex++;
 	}
 
 	void LayerStack::PushOverlay(Layer* overlay)
@@ -31,7 +31,7 @@ namespace Toast
 		if (it != mLayers.end()) 
 		{
 			mLayers.erase(it);
-			mLayerInsert--;
+			mLayerInsertIndex--;
 		}
 	}
 

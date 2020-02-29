@@ -164,7 +164,6 @@
     <ClInclude Include="src\Toast\LayerStack.h" />
     <ClInclude Include="src\Toast\Log.h" />
     <ClInclude Include="src\Toast\MouseButtonCodes.h" />
-    <ClInclude Include="src\Toast\Platform\DirectX\imgui_impl_dx11.h" />
     <ClInclude Include="src\Toast\Platform\Windows\WindowsInput.h" />
     <ClInclude Include="src\Toast\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Toast\Window.h" />
@@ -172,11 +171,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Toast\Application.cpp" />
+    <ClCompile Include="src\Toast\ImGui\ImGuiBuild.cpp" />
     <ClCompile Include="src\Toast\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="src\Toast\Layer.cpp" />
     <ClCompile Include="src\Toast\LayerStack.cpp" />
     <ClCompile Include="src\Toast\Log.cpp" />
-    <ClCompile Include="src\Toast\Platform\DirectX\imgui_impl_dx11.cpp" />
     <ClCompile Include="src\Toast\Platform\Windows\WindowsInput.cpp" />
     <ClCompile Include="src\Toast\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\tpch.cpp">
@@ -191,4 +190,4 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-</Project>
+</Project> 
