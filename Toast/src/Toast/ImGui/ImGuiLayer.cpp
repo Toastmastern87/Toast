@@ -19,12 +19,6 @@ namespace Toast
 	static IDXGISwapChain* g_pSwapChain = NULL;
 	static ID3D11RenderTargetView* g_mainRenderTargetView = NULL;
 
-	// Forward declarations of helper functions
-	//bool CreateDeviceD3D(HWND hWnd);
-	//void CleanupDeviceD3D();
-	//void CreateRenderTarget();
-	//void CleanupRenderTarget();
-
 	void CreateRenderTarget()
 	{
 		ID3D11Texture2D* pBackBuffer;
@@ -33,7 +27,6 @@ namespace Toast
 		pBackBuffer->Release();
 	}
 
-	// Forward declarations of helper functions
 	bool CreateDeviceD3D(HWND hWnd)
 	{
 		// Setup swap chain
@@ -97,7 +90,7 @@ namespace Toast
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-		//
+		io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 		io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
 
 		ImGui::StyleColorsDark();
@@ -139,12 +132,7 @@ namespace Toast
 
 		Application& app = Application::Get();
 
-		//Optimizing possible by checking if the window size have changed since last frame
-		io.DisplaySize = ImVec2(app.GetWindow().GetWidth(), app.GetWindow().GetHeight());
-
-		CleanupRenderTarget();
-		g_pSwapChain->ResizeBuffers(0, (UINT)(app.GetWindow().GetWidth()), (UINT)(app.GetWindow().GetHeight()), DXGI_FORMAT_UNKNOWN, 0);
-		CreateRenderTarget();
+		io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
 
 		ImGui::Render();
 		g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
@@ -157,12 +145,26 @@ namespace Toast
 			ImGui::RenderPlatformWindowsDefault();
 		}
 
-		g_pSwapChain->Present(1, 0);
+		g_pSwapChain->Present(0, 0);
+	}
+
+	bool ImGuiLayer::OnWindowResizeEvent(WindowResizeEvent& e)
+	{
+		CleanupRenderTarget();
+		g_pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
+		CreateRenderTarget();
+
+		return false;
 	}
 
 	void ImGuiLayer::OnImGuiRender()
 	{
 		static bool show = true;
 		ImGui::ShowDemoWindow(&show);
+	}
+	void ImGuiLayer::OnEvent(Event& e)
+	{
+	  	EventDispatcher dispatcher(e);
+		dispatcher.Dispatch<WindowResizeEvent>(TOAST_BIND_EVENT_FN(ImGuiLayer::OnWindowResizeEvent));
 	}
 }
