@@ -62,7 +62,7 @@ namespace Toast
 			TOAST_CORE_ERROR("Could not initialize the window class!");
 		}
 
-		mWin32Window = CreateWindowEx(0, wc.lpszClassName, mData.Title.c_str(), WS_OVERLAPPEDWINDOW, 0, 0, mData.Width, mData.Height, NULL, NULL, hInstance, NULL);
+		mWin32Window = CreateWindow(wc.lpszClassName, mData.Title.c_str(), WS_OVERLAPPEDWINDOW, 0, 0, mData.Width, mData.Height, NULL, NULL, wc.hInstance, NULL);
 
 		if (!sWin32Initialized)
 		{
@@ -72,7 +72,8 @@ namespace Toast
 		}
 
 		SetWindowLongPtr(mWin32Window, 0, (LONG_PTR)&mData);
-		ShowWindow(mWin32Window, SW_SHOW);
+		ShowWindow(mWin32Window, SW_SHOWDEFAULT);
+		UpdateWindow(mWin32Window);
 		SetFocus(mWin32Window);
 	}
 

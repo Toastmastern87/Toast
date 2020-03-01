@@ -1,11 +1,15 @@
 #pragma once
 
 #ifdef TOAST_PLATFORM_WINDOWS
+#if TOAST_DYNAMIC_LINK
 	#ifdef TOAST_BUILD_DLL
 		#define TOAST_API __declspec(dllexport)
 	#else
 		#define TOAST_API __declspec(dllimport)
 	#endif
+#else
+	#define TOAST_API
+#endif
 #else
 	#error Toast only supports Windows!
 #endif 
