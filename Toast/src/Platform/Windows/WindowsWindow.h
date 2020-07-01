@@ -20,6 +20,7 @@ namespace Toast
 		bool IsVSync() const override;
 
 		inline virtual HWND GetNativeWindow() const override { return mWin32Window; }
+		inline virtual GraphicsContext* GetGraphicsContext() const override { return mContext; }
 
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
@@ -29,12 +30,13 @@ namespace Toast
 
 	private:
 		HWND mWin32Window;
+		GraphicsContext* mContext;
 
 		struct WindowData 
 		{
 			std::string Title;
-			unsigned int Width, Height;
-			bool VSync;
+			unsigned int Width = 0, Height = 0;
+			bool VSync = false;
 
 			EventCallbackFn EventCallback;
 		};

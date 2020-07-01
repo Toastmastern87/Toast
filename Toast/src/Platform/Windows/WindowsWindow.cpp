@@ -5,6 +5,8 @@
 #include "Toast/Events/KeyEvent.h"
 #include "Toast/Events/MouseEvent.h"
 
+#include "Platform/DirectX/DirectXContext.h"
+
 #include "imgui.h"
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -71,6 +73,9 @@ namespace Toast
 			sWin32Initialized = true;
 		}
 
+		mContext = new DirectXContext(mWin32Window);
+		mContext->Init();
+
 		SetWindowLongPtr(mWin32Window, 0, (LONG_PTR)&mData);
 		ShowWindow(mWin32Window, SW_SHOWDEFAULT);
 		UpdateWindow(mWin32Window);
@@ -91,6 +96,8 @@ namespace Toast
 			TranslateMessage(&message);
 			DispatchMessage(&message);
 		}
+
+		mContext->SwapBuffers();
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)

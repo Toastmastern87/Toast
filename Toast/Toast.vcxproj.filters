@@ -61,16 +61,18 @@
     <ClInclude Include="src\Toast\MouseButtonCodes.h">
       <Filter>Toast</Filter>
     </ClInclude>
-    <ClInclude Include="src\Toast\Platform\Windows\WindowsInput.h">
-      <Filter>Toast\Platform\Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Toast\Platform\Windows\WindowsWindow.h">
-      <Filter>Toast\Platform\Windows</Filter>
-    </ClInclude>
     <ClInclude Include="src\Toast\Window.h">
       <Filter>Toast</Filter>
     </ClInclude>
     <ClInclude Include="src\tpch.h" />
+    <ClInclude Include="src\Platform\Windows\WindowsInput.h">
+      <Filter>Toast\Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Windows\WindowsWindow.h">
+      <Filter>Toast\Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Toast\Renderer\GraphicsContext.h" />
+    <ClInclude Include="src\Platform\DirectX\DirectXContext.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Toast\Application.cpp">
@@ -91,12 +93,13 @@
     <ClCompile Include="src\Toast\Log.cpp">
       <Filter>Toast</Filter>
     </ClCompile>
-    <ClCompile Include="src\Toast\Platform\Windows\WindowsInput.cpp">
-      <Filter>Toast\Platform\Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Toast\Platform\Windows\WindowsWindow.cpp">
-      <Filter>Toast\Platform\Windows</Filter>
-    </ClCompile>
     <ClCompile Include="src\tpch.cpp" />
+    <ClCompile Include="src\Platform\Windows\WindowsInput.cpp">
+      <Filter>Toast\Platform\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp">
+      <Filter>Toast\Platform\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\DirectX\DirectXContext.cpp" />
   </ItemGroup>
 </Project>
