@@ -140,6 +140,7 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Platform\DirectX\DirectXContext.h" />
     <ClInclude Include="src\Toast.h" />
     <ClInclude Include="src\Toast\Application.h" />
     <ClInclude Include="src\Toast\Core.h" />
@@ -155,20 +156,22 @@
     <ClInclude Include="src\Toast\LayerStack.h" />
     <ClInclude Include="src\Toast\Log.h" />
     <ClInclude Include="src\Toast\MouseButtonCodes.h" />
-    <ClInclude Include="src\Toast\Platform\Windows\WindowsInput.h" />
-    <ClInclude Include="src\Toast\Platform\Windows\WindowsWindow.h" />
+    <ClInclude Include="src\Platform\Windows\WindowsInput.h" />
+    <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
+    <ClInclude Include="src\Toast\Renderer\GraphicsContext.h" />
     <ClInclude Include="src\Toast\Window.h" />
     <ClInclude Include="src\tpch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Platform\DirectX\DirectXContext.cpp" />
     <ClCompile Include="src\Toast\Application.cpp" />
     <ClCompile Include="src\Toast\ImGui\ImGuiBuild.cpp" />
     <ClCompile Include="src\Toast\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="src\Toast\Layer.cpp" />
     <ClCompile Include="src\Toast\LayerStack.cpp" />
     <ClCompile Include="src\Toast\Log.cpp" />
-    <ClCompile Include="src\Toast\Platform\Windows\WindowsInput.cpp" />
-    <ClCompile Include="src\Toast\Platform\Windows\WindowsWindow.cpp" />
+    <ClCompile Include="src\Platform\Windows\WindowsInput.cpp" />
+    <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\tpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
