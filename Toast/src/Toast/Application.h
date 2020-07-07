@@ -28,6 +28,7 @@ namespace Toast {
 		inline static Application& Get() { return *sInstance; }
 	private:
 		bool OnWindowClose(WindowCloseEvent& e);
+		bool OnWindowResize(WindowResizeEvent& e);
 
 		std::unique_ptr<Window> mWindow;
 		ImGuiLayer* mImGuiLayer;

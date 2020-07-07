@@ -1,5 +1,7 @@
 #include <Toast.h>
 
+#include "imgui.h"
+
 class ExampleLayer : public Toast::Layer 
 {
 public:
@@ -13,12 +15,25 @@ public:
 		//TOAST_INFO("ExampleLayer::Update");
 
 		if(Toast::Input::IsKeyPressed(TOAST_TAB))
-			TOAST_INFO("Tab key is pressed");
+			TOAST_INFO("Tab key is pressed (poll)");
 	}
 
-	void OnEvent(Toast::Event& e) override
+	virtual void OnImGuiRender() override
 	{
-		//TOAST_TRACE("{0}", e);
+		ImGui::Begin("Test");
+		ImGui::Text("Hello World");
+		ImGui::End();
+	}
+
+	void OnEvent(Toast::Event& event) override
+	{
+		if (event.GetEventType() == Toast::EventType::KeyPressed)
+		{
+			Toast::KeyPressedEvent& e = (Toast::KeyPressedEvent&)event;
+			if (e.GetKeyCode() == TOAST_TAB)
+				TOAST_TRACE("Tab key is pressed (event)!");
+			TOAST_TRACE("{0}", e.GetKeyCode());
+		}
 	}
 };
 

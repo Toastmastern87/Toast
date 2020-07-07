@@ -87,7 +87,7 @@ namespace Toast
 		DestroyWindow(mWin32Window);
 	}
 
-	void WindowsWindow::OnUpdate() 
+	void WindowsWindow::Start() 
 	{
 		MSG message;
 
@@ -97,7 +97,12 @@ namespace Toast
 			DispatchMessage(&message);
 		}
 
-		mContext->SwapBuffers();
+		mContext->StartScene();
+	}
+
+	void WindowsWindow::End()
+	{
+		mContext->EndScene();
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)
@@ -108,6 +113,11 @@ namespace Toast
 	bool WindowsWindow::IsVSync() const 
 	{
 		return mData.VSync;
+	}
+
+	void WindowsWindow::OnResize() const
+	{
+		mContext->ResizeContext();
 	}
 
 	LRESULT CALLBACK WindowsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -129,6 +139,7 @@ namespace Toast
 
 				WindowResizeEvent event((unsigned int)(rect.right - rect.left), (unsigned int)(rect.bottom - rect.top));
 				data->EventCallback(event);
+
 				break;
 			}
 			case WM_CLOSE:
