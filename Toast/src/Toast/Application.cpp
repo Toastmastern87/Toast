@@ -44,6 +44,7 @@ namespace Toast {
 	{
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
+		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(OnWindowResize));
 
 		for (auto it = mLayerStack.end(); it != mLayerStack.begin(); ) 
 		{
@@ -57,21 +58,30 @@ namespace Toast {
 	{
 		while (mRunning) 
 		{
-			for (Layer* layer : mLayerStack)
+			mWindow->Start();
+
+			for (Layer* layer : mLayerStack) 
 				layer->OnUpdate();
 
 			mImGuiLayer->Begin();
-			for (Layer* layer : mLayerStack)
+			for (Layer* layer : mLayerStack) 
 				layer->OnImGuiRender();
 			mImGuiLayer->End();
 
-			mWindow->OnUpdate();
+			mWindow->End();
 		}
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e)
 	{
 		mRunning = false;
+
+		return true;
+	}
+
+	bool Application::OnWindowResize(WindowResizeEvent& e)
+	{
+		mWindow->OnResize();
 
 		return true;
 	}

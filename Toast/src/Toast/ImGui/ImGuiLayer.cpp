@@ -45,7 +45,6 @@ namespace Toast
 		}
 
 		Application& app = Application::Get();
-
 		ID3D11Device* d3d11Device = app.GetWindow().GetGraphicsContext()->GetD3D11Device();
 		ID3D11DeviceContext* d3dDeviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
 
@@ -76,7 +75,6 @@ namespace Toast
 		io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
 
 		ImGui::Render();
-
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -86,24 +84,9 @@ namespace Toast
 		}
 	}
 
-	bool ImGuiLayer::OnWindowResizeEvent(WindowResizeEvent& e)
-	{
-		//CleanupRenderTarget();
-		//g_pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
-		//CreateRenderTarget();
-
-		return false;
-	}
-
 	void ImGuiLayer::OnImGuiRender()
 	{
 		static bool show = true;
 		ImGui::ShowDemoWindow(&show);
-	}
-
-	void ImGuiLayer::OnEvent(Event& e)
-	{
-	  	EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<WindowResizeEvent>(TOAST_BIND_EVENT_FN(ImGuiLayer::OnWindowResizeEvent));
 	}
 }

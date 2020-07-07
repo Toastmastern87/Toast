@@ -37,17 +37,29 @@ namespace Toast
 
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create DirectX device and swapchain");
 
+		LogAdapterInfo();
+
 		CreateRenderTarget();
 	}
 
-	void DirectXContext::SwapBuffers()
+	void DirectXContext::StartScene()
 	{
 		const float clear_color[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
 
 		mD3dDeviceContext->OMSetRenderTargets(1, &mRenderTargetView, NULL);
 		mD3dDeviceContext->ClearRenderTargetView(mRenderTargetView, clear_color);
+	}
 
+	void DirectXContext::EndScene()
+	{
 		mSwapChain->Present(0, 0);
+	}
+
+	void DirectXContext::ResizeContext()
+	{
+		CleanupRenderTarget();
+		mSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
+		CreateRenderTarget();
 	}
 
 	void DirectXContext::CreateRenderTarget()
@@ -65,5 +77,47 @@ namespace Toast
 			mRenderTargetView->Release(); 
 			mRenderTargetView = NULL; 
 		}
+	}
+
+	void DirectXContext::LogAdapterInfo()
+	{
+		IDXGIFactory* factory = NULL;
+		IDXGIAdapter* adapter = NULL;
+		DXGI_ADAPTER_DESC adapterDesc;
+
+		CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&factory);
+
+		factory->EnumAdapters(0, &adapter);
+
+		adapter->GetDesc(&adapterDesc);
+
+		char videoCardDescription[128];
+		std::string vendor, major, minor, release, build;
+		LARGE_INTEGER driverVersion;
+
+		wcstombs_s(NULL, videoCardDescription, 128, adapterDesc.Description, 128);
+
+		if (adapterDesc.VendorId == 0x10DE)
+			vendor = "NVIDIA Corporation";
+		else if(adapterDesc.VendorId == 0x1002)
+			vendor = "AMD";
+		else if (adapterDesc.VendorId == 0x8086)
+			vendor = "Intel";
+		else if (adapterDesc.VendorId == 0x1414)
+			vendor = "Microsoft";
+		else
+			vendor = "Unknown vendor!";
+
+		adapter->CheckInterfaceSupport(__uuidof(IDXGIDevice), &driverVersion);
+
+		major = std::to_string(HIWORD(driverVersion.HighPart));
+		minor = std::to_string(LOWORD(driverVersion.HighPart));
+		release = std::to_string(HIWORD(driverVersion.LowPart));
+		build = std::to_string(LOWORD(driverVersion.LowPart));
+
+		TOAST_CORE_INFO("DirectX Information:");
+		TOAST_CORE_INFO("  Vendor: {0}", vendor);
+		TOAST_CORE_INFO("  Renderer: {0}", videoCardDescription);
+		TOAST_CORE_INFO("  Version: {0}.{1}.{2}.{3}", major, minor, release, build);
 	}
 }
