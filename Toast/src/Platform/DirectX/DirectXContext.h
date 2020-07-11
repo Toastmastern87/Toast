@@ -9,10 +9,10 @@ namespace Toast
 	public:
 		DirectXContext(HWND windowHandle);
 
-		virtual void Init() override;
+		virtual void Init(UINT width, UINT height) override;
 		virtual void StartScene() override;
 		virtual void EndScene() override;
-		virtual void ResizeContext() override;
+		virtual void ResizeContext(UINT width, UINT height) override;
 
 		virtual ID3D11Device* GetD3D11Device() override { return mD3dDevice; }
 		virtual ID3D11DeviceContext* GetD3D11DeviceContext() override { return mD3dDeviceContext; }
@@ -20,6 +20,7 @@ namespace Toast
 	private:
 		void CreateRenderTarget();
 		void CleanupRenderTarget();
+		void SetViewport(UINT width, UINT height);
 
 		void LogAdapterInfo();
 

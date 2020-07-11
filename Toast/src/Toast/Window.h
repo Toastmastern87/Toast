@@ -44,7 +44,7 @@ namespace Toast
 
 		static Window* Create(const WindowProps& props = WindowProps());
 
-		virtual void OnResize() const = 0;
+		virtual void OnResize(UINT width, UINT height) const = 0;
 
 		virtual HWND GetNativeWindow() const = 0;
 		virtual GraphicsContext* GetGraphicsContext() const = 0;

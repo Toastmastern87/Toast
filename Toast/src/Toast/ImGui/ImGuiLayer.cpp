@@ -5,8 +5,6 @@
 
 #include "Toast/Application.h"
 
-#include <d3d11.h>
-
 #include "examples/imgui_impl_dx11.h"
 #include "examples/imgui_impl_win32.h"
 
@@ -69,11 +67,6 @@ namespace Toast
 	void ImGuiLayer::End()
 	{
 		ImGuiIO& io = ImGui::GetIO();
-
-		Application& app = Application::Get();
-
-		io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
-
 		ImGui::Render();
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 

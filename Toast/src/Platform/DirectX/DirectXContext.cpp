@@ -9,14 +9,14 @@ namespace Toast
 		TOAST_CORE_ASSERT(mWindowHandle, "Window handle is null!");
 	}
 
-	void DirectXContext::Init()
+	void DirectXContext::Init(UINT width, UINT height)
 	{
 		// Setup swap chain
 		DXGI_SWAP_CHAIN_DESC sd;
 		ZeroMemory(&sd, sizeof(sd));
 		sd.BufferCount = 2;
-		sd.BufferDesc.Width = 0;
-		sd.BufferDesc.Height = 0;
+		sd.BufferDesc.Width = width;
+		sd.BufferDesc.Height = height;
 		sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		sd.BufferDesc.RefreshRate.Numerator = 60;
 		sd.BufferDesc.RefreshRate.Denominator = 1;
@@ -29,7 +29,7 @@ namespace Toast
 		sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
 		UINT createDeviceFlags = 0;
-		createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+		//createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 		D3D_FEATURE_LEVEL featureLevel;
 		const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
 
@@ -40,6 +40,8 @@ namespace Toast
 		LogAdapterInfo();
 
 		CreateRenderTarget();
+
+		SetViewport(width, height);
 	}
 
 	void DirectXContext::StartScene()
@@ -55,10 +57,15 @@ namespace Toast
 		mSwapChain->Present(0, 0);
 	}
 
-	void DirectXContext::ResizeContext()
+	void DirectXContext::ResizeContext(UINT width, UINT height)
 	{
+		RECT clientRect;
+
+		GetClientRect(mWindowHandle, &clientRect);
+
 		CleanupRenderTarget();
-		mSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
+		SetViewport(width, height);
+		mSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 		CreateRenderTarget();
 	}
 
@@ -77,6 +84,24 @@ namespace Toast
 			mRenderTargetView->Release(); 
 			mRenderTargetView = NULL; 
 		}
+	}
+
+	void DirectXContext::SetViewport(UINT width, UINT height)
+	{
+		D3D11_VIEWPORT viewport;
+		ZeroMemory(&viewport, sizeof(D3D11_VIEWPORT));
+
+		RECT clientRect;
+		GetClientRect(mWindowHandle, &clientRect);
+
+		viewport.TopLeftX = (float)clientRect.left;
+		viewport.TopLeftY = (float)clientRect.top;
+		viewport.Width = (float)width;
+		viewport.Height = (float)height;
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+
+		mD3dDeviceContext->RSSetViewports(1, &viewport);
 	}
 
 	void DirectXContext::LogAdapterInfo()

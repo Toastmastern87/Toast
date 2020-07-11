@@ -73,6 +73,7 @@
     </ClInclude>
     <ClInclude Include="src\Toast\Renderer\GraphicsContext.h" />
     <ClInclude Include="src\Platform\DirectX\DirectXContext.h" />
+    <ClInclude Include="src\Toast\Renderer\Shader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Toast\Application.cpp">
@@ -101,5 +102,10 @@
       <Filter>Toast\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\DirectX\DirectXContext.cpp" />
+    <ClCompile Include="src\Toast\Renderer\Shader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="src\Toast\Renderer\ShaderTest_Vs.hlsl" />
+    <FxCompile Include="src\Toast\Renderer\ShaderTest_ps.hlsl" />
   </ItemGroup>
 </Project>

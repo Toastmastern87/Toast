@@ -9,6 +9,8 @@
 
 #include "Toast/ImGui/ImGuiLayer.h"
 
+#include "Toast/Renderer/Shader.h"
+
 namespace Toast {
 	class TOAST_API Application
 	{
@@ -35,6 +37,7 @@ namespace Toast {
 		bool mRunning = true;
 		LayerStack mLayerStack;
 
+		std::unique_ptr<Shader> mShader;
 	private:
 		static Application* sInstance;
 	};

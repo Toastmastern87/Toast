@@ -1,6 +1,8 @@
 #include "tpch.h"
 #include "WindowsWindow.h"
 
+#include "Toast/Application.h"
+
 #include "Toast/Events/ApplicationEvent.h"
 #include "Toast/Events/KeyEvent.h"
 #include "Toast/Events/MouseEvent.h"
@@ -8,11 +10,14 @@
 #include "Platform/DirectX/DirectXContext.h"
 
 #include "imgui.h"
-IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace Toast 
 {
 	static bool sWin32Initialized = false;
+
+	static int windowCreationBlocking = 0;
 
 	HINSTANCE hInstance;
 
@@ -48,6 +53,7 @@ namespace Toast
 
 		WNDCLASSEX wc = {};
 		wc.lpfnWndProc = WindowProc;
+		wc.style = CS_CLASSDC;
 		wc.hInstance = hInstance;
 		wc.lpszClassName = "Toast Win32 Window";
 		wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
@@ -66,6 +72,9 @@ namespace Toast
 
 		mWin32Window = CreateWindow(wc.lpszClassName, mData.Title.c_str(), WS_OVERLAPPEDWINDOW, 0, 0, mData.Width, mData.Height, NULL, NULL, wc.hInstance, NULL);
 
+		RECT clientRect;
+		GetClientRect(mWin32Window, &clientRect);
+
 		if (!sWin32Initialized)
 		{
 			TOAST_CORE_ASSERT(mWin32Window, "Could not initialize Win32!");
@@ -74,7 +83,7 @@ namespace Toast
 		}
 
 		mContext = new DirectXContext(mWin32Window);
-		mContext->Init();
+		mContext->Init((clientRect.right - clientRect.left), (clientRect.bottom - clientRect.top));
 
 		SetWindowLongPtr(mWin32Window, 0, (LONG_PTR)&mData);
 		ShowWindow(mWin32Window, SW_SHOWDEFAULT);
@@ -115,9 +124,9 @@ namespace Toast
 		return mData.VSync;
 	}
 
-	void WindowsWindow::OnResize() const
+	void WindowsWindow::OnResize(UINT width, UINT height) const
 	{
-		mContext->ResizeContext();
+		mContext->ResizeContext(width, height);
 	}
 
 	LRESULT CALLBACK WindowsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -129,16 +138,19 @@ namespace Toast
 
 		switch (msg)
 		{
-			case WM_SIZING:
+			case WM_SIZE: 
 			{
-				RECT rect = *((PRECT)lParam);
+				if (windowCreationBlocking > 0 && wParam != SIZE_MINIMIZED)
+				{
+					WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+					data->Width = (UINT)LOWORD(lParam);
+					data->Height = (UINT)HIWORD(lParam);
 
-				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
-				data->Width = (unsigned int)(rect.right - rect.left);
-				data->Height = (unsigned int)(rect.bottom - rect.top);
+					WindowResizeEvent event((UINT)LOWORD(lParam), (UINT)HIWORD(lParam));
+					data->EventCallback(event);
+				}
 
-				WindowResizeEvent event((unsigned int)(rect.right - rect.left), (unsigned int)(rect.bottom - rect.top));
-				data->EventCallback(event);
+				windowCreationBlocking++;
 
 				break;
 			}
