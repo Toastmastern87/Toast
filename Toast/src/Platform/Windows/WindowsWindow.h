@@ -20,7 +20,7 @@ namespace Toast
 		void SetVSync(bool enabled) override;
 		bool IsVSync() const override;
 
-		void OnResize() const override;
+		void OnResize(UINT width, UINT height) const override;
 
 		inline virtual HWND GetNativeWindow() const override { return mWin32Window; }
 		inline virtual GraphicsContext* GetGraphicsContext() const override { return mContext; }

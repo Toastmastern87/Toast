@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImGui", "Toast\vendor\imgui
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Toast", "Toast\Toast.vcxproj", "{70942D0E-DCA8-55BF-A52A-F91E11FE51F0}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dependencies", "Dependencies", "{CABC35C3-4202-4927-BA1C-2B119C4C7B5E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -37,6 +39,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C0FF640D-2C14-8DBE-F595-301E616989EF} = {CABC35C3-4202-4927-BA1C-2B119C4C7B5E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4C577AF8-D95A-4BC7-9A91-DD22DD1F2DE4}

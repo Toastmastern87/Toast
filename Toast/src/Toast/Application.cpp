@@ -22,6 +22,8 @@ namespace Toast {
 
 		mImGuiLayer = new ImGuiLayer();
 		PushOverlay(mImGuiLayer);
+
+		mShader.reset(new Shader("../Toast/src/Toast/Renderer/ShaderTest_Vs.hlsl", "../Toast/src/Toast/Renderer/ShaderTest_ps.hlsl"));
 	}
 
 	Application::~Application()
@@ -60,6 +62,8 @@ namespace Toast {
 		{
 			mWindow->Start();
 
+			mShader->Bind();
+
 			for (Layer* layer : mLayerStack) 
 				layer->OnUpdate();
 
@@ -81,7 +85,7 @@ namespace Toast {
 
 	bool Application::OnWindowResize(WindowResizeEvent& e)
 	{
-		mWindow->OnResize();
+		mWindow->OnResize((UINT)(e.GetWidth()), (UINT)(e.GetHeight()));
 
 		return true;
 	}
