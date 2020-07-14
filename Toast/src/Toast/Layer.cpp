@@ -7,8 +7,4 @@ namespace Toast
 		: mDebugName(debugName)
 	{
 	}
-
-	Layer::~Layer() 
-	{
-	}
 }
