@@ -54,7 +54,8 @@ project "Toast"
 	links
 	{
 		"ImGui",
-		"d3d11.lib"
+		"d3d11.lib",
+		"dxgi.lib"
 	}
 
 	filter "system:windows"
@@ -100,7 +101,8 @@ project "Mars"
 	includedirs
 	{
 		"Toast/vendor/spdlog/include",
-		"Toast/src"
+		"Toast/src",
+		"Toast/vendor"
 	}
 
 	links
