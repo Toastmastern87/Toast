@@ -15,10 +15,6 @@ namespace Toast
 	{
 	}
 
-	ImGuiLayer::~ImGuiLayer()
-	{
-	}
-
 	void ImGuiLayer::OnAttach()
 	{
 		ImGui_ImplWin32_EnableDpiAwareness();

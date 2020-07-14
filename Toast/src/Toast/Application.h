@@ -10,13 +10,14 @@
 #include "Toast/ImGui/ImGuiLayer.h"
 
 #include "Toast/Renderer/Shader.h"
+#include "Toast/Renderer/Buffer.h"
 
 namespace Toast {
 	class TOAST_API Application
 	{
 	public:
 		Application();
-		virtual ~Application();
+		virtual ~Application() = default;
 
 		void Run();
 
@@ -38,6 +39,8 @@ namespace Toast {
 		LayerStack mLayerStack;
 
 		std::unique_ptr<Shader> mShader;
+		std::unique_ptr<VertexBuffer> mVertexBuffer;
+		std::unique_ptr<IndexBuffer> mIndexBuffer;
 	private:
 		static Application* sInstance;
 	};

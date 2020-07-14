@@ -74,6 +74,9 @@
     <ClInclude Include="src\Toast\Renderer\GraphicsContext.h" />
     <ClInclude Include="src\Platform\DirectX\DirectXContext.h" />
     <ClInclude Include="src\Toast\Renderer\Shader.h" />
+    <ClInclude Include="src\Toast\Renderer\Buffer.h" />
+    <ClInclude Include="src\Platform\DirectX\DirectXBuffer.h" />
+    <ClInclude Include="src\Toast\Renderer\Renderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Toast\Application.cpp">
@@ -103,6 +106,9 @@
     </ClCompile>
     <ClCompile Include="src\Platform\DirectX\DirectXContext.cpp" />
     <ClCompile Include="src\Toast\Renderer\Shader.cpp" />
+    <ClCompile Include="src\Toast\Renderer\Buffer.cpp" />
+    <ClCompile Include="src\Platform\DirectX\DirectXBuffer.cpp" />
+    <ClCompile Include="src\Toast\Renderer\Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\Toast\Renderer\ShaderTest_Vs.hlsl" />

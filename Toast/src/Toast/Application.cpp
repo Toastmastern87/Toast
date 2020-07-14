@@ -23,11 +23,19 @@ namespace Toast {
 		mImGuiLayer = new ImGuiLayer();
 		PushOverlay(mImGuiLayer);
 
-		mShader.reset(new Shader("../Toast/src/Toast/Renderer/ShaderTest_Vs.hlsl", "../Toast/src/Toast/Renderer/ShaderTest_ps.hlsl"));
-	}
+		float vertices[3 * 3] = {
+			-0.5f, -0.5f, 0.0f,
+			0.5f, -0.5f, 0.0f,
+			0.0f, 0.5f, 0.0f
+		};
 
-	Application::~Application()
-	{
+		mVertexBuffer.reset(VertexBuffer::Create(vertices, sizeof(vertices)));
+
+		uint32_t indices[3] = { 0, 1, 2 };
+
+		mIndexBuffer.reset(IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
+
+		mShader.reset(new Shader("../Toast/src/Toast/Renderer/ShaderTest_Vs.hlsl", "../Toast/src/Toast/Renderer/ShaderTest_ps.hlsl"));
 	}
 
 	void Application::PushLayer(Layer* layer) 
