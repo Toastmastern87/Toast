@@ -29,7 +29,9 @@ namespace Toast
 		sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
 		UINT createDeviceFlags = 0;
-		//createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#ifdef TOAST_DEBUG
+		createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
 		D3D_FEATURE_LEVEL featureLevel;
 		const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
 
@@ -42,6 +44,8 @@ namespace Toast
 		CreateRenderTarget();
 
 		SetViewport(width, height);
+
+		mD3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
 
 	void DirectXContext::StartScene()

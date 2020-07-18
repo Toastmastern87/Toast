@@ -10,7 +10,6 @@ namespace Toast {
 	Shader::Shader(const std::string& vertexSrc, const std::string& pixelSrc)
 	{
 		HRESULT result;
-		ID3D10Blob* VSRaw = nullptr;
 		ID3D10Blob* PSRaw = nullptr;
 		ID3D10Blob* errorRaw = nullptr;
 		std::wstring stemp;
@@ -27,7 +26,7 @@ namespace Toast {
 									"vs_5_0", 
 									D3D10_SHADER_ENABLE_STRICTNESS,
 									0,
-									&VSRaw,
+									&mVSRaw,
 									&errorRaw);
 
 		if (FAILED(result))	{
@@ -45,10 +44,8 @@ namespace Toast {
 			return;
 		}
 
-		result = device->CreateVertexShader(VSRaw->GetBufferPointer(), VSRaw->GetBufferSize(), NULL, &mVertexShader);
+		result = device->CreateVertexShader(mVSRaw->GetBufferPointer(), mVSRaw->GetBufferSize(), NULL, &mVertexShader);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create vertex shader: {0}", vertexSrc);
-
-		VSRaw->Release();
 
 		stemp = std::wstring(pixelSrc.begin(), pixelSrc.end());
 
