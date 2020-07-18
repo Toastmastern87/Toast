@@ -56,7 +56,7 @@ namespace Toast {
 
 		deviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
 
-		uint32_t stride[] = { sizeof(float) * 3 };
+		uint32_t stride[] = { sizeof(float) * 7 };
 		uint32_t offset[] = { 0 };
 
 		deviceContext->IASetVertexBuffers(0, 1, &mVertexBuffer, stride, offset);
@@ -123,9 +123,6 @@ namespace Toast {
 		ID3D11DeviceContext* deviceContext;
 
 		deviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
-
-		uint32_t stride[] = { sizeof(float) * 3 };
-		uint32_t offset[] = { 0 };
 
 		deviceContext->IASetIndexBuffer(mIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	}

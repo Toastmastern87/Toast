@@ -37,6 +37,7 @@ namespace Toast {
 		ImGuiLayer* mImGuiLayer;
 		bool mRunning = true;
 		LayerStack mLayerStack;
+		ID3D11InputLayout* mInputLayout;
 
 		std::unique_ptr<Shader> mShader;
 		std::unique_ptr<VertexBuffer> mVertexBuffer;
