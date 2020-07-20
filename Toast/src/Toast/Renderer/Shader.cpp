@@ -15,7 +15,8 @@ namespace Toast {
 		std::wstring stemp;
 
 		Application& app = Application::Get();
-		ID3D11Device* device = app.GetWindow().GetGraphicsContext()->GetD3D11Device();
+		mDevice = app.GetWindow().GetGraphicsContext()->GetD3D11Device();
+		mDeviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
 
 		stemp = std::wstring(vertexSrc.begin(), vertexSrc.end());
 
@@ -44,7 +45,7 @@ namespace Toast {
 			return;
 		}
 
-		result = device->CreateVertexShader(mVSRaw->GetBufferPointer(), mVSRaw->GetBufferSize(), NULL, &mVertexShader);
+		result = mDevice->CreateVertexShader(mVSRaw->GetBufferPointer(), mVSRaw->GetBufferSize(), NULL, &mVertexShader);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create vertex shader: {0}", vertexSrc);
 
 		stemp = std::wstring(pixelSrc.begin(), pixelSrc.end());
@@ -75,7 +76,7 @@ namespace Toast {
 			return;
 		}
 
-		result = device->CreatePixelShader(PSRaw->GetBufferPointer(), PSRaw->GetBufferSize(), NULL, &mPixelShader);
+		result = mDevice->CreatePixelShader(PSRaw->GetBufferPointer(), PSRaw->GetBufferSize(), NULL, &mPixelShader);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create pixel shader: {0}", pixelSrc);
 
 		PSRaw->Release();
@@ -92,22 +93,16 @@ namespace Toast {
 
 	void Shader::Bind() const
 	{
-		Application& app = Application::Get();
-		ID3D11DeviceContext* deviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
-
-		deviceContext->VSSetShader(mVertexShader, 0, 0);
-		deviceContext->PSSetShader(mPixelShader, 0, 0);
+		mDeviceContext->VSSetShader(mVertexShader, 0, 0);
+		mDeviceContext->PSSetShader(mPixelShader, 0, 0);
 	}
 
 	void Shader::Unbind() const
 	{
-		Application& app = Application::Get();
-		ID3D11DeviceContext* deviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
-
 		ID3D11VertexShader* nullVertexShader = nullptr;
 		ID3D11PixelShader* nullPixelShader = nullptr;
 
-		deviceContext->VSSetShader(nullVertexShader, 0, 0);
-		deviceContext->PSSetShader(nullPixelShader, 0, 0);
+		mDeviceContext->VSSetShader(nullVertexShader, 0, 0);
+		mDeviceContext->PSSetShader(nullPixelShader, 0, 0);
 	}
 }

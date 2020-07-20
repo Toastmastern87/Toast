@@ -49,6 +49,9 @@ namespace Toast {
 		uint32_t mStride;
 		std::vector<BufferElement> mElements;
 		ID3D11InputLayout* mInputLayout;
+		
+		ID3D11Device* mDevice;
+		ID3D11DeviceContext* mDeviceContext;
 	};
 
 	class DirectXVertexBuffer : public VertexBuffer 
@@ -63,6 +66,9 @@ namespace Toast {
 	private:
 		ID3D11Buffer* mVertexBuffer = nullptr;
 		uint32_t mSize, mCount;
+
+		ID3D11Device* mDevice;
+		ID3D11DeviceContext* mDeviceContext;
 	}; 
 
 	class DirectXIndexBuffer : public IndexBuffer
@@ -78,5 +84,8 @@ namespace Toast {
 	private:
 		ID3D11Buffer* mIndexBuffer = nullptr;
 		uint32_t mCount;
+
+		ID3D11Device* mDevice;
+		ID3D11DeviceContext* mDeviceContext;
 	};
 }

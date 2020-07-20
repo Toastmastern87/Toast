@@ -13,9 +13,8 @@ namespace Toast {
 		: mElements(elements)
 	{
 		Application& app = Application::Get();
-		ID3D11Device* device;
-
-		device = app.GetWindow().GetGraphicsContext()->GetD3D11Device();
+		mDevice = app.GetWindow().GetGraphicsContext()->GetD3D11Device();
+		mDeviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
 
 		uint32_t index = 0;
 
@@ -39,37 +38,37 @@ namespace Toast {
 
 		ID3D10Blob* VSRaw = shader->GetVSRaw();
 
-		device->CreateInputLayout(inputLayoutDesc, 
+		mDevice->CreateInputLayout(inputLayoutDesc, 
 								  2,
 			                      VSRaw->GetBufferPointer(),
 			                      VSRaw->GetBufferSize(),
 			                      &mInputLayout);
 
 		delete[] inputLayoutDesc;
+
+		Bind();
 	}
 
 	DirectXBufferLayout::~DirectXBufferLayout()
 	{
+		mElements.clear();
+		mElements.shrink_to_fit();
+
+		if (mInputLayout)
+		{
+			mInputLayout->Release();
+			mInputLayout = nullptr;
+		}
 	}
 
 	void DirectXBufferLayout::Bind() const
 	{
-		Application& app = Application::Get();
-		ID3D11DeviceContext* deviceContext;
-
-		deviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
-
-		deviceContext->IASetInputLayout(mInputLayout);
+		mDeviceContext->IASetInputLayout(mInputLayout);
 	}
 
 	void DirectXBufferLayout::Unbind() const
 	{
-		Application& app = Application::Get();
-		ID3D11DeviceContext* deviceContext;
-
-		deviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
-
-		deviceContext->IASetInputLayout(nullptr);
+		mDeviceContext->IASetInputLayout(nullptr);
 	}
 
 	void DirectXBufferLayout::CalculateOffsetAndStride()
@@ -96,13 +95,13 @@ namespace Toast {
 	DirectXVertexBuffer::DirectXVertexBuffer(float* vertices, uint32_t size, uint32_t count)
 		: mSize(size), mCount(count)
 	{
-		Application& app = Application::Get();
-		ID3D11Device* device;
 		D3D11_BUFFER_DESC vbd;
 		D3D11_SUBRESOURCE_DATA vd;
 		HRESULT result;
-		
-		device = app.GetWindow().GetGraphicsContext()->GetD3D11Device();
+
+		Application& app = Application::Get();
+		mDevice = app.GetWindow().GetGraphicsContext()->GetD3D11Device();
+		mDeviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
 
 		ZeroMemory(&vbd, sizeof(D3D11_BUFFER_DESC));
 
@@ -117,7 +116,7 @@ namespace Toast {
 		vd.SysMemPitch = 0;
 		vd.SysMemSlicePitch = 0;
 
-		result = device->CreateBuffer(&vbd, &vd, &mVertexBuffer);
+		result = mDevice->CreateBuffer(&vbd, &vd, &mVertexBuffer);
 
 		if (FAILED(result))
 			TOAST_CORE_ERROR("Error creating Vertexbuffer!");
@@ -136,25 +135,15 @@ namespace Toast {
 
 	void DirectXVertexBuffer::Bind() const
 	{
-		Application& app = Application::Get();
-		ID3D11DeviceContext* deviceContext;
-
-		deviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
-
 		uint32_t stride[] = { sizeof(float) * ((mSize / sizeof(float)) / mCount) };
 		uint32_t offset[] = { 0 };
 
-		deviceContext->IASetVertexBuffers(0, 1, &mVertexBuffer, stride, offset);
+		mDeviceContext->IASetVertexBuffers(0, 1, &mVertexBuffer, stride, offset);
 	}
 
 	void DirectXVertexBuffer::Unbind() const
 	{
-		Application& app = Application::Get();
-		ID3D11DeviceContext* deviceContext;
-
-		deviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
-
-		deviceContext->IASetVertexBuffers(0, 1, NULL, 0, 0);
+		mDeviceContext->IASetVertexBuffers(0, 1, NULL, 0, 0);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  
@@ -164,13 +153,13 @@ namespace Toast {
 	DirectXIndexBuffer::DirectXIndexBuffer(uint32_t* indices, uint32_t count)
 		: mCount(count)
 	{
-		Application& app = Application::Get();
-		ID3D11Device* device;
 		D3D11_BUFFER_DESC ibd;
 		D3D11_SUBRESOURCE_DATA id;
 		HRESULT result;
 
-		device = app.GetWindow().GetGraphicsContext()->GetD3D11Device();
+		Application& app = Application::Get();
+		mDevice = app.GetWindow().GetGraphicsContext()->GetD3D11Device();
+		mDeviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
 
 		ZeroMemory(&ibd, sizeof(D3D11_BUFFER_DESC));
 
@@ -185,7 +174,7 @@ namespace Toast {
 		id.SysMemPitch = 0;
 		id.SysMemSlicePitch = 0;
 
-		result = device->CreateBuffer(&ibd, &id, &mIndexBuffer);
+		result = mDevice->CreateBuffer(&ibd, &id, &mIndexBuffer);
 
 		if (FAILED(result))
 			TOAST_CORE_ERROR("Error creating Indexbuffer!");
@@ -204,21 +193,11 @@ namespace Toast {
 
 	void DirectXIndexBuffer::Bind() const
 	{
-		Application& app = Application::Get();
-		ID3D11DeviceContext* deviceContext;
-
-		deviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
-
-		deviceContext->IASetIndexBuffer(mIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+		mDeviceContext->IASetIndexBuffer(mIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	}
 
 	void DirectXIndexBuffer::Unbind() const
 	{
-		Application& app = Application::Get();
-		ID3D11DeviceContext* deviceContext;
-
-		deviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
-
-		deviceContext->IASetIndexBuffer(NULL, DXGI_FORMAT_R32_UINT, 0);
+		mDeviceContext->IASetIndexBuffer(NULL, DXGI_FORMAT_R32_UINT, 0);
 	}
 }

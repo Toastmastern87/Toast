@@ -18,5 +18,8 @@ namespace Toast {
 		ID3D11VertexShader* mVertexShader = nullptr;
 		ID3D11PixelShader* mPixelShader = nullptr;
 		ID3D10Blob* mVSRaw = nullptr;
+
+		ID3D11Device* mDevice;
+		ID3D11DeviceContext* mDeviceContext;
 	};
 }
