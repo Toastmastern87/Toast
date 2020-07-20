@@ -1,5 +1,6 @@
 #include "tpch.h"
 #include "DirectXBuffer.h"
+#include "DirectXShader.h"
 
 #include "Toast/Application.h"
 
@@ -36,7 +37,9 @@ namespace Toast {
 			index++;
 		}
 
-		ID3D10Blob* VSRaw = shader->GetVSRaw();
+		std::shared_ptr<DirectXShader> dxShader = std::dynamic_pointer_cast<DirectXShader>(shader);
+
+		ID3D10Blob* VSRaw = dxShader->GetVSRaw();
 
 		mDevice->CreateInputLayout(inputLayoutDesc, 
 								  2,
