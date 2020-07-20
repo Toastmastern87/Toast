@@ -35,8 +35,8 @@ namespace Toast {
 	{
 		switch (Renderer::GetAPI())
 		{
-		case RendererAPI::None:			TOAST_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
-		case RendererAPI::DirectX:		return new DirectXIndexBuffer(indices, size);
+			case RendererAPI::None:			TOAST_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
+			case RendererAPI::DirectX:		return new DirectXIndexBuffer(indices, size);
 		}
 
 		TOAST_CORE_ASSERT(false, "Unknown RendererAPI!");
