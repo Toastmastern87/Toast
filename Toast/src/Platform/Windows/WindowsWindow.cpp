@@ -72,9 +72,6 @@ namespace Toast
 
 		mWin32Window = CreateWindow(wc.lpszClassName, mData.Title.c_str(), WS_OVERLAPPEDWINDOW, 0, 0, mData.Width, mData.Height, NULL, NULL, wc.hInstance, NULL);
 
-		RECT clientRect;
-		GetClientRect(mWin32Window, &clientRect);
-
 		if (!sWin32Initialized)
 		{
 			TOAST_CORE_ASSERT(mWin32Window, "Could not initialize Win32!");
@@ -82,8 +79,10 @@ namespace Toast
 			sWin32Initialized = true;
 		}
 
-		mContext = new DirectXContext(mWin32Window);
-		mContext->Init((clientRect.right - clientRect.left), (clientRect.bottom - clientRect.top));
+		RECT clientRect;
+		GetClientRect(mWin32Window, &clientRect);
+
+		mContext = new DirectXContext(mWin32Window, (clientRect.right - clientRect.left), (clientRect.bottom - clientRect.top));
 
 		SetWindowLongPtr(mWin32Window, 0, (LONG_PTR)&mData);
 		ShowWindow(mWin32Window, SW_SHOWDEFAULT);
@@ -96,7 +95,7 @@ namespace Toast
 		DestroyWindow(mWin32Window);
 	}
 
-	void WindowsWindow::Start() 
+	void WindowsWindow::OnUpdate() 
 	{
 		MSG message;
 
@@ -106,12 +105,7 @@ namespace Toast
 			DispatchMessage(&message);
 		}
 
-		mContext->StartScene();
-	}
-
-	void WindowsWindow::End()
-	{
-		mContext->EndScene();
+		mContext->SwapBuffers();
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)
@@ -124,7 +118,7 @@ namespace Toast
 		return mData.VSync;
 	}
 
-	void WindowsWindow::OnResize(UINT width, UINT height) const
+	void WindowsWindow::Resize(UINT width, UINT height) const
 	{
 		mContext->ResizeContext(width, height);
 	}

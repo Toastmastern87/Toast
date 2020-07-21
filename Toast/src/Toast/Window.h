@@ -31,8 +31,7 @@ namespace Toast
 
 		virtual ~Window() = default;
 
-		virtual void Start() = 0;
-		virtual void End() = 0;
+		virtual void OnUpdate() = 0;
 
 		virtual unsigned int GetWidth() const = 0;
 		virtual unsigned int GetHeight() const = 0;
@@ -41,12 +40,11 @@ namespace Toast
 		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;
 		virtual void SetVSync(bool enabled) = 0;
 		virtual bool IsVSync() const = 0;
+		virtual void Resize(UINT width, UINT height) const = 0;
 
 		static Window* Create(const WindowProps& props = WindowProps());
 
-		virtual void OnResize(UINT width, UINT height) const = 0;
-
 		virtual HWND GetNativeWindow() const = 0;
-		virtual GraphicsContext* GetGraphicsContext() const = 0;
+		virtual GraphicsContext* GetContext() const = 0;
 	};
 }

@@ -1,19 +1,16 @@
 #include "tpch.h"
-#include "tpch.h"
-#include "Shader.h"
-
 #include "Renderer.h"
 
-#include "Platform/DirectX/DirectXShader.h"
+#include "Platform/DirectX/DirectXContext.h"
 
 namespace Toast {
 
-	Shader* Shader::Create(const std::string& vertexSrc, const std::string& pixelSrc)
+	GraphicsContext* GraphicsContext::Create(HWND windowHandle, UINT width, UINT height)
 	{
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None:			TOAST_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
-			case RendererAPI::API::DirectX:			return new DirectXShader(vertexSrc, pixelSrc);
+			case RendererAPI::API::DirectX:			return new DirectXContext(windowHandle, width, height);
 		}
 
 		TOAST_CORE_ASSERT(false, "Unknown RendererAPI!");

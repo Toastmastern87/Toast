@@ -1,16 +1,14 @@
 #include "tpch.h"
 #include "DirectXContext.h"
+#include "Toast/Core.h"
 
 namespace Toast
 {
-	DirectXContext::DirectXContext(HWND windowHandle)
-		: mWindowHandle(windowHandle)
+	DirectXContext::DirectXContext(HWND windowHandle, UINT width, UINT height)
+		: mWindowHandle(windowHandle), mWidth(width), mHeight(height)
 	{
 		TOAST_CORE_ASSERT(mWindowHandle, "Window handle is null!");
-	}
 
-	void DirectXContext::Init(UINT width, UINT height)
-	{
 		// Setup swap chain
 		DXGI_SWAP_CHAIN_DESC sd;
 		ZeroMemory(&sd, sizeof(sd));
@@ -29,13 +27,14 @@ namespace Toast
 		sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
 		UINT createDeviceFlags = 0;
+
 #ifdef TOAST_DEBUG
 		createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 		D3D_FEATURE_LEVEL featureLevel;
 		const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
 
-		HRESULT result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &mSwapChain, &mD3dDevice, &featureLevel, &mD3dDeviceContext);
+		HRESULT result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &mSwapChain, &mDevice, &featureLevel, &mDeviceContext);
 
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create DirectX device and swapchain");
 
@@ -45,28 +44,16 @@ namespace Toast
 
 		SetViewport(width, height);
 
-		mD3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		mDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
 
-	void DirectXContext::StartScene()
-	{
-		const float clear_color[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
-
-		mD3dDeviceContext->OMSetRenderTargets(1, &mRenderTargetView, NULL);
-		mD3dDeviceContext->ClearRenderTargetView(mRenderTargetView, clear_color);
-	}
-
-	void DirectXContext::EndScene()
+	void DirectXContext::SwapBuffers()
 	{
 		mSwapChain->Present(0, 0);
 	}
 
 	void DirectXContext::ResizeContext(UINT width, UINT height)
 	{
-		RECT clientRect;
-
-		GetClientRect(mWindowHandle, &clientRect);
-
 		CleanupRenderTarget();
 		SetViewport(width, height);
 		mSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
@@ -77,7 +64,7 @@ namespace Toast
 	{
 		ID3D11Texture2D* backBuffer;
 		mSwapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
-		mD3dDevice->CreateRenderTargetView(backBuffer, NULL, &mRenderTargetView);
+		mDevice->CreateRenderTargetView(backBuffer, NULL, &mRenderTargetView);
 		backBuffer->Release();
 	}
 
@@ -105,7 +92,7 @@ namespace Toast
 		viewport.MinDepth = 0.0f;
 		viewport.MaxDepth = 1.0f;
 
-		mD3dDeviceContext->RSSetViewports(1, &viewport);
+		mDeviceContext->RSSetViewports(1, &viewport);
 	}
 
 	void DirectXContext::LogAdapterInfo()

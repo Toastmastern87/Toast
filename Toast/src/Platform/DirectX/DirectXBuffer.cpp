@@ -1,6 +1,7 @@
 #include "tpch.h"
 #include "DirectXBuffer.h"
 #include "DirectXShader.h"
+#include "DirectXContext.h"
 
 #include "Toast/Application.h"
 
@@ -14,8 +15,8 @@ namespace Toast {
 		: mElements(elements)
 	{
 		Application& app = Application::Get();
-		mDevice = app.GetWindow().GetGraphicsContext()->GetD3D11Device();
-		mDeviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
+		mDevice = app.GetWindow().GetContext()->GetDevice();
+		mDeviceContext = app.GetWindow().GetContext()->GetDeviceContext();
 
 		uint32_t index = 0;
 
@@ -103,8 +104,8 @@ namespace Toast {
 		HRESULT result;
 
 		Application& app = Application::Get();
-		mDevice = app.GetWindow().GetGraphicsContext()->GetD3D11Device();
-		mDeviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
+		mDevice = app.GetWindow().GetContext()->GetDevice();
+		mDeviceContext = app.GetWindow().GetContext()->GetDeviceContext();
 
 		ZeroMemory(&vbd, sizeof(D3D11_BUFFER_DESC));
 
@@ -161,8 +162,8 @@ namespace Toast {
 		HRESULT result;
 
 		Application& app = Application::Get();
-		mDevice = app.GetWindow().GetGraphicsContext()->GetD3D11Device();
-		mDeviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
+		mDevice = app.GetWindow().GetContext()->GetDevice();
+		mDeviceContext = app.GetWindow().GetContext()->GetDeviceContext();
 
 		ZeroMemory(&ibd, sizeof(D3D11_BUFFER_DESC));
 

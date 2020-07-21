@@ -3,5 +3,18 @@
 
 namespace Toast {
 
-	RendererAPI Renderer::sRendererAPI = RendererAPI::DirectX;
+	void Renderer::BeginScene()
+	{
+
+	}
+
+	void Renderer::EndScene()
+	{
+
+	}
+
+	void Renderer::Submit(const std::shared_ptr<IndexBuffer>& indexBuffer)
+	{
+		RenderCommand::DrawIndexed(indexBuffer);
+	}
 }
