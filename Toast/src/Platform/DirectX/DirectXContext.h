@@ -7,15 +7,15 @@ namespace Toast
 	class DirectXContext : public GraphicsContext
 	{
 	public:
-		DirectXContext(HWND windowHandle);
+		DirectXContext(HWND windowHandle, UINT width, UINT height);
 
-		virtual void Init(UINT width, UINT height) override;
-		virtual void StartScene() override;
-		virtual void EndScene() override;
 		virtual void ResizeContext(UINT width, UINT height) override;
+		virtual void SwapBuffers() override;
 
-		virtual ID3D11Device* GetD3D11Device() override { return mD3dDevice; }
-		virtual ID3D11DeviceContext* GetD3D11DeviceContext() override { return mD3dDeviceContext; }
+		virtual ID3D11Device* GetDevice() override { return mDevice; }
+		virtual ID3D11DeviceContext* GetDeviceContext() override { return mDeviceContext; }
+		virtual ID3D11RenderTargetView* GetRenderTargetView() override { return mRenderTargetView; }
+		virtual IDXGISwapChain* GetSwapChain() override { return mSwapChain; }
 
 	private:
 		void CreateRenderTarget();
@@ -26,9 +26,10 @@ namespace Toast
 
 	private:
 		HWND mWindowHandle;
+		UINT mHeight, mWidth;
 
-		ID3D11Device* mD3dDevice = NULL;
-		ID3D11DeviceContext* mD3dDeviceContext = NULL;
+		ID3D11Device* mDevice = NULL;
+		ID3D11DeviceContext* mDeviceContext = NULL;
 		IDXGISwapChain* mSwapChain = NULL;
 		ID3D11RenderTargetView* mRenderTargetView = NULL;
 	};

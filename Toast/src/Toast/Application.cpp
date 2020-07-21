@@ -75,14 +75,20 @@ namespace Toast {
 	{
 		while (mRunning) 
 		{
-			mWindow->Start();
+			const float clearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
+			
+			RenderCommand::SetRenderTargets();
+			RenderCommand::Clear(clearColor);
+
+			Renderer::BeginScene();
 
 			mBufferLayout->Bind();
 			mVertexBuffer->Bind();
 			mIndexBuffer->Bind();
 			mShader->Bind();
+			Renderer::Submit(mIndexBuffer);
 
-			mWindow->GetGraphicsContext()->GetD3D11DeviceContext()->DrawIndexed(mIndexBuffer->GetCount(), 0, 0);
+			Renderer::EndScene();
 
 			for (Layer* layer : mLayerStack) 
 				layer->OnUpdate();
@@ -92,7 +98,7 @@ namespace Toast {
 				layer->OnImGuiRender();
 			mImGuiLayer->End();
 
-			mWindow->End();
+			mWindow->OnUpdate();
 		}
 	}
 
@@ -105,7 +111,7 @@ namespace Toast {
 
 	bool Application::OnWindowResize(WindowResizeEvent& e)
 	{
-		mWindow->OnResize((UINT)(e.GetWidth()), (UINT)(e.GetHeight()));
+		mWindow->Resize((UINT)(e.GetWidth()), (UINT)(e.GetHeight()));
 
 		return true;
 	}

@@ -11,6 +11,7 @@
 
 #include "Toast/Renderer/Shader.h"
 #include "Toast/Renderer/Buffer.h"
+#include "Toast/Renderer/Renderer.h"
 
 namespace Toast {
 	class TOAST_API Application

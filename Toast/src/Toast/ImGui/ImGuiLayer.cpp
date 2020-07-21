@@ -4,6 +4,7 @@
 #include "imgui.h"
 
 #include "Toast/Application.h"
+#include "Platform/DirectX/DirectXContext.h"
 
 #include "examples/imgui_impl_dx11.h"
 #include "examples/imgui_impl_win32.h"
@@ -39,11 +40,11 @@ namespace Toast
 		}
 
 		Application& app = Application::Get();
-		ID3D11Device* d3d11Device = app.GetWindow().GetGraphicsContext()->GetD3D11Device();
-		ID3D11DeviceContext* d3dDeviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
+		ID3D11Device* device = app.GetWindow().GetContext()->GetDevice();
+		ID3D11DeviceContext* deviceContext = app.GetWindow().GetContext()->GetDeviceContext();
 
 		ImGui_ImplWin32_Init(app.GetWindow().GetNativeWindow());
-		ImGui_ImplDX11_Init(d3d11Device, d3dDeviceContext);
+		ImGui_ImplDX11_Init(device, deviceContext);
 	}
 
 	void ImGuiLayer::OnDetach()

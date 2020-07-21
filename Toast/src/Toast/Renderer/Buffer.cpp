@@ -9,10 +9,10 @@ namespace Toast {
 
 	BufferLayout* BufferLayout::Create(const std::initializer_list<BufferElement>& elements, std::shared_ptr<Shader> shader)
 	{
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
-			case RendererAPI::None:			TOAST_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
-			case RendererAPI::DirectX:		return new DirectXBufferLayout(elements, shader);
+			case RendererAPI::API::None:			TOAST_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
+			case RendererAPI::API::DirectX:			return new DirectXBufferLayout(elements, shader);
 		}
 
 		TOAST_CORE_ASSERT(false, "Unknown RendererAPI!");
@@ -21,10 +21,10 @@ namespace Toast {
 
 	VertexBuffer* VertexBuffer::Create(float* vertices, uint32_t size, uint32_t count)
 	{
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
-			case RendererAPI::None:			TOAST_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
-			case RendererAPI::DirectX:		return new DirectXVertexBuffer(vertices, size, count);
+			case RendererAPI::API::None:			TOAST_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
+			case RendererAPI::API::DirectX:			return new DirectXVertexBuffer(vertices, size, count);
 		}
 			
 		TOAST_CORE_ASSERT(false, "Unknown RendererAPI!");
@@ -33,10 +33,10 @@ namespace Toast {
 
 	IndexBuffer* IndexBuffer::Create(uint32_t* indices, uint32_t size)
 	{
-		switch (Renderer::GetAPI())
+		switch (RendererAPI::GetAPI())
 		{
-			case RendererAPI::None:			TOAST_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
-			case RendererAPI::DirectX:		return new DirectXIndexBuffer(indices, size);
+			case RendererAPI::API::None:			TOAST_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
+			case RendererAPI::API::DirectX:			return new DirectXIndexBuffer(indices, size);
 		}
 
 		TOAST_CORE_ASSERT(false, "Unknown RendererAPI!");

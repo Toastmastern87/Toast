@@ -1,5 +1,6 @@
 #include "tpch.h"
 #include "DirectXShader.h"
+#include "DirectXContext.h"
 
 #include "Toast/Application.h"
 
@@ -15,8 +16,8 @@ namespace Toast {
 		std::wstring stemp;
 
 		Application& app = Application::Get();
-		mDevice = app.GetWindow().GetGraphicsContext()->GetD3D11Device();
-		mDeviceContext = app.GetWindow().GetGraphicsContext()->GetD3D11DeviceContext();
+		mDevice = app.GetWindow().GetContext()->GetDevice();
+		mDeviceContext = app.GetWindow().GetContext()->GetDeviceContext();
 
 		stemp = std::wstring(vertexSrc.begin(), vertexSrc.end());
 
