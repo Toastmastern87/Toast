@@ -3,9 +3,11 @@
 
 namespace Toast {
 
-	void Renderer::BeginScene()
-	{
+	Renderer::SceneData* Renderer::mSceneData = new Renderer::SceneData;
 
+	void Renderer::BeginScene(OrthographicCamera& camera)
+	{
+		mSceneData->viewProjectionMatrix = camera.GetViewProjectionMatrix();
 	}
 
 	void Renderer::EndScene()
@@ -13,8 +15,14 @@ namespace Toast {
 
 	}
 
-	void Renderer::Submit(const std::shared_ptr<IndexBuffer>& indexBuffer)
+	void Renderer::Submit(const std::shared_ptr<IndexBuffer>& indexBuffer, const std::shared_ptr<Shader> shader, const std::shared_ptr<BufferLayout> bufferLayout, const std::shared_ptr<VertexBuffer> vertexBuffer)
 	{
+		bufferLayout->Bind();
+		vertexBuffer->Bind();
+		indexBuffer->Bind();
+		shader->Bind();
+		shader->UploadConstantBuffer("Camera", mSceneData->viewProjectionMatrix);
+
 		RenderCommand::DrawIndexed(indexBuffer);
 	}
 }

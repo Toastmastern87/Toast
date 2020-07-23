@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d11.h>
+#include <DirectXMath.h>
 
 #include "Toast/Renderer/Shader.h"
 
@@ -14,6 +15,7 @@ namespace Toast {
 
 		virtual void Bind() const override;
 		virtual void Unbind() const override;
+		virtual void UploadConstantBuffer(const std::string& name, const DirectX::XMMATRIX& matrix) const override;
 
 		ID3D10Blob* GetVSRaw() const { return mVSRaw; }
 

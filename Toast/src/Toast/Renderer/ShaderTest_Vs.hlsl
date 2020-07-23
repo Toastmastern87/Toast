@@ -1,3 +1,10 @@
+#pragma pack_matrix( row_major )
+
+cbuffer Camera
+{
+	matrix viewProjectionMatrix;
+};
+
 struct VertexInputType
 {
 	float3 position : POSITION;
@@ -14,7 +21,7 @@ PixelInputType main(VertexInputType input)
 {
 	PixelInputType output;
 
-	output.position = float4(input.position, 1.0f);
+	output.position = mul(float4(input.position, 1.0f), viewProjectionMatrix);
 	output.color = input.color;
 
 	return output;

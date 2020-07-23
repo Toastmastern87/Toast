@@ -5,6 +5,8 @@
 
 #include "Toast/Input.h"
 
+#include "Toast/Renderer/Renderer.h"
+
 namespace Toast {
 
 #define BIND_EVENT_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
@@ -12,6 +14,7 @@ namespace Toast {
 	Application* Application::sInstance = nullptr;
 
 	Application::Application()
+		: mCamera(-1.6f, 1.6f, 0.9f, -0.9f)
 	{
 		TOAST_CORE_ASSERT(!sInstance, "Application already exists");
 
@@ -48,13 +51,11 @@ namespace Toast {
 	void Application::PushLayer(Layer* layer) 
 	{
 		mLayerStack.PushLayer(layer);
-		layer->OnAttach();
 	}
 
 	void Application::PushOverlay(Layer* layer)
 	{
 		mLayerStack.PushOverlay(layer);
-		layer->OnAttach();
 	}
 
 	void Application::OnEvent(Event& e)
@@ -80,13 +81,12 @@ namespace Toast {
 			RenderCommand::SetRenderTargets();
 			RenderCommand::Clear(clearColor);
 
-			Renderer::BeginScene();
+			mCamera.SetPosition(DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f));
+			mCamera.SetRotation(45.0f);
 
-			mBufferLayout->Bind();
-			mVertexBuffer->Bind();
-			mIndexBuffer->Bind();
-			mShader->Bind();
-			Renderer::Submit(mIndexBuffer);
+			Renderer::BeginScene(mCamera);
+
+			Renderer::Submit(mIndexBuffer, mShader, mBufferLayout, mVertexBuffer);
 
 			Renderer::EndScene();
 

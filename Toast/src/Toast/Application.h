@@ -11,7 +11,8 @@
 
 #include "Toast/Renderer/Shader.h"
 #include "Toast/Renderer/Buffer.h"
-#include "Toast/Renderer/Renderer.h"
+
+#include "Toast/Renderer/OrthographicCamera.h"
 
 namespace Toast {
 	class TOAST_API Application
@@ -43,6 +44,8 @@ namespace Toast {
 		std::shared_ptr<BufferLayout> mBufferLayout;
 		std::shared_ptr<VertexBuffer> mVertexBuffer;
 		std::shared_ptr<IndexBuffer> mIndexBuffer;
+
+		OrthographicCamera mCamera;
 	private:
 		static Application* sInstance;
 	};
