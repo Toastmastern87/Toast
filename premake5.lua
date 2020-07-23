@@ -55,7 +55,8 @@ project "Toast"
 	{
 		"ImGui",
 		"d3d11.lib",
-		"dxgi.lib"
+		"dxgi.lib",
+		"dxguid.lib"
 	}
 
 	filter "system:windows"

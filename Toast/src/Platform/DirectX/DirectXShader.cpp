@@ -5,6 +5,7 @@
 #include "Toast/Application.h"
 
 #include <d3dcompiler.h>
+#include <d3d11shader.h>
 
 namespace Toast {
 
@@ -105,5 +106,33 @@ namespace Toast {
 
 		mDeviceContext->VSSetShader(nullVertexShader, 0, 0);
 		mDeviceContext->PSSetShader(nullPixelShader, 0, 0);
+	}
+
+	void DirectXShader::UploadConstantBuffer(const std::string& name, const DirectX::XMMATRIX& matrix) const
+	{
+		ID3D11ShaderReflection* reflector = nullptr;
+		D3D11_SHADER_INPUT_BIND_DESC bindDesc;
+		ID3D11Buffer* constantBuffer = nullptr;
+
+		D3DReflect(mVSRaw->GetBufferPointer(), mVSRaw->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
+
+		reflector->GetResourceBindingDescByName(name.c_str(), &bindDesc);
+
+		D3D11_BUFFER_DESC cbDesc;
+		cbDesc.ByteWidth = sizeof(DirectX::XMMATRIX);
+		cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+		cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		cbDesc.MiscFlags = 0;
+		cbDesc.StructureByteStride = 0;
+
+		D3D11_SUBRESOURCE_DATA InitData;
+		InitData.pSysMem = &matrix;
+		InitData.SysMemPitch = 0;
+		InitData.SysMemSlicePitch = 0;
+
+		mDevice->CreateBuffer(&cbDesc, &InitData, &constantBuffer);
+
+		mDeviceContext->VSSetConstantBuffers(bindDesc.BindPoint, 1, &constantBuffer);
 	}
 }
