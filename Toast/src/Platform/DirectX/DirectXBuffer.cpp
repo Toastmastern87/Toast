@@ -38,7 +38,7 @@ namespace Toast {
 			index++;
 		}
 
-		std::shared_ptr<DirectXShader> dxShader = std::dynamic_pointer_cast<DirectXShader>(shader);
+		std::shared_ptr<DirectXShader> dxShader = std::static_pointer_cast<DirectXShader>(shader);
 
 		ID3D10Blob* VSRaw = dxShader->GetVSRaw();
 
@@ -58,11 +58,7 @@ namespace Toast {
 		mElements.clear();
 		mElements.shrink_to_fit();
 
-		if (mInputLayout)
-		{
-			mInputLayout->Release();
-			mInputLayout = nullptr;
-		}
+		CLEAN(mInputLayout);
 	}
 
 	void DirectXBufferLayout::Bind() const
@@ -130,11 +126,7 @@ namespace Toast {
 
 	DirectXVertexBuffer::~DirectXVertexBuffer()
 	{
-		if (mVertexBuffer) 
-		{
-			mVertexBuffer->Release();
-			mVertexBuffer = nullptr;
-		}
+		CLEAN(mVertexBuffer);
 	}
 
 	void DirectXVertexBuffer::Bind() const
@@ -188,11 +180,7 @@ namespace Toast {
 
 	DirectXIndexBuffer::~DirectXIndexBuffer()
 	{
-		if (mIndexBuffer)
-		{
-			mIndexBuffer->Release();
-			mIndexBuffer = nullptr;
-		}
+		CLEAN(mIndexBuffer);
 	}
 
 	void DirectXIndexBuffer::Bind() const

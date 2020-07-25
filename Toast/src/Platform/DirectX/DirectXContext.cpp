@@ -31,6 +31,7 @@ namespace Toast
 #ifdef TOAST_DEBUG
 		createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
+
 		D3D_FEATURE_LEVEL featureLevel;
 		const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
 
@@ -45,6 +46,14 @@ namespace Toast
 		SetViewport(width, height);
 
 		mDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	}
+
+	DirectXContext::~DirectXContext()
+	{
+		CLEAN(mRenderTargetView);
+		CLEAN(mSwapChain);
+		CLEAN(mDevice);
+		CLEAN(mDeviceContext);
 	}
 
 	void DirectXContext::SwapBuffers()

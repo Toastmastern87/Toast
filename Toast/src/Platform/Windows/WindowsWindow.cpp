@@ -92,6 +92,8 @@ namespace Toast
 
 	void WindowsWindow::Shutdown() 
 	{
+		delete mContext;
+
 		DestroyWindow(mWin32Window);
 	}
 

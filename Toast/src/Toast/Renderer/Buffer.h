@@ -63,7 +63,7 @@ namespace Toast {
 		};
 
 	public:
-		~BufferLayout() = default;
+		virtual ~BufferLayout() = default;
 
 		virtual void Bind() const = 0;
 		virtual void Unbind() const = 0;

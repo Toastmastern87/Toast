@@ -28,6 +28,15 @@ public:
 		};
 
 		mBufferLayout.reset(Toast::BufferLayout::Create(layout, mShader));
+
+		//mBufferLayout->Bind();
+		//mVertexBuffer->Bind();
+		//mIndexBuffer->Bind();
+		//mShader->Bind();
+	}
+
+	~ExampleLayer() 
+	{
 	}
 
 	void OnUpdate(Toast::Timestep ts) override
