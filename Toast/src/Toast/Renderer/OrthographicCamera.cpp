@@ -11,9 +11,7 @@ namespace Toast {
 
 	void OrthographicCamera::RecalculateViewMatrix()
 	{
-		DirectX::XMMATRIX translation = DirectX::XMMatrixTranslation(mPosition.x, mPosition.y, mPosition.z);
-
-		DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(DirectX::XMMatrixRotationZ(DirectX::XMConvertToRadians(mRotation)), DirectX::XMMatrixTranslation(mPosition.x, mPosition.y, mPosition.z));
+		DirectX::XMMATRIX transform = DirectX::XMMatrixRotationZ(DirectX::XMConvertToRadians(mRotation)) * DirectX::XMMatrixTranslation(mPosition.x, mPosition.y, mPosition.z);
 
 		mViewMatrix = DirectX::XMMatrixInverse(nullptr, transform);
 		mViewProjectionMatrix = DirectX::XMMatrixMultiply(mViewMatrix, mProjectionMatrix);

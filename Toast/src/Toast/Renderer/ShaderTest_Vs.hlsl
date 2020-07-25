@@ -5,6 +5,11 @@ cbuffer Camera
 	matrix viewProjectionMatrix;
 };
 
+cbuffer Transform
+{
+	matrix transform;
+};
+
 struct VertexInputType
 {
 	float3 position : POSITION;
@@ -21,7 +26,8 @@ PixelInputType main(VertexInputType input)
 {
 	PixelInputType output;
 
-	output.position = mul(float4(input.position, 1.0f), viewProjectionMatrix);
+	output.position = mul(float4(input.position, 1.0f), transform);
+	output.position = mul(output.position, viewProjectionMatrix);
 	output.color = input.color;
 
 	return output;
