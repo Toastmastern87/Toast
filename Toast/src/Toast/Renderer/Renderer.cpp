@@ -15,13 +15,14 @@ namespace Toast {
 
 	}
 
-	void Renderer::Submit(const std::shared_ptr<IndexBuffer>& indexBuffer, const std::shared_ptr<Shader> shader, const std::shared_ptr<BufferLayout> bufferLayout, const std::shared_ptr<VertexBuffer> vertexBuffer)
+	void Renderer::Submit(const std::shared_ptr<IndexBuffer>& indexBuffer, const std::shared_ptr<Shader> shader, const std::shared_ptr<BufferLayout> bufferLayout, const std::shared_ptr<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform)
 	{
 		bufferLayout->Bind();
 		vertexBuffer->Bind();
 		indexBuffer->Bind();
 		shader->Bind();
 		shader->UploadConstantBuffer("Camera", mSceneData->viewProjectionMatrix);
+		shader->UploadConstantBuffer("Transform", transform);
 
 		RenderCommand::DrawIndexed(indexBuffer);
 	}

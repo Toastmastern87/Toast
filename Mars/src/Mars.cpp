@@ -57,7 +57,18 @@ public:
 
 		Toast::Renderer::BeginScene(mCamera);
 
-		Toast::Renderer::Submit(mIndexBuffer, mShader, mBufferLayout, mVertexBuffer);
+		DirectX::XMMATRIX scale = DirectX::XMMatrixScaling(0.1f, 0.1f, 0.1f);
+
+		for (int y = 0; y < 10; y++)
+		{
+			for (int x = 0; x < 10; x++)
+			{
+				DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * scale;
+				transform = transform * DirectX::XMMatrixTranslation(x * 0.11f, y * 0.11f, 0.0f);
+
+				Toast::Renderer::Submit(mIndexBuffer, mShader, mBufferLayout, mVertexBuffer, transform);
+			}
+		}
 
 		Toast::Renderer::EndScene();
 	}
