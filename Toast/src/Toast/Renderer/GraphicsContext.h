@@ -7,6 +7,8 @@ namespace Toast
 	class GraphicsContext 
 	{
 	public:
+		virtual ~GraphicsContext() = default;
+
 		virtual void ResizeContext(UINT width, UINT height) = 0;
 		virtual void SwapBuffers() = 0;
 

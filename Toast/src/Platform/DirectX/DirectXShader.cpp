@@ -86,11 +86,9 @@ namespace Toast {
 
 	DirectXShader::~DirectXShader()
 	{
-		if (mVertexShader)
-			mVertexShader = nullptr;
-
-		if (mPixelShader)
-			mPixelShader = nullptr;
+		CLEAN(mVertexShader);
+		CLEAN(mVSRaw);
+		CLEAN(mPixelShader);
 	}
 
 	void DirectXShader::Bind() const
@@ -134,5 +132,8 @@ namespace Toast {
 		mDevice->CreateBuffer(&cbDesc, &InitData, &constantBuffer);
 
 		mDeviceContext->VSSetConstantBuffers(bindDesc.BindPoint, 1, &constantBuffer);
+
+		reflector->Release();
+		constantBuffer->Release();
 	}
 }

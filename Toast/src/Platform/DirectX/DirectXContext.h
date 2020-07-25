@@ -8,6 +8,7 @@ namespace Toast
 	{
 	public:
 		DirectXContext(HWND windowHandle, UINT width, UINT height);
+		~DirectXContext() override;
 
 		virtual void ResizeContext(UINT width, UINT height) override;
 		virtual void SwapBuffers() override;

@@ -11,7 +11,7 @@ namespace Toast {
 	{
 	public:
 		DirectXShader(const std::string& vertexSrc, const std::string& pixelSrc);
-		virtual ~DirectXShader();
+		virtual ~DirectXShader() override;
 
 		virtual void Bind() const override;
 		virtual void Unbind() const override;
