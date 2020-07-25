@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Toast/Core.h"
+#include "Toast/Core/Timestep.h"
 #include "Toast/Events/Event.h"
 
 namespace Toast
@@ -13,7 +14,7 @@ namespace Toast
 
 		virtual void OnAttach() {}
 		virtual void OnDetach() {}
-		virtual void OnUpdate() {}
+		virtual void OnUpdate(Timestep ts) {}
 		virtual void OnImGuiRender() {}
 		virtual void OnEvent(Event& e) {}
 

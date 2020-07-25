@@ -7,12 +7,9 @@
 #include "Toast/Events/Event.h"
 #include "Toast/Events/ApplicationEvent.h"
 
+#include "Toast/Core/Timestep.h"
+
 #include "Toast/ImGui/ImGuiLayer.h"
-
-#include "Toast/Renderer/Shader.h"
-#include "Toast/Renderer/Buffer.h"
-
-#include "Toast/Renderer/OrthographicCamera.h"
 
 namespace Toast {
 	class TOAST_API Application
@@ -34,18 +31,14 @@ namespace Toast {
 	private:
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
-
+	private:
 		std::unique_ptr<Window> mWindow;
 		ImGuiLayer* mImGuiLayer;
 		bool mRunning = true;
 		LayerStack mLayerStack;
+		float mLastFrameTime;
 
-		std::shared_ptr<Shader> mShader;
-		std::shared_ptr<BufferLayout> mBufferLayout;
-		std::shared_ptr<VertexBuffer> mVertexBuffer;
-		std::shared_ptr<IndexBuffer> mIndexBuffer;
-
-		OrthographicCamera mCamera;
+		LARGE_INTEGER mStartTime;
 	private:
 		static Application* sInstance;
 	};

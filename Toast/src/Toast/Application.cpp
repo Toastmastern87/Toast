@@ -14,9 +14,10 @@ namespace Toast {
 	Application* Application::sInstance = nullptr;
 
 	Application::Application()
-		: mCamera(-1.6f, 1.6f, 0.9f, -0.9f)
 	{
 		TOAST_CORE_ASSERT(!sInstance, "Application already exists");
+
+		QueryPerformanceCounter(&mStartTime);
 
 		sInstance = this;
 
@@ -25,27 +26,6 @@ namespace Toast {
 
 		mImGuiLayer = new ImGuiLayer();
 		PushOverlay(mImGuiLayer);
-
-		float vertices[3 * 7] = {
-			-0.5f, -0.5f, 0.0f, 0.8f, 0.2f, 0.8f, 1.0f,
-			0.0f, 0.5f, 0.0f, 0.8f, 0.8f, 0.2f, 1.0f,
-			0.5f, -0.5f, 0.0f, 0.2f, 0.3f, 0.8f, 1.0f
-		};
-
-		mVertexBuffer.reset(VertexBuffer::Create(vertices, sizeof(vertices), uint32_t(3)));
-
-		uint32_t indices[3] = { 0, 1, 2 };
-
-		mIndexBuffer.reset(IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
-
-		mShader.reset(Shader::Create("../Toast/src/Toast/Renderer/ShaderTest_Vs.hlsl", "../Toast/src/Toast/Renderer/ShaderTest_ps.hlsl"));
-
-		const std::initializer_list<BufferLayout::BufferElement>& layout = {
-																   { ShaderDataType::Float3, "POSITION"},
-																   { ShaderDataType::Float4, "COLOR"},
-		};
-
-		mBufferLayout.reset(BufferLayout::Create(layout, mShader));
 	}
 
 	void Application::PushLayer(Layer* layer) 
@@ -76,22 +56,16 @@ namespace Toast {
 	{
 		while (mRunning) 
 		{
-			const float clearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
+			LARGE_INTEGER currentTime, frequency;
+			QueryPerformanceCounter(&currentTime);
+			QueryPerformanceFrequency(&frequency);
 			
-			RenderCommand::SetRenderTargets();
-			RenderCommand::Clear(clearColor);
-
-			mCamera.SetPosition(DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f));
-			mCamera.SetRotation(45.0f);
-
-			Renderer::BeginScene(mCamera);
-
-			Renderer::Submit(mIndexBuffer, mShader, mBufferLayout, mVertexBuffer);
-
-			Renderer::EndScene();
+			float time = static_cast<float>((currentTime.QuadPart - mStartTime.QuadPart) / (double)frequency.QuadPart);
+			Timestep timestep = time - mLastFrameTime;
+			mLastFrameTime = time;
 
 			for (Layer* layer : mLayerStack) 
-				layer->OnUpdate();
+				layer->OnUpdate(timestep);
 
 			mImGuiLayer->Begin();
 			for (Layer* layer : mLayerStack) 
