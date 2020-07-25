@@ -6,35 +6,80 @@ class ExampleLayer : public Toast::Layer
 {
 public:
 	ExampleLayer()
-		: Layer("Example") 
+		: Layer("Example"), mCamera(-1.6f, 1.6f, 0.9f, -0.9f), mCameraPosition(DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f))
 	{
+		float vertices[3 * 7] = {
+								 -0.5f, -0.5f, 0.0f, 0.8f, 0.2f, 0.8f, 1.0f,
+								 0.0f, 0.5f, 0.0f, 0.8f, 0.8f, 0.2f, 1.0f,
+								 0.5f, -0.5f, 0.0f, 0.2f, 0.3f, 0.8f, 1.0f
+		};
+
+		mVertexBuffer.reset(Toast::VertexBuffer::Create(vertices, sizeof(vertices), uint32_t(3)));
+
+		uint32_t indices[3] = { 0, 1, 2 };
+
+		mIndexBuffer.reset(Toast::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
+
+		mShader.reset(Toast::Shader::Create("../Toast/src/Toast/Renderer/ShaderTest_Vs.hlsl", "../Toast/src/Toast/Renderer/ShaderTest_ps.hlsl"));
+
+		const std::initializer_list<Toast::BufferLayout::BufferElement>& layout = {
+																   { Toast::ShaderDataType::Float3, "POSITION"},
+																   { Toast::ShaderDataType::Float4, "COLOR"},
+		};
+
+		mBufferLayout.reset(Toast::BufferLayout::Create(layout, mShader));
 	}
 
-	void OnUpdate() override 
+	void OnUpdate(Toast::Timestep ts) override
 	{
-		//TOAST_INFO("ExampleLayer::Update");
+		if (Toast::Input::IsKeyPressed(TOAST_LEFT))
+			mCameraPosition.x -= mCameraMoveSpeed * ts;
+		else if(Toast::Input::IsKeyPressed(TOAST_RIGHT))
+			mCameraPosition.x += mCameraMoveSpeed * ts;
 
-		if(Toast::Input::IsKeyPressed(TOAST_TAB))
-			TOAST_INFO("Tab key is pressed (poll)");
+		if(Toast::Input::IsKeyPressed(TOAST_UP))
+			mCameraPosition.y += mCameraMoveSpeed * ts;
+		else if(Toast::Input::IsKeyPressed(TOAST_DOWN))
+			mCameraPosition.y -= mCameraMoveSpeed * ts;
+
+		if (Toast::Input::IsKeyPressed(TOAST_A))
+			mCameraRotation += mCameraRotationSpeed * ts;
+		else if (Toast::Input::IsKeyPressed(TOAST_D))
+			mCameraRotation -= mCameraRotationSpeed * ts;
+
+		const float clearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
+
+		Toast::RenderCommand::SetRenderTargets();
+		Toast::RenderCommand::Clear(clearColor);
+
+		mCamera.SetPosition(mCameraPosition);
+		mCamera.SetRotation(mCameraRotation);
+
+		Toast::Renderer::BeginScene(mCamera);
+
+		Toast::Renderer::Submit(mIndexBuffer, mShader, mBufferLayout, mVertexBuffer);
+
+		Toast::Renderer::EndScene();
 	}
 
 	virtual void OnImGuiRender() override
 	{
-		ImGui::Begin("Test");
-		ImGui::Text("Hello World");
-		ImGui::End();
 	}
 
 	void OnEvent(Toast::Event& event) override
 	{
-		if (event.GetEventType() == Toast::EventType::KeyPressed)
-		{
-			Toast::KeyPressedEvent& e = (Toast::KeyPressedEvent&)event;
-			if (e.GetKeyCode() == TOAST_TAB)
-				TOAST_TRACE("Tab key is pressed (event)!");
-			TOAST_TRACE("{0}", e.GetKeyCode());
-		}
 	}
+private:
+	std::shared_ptr<Toast::Shader> mShader;
+	std::shared_ptr<Toast::BufferLayout> mBufferLayout;
+	std::shared_ptr<Toast::VertexBuffer> mVertexBuffer;
+	std::shared_ptr<Toast::IndexBuffer> mIndexBuffer;
+
+	Toast::OrthographicCamera mCamera;
+	DirectX::XMFLOAT3 mCameraPosition;
+	float mCameraMoveSpeed = 5.0f;
+	float mCameraRotation = 0.0f;
+	float mCameraRotationSpeed = 180.0f;
 };
 
 class Mars : public Toast::Application 
