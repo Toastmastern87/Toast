@@ -12,7 +12,6 @@ namespace Toast {
 	DirectXShader::DirectXShader(const std::string& vertexSrc, const std::string& pixelSrc)
 	{
 		HRESULT result;
-		ID3D10Blob* PSRaw = nullptr;
 		ID3D10Blob* errorRaw = nullptr;
 		std::wstring stemp;
 
@@ -59,7 +58,7 @@ namespace Toast {
 			"ps_5_0",
 			D3D10_SHADER_ENABLE_STRICTNESS,
 			0,
-			&PSRaw,
+			&mPSRaw,
 			&errorRaw);
 
 		if (FAILED(result))
@@ -78,10 +77,8 @@ namespace Toast {
 			return;
 		}
 
-		result = mDevice->CreatePixelShader(PSRaw->GetBufferPointer(), PSRaw->GetBufferSize(), NULL, &mPixelShader);
+		result = mDevice->CreatePixelShader(mPSRaw->GetBufferPointer(), mPSRaw->GetBufferSize(), NULL, &mPixelShader);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create pixel shader: {0}", pixelSrc);
-
-		PSRaw->Release();
 	}
 
 	DirectXShader::~DirectXShader()
@@ -89,6 +86,10 @@ namespace Toast {
 		CLEAN(mVertexShader);
 		CLEAN(mVSRaw);
 		CLEAN(mPixelShader);
+		CLEAN(mPSRaw);
+		CLEAN(mColorCB);
+		CLEAN(mObjectCB);
+		CLEAN(mSceneCB);
 	}
 
 	void DirectXShader::Bind() const
@@ -106,34 +107,87 @@ namespace Toast {
 		mDeviceContext->PSSetShader(nullPixelShader, 0, 0);
 	}
 
-	void DirectXShader::UploadConstantBuffer(const std::string& name, const DirectX::XMMATRIX& matrix) const
+	void DirectXShader::UploadColorDataPSCBuffer(const DirectX::XMFLOAT4& values)
 	{
-		ID3D11ShaderReflection* reflector = nullptr;
-		D3D11_SHADER_INPUT_BIND_DESC bindDesc;
-		ID3D11Buffer* constantBuffer = nullptr;
+		if (!mColorCB)
+		{
+			D3D11_BUFFER_DESC cbDesc;
+			cbDesc.ByteWidth = sizeof(DirectX::XMFLOAT4);
+			cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+			cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			cbDesc.MiscFlags = 0;
+			cbDesc.StructureByteStride = 0;
 
-		D3DReflect(mVSRaw->GetBufferPointer(), mVSRaw->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
+			D3D11_SUBRESOURCE_DATA InitData;
+			InitData.pSysMem = &values;
+			InitData.SysMemPitch = 0;
+			InitData.SysMemSlicePitch = 0;
 
-		reflector->GetResourceBindingDescByName(name.c_str(), &bindDesc);
+			mDevice->CreateBuffer(&cbDesc, &InitData, &mColorCB);
+		}
 
-		D3D11_BUFFER_DESC cbDesc;
-		cbDesc.ByteWidth = sizeof(DirectX::XMMATRIX);
-		cbDesc.Usage = D3D11_USAGE_DYNAMIC;
-		cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		cbDesc.MiscFlags = 0;
-		cbDesc.StructureByteStride = 0;
+		D3D11_MAPPED_SUBRESOURCE ms;
+		mDeviceContext->Map(mColorCB, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
+		memcpy(ms.pData, &values, sizeof(DirectX::XMFLOAT4));
+		mDeviceContext->Unmap(mColorCB, NULL);
 
-		D3D11_SUBRESOURCE_DATA InitData;
-		InitData.pSysMem = &matrix;
-		InitData.SysMemPitch = 0;
-		InitData.SysMemSlicePitch = 0;
+		mDeviceContext->PSSetConstantBuffers(0, 1, &mColorCB);
+	}
 
-		mDevice->CreateBuffer(&cbDesc, &InitData, &constantBuffer);
+	void DirectXShader::UploadObjectDataVSCBuffer(const DirectX::XMMATRIX& matrix)
+	{
+		if (!mObjectCB)
+		{
+			D3D11_BUFFER_DESC cbDesc;
+			cbDesc.ByteWidth = sizeof(DirectX::XMMATRIX);
+			cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+			cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			cbDesc.MiscFlags = 0;
+			cbDesc.StructureByteStride = 0;
 
-		mDeviceContext->VSSetConstantBuffers(bindDesc.BindPoint, 1, &constantBuffer);
+			D3D11_SUBRESOURCE_DATA InitData;
+			InitData.pSysMem = &matrix;
+			InitData.SysMemPitch = 0;
+			InitData.SysMemSlicePitch = 0;
 
-		reflector->Release();
-		constantBuffer->Release();
+			mDevice->CreateBuffer(&cbDesc, &InitData, &mObjectCB);
+		}
+
+		D3D11_MAPPED_SUBRESOURCE ms;
+		mDeviceContext->Map(mObjectCB, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
+		memcpy(ms.pData, &matrix, sizeof(DirectX::XMMATRIX));
+		mDeviceContext->Unmap(mObjectCB, NULL);
+
+		mDeviceContext->VSSetConstantBuffers(1, 1, &mObjectCB);
+	}
+
+	void DirectXShader::UploadSceneDataVSCBuffer(const DirectX::XMMATRIX& matrix)
+	{
+		if (!mSceneCB) 
+		{
+			D3D11_BUFFER_DESC cbDesc;
+			cbDesc.ByteWidth = sizeof(DirectX::XMMATRIX);
+			cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+			cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			cbDesc.MiscFlags = 0;
+			cbDesc.StructureByteStride = 0;
+
+			D3D11_SUBRESOURCE_DATA InitData;
+			InitData.pSysMem = &matrix;
+			InitData.SysMemPitch = 0;
+			InitData.SysMemSlicePitch = 0;
+
+			mDevice->CreateBuffer(&cbDesc, &InitData, &mSceneCB);
+		}
+
+		D3D11_MAPPED_SUBRESOURCE ms;
+		mDeviceContext->Map(mSceneCB, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
+		memcpy(ms.pData, &matrix, sizeof(DirectX::XMMATRIX));
+		mDeviceContext->Unmap(mSceneCB, NULL);
+
+		mDeviceContext->VSSetConstantBuffers(0, 1, &mSceneCB);
 	}
 }

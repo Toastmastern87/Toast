@@ -1,6 +1,8 @@
 #include "tpch.h"
 #include "Renderer.h"
 
+#include "Platform/DirectX/DirectXShader.h"
+
 namespace Toast {
 
 	Renderer::SceneData* Renderer::mSceneData = new Renderer::SceneData;
@@ -21,8 +23,7 @@ namespace Toast {
 		vertexBuffer->Bind();
 		indexBuffer->Bind();
 		shader->Bind();
-		shader->UploadConstantBuffer("Camera", mSceneData->viewProjectionMatrix);
-		shader->UploadConstantBuffer("Transform", transform);
+		std::static_pointer_cast<DirectXShader>(shader)->UploadObjectDataVSCBuffer(transform);
 
 		RenderCommand::DrawIndexed(indexBuffer);
 	}
