@@ -43,7 +43,7 @@ namespace Toast {
 		ID3D10Blob* VSRaw = dxShader->GetVSRaw();
 
 		mDevice->CreateInputLayout(inputLayoutDesc, 
-								  2,
+								  (UINT)mElements.size(),
 			                      VSRaw->GetBufferPointer(),
 			                      VSRaw->GetBufferSize(),
 			                      &mInputLayout);

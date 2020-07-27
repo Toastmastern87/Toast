@@ -15,7 +15,9 @@ namespace Toast {
 
 		virtual void Bind() const override;
 		virtual void Unbind() const override;
-		virtual void UploadConstantBuffer(const std::string& name, const DirectX::XMMATRIX& matrix) const override;
+		virtual void UploadColorDataPSCBuffer(const DirectX::XMFLOAT4& values);
+		virtual void UploadObjectDataVSCBuffer(const DirectX::XMMATRIX& matrix);
+		virtual void UploadSceneDataVSCBuffer(const DirectX::XMMATRIX& matrix);
 
 		ID3D10Blob* GetVSRaw() const { return mVSRaw; }
 
@@ -23,8 +25,12 @@ namespace Toast {
 		ID3D11VertexShader* mVertexShader = nullptr;
 		ID3D11PixelShader* mPixelShader = nullptr;
 		ID3D10Blob* mVSRaw = nullptr;
+		ID3D10Blob* mPSRaw = nullptr;
+		ID3D11Buffer* mSceneCB = nullptr;
+		ID3D11Buffer* mObjectCB = nullptr;
+		ID3D11Buffer* mColorCB = nullptr;
 
-		ID3D11Device* mDevice;
-		ID3D11DeviceContext* mDeviceContext;
+		ID3D11Device* mDevice = nullptr;
+		ID3D11DeviceContext* mDeviceContext = nullptr;
 	};
 }
