@@ -17,7 +17,7 @@ namespace Toast {
 			sRendererAPI->SetRenderTargets();
 		}
 
-		inline static void DrawIndexed(const std::shared_ptr<IndexBuffer>& indexBuffer)
+		inline static void DrawIndexed(const Ref<IndexBuffer>& indexBuffer)
 		{
 			sRendererAPI->DrawIndexed(indexBuffer);
 		}
