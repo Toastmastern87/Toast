@@ -94,10 +94,10 @@ public:
 	{
 	}
 private:
-	std::shared_ptr<Toast::Shader> mShader;
-	std::shared_ptr<Toast::BufferLayout> mBufferLayout;
-	std::shared_ptr<Toast::VertexBuffer> mVertexBuffer;
-	std::shared_ptr<Toast::IndexBuffer> mIndexBuffer;
+	Toast::Ref<Toast::Shader> mShader;
+	Toast::Ref<Toast::BufferLayout> mBufferLayout;
+	Toast::Ref<Toast::VertexBuffer> mVertexBuffer;
+	Toast::Ref<Toast::IndexBuffer> mIndexBuffer;
 
 	Toast::OrthographicCamera mCamera;
 	DirectX::XMFLOAT3 mCameraPosition;

@@ -26,7 +26,7 @@ namespace Toast {
 		deviceContext->OMSetRenderTargets(1, &renderTargetView, NULL);
 	}
 
-	void DirectXRendererAPI::DrawIndexed(const std::shared_ptr<IndexBuffer>& indexBuffer)
+	void DirectXRendererAPI::DrawIndexed(const Ref<IndexBuffer>& indexBuffer)
 	{
 		Application& app = Application::Get();
 		ID3D11DeviceContext* deviceContext = app.GetWindow().GetContext()->GetDeviceContext();

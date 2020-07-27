@@ -27,7 +27,7 @@ namespace Toast {
 	class DirectXBufferLayout : public BufferLayout 
 	{
 	public:
-		DirectXBufferLayout(const std::initializer_list<BufferElement>& elements, std::shared_ptr<Shader> shader);
+		DirectXBufferLayout(const std::initializer_list<BufferElement>& elements, Ref<Shader> shader);
 		virtual ~DirectXBufferLayout();
 
 		virtual void Bind() const override;

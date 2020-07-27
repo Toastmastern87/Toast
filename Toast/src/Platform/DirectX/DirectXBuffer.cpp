@@ -11,7 +11,7 @@ namespace Toast {
 	//     BUFFERLAYOUT  ///////////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	DirectXBufferLayout::DirectXBufferLayout(const std::initializer_list<BufferElement>& elements, std::shared_ptr<Shader> shader)
+	DirectXBufferLayout::DirectXBufferLayout(const std::initializer_list<BufferElement>& elements, Ref<Shader> shader)
 		: mElements(elements)
 	{
 		Application& app = Application::Get();
@@ -38,7 +38,7 @@ namespace Toast {
 			index++;
 		}
 
-		std::shared_ptr<DirectXShader> dxShader = std::static_pointer_cast<DirectXShader>(shader);
+		Ref<DirectXShader> dxShader = std::static_pointer_cast<DirectXShader>(shader);
 
 		ID3D10Blob* VSRaw = dxShader->GetVSRaw();
 

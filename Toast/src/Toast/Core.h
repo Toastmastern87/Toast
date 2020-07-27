@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #ifdef TOAST_PLATFORM_WINDOWS
 #if TOAST_DYNAMIC_LINK
 	#ifdef TOAST_BUILD_DLL
@@ -31,3 +33,12 @@
 #define TOAST_BIND_EVENT_FN(fn) std::bind(&fn, this, std::placeholders::_1)
 
 #define CLEAN(x) if(x){x->Release();x=nullptr;}
+
+namespace Toast {
+
+	template<typename T>
+	using Scope = std::unique_ptr<T>;
+
+	template<typename T>
+	using Ref = std::shared_ptr<T>;
+}

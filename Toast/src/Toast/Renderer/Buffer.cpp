@@ -7,7 +7,7 @@
 
 namespace Toast {
 
-	BufferLayout* BufferLayout::Create(const std::initializer_list<BufferElement>& elements, std::shared_ptr<Shader> shader)
+	BufferLayout* BufferLayout::Create(const std::initializer_list<BufferElement>& elements, Ref<Shader> shader)
 	{
 		switch (RendererAPI::GetAPI())
 		{
