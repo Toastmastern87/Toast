@@ -23,6 +23,7 @@ namespace Toast {
 		vertexBuffer->Bind();
 		indexBuffer->Bind();
 		shader->Bind();
+		std::static_pointer_cast<DirectXShader>(shader)->UploadSceneDataVSCBuffer(mSceneData->viewProjectionMatrix);
 		std::static_pointer_cast<DirectXShader>(shader)->UploadObjectDataVSCBuffer(transform);
 
 		RenderCommand::DrawIndexed(indexBuffer);

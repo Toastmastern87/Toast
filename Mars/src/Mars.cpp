@@ -10,11 +10,11 @@ public:
 	ExampleLayer()
 		: Layer("Example"), mCamera(-1.6f, 1.6f, 0.9f, -0.9f), mCameraPosition(DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f))
 	{
-		float vertices[3 * 4] = {
-								-0.5f, -0.5f, 0.0f,
-								0.5f, -0.5f, 0.0f,
-								0.5f,  0.5f, 0.0f,
-								-0.5f,  0.5f, 0.0f
+		float vertices[5 * 4] = {
+								-0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
+								0.5f, -0.5f, 0.0f, 1.0f, 1.0f,
+								0.5f,  0.5f, 0.0f, 1.0f, 0.0f,
+								-0.5f,  0.5f, 0.0f, 0.0f, 0.0f
 		};
 
 		mVertexBuffer.reset(Toast::VertexBuffer::Create(vertices, sizeof(vertices), uint32_t(4)));
@@ -26,10 +26,17 @@ public:
 		mShader.reset(Toast::Shader::Create("../Toast/src/Toast/Renderer/ShaderTest_Vs.hlsl", "../Toast/src/Toast/Renderer/ShaderTest_ps.hlsl"));
 
 		const std::initializer_list<Toast::BufferLayout::BufferElement>& layout = {
-																   { Toast::ShaderDataType::Float3, "POSITION"}
+																   { Toast::ShaderDataType::Float3, "POSITION" },
+																   { Toast::ShaderDataType::Float2, "TEXCOORD" },
 		};
 
 		mBufferLayout.reset(Toast::BufferLayout::Create(layout, mShader));
+
+		mTextureShader.reset(Toast::Shader::Create("../Toast/src/Toast/Renderer/TextureShader_vs.hlsl", "../Toast/src/Toast/Renderer/TextureShader_ps.hlsl"));
+
+		mTextureBufferLayout.reset(Toast::BufferLayout::Create(layout, mTextureShader));
+
+		mTexture = Toast::Texture2D::Create("assets/textures/Checkerboard.png");
 	}
 
 	~ExampleLayer() 
@@ -63,8 +70,6 @@ public:
 
 		Toast::Renderer::BeginScene(mCamera);
 
-		std::static_pointer_cast<Toast::DirectXShader>(mShader)->UploadSceneDataVSCBuffer(mCamera.GetViewProjectionMatrix());
-
 		DirectX::XMMATRIX scale = DirectX::XMMatrixScaling(0.1f, 0.1f, 0.1f);
 
 		std::static_pointer_cast<Toast::DirectXShader>(mShader)->UploadColorDataPSCBuffer(DirectX::XMFLOAT4(mSquareColor[0], mSquareColor[1], mSquareColor[2], 1.0f));
@@ -80,6 +85,9 @@ public:
 			}
 		}
 
+		mTexture->Bind();
+		Toast::Renderer::Submit(mIndexBuffer, mTextureShader, mTextureBufferLayout, mVertexBuffer, DirectX::XMMatrixScaling(1.5f, 1.5f, 1.5f));
+
 		Toast::Renderer::EndScene();
 	}
 
@@ -94,10 +102,12 @@ public:
 	{
 	}
 private:
-	Toast::Ref<Toast::Shader> mShader;
-	Toast::Ref<Toast::BufferLayout> mBufferLayout;
+	Toast::Ref<Toast::Shader> mShader, mTextureShader;
+	Toast::Ref<Toast::BufferLayout> mBufferLayout, mTextureBufferLayout;
 	Toast::Ref<Toast::VertexBuffer> mVertexBuffer;
 	Toast::Ref<Toast::IndexBuffer> mIndexBuffer;
+
+	Toast::Ref<Toast::Texture2D> mTexture;
 
 	Toast::OrthographicCamera mCamera;
 	DirectX::XMFLOAT3 mCameraPosition;
