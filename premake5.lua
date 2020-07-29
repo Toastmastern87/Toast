@@ -13,6 +13,10 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 IncludeDir = {}
 IncludeDir["ImGui"] = "Toast/vendor/imgui"
+IncludeDir["directxtk"] = "Toast/vendor/directxtk/Inc" 
+
+LibraryDir = {}
+LibraryDir["directxtk"] = "Toast/vendor/directxtk/Bin/Desktop_2019/x64"
 
 group "Dependencies"
 	include "Toast/vendor/imgui"
@@ -48,15 +52,22 @@ project "Toast"
 	{
 		"%{prj.name}/src",
 		"%{prj.name}/vendor/spdlog/include",
-		"%{IncludeDir.ImGui}"
+		"%{IncludeDir.ImGui}",
+		"%{IncludeDir.directxtk}"
 	}
+
+	libdirs
+    {
+		"%{LibraryDir.directxtk}/Debug"
+    }
 
 	links
 	{
 		"ImGui",
 		"d3d11.lib",
 		"dxgi.lib",
-		"dxguid.lib"
+		"dxguid.lib",
+		"DirectXTK.lib"
 	}
 
 	filter "system:windows"
