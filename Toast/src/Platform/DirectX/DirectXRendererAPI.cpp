@@ -8,6 +8,17 @@
 
 namespace Toast {
 
+	void DirectXRendererAPI::Init() 
+	{
+		Application& app = Application::Get();
+		ID3D11BlendState* alphaBlendEnabledState = app.GetWindow().GetContext()->GetAlphaBlendState();
+		ID3D11DeviceContext* deviceContext = app.GetWindow().GetContext()->GetDeviceContext();
+
+		float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		deviceContext->OMSetBlendState(alphaBlendEnabledState, blendFactor, 0xffffffff);
+	}
+
 	void DirectXRendererAPI::Clear(const float clearColor[4])
 	{
 		Application& app = Application::Get();

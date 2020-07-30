@@ -7,6 +7,11 @@ namespace Toast {
 
 	Renderer::SceneData* Renderer::mSceneData = new Renderer::SceneData;
 
+	void Renderer::Init()
+	{
+		RenderCommand::Init();
+	}
+
 	void Renderer::BeginScene(OrthographicCamera& camera)
 	{
 		mSceneData->viewProjectionMatrix = camera.GetViewProjectionMatrix();

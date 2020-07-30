@@ -11,6 +11,7 @@ namespace Toast {
 	public:
 		~DirectXRendererAPI() = default;
 
+		virtual void Init() override;
 		virtual void Clear(const float clearColor[4]) override;
 		virtual void SetRenderTargets() override;
 		virtual void DrawIndexed(const Ref<IndexBuffer>& indexBuffer) override;
