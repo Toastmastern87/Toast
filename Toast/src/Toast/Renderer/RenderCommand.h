@@ -7,6 +7,11 @@ namespace Toast {
 	class RenderCommand 
 	{
 	public:
+		inline static void Init()
+		{
+			sRendererAPI->Init();
+		}
+
 		inline static void Clear(const float clearColor[4])
 		{
 			sRendererAPI->Clear(clearColor);

@@ -16,6 +16,7 @@ namespace Toast
 		virtual ID3D11Device* GetDevice() = 0;
 		virtual ID3D11DeviceContext* GetDeviceContext() = 0;
 		virtual IDXGISwapChain* GetSwapChain() = 0;
+		virtual ID3D11BlendState* GetAlphaBlendState() = 0;
 
 		static GraphicsContext* Create(HWND windowHandle, UINT width, UINT height);
 	};

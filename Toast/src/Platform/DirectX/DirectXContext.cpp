@@ -43,6 +43,8 @@ namespace Toast
 
 		CreateRenderTarget();
 
+		CreateBlendStates();
+
 		SetViewport(width, height);
 
 		mDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -50,6 +52,7 @@ namespace Toast
 
 	DirectXContext::~DirectXContext()
 	{
+		CLEAN(mAlphaBlendEnabledState);
 		CLEAN(mRenderTargetView);
 		CLEAN(mSwapChain);
 		CLEAN(mDevice);
@@ -69,12 +72,40 @@ namespace Toast
 		CreateRenderTarget();
 	}
 
+	void DirectXContext::EnableAlphaBlending() 
+	{
+		float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		mDeviceContext->OMSetBlendState(mAlphaBlendEnabledState, blendFactor, 0xffffffff);
+	}
+
 	void DirectXContext::CreateRenderTarget()
 	{
 		ID3D11Texture2D* backBuffer;
 		mSwapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
 		mDevice->CreateRenderTargetView(backBuffer, NULL, &mRenderTargetView);
 		backBuffer->Release();
+	}
+
+	void DirectXContext::CreateBlendStates()
+	{
+		HRESULT result;
+		D3D11_BLEND_DESC bd;
+
+		bd.AlphaToCoverageEnable = true;
+		bd.IndependentBlendEnable = false;
+		bd.RenderTarget[0].BlendEnable = true;
+		bd.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		bd.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		bd.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+		bd.RenderTarget[0].RenderTargetWriteMask = 0x0f;
+
+		result = mDevice->CreateBlendState(&bd, &mAlphaBlendEnabledState);
+
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create blend states");
 	}
 
 	void DirectXContext::CleanupRenderTarget()

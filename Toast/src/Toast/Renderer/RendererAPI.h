@@ -13,6 +13,7 @@ namespace Toast {
 		};
 	
 	public:
+		virtual void Init() = 0;
 		virtual void Clear(const float clearColor[4]) = 0;
 		virtual void SetRenderTargets() = 0;
 		virtual void DrawIndexed(const Ref<IndexBuffer>& indexBuffer) = 0;

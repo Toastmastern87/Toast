@@ -37,6 +37,8 @@ public:
 		mTextureBufferLayout.reset(Toast::BufferLayout::Create(layout, mTextureShader));
 
 		mTexture = Toast::Texture2D::Create("assets/textures/Checkerboard.png");
+
+		mMarsLogoTexture = Toast::Texture2D::Create("assets/textures/Logo.png");
 	}
 
 	~ExampleLayer() 
@@ -88,6 +90,9 @@ public:
 		mTexture->Bind();
 		Toast::Renderer::Submit(mIndexBuffer, mTextureShader, mTextureBufferLayout, mVertexBuffer, DirectX::XMMatrixScaling(1.5f, 1.5f, 1.5f));
 
+		mMarsLogoTexture->Bind();
+		Toast::Renderer::Submit(mIndexBuffer, mTextureShader, mTextureBufferLayout, mVertexBuffer, DirectX::XMMatrixScaling(1.5f, 1.5f, 1.5f));
+
 		Toast::Renderer::EndScene();
 	}
 
@@ -107,7 +112,7 @@ private:
 	Toast::Ref<Toast::VertexBuffer> mVertexBuffer;
 	Toast::Ref<Toast::IndexBuffer> mIndexBuffer;
 
-	Toast::Ref<Toast::Texture2D> mTexture;
+	Toast::Ref<Toast::Texture2D> mTexture, mMarsLogoTexture;
 
 	Toast::OrthographicCamera mCamera;
 	DirectX::XMFLOAT3 mCameraPosition;
