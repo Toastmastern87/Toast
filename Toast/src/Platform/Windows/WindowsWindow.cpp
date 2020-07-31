@@ -1,13 +1,13 @@
 #include "tpch.h"
 #include "WindowsWindow.h"
 
+#include "Toast/Renderer/Renderer.h"
+
 #include "Toast/Application.h"
 
 #include "Toast/Events/ApplicationEvent.h"
 #include "Toast/Events/KeyEvent.h"
 #include "Toast/Events/MouseEvent.h"
-
-#include "Platform/DirectX/DirectXContext.h"
 
 #include "imgui.h"
 
@@ -79,11 +79,6 @@ namespace Toast
 			sWin32Initialized = true;
 		}
 
-		RECT clientRect;
-		GetClientRect(mWin32Window, &clientRect);
-
-		mContext = new DirectXContext(mWin32Window, (clientRect.right - clientRect.left), (clientRect.bottom - clientRect.top));
-
 		SetWindowLongPtr(mWin32Window, 0, (LONG_PTR)&mData);
 		ShowWindow(mWin32Window, SW_SHOWDEFAULT);
 		UpdateWindow(mWin32Window);
@@ -92,8 +87,6 @@ namespace Toast
 
 	void WindowsWindow::Shutdown() 
 	{
-		delete mContext;
-
 		DestroyWindow(mWin32Window);
 	}
 
@@ -107,7 +100,7 @@ namespace Toast
 			DispatchMessage(&message);
 		}
 
-		mContext->SwapBuffers();
+		RenderCommand::SwapBuffers();
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)
@@ -118,11 +111,6 @@ namespace Toast
 	bool WindowsWindow::IsVSync() const 
 	{
 		return mData.VSync;
-	}
-
-	void WindowsWindow::Resize(UINT width, UINT height) const
-	{
-		mContext->ResizeContext(width, height);
 	}
 
 	LRESULT CALLBACK WindowsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)

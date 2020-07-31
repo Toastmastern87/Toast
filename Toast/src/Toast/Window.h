@@ -5,8 +5,6 @@
 #include "Toast/Core.h"
 #include "Toast/Events/Event.h"
 
-#include "Toast/Renderer/GraphicsContext.h"
-
 namespace Toast
 {
 	struct WindowProps
@@ -40,11 +38,9 @@ namespace Toast
 		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;
 		virtual void SetVSync(bool enabled) = 0;
 		virtual bool IsVSync() const = 0;
-		virtual void Resize(UINT width, UINT height) const = 0;
 
 		static Window* Create(const WindowProps& props = WindowProps());
 
 		virtual HWND GetNativeWindow() const = 0;
-		virtual GraphicsContext* GetContext() const = 0;
 	};
 }

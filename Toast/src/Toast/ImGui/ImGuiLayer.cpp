@@ -4,7 +4,10 @@
 #include "imgui.h"
 
 #include "Toast/Application.h"
-#include "Platform/DirectX/DirectXContext.h"
+
+#include "Toast/Renderer/Renderer.h"
+
+#include "Platform/DirectX/DirectXRendererAPI.h"
 
 #include "examples/imgui_impl_dx11.h"
 #include "examples/imgui_impl_win32.h"
@@ -40,8 +43,9 @@ namespace Toast
 		}
 
 		Application& app = Application::Get();
-		ID3D11Device* device = app.GetWindow().GetContext()->GetDevice();
-		ID3D11DeviceContext* deviceContext = app.GetWindow().GetContext()->GetDeviceContext();
+		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
+		ID3D11Device* device = API.GetDevice();
+		ID3D11DeviceContext* deviceContext = API.GetDeviceContext();
 
 		ImGui_ImplWin32_Init(app.GetWindow().GetNativeWindow());
 		ImGui_ImplDX11_Init(device, deviceContext);

@@ -29,6 +29,11 @@ namespace Toast {
 		mImGuiLayer = new ImGuiLayer();
 		PushOverlay(mImGuiLayer);
 	}
+	
+	Application::~Application() 
+	{
+		RenderCommand::CleanUp();
+	}
 
 	void Application::PushLayer(Layer* layer) 
 	{
@@ -89,7 +94,7 @@ namespace Toast {
 
 	bool Application::OnWindowResize(WindowResizeEvent& e)
 	{
-		mWindow->Resize((UINT)(e.GetWidth()), (UINT)(e.GetHeight()));
+		RenderCommand::ResizeContext((UINT)(e.GetWidth()), (UINT)(e.GetHeight()));
 
 		return true;
 	}

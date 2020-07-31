@@ -1,6 +1,8 @@
 #include "tpch.h"
 #include "DirectXShader.h"
-#include "DirectXContext.h"
+
+#include "DirectXRendererAPI.h"
+#include "Toast/Renderer/Renderer.h"
 
 #include "Toast/Application.h"
 
@@ -15,9 +17,9 @@ namespace Toast {
 		ID3D10Blob* errorRaw = nullptr;
 		std::wstring stemp;
 
-		Application& app = Application::Get();
-		mDevice = app.GetWindow().GetContext()->GetDevice();
-		mDeviceContext = app.GetWindow().GetContext()->GetDeviceContext();
+		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
+		mDevice = API.GetDevice();
+		mDeviceContext = API.GetDeviceContext();
 
 		stemp = std::wstring(vertexSrc.begin(), vertexSrc.end());
 

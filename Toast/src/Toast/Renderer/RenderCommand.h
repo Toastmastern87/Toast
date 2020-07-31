@@ -27,7 +27,22 @@ namespace Toast {
 			sRendererAPI->DrawIndexed(indexBuffer);
 		}
 
-	private:
+		inline static void SwapBuffers()
+		{
+			sRendererAPI->SwapBuffers();
+		}
+
+		inline static void ResizeContext(UINT width, UINT height)
+		{
+			sRendererAPI->ResizeContext(width, height);
+		}
+
+		inline static void CleanUp()
+		{
+			sRendererAPI->CleanUp();
+		}
+
+	public:
 		static RendererAPI* sRendererAPI;
 	};
 }
