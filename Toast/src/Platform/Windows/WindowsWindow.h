@@ -18,10 +18,8 @@ namespace Toast
 		inline void SetEventCallback(const EventCallbackFn& callback) override { mData.EventCallback = callback; }
 		void SetVSync(bool enabled) override;
 		bool IsVSync() const override;
-		void Resize(UINT width, UINT height) const override;
 
 		inline virtual HWND GetNativeWindow() const override { return mWin32Window; }
-		inline virtual GraphicsContext* GetContext() const override { return mContext; }
 
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
@@ -31,7 +29,6 @@ namespace Toast
 
 	private:
 		HWND mWin32Window;
-		GraphicsContext* mContext;
 
 		struct WindowData 
 		{

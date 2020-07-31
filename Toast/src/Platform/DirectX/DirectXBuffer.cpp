@@ -1,7 +1,9 @@
 #include "tpch.h"
 #include "DirectXBuffer.h"
 #include "DirectXShader.h"
-#include "DirectXContext.h"
+#include "DirectXRendererAPI.h"
+
+#include "Toast/Renderer/Renderer.h"
 
 #include "Toast/Application.h"
 
@@ -14,9 +16,9 @@ namespace Toast {
 	DirectXBufferLayout::DirectXBufferLayout(const std::initializer_list<BufferElement>& elements, Ref<Shader> shader)
 		: mElements(elements)
 	{
-		Application& app = Application::Get();
-		mDevice = app.GetWindow().GetContext()->GetDevice();
-		mDeviceContext = app.GetWindow().GetContext()->GetDeviceContext();
+		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
+		mDevice = API.GetDevice();
+		mDeviceContext = API.GetDeviceContext();
 
 		uint32_t index = 0;
 
@@ -99,9 +101,9 @@ namespace Toast {
 		D3D11_SUBRESOURCE_DATA vd;
 		HRESULT result;
 
-		Application& app = Application::Get();
-		mDevice = app.GetWindow().GetContext()->GetDevice();
-		mDeviceContext = app.GetWindow().GetContext()->GetDeviceContext();
+		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
+		mDevice = API.GetDevice();
+		mDeviceContext = API.GetDeviceContext();
 
 		ZeroMemory(&vbd, sizeof(D3D11_BUFFER_DESC));
 
@@ -153,9 +155,9 @@ namespace Toast {
 		D3D11_SUBRESOURCE_DATA id;
 		HRESULT result;
 
-		Application& app = Application::Get();
-		mDevice = app.GetWindow().GetContext()->GetDevice();
-		mDeviceContext = app.GetWindow().GetContext()->GetDeviceContext();
+		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
+		mDevice = API.GetDevice();
+		mDeviceContext = API.GetDeviceContext();
 
 		ZeroMemory(&ibd, sizeof(D3D11_BUFFER_DESC));
 

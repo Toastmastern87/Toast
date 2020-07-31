@@ -1,6 +1,9 @@
 #include "tpch.h"
 #include "DirectXTexture.h"
 
+#include "DirectXRendererAPI.h"
+#include "Toast/Renderer/Renderer.h"
+
 #include "Toast/Application.h"
 
 #include <WICTextureLoader.h>
@@ -12,9 +15,9 @@ namespace Toast {
 	{
 		HRESULT result;
 
-		Application& app = Application::Get();
-		mDevice = app.GetWindow().GetContext()->GetDevice();
-		mDeviceContext = app.GetWindow().GetContext()->GetDeviceContext();
+		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
+		mDevice = API.GetDevice();
+		mDeviceContext = API.GetDeviceContext();
 
 		D3D11_SAMPLER_DESC samplerDesc;
 		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
