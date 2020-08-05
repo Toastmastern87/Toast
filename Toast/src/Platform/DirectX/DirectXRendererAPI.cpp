@@ -9,7 +9,6 @@ namespace Toast {
 
 	void DirectXRendererAPI::CleanUp() 
 	{
-		TOAST_TRACE("Cleaning Up!");
 		CLEAN(mAlphaBlendEnabledState);
 		CLEAN(mRenderTargetView);
 		CLEAN(mSwapChain);

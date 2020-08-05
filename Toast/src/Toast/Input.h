@@ -6,7 +6,12 @@ namespace Toast
 {
 	class TOAST_API Input
 	{
+	protected:
+		Input() = default;
 	public:
+		Input(const Input&) = delete;
+		Input& operator=(const Input&) = delete;
+
 		inline static bool IsKeyPressed(int keycode) { return sInstance->IsKeyPressedImpl(keycode); }
 
 		inline static bool IsMouseButtonPressed(int button) { return sInstance->IsMouseButtonPressedImpl(button); }

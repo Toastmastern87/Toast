@@ -23,7 +23,7 @@ public:
 
 		mIndexBuffer.reset(Toast::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
 
-		mShader.reset(Toast::Shader::Create("../Toast/src/Toast/Renderer/ShaderTest_Vs.hlsl", "../Toast/src/Toast/Renderer/ShaderTest_ps.hlsl"));
+		mShader.reset(Toast::Shader::Create("assets/shaders/ShaderTest.hlsl"));
 
 		const std::initializer_list<Toast::BufferLayout::BufferElement>& layout = {
 																   { Toast::ShaderDataType::Float3, "POSITION" },
@@ -32,7 +32,7 @@ public:
 
 		mBufferLayout.reset(Toast::BufferLayout::Create(layout, mShader));
 
-		mTextureShader.reset(Toast::Shader::Create("../Toast/src/Toast/Renderer/TextureShader_vs.hlsl", "../Toast/src/Toast/Renderer/TextureShader_ps.hlsl"));
+		mTextureShader.reset(Toast::Shader::Create("assets/shaders/TextureShader.hlsl"));
 
 		mTextureBufferLayout.reset(Toast::BufferLayout::Create(layout, mTextureShader));
 

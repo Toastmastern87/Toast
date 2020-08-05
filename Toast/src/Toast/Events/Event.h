@@ -60,12 +60,13 @@ namespace Toast
 		{
 		}
 
-		template<typename T>
-		bool Dispatch(EventFn<T> func)
+		// F will be deduced by the compiler
+		template<typename T, typename F>
+		bool Dispatch(const F& func)
 		{
 			if (mEvent.GetEventType() == T::GetStaticType())
 			{
-				mEvent.Handled = func(*(T*)&mEvent);
+				mEvent.Handled = func(static_cast<T&>(mEvent));
 				return true;
 			}
 			return false;
