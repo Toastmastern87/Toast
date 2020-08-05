@@ -1,3 +1,4 @@
+#type vertex
 #pragma pack_matrix( row_major )
 
 cbuffer Camera : register(b0)
@@ -32,4 +33,20 @@ PixelInputType main(VertexInputType input)
 	output.texcoord = input.texcoord;
 
 	return output;
+}
+
+#type pixel
+struct PixelInputType
+{
+	float4 position : SV_POSITION;
+	float2 texcoord : TEXCOORD;
+};
+
+
+Texture2D shaderTexture;
+SamplerState sampleType;
+
+float4 main(PixelInputType input) : SV_TARGET
+{
+	return shaderTexture.SampleLevel(sampleType, input.texcoord, 0);
 }
