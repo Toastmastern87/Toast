@@ -66,6 +66,13 @@ namespace Toast {
 					break;
 			}
 		}
+
+		// Finds the shader name
+		auto lastSlash = filepath.find_last_of("/\\");
+		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
+		auto lastDot = filepath.rfind('.');
+		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
+		mName = filepath.substr(lastSlash, count);
 	}
 
 	DirectXShader::~DirectXShader()
@@ -88,7 +95,7 @@ namespace Toast {
 	{
 		std::string result;
 
-		std::ifstream in(filepath, std::ios::in, std::ios::binary);
+		std::ifstream in(filepath, std::ios::in | std::ios::binary);
 		if (in) 
 		{
 			in.seekg(0, std::ios::end);
