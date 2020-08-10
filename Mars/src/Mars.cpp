@@ -23,18 +23,18 @@ public:
 
 		mIndexBuffer.reset(Toast::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
 
-		mShader.reset(Toast::Shader::Create("assets/shaders/ShaderTest.hlsl"));
+		auto shader = mShaderLibrary.Load("assets/shaders/Test.hlsl");
 
 		const std::initializer_list<Toast::BufferLayout::BufferElement>& layout = {
 																   { Toast::ShaderDataType::Float3, "POSITION" },
 																   { Toast::ShaderDataType::Float2, "TEXCOORD" },
 		};
 
-		mBufferLayout.reset(Toast::BufferLayout::Create(layout, mShader));
+		mBufferLayout.reset(Toast::BufferLayout::Create(layout, shader));
 
-		mTextureShader.reset(Toast::Shader::Create("assets/shaders/TextureShader.hlsl"));
+		auto textureShader = mShaderLibrary.Load("assets/shaders/Texture.hlsl");
 
-		mTextureBufferLayout.reset(Toast::BufferLayout::Create(layout, mTextureShader));
+		mTextureBufferLayout.reset(Toast::BufferLayout::Create(layout, textureShader));
 
 		mTexture = Toast::Texture2D::Create("assets/textures/Checkerboard.png");
 
@@ -74,7 +74,9 @@ public:
 
 		DirectX::XMMATRIX scale = DirectX::XMMatrixScaling(0.1f, 0.1f, 0.1f);
 
-		std::static_pointer_cast<Toast::DirectXShader>(mShader)->UploadColorDataPSCBuffer(DirectX::XMFLOAT4(mSquareColor[0], mSquareColor[1], mSquareColor[2], 1.0f));
+		auto shader = mShaderLibrary.Get("Test");
+
+		std::static_pointer_cast<Toast::DirectXShader>(shader)->UploadColorDataPSCBuffer(DirectX::XMFLOAT4(mSquareColor[0], mSquareColor[1], mSquareColor[2], 1.0f));
 
 		for (int y = 0; y < 10; y++)
 		{
@@ -83,15 +85,17 @@ public:
 				DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * scale;
 				transform = transform * DirectX::XMMatrixTranslation(x * 0.11f, y * 0.11f, 0.0f);
 
-				Toast::Renderer::Submit(mIndexBuffer, mShader, mBufferLayout, mVertexBuffer, transform);
+				Toast::Renderer::Submit(mIndexBuffer, shader, mBufferLayout, mVertexBuffer, transform);
 			}
 		}
 
+		auto textureShader = mShaderLibrary.Get("Texture");
+
 		mTexture->Bind();
-		Toast::Renderer::Submit(mIndexBuffer, mTextureShader, mTextureBufferLayout, mVertexBuffer, DirectX::XMMatrixScaling(1.5f, 1.5f, 1.5f));
+		Toast::Renderer::Submit(mIndexBuffer, textureShader, mTextureBufferLayout, mVertexBuffer, DirectX::XMMatrixScaling(1.5f, 1.5f, 1.5f));
 
 		mMarsLogoTexture->Bind();
-		Toast::Renderer::Submit(mIndexBuffer, mTextureShader, mTextureBufferLayout, mVertexBuffer, DirectX::XMMatrixScaling(1.5f, 1.5f, 1.5f));
+		Toast::Renderer::Submit(mIndexBuffer, textureShader, mTextureBufferLayout, mVertexBuffer, DirectX::XMMatrixScaling(1.5f, 1.5f, 1.5f));
 
 		Toast::Renderer::EndScene();
 	}
@@ -107,7 +111,7 @@ public:
 	{
 	}
 private:
-	Toast::Ref<Toast::Shader> mShader, mTextureShader;
+	Toast::ShaderLibrary mShaderLibrary;
 	Toast::Ref<Toast::BufferLayout> mBufferLayout, mTextureBufferLayout;
 	Toast::Ref<Toast::VertexBuffer> mVertexBuffer;
 	Toast::Ref<Toast::IndexBuffer> mIndexBuffer;

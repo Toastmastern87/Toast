@@ -16,6 +16,9 @@ namespace Toast {
 
 		virtual void Bind() const override;
 		virtual void Unbind() const override;
+
+		virtual const std::string GetName() const override { return mName; }
+
 		virtual void UploadColorDataPSCBuffer(const DirectX::XMFLOAT4& values);
 		virtual void UploadObjectDataVSCBuffer(const DirectX::XMMATRIX& matrix);
 		virtual void UploadSceneDataVSCBuffer(const DirectX::XMMATRIX& matrix);
@@ -27,6 +30,8 @@ namespace Toast {
 		void Compile(const std::unordered_map<D3D11_SHADER_TYPE, std::string> shaderSources);
 
 	private:
+		std::string mName;
+
 		ID3D11VertexShader* mVertexShader = nullptr;
 		ID3D11PixelShader* mPixelShader = nullptr;
 		std::unordered_map<D3D11_SHADER_TYPE, ID3D10Blob*> mRawBlobs;
