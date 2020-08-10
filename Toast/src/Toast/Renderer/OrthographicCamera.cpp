@@ -9,6 +9,12 @@ namespace Toast {
 		mViewProjectionMatrix = DirectX::XMMatrixMultiply(mViewMatrix, mProjectionMatrix);
 	}
 
+	void OrthographicCamera::SetProjection(float left, float right, float bottom, float top)
+	{
+		mProjectionMatrix = DirectX::XMMatrixOrthographicLH((right - left), (bottom - top), -1.0f, 1.0f);
+		mViewProjectionMatrix = DirectX::XMMatrixMultiply(mViewMatrix, mProjectionMatrix);
+	}
+
 	void OrthographicCamera::RecalculateViewMatrix()
 	{
 		DirectX::XMMATRIX transform = DirectX::XMMatrixRotationZ(DirectX::XMConvertToRadians(mRotation)) * DirectX::XMMatrixTranslation(mPosition.x, mPosition.y, mPosition.z);

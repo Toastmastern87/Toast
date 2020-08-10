@@ -124,7 +124,7 @@ namespace Toast
 		{
 			case WM_SIZE: 
 			{
-				if (windowCreationBlocking > 0 && wParam != SIZE_MINIMIZED)
+				if (windowCreationBlocking > 0 && !SIZE_MINIMIZED)
 				{
 					WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
 					data->Width = (UINT)LOWORD(lParam);
@@ -184,7 +184,7 @@ namespace Toast
 			{
 				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
 
-				MouseScrolledEvent event(GET_WHEEL_DELTA_WPARAM(wParam));
+				MouseScrolledEvent event((float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
 				data->EventCallback(event);
 				break;
 			}

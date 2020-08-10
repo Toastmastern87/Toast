@@ -18,9 +18,11 @@ namespace Toast {
 
 	void DirectXRendererAPI::Init()
 	{
+		D3D11_VIEWPORT viewport;
+		RECT clientRect;
+
 		mWindowHandle = Application::Get().GetWindow().GetNativeWindow();
 
-		RECT clientRect;
 		GetClientRect(mWindowHandle, &clientRect);
 
 		mWidth = clientRect.right - clientRect.left;
@@ -64,7 +66,14 @@ namespace Toast {
 
 		CreateBlendStates();
 
-		SetViewport(mWidth, mHeight);
+		viewport.TopLeftX = (float)clientRect.left;
+		viewport.TopLeftY = (float)clientRect.top;
+		viewport.Width = (float)mWidth;
+		viewport.Height = (float)mHeight;
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+
+		mDeviceContext->RSSetViewports(1, &viewport);
 
 		mDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -91,10 +100,23 @@ namespace Toast {
 		mSwapChain->Present(0, 0);
 	}
 
-	void DirectXRendererAPI::ResizeContext(UINT width, UINT height)
+	void DirectXRendererAPI::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 	{
+		D3D11_VIEWPORT viewport;
+
 		CleanupRenderTarget();
-		SetViewport(width, height);
+		
+		ZeroMemory(&viewport, sizeof(D3D11_VIEWPORT));
+
+		viewport.TopLeftX = (float)x;
+		viewport.TopLeftY = (float)y;
+		viewport.Width = (float)width;
+		viewport.Height = (float)height;
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+
+		mDeviceContext->RSSetViewports(1, &viewport);
+
 		mSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 		CreateRenderTarget();
 	}
@@ -138,24 +160,6 @@ namespace Toast {
 	void DirectXRendererAPI::CleanupRenderTarget()
 	{
 		CLEAN(mRenderTargetView);
-	}
-
-	void DirectXRendererAPI::SetViewport(UINT width, UINT height)
-	{
-		D3D11_VIEWPORT viewport;
-		ZeroMemory(&viewport, sizeof(D3D11_VIEWPORT));
-
-		RECT clientRect;
-		GetClientRect(mWindowHandle, &clientRect);
-
-		viewport.TopLeftX = (float)clientRect.left;
-		viewport.TopLeftY = (float)clientRect.top;
-		viewport.Width = (float)width;
-		viewport.Height = (float)height;
-		viewport.MinDepth = 0.0f;
-		viewport.MaxDepth = 1.0f;
-
-		mDeviceContext->RSSetViewports(1, &viewport);
 	}
 
 	void DirectXRendererAPI::LogAdapterInfo()

@@ -16,7 +16,7 @@ namespace Toast {
 		virtual void SetRenderTargets() override;
 		virtual void DrawIndexed(const Ref<IndexBuffer>& indexBuffer) override;
 		virtual void SwapBuffers() override;
-		virtual void ResizeContext(UINT width, UINT height) override;
+		virtual void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 		virtual void EnableAlphaBlending() override;
 		virtual void CleanUp() override;
 
@@ -26,7 +26,6 @@ namespace Toast {
 		void CreateRenderTarget();
 		void CreateBlendStates();
 		void CleanupRenderTarget();
-		void SetViewport(UINT width, UINT height);
 
 		void LogAdapterInfo();
 

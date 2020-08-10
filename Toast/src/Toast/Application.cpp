@@ -71,8 +71,11 @@ namespace Toast {
 			Timestep timestep = time - mLastFrameTime;
 			mLastFrameTime = time;
 
-			for (Layer* layer : mLayerStack) 
-				layer->OnUpdate(timestep);
+			if (!mMinimized) 
+			{
+				for (Layer* layer : mLayerStack)
+					layer->OnUpdate(timestep);
+			}
 
 			mImGuiLayer->Begin();
 			for (Layer* layer : mLayerStack) 
@@ -94,7 +97,14 @@ namespace Toast {
 
 	bool Application::OnWindowResize(WindowResizeEvent& e)
 	{
-		RenderCommand::ResizeContext((UINT)(e.GetWidth()), (UINT)(e.GetHeight()));
+		if (e.GetWidth() == 0 || e.GetHeight() == 0) 
+		{
+			mMinimized = true;
+			return false;
+		}
+
+		mMinimized = false;
+		Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
 
 		return true;
 	}

@@ -8,7 +8,7 @@ class ExampleLayer : public Toast::Layer
 {
 public:
 	ExampleLayer()
-		: Layer("Example"), mCamera(-1.6f, 1.6f, 0.9f, -0.9f), mCameraPosition(DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f))
+		: Layer("Example"), mCameraController(1280.0f / 720.0f, true)
 	{
 		float vertices[5 * 4] = {
 								-0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
@@ -47,30 +47,16 @@ public:
 
 	void OnUpdate(Toast::Timestep ts) override
 	{
-		if (Toast::Input::IsKeyPressed(TOAST_LEFT))
-			mCameraPosition.x -= mCameraMoveSpeed * ts;
-		else if(Toast::Input::IsKeyPressed(TOAST_RIGHT))
-			mCameraPosition.x += mCameraMoveSpeed * ts;
+		// Update
+		mCameraController.OnUpdate(ts);
 
-		if(Toast::Input::IsKeyPressed(TOAST_UP))
-			mCameraPosition.y += mCameraMoveSpeed * ts;
-		else if(Toast::Input::IsKeyPressed(TOAST_DOWN))
-			mCameraPosition.y -= mCameraMoveSpeed * ts;
-
-		if (Toast::Input::IsKeyPressed(TOAST_A))
-			mCameraRotation += mCameraRotationSpeed * ts;
-		else if (Toast::Input::IsKeyPressed(TOAST_D))
-			mCameraRotation -= mCameraRotationSpeed * ts;
-
+		// Render
 		const float clearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
 
 		Toast::RenderCommand::SetRenderTargets();
 		Toast::RenderCommand::Clear(clearColor);
 
-		mCamera.SetPosition(mCameraPosition);
-		mCamera.SetRotation(mCameraRotation);
-
-		Toast::Renderer::BeginScene(mCamera);
+		Toast::Renderer::BeginScene(mCameraController.GetCamera());
 
 		DirectX::XMMATRIX scale = DirectX::XMMatrixScaling(0.1f, 0.1f, 0.1f);
 
@@ -107,8 +93,9 @@ public:
 		ImGui::End();
 	}
 
-	void OnEvent(Toast::Event& event) override
+	void OnEvent(Toast::Event& e) override
 	{
+		mCameraController.OnEvent(e);
 	}
 private:
 	Toast::ShaderLibrary mShaderLibrary;
@@ -118,11 +105,7 @@ private:
 
 	Toast::Ref<Toast::Texture2D> mTexture, mMarsLogoTexture;
 
-	Toast::OrthographicCamera mCamera;
-	DirectX::XMFLOAT3 mCameraPosition;
-	float mCameraMoveSpeed = 5.0f;
-	float mCameraRotation = 0.0f;
-	float mCameraRotationSpeed = 180.0f;
+	Toast::OrthographicCameraController mCameraController;
 
 	float mSquareColor[3] = { 0.8f, 0.2f, 0.3f };
 };
