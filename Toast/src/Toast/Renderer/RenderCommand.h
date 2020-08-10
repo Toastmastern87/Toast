@@ -32,9 +32,9 @@ namespace Toast {
 			sRendererAPI->SwapBuffers();
 		}
 
-		inline static void ResizeContext(UINT width, UINT height)
+		inline static void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 		{
-			sRendererAPI->ResizeContext(width, height);
+			sRendererAPI->SetViewport(x, y, width, height);
 		}
 
 		inline static void CleanUp()

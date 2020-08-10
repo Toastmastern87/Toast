@@ -35,6 +35,7 @@ namespace Toast {
 		std::unique_ptr<Window> mWindow;
 		ImGuiLayer* mImGuiLayer;
 		bool mRunning = true;
+		bool mMinimized = false;
 		LayerStack mLayerStack;
 		float mLastFrameTime;
 

@@ -9,6 +9,8 @@ namespace Toast {
 	public:
 		OrthographicCamera(float left, float right, float bottom, float top);
 
+		void SetProjection(float left, float right, float bottom, float top);
+
 		const DirectX::XMFLOAT3& GetPosition() const { return mPosition; }
 		void SetPosition(const DirectX::XMFLOAT3& position) { mPosition = position; RecalculateViewMatrix(); }
 
