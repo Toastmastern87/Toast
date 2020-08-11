@@ -1,6 +1,8 @@
 [submodule "Toast/vendor/spdlog"]
 	path = Toast/vendor/spdlog
 	url = https://github.com/gabime/spdlog
+	branch = v1.x
 [submodule "Toast/vendor/imgui"]
 	path = Toast/vendor/imgui
 	url = https://github.com/TheCherno/imgui
+	branch = docking

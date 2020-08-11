@@ -1,11 +1,11 @@
 #include "tpch.h"
 #include "WindowsInput.h"
 
-#include "Toast/Application.h"
+#include "Toast/Core/Application.h"
 
 namespace Toast 
 {
-	Input* Input::sInstance = new WindowsInput();
+	Scope<Input> Input::sInstance = CreateScope<WindowsInput>();
 
 	bool WindowsInput::IsKeyPressedImpl(int keycode)
 	{

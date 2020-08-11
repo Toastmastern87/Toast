@@ -1,8 +1,8 @@
 #include "tpch.h"
 #include "OrthographicCameraController.h"
 
-#include "Toast/Input.h"
-#include "Toast/KeyCodes.h"
+#include "Toast/Core/Input.h"
+#include "Toast/Core/KeyCodes.h"
 
 namespace Toast {
 
@@ -15,14 +15,26 @@ namespace Toast {
 	void OrthographicCameraController::OnUpdate(Timestep ts) 
 	{
 		if (Input::IsKeyPressed(TOAST_KEY_A))
-			mCameraPosition.x -= mCameraTranslationSpeed * ts;
+		{
+			mCameraPosition.x -= cos(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
+			mCameraPosition.y -= sin(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
+		}		
 		else if (Input::IsKeyPressed(TOAST_KEY_D))
-			mCameraPosition.x += mCameraTranslationSpeed * ts;
+		{
+			mCameraPosition.x += cos(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
+			mCameraPosition.y += sin(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
+		}
 
 		if (Input::IsKeyPressed(TOAST_KEY_W))
-			mCameraPosition.y += mCameraTranslationSpeed * ts;
+		{
+			mCameraPosition.x += -sin(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
+			mCameraPosition.y += cos(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
+		}
 		else if (Input::IsKeyPressed(TOAST_KEY_S))
-			mCameraPosition.y -= mCameraTranslationSpeed * ts;
+		{
+			mCameraPosition.x -= -sin(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
+			mCameraPosition.y -= cos(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
+		}
 
 		if (mRotation) 
 		{
@@ -30,6 +42,11 @@ namespace Toast {
 				mCameraRotation += mCameraRotationSpeed * ts;
 			else if (Input::IsKeyPressed(TOAST_KEY_E))
 				mCameraRotation -= mCameraRotationSpeed * ts;
+
+			if (mCameraRotation > 180.0f)
+				mCameraRotation -= 360.0f;
+			else if (mCameraRotation <= -180.0f)
+				mCameraRotation += 360.0f;
 
 			mCamera.SetRotation(mCameraRotation);
 		}

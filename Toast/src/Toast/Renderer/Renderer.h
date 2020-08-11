@@ -24,6 +24,6 @@ namespace Toast {
 			DirectX::XMMATRIX viewProjectionMatrix;
 		};
 
-		static SceneData* mSceneData;
+		static Scope<SceneData> mSceneData;
 	};
 }

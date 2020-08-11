@@ -5,5 +5,5 @@
 
 namespace Toast {
 
-	RendererAPI* RenderCommand::sRendererAPI = new DirectXRendererAPI;
+	Scope<RendererAPI> RenderCommand::sRendererAPI = CreateScope<DirectXRendererAPI>();
 }

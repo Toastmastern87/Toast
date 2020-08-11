@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Toast/Core.h"
+#include "Toast/Core/Core.h"
 
 namespace Toast
 {
@@ -27,6 +27,6 @@ namespace Toast
 		virtual float GetMouseYImpl() = 0;
 
 	private:
-		static Input* sInstance;
+		static Scope<Input> sInstance;
 	};
 }

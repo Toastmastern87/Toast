@@ -3,7 +3,7 @@
 
 #include "Toast/Renderer/Renderer.h"
 
-#include "Toast/Application.h"
+#include "Toast/Core/Application.h"
 
 #include "Toast/Events/ApplicationEvent.h"
 #include "Toast/Events/KeyEvent.h"
@@ -124,7 +124,7 @@ namespace Toast
 		{
 			case WM_SIZE: 
 			{
-				if (windowCreationBlocking > 0 && wParam != SIZE_MINIMIZED)
+				if (windowCreationBlocking > 0)
 				{
 					WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
 					data->Width = (UINT)LOWORD(lParam);

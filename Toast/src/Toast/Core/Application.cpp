@@ -1,9 +1,9 @@
 #include "tpch.h"
 #include "Application.h"
 
-#include "Toast/Log.h"
+#include "Toast/Core/Log.h"
 
-#include "Toast/Input.h"
+#include "Toast/Core/Input.h"
 
 #include "Toast/Renderer/Renderer.h"
 

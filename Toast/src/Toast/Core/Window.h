@@ -2,7 +2,7 @@
 
 #include "tpch.h"
 
-#include "Toast/Core.h"
+#include "Toast/Core/Core.h"
 #include "Toast/Events/Event.h"
 
 namespace Toast
