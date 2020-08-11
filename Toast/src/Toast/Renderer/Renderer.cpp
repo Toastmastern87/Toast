@@ -5,7 +5,7 @@
 
 namespace Toast {
 
-	Renderer::SceneData* Renderer::mSceneData = new Renderer::SceneData;
+	Scope<Renderer::SceneData> Renderer::mSceneData = CreateScope<Renderer::SceneData>();
 
 	void Renderer::Init()
 	{

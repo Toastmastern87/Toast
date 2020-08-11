@@ -2,16 +2,16 @@
 
 //For use by game using the Toast engine
 
-#include "Toast/Application.h"
-#include "Toast/Layer.h"
-#include "Toast/Log.h"
+#include "Toast/Core/Application.h"
+#include "Toast/Core/Layer.h"
+#include "Toast/Core/Log.h"
 
 #include "Toast/Core/Timestep.h"
 
-#include "Toast/Input.h"
-#include "Toast/KeyCodes.h"
-#include "Toast/MouseButtonCodes.h"
-#include "Toast/OrthographicCameraController.h"
+#include "Toast/Core/Input.h"
+#include "Toast/Core/KeyCodes.h"
+#include "Toast/Core/MouseButtonCodes.h"
+#include "Toast/Renderer/OrthographicCameraController.h"
 
 #include "Toast/ImGui/ImGuiLayer.h"
 
@@ -27,5 +27,5 @@
 //---------------------------------------
 
 //-------Entry Point---------------------
-#include "Toast/EntryPoint.h"
+#include "Toast/Core/EntryPoint.h"
 //---------------------------------------

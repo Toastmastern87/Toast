@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "Toast/Core.h"
+#include "Toast/Core/Core.h"
 
 namespace Toast {
 

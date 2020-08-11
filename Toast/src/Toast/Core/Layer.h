@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Toast/Core.h"
+#include "Toast/Core/Core.h"
 #include "Toast/Core/Timestep.h"
 #include "Toast/Events/Event.h"
 

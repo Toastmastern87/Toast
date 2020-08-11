@@ -32,7 +32,7 @@ namespace Toast {
 		bool mRotation;
 
 		DirectX::XMFLOAT3 mCameraPosition = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-		float mCameraRotation = 0.0f;
+		float mCameraRotation = 0.0f; //In degrees, in the anti-clockwise direction
 		float mCameraTranslationSpeed = 5.0f;
 		float mCameraRotationSpeed = 180.0f;
 	};

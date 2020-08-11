@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Toast/Input.h"
+#include "Toast/Core/Input.h"
 
 namespace Toast 
 {

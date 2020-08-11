@@ -43,6 +43,6 @@ namespace Toast {
 		}
 
 	public:
-		static RendererAPI* sRendererAPI;
+		static Scope<RendererAPI> sRendererAPI;
 	};
 }

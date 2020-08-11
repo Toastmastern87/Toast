@@ -4,7 +4,7 @@
 #include "DirectXRendererAPI.h"
 #include "Toast/Renderer/Renderer.h"
 
-#include "Toast/Application.h"
+#include "Toast/Core/Application.h"
 
 #include <WICTextureLoader.h>
 

@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "Toast/Log.h"
+#include "Toast/Core/Log.h"
 
 #ifdef TOAST_PLATFORM_WINDOWS
 	#include <Windows.h>

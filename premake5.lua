@@ -61,11 +61,6 @@ project "Toast"
 		"%{IncludeDir.directxtk}"
 	}
 
-	libdirs
-    {
-		"%{LibraryDir.directxtk}/Debug"
-    }
-
 	links
 	{
 		"ImGui",
@@ -89,10 +84,20 @@ project "Toast"
 		runtime "Debug"
 		symbols "on"
 
+		libdirs
+		{
+			"%{LibraryDir.directxtk}/Debug"
+		}
+
 	filter "configurations:Release"
 		defines "TOAST_RELEASE"
 		runtime "Release"
 		optimize "on"
+
+		libdirs
+		{
+			"%{LibraryDir.directxtk}/Release"
+		}
 
 	filter "configurations:Dist"
 		defines "TOAST_DIST"
