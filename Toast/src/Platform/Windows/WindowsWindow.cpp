@@ -124,7 +124,7 @@ namespace Toast
 		{
 			case WM_SIZE: 
 			{
-				if (windowCreationBlocking > 0 && !SIZE_MINIMIZED)
+				if (windowCreationBlocking > 0 && wParam != SIZE_MINIMIZED)
 				{
 					WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
 					data->Width = (UINT)LOWORD(lParam);
