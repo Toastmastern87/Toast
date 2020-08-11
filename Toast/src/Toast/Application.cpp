@@ -106,6 +106,6 @@ namespace Toast {
 		mMinimized = false;
 		Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
 
-		return true;
+		return false;
 	}
 }

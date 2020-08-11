@@ -7,7 +7,7 @@
 namespace Toast {
 
 	OrthographicCameraController::OrthographicCameraController(float aspectRatio, bool rotation) 
-		: mAspectRatio(aspectRatio), mCamera(-mAspectRatio * mZoomLevel, mAspectRatio* mZoomLevel, mZoomLevel, -mZoomLevel), mRotation(rotation)
+		: mAspectRatio(aspectRatio), mCamera(-mAspectRatio * mZoomLevel, mAspectRatio * mZoomLevel, mZoomLevel, -mZoomLevel), mRotation(rotation)
 	{
 
 	}
@@ -35,6 +35,8 @@ namespace Toast {
 		}
 
 		mCamera.SetPosition(mCameraPosition);
+
+		mCameraTranslationSpeed = mZoomLevel;
 	}
 
 	void OrthographicCameraController::OnEvent(Event& e) 
@@ -54,7 +56,7 @@ namespace Toast {
 
 	bool OrthographicCameraController::OnWindowResize(WindowResizeEvent& e) 
 	{
-		mAspectRatio -= (float)e.GetWidth() / (float)e.GetHeight();
+		mAspectRatio = (float)e.GetWidth() / (float)e.GetHeight();
 		mCamera.SetProjection(-mAspectRatio * mZoomLevel, mAspectRatio * mZoomLevel, mZoomLevel, -mZoomLevel);
 		return false;
 	}
