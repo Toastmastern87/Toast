@@ -1,8 +1,11 @@
 #include <Toast.h>
+#include <Toast/Core/EntryPoint.h>
 
 #include "imgui/imgui.h"
 
 #include "Platform/DirectX/DirectXShader.h"
+
+#include "TheNextFrontier2D.h"
 
 class ExampleLayer : public Toast::Layer 
 {
@@ -115,7 +118,8 @@ class Mars : public Toast::Application
 public:
 	Mars()
 	{
-		PushLayer(new ExampleLayer());
+		//PushLayer(new ExampleLayer());
+		PushLayer(new TheNextFrontier2D());
 	}
 
 	~Mars()

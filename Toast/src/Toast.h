@@ -25,7 +25,3 @@
 
 #include "Toast/Renderer/OrthographicCamera.h"
 //---------------------------------------
-
-//-------Entry Point---------------------
-#include "Toast/Core/EntryPoint.h"
-//---------------------------------------
