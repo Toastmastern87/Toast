@@ -17,6 +17,7 @@
 
 //-------Renderer------------------------
 #include "Toast/Renderer/Renderer.h"
+#include "Toast/Renderer/Renderer2D.h"
 #include "Toast/Renderer/RenderCommand.h"
 
 #include "Toast/Renderer/Buffer.h"
