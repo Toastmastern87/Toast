@@ -18,6 +18,7 @@ namespace Toast {
 		virtual void SwapBuffers() override;
 		virtual void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 		virtual void EnableAlphaBlending() override;
+		virtual void EnableDepthTesting() override;
 		virtual void CleanUp() override;
 
 		virtual ID3D11Device* GetDevice() { return mDevice; }
@@ -25,6 +26,9 @@ namespace Toast {
 	private:
 		void CreateRenderTarget();
 		void CreateBlendStates();
+		void CreateDepthStencil();
+		void CreateDepthBuffer();
+
 		void CleanupRenderTarget();
 
 		void LogAdapterInfo();
@@ -38,5 +42,8 @@ namespace Toast {
 		IDXGISwapChain* mSwapChain = nullptr;
 		ID3D11RenderTargetView* mRenderTargetView = nullptr;
 		ID3D11BlendState* mAlphaBlendEnabledState = nullptr;
+		ID3D11DepthStencilView* mDepthStencilView = nullptr;
+		ID3D11DepthStencilState* mDepthStencilState = nullptr;
+		ID3D11Texture2D* mDepthStencilBuffer = nullptr;
 	};
 }
