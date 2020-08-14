@@ -35,8 +35,10 @@ namespace Toast {
 			std::string mName;
 			ShaderDataType mType;
 			uint32_t mSize;
-			uint32_t mOffset;
+			size_t mOffset;
 			uint32_t mSemanticIndex;
+
+			BufferElement() = default;
 
 			BufferElement(ShaderDataType type, const std::string& name)
 				: mName(name), mType(type), mSize(ShaderDataTypeSize(type)), mOffset(0), mSemanticIndex(0)

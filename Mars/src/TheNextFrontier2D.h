@@ -17,10 +17,5 @@ public:
 private:
 	Toast::OrthographicCameraController mCameraController;
 
-	Toast::Ref<Toast::Shader> mFlatColorShader;
-	Toast::Ref<Toast::BufferLayout> mBufferLayout;
-	Toast::Ref<Toast::VertexBuffer> mVertexBuffer;
-	Toast::Ref<Toast::IndexBuffer> mIndexBuffer;
-
 	float mSquareColor[4] = { 0.8f, 0.2f, 0.3f, 1.0f };
 };

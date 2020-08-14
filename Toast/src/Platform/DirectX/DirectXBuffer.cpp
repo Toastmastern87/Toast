@@ -75,7 +75,7 @@ namespace Toast {
 
 	void DirectXBufferLayout::CalculateOffsetAndStride()
 	{
-		uint32_t offset = 0;
+		size_t offset = 0;
 		mStride = 0;
 
 		for (auto& element : mElements)
