@@ -17,5 +17,7 @@ public:
 private:
 	Toast::OrthographicCameraController mCameraController;
 
+	Toast::Ref<Toast::Texture2D> mCheckerboardTexture;
+
 	float mSquareColor[4] = { 0.8f, 0.2f, 0.3f, 1.0f };
 };

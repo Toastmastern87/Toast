@@ -206,6 +206,21 @@ namespace Toast {
 		}
 	}
 
+	void DirectXShader::SetSceneData(const DirectX::XMMATRIX& matrix) 
+	{
+		UploadSceneDataVSCBuffer(matrix);
+	}
+
+	void DirectXShader::SetObjectData(const DirectX::XMMATRIX& matrix) 
+	{
+		UploadObjectDataVSCBuffer(matrix);
+	}
+
+	void DirectXShader::SetColorData(const DirectX::XMFLOAT4& values) 
+	{
+		UploadColorDataPSCBuffer(values);
+	}
+
 	void DirectXShader::UploadColorDataPSCBuffer(const DirectX::XMFLOAT4& values)
 	{
 		if (!mColorCB)

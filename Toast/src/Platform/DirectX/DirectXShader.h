@@ -19,6 +19,10 @@ namespace Toast {
 
 		virtual const std::string GetName() const override { return mName; }
 
+		virtual void SetSceneData(const DirectX::XMMATRIX& matrix) override;
+		virtual void SetObjectData(const DirectX::XMMATRIX& matrix) override;
+		virtual void SetColorData(const DirectX::XMFLOAT4& values) override;
+
 		virtual void UploadColorDataPSCBuffer(const DirectX::XMFLOAT4& values);
 		virtual void UploadObjectDataVSCBuffer(const DirectX::XMMATRIX& matrix);
 		virtual void UploadSceneDataVSCBuffer(const DirectX::XMMATRIX& matrix);

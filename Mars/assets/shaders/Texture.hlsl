@@ -48,5 +48,5 @@ SamplerState sampleType;
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	return shaderTexture.SampleLevel(sampleType, input.texcoord, 0);
+	return shaderTexture.SampleLevel(sampleType, input.texcoord * 10.0f, 0);
 }
