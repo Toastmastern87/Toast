@@ -9,13 +9,18 @@ namespace Toast {
 	class DirectXTexture2D : public Texture2D 
 	{
 	public:
+		DirectXTexture2D(uint32_t width, uint32_t height);
 		DirectXTexture2D(const std::string& path);
 		virtual ~DirectXTexture2D();
 
 		virtual uint32_t GetWidth() const override { return mWidth; }
 		virtual uint32_t GetHeight() const override { return mHeight; }
 
+		virtual void SetData(void* data, uint32_t size) override;
+
 		virtual void Bind() const override;
+	private:
+		void CreateSampler();
 
 	private:
 		std::string mPath;
