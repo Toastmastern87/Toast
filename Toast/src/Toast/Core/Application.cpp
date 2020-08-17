@@ -1,5 +1,5 @@
 #include "tpch.h"
-#include "Application.h"
+#include "Toast/Core/Application.h"
 
 #include "Toast/Core/Log.h"
 
@@ -8,8 +8,6 @@
 #include "Toast/Renderer/Renderer.h"
 
 namespace Toast {
-
-#define BIND_EVENT_FN(x) std::bind(&Application::x, this, std::placeholders::_1)
 
 	Application* Application::sInstance = nullptr;
 
@@ -21,8 +19,8 @@ namespace Toast {
 
 		sInstance = this;
 
-		mWindow = std::unique_ptr<Window>(Window::Create());
-		mWindow->SetEventCallback(BIND_EVENT_FN(OnEvent));
+		mWindow = Window::Create();
+		mWindow->SetEventCallback(TOAST_BIND_EVENT_FN(Application::OnEvent));
 
 		Renderer::Init();
 
@@ -32,6 +30,8 @@ namespace Toast {
 	
 	Application::~Application() 
 	{
+		Renderer::Shutdown();
+
 		RenderCommand::CleanUp();
 	}
 
@@ -48,8 +48,8 @@ namespace Toast {
 	void Application::OnEvent(Event& e)
 	{
 		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
-		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(OnWindowResize));
+		dispatcher.Dispatch<WindowCloseEvent>(TOAST_BIND_EVENT_FN(Application::OnWindowClose));
+		dispatcher.Dispatch<WindowResizeEvent>(TOAST_BIND_EVENT_FN(Application::OnWindowResize));
 
 		for (auto it = mLayerStack.end(); it != mLayerStack.begin(); ) 
 		{

@@ -1,5 +1,5 @@
 #include "tpch.h"
-#include "WindowsWindow.h"
+#include "Platform/Windows/WindowsWindow.h"
 
 #include "Toast/Renderer/Renderer.h"
 
@@ -26,9 +26,9 @@ namespace Toast
 		TOAST_CORE_ERROR("Win32 Error ({0}): {1}", error, description);
 	}
 
-	Window* Window::Create(const WindowProps& props) 
+	Scope<Window> Window::Create(const WindowProps& props) 
 	{
-		return new WindowsWindow(props);
+		return CreateScope<WindowsWindow>(props);
 	}
 
 	WindowsWindow::WindowsWindow(const WindowProps& props) 

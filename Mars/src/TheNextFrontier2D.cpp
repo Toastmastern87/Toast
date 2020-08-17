@@ -1,6 +1,6 @@
 #include "TheNextFrontier2D.h"
 
-#include "imgui/imgui.h"
+#include <imgui/imgui.h>
 
 TheNextFrontier2D::TheNextFrontier2D()
 	: Layer("TheNextFrontier2D"), mCameraController(1280.0f / 720.0f, true)

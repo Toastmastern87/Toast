@@ -1,8 +1,7 @@
 #include "tpch.h"
-#include "tpch.h"
-#include "Shader.h"
+#include "Toast/Renderer/Shader.h"
 
-#include "Renderer.h"
+#include "Toast/Renderer/Renderer.h"
 
 #include "Platform/DirectX/DirectXShader.h"
 
@@ -13,7 +12,7 @@ namespace Toast {
 		switch (RendererAPI::GetAPI())
 		{
 			case RendererAPI::API::None:			TOAST_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
-			case RendererAPI::API::DirectX:			return std::make_shared<DirectXShader>(filepath);
+			case RendererAPI::API::DirectX:			return CreateRef<DirectXShader>(filepath);
 		}
 
 		TOAST_CORE_ASSERT(false, "Unknown RendererAPI!");

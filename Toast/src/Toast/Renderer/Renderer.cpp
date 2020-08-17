@@ -1,8 +1,7 @@
 #include "tpch.h"
-#include "Renderer.h"
 
-#include "Platform/DirectX/DirectXShader.h"
-#include "Renderer2D.h"
+#include "Toast/Renderer/Renderer.h"
+#include "Toast/Renderer/Renderer2D.h"
 
 namespace Toast {
 
@@ -12,6 +11,11 @@ namespace Toast {
 	{
 		RenderCommand::Init();
 		Renderer2D::Init();
+	}
+
+	void Renderer::Shutdown() 
+	{
+		Renderer2D::Shutdown();
 	}
 
 	void Renderer::OnWindowResize(uint32_t width, uint32_t height)
@@ -35,8 +39,8 @@ namespace Toast {
 		vertexBuffer->Bind();
 		indexBuffer->Bind();
 		shader->Bind();
-		std::static_pointer_cast<DirectXShader>(shader)->UploadSceneDataVSCBuffer(mSceneData->viewProjectionMatrix);
-		std::static_pointer_cast<DirectXShader>(shader)->UploadObjectDataVSCBuffer(transform);
+		shader->SetSceneData(mSceneData->viewProjectionMatrix);
+		shader->SetObjectData(transform);
 
 		RenderCommand::DrawIndexed(indexBuffer);
 	}

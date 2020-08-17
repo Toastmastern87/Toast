@@ -1,7 +1,7 @@
 #include "tpch.h"
-#include "ImGuiLayer.h"
+#include "Toast/ImGui/ImGuiLayer.h"
 
-#include "imgui.h"
+#include <imgui.h>
 
 #include "Toast/Core/Application.h"
 
@@ -9,8 +9,8 @@
 
 #include "Platform/DirectX/DirectXRendererAPI.h"
 
-#include "examples/imgui_impl_dx11.h"
-#include "examples/imgui_impl_win32.h"
+#include <examples/imgui_impl_dx11.h>
+#include <examples/imgui_impl_win32.h>
 
 namespace Toast 
 {

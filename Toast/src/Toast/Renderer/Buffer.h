@@ -73,7 +73,7 @@ namespace Toast {
 		virtual uint32_t GetStride() const = 0;
 		virtual const std::vector<BufferElement>& GetElements() const = 0;
 
-		static BufferLayout* Create(const std::initializer_list<BufferElement>& elements, Ref<Shader> shader);
+		static Ref<BufferLayout> Create(const std::initializer_list<BufferElement>& elements, Ref<Shader> shader);
 
 	private:
 		virtual void CalculateOffsetAndStride() = 0;
@@ -87,7 +87,7 @@ namespace Toast {
 		virtual void Bind() const = 0;
 		virtual void Unbind() const = 0;
 
-		static VertexBuffer* Create(float* vertices, uint32_t size, uint32_t count);
+		static Ref<VertexBuffer> Create(float* vertices, uint32_t size, uint32_t count);
 	};
 
 	class IndexBuffer 
@@ -100,6 +100,6 @@ namespace Toast {
 
 		virtual uint32_t GetCount() const = 0;
 
-		static IndexBuffer* Create(uint32_t* indices, uint32_t count);
+		static Ref<IndexBuffer> Create(uint32_t* indices, uint32_t count);
 	};
 }

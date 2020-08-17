@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Event.h"
+#include "Toast/Events/Event.h"
 
 namespace Toast 
 {
-	class TOAST_API MouseMovedEvent : public Event
+	class MouseMovedEvent : public Event
 	{
 	public:
 		MouseMovedEvent(float x, float y)
@@ -26,7 +26,7 @@ namespace Toast
 		float mMouseX, mMouseY;
 	};
 
-	class TOAST_API MouseScrolledEvent : public Event
+	class MouseScrolledEvent : public Event
 	{
 	public:
 		MouseScrolledEvent(float delta)
@@ -47,7 +47,7 @@ namespace Toast
 		float mDelta;
 	};
 
-	class TOAST_API MouseButtonEvent : public Event
+	class MouseButtonEvent : public Event
 	{
 	public:
 		inline int GetMouseButton() const { return mButton; }
@@ -60,7 +60,7 @@ namespace Toast
 		int mButton;
 	};
 
-	class TOAST_API MouseButtonPressedEvent : public MouseButtonEvent
+	class MouseButtonPressedEvent : public MouseButtonEvent
 	{
 	public:
 		MouseButtonPressedEvent(int button)
@@ -76,7 +76,7 @@ namespace Toast
 		EVENT_CLASS_TYPE(MouseButtonPressed)
 	};
 
-	class TOAST_API MouseButtonReleasedEvent : public MouseButtonEvent
+	class MouseButtonReleasedEvent : public MouseButtonEvent
 	{
 	public:
 		MouseButtonReleasedEvent(int button)

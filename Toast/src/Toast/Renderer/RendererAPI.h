@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Buffer.h"
+#include "Toast/Renderer/Buffer.h"
 
 namespace Toast {
 
@@ -24,6 +24,7 @@ namespace Toast {
 		virtual void CleanUp() = 0;
 
 		inline static API GetAPI() { return sAPI; }
+		static Scope<RendererAPI> Create();
 	private:
 		static API sAPI;
 	};

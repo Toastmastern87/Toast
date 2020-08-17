@@ -1,11 +1,7 @@
 #include "tpch.h"
-#include "LayerStack.h"
+#include "Toast/Core/LayerStack.h"
 
-namespace Toast 
-{
-	LayerStack::LayerStack() 
-	{
-	}
+namespace Toast {
 
 	LayerStack::~LayerStack() 
 	{

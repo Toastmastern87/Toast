@@ -1,9 +1,9 @@
 #include "tpch.h"
-#include "RenderCommand.h"
+#include "Toast/Renderer/RenderCommand.h"
 
 #include "Platform/DirectX/DirectXRendererAPI.h"
 
 namespace Toast {
 
-	Scope<RendererAPI> RenderCommand::sRendererAPI = CreateScope<DirectXRendererAPI>();
+	Scope<RendererAPI> RenderCommand::sRendererAPI = RendererAPI::Create();
 }

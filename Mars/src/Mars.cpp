@@ -1,7 +1,7 @@
 #include <Toast.h>
 #include <Toast/Core/EntryPoint.h>
 
-#include "imgui/imgui.h"
+#include <imgui/imgui.h>
 
 #include "Platform/DirectX/DirectXShader.h"
 
@@ -20,11 +20,11 @@ public:
 								-0.5f,  0.5f, 0.0f, 0.0f, 0.0f
 		};
 
-		mVertexBuffer.reset(Toast::VertexBuffer::Create(vertices, sizeof(vertices), uint32_t(4)));
+		mVertexBuffer = Toast::VertexBuffer::Create(vertices, sizeof(vertices), uint32_t(4));
 
 		uint32_t indices[6] = { 0, 2, 1, 2, 0, 3 };
 
-		mIndexBuffer.reset(Toast::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
+		mIndexBuffer = Toast::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t));
 
 		auto shader = mShaderLibrary.Load("assets/shaders/Test.hlsl");
 
@@ -33,11 +33,11 @@ public:
 																   { Toast::ShaderDataType::Float2, "TEXCOORD" },
 		};
 
-		mBufferLayout.reset(Toast::BufferLayout::Create(layout, shader));
+		mBufferLayout = Toast::BufferLayout::Create(layout, shader);
 
 		auto textureShader = mShaderLibrary.Load("assets/shaders/Texture.hlsl");
 
-		mTextureBufferLayout.reset(Toast::BufferLayout::Create(layout, textureShader));
+		mTextureBufferLayout = Toast::BufferLayout::Create(layout, textureShader);
 
 		mTexture = Toast::Texture2D::Create("assets/textures/Checkerboard.png");
 
@@ -65,7 +65,7 @@ public:
 
 		auto shader = mShaderLibrary.Get("Test");
 
-		std::static_pointer_cast<Toast::DirectXShader>(shader)->UploadColorDataPSCBuffer(DirectX::XMFLOAT4(mSquareColor[0], mSquareColor[1], mSquareColor[2], 1.0f));
+		shader->SetColorData(DirectX::XMFLOAT4(mSquareColor[0], mSquareColor[1], mSquareColor[2], 1.0f));
 
 		for (int y = 0; y < 10; y++)
 		{

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Core.h"
+#include "Toast/Core/Core.h"
 
-#include "Window.h"
+#include "Toast/Core/Window.h"
 #include "Toast/Core/LayerStack.h"
 #include "Toast/Events/Event.h"
 #include "Toast/Events/ApplicationEvent.h"
@@ -12,7 +12,7 @@
 #include "Toast/ImGui/ImGuiLayer.h"
 
 namespace Toast {
-	class TOAST_API Application
+	class Application
 	{
 	public:
 		Application();

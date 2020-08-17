@@ -1,4 +1,5 @@
 #pragma once
+#include "Toast/Core/Core.h"
 
 #ifdef TOAST_PLATFORM_WINDOWS
 
