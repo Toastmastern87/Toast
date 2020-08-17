@@ -19,5 +19,13 @@ private:
 
 	Toast::Ref<Toast::Texture2D> mCheckerboardTexture;
 
+	struct ProfileResult 
+	{
+		const char* Name;
+		float Time;
+	};
+
+	std::vector<ProfileResult> mProfileResults;
+
 	float mSquareColor[4] = { 0.8f, 0.2f, 0.3f, 1.0f };
 };
