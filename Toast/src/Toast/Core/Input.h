@@ -4,7 +4,7 @@
 
 namespace Toast
 {
-	class TOAST_API Input
+	class Input
 	{
 	protected:
 		Input() = default;

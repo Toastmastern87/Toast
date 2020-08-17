@@ -1,7 +1,7 @@
 #include "tpch.h"
-#include "Texture.h"
+#include "Toast/Renderer/Texture.h"
 
-#include "Renderer.h"
+#include "Toast/Renderer/Renderer.h"
 #include "Platform/DirectX/DirectXTexture.h"
 
 namespace Toast {

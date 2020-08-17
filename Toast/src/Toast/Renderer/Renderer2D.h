@@ -1,8 +1,8 @@
 #pragma once
 
-#include "OrthographicCamera.h"
+#include "Toast/Renderer/OrthographicCamera.h"
 
-#include "Texture.h"
+#include "Toast/Renderer/Texture.h"
 
 namespace Toast {
 

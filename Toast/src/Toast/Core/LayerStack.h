@@ -1,14 +1,14 @@
 #pragma once
 
 #include "Toast/Core/Core.h"
-#include "Layer.h"
+#include "Toast/Core/Layer.h"
 
 namespace Toast 
 {
-	class TOAST_API LayerStack 
+	class LayerStack 
 	{
 	public:
-		LayerStack();
+		LayerStack() = default;
 		~LayerStack();
 
 		void PushLayer(Layer* layer);

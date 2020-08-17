@@ -1,7 +1,7 @@
 #include "tpch.h"
-#include "DirectXShader.h"
+#include "Platform/DirectX/DirectXShader.h"
 
-#include "DirectXRendererAPI.h"
+#include "Platform/DirectX/DirectXRendererAPI.h"
 #include "Toast/Renderer/Renderer.h"
 
 #include "Toast/Core/Application.h"
@@ -99,10 +99,18 @@ namespace Toast {
 		if (in) 
 		{
 			in.seekg(0, std::ios::end);
-			result.resize(in.tellg());
-			in.seekg(0, std::ios::beg);
-			in.read(&result[0], result.size());
-			in.close();
+			size_t size = in.tellg();
+			if (size != -1) 
+			{
+				result.resize(size);
+				in.seekg(0, std::ios::beg);
+				in.read(&result[0], size);
+				in.close();
+			}
+			else 
+			{
+				TOAST_CORE_ERROR("Could not read from file '{0}'", filepath);
+			}
 		}
 		else 
 		{

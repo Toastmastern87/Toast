@@ -1,7 +1,7 @@
 #include "tpch.h"
-#include "DirectXBuffer.h"
-#include "DirectXShader.h"
-#include "DirectXRendererAPI.h"
+#include "Platform/DirectX/DirectXBuffer.h"
+#include "Platform/DirectX/DirectXShader.h"
+#include "Platform/DirectX/DirectXRendererAPI.h"
 
 #include "Toast/Renderer/Renderer.h"
 

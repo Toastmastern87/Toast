@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Event.h"
+#include "Toast/Events/Event.h"
 
 namespace Toast 
 {
-	class TOAST_API KeyEvent : public Event
+	class KeyEvent : public Event
 	{
 	public:
 		inline int GetKeyCode() const { return mKeyCode; }
@@ -17,7 +17,7 @@ namespace Toast
 		int mKeyCode;
 	};
 
-	class TOAST_API KeyPressedEvent : public KeyEvent
+	class KeyPressedEvent : public KeyEvent
 	{
 	public:
 		KeyPressedEvent(int keycode, int repeatCount)
@@ -37,7 +37,7 @@ namespace Toast
 		int mRepeatCount;
 	};
 
-	class TOAST_API KeyReleasedEvent : public KeyEvent
+	class KeyReleasedEvent : public KeyEvent
 	{
 	public:
 		KeyReleasedEvent(int keycode)
@@ -53,7 +53,7 @@ namespace Toast
 		EVENT_CLASS_TYPE(KeyReleased)
 	};
 
-	class TOAST_API KeyTypedEvent : public KeyEvent
+	class KeyTypedEvent : public KeyEvent
 	{
 	public:
 		KeyTypedEvent(int keycode)

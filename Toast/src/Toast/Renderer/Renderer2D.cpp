@@ -1,9 +1,9 @@
 #include "tpch.h"
-#include "Renderer2D.h"
+#include "Toast/Renderer/Renderer2D.h"
 
-#include "Shader.h"
-#include "Buffer.h"
-#include "RenderCommand.h"
+#include "Toast/Renderer/Shader.h"
+#include "Toast/Renderer/Buffer.h"
+#include "Toast/Renderer/RenderCommand.h"
 
 namespace Toast {
 
@@ -29,11 +29,11 @@ namespace Toast {
 								-0.5f,  0.5f, 0.0f, 0.0f, 0.0f
 		};
 
-		sData->QuadVertexBuffer.reset(VertexBuffer::Create(vertices, sizeof(vertices), uint32_t(4)));
+		sData->QuadVertexBuffer = VertexBuffer::Create(vertices, sizeof(vertices), uint32_t(4));
 
 		uint32_t indices[6] = { 0, 2, 1, 2, 0, 3 };
 
-		sData->QuadIndexBuffer.reset(IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
+		sData->QuadIndexBuffer = IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t));
 
 		sData->WhiteTexture = Texture2D::Create(1, 1);
 		uint32_t whiteTextureData = 0xffffffff;
@@ -46,7 +46,7 @@ namespace Toast {
 																   { ShaderDataType::Float2, "TEXCOORD" }
 		};
 
-		sData->QuadBufferLayout.reset(BufferLayout::Create(layout, sData->TextureShader));
+		sData->QuadBufferLayout = BufferLayout::Create(layout, sData->TextureShader);
 	}
 
 	void Renderer2D::Shutdown()
