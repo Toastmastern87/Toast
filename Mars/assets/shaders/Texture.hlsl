@@ -42,11 +42,15 @@ struct PixelInputType
 	float2 texcoord : TEXCOORD;
 };
 
+cbuffer Color : register(b0)
+{
+	float4 color;
+};
 
 Texture2D shaderTexture;
 SamplerState sampleType;
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	return shaderTexture.SampleLevel(sampleType, input.texcoord * 10.0f, 0);
+	return shaderTexture.SampleLevel(sampleType, input.texcoord * 10.0f, 0) * color;
 }

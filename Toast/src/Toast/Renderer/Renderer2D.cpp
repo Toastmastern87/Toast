@@ -9,8 +9,8 @@ namespace Toast {
 
 	struct Renderer2DStorage
 	{
-		Ref<Shader> FlatColorShader;
 		Ref<Shader> TextureShader;
+		Ref<Texture2D> WhiteTexture;
 		Ref<BufferLayout> QuadBufferLayout;
 		Ref<VertexBuffer> QuadVertexBuffer;
 		Ref<IndexBuffer> QuadIndexBuffer;
@@ -35,7 +35,10 @@ namespace Toast {
 
 		sData->QuadIndexBuffer.reset(IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
 
-		sData->FlatColorShader = Shader::Create("assets/shaders/FlatColor.hlsl");
+		sData->WhiteTexture = Texture2D::Create(1, 1);
+		uint32_t whiteTextureData = 0xffffffff;
+		sData->WhiteTexture->SetData(&whiteTextureData, sizeof(uint32_t));
+
 		sData->TextureShader = Shader::Create("assets/shaders/Texture.hlsl");
 
 		const std::initializer_list<BufferLayout::BufferElement>& layout = {
@@ -53,9 +56,6 @@ namespace Toast {
 
 	void Renderer2D::BeginScene(const OrthographicCamera& camera)
 	{
-		sData->FlatColorShader->Bind();
-		sData->FlatColorShader->SetSceneData(camera.GetViewProjectionMatrix());
-
 		sData->TextureShader->Bind();
 		sData->TextureShader->SetSceneData(camera.GetViewProjectionMatrix());
 	}
@@ -72,11 +72,11 @@ namespace Toast {
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, const DirectX::XMFLOAT4& color)
 	{
-		sData->FlatColorShader->Bind();
-		sData->FlatColorShader->SetColorData(DirectX::XMFLOAT4(color.x, color.y, color.z, color.w));
+		sData->TextureShader->SetColorData(DirectX::XMFLOAT4(color.x, color.y, color.z, color.w));
+		sData->WhiteTexture->Bind();
 
 		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
-		sData->FlatColorShader->SetObjectData(transform);
+		sData->TextureShader->SetObjectData(transform);
 
 		sData->QuadBufferLayout->Bind();
 		sData->QuadVertexBuffer->Bind();
@@ -91,12 +91,11 @@ namespace Toast {
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, const Ref<Texture2D>& texture)
 	{
-		sData->TextureShader->Bind();
+		sData->TextureShader->SetColorData(DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		texture->Bind();
 
 		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z) * DirectX::XMMatrixScaling(size.x, size.y, 1.0f);
 		sData->TextureShader->SetObjectData(transform);
-
-		texture->Bind();
 
 		sData->QuadBufferLayout->Bind();
 		sData->QuadVertexBuffer->Bind();
