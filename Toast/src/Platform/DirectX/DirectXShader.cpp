@@ -43,6 +43,8 @@ namespace Toast {
 
 	DirectXShader::DirectXShader(const std::string& filepath)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		HRESULT result;
 
 		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
@@ -77,6 +79,8 @@ namespace Toast {
 
 	DirectXShader::~DirectXShader()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		for (auto& kv : mRawBlobs)
 		{
 			CLEAN(kv.second);
@@ -93,6 +97,8 @@ namespace Toast {
 
 	std::string DirectXShader::ReadFile(const std::string& filepath)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		std::string result;
 
 		std::ifstream in(filepath, std::ios::in | std::ios::binary);
@@ -122,6 +128,8 @@ namespace Toast {
 
 	std::unordered_map<D3D11_SHADER_TYPE, std::string> DirectXShader::PreProcess(const std::string& source) 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		std::unordered_map<D3D11_SHADER_TYPE, std::string> shaderSources;
 
 		const char* typeToken = "#type";
@@ -148,6 +156,8 @@ namespace Toast {
 
 	void DirectXShader::Compile(const std::unordered_map<D3D11_SHADER_TYPE, std::string> shaderSources) 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		HRESULT result;
 		ID3D10Blob* errorRaw = nullptr;
 
@@ -186,6 +196,8 @@ namespace Toast {
 
 	void DirectXShader::Bind() const
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		for (auto& kv : mRawBlobs)
 		{
 			switch (kv.first) {
@@ -201,6 +213,8 @@ namespace Toast {
 
 	void DirectXShader::Unbind() const
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		for (auto& kv : mRawBlobs)
 		{
 			switch (kv.first) {
@@ -216,16 +230,22 @@ namespace Toast {
 
 	void DirectXShader::SetSceneData(const DirectX::XMMATRIX& matrix) 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		UploadSceneDataVSCBuffer(matrix);
 	}
 
 	void DirectXShader::SetObjectData(const DirectX::XMMATRIX& matrix) 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		UploadObjectDataVSCBuffer(matrix);
 	}
 
 	void DirectXShader::SetColorData(const DirectX::XMFLOAT4& values) 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		UploadColorDataPSCBuffer(values);
 	}
 

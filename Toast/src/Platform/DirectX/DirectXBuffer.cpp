@@ -16,6 +16,8 @@ namespace Toast {
 	DirectXBufferLayout::DirectXBufferLayout(const std::initializer_list<BufferElement>& elements, Ref<Shader> shader)
 		: mElements(elements)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
 		mDevice = API.GetDevice();
 		mDeviceContext = API.GetDeviceContext();
@@ -57,6 +59,8 @@ namespace Toast {
 
 	DirectXBufferLayout::~DirectXBufferLayout()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		mElements.clear();
 		mElements.shrink_to_fit();
 
@@ -65,11 +69,15 @@ namespace Toast {
 
 	void DirectXBufferLayout::Bind() const
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		mDeviceContext->IASetInputLayout(mInputLayout);
 	}
 
 	void DirectXBufferLayout::Unbind() const
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		mDeviceContext->IASetInputLayout(nullptr);
 	}
 
@@ -97,6 +105,8 @@ namespace Toast {
 	DirectXVertexBuffer::DirectXVertexBuffer(float* vertices, uint32_t size, uint32_t count)
 		: mSize(size), mCount(count)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		D3D11_BUFFER_DESC vbd;
 		D3D11_SUBRESOURCE_DATA vd;
 		HRESULT result;
@@ -128,11 +138,15 @@ namespace Toast {
 
 	DirectXVertexBuffer::~DirectXVertexBuffer()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		CLEAN(mVertexBuffer);
 	}
 
 	void DirectXVertexBuffer::Bind() const
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		uint32_t stride[] = { sizeof(float) * ((mSize / sizeof(float)) / mCount) };
 		uint32_t offset[] = { 0 };
 
@@ -141,6 +155,8 @@ namespace Toast {
 
 	void DirectXVertexBuffer::Unbind() const
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		mDeviceContext->IASetVertexBuffers(0, 1, NULL, 0, 0);
 	}
 
@@ -151,6 +167,8 @@ namespace Toast {
 	DirectXIndexBuffer::DirectXIndexBuffer(uint32_t* indices, uint32_t count)
 		: mCount(count)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		D3D11_BUFFER_DESC ibd;
 		D3D11_SUBRESOURCE_DATA id;
 		HRESULT result;
@@ -182,16 +200,22 @@ namespace Toast {
 
 	DirectXIndexBuffer::~DirectXIndexBuffer()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		CLEAN(mIndexBuffer);
 	}
 
 	void DirectXIndexBuffer::Bind() const
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		mDeviceContext->IASetIndexBuffer(mIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	}
 
 	void DirectXIndexBuffer::Unbind() const
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		mDeviceContext->IASetIndexBuffer(NULL, DXGI_FORMAT_R32_UINT, 0);
 	}
 }

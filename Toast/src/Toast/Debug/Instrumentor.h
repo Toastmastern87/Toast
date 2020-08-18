@@ -1,18 +1,22 @@
 #pragma once
 
-#include <string>
-#include <chrono>
 #include <algorithm>
+#include <chrono>
 #include <fstream>
-
+#include <iomanip>
+#include <string>
 #include <thread>
 
 namespace Toast {
+
+	using FloatingPointMicroseconds = std::chrono::duration<double, std::micro>;
+
 	struct ProfileResult
 	{
 		std::string Name;
-		long long Start, End;
-		uint32_t ThreadID;
+		FloatingPointMicroseconds Start;
+		std::chrono::microseconds ElapsedTime;
+		std::thread::id ThreadID;
 	};
 
 	struct InstrumentationSession
@@ -23,56 +27,85 @@ namespace Toast {
 	class Instrumentor
 	{
 	private:
+		std::mutex mMutex;
 		InstrumentationSession* mCurrentSession;
 		std::ofstream mOutputStream;
-		int mProfileCount;
 
 	public:
 		Instrumentor()
-			: mCurrentSession(nullptr), mProfileCount(0)
+			: mCurrentSession(nullptr)
 		{
 		}
 
 		void BeginSession(const std::string& name, const std::string& filepath = "results.json")
 		{
+			std::lock_guard lock(mMutex);
+			if (mCurrentSession)
+			{
+				// If there is already a current session, then close it before beginning new one.
+				// Subsequent profiling output meant for the original session will end up in the
+				// newly opened session instead.  That's better than having badly formatted
+				// profiling output.
+				if (Log::GetCoreLogger()) { // Edge case: BeginSession() might be before Log::Init()
+					TOAST_CORE_ERROR("Instrumentor::BeginSession('{0}') when session '{1}' already open.", name, mCurrentSession->Name);
+				}
+				InternalEndSession();
+			}
+
 			mOutputStream.open(filepath);
-			WriteHeader();
-			mCurrentSession = new InstrumentationSession{ name };
+
+			if (mOutputStream.is_open()) {
+				mCurrentSession = new InstrumentationSession({ name });
+				WriteHeader();
+			}
+			else {
+				if (Log::GetCoreLogger()) { // Edge case: BeginSession() might be before Log::Init()
+					TOAST_CORE_ERROR("Instrumentor could not open results file '{0}'.", filepath);
+				}
+			}
 		}
 
 		void EndSession()
 		{
-			WriteFooter();
-			mOutputStream.close();
-			delete mCurrentSession;
-			mCurrentSession = nullptr;
-			mProfileCount = 0;
+			std::lock_guard lock(mMutex);
+			InternalEndSession();
 		}
 
 		void WriteProfile(const ProfileResult& result)
 		{
-			if (mProfileCount++ > 0)
-				mOutputStream << ",";
+			std::stringstream json;
 
 			std::string name = result.Name;
 			std::replace(name.begin(), name.end(), '"', '\'');
 
-			mOutputStream << "{";
-			mOutputStream << "\"cat\":\"function\",";
-			mOutputStream << "\"dur\":" << (result.End - result.Start) << ',';
-			mOutputStream << "\"name\":\"" << name << "\",";
-			mOutputStream << "\"ph\":\"X\",";
-			mOutputStream << "\"pid\":0,";
-			mOutputStream << "\"tid\":" << result.ThreadID << ",";
-			mOutputStream << "\"ts\":" << result.Start;
-			mOutputStream << "}";
+			json << std::setprecision(3) << std::fixed;
+			json << ",{";
+			json << "\"cat\":\"function\",";
+			json << "\"dur\":" << (result.ElapsedTime.count()) << ',';
+			json << "\"name\":\"" << name << "\",";
+			json << "\"ph\":\"X\",";
+			json << "\"pid\":0,";
+			json << "\"tid\":" << result.ThreadID << ",";
+			json << "\"ts\":" << result.Start.count();
+			json << "}";
 
-			mOutputStream.flush();
+			std::lock_guard lock(mMutex);
+			if (mCurrentSession) {
+				mOutputStream << json.str();
+				mOutputStream.flush();
+			}
 		}
 
+		static Instrumentor& Get()
+		{
+			static Instrumentor instance;
+			return instance;
+		}
+
+	private:
 		void WriteHeader()
 		{
-			mOutputStream << "{\"otherData\": {},\"traceEvents\":[";
+			mOutputStream << "{\"otherData\": {},\"traceEvents\":[{}";
 			mOutputStream.flush();
 		}
 
@@ -82,10 +115,15 @@ namespace Toast {
 			mOutputStream.flush();
 		}
 
-		static Instrumentor& Get()
+		void InternalEndSession() 
 		{
-			static Instrumentor instance;
-			return instance;
+			if (mCurrentSession)
+			{
+				WriteFooter();
+				mOutputStream.close();
+				delete mCurrentSession;
+				mCurrentSession = nullptr;
+			}
 		}
 	};
 
@@ -95,7 +133,7 @@ namespace Toast {
 		InstrumentationTimer(const char* name)
 			: mName(name), mStopped(false)
 		{
-			mStartTimepoint = std::chrono::high_resolution_clock::now();
+			mStartTimepoint = std::chrono::steady_clock::now();
 		}
 
 		~InstrumentationTimer()
@@ -106,13 +144,11 @@ namespace Toast {
 
 		void Stop()
 		{
-			auto endTimepoint = std::chrono::high_resolution_clock::now();
+			auto endTimepoint = std::chrono::steady_clock::now();
+			auto highResStart = FloatingPointMicroseconds{ mStartTimepoint.time_since_epoch() };
+			auto elapsedTime = std::chrono::time_point_cast<std::chrono::microseconds>(endTimepoint).time_since_epoch() -					std::chrono::time_point_cast<std::chrono::microseconds>(mStartTimepoint).time_since_epoch();
 
-			long long start = std::chrono::time_point_cast<std::chrono::microseconds>(mStartTimepoint).time_since_epoch().count();
-			long long end = std::chrono::time_point_cast<std::chrono::microseconds>(endTimepoint).time_since_epoch().count();
-
-			uint32_t threadID = std::hash<std::thread::id>{}(std::this_thread::get_id());
-			Instrumentor::Get().WriteProfile({ mName, start, end, threadID });
+			Instrumentor::Get().WriteProfile({ mName, highResStart, elapsedTime, std::this_thread::get_id() });
 
 			mStopped = true;
 		}

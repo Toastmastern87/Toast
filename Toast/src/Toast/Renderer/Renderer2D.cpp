@@ -20,6 +20,8 @@ namespace Toast {
 
 	void Renderer2D::Init()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		sData = new Renderer2DStorage();
 
 		float vertices[5* 4] = {
@@ -51,27 +53,35 @@ namespace Toast {
 
 	void Renderer2D::Shutdown()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		delete sData;
 	}
 
 	void Renderer2D::BeginScene(const OrthographicCamera& camera)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		sData->TextureShader->Bind();
 		sData->TextureShader->SetSceneData(camera.GetViewProjectionMatrix());
 	}
 
 	void Renderer2D::EndScene()
 	{
-
+		TOAST_PROFILE_FUNCTION();
 	}
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, const DirectX::XMFLOAT4& color)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		DrawQuad(DirectX::XMFLOAT3(pos.x, pos.y, 0.0f), size, color);
 	}
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, const DirectX::XMFLOAT4& color)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		sData->TextureShader->SetColorData(DirectX::XMFLOAT4(color.x, color.y, color.z, color.w));
 		sData->WhiteTexture->Bind();
 
@@ -91,6 +101,8 @@ namespace Toast {
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, const Ref<Texture2D>& texture)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		sData->TextureShader->SetColorData(DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 		texture->Bind();
 

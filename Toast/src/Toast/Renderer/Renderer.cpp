@@ -9,6 +9,8 @@ namespace Toast {
 
 	void Renderer::Init()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		RenderCommand::Init();
 		Renderer2D::Init();
 	}

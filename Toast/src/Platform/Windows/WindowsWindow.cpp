@@ -1,6 +1,8 @@
 #include "tpch.h"
 #include "Platform/Windows/WindowsWindow.h"
 
+#include "Toast/Core/Input.h"
+
 #include "Toast/Renderer/Renderer.h"
 
 #include "Toast/Core/Application.h"
@@ -26,23 +28,24 @@ namespace Toast
 		TOAST_CORE_ERROR("Win32 Error ({0}): {1}", error, description);
 	}
 
-	Scope<Window> Window::Create(const WindowProps& props) 
-	{
-		return CreateScope<WindowsWindow>(props);
-	}
-
 	WindowsWindow::WindowsWindow(const WindowProps& props) 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		Init(props);
 	}
 
 	WindowsWindow::~WindowsWindow()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		Shutdown();
 	}
 
 	void WindowsWindow::Init(const WindowProps& props) 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		mData.Title = props.Title;
 		mData.Width = props.Width;
 		mData.Height = props.Height;
@@ -87,11 +90,15 @@ namespace Toast
 
 	void WindowsWindow::Shutdown() 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		DestroyWindow(mWin32Window);
 	}
 
 	void WindowsWindow::OnUpdate() 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		MSG message;
 
 		while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE) > 0)
@@ -151,7 +158,7 @@ namespace Toast
 			{
 				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
 
-				KeyReleasedEvent event(static_cast<int>(wParam));
+				KeyReleasedEvent event(static_cast<KeyCode>(wParam));
 				data->EventCallback(event);
 				break;
 			}
@@ -159,7 +166,7 @@ namespace Toast
 			{
 				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
 
-				KeyTypedEvent event(static_cast<int>(wParam));
+				KeyTypedEvent event(static_cast<KeyCode>(wParam));
 				data->EventCallback(event);
 				break;
 			}
@@ -168,7 +175,7 @@ namespace Toast
 				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
 				int repeatCount = (lParam & 0xffff);
 
-				KeyPressedEvent event(static_cast<int>(wParam), repeatCount);
+				KeyPressedEvent event(static_cast<KeyCode>(wParam), repeatCount);
 				data->EventCallback(event);
 				break;
 			}
@@ -192,7 +199,7 @@ namespace Toast
 			{
 				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
 
-				MouseButtonPressedEvent event(VK_LBUTTON);
+				MouseButtonPressedEvent event(static_cast<MouseCode>(VK_LBUTTON));
 				data->EventCallback(event);
 				break;
 			}
@@ -200,7 +207,7 @@ namespace Toast
 			{
 				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
 
-				MouseButtonReleasedEvent event(VK_LBUTTON);
+				MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_LBUTTON));
 				data->EventCallback(event);
 				break;
 			}
@@ -208,7 +215,7 @@ namespace Toast
 			{
 				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
 
-				MouseButtonPressedEvent event(VK_MBUTTON);
+				MouseButtonPressedEvent event(static_cast<MouseCode>(VK_MBUTTON));
 				data->EventCallback(event);
 				break;
 			}
@@ -216,7 +223,7 @@ namespace Toast
 			{
 				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
 
-				MouseButtonReleasedEvent event(VK_MBUTTON);
+				MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_MBUTTON));
 				data->EventCallback(event);
 				break;
 			}
@@ -224,7 +231,7 @@ namespace Toast
 			{
 				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
 
-				MouseButtonPressedEvent event(VK_RBUTTON);
+				MouseButtonPressedEvent event(static_cast<MouseCode>(VK_RBUTTON));
 				data->EventCallback(event);
 				break;
 			}
@@ -232,7 +239,7 @@ namespace Toast
 			{
 				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
 
-				MouseButtonReleasedEvent event(VK_RBUTTON);
+				MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_RBUTTON));
 				data->EventCallback(event);
 				break;
 			}

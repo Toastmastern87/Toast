@@ -5,17 +5,16 @@
 
 namespace Toast 
 {
-	Scope<Input> Input::sInstance = CreateScope<WindowsInput>();
 
-	bool WindowsInput::IsKeyPressedImpl(int keycode)
+	bool WindowsInput::IsKeyPressedImpl(KeyCode keycode)
 	{
-		auto state = GetAsyncKeyState(keycode);
+		auto state = GetAsyncKeyState(static_cast<int>(keycode));
 
 		return (state & 0x8000);
 	}
-	bool WindowsInput::IsMouseButtonPressedImpl(int button)
+	bool WindowsInput::IsMouseButtonPressedImpl(MouseCode button)
 	{
-		auto state = GetAsyncKeyState(button);
+		auto state = GetAsyncKeyState(static_cast<int>(button));
 
 		return (state & 0x8000);
 	}

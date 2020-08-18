@@ -11,14 +11,14 @@
 
 #include "Toast/ImGui/ImGuiLayer.h"
 
+int main(int argc, char** argv);
+
 namespace Toast {
 	class Application
 	{
 	public:
 		Application();
 		virtual ~Application();
-
-		void Run();
 
 		void OnEvent(Event& e);
 
@@ -29,6 +29,7 @@ namespace Toast {
 
 		inline static Application& Get() { return *sInstance; }
 	private:
+		void Run();
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
 	private:
@@ -42,6 +43,7 @@ namespace Toast {
 		LARGE_INTEGER mStartTime;
 	private:
 		static Application* sInstance;
+		friend int ::main(int argc, char** argv);
 	};
 
 	// To be defined in client

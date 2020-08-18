@@ -21,6 +21,8 @@ namespace Toast
 
 	void ImGuiLayer::OnAttach()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		ImGui_ImplWin32_EnableDpiAwareness();
 
 		IMGUI_CHECKVERSION();
@@ -53,6 +55,8 @@ namespace Toast
 
 	void ImGuiLayer::OnDetach()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		ImGui_ImplDX11_Shutdown();
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
@@ -60,6 +64,8 @@ namespace Toast
 
 	void ImGuiLayer::Begin()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
@@ -67,6 +73,8 @@ namespace Toast
 
 	void ImGuiLayer::End()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		ImGuiIO& io = ImGui::GetIO();
 		ImGui::Render();
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

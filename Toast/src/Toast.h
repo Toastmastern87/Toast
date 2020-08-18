@@ -12,7 +12,7 @@
 
 #include "Toast/Core/Input.h"
 #include "Toast/Core/KeyCodes.h"
-#include "Toast/Core/MouseButtonCodes.h"
+#include "Toast/Core/MouseCodes.h"
 #include "Toast/Renderer/OrthographicCameraController.h"
 
 #include "Toast/ImGui/ImGuiLayer.h"
