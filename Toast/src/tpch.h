@@ -14,6 +14,8 @@
 
 #include "Toast/Core/Log.h"
 
+#include "Toast/Debug/Instrumentor.h"
+
 #ifdef TOAST_PLATFORM_WINDOWS
 	#include <Windows.h>
 	#include <windowsx.h>
