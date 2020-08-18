@@ -5,6 +5,9 @@ bin-int/
 # Files
 *.user
 
+# Toast files
+*.log
+
 # Visual Studio files and folder
 *.vs/
 **.sln

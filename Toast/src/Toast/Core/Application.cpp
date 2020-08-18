@@ -13,6 +13,8 @@ namespace Toast {
 
 	Application::Application()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		TOAST_CORE_ASSERT(!sInstance, "Application already exists");
 
 		QueryPerformanceCounter(&mStartTime);
@@ -30,6 +32,8 @@ namespace Toast {
 	
 	Application::~Application() 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		Renderer::Shutdown();
 
 		RenderCommand::CleanUp();
@@ -37,23 +41,31 @@ namespace Toast {
 
 	void Application::PushLayer(Layer* layer) 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		mLayerStack.PushLayer(layer);
+		layer->OnAttach();
 	}
 
 	void Application::PushOverlay(Layer* layer)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		mLayerStack.PushOverlay(layer);
+		layer->OnAttach();
 	}
 
 	void Application::OnEvent(Event& e)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(TOAST_BIND_EVENT_FN(Application::OnWindowClose));
 		dispatcher.Dispatch<WindowResizeEvent>(TOAST_BIND_EVENT_FN(Application::OnWindowResize));
 
-		for (auto it = mLayerStack.end(); it != mLayerStack.begin(); ) 
+		for (auto it = mLayerStack.rbegin(); it != mLayerStack.rend(); ++it) 
 		{
-			(*--it)->OnEvent(e);
+			(*it)->OnEvent(e);
 			if (e.Handled)
 				break;
 		}
@@ -61,8 +73,12 @@ namespace Toast {
 
 	void Application::Run() 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		while (mRunning) 
 		{
+			TOAST_PROFILE_SCOPE("RunLoop");
+
 			LARGE_INTEGER currentTime, frequency;
 			QueryPerformanceCounter(&currentTime);
 			QueryPerformanceFrequency(&frequency);
@@ -73,14 +89,22 @@ namespace Toast {
 
 			if (!mMinimized) 
 			{
-				for (Layer* layer : mLayerStack)
-					layer->OnUpdate(timestep);
-			}
+				{
+					TOAST_PROFILE_SCOPE("LayerStack OnUpdate");
 
-			mImGuiLayer->Begin();
-			for (Layer* layer : mLayerStack) 
-				layer->OnImGuiRender();
-			mImGuiLayer->End();
+					for (Layer* layer : mLayerStack)
+						layer->OnUpdate(timestep);
+				}
+
+				mImGuiLayer->Begin();
+				{
+					TOAST_PROFILE_SCOPE("LayerStack OnImGuiRender");
+
+					for (Layer* layer : mLayerStack)
+						layer->OnImGuiRender();
+				}
+				mImGuiLayer->End();
+			}
 
 			mWindow->OnUpdate();
 		}
@@ -97,6 +121,8 @@ namespace Toast {
 
 	bool Application::OnWindowResize(WindowResizeEvent& e)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		if (e.GetWidth() == 0 || e.GetHeight() == 0) 
 		{
 			mMinimized = true;

@@ -15,6 +15,8 @@ namespace Toast {
 	DirectXTexture2D::DirectXTexture2D(uint32_t width, uint32_t height)
 		: mWidth(width), mHeight(height)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		HRESULT result;
 		D3D11_TEXTURE2D_DESC textureDesc;
 		ID3D11Texture2D* texture;
@@ -52,6 +54,8 @@ namespace Toast {
 	DirectXTexture2D::DirectXTexture2D(const std::string& path) 
 		: mPath(path)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		HRESULT result;
 
 		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
@@ -79,6 +83,8 @@ namespace Toast {
 
 	DirectXTexture2D::~DirectXTexture2D() 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		CLEAN(mResource);
 		CLEAN(mView);
 		CLEAN(mSamplerState);
@@ -106,6 +112,8 @@ namespace Toast {
 
 	void DirectXTexture2D::SetData(void* data, uint32_t size)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		D3D11_MAPPED_SUBRESOURCE ms;
 
 		TOAST_CORE_ASSERT(size == (mWidth * mHeight * size), "Data must be entire texture!");
@@ -116,6 +124,8 @@ namespace Toast {
 
 	void DirectXTexture2D::Bind() const 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		mDeviceContext->PSSetSamplers(0, 1, &mSamplerState);
 		mDeviceContext->PSSetShaderResources(0, 1, &mView);
 	}

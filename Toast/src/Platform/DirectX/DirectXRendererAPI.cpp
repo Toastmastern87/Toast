@@ -21,6 +21,8 @@ namespace Toast {
 
 	void DirectXRendererAPI::Init()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		D3D11_VIEWPORT viewport;
 		RECT clientRect;
 
@@ -105,6 +107,8 @@ namespace Toast {
 
 	void DirectXRendererAPI::SwapBuffers()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		mSwapChain->Present(0, 0);
 	}
 
@@ -130,6 +134,8 @@ namespace Toast {
 
 		mSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 		CreateRenderTarget();
+		CreateDepthBuffer();
+		CreateDepthStencil();
 	}
 
 	void DirectXRendererAPI::EnableAlphaBlending()

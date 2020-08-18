@@ -9,11 +9,14 @@ TheNextFrontier2D::TheNextFrontier2D()
 
 void TheNextFrontier2D::OnAttach()
 {
+	TOAST_PROFILE_FUNCTION();
+
 	mCheckerboardTexture = Toast::Texture2D::Create("assets/textures/Checkerboard.png");
 }
 
 void TheNextFrontier2D::OnDetach()
 {
+	TOAST_PROFILE_FUNCTION();
 }
 
 void TheNextFrontier2D::OnUpdate(Toast::Timestep ts)

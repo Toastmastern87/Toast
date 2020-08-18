@@ -14,6 +14,8 @@ namespace Toast {
 
 	void OrthographicCameraController::OnUpdate(Timestep ts) 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		if (Input::IsKeyPressed(TOAST_KEY_A))
 		{
 			mCameraPosition.x -= cos(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
@@ -58,6 +60,8 @@ namespace Toast {
 
 	void OrthographicCameraController::OnEvent(Event& e) 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<MouseScrolledEvent>(TOAST_BIND_EVENT_FN(OrthographicCameraController::OnMouseScrolled));
 		dispatcher.Dispatch<WindowResizeEvent>(TOAST_BIND_EVENT_FN(OrthographicCameraController::OnWindowResize));
@@ -65,6 +69,8 @@ namespace Toast {
 
 	bool OrthographicCameraController::OnMouseScrolled(MouseScrolledEvent& e)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		mZoomLevel -= e.GetDelta() * 0.5f;
 		mZoomLevel = std::max(mZoomLevel, 0.25f);
 		mCamera.SetProjection(-mAspectRatio * mZoomLevel, mAspectRatio * mZoomLevel, mZoomLevel, -mZoomLevel);
@@ -73,6 +79,8 @@ namespace Toast {
 
 	bool OrthographicCameraController::OnWindowResize(WindowResizeEvent& e) 
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		mAspectRatio = (float)e.GetWidth() / (float)e.GetHeight();
 		mCamera.SetProjection(-mAspectRatio * mZoomLevel, mAspectRatio * mZoomLevel, mZoomLevel, -mZoomLevel);
 		return false;
