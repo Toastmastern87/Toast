@@ -21,9 +21,9 @@ namespace Toast {
 
 		virtual void SetSceneData(const DirectX::XMMATRIX& matrix) override;
 		virtual void SetObjectData(const DirectX::XMMATRIX& matrix) override;
-		virtual void SetColorData(const DirectX::XMFLOAT4& values) override;
+		virtual void SetColorData(const DirectX::XMFLOAT4& values, float tilingFactor) override;
 
-		virtual void UploadColorDataPSCBuffer(const DirectX::XMFLOAT4& values);
+		virtual void UploadColorDataPSCBuffer(const DirectX::XMFLOAT4& values, float tilingFactor);
 		virtual void UploadObjectDataVSCBuffer(const DirectX::XMMATRIX& matrix);
 		virtual void UploadSceneDataVSCBuffer(const DirectX::XMMATRIX& matrix);
 
@@ -45,5 +45,11 @@ namespace Toast {
 
 		ID3D11Device* mDevice = nullptr;
 		ID3D11DeviceContext* mDeviceContext = nullptr;
+
+		struct cbColorData
+		{
+			DirectX::XMFLOAT4	color;
+			float				tilingFactor;
+		};
 	};
 }

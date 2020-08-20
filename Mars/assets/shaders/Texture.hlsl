@@ -45,6 +45,7 @@ struct PixelInputType
 cbuffer Color : register(b0)
 {
 	float4 color;
+	float tilingFactor;
 };
 
 Texture2D shaderTexture;
@@ -52,5 +53,5 @@ SamplerState sampleType;
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	return shaderTexture.SampleLevel(sampleType, input.texcoord * 10.0f, 0) * color;
+	return shaderTexture.SampleLevel(sampleType, input.texcoord * tilingFactor, 0) * color;
 }
