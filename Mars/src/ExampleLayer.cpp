@@ -62,7 +62,7 @@ void ExampleLayer::OnUpdate(Toast::Timestep ts)
 
 	auto shader = mShaderLibrary.Get("Test");
 
-	shader->SetColorData(DirectX::XMFLOAT4(mSquareColor[0], mSquareColor[1], mSquareColor[2], 1.0f));
+	shader->SetColorData(DirectX::XMFLOAT4(mSquareColor[0], mSquareColor[1], mSquareColor[2], 1.0f), 1.0f);
 
 	for (int y = 0; y < 10; y++)
 	{

@@ -242,19 +242,23 @@ namespace Toast {
 		UploadObjectDataVSCBuffer(matrix);
 	}
 
-	void DirectXShader::SetColorData(const DirectX::XMFLOAT4& values) 
+	void DirectXShader::SetColorData(const DirectX::XMFLOAT4& values, const float tilingFactor) 
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		UploadColorDataPSCBuffer(values);
+		UploadColorDataPSCBuffer(values, tilingFactor);
 	}
 
-	void DirectXShader::UploadColorDataPSCBuffer(const DirectX::XMFLOAT4& values)
+	void DirectXShader::UploadColorDataPSCBuffer(const DirectX::XMFLOAT4& values, const float tilingFactor)
 	{
+		cbColorData data;
+		data.color = values;
+		data.tilingFactor = tilingFactor;
+
 		if (!mColorCB)
 		{
 			D3D11_BUFFER_DESC cbDesc;
-			cbDesc.ByteWidth = sizeof(DirectX::XMFLOAT4);
+			cbDesc.ByteWidth = sizeof(cbColorData) + 12;
 			cbDesc.Usage = D3D11_USAGE_DYNAMIC;
 			cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 			cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -262,7 +266,7 @@ namespace Toast {
 			cbDesc.StructureByteStride = 0;
 
 			D3D11_SUBRESOURCE_DATA InitData;
-			InitData.pSysMem = &values;
+			InitData.pSysMem = &data;
 			InitData.SysMemPitch = 0;
 			InitData.SysMemSlicePitch = 0;
 
@@ -271,7 +275,7 @@ namespace Toast {
 
 		D3D11_MAPPED_SUBRESOURCE ms;
 		mDeviceContext->Map(mColorCB, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
-		memcpy(ms.pData, &values, sizeof(DirectX::XMFLOAT4));
+		memcpy(ms.pData, &data, sizeof(cbColorData) + 12);
 		mDeviceContext->Unmap(mColorCB, NULL);
 
 		mDeviceContext->PSSetConstantBuffers(0, 1, &mColorCB);

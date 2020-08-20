@@ -24,7 +24,7 @@ namespace Toast {
 
 		sData = new Renderer2DStorage();
 
-		float vertices[5* 4] = {
+		float vertices[5 * 4] = {
 								-0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
 								0.5f, -0.5f, 0.0f, 1.0f, 1.0f,
 								0.5f,  0.5f, 0.0f, 1.0f, 0.0f,
@@ -82,7 +82,7 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		sData->TextureShader->SetColorData(DirectX::XMFLOAT4(color.x, color.y, color.z, color.w));
+		sData->TextureShader->SetColorData(DirectX::XMFLOAT4(color.x, color.y, color.z, color.w), 1.0f);
 		sData->WhiteTexture->Bind();
 
 		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
@@ -94,19 +94,63 @@ namespace Toast {
 		RenderCommand::DrawIndexed(sData->QuadIndexBuffer);
 	}
 
-	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, const Ref<Texture2D>& texture)
+	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, const Ref<Texture2D>& texture, const float tilingFactor, const DirectX::XMFLOAT4& tintColor)
 	{
-		DrawQuad(DirectX::XMFLOAT3(pos.x, pos.y, 0.0f), size, texture);
+		DrawQuad(DirectX::XMFLOAT3(pos.x, pos.y, 0.0f), size, texture, tilingFactor, tintColor);
 	}
 
-	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, const Ref<Texture2D>& texture)
+	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, const Ref<Texture2D>& texture, const float tilingFactor, const DirectX::XMFLOAT4& tintColor)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		sData->TextureShader->SetColorData(DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		sData->TextureShader->SetColorData(tintColor, tilingFactor);
 		texture->Bind();
 
-		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z) * DirectX::XMMatrixScaling(size.x, size.y, 1.0f);
+		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+		sData->TextureShader->SetObjectData(transform);
+
+		sData->QuadBufferLayout->Bind();
+		sData->QuadVertexBuffer->Bind();
+		sData->QuadIndexBuffer->Bind();
+		RenderCommand::DrawIndexed(sData->QuadIndexBuffer);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, float rotation, const DirectX::XMFLOAT4& color)
+	{
+		DrawRotatedQuad(DirectX::XMFLOAT3(pos.x, pos.y, 0.0f), size, rotation, color);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, float rotation, const DirectX::XMFLOAT4& color)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		sData->TextureShader->SetColorData(DirectX::XMFLOAT4(color.x, color.y, color.z, color.w), 1.0f);
+		sData->WhiteTexture->Bind();
+
+		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f)
+			* DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+		sData->TextureShader->SetObjectData(transform);
+
+		sData->QuadBufferLayout->Bind();
+		sData->QuadVertexBuffer->Bind();
+		sData->QuadIndexBuffer->Bind();
+		RenderCommand::DrawIndexed(sData->QuadIndexBuffer);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, float rotation, const Ref<Texture2D>& texture, const float tilingFactor, const DirectX::XMFLOAT4& tintColor)
+	{
+		DrawRotatedQuad(DirectX::XMFLOAT3(pos.x, pos.y, 0.0f), size, rotation, texture, tilingFactor, tintColor);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, float rotation, const Ref<Texture2D>& texture, const float tilingFactor, const DirectX::XMFLOAT4& tintColor)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		sData->TextureShader->SetColorData(tintColor, tilingFactor);
+		texture->Bind();
+
+		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f)
+			* DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
 		sData->TextureShader->SetObjectData(transform);
 
 		sData->QuadBufferLayout->Bind();

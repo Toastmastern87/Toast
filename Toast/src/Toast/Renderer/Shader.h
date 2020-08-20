@@ -14,7 +14,7 @@ namespace Toast {
 
 		virtual void SetSceneData(const DirectX::XMMATRIX& matrix) = 0;
 		virtual void SetObjectData(const DirectX::XMMATRIX& matrix) = 0;
-		virtual void SetColorData(const DirectX::XMFLOAT4& values) = 0;
+		virtual void SetColorData(const DirectX::XMFLOAT4& values, float tilingFactor) = 0;
 
 		virtual const std::string GetName() const = 0;
 
