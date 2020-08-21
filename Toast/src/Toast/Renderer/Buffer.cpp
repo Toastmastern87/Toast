@@ -21,6 +21,18 @@ namespace Toast {
 		return nullptr;
 	}
 
+	Ref<VertexBuffer> VertexBuffer::Create(uint32_t size, uint32_t count)
+	{
+		switch (RendererAPI::GetAPI())
+		{
+			case RendererAPI::API::None:			TOAST_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
+			case RendererAPI::API::DirectX:			return CreateRef<DirectXVertexBuffer>(size, count);
+		}
+
+		TOAST_CORE_ASSERT(false, "Unknown RendererAPI!");
+		return nullptr;
+	}
+
 	Ref<VertexBuffer> VertexBuffer::Create(float* vertices, uint32_t size, uint32_t count)
 	{
 		switch (RendererAPI::GetAPI())

@@ -22,9 +22,9 @@ namespace Toast {
 			sRendererAPI->SetRenderTargets();
 		}
 
-		inline static void DrawIndexed(const Ref<IndexBuffer>& indexBuffer)
+		inline static void DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t count = 0)
 		{
-			sRendererAPI->DrawIndexed(indexBuffer);
+			sRendererAPI->DrawIndexed(indexBuffer, count);
 		}
 
 		inline static void SwapBuffers()

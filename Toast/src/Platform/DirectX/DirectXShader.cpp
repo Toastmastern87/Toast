@@ -278,7 +278,7 @@ namespace Toast {
 		memcpy(ms.pData, &data, sizeof(cbColorData) + 12);
 		mDeviceContext->Unmap(mColorCB, NULL);
 
-		mDeviceContext->PSSetConstantBuffers(0, 1, &mColorCB);
+		mDeviceContext->PSSetConstantBuffers(0, 1, &mColorCB);  
 	}
 
 	void DirectXShader::UploadObjectDataVSCBuffer(const DirectX::XMMATRIX& matrix)
