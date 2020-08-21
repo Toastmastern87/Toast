@@ -100,9 +100,11 @@ namespace Toast {
 		mDeviceContext->OMSetRenderTargets(1, &mRenderTargetView, mDepthStencilView);
 	}
 
-	void DirectXRendererAPI::DrawIndexed(const Ref<IndexBuffer>& indexBuffer)
+	void DirectXRendererAPI::DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount)
 	{
-		mDeviceContext->DrawIndexed(indexBuffer->GetCount(), 0, 0);
+		uint32_t count = indexCount ? indexBuffer->GetCount() : indexCount;
+
+		mDeviceContext->DrawIndexed(count, 0, 0);
 	}
 
 	void DirectXRendererAPI::SwapBuffers()

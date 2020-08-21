@@ -6,20 +6,17 @@ cbuffer Camera : register(b0)
 	matrix viewProjectionMatrix;
 };
 
-cbuffer Transform : register(b1)
-{
-	matrix transform;
-};
-
 struct VertexInputType
 {
 	float3 position : POSITION;
+	float4 color : COLOR;
 	float2 texcoord : TEXCOORD;
 };
 
 struct PixelInputType
 {
 	float4 position : SV_POSITION;
+	float4 color : COLOR;
 	float2 texcoord : TEXCOORD;
 };
 
@@ -27,8 +24,9 @@ PixelInputType main(VertexInputType input)
 {
 	PixelInputType output;
 
-	output.position = mul(float4(input.position, 1.0f), transform);
-	output.position = mul(output.position, viewProjectionMatrix);
+	output.position = mul(float4(input.position, 1.0f), viewProjectionMatrix);
+
+	output.color = input.color;
 
 	output.texcoord = input.texcoord;
 
@@ -39,12 +37,13 @@ PixelInputType main(VertexInputType input)
 struct PixelInputType
 {
 	float4 position : SV_POSITION;
+	float4 color : COLOR;
 	float2 texcoord : TEXCOORD;
 };
 
 cbuffer Color : register(b0)
 {
-	float4 color;
+	float4 cbColor;
 	float tilingFactor;
 };
 
@@ -53,5 +52,6 @@ SamplerState sampleType;
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	return shaderTexture.SampleLevel(sampleType, input.texcoord * tilingFactor, 0) * color;
+	//return shaderTexture.SampleLevel(sampleType, input.texcoord * tilingFactor, 0) * color;
+	return input.color;
 }

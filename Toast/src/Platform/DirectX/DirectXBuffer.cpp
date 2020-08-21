@@ -102,6 +102,35 @@ namespace Toast {
 	//     VERTEXBUFFER     ////////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
+	DirectXVertexBuffer::DirectXVertexBuffer(uint32_t size, uint32_t count)
+		: mSize(size), mCount(count)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		D3D11_BUFFER_DESC vbd;
+		HRESULT result;
+
+		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
+		mDevice = API.GetDevice();
+		mDeviceContext = API.GetDeviceContext();
+
+		ZeroMemory(&vbd, sizeof(D3D11_BUFFER_DESC));
+
+		vbd.Usage = D3D11_USAGE_DYNAMIC;
+		vbd.ByteWidth = sizeof(float) * size;
+		vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		vbd.MiscFlags = 0;
+		vbd.StructureByteStride = 0;
+
+		result = mDevice->CreateBuffer(&vbd, nullptr, &mVertexBuffer);
+
+		if (FAILED(result))
+			TOAST_CORE_ERROR("Error creating Vertexbuffer!");
+
+		Bind();
+	}
+
 	DirectXVertexBuffer::DirectXVertexBuffer(float* vertices, uint32_t size, uint32_t count)
 		: mSize(size), mCount(count)
 	{
@@ -158,6 +187,15 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		mDeviceContext->IASetVertexBuffers(0, 1, NULL, 0, 0);
+	}
+
+	void DirectXVertexBuffer::SetData(const void* data, uint32_t size)
+	{
+		D3D11_MAPPED_SUBRESOURCE ms;
+
+		mDeviceContext->Map(mVertexBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
+		memcpy(ms.pData, data, size);
+		mDeviceContext->Unmap(mVertexBuffer, NULL);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  

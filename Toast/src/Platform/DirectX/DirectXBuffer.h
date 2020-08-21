@@ -10,14 +10,14 @@ namespace Toast {
 	{
 		switch (type)
 		{
-		case Toast::ShaderDataType::Float:		return DXGI_FORMAT_R32_FLOAT;
-		case Toast::ShaderDataType::Float2:		return DXGI_FORMAT_R32G32_FLOAT;
-		case Toast::ShaderDataType::Float3:		return DXGI_FORMAT_R32G32B32_FLOAT;
-		case Toast::ShaderDataType::Float4:		return DXGI_FORMAT_R32G32B32A32_FLOAT;
-		case Toast::ShaderDataType::Int:		return DXGI_FORMAT_R32_UINT;
-		case Toast::ShaderDataType::Int2:		return DXGI_FORMAT_R32G32_UINT;
-		case Toast::ShaderDataType::Int3:		return DXGI_FORMAT_R32G32B32_UINT;
-		case Toast::ShaderDataType::Int4:		return DXGI_FORMAT_R32G32B32A32_UINT;
+			case Toast::ShaderDataType::Float:		return DXGI_FORMAT_R32_FLOAT;
+			case Toast::ShaderDataType::Float2:		return DXGI_FORMAT_R32G32_FLOAT;
+			case Toast::ShaderDataType::Float3:		return DXGI_FORMAT_R32G32B32_FLOAT;
+			case Toast::ShaderDataType::Float4:		return DXGI_FORMAT_R32G32B32A32_FLOAT;
+			case Toast::ShaderDataType::Int:		return DXGI_FORMAT_R32_UINT;
+			case Toast::ShaderDataType::Int2:		return DXGI_FORMAT_R32G32_UINT;
+			case Toast::ShaderDataType::Int3:		return DXGI_FORMAT_R32G32B32_UINT;
+			case Toast::ShaderDataType::Int4:		return DXGI_FORMAT_R32G32B32A32_UINT;
 		}
 
 		TOAST_CORE_ASSERT(false, "Unkown ShaderDataType!");
@@ -57,11 +57,14 @@ namespace Toast {
 	class DirectXVertexBuffer : public VertexBuffer 
 	{
 	public:
+		DirectXVertexBuffer(uint32_t size, uint32_t count);
 		DirectXVertexBuffer(float* vertices, uint32_t size, uint32_t count);
 		virtual ~DirectXVertexBuffer();
 
 		virtual void Bind() const override;
 		virtual void Unbind() const override;
+
+		virtual void SetData(const void* data, uint32_t size) override;
 
 	private:
 		ID3D11Buffer* mVertexBuffer = nullptr;
