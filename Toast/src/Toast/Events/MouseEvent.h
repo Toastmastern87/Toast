@@ -11,8 +11,8 @@ namespace Toast
 		MouseMovedEvent(float x, float y)
 			: mMouseX(x), mMouseY(y) {}
 
-		inline float GetX() const { return mMouseX; }
-		inline float GetY() const { return mMouseY; }
+		float GetX() const { return mMouseX; }
+		float GetY() const { return mMouseY; }
 
 		std::string ToString() const override
 		{
@@ -33,7 +33,7 @@ namespace Toast
 		MouseScrolledEvent(float delta)
 			: mDelta(delta) {}
 
-		inline float GetDelta() const { return mDelta; }
+		float GetDelta() const { return mDelta; }
 
 		std::string ToString() const override
 		{
@@ -51,7 +51,7 @@ namespace Toast
 	class MouseButtonEvent : public Event
 	{
 	public:
-		inline MouseCode GetMouseButton() const { return mButton; }
+		MouseCode GetMouseButton() const { return mButton; }
 
 		EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput)
 	protected:

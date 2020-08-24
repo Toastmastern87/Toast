@@ -8,7 +8,7 @@ namespace Toast
 	class KeyEvent : public Event
 	{
 	public:
-		inline KeyCode GetKeyCode() const { return mKeyCode; }
+		KeyCode GetKeyCode() const { return mKeyCode; }
 
 		EVENT_CLASS_CATEGORY(EventCategoryKeyboard |  EventCategoryInput)
 	protected:
@@ -24,7 +24,7 @@ namespace Toast
 		KeyPressedEvent(KeyCode keycode, int repeatCount)
 			: KeyEvent(keycode), mRepeatCount(repeatCount) {}
 
-		inline int GetRepeatCount() const { return mRepeatCount; }
+		int GetRepeatCount() const { return mRepeatCount; }
 
 		std::string ToString() const override 
 		{

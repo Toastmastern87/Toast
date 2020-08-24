@@ -18,7 +18,7 @@ namespace Toast
 		virtual void OnImGuiRender() {}
 		virtual void OnEvent(Event& e) {}
 
-		inline const std::string& GetName() { return mDebugName; }
+		const std::string& GetName() { return mDebugName; }
 	protected:
 		std::string mDebugName;
 	};

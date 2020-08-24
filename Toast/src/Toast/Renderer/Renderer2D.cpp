@@ -35,6 +35,8 @@ namespace Toast {
 
 		std::array<Ref<Texture2D>, MaxTextureSlots> TextureSlots;
 		uint32_t TextureSlotIndex = 1;
+
+		DirectX::XMVECTOR QuadVertexPositions[4];
 	};
 
 	static Renderer2DData sData;
@@ -83,6 +85,11 @@ namespace Toast {
 		sData.QuadBufferLayout = BufferLayout::Create(layout, sData.TextureShader);
 
 		sData.TextureSlots[0] = sData.WhiteTexture;
+
+		sData.QuadVertexPositions[0] = DirectX::XMVectorSet(-0.5f, -0.5f, 0.0f, 1.0f);
+		sData.QuadVertexPositions[1] = DirectX::XMVectorSet(0.5f, -0.5f, 0.0f, 1.0f);
+		sData.QuadVertexPositions[2] = DirectX::XMVectorSet(0.5f, 0.5f, 0.0f, 1.0f); 
+		sData.QuadVertexPositions[3] = DirectX::XMVectorSet(-0.5f, 0.5f, 0.0f, 1.0f);
 	}
 
 	void Renderer2D::Shutdown()
@@ -135,49 +142,40 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		const float texIndex = 0.0f;
+		const float textureIndex = 0.0f;
 		const float tilingFactor = 1.0f;
 
-		sData.QuadVertexBufferPtr->Position = pos;
+		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[0], transform));
 		sData.QuadVertexBufferPtr->Color = color;
 		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(0.0f, 1.0f);
-		sData.QuadVertexBufferPtr->TexIndex = texIndex;
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
 		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		sData.QuadVertexBufferPtr++;
 
-		sData.QuadVertexBufferPtr->Position = DirectX::XMFLOAT3(pos.x + size.x, pos.y, pos.z);
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[1], transform));
 		sData.QuadVertexBufferPtr->Color = color;
 		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
-		sData.QuadVertexBufferPtr->TexIndex = texIndex;
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
 		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		sData.QuadVertexBufferPtr++;
 
-		sData.QuadVertexBufferPtr->Position = DirectX::XMFLOAT3(pos.x + size.x, pos.y + size.y, pos.z);
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[2], transform));
 		sData.QuadVertexBufferPtr->Color = color;
 		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(1.0f, 0.0f);
-		sData.QuadVertexBufferPtr->TexIndex = texIndex;
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
 		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		sData.QuadVertexBufferPtr++;
 
-		sData.QuadVertexBufferPtr->Position = DirectX::XMFLOAT3(pos.x, pos.y + size.y, pos.z);
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[3], transform));
 		sData.QuadVertexBufferPtr->Color = color;
 		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
-		sData.QuadVertexBufferPtr->TexIndex = texIndex;
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
 		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		sData.QuadVertexBufferPtr++;
 
 		sData.QuadIndexCount += 6;
-
-		//sData.TextureShader->SetColorData(DirectX::XMFLOAT4(color.x, color.y, color.z, color.w), 1.0f);
-		//sData.WhiteTexture->Bind();
-
-		//DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
-		//sData.TextureShader->SetObjectData(transform);
-
-		//sData.QuadBufferLayout->Bind();
-		//sData.QuadVertexBuffer->Bind();
-		//sData.QuadIndexBuffer->Bind();
-		//RenderCommand::DrawIndexed(sData.QuadIndexBuffer);
 	}
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, const Ref<Texture2D>& texture, const float tilingFactor, const DirectX::XMFLOAT4& tintColor)
@@ -190,66 +188,55 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		const DirectX::XMFLOAT4 color = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		float textureIndex = 0.0f;
 
-		float texIndex = 0.0f;
+		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
 
 		for (uint32_t i = 1; i < sData.TextureSlotIndex; i++)
 		{
 			if (*sData.TextureSlots[i].get() == *texture.get())
 			{
-				texIndex = (float)i;
+				textureIndex = (float)i;
 				break;
 			}
 		}
 
-		if (texIndex == 0) 
+		if (textureIndex == 0) 
 		{
-			texIndex = (float)sData.TextureSlotIndex;
+			textureIndex = (float)sData.TextureSlotIndex;
 			sData.TextureSlots[sData.TextureSlotIndex] = texture;
 			sData.TextureSlotIndex++;
 		}
 
-
-		sData.QuadVertexBufferPtr->Position = pos;
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[0], transform));
 		sData.QuadVertexBufferPtr->Color = color;
 		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(0.0f, 1.0f);
-		sData.QuadVertexBufferPtr->TexIndex = texIndex;
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
 		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		sData.QuadVertexBufferPtr++;
 
-		sData.QuadVertexBufferPtr->Position = DirectX::XMFLOAT3(pos.x + size.x, pos.y, pos.z);
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[1], transform));
 		sData.QuadVertexBufferPtr->Color = color;
 		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
-		sData.QuadVertexBufferPtr->TexIndex = texIndex;
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
 		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		sData.QuadVertexBufferPtr++;
 
-		sData.QuadVertexBufferPtr->Position = DirectX::XMFLOAT3(pos.x + size.x, pos.y + size.y, pos.z);
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[2], transform));
 		sData.QuadVertexBufferPtr->Color = color;
 		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(1.0f, 0.0f);
-		sData.QuadVertexBufferPtr->TexIndex = texIndex;
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
 		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		sData.QuadVertexBufferPtr++;
 
-		sData.QuadVertexBufferPtr->Position = DirectX::XMFLOAT3(pos.x, pos.y + size.y, pos.z);
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[3], transform));
 		sData.QuadVertexBufferPtr->Color = color;
 		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
-		sData.QuadVertexBufferPtr->TexIndex = texIndex;
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
 		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
 		sData.QuadVertexBufferPtr++;
 
 		sData.QuadIndexCount += 6;
-
-		//sData.TextureShader->SetColorData(tintColor, tilingFactor);
-		//texture->Bind();
-
-		//DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
-		//sData.TextureShader->SetObjectData(transform);
-
-		//sData.QuadBufferLayout->Bind();
-		//sData.QuadVertexBuffer->Bind();
-		//sData.QuadIndexBuffer->Bind();
-		//RenderCommand::DrawIndexed(sData.QuadIndexBuffer);
 	}
 
 	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, float rotation, const DirectX::XMFLOAT4& color)
@@ -261,17 +248,41 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		sData.TextureShader->SetColorData(DirectX::XMFLOAT4(color.x, color.y, color.z, color.w), 1.0f);
-		sData.WhiteTexture->Bind();
+		const float textureIndex = 0.0f;
+		const float tilingFactor = 1.0f;
 
 		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f)
-			* DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
-		sData.TextureShader->SetObjectData(transform);
+			* DirectX::XMMatrixRotationZ(DirectX::XMConvertToRadians(rotation)) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
 
-		sData.QuadBufferLayout->Bind();
-		sData.QuadVertexBuffer->Bind();
-		sData.QuadIndexBuffer->Bind();
-		RenderCommand::DrawIndexed(sData.QuadIndexBuffer);
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[0], transform));
+		sData.QuadVertexBufferPtr->Color = color;
+		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(0.0f, 1.0f);
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
+		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
+		sData.QuadVertexBufferPtr++;
+
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[1], transform));
+		sData.QuadVertexBufferPtr->Color = color;
+		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
+		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
+		sData.QuadVertexBufferPtr++;
+
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[2], transform));
+		sData.QuadVertexBufferPtr->Color = color;
+		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(1.0f, 0.0f);
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
+		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
+		sData.QuadVertexBufferPtr++;
+
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[3], transform));
+		sData.QuadVertexBufferPtr->Color = color;
+		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
+		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
+		sData.QuadVertexBufferPtr++;
+
+		sData.QuadIndexCount += 6;
 	}
 
 	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, float rotation, const Ref<Texture2D>& texture, const float tilingFactor, const DirectX::XMFLOAT4& tintColor)
@@ -283,16 +294,56 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		sData.TextureShader->SetColorData(tintColor, tilingFactor);
-		texture->Bind();
+		const DirectX::XMFLOAT4 color = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		float textureIndex = 0.0f;
+
+		for (uint32_t i = 1; i < sData.TextureSlotIndex; i++)
+		{
+			if (*sData.TextureSlots[i].get() == *texture.get())
+			{
+				textureIndex = (float)i;
+				break;
+			}
+		}
+
+		if (textureIndex == 0)
+		{
+			textureIndex = (float)sData.TextureSlotIndex;
+			sData.TextureSlots[sData.TextureSlotIndex] = texture;
+			sData.TextureSlotIndex++;
+		}
 
 		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f)
-			* DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
-		sData.TextureShader->SetObjectData(transform);
+			* DirectX::XMMatrixRotationZ(DirectX::XMConvertToRadians(rotation)) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
 
-		sData.QuadBufferLayout->Bind();
-		sData.QuadVertexBuffer->Bind();
-		sData.QuadIndexBuffer->Bind();
-		RenderCommand::DrawIndexed(sData.QuadIndexBuffer);
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[0], transform));
+		sData.QuadVertexBufferPtr->Color = color;
+		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(0.0f, 1.0f);
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
+		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
+		sData.QuadVertexBufferPtr++;
+
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[1], transform));
+		sData.QuadVertexBufferPtr->Color = color;
+		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(1.0f, 1.0f);
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
+		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
+		sData.QuadVertexBufferPtr++;
+		
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[2], transform));
+		sData.QuadVertexBufferPtr->Color = color;
+		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(1.0f, 0.0f);
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
+		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
+		sData.QuadVertexBufferPtr++;
+
+		DirectX::XMStoreFloat3(&sData.QuadVertexBufferPtr->Position, DirectX::XMVector3Transform(sData.QuadVertexPositions[3], transform));
+		sData.QuadVertexBufferPtr->Color = color;
+		sData.QuadVertexBufferPtr->TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
+		sData.QuadVertexBufferPtr->TexIndex = textureIndex;
+		sData.QuadVertexBufferPtr->TilingFactor = tilingFactor;
+		sData.QuadVertexBufferPtr++;
+
+		sData.QuadIndexCount += 6;
 	}
 }

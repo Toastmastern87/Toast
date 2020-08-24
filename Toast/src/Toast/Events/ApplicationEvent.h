@@ -10,8 +10,8 @@ namespace Toast
 		WindowResizeEvent(unsigned int width, unsigned int height)
 			: mWidth(width), mHeight(height) {}
 
-		inline unsigned int GetWidth() const { return mWidth; }
-		inline unsigned int GetHeight() const { return mHeight; }
+		unsigned int GetWidth() const { return mWidth; }
+		unsigned int GetHeight() const { return mHeight; }
 
 		std::string ToString() const override
 		{
