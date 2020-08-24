@@ -22,7 +22,9 @@ namespace Toast {
 	class Texture2D : public Texture 
 	{
 	public:
-		static Ref<Texture2D> Create(uint32_t width, uint32_t height);
-		static Ref<Texture2D> Create(const std::string& path);
+		static Ref<Texture2D> Create(uint32_t width, uint32_t height, uint32_t id);
+		static Ref<Texture2D> Create(const std::string& path, uint32_t id);
+
+		virtual bool operator==(const Texture& other) const = 0;
 	};
 }
