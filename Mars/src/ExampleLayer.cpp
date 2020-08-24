@@ -32,9 +32,9 @@ ExampleLayer::ExampleLayer()
 
 	mTextureBufferLayout = Toast::BufferLayout::Create(layout, textureShader);
 
-	mTexture = Toast::Texture2D::Create("assets/textures/Checkerboard.png");
+	mTexture = Toast::Texture2D::Create("assets/textures/Checkerboard.png", 1);
 
-	mMarsLogoTexture = Toast::Texture2D::Create("assets/textures/Logo.png");
+	mMarsLogoTexture = Toast::Texture2D::Create("assets/textures/Logo.png", 2);
 }
 
 void ExampleLayer::OnAttach() 

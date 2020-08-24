@@ -12,8 +12,8 @@
 
 namespace Toast {
 
-	DirectXTexture2D::DirectXTexture2D(uint32_t width, uint32_t height)
-		: mWidth(width), mHeight(height)
+	DirectXTexture2D::DirectXTexture2D(uint32_t width, uint32_t height, uint32_t id)
+		: mWidth(width), mHeight(height), mID(id)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -51,8 +51,8 @@ namespace Toast {
 		mView->GetResource(&mResource);
 	}
 
-	DirectXTexture2D::DirectXTexture2D(const std::string& path) 
-		: mPath(path)
+	DirectXTexture2D::DirectXTexture2D(const std::string& path, uint32_t id)
+		: mPath(path), mID(id)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -127,6 +127,6 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		mDeviceContext->PSSetSamplers(0, 1, &mSamplerState);
-		mDeviceContext->PSSetShaderResources(0, 1, &mView);
+		mDeviceContext->PSSetShaderResources(mID, 1, &mView);
 	}
 }
