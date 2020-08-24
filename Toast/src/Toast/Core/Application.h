@@ -25,9 +25,9 @@ namespace Toast {
 		void PushLayer(Layer* layer);
 		void PushOverlay(Layer* layer);
 
-		inline Window& GetWindow() { return *mWindow; }
+		Window& GetWindow() { return *mWindow; }
 
-		inline static Application& Get() { return *sInstance; }
+		static Application& Get() { return *sInstance; }
 	private:
 		void Run();
 		bool OnWindowClose(WindowCloseEvent& e);
@@ -38,7 +38,7 @@ namespace Toast {
 		bool mRunning = true;
 		bool mMinimized = false;
 		LayerStack mLayerStack;
-		float mLastFrameTime;
+		float mLastFrameTime = 0.0f;
 
 		LARGE_INTEGER mStartTime;
 	private:

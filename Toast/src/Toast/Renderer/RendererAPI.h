@@ -23,7 +23,7 @@ namespace Toast {
 		virtual void EnableDepthTesting() = 0;
 		virtual void CleanUp() = 0;
 
-		inline static API GetAPI() { return sAPI; }
+		static API GetAPI() { return sAPI; }
 		static Scope<RendererAPI> Create();
 	private:
 		static API sAPI;

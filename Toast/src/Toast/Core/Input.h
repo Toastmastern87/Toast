@@ -14,12 +14,12 @@ namespace Toast
 		Input(const Input&) = delete;
 		Input& operator=(const Input&) = delete;
 
-		inline static bool IsKeyPressed(KeyCode key) { return sInstance->IsKeyPressedImpl(key); }
+		static bool IsKeyPressed(KeyCode key) { return sInstance->IsKeyPressedImpl(key); }
 
-		inline static bool IsMouseButtonPressed(MouseCode button) { return sInstance->IsMouseButtonPressedImpl(button); }
-		inline static std::pair<float, float> GetMousePosition() { return sInstance->GetMousePositionImpl(); }
-		inline static float GetMouseX() { return sInstance->GetMouseXImpl(); }
-		inline static float GetMouseY() { return sInstance->GetMouseYImpl(); }
+		static bool IsMouseButtonPressed(MouseCode button) { return sInstance->IsMouseButtonPressedImpl(button); }
+		static std::pair<float, float> GetMousePosition() { return sInstance->GetMousePositionImpl(); }
+		static float GetMouseX() { return sInstance->GetMouseXImpl(); }
+		static float GetMouseY() { return sInstance->GetMouseYImpl(); }
 
 		static Scope<Input> Create();
 	protected:

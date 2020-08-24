@@ -12,8 +12,8 @@ namespace Toast
 	public:
 		static void Init();
 
-		inline static Ref<spdlog::logger>& GetCoreLogger() { return sCoreLogger;  }
-		inline static Ref<spdlog::logger>& GetClientLogger() { return sClientLogger; }
+		static Ref<spdlog::logger>& GetCoreLogger() { return sCoreLogger;  }
+		static Ref<spdlog::logger>& GetClientLogger() { return sClientLogger; }
 	private:
 		static Ref<spdlog::logger> sCoreLogger;
 		static Ref<spdlog::logger> sClientLogger;

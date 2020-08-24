@@ -12,14 +12,14 @@ namespace Toast
 
 		void OnUpdate() override;
 
-		inline unsigned int GetWidth() const override { return mData.Width; }
-		inline unsigned int GetHeight() const override { return mData.Height; }
+		unsigned int GetWidth() const override { return mData.Width; }
+		unsigned int GetHeight() const override { return mData.Height; }
 
-		inline void SetEventCallback(const EventCallbackFn& callback) override { mData.EventCallback = callback; }
+		void SetEventCallback(const EventCallbackFn& callback) override { mData.EventCallback = callback; }
 		void SetVSync(bool enabled) override;
 		bool IsVSync() const override;
 
-		inline virtual HWND GetNativeWindow() const override { return mWin32Window; }
+		virtual HWND GetNativeWindow() const override { return mWin32Window; }
 
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
