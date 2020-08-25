@@ -18,9 +18,9 @@ namespace Toast {
 
 	struct Renderer2DData
 	{
-		const uint32_t MaxQuads = 10000;
-		const uint32_t MaxVertices = MaxQuads * 4;
-		const uint32_t MaxIndices = MaxQuads * 6;
+		static const uint32_t MaxQuads = 20000;
+		static const uint32_t MaxVertices = MaxQuads * 4;
+		static const uint32_t MaxIndices = MaxQuads * 6;
 		static const uint32_t MaxTextureSlots = 32; // RenderCaps
 
 		Ref<Shader> TextureShader;
@@ -37,6 +37,8 @@ namespace Toast {
 		uint32_t TextureSlotIndex = 1;
 
 		DirectX::XMVECTOR QuadVertexPositions[4];
+
+		Renderer2D::Statistics Stats;
 	};
 
 	static Renderer2DData sData;
@@ -129,6 +131,17 @@ namespace Toast {
 		}
 
 		RenderCommand::DrawIndexed(sData.QuadIndexBuffer, sData.QuadIndexCount);
+		sData.Stats.DrawCalls++;
+	}
+
+	void Renderer2D::FlushAndReset()
+	{
+		EndScene();
+
+		sData.QuadIndexCount = 0;
+		sData.QuadVertexBufferPtr = sData.QuadVertexBufferBase;
+
+		sData.TextureSlotIndex = 1;
 	}
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, const DirectX::XMFLOAT4& color)
@@ -141,6 +154,9 @@ namespace Toast {
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, const DirectX::XMFLOAT4& color)
 	{
 		TOAST_PROFILE_FUNCTION();
+
+		if (sData.QuadIndexCount >= Renderer2DData::MaxIndices)
+			FlushAndReset();
 
 		const float textureIndex = 0.0f;
 		const float tilingFactor = 1.0f;
@@ -176,6 +192,8 @@ namespace Toast {
 		sData.QuadVertexBufferPtr++;
 
 		sData.QuadIndexCount += 6;
+
+		sData.Stats.QuadCount++;
 	}
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, const Ref<Texture2D>& texture, const float tilingFactor, const DirectX::XMFLOAT4& tintColor)
@@ -186,6 +204,9 @@ namespace Toast {
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, const Ref<Texture2D>& texture, const float tilingFactor, const DirectX::XMFLOAT4& tintColor)
 	{
 		TOAST_PROFILE_FUNCTION();
+
+		if (sData.QuadIndexCount >= Renderer2DData::MaxIndices)
+			FlushAndReset();
 
 		const DirectX::XMFLOAT4 color = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		float textureIndex = 0.0f;
@@ -237,6 +258,8 @@ namespace Toast {
 		sData.QuadVertexBufferPtr++;
 
 		sData.QuadIndexCount += 6;
+
+		sData.Stats.QuadCount++;
 	}
 
 	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, float rotation, const DirectX::XMFLOAT4& color)
@@ -247,6 +270,9 @@ namespace Toast {
 	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, float rotation, const DirectX::XMFLOAT4& color)
 	{
 		TOAST_PROFILE_FUNCTION();
+
+		if (sData.QuadIndexCount >= Renderer2DData::MaxIndices)
+			FlushAndReset();
 
 		const float textureIndex = 0.0f;
 		const float tilingFactor = 1.0f;
@@ -283,6 +309,8 @@ namespace Toast {
 		sData.QuadVertexBufferPtr++;
 
 		sData.QuadIndexCount += 6;
+
+		sData.Stats.QuadCount++;
 	}
 
 	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, float rotation, const Ref<Texture2D>& texture, const float tilingFactor, const DirectX::XMFLOAT4& tintColor)
@@ -293,6 +321,9 @@ namespace Toast {
 	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, float rotation, const Ref<Texture2D>& texture, const float tilingFactor, const DirectX::XMFLOAT4& tintColor)
 	{
 		TOAST_PROFILE_FUNCTION();
+
+		if (sData.QuadIndexCount >= Renderer2DData::MaxIndices)
+			FlushAndReset();
 
 		const DirectX::XMFLOAT4 color = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 		float textureIndex = 0.0f;
@@ -345,5 +376,17 @@ namespace Toast {
 		sData.QuadVertexBufferPtr++;
 
 		sData.QuadIndexCount += 6;
+
+		sData.Stats.QuadCount++;
+	}
+
+	void Renderer2D::ResetStats()
+	{
+		memset(&sData.Stats, 0, sizeof(Statistics));
+	}
+
+	Renderer2D::Statistics Renderer2D::GetStats()
+	{
+		return sData.Stats;
 	}
 }
