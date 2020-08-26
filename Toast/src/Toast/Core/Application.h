@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Toast/Core/Core.h"
+#include "Toast/Core/Base.h"
 
 #include "Toast/Core/Window.h"
 #include "Toast/Core/LayerStack.h"

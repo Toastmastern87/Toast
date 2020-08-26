@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Toast/Core/Core.h"
+#include "Toast/Core/Base.h"
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>

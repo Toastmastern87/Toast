@@ -2,7 +2,7 @@
 
 //For use by game using the Toast engine
 
-#include "Toast/Core/Core.h"
+#include "Toast/Core/Base.h"
 
 #include "Toast/Core/Application.h"
 #include "Toast/Core/Layer.h"

@@ -102,7 +102,7 @@ namespace Toast {
 
 	void DirectXRendererAPI::DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount)
 	{
-		uint32_t count = indexCount ? indexBuffer->GetCount() : indexCount;
+		uint32_t count = indexCount ? indexCount : indexBuffer->GetCount();
 
 		mDeviceContext->DrawIndexed(count, 0, 0);
 	}

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "tpch.h"
-#include "Toast/Core/Core.h"
+#include "Toast/Core/Base.h"
 
 namespace Toast 
 {
