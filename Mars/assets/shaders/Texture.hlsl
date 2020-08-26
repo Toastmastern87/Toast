@@ -67,13 +67,11 @@ float4 main(PixelInputType input) : SV_TARGET
 
 	switch ((int)input.texindex)
 	{
-		case 0:
-			return shaderTexture0.SampleLevel(sampleType, input.texcoord * input.tilingfactor, 0) * input.color;
-		case 1:
-			return shaderTexture1.SampleLevel(sampleType, input.texcoord * input.tilingfactor, 0) * input.color;
-		case 2:
-			return shaderTexture2.SampleLevel(sampleType, input.texcoord * input.tilingfactor, 0) * input.color;
-		default:
-			return shaderTexture0.SampleLevel(sampleType, input.texcoord * input.tilingfactor, 0) * input.color;
+		case 0:		return shaderTexture0.SampleLevel(sampleType, input.texcoord * input.tilingfactor, 0) * input.color; break;
+		case 1:		return shaderTexture1.SampleLevel(sampleType, input.texcoord * input.tilingfactor, 0) * input.color; break;
+		case 2:		return shaderTexture2.SampleLevel(sampleType, input.texcoord * input.tilingfactor, 0) * input.color; break;
+		case 3:		return shaderTexture3.SampleLevel(sampleType, input.texcoord * input.tilingfactor, 0) * input.color; break;
+		case 4:		return shaderTexture4.SampleLevel(sampleType, input.texcoord * input.tilingfactor, 0) * input.color; break;
+		default:	return shaderTexture0.SampleLevel(sampleType, input.texcoord * input.tilingfactor, 0) * input.color; break;
 	}
 }

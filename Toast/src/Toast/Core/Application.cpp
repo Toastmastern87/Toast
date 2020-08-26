@@ -65,9 +65,9 @@ namespace Toast {
 
 		for (auto it = mLayerStack.rbegin(); it != mLayerStack.rend(); ++it) 
 		{
-			(*it)->OnEvent(e);
 			if (e.Handled)
 				break;
+			(*it)->OnEvent(e);
 		}
 	}
 

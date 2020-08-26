@@ -45,11 +45,11 @@ void TheNextFrontier2D::OnUpdate(Toast::Timestep ts)
 		
 		TOAST_PROFILE_SCOPE("Renderer Draw");
 		Toast::Renderer2D::BeginScene(mCameraController.GetCamera());
-		Toast::Renderer2D::DrawRotatedQuad(DirectX::XMFLOAT2(1.0f, 0.0f), DirectX::XMFLOAT2(0.8f, 0.8f), -45.0f, DirectX::XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
+		Toast::Renderer2D::DrawRotatedQuad(DirectX::XMFLOAT2(1.0f, 0.0f), DirectX::XMFLOAT2(0.8f, 0.8f), DirectX::XMConvertToRadians(-45.0f), DirectX::XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
 		Toast::Renderer2D::DrawQuad(DirectX::XMFLOAT2(0.5f, -0.5f), DirectX::XMFLOAT2(0.5f, 0.75f), DirectX::XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
-		Toast::Renderer2D::DrawQuad(DirectX::XMFLOAT2(-1.0f, 0.0f), DirectX::XMFLOAT2(0.8f, 0.8f), DirectX::XMFLOAT4(0.2f, 0.3f, 0.8f, 1.0f));
+		Toast::Renderer2D::DrawQuad(DirectX::XMFLOAT2(-1.0f, 0.0f), DirectX::XMFLOAT2(0.8f, 0.8f), DirectX::XMFLOAT4(mSquareColor[0], mSquareColor[1], mSquareColor[2], mSquareColor[3]));
 		Toast::Renderer2D::DrawQuad(DirectX::XMFLOAT3(0.0f, 0.0f, 0.1f), DirectX::XMFLOAT2(20.0f, 20.0f), mCheckerboardTexture, 10.0f);
-		Toast::Renderer2D::DrawRotatedQuad(DirectX::XMFLOAT3(-2.0f, 0.0f, 0.0f), DirectX::XMFLOAT2(1.0f, 1.0f), rotation, mCheckerboardTexture, 20.0f);
+		Toast::Renderer2D::DrawRotatedQuad(DirectX::XMFLOAT3(-2.0f, 0.0f, 0.0f), DirectX::XMFLOAT2(1.0f, 1.0f), DirectX::XMConvertToRadians(rotation), mCheckerboardTexture, 20.0f);
 		Toast::Renderer2D::EndScene();
 
 		Toast::Renderer2D::BeginScene(mCameraController.GetCamera());

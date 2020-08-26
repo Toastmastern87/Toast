@@ -3,12 +3,20 @@
 #include <memory>
 
 #ifdef TOAST_DEBUG
+	#if defined(TOAST_PLATFORM_WINDOWS)
+		#define TOAST_DEBUGBREAK() __debugbreak()
+	#else
+		#error "Platform doesn't support debugbreak yet!"
+	#endif
+
 	#define TOAST_ENABLE_ASSERTS
+#else
+	#define TOAST_DEBUGBREAK()
 #endif
 
 #ifdef TOAST_ENABLE_ASSERTS
-	#define TOAST_ASSERT(x, ...) { if(!(x)) { TOAST_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } } 
-	#define TOAST_CORE_ASSERT(x, ...) { if(!(x)) { TOAST_CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } } 
+	#define TOAST_ASSERT(x, ...) { if(!(x)) { TOAST_ERROR("Assertion Failed: {0}", __VA_ARGS__); TOAST_DEBUGBREAK(); } } 
+	#define TOAST_CORE_ASSERT(x, ...) { if(!(x)) { TOAST_CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); TOAST_DEBUGBREAK(); } } 
 #else
 	#define TOAST_ASSERT(x, ...)
 	#define TOAST_CORE_ASSERT(x, ...)
