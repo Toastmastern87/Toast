@@ -27,6 +27,8 @@ namespace Toast {
 
 		Window& GetWindow() { return *mWindow; }
 
+		void Close();
+
 		static Application& Get() { return *sInstance; }
 	private:
 		void Run();
