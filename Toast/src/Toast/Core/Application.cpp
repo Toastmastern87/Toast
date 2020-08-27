@@ -55,6 +55,11 @@ namespace Toast {
 		layer->OnAttach();
 	}
 
+	void Application::Close()
+	{
+		mRunning = false;
+	}
+
 	void Application::OnEvent(Event& e)
 	{
 		TOAST_PROFILE_FUNCTION();
