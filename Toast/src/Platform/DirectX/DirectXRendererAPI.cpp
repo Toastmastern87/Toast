@@ -3,6 +3,8 @@
 
 #include "Toast/Core/Application.h"
 
+#include "DirectXFramebuffer.h"
+
 #include <d3d11.h>
 
 namespace Toast {
@@ -67,11 +69,11 @@ namespace Toast {
 
 		LogAdapterInfo();
 
-		CreateRenderTarget();
+		CreateDefaultRenderTarget();
 
 		CreateBlendStates();
 
-		CreateDepthBuffer();
+		CreateDepthBuffer(mWidth, mHeight);
 		CreateDepthStencil();
 
 		viewport.TopLeftX = (float)clientRect.left;
@@ -95,9 +97,22 @@ namespace Toast {
 		mDeviceContext->ClearDepthStencilView(mDepthStencilView, D3D11_CLEAR_FLAG::D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
-	void DirectXRendererAPI::SetRenderTargets() 
+	void DirectXRendererAPI::SetRenderTargets(Ref<Framebuffer> fb) 
 	{
-		mDeviceContext->OMSetRenderTargets(1, &mRenderTargetView, mDepthStencilView);
+		if (fb)
+		{
+			CreateDepthBuffer(fb->GetSpecification().Width, fb->GetSpecification().Height);
+			CreateDepthStencil();
+
+			mDeviceContext->OMSetRenderTargets(1, std::static_pointer_cast<DirectXFramebuffer>(fb)->GetRenderTargetView(), mDepthStencilView);
+		}
+		else 
+		{
+			CreateDepthBuffer(mWidth, mHeight);
+			CreateDepthStencil();
+
+			mDeviceContext->OMSetRenderTargets(1, &mRenderTargetView, mDepthStencilView);
+		}
 	}
 
 	void DirectXRendererAPI::DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount)
@@ -135,8 +150,8 @@ namespace Toast {
 		mDeviceContext->RSSetViewports(1, &viewport);
 
 		mSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
-		CreateRenderTarget();
-		CreateDepthBuffer();
+		CreateDefaultRenderTarget();
+		CreateDepthBuffer(mWidth, mHeight);
 		CreateDepthStencil();
 	}
 
@@ -152,7 +167,7 @@ namespace Toast {
 		mDeviceContext->OMSetDepthStencilState(mDepthStencilState, 1);
 	}
 
-	void DirectXRendererAPI::CreateRenderTarget()
+	void DirectXRendererAPI::CreateDefaultRenderTarget()
 	{
 		ID3D11Texture2D* backBuffer;
 		mSwapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
@@ -160,12 +175,15 @@ namespace Toast {
 		backBuffer->Release();
 	}
 
-	void DirectXRendererAPI::CreateDepthBuffer()
+	void DirectXRendererAPI::CreateDepthBuffer(uint32_t width, uint32_t height)
 	{
 		HRESULT result;
 		D3D11_TEXTURE2D_DESC depthBufferDesc;
-		depthBufferDesc.Width = mWidth;
-		depthBufferDesc.Height = mHeight;
+
+		CLEAN(mDepthStencilBuffer);
+
+		depthBufferDesc.Width = width;
+		depthBufferDesc.Height = height;
 		depthBufferDesc.MipLevels = 1;
 		depthBufferDesc.ArraySize = 1;
 		depthBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
@@ -173,7 +191,7 @@ namespace Toast {
 		depthBufferDesc.SampleDesc.Quality = 0;
 		depthBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 		depthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-		depthBufferDesc.CPUAccessFlags = 0;
+		depthBufferDesc.CPUAccessFlags =0;
 		depthBufferDesc.MiscFlags = 0;
 
 		result = mDevice->CreateTexture2D(&depthBufferDesc, NULL, &mDepthStencilBuffer);
@@ -207,23 +225,24 @@ namespace Toast {
 		D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
 		D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
 
-		// Depth test parameters
+		CLEAN(mDepthStencilState);
+		CLEAN(mDepthStencilView);
+
+		ZeroMemory(&depthStencilDesc, sizeof(depthStencilDesc));
+
 		depthStencilDesc.DepthEnable = true;
 		depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 		depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
 
-		// Stencil test parameters
 		depthStencilDesc.StencilEnable = true;
 		depthStencilDesc.StencilReadMask = 0xFF;
 		depthStencilDesc.StencilWriteMask = 0xFF;
 
-		// Stencil operations if pixel is front-facing
 		depthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
 		depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
 		depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 		depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
-		// Stencil operations if pixel is back-facing
 		depthStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
 		depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
 		depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;

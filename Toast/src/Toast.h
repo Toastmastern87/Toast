@@ -24,6 +24,7 @@
 
 #include "Toast/Renderer/Buffer.h"
 #include "Toast/Renderer/Shader.h"
+#include "Toast/Renderer/Framebuffer.h"
 #include "Toast/Renderer/Texture.h"
 
 #include "Toast/Renderer/OrthographicCamera.h"

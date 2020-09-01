@@ -53,7 +53,7 @@ void ExampleLayer::OnUpdate(Toast::Timestep ts)
 	// Render
 	const float clearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
 
-	Toast::RenderCommand::SetRenderTargets();
+	//Toast::RenderCommand::SetRenderTargets();
 	Toast::RenderCommand::Clear(clearColor);
 
 	Toast::Renderer::BeginScene(mCameraController.GetCamera());

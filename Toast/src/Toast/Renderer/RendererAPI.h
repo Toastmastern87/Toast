@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Toast/Renderer/Buffer.h"
+#include "Toast/Renderer/Framebuffer.h"
 
 namespace Toast {
 
@@ -15,7 +16,7 @@ namespace Toast {
 	public:
 		virtual void Init() = 0;
 		virtual void Clear(const float clearColor[4]) = 0;
-		virtual void SetRenderTargets() = 0;
+		virtual void SetRenderTargets(Ref<Framebuffer> fb = nullptr) = 0;
 		virtual void DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount = 0) = 0;
 		virtual void SwapBuffers() = 0;
 		virtual void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
