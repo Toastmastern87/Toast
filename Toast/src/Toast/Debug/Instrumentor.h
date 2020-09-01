@@ -46,8 +46,7 @@ namespace Toast {
 				// Subsequent profiling output meant for the original session will end up in the
 				// newly opened session instead.  That's better than having badly formatted
 				// profiling output.
-				if (Log::GetCoreLogger()) // Edge case: BeginSession() might be before Log::Init()
-				{
+				if (Log::GetCoreLogger()) { // Edge case: BeginSession() might be before Log::Init()
 					TOAST_CORE_ERROR("Instrumentor::BeginSession('{0}') when session '{1}' already open.", name, mCurrentSession->Name);
 				}
 				InternalEndSession();
@@ -55,15 +54,12 @@ namespace Toast {
 
 			mOutputStream.open(filepath);
 
-			if (mOutputStream.is_open()) 
-			{
+			if (mOutputStream.is_open()) {
 				mCurrentSession = new InstrumentationSession({ name });
 				WriteHeader();
 			}
-			else 
-			{
-				if (Log::GetCoreLogger()) // Edge case: BeginSession() might be before Log::Init()
-				{
+			else {
+				if (Log::GetCoreLogger()) { // Edge case: BeginSession() might be before Log::Init()
 					TOAST_CORE_ERROR("Instrumentor could not open results file '{0}'.", filepath);
 				}
 			}
@@ -79,11 +75,14 @@ namespace Toast {
 		{
 			std::stringstream json;
 
+			std::string name = result.Name;
+			std::replace(name.begin(), name.end(), '"', '\'');
+
 			json << std::setprecision(3) << std::fixed;
 			json << ",{";
 			json << "\"cat\":\"function\",";
 			json << "\"dur\":" << (result.ElapsedTime.count()) << ',';
-			json << "\"name\":\"" << result.Name << "\",";
+			json << "\"name\":\"" << name << "\",";
 			json << "\"ph\":\"X\",";
 			json << "\"pid\":0,";
 			json << "\"tid\":" << result.ThreadID << ",";
@@ -91,8 +90,7 @@ namespace Toast {
 			json << "}";
 
 			std::lock_guard lock(mMutex);
-			if (mCurrentSession) 
-			{
+			if (mCurrentSession) {
 				mOutputStream << json.str();
 				mOutputStream.flush();
 			}
@@ -117,7 +115,7 @@ namespace Toast {
 			mOutputStream.flush();
 		}
 
-		void InternalEndSession() 
+		void InternalEndSession()
 		{
 			if (mCurrentSession)
 			{
@@ -148,7 +146,7 @@ namespace Toast {
 		{
 			auto endTimepoint = std::chrono::steady_clock::now();
 			auto highResStart = FloatingPointMicroseconds{ mStartTimepoint.time_since_epoch() };
-			auto elapsedTime = std::chrono::time_point_cast<std::chrono::microseconds>(endTimepoint).time_since_epoch() -					std::chrono::time_point_cast<std::chrono::microseconds>(mStartTimepoint).time_since_epoch();
+			auto elapsedTime = std::chrono::time_point_cast<std::chrono::microseconds>(endTimepoint).time_since_epoch() - std::chrono::time_point_cast<std::chrono::microseconds>(mStartTimepoint).time_since_epoch();
 
 			Instrumentor::Get().WriteProfile({ mName, highResStart, elapsedTime, std::this_thread::get_id() });
 
@@ -161,47 +159,15 @@ namespace Toast {
 	};
 }
 
-namespace InstrumentorUtils {
-
-	template <size_t N>
-	struct ChangeResult
-	{
-		char Data[N];
-	};
-
-	template <size_t N, size_t K>
-	constexpr auto CleanupOutputString(const char(&expr)[N], const char(&remove)[K])
-	{
-		ChangeResult<N> result = {};
-
-		size_t srcIndex = 0;
-		size_t dstIndex = 0;
-		while (srcIndex < N)
-		{
-			size_t matchIndex = 0;
-			while (matchIndex < K - 1 && srcIndex + matchIndex < N - 1 && expr[srcIndex + matchIndex] == remove[matchIndex])
-				matchIndex++;
-			if (matchIndex == K - 1)
-				srcIndex += matchIndex;
-			result.Data[dstIndex++] = expr[srcIndex] == '"' ? '\'' : expr[srcIndex];
-			srcIndex++;
-		}
-		return result;
-	}
-}
-
 #define TOAST_PROFILE 0
 #if TOAST_PROFILE
-#define TOAST_FUNC_SIG __FUNCSIG__
-
-#define TOAST_PROFILE_BEGIN_SESSION(name, filepath) ::Toast::Instrumentor::Get().BeginSession(name, filepath)
-#define TOAST_PROFILE_END_SESSION() ::Toast::Instrumentor::Get().EndSession()
-#define TOAST_PROFILE_SCOPE(name) constexpr auto fixedName = ::Toast::InstrumentorUtils::CleanupOutputString(name, "__cdecl ");\
-									::Toast::InstrumentationTimer timer##__LINE__(fixedName.Data)
-#define TOAST_PROFILE_FUNCTION() TOAST_PROFILE_SCOPE(TOAST_FUNC_SIG)
+	#define TOAST_PROFILE_BEGIN_SESSION(name, filepath) ::Toast::Instrumentor::Get().BeginSession(name, filepath)
+	#define TOAST_PROFILE_END_SESSION() ::Toast::Instrumentor::Get().EndSession()
+	#define TOAST_PROFILE_SCOPE(name) ::Toast::InstrumentationTimer timer##__LINE__(name);
+	#define TOAST_PROFILE_FUNCTION() TOAST_PROFILE_SCOPE(__FUNCSIG__)
 #else
-#define TOAST_PROFILE_BEGIN_SESSION(name, filepath)
-#define TOAST_PROFILE_END_SESSION()
-#define TOAST_PROFILE_SCOPE(name)
-#define TOAST_PROFILE_FUNCTION()
+	#define TOAST_PROFILE_BEGIN_SESSION(name, filepath)
+	#define TOAST_PROFILE_END_SESSION()
+	#define TOAST_PROFILE_SCOPE(name)
+	#define TOAST_PROFILE_FUNCTION()
 #endif

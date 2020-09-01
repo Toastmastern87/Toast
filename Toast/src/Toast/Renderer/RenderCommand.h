@@ -17,7 +17,12 @@ namespace Toast {
 			sRendererAPI->Clear(clearColor);
 		}
 
-		static void SetRenderTargets() 
+		static void SetRenderTargets(Ref<Framebuffer>& fb)
+		{
+			sRendererAPI->SetRenderTargets(fb);
+		}
+
+		static void SetRenderTargets()
 		{
 			sRendererAPI->SetRenderTargets();
 		}

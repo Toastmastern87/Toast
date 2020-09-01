@@ -13,7 +13,7 @@ namespace Toast {
 
 		virtual void Init() override;
 		virtual void Clear(const float clearColor[4]) override;
-		virtual void SetRenderTargets() override;
+		virtual void SetRenderTargets(Ref<Framebuffer> fb = nullptr) override;
 		virtual void DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount = 0) override;
 		virtual void SwapBuffers() override;
 		virtual void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
@@ -24,10 +24,10 @@ namespace Toast {
 		virtual ID3D11Device* GetDevice() { return mDevice; }
 		virtual ID3D11DeviceContext* GetDeviceContext() { return mDeviceContext; }
 	private:
-		void CreateRenderTarget();
+		void CreateDefaultRenderTarget();
 		void CreateBlendStates();
 		void CreateDepthStencil();
-		void CreateDepthBuffer();
+		void CreateDepthBuffer(uint32_t width, uint32_t height);
 
 		void CleanupRenderTarget();
 
