@@ -11,7 +11,7 @@ namespace Toast {
 
 	Application* Application::sInstance = nullptr;
 
-	Application::Application()
+	Application::Application(const std::string& name)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -21,7 +21,7 @@ namespace Toast {
 
 		sInstance = this;
 
-		mWindow = Window::Create();
+		mWindow = Window::Create(WindowProps(name));
 		mWindow->SetEventCallback(TOAST_BIND_EVENT_FN(Application::OnEvent));
 
 		Renderer::Init();

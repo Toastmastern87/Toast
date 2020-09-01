@@ -17,8 +17,10 @@ namespace Toast {
 	public:
 		virtual const FramebufferSpecification& GetSpecification() const = 0;
 
-		virtual void* GetID() const = 0;
+		virtual void* ColorAttachmentID() const = 0;
 
 		static Ref<Framebuffer> Create(const FramebufferSpecification& spec);
+
+		virtual void Clear(const float clearColor[4]) = 0;
 	};
 }

@@ -104,6 +104,58 @@ project "Toast"
 		runtime "Release"
 		optimize "on"
 
+
+project "Toaster"
+	location "Toaster"
+	kind "ConsoleApp"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
+
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files
+	{
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.cpp"
+	}
+
+	includedirs
+	{
+		"Toast/vendor/spdlog/include",
+		"Toast/src",
+		"Toast/vendor"
+	}
+
+	links
+	{
+		"Toast"
+	}
+
+	filter "system:windows"
+		systemversion "latest"
+
+		defines
+		{
+			"TOAST_PLATFORM_WINDOWS"
+		}
+
+	filter "configurations:Debug"
+		defines "TOAST_DEBUG"
+		runtime "Debug"
+		symbols "on"
+
+	filter "configurations:Release"
+		defines "TOAST_RELEASE"
+		runtime "Release"
+		optimize "on"
+
+	filter "configurations:Dist"
+		defines "TOAST_DIST"
+		runtime "Release"
+		optimize "on"
+
 project "Mars"
 	location "Mars"
 	kind "ConsoleApp"

@@ -12,13 +12,14 @@ namespace Toast {
 		DirectXFramebuffer(const FramebufferSpecification& spec);
 		virtual ~DirectXFramebuffer();
 
-		virtual void* GetID() const override { return (void*)mShaderResourceView; }
+		virtual void* ColorAttachmentID() const override { return (void*)mShaderResourceView; }
 
 		ID3D11RenderTargetView** GetRenderTargetView() { return &mRenderTargetView; }
 
 		virtual const FramebufferSpecification& GetSpecification() const override { return mSpecification; }
 
 		void Invalidate();
+		virtual void Clear(const float clearColor[4]) override;
 	private:
 		FramebufferSpecification mSpecification;
 
