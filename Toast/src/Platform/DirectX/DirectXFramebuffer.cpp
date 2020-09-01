@@ -60,4 +60,9 @@ namespace Toast {
 		result = mDevice->CreateShaderResourceView(mRenderTargetTexture, &shaderResourceViewDesc, &mShaderResourceView);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create shader resource view!");
 	}
+
+	void DirectXFramebuffer::Clear(const float clearColor[4])
+	{
+		mDeviceContext->ClearRenderTargetView(mRenderTargetView, clearColor);
+	}
 }

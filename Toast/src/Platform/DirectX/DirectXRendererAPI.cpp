@@ -191,7 +191,7 @@ namespace Toast {
 		depthBufferDesc.SampleDesc.Quality = 0;
 		depthBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 		depthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-		depthBufferDesc.CPUAccessFlags =0;
+		depthBufferDesc.CPUAccessFlags = 0;
 		depthBufferDesc.MiscFlags = 0;
 
 		result = mDevice->CreateTexture2D(&depthBufferDesc, NULL, &mDepthStencilBuffer);
