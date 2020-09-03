@@ -57,6 +57,8 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		HRESULT result;
+		ID3D11Texture2D* textureInterface;
+		D3D11_TEXTURE2D_DESC desc;
 
 		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
 		mDevice = API.GetDevice();
@@ -69,8 +71,6 @@ namespace Toast {
 		result = DirectX::CreateWICTextureFromFile(mDevice, stemp.c_str(), &mResource, &mView);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load texture!");
 
-		ID3D11Texture2D* textureInterface;
-		D3D11_TEXTURE2D_DESC desc;
 		mResource->QueryInterface<ID3D11Texture2D>(&textureInterface);
 		textureInterface->GetDesc(&desc);
 

@@ -35,7 +35,7 @@ void TheNextFrontier2D::OnUpdate(Toast::Timestep ts)
 		TOAST_PROFILE_SCOPE("Renderer Prep");
 		const float clearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
 
-		Toast::RenderCommand::SetRenderTargets();
+		Toast::RenderCommand::BindBackbuffer();
 		Toast::RenderCommand::Clear(clearColor);
 	}
 
@@ -62,7 +62,7 @@ void TheNextFrontier2D::OnUpdate(Toast::Timestep ts)
 			}
 		}
 		Toast::Renderer2D::EndScene();
-		Toast::RenderCommand::SetRenderTargets();
+		Toast::RenderCommand::BindBackbuffer();
 	}
 }
 
