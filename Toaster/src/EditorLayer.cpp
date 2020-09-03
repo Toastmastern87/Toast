@@ -18,6 +18,8 @@ namespace Toast {
 		FramebufferSpecification fbSpec;
 		fbSpec.Width = 1280;
 		fbSpec.Height = 720;
+		fbSpec.BuffersDesc.push_back(new FramebufferSpecification::BufferDesc(TOAST_FORMAT_R32G32B32A32_FLOAT, TOAST_BIND_RENDER_TARGET | TOAST_BIND_SHADER_RESOURCE));
+		fbSpec.BuffersDesc.push_back(new FramebufferSpecification::BufferDesc(TOAST_FORMAT_D24_UNORM_S8_UINT, TOAST_BIND_DEPTH_STENCIL));
 		mFramebuffer = Framebuffer::Create(fbSpec);
 	}
 
@@ -30,6 +32,8 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		const float clearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
+
 		// Update
 		{
 			TOAST_PROFILE_SCOPE("CameraController::OnUpdate");
@@ -40,10 +44,9 @@ namespace Toast {
 		Renderer2D::ResetStats();
 		{
 			TOAST_PROFILE_SCOPE("Renderer Prep");
-			const float clearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
 
-			RenderCommand::SetRenderTargets(mFramebuffer);
-			RenderCommand::Clear(clearColor);
+			mFramebuffer->Bind();
+			mFramebuffer->Clear(clearColor);
 		}
 
 		{
@@ -69,7 +72,8 @@ namespace Toast {
 				}
 			}
 			Renderer2D::EndScene();
-			RenderCommand::SetRenderTargets();
+			RenderCommand::BindBackbuffer();
+			RenderCommand::Clear(clearColor);
 		}
 	}
 
@@ -151,8 +155,23 @@ namespace Toast {
 
 			ImGui::ColorEdit4("Square Color", mSquareColor);
 
-			ImGui::Image(mFramebuffer->ColorAttachmentID(), ImVec2{ 1280.0f, 720.0f });
 			ImGui::End();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
+			ImGui::Begin("Viewport");
+			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+			
+			if (!DirectX::XMVector2Equal(DirectX::XMLoadFloat2(&mViewportSize), DirectX::XMLoadFloat2(&DirectX::XMFLOAT2(viewportPanelSize.x, viewportPanelSize.y))))
+			{	
+				mFramebuffer->Resize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
+
+				mCameraController.OnResize(viewportPanelSize.x, viewportPanelSize.y);
+
+				mViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
+			}			
+			ImGui::Image(mFramebuffer->GetColorAttachmentID(), ImVec2{ mViewportSize.x, mViewportSize.y });
+			ImGui::End();
+			ImGui::PopStyleVar();
 
 			ImGui::End();
 		}
@@ -172,7 +191,6 @@ namespace Toast {
 			ImGui::Image(mCheckerboardTexture->GetID(), ImVec2{ 1280.0f, 720.0f });
 			ImGui::End();
 		}
-
 	}
 
 	void EditorLayer::OnEvent(Event& e)

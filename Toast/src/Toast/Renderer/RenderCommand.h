@@ -17,14 +17,9 @@ namespace Toast {
 			sRendererAPI->Clear(clearColor);
 		}
 
-		static void SetRenderTargets(Ref<Framebuffer>& fb)
+		static void BindBackbuffer()
 		{
-			sRendererAPI->SetRenderTargets(fb);
-		}
-
-		static void SetRenderTargets()
-		{
-			sRendererAPI->SetRenderTargets();
+			sRendererAPI->BindBackbuffer();
 		}
 
 		static void DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t count = 0)
@@ -37,9 +32,9 @@ namespace Toast {
 			sRendererAPI->SwapBuffers();
 		}
 
-		static void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+		static void ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 		{
-			sRendererAPI->SetViewport(x, y, width, height);
+			sRendererAPI->ResizeViewport(x, y, width, height);
 		}
 
 		static void CleanUp()

@@ -67,6 +67,12 @@ namespace Toast {
 		dispatcher.Dispatch<WindowResizeEvent>(TOAST_BIND_EVENT_FN(OrthographicCameraController::OnWindowResize));
 	}
 
+	void OrthographicCameraController::OnResize(float width, float height)
+	{
+		mAspectRatio = width / height;
+		mCamera.SetProjection(-mAspectRatio * mZoomLevel, mAspectRatio * mZoomLevel, mZoomLevel, -mZoomLevel);
+	}
+
 	bool OrthographicCameraController::OnMouseScrolled(MouseScrolledEvent& e)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -81,8 +87,7 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mAspectRatio = (float)e.GetWidth() / (float)e.GetHeight();
-		mCamera.SetProjection(-mAspectRatio * mZoomLevel, mAspectRatio * mZoomLevel, mZoomLevel, -mZoomLevel);
+		OnResize((float)e.GetWidth(), (float)e.GetHeight());
 		return false;
 	}
 }

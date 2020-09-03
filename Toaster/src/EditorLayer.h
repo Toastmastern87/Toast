@@ -23,6 +23,8 @@ namespace Toast {
 
 		Ref<Texture2D> mCheckerboardTexture;
 
+		DirectX::XMFLOAT2 mViewportSize = { 0.0f, 0.0f };
+
 		float mSquareColor[4] = { 0.8f, 0.2f, 0.3f, 1.0f };
 	};
 }

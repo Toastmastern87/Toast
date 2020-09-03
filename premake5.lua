@@ -1,6 +1,6 @@
 workspace "Toast"
 	architecture "x86_64"
-	startproject "Mars"
+	startproject "Toaster"
 
 	configurations
 	{

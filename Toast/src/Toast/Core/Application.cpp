@@ -113,8 +113,6 @@ namespace Toast {
 
 			mWindow->OnUpdate();
 		}
-
-		mImGuiLayer->OnDetach();
 	}
 
 	bool Application::OnWindowClose(WindowCloseEvent& e)
