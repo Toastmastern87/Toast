@@ -9,44 +9,41 @@ namespace Toast {
 	DirectXFramebuffer::DirectXFramebuffer(const FramebufferSpecification& spec)
 		: mSpecification(spec)
 	{
-		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
-		mDevice = API.GetDevice();
-		mDeviceContext = API.GetDeviceContext();
-
 		Invalidate();
 	}
 
 	DirectXFramebuffer::~DirectXFramebuffer()
 	{
-		Clean();
+
 	}
 
 	void DirectXFramebuffer::Bind() const
 	{
-		mDeviceContext->RSSetViewports(1, &mViewport);
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		mDeviceContext->OMSetRenderTargets(1, &mRenderTargetView, mDepthStencilView);
+		deviceContext->RSSetViewports(1, &mViewport);
+
+		deviceContext->OMSetRenderTargets(1, mRenderTargetView.GetAddressOf(), mDepthStencilView.Get());
 
 		if(mDepthView)
-			mDeviceContext->OMSetDepthStencilState(mDepthStencilState, 1);
+			deviceContext->OMSetDepthStencilState(mDepthStencilState.Get(), 1);
 	}
 
 	void DirectXFramebuffer::Invalidate()
 	{
 		Clean();
 
-		ZeroMemory(&mViewport, sizeof(D3D11_VIEWPORT));
-
 		mViewport.TopLeftX = 0.0f;
 		mViewport.TopLeftY = 0.0f;
-		mViewport.Width = (float)mSpecification.Width;
-		mViewport.Height = (float)mSpecification.Height;
+		mViewport.Width = static_cast<float>(mSpecification.Width);
+		mViewport.Height = static_cast<float>(mSpecification.Height);
 		mViewport.MinDepth = 0.0f;
 		mViewport.MaxDepth = 1.0f;
 
-		for (FramebufferSpecification::BufferDesc* desc : mSpecification.BuffersDesc)
+		for (FramebufferSpecification::BufferDesc desc : mSpecification.BuffersDesc)
 		{
-			if (IsDepthFormat(desc->Format))
+			if (IsDepthFormat(desc.Format))
 				mDepthView = CreateDepthView(desc);
 			else
 				if (mSpecification.SwapChainTarget)
@@ -58,21 +55,24 @@ namespace Toast {
 
 	void DirectXFramebuffer::Clean()
 	{
-		CLEAN(mRenderTargetTexture);
-		CLEAN(mRenderTargetView);
-		CLEAN(mShaderResourceView);
+		mRenderTargetTexture.Reset();
+		mRenderTargetView.Reset();
+		mShaderResourceView.Reset();
 
-		CLEAN(mDepthStencilView);
-		CLEAN(mDepthStencilState);
-		CLEAN(mDepthStencilBuffer);
+		mDepthStencilView.Reset();
+		mDepthStencilState.Reset();
+		mDepthStencilBuffer.Reset();
 	}
 
 	void DirectXFramebuffer::Clear(const float clearColor[4])
 	{
-		mDeviceContext->ClearRenderTargetView(mRenderTargetView, clearColor);
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->ClearRenderTargetView(mRenderTargetView.Get(), clearColor);
 
 		if(mDepthView)
-			mDeviceContext->ClearDepthStencilView(mDepthStencilView, D3D11_CLEAR_FLAG::D3D11_CLEAR_DEPTH, 1.0f, 0);
+			deviceContext->ClearDepthStencilView(mDepthStencilView.Get(), D3D11_CLEAR_FLAG::D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
 	bool DirectXFramebuffer::IsDepthFormat(const FormatCode format)
@@ -83,26 +83,29 @@ namespace Toast {
 			return false;
 	}
 
-	bool DirectXFramebuffer::CreateDepthView(FramebufferSpecification::BufferDesc* desc)
+	bool DirectXFramebuffer::CreateDepthView(FramebufferSpecification::BufferDesc desc)
 	{
 		HRESULT result;
 		D3D11_TEXTURE2D_DESC textureDesc;
 		D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
 		D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
 
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11Device* device = API->GetDevice();
+
 		textureDesc.Width = mSpecification.Width;
 		textureDesc.Height = mSpecification.Height;
 		textureDesc.MipLevels = 1;
 		textureDesc.ArraySize = 1;
-		textureDesc.Format = (DXGI_FORMAT)desc->Format;
+		textureDesc.Format = (DXGI_FORMAT)desc.Format;
 		textureDesc.SampleDesc.Count = 1;
 		textureDesc.SampleDesc.Quality = 0;
 		textureDesc.Usage = D3D11_USAGE_DEFAULT;
-		textureDesc.BindFlags = (UINT)desc->BindFlags;
+		textureDesc.BindFlags = (UINT)desc.BindFlags;
 		textureDesc.CPUAccessFlags = 0;
 		textureDesc.MiscFlags = 0;
 
-		result = mDevice->CreateTexture2D(&textureDesc, NULL, &mDepthStencilBuffer);
+		result = device->CreateTexture2D(&textureDesc, nullptr, &mDepthStencilBuffer);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create back buffer");
 
 		ZeroMemory(&depthStencilDesc, sizeof(depthStencilDesc));
@@ -125,72 +128,72 @@ namespace Toast {
 		depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
 		depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
-		result = mDevice->CreateDepthStencilState(&depthStencilDesc, &mDepthStencilState);
+		result = device->CreateDepthStencilState(&depthStencilDesc, &mDepthStencilState);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create depth stencil state");
 
 		ZeroMemory(&depthStencilViewDesc, sizeof(depthStencilViewDesc));
 
-		depthStencilViewDesc.Format = (DXGI_FORMAT)desc->Format;
+		depthStencilViewDesc.Format = (DXGI_FORMAT)desc.Format;
 		depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		depthStencilViewDesc.Texture2D.MipSlice = 0;
 
-		result = mDevice->CreateDepthStencilView(mDepthStencilBuffer, &depthStencilViewDesc, &mDepthStencilView);
+		result = device->CreateDepthStencilView(mDepthStencilBuffer.Get(), &depthStencilViewDesc, &mDepthStencilView);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create depth stencil view");
 
 		return true;
 	}
 
-	void DirectXFramebuffer::CreateColorView(FramebufferSpecification::BufferDesc* desc)
+	void DirectXFramebuffer::CreateColorView(FramebufferSpecification::BufferDesc desc)
 	{
 		HRESULT result;
 		D3D11_TEXTURE2D_DESC textureDesc;
 		D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
 		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
 
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11Device* device = API->GetDevice();
+
 		textureDesc.Width = mSpecification.Width;
 		textureDesc.Height = mSpecification.Height;
 		textureDesc.MipLevels = 1;
 		textureDesc.ArraySize = 1;
-		textureDesc.Format = (DXGI_FORMAT)desc->Format;
+		textureDesc.Format = (DXGI_FORMAT)desc.Format;
 		textureDesc.SampleDesc.Count = 1;
 		textureDesc.SampleDesc.Quality = 0;
 		textureDesc.Usage = D3D11_USAGE_DEFAULT;
-		textureDesc.BindFlags = (UINT)desc->BindFlags;
+		textureDesc.BindFlags = (UINT)desc.BindFlags;
 		textureDesc.CPUAccessFlags = 0;
 		textureDesc.MiscFlags = 0;
 
-		result = mDevice->CreateTexture2D(&textureDesc, NULL, &mRenderTargetTexture);
+		result = device->CreateTexture2D(&textureDesc, NULL, &mRenderTargetTexture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create 2D texture!");
 
-		renderTargetViewDesc.Format = (DXGI_FORMAT)desc->Format;
+		renderTargetViewDesc.Format = (DXGI_FORMAT)desc.Format;
 		renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 		renderTargetViewDesc.Texture2D.MipSlice = 0;
 
-		result = mDevice->CreateRenderTargetView(mRenderTargetTexture, &renderTargetViewDesc, &mRenderTargetView);
+		result = device->CreateRenderTargetView(mRenderTargetTexture.Get(), &renderTargetViewDesc, &mRenderTargetView);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create render target view!");
 
-		shaderResourceViewDesc.Format = (DXGI_FORMAT)desc->Format;
+		shaderResourceViewDesc.Format = (DXGI_FORMAT)desc.Format;
 		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 		shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
 		shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
-		result = mDevice->CreateShaderResourceView(mRenderTargetTexture, &shaderResourceViewDesc, &mShaderResourceView);
+		result = device->CreateShaderResourceView(mRenderTargetTexture.Get(), &shaderResourceViewDesc, &mShaderResourceView);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create shader resource view!");
 	}
 
 	void DirectXFramebuffer::CreateSwapChainView()
 	{
-		ID3D11Texture2D* backBuffer = nullptr;
-		ID3D11Device* device = nullptr;
-		IDXGISwapChain* swapChain = nullptr;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
 
-		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
-		device = API.GetDevice();
-		swapChain = API.GetSwapChain();
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11Device* device = API->GetDevice();
+		IDXGISwapChain* swapChain = API->GetSwapChain();
 
 		swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
-		device->CreateRenderTargetView(backBuffer, NULL, &mRenderTargetView);
-		backBuffer->Release();
+		device->CreateRenderTargetView(backBuffer.Get(), NULL, &mRenderTargetView);
 	}
 
 	void DirectXFramebuffer::Resize(uint32_t width, uint32_t height)

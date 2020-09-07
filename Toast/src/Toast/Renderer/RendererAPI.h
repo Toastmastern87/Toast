@@ -14,6 +14,8 @@ namespace Toast {
 		};
 	
 	public:
+		virtual ~RendererAPI() = default;
+
 		virtual void Init() = 0;
 		virtual void Clear(const float clearColor[4]) = 0;
 		virtual void BindBackbuffer() = 0;

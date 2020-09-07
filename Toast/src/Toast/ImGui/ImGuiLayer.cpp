@@ -45,9 +45,9 @@ namespace Toast
 		}
 
 		Application& app = Application::Get();
-		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
-		ID3D11Device* device = API.GetDevice();
-		ID3D11DeviceContext* deviceContext = API.GetDeviceContext();
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11Device* device = API->GetDevice();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
 		ImGui_ImplWin32_Init(app.GetWindow().GetNativeWindow());
 		ImGui_ImplDX11_Init(device, deviceContext);

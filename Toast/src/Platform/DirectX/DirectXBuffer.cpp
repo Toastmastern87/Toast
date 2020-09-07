@@ -18,9 +18,8 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
-		mDevice = API.GetDevice();
-		mDeviceContext = API.GetDeviceContext();
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11Device* device = API->GetDevice();
 
 		uint32_t index = 0;
 
@@ -46,7 +45,7 @@ namespace Toast {
 
 		ID3D10Blob* VSRaw = dxShader->GetVSRaw();
 
-		mDevice->CreateInputLayout(inputLayoutDesc, 
+		device->CreateInputLayout(inputLayoutDesc, 
 								  (UINT)mElements.size(),
 			                      VSRaw->GetBufferPointer(),
 			                      VSRaw->GetBufferSize(),
@@ -63,22 +62,26 @@ namespace Toast {
 
 		mElements.clear();
 		mElements.shrink_to_fit();
-
-		CLEAN(mInputLayout);
 	}
 
 	void DirectXBufferLayout::Bind() const
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mDeviceContext->IASetInputLayout(mInputLayout);
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->IASetInputLayout(mInputLayout.Get());
 	}
 
 	void DirectXBufferLayout::Unbind() const
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mDeviceContext->IASetInputLayout(nullptr);
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->IASetInputLayout(nullptr);
 	}
 
 	void DirectXBufferLayout::CalculateOffsetAndStride()
@@ -110,9 +113,8 @@ namespace Toast {
 		D3D11_BUFFER_DESC vbd;
 		HRESULT result;
 
-		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
-		mDevice = API.GetDevice();
-		mDeviceContext = API.GetDeviceContext();
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11Device* device = API->GetDevice();
 
 		ZeroMemory(&vbd, sizeof(D3D11_BUFFER_DESC));
 
@@ -123,7 +125,7 @@ namespace Toast {
 		vbd.MiscFlags = 0;
 		vbd.StructureByteStride = 0;
 
-		result = mDevice->CreateBuffer(&vbd, nullptr, &mVertexBuffer);
+		result = device->CreateBuffer(&vbd, nullptr, &mVertexBuffer);
 
 		if (FAILED(result))
 			TOAST_CORE_ERROR("Error creating Vertexbuffer!");
@@ -140,9 +142,8 @@ namespace Toast {
 		D3D11_SUBRESOURCE_DATA vd;
 		HRESULT result;
 
-		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
-		mDevice = API.GetDevice();
-		mDeviceContext = API.GetDeviceContext();
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11Device* device = API->GetDevice();
 
 		ZeroMemory(&vbd, sizeof(D3D11_BUFFER_DESC));
 
@@ -157,7 +158,7 @@ namespace Toast {
 		vd.SysMemPitch = 0;
 		vd.SysMemSlicePitch = 0;
 
-		result = mDevice->CreateBuffer(&vbd, &vd, &mVertexBuffer);
+		result = device->CreateBuffer(&vbd, &vd, &mVertexBuffer);
 
 		if (FAILED(result))
 			TOAST_CORE_ERROR("Error creating Vertexbuffer!");
@@ -168,34 +169,41 @@ namespace Toast {
 	DirectXVertexBuffer::~DirectXVertexBuffer()
 	{
 		TOAST_PROFILE_FUNCTION();
-
-		CLEAN(mVertexBuffer);
 	}
 
 	void DirectXVertexBuffer::Bind() const
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
 		uint32_t stride[] = { sizeof(float) * ((mSize / sizeof(float)) / mCount) };
 		uint32_t offset[] = { 0 };
 
-		mDeviceContext->IASetVertexBuffers(0, 1, &mVertexBuffer, stride, offset);
+		deviceContext->IASetVertexBuffers(0, 1, mVertexBuffer.GetAddressOf(), stride, offset);
 	}
 
 	void DirectXVertexBuffer::Unbind() const
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mDeviceContext->IASetVertexBuffers(0, 1, NULL, 0, 0);
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->IASetVertexBuffers(0, 1, NULL, 0, 0);
 	}
 
 	void DirectXVertexBuffer::SetData(const void* data, uint32_t size)
 	{
 		D3D11_MAPPED_SUBRESOURCE ms;
 
-		mDeviceContext->Map(mVertexBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->Map(mVertexBuffer.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
 		memcpy(ms.pData, data, size);
-		mDeviceContext->Unmap(mVertexBuffer, NULL);
+		deviceContext->Unmap(mVertexBuffer.Get(), NULL);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  
@@ -211,9 +219,8 @@ namespace Toast {
 		D3D11_SUBRESOURCE_DATA id;
 		HRESULT result;
 
-		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
-		mDevice = API.GetDevice();
-		mDeviceContext = API.GetDeviceContext();
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11Device* device = API->GetDevice();
 
 		ZeroMemory(&ibd, sizeof(D3D11_BUFFER_DESC));
 
@@ -228,7 +235,7 @@ namespace Toast {
 		id.SysMemPitch = 0;
 		id.SysMemSlicePitch = 0;
 
-		result = mDevice->CreateBuffer(&ibd, &id, &mIndexBuffer);
+		result = device->CreateBuffer(&ibd, &id, &mIndexBuffer);
 
 		if (FAILED(result))
 			TOAST_CORE_ERROR("Error creating Indexbuffer!");
@@ -239,21 +246,25 @@ namespace Toast {
 	DirectXIndexBuffer::~DirectXIndexBuffer()
 	{
 		TOAST_PROFILE_FUNCTION();
-
-		CLEAN(mIndexBuffer);
 	}
 
 	void DirectXIndexBuffer::Bind() const
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mDeviceContext->IASetIndexBuffer(mIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->IASetIndexBuffer(mIndexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
 	}
 
 	void DirectXIndexBuffer::Unbind() const
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mDeviceContext->IASetIndexBuffer(NULL, DXGI_FORMAT_R32_UINT, 0);
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->IASetIndexBuffer(NULL, DXGI_FORMAT_R32_UINT, 0);
 	}
 }

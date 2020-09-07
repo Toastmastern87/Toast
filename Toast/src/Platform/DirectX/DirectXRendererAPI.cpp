@@ -11,14 +11,16 @@ namespace Toast {
 
 	void DirectXRendererAPI::CleanUp() 
 	{
-		//ID3D11Debug* debug;
+	}
 
-		CLEAN(mAlphaBlendEnabledState);
-		CLEAN(mSwapChain);
+	DirectXRendererAPI::~DirectXRendererAPI()
+	{
+		//ID3D11Debug* debug;
 		//mDevice->QueryInterface(IID_PPV_ARGS(&debug));
-		CLEAN(mDevice);
-		CLEAN(mDeviceContext);
+
 		//debug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+
+		//debug->Release();
 	}
 
 	void DirectXRendererAPI::Init()
@@ -62,7 +64,7 @@ namespace Toast {
 		D3D_FEATURE_LEVEL featureLevel;
 		const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
 
-		HRESULT result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &mSwapChain, &mDevice, &featureLevel, &mDeviceContext);
+		HRESULT result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, mSwapChain.GetAddressOf(), mDevice.GetAddressOf(), &featureLevel, mDeviceContext.GetAddressOf());
 
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create DirectX device and swapchain");
 
@@ -109,7 +111,7 @@ namespace Toast {
 	{
 		float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-		mDeviceContext->OMSetBlendState(mAlphaBlendEnabledState, blendFactor, 0xffffffff);
+		mDeviceContext->OMSetBlendState(mAlphaBlendEnabledState.Get(), blendFactor, 0xffffffff);
 	}
 
 	void DirectXRendererAPI::BindBackbuffer()
@@ -123,7 +125,7 @@ namespace Toast {
 		backbufferSpec.SwapChainTarget = true;
 		backbufferSpec.Width = mWidth;
 		backbufferSpec.Height = mHeight;
-		backbufferSpec.BuffersDesc.push_back(new FramebufferSpecification::BufferDesc());
+		backbufferSpec.BuffersDesc.emplace_back(FramebufferSpecification::BufferDesc());
 		mBackbuffer = Framebuffer::Create(backbufferSpec);
 	}
 
@@ -150,8 +152,8 @@ namespace Toast {
 
 	void DirectXRendererAPI::LogAdapterInfo()
 	{
-		IDXGIFactory* factory = NULL;
-		IDXGIAdapter* adapter = NULL;
+		IDXGIFactory* factory = nullptr;
+		IDXGIAdapter* adapter = nullptr;
 		DXGI_ADAPTER_DESC adapterDesc;
 
 		CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&factory);

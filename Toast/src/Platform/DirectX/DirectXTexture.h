@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d11.h>
+#include <wrl.h>
 
 #include "Toast/Renderer/Texture.h"
 
@@ -15,7 +16,7 @@ namespace Toast {
 
 		virtual uint32_t GetWidth() const override { return mWidth; }
 		virtual uint32_t GetHeight() const override { return mHeight; }
-		virtual void* GetID() const override { return (void*)mView; }
+		virtual void* GetID() const override { return (void*)mView.Get(); }
 
 		virtual void SetData(void* data, uint32_t size) override;
 
@@ -32,10 +33,8 @@ namespace Toast {
 		std::string mPath;
 		uint32_t mWidth, mHeight, mShaderSlot;
 
-		ID3D11Device* mDevice = nullptr;
-		ID3D11DeviceContext* mDeviceContext = nullptr;
-		ID3D11Resource* mResource = nullptr;
-		ID3D11ShaderResourceView* mView = nullptr;
-		ID3D11SamplerState* mSamplerState = nullptr;
+		Microsoft::WRL::ComPtr<ID3D11Resource> mResource;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mView;
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> mSamplerState;
 	};
 }

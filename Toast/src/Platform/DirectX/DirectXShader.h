@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d11.h>
+#include <wrl.h>
 #include <d3d11shadertracing.h>
 #include <DirectXMath.h>
 
@@ -36,15 +37,12 @@ namespace Toast {
 	private:
 		std::string mName;
 
-		ID3D11VertexShader* mVertexShader = nullptr;
-		ID3D11PixelShader* mPixelShader = nullptr;
+		Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader;
+		Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader;
 		std::unordered_map<D3D11_SHADER_TYPE, ID3D10Blob*> mRawBlobs;
-		ID3D11Buffer* mSceneCB = nullptr;
-		ID3D11Buffer* mObjectCB = nullptr;
-		ID3D11Buffer* mColorCB = nullptr;
-
-		ID3D11Device* mDevice = nullptr;
-		ID3D11DeviceContext* mDeviceContext = nullptr;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> mSceneCB;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> mObjectCB;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> mColorCB;
 
 		struct cbColorData
 		{
