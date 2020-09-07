@@ -6,3 +6,6 @@
 	path = Toast/vendor/imgui
 	url = https://github.com/TheCherno/imgui
 	branch = docking
+[submodule "Toast/vendor/directxtk"]
+	path = Toast/vendor/directxtk
+	url = https://github.com/Toastmastern87/DirectXTK
