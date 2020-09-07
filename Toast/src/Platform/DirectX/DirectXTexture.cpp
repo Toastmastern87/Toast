@@ -19,14 +19,13 @@ namespace Toast {
 
 		HRESULT result;
 		D3D11_TEXTURE2D_DESC textureDesc;
-		ID3D11Texture2D* texture;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
 
 		size_t dataSize = mWidth * mHeight * sizeof(uint32_t);
 		uint32_t initData = NULL;
 
-		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
-		mDevice = API.GetDevice();
-		mDeviceContext = API.GetDeviceContext();
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11Device* device = API->GetDevice();
 
 		CreateSampler();
 
@@ -42,10 +41,10 @@ namespace Toast {
 		textureDesc.SampleDesc.Count = 1;
 		textureDesc.SampleDesc.Quality = 0;
 
-		result = mDevice->CreateTexture2D(&textureDesc, NULL, &texture);
+		result = device->CreateTexture2D(&textureDesc, NULL, &texture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
 
-		result = mDevice->CreateShaderResourceView(texture, 0, &mView);
+		result = device->CreateShaderResourceView(texture.Get(), 0, &mView);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load shader resource view!");
 
 		mView->GetResource(&mResource);
@@ -57,18 +56,17 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		HRESULT result;
-		ID3D11Texture2D* textureInterface;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> textureInterface;
 		D3D11_TEXTURE2D_DESC desc;
 
-		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
-		mDevice = API.GetDevice();
-		mDeviceContext = API.GetDeviceContext();
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11Device* device = API->GetDevice();
 
 		CreateSampler();
 
 		std::wstring stemp = std::wstring(mPath.begin(), mPath.end());
 
-		result = DirectX::CreateWICTextureFromFile(mDevice, stemp.c_str(), &mResource, &mView);
+		result = DirectX::CreateWICTextureFromFile(device, stemp.c_str(), &mResource, &mView);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load texture!");
 
 		mResource->QueryInterface<ID3D11Texture2D>(&textureInterface);
@@ -77,21 +75,18 @@ namespace Toast {
 		mWidth = desc.Width;
 		mHeight = desc.Height;
 		DXGI_FORMAT channels = desc.Format;
-
-		CLEAN(textureInterface);
 	}
 
 	DirectXTexture2D::~DirectXTexture2D() 
 	{
 		TOAST_PROFILE_FUNCTION();
-
-		CLEAN(mResource);
-		CLEAN(mView);
-		CLEAN(mSamplerState);
 	}
 
 	void DirectXTexture2D::CreateSampler() 
 	{
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11Device* device = API->GetDevice();
+
 		D3D11_SAMPLER_DESC samplerDesc;
 		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
 		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -107,7 +102,7 @@ namespace Toast {
 		samplerDesc.MinLOD = 0;
 		samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-		mDevice->CreateSamplerState(&samplerDesc, &mSamplerState);
+		device->CreateSamplerState(&samplerDesc, &mSamplerState);
 	}
 
 	void DirectXTexture2D::SetData(void* data, uint32_t size)
@@ -116,17 +111,23 @@ namespace Toast {
 
 		D3D11_MAPPED_SUBRESOURCE ms;
 
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
 		TOAST_CORE_ASSERT(size == (mWidth * mHeight * size), "Data must be entire texture!");
-		mDeviceContext->Map(mResource, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
+		deviceContext->Map(mResource.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
 		memcpy(ms.pData, data, size);
-		mDeviceContext->Unmap(mResource, NULL);
+		deviceContext->Unmap(mResource.Get(), NULL);
 	}
 
 	void DirectXTexture2D::Bind() const 
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mDeviceContext->PSSetSamplers(0, 1, &mSamplerState);
-		mDeviceContext->PSSetShaderResources(mShaderSlot, 1, &mView);
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->PSSetSamplers(0, 1, mSamplerState.GetAddressOf());
+		deviceContext->PSSetShaderResources(mShaderSlot, 1, mView.GetAddressOf());
 	}
 }

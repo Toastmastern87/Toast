@@ -21,7 +21,7 @@ namespace Toast {
 			BufferDesc() = default;
 		};
 
-		std::vector<BufferDesc*> BuffersDesc;
+		std::vector<BufferDesc> BuffersDesc;
 		uint32_t Samples = 1;
 
 		bool SwapChainTarget = false;
@@ -30,17 +30,19 @@ namespace Toast {
 	class Framebuffer
 	{
 	public:
-		virtual const FramebufferSpecification& GetSpecification() const = 0;
-
-		virtual void* GetColorAttachmentID() const = 0;
-		virtual void* GetDepthAttachmentID() const = 0;
-
-		static Ref<Framebuffer> Create(const FramebufferSpecification& spec);
+		virtual ~Framebuffer() = default;
 
 		virtual void Bind() const = 0;
 
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
 
 		virtual void Clear(const float clearColor[4]) = 0;
+
+		virtual const FramebufferSpecification& GetSpecification() const = 0;
+
+		virtual void* GetColorAttachmentID() const = 0;
+		virtual void* GetDepthAttachmentID() const = 0;
+
+		static Ref<Framebuffer> Create(const FramebufferSpecification& spec);
 	};
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d11.h>
+#include <wrl.h>
 
 #include "Toast/Renderer/RendererAPI.h"
 
@@ -9,7 +10,7 @@ namespace Toast {
 	class DirectXRendererAPI : public RendererAPI
 	{
 	public:
-		~DirectXRendererAPI() = default;
+		~DirectXRendererAPI();
 
 		virtual void Init() override;
 		virtual void Clear(const float clearColor[4]) override;
@@ -20,9 +21,9 @@ namespace Toast {
 		virtual void EnableAlphaBlending() override;
 		virtual void CleanUp() override;
 
-		virtual ID3D11Device* GetDevice() { return mDevice; }
-		virtual ID3D11DeviceContext* GetDeviceContext() { return mDeviceContext; }
-		virtual IDXGISwapChain* GetSwapChain() { return mSwapChain; }
+		virtual ID3D11Device* GetDevice() { return mDevice.Get(); }
+		virtual ID3D11DeviceContext* GetDeviceContext() { return mDeviceContext.Get(); }
+		virtual IDXGISwapChain* GetSwapChain() { return mSwapChain.Get(); }
 	private:
 		void CreateBackbuffer();
 		void CreateBlendStates();
@@ -33,10 +34,10 @@ namespace Toast {
 		HWND mWindowHandle;
 		UINT mHeight, mWidth;
 
-		ID3D11Device* mDevice = nullptr;
-		ID3D11DeviceContext* mDeviceContext = nullptr;
-		IDXGISwapChain* mSwapChain = nullptr;
-		ID3D11BlendState* mAlphaBlendEnabledState = nullptr;
+		Microsoft::WRL::ComPtr<ID3D11Device> mDevice;
+		Microsoft::WRL::ComPtr<ID3D11DeviceContext> mDeviceContext;
+		Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain;
+		Microsoft::WRL::ComPtr<ID3D11BlendState> mAlphaBlendEnabledState;
 
 		Ref<Framebuffer> mBackbuffer = nullptr;
 	};

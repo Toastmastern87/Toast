@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d11.h>
+#include <wrl.h>
 
 #include "Toast/Renderer/Buffer.h"
 
@@ -48,10 +49,7 @@ namespace Toast {
 	private:
 		uint32_t mStride;
 		std::vector<BufferElement> mElements;
-		ID3D11InputLayout* mInputLayout;
-		
-		ID3D11Device* mDevice;
-		ID3D11DeviceContext* mDeviceContext;
+		Microsoft::WRL::ComPtr<ID3D11InputLayout> mInputLayout;
 	};
 
 	class DirectXVertexBuffer : public VertexBuffer 
@@ -67,11 +65,8 @@ namespace Toast {
 		virtual void SetData(const void* data, uint32_t size) override;
 
 	private:
-		ID3D11Buffer* mVertexBuffer = nullptr;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> mVertexBuffer = nullptr;
 		uint32_t mSize, mCount;
-
-		ID3D11Device* mDevice;
-		ID3D11DeviceContext* mDeviceContext;
 	}; 
 
 	class DirectXIndexBuffer : public IndexBuffer
@@ -85,10 +80,7 @@ namespace Toast {
 
 		virtual uint32_t GetCount() const { return mCount; }
 	private:
-		ID3D11Buffer* mIndexBuffer = nullptr;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> mIndexBuffer = nullptr;
 		uint32_t mCount;
-
-		ID3D11Device* mDevice;
-		ID3D11DeviceContext* mDeviceContext;
 	};
 }

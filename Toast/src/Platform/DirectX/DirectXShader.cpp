@@ -47,9 +47,8 @@ namespace Toast {
 
 		HRESULT result;
 
-		DirectXRendererAPI API = static_cast<DirectXRendererAPI&>(*RenderCommand::sRendererAPI);
-		mDevice = API.GetDevice();
-		mDeviceContext = API.GetDeviceContext();
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		Microsoft::WRL::ComPtr<ID3D11Device> device = API->GetDevice();
 
 		std::string source = ReadFile(filepath);
 		auto shaderSources = PreProcess(source);
@@ -59,11 +58,11 @@ namespace Toast {
 		{
 			switch (kv.first) {
 				case D3D11_VERTEX_SHADER:
-					result = mDevice->CreateVertexShader(kv.second->GetBufferPointer(), kv.second->GetBufferSize(), NULL, &mVertexShader);
+					result = device->CreateVertexShader(kv.second->GetBufferPointer(), kv.second->GetBufferSize(), NULL, &mVertexShader);
 					TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create vertex shader: {0}", filepath);
 					break;
 				case D3D11_PIXEL_SHADER:
-					result = mDevice->CreatePixelShader(kv.second->GetBufferPointer(), kv.second->GetBufferSize(), NULL, &mPixelShader);
+					result = device->CreatePixelShader(kv.second->GetBufferPointer(), kv.second->GetBufferSize(), NULL, &mPixelShader);
 					TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create pixel shader: {0}", filepath);
 					break;
 			}
@@ -87,12 +86,6 @@ namespace Toast {
 		}
 
 		mRawBlobs.clear();
-
-		CLEAN(mVertexShader);
-		CLEAN(mPixelShader);
-		CLEAN(mColorCB);
-		CLEAN(mObjectCB);
-		CLEAN(mSceneCB);
 	}
 
 	std::string DirectXShader::ReadFile(const std::string& filepath)
@@ -198,14 +191,17 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
 		for (auto& kv : mRawBlobs)
 		{
 			switch (kv.first) {
 				case D3D11_VERTEX_SHADER:
-					mDeviceContext->VSSetShader(mVertexShader, 0, 0);
+					deviceContext->VSSetShader(mVertexShader.Get(), nullptr, 0);
 					break;
 				case D3D11_PIXEL_SHADER:
-					mDeviceContext->PSSetShader(mPixelShader, 0, 0);
+					deviceContext->PSSetShader(mPixelShader.Get(), nullptr, 0);
 					break;
 			}
 		}
@@ -215,14 +211,17 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
 		for (auto& kv : mRawBlobs)
 		{
 			switch (kv.first) {
 			case D3D11_VERTEX_SHADER:
-				mDeviceContext->VSSetShader(nullptr, 0, 0);
+				deviceContext->VSSetShader(nullptr, 0, 0);
 				break;
 			case D3D11_PIXEL_SHADER:
-				mDeviceContext->PSSetShader(nullptr, 0, 0);
+				deviceContext->PSSetShader(nullptr, 0, 0);
 				break;
 			}
 		}
@@ -251,12 +250,17 @@ namespace Toast {
 
 	void DirectXShader::UploadColorDataPSCBuffer(const DirectX::XMFLOAT4& values, const float tilingFactor)
 	{
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
 		cbColorData data;
 		data.color = values;
 		data.tilingFactor = tilingFactor;
 
-		if (!mColorCB)
+		if (!mColorCB.Get())
 		{
+			ID3D11Device* device = API->GetDevice();
+
 			D3D11_BUFFER_DESC cbDesc;
 			cbDesc.ByteWidth = sizeof(cbColorData) + 12;
 			cbDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -270,21 +274,26 @@ namespace Toast {
 			InitData.SysMemPitch = 0;
 			InitData.SysMemSlicePitch = 0;
 
-			mDevice->CreateBuffer(&cbDesc, &InitData, &mColorCB);
+			device->CreateBuffer(&cbDesc, &InitData, &mColorCB);
 		}
 
 		D3D11_MAPPED_SUBRESOURCE ms;
-		mDeviceContext->Map(mColorCB, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
+		deviceContext->Map(mColorCB.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
 		memcpy(ms.pData, &data, sizeof(cbColorData) + 12);
-		mDeviceContext->Unmap(mColorCB, NULL);
+		deviceContext->Unmap(mColorCB.Get(), NULL);
 
-		mDeviceContext->PSSetConstantBuffers(0, 1, &mColorCB);  
+		deviceContext->PSSetConstantBuffers(0, 1, mColorCB.GetAddressOf());  
 	}
 
 	void DirectXShader::UploadObjectDataVSCBuffer(const DirectX::XMMATRIX& matrix)
 	{
-		if (!mObjectCB)
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		if (!mObjectCB.Get())
 		{
+			ID3D11Device* device = API->GetDevice();
+
 			D3D11_BUFFER_DESC cbDesc;
 			cbDesc.ByteWidth = sizeof(DirectX::XMMATRIX);
 			cbDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -298,21 +307,26 @@ namespace Toast {
 			InitData.SysMemPitch = 0;
 			InitData.SysMemSlicePitch = 0;
 
-			mDevice->CreateBuffer(&cbDesc, &InitData, &mObjectCB);
+			device->CreateBuffer(&cbDesc, &InitData, &mObjectCB);
 		}
 
 		D3D11_MAPPED_SUBRESOURCE ms;
-		mDeviceContext->Map(mObjectCB, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
+		deviceContext->Map(mObjectCB.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
 		memcpy(ms.pData, &matrix, sizeof(DirectX::XMMATRIX));
-		mDeviceContext->Unmap(mObjectCB, NULL);
+		deviceContext->Unmap(mObjectCB.Get(), NULL);
 
-		mDeviceContext->VSSetConstantBuffers(1, 1, &mObjectCB);
+		deviceContext->VSSetConstantBuffers(1, 1, mObjectCB.GetAddressOf());
 	}
 
 	void DirectXShader::UploadSceneDataVSCBuffer(const DirectX::XMMATRIX& matrix)
 	{
+		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
 		if (!mSceneCB) 
 		{
+			ID3D11Device* device = API->GetDevice();
+
 			D3D11_BUFFER_DESC cbDesc;
 			cbDesc.ByteWidth = sizeof(DirectX::XMMATRIX);
 			cbDesc.Usage = D3D11_USAGE_DYNAMIC;
@@ -326,14 +340,14 @@ namespace Toast {
 			InitData.SysMemPitch = 0;
 			InitData.SysMemSlicePitch = 0;
 
-			mDevice->CreateBuffer(&cbDesc, &InitData, &mSceneCB);
+			device->CreateBuffer(&cbDesc, &InitData, &mSceneCB);
 		}
 
 		D3D11_MAPPED_SUBRESOURCE ms;
-		mDeviceContext->Map(mSceneCB, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
+		deviceContext->Map(mSceneCB.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
 		memcpy(ms.pData, &matrix, sizeof(DirectX::XMMATRIX));
-		mDeviceContext->Unmap(mSceneCB, NULL);
+		deviceContext->Unmap(mSceneCB.Get(), NULL);
 
-		mDeviceContext->VSSetConstantBuffers(0, 1, &mSceneCB);
+		deviceContext->VSSetConstantBuffers(0, 1, mSceneCB.GetAddressOf());
 	}
 }
