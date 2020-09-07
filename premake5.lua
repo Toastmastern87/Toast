@@ -21,10 +21,11 @@ IncludeDir["ImGui"] = "Toast/vendor/imgui"
 IncludeDir["directxtk"] = "Toast/vendor/directxtk/Inc" 
 
 LibraryDir = {}
-LibraryDir["directxtk"] = "Toast/vendor/directxtk/Bin/Desktop_2019/x64"
+LibraryDir["directxtk"] = "Toast/vendor/directxtk/Bin/"
 
 group "Dependencies"
 	include "Toast/vendor/imgui"
+	include "Toast/vendor/directxtk"
 
 group ""
 
@@ -64,10 +65,10 @@ project "Toast"
 	links
 	{
 		"ImGui",
+		"DirectXTK",
 		"d3d11.lib",
 		"dxgi.lib",
-		"dxguid.lib",
-		"DirectXTK.lib"
+		"dxguid.lib"
 	}
 
 	filter "system:windows"
@@ -86,7 +87,7 @@ project "Toast"
 
 		libdirs
 		{
-			"%{LibraryDir.directxtk}/Debug"
+			"%{LibraryDir.directxtk}/Debug-windows-x86_64/DirectXTK"
 		}
 
 	filter "configurations:Release"
@@ -96,7 +97,7 @@ project "Toast"
 
 		libdirs
 		{
-			"%{LibraryDir.directxtk}/Release"
+			"%{LibraryDir.directxtk}/Release-windows-x86_64/DirectXTK"
 		}
 
 	filter "configurations:Dist"
