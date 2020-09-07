@@ -1,25 +1,24 @@
 #include "tpch.h"
-#include "Platform/Windows/WindowsInput.h"
+#include "Toast/Core/Input.h"
 
 #include "Toast/Core/Application.h"
 
-namespace Toast 
-{
+namespace Toast {
 
-	bool WindowsInput::IsKeyPressedImpl(KeyCode keycode)
+	bool Input::IsKeyPressed(KeyCode keycode)
 	{
 		auto state = GetAsyncKeyState(static_cast<int>(keycode));
 
 		return (state & 0x8000);
 	}
-	bool WindowsInput::IsMouseButtonPressedImpl(MouseCode button)
+	bool Input::IsMouseButtonPressed(MouseCode button)
 	{
 		auto state = GetAsyncKeyState(static_cast<int>(button));
 
 		return (state & 0x8000);
 	}
 
-	std::pair<float, float> WindowsInput::GetMousePositionImpl()
+	std::pair<float, float> Input::GetMousePosition()
 	{
 		POINT p;
 
@@ -28,15 +27,15 @@ namespace Toast
 		return { (float)p.x, (float)p.y };
 	}
 
-	float WindowsInput::GetMouseXImpl()
+	float Input::GetMouseX()
 	{
-		auto [x, y] = GetMousePositionImpl();
+		auto [x, y] = GetMousePosition();
 
 		return x;
 	}
-	float WindowsInput::GetMouseYImpl()
+	float Input::GetMouseY()
 	{
-		auto [x, y] = GetMousePositionImpl();
+		auto [x, y] = GetMousePosition();
 
 		return y;
 	}
