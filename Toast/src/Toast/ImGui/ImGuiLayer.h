@@ -20,5 +20,9 @@ namespace Toast
 
 		void Begin();
 		void End();
+
+		void BlockEvents(bool block) { mBlockEvents = block; }
+	private:
+		bool mBlockEvents = true;
 	};
 }

@@ -29,6 +29,8 @@ namespace Toast {
 
 		void Close();
 
+		ImGuiLayer* GetImGuiLayer() { return mImGuiLayer; }
+
 		static Application& Get() { return *sInstance; }
 	private:
 		void Run();
