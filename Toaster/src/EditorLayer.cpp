@@ -24,9 +24,8 @@ namespace Toast {
 
 		mActiveScene = CreateRef<Scene>();
 
-		auto square = mActiveScene->CreateEntity();
-		mActiveScene->Reg().emplace<TransformComponent>(square);
-		mActiveScene->Reg().emplace<SpriteRendererComponent>(square, DirectX::XMFLOAT4{ 0.0f, 1.0f, 0.0f, 1.0f });
+		auto square = mActiveScene->CreateEntity("Test Square");
+		square.AddComponent<SpriteRendererComponent>(DirectX::XMFLOAT4{ 0.0f, 1.0f, 0.0f, 1.0f });
 
 		mSquareEntity = square;
 	}
@@ -147,8 +146,16 @@ namespace Toast {
 			ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
 			ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
 
-			auto& squareColor = mActiveScene->Reg().get<SpriteRendererComponent>(mSquareEntity).Color;
-			ImGui::ColorEdit4("Square Color", &squareColor.x);
+			if (mSquareEntity) 
+			{
+				ImGui::Separator();
+				auto& tag = mSquareEntity.GetComponent<TagComponent>().Tag;
+				ImGui::Text("%s", tag.c_str());
+
+				auto& squareColor = mSquareEntity.GetComponent<SpriteRendererComponent>().Color;
+				ImGui::ColorEdit4("Square Color", &squareColor.x);
+				ImGui::Separator();
+			}
 
 			ImGui::End();
 
@@ -178,8 +185,6 @@ namespace Toast {
 			ImGui::Text("Quads: %d", stats.QuadCount);
 			ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
 			ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
-
-			ImGui::ColorEdit4("Square Color", mSquareColor);
 
 			ImGui::Image(mCheckerboardTexture->GetID(), ImVec2{ 1280.0f, 720.0f });
 			ImGui::End();

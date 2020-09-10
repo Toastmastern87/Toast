@@ -18,6 +18,7 @@
 #include "Toast/ImGui/ImGuiLayer.h"
 
 #include "Toast/Scene/Scene.h"
+#include "Toast/Scene/Entity.h"
 #include "Toast/Scene/Components.h"
 
 //-------Renderer------------------------

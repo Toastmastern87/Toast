@@ -4,6 +4,8 @@
 #include "Components.h"
 #include "Toast/Renderer/Renderer2D.h"
 
+#include "Entity.h"
+
 namespace Toast {
 
 	static void DoMath(const DirectX::XMMATRIX& transform) 
@@ -18,26 +20,6 @@ namespace Toast {
 
 	Scene::Scene()
 	{
-		//entt::entity entity = mRegistry.create();
-		//mRegistry.emplace<TransformComponent>(entity, DirectX::XMMatrixIdentity());
-
-		//mRegistry.on_construct<TransformComponent>().connect<&OnTransformConstruct>();
-
-		//if (mRegistry.has<TransformComponent>(entity))
-		//	TransformComponent& transform = mRegistry.get<TransformComponent>(entity);
-
-		//auto view = mRegistry.view<TransformComponent>();
-		//for (auto entity : view) 
-		//{
-		//	TransformComponent& transform = view.get<TransformComponent>(entity);
-		//}
-		//
-		//auto group = mRegistry.group<TransformComponent>(entt::get<MeshComponent>);
-
-		//for (auto entity : group)
-		//{
-		//	auto&[transform, mesh] = group.get<TransformComponent, MeshComponent>(entity);
-		//}
 	}
 
 	Scene::~Scene()
@@ -45,9 +27,14 @@ namespace Toast {
 
 	}
 
-	entt::entity Scene::CreateEntity()
+	Entity Scene::CreateEntity(const std::string& name)
 	{
-		return mRegistry.create();
+		Entity entity = { mRegistry.create(), this };
+		entity.AddComponent<TransformComponent>();
+		auto& tag = entity.AddComponent<TagComponent>();
+		tag.Tag = name.empty() ? "Entity" : name;
+
+		return entity;
 	}
 
 	void Scene::OnUpdate(Timestep ts)

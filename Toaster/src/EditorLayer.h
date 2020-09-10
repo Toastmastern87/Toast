@@ -22,7 +22,7 @@ namespace Toast {
 		Ref<Framebuffer> mFramebuffer;
 
 		Ref<Scene> mActiveScene;
-		entt::entity mSquareEntity;
+		Entity mSquareEntity;
 
 		Ref<Texture2D> mCheckerboardTexture;
 
