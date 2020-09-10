@@ -21,7 +21,6 @@ namespace Toast {
 		static void DrawQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, const DirectX::XMFLOAT4& color);
 		static void DrawQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, const Ref<Texture2D>& texture, const float tilingFactor = 1.0f, const DirectX::XMFLOAT4& tintColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 		static void DrawQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, const Ref<Texture2D>& texture, const float tilingFactor = 1.0f, const DirectX::XMFLOAT4& tintColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
-
 		static void DrawQuad(const DirectX::XMMATRIX& transform, const DirectX::XMFLOAT4& color);
 		static void DrawQuad(const DirectX::XMMATRIX& transform, const Ref<Texture2D>& texture, const float tilingFactor = 1.0f, const DirectX::XMFLOAT4& tintColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 
@@ -29,6 +28,8 @@ namespace Toast {
 		static void DrawRotatedQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, float rotation, const DirectX::XMFLOAT4& color);
 		static void DrawRotatedQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, float rotation, const Ref<Texture2D>& texture, const float tilingFactor = 1.0f, const DirectX::XMFLOAT4& tintColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 		static void DrawRotatedQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, float rotation, const Ref<Texture2D>& texture, const float tilingFactor = 1.0f, const DirectX::XMFLOAT4& tintColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		static void DrawRotatedQuad(const DirectX::XMMATRIX& transform, const DirectX::XMFLOAT4& color);
+		static void DrawRotatedQuad(const DirectX::XMMATRIX& transform, const Ref<Texture2D>& texture, const float tilingFactor = 1.0f, const DirectX::XMFLOAT4& tintColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 
 		//Stats
 		struct Statistics

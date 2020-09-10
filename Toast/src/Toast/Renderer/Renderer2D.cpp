@@ -259,13 +259,35 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f)
+			* DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+
+		DrawRotatedQuad(transform, color);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, float rotation, const Ref<Texture2D>& texture, const float tilingFactor, const DirectX::XMFLOAT4& tintColor)
+	{
+		DrawRotatedQuad(DirectX::XMFLOAT3(pos.x, pos.y, 0.0f), size, rotation, texture, tilingFactor, tintColor);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, float rotation, const Ref<Texture2D>& texture, const float tilingFactor, const DirectX::XMFLOAT4& tintColor)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f)
+			* DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
+
+		DrawRotatedQuad(transform, texture, tilingFactor, tintColor);
+	}
+
+	void Renderer2D::DrawRotatedQuad(const DirectX::XMMATRIX& transform, const DirectX::XMFLOAT4& color)
+	{
+		TOAST_PROFILE_FUNCTION();
+
 		constexpr size_t quadVertexCount = 4;
 		const float textureIndex = 0.0f;
 		constexpr DirectX::XMFLOAT2 textureCoords[] = { DirectX::XMFLOAT2(0.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 0.0f) };
 		const float tilingFactor = 1.0f;
-
-		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f)
-			* DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
 
 		if (sData.QuadIndexCount >= Renderer2DData::MaxIndices)
 			FlushAndReset();
@@ -285,12 +307,7 @@ namespace Toast {
 		sData.Stats.QuadCount++;
 	}
 
-	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, float rotation, const Ref<Texture2D>& texture, const float tilingFactor, const DirectX::XMFLOAT4& tintColor)
-	{
-		DrawRotatedQuad(DirectX::XMFLOAT3(pos.x, pos.y, 0.0f), size, rotation, texture, tilingFactor, tintColor);
-	}
-
-	void Renderer2D::DrawRotatedQuad(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, float rotation, const Ref<Texture2D>& texture, const float tilingFactor, const DirectX::XMFLOAT4& tintColor)
+	void Renderer2D::DrawRotatedQuad(const DirectX::XMMATRIX& transform, const Ref<Texture2D>& texture, const float tilingFactor /*= 1.0f*/, const DirectX::XMFLOAT4& tintColor /*= DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)*/)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -319,9 +336,6 @@ namespace Toast {
 			sData.TextureSlots[sData.TextureSlotIndex] = texture;
 			sData.TextureSlotIndex++;
 		}
-
-		DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(size.x, size.y, 1.0f)
-			* DirectX::XMMatrixRotationZ(rotation) * DirectX::XMMatrixTranslation(pos.x, pos.y, pos.z);
 
 		for (size_t i = 0; i < quadVertexCount; i++)
 		{
