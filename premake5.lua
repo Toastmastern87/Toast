@@ -19,6 +19,7 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 IncludeDir = {}
 IncludeDir["ImGui"] = "Toast/vendor/imgui"
 IncludeDir["directxtk"] = "Toast/vendor/directxtk/Inc" 
+IncludeDir["entt"] = "Toast/vendor/entt/include" 
 
 LibraryDir = {}
 LibraryDir["directxtk"] = "Toast/vendor/directxtk/Bin/"
@@ -59,7 +60,8 @@ project "Toast"
 		"%{prj.name}/src",
 		"%{prj.name}/vendor/spdlog/include",
 		"%{IncludeDir.ImGui}",
-		"%{IncludeDir.directxtk}"
+		"%{IncludeDir.directxtk}",
+		"%{IncludeDir.entt}"
 	}
 
 	links
@@ -126,7 +128,8 @@ project "Toaster"
 	{
 		"Toast/vendor/spdlog/include",
 		"Toast/src",
-		"Toast/vendor"
+		"Toast/vendor",
+		"%{IncludeDir.entt}"
 	}
 
 	links
@@ -177,7 +180,8 @@ project "Mars"
 	{
 		"Toast/vendor/spdlog/include",
 		"Toast/src",
-		"Toast/vendor"
+		"Toast/vendor",
+		"%{IncludeDir.entt}"
 	}
 
 	links

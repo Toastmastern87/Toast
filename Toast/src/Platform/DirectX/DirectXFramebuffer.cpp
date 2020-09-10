@@ -6,6 +6,8 @@
 
 namespace Toast {
 
+	static const uint32_t sMaxFramebufferSize = 8192;
+
 	DirectXFramebuffer::DirectXFramebuffer(const FramebufferSpecification& spec)
 		: mSpecification(spec)
 	{
@@ -198,6 +200,12 @@ namespace Toast {
 
 	void DirectXFramebuffer::Resize(uint32_t width, uint32_t height)
 	{
+		if (width == 0 || height == 0 || width > sMaxFramebufferSize || height > sMaxFramebufferSize)
+		{
+			TOAST_CORE_WARN("Attempted to resize framebuffer to {0}, {1}", width, height);
+			return;
+		}
+
 		mSpecification.Width = width;
 		mSpecification.Height = height;
 
