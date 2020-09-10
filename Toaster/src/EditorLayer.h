@@ -21,12 +21,13 @@ namespace Toast {
 
 		Ref<Framebuffer> mFramebuffer;
 
+		Ref<Scene> mActiveScene;
+		entt::entity mSquareEntity;
+
 		Ref<Texture2D> mCheckerboardTexture;
 
 		bool mViewportFocused = false, mViewportHovered = false;
 
 		DirectX::XMFLOAT2 mViewportSize = { 0.0f, 0.0f };
-
-		float mSquareColor[4] = { 0.8f, 0.2f, 0.3f, 1.0f };
 	};
 }

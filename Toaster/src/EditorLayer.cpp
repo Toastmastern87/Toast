@@ -21,6 +21,14 @@ namespace Toast {
 		fbSpec.BuffersDesc.emplace_back(FramebufferSpecification::BufferDesc(TOAST_FORMAT_R32G32B32A32_FLOAT, TOAST_BIND_RENDER_TARGET | TOAST_BIND_SHADER_RESOURCE));
 		fbSpec.BuffersDesc.emplace_back(FramebufferSpecification::BufferDesc(TOAST_FORMAT_D24_UNORM_S8_UINT, TOAST_BIND_DEPTH_STENCIL));
 		mFramebuffer = Framebuffer::Create(fbSpec);
+
+		mActiveScene = CreateRef<Scene>();
+
+		auto square = mActiveScene->CreateEntity();
+		mActiveScene->Reg().emplace<TransformComponent>(square);
+		mActiveScene->Reg().emplace<SpriteRendererComponent>(square, DirectX::XMFLOAT4{ 0.0f, 1.0f, 0.0f, 1.0f });
+
+		mSquareEntity = square;
 	}
 
 	void EditorLayer::OnDetach()
@@ -34,49 +42,33 @@ namespace Toast {
 
 		const float clearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
 
-		// Update
+		// Resize
+		if (FramebufferSpecification spec = mFramebuffer->GetSpecification();
+			mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && // zero sized framebuffer is invalid
+			(spec.Width != mViewportSize.x || spec.Height != mViewportSize.y))
 		{
-			TOAST_PROFILE_SCOPE("CameraController::OnUpdate");
-
-			if(mViewportFocused)
-				mCameraController.OnUpdate(ts);
+			mFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			mCameraController.OnResize(mViewportSize.x, mViewportSize.y);
 		}
+
+		// Update
+		if (mViewportFocused)
+			mCameraController.OnUpdate(ts);
 
 		// Render
 		Renderer2D::ResetStats();
-		{
-			TOAST_PROFILE_SCOPE("Renderer Prep");
+		mFramebuffer->Bind();
+		mFramebuffer->Clear(clearColor);
 
-			mFramebuffer->Bind();
-			mFramebuffer->Clear(clearColor);
-		}
+		Renderer2D::BeginScene(mCameraController.GetCamera());
 
-		{
-			static float rotation = 0.0f;
-			rotation += (ts * 50.0f);
+		// Update scene
+		mActiveScene->OnUpdate(ts);
 
-			TOAST_PROFILE_SCOPE("Renderer Draw");
-			Renderer2D::BeginScene(mCameraController.GetCamera());
-			Renderer2D::DrawRotatedQuad(DirectX::XMFLOAT2(1.0f, 0.0f), DirectX::XMFLOAT2(0.8f, 0.8f), DirectX::XMConvertToRadians(-45.0f), DirectX::XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
-			Renderer2D::DrawQuad(DirectX::XMFLOAT2(0.5f, -0.5f), DirectX::XMFLOAT2(0.5f, 0.75f), DirectX::XMFLOAT4(0.8f, 0.2f, 0.3f, 1.0f));
-			Renderer2D::DrawQuad(DirectX::XMFLOAT2(-1.0f, 0.0f), DirectX::XMFLOAT2(0.8f, 0.8f), DirectX::XMFLOAT4(mSquareColor[0], mSquareColor[1], mSquareColor[2], mSquareColor[3]));
-			Renderer2D::DrawQuad(DirectX::XMFLOAT3(0.0f, 0.0f, 0.1f), DirectX::XMFLOAT2(20.0f, 20.0f), mCheckerboardTexture, 10.0f);
-			Renderer2D::DrawRotatedQuad(DirectX::XMFLOAT3(-2.0f, 0.0f, 0.0f), DirectX::XMFLOAT2(1.0f, 1.0f), DirectX::XMConvertToRadians(rotation), mCheckerboardTexture, 20.0f);
-			Renderer2D::EndScene();
+		Renderer2D::EndScene();
 
-			Renderer2D::BeginScene(mCameraController.GetCamera());
-			for (float y = -5.0f; y < 5.0f; y += 0.5f)
-			{
-				for (float x = -5.0f; x < 5.0f; x += 0.5f)
-				{
-					DirectX::XMFLOAT4 color = DirectX::XMFLOAT4(((x + 5.0f) / 10.0f), 0.4f, ((y + 5.0f) / 10.0f), 0.7f);
-					Renderer2D::DrawQuad(DirectX::XMFLOAT2(x, y), DirectX::XMFLOAT2(0.45f, 0.45f), color);
-				}
-			}
-			Renderer2D::EndScene();
-			RenderCommand::BindBackbuffer();
-			RenderCommand::Clear(clearColor);
-		}
+		RenderCommand::BindBackbuffer();
+		RenderCommand::Clear(clearColor);
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -155,7 +147,8 @@ namespace Toast {
 			ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
 			ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
 
-			ImGui::ColorEdit4("Square Color", mSquareColor);
+			auto& squareColor = mActiveScene->Reg().get<SpriteRendererComponent>(mSquareEntity).Color;
+			ImGui::ColorEdit4("Square Color", &squareColor.x);
 
 			ImGui::End();
 
@@ -163,20 +156,12 @@ namespace Toast {
 			ImGui::Begin("Viewport");
 
 			mViewportFocused = ImGui::IsWindowFocused();
+			mViewportHovered = ImGui::IsWindowHovered();
 			Application::Get().GetImGuiLayer()->BlockEvents(!mViewportFocused || !mViewportHovered);
 
-			mViewportHovered = ImGui::IsWindowHovered();
-
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-			
-			if (!DirectX::XMVector2Equal(DirectX::XMLoadFloat2(&mViewportSize), DirectX::XMLoadFloat2(&DirectX::XMFLOAT2(viewportPanelSize.x, viewportPanelSize.y))))
-			{	
-				mFramebuffer->Resize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
+			mViewportSize = { viewportPanelSize.x, viewportPanelSize.y };		
 
-				mCameraController.OnResize(viewportPanelSize.x, viewportPanelSize.y);
-
-				mViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
-			}			
 			ImGui::Image(mFramebuffer->GetColorAttachmentID(), ImVec2{ mViewportSize.x, mViewportSize.y });
 			ImGui::End();
 			ImGui::PopStyleVar();
