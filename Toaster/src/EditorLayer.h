@@ -23,6 +23,10 @@ namespace Toast {
 
 		Ref<Scene> mActiveScene;
 		Entity mSquareEntity;
+		Entity mCameraEntity;
+		Entity mSecondCamera;
+
+		bool mPrimaryCamera = true;
 
 		Ref<Texture2D> mCheckerboardTexture;
 

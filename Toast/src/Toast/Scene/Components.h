@@ -2,6 +2,8 @@
 
 #include <DirectXMath.h>
 
+#include "Toast/Renderer/Camera.h"
+
 namespace Toast {
 	
 	struct TagComponent 
@@ -35,5 +37,16 @@ namespace Toast {
 		SpriteRendererComponent(const SpriteRendererComponent&) = default;
 		SpriteRendererComponent(const DirectX::XMFLOAT4& color)
 			: Color(color) {}
+	};
+
+	struct CameraComponent 
+	{
+		Toast::Camera Camera;
+		bool Primary = true;
+
+		CameraComponent() = default;
+		CameraComponent(const CameraComponent&) = default;
+		CameraComponent(const DirectX::XMMATRIX& projection)
+			: Camera(projection) {}
 	};
 }

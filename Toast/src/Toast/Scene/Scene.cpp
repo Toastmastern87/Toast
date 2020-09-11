@@ -39,13 +39,37 @@ namespace Toast {
 
 	void Scene::OnUpdate(Timestep ts)
 	{
-		auto group = mRegistry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-
-		for (auto entity : group)
+		Camera* mainCamera = nullptr;
+		DirectX::XMMATRIX* cameraTransform = nullptr;
 		{
-			auto& [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
+			auto group = mRegistry.view<TransformComponent, CameraComponent>();
+			for (auto entity : group)
+			{
+				auto& [transform, camera] = group.get<TransformComponent, CameraComponent>(entity);
 
-			Renderer2D::DrawQuad(transform, sprite.Color);
+				if (camera.Primary)
+				{
+					mainCamera = &camera.Camera;
+					cameraTransform = &transform.Transform;
+					break;
+				}
+			}
+		}
+
+		if (mainCamera) 
+		{
+			Renderer2D::BeginScene(mainCamera->GetProjection(), *cameraTransform);
+
+			auto group = mRegistry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+
+			for (auto entity : group)
+			{
+				auto& [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
+
+				Renderer2D::DrawQuad(transform, sprite.Color);
+			}
+
+			Renderer2D::EndScene();
 		}
 	}
 }

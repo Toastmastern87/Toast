@@ -2,6 +2,8 @@
 
 #include "Toast/Renderer/OrthographicCamera.h"
 
+#include "Toast/Renderer/Camera.h"
+
 #include "Toast/Renderer/Texture.h"
 
 namespace Toast {
@@ -12,6 +14,7 @@ namespace Toast {
 		static void Init();
 		static void Shutdown();
 
+		static void BeginScene(const Camera& camera, const DirectX::XMMATRIX& transform);
 		static void BeginScene(const OrthographicCamera& camera);
 		static void EndScene();
 		static void Flush();

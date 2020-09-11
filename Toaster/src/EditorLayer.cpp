@@ -28,6 +28,14 @@ namespace Toast {
 		square.AddComponent<SpriteRendererComponent>(DirectX::XMFLOAT4{ 0.0f, 1.0f, 0.0f, 1.0f });
 
 		mSquareEntity = square;
+
+		mCameraEntity = mActiveScene->CreateEntity("Camera Entity");
+		mCameraEntity.AddComponent<CameraComponent>(DirectX::XMMatrixOrthographicLH(32.0f, 18.0f, -1.0f, 1.0f));
+		//mCameraEntity.AddComponent<CameraComponent>(DirectX::XMMatrixOrthographicLH(1.0f, 1.0f, -1.0f, 1.0f));
+
+		mSecondCamera = mActiveScene->CreateEntity("Clip-Space Entity");
+		auto& cc = mSecondCamera.AddComponent<CameraComponent>(DirectX::XMMatrixOrthographicLH(2.0f, 2.0f, -1.0f, 1.0f));
+		cc.Primary = false;
 	}
 
 	void EditorLayer::OnDetach()
@@ -59,12 +67,8 @@ namespace Toast {
 		mFramebuffer->Bind();
 		mFramebuffer->Clear(clearColor);
 
-		Renderer2D::BeginScene(mCameraController.GetCamera());
-
 		// Update scene
 		mActiveScene->OnUpdate(ts);
-
-		Renderer2D::EndScene();
 
 		RenderCommand::BindBackbuffer();
 		RenderCommand::Clear(clearColor);
@@ -155,6 +159,14 @@ namespace Toast {
 				auto& squareColor = mSquareEntity.GetComponent<SpriteRendererComponent>().Color;
 				ImGui::ColorEdit4("Square Color", &squareColor.x);
 				ImGui::Separator();
+			}
+
+			ImGui::DragFloat3("Camera Transform", (float*)&mCameraEntity.GetComponent<TransformComponent>().Transform.r[3]);
+			//TOAST_CORE_INFO("Camera position x: {0}", matrix._41);
+			if (ImGui::Checkbox("Camera A", &mPrimaryCamera)) 
+			{
+				mCameraEntity.GetComponent<CameraComponent>().Primary = mPrimaryCamera;
+				mSecondCamera.GetComponent<CameraComponent>().Primary = !mPrimaryCamera;
 			}
 
 			ImGui::End();
