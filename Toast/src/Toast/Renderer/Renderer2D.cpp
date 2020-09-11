@@ -101,6 +101,21 @@ namespace Toast {
 		delete[] sData.QuadVertexBufferBase;
 	}
 
+	void Renderer2D::BeginScene(const Camera& camera, const DirectX::XMMATRIX& transform)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		DirectX::XMMATRIX viewProj = DirectX::XMMatrixMultiply(DirectX::XMMatrixInverse(nullptr, transform), camera.GetProjection());
+
+		sData.TextureShader->Bind();
+		sData.TextureShader->SetSceneData(viewProj);
+
+		sData.QuadIndexCount = 0;
+		sData.QuadVertexBufferPtr = sData.QuadVertexBufferBase;
+
+		sData.TextureSlotIndex = 1;
+	}
+
 	void Renderer2D::BeginScene(const OrthographicCamera& camera)
 	{
 		TOAST_PROFILE_FUNCTION();
