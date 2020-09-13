@@ -2,7 +2,7 @@
 
 #include <DirectXMath.h>
 
-#include "Toast/Renderer/Camera.h"
+#include "SceneCamera.h"
 
 namespace Toast {
 	
@@ -41,12 +41,11 @@ namespace Toast {
 
 	struct CameraComponent 
 	{
-		Toast::Camera Camera;
+		SceneCamera Camera;
 		bool Primary = true;
+		bool FixedAspectRatio = false;
 
 		CameraComponent() = default;
 		CameraComponent(const CameraComponent&) = default;
-		CameraComponent(const DirectX::XMMATRIX& projection)
-			: Camera(projection) {}
 	};
 }

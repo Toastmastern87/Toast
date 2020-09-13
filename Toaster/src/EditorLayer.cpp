@@ -30,16 +30,15 @@ namespace Toast {
 		mSquareEntity = square;
 
 		mCameraEntity = mActiveScene->CreateEntity("Camera Entity");
-		mCameraEntity.AddComponent<CameraComponent>(DirectX::XMMatrixOrthographicLH(32.0f, 18.0f, -1.0f, 1.0f));
-		//mCameraEntity.AddComponent<CameraComponent>(DirectX::XMMatrixOrthographicLH(1.0f, 1.0f, -1.0f, 1.0f));
+		mCameraEntity.AddComponent<CameraComponent>();
 
 		mSecondCamera = mActiveScene->CreateEntity("Clip-Space Entity");
-		auto& cc = mSecondCamera.AddComponent<CameraComponent>(DirectX::XMMatrixOrthographicLH(2.0f, 2.0f, -1.0f, 1.0f));
+		auto& cc = mSecondCamera.AddComponent<CameraComponent>();
 		cc.Primary = false;
 	}
 
 	void EditorLayer::OnDetach()
-	{
+	{	
 		TOAST_PROFILE_FUNCTION();
 	}
 
@@ -56,6 +55,8 @@ namespace Toast {
 		{
 			mFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			mCameraController.OnResize(mViewportSize.x, mViewportSize.y);
+
+			mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		}
 
 		// Update
@@ -167,6 +168,13 @@ namespace Toast {
 			{
 				mCameraEntity.GetComponent<CameraComponent>().Primary = mPrimaryCamera;
 				mSecondCamera.GetComponent<CameraComponent>().Primary = !mPrimaryCamera;
+			}
+
+			{
+				auto& camera = mSecondCamera.GetComponent<CameraComponent>().Camera;
+				float orthoSize = camera.GetOrthographicSize();
+				if (ImGui::DragFloat("Second Camera Ortho Size", &orthoSize))
+					camera.SetOrthographicSize(orthoSize);
 			}
 
 			ImGui::End();

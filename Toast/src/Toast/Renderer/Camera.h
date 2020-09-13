@@ -7,11 +7,12 @@ namespace Toast {
 	class Camera 
 	{
 	public:
+		Camera() = default;
 		Camera(const DirectX::XMMATRIX& projection)
 			: mProjection(projection) {}
 
 		const DirectX::XMMATRIX& GetProjection() const { return mProjection; }
-	private:
-		DirectX::XMMATRIX mProjection;
+	protected:
+		DirectX::XMMATRIX mProjection = DirectX::XMMatrixIdentity();
 	};
 }
