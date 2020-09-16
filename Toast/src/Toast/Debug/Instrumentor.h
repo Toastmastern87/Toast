@@ -7,6 +7,11 @@
 #include <string>
 #include <thread>
 
+#include <mutex>
+#include <sstream>
+
+#include "Toast/Core/Log.h"
+
 namespace Toast {
 
 	using FloatingPointMicroseconds = std::chrono::duration<double, std::micro>;

@@ -35,6 +35,39 @@ namespace Toast {
 		mSecondCamera = mActiveScene->CreateEntity("Clip-Space Entity");
 		auto& cc = mSecondCamera.AddComponent<CameraComponent>();
 		cc.Primary = false;
+
+		class CameraController : public ScriptableEntity
+		{
+		public:
+			void OnCreate() 
+			{
+				auto& transform = GetComponent<TransformComponent>().Transform;
+				transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation((rand() % 10 - 5.0f), 0.0f, 0.0f));
+			}
+
+			void OnDestroy() 
+			{
+
+			}
+
+			void OnUpdate(Timestep ts) 
+			{
+				auto& transform = GetComponent<TransformComponent>().Transform;
+				float speed = 5.0f;
+
+				if (Input::IsKeyPressed(Key::A))
+					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(-(speed * ts), 0.0f, 0.0f));
+				if (Input::IsKeyPressed(Key::D))
+					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(speed * ts, 0.0f, 0.0f));
+				if (Input::IsKeyPressed(Key::W))
+					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, speed * ts, 0.0f));
+				if (Input::IsKeyPressed(Key::S))
+					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, -(speed * ts), 0.0f));
+			}
+		};
+
+		mCameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
+		mSecondCamera.AddComponent<NativeScriptComponent>().Bind<CameraController>();
 	}
 
 	void EditorLayer::OnDetach()
@@ -46,7 +79,7 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		const float clearColor[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
+		const float clearColor[4] = { 0.22f, 0.22f, 0.22f, 1.0f };
 
 		// Resize
 		if (FramebufferSpecification spec = mFramebuffer->GetSpecification();
@@ -163,7 +196,6 @@ namespace Toast {
 			}
 
 			ImGui::DragFloat3("Camera Transform", (float*)&mCameraEntity.GetComponent<TransformComponent>().Transform.r[3]);
-			//TOAST_CORE_INFO("Camera position x: {0}", matrix._41);
 			if (ImGui::Checkbox("Camera A", &mPrimaryCamera)) 
 			{
 				mCameraEntity.GetComponent<CameraComponent>().Primary = mPrimaryCamera;
@@ -173,7 +205,7 @@ namespace Toast {
 			{
 				auto& camera = mSecondCamera.GetComponent<CameraComponent>().Camera;
 				float orthoSize = camera.GetOrthographicSize();
-				if (ImGui::DragFloat("Second Camera Ortho Size", &orthoSize))
+				if (ImGui::DragFloat("Second Camera Ortho Size", &orthoSize, 1.0f, 0.0f))
 					camera.SetOrthographicSize(orthoSize);
 			}
 

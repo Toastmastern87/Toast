@@ -16,23 +16,23 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		if (Input::IsKeyPressed(TOAST_KEY_A))
+		if (Input::IsKeyPressed(Key::A))
 		{
 			mCameraPosition.x -= cos(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
 			mCameraPosition.y -= sin(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
 		}		
-		else if (Input::IsKeyPressed(TOAST_KEY_D))
+		else if (Input::IsKeyPressed(Key::D))
 		{
 			mCameraPosition.x += cos(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
 			mCameraPosition.y += sin(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
 		}
 
-		if (Input::IsKeyPressed(TOAST_KEY_W))
+		if (Input::IsKeyPressed(Key::W))
 		{
 			mCameraPosition.x += -sin(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
 			mCameraPosition.y += cos(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
 		}
-		else if (Input::IsKeyPressed(TOAST_KEY_S))
+		else if (Input::IsKeyPressed(Key::S))
 		{
 			mCameraPosition.x -= -sin(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
 			mCameraPosition.y -= cos(DirectX::XMConvertToRadians(mCameraRotation)) * mCameraTranslationSpeed * ts;
@@ -40,9 +40,9 @@ namespace Toast {
 
 		if (mRotation) 
 		{
-			if (Input::IsKeyPressed(TOAST_KEY_Q))
+			if (Input::IsKeyPressed(Key::Q))
 				mCameraRotation += mCameraRotationSpeed * ts;
-			else if (Input::IsKeyPressed(TOAST_KEY_E))
+			else if (Input::IsKeyPressed(Key::E))
 				mCameraRotation -= mCameraRotationSpeed * ts;
 
 			if (mCameraRotation > 180.0f)

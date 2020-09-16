@@ -15,7 +15,7 @@ namespace Toast {
 		void SetViewportSize(uint32_t width, uint32_t height);
 
 		float GetOrthographicSize() const { return mOrthographicSize; }
-		void SetOrthographicSize(float size) { mOrthographicSize = size; RecalculateProjection(); }
+		void SetOrthographicSize(float size) { mOrthographicSize = std::max(size, 0.1f); RecalculateProjection(); }
 	private:
 		void RecalculateProjection();
 	private:

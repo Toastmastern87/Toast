@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tpch.h"
+#include <sstream>
 
 #include "Toast/Core/Base.h"
 #include "Toast/Events/Event.h"
