@@ -2,242 +2,131 @@
 
 namespace Toast {
 
-	typedef enum class KeyCode : uint16_t
+	using KeyCode = uint16_t;
+	
+	namespace Key 
 	{
-		Space			= 32,
-		Comma			= 188, 
-		Minus			= 189,
-		Period			= 190,
-						   
-		D0				= 48,
-		D1				= 49,
-		D2				= 50,
-		D3				= 51,
-		D4				= 52,
-		D5				= 53,
-		D6				= 54,
-		D7				= 55,
-		D8				= 56,
-		D9				= 57,
-						   
-		Semicolon		= 186, 
-						  
-		A				= 65,
-		B				= 66,
-		C				= 67,
-		D				= 68,
-		E				= 69,
-		F				= 70,
-		G				= 71,
-		H				= 72,
-		I				= 73,
-		J				= 74,
-		K				= 75,
-		L				= 76,
-		M				= 77,
-		N				= 78,
-		O				= 79,
-		P				= 80,
-		Q				= 81,
-		R				= 82,
-		S				= 83,
-		T				= 84,
-		U				= 85,
-		V				= 86,
-		W				= 87,
-		X				= 88,
-		Y				= 89,
-		Z				= 90,
-						   
-		LeftBracket		= 219,
-		BackSlash		= 220,
-		RightBracket	= 221,
-		GraveAccent		= 222, 
-						   
-		/* Function keys  */
-		Backspace		= 8 ,
-		Enter			= 13,
-		Tab				= 9 ,
-		Pause			= 19,
-		NumLock			= 144,
-		ScrollLock		= 145,
-		CapsLock		= 20,
-		Escape			= 28,
-		PageUp			= 33,
-		PageDown		= 34,
-		End				= 35,
-		Home			= 36,
-		Left			= 37,
-		Up				= 38,
-		Right			= 39,
-		Down			= 40,
-		PrintScreen		= 44,
-		Insert			= 45,
-		Delete			= 46,
-		F1				= 112,
-		F2				= 113,
-		F3				= 114,
-		F4				= 115,
-		F5				= 116,
-		F6				= 117,
-		F7				= 118,
-		F8				= 119,
-		F9				= 120,
-		F10				= 121,
-		F11				= 122,
-		F12				= 123,
-		F13				= 124,
-		F14				= 125,
-		F15				= 126,
-		F16				= 127,
-		F17				= 128,
-		F18				= 129,
-		F19				= 130,
-		F20				= 131,
-		F21				= 132,
-		F22				= 133,
-		F23				= 134,
-		F24				= 135,
-						   
-		/* Keypad */	    
-		KP0				= 96,
-		KP1				= 97,
-		KP2				= 98,
-		KP3				= 99,
-		KP4				= 100,
-		KP5				= 101,
-		KP6				= 102,
-		KP7				= 103,
-		KP8				= 104,
-		KP9				= 105,
-		KPMultiply		= 106,
-		KPAdd			= 107,
-		KPEqual			= 108,
-		KPSubtract		= 109,
-		KPDecimal		= 110,
-		KPDivide		= 111,
-						  
-		LeftShift		= 160,
-		RightShift		= 161,
-		LeftControl		= 162,
-		RightControl	= 163,
-		LeftAlt			= 164,
-		RightAlt		= 165
-	} Key;
+		enum : KeyCode
+		{
+			Space = 32,
+			Comma = 188,
+			Minus = 189,
+			Period = 190,
 
-	inline std::ostream& operator<<(std::ostream& os, KeyCode keyCode) 
-	{
-		os << static_cast<int32_t>(keyCode);
-		return os;
+			D0 = 48,
+			D1 = 49,
+			D2 = 50,
+			D3 = 51,
+			D4 = 52,
+			D5 = 53,
+			D6 = 54,
+			D7 = 55,
+			D8 = 56,
+			D9 = 57,
+
+			Semicolon = 186,
+
+			A = 65,
+			B = 66,
+			C = 67,
+			D = 68,
+			E = 69,
+			F = 70,
+			G = 71,
+			H = 72,
+			I = 73,
+			J = 74,
+			K = 75,
+			L = 76,
+			M = 77,
+			N = 78,
+			O = 79,
+			P = 80,
+			Q = 81,
+			R = 82,
+			S = 83,
+			T = 84,
+			U = 85,
+			V = 86,
+			W = 87,
+			X = 88,
+			Y = 89,
+			Z = 90,
+
+			LeftBracket = 219,
+			BackSlash = 220,
+			RightBracket = 221,
+			GraveAccent = 222,
+
+			/* Function keys  */
+			Backspace = 8,
+			Enter = 13,
+			Tab = 9,
+			Pause = 19,
+			NumLock = 144,
+			ScrollLock = 145,
+			CapsLock = 20,
+			Escape = 28,
+			PageUp = 33,
+			PageDown = 34,
+			End = 35,
+			Home = 36,
+			Left = 37,
+			Up = 38,
+			Right = 39,
+			Down = 40,
+			PrintScreen = 44,
+			Insert = 45,
+			Delete = 46,
+			F1 = 112,
+			F2 = 113,
+			F3 = 114,
+			F4 = 115,
+			F5 = 116,
+			F6 = 117,
+			F7 = 118,
+			F8 = 119,
+			F9 = 120,
+			F10 = 121,
+			F11 = 122,
+			F12 = 123,
+			F13 = 124,
+			F14 = 125,
+			F15 = 126,
+			F16 = 127,
+			F17 = 128,
+			F18 = 129,
+			F19 = 130,
+			F20 = 131,
+			F21 = 132,
+			F22 = 133,
+			F23 = 134,
+			F24 = 135,
+
+			/* Keypad */
+			KP0 = 96,
+			KP1 = 97,
+			KP2 = 98,
+			KP3 = 99,
+			KP4 = 100,
+			KP5 = 101,
+			KP6 = 102,
+			KP7 = 103,
+			KP8 = 104,
+			KP9 = 105,
+			KPMultiply = 106,
+			KPAdd = 107,
+			KPEqual = 108,
+			KPSubtract = 109,
+			KPDecimal = 110,
+			KPDivide = 111,
+
+			LeftShift = 160,
+			RightShift = 161,
+			LeftControl = 162,
+			RightControl = 163,
+			LeftAlt = 164,
+			RightAlt = 165
+		};
 	}
 }
-
-#define TOAST_KEY_BACK			::Toast::Key::Backspace
-#define TOAST_KEY_TAB			::Toast::Key::Tab
-#define TOAST_KEY_RETURN		::Toast::Key::Enter
-#define TOAST_KEY_PAUSE			::Toast::Key::Pause
-#define TOAST_KEY_CAPITAL		::Toast::Key::CapsLock
-#define TOAST_KEY_ESCAPE		::Toast::Key::Escape
-#define TOAST_KEY_SPACE			::Toast::Key::Space
-#define TOAST_KEY_PRIOR			::Toast::Key::PageUp
-#define TOAST_KEY_NEXT			::Toast::Key::PageDown
-#define TOAST_KEY_END			::Toast::Key::End
-#define TOAST_KEY_HOME			::Toast::Key::Home
-#define TOAST_KEY_LEFT			::Toast::Key::Left
-#define TOAST_KEY_UP			::Toast::Key::Up
-#define TOAST_KEY_RIGHT			::Toast::Key::Right
-#define TOAST_KEY_DOWN			::Toast::Key::Down
-#define TOAST_KEY_SNAPSHOT		::Toast::Key::PrintScreen
-#define TOAST_KEY_INSERT		::Toast::Key::Insert
-#define TOAST_KEY_DELETE		::Toast::Key::Delete
-#define TOAST_KEY_0				::Toast::Key::D0
-#define TOAST_KEY_1				::Toast::Key::D1
-#define TOAST_KEY_2				::Toast::Key::D2
-#define TOAST_KEY_3				::Toast::Key::D3
-#define TOAST_KEY_4				::Toast::Key::D4
-#define TOAST_KEY_5				::Toast::Key::D5
-#define TOAST_KEY_6				::Toast::Key::D6
-#define TOAST_KEY_7				::Toast::Key::D7
-#define TOAST_KEY_8				::Toast::Key::D8
-#define TOAST_KEY_9				::Toast::Key::D9
-#define TOAST_KEY_A				::Toast::Key::A
-#define TOAST_KEY_B				::Toast::Key::B
-#define TOAST_KEY_C				::Toast::Key::C
-#define TOAST_KEY_D				::Toast::Key::D
-#define TOAST_KEY_E				::Toast::Key::E
-#define TOAST_KEY_F				::Toast::Key::F
-#define TOAST_KEY_G				::Toast::Key::G
-#define TOAST_KEY_H				::Toast::Key::H
-#define TOAST_KEY_I				::Toast::Key::I
-#define TOAST_KEY_J				::Toast::Key::J
-#define TOAST_KEY_K				::Toast::Key::K
-#define TOAST_KEY_L				::Toast::Key::L
-#define TOAST_KEY_M				::Toast::Key::M
-#define TOAST_KEY_N				::Toast::Key::N
-#define TOAST_KEY_O				::Toast::Key::O
-#define TOAST_KEY_P				::Toast::Key::P
-#define TOAST_KEY_Q				::Toast::Key::Q
-#define TOAST_KEY_R				::Toast::Key::R
-#define TOAST_KEY_S				::Toast::Key::S
-#define TOAST_KEY_T				::Toast::Key::T
-#define TOAST_KEY_U				::Toast::Key::U
-#define TOAST_KEY_V				::Toast::Key::V
-#define TOAST_KEY_W				::Toast::Key::W
-#define TOAST_KEY_X				::Toast::Key::X
-#define TOAST_KEY_Y				::Toast::Key::Y
-#define TOAST_KEY_Z				::Toast::Key::Z
-#define TOAST_KEY_NUMPAD0		::Toast::Key::KP0
-#define TOAST_KEY_NUMPAD1		::Toast::Key::KP1
-#define TOAST_KEY_NUMPAD2		::Toast::Key::KP2
-#define TOAST_KEY_NUMPAD3		::Toast::Key::KP3
-#define TOAST_KEY_NUMPAD4		::Toast::Key::KP4
-#define TOAST_KEY_NUMPAD5		::Toast::Key::KP5
-#define TOAST_KEY_NUMPAD6		::Toast::Key::KP8
-#define TOAST_KEY_NUMPAD7		::Toast::Key::KP7
-#define TOAST_KEY_NUMPAD8		::Toast::Key::KP8
-#define TOAST_KEY_NUMPAD9		::Toast::Key::KP9
-#define TOAST_KEY_MULTIPLY		::Toast::Key::KPMultiply
-#define TOAST_KEY_ADD			::Toast::Key::KPAdd
-#define TOAST_KEY_SEPARATOR		::Toast::Key::KPEqual
-#define TOAST_KEY_SUBTRACT		::Toast::Key::KPSubtract
-#define TOAST_KEY_DECIMAL		::Toast::Key::KPDecimal
-#define TOAST_KEY_DIVIDE		::Toast::Key::KPDivide
-#define TOAST_KEY_F1			::Toast::Key::F1
-#define TOAST_KEY_F2			::Toast::Key::F2
-#define TOAST_KEY_F3			::Toast::Key::F3
-#define TOAST_KEY_F4			::Toast::Key::F4
-#define TOAST_KEY_F5			::Toast::Key::F5
-#define TOAST_KEY_F6			::Toast::Key::F6
-#define TOAST_KEY_F7			::Toast::Key::F7
-#define TOAST_KEY_F8			::Toast::Key::F8
-#define TOAST_KEY_F9			::Toast::Key::F9
-#define TOAST_KEY_F10			::Toast::Key::F10
-#define TOAST_KEY_F11			::Toast::Key::F11
-#define TOAST_KEY_F12			::Toast::Key::F12
-#define TOAST_KEY_F13			::Toast::Key::F13
-#define TOAST_KEY_F14			::Toast::Key::F14
-#define TOAST_KEY_F15			::Toast::Key::F15
-#define TOAST_KEY_F16			::Toast::Key::F16
-#define TOAST_KEY_F17			::Toast::Key::F17
-#define TOAST_KEY_F18			::Toast::Key::F18
-#define TOAST_KEY_F19			::Toast::Key::F19
-#define TOAST_KEY_F20			::Toast::Key::F20
-#define TOAST_KEY_F21			::Toast::Key::F21
-#define TOAST_KEY_F22			::Toast::Key::F22
-#define TOAST_KEY_F23			::Toast::Key::F23
-#define TOAST_KEY_F24			::Toast::Key::F24
-#define TOAST_KEY_NUMLOCK		::Toast::Key::NumLock
-#define TOAST_KEY_SCROLL		::Toast::Key::ScrollLock
-#define TOAST_KEY_LSHIFT		::Toast::Key::LeftShift
-#define TOAST_KEY_RSHIFT		::Toast::Key::RightShift
-#define TOAST_KEY_LCONTROL		::Toast::Key::LeftControl
-#define TOAST_KEY_RCONTROL		::Toast::Key::RightControl
-#define TOAST_KEY_LMENU			::Toast::Key::LeftAlt
-#define TOAST_KEY_RMENU			::Toast::Key::RightAlt
-#define TOAST_KEY_OEM_1			::Toast::Key::Semicolon 
-#define TOAST_KEY_OEM_COMMA		::Toast::Key::Comma 
-#define TOAST_KEY_OEM_MINUS		::Toast::Key::Minus
-#define TOAST_KEY_OEM_4			::Toast::Key::LeftBracket 
-#define TOAST_KEY_OEM_5			::Toast::Key::BackSlash
-#define TOAST_KEY_OEM_6			::Toast::Key::RightBracket
-#define TOAST_KEY_OEM_7			::Toast::Key::GraveAccent 

@@ -20,6 +20,7 @@
 #include "Toast/Scene/Scene.h"
 #include "Toast/Scene/Entity.h"
 #include "Toast/Scene/Components.h"
+#include "Toast/Scene/ScriptableEntity.h"
 
 //-------Renderer------------------------
 #include "Toast/Renderer/Renderer.h"

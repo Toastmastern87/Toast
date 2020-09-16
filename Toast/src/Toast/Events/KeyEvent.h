@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Toast/Events/Event.h"
-#include "Toast/Core/Input.h"
+#include "Toast/Core/KeyCodes.h"
 
 namespace Toast 
 {
@@ -12,7 +12,7 @@ namespace Toast
 
 		EVENT_CLASS_CATEGORY(EventCategoryKeyboard |  EventCategoryInput)
 	protected:
-		KeyEvent(KeyCode keycode)
+		KeyEvent(const KeyCode keycode)
 			: mKeyCode(keycode) {}
 
 		KeyCode mKeyCode;
@@ -21,10 +21,10 @@ namespace Toast
 	class KeyPressedEvent : public KeyEvent
 	{
 	public:
-		KeyPressedEvent(KeyCode keycode, int repeatCount)
+		KeyPressedEvent(const KeyCode keycode, const uint16_t repeatCount)
 			: KeyEvent(keycode), mRepeatCount(repeatCount) {}
 
-		int GetRepeatCount() const { return mRepeatCount; }
+		uint16_t GetRepeatCount() const { return mRepeatCount; }
 
 		std::string ToString() const override 
 		{
@@ -35,13 +35,13 @@ namespace Toast
 
 		EVENT_CLASS_TYPE(KeyPressed)
 	private:
-		int mRepeatCount;
+		uint16_t mRepeatCount;
 	};
 
 	class KeyReleasedEvent : public KeyEvent
 	{
 	public:
-		KeyReleasedEvent(KeyCode keycode)
+		KeyReleasedEvent(const KeyCode keycode)
 			: KeyEvent(keycode) {}
 
 		std::string ToString() const override
@@ -57,7 +57,7 @@ namespace Toast
 	class KeyTypedEvent : public KeyEvent
 	{
 	public:
-		KeyTypedEvent(KeyCode keycode)
+		KeyTypedEvent(const KeyCode keycode)
 			: KeyEvent(keycode) {}
 
 		std::string ToString() const override

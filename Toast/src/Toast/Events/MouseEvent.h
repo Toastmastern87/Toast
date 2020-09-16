@@ -1,14 +1,14 @@
 #pragma once
 
 #include "Toast/Events/Event.h"
-#include "Toast/Core/Input.h"
+#include "Toast/Core/MouseCodes.h"
 
 namespace Toast 
 {
 	class MouseMovedEvent : public Event
 	{
 	public:
-		MouseMovedEvent(float x, float y)
+		MouseMovedEvent(const float x, const float y)
 			: mMouseX(x), mMouseY(y) {}
 
 		float GetX() const { return mMouseX; }
@@ -30,7 +30,7 @@ namespace Toast
 	class MouseScrolledEvent : public Event
 	{
 	public:
-		MouseScrolledEvent(float delta)
+		MouseScrolledEvent(const float delta)
 			: mDelta(delta) {}
 
 		float GetDelta() const { return mDelta; }
@@ -55,7 +55,7 @@ namespace Toast
 
 		EVENT_CLASS_CATEGORY(EventCategoryMouse | EventCategoryInput)
 	protected:
-		MouseButtonEvent(MouseCode button)
+		MouseButtonEvent(const MouseCode button)
 			: mButton(button) {}
 
 		MouseCode mButton;
@@ -64,7 +64,7 @@ namespace Toast
 	class MouseButtonPressedEvent : public MouseButtonEvent
 	{
 	public:
-		MouseButtonPressedEvent(MouseCode button)
+		MouseButtonPressedEvent(const MouseCode button)
 			: MouseButtonEvent(button) {}
 
 		std::string ToString() const override
@@ -80,7 +80,7 @@ namespace Toast
 	class MouseButtonReleasedEvent : public MouseButtonEvent
 	{
 	public:
-		MouseButtonReleasedEvent(MouseCode button)
+		MouseButtonReleasedEvent(const MouseCode button)
 			: MouseButtonEvent(button) {}
 
 		std::string ToString() const override
