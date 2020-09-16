@@ -1,6 +1,7 @@
 #pragma once
 
-#include <Toast.h>
+#include "Toast.h"
+#include "Panels/SceneHierarchyPanel.h"
 
 namespace Toast {
 
@@ -33,5 +34,8 @@ namespace Toast {
 		bool mViewportFocused = false, mViewportHovered = false;
 
 		DirectX::XMFLOAT2 mViewportSize = { 0.0f, 0.0f };
+
+		// Panels
+		SceneHierarchyPanel mSceneHierarchyPanel;
 	};
 }
