@@ -5,6 +5,8 @@
 #include "Toast/Scene/Scene.h"
 #include "Toast/Scene/Entity.h"
 
+#include <DirectXMath.h>
+
 namespace Toast {
 
 	class SceneHierarchyPanel 
@@ -22,5 +24,8 @@ namespace Toast {
 	private:
 		Ref<Scene> mContext;
 		Entity mSelectionContext;
+	private:
+
+
 	};
 }
