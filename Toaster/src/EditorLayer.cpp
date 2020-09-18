@@ -29,11 +29,12 @@ namespace Toast {
 
 		mSquareEntity = square;
 
-		mCameraEntity = mActiveScene->CreateEntity("Camera Entity");
+		mCameraEntity = mActiveScene->CreateEntity("Perspective Camera");
 		mCameraEntity.AddComponent<CameraComponent>();
 
-		mSecondCamera = mActiveScene->CreateEntity("Clip-Space Entity");
+		mSecondCamera = mActiveScene->CreateEntity("Orthographic Camera");
 		auto& cc = mSecondCamera.AddComponent<CameraComponent>();
+		mSecondCamera.GetComponent<CameraComponent>().Camera.SetOrthographic(10.0f, -1.0f, 1.0f);
 		cc.Primary = false;
 
 		class CameraController : public ScriptableEntity
@@ -59,10 +60,14 @@ namespace Toast {
 					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(-(speed * ts), 0.0f, 0.0f));
 				if (Input::IsKeyPressed(Key::D))
 					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(speed * ts, 0.0f, 0.0f));
-				if (Input::IsKeyPressed(Key::W))
+				if (Input::IsKeyPressed(Key::Q))
 					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, speed * ts, 0.0f));
-				if (Input::IsKeyPressed(Key::S))
+				if (Input::IsKeyPressed(Key::E))
 					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, -(speed * ts), 0.0f));
+				if (Input::IsKeyPressed(Key::W))
+					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, 0.0f, speed * ts));
+				if (Input::IsKeyPressed(Key::S))
+					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, 0.0f, -(speed * ts)));
 			}
 		};
 

@@ -9,8 +9,17 @@ namespace Toast {
 		RecalculateProjection();
 	}
 
+	void SceneCamera::SetPerpective(float verticalFOV, float nearClip, float farClip)
+	{
+		mProjectionType = ProjectionType::Perspective;
+		mPerspectiveFOV = verticalFOV;
+		mPerspectiveNear = nearClip;
+		mPerspectiveFar = farClip;
+	}
+
 	void SceneCamera::SetOrthographic(float size, float nearClip, float farClip)
 	{
+		mProjectionType = ProjectionType::Orthographic;
 		mOrthographicSize = size;
 		mOrthographicNear = nearClip;
 		mOrthographicFar = farClip;	
@@ -25,12 +34,22 @@ namespace Toast {
 
 	void SceneCamera::RecalculateProjection()
 	{
-		float orthoLeft = -mOrthographicSize * mAspectRatio * 0.5f;
-		float orthoRight = mOrthographicSize * mAspectRatio * 0.5f;
-		float orthoBottom = mOrthographicSize * 0.5f;
-		float orthoTop = -mOrthographicSize * 0.5f;
+		switch (mProjectionType) 
+		{
+		case ProjectionType::Perspective:
+			mProjection = DirectX::XMMatrixPerspectiveFovLH(mPerspectiveFOV, mAspectRatio, mPerspectiveNear, mPerspectiveFar);
 
-		mProjection = DirectX::XMMatrixOrthographicLH((orthoRight - orthoLeft), (orthoBottom - orthoTop), mOrthographicNear, mOrthographicFar);
+			break;
+		case ProjectionType::Orthographic:
+			float orthoLeft = -mOrthographicSize * mAspectRatio * 0.5f;
+			float orthoRight = mOrthographicSize * mAspectRatio * 0.5f;
+			float orthoBottom = mOrthographicSize * 0.5f;
+			float orthoTop = -mOrthographicSize * 0.5f;
+
+			mProjection = DirectX::XMMatrixOrthographicLH((orthoRight - orthoLeft), (orthoBottom - orthoTop), mOrthographicNear, mOrthographicFar);
+
+			break;
+		}
 	}
 
 }
