@@ -108,7 +108,7 @@ namespace Toast {
 		DirectX::XMMATRIX viewProj = DirectX::XMMatrixMultiply(DirectX::XMMatrixInverse(nullptr, transform), camera.GetProjection());
 
 		sData.TextureShader->Bind();
-		sData.TextureShader->SetSceneData(viewProj);
+		sData.TextureShader->SetData("Camera", (void*)&viewProj);
 
 		sData.QuadIndexCount = 0;
 		sData.QuadVertexBufferPtr = sData.QuadVertexBufferBase;
@@ -121,7 +121,7 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		sData.TextureShader->Bind();
-		sData.TextureShader->SetSceneData(camera.GetViewProjectionMatrix());
+		sData.TextureShader->SetData("Camera", (void*)&camera.GetViewProjectionMatrix());
 
 		sData.QuadIndexCount = 0;
 		sData.QuadVertexBufferPtr = sData.QuadVertexBufferBase;

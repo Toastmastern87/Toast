@@ -49,12 +49,6 @@ struct PixelInputType
 	float tilingfactor : PSIZE1;
 };
 
-cbuffer Color : register(b0)
-{
-	float4 cbColor;
-	float tilingFactor;
-};
-
 Texture2D shaderTexture0 : register(t0);
 Texture2D shaderTexture1 : register(t1);
 Texture2D shaderTexture2 : register(t2);

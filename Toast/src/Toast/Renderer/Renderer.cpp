@@ -41,8 +41,6 @@ namespace Toast {
 		vertexBuffer->Bind();
 		indexBuffer->Bind();
 		shader->Bind();
-		shader->SetSceneData(mSceneData->viewProjectionMatrix);
-		shader->SetObjectData(transform);
 
 		RenderCommand::DrawIndexed(indexBuffer);
 	}
