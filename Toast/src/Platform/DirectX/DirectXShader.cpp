@@ -252,6 +252,18 @@ namespace Toast {
 					break;
 			}
 		}
+
+		for (std::pair<std::string, ConstantBuffer> constantBuffer : mConstantBuffers)
+		{
+			switch (constantBuffer.second.ShaderType) {
+			case D3D11_VERTEX_SHADER:
+				deviceContext->VSSetConstantBuffers(constantBuffer.second.BindPoint, 1, constantBuffer.second.Buffer.GetAddressOf());
+				break;
+			case D3D11_PIXEL_SHADER:
+				deviceContext->PSSetConstantBuffers(constantBuffer.second.BindPoint, 1, constantBuffer.second.Buffer.GetAddressOf());
+				break;
+			}
+		}
 	}
 
 	void DirectXShader::Unbind() const
@@ -286,14 +298,5 @@ namespace Toast {
 		deviceContext->Map(mConstantBuffers[cbName].Buffer.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
 		memcpy(ms.pData, data, mConstantBuffers[cbName].Size);
 		deviceContext->Unmap(mConstantBuffers[cbName].Buffer.Get(), NULL);
-
-		switch (mConstantBuffers[cbName].ShaderType) {
-		case D3D11_VERTEX_SHADER:
-			deviceContext->VSSetConstantBuffers(mConstantBuffers[cbName].BindPoint, 1, mConstantBuffers[cbName].Buffer.GetAddressOf());
-			break;
-		case D3D11_PIXEL_SHADER:
-			deviceContext->PSSetConstantBuffers(mConstantBuffers[cbName].BindPoint, 1, mConstantBuffers[cbName].Buffer.GetAddressOf());
-			break;
-		}
 	}
 }

@@ -42,8 +42,35 @@ namespace Toast {
 
 		ImGui::Begin("Properties");
 
-		if (mSelectionContext) 
+		if (mSelectionContext) {
 			DrawComponents(mSelectionContext);
+
+			if (ImGui::Button("Add Component"))
+				ImGui::OpenPopup("AddComponentPanel");
+
+			if (ImGui::BeginPopup("AddComponentPanel"))
+			{
+				if (!mSelectionContext.HasComponent<CameraComponent>())
+				{
+					if (ImGui::Button("Camera"))
+					{
+						mSelectionContext.AddComponent<CameraComponent>();
+						ImGui::CloseCurrentPopup();
+					}
+				}
+
+				if (!mSelectionContext.HasComponent<SpriteRendererComponent>())
+				{
+					if (ImGui::Button("Sprite Renderer"))
+					{
+						mSelectionContext.AddComponent<SpriteRendererComponent>();
+						ImGui::CloseCurrentPopup();
+					}
+				}
+
+				ImGui::EndPopup();
+			}
+		}
 
 		ImGui::End();
 	}
