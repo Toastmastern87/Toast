@@ -15,6 +15,7 @@ namespace Toast {
 		mPerspectiveFOV = verticalFOV;
 		mPerspectiveNear = nearClip;
 		mPerspectiveFar = farClip;
+		RecalculateProjection();
 	}
 
 	void SceneCamera::SetOrthographic(float size, float nearClip, float farClip)

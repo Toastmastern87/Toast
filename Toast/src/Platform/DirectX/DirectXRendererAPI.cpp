@@ -39,15 +39,16 @@ namespace Toast {
 		TOAST_CORE_ASSERT(mWindowHandle, "Window handle is null!");
 
 		// Setup swap chain
-		DXGI_SWAP_CHAIN_DESC sd;
-		ZeroMemory(&sd, sizeof(sd));
-		sd.BufferCount = 2;
+		DXGI_SWAP_CHAIN_DESC sd = {};
+		sd.BufferCount = 1;
 		sd.BufferDesc.Width = mWidth;
 		sd.BufferDesc.Height = mHeight;
-		sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		sd.BufferDesc.RefreshRate.Numerator = 60;
-		sd.BufferDesc.RefreshRate.Denominator = 1;
-		sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+		sd.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+		sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+		sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+		sd.BufferDesc.RefreshRate.Numerator = 0;
+		sd.BufferDesc.RefreshRate.Denominator = 0;
+		sd.Flags = 0;// DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 		sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		sd.OutputWindow = mWindowHandle;
 		sd.SampleDesc.Count = 1;
@@ -61,10 +62,7 @@ namespace Toast {
 		createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-		D3D_FEATURE_LEVEL featureLevel;
-		const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
-
-		HRESULT result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, mSwapChain.GetAddressOf(), mDevice.GetAddressOf(), &featureLevel, mDeviceContext.GetAddressOf());
+		HRESULT result = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, nullptr, 0, D3D11_SDK_VERSION, &sd, &mSwapChain, &mDevice, nullptr, &mDeviceContext);
 
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create DirectX device and swapchain");
 
@@ -79,7 +77,7 @@ namespace Toast {
 		EnableAlphaBlending();
 	}
 
-	void DirectXRendererAPI::Clear(const float clearColor[4])
+	void DirectXRendererAPI::Clear(const DirectX::XMFLOAT4 clearColor)
 	{
 		mBackbuffer->Clear(clearColor);
 	}
@@ -89,6 +87,11 @@ namespace Toast {
 		uint32_t count = indexCount ? indexCount : indexBuffer->GetCount();
 
 		mDeviceContext->DrawIndexed(count, 0, 0);
+	}
+
+	void DirectXRendererAPI::Draw(uint32_t count)
+	{
+		mDeviceContext->Draw(count, 0);
 	}
 
 	void DirectXRendererAPI::SwapBuffers()
@@ -102,16 +105,14 @@ namespace Toast {
 	{
 		mBackbuffer.reset();
 
-		mSwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+		mSwapChain->ResizeBuffers(1, width, height, DXGI_FORMAT_UNKNOWN, 0);
 
 		CreateBackbuffer();
 	}
 
 	void DirectXRendererAPI::EnableAlphaBlending()
 	{
-		float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-		mDeviceContext->OMSetBlendState(mAlphaBlendEnabledState.Get(), blendFactor, 0xffffffff);
+		mDeviceContext->OMSetBlendState(mAlphaBlendEnabledState.Get(), 0, 0xffffffff);
 	}
 
 	void DirectXRendererAPI::BindBackbuffer()
@@ -132,17 +133,15 @@ namespace Toast {
 	void DirectXRendererAPI::CreateBlendStates()
 	{
 		HRESULT result;
-		D3D11_BLEND_DESC bd;
+		D3D11_BLEND_DESC bd = {};
 
-		bd.AlphaToCoverageEnable = false;
-		bd.IndependentBlendEnable = false;
 		bd.RenderTarget[0].BlendEnable = true;
-		bd.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-		bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		bd.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
 		bd.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-		bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+		bd.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+		bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_INV_DEST_ALPHA;
+		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+		bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
 		result = mDevice->CreateBlendState(&bd, &mAlphaBlendEnabledState);

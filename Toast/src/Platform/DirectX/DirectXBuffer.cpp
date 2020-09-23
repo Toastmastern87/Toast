@@ -71,7 +71,10 @@ namespace Toast {
 		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		deviceContext->IASetInputLayout(mInputLayout.Get());
+		if (mElements.size() == 0)
+			deviceContext->IASetInputLayout(nullptr);
+		else
+			deviceContext->IASetInputLayout(mInputLayout.Get());
 	}
 
 	void DirectXBufferLayout::Unbind() const

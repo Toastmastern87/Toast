@@ -1,7 +1,9 @@
 #pragma once
 
+#include <DirectXMath.h>
+
 #include "Toast/Core/Base.h"
-#include "Toast/Core/Format.h"
+#include "Toast/Renderer/Formats.h"
 
 namespace Toast {
 
@@ -36,7 +38,7 @@ namespace Toast {
 
 		virtual void Resize(uint32_t width, uint32_t height) = 0;
 
-		virtual void Clear(const float clearColor[4]) = 0;
+		virtual void Clear(const DirectX::XMFLOAT4 clearColor) = 0;
 
 		virtual const FramebufferSpecification& GetSpecification() const = 0;
 

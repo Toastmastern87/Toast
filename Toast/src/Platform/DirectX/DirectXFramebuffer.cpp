@@ -66,15 +66,15 @@ namespace Toast {
 		mDepthStencilBuffer.Reset();
 	}
 
-	void DirectXFramebuffer::Clear(const float clearColor[4])
+	void DirectXFramebuffer::Clear(const DirectX::XMFLOAT4 clearColor)
 	{
 		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		deviceContext->ClearRenderTargetView(mRenderTargetView.Get(), clearColor);
+		deviceContext->ClearRenderTargetView(mRenderTargetView.Get(), (float*)&clearColor);
 
 		if(mDepthView)
-			deviceContext->ClearDepthStencilView(mDepthStencilView.Get(), D3D11_CLEAR_FLAG::D3D11_CLEAR_DEPTH, 1.0f, 0);
+			deviceContext->ClearDepthStencilView(mDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	}
 
 	bool DirectXFramebuffer::IsDepthFormat(const FormatCode format)
@@ -194,8 +194,8 @@ namespace Toast {
 		ID3D11Device* device = API->GetDevice();
 		IDXGISwapChain* swapChain = API->GetSwapChain();
 
-		swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
-		device->CreateRenderTargetView(backBuffer.Get(), NULL, &mRenderTargetView);
+		swapChain->GetBuffer(0, __uuidof(ID3D11Resource), &backBuffer);
+		device->CreateRenderTargetView(backBuffer.Get(), nullptr, &mRenderTargetView);
 	}
 
 	void DirectXFramebuffer::Resize(uint32_t width, uint32_t height)

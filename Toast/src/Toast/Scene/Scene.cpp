@@ -2,6 +2,7 @@
 #include "Scene.h"
 
 #include "Components.h"
+#include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/Renderer2D.h"
 
 #include "Entity.h"
@@ -63,6 +64,15 @@ namespace Toast {
 
 		if (mainCamera) 
 		{
+			// 3D Rendering
+			Renderer::BeginScene(mainCamera->GetProjection(), *cameraTransform);
+
+			// Draw grid
+			Renderer::SubmitQuad(DirectX::XMMatrixIdentity());
+
+			Renderer::EndScene();
+
+			// 2D Rendering
 			Renderer2D::BeginScene(mainCamera->GetProjection(), *cameraTransform);
 
 			auto group = mRegistry.group<TransformComponent>(entt::get<SpriteRendererComponent>);

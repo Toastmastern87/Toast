@@ -107,8 +107,8 @@ namespace Toast {
 
 		DirectX::XMMATRIX viewProj = DirectX::XMMatrixMultiply(DirectX::XMMatrixInverse(nullptr, transform), camera.GetProjection());
 
-		sData.TextureShader->Bind();
 		sData.TextureShader->SetData("Camera", (void*)&viewProj);
+		sData.TextureShader->Bind();
 
 		sData.QuadIndexCount = 0;
 		sData.QuadVertexBufferPtr = sData.QuadVertexBufferBase;

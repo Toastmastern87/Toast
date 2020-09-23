@@ -21,21 +21,11 @@ namespace Toast {
 		fbSpec.BuffersDesc.emplace_back(FramebufferSpecification::BufferDesc(TOAST_FORMAT_R32G32B32A32_FLOAT, TOAST_BIND_RENDER_TARGET | TOAST_BIND_SHADER_RESOURCE));
 		fbSpec.BuffersDesc.emplace_back(FramebufferSpecification::BufferDesc(TOAST_FORMAT_D24_UNORM_S8_UINT, TOAST_BIND_DEPTH_STENCIL));
 		mFramebuffer = Framebuffer::Create(fbSpec);
-
+		
 		mActiveScene = CreateRef<Scene>();
-
-		auto square = mActiveScene->CreateEntity("Test Square");
-		square.AddComponent<SpriteRendererComponent>(DirectX::XMFLOAT4{ 0.0f, 1.0f, 0.0f, 1.0f });
-
-		mSquareEntity = square;
 
 		mCameraEntity = mActiveScene->CreateEntity("Perspective Camera");
 		mCameraEntity.AddComponent<CameraComponent>();
-
-		mSecondCamera = mActiveScene->CreateEntity("Orthographic Camera");
-		auto& cc = mSecondCamera.AddComponent<CameraComponent>();
-		mSecondCamera.GetComponent<CameraComponent>().Camera.SetOrthographic(10.0f, -1.0f, 1.0f);
-		cc.Primary = false;
 
 		class CameraController : public ScriptableEntity
 		{
@@ -43,7 +33,7 @@ namespace Toast {
 			void OnCreate() 
 			{
 				auto& transform = GetComponent<TransformComponent>().Transform;
-				transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation((rand() % 10 - 5.0f), 0.0f, 0.0f));
+				transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, 0.3f, -3.149f));
 			}
 
 			void OnDestroy() 
@@ -72,7 +62,6 @@ namespace Toast {
 		};
 
 		mCameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
-		mSecondCamera.AddComponent<NativeScriptComponent>().Bind<CameraController>();
 
 		mSceneHierarchyPanel.SetContext(mActiveScene);
 	}
@@ -85,8 +74,6 @@ namespace Toast {
 	void EditorLayer::OnUpdate(Timestep ts)
 	{
 		TOAST_PROFILE_FUNCTION();
-
-		const float clearColor[4] = { 0.22f, 0.22f, 0.22f, 1.0f };
 
 		// Resize
 		if (FramebufferSpecification spec = mFramebuffer->GetSpecification();
@@ -106,13 +93,13 @@ namespace Toast {
 		// Render
 		Renderer2D::ResetStats();
 		mFramebuffer->Bind();
-		mFramebuffer->Clear(clearColor);
+		mFramebuffer->Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
 
 		// Update scene
 		mActiveScene->OnUpdate(ts);
 
 		RenderCommand::BindBackbuffer();
-		RenderCommand::Clear(clearColor);
+		RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -174,7 +161,8 @@ namespace Toast {
 					// which we can't undo at the moment without finer window depth/z control.
 					//ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen_persistant);
 
-					if (ImGui::MenuItem("Exit")) Toast::Application::Get().Close();
+					if (ImGui::MenuItem("Exit")) 
+						Toast::Application::Get().Close();
 
 					ImGui::EndMenu();
 				}
@@ -183,42 +171,6 @@ namespace Toast {
 			}
 
 			mSceneHierarchyPanel.OnImGuiRender();
-
-			ImGui::Begin("Settings");
-
-			auto stats = Renderer2D::GetStats();
-			ImGui::Text("Renderer2D Stats: ");
-			ImGui::Text("Draw Calls: %d", stats.DrawCalls);
-			ImGui::Text("Quads: %d", stats.QuadCount);
-			ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
-			ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
-
-			if (mSquareEntity) 
-			{
-				ImGui::Separator();
-				auto& tag = mSquareEntity.GetComponent<TagComponent>().Tag;
-				ImGui::Text("%s", tag.c_str());
-
-				auto& squareColor = mSquareEntity.GetComponent<SpriteRendererComponent>().Color;
-				ImGui::ColorEdit4("Square Color", &squareColor.x);
-				ImGui::Separator();
-			}
-
-			ImGui::DragFloat3("Camera Transform", (float*)&mCameraEntity.GetComponent<TransformComponent>().Transform.r[3]);
-			if (ImGui::Checkbox("Camera A", &mPrimaryCamera)) 
-			{
-				mCameraEntity.GetComponent<CameraComponent>().Primary = mPrimaryCamera;
-				mSecondCamera.GetComponent<CameraComponent>().Primary = !mPrimaryCamera;
-			}
-
-			{
-				auto& camera = mSecondCamera.GetComponent<CameraComponent>().Camera;
-				float orthoSize = camera.GetOrthographicSize();
-				if (ImGui::DragFloat("Second Camera Ortho Size", &orthoSize, 1.0f, 0.0f))
-					camera.SetOrthographicSize(orthoSize);
-			}
-
-			ImGui::End();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
 			ImGui::Begin("Viewport");

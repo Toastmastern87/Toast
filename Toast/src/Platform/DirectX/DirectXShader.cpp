@@ -243,7 +243,8 @@ namespace Toast {
 
 		for (auto& kv : mRawBlobs)
 		{
-			switch (kv.first) {
+			switch (kv.first) 
+			{
 				case D3D11_VERTEX_SHADER:
 					deviceContext->VSSetShader(mVertexShader.Get(), nullptr, 0);
 					break;
@@ -255,7 +256,8 @@ namespace Toast {
 
 		for (std::pair<std::string, ConstantBuffer> constantBuffer : mConstantBuffers)
 		{
-			switch (constantBuffer.second.ShaderType) {
+			switch (constantBuffer.second.ShaderType) 
+			{
 			case D3D11_VERTEX_SHADER:
 				deviceContext->VSSetConstantBuffers(constantBuffer.second.BindPoint, 1, constantBuffer.second.Buffer.GetAddressOf());
 				break;
@@ -275,7 +277,8 @@ namespace Toast {
 
 		for (auto& kv : mRawBlobs)
 		{
-			switch (kv.first) {
+			switch (kv.first) 
+			{
 			case D3D11_VERTEX_SHADER:
 				deviceContext->VSSetShader(nullptr, 0, 0);
 				break;
@@ -292,7 +295,11 @@ namespace Toast {
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
 		// Check to see if the constant buffer exists
-		TOAST_CORE_ASSERT(!(mConstantBuffers.find(cbName) == mConstantBuffers.end()), "Constant Buffer doesn't exist");
+		if (mConstantBuffers.find(cbName) == mConstantBuffers.end()) 
+		{
+			TOAST_CORE_INFO("Trying to write data to a non existent constant buffer: {0}", cbName.c_str());
+			return;
+		}
 
 		D3D11_MAPPED_SUBRESOURCE ms;
 		deviceContext->Map(mConstantBuffers[cbName].Buffer.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
