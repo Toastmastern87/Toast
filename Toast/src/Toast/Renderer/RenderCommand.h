@@ -12,7 +12,7 @@ namespace Toast {
 			sRendererAPI->Init();
 		}
 
-		static void Clear(const float clearColor[4])
+		static void Clear(const DirectX::XMFLOAT4 clearColor)
 		{
 			sRendererAPI->Clear(clearColor);
 		}
@@ -25,6 +25,11 @@ namespace Toast {
 		static void DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t count = 0)
 		{
 			sRendererAPI->DrawIndexed(indexBuffer, count);
+		}
+
+		static void Draw(uint32_t count)
+		{
+			sRendererAPI->Draw(count);
 		}
 
 		static void SwapBuffers()

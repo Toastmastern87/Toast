@@ -24,7 +24,7 @@ namespace Toast {
 
 		void Invalidate();
 		void Clean();
-		virtual void Clear(const float clearColor[4]) override;
+		virtual void Clear(const DirectX::XMFLOAT4 clearColor) override;
 	private:
 		bool IsDepthFormat(const FormatCode format);
 		bool CreateDepthView(FramebufferSpecification::BufferDesc desc);

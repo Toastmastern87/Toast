@@ -17,9 +17,10 @@ namespace Toast {
 		virtual ~RendererAPI() = default;
 
 		virtual void Init() = 0;
-		virtual void Clear(const float clearColor[4]) = 0;
+		virtual void Clear(const DirectX::XMFLOAT4 clearColor) = 0;
 		virtual void BindBackbuffer() = 0;
 		virtual void DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount = 0) = 0;
+		virtual void Draw(uint32_t count) = 0;
 		virtual void SwapBuffers() = 0;
 		virtual void ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
 		virtual void EnableAlphaBlending() = 0;
