@@ -45,7 +45,7 @@ namespace Toast {
 			});
 		}
 
-		Camera* mainCamera = nullptr;
+		SceneCamera* mainCamera = nullptr;
 		DirectX::XMMATRIX* cameraTransform = nullptr;
 		{
 			auto view = mRegistry.view<TransformComponent, CameraComponent>();
@@ -62,26 +62,43 @@ namespace Toast {
 			}
 		}
 
-		if (mainCamera) 
+		if (mainCamera)
 		{
 			// 3D Rendering
-			Renderer::BeginScene(mainCamera->GetProjection(), *cameraTransform);
+			Renderer::BeginScene(*mainCamera, *cameraTransform);
 
+			{
+				auto view = mRegistry.view<TransformComponent, MeshComponent>();
+
+				for (auto entity : view)
+				{
+					auto [transform, mesh] = view.get<TransformComponent, MeshComponent>(entity);
+
+					// TODO rename IsMeshActive to IsValid() 
+					if (mesh.Mesh->IsMeshActive()) {
+						Renderer::SubmitMesh(mesh.Mesh, transform);
+					}
+				}
+			}
+			
 			// Draw grid
-			Renderer::SubmitQuad(DirectX::XMMatrixIdentity());
+			// TODO - Gradient, aka 150.0f should come from some kind of option instead
+			Renderer::SubmitGrid(*mainCamera, *cameraTransform, { mainCamera->GetPerspectiveFarClip(), mainCamera->GetPerspectiveNearClip(), 150.0f });
 
 			Renderer::EndScene();
 
 			// 2D Rendering
 			Renderer2D::BeginScene(mainCamera->GetProjection(), *cameraTransform);
 
-			auto group = mRegistry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-
-			for (auto entity : group)
 			{
-				auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
+				auto group = mRegistry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
 
-				Renderer2D::DrawQuad(transform, sprite.Color);
+				for (auto entity : group)
+				{
+					auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
+
+					Renderer2D::DrawQuad(transform, sprite.Color);
+				}
 			}
 
 			Renderer2D::EndScene();

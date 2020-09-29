@@ -19,9 +19,13 @@ namespace Toast {
 		return nullptr;
 	}
 
+	std::unordered_map<std::string, Ref<Shader>> ShaderLibrary::mShaders;
+
 	void ShaderLibrary::Add(const std::string name, const Ref<Shader>& shader)
 	{
-		TOAST_CORE_ASSERT(!Exists(name), "Shader already exists!");
+		if (Exists(name))
+			return;
+
 		mShaders[name] = shader;
 	}
 

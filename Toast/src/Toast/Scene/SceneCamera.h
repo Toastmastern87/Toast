@@ -17,22 +17,22 @@ namespace Toast {
 
 		void SetViewportSize(uint32_t width, uint32_t height);
 
-		void SetPerspectiveVerticalFOV(float verticalFOV) { mPerspectiveFOV = DirectX::XMConvertToRadians(verticalFOV); };
-		float GetPerspectiveVerticalFOV() const { return DirectX::XMConvertToDegrees(mPerspectiveFOV); }
-		void SetPerspectiveNearClip(float nearClip) { mPerspectiveNear = nearClip; };
-		float GetPerspectiveNearClip() const { return mPerspectiveNear; }
-		void SetPerspectiveFarClip(float farClip) { mPerspectiveFar = farClip; };
-		float GetPerspectiveFarClip() const { return mPerspectiveFar; }
+		void SetPerspectiveVerticalFOV(float verticalFOV) {	mPerspectiveFOV = DirectX::XMConvertToRadians(verticalFOV); RecalculateProjection(); }
+		const float GetPerspectiveVerticalFOV() const { return DirectX::XMConvertToDegrees(mPerspectiveFOV); }
+		void SetPerspectiveNearClip(float nearClip) { mPerspectiveNear = std::max(nearClip, 0.001f); RecalculateProjection(); }
+		const float GetPerspectiveNearClip() const { return mPerspectiveNear; }
+		void SetPerspectiveFarClip(float farClip) {	mPerspectiveFar = farClip; RecalculateProjection();	}
+		const float GetPerspectiveFarClip() const { return mPerspectiveFar; }
 
-		float GetOrthographicSize() const { return mOrthographicSize; }
 		void SetOrthographicSize(float size) { mOrthographicSize = std::max(size, 0.1f); RecalculateProjection(); }
-		void SetOrthographicNearClip(float nearClip) { mOrthographicNear = nearClip; };
-		float GetOrthographicNearClip() const { return mOrthographicNear; }
-		void SetOrthographicFarClip(float farClip) { mOrthographicFar = farClip; };
-		float GetOrthographicFarClip() const { return mOrthographicFar; }
+		const float GetOrthographicSize() const { return mOrthographicSize; }
+		void SetOrthographicNearClip(float nearClip) { mOrthographicNear = nearClip;  RecalculateProjection(); }
+		const float GetOrthographicNearClip() const { return mOrthographicNear; }
+		void SetOrthographicFarClip(float farClip) { mOrthographicFar = farClip;  RecalculateProjection(); }
+		const float GetOrthographicFarClip() const { return mOrthographicFar; }
 
 		ProjectionType GetProjectionType() const { return mProjectionType; }
-		void SetProjectionType(ProjectionType type) { mProjectionType = type; }
+		void SetProjectionType(ProjectionType type) { mProjectionType = type;  RecalculateProjection();	}
 	private:
 		void RecalculateProjection();
 	private:

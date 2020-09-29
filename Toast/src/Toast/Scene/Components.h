@@ -4,6 +4,7 @@
 
 #include "SceneCamera.h"
 #include "ScriptableEntity.h"
+#include "Toast/Renderer/Mesh.h"
 
 namespace Toast {
 	
@@ -28,6 +29,18 @@ namespace Toast {
 
 		operator DirectX::XMMATRIX& () { return Transform; }
 		operator const DirectX::XMMATRIX& () const { return Transform; }
+	};
+
+	struct MeshComponent
+	{
+		Ref<Toast::Mesh> Mesh;
+		
+		MeshComponent() = default;
+		MeshComponent(const MeshComponent& other) = default;
+		MeshComponent(const Ref<Toast::Mesh>& mesh)
+			: Mesh(mesh) {}
+
+		operator Ref<Toast::Mesh>() { return Mesh; }
 	};
 
 	struct SpriteRendererComponent

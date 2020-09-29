@@ -1,8 +1,10 @@
 #type vertex
 #pragma pack_matrix( row_major )
 
-cbuffer InverseMatrices : register(b0)
+cbuffer Camera : register(b0)
 {
+	matrix viewMatrix;
+	matrix projectionMatrix;
 	matrix inverseViewMatrix;
 	matrix inverseProjectionMatrix;
 };
@@ -19,14 +21,14 @@ struct PixelInputType
 	float3 farPoint : NORMAL1;
 };
 
-static float3 gridPlane[6] = {
-	float3(-1.0f, -1.0f, 0.0f), float3(1.0f, 1.0f, 0.0f), float3(1.0f, -1.0f, 0.0f),
-	float3(1.0f, 1.0f, 0.0f), float3(-1.0f, -1.0f, 0.0f), float3(-1.0f, 1.0f, 0.0f)
+static float2 gridPlane[6] = {
+	float2(-1.0f, -1.0f), float2(1.0f, 1.0f), float2(1.0f, -1.0f),
+	float2(1.0f, 1.0f), float2(-1.0f, -1.0f), float2(-1.0f, 1.0f)
 	};
 
-float3 UnprojectPoint(float x, float y, float z, matrix viewInv, matrix projInv) {
+float3 UnprojectPoint(float3 p) {
 
-	float4 unprojectedPoint = mul(mul(float4(x, y, z, 1.0f), projInv), viewInv);
+	float4 unprojectedPoint = mul(mul(float4(p.x, p.y, p.z, 1.0f), inverseProjectionMatrix), inverseViewMatrix);
 
 	return unprojectedPoint.xyz / unprojectedPoint.w;
 }
@@ -35,11 +37,11 @@ PixelInputType main(VertexInputType input)
 {
 	PixelInputType output;
 
-	float3 p = gridPlane[input.vertexID];
-	output.nearPoint = UnprojectPoint(p.x, p.y, 0.0f, inverseViewMatrix, inverseProjectionMatrix); // unprojecting on the near plane
-	output.farPoint = UnprojectPoint(p.x, p.y, 1.0f, inverseViewMatrix, inverseProjectionMatrix); // unprojecting on the far plane
+	float2 p = gridPlane[input.vertexID];
+	output.nearPoint = UnprojectPoint(float3(p, 0.0f)); // unprojecting on the near plane
+	output.farPoint = UnprojectPoint(float3(p, 1.0f)); // unprojecting on the far plane
 
-	output.position = float4(p, 1.0f); // using directly the clipped coordinates
+	output.position = float4(p, 0.0f, 1.0f); // using directly the clipped coordinates
 
 	return output;
 }
@@ -93,7 +95,7 @@ float ComputeDepth(float3 pos) {
 
 	return (clipSpacePos.z / clipSpacePos.w);
 }
-
+//
 float ComputeLinearDepth(float3 pos)
 {
 	float4 clip = mul(float4(pos, 1.0f), viewMatrix);
@@ -107,7 +109,6 @@ PixelOutputType main(PixelInputType input)
 
 	float t = -input.nearPoint.y / (input.farPoint.y - input.nearPoint.y);
 	float3 pos = input.nearPoint + t * (input.farPoint - input.nearPoint);
-	
 	float linearDepth = ComputeLinearDepth(pos);
 	float fading = saturate(1.0f - gradient * linearDepth);
 

@@ -56,7 +56,7 @@ namespace Toast {
 	{
 	public:
 		DirectXVertexBuffer(uint32_t size, uint32_t count);
-		DirectXVertexBuffer(float* vertices, uint32_t size, uint32_t count);
+		DirectXVertexBuffer(void* vertices, uint32_t size, uint32_t count);
 		virtual ~DirectXVertexBuffer();
 
 		virtual void Bind() const override;
@@ -66,7 +66,7 @@ namespace Toast {
 
 	private:
 		Microsoft::WRL::ComPtr<ID3D11Buffer> mVertexBuffer = nullptr;
-		uint32_t mSize, mCount;
+		uint32_t mSize = 0, mCount;
 	}; 
 
 	class DirectXIndexBuffer : public IndexBuffer

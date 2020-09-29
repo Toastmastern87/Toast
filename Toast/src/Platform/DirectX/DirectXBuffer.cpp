@@ -136,7 +136,7 @@ namespace Toast {
 		Bind();
 	}
 
-	DirectXVertexBuffer::DirectXVertexBuffer(float* vertices, uint32_t size, uint32_t count)
+	DirectXVertexBuffer::DirectXVertexBuffer(void* vertices, uint32_t size, uint32_t count)
 		: mSize(size), mCount(count)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -151,7 +151,7 @@ namespace Toast {
 		ZeroMemory(&vbd, sizeof(D3D11_BUFFER_DESC));
 
 		vbd.Usage = D3D11_USAGE_DEFAULT;
-		vbd.ByteWidth = sizeof(float) * size;
+		vbd.ByteWidth = size;
 		vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		vbd.CPUAccessFlags = 0;
 		vbd.MiscFlags = 0;
@@ -180,8 +180,8 @@ namespace Toast {
 
 		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
-
-		uint32_t stride[] = { sizeof(float) * ((mSize / sizeof(float)) / mCount) };
+		
+		uint32_t stride[] = { mSize / mCount };
 		uint32_t offset[] = { 0 };
 
 		deviceContext->IASetVertexBuffers(0, 1, mVertexBuffer.GetAddressOf(), stride, offset);

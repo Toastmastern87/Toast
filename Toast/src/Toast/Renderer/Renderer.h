@@ -3,7 +3,8 @@
 #include "Toast/Renderer/RenderCommand.h"
 
 #include "Toast/Renderer/OrthographicCamera.h"
-#include "Toast/Renderer/Camera.h"
+#include "Toast/Scene/SceneCamera.h"
+#include "Toast/Renderer/Mesh.h"
 
 namespace Toast {
 
@@ -19,7 +20,9 @@ namespace Toast {
 		static void EndScene();
 
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<BufferLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
+		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform);
 		static void SubmitQuad(const DirectX::XMMATRIX& transform);
+		static void SubmitGrid(const Camera& camera, const DirectX::XMMATRIX& transform, const DirectX::XMFLOAT3 gridData);
 
 		static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 
@@ -39,7 +42,6 @@ namespace Toast {
 		struct SceneData 
 		{
 			DirectX::XMMATRIX viewMatrix, projectionMatrix;
-			float farClip, nearClip, gradient;
 			DirectX::XMMATRIX inverseViewMatrix, inverseProjectionMatrix;
 		};
 
