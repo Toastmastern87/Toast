@@ -143,7 +143,7 @@ namespace Toast {
 		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 		bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
+	
 		result = mDevice->CreateBlendState(&bd, &mAlphaBlendEnabledState);
 
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create blend states");

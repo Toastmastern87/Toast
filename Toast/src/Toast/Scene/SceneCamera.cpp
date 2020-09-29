@@ -3,7 +3,6 @@
 
 namespace Toast {
 
-
 	SceneCamera::SceneCamera()
 	{
 		RecalculateProjection();

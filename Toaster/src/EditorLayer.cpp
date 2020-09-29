@@ -1,6 +1,7 @@
 #include "EditorLayer.h"
 
 #include <imgui/imgui.h>
+#include "Toast/Renderer/Mesh.h"
 
 namespace Toast {
 

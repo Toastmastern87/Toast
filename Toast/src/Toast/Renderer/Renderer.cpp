@@ -24,6 +24,7 @@ namespace Toast {
 		RenderCommand::Init();
 		Renderer2D::Init();
 
+		// TODO - Should be moved to the editor instead???
 		sData.GridShader = Shader::Create("assets/shaders/Grid.hlsl");
 
 		const std::initializer_list<BufferLayout::BufferElement>& layout = {};
@@ -31,7 +32,7 @@ namespace Toast {
 		sData.GridBufferLayout = BufferLayout::Create(layout, sData.GridShader);
 	}
 
-	void Renderer::Shutdown() 
+	void Renderer::Shutdown()
 	{
 		Renderer2D::Shutdown();
 	}
@@ -47,12 +48,10 @@ namespace Toast {
 
 		mSceneData->viewMatrix = DirectX::XMMatrixInverse(nullptr, transform);
 		mSceneData->projectionMatrix = camera.GetProjection();
-		// TODO Get the far and near values from the actual camera instead of hardcoded, gradient should come from somekind of option panel in ImGui
-		mSceneData->farClip = 10000.0f;
-		mSceneData->nearClip = 0.01f;
-		mSceneData->gradient = 150.0f;
 		mSceneData->inverseViewMatrix = DirectX::XMMatrixInverse(nullptr, DirectX::XMMatrixInverse(nullptr, transform));
 		mSceneData->inverseProjectionMatrix = DirectX::XMMatrixInverse(nullptr, camera.GetProjection());
+
+		sData.GridShader->SetData("Camera", (void*)&mSceneData->viewMatrix);
 	}
 
 	void Renderer::EndScene()
@@ -65,18 +64,44 @@ namespace Toast {
 		bufferLayout->Bind();
 		vertexBuffer->Bind();
 		indexBuffer->Bind();
-		shader->SetData("Camera", (void*)&mSceneData->inverseViewMatrix);
 		shader->Bind();
 
 		RenderCommand::DrawIndexed(indexBuffer);
 	}
 
+	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform)
+	{
+		mesh->GetMeshShader()->SetData("Camera", (void*)&mSceneData->viewMatrix);
+		mesh->GetMeshShader()->SetData("Model", (void*)&transform);
+		mesh->GetLayout()->Bind();
+		mesh->GetVertexBuffer()->Bind();
+		mesh->GetIndexBuffer()->Bind();
+		mesh->GetMeshShader()->Bind();
+		
+		RenderCommand::DrawIndexed(mesh->GetIndexBuffer(), mesh->GetIndexBuffer()->GetCount());// sizeof(mesh->GetIndexBuffer()) / sizeof(uint32_t));
+	}
+
 	void Renderer::SubmitQuad(const DirectX::XMMATRIX& transform)
+	{
+	}
+
+	// TODO - When material system is implemented this should be handled by the SubmitMesh()	
+	void Renderer::SubmitGrid(const Camera& camera, const DirectX::XMMATRIX& transform, const DirectX::XMFLOAT3 gridData)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		sData.GridShader->SetData("GridData", (void*)&mSceneData->viewMatrix);
-		sData.GridShader->SetData("InverseMatrices", (void*)&mSceneData->inverseViewMatrix);
+		struct Data 
+		{
+			DirectX::XMMATRIX viewMatrix, projectionMatrix;
+			DirectX::XMFLOAT3 floats;
+		}; 
+
+		Data data;
+		data.viewMatrix = DirectX::XMMatrixInverse(nullptr, transform);
+		data.projectionMatrix = camera.GetProjection();
+		data.floats = gridData;
+
+		sData.GridShader->SetData("GridData", (void*)&data);
 		sData.GridBufferLayout->Bind();
 		sData.GridShader->Bind();
 

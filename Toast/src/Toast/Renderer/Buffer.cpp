@@ -33,7 +33,7 @@ namespace Toast {
 		return nullptr;
 	}
 
-	Ref<VertexBuffer> VertexBuffer::Create(float* vertices, uint32_t size, uint32_t count)
+	Ref<VertexBuffer> VertexBuffer::Create(void* vertices, uint32_t size, uint32_t count)
 	{
 		switch (RendererAPI::GetAPI())
 		{

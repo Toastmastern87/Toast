@@ -167,7 +167,7 @@ namespace Toast {
 		textureDesc.CPUAccessFlags = 0;
 		textureDesc.MiscFlags = 0;
 
-		result = device->CreateTexture2D(&textureDesc, NULL, &mRenderTargetTexture);
+		result = device->CreateTexture2D(&textureDesc, nullptr, &mRenderTargetTexture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create 2D texture!");
 
 		renderTargetViewDesc.Format = (DXGI_FORMAT)desc.Format;

@@ -24,6 +24,7 @@ namespace Toast {
 
 		Ref<Scene> mActiveScene;
 		Entity mCameraEntity;
+		Entity mSquareEntity;
 
 		bool mPrimaryCamera = true;
 
