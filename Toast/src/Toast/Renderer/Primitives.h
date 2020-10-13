@@ -84,27 +84,27 @@ namespace Toast {
 		{
 			PrimitiveMesh gridMesh;
 
-			float gridSize = 10.0f;
+			uint32_t gridSize = 5;
 
-			for (int x = 0; x <= gridSize; x++)
+			for (uint32_t x = 0; x <= gridSize; x++)
 			{
-				for (int z = 0; z <= gridSize; z++)
+				for (uint32_t z = 0; z <= gridSize; z++)
 				{
-					gridMesh.Vertices.push_back(PrimitiveVertex({ -(gridSize / 2.0f) + x, 0.0f, -(gridSize / 2.0f) + z }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
+					gridMesh.Vertices.push_back(PrimitiveVertex({ -((float)gridSize / 2.0f) + x, 0.0f, -((float)gridSize / 2.0f) + z }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
 				}
 			}
 
-			for (int x = 0; x < gridSize; x++)
+			for (uint32_t x = 0; x < gridSize; x++)
 			{
-				for (int z = 0; z < gridSize; z++)
+				for (uint32_t z = 0; z < gridSize; z++)
 				{
-					gridMesh.Indices.push_back(z + 1 + (gridSize + 1) * x);
-					gridMesh.Indices.push_back(z + gridSize + 2 + (gridSize + 1) * x);
-					gridMesh.Indices.push_back(z + (gridSize + 1) * x);
+					gridMesh.Indices.push_back(z + (uint32_t)1 + (gridSize + (uint32_t)1) * x);
+					gridMesh.Indices.push_back(z + gridSize + (uint32_t)2 + (gridSize + (uint32_t)1) * x);
+					gridMesh.Indices.push_back(z + (gridSize + (uint32_t)1) * x);
 
-					gridMesh.Indices.push_back(z + gridSize + 2 + (gridSize + 1) * x);
-					gridMesh.Indices.push_back(z + gridSize + 1 + (gridSize + 1) * x);
-					gridMesh.Indices.push_back(z + (gridSize + 1) * x);
+					gridMesh.Indices.push_back(z + gridSize + (uint32_t)2 + (gridSize + (uint32_t)1) * x);
+					gridMesh.Indices.push_back(z + gridSize + (uint32_t)1 + (gridSize + (uint32_t)1) * x);
+					gridMesh.Indices.push_back(z + (gridSize + (uint32_t)1) * x);
 				}
 			}
 
