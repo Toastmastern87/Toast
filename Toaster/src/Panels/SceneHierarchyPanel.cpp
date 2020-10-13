@@ -366,17 +366,17 @@ namespace Toast {
 
 				if (camera.GetProjectionType() == SceneCamera::ProjectionType::Perspective)
 				{
-					float verticalFOV = camera.GetPerspectiveVerticalFOV();
-					if (Property("Vertical FOV", verticalFOV))
-						camera.SetPerspectiveVerticalFOV(verticalFOV);
+					float perspectiveVerticalFOV = camera.GetPerspectiveVerticalFOV();
+					if (Property("Vertical FOV", perspectiveVerticalFOV))
+						camera.SetPerspectiveVerticalFOV(perspectiveVerticalFOV);
 
-					float nearClip = camera.GetPerspectiveNearClip();
-					if (Property("Near Clip", nearClip))
-						camera.SetPerspectiveNearClip(nearClip);
+					float perspectiveNear = camera.GetPerspectiveNearClip();
+					if (Property("Near Clip", perspectiveNear))
+						camera.SetPerspectiveNearClip(perspectiveNear);
 					
-					float farClip = camera.GetPerspectiveFarClip();
-					if (Property("Far Clip", farClip))
-						camera.SetPerspectiveFarClip(farClip);
+					float perspectiveFar = camera.GetPerspectiveFarClip();
+					if (Property("Far Clip", perspectiveFar))
+						camera.SetPerspectiveFarClip(perspectiveFar);
 				}
 
 				if (camera.GetProjectionType() == SceneCamera::ProjectionType::Orthographic)
@@ -385,13 +385,13 @@ namespace Toast {
 					if (Property("Orthographic Size", orthoSize))
 						camera.SetOrthographicSize(orthoSize);
 
-					float nearClip = camera.GetOrthographicNearClip();
-					if (Property("Near Clip", nearClip))
-						camera.SetOrthographicNearClip(nearClip);
+					float orthoNear = camera.GetOrthographicNearClip();
+					if (Property("Near Clip", orthoNear))
+						camera.SetOrthographicNearClip(orthoNear);
 
-					float farClip = camera.GetOrthographicFarClip();
-					if (Property("Far Clip", farClip))
-						camera.SetOrthographicFarClip(farClip);
+					float orthoFar = camera.GetOrthographicFarClip();
+					if (Property("Far Clip", orthoFar))
+						camera.SetOrthographicFarClip(orthoFar);
 
 					ImGui::Checkbox("Fixed Aspect Ratio", &cc.FixedAspectRatio);
 				}

@@ -1,7 +1,7 @@
 #include "tpch.h"
-#include "DirectXFramebuffer.h"
+#include "Platform/DirectX/DirectXFramebuffer.h"
 
-#include "DirectXRendererAPI.h"
+#include "Platform/DirectX/DirectXRendererAPI.h"
 #include "Toast/Renderer/Renderer.h"
 
 namespace Toast {
