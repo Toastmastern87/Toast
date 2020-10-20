@@ -35,8 +35,9 @@ namespace Toast {
 		public:
 			void OnCreate() 
 			{
-				auto& transform = GetComponent<TransformComponent>().Transform;
-				transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, 0.3f, -3.149f));
+				auto& translation = GetComponent<TransformComponent>().Translation;
+				translation.x = rand() % 10 - 5.0f;
+				translation.y = 5.0f;
 			}
 
 			void OnDestroy() 
@@ -46,21 +47,21 @@ namespace Toast {
 
 			void OnUpdate(Timestep ts) 
 			{
-				auto& transform = GetComponent<TransformComponent>().Transform;
+				auto& translation = GetComponent<TransformComponent>().Translation;
 				float speed = 5.0f;
 
 				if (Input::IsKeyPressed(Key::A))
-					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(-(speed * ts), 0.0f, 0.0f));
+					translation.x -= speed * ts;
 				if (Input::IsKeyPressed(Key::D))
-					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(speed * ts, 0.0f, 0.0f));
+					translation.x += speed * ts;
 				if (Input::IsKeyPressed(Key::E))
-					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, speed * ts, 0.0f));
+					translation.y += speed * ts;
 				if (Input::IsKeyPressed(Key::Q))
-					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, -(speed * ts), 0.0f));
+					translation.y -= speed * ts;
 				if (Input::IsKeyPressed(Key::W))
-					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, 0.0f, speed * ts));
+					translation.z += speed * ts;
 				if (Input::IsKeyPressed(Key::S))
-					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, 0.0f, -(speed * ts)));
+					translation.z -= speed * ts;
 			}
 		};
 

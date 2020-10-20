@@ -37,14 +37,11 @@ namespace Toast {
 
 			// Transform Component
 			{
-				if (entity.HasComponent<TagComponent>()) {
-					DirectX::XMFLOAT4X4 mat; DirectX::XMStoreFloat4x4(&mat, entity.GetComponent<TransformComponent>().Transform);
-					std::vector<float> matData;
-					matData.resize(16);
+					auto& tc = entity.GetComponent<TransformComponent>();
 
-					memcpy(matData.data(), &mat, sizeof(mat));
-					j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["transform"] = matData;
-				}
+					j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["transform"]["translation"] = { tc.Translation.x, tc.Translation.y, tc.Translation.z };
+					j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["transform"]["rotation"] = { tc.Rotation.x, tc.Rotation.y, tc.Rotation.z };
+					j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["transform"]["scale"] = { tc.Scale.x, tc.Scale.y, tc.Scale.z };
 			}
 
 			// Mesh Component
@@ -128,10 +125,19 @@ namespace Toast {
 
 			// Transform			
 			{
-				DirectX::XMFLOAT4X4 transform;
-				std::vector<float> trans = components["transform"];
-				memcpy(&transform, trans.data(), sizeof(transform));
-				deserializedEntity.GetComponent<TransformComponent>().Transform = XMLoadFloat4x4(&transform);
+				auto& tc = deserializedEntity.GetComponent<TransformComponent>();
+
+				std::vector<float> translationArray = components["transform"]["translation"];
+				DirectX::XMFLOAT3 translation = *(DirectX::XMFLOAT3*)(translationArray.data());
+				tc.Translation = translation;
+
+				std::vector<float> rotationArray = components["transform"]["rotation"];
+				DirectX::XMFLOAT3 rotation = *(DirectX::XMFLOAT3*)(rotationArray.data());
+				tc.Rotation = rotation;
+
+				std::vector<float> scaleArray = components["transform"]["scale"];
+				DirectX::XMFLOAT3 scale = *(DirectX::XMFLOAT3*)(scaleArray.data());
+				tc.Scale = scale;
 			}
 
 			// Mesh
