@@ -1,6 +1,8 @@
 #include "EditorLayer.h"
 
 #include <imgui/imgui.h>
+#include <filesystem>
+
 #include "Toast/Renderer/Mesh.h"
 
 namespace Toast {
@@ -51,9 +53,9 @@ namespace Toast {
 					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(-(speed * ts), 0.0f, 0.0f));
 				if (Input::IsKeyPressed(Key::D))
 					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(speed * ts, 0.0f, 0.0f));
-				if (Input::IsKeyPressed(Key::Q))
-					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, speed * ts, 0.0f));
 				if (Input::IsKeyPressed(Key::E))
+					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, speed * ts, 0.0f));
+				if (Input::IsKeyPressed(Key::Q))
 					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, -(speed * ts), 0.0f));
 				if (Input::IsKeyPressed(Key::W))
 					transform = DirectX::XMMatrixMultiply(transform, DirectX::XMMatrixTranslation(0.0f, 0.0f, speed * ts));
@@ -161,7 +163,17 @@ namespace Toast {
 					// Disabling fullscreen would allow the window to be moved to the front of other windows, 
 					// which we can't undo at the moment without finer window depth/z control.
 					//ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen_persistant);
+					if (ImGui::MenuItem("New Scene", "Ctrl-N"))
+						;//TODO
+					if (ImGui::MenuItem("Open Scene...", "Ctrl+O"))
+						OpenScene();
+					ImGui::Separator();
+					if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
+						SaveScene();
+					if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S"))
+						SaveSceneAs();
 
+					ImGui::Separator();
 					if (ImGui::MenuItem("Exit")) 
 						Toast::Application::Get().Close();
 
@@ -209,4 +221,57 @@ namespace Toast {
 	{
 		mCameraController.OnEvent(e);
 	}
+
+	void EditorLayer::OpenScene()
+	{
+		auto& app = Application::Get();
+		std::string filepath = app.OpenFile("Toast Scene (*.tsc)\0*.tsc\0");
+
+		if (!filepath.empty())
+		{
+			Ref<Scene> newScene = CreateRef<Scene>();
+			SceneSerializer serializer(newScene);
+			serializer.DeserializeScene(filepath);
+			mActiveScene = newScene;
+			std::filesystem::path path = filepath;
+			UpdateWindowTitle(path.filename().string());
+			mSceneHierarchyPanel.SetContext(mActiveScene);
+
+			mSceneFilePath = filepath;
+		}
+	}
+
+	void EditorLayer::SaveScene()
+	{
+		if (!(mSceneFilePath == "")) {
+			SceneSerializer serializer(mActiveScene);
+			serializer.SerializeScene(mSceneFilePath);
+		}
+		else {
+			SaveSceneAs();
+		}
+	}
+
+	void EditorLayer::SaveSceneAs()
+	{
+		auto& app = Application::Get();
+		std::string filepath = app.SaveFile("Toast Scene (*.tsc)\0*.tsc\0");
+
+		if (!filepath.empty()) 
+		{
+			SceneSerializer serializer(mActiveScene);
+			serializer.SerializeScene(filepath);
+
+			std::filesystem::path path = filepath;
+			UpdateWindowTitle(path.filename().string());
+			mSceneFilePath = filepath;
+		}
+	}
+
+	void EditorLayer::UpdateWindowTitle(const std::string& sceneName)
+	{
+		std::string title = sceneName + " - Toaster - " + Application::GetPlatformName() + " (" + Application::GetConfigurationName() + ")";
+		Application::Get().GetWindow().SetTitle(title);
+	}
+
 }
