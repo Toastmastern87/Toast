@@ -78,7 +78,7 @@ namespace Toast {
 		mesh->GetIndexBuffer()->Bind();
 		mesh->GetMeshShader()->Bind();
 		
-		RenderCommand::DrawIndexed(mesh->GetIndexBuffer(), mesh->GetIndexBuffer()->GetCount());// sizeof(mesh->GetIndexBuffer()) / sizeof(uint32_t));
+		RenderCommand::DrawIndexed(mesh->GetIndexBuffer(), mesh->GetIndexBuffer()->GetCount());
 	}
 
 	void Renderer::SubmitQuad(const DirectX::XMMATRIX& transform)
