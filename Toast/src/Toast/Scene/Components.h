@@ -18,17 +18,25 @@ namespace Toast {
 			: Tag(tag) {}
 	};
 
-	struct TransformComponent 
+	struct TransformComponent
 	{
-		DirectX::XMMATRIX Transform = DirectX::XMMatrixIdentity();
+		DirectX::XMFLOAT3 Translation = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 Rotation = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 Scale = { 1.0f, 1.0f, 1.0f };
 
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
-		TransformComponent(const DirectX::XMMATRIX& transform)
-			: Transform(transform) {}
+		TransformComponent(const DirectX::XMFLOAT3& translation)
+			: Translation(translation) {}
 
-		operator DirectX::XMMATRIX& () { return Transform; }
-		operator const DirectX::XMMATRIX& () const { return Transform; }
+		DirectX::XMMATRIX GetTransform() const 
+		{
+			DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Scale.x, Scale.y, Scale.z)
+				* DirectX::XMMatrixRotationRollPitchYaw(Rotation.x, Rotation.y, Rotation.z)
+				* DirectX::XMMatrixTranslation(Translation.x, Translation.y, Translation.z);
+
+			return transform;
+		}
 	};
 
 	struct MeshComponent

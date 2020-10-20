@@ -35,9 +35,6 @@ namespace Toast
 		io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 		io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
 
-		ImFont* pFont = io.Fonts->AddFontFromFileTTF("../Toaster/assets/fonts/Segoe_UI.ttf", 18.0f);
-		io.FontDefault = io.Fonts->Fonts.back();
-
 		ImGui::StyleColorsDark();
 
 		ImGuiStyle& style = ImGui::GetStyle();
