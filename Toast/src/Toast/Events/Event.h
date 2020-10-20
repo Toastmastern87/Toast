@@ -68,7 +68,7 @@ namespace Toast
 		{
 			if (mEvent.GetEventType() == T::GetStaticType())
 			{
-				mEvent.Handled = func(static_cast<T&>(mEvent));
+				mEvent.Handled |= func(static_cast<T&>(mEvent));
 				return true;
 			}
 			return false;

@@ -110,10 +110,7 @@ namespace Toast {
 		sData.TextureShader->SetData("Camera", (void*)&viewProj);
 		sData.TextureShader->Bind();
 
-		sData.QuadIndexCount = 0;
-		sData.QuadVertexBufferPtr = sData.QuadVertexBufferBase;
-
-		sData.TextureSlotIndex = 1;
+		StartBatch();
 	}
 
 	void Renderer2D::BeginScene(const OrthographicCamera& camera)
@@ -123,18 +120,12 @@ namespace Toast {
 		sData.TextureShader->Bind();
 		sData.TextureShader->SetData("Camera", (void*)&camera.GetViewProjectionMatrix());
 
-		sData.QuadIndexCount = 0;
-		sData.QuadVertexBufferPtr = sData.QuadVertexBufferBase;
-
-		sData.TextureSlotIndex = 1;
+		StartBatch();
 	}
 
 	void Renderer2D::EndScene()
 	{
 		TOAST_PROFILE_FUNCTION();
-
-		uint32_t dataSize = (uint32_t)((uint8_t*)sData.QuadVertexBufferPtr - (uint8_t*)sData.QuadVertexBufferBase);
-		sData.QuadVertexBuffer->SetData(sData.QuadVertexBufferBase, dataSize);
 
 		Flush();
 	}
@@ -144,6 +135,9 @@ namespace Toast {
 		if (sData.QuadIndexCount == 0)
 			return; // Nothing to draw
 
+		uint32_t dataSize = (uint32_t)((uint8_t*)sData.QuadVertexBufferPtr - (uint8_t*)sData.QuadVertexBufferBase);
+		sData.QuadVertexBuffer->SetData(sData.QuadVertexBufferBase, dataSize);
+
 		for (uint32_t i = 0; i < sData.TextureSlotIndex; i++) 
 		{
 			sData.TextureSlots[i]->Bind();
@@ -151,16 +145,6 @@ namespace Toast {
 
 		RenderCommand::DrawIndexed(sData.QuadIndexBuffer, sData.QuadIndexCount);
 		sData.Stats.DrawCalls++;
-	}
-
-	void Renderer2D::FlushAndReset()
-	{
-		EndScene();
-
-		sData.QuadIndexCount = 0;
-		sData.QuadVertexBufferPtr = sData.QuadVertexBufferBase;
-
-		sData.TextureSlotIndex = 1;
 	}
 
 	void Renderer2D::DrawQuad(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, const DirectX::XMFLOAT4& color)
@@ -203,7 +187,7 @@ namespace Toast {
 		const float tilingFactor = 1.0f;
 
 		if (sData.QuadIndexCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
+			NextBatch();
 
 		for (size_t i = 0; i < quadVertexCount; i++)
 		{
@@ -229,7 +213,7 @@ namespace Toast {
 		float textureIndex = 0.0f;
 
 		if (sData.QuadIndexCount >= Renderer2DData::MaxIndices)
-			FlushAndReset();
+			NextBatch(); 
 
 		for (uint32_t i = 1; i < sData.TextureSlotIndex; i++)
 		{
@@ -243,7 +227,7 @@ namespace Toast {
 		if (textureIndex == 0)
 		{
 			if (sData.TextureSlotIndex >= Renderer2DData::MaxTextureSlots)
-				FlushAndReset();
+				NextBatch();
 
 			textureIndex = (float)sData.TextureSlotIndex;
 			sData.TextureSlots[sData.TextureSlotIndex] = texture;
@@ -298,6 +282,20 @@ namespace Toast {
 	void Renderer2D::ResetStats()
 	{
 		memset(&sData.Stats, 0, sizeof(Statistics));
+	}
+
+	void Renderer2D::StartBatch()
+	{
+		sData.QuadIndexCount = 0;
+		sData.QuadVertexBufferPtr = sData.QuadVertexBufferBase;
+
+		sData.TextureSlotIndex = 1;
+	}
+
+	void Renderer2D::NextBatch()
+	{
+		Flush();
+		StartBatch();
 	}
 
 	Renderer2D::Statistics Renderer2D::GetStats()

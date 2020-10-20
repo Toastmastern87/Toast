@@ -73,7 +73,7 @@ namespace Toast {
 		virtual uint32_t GetStride() const = 0;
 		virtual const std::vector<BufferElement>& GetElements() const = 0;
 
-		static Ref<BufferLayout> Create(const std::initializer_list<BufferElement>& elements, Ref<Shader> shader);
+		static Ref<BufferLayout> Create(std::initializer_list<BufferElement> elements, Ref<Shader> shader);
 
 	private:
 		virtual void CalculateOffsetAndStride() = 0;

@@ -9,7 +9,7 @@
 
 namespace Toast {
 
-	Ref<BufferLayout> BufferLayout::Create(const std::initializer_list<BufferElement>& elements, Ref<Shader> shader)
+	Ref<BufferLayout> BufferLayout::Create(std::initializer_list<BufferElement> elements, Ref<Shader> shader)
 	{
 		switch (RendererAPI::GetAPI())
 		{
