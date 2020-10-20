@@ -7,7 +7,7 @@
 #include "Toast/Renderer/Mesh.h"
 
 namespace Toast {
-	
+
 	struct TagComponent 
 	{
 		std::string Tag;

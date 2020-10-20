@@ -120,6 +120,12 @@ namespace Toast
 		return mData.VSync;
 	}
 
+	void WindowsWindow::SetTitle(const std::string& title)
+	{
+		mData.Title = title;
+		SetWindowText(mWin32Window, mData.Title.c_str());
+	}
+
 	LRESULT CALLBACK WindowsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		LRESULT result = NULL;

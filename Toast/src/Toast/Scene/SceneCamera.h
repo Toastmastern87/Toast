@@ -33,6 +33,9 @@ namespace Toast {
 
 		ProjectionType GetProjectionType() const { return mProjectionType; }
 		void SetProjectionType(ProjectionType type) { mProjectionType = type;  RecalculateProjection();	}
+
+		const float GetAspecRatio() const { return mAspectRatio; }
+		void SetAspectRatio(float aspectRatio) { mAspectRatio = aspectRatio; RecalculateProjection(); }
 	private:
 		void RecalculateProjection();
 	private:

@@ -17,7 +17,15 @@ namespace Toast {
 		void OnUpdate(Timestep ts) override;
 		virtual void OnImGuiRender() override;
 		void OnEvent(Event& e) override;
+
+		void OpenScene();
+		void SaveScene();
+		void SaveSceneAs();
 	private:
+		void UpdateWindowTitle(const std::string& sceneName);
+	private:
+		std::string mSceneFilePath = "";
+
 		OrthographicCameraController mCameraController;
 
 		Ref<Framebuffer> mFramebuffer;

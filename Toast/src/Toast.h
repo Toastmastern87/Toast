@@ -21,6 +21,7 @@
 #include "Toast/Scene/Entity.h"
 #include "Toast/Scene/Components.h"
 #include "Toast/Scene/ScriptableEntity.h"
+#include "Toast/Scene/SceneSerializer.h"
 
 //-------Renderer------------------------
 #include "Toast/Renderer/Renderer.h"
