@@ -39,13 +39,13 @@ namespace Toast {
 		}
 	};
 
-	struct MeshComponent
+	struct PrimitiveMeshComponent
 	{
 		Ref<Toast::Mesh> Mesh;
 		
-		MeshComponent() = default;
-		MeshComponent(const MeshComponent& other) = default;
-		MeshComponent(const Ref<Toast::Mesh>& mesh)
+		PrimitiveMeshComponent() = default;
+		PrimitiveMeshComponent(const PrimitiveMeshComponent& other) = default;
+		PrimitiveMeshComponent(const Ref<Toast::Mesh>& mesh)
 			: Mesh(mesh) {}
 
 		operator Ref<Toast::Mesh>() { return Mesh; }

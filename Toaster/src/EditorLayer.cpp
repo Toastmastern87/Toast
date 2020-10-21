@@ -36,8 +36,7 @@ namespace Toast {
 			void OnCreate() 
 			{
 				auto& translation = GetComponent<TransformComponent>().Translation;
-				translation.x = rand() % 10 - 5.0f;
-				translation.y = 5.0f;
+				translation = { 0.0f, 3.0f, -12.0f };
 			}
 
 			void OnDestroy() 

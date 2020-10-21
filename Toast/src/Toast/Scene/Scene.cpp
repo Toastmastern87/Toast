@@ -68,11 +68,11 @@ namespace Toast {
 			Renderer::BeginScene(*mainCamera, cameraTransform);
 
 			{
-				auto view = mRegistry.view<TransformComponent, MeshComponent>();
+				auto view = mRegistry.view<TransformComponent, PrimitiveMeshComponent>();
 
 				for (auto entity : view)
 				{
-					auto [transform, mesh] = view.get<TransformComponent, MeshComponent>(entity);
+					auto [transform, mesh] = view.get<TransformComponent, PrimitiveMeshComponent>(entity);
 
 					// TODO rename IsMeshActive to IsValid() 
 					if (mesh.Mesh->IsMeshActive()) {

@@ -51,19 +51,20 @@ namespace Toast {
 
 			if (ImGui::BeginPopup("AddComponentPanel"))
 			{
-				if (!mSelectionContext.HasComponent<MeshComponent>())
-				{
-					if (ImGui::Button("Mesh"))
-					{
-						mSelectionContext.AddComponent<MeshComponent>(CreateRef<Mesh>());
-						ImGui::CloseCurrentPopup();
-					}
-				}
 				if (!mSelectionContext.HasComponent<CameraComponent>())
 				{
 					if (ImGui::Button("Camera"))
 					{
 						mSelectionContext.AddComponent<CameraComponent>();
+						ImGui::CloseCurrentPopup();
+					}
+				}
+
+				if (!mSelectionContext.HasComponent<PrimitiveMeshComponent>())
+				{
+					if (ImGui::Button("Primitive Mesh"))
+					{
+						mSelectionContext.AddComponent<PrimitiveMeshComponent>(CreateRef<Mesh>());
 						ImGui::CloseCurrentPopup();
 					}
 				}
@@ -257,86 +258,47 @@ namespace Toast {
 			}
 		}
 
-		if (entity.HasComponent<MeshComponent>())
+		if (entity.HasComponent<PrimitiveMeshComponent>())
 		{
 			ImGui::Separator();
 
-			auto& mc = entity.GetComponent<MeshComponent>();
+			auto& mc = entity.GetComponent<PrimitiveMeshComponent>();
 
 			const char* meshTypeStrings[] = { "None", "Primitive", "Model" };
 			const char* currentType = meshTypeStrings[(int)mc.Mesh->GetType()];
 
-			if (ImGui::TreeNodeEx((void*)typeid(MeshComponent).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, "Mesh"))
+			if (ImGui::TreeNodeEx((void*)typeid(PrimitiveMeshComponent).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, "Primitive Mesh"))
 			{
-				if (mc.Mesh->GetType() == Mesh::MeshType::NONE)
-				{
-					ImGui::Columns(2);
-					ImGui::Text("Type");
-					ImGui::NextColumn();
-					ImGui::PushItemWidth(-1);
-
-					if (ImGui::BeginCombo("##type", currentType))
-					{
-						for (int type = 0; type < 3; type++)
-						{
-							bool isSelected = (currentType == meshTypeStrings[type]);
-							if (ImGui::Selectable(meshTypeStrings[type], isSelected))
-							{
-								currentType = meshTypeStrings[type];
-								mc.Mesh->SetType((Mesh::MeshType)type);
-							}
-							if (isSelected)
-								ImGui::SetItemDefaultFocus();
-						}
-						ImGui::EndCombo();
-					}
-
-					ImGui::PopItemWidth();
-					ImGui::NextColumn();
-				}
-
 				BeginPropertyGrid();
 
-				if (mc.Mesh->GetType() == Mesh::MeshType::PRIMITIVE)
+				ImGui::Columns(2);
+				ImGui::Text("Type");
+				ImGui::NextColumn();
+				ImGui::PushItemWidth(-1);
+
+				const char* primitiveTypeStrings[] = { "None", "Plane", "Cube", "Icosphere", "Grid" };
+				const char* currentType = primitiveTypeStrings[(int)mc.Mesh->GetPrimitiveType()];
+
+				if (ImGui::BeginCombo("##primitivetype", currentType))
 				{
-					ImGui::Columns(2);
-					ImGui::Text("Primitive type");
-					ImGui::NextColumn();
-					ImGui::PushItemWidth(-1);
-
-					const char* primitiveTypeStrings[] = { "None", "Plane", "Cube", "Icosphere", "Grid" };
-					const char* currentType = primitiveTypeStrings[(int)mc.Mesh->GetPrimitiveType()];
-
-					if (ImGui::BeginCombo("##primitivetype", currentType))
+					for (int type = 0; type < 5; type++)
 					{
-						for (int type = 0; type < 5; type++)
+						bool isSelected = (currentType == primitiveTypeStrings[type]);
+						if (ImGui::Selectable(primitiveTypeStrings[type], isSelected))
 						{
-							bool isSelected = (currentType == primitiveTypeStrings[type]);
-							if (ImGui::Selectable(primitiveTypeStrings[type], isSelected))
-							{
-								currentType = primitiveTypeStrings[type];
-								mc.Mesh->SetPrimitiveType((Mesh::PrimitiveType)type);
-								mc.Mesh->CreateFromPrimitive();
-							}
-							if (isSelected)
-								ImGui::SetItemDefaultFocus();
+							currentType = primitiveTypeStrings[type];
+							mc.Mesh->SetPrimitiveType((Mesh::PrimitiveType)type);
+							mc.Mesh->CreateFromPrimitive();
 						}
-						ImGui::EndCombo();
+						if (isSelected)
+							ImGui::SetItemDefaultFocus();
 					}
-
-					ImGui::PopItemWidth();
-					ImGui::NextColumn();
+					ImGui::EndCombo();
 				}
 
-				if (mc.Mesh->GetType() == Mesh::MeshType::MODEL)
-				{
-				}
+				ImGui::PopItemWidth();
+				ImGui::NextColumn();
 
-				if (mc.Mesh->GetType() == Mesh::MeshType::NONE)
-				{
-					ImGui::Columns(1);
-					ImGui::Text("Choose a type!");
-				}
 
 				ImGui::Columns(1);
 				ImGui::TreePop();

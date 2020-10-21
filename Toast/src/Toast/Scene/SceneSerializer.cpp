@@ -46,8 +46,8 @@ namespace Toast {
 
 			// Mesh Component
 			{
-				if (entity.HasComponent<MeshComponent>()) {
-					auto& mc = entity.GetComponent<MeshComponent>();
+				if (entity.HasComponent<PrimitiveMeshComponent>()) {
+					auto& mc = entity.GetComponent<PrimitiveMeshComponent>();
 
 					j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["mesh"]["type"] = static_cast<uint32_t>(mc.Mesh->GetType());
 
@@ -140,13 +140,13 @@ namespace Toast {
 				tc.Scale = scale;
 			}
 
-			// Mesh
+			// Primitive Mesh
 			{
 				if (components.find("mesh") != components.end()){
 					nlohmann::json& mesh = components["mesh"];
 
-					deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>());
-					auto& mc = deserializedEntity.GetComponent<MeshComponent>();
+					deserializedEntity.AddComponent<PrimitiveMeshComponent>(CreateRef<Mesh>());
+					auto& mc = deserializedEntity.GetComponent<PrimitiveMeshComponent>();
 
 					mc.Mesh->SetType(static_cast<Mesh::MeshType>(mesh["type"].get<uint32_t>()));
 					mc.Mesh->SetPrimitiveType(static_cast<Mesh::PrimitiveType>(mesh["primitive type"]));
