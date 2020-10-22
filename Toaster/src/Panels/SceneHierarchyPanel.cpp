@@ -28,6 +28,7 @@ namespace Toast {
 			DrawEntityNode(entity);
 		});
 
+		// Right-click on blank space
 		if (ImGui::BeginPopupContextWindow(0, 1, false)) 
 		{
 			if (ImGui::MenuItem("Create Empty Entity")) 
@@ -53,7 +54,7 @@ namespace Toast {
 			{
 				if (!mSelectionContext.HasComponent<CameraComponent>())
 				{
-					if (ImGui::Button("Camera"))
+					if (ImGui::MenuItem("Camera"))
 					{
 						mSelectionContext.AddComponent<CameraComponent>();
 						ImGui::CloseCurrentPopup();
@@ -62,7 +63,7 @@ namespace Toast {
 
 				if (!mSelectionContext.HasComponent<PrimitiveMeshComponent>())
 				{
-					if (ImGui::Button("Primitive Mesh"))
+					if (ImGui::MenuItem("Primitive Mesh"))
 					{
 						mSelectionContext.AddComponent<PrimitiveMeshComponent>(CreateRef<Mesh>());
 						ImGui::CloseCurrentPopup();
@@ -71,7 +72,7 @@ namespace Toast {
 
 				if (!mSelectionContext.HasComponent<SpriteRendererComponent>())
 				{
-					if (ImGui::Button("Sprite Renderer"))
+					if (ImGui::MenuItem("Sprite Renderer"))
 					{
 						mSelectionContext.AddComponent<SpriteRendererComponent>();
 						ImGui::CloseCurrentPopup();
@@ -134,20 +135,6 @@ namespace Toast {
 		return modified;
 	}
 
-	static std::tuple<DirectX::XMFLOAT3, DirectX::XMFLOAT3, DirectX::XMFLOAT3> GetTransformDecomposition(const DirectX::XMMATRIX& transform)
-	{
-		DirectX::XMFLOAT3 translation, rotation, scale;
-		DirectX::XMVECTOR vTranslation, vRotation, vScale;
-
-		DirectX::XMMatrixDecompose(&vScale, &vRotation, &vTranslation, transform);
-
-		DirectX::XMStoreFloat3(&scale, vScale);
-		DirectX::XMStoreFloat3(&rotation, vRotation);
-		DirectX::XMStoreFloat3(&translation, vTranslation);
-
-		return { translation, rotation, scale };
-	}
-
 	void SceneHierarchyPanel::DrawEntityNode(Entity entity)
 	{
 		auto& tag = entity.GetComponent<TagComponent>().Tag;
@@ -157,8 +144,24 @@ namespace Toast {
 		if (ImGui::IsItemClicked()) 
 			mSelectionContext = entity;
 
-		if (opened)
+		bool entityDeleted = false;
+		if (ImGui::BeginPopupContextItem())
+		{
+			if (ImGui::MenuItem("Delete Entity"))
+				entityDeleted = true;
+
+			ImGui::EndPopup();
+		}
+
+		if (opened) 
 			ImGui::TreePop();
+
+		if (entityDeleted) 
+		{
+			mContext->DestroyEntity(entity);
+			if (mSelectionContext == entity) 
+				mSelectionContext = {};
+		}
 	}
 
 	static void DrawFloat3Control(const std::string& label, DirectX::XMFLOAT3& values, float resetValue = 0.0f, float columnWidth = 100.0f) 
@@ -222,7 +225,7 @@ namespace Toast {
 	{
 		ImVec2 panelSize = ImGui::GetContentRegionAvail();
 
-		if (entity.HasComponent<TagComponent>()) 
+		if (entity.HasComponent<TagComponent>())
 		{
 			auto& tag = entity.GetComponent<TagComponent>().Tag;
 
@@ -233,12 +236,14 @@ namespace Toast {
 			char buffer[256];
 			memset(buffer, 0, sizeof(buffer));
 			strcpy_s(buffer, sizeof(buffer), tag.c_str());
-			if (ImGui::InputText("##Tag", buffer, sizeof(buffer))) 
+			if (ImGui::InputText("##Tag", buffer, sizeof(buffer)))
 				tag = std::string(buffer);
 
 			ImGui::PopItemWidth();
 			ImGui::Columns(1);
 		}
+
+		const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_AllowItemOverlap;
 
 		if (entity.HasComponent<TransformComponent>())
 		{
@@ -246,7 +251,9 @@ namespace Toast {
 
 			auto& tc = entity.GetComponent<TransformComponent>();
 
-			if (ImGui::TreeNodeEx((void*)typeid(TransformComponent).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, "Transform")) 
+			bool open = ImGui::TreeNodeEx((void*)typeid(TransformComponent).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, "Transform");
+
+			if (open)
 			{
 				DrawFloat3Control("Translation", tc.Translation);
 				DirectX::XMFLOAT3 rotation = { DirectX::XMConvertToDegrees(tc.Rotation.x) , DirectX::XMConvertToDegrees(tc.Rotation.y), DirectX::XMConvertToDegrees(tc.Rotation.z) };
@@ -267,7 +274,25 @@ namespace Toast {
 			const char* meshTypeStrings[] = { "None", "Primitive", "Model" };
 			const char* currentType = meshTypeStrings[(int)mc.Mesh->GetType()];
 
-			if (ImGui::TreeNodeEx((void*)typeid(PrimitiveMeshComponent).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, "Primitive Mesh"))
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+			bool open = ImGui::TreeNodeEx((void*)typeid(PrimitiveMeshComponent).hash_code(), treeNodeFlags, "Primitive Mesh");
+			ImGui::SameLine(ImGui::GetWindowWidth() - 25.0f);
+			if (ImGui::Button("+", ImVec2{ 20, 20 }))
+			{
+				ImGui::OpenPopup("ComponentsSettings");
+			}
+			ImGui::PopStyleVar();
+
+			bool removeComponent = false;
+			if (ImGui::BeginPopup("ComponentsSettings"))
+			{
+				if (ImGui::MenuItem("Remove component"))
+					removeComponent = true;
+
+				ImGui::EndPopup();
+			}
+
+			if (open)
 			{
 				BeginPropertyGrid();
 
@@ -303,21 +328,44 @@ namespace Toast {
 				ImGui::Columns(1);
 				ImGui::TreePop();
 			}
+
+			if (removeComponent)
+				entity.RemoveComponents<PrimitiveMeshComponent>();
 		}
 
 		if (entity.HasComponent<CameraComponent>())
 		{
 			ImGui::Separator();
 
-			auto& cc = entity.GetComponent<CameraComponent>();
-			auto& camera = cc.Camera;
-
-			ImGui::Checkbox("Primary", &cc.Primary);
-
-			const char* projTypeStrings[] = { "Perspective", "Orthographic" };
-			const char* currentProj = projTypeStrings[(int)camera.GetProjectionType()];
-			if (ImGui::TreeNodeEx((void*)typeid(CameraComponent).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, "Camera"))
+			bool open = ImGui::TreeNodeEx((void*)typeid(CameraComponent).hash_code(), treeNodeFlags, "Camera");
+			
+			if (open)
 			{
+				auto& cc = entity.GetComponent<CameraComponent>();
+				auto& camera = cc.Camera;
+
+				ImGui::Checkbox("Primary", &cc.Primary);
+
+				const char* projTypeStrings[] = { "Perspective", "Orthographic" };
+				const char* currentProj = projTypeStrings[(int)camera.GetProjectionType()];
+
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+				ImGui::SameLine(ImGui::GetWindowWidth() - 25.0f);
+				if (ImGui::Button("+", ImVec2{ 20, 20 }))
+				{
+					ImGui::OpenPopup("ComponentsSettings");
+				}
+				ImGui::PopStyleVar();
+
+				bool removeComponent = false;
+				if (ImGui::BeginPopup("ComponentsSettings"))
+				{
+					if (ImGui::MenuItem("Remove component"))
+						removeComponent = true;
+
+					ImGui::EndPopup();
+				}
+
 				ImGui::Columns(2);
 				ImGui::SetColumnWidth(0, panelSize.x * 0.35f);
 				ImGui::SetColumnWidth(1, panelSize.x * 0.65f);
@@ -380,6 +428,9 @@ namespace Toast {
 
 				ImGui::Columns(1);
 				ImGui::TreePop();
+
+				if (removeComponent)
+					entity.RemoveComponents<CameraComponent>();
 			}
 		}
 
@@ -388,7 +439,25 @@ namespace Toast {
 			ImGui::Separator();
 
 			auto& src = entity.GetComponent<SpriteRendererComponent>();
-			if (ImGui::TreeNodeEx((void*)typeid(SpriteRendererComponent).hash_code(), ImGuiTreeNodeFlags_DefaultOpen, "Color"))
+
+			bool open = ImGui::TreeNodeEx((void*)typeid(SpriteRendererComponent).hash_code(), treeNodeFlags, "Color");
+			ImGui::SameLine(ImGui::GetWindowWidth() - 25.0f);
+			if (ImGui::Button("+", ImVec2{ 20, 20 }))
+			{
+				ImGui::OpenPopup("ComponentsSettings");
+			}
+			ImGui::PopStyleVar();
+
+			bool removeComponent = false;
+			if (ImGui::BeginPopup("ComponentsSettings"))
+			{
+				if (ImGui::MenuItem("Remove component"))
+					removeComponent = true;
+
+				ImGui::EndPopup();
+			}
+
+			if (open)
 			{
 				BeginPropertyGrid();
 
@@ -399,6 +468,9 @@ namespace Toast {
 				ImGui::Columns(1);
 				ImGui::TreePop();
 			}
+
+			if (removeComponent)
+				entity.RemoveComponents<SpriteRendererComponent>();
 		}
 	}
 }
