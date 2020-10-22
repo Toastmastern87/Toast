@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Toast/Core/Math.h"
+
 #include <DirectXMath.h>
 #include <vector>
 
@@ -117,35 +119,21 @@ namespace Toast {
 		{
 			PrimitiveMesh icosphereMesh;
 
-			DirectX::XMFLOAT3 firstVertex, secondVertex, thirdVertex, fourthVertex, fifthVertex, sixthVertex, seventhVertex, eigthVertex, ninthVertex, tenthVertex, eleventhVertex, twelvethVertex;
-
 			float ratio = (1.0f + sqrt(5.0f)) / 2.0f;
+			float vectorLength = Math::GetVectorLength({ ratio, 0.0f, -1.0f });
 
-			DirectX::XMStoreFloat3(&firstVertex, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&DirectX::XMFLOAT3(ratio, 0.0f, -1.0f))) * 0.5f);
-			DirectX::XMStoreFloat3(&secondVertex, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&DirectX::XMFLOAT3(-ratio, 0.0f, -1.0f))) * 0.5f);
-			DirectX::XMStoreFloat3(&thirdVertex, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&DirectX::XMFLOAT3(ratio, 0.0f, 1.0f))) * 0.5f);
-			DirectX::XMStoreFloat3(&fourthVertex, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&DirectX::XMFLOAT3(-ratio, 0.0f, 1.0f))) * 0.5f);
-			DirectX::XMStoreFloat3(&fifthVertex, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&DirectX::XMFLOAT3(0.0f, -1.0f, ratio))) * 0.5f);
-			DirectX::XMStoreFloat3(&sixthVertex, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&DirectX::XMFLOAT3(0.0f, -1.0f, -ratio))) * 0.5f);
-			DirectX::XMStoreFloat3(&seventhVertex, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&DirectX::XMFLOAT3(0.0f, 1.0f, ratio))) * 0.5f);
-			DirectX::XMStoreFloat3(&eigthVertex, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&DirectX::XMFLOAT3(0.0f, 1.0f, -ratio))) * 0.5f);
-			DirectX::XMStoreFloat3(&ninthVertex, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&DirectX::XMFLOAT3(-1.0f, ratio, 0.0f))) * 0.5f);
-			DirectX::XMStoreFloat3(&tenthVertex, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&DirectX::XMFLOAT3(-1.0f, -ratio, 0.0f))) * 0.5f);
-			DirectX::XMStoreFloat3(&eleventhVertex, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&DirectX::XMFLOAT3(1.0f, ratio, 0.0f))) * 0.5f);
-			DirectX::XMStoreFloat3(&twelvethVertex, DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&DirectX::XMFLOAT3(1.0f, -ratio, 0.0f))) * 0.5f);
-
-			icosphereMesh.Vertices.push_back(PrimitiveVertex(firstVertex, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex(secondVertex, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex(thirdVertex, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex(fourthVertex, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex(fifthVertex, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex(sixthVertex, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex(seventhVertex, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex(eigthVertex, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex(ninthVertex, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex(tenthVertex, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex(eleventhVertex, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex(twelvethVertex, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
+			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f, (-1.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
+			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (-ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f, (-1.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
+			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f, (1.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
+			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (-ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f, (1.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
+			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (0.0f / vectorLength) * 0.5f, (-1.0f / vectorLength) * 0.5f, (ratio / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
+			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (0.0f / vectorLength) * 0.5f, (-1.0f / vectorLength) * 0.5f, (-ratio / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
+			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (0.0f / vectorLength) * 0.5f, (1.0f / vectorLength) * 0.5f, (ratio / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
+			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (0.0f / vectorLength) * 0.5f, (1.0f / vectorLength) * 0.5f, (-ratio / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
+			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (-1.0f / vectorLength) * 0.5f, (ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
+			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (-1.0f / vectorLength) * 0.5f, (-ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
+			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (1.0f / vectorLength) * 0.5f, (ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
+			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (1.0f / vectorLength) * 0.5f, (-ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
 
 			icosphereMesh.Indices = std::vector<uint32_t>{
 				1, 3, 8,
