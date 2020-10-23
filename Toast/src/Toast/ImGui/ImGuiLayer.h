@@ -22,6 +22,8 @@ namespace Toast
 		void End();
 
 		void BlockEvents(bool block) { mBlockEvents = block; }
+
+		void SetDarkThemeColors();
 	private:
 		bool mBlockEvents = true;
 	};
