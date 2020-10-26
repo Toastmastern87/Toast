@@ -9,3 +9,6 @@
 [submodule "Toast/vendor/directxtk"]
 	path = Toast/vendor/directxtk
 	url = https://github.com/Toastmastern87/DirectXTK
+[submodule "Toast/vendor/yaml-cpp"]
+	path = Toast/vendor/yaml-cpp
+	url = https://github.com/Toastmastern87/yaml-cpp
