@@ -1,0 +1,40 @@
+Scene: Untitled Scene
+Entities:
+  - Entity: 12837192831273
+    TagComponent:
+      Tag: Perspective Camera
+    TransformComponent:
+      Translation: [-1.04217529, 3, -12.1999998]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    CameraComponent:
+      Camera:
+        ProjectionType: 0
+        PerspectiveFOV: 45
+        PerspectiveNear: 0.00999999978
+        PerspectiveFar: 10000
+        OrthographicSize: 10
+        OrthographicNear: -1
+        OrthographicFar: 1
+      Primary: true
+      FixedAspectRatio: false
+  - Entity: 12837192831273
+    TagComponent:
+      Tag: Mars
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PrimitiveMeshComponent:
+      MeshType: 0
+      PrimitiveType: 3
+  - Entity: 12837192831273
+    TagComponent:
+      Tag: Starship
+    TransformComponent:
+      Translation: [0, 0, 5.4000001]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PrimitiveMeshComponent:
+      MeshType: 0
+      PrimitiveType: 2

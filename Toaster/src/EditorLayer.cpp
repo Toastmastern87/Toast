@@ -5,6 +5,10 @@
 
 #include "Toast/Renderer/Mesh.h"
 
+#include "Toast/Scene/SceneSerializer.h"
+
+#include "Toast/Utils/PlatformUtils.h"
+
 namespace Toast {
 
 	EditorLayer::EditorLayer()
@@ -168,15 +172,19 @@ namespace Toast {
 					// Disabling fullscreen would allow the window to be moved to the front of other windows, 
 					// which we can't undo at the moment without finer window depth/z control.
 					//ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen_persistant);
-					if (ImGui::MenuItem("New Scene", "Ctrl-N"))
-						;//TODO
-					if (ImGui::MenuItem("Open Scene...", "Ctrl+O"))
+					if (ImGui::MenuItem("New", "Ctrl+N"))
+						NewScene();
+
+					if (ImGui::MenuItem("Open...", "Ctrl+O"))
 						OpenScene();
+
 					ImGui::Separator();
-					if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
+					if (ImGui::MenuItem("Save", "Ctrl+S"))
 						SaveScene();
-					if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S"))
+					if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S"))
+					{
 						SaveSceneAs();
+					}	
 
 					ImGui::Separator();
 					if (ImGui::MenuItem("Exit")) 
@@ -195,6 +203,7 @@ namespace Toast {
 
 			mViewportFocused = ImGui::IsWindowFocused();
 			mViewportHovered = ImGui::IsWindowHovered();
+			
 			Application::Get().GetImGuiLayer()->BlockEvents(!mViewportFocused || !mViewportHovered);
 
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
@@ -225,32 +234,41 @@ namespace Toast {
 	void EditorLayer::OnEvent(Event& e)
 	{
 		mCameraController.OnEvent(e);
+
+		EventDispatcher dispatcher(e);
+		dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
+	}
+
+	void EditorLayer::NewScene()
+	{
+		mActiveScene = CreateRef<Scene>();
+		mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+		mSceneHierarchyPanel.SetContext(mActiveScene);
 	}
 
 	void EditorLayer::OpenScene()
 	{
-		auto& app = Application::Get();
-		std::string filepath = app.OpenFile("Toast Scene (*.tsc)\0*.tsc\0");
-
+		std::string filepath = FileDialogs::OpenFile("Toast Scene(*.toast)\0*toast\0");
 		if (!filepath.empty())
 		{
-			Ref<Scene> newScene = CreateRef<Scene>();
-			SceneSerializer serializer(newScene);
-			serializer.DeserializeScene(filepath);
-			mActiveScene = newScene;
-			std::filesystem::path path = filepath;
-			UpdateWindowTitle(path.filename().string());
+			mActiveScene = CreateRef<Scene>();
+			mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			mSceneHierarchyPanel.SetContext(mActiveScene);
 
+			std::filesystem::path path = filepath;
+			UpdateWindowTitle(path.filename().string());
 			mSceneFilePath = filepath;
+
+			SceneSerializer serializer(mActiveScene);
+			serializer.Deserialize(filepath);
 		}
 	}
 
 	void EditorLayer::SaveScene()
 	{
-		if (!(mSceneFilePath == "")) {
+		if (!mSceneFilePath.empty()) {
 			SceneSerializer serializer(mActiveScene);
-			serializer.SerializeScene(mSceneFilePath);
+			serializer.Serialize(mSceneFilePath);
 		}
 		else {
 			SaveSceneAs();
@@ -259,18 +277,51 @@ namespace Toast {
 
 	void EditorLayer::SaveSceneAs()
 	{
-		auto& app = Application::Get();
-		std::string filepath = app.SaveFile("Toast Scene (*.tsc)\0*.tsc\0");
-
-		if (!filepath.empty()) 
+		std::string filepath = FileDialogs::SaveFile("Toast Scene(*.toast)\0*toast\0");
+		if (!filepath.empty())
 		{
 			SceneSerializer serializer(mActiveScene);
-			serializer.SerializeScene(filepath);
+			serializer.Serialize(mSceneFilePath);
 
 			std::filesystem::path path = filepath;
 			UpdateWindowTitle(path.filename().string());
 			mSceneFilePath = filepath;
 		}
+	}
+
+	bool EditorLayer::OnKeyPressed(KeyPressedEvent& e)
+	{
+		if (e.GetRepeatCount() > 0)
+			return false;
+
+		bool control = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
+		bool shift = Input::IsKeyPressed(Key::LeftShift) || Input::IsKeyPressed(Key::RightShift);
+
+		switch (e.GetKeyCode())
+		{
+		case Key::N:
+		{
+			if (control)
+				NewScene();
+			break;
+		}
+		case Key::O:
+		{
+			if (control)
+				OpenScene();
+			break;
+		}
+		case Key::S:
+		{
+			if (control && shift)
+				SaveSceneAs();
+			else if (control && !shift)
+				SaveScene();
+			break;
+		}
+		}
+
+		return true;
 	}
 
 	void EditorLayer::UpdateWindowTitle(const std::string& sceneName)

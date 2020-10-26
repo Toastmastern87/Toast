@@ -25,9 +25,6 @@ namespace Toast {
 		void PushLayer(Layer* layer);
 		void PushOverlay(Layer* layer);
 
-		std::string OpenFile(const char* filter = "All\0*.*\0") const;
-		std::string SaveFile(const char* filter = "All\0*.*\0") const;
-
 		Window& GetWindow() { return *mWindow; }
 
 		void Close();

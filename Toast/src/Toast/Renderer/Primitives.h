@@ -84,11 +84,9 @@ namespace Toast {
 			return cubeMesh;
 		}
 
-		static PrimitiveMesh CreateGrid() 
+		static PrimitiveMesh CreateGrid(uint32_t gridSize = 5) 
 		{
 			PrimitiveMesh gridMesh;
-
-			uint32_t gridSize = 5;
 
 			for (uint32_t x = 0; x <= gridSize; x++)
 			{
@@ -115,7 +113,7 @@ namespace Toast {
 			return gridMesh;
 		}
 
-		static PrimitiveMesh CreateIcosphere()
+		static PrimitiveMesh CreateIcosphere(uint32_t subdivisions = 0)
 		{
 			PrimitiveMesh icosphereMesh;
 
