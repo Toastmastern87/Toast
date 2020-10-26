@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Toast\Core\Base.h"
-
 #include "Scene.h"
 
 namespace Toast {
@@ -11,9 +9,11 @@ namespace Toast {
 	public:
 		SceneSerializer(const Ref<Scene>& scene);
 
-		void SerializeScene(const std::string& filepath);
+		void Serialize(const std::string& filepath);
+		void SerializeRuntime(const std::string& filepath);
 
-		bool DeserializeScene(const std::string& filepath);
+		bool Deserialize(const std::string& filepath);
+		bool DeserializeRuntime(const std::string& filepath);
 	private:
 		Ref<Scene> mScene;
 	};

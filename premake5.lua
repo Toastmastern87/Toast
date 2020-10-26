@@ -20,6 +20,7 @@ IncludeDir = {}
 IncludeDir["ImGui"] = "Toast/vendor/imgui"
 IncludeDir["directxtk"] = "Toast/vendor/directxtk/Inc" 
 IncludeDir["entt"] = "Toast/vendor/entt/include" 
+IncludeDir["yaml_cpp"] = "Toast/vendor/yaml-cpp/include" 
 
 LibraryDir = {}
 LibraryDir["directxtk"] = "Toast/vendor/directxtk/Bin/"
@@ -27,7 +28,7 @@ LibraryDir["directxtk"] = "Toast/vendor/directxtk/Bin/"
 group "Dependencies"
 	include "Toast/vendor/imgui"
 	include "Toast/vendor/directxtk"
-
+	include "Toast/vendor/yaml-cpp"
 group ""
 
 project "Toast"
@@ -61,7 +62,8 @@ project "Toast"
 		"%{prj.name}/vendor/spdlog/include",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.directxtk}",
-		"%{IncludeDir.entt}"
+		"%{IncludeDir.entt}",
+		"%{IncludeDir.yaml_cpp}"
 	}
 
 	links
@@ -70,7 +72,8 @@ project "Toast"
 		"DirectXTK",
 		"d3d11.lib",
 		"dxgi.lib",
-		"dxguid.lib"
+		"dxguid.lib",
+		"yaml-cpp"
 	}
 
 	filter "system:windows"

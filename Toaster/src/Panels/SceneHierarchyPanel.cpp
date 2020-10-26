@@ -16,6 +16,7 @@ namespace Toast {
 	void SceneHierarchyPanel::SetContext(const Ref<Scene>& context)
 	{
 		mContext = context;
+		mSelectionContext = {};
 	}
 
 	void SceneHierarchyPanel::OnImGuiRender()

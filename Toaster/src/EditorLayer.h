@@ -21,7 +21,9 @@ namespace Toast {
 		void OpenScene();
 		void SaveScene();
 		void SaveSceneAs();
+		void NewScene();
 	private:
+		bool OnKeyPressed(KeyPressedEvent& e);
 		void UpdateWindowTitle(const std::string& sceneName);
 	private:
 		std::string mSceneFilePath = "";

@@ -1,16 +1,79 @@
 #include "tpch.h"
 #include "SceneSerializer.h"
 
-#include "Toast/Scene/Entity.h"
-#include "Toast/Scene/Components.h"
+#include "Entity.h"
+#include "Components.h"
 
-#include "json.hpp"
+#include <yaml-cpp/yaml.h>
 
-#include <DirectXMath.h>
+namespace YAML 
+{
+	template<>
+	struct convert<DirectX::XMFLOAT3>
+	{
+		static Node encode(const DirectX::XMFLOAT3& rhs) 
+		{
+			Node node;
+			node.push_back(rhs.x);
+			node.push_back(rhs.y);
+			node.push_back(rhs.z);
+			return node;
+		}
+
+		static bool decode(const Node& node, DirectX::XMFLOAT3& rhs) 
+		{
+			if (!node.IsSequence() || node.size() != 3)
+				return false;
+
+			rhs.x = node[0].as<float>();
+			rhs.y = node[1].as<float>();
+			rhs.z = node[2].as<float>();
+			return true;
+		}
+	};
+
+	template<>
+	struct convert<DirectX::XMFLOAT4>
+	{
+		static Node encode(const DirectX::XMFLOAT4& rhs)
+		{
+			Node node;
+			node.push_back(rhs.x);
+			node.push_back(rhs.y);
+			node.push_back(rhs.z);
+			node.push_back(rhs.w);
+			return node;
+		}
+
+		static bool decode(const Node& node, DirectX::XMFLOAT4& rhs)
+		{
+			if (!node.IsSequence() || node.size() != 4)
+				return false;
+
+			rhs.x = node[0].as<float>();
+			rhs.y = node[1].as<float>();
+			rhs.z = node[2].as<float>();
+			rhs.w = node[3].as<float>();
+			return true;
+		}
+	};
+}
 
 namespace Toast {
 
-	//static void SerializeEntity(Entity entity, )
+	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT3& v) 
+	{
+		out << YAML::Flow;
+		out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
+		return out;
+	}
+
+	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT4& v)
+	{
+		out << YAML::Flow;
+		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
+		return out;
+	}
 
 	SceneSerializer::SceneSerializer(const Ref<Scene>& scene)
 		: mScene(scene)
@@ -18,179 +81,200 @@ namespace Toast {
 
 	}
 
-	void SceneSerializer::SerializeScene(const std::string& filepath)
+	static void SerializeEntity(YAML::Emitter& out, Entity entity)
 	{
-		nlohmann::json j;
+		out << YAML::BeginMap; // Entity
+		out << YAML::Key << "Entity" << YAML::Value << "12837192831273"; // TODO: Entity ID goes here
 
-		mScene->mRegistry.each([&](auto entityID){
-			Entity entity{ entityID, mScene.get() };
+		if (entity.HasComponent<TagComponent>()) 
+		{
+			out << YAML::Key << "TagComponent";
+			out << YAML::BeginMap; // TagComponent
 
+			auto& tag = entity.GetComponent<TagComponent>().Tag;
+			out << YAML::Key << "Tag" << YAML::Value << tag; 
+
+			out << YAML::EndMap; // TagComponent
+		}
+
+		if (entity.HasComponent<TransformComponent>())
+		{
+			out << YAML::Key << "TransformComponent";
+			out << YAML::BeginMap; // TransformComponent
+
+			auto& tc = entity.GetComponent<TransformComponent>();
+			out << YAML::Key << "Translation" << YAML::Value << tc.Translation;
+			out << YAML::Key << "Rotation" << YAML::Value << tc.Rotation;
+			out << YAML::Key << "Scale" << YAML::Value << tc.Scale;
+
+			out << YAML::EndMap; // TransformComponent
+		}
+
+		if (entity.HasComponent<CameraComponent>())
+		{
+			out << YAML::Key << "CameraComponent";
+			out << YAML::BeginMap; // CameraComponent
+
+			auto& cc = entity.GetComponent<CameraComponent>();
+			auto& camera = cc.Camera;
+
+			out << YAML::Key << "Camera" << YAML::Value;
+			out << YAML::BeginMap; // Camera
+			out << YAML::Key << "ProjectionType" << YAML::Value << (int)camera.GetProjectionType();
+			out << YAML::Key << "PerspectiveFOV" << YAML::Value << camera.GetPerspectiveVerticalFOV();
+			out << YAML::Key << "PerspectiveNear" << YAML::Value << camera.GetPerspectiveNearClip();
+			out << YAML::Key << "PerspectiveFar" << YAML::Value << camera.GetPerspectiveFarClip();
+			out << YAML::Key << "OrthographicSize" << YAML::Value << camera.GetOrthographicSize();
+			out << YAML::Key << "OrthographicNear" << YAML::Value << camera.GetOrthographicNearClip();
+			out << YAML::Key << "OrthographicFar" << YAML::Value << camera.GetOrthographicFarClip();
+			out << YAML::EndMap; // Camera
+
+			out << YAML::Key << "Primary" << YAML::Value << cc.Primary;
+			out << YAML::Key << "FixedAspectRatio" << YAML::Value << cc.FixedAspectRatio;
+
+			out << YAML::EndMap; // CameraComponent
+		}
+
+		if (entity.HasComponent<PrimitiveMeshComponent>())
+		{
+			out << YAML::Key << "PrimitiveMeshComponent";
+			out << YAML::BeginMap; // PrimitiveMeshComponent
+
+			auto& pmc = entity.GetComponent<PrimitiveMeshComponent>();
+			out << YAML::Key << "MeshType" << YAML::Value << (int)pmc.Mesh->GetType();
+			out << YAML::Key << "PrimitiveType" << YAML::Value << (int)pmc.Mesh->GetPrimitiveType();
+
+			out << YAML::EndMap; // PrimitiveMeshComponent
+		}
+
+		if (entity.HasComponent<SpriteRendererComponent>())
+		{
+			out << YAML::Key << "SpriteRendererComponent";
+			out << YAML::BeginMap; // SpriteRendererComponent
+
+			auto& src = entity.GetComponent<SpriteRendererComponent>();
+			out << YAML::Key << "Color" << YAML::Value << src.Color;
+
+			out << YAML::EndMap; // SpriteRendererComponent
+		}
+
+		out << YAML::EndMap; // Entity
+	}
+
+	void SceneSerializer::Serialize(const std::string& filepath)
+	{
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "Scene" << YAML::Value << "Untitled Scene";
+		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
+		mScene->mRegistry.each([&](auto entityID)
+		{
+			Entity entity = { entityID, mScene.get() };
 			if (!entity)
 				return;
 
-			// Tag Component
-			{
-				std::string tag = entity.GetComponent<TagComponent>().Tag;
-				j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["tag"]["name"] = tag;
-				j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["tag"]["id"] = static_cast<uint64_t>(entityID);
-			}
-
-			// Transform Component
-			{
-					auto& tc = entity.GetComponent<TransformComponent>();
-
-					j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["transform"]["translation"] = { tc.Translation.x, tc.Translation.y, tc.Translation.z };
-					j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["transform"]["rotation"] = { tc.Rotation.x, tc.Rotation.y, tc.Rotation.z };
-					j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["transform"]["scale"] = { tc.Scale.x, tc.Scale.y, tc.Scale.z };
-			}
-
-			// Mesh Component
-			{
-				if (entity.HasComponent<PrimitiveMeshComponent>()) {
-					auto& mc = entity.GetComponent<PrimitiveMeshComponent>();
-
-					j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["mesh"]["type"] = static_cast<uint32_t>(mc.Mesh->GetType());
-
-					if (mc.Mesh->GetType() == Mesh::MeshType::PRIMITIVE) {
-						j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["mesh"]["primitive type"] = static_cast<uint32_t>(mc.Mesh->GetPrimitiveType());
-					}
-				}
-			}
-
-			// Sprite Render Component
-			{
-				if (entity.HasComponent<SpriteRendererComponent>()) {
-					auto& sprite = entity.GetComponent<SpriteRendererComponent>();
-
-					j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["sprite"]["color"] = { sprite.Color.x, sprite.Color.y, sprite.Color.z, sprite.Color.w };
-				}
-			}
-
-			// Camera Component
-			{
-				if (entity.HasComponent<CameraComponent>()) {
-					auto& cc = entity.GetComponent<CameraComponent>();
-
-					j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["camera"]["type"] = cc.Camera.GetProjectionType();
-
-					if (cc.Camera.GetProjectionType() == SceneCamera::ProjectionType::Perspective) {
-						j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["camera"]["verticalfov"] = cc.Camera.GetPerspectiveVerticalFOV();
-						j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["camera"]["nearclip"] = cc.Camera.GetPerspectiveNearClip();
-						j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["camera"]["farclip"] = cc.Camera.GetPerspectiveFarClip();
-					}
-					else if (cc.Camera.GetProjectionType() == SceneCamera::ProjectionType::Orthographic) {
-						j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["camera"]["size"] = cc.Camera.GetOrthographicSize();
-						j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["camera"]["nearclip"] = cc.Camera.GetOrthographicNearClip();
-						j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["camera"]["farclip"] = cc.Camera.GetOrthographicFarClip();
-					}
-
-					j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["camera"]["aspectRatio"] = cc.Camera.GetAspecRatio();
-					j["entities"][std::to_string(static_cast<uint64_t>(entityID))]["components"]["camera"]["primary"] = cc.Primary;
-				}
-			}
-
-			// Native Script Component
-			// TO DO
+			SerializeEntity(out, entity);
 		});
+		out << YAML::EndSeq;
+		out << YAML::EndMap;
 
-		std::ofstream file(filepath, std::ios::out);
-		TOAST_CORE_ASSERT(file.is_open(), "Failed to write to scene file '{0}'.", filepath);
-		file << j.dump(4);
-		file.close();
+		std::ofstream fout(filepath);
+		fout << out.c_str();
 	}
 
-	bool SceneSerializer::DeserializeScene(const std::string& filepath)
+	void SceneSerializer::SerializeRuntime(const std::string& filepath)
 	{
-		std::fstream file(filepath);
-		TOAST_CORE_ASSERT(file.is_open(), "Failed to read from scene file '{0}'.", filepath);
-		std::stringstream ss;
-		ss << file.rdbuf();
-		std::string scenestring = ss.str();
-		nlohmann::json j = nlohmann::json::parse(scenestring);
+		// Not implemented yet
+		TOAST_CORE_ASSERT(false, "Not implemented yet!");
+	}
 
-		nlohmann::json& entities = j["entities"];
+	bool SceneSerializer::Deserialize(const std::string& filepath)
+	{
+		std::ifstream stream(filepath);
+		std::stringstream strStream;
 
-		for (auto& entity : entities) 
+		strStream << stream.rdbuf();
+
+		YAML::Node data = YAML::Load(strStream.str());
+		if (!data["Scene"])
+			return false;
+
+		std::string sceneName = data["Scene"].as<std::string>();
+		TOAST_CORE_TRACE("Deserializing scene '{0}'", sceneName);
+
+		auto entities = data["Entities"];
+		if (entities) 
 		{
-			nlohmann::json& components = entity["components"];
-
-			nlohmann::json& tag = components["tag"];
-
-			uint64_t uuid = tag["id"].get<uint64_t>();
-			std::string name = tag["name"];
-
-			TOAST_CORE_INFO("Deserialized entity with ID = {0}, name = {1}", uuid, name);
-
-			Entity deserializedEntity = mScene->CreateEntity(name);
-
-			// Transform			
+			for (auto entity : entities) 
 			{
-				auto& tc = deserializedEntity.GetComponent<TransformComponent>();
+				uint64_t uuid = entity["Entity"].as<uint64_t>(); // TODO
+				
+				std::string name;
+				auto tagComponent = entity["TagComponent"];
+				if (tagComponent)
+					name = tagComponent["Tag"].as<std::string>();
 
-				std::vector<float> translationArray = components["transform"]["translation"];
-				DirectX::XMFLOAT3 translation = *(DirectX::XMFLOAT3*)(translationArray.data());
-				tc.Translation = translation;
+				TOAST_CORE_TRACE("Deserialized entity with ID = {0}, name = {1}", uuid, name);
 
-				std::vector<float> rotationArray = components["transform"]["rotation"];
-				DirectX::XMFLOAT3 rotation = *(DirectX::XMFLOAT3*)(rotationArray.data());
-				tc.Rotation = rotation;
+				Entity deserializedEntity = mScene->CreateEntity(name);
 
-				std::vector<float> scaleArray = components["transform"]["scale"];
-				DirectX::XMFLOAT3 scale = *(DirectX::XMFLOAT3*)(scaleArray.data());
-				tc.Scale = scale;
-			}
+				auto transformComponent = entity["TransformComponent"];
+				if (transformComponent) 
+				{
+					// Entities always have transforms
+					auto& tc = deserializedEntity.GetComponent<TransformComponent>();
+					tc.Translation = transformComponent["Translation"].as<DirectX::XMFLOAT3>();
+					tc.Rotation = transformComponent["Rotation"].as<DirectX::XMFLOAT3>();
+					tc.Scale = transformComponent["Scale"].as<DirectX::XMFLOAT3>();
+				}
 
-			// Primitive Mesh
-			{
-				if (components.find("mesh") != components.end()){
-					nlohmann::json& mesh = components["mesh"];
+				auto cameraComponent = entity["CameraComponent"];
+				if (cameraComponent)
+				{
+					auto& cc = deserializedEntity.AddComponent<CameraComponent>();
 
+					auto& cameraProps = cameraComponent["Camera"];
+					cc.Camera.SetProjectionType((SceneCamera::ProjectionType)cameraProps["ProjectionType"].as<int>());
+
+					cc.Camera.SetPerspectiveVerticalFOV(cameraProps["PerspectiveFOV"].as<float>());
+					cc.Camera.SetPerspectiveNearClip(cameraProps["PerspectiveNear"].as<float>());
+					cc.Camera.SetPerspectiveFarClip(cameraProps["PerspectiveFar"].as<float>());
+
+					cc.Camera.SetOrthographicSize(cameraProps["OrthographicSize"].as<float>());
+					cc.Camera.SetOrthographicNearClip(cameraProps["OrthographicNear"].as<float>());
+					cc.Camera.SetOrthographicFarClip(cameraProps["OrthographicFar"].as<float>());
+
+					cc.Primary = cameraComponent["Primary"].as<bool>();
+					cc.FixedAspectRatio = cameraComponent["FixedAspectRatio"].as<bool>();
+				}
+
+				auto primitiveMeshComponent = entity["PrimitiveMeshComponent"];
+				if (primitiveMeshComponent)
+				{
 					deserializedEntity.AddComponent<PrimitiveMeshComponent>(CreateRef<Mesh>());
 					auto& mc = deserializedEntity.GetComponent<PrimitiveMeshComponent>();
 
-					mc.Mesh->SetType(static_cast<Mesh::MeshType>(mesh["type"].get<uint32_t>()));
-					mc.Mesh->SetPrimitiveType(static_cast<Mesh::PrimitiveType>(mesh["primitive type"]));
+					mc.Mesh->SetType((Mesh::MeshType)(primitiveMeshComponent["MeshType"].as<uint32_t>()));
+					mc.Mesh->SetPrimitiveType((Mesh::PrimitiveType)(primitiveMeshComponent["PrimitiveType"].as<uint32_t>()));
 					mc.Mesh->CreateFromPrimitive();
 				}
-			}
 
-			// Sprite Render Components
-			{
-				if (components.find("sprite") != components.end()) {
-					nlohmann::json& sprite = components["sprite"];
-
-					std::vector<float> c = sprite["color"];
-					DirectX::XMFLOAT4 color;
-					memcpy(&color, c.data(), sizeof(color));
-					deserializedEntity.AddComponent<SpriteRendererComponent>(color);
-				}
-			}
-
-			// Camera Components
-			{
-				if (components.find("camera") != components.end()){
-					nlohmann::json& camera = components["camera"];
-
-					deserializedEntity.AddComponent<CameraComponent>();
-					auto& cc = deserializedEntity.GetComponent<CameraComponent>();
-
-					cc.Primary = camera["primary"].get<bool>();
-					cc.Camera.SetAspectRatio(camera["aspectRatio"].get<float>());
-
-					if (camera["type"] == SceneCamera::ProjectionType::Perspective){
-						cc.Camera.SetPerspectiveVerticalFOV(camera["verticalfov"].get<float>());
-						cc.Camera.SetPerspectiveNearClip(camera["nearclip"].get<float>());
-						cc.Camera.SetPerspectiveFarClip(camera["farclip"].get<float>());
-					}
-					else if (camera["type"] == SceneCamera::ProjectionType::Orthographic) {
-						cc.Camera.SetOrthographicSize(camera["size"].get<float>());
-						cc.Camera.SetOrthographicNearClip(camera["nearclip"].get<float>());
-						cc.Camera.SetOrthographicFarClip(camera["farclip"].get<float>());
-					}
+				auto spriteRendererComponent = entity["SpriteRendererComponent"];
+				if (spriteRendererComponent)
+				{
+					auto& src = deserializedEntity.AddComponent<SpriteRendererComponent>();
+					src.Color = spriteRendererComponent["Color"].as<DirectX::XMFLOAT4>();
 				}
 			}
 		}
 
+		return true;
+	}
+
+	bool SceneSerializer::DeserializeRuntime(const std::string& filepath)
+	{
+		// Not implemented yet
+		TOAST_CORE_ASSERT(false, "Not implemented yet!");
 		return false;
 	}
 
