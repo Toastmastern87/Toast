@@ -97,6 +97,30 @@ namespace Toast {
 		}
 	}
 
+	static bool DrawIntControl(const std::string& label, int& value, float columnWidth = 100.0f, int min = 0, int max = 0, float speed = 1.0f)
+	{
+		bool modified = false;
+
+		ImGui::PushID(label.c_str());
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, columnWidth);
+		ImGui::Text(label.c_str());
+		ImGui::NextColumn();
+
+		ImGui::PushItemWidth(-1);
+
+		if (ImGui::DragInt("##label", &value, speed, min, max))
+			modified = true;
+		ImGui::PopItemWidth();
+
+		ImGui::Columns(1);
+
+		ImGui::PopID();
+
+		return modified;
+	}
+
 	static bool DrawFloatControl(const std::string& label, float& value, float columnWidth = 100.0f, float min = 0.0f, float max = 0.0f, float delta = 0.1f)
 	{
 		bool modified = false;
@@ -323,6 +347,32 @@ namespace Toast {
 			ImGui::PopItemWidth();
 
 			ImGui::Columns(1);
+
+			switch (component.Mesh->GetPrimitiveType())
+			{
+			case Mesh::PrimitiveType::ICOSPHERE:
+			{
+				int divisions = (int)component.Mesh->GetSubdivisons();
+				if (DrawIntControl("Subdivisions", divisions, 100.0f, 0, 6))
+				{
+					component.Mesh->SetSubdivisons((int8_t)divisions);
+					component.Mesh->CreateFromPrimitive();
+				}
+
+				break;
+			}
+			case Mesh::PrimitiveType::GRID:
+			{
+				int gridSize = (int)component.Mesh->GetGridSize();
+				if (DrawIntControl("Grid size", gridSize, 100.0f, 1, 100))
+				{
+					component.Mesh->SetGridSize((int16_t)gridSize);
+					component.Mesh->CreateFromPrimitive();
+				}
+
+				break;
+			}
+			}
 		});
 
 		DrawComponent<CameraComponent>("Camera", entity, [](auto& component) 

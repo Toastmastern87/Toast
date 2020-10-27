@@ -2,17 +2,7 @@ Scene: Untitled Scene
 Entities:
   - Entity: 12837192831273
     TagComponent:
-      Tag: Starship
-    TransformComponent:
-      Translation: [0, 0, 5.4000001]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-    PrimitiveMeshComponent:
-      MeshType: 0
-      PrimitiveType: 2
-  - Entity: 12837192831273
-    TagComponent:
-      Tag: Mars
+      Tag: Empty Entity
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
@@ -24,7 +14,7 @@ Entities:
     TagComponent:
       Tag: Perspective Camera
     TransformComponent:
-      Translation: [-1.04217529, 3, -12.1999998]
+      Translation: [0, 1.21409225, -5.00863743]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
     CameraComponent:

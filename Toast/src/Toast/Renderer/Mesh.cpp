@@ -52,7 +52,7 @@ namespace Toast {
 
 			break;
 		case PrimitiveType::ICOSPHERE:
-			mesh = Primitives::CreateIcosphere();
+			mesh = Primitives::CreateIcosphere(mIcosphereDivision);
 
 			mVertexBuffer = VertexBuffer::Create(&mesh.Vertices[0], (sizeof(Vertex) * (uint32_t)mesh.Vertices.size()), (uint32_t)mesh.Vertices.size());
 			mIndexBuffer = IndexBuffer::Create(&mesh.Indices[0], (uint32_t)mesh.Indices.size());
@@ -61,7 +61,10 @@ namespace Toast {
 
 			break;
 		case PrimitiveType::GRID:
-			mesh = Primitives::CreateGrid();
+			mVertexBuffer = nullptr;
+			mIndexBuffer = nullptr;
+
+			mesh = Primitives::CreateGrid(mGridSize);
 
 			mVertexBuffer = VertexBuffer::Create(&mesh.Vertices[0], (sizeof(Vertex) * (uint32_t)mesh.Vertices.size()), (uint32_t)mesh.Vertices.size());
 			mIndexBuffer = IndexBuffer::Create(&mesh.Indices[0], (uint32_t)mesh.Indices.size());
