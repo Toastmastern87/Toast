@@ -44,6 +44,12 @@ namespace Toast {
 		const Ref<VertexBuffer> GetVertexBuffer() const { return mVertexBuffer; }
 		const Ref<IndexBuffer> GetIndexBuffer() const { return mIndexBuffer; }
 		const Ref<BufferLayout> GetLayout() const { return mLayout; }
+
+		const int16_t GetGridSize() const { return mGridSize; }
+		void SetGridSize(int16_t size) { mGridSize = size; }
+
+		const int8_t GetSubdivisons() const { return mIcosphereDivision; }
+		void SetSubdivisons(int8_t divisions) { mIcosphereDivision = divisions; }
 	private:
 		Ref<VertexBuffer> mVertexBuffer;
 		Ref<IndexBuffer> mIndexBuffer;
@@ -56,5 +62,8 @@ namespace Toast {
 		bool mMeshActive = false;
 		MeshType mMeshType = MeshType::NONE;
 		PrimitiveType mPrimitiveType = PrimitiveType::NONE;
+
+		int16_t mGridSize = 5;
+		int8_t mIcosphereDivision = 0;
 	};
 }

@@ -25,6 +25,53 @@ namespace Toast {
 			Binormal = bin;
 			Texcoord = uv;
 		}
+
+		PrimitiveVertex(DirectX::XMFLOAT3 pos)
+		{
+			Position = pos;
+			Normal = { 0.0f, 0.0f, 0.0f };
+			Tangent = { 0.0f, 0.0f, 0.0f };
+			Binormal = { 0.0f, 0.0f, 0.0f };
+			Texcoord = { 0.0f, 0.0f };
+		}
+
+		PrimitiveVertex()
+		{
+			Position = { 0.0f, 0.0f, 0.0f };
+			Normal = { 0.0f, 0.0f, 0.0f };
+			Tangent = { 0.0f, 0.0f, 0.0f };
+			Binormal = { 0.0f, 0.0f, 0.0f };
+			Texcoord = { 0.0f, 0.0f };
+		}
+
+		PrimitiveVertex operator+(const PrimitiveVertex& a)
+		{
+			return PrimitiveVertex({ this->Position.x + a.Position.x, this->Position.y + a.Position.y, this->Position.z + a.Position.z });
+		}
+
+		PrimitiveVertex operator*(const float factor)
+		{
+			return PrimitiveVertex({ this->Position.x * factor, this->Position.y * factor, this->Position.z * factor });
+		}
+
+		PrimitiveVertex operator/(const float factor)
+		{
+			return PrimitiveVertex({ this->Position.x / factor, this->Position.y / factor, this->Position.z / factor });
+		}
+
+		PrimitiveVertex& operator*=(const float factor)
+		{
+			this->Position.x *= factor;
+			this->Position.y *= factor;
+			this->Position.z *= factor;
+
+			return *this;
+		}
+
+		PrimitiveVertex operator-(const PrimitiveVertex& a)
+		{
+			return PrimitiveVertex({ this->Position.x - a.Position.x, this->Position.y - a.Position.y, this->Position.z - a.Position.z });
+		}
 	};
 
 	struct PrimitiveMesh
@@ -116,51 +163,83 @@ namespace Toast {
 		static PrimitiveMesh CreateIcosphere(uint32_t subdivisions = 0)
 		{
 			PrimitiveMesh icosphereMesh;
+			std::vector<PrimitiveVertex> startVertices;
 
 			float ratio = (1.0f + sqrt(5.0f)) / 2.0f;
 			float vectorLength = Math::GetVectorLength({ ratio, 0.0f, -1.0f });
 
-			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f, (-1.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (-ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f, (-1.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f, (1.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (-ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f, (1.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (0.0f / vectorLength) * 0.5f, (-1.0f / vectorLength) * 0.5f, (ratio / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (0.0f / vectorLength) * 0.5f, (-1.0f / vectorLength) * 0.5f, (-ratio / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (0.0f / vectorLength) * 0.5f, (1.0f / vectorLength) * 0.5f, (ratio / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (0.0f / vectorLength) * 0.5f, (1.0f / vectorLength) * 0.5f, (-ratio / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (-1.0f / vectorLength) * 0.5f, (ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (-1.0f / vectorLength) * 0.5f, (-ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (1.0f / vectorLength) * 0.5f, (ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
-			icosphereMesh.Vertices.push_back(PrimitiveVertex({ (1.0f / vectorLength) * 0.5f, (-ratio / vectorLength) * 0.5f, (0.0f / vectorLength) * 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f }));
+			startVertices.push_back(PrimitiveVertex({ ratio, 0.0f, -1.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(PrimitiveVertex({ -ratio, 0.0f, -1.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(PrimitiveVertex({ ratio, 0.0f, 1.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(PrimitiveVertex({ -ratio, 0.0f, 1.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(PrimitiveVertex({ 0.0f, -1.0f, ratio }) / vectorLength * 0.5f);
+			startVertices.push_back(PrimitiveVertex({ 0.0f, -1.0f, -ratio }) / vectorLength * 0.5f);
+			startVertices.push_back(PrimitiveVertex({ 0.0f, 1.0f, ratio }) / vectorLength * 0.5f);
+			startVertices.push_back(PrimitiveVertex({ 0.0f, 1.0f, -ratio }) / vectorLength * 0.5f);
+			startVertices.push_back(PrimitiveVertex({ -1.0f, ratio, 0.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(PrimitiveVertex({ -1.0f, -ratio, 0.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(PrimitiveVertex({ 1.0f , ratio, 0.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(PrimitiveVertex({ 1.0f , -ratio, 0.0f }) / vectorLength * 0.5f);
 
-			icosphereMesh.Indices = std::vector<uint32_t>{
-				1, 3, 8,
-				3, 1, 9,
-				2, 0, 10,
-				0, 2, 11,
+			SplitTriangle(icosphereMesh, startVertices[1], startVertices[3], startVertices[8], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[3], startVertices[1], startVertices[9], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[2], startVertices[0], startVertices[10], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[0], startVertices[2], startVertices[11], 0, subdivisions);
 
-				5, 7, 0,
-				7, 5, 1,
-				6, 4, 2,
-				4, 6, 3,
+			SplitTriangle(icosphereMesh, startVertices[5], startVertices[7], startVertices[0], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[7], startVertices[5], startVertices[1], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[6], startVertices[4], startVertices[2], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[4], startVertices[6], startVertices[3], 0, subdivisions);
 
-				9, 11, 4,
-				11, 9, 5,
-				10, 8, 6,
-				8, 10, 7,
+			SplitTriangle(icosphereMesh, startVertices[9], startVertices[11], startVertices[4], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[11], startVertices[9], startVertices[5], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[10], startVertices[8], startVertices[6], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[8], startVertices[10], startVertices[7], 0, subdivisions);
 
-				7, 1, 8,
-				1, 5, 9,
-				0, 7, 10,
-				5, 0, 11,
+			SplitTriangle(icosphereMesh, startVertices[7], startVertices[1], startVertices[8], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[1], startVertices[5], startVertices[9], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[0], startVertices[7], startVertices[10], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[5], startVertices[0], startVertices[11], 0, subdivisions);
 
-				3, 6, 8,
-				4, 3, 9,
-				6, 2, 10,
-				2, 4, 11
-			};
+			SplitTriangle(icosphereMesh, startVertices[3], startVertices[6], startVertices[8], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[4], startVertices[3], startVertices[9], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[6], startVertices[2], startVertices[10], 0, subdivisions);
+			SplitTriangle(icosphereMesh, startVertices[2], startVertices[4], startVertices[11], 0, subdivisions);
 
 			return icosphereMesh;
+		}
+
+		static void SplitTriangle(PrimitiveMesh& icosphereMesh, PrimitiveVertex a, PrimitiveVertex b, PrimitiveVertex c, int8_t subdivision, int8_t maxSubdivisions)
+		{
+			if (subdivision < maxSubdivisions)
+			{
+				int8_t nSubdivision = subdivision + 1;
+
+				PrimitiveVertex A = b + ((c - b) * 0.5f);
+				PrimitiveVertex B = c + ((a - c) * 0.5f);
+				PrimitiveVertex C = a + ((b - a) * 0.5f);
+
+				A *= 0.5f / Math::GetVectorLength({ A.Position.x, A.Position.y, A.Position.z });
+				B *= 0.5f / Math::GetVectorLength({ B.Position.x, B.Position.y, B.Position.z });
+				C *= 0.5f / Math::GetVectorLength({ C.Position.x, C.Position.y, C.Position.z });
+
+				SplitTriangle(icosphereMesh, C, B, a, nSubdivision, maxSubdivisions);
+				SplitTriangle(icosphereMesh, C, b, A, nSubdivision, maxSubdivisions);
+				SplitTriangle(icosphereMesh, c, B, A, nSubdivision, maxSubdivisions);
+				SplitTriangle(icosphereMesh, C, A, B, nSubdivision, maxSubdivisions);
+
+			}
+			else 
+			{
+				icosphereMesh.Vertices.push_back(a);
+				icosphereMesh.Indices.push_back((uint32_t)(icosphereMesh.Vertices.size() - 1));
+
+				icosphereMesh.Vertices.push_back(b);
+				icosphereMesh.Indices.push_back((uint32_t)(icosphereMesh.Vertices.size() - 1));
+
+				icosphereMesh.Vertices.push_back(c);
+				icosphereMesh.Indices.push_back((uint32_t)(icosphereMesh.Vertices.size() - 1));
+			}
 		}
 	};
 }
