@@ -2,6 +2,7 @@
 
 #include "Toast.h"
 #include "Panels/SceneHierarchyPanel.h"
+#include "Panels/SceneSettingsPanel.h"
 
 namespace Toast {
 
@@ -46,5 +47,6 @@ namespace Toast {
 
 		// Panels
 		SceneHierarchyPanel mSceneHierarchyPanel;
+		SceneSettingsPanel mSceneSettingsPanel;
 	};
 }

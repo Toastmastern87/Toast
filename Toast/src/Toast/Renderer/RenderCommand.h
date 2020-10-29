@@ -42,6 +42,16 @@ namespace Toast {
 			sRendererAPI->ResizeViewport(x, y, width, height);
 		}
 
+		static void EnableWireframeRendering()
+		{
+			sRendererAPI->EnableWireframeRendering();
+		}
+
+		static void DisableWireframeRendering()
+		{
+			sRendererAPI->DisableWireframeRendering();
+		}
+
 		static void CleanUp()
 		{
 			sRendererAPI->CleanUp();

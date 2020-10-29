@@ -22,7 +22,7 @@ namespace Toast {
 	{
 	public:
 		enum class MeshType { NONE = 0, PRIMITIVE = 1, MODEL = 2 };
-		enum class PrimitiveType { NONE = 0, PLANE = 1, CUBE = 2, ICOSPHERE = 3, GRID = 4 };
+		enum class PrimitiveType { NONE = 0, PLANET = 1, CUBE = 2, ICOSPHERE = 3, GRID = 4 };
 	public:
 		Mesh();
 		~Mesh();

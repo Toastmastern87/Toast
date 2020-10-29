@@ -50,6 +50,16 @@ namespace Toast {
 			});
 		}
 
+		// TODO, should this really be here since they only need to combined ones and not every update cycle
+		// Combines a planet with its mesh
+		auto view = mRegistry.view<PlanetComponent, PrimitiveMeshComponent>();
+		for (auto entity : view)
+		{
+			auto [planet, mesh] = view.get<PlanetComponent, PrimitiveMeshComponent>(entity);
+
+			planet.Planet->SetMesh(mesh.Mesh);
+		}
+
 		SceneCamera* mainCamera = nullptr;
 		DirectX::XMMATRIX cameraTransform;
 		{
@@ -71,7 +81,6 @@ namespace Toast {
 		{
 			// 3D Rendering
 			Renderer::BeginScene(*mainCamera, cameraTransform);
-
 			{
 				auto view = mRegistry.view<TransformComponent, PrimitiveMeshComponent>();
 
@@ -81,14 +90,36 @@ namespace Toast {
 
 					// TODO rename IsMeshActive to IsValid() 
 					if (mesh.Mesh->IsMeshActive()) {
-						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform());
+						switch (mSettings.WireframeRendering) 
+						{
+						case Settings::Wireframe::NO:
+						{
+							Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), false);
+
+							break;
+						}
+						case Settings::Wireframe::YES:
+						{
+							Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), true);
+
+							break;
+						}
+						case Settings::Wireframe::ONTOP:
+						{
+							// TODO, need a way to render a mesh total white
+
+							break;
+						}
+						}
+
 					}
 				}
 			}
 			
 			// Draw grid
 			// TODO - Gradient, aka 150.0f should come from some kind of option instead
-			Renderer::SubmitGrid(*mainCamera, cameraTransform, { mainCamera->GetPerspectiveFarClip(), mainCamera->GetPerspectiveNearClip(), 150.0f });
+			if(mSettings.GridActivated)
+				Renderer::SubmitGrid(*mainCamera, cameraTransform, { mainCamera->GetPerspectiveFarClip(), mainCamera->GetPerspectiveNearClip(), 150.0f });
 
 			Renderer::EndScene();
 
@@ -144,6 +175,11 @@ namespace Toast {
 
 	template<>
 	void Scene::OnComponentAdded<PrimitiveMeshComponent>(Entity entity, PrimitiveMeshComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<PlanetComponent>(Entity entity, PlanetComponent& component)
 	{
 	}
 

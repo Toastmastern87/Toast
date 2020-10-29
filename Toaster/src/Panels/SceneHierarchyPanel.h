@@ -24,8 +24,5 @@ namespace Toast {
 	private:
 		Ref<Scene> mContext;
 		Entity mSelectionContext;
-	private:
-
-
 	};
 }

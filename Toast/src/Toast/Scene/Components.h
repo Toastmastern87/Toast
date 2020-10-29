@@ -5,6 +5,7 @@
 #include "SceneCamera.h"
 #include "ScriptableEntity.h"
 #include "Toast/Renderer/Mesh.h"
+#include "Toast/Renderer/Planet.h"
 
 namespace Toast {
 
@@ -49,6 +50,18 @@ namespace Toast {
 			: Mesh(mesh) {}
 
 		operator Ref<Toast::Mesh>() { return Mesh; }
+	};
+
+	struct PlanetComponent
+	{
+		Ref<Toast::Planet> Planet;
+
+		PlanetComponent() = default;
+		PlanetComponent(const PlanetComponent& other) = default;
+		PlanetComponent(const Ref<Toast::Planet>& planet)
+			: Planet(planet) {}
+
+		operator Ref<Toast::Planet>() { return Planet; }
 	};
 
 	struct SpriteRendererComponent
