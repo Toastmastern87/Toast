@@ -72,9 +72,12 @@ namespace Toast {
 
 		CreateBlendStates();
 
+		CreateRasterizerStates();
+
 		mDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		EnableAlphaBlending();
+		EnableWireframeRendering();
 	}
 
 	void DirectXRendererAPI::Clear(const DirectX::XMFLOAT4 clearColor)
@@ -115,6 +118,16 @@ namespace Toast {
 		mDeviceContext->OMSetBlendState(mAlphaBlendEnabledState.Get(), 0, 0xffffffff);
 	}
 
+	void DirectXRendererAPI::EnableWireframeRendering()
+	{
+		mDeviceContext->RSSetState(mWireframeRasterizerState.Get());
+	}
+
+	void DirectXRendererAPI::DisableWireframeRendering()
+	{
+		mDeviceContext->RSSetState(mNormalRasterizerState.Get());
+	}
+
 	void DirectXRendererAPI::BindBackbuffer()
 	{
 		mBackbuffer->Bind();
@@ -147,6 +160,26 @@ namespace Toast {
 		result = mDevice->CreateBlendState(&bd, &mAlphaBlendEnabledState);
 
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create blend states");
+	}
+
+	void DirectXRendererAPI::CreateRasterizerStates()
+	{
+		HRESULT result;
+		D3D11_RASTERIZER_DESC rasterDesc{};
+
+		memset(&rasterDesc, 0, sizeof(D3D11_RASTERIZER_DESC));
+		rasterDesc.CullMode = D3D11_CULL_NONE;
+		rasterDesc.FillMode = D3D11_FILL_SOLID;
+		rasterDesc.DepthClipEnable = true;
+
+		result = mDevice->CreateRasterizerState(&rasterDesc, &mNormalRasterizerState);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create normal rasterizer state");
+
+		rasterDesc.CullMode = D3D11_CULL_NONE;
+		rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
+
+		result = mDevice->CreateRasterizerState(&rasterDesc, &mWireframeRasterizerState);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create wireframe rasterizer state");
 	}
 
 	void DirectXRendererAPI::LogAdapterInfo()

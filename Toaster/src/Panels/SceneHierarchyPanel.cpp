@@ -7,7 +7,6 @@
 
 namespace Toast {
 
-	
 	SceneHierarchyPanel::SceneHierarchyPanel(const Ref<Scene>& context)
 	{
 		SetContext(context);
@@ -97,7 +96,7 @@ namespace Toast {
 		}
 	}
 
-	static bool DrawIntControl(const std::string& label, int& value, float columnWidth = 100.0f, int min = 0, int max = 0, float speed = 1.0f)
+	static bool DrawIntControl(const std::string& label, int& value, float columnWidth = 100.0f, int min = 0, int max = 0)
 	{
 		bool modified = false;
 
@@ -110,7 +109,7 @@ namespace Toast {
 
 		ImGui::PushItemWidth(-1);
 
-		if (ImGui::DragInt("##label", &value, speed, min, max))
+		if (ImGui::SliderInt("##label", &value, min, max))
 			modified = true;
 		ImGui::PopItemWidth();
 
@@ -244,7 +243,7 @@ namespace Toast {
 
 			if (open)
 			{
-				uiFunction(component);
+				uiFunction(component, entity);
 				ImGui::TreePop();
 			}
 
@@ -292,6 +291,15 @@ namespace Toast {
 				}
 			}
 
+			if (!mSelectionContext.HasComponent<PlanetComponent>())
+			{
+				if (ImGui::MenuItem("Planet"))
+				{
+					mSelectionContext.AddComponent<PlanetComponent>(CreateRef<Planet>());
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
 			if (!mSelectionContext.HasComponent<SpriteRendererComponent>())
 			{
 				if (ImGui::MenuItem("Sprite Renderer"))
@@ -306,7 +314,7 @@ namespace Toast {
 
 		ImGui::PopItemWidth();
 
-		DrawComponent<TransformComponent>("Transform", entity, [](auto& component) 
+		DrawComponent<TransformComponent>("Transform", entity, [](auto& component, Entity entity) 
 		{
 			DrawFloat3Control("Translation", component.Translation);
 			DirectX::XMFLOAT3 rotation = { DirectX::XMConvertToDegrees(component.Rotation.x) , DirectX::XMConvertToDegrees(component.Rotation.y), DirectX::XMConvertToDegrees(component.Rotation.z) };
@@ -315,9 +323,9 @@ namespace Toast {
 			DrawFloat3Control("Scale", component.Scale, 1.0f);
 		});
 		
-		DrawComponent<PrimitiveMeshComponent>("Primitive Mesh", entity, [](auto& component) 
+		DrawComponent<PrimitiveMeshComponent>("Primitive Mesh", entity, [](auto& component, Entity entity) 
 		{
-			const char* primitiveTypeStrings[] = { "None", "Plane", "Cube", "Icosphere", "Grid" };
+			const char* primitiveTypeStrings[] = { "None", "Planet", "Cube", "Icosphere", "Grid" };
 			const char* currentType = primitiveTypeStrings[(int)component.Mesh->GetPrimitiveType()];
 
 			ImGui::Columns(2);
@@ -375,7 +383,7 @@ namespace Toast {
 			}
 		});
 
-		DrawComponent<CameraComponent>("Camera", entity, [](auto& component) 
+		DrawComponent<CameraComponent>("Camera", entity, [](auto& component, Entity entity)
 		{
 			auto& camera = component.Camera;
 
@@ -443,7 +451,7 @@ namespace Toast {
 			}
 		});
 
-		DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, [](auto& component)
+		DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, [](auto& component, Entity entity)
 		{
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.0f);
@@ -454,5 +462,11 @@ namespace Toast {
 			ImGui::PopItemWidth();
 			ImGui::Columns(1);
 		});
+
+		DrawComponent<PlanetComponent>("Planet", entity, [](auto& component, Entity entity)
+		{
+
+		});
 	}
+
 }

@@ -24,6 +24,8 @@ namespace Toast {
 		virtual void SwapBuffers() = 0;
 		virtual void ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) = 0;
 		virtual void EnableAlphaBlending() = 0;
+		virtual void EnableWireframeRendering() = 0;
+		virtual void DisableWireframeRendering() = 0;
 		virtual void CleanUp() = 0;
 
 		static API GetAPI() { return sAPI; }

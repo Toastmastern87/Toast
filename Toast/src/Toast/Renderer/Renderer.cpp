@@ -69,8 +69,13 @@ namespace Toast {
 		RenderCommand::DrawIndexed(indexBuffer);
 	}
 
-	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform)
+	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
 	{
+		if (wireframe)
+			RenderCommand::EnableWireframeRendering();
+		else
+			RenderCommand::DisableWireframeRendering();
+
 		mesh->GetMeshShader()->SetData("Camera", (void*)&mSceneData->viewMatrix);
 		mesh->GetMeshShader()->SetData("Model", (void*)&transform);
 		mesh->GetLayout()->Bind();
@@ -105,7 +110,9 @@ namespace Toast {
 		sData.GridBufferLayout->Bind();
 		sData.GridShader->Bind();
 
+		RenderCommand::DisableWireframeRendering();
 		RenderCommand::Draw(6);
+		RenderCommand::EnableWireframeRendering();
 	}
 
 	void Renderer::ResetStats()

@@ -71,6 +71,7 @@ namespace Toast {
 		mCameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
 
 		mSceneHierarchyPanel.SetContext(mActiveScene);
+		mSceneSettingsPanel.SetContext(mActiveScene);
 	}
 
 	void EditorLayer::OnDetach()
@@ -196,6 +197,7 @@ namespace Toast {
 				ImGui::EndMenuBar();
 			}
 
+			mSceneSettingsPanel.OnImGuiRender();
 			mSceneHierarchyPanel.OnImGuiRender();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});

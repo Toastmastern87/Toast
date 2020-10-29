@@ -39,7 +39,7 @@ namespace Toast {
 
 		switch (mPrimitiveType)
 		{
-		case PrimitiveType::PLANE:
+		case PrimitiveType::PLANET:
 			// TODO
 			break;
 		case PrimitiveType::CUBE:
