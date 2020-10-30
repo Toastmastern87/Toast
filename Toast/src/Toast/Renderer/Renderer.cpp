@@ -42,13 +42,13 @@ namespace Toast {
 		RenderCommand::ResizeViewport(0, 0, width, height);
 	}
 
-	void Renderer::BeginScene(const Camera& camera, const DirectX::XMMATRIX& transform)
+	void Renderer::BeginScene(const Camera& camera, const DirectX::XMMATRIX& viewMatrix)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mSceneData->viewMatrix = DirectX::XMMatrixInverse(nullptr, transform);
+		mSceneData->viewMatrix = viewMatrix;
 		mSceneData->projectionMatrix = camera.GetProjection();
-		mSceneData->inverseViewMatrix = DirectX::XMMatrixInverse(nullptr, DirectX::XMMatrixInverse(nullptr, transform));
+		mSceneData->inverseViewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
 		mSceneData->inverseProjectionMatrix = DirectX::XMMatrixInverse(nullptr, camera.GetProjection());
 
 		sData.GridShader->SetData("Camera", (void*)&mSceneData->viewMatrix);
@@ -91,7 +91,7 @@ namespace Toast {
 	}
 
 	// TODO - When material system is implemented this should be handled by the SubmitMesh()	
-	void Renderer::SubmitGrid(const Camera& camera, const DirectX::XMMATRIX& transform, const DirectX::XMFLOAT3 gridData)
+	void Renderer::SubmitGrid(const Camera& camera, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMFLOAT3 gridData)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -102,7 +102,7 @@ namespace Toast {
 		}; 
 
 		Data data;
-		data.viewMatrix = DirectX::XMMatrixInverse(nullptr, transform);
+		data.viewMatrix = viewMatrix;
 		data.projectionMatrix = camera.GetProjection();
 		data.floats = gridData;
 

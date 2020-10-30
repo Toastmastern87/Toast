@@ -34,16 +34,20 @@ namespace Toast {
 		Ref<Framebuffer> mFramebuffer;
 
 		Ref<Scene> mActiveScene;
-		Entity mCameraEntity;
-		Entity mSquareEntity;
 
-		bool mPrimaryCamera = true;
+		Ref<PerspectiveCamera> mEditorCamera;
 
 		Ref<Texture2D> mCheckerboardTexture;
 
 		bool mViewportFocused = false, mViewportHovered = false;
 
 		DirectX::XMFLOAT2 mViewportSize = { 0.0f, 0.0f };
+
+		enum class SceneState
+		{
+			Edit = 0, Play = 1
+		};
+		SceneState mSceneState = SceneState::Edit;
 
 		// Panels
 		SceneHierarchyPanel mSceneHierarchyPanel;

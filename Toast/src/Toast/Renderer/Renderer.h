@@ -16,13 +16,13 @@ namespace Toast {
 
 		static void OnWindowResize(uint32_t width, uint32_t height);
 
-		static void BeginScene(const Camera& camera, const DirectX::XMMATRIX& transform);
+		static void BeginScene(const Camera& camera, const DirectX::XMMATRIX& viewMatrix);
 		static void EndScene();
 
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<BufferLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
 		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false);
 		static void SubmitQuad(const DirectX::XMMATRIX& transform);
-		static void SubmitGrid(const Camera& camera, const DirectX::XMMATRIX& transform, const DirectX::XMFLOAT3 gridData);
+		static void SubmitGrid(const Camera& camera, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMFLOAT3 gridData);
 
 		static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 
