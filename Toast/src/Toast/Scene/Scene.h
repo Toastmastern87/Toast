@@ -2,6 +2,7 @@
 
 #include "entt.hpp"
 #include "Toast/Core/Timestep.h"
+#include "Toast/Renderer/PerspectiveCamera.h"
 
 namespace Toast {
 
@@ -16,7 +17,8 @@ namespace Toast {
 		Entity CreateEntity(const std::string& name = std::string());
 		void DestroyEntity(Entity entity);
 
-		void OnUpdate(Timestep ts);
+		void OnUpdateRuntime(Timestep ts);
+		void OnUpdateEditor(Timestep ts, const Ref<PerspectiveCamera> perspectiveCamera);
 		void OnViewportResize(uint32_t width, uint32_t height);
 
 		void RenderGrid(bool renderGrid) { mSettings.GridActivated = renderGrid; }

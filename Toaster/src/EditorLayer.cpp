@@ -31,44 +31,7 @@ namespace Toast {
 		
 		mActiveScene = CreateRef<Scene>();
 
-		mCameraEntity = mActiveScene->CreateEntity("Perspective Camera");
-		mCameraEntity.AddComponent<CameraComponent>();
-
-		class CameraController : public ScriptableEntity
-		{
-		public:
-			void OnCreate() 
-			{
-				auto& translation = GetComponent<TransformComponent>().Translation;
-				translation = { 0.0f, 3.0f, -12.0f };
-			}
-
-			void OnDestroy() 
-			{
-
-			}
-
-			void OnUpdate(Timestep ts) 
-			{
-				auto& translation = GetComponent<TransformComponent>().Translation;
-				float speed = 5.0f;
-
-				if (Input::IsKeyPressed(Key::A))
-					translation.x -= speed * ts;
-				if (Input::IsKeyPressed(Key::D))
-					translation.x += speed * ts;
-				if (Input::IsKeyPressed(Key::E))
-					translation.y += speed * ts;
-				if (Input::IsKeyPressed(Key::Q))
-					translation.y -= speed * ts;
-				if (Input::IsKeyPressed(Key::W))
-					translation.z += speed * ts;
-				if (Input::IsKeyPressed(Key::S))
-					translation.z -= speed * ts;
-			}
-		};
-
-		mCameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
+		mEditorCamera = CreateRef<PerspectiveCamera>(45.0f);
 
 		mSceneHierarchyPanel.SetContext(mActiveScene);
 		mSceneSettingsPanel.SetContext(mActiveScene);
@@ -89,14 +52,27 @@ namespace Toast {
 			(spec.Width != mViewportSize.x || spec.Height != mViewportSize.y))
 		{
 			mFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			mCameraController.OnResize(mViewportSize.x, mViewportSize.y);
 
-			mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			switch (mSceneState)
+			{
+			case SceneState::Edit:
+			{
+				mEditorCamera->SetViewportSize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+				
+				break;
+			}
+			case SceneState::Play:
+			{
+				mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+
+				break;
+			}
+			}
 		}
 
 		// Update
-		if (mViewportFocused)
-			mCameraController.OnUpdate(ts);
+		if (mViewportFocused || mViewportHovered)
+			mEditorCamera->OnUpdate(ts);
 
 		// Render
 		Renderer2D::ResetStats();
@@ -104,7 +80,21 @@ namespace Toast {
 		mFramebuffer->Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
 
 		// Update scene
-		mActiveScene->OnUpdate(ts);
+		switch (mSceneState) 
+		{
+		case SceneState::Edit:
+		{
+			mActiveScene->OnUpdateEditor(ts, mEditorCamera);
+
+			break;
+		}
+		case SceneState::Play:
+		{
+			mActiveScene->OnUpdateRuntime(ts);
+
+			break;
+		}
+		}
 
 		RenderCommand::BindBackbuffer();
 		RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });

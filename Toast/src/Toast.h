@@ -35,4 +35,5 @@
 #include "Toast/Renderer/Mesh.h"
 
 #include "Toast/Renderer/OrthographicCamera.h"
+#include "Toast/Renderer/PerspectiveCamera.h"
 //---------------------------------------

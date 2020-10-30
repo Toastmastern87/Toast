@@ -16,8 +16,6 @@ namespace Toast {
 
 	void SceneSettingsPanel::OnImGuiRender()
 	{
-		//ImGui::ShowDemoWindow();
-
 		ImGui::Begin("Scene Settings");
 
 		if(mContext)
@@ -26,20 +24,17 @@ namespace Toast {
 
 			ImGui::Separator();
 
-			if (ImGui::RadioButton("Normal", mContext->mSettings.WireframeRendering == Scene::Settings::Wireframe::NO))
+			auto& wireframeButton = [&](const char* label, Scene::Settings::Wireframe mode)
 			{
-				mContext->mSettings.WireframeRendering = Scene::Settings::Wireframe::NO;
-			}
+				if (ImGui::RadioButton(label, mContext->mSettings.WireframeRendering == mode))
+					mContext->mSettings.WireframeRendering = mode;
+			};
+
+			wireframeButton("Normal", Scene::Settings::Wireframe::NO);
 			ImGui::SameLine();
-			if (ImGui::RadioButton("Wireframe", mContext->mSettings.WireframeRendering == Scene::Settings::Wireframe::YES)) 
-			{
-				mContext->mSettings.WireframeRendering = Scene::Settings::Wireframe::YES;
-			}  
+			wireframeButton("Wireframe", Scene::Settings::Wireframe::YES);
 			ImGui::SameLine();
-			if (ImGui::RadioButton("Wireframe Overlay", mContext->mSettings.WireframeRendering == Scene::Settings::Wireframe::ONTOP))
-			{
-				mContext->mSettings.WireframeRendering = Scene::Settings::Wireframe::ONTOP; 
-			}
+			wireframeButton("Wireframe Overlay", Scene::Settings::Wireframe::ONTOP);
 		}
 
 		ImGui::End();
