@@ -83,24 +83,24 @@ namespace Toast {
 	class Primitives
 	{
 	public:
-		static PrimitiveMesh CreateCube() 
+		static PrimitiveMesh CreateCube(float width = 1.0f, float height = 1.0f, float depth = 1.0f)
 		{
 			PrimitiveMesh cubeMesh;
 
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ -0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.25f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ -0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.25f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.5f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ 0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.5f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ -0.5f, -0.5f, 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.25f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ 0.5f, -0.5f, 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.5f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ -0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.75f, 0.25f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.75f, 0.5f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ -0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 1.0f, 0.25f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 1.0f, 0.5f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ -0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.0f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ -0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.0f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.75f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.75f }));
+			cubeMesh.Vertices.push_back(PrimitiveVertex({ -(width / 2.0f), (height / 2.0f), -(depth/ 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.25f }));
+			cubeMesh.Vertices.push_back(PrimitiveVertex({ -(width / 2.0f), -(height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.25f }));
+			cubeMesh.Vertices.push_back(PrimitiveVertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.5f }));
+			cubeMesh.Vertices.push_back(PrimitiveVertex({ (width / 2.0f), -(height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.5f }));
+			cubeMesh.Vertices.push_back(PrimitiveVertex({ -(width / 2.0f), -(height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.25f }));
+			cubeMesh.Vertices.push_back(PrimitiveVertex({ (width / 2.0f), -(height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.5f }));
+			cubeMesh.Vertices.push_back(PrimitiveVertex({ -(width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.75f, 0.25f }));
+			cubeMesh.Vertices.push_back(PrimitiveVertex({ (width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.75f, 0.5f }));
+			cubeMesh.Vertices.push_back(PrimitiveVertex({ -(width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 1.0f, 0.25f }));
+			cubeMesh.Vertices.push_back(PrimitiveVertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 1.0f, 0.5f }));
+			cubeMesh.Vertices.push_back(PrimitiveVertex({ -(width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.0f }));
+			cubeMesh.Vertices.push_back(PrimitiveVertex({ -(width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.0f }));
+			cubeMesh.Vertices.push_back(PrimitiveVertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.75f }));
+			cubeMesh.Vertices.push_back(PrimitiveVertex({ (width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.75f }));
 
 			cubeMesh.Indices = std::vector<uint32_t>{
 				//Front

@@ -21,13 +21,9 @@ namespace Toast {
 		void OnUpdateEditor(Timestep ts, const Ref<PerspectiveCamera> perspectiveCamera);
 		void OnViewportResize(uint32_t width, uint32_t height);
 
-		void RenderGrid(bool renderGrid) { mSettings.GridActivated = renderGrid; }
-
 		//Settings
 		struct Settings
 		{
-			bool GridActivated = true;
-
 			enum class Wireframe { NO = 0, YES = 1, ONTOP = 2 };
 			Wireframe WireframeRendering = Wireframe::NO;
 		};

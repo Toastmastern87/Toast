@@ -23,6 +23,7 @@ namespace Toast {
 
 		mWindow = Window::Create(WindowProps(name));
 		mWindow->SetEventCallback(TOAST_BIND_EVENT_FN(Application::OnEvent));
+		mWindow->SetVSync(true);
 
 		Renderer::Init();
 

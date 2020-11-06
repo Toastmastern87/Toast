@@ -32,9 +32,9 @@ namespace Toast {
 			sRendererAPI->Draw(count);
 		}
 
-		static void SwapBuffers()
+		static void SwapBuffers(bool vSync)
 		{
-			sRendererAPI->SwapBuffers();
+			sRendererAPI->SwapBuffers(vSync);
 		}
 
 		static void ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
@@ -50,6 +50,11 @@ namespace Toast {
 		static void DisableWireframeRendering()
 		{
 			sRendererAPI->DisableWireframeRendering();
+		}
+
+		static void SetPrimitiveTopology(PrimitiveTopology topology)
+		{
+			sRendererAPI->SetPrimitiveTopology(topology);
 		}
 
 		static void CleanUp()
