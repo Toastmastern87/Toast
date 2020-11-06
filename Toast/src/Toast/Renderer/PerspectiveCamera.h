@@ -27,6 +27,10 @@ namespace Toast {
 
 		const float GetAspecRatio() const { return mAspectRatio; }
 		void SetAspectRatio(float aspectRatio) { mAspectRatio = aspectRatio; RecalculateProjectionMatrix(); }
+
+		const DirectX::XMVECTOR GetForwardVector() const { return mForward; }
+		const DirectX::XMVECTOR GetUpVector() const { return mUp; }
+		const DirectX::XMVECTOR GetRightVector() const { return mRight; }
 	private:
 		void RecalculateProjectionMatrix();
 		void RecalculateViewMatrix();
@@ -43,7 +47,7 @@ namespace Toast {
 
 		float mAspectRatio = 1.0f;
 
-		float mRotationSpeed = 3.0f;
-		float mTranslationSpeed = 4.0f;
+		float mRotationSpeed = 0.003f;
+		float mTranslationSpeed = 2.0f;
 	};
 }

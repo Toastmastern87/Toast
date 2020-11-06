@@ -58,6 +58,7 @@ namespace Toast {
 			case SceneState::Edit:
 			{
 				mEditorCamera->SetViewportSize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+				mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 				
 				break;
 			}

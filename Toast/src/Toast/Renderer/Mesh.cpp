@@ -33,7 +33,7 @@ namespace Toast {
 
 	}
 
-	void Mesh::CreateFromPrimitive()
+	void Mesh::CreateFromPrimitive(float width, float height, float depth)
 	{
 		PrimitiveMesh mesh;
 
@@ -43,7 +43,7 @@ namespace Toast {
 			// TODO
 			break;
 		case PrimitiveType::CUBE:
-			mesh = Primitives::CreateCube();
+			mesh = Primitives::CreateCube(width, height, depth);
 
 			mVertexBuffer = VertexBuffer::Create(&mesh.Vertices[0], (sizeof(Vertex) * (uint32_t)mesh.Vertices.size()), (uint32_t)mesh.Vertices.size());
 			mIndexBuffer = IndexBuffer::Create(&mesh.Indices[0], (uint32_t)mesh.Indices.size());

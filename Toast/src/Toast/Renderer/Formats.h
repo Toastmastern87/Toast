@@ -19,6 +19,17 @@ namespace Toast {
 
 	} BindFlag;
 	inline BindFlag operator|(BindFlag a, BindFlag b) { return (BindFlag)((UINT)a | (UINT)b); };
+
+	typedef enum class PrimitiveTopology
+	{
+		UNDEFINED = 0,
+		POINTLIST = 1,
+		LINELIST = 2,
+		LINESTRIP = 3,
+		TRIANGLELIST = 4,
+		TRIANGLESTRIP = 5
+
+	} Topology;
 }
 
 #define TOAST_FORMAT_R32G32B32A32_FLOAT		::Toast::Format::R32G32B32A32_FLOAT

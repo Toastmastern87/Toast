@@ -2,14 +2,12 @@
 
 #include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/Renderer2D.h"
+#include "Toast/Renderer/RendererDebug.h"
 
 namespace Toast {
 
 	struct RendererData
 	{
-		Ref<BufferLayout> GridBufferLayout;
-		Ref<Shader> GridShader;
-
 		Renderer::Statistics Stats;
 	};
 
@@ -23,18 +21,13 @@ namespace Toast {
 
 		RenderCommand::Init();
 		Renderer2D::Init();
-
-		// TODO - Should be moved to the editor instead???
-		sData.GridShader = Shader::Create("assets/shaders/Grid.hlsl");
-
-		const std::initializer_list<BufferLayout::BufferElement>& layout = {};
-
-		sData.GridBufferLayout = BufferLayout::Create(layout, sData.GridShader);
+		RendererDebug::Init();
 	}
 
 	void Renderer::Shutdown()
 	{
 		Renderer2D::Shutdown();
+		RendererDebug::Shutdown();
 	}
 
 	void Renderer::OnWindowResize(uint32_t width, uint32_t height)
@@ -48,10 +41,6 @@ namespace Toast {
 
 		mSceneData->viewMatrix = viewMatrix;
 		mSceneData->projectionMatrix = camera.GetProjection();
-		mSceneData->inverseViewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-		mSceneData->inverseProjectionMatrix = DirectX::XMMatrixInverse(nullptr, camera.GetProjection());
-
-		sData.GridShader->SetData("Camera", (void*)&mSceneData->viewMatrix);
 	}
 
 	void Renderer::EndScene()
@@ -84,35 +73,6 @@ namespace Toast {
 		mesh->GetMeshShader()->Bind();
 		
 		RenderCommand::DrawIndexed(mesh->GetIndexBuffer(), mesh->GetIndexBuffer()->GetCount());
-	}
-
-	void Renderer::SubmitQuad(const DirectX::XMMATRIX& transform)
-	{
-	}
-
-	// TODO - When material system is implemented this should be handled by the SubmitMesh()	
-	void Renderer::SubmitGrid(const Camera& camera, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMFLOAT3 gridData)
-	{
-		TOAST_PROFILE_FUNCTION();
-
-		struct Data 
-		{
-			DirectX::XMMATRIX viewMatrix, projectionMatrix;
-			DirectX::XMFLOAT3 floats;
-		}; 
-
-		Data data;
-		data.viewMatrix = viewMatrix;
-		data.projectionMatrix = camera.GetProjection();
-		data.floats = gridData;
-
-		sData.GridShader->SetData("GridData", (void*)&data);
-		sData.GridBufferLayout->Bind();
-		sData.GridShader->Bind();
-
-		RenderCommand::DisableWireframeRendering();
-		RenderCommand::Draw(6);
-		RenderCommand::EnableWireframeRendering();
 	}
 
 	void Renderer::ResetStats()

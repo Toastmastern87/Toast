@@ -107,7 +107,7 @@ namespace Toast
 			DispatchMessage(&message);
 		}
 
-		RenderCommand::SwapBuffers();
+		RenderCommand::SwapBuffers(mData.VSync);
 	}
 
 	void WindowsWindow::SetVSync(bool enabled)

@@ -3,8 +3,6 @@
 
 #include "Toast/Core/Input.h"
 
-#include "TOast/Core/Math.h"
-
 namespace Toast {
 
 	PerspectiveCamera::PerspectiveCamera(float verticalFOV, float nearClip, float farClip)
@@ -44,17 +42,17 @@ namespace Toast {
 			if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
 			{
 				if (mCursorPos.x != newCursorPos.x)
-					mYaw += (newCursorPos.x - mCursorPos.x) * mRotationSpeed * ts;
-				if(mCursorPos.y != newCursorPos.y)
-					mPitch += (newCursorPos.y - mCursorPos.y) * mRotationSpeed * ts;
+					mYaw += (newCursorPos.x - mCursorPos.x) * mRotationSpeed;
+				if (mCursorPos.y != newCursorPos.y)
+					mPitch += (newCursorPos.y - mCursorPos.y) * mRotationSpeed;
 
-				mPitch = std::min(mPitch, (M_PI / 2.0f));
-				mPitch = std::max(mPitch, -(M_PI / 2.0f));
+				mPitch = std::min(mPitch, DirectX::XM_PIDIV2);
+				mPitch = std::max(mPitch, -DirectX::XM_PIDIV2);
 
-				if (mYaw >= (M_PI * 2.0f))
-					mYaw -= M_PI * 2.0f;
-				if (mYaw <= -(M_PI * 2.0f))
-					mYaw += M_PI * 2.0f;
+				if (mYaw >= DirectX::XM_2PI)
+					mYaw -= DirectX::XM_2PI;
+				if (mYaw <= -DirectX::XM_2PI)
+					mYaw += DirectX::XM_2PI;
 			}
 
 			DirectX::XMVECTOR quad = DirectX::XMQuaternionRotationRollPitchYaw(mPitch, mYaw, 0.0f);

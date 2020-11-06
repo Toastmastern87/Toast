@@ -5,8 +5,6 @@ cbuffer Camera : register(b0)
 {
 	matrix viewMatrix;
 	matrix projectionMatrix;
-	matrix inverseViewMatrix;
-	matrix inverseProjectionMatrix;
 };
 
 cbuffer Model : register(b1)

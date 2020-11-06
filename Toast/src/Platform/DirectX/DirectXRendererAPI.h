@@ -17,11 +17,12 @@ namespace Toast {
 		virtual void BindBackbuffer() override;
 		virtual void DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount = 0) override;
 		virtual void Draw(uint32_t count) override;
-		virtual void SwapBuffers() override;
+		virtual void SwapBuffers(bool vSync) override;
 		virtual void ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) override;
 		virtual void EnableAlphaBlending() override;
 		virtual void EnableWireframeRendering() override;
 		virtual void DisableWireframeRendering() override;
+		virtual void SetPrimitiveTopology(PrimitiveTopology topology) override;
 		virtual void CleanUp() override;
 
 		virtual ID3D11Device* GetDevice() { return mDevice.Get(); }

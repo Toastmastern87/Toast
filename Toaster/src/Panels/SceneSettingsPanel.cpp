@@ -20,10 +20,6 @@ namespace Toast {
 
 		if(mContext)
 		{
-			ImGui::Checkbox("Grid Activated ", &mContext->mSettings.GridActivated);
-
-			ImGui::Separator();
-
 			auto& wireframeButton = [&](const char* label, Scene::Settings::Wireframe mode)
 			{
 				if (ImGui::RadioButton(label, mContext->mSettings.WireframeRendering == mode))

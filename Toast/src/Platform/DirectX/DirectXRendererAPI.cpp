@@ -74,8 +74,6 @@ namespace Toast {
 
 		CreateRasterizerStates();
 
-		mDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
 		EnableAlphaBlending();
 		EnableWireframeRendering();
 	}
@@ -97,11 +95,14 @@ namespace Toast {
 		mDeviceContext->Draw(count, 0);
 	}
 
-	void DirectXRendererAPI::SwapBuffers()
+	void DirectXRendererAPI::SwapBuffers(bool vSync)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mSwapChain->Present(0, 0);
+		if(vSync)
+			mSwapChain->Present(1, 0);
+		else
+			mSwapChain->Present(0, 0);
 	}
 
 	void DirectXRendererAPI::ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
@@ -126,6 +127,11 @@ namespace Toast {
 	void DirectXRendererAPI::DisableWireframeRendering()
 	{
 		mDeviceContext->RSSetState(mNormalRasterizerState.Get());
+	}
+
+	void DirectXRendererAPI::SetPrimitiveTopology(PrimitiveTopology topology)
+	{
+		mDeviceContext->IASetPrimitiveTopology((D3D11_PRIMITIVE_TOPOLOGY)topology);
 	}
 
 	void DirectXRendererAPI::BindBackbuffer()
