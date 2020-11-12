@@ -22,8 +22,6 @@ namespace Toast {
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<BufferLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
 		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false);
 
-		static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
-
 		//Stats
 		struct Statistics
 		{

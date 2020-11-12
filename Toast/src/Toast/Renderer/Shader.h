@@ -1,22 +1,57 @@
 #pragma once
 
+#include "Toast/Renderer/Buffer.h"
+
+#include <d3d11.h>
+#include <d3d11shader.h>
+#include <wrl.h>
+#include <d3d11shadertracing.h>
 #include <DirectXMath.h>
 
 namespace Toast {
 
-	class Shader 
+	class Shader
 	{
+	private:
+		struct ConstantBuffer
+		{
+			Microsoft::WRL::ComPtr<ID3D11Buffer> Buffer;
+			size_t Size;
+			uint32_t BindPoint;
+			D3D11_SHADER_TYPE ShaderType;
+		};
 	public:
-		virtual ~Shader() = default;
+		Shader(const std::string& filepath);
+		~Shader();
 
-		virtual void Bind() const = 0;
-		virtual void Unbind() const = 0;
+		void Bind() const;
+		void Unbind() const;
 
-		virtual void SetData(const std::string& cbName, void* data) = 0;
+		const std::string GetName() const { return mName; }
 
-		virtual const std::string GetName() const = 0;
+		void SetData(const std::string& cbName, void* data);
 
-		static Ref<Shader> Create(const std::string& filepath);
+		const ID3D10Blob* GetVSRaw() const { return mRawBlobs.at(D3D11_VERTEX_SHADER); }
+		const std::unordered_map<std::string, uint32_t> GetTextureResources() const { return mTextureResources; }
+	private:
+		std::string ReadFile(const std::string& filepath);
+		std::unordered_map<D3D11_SHADER_TYPE, std::string> PreProcess(const std::string& source);
+		void Compile(const std::unordered_map<D3D11_SHADER_TYPE, std::string> shaderSources);
+
+		void ProcessConstantBuffers();
+		void ProcessInputLayout();
+		void ProcessTextureResources();
+	private:
+		Ref<BufferLayout> mLayout;
+		std::unordered_map<std::string, ConstantBuffer> mConstantBuffers;
+
+		std::string mName;
+
+		Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader;
+		Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader;
+		std::unordered_map<D3D11_SHADER_TYPE, ID3D10Blob*> mRawBlobs;
+
+		std::unordered_map<std::string, uint32_t> mTextureResources;
 	};
 
 	class ShaderLibrary 
@@ -28,6 +63,7 @@ namespace Toast {
 		static Ref<Shader> Load(const std::string& name, const std::string& filepath);
 
 		static Ref<Shader> Get(const std::string& name);
+		static std::vector<std::string> GetShaderList();
 
 		static bool Exists(const std::string& name);
 	private:

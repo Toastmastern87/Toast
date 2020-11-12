@@ -381,6 +381,33 @@ namespace Toast {
 				break;
 			}
 			}
+
+			ImGui::Columns(2);
+			ImGui::SetColumnWidth(0, 100.0f);
+			ImGui::Text("Material");
+			ImGui::NextColumn();
+
+			ImGui::PushItemWidth(-1);
+
+			std::unordered_map<std::string, Ref<Material>> materials = MaterialLibrary::GetMaterials();
+			Ref<Material> currentMaterial = component.Mesh->GetMaterial();
+			if (ImGui::BeginCombo("##material", currentMaterial->GetName().c_str()))
+			{
+				for (auto& material : materials)
+				{
+					bool isSelected = (currentMaterial->GetName() == material.first);
+					if (ImGui::Selectable(material.first.c_str(), isSelected))
+						component.Mesh->SetMaterial(MaterialLibrary::Get(material.first));
+
+					if (isSelected)
+						ImGui::SetItemDefaultFocus();
+				}
+
+				ImGui::EndCombo();
+			}
+			ImGui::PopItemWidth();
+
+			ImGui::Columns(1);
 		});
 
 		DrawComponent<CameraComponent>("Camera", entity, [](auto& component, Entity entity)

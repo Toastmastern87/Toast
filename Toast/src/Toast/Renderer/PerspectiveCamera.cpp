@@ -66,18 +66,21 @@ namespace Toast {
 
 		// Translation
 		{
+			DirectX::XMVECTOR distanceVector = DirectX::XMVector3Length(mPosition);
+			float distance = DirectX::XMVectorGetX(distanceVector);
+
 			if (Input::IsKeyPressed(Key::W))
-				mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(mForward, (mTranslationSpeed * ts)));
+				mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(mForward, (mTranslationSpeed * ts * distance)));
 			if (Input::IsKeyPressed(Key::S))
-				mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(mForward, -(mTranslationSpeed * ts)));
+				mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(mForward, -(mTranslationSpeed * ts * distance)));
 			if (Input::IsKeyPressed(Key::A))
-				mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(mRight, -(mTranslationSpeed * ts)));
+				mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(mRight, -(mTranslationSpeed * ts * distance)));
 			if (Input::IsKeyPressed(Key::D))
-				mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(mRight, (mTranslationSpeed * ts)));
+				mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(mRight, (mTranslationSpeed * ts * distance)));
 			if (Input::IsKeyPressed(Key::E))
-				mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(DirectX::XMVECTOR({0.0f, 1.0f, 0.0f}), (mTranslationSpeed * ts)));
+				mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(DirectX::XMVECTOR({0.0f, 1.0f, 0.0f}), (mTranslationSpeed * ts * distance)));
 			if (Input::IsKeyPressed(Key::Q))
-				mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(DirectX::XMVECTOR({ 0.0f, 1.0f, 0.0f }), -(mTranslationSpeed * ts)));
+				mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(DirectX::XMVECTOR({ 0.0f, 1.0f, 0.0f }), -(mTranslationSpeed * ts * distance)));
 		}
 
 		RecalculateViewMatrix();

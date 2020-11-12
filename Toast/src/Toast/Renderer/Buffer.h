@@ -1,29 +1,24 @@
 #pragma once
 
-#include "Shader.h"
+#include <d3d11.h>
+#include <wrl.h>
 
 namespace Toast {
-	
-	enum class ShaderDataType 
-	{
-		None = 0, Float, Float2, Float3, Float4, Int, Int2, Int3, Int4
-	};
 
-	static uint32_t ShaderDataTypeSize(ShaderDataType type)
+	static uint32_t ShaderDataTypeSize(DXGI_FORMAT type)
 	{
-		switch (type) 
+		switch (type)
 		{
-			case ShaderDataType::Float:			return 4;
-			case ShaderDataType::Float2:		return 4 * 2;
-			case ShaderDataType::Float3:		return 4 * 3;
-			case ShaderDataType::Float4:		return 4 * 4;
-			case ShaderDataType::Int:			return 4;
-			case ShaderDataType::Int2:			return 4 * 2;
-			case ShaderDataType::Int3:			return 4 * 3;
-			case ShaderDataType::Int4:			return 4 * 4;
+		case DXGI_FORMAT_R32_FLOAT:					return 4;
+		case DXGI_FORMAT_R32G32_FLOAT:				return 4 * 2;
+		case DXGI_FORMAT_R32G32B32_FLOAT:			return 4 * 3;
+		case DXGI_FORMAT_R32G32B32A32_FLOAT:		return 4 * 4;
+		case DXGI_FORMAT_R32_UINT:					return 4;
+		case DXGI_FORMAT_R32G32_UINT:				return 4 * 2;
+		case DXGI_FORMAT_R32G32B32_UINT:			return 4 * 3;
+		case DXGI_FORMAT_R32G32B32A32_UINT:			return 4 * 4;
 		}
 
-		TOAST_CORE_ASSERT(false, "Unkown ShaderDataType!");
 		return 0;
 	}
 
@@ -33,14 +28,14 @@ namespace Toast {
 		struct BufferElement
 		{
 			std::string mName;
-			ShaderDataType mType;
+			DXGI_FORMAT mType;
 			uint32_t mSize;
 			size_t mOffset;
 			uint32_t mSemanticIndex;
 
 			BufferElement() = default;
 
-			BufferElement(ShaderDataType type, const std::string& name, const uint32_t semanticIndex = 0)
+			BufferElement(DXGI_FORMAT type, const std::string& name, const uint32_t semanticIndex = 0)
 				: mName(name), mType(type), mSize(ShaderDataTypeSize(type)), mOffset(0), mSemanticIndex(semanticIndex)
 			{
 			}
@@ -49,60 +44,73 @@ namespace Toast {
 			{
 				switch (mType)
 				{
-					case ShaderDataType::Float:			return 1;
-					case ShaderDataType::Float2:		return 2;
-					case ShaderDataType::Float3:		return 3;
-					case ShaderDataType::Float4:		return 4;
-					case ShaderDataType::Int:			return 1;
-					case ShaderDataType::Int2:			return 2;
-					case ShaderDataType::Int3:			return 3;
-					case ShaderDataType::Int4:			return 4;
+				case DXGI_FORMAT_R32_FLOAT:					return 1;
+				case DXGI_FORMAT_R32G32_FLOAT:				return 2;
+				case DXGI_FORMAT_R32G32B32_FLOAT:			return 3;
+				case DXGI_FORMAT_R32G32B32A32_FLOAT:		return 4;
+				case DXGI_FORMAT_R32_UINT:					return 1;
+				case DXGI_FORMAT_R32G32_UINT:				return 2;
+				case DXGI_FORMAT_R32G32B32_UINT:			return 3;
+				case DXGI_FORMAT_R32G32B32A32_UINT:			return 4;
 				}
 
-				TOAST_CORE_ASSERT(false, "Unkown ShaderDataType!");
 				return 0;
 			}
 		};
 
-	public:
-		virtual ~BufferLayout() = default;
+		BufferLayout(const std::vector<BufferElement>& elements, void* VSRaw);
+		virtual ~BufferLayout();
 
-		virtual void Bind() const = 0;
-		virtual void Unbind() const = 0;
+		virtual void Bind() const;
+		virtual void Unbind() const;
 
-		virtual uint32_t GetStride() const = 0;
-		virtual const std::vector<BufferElement>& GetElements() const = 0;
+		inline uint32_t GetStride() const { return mStride; }
+		inline const std::vector<BufferElement>& GetElements() const { return mElements; }
 
-		static Ref<BufferLayout> Create(std::initializer_list<BufferElement> elements, Ref<Shader> shader);
+		std::vector<BufferElement>::iterator begin() { return mElements.begin(); }
+		std::vector<BufferElement>::iterator end() { return mElements.end(); }
+		std::vector<BufferElement>::const_iterator begin() const { return mElements.begin(); }
+		std::vector<BufferElement>::const_iterator end() const { return mElements.end(); }
 
 	private:
-		virtual void CalculateOffsetAndStride() = 0;
+		virtual void CalculateOffsetAndStride();
+		void CalculateSemanticIndex();
+
+	private:
+		uint32_t mStride;
+		std::vector<BufferElement> mElements;
+		Microsoft::WRL::ComPtr<ID3D11InputLayout> mInputLayout;
 	};
 
-	class VertexBuffer 
+	class VertexBuffer
 	{
 	public:
-		virtual ~VertexBuffer() = default;
+		VertexBuffer(uint32_t size, uint32_t count);
+		VertexBuffer(void* vertices, uint32_t size, uint32_t count);
+		virtual ~VertexBuffer();
 
-		virtual void Bind() const = 0;
-		virtual void Unbind() const = 0;
+		virtual void Bind() const;
+		virtual void Unbind() const;
 
-		virtual void SetData(const void* data, uint32_t size) = 0;
+		virtual void SetData(const void* data, uint32_t size);
 
-		static Ref<VertexBuffer> Create(uint32_t size, uint32_t count);
-		static Ref<VertexBuffer> Create(void* vertices, uint32_t size, uint32_t count);
+	private:
+		Microsoft::WRL::ComPtr<ID3D11Buffer> mVertexBuffer = nullptr;
+		uint32_t mSize = 0, mCount;
 	};
 
-	class IndexBuffer 
+	class IndexBuffer
 	{
 	public:
-		virtual ~IndexBuffer() = default;
+		IndexBuffer(uint32_t* indices, uint32_t count);
+		virtual ~IndexBuffer();
 
-		virtual void Bind() const = 0;
-		virtual void Unbind() const = 0;
+		virtual void Bind() const;
+		virtual void Unbind() const;
 
-		virtual uint32_t GetCount() const = 0;
-
-		static Ref<IndexBuffer> Create(uint32_t* indices, uint32_t count);
+		virtual uint32_t GetCount() const { return mCount; }
+	private:
+		Microsoft::WRL::ComPtr<ID3D11Buffer> mIndexBuffer = nullptr;
+		uint32_t mCount;
 	};
 }

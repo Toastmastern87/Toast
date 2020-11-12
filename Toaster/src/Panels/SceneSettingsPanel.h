@@ -3,7 +3,6 @@
 #include "Toast/Core/Base.h"
 #include "Toast/Scene/Scene.h"
 
-
 namespace Toast {
 
 	class SceneSettingsPanel

@@ -143,6 +143,7 @@ namespace Toast {
 			auto& pmc = entity.GetComponent<PrimitiveMeshComponent>();
 			out << YAML::Key << "MeshType" << YAML::Value << (int)pmc.Mesh->GetType();
 			out << YAML::Key << "PrimitiveType" << YAML::Value << (int)pmc.Mesh->GetPrimitiveType();
+			out << YAML::Key << "Material" << YAML::Value << pmc.Mesh->GetMaterial()->GetName();
 
 			out << YAML::EndMap; // PrimitiveMeshComponent
 		}
@@ -166,6 +167,7 @@ namespace Toast {
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Scene" << YAML::Value << "Untitled Scene";
+		out << YAML::Key << "Editor Camera";
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 		mScene->mRegistry.each([&](auto entityID)
 		{
@@ -257,6 +259,8 @@ namespace Toast {
 					mc.Mesh->SetType((Mesh::MeshType)(primitiveMeshComponent["MeshType"].as<uint32_t>()));
 					mc.Mesh->SetPrimitiveType((Mesh::PrimitiveType)(primitiveMeshComponent["PrimitiveType"].as<uint32_t>()));
 					mc.Mesh->CreateFromPrimitive();
+
+					mc.Mesh->SetMaterial(MaterialLibrary::Get(primitiveMeshComponent["Material"].as<std::string>()));
 				}
 
 				auto spriteRendererComponent = entity["SpriteRendererComponent"];

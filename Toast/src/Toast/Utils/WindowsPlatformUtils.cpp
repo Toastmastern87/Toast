@@ -4,6 +4,8 @@
 #include "Toast/Core/Application.h"
 
 #include <commdlg.h>
+#include <iostream>
+#include <filesystem>
 
 namespace Toast {
 
@@ -49,5 +51,17 @@ namespace Toast {
 		}
 
 		return std::string();
+	}
+
+	std::vector<std::string> FileDialogs::GetAllFiles(std::string path)
+	{
+		std::vector<std::string> fileStrings;
+
+		std::string directPath = std::filesystem::current_path().string() + path;
+
+		for (const auto& entry : std::filesystem::directory_iterator(directPath))
+			fileStrings.push_back(entry.path().string());
+
+		return fileStrings;
 	}
 }

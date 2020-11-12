@@ -48,6 +48,6 @@ namespace Toast {
 		float mAspectRatio = 1.0f;
 
 		float mRotationSpeed = 0.003f;
-		float mTranslationSpeed = 2.0f;
+		float mTranslationSpeed = 1.0f;
 	};
 }

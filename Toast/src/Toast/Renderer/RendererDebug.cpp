@@ -38,18 +38,11 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		sData.LineVertexBuffer = VertexBuffer::Create(sData.MaxVertices * sizeof(LineVertex), sData.MaxVertices);
+		sData.LineVertexBuffer = CreateRef<VertexBuffer>(sData.MaxVertices * sizeof(LineVertex), sData.MaxVertices);
 
 		sData.LineVertexBufferBase = new LineVertex[sData.MaxVertices];
 
-		sData.DebugShader = Shader::Create("assets/shaders/Debug.hlsl");
-
-		const std::initializer_list<BufferLayout::BufferElement>& layout = {
-																   { ShaderDataType::Float3, "POSITION" },
-																   { ShaderDataType::Float4, "COLOR" }
-		};
-
-		sData.LineBufferLayout = BufferLayout::Create(layout, sData.DebugShader);
+		sData.DebugShader = CreateRef<Shader>("assets/shaders/Debug.hlsl");
 	}
 
 	void RendererDebug::Shutdown()
@@ -72,7 +65,6 @@ namespace Toast {
 		sData.DebugShader->SetData("Camera", (void*)&mSceneData->viewMatrix);
 		sData.DebugShader->Bind();
 
-		sData.LineBufferLayout->Bind();
 		sData.LineVertexBuffer->Bind();
 
 		StartBatch();

@@ -1,11 +1,17 @@
 #include "EditorLayer.h"
 
-#include <imgui/imgui.h>
-#include <filesystem>
+#include "Toast/Renderer/Shader.h"
+#include "Toast/Renderer/Renderer.h"
+#include "Toast/Renderer/Renderer2D.h"
+#include "Toast/Renderer/RendererDebug.h"
 
-#include "Toast/Renderer/Mesh.h"
+#include "Toast/Core/Application.h"
+#include "Toast/Core/Input.h"
 
 #include "Toast/Scene/SceneSerializer.h"
+
+#include <imgui/imgui.h>
+#include <filesystem>
 
 #include "Toast/Utils/PlatformUtils.h"
 
@@ -20,14 +26,25 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mCheckerboardTexture = Texture2D::Create("assets/textures/Checkerboard.png", 1);
+		mCheckerboardTexture = CreateRef<Texture2D>("assets/textures/Checkerboard.png", 1);
+
+		// Load all material shaders
+		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
+		ShaderLibrary::Load("assets/shaders/PBR.hlsl");
+
+		// Create standard material
+		MaterialLibrary::Load("Standard", ShaderLibrary::Get("Standard"));
+
+		// Load all materials from the computer
+		std::vector<std::string> materialStrings = FileDialogs::GetAllFiles("\\assets\\materials");
+		MaterialSerializer::Deserialize(materialStrings);
 
 		FramebufferSpecification fbSpec;
 		fbSpec.Width = 1280;
 		fbSpec.Height = 720;
 		fbSpec.BuffersDesc.emplace_back(FramebufferSpecification::BufferDesc(TOAST_FORMAT_R32G32B32A32_FLOAT, TOAST_BIND_RENDER_TARGET | TOAST_BIND_SHADER_RESOURCE));
 		fbSpec.BuffersDesc.emplace_back(FramebufferSpecification::BufferDesc(TOAST_FORMAT_D24_UNORM_S8_UINT, TOAST_BIND_DEPTH_STENCIL));
-		mFramebuffer = Framebuffer::Create(fbSpec);
+		mFramebuffer = CreateRef<Framebuffer>(fbSpec);
 		
 		mActiveScene = CreateRef<Scene>();
 
@@ -35,6 +52,7 @@ namespace Toast {
 
 		mSceneHierarchyPanel.SetContext(mActiveScene);
 		mSceneSettingsPanel.SetContext(mActiveScene);
+		mMaterialPanel.SetContext(MaterialLibrary::Get("Standard"));
 	}
 
 	void EditorLayer::OnDetach()
@@ -72,7 +90,7 @@ namespace Toast {
 		}
 
 		// Update
-		if (mViewportFocused || mViewportHovered)
+		if (mViewportFocused)
 			mEditorCamera->OnUpdate(ts);
 
 		// Render
@@ -99,6 +117,9 @@ namespace Toast {
 
 		RenderCommand::BindBackbuffer();
 		RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
+
+		// Make sure dirty materials are serialized
+		MaterialLibrary::SerializeLibrary();
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -190,6 +211,7 @@ namespace Toast {
 
 			mSceneSettingsPanel.OnImGuiRender();
 			mSceneHierarchyPanel.OnImGuiRender();
+			mMaterialPanel.OnImGuiRender();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
 			ImGui::Begin("Viewport");
@@ -270,15 +292,14 @@ namespace Toast {
 
 	void EditorLayer::SaveSceneAs()
 	{
-		std::string filepath = FileDialogs::SaveFile("Toast Scene(*.toast)\0*toast\0");
-		if (!filepath.empty())
+		mSceneFilePath = FileDialogs::SaveFile("Toast Scene(*.toast)\0*toast\0");
+		if (!mSceneFilePath.empty())
 		{
 			SceneSerializer serializer(mActiveScene);
 			serializer.Serialize(mSceneFilePath);
 
-			std::filesystem::path path = filepath;
+			std::filesystem::path path = mSceneFilePath;
 			UpdateWindowTitle(path.filename().string());
-			mSceneFilePath = filepath;
 		}
 	}
 

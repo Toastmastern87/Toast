@@ -65,12 +65,11 @@ namespace Toast {
 		else
 			RenderCommand::DisableWireframeRendering();
 
-		mesh->GetMeshShader()->SetData("Camera", (void*)&mSceneData->viewMatrix);
-		mesh->GetMeshShader()->SetData("Model", (void*)&transform);
-		mesh->GetLayout()->Bind();
+		mesh->GetMaterial()->GetShader()->SetData("Camera", (void*)&mSceneData->viewMatrix);
+		mesh->GetMaterial()->GetShader()->SetData("Model", (void*)&transform);
+		mesh->GetMaterial()->Bind();
 		mesh->GetVertexBuffer()->Bind();
 		mesh->GetIndexBuffer()->Bind();
-		mesh->GetMeshShader()->Bind();
 		
 		RenderCommand::DrawIndexed(mesh->GetIndexBuffer(), mesh->GetIndexBuffer()->GetCount());
 	}
