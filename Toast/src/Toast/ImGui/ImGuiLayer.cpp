@@ -6,8 +6,7 @@
 #include "Toast/Core/Application.h"
 
 #include "Toast/Renderer/Renderer.h"
-
-#include "Platform/DirectX/DirectXRendererAPI.h"
+#include "Toast/Renderer/RendererAPI.h"
 
 #include <examples/imgui_impl_dx11.h>
 #include <examples/imgui_impl_win32.h>
@@ -50,7 +49,7 @@ namespace Toast
 		SetDarkThemeColors();
 
 		Application& app = Application::Get();
-		DirectXRendererAPI* API = static_cast<DirectXRendererAPI*>(RenderCommand::sRendererAPI.get());
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 

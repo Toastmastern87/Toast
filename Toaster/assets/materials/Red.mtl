@@ -1,0 +1,6 @@
+Material: Red
+Shader: PBR
+Textures:
+  - Name: albedo
+    Path: C:\dev\Toast\Toaster\assets\textures\Red.png
+    BindSlot: 0

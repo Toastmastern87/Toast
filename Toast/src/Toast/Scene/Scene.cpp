@@ -215,19 +215,19 @@ namespace Toast {
 			}
 			Renderer::EndScene();
 
-			// 2D Rendering
-			Renderer2D::BeginScene(*perspectiveCamera, perspectiveCamera->GetViewMatrix());
-			{
-				auto group = mRegistry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+			//// 2D Rendering
+			//Renderer2D::BeginScene(*perspectiveCamera, perspectiveCamera->GetViewMatrix());
+			//{
+			//	auto group = mRegistry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
 
-				for (auto entity : group)
-				{
-					auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
+			//	for (auto entity : group)
+			//	{
+			//		auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
 
-					Renderer2D::DrawQuad(transform.GetTransform(), sprite.Color);
-				}
-			}
-			Renderer2D::EndScene();
+			//		Renderer2D::DrawQuad(transform.GetTransform(), sprite.Color);
+			//	}
+			//}
+			//Renderer2D::EndScene();
 
 			// Debug Rendering
 			RendererDebug::BeginScene(*perspectiveCamera);

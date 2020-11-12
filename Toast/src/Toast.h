@@ -34,6 +34,7 @@
 #include "Toast/Renderer/Texture.h"
 #include "Toast/Renderer/Mesh.h"
 #include "Toast/Renderer/Primitives.h"
+#include "Toast/Renderer/Material.h"
 
 #include "Toast/Renderer/OrthographicCamera.h"
 #include "Toast/Renderer/PerspectiveCamera.h"

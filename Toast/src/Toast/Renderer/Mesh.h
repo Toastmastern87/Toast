@@ -4,6 +4,7 @@
 
 #include "Toast/Renderer/Buffer.h"
 #include "Toast/Renderer/Shader.h"
+#include "Toast/Renderer/Material.h"
 #include "Toast/Renderer/Primitives.h"
 
 #include "Toast/Renderer/Formats.h"
@@ -55,10 +56,10 @@ namespace Toast {
 		const PrimitiveTopology GetTopology() const { return mTopology; }
 		void SetTopology(PrimitiveTopology topology) { mTopology = topology; }
 
-		const Ref<Shader> GetMeshShader() const { return mMeshShader; }
+		const Ref<Material> GetMaterial() const { return mMaterial; }
+		void SetMaterial(Ref<Material>& material) { mMaterial = material; }
 		const Ref<VertexBuffer> GetVertexBuffer() const { return mVertexBuffer; }
 		const Ref<IndexBuffer> GetIndexBuffer() const { return mIndexBuffer; }
-		const Ref<BufferLayout> GetLayout() const { return mLayout; }
 
 		const int16_t GetGridSize() const { return mGridSize; }
 		void SetGridSize(int16_t size) { mGridSize = size; }
@@ -68,8 +69,7 @@ namespace Toast {
 	private:
 		Ref<VertexBuffer> mVertexBuffer;
 		Ref<IndexBuffer> mIndexBuffer;
-		Ref<BufferLayout> mLayout;
-		Ref<Shader> mMeshShader;
+		Ref<Material> mMaterial;
 
 		std::vector<Vertex> mVertices;
 		std::vector<uint32_t> mIndices;

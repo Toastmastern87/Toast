@@ -1,8 +1,15 @@
 #pragma once
 
-#include "Toast.h"
+#include "Toast/Core/Layer.h"
+#include "Toast/Events/KeyEvent.h"
+
+#include "Toast/Renderer/OrthographicCameraController.h"
+#include "Toast/Renderer/Framebuffer.h"
+#include "Toast/Renderer/Texture.h"
+
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/SceneSettingsPanel.h"
+#include "Panels/MaterialPanel.h"
 
 namespace Toast {
 
@@ -52,5 +59,6 @@ namespace Toast {
 		// Panels
 		SceneHierarchyPanel mSceneHierarchyPanel;
 		SceneSettingsPanel mSceneSettingsPanel;
+		MaterialPanel mMaterialPanel;
 	};
 }

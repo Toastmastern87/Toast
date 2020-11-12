@@ -47,7 +47,7 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		sData.QuadVertexBuffer = VertexBuffer::Create(sData.MaxVertices * sizeof(QuadVertex), sData.MaxVertices);
+		sData.QuadVertexBuffer = CreateRef<VertexBuffer>(sData.MaxVertices * sizeof(QuadVertex), sData.MaxVertices);
 
 		sData.QuadVertexBufferBase = new QuadVertex[sData.MaxVertices];
 
@@ -67,24 +67,24 @@ namespace Toast {
 			offset += 4;
 		}
 
-		sData.QuadIndexBuffer = IndexBuffer::Create(quadIndices, sData.MaxIndices);
+		sData.QuadIndexBuffer = CreateRef<IndexBuffer>(quadIndices, sData.MaxIndices);
 		delete[] quadIndices;
 
-		sData.WhiteTexture = Texture2D::Create(1, 1, 0);
+		sData.WhiteTexture = CreateRef<Texture2D>(1, 1, 0);
 		uint32_t whiteTextureData = 0xffffffff;
 		sData.WhiteTexture->SetData(&whiteTextureData, sizeof(uint32_t));
 
-		sData.TextureShader = Shader::Create("assets/shaders/Texture.hlsl");
+		//sData.TextureShader = Shader::Create("assets/shaders/Texture.hlsl");
 
-		const std::initializer_list<BufferLayout::BufferElement>& layout = {
-																   { ShaderDataType::Float3, "POSITION" },
-																   { ShaderDataType::Float4, "COLOR" },
-																   { ShaderDataType::Float2, "TEXCOORD" },
-																   { ShaderDataType::Float, "PSIZE" },
-																   { ShaderDataType::Float, "PSIZE", 1 }
-		};
+		//const std::initializer_list<BufferLayout::BufferElement>& layout = {
+		//														   { ShaderDataType::Float3, "POSITION" },
+		//														   { ShaderDataType::Float4, "COLOR" },
+		//														   { ShaderDataType::Float2, "TEXCOORD" },
+		//														   { ShaderDataType::Float, "PSIZE" },
+		//														   { ShaderDataType::Float, "PSIZE", 1 }
+		//};
 
-		sData.QuadBufferLayout = BufferLayout::Create(layout, sData.TextureShader);
+		//sData.QuadBufferLayout = BufferLayout::Create(layout, sData.TextureShader);
 
 		sData.TextureSlots[0] = sData.WhiteTexture;
 

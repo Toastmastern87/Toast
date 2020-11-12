@@ -1,17 +1,20 @@
 #pragma once
 
-#include <DirectXMath.h>
 
 #include "Toast/Core/Base.h"
 #include "Toast/Renderer/Formats.h"
 
+#include <d3d11.h>
+#include <wrl.h>
+#include <DirectXMath.h>
+
 namespace Toast {
 
-	struct FramebufferSpecification 	
+	struct FramebufferSpecification
 	{
 		uint32_t Width = 0, Height = 0;
 
-		struct BufferDesc 
+		struct BufferDesc
 		{
 			FormatCode Format;
 			BindFlag BindFlags;
@@ -32,19 +35,39 @@ namespace Toast {
 	class Framebuffer
 	{
 	public:
-		virtual ~Framebuffer() = default;
+		Framebuffer(const FramebufferSpecification& spec);
+		~Framebuffer();
 
-		virtual void Bind() const = 0;
+		void Bind() const;
 
-		virtual void Resize(uint32_t width, uint32_t height) = 0;
+		void Resize(uint32_t width, uint32_t height);
 
-		virtual void Clear(const DirectX::XMFLOAT4 clearColor) = 0;
+		void* GetColorAttachmentID() const { return (void*)mShaderResourceView.Get(); }
+		void* GetDepthAttachmentID() const { return (void*)mDepthStencilView.Get(); }
 
-		virtual const FramebufferSpecification& GetSpecification() const = 0;
+		const FramebufferSpecification& GetSpecification() const { return mSpecification; }
 
-		virtual void* GetColorAttachmentID() const = 0;
-		virtual void* GetDepthAttachmentID() const = 0;
+		void Invalidate();
+		void Clean();
+		virtual void Clear(const DirectX::XMFLOAT4 clearColor);
+	private:
+		bool IsDepthFormat(const FormatCode format);
+		bool CreateDepthView(FramebufferSpecification::BufferDesc desc);
+		void CreateColorView(FramebufferSpecification::BufferDesc desc);
+		void CreateSwapChainView();
+	private:
+		FramebufferSpecification mSpecification;
 
-		static Ref<Framebuffer> Create(const FramebufferSpecification& spec);
+		//Render Target
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> mRenderTargetTexture;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRenderTargetView;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mShaderResourceView;
+		D3D11_VIEWPORT mViewport;
+
+		//Depth
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> mDepthStencilView;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthStencilState;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> mDepthStencilBuffer;
+		bool mDepthView = false;
 	};
 }
