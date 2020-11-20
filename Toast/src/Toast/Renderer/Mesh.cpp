@@ -13,6 +13,26 @@ namespace Toast {
 
 	}
 
+	void Mesh::Init()
+	{
+		mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
+		mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
+	}
+
+	void Mesh::InitPlanet()
+	{
+		mSubmeshes.clear();
+		mVertexBuffer = nullptr;
+		mInstanceVertexBuffer = nullptr;
+		mIndexBuffer = nullptr;
+
+		mVertexBuffer = CreateRef<VertexBuffer>(&mPlanetVertices[0], (sizeof(PlanetVertex) * (uint32_t)mPlanetVertices.size()), (uint32_t)mPlanetVertices.size(), 0);
+		mInstanceVertexBuffer = CreateRef<VertexBuffer>(sizeof(PlanetPatch) * 100000, 100000, 1);
+		mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
+
+		mInstanceVertexBuffer->SetData(&mPlanetPatches[0], (sizeof(PlanetPatch) * mPlanetPatches.size()));
+	}
+
 	void Mesh::OnUpdate(Timestep ts)
 	{
 
@@ -23,45 +43,13 @@ namespace Toast {
 
 	}
 
-	void Mesh::CreateFromPrimitive(float width, float height, float depth)
+	void Mesh::AddSubmesh(uint32_t indexCount)
 	{
-		PrimitiveMesh mesh;
-
-		switch (mPrimitiveType)
-		{
-		case PrimitiveType::PLANET:
-			// TODO
-			break;
-		case PrimitiveType::CUBE:
-			mesh = Primitives::CreateCube(width, height, depth);
-
-			mVertexBuffer = CreateRef<VertexBuffer>(&mesh.Vertices[0], (sizeof(Vertex) * (uint32_t)mesh.Vertices.size()), (uint32_t)mesh.Vertices.size());
-			mIndexBuffer = CreateRef<IndexBuffer>(&mesh.Indices[0], (uint32_t)mesh.Indices.size());
-
-			mMeshActive = true;
-
-			break;
-		case PrimitiveType::ICOSPHERE:
-			mesh = Primitives::CreateIcosphere(mIcosphereDivision);
-
-			mVertexBuffer = CreateRef<VertexBuffer>(&mesh.Vertices[0], (sizeof(Vertex) * (uint32_t)mesh.Vertices.size()), (uint32_t)mesh.Vertices.size());
-			mIndexBuffer = CreateRef<IndexBuffer>(&mesh.Indices[0], (uint32_t)mesh.Indices.size());
-
-			mMeshActive = true;
-
-			break;
-		case PrimitiveType::GRID:
-			mVertexBuffer = nullptr;
-			mIndexBuffer = nullptr;
-
-			mesh = Primitives::CreateGrid(mGridSize);
-
-			mVertexBuffer = CreateRef<VertexBuffer>(&mesh.Vertices[0], (sizeof(Vertex) * (uint32_t)mesh.Vertices.size()), (uint32_t)mesh.Vertices.size());
-			mIndexBuffer = CreateRef<IndexBuffer>(&mesh.Indices[0], (uint32_t)mesh.Indices.size());
-
-			mMeshActive = true;
-
-			break;
-		}
+		Submesh& submesh = mSubmeshes.emplace_back();
+		submesh.BaseVertex = mVertexCount;
+		submesh.BaseIndex = mIndexCount;
+		submesh.MaterialIndex = 0;
+		submesh.IndexCount = indexCount;
 	}
+
 }

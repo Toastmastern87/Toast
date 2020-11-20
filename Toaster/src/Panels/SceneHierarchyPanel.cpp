@@ -22,17 +22,24 @@ namespace Toast {
 	{
 		ImGui::Begin("Scene Hierarchy");
 
-		mContext->mRegistry.each([&](auto entityID) 
-		{
-			Entity entity{ entityID, mContext.get() };
-			DrawEntityNode(entity);
-		});
+		mContext->mRegistry.each([&](auto entityID)
+			{
+				Entity entity{ entityID, mContext.get() };
+				DrawEntityNode(entity);
+			});
 
 		// Right-click on blank space
-		if (ImGui::BeginPopupContextWindow(0, 1, false)) 
+		if (ImGui::BeginPopupContextWindow(0, 1, false))
 		{
-			if (ImGui::MenuItem("Create Empty Entity")) 
+			if (ImGui::MenuItem("Create Empty Entity"))
 				mContext->CreateEntity("Empty Entity");
+
+			ImGui::Separator();
+			if (ImGui::MenuItem("Create Cube"))
+				mContext->CreateCube("Cube");
+
+			if (ImGui::MenuItem("Create Sphere"))
+				mContext->CreateSphere("Sphere");
 
 			ImGui::EndPopup();
 		}
@@ -46,6 +53,13 @@ namespace Toast {
 
 		if (mSelectionContext)
 			DrawComponents(mSelectionContext);
+
+		ImGui::End();
+
+		ImGui::Begin("Statistics");
+
+		ImGui::Text("FPS: %d", (int)mContext->mStats.FPS);
+		ImGui::Text("Vertex Count: %d", (int)mContext->mStats.VerticesCount);
 
 		ImGui::End();
 	}
@@ -62,11 +76,11 @@ namespace Toast {
 	void SceneHierarchyPanel::DrawEntityNode(Entity entity)
 	{
 		auto& tag = entity.GetComponent<TagComponent>().Tag;
-		
+
 		ImGuiTreeNodeFlags flags = ((mSelectionContext == entity) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
 		flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 		bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, tag.c_str());
-		if (ImGui::IsItemClicked()) 
+		if (ImGui::IsItemClicked())
 			mSelectionContext = entity;
 
 		bool entityDeleted = false;
@@ -78,20 +92,20 @@ namespace Toast {
 			ImGui::EndPopup();
 		}
 
-		if (opened) 
+		if (opened)
 		{
 			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 			bool opened = ImGui::TreeNodeEx((void*)9817239, flags, tag.c_str());
-			if(opened)
+			if (opened)
 				ImGui::TreePop();
 
 			ImGui::TreePop();
 		}
 
-		if (entityDeleted) 
+		if (entityDeleted)
 		{
 			mContext->DestroyEntity(entity);
-			if (mSelectionContext == entity) 
+			if (mSelectionContext == entity)
 				mSelectionContext = {};
 		}
 	}
@@ -111,10 +125,9 @@ namespace Toast {
 
 		if (ImGui::SliderInt("##label", &value, min, max))
 			modified = true;
+
 		ImGui::PopItemWidth();
-
 		ImGui::Columns(1);
-
 		ImGui::PopID();
 
 		return modified;
@@ -144,8 +157,24 @@ namespace Toast {
 		return modified;
 	}
 
-	static void DrawFloat3Control(const std::string& label, DirectX::XMFLOAT3& values, float resetValue = 0.0f, float columnWidth = 100.0f) 
+	static float CalculateDelta(float value)
 	{
+		if (value >= 1000.0f || value <= -1000.0f)
+			return 10.0f;
+		else if(value >= 100.0f || value <= -100.0f)
+			return 1.0f;
+		else if (value >= 10.0f || value <= -10.0f) 
+			return 0.1f;
+		else if (value >= 1.0f || value <= -1.0f)
+			return 0.01f;
+		else
+			return 0.01f;
+	}
+
+	static bool DrawFloat3Control(const std::string& label, DirectX::XMFLOAT3& values, float resetValue = 0.0f, float columnWidth = 100.0f) 
+	{
+		bool modified = false;
+
 		ImGuiIO& io = ImGui::GetIO();
 		auto boldFont = io.Fonts->Fonts[0];
 
@@ -166,13 +195,13 @@ namespace Toast {
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
 		ImGui::PushFont(boldFont);
-		if (ImGui::Button("X", buttonSize))
+		if (ImGui::Button("X", buttonSize)) 
 			values.x = resetValue;
 		ImGui::PopStyleColor(3);
 		ImGui::PopFont();
-
 		ImGui::SameLine();
-		ImGui::DragFloat("##X", &values.x, 0.1f, 0.0f, 0.0f, "%.2f");
+		if (ImGui::DragFloat("##X", &values.x, CalculateDelta(values.x), 0.0f, 0.0f, (values.x >= 1000.0f || values.x <= -1000.0f) ? "%.0f" : "%.1f"))
+			modified = true;
 		ImGui::PopItemWidth();
 		ImGui::SameLine();
 
@@ -186,7 +215,8 @@ namespace Toast {
 		ImGui::PopFont();
 
 		ImGui::SameLine();
-		ImGui::DragFloat("##Y", &values.y, 0.1f, 0.0f, 0.0f, "%.2f");
+		if(ImGui::DragFloat("##Y", &values.y, CalculateDelta(values.y), 0.0f, 0.0f, (values.y >= 1000.0f || values.y <= -1000.0f) ? "%.0f" : "%.1f"))
+			modified = true;
 		ImGui::PopItemWidth();
 		ImGui::SameLine();
 
@@ -200,7 +230,8 @@ namespace Toast {
 		ImGui::PopFont();
 
 		ImGui::SameLine();
-		ImGui::DragFloat("##Z", &values.z, 0.1f, 0.0f, 0.0f, "%.2f");
+		if(ImGui::DragFloat("##Z", &values.z, CalculateDelta(values.z), 0.0f, 0.0f, (values.z >= 1000.0f || values.z <= -1000.0f) ? "%.0f" : "%.1f"))
+			modified = true;
 		ImGui::PopItemWidth();
 
 		ImGui::PopStyleVar();
@@ -208,6 +239,8 @@ namespace Toast {
 		ImGui::Columns(1);
 
 		ImGui::PopID();
+
+		return modified;
 	}
 
 	template<typename T, typename UIFunction>
@@ -282,11 +315,11 @@ namespace Toast {
 				}
 			}
 
-			if (!mSelectionContext.HasComponent<PrimitiveMeshComponent>())
+			if (!mSelectionContext.HasComponent<MeshComponent>())
 			{
 				if (ImGui::MenuItem("Primitive Mesh"))
 				{
-					mSelectionContext.AddComponent<PrimitiveMeshComponent>(CreateRef<Mesh>());
+					mSelectionContext.AddComponent<MeshComponent>(CreateRef<Mesh>());
 					ImGui::CloseCurrentPopup();
 				}
 			}
@@ -295,7 +328,7 @@ namespace Toast {
 			{
 				if (ImGui::MenuItem("Planet"))
 				{
-					mSelectionContext.AddComponent<PlanetComponent>(CreateRef<Planet>());
+					mSelectionContext.AddComponent<PlanetComponent>();
 					ImGui::CloseCurrentPopup();
 				}
 			}
@@ -316,72 +349,34 @@ namespace Toast {
 
 		DrawComponent<TransformComponent>("Transform", entity, [](auto& component, Entity entity) 
 		{
+			float fov = 45.0f;
+
 			DrawFloat3Control("Translation", component.Translation);
 			DirectX::XMFLOAT3 rotation = { DirectX::XMConvertToDegrees(component.Rotation.x) , DirectX::XMConvertToDegrees(component.Rotation.y), DirectX::XMConvertToDegrees(component.Rotation.z) };
 			DrawFloat3Control("Rotation", rotation);
 			component.Rotation = { DirectX::XMConvertToRadians(rotation.x), DirectX::XMConvertToRadians(rotation.y), DirectX::XMConvertToRadians(rotation.z) };
-			DrawFloat3Control("Scale", component.Scale, 1.0f);
+			bool scaleModified = DrawFloat3Control("Scale", component.Scale, 1.0f);
+
+			// If the component has a planet recalculate the Distance LUT
+			if (entity.HasComponent<PlanetComponent>() && scaleModified)
+			{
+				auto view = entity.mScene->mRegistry.view<TransformComponent, CameraComponent>();
+				for (auto entity : view)
+				{
+					auto& camera = view.get<CameraComponent>(entity);
+
+					if (camera.Primary)
+						fov = camera.Camera.GetPerspectiveVerticalFOV();
+				}
+
+				auto& pc = entity.GetComponent<PlanetComponent>();
+
+				PlanetSystem::GenerateDistanceLUT(pc.DistanceLUT, component.Scale.x, fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
+			}
 		});
 		
-		DrawComponent<PrimitiveMeshComponent>("Primitive Mesh", entity, [](auto& component, Entity entity) 
+		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, Entity entity) 
 		{
-			const char* primitiveTypeStrings[] = { "None", "Planet", "Cube", "Icosphere", "Grid" };
-			const char* currentType = primitiveTypeStrings[(int)component.Mesh->GetPrimitiveType()];
-
-			ImGui::Columns(2);
-			ImGui::SetColumnWidth(0, 100.0f);
-			ImGui::Text("Primitive Type");
-			ImGui::NextColumn();
-
-			ImGui::PushItemWidth(-1);
-
-			if (ImGui::BeginCombo("##primitivetype", currentType))
-			{
-				for (int type = 0; type < 5; type++)
-				{
-					bool isSelected = (currentType == primitiveTypeStrings[type]);
-					if (ImGui::Selectable(primitiveTypeStrings[type], isSelected))
-					{
-						currentType = primitiveTypeStrings[type];
-						component.Mesh->SetPrimitiveType((Mesh::PrimitiveType)type);
-						component.Mesh->CreateFromPrimitive();
-					}
-					if (isSelected)
-						ImGui::SetItemDefaultFocus();
-				}
-
-				ImGui::EndCombo();
-			}
-			ImGui::PopItemWidth();
-
-			ImGui::Columns(1);
-
-			switch (component.Mesh->GetPrimitiveType())
-			{
-			case Mesh::PrimitiveType::ICOSPHERE:
-			{
-				int divisions = (int)component.Mesh->GetSubdivisons();
-				if (DrawIntControl("Subdivisions", divisions, 100.0f, 0, 6))
-				{
-					component.Mesh->SetSubdivisons((int8_t)divisions);
-					component.Mesh->CreateFromPrimitive();
-				}
-
-				break;
-			}
-			case Mesh::PrimitiveType::GRID:
-			{
-				int gridSize = (int)component.Mesh->GetGridSize();
-				if (DrawIntControl("Grid size", gridSize, 100.0f, 1, 100))
-				{
-					component.Mesh->SetGridSize((int16_t)gridSize);
-					component.Mesh->CreateFromPrimitive();
-				}
-
-				break;
-			}
-			}
-
 			ImGui::Columns(2);
 			ImGui::SetColumnWidth(0, 100.0f);
 			ImGui::Text("Material");
@@ -492,7 +487,37 @@ namespace Toast {
 
 		DrawComponent<PlanetComponent>("Planet", entity, [](auto& component, Entity entity)
 		{
+				DirectX::XMVECTOR cameraPos = { 0.0f, 0.0f, 0.0f }, cameraRot = { 0.0f, 0.0f, 0.0f }, cameraScale = { 0.0f, 0.0f, 0.0f };
+				int patchLevels = component.PatchLevels;
+				int subdivions = component.Subdivisions;
+				float fov = 45.0f;
 
+				if (DrawIntControl("Patch levels", patchLevels, 100.0f, 1, 6) || DrawIntControl("Subdivisions", subdivions, 100.0f, 0, 8))
+				{
+					component.PatchLevels = patchLevels;
+					component.Subdivisions = subdivions;
+					MeshComponent mc = entity.GetComponent<MeshComponent>();
+					TransformComponent tc = entity.GetComponent<TransformComponent>();
+
+					auto view = entity.mScene->mRegistry.view<TransformComponent, CameraComponent>();
+					for (auto entity : view)
+					{
+						auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
+
+						if (camera.Primary)
+						{
+							DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.GetTransform());
+							fov = camera.Camera.GetPerspectiveVerticalFOV();
+						}
+					}
+
+					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, tc.Scale.x, fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
+					PlanetSystem::GeneratePatchGeometry(mc.Mesh->mPlanetVertices, mc.Mesh->mIndices, component.PatchLevels);
+					PlanetSystem::GeneratePlanet(tc.GetTransform(), mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.DistanceLUT, cameraPos, component.Subdivisions);
+
+					mc.Mesh->InitPlanet();
+					mc.Mesh->AddSubmesh(mc.Mesh->mIndices.size());
+				}
 		});
 	}
 

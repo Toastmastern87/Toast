@@ -5,11 +5,11 @@
 #include "SceneCamera.h"
 #include "ScriptableEntity.h"
 #include "Toast/Renderer/Mesh.h"
-#include "Toast/Renderer/Planet.h"
+#include "Toast/Renderer/PlanetSystem.h"
 
 namespace Toast {
 
-	struct TagComponent 
+	struct TagComponent
 	{
 		std::string Tag;
 
@@ -30,7 +30,7 @@ namespace Toast {
 		TransformComponent(const DirectX::XMFLOAT3& translation)
 			: Translation(translation) {}
 
-		DirectX::XMMATRIX GetTransform() const 
+		DirectX::XMMATRIX GetTransform() const
 		{
 			DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Scale.x, Scale.y, Scale.z)
 				* DirectX::XMMatrixRotationRollPitchYaw(Rotation.x, Rotation.y, Rotation.z)
@@ -40,13 +40,13 @@ namespace Toast {
 		}
 	};
 
-	struct PrimitiveMeshComponent
+	struct MeshComponent
 	{
 		Ref<Toast::Mesh> Mesh;
-		
-		PrimitiveMeshComponent() = default;
-		PrimitiveMeshComponent(const PrimitiveMeshComponent& other) = default;
-		PrimitiveMeshComponent(const Ref<Toast::Mesh>& mesh)
+
+		MeshComponent() = default;
+		MeshComponent(const MeshComponent& other) = default;
+		MeshComponent(const Ref<Toast::Mesh>& mesh)
 			: Mesh(mesh) {}
 
 		operator Ref<Toast::Mesh>() { return Mesh; }
@@ -54,14 +54,16 @@ namespace Toast {
 
 	struct PlanetComponent
 	{
-		Ref<Toast::Planet> Planet;
+		std::vector<float> DistanceLUT;
+		int16_t Subdivisions = 0;
+		int16_t PatchLevels = 1;
 
 		PlanetComponent() = default;
+		PlanetComponent(int16_t subdivisions, int16_t patchLevels)
+			: Subdivisions(subdivisions), PatchLevels(patchLevels)
+		{
+		}
 		PlanetComponent(const PlanetComponent& other) = default;
-		PlanetComponent(const Ref<Toast::Planet>& planet)
-			: Planet(planet) {}
-
-		operator Ref<Toast::Planet>() { return Planet; }
 	};
 
 	struct SpriteRendererComponent
@@ -74,7 +76,7 @@ namespace Toast {
 			: Color(color) {}
 	};
 
-	struct CameraComponent 
+	struct CameraComponent
 	{
 		SceneCamera Camera;
 		bool Primary = true;
@@ -84,15 +86,15 @@ namespace Toast {
 		CameraComponent(const CameraComponent&) = default;
 	};
 
-	struct NativeScriptComponent 
+	struct NativeScriptComponent
 	{
 		ScriptableEntity* Instance = nullptr;
 
-		ScriptableEntity*(*InstantiateScript)();
+		ScriptableEntity* (*InstantiateScript)();
 		void (*DestroyScript)(NativeScriptComponent*);
 
 		template<typename T>
-		void Bind() 
+		void Bind()
 		{
 			InstantiateScript = []() { return static_cast<ScriptableEntity*>(new T()); };
 			DestroyScript = [](NativeScriptComponent* nsc) { delete nsc->Instance; nsc->Instance = nullptr; };

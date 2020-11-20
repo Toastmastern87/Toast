@@ -31,10 +31,10 @@ namespace Toast {
 			inputLayoutDesc[index].SemanticName = element.mName.c_str();
 			inputLayoutDesc[index].SemanticIndex = element.mSemanticIndex;
 			inputLayoutDesc[index].Format = element.mType;
-			inputLayoutDesc[index].InputSlot = 0;
+			inputLayoutDesc[index].InputSlot = element.mInputClassification == D3D11_INPUT_PER_VERTEX_DATA ? 0 : 1;
 			inputLayoutDesc[index].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
-			inputLayoutDesc[index].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-			inputLayoutDesc[index].InstanceDataStepRate = 0;
+			inputLayoutDesc[index].InputSlotClass = element.mInputClassification;
+			inputLayoutDesc[index].InstanceDataStepRate = element.mInputClassification == D3D11_INPUT_PER_VERTEX_DATA ? 0 : 1;
 
 			index++;
 		}
@@ -102,8 +102,8 @@ namespace Toast {
 	//     VERTEXBUFFER     ////////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	VertexBuffer::VertexBuffer(uint32_t size, uint32_t count)
-		: mSize(size), mCount(count)
+	VertexBuffer::VertexBuffer(uint32_t size, uint32_t count, uint32_t bindslot)
+		: mSize(size), mCount(count), mBindSlot(bindslot)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -116,7 +116,7 @@ namespace Toast {
 		ZeroMemory(&vbd, sizeof(D3D11_BUFFER_DESC));
 
 		vbd.Usage = D3D11_USAGE_DYNAMIC;
-		vbd.ByteWidth = sizeof(float) * size;
+		vbd.ByteWidth = size;
 		vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		vbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		vbd.MiscFlags = 0;
@@ -130,8 +130,8 @@ namespace Toast {
 		Bind();
 	}
 
-	VertexBuffer::VertexBuffer(void* vertices, uint32_t size, uint32_t count)
-		: mSize(size), mCount(count)
+	VertexBuffer::VertexBuffer(void* vertices, uint32_t size, uint32_t count, uint32_t bindslot)
+		: mSize(size), mCount(count), mBindSlot(bindslot)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -178,7 +178,7 @@ namespace Toast {
 		uint32_t stride[] = { mSize / mCount };
 		uint32_t offset[] = { 0 };
 
-		deviceContext->IASetVertexBuffers(0, 1, mVertexBuffer.GetAddressOf(), stride, offset);
+		deviceContext->IASetVertexBuffers(mBindSlot, 1, mVertexBuffer.GetAddressOf(), stride, offset);
 	}
 
 	void VertexBuffer::Unbind() const
@@ -264,4 +264,95 @@ namespace Toast {
 
 		deviceContext->IASetIndexBuffer(NULL, DXGI_FORMAT_R32_UINT, 0);
 	}
+
+	////////////////////////////////////////////////////////////////////////////////////////  
+	//     CONSTANTBUFFER     //////////////////////////////////////////////////////////////  
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	ConstantBuffer::ConstantBuffer(const std::string name, const uint32_t size, const D3D11_SHADER_TYPE shaderType, const uint32_t bindPoint)
+		: mName(name), mSize(size), mShaderType(shaderType), mBindPoint(bindPoint)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_BUFFER_DESC bufferDesc;
+		bufferDesc.ByteWidth = size;
+		bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		bufferDesc.MiscFlags = 0;
+		bufferDesc.StructureByteStride = 0;
+		
+		device->CreateBuffer(&bufferDesc, nullptr, &mBuffer);
+	}
+
+	void ConstantBuffer::Bind() const
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		switch (mShaderType)
+		{
+		case D3D11_VERTEX_SHADER:
+			deviceContext->VSSetConstantBuffers(mBindPoint, 1, mBuffer.GetAddressOf());
+			break;
+		case D3D11_PIXEL_SHADER:
+			deviceContext->PSSetConstantBuffers(mBindPoint, 1, mBuffer.GetAddressOf());
+			break;
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////  
+	//     BUFFERLIBRARY      //////////////////////////////////////////////////////////////  
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	std::unordered_map<std::string, Ref<ConstantBuffer>> BufferLibrary::mConstantBuffers;
+
+	void BufferLibrary::Add(const std::string name, const Ref<ConstantBuffer>& buffer)
+	{
+		if (Exists(name))
+			return;
+
+		mConstantBuffers[name] = buffer;
+	}
+
+	void BufferLibrary::Add(const Ref<ConstantBuffer>& buffer)
+	{
+		auto& name = buffer->GetName();
+		Add(name, buffer);
+	}
+
+	Ref<ConstantBuffer> BufferLibrary::Load(const std::string& name, const uint32_t size, const D3D11_SHADER_TYPE shaderType, const uint32_t bindPoint)
+	{
+		if (Exists(name))
+			return mConstantBuffers[name];
+
+		auto buffer = CreateRef<ConstantBuffer>(name, size, shaderType, bindPoint);
+		Add(name, buffer);
+		return buffer;
+	}
+
+	Ref<ConstantBuffer> BufferLibrary::Get(const std::string& name)
+	{
+		TOAST_CORE_ASSERT(Exists(name), "Buffer not found!");
+		return mConstantBuffers[name];
+	}
+
+	std::vector<std::string> BufferLibrary::GetBufferList()
+	{
+		std::vector<std::string> bufferList;
+
+		for (std::pair<std::string, Ref<ConstantBuffer>> buffer : mConstantBuffers)
+		{
+			bufferList.push_back(buffer.first);
+		}
+
+		return bufferList;
+	}
+
+	bool BufferLibrary::Exists(const std::string& name)
+	{
+		return mConstantBuffers.find(name) != mConstantBuffers.end();
+	}
+
 }

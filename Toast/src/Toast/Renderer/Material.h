@@ -18,6 +18,8 @@ namespace Toast {
 		Material(const std::string& name, const Ref<Shader>& shader);
 		~Material() = default;
 
+		void SetData(const std::string& cbName, void* data);
+
 		const Ref<Shader> GetShader() const { return mShader; }
 		void SetShader(const Ref<Shader>& shader);
 
@@ -28,7 +30,10 @@ namespace Toast {
 		void SetTexture(std::string name, Ref<Texture2D>& texture);
 		std::unordered_map<std::string, Ref<Texture2D>> GetTextures() const { return mTextures; }
 
+		Ref<ConstantBuffer> GetCBuffer(std::string name) { return mConstantBuffers[name]; }
+
 		void SetUpTextureBindings();
+		void SetUpCBufferBindings();
 		void Bind();
 
 		void SetDirty(bool dirty) { mDirty = dirty; }
@@ -37,6 +42,7 @@ namespace Toast {
 		Ref<Shader> mShader;
 
 		std::unordered_map<std::string, Ref<Texture2D>> mTextures;
+		std::unordered_map<std::string, Ref<ConstantBuffer>> mConstantBuffers;
 
 		std::string mName = "No name";
 		

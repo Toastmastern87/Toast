@@ -27,7 +27,8 @@ namespace Toast {
 		LINELIST = 2,
 		LINESTRIP = 3,
 		TRIANGLELIST = 4,
-		TRIANGLESTRIP = 5
+		TRIANGLESTRIP = 5,
+		TRIANGLELIST_ADJ = 12
 
 	} Topology;
 }

@@ -6,11 +6,6 @@ namespace Toast {
 	SceneCamera::SceneCamera()
 	{
 		RecalculateProjection();
-
-		mMesh = CreateRef<Mesh>();
-
-		mMesh->SetPrimitiveType(Mesh::PrimitiveType::CUBE);
-		mMesh->CreateFromPrimitive(0.25f, 0.25f, 0.25f);
 	}
 
 	void SceneCamera::SetPerspective(float verticalFOV, float nearClip, float farClip)

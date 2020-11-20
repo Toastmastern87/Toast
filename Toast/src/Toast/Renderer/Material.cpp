@@ -1,5 +1,9 @@
 #include "tpch.h"
 #include "Toast/Renderer/Material.h"
+#include "Toast/Renderer/RendererAPI.h"
+#include "Toast/Renderer/Renderer.h"
+
+#include "Toast/Core/Application.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -11,6 +15,25 @@ namespace Toast {
 		: mName(name), mShader(shader)
 	{
 		SetUpTextureBindings();
+		SetUpCBufferBindings();
+	}
+
+	void Material::SetData(const std::string& name, void* data)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		// Check to see if the constant buffer exists
+		if (mConstantBuffers.find(name) == mConstantBuffers.end())
+		{
+			TOAST_CORE_INFO("Trying to write data to a non existent constant buffer: {0}", name.c_str());
+			return;
+		}
+
+		D3D11_MAPPED_SUBRESOURCE ms;
+		deviceContext->Map(mConstantBuffers[name]->GetBuffer(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
+		memcpy(ms.pData, data, mConstantBuffers[name]->GetSize());
+		deviceContext->Unmap(mConstantBuffers[name]->GetBuffer(), NULL);
 	}
 
 	void Material::SetShader(const Ref<Shader>& shader)
@@ -45,14 +68,24 @@ namespace Toast {
 			mDirty = true;
 	}
 
+	void Material::SetUpCBufferBindings()
+	{
+		mConstantBuffers.clear();
+		std::unordered_map<std::string, Shader::ConstantBufferDesc> cBufferResources = mShader->GetCBufferResources();
+
+		for (auto& cbuffer : cBufferResources)
+			mConstantBuffers[cbuffer.first] = BufferLibrary::Load(cbuffer.first, cbuffer.second.Size, cbuffer.second.ShaderType, cbuffer.second.BindPoint);
+	}
+
 	void Material::Bind()
 	{
 		mShader->Bind();
 
 		for (auto& texture : mTextures) 
-		{
 			texture.second->Bind();
-		}
+
+		for (auto& cbuffer : mConstantBuffers)
+			cbuffer.second->Bind();
 	}
 
 	std::unordered_map<std::string, Ref<Material>> MaterialLibrary::mMaterials;
@@ -179,7 +212,18 @@ namespace Toast {
 			{
 				for (auto texture : textures)
 				{
-					material->SetTexture(texture["Name"].as<std::string>(), CreateRef<Texture2D>(texture["Path"].as<std::string>(), texture["BindSlot"].as<uint32_t>()));
+					std::string path = texture["Path"].as<std::string>();
+
+					if(!path.empty())
+						material->SetTexture(texture["Name"].as<std::string>(), CreateRef<Texture2D>(texture["Path"].as<std::string>(), texture["BindSlot"].as<uint32_t>()));
+					else 
+					{
+						Ref<Texture2D> defaultTexture = CreateRef<Texture2D>(1, 1, texture["BindSlot"].as<uint32_t>());
+						uint32_t defaultTextureData = 0xffffffff;
+						defaultTexture->SetData(&defaultTextureData, sizeof(uint32_t));
+
+						material->SetTexture(texture["Name"].as<std::string>(), defaultTexture);
+					}
 				}
 			}
 		}

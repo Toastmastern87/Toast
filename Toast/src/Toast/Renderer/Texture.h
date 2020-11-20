@@ -37,7 +37,7 @@ namespace Toast {
 
 		void SetData(void* data, uint32_t size);
 
-		void Bind() const;
+		virtual void Bind() const;
 
 		bool operator==(const Texture2D& other) const
 		{

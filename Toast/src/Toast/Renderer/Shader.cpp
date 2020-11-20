@@ -52,7 +52,7 @@ namespace Toast {
 		std::string source = ReadFile(filepath);
 		auto shaderSources = PreProcess(source);
 		Compile(shaderSources);
-		ProcessInputLayout();
+		ProcessInputLayout(source);
 		ProcessConstantBuffers();
 		ProcessTextureResources();
 
@@ -206,36 +206,23 @@ namespace Toast {
 				ID3D11ShaderReflectionConstantBuffer* cbReflection;
 				D3D11_SHADER_BUFFER_DESC cbDesc;
 				D3D11_SHADER_INPUT_BIND_DESC inputDesc;
-				ConstantBuffer constantBuffer;
+				ConstantBufferDesc constantBufferDesc;
 
 				cbReflection = reflector->GetConstantBufferByIndex(i);
 
 				cbReflection->GetDesc(&cbDesc);
 				reflector->GetResourceBindingDescByName(cbDesc.Name, &inputDesc);
 
-				if (mConstantBuffers.find(cbDesc.Name) == mConstantBuffers.end())
-				{
-					D3D11_BUFFER_DESC bufferDesc;
-					bufferDesc.ByteWidth = cbDesc.Size;
-					bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-					bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-					bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-					bufferDesc.MiscFlags = 0;
-					bufferDesc.StructureByteStride = 0;
+				constantBufferDesc.ShaderType = kv.first;
+				constantBufferDesc.Size = (size_t)cbDesc.Size;
+				constantBufferDesc.BindPoint = inputDesc.BindPoint;
 
-					device->CreateBuffer(&bufferDesc, nullptr, &constantBuffer.Buffer);
-
-					constantBuffer.ShaderType = kv.first;
-					constantBuffer.Size = (size_t)cbDesc.Size;
-					constantBuffer.BindPoint = inputDesc.BindPoint;
-
-					mConstantBuffers[cbDesc.Name] = constantBuffer;
-				}
+				mBufferResources[cbDesc.Name] = constantBufferDesc;
 			}
 		}
 	}
 
-	void Shader::ProcessInputLayout()
+	void Shader::ProcessInputLayout(const std::string& source)
 	{
 		std::vector<BufferLayout::BufferElement> inputLayoutDesc;
 		Microsoft::WRL::ComPtr<ID3D11ShaderReflection> reflector;
@@ -244,6 +231,13 @@ namespace Toast {
 		D3DReflect(mRawBlobs.at(D3D11_VERTEX_SHADER)->GetBufferPointer(), mRawBlobs.at(D3D11_VERTEX_SHADER)->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
 
 		reflector->GetDesc(&shaderDesc);
+
+		const char* typeToken = "#inputlayout";
+		size_t pos = source.find(typeToken, 0); //Start of input layout meta data
+		size_t typeTokenLength = strlen(typeToken);
+
+		size_t eol = source.find_first_of("\r\n", pos); //End of type input layout declaration line
+		std::string inputType = source.substr(pos, eol - pos);
 
 		for (uint32_t i = 0; i < shaderDesc.InputParameters; i++)
 		{
@@ -254,32 +248,43 @@ namespace Toast {
 			elementDesc.mName = paramDesc.SemanticName;
 			elementDesc.mSemanticIndex = paramDesc.SemanticIndex;
 
+			pos = eol + 2;
+			eol = source.find_first_of("\r\n", pos);
+			std::string inputType = source.substr(pos, eol - pos);
+
+			if (inputType == "vertex")
+				elementDesc.mInputClassification = D3D11_INPUT_PER_VERTEX_DATA;
+			else if (inputType == "instance")
+				elementDesc.mInputClassification = D3D11_INPUT_PER_INSTANCE_DATA; 
+
 			if (paramDesc.Mask == 1)
 			{
 				if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.mType = DXGI_FORMAT_R32_UINT;
-				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.mType = DXGI_FORMAT_R32_UINT;
+				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.mType = DXGI_FORMAT_R32_SINT;
 				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.mType = DXGI_FORMAT_R32_FLOAT;
 			}
 			else if (paramDesc.Mask <= 3)
 			{
 				if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.mType = DXGI_FORMAT_R32G32_UINT;
-				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.mType = DXGI_FORMAT_R32G32_UINT;
+				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.mType = DXGI_FORMAT_R32G32_SINT;
 				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.mType = DXGI_FORMAT_R32G32_FLOAT;
 			}
 			else if (paramDesc.Mask <= 7)
 			{
 				if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.mType = DXGI_FORMAT_R32G32B32_UINT;
-				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.mType = DXGI_FORMAT_R32G32B32_UINT;
+				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.mType = DXGI_FORMAT_R32G32B32_SINT;
 				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.mType = DXGI_FORMAT_R32G32B32_FLOAT;
 			}
 			else if (paramDesc.Mask <= 15)
 			{
 				if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.mType = DXGI_FORMAT_R32G32B32A32_UINT;
-				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.mType = DXGI_FORMAT_R32G32B32A32_UINT;
+				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.mType = DXGI_FORMAT_R32G32B32A32_SINT;
 				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.mType = DXGI_FORMAT_R32G32B32A32_FLOAT;
 			}
 
 			inputLayoutDesc.push_back(elementDesc);
+
+			pos = source.find_first_of("\r\n", pos) + 1;
 		}
 
 		mLayout = CreateRef<BufferLayout>(inputLayoutDesc, mRawBlobs.at(D3D11_VERTEX_SHADER));
@@ -330,19 +335,6 @@ namespace Toast {
 				break;
 			}
 		}
-
-		for (std::pair<std::string, ConstantBuffer> constantBuffer : mConstantBuffers)
-		{
-			switch (constantBuffer.second.ShaderType)
-			{
-			case D3D11_VERTEX_SHADER:
-				deviceContext->VSSetConstantBuffers(constantBuffer.second.BindPoint, 1, constantBuffer.second.Buffer.GetAddressOf());
-				break;
-			case D3D11_PIXEL_SHADER:
-				deviceContext->PSSetConstantBuffers(constantBuffer.second.BindPoint, 1, constantBuffer.second.Buffer.GetAddressOf());
-				break;
-			}
-		}
 	}
 
 	void Shader::Unbind() const
@@ -364,24 +356,6 @@ namespace Toast {
 				break;
 			}
 		}
-	}
-
-	void Shader::SetData(const std::string& cbName, void* data)
-	{
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
-
-		// Check to see if the constant buffer exists
-		if (mConstantBuffers.find(cbName) == mConstantBuffers.end())
-		{
-			TOAST_CORE_INFO("Trying to write data to a non existent constant buffer: {0}", cbName.c_str());
-			return;
-		}
-
-		D3D11_MAPPED_SUBRESOURCE ms;
-		deviceContext->Map(mConstantBuffers[cbName].Buffer.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
-		memcpy(ms.pData, data, mConstantBuffers[cbName].Size);
-		deviceContext->Unmap(mConstantBuffers[cbName].Buffer.Get(), NULL);
 	}
 
 	std::unordered_map<std::string, Ref<Shader>> ShaderLibrary::mShaders;

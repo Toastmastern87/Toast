@@ -47,7 +47,7 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		sData.QuadVertexBuffer = CreateRef<VertexBuffer>(sData.MaxVertices * sizeof(QuadVertex), sData.MaxVertices);
+		sData.QuadVertexBuffer = CreateRef<VertexBuffer>(sData.MaxVertices * sizeof(QuadVertex), sData.MaxVertices, 0);
 
 		sData.QuadVertexBufferBase = new QuadVertex[sData.MaxVertices];
 
@@ -107,7 +107,7 @@ namespace Toast {
 
 		DirectX::XMMATRIX viewProj = DirectX::XMMatrixMultiply(DirectX::XMMatrixInverse(nullptr, transform), camera.GetProjection());
 
-		sData.TextureShader->SetData("Camera", (void*)&viewProj);
+		//sData.TextureShader->SetData("Camera", (void*)&viewProj);
 		sData.TextureShader->Bind();
 
 		StartBatch();
@@ -118,7 +118,7 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		sData.TextureShader->Bind();
-		sData.TextureShader->SetData("Camera", (void*)&camera.GetViewProjectionMatrix());
+		//sData.TextureShader->SetData("Camera", (void*)&camera.GetViewProjectionMatrix());
 
 		StartBatch();
 	}
@@ -143,7 +143,7 @@ namespace Toast {
 			sData.TextureSlots[i]->Bind();
 		}
 
-		RenderCommand::DrawIndexed(sData.QuadIndexBuffer, sData.QuadIndexCount);
+		//RenderCommand::DrawIndexed(sData.QuadIndexBuffer, sData.QuadIndexCount);
 		sData.Stats.DrawCalls++;
 	}
 

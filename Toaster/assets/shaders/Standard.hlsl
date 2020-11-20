@@ -1,3 +1,10 @@
+#inputlayout
+vertex
+vertex
+vertex
+vertex
+vertex
+
 #type vertex
 #pragma pack_matrix( row_major )
 
@@ -5,6 +12,8 @@ cbuffer Camera : register(b0)
 {
 	matrix viewMatrix;
 	matrix projectionMatrix;
+	matrix inverseViewMatrix;
+	float4 cameraPosition;
 };
 
 cbuffer Model : register(b1)
@@ -58,7 +67,7 @@ struct PixelInputType
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	float4 color = float4(1.0f, 0.0f, 1.0f, 1.0f);
+	float4 color = float4(1.0f, 1.0f, 1.0f, 1.0f);
 
 	return color;
 }

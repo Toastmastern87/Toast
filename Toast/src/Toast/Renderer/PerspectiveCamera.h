@@ -9,7 +9,7 @@ namespace Toast {
 	{
 	public:
 		PerspectiveCamera() = default;
-		PerspectiveCamera(float verticalFOV, float nearClip = 0.01f, float farClip = 10000.0f);
+		PerspectiveCamera(float verticalFOV, float nearClip = 0.01f, float farClip = 30000.0f);
 		virtual ~PerspectiveCamera() = default;
 
 		void SetViewportSize(uint32_t width, uint32_t height);
