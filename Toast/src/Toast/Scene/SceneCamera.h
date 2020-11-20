@@ -14,7 +14,7 @@ namespace Toast {
 		SceneCamera();
 		virtual ~SceneCamera() = default;
 
-		void SetPerspective(float verticalFOV, float nearClip = 0.01f, float farClip = 1000.0f);
+		void SetPerspective(float verticalFOV, float nearClip = 0.01f, float farClip = 10.0f);
 		void SetOrthographic(float size, float nearClip, float farClip); 
 
 		void SetViewportSize(uint32_t width, uint32_t height);
@@ -38,22 +38,18 @@ namespace Toast {
 
 		const float GetAspecRatio() const { return mAspectRatio; }
 		void SetAspectRatio(float aspectRatio) { mAspectRatio = aspectRatio; RecalculateProjection(); }
-
-		const Ref<Mesh> GetMesh() const { return mMesh; }
 	private:
 		void RecalculateProjection();
 	private:
 		ProjectionType mProjectionType = ProjectionType::Perspective;
 
 		float mPerspectiveFOV = DirectX::XMConvertToRadians(45.0f);
-		float mPerspectiveNear = 0.01f, mPerspectiveFar = 1000.0f;
+		float mPerspectiveNear = 0.01f, mPerspectiveFar = 10.0f;
 
 		float mOrthographicSize = 10.0f;
 		float mOrthographicNear = -1.0f, mOrthographicFar = 1.0f;
 
 		float mAspectRatio = 1.0f;
-
-		Ref<Mesh> mMesh;
 
 		friend class Scene;
 	};

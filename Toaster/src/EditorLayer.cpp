@@ -31,6 +31,7 @@ namespace Toast {
 		// Load all material shaders
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
 		ShaderLibrary::Load("assets/shaders/PBR.hlsl");
+		ShaderLibrary::Load("assets/shaders/Planet.hlsl");
 
 		// Create standard material
 		MaterialLibrary::Load("Standard", ShaderLibrary::Get("Standard"));
@@ -269,6 +270,7 @@ namespace Toast {
 			mActiveScene = CreateRef<Scene>();
 			mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			mSceneHierarchyPanel.SetContext(mActiveScene);
+			mSceneSettingsPanel.SetContext(mActiveScene);
 
 			std::filesystem::path path = filepath;
 			UpdateWindowTitle(path.filename().string());

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Toast/Renderer/Mesh.h"
 #include "Toast/Core/Math.h"
 
 #include <DirectXMath.h>
@@ -83,26 +84,24 @@ namespace Toast {
 	class Primitives
 	{
 	public:
-		static PrimitiveMesh CreateCube(float width = 1.0f, float height = 1.0f, float depth = 1.0f)
+		static uint32_t CreateCube(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, float width = 1.0f, float height = 1.0f, float depth = 1.0f)
 		{
-			PrimitiveMesh cubeMesh;
+			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.25f }));
+			vertices.push_back(Vertex({ -(width / 2.0f), -(height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.25f }));
+			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.5f }));
+			vertices.push_back(Vertex({ (width / 2.0f), -(height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.5f }));
+			vertices.push_back(Vertex({ -(width / 2.0f), -(height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.25f }));
+			vertices.push_back(Vertex({ (width / 2.0f), -(height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.5f }));
+			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.75f, 0.25f }));
+			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.75f, 0.5f }));
+			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 1.0f, 0.25f }));
+			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 1.0f, 0.5f }));
+			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.0f }));
+			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.0f }));
+			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.75f }));
+			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.75f }));
 
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ -(width / 2.0f), (height / 2.0f), -(depth/ 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.25f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ -(width / 2.0f), -(height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.25f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.5f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ (width / 2.0f), -(height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.5f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ -(width / 2.0f), -(height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.25f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ (width / 2.0f), -(height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.5f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ -(width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.75f, 0.25f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ (width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.75f, 0.5f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ -(width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 1.0f, 0.25f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 1.0f, 0.5f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ -(width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.0f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ -(width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.0f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.75f }));
-			cubeMesh.Vertices.push_back(PrimitiveVertex({ (width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.75f }));
-
-			cubeMesh.Indices = std::vector<uint32_t>{
+			indices = std::vector<uint32_t>{
 				//Front
 				0, 2, 1,
 				1, 2, 3,
@@ -128,7 +127,7 @@ namespace Toast {
 				5, 12, 13
 			};
 
-			return cubeMesh;
+			return 36;
 		}
 
 		static PrimitiveMesh CreateGrid(uint32_t gridSize = 5) 
@@ -160,86 +159,92 @@ namespace Toast {
 			return gridMesh;
 		}
 
-		static PrimitiveMesh CreateIcosphere(uint32_t subdivisions = 0)
+		static uint32_t CreateSphere(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, uint32_t subdivisions = 0)
 		{
-			PrimitiveMesh icosphereMesh;
-			std::vector<PrimitiveVertex> startVertices;
+			uint32_t indexCount = 0;
+
+			std::vector<Vertex> startVertices;
 
 			float ratio = (1.0f + sqrt(5.0f)) / 2.0f;
 			float vectorLength = Math::GetVectorLength({ ratio, 0.0f, -1.0f });
 
-			startVertices.push_back(PrimitiveVertex({ ratio, 0.0f, -1.0f }) / vectorLength * 0.5f);
-			startVertices.push_back(PrimitiveVertex({ -ratio, 0.0f, -1.0f }) / vectorLength * 0.5f);
-			startVertices.push_back(PrimitiveVertex({ ratio, 0.0f, 1.0f }) / vectorLength * 0.5f);
-			startVertices.push_back(PrimitiveVertex({ -ratio, 0.0f, 1.0f }) / vectorLength * 0.5f);
-			startVertices.push_back(PrimitiveVertex({ 0.0f, -1.0f, ratio }) / vectorLength * 0.5f);
-			startVertices.push_back(PrimitiveVertex({ 0.0f, -1.0f, -ratio }) / vectorLength * 0.5f);
-			startVertices.push_back(PrimitiveVertex({ 0.0f, 1.0f, ratio }) / vectorLength * 0.5f);
-			startVertices.push_back(PrimitiveVertex({ 0.0f, 1.0f, -ratio }) / vectorLength * 0.5f);
-			startVertices.push_back(PrimitiveVertex({ -1.0f, ratio, 0.0f }) / vectorLength * 0.5f);
-			startVertices.push_back(PrimitiveVertex({ -1.0f, -ratio, 0.0f }) / vectorLength * 0.5f);
-			startVertices.push_back(PrimitiveVertex({ 1.0f , ratio, 0.0f }) / vectorLength * 0.5f);
-			startVertices.push_back(PrimitiveVertex({ 1.0f , -ratio, 0.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(Vertex({ ratio, 0.0f, -1.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(Vertex({ -ratio, 0.0f, -1.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(Vertex({ ratio, 0.0f, 1.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(Vertex({ -ratio, 0.0f, 1.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(Vertex({ 0.0f, -1.0f, ratio }) / vectorLength * 0.5f);
+			startVertices.push_back(Vertex({ 0.0f, -1.0f, -ratio }) / vectorLength * 0.5f);
+			startVertices.push_back(Vertex({ 0.0f, 1.0f, ratio }) / vectorLength * 0.5f);
+			startVertices.push_back(Vertex({ 0.0f, 1.0f, -ratio }) / vectorLength * 0.5f);
+			startVertices.push_back(Vertex({ -1.0f, ratio, 0.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(Vertex({ -1.0f, -ratio, 0.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(Vertex({ 1.0f , ratio, 0.0f }) / vectorLength * 0.5f);
+			startVertices.push_back(Vertex({ 1.0f , -ratio, 0.0f }) / vectorLength * 0.5f);
 
-			SplitTriangle(icosphereMesh, startVertices[1], startVertices[3], startVertices[8], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[3], startVertices[1], startVertices[9], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[2], startVertices[0], startVertices[10], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[0], startVertices[2], startVertices[11], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[1], startVertices[3], startVertices[8], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[3], startVertices[1], startVertices[9], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[2], startVertices[0], startVertices[10], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[0], startVertices[2], startVertices[11], 0, subdivisions);
+			
+			indexCount += SplitTriangle(vertices, indices, startVertices[5], startVertices[7], startVertices[0], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[7], startVertices[5], startVertices[1], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[6], startVertices[4], startVertices[2], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[4], startVertices[6], startVertices[3], 0, subdivisions);
+			 
+			indexCount += SplitTriangle(vertices, indices, startVertices[9], startVertices[11], startVertices[4], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[11], startVertices[9], startVertices[5], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[10], startVertices[8], startVertices[6], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[8], startVertices[10], startVertices[7], 0, subdivisions);
+			 
+			indexCount += SplitTriangle(vertices, indices, startVertices[7], startVertices[1], startVertices[8], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[1], startVertices[5], startVertices[9], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[0], startVertices[7], startVertices[10], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[5], startVertices[0], startVertices[11], 0, subdivisions);
+			
+			indexCount += SplitTriangle(vertices, indices, startVertices[3], startVertices[6], startVertices[8], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[4], startVertices[3], startVertices[9], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[6], startVertices[2], startVertices[10], 0, subdivisions);
+			indexCount += SplitTriangle(vertices, indices, startVertices[2], startVertices[4], startVertices[11], 0, subdivisions);
 
-			SplitTriangle(icosphereMesh, startVertices[5], startVertices[7], startVertices[0], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[7], startVertices[5], startVertices[1], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[6], startVertices[4], startVertices[2], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[4], startVertices[6], startVertices[3], 0, subdivisions);
-
-			SplitTriangle(icosphereMesh, startVertices[9], startVertices[11], startVertices[4], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[11], startVertices[9], startVertices[5], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[10], startVertices[8], startVertices[6], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[8], startVertices[10], startVertices[7], 0, subdivisions);
-
-			SplitTriangle(icosphereMesh, startVertices[7], startVertices[1], startVertices[8], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[1], startVertices[5], startVertices[9], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[0], startVertices[7], startVertices[10], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[5], startVertices[0], startVertices[11], 0, subdivisions);
-
-			SplitTriangle(icosphereMesh, startVertices[3], startVertices[6], startVertices[8], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[4], startVertices[3], startVertices[9], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[6], startVertices[2], startVertices[10], 0, subdivisions);
-			SplitTriangle(icosphereMesh, startVertices[2], startVertices[4], startVertices[11], 0, subdivisions);
-
-			return icosphereMesh;
+			return indexCount;
 		}
 
-		static void SplitTriangle(PrimitiveMesh& icosphereMesh, PrimitiveVertex a, PrimitiveVertex b, PrimitiveVertex c, int8_t subdivision, int8_t maxSubdivisions)
+		static uint32_t SplitTriangle(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Vertex a, Vertex b, Vertex c, int8_t subdivision, int8_t maxSubdivisions)
 		{
+			uint32_t indexCount = 0;
+
 			if (subdivision < maxSubdivisions)
 			{
 				int8_t nSubdivision = subdivision + 1;
 
-				PrimitiveVertex A = b + ((c - b) * 0.5f);
-				PrimitiveVertex B = c + ((a - c) * 0.5f);
-				PrimitiveVertex C = a + ((b - a) * 0.5f);
+				Vertex A = b + ((c - b) * 0.5f);
+				Vertex B = c + ((a - c) * 0.5f);
+				Vertex C = a + ((b - a) * 0.5f);
 
 				A *= 0.5f / Math::GetVectorLength({ A.Position.x, A.Position.y, A.Position.z });
 				B *= 0.5f / Math::GetVectorLength({ B.Position.x, B.Position.y, B.Position.z });
 				C *= 0.5f / Math::GetVectorLength({ C.Position.x, C.Position.y, C.Position.z });
 
-				SplitTriangle(icosphereMesh, C, B, a, nSubdivision, maxSubdivisions);
-				SplitTriangle(icosphereMesh, C, b, A, nSubdivision, maxSubdivisions);
-				SplitTriangle(icosphereMesh, c, B, A, nSubdivision, maxSubdivisions);
-				SplitTriangle(icosphereMesh, C, A, B, nSubdivision, maxSubdivisions);
-
+				indexCount += SplitTriangle(vertices, indices, C, B, a, nSubdivision, maxSubdivisions);
+				indexCount += SplitTriangle(vertices, indices, C, b, A, nSubdivision, maxSubdivisions);
+				indexCount += SplitTriangle(vertices, indices, c, B, A, nSubdivision, maxSubdivisions);
+				indexCount += SplitTriangle(vertices, indices, C, A, B, nSubdivision, maxSubdivisions);
 			}
 			else 
 			{
-				icosphereMesh.Vertices.push_back(a);
-				icosphereMesh.Indices.push_back((uint32_t)(icosphereMesh.Vertices.size() - 1));
+				vertices.push_back(a);
+				indices.push_back((uint32_t)(vertices.size() - 1));
+	
+				vertices.push_back(b);
+				indices.push_back((uint32_t)(vertices.size() - 1));
 
-				icosphereMesh.Vertices.push_back(b);
-				icosphereMesh.Indices.push_back((uint32_t)(icosphereMesh.Vertices.size() - 1));
+				vertices.push_back(c);
+				indices.push_back((uint32_t)(vertices.size() - 1));
 
-				icosphereMesh.Vertices.push_back(c);
-				icosphereMesh.Indices.push_back((uint32_t)(icosphereMesh.Vertices.size() - 1));
+				indexCount += 3;
 			}
+
+			return indexCount;
 		}
 	};
 }

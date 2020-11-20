@@ -72,11 +72,14 @@ namespace Toast {
 		mBackbuffer->Clear(clearColor);
 	}
 
-	void RendererAPI::DrawIndexed(const Ref<IndexBuffer>& indexBuffer, uint32_t indexCount)
+	void RendererAPI::DrawIndexed(const uint32_t baseVertex, const uint32_t baseIndex, const uint32_t indexCount)
 	{
-		uint32_t count = indexCount ? indexCount : indexBuffer->GetCount();
+		mDeviceContext->DrawIndexed(indexCount, baseIndex, baseVertex);
+	}
 
-		mDeviceContext->DrawIndexed(count, 0, 0);
+	void RendererAPI::DrawIndexedInstanced(const uint32_t indexCountPerInstance, const uint32_t instanceCount, const uint32_t startIndexLocation, const uint32_t baseVertexLocation, const uint32_t startInstanceLocation)
+	{
+		mDeviceContext->DrawIndexedInstanced(indexCountPerInstance, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
 	}
 
 	void RendererAPI::Draw(uint32_t count)

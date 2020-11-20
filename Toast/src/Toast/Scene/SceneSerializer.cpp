@@ -135,17 +135,15 @@ namespace Toast {
 			out << YAML::EndMap; // CameraComponent
 		}
 
-		if (entity.HasComponent<PrimitiveMeshComponent>())
+		if (entity.HasComponent<MeshComponent>())
 		{
-			out << YAML::Key << "PrimitiveMeshComponent";
-			out << YAML::BeginMap; // PrimitiveMeshComponent
+			out << YAML::Key << "MeshComponent";
+			out << YAML::BeginMap; // MeshComponent
 
-			auto& pmc = entity.GetComponent<PrimitiveMeshComponent>();
-			out << YAML::Key << "MeshType" << YAML::Value << (int)pmc.Mesh->GetType();
-			out << YAML::Key << "PrimitiveType" << YAML::Value << (int)pmc.Mesh->GetPrimitiveType();
+			auto& pmc = entity.GetComponent<MeshComponent>();
 			out << YAML::Key << "Material" << YAML::Value << pmc.Mesh->GetMaterial()->GetName();
 
-			out << YAML::EndMap; // PrimitiveMeshComponent
+			out << YAML::EndMap; // MeshComponent
 		}
 
 		if (entity.HasComponent<SpriteRendererComponent>())
@@ -159,6 +157,18 @@ namespace Toast {
 			out << YAML::EndMap; // SpriteRendererComponent
 		}
 
+		if (entity.HasComponent<PlanetComponent>())
+		{
+			out << YAML::Key << "PlanetComponent";
+			out << YAML::BeginMap; // PlanetComponent
+
+			auto& pc = entity.GetComponent<PlanetComponent>();
+			out << YAML::Key << "Subdivisions" << YAML::Value << pc.Subdivisions;
+			out << YAML::Key << "PatchLevels" << YAML::Value << pc.PatchLevels;
+
+			out << YAML::EndMap; // PlanetComponent
+		}
+
 		out << YAML::EndMap; // Entity
 	}
 
@@ -167,7 +177,6 @@ namespace Toast {
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Scene" << YAML::Value << "Untitled Scene";
-		out << YAML::Key << "Editor Camera";
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 		mScene->mRegistry.each([&](auto entityID)
 		{
@@ -250,17 +259,13 @@ namespace Toast {
 					cc.FixedAspectRatio = cameraComponent["FixedAspectRatio"].as<bool>();
 				}
 
-				auto primitiveMeshComponent = entity["PrimitiveMeshComponent"];
-				if (primitiveMeshComponent)
+				auto meshComponent = entity["PrimitiveMeshComponent"];
+				if (meshComponent)
 				{
-					deserializedEntity.AddComponent<PrimitiveMeshComponent>(CreateRef<Mesh>());
-					auto& mc = deserializedEntity.GetComponent<PrimitiveMeshComponent>();
+					deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>());
+					auto& mc = deserializedEntity.GetComponent<MeshComponent>();
 
-					mc.Mesh->SetType((Mesh::MeshType)(primitiveMeshComponent["MeshType"].as<uint32_t>()));
-					mc.Mesh->SetPrimitiveType((Mesh::PrimitiveType)(primitiveMeshComponent["PrimitiveType"].as<uint32_t>()));
-					mc.Mesh->CreateFromPrimitive();
-
-					mc.Mesh->SetMaterial(MaterialLibrary::Get(primitiveMeshComponent["Material"].as<std::string>()));
+					mc.Mesh->SetMaterial(MaterialLibrary::Get(meshComponent["Material"].as<std::string>()));
 				}
 
 				auto spriteRendererComponent = entity["SpriteRendererComponent"];
@@ -268,6 +273,12 @@ namespace Toast {
 				{
 					auto& src = deserializedEntity.AddComponent<SpriteRendererComponent>();
 					src.Color = spriteRendererComponent["Color"].as<DirectX::XMFLOAT4>();
+				}
+
+				auto planetComponent = entity["PlanetComponent"];
+				if (planetComponent) 
+				{
+					auto& pc = deserializedEntity.AddComponent<PlanetComponent>(planetComponent["Subdivisions"].as<int16_t>(), planetComponent["PatchLevels"].as<int16_t>());
 				}
 			}
 		}

@@ -38,7 +38,7 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		sData.LineVertexBuffer = CreateRef<VertexBuffer>(sData.MaxVertices * sizeof(LineVertex), sData.MaxVertices);
+		sData.LineVertexBuffer = CreateRef<VertexBuffer>(sData.MaxVertices * sizeof(LineVertex), sData.MaxVertices, 0);
 
 		sData.LineVertexBufferBase = new LineVertex[sData.MaxVertices];
 
@@ -62,7 +62,8 @@ namespace Toast {
 		mSceneData->viewMatrix = camera.GetViewMatrix();
 		mSceneData->projectionMatrix = camera.GetProjection();
 
-		sData.DebugShader->SetData("Camera", (void*)&mSceneData->viewMatrix);
+		MaterialLibrary::Get("Standard")->SetData("Camera", (void*)&mSceneData->viewMatrix);
+		MaterialLibrary::Get("Standard")->Bind();
 		sData.DebugShader->Bind();
 
 		sData.LineVertexBuffer->Bind();
@@ -117,10 +118,10 @@ namespace Toast {
 		DirectX::XMVECTOR farBottomLeft = centerFar - (up * (heightFar / 2.0f)) - (right * (widthFar / 2.0f));
 		DirectX::XMVECTOR farBottomRight = centerFar - (up * (heightFar / 2.0f)) + (right * (widthFar / 2.0f));
 
-		RendererDebug::SubmitLine(posVector, farTopLeft);
-		RendererDebug::SubmitLine(posVector, farTopRight);
-		RendererDebug::SubmitLine(posVector, farBottomLeft);
-		RendererDebug::SubmitLine(posVector, farBottomRight);
+		RendererDebug::SubmitLine(nearTopLeft, farTopLeft);
+		RendererDebug::SubmitLine(nearTopRight, farTopRight);
+		RendererDebug::SubmitLine(nearBottomLeft, farBottomLeft);
+		RendererDebug::SubmitLine(nearBottomRight, farBottomRight);
 
 		RendererDebug::SubmitLine(nearTopLeft, nearTopRight);
 		RendererDebug::SubmitLine(nearBottomRight, nearBottomLeft);

@@ -35,12 +35,15 @@ namespace Toast {
 		RenderCommand::ResizeViewport(0, 0, width, height);
 	}
 
-	void Renderer::BeginScene(const Camera& camera, const DirectX::XMMATRIX& viewMatrix)
+	void Renderer::BeginScene(const Camera& camera, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMFLOAT4 cameraPos)
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		mSceneData->viewMatrix = viewMatrix;
+		mSceneData->inverseViewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
 		mSceneData->projectionMatrix = camera.GetProjection();
+		mSceneData->cameraPos = cameraPos;
+		MaterialLibrary::Get("Standard")->SetData("Camera", (void*)&mSceneData->viewMatrix);
 	}
 
 	void Renderer::EndScene()
@@ -55,23 +58,63 @@ namespace Toast {
 		indexBuffer->Bind();
 		shader->Bind();
 
-		RenderCommand::DrawIndexed(indexBuffer);
+		//RenderCommand::DrawIndexed(indexBuffer);
 	}
 
 	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
 	{
+		mesh->mVertexBuffer->Bind();
+		mesh->mIndexBuffer->Bind();
+
 		if (wireframe)
 			RenderCommand::EnableWireframeRendering();
 		else
 			RenderCommand::DisableWireframeRendering();
 
-		mesh->GetMaterial()->GetShader()->SetData("Camera", (void*)&mSceneData->viewMatrix);
-		mesh->GetMaterial()->GetShader()->SetData("Model", (void*)&transform);
-		mesh->GetMaterial()->Bind();
-		mesh->GetVertexBuffer()->Bind();
-		mesh->GetIndexBuffer()->Bind();
-		
-		RenderCommand::DrawIndexed(mesh->GetIndexBuffer(), mesh->GetIndexBuffer()->GetCount());
+		mesh->mMaterial->SetData("Model", (void*)&transform);
+		mesh->mMaterial->Bind();
+
+		RenderCommand::SetPrimitiveTopology(mesh->mTopology);
+
+		for (Submesh& submesh : mesh->mSubmeshes)
+			RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+	}
+
+	void Renderer::SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, std::vector<float> distanceLUT, DirectX::XMFLOAT4 morphRange, bool wireframe)
+	{
+		struct MorphData 
+		{
+			DirectX::XMFLOAT4 DistanceLUT[22];
+			DirectX::XMFLOAT4 MorphRange;
+		};
+
+		MorphData morphData;
+		for (int i = 0; i < distanceLUT.size(); i++) 
+			morphData.DistanceLUT[i] = { distanceLUT[i], distanceLUT[i], distanceLUT[i], distanceLUT[i] };
+		morphData.MorphRange = morphRange;
+
+		mesh->mVertexBuffer->Bind();
+		mesh->mInstanceVertexBuffer->Bind();
+		mesh->mIndexBuffer->Bind();
+
+		if (wireframe)
+			RenderCommand::EnableWireframeRendering();
+		else
+			RenderCommand::DisableWireframeRendering();
+
+		mesh->mMaterial->SetData("Morphing", (void*)&morphData);
+		mesh->mMaterial->SetData("Model", (void*)&transform);
+		mesh->mMaterial->Bind();
+
+		RenderCommand::SetPrimitiveTopology(mesh->mTopology);
+
+		for (Submesh& submesh : mesh->mSubmeshes)
+		{
+			if (mesh->mPlanetPatches.size() > 495000)
+				TOAST_CORE_WARN("Number of instances getting to high: {0}", mesh->mPlanetPatches.size());
+
+			RenderCommand::DrawIndexedInstanced(submesh.IndexCount, mesh->mPlanetPatches.size(), 0, 0, 0);
+		}
 	}
 
 	void Renderer::ResetStats()

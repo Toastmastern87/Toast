@@ -1,3 +1,10 @@
+#inputlayout
+vertex
+vertex
+vertex
+vertex
+vertex
+
 #type vertex
 #pragma pack_matrix( row_major )
 
@@ -5,6 +12,8 @@ cbuffer Camera : register(b0)
 {
 	matrix viewMatrix;
 	matrix projectionMatrix;
+	matrix inverseViewMatrix;
+	float4 cameraPosition;
 };
 
 cbuffer Model : register(b1)
