@@ -70,9 +70,9 @@ namespace Toast {
 		sData.QuadIndexBuffer = CreateRef<IndexBuffer>(quadIndices, sData.MaxIndices);
 		delete[] quadIndices;
 
-		sData.WhiteTexture = CreateRef<Texture2D>(1, 1, 0);
-		uint32_t whiteTextureData = 0xffffffff;
-		sData.WhiteTexture->SetData(&whiteTextureData, sizeof(uint32_t));
+		//sData.WhiteTexture = CreateRef<Texture2D>(1, 1, 0);
+		//uint32_t whiteTextureData = 0xffffffff;
+		//sData.WhiteTexture->SetData(&whiteTextureData, sizeof(uint32_t));
 
 		//sData.TextureShader = Shader::Create("assets/shaders/Texture.hlsl");
 

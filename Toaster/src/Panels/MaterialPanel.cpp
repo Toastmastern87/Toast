@@ -112,7 +112,7 @@ namespace Toast {
 					{
 						std::string filename = FileDialogs::OpenFile("");
 						if (filename != "")
-							mSelectionContext->SetTexture(texture.first, CreateRef<Texture2D>(filename, texture.second->GetBindPoint()));
+							mSelectionContext->SetTexture(texture.first, CreateRef<Texture2D>(filename, texture.second->GetBindPoint(), texture.second->GetShaderType()));
 					}
 
 					ImGui::TreePop();

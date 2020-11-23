@@ -292,11 +292,30 @@ namespace Toast {
 
 	void Shader::ProcessTextureResources()
 	{
+		Texture2DDesc textureResourceDesc;
 		Microsoft::WRL::ComPtr<ID3D11ShaderReflection> reflector;
 		D3D11_SHADER_DESC shaderDesc;
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
+
+		D3DReflect(mRawBlobs.at(D3D11_VERTEX_SHADER)->GetBufferPointer(), mRawBlobs.at(D3D11_VERTEX_SHADER)->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
+
+		reflector->GetDesc(&shaderDesc);
+
+		for (uint32_t i = 0; i < shaderDesc.BoundResources; i++)
+		{
+			D3D11_SHADER_INPUT_BIND_DESC textureDesc;
+
+			reflector->GetResourceBindingDesc(i, &textureDesc);
+
+			if (textureDesc.Type == D3D_SIT_TEXTURE)
+			{
+				textureResourceDesc.BindPoint = textureDesc.BindPoint;
+				textureResourceDesc.ShaderType = D3D11_VERTEX_SHADER;
+				mTextureResources[textureDesc.Name] = textureResourceDesc;
+			}
+		}
 
 		D3DReflect(mRawBlobs.at(D3D11_PIXEL_SHADER)->GetBufferPointer(), mRawBlobs.at(D3D11_PIXEL_SHADER)->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
 
@@ -308,8 +327,12 @@ namespace Toast {
 
 			reflector->GetResourceBindingDesc(i, &textureDesc);
 
-			if (textureDesc.Type == D3D_SIT_TEXTURE)
-				mTextureResources[textureDesc.Name] = textureDesc.BindPoint;	
+			if (textureDesc.Type == D3D_SIT_TEXTURE) 
+			{
+				textureResourceDesc.BindPoint = textureDesc.BindPoint;
+				textureResourceDesc.ShaderType = D3D11_PIXEL_SHADER;
+				mTextureResources[textureDesc.Name] = textureResourceDesc;
+			}
 		}
 
 	}

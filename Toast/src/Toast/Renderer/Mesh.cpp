@@ -26,11 +26,13 @@ namespace Toast {
 		mInstanceVertexBuffer = nullptr;
 		mIndexBuffer = nullptr;
 
-		mVertexBuffer = CreateRef<VertexBuffer>(&mPlanetVertices[0], (sizeof(PlanetVertex) * (uint32_t)mPlanetVertices.size()), (uint32_t)mPlanetVertices.size(), 0);
-		mInstanceVertexBuffer = CreateRef<VertexBuffer>(sizeof(PlanetPatch) * 100000, 100000, 1);
-		mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
+		if (!mPlanetPatches.empty()) {
+			mVertexBuffer = CreateRef<VertexBuffer>(&mPlanetVertices[0], (sizeof(PlanetVertex) * (uint32_t)mPlanetVertices.size()), (uint32_t)mPlanetVertices.size(), 0);
+			mInstanceVertexBuffer = CreateRef<VertexBuffer>(sizeof(PlanetPatch) * 100000, 100000, 1);
+			mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 
-		mInstanceVertexBuffer->SetData(&mPlanetPatches[0], (sizeof(PlanetPatch) * mPlanetPatches.size()));
+			mInstanceVertexBuffer->SetData(&mPlanetPatches[0], (sizeof(PlanetPatch) * mPlanetPatches.size()));
+		}
 	}
 
 	void Mesh::OnUpdate(Timestep ts)

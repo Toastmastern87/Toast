@@ -4,8 +4,8 @@
 
 #include <d3d11.h>
 #include <d3d11shader.h>
-#include <wrl.h>
 #include <d3d11shadertracing.h>
+#include <wrl.h>
 #include <DirectXMath.h>
 
 namespace Toast {
@@ -19,6 +19,12 @@ namespace Toast {
 			size_t Size;
 			D3D11_SHADER_TYPE ShaderType;
 		};
+
+		struct Texture2DDesc
+		{
+			uint32_t BindPoint;
+			D3D11_SHADER_TYPE ShaderType;
+		};
 	public:
 		Shader(const std::string& filepath);
 		~Shader();
@@ -29,7 +35,7 @@ namespace Toast {
 		const std::string GetName() const { return mName; }
 
 		const ID3D10Blob* GetVSRaw() const { return mRawBlobs.at(D3D11_VERTEX_SHADER); }
-		const std::unordered_map<std::string, uint32_t> GetTextureResources() const { return mTextureResources; }
+		const std::unordered_map<std::string, Texture2DDesc> GetTextureResources() const { return mTextureResources; }
 
 		const std::unordered_map<std::string, ConstantBufferDesc> GetCBufferResources() const { return mBufferResources; }
 	private:
@@ -49,7 +55,7 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader;
 		std::unordered_map<D3D11_SHADER_TYPE, ID3D10Blob*> mRawBlobs;
 
-		std::unordered_map<std::string, uint32_t> mTextureResources;
+		std::unordered_map<std::string, Texture2DDesc> mTextureResources;
 		std::unordered_map<std::string, ConstantBufferDesc> mBufferResources;
 	};
 

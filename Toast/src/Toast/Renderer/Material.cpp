@@ -2,6 +2,7 @@
 #include "Toast/Renderer/Material.h"
 #include "Toast/Renderer/RendererAPI.h"
 #include "Toast/Renderer/Renderer.h"
+#include "Toast/Renderer/Shader.h"
 
 #include "Toast/Core/Application.h"
 
@@ -52,12 +53,12 @@ namespace Toast {
 	void Material::SetUpTextureBindings()
 	{
 		mTextures.clear();
-		std::unordered_map<std::string, uint32_t> textureResources = mShader->GetTextureResources();
+		std::unordered_map<std::string, Shader::Texture2DDesc> textureResources = mShader->GetTextureResources();
 
 		// Set up Textures in the material, fill it with white textures at start as default textures
 		for (auto& textureResource : textureResources)
 		{
-			Ref<Texture2D> defaultTexture = CreateRef<Texture2D>(1, 1, textureResource.second);
+			Ref<Texture2D> defaultTexture = CreateRef<Texture2D>(1, 1, textureResource.second.BindPoint, textureResource.second.ShaderType);
 			uint32_t defaultTextureData = 0xffffffff;
 			defaultTexture->SetData(&defaultTextureData, sizeof(uint32_t));
 
@@ -175,6 +176,7 @@ namespace Toast {
 				out << YAML::Key << "Name" << YAML::Value << texture.first;
 				out << YAML::Key << "Path" << YAML::Value << texture.second->GetPath();
 				out << YAML::Key << "BindSlot" << YAML::Value << texture.second->GetBindPoint();
+				out << YAML::Key << "ShaderType" << YAML::Value << (uint32_t)texture.second->GetShaderType();
 				out << YAML::EndMap;
 			}
 			out << YAML::EndSeq;
@@ -215,10 +217,10 @@ namespace Toast {
 					std::string path = texture["Path"].as<std::string>();
 
 					if(!path.empty())
-						material->SetTexture(texture["Name"].as<std::string>(), CreateRef<Texture2D>(texture["Path"].as<std::string>(), texture["BindSlot"].as<uint32_t>()));
+						material->SetTexture(texture["Name"].as<std::string>(), CreateRef<Texture2D>(texture["Path"].as<std::string>(), texture["BindSlot"].as<uint32_t>(), (D3D11_SHADER_TYPE)texture["ShaderType"].as<uint32_t>()));
 					else 
 					{
-						Ref<Texture2D> defaultTexture = CreateRef<Texture2D>(1, 1, texture["BindSlot"].as<uint32_t>());
+						Ref<Texture2D> defaultTexture = CreateRef<Texture2D>(1, 1, texture["BindSlot"].as<uint32_t>(), (D3D11_SHADER_TYPE)texture["ShaderType"].as<uint32_t>());
 						uint32_t defaultTextureData = 0xffffffff;
 						defaultTexture->SetData(&defaultTextureData, sizeof(uint32_t));
 

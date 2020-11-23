@@ -130,31 +130,40 @@ namespace Toast {
 			}
 		}
 
-		static NextPlanetFace CheckPlanetFaceSplit(DirectX::XMMATRIX planetTransform, DirectX::XMVECTOR& a, DirectX::XMVECTOR& b, DirectX::XMVECTOR& c, int16_t subdivision, int16_t maxSubdivisions, std::vector<float>& distanceLUT, DirectX::XMVECTOR& cameraPos)
+		static NextPlanetFace CheckPlanetFaceSplit(DirectX::XMMATRIX planetTransform, DirectX::XMVECTOR& a, DirectX::XMVECTOR& b, DirectX::XMVECTOR& c, int16_t subdivision, int16_t maxSubdivisions, DirectX::XMFLOAT4 *distanceLUT, std::vector<float>& faceLevelDotLUT, DirectX::XMVECTOR& cameraPos)
 		{
 			float aDistance, bDistance, cDistance;
 
-			if (subdivision >= maxSubdivisions+3)
+			DirectX::XMVECTOR center = (a + b + c) / 3.0f;
+
+			DirectX::XMVECTOR dotNV = DirectX::XMVector3Dot(DirectX::XMVector3Normalize(center), DirectX::XMVector3Normalize(center - cameraPos));
+
+			if (DirectX::XMVectorGetX(dotNV) >= faceLevelDotLUT[subdivision + 3]) 
+				return NextPlanetFace::CULL;
+
+			if (subdivision >= maxSubdivisions + 3)
 				return NextPlanetFace::LEAF;
 
 			aDistance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVector3Transform(a, planetTransform) - cameraPos));
 			bDistance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVector3Transform(b, planetTransform) - cameraPos));
 			cDistance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVector3Transform(c, planetTransform) - cameraPos));			
 
-			if (fminf(aDistance, fminf(bDistance, cDistance)) < distanceLUT[subdivision + 3]) 
+			if (fminf(aDistance, fminf(bDistance, cDistance)) < distanceLUT[subdivision+3].x) 
 				return NextPlanetFace::SPLITCULL;
 
 			return NextPlanetFace::LEAF;
 		}
 
-		static void RecursiveFace(DirectX::XMMATRIX planetTransform, DirectX::XMVECTOR& a, DirectX::XMVECTOR& b, DirectX::XMVECTOR& c, int16_t subdivision, int16_t maxSubdivisions, std::vector<PlanetPatch>& patches, std::vector<float>& distanceLUT, DirectX::XMVECTOR& cameraPos)
+		static void RecursiveFace(DirectX::XMMATRIX planetTransform, DirectX::XMVECTOR& a, DirectX::XMVECTOR& b, DirectX::XMVECTOR& c, int16_t subdivision, int16_t maxSubdivisions, std::vector<PlanetPatch>& patches, DirectX::XMFLOAT4 *distanceLUT, std::vector<float>& faceLevelDotLUT, DirectX::XMVECTOR& cameraPos)
 		{
 			DirectX::XMVECTOR A, B, C;
-			NextPlanetFace nextSphereTriangle;
 
-			nextSphereTriangle = CheckPlanetFaceSplit(planetTransform, a, b, c, subdivision, maxSubdivisions, distanceLUT, cameraPos);
+			NextPlanetFace nextSphereFace = CheckPlanetFaceSplit(planetTransform, a, b, c, subdivision, maxSubdivisions, distanceLUT, faceLevelDotLUT, cameraPos);
 			
-			if (subdivision < maxSubdivisions && (nextSphereTriangle == NextPlanetFace::SPLIT || nextSphereTriangle == NextPlanetFace::SPLITCULL)) {
+			if (nextSphereFace == NextPlanetFace::CULL) 
+				return;
+
+			if (subdivision < maxSubdivisions && (nextSphereFace == NextPlanetFace::SPLIT || nextSphereFace == NextPlanetFace::SPLITCULL)) {
 				A = b + ((c - b) * 0.5f);
 				B = c + ((a - c) * 0.5f);
 				C = a + ((b - a) * 0.5f);
@@ -165,10 +174,10 @@ namespace Toast {
 
 				int16_t nextSubdivision = subdivision + 1;
 
-				RecursiveFace(planetTransform, C, B, a, nextSubdivision, maxSubdivisions, patches, distanceLUT, cameraPos);
-				RecursiveFace(planetTransform, b, A, C, nextSubdivision, maxSubdivisions, patches, distanceLUT, cameraPos);
-				RecursiveFace(planetTransform, B, A, c, nextSubdivision, maxSubdivisions, patches, distanceLUT, cameraPos);
-				RecursiveFace(planetTransform, A, B, C, nextSubdivision, maxSubdivisions, patches, distanceLUT, cameraPos);
+				RecursiveFace(planetTransform, C, B, a, nextSubdivision, maxSubdivisions, patches, distanceLUT, faceLevelDotLUT, cameraPos);
+				RecursiveFace(planetTransform, b, A, C, nextSubdivision, maxSubdivisions, patches, distanceLUT, faceLevelDotLUT, cameraPos);
+				RecursiveFace(planetTransform, B, A, c, nextSubdivision, maxSubdivisions, patches, distanceLUT, faceLevelDotLUT, cameraPos);
+				RecursiveFace(planetTransform, A, B, C, nextSubdivision, maxSubdivisions, patches, distanceLUT, faceLevelDotLUT, cameraPos);
 			}
 			else
 			{
@@ -182,22 +191,35 @@ namespace Toast {
 			}
 		}
 
-		static void GeneratePlanet(DirectX::XMMATRIX planetTransform, std::vector<PlanetFace>& faces, std::vector<PlanetPatch>& patches, std::vector<float>& distanceLUT, DirectX::XMVECTOR& cameraPos, int16_t subdivisions)
+		static void GeneratePlanet(DirectX::XMMATRIX planetTransform, std::vector<PlanetFace>& faces, std::vector<PlanetPatch>& patches, DirectX::XMFLOAT4 *distanceLUT, std::vector<float>& faceLevelDotLUT, DirectX::XMVECTOR& cameraPos, int16_t subdivisions)
 		{
 			patches.clear();
 
 			for (auto& face : faces)
-				RecursiveFace(planetTransform, face.A, face.B, face.C, face.Level, subdivisions, patches, distanceLUT, cameraPos);
+				RecursiveFace(planetTransform, face.A, face.B, face.C, face.Level, subdivisions, patches, distanceLUT, faceLevelDotLUT, cameraPos);
 		}
 
-		static void GenerateDistanceLUT(std::vector<float>& distanceLUT, float scale, float fov, float width, float maxTriangleSize, float maxSubdivisions)
+		static void GenerateDistanceLUT(DirectX::XMFLOAT4 *distanceLUT, float scale, float fov, float width, float maxTriangleSize, float maxSubdivisions)
 		{
-			distanceLUT.clear();
-
 			float frac = tanf((maxTriangleSize * DirectX::XMConvertToRadians(fov)) / width);
 
 			for (int subdivision = 0; subdivision < maxSubdivisions+6; subdivision++) 
-				distanceLUT.push_back(((GetPlanetVertexDistance(scale) / frac) * powf(0.5f, subdivision)));
+				distanceLUT[subdivision].x = (GetPlanetVertexDistance(scale) / frac) * powf(0.5f, subdivision);
+		}
+
+		static void GenerateFaceDotLevelLUT(std::vector<float>& faceLevelDotLUT, float scale, float maxSubdivisions, float maxHeight)
+		{
+			// TODO, add height in the future + m_pPlanet->GetMaxHeight())
+			float cullingAngle = acosf((scale * 0.5f) / ((scale * 0.5f) + maxHeight));
+			
+			faceLevelDotLUT.clear();
+			faceLevelDotLUT.push_back(0.5f + sinf(cullingAngle));
+			float angle = acosf(0.5f);
+			for (int i = 1; i <= maxSubdivisions+6; i++)
+			{
+				angle *= 0.5f;
+				faceLevelDotLUT.push_back(sinf(angle + cullingAngle));
+			}
 		}
 
 		static float GetPlanetVertexDistance(const float planetScale) 
