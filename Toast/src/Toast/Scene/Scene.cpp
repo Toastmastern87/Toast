@@ -186,7 +186,7 @@ namespace Toast {
 				{
 					auto [planet, mesh, transform] = view.get<PlanetComponent, MeshComponent, TransformComponent>(entity);
 
-					PlanetSystem::GeneratePlanet(transform.GetTransform(), mesh.Mesh->mPlanetFaces, mesh.Mesh->mPlanetPatches, planet.DistanceLUT, cameraPos, planet.Subdivisions);
+					PlanetSystem::GeneratePlanet(transform.GetTransform(), mesh.Mesh->mPlanetFaces, mesh.Mesh->mPlanetPatches, planet.MorphData.DistanceLUT, planet.FaceLevelDotLUT, cameraPos, planet.Subdivisions);
 
 					mesh.Mesh->InitPlanet();
 					mesh.Mesh->AddSubmesh(mesh.Mesh->mIndices.size());
@@ -266,13 +266,13 @@ namespace Toast {
 				{
 				case Settings::Wireframe::NO:
 				{
-					Renderer::SubmitPlanet(mesh.Mesh, transform.GetTransform(), planet.DistanceLUT, { 0.5f, 0.5f, 0.5f, 0.5f }, false);
+					Renderer::SubmitPlanet(mesh.Mesh, transform.GetTransform(), planet.PlanetData, planet.MorphData, false);
 
 					break;
 				}
 				case Settings::Wireframe::YES:
 				{
-					Renderer::SubmitPlanet(mesh.Mesh, transform.GetTransform(), planet.DistanceLUT, { 0.5f, 0.5f, 0.5f, 0.5f }, true);
+					Renderer::SubmitPlanet(mesh.Mesh, transform.GetTransform(), planet.PlanetData, planet.MorphData, true);
 
 					break;
 				}
@@ -395,13 +395,14 @@ namespace Toast {
 		DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
 		DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
 
-		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, tc.Scale.x, mainCamera->GetPerspectiveVerticalFOV(), mViewportWidth, 200.0f, 8);
+		PlanetSystem::GenerateDistanceLUT(component.MorphData.DistanceLUT, tc.Scale.x, mainCamera->GetPerspectiveVerticalFOV(), mViewportWidth, 200.0f, 8);
+		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude.x);
 		PlanetSystem::GeneratePatchGeometry(mc.Mesh->mPlanetVertices, mc.Mesh->mIndices, component.PatchLevels);
 		PlanetSystem::GenerateBasePlanet(mc.Mesh->mPlanetFaces);
-		PlanetSystem::GeneratePlanet(tc.GetTransform(), mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.DistanceLUT, cameraPos, component.Subdivisions);
+		PlanetSystem::GeneratePlanet(tc.GetTransform(), mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.MorphData.DistanceLUT, component.FaceLevelDotLUT, cameraPos, component.Subdivisions);
 
 		mc.Mesh->InitPlanet();
-		mc.Mesh->AddSubmesh(mc.Mesh->mIndices.size());
+		//mc.Mesh->AddSubmesh(mc.Mesh->mIndices.size());
 	}
 
 	template<>

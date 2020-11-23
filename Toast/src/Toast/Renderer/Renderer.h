@@ -5,6 +5,7 @@
 #include "Toast/Renderer/OrthographicCamera.h"
 #include "Toast/Scene/SceneCamera.h"
 #include "Toast/Renderer/Mesh.h"
+#include "Toast/Scene/Components.h"
 
 namespace Toast {
 
@@ -21,7 +22,7 @@ namespace Toast {
 
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<BufferLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
 		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false);
-		static void SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, std::vector<float> distanceLUT = {}, DirectX::XMFLOAT4 morphRange = { 0.5f, 0.5f, 0.5f, 0.5f }, bool wireframe = false);
+		static void SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, PlanetComponent::PlanetGPUData planetData, PlanetComponent::MorphGPUData morphData, bool wireframe = false);
 
 		//Stats
 		struct Statistics

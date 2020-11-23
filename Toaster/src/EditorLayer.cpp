@@ -26,7 +26,7 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mCheckerboardTexture = CreateRef<Texture2D>("assets/textures/Checkerboard.png", 1);
+		mCheckerboardTexture = CreateRef<Texture2D>("assets/textures/Checkerboard.png", 1, D3D11_PIXEL_SHADER);
 
 		// Load all material shaders
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");

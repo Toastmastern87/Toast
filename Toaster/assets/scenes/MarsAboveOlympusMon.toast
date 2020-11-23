@@ -1,0 +1,35 @@
+Scene: Untitled Scene
+Entities:
+  - Entity: 12837192831273
+    TagComponent:
+      Tag: Camera
+    TransformComponent:
+      Translation: [-2181, 1060, -2300]
+      Rotation: [0, 0.673696876, 0]
+      Scale: [1, 1, 1]
+    CameraComponent:
+      Camera:
+        ProjectionType: 0
+        PerspectiveFOV: 45
+        PerspectiveNear: 0.00999999978
+        PerspectiveFar: 15000
+        OrthographicSize: 10
+        OrthographicNear: -1
+        OrthographicFar: 1
+      Primary: true
+      FixedAspectRatio: false
+  - Entity: 12837192831273
+    TagComponent:
+      Tag: Planet
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [6779, 6779, 6779]
+    MeshComponent:
+      Material: Planet
+    PlanetComponent:
+      Subdivisions: 8
+      PatchLevels: 4
+      MaxAltitude: [21.2000008, 21.2000008, 21.2000008, 21.2000008]
+      MinAltitude: [-8.19999981, -8.19999981, -8.19999981, -8.19999981]
+      Radius: [3389.5, 3389.5, 3389.5, 3389.5]

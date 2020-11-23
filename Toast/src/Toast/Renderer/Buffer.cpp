@@ -3,6 +3,8 @@
 #include "Toast/Renderer/RendererAPI.h"
 #include "Toast/Renderer/Renderer.h"
 
+#include "Toast/Core/Log.h"
+
 #include "Toast/Core/Application.h"
 
 namespace Toast {

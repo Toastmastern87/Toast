@@ -174,9 +174,9 @@ namespace Toast {
 
 		std::vector<Vertex> mVertices;
 
-		std::vector<PlanetVertex> mPlanetVertices;
-		std::vector<PlanetFace> mPlanetFaces;
-		std::vector<PlanetPatch> mPlanetPatches;
+		std::vector<PlanetVertex> mPlanetVertices = {};
+		std::vector<PlanetFace> mPlanetFaces = {};
+		std::vector<PlanetPatch> mPlanetPatches = {};
 
 		std::vector<uint32_t> mIndices;
 
