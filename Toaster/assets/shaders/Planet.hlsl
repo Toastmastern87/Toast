@@ -9,6 +9,11 @@ instance
 #type vertex
 #pragma pack_matrix( row_major )
 
+#define PI 3.141592653589793
+
+Texture2D heightMap : register(t0);
+SamplerState sampleType;
+
 cbuffer Camera : register(b0)
 {
 	matrix viewMatrix;
@@ -24,8 +29,15 @@ cbuffer Model : register(b1)
 
 cbuffer Morphing : register(b2)
 {
-	float4 distanceLUT[22];
+	float4 distanceLUT[24];
 	float4 morphRange;
+};
+
+cbuffer Planet : register(b3)
+{
+	float4 radius;
+	float4 minAltitude;
+	float4 maxAltitude;
 };
 
 struct VertexInputType
@@ -41,6 +53,7 @@ struct VertexInputType
 struct PixelInputType
 {
 	float4 position : SV_POSITION;
+	float2 uv : TEXCOORD0;
 };
 
 float MorphFac(float distance, int level)
@@ -60,6 +73,7 @@ float MorphFac(float distance, int level)
 PixelInputType main(VertexInputType input)
 {
 	PixelInputType output;
+	float2 uv;
 	float3 pos;
 	float4 finalPos;
 	float distance, morphPercentage;
@@ -70,8 +84,12 @@ PixelInputType main(VertexInputType input)
 	morphPercentage = MorphFac(distance, input.level);
 
 	pos += morphPercentage * (input.r * input.localMorph.x + input.s * input.localMorph.y);
+	pos = normalize(pos);
 
-	finalPos = float4(normalize(pos) * 0.5f, 1.0f);
+	output.uv = float2((0.5f + (atan2(pos.z, pos.x) / (2.0f * PI))), (0.5f - (asin(pos.y) / PI)));
+	pos *= 1.0f + ((heightMap.SampleLevel(sampleType, output.uv, 0).r * (maxAltitude.r - minAltitude.r) + minAltitude.r) / radius.r);
+
+	finalPos = float4(pos * 0.5f, 1.0f);
 
 	output.position = mul(finalPos, worldMatrix);
 	output.position = mul(output.position, viewMatrix);
@@ -81,9 +99,11 @@ PixelInputType main(VertexInputType input)
 }
 
 #type pixel
+
 struct PixelInputType
 {
 	float4 position : SV_POSITION;
+	float2 uv : TEXCOORD0;
 };
 
 Texture2D albedo : register(t0);
@@ -91,7 +111,7 @@ SamplerState sampleType;
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	float4 color = albedo.SampleLevel(sampleType, float2(0,0), 0).rgba;
+	float4 color = albedo.SampleLevel(sampleType, input.uv, 0).rgba;
 
 	return color;
 }

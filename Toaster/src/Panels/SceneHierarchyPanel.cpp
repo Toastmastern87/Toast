@@ -371,7 +371,8 @@ namespace Toast {
 
 				auto& pc = entity.GetComponent<PlanetComponent>();
 
-				PlanetSystem::GenerateDistanceLUT(pc.DistanceLUT, component.Scale.x, fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
+				PlanetSystem::GenerateDistanceLUT(pc.MorphData.DistanceLUT, component.Scale.x, fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
+				PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, component.Scale.x, 8, pc.PlanetData.maxAltitude.x);
 			}
 		});
 		
@@ -492,7 +493,7 @@ namespace Toast {
 				int subdivions = component.Subdivisions;
 				float fov = 45.0f;
 
-				if (DrawIntControl("Patch levels", patchLevels, 100.0f, 1, 6) || DrawIntControl("Subdivisions", subdivions, 100.0f, 0, 8))
+				if (DrawIntControl("Patch levels", patchLevels, 100.0f, 1, 6) || DrawIntControl("Subdivisions", subdivions, 100.0f, 0, 8) || DrawFloatControl("Max Altitude(km)", component.PlanetData.maxAltitude.x) || DrawFloatControl("Min Altitude(km)", component.PlanetData.minAltitude.x) || DrawFloatControl("Radius(km)", component.PlanetData.radius.x))
 				{
 					component.PatchLevels = patchLevels;
 					component.Subdivisions = subdivions;
@@ -511,9 +512,10 @@ namespace Toast {
 						}
 					}
 
-					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, tc.Scale.x, fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
+					PlanetSystem::GenerateDistanceLUT(component.MorphData.DistanceLUT, tc.Scale.x, fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
+					PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude.x);
 					PlanetSystem::GeneratePatchGeometry(mc.Mesh->mPlanetVertices, mc.Mesh->mIndices, component.PatchLevels);
-					PlanetSystem::GeneratePlanet(tc.GetTransform(), mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.DistanceLUT, cameraPos, component.Subdivisions);
+					PlanetSystem::GeneratePlanet(tc.GetTransform(), mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.MorphData.DistanceLUT, component.FaceLevelDotLUT, cameraPos, component.Subdivisions);
 
 					mc.Mesh->InitPlanet();
 					mc.Mesh->AddSubmesh(mc.Mesh->mIndices.size());
