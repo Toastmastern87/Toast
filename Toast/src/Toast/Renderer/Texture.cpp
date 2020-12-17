@@ -10,8 +10,8 @@
 
 namespace Toast {
 
-	Texture2D::Texture2D(uint32_t width, uint32_t height, uint32_t slot)
-		: mWidth(width), mHeight(height), mShaderSlot(slot)
+	Texture2D::Texture2D(uint32_t width, uint32_t height, uint32_t slot, D3D11_SHADER_TYPE shaderType)
+		: mWidth(width), mHeight(height), mShaderSlot(slot), mShaderType(shaderType)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -48,8 +48,8 @@ namespace Toast {
 		mView->GetResource(&mResource);
 	}
 
-	Texture2D::Texture2D(const std::string& path, uint32_t slot)
-		: mPath(path), mShaderSlot(slot)
+	Texture2D::Texture2D(const std::string& path, uint32_t slot, D3D11_SHADER_TYPE shaderType)
+		: mPath(path), mShaderSlot(slot), mShaderType(shaderType)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -86,7 +86,7 @@ namespace Toast {
 		ID3D11Device* device = API->GetDevice();
 
 		D3D11_SAMPLER_DESC samplerDesc;
-		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -125,7 +125,22 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		deviceContext->PSSetSamplers(0, 1, mSamplerState.GetAddressOf());
-		deviceContext->PSSetShaderResources(mShaderSlot, 1, mView.GetAddressOf());
+		switch (mShaderType) 
+		{
+		case D3D11_VERTEX_SHADER: 
+		{
+			deviceContext->VSSetSamplers(0, 1, mSamplerState.GetAddressOf());
+			deviceContext->VSSetShaderResources(mShaderSlot, 1, mView.GetAddressOf());
+
+			break;
+		}
+		case D3D11_PIXEL_SHADER:
+		{
+			deviceContext->PSSetSamplers(0, 1, mSamplerState.GetAddressOf());
+			deviceContext->PSSetShaderResources(mShaderSlot, 1, mView.GetAddressOf());
+
+			break;
+		}
+		}
 	}
 }

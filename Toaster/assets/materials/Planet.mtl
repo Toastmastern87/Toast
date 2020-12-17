@@ -1,6 +1,11 @@
 Material: Planet
 Shader: Planet
 Textures:
-  - Name: albedo
-    Path: ""
+  - Name: heightMap
+    Path: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
     BindSlot: 0
+    ShaderType: 1
+  - Name: albedo
+    Path: C:\dev\Toast\Toaster\assets\textures\MarsAlbedo.png
+    BindSlot: 0
+    ShaderType: 5

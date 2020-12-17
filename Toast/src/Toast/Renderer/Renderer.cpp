@@ -63,8 +63,8 @@ namespace Toast {
 
 	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
 	{
-		mesh->mVertexBuffer->Bind();
-		mesh->mIndexBuffer->Bind();
+		if (mesh->mVertexBuffer) mesh->mVertexBuffer->Bind();
+		if (mesh->mIndexBuffer)	mesh->mIndexBuffer->Bind();
 
 		if (wireframe)
 			RenderCommand::EnableWireframeRendering();
@@ -80,22 +80,11 @@ namespace Toast {
 			RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 	}
 
-	void Renderer::SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, std::vector<float> distanceLUT, DirectX::XMFLOAT4 morphRange, bool wireframe)
+	void Renderer::SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, PlanetComponent::PlanetGPUData planetData, PlanetComponent::MorphGPUData morphData, bool wireframe)
 	{
-		struct MorphData 
-		{
-			DirectX::XMFLOAT4 DistanceLUT[22];
-			DirectX::XMFLOAT4 MorphRange;
-		};
-
-		MorphData morphData;
-		for (int i = 0; i < distanceLUT.size(); i++) 
-			morphData.DistanceLUT[i] = { distanceLUT[i], distanceLUT[i], distanceLUT[i], distanceLUT[i] };
-		morphData.MorphRange = morphRange;
-
-		mesh->mVertexBuffer->Bind();
-		mesh->mInstanceVertexBuffer->Bind();
-		mesh->mIndexBuffer->Bind();
+		if(mesh->mVertexBuffer)	mesh->mVertexBuffer->Bind();
+		if (mesh->mInstanceVertexBuffer) mesh->mInstanceVertexBuffer->Bind();
+		if (mesh->mIndexBuffer)	mesh->mIndexBuffer->Bind();
 
 		if (wireframe)
 			RenderCommand::EnableWireframeRendering();
@@ -103,6 +92,7 @@ namespace Toast {
 			RenderCommand::DisableWireframeRendering();
 
 		mesh->mMaterial->SetData("Morphing", (void*)&morphData);
+		mesh->mMaterial->SetData("Planet", (void*)&planetData);
 		mesh->mMaterial->SetData("Model", (void*)&transform);
 		mesh->mMaterial->Bind();
 

@@ -165,6 +165,9 @@ namespace Toast {
 			auto& pc = entity.GetComponent<PlanetComponent>();
 			out << YAML::Key << "Subdivisions" << YAML::Value << pc.Subdivisions;
 			out << YAML::Key << "PatchLevels" << YAML::Value << pc.PatchLevels;
+			out << YAML::Key << "MaxAltitude" << YAML::Value << pc.PlanetData.maxAltitude;
+			out << YAML::Key << "MinAltitude" << YAML::Value << pc.PlanetData.minAltitude;
+			out << YAML::Key << "Radius" << YAML::Value << pc.PlanetData.radius;
 
 			out << YAML::EndMap; // PlanetComponent
 		}
@@ -278,7 +281,7 @@ namespace Toast {
 				auto planetComponent = entity["PlanetComponent"];
 				if (planetComponent) 
 				{
-					auto& pc = deserializedEntity.AddComponent<PlanetComponent>(planetComponent["Subdivisions"].as<int16_t>(), planetComponent["PatchLevels"].as<int16_t>());
+					auto& pc = deserializedEntity.AddComponent<PlanetComponent>(planetComponent["Subdivisions"].as<int16_t>(), planetComponent["PatchLevels"].as<int16_t>(), planetComponent["MaxAltitude"].as<DirectX::XMFLOAT4>(), planetComponent["MinAltitude"].as<DirectX::XMFLOAT4>(), planetComponent["Radius"].as<DirectX::XMFLOAT4>());
 				}
 			}
 		}

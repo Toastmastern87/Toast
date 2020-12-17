@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d11.h>
+#include <d3d11shadertracing.h>
 #include <wrl.h>
 #include <string>
 
@@ -25,13 +26,14 @@ namespace Toast {
 	class Texture2D
 	{
 	public:
-		Texture2D(uint32_t width, uint32_t height, uint32_t slot);
-		Texture2D(const std::string& path, uint32_t slot);
+		Texture2D(uint32_t width, uint32_t height, uint32_t slot, D3D11_SHADER_TYPE shaderType);
+		Texture2D(const std::string& path, uint32_t slot, D3D11_SHADER_TYPE shaderType);
 		~Texture2D();
 
 		uint32_t GetWidth() const { return mWidth; }
 		uint32_t GetHeight() const { return mHeight; }
 		uint32_t GetBindPoint() const { return mShaderSlot; }
+		D3D11_SHADER_TYPE GetShaderType() const { return mShaderType; }
 		std::string GetPath() const { return mPath; }
 		void* GetID() const { return (void*)mView.Get(); }
 
@@ -49,6 +51,7 @@ namespace Toast {
 	private:
 		std::string mPath;
 		uint32_t mWidth, mHeight, mShaderSlot;
+		D3D11_SHADER_TYPE mShaderType;
 
 		Microsoft::WRL::ComPtr<ID3D11Resource> mResource;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mView;

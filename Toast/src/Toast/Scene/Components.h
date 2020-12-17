@@ -54,14 +54,33 @@ namespace Toast {
 
 	struct PlanetComponent
 	{
-		std::vector<float> DistanceLUT;
+		struct MorphGPUData 
+		{
+			DirectX::XMFLOAT4 DistanceLUT[24];
+			DirectX::XMFLOAT4 morphRange = { 0.5f, 0.5f, 0.5f, 0.5f };
+		};
+
+		struct PlanetGPUData
+		{
+			DirectX::XMFLOAT4 radius = { 3389.5f, 3389.5f, 3389.5f, 3389.5f };
+			DirectX::XMFLOAT4 minAltitude = { -8.2f, -8.2f, -8.2f, -8.2f };
+			DirectX::XMFLOAT4 maxAltitude = { 21.2f, 21.2f, 21.2f, 21.2f };
+		};
+
+		std::vector<float> FaceLevelDotLUT;
 		int16_t Subdivisions = 0;
 		int16_t PatchLevels = 1;
 
+		MorphGPUData MorphData;
+		PlanetGPUData PlanetData;
+
 		PlanetComponent() = default;
-		PlanetComponent(int16_t subdivisions, int16_t patchLevels)
+		PlanetComponent(int16_t subdivisions, int16_t patchLevels, DirectX::XMFLOAT4 maxAltitude, DirectX::XMFLOAT4 minAltitude, DirectX::XMFLOAT4 radius)
 			: Subdivisions(subdivisions), PatchLevels(patchLevels)
 		{
+			PlanetData.maxAltitude = maxAltitude;
+			PlanetData.minAltitude = minAltitude;
+			PlanetData.radius = radius;
 		}
 		PlanetComponent(const PlanetComponent& other) = default;
 	};
