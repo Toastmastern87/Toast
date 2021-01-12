@@ -45,13 +45,15 @@ namespace Toast {
 		sd.Windowed = TRUE;
 		sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
+		D3D_FEATURE_LEVEL featureLevels = { D3D_FEATURE_LEVEL_11_1 };
+
 		UINT createDeviceFlags = 0;
 
 #ifdef TOAST_DEBUG
 		createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-		HRESULT result = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, nullptr, 0, D3D11_SDK_VERSION, &sd, &mSwapChain, &mDevice, nullptr, &mDeviceContext);
+		HRESULT result = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, &featureLevels, 1, D3D11_SDK_VERSION, &sd, &mSwapChain, &mDevice, nullptr, &mDeviceContext);
 
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create DirectX device and swapchain");
 
@@ -85,6 +87,11 @@ namespace Toast {
 	void RendererAPI::Draw(uint32_t count)
 	{
 		mDeviceContext->Draw(count, 0);
+	}
+
+	void RendererAPI::DispatchCompute(uint32_t x, uint32_t y, uint32_t z)
+	{
+		mDeviceContext->Dispatch(x, y, z);
 	}
 
 	void RendererAPI::SwapBuffers(bool vSync)

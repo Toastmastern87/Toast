@@ -10,7 +10,11 @@
 
 namespace Toast {
 
-	Texture2D::Texture2D(uint32_t width, uint32_t height, uint32_t slot, D3D11_SHADER_TYPE shaderType)
+	////////////////////////////////////////////////////////////////////////////////////////  
+	//     TEXTURE2D     ///////////////////////////////////////////////////////////////////  
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	Texture2D::Texture2D(uint32_t width, uint32_t height, uint32_t slot, D3D11_SHADER_TYPE shaderType, DXGI_FORMAT format)
 		: mWidth(width), mHeight(height), mShaderSlot(slot), mShaderType(shaderType)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -25,13 +29,11 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
 
-		CreateSampler();
-
 		textureDesc.ArraySize = 1;
 		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 		textureDesc.Usage = D3D11_USAGE_DYNAMIC;
 		textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		textureDesc.Format = format;
 		textureDesc.Height = mHeight;
 		textureDesc.Width = mWidth;
 		textureDesc.MipLevels = 1;
@@ -48,7 +50,7 @@ namespace Toast {
 		mView->GetResource(&mResource);
 	}
 
-	Texture2D::Texture2D(const std::string& path, uint32_t slot, D3D11_SHADER_TYPE shaderType)
+	Texture2D::Texture2D(const std::string& path, uint32_t slot, D3D11_SHADER_TYPE shaderType, DXGI_FORMAT format)
 		: mPath(path), mShaderSlot(slot), mShaderType(shaderType)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -59,8 +61,6 @@ namespace Toast {
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
-
-		CreateSampler();
 
 		std::wstring stemp = std::wstring(mPath.begin(), mPath.end());
 
@@ -80,27 +80,27 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 	}
 
-	void Texture2D::CreateSampler()
+	void Texture2D::CreateSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode)
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
 
-		D3D11_SAMPLER_DESC samplerDesc;
-		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-		samplerDesc.MipLODBias = 0.0f;
-		samplerDesc.MaxAnisotropy = 1;
-		samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
-		samplerDesc.BorderColor[0] = 0;
-		samplerDesc.BorderColor[1] = 0;
-		samplerDesc.BorderColor[2] = 0;
-		samplerDesc.BorderColor[3] = 0;
-		samplerDesc.MinLOD = 0;
-		samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		D3D11_SAMPLER_DESC desc;
+		desc.Filter = filter;
+		desc.AddressU = addressMode;
+		desc.AddressV = addressMode;
+		desc.AddressW = addressMode;
+		desc.MipLODBias = 0.0f;
+		desc.MaxAnisotropy = 1;
+		desc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+		desc.BorderColor[0] = 0;
+		desc.BorderColor[1] = 0;
+		desc.BorderColor[2] = 0;
+		desc.BorderColor[3] = 0;
+		desc.MinLOD = 0;
+		desc.MaxLOD = D3D11_FLOAT32_MAX;
 
-		device->CreateSamplerState(&samplerDesc, &mSamplerState);
+		device->CreateSamplerState(&desc, &mSamplerState);
 	}
 
 	void Texture2D::SetData(void* data, uint32_t size)
@@ -141,6 +141,210 @@ namespace Toast {
 
 			break;
 		}
+		case D3D11_COMPUTE_SHADER:
+		{
+			deviceContext->CSSetSamplers(0, 1, mSamplerState.GetAddressOf());
+			deviceContext->CSSetShaderResources(mShaderSlot, 1, mView.GetAddressOf());
+
+			break;
+		}
 		}
 	}
+
+	////////////////////////////////////////////////////////////////////////////////////////  
+	//     TEXTURECUBE   ///////////////////////////////////////////////////////////////////  
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	TextureCube::TextureCube(uint32_t width, uint32_t height, uint32_t slot, D3D11_SHADER_TYPE shaderType, uint32_t levels)
+		: mWidth(width), mHeight(height), mShaderSlot(slot), mShaderType(shaderType)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		HRESULT result;
+		D3D11_TEXTURE2D_DESC textureDesc;
+
+		mLevels = (levels > 0) ? levels : CalculateMipMapCount(width);
+
+		size_t dataSize = mWidth * mHeight * sizeof(uint32_t);
+		uint32_t initData = NULL;
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+		textureDesc.Width = mWidth;
+		textureDesc.Height = mHeight;
+		textureDesc.MipLevels = levels;
+		textureDesc.ArraySize = 6;
+		textureDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+		textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.Usage = D3D11_USAGE_DEFAULT;
+		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+		textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+		if (levels == 0) {
+			textureDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+			textureDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+		}
+
+		result = device->CreateTexture2D(&textureDesc, NULL, &mTexture);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
+
+		CreateSRV();
+
+		mSRV->GetResource(&mResource);
+	}
+
+	TextureCube::~TextureCube()
+	{
+
+	}
+
+	uint32_t TextureCube::CalculateMipMapCount(uint32_t cubemapSize)
+	{
+		uint32_t levels = 1;
+		auto mipSize = cubemapSize >> 1;
+		while (mipSize >= 1)
+		{
+			mipSize >>= 1;
+			++levels;
+		}
+
+		return levels;
+	}
+
+	void TextureCube::SetData(void* data, uint32_t size)
+	{
+
+	}
+
+	void TextureCube::BindForSampling() const
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		switch (mShaderType)
+		{
+		case D3D11_VERTEX_SHADER:
+		{
+			deviceContext->VSSetSamplers(0, 1, mSamplerState.GetAddressOf());
+			deviceContext->VSSetShaderResources(mShaderSlot, 1, mSRV.GetAddressOf());
+
+			break;
+		}
+		case D3D11_PIXEL_SHADER:
+		{
+			deviceContext->PSSetSamplers(0, 1, mSamplerState.GetAddressOf());
+			deviceContext->PSSetShaderResources(mShaderSlot, 1, mSRV.GetAddressOf());
+
+			break;
+		}
+		case D3D11_COMPUTE_SHADER:
+		{
+			deviceContext->CSSetSamplers(0, 1, mSamplerState.GetAddressOf());
+			deviceContext->CSSetShaderResources(mShaderSlot, 1, mSRV.GetAddressOf());
+
+			break;
+		}
+		}
+	}
+
+	void TextureCube::BindForReadWrite() const
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		switch (mShaderType)
+		{
+		case D3D11_COMPUTE_SHADER:
+		{
+			deviceContext->CSSetUnorderedAccessViews(0, 1, mUAV.GetAddressOf(), nullptr);
+
+			break;
+		}
+		}
+	}
+
+	void TextureCube::UnbindUAV() const
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		switch (mShaderType)
+		{
+		case D3D11_COMPUTE_SHADER:
+			deviceContext->CSSetUnorderedAccessViews(0, 1, mNullUAV.GetAddressOf(), nullptr);
+		}
+	}
+
+	void TextureCube::CreateSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode)
+	{
+		HRESULT result;
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_SAMPLER_DESC desc;
+		desc.Filter = filter;
+		desc.AddressU = addressMode;
+		desc.AddressV = addressMode;
+		desc.AddressW = addressMode;
+		desc.MaxAnisotropy = (filter == D3D11_FILTER_ANISOTROPIC) ? D3D11_REQ_MAXANISOTROPY : 1;
+		desc.MipLODBias = 0.0f;
+		desc.MinLOD = 0;
+		desc.MaxLOD = D3D11_FLOAT32_MAX;
+
+		result = device->CreateSamplerState(&desc, &mSamplerState);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the sampler!");
+	}
+
+	void TextureCube::CreateSRV()
+	{
+		HRESULT result;
+
+		D3D11_TEXTURE2D_DESC desc;
+		mTexture->GetDesc(&desc);
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
+		shaderResourceViewDesc.Format = desc.Format;
+		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+		shaderResourceViewDesc.Texture2DArray.MipLevels = -1;
+		shaderResourceViewDesc.Texture2DArray.MostDetailedMip = 0;
+
+		result = device->CreateShaderResourceView(mTexture.Get(), &shaderResourceViewDesc, &mSRV);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the SRV!");
+	}
+
+	void TextureCube::CreateUAV(uint32_t mipSlice)
+	{
+		HRESULT result;
+
+		D3D11_TEXTURE2D_DESC desc;
+		mTexture->GetDesc(&desc);
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
+		uavDesc.Format = desc.Format;
+		uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
+		uavDesc.Texture2DArray.MipSlice = mipSlice;
+		uavDesc.Texture2DArray.FirstArraySlice = 0;
+		uavDesc.Texture2DArray.ArraySize = 6;
+
+		result = device->CreateUnorderedAccessView(mTexture.Get(), &uavDesc, &mUAV);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the UAV!");
+	}
+
+	void TextureCube::GenerateMips()
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->GenerateMips(mSRV.Get());
+	}
+
 }

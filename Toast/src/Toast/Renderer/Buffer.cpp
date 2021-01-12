@@ -271,7 +271,7 @@ namespace Toast {
 	//     CONSTANTBUFFER     //////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	ConstantBuffer::ConstantBuffer(const std::string name, const uint32_t size, const D3D11_SHADER_TYPE shaderType, const uint32_t bindPoint)
+	ConstantBuffer::ConstantBuffer(const std::string name, const uint32_t size, const D3D11_SHADER_TYPE shaderType, const uint32_t bindPoint, D3D11_USAGE usage)
 		: mName(name), mSize(size), mShaderType(shaderType), mBindPoint(bindPoint)
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
@@ -279,9 +279,9 @@ namespace Toast {
 
 		D3D11_BUFFER_DESC bufferDesc;
 		bufferDesc.ByteWidth = size;
-		bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		bufferDesc.Usage = usage;
 		bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		bufferDesc.CPUAccessFlags = (usage == D3D11_USAGE_DYNAMIC) ? D3D11_CPU_ACCESS_WRITE : NULL;
 		bufferDesc.MiscFlags = 0;
 		bufferDesc.StructureByteStride = 0;
 		
@@ -300,6 +300,9 @@ namespace Toast {
 			break;
 		case D3D11_PIXEL_SHADER:
 			deviceContext->PSSetConstantBuffers(mBindPoint, 1, mBuffer.GetAddressOf());
+			break;
+		case D3D11_COMPUTE_SHADER:
+			deviceContext->CSSetConstantBuffers(mBindPoint, 1, mBuffer.GetAddressOf());
 			break;
 		}
 	}

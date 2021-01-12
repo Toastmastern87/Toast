@@ -37,6 +37,11 @@ namespace Toast {
 			sRendererAPI->Draw(count);
 		}
 
+		static void DispatchCompute(uint32_t x, uint32_t y, uint32_t z)
+		{
+			sRendererAPI->DispatchCompute(x, y, z);
+		}
+
 		static void SwapBuffers(bool vSync)
 		{
 			sRendererAPI->SwapBuffers(vSync);

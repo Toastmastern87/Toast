@@ -118,7 +118,7 @@ namespace Toast {
 	class ConstantBuffer
 	{
 	public:
-		ConstantBuffer(const std::string name, const uint32_t size, const D3D11_SHADER_TYPE shaderType, const uint32_t bindPoint);
+		ConstantBuffer(const std::string name, const uint32_t size, const D3D11_SHADER_TYPE shaderType, const uint32_t bindPoint, D3D11_USAGE usage = D3D11_USAGE_DYNAMIC);
 		virtual ~ConstantBuffer() = default;
 
 		virtual void Bind() const;

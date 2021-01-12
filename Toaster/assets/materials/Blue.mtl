@@ -4,4 +4,4 @@ Textures:
   - Name: albedo
     Path: C:\dev\Toast\Toaster\assets\textures\Blue.png
     BindSlot: 0
-    ShaderType: 1
+    ShaderType: 5
