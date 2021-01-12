@@ -47,6 +47,7 @@ namespace Toast {
 	void Material::SetTexture(std::string name, Ref<Texture2D>& texture)
 	{
 		mTextures[name] = texture;
+		//mTextures[name]->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 		mDirty = true;
 	}
 
@@ -59,6 +60,7 @@ namespace Toast {
 		for (auto& textureResource : textureResources)
 		{
 			Ref<Texture2D> defaultTexture = CreateRef<Texture2D>(1, 1, textureResource.second.BindPoint, textureResource.second.ShaderType);
+			defaultTexture->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 			uint32_t defaultTextureData = 0xffffffff;
 			defaultTexture->SetData(&defaultTextureData, sizeof(uint32_t));
 

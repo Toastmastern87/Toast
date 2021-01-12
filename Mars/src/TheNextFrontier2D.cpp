@@ -11,7 +11,7 @@ void TheNextFrontier2D::OnAttach()
 {
 	TOAST_PROFILE_FUNCTION();
 
-	mCheckerboardTexture = Toast::Texture2D::Create("assets/textures/Checkerboard.png", 1);
+	//mCheckerboardTexture = Toast::Texture2D::Create("assets/textures/Checkerboard.png", 1);
 }
 
 void TheNextFrontier2D::OnDetach()

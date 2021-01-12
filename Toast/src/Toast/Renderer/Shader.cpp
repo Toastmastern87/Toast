@@ -18,6 +18,8 @@ namespace Toast {
 			return D3D11_VERTEX_SHADER;
 		if (type == "pixel" || type == "fragment")
 			return D3D11_PIXEL_SHADER;
+		if (type == "compute")
+			return D3D11_COMPUTE_SHADER;
 
 		TOAST_CORE_ASSERT(false, "Unknown shader type!", type);
 
@@ -29,11 +31,14 @@ namespace Toast {
 		static std::string returnStr = "";
 		static std::string vertexVersion = "vs_5_0";
 		static std::string pixelVersion = "ps_5_0";
+		static std::string computeVersion = "cs_5_0";
 
 		if (type == D3D11_VERTEX_SHADER)
 			return vertexVersion;
 		if (type == D3D11_PIXEL_SHADER)
 			return pixelVersion;
+		if (type == D3D11_COMPUTE_SHADER)
+			return computeVersion;
 
 		TOAST_CORE_ASSERT(false, "Unknown shader type!", type);
 
@@ -49,10 +54,18 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		Microsoft::WRL::ComPtr<ID3D11Device> device = API->GetDevice();
 
+		// Finds the shader name
+		auto lastSlash = filepath.find_last_of("/\\");
+		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
+		auto lastDot = filepath.rfind('.');
+		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
+		mName = filepath.substr(lastSlash, count);
+
 		std::string source = ReadFile(filepath);
 		auto shaderSources = PreProcess(source);
 		Compile(shaderSources);
-		ProcessInputLayout(source);
+		if (mRawBlobs.find(D3D11_VERTEX_SHADER) != mRawBlobs.end())
+			ProcessInputLayout(source);
 		ProcessConstantBuffers();
 		ProcessTextureResources();
 
@@ -67,15 +80,12 @@ namespace Toast {
 				result = device->CreatePixelShader(kv.second->GetBufferPointer(), kv.second->GetBufferSize(), NULL, &mPixelShader);
 				TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create pixel shader: {0}", filepath);
 				break;
+			case D3D11_COMPUTE_SHADER:
+				result = device->CreateComputeShader(kv.second->GetBufferPointer(), kv.second->GetBufferSize(), NULL, &mComputeShader);
+				TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create compute shader: {0}", filepath);
+				break;
 			}
 		}
-
-		// Finds the shader name
-		auto lastSlash = filepath.find_last_of("/\\");
-		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
-		auto lastDot = filepath.rfind('.');
-		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
-		mName = filepath.substr(lastSlash, count);
 	}
 
 	Shader::~Shader()
@@ -299,39 +309,66 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
 
-		D3DReflect(mRawBlobs.at(D3D11_VERTEX_SHADER)->GetBufferPointer(), mRawBlobs.at(D3D11_VERTEX_SHADER)->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
-
-		reflector->GetDesc(&shaderDesc);
-
-		for (uint32_t i = 0; i < shaderDesc.BoundResources; i++)
+		if (mRawBlobs.find(D3D11_VERTEX_SHADER) != mRawBlobs.end())
 		{
-			D3D11_SHADER_INPUT_BIND_DESC textureDesc;
+			D3DReflect(mRawBlobs.at(D3D11_VERTEX_SHADER)->GetBufferPointer(), mRawBlobs.at(D3D11_VERTEX_SHADER)->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
 
-			reflector->GetResourceBindingDesc(i, &textureDesc);
+			reflector->GetDesc(&shaderDesc);
 
-			if (textureDesc.Type == D3D_SIT_TEXTURE)
+			for (uint32_t i = 0; i < shaderDesc.BoundResources; i++)
 			{
-				textureResourceDesc.BindPoint = textureDesc.BindPoint;
-				textureResourceDesc.ShaderType = D3D11_VERTEX_SHADER;
-				mTextureResources[textureDesc.Name] = textureResourceDesc;
+				D3D11_SHADER_INPUT_BIND_DESC textureDesc;
+
+				reflector->GetResourceBindingDesc(i, &textureDesc);
+
+				if (textureDesc.Type == D3D_SIT_TEXTURE)
+				{
+					textureResourceDesc.BindPoint = textureDesc.BindPoint;
+					textureResourceDesc.ShaderType = D3D11_VERTEX_SHADER;
+					mTextureResources[textureDesc.Name] = textureResourceDesc;
+				}
 			}
 		}
 
-		D3DReflect(mRawBlobs.at(D3D11_PIXEL_SHADER)->GetBufferPointer(), mRawBlobs.at(D3D11_PIXEL_SHADER)->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
-
-		reflector->GetDesc(&shaderDesc);
-
-		for (uint32_t i = 0; i < shaderDesc.BoundResources; i++)
+		if (mRawBlobs.find(D3D11_PIXEL_SHADER) != mRawBlobs.end())
 		{
-			D3D11_SHADER_INPUT_BIND_DESC textureDesc;
+			D3DReflect(mRawBlobs.at(D3D11_PIXEL_SHADER)->GetBufferPointer(), mRawBlobs.at(D3D11_PIXEL_SHADER)->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
 
-			reflector->GetResourceBindingDesc(i, &textureDesc);
+			reflector->GetDesc(&shaderDesc);
 
-			if (textureDesc.Type == D3D_SIT_TEXTURE) 
+			for (uint32_t i = 0; i < shaderDesc.BoundResources; i++)
 			{
-				textureResourceDesc.BindPoint = textureDesc.BindPoint;
-				textureResourceDesc.ShaderType = D3D11_PIXEL_SHADER;
-				mTextureResources[textureDesc.Name] = textureResourceDesc;
+				D3D11_SHADER_INPUT_BIND_DESC textureDesc;
+
+				reflector->GetResourceBindingDesc(i, &textureDesc);
+
+				if (textureDesc.Type == D3D_SIT_TEXTURE)
+				{
+					textureResourceDesc.BindPoint = textureDesc.BindPoint;
+					textureResourceDesc.ShaderType = D3D11_PIXEL_SHADER;
+					mTextureResources[textureDesc.Name] = textureResourceDesc;
+				}
+			}
+		}
+
+		if (mRawBlobs.find(D3D11_COMPUTE_SHADER) != mRawBlobs.end()) 
+		{
+			D3DReflect(mRawBlobs.at(D3D11_COMPUTE_SHADER)->GetBufferPointer(), mRawBlobs.at(D3D11_COMPUTE_SHADER)->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
+
+			reflector->GetDesc(&shaderDesc);
+
+			for (uint32_t i = 0; i < shaderDesc.BoundResources; i++)
+			{
+				D3D11_SHADER_INPUT_BIND_DESC textureDesc;
+
+				reflector->GetResourceBindingDesc(i, &textureDesc);
+
+				if (textureDesc.Type == D3D_SIT_TEXTURE)
+				{
+					textureResourceDesc.BindPoint = textureDesc.BindPoint;
+					textureResourceDesc.ShaderType = D3D11_COMPUTE_SHADER;
+					mTextureResources[textureDesc.Name] = textureResourceDesc;
+				}
 			}
 		}
 
@@ -344,7 +381,8 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		mLayout->Bind();
+		if (mRawBlobs.find(D3D11_VERTEX_SHADER) != mRawBlobs.end())
+			mLayout->Bind();
 
 		for (auto& kv : mRawBlobs)
 		{
@@ -355,6 +393,9 @@ namespace Toast {
 				break;
 			case D3D11_PIXEL_SHADER:
 				deviceContext->PSSetShader(mPixelShader.Get(), nullptr, 0);
+				break;
+			case D3D11_COMPUTE_SHADER:
+				deviceContext->CSSetShader(mComputeShader.Get(), nullptr, 0);
 				break;
 			}
 		}
@@ -376,6 +417,9 @@ namespace Toast {
 				break;
 			case D3D11_PIXEL_SHADER:
 				deviceContext->PSSetShader(nullptr, 0, 0);
+				break;
+			case D3D11_COMPUTE_SHADER:
+				deviceContext->CSSetShader(nullptr, 0, 0);
 				break;
 			}
 		}

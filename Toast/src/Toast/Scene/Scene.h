@@ -3,6 +3,7 @@
 #include "entt.hpp"
 #include "Toast/Core/Timestep.h"
 #include "Toast/Renderer/PerspectiveCamera.h"
+#include "Toast/Renderer/SceneEnvironment.h"
 
 namespace Toast {
 
@@ -42,6 +43,7 @@ namespace Toast {
 	private:
 		entt::registry mRegistry;
 		uint32_t mViewportWidth = 0, mViewportHeight = 0;
+		Ref<Environment> mSceneEnvironment;
 
 		Settings mSettings;
 		Stats mStats;

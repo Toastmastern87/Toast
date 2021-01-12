@@ -107,6 +107,87 @@ namespace Toast {
 		}
 	}
 
+	static Ref<Shader> equirectangularConversionShader, envFilteringShader, envIrradianceShader;
+
+	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::CreateEnvironmentMap(const std::string& filepath)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		const uint32_t cubemapSize = 2048;
+		const uint32_t irradianceMapSize = 32;
+
+		Ref<ConstantBuffer> specularMapFilterSettingsCB = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, D3D11_COMPUTE_SHADER, 0, D3D11_USAGE_DEFAULT);
+
+		Ref<Texture2D> starMap = CreateRef<Texture2D>(filepath, 0, D3D11_COMPUTE_SHADER, DXGI_FORMAT_R32G32B32A32_FLOAT);
+		starMap->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
+		Ref<TextureCube> envMapUnfiltered = CreateRef<TextureCube>(cubemapSize, cubemapSize, 0, D3D11_COMPUTE_SHADER);
+		envMapUnfiltered->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
+		Ref<TextureCube> envMapFiltered = CreateRef<TextureCube>(cubemapSize, cubemapSize, 0, D3D11_COMPUTE_SHADER);
+		envMapFiltered->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
+
+		envMapUnfiltered->CreateUAV(0);
+
+		if (!equirectangularConversionShader)
+			equirectangularConversionShader = CreateRef<Shader>("assets/shaders/EquirectangularToCubeMap.hlsl");
+
+		equirectangularConversionShader->Bind();
+		starMap->Bind();
+		envMapUnfiltered->BindForReadWrite();
+		RenderCommand::DispatchCompute(cubemapSize / 32, cubemapSize / 32, 6);
+		envMapUnfiltered->UnbindUAV();
+
+		envMapUnfiltered->GenerateMips();
+
+		for (int arraySlice = 0; arraySlice < 6; ++arraySlice) {
+			const uint32_t subresourceIndex = D3D11CalcSubresource(0, arraySlice, envMapFiltered->GetMipLevelCount());
+			deviceContext->CopySubresourceRegion(envMapFiltered->GetResource(), subresourceIndex, 0, 0, 0, envMapUnfiltered->GetResource(), subresourceIndex, nullptr);
+		}
+
+		struct SpecularMapFilterSettingsCB
+		{
+			float roughness;
+			float padding[3];
+		};
+
+		if (!envFilteringShader)
+			envFilteringShader = CreateRef<Shader>("assets/shaders/EnvironmentMipFilter.hlsl");
+
+		envFilteringShader->Bind();
+		envMapUnfiltered->BindForSampling();
+
+		// Pre-filter rest of the mip chain.
+		const float deltaRoughness = 1.0f / std::max(float(envMapFiltered->GetMipLevelCount() - 1.0f), 1.0f);
+		for (int level = 1, size = cubemapSize / 2; level < envMapFiltered->GetMipLevelCount(); ++level, size /= 2) {
+			const int numGroups = std::max(1, size / 32);
+
+			envMapFiltered->CreateUAV(level);
+			
+			const SpecularMapFilterSettingsCB spmapConstants = { level * deltaRoughness };
+			deviceContext->UpdateSubresource(specularMapFilterSettingsCB->GetBuffer(), 0, nullptr, &spmapConstants, 0, 0);
+
+			specularMapFilterSettingsCB->Bind();
+			envMapFiltered->BindForReadWrite();
+			RenderCommand::DispatchCompute(numGroups, numGroups, 6);
+		}
+		envMapFiltered->UnbindUAV();
+
+		Ref<TextureCube> irradianceMap = CreateRef<TextureCube>(irradianceMapSize, irradianceMapSize, 0, D3D11_COMPUTE_SHADER, 1);
+
+		if (!envIrradianceShader)
+			envIrradianceShader = CreateRef<Shader>("assets/shaders/EnvironmentIrradiance.hlsl");
+
+		irradianceMap->CreateUAV(0);
+
+		envMapFiltered->BindForSampling();
+		irradianceMap->BindForReadWrite();
+		envIrradianceShader->Bind();
+		RenderCommand::DispatchCompute(irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6);
+		irradianceMap->UnbindUAV();
+
+		return { envMapFiltered, irradianceMap };
+	}
+
 	void Renderer::ResetStats()
 	{
 		memset(&sData.Stats, 0, sizeof(Statistics));

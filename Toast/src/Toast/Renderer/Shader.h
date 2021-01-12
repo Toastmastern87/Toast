@@ -53,6 +53,7 @@ namespace Toast {
 
 		Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader;
 		Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader;
+		Microsoft::WRL::ComPtr<ID3D11ComputeShader> mComputeShader;
 		std::unordered_map<D3D11_SHADER_TYPE, ID3D10Blob*> mRawBlobs;
 
 		std::unordered_map<std::string, Texture2DDesc> mTextureResources;

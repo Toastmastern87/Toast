@@ -13,6 +13,8 @@ namespace Toast {
 
 	Scene::Scene()
 	{
+		mSceneEnvironment->Load("assets/textures/Starmap.png");
+		
 	}
 
 	Scene::~Scene()
