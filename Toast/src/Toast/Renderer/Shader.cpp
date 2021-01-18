@@ -302,7 +302,7 @@ namespace Toast {
 
 	void Shader::ProcessTextureResources()
 	{
-		Texture2DDesc textureResourceDesc;
+		TextureDesc textureResourceDesc;
 		Microsoft::WRL::ComPtr<ID3D11ShaderReflection> reflector;
 		D3D11_SHADER_DESC shaderDesc;
 
@@ -325,6 +325,7 @@ namespace Toast {
 				{
 					textureResourceDesc.BindPoint = textureDesc.BindPoint;
 					textureResourceDesc.ShaderType = D3D11_VERTEX_SHADER;
+					textureResourceDesc.Dimension = textureDesc.Dimension;
 					mTextureResources[textureDesc.Name] = textureResourceDesc;
 				}
 			}
@@ -346,6 +347,7 @@ namespace Toast {
 				{
 					textureResourceDesc.BindPoint = textureDesc.BindPoint;
 					textureResourceDesc.ShaderType = D3D11_PIXEL_SHADER;
+					textureResourceDesc.Dimension = textureDesc.Dimension;
 					mTextureResources[textureDesc.Name] = textureResourceDesc;
 				}
 			}
@@ -367,6 +369,7 @@ namespace Toast {
 				{
 					textureResourceDesc.BindPoint = textureDesc.BindPoint;
 					textureResourceDesc.ShaderType = D3D11_COMPUTE_SHADER;
+					textureResourceDesc.Dimension = textureDesc.Dimension;
 					mTextureResources[textureDesc.Name] = textureResourceDesc;
 				}
 			}

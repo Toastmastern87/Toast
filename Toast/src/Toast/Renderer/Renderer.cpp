@@ -61,6 +61,37 @@ namespace Toast {
 		//RenderCommand::DrawIndexed(indexBuffer);
 	}
 
+	//Todo should be integrated into SubmitMesh later on
+	void Renderer::SubmitSkybox(const Ref<Mesh> skybox, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMMATRIX& projectionMatrix)
+	{
+		if (skybox->mVertexBuffer) skybox->mVertexBuffer->Bind();
+		if (skybox->mIndexBuffer) skybox->mIndexBuffer->Bind();
+
+		struct EnvironmentCB
+		{
+			float strength[4];
+		};
+
+		struct SkyboxCB
+		{
+			DirectX::XMMATRIX viewMatrix;
+			DirectX::XMMATRIX projectionMatrix;
+		};
+
+		const SkyboxCB skyboxTransforms = { viewMatrix,  projectionMatrix };
+		const EnvironmentCB environmentConstants = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+		skybox->mMaterial->SetData("SkyboxTransforms", (void*)&skyboxTransforms);
+		skybox->mMaterial->SetData("Environment", (void*)&environmentConstants);
+		skybox->mMaterial->Bind();
+
+		RenderCommand::DisableWireframeRendering();
+		RenderCommand::SetPrimitiveTopology(skybox->mTopology);
+
+		for (Submesh& submesh : skybox->mSubmeshes)
+			RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+	}
+
 	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
 	{
 		if (mesh->mVertexBuffer) mesh->mVertexBuffer->Bind();

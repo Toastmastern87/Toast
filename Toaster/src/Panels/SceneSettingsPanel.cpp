@@ -16,7 +16,7 @@ namespace Toast {
 
 	void SceneSettingsPanel::OnImGuiRender()
 	{
-		ImGui::Begin("Scene Settings");
+		ImGui::Begin("Settings");
 
 		if(mContext)
 		{

@@ -28,6 +28,7 @@ namespace Toast {
 
 		Ref<Texture2D> GetTexture(std::string name) { return mTextures[name]; }
 		void SetTexture(std::string name, Ref<Texture2D>& texture);
+		void SetTexture(std::string name, Ref<TextureCube>& texture);
 		std::unordered_map<std::string, Ref<Texture2D>> GetTextures() const { return mTextures; }
 
 		Ref<ConstantBuffer> GetCBuffer(std::string name) { return mConstantBuffers[name]; }
@@ -42,6 +43,7 @@ namespace Toast {
 		Ref<Shader> mShader;
 
 		std::unordered_map<std::string, Ref<Texture2D>> mTextures;
+		std::unordered_map<std::string, Ref<TextureCube>> mTextureCubes;
 		std::unordered_map<std::string, Ref<ConstantBuffer>> mConstantBuffers;
 
 		std::string mName = "No name";

@@ -5,6 +5,7 @@
 #include "Toast/Renderer/Renderer2D.h"
 #include "Toast/Renderer/RendererDebug.h"
 #include "Toast/Renderer/Primitives.h"
+#include "Toast/Renderer/SceneEnvironment.h"
 
 #include "Toast/Scene/Entity.h"
 #include "Toast/Scene/Components.h"
@@ -13,13 +14,26 @@ namespace Toast {
 
 	Scene::Scene()
 	{
-		mSceneEnvironment->Load("assets/textures/Starmap.png");
-		
+		Init();
 	}
 
 	Scene::~Scene()
 	{
 
+	}
+
+	void Scene::Init()
+	{
+		mEnvironment = Environment::Load("assets/textures/Starmap.png");
+		Ref<Shader> skyboxShader = CreateRef<Shader>("assets/shaders/Skybox.hlsl");
+		mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader); 
+		mEnvironment.RadianceMap->SetShaderType(D3D11_PIXEL_SHADER);
+		mSkyboxMaterial->SetTexture("skybox", mEnvironment.RadianceMap);
+		mSkybox = CreateRef<Mesh>();
+		mSkybox->SetMaterial(mSkyboxMaterial);
+		uint32_t indexCount = Primitives::CreateCube(mSkybox->GetVertices(), mSkybox->GetIndices());
+		mSkybox->Init();
+		mSkybox->AddSubmesh(indexCount);
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)
@@ -225,6 +239,11 @@ namespace Toast {
 				{
 					auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
 				}
+			}
+
+			// Skybox!
+			{
+				Renderer::SubmitSkybox(mSkybox, perspectiveCamera->GetViewMatrix(), perspectiveCamera->GetProjection());
 			}
 
 			// Meshes!

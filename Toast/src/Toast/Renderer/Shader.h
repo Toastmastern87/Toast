@@ -20,10 +20,11 @@ namespace Toast {
 			D3D11_SHADER_TYPE ShaderType;
 		};
 
-		struct Texture2DDesc
+		struct TextureDesc
 		{
 			uint32_t BindPoint;
 			D3D11_SHADER_TYPE ShaderType;
+			D3D_SRV_DIMENSION Dimension;
 		};
 	public:
 		Shader(const std::string& filepath);
@@ -35,7 +36,7 @@ namespace Toast {
 		const std::string GetName() const { return mName; }
 
 		const ID3D10Blob* GetVSRaw() const { return mRawBlobs.at(D3D11_VERTEX_SHADER); }
-		const std::unordered_map<std::string, Texture2DDesc> GetTextureResources() const { return mTextureResources; }
+		const std::unordered_map<std::string, TextureDesc> GetTextureResources() const { return mTextureResources; }
 
 		const std::unordered_map<std::string, ConstantBufferDesc> GetCBufferResources() const { return mBufferResources; }
 	private:
@@ -56,7 +57,7 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11ComputeShader> mComputeShader;
 		std::unordered_map<D3D11_SHADER_TYPE, ID3D10Blob*> mRawBlobs;
 
-		std::unordered_map<std::string, Texture2DDesc> mTextureResources;
+		std::unordered_map<std::string, TextureDesc> mTextureResources;
 		std::unordered_map<std::string, ConstantBufferDesc> mBufferResources;
 	};
 

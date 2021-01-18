@@ -21,6 +21,7 @@ namespace Toast {
 		static void EndScene();
 
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<BufferLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
+		static void SubmitSkybox(const Ref<Mesh> skybox, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMMATRIX& projectionMatrix);
 		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false);
 		static void SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, PlanetComponent::PlanetGPUData planetData, PlanetComponent::MorphGPUData morphData, bool wireframe = false);
 
