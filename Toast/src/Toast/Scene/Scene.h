@@ -4,6 +4,8 @@
 #include "Toast/Core/Timestep.h"
 #include "Toast/Renderer/PerspectiveCamera.h"
 #include "Toast/Renderer/SceneEnvironment.h"
+#include "Toast/Renderer/Material.h"
+#include "Toast/Renderer/Mesh.h"
 
 namespace Toast {
 
@@ -14,6 +16,8 @@ namespace Toast {
 	public:
 		Scene();
 		~Scene();
+
+		void Init();
 
 		Entity CreateEntity(const std::string& name = std::string());
 		void DestroyEntity(Entity entity);
@@ -43,7 +47,9 @@ namespace Toast {
 	private:
 		entt::registry mRegistry;
 		uint32_t mViewportWidth = 0, mViewportHeight = 0;
-		Ref<Environment> mSceneEnvironment;
+		Environment mEnvironment;
+		Ref<Material> mSkyboxMaterial;
+		Ref<Mesh> mSkybox;
 
 		Settings mSettings;
 		Stats mStats;

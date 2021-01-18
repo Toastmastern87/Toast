@@ -47,24 +47,33 @@ namespace Toast {
 	void Material::SetTexture(std::string name, Ref<Texture2D>& texture)
 	{
 		mTextures[name] = texture;
-		//mTextures[name]->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
+		mTextures[name]->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
+		mDirty = true;
+	}
+
+	void Material::SetTexture(std::string name, Ref<TextureCube>& texture)
+	{
+		mTextureCubes[name] = texture;
+		//mTextureCubes[name]->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 		mDirty = true;
 	}
 
 	void Material::SetUpTextureBindings()
 	{
 		mTextures.clear();
-		std::unordered_map<std::string, Shader::Texture2DDesc> textureResources = mShader->GetTextureResources();
+		std::unordered_map<std::string, Shader::TextureDesc> textureResources = mShader->GetTextureResources();
 
 		// Set up Textures in the material, fill it with white textures at start as default textures
 		for (auto& textureResource : textureResources)
 		{
-			Ref<Texture2D> defaultTexture = CreateRef<Texture2D>(1, 1, textureResource.second.BindPoint, textureResource.second.ShaderType);
-			defaultTexture->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
-			uint32_t defaultTextureData = 0xffffffff;
-			defaultTexture->SetData(&defaultTextureData, sizeof(uint32_t));
-
-			mTextures[textureResource.first] = defaultTexture;
+			if (textureResource.second.Dimension == D3D11_SRV_DIMENSION_TEXTURE2D) 
+			{
+				Ref<Texture2D> defaultTexture = CreateRef<Texture2D>(1, 1, textureResource.second.BindPoint, textureResource.second.ShaderType);
+				defaultTexture->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
+				uint32_t defaultTextureData = 0xffffffff;
+				defaultTexture->SetData(&defaultTextureData, sizeof(uint32_t));
+				mTextures[textureResource.first] = defaultTexture;
+			}
 		}
 
 		if (mTextures.size() > 0)
@@ -86,6 +95,9 @@ namespace Toast {
 
 		for (auto& texture : mTextures) 
 			texture.second->Bind();
+
+		for (auto& texture : mTextureCubes) 
+			texture.second->BindForSampling();
 
 		for (auto& cbuffer : mConstantBuffers)
 			cbuffer.second->Bind();

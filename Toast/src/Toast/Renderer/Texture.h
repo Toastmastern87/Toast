@@ -69,6 +69,7 @@ namespace Toast {
 		uint32_t GetMipLevelCount() const { return mLevels; }
 		ID3D11Resource* GetResource() const { return mResource.Get(); }
 		D3D11_SHADER_TYPE GetShaderType() const { return mShaderType; }
+		void SetShaderType(D3D11_SHADER_TYPE type) { mShaderType = type; }
 		std::string GetPath() const { return mPath; }
 		ID3D11ShaderResourceView* GetID() const { return mSRV.Get(); }
 

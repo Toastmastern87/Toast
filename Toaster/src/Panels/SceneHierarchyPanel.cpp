@@ -20,7 +20,7 @@ namespace Toast {
 
 	void SceneHierarchyPanel::OnImGuiRender()
 	{
-		ImGui::Begin("Scene Hierarchy");
+		ImGui::Begin("Hierarchy");
 
 		mContext->mRegistry.each([&](auto entityID)
 			{

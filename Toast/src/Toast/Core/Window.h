@@ -14,8 +14,8 @@ namespace Toast
 		uint32_t Height;
 
 		WindowProps(const std::string& title = "Toast Engine",
-					uint32_t width = 1920,
-					uint32_t height = 1200)
+					uint32_t width = 2560,
+					uint32_t height = 1440)
 			: Title(title), Width(width), Height(height)
 		{
 		}
