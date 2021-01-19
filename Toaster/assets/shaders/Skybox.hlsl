@@ -44,7 +44,9 @@ PixelInputType main(VertexInputType input)
 #type pixel
 cbuffer Environment : register(b0)
 {
-	float4 environmentStrength;
+	float environmentStrength;
+	float textureLOD;
+	float2 padding;
 }
 
 struct PixelInputType
@@ -58,7 +60,7 @@ SamplerState sampleType;
 
 float4 main(PixelInputType input) : SV_Target
 {
-	float3 skycolor = skybox.SampleLevel(sampleType, normalize(input.pos), 0).rgb * environmentStrength.x;
+	float3 skycolor = skybox.SampleLevel(sampleType, normalize(input.pos), textureLOD).rgb * environmentStrength;
 
-	return float4(skycolor, 1.0);
+	return float4(skycolor, 1.0f);
 }

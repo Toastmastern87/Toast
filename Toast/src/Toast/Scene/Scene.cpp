@@ -24,11 +24,9 @@ namespace Toast {
 
 	void Scene::Init()
 	{
-		mEnvironment = Environment::Load("assets/textures/Starmap.png");
+		// Initiate the skybox
 		Ref<Shader> skyboxShader = CreateRef<Shader>("assets/shaders/Skybox.hlsl");
 		mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader); 
-		mEnvironment.RadianceMap->SetShaderType(D3D11_PIXEL_SHADER);
-		mSkyboxMaterial->SetTexture("skybox", mEnvironment.RadianceMap);
 		mSkybox = CreateRef<Mesh>();
 		mSkybox->SetMaterial(mSkyboxMaterial);
 		uint32_t indexCount = Primitives::CreateCube(mSkybox->GetVertices(), mSkybox->GetIndices());
@@ -243,7 +241,8 @@ namespace Toast {
 
 			// Skybox!
 			{
-				Renderer::SubmitSkybox(mSkybox, perspectiveCamera->GetViewMatrix(), perspectiveCamera->GetProjection());
+				if(mSkyboxTexture)
+					Renderer::SubmitSkybox(mSkybox, perspectiveCamera->GetViewMatrix(), perspectiveCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
 			}
 
 			// Meshes!
@@ -354,6 +353,19 @@ namespace Toast {
 				cameraComponent.Camera.SetViewportSize(width, height);
 			}
 		}
+	}
+
+	void Scene::SetEnvironment(const Environment& environment)
+	{
+		mEnvironment = environment;
+		SetSkybox(environment.RadianceMap);
+	}
+
+	void Scene::SetSkybox(const Ref<TextureCube>& skybox)
+	{
+		skybox->SetShaderType(D3D11_PIXEL_SHADER);
+		mSkyboxTexture = skybox;
+		mSkyboxMaterial->SetTexture("skybox", mSkyboxTexture);
 	}
 
 	template<typename T>
