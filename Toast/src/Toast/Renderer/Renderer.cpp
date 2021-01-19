@@ -62,14 +62,16 @@ namespace Toast {
 	}
 
 	//Todo should be integrated into SubmitMesh later on
-	void Renderer::SubmitSkybox(const Ref<Mesh> skybox, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMMATRIX& projectionMatrix)
+	void Renderer::SubmitSkybox(const Ref<Mesh> skybox, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMMATRIX& projectionMatrix, float intensity, float LOD)
 	{
 		if (skybox->mVertexBuffer) skybox->mVertexBuffer->Bind();
 		if (skybox->mIndexBuffer) skybox->mIndexBuffer->Bind();
 
 		struct EnvironmentCB
 		{
-			float strength[4];
+			float intensity;
+			float LOD;
+			float padding[2];
 		};
 
 		struct SkyboxCB
@@ -79,7 +81,7 @@ namespace Toast {
 		};
 
 		const SkyboxCB skyboxTransforms = { viewMatrix,  projectionMatrix };
-		const EnvironmentCB environmentConstants = { 1.0f, 1.0f, 1.0f, 1.0f };
+		const EnvironmentCB environmentConstants = { intensity, LOD, 0.0f, 0.0f };
 
 		skybox->mMaterial->SetData("SkyboxTransforms", (void*)&skyboxTransforms);
 		skybox->mMaterial->SetData("Environment", (void*)&environmentConstants);

@@ -54,6 +54,7 @@ namespace Toast {
 
 		mSceneHierarchyPanel.SetContext(mActiveScene);
 		mSceneSettingsPanel.SetContext(mActiveScene);
+		mEnvironmentPanel.SetContext(mActiveScene);
 		mMaterialPanel.SetContext(MaterialLibrary::Get("Standard"));
 	}
 
@@ -214,6 +215,7 @@ namespace Toast {
 			mSceneSettingsPanel.OnImGuiRender();
 			mSceneHierarchyPanel.OnImGuiRender();
 			mMaterialPanel.OnImGuiRender();
+			mEnvironmentPanel.OnImGuiRender();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
 			ImGui::Begin("Viewport");
@@ -261,6 +263,7 @@ namespace Toast {
 		mActiveScene = CreateRef<Scene>();
 		mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		mSceneHierarchyPanel.SetContext(mActiveScene);
+		mEnvironmentPanel.SetContext(mActiveScene);
 	}
 
 	void EditorLayer::OpenScene()
@@ -272,6 +275,7 @@ namespace Toast {
 			mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			mSceneHierarchyPanel.SetContext(mActiveScene);
 			mSceneSettingsPanel.SetContext(mActiveScene);
+			mEnvironmentPanel.SetContext(mActiveScene);
 
 			std::filesystem::path path = filepath;
 			UpdateWindowTitle(path.filename().string());

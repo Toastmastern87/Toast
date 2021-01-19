@@ -29,6 +29,14 @@ namespace Toast {
 		void OnUpdateEditor(Timestep ts, const Ref<PerspectiveCamera> perspectiveCamera);
 		void OnViewportResize(uint32_t width, uint32_t height);
 
+		float& GetSkyboxLod() { return mSkyboxLod; }
+		float& GetEnvironmentIntensity() { return mEnvironmentIntensity; }
+
+		void SetEnvironment(const Environment& environment);
+		const Environment& GetEnvironment() const { return mEnvironment; }
+		void SetSkybox(const Ref<TextureCube>& skybox);
+
+
 		//Settings
 		struct Settings
 		{
@@ -47,8 +55,11 @@ namespace Toast {
 	private:
 		entt::registry mRegistry;
 		uint32_t mViewportWidth = 0, mViewportHeight = 0;
+
 		Environment mEnvironment;
 		Ref<Material> mSkyboxMaterial;
+		Ref<TextureCube> mSkyboxTexture = nullptr;
+		float mEnvironmentIntensity = 1.0f, mSkyboxLod = 0.0f;
 		Ref<Mesh> mSkybox;
 
 		Settings mSettings;
