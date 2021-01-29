@@ -14,6 +14,27 @@ namespace Toast {
 	class Material
 	{
 	public:
+		struct TextureBindInfo 
+		{
+			D3D11_SHADER_TYPE ShaderType	{ D3D11_VERTEX_SHADER };
+			uint32_t BindSlot				{ 0 };
+			Ref<Texture> Texture			{ nullptr };
+		};
+
+		struct SamplerBindInfo
+		{
+			D3D11_SHADER_TYPE ShaderType	{ D3D11_VERTEX_SHADER };
+			uint32_t BindSlot				{ 0 };
+			Ref<TextureSampler> Sampler		{ nullptr };
+		};
+
+		struct CBufferBindInfo
+		{
+			D3D11_SHADER_TYPE ShaderType	{ D3D11_VERTEX_SHADER };
+			uint32_t BindSlot				{ 0 };
+			Ref<ConstantBuffer> CBuffer		{ nullptr };
+		};
+	public:
 		Material() = default;
 		Material(const std::string& name, const Ref<Shader>& shader);
 		~Material() = default;
@@ -26,15 +47,13 @@ namespace Toast {
 		std::string& GetName() { return mName; }
 		void SetName(std::string& name) { mName = name; mDirty = true; }
 
-		Ref<Texture2D> GetTexture(std::string name) { return mTextures[name]; }
-		void SetTexture(std::string name, Ref<Texture2D>& texture);
-		void SetTexture(std::string name, Ref<TextureCube>& texture);
-		std::unordered_map<std::string, Ref<Texture2D>> GetTextures() const { return mTextures; }
+		std::vector<TextureBindInfo> GetTextureBindings() const { return mTextureBindings; }
 
-		Ref<ConstantBuffer> GetCBuffer(std::string name) { return mConstantBuffers[name]; }
+		void SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<Texture2D>& texture);
+		void SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureCube>& texture);
+		void SetTextureSampler(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureSampler>& sampler);
 
-		void SetUpTextureBindings();
-		void SetUpCBufferBindings();
+		void SetUpResourceBindings();
 		void Bind();
 
 		void SetDirty(bool dirty) { mDirty = dirty; }
@@ -42,9 +61,10 @@ namespace Toast {
 	private:
 		Ref<Shader> mShader;
 
-		std::unordered_map<std::string, Ref<Texture2D>> mTextures;
-		std::unordered_map<std::string, Ref<TextureCube>> mTextureCubes;
-		std::unordered_map<std::string, Ref<ConstantBuffer>> mConstantBuffers;
+		// New way
+		std::vector<TextureBindInfo> mTextureBindings;
+		std::vector<SamplerBindInfo> mSamplerBindings;
+		std::vector<CBufferBindInfo> mCBufferBindings;
 
 		std::string mName = "No name";
 		

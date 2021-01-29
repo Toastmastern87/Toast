@@ -8,99 +8,138 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include <iostream>
-
 namespace Toast {
 
 	Material::Material(const std::string& name, const Ref<Shader>& shader)
 		: mName(name), mShader(shader)
 	{
-		SetUpTextureBindings();
-		SetUpCBufferBindings();
+		SetUpResourceBindings();
 	}
 
 	void Material::SetData(const std::string& name, void* data)
 	{
+		uint32_t cbufferIdx;
+
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
 		// Check to see if the constant buffer exists
-		if (mConstantBuffers.find(name) == mConstantBuffers.end())
+		for (int i = 0; i < mCBufferBindings.size(); i++)
 		{
-			TOAST_CORE_INFO("Trying to write data to a non existent constant buffer: {0}", name.c_str());
-			return;
+			cbufferIdx = i;
+
+			if (name.compare(mCBufferBindings[i].CBuffer->GetName()) == 0)
+				break;
+
+			if((cbufferIdx+1) == mCBufferBindings.size())
+			{
+				TOAST_CORE_INFO("Trying to write data to a non existent constant buffer: {0}", name.c_str());
+				return;
+			}
 		}
 
 		D3D11_MAPPED_SUBRESOURCE ms;
-		deviceContext->Map(mConstantBuffers[name]->GetBuffer(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
-		memcpy(ms.pData, data, mConstantBuffers[name]->GetSize());
-		deviceContext->Unmap(mConstantBuffers[name]->GetBuffer(), NULL);
+		deviceContext->Map(mCBufferBindings[cbufferIdx].CBuffer->GetBuffer(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
+		memcpy(ms.pData, data, mCBufferBindings[cbufferIdx].CBuffer->GetSize());
+		deviceContext->Unmap(mCBufferBindings[cbufferIdx].CBuffer->GetBuffer(), NULL);
 	}
 
 	void Material::SetShader(const Ref<Shader>& shader)
 	{
 		mShader = shader;
 
-		SetUpTextureBindings();
+		SetUpResourceBindings();
 	}
 
-	void Material::SetTexture(std::string name, Ref<Texture2D>& texture)
+	void Material::SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<Texture2D>& texture)
 	{
-		mTextures[name] = texture;
-		mTextures[name]->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
-		mDirty = true;
-	}
-
-	void Material::SetTexture(std::string name, Ref<TextureCube>& texture)
-	{
-		mTextureCubes[name] = texture;
-		//mTextureCubes[name]->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
-		mDirty = true;
-	}
-
-	void Material::SetUpTextureBindings()
-	{
-		mTextures.clear();
-		std::unordered_map<std::string, Shader::TextureDesc> textureResources = mShader->GetTextureResources();
-
-		// Set up Textures in the material, fill it with white textures at start as default textures
-		for (auto& textureResource : textureResources)
+		for (auto& texturebinding : mTextureBindings)
 		{
-			if (textureResource.second.Dimension == D3D11_SRV_DIMENSION_TEXTURE2D) 
-			{
-				Ref<Texture2D> defaultTexture = CreateRef<Texture2D>(1, 1, textureResource.second.BindPoint, textureResource.second.ShaderType);
-				defaultTexture->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
-				uint32_t defaultTextureData = 0xffffffff;
-				defaultTexture->SetData(&defaultTextureData, sizeof(uint32_t));
-				mTextures[textureResource.first] = defaultTexture;
-			}
+			if (texturebinding.BindSlot == bindslot && texturebinding.ShaderType == shaderType)
+				texturebinding.Texture = texture;
 		}
 
-		if (mTextures.size() > 0)
-			mDirty = true;
+		mDirty = true;
 	}
 
-	void Material::SetUpCBufferBindings()
+	void Material::SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureCube>& texture)
 	{
-		mConstantBuffers.clear();
-		std::unordered_map<std::string, Shader::ConstantBufferDesc> cBufferResources = mShader->GetCBufferResources();
+		for (auto& texturebinding : mTextureBindings)
+		{
+			if (texturebinding.BindSlot == bindslot && texturebinding.ShaderType == shaderType)
+				texturebinding.Texture = texture;
+		}
 
-		for (auto& cbuffer : cBufferResources)
-			mConstantBuffers[cbuffer.first] = BufferLibrary::Load(cbuffer.first, cbuffer.second.Size, cbuffer.second.ShaderType, cbuffer.second.BindPoint);
+		mDirty = true;
+	}
+
+	void Material::SetTextureSampler(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureSampler>& sampler)
+	{
+		for (auto& textureSampler : mSamplerBindings)
+		{
+			if (textureSampler.BindSlot == bindslot && textureSampler.ShaderType == shaderType)
+				textureSampler.Sampler = sampler;
+		}
+
+		mDirty = true;
+	}
+
+	void Material::SetUpResourceBindings()
+	{
+		std::vector<Shader::ResourceBindingDesc> resourceBindings = mShader->GetResourceBindings();
+
+		mTextureBindings.clear();
+		mSamplerBindings.clear();
+		mCBufferBindings.clear();
+
+		for (auto& resource : resourceBindings)
+		{
+			switch (resource.Type)
+			{
+			case Shader::BindingType::Texture:
+			{
+				mTextureBindings.push_back(TextureBindInfo{ resource.Shader, resource.BindSlot, nullptr });
+				break;
+			}
+			case Shader::BindingType::Sampler:
+			{
+				mSamplerBindings.push_back(SamplerBindInfo{ resource.Shader, resource.BindSlot, TextureLibrary::GetSampler("Default") });
+				break;
+			}
+
+			case Shader::BindingType::Buffer:
+			{
+				mCBufferBindings.push_back(CBufferBindInfo{ resource.Shader, resource.BindSlot, BufferLibrary::Load(resource.Name, resource.Size, resource.Shader, resource.BindSlot) });
+				break;
+			}
+			}
+		}
 	}
 
 	void Material::Bind()
 	{
 		mShader->Bind();
 
-		for (auto& texture : mTextures) 
-			texture.second->Bind();
+		for (auto& textureBinding : mTextureBindings)
+		{
+			if (textureBinding.Texture)
+				textureBinding.Texture->Bind(textureBinding.BindSlot, textureBinding.ShaderType);
 
-		for (auto& texture : mTextureCubes) 
-			texture.second->BindForSampling();
+		}
 
-		for (auto& cbuffer : mConstantBuffers)
-			cbuffer.second->Bind();
+		for (auto& samplerBinding : mSamplerBindings)
+		{
+			if (samplerBinding.Sampler)
+				samplerBinding.Sampler->Bind(samplerBinding.BindSlot, samplerBinding.ShaderType);
+
+		}
+
+		for (auto& cBuffer : mCBufferBindings)
+		{
+			if (cBuffer.CBuffer)
+				cBuffer.CBuffer->Bind();
+
+		}
 	}
 
 	std::unordered_map<std::string, Ref<Material>> MaterialLibrary::mMaterials;
@@ -136,7 +175,7 @@ namespace Toast {
 		return material;
 	}
 
-	Toast::Ref<Toast::Material> MaterialLibrary::Load()
+	Ref<Material> MaterialLibrary::Load()
 	{
 		auto material = CreateRef<Material>("No Name", ShaderLibrary::Get("Standard"));
 		Add("No Name", material);
@@ -181,20 +220,16 @@ namespace Toast {
 		out << YAML::Key << "Material" << YAML::Value << material->GetName();
 		out << YAML::Key << "Shader" << YAML::Value << material->GetShader()->GetName();
 
-		if (material->GetTextures().size() > 0) 
+		out << YAML::Key << "Textures" << YAML::Value << YAML::BeginSeq;
+		for (auto& texture : material->GetTextureBindings())
 		{
-			out << YAML::Key << "Textures" << YAML::Value << YAML::BeginSeq;
-			for (auto& texture : material->GetTextures())
-			{
-				out << YAML::BeginMap;
-				out << YAML::Key << "Name" << YAML::Value << texture.first;
-				out << YAML::Key << "Path" << YAML::Value << texture.second->GetPath();
-				out << YAML::Key << "BindSlot" << YAML::Value << texture.second->GetBindPoint();
-				out << YAML::Key << "ShaderType" << YAML::Value << (uint32_t)texture.second->GetShaderType();
-				out << YAML::EndMap;
-			}
-			out << YAML::EndSeq;
+			out << YAML::BeginMap;
+			out << YAML::Key << "FilePath" << YAML::Value << texture.Texture->GetFilePath();
+			out << YAML::Key << "BindSlot" << YAML::Value << texture.BindSlot;
+			out << YAML::Key << "ShaderType" << YAML::Value << (uint32_t)texture.ShaderType;
+			out << YAML::EndMap;
 		}
+		out << YAML::EndSeq;
 		out << YAML::EndMap;
 
 		std::ofstream fout(filepath);
@@ -205,8 +240,10 @@ namespace Toast {
 
 	bool MaterialSerializer::Deserialize(std::vector<std::string> materials)
 	{
-		for (auto& materialPath : materials) 
+		for (auto& materialPath : materials)
 		{
+			D3D11_SHADER_TYPE shaderType;
+
 			std::ifstream stream(materialPath);
 			std::stringstream strStream;
 
@@ -227,20 +264,7 @@ namespace Toast {
 			if (textures)
 			{
 				for (auto texture : textures)
-				{
-					std::string path = texture["Path"].as<std::string>();
-
-					if(!path.empty())
-						material->SetTexture(texture["Name"].as<std::string>(), CreateRef<Texture2D>(texture["Path"].as<std::string>(), texture["BindSlot"].as<uint32_t>(), (D3D11_SHADER_TYPE)texture["ShaderType"].as<uint32_t>()));
-					else 
-					{
-						Ref<Texture2D> defaultTexture = CreateRef<Texture2D>(1, 1, texture["BindSlot"].as<uint32_t>(), (D3D11_SHADER_TYPE)texture["ShaderType"].as<uint32_t>());
-						uint32_t defaultTextureData = 0xffffffff;
-						defaultTexture->SetData(&defaultTextureData, sizeof(uint32_t));
-
-						material->SetTexture(texture["Name"].as<std::string>(), defaultTexture);
-					}
-				}
+					material->SetTexture(texture["BindSlot"].as<uint32_t>(), (D3D11_SHADER_TYPE)texture["ShaderType"].as<uint32_t>(), TextureLibrary::LoadTexture2D(texture["FilePath"].as<std::string>()));
 			}
 		}
 

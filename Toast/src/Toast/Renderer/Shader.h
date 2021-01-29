@@ -7,24 +7,28 @@
 #include <d3d11shadertracing.h>
 #include <wrl.h>
 #include <DirectXMath.h>
+#include <string>
 
 namespace Toast {
 
 	class Shader
 	{
 	public:
-		struct ConstantBufferDesc
+		enum class BindingType
 		{
-			uint32_t BindPoint;
-			size_t Size;
-			D3D11_SHADER_TYPE ShaderType;
+			Buffer,
+			Texture,
+			Sampler
 		};
 
-		struct TextureDesc
+		struct ResourceBindingDesc
 		{
-			uint32_t BindPoint;
-			D3D11_SHADER_TYPE ShaderType;
-			D3D_SRV_DIMENSION Dimension;
+			std::string Name			{""};
+			D3D11_SHADER_TYPE Shader	{ D3D11_VERTEX_SHADER };
+			uint32_t BindSlot			{ 0 };
+			BindingType Type			{ BindingType::Buffer };
+			uint32_t Size				{ 0 };
+			uint32_t Count				{ 0 };
 		};
 	public:
 		Shader(const std::string& filepath);
@@ -36,17 +40,16 @@ namespace Toast {
 		const std::string GetName() const { return mName; }
 
 		const ID3D10Blob* GetVSRaw() const { return mRawBlobs.at(D3D11_VERTEX_SHADER); }
-		const std::unordered_map<std::string, TextureDesc> GetTextureResources() const { return mTextureResources; }
 
-		const std::unordered_map<std::string, ConstantBufferDesc> GetCBufferResources() const { return mBufferResources; }
+		const std::vector<ResourceBindingDesc> GetResourceBindings() const { return mResourceBindings; }
+		std::string GetResourceName(BindingType type, uint32_t bindSlot, D3D11_SHADER_TYPE shaderType) const;
 	private:
 		std::string ReadFile(const std::string& filepath);
 		std::unordered_map<D3D11_SHADER_TYPE, std::string> PreProcess(const std::string& source);
 		void Compile(const std::unordered_map<D3D11_SHADER_TYPE, std::string> shaderSources);
 
-		void ProcessConstantBuffers();
 		void ProcessInputLayout(const std::string& source);
-		void ProcessTextureResources();
+		void ProcessResources();
 	private:
 		Ref<BufferLayout> mLayout;
 
@@ -57,8 +60,7 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11ComputeShader> mComputeShader;
 		std::unordered_map<D3D11_SHADER_TYPE, ID3D10Blob*> mRawBlobs;
 
-		std::unordered_map<std::string, TextureDesc> mTextureResources;
-		std::unordered_map<std::string, ConstantBufferDesc> mBufferResources;
+		std::vector<ResourceBindingDesc> mResourceBindings;
 	};
 
 	class ShaderLibrary 

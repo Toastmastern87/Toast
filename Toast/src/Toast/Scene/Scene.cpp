@@ -363,9 +363,8 @@ namespace Toast {
 
 	void Scene::SetSkybox(const Ref<TextureCube>& skybox)
 	{
-		skybox->SetShaderType(D3D11_PIXEL_SHADER);
 		mSkyboxTexture = skybox;
-		mSkyboxMaterial->SetTexture("skybox", mSkyboxTexture);
+		mSkyboxMaterial->SetTexture(0, D3D11_PIXEL_SHADER, mSkyboxTexture);
 	}
 
 	template<typename T>

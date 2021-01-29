@@ -66,8 +66,8 @@ namespace Toast {
 		Compile(shaderSources);
 		if (mRawBlobs.find(D3D11_VERTEX_SHADER) != mRawBlobs.end())
 			ProcessInputLayout(source);
-		ProcessConstantBuffers();
-		ProcessTextureResources();
+
+		ProcessResources();
 
 		for (auto& kv : mRawBlobs)
 		{
@@ -197,41 +197,6 @@ namespace Toast {
 		}
 	}
 
-	void Shader::ProcessConstantBuffers()
-	{
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11Device* device = API->GetDevice();
-
-		for (auto& kv : mRawBlobs)
-		{
-			Microsoft::WRL::ComPtr<ID3D11ShaderReflection> reflector;
-			D3D11_SHADER_DESC shaderDesc;
-
-			D3DReflect(kv.second->GetBufferPointer(), kv.second->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
-
-			reflector->GetDesc(&shaderDesc);
-
-			for (uint32_t i = 0; i < shaderDesc.ConstantBuffers; i++)
-			{
-				ID3D11ShaderReflectionConstantBuffer* cbReflection;
-				D3D11_SHADER_BUFFER_DESC cbDesc;
-				D3D11_SHADER_INPUT_BIND_DESC inputDesc;
-				ConstantBufferDesc constantBufferDesc;
-
-				cbReflection = reflector->GetConstantBufferByIndex(i);
-
-				cbReflection->GetDesc(&cbDesc);
-				reflector->GetResourceBindingDescByName(cbDesc.Name, &inputDesc);
-
-				constantBufferDesc.ShaderType = kv.first;
-				constantBufferDesc.Size = (size_t)cbDesc.Size;
-				constantBufferDesc.BindPoint = inputDesc.BindPoint;
-
-				mBufferResources[cbDesc.Name] = constantBufferDesc;
-			}
-		}
-	}
-
 	void Shader::ProcessInputLayout(const std::string& source)
 	{
 		std::vector<BufferLayout::BufferElement> inputLayoutDesc;
@@ -300,81 +265,44 @@ namespace Toast {
 		mLayout = CreateRef<BufferLayout>(inputLayoutDesc, mRawBlobs.at(D3D11_VERTEX_SHADER));
 	}
 
-	void Shader::ProcessTextureResources()
+	void Shader::ProcessResources()
 	{
-		TextureDesc textureResourceDesc;
-		Microsoft::WRL::ComPtr<ID3D11ShaderReflection> reflector;
-		D3D11_SHADER_DESC shaderDesc;
-
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11Device* device = API->GetDevice();
-
-		if (mRawBlobs.find(D3D11_VERTEX_SHADER) != mRawBlobs.end())
+		for (auto& kv : mRawBlobs)
 		{
-			D3DReflect(mRawBlobs.at(D3D11_VERTEX_SHADER)->GetBufferPointer(), mRawBlobs.at(D3D11_VERTEX_SHADER)->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
+			Microsoft::WRL::ComPtr<ID3D11ShaderReflection> reflector;
+			D3D11_SHADER_DESC shaderDesc;
+
+			D3DReflect(kv.second->GetBufferPointer(), kv.second->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
 
 			reflector->GetDesc(&shaderDesc);
-
+			 
 			for (uint32_t i = 0; i < shaderDesc.BoundResources; i++)
 			{
-				D3D11_SHADER_INPUT_BIND_DESC textureDesc;
+				D3D11_SHADER_INPUT_BIND_DESC resourceDesc;
 
-				reflector->GetResourceBindingDesc(i, &textureDesc);
+				reflector->GetResourceBindingDesc(i, &resourceDesc);
 
-				if (textureDesc.Type == D3D_SIT_TEXTURE)
+				switch (resourceDesc.Type)
 				{
-					textureResourceDesc.BindPoint = textureDesc.BindPoint;
-					textureResourceDesc.ShaderType = D3D11_VERTEX_SHADER;
-					textureResourceDesc.Dimension = textureDesc.Dimension;
-					mTextureResources[textureDesc.Name] = textureResourceDesc;
+					case D3D_SIT_TEXTURE:
+						mResourceBindings.push_back(ResourceBindingDesc{ resourceDesc.Name, kv.first, resourceDesc.BindPoint, BindingType::Texture, 0, 0 });
+						break;
+					case D3D_SIT_SAMPLER:
+						mResourceBindings.push_back(ResourceBindingDesc{ resourceDesc.Name, kv.first, resourceDesc.BindPoint, BindingType::Sampler, 0, 0 });
+						break;
+					case D3D_SIT_CBUFFER:
+						ID3D11ShaderReflectionConstantBuffer* cbReflection;
+						D3D11_SHADER_BUFFER_DESC cbDesc;
+
+						cbReflection = reflector->GetConstantBufferByName(resourceDesc.Name);
+						cbReflection->GetDesc(&cbDesc);
+
+						mResourceBindings.push_back(ResourceBindingDesc{ resourceDesc.Name, kv.first, resourceDesc.BindPoint, BindingType::Buffer, cbDesc.Size, 0 });
+
+						break;
 				}
 			}
 		}
-
-		if (mRawBlobs.find(D3D11_PIXEL_SHADER) != mRawBlobs.end())
-		{
-			D3DReflect(mRawBlobs.at(D3D11_PIXEL_SHADER)->GetBufferPointer(), mRawBlobs.at(D3D11_PIXEL_SHADER)->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
-
-			reflector->GetDesc(&shaderDesc);
-
-			for (uint32_t i = 0; i < shaderDesc.BoundResources; i++)
-			{
-				D3D11_SHADER_INPUT_BIND_DESC textureDesc;
-
-				reflector->GetResourceBindingDesc(i, &textureDesc);
-
-				if (textureDesc.Type == D3D_SIT_TEXTURE)
-				{
-					textureResourceDesc.BindPoint = textureDesc.BindPoint;
-					textureResourceDesc.ShaderType = D3D11_PIXEL_SHADER;
-					textureResourceDesc.Dimension = textureDesc.Dimension;
-					mTextureResources[textureDesc.Name] = textureResourceDesc;
-				}
-			}
-		}
-
-		if (mRawBlobs.find(D3D11_COMPUTE_SHADER) != mRawBlobs.end()) 
-		{
-			D3DReflect(mRawBlobs.at(D3D11_COMPUTE_SHADER)->GetBufferPointer(), mRawBlobs.at(D3D11_COMPUTE_SHADER)->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&reflector);
-
-			reflector->GetDesc(&shaderDesc);
-
-			for (uint32_t i = 0; i < shaderDesc.BoundResources; i++)
-			{
-				D3D11_SHADER_INPUT_BIND_DESC textureDesc;
-
-				reflector->GetResourceBindingDesc(i, &textureDesc);
-
-				if (textureDesc.Type == D3D_SIT_TEXTURE)
-				{
-					textureResourceDesc.BindPoint = textureDesc.BindPoint;
-					textureResourceDesc.ShaderType = D3D11_COMPUTE_SHADER;
-					textureResourceDesc.Dimension = textureDesc.Dimension;
-					mTextureResources[textureDesc.Name] = textureResourceDesc;
-				}
-			}
-		}
-
 	}
 
 	void Shader::Bind() const
@@ -426,6 +354,15 @@ namespace Toast {
 				break;
 			}
 		}
+	}
+
+	std::string Shader::GetResourceName(BindingType type, uint32_t bindSlot, D3D11_SHADER_TYPE shaderType) const
+	{
+		for (auto& resource : mResourceBindings)
+		{
+			if (resource.Type == type && resource.BindSlot == bindSlot && resource.Shader == shaderType) 
+				return resource.Name;
+		}	
 	}
 
 	std::unordered_map<std::string, Ref<Shader>> ShaderLibrary::mShaders;

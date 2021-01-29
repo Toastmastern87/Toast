@@ -65,12 +65,12 @@ struct PixelInputType
 	float2 texcoord : TEXCOORD;
 };
 
-Texture2D albedo : register(t0);
+Texture2D Albedo : register(t0);
 SamplerState sampleType;
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	float4 color = albedo.SampleLevel(sampleType, input.texcoord, 0).rgba;
+	float4 color = Albedo.SampleLevel(sampleType, input.texcoord, 0).rgba;
 
 	return color;
 }
