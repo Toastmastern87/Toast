@@ -175,11 +175,25 @@ namespace Toast {
 		out << YAML::EndMap; // Entity
 	}
 
+	static void SerializeEnvironment(YAML::Emitter& out, const Ref<Scene>& scene)
+	{
+		out << YAML::Key << "Environment";
+		out << YAML::Value;
+		out << YAML::BeginMap; // Environment
+		out << YAML::Key << "AssetPath" << YAML::Value << scene->GetEnvironment().FilePath;
+		out << YAML::Key << "EnvironmentIntensity" << YAML::Value << scene->GetEnvironmentIntensity();
+		out << YAML::Key << "TextureLOD" << YAML::Value << scene->GetSkyboxLod();
+		out << YAML::EndMap; // Environment
+	}
+
+
 	void SceneSerializer::Serialize(const std::string& filepath)
 	{
 		YAML::Emitter out;
 		out << YAML::BeginMap;
+		// TODO, should be scene name instead of just untitled scene
 		out << YAML::Key << "Scene" << YAML::Value << "Untitled Scene";
+		SerializeEnvironment(out, mScene);
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 		mScene->mRegistry.each([&](auto entityID)
 		{
@@ -215,6 +229,16 @@ namespace Toast {
 
 		std::string sceneName = data["Scene"].as<std::string>();
 		TOAST_CORE_TRACE("Deserializing scene '{0}'", sceneName);
+
+		auto environment = data["Environment"];
+		if (environment)
+		{
+			std::string envPath = environment["AssetPath"].as<std::string>();
+			mScene->SetEnvironment(Environment::Load(envPath));
+
+			mScene->GetEnvironmentIntensity() = environment["EnvironmentIntensity"].as<float>();
+			mScene->GetSkyboxLod() = environment["TextureLOD"].as<float>();
+		}
 
 		auto entities = data["Entities"];
 		if (entities) 
