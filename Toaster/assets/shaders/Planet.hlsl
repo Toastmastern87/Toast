@@ -11,7 +11,7 @@ instance
 
 #define PI 3.141592653589793
 
-Texture2D heightMap : register(t0);
+Texture2D HeightMap : register(t0);
 SamplerState sampleType;
 
 cbuffer Camera : register(b0)
@@ -87,7 +87,7 @@ PixelInputType main(VertexInputType input)
 	pos = normalize(pos);
 
 	output.uv = float2((0.5f + (atan2(pos.z, pos.x) / (2.0f * PI))), (0.5f - (asin(pos.y) / PI)));
-	pos *= 1.0f + ((heightMap.SampleLevel(sampleType, output.uv, 0).r * (maxAltitude.r - minAltitude.r) + minAltitude.r) / radius.r);
+	pos *= 1.0f + ((HeightMap.SampleLevel(sampleType, output.uv, 0).r * (maxAltitude.r - minAltitude.r) + minAltitude.r) / radius.r);
 
 	finalPos = float4(pos * 0.5f, 1.0f);
 
@@ -106,12 +106,12 @@ struct PixelInputType
 	float2 uv : TEXCOORD0;
 };
 
-Texture2D albedo : register(t0);
+Texture2D Albedo : register(t0);
 SamplerState sampleType;
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	float4 color = albedo.SampleLevel(sampleType, input.uv, 0).rgba;
+	float4 color = Albedo.SampleLevel(sampleType, input.uv, 0).rgba;
 
 	return color;
 }

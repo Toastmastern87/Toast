@@ -11,17 +11,29 @@
 namespace Toast {
 
 	////////////////////////////////////////////////////////////////////////////////////////  
+	//     TEXTURE       ///////////////////////////////////////////////////////////////////  
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	uint32_t Texture::CalculateMipMapCount(uint32_t width, uint32_t height)
+	{
+		uint32_t levels = 1;
+		while ((width | height) >> levels)
+			levels++;
+
+		return levels;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////  
 	//     TEXTURE2D     ///////////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	Texture2D::Texture2D(uint32_t width, uint32_t height, uint32_t slot, D3D11_SHADER_TYPE shaderType, DXGI_FORMAT format)
-		: mWidth(width), mHeight(height), mShaderSlot(slot), mShaderType(shaderType)
+	Texture2D::Texture2D(DXGI_FORMAT format, uint32_t width, uint32_t height)
+		: mWidth(width), mHeight(height)
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		HRESULT result;
 		D3D11_TEXTURE2D_DESC textureDesc;
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
 
 		size_t dataSize = mWidth * mHeight * sizeof(uint32_t);
 		uint32_t initData = NULL;
@@ -41,17 +53,16 @@ namespace Toast {
 		textureDesc.SampleDesc.Count = 1;
 		textureDesc.SampleDesc.Quality = 0;
 
-		result = device->CreateTexture2D(&textureDesc, NULL, &texture);
+		result = device->CreateTexture2D(&textureDesc, NULL, &mTexture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
 
-		result = device->CreateShaderResourceView(texture.Get(), 0, &mView);
-		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load shader resource view!");
+		CreateSRV();
 
-		mView->GetResource(&mResource);
+		mSRV->GetResource(&mResource);
 	}
 
-	Texture2D::Texture2D(const std::string& path, uint32_t slot, D3D11_SHADER_TYPE shaderType, DXGI_FORMAT format)
-		: mPath(path), mShaderSlot(slot), mShaderType(shaderType)
+	Texture2D::Texture2D(const std::string& filePath)
+		: mFilePath(filePath)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -62,9 +73,9 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
 
-		std::wstring stemp = std::wstring(mPath.begin(), mPath.end());
+		std::wstring stemp = std::wstring(mFilePath.begin(), mFilePath.end());
 
-		result = DirectX::CreateWICTextureFromFile(device, stemp.c_str(), &mResource, &mView);
+		result = DirectX::CreateWICTextureFromFile(device, stemp.c_str(), &mResource, &mSRV);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load texture!");
 
 		mResource->QueryInterface<ID3D11Texture2D>(&textureInterface);
@@ -72,35 +83,6 @@ namespace Toast {
 
 		mWidth = desc.Width;
 		mHeight = desc.Height;
-		DXGI_FORMAT channels = desc.Format;
-	}
-
-	Texture2D::~Texture2D()
-	{
-		TOAST_PROFILE_FUNCTION();
-	}
-
-	void Texture2D::CreateSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode)
-	{
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11Device* device = API->GetDevice();
-
-		D3D11_SAMPLER_DESC desc;
-		desc.Filter = filter;
-		desc.AddressU = addressMode;
-		desc.AddressV = addressMode;
-		desc.AddressW = addressMode;
-		desc.MipLODBias = 0.0f;
-		desc.MaxAnisotropy = 1;
-		desc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
-		desc.BorderColor[0] = 0;
-		desc.BorderColor[1] = 0;
-		desc.BorderColor[2] = 0;
-		desc.BorderColor[3] = 0;
-		desc.MinLOD = 0;
-		desc.MaxLOD = D3D11_FLOAT32_MAX;
-
-		device->CreateSamplerState(&desc, &mSamplerState);
 	}
 
 	void Texture2D::SetData(void* data, uint32_t size)
@@ -118,52 +100,58 @@ namespace Toast {
 		deviceContext->Unmap(mResource.Get(), NULL);
 	}
 
-	void Texture2D::Bind() const
+	void Texture2D::CreateSRV()
+	{
+		D3D11_TEXTURE2D_DESC desc;
+		mTexture->GetDesc(&desc);
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
+		shaderResourceViewDesc.Format = desc.Format;
+		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+		shaderResourceViewDesc.Texture2DArray.MipLevels = -1;
+		shaderResourceViewDesc.Texture2DArray.MostDetailedMip = 0;
+
+		HRESULT result = device->CreateShaderResourceView(mTexture.Get(), &shaderResourceViewDesc, &mSRV);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the SRV!");
+	}
+
+	void Texture2D::Bind(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		switch (mShaderType) 
+		switch (shaderType)
 		{
-		case D3D11_VERTEX_SHADER: 
-		{
-			deviceContext->VSSetSamplers(0, 1, mSamplerState.GetAddressOf());
-			deviceContext->VSSetShaderResources(mShaderSlot, 1, mView.GetAddressOf());
-
-			break;
-		}
+		case D3D11_VERTEX_SHADER:
+			deviceContext->VSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
 		case D3D11_PIXEL_SHADER:
-		{
-			deviceContext->PSSetSamplers(0, 1, mSamplerState.GetAddressOf());
-			deviceContext->PSSetShaderResources(mShaderSlot, 1, mView.GetAddressOf());
-
-			break;
-		}
+			deviceContext->PSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
 		case D3D11_COMPUTE_SHADER:
-		{
-			deviceContext->CSSetSamplers(0, 1, mSamplerState.GetAddressOf());
-			deviceContext->CSSetShaderResources(mShaderSlot, 1, mView.GetAddressOf());
+			deviceContext->CSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
+		}
+	}
 
-			break;
-		}
-		}
+	const uint32_t Texture2D::GetMipLevelCount() const
+	{
+		return Texture::CalculateMipMapCount(mWidth, mHeight);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  
 	//     TEXTURECUBE   ///////////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	TextureCube::TextureCube(uint32_t width, uint32_t height, uint32_t slot, D3D11_SHADER_TYPE shaderType, uint32_t levels)
-		: mWidth(width), mHeight(height), mShaderSlot(slot), mShaderType(shaderType)
+	TextureCube::TextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels)
+		: mFilePath(filePath), mWidth(width), mHeight(height)
 	{
 		TOAST_PROFILE_FUNCTION();
-
-		HRESULT result;
 		D3D11_TEXTURE2D_DESC textureDesc;
 
-		mLevels = (levels > 0) ? levels : CalculateMipMapCount(width);
+		mLevels = (levels > 0) ? levels : CalculateMipMapCount(width, height);
 
 		size_t dataSize = mWidth * mHeight * sizeof(uint32_t);
 		uint32_t initData = NULL;
@@ -186,7 +174,7 @@ namespace Toast {
 			textureDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
 		}
 
-		result = device->CreateTexture2D(&textureDesc, NULL, &mTexture);
+		HRESULT result = device->CreateTexture2D(&textureDesc, NULL, &mTexture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
 
 		CreateSRV();
@@ -194,22 +182,9 @@ namespace Toast {
 		mSRV->GetResource(&mResource);
 	}
 
-	TextureCube::~TextureCube()
+	const uint32_t TextureCube::GetMipLevelCount() const
 	{
-
-	}
-
-	uint32_t TextureCube::CalculateMipMapCount(uint32_t cubemapSize)
-	{
-		uint32_t levels = 1;
-		auto mipSize = cubemapSize >> 1;
-		while (mipSize >= 1)
-		{
-			mipSize >>= 1;
-			++levels;
-		}
-
-		return levels;
+		return Texture::CalculateMipMapCount(mWidth, mHeight);
 	}
 
 	void TextureCube::SetData(void* data, uint32_t size)
@@ -217,91 +192,50 @@ namespace Toast {
 
 	}
 
-	void TextureCube::BindForSampling() const
+	void TextureCube::Bind(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		switch (mShaderType)
+		switch (shaderType)
 		{
 		case D3D11_VERTEX_SHADER:
-		{
-			deviceContext->VSSetSamplers(0, 1, mSamplerState.GetAddressOf());
-			deviceContext->VSSetShaderResources(mShaderSlot, 1, mSRV.GetAddressOf());
-
-			break;
-		}
+			deviceContext->VSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
 		case D3D11_PIXEL_SHADER:
-		{
-			deviceContext->PSSetSamplers(0, 1, mSamplerState.GetAddressOf());
-			deviceContext->PSSetShaderResources(mShaderSlot, 1, mSRV.GetAddressOf());
-
-			break;
-		}
+			deviceContext->PSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
 		case D3D11_COMPUTE_SHADER:
-		{
-			deviceContext->CSSetSamplers(0, 1, mSamplerState.GetAddressOf());
-			deviceContext->CSSetShaderResources(mShaderSlot, 1, mSRV.GetAddressOf());
-
-			break;
-		}
+			deviceContext->CSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
 		}
 	}
 
-	void TextureCube::BindForReadWrite() const
+	void TextureCube::BindForReadWrite(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		switch (mShaderType)
+		switch (shaderType)
 		{
 		case D3D11_COMPUTE_SHADER:
-		{
-			deviceContext->CSSetUnorderedAccessViews(0, 1, mUAV.GetAddressOf(), nullptr);
-
-			break;
-		}
+			deviceContext->CSSetUnorderedAccessViews(bindslot, 1, mUAV.GetAddressOf(), nullptr);
 		}
 	}
 
-	void TextureCube::UnbindUAV() const
+	void TextureCube::UnbindUAV(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		switch (mShaderType)
+		switch (shaderType)
 		{
 		case D3D11_COMPUTE_SHADER:
-			deviceContext->CSSetUnorderedAccessViews(0, 1, mNullUAV.GetAddressOf(), nullptr);
+			deviceContext->CSSetUnorderedAccessViews(bindslot, 1, mNullUAV.GetAddressOf(), nullptr);
 		}
-	}
-
-	void TextureCube::CreateSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode)
-	{
-		HRESULT result;
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11Device* device = API->GetDevice();
-
-		D3D11_SAMPLER_DESC desc;
-		desc.Filter = filter;
-		desc.AddressU = addressMode;
-		desc.AddressV = addressMode;
-		desc.AddressW = addressMode;
-		desc.MaxAnisotropy = (filter == D3D11_FILTER_ANISOTROPIC) ? D3D11_REQ_MAXANISOTROPY : 1;
-		desc.MipLODBias = 0.0f;
-		desc.MinLOD = 0;
-		desc.MaxLOD = D3D11_FLOAT32_MAX;
-
-		result = device->CreateSamplerState(&desc, &mSamplerState);
-		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the sampler!");
 	}
 
 	void TextureCube::CreateSRV()
 	{
-		HRESULT result;
-
 		D3D11_TEXTURE2D_DESC desc;
 		mTexture->GetDesc(&desc);
 
@@ -314,14 +248,12 @@ namespace Toast {
 		shaderResourceViewDesc.Texture2DArray.MipLevels = -1;
 		shaderResourceViewDesc.Texture2DArray.MostDetailedMip = 0;
 
-		result = device->CreateShaderResourceView(mTexture.Get(), &shaderResourceViewDesc, &mSRV);
+		HRESULT result = device->CreateShaderResourceView(mTexture.Get(), &shaderResourceViewDesc, &mSRV);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the SRV!");
 	}
 
 	void TextureCube::CreateUAV(uint32_t mipSlice)
 	{
-		HRESULT result;
-
 		D3D11_TEXTURE2D_DESC desc;
 		mTexture->GetDesc(&desc);
 
@@ -335,7 +267,7 @@ namespace Toast {
 		uavDesc.Texture2DArray.FirstArraySlice = 0;
 		uavDesc.Texture2DArray.ArraySize = 6;
 
-		result = device->CreateUnorderedAccessView(mTexture.Get(), &uavDesc, &mUAV);
+		HRESULT result = device->CreateUnorderedAccessView(mTexture.Get(), &uavDesc, &mUAV);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the UAV!");
 	}
 
@@ -347,4 +279,104 @@ namespace Toast {
 		deviceContext->GenerateMips(mSRV.Get());
 	}
 
+	////////////////////////////////////////////////////////////////////////////////////////  
+	//     TEXTURE SAMPLER   ///////////////////////////////////////////////////////////////  
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	TextureSampler::TextureSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_SAMPLER_DESC desc;
+		desc.Filter = filter;
+		desc.AddressU = addressMode;
+		desc.AddressV = addressMode;
+		desc.AddressW = addressMode;
+		desc.MaxAnisotropy = (filter == D3D11_FILTER_ANISOTROPIC) ? D3D11_REQ_MAXANISOTROPY : 1;
+		desc.MipLODBias = 0.0f;
+		desc.MinLOD = 0;
+		desc.MaxLOD = D3D11_FLOAT32_MAX;
+
+		HRESULT result = device->CreateSamplerState(&desc, &mSamplerState);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the sampler!");
+	}
+
+	void TextureSampler::Bind(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		switch (shaderType)
+		{
+		case D3D11_VERTEX_SHADER:
+			deviceContext->VSSetSamplers(bindslot, 1, mSamplerState.GetAddressOf());
+		case D3D11_PIXEL_SHADER:
+			deviceContext->PSSetSamplers(bindslot, 1, mSamplerState.GetAddressOf());
+		case D3D11_COMPUTE_SHADER:
+			deviceContext->CSSetSamplers(bindslot, 1, mSamplerState.GetAddressOf());
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////  
+	//     TEXTURE LIBRARY    //////////////////////////////////////////////////////////////  
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	std::unordered_map<std::string, Ref<Texture>> TextureLibrary::mTextures;
+	std::unordered_map<std::string, Ref<TextureSampler>> TextureLibrary::mTextureSamplers;
+
+	void TextureLibrary::Add(const Ref<Texture>& texture)
+	{
+		mTextures[texture->GetFilePath()] = texture;
+	}
+
+	void TextureLibrary::AddSampler(const std::string& name, const Ref<TextureSampler>& sampler)
+	{
+		mTextureSamplers[name] = sampler;
+	}
+
+	Ref<Texture2D> TextureLibrary::LoadTexture2D(const std::string& filePath)
+	{
+		auto texture = CreateRef<Texture2D>(filePath);
+		Add(texture);
+		return texture;
+	}
+
+	Ref<TextureCube> TextureLibrary::LoadTextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels)
+	{
+		auto texture = CreateRef<TextureCube>(filePath, width, height, levels);
+		Add(texture);
+		return texture;
+	}
+
+	Ref<TextureSampler> TextureLibrary::LoadTextureSampler(const std::string& name, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode)
+	{
+		auto sampler = CreateRef<TextureSampler>(filter, addressMode);
+		AddSampler(name, sampler);
+		return sampler;
+	}
+
+	Ref<Texture> TextureLibrary::Get(const std::string& filePath)
+	{
+		TOAST_CORE_ASSERT(Exists(filePath), "Texture not found!");
+		return mTextures[filePath];
+	}
+
+	Ref<TextureSampler> TextureLibrary::GetSampler(const std::string& name)
+	{
+		TOAST_CORE_ASSERT(ExistsSampler(name), "Texture sampler not found!");
+		return mTextureSamplers[name];
+	}
+
+	bool TextureLibrary::Exists(const std::string& filePath)
+	{
+		return mTextures.find(filePath) != mTextures.end();
+	}
+
+	bool TextureLibrary::ExistsSampler(const std::string& name)
+	{
+		return mTextureSamplers.find(name) != mTextureSamplers.end();
+	}
 }

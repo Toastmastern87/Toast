@@ -152,12 +152,10 @@ namespace Toast {
 
 		Ref<ConstantBuffer> specularMapFilterSettingsCB = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, D3D11_COMPUTE_SHADER, 0, D3D11_USAGE_DEFAULT);
 
-		Ref<Texture2D> starMap = CreateRef<Texture2D>(filepath, 0, D3D11_COMPUTE_SHADER, DXGI_FORMAT_R32G32B32A32_FLOAT);
-		starMap->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
-		Ref<TextureCube> envMapUnfiltered = CreateRef<TextureCube>(cubemapSize, cubemapSize, 0, D3D11_COMPUTE_SHADER);
-		envMapUnfiltered->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
-		Ref<TextureCube> envMapFiltered = CreateRef<TextureCube>(cubemapSize, cubemapSize, 0, D3D11_COMPUTE_SHADER);
-		envMapFiltered->CreateSampler(D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
+		Ref<Texture2D> starMap = CreateRef<Texture2D>(filepath);
+		Ref<TextureSampler> defaultSampler = TextureLibrary::GetSampler("Default");
+		Ref<TextureCube> envMapUnfiltered = CreateRef<TextureCube>("EnvMapUnfiltered", cubemapSize, cubemapSize);
+		Ref<TextureCube> envMapFiltered = CreateRef<TextureCube>("EnvMapFiltered", cubemapSize, cubemapSize);
 
 		envMapUnfiltered->CreateUAV(0);
 
@@ -166,7 +164,8 @@ namespace Toast {
 
 		equirectangularConversionShader->Bind();
 		starMap->Bind();
-		envMapUnfiltered->BindForReadWrite();
+		defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+		envMapUnfiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 		RenderCommand::DispatchCompute(cubemapSize / 32, cubemapSize / 32, 6);
 		envMapUnfiltered->UnbindUAV();
 
@@ -187,7 +186,8 @@ namespace Toast {
 			envFilteringShader = CreateRef<Shader>("assets/shaders/EnvironmentMipFilter.hlsl");
 
 		envFilteringShader->Bind();
-		envMapUnfiltered->BindForSampling();
+		envMapUnfiltered->Bind(0, D3D11_COMPUTE_SHADER);
+		defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
 
 		// Pre-filter rest of the mip chain.
 		const float deltaRoughness = 1.0f / std::max(float(envMapFiltered->GetMipLevelCount() - 1.0f), 1.0f);
@@ -200,20 +200,21 @@ namespace Toast {
 			deviceContext->UpdateSubresource(specularMapFilterSettingsCB->GetBuffer(), 0, nullptr, &spmapConstants, 0, 0);
 
 			specularMapFilterSettingsCB->Bind();
-			envMapFiltered->BindForReadWrite();
+			envMapFiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 			RenderCommand::DispatchCompute(numGroups, numGroups, 6);
 		}
 		envMapFiltered->UnbindUAV();
 
-		Ref<TextureCube> irradianceMap = CreateRef<TextureCube>(irradianceMapSize, irradianceMapSize, 0, D3D11_COMPUTE_SHADER, 1);
+		Ref<TextureCube> irradianceMap = CreateRef<TextureCube>("IrradianceMap", irradianceMapSize, irradianceMapSize, 1);
 
 		if (!envIrradianceShader)
 			envIrradianceShader = CreateRef<Shader>("assets/shaders/EnvironmentIrradiance.hlsl");
 
 		irradianceMap->CreateUAV(0);
 
-		envMapFiltered->BindForSampling();
-		irradianceMap->BindForReadWrite();
+		envMapFiltered->Bind(0, D3D11_COMPUTE_SHADER);
+		irradianceMap->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+		defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
 		envIrradianceShader->Bind();
 		RenderCommand::DispatchCompute(irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6);
 		irradianceMap->UnbindUAV();

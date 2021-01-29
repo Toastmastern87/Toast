@@ -90,7 +90,11 @@ namespace Toast {
 				{
 					bool isSelected = (currentShader->GetName() == shader);
 					if (ImGui::Selectable(shader.c_str(), isSelected)) 
+					{
 						mSelectionContext->SetShader(ShaderLibrary::Get(shader));
+						TOAST_CORE_INFO("CHANGING SHADER TO: {0}", mSelectionContext->GetShader()->GetName());
+					}
+
 
 					if (isSelected)
 						ImGui::SetItemDefaultFocus();
@@ -102,17 +106,19 @@ namespace Toast {
 
 			ImGui::Columns(1);
 
-			for (auto& texture : mSelectionContext->GetTextures())
+			for (auto& resource : mSelectionContext->GetTextureBindings())
 			{
-				if (ImGui::TreeNodeEx((void*)9817245, treeNodeFlags, texture.first.c_str()))
+				std::string textureName = mSelectionContext->GetShader()->GetResourceName(Shader::BindingType::Texture, resource.BindSlot, resource.ShaderType);
+
+				if (ImGui::TreeNodeEx(resource.Texture ? (void*)resource.Texture->GetID() : (void*)54332, treeNodeFlags, textureName.c_str()))
 				{
-					ImGui::Image(texture.second->GetID(), { 100.0f, 100.0f });
+					ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
 
 					if (ImGui::IsItemClicked())
 					{
 						std::string filename = FileDialogs::OpenFile("");
 						if (filename != "")
-							mSelectionContext->SetTexture(texture.first, CreateRef<Texture2D>(filename, texture.second->GetBindPoint(), texture.second->GetShaderType()));
+							mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(filename));
 					}
 
 					ImGui::TreePop();

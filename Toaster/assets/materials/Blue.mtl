@@ -1,7 +1,6 @@
 Material: Blue
 Shader: PBR
 Textures:
-  - Name: albedo
-    Path: C:\dev\Toast\Toaster\assets\textures\Blue.png
+  - FilePath: C:\dev\Toast\Toaster\assets\textures\Blue.png
     BindSlot: 0
     ShaderType: 5
