@@ -17,7 +17,7 @@ namespace Toast {
 
 		static void OnWindowResize(uint32_t width, uint32_t height);
 
-		static void BeginScene(const Camera& camera, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMFLOAT4 cameraPos);
+		static void BeginScene(const Scene* scene, const Camera& camera, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMFLOAT4 cameraPos);
 		static void EndScene();
 
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<BufferLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
@@ -40,12 +40,20 @@ namespace Toast {
 		static Statistics GetStats();
 		static void ResetStats();
 	private:
-		struct SceneData 
+		struct SceneRendererData 
 		{
+			struct SceneInfo
+			{
+				Environment SceneEnvironment;
+				float SceneEnvironmentIntensity;
+				LightEnvironment SceneLightEnvironment;
+
+			} SceneData;
+
 			DirectX::XMMATRIX viewMatrix, projectionMatrix, inverseViewMatrix;
 			DirectX::XMFLOAT4 cameraPos;
 		};
 
-		static Scope<SceneData> mSceneData;
+		static Scope<SceneRendererData> mSceneRendererData;
 	};
 }

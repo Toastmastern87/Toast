@@ -13,7 +13,7 @@ namespace Toast {
 
 	static RendererData sData;
 
-	Scope<Renderer::SceneData> Renderer::mSceneData = CreateScope<Renderer::SceneData>();
+	Scope<Renderer::SceneRendererData> Renderer::mSceneRendererData = CreateScope<Renderer::SceneRendererData>();
 
 	void Renderer::Init()
 	{
@@ -35,15 +35,33 @@ namespace Toast {
 		RenderCommand::ResizeViewport(0, 0, width, height);
 	}
 
-	void Renderer::BeginScene(const Camera& camera, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMFLOAT4 cameraPos)
+	void Renderer::BeginScene(const Scene* scene, const Camera& camera, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMFLOAT4 cameraPos)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mSceneData->viewMatrix = viewMatrix;
-		mSceneData->inverseViewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-		mSceneData->projectionMatrix = camera.GetProjection();
-		mSceneData->cameraPos = cameraPos;
-		MaterialLibrary::Get("Standard")->SetData("Camera", (void*)&mSceneData->viewMatrix);
+		mSceneRendererData->viewMatrix = viewMatrix;
+		mSceneRendererData->inverseViewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
+		mSceneRendererData->projectionMatrix = camera.GetProjection();
+		mSceneRendererData->cameraPos = cameraPos;
+		MaterialLibrary::Get("Standard")->SetData("Camera", (void*)&mSceneRendererData->viewMatrix);
+
+		mSceneRendererData->SceneData.SceneEnvironment = scene->mEnvironment;
+		mSceneRendererData->SceneData.SceneEnvironmentIntensity = scene->mEnvironmentIntensity;
+
+		if(mSceneRendererData->SceneData.SceneEnvironment.IrradianceMap)
+			mSceneRendererData->SceneData.SceneEnvironment.IrradianceMap->Bind(0, D3D11_PIXEL_SHADER);
+		if (mSceneRendererData->SceneData.SceneEnvironment.RadianceMap)
+			mSceneRendererData->SceneData.SceneEnvironment.RadianceMap->Bind(1, D3D11_PIXEL_SHADER);
+		if (mSceneRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT)
+			mSceneRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT->Bind(2, D3D11_PIXEL_SHADER);
+
+		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
+		if (TextureLibrary::ExistsSampler("BRDFSampler"))
+			TextureLibrary::GetSampler("BRDFSampler")->Bind(1, D3D11_PIXEL_SHADER);
+
+		mSceneRendererData->SceneData.SceneLightEnvironment = scene->mLightEnvironment;
+
+		MaterialLibrary::Get("Standard")->SetData("DirectionalLight", (void*)&mSceneRendererData->SceneData.SceneLightEnvironment);
 	}
 
 	void Renderer::EndScene()
@@ -140,7 +158,7 @@ namespace Toast {
 		}
 	}
 
-	static Ref<Shader> equirectangularConversionShader, envFilteringShader, envIrradianceShader;
+	static Ref<Shader> equirectangularConversionShader, envFilteringShader, envIrradianceShader, spBRDFShader;
 
 	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::CreateEnvironmentMap(const std::string& filepath)
 	{

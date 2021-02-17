@@ -116,7 +116,7 @@ namespace Toast {
 		if (mainCamera)
 		{
 			// 3D Rendering
-			Renderer::BeginScene(*mainCamera, DirectX::XMMatrixInverse(nullptr, cameraTransform), { 1.0f, 1.0, 1.0f, 1.0f });
+			Renderer::BeginScene(this, *mainCamera, DirectX::XMMatrixInverse(nullptr, cameraTransform), { 1.0f, 1.0, 1.0f, 1.0f });
 			{
 				auto view = mRegistry.view<TransformComponent, MeshComponent>();
 
@@ -171,6 +171,9 @@ namespace Toast {
 	{
 		DirectX::XMVECTOR cameraPos = { 0.0f, 0.0f, 0.0f }, cameraRot = { 0.0f, 0.0f, 0.0f }, cameraScale = { 0.0f, 0.0f, 0.0f };
 
+		// Makes sure that if there is no camera the position takes the perspective editor camera position instead
+		cameraPos = perspectiveCamera->GetPositionVector();
+
 		// Update statistics
 		{
 			mStats.timesteps += ts;
@@ -183,6 +186,38 @@ namespace Toast {
 			mStats.VerticesCount = 0;
 		}
 
+		// Process lights
+		{
+			mLightEnvironment = LightEnvironment();
+			auto lights = mRegistry.group<DirectionalLightComponent>(entt::get<TransformComponent>);
+			uint32_t directionalLightIndex = 0;
+			for (auto entity : lights)
+			{
+				auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
+				DirectX::XMFLOAT4 direction = {cos(transformComponent.Rotation.y) * cos(transformComponent.Rotation.x), sin(transformComponent.Rotation.y) * cos(transformComponent.Rotation.x), sin(transformComponent.Rotation.x), 0.0f, };
+				DirectX::XMFLOAT4 radiance = DirectX::XMFLOAT4(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
+				mLightEnvironment.DirectionalLights[directionalLightIndex++] =
+				{
+					direction,
+					radiance,
+					lightComponent.Intensity,
+				};
+			}
+		}
+
+		// Process Skylight
+		{
+			mEnvironment = Environment();
+			auto skylights = mRegistry.group<SkyLightComponent>(entt::get<TransformComponent>);
+			for (auto entity : skylights) 
+			{
+				auto [transformComponent, skylightComponent] = skylights.get<TransformComponent, SkyLightComponent>(entity);
+				mEnvironment = skylightComponent.SceneEnvironment;
+				mEnvironmentIntensity = skylightComponent.Intensity;
+				SetSkybox(mEnvironment.RadianceMap);
+			}
+		}
+
 		// Checks if the game camera have moved
 		{
 			auto view = mRegistry.view<TransformComponent, CameraComponent>();
@@ -191,6 +226,7 @@ namespace Toast {
 				auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
 				if (camera.Primary)
 					DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.GetTransform());
+				
 			}
 
 			if (!DirectX::XMVector3Equal(mOldCameraPos, cameraPos))
@@ -229,7 +265,7 @@ namespace Toast {
 		DirectX::XMStoreFloat4(&cameraPosFloat, cameraPos);
 
 		// 3D Rendering
-		Renderer::BeginScene(*perspectiveCamera, perspectiveCamera->GetViewMatrix(), cameraPosFloat);
+		Renderer::BeginScene(this, *perspectiveCamera, perspectiveCamera->GetViewMatrix(), cameraPosFloat);
 		{
 			{
 				auto view = mRegistry.view<TransformComponent, CameraComponent>();
@@ -355,12 +391,6 @@ namespace Toast {
 		}
 	}
 
-	void Scene::SetEnvironment(const Environment& environment)
-	{
-		mEnvironment = environment;
-		SetSkybox(environment.RadianceMap);
-	}
-
 	void Scene::SetSkybox(const Ref<TextureCube>& skybox)
 	{
 		mSkyboxTexture = skybox;
@@ -450,6 +480,16 @@ namespace Toast {
 
 	template<>
 	void Scene::OnComponentAdded<NativeScriptComponent>(Entity entity, NativeScriptComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<DirectionalLightComponent>(Entity entity, DirectionalLightComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<SkyLightComponent>(Entity entity, SkyLightComponent& component)
 	{
 	}
 

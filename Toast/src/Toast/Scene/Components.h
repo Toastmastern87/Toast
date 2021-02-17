@@ -119,4 +119,16 @@ namespace Toast {
 			DestroyScript = [](NativeScriptComponent* nsc) { delete nsc->Instance; nsc->Instance = nullptr; };
 		}
 	};
+
+	struct DirectionalLightComponent 
+	{
+		DirectX::XMFLOAT3 Radiance = { 1.0f, 1.0f, 1.0f };
+		float Intensity = 1.0f;
+	};
+
+	struct SkyLightComponent 
+	{
+		Environment SceneEnvironment;
+		float Intensity = 1.0f;
+	};
 }

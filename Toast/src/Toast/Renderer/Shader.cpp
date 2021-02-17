@@ -285,7 +285,7 @@ namespace Toast {
 				switch (resourceDesc.Type)
 				{
 					case D3D_SIT_TEXTURE:
-						mResourceBindings.push_back(ResourceBindingDesc{ resourceDesc.Name, kv.first, resourceDesc.BindPoint, BindingType::Texture, 0, 0 });
+							mResourceBindings.push_back(ResourceBindingDesc{ resourceDesc.Name, kv.first, resourceDesc.BindPoint, BindingType::Texture, 0, 0 });
 						break;
 					case D3D_SIT_SAMPLER:
 						mResourceBindings.push_back(ResourceBindingDesc{ resourceDesc.Name, kv.first, resourceDesc.BindPoint, BindingType::Sampler, 0, 0 });
@@ -293,7 +293,6 @@ namespace Toast {
 					case D3D_SIT_CBUFFER:
 						ID3D11ShaderReflectionConstantBuffer* cbReflection;
 						D3D11_SHADER_BUFFER_DESC cbDesc;
-
 						cbReflection = reflector->GetConstantBufferByName(resourceDesc.Name);
 						cbReflection->GetDesc(&cbDesc);
 
@@ -327,6 +326,9 @@ namespace Toast {
 				break;
 			case D3D11_COMPUTE_SHADER:
 				deviceContext->CSSetShader(mComputeShader.Get(), nullptr, 0);
+				break;
+			default:
+				TOAST_CORE_WARN("Trying to bind a shader without a shader type specified");
 				break;
 			}
 		}

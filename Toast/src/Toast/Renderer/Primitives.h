@@ -86,20 +86,41 @@ namespace Toast {
 	public:
 		static uint32_t CreateCube(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, float width = 1.0f, float height = 1.0f, float depth = 1.0f)
 		{
-			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.25f }));
-			vertices.push_back(Vertex({ -(width / 2.0f), -(height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.25f }));
-			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.5f }));
-			vertices.push_back(Vertex({ (width / 2.0f), -(height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.5f }));
-			vertices.push_back(Vertex({ -(width / 2.0f), -(height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.25f }));
-			vertices.push_back(Vertex({ (width / 2.0f), -(height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.5f }));
-			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.75f, 0.25f }));
-			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.75f, 0.5f }));
-			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 1.0f, 0.25f }));
-			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 1.0f, 0.5f }));
-			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.0f }));
-			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.0f }));
-			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.25f, 0.75f }));
-			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.5f, 0.75f }));
+			//Front
+			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.25f }));
+			vertices.push_back(Vertex({ -(width / 2.0f), -(height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.25f, 0.25f }));
+			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.5f }));
+			vertices.push_back(Vertex({ (width / 2.0f), -(height / 2.0f), -(depth / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.25f, 0.5f }));
+			
+			//Back
+			vertices.push_back(Vertex({ -(width / 2.0f), -(height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.5f, 0.25f }));
+			vertices.push_back(Vertex({ (width / 2.0f), -(height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.5f, 0.5f }));
+			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.75f, 0.25f }));
+			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.75f, 0.5f }));
+			
+			//Top
+			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f }, { 0.75f, 0.25f }));
+			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f }, { 0.75f, 0.5f }));
+			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.25f }));
+			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.5f }));
+
+			//Bottom
+			vertices.push_back(Vertex({ -(width / 2.0f), -(height / 2.0f), -(depth / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f, 0.0f }, { 0.25f, 0.25f }));
+			vertices.push_back(Vertex({ (width / 2.0f), -(height / 2.0f), -(depth / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f, 0.0f }, { 0.25f, 0.5f }));
+			vertices.push_back(Vertex({ -(width / 2.0f), -(height / 2.0f), (depth / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f, 0.0f }, { 0.5f, 0.25f }));
+			vertices.push_back(Vertex({ (width / 2.0f), -(height / 2.0f), (depth / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f, 0.0f }, { 0.5f, 0.5f }));
+
+			//Left
+			vertices.push_back(Vertex({ -(width / 2.0f), -(height / 2.0f), -(depth / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.25f, 0.25f }));
+			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.5f, 0.0f }));
+			vertices.push_back(Vertex({ -(width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.25f, 0.0f }));
+			vertices.push_back(Vertex({ -(width / 2.0f), -(height / 2.0f), (depth / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.5f, 0.25f }));
+
+			//Right
+			vertices.push_back(Vertex({ (width / 2.0f), -(height / 2.0f), -(depth / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 0.25f, 0.5f }));
+			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), -(depth / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 0.25f, 0.75f }));
+			vertices.push_back(Vertex({ (width / 2.0f), -(height / 2.0f), (depth / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 0.5f, 0.5f }));
+			vertices.push_back(Vertex({ (width / 2.0f), (height / 2.0f), (depth / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 0.5f, 0.75f }));
 
 			indices = std::vector<uint32_t>{
 				//Front
@@ -111,20 +132,20 @@ namespace Toast {
 				5, 7, 6,
 
 				//Top
-				6, 7, 8,
-				7, 9, 8,
+				8, 9, 10,
+				9, 11, 10,
 
 				//Bottom
-				1, 3, 4,
-				3, 5, 4,
+				12, 13, 14,
+				13, 15, 14,
 
 				//Left
-				1, 11, 10,
-				1, 4, 11,
+				16, 17, 18,
+				16, 19, 17,
 
 				//Right
-				3, 12, 5,
-				5, 12, 13
+				20, 21, 22,
+				22, 21, 23
 			};
 
 			return 36;

@@ -4,7 +4,7 @@
 	branch = v1.x
 [submodule "Toast/vendor/imgui"]
 	path = Toast/vendor/imgui
-	url = https://github.com/TheCherno/imgui
+	url = https://github.com/Toastmastern87/imgui
 	branch = docking
 [submodule "Toast/vendor/directxtk"]
 	path = Toast/vendor/directxtk

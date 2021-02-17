@@ -106,7 +106,8 @@ struct PixelInputType
 	float2 uv : TEXCOORD0;
 };
 
-Texture2D Albedo : register(t0);
+Texture2D Irradiance : register(t0);
+Texture2D Albedo : register(t3);
 SamplerState sampleType;
 
 float4 main(PixelInputType input) : SV_TARGET

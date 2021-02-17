@@ -9,6 +9,20 @@
 
 namespace Toast {
 
+	struct DirectionalLight
+	{
+		DirectX::XMFLOAT4 Direction = { 0.0f, 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT4 Radiance = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		float Multiplier = 1.0f;
+	};
+
+	struct LightEnvironment
+	{
+		DirectionalLight DirectionalLights[1];
+	};
+
+
 	class Entity;
 
 	class Scene 
@@ -32,10 +46,8 @@ namespace Toast {
 		float& GetSkyboxLod() { return mSkyboxLod; }
 		float& GetEnvironmentIntensity() { return mEnvironmentIntensity; }
 
-		void SetEnvironment(const Environment& environment);
 		const Environment& GetEnvironment() const { return mEnvironment; }
 		void SetSkybox(const Ref<TextureCube>& skybox);
-
 
 		//Settings
 		struct Settings
@@ -62,12 +74,15 @@ namespace Toast {
 		float mEnvironmentIntensity = 1.0f, mSkyboxLod = 0.0f;
 		Ref<Mesh> mSkybox;
 
+		LightEnvironment mLightEnvironment;
+
 		Settings mSettings;
 		Stats mStats;
 
 		DirectX::XMVECTOR mOldCameraPos = { 0.0f, 0.0f, 0.0f }, mOldCameraRot = { 0.0f, 0.0f, 0.0f }, mOldCameraScale = { 0.0f, 0.0f, 0.0f };
 
 		friend class Entity;
+		friend class Renderer;
 		friend class SceneSerializer;
 		friend class SceneHierarchyPanel;
 		friend class SceneSettingsPanel;

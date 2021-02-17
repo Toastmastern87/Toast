@@ -5,6 +5,8 @@
 
 #include "Toast/Scene/Components.h"
 
+#include "Toast/Utils/PlatformUtils.h"
+
 namespace Toast {
 
 	SceneHierarchyPanel::SceneHierarchyPanel(const Ref<Scene>& context)
@@ -342,6 +344,24 @@ namespace Toast {
 				}
 			}
 
+			if (!mSelectionContext.HasComponent<DirectionalLightComponent>())
+			{
+				if (ImGui::MenuItem("Directional Light"))
+				{
+					mSelectionContext.AddComponent<DirectionalLightComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
+			if (!mSelectionContext.HasComponent<SkyLightComponent>())
+			{
+				if (ImGui::MenuItem("Sky Light"))
+				{
+					mSelectionContext.AddComponent<SkyLightComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
 			ImGui::EndPopup();
 		}
 
@@ -519,6 +539,67 @@ namespace Toast {
 
 					mc.Mesh->InitPlanet();
 					mc.Mesh->AddSubmesh(mc.Mesh->mIndices.size());
+				}
+		});
+
+		DrawComponent<DirectionalLightComponent>("Directional Light", entity, [](auto& component, Entity entity)
+		{
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+				if (ImGui::BeginTable("DirectionalLightTable", 2, flags))
+				{
+					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Radiance");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::ColorEdit3("##Radiance", &component.Radiance.x);
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Intensity");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::DragFloat("##label", &component.Intensity, 0.01f, 0.0f, 5.0f, "%.2f");
+					ImGui::EndTable();
+				}
+		});
+
+		DrawComponent<SkyLightComponent>("Sky Light", entity, [](auto& component, Entity entity)
+		{
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+				if (ImGui::BeginTable("SkyLightTable", 3, flags))
+				{
+					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
+					ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("File Path");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					if (!component.SceneEnvironment.FilePath.empty())
+						ImGui::InputText("##envfilepath", (char*)component.SceneEnvironment.FilePath.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
+					else
+						ImGui::InputText("##envfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
+					ImGui::TableSetColumnIndex(2);
+					if (ImGui::Button("...##openenv"))
+					{
+						std::string file = FileDialogs::OpenFile("*.png");
+						if (!file.empty())
+							component.SceneEnvironment = Environment::Load(file);
+					}
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Intensity");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::DragFloat("##label", &component.Intensity, 0.01f, 0.0f, 5.0f, "%.2f");
+					ImGui::EndTable();
 				}
 		});
 	}

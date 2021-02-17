@@ -32,42 +32,48 @@ struct VertexInputType
 
 struct PixelInputType
 {
-	float4 position : SV_POSITION;
-	float3 normal : NORMAL;
-	float3 tangent : TANGENT;
-	float3 binormal: BINORMAL;
-	float2 texcoord : TEXCOORD;
+	float4 pixelPosition	: SV_POSITION;
+	float3 worldPosition	: POSITION0;
+	float3 normal			: NORMAL;
+	float2 texcoord			: TEXCOORD;
+	float3 cameraPos		: POSITION1;
 };
 
 PixelInputType main(VertexInputType input)
 {
 	PixelInputType output;
 
-	output.position = mul(float4(input.position, 1.0f), worldMatrix);
-	output.position = mul(output.position, viewMatrix);
-	output.position = mul(output.position, projectionMatrix);
+	output.pixelPosition = mul(float4(input.position, 1.0f), worldMatrix);
+	output.pixelPosition = mul(output.pixelPosition, viewMatrix);
+	output.pixelPosition = mul(output.pixelPosition, projectionMatrix);
 
-	output.normal = input.normal;
-	output.tangent = input.tangent;
-	output.binormal = input.binormal;
-	output.texcoord = input.texcoord;
+	output.worldPosition = mul(float4(input.position, 1.0f), worldMatrix).xyz;
+
+	output.normal = mul(input.normal, (float3x3)worldMatrix);
+	output.texcoord = float2(input.texcoord.x, 1.0f - input.texcoord.y);
+	output.cameraPos = cameraPosition.xyz;
 
 	return output;
 }
 
 #type pixel
+cbuffer DirectionalLight : register(b0)
+{
+	float4 direction;
+	float4 radiance;
+	float multiplier;
+};
+
 struct PixelInputType
 {
-	float4 position : SV_POSITION;
-	float3 normal : NORMAL;
-	float3 tangent : TANGENT;
-	float3 binormal: BINORMAL;
-	float2 texcoord : TEXCOORD;
+	float4 pixelPosition	: SV_POSITION;
+	float3 worldPosition	: POSITION;
+	float3 normal			: NORMAL;
+	float2 texcoord			: TEXCOORD;
+	float3 cameraPos		: POSITION1;
 };
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	float4 color = float4(1.0f, 1.0f, 1.0f, 1.0f);
-
-	return color;
+	return float4(1.0f * multiplier, 1.0f * multiplier, 1.0f * multiplier, 1.0f);
 }
