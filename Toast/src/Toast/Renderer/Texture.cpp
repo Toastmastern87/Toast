@@ -33,17 +33,14 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		HRESULT result;
-		D3D11_TEXTURE2D_DESC textureDesc;
-
-		size_t dataSize = mWidth * mHeight * sizeof(uint32_t);
-		uint32_t initData = NULL;
+		D3D11_TEXTURE2D_DESC textureDesc = {};
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
 
 		textureDesc.ArraySize = 1;
-		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		textureDesc.Usage = D3D11_USAGE_DYNAMIC;
+		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+		textureDesc.Usage = D3D11_USAGE_DEFAULT;
 		textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		textureDesc.Format = format;
 		textureDesc.Height = mHeight;
@@ -53,7 +50,7 @@ namespace Toast {
 		textureDesc.SampleDesc.Count = 1;
 		textureDesc.SampleDesc.Quality = 0;
 
-		result = device->CreateTexture2D(&textureDesc, NULL, &mTexture);
+		result = device->CreateTexture2D(&textureDesc, nullptr, &mTexture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
 
 		CreateSRV();
@@ -68,7 +65,7 @@ namespace Toast {
 
 		HRESULT result;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> textureInterface;
-		D3D11_TEXTURE2D_DESC desc;
+		D3D11_TEXTURE2D_DESC desc = {};
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
@@ -100,19 +97,60 @@ namespace Toast {
 		deviceContext->Unmap(mResource.Get(), NULL);
 	}
 
-	void Texture2D::CreateSRV()
+	void Texture2D::BindForReadWrite(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
 	{
-		D3D11_TEXTURE2D_DESC desc;
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		switch (shaderType)
+		{
+		case D3D11_COMPUTE_SHADER:
+			deviceContext->CSSetUnorderedAccessViews(bindslot, 1, mUAV.GetAddressOf(), nullptr);
+		}
+	}
+
+	void Texture2D::UnbindUAV(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		switch (shaderType)
+		{
+		case D3D11_COMPUTE_SHADER:
+			deviceContext->CSSetUnorderedAccessViews(bindslot, 1, mNullUAV.GetAddressOf(), nullptr);
+		}
+	}
+
+	void Texture2D::CreateUAV(uint32_t mipSlice)
+	{
+		D3D11_TEXTURE2D_DESC desc = {};
 		mTexture->GetDesc(&desc);
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
 
-		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
+		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+		uavDesc.Format = desc.Format;
+		uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+		uavDesc.Texture2D.MipSlice = mipSlice;
+
+		HRESULT result = device->CreateUnorderedAccessView(mTexture.Get(), &uavDesc, &mUAV);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the UAV!");
+	}
+
+	void Texture2D::CreateSRV()
+	{
+		D3D11_TEXTURE2D_DESC desc = {};
+		mTexture->GetDesc(&desc);
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc = {};
 		shaderResourceViewDesc.Format = desc.Format;
-		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
-		shaderResourceViewDesc.Texture2DArray.MipLevels = -1;
-		shaderResourceViewDesc.Texture2DArray.MostDetailedMip = 0;
+		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		shaderResourceViewDesc.Texture2D.MipLevels = -1;
+		shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
 
 		HRESULT result = device->CreateShaderResourceView(mTexture.Get(), &shaderResourceViewDesc, &mSRV);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the SRV!");
@@ -149,12 +187,9 @@ namespace Toast {
 		: mFilePath(filePath), mWidth(width), mHeight(height)
 	{
 		TOAST_PROFILE_FUNCTION();
-		D3D11_TEXTURE2D_DESC textureDesc;
+		D3D11_TEXTURE2D_DESC textureDesc = {};
 
 		mLevels = (levels > 0) ? levels : CalculateMipMapCount(width, height);
-
-		size_t dataSize = mWidth * mHeight * sizeof(uint32_t);
-		uint32_t initData = NULL;
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
@@ -174,7 +209,7 @@ namespace Toast {
 			textureDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
 		}
 
-		HRESULT result = device->CreateTexture2D(&textureDesc, NULL, &mTexture);
+		HRESULT result = device->CreateTexture2D(&textureDesc, nullptr, &mTexture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
 
 		CreateSRV();
@@ -236,13 +271,13 @@ namespace Toast {
 
 	void TextureCube::CreateSRV()
 	{
-		D3D11_TEXTURE2D_DESC desc;
+		D3D11_TEXTURE2D_DESC desc = {};
 		mTexture->GetDesc(&desc);
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
 
-		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
+		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc = {};
 		shaderResourceViewDesc.Format = desc.Format;
 		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
 		shaderResourceViewDesc.Texture2DArray.MipLevels = -1;
@@ -254,13 +289,13 @@ namespace Toast {
 
 	void TextureCube::CreateUAV(uint32_t mipSlice)
 	{
-		D3D11_TEXTURE2D_DESC desc;
+		D3D11_TEXTURE2D_DESC desc = {};
 		mTexture->GetDesc(&desc);
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
 
-		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc;
+		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 		uavDesc.Format = desc.Format;
 		uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
 		uavDesc.Texture2DArray.MipSlice = mipSlice;
@@ -288,7 +323,7 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
 
-		D3D11_SAMPLER_DESC desc;
+		D3D11_SAMPLER_DESC desc = {};
 		desc.Filter = filter;
 		desc.AddressU = addressMode;
 		desc.AddressV = addressMode;

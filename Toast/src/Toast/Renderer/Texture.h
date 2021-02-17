@@ -48,12 +48,16 @@ namespace Toast {
 
 		void SetData(void* data, uint32_t size);
 
+		void BindForReadWrite(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_COMPUTE_SHADER) const;
+		void UnbindUAV(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_COMPUTE_SHADER) const;
+		void CreateUAV(uint32_t mipSlice);
+
 		virtual bool operator==(const Texture& other) const override
 		{
 			return mSRV == ((Texture2D&)other).mSRV;
 		};
 	private:
-		std::string mFilePath;
+		std::string mFilePath = "";
 		uint32_t mWidth, mHeight;
 
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> mTexture;
@@ -93,7 +97,7 @@ namespace Toast {
 			return mSRV == ((TextureCube&)other).mSRV;
 		};
 	private:
-		std::string mFilePath;
+		std::string mFilePath = "";
 		uint32_t mWidth, mHeight, mLevels;
 
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> mTexture;

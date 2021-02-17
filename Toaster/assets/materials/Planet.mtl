@@ -5,5 +5,5 @@ Textures:
     BindSlot: 0
     ShaderType: 1
   - FilePath: C:\dev\Toast\Toaster\assets\textures\MarsAlbedo.png
-    BindSlot: 0
+    BindSlot: 3
     ShaderType: 5

@@ -9,6 +9,7 @@ namespace Toast {
 		std::string FilePath;
 		Ref<TextureCube> RadianceMap;
 		Ref<TextureCube> IrradianceMap;
+		Ref<Texture2D> SpecularBRDFLUT;
 
 		static Environment Load(const std::string& filepath);
 	};

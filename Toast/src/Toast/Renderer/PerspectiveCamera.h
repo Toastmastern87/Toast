@@ -31,6 +31,7 @@ namespace Toast {
 		const DirectX::XMVECTOR GetForwardVector() const { return mForward; }
 		const DirectX::XMVECTOR GetUpVector() const { return mUp; }
 		const DirectX::XMVECTOR GetRightVector() const { return mRight; }
+		const DirectX::XMVECTOR GetPositionVector() const { return mPosition; }
 	private:
 		void RecalculateProjectionMatrix();
 		void RecalculateViewMatrix();

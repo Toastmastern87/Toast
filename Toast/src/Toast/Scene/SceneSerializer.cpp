@@ -230,16 +230,6 @@ namespace Toast {
 		std::string sceneName = data["Scene"].as<std::string>();
 		TOAST_CORE_TRACE("Deserializing scene '{0}'", sceneName);
 
-		auto environment = data["Environment"];
-		if (environment)
-		{
-			std::string envPath = environment["AssetPath"].as<std::string>();
-			mScene->SetEnvironment(Environment::Load(envPath));
-
-			mScene->GetEnvironmentIntensity() = environment["EnvironmentIntensity"].as<float>();
-			mScene->GetSkyboxLod() = environment["TextureLOD"].as<float>();
-		}
-
 		auto entities = data["Entities"];
 		if (entities) 
 		{

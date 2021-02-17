@@ -146,6 +146,7 @@ namespace Toast {
 
 	void MaterialLibrary::Add(std::string name, const Ref<Material>& material)
 	{
+		TOAST_CORE_TRACE("Adding material: {0}", name);
 		if (Exists(name))
 		{
 			name.append("_");
@@ -223,11 +224,15 @@ namespace Toast {
 		out << YAML::Key << "Textures" << YAML::Value << YAML::BeginSeq;
 		for (auto& texture : material->GetTextureBindings())
 		{
-			out << YAML::BeginMap;
-			out << YAML::Key << "FilePath" << YAML::Value << texture.Texture->GetFilePath();
-			out << YAML::Key << "BindSlot" << YAML::Value << texture.BindSlot;
-			out << YAML::Key << "ShaderType" << YAML::Value << (uint32_t)texture.ShaderType;
-			out << YAML::EndMap;
+			// First few slots are preserved for PBR textures
+			if (texture.ShaderType != D3D11_PIXEL_SHADER || texture.BindSlot > 2) 
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "FilePath" << YAML::Value << texture.Texture->GetFilePath();
+				out << YAML::Key << "BindSlot" << YAML::Value << texture.BindSlot;
+				out << YAML::Key << "ShaderType" << YAML::Value << (uint32_t)texture.ShaderType;
+				out << YAML::EndMap;
+			}
 		}
 		out << YAML::EndSeq;
 		out << YAML::EndMap;
