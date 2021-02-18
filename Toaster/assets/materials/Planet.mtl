@@ -2,8 +2,11 @@ Material: Planet
 Shader: Planet
 Textures:
   - FilePath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
-    BindSlot: 0
+    BindSlot: 4
     ShaderType: 1
   - FilePath: C:\dev\Toast\Toaster\assets\textures\MarsAlbedo.png
     BindSlot: 3
+    ShaderType: 5
+  - FilePath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
+    BindSlot: 4
     ShaderType: 5

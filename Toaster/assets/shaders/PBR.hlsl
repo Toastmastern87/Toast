@@ -155,7 +155,7 @@ float4 main(PixelInputType input) : SV_TARGET
 
 	// Direct lighting calculation for analytical lights.
 	float3 directLighting = 0.0f;
-	{
+	{ 
 		float3 Li = direction;
 		float3 Lradiance = radiance * multiplier;
 
