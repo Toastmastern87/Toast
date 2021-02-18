@@ -8,7 +8,7 @@ vertex
 #type vertex
 #pragma pack_matrix( row_major )
 
-cbuffer SkyboxTransforms : register(b0)
+cbuffer SkyboxTransforms : register(b1)
 {
     matrix viewMatrix;
     matrix projectionMatrix;
@@ -55,7 +55,7 @@ struct PixelInputType
 	float3 pos : POSITION;
 };
 
-TextureCube skybox : register(t0);
+TextureCube skybox : register(t3);
 SamplerState sampleType;
 
 float4 main(PixelInputType input) : SV_Target

@@ -144,6 +144,7 @@ namespace Toast {
 
 		mesh->mMaterial->SetData("Morphing", (void*)&morphData);
 		mesh->mMaterial->SetData("Planet", (void*)&planetData);
+		mesh->mMaterial->SetData("PlanetPS", (void*)&planetData);
 		mesh->mMaterial->SetData("Model", (void*)&transform);
 		mesh->mMaterial->Bind();
 

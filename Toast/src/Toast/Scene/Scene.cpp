@@ -287,26 +287,30 @@ namespace Toast {
 			{
 				auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
 
-				switch (mSettings.WireframeRendering)
+				//Do not submit mesh if it's a planet
+				if (mesh.Mesh->GetMaterial()->GetName() != "Planet")
 				{
-				case Settings::Wireframe::NO:
-				{
-					Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), false);
+					switch (mSettings.WireframeRendering)
+					{
+					case Settings::Wireframe::NO:
+					{
+						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), false);
 
-					break;
-				}
-				case Settings::Wireframe::YES:
-				{
-					Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), true);
+						break;
+					}
+					case Settings::Wireframe::YES:
+					{
+						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), true);
 
-					break;
-				}
-				case Settings::Wireframe::ONTOP:
-				{		
-					// TODO
+						break;
+					}
+					case Settings::Wireframe::ONTOP:
+					{
+						// TODO
 
-					break;
-				}
+						break;
+					}
+					}
 				}
 
 				mStats.VerticesCount += mesh.Mesh->GetVertices().size();
@@ -394,7 +398,7 @@ namespace Toast {
 	void Scene::SetSkybox(const Ref<TextureCube>& skybox)
 	{
 		mSkyboxTexture = skybox;
-		mSkyboxMaterial->SetTexture(0, D3D11_PIXEL_SHADER, mSkyboxTexture);
+		mSkyboxMaterial->SetTexture(3, D3D11_PIXEL_SHADER, mSkyboxTexture);
 	}
 
 	template<typename T>

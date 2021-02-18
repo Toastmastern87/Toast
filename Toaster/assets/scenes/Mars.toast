@@ -1,8 +1,4 @@
 Scene: Untitled Scene
-Environment:
-  AssetPath: C:\dev\Toast\Toaster\assets\textures\starmap.png
-  EnvironmentIntensity: 1
-  TextureLOD: 0
 Entities:
   - Entity: 12837192831273
     TagComponent:

@@ -122,9 +122,8 @@ namespace Toast {
 
 		for (auto& textureBinding : mTextureBindings)
 		{
-			if (textureBinding.Texture)
+			if (textureBinding.Texture) 
 				textureBinding.Texture->Bind(textureBinding.BindSlot, textureBinding.ShaderType);
-
 		}
 
 		for (auto& samplerBinding : mSamplerBindings)
