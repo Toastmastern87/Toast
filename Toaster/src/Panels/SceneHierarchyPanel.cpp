@@ -563,6 +563,12 @@ namespace Toast {
 					ImGui::Text("Intensity");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::DragFloat("##label", &component.Intensity, 0.01f, 0.0f, 5.0f, "%.2f");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Sun Disc");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Checkbox("##checkbox", &component.SunDisc);
 					ImGui::EndTable();
 				}
 		});
