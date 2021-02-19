@@ -124,6 +124,7 @@ namespace Toast {
 	{
 		DirectX::XMFLOAT3 Radiance = { 1.0f, 1.0f, 1.0f };
 		float Intensity = 1.0f;
+		bool SunDisc = false;
 	};
 
 	struct SkyLightComponent 

@@ -172,6 +172,30 @@ namespace Toast {
 			out << YAML::EndMap; // PlanetComponent
 		}
 
+		if (entity.HasComponent<SkyLightComponent>())
+		{
+			out << YAML::Key << "SkyLightComponent";
+			out << YAML::BeginMap; // SkyLightComponent
+
+			auto& skc = entity.GetComponent<SkyLightComponent>();
+			out << YAML::Key << "AssetPath" << YAML::Value << skc.SceneEnvironment.FilePath;
+			out << YAML::Key << "Intensity" << YAML::Value << skc.Intensity;
+
+			out << YAML::EndMap; // SkyLightComponent
+		}
+
+		if (entity.HasComponent<DirectionalLightComponent>())
+		{
+			out << YAML::Key << "DirectionalLightComponent";
+			out << YAML::BeginMap; // DirectionalLightComponent
+
+			auto& dlc = entity.GetComponent<DirectionalLightComponent>();
+			out << YAML::Key << "Radiance" << YAML::Value << dlc.Radiance;
+			out << YAML::Key << "Intensity" << YAML::Value << dlc.Intensity;
+
+			out << YAML::EndMap; // SkyLightComponent
+		}
+
 		out << YAML::EndMap; // Entity
 	}
 
@@ -283,6 +307,25 @@ namespace Toast {
 				if (planetComponent) 
 				{
 					auto& pc = deserializedEntity.AddComponent<PlanetComponent>(planetComponent["Subdivisions"].as<int16_t>(), planetComponent["PatchLevels"].as<int16_t>(), planetComponent["MaxAltitude"].as<DirectX::XMFLOAT4>(), planetComponent["MinAltitude"].as<DirectX::XMFLOAT4>(), planetComponent["Radius"].as<DirectX::XMFLOAT4>());
+				}
+
+				auto skylightComponent = entity["SkyLightComponent"];
+				if (skylightComponent)
+				{
+					auto& skc = deserializedEntity.AddComponent<SkyLightComponent>();
+					
+					skc.SceneEnvironment = Environment::Load(skylightComponent["AssetPath"].as<std::string>());
+					skc.Intensity = skylightComponent["Intensity"].as<float>();
+				}
+
+
+				auto directionalLightComponent = entity["DirectionalLightComponent"];
+				if (directionalLightComponent)
+				{
+					auto& dlc = deserializedEntity.AddComponent<DirectionalLightComponent>();
+
+					dlc.Radiance = directionalLightComponent["Radiance"].as<DirectX::XMFLOAT3>();
+					dlc.Intensity = directionalLightComponent["Intensity"].as<float>();
 				}
 			}
 		}

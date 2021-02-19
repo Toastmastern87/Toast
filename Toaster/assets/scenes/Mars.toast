@@ -2,6 +2,16 @@ Scene: Untitled Scene
 Entities:
   - Entity: 12837192831273
     TagComponent:
+      Tag: Sunlight
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    DirectionalLightComponent:
+      Radiance: [1, 1, 1]
+      Intensity: 1
+  - Entity: 12837192831273
+    TagComponent:
       Tag: Camera
     TransformComponent:
       Translation: [0, 0, -3790]
@@ -33,3 +43,13 @@ Entities:
       MaxAltitude: [21.2000008, 21.2000008, 21.2000008, 21.2000008]
       MinAltitude: [-8.19999981, -8.19999981, -8.19999981, -8.19999981]
       Radius: [3389.5, 3389.5, 3389.5, 3389.5]
+  - Entity: 12837192831273
+    TagComponent:
+      Tag: Ambient Light
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SkyLightComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\starmap.png
+      Intensity: 1
