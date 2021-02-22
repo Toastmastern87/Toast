@@ -2,16 +2,6 @@ Scene: Untitled Scene
 Entities:
   - Entity: 12837192831273
     TagComponent:
-      Tag: Sunlight
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-    DirectionalLightComponent:
-      Radiance: [1, 1, 1]
-      Intensity: 1
-  - Entity: 12837192831273
-    TagComponent:
       Tag: Camera
     TransformComponent:
       Translation: [0, 0, -3790]
@@ -28,6 +18,16 @@ Entities:
         OrthographicFar: 1
       Primary: true
       FixedAspectRatio: false
+  - Entity: 12837192831273
+    TagComponent:
+      Tag: Sunlight
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [-6.68635607, 0, 0]
+      Scale: [1, 1, 1]
+    DirectionalLightComponent:
+      Radiance: [0.945098042, 0.839215696, 0.384313732]
+      Intensity: 1
   - Entity: 12837192831273
     TagComponent:
       Tag: Planet

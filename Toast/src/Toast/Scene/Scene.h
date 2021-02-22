@@ -15,6 +15,7 @@ namespace Toast {
 		DirectX::XMFLOAT4 Radiance = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 		float Multiplier = 1.0f;
+		float SunDisc = 0.0f;
 	};
 
 	struct LightEnvironment

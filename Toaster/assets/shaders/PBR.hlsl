@@ -67,6 +67,7 @@ cbuffer DirectionalLight : register(b0)
 	float4 direction;
 	float4 radiance;
 	float multiplier;
+	float sunDiscToggle;
 };
 
 struct PixelInputType
