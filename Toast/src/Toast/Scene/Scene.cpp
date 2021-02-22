@@ -201,6 +201,7 @@ namespace Toast {
 					direction,
 					radiance,
 					lightComponent.Intensity,
+					lightComponent.SunDisc == true ? 1.0f : 0.0f
 				};
 			}
 		}
@@ -278,7 +279,7 @@ namespace Toast {
 			// Skybox!
 			{
 				if(mSkyboxTexture)
-					Renderer::SubmitSkybox(mSkybox, perspectiveCamera->GetViewMatrix(), perspectiveCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
+					Renderer::SubmitSkybox(mSkybox, DirectX::XMFLOAT4(DirectX::XMVectorGetX(perspectiveCamera->GetPositionVector()), DirectX::XMVectorGetY(perspectiveCamera->GetPositionVector()), DirectX::XMVectorGetZ(perspectiveCamera->GetPositionVector()), 0.0f), perspectiveCamera->GetViewMatrix(), perspectiveCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
 			}
 
 			// Meshes!
