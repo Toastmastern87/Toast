@@ -17,6 +17,7 @@ namespace YAML
 			node.push_back(rhs.x);
 			node.push_back(rhs.y);
 			node.push_back(rhs.z);
+			node.SetStyle(EmitterStyle::Flow);
 			return node;
 		}
 
@@ -42,6 +43,7 @@ namespace YAML
 			node.push_back(rhs.y);
 			node.push_back(rhs.z);
 			node.push_back(rhs.w);
+			node.SetStyle(EmitterStyle::Flow);
 			return node;
 		}
 
@@ -192,6 +194,7 @@ namespace Toast {
 			auto& dlc = entity.GetComponent<DirectionalLightComponent>();
 			out << YAML::Key << "Radiance" << YAML::Value << dlc.Radiance;
 			out << YAML::Key << "Intensity" << YAML::Value << dlc.Intensity;
+			out << YAML::Key << "SunDisk" << YAML::Value << dlc.SunDisc;
 
 			out << YAML::EndMap; // SkyLightComponent
 		}
@@ -229,12 +232,7 @@ namespace Toast {
 
 	bool SceneSerializer::Deserialize(const std::string& filepath)
 	{
-		std::ifstream stream(filepath);
-		std::stringstream strStream;
-
-		strStream << stream.rdbuf();
-
-		YAML::Node data = YAML::Load(strStream.str());
+		YAML::Node data = YAML::LoadFile(filepath);
 		if (!data["Scene"])
 			return false;
 
@@ -326,6 +324,7 @@ namespace Toast {
 
 					dlc.Radiance = directionalLightComponent["Radiance"].as<DirectX::XMFLOAT3>();
 					dlc.Intensity = directionalLightComponent["Intensity"].as<float>();
+					dlc.SunDisc = directionalLightComponent["SunDisk"].as<bool>();
 				}
 			}
 		}

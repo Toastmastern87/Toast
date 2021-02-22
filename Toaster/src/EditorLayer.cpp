@@ -265,8 +265,8 @@ namespace Toast {
 
 	void EditorLayer::OpenScene()
 	{
-		std::string filepath = FileDialogs::OpenFile("Toast Scene(*.toast)\0*toast\0");
-		if (!filepath.empty())
+		std::optional<std::string> filepath = FileDialogs::OpenFile("Toast Scene(*.toast)\0*toast\0");
+		if (filepath)
 		{
 			mActiveScene = CreateRef<Scene>();
 			mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
@@ -274,20 +274,20 @@ namespace Toast {
 			mSceneSettingsPanel.SetContext(mActiveScene);
 			mEnvironmentPanel.SetContext(mActiveScene);
 
-			std::filesystem::path path = filepath;
+			std::filesystem::path path = *filepath;
 			UpdateWindowTitle(path.filename().string());
-			mSceneFilePath = filepath;
+			mSceneFilePath = *filepath;
 
 			SceneSerializer serializer(mActiveScene);
-			serializer.Deserialize(filepath);
+			serializer.Deserialize(*filepath);
 		}
 	}
 
 	void EditorLayer::SaveScene()
 	{
-		if (!mSceneFilePath.empty()) {
+		if (mSceneFilePath) {
 			SceneSerializer serializer(mActiveScene);
-			serializer.Serialize(mSceneFilePath);
+			serializer.Serialize(*mSceneFilePath);
 		}
 		else {
 			SaveSceneAs();
@@ -297,12 +297,12 @@ namespace Toast {
 	void EditorLayer::SaveSceneAs()
 	{
 		mSceneFilePath = FileDialogs::SaveFile("Toast Scene(*.toast)\0*toast\0");
-		if (!mSceneFilePath.empty())
+		if (mSceneFilePath)
 		{
 			SceneSerializer serializer(mActiveScene);
-			serializer.Serialize(mSceneFilePath);
+			serializer.Serialize(*mSceneFilePath);
 
-			std::filesystem::path path = mSceneFilePath;
+			std::filesystem::path path = *mSceneFilePath;
 			UpdateWindowTitle(path.filename().string());
 		}
 	}

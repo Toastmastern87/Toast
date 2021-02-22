@@ -7,6 +7,8 @@
 #include "Toast/Renderer/Framebuffer.h"
 #include "Toast/Renderer/Texture.h"
 
+#include "Toast/Utils/PlatformUtils.h"
+
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/SceneSettingsPanel.h"
 #include "Panels/MaterialPanel.h"
@@ -35,7 +37,7 @@ namespace Toast {
 		bool OnKeyPressed(KeyPressedEvent& e);
 		void UpdateWindowTitle(const std::string& sceneName);
 	private:
-		std::string mSceneFilePath = "";
+		std::optional<std::string> mSceneFilePath;
 
 		OrthographicCameraController mCameraController;
 
