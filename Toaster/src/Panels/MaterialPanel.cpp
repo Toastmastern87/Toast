@@ -117,9 +117,9 @@ namespace Toast {
 
 						if (ImGui::IsItemClicked())
 						{
-							std::string filename = FileDialogs::OpenFile("");
-							if (filename != "")
-								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(filename));
+							std::optional<std::string> filename = FileDialogs::OpenFile("");
+							if (filename)
+								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
 						}
 
 						ImGui::TreePop();

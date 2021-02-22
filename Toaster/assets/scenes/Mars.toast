@@ -20,13 +20,13 @@ Entities:
       FixedAspectRatio: false
   - Entity: 12837192831273
     TagComponent:
-      Tag: Sunlight
+      Tag: Ambient Light
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-6.68635607, 0, 0]
+      Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-    DirectionalLightComponent:
-      Radiance: [0.945098042, 0.839215696, 0.384313732]
+    SkyLightComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\starmap.png
       Intensity: 1
   - Entity: 12837192831273
     TagComponent:
@@ -45,11 +45,12 @@ Entities:
       Radius: [3389.5, 3389.5, 3389.5, 3389.5]
   - Entity: 12837192831273
     TagComponent:
-      Tag: Ambient Light
+      Tag: Sunlight
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
+      Rotation: [-6.68635607, 0, 0]
       Scale: [1, 1, 1]
-    SkyLightComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\starmap.png
+    DirectionalLightComponent:
+      Radiance: [0.945098042, 0.839215696, 0.384313732]
       Intensity: 1
+      SunDisk: true
