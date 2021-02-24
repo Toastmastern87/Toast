@@ -12,3 +12,6 @@
 [submodule "Toast/vendor/yaml-cpp"]
 	path = Toast/vendor/yaml-cpp
 	url = https://github.com/Toastmastern87/yaml-cpp
+[submodule "Toast/vendor/ImGuizmo"]
+	path = Toast/vendor/ImGuizmo
+	url = https://github.com/Toastmastern87/ImGuizmo
