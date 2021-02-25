@@ -167,12 +167,12 @@ namespace Toast {
 		}
 	}
 
-	void Scene::OnUpdateEditor(Timestep ts, const Ref<PerspectiveCamera> perspectiveCamera)
+	void Scene::OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera)
 	{
 		DirectX::XMVECTOR cameraPos = { 0.0f, 0.0f, 0.0f }, cameraRot = { 0.0f, 0.0f, 0.0f }, cameraScale = { 0.0f, 0.0f, 0.0f };
 
 		// Makes sure that if there is no camera the position takes the perspective editor camera position instead
-		cameraPos = perspectiveCamera->GetPositionVector();
+		cameraPos = editorCamera->GetPosition();
 
 		// Update statistics
 		{
@@ -247,26 +247,11 @@ namespace Toast {
 			mOldCameraPos = cameraPos;
 		}
 
-		//Update scripts
-		{
-			mRegistry.view<NativeScriptComponent>().each([=](auto entity, auto& nsc)
-			{
-				if (!nsc.Instance)
-				{
-					nsc.Instance = nsc.InstantiateScript();
-					nsc.Instance->mEntity = Entity{ entity, this };
-					nsc.Instance->OnCreate();
-				}
-
-				nsc.Instance->OnUpdate(ts);
-			});
-		}
-
 		DirectX::XMFLOAT4 cameraPosFloat;
 		DirectX::XMStoreFloat4(&cameraPosFloat, cameraPos);
 
 		// 3D Rendering
-		Renderer::BeginScene(this, *perspectiveCamera, perspectiveCamera->GetViewMatrix(), cameraPosFloat);
+		Renderer::BeginScene(this, *editorCamera, editorCamera->GetViewMatrix(), cameraPosFloat);
 		{
 			{
 				auto view = mRegistry.view<TransformComponent, CameraComponent>();
@@ -279,7 +264,7 @@ namespace Toast {
 			// Skybox!
 			{
 				if(mSkyboxTexture)
-					Renderer::SubmitSkybox(mSkybox, DirectX::XMFLOAT4(DirectX::XMVectorGetX(perspectiveCamera->GetPositionVector()), DirectX::XMVectorGetY(perspectiveCamera->GetPositionVector()), DirectX::XMVectorGetZ(perspectiveCamera->GetPositionVector()), 0.0f), perspectiveCamera->GetViewMatrix(), perspectiveCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
+					Renderer::SubmitSkybox(mSkybox, DirectX::XMFLOAT4(DirectX::XMVectorGetX(editorCamera->GetPosition()), DirectX::XMVectorGetY(editorCamera->GetPosition()), DirectX::XMVectorGetZ(editorCamera->GetPosition()), 0.0f), editorCamera->GetViewMatrix(), editorCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
 			}
 
 			// Meshes!
@@ -364,7 +349,7 @@ namespace Toast {
 			//Renderer2D::EndScene();
 
 			// Debug Rendering
-			RendererDebug::BeginScene(*perspectiveCamera);
+			RendererDebug::BeginScene(*editorCamera);
 			{
 				RenderCommand::SetPrimitiveTopology(Topology::LINELIST);
 

@@ -37,5 +37,5 @@
 #include "Toast/Renderer/Material.h"
 
 #include "Toast/Renderer/OrthographicCamera.h"
-#include "Toast/Renderer/PerspectiveCamera.h"
+#include "Toast/Renderer/EditorCamera.h"
 //---------------------------------------

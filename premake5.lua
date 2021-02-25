@@ -21,6 +21,7 @@ IncludeDir["ImGui"] = "Toast/vendor/imgui"
 IncludeDir["directxtk"] = "Toast/vendor/directxtk/Inc" 
 IncludeDir["entt"] = "Toast/vendor/entt/include" 
 IncludeDir["yaml_cpp"] = "Toast/vendor/yaml-cpp/include" 
+IncludeDir["ImGuizmo"] = "Toast/vendor/ImGuizmo" 
 
 LibraryDir = {}
 LibraryDir["directxtk"] = "Toast/vendor/directxtk/Bin/"
@@ -48,7 +49,10 @@ project "Toast"
 	files
 	{
 		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp"
+		"%{prj.name}/src/**.cpp",
+
+		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.h",
+		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp"
 	}
 
 	defines
@@ -63,7 +67,8 @@ project "Toast"
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.directxtk}",
 		"%{IncludeDir.entt}",
-		"%{IncludeDir.yaml_cpp}"
+		"%{IncludeDir.yaml_cpp}",
+		"%{IncludeDir.ImGuizmo}"
 	}
 
 	links
@@ -75,6 +80,9 @@ project "Toast"
 		"dxguid.lib",
 		"yaml-cpp"
 	}
+
+	filter "files:Toast/vendor/ImGuizmo/**.cpp"
+		flags { "NoPCH" }
 
 	filter "system:windows"
 		systemversion "latest"
@@ -132,7 +140,8 @@ project "Toaster"
 		"Toast/vendor/spdlog/include",
 		"Toast/src",
 		"Toast/vendor",
-		"%{IncludeDir.entt}"
+		"%{IncludeDir.entt}",
+		"%{IncludeDir.ImGuizmo}"
 	}
 
 	links

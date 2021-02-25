@@ -45,7 +45,7 @@ namespace Toast {
 
 		Ref<Scene> mActiveScene;
 
-		Ref<PerspectiveCamera> mEditorCamera;
+		Ref<EditorCamera> mEditorCamera;
 
 		Ref<Texture2D> mCheckerboardTexture;
 
@@ -58,6 +58,8 @@ namespace Toast {
 			Edit = 0, Play = 1
 		};
 		SceneState mSceneState = SceneState::Edit;
+
+		int mGizmoType = -1;
 
 		// Panels
 		SceneHierarchyPanel mSceneHierarchyPanel;

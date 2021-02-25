@@ -32,8 +32,12 @@ namespace Toast {
 
 		DirectX::XMMATRIX GetTransform() const
 		{
+			//DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Scale.x, Scale.y, Scale.z)
+			//	* DirectX::XMMatrixRotationRollPitchYaw(Rotation.x, Rotation.y, Rotation.z)
+			//	* DirectX::XMMatrixTranslation(Translation.x, Translation.y, Translation.z);
+
 			DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Scale.x, Scale.y, Scale.z)
-				* DirectX::XMMatrixRotationRollPitchYaw(Rotation.x, Rotation.y, Rotation.z)
+				* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(Rotation.x, Rotation.y, Rotation.z)))
 				* DirectX::XMMatrixTranslation(Translation.x, Translation.y, Translation.z);
 
 			return transform;
