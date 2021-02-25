@@ -2,7 +2,7 @@
 
 #include "entt.hpp"
 #include "Toast/Core/Timestep.h"
-#include "Toast/Renderer/PerspectiveCamera.h"
+#include "Toast/Renderer/EditorCamera.h"
 #include "Toast/Renderer/SceneEnvironment.h"
 #include "Toast/Renderer/Material.h"
 #include "Toast/Renderer/Mesh.h"
@@ -41,7 +41,7 @@ namespace Toast {
 		Entity CreateSphere(const std::string& name = std::string());
 
 		void OnUpdateRuntime(Timestep ts);
-		void OnUpdateEditor(Timestep ts, const Ref<PerspectiveCamera> perspectiveCamera);
+		void OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera);
 		void OnViewportResize(uint32_t width, uint32_t height);
 
 		float& GetSkyboxLod() { return mSkyboxLod; }

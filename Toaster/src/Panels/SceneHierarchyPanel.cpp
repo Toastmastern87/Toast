@@ -604,7 +604,7 @@ namespace Toast {
 					if (ImGui::Button("...##openenv"))
 					{
 						std::optional<std::string> filepath = FileDialogs::OpenFile("*.png");
-						if (!filepath)
+						if (filepath)
 							component.SceneEnvironment = Environment::Load(*filepath);
 					}
 

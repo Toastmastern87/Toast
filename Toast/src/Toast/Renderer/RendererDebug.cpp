@@ -52,7 +52,7 @@ namespace Toast {
 		delete[] sData.LineVertexBufferBase;
 	}
 
-	void RendererDebug::BeginScene(const PerspectiveCamera& camera)
+	void RendererDebug::BeginScene(const EditorCamera& camera)
 	{
 		TOAST_PROFILE_FUNCTION();
 

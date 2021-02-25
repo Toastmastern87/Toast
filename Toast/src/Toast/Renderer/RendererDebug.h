@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Toast/Renderer/PerspectiveCamera.h"
+#include "Toast/Renderer/EditorCamera.h"
 #include "Toast/Scene/SceneCamera.h"
 
 namespace Toast {
@@ -11,7 +11,7 @@ namespace Toast {
 		static void Init();
 		static void Shutdown();
 
-		static void BeginScene(const PerspectiveCamera& camera);
+		static void BeginScene(const EditorCamera& camera);
 		static void EndScene();
 		static void Flush();
 

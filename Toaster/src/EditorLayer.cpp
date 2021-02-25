@@ -15,6 +15,8 @@
 
 #include "Toast/Utils/PlatformUtils.h"
 
+#include "ImGuizmo.h"
+
 namespace Toast {
 
 	EditorLayer::EditorLayer()
@@ -47,7 +49,7 @@ namespace Toast {
 		
 		mActiveScene = CreateRef<Scene>();
 
-		mEditorCamera = CreateRef<PerspectiveCamera>(45.0f);
+		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.01f, 30000.0f);
 
 		mSceneHierarchyPanel.SetContext(mActiveScene);
 		mSceneSettingsPanel.SetContext(mActiveScene);
@@ -218,14 +220,60 @@ namespace Toast {
 			ImGui::Begin("Viewport");
 
 			mViewportFocused = ImGui::IsWindowFocused();
-			mViewportHovered = ImGui::IsWindowHovered();
-			
-			Application::Get().GetImGuiLayer()->BlockEvents(!mViewportFocused || !mViewportHovered);
+			mViewportHovered = ImGui::IsWindowHovered();	
+			Application::Get().GetImGuiLayer()->BlockEvents(!mViewportFocused && !mViewportHovered);
 
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 			mViewportSize = { viewportPanelSize.x, viewportPanelSize.y };		
 
 			ImGui::Image(mFramebuffer->GetColorAttachmentID(), ImVec2{ mViewportSize.x, mViewportSize.y });
+
+			// Gizmos
+			Entity selectedEntity = mSceneHierarchyPanel.GetSelectedEntity();
+			if (selectedEntity && mGizmoType != -1)
+			{
+				ImGuizmo::SetOrthographic(false);
+				ImGuizmo::SetDrawlist();
+				float windowWidth = (float)ImGui::GetWindowWidth();
+				float windowHeight = (float)ImGui::GetWindowHeight();
+				ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, windowWidth, windowHeight);
+
+				// Editor Camera
+				DirectX::XMFLOAT4X4 cameraProjection;
+				DirectX::XMStoreFloat4x4(&cameraProjection, mEditorCamera->GetProjection());
+				DirectX::XMFLOAT4X4 cameraView;
+				DirectX::XMStoreFloat4x4(&cameraView, mEditorCamera->GetViewMatrix());
+
+				// Entity transform
+				auto& tc = selectedEntity.GetComponent<TransformComponent>();
+				DirectX::XMFLOAT4X4 transform;
+				float Ftranslation[3] = { tc.Translation.x, tc.Translation.y, tc.Translation.z };
+				float Frotation[3] = { DirectX::XMConvertToDegrees(tc.Rotation.x), DirectX::XMConvertToDegrees(tc.Rotation.y), DirectX::XMConvertToDegrees(tc.Rotation.z) };
+				float Fscale[3] = { tc.Scale.x, tc.Scale.y, tc.Scale.z };
+				ImGuizmo::RecomposeMatrixFromComponents(Ftranslation, Frotation, Fscale, *transform.m);
+
+				// Snapping
+				bool snap = Input::IsKeyPressed(Key::LeftControl);
+				float snapValue = 0.5f; // Snap to 0.5m degrees for translation/scale
+				// Snap to 45 degrees for rotation
+				if (mGizmoType == ImGuizmo::OPERATION::ROTATE)
+					snapValue = 45.0f;
+
+				float snapValues[3] = { snapValue, snapValue, snapValue };
+
+				ImGuizmo::Manipulate(*cameraView.m, *cameraProjection.m, (ImGuizmo::OPERATION)mGizmoType, ImGuizmo::LOCAL, *transform.m, nullptr, snap ? snapValues : nullptr);
+
+				if (ImGuizmo::IsUsing())
+				{
+					float Ftranslation[3] = { 0.0f, 0.0f, 0.0f }, Frotation[3] = { 0.0f, 0.0f, 0.0f }, Fscale[3] = { 0.0f, 0.0f, 0.0f };
+					ImGuizmo::DecomposeMatrixToComponents(*transform.m, Ftranslation, Frotation, Fscale);
+
+					tc.Translation = DirectX::XMFLOAT3(Ftranslation);
+					tc.Rotation = DirectX::XMFLOAT3(DirectX::XMConvertToRadians(Frotation[0]), DirectX::XMConvertToRadians(Frotation[1]), DirectX::XMConvertToRadians(Frotation[2]));
+					tc.Scale = DirectX::XMFLOAT3(Fscale);
+				}
+			}
+
 			ImGui::End();
 			ImGui::PopStyleVar();
 
@@ -250,6 +298,7 @@ namespace Toast {
 	void EditorLayer::OnEvent(Event& e)
 	{
 		mCameraController.OnEvent(e);
+		mEditorCamera->OnEvent(e);
 
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
@@ -314,26 +363,48 @@ namespace Toast {
 
 		switch (e.GetKeyCode())
 		{
-		case Key::N:
-		{
-			if (control)
-				NewScene();
-			break;
-		}
-		case Key::O:
-		{
-			if (control)
-				OpenScene();
-			break;
-		}
-		case Key::S:
-		{
-			if (control && shift)
-				SaveSceneAs();
-			else if (control && !shift)
-				SaveScene();
-			break;
-		}
+			case Key::N:
+			{
+				if (control)
+					NewScene();
+				break;
+			}
+			case Key::O:
+			{
+				if (control)
+					OpenScene();
+				break;
+			}
+			case Key::S:
+			{
+				if (control && shift)
+					SaveSceneAs();
+				else if (control && !shift)
+					SaveScene();
+				break;
+			}
+
+			//Gizmos
+			case Key::Q:
+			{
+				mGizmoType = -1;
+				break;
+			}
+			case Key::W:
+			{
+				mGizmoType = ImGuizmo::OPERATION::TRANSLATE;
+				break;
+			}
+			case Key::E:
+			{
+				mGizmoType = ImGuizmo::OPERATION::ROTATE;
+				break;
+			}
+			case Key::R:
+			{
+				mGizmoType = ImGuizmo::OPERATION::SCALE;
+				break;
+			}
 		}
 
 		return true;

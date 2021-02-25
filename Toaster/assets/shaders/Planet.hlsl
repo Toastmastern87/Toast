@@ -70,7 +70,7 @@ float MorphFac(float distance, int level)
 
 	a = (distance - low) / delta;
 
-	return (1 - clamp((a / morphRange.x), 0, 1));
+	return (1.0f - clamp((a / morphRange.x), 0.0f, 1.0f));
 }
 
 PixelInputType main(VertexInputType input)

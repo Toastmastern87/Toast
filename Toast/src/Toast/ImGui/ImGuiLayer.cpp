@@ -11,6 +11,8 @@
 #include <backends/imgui_impl_dx11.h>
 #include <backends/imgui_impl_win32.h>
 
+#include "ImGuizmo.h"
+
 namespace Toast 
 {
 	ImGuiLayer::ImGuiLayer()
@@ -83,6 +85,7 @@ namespace Toast
 		ImGui_ImplDX11_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
+		ImGuizmo::BeginFrame();
 	}
 
 	void ImGuiLayer::End()
