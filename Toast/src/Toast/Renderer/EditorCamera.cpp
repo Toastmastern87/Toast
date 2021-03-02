@@ -93,7 +93,6 @@ namespace Toast {
 
 	void EditorCamera::MouseZoom(float delta)
 	{
-		TOAST_CORE_INFO("mDistance: {0}", mDistance);
 		mDistance -= delta * ZoomSpeed();
 		if (mDistance < 1.0f)
 		{
