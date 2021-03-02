@@ -2,15 +2,6 @@
 
 namespace Toast {
 
-	typedef enum class FormatCode
-	{
-		
-		R32G32B32A32_FLOAT = 2,
-		R8G8B8A8_UNORM = 28,
-		D24_UNORM_S8_UINT = 45
-
-	} Format;
-
 	typedef enum class BindFlagCode
 	{
 		SHADER_RESOURCE = 0x8L,
@@ -32,10 +23,6 @@ namespace Toast {
 
 	} Topology;
 }
-
-#define TOAST_FORMAT_R32G32B32A32_FLOAT		::Toast::Format::R32G32B32A32_FLOAT
-#define TOAST_FORMAT_R8G8B8A8_UNORM 		::Toast::Format::R8G8B8A8_UNORM 
-#define TOAST_FORMAT_D24_UNORM_S8_UINT		::Toast::Format::D24_UNORM_S8_UINT
 
 #define TOAST_BIND_SHADER_RESOURCE			::Toast::BindFlag::SHADER_RESOURCE
 #define TOAST_BIND_RENDER_TARGET			::Toast::BindFlag::RENDER_TARGET

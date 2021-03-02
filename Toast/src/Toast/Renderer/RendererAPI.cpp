@@ -144,7 +144,7 @@ namespace Toast {
 		backbufferSpec.SwapChainTarget = true;
 		backbufferSpec.Width = mWidth;
 		backbufferSpec.Height = mHeight;
-		backbufferSpec.BuffersDesc.emplace_back(FramebufferSpecification::BufferDesc());
+		backbufferSpec.Attachments = { FramebufferTextureFormat::R32G32B32A32_FLOAT };
 		mBackbuffer = CreateRef<Framebuffer>(backbufferSpec);
 	}
 
