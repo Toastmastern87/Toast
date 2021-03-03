@@ -41,11 +41,9 @@ namespace Toast {
 		MaterialSerializer::Deserialize(materialStrings);
 
 		FramebufferSpecification fbSpec;
-		fbSpec.Attachments = { FramebufferTextureFormat::R32G32B32A32_FLOAT, FramebufferTextureFormat::Depth };
+		fbSpec.Attachments = { FramebufferTextureFormat::R32G32B32A32_FLOAT, FramebufferTextureFormat::R8G8B8A8_UNORM, FramebufferTextureFormat::Depth };
 		fbSpec.Width = 1280;
 		fbSpec.Height = 720;
-		//fbSpec.BuffersDesc.emplace_back(FramebufferSpecification::BufferDesc(TOAST_FORMAT_R32G32B32A32_FLOAT, TOAST_BIND_RENDER_TARGET | TOAST_BIND_SHADER_RESOURCE));
-		//fbSpec.BuffersDesc.emplace_back(FramebufferSpecification::BufferDesc(TOAST_FORMAT_D24_UNORM_S8_UINT, TOAST_BIND_DEPTH_STENCIL));
 		mFramebuffer = CreateRef<Framebuffer>(fbSpec);
 		
 		mActiveScene = CreateRef<Scene>();

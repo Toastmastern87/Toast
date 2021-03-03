@@ -125,7 +125,7 @@ namespace Toast {
 		{
 			switch (format)
 			{
-			case FramebufferTextureFormat::D24_UNORM_S8_UINT:	return true;
+				case FramebufferTextureFormat::D24_UNORM_S8_UINT:	return true;
 			}
 
 			return false;
@@ -137,8 +137,11 @@ namespace Toast {
 	{
 		for (auto format : mSpecification.Attachments.Attachments)
 		{
-			if (!Utils::IsDepthFormat(format.TextureFormat))
+			if (!Utils::IsDepthFormat(format.TextureFormat)) 
+			{
+				TOAST_CORE_INFO("Attaching Color texture to framebuffer: {0}, ID: {1}", format.TextureFormat, mColorAttachmentSpecifications.size());
 				mColorAttachmentSpecifications.emplace_back(format);
+			}
 			else
 				mDepthAttachmentSpecification = format;
 		}
@@ -153,8 +156,13 @@ namespace Toast {
 
 		deviceContext->RSSetViewports(1, &mViewport);
 
-		for (size_t i = 0; i < mColorAttachments.size(); i++)
-			deviceContext->OMSetRenderTargets(1, mColorAttachments[i].RenderTargetView.GetAddressOf(), mDepthAttachment.DepthStencilView.Get());
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> pRenderViews[2];
+		for (int i = 0; i < mColorAttachments.size(); i++)
+		{
+			pRenderViews[i] = mColorAttachments[i].RenderTargetView;
+		}
+
+		deviceContext->OMSetRenderTargets(mColorAttachments.size(), pRenderViews[0].GetAddressOf(), mDepthAttachment.DepthStencilView.Get());
 
 		if (mDepthAttachmentSpecification.TextureFormat != FramebufferTextureFormat::None)
 			deviceContext->OMSetDepthStencilState(mDepthAttachment.DepthStencilState.Get(), 1);
@@ -189,12 +197,18 @@ namespace Toast {
 
 				switch (mColorAttachmentSpecifications[i].TextureFormat)
 				{
-					case FramebufferTextureFormat::R32G32B32A32_FLOAT:
+					case FramebufferTextureFormat::R32G32B32A32_FLOAT: 
+					{
+						TOAST_CORE_INFO("Creating R32G32B32A32_FLOAT texture");
 						Utils::AttachColorTexture(mColorAttachmentSpecifications[i], mSpecification, &mColorAttachments[i]);
 						break;
+					}
 					case FramebufferTextureFormat::R8G8B8A8_UNORM:
+					{
+						TOAST_CORE_INFO("Creating R8G8B8A8_UNORM texture");
 						Utils::AttachColorTexture(mColorAttachmentSpecifications[i], mSpecification, &mColorAttachments[i]);
 						break;
+					}
 				}
 			}
 		}
@@ -218,6 +232,7 @@ namespace Toast {
 			mColorAttachments[i].RenderTargetView.Reset();
 			mColorAttachments[i].ShaderResourceView.Reset();
 		}
+		mColorAttachments.clear();
 
 		mDepthAttachment.DepthStencilView.Reset();
 		mDepthAttachment.DepthStencilState.Reset();
