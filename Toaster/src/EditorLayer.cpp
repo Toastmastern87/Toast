@@ -41,7 +41,7 @@ namespace Toast {
 		MaterialSerializer::Deserialize(materialStrings);
 
 		FramebufferSpecification fbSpec;
-		fbSpec.Attachments = { FramebufferTextureFormat::R32G32B32A32_FLOAT, FramebufferTextureFormat::R8G8B8A8_UNORM, FramebufferTextureFormat::Depth };
+		fbSpec.Attachments = { FramebufferTextureFormat::R32G32B32A32_FLOAT, FramebufferTextureFormat::R32_SINT, FramebufferTextureFormat::Depth };
 		fbSpec.Width = 1280;
 		fbSpec.Height = 720;
 		mFramebuffer = CreateRef<Framebuffer>(fbSpec);
@@ -105,6 +105,20 @@ namespace Toast {
 		case SceneState::Edit:
 		{
 			mActiveScene->OnUpdateEditor(ts, mEditorCamera);
+
+			auto [mx, my] = ImGui::GetMousePos();
+			mx -= mViewportBounds[0].x;
+			my -= mViewportBounds[0].y;
+			DirectX::XMFLOAT2 viewportSize = { mViewportBounds[1].x - mViewportBounds[0].x,  mViewportBounds[1].y - mViewportBounds[0].y };
+
+			int mouseX = (int)mx;
+			int mouseY = (int)my;
+
+			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y) 
+			{
+				int pixelData = mFramebuffer->ReadPixel(1, mouseX, mouseY);
+				TOAST_CORE_WARN("Pixel data = {0}", pixelData);
+			}
 
 			break;
 		}
@@ -198,10 +212,10 @@ namespace Toast {
 					if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S"))
 					{
 						SaveSceneAs();
-					}	
+					}
 
 					ImGui::Separator();
-					if (ImGui::MenuItem("Exit")) 
+					if (ImGui::MenuItem("Exit"))
 						Toast::Application::Get().Close();
 
 					ImGui::EndMenu();
@@ -215,17 +229,25 @@ namespace Toast {
 			mMaterialPanel.OnImGuiRender();
 			mEnvironmentPanel.OnImGuiRender();
 
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 			ImGui::Begin("Viewport");
+			auto viewportOffset = ImGui::GetCursorPos(); // Includes the tab bar
 
 			mViewportFocused = ImGui::IsWindowFocused();
-			mViewportHovered = ImGui::IsWindowHovered();	
+			mViewportHovered = ImGui::IsWindowHovered();
 			Application::Get().GetImGuiLayer()->BlockEvents(!mViewportFocused && !mViewportHovered);
 
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-			mViewportSize = { viewportPanelSize.x, viewportPanelSize.y };		
+			mViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
 
 			ImGui::Image(mFramebuffer->GetColorAttachmentID(), ImVec2{ mViewportSize.x, mViewportSize.y });
+
+			auto windowSize = ImGui::GetWindowSize();
+			ImVec2 minBound = ImGui::GetWindowPos();
+
+			ImVec2 maxBound = { minBound.x + windowSize.x, minBound.y + windowSize.y };
+			mViewportBounds[0] = { minBound.x, minBound.y };
+			mViewportBounds[1] = { maxBound.x, maxBound.y };
 
 			// Gizmos
 			Entity selectedEntity = mSceneHierarchyPanel.GetSelectedEntity();
@@ -386,22 +408,30 @@ namespace Toast {
 			//Gizmos
 			case Key::Q:
 			{
-				mGizmoType = -1;
+				if(!ImGuizmo::IsUsing())
+					mGizmoType = -1;
+
 				break;
 			}
 			case Key::W:
 			{
-				mGizmoType = ImGuizmo::OPERATION::TRANSLATE;
+				if(!ImGuizmo::IsUsing())
+					mGizmoType = ImGuizmo::OPERATION::TRANSLATE;
+
 				break;
 			}
 			case Key::E:
 			{
-				mGizmoType = ImGuizmo::OPERATION::ROTATE;
+				if(!ImGuizmo::IsUsing())
+					mGizmoType = ImGuizmo::OPERATION::ROTATE;
+
 				break;
 			}
 			case Key::R:
 			{
-				mGizmoType = ImGuizmo::OPERATION::SCALE;
+				if (!ImGuizmo::IsUsing())
+					mGizmoType = ImGuizmo::OPERATION::SCALE;
+
 				break;
 			}
 		}

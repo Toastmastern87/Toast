@@ -52,6 +52,7 @@ namespace Toast {
 		bool mViewportFocused = false, mViewportHovered = false;
 
 		DirectX::XMFLOAT2 mViewportSize = { 0.0f, 0.0f };
+		DirectX::XMFLOAT2 mViewportBounds[2];
 
 		enum class SceneState
 		{

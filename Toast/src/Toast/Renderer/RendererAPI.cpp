@@ -153,6 +153,7 @@ namespace Toast {
 		HRESULT result;
 		D3D11_BLEND_DESC bd = {};
 
+		bd.IndependentBlendEnable = true;
 		bd.RenderTarget[0].BlendEnable = true;
 		bd.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
 		bd.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
@@ -161,6 +162,15 @@ namespace Toast {
 		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 		bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+		bd.RenderTarget[1].BlendEnable = false;
+		bd.RenderTarget[1].SrcBlend = D3D11_BLEND_ONE;
+		bd.RenderTarget[1].DestBlend = D3D11_BLEND_ZERO;
+		bd.RenderTarget[1].BlendOp = D3D11_BLEND_OP_ADD;
+		bd.RenderTarget[1].SrcBlendAlpha = D3D11_BLEND_ONE;
+		bd.RenderTarget[1].DestBlendAlpha = D3D11_BLEND_ZERO;
+		bd.RenderTarget[1].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		bd.RenderTarget[1].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
 		result = mDevice->CreateBlendState(&bd, &mAlphaBlendEnabledState);
 
