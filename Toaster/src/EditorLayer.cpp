@@ -231,7 +231,12 @@ namespace Toast {
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 			ImGui::Begin("Viewport");
-			auto viewportOffset = ImGui::GetCursorPos(); // Includes the tab bar
+			auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
+			auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
+			auto viewportOffset = ImGui::GetWindowPos();
+
+			mViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y };
+			mViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y };
 
 			mViewportFocused = ImGui::IsWindowFocused();
 			mViewportHovered = ImGui::IsWindowHovered();
@@ -242,13 +247,6 @@ namespace Toast {
 
 			ImGui::Image(mFramebuffer->GetColorAttachmentID(), ImVec2{ mViewportSize.x, mViewportSize.y });
 
-			auto windowSize = ImGui::GetWindowSize();
-			ImVec2 minBound = ImGui::GetWindowPos();
-
-			ImVec2 maxBound = { minBound.x + windowSize.x, minBound.y + windowSize.y };
-			mViewportBounds[0] = { minBound.x, minBound.y };
-			mViewportBounds[1] = { maxBound.x, maxBound.y };
-
 			// Gizmos
 			Entity selectedEntity = mSceneHierarchyPanel.GetSelectedEntity();
 			if (selectedEntity && mGizmoType != -1)
@@ -257,7 +255,7 @@ namespace Toast {
 				ImGuizmo::SetDrawlist();
 				float windowWidth = (float)ImGui::GetWindowWidth();
 				float windowHeight = (float)ImGui::GetWindowHeight();
-				ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, windowWidth, windowHeight);
+				ImGuizmo::SetRect(mViewportBounds[0].x, mViewportBounds[0].y, mViewportBounds[1].x - mViewportBounds[0].x, mViewportBounds[1].y - mViewportBounds[0].y);
 
 				// Editor Camera
 				DirectX::XMFLOAT4X4 cameraProjection;
