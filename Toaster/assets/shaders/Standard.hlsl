@@ -76,8 +76,8 @@ struct PixelInputType
 
 struct PixelOutputType
 {
-	float4 Color: SV_Target0;
-	float4 ColorTwo: SV_Target1;
+	float4 Color			: SV_Target0;
+	int Color2				: SV_Target1;
 };
 
 PixelOutputType main(PixelInputType input) : SV_TARGET
@@ -85,7 +85,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	PixelOutputType output;
 
 	output.Color = float4(1.0f * multiplier, 1.0f * multiplier, 1.0f * multiplier, 1.0f);
-	output.ColorTwo = float4(0.9f, 0.2f, 0.3f, 1.0f);
+	output.Color2 = 50;
 
 	return output;
 }

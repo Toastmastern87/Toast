@@ -17,6 +17,7 @@ namespace Toast {
 		// Color
 		R32G32B32A32_FLOAT = 2,
 		R8G8B8A8_UNORM = 28,
+		R32_SINT = 43,
 
 		// Depth/stencil
 		D24_UNORM_S8_UINT = 45,
@@ -78,6 +79,7 @@ namespace Toast {
 		void Bind() const;
 
 		void Resize(uint32_t width, uint32_t height);
+		int ReadPixel(uint32_t attachmentIndex, uint32_t x, uint32_t y);
 
 		void* GetColorAttachmentID(uint32_t index = 0) const { return (void*)mColorAttachments[index].ShaderResourceView.Get(); }
 		void* GetDepthAttachmentID() const { return (void*)mDepthAttachment.DepthStencilView.Get(); }

@@ -74,7 +74,7 @@ namespace Toast {
 			textureDesc.MiscFlags = 0;
 
 			result = device->CreateTexture2D(&textureDesc, nullptr, &outDepthAttachment->DepthStencilBuffer);
-			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create back buffer");
+			TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create 2D texture!");
 
 			ZeroMemory(&depthStencilDesc, sizeof(depthStencilDesc));
 
@@ -138,10 +138,7 @@ namespace Toast {
 		for (auto format : mSpecification.Attachments.Attachments)
 		{
 			if (!Utils::IsDepthFormat(format.TextureFormat)) 
-			{
-				TOAST_CORE_INFO("Attaching Color texture to framebuffer: {0}, ID: {1}", format.TextureFormat, mColorAttachmentSpecifications.size());
 				mColorAttachmentSpecifications.emplace_back(format);
-			}
 			else
 				mDepthAttachmentSpecification = format;
 		}
@@ -158,9 +155,7 @@ namespace Toast {
 
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> pRenderViews[2];
 		for (int i = 0; i < mColorAttachments.size(); i++)
-		{
 			pRenderViews[i] = mColorAttachments[i].RenderTargetView;
-		}
 
 		deviceContext->OMSetRenderTargets(mColorAttachments.size(), pRenderViews[0].GetAddressOf(), mDepthAttachment.DepthStencilView.Get());
 
@@ -199,13 +194,16 @@ namespace Toast {
 				{
 					case FramebufferTextureFormat::R32G32B32A32_FLOAT: 
 					{
-						TOAST_CORE_INFO("Creating R32G32B32A32_FLOAT texture");
 						Utils::AttachColorTexture(mColorAttachmentSpecifications[i], mSpecification, &mColorAttachments[i]);
 						break;
 					}
 					case FramebufferTextureFormat::R8G8B8A8_UNORM:
 					{
-						TOAST_CORE_INFO("Creating R8G8B8A8_UNORM texture");
+						Utils::AttachColorTexture(mColorAttachmentSpecifications[i], mSpecification, &mColorAttachments[i]);
+						break;
+					}
+					case FramebufferTextureFormat::R32_SINT:
+					{
 						Utils::AttachColorTexture(mColorAttachmentSpecifications[i], mSpecification, &mColorAttachments[i]);
 						break;
 					}
@@ -264,4 +262,51 @@ namespace Toast {
 
 		Invalidate();
 	}
+
+	int Framebuffer::ReadPixel(uint32_t attachmentIndex, uint32_t x, uint32_t y)
+	{
+		TOAST_CORE_ASSERT(attachmentIndex < mColorAttachments.size(), "");
+
+		HRESULT result;
+		D3D11_TEXTURE2D_DESC textureDesc;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> stagedTexture;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> stagedSRV;
+
+		D3D11_BOX srcBox;
+		srcBox.left = x;
+		srcBox.right = x + 1;
+		srcBox.top = y;
+		srcBox.bottom = y + 1;
+		srcBox.front = 0;
+		srcBox.back = 1;
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		textureDesc.Width = 1;
+		textureDesc.Height = 1;
+		textureDesc.MipLevels = 1;
+		textureDesc.ArraySize = 1;
+		textureDesc.Format = (DXGI_FORMAT)FramebufferTextureFormat::R32_SINT;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.Usage = D3D11_USAGE_STAGING;
+		textureDesc.BindFlags = 0;
+		textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		textureDesc.MiscFlags = 0;
+
+		result = device->CreateTexture2D(&textureDesc, nullptr, &stagedTexture);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create 2D texture!");
+
+		deviceContext->CopySubresourceRegion(stagedTexture.Get(), 0, 0, 0, 0, mColorAttachments[attachmentIndex].RenderTargetTexture.Get(), 0, &srcBox);
+
+		D3D11_MAPPED_SUBRESOURCE msr;
+		deviceContext->Map(stagedTexture.Get(), 0, D3D11_MAP_READ, 0, &msr);
+		int* pixelValue = reinterpret_cast<int*>(msr.pData);
+		deviceContext->Unmap(stagedTexture.Get(), 0);
+
+		return *pixelValue;
+	}
+
 }
