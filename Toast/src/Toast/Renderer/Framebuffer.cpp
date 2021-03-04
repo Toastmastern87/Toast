@@ -272,13 +272,7 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> stagedTexture;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> stagedSRV;
 
-		D3D11_BOX srcBox;
-		srcBox.left = x;
-		srcBox.right = x + 1;
-		srcBox.top = y;
-		srcBox.bottom = y + 1;
-		srcBox.front = 0;
-		srcBox.back = 1;
+		D3D11_BOX srcBox = { x, y, 0, x + 1, y + 1, 1 };
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
