@@ -65,13 +65,6 @@ namespace Toast {
 			DrawComponents(mSelectionContext);
 
 		ImGui::End();
-
-		ImGui::Begin("Statistics");
-
-		ImGui::Text("FPS: %d", (int)mContext->mStats.FPS);
-		ImGui::Text("Vertex Count: %d", (int)mContext->mStats.VerticesCount);
-
-		ImGui::End();
 	}
 
 	static uint32_t sCounter = 0;

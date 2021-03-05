@@ -21,8 +21,8 @@ namespace Toast {
 		uint32_t cbufferIdx;
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
-
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();	
+		 
 		// Check to see if the constant buffer exists
 		for (int i = 0; i < mCBufferBindings.size(); i++)
 		{
@@ -130,14 +130,12 @@ namespace Toast {
 		{
 			if (samplerBinding.Sampler)
 				samplerBinding.Sampler->Bind(samplerBinding.BindSlot, samplerBinding.ShaderType);
-
 		}
 
 		for (auto& cBuffer : mCBufferBindings)
 		{
 			if (cBuffer.CBuffer)
 				cBuffer.CBuffer->Bind();
-
 		}
 	}
 

@@ -204,7 +204,7 @@ namespace Toast {
 			float frac = tanf((maxTriangleSize * DirectX::XMConvertToRadians(fov)) / width);
 
 			for (int subdivision = 0; subdivision < maxSubdivisions+6; subdivision++) 
-				distanceLUT[subdivision].x = (GetPlanetVertexDistance(scale) / frac) * powf(0.5f, subdivision);
+				distanceLUT[subdivision].x = (GetPlanetVertexDistance(scale) / frac) * powf(0.5f, (float)subdivision);
 		}
 
 		static void GenerateFaceDotLevelLUT(std::vector<float>& faceLevelDotLUT, float scale, float maxSubdivisions, float maxHeight)

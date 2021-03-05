@@ -50,6 +50,9 @@ namespace Toast {
 		const Environment& GetEnvironment() const { return mEnvironment; }
 		void SetSkybox(const Ref<TextureCube>& skybox);
 
+		int GetFPS() const { return (int)mStats.FPS; }
+		int GetVertices() const { return (int)mStats.VerticesCount; }
+
 		//Settings
 		struct Settings
 		{

@@ -49,6 +49,8 @@ namespace Toast {
 
 		Ref<Texture2D> mCheckerboardTexture;
 
+		Entity mHoveredEntity;
+
 		bool mViewportFocused = false, mViewportHovered = false;
 
 		DirectX::XMFLOAT2 mViewportSize = { 0.0f, 0.0f };
