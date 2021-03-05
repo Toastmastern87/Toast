@@ -285,7 +285,7 @@ namespace Toast {
 				switch (resourceDesc.Type)
 				{
 					case D3D_SIT_TEXTURE:
-							mResourceBindings.push_back(ResourceBindingDesc{ resourceDesc.Name, kv.first, resourceDesc.BindPoint, BindingType::Texture, 0, 0 });
+						mResourceBindings.push_back(ResourceBindingDesc{ resourceDesc.Name, kv.first, resourceDesc.BindPoint, BindingType::Texture, 0, 0 });
 						break;
 					case D3D_SIT_SAMPLER:
 						mResourceBindings.push_back(ResourceBindingDesc{ resourceDesc.Name, kv.first, resourceDesc.BindPoint, BindingType::Sampler, 0, 0 });

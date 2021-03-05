@@ -280,13 +280,13 @@ namespace Toast {
 					{
 					case Settings::Wireframe::NO:
 					{
-						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), false);
+						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, false);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
-						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), true);
+						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, true);
 
 						break;
 					}
@@ -312,13 +312,13 @@ namespace Toast {
 				{
 				case Settings::Wireframe::NO:
 				{
-					Renderer::SubmitPlanet(mesh.Mesh, transform.GetTransform(), planet.PlanetData, planet.MorphData, false);
+					Renderer::SubmitPlanet(mesh.Mesh, transform.GetTransform(), (int)entity, planet.PlanetData, planet.MorphData, false);
 
 					break;
 				}
 				case Settings::Wireframe::YES:
 				{
-					Renderer::SubmitPlanet(mesh.Mesh, transform.GetTransform(), planet.PlanetData, planet.MorphData, true);
+					Renderer::SubmitPlanet(mesh.Mesh, transform.GetTransform(), (int)entity, planet.PlanetData, planet.MorphData, true);
 
 					break;
 				}

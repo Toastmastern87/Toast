@@ -117,7 +117,7 @@ namespace Toast {
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y) 
 			{
 				int pixelData = mFramebuffer->ReadPixel(1, mouseX, mouseY);
-				TOAST_CORE_WARN("Pixel data = {0}", pixelData);
+				mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData-1), mActiveScene.get());
 			}
 
 			break;
@@ -295,6 +295,18 @@ namespace Toast {
 
 			ImGui::End();
 			ImGui::PopStyleVar();
+
+			ImGui::End();
+
+			ImGui::Begin("Statistics");
+
+			std::string name = "none";
+			if (mHoveredEntity)
+				name = mHoveredEntity.GetComponent<TagComponent>().Tag;
+			ImGui::Text("Hovered Entity: %s", name.c_str());
+
+			ImGui::Text("FPS: %d", mActiveScene->GetFPS());
+			ImGui::Text("Vertex Count: %d", mActiveScene->GetVertices());
 
 			ImGui::End();
 		}

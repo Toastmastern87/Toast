@@ -37,7 +37,7 @@ namespace Toast {
 		sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 		sd.BufferDesc.RefreshRate.Numerator = 0;
 		sd.BufferDesc.RefreshRate.Denominator = 0;
-		sd.Flags = 0;// DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+		sd.Flags = 0;
 		sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		sd.OutputWindow = mWindowHandle;
 		sd.SampleDesc.Count = 1;
