@@ -35,6 +35,7 @@ namespace Toast {
 		void NewScene();
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);
+		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
 		void UpdateWindowTitle(const std::string& sceneName);
 	private:
 		std::optional<std::string> mSceneFilePath;
