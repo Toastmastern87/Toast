@@ -117,7 +117,8 @@ namespace Toast {
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y) 
 			{
 				int pixelData = mFramebuffer->ReadPixel(1, mouseX, mouseY);
-				mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData-1), mActiveScene.get());
+				TOAST_CORE_INFO("PixelData: {0}", pixelData);
+				mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mActiveScene.get());
 			}
 
 			break;
@@ -333,6 +334,7 @@ namespace Toast {
 
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
+		dispatcher.Dispatch<MouseButtonPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseButtonPressed));
 	}
 
 	void EditorLayer::NewScene()
@@ -444,6 +446,17 @@ namespace Toast {
 
 				break;
 			}
+		}
+
+		return true;
+	}
+
+	bool EditorLayer::OnMouseButtonPressed(MouseButtonPressedEvent& e)
+	{
+		if (e.GetMouseButton() == Mouse::ButtonLeft)
+		{
+			if(mViewportHovered && !ImGuizmo::IsOver() && !Input::IsKeyPressed(Key::LeftAlt))
+				mSceneHierarchyPanel.SetSelectedEntity(mHoveredEntity);
 		}
 
 		return true;

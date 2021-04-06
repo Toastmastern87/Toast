@@ -9,7 +9,7 @@ namespace Toast
 	Ref<spdlog::logger> Log::sCoreLogger;
 	Ref<spdlog::logger> Log::sClientLogger;
 
-	void Log::Init() 
+	void Log::Init()
 	{
 		std::vector<spdlog::sink_ptr> logSinks;
 		logSinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());

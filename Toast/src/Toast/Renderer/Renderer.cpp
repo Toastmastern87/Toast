@@ -143,6 +143,15 @@ namespace Toast {
 
 	void Renderer::SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, PlanetComponent::PlanetGPUData planetData, PlanetComponent::MorphGPUData morphData, bool wireframe)
 	{
+		struct ModelCB
+		{
+			DirectX::XMMATRIX Transform;
+			int EntityID;
+			int padding[3];
+		};
+
+		ModelCB modelCB = { transform, entityID, { 0, 0, 0 } };
+
 		if(mesh->mVertexBuffer)	mesh->mVertexBuffer->Bind();
 		if (mesh->mInstanceVertexBuffer) mesh->mInstanceVertexBuffer->Bind();
 		if (mesh->mIndexBuffer)	mesh->mIndexBuffer->Bind();
@@ -155,7 +164,7 @@ namespace Toast {
 		mesh->mMaterial->SetData("Morphing", (void*)&morphData);
 		mesh->mMaterial->SetData("Planet", (void*)&planetData);
 		mesh->mMaterial->SetData("PlanetPS", (void*)&planetData);
-		mesh->mMaterial->SetData("Model", (void*)&transform);
+		mesh->mMaterial->SetData("Model", (void*)&modelCB);
 		mesh->mMaterial->Bind();
 
 		RenderCommand::SetPrimitiveTopology(mesh->mTopology);

@@ -58,6 +58,7 @@ struct PixelInputType
 	float3 worldPosition	: POSITION0;
 	float2 texcoord			: TEXCOORD0;
 	float3 cameraPos		: POSITION1;
+	int entityID			: TEXTUREID;
 };
 
 float MorphFac(float distance, int level)
@@ -102,6 +103,8 @@ PixelInputType main(VertexInputType input)
 	output.worldPosition = mul(finalPos, worldMatrix).xyz;
 	output.cameraPos = cameraPosition.xyz;
 
+	output.entityID = entityID;
+
 	return output;
 }
 
@@ -134,6 +137,13 @@ struct PixelInputType
 	float3 worldPosition	: POSITION0;
 	float2 texcoord			: TEXCOORD0;
 	float3 cameraPos		: POSITION1;
+	int entityID			: TEXTUREID;
+};
+
+struct PixelOutputType
+{
+	float4 Color			: SV_Target0;
+	int EntityID			: SV_Target1;
 };
 
 TextureCube IrradianceTexture	: register(t0);
@@ -236,8 +246,10 @@ uint queryRadianceTextureLevels()
 	return levels;
 }
 
-float4 main(PixelInputType input) : SV_TARGET
+PixelOutputType main(PixelInputType input) : SV_TARGET
 {
+	PixelOutputType output;
+
 	float3 albedo = AlbedoTexture.SampleLevel(defaultSampler, input.texcoord, 0).rgb;
 	float metalness = 0.0f;
 	float roughness = 0.8f;
@@ -329,7 +341,8 @@ float4 main(PixelInputType input) : SV_TARGET
 		ambientLighting = diffuseIBL + specularIBL;
 	}
 
-	//return float4(N, 1.0f);
-	//return float4(HeightMapTexture.SampleLevel(defaultSampler, input.texcoord, 0).rgb, 1.0f);
-	return float4(directLighting + ambientLighting, 1.0f);
+	output.Color = float4(directLighting + ambientLighting, 1.0f);
+	output.EntityID = input.entityID + 1;
+
+	return output;
 }

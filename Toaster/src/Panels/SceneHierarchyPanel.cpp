@@ -67,6 +67,11 @@ namespace Toast {
 		ImGui::End();
 	}
 
+	void SceneHierarchyPanel::SetSelectedEntity(Entity entity)
+	{
+		mSelectionContext = entity;
+	}
+
 	static uint32_t sCounter = 0;
 	static std::string sID;
 
