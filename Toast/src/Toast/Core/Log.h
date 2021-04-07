@@ -2,6 +2,8 @@
 
 #include "Toast/Core/Base.h"
 
+#include <ostream>
+
 #pragma warning(push, 0)
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
@@ -16,9 +18,13 @@ namespace Toast
 
 		static Ref<spdlog::logger>& GetCoreLogger() { return sCoreLogger;  }
 		static Ref<spdlog::logger>& GetClientLogger() { return sClientLogger; }
+
+		static std::string GetLogString();
 	private:
 		static Ref<spdlog::logger> sCoreLogger;
 		static Ref<spdlog::logger> sClientLogger;
+
+		static std::ostringstream sOSS;
 	};
 }
 

@@ -117,7 +117,6 @@ namespace Toast {
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y) 
 			{
 				int pixelData = mFramebuffer->ReadPixel(1, mouseX, mouseY);
-				TOAST_CORE_INFO("PixelData: {0}", pixelData);
 				mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mActiveScene.get());
 			}
 
@@ -229,6 +228,7 @@ namespace Toast {
 			mSceneHierarchyPanel.OnImGuiRender();
 			mMaterialPanel.OnImGuiRender();
 			mEnvironmentPanel.OnImGuiRender();
+			mConsolePanel.OnImGuiRender();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 			ImGui::Begin("Viewport");

@@ -13,6 +13,7 @@
 #include "Panels/SceneSettingsPanel.h"
 #include "Panels/MaterialPanel.h"
 #include "Panels/EnvironmentalPanel.h"
+#include "Panels/ConsolePanel.h"
 
 namespace Toast {
 
@@ -70,5 +71,6 @@ namespace Toast {
 		SceneSettingsPanel mSceneSettingsPanel;
 		MaterialPanel mMaterialPanel;
 		EnvironmentalPanel mEnvironmentPanel;
+		ConsolePanel mConsolePanel;
 	};
 }
