@@ -3,20 +3,24 @@
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/ostream_sink.h>
 
 namespace Toast 
 {
 	Ref<spdlog::logger> Log::sCoreLogger;
 	Ref<spdlog::logger> Log::sClientLogger;
+	std::ostringstream Log::sOSS;
 
 	void Log::Init()
 	{
 		std::vector<spdlog::sink_ptr> logSinks;
 		logSinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
 		logSinks.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>("Toast.log", true));
+		logSinks.emplace_back(std::make_shared<spdlog::sinks::ostream_sink_st>(sOSS));
 
 		logSinks[0]->set_pattern("%^[%T] %n: %v%$");
 		logSinks[1]->set_pattern("[%T] [%l] %n: %v");
+		logSinks[2]->set_pattern("%l %^[%T] %n: %v%$");
 
 		sCoreLogger = std::make_shared<spdlog::logger>("TOAST", begin(logSinks), end(logSinks));
 		spdlog::register_logger(sCoreLogger);
@@ -28,4 +32,10 @@ namespace Toast
 		sClientLogger->set_level(spdlog::level::trace);
 		sClientLogger->flush_on(spdlog::level::trace);
 	}
+
+	std::string Log::GetLogString()
+	{
+		return sOSS.str();
+	}
+
 }
