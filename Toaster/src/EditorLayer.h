@@ -30,6 +30,9 @@ namespace Toast {
 		virtual void OnImGuiRender() override;
 		void OnEvent(Event& e) override;
 
+		void OnScenePlay();
+		void OnSceneStop();
+
 		void OpenScene();
 		void SaveScene();
 		void SaveSceneAs();
@@ -50,6 +53,9 @@ namespace Toast {
 		Ref<EditorCamera> mEditorCamera;
 
 		Ref<Texture2D> mCheckerboardTexture;
+		Ref<Texture2D> mPlayButtonTex;
+		Ref<Texture2D> mPauseButtonTex;
+		Ref<Texture2D> mStopButtonTex;
 
 		Entity mHoveredEntity;
 

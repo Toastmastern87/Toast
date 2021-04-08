@@ -81,19 +81,51 @@ namespace Toast {
 
 	void Scene::OnUpdateRuntime(Timestep ts)
 	{
-		//Update scripts
-		{
-			mRegistry.view<NativeScriptComponent>().each([=](auto entity, auto& nsc)
-			{
-				if (!nsc.Instance) 
-				{
-					nsc.Instance = nsc.InstantiateScript();
-					nsc.Instance->mEntity = Entity{ entity, this };
-					nsc.Instance->OnCreate();
-				}
+		DirectX::XMVECTOR cameraPos = { 0.0f, 0.0f, 0.0f }, cameraRot = { 0.0f, 0.0f, 0.0f }, cameraScale = { 0.0f, 0.0f, 0.0f };
 
-				nsc.Instance->OnUpdate(ts);
-			});
+		// Update statistics
+		{
+			mStats.timesteps += ts;
+			if (mStats.timesteps > 0.1f)
+			{
+				mStats.timesteps -= 0.1f;
+				mStats.FPS = 1.0f / ts;
+			}
+
+			mStats.VerticesCount = 0;
+		}
+
+		// Process lights
+		{
+			mLightEnvironment = LightEnvironment();
+			auto lights = mRegistry.group<DirectionalLightComponent>(entt::get<TransformComponent>);
+			uint32_t directionalLightIndex = 0;
+			for (auto entity : lights)
+			{
+				auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
+				DirectX::XMFLOAT4 direction = { cos(transformComponent.Rotation.y) * cos(transformComponent.Rotation.x), sin(transformComponent.Rotation.y) * cos(transformComponent.Rotation.x), sin(transformComponent.Rotation.x), 0.0f, };
+				DirectX::XMFLOAT4 radiance = DirectX::XMFLOAT4(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
+				mLightEnvironment.DirectionalLights[directionalLightIndex++] =
+				{
+					direction,
+					radiance,
+					lightComponent.Intensity,
+					lightComponent.SunDisc == true ? 1.0f : 0.0f
+				};
+			}
+		}
+
+		// Process Skylight
+		{
+			mEnvironment = Environment();
+			auto skylights = mRegistry.group<SkyLightComponent>(entt::get<TransformComponent>);
+			for (auto entity : skylights)
+			{
+				auto [transformComponent, skylightComponent] = skylights.get<TransformComponent, SkyLightComponent>(entity);
+				mEnvironment = skylightComponent.SceneEnvironment;
+				mEnvironmentIntensity = skylightComponent.Intensity;
+				SetSkybox(mEnvironment.RadianceMap);
+			}
 		}
 
 		SceneCamera* mainCamera = nullptr;
@@ -110,7 +142,31 @@ namespace Toast {
 					cameraTransform = transform.GetTransform();
 					break;
 				}
+				// if no camera is present nothing is rendered
+				else
+					return;
 			}
+		}
+
+		// Checks if the game camera have moved
+		if(mainCamera){
+			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
+
+			if (!DirectX::XMVector3Equal(mOldCameraPos, cameraPos))
+			{
+				auto view = mRegistry.view<PlanetComponent, MeshComponent, TransformComponent>();
+				for (auto entity : view)
+				{
+					auto [planet, mesh, transform] = view.get<PlanetComponent, MeshComponent, TransformComponent>(entity);
+
+					PlanetSystem::GeneratePlanet(transform.GetTransform(), mesh.Mesh->mPlanetFaces, mesh.Mesh->mPlanetPatches, planet.MorphData.DistanceLUT, planet.FaceLevelDotLUT, cameraPos, planet.Subdivisions);
+
+					mesh.Mesh->InitPlanet();
+					mesh.Mesh->AddSubmesh(mesh.Mesh->mIndices.size());
+				}
+			}
+
+			mOldCameraPos = cameraPos;
 		}
 
 		if (mainCamera)
@@ -118,52 +174,103 @@ namespace Toast {
 			// 3D Rendering
 			Renderer::BeginScene(this, *mainCamera, DirectX::XMMatrixInverse(nullptr, cameraTransform), { 1.0f, 1.0, 1.0f, 1.0f });
 			{
-				auto view = mRegistry.view<TransformComponent, MeshComponent>();
-
-				for (auto entity : view)
 				{
-					auto [transform, mesh] = view.get<TransformComponent, MeshComponent>(entity);
+					auto view = mRegistry.view<TransformComponent, CameraComponent>();
+					for (auto entity : view)
+					{
+						auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
+					}
+				}
 
-					switch (mSettings.WireframeRendering) 
+				// Skybox!
+				{
+					if (mSkyboxTexture)
+						Renderer::SubmitSkybox(mSkybox, DirectX::XMFLOAT4(DirectX::XMVectorGetX(mOldCameraPos), DirectX::XMVectorGetY(mOldCameraPos), DirectX::XMVectorGetZ(mOldCameraPos), 0.0f), DirectX::XMMatrixInverse(nullptr, cameraTransform), mainCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
+				}
+
+				// Meshes!
+				auto viewMeshes = mRegistry.view<TransformComponent, MeshComponent>();
+				for (auto entity : viewMeshes)
+				{
+					auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
+
+					//Do not submit mesh if it's a planet
+					if (mesh.Mesh->GetMaterial()->GetName() != "Planet")
+					{
+						switch (mSettings.WireframeRendering)
+						{
+						case Settings::Wireframe::NO:
+						{
+							Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, false);
+
+							break;
+						}
+						case Settings::Wireframe::YES:
+						{
+							Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, true);
+
+							break;
+						}
+						case Settings::Wireframe::ONTOP:
+						{
+							// TODO
+
+							break;
+						}
+						}
+					}
+
+					mStats.VerticesCount += mesh.Mesh->GetVertices().size();
+				}
+
+				// Planets!
+				auto viewPlanets = mRegistry.view<TransformComponent, MeshComponent, PlanetComponent>();
+				for (auto entity : viewPlanets)
+				{
+					auto [transform, mesh, planet] = viewPlanets.get<TransformComponent, MeshComponent, PlanetComponent>(entity);
+
+					switch (mSettings.WireframeRendering)
 					{
 					case Settings::Wireframe::NO:
 					{
-						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), false);
+						Renderer::SubmitPlanet(mesh.Mesh, transform.GetTransform(), (int)entity, planet.PlanetData, planet.MorphData, false);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
-						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), true);
+						Renderer::SubmitPlanet(mesh.Mesh, transform.GetTransform(), (int)entity, planet.PlanetData, planet.MorphData, true);
 
 						break;
 					}
 					case Settings::Wireframe::ONTOP:
 					{
-						// TODO, need a way to render a mesh total white
+						// TODO
 
 						break;
 					}
 					}
-				}
-			}
 
-			Renderer::EndScene();
+					mStats.VerticesCount += mesh.Mesh->GetPlanetVertices().size() * mesh.Mesh->GetPlanetPatches().size();
+				}
+
+				Renderer::EndScene();
+			}
 
 			// 2D Rendering
-			Renderer2D::BeginScene(*mainCamera, cameraTransform);
-			{
-				auto group = mRegistry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+			//Renderer2D::BeginScene(*mainCamera, cameraTransform);
+			//{
+			//	auto group = mRegistry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
 
-				for (auto entity : group)
-				{
-					auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
+			//	for (auto entity : group)
+			//	{
+			//		auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
 
-					Renderer2D::DrawQuad(transform.GetTransform(), sprite.Color);
-				}
-			}
+			//		Renderer2D::DrawQuad(transform.GetTransform(), sprite.Color);
+			//	}
+			//}
 
-			Renderer2D::EndScene();
+			//Renderer2D::EndScene();
 		}
 	}
 
@@ -263,7 +370,7 @@ namespace Toast {
 
 			// Skybox!
 			{
-				if(mSkyboxTexture)
+				if (mSkyboxTexture)
 					Renderer::SubmitSkybox(mSkybox, DirectX::XMFLOAT4(DirectX::XMVectorGetX(editorCamera->GetPosition()), DirectX::XMVectorGetY(editorCamera->GetPosition()), DirectX::XMVectorGetZ(editorCamera->GetPosition()), 0.0f), editorCamera->GetViewMatrix(), editorCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
 			}
 
@@ -332,37 +439,38 @@ namespace Toast {
 
 				mStats.VerticesCount += mesh.Mesh->GetPlanetVertices().size() * mesh.Mesh->GetPlanetPatches().size();
 			}
+
 			Renderer::EndScene();
-
-			//// 2D Rendering
-			//Renderer2D::BeginScene(*perspectiveCamera, perspectiveCamera->GetViewMatrix());
-			//{
-			//	auto group = mRegistry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-
-			//	for (auto entity : group)
-			//	{
-			//		auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
-
-			//		Renderer2D::DrawQuad(transform.GetTransform(), sprite.Color);
-			//	}
-			//}
-			//Renderer2D::EndScene();
-
-			// Debug Rendering
-			RendererDebug::BeginScene(*editorCamera);
-			{
-				RenderCommand::SetPrimitiveTopology(Topology::LINELIST);
-
-				auto view = mRegistry.view<TransformComponent, CameraComponent>();
-				for (auto entity : view)
-				{
-					auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
-
-					RendererDebug::SubmitCameraFrustum(camera.Camera, transform.GetTransform(), transform.Translation);
-				}
-			}
-			RendererDebug::EndScene();
 		}
+
+		//// 2D Rendering
+		//Renderer2D::BeginScene(*perspectiveCamera, perspectiveCamera->GetViewMatrix());
+		//{
+		//	auto group = mRegistry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+
+		//	for (auto entity : group)
+		//	{
+		//		auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
+
+		//		Renderer2D::DrawQuad(transform.GetTransform(), sprite.Color);
+		//	}
+		//}
+		//Renderer2D::EndScene();
+
+		// Debug Rendering
+		RendererDebug::BeginScene(*editorCamera);
+		{
+			RenderCommand::SetPrimitiveTopology(Topology::LINELIST);
+
+			auto view = mRegistry.view<TransformComponent, CameraComponent>();
+			for (auto entity : view)
+			{
+				auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
+
+				RendererDebug::SubmitCameraFrustum(camera.Camera, transform.GetTransform(), transform.Translation);
+			}
+		}
+		RendererDebug::EndScene();
 	}
 
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)

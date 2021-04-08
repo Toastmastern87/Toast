@@ -29,6 +29,9 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		mCheckerboardTexture = TextureLibrary::LoadTexture2D("assets/textures/Checkerboard.png");
+		mPlayButtonTex = TextureLibrary::LoadTexture2D("assets/textures/PlayButton.png");
+		mPauseButtonTex = TextureLibrary::LoadTexture2D("assets/textures/PauseButton.png");
+		mStopButtonTex = TextureLibrary::LoadTexture2D("assets/textures/StopButton.png");
 		TextureLibrary::LoadTextureSampler("Default", D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 
 		// Load all material shaders
@@ -219,10 +222,35 @@ namespace Toast {
 						Toast::Application::Get().Close();
 
 					ImGui::EndMenu();
-				}
+				} 
 
 				ImGui::EndMenuBar();
 			}
+
+			ImGui::Begin("Toolbar", false, ImGuiWindowFlags_NoDecoration);
+			ImGui::SetCursorPosX(static_cast<float>(ImGui::GetWindowWidth() / 2.0f));
+			if (mSceneState == SceneState::Edit)
+			{
+				if (ImGui::ImageButton((ImTextureID)(mPlayButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
+					OnScenePlay();
+				
+				ImGui::SameLine();
+				ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+				ImGui::SameLine();
+				ImGui::ImageButton((ImTextureID)(mStopButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+			}
+			else if (mSceneState == SceneState::Play)
+			{
+				ImGui::ImageButton((ImTextureID)(mPlayButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+				ImGui::SameLine();
+				ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+				ImGui::SameLine();
+				if (ImGui::ImageButton((ImTextureID)(mStopButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
+					OnSceneStop();
+			}
+			ImGui::SameLine();
+			ImGui::End();
+
 
 			mSceneSettingsPanel.OnImGuiRender();
 			mSceneHierarchyPanel.OnImGuiRender();
@@ -335,6 +363,16 @@ namespace Toast {
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
 		dispatcher.Dispatch<MouseButtonPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseButtonPressed));
+	}
+
+	void EditorLayer::OnScenePlay()
+	{
+		mSceneState = SceneState::Play;
+	}
+
+	void EditorLayer::OnSceneStop()
+	{
+		mSceneState = SceneState::Edit;
 	}
 
 	void EditorLayer::NewScene()
