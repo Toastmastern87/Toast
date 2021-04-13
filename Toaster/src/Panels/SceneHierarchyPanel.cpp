@@ -5,7 +5,11 @@
 
 #include "Toast/Scene/Components.h"
 
+#include "Toast/Script/ScriptEngine.h"
+
 #include "Toast/Utils/PlatformUtils.h"
+
+#include <filesystem>
 #include <cstring>
 
 /* The Microsoft C++ compiler is non-compliant with the C++ standard and needs
@@ -368,6 +372,15 @@ namespace Toast {
 				}
 			}
 
+			if (!mSelectionContext.HasComponent<ScriptComponent>())
+			{
+				if (ImGui::MenuItem("Script"))
+				{
+					mSelectionContext.AddComponent<ScriptComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
 			ImGui::EndPopup();
 		}
 
@@ -614,6 +627,50 @@ namespace Toast {
 					ImGui::EndTable();
 				}
 		});
+
+		DrawComponent<ScriptComponent>("Script", entity, [](auto& sc, Entity entity)
+			{
+				std::string oldName = sc.ModuleName;
+
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+				if (ImGui::BeginTable("ScriptTable", 3, flags))
+				{
+					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
+					ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Script");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					if (!sc.ModuleName.empty())
+						ImGui::InputText("##scriptfilepath", (char*)sc.ModuleName.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
+					else
+						ImGui::InputText("##scriptfilepath", (char*)"", 256, ImGuiInputTextFlags_ReadOnly);
+					ImGui::TableSetColumnIndex(2);
+					if (ImGui::Button("...##openscript"))
+					{
+						std::optional<std::string> file = FileDialogs::OpenFile("*.cs");
+						if (file)
+						{
+							std::filesystem::path filename = *file;
+							sc.ModuleName = filename.filename().string();
+						}
+
+						// Shutdown old script
+						if (ScriptEngine::ModuleExists(oldName))
+							TOAST_CORE_INFO("Shutting down old script entity");//ScriptEngine::ShutdownScriptEntity(entity, oldName);
+
+						if (ScriptEngine::ModuleExists(sc.ModuleName))
+							TOAST_CORE_INFO("Initializing new script entity");//ScriptEngine::InitScriptEntity(entity);
+
+					}
+
+					ImGui::EndTable();
+				}
+			});
 	}
 
 }

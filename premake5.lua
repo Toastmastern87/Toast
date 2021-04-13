@@ -1,5 +1,5 @@
 workspace "Toast"
-	architecture "x86_64"
+	architecture "x64"
 	startproject "Toaster"
 
 	configurations
@@ -21,10 +21,12 @@ IncludeDir["ImGui"] = "Toast/vendor/imgui"
 IncludeDir["directxtk"] = "Toast/vendor/directxtk/Inc" 
 IncludeDir["entt"] = "Toast/vendor/entt/include" 
 IncludeDir["yaml_cpp"] = "Toast/vendor/yaml-cpp/include" 
-IncludeDir["ImGuizmo"] = "Toast/vendor/ImGuizmo" 
+IncludeDir["ImGuizmo"] = "Toast/vendor/ImGuizmo"
+IncludeDir["mono"] = "Toast/vendor/mono/include"
 
 LibraryDir = {}
 LibraryDir["directxtk"] = "Toast/vendor/directxtk/Bin/"
+LibraryDir["mono"] = "vendor/mono/lib/Debug/mono-2.0-sgen.lib"
 
 group "Dependencies"
 	include "Toast/vendor/imgui"
@@ -68,7 +70,8 @@ project "Toast"
 		"%{IncludeDir.directxtk}",
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.yaml_cpp}",
-		"%{IncludeDir.ImGuizmo}"
+		"%{IncludeDir.ImGuizmo}",
+		"%{IncludeDir.mono}"
 	}
 
 	links
@@ -78,7 +81,8 @@ project "Toast"
 		"d3d11.lib",
 		"dxgi.lib",
 		"dxguid.lib",
-		"yaml-cpp"
+		"yaml-cpp",
+		"%{LibraryDir.mono}"
 	}
 
 	filter "files:Toast/vendor/ImGuizmo/**.cpp"
@@ -100,7 +104,7 @@ project "Toast"
 
 		libdirs
 		{
-			"%{LibraryDir.directxtk}/Debug-windows-x86_64/DirectXTK"
+			"%{LibraryDir.directxtk}/Debug-windows-x86_64/DirectXTK",
 		}
 
 	filter "configurations:Release"
@@ -118,6 +122,19 @@ project "Toast"
 		runtime "Release"
 		optimize "on"
 
+project "Toast-ScriptCore"
+	location "Toast-ScriptCore"
+	kind "SharedLib"
+	language "C#"
+
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files 
+	{
+		"%{prj.name}/src/**.cs", 
+	}
+group ""
 
 project "Toaster"
 	location "Toaster"
@@ -149,6 +166,11 @@ project "Toaster"
 		"Toast"
 	}
 
+	postbuildcommands 
+	{
+		'{COPY} "%{cfg.targetdir}/assets" "../Toaster/assets" '
+	}
+
 	filter "system:windows"
 		systemversion "latest"
 
@@ -162,64 +184,45 @@ project "Toaster"
 		runtime "Debug"
 		symbols "on"
 
+		postbuildcommands 
+		{
+			'{COPY} "../Toast/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
+		}
+
+
 	filter "configurations:Release"
 		defines "TOAST_RELEASE"
 		runtime "Release"
 		optimize "on"
+
+		postbuildcommands 
+		{
+			'{COPY} "../Toast/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
+		}
 
 	filter "configurations:Dist"
 		defines "TOAST_DIST"
 		runtime "Release"
 		optimize "on"
 
+		postbuildcommands 
+		{
+			'{COPY} "../Toast/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
+		}
 project "Mars"
 	location "Mars"
-	kind "ConsoleApp"
-	language "C++"
-	cppdialect "C++17"
-	staticruntime "on"
+	kind "SharedLib"
+	language "C#"
 
-	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	targetdir ("Toaster/assets/scripts")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
-	files
+	files 
 	{
-		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp"
-	}
-
-	includedirs
-	{
-		"Toast/vendor/spdlog/include",
-		"Toast/src",
-		"Toast/vendor",
-		"%{IncludeDir.entt}"
+		"%{prj.name}/src/**.cs", 
 	}
 
 	links
 	{
-		"Toast"
+		"Toast-ScriptCore"
 	}
-
-	filter "system:windows"
-		systemversion "latest"
-
-		defines
-		{
-			"TOAST_PLATFORM_WINDOWS"
-		}
-
-	filter "configurations:Debug"
-		defines "TOAST_DEBUG"
-		runtime "Debug"
-		symbols "on"
-
-	filter "configurations:Release"
-		defines "TOAST_RELEASE"
-		runtime "Release"
-		optimize "on"
-
-	filter "configurations:Dist"
-		defines "TOAST_DIST"
-		runtime "Release"
-		optimize "on"

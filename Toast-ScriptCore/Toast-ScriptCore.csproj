@@ -49,6 +49,7 @@
   <ItemGroup>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\Toast\CoreHelloWorld.cs" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>
