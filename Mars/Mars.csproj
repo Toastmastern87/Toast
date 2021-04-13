@@ -49,6 +49,7 @@
   <ItemGroup>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\ClientHelloWorld.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Toast-ScriptCore\Toast-ScriptCore.csproj">

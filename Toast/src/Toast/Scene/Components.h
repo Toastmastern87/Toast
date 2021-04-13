@@ -109,19 +109,14 @@ namespace Toast {
 		CameraComponent(const CameraComponent&) = default;
 	};
 
-	struct NativeScriptComponent
+	struct ScriptComponent
 	{
-		ScriptableEntity* Instance = nullptr;
+		std::string ModuleName;
 
-		ScriptableEntity* (*InstantiateScript)();
-		void (*DestroyScript)(NativeScriptComponent*);
-
-		template<typename T>
-		void Bind()
-		{
-			InstantiateScript = []() { return static_cast<ScriptableEntity*>(new T()); };
-			DestroyScript = [](NativeScriptComponent* nsc) { delete nsc->Instance; nsc->Instance = nullptr; };
-		}
+		ScriptComponent() = default;
+		ScriptComponent(const ScriptComponent&) = default;
+		ScriptComponent(const std::string& moduleName)
+			: ModuleName(moduleName) {}
 	};
 
 	struct DirectionalLightComponent 

@@ -7,6 +7,8 @@
 
 #include "Toast/Renderer/Renderer.h"
 
+#include "Toast/Script/ScriptEngine.h"
+
 namespace Toast {
 
 	Application* Application::sInstance = nullptr;
@@ -27,6 +29,8 @@ namespace Toast {
 
 		Renderer::Init();
 
+		ScriptEngine::Init("assets/scripts/Mars.dll");
+
 		mImGuiLayer = new ImGuiLayer();
 		PushOverlay(mImGuiLayer);
 	}
@@ -34,6 +38,8 @@ namespace Toast {
 	Application::~Application() 
 	{
 		TOAST_PROFILE_FUNCTION();
+
+		ScriptEngine::Shutdown();
 
 		Renderer::Shutdown();
 
