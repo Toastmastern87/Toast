@@ -40,6 +40,11 @@ namespace Toast {
 				ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), msg.substr(blankspace + 1).c_str());
 				break;
 			}
+			case 'e':
+			{
+				ImGui::TextColored(ImVec4(0.0f, 0.0f, 1.0f, 1.0f), msg.substr(blankspace + 1).c_str());
+				break;
+			}
 			case 'c':
 			{
 				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), msg.substr(blankspace + 1).c_str());
@@ -51,7 +56,6 @@ namespace Toast {
 				break;
 			}
 			}
-
 		}
 
 		ImGui::SetScrollHere(1.0f);
