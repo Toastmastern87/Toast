@@ -1,11 +1,13 @@
 #pragma once
 
-#include "entt.hpp"
 #include "Toast/Core/Timestep.h"
+
 #include "Toast/Renderer/EditorCamera.h"
 #include "Toast/Renderer/SceneEnvironment.h"
 #include "Toast/Renderer/Material.h"
 #include "Toast/Renderer/Mesh.h"
+
+#include "entt.hpp"
 
 namespace Toast {
 
@@ -23,8 +25,8 @@ namespace Toast {
 		DirectionalLight DirectionalLights[1];
 	};
 
-
 	class Entity;
+	using EntityMap = std::unordered_map<uint32_t, Entity>;
 
 	class Scene 
 	{
@@ -40,6 +42,9 @@ namespace Toast {
 		Entity CreateCube(const std::string& name = std::string());
 		Entity CreateSphere(const std::string& name = std::string());
 
+		void OnRuntimeStart();
+		void OnRuntimeStop();
+
 		void OnUpdateRuntime(Timestep ts);
 		void OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera);
 		void OnViewportResize(uint32_t width, uint32_t height);
@@ -53,6 +58,8 @@ namespace Toast {
 		int GetFPS() const { return (int)mStats.FPS; }
 		int GetVertices() const { return (int)mStats.VerticesCount; }
 
+		const EntityMap& GetEntityMap() const { return mEntityIDMap; }
+
 		//Settings
 		struct Settings
 		{
@@ -62,7 +69,7 @@ namespace Toast {
 		struct Stats
 		{
 			float timesteps = 0.0f;
-			float FPS;
+			float FPS = 0.0f;
 			uint32_t VerticesCount = 0;
 		};
 	private:
@@ -71,6 +78,8 @@ namespace Toast {
 	private:
 		entt::registry mRegistry;
 		uint32_t mViewportWidth = 0, mViewportHeight = 0;
+
+		EntityMap mEntityIDMap;
 
 		Environment mEnvironment;
 		Ref<Material> mSkyboxMaterial;

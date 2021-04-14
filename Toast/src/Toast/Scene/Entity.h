@@ -59,6 +59,8 @@ namespace Toast {
 		entt::entity mEntityHandle{ entt::null };
 		Scene* mScene = nullptr;
 
+		friend class Scene;
 		friend class SceneHierarchyPanel;
+		friend class ScriptEngine;
 	};
 }

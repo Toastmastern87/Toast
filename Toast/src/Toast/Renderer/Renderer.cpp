@@ -1,6 +1,6 @@
 #include "tpch.h"
+#include "Renderer.h"
 
-#include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/Renderer2D.h"
 #include "Toast/Renderer/RendererDebug.h"
 

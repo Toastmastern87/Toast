@@ -1,14 +1,15 @@
 #include "tpch.h"
 #include "Scene.h"
 
+#include "Toast/Scene/Entity.h"
+#include "Toast/Scene/Components.h"
+
 #include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/Renderer2D.h"
 #include "Toast/Renderer/RendererDebug.h"
 #include "Toast/Renderer/Primitives.h"
-#include "Toast/Renderer/SceneEnvironment.h"
 
-#include "Toast/Scene/Entity.h"
-#include "Toast/Scene/Components.h"
+#include "Toast/Script/ScriptEngine.h"
 
 namespace Toast {
 
@@ -36,10 +37,12 @@ namespace Toast {
 
 	Entity Scene::CreateEntity(const std::string& name)
 	{
-		Entity entity = { mRegistry.create(), this };
+		Entity entity = { mRegistry.create(), this  };
 		entity.AddComponent<TransformComponent>();
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
+
+		mEntityIDMap[(uint32_t)entity] = entity;
 
 		return entity;
 	}
@@ -77,6 +80,29 @@ namespace Toast {
 		mesh.Mesh->AddSubmesh(indexCount);
 
 		return entity;
+	}
+
+	void Scene::OnRuntimeStart()
+	{
+		ScriptEngine::SetSceneContext(this);
+
+		// Update all entities with scripts
+		{
+			auto view = mRegistry.view<ScriptComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
+					ScriptEngine::InstantiateEntityClass(e);
+				else
+					TOAST_CORE_INFO("Module doesn't exist");
+			}
+		}
+	}
+
+	void Scene::OnRuntimeStop()
+	{
+
 	}
 
 	void Scene::OnUpdateRuntime(Timestep ts)
@@ -220,7 +246,7 @@ namespace Toast {
 						}
 					}
 
-					mStats.VerticesCount += mesh.Mesh->GetVertices().size();
+					mStats.VerticesCount += static_cast<uint32_t>(mesh.Mesh->GetVertices().size());
 				}
 
 				// Planets!
@@ -251,7 +277,7 @@ namespace Toast {
 					}
 					}
 
-					mStats.VerticesCount += mesh.Mesh->GetPlanetVertices().size() * mesh.Mesh->GetPlanetPatches().size();
+					mStats.VerticesCount += static_cast<uint32_t>(mesh.Mesh->GetPlanetVertices().size() * mesh.Mesh->GetPlanetPatches().size());
 				}
 
 				Renderer::EndScene();
@@ -406,7 +432,7 @@ namespace Toast {
 					}
 				}
 
-				mStats.VerticesCount += mesh.Mesh->GetVertices().size();
+				mStats.VerticesCount += static_cast<uint32_t>(mesh.Mesh->GetVertices().size());
 			}
 
 			// Planets!
@@ -437,7 +463,7 @@ namespace Toast {
 				}
 				}
 
-				mStats.VerticesCount += mesh.Mesh->GetPlanetVertices().size() * mesh.Mesh->GetPlanetPatches().size();
+				mStats.VerticesCount += static_cast<uint32_t>(mesh.Mesh->GetPlanetVertices().size() * mesh.Mesh->GetPlanetPatches().size());
 			}
 
 			Renderer::EndScene();

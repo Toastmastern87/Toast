@@ -367,11 +367,15 @@ namespace Toast {
 
 	void EditorLayer::OnScenePlay()
 	{
+		mActiveScene->OnRuntimeStart();
+
 		mSceneState = SceneState::Play;
 	}
 
 	void EditorLayer::OnSceneStop()
 	{
+		mActiveScene->OnRuntimeStop();
+
 		mSceneState = SceneState::Edit;
 	}
 

@@ -30,7 +30,7 @@ namespace Toast {
 		EntityInstance Instance;
 	};
 
-	using EntityInstanceMap = std::unordered_map<uint32_t, std::unordered_map<uint32_t, EntityInstanceData>>;
+	using EntityInstanceMap = std::unordered_map<std::string, std::unordered_map<uint32_t, EntityInstanceData>>;
 
 	class ScriptEngine 
 	{
@@ -39,8 +39,18 @@ namespace Toast {
 		static void Shutdown();
 
 		static void LoadToastRuntimeAssembly(const std::string& path);
+		static void ReloadAssembly(const std::string& path);
+
+		static void SetSceneContext(Scene* scene);
+		static Scene* GetCurrentSceneContext();
+
+		static void OnCreateEntity(Entity entity);
 
 		static bool ModuleExists(const std::string& moduleName);
 		static void InitScriptEntity(Entity entity);
+		static void ShutdownScriptEntity(uint32_t entityID, const std::string& moduleName);
+		static void InstantiateEntityClass(Entity entity);
+
+		static EntityInstanceData& GetEntityInstanceData(const std::string& sceneName, uint32_t entityID);
 	};
 }

@@ -4,13 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Mars
+class ClientHelloWorld
 {
-    class ClientHelloWorld
+    void OnCreate()
     {
-        void OnCreate() 
-        {
-            Console.WriteLine("Hello World!");
-        }
+        Console.WriteLine("Hello World!");
     }
 }
