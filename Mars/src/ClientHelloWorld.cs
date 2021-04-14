@@ -8,6 +8,10 @@ class ClientHelloWorld
 {
     void OnCreate()
     {
-        Console.WriteLine("Hello World!");
+        Toast.Console.LogTrace("Testar Trace!");
+        Toast.Console.LogInfo("Testar Info!");
+        Toast.Console.LogWarning("Testar Warning!");
+        Toast.Console.LogError("Testar Error!");
+        Toast.Console.LogCritical("Testar Critical!");
     }
 }

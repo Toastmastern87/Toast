@@ -1,6 +1,8 @@
 #include "tpch.h"
 #include "ScriptEngine.h"
 
+#include "Toast/Script/ScriptEngineRegistry.h"
+
 #include <mono/jit/jit.h>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/debug-helpers.h>
@@ -173,7 +175,6 @@ namespace Toast {
 		return handle;
 	}
 
-
 	void ScriptEngine::Init(const std::string& assemblyPath)
 	{
 		sAssemblyPath = assemblyPath;
@@ -207,7 +208,7 @@ namespace Toast {
 		auto appAssembly = LoadAssembly(path);
 		auto appAssemblyImage = GetAssemblyImage(appAssembly);
 
-		//Register classes here
+		ScriptEngineRegistry::RegisterAll();
 
 		if (cleanup)
 		{
