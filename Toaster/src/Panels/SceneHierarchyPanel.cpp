@@ -10,6 +10,7 @@
 #include "Toast/Utils/PlatformUtils.h"
 
 #include <filesystem>
+#include <string>
 #include <cstring>
 
 /* The Microsoft C++ compiler is non-compliant with the C++ standard and needs
@@ -656,16 +657,20 @@ namespace Toast {
 						if (file)
 						{
 							std::filesystem::path filename = *file;
-							sc.ModuleName = filename.filename().string();
+							std::string filenameString = filename.filename().string();
+							if (filenameString.find('.') != std::string::npos)
+							{
+								filenameString = filenameString.substr(0, filenameString.find_last_of('.'));
+							}
+							sc.ModuleName = filenameString;
 						}
 
 						// Shutdown old script
 						if (ScriptEngine::ModuleExists(oldName))
-							TOAST_CORE_INFO("Shutting down old script entity");//ScriptEngine::ShutdownScriptEntity(entity, oldName);
+							ScriptEngine::ShutdownScriptEntity((uint32_t)entity, oldName);
 
 						if (ScriptEngine::ModuleExists(sc.ModuleName))
-							TOAST_CORE_INFO("Initializing new script entity");//ScriptEngine::InitScriptEntity(entity);
-
+							ScriptEngine::InitScriptEntity(entity);
 					}
 
 					ImGui::EndTable();

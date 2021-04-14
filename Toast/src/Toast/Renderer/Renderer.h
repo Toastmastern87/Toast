@@ -1,10 +1,12 @@
 #pragma once
 
 #include "Toast/Renderer/RenderCommand.h"
-
 #include "Toast/Renderer/OrthographicCamera.h"
-#include "Toast/Scene/SceneCamera.h"
 #include "Toast/Renderer/Mesh.h"
+#include "Toast/Renderer/SceneEnvironment.h"
+
+#include "Toast/Scene/Scene.h"
+#include "Toast/Scene/SceneCamera.h"
 #include "Toast/Scene/Components.h"
 
 namespace Toast {

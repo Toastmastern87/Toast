@@ -10,6 +10,7 @@ namespace Toast {
 
 	static MonoDomain* sMonoDomain = nullptr;
 	static std::string sAssemblyPath;
+	static Scene* sSceneContext;
 
 	// Assembly images
 	static MonoImage* sAppAssemblyImage = nullptr;
@@ -36,6 +37,21 @@ namespace Toast {
 			OnCreateMethod = GetMethod(image, FullName + ":OnCreate()");
 		}
 	};
+
+	static void InitMono() 
+	{
+		mono_set_dirs("..\\Toast\\vendor\\mono\\lib", "..\\Toast\\vendor\\mono\\etc");
+
+		auto domain = mono_jit_init("Toast");
+
+		char* name = (char*)"ToastRuntime";
+		sMonoDomain = mono_domain_create_appdomain(name, nullptr);
+	}
+
+	static void ShutdownMono() 
+	{
+		mono_jit_cleanup(sMonoDomain);
+	}
 
 	MonoObject* EntityInstance::GetInstance()
 	{
@@ -96,7 +112,9 @@ namespace Toast {
 
 	static MonoMethod* GetMethod(MonoImage* image, const std::string& methodDesc)
 	{
-		MonoMethodDesc* desc = mono_method_desc_new(methodDesc.c_str(), NULL);
+		std::string name = "ClientHelloWorld:OnCreate()";
+		MonoMethodDesc* desc = mono_method_desc_new(name.c_str(), NULL);
+		//MonoMethodDesc* desc = mono_method_desc_new(methodDesc.c_str(), NULL);
 		if (!desc)
 			TOAST_CORE_WARN("mono_method_desc_new failed");
 
@@ -105,6 +123,13 @@ namespace Toast {
 			TOAST_CORE_WARN("mono_method_desc_search_in_image failed");
 
 		return method;
+	}
+
+	static MonoObject* CallMethod(MonoObject* object, MonoMethod* method, void** params = nullptr)
+	{
+		MonoObject* pException = nullptr;
+		MonoObject* result = mono_runtime_invoke(method, object, params, &pException);
+		return result;
 	}
 
 	static MonoAssembly* LoadAssembly(const std::string& path) 
@@ -137,23 +162,31 @@ namespace Toast {
 		return monoClass;
 	}
 
+	static uint32_t Instantiate(EntityScriptClass& scriptClass)
+	{
+		MonoObject* instance = mono_object_new(sMonoDomain, scriptClass.Class);
+		if (!instance)
+			std::cout << "mono_object_new failed" << std::endl;
+
+		mono_runtime_object_init(instance);
+		uint32_t handle = mono_gchandle_new(instance, false);
+		return handle;
+	}
+
+
 	void ScriptEngine::Init(const std::string& assemblyPath)
 	{
-		mono_set_dirs("..\\Toast\\vendor\\mono\\lib", "..\\Toast\\vendor\\mono\\etc");
-
 		sAssemblyPath = assemblyPath;
 
-		auto domain = mono_jit_init("Toast");
-
-		char* name = (char*)"ToastRuntime";
-		sMonoDomain = mono_domain_create_appdomain(name, nullptr);
+		InitMono();
 
 		LoadToastRuntimeAssembly(sAssemblyPath);
 	}
 
 	void ScriptEngine::Shutdown()
 	{
-		mono_jit_cleanup(sMonoDomain);
+		sSceneContext = nullptr;
+		sEntityInstanceMap.clear();
 	}
 
 	void ScriptEngine::LoadToastRuntimeAssembly(const std::string& path)
@@ -186,6 +219,44 @@ namespace Toast {
 		sAppAssemblyImage = appAssemblyImage;
 	}
 
+	void ScriptEngine::ReloadAssembly(const std::string& path)
+	{
+		LoadToastRuntimeAssembly(path);
+		if (sEntityInstanceMap.size()) 
+		{
+			Scene* scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			if (sEntityInstanceMap.find("Scene") != sEntityInstanceMap.end())
+			{
+				auto& entityMap = sEntityInstanceMap.at("Scene");
+				for (auto& [entityID, entityInstanceData] : entityMap)
+				{
+					const auto& entityMap = scene->GetEntityMap();
+					TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in scene!");
+					InitScriptEntity(entityMap.at(entityID));
+				}
+			}
+
+		}
+	}
+
+	void ScriptEngine::SetSceneContext(Scene* scene)
+	{
+		sSceneContext = scene;
+	}
+
+	Scene* ScriptEngine::GetCurrentSceneContext()
+	{
+		return sSceneContext;
+	}
+
+	void ScriptEngine::OnCreateEntity(Entity entity)
+	{
+		EntityInstance& entityInstance = GetEntityInstanceData("Scene", (uint32_t)entity).Instance;
+		if (entityInstance.ScriptClass->OnCreateMethod)
+			CallMethod(entityInstance.GetInstance(), entityInstance.ScriptClass->OnCreateMethod);
+	}
+
 	bool ScriptEngine::ModuleExists(const std::string& moduleName)
 	{
 		std::string NamespaceName, ClassName;
@@ -195,13 +266,11 @@ namespace Toast {
 			ClassName = moduleName.substr(moduleName.find_last_of('.') + 1);
 		}
 		else
-		{
 			ClassName = moduleName;
-		}
 
 		MonoClass* monoClass = mono_class_from_name(sAppAssemblyImage, NamespaceName.c_str(), ClassName.c_str());
-		return monoClass != nullptr;
 
+		return monoClass != nullptr;
 	}
 
 	void ScriptEngine::InitScriptEntity(Entity entity)
@@ -225,19 +294,45 @@ namespace Toast {
 			scriptClass.ClassName = moduleName.substr(moduleName.find_last_of('.') + 1);
 		}
 		else
-		{
 			scriptClass.ClassName = moduleName;
-		}
 
 		scriptClass.Class = GetClass(sAppAssemblyImage, scriptClass);
 		scriptClass.InitClassMethods(sAppAssemblyImage);
 
-		EntityInstanceData& entityInstanceData = sEntityInstanceMap[&scene][entity];
+		EntityInstanceData& entityInstanceData = sEntityInstanceMap["Scene"][(uint32_t)entity];
 		EntityInstance& entityInstance = entityInstanceData.Instance;
 		entityInstance.ScriptClass = &scriptClass;
+	}
 
+	void ScriptEngine::ShutdownScriptEntity(uint32_t entityID, const std::string& moduleName)
+	{
+		EntityInstanceData& entityInstanceData = GetEntityInstanceData("Scene", entityID);
 
+		//Enter stuff to remove field map in the future
+	}
 
+	void ScriptEngine::InstantiateEntityClass(Entity entity)
+	{
+		Scene* scene = entity.mScene;
+		uint32_t id = (uint32_t)entity;
+		auto& moduleName = entity.GetComponent<ScriptComponent>().ModuleName;
+
+		EntityInstanceData& entityInstanceData = GetEntityInstanceData("Scene", (uint32_t)entity);
+		EntityInstance& entityInstance = entityInstanceData.Instance;
+		TOAST_CORE_ASSERT(entityInstance.ScriptClass, "Script class in Entity Instance null");
+		entityInstance.Handle = Instantiate(*entityInstance.ScriptClass);
+
+		// Data for handling Fieldmap later on
+
+		OnCreateEntity(entity);
+	}
+
+	Toast::EntityInstanceData& ScriptEngine::GetEntityInstanceData(const std::string& sceneName, uint32_t entityID)
+	{
+		TOAST_CORE_ASSERT(sEntityInstanceMap.find(sceneName) != sEntityInstanceMap.end(), "Invalid Scene Name!");
+		auto& entityIDMap = sEntityInstanceMap.at(sceneName);
+		TOAST_CORE_ASSERT(entityIDMap.find(entityID) != entityIDMap.end(), "Invalid entity ID!");
+		return entityIDMap.at(entityID);
 	}
 
 }

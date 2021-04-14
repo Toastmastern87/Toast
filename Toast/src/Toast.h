@@ -20,7 +20,6 @@
 #include "Toast/Scene/Scene.h"
 #include "Toast/Scene/Entity.h"
 #include "Toast/Scene/Components.h"
-#include "Toast/Scene/ScriptableEntity.h"
 #include "Toast/Scene/SceneSerializer.h"
 
 //-------Renderer------------------------
@@ -38,4 +37,8 @@
 
 #include "Toast/Renderer/OrthographicCamera.h"
 #include "Toast/Renderer/EditorCamera.h"
+//---------------------------------------
+
+//-------Scripting-----------------------
+
 //---------------------------------------

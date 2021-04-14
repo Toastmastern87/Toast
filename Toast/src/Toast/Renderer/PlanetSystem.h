@@ -8,7 +8,7 @@ using namespace DirectX;
 
 namespace Toast {
 
-	static class PlanetSystem
+	class PlanetSystem
 	{
 	public:
 		enum class NextPlanetFace

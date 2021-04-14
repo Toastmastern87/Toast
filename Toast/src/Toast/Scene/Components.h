@@ -2,10 +2,11 @@
 
 #include <DirectXMath.h>
 
-#include "SceneCamera.h"
-#include "ScriptableEntity.h"
+#include "Toast/Scene/SceneCamera.h"
+
 #include "Toast/Renderer/Mesh.h"
 #include "Toast/Renderer/PlanetSystem.h"
+#include "Toast/Renderer/SceneEnvironment.h"
 
 namespace Toast {
 
