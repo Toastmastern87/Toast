@@ -33,7 +33,7 @@ namespace Toast {
 
 			if((cbufferIdx+1) == mCBufferBindings.size())
 			{
-				TOAST_CORE_INFO("Trying to write data to a non existent constant buffer: {0}", name.c_str());
+				TOAST_CORE_INFO("Trying to write data to a non existent constant buffer: %s", name.c_str());
 				return;
 			}
 		}
@@ -143,7 +143,7 @@ namespace Toast {
 
 	void MaterialLibrary::Add(std::string name, const Ref<Material>& material)
 	{
-		TOAST_CORE_TRACE("Adding material: {0}", name);
+		TOAST_CORE_TRACE("Adding material: %s", name.c_str());
 		if (Exists(name))
 		{
 			name.append("_");
@@ -258,7 +258,7 @@ namespace Toast {
 			std::string materialName = data["Material"].as<std::string>();
 			std::string shaderName = data["Shader"].as<std::string>();
 
-			TOAST_CORE_TRACE("Deserializing material '{0}', Shader : '{1}'", materialName, shaderName);
+			TOAST_CORE_TRACE("Deserializing material '%s', Shader : '%s'", materialName.c_str(), shaderName.c_str());
 
 			auto& material = MaterialLibrary::Load(materialName, ShaderLibrary::Get(shaderName));
 

@@ -121,6 +121,19 @@ namespace Toast {
 			mStats.VerticesCount = 0;
 		}
 
+		// Update all entities with scripts
+		{
+			auto view = mRegistry.view<ScriptComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
+					ScriptEngine::OnUpdateEntity((uint32_t)e, ts);
+				else
+					TOAST_CORE_INFO("Module doesn't exist");
+			}
+		}
+
 		// Process lights
 		{
 			mLightEnvironment = LightEnvironment();

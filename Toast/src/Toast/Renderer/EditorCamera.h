@@ -25,7 +25,7 @@ namespace Toast {
 
 		void SetVerticalFOV(float verticalFOV) { mFOV = DirectX::XMConvertToRadians(verticalFOV); UpdateProjection(); }
 		const float GetVerticalFOV() const { return DirectX::XMConvertToDegrees(mFOV); }
-		void SetNearClip(float nearClip) { mNearClip = std::max(nearClip, 0.001f); UpdateProjection(); }
+		void SetNearClip(float nearClip) { mNearClip = (std::max)(nearClip, 0.001f); UpdateProjection(); }
 		const float GetNearClip() const { return mNearClip; }
 		void SetFarClip(float farClip) { mFarClip = farClip; UpdateProjection(); }
 		const float GetFarClip() const { return mFarClip; }

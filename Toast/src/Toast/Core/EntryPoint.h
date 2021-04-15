@@ -17,6 +17,8 @@ int main(int argv, char** argc)
 	app->Run();
 	TOAST_PROFILE_END_SESSION();
 
+	Toast::Log::Shutdown();
+
 	TOAST_PROFILE_BEGIN_SESSION("Shutdown", "ToastProfile-Shutdown.json");
 	delete app;
 	TOAST_PROFILE_END_SESSION();

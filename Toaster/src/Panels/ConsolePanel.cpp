@@ -8,53 +8,26 @@
 
 namespace Toast {
 
+	Ref<ConsolePanel> ConsolePanel::sConsole = CreateRef<ConsolePanel>();
+
 	void ConsolePanel::OnImGuiRender()
 	{
-		mLogMessages.clear();
-
 		ImGui::Begin("Console");
 
-		std::string temp;
-		std::string logString = Log::GetLogString();
-
-		std::istringstream logStream(logString);
-
-		while (std::getline(logStream, temp)) 
+		for (auto itr = Log::sMessages.begin(); itr != Log::sMessages.end(); ++itr)
 		{
-			mLogMessages.push_back(temp);
-		}
-
-		for (std::string msg : mLogMessages)
-		{
-			std::size_t blankspace = msg.find(" ");
-
-			switch (msg.at(0)) 
+			switch (itr->first)
 			{
-			case 'i':
-			{
-				ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), msg.substr(blankspace + 1).c_str());
-				break;
-			}
-			case 't':
-			{
-				ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), msg.substr(blankspace + 1).c_str());
-				break;
-			}
-			case 'e':
-			{
-				ImGui::TextColored(ImVec4(0.0f, 0.0f, 1.0f, 1.0f), msg.substr(blankspace + 1).c_str());
-				break;
-			}
-			case 'c':
-			{
-				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), msg.substr(blankspace + 1).c_str());
-				break;
-			}
-			case 'w':
-			{
-				ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), msg.substr(blankspace + 1).c_str());
-				break;
-			}
+			case Severity::Trace:
+				ImGui::TextColored(mTraceColor, itr->second.c_str()); break;
+			case Severity::Info:
+				ImGui::TextColored(mInfoColor, itr->second.c_str()); break;
+			case Severity::Warning:
+				ImGui::TextColored(mWarnColor, itr->second.c_str()); break;
+			case Severity::Error:
+				ImGui::TextColored(mErrorColor, itr->second.c_str()); break;
+			case Severity::Critical:
+				ImGui::TextColored(mCriticalColor, itr->second.c_str()); break;
 			}
 		}
 

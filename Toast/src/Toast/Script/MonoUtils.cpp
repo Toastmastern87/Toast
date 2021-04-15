@@ -23,6 +23,22 @@ namespace Toast {
 				return ConvertMonoStringToCppString(a);
 			}
 		}
+
+		char* ConvertMonoObjectToCppChar(MonoObject* obj)
+		{
+			if (obj == NULL)
+			{
+				char* a = "NULL";
+				return a;
+			}
+			else
+			{
+				MonoString* a = mono_object_to_string(obj, NULL);
+				std::string b = ConvertMonoStringToCppString(a);
+				char* s = _strdup(b.c_str());
+				return s;
+			}
+		}
 	}
 
 }

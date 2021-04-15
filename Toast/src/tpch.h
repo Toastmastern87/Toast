@@ -6,7 +6,7 @@
 		#define NOMINMAX
 	#endif
 
-	#include <Windows.h>
+	#include <windows.h>
 	#include <windowsx.h>
 #endif
 
@@ -15,6 +15,9 @@
 #include <utility>
 #include <algorithm>
 #include <functional>
+#include <array>
+#include <chrono>
+#include <limits>
 
 #include <string>
 #include <sstream>

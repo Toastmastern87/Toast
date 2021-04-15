@@ -16,7 +16,7 @@ namespace Toast {
 
 		ZeroMemory(&ofn, sizeof(OPENFILENAME));
 		ofn.lStructSize = sizeof(OPENFILENAME);
-		ofn.hwndOwner = Application::Get().GetWindow().GetNativeWindow();
+		ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetNativeWindow();
 		ofn.lpstrFile = szFile;
 		ofn.nMaxFile = sizeof(szFile);
 		ofn.lpstrFilter = filter;
@@ -37,7 +37,7 @@ namespace Toast {
 
 		ZeroMemory(&ofn, sizeof(OPENFILENAME));
 		ofn.lStructSize = sizeof(OPENFILENAME);
-		ofn.hwndOwner = Application::Get().GetWindow().GetNativeWindow();
+		ofn.hwndOwner = (HWND)Application::Get().GetWindow().GetNativeWindow();
 		ofn.lpstrFile = szFile;
 		ofn.nMaxFile = sizeof(szFile);
 		ofn.lpstrFilter = filter;

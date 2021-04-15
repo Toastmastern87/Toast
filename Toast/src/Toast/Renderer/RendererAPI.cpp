@@ -18,7 +18,7 @@ namespace Toast {
 
 		RECT clientRect;
 
-		mWindowHandle = Application::Get().GetWindow().GetNativeWindow();
+		mWindowHandle = (HWND)Application::Get().GetWindow().GetNativeWindow();
 
 		GetClientRect(mWindowHandle, &clientRect);
 
@@ -234,8 +234,8 @@ namespace Toast {
 		build = std::to_string(LOWORD(driverVersion.LowPart));
 
 		TOAST_CORE_INFO("DirectX Information:");
-		TOAST_CORE_INFO("  Vendor: {0}", vendor);
-		TOAST_CORE_INFO("  Renderer: {0}", videoCardDescription);
-		TOAST_CORE_INFO("  Version: {0}.{1}.{2}.{3}", major, minor, release, build);
+		TOAST_CORE_INFO("  Vendor: %s", vendor.c_str());
+		TOAST_CORE_INFO("  Renderer: %s", videoCardDescription);
+		TOAST_CORE_INFO("  Version: %s.%s.%s.%s", major.c_str(), minor.c_str(), release.c_str(), build.c_str());
 	}
 }

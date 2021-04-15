@@ -8,29 +8,29 @@ namespace Toast {
 
 	namespace Script {
 
-		void Toast_Console_LogTrace(MonoObject* message)
+		void Toast_Console_LogTrace(MonoObject* msg)
 		{
-			TOAST_TRACE(ConvertMonoObjectToString(message));
+			TOAST_TRACE(ConvertMonoObjectToCppChar(msg));
 		}
 
-		void Toast_Console_LogInfo(MonoObject* message)
+		void Toast_Console_LogInfo(MonoObject* msg)
 		{
-			TOAST_INFO(ConvertMonoObjectToString(message));
+			TOAST_INFO(ConvertMonoObjectToCppChar(msg));
 		}
 
-		void Toast_Console_LogWarning(MonoObject* message)
+		void Toast_Console_LogWarning(MonoObject* msg)
 		{
-			TOAST_WARN(ConvertMonoObjectToString(message));
+			TOAST_WARN(ConvertMonoObjectToCppChar(msg));
 		}
 
-		void Toast_Console_LogError(MonoObject* message)
+		void Toast_Console_LogError(MonoObject* msg)
 		{
-			TOAST_ERROR(ConvertMonoObjectToString(message));
+			TOAST_ERROR(ConvertMonoObjectToCppChar(msg));
 		}
 
-		void Toast_Console_LogCritical(MonoObject* message)
+		void Toast_Console_LogCritical(MonoObject* msg)
 		{
-			TOAST_CRITICAL(ConvertMonoObjectToString(message));
+			TOAST_CRITICAL(ConvertMonoObjectToCppChar(msg));
 		}
 	}
 }

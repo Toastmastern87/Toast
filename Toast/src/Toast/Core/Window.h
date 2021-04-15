@@ -43,6 +43,6 @@ namespace Toast
 
 		static Scope<Window> Create(const WindowProps& props = WindowProps());
 
-		virtual HWND GetNativeWindow() const = 0;
+		virtual void* GetNativeWindow() const = 0;
 	};
 }

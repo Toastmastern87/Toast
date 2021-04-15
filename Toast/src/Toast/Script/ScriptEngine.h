@@ -45,6 +45,7 @@ namespace Toast {
 		static Scene* GetCurrentSceneContext();
 
 		static void OnCreateEntity(Entity entity);
+		static void OnUpdateEntity(uint32_t entityID, Timestep ts);
 
 		static bool ModuleExists(const std::string& moduleName);
 		static void InitScriptEntity(Entity entity);

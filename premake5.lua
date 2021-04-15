@@ -168,7 +168,7 @@ project "Toaster"
 
 	postbuildcommands 
 	{
-		'{COPY} "../Toaster/assets" "%{cfg.targetdir}/assets"'
+		'{COPY} "%{cfg.targetdir}/assets" "../Toaster/assets"'
 	}
 
 	filter "system:windows"
@@ -214,7 +214,7 @@ project "Mars"
 	kind "SharedLib"
 	language "C#"
 
-	targetdir ("../Toaster/assets/scripts")
+	targetdir ("bin/" .. outputdir .. "/Toaster/assets/scripts")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
 	files 
