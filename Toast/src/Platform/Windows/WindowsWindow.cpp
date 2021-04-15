@@ -50,7 +50,7 @@ namespace Toast
 		mData.Width = props.Width;
 		mData.Height = props.Height;
 
-		TOAST_CORE_INFO("Creating window {0} {1}x{2}", props.Title, props.Width, props.Height);
+		TOAST_CORE_INFO("Creating window %s %ix%i", props.Title.c_str(), props.Width, props.Height);
 
 		hInstance = GetModuleHandle(0);
 

@@ -8,6 +8,7 @@ namespace Toast {
 	
 		std::string ConvertMonoStringToCppString(MonoString* message);
 		std::string ConvertMonoObjectToString(MonoObject* obj);
+		char* ConvertMonoObjectToCppChar(MonoObject* obj);
 	}
 
 }

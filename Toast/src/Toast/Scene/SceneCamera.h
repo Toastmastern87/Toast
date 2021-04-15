@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Toast/Renderer/Camera.h"
-
 #include "Toast/Renderer/Mesh.h"
 
 namespace Toast {
@@ -21,12 +20,12 @@ namespace Toast {
 
 		void SetPerspectiveVerticalFOV(float verticalFOV) {	mPerspectiveFOV = DirectX::XMConvertToRadians(verticalFOV); RecalculateProjection(); }
 		const float GetPerspectiveVerticalFOV() const { return DirectX::XMConvertToDegrees(mPerspectiveFOV); }
-		void SetPerspectiveNearClip(float nearClip) { mPerspectiveNear = std::max(nearClip, 0.001f); RecalculateProjection(); }
+		void SetPerspectiveNearClip(float nearClip) { mPerspectiveNear = (std::max)(nearClip, 0.001f); RecalculateProjection(); }
 		const float GetPerspectiveNearClip() const { return mPerspectiveNear; }
 		void SetPerspectiveFarClip(float farClip) {	mPerspectiveFar = farClip; RecalculateProjection();	}
 		const float GetPerspectiveFarClip() const { return mPerspectiveFar; }
 
-		void SetOrthographicSize(float size) { mOrthographicSize = std::max(size, 0.1f); RecalculateProjection(); }
+		void SetOrthographicSize(float size) { mOrthographicSize = (std::max)(size, 0.1f); RecalculateProjection(); }
 		const float GetOrthographicSize() const { return mOrthographicSize; }
 		void SetOrthographicNearClip(float nearClip) { mOrthographicNear = nearClip; RecalculateProjection(); }
 		const float GetOrthographicNearClip() const { return mOrthographicNear; }

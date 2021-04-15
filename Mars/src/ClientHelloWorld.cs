@@ -14,4 +14,9 @@ class ClientHelloWorld
         Toast.Console.LogError("Testar Error!");
         Toast.Console.LogCritical("Testar Critical!");
     }
+
+    void OnUpdate(float ts) 
+    {
+        Toast.Console.LogTrace("Update Entity timestep: " + ts);
+    }
 }

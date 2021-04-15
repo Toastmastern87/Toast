@@ -9,7 +9,7 @@ namespace Toast {
 		DEPTH_STENCIL = 0x40L,
 
 	} BindFlag;
-	inline BindFlag operator|(BindFlag a, BindFlag b) { return (BindFlag)((UINT)a | (UINT)b); };
+	inline BindFlag operator|(BindFlag a, BindFlag b) { return (BindFlag)((uint32_t)a | (uint32_t)b); };
 
 	typedef enum class PrimitiveTopology
 	{

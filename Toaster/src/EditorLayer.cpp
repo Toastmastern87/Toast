@@ -48,7 +48,7 @@ namespace Toast {
 		fbSpec.Width = 1280;
 		fbSpec.Height = 720;
 		mFramebuffer = CreateRef<Framebuffer>(fbSpec);
-		
+
 		mActiveScene = CreateRef<Scene>();
 
 		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.01f, 30000.0f);
@@ -60,7 +60,7 @@ namespace Toast {
 	}
 
 	void EditorLayer::OnDetach()
-	{	
+	{
 		TOAST_PROFILE_FUNCTION();
 	}
 
@@ -81,7 +81,7 @@ namespace Toast {
 			{
 				mEditorCamera->SetViewportSize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 				mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-				
+
 				break;
 			}
 			case SceneState::Play:
@@ -103,7 +103,7 @@ namespace Toast {
 		mFramebuffer->Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
 
 		// Update scene
-		switch (mSceneState) 
+		switch (mSceneState)
 		{
 		case SceneState::Edit:
 		{
@@ -117,7 +117,7 @@ namespace Toast {
 			int mouseX = (int)mx;
 			int mouseY = (int)my;
 
-			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y) 
+			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 			{
 				int pixelData = mFramebuffer->ReadPixel(1, mouseX, mouseY);
 				mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mActiveScene.get());
@@ -222,7 +222,7 @@ namespace Toast {
 						Toast::Application::Get().Close();
 
 					ImGui::EndMenu();
-				} 
+				}
 
 				ImGui::EndMenuBar();
 			}
@@ -233,7 +233,7 @@ namespace Toast {
 			{
 				if (ImGui::ImageButton((ImTextureID)(mPlayButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
 					OnScenePlay();
-				
+
 				ImGui::SameLine();
 				ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
 				ImGui::SameLine();
@@ -250,7 +250,6 @@ namespace Toast {
 			}
 			ImGui::SameLine();
 			ImGui::End();
-
 
 			mSceneSettingsPanel.OnImGuiRender();
 			mSceneHierarchyPanel.OnImGuiRender();
@@ -438,56 +437,56 @@ namespace Toast {
 
 		switch (e.GetKeyCode())
 		{
-			case Key::N:
-			{
-				if (control)
-					NewScene();
-				break;
-			}
-			case Key::O:
-			{
-				if (control)
-					OpenScene();
-				break;
-			}
-			case Key::S:
-			{
-				if (control && shift)
-					SaveSceneAs();
-				else if (control && !shift)
-					SaveScene();
-				break;
-			}
+		case Key::N:
+		{
+			if (control)
+				NewScene();
+			break;
+		}
+		case Key::O:
+		{
+			if (control)
+				OpenScene();
+			break;
+		}
+		case Key::S:
+		{
+			if (control && shift)
+				SaveSceneAs();
+			else if (control && !shift)
+				SaveScene();
+			break;
+		}
 
-			//Gizmos
-			case Key::Q:
-			{
-				if(!ImGuizmo::IsUsing())
-					mGizmoType = -1;
+		//Gizmos
+		case Key::Q:
+		{
+			if (!ImGuizmo::IsUsing())
+				mGizmoType = -1;
 
-				break;
-			}
-			case Key::W:
-			{
-				if(!ImGuizmo::IsUsing())
-					mGizmoType = ImGuizmo::OPERATION::TRANSLATE;
+			break;
+		}
+		case Key::W:
+		{
+			if (!ImGuizmo::IsUsing())
+				mGizmoType = ImGuizmo::OPERATION::TRANSLATE;
 
-				break;
-			}
-			case Key::E:
-			{
-				if(!ImGuizmo::IsUsing())
-					mGizmoType = ImGuizmo::OPERATION::ROTATE;
+			break;
+		}
+		case Key::E:
+		{
+			if (!ImGuizmo::IsUsing())
+				mGizmoType = ImGuizmo::OPERATION::ROTATE;
 
-				break;
-			}
-			case Key::R:
-			{
-				if (!ImGuizmo::IsUsing())
-					mGizmoType = ImGuizmo::OPERATION::SCALE;
+			break;
+		}
+		case Key::R:
+		{
+			if (!ImGuizmo::IsUsing())
+				mGizmoType = ImGuizmo::OPERATION::SCALE;
 
-				break;
-			}
+			break;
+		}
 		}
 
 		return true;
@@ -497,7 +496,7 @@ namespace Toast {
 	{
 		if (e.GetMouseButton() == Mouse::ButtonLeft)
 		{
-			if(mViewportHovered && !ImGuizmo::IsOver() && !Input::IsKeyPressed(Key::LeftAlt))
+			if (mViewportHovered && !ImGuizmo::IsOver() && !Input::IsKeyPressed(Key::LeftAlt))
 				mSceneHierarchyPanel.SetSelectedEntity(mHoveredEntity);
 		}
 

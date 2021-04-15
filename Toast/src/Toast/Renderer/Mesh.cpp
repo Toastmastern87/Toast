@@ -31,7 +31,7 @@ namespace Toast {
 			mInstanceVertexBuffer = CreateRef<VertexBuffer>(sizeof(PlanetPatch) * 100000, 100000, 1);
 			mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 
-			mInstanceVertexBuffer->SetData(&mPlanetPatches[0], (sizeof(PlanetPatch) * mPlanetPatches.size()));
+			mInstanceVertexBuffer->SetData(&mPlanetPatches[0], static_cast<uint32_t>(sizeof(PlanetPatch) * mPlanetPatches.size()));
 		}
 	}
 

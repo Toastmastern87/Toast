@@ -4,12 +4,15 @@
 
 #include "Toast/Core/Window.h"
 #include "Toast/Core/LayerStack.h"
+#include "Toast/Core/Timestep.h"
+
 #include "Toast/Events/Event.h"
 #include "Toast/Events/ApplicationEvent.h"
 
-#include "Toast/Core/Timestep.h"
-
 #include "Toast/ImGui/ImGuiLayer.h"
+
+#define NOMINMAX
+#include <windows.h>
 
 int main(int argc, char** argv);
 

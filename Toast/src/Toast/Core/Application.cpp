@@ -1,8 +1,6 @@
 #include "tpch.h"
 #include "Toast/Core/Application.h"
 
-#include "Toast/Core/Log.h"
-
 #include "Toast/Core/Input.h"
 
 #include "Toast/Renderer/Renderer.h"

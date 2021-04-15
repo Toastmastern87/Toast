@@ -33,10 +33,12 @@ namespace Toast {
 
 		MonoClass* Class = nullptr;
 		MonoMethod* OnCreateMethod = nullptr;
+		MonoMethod* OnUpdateMethod = nullptr;
 
 		void InitClassMethods(MonoImage* image)
 		{
 			OnCreateMethod = GetMethod(image, FullName + ":OnCreate()");
+			OnUpdateMethod = GetMethod(image, FullName + ":OnUpdate(single)");
 		}
 	};
 
@@ -114,9 +116,7 @@ namespace Toast {
 
 	static MonoMethod* GetMethod(MonoImage* image, const std::string& methodDesc)
 	{
-		std::string name = "ClientHelloWorld:OnCreate()";
-		MonoMethodDesc* desc = mono_method_desc_new(name.c_str(), NULL);
-		//MonoMethodDesc* desc = mono_method_desc_new(methodDesc.c_str(), NULL);
+		MonoMethodDesc* desc = mono_method_desc_new(methodDesc.c_str(), NULL);
 		if (!desc)
 			TOAST_CORE_WARN("mono_method_desc_new failed");
 
@@ -139,9 +139,9 @@ namespace Toast {
 		MonoAssembly* assembly = LoadAssemblyFromFile(path.c_str());
 
 		if (!assembly)
-			TOAST_CORE_INFO("Could not load assembly: {0}", path);
+			TOAST_CORE_WARN("Could not load assembly: %s", path.c_str());
 		else
-			TOAST_CORE_INFO("Successfully loaded assembly: {0}", path);
+			TOAST_CORE_INFO("Successfully loaded assembly: %s", path.c_str());
 
 		return assembly;
 	}
@@ -150,7 +150,7 @@ namespace Toast {
 	{
 		MonoImage* image = mono_assembly_get_image(assembly);
 		if (!image)
-			TOAST_CORE_INFO("mono_assembly_get_image failed");
+			TOAST_CORE_WARN("mono_assembly_get_image failed");
 
 		return image;
 	}
@@ -159,7 +159,7 @@ namespace Toast {
 	{
 		MonoClass* monoClass = mono_class_from_name(image, scriptClass.NamespaceName.c_str(), scriptClass.ClassName.c_str());
 		if (!monoClass)
-			TOAST_CORE_INFO("mono_class_from_name failed");
+			TOAST_CORE_WARN("mono_class_from_name failed");
 
 		return monoClass;
 	}
@@ -168,7 +168,7 @@ namespace Toast {
 	{
 		MonoObject* instance = mono_object_new(sMonoDomain, scriptClass.Class);
 		if (!instance)
-			std::cout << "mono_object_new failed" << std::endl;
+			TOAST_CORE_WARN("mono_object_new failed");
 
 		mono_runtime_object_init(instance);
 		uint32_t handle = mono_gchandle_new(instance, false);
@@ -256,6 +256,17 @@ namespace Toast {
 		EntityInstance& entityInstance = GetEntityInstanceData("Scene", (uint32_t)entity).Instance;
 		if (entityInstance.ScriptClass->OnCreateMethod)
 			CallMethod(entityInstance.GetInstance(), entityInstance.ScriptClass->OnCreateMethod);
+	}
+
+	void ScriptEngine::OnUpdateEntity(uint32_t entityID, Timestep ts)
+	{
+		EntityInstance& entityInstance = GetEntityInstanceData("Scene", entityID).Instance;
+		if (entityInstance.ScriptClass->OnUpdateMethod) 
+		{
+			void* args[] = { &ts };
+			CallMethod(entityInstance.GetInstance(), entityInstance.ScriptClass->OnUpdateMethod, args);
+		}
+
 	}
 
 	bool ScriptEngine::ModuleExists(const std::string& moduleName)

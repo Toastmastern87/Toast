@@ -1,0 +1,15 @@
+[Toast][21:51:12] INFO: Creating window Toaster 2400x1300
+[Toast][21:51:12] INFO: DirectX Information:
+[Toast][21:51:12] INFO:   Vendor: NVIDIA Corporation
+[Toast][21:51:12] INFO:   Renderer: NVIDIA GeForce RTX 3080
+[Toast][21:51:12] INFO:   Version: 27.21.14.6109
+[Toast][21:51:12] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
+[Toast][21:51:12] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
+[Toast][21:51:12] TRACE: Deserializing material 'Blue', Shader : 'PBR'
+[Toast][21:51:12] TRACE: Adding material: Blue
+[Toast][21:51:12] TRACE: Deserializing material 'Planet', Shader : 'Planet'
+[Toast][21:51:12] TRACE: Adding material: Planet
+[Toast][21:51:13] TRACE: Deserializing material 'Red', Shader : 'PBR'
+[Toast][21:51:13] TRACE: Adding material: Red
+[Toast][21:51:13] TRACE: Deserializing material 'Standard', Shader : 'Standard'
+[Toast][21:51:13] TRACE: Adding material: Standard

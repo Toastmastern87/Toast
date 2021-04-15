@@ -21,7 +21,7 @@ namespace Toast
 
 		virtual void SetTitle(const std::string& title) override;
 
-		virtual HWND GetNativeWindow() const override { return mWin32Window; }
+		virtual void* GetNativeWindow() const override { return mWin32Window; }
 
 		static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
