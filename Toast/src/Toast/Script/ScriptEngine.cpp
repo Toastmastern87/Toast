@@ -15,8 +15,8 @@ namespace Toast {
 	static Scene* sSceneContext;
 
 	// Assembly images
-	static MonoImage* sAppAssemblyImage = nullptr;
-	static MonoImage* sCoreAssemblyImage = nullptr;
+	MonoImage* sAppAssemblyImage = nullptr;
+	MonoImage* sCoreAssemblyImage = nullptr;
 
 	static EntityInstanceMap sEntityInstanceMap;
 

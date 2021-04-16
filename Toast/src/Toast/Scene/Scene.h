@@ -58,6 +58,8 @@ namespace Toast {
 		int GetFPS() const { return (int)mStats.FPS; }
 		int GetVertices() const { return (int)mStats.VerticesCount; }
 
+		Entity FindEntityByTag(const std::string& tag);
+
 		const EntityMap& GetEntityMap() const { return mEntityIDMap; }
 
 		//Settings
