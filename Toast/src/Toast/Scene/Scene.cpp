@@ -41,7 +41,7 @@ namespace Toast {
 		entity.AddComponent<TransformComponent>();
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
-
+		
 		mEntityIDMap[(uint32_t)entity] = entity;
 
 		return entity;
@@ -64,6 +64,8 @@ namespace Toast {
 		mesh.Mesh->Init();
 		mesh.Mesh->AddSubmesh(indexCount);
 
+		mEntityIDMap[(uint32_t)entity] = entity;
+
 		return entity;
 	}
 
@@ -78,6 +80,7 @@ namespace Toast {
 		uint32_t indexCount = Primitives::CreateSphere(mesh.Mesh->GetVertices(), mesh.Mesh->GetIndices(), 2);
 		mesh.Mesh->Init();
 		mesh.Mesh->AddSubmesh(indexCount);
+		mEntityIDMap[(uint32_t)entity] = entity;
 
 		return entity;
 	}
@@ -532,6 +535,19 @@ namespace Toast {
 	{
 		mSkyboxTexture = skybox;
 		mSkyboxMaterial->SetTexture(3, D3D11_PIXEL_SHADER, mSkyboxTexture);
+	}
+
+	Toast::Entity Scene::FindEntityByTag(const std::string& tag)
+	{
+		auto view = mRegistry.view<TagComponent>();
+		for (auto entity : view)
+		{
+			const auto& canditate = view.get<TagComponent>(entity).Tag;
+			if (canditate == tag)
+				return Entity(entity, this);
+		}
+
+		return Entity{};
 	}
 
 	template<typename T>

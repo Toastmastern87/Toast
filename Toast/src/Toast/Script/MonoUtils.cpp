@@ -39,6 +39,11 @@ namespace Toast {
 				return s;
 			}
 		}
+
+		MonoString* ConvertCppStringToMonoString(MonoDomain* domain, const std::string& str)
+		{
+			return mono_string_new(domain, str.c_str());
+		}
 	}
 
 }
