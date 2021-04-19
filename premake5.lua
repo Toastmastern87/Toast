@@ -127,7 +127,7 @@ project "Toast-ScriptCore"
 	kind "SharedLib"
 	language "C#"
 
-	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	targetdir ("../Toast/Toaster/assets/scripts")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
 	files 
@@ -214,7 +214,7 @@ project "Mars"
 	kind "SharedLib"
 	language "C#"
 
-	targetdir ("bin/" .. outputdir .. "/Toaster/assets/scripts")
+	targetdir ("../Toast/Toaster/assets/scripts")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
 	files 

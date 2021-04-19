@@ -1,202 +1,76 @@
-[Toast][10:57:26] INFO: Creating window Toaster 2400x1300
-[Toast][10:57:26] INFO: DirectX Information:
-[Toast][10:57:26] INFO:   Vendor: NVIDIA Corporation
-[Toast][10:57:26] INFO:   Renderer: NVIDIA GeForce RTX 3080
-[Toast][10:57:26] INFO:   Version: 27.21.14.6109
-[Toast][10:57:26] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
-[Toast][10:57:26] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
-[Toast][10:57:27] TRACE: Deserializing material 'Blue', Shader : 'PBR'
-[Toast][10:57:27] TRACE: Adding material: Blue
-[Toast][10:57:27] TRACE: Deserializing material 'Planet', Shader : 'Planet'
-[Toast][10:57:27] TRACE: Adding material: Planet
-[Toast][10:57:27] TRACE: Deserializing material 'Red', Shader : 'PBR'
-[Toast][10:57:27] TRACE: Adding material: Red
-[Toast][10:57:27] TRACE: Deserializing material 'Standard', Shader : 'Standard'
-[Toast][10:57:27] TRACE: Adding material: Standard
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] INFO: Creating Entity: Cube
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,02198744
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,05650616
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,001511574
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,001388073
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,005490303
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007082939
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006994247
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006974697
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006812572
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007338524
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006746769
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007175446
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007102489
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006925106
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006997108
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007097721
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006745338
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,00718689
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006987572
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006891727
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007115841
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007000923
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007042885
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006971836
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006840706
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,0072155
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007007599
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007053375
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006919861
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007079124
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007048607
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006972313
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007038116
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007016659
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006832123
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007253647
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006934166
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,006844997
-[Toast][10:57:32] INFO: Entity ID: 0
-[Toast][10:57:32] INFO: entityMap.size: 1
-[App][10:57:32] TRACE: Updating Cube, timestep: 0,007219791
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,006980896
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,006871223
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,007009506
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,00702095
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,007007122
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,007046223
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,008116245
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,005926609
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,007026672
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,006974697
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,00702095
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,007014275
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,007017612
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,007014275
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,007115364
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,006975651
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,006981373
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,007018089
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,007003784
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,007044315
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,007059574
-[Toast][10:57:33] INFO: Entity ID: 0
-[Toast][10:57:33] INFO: entityMap.size: 1
-[App][10:57:33] TRACE: Updating Cube, timestep: 0,007019997
-[Toast][10:57:33] INFO: Entity ID: 0
+[Toast][20:36:12] INFO: Creating window Toaster 2400x1300
+[Toast][20:36:12] INFO: DirectX Information:
+[Toast][20:36:12] INFO:   Vendor: NVIDIA Corporation
+[Toast][20:36:12] INFO:   Renderer: NVIDIA GeForce RTX 3080
+[Toast][20:36:12] INFO:   Version: 27.21.14.6109
+[Toast][20:36:12] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
+[Toast][20:36:12] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
+[Toast][20:36:12] TRACE: Deserializing material 'Blue', Shader : 'PBR'
+[Toast][20:36:12] TRACE: Adding material: Blue
+[Toast][20:36:12] TRACE: Deserializing material 'Planet', Shader : 'Planet'
+[Toast][20:36:12] TRACE: Adding material: Planet
+[Toast][20:36:13] TRACE: Deserializing material 'Red', Shader : 'PBR'
+[Toast][20:36:13] TRACE: Adding material: Red
+[Toast][20:36:13] TRACE: Deserializing material 'Standard', Shader : 'Standard'
+[Toast][20:36:13] TRACE: Adding material: Standard
+[App][20:36:19] INFO: Creating Entity: Cube
+[App][20:36:19] INFO: Creating TEST: 
+[Toast][20:36:19] WARNING: Tag before change: 0º2wç
+[Toast][20:36:19] WARNING: Tag after change: 0º2wç
+[App][20:36:19] INFO: Change test: Test
+[App][20:36:19] TRACE: Updating Test, timestep: 0,0238905
+[App][20:36:19] TRACE: Updating Test, timestep: 0,0579896
+[App][20:36:19] TRACE: Updating Test, timestep: 0,001707554
+[App][20:36:19] TRACE: Updating Test, timestep: 0,00117445
+[App][20:36:19] TRACE: Updating Test, timestep: 0,005141258
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007006168
+[App][20:36:19] TRACE: Updating Test, timestep: 0,00703001
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007050991
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007002354
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007000923
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007019997
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007040977
+[App][20:36:19] TRACE: Updating Test, timestep: 0,006992817
+[App][20:36:19] TRACE: Updating Test, timestep: 0,006968975
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007044792
+[App][20:36:19] TRACE: Updating Test, timestep: 0,006986618
+[App][20:36:19] TRACE: Updating Test, timestep: 0,00702858
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007088184
+[App][20:36:19] TRACE: Updating Test, timestep: 0,006989956
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007003307
+[App][20:36:19] TRACE: Updating Test, timestep: 0,006997585
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007000923
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007009983
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007014751
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007034302
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007073402
+[App][20:36:19] TRACE: Updating Test, timestep: 0,006977081
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007006645
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007040024
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007008553
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007014275
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007025242
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007023811
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007062435
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007040977
+[App][20:36:19] TRACE: Updating Test, timestep: 0,006998539
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007038593
+[App][20:36:19] TRACE: Updating Test, timestep: 0,00704813
+[App][20:36:19] TRACE: Updating Test, timestep: 0,006996632
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007020473
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007021427
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007064819
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007034779
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007005215
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007007122
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007053375
+[App][20:36:19] TRACE: Updating Test, timestep: 0,006977081
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007293224
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007088184
+[App][20:36:19] TRACE: Updating Test, timestep: 0,00690937
+[App][20:36:19] TRACE: Updating Test, timestep: 0,006999969
+[App][20:36:19] TRACE: Updating Test, timestep: 0,006999969
+[App][20:36:19] TRACE: Updating Test, timestep: 0,006994724
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007078648
+[App][20:36:19] TRACE: Updating Test, timestep: 0,006958008
+[App][20:36:19] TRACE: Updating Test, timestep: 0,007046223

@@ -33,7 +33,7 @@ namespace Toast {
 	void ScriptEngineRegistry::RegisterAll()
 	{
 		sHasComponentFunctions.clear();
-		sHasComponentFunctions.clear();
+		sCreateComponentFunctions.clear();
 		RegisterComponent(TagComponent);
 
 		//Log

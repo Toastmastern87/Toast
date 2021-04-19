@@ -52,6 +52,14 @@ namespace Toast {
 
 		void Toast_Entity_CreateComponent(uint32_t entityID, void* type)
 		{
+			Scene* scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);	
+
+			MonoType* monotype = mono_reflection_type_get_type((MonoReflectionType*)type);
+			sCreateComponentFunctions[monotype](entity);
 		}
 
 		bool Toast_Entity_HasComponent(uint32_t entityID, void* type)
@@ -76,7 +84,6 @@ namespace Toast {
 				return (uint32_t)entity;
 
 			return 0;
-
 		}
 
 		////////////////////////////////////////////////////////////////
@@ -96,8 +103,18 @@ namespace Toast {
 			return ConvertCppStringToMonoString(mono_domain_get(), tag);
 		}
 
-		void Toast_TagComponent_SetTag()
+		void Toast_TagComponent_SetTag(uint32_t entityID, MonoString* tag)
 		{
+			Scene* scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& component = entity.GetComponent<TagComponent>();
+			std::string& tagStr = ConvertMonoStringToCppString(tag);
+			TOAST_CORE_WARN("Tag before change: %s", component.Tag);
+			component.Tag = tagStr;
+			TOAST_CORE_WARN("Tag after change: %s", component.Tag);
 		}
 	}
 }

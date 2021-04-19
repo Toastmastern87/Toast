@@ -17,13 +17,13 @@ namespace Toast
         public string Tag
         {
             get => GetTag_Native(Entity.ID);
-            set => SetTag_Native();
+            set => SetTag_Native(Entity.ID, value);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         public static extern string GetTag_Native(ulong entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        public static extern void SetTag_Native();
+        public static extern void SetTag_Native(ulong entityID, string tag);
     }
 }

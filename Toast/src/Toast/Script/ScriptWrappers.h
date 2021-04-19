@@ -25,7 +25,7 @@ namespace Toast {
 
 		// Tag Component
 		MonoString* Toast_TagComponent_GetTag(uint32_t entityID);
-		void Toast_TagComponent_SetTag();
+		void Toast_TagComponent_SetTag(uint32_t entityID, MonoString* inTag);
 
 	}
 
