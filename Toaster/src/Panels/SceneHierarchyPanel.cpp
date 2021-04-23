@@ -3,6 +3,8 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
+#include "Toast/Core/UUID.h"
+
 #include "Toast/Scene/Components.h"
 
 #include "Toast/Script/ScriptEngine.h"
@@ -40,7 +42,9 @@ namespace Toast {
 		mContext->mRegistry.each([&](auto entityID)
 			{
 				Entity entity{ entityID, mContext.get() };
-				DrawEntityNode(entity);
+				// TODO change to ID Component once that one is added
+				if (entity.HasComponent<TagComponent>())
+					DrawEntityNode(entity);
 			});
 
 		// Right-click on blank space
@@ -667,7 +671,7 @@ namespace Toast {
 
 						// Shutdown old script
 						if (ScriptEngine::ModuleExists(oldName))
-							ScriptEngine::ShutdownScriptEntity((uint32_t)entity, oldName);
+							ScriptEngine::ShutdownScriptEntity(entity.mScene->GetUUID(), entity.GetComponent<IDComponent>().ID, oldName);
 
 						if (ScriptEngine::ModuleExists(sc.ModuleName))
 							ScriptEngine::InitScriptEntity(entity);

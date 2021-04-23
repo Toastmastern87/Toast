@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Toast/Core/UUID.h"
 #include "Toast/Core/Timestep.h"
 
 #include "Toast/Renderer/EditorCamera.h"
@@ -7,7 +8,11 @@
 #include "Toast/Renderer/Material.h"
 #include "Toast/Renderer/Mesh.h"
 
-#include "entt.hpp"
+#include <memory>
+
+#pragma warning(push, 0)
+#include <entt.hpp>
+#pragma warning(pop)
 
 namespace Toast {
 
@@ -26,9 +31,9 @@ namespace Toast {
 	};
 
 	class Entity;
-	using EntityMap = std::unordered_map<uint32_t, Entity>;
+	using EntityMap = std::unordered_map<UUID, Entity>;
 
-	class Scene 
+	class Scene : public std::enable_shared_from_this<Scene>
 	{
 	public:
 		Scene();
@@ -37,6 +42,7 @@ namespace Toast {
 		void Init();
 
 		Entity CreateEntity(const std::string& name = std::string());
+		Entity CreateEntityWithID(UUID uuid, const std::string& name);
 		void DestroyEntity(Entity entity);
 
 		Entity CreateCube(const std::string& name = std::string());
@@ -61,6 +67,9 @@ namespace Toast {
 		Entity FindEntityByTag(const std::string& tag);
 
 		const EntityMap& GetEntityMap() const { return mEntityIDMap; }
+		void CopyTo(Ref<Scene>& target);
+
+		UUID GetUUID() const { return mSceneID; }
 
 		//Settings
 		struct Settings
@@ -77,8 +86,14 @@ namespace Toast {
 	private:
 		template<typename T>
 		void OnComponentAdded(Entity entity, T& component);
+
+		template<typename T>
+		void OnComponentRemoved(Entity entity, T& component);
 	private:
+		UUID mSceneID;
+		entt::entity mSceneEntity;
 		entt::registry mRegistry;
+
 		uint32_t mViewportWidth = 0, mViewportHeight = 0;
 
 		EntityMap mEntityIDMap;
@@ -101,6 +116,9 @@ namespace Toast {
 		friend class SceneSerializer;
 		friend class SceneHierarchyPanel;
 		friend class SceneSettingsPanel;
+
+		friend void OnScriptComponentConstruct(entt::registry& registry, entt::entity entity);
+		friend void OnScriptComponentDestroy(entt::registry& registry, entt::entity entity);
 	};
 }
 	

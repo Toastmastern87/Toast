@@ -19,13 +19,21 @@ namespace Toast {
 		void Toast_Console_LogCritical(MonoObject* message);
 
 		// Entity
-		void Toast_Entity_CreateComponent(uint32_t entityID, void* type);
-		bool Toast_Entity_HasComponent(uint32_t entityID, void* type);
-		uint32_t Toast_Entity_FindEntityByTag(MonoString* tag);
+		void Toast_Entity_CreateComponent(uint64_t entityID, void* type);
+		bool Toast_Entity_HasComponent(uint64_t entityID, void* type);
+		uint64_t Toast_Entity_FindEntityByTag(MonoString* tag);
 
 		// Tag Component
-		MonoString* Toast_TagComponent_GetTag(uint32_t entityID);
-		void Toast_TagComponent_SetTag(uint32_t entityID, MonoString* inTag);
+		MonoString* Toast_TagComponent_GetTag(uint64_t entityID);
+		void Toast_TagComponent_SetTag(uint64_t entityID, MonoString* inTag);
+
+		// Transform Component
+		void Toast_TransformComponent_GetTranslation(uint64_t entityID, DirectX::XMFLOAT3* outTranslation);
+		void Toast_TransformComponent_SetTranslation(uint64_t entityID, DirectX::XMFLOAT3* inTranslation);
+		DirectX::XMFLOAT3* Toast_TransformComponent_GetRotation(uint64_t entityID);
+		void Toast_TransformComponent_SetRotation(uint64_t entityID, DirectX::XMFLOAT3* inRotation);
+		DirectX::XMFLOAT3* Toast_TransformComponent_GetScale(uint64_t entityID);
+		void Toast_TransformComponent_SetScale(uint64_t entityID, DirectX::XMFLOAT3* inScale);
 
 	}
 
