@@ -2,6 +2,8 @@
 
 #include <DirectXMath.h>
 
+#include "Toast/Core/UUID.h"
+
 #include "Toast/Scene/SceneCamera.h"
 
 #include "Toast/Renderer/Mesh.h"
@@ -9,6 +11,11 @@
 #include "Toast/Renderer/SceneEnvironment.h"
 
 namespace Toast {
+
+	struct IDComponent
+	{
+		UUID ID = 0;
+	};
 
 	struct TagComponent
 	{

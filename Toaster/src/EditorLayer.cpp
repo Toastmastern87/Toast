@@ -10,6 +10,8 @@
 
 #include "Toast/Scene/SceneSerializer.h"
 
+#include "Toast/Script/ScriptEngine.h"
+
 #include <imgui/imgui.h>
 #include <filesystem>
 
@@ -49,13 +51,13 @@ namespace Toast {
 		fbSpec.Height = 720;
 		mFramebuffer = CreateRef<Framebuffer>(fbSpec);
 
-		mActiveScene = CreateRef<Scene>();
+		mEditorScene = CreateRef<Scene>();
 
 		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.01f, 30000.0f);
 
-		mSceneHierarchyPanel.SetContext(mActiveScene);
-		mSceneSettingsPanel.SetContext(mActiveScene);
-		mEnvironmentPanel.SetContext(mActiveScene);
+		mSceneHierarchyPanel.SetContext(mEditorScene);
+		mSceneSettingsPanel.SetContext(mEditorScene);
+		mEnvironmentPanel.SetContext(mEditorScene);
 		mMaterialPanel.SetContext(MaterialLibrary::Get("Standard"));
 	}
 
@@ -67,7 +69,6 @@ namespace Toast {
 	void EditorLayer::OnUpdate(Timestep ts)
 	{
 		TOAST_PROFILE_FUNCTION();
-
 		// Resize
 		if (FramebufferSpecification spec = mFramebuffer->GetSpecification();
 			mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && // zero sized framebuffer is invalid
@@ -79,23 +80,19 @@ namespace Toast {
 			{
 			case SceneState::Edit:
 			{
-				mEditorCamera->SetViewportSize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-				mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+				mEditorCamera->SetViewportSize(mViewportSize.x, mViewportSize.y);
+				mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
 				break;
 			}
 			case SceneState::Play:
 			{
-				mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+				mRuntimeScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
 				break;
 			}
 			}
 		}
-
-		// Update
-		if (mViewportFocused)
-			mEditorCamera->OnUpdate(ts);
 
 		// Render
 		Renderer2D::ResetStats();
@@ -107,7 +104,11 @@ namespace Toast {
 		{
 		case SceneState::Edit:
 		{
-			mActiveScene->OnUpdateEditor(ts, mEditorCamera);
+			// Update
+			if (mViewportFocused)
+				mEditorCamera->OnUpdate(ts);
+
+			mEditorScene->OnUpdateEditor(ts, mEditorCamera);
 
 			auto [mx, my] = ImGui::GetMousePos();
 			mx -= mViewportBounds[0].x;
@@ -120,14 +121,14 @@ namespace Toast {
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 			{
 				int pixelData = mFramebuffer->ReadPixel(1, mouseX, mouseY);
-				mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mActiveScene.get());
+				mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mEditorScene.get());
 			}
 
 			break;
 		}
 		case SceneState::Play:
 		{
-			mActiveScene->OnUpdateRuntime(ts);
+			mRuntimeScene->OnUpdateRuntime(ts);
 
 			break;
 		}
@@ -333,8 +334,8 @@ namespace Toast {
 				name = mHoveredEntity.GetComponent<TagComponent>().Tag;
 			ImGui::Text("Hovered Entity: %s", name.c_str());
 
-			ImGui::Text("FPS: %d", mActiveScene->GetFPS());
-			ImGui::Text("Vertex Count: %d", mActiveScene->GetVertices());
+			ImGui::Text("FPS: %d", mEditorScene->GetFPS());
+			ImGui::Text("Vertex Count: %d", mEditorScene->GetVertices());
 
 			ImGui::End();
 		}
@@ -356,8 +357,15 @@ namespace Toast {
 
 	void EditorLayer::OnEvent(Event& e)
 	{
-		mCameraController.OnEvent(e);
-		mEditorCamera->OnEvent(e);
+		if (mSceneState == SceneState::Edit)
+		{
+			mCameraController.OnEvent(e);
+			mEditorCamera->OnEvent(e);
+		}
+		else if (mSceneState == SceneState::Play)
+		{
+			;// Shit to be added soon
+		}
 
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
@@ -366,24 +374,32 @@ namespace Toast {
 
 	void EditorLayer::OnScenePlay()
 	{
-		mActiveScene->OnRuntimeStart();
-
 		mSceneState = SceneState::Play;
+
+		mRuntimeScene = CreateRef<Scene>();
+		mEditorScene->CopyTo(mRuntimeScene);
+
+		mRuntimeScene->OnRuntimeStart();
+		mSceneHierarchyPanel.SetContext(mRuntimeScene);
 	}
 
 	void EditorLayer::OnSceneStop()
 	{
-		mActiveScene->OnRuntimeStop();
-
+		mRuntimeScene->OnRuntimeStop();
 		mSceneState = SceneState::Edit;
+
+		mRuntimeScene = nullptr;
+
+		ScriptEngine::SetSceneContext(mEditorScene);
+		mSceneHierarchyPanel.SetContext(mEditorScene);
 	}
 
 	void EditorLayer::NewScene()
 	{
-		mActiveScene = CreateRef<Scene>();
-		mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-		mSceneHierarchyPanel.SetContext(mActiveScene);
-		mEnvironmentPanel.SetContext(mActiveScene);
+		mEditorScene = CreateRef<Scene>();
+		mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+		mSceneHierarchyPanel.SetContext(mEditorScene);
+		mEnvironmentPanel.SetContext(mEditorScene);
 	}
 
 	void EditorLayer::OpenScene()
@@ -391,17 +407,17 @@ namespace Toast {
 		std::optional<std::string> filepath = FileDialogs::OpenFile("Toast Scene(*.toast)\0*toast\0");
 		if (filepath)
 		{
-			mActiveScene = CreateRef<Scene>();
-			mActiveScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			mSceneHierarchyPanel.SetContext(mActiveScene);
-			mSceneSettingsPanel.SetContext(mActiveScene);
-			mEnvironmentPanel.SetContext(mActiveScene);
+			mEditorScene = CreateRef<Scene>();
+			mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			mSceneHierarchyPanel.SetContext(mEditorScene);
+			mSceneSettingsPanel.SetContext(mEditorScene);
+			mEnvironmentPanel.SetContext(mEditorScene);
 
 			std::filesystem::path path = *filepath;
 			UpdateWindowTitle(path.filename().string());
 			mSceneFilePath = *filepath;
 
-			SceneSerializer serializer(mActiveScene);
+			SceneSerializer serializer(mEditorScene);
 			serializer.Deserialize(*filepath);
 		}
 	}
@@ -409,7 +425,7 @@ namespace Toast {
 	void EditorLayer::SaveScene()
 	{
 		if (mSceneFilePath) {
-			SceneSerializer serializer(mActiveScene);
+			SceneSerializer serializer(mEditorScene);
 			serializer.Serialize(*mSceneFilePath);
 		}
 		else {
@@ -422,7 +438,7 @@ namespace Toast {
 		mSceneFilePath = FileDialogs::SaveFile("Toast Scene(*.toast)\0*toast\0");
 		if (mSceneFilePath)
 		{
-			SceneSerializer serializer(mActiveScene);
+			SceneSerializer serializer(mEditorScene);
 			serializer.Serialize(*mSceneFilePath);
 
 			std::filesystem::path path = *mSceneFilePath;

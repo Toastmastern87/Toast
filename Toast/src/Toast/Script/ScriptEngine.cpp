@@ -12,7 +12,7 @@ namespace Toast {
 
 	static MonoDomain* sMonoDomain = nullptr;
 	static std::string sAssemblyPath;
-	static Scene* sSceneContext;
+	static Ref<Scene> sSceneContext;
 
 	// Assembly images
 	MonoImage* sAppAssemblyImage = nullptr;
@@ -225,11 +225,11 @@ namespace Toast {
 		LoadToastRuntimeAssembly(path);
 		if (sEntityInstanceMap.size()) 
 		{
-			Scene* scene = ScriptEngine::GetCurrentSceneContext();
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
 			TOAST_CORE_ASSERT(scene, "No active scene!");
-			if (sEntityInstanceMap.find("Scene") != sEntityInstanceMap.end())
+			if (sEntityInstanceMap.find(scene->GetUUID()) != sEntityInstanceMap.end())
 			{
-				auto& entityMap = sEntityInstanceMap.at("Scene");
+				auto& entityMap = sEntityInstanceMap.at(scene->GetUUID());
 				for (auto& [entityID, entityInstanceData] : entityMap)
 				{
 					const auto& entityMap = scene->GetEntityMap();
@@ -241,26 +241,37 @@ namespace Toast {
 		}
 	}
 
-	void ScriptEngine::SetSceneContext(Scene* scene)
+	void ScriptEngine::SetSceneContext(const Ref<Scene>& scene)
 	{
 		sSceneContext = scene;
 	}
 
-	Scene* ScriptEngine::GetCurrentSceneContext()
+	const Ref<Scene>& ScriptEngine::GetCurrentSceneContext()
 	{
 		return sSceneContext;
 	}
 
+	void ScriptEngine::CopyEntityScriptData(UUID dst, UUID src)
+	{
+		TOAST_CORE_ASSERT(sEntityInstanceMap.find(dst) != sEntityInstanceMap.end(), "");
+		TOAST_CORE_ASSERT(sEntityInstanceMap.find(src) != sEntityInstanceMap.end(), "");
+
+		auto& dstEntityMap = sEntityInstanceMap.at(dst);
+		auto& srcEntityMap = sEntityInstanceMap.at(src);
+
+		// TODO stuff for properties later on
+	}
+
 	void ScriptEngine::OnCreateEntity(Entity entity)
 	{
-		EntityInstance& entityInstance = GetEntityInstanceData("Scene", (uint32_t)entity).Instance;
+		EntityInstance& entityInstance = GetEntityInstanceData(entity.mScene->GetUUID(), entity.GetComponent<IDComponent>().ID).Instance;
 		if (entityInstance.ScriptClass->OnCreateMethod)
 			CallMethod(entityInstance.GetInstance(), entityInstance.ScriptClass->OnCreateMethod);
 	}
 
-	void ScriptEngine::OnUpdateEntity(uint32_t entityID, Timestep ts)
+	void ScriptEngine::OnUpdateEntity(UUID sceneID, UUID entityID, Timestep ts)
 	{
-		EntityInstance& entityInstance = GetEntityInstanceData("Scene", entityID).Instance;
+		EntityInstance& entityInstance = GetEntityInstanceData(sceneID, entityID).Instance;
 		if (entityInstance.ScriptClass->OnUpdateMethod) 
 		{
 			void* args[] = { &ts };
@@ -288,6 +299,7 @@ namespace Toast {
 	void ScriptEngine::InitScriptEntity(Entity entity)
 	{
 		Scene* scene = entity.mScene;
+		UUID id = entity.GetComponent<IDComponent>().ID;
 		auto& moduleName = entity.GetComponent<ScriptComponent>().ModuleName;
 		if (moduleName.empty())
 			return;
@@ -311,14 +323,14 @@ namespace Toast {
 		scriptClass.Class = GetClass(sAppAssemblyImage, scriptClass);
 		scriptClass.InitClassMethods(sAppAssemblyImage);
 
-		EntityInstanceData& entityInstanceData = sEntityInstanceMap["Scene"][(uint32_t)entity];
+		EntityInstanceData& entityInstanceData = sEntityInstanceMap[entity.mScene->GetUUID()][id];
 		EntityInstance& entityInstance = entityInstanceData.Instance;
 		entityInstance.ScriptClass = &scriptClass;
 	}
 
-	void ScriptEngine::ShutdownScriptEntity(uint32_t entityID, const std::string& moduleName)
+	void ScriptEngine::ShutdownScriptEntity(UUID sceneID, UUID entityID, const std::string& moduleName)
 	{
-		EntityInstanceData& entityInstanceData = GetEntityInstanceData("Scene", entityID);
+		EntityInstanceData& entityInstanceData = GetEntityInstanceData(sceneID, entityID);
 
 		//Enter stuff to remove field map in the future
 	}
@@ -326,23 +338,34 @@ namespace Toast {
 	void ScriptEngine::InstantiateEntityClass(Entity entity)
 	{
 		Scene* scene = entity.mScene;
-		uint32_t id = (uint32_t)entity;
+		UUID id = entity.GetComponent<IDComponent>().ID;
 		auto& moduleName = entity.GetComponent<ScriptComponent>().ModuleName;
 
-		EntityInstanceData& entityInstanceData = GetEntityInstanceData("Scene", (uint32_t)entity);
+		EntityInstanceData& entityInstanceData = GetEntityInstanceData(entity.mScene->GetUUID(), id);
 		EntityInstance& entityInstance = entityInstanceData.Instance;
 		TOAST_CORE_ASSERT(entityInstance.ScriptClass, "Script class in Entity Instance null");
 		entityInstance.Handle = Instantiate(*entityInstance.ScriptClass);
+
+		MonoProperty* entityIDPropery = mono_class_get_property_from_name(entityInstance.ScriptClass->Class, "ID");
+		mono_property_get_get_method(entityIDPropery);
+		MonoMethod* entityIDSetMethod = mono_property_get_set_method(entityIDPropery);
+		void* param[] = { &id };
+		CallMethod(entityInstance.GetInstance(), entityIDSetMethod, param);
 
 		// Data for handling Fieldmap later on
 
 		OnCreateEntity(entity);
 	}
 
-	Toast::EntityInstanceData& ScriptEngine::GetEntityInstanceData(const std::string& sceneName, uint32_t entityID)
+	Toast::EntityInstanceMap& ScriptEngine::GetEntityInstanceMap()
 	{
-		TOAST_CORE_ASSERT(sEntityInstanceMap.find(sceneName) != sEntityInstanceMap.end(), "Invalid Scene Name!");
-		auto& entityIDMap = sEntityInstanceMap.at(sceneName);
+		return sEntityInstanceMap;
+	}
+
+	Toast::EntityInstanceData& ScriptEngine::GetEntityInstanceData(UUID sceneID, UUID entityID)
+	{
+		TOAST_CORE_ASSERT(sEntityInstanceMap.find(sceneID) != sEntityInstanceMap.end(), "Invalid Scene Name!");
+		auto& entityIDMap = sEntityInstanceMap.at(sceneID);
 		TOAST_CORE_ASSERT(entityIDMap.find(entityID) != entityIDMap.end(), "Invalid entity ID!");
 		return entityIDMap.at(entityID);
 	}

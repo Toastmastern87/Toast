@@ -13,21 +13,52 @@
 
 namespace Toast {
 
+	std::unordered_map<UUID, Scene*> sActiveScenes;
+
+	struct SceneComponent
+	{
+		UUID SceneID;
+	};
+
+	static void OnScriptComponentConstruct(entt::registry& registry, entt::entity entity)
+	{
+		auto sceneView = registry.view<SceneComponent>();
+		UUID sceneID = registry.get<SceneComponent>(sceneView.front()).SceneID;
+
+		Scene* scene = sActiveScenes[sceneID];
+
+		auto entityID = registry.get<IDComponent>(entity).ID;
+		TOAST_CORE_ASSERT(scene->mEntityIDMap.find(entityID) != scene->mEntityIDMap.end(), "");
+		ScriptEngine::InitScriptEntity(scene->mEntityIDMap.at(entityID));
+	}
+
+	static void OnScriptComponentDestroy(entt::registry& registry, entt::entity entity)
+	{
+
+	}
+
 	Scene::Scene()
 	{
+		mRegistry.on_construct<ScriptComponent>().connect<&OnScriptComponentConstruct>();
+
+		mSceneEntity = mRegistry.create();
+		mRegistry.emplace<SceneComponent>(mSceneEntity, mSceneID);
+
+		sActiveScenes[mSceneID] = this;
+
 		Init();
 	}
 
 	Scene::~Scene()
 	{
-
+		sActiveScenes.erase(mSceneID);
 	}
 
 	void Scene::Init()
 	{
 		// Initiate the skybox
 		Ref<Shader> skyboxShader = CreateRef<Shader>("assets/shaders/Skybox.hlsl");
-		mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader); 
+		mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader);
 		mSkybox = CreateRef<Mesh>();
 		mSkybox->SetMaterial(mSkyboxMaterial);
 		uint32_t indexCount = Primitives::CreateCube(mSkybox->GetVertices(), mSkybox->GetIndices());
@@ -37,12 +68,31 @@ namespace Toast {
 
 	Entity Scene::CreateEntity(const std::string& name)
 	{
-		Entity entity = { mRegistry.create(), this  };
+		Entity entity = { mRegistry.create(), this };
+		auto& idComponent = entity.AddComponent<IDComponent>();
+		idComponent.ID = {};
+
 		entity.AddComponent<TransformComponent>();
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
-		
-		mEntityIDMap[(uint32_t)entity] = entity;
+
+		mEntityIDMap[idComponent.ID] = entity;
+
+		return entity;
+	}
+
+	Entity Scene::CreateEntityWithID(UUID uuid, const std::string& name)
+	{
+		Entity entity = { mRegistry.create(), this };
+		auto& idComponent = entity.AddComponent<IDComponent>();
+		idComponent.ID = uuid;
+
+		entity.AddComponent<TransformComponent>();
+		auto& tag = entity.AddComponent<TagComponent>();
+		tag.Tag = name.empty() ? "Entity" : name;
+
+		TOAST_CORE_ASSERT(mEntityIDMap.find(uuid) == mEntityIDMap.end(), "Entity alread exist!");
+		mEntityIDMap[uuid] = entity;
 
 		return entity;
 	}
@@ -55,6 +105,9 @@ namespace Toast {
 	Toast::Entity Scene::CreateCube(const std::string& name)
 	{
 		Entity entity = { mRegistry.create(), this };
+		auto& idComponent = entity.AddComponent<IDComponent>();
+		idComponent.ID = {};
+
 		entity.AddComponent<TransformComponent>();
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
@@ -64,7 +117,7 @@ namespace Toast {
 		mesh.Mesh->Init();
 		mesh.Mesh->AddSubmesh(indexCount);
 
-		mEntityIDMap[(uint32_t)entity] = entity;
+		mEntityIDMap[idComponent.ID] = entity;
 
 		return entity;
 	}
@@ -72,6 +125,9 @@ namespace Toast {
 	Toast::Entity Scene::CreateSphere(const std::string& name)
 	{
 		Entity entity = { mRegistry.create(), this };
+		auto& idComponent = entity.AddComponent<IDComponent>();
+		idComponent.ID = {};
+
 		entity.AddComponent<TransformComponent>();
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
@@ -80,14 +136,15 @@ namespace Toast {
 		uint32_t indexCount = Primitives::CreateSphere(mesh.Mesh->GetVertices(), mesh.Mesh->GetIndices(), 2);
 		mesh.Mesh->Init();
 		mesh.Mesh->AddSubmesh(indexCount);
-		mEntityIDMap[(uint32_t)entity] = entity;
+		
+		mEntityIDMap[idComponent.ID] = entity;
 
 		return entity;
 	}
 
 	void Scene::OnRuntimeStart()
 	{
-		ScriptEngine::SetSceneContext(this);
+		ScriptEngine::SetSceneContext(shared_from_this());
 
 		// Update all entities with scripts
 		{
@@ -131,7 +188,7 @@ namespace Toast {
 			{
 				Entity e = { entity, this };
 				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::OnUpdateEntity((uint32_t)e, ts);
+					ScriptEngine::OnUpdateEntity(e.mScene->GetUUID(), e.GetComponent<IDComponent>().ID, ts);
 				else
 					TOAST_CORE_INFO("Module doesn't exist");
 			}
@@ -191,7 +248,7 @@ namespace Toast {
 		}
 
 		// Checks if the game camera have moved
-		if(mainCamera){
+		if (mainCamera) {
 			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
 
 			if (!DirectX::XMVector3Equal(mOldCameraPos, cameraPos))
@@ -204,7 +261,7 @@ namespace Toast {
 					PlanetSystem::GeneratePlanet(transform.GetTransform(), mesh.Mesh->mPlanetFaces, mesh.Mesh->mPlanetPatches, planet.MorphData.DistanceLUT, planet.FaceLevelDotLUT, cameraPos, planet.Subdivisions);
 
 					mesh.Mesh->InitPlanet();
-					mesh.Mesh->AddSubmesh(mesh.Mesh->mIndices.size());
+					mesh.Mesh->AddSubmesh((uint32_t)(mesh.Mesh->mIndices.size()));
 				}
 			}
 
@@ -326,7 +383,7 @@ namespace Toast {
 		// Update statistics
 		{
 			mStats.timesteps += ts;
-			if (mStats.timesteps > 0.1f) 
+			if (mStats.timesteps > 0.1f)
 			{
 				mStats.timesteps -= 0.1f;
 				mStats.FPS = 1.0f / ts;
@@ -343,7 +400,7 @@ namespace Toast {
 			for (auto entity : lights)
 			{
 				auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
-				DirectX::XMFLOAT4 direction = {cos(transformComponent.Rotation.y) * cos(transformComponent.Rotation.x), sin(transformComponent.Rotation.y) * cos(transformComponent.Rotation.x), sin(transformComponent.Rotation.x), 0.0f, };
+				DirectX::XMFLOAT4 direction = { cos(transformComponent.Rotation.y) * cos(transformComponent.Rotation.x), sin(transformComponent.Rotation.y) * cos(transformComponent.Rotation.x), sin(transformComponent.Rotation.x), 0.0f, };
 				DirectX::XMFLOAT4 radiance = DirectX::XMFLOAT4(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
 				mLightEnvironment.DirectionalLights[directionalLightIndex++] =
 				{
@@ -359,7 +416,7 @@ namespace Toast {
 		{
 			mEnvironment = Environment();
 			auto skylights = mRegistry.group<SkyLightComponent>(entt::get<TransformComponent>);
-			for (auto entity : skylights) 
+			for (auto entity : skylights)
 			{
 				auto [transformComponent, skylightComponent] = skylights.get<TransformComponent, SkyLightComponent>(entity);
 				mEnvironment = skylightComponent.SceneEnvironment;
@@ -376,7 +433,7 @@ namespace Toast {
 				auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
 				if (camera.Primary)
 					DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.GetTransform());
-				
+
 			}
 
 			if (!DirectX::XMVector3Equal(mOldCameraPos, cameraPos))
@@ -389,7 +446,7 @@ namespace Toast {
 					PlanetSystem::GeneratePlanet(transform.GetTransform(), mesh.Mesh->mPlanetFaces, mesh.Mesh->mPlanetPatches, planet.MorphData.DistanceLUT, planet.FaceLevelDotLUT, cameraPos, planet.Subdivisions);
 
 					mesh.Mesh->InitPlanet();
-					mesh.Mesh->AddSubmesh(mesh.Mesh->mIndices.size());
+					mesh.Mesh->AddSubmesh((uint32_t)(mesh.Mesh->mIndices.size()));
 				}
 			}
 
@@ -551,9 +608,63 @@ namespace Toast {
 	}
 
 	template<typename T>
+	static void CopyComponent(entt::registry& dstRegistry, entt::registry& srcRegistry, const std::unordered_map<UUID, entt::entity>& enttMap)
+	{
+		auto components = srcRegistry.view<T>();
+		for (auto srcEntity : components)
+		{
+			entt::entity destEntity = enttMap.at(srcRegistry.get<IDComponent>(srcEntity).ID);
+
+			auto& srcComponent = srcRegistry.get<T>(srcEntity);
+			auto& destComponent = dstRegistry.emplace_or_replace<T>(destEntity, srcComponent);
+		}
+	}
+
+	void Scene::CopyTo(Ref<Scene>& target)
+	{
+		// Environment
+		target->mLightEnvironment = mLightEnvironment;
+
+		target->mEnvironment = mEnvironment;
+		target->mSkyboxTexture = mSkyboxTexture;
+		target->mSkyboxMaterial = mSkyboxMaterial;
+		target->mSkyboxLod = mSkyboxLod;
+
+		std::unordered_map<UUID, entt::entity> enttMap;
+		auto idComponent = mRegistry.view<IDComponent>();
+		for (auto entity : idComponent)
+		{
+			auto uuid = mRegistry.get<IDComponent>(entity).ID;
+			Entity e = target->CreateEntityWithID(uuid, "");
+			enttMap[uuid] = e.mEntityHandle;
+		}
+
+		CopyComponent<TagComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<TransformComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<MeshComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<PlanetComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<CameraComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<SpriteRendererComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<DirectionalLightComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<SkyLightComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<ScriptComponent>(target->mRegistry, mRegistry, enttMap);
+
+		const auto& entityInstanceMap = ScriptEngine::GetEntityInstanceMap();
+		if (entityInstanceMap.find(target->GetUUID()) != entityInstanceMap.end())
+			ScriptEngine::CopyEntityScriptData(target->GetUUID(), mSceneID);
+		else
+			TOAST_CORE_WARN("NO Data being copied");
+	}
+
+	template<typename T>
 	void Scene::OnComponentAdded(Entity entity, T& component) 
 	{
 		static_assert(false);
+	}
+
+	template<>
+	void Scene::OnComponentAdded<IDComponent>(Entity entity, IDComponent& component)
+	{
 	}
 
 	template<>
@@ -610,7 +721,7 @@ namespace Toast {
 		DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
 		DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
 
-		PlanetSystem::GenerateDistanceLUT(component.MorphData.DistanceLUT, tc.Scale.x, mainCamera->GetPerspectiveVerticalFOV(), mViewportWidth, 200.0f, 8);
+		PlanetSystem::GenerateDistanceLUT(component.MorphData.DistanceLUT, tc.Scale.x, mainCamera->GetPerspectiveVerticalFOV(), (float)(mViewportWidth), 200.0f, 8);
 		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude.x);
 		PlanetSystem::GeneratePatchGeometry(mc.Mesh->mPlanetVertices, mc.Mesh->mIndices, component.PatchLevels);
 		PlanetSystem::GenerateBasePlanet(mc.Mesh->mPlanetFaces);

@@ -1,76 +1,16 @@
-[Toast][20:36:12] INFO: Creating window Toaster 2400x1300
-[Toast][20:36:12] INFO: DirectX Information:
-[Toast][20:36:12] INFO:   Vendor: NVIDIA Corporation
-[Toast][20:36:12] INFO:   Renderer: NVIDIA GeForce RTX 3080
-[Toast][20:36:12] INFO:   Version: 27.21.14.6109
-[Toast][20:36:12] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
-[Toast][20:36:12] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
-[Toast][20:36:12] TRACE: Deserializing material 'Blue', Shader : 'PBR'
-[Toast][20:36:12] TRACE: Adding material: Blue
-[Toast][20:36:12] TRACE: Deserializing material 'Planet', Shader : 'Planet'
-[Toast][20:36:12] TRACE: Adding material: Planet
-[Toast][20:36:13] TRACE: Deserializing material 'Red', Shader : 'PBR'
-[Toast][20:36:13] TRACE: Adding material: Red
-[Toast][20:36:13] TRACE: Deserializing material 'Standard', Shader : 'Standard'
-[Toast][20:36:13] TRACE: Adding material: Standard
-[App][20:36:19] INFO: Creating Entity: Cube
-[App][20:36:19] INFO: Creating TEST: 
-[Toast][20:36:19] WARNING: Tag before change: 0º2wç
-[Toast][20:36:19] WARNING: Tag after change: 0º2wç
-[App][20:36:19] INFO: Change test: Test
-[App][20:36:19] TRACE: Updating Test, timestep: 0,0238905
-[App][20:36:19] TRACE: Updating Test, timestep: 0,0579896
-[App][20:36:19] TRACE: Updating Test, timestep: 0,001707554
-[App][20:36:19] TRACE: Updating Test, timestep: 0,00117445
-[App][20:36:19] TRACE: Updating Test, timestep: 0,005141258
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007006168
-[App][20:36:19] TRACE: Updating Test, timestep: 0,00703001
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007050991
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007002354
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007000923
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007019997
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007040977
-[App][20:36:19] TRACE: Updating Test, timestep: 0,006992817
-[App][20:36:19] TRACE: Updating Test, timestep: 0,006968975
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007044792
-[App][20:36:19] TRACE: Updating Test, timestep: 0,006986618
-[App][20:36:19] TRACE: Updating Test, timestep: 0,00702858
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007088184
-[App][20:36:19] TRACE: Updating Test, timestep: 0,006989956
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007003307
-[App][20:36:19] TRACE: Updating Test, timestep: 0,006997585
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007000923
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007009983
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007014751
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007034302
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007073402
-[App][20:36:19] TRACE: Updating Test, timestep: 0,006977081
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007006645
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007040024
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007008553
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007014275
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007025242
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007023811
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007062435
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007040977
-[App][20:36:19] TRACE: Updating Test, timestep: 0,006998539
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007038593
-[App][20:36:19] TRACE: Updating Test, timestep: 0,00704813
-[App][20:36:19] TRACE: Updating Test, timestep: 0,006996632
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007020473
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007021427
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007064819
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007034779
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007005215
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007007122
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007053375
-[App][20:36:19] TRACE: Updating Test, timestep: 0,006977081
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007293224
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007088184
-[App][20:36:19] TRACE: Updating Test, timestep: 0,00690937
-[App][20:36:19] TRACE: Updating Test, timestep: 0,006999969
-[App][20:36:19] TRACE: Updating Test, timestep: 0,006999969
-[App][20:36:19] TRACE: Updating Test, timestep: 0,006994724
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007078648
-[App][20:36:19] TRACE: Updating Test, timestep: 0,006958008
-[App][20:36:19] TRACE: Updating Test, timestep: 0,007046223
+[Toast][09:47:28] INFO: Creating window Toaster 2400x1300
+[Toast][09:47:28] INFO: DirectX Information:
+[Toast][09:47:28] INFO:   Vendor: NVIDIA Corporation
+[Toast][09:47:28] INFO:   Renderer: NVIDIA GeForce RTX 3080
+[Toast][09:47:28] INFO:   Version: 27.21.14.6109
+[Toast][09:47:28] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
+[Toast][09:47:28] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
+[Toast][09:47:28] ERROR: No C# component class found for TransformComponent!
+[Toast][09:47:28] TRACE: Deserializing material 'Blue', Shader : 'PBR'
+[Toast][09:47:28] TRACE: Adding material: Blue
+[Toast][09:47:28] TRACE: Deserializing material 'Planet', Shader : 'Planet'
+[Toast][09:47:28] TRACE: Adding material: Planet
+[Toast][09:47:29] TRACE: Deserializing material 'Red', Shader : 'PBR'
+[Toast][09:47:29] TRACE: Adding material: Red
+[Toast][09:47:29] TRACE: Deserializing material 'Standard', Shader : 'Standard'
+[Toast][09:47:29] TRACE: Adding material: Standard

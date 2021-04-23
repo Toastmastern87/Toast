@@ -35,6 +35,7 @@ namespace Toast {
 		sHasComponentFunctions.clear();
 		sCreateComponentFunctions.clear();
 		RegisterComponent(TagComponent);
+		RegisterComponent(TransformComponent);
 
 		//Log
 		mono_add_internal_call("Toast.Console::LogTrace_Native", Toast::Script::Toast_Console_LogTrace);
@@ -51,6 +52,14 @@ namespace Toast {
 		//Tag
 		mono_add_internal_call("Toast.TagComponent::GetTag_Native", Toast::Script::Toast_TagComponent_GetTag);
 		mono_add_internal_call("Toast.TagComponent::SetTag_Native", Toast::Script::Toast_TagComponent_SetTag);
+
+		//Transform
+		mono_add_internal_call("Toast.TransformComponent::GetTranslation_Native", Toast::Script::Toast_TransformComponent_GetTranslation);
+		mono_add_internal_call("Toast.TransformComponent::SetTranslation_Native", Toast::Script::Toast_TransformComponent_SetTranslation);
+		mono_add_internal_call("Toast.TransformComponent::GetRotation_Native", Toast::Script::Toast_TransformComponent_GetRotation);
+		mono_add_internal_call("Toast.TransformComponent::SetRotation_Native", Toast::Script::Toast_TransformComponent_SetRotation);
+		mono_add_internal_call("Toast.TransformComponent::GetScale_Native", Toast::Script::Toast_TransformComponent_GetScale);
+		mono_add_internal_call("Toast.TransformComponent::SetScale_Native", Toast::Script::Toast_TransformComponent_SetScale);
 	}
 
 }

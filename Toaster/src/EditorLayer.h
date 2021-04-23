@@ -48,7 +48,7 @@ namespace Toast {
 
 		Ref<Framebuffer> mFramebuffer;
 
-		Ref<Scene> mActiveScene;
+		Ref<Scene> mRuntimeScene, mEditorScene;
 
 		Ref<EditorCamera> mEditorCamera;
 

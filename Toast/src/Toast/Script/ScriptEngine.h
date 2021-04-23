@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Toast/Core/Base.h"
+#include "Toast/Core/UUID.h"
 
 #include <string>
 
@@ -30,7 +31,7 @@ namespace Toast {
 		EntityInstance Instance;
 	};
 
-	using EntityInstanceMap = std::unordered_map<std::string, std::unordered_map<uint32_t, EntityInstanceData>>;
+	using EntityInstanceMap = std::unordered_map<UUID, std::unordered_map<UUID, EntityInstanceData>>;
 
 	class ScriptEngine 
 	{
@@ -41,17 +42,20 @@ namespace Toast {
 		static void LoadToastRuntimeAssembly(const std::string& path);
 		static void ReloadAssembly(const std::string& path);
 
-		static void SetSceneContext(Scene* scene);
-		static Scene* GetCurrentSceneContext();
+		static void SetSceneContext(const Ref<Scene>& scene);
+		static const Ref<Scene>& GetCurrentSceneContext();
+
+		static void CopyEntityScriptData(UUID dst, UUID src);
 
 		static void OnCreateEntity(Entity entity);
-		static void OnUpdateEntity(uint32_t entityID, Timestep ts);
+		static void OnUpdateEntity(UUID sceneID, UUID entityID, Timestep ts);
 
 		static bool ModuleExists(const std::string& moduleName);
 		static void InitScriptEntity(Entity entity);
-		static void ShutdownScriptEntity(uint32_t entityID, const std::string& moduleName);
+		static void ShutdownScriptEntity(UUID sceneID, UUID entityID, const std::string& moduleName);
 		static void InstantiateEntityClass(Entity entity);
 
-		static EntityInstanceData& GetEntityInstanceData(const std::string& sceneName, uint32_t entityID);
+		static EntityInstanceMap& GetEntityInstanceMap();
+		static EntityInstanceData& GetEntityInstanceData(UUID sceneID, UUID entityID);
 	};
 }
