@@ -259,7 +259,21 @@ namespace Toast {
 		auto& dstEntityMap = sEntityInstanceMap.at(dst);
 		auto& srcEntityMap = sEntityInstanceMap.at(src);
 
-		// TODO stuff for properties later on
+		for (auto& [entityID, entityInstanceData] : srcEntityMap)
+		{
+			for (auto& [moduleName, srcPropertyMap] : srcEntityMap[entityID].ModulePropertyMap)
+			{
+				auto& dstModulePropertyMap = dstEntityMap[entityID].ModulePropertyMap;
+				for (auto& [propertyName, prop] : srcPropertyMap)
+				{
+					TOAST_CORE_ASSERT(dstModulePropertyMap.find(moduleName) != dstModulePropertyMap.end(), "");
+					auto& propertyMap = dstModulePropertyMap.at(moduleName);
+					TOAST_CORE_ASSERT(propertyMap.find(propertyName) != propertyMap.end(), "");
+					propertyMap.at(propertyName).SetStoredValueRaw(prop.mStoredValueBuffer);
+				}
+			}
+		}
+
 	}
 
 	void ScriptEngine::OnCreateEntity(Entity entity)
@@ -296,6 +310,17 @@ namespace Toast {
 		return monoClass != nullptr;
 	}
 
+	static PropertyType GetToastPropertyType(MonoType* monoType) 
+	{
+		int type = mono_type_get_type(monoType);
+		
+		switch (type) 
+		{
+			case MONO_TYPE_R4: return PropertyType::Float;
+		}
+		return PropertyType::None;
+	}
+
 	void ScriptEngine::InitScriptEntity(Entity entity)
 	{
 		Scene* scene = entity.mScene;
@@ -326,6 +351,41 @@ namespace Toast {
 		EntityInstanceData& entityInstanceData = sEntityInstanceMap[entity.mScene->GetUUID()][id];
 		EntityInstance& entityInstance = entityInstanceData.Instance;
 		entityInstance.ScriptClass = &scriptClass;
+		ScriptModulePropertyMap& modulePropertyMap = entityInstanceData.ModulePropertyMap;
+		auto& propertyMap = modulePropertyMap[moduleName];
+
+		// Saving the old fields
+		std::unordered_map<std::string, PublicProperty> oldProperties;
+		oldProperties.reserve(propertyMap.size());
+		for (auto& [propertyName, prop] : propertyMap)
+			oldProperties.emplace(propertyName, std::move(prop));
+		propertyMap.clear();
+
+		// Retrieve the public properties
+		{
+			MonoClassField* iter;
+			void* ptr = 0;
+			while ((iter = mono_class_get_fields(scriptClass.Class, &ptr)) != NULL)
+			{
+				const char* name = mono_field_get_name(iter);
+				uint32_t flags = mono_field_get_flags(iter);
+				if ((flags & MONO_FIELD_ATTR_PUBLIC) == 0)
+					continue;
+
+				MonoType* propertyType = mono_field_get_type(iter);
+				PropertyType toastPropertyType = GetToastPropertyType(propertyType);
+
+				if (oldProperties.find(name) != oldProperties.end())
+					propertyMap.emplace(name, std::move(oldProperties.at(name)));
+				else
+				{
+					PublicProperty prop = { name, toastPropertyType };
+					prop.mEntityInstance = &entityInstance;
+					prop.mMonoClassField = iter;
+					propertyMap.emplace(name, std::move(prop));
+				}
+			}
+		}
 	}
 
 	void ScriptEngine::ShutdownScriptEntity(UUID sceneID, UUID entityID, const std::string& moduleName)
@@ -352,7 +412,14 @@ namespace Toast {
 		void* param[] = { &id };
 		CallMethod(entityInstance.GetInstance(), entityIDSetMethod, param);
 
-		// Data for handling Fieldmap later on
+		// Set properties to values
+		ScriptModulePropertyMap& modulePropertyMap = entityInstanceData.ModulePropertyMap;
+		if (modulePropertyMap.find(moduleName) != modulePropertyMap.end())
+		{
+			auto& publicProperties = modulePropertyMap.at(moduleName);
+			for (auto& [name, prop] : publicProperties)
+				prop.CopyStoredValueToRuntime();
+		}
 
 		OnCreateEntity(entity);
 	}
@@ -368,6 +435,90 @@ namespace Toast {
 		auto& entityIDMap = sEntityInstanceMap.at(sceneID);
 		TOAST_CORE_ASSERT(entityIDMap.find(entityID) != entityIDMap.end(), "Invalid entity ID!");
 		return entityIDMap.at(entityID);
+	}
+
+	static uint32_t GetPropertySize(PropertyType type)
+	{
+		switch (type) 
+		{
+			case PropertyType::Float:		return 4;
+		}
+		TOAST_CORE_ASSERT(false, "Unknown property type");
+
+		return 0;
+	}
+
+	PublicProperty::PublicProperty(const std::string& name, PropertyType type)
+		: Name(name), Type(type) 
+	{
+		mStoredValueBuffer = AllocateBuffer(type);
+	}
+
+	PublicProperty::PublicProperty(PublicProperty&& other) 
+	{
+		Name = std::move(other.Name);
+		Type = other.Type;
+		mEntityInstance = other.mEntityInstance;
+		mMonoClassField = other.mMonoClassField;
+		mStoredValueBuffer = other.mStoredValueBuffer;
+
+		other.mEntityInstance = nullptr;
+		other.mMonoClassField = nullptr;
+		other.mStoredValueBuffer = nullptr;
+	}
+
+	PublicProperty::~PublicProperty() 
+	{
+		delete[] mStoredValueBuffer;
+	}
+
+	void PublicProperty::CopyStoredValueToRuntime()
+	{
+		TOAST_CORE_ASSERT(mEntityInstance->GetInstance(), "");
+		mono_field_set_value(mEntityInstance->GetInstance(), mMonoClassField, mStoredValueBuffer);
+	}
+
+	bool PublicProperty::IsRuntimeAvailable() const
+	{
+		return mEntityInstance->Handle != 0;
+	}
+
+	void PublicProperty::SetStoredValueRaw(void* src)
+	{
+		uint32_t size = GetPropertySize(Type);
+		memcpy(mStoredValueBuffer, src, size);
+	}
+
+	uint8_t* PublicProperty::AllocateBuffer(PropertyType type)
+	{
+		uint32_t size = GetPropertySize(type);
+		uint8_t* buffer = new uint8_t[size];
+		memset(buffer, 0, size);
+		return buffer;
+	}
+
+	void PublicProperty::SetStoredValue_Internal(void* value) const
+	{
+		uint32_t size = GetPropertySize(Type);
+		memcpy(mStoredValueBuffer, value, size);
+	}
+
+	void PublicProperty::GetStoredValue_Internal(void* outValue) const
+	{
+		uint32_t size = GetPropertySize(Type);
+		memcpy(outValue, mStoredValueBuffer, size);
+	}
+
+	void PublicProperty::SetRuntimeValue_Internal(void* value) const
+	{
+		TOAST_CORE_ASSERT(mEntityInstance->GetInstance(), "");
+		mono_field_set_value(mEntityInstance->GetInstance(), mMonoClassField, value);
+	}
+
+	void PublicProperty::GetRuntimeValue_Internal(void* outValue) const
+	{
+		TOAST_CORE_ASSERT(mEntityInstance->GetInstance(), "");
+		mono_field_get_value(mEntityInstance->GetInstance(), mMonoClassField, outValue);
 	}
 
 }

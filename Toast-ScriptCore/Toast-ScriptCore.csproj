@@ -52,9 +52,12 @@
   <ItemGroup>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\Toast\Input.cs" />
     <Compile Include="src\Toast\Console.cs" />
     <Compile Include="src\Toast\Entity.cs" />
+    <Compile Include="src\Toast\KeyCodes.cs" />
     <Compile Include="src\Toast\Math\Vector3.cs" />
+    <Compile Include="src\Toast\MouseCodes.cs" />
     <Compile Include="src\Toast\Scene\Component.cs" />
   </ItemGroup>
   <ItemGroup>

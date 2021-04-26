@@ -86,5 +86,23 @@ namespace Toast
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         public static extern void SetScale_Native(ulong entityID, ref Vector3 inScale);
-    }   
+    }
+
+    public class PlanetComponent : Component
+    {
+        public float Radius
+        {
+            get
+            {
+                GetRadius_Native(Entity.ID, out float result);
+                return result;
+            }
+            set 
+            {
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        public static extern void GetRadius_Native(ulong entityID, out float inScale);
+    }
 }

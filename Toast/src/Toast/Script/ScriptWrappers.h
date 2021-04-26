@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Toast/Core/Input.h"
+
 #include "Toast/Script/ScriptEngine.h"
 
 extern "C" {
@@ -18,6 +20,12 @@ namespace Toast {
 		void Toast_Console_LogError(MonoObject* message);
 		void Toast_Console_LogCritical(MonoObject* message);
 
+		// Input
+		bool Toast_Input_IsKeyPressed(KeyCode key);
+		bool Toast_Input_IsMouseButtonPressed(MouseCode button);
+		float Toast_Input_GetMouseWheelDelta();
+		void Toast_Input_SetMouseWheelDelta(float value);
+
 		// Entity
 		void Toast_Entity_CreateComponent(uint64_t entityID, void* type);
 		bool Toast_Entity_HasComponent(uint64_t entityID, void* type);
@@ -30,11 +38,13 @@ namespace Toast {
 		// Transform Component
 		void Toast_TransformComponent_GetTranslation(uint64_t entityID, DirectX::XMFLOAT3* outTranslation);
 		void Toast_TransformComponent_SetTranslation(uint64_t entityID, DirectX::XMFLOAT3* inTranslation);
-		DirectX::XMFLOAT3* Toast_TransformComponent_GetRotation(uint64_t entityID);
+		void Toast_TransformComponent_GetRotation(uint64_t entityID, DirectX::XMFLOAT3* outRotation);
 		void Toast_TransformComponent_SetRotation(uint64_t entityID, DirectX::XMFLOAT3* inRotation);
-		DirectX::XMFLOAT3* Toast_TransformComponent_GetScale(uint64_t entityID);
+		void Toast_TransformComponent_GetScale(uint64_t entityID, DirectX::XMFLOAT3* outScale);
 		void Toast_TransformComponent_SetScale(uint64_t entityID, DirectX::XMFLOAT3* inScale);
 
+		// Planet Component
+		void Toast_PlanetComponent_GetRadius(uint64_t entityID, float* outRadius);
 	}
 
 }

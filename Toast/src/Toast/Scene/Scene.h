@@ -111,6 +111,8 @@ namespace Toast {
 
 		DirectX::XMVECTOR mOldCameraPos = { 0.0f, 0.0f, 0.0f }, mOldCameraRot = { 0.0f, 0.0f, 0.0f }, mOldCameraScale = { 0.0f, 0.0f, 0.0f };
 
+		bool mIsPlaying = false;
+
 		friend class Entity;
 		friend class Renderer;
 		friend class SceneSerializer;

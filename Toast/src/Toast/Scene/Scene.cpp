@@ -34,12 +34,13 @@ namespace Toast {
 
 	static void OnScriptComponentDestroy(entt::registry& registry, entt::entity entity)
 	{
-
+		// TO DO!
 	}
 
 	Scene::Scene()
 	{
 		mRegistry.on_construct<ScriptComponent>().connect<&OnScriptComponentConstruct>();
+		mRegistry.on_destroy<ScriptComponent>().connect<&OnScriptComponentDestroy>();
 
 		mSceneEntity = mRegistry.create();
 		mRegistry.emplace<SceneComponent>(mSceneEntity, mSceneID);
@@ -158,11 +159,13 @@ namespace Toast {
 					TOAST_CORE_INFO("Module doesn't exist");
 			}
 		}
+
+		mIsPlaying = true;
 	}
 
 	void Scene::OnRuntimeStop()
 	{
-
+		mIsPlaying = false;
 	}
 
 	void Scene::OnUpdateRuntime(Timestep ts)

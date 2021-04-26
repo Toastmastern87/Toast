@@ -47,6 +47,30 @@ namespace Toast {
 		}
 
 		////////////////////////////////////////////////////////////////
+		// Input ///////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////
+
+		bool Toast_Input_IsKeyPressed(KeyCode key)
+		{
+			return Input::IsKeyPressed(key);
+		}
+
+		bool Toast_Input_IsMouseButtonPressed(MouseCode button)
+		{
+			return Input::IsMouseButtonPressed(button);
+		}
+
+		float Toast_Input_GetMouseWheelDelta()
+		{
+			return Input::GetMouseWheelDelta();
+		}
+
+		void Toast_Input_SetMouseWheelDelta(float value)
+		{
+			Input::SetMouseWheelDelta(value);
+		}
+
+		////////////////////////////////////////////////////////////////
 		// Entity //////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////
 
@@ -144,7 +168,7 @@ namespace Toast {
 		}
 
 
-		DirectX::XMFLOAT3* Toast_TransformComponent_GetRotation(uint64_t entityID)
+		void Toast_TransformComponent_GetRotation(uint64_t entityID, DirectX::XMFLOAT3* outRotation)
 		{
 			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
 			TOAST_CORE_ASSERT(scene, "No active scene!");
@@ -152,8 +176,7 @@ namespace Toast {
 			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
 			Entity entity = entityMap.at(entityID);
 			auto& component = entity.GetComponent<TransformComponent>();
-
-			return &component.Rotation;
+			*outRotation = component.Rotation;
 		}
 
 		void Toast_TransformComponent_SetRotation(uint64_t entityID, DirectX::XMFLOAT3* inRotation)
@@ -168,7 +191,7 @@ namespace Toast {
 			component.Rotation = *inRotation;
 		}
 
-		DirectX::XMFLOAT3* Toast_TransformComponent_GetScale(uint64_t entityID)
+		void Toast_TransformComponent_GetScale(uint64_t entityID, DirectX::XMFLOAT3* outScale)
 		{
 			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
 			TOAST_CORE_ASSERT(scene, "No active scene!");
@@ -176,8 +199,7 @@ namespace Toast {
 			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
 			Entity entity = entityMap.at(entityID);
 			auto& component = entity.GetComponent<TransformComponent>();
-
-			return &component.Scale;
+			*outScale = component.Scale;
 		}
 
 		void Toast_TransformComponent_SetScale(uint64_t entityID, DirectX::XMFLOAT3* inScale)
@@ -190,6 +212,22 @@ namespace Toast {
 			auto& component = entity.GetComponent<TransformComponent>();
 
 			component.Scale = *inScale;
+		}
+
+		////////////////////////////////////////////////////////////////
+		// Planet //////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////
+
+		void Toast_PlanetComponent_GetRadius(uint64_t entityID, float* outRadius)
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& component = entity.GetComponent<PlanetComponent>();
+
+			*outRadius = component.PlanetData.radius.x;
 		}
 
 	}
