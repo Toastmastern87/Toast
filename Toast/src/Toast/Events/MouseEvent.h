@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Toast/Events/Event.h"
+
+#include "Toast/Core/Input.h"
 #include "Toast/Core/MouseCodes.h"
 
 namespace Toast 
@@ -31,7 +33,9 @@ namespace Toast
 	{
 	public:
 		MouseScrolledEvent(const float delta)
-			: mDelta(delta) {}
+			: mDelta(delta) {
+			Input::SetMouseWheelDelta(delta); 
+		}
 
 		float GetDelta() const { return mDelta; }
 

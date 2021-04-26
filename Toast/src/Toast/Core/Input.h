@@ -17,5 +17,10 @@ namespace Toast
 		static DirectX::XMFLOAT2 GetMousePosition();
 		static float GetMouseX();
 		static float GetMouseY();
+		static float GetMouseWheelDelta();
+		static void SetMouseWheelDelta(float delta);
+
+	public:
+		static float sMouseWheelDelta;
 	};
 }

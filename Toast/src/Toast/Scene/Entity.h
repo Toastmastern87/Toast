@@ -55,6 +55,8 @@ namespace Toast {
 		{
 			return !(*this == other);
 		}
+
+		UUID GetSceneUUID() { return mScene->GetUUID(); }
 	private:
 		entt::entity mEntityHandle{ entt::null };
 		Scene* mScene = nullptr;

@@ -15,6 +15,11 @@ extern "C" {
 
 namespace Toast {
 
+	enum class PropertyType 
+	{
+		None = 0, Float
+	};
+
 	struct EntityScriptClass;
 	struct EntityInstance
 	{
@@ -26,9 +31,68 @@ namespace Toast {
 		MonoObject* GetInstance();
 	};
 
+	struct PublicProperty 
+	{
+		std::string Name;
+		PropertyType Type;
+		
+		PublicProperty(const std::string& name, PropertyType type);
+		PublicProperty(const PublicProperty&) = delete;
+		PublicProperty(PublicProperty&& other);
+		~PublicProperty();
+
+		void CopyStoredValueToRuntime();
+		bool IsRuntimeAvailable() const;
+
+		template<typename T>
+		void SetStoredValue(T value) const
+		{
+			SetStoredValue_Internal(&value);
+		}
+
+		template<typename T>
+		T GetStoredValue() const 
+		{
+			T value;
+			GetStoredValue_Internal(&value);
+			return value;
+		}
+
+		template<typename T>
+		void SetRuntimeValue(T value) const
+		{
+			SetRuntimeValue_Internal(&value);
+		}
+
+		template<typename T>
+		T GetRuntimeValue() const
+		{
+			T value;
+			GetRuntimeValue_Internal(&value);
+			return value;
+		}
+
+		void SetStoredValueRaw(void* src);
+	private:
+		EntityInstance* mEntityInstance;
+		MonoClassField* mMonoClassField;
+		uint8_t* mStoredValueBuffer = nullptr;
+
+		uint8_t* AllocateBuffer(PropertyType type);
+		void SetStoredValue_Internal(void* value) const;
+		void GetStoredValue_Internal(void* outValue) const;
+		void SetRuntimeValue_Internal(void* value) const;
+		void GetRuntimeValue_Internal(void* outValue) const;
+
+		friend class ScriptEngine;
+	};
+
+	using ScriptModulePropertyMap = std::unordered_map<std::string, std::unordered_map<std::string, PublicProperty>>;
+
 	struct EntityInstanceData
 	{
 		EntityInstance Instance;
+		ScriptModulePropertyMap ModulePropertyMap;
 	};
 
 	using EntityInstanceMap = std::unordered_map<UUID, std::unordered_map<UUID, EntityInstanceData>>;

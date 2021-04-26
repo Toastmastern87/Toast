@@ -36,6 +36,7 @@ namespace Toast {
 		sCreateComponentFunctions.clear();
 		RegisterComponent(TagComponent);
 		RegisterComponent(TransformComponent);
+		RegisterComponent(PlanetComponent);
 
 		//Log
 		mono_add_internal_call("Toast.Console::LogTrace_Native", Toast::Script::Toast_Console_LogTrace);
@@ -43,6 +44,12 @@ namespace Toast {
 		mono_add_internal_call("Toast.Console::LogWarning_Native", Toast::Script::Toast_Console_LogWarning);
 		mono_add_internal_call("Toast.Console::LogError_Native", Toast::Script::Toast_Console_LogError);
 		mono_add_internal_call("Toast.Console::LogCritical_Native", Toast::Script::Toast_Console_LogCritical);
+
+		//Input 
+		mono_add_internal_call("Toast.Input::IsKeyPressed_Native", Toast::Script::Toast_Input_IsKeyPressed);
+		mono_add_internal_call("Toast.Input::IsMouseButtonPressed_Native", Toast::Script::Toast_Input_IsMouseButtonPressed);
+		mono_add_internal_call("Toast.Input::GetMouseWheelDelta_Native", Toast::Script::Toast_Input_GetMouseWheelDelta);
+		mono_add_internal_call("Toast.Input::SetMouseWheelDelta_Native", Toast::Script::Toast_Input_SetMouseWheelDelta);
 
 		//Entity
 		mono_add_internal_call("Toast.Entity::CreateComponent_Native", Toast::Script::Toast_Entity_CreateComponent);
@@ -60,6 +67,9 @@ namespace Toast {
 		mono_add_internal_call("Toast.TransformComponent::SetRotation_Native", Toast::Script::Toast_TransformComponent_SetRotation);
 		mono_add_internal_call("Toast.TransformComponent::GetScale_Native", Toast::Script::Toast_TransformComponent_GetScale);
 		mono_add_internal_call("Toast.TransformComponent::SetScale_Native", Toast::Script::Toast_TransformComponent_SetScale);
+
+		//Planet
+		mono_add_internal_call("Toast.PlanetComponent::GetRadius_Native", Toast::Script::Toast_PlanetComponent_GetRadius);
 	}
 
 }

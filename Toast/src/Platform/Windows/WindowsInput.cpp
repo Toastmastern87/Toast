@@ -11,6 +11,7 @@ namespace Toast {
 
 		return (state & 0x8000);
 	}
+
 	bool Input::IsMouseButtonPressed(const MouseCode button)
 	{
 		auto state = GetAsyncKeyState(static_cast<int>(button));
@@ -31,8 +32,21 @@ namespace Toast {
 	{
 		return GetMousePosition().x;
 	}
+
 	float Input::GetMouseY()
 	{
 		return GetMousePosition().y;
+	}
+
+	float Input::sMouseWheelDelta;
+
+	float Input::GetMouseWheelDelta() 
+	{
+		return sMouseWheelDelta;
+	}
+
+	void Input::SetMouseWheelDelta(float delta)
+	{
+		sMouseWheelDelta = delta;
 	}
 }

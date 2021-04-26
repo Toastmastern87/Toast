@@ -562,7 +562,7 @@ namespace Toast {
 					PlanetSystem::GeneratePlanet(tc.GetTransform(), mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.MorphData.DistanceLUT, component.FaceLevelDotLUT, cameraPos, component.Subdivisions);
 
 					mc.Mesh->InitPlanet();
-					mc.Mesh->AddSubmesh(mc.Mesh->mIndices.size());
+					mc.Mesh->AddSubmesh((uint32_t)(mc.Mesh->mIndices.size()));
 				}
 		});
 
@@ -633,7 +633,7 @@ namespace Toast {
 				}
 		});
 
-		DrawComponent<ScriptComponent>("Script", entity, [](auto& sc, Entity entity)
+		DrawComponent<ScriptComponent>("Script", entity, [=](auto& sc, Entity entity)
 			{
 				std::string oldName = sc.ModuleName;
 
@@ -678,6 +678,47 @@ namespace Toast {
 					}
 
 					ImGui::EndTable();
+				}
+
+				if (ScriptEngine::ModuleExists(sc.ModuleName))
+				{
+					if (ImGui::BeginTable("ScriptPropertiesTable", 2, flags))
+					{
+						ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+						ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+
+						EntityInstanceData& entityInstanceData = ScriptEngine::GetEntityInstanceData(entity.GetSceneUUID(), entity.GetComponent<IDComponent>().ID);
+						auto& modulePropertiesMap = entityInstanceData.ModulePropertyMap;
+						if (modulePropertiesMap.find(sc.ModuleName) != modulePropertiesMap.end())
+						{
+							auto& publicProperties = modulePropertiesMap.at(sc.ModuleName);
+							for (auto& [name, prop] : publicProperties)
+							{
+								bool isRuntime = mContext->mIsPlaying && prop.IsRuntimeAvailable();
+								switch (prop.Type)
+								{
+								case PropertyType::Float:
+									float value = isRuntime ? prop.GetRuntimeValue<float>() : prop.GetStoredValue<float>();
+									ImGui::TableNextRow();
+									ImGui::TableSetColumnIndex(0);
+									ImGui::Text(name.c_str());
+									ImGui::TableSetColumnIndex(1);
+									if (ImGui::DragFloat("##label", &value, 0.1f, 0.0f, 5.0f, "%.2f"))
+									{
+										if (isRuntime)
+											prop.SetRuntimeValue(value);
+										else
+											prop.SetStoredValue(value);
+									}
+
+									break;
+								}
+							}
+						}
+						ImGui::EndTable();
+					}
 				}
 			});
 	}

@@ -278,7 +278,7 @@ namespace Toast {
 
 			// Gizmos
 			Entity selectedEntity = mSceneHierarchyPanel.GetSelectedEntity();
-			if (selectedEntity && mGizmoType != -1)
+			if (selectedEntity && mGizmoType != -1 && mSceneState == SceneState::Edit)
 			{
 				ImGuizmo::SetOrthographic(false);
 				ImGuizmo::SetDrawlist();
