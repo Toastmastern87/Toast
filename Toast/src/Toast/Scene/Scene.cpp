@@ -73,7 +73,8 @@ namespace Toast {
 		auto& idComponent = entity.AddComponent<IDComponent>();
 		idComponent.ID = {};
 
-		entity.AddComponent<TransformComponent>();
+		auto& tc = entity.AddComponent<TransformComponent>();
+		tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
 
@@ -88,7 +89,8 @@ namespace Toast {
 		auto& idComponent = entity.AddComponent<IDComponent>();
 		idComponent.ID = uuid;
 
-		entity.AddComponent<TransformComponent>();
+		auto& tc = entity.AddComponent<TransformComponent>();
+		tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
 
@@ -109,7 +111,8 @@ namespace Toast {
 		auto& idComponent = entity.AddComponent<IDComponent>();
 		idComponent.ID = {};
 
-		entity.AddComponent<TransformComponent>();
+		auto& tc = entity.AddComponent<TransformComponent>();
+		tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
 
@@ -129,7 +132,8 @@ namespace Toast {
 		auto& idComponent = entity.AddComponent<IDComponent>();
 		idComponent.ID = {};
 
-		entity.AddComponent<TransformComponent>();
+		auto& tc = entity.AddComponent<TransformComponent>();
+		tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
 
@@ -197,6 +201,7 @@ namespace Toast {
 			}
 		}
 
+
 		// Process lights
 		{
 			mLightEnvironment = LightEnvironment();
@@ -205,7 +210,8 @@ namespace Toast {
 			for (auto entity : lights)
 			{
 				auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
-				DirectX::XMFLOAT4 direction = { cos(transformComponent.Rotation.y) * cos(transformComponent.Rotation.x), sin(transformComponent.Rotation.y) * cos(transformComponent.Rotation.x), sin(transformComponent.Rotation.x), 0.0f, };
+
+				DirectX::XMFLOAT4 direction = { DirectX::XMVectorGetZ(transformComponent.Transform.r[0]), DirectX::XMVectorGetZ(transformComponent.Transform.r[1]), DirectX::XMVectorGetZ(transformComponent.Transform.r[2]), 0.0f, };
 				DirectX::XMFLOAT4 radiance = DirectX::XMFLOAT4(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
 				mLightEnvironment.DirectionalLights[directionalLightIndex++] =
 				{
@@ -241,7 +247,13 @@ namespace Toast {
 				if (camera.Primary)
 				{
 					mainCamera = &camera.Camera;
-					cameraTransform = transform.GetTransform();
+					cameraTransform = transform.Transform;
+
+					//TOAST_CORE_INFO("Camera transform: [%f, %f, %f, %f]", DirectX::XMVectorGetX(cameraTransform.r[0]), DirectX::XMVectorGetY(cameraTransform.r[0]), DirectX::XMVectorGetZ(cameraTransform.r[0]), DirectX::XMVectorGetW(cameraTransform.r[0]));
+					//TOAST_CORE_INFO("                  [%f, %f, %f, %f]", DirectX::XMVectorGetX(cameraTransform.r[1]), DirectX::XMVectorGetY(cameraTransform.r[1]), DirectX::XMVectorGetZ(cameraTransform.r[1]), DirectX::XMVectorGetW(cameraTransform.r[1]));
+					//TOAST_CORE_INFO("                  [%f, %f, %f, %f]", DirectX::XMVectorGetX(cameraTransform.r[2]), DirectX::XMVectorGetY(cameraTransform.r[2]), DirectX::XMVectorGetZ(cameraTransform.r[2]), DirectX::XMVectorGetW(cameraTransform.r[2]));
+					//TOAST_CORE_INFO("                  [%f, %f, %f, %f]", DirectX::XMVectorGetX(cameraTransform.r[3]), DirectX::XMVectorGetY(cameraTransform.r[3]), DirectX::XMVectorGetZ(cameraTransform.r[3]), DirectX::XMVectorGetW(cameraTransform.r[3]));
+
 					break;
 				}
 				// if no camera is present nothing is rendered
@@ -261,7 +273,7 @@ namespace Toast {
 				{
 					auto [planet, mesh, transform] = view.get<PlanetComponent, MeshComponent, TransformComponent>(entity);
 
-					PlanetSystem::GeneratePlanet(transform.GetTransform(), mesh.Mesh->mPlanetFaces, mesh.Mesh->mPlanetPatches, planet.MorphData.DistanceLUT, planet.FaceLevelDotLUT, cameraPos, planet.Subdivisions);
+					PlanetSystem::GeneratePlanet(transform.Transform, mesh.Mesh->mPlanetFaces, mesh.Mesh->mPlanetPatches, planet.MorphData.DistanceLUT, planet.FaceLevelDotLUT, cameraPos, planet.Subdivisions);
 
 					mesh.Mesh->InitPlanet();
 					mesh.Mesh->AddSubmesh((uint32_t)(mesh.Mesh->mIndices.size()));
@@ -271,10 +283,13 @@ namespace Toast {
 			mOldCameraPos = cameraPos;
 		}
 
+		DirectX::XMFLOAT4 cameraPosFloat;
+		DirectX::XMStoreFloat4(&cameraPosFloat, cameraPos);
+
 		if (mainCamera)
 		{
 			// 3D Rendering
-			Renderer::BeginScene(this, *mainCamera, DirectX::XMMatrixInverse(nullptr, cameraTransform), { 1.0f, 1.0, 1.0f, 1.0f });
+			Renderer::BeginScene(this, *mainCamera, DirectX::XMMatrixInverse(nullptr, cameraTransform), cameraPosFloat);
 			{
 				{
 					auto view = mRegistry.view<TransformComponent, CameraComponent>();
@@ -303,13 +318,13 @@ namespace Toast {
 						{
 						case Settings::Wireframe::NO:
 						{
-							Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, false);
+							Renderer::SubmitMesh(mesh.Mesh, transform.Transform, (int)entity, false);
 
 							break;
 						}
 						case Settings::Wireframe::YES:
 						{
-							Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, true);
+							Renderer::SubmitMesh(mesh.Mesh, transform.Transform, (int)entity, true);
 
 							break;
 						}
@@ -335,13 +350,13 @@ namespace Toast {
 					{
 					case Settings::Wireframe::NO:
 					{
-						Renderer::SubmitPlanet(mesh.Mesh, transform.GetTransform(), (int)entity, planet.PlanetData, planet.MorphData, false);
+						Renderer::SubmitPlanet(mesh.Mesh, transform.Transform, (int)entity, planet.PlanetData, planet.MorphData, false);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
-						Renderer::SubmitPlanet(mesh.Mesh, transform.GetTransform(), (int)entity, planet.PlanetData, planet.MorphData, true);
+						Renderer::SubmitPlanet(mesh.Mesh, transform.Transform, (int)entity, planet.PlanetData, planet.MorphData, true);
 
 						break;
 					}
@@ -403,7 +418,8 @@ namespace Toast {
 			for (auto entity : lights)
 			{
 				auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
-				DirectX::XMFLOAT4 direction = { cos(transformComponent.Rotation.y) * cos(transformComponent.Rotation.x), sin(transformComponent.Rotation.y) * cos(transformComponent.Rotation.x), sin(transformComponent.Rotation.x), 0.0f, };
+
+				DirectX::XMFLOAT4 direction = { DirectX::XMVectorGetZ(transformComponent.Transform.r[0]), DirectX::XMVectorGetZ(transformComponent.Transform.r[1]), DirectX::XMVectorGetZ(transformComponent.Transform.r[2]), 0.0f, };
 				DirectX::XMFLOAT4 radiance = DirectX::XMFLOAT4(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
 				mLightEnvironment.DirectionalLights[directionalLightIndex++] =
 				{
@@ -435,7 +451,7 @@ namespace Toast {
 			{
 				auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
 				if (camera.Primary)
-					DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.GetTransform());
+					DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.Transform);
 
 			}
 
@@ -446,7 +462,7 @@ namespace Toast {
 				{
 					auto [planet, mesh, transform] = view.get<PlanetComponent, MeshComponent, TransformComponent>(entity);
 
-					PlanetSystem::GeneratePlanet(transform.GetTransform(), mesh.Mesh->mPlanetFaces, mesh.Mesh->mPlanetPatches, planet.MorphData.DistanceLUT, planet.FaceLevelDotLUT, cameraPos, planet.Subdivisions);
+					PlanetSystem::GeneratePlanet(transform.Transform, mesh.Mesh->mPlanetFaces, mesh.Mesh->mPlanetPatches, planet.MorphData.DistanceLUT, planet.FaceLevelDotLUT, cameraPos, planet.Subdivisions);
 
 					mesh.Mesh->InitPlanet();
 					mesh.Mesh->AddSubmesh((uint32_t)(mesh.Mesh->mIndices.size()));
@@ -489,13 +505,13 @@ namespace Toast {
 					{
 					case Settings::Wireframe::NO:
 					{
-						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, false);
+						Renderer::SubmitMesh(mesh.Mesh, transform.Transform, (int)entity, false);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
-						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, true);
+						Renderer::SubmitMesh(mesh.Mesh, transform.Transform, (int)entity, true);
 
 						break;
 					}
@@ -521,13 +537,13 @@ namespace Toast {
 				{
 				case Settings::Wireframe::NO:
 				{
-					Renderer::SubmitPlanet(mesh.Mesh, transform.GetTransform(), (int)entity, planet.PlanetData, planet.MorphData, false);
+					Renderer::SubmitPlanet(mesh.Mesh, transform.Transform, (int)entity, planet.PlanetData, planet.MorphData, false);
 
 					break;
 				}
 				case Settings::Wireframe::YES:
 				{
-					Renderer::SubmitPlanet(mesh.Mesh, transform.GetTransform(), (int)entity, planet.PlanetData, planet.MorphData, true);
+					Renderer::SubmitPlanet(mesh.Mesh, transform.Transform, (int)entity, planet.PlanetData, planet.MorphData, true);
 
 					break;
 				}
@@ -569,7 +585,12 @@ namespace Toast {
 			{
 				auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
 
-				RendererDebug::SubmitCameraFrustum(camera.Camera, transform.GetTransform(), transform.Translation);
+				DirectX::XMVECTOR scale, rotation, translation;
+				DirectX::XMFLOAT3 translationFloat3;
+				DirectX::XMMatrixDecompose(&scale, &rotation, &translation, transform.Transform);
+				DirectX::XMStoreFloat3(&translationFloat3, translation);
+
+				RendererDebug::SubmitCameraFrustum(camera.Camera, transform.Transform, translationFloat3);
 			}
 		}
 		RendererDebug::EndScene();
@@ -594,7 +615,7 @@ namespace Toast {
 	void Scene::SetSkybox(const Ref<TextureCube>& skybox)
 	{
 		mSkyboxTexture = skybox;
-		mSkyboxMaterial->SetTexture(3, D3D11_PIXEL_SHADER, mSkyboxTexture);
+		mSkyboxMaterial->SetTexture(5, D3D11_PIXEL_SHADER, mSkyboxTexture);
 	}
 
 	Toast::Entity Scene::FindEntityByTag(const std::string& tag)
@@ -603,7 +624,7 @@ namespace Toast {
 		for (auto entity : view)
 		{
 			const auto& canditate = view.get<TagComponent>(entity).Tag;
-			if (canditate == tag)
+			if (canditate == tag) 
 				return Entity(entity, this);
 		}
 
@@ -709,7 +730,7 @@ namespace Toast {
 			if (camera.Primary)
 			{
 				mainCamera = &camera.Camera;
-				cameraTransform = transform.GetTransform();
+				cameraTransform = transform.Transform;
 				break;
 			}
 			else 
@@ -724,11 +745,14 @@ namespace Toast {
 		DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
 		DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
 
-		PlanetSystem::GenerateDistanceLUT(component.MorphData.DistanceLUT, tc.Scale.x, mainCamera->GetPerspectiveVerticalFOV(), (float)(mViewportWidth), 200.0f, 8);
-		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude.x);
+		DirectX::XMVECTOR scale, rotation, translation;
+		DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.Transform);
+
+		PlanetSystem::GenerateDistanceLUT(component.MorphData.DistanceLUT, DirectX::XMVectorGetX(scale), mainCamera->GetPerspectiveVerticalFOV(), (float)(mViewportWidth), 200.0f, 8);
+		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, DirectX::XMVectorGetX(scale), 8, component.PlanetData.maxAltitude.x);
 		PlanetSystem::GeneratePatchGeometry(mc.Mesh->mPlanetVertices, mc.Mesh->mIndices, component.PatchLevels);
 		PlanetSystem::GenerateBasePlanet(mc.Mesh->mPlanetFaces);
-		PlanetSystem::GeneratePlanet(tc.GetTransform(), mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.MorphData.DistanceLUT, component.FaceLevelDotLUT, cameraPos, component.Subdivisions);
+		PlanetSystem::GeneratePlanet(tc.Transform, mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.MorphData.DistanceLUT, component.FaceLevelDotLUT, cameraPos, component.Subdivisions);
 
 		mc.Mesh->InitPlanet();
 		//mc.Mesh->AddSubmesh(mc.Mesh->mIndices.size());

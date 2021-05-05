@@ -23,6 +23,7 @@ namespace Toast {
 		// Input
 		bool Toast_Input_IsKeyPressed(KeyCode key);
 		bool Toast_Input_IsMouseButtonPressed(MouseCode button);
+		void Toast_Input_GetMousePosition(DirectX::XMFLOAT2* outPos);
 		float Toast_Input_GetMouseWheelDelta();
 		void Toast_Input_SetMouseWheelDelta(float value);
 
@@ -36,6 +37,8 @@ namespace Toast {
 		void Toast_TagComponent_SetTag(uint64_t entityID, MonoString* inTag);
 
 		// Transform Component
+		void Toast_TransformComponent_GetTransform(uint64_t entityID, DirectX::XMMATRIX* outTransform);
+		void Toast_TransformComponent_SetTransform(uint64_t entityID, DirectX::XMMATRIX* inTransform);
 		void Toast_TransformComponent_GetTranslation(uint64_t entityID, DirectX::XMFLOAT3* outTranslation);
 		void Toast_TransformComponent_SetTranslation(uint64_t entityID, DirectX::XMFLOAT3* inTranslation);
 		void Toast_TransformComponent_GetRotation(uint64_t entityID, DirectX::XMFLOAT3* outRotation);

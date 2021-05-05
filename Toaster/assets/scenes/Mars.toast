@@ -4,8 +4,8 @@ Entities:
     TagComponent:
       Tag: Camera
     TransformComponent:
-      Translation: [0, 0, -3790]
-      Rotation: [0, 0, 0]
+      Translation: [0, 0, -3400]
+      Rotation: [-90, 0, 0]
       Scale: [1, 1, 1]
     CameraComponent:
       Camera:
@@ -18,19 +18,22 @@ Entities:
         OrthographicFar: 1
       Primary: true
       FixedAspectRatio: false
-  - Entity: 12837192831273
+    ScriptComponent:
+      AssetPath: CameraController
+  - Entity: 12837192831275
     TagComponent:
-      Tag: Ambient Light
+      Tag: Sunlight
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
+      Rotation: [0, -180, 0]
       Scale: [1, 1, 1]
-    SkyLightComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\starmap.png
+    DirectionalLightComponent:
+      Radiance: [0.945098042, 0.839215696, 0.384313732]
       Intensity: 1
-  - Entity: 12837192831273
+      SunDisk: true
+  - Entity: 12837192831271
     TagComponent:
-      Tag: Planet
+      Tag: Mars
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
@@ -43,14 +46,13 @@ Entities:
       MaxAltitude: [21.2000008, 21.2000008, 21.2000008, 21.2000008]
       MinAltitude: [-8.19999981, -8.19999981, -8.19999981, -8.19999981]
       Radius: [3389.5, 3389.5, 3389.5, 3389.5]
-  - Entity: 12837192831273
+  - Entity: 12837192831272
     TagComponent:
-      Tag: Sunlight
+      Tag: Ambient Light
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-6.68635607, 0, 0]
+      Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-    DirectionalLightComponent:
-      Radiance: [0.945098042, 0.839215696, 0.384313732]
+    SkyLightComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\starmap.png
       Intensity: 1
-      SunDisk: true

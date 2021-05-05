@@ -1,17 +1,20 @@
-[Toast][14:54:14] INFO: Creating window Toaster 2400x1300
-[Toast][14:54:15] INFO: DirectX Information:
-[Toast][14:54:15] INFO:   Vendor: NVIDIA Corporation
-[Toast][14:54:15] INFO:   Renderer: NVIDIA GeForce RTX 3080
-[Toast][14:54:15] INFO:   Version: 27.21.14.6109
-[Toast][14:54:15] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
-[Toast][14:54:15] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
-[Toast][14:54:15] ERROR: No C# component class found for TransformComponent!
-[Toast][14:54:15] ERROR: No C# component class found for PlanetComponent!
-[Toast][14:54:15] TRACE: Deserializing material 'Blue', Shader : 'PBR'
-[Toast][14:54:15] TRACE: Adding material: Blue
-[Toast][14:54:15] TRACE: Deserializing material 'Planet', Shader : 'Planet'
-[Toast][14:54:15] TRACE: Adding material: Planet
-[Toast][14:54:15] TRACE: Deserializing material 'Red', Shader : 'PBR'
-[Toast][14:54:15] TRACE: Adding material: Red
-[Toast][14:54:15] TRACE: Deserializing material 'Standard', Shader : 'Standard'
-[Toast][14:54:15] TRACE: Adding material: Standard
+[Toast][09:58:50] INFO: Creating window Toaster 2400x1300
+[Toast][09:58:50] INFO: DirectX Information:
+[Toast][09:58:50] INFO:   Vendor: NVIDIA Corporation
+[Toast][09:58:50] INFO:   Renderer: NVIDIA GeForce RTX 3080
+[Toast][09:58:50] INFO:   Version: 27.21.14.6109
+[Toast][09:58:50] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
+[Toast][09:58:50] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
+[Toast][09:58:50] TRACE: Deserializing material 'Blue', Shader : 'PBR'
+[Toast][09:58:50] TRACE: Adding material: Blue
+[Toast][09:58:50] TRACE: Deserializing material 'Planet', Shader : 'Planet'
+[Toast][09:58:50] TRACE: Adding material: Planet
+[Toast][09:58:51] TRACE: Deserializing material 'Red', Shader : 'PBR'
+[Toast][09:58:51] TRACE: Adding material: Red
+[Toast][09:58:51] TRACE: Deserializing material 'Standard', Shader : 'Standard'
+[Toast][09:58:51] TRACE: Adding material: Standard
+[Toast][09:58:53] TRACE: Deserializing scene 'Untitled Scene'
+[Toast][09:58:53] TRACE: Deserialized entity with ID '12837192831273', name 'Camera'
+[Toast][09:58:53] TRACE: Deserialized entity with ID '12837192831275', name 'Sunlight'
+[Toast][09:58:53] TRACE: Deserialized entity with ID '12837192831271', name 'Mars'
+[Toast][09:58:53] TRACE: Deserialized entity with ID '12837192831272', name 'Ambient Light'

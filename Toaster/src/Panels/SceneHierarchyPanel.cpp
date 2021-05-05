@@ -212,8 +212,12 @@ namespace Toast {
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
 		ImGui::PushFont(boldFont);
-		if (ImGui::Button("X", buttonSize)) 
+		if (ImGui::Button("X", buttonSize))
+		{
 			values.x = resetValue;
+			modified = true;
+		}
+
 		ImGui::PopStyleColor(3);
 		ImGui::PopFont();
 		ImGui::SameLine();
@@ -227,7 +231,10 @@ namespace Toast {
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
 		ImGui::PushFont(boldFont);
 		if (ImGui::Button("Y", buttonSize))
+		{
 			values.y = resetValue;
+			modified = true;
+		}
 		ImGui::PopStyleColor(3);
 		ImGui::PopFont();
 
@@ -242,7 +249,10 @@ namespace Toast {
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
 		ImGui::PushFont(boldFont);
 		if (ImGui::Button("Z", buttonSize))
+		{
 			values.z = resetValue;
+			modified = true;
+		}
 		ImGui::PopStyleColor(3);
 		ImGui::PopFont();
 
@@ -394,15 +404,26 @@ namespace Toast {
 		DrawComponent<TransformComponent>("Transform", entity, [](auto& component, Entity entity) 
 		{
 			float fov = 45.0f;
+			DirectX::XMFLOAT3 translationFloat3, scaleFloat3;
+			DirectX::XMVECTOR translation, scale, rotation;
 
-			DrawFloat3Control("Translation", component.Translation);
-			DirectX::XMFLOAT3 rotation = { DirectX::XMConvertToDegrees(component.Rotation.x) , DirectX::XMConvertToDegrees(component.Rotation.y), DirectX::XMConvertToDegrees(component.Rotation.z) };
-			DrawFloat3Control("Rotation", rotation);
-			component.Rotation = { DirectX::XMConvertToRadians(rotation.x), DirectX::XMConvertToRadians(rotation.y), DirectX::XMConvertToRadians(rotation.z) };
-			bool scaleModified = DrawFloat3Control("Scale", component.Scale, 1.0f);
+			DirectX::XMMatrixDecompose(&scale, &rotation, &translation, component.Transform);
+			DirectX::XMStoreFloat3(&translationFloat3, translation);
+			DirectX::XMStoreFloat3(&scaleFloat3, scale);
+
+			bool updateTransform = false;
+
+			updateTransform |= DrawFloat3Control("Translation", translationFloat3);
+			updateTransform |= DrawFloat3Control("Rotation", component.RotationEulerAngles);
+			updateTransform |= DrawFloat3Control("Scale", scaleFloat3, 1.0f);
+
+			if (updateTransform) 
+				component.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scaleFloat3.x, scaleFloat3.y, scaleFloat3.z)
+					* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(component.RotationEulerAngles.x), DirectX::XMConvertToRadians(component.RotationEulerAngles.y), DirectX::XMConvertToRadians(component.RotationEulerAngles.z))))
+					* DirectX::XMMatrixTranslation(translationFloat3.x, translationFloat3.y, translationFloat3.z);
 
 			// If the component has a planet recalculate the Distance LUT
-			if (entity.HasComponent<PlanetComponent>() && scaleModified)
+			if (entity.HasComponent<PlanetComponent>() && updateTransform)
 			{
 				auto view = entity.mScene->mRegistry.view<TransformComponent, CameraComponent>();
 				for (auto entity : view)
@@ -415,8 +436,8 @@ namespace Toast {
 
 				auto& pc = entity.GetComponent<PlanetComponent>();
 
-				PlanetSystem::GenerateDistanceLUT(pc.MorphData.DistanceLUT, component.Scale.x, fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
-				PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, component.Scale.x, 8, pc.PlanetData.maxAltitude.x);
+				PlanetSystem::GenerateDistanceLUT(pc.MorphData.DistanceLUT, scaleFloat3.x, fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
+				PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, scaleFloat3.x, 8, pc.PlanetData.maxAltitude.x);
 			}
 		});
 		
@@ -551,15 +572,18 @@ namespace Toast {
 
 						if (camera.Primary)
 						{
-							DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.GetTransform());
+							DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.Transform);
 							fov = camera.Camera.GetPerspectiveVerticalFOV();
 						}
 					}
 
-					PlanetSystem::GenerateDistanceLUT(component.MorphData.DistanceLUT, tc.Scale.x, fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
-					PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude.x);
+					DirectX::XMVECTOR scale, rotation, translation;
+					DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.Transform);
+
+					PlanetSystem::GenerateDistanceLUT(component.MorphData.DistanceLUT, DirectX::XMVectorGetX(scale), fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
+					PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, DirectX::XMVectorGetX(scale), 8, component.PlanetData.maxAltitude.x);
 					PlanetSystem::GeneratePatchGeometry(mc.Mesh->mPlanetVertices, mc.Mesh->mIndices, component.PatchLevels);
-					PlanetSystem::GeneratePlanet(tc.GetTransform(), mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.MorphData.DistanceLUT, component.FaceLevelDotLUT, cameraPos, component.Subdivisions);
+					PlanetSystem::GeneratePlanet(tc.Transform, mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.MorphData.DistanceLUT, component.FaceLevelDotLUT, cameraPos, component.Subdivisions);
 
 					mc.Mesh->InitPlanet();
 					mc.Mesh->AddSubmesh((uint32_t)(mc.Mesh->mIndices.size()));
@@ -664,7 +688,9 @@ namespace Toast {
 							std::string filenameString = filename.filename().string();
 							if (filenameString.find('.') != std::string::npos)
 							{
+								TOAST_CORE_WARN("FilenameString Before: %s", filenameString.c_str());
 								filenameString = filenameString.substr(0, filenameString.find_last_of('.'));
+								TOAST_CORE_WARN("FilenameString: %s", filenameString.c_str());
 							}
 							sc.ModuleName = filenameString;
 						}

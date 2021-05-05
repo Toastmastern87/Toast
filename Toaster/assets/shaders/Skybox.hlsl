@@ -70,7 +70,7 @@ struct PixelInputType
 	float3 cameraPos	: POSITION1;
 };
 
-TextureCube skybox : register(t3);
+TextureCube skybox : register(t5);
 SamplerState sampleType;
 
 float4 main(PixelInputType input) : SV_Target
