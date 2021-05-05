@@ -4,8 +4,8 @@ using Toast;
 
 class CameraController : Entity
 {
-    public float MinAltitude;
-    public float MaxAltitude;
+    public float MinAltitude = 0.0f;
+    public float MaxAltitude = 0.0f;
 
     private TransformComponent mTransform;
     private Vector3 mForward;
@@ -28,6 +28,9 @@ class CameraController : Entity
         mViewDir = new Vector3(0.0f, 1.0f, 0.0f);
         mUpViewDir = new Vector3(0.0f, 0.0f, -1.0f );
         mRightViewDir = new Vector3(1.0f, 0.0f, 0.0f);
+
+        if (MaxAltitude < MinAltitude)
+            MaxAltitude = MinAltitude;
     }
 
     void OnUpdate(float ts)
@@ -66,11 +69,11 @@ class CameraController : Entity
             float diffAltitude = 0.0f;
             float newAltitude = altitude + speed * ts * -Input.GetMouseWheelDelta();
 
-            if (newAltitude > 9500.0f)
-                diffAltitude = newAltitude - 9500.0f;
+            if (newAltitude > MaxAltitude)
+                diffAltitude = newAltitude - MaxAltitude;
 
-            if (newAltitude < 3400.0f)
-                diffAltitude = newAltitude - 3400.0f;
+            if (newAltitude < MinAltitude)
+                diffAltitude = newAltitude - MinAltitude;
 
             altitude = newAltitude - diffAltitude;
             translation = Vector3.Normalize(translation) * altitude;

@@ -6,7 +6,7 @@ Entities:
     TransformComponent:
       Translation: [0, 0, -3400]
       Rotation: [-90, 0, 0]
-      Scale: [1, 1, 1]
+      Scale: [1, 0.999999762, 0.999999762]
     CameraComponent:
       Camera:
         ProjectionType: 0
@@ -19,14 +19,21 @@ Entities:
       Primary: true
       FixedAspectRatio: false
     ScriptComponent:
-      AssetPath: CameraController
+      ModuleName: CameraController
+      StoredProperties:
+        - Name: MinAltitude
+          Type: 1
+          Data: 3400
+        - Name: MaxAltitude
+          Type: 1
+          Data: 9500
   - Entity: 12837192831275
     TagComponent:
       Tag: Sunlight
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, -180, 0]
-      Scale: [1, 1, 1]
+      Scale: [0.999999046, 1, 0.999999046]
     DirectionalLightComponent:
       Radiance: [0.945098042, 0.839215696, 0.384313732]
       Intensity: 1
