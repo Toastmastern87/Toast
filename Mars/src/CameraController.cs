@@ -40,7 +40,7 @@ class CameraController : Entity
         mUpMovement = Vector3.Normalize(translation);
 
         float altitude = Vector3.Length(translation);
-        float speed = (float)(12.7574f * Math.Exp(0.0005f * altitude));
+        float speed = (float)Math.Exp(0.0007f * altitude);
 
         Vector2 newCursorPos = Input.GetMousePosition();
 
@@ -49,7 +49,8 @@ class CameraController : Entity
             if (mCursorPos.X != newCursorPos.X)
             {
                 mViewDir = Vector3.Rotate(mViewDir, mUpMovement, (newCursorPos.X - mCursorPos.X) * 0.003f);
-                mUpViewDir = Vector3.Rotate(mUpViewDir, mUpMovement, (newCursorPos.X - mCursorPos.X) * 0.003f);
+                if(mUpViewDir != mUpMovement)
+                    mUpViewDir = Vector3.Rotate(mUpViewDir, mUpMovement, (newCursorPos.X - mCursorPos.X) * 0.003f);
                 mForward = Vector3.Rotate(mForward, mUpMovement, (newCursorPos.X - mCursorPos.X) * 0.003f);
 
                 mRightMovement = Vector3.Cross(mUpMovement, mForward);

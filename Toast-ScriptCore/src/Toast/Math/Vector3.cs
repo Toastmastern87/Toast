@@ -76,29 +76,46 @@ namespace Toast
             return ret;
         }
 
-        public static Vector3 operator +(Vector3 vectorOne, Vector3 vectorTwo) 
+        public static Vector3 operator+(Vector3 vectorOne, Vector3 vectorTwo) 
         {
             return new Vector3(vectorOne.X + vectorTwo.X, vectorOne.Y + vectorTwo.Y, vectorOne.Z + vectorTwo.Z);
         }
 
-        public static Vector3 operator +(Vector3 vectorOne, float value)
+        public static Vector3 operator+(Vector3 vectorOne, float value)
         {
             return new Vector3(vectorOne.X + value, vectorOne.Y + value, vectorOne.Z + value);
         }
 
-        public static Vector3 operator -(Vector3 vectorOne, float value)
+        public static Vector3 operator-(Vector3 vectorOne, float value)
         {
             return new Vector3(vectorOne.X - value, vectorOne.Y - value, vectorOne.Z - value);
         }
 
-        public static Vector3 operator -(Vector3 vectorOne, Vector3 vectorTwo)
+        public static Vector3 operator-(Vector3 vectorOne, Vector3 vectorTwo)
         {
             return new Vector3(vectorOne.X - vectorTwo.X, vectorOne.Y - vectorTwo.Y, vectorOne.Z - vectorTwo.Z);
         }
 
-        public static Vector3 operator *(Vector3 vectorOne, float value)
+        public static Vector3 operator*(Vector3 vectorOne, float value)
         {
             return new Vector3(vectorOne.X * value, vectorOne.Y * value, vectorOne.Z * value);
+        }
+
+        public static bool operator ==(Vector3 vecOne, Vector3 vecTwo) 
+        {
+            if (vecOne.X == vecTwo.X && vecOne.Y == vecTwo.Y && vecOne.Z == vecTwo.Z)
+                return true;
+            else
+                return false;
+
+        }
+
+        public static bool operator !=(Vector3 vecOne, Vector3 vecTwo)
+        {
+            if (vecOne.X != vecTwo.X && vecOne.Y != vecTwo.Y && vecOne.Z != vecTwo.Z)
+                return true;
+            else
+                return false;
         }
     }
 }
