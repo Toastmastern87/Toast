@@ -60,6 +60,11 @@ namespace Toast {
 			return Input::IsMouseButtonPressed(button);
 		}
 
+		void Toast_Input_GetMousePosition(DirectX::XMFLOAT2* outPos)
+		{
+			*outPos = Input::GetMousePosition();
+		}
+
 		float Toast_Input_GetMouseWheelDelta()
 		{
 			return Input::GetMouseWheelDelta();
@@ -136,82 +141,101 @@ namespace Toast {
 			Entity entity = entityMap.at(entityID);
 			auto& component = entity.GetComponent<TagComponent>();
 			std::string& tagStr = ConvertMonoStringToCppString(tag);
-			TOAST_CORE_WARN("Tag before change: %s", component.Tag);
 			component.Tag = tagStr;
-			TOAST_CORE_WARN("Tag after change: %s", component.Tag);
 		}
 
 		////////////////////////////////////////////////////////////////
 		// Transform ///////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////
 
-		void Toast_TransformComponent_GetTranslation(uint64_t entityID, DirectX::XMFLOAT3* outTranslation)
+		void Toast_TransformComponent_GetTransform(uint64_t entityID, DirectX::XMMATRIX* outTransform)
 		{
 			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
 			TOAST_CORE_ASSERT(scene, "No active scene!");
 			const auto& entityMap = scene->GetEntityMap();
-			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in scene!");
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
 			Entity entity = entityMap.at(entityID);
-			auto& component = entity.GetComponent<TransformComponent>();
-			*outTranslation = component.Translation;
+			auto& tc = entity.GetComponent<TransformComponent>();
+			*outTransform = tc.Transform;
+		}
+
+		void Toast_TransformComponent_SetTransform(uint64_t entityID, DirectX::XMMATRIX* inTransform)
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& tc = entity.GetComponent<TransformComponent>();
+			tc.Transform = *inTransform;
+		}
+
+		void Toast_TransformComponent_GetTranslation(uint64_t entityID, DirectX::XMFLOAT3* outTranslation)
+		{
+			//Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			//TOAST_CORE_ASSERT(scene, "No active scene!");
+			//const auto& entityMap = scene->GetEntityMap();
+			//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in scene!");
+			//Entity entity = entityMap.at(entityID);
+			//auto& component = entity.GetComponent<TransformComponent>();
+			//*outTranslation = component.Translation;
 		}
 
 		void Toast_TransformComponent_SetTranslation(uint64_t entityID, DirectX::XMFLOAT3* inTranslation)
 		{
-			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
-			TOAST_CORE_ASSERT(scene, "No active scene!");
-			const auto& entityMap = scene->GetEntityMap();
-			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in scene!");
-			Entity entity = entityMap.at(entityID);
-			auto& component = entity.GetComponent<TransformComponent>();
-			component.Translation = *inTranslation;
+			//Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			//TOAST_CORE_ASSERT(scene, "No active scene!");
+			//const auto& entityMap = scene->GetEntityMap();
+			//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in scene!");
+			//Entity entity = entityMap.at(entityID);
+			//auto& component = entity.GetComponent<TransformComponent>();
+			//component.Translation = *inTranslation;
 		}
-
 
 		void Toast_TransformComponent_GetRotation(uint64_t entityID, DirectX::XMFLOAT3* outRotation)
 		{
-			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
-			TOAST_CORE_ASSERT(scene, "No active scene!");
-			const auto& entityMap = scene->GetEntityMap();
-			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-			Entity entity = entityMap.at(entityID);
-			auto& component = entity.GetComponent<TransformComponent>();
-			*outRotation = component.Rotation;
+			//Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			//TOAST_CORE_ASSERT(scene, "No active scene!");
+			//const auto& entityMap = scene->GetEntityMap();
+			//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			//Entity entity = entityMap.at(entityID);
+			//auto& component = entity.GetComponent<TransformComponent>();
+			//*outRotation = component.Rotation;
 		}
 
 		void Toast_TransformComponent_SetRotation(uint64_t entityID, DirectX::XMFLOAT3* inRotation)
 		{
-			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
-			TOAST_CORE_ASSERT(scene, "No active scene!");
-			const auto& entityMap = scene->GetEntityMap();
-			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-			Entity entity = entityMap.at(entityID);
-			auto& component = entity.GetComponent<TransformComponent>();
+			//Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			//TOAST_CORE_ASSERT(scene, "No active scene!");
+			//const auto& entityMap = scene->GetEntityMap();
+			//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			//Entity entity = entityMap.at(entityID);
+			//auto& component = entity.GetComponent<TransformComponent>();
 
-			component.Rotation = *inRotation;
+			//component.Rotation = *inRotation;
 		}
 
 		void Toast_TransformComponent_GetScale(uint64_t entityID, DirectX::XMFLOAT3* outScale)
 		{
-			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
-			TOAST_CORE_ASSERT(scene, "No active scene!");
-			const auto& entityMap = scene->GetEntityMap();
-			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-			Entity entity = entityMap.at(entityID);
-			auto& component = entity.GetComponent<TransformComponent>();
-			*outScale = component.Scale;
+			//Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			//TOAST_CORE_ASSERT(scene, "No active scene!");
+			//const auto& entityMap = scene->GetEntityMap();
+			//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			//Entity entity = entityMap.at(entityID);
+			//auto& component = entity.GetComponent<TransformComponent>();
+			//*outScale = component.Scale;
 		}
 
 		void Toast_TransformComponent_SetScale(uint64_t entityID, DirectX::XMFLOAT3* inScale)
 		{
-			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
-			TOAST_CORE_ASSERT(scene, "No active scene!");
-			const auto& entityMap = scene->GetEntityMap();
-			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-			Entity entity = entityMap.at(entityID);
-			auto& component = entity.GetComponent<TransformComponent>();
+			//Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			//TOAST_CORE_ASSERT(scene, "No active scene!");
+			//const auto& entityMap = scene->GetEntityMap();
+			//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			//Entity entity = entityMap.at(entityID);
+			//auto& component = entity.GetComponent<TransformComponent>();
 
-			component.Scale = *inScale;
+			//component.Scale = *inScale;
 		}
 
 		////////////////////////////////////////////////////////////////

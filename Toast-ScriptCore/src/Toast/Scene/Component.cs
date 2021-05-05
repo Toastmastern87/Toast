@@ -29,6 +29,20 @@ namespace Toast
 
     public class TransformComponent : Component 
     {
+        public Matrix4 Transform 
+        {
+            get 
+            {
+                Matrix4 result;
+                GetTransform_Native(Entity.ID, out result);
+                return result;
+            }
+            set 
+            {
+                SetTransform_Native(Entity.ID, ref value);
+            }
+        }
+
         public Vector3 Translation
         {
             get
@@ -68,6 +82,12 @@ namespace Toast
                 SetScale_Native(Entity.ID, ref value);
             }
         }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void GetTransform_Native(ulong entityID, out Matrix4 outTranslation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetTransform_Native(ulong entityID, ref Matrix4 inTranslation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void GetTranslation_Native(ulong entityID, out Vector3 outTranslation);

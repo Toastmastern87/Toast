@@ -293,11 +293,17 @@ namespace Toast {
 				DirectX::XMStoreFloat4x4(&cameraView, mEditorCamera->GetViewMatrix());
 
 				// Entity transform
+				DirectX::XMFLOAT3 translationFloat3, scaleFloat3;
+				DirectX::XMVECTOR translation, scale, rotation;
+
 				auto& tc = selectedEntity.GetComponent<TransformComponent>();
+				DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.Transform);
+				DirectX::XMStoreFloat3(&translationFloat3, translation);
+				DirectX::XMStoreFloat3(&scaleFloat3, scale);
 				DirectX::XMFLOAT4X4 transform;
-				float Ftranslation[3] = { tc.Translation.x, tc.Translation.y, tc.Translation.z };
-				float Frotation[3] = { DirectX::XMConvertToDegrees(tc.Rotation.x), DirectX::XMConvertToDegrees(tc.Rotation.y), DirectX::XMConvertToDegrees(tc.Rotation.z) };
-				float Fscale[3] = { tc.Scale.x, tc.Scale.y, tc.Scale.z };
+				float Ftranslation[3] = { translationFloat3.x, translationFloat3.y, translationFloat3.z };
+				float Frotation[3] = { tc.RotationEulerAngles.x, tc.RotationEulerAngles.y, tc.RotationEulerAngles.z };
+				float Fscale[3] = { scaleFloat3.x, scaleFloat3.y, scaleFloat3.z };
 				ImGuizmo::RecomposeMatrixFromComponents(Ftranslation, Frotation, Fscale, *transform.m);
 
 				// Snapping
@@ -316,9 +322,11 @@ namespace Toast {
 					float Ftranslation[3] = { 0.0f, 0.0f, 0.0f }, Frotation[3] = { 0.0f, 0.0f, 0.0f }, Fscale[3] = { 0.0f, 0.0f, 0.0f };
 					ImGuizmo::DecomposeMatrixToComponents(*transform.m, Ftranslation, Frotation, Fscale);
 
-					tc.Translation = DirectX::XMFLOAT3(Ftranslation);
-					tc.Rotation = DirectX::XMFLOAT3(DirectX::XMConvertToRadians(Frotation[0]), DirectX::XMConvertToRadians(Frotation[1]), DirectX::XMConvertToRadians(Frotation[2]));
-					tc.Scale = DirectX::XMFLOAT3(Fscale);
+					tc.RotationEulerAngles = { Frotation[0], Frotation[1], Frotation[2] };
+
+					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Fscale[0], Fscale[1], Fscale[2])
+						* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(Frotation[0]), DirectX::XMConvertToRadians(Frotation[1]), DirectX::XMConvertToRadians(Frotation[2]))))
+						* DirectX::XMMatrixTranslation(Ftranslation[0], Ftranslation[1], Ftranslation[2]);
 				}
 			}
 

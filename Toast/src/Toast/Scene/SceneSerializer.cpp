@@ -85,8 +85,9 @@ namespace Toast {
 
 	static void SerializeEntity(YAML::Emitter& out, Entity entity)
 	{
+		UUID uuid = entity.GetComponent<IDComponent>().ID;
 		out << YAML::BeginMap; // Entity
-		out << YAML::Key << "Entity" << YAML::Value << "12837192831273"; // TODO: Entity ID goes here
+		out << YAML::Key << "Entity" << YAML::Value << uuid; 
 
 		if (entity.HasComponent<TagComponent>()) 
 		{
@@ -105,9 +106,16 @@ namespace Toast {
 			out << YAML::BeginMap; // TransformComponent
 
 			auto& tc = entity.GetComponent<TransformComponent>();
-			out << YAML::Key << "Translation" << YAML::Value << tc.Translation;
-			out << YAML::Key << "Rotation" << YAML::Value << tc.Rotation;
-			out << YAML::Key << "Scale" << YAML::Value << tc.Scale;
+			DirectX::XMFLOAT3 translationFloat3, scaleFloat3;
+			DirectX::XMVECTOR translation, scale, rotation;
+
+			DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.Transform);
+			DirectX::XMStoreFloat3(&translationFloat3, translation);
+			DirectX::XMStoreFloat3(&scaleFloat3, scale);
+
+			out << YAML::Key << "Translation" << YAML::Value << translationFloat3;
+			out << YAML::Key << "Rotation" << YAML::Value << tc.RotationEulerAngles;
+			out << YAML::Key << "Scale" << YAML::Value << scaleFloat3;
 
 			out << YAML::EndMap; // TransformComponent
 		}
@@ -199,6 +207,17 @@ namespace Toast {
 			out << YAML::EndMap; // SkyLightComponent
 		}
 
+		if (entity.HasComponent<ScriptComponent>())
+		{
+			out << YAML::Key << "ScriptComponent";
+			out << YAML::BeginMap; // ScriptComponent
+
+			auto& sc = entity.GetComponent<ScriptComponent>();
+			out << YAML::Key << "AssetPath" << YAML::Value << sc.ModuleName;
+
+			out << YAML::EndMap; // ScriptComponent
+		}
+
 		out << YAML::EndMap; // Entity
 	}
 
@@ -212,7 +231,7 @@ namespace Toast {
 		mScene->mRegistry.each([&](auto entityID)
 		{
 			Entity entity = { entityID, mScene.get() };
-			if (!entity)
+			if (!entity || !entity.HasComponent<IDComponent>())
 				return;
 
 			SerializeEntity(out, entity);
@@ -237,7 +256,7 @@ namespace Toast {
 			return false;
 
 		std::string sceneName = data["Scene"].as<std::string>();
-		TOAST_CORE_TRACE("Deserializing scene '{0}'", sceneName);
+		TOAST_CORE_TRACE("Deserializing scene '%s'", sceneName.c_str());
 
 		auto entities = data["Entities"];
 		if (entities) 
@@ -251,18 +270,23 @@ namespace Toast {
 				if (tagComponent)
 					name = tagComponent["Tag"].as<std::string>();
 
-				TOAST_CORE_TRACE("Deserialized entity with ID = {0}, name = {1}", uuid, name);
+				TOAST_CORE_TRACE("Deserialized entity with ID '%llu', name '%s'", uuid, name.c_str());
 
-				Entity deserializedEntity = mScene->CreateEntity(name);
+				Entity deserializedEntity = mScene->CreateEntityWithID(uuid, name);
 
 				auto transformComponent = entity["TransformComponent"];
 				if (transformComponent) 
 				{
 					// Entities always have transforms
 					auto& tc = deserializedEntity.GetComponent<TransformComponent>();
-					tc.Translation = transformComponent["Translation"].as<DirectX::XMFLOAT3>();
-					tc.Rotation = transformComponent["Rotation"].as<DirectX::XMFLOAT3>();
-					tc.Scale = transformComponent["Scale"].as<DirectX::XMFLOAT3>();
+					DirectX::XMFLOAT3 translation = transformComponent["Translation"].as<DirectX::XMFLOAT3>();
+					DirectX::XMFLOAT3 rotation = transformComponent["Rotation"].as<DirectX::XMFLOAT3>();
+					DirectX::XMFLOAT3 scale = transformComponent["Scale"].as<DirectX::XMFLOAT3>();
+
+					tc.RotationEulerAngles = rotation;
+					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z)
+						* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(rotation.x), DirectX::XMConvertToRadians(rotation.y), DirectX::XMConvertToRadians(rotation.z))))
+						* DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
 				}
 
 				auto cameraComponent = entity["CameraComponent"];
@@ -316,7 +340,6 @@ namespace Toast {
 					skc.Intensity = skylightComponent["Intensity"].as<float>();
 				}
 
-
 				auto directionalLightComponent = entity["DirectionalLightComponent"];
 				if (directionalLightComponent)
 				{
@@ -325,6 +348,13 @@ namespace Toast {
 					dlc.Radiance = directionalLightComponent["Radiance"].as<DirectX::XMFLOAT3>();
 					dlc.Intensity = directionalLightComponent["Intensity"].as<float>();
 					dlc.SunDisc = directionalLightComponent["SunDisk"].as<bool>();
+				}
+
+				auto scriptComponent = entity["ScriptComponent"];
+				if (scriptComponent)
+				{
+					std::string moduleName = scriptComponent["AssetPath"].as<std::string>();
+					auto& sc = deserializedEntity.AddComponent<ScriptComponent>(moduleName);
 				}
 			}
 		}

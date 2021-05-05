@@ -48,6 +48,7 @@ namespace Toast {
 		//Input 
 		mono_add_internal_call("Toast.Input::IsKeyPressed_Native", Toast::Script::Toast_Input_IsKeyPressed);
 		mono_add_internal_call("Toast.Input::IsMouseButtonPressed_Native", Toast::Script::Toast_Input_IsMouseButtonPressed);
+		mono_add_internal_call("Toast.Input::GetMousePosition_Native", Toast::Script::Toast_Input_GetMousePosition);
 		mono_add_internal_call("Toast.Input::GetMouseWheelDelta_Native", Toast::Script::Toast_Input_GetMouseWheelDelta);
 		mono_add_internal_call("Toast.Input::SetMouseWheelDelta_Native", Toast::Script::Toast_Input_SetMouseWheelDelta);
 
@@ -61,6 +62,8 @@ namespace Toast {
 		mono_add_internal_call("Toast.TagComponent::SetTag_Native", Toast::Script::Toast_TagComponent_SetTag);
 
 		//Transform
+		mono_add_internal_call("Toast.TransformComponent::GetTransform_Native", Toast::Script::Toast_TransformComponent_GetTransform);
+		mono_add_internal_call("Toast.TransformComponent::SetTransform_Native", Toast::Script::Toast_TransformComponent_SetTransform);
 		mono_add_internal_call("Toast.TransformComponent::GetTranslation_Native", Toast::Script::Toast_TransformComponent_GetTranslation);
 		mono_add_internal_call("Toast.TransformComponent::SetTranslation_Native", Toast::Script::Toast_TransformComponent_SetTranslation);
 		mono_add_internal_call("Toast.TransformComponent::GetRotation_Native", Toast::Script::Toast_TransformComponent_GetRotation);
