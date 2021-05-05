@@ -24,6 +24,9 @@
 
 namespace Toast {
 
+	static uint32_t sCounter = 0;
+	static char sIDBuffer[16];
+
 	SceneHierarchyPanel::SceneHierarchyPanel(const Ref<Scene>& context)
 	{
 		SetContext(context);
@@ -81,7 +84,6 @@ namespace Toast {
 		mSelectionContext = entity;
 	}
 
-	static uint32_t sCounter = 0;
 	static std::string sID;
 
 	static void BeginPropertyGrid()
@@ -687,11 +689,8 @@ namespace Toast {
 							std::filesystem::path filename = *file;
 							std::string filenameString = filename.filename().string();
 							if (filenameString.find('.') != std::string::npos)
-							{
-								TOAST_CORE_WARN("FilenameString Before: %s", filenameString.c_str());
 								filenameString = filenameString.substr(0, filenameString.find_last_of('.'));
-								TOAST_CORE_WARN("FilenameString: %s", filenameString.c_str());
-							}
+
 							sc.ModuleName = filenameString;
 						}
 
@@ -708,6 +707,8 @@ namespace Toast {
 
 				if (ScriptEngine::ModuleExists(sc.ModuleName))
 				{
+					sCounter = 0;
+
 					if (ImGui::BeginTable("ScriptPropertiesTable", 2, flags))
 					{
 						ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
@@ -731,7 +732,13 @@ namespace Toast {
 									ImGui::TableSetColumnIndex(0);
 									ImGui::Text(name.c_str());
 									ImGui::TableSetColumnIndex(1);
-									if (ImGui::DragFloat("##label", &value, 0.1f, 0.0f, 5.0f, "%.2f"))
+
+									sIDBuffer[0] = '#';
+									sIDBuffer[1] = '#';
+									memset(sIDBuffer + 2, 0, 14);
+									itoa(sCounter++, sIDBuffer + 2, 16);
+
+									if (ImGui::DragFloat(sIDBuffer, &value, 0.2f, 0.0f, 0.0f, "%.1f"))
 									{
 										if (isRuntime)
 											prop.SetRuntimeValue(value);
