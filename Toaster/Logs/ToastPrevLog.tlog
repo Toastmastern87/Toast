@@ -1,15 +1,20 @@
-[Toast][11:55:13] INFO: Creating window Toaster 2400x1300
-[Toast][11:55:13] INFO: DirectX Information:
-[Toast][11:55:13] INFO:   Vendor: NVIDIA Corporation
-[Toast][11:55:13] INFO:   Renderer: NVIDIA GeForce RTX 3080
-[Toast][11:55:13] INFO:   Version: 27.21.14.6109
-[Toast][11:55:13] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
-[Toast][11:55:13] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
-[Toast][11:55:13] TRACE: Deserializing material 'Blue', Shader : 'PBR'
-[Toast][11:55:13] TRACE: Adding material: Blue
-[Toast][11:55:13] TRACE: Deserializing material 'Planet', Shader : 'Planet'
-[Toast][11:55:13] TRACE: Adding material: Planet
-[Toast][11:55:14] TRACE: Deserializing material 'Red', Shader : 'PBR'
-[Toast][11:55:14] TRACE: Adding material: Red
-[Toast][11:55:14] TRACE: Deserializing material 'Standard', Shader : 'Standard'
-[Toast][11:55:14] TRACE: Adding material: Standard
+[Toast][12:05:09] INFO: Creating window Toaster 2400x1300
+[Toast][12:05:09] INFO: DirectX Information:
+[Toast][12:05:09] INFO:   Vendor: NVIDIA Corporation
+[Toast][12:05:09] INFO:   Renderer: NVIDIA GeForce RTX 3080
+[Toast][12:05:09] INFO:   Version: 27.21.14.6109
+[Toast][12:05:09] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
+[Toast][12:05:09] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
+[Toast][12:05:09] TRACE: Deserializing material 'Blue', Shader : 'PBR'
+[Toast][12:05:09] TRACE: Adding material: Blue
+[Toast][12:05:09] TRACE: Deserializing material 'Planet', Shader : 'Planet'
+[Toast][12:05:09] TRACE: Adding material: Planet
+[Toast][12:05:10] TRACE: Deserializing material 'Red', Shader : 'PBR'
+[Toast][12:05:10] TRACE: Adding material: Red
+[Toast][12:05:10] TRACE: Deserializing material 'Standard', Shader : 'Standard'
+[Toast][12:05:10] TRACE: Adding material: Standard
+[Toast][12:05:12] TRACE: Deserializing scene 'Untitled Scene'
+[Toast][12:05:12] TRACE: Deserialized entity with ID '12837192831273', name 'Camera'
+[Toast][12:05:12] TRACE: Deserialized entity with ID '12837192831275', name 'Sunlight'
+[Toast][12:05:12] TRACE: Deserialized entity with ID '12837192831271', name 'Mars'
+[Toast][12:05:12] TRACE: Deserialized entity with ID '12837192831272', name 'Ambient Light'

@@ -1,20 +1,17 @@
-[Toast][11:55:20] INFO: Creating window Toaster 2400x1300
-[Toast][11:55:20] INFO: DirectX Information:
-[Toast][11:55:20] INFO:   Vendor: NVIDIA Corporation
-[Toast][11:55:20] INFO:   Renderer: NVIDIA GeForce RTX 3080
-[Toast][11:55:20] INFO:   Version: 27.21.14.6109
-[Toast][11:55:20] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
-[Toast][11:55:20] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
-[Toast][11:55:20] TRACE: Deserializing material 'Blue', Shader : 'PBR'
-[Toast][11:55:20] TRACE: Adding material: Blue
-[Toast][11:55:20] TRACE: Deserializing material 'Planet', Shader : 'Planet'
-[Toast][11:55:20] TRACE: Adding material: Planet
-[Toast][11:55:21] TRACE: Deserializing material 'Red', Shader : 'PBR'
-[Toast][11:55:21] TRACE: Adding material: Red
-[Toast][11:55:21] TRACE: Deserializing material 'Standard', Shader : 'Standard'
-[Toast][11:55:21] TRACE: Adding material: Standard
-[Toast][11:55:23] TRACE: Deserializing scene 'Untitled Scene'
-[Toast][11:55:23] TRACE: Deserialized entity with ID '12837192831273', name 'Camera'
-[Toast][11:55:23] TRACE: Deserialized entity with ID '12837192831275', name 'Sunlight'
-[Toast][11:55:23] TRACE: Deserialized entity with ID '12837192831271', name 'Mars'
-[Toast][11:55:23] TRACE: Deserialized entity with ID '12837192831272', name 'Ambient Light'
+[Toast][18:54:17] INFO: Creating window Toaster 2400x1300
+[Toast][18:54:17] INFO: DirectX Information:
+[Toast][18:54:17] INFO:   Vendor: NVIDIA Corporation
+[Toast][18:54:17] INFO:   Renderer: NVIDIA GeForce RTX 3080
+[Toast][18:54:17] INFO:   Version: 27.21.14.6109
+[Toast][18:54:17] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
+[Toast][18:54:17] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
+[Toast][18:54:17] ERROR: No C# component class found for TransformComponent!
+[Toast][18:54:17] ERROR: No C# component class found for PlanetComponent!
+[Toast][18:54:17] TRACE: Deserializing material 'Blue', Shader : 'PBR'
+[Toast][18:54:17] TRACE: Adding material: Blue
+[Toast][18:54:17] TRACE: Deserializing material 'Planet', Shader : 'Planet'
+[Toast][18:54:17] TRACE: Adding material: Planet
+[Toast][18:54:18] TRACE: Deserializing material 'Red', Shader : 'PBR'
+[Toast][18:54:18] TRACE: Adding material: Red
+[Toast][18:54:18] TRACE: Deserializing material 'Standard', Shader : 'Standard'
+[Toast][18:54:18] TRACE: Adding material: Standard
