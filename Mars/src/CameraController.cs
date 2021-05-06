@@ -40,7 +40,8 @@ class CameraController : Entity
         mUpMovement = Vector3.Normalize(translation);
 
         float altitude = Vector3.Length(translation);
-        float speed = (float)Math.Exp(0.0007f * altitude);
+        float moveSpeed = 100.0f;// 0.0967f * altitude - 318.0f;
+        float zoomSpeed = 0.39f * altitude - 1056.0f;
 
         Vector2 newCursorPos = Input.GetMousePosition();
 
@@ -68,7 +69,7 @@ class CameraController : Entity
         if (Input.GetMouseWheelDelta() != 0.0f)
         {
             float diffAltitude = 0.0f;
-            float newAltitude = altitude + speed * ts * -Input.GetMouseWheelDelta();
+            float newAltitude = altitude + zoomSpeed * ts * -Input.GetMouseWheelDelta();
 
             if (newAltitude > MaxAltitude)
                 diffAltitude = newAltitude - MaxAltitude;
@@ -84,56 +85,56 @@ class CameraController : Entity
         {
             Vector3 startPos = Vector3.Normalize(translation);
 
-            translation += Vector3.Normalize(mForward) * ts * speed;
+            translation += Vector3.Normalize(mForward) * ts * moveSpeed;
             translation = Vector3.Normalize(translation) * altitude;
 
             Vector3 endPos = Vector3.Normalize(translation);
 
-            mViewDir = Vector3.Rotate(mViewDir, mRightMovement, Vector3.AngleNormalizedVectors(startPos, endPos));
-            mForward = Vector3.Rotate(mForward, mRightMovement, Vector3.AngleNormalizedVectors(startPos, endPos));
-            mUpViewDir = Vector3.Rotate(mUpViewDir, mRightMovement, Vector3.AngleNormalizedVectors(startPos, endPos));
+            mViewDir = Vector3.Rotate(mViewDir, mRightMovement, (float)Vector3.AngleNormalizedVectors(startPos, endPos));
+            mForward = Vector3.Rotate(mForward, mRightMovement, (float)Vector3.AngleNormalizedVectors(startPos, endPos));
+            mUpViewDir = Vector3.Rotate(mUpViewDir, mRightMovement, (float)Vector3.AngleNormalizedVectors(startPos, endPos));
         }
 
         if (Input.IsKeyPressed(KeyCode.S))
         {
             Vector3 startPos = Vector3.Normalize(translation);
 
-            translation -= Vector3.Normalize(mForward) * ts * speed;
+            translation -= Vector3.Normalize(mForward) * ts * moveSpeed;
             translation = Vector3.Normalize(translation) * altitude;
 
             Vector3 endPos = Vector3.Normalize(translation);
 
-            mViewDir = Vector3.Rotate(mViewDir, mRightMovement, -Vector3.AngleNormalizedVectors(startPos, endPos));
-            mForward = Vector3.Rotate(mForward, mRightMovement, -Vector3.AngleNormalizedVectors(startPos, endPos));
-            mUpViewDir = Vector3.Rotate(mUpViewDir, mRightMovement, -Vector3.AngleNormalizedVectors(startPos, endPos));
+            mViewDir = Vector3.Rotate(mViewDir, mRightMovement, (float)-Vector3.AngleNormalizedVectors(startPos, endPos));
+            mForward = Vector3.Rotate(mForward, mRightMovement, (float)-Vector3.AngleNormalizedVectors(startPos, endPos));
+            mUpViewDir = Vector3.Rotate(mUpViewDir, mRightMovement, (float)-Vector3.AngleNormalizedVectors(startPos, endPos));
         }
 
         if (Input.IsKeyPressed(KeyCode.A))
         {
             Vector3 startPos = Vector3.Normalize(translation);
 
-            translation -= Vector3.Normalize(mRightMovement) * ts * speed;
+            translation -= Vector3.Normalize(mRightMovement) * ts * moveSpeed;
             translation = Vector3.Normalize(translation) * altitude;
 
             Vector3 endPos = Vector3.Normalize(translation);
 
-            mRightViewDir = Vector3.Rotate(mRightViewDir, mViewDir, Vector3.AngleNormalizedVectors(startPos, endPos));
-            mRightMovement = Vector3.Rotate(mRightMovement, mForward, Vector3.AngleNormalizedVectors(startPos, endPos));
-            mUpViewDir = Vector3.Rotate(mUpViewDir, mViewDir, Vector3.AngleNormalizedVectors(startPos, endPos));
+            mRightViewDir = Vector3.Rotate(mRightViewDir, mViewDir, (float)Vector3.AngleNormalizedVectors(startPos, endPos));
+            mRightMovement = Vector3.Rotate(mRightMovement, mForward, (float)Vector3.AngleNormalizedVectors(startPos, endPos));
+            mUpViewDir = Vector3.Rotate(mUpViewDir, mViewDir, (float)Vector3.AngleNormalizedVectors(startPos, endPos));
         }
 
         if (Input.IsKeyPressed(KeyCode.D))
         {
             Vector3 startPos = Vector3.Normalize(translation);
 
-            translation += Vector3.Normalize(mRightMovement) * ts * speed;
+            translation += Vector3.Normalize(mRightMovement) * ts * moveSpeed;
             translation = Vector3.Normalize(translation) * altitude;
 
             Vector3 endPos = Vector3.Normalize(translation);
 
-            mRightViewDir = Vector3.Rotate(mRightViewDir, mViewDir, -Vector3.AngleNormalizedVectors(startPos, endPos));
-            mRightMovement = Vector3.Rotate(mRightMovement, mForward, -Vector3.AngleNormalizedVectors(startPos, endPos));
-            mUpViewDir = Vector3.Rotate(mUpViewDir, mViewDir, -Vector3.AngleNormalizedVectors(startPos, endPos));
+            mRightViewDir = Vector3.Rotate(mRightViewDir, mViewDir, (float)-Vector3.AngleNormalizedVectors(startPos, endPos));
+            mRightMovement = Vector3.Rotate(mRightMovement, mForward, (float)-Vector3.AngleNormalizedVectors(startPos, endPos));
+            mUpViewDir = Vector3.Rotate(mUpViewDir, mViewDir, (float)-Vector3.AngleNormalizedVectors(startPos, endPos));
         }
 
         mRightMovement = Vector3.Cross(mUpMovement, mForward);
