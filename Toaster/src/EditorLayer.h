@@ -3,7 +3,6 @@
 #include "Toast/Core/Layer.h"
 #include "Toast/Events/KeyEvent.h"
 
-#include "Toast/Renderer/OrthographicCameraController.h"
 #include "Toast/Renderer/Framebuffer.h"
 #include "Toast/Renderer/Texture.h"
 
@@ -43,8 +42,6 @@ namespace Toast {
 		void UpdateWindowTitle(const std::string& sceneName);
 	private:
 		std::optional<std::string> mSceneFilePath;
-
-		OrthographicCameraController mCameraController;
 
 		Ref<Framebuffer> mFramebuffer;
 

@@ -13,7 +13,6 @@
 #include "Toast/Core/Input.h"
 #include "Toast/Core/KeyCodes.h"
 #include "Toast/Core/MouseCodes.h"
-#include "Toast/Renderer/OrthographicCameraController.h"
 
 #include "Toast/ImGui/ImGuiLayer.h"
 
@@ -40,5 +39,7 @@
 //---------------------------------------
 
 //-------Scripting-----------------------
-
+#include "Toast/Script/ScriptEngine.h"
+#include "Toast/Script/ScriptEngineRegistry.h"
+#include "Toast/Script/ScriptWrappers.h"
 //---------------------------------------

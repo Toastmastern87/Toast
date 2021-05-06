@@ -86,9 +86,6 @@ namespace Toast {
 	private:
 		template<typename T>
 		void OnComponentAdded(Entity entity, T& component);
-
-		template<typename T>
-		void OnComponentRemoved(Entity entity, T& component);
 	private:
 		UUID mSceneID;
 		entt::entity mSceneEntity;

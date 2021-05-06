@@ -22,7 +22,7 @@
 namespace Toast {
 
 	EditorLayer::EditorLayer()
-		: Layer("TheNextFrontier2D"), mCameraController(1280.0f / 720.0f, true)
+		: Layer("TheNextFrontier2D")
 	{
 	}
 
@@ -366,10 +366,7 @@ namespace Toast {
 	void EditorLayer::OnEvent(Event& e)
 	{
 		if (mSceneState == SceneState::Edit)
-		{
-			mCameraController.OnEvent(e);
 			mEditorCamera->OnEvent(e);
-		}
 		else if (mSceneState == SceneState::Play)
 		{
 			;// Shit to be added soon
