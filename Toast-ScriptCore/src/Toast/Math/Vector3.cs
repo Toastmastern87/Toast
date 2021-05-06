@@ -47,7 +47,7 @@ namespace Toast
             return new Vector3(vecOne.Y * vecTwo.Z - vecOne.Z * vecTwo.Y, vecOne.Z * vecTwo.X - vecOne.X * vecTwo.Z, vecOne.X * vecTwo.Y - vecOne.Y * vecTwo.X);
         }
 
-        public static float AngleNormalizedVectors(Vector3 vecOne, Vector3 vecTwo)
+        public static double AngleNormalizedVectors(Vector3 vecOne, Vector3 vecTwo)
         {
             double dot = Dot(vecOne, vecTwo);
             double lengthVecOne = Length(vecOne);
@@ -56,7 +56,7 @@ namespace Toast
             if (dot > 1)
                 dot = 1.0f;
 
-            return (float)Math.Acos(dot); /// (lengthVecOne * lengthVecTwo)
+            return Math.Acos(dot);
         }
 
         public static Vector3 Rotate(Vector3 point, Vector3 axis, float angle)
