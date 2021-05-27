@@ -25,6 +25,7 @@ namespace Toast {
 		virtual const uint32_t GetMipLevelCount() const = 0;
 
 		static uint32_t CalculateMipMapCount(uint32_t width, uint32_t height);
+		virtual void GenerateMips() const = 0;
 
 		virtual bool operator==(const Texture& other) const = 0;
 	};
@@ -44,6 +45,7 @@ namespace Toast {
 		virtual const uint32_t GetHeight() const override { return mHeight; }
 		virtual const std::string GetFilePath() const override { return mFilePath; }
 		virtual void* GetID() const override { return (void*)mSRV.Get(); }
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() { return mTexture; }
 		virtual const uint32_t GetMipLevelCount() const override;
 
 		void SetData(void* data, uint32_t size);
@@ -51,6 +53,8 @@ namespace Toast {
 		void BindForReadWrite(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_COMPUTE_SHADER) const;
 		void UnbindUAV(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_COMPUTE_SHADER) const;
 		void CreateUAV(uint32_t mipSlice);
+
+		virtual void GenerateMips() const override;
 
 		virtual bool operator==(const Texture& other) const override
 		{
@@ -90,7 +94,7 @@ namespace Toast {
 		void UnbindUAV(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_COMPUTE_SHADER) const;
 		void CreateUAV(uint32_t mipSlice);
 
-		void GenerateMips();
+		virtual void GenerateMips() const override;
 
 		virtual bool operator==(const Texture& other) const override
 		{

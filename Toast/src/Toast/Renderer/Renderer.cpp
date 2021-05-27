@@ -141,7 +141,7 @@ namespace Toast {
 			RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 	}
 
-	void Renderer::SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, PlanetComponent::PlanetGPUData planetData, PlanetComponent::MorphGPUData morphData, bool wireframe)
+	void Renderer::SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, PlanetComponent::PlanetGPUData planetData, bool wireframe)
 	{
 		struct ModelCB
 		{
@@ -161,7 +161,6 @@ namespace Toast {
 		else
 			RenderCommand::DisableWireframeRendering();
 
-		mesh->mMaterial->SetData("Morphing", (void*)&morphData);
 		mesh->mMaterial->SetData("Planet", (void*)&planetData);
 		mesh->mMaterial->SetData("PlanetPS", (void*)&planetData);
 		mesh->mMaterial->SetData("Model", (void*)&modelCB);

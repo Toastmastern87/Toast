@@ -1,6 +1,8 @@
 #include "tpch.h"
 #include "ScriptWrappers.h"
 
+#include "Toast/Renderer/Mesh.h"
+
 #include "Toast/Script/ScriptEngine.h"
 #include "Toast/Script/MonoUtils.h"
 
@@ -252,6 +254,78 @@ namespace Toast {
 			auto& component = entity.GetComponent<PlanetComponent>();
 
 			*outRadius = component.PlanetData.radius.x;
+		}
+
+		void Toast_PlanetComponent_GetSubdivisions(uint64_t entityID, int* outSubDivisions)
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& component = entity.GetComponent<PlanetComponent>();
+
+			*outSubDivisions = component.Subdivisions;
+		}
+
+		MonoArray* Toast_PlanetComponent_GetDistanceLUT(uint64_t entityID)
+		{
+			MonoArray* outDistanceLUT;
+
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& component = entity.GetComponent<PlanetComponent>();
+
+			outDistanceLUT = mono_array_new(mono_domain_get(), mono_get_double_class(), component.DistanceLUT.size());
+
+			for (int i = 0; i < component.DistanceLUT.size(); i++) 
+				mono_array_set(outDistanceLUT, double, i, component.DistanceLUT[i]);
+
+			return outDistanceLUT;
+		}
+
+		MonoArray* Toast_PlanetComponent_GetFaceLevelDotLUT(uint64_t entityID)
+		{
+			MonoArray* outFaceLevelDotLUT;
+
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& component = entity.GetComponent<PlanetComponent>();
+
+			outFaceLevelDotLUT = mono_array_new(mono_domain_get(), mono_get_double_class(), component.FaceLevelDotLUT.size());
+
+			for (int i = 0; i < component.FaceLevelDotLUT.size(); i++)
+				mono_array_set(outFaceLevelDotLUT, double, i, component.FaceLevelDotLUT[i]);
+
+			return outFaceLevelDotLUT;
+		}
+
+		////////////////////////////////////////////////////////////////
+		// Mesh ////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////
+
+		void Toast_MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos)
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& pc = entity.GetComponent<PlanetComponent>();
+			auto& tc = entity.GetComponent<TransformComponent>();
+			auto& mc = entity.GetComponent<MeshComponent>();
+
+			DirectX::XMVECTOR cameraPosVector = { cameraPos->x, cameraPos->y, cameraPos->z };
+			PlanetSystem::GeneratePlanet(tc.Transform, mc.Mesh->GetPlanetFaces(), mc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, cameraPosVector, pc.Subdivisions);
+
+			mc.Mesh->InitPlanet();
+			mc.Mesh->AddSubmesh((uint32_t)(mc.Mesh->GetIndices().size()));
 		}
 
 	}

@@ -5,7 +5,6 @@
 #include "Toast/Renderer/Buffer.h"
 #include "Toast/Renderer/Shader.h"
 #include "Toast/Renderer/Material.h"
-
 #include "Toast/Renderer/Formats.h"
 
 #include <DirectXMath.h>
@@ -158,8 +157,12 @@ namespace Toast {
 		void CreateFromFile();
 		void AddSubmesh(uint32_t indexCount);
 
+		void GeneratePlanetMesh(DirectX::XMMATRIX planetTransform, DirectX::XMVECTOR& cameraPos, int16_t subdivisions);
+
 		const Ref<Material> GetMaterial() const { return mMaterial; }
 		void SetMaterial(Ref<Material>& material) { mMaterial = material; }
+
+		std::vector<PlanetFace>& GetPlanetFaces() { return mPlanetFaces; }
 
 	private:
 		std::vector<Submesh> mSubmeshes;
@@ -186,5 +189,6 @@ namespace Toast {
 		friend class Renderer;
 		friend class Primitives;
 		friend class SceneHierarchyPanel;
+		friend class ScriptWrappers;
 	};
 }

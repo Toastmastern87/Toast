@@ -138,6 +138,14 @@ namespace Toast {
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the UAV!");
 	}
 
+	void Texture2D::GenerateMips() const
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->GenerateMips(mSRV.Get());
+	}
+
 	void Texture2D::CreateSRV()
 	{
 		D3D11_TEXTURE2D_DESC desc = {};
@@ -306,7 +314,7 @@ namespace Toast {
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the UAV!");
 	}
 
-	void TextureCube::GenerateMips()
+	void TextureCube::GenerateMips() const
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();

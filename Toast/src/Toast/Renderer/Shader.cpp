@@ -189,7 +189,7 @@ namespace Toast {
 
 				errorText[strlen(errorText) - 1] = '\0';
 
-				TOAST_CORE_ERROR("{0}", errorText);
+				TOAST_CORE_ERROR("%s", errorText);
 				TOAST_CORE_ASSERT(false, "Shader compilation failure!")
 
 					return;

@@ -122,7 +122,78 @@ namespace Toast
             }
         }
 
+        public int Subdivisions
+        {
+            get
+            {
+                GetSubdivisions_Native(Entity.ID, out int result);
+                return result;
+            }
+            set
+            {
+            }
+        }
+
+        public double[] DistanceLUT
+        {
+            get
+            {
+                return GetDistanceLUT_Native(Entity.ID);
+            }
+            set
+            {
+            }
+        }
+
+        public double[] FaceLevelDotLUT
+        {
+            get
+            {
+                return GetFaceLevelDotLUT_Native(Entity.ID);
+            }
+            set
+            {
+            }
+        }
+
         [MethodImpl(MethodImplOptions.InternalCall)]
         public static extern void GetRadius_Native(ulong entityID, out float inScale);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        public static extern void GetSubdivisions_Native(ulong entityID, out int inScale);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        public static extern double[] GetDistanceLUT_Native(ulong entityID);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        public static extern double[] GetFaceLevelDotLUT_Native(ulong entityID);
+    }
+
+    public class MeshComponent : Component 
+    {
+        public Mesh Mesh 
+        {
+            get 
+            {
+                Mesh result = new Mesh(GetMesh_Native(Entity.ID));
+                return result;
+            }
+
+            set 
+            {
+                IntPtr ptr = value == null ? IntPtr.Zero : value.mUnmanagedInstance;
+                SetMesh_Native(Entity.ID, ptr);
+            }
+        }
+
+        public void RegeneratePlanet(Vector3 cameraPos) 
+        {
+            RegeneratePlanet_Native(Entity.ID, cameraPos);
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern IntPtr GetMesh_Native(ulong entityID);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMesh_Native(ulong entityID, IntPtr unmanagedInstance);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void RegeneratePlanet_Native(ulong entityID, Vector3 cameraPos);
+
     }
 }

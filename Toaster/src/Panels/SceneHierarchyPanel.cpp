@@ -438,7 +438,7 @@ namespace Toast {
 
 				auto& pc = entity.GetComponent<PlanetComponent>();
 
-				PlanetSystem::GenerateDistanceLUT(pc.MorphData.DistanceLUT, scaleFloat3.x, fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
+				PlanetSystem::GenerateDistanceLUT(pc.DistanceLUT, scaleFloat3.x, fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
 				PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, scaleFloat3.x, 8, pc.PlanetData.maxAltitude.x);
 			}
 		});
@@ -582,10 +582,10 @@ namespace Toast {
 					DirectX::XMVECTOR scale, rotation, translation;
 					DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.Transform);
 
-					PlanetSystem::GenerateDistanceLUT(component.MorphData.DistanceLUT, DirectX::XMVectorGetX(scale), fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
+					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, DirectX::XMVectorGetX(scale), fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
 					PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, DirectX::XMVectorGetX(scale), 8, component.PlanetData.maxAltitude.x);
 					PlanetSystem::GeneratePatchGeometry(mc.Mesh->mPlanetVertices, mc.Mesh->mIndices, component.PatchLevels);
-					PlanetSystem::GeneratePlanet(tc.Transform, mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.MorphData.DistanceLUT, component.FaceLevelDotLUT, cameraPos, component.Subdivisions);
+					PlanetSystem::GeneratePlanet(tc.Transform, mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, cameraPos, component.Subdivisions);
 
 					mc.Mesh->InitPlanet();
 					mc.Mesh->AddSubmesh((uint32_t)(mc.Mesh->mIndices.size()));

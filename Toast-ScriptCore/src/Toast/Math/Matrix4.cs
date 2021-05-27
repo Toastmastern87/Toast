@@ -31,6 +31,14 @@ namespace Toast
             D03 = 0.0f; D13 = 0.0f; D23 = 0.0f; D33 = value;
         }
 
+        public Matrix4(Matrix4 matrix)
+        {
+            D00 = matrix.D00; D10 = matrix.D10; D20 = matrix.D20; D30 = matrix.D30;
+            D01 = matrix.D01; D11 = matrix.D11; D21 = matrix.D21; D31 = matrix.D31;
+            D02 = matrix.D02; D12 = matrix.D12; D22 = matrix.D22; D32 = matrix.D32;
+            D03 = matrix.D03; D13 = matrix.D13; D23 = matrix.D23; D33 = matrix.D33;
+        }
+
         public Vector3 Translation
         {
             get { return new Vector3(D03, D13, D23); }
@@ -91,6 +99,38 @@ namespace Toast
             res.D33 = matrixOne.D30 * matrixTwo.D03 + matrixOne.D31 * matrixTwo.D13 + matrixOne.D32 * matrixTwo.D23 + matrixOne.D33 * matrixTwo.D33;
 
             return res;
+        }
+
+        public static bool operator ==(Matrix4 matrixOne, Matrix4 matrixTwo)
+        {
+            bool res = true;
+
+            res &= matrixOne.D00 == matrixTwo.D00;
+            res &= matrixOne.D01 == matrixTwo.D01;
+            res &= matrixOne.D02 == matrixTwo.D02;
+            res &= matrixOne.D03 == matrixTwo.D03;
+
+            res &= matrixOne.D10 == matrixTwo.D10;
+            res &= matrixOne.D11 == matrixTwo.D11;
+            res &= matrixOne.D12 == matrixTwo.D12;
+            res &= matrixOne.D13 == matrixTwo.D13;
+
+            res &= matrixOne.D20 == matrixTwo.D20;
+            res &= matrixOne.D21 == matrixTwo.D21;
+            res &= matrixOne.D22 == matrixTwo.D22;
+            res &= matrixOne.D23 == matrixTwo.D23;
+
+            res &= matrixOne.D30 == matrixTwo.D30;
+            res &= matrixOne.D31 == matrixTwo.D31;
+            res &= matrixOne.D32 == matrixTwo.D32;
+            res &= matrixOne.D33 == matrixTwo.D33;
+
+            return res;
+        }
+
+        public static bool operator !=(Matrix4 matrixOne, Matrix4 matrixTwo)
+        {
+            return !(matrixOne == matrixTwo);
         }
 
         public override string ToString()

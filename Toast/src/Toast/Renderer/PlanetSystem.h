@@ -2,7 +2,15 @@
 
 #include "Toast/Core/Timestep.h"
 #include "Toast/Core/Math.h"
+
 #include "Toast/Renderer/Mesh.h"
+#include "Toast/Renderer/RenderCommand.h"
+
+#include <../vendor/directxtk/Inc/ScreenGrab.h>
+
+#include "renderdoc_app.h"
+
+#define M_PI 3.14159265358979323846f
 
 using namespace DirectX;
 
@@ -32,7 +40,7 @@ namespace Toast {
 				DirectX::XMVector3Normalize({ -1.0f, ratio, 0.0f }) * 0.5f,
 				DirectX::XMVector3Normalize({ -1.0f, -ratio, 0.0f }) * 0.5f,
 				DirectX::XMVector3Normalize({ 1.0f , ratio, 0.0f }) * 0.5f,
-				DirectX::XMVector3Normalize({ 1.0f , -ratio, 0.0f }) * 0.5f 
+				DirectX::XMVector3Normalize({ 1.0f , -ratio, 0.0f }) * 0.5f
 			};
 
 			std::vector<uint32_t> startIndices = std::vector<uint32_t>{
@@ -130,7 +138,7 @@ namespace Toast {
 			}
 		}
 
-		static NextPlanetFace CheckPlanetFaceSplit(DirectX::XMMATRIX planetTransform, DirectX::XMVECTOR& a, DirectX::XMVECTOR& b, DirectX::XMVECTOR& c, int16_t subdivision, int16_t maxSubdivisions, DirectX::XMFLOAT4 *distanceLUT, std::vector<float>& faceLevelDotLUT, DirectX::XMVECTOR& cameraPos)
+		static NextPlanetFace CheckPlanetFaceSplit(DirectX::XMMATRIX planetTransform, DirectX::XMVECTOR& a, DirectX::XMVECTOR& b, DirectX::XMVECTOR& c, int16_t subdivision, int16_t maxSubdivisions, std::vector<float>& distanceLUT, std::vector<float>& faceLevelDotLUT, DirectX::XMVECTOR& cameraPos)
 		{
 			float aDistance, bDistance, cDistance;
 
@@ -148,13 +156,13 @@ namespace Toast {
 			bDistance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVector3Transform(b, planetTransform) - cameraPos));
 			cDistance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVector3Transform(c, planetTransform) - cameraPos));			
 
-			if (fminf(aDistance, fminf(bDistance, cDistance)) < distanceLUT[subdivision+3].x) 
+			if (fminf(aDistance, fminf(bDistance, cDistance)) < distanceLUT[subdivision+3]) 
 				return NextPlanetFace::SPLITCULL;
 
 			return NextPlanetFace::LEAF;
 		}
 
-		static void RecursiveFace(DirectX::XMMATRIX planetTransform, DirectX::XMVECTOR& a, DirectX::XMVECTOR& b, DirectX::XMVECTOR& c, int16_t subdivision, int16_t maxSubdivisions, std::vector<PlanetPatch>& patches, DirectX::XMFLOAT4 *distanceLUT, std::vector<float>& faceLevelDotLUT, DirectX::XMVECTOR& cameraPos)
+		static void RecursiveFace(DirectX::XMMATRIX planetTransform, DirectX::XMVECTOR& a, DirectX::XMVECTOR& b, DirectX::XMVECTOR& c, int16_t subdivision, int16_t maxSubdivisions, std::vector<PlanetPatch>& patches, std::vector<float>& distanceLUT, std::vector<float>& faceLevelDotLUT, DirectX::XMVECTOR& cameraPos)
 		{
 			DirectX::XMVECTOR A, B, C;
 
@@ -191,7 +199,7 @@ namespace Toast {
 			}
 		}
 
-		static void GeneratePlanet(DirectX::XMMATRIX planetTransform, std::vector<PlanetFace>& faces, std::vector<PlanetPatch>& patches, DirectX::XMFLOAT4 *distanceLUT, std::vector<float>& faceLevelDotLUT, DirectX::XMVECTOR& cameraPos, int16_t subdivisions)
+		static void GeneratePlanet(DirectX::XMMATRIX planetTransform, std::vector<PlanetFace>& faces, std::vector<PlanetPatch>& patches, std::vector<float>& distanceLUT, std::vector<float>& faceLevelDotLUT, DirectX::XMVECTOR& cameraPos, int16_t subdivisions)
 		{
 			patches.clear();
 
@@ -199,12 +207,12 @@ namespace Toast {
 				RecursiveFace(planetTransform, face.A, face.B, face.C, face.Level, subdivisions, patches, distanceLUT, faceLevelDotLUT, cameraPos);
 		}
 
-		static void GenerateDistanceLUT(DirectX::XMFLOAT4 *distanceLUT, float scale, float fov, float width, float maxTriangleSize, float maxSubdivisions)
+		static void GenerateDistanceLUT(std::vector<float>& distanceLUT, float scale, float fov, float width, float maxTriangleSize, float maxSubdivisions)
 		{
 			float frac = tanf((maxTriangleSize * DirectX::XMConvertToRadians(fov)) / width);
 
 			for (int subdivision = 0; subdivision < maxSubdivisions+6; subdivision++) 
-				distanceLUT[subdivision].x = (GetPlanetVertexDistance(scale) / frac) * powf(0.5f, (float)subdivision);
+				distanceLUT.push_back((GetPlanetVertexDistance(scale) / frac) * powf(0.5f, (float)subdivision));
 		}
 
 		static void GenerateFaceDotLevelLUT(std::vector<float>& faceLevelDotLUT, float scale, float maxSubdivisions, float maxHeight)
@@ -233,6 +241,69 @@ namespace Toast {
 			secondPoint = DirectX::XMVectorScale(secondPoint, planetScale);
 
 			return DirectX::XMVectorGetX(DirectX::XMVector3Length(firstPoint - secondPoint));
+		}
+
+		static void CraterDetailIncrease(Ref<Material> material) 
+		{
+			RendererAPI* API = RenderCommand::sRendererAPI.get();
+			ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+			RENDERDOC_API_1_1_2* rdoc_api = NULL;
+
+			// At init, on windows
+			if (HMODULE mod = GetModuleHandleA("renderdoc.dll"))
+			{
+				pRENDERDOC_GetAPI RENDERDOC_GetAPI =
+					(pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+				int ret = RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void**)&rdoc_api);
+				assert(ret == 1);
+			}
+
+			Ref<Shader> averageHeightShader, lowerThenAverageShader, craterFilteringShader;
+			Ref<Texture2D> heightMap = std::static_pointer_cast<Texture2D>(material->GetTexture("HeightMapTexture"));
+			Ref<Texture2D> averageHeightMap = CreateRef<Texture2D>(DXGI_FORMAT_R32G32B32A32_FLOAT, heightMap->GetWidth(), heightMap->GetHeight());
+			Ref<Texture2D> rawCraterMap = CreateRef<Texture2D>(DXGI_FORMAT_R32G32B32A32_FLOAT, heightMap->GetWidth(), heightMap->GetHeight());
+			Ref<TextureSampler> defaultSampler = TextureLibrary::GetSampler("Default");
+
+			averageHeightMap->CreateUAV(0);
+			rawCraterMap->CreateUAV(0);
+
+			if (!averageHeightShader)
+				averageHeightShader = CreateRef<Shader>("assets/shaders/Planet/AverageHeight.hlsl");
+
+			averageHeightShader->Bind();
+			heightMap->Bind();
+			defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+			averageHeightMap->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+
+			if (rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
+			RenderCommand::DispatchCompute(heightMap->GetWidth() / 32, heightMap->GetHeight() / 32, 1);
+			if (rdoc_api) rdoc_api->EndFrameCapture(NULL, NULL);
+
+			averageHeightMap->UnbindUAV();
+
+			if (!lowerThenAverageShader)
+				lowerThenAverageShader = CreateRef<Shader>("assets/shaders/Planet/LowerThenAverage.hlsl");
+
+			lowerThenAverageShader->Bind();
+			heightMap->Bind(0, D3D11_COMPUTE_SHADER);
+			averageHeightMap->Bind(1, D3D11_COMPUTE_SHADER);
+			defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+			rawCraterMap->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+
+			if (rdoc_api) rdoc_api->StartFrameCapture(NULL, NULL);
+			RenderCommand::DispatchCompute(heightMap->GetWidth() / 32, heightMap->GetHeight() / 32, 1);
+			if (rdoc_api) rdoc_api->EndFrameCapture(NULL, NULL);
+
+			rawCraterMap->UnbindUAV();
+
+			DirectX::SaveDDSTextureToFile(deviceContext, rawCraterMap->GetTexture().Get(), L"RawCraterMap.dds");
+
+			TOAST_CORE_WARN("Planet crater detailed increased");
+		}
+
+		static void GaborAnnulus() 
+		{
 		}
 	};
 }
