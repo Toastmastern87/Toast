@@ -52,6 +52,7 @@
   <ItemGroup>
     <Compile Include="src\CameraController.cs" />
     <Compile Include="src\ClientHelloWorld.cs" />
+    <Compile Include="src\PlanetScript.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Toast-ScriptCore\Toast-ScriptCore.csproj">

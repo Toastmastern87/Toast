@@ -29,12 +29,6 @@ cbuffer Model : register(b1)
 	int entityID;
 };
 
-cbuffer Morphing : register(b2)
-{
-	float4 distanceLUT[24];
-	float4 morphRange;
-};
-
 cbuffer Planet : register(b3)
 {
 	float4 radius;
@@ -61,20 +55,6 @@ struct PixelInputType
 	int entityID			: TEXTUREID;
 };
 
-float MorphFac(float distance, int level)
-{
-	float low, high, delta, a;
-
-	low = distanceLUT[level - 1].x;
-	high = distanceLUT[level].x;
-
-	delta = high - low;
-
-	a = (distance - low) / delta;
-
-	return (1.0f - clamp((a / morphRange.x), 0.0f, 1.0f));
-}
-
 PixelInputType main(VertexInputType input)
 {
 	PixelInputType output;
@@ -86,9 +66,7 @@ PixelInputType main(VertexInputType input)
 	pos = input.a + input.r * input.localPosition.x + input.s * input.localPosition.y;
 
 	distance = length(mul(pos, worldMatrix) - cameraPosition.xyz);
-	morphPercentage = MorphFac(distance, input.level);
 
-	pos += morphPercentage * (input.r * input.localMorph.x + input.s * input.localMorph.y);
 	pos = normalize(pos);
 
 	output.texcoord = float2((0.5f + (atan2(pos.z, pos.x) / (2.0f * PI))), (0.5f - (asin(pos.y) / PI)));

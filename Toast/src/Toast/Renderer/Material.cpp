@@ -73,6 +73,17 @@ namespace Toast {
 		mDirty = true;
 	}
 
+	Ref<Texture> Material::GetTexture(std::string name)
+	{
+		for (auto& textureBinding : mTextureBindings)
+		{
+			std::string textureName = mShader->GetResourceName(Shader::BindingType::Texture, textureBinding.BindSlot, textureBinding.ShaderType);
+
+			if (textureName == name)
+				return textureBinding.Texture;
+		}
+	}
+
 	void Material::SetTextureSampler(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureSampler>& sampler)
 	{
 		for (auto& textureSampler : mSamplerBindings)

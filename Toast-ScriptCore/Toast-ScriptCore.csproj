@@ -60,6 +60,8 @@
     <Compile Include="src\Toast\Math\Vector2.cs" />
     <Compile Include="src\Toast\Math\Vector3.cs" />
     <Compile Include="src\Toast\MouseCodes.cs" />
+    <Compile Include="src\Toast\Renderer\Mesh.cs" />
+    <Compile Include="src\Toast\Renderer\MeshFactory.cs" />
     <Compile Include="src\Toast\Scene\Component.cs" />
   </ItemGroup>
   <ItemGroup>

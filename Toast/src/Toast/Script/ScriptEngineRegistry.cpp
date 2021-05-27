@@ -37,6 +37,7 @@ namespace Toast {
 		RegisterComponent(TagComponent);
 		RegisterComponent(TransformComponent);
 		RegisterComponent(PlanetComponent);
+		RegisterComponent(MeshComponent);
 
 		//Log
 		mono_add_internal_call("Toast.Console::LogTrace_Native", Toast::Script::Toast_Console_LogTrace);
@@ -73,6 +74,11 @@ namespace Toast {
 
 		//Planet
 		mono_add_internal_call("Toast.PlanetComponent::GetRadius_Native", Toast::Script::Toast_PlanetComponent_GetRadius);
+		mono_add_internal_call("Toast.PlanetComponent::GetSubdivisions_Native", Toast::Script::Toast_PlanetComponent_GetSubdivisions);
+		mono_add_internal_call("Toast.PlanetComponent::GetDistanceLUT_Native", Toast::Script::Toast_PlanetComponent_GetDistanceLUT);
+
+		//Mesh
+		mono_add_internal_call("Toast.MeshComponent::RegeneratePlanet_Native", Toast::Script::Toast_MeshComponent_GeneratePlanet);
 	}
 
 }

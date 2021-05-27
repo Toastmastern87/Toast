@@ -112,10 +112,7 @@ namespace Toast
 
         public static bool operator !=(Vector3 vecOne, Vector3 vecTwo)
         {
-            if (vecOne.X != vecTwo.X && vecOne.Y != vecTwo.Y && vecOne.Z != vecTwo.Z)
-                return true;
-            else
-                return false;
+            return !(vecOne == vecTwo);
         }
     }
 }

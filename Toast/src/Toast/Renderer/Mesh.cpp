@@ -54,4 +54,9 @@ namespace Toast {
 		submesh.IndexCount = indexCount;
 	}
 
+	void Mesh::GeneratePlanetMesh(DirectX::XMMATRIX planetTransform, DirectX::XMVECTOR& cameraPos, int16_t subdivisions)
+	{
+
+	}
+
 }

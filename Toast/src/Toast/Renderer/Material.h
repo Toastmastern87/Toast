@@ -51,6 +51,7 @@ namespace Toast {
 
 		void SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<Texture2D>& texture);
 		void SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureCube>& texture);
+		Ref<Texture> GetTexture(std::string name);
 		void SetTextureSampler(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureSampler>& sampler);
 
 		void SetUpResourceBindings();
