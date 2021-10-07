@@ -1,20 +1,20 @@
-[Toast][16:25:03] INFO: Creating window Toaster 2400x1300
-[Toast][16:25:03] INFO: DirectX Information:
-[Toast][16:25:03] INFO:   Vendor: NVIDIA Corporation
-[Toast][16:25:03] INFO:   Renderer: NVIDIA GeForce RTX 3080
-[Toast][16:25:03] INFO:   Version: 27.21.14.6109
-[Toast][16:25:03] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
-[Toast][16:25:03] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
-[Toast][16:25:03] TRACE: Deserializing material 'Blue', Shader : 'PBR'
-[Toast][16:25:03] TRACE: Adding material: Blue
-[Toast][16:25:03] TRACE: Deserializing material 'Planet', Shader : 'Planet'
-[Toast][16:25:03] TRACE: Adding material: Planet
-[Toast][16:25:04] TRACE: Deserializing material 'Red', Shader : 'PBR'
-[Toast][16:25:04] TRACE: Adding material: Red
-[Toast][16:25:04] TRACE: Deserializing material 'Standard', Shader : 'Standard'
-[Toast][16:25:04] TRACE: Adding material: Standard
-[Toast][16:25:09] TRACE: Deserializing scene 'Untitled Scene'
-[Toast][16:25:09] TRACE: Deserialized entity with ID '12837192831273', name 'Camera'
-[Toast][16:25:09] TRACE: Deserialized entity with ID '12837192831275', name 'Sunlight'
-[Toast][16:25:09] TRACE: Deserialized entity with ID '12837192831271', name 'Mars'
-[Toast][16:25:09] TRACE: Deserialized entity with ID '12837192831272', name 'Ambient Light'
+[Toast][17:34:38] INFO: Creating window Toaster 2400x1300
+[Toast][17:34:38] INFO: DirectX Information:
+[Toast][17:34:38] INFO:   Vendor: NVIDIA Corporation
+[Toast][17:34:38] INFO:   Renderer: NVIDIA GeForce RTX 3080
+[Toast][17:34:38] INFO:   Version: 27.21.14.6663
+[Toast][17:34:38] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
+[Toast][17:34:38] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
+[Toast][17:34:39] TRACE: Deserializing material 'Blue', Shader : 'PBR'
+[Toast][17:34:39] TRACE: Adding material: Blue
+[Toast][17:34:39] TRACE: Deserializing material 'Planet', Shader : 'Planet'
+[Toast][17:34:39] TRACE: Adding material: Planet
+[Toast][17:34:39] TRACE: Deserializing material 'Red', Shader : 'PBR'
+[Toast][17:34:39] TRACE: Adding material: Red
+[Toast][17:34:39] TRACE: Deserializing material 'Standard', Shader : 'Standard'
+[Toast][17:34:39] TRACE: Adding material: Standard
+[Toast][17:34:43] TRACE: Deserializing scene 'Untitled Scene'
+[Toast][17:34:43] TRACE: Deserialized entity with ID '12837192831273', name 'Camera'
+[Toast][17:34:43] TRACE: Deserialized entity with ID '12837192831275', name 'Sunlight'
+[Toast][17:34:43] TRACE: Deserialized entity with ID '12837192831271', name 'Mars'
+[Toast][17:34:43] TRACE: Deserialized entity with ID '12837192831272', name 'Ambient Light'

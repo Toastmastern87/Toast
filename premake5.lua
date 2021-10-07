@@ -166,10 +166,10 @@ project "Toaster"
 		"Toast"
 	}
 
-	postbuildcommands 
-	{
-		'{COPY} "%{cfg.targetdir}/assets" "../Toaster/assets"'
-	}
+--	postbuildcommands 
+--	{
+--		'{COPY} "%{cfg.targetdir}/assets" "../Toaster/assets"'
+--	}
 
 	filter "system:windows"
 		systemversion "latest"

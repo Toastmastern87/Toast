@@ -6,7 +6,7 @@ Entities:
     TransformComponent:
       Translation: [0, 0, -3400]
       Rotation: [-90, 0, 0]
-      Scale: [1, 0.999999523, 0.999999523]
+      Scale: [1, 0.999999285, 0.999999285]
     CameraComponent:
       Camera:
         ProjectionType: 0
@@ -33,10 +33,10 @@ Entities:
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, -180, 0]
-      Scale: [0.999998093, 1, 0.999998093]
+      Scale: [0.999592066, 0.999894023, 0.999687254]
     DirectionalLightComponent:
-      Radiance: [0.945098042, 0.839215696, 0.384313732]
-      Intensity: 1
+      Radiance: [0.861003876, 0.822715163, 0.658219159]
+      Intensity: 2
       SunDisk: true
   - Entity: 12837192831271
     TagComponent:
