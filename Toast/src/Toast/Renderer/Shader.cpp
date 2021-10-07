@@ -74,15 +74,15 @@ namespace Toast {
 			switch (kv.first) {
 			case D3D11_VERTEX_SHADER:
 				result = device->CreateVertexShader(kv.second->GetBufferPointer(), kv.second->GetBufferSize(), NULL, &mVertexShader);
-				TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create vertex shader: {0}", filepath);
+				TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create vertex shader: %s", filepath);
 				break;
 			case D3D11_PIXEL_SHADER:
 				result = device->CreatePixelShader(kv.second->GetBufferPointer(), kv.second->GetBufferSize(), NULL, &mPixelShader);
-				TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create pixel shader: {0}", filepath);
+				TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create pixel shader: %s", filepath);
 				break;
 			case D3D11_COMPUTE_SHADER:
 				result = device->CreateComputeShader(kv.second->GetBufferPointer(), kv.second->GetBufferSize(), NULL, &mComputeShader);
-				TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create compute shader: {0}", filepath);
+				TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create compute shader: %s", filepath);
 				break;
 			}
 		}
@@ -120,12 +120,12 @@ namespace Toast {
 			}
 			else
 			{
-				TOAST_CORE_ERROR("Could not read from file '{0}'", filepath);
+				TOAST_CORE_ERROR("Could not read from file '%s'", filepath);
 			}
 		}
 		else
 		{
-			TOAST_CORE_ERROR("Could not open file '{0}'", filepath);
+			TOAST_CORE_ERROR("Could not open file '%s'", filepath);
 		}
 
 		return result;

@@ -12,6 +12,7 @@ instance
 #define PI 3.141592653589793
 
 Texture2D HeightMapTexture		: register(t4);
+Texture2D CraterMapTexture		: register(t5);
 
 SamplerState defaultSampler;
 
@@ -55,6 +56,52 @@ struct PixelInputType
 	int entityID			: TEXTUREID;
 };
 
+float3 hash33(float3 p3)
+{
+	p3 = frac(p3 * float3(0.1031f, 0.11369f, 0.13787f));
+	p3 += dot(p3, p3.yxz + 19.19f);
+	return -1.0f + 2.0f * frac(float3((p3.x + p3.y) * p3.z, (p3.x + p3.z) * p3.y, (p3.y + p3.z) * p3.x));
+}
+
+float SimplexNoiseRaw(float3 pos)
+{
+	const float K1 = 0.333333333f;
+	const float K2 = 0.166666667f;
+
+	float3 i = floor(pos + (pos.x + pos.y + pos.z) * K1);
+	float3 d0 = pos - (i - (i.x + i.y + i.z) * K2);
+
+	float3 e = step(float3(0.0f, 0.0f, 0.0f), d0 - d0.yzx);
+	float3 i1 = e * (1.0f - e.zxy);
+	float3 i2 = 1.0f - e.zxy * (1.0f - e);
+
+	float3 d1 = d0 - (i1 - 1.0f * K2);
+	float3 d2 = d0 - (i2 - 2.0f * K2);
+	float3 d3 = d0 - (1.0f - 3.0f * K2);
+
+	float4 h = max(0.6f - float4(dot(d0, d0), dot(d1, d1), dot(d2, d2), dot(d3, d3)), 0.0f);
+	float4 n = h * h * h * h * float4(dot(d0, hash33(i)), dot(d1, hash33(i + i1)), dot(d2, hash33(i + i2)), dot(d3, hash33(i + 1.0f)));
+
+	return dot(float4(31.316f, 31.316f, 31.316f, 31.316f), n);
+}
+
+float SimplexNoise(float3 pos, float octaves, float scale, float persistence)
+{
+	float final = 0.0f;
+	float amplitude = 1.0f;
+	float maxAmplitude = 0.0f;
+
+	for (float i = 0.0f; i < octaves; ++i)
+	{
+		final += SimplexNoiseRaw(pos * scale) * amplitude;
+		scale *= 2.0f;
+		maxAmplitude += amplitude;
+		amplitude *= persistence;
+	}
+
+	return (final / maxAmplitude);
+}
+
 PixelInputType main(VertexInputType input)
 {
 	PixelInputType output;
@@ -71,6 +118,14 @@ PixelInputType main(VertexInputType input)
 
 	output.texcoord = float2((0.5f + (atan2(pos.z, pos.x) / (2.0f * PI))), (0.5f - (asin(pos.y) / PI)));
 	pos *= 1.0f + ((HeightMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r * (maxAltitude.r - minAltitude.r) + minAltitude.r) / radius.r);
+
+	float craterDetected = CraterMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r;
+	if (craterDetected == 0.0f)
+	{
+		float craterHeightDetail = SimplexNoise(float3(float2(8192.0f, 4096.0f) * output.texcoord, 1.0f), 15.0f, 0.5f, 0.5f);
+		//Min and max altitude of the details are 30 and -30. check base height for information on how to change these
+		pos *= 1.0f + craterHeightDetail * (0.03f / radius.r);
+	}
 
 	finalPos = float4(pos * 0.5f, 1.0f);
 
@@ -129,13 +184,74 @@ TextureCube RadianceTexture		: register(t1);
 Texture2D specularBRDFLUT		: register(t2);
 Texture2D AlbedoTexture			: register(t3);
 Texture2D HeightMapTexture		: register(t4);
+Texture2D CraterMapTexture		: register(t5);
 
 SamplerState defaultSampler		: register(s0);
 SamplerState spBRDFSampler		: register(s1);
 
+float3 hash33(float3 p3)
+{
+	p3 = frac(p3 * float3(0.1031f, 0.11369f, 0.13787f));
+	p3 += dot(p3, p3.yxz + 19.19f);
+	return -1.0f + 2.0f * frac(float3((p3.x + p3.y) * p3.z, (p3.x + p3.z) * p3.y, (p3.y + p3.z) * p3.x));
+}
+
+float SimplexNoiseRaw(float3 pos)
+{
+	const float K1 = 0.333333333f;
+	const float K2 = 0.166666667f;
+
+	float3 i = floor(pos + (pos.x + pos.y + pos.z) * K1);
+	float3 d0 = pos - (i - (i.x + i.y + i.z) * K2);
+
+	float3 e = step(float3(0.0f, 0.0f, 0.0f), d0 - d0.yzx);
+	float3 i1 = e * (1.0f - e.zxy);
+	float3 i2 = 1.0f - e.zxy * (1.0f - e);
+
+	float3 d1 = d0 - (i1 - 1.0f * K2);
+	float3 d2 = d0 - (i2 - 2.0f * K2);
+	float3 d3 = d0 - (1.0f - 3.0f * K2);
+
+	float4 h = max(0.6f - float4(dot(d0, d0), dot(d1, d1), dot(d2, d2), dot(d3, d3)), 0.0f);
+	float4 n = h * h * h * h * float4(dot(d0, hash33(i)), dot(d1, hash33(i + i1)), dot(d2, hash33(i + i2)), dot(d3, hash33(i + 1.0f)));
+
+	return dot(float4(31.316f, 31.316f, 31.316f, 31.316f), n);
+}
+
+float SimplexNoise(float3 pos, float octaves, float scale, float persistence)
+{
+	float final = 0.0f;
+	float amplitude = 1.0f;
+	float maxAmplitude = 0.0f;
+
+	for (float i = 0.0f; i < octaves; ++i)
+	{
+		final += SimplexNoiseRaw(pos * scale) * amplitude;
+		scale *= 2.0f;
+		maxAmplitude += amplitude;
+		amplitude *= persistence;
+	}
+
+	return (final / maxAmplitude);
+}
+
 float GetHeight(float2 uv)
 {
-	return (HeightMapTexture.SampleLevel(defaultSampler, uv, 0).r * (maxAltitude.x + minAltitude.x) + minAltitude.x);
+	float finalHeight;
+
+	float baseHeight = (HeightMapTexture.SampleLevel(defaultSampler, uv, 0).r * (maxAltitude.x + minAltitude.x) + minAltitude.x);
+
+	float craterDetected = CraterMapTexture.SampleLevel(defaultSampler, uv, 0).r;
+	if (craterDetected == 0.0f)
+	{
+		float craterHeightDetail = SimplexNoise(float3(float2(8192.0f, 4096.0f) * uv, 1.0f), 15.0f, 0.5f, 0.5f);
+		//Min and max altitude of the details are 30 and -30. check base height for information on how to change these
+		baseHeight *= 1.0f + (((craterHeightDetail + 1.0f) * 0.5f) * (0.06f) - 0.03f);
+	}
+
+	finalHeight = baseHeight;
+
+	return finalHeight; 
 }
 
 float3 CalculateNormal(float3 normalVector, float2 uv)
@@ -320,6 +436,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	}
 
 	output.Color = float4(directLighting + ambientLighting, 1.0f);
+
 	output.EntityID = input.entityID + 1;
 
 	return output;
