@@ -117,7 +117,7 @@ namespace Toast {
 
 						if (ImGui::IsItemClicked())
 						{
-							std::optional<std::string> filename = FileDialogs::OpenFile("");
+							std::optional<std::string> filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
 							if (filename)
 								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
 						}

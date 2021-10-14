@@ -9,6 +9,16 @@
 
 #include <DirectXMath.h>
 
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include <assimp/Importer.hpp>
+
+struct aiScene;
+
+namespace Assimp {
+	class Importer;
+}
+
 namespace Toast {
 
 	struct PlanetPatch
@@ -69,7 +79,7 @@ namespace Toast {
 		DirectX::XMFLOAT3 Binormal;
 		DirectX::XMFLOAT2 Texcoord;
 
-		Vertex(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 nor, DirectX::XMFLOAT3 tan, DirectX::XMFLOAT3 bin, DirectX::XMFLOAT2 uv) 
+		Vertex(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 nor, DirectX::XMFLOAT3 tan, DirectX::XMFLOAT3 bin, DirectX::XMFLOAT2 uv)
 		{
 			Position = pos;
 			Normal = nor;
@@ -133,6 +143,9 @@ namespace Toast {
 		uint32_t BaseIndex;
 		uint32_t MaterialIndex;
 		uint32_t IndexCount;
+		uint32_t VertexCount;
+
+		DirectX::XMMATRIX Transform = DirectX::XMMatrixIdentity();
 
 		std::string MeshName;
 	};
@@ -143,16 +156,20 @@ namespace Toast {
 		enum class MeshType { NONE = 0, MODEL, CUBE, SPHERE, PLANET };
 	public:
 		Mesh();
-		~Mesh();
+		Mesh(const std::string& filePath);
+		Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+		~Mesh() = default;
 
 		void OnUpdate(Timestep ts);
 		void Init();
 		void InitPlanet();
 
+		const std::string& GetFilePath() const { return mFilePath; }
+
 		std::vector<Vertex>& GetVertices() { return mVertices; }
+		std::vector<uint32_t>& GetIndices() { return mIndices; }
 		std::vector<PlanetVertex>& GetPlanetVertices() { return mPlanetVertices; }
 		std::vector<PlanetPatch>& GetPlanetPatches() { return mPlanetPatches; }
-		std::vector<uint32_t>& GetIndices() { return mIndices; }
 
 		void CreateFromFile();
 		void AddSubmesh(uint32_t indexCount);
@@ -164,7 +181,17 @@ namespace Toast {
 
 		std::vector<PlanetFace>& GetPlanetFaces() { return mPlanetFaces; }
 
+		void TraverseNodes(aiNode* node, const DirectX::XMMATRIX& parentTransform = DirectX::XMMatrixIdentity(), uint32_t level = 0);
+
 	private:
+		std::string mFilePath = "";
+
+		std::unique_ptr<Assimp::Importer> mImporter = nullptr;
+		const aiScene* mScene = nullptr;
+		std::unordered_map<aiNode*, std::vector<uint32_t>> mNodeMap;
+
+		DirectX::XMMATRIX mTransform = DirectX::XMMatrixIdentity();
+
 		std::vector<Submesh> mSubmeshes;
 
 		Ref<VertexBuffer> mVertexBuffer;

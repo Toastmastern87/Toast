@@ -83,7 +83,7 @@ namespace Toast {
 		std::vector<uint32_t> Indices;
 	};
 
-	class Primitives
+	class MeshFactory
 	{
 	public:
 		static uint32_t CreateCube(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, float width = 1.0f, float height = 1.0f, float depth = 1.0f)

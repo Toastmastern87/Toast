@@ -7,7 +7,7 @@
 #include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/Renderer2D.h"
 #include "Toast/Renderer/RendererDebug.h"
-#include "Toast/Renderer/Primitives.h"
+#include "Toast/Renderer/MeshFactory.h"
 
 #include "Toast/Script/ScriptEngine.h"
 
@@ -62,7 +62,7 @@ namespace Toast {
 		mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader);
 		mSkybox = CreateRef<Mesh>();
 		mSkybox->SetMaterial(mSkyboxMaterial);
-		uint32_t indexCount = Primitives::CreateCube(mSkybox->GetVertices(), mSkybox->GetIndices());
+		uint32_t indexCount = MeshFactory::CreateCube(mSkybox->GetVertices(), mSkybox->GetIndices());
 		mSkybox->Init();
 		mSkybox->AddSubmesh(indexCount);
 	}
@@ -117,7 +117,7 @@ namespace Toast {
 		tag.Tag = name.empty() ? "Entity" : name;
 
 		auto& mesh = entity.AddComponent<MeshComponent>(CreateRef<Mesh>());
-		uint32_t indexCount = Primitives::CreateCube(mesh.Mesh->GetVertices(), mesh.Mesh->GetIndices());
+		uint32_t indexCount = MeshFactory::CreateCube(mesh.Mesh->GetVertices(), mesh.Mesh->GetIndices());
 		mesh.Mesh->Init();
 		mesh.Mesh->AddSubmesh(indexCount);
 
@@ -138,7 +138,7 @@ namespace Toast {
 		tag.Tag = name.empty() ? "Entity" : name;
 
 		auto& mesh = entity.AddComponent<MeshComponent>(CreateRef<Mesh>());
-		uint32_t indexCount = Primitives::CreateOctahedron(mesh.Mesh->GetVertices(), mesh.Mesh->GetIndices(), 2); //Primitives::CreateSphere(mesh.Mesh->GetVertices(), mesh.Mesh->GetIndices(), 2);
+		uint32_t indexCount = MeshFactory::CreateOctahedron(mesh.Mesh->GetVertices(), mesh.Mesh->GetIndices(), 2); //Primitives::CreateSphere(mesh.Mesh->GetVertices(), mesh.Mesh->GetIndices(), 2);
 		mesh.Mesh->Init();
 		mesh.Mesh->AddSubmesh(indexCount);
 		

@@ -57,12 +57,15 @@ namespace Toast {
 				mContext->CreateEntity("Empty Entity");
 
 			ImGui::Separator();
-			if (ImGui::MenuItem("Create Cube"))
-				mContext->CreateCube("Cube");
+			if (ImGui::BeginMenu("Basic Mesh"))
+			{
+				if (ImGui::MenuItem("Cube"))
+					mContext->CreateCube("Cube");
 
-			if (ImGui::MenuItem("Create Sphere"))
-				mContext->CreateSphere("Sphere");
-
+				if (ImGui::MenuItem("Sphere"))
+					mContext->CreateSphere("Sphere");
+				ImGui::EndMenu();
+			}
 			ImGui::EndPopup();
 		}
 
@@ -346,7 +349,7 @@ namespace Toast {
 
 			if (!mSelectionContext.HasComponent<MeshComponent>())
 			{
-				if (ImGui::MenuItem("Primitive Mesh"))
+				if (ImGui::MenuItem("Mesh"))
 				{
 					mSelectionContext.AddComponent<MeshComponent>(CreateRef<Mesh>());
 					ImGui::CloseCurrentPopup();
@@ -445,32 +448,32 @@ namespace Toast {
 		
 		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, Entity entity) 
 		{
-			ImGui::Columns(2);
-			ImGui::SetColumnWidth(0, 100.0f);
-			ImGui::Text("Material");
-			ImGui::NextColumn();
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-			ImGui::PushItemWidth(-1);
-
-			std::unordered_map<std::string, Ref<Material>> materials = MaterialLibrary::GetMaterials();
-			Ref<Material> currentMaterial = component.Mesh->GetMaterial();
-			if (ImGui::BeginCombo("##material", currentMaterial->GetName().c_str()))
-			{
-				for (auto& material : materials)
+				if (ImGui::BeginTable("MeshTable", 3, flags))
 				{
-					bool isSelected = (currentMaterial->GetName() == material.first);
-					if (ImGui::Selectable(material.first.c_str(), isSelected))
-						component.Mesh->SetMaterial(MaterialLibrary::Get(material.first));
-
-					if (isSelected)
-						ImGui::SetItemDefaultFocus();
+					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
+					ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Mesh ");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					if (!component.Mesh->GetFilePath().empty())
+						ImGui::InputText("##meshfilepath", (char*)component.Mesh->GetFilePath().c_str(), 256, ImGuiInputTextFlags_ReadOnly);	
+					else
+						ImGui::InputText("##meshfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
+					ImGui::TableSetColumnIndex(2);
+					if (ImGui::Button("...##openmesh"))
+					{
+						std::optional<std::string> filepath = FileDialogs::OpenFile("*.fbx", "..\\Toaster\\assets\\meshes\\");
+						if (filepath)
+							component.Mesh = CreateRef<Mesh>(*filepath);
+					}
+					ImGui::EndTable();
 				}
-
-				ImGui::EndCombo();
-			}
-			ImGui::PopItemWidth();
-
-			ImGui::Columns(1);
 		});
 
 		DrawComponent<CameraComponent>("Camera", entity, [](auto& component, Entity entity)
@@ -645,7 +648,7 @@ namespace Toast {
 					ImGui::TableSetColumnIndex(2);
 					if (ImGui::Button("...##openenv"))
 					{
-						std::optional<std::string> filepath = FileDialogs::OpenFile("*.png");
+						std::optional<std::string> filepath = FileDialogs::OpenFile("*.png", "..\\Toaster\\assets\\textures\\");
 						if (filepath)
 							component.SceneEnvironment = Environment::Load(*filepath);
 					}
@@ -683,7 +686,7 @@ namespace Toast {
 					ImGui::TableSetColumnIndex(2);
 					if (ImGui::Button("...##openscript"))
 					{
-						std::optional<std::string> file = FileDialogs::OpenFile("*.cs");
+						std::optional<std::string> file = FileDialogs::OpenFile("*.cs", "..\\Toaster\\assets\\scripts\\");
 						if (file)
 						{
 							std::filesystem::path filename = *file;
