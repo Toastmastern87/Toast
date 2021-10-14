@@ -23,10 +23,12 @@ IncludeDir["entt"] = "Toast/vendor/entt/include"
 IncludeDir["yaml_cpp"] = "Toast/vendor/yaml-cpp/include" 
 IncludeDir["ImGuizmo"] = "Toast/vendor/ImGuizmo"
 IncludeDir["mono"] = "Toast/vendor/mono/include"
+IncludeDir["assimp"] = "Toast/vendor/assimp/include/"
 
 LibraryDir = {}
 LibraryDir["directxtk"] = "Toast/vendor/directxtk/Bin/"
 LibraryDir["mono"] = "vendor/mono/lib/Debug/mono-2.0-sgen.lib"
+LibraryDir["assimp"] = "vendor/assimp/bin/"
 
 group "Dependencies"
 	include "Toast/vendor/imgui"
@@ -71,7 +73,8 @@ project "Toast"
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.ImGuizmo}",
-		"%{IncludeDir.mono}"
+		"%{IncludeDir.mono}",
+		"%{IncludeDir.assimp}"
 	}
 
 	links
@@ -102,15 +105,25 @@ project "Toast"
 		runtime "Debug"
 		symbols "on"
 
+		links
+		{
+			"%{LibraryDir.assimp}/debug/assimp-vc142-mtd.lib"
+		}
+
 		libdirs
 		{
-			"%{LibraryDir.directxtk}/Debug-windows-x86_64/DirectXTK",
+			"%{LibraryDir.directxtk}/Debug-windows-x86_64/DirectXTK"
 		}
 
 	filter "configurations:Release"
 		defines "TOAST_RELEASE"
 		runtime "Release"
 		optimize "on"
+
+		links
+		{
+			"%{LibraryDir.assimp}/release/assimp-vc142-mtd.lib"
+		}
 
 		libdirs
 		{
@@ -121,6 +134,16 @@ project "Toast"
 		defines "TOAST_DIST"
 		runtime "Release"
 		optimize "on"
+
+		links
+		{
+			"%{LibraryDir.assimp}/release/assimp-vc142-mtd.lib"
+		}
+
+		libdirs
+		{
+			"%{LibraryDir.directxtk}/Release-windows-x86_64/DirectXTK"
+		}
 
 project "Toast-ScriptCore"
 	location "Toast-ScriptCore"
@@ -158,7 +181,8 @@ project "Toaster"
 		"Toast/src",
 		"Toast/vendor",
 		"%{IncludeDir.entt}",
-		"%{IncludeDir.ImGuizmo}"
+		"%{IncludeDir.ImGuizmo}",
+		"%{IncludeDir.assimp}"
 	}
 
 	links
@@ -186,6 +210,7 @@ project "Toaster"
 
 		postbuildcommands 
 		{
+			'{COPY} "../Toast/vendor/assimp/bin/debug/assimp-vc142-mtd.dll" "%{cfg.targetdir}"',
 			'{COPY} "../Toast/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
 		}
 
@@ -197,6 +222,7 @@ project "Toaster"
 
 		postbuildcommands 
 		{
+			'{COPY} "../Toast/vendor/assimp/bin/release/assimp-vc142-mtd.dll" "%{cfg.targetdir}"',
 			'{COPY} "../Toast/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
 		}
 
@@ -207,6 +233,7 @@ project "Toaster"
 
 		postbuildcommands 
 		{
+			'{COPY} "../Toast/vendor/assimp/bin/release/assimp-vc142-mtd.dll" "%{cfg.targetdir}"',
 			'{COPY} "../Toast/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
 		}
 project "Mars"

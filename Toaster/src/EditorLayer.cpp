@@ -409,7 +409,7 @@ namespace Toast {
 
 	void EditorLayer::OpenScene()
 	{
-		std::optional<std::string> filepath = FileDialogs::OpenFile("Toast Scene(*.toast)\0*toast\0");
+		std::optional<std::string> filepath = FileDialogs::OpenFile("Toast Scene(*.toast)\0*toast\0", "..\\Toaster\\assets\\scenes\\");
 		if (filepath)
 		{
 			mEditorScene = CreateRef<Scene>();

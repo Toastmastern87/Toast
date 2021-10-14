@@ -122,8 +122,6 @@ namespace Toast {
 			int padding[3];
 		};
 
-		ModelCB modelCB = { transform, entityID, { 0, 0, 0 } };
-
 		if (mesh->mVertexBuffer) mesh->mVertexBuffer->Bind();
 		if (mesh->mIndexBuffer)	mesh->mIndexBuffer->Bind();
 
@@ -132,13 +130,16 @@ namespace Toast {
 		else
 			RenderCommand::DisableWireframeRendering();
 
-		mesh->mMaterial->SetData("Model", (void*)&modelCB);
-		mesh->mMaterial->Bind();
-
 		RenderCommand::SetPrimitiveTopology(mesh->mTopology);
 
-		for (Submesh& submesh : mesh->mSubmeshes)
+		for (Submesh& submesh : mesh->mSubmeshes) 
+		{
+			ModelCB modelCB = { DirectX::XMMatrixMultiply(transform, submesh.Transform), entityID, { 0, 0, 0 } };
+			mesh->mMaterial->SetData("Model", (void*)&modelCB);
+			mesh->mMaterial->Bind();
+
 			RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+		}
 	}
 
 	void Renderer::SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, PlanetComponent::PlanetGPUData planetData, bool wireframe)
