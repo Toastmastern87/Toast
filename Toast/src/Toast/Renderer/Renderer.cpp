@@ -137,7 +137,7 @@ namespace Toast {
 			ModelCB modelCB = { DirectX::XMMatrixMultiply(transform, submesh.Transform), entityID, { 0, 0, 0 } };
 			mesh->mMaterial->SetData("Model", (void*)&modelCB);
 			mesh->mMaterial->Bind();
-
+			//
 			RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 		}
 	}
