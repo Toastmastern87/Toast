@@ -5,10 +5,10 @@ namespace Toast {
 
 	DirectX::XMMATRIX Mat4FromAssimpMat4(const aiMatrix4x4& matrix)
 	{
-		DirectX::XMMATRIX result = DirectX::XMMatrixSet(matrix.a1, matrix.a2, matrix.a3, matrix.a4,
+		DirectX::XMMATRIX result = DirectX::XMMatrixTranspose(DirectX::XMMatrixSet(matrix.a1, matrix.a2, matrix.a3, matrix.a4,
 			matrix.b1, matrix.b2, matrix.b3, matrix.b4,
 			matrix.c1, matrix.c2, matrix.c3, matrix.c4,
-			matrix.d1, matrix.d2, matrix.d3, matrix.d4);
+			matrix.d1, matrix.d2, matrix.d3, matrix.d4));
 		//the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
 		return result;
 	}
@@ -21,7 +21,7 @@ namespace Toast {
 		aiProcess_GenUVCoords |             // Convert UVs if required 
 		aiProcess_OptimizeMeshes |          // Batch draws where possible
 		aiProcess_JoinIdenticalVertices |
-		aiProcess_ConvertToLeftHanded |	// Convert to left hand since Toast engine is running with DirectX
+		aiProcess_ConvertToLeftHanded |		// Convert to left hand since Toast engine is running with DirectX
 		aiProcess_ValidateDataStructure;    // Validation
 
 	Mesh::Mesh()
@@ -158,7 +158,8 @@ namespace Toast {
 
 	void Mesh::TraverseNodes(aiNode* node, const DirectX::XMMATRIX& parentTransform, uint32_t level)
 	{
-		DirectX::XMMATRIX transform = parentTransform * Mat4FromAssimpMat4(node->mTransformation);
+		DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(parentTransform, Mat4FromAssimpMat4(node->mTransformation));
+
 		mNodeMap[node].resize(node->mNumMeshes);
 		for (uint32_t i = 0; i < node->mNumMeshes; i++) 
 		{
