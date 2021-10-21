@@ -1,0 +1,30 @@
+Scene: Untitled Scene
+Entities:
+  - Entity: 15346388790166503921
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SkyLightComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\immenstadter_horn_4k.tif
+      Intensity: 1
+  - Entity: 10181031960484707784
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Translation: [0.122672379, -0.215424433, -0.0885161459]
+      Rotation: [0, -0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      Material: tower
+  - Entity: 1267490326416747993
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Translation: [8, -22.3999996, 11.1000004]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      Material: M9

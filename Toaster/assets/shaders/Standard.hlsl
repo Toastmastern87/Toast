@@ -1,4 +1,4 @@
- #inputlayout
+#inputlayout
 vertex
 vertex
 vertex
@@ -38,7 +38,7 @@ struct PixelInputType
 	float3 normal			: NORMAL;
 	float2 texcoord			: TEXCOORD;
 	float3 cameraPos		: POSITION1;
-	int entityID			: TEXTUREID;
+	int entityID : TEXTUREID;
 };
 
 PixelInputType main(VertexInputType input)
@@ -76,13 +76,13 @@ struct PixelInputType
 	float3 normal			: NORMAL;
 	float2 texcoord			: TEXCOORD;
 	float3 cameraPos		: POSITION1;
-	int entityID			: TEXTUREID;
+	int entityID : TEXTUREID;
 };
 
 struct PixelOutputType
 {
 	float4 Color			: SV_Target0;
-	int EntityID			: SV_Target1;
+	int EntityID : SV_Target1;
 };
 
 PixelOutputType main(PixelInputType input) : SV_TARGET
