@@ -59,9 +59,12 @@ namespace Toast {
 		const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
 		const ImGuiInputTextFlags inputTextFlags = ImGuiInputTextFlags_EnterReturnsTrue;
 
+		bool isDirty = false;
+
 		if (ImGui::TreeNodeEx((void*)9817244, treeNodeFlags, "Material Properties"))
 		{
 			auto name = mSelectionContext->GetName();
+			auto oldName = name;
 
 			char buffer[256];
 			memset(buffer, 0, sizeof(buffer));
@@ -69,7 +72,10 @@ namespace Toast {
 			if (ImGui::InputText("##name", buffer, sizeof(buffer), inputTextFlags))
 			{
 				MaterialLibrary::ChangeName(name, std::string(buffer));
+				TOAST_CORE_INFO("Material '%s' changing name to: '%s'", name.c_str(), std::string(buffer).c_str());
 				mSelectionContext->SetName(std::string(buffer));
+
+				isDirty = true;
 			}
 				
 			Ref<Shader> currentShader;
@@ -92,7 +98,9 @@ namespace Toast {
 					if (ImGui::Selectable(shader.c_str(), isSelected)) 
 					{
 						mSelectionContext->SetShader(ShaderLibrary::Get(shader));
-						TOAST_CORE_INFO("CHANGING SHADER TO: {0}", mSelectionContext->GetShader()->GetName());
+						TOAST_CORE_INFO("Material '%s' changing shader to: '%s'", mSelectionContext->GetName().c_str(), mSelectionContext->GetShader()->GetName().c_str());
+
+						isDirty = true;
 					}
 
 
@@ -120,6 +128,8 @@ namespace Toast {
 							std::optional<std::string> filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
 							if (filename)
 								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
+
+							isDirty = true;
 						}
 
 						ImGui::TreePop();
@@ -128,6 +138,9 @@ namespace Toast {
 			}
 
 			ImGui::TreePop();
+
+			if (isDirty)
+				MaterialSerializer::Serialize(mSelectionContext);
 		}
 	}
 

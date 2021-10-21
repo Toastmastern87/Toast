@@ -45,7 +45,7 @@ namespace Toast {
 		void SetShader(const Ref<Shader>& shader);
 
 		std::string& GetName() { return mName; }
-		void SetName(std::string& name) { mName = name; mDirty = true; }
+		void SetName(std::string& name) { mName = name; }
 
 		std::vector<TextureBindInfo> GetTextureBindings() const { return mTextureBindings; }
 
@@ -56,9 +56,6 @@ namespace Toast {
 
 		void SetUpResourceBindings();
 		void Bind();
-
-		void SetDirty(bool dirty) { mDirty = dirty; }
-		const bool IsDirty() const { return mDirty; }
 	private:
 		Ref<Shader> mShader;
 
@@ -68,8 +65,6 @@ namespace Toast {
 		std::vector<CBufferBindInfo> mCBufferBindings;
 
 		std::string mName = "No name";
-		
-		bool mDirty = false;
 	};
 
 	class MaterialLibrary

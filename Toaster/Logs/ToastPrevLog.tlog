@@ -1,17 +1,18 @@
-[Toast][12:26:38] INFO: Creating window Toaster 2400x1300
-[Toast][12:26:38] INFO: DirectX Information:
-[Toast][12:26:38] INFO:   Vendor: NVIDIA Corporation
-[Toast][12:26:38] INFO:   Renderer: NVIDIA GeForce RTX 3080
-[Toast][12:26:38] INFO:   Version: 27.21.14.6663
-[Toast][12:26:38] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
-[Toast][12:26:38] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
-[Toast][12:26:39] TRACE: Deserializing material 'Blue', Shader : 'PBR'
-[Toast][12:26:39] TRACE: Adding material: Blue
-[Toast][12:26:39] TRACE: Deserializing material 'Planet', Shader : 'Planet'
-[Toast][12:26:39] TRACE: Adding material: Planet
-[Toast][12:26:40] TRACE: Deserializing material 'Red', Shader : 'PBR'
-[Toast][12:26:40] TRACE: Adding material: Red
-[Toast][12:26:40] TRACE: Deserializing material 'Standard', Shader : 'Standard'
-[Toast][12:26:40] TRACE: Adding material: Standard
-[Toast][12:26:45] INFO: Loading Mesh: 'C:\dev\Toast\Toaster\assets\meshes\beretta m9\beretta m9.FBX'
-[Toast][12:26:59] INFO: Loading Mesh: 'C:\dev\Toast\Toaster\assets\meshes\stone watch tower\tower.FBX'
+[Toast][17:10:35] INFO: Creating window Toaster 2400x1300
+[Toast][17:10:36] INFO: DirectX Information:
+[Toast][17:10:36] INFO:   Vendor: NVIDIA Corporation
+[Toast][17:10:36] INFO:   Renderer: NVIDIA GeForce RTX 3080
+[Toast][17:10:36] INFO:   Version: 27.21.14.6663
+[Toast][17:10:36] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
+[Toast][17:10:36] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
+[Toast][17:10:36] TRACE: Deserializing material 'Blue', Shader : 'PBR'
+[Toast][17:10:36] TRACE: Adding material: Blue
+[Toast][17:10:36] TRACE: Deserializing material 'Planet', Shader : 'Planet'
+[Toast][17:10:36] TRACE: Adding material: Planet
+[Toast][17:10:37] TRACE: Deserializing material 'Red', Shader : 'PBR'
+[Toast][17:10:37] TRACE: Adding material: Red
+[Toast][17:10:37] TRACE: Deserializing material 'Standard', Shader : 'Standard'
+[Toast][17:10:37] TRACE: Adding material: Standard
+[Toast][17:10:40] TRACE: Adding material: No Name
+[Toast][17:11:21] INFO: Material 'Test' changing shader to: 'Planet'
+[Toast][17:11:29] INFO: Material 'Test' changing shader to: 'PBR'
