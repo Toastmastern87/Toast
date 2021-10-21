@@ -6,6 +6,8 @@
 
 #include "Toast/Core/Application.h"
 
+#include "Toast/Utils/PlatformUtils.h"
+
 #include <yaml-cpp/yaml.h>
 
 namespace Toast {
@@ -58,8 +60,6 @@ namespace Toast {
 			if (texturebinding.BindSlot == bindslot && texturebinding.ShaderType == shaderType)
 				texturebinding.Texture = texture;
 		}
-
-		mDirty = true;
 	}
 
 	void Material::SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureCube>& texture)
@@ -69,8 +69,6 @@ namespace Toast {
 			if (texturebinding.BindSlot == bindslot && texturebinding.ShaderType == shaderType)
 				texturebinding.Texture = texture;
 		}
-
-		mDirty = true;
 	}
 
 	Ref<Texture> Material::GetTexture(std::string name)
@@ -91,8 +89,6 @@ namespace Toast {
 			if (textureSampler.BindSlot == bindslot && textureSampler.ShaderType == shaderType)
 				textureSampler.Sampler = sampler;
 		}
-
-		mDirty = true;
 	}
 
 	void Material::SetUpResourceBindings()
@@ -186,8 +182,8 @@ namespace Toast {
 
 	Ref<Material> MaterialLibrary::Load()
 	{
-		auto material = CreateRef<Material>("No Name", ShaderLibrary::Get("Standard"));
-		Add("No Name", material);
+		auto material = CreateRef<Material>("New Material", ShaderLibrary::Get("Standard"));
+		Add("New Material", material);
 		return material;
 	}
 
@@ -207,22 +203,24 @@ namespace Toast {
 		auto nh = mMaterials.extract(oldName);
 		nh.key() = newName;
 		mMaterials.insert(move(nh));
+
+		std::string basepath = "..\\Toaster\\assets\\materials\\";
+		std::string fullPath = basepath.append(oldName).append(".tmtl");
+
+		FileDialogs::DeleteFile(fullPath);
 	}
 
 	void MaterialLibrary::SerializeLibrary()
 	{
 		for (auto& material : mMaterials)
-		{
-			if (material.second->IsDirty())
-				MaterialSerializer::Serialize(material.second);
-		}
+			MaterialSerializer::Serialize(material.second);
 	}
 
 	void MaterialSerializer::Serialize(Ref<Material>& material)
 	{
 		std::string name = material->GetName();
 
-		std::string filepath = std::string("assets/materials/").append(name.append(".mtl"));
+		std::string filepath = std::string("assets/materials/").append(name.append(".tmtl"));
 
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -233,7 +231,7 @@ namespace Toast {
 		for (auto& texture : material->GetTextureBindings())
 		{
 			// First few slots are preserved for PBR textures
-			if (texture.ShaderType != D3D11_PIXEL_SHADER || texture.BindSlot > 2) 
+			if (texture.Texture && (texture.ShaderType != D3D11_PIXEL_SHADER || texture.BindSlot > 2)) 
 			{
 				out << YAML::BeginMap;
 				out << YAML::Key << "FilePath" << YAML::Value << texture.Texture->GetFilePath();
@@ -247,8 +245,6 @@ namespace Toast {
 
 		std::ofstream fout(filepath);
 		fout << out.c_str();
-
-		material->SetDirty(false);
 	}
 
 	bool MaterialSerializer::Deserialize(std::vector<std::string> materials)

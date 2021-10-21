@@ -1,16 +1,17 @@
-[Toast][12:29:09] INFO: Creating window Toaster 2400x1300
-[Toast][12:29:10] INFO: DirectX Information:
-[Toast][12:29:10] INFO:   Vendor: NVIDIA Corporation
-[Toast][12:29:10] INFO:   Renderer: NVIDIA GeForce RTX 3080
-[Toast][12:29:10] INFO:   Version: 27.21.14.6663
-[Toast][12:29:10] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
-[Toast][12:29:10] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
-[Toast][12:29:10] TRACE: Deserializing material 'Blue', Shader : 'PBR'
-[Toast][12:29:10] TRACE: Adding material: Blue
-[Toast][12:29:10] TRACE: Deserializing material 'Planet', Shader : 'Planet'
-[Toast][12:29:10] TRACE: Adding material: Planet
-[Toast][12:29:11] TRACE: Deserializing material 'Red', Shader : 'PBR'
-[Toast][12:29:11] TRACE: Adding material: Red
-[Toast][12:29:11] TRACE: Deserializing material 'Standard', Shader : 'Standard'
-[Toast][12:29:11] TRACE: Adding material: Standard
-[Toast][12:29:15] INFO: Loading Mesh: 'C:\dev\Toast\Toaster\assets\meshes\Starship1.fbx'
+[Toast][17:14:28] INFO: Creating window Toaster 2400x1300
+[Toast][17:14:28] INFO: DirectX Information:
+[Toast][17:14:28] INFO:   Vendor: NVIDIA Corporation
+[Toast][17:14:28] INFO:   Renderer: NVIDIA GeForce RTX 3080
+[Toast][17:14:28] INFO:   Version: 27.21.14.6663
+[Toast][17:14:28] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
+[Toast][17:14:28] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
+[Toast][17:14:29] TRACE: Deserializing material 'Blue', Shader : 'PBR'
+[Toast][17:14:29] TRACE: Adding material: Blue
+[Toast][17:14:29] TRACE: Deserializing material 'Planet', Shader : 'Planet'
+[Toast][17:14:29] TRACE: Adding material: Planet
+[Toast][17:14:29] TRACE: Deserializing material 'Red', Shader : 'PBR'
+[Toast][17:14:29] TRACE: Adding material: Red
+[Toast][17:14:29] TRACE: Deserializing material 'Standard', Shader : 'Standard'
+[Toast][17:14:29] TRACE: Adding material: Standard
+[Toast][17:14:31] TRACE: Adding material: New Material
+[Toast][17:14:42] INFO: Material 'New Material' changing name to: 'JOhans'

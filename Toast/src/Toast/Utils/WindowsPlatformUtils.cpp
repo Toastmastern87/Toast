@@ -51,6 +51,13 @@ namespace Toast {
 		return std::nullopt;
 	}
 
+	bool FileDialogs::DeleteFile(const std::string& path)
+	{
+		std::filesystem::remove(path);
+
+		return true;
+	}
+
 	std::vector<std::string> FileDialogs::GetAllFiles(std::string path)
 	{
 		std::vector<std::string> fileStrings;

@@ -136,9 +136,6 @@ namespace Toast {
 
 		RenderCommand::BindBackbuffer();
 		RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
-
-		// Make sure dirty materials are serialized
-		MaterialLibrary::SerializeLibrary();
 	}
 
 	void EditorLayer::OnImGuiRender()
