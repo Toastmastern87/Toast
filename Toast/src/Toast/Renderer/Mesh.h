@@ -157,11 +157,10 @@ namespace Toast {
 	public:
 		Mesh();
 		Mesh(const std::string& filePath);
-		Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+		Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const DirectX::XMMATRIX& transform);
 		~Mesh() = default;
 
 		void OnUpdate(Timestep ts);
-		void Init();
 		void InitPlanet();
 
 		const std::string& GetFilePath() const { return mFilePath; }
