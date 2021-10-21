@@ -46,6 +46,7 @@ namespace Toast {
 	}
 
 	Shader::Shader(const std::string& filepath)
+		: mName(filepath)
 	{
 		TOAST_PROFILE_FUNCTION();
 

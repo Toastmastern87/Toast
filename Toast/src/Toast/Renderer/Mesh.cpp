@@ -1,6 +1,9 @@
 #include "tpch.h"
 #include "Mesh.h"
 
+#include <filesystem>
+#include <math.h>
+
 namespace Toast {
 
 	DirectX::XMMATRIX Mat4FromAssimpMat4(const aiMatrix4x4& matrix)
@@ -32,6 +35,13 @@ namespace Toast {
 	Mesh::Mesh(const std::string& filePath)
 		: mFilePath(filePath)
 	{
+		struct PBRData 
+		{
+			DirectX::XMFLOAT4 albedo;
+			float metalness;
+			float roughness;
+		};
+
 		TOAST_CORE_INFO("Loading Mesh: '%s'", mFilePath.c_str());
 
 		mImporter = std::make_unique<Assimp::Importer>();
@@ -103,6 +113,87 @@ namespace Toast {
 
 		mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
 		mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
+
+		//Materials
+		if (scene->HasMaterials())
+		{
+			TOAST_CORE_ERROR("Mesh have materials!");
+
+			for (uint32_t i = 0; i < scene->mNumMaterials; i++)
+			{
+				auto aiMaterial = scene->mMaterials[i];
+				auto aiMaterialName = aiMaterial->GetName();
+
+				mMaterial = MaterialLibrary::Load(aiMaterialName.C_Str(), ShaderLibrary::Get("ToastPBR"));
+
+				TOAST_CORE_ERROR("Material: %s", aiMaterialName.C_Str());
+
+				aiString aiTexPath;
+				uint32_t textureCount = aiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
+				TOAST_CORE_ERROR("	TextureCount = %i", textureCount);
+
+				// Albedo
+				DirectX::XMFLOAT4 albedoColor = { 0.8f, 0.8f, 0.8f, 1.0f };
+				aiColor3D aiColor;
+				if (aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor) == AI_SUCCESS)
+					albedoColor = { aiColor.r, aiColor.g, aiColor.b, 1.0f };
+
+				bool hasAlbedoMap = aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == AI_SUCCESS;
+				if (hasAlbedoMap)
+				{
+					std::filesystem::path path = mFilePath;
+					auto parentPath = path.parent_path();
+					std::string texturePath = parentPath.string();
+					std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
+					TOAST_CORE_ERROR("	Albedo Map exists: %s", aiTexPath.C_Str());
+					TOAST_CORE_ERROR("	Albedo map filepath: %s", completePath.c_str());
+					mMaterial->SetTexture(3, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+					albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+				}
+
+				//// Metalness
+				//float metalness = 0.0f;
+				//aiColor3D aiColor;
+				//if (aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor) == AI_SUCCESS)
+				//	albedoColor = { aiColor.r, aiColor.g, aiColor.b, 1.0f };
+
+				//bool hasMetalnessMap = aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == AI_SUCCESS;
+				//if (hasMetalnessMap)
+				//{
+				//	std::filesystem::path path = mFilePath;
+				//	auto parentPath = path.parent_path();
+				//	std::string texturePath = parentPath.string();
+				//	std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
+				//	TOAST_CORE_ERROR("	Albedo Map exists: %s", aiTexPath.C_Str());
+				//	TOAST_CORE_ERROR("	Albedo map filepath: %s", completePath.c_str());
+				//	mMaterial->SetTexture(3, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+				//	albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+				//}
+
+				// Roughness
+				float shininess;
+				if (aiMaterial->Get(AI_MATKEY_SHININESS, shininess) != aiReturn_SUCCESS)
+					shininess = 80.0f; // Default value
+
+				float roughness = 1.0f - sqrt(shininess / 100.0f);
+
+				bool hasRoughnessMap = aiMaterial->GetTexture(aiTextureType_SHININESS, 0, &aiTexPath) == AI_SUCCESS;
+				if (hasRoughnessMap)
+				{
+					std::filesystem::path path = mFilePath;
+					auto parentPath = path.parent_path();
+					std::string texturePath = parentPath.string();
+					std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
+					TOAST_CORE_ERROR("	Roughness Map exists: %s", aiTexPath.C_Str());
+					TOAST_CORE_ERROR("	Roughness map filepath: %s", completePath.c_str());
+					mMaterial->SetTexture(6, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+					roughness = 1.0f;
+				}
+
+				PBRData pbrData = { albedoColor, metalness, roughness };
+				mMaterial->SetData("PBRData", &albedoColor.x);
+			}
+		}
 	}
 
 	Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const DirectX::XMMATRIX& transform)

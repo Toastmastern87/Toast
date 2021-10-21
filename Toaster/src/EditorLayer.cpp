@@ -40,6 +40,7 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
 		ShaderLibrary::Load("assets/shaders/PBR.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet.hlsl");
+		ShaderLibrary::Load("assets/shaders/ToastPBR.hlsl");
 
 		// Load all materials from the computer
 		std::vector<std::string> materialStrings = FileDialogs::GetAllFiles("\\assets\\materials");

@@ -150,7 +150,6 @@ namespace Toast {
 
 	void MaterialLibrary::Add(std::string name, const Ref<Material>& material)
 	{
-		TOAST_CORE_TRACE("Adding material: %s", name.c_str());
 		if (Exists(name))
 		{
 			name.append("_");

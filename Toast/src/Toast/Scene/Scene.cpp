@@ -230,7 +230,7 @@ namespace Toast {
 
 				// Skybox!
 				{
-					if (mSkyboxTexture)
+					if (mSkyboxTexture)			
 						Renderer::SubmitSkybox(mSkybox, cameraPosFloat, DirectX::XMMatrixInverse(nullptr, cameraTransform), mainCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
 				}
 
@@ -544,7 +544,7 @@ namespace Toast {
 	void Scene::SetSkybox(const Ref<TextureCube>& skybox)
 	{
 		mSkyboxTexture = skybox;
-		mSkyboxMaterial->SetTexture(5, D3D11_PIXEL_SHADER, mSkyboxTexture);
+		mSkyboxMaterial->SetTexture(7, D3D11_PIXEL_SHADER, mSkyboxTexture);
 	}
 
 	Toast::Entity Scene::FindEntityByTag(const std::string& tag)
