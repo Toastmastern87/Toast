@@ -9,6 +9,8 @@
 
 #include "Toast/Script/ScriptEngine.h"
 
+#include "Toast/Renderer/MeshFactory.h"
+
 #include "Toast/Utils/PlatformUtils.h"
 
 #include <filesystem>
@@ -57,13 +59,23 @@ namespace Toast {
 				mContext->CreateEntity("Empty Entity");
 
 			ImGui::Separator();
-			if (ImGui::BeginMenu("Basic Mesh"))
+			if (ImGui::BeginMenu("3D"))
 			{
-				if (ImGui::MenuItem("Cube"))
-					mContext->CreateCube("Cube");
+				if (ImGui::MenuItem("Cube")) 
+				{
+					auto newEntity = mContext->CreateEntity("Cube");
+					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.fbx"));
+
+					SetSelectedEntity(newEntity);
+				}
 
 				if (ImGui::MenuItem("Sphere"))
-					mContext->CreateSphere("Sphere");
+				{
+					auto newEntity = mContext->CreateEntity("Sphere");
+					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.fbx"));
+
+					SetSelectedEntity(newEntity);
+				}
 				ImGui::EndMenu();
 			}
 			ImGui::EndPopup();

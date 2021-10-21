@@ -45,9 +45,6 @@ namespace Toast {
 		Entity CreateEntityWithID(UUID uuid, const std::string& name);
 		void DestroyEntity(Entity entity);
 
-		Entity CreateCube(const std::string& name = std::string());
-		Entity CreateSphere(const std::string& name = std::string());
-
 		void OnRuntimeStart();
 		void OnRuntimeStop();
 

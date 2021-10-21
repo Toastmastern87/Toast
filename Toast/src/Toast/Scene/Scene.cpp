@@ -60,11 +60,8 @@ namespace Toast {
 		// Initiate the skybox
 		Ref<Shader> skyboxShader = CreateRef<Shader>("assets/shaders/Skybox.hlsl");
 		mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader);
-		mSkybox = CreateRef<Mesh>();
+		mSkybox = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.fbx");
 		mSkybox->SetMaterial(mSkyboxMaterial);
-		uint32_t indexCount = MeshFactory::CreateCube(mSkybox->GetVertices(), mSkybox->GetIndices());
-		mSkybox->Init();
-		mSkybox->AddSubmesh(indexCount);
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)
@@ -103,48 +100,6 @@ namespace Toast {
 	void Scene::DestroyEntity(Entity entity)
 	{
 		mRegistry.destroy(entity);
-	}
-
-	Toast::Entity Scene::CreateCube(const std::string& name)
-	{
-		Entity entity = { mRegistry.create(), this };
-		auto& idComponent = entity.AddComponent<IDComponent>();
-		idComponent.ID = {};
-
-		auto& tc = entity.AddComponent<TransformComponent>();
-		tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
-		auto& tag = entity.AddComponent<TagComponent>();
-		tag.Tag = name.empty() ? "Entity" : name;
-
-		auto& mesh = entity.AddComponent<MeshComponent>(CreateRef<Mesh>());
-		uint32_t indexCount = MeshFactory::CreateCube(mesh.Mesh->GetVertices(), mesh.Mesh->GetIndices());
-		mesh.Mesh->Init();
-		mesh.Mesh->AddSubmesh(indexCount);
-
-		mEntityIDMap[idComponent.ID] = entity;
-
-		return entity;
-	}
-
-	Toast::Entity Scene::CreateSphere(const std::string& name)
-	{
-		Entity entity = { mRegistry.create(), this };
-		auto& idComponent = entity.AddComponent<IDComponent>();
-		idComponent.ID = {};
-
-		auto& tc = entity.AddComponent<TransformComponent>();
-		tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
-		auto& tag = entity.AddComponent<TagComponent>();
-		tag.Tag = name.empty() ? "Entity" : name;
-
-		auto& mesh = entity.AddComponent<MeshComponent>(CreateRef<Mesh>());
-		uint32_t indexCount = MeshFactory::CreateOctahedron(mesh.Mesh->GetVertices(), mesh.Mesh->GetIndices(), 2); //Primitives::CreateSphere(mesh.Mesh->GetVertices(), mesh.Mesh->GetIndices(), 2);
-		mesh.Mesh->Init();
-		mesh.Mesh->AddSubmesh(indexCount);
-		
-		mEntityIDMap[idComponent.ID] = entity;
-
-		return entity;
 	}
 
 	void Scene::OnRuntimeStart()
@@ -200,7 +155,6 @@ namespace Toast {
 					TOAST_CORE_INFO("Module doesn't exist");
 			}
 		}
-
 
 		// Process lights
 		{

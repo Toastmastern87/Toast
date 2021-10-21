@@ -1,17 +1,24 @@
-[Toast][17:14:28] INFO: Creating window Toaster 2400x1300
-[Toast][17:14:28] INFO: DirectX Information:
-[Toast][17:14:28] INFO:   Vendor: NVIDIA Corporation
-[Toast][17:14:28] INFO:   Renderer: NVIDIA GeForce RTX 3080
-[Toast][17:14:28] INFO:   Version: 27.21.14.6663
-[Toast][17:14:28] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
-[Toast][17:14:28] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
-[Toast][17:14:29] TRACE: Deserializing material 'Blue', Shader : 'PBR'
-[Toast][17:14:29] TRACE: Adding material: Blue
-[Toast][17:14:29] TRACE: Deserializing material 'Planet', Shader : 'Planet'
-[Toast][17:14:29] TRACE: Adding material: Planet
-[Toast][17:14:29] TRACE: Deserializing material 'Red', Shader : 'PBR'
-[Toast][17:14:29] TRACE: Adding material: Red
-[Toast][17:14:29] TRACE: Deserializing material 'Standard', Shader : 'Standard'
-[Toast][17:14:29] TRACE: Adding material: Standard
-[Toast][17:14:31] TRACE: Adding material: New Material
-[Toast][17:14:42] INFO: Material 'New Material' changing name to: 'JOhans'
+[Toast][19:12:01] INFO: Creating window Toaster 2400x1300
+[Toast][19:12:01] INFO: DirectX Information:
+[Toast][19:12:01] INFO:   Vendor: NVIDIA Corporation
+[Toast][19:12:01] INFO:   Renderer: NVIDIA GeForce RTX 3080
+[Toast][19:12:01] INFO:   Version: 27.21.14.6663
+[Toast][19:12:01] INFO: Successfully loaded assembly: assets/scripts/Toast-ScriptCore.dll
+[Toast][19:12:01] INFO: Successfully loaded assembly: assets/scripts/Mars.dll
+[Toast][19:12:02] TRACE: Deserializing material 'Blue', Shader : 'PBR'
+[Toast][19:12:02] TRACE: Adding material: Blue
+[Toast][19:12:02] TRACE: Deserializing material 'Planet', Shader : 'Planet'
+[Toast][19:12:02] TRACE: Adding material: Planet
+[Toast][19:12:02] TRACE: Deserializing material 'Red', Shader : 'PBR'
+[Toast][19:12:02] TRACE: Adding material: Red
+[Toast][19:12:02] TRACE: Deserializing material 'Standard', Shader : 'Standard'
+[Toast][19:12:02] TRACE: Adding material: Standard
+[Toast][19:12:02] INFO: Loading Mesh: '..\Toaster\assets\meshes\Cube.fbx'
+[Toast][19:12:05] INFO: Loading Mesh: '..\Toaster\assets\meshes\Cube.fbx'
+[Toast][19:12:05] TRACE: Deserializing scene 'Untitled Scene'
+[Toast][19:12:05] TRACE: Deserialized entity with ID '12837192831273', name 'Camera'
+[Toast][19:12:05] TRACE: Deserialized entity with ID '12837192831275', name 'Sunlight'
+[Toast][19:12:05] TRACE: Deserialized entity with ID '12837192831271', name 'Mars'
+[Toast][19:12:05] TRACE: Deserialized entity with ID '12837192831272', name 'Ambient Light'
+[Toast][19:12:11] INFO: Loading Mesh: '..\Toaster\assets\meshes\Cube.fbx'
+[Toast][19:12:28] INFO: Loading Mesh: '..\Toaster\assets\meshes\Cube.fbx'
