@@ -24,11 +24,11 @@ cbuffer Model : register(b1)
 
 struct VertexInputType
 {
-	float3 position : POSITION;
-	float3 normal : NORMAL;
-	float3 tangent : TANGENT;
-	float3 binormal: BINORMAL;
-	float2 texcoord : TEXCOORD;
+	float3 position			: POSITION;
+	float3 normal			: NORMAL;
+	float3 tangent			: TANGENT;
+	float3 bitangent		: BITANGENT;
+	float2 texcoord			: TEXCOORD;
 };
 
 struct PixelInputType
@@ -38,7 +38,9 @@ struct PixelInputType
 	float3 normal			: NORMAL;
 	float2 texcoord			: TEXCOORD;
 	float3 cameraPos		: POSITION1;
-	int entityID : TEXTUREID;
+	float3 tangent			: TANGENT0;
+	float3 bitangent		: BITANGENT0;
+	int entityID			: TEXTUREID;
 };
 
 PixelInputType main(VertexInputType input)
@@ -52,6 +54,9 @@ PixelInputType main(VertexInputType input)
 	output.worldPosition = mul(float4(input.position, 1.0f), worldMatrix).xyz;
 
 	output.normal = mul(input.normal, (float3x3)worldMatrix);
+	output.tangent = mul(input.tangent, (float3x3)worldMatrix);
+	output.bitangent = mul(input.bitangent, (float3x3)worldMatrix);
+
 	output.texcoord = float2(input.texcoord.x, input.texcoord.y);
 	output.cameraPos = cameraPosition.xyz;
 
@@ -90,6 +95,8 @@ struct PixelInputType
 	float3 normal			: NORMAL;
 	float2 texcoord			: TEXCOORD;
 	float3 cameraPos		: POSITION1;
+	float3 tangent			: TANGENT0;
+	float3 bitangent		: BITANGENT0;
 	int entityID			: TEXTUREID;
 };
 
@@ -109,6 +116,21 @@ Texture2D RoughnessTexture		: register(t6);
 
 SamplerState defaultSampler		: register(s0);
 SamplerState spBRDFSampler		: register(s1);
+
+float3 CalculateNormalFromMap(float3 normal, float3 tangent, float3 bitangent, float2 texCoords)
+{
+	float3 Normal = normalize(normal);
+	float3 Tangent = normalize(tangent);
+	float3 Bitangent = normalize(bitangent);
+	float3 BumpMapNormal = NormalTexture.Sample(defaultSampler, texCoords).xyz;
+	BumpMapNormal = 2.0f * BumpMapNormal - float3(1.0f, 1.0f, 1.0f);
+
+	float3 NewNormal;
+	float3x3 TBN = float3x3(Tangent, Bitangent, Normal);
+	NewNormal = mul(transpose(TBN), BumpMapNormal);
+	NewNormal = normalize(NewNormal);
+	return NewNormal;
+}
 
 // GGX/Towbridge-Reitz normal distribution function.
 // Uses Disney's reparametrization of alpha = roughness^2
@@ -168,12 +190,9 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	float3 Lo = normalize(input.cameraPos - input.worldPosition);
 
 	// Get current fragment's normal and transform to world space.
-	float3 N;
-	N = normalize(input.normal);
-
-	// ORIGINAL CODE
-	//float3 N = normalize(2.0f * normalTexture.Sample(defaultSampler, pin.texcoord).rgb - 1.0f);
-	//N = normalize(mul(pin.tangentBasis, N));
+	float3 N = normalize(input.normal);
+	if (useNormalMap)
+		N = CalculateNormalFromMap(input.normal, input.tangent, input.bitangent, input.texcoord);
 
 	// Angle between surface normal and outgoing light direction.
 	float cosLo = max(0.0f, dot(N, Lo));

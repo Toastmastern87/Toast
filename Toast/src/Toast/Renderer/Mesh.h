@@ -182,6 +182,8 @@ namespace Toast {
 
 		void TraverseNodes(aiNode* node, const DirectX::XMMATRIX& parentTransform = DirectX::XMMatrixIdentity(), uint32_t level = 0);
 
+		DirectX::XMMATRIX& GetLocalTransform() { return mTransform; }
+
 	private:
 		std::string mFilePath = "";
 

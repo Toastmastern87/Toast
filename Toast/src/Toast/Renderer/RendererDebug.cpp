@@ -23,7 +23,7 @@ namespace Toast {
 		uint32_t LineVertexCount = 0;
 
 		Ref<Shader> DebugShader;
-		Ref<BufferLayout> LineBufferLayout;
+		Ref<ShaderLayout::ShaderInputElement> LineShaderInputLayout;
 		Ref<VertexBuffer> LineVertexBuffer;
 
 		LineVertex* LineVertexBufferBase = nullptr;

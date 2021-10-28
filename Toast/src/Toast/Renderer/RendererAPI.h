@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Toast/Renderer/RendererAPI.h"
-#include "Toast/Renderer/Buffer.h"
+#include "Toast/Renderer/Shader.h"
 #include "Toast/Renderer/Framebuffer.h"
 #include "Toast/Renderer/Formats.h"
 

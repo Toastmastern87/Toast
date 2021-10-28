@@ -11,6 +11,67 @@
 
 namespace Toast {
 
+	class ShaderLayout
+	{
+	public:
+		struct ShaderInputElement
+		{
+			std::string mName;
+			DXGI_FORMAT mType;
+			uint32_t mSize;
+			size_t mOffset;
+			uint32_t mSemanticIndex;
+			D3D11_INPUT_CLASSIFICATION mInputClassification;
+
+			ShaderInputElement() = default;
+
+			ShaderInputElement(DXGI_FORMAT type, const std::string& name, const uint32_t semanticIndex = 0)
+				: mName(name), mType(type), mSize(ShaderDataTypeSize(type)), mOffset(0), mSemanticIndex(semanticIndex)
+			{
+			}
+
+			uint32_t GetComponentCount() const
+			{
+				switch (mType)
+				{
+				case DXGI_FORMAT_R32_FLOAT:					return 1;
+				case DXGI_FORMAT_R32G32_FLOAT:				return 2;
+				case DXGI_FORMAT_R32G32B32_FLOAT:			return 3;
+				case DXGI_FORMAT_R32G32B32A32_FLOAT:		return 4;
+				case DXGI_FORMAT_R32_UINT:					return 1;
+				case DXGI_FORMAT_R32G32_UINT:				return 2;
+				case DXGI_FORMAT_R32G32B32_UINT:			return 3;
+				case DXGI_FORMAT_R32G32B32A32_UINT:			return 4;
+				}
+
+				return 0;
+			}
+		};
+
+		ShaderLayout(const std::vector<ShaderInputElement>& elements, void* VSRaw);
+		virtual ~ShaderLayout();
+
+		void Bind() const;
+		void Unbind() const;
+
+		inline uint32_t GetStride() const { return mStride; }
+		inline const std::vector<ShaderInputElement>& GetElements() const { return mElements; }
+
+		std::vector<ShaderInputElement>::iterator begin() { return mElements.begin(); }
+		std::vector<ShaderInputElement>::iterator end() { return mElements.end(); }
+		std::vector<ShaderInputElement>::const_iterator begin() const { return mElements.begin(); }
+		std::vector<ShaderInputElement>::const_iterator end() const { return mElements.end(); }
+
+	private:
+		virtual void CalculateOffsetAndStride();
+		void CalculateSemanticIndex();
+
+	private:
+		uint32_t mStride;
+		std::vector<ShaderInputElement> mElements;
+		Microsoft::WRL::ComPtr<ID3D11InputLayout> mInputLayout;
+	};
+
 	class Shader
 	{
 	public:
@@ -51,11 +112,11 @@ namespace Toast {
 		void ProcessInputLayout(const std::string& source);
 		void ProcessResources();
 	private:
-		Ref<BufferLayout> mLayout;
+		Ref<ShaderLayout> mLayout;
 
 		std::string mName;
 
-		Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader;
+		Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader; 
 		Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader;
 		Microsoft::WRL::ComPtr<ID3D11ComputeShader> mComputeShader;
 		std::unordered_map<D3D11_SHADER_TYPE, ID3D10Blob*> mRawBlobs;
