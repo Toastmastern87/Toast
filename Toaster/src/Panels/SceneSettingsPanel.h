@@ -8,6 +8,11 @@ namespace Toast {
 	class SceneSettingsPanel
 	{
 	public:
+		enum class SelectionMode
+		{
+			None = 0, Entity = 1, SubMesh = 2
+		};
+
 		SceneSettingsPanel() = default;
 		SceneSettingsPanel(const Ref<Scene>& context);
 		~SceneSettingsPanel() = default;
@@ -15,8 +20,12 @@ namespace Toast {
 		void SetContext(const Ref<Scene>& context);
 
 		void OnImGuiRender();
+
+		SelectionMode GetSelectionMode() { return mSelectionMode; }
 	private:
 		Ref<Scene> mContext;
+		
+		SelectionMode mSelectionMode = SelectionMode::Entity;
 	};
 
 }

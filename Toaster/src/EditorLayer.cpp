@@ -291,41 +291,84 @@ namespace Toast {
 
 				// Entity transform
 				DirectX::XMFLOAT3 translationFloat3, scaleFloat3;
-				DirectX::XMVECTOR translation, scale, rotation, localMeshTranslation, localMeshScale, localMeshRotation;
+				DirectX::XMVECTOR translation, scale, rotation;
 
 				auto& tc = selectedEntity.GetComponent<TransformComponent>();
-				auto& mc = selectedEntity.GetComponent<MeshComponent>();
-				DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.Transform);
-				DirectX::XMMatrixDecompose(&localMeshScale, &localMeshRotation, &localMeshTranslation, mc.Mesh->GetLocalTransform());
-				DirectX::XMStoreFloat3(&translationFloat3, translation);
-				DirectX::XMStoreFloat3(&scaleFloat3, scale);
-				DirectX::XMFLOAT4X4 transform;
-				float Ftranslation[3] = { translationFloat3.x, translationFloat3.y, translationFloat3.z };
-				float Frotation[3] = { tc.RotationEulerAngles.x, tc.RotationEulerAngles.y, tc.RotationEulerAngles.z };
-				float Fscale[3] = { scaleFloat3.x, scaleFloat3.y, scaleFloat3.z };
-				ImGuizmo::RecomposeMatrixFromComponents(Ftranslation, Frotation, Fscale, *transform.m);
 
-				// Snapping
-				bool snap = Input::IsKeyPressed(Key::LeftControl);
-				float snapValue = 0.5f; // Snap to 0.5m degrees for translation/scale
-				// Snap to 45 degrees for rotation
-				if (mGizmoType == ImGuizmo::OPERATION::ROTATE)
-					snapValue = 45.0f;
-
-				float snapValues[3] = { snapValue, snapValue, snapValue };
-
-				ImGuizmo::Manipulate(*cameraView.m, *cameraProjection.m, (ImGuizmo::OPERATION)mGizmoType, ImGuizmo::LOCAL, *transform.m, nullptr, snap ? snapValues : nullptr);
-
-				if (ImGuizmo::IsUsing())
+				if (mSceneSettingsPanel.GetSelectionMode() == SceneSettingsPanel::SelectionMode::Entity)
 				{
-					float Ftranslation[3] = { 0.0f, 0.0f, 0.0f }, Frotation[3] = { 0.0f, 0.0f, 0.0f }, Fscale[3] = { 0.0f, 0.0f, 0.0f };
-					ImGuizmo::DecomposeMatrixToComponents(*transform.m, Ftranslation, Frotation, Fscale);
+					DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.Transform);
+					DirectX::XMStoreFloat3(&translationFloat3, translation);
+					DirectX::XMStoreFloat3(&scaleFloat3, scale);
+					DirectX::XMFLOAT4X4 transform;
+					float Ftranslation[3] = { translationFloat3.x, translationFloat3.y, translationFloat3.z };
+					float Frotation[3] = { tc.RotationEulerAngles.x, tc.RotationEulerAngles.y, tc.RotationEulerAngles.z };
+					float Fscale[3] = { scaleFloat3.x, scaleFloat3.y, scaleFloat3.z };
+					ImGuizmo::RecomposeMatrixFromComponents(Ftranslation, Frotation, Fscale, *transform.m);
 
-					tc.RotationEulerAngles = { Frotation[0], Frotation[1], Frotation[2] };
+					// Snapping
+					bool snap = Input::IsKeyPressed(Key::LeftControl);
+					float snapValue = 0.5f; // Snap to 0.5m degrees for translation/scale
+					// Snap to 45 degrees for rotation
+					if (mGizmoType == ImGuizmo::OPERATION::ROTATE)
+						snapValue = 45.0f;
 
-					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Fscale[0], Fscale[1], Fscale[2])
-						* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(Frotation[0]), DirectX::XMConvertToRadians(Frotation[1]), DirectX::XMConvertToRadians(Frotation[2]))))
-						* DirectX::XMMatrixTranslation(Ftranslation[0], Ftranslation[1], Ftranslation[2]);
+					float snapValues[3] = { snapValue, snapValue, snapValue };
+
+					ImGuizmo::Manipulate(*cameraView.m, *cameraProjection.m, (ImGuizmo::OPERATION)mGizmoType, ImGuizmo::LOCAL, *transform.m, nullptr, snap ? snapValues : nullptr);
+
+					if (ImGuizmo::IsUsing())
+					{
+						float Ftranslation[3] = { 0.0f, 0.0f, 0.0f }, Frotation[3] = { 0.0f, 0.0f, 0.0f }, Fscale[3] = { 0.0f, 0.0f, 0.0f };
+						ImGuizmo::DecomposeMatrixToComponents(*transform.m, Ftranslation, Frotation, Fscale);
+
+						tc.RotationEulerAngles = { Frotation[0], Frotation[1], Frotation[2] };
+
+						tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Fscale[0], Fscale[1], Fscale[2])
+							* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(Frotation[0]), DirectX::XMConvertToRadians(Frotation[1]), DirectX::XMConvertToRadians(Frotation[2]))))
+							* DirectX::XMMatrixTranslation(Ftranslation[0], Ftranslation[1], Ftranslation[2]);
+					}
+				}
+				else
+				{
+					if(selectedEntity.HasComponent<MeshComponent>())
+					{
+						auto& mc = selectedEntity.GetComponent<MeshComponent>();
+
+						DirectX::XMMATRIX transformBase = tc.Transform * mc.Mesh->GetLocalTransform();
+
+						DirectX::XMMatrixDecompose(&scale, &rotation, &translation, transformBase);
+						DirectX::XMStoreFloat3(&translationFloat3, translation);
+						DirectX::XMStoreFloat3(&scaleFloat3, scale);
+						DirectX::XMFLOAT4X4 transform;
+						float Ftranslation[3] = { translationFloat3.x, translationFloat3.y, translationFloat3.z };
+						float Frotation[3] = { tc.RotationEulerAngles.x, tc.RotationEulerAngles.y, tc.RotationEulerAngles.z };
+						float Fscale[3] = { scaleFloat3.x, scaleFloat3.y, scaleFloat3.z };
+						ImGuizmo::RecomposeMatrixFromComponents(Ftranslation, Frotation, Fscale, *transform.m);
+
+						// Snapping
+						bool snap = Input::IsKeyPressed(Key::LeftControl);
+						float snapValue = 0.5f; // Snap to 0.5m degrees for translation/scale
+						// Snap to 45 degrees for rotation
+						if (mGizmoType == ImGuizmo::OPERATION::ROTATE)
+							snapValue = 45.0f;
+
+						float snapValues[3] = { snapValue, snapValue, snapValue };
+
+						ImGuizmo::Manipulate(*cameraView.m, *cameraProjection.m, (ImGuizmo::OPERATION)mGizmoType, ImGuizmo::LOCAL, *transform.m, nullptr, snap ? snapValues : nullptr);
+
+						if (ImGuizmo::IsUsing())
+						{
+							float Ftranslation[3] = { 0.0f, 0.0f, 0.0f }, Frotation[3] = { 0.0f, 0.0f, 0.0f }, Fscale[3] = { 0.0f, 0.0f, 0.0f };
+							ImGuizmo::DecomposeMatrixToComponents(*transform.m, Ftranslation, Frotation, Fscale);
+
+							tc.RotationEulerAngles = { Frotation[0], Frotation[1], Frotation[2] };
+
+							mc.Mesh->SetLocalTransform(DirectX::XMMatrixInverse(nullptr, tc.Transform) * DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Fscale[0], Fscale[1], Fscale[2])
+								* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(Frotation[0]), DirectX::XMConvertToRadians(Frotation[1]), DirectX::XMConvertToRadians(Frotation[2]))))
+								* DirectX::XMMatrixTranslation(Ftranslation[0], Ftranslation[1], Ftranslation[2]));
+						}
+					}
 				}
 			}
 
