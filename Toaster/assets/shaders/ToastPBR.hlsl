@@ -52,7 +52,7 @@ PixelInputType main(VertexInputType input)
 	output.worldPosition = mul(float4(input.position, 1.0f), worldMatrix).xyz;
 
 	output.normal = mul(input.normal, (float3x3)worldMatrix);
-	output.texcoord = float2(input.texcoord.x, 1.0f - input.texcoord.y);
+	output.texcoord = float2(input.texcoord.x, input.texcoord.y);
 	output.cameraPos = cameraPosition.xyz;
 
 	output.entityID = entityID;
@@ -79,6 +79,8 @@ cbuffer PBRData : register(b1)
 	float4 albedoColor;
 	float metalnessMulitplier;
 	float roughnessMulitplier;
+	float emissionMultiplier;
+	bool useNormalMap;
 };
 
 struct PixelInputType
@@ -158,15 +160,16 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 
 	// Sample input textures to get shading model params.
 	float3 albedo = AlbedoTexture.Sample(defaultSampler, input.texcoord).rgb * albedoColor.rgb;
-	float metalness = MetalnessTexture.Sample(defaultSampler, input.texcoord).rgb * metalnessMulitplier;
-	float roughness = RoughnessTexture.Sample(defaultSampler, input.texcoord).rgb * roughnessMulitplier;
+	float metalness = MetalnessTexture.Sample(defaultSampler, input.texcoord).r * metalnessMulitplier;
+	float roughness = RoughnessTexture.Sample(defaultSampler, input.texcoord).r * roughnessMulitplier;
 	roughness = max(roughness, 0.05f); // Minimum roughness of 0.05 to keep specular highlight
 
 	// Outgoing light direction (vector from world-space fragment position to the "eye").
 	float3 Lo = normalize(input.cameraPos - input.worldPosition);
 
 	// Get current fragment's normal and transform to world space.
-	float3 N = normalize(input.normal);
+	float3 N;
+	N = normalize(input.normal);
 
 	// ORIGINAL CODE
 	//float3 N = normalize(2.0f * normalTexture.Sample(defaultSampler, pin.texcoord).rgb - 1.0f);
@@ -250,7 +253,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 		ambientLighting = diffuseIBL + specularIBL;
 	}
 
-	output.Color = float4(directLighting + ambientLighting, 1.0f);
+	output.Color = float4(directLighting + ambientLighting, 1.0f);//float4(N, 1.0f);// 
 	output.EntityID = input.entityID + 1;
 
 	return output;

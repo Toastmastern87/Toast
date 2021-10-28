@@ -1,0 +1,12 @@
+Material: M9
+Shader: ToastPBR
+Textures:
+  - FilePath: C:\dev\Toast\Toaster\assets\meshes\beretta m9\textures\M9_BaseColor.png
+    BindSlot: 3
+    ShaderType: 5
+  - FilePath: C:\dev\Toast\Toaster\assets\meshes\beretta m9\textures\M9_Metalness.png
+    BindSlot: 5
+    ShaderType: 5
+  - FilePath: C:\dev\Toast\Toaster\assets\meshes\beretta m9\textures\M9_Roughness.png
+    BindSlot: 6
+    ShaderType: 5
