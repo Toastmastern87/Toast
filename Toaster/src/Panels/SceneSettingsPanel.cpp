@@ -31,6 +31,15 @@ namespace Toast {
 			wireframeButton("Wireframe", Scene::Settings::Wireframe::YES);
 			ImGui::SameLine();
 			wireframeButton("Wireframe Overlay", Scene::Settings::Wireframe::ONTOP);
+
+			ImGui::Text("Selection mode");
+			ImGui::SameLine();
+
+			char* label = mSelectionMode == SelectionMode::Entity ? "Entity" : "Mesh";
+			if (ImGui::Button(label))
+			{
+				mSelectionMode = mSelectionMode == SelectionMode::Entity ? SelectionMode::SubMesh : SelectionMode::Entity;
+			}
 		}
 
 		ImGui::End();
