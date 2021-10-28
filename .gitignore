@@ -7,6 +7,7 @@ bin-int/
 
 # Toast files
 *.log
+*.tlog
 
 # Visual Studio files and folder
 *.vs/

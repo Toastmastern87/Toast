@@ -154,7 +154,7 @@ namespace Toast {
 					emission = aiEmission.r;
 
 				// Normals
-				bool hasNormalMap = aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &aiTexPath) == AI_SUCCESS;
+				bool hasNormalMap = aiMaterial->GetTexture(aiTextureType_HEIGHT, 0, &aiTexPath) == AI_SUCCESS;
 				bool useNormalMap = false;
 				if (hasNormalMap)
 				{

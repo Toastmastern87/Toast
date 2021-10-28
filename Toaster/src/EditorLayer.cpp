@@ -38,7 +38,6 @@ namespace Toast {
 
 		// Load all material shaders
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
-		ShaderLibrary::Load("assets/shaders/PBR.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet.hlsl");
 		ShaderLibrary::Load("assets/shaders/ToastPBR.hlsl");
 
@@ -292,10 +291,12 @@ namespace Toast {
 
 				// Entity transform
 				DirectX::XMFLOAT3 translationFloat3, scaleFloat3;
-				DirectX::XMVECTOR translation, scale, rotation;
+				DirectX::XMVECTOR translation, scale, rotation, localMeshTranslation, localMeshScale, localMeshRotation;
 
 				auto& tc = selectedEntity.GetComponent<TransformComponent>();
+				auto& mc = selectedEntity.GetComponent<MeshComponent>();
 				DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.Transform);
+				DirectX::XMMatrixDecompose(&localMeshScale, &localMeshRotation, &localMeshTranslation, mc.Mesh->GetLocalTransform());
 				DirectX::XMStoreFloat3(&translationFloat3, translation);
 				DirectX::XMStoreFloat3(&scaleFloat3, scale);
 				DirectX::XMFLOAT4X4 transform;

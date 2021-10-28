@@ -45,6 +45,97 @@ namespace Toast {
 		return returnStr;
 	}
 
+	////////////////////////////////////////////////////////////////////////////////////////  
+	//     SHADERLAYOUT  ///////////////////////////////////////////////////////////////////  
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	ShaderLayout::ShaderLayout(const std::vector<ShaderInputElement>& elements, void* VSRaw)
+		: mElements(elements)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		uint32_t index = 0;
+
+		CalculateOffsetAndStride();
+		CalculateSemanticIndex();
+
+		D3D11_INPUT_ELEMENT_DESC* inputLayoutDesc = new D3D11_INPUT_ELEMENT_DESC[mElements.size()];
+
+		for (const auto& element : mElements)
+		{
+			inputLayoutDesc[index].SemanticName = element.mName.c_str();
+			inputLayoutDesc[index].SemanticIndex = element.mSemanticIndex;
+			inputLayoutDesc[index].Format = element.mType;
+			inputLayoutDesc[index].InputSlot = element.mInputClassification == D3D11_INPUT_PER_VERTEX_DATA ? 0 : 1;
+			inputLayoutDesc[index].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+			inputLayoutDesc[index].InputSlotClass = element.mInputClassification;
+			inputLayoutDesc[index].InstanceDataStepRate = element.mInputClassification == D3D11_INPUT_PER_VERTEX_DATA ? 0 : 1;
+
+			index++;
+		}
+
+		device->CreateInputLayout(inputLayoutDesc,
+			(UINT)mElements.size(),
+			static_cast<ID3D10Blob*>(VSRaw)->GetBufferPointer(),
+			static_cast<ID3D10Blob*>(VSRaw)->GetBufferSize(),
+			&mInputLayout);
+
+		delete[] inputLayoutDesc;
+
+		Bind();
+	}
+
+	ShaderLayout::~ShaderLayout()
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		mElements.clear();
+		mElements.shrink_to_fit();
+	}
+
+	void ShaderLayout::Bind() const
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		if (mElements.size() == 0)
+			deviceContext->IASetInputLayout(nullptr);
+		else
+			deviceContext->IASetInputLayout(mInputLayout.Get());
+	}
+
+	void ShaderLayout::Unbind() const
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->IASetInputLayout(nullptr);
+	}
+
+	void ShaderLayout::CalculateOffsetAndStride()
+	{
+		size_t offset = 0;
+		mStride = 0;
+
+		for (auto& element : mElements)
+		{
+			element.mOffset = offset;
+			offset += element.mSize;
+			mStride += element.mSize;
+		}
+	}
+
+	void ShaderLayout::CalculateSemanticIndex()
+	{
+	}
+
 	Shader::Shader(const std::string& filepath)
 		: mName(filepath)
 	{
@@ -200,7 +291,7 @@ namespace Toast {
 
 	void Shader::ProcessInputLayout(const std::string& source)
 	{
-		std::vector<BufferLayout::BufferElement> inputLayoutDesc;
+		std::vector<ShaderLayout::ShaderInputElement> inputLayoutDesc;
 		Microsoft::WRL::ComPtr<ID3D11ShaderReflection> reflector;
 		D3D11_SHADER_DESC shaderDesc;
 
@@ -220,7 +311,7 @@ namespace Toast {
 			D3D11_SIGNATURE_PARAMETER_DESC paramDesc;
 			reflector->GetInputParameterDesc(i, &paramDesc);
 
-			BufferLayout::BufferElement elementDesc;
+			ShaderLayout::ShaderInputElement elementDesc;
 			elementDesc.mName = paramDesc.SemanticName;
 			elementDesc.mSemanticIndex = paramDesc.SemanticIndex;
 
@@ -263,7 +354,7 @@ namespace Toast {
 			pos = source.find_first_of("\r\n", pos) + 1;
 		}
 
-		mLayout = CreateRef<BufferLayout>(inputLayoutDesc, mRawBlobs.at(D3D11_VERTEX_SHADER));
+		mLayout = CreateRef<ShaderLayout>(inputLayoutDesc, mRawBlobs.at(D3D11_VERTEX_SHADER));
 	}
 
 	void Shader::ProcessResources()

@@ -25,7 +25,7 @@ namespace Toast {
 
 		Ref<Shader> TextureShader;
 		Ref<Texture2D> WhiteTexture;
-		Ref<BufferLayout> QuadBufferLayout;
+		Ref<ShaderLayout> QuadBufferLayout;
 		Ref<VertexBuffer> QuadVertexBuffer;
 		Ref<IndexBuffer> QuadIndexBuffer;
 

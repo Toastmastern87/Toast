@@ -1,5 +1,5 @@
 Material: Red
-Shader: PBR
+Shader: ToastPBR
 Textures:
   - FilePath: C:\dev\Toast\Toaster\assets\textures\Red.png
     BindSlot: 3
