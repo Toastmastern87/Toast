@@ -118,7 +118,7 @@ namespace Toast {
 			{
 				std::string textureName = mSelectionContext->GetShader()->GetResourceName(Shader::BindingType::Texture, resource.BindSlot, resource.ShaderType);
 
-				if (textureName != "IrradianceTexture" && textureName != "RadianceTexture" && textureName != "specularBRDFLUT") {
+				if (textureName != "IrradianceTexture" && textureName != "RadianceTexture" && textureName != "SpecularBRDFLUT") {
 					if (ImGui::TreeNodeEx(resource.Texture ? (void*)resource.Texture->GetID() : (void*)54332, treeNodeFlags, textureName.c_str()))
 					{
 						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });

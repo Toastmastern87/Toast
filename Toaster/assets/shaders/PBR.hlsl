@@ -92,7 +92,7 @@ struct PixelOutputType
 
 TextureCube IrradianceTexture	: register(t0);
 TextureCube RadianceTexture		: register(t1);
-Texture2D specularBRDFLUT		: register(t2);
+Texture2D SpecularBRDFLUT		: register(t2);
 Texture2D AlbedoTexture			: register(t3);
 
 SamplerState defaultSampler		: register(s0);
@@ -227,7 +227,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 		float3 specularIrradiance = RadianceTexture.SampleLevel(defaultSampler, Lr, roughness * specularTextureLevels).rgb;
 
 		// Split-sum approximation factors for Cook-Torrance specular BRDF.
-		float2 specularBRDF = specularBRDFLUT.Sample(spBRDFSampler, float2(cosLo, roughness)).rg;
+		float2 specularBRDF = SpecularBRDFLUT.Sample(spBRDFSampler, float2(cosLo, roughness)).rg;
 
 		// Total specular IBL contribution.
 		float3 specularIBL = (F0 * specularBRDF.x + specularBRDF.y) * specularIrradiance;
