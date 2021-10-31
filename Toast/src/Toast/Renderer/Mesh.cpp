@@ -32,7 +32,7 @@ namespace Toast {
 		mMaterial = MaterialLibrary::Get("Standard");
 	}
 
-	Mesh::Mesh(const std::string& filePath)
+	Mesh::Mesh(const std::string& filePath, const bool skyboxMesh)
 		: mFilePath(filePath)
 	{
 		struct PBRData 
@@ -44,7 +44,8 @@ namespace Toast {
 			float UseNormalMap;
 		};
 
-		TOAST_CORE_INFO("Loading Mesh: '%s'", mFilePath.c_str());
+		if(!skyboxMesh)
+			TOAST_CORE_INFO("Loading Mesh: '%s'", mFilePath.c_str());
 
 		mImporter = std::make_unique<Assimp::Importer>();
 
