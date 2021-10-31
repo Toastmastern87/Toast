@@ -174,9 +174,14 @@ namespace Toast {
 
 	Ref<Material> MaterialLibrary::Load(const std::string& name, const Ref<Shader>& shader)
 	{
-		auto material = CreateRef<Material>(name, shader);
-		Add(name, material);
-		return material;
+		if (!Exists(name))
+		{
+			auto material = CreateRef<Material>(name, shader);
+			Add(name, material);
+			return material;
+		}
+		else
+			return Get(name);
 	}
 
 	Ref<Material> MaterialLibrary::Load()

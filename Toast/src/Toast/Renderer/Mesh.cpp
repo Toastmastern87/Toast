@@ -117,6 +117,7 @@ namespace Toast {
 		mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 
 		//Materials
+		Ref<Texture2D> whiteTexture = std::dynamic_pointer_cast<Texture2D>(TextureLibrary::Get("assets/textures/White.png"));
 		if (scene->HasMaterials())
 		{
 			for (uint32_t i = 0; i < scene->mNumMaterials; i++)
@@ -146,6 +147,10 @@ namespace Toast {
 					mMaterial->SetTexture(3, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
 					albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 				}
+				else
+				{
+					mMaterial->SetTexture(3, D3D11_PIXEL_SHADER, whiteTexture);
+				}
 
 				// Emission
 				float emission = 0.0f;
@@ -167,6 +172,10 @@ namespace Toast {
 					mMaterial->SetTexture(4, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
 					useNormalMap = 1.0f;
 				}
+				else
+				{
+					mMaterial->SetTexture(4, D3D11_PIXEL_SHADER, whiteTexture);
+				}
 
 				// Metalness
 				float metalness = 0.0f;
@@ -184,6 +193,10 @@ namespace Toast {
 					//TOAST_CORE_INFO("	Metalness map filepath: %s", completePath.c_str());
 					mMaterial->SetTexture(5, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
 					metalness = 1.0f;
+				}
+				else
+				{
+					mMaterial->SetTexture(5, D3D11_PIXEL_SHADER, whiteTexture);
 				}
 
 				// Roughness
@@ -204,6 +217,10 @@ namespace Toast {
 					//TOAST_CORE_INFO("	Roughness map filepath: %s", completePath.c_str());
 					mMaterial->SetTexture(6, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
 					roughness = 1.0f;
+				}
+				else
+				{
+					mMaterial->SetTexture(6, D3D11_PIXEL_SHADER, whiteTexture);
 				}
 
 				PBRData pbrData = { albedoColor, emission, metalness, roughness, useNormalMap };
