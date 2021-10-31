@@ -1,12 +1,22 @@
 Scene: Untitled Scene
 Entities:
-  - Entity: 6395233877874889032
+  - Entity: 12389438231821383783
     TagComponent:
       Tag: Empty Entity
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
+      Rotation: [0, 0, -0.800000012]
+      Scale: [0.99999994, 0.99999994, 1]
+    SkyLightComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\immenstadter_horn_4k.tif
+      Intensity: 1
+  - Entity: 16746000516722475737
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, -56.5]
+      Scale: [0.999964595, 0.999964595, 1]
     MeshComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\stone watch tower\tower.FBX
       Material: tower

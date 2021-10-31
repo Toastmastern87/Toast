@@ -34,6 +34,7 @@ namespace Toast {
 		mPlayButtonTex = TextureLibrary::LoadTexture2D("assets/textures/PlayButton.png");
 		mPauseButtonTex = TextureLibrary::LoadTexture2D("assets/textures/PauseButton.png");
 		mStopButtonTex = TextureLibrary::LoadTexture2D("assets/textures/StopButton.png");
+		TextureLibrary::LoadTexture2D("assets/textures/White.png");
 		TextureLibrary::LoadTextureSampler("Default", D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 
 		// Load all material shaders
