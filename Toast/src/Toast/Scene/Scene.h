@@ -39,8 +39,6 @@ namespace Toast {
 		Scene();
 		~Scene();
 
-		void Init();
-
 		Entity CreateEntity(const std::string& name = std::string());
 		Entity CreateEntityWithID(UUID uuid, const std::string& name);
 		void DestroyEntity(Entity entity);

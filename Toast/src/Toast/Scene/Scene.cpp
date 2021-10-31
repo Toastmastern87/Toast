@@ -46,22 +46,11 @@ namespace Toast {
 		mRegistry.emplace<SceneComponent>(mSceneEntity, mSceneID);
 
 		sActiveScenes[mSceneID] = this;
-
-		Init();
 	}
 
 	Scene::~Scene()
 	{
 		sActiveScenes.erase(mSceneID);
-	}
-
-	void Scene::Init()
-	{
-		// Initiate the skybox
-		Ref<Shader> skyboxShader = CreateRef<Shader>("assets/shaders/Skybox.hlsl");
-		mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader);
-		mSkybox = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.fbx");
-		mSkybox->SetMaterial(mSkyboxMaterial);
 	}
 
 	Entity Scene::CreateEntity(const std::string& name)
@@ -230,8 +219,10 @@ namespace Toast {
 
 				// Skybox!
 				{
-					if (mSkyboxTexture)			
+					if (mSkyboxTexture)
+					{
 						Renderer::SubmitSkybox(mSkybox, cameraPosFloat, DirectX::XMMatrixInverse(nullptr, cameraTransform), mainCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
+					}
 				}
 
 				// Meshes!
@@ -711,6 +702,11 @@ namespace Toast {
 	template<>
 	void Scene::OnComponentAdded<SkyLightComponent>(Entity entity, SkyLightComponent& component)
 	{
+		// Initiate the skybox
+		Ref<Shader> skyboxShader = CreateRef<Shader>("assets/shaders/Skybox.hlsl");
+		mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader);
+		mSkybox = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.fbx", true);
+		mSkybox->SetMaterial(mSkyboxMaterial);
 	}
 
 	template<>
