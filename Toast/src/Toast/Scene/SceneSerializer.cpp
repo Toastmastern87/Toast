@@ -153,6 +153,7 @@ namespace Toast {
 			out << YAML::BeginMap; // MeshComponent
 
 			auto& pmc = entity.GetComponent<MeshComponent>();
+			out << YAML::Key << "AssetPath" << YAML::Value << pmc.Mesh->GetFilePath();
 			out << YAML::Key << "Material" << YAML::Value << pmc.Mesh->GetMaterial()->GetName();
 
 			out << YAML::EndMap; // MeshComponent
@@ -339,10 +340,10 @@ namespace Toast {
 					cc.FixedAspectRatio = cameraComponent["FixedAspectRatio"].as<bool>();
 				}
 
-				auto meshComponent = entity["PrimitiveMeshComponent"];
+				auto meshComponent = entity["MeshComponent"];
 				if (meshComponent)
 				{
-					deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>());
+					deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>(meshComponent["AssetPath"].as<std::string>()));
 					auto& mc = deserializedEntity.GetComponent<MeshComponent>();
 
 					mc.Mesh->SetMaterial(MaterialLibrary::Get(meshComponent["Material"].as<std::string>()));

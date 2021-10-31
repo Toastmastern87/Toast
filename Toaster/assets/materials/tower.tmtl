@@ -1,0 +1,15 @@
+Material: tower
+Shader: ToastPBR
+Textures:
+  - FilePath: C:\dev\Toast\Toaster\assets\meshes\stone watch tower\tower_diffuse.jpg
+    BindSlot: 3
+    ShaderType: 5
+  - FilePath: C:\dev\Toast\Toaster\assets\textures\Checkerboard.png
+    BindSlot: 4
+    ShaderType: 5
+  - FilePath: C:\dev\Toast\Toaster\assets\textures\Checkerboard.png
+    BindSlot: 5
+    ShaderType: 5
+  - FilePath: C:\dev\Toast\Toaster\assets\textures\Checkerboard.png
+    BindSlot: 6
+    ShaderType: 5

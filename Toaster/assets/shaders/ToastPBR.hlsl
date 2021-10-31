@@ -82,10 +82,10 @@ cbuffer DirectionalLight : register(b0)
 cbuffer PBRData : register(b1)
 {
 	float4 albedoColor;
+	float emissionMultiplier;
 	float metalnessMulitplier;
 	float roughnessMulitplier;
-	float emissionMultiplier;
-	bool useNormalMap;
+	float useNormalMap;
 };
 
 struct PixelInputType
@@ -191,7 +191,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 
 	// Get current fragment's normal and transform to world space.
 	float3 N = normalize(input.normal);
-	if (useNormalMap)
+	if (useNormalMap == 1.0f)
 		N = CalculateNormalFromMap(input.normal, input.tangent, input.bitangent, input.texcoord);
 
 	// Angle between surface normal and outgoing light direction.
