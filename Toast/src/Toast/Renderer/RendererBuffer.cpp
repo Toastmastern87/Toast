@@ -1,5 +1,6 @@
+
 #include "tpch.h"
-#include "Toast/Renderer/Buffer.h"
+#include "Toast/Renderer/RendererBuffer.h"
 #include "Toast/Renderer/RendererAPI.h"
 #include "Toast/Renderer/Renderer.h"
 
@@ -216,13 +217,24 @@ namespace Toast {
 		}
 	}
 
+	void ConstantBuffer::Map(Buffer& data)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		D3D11_MAPPED_SUBRESOURCE ms;
+		deviceContext->Map(mBuffer.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
+		std::memcpy(ms.pData, data.Data, data.Size);
+		deviceContext->Unmap(mBuffer.Get(), NULL);
+	}
+
 	////////////////////////////////////////////////////////////////////////////////////////  
-	//     BUFFERLIBRARY      //////////////////////////////////////////////////////////////  
+	// CONSTANTBUFFERLIBRARY  //////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	std::unordered_map<std::string, Ref<ConstantBuffer>> BufferLibrary::mConstantBuffers;
+	std::unordered_map<std::string, Ref<ConstantBuffer>> ConstantBufferLibrary::mConstantBuffers;
 
-	void BufferLibrary::Add(const std::string name, const Ref<ConstantBuffer>& buffer)
+	void ConstantBufferLibrary::Add(const std::string name, const Ref<ConstantBuffer>& buffer)
 	{
 		if (Exists(name))
 			return;
@@ -230,13 +242,13 @@ namespace Toast {
 		mConstantBuffers[name] = buffer;
 	}
 
-	void BufferLibrary::Add(const Ref<ConstantBuffer>& buffer)
+	void ConstantBufferLibrary::Add(const Ref<ConstantBuffer>& buffer)
 	{
 		auto& name = buffer->GetName();
 		Add(name, buffer);
 	}
 
-	Ref<ConstantBuffer> BufferLibrary::Load(const std::string& name, const uint32_t size, const D3D11_SHADER_TYPE shaderType, const uint32_t bindPoint)
+	Ref<ConstantBuffer> ConstantBufferLibrary::Load(const std::string& name, const uint32_t size, const D3D11_SHADER_TYPE shaderType, const uint32_t bindPoint)
 	{
 		if (Exists(name))
 			return mConstantBuffers[name];
@@ -246,13 +258,13 @@ namespace Toast {
 		return buffer;
 	}
 
-	Ref<ConstantBuffer> BufferLibrary::Get(const std::string& name)
+	Ref<ConstantBuffer> ConstantBufferLibrary::Get(const std::string& name)
 	{
 		TOAST_CORE_ASSERT(Exists(name), "Buffer not found!");
 		return mConstantBuffers[name];
 	}
 
-	std::vector<std::string> BufferLibrary::GetBufferList()
+	std::vector<std::string> ConstantBufferLibrary::GetBufferList()
 	{
 		std::vector<std::string> bufferList;
 
@@ -264,9 +276,8 @@ namespace Toast {
 		return bufferList;
 	}
 
-	bool BufferLibrary::Exists(const std::string& name)
+	bool ConstantBufferLibrary::Exists(const std::string& name)
 	{
 		return mConstantBuffers.find(name) != mConstantBuffers.end();
 	}
-
 }

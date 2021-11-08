@@ -26,7 +26,7 @@
 #include "Toast/Renderer/Renderer2D.h"
 #include "Toast/Renderer/RenderCommand.h"
 
-#include "Toast/Renderer/Buffer.h"
+#include "Toast/Renderer/RendererBuffer.h"
 #include "Toast/Renderer/Shader.h"
 #include "Toast/Renderer/Framebuffer.h"
 #include "Toast/Renderer/Texture.h"

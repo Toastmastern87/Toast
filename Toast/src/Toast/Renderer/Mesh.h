@@ -2,7 +2,7 @@
 
 #include "Toast/Core/Timestep.h"
 
-#include "Toast/Renderer/Buffer.h"
+#include "Toast/Renderer/RendererBuffer.h"
 #include "Toast/Renderer/Shader.h"
 #include "Toast/Renderer/Material.h"
 #include "Toast/Renderer/Formats.h"
@@ -160,6 +160,37 @@ namespace Toast {
 		Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const DirectX::XMMATRIX& transform);
 		~Mesh() = default;
 
+		template <typename T>
+		void Set(const std::string& cbufferName, const std::string& name, const T& value)
+		{
+			auto decl = FindCBufferElementDeclaration(cbufferName, name);
+
+			TOAST_CORE_ASSERT(decl, "Couldn't find constant buffer element!");
+			if (!decl)
+				return;
+
+			if (cbufferName == "Model")
+				mModelBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
+			else if (cbufferName == "Planet")
+				mPlanetBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
+			else if (cbufferName == "PlanetPS")
+				mPlanetPSBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
+		}
+
+		template <typename T>
+		T& Get(const std::string& cbufferName, const std::string& name)
+		{
+			auto decl = FindCBufferElementDeclaration(bufferName, name);
+			TOAST_CORE_ASSERT(decl, "Couldn't find constant buffer element!");
+
+			if(cbufferName == "Model")
+				return mModelBuffer.Read<T>(decl->GetOffset());
+			else if (cbufferName == "Planet")
+				return mPlanetBuffer.Read<T>(decl->GetOffset());
+			else if (cbufferName == "PlanetPS")
+				return mPlanetPSBuffer.Read<T>(decl->GetOffset());
+		}
+
 		void OnUpdate(Timestep ts);
 		void InitPlanet();
 
@@ -185,6 +216,13 @@ namespace Toast {
 		DirectX::XMMATRIX& GetLocalTransform() { return mSubmeshes[0].Transform; }
 		void SetLocalTransform(DirectX::XMMATRIX& transform) { mSubmeshes[0].Transform = transform; }
 
+		void Map();
+		void Bind();
+
+		bool GetIsPlanet() const { return mIsPlanet; }
+		void SetIsPlanet(bool isPlanet) { mIsPlanet = isPlanet;	}
+	private:
+		const ShaderCBufferElement* FindCBufferElementDeclaration(const std::string& cbufferName, const std::string& name);
 	private:
 		std::string mFilePath = "";
 
@@ -213,6 +251,11 @@ namespace Toast {
 		std::vector<uint32_t> mIndices;
 
 		PrimitiveTopology mTopology = PrimitiveTopology::TRIANGLELIST;
+
+		Ref<ConstantBuffer> mModelCBuffer, mPlanetCBuffer, mPlanetPSCBuffer;
+		Buffer mModelBuffer, mPlanetBuffer, mPlanetPSBuffer;
+
+		bool mIsPlanet = false;
 
 		friend class Scene;
 		friend class Renderer;

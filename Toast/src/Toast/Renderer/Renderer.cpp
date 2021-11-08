@@ -22,6 +22,24 @@ namespace Toast {
 		RenderCommand::Init();
 		Renderer2D::Init();
 		RendererDebug::Init();
+
+		// Setting up the constant buffer and data buffer for the camera rendering
+		mSceneRendererData->mCameraCBuffer = ConstantBufferLibrary::Load("Camera", 208, D3D11_VERTEX_SHADER, 0);
+		mSceneRendererData->mCameraCBuffer->Bind();
+		mSceneRendererData->mCameraBuffer.Allocate(mSceneRendererData->mCameraCBuffer->GetSize());
+		mSceneRendererData->mCameraBuffer.ZeroInitialize();
+
+		//// Setting up the constant buffer and data buffer for lightning rendering
+		mSceneRendererData->mLightningCBuffer = ConstantBufferLibrary::Load("DirectionalLight", 48, D3D11_PIXEL_SHADER, 0);
+		mSceneRendererData->mLightningCBuffer->Bind();
+		mSceneRendererData->mLightningBuffer.Allocate(mSceneRendererData->mLightningCBuffer->GetSize());
+		mSceneRendererData->mLightningBuffer.ZeroInitialize();
+
+		// Setting up the constant buffer and data buffer for enviromental rendering
+		mSceneRendererData->mEnvironmentCBuffer = ConstantBufferLibrary::Load("Environment", 16, D3D11_PIXEL_SHADER, 3);
+		mSceneRendererData->mEnvironmentCBuffer->Bind();
+		mSceneRendererData->mEnvironmentBuffer.Allocate(mSceneRendererData->mEnvironmentCBuffer->GetSize());
+		mSceneRendererData->mEnvironmentBuffer.ZeroInitialize();
 	}
 
 	void Renderer::Shutdown()
@@ -39,11 +57,19 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mSceneRendererData->viewMatrix = viewMatrix;
-		mSceneRendererData->inverseViewMatrix = DirectX::XMMatrixInverse(nullptr, viewMatrix);
-		mSceneRendererData->projectionMatrix = camera.GetProjection();
-		mSceneRendererData->cameraPos = cameraPos;
-		MaterialLibrary::Get("Standard")->SetData("Camera", (void*)&mSceneRendererData->viewMatrix);
+		// Updating the camera data in the buffer and mapping it to the GPU
+		mSceneRendererData->mCameraBuffer.Write((void*)&viewMatrix, 64, 0);
+		mSceneRendererData->mCameraBuffer.Write((void*)&camera.GetProjection(), 64, 64);
+		mSceneRendererData->mCameraBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, viewMatrix), 64, 128);
+		mSceneRendererData->mCameraBuffer.Write((void*)&cameraPos.x, 16, 192);
+		mSceneRendererData->mCameraCBuffer->Map(mSceneRendererData->mCameraBuffer);
+
+		// Updating the lightning data in the buffer and mapping it to the GPU
+		mSceneRendererData->mLightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].Direction, 16, 0);
+		mSceneRendererData->mLightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].Radiance, 16, 16);
+		mSceneRendererData->mLightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].Multiplier, 4, 32);
+		mSceneRendererData->mLightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].SunDisc, 4, 36);
+		mSceneRendererData->mLightningCBuffer->Map(mSceneRendererData->mLightningBuffer);
 
 		mSceneRendererData->SceneData.SceneEnvironment = scene->mEnvironment;
 		mSceneRendererData->SceneData.SceneEnvironmentIntensity = scene->mEnvironmentIntensity;
@@ -58,10 +84,6 @@ namespace Toast {
 		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
 		if (TextureLibrary::ExistsSampler("BRDFSampler"))
 			TextureLibrary::GetSampler("BRDFSampler")->Bind(1, D3D11_PIXEL_SHADER);
-
-		mSceneRendererData->SceneData.SceneLightEnvironment = scene->mLightEnvironment;
-
-		MaterialLibrary::Get("Standard")->SetData("DirectionalLight", (void*)&mSceneRendererData->SceneData.SceneLightEnvironment);
 	}
 
 	void Renderer::EndScene()
@@ -85,26 +107,11 @@ namespace Toast {
 		if (skybox->mVertexBuffer) skybox->mVertexBuffer->Bind();
 		if (skybox->mIndexBuffer) skybox->mIndexBuffer->Bind();
 
-		struct EnvironmentCB
-		{
-			float intensity;
-			float LOD;
-			float padding[2];
-		};
+		skybox->Bind();
 
-		struct SkyboxCB
-		{
-			DirectX::XMMATRIX viewMatrix;
-			DirectX::XMMATRIX projectionMatrix;
-			DirectX::XMFLOAT4 cameraPos;
-		};
-
-		const SkyboxCB skyboxTransforms = { viewMatrix,  projectionMatrix, cameraPos };
-		const EnvironmentCB environmentConstants = { intensity, LOD, 0.0f, 0.0f };
-
-		skybox->mMaterial->SetData("SkyboxTransforms", (void*)&skyboxTransforms);
-		skybox->mMaterial->SetData("Environment", (void*)&environmentConstants);
-		skybox->mMaterial->Bind();
+		mSceneRendererData->mEnvironmentBuffer.Write((void*)&intensity, 4, 0);
+		mSceneRendererData->mEnvironmentBuffer.Write((void*)&LOD, 4, 4);
+		mSceneRendererData->mEnvironmentCBuffer->Map(mSceneRendererData->mEnvironmentBuffer);
 
 		RenderCommand::DisableWireframeRendering();
 		RenderCommand::SetPrimitiveTopology(skybox->mTopology);
@@ -115,13 +122,6 @@ namespace Toast {
 
 	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe)
 	{
-		struct ModelCB
-		{
-			DirectX::XMMATRIX Transform;
-			int EntityID;
-			int padding[3];
-		};
-
 		if (mesh->mVertexBuffer) mesh->mVertexBuffer->Bind();
 		if (mesh->mIndexBuffer)	mesh->mIndexBuffer->Bind();
 
@@ -134,9 +134,10 @@ namespace Toast {
 
 		for (Submesh& submesh : mesh->mSubmeshes) 
 		{
-			ModelCB modelCB = { DirectX::XMMatrixMultiply(transform, submesh.Transform), entityID, { 0, 0, 0 } };
-			mesh->mMaterial->SetData("Model", (void*)&modelCB);
-			mesh->mMaterial->Bind();
+			mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(transform, submesh.Transform));
+			mesh->Set<int>("Model", "entityID", entityID);
+			mesh->Map();
+			mesh->Bind();
 			
 			RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 		}
@@ -144,15 +145,6 @@ namespace Toast {
 
 	void Renderer::SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, PlanetComponent::PlanetGPUData planetData, bool wireframe)
 	{
-		struct ModelCB
-		{
-			DirectX::XMMATRIX Transform;
-			int EntityID;
-			int padding[3];
-		};
-
-		ModelCB modelCB = { transform, entityID, { 0, 0, 0 } };
-
 		if(mesh->mVertexBuffer)	mesh->mVertexBuffer->Bind();
 		if (mesh->mInstanceVertexBuffer) mesh->mInstanceVertexBuffer->Bind();
 		if (mesh->mIndexBuffer)	mesh->mIndexBuffer->Bind();
@@ -162,17 +154,25 @@ namespace Toast {
 		else
 			RenderCommand::DisableWireframeRendering();
 
-		mesh->mMaterial->SetData("Planet", (void*)&planetData);
-		mesh->mMaterial->SetData("PlanetPS", (void*)&planetData);
-		mesh->mMaterial->SetData("Model", (void*)&modelCB);
-		mesh->mMaterial->Bind();
+		// Planet mesh data
+		mesh->Set<DirectX::XMFLOAT4>("Planet", "radius", planetData.radius);
+		mesh->Set<DirectX::XMFLOAT4>("Planet", "minAltitude", planetData.minAltitude);
+		mesh->Set<DirectX::XMFLOAT4>("Planet", "maxAltitude", planetData.maxAltitude);
+		mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "radius", planetData.radius);
+		mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "minAltitude", planetData.minAltitude);
+		mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "maxAltitude", planetData.maxAltitude);
+
+		mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", transform);
+		mesh->Set<int>("Model", "entityID", entityID);
+		mesh->Map();
+		mesh->Bind();
 
 		RenderCommand::SetPrimitiveTopology(mesh->mTopology);
 
 		for (Submesh& submesh : mesh->mSubmeshes)
 		{
 			if (mesh->mPlanetPatches.size() > 495000)
-				TOAST_CORE_WARN("Number of instances getting to high: {0}", mesh->mPlanetPatches.size());
+				TOAST_CORE_WARN("Number of instances getting to high: %d", mesh->mPlanetPatches.size());
 
 			RenderCommand::DrawIndexedInstanced(submesh.IndexCount, mesh->mPlanetPatches.size(), 0, 0, 0);
 		}

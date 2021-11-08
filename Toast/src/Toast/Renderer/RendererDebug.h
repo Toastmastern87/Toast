@@ -24,7 +24,8 @@ namespace Toast {
 	private:
 		struct SceneData
 		{
-			DirectX::XMMATRIX viewMatrix, projectionMatrix;
+			Ref<ConstantBuffer> mDebugCBuffer;
+			Buffer mDebugBuffer;
 		};
 
 		static Scope<SceneData> mSceneData;

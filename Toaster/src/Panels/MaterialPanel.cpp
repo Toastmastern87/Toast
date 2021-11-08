@@ -114,12 +114,23 @@ namespace Toast {
 
 			ImGui::Columns(1);
 
+			uint64_t imguiPtr = 54332;
 			for (auto& resource : mSelectionContext->GetTextureBindings())
 			{
 				std::string textureName = mSelectionContext->GetShader()->GetResourceName(Shader::BindingType::Texture, resource.BindSlot, resource.ShaderType);
 
 				if (textureName != "IrradianceTexture" && textureName != "RadianceTexture" && textureName != "SpecularBRDFLUT") {
-					if (ImGui::TreeNodeEx(resource.Texture ? (void*)resource.Texture->GetID() : (void*)54332, treeNodeFlags, textureName.c_str()))
+					// Removes the texture part of the string
+					std::size_t pos = textureName.find("Texture");
+					std::string rawName = textureName.substr(0, pos);
+					std::string toggleName = rawName;
+					toggleName.append("TexToggle");
+
+					//TOAST_CORE_INFO("textureName: %s", textureName.c_str());
+					//TOAST_CORE_INFO("rawName: %s", rawName.c_str());
+					//TOAST_CORE_INFO("toggleName: %s", toggleName.c_str());
+
+					if (ImGui::TreeNodeEx((void*)imguiPtr, treeNodeFlags, textureName.c_str()))
 					{
 						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
 
@@ -132,9 +143,42 @@ namespace Toast {
 							isDirty = true;
 						}
 
+						if(textureName != "HeightMapTexture" && textureName != "CraterMapTexture")
+						{
+							auto useMap = mSelectionContext->GetBool(toggleName);
+							ImGui::SameLine();
+							if (ImGui::Checkbox("Use##Map", &useMap))
+							{
+								mSelectionContext->Set<int>(toggleName, useMap ? 1 : 0);
+
+								isDirty = true;
+							}
+
+							if (rawName == "Albedo")
+							{
+								ImGui::PushItemWidth(-1);
+								ImGui::SameLine();
+								auto& value = mSelectionContext->GetFloat3(rawName);
+								if (ImGui::ColorEdit3("color", &value.x))
+									isDirty = true;
+
+							}
+							else if (rawName == "Roughness" || rawName == "Metalness")
+							{
+								ImGui::PushItemWidth(-1);
+								ImGui::SameLine();
+								auto& value = mSelectionContext->GetFloat(rawName);
+								if (ImGui::DragFloat("##value", &value, 0.001f, 0.0f, 1.0f, "%.3f"))
+									isDirty = true;
+							}
+						}
+
 						ImGui::TreePop();
 					}
 				}
+
+				// 10 being the max number of textures that the material panel can show
+				imguiPtr++;;
 			}
 
 			ImGui::TreePop();

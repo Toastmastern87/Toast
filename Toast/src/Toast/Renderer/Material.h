@@ -27,19 +27,37 @@ namespace Toast {
 			uint32_t BindSlot				{ 0 };
 			Ref<TextureSampler> Sampler		{ nullptr };
 		};
-
-		struct CBufferBindInfo
-		{
-			D3D11_SHADER_TYPE ShaderType	{ D3D11_VERTEX_SHADER };
-			uint32_t BindSlot				{ 0 };
-			Ref<ConstantBuffer> CBuffer		{ nullptr };
-		};
 	public:
 		Material() = default;
 		Material(const std::string& name, const Ref<Shader>& shader);
 		~Material() = default;
 
-		void SetData(const std::string& cbName, void* data);
+		bool& GetBool(const std::string& name);
+		int& GetInt(const std::string& name);
+		float& GetFloat(const std::string& name);
+		DirectX::XMFLOAT2& GetFloat2(const std::string& name);
+		DirectX::XMFLOAT3& GetFloat3(const std::string& name);
+		DirectX::XMFLOAT4& GetFloat4(const std::string& name);
+
+		template <typename T>
+		void Set(const std::string& name, const T& value) 
+		{
+			auto decl = FindCBufferElementDeclaration(name);
+			TOAST_CORE_ASSERT(decl, "Couldn't find constant buffer element!");
+			if (!decl)
+				return;
+
+			mMaterialBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
+		}
+
+		template <typename T>
+		T& Get(const std::string& name)
+		{
+			auto decl = FindCBufferElementDeclaration(name);
+			TOAST_CORE_ASSERT(decl, "Couldn't find constant buffer element!");
+
+			return mMaterialBuffer.Read<T>(decl->GetOffset());
+		}
 
 		const Ref<Shader> GetShader() const { return mShader; }
 		void SetShader(const Ref<Shader>& shader);
@@ -55,14 +73,19 @@ namespace Toast {
 		void SetTextureSampler(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureSampler>& sampler);
 
 		void SetUpResourceBindings();
+		void Map();
 		void Bind();
+
+	private:
+		const ShaderCBufferElement* FindCBufferElementDeclaration(const std::string& name);
 	private:
 		Ref<Shader> mShader;
 
-		// New way
 		std::vector<TextureBindInfo> mTextureBindings;
 		std::vector<SamplerBindInfo> mSamplerBindings;
-		std::vector<CBufferBindInfo> mCBufferBindings;
+
+		Ref<ConstantBuffer> mMaterialCBuffer;
+		Buffer mMaterialBuffer;
 
 		std::string mName = "No name";
 	};
