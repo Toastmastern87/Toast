@@ -30,19 +30,22 @@ namespace Toast {
 	Mesh::Mesh()
 	{
 		mMaterial = MaterialLibrary::Get("Standard");
+
+		// Setting up the constant buffer and data buffer for the mesh rendering
+		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, D3D11_VERTEX_SHADER, 1);
+		mModelCBuffer->Bind();
+		mModelBuffer.Allocate(mModelCBuffer->GetSize());
+		mModelBuffer.ZeroInitialize();
 	}
 
 	Mesh::Mesh(const std::string& filePath, const bool skyboxMesh)
 		: mFilePath(filePath)
 	{
-		struct PBRData 
-		{
-			DirectX::XMFLOAT4 Albedo;
-			float Emission;
-			float Metalness;
-			float Roughness;
-			float UseNormalMap;
-		};
+		// Setting up the constant buffer and data buffer for the mesh rendering
+		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, D3D11_VERTEX_SHADER, 1);
+		mModelCBuffer->Bind();
+		mModelBuffer.Allocate(mModelCBuffer->GetSize());
+		mModelBuffer.ZeroInitialize();
 
 		if(!skyboxMesh)
 			TOAST_CORE_INFO("Loading Mesh: '%s'", mFilePath.c_str());
@@ -133,72 +136,90 @@ namespace Toast {
 				// Albedo
 				DirectX::XMFLOAT4 albedoColor = { 0.8f, 0.8f, 0.8f, 1.0f };
 				aiColor3D aiColor;
-				if (aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor) == AI_SUCCESS)
+				if (aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor) == AI_SUCCESS) 
+				{
+					TOAST_CORE_INFO("	Albedo Color exists: %f, %f, %f, %f", aiColor.r, aiColor.g, aiColor.b, 1.0f);
 					albedoColor = { aiColor.r, aiColor.g, aiColor.b, 1.0f };
+				}
 
 				bool hasAlbedoMap = aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == AI_SUCCESS;
+				int useAlbedoMap = 0;
 				if (hasAlbedoMap)
 				{
 					std::filesystem::path path = mFilePath;
 					auto parentPath = path.parent_path();
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
-					//TOAST_CORE_INFO("	Albedo Map exists: %s", aiTexPath.C_Str());
-					//TOAST_CORE_INFO("	Albedo map filepath: %s", completePath.c_str());
-					mMaterial->SetTexture(3, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+					TOAST_CORE_INFO("	Albedo Map exists: %s", aiTexPath.C_Str());
+					TOAST_CORE_INFO("	Albedo map filepath: %s", completePath.c_str());
 					albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+					useAlbedoMap = 1;
+					mMaterial->SetTexture(3, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
 				}
 				else
 				{
 					mMaterial->SetTexture(3, D3D11_PIXEL_SHADER, whiteTexture);
 				}
+				mMaterial->Set<DirectX::XMFLOAT4>("Albedo", albedoColor);
+				mMaterial->Set<int>("AlbedoTexToggle", useAlbedoMap);
 
 				// Emission
 				float emission = 0.0f;
 				aiColor3D aiEmission;
-				if (aiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, aiEmission) == AI_SUCCESS)
+				if (aiMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, aiEmission) == AI_SUCCESS) 
 					emission = aiEmission.r;
+				
+				mMaterial->Set<float>("Emission", emission);
 
 				// Normals
 				bool hasNormalMap = aiMaterial->GetTexture(aiTextureType_HEIGHT, 0, &aiTexPath) == AI_SUCCESS;
-				bool useNormalMap = 0.0f;
+				int useNormalMap = 0;
 				if (hasNormalMap)
 				{
 					std::filesystem::path path = mFilePath;
 					auto parentPath = path.parent_path();
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
-					//TOAST_CORE_INFO("	Normal Map exists: %s", aiTexPath.C_Str());
-					//TOAST_CORE_INFO("	Normal map filepath: %s", completePath.c_str());
+					TOAST_CORE_INFO("	Normal Map exists: %s", aiTexPath.C_Str());
+					TOAST_CORE_INFO("	Normal map filepath: %s", completePath.c_str());
+					useNormalMap = 1;
 					mMaterial->SetTexture(4, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
-					useNormalMap = 1.0f;
 				}
 				else
 				{
 					mMaterial->SetTexture(4, D3D11_PIXEL_SHADER, whiteTexture);
 				}
+				mMaterial->Set<int>("NormalTexToggle", useNormalMap);
 
 				// Metalness
 				float metalness = 0.0f;
 				if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS)
 					metalness = 0.0f;
+				else 
+				{
+					TOAST_CORE_INFO("	metalvalue: %f", metalness);
+				}
 
 				bool hasMetalnessMap = aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &aiTexPath) == AI_SUCCESS;
+				int useMetalnessMap = 0;
 				if (hasMetalnessMap)
 				{
 					std::filesystem::path path = mFilePath;
 					auto parentPath = path.parent_path();
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
-					//TOAST_CORE_INFO("	Metalness Map exists: %s", aiTexPath.C_Str());
-					//TOAST_CORE_INFO("	Metalness map filepath: %s", completePath.c_str());
-					mMaterial->SetTexture(5, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+					TOAST_CORE_INFO("	Metalness Map exists: %s", aiTexPath.C_Str());
+					TOAST_CORE_INFO("	Metalness map filepath: %s", completePath.c_str());
 					metalness = 1.0f;
+					useMetalnessMap = 1;
+					mMaterial->SetTexture(5, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
 				}
 				else
 				{
 					mMaterial->SetTexture(5, D3D11_PIXEL_SHADER, whiteTexture);
 				}
+				mMaterial->Set<float>("Metalness", metalness);
+				mMaterial->Set<int>("MetalnessTexToggle", useMetalnessMap);
 
 				// Roughness
 				float shininess;
@@ -206,26 +227,28 @@ namespace Toast {
 					shininess = 80.0f; // Default value
 
 				float roughness = 1.0f - sqrt(shininess / 100.0f);
+				TOAST_CORE_INFO("	roughness: %f", roughness);
 
 				bool hasRoughnessMap = aiMaterial->GetTexture(aiTextureType_SHININESS, 0, &aiTexPath) == AI_SUCCESS;
+				int useRoughnessMap = 0;
 				if (hasRoughnessMap)
 				{
 					std::filesystem::path path = mFilePath;
 					auto parentPath = path.parent_path();
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
-					//TOAST_CORE_INFO("	Roughness Map exists: %s", aiTexPath.C_Str());
-					//TOAST_CORE_INFO("	Roughness map filepath: %s", completePath.c_str());
-					mMaterial->SetTexture(6, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+					TOAST_CORE_INFO("	Roughness Map exists: %s", aiTexPath.C_Str());
+					TOAST_CORE_INFO("	Roughness map filepath: %s", completePath.c_str());
 					roughness = 1.0f;
+					useRoughnessMap = 1;
+					mMaterial->SetTexture(6, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
 				}
 				else
 				{
 					mMaterial->SetTexture(6, D3D11_PIXEL_SHADER, whiteTexture);
 				}
-
-				PBRData pbrData = { albedoColor, emission, metalness, roughness, useNormalMap };
-				mMaterial->SetData("PBRData", (void*)&pbrData);
+				mMaterial->Set<float>("Roughness", roughness);
+				mMaterial->Set<int>("RoughnessTexToggle", useRoughnessMap);
 			}
 		}
 	}
@@ -247,6 +270,8 @@ namespace Toast {
 
 	void Mesh::InitPlanet()
 	{
+		mIsPlanet = true;
+
 		mSubmeshes.clear();
 		mVertexBuffer = nullptr;
 		mInstanceVertexBuffer = nullptr;
@@ -259,6 +284,18 @@ namespace Toast {
 
 			mInstanceVertexBuffer->SetData(&mPlanetPatches[0], static_cast<uint32_t>(sizeof(PlanetPatch) * mPlanetPatches.size()));
 		}
+
+		// Setting up the constant buffer and data buffer for the planet mesh rendering
+		mPlanetCBuffer = ConstantBufferLibrary::Load("Planet", 48, D3D11_VERTEX_SHADER, 2);
+		mPlanetCBuffer->Bind();
+		mPlanetBuffer.Allocate(mPlanetCBuffer->GetSize());
+		mPlanetBuffer.ZeroInitialize();
+
+		// Setting up the constant buffer and data buffer for the planet mesh rendering
+		mPlanetPSCBuffer = ConstantBufferLibrary::Load("PlanetPS", 48, D3D11_PIXEL_SHADER, 4);
+		mPlanetPSCBuffer->Bind();
+		mPlanetPSBuffer.Allocate(mPlanetPSCBuffer->GetSize());
+		mPlanetPSBuffer.ZeroInitialize();
 	}
 
 	void Mesh::OnUpdate(Timestep ts)
@@ -269,6 +306,21 @@ namespace Toast {
 	void Mesh::CreateFromFile()
 	{
 
+	}
+
+	const Toast::ShaderCBufferElement* Mesh::FindCBufferElementDeclaration(const std::string& cbufferName, const std::string& name)
+	{
+		const auto& shaderCBuffers = mMaterial->GetShader()->GetCBuffersBindings();
+
+		if (shaderCBuffers.size() > 0)
+		{
+			const ShaderCBufferBindingDesc& buffer = shaderCBuffers.at(cbufferName);
+
+			if (buffer.CBufferElements.find(name) == buffer.CBufferElements.end())
+				return nullptr;
+
+			return &buffer.CBufferElements.at(name);
+		}
 	}
 
 	void Mesh::AddSubmesh(uint32_t indexCount)
@@ -288,7 +340,6 @@ namespace Toast {
 	void Mesh::TraverseNodes(aiNode* node, const DirectX::XMMATRIX& parentTransform, uint32_t level)
 	{
 		DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(parentTransform, Mat4FromAssimpMat4(node->mTransformation));
-
 		mNodeMap[node].resize(node->mNumMeshes);
 		for (uint32_t i = 0; i < node->mNumMeshes; i++) 
 		{
@@ -301,6 +352,38 @@ namespace Toast {
 
 		for(uint32_t i = 0; i < node->mNumChildren; i++)
 			TraverseNodes(node->mChildren[i], transform, level + 1);
+	}
+
+	void Mesh::Map()
+	{
+		// if the planet is a mesh upload Planet data to the GPU
+		if (mIsPlanet)
+		{
+			mPlanetCBuffer->Map(mPlanetBuffer);
+			mPlanetPSCBuffer->Map(mPlanetPSBuffer);
+		}
+
+		if (mModelCBuffer)
+			mModelCBuffer->Map(mModelBuffer);
+
+		if (mMaterial)
+			mMaterial->Map();
+	}
+
+	void Mesh::Bind()
+	{
+		// if the planet is a mesh upload Planet data to the GPU
+		if (mIsPlanet)
+		{
+			mPlanetCBuffer->Bind();
+			mPlanetPSCBuffer->Bind();
+		}
+
+		if(mModelCBuffer)
+			mModelCBuffer->Bind();
+
+		if (mMaterial)
+			mMaterial->Bind();
 	}
 
 }

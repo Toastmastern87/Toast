@@ -46,6 +46,36 @@ namespace Toast {
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  
+	// SHADERCBUFFERELEMENT //////////////////////////////////////////////////////////////// 
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	ShaderCBufferElement::ShaderCBufferElement(std::string name, uint32_t size, uint32_t offset)
+		: mName(name), mSize(size), mOffset(offset)
+	{
+
+	}
+
+	const std::string& ShaderCBufferElement::CBufferTypeToString(const ShaderCBufferElementType type)
+	{
+		if (type == ShaderCBufferElementType::Bool)
+			return std::string("Boolean");
+		else if (type == ShaderCBufferElementType::Int)
+			return std::string("Int");
+		else if (type == ShaderCBufferElementType::Float)
+			return std::string("Float");
+		else if (type == ShaderCBufferElementType::Float2)
+			return std::string("Float2");
+		else if (type == ShaderCBufferElementType::Float3)
+			return std::string("Float3");
+		else if (type == ShaderCBufferElementType::Float4)
+			return std::string("Float4");
+		else if (type == ShaderCBufferElementType::Mat4)
+			return std::string("Matrix4");
+
+		return std::string("None");
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////  
 	//     SHADERLAYOUT  ///////////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
@@ -388,6 +418,22 @@ namespace Toast {
 						cbReflection = reflector->GetConstantBufferByName(resourceDesc.Name);
 						cbReflection->GetDesc(&cbDesc);
 
+						ShaderCBufferBindingDesc& buffer = mCBufferBindings[resourceDesc.Name];
+						buffer.Name = resourceDesc.Name;
+						buffer.ShaderType = kv.first;
+						buffer.BindPoint = resourceDesc.BindPoint;
+						buffer.Size = cbDesc.Size;
+
+						for (uint32_t i = 0; i < cbDesc.Variables; i++)
+						{
+							ID3D11ShaderReflectionVariable* variable = cbReflection->GetVariableByIndex(i);
+							D3D11_SHADER_VARIABLE_DESC variableDesc;
+							variable->GetDesc(&variableDesc);
+
+							buffer.CBufferElements[variableDesc.Name] = ShaderCBufferElement( variableDesc.Name, variableDesc.Size, variableDesc.StartOffset );
+							mCBufferElementBindings.push_back(CBufferElementBindingDesc{ variableDesc.Name, resourceDesc.Name, variableDesc.Size, variableDesc.StartOffset });
+						}
+
 						mResourceBindings.push_back(ResourceBindingDesc{ resourceDesc.Name, kv.first, resourceDesc.BindPoint, BindingType::Buffer, cbDesc.Size, 0 });
 
 						break;
@@ -450,11 +496,24 @@ namespace Toast {
 		}
 	}
 
+	const std::vector<Toast::Shader::CBufferElementBindingDesc> Shader::GetCBufferElementBindings(const std::string& cbufferName) const
+	{
+		std::vector<Toast::Shader::CBufferElementBindingDesc> returnVector;
+
+		for (int i = 0; i < mCBufferElementBindings.size(); i++)
+		{
+			if (mCBufferElementBindings[i].CBufferName == cbufferName)
+				returnVector.push_back(mCBufferElementBindings[i]);
+		}
+
+		return returnVector;
+	}
+
 	std::string Shader::GetResourceName(BindingType type, uint32_t bindSlot, D3D11_SHADER_TYPE shaderType) const
 	{
 		for (auto& resource : mResourceBindings)
 		{
-			if (resource.Type == type && resource.BindSlot == bindSlot && resource.Shader == shaderType) 
+			if (resource.Type == type && resource.BindPoint == bindSlot && resource.Shader == shaderType) 
 				return resource.Name;
 		}	
 	}

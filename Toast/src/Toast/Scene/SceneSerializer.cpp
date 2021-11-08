@@ -153,7 +153,9 @@ namespace Toast {
 			out << YAML::BeginMap; // MeshComponent
 
 			auto& pmc = entity.GetComponent<MeshComponent>();
-			out << YAML::Key << "AssetPath" << YAML::Value << pmc.Mesh->GetFilePath();
+			if(!pmc.Mesh->GetIsPlanet())
+				out << YAML::Key << "AssetPath" << YAML::Value << pmc.Mesh->GetFilePath();
+			out << YAML::Key << "IsPlanet" << YAML::Value << pmc.Mesh->GetIsPlanet();
 			out << YAML::Key << "Material" << YAML::Value << pmc.Mesh->GetMaterial()->GetName();
 
 			out << YAML::EndMap; // MeshComponent
@@ -343,9 +345,14 @@ namespace Toast {
 				auto meshComponent = entity["MeshComponent"];
 				if (meshComponent)
 				{
-					deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>(meshComponent["AssetPath"].as<std::string>()));
+					if (!meshComponent["IsPlanet"].as<bool>())
+						deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>(meshComponent["AssetPath"].as<std::string>()));
+					else
+						deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>());
+			
 					auto& mc = deserializedEntity.GetComponent<MeshComponent>();
 
+					mc.Mesh->SetIsPlanet(meshComponent["IsPlanet"].as<bool>());
 					mc.Mesh->SetMaterial(MaterialLibrary::Get(meshComponent["Material"].as<std::string>()));
 				}
 

@@ -18,32 +18,34 @@ namespace Toast {
 		SetUpResourceBindings();
 	}
 
-	void Material::SetData(const std::string& name, void* data)
+	bool& Material::GetBool(const std::string& name)
 	{
-		uint32_t cbufferIdx;
+		return Get<bool>(name);
+	}
 
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();	
-		 
-		// Check to see if the constant buffer exists
-		for (int i = 0; i < mCBufferBindings.size(); i++)
-		{
-			cbufferIdx = i;
+	int& Material::GetInt(const std::string& name)
+	{
+		return Get<int>(name);
+	}
 
-			if (name.compare(mCBufferBindings[i].CBuffer->GetName()) == 0)
-				break;
+	float& Material::GetFloat(const std::string& name)
+	{
+		return Get<float>(name);
+	}
 
-			if((cbufferIdx+1) == mCBufferBindings.size())
-			{
-				TOAST_CORE_INFO("Trying to write data to a non existent constant buffer: %s", name.c_str());
-				return;
-			}
-		}
+	DirectX::XMFLOAT2& Material::GetFloat2(const std::string& name)
+	{
+		return Get<DirectX::XMFLOAT2>(name);
+	}
 
-		D3D11_MAPPED_SUBRESOURCE ms;
-		deviceContext->Map(mCBufferBindings[cbufferIdx].CBuffer->GetBuffer(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
-		memcpy(ms.pData, data, mCBufferBindings[cbufferIdx].CBuffer->GetSize());
-		deviceContext->Unmap(mCBufferBindings[cbufferIdx].CBuffer->GetBuffer(), NULL);
+	DirectX::XMFLOAT3& Material::GetFloat3(const std::string& name)
+	{
+		return Get<DirectX::XMFLOAT3>(name);
+	}
+
+	DirectX::XMFLOAT4& Material::GetFloat4(const std::string& name)
+	{
+		return Get<DirectX::XMFLOAT4>(name);
 	}
 
 	void Material::SetShader(const Ref<Shader>& shader)
@@ -94,10 +96,20 @@ namespace Toast {
 	void Material::SetUpResourceBindings()
 	{
 		std::vector<Shader::ResourceBindingDesc> resourceBindings = mShader->GetResourceBindings();
+		std::vector<Shader::CBufferElementBindingDesc> cbufferElementBindingDesc = mShader->GetCBufferElementBindings("Material");
+		std::unordered_map<std::string, ShaderCBufferBindingDesc> cbufferBindings = mShader->GetCBuffersBindings();
 
 		mTextureBindings.clear();
 		mSamplerBindings.clear();
-		mCBufferBindings.clear();
+
+		// Skybox work around, need a better solution to handle this
+		if (cbufferBindings.find("Material") != cbufferBindings.end())
+		{
+			mMaterialBuffer.Allocate(cbufferBindings.at("Material").Size);
+			mMaterialBuffer.ZeroInitialize();
+
+			mMaterialCBuffer = ConstantBufferLibrary::Load(cbufferBindings.at("Material").Name, cbufferBindings.at("Material").Size, cbufferBindings.at("Material").ShaderType, cbufferBindings.at("Material").BindPoint);
+		}
 
 		for (auto& resource : resourceBindings)
 		{
@@ -105,22 +117,21 @@ namespace Toast {
 			{
 			case Shader::BindingType::Texture:
 			{
-				mTextureBindings.push_back(TextureBindInfo{ resource.Shader, resource.BindSlot, nullptr });
+				mTextureBindings.push_back(TextureBindInfo{ resource.Shader, resource.BindPoint, nullptr });
 				break;
 			}
 			case Shader::BindingType::Sampler:
 			{
-				mSamplerBindings.push_back(SamplerBindInfo{ resource.Shader, resource.BindSlot, TextureLibrary::GetSampler("Default") });
-				break;
-			}
-
-			case Shader::BindingType::Buffer:
-			{
-				mCBufferBindings.push_back(CBufferBindInfo{ resource.Shader, resource.BindSlot, BufferLibrary::Load(resource.Name, resource.Size, resource.Shader, resource.BindSlot) });
+				mSamplerBindings.push_back(SamplerBindInfo{ resource.Shader, resource.BindPoint, TextureLibrary::GetSampler("Default") });
 				break;
 			}
 			}
 		}
+	}
+
+	void Material::Map()
+	{
+		mMaterialCBuffer->Map(mMaterialBuffer);
 	}
 
 	void Material::Bind()
@@ -139,10 +150,22 @@ namespace Toast {
 				samplerBinding.Sampler->Bind(samplerBinding.BindSlot, samplerBinding.ShaderType);
 		}
 
-		for (auto& cBuffer : mCBufferBindings)
+		if(mMaterialCBuffer)
+			mMaterialCBuffer->Bind();
+	}
+
+	const ShaderCBufferElement* Material::FindCBufferElementDeclaration(const std::string& name)
+	{
+		const auto& shaderCBuffers = mShader->GetCBuffersBindings();
+
+		if (shaderCBuffers.size() > 0)
 		{
-			if (cBuffer.CBuffer)
-				cBuffer.CBuffer->Bind();
+			const ShaderCBufferBindingDesc& buffer = shaderCBuffers.at("Material");
+
+			if (buffer.CBufferElements.find(name) == buffer.CBufferElements.end())
+				return nullptr;
+			
+			return &buffer.CBufferElements.at(name);
 		}
 	}
 

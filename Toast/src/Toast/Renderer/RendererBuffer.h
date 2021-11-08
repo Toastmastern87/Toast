@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Toast/Core/Buffer.h"
+
 #include <d3d11.h>
 #include <d3d11shadertracing.h>
 #include <wrl.h>
@@ -67,6 +69,8 @@ namespace Toast {
 		std::string GetName() const { return mName; }
 
 		D3D11_SHADER_TYPE GetShaderType()const { return mShaderType; }
+
+		void Map(Buffer& data);
 	private:
 		std::string mName;
 
@@ -76,7 +80,7 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11Buffer> mBuffer;
 	};
 
-	class BufferLibrary
+	class ConstantBufferLibrary
 	{
 	public:
 		static void Add(const std::string name, const Ref<ConstantBuffer>& shader);
@@ -90,4 +94,5 @@ namespace Toast {
 	private:
 		static std::unordered_map<std::string, Ref<ConstantBuffer>> mConstantBuffers;
 	};
+
 }

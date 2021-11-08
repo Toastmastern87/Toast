@@ -8,12 +8,13 @@ vertex
 #type vertex
 #pragma pack_matrix( row_major )
 
-cbuffer SkyboxTransforms : register(b1)
+cbuffer Camera : register(b0)
 {
-    matrix viewMatrix;
-    matrix projectionMatrix;
+	matrix viewMatrix;
+	matrix projectionMatrix;
+	matrix inverseViewMatrix;
 	float4 cameraPosition;
-}
+};
 
 struct VertexInputType
 {
@@ -56,7 +57,7 @@ cbuffer DirectionalLight : register(b0)
 	float sunDiscToggle;
 };
 
-cbuffer Environment : register(b1)
+cbuffer Environment : register(b3)
 {
 	float environmentStrength;
 	float textureLOD;

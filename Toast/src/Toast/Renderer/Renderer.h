@@ -52,8 +52,8 @@ namespace Toast {
 
 			} SceneData;
 
-			DirectX::XMMATRIX viewMatrix, projectionMatrix, inverseViewMatrix;
-			DirectX::XMFLOAT4 cameraPos;
+			Ref<ConstantBuffer> mCameraCBuffer, mLightningCBuffer, mEnvironmentCBuffer;
+			Buffer mCameraBuffer, mLightningBuffer, mEnvironmentBuffer;
 		};
 
 		static Scope<SceneRendererData> mSceneRendererData;

@@ -46,6 +46,7 @@ Entities:
       Rotation: [0, 0, 0]
       Scale: [6779, 6779, 6779]
     MeshComponent:
+      IsPlanet: true
       Material: Planet
     PlanetComponent:
       Subdivisions: 4

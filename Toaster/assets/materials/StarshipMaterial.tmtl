@@ -1,0 +1,15 @@
+Material: StarshipMaterial
+Shader: ToastPBR
+Textures:
+  - FilePath: C:\dev\Toast\Toaster\assets\textures\White.png
+    BindSlot: 3
+    ShaderType: 5
+  - FilePath: assets\textures\White.png
+    BindSlot: 4
+    ShaderType: 5
+  - FilePath: assets\textures\White.png
+    BindSlot: 5
+    ShaderType: 5
+  - FilePath: assets\textures\White.png
+    BindSlot: 6
+    ShaderType: 5

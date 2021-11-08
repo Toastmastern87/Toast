@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Toast/Renderer/Buffer.h"
+#include "Toast/Renderer/RendererBuffer.h"
 
 #include <d3d11.h>
 #include <d3d11shader.h>
@@ -10,6 +10,37 @@
 #include <string>
 
 namespace Toast {
+
+	enum class ShaderCBufferElementType
+	{
+		None = 0, Bool, Int, Float, Float2, Float3, Float4, Mat4
+	};
+
+	class ShaderCBufferElement
+	{
+	public:
+		ShaderCBufferElement() = default;
+		ShaderCBufferElement(std::string name, uint32_t size, uint32_t offset);
+
+		const std::string& GetName() const { return mName; }
+		uint32_t GetSize() const { return mSize; }
+		uint32_t GetOffset() const { return mOffset; }
+
+		static const std::string& CBufferTypeToString(const ShaderCBufferElementType type);
+	private:
+		std::string mName;
+		uint32_t mSize;
+		uint32_t mOffset;
+	};
+
+	struct ShaderCBufferBindingDesc
+	{
+		std::string Name;
+		D3D11_SHADER_TYPE ShaderType = D3D11_SHADER_TYPE::D3D11_VERTEX_SHADER;
+		uint32_t BindPoint =  0;
+		uint32_t Size = 0;
+		std::unordered_map<std::string, ShaderCBufferElement> CBufferElements;
+	};
 
 	class ShaderLayout
 	{
@@ -86,10 +117,18 @@ namespace Toast {
 		{
 			std::string Name			{""};
 			D3D11_SHADER_TYPE Shader	{ D3D11_VERTEX_SHADER };
-			uint32_t BindSlot			{ 0 };
+			uint32_t BindPoint			{ 0 };
 			BindingType Type			{ BindingType::Buffer };
 			uint32_t Size				{ 0 };
 			uint32_t Count				{ 0 };
+		};
+
+		struct CBufferElementBindingDesc
+		{
+			std::string Name			{""};
+			std::string CBufferName		{""};
+			uint32_t Size				{ 0 };
+			uint32_t Offset				{ 0 };
 		};
 	public:
 		Shader(const std::string& filepath);
@@ -103,6 +142,8 @@ namespace Toast {
 		const ID3D10Blob* GetVSRaw() const { return mRawBlobs.at(D3D11_VERTEX_SHADER); }
 
 		const std::vector<ResourceBindingDesc> GetResourceBindings() const { return mResourceBindings; }
+		const std::vector<CBufferElementBindingDesc> GetCBufferElementBindings(const std::string& cbufferName) const;
+		const std::unordered_map<std::string, ShaderCBufferBindingDesc>& GetCBuffersBindings() const { return mCBufferBindings; }
 		std::string GetResourceName(BindingType type, uint32_t bindSlot, D3D11_SHADER_TYPE shaderType) const;
 	private:
 		std::string ReadFile(const std::string& filepath);
@@ -122,6 +163,9 @@ namespace Toast {
 		std::unordered_map<D3D11_SHADER_TYPE, ID3D10Blob*> mRawBlobs;
 
 		std::vector<ResourceBindingDesc> mResourceBindings;
+		std::vector<CBufferElementBindingDesc> mCBufferElementBindings;
+
+		std::unordered_map<std::string, ShaderCBufferBindingDesc> mCBufferBindings;
 	};
 
 	class ShaderLibrary 

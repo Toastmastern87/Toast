@@ -1,4 +1,6 @@
 Material: Standard
-Shader: Standard
+Shader: ToastPBR
 Textures:
-  []
+  - FilePath: C:\dev\Toast\Toaster\assets\textures\Blue.png
+    BindSlot: 3
+    ShaderType: 5

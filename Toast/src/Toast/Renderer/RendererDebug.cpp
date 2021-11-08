@@ -2,7 +2,7 @@
 #include "RendererDebug.h"
 
 #include "Toast/Renderer/Shader.h"
-#include "Toast/Renderer/Buffer.h"
+#include "Toast/Renderer/RendererBuffer.h"
 #include "Toast/Renderer/RenderCommand.h"
 
 using namespace DirectX;
@@ -43,6 +43,12 @@ namespace Toast {
 		sData.LineVertexBufferBase = new LineVertex[sData.MaxVertices];
 
 		sData.DebugShader = CreateRef<Shader>("assets/shaders/Debug.hlsl");
+
+		// Setting up the constant buffer and data buffer for the debug rendering data
+		mSceneData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 208, D3D11_VERTEX_SHADER, 0);
+		mSceneData->mDebugCBuffer->Bind();
+		mSceneData->mDebugBuffer.Allocate(mSceneData->mDebugCBuffer->GetSize());
+		mSceneData->mDebugBuffer.ZeroInitialize();
 	}
 
 	void RendererDebug::Shutdown()
@@ -59,11 +65,10 @@ namespace Toast {
 		ZeroMemory(sData.LineVertexBufferBase, sData.MaxVertices * sizeof(LineVertex));
 		sData.LineVertexCount = 0;
 
-		mSceneData->viewMatrix = camera.GetViewMatrix();
-		mSceneData->projectionMatrix = camera.GetProjection();
-
-		MaterialLibrary::Get("Standard")->SetData("Camera", (void*)&mSceneData->viewMatrix);
-		MaterialLibrary::Get("Standard")->Bind();
+		// Updating the camera data in the buffer and mapping it to the GPU
+		mSceneData->mDebugBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
+		mSceneData->mDebugBuffer.Write((void*)&camera.GetProjection(), 64, 64);
+		mSceneData->mDebugCBuffer->Map(mSceneData->mDebugBuffer);
 		sData.DebugShader->Bind();
 
 		sData.LineVertexBuffer->Bind();
