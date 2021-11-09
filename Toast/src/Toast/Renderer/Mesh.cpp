@@ -24,6 +24,7 @@ namespace Toast {
 		aiProcess_GenUVCoords |             // Convert UVs if required 
 		aiProcess_OptimizeMeshes |          // Batch draws where possible
 		aiProcess_JoinIdenticalVertices |
+		aiProcess_FlipWindingOrder |
 		aiProcess_ConvertToLeftHanded |		// Convert to left hand since Toast engine is running with DirectX
 		aiProcess_ValidateDataStructure;    // Validation
 
@@ -36,6 +37,8 @@ namespace Toast {
 		mModelCBuffer->Bind();
 		mModelBuffer.Allocate(mModelCBuffer->GetSize());
 		mModelBuffer.ZeroInitialize();
+
+		//TOAST_CORE_INFO("Mesh Initialized!");
 	}
 
 	Mesh::Mesh(const std::string& filePath, const bool skyboxMesh)
@@ -138,7 +141,7 @@ namespace Toast {
 				aiColor3D aiColor;
 				if (aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor) == AI_SUCCESS) 
 				{
-					TOAST_CORE_INFO("	Albedo Color exists: %f, %f, %f, %f", aiColor.r, aiColor.g, aiColor.b, 1.0f);
+					//TOAST_CORE_INFO("	Albedo Color exists: %f, %f, %f, %f", aiColor.r, aiColor.g, aiColor.b, 1.0f);
 					albedoColor = { aiColor.r, aiColor.g, aiColor.b, 1.0f };
 				}
 
@@ -150,8 +153,8 @@ namespace Toast {
 					auto parentPath = path.parent_path();
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
-					TOAST_CORE_INFO("	Albedo Map exists: %s", aiTexPath.C_Str());
-					TOAST_CORE_INFO("	Albedo map filepath: %s", completePath.c_str());
+					//TOAST_CORE_INFO("	Albedo Map exists: %s", aiTexPath.C_Str());
+					//TOAST_CORE_INFO("	Albedo map filepath: %s", completePath.c_str());
 					albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 					useAlbedoMap = 1;
 					mMaterial->SetTexture(3, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
@@ -180,8 +183,8 @@ namespace Toast {
 					auto parentPath = path.parent_path();
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
-					TOAST_CORE_INFO("	Normal Map exists: %s", aiTexPath.C_Str());
-					TOAST_CORE_INFO("	Normal map filepath: %s", completePath.c_str());
+					//TOAST_CORE_INFO("	Normal Map exists: %s", aiTexPath.C_Str());
+					//TOAST_CORE_INFO("	Normal map filepath: %s", completePath.c_str());
 					useNormalMap = 1;
 					mMaterial->SetTexture(4, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
 				}
@@ -197,7 +200,7 @@ namespace Toast {
 					metalness = 0.0f;
 				else 
 				{
-					TOAST_CORE_INFO("	metalvalue: %f", metalness);
+					//TOAST_CORE_INFO("	metalvalue: %f", metalness);
 				}
 
 				bool hasMetalnessMap = aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &aiTexPath) == AI_SUCCESS;
@@ -208,8 +211,8 @@ namespace Toast {
 					auto parentPath = path.parent_path();
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
-					TOAST_CORE_INFO("	Metalness Map exists: %s", aiTexPath.C_Str());
-					TOAST_CORE_INFO("	Metalness map filepath: %s", completePath.c_str());
+					//TOAST_CORE_INFO("	Metalness Map exists: %s", aiTexPath.C_Str());
+					//TOAST_CORE_INFO("	Metalness map filepath: %s", completePath.c_str());
 					metalness = 1.0f;
 					useMetalnessMap = 1;
 					mMaterial->SetTexture(5, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
@@ -227,7 +230,7 @@ namespace Toast {
 					shininess = 80.0f; // Default value
 
 				float roughness = 1.0f - sqrt(shininess / 100.0f);
-				TOAST_CORE_INFO("	roughness: %f", roughness);
+				//TOAST_CORE_INFO("	roughness: %f", roughness);
 
 				bool hasRoughnessMap = aiMaterial->GetTexture(aiTextureType_SHININESS, 0, &aiTexPath) == AI_SUCCESS;
 				int useRoughnessMap = 0;
@@ -237,8 +240,8 @@ namespace Toast {
 					auto parentPath = path.parent_path();
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
-					TOAST_CORE_INFO("	Roughness Map exists: %s", aiTexPath.C_Str());
-					TOAST_CORE_INFO("	Roughness map filepath: %s", completePath.c_str());
+					//TOAST_CORE_INFO("	Roughness Map exists: %s", aiTexPath.C_Str());
+					//TOAST_CORE_INFO("	Roughness map filepath: %s", completePath.c_str());
 					roughness = 1.0f;
 					useRoughnessMap = 1;
 					mMaterial->SetTexture(6, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
@@ -284,6 +287,8 @@ namespace Toast {
 
 			mInstanceVertexBuffer->SetData(&mPlanetPatches[0], static_cast<uint32_t>(sizeof(PlanetPatch) * mPlanetPatches.size()));
 		}
+
+		mMaterial = MaterialLibrary::Get("Planet");
 
 		// Setting up the constant buffer and data buffer for the planet mesh rendering
 		mPlanetCBuffer = ConstantBufferLibrary::Load("Planet", 48, D3D11_VERTEX_SHADER, 2);

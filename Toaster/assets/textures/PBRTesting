@@ -1,0 +1,419 @@
+Scene: Untitled Scene
+Entities:
+  - Entity: 15353642663930949121
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, -222.199997, 0]
+      Scale: [0.999852777, 1, 0.999852777]
+    DirectionalLightComponent:
+      Radiance: [1, 1, 1]
+      Intensity: 1
+      SunDisk: true
+  - Entity: 4104429174904814821
+    TagComponent:
+      Tag: Sphere36
+    TransformComponent:
+      Translation: [12.5, 12.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere36
+  - Entity: 11382961033548472654
+    TagComponent:
+      Tag: Sphere35
+    TransformComponent:
+      Translation: [12.5, 10, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere35
+  - Entity: 8052290025318331764
+    TagComponent:
+      Tag: Sphere34
+    TransformComponent:
+      Translation: [12.5, 7.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere34
+  - Entity: 3458175531078106000
+    TagComponent:
+      Tag: Sphere33
+    TransformComponent:
+      Translation: [12.5, 5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere33
+  - Entity: 1018960489771386446
+    TagComponent:
+      Tag: Sphere32
+    TransformComponent:
+      Translation: [12.5, 2.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere32
+  - Entity: 1923691354319246914
+    TagComponent:
+      Tag: Sphere31
+    TransformComponent:
+      Translation: [12.5, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere31
+  - Entity: 7425100578894371501
+    TagComponent:
+      Tag: Sphere30
+    TransformComponent:
+      Translation: [10, 12.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere30
+  - Entity: 16896886219456414627
+    TagComponent:
+      Tag: Sphere29
+    TransformComponent:
+      Translation: [10, 10, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere29
+  - Entity: 7175626685882949673
+    TagComponent:
+      Tag: Sphere28
+    TransformComponent:
+      Translation: [10, 7.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere28
+  - Entity: 17415540141626711794
+    TagComponent:
+      Tag: Sphere27
+    TransformComponent:
+      Translation: [10, 5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere27
+  - Entity: 1624367606650194522
+    TagComponent:
+      Tag: Sphere26
+    TransformComponent:
+      Translation: [10, 2.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere26
+  - Entity: 5436629938394285431
+    TagComponent:
+      Tag: Sphere25
+    TransformComponent:
+      Translation: [10, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere25
+  - Entity: 12440452866993290380
+    TagComponent:
+      Tag: Sphere24
+    TransformComponent:
+      Translation: [7.5, 12.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere24
+  - Entity: 1504977904106438415
+    TagComponent:
+      Tag: Sphere23
+    TransformComponent:
+      Translation: [7.5, 10, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere23
+  - Entity: 2994661008769121883
+    TagComponent:
+      Tag: Sphere22
+    TransformComponent:
+      Translation: [7.5, 7.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere22
+  - Entity: 3159098377354090208
+    TagComponent:
+      Tag: Sphere21
+    TransformComponent:
+      Translation: [7.5, 5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere21
+  - Entity: 633104724581618048
+    TagComponent:
+      Tag: Sphere20
+    TransformComponent:
+      Translation: [7.5, 2.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere20
+  - Entity: 14978351537371986662
+    TagComponent:
+      Tag: Sphere19
+    TransformComponent:
+      Translation: [7.5, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere19
+  - Entity: 4405174611582305494
+    TagComponent:
+      Tag: Sphere18
+    TransformComponent:
+      Translation: [5, 12.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere18
+  - Entity: 17286174824564430901
+    TagComponent:
+      Tag: Sphere17
+    TransformComponent:
+      Translation: [5, 10, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere17
+  - Entity: 16392376023517345096
+    TagComponent:
+      Tag: Sphere16
+    TransformComponent:
+      Translation: [5, 7.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere16
+  - Entity: 14603457206134974234
+    TagComponent:
+      Tag: Sphere15
+    TransformComponent:
+      Translation: [5, 5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere15
+  - Entity: 17085522942402597927
+    TagComponent:
+      Tag: Sphere14
+    TransformComponent:
+      Translation: [5, 2.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere14
+  - Entity: 15530037170002460731
+    TagComponent:
+      Tag: Sphere13
+    TransformComponent:
+      Translation: [5, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere13
+  - Entity: 3404074759911702522
+    TagComponent:
+      Tag: Sphere12
+    TransformComponent:
+      Translation: [2.5, 12.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere12
+  - Entity: 9651277502091064697
+    TagComponent:
+      Tag: Sphere11
+    TransformComponent:
+      Translation: [2.5, 10, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere11
+  - Entity: 12455343201541440512
+    TagComponent:
+      Tag: Sphere10
+    TransformComponent:
+      Translation: [2.5, 7.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere10
+  - Entity: 4279012898120369298
+    TagComponent:
+      Tag: Sphere9
+    TransformComponent:
+      Translation: [2.5, 5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere9
+  - Entity: 5047068487912169142
+    TagComponent:
+      Tag: Sphere8
+    TransformComponent:
+      Translation: [2.5, 2.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere8
+  - Entity: 704346341908848288
+    TagComponent:
+      Tag: Sphere7
+    TransformComponent:
+      Translation: [2.5, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere7
+  - Entity: 8186337697447973501
+    TagComponent:
+      Tag: Sphere6
+    TransformComponent:
+      Translation: [0, 12.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere6
+  - Entity: 13810898858625341092
+    TagComponent:
+      Tag: Sphere5
+    TransformComponent:
+      Translation: [0, 10, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere5
+  - Entity: 4112387721666152153
+    TagComponent:
+      Tag: Sphere4
+    TransformComponent:
+      Translation: [0, 7.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere4
+  - Entity: 619530210254591055
+    TagComponent:
+      Tag: Sphere3
+    TransformComponent:
+      Translation: [0, 5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere3
+  - Entity: 17175402381688142945
+    TagComponent:
+      Tag: Sphere2
+    TransformComponent:
+      Translation: [0, 2.5, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere2
+  - Entity: 12397015013556191658
+    TagComponent:
+      Tag: Sphere
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: ..\Toaster\assets\meshes\Sphere.fbx
+      IsPlanet: false
+      Material: Sphere1
+  - Entity: 10244354427691850119
+    TagComponent:
+      Tag: Skylight
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SkyLightComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\immenstadter_horn_4k.tif
+      Intensity: 1

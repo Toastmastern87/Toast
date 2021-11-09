@@ -161,6 +161,10 @@ namespace Toast {
 								auto& value = mSelectionContext->GetFloat3(rawName);
 								if (ImGui::ColorEdit3("color", &value.x))
 									isDirty = true;
+								float& emission = mSelectionContext->GetFloat("Emission");
+								ImGui::Text("Emission");
+								if(ImGui::DragFloat("##emission", &emission))
+									isDirty = true;
 
 							}
 							else if (rawName == "Roughness" || rawName == "Metalness")
