@@ -1,8 +1,8 @@
 Material: StarshipMaterial
 Shader: ToastPBR
-Albedo: [0, 0, 0, 0]
-Metalness: 0
-Roughness: 0
+Albedo: [0.420033306, 0.420033306, 0.420033306, 1]
+Metalness: 1
+Roughness: 0.247999966
 UseAlbedoMap: 0
 UseNormalMap: 0
 UseMetalnessMap: 0
