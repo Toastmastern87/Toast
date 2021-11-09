@@ -1,5 +1,12 @@
 Material: Standard
 Shader: ToastPBR
+Albedo: [0.424710453, 0.185298383, 0.185298383, 0]
+Metalness: 0
+Roughness: 0
+UseAlbedoMap: 0
+UseNormalMap: 0
+UseMetalnessMap: 0
+UseRoughnessMap: 0
 Textures:
   - FilePath: C:\dev\Toast\Toaster\assets\textures\Blue.png
     BindSlot: 3

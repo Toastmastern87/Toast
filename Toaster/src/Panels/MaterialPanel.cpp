@@ -145,7 +145,7 @@ namespace Toast {
 
 						if(textureName != "HeightMapTexture" && textureName != "CraterMapTexture")
 						{
-							auto useMap = mSelectionContext->GetBool(toggleName);
+							auto useMap = mSelectionContext->Get<bool>(toggleName);
 							ImGui::SameLine();
 							if (ImGui::Checkbox("Use##Map", &useMap))
 							{

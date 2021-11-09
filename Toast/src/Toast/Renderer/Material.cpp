@@ -10,6 +10,75 @@
 
 #include <yaml-cpp/yaml.h>
 
+namespace YAML
+{
+	template<>
+	struct convert<DirectX::XMFLOAT3>
+	{
+		static Node encode(const DirectX::XMFLOAT3& rhs)
+		{
+			Node node;
+			node.push_back(rhs.x);
+			node.push_back(rhs.y);
+			node.push_back(rhs.z);
+			node.SetStyle(EmitterStyle::Flow);
+			return node;
+		}
+
+		static bool decode(const Node& node, DirectX::XMFLOAT3& rhs)
+		{
+			if (!node.IsSequence() || node.size() != 3)
+				return false;
+
+			rhs.x = node[0].as<float>();
+			rhs.y = node[1].as<float>();
+			rhs.z = node[2].as<float>();
+			return true;
+		}
+	};
+
+	template<>
+	struct convert<DirectX::XMFLOAT4>
+	{
+		static Node encode(const DirectX::XMFLOAT4& rhs)
+		{
+			Node node;
+			node.push_back(rhs.x);
+			node.push_back(rhs.y);
+			node.push_back(rhs.z);
+			node.push_back(rhs.w);
+			node.SetStyle(EmitterStyle::Flow);
+			return node;
+		}
+
+		static bool decode(const Node& node, DirectX::XMFLOAT4& rhs)
+		{
+			if (!node.IsSequence() || node.size() != 4)
+				return false;
+
+			rhs.x = node[0].as<float>();
+			rhs.y = node[1].as<float>();
+			rhs.z = node[2].as<float>();
+			rhs.w = node[3].as<float>();
+			return true;
+		}
+	};
+
+	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT3& v)
+	{
+		out << YAML::Flow;
+		out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
+		return out;
+	}
+
+	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT4& v)
+	{
+		out << YAML::Flow;
+		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
+		return out;
+	}
+}
+
 namespace Toast {
 
 	Material::Material(const std::string& name, const Ref<Shader>& shader)
@@ -255,10 +324,21 @@ namespace Toast {
 		out << YAML::Key << "Material" << YAML::Value << material->GetName();
 		out << YAML::Key << "Shader" << YAML::Value << material->GetShader()->GetName();
 
+		if (material->GetMaterialCBuffer()) 
+		{
+			out << YAML::Key << "Albedo" << YAML::Value << material->Get<DirectX::XMFLOAT4>("Albedo");
+			out << YAML::Key << "Metalness" << YAML::Value << material->Get<float>("Metalness");
+			out << YAML::Key << "Roughness" << YAML::Value << material->Get<float>("Roughness");
+			out << YAML::Key << "UseAlbedoMap" << YAML::Value << material->Get<int>("AlbedoTexToggle");
+			out << YAML::Key << "UseNormalMap" << YAML::Value << material->Get<int>("NormalTexToggle");
+			out << YAML::Key << "UseMetalnessMap" << YAML::Value << material->Get<int>("MetalnessTexToggle");
+			out << YAML::Key << "UseRoughnessMap" << YAML::Value << material->Get<int>("RoughnessTexToggle");
+		}
+
 		out << YAML::Key << "Textures" << YAML::Value << YAML::BeginSeq;
 		for (auto& texture : material->GetTextureBindings())
 		{
-			// First few slots are preserved for PBR textures
+			// First few slots are preserved for environmental textures
 			if (texture.Texture && (texture.ShaderType != D3D11_PIXEL_SHADER || texture.BindSlot > 2)) 
 			{
 				out << YAML::BeginMap;
@@ -296,6 +376,17 @@ namespace Toast {
 			TOAST_CORE_TRACE("Deserializing material '%s', Shader : '%s'", materialName.c_str(), shaderName.c_str());
 
 			auto& material = MaterialLibrary::Load(materialName, ShaderLibrary::Get(shaderName));
+
+			if (material->GetMaterialCBuffer())
+			{
+				material->Set<DirectX::XMFLOAT4>("Albedo", data["Albedo"].as<DirectX::XMFLOAT4>());
+				material->Set<float>("Metalness", data["Metalness"].as<float>());
+				material->Set<float>("Roughness", data["Roughness"].as<float>());
+				material->Set<int>("AlbedoTexToggle", data["UseAlbedoMap"].as<int>());
+				material->Set<int>("NormalTexToggle", data["UseNormalMap"].as<int>());
+				material->Set<int>("MetalnessTexToggle", data["UseMetalnessMap"].as<int>());
+				material->Set<int>("RoughnessTexToggle", data["UseRoughnessMap"].as<int>());
+			}
 
 			auto textures = data["Textures"];
 			if (textures)

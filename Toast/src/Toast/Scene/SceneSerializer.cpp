@@ -65,7 +65,7 @@ namespace YAML
 
 namespace Toast {
 
-	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT3& v) 
+	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT3& v)
 	{
 		out << YAML::Flow;
 		out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;

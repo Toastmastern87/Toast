@@ -1,5 +1,12 @@
 Material: Planet
 Shader: Planet
+Albedo: [0, 0, 0, 0]
+Metalness: 0
+Roughness: 0.187999994
+UseAlbedoMap: 1
+UseNormalMap: 0
+UseMetalnessMap: 0
+UseRoughnessMap: 0
 Textures:
   - FilePath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
     BindSlot: 4
@@ -9,12 +16,6 @@ Textures:
     ShaderType: 1
   - FilePath: C:\dev\Toast\Toaster\assets\textures\MarsAlbedo.png
     BindSlot: 3
-    ShaderType: 5
-  - FilePath: C:\dev\Toast\Toaster\assets\textures\White.png
-    BindSlot: 5
-    ShaderType: 5
-  - FilePath: C:\dev\Toast\Toaster\assets\textures\White.png
-    BindSlot: 6
     ShaderType: 5
   - FilePath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
     BindSlot: 7

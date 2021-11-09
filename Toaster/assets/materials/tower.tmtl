@@ -1,5 +1,12 @@
 Material: tower
 Shader: ToastPBR
+Albedo: [0, 0, 0, 0]
+Metalness: 0
+Roughness: 0
+UseAlbedoMap: 1
+UseNormalMap: 0
+UseMetalnessMap: 0
+UseRoughnessMap: 0
 Textures:
   - FilePath: C:\dev\Toast\Toaster\assets\meshes\stone watch tower\tower_diffuse.jpg
     BindSlot: 3
