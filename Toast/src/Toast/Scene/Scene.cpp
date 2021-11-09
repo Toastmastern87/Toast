@@ -573,6 +573,7 @@ namespace Toast {
 		target->mSkyboxTexture = mSkyboxTexture;
 		target->mSkyboxMaterial = mSkyboxMaterial;
 		target->mSkyboxLod = mSkyboxLod;
+		target->mSkybox = mSkybox;
 
 		std::unordered_map<UUID, entt::entity> enttMap;
 		auto idComponent = mRegistry.view<IDComponent>();
@@ -702,6 +703,8 @@ namespace Toast {
 	template<>
 	void Scene::OnComponentAdded<SkyLightComponent>(Entity entity, SkyLightComponent& component)
 	{
+		TOAST_CORE_INFO("Skybox being added to the scene");
+
 		// Initiate the skybox
 		Ref<Shader> skyboxShader = CreateRef<Shader>("assets/shaders/Skybox.hlsl");
 		mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader);
