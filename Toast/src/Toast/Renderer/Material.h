@@ -72,6 +72,8 @@ namespace Toast {
 		Ref<Texture> GetTexture(std::string name);
 		void SetTextureSampler(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureSampler>& sampler);
 
+		Ref<ConstantBuffer> GetMaterialCBuffer() const { return mMaterialCBuffer; }
+
 		void SetUpResourceBindings();
 		void Map();
 		void Bind();

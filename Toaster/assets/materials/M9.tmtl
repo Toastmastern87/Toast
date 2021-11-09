@@ -1,5 +1,12 @@
 Material: M9
 Shader: ToastPBR
+Albedo: [0, 0, 0, 0]
+Metalness: 0
+Roughness: 0
+UseAlbedoMap: 0
+UseNormalMap: 0
+UseMetalnessMap: 0
+UseRoughnessMap: 0
 Textures:
   - FilePath: C:\dev\Toast\Toaster\assets\meshes\beretta m9\textures\M9_BaseColor.png
     BindSlot: 3
