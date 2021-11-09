@@ -134,7 +134,7 @@ namespace Toast {
 
 		for (Submesh& submesh : mesh->mSubmeshes) 
 		{
-			mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(transform, submesh.Transform));
+			mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, transform));
 			mesh->Set<int>("Model", "entityID", entityID);
 			mesh->Map();
 			mesh->Bind();

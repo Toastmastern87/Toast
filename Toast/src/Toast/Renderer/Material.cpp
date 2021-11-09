@@ -131,7 +131,8 @@ namespace Toast {
 
 	void Material::Map()
 	{
-		mMaterialCBuffer->Map(mMaterialBuffer);
+		if(mMaterialCBuffer)
+			mMaterialCBuffer->Map(mMaterialBuffer);
 	}
 
 	void Material::Bind()

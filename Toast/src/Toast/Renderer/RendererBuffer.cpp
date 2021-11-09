@@ -184,6 +184,8 @@ namespace Toast {
 	ConstantBuffer::ConstantBuffer(const std::string name, const uint32_t size, const D3D11_SHADER_TYPE shaderType, const uint32_t bindPoint, D3D11_USAGE usage)
 		: mName(name), mSize(size), mShaderType(shaderType), mBindPoint(bindPoint)
 	{
+		//TOAST_CORE_INFO("Creating constant buffer named: %s", name.c_str());
+
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
 
@@ -250,6 +252,8 @@ namespace Toast {
 
 	Ref<ConstantBuffer> ConstantBufferLibrary::Load(const std::string& name, const uint32_t size, const D3D11_SHADER_TYPE shaderType, const uint32_t bindPoint)
 	{
+		//TOAST_CORE_INFO("Loading constant buffer named: %s", name.c_str());
+
 		if (Exists(name))
 			return mConstantBuffers[name];
 
