@@ -6,6 +6,8 @@
 
 #include "imgui/imgui.h"
 
+#include "../FontAwesome.h"
+
 #include "Toast/Renderer/Shader.h"
 
 namespace Toast {
@@ -17,7 +19,7 @@ namespace Toast {
 
 	void MaterialPanel::OnImGuiRender()
 	{
-		ImGui::Begin("Material");
+		ImGui::Begin(ICON_TOASTER_PAINT_BRUSH" Material");
 
 		const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
 
@@ -61,7 +63,7 @@ namespace Toast {
 
 		bool isDirty = false;
 
-		if (ImGui::TreeNodeEx((void*)9817244, treeNodeFlags, "Material Properties"))
+		if (ImGui::TreeNodeEx((void*)9817244, treeNodeFlags, ICON_TOASTER_COG" Material Properties"))
 		{
 			auto name = mSelectionContext->GetName();
 			auto oldName = name;

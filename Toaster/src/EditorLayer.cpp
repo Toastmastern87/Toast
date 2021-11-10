@@ -17,10 +17,12 @@
 
 #include "Toast/Utils/PlatformUtils.h"
 
+#include "FontAwesome.h"
+
 #include "ImGuizmo.h"
 
 namespace Toast {
-
+	
 	EditorLayer::EditorLayer()
 		: Layer("TheNextFrontier2D")
 	{
@@ -143,6 +145,8 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		//ImGui::ShowDemoWindow();
+
 		static bool dockingEnabled = true;
 		if (dockingEnabled)
 		{
@@ -257,7 +261,7 @@ namespace Toast {
 			mConsolePanel.OnImGuiRender();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
-			ImGui::Begin("Viewport");
+			ImGui::Begin(ICON_TOASTER_GAMEPAD" Viewport");
 			auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
 			auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
 			auto viewportOffset = ImGui::GetWindowPos();
@@ -378,7 +382,7 @@ namespace Toast {
 
 			ImGui::End();
 
-			ImGui::Begin("Statistics");
+			ImGui::Begin(ICON_TOASTER_CALCULATOR" Statistics");
 
 			std::string name = "none";
 			if (mHoveredEntity)

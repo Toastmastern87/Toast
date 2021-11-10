@@ -1,5 +1,7 @@
 #include "EnvironmentalPanel.h"
 
+#include "../FontAwesome.h"
+
 #include "Toast/Utils/PlatformUtils.h"
 
 #include "imgui/imgui.h"
@@ -18,7 +20,7 @@ namespace Toast {
 
 	void EnvironmentalPanel::OnImGuiRender()
 	{
-		ImGui::Begin("Environment");
+		ImGui::Begin(ICON_TOASTER_CLOUD" Environment");
 
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, 200.0f);

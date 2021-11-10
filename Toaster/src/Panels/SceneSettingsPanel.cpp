@@ -1,5 +1,7 @@
 #include "SceneSettingsPanel.h"
 
+#include "../FontAwesome.h"
+
 #include "imgui/imgui.h"
 
 namespace Toast {
@@ -16,7 +18,7 @@ namespace Toast {
 
 	void SceneSettingsPanel::OnImGuiRender()
 	{
-		ImGui::Begin("Settings");
+		ImGui::Begin(ICON_TOASTER_COG" Settings");
 
 		if(mContext)
 		{
