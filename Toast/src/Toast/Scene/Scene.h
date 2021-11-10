@@ -57,6 +57,7 @@ namespace Toast {
 		void SetSkybox(const Ref<TextureCube>& skybox);
 
 		int GetFPS() const { return (int)mStats.FPS; }
+		float GetFrameTime() const { return mStats.FrameTime; }
 		int GetVertices() const { return (int)mStats.VerticesCount; }
 
 		Entity FindEntityByTag(const std::string& tag);
@@ -74,7 +75,8 @@ namespace Toast {
 		};
 		struct Stats
 		{
-			float timesteps = 0.0f;
+			float TimeSteps = 0.0f;
+			float FrameTime = 0.0f;
 			float FPS = 0.0f;
 			uint32_t VerticesCount = 0;
 		};

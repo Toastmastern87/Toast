@@ -21,7 +21,12 @@ namespace Toast {
 
 		sInstance = this;
 
-		mWindow = Window::Create(WindowProps(name));
+		// Get the resolution of the screen
+		RECT desktop;
+		const HWND hDesktop = GetDesktopWindow();
+		GetWindowRect(hDesktop, &desktop);
+
+		mWindow = Window::Create(WindowProps(name, desktop.right, desktop.bottom));
 		mWindow->SetEventCallback(TOAST_BIND_EVENT_FN(Application::OnEvent));
 		mWindow->SetVSync(false);
 
