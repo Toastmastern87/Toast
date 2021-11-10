@@ -13,6 +13,8 @@
 
 #include "Toast/Utils/PlatformUtils.h"
 
+#include "../FontAwesome.h"
+
 #include <filesystem>
 #include <string>
 #include <cstring>
@@ -42,7 +44,7 @@ namespace Toast {
 
 	void SceneHierarchyPanel::OnImGuiRender()
 	{
-		ImGui::Begin("Hierarchy");
+		ImGui::Begin(ICON_TOASTER_SITEMAP" Hierarchy");
 
 		mContext->mRegistry.each([&](auto entityID)
 			{
@@ -86,7 +88,7 @@ namespace Toast {
 
 		ImGui::End();
 
-		ImGui::Begin("Properties");
+		ImGui::Begin(ICON_TOASTER_WRENCH" Properties");
 
 		if (mSelectionContext)
 			DrawComponents(mSelectionContext);
@@ -418,7 +420,9 @@ namespace Toast {
 
 		ImGui::PopItemWidth();
 
-		DrawComponent<TransformComponent>("Transform", entity, [](auto& component, Entity entity) 
+		ImGui::TextDisabled("UUID: %llx", entity.GetComponent<IDComponent>().ID);
+
+		DrawComponent<TransformComponent>(ICON_TOASTER_ARROWS_ALT" Transform", entity, [](auto& component, Entity entity)
 		{
 			float fov = 45.0f;
 			DirectX::XMFLOAT3 translationFloat3, scaleFloat3;
@@ -458,7 +462,7 @@ namespace Toast {
 			}
 		});
 		
-		DrawComponent<MeshComponent>("Mesh", entity, [](auto& component, Entity entity) 
+		DrawComponent<MeshComponent>(ICON_TOASTER_CUBE" Mesh", entity, [](auto& component, Entity entity)
 		{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -512,7 +516,7 @@ namespace Toast {
 				}
 		});
 
-		DrawComponent<CameraComponent>("Camera", entity, [](auto& component, Entity entity)
+		DrawComponent<CameraComponent>(ICON_TOASTER_CAMERA" Camera", entity, [](auto& component, Entity entity)
 		{
 			auto& camera = component.Camera;
 
@@ -592,14 +596,65 @@ namespace Toast {
 			ImGui::Columns(1);
 		});
 
-		DrawComponent<PlanetComponent>("Planet", entity, [](auto& component, Entity entity)
+		DrawComponent<PlanetComponent>(ICON_TOASTER_GLOBE" Planet", entity, [](auto& component, Entity entity)
 		{
 				DirectX::XMVECTOR cameraPos = { 0.0f, 0.0f, 0.0f }, cameraRot = { 0.0f, 0.0f, 0.0f }, cameraScale = { 0.0f, 0.0f, 0.0f };
 				int patchLevels = component.PatchLevels;
 				int subdivions = component.Subdivisions;
 				float fov = 45.0f;
+				bool modified = false;
 
-				if (DrawIntControl("Patch levels", patchLevels, 100.0f, 1, 6) || DrawIntControl("Subdivisions", subdivions, 100.0f, 0, 8) || DrawFloatControl("Max Altitude(km)", component.PlanetData.maxAltitude.x) || DrawFloatControl("Min Altitude(km)", component.PlanetData.minAltitude.x) || DrawFloatControl("Radius(km)", component.PlanetData.radius.x))
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+				if (ImGui::BeginTable("PlanetComponentTable", 2, flags))
+				{
+					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Patch levels");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					if (ImGui::SliderInt("##Patchlevels", &patchLevels, 1, 6))
+						modified = true;
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Subdivisions");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					if (ImGui::SliderInt("##Subdivisions", &subdivions, 0, 8))
+						modified = true;
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Max Alt(km)");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					if (ImGui::DragFloat("##MaxAlt", &component.PlanetData.maxAltitude.x, 0.1f, 0.0f, 0.0f, "%.2f"))
+						modified = true;
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Min Alt(km)");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					if (ImGui::DragFloat("##MinAltitude", &component.PlanetData.minAltitude.x, 0.1f, 0.0f, 0.0f, "%.2f"))
+						modified = true;
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Radius(km)");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					if (ImGui::DragFloat("##Radius", &component.PlanetData.radius.x, 0.1f, 0.0f, 0.0f, "%.2f"))
+						modified = true;
+
+					ImGui::EndTable();
+				}
+
+				if (modified)
 				{
 					component.PatchLevels = patchLevels;
 					component.Subdivisions = subdivions;
@@ -631,7 +686,7 @@ namespace Toast {
 				}
 		});
 
-		DrawComponent<DirectionalLightComponent>("Directional Light", entity, [](auto& component, Entity entity)
+		DrawComponent<DirectionalLightComponent>(ICON_TOASTER_SUN_O" Directional Light", entity, [](auto& component, Entity entity)
 		{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -662,7 +717,7 @@ namespace Toast {
 				}
 		});
 
-		DrawComponent<SkyLightComponent>("Sky Light", entity, [](auto& component, Entity entity)
+		DrawComponent<SkyLightComponent>(ICON_TOASTER_CLOUD" Sky Light", entity, [](auto& component, Entity entity)
 		{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -698,7 +753,7 @@ namespace Toast {
 				}
 		});
 
-		DrawComponent<ScriptComponent>("Script", entity, [=](auto& sc, Entity entity)
+		DrawComponent<ScriptComponent>(ICON_TOASTER_CODE" Script", entity, [=](auto& sc, Entity entity)
 			{
 				std::string oldName = sc.ModuleName;
 

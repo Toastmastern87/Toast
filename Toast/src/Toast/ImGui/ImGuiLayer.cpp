@@ -39,6 +39,11 @@ namespace Toast
 		io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto Mono/RobotoMono-Bold.ttf", 16.0f);
 		io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto Mono/RobotoMono-Regular.ttf", 16.0f);
 
+		// Add the icons
+		ImFontConfig config;
+		config.MergeMode = true;
+		static const ImWchar iconRanges[] = { 0xf000, 0xf307, 0 };
+		io.Fonts->AddFontFromFileTTF("assets/fonts/FontAwesome/fontawesome-webfont.ttf", 13.0f, &config, iconRanges);
 		ImGui::StyleColorsDark();
 
 		ImGuiStyle& style = ImGui::GetStyle();

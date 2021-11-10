@@ -4,6 +4,8 @@
 
 #include "Toast/Core/Log.h"
 
+#include "../FontAwesome.h"
+
 #include "imgui/imgui.h"
 
 namespace Toast {
@@ -12,7 +14,7 @@ namespace Toast {
 
 	void ConsolePanel::OnImGuiRender()
 	{
-		ImGui::Begin("Console");
+		ImGui::Begin(ICON_TOASTER_EXCLAMATION_CIRCLE" Console");
 
 		for (auto itr = Log::sMessages.begin(); itr != Log::sMessages.end(); ++itr)
 		{
