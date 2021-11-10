@@ -122,10 +122,10 @@ namespace Toast {
 
 		// Update statistics
 		{
-			mStats.timesteps += ts;
-			if (mStats.timesteps > 0.1f)
+			mStats.FrameTime += ts;
+			if (mStats.FrameTime > 0.1f)
 			{
-				mStats.timesteps -= 0.1f;
+				mStats.FrameTime -= 0.1f;
 				mStats.FPS = 1.0f / ts;
 			}
 
@@ -320,11 +320,12 @@ namespace Toast {
 
 		// Update statistics
 		{
-			mStats.timesteps += ts;
-			if (mStats.timesteps > 0.1f)
+			mStats.TimeSteps += ts;
+			if (mStats.TimeSteps > 0.1f)
 			{
-				mStats.timesteps -= 0.1f;
-				mStats.FPS = 1.0f / ts;
+				mStats.FrameTime = ts.GetMilliseconds();
+				mStats.TimeSteps -= 0.1f;
+				mStats.FPS = 1.0f / ts.GetSeconds();
 			}
 
 			mStats.VerticesCount = 0;

@@ -386,7 +386,8 @@ namespace Toast {
 			ImGui::Text("Hovered Entity: %s", name.c_str());
 
 			ImGui::Text("FPS: %d", mEditorScene->GetFPS());
-			ImGui::Text("Vertex Count: %d", mEditorScene->GetVertices());
+			ImGui::Text("Frame time: %fms", mEditorScene->GetFrameTime());
+			ImGui::Text("Vertex count: %d", mEditorScene->GetVertices());
 
 			ImGui::End();
 		}

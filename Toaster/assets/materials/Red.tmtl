@@ -1,9 +1,9 @@
 Material: Red
 Shader: ToastPBR
 Albedo: [0, 0, 0, 0]
-Metalness: 0
+Metalness: 1
 Roughness: 0
-UseAlbedoMap: 0
+UseAlbedoMap: 1
 UseNormalMap: 0
 UseMetalnessMap: 0
 UseRoughnessMap: 0

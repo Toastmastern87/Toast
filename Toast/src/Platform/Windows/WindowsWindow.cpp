@@ -25,7 +25,7 @@ namespace Toast
 
 	static void Win32ErrorCallback(int error, const char* description) 
 	{
-		TOAST_CORE_ERROR("Win32 Error ({0}): {1}", error, description);
+		TOAST_CORE_ERROR("Win32 Error (%d): {%s}", error, description);
 	}
 
 	WindowsWindow::WindowsWindow(const WindowProps& props) 
