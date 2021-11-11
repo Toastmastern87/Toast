@@ -108,7 +108,7 @@ namespace Toast {
 		case SceneState::Edit:
 		{
 			// Update
-			if (mViewportFocused)
+			if(mViewportFocused)
 				mEditorCamera->OnUpdate(ts);
 
 			mEditorScene->OnUpdateEditor(ts, mEditorCamera);

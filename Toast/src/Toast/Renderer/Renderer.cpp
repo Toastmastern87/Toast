@@ -24,7 +24,7 @@ namespace Toast {
 		RendererDebug::Init();
 
 		// Setting up the constant buffer and data buffer for the camera rendering
-		mSceneRendererData->mCameraCBuffer = ConstantBufferLibrary::Load("Camera", 208, D3D11_VERTEX_SHADER, 0);
+		mSceneRendererData->mCameraCBuffer = ConstantBufferLibrary::Load("Camera", 272, D3D11_VERTEX_SHADER, 0);
 		mSceneRendererData->mCameraCBuffer->Bind();
 		mSceneRendererData->mCameraBuffer.Allocate(mSceneRendererData->mCameraCBuffer->GetSize());
 		mSceneRendererData->mCameraBuffer.ZeroInitialize();
@@ -61,7 +61,8 @@ namespace Toast {
 		mSceneRendererData->mCameraBuffer.Write((void*)&viewMatrix, 64, 0);
 		mSceneRendererData->mCameraBuffer.Write((void*)&camera.GetProjection(), 64, 64);
 		mSceneRendererData->mCameraBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, viewMatrix), 64, 128);
-		mSceneRendererData->mCameraBuffer.Write((void*)&cameraPos.x, 16, 192);
+		mSceneRendererData->mCameraBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, camera.GetProjection()), 64, 192);
+		mSceneRendererData->mCameraBuffer.Write((void*)&cameraPos.x, 16, 256);
 		mSceneRendererData->mCameraCBuffer->Map(mSceneRendererData->mCameraBuffer);
 
 		// Updating the lightning data in the buffer and mapping it to the GPU

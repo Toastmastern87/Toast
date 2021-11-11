@@ -21,6 +21,7 @@ cbuffer Camera : register(b0)
 	matrix viewMatrix;
 	matrix projectionMatrix;
 	matrix inverseViewMatrix;
+	matrix inverseProjectionMatrix;
 	float4 cameraPosition;
 };
 

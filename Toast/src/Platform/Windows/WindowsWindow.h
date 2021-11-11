@@ -36,7 +36,7 @@ namespace Toast
 		{
 			std::string Title;
 			unsigned int Width = 0, Height = 0;
-			bool VSync = false;
+			bool VSync = true;
 
 			EventCallbackFn EventCallback;
 		};

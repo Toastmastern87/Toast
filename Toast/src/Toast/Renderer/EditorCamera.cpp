@@ -20,6 +20,10 @@ namespace Toast {
 	void EditorCamera::UpdateView()
 	{
 		mPosition = CalculatePosition();
+		//TOAST_CORE_INFO("Position: %f, %f, %f", DirectX::XMVectorGetX(mPosition), DirectX::XMVectorGetY(mPosition), DirectX::XMVectorGetZ(mPosition));
+		//TOAST_CORE_INFO("Pitch: %f, Yaw: %f", mPitch, mYaw);
+		//TOAST_CORE_INFO("Forward: %f, %f, %f", DirectX::XMVectorGetX(GetForwardDirection()), DirectX::XMVectorGetY(GetForwardDirection()), DirectX::XMVectorGetZ(GetForwardDirection()));
+		//TOAST_CORE_INFO("Up: %f, %f, %f", DirectX::XMVectorGetX(GetUpDirection()), DirectX::XMVectorGetY(GetUpDirection()), DirectX::XMVectorGetZ(GetUpDirection()));
 		mViewMatrix = DirectX::XMMatrixLookToLH(mPosition, GetForwardDirection(), GetUpDirection());
 	}
 

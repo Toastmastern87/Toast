@@ -23,6 +23,7 @@ namespace Toast {
 		uint32_t LineVertexCount = 0;
 
 		Ref<Shader> DebugShader;
+		Ref<Shader> GridShader;
 		Ref<ShaderLayout::ShaderInputElement> LineShaderInputLayout;
 		Ref<VertexBuffer> LineVertexBuffer;
 
@@ -43,12 +44,19 @@ namespace Toast {
 		sData.LineVertexBufferBase = new LineVertex[sData.MaxVertices];
 
 		sData.DebugShader = CreateRef<Shader>("assets/shaders/Debug.hlsl");
+		sData.GridShader = CreateRef<Shader>("assets/shaders/Grid.hlsl");
 
 		// Setting up the constant buffer and data buffer for the debug rendering data
-		mSceneData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 208, D3D11_VERTEX_SHADER, 0);
+		mSceneData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 272, D3D11_VERTEX_SHADER, 0);
 		mSceneData->mDebugCBuffer->Bind();
 		mSceneData->mDebugBuffer.Allocate(mSceneData->mDebugCBuffer->GetSize());
 		mSceneData->mDebugBuffer.ZeroInitialize();
+
+		// Setting up the constant buffer and data buffer for the grid rendering
+		mSceneData->mGridCBuffer = ConstantBufferLibrary::Load("Grid", 144, D3D11_PIXEL_SHADER, 10);
+		mSceneData->mGridCBuffer->Bind();
+		mSceneData->mGridBuffer.Allocate(mSceneData->mGridCBuffer->GetSize());
+		mSceneData->mGridBuffer.ZeroInitialize();
 	}
 
 	void RendererDebug::Shutdown()
@@ -68,6 +76,9 @@ namespace Toast {
 		// Updating the camera data in the buffer and mapping it to the GPU
 		mSceneData->mDebugBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
 		mSceneData->mDebugBuffer.Write((void*)&camera.GetProjection(), 64, 64);
+		mSceneData->mDebugBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()), 64, 128);
+		mSceneData->mDebugBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, camera.GetProjection()), 64, 192);
+		mSceneData->mDebugBuffer.Write((void*)&camera.GetPosition(), 16, 256);
 		mSceneData->mDebugCBuffer->Map(mSceneData->mDebugBuffer);
 		sData.DebugShader->Bind();
 
@@ -163,6 +174,19 @@ namespace Toast {
 		DirectX::XMStoreFloat3(&p2f, p2);
 
 		RendererDebug::SubmitLine(p1f, p2f);
+	}
+
+	void RendererDebug::DrawGrid(const EditorCamera& camera)
+	{
+		// Updating the grid data in the buffer and mapping it to the GPU
+		mSceneData->mGridBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
+		mSceneData->mGridBuffer.Write((void*)&camera.GetProjection(), 64, 64);
+		mSceneData->mGridBuffer.Write((void*)&camera.GetFarClip(), 4, 128);
+		mSceneData->mGridBuffer.Write((void*)&camera.GetNearClip(), 4, 132);
+		mSceneData->mGridCBuffer->Map(mSceneData->mGridBuffer);
+		sData.GridShader->Bind();
+
+		RenderCommand::Draw(6);
 	}
 
 	void RendererDebug::StartBatch()
