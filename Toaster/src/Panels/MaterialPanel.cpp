@@ -10,8 +10,6 @@
 
 #include "Toast/Renderer/Shader.h"
 
-#include <clocale>
-
 namespace Toast {
 
 	void MaterialPanel::SetContext(const Ref<Material>& context)
@@ -170,8 +168,6 @@ namespace Toast {
 						float& emission = mSelectionContext->GetFloat("Emission");
 						ImGui::Text("Emission");
 						ImGui::TableSetColumnIndex(1);
-						std::setlocale(LC_NUMERIC, "de_DE.UTF-8");
-						ImGui::GetCurrentContext()->PlatformLocaleDecimalPoint = *localeconv()->decimal_point;
 						if (ImGui::DragFloat("##emission", &emission))
 							isDirty = true;
 						ImGui::EndTable();

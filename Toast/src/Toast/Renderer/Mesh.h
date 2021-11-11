@@ -9,9 +9,11 @@
 
 #include <DirectXMath.h>
 
+#pragma warning(push, 0)
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
+#pragma warning(pop)
 
 struct aiScene;
 

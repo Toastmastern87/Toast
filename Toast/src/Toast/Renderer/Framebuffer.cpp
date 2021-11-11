@@ -26,7 +26,7 @@ namespace Toast {
 			textureDesc.MipLevels = 1;
 			textureDesc.ArraySize = 1;
 			textureDesc.Format = (DXGI_FORMAT)textureSpec.TextureFormat;
-			textureDesc.SampleDesc.Count = 1;
+			textureDesc.SampleDesc.Count = 4;
 			textureDesc.SampleDesc.Quality = 0;
 			textureDesc.Usage = D3D11_USAGE_DEFAULT;
 			textureDesc.BindFlags = (UINT)(TOAST_BIND_RENDER_TARGET | TOAST_BIND_SHADER_RESOURCE);
@@ -37,14 +37,14 @@ namespace Toast {
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create 2D texture!");
 
 			renderTargetViewDesc.Format = (DXGI_FORMAT)textureSpec.TextureFormat;
-			renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+			renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
 			renderTargetViewDesc.Texture2D.MipSlice = 0;
 
 			result = device->CreateRenderTargetView(outColorAttachment->RenderTargetTexture.Get(), &renderTargetViewDesc, &outColorAttachment->RenderTargetView);
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create render target view!");
 
 			shaderResourceViewDesc.Format = (DXGI_FORMAT)textureSpec.TextureFormat;
-			shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+			shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
 			shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
 			shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
@@ -67,7 +67,7 @@ namespace Toast {
 			textureDesc.MipLevels = 1;
 			textureDesc.ArraySize = 1;
 			textureDesc.Format = (DXGI_FORMAT)textureSpec.TextureFormat;
-			textureDesc.SampleDesc.Count = 1;
+			textureDesc.SampleDesc.Count = 4;
 			textureDesc.SampleDesc.Quality = 0;
 			textureDesc.Usage = D3D11_USAGE_DEFAULT;
 			textureDesc.BindFlags = (UINT)TOAST_BIND_DEPTH_STENCIL;
@@ -103,7 +103,7 @@ namespace Toast {
 			ZeroMemory(&depthStencilViewDesc, sizeof(depthStencilViewDesc));
 
 			depthStencilViewDesc.Format = (DXGI_FORMAT)textureSpec.TextureFormat;
-			depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+			depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
 			depthStencilViewDesc.Texture2D.MipSlice = 0;
 
 			result = device->CreateDepthStencilView(outDepthAttachment->DepthStencilBuffer.Get(), &depthStencilViewDesc, &outDepthAttachment->DepthStencilView);

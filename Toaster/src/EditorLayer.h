@@ -13,6 +13,7 @@
 #include "Panels/MaterialPanel.h"
 #include "Panels/EnvironmentalPanel.h"
 #include "Panels/ConsolePanel.h"
+#include "Panels/ContentBrowserPanel.h"
 
 namespace Toast {
 
@@ -40,6 +41,8 @@ namespace Toast {
 		bool OnKeyPressed(KeyPressedEvent& e);
 		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
 		void UpdateWindowTitle(const std::string& sceneName);
+
+		void DrawTitlebar();
 	private:
 		std::optional<std::string> mSceneFilePath;
 
@@ -75,5 +78,6 @@ namespace Toast {
 		MaterialPanel mMaterialPanel;
 		EnvironmentalPanel mEnvironmentPanel;
 		ConsolePanel mConsolePanel;
+		ContentBrowserPanel mContentBrowserPanel;
 	};
 }

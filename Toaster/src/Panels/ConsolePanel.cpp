@@ -33,7 +33,7 @@ namespace Toast {
 			}
 		}
 
-		ImGui::SetScrollHere(1.0f);
+		//ImGui::SetScrollHere(1.0f);
 
 		ImGui::End();
 	}

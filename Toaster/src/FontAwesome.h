@@ -16,4 +16,5 @@
 #define ICON_TOASTER_EXCLAMATION_CIRCLE u8"\uf06a"
 #define ICON_TOASTER_PAINT_BRUSH		u8"\uf1fc"
 #define ICON_TOASTER_CALCULATOR			u8"\uf1ec"
-#define ICON_TOASTER_WRENCH u8"\uf0ad"
+#define ICON_TOASTER_WRENCH				u8"\uf0ad"
+#define ICON_TOASTER_FOLDER				u8"\uf07b"

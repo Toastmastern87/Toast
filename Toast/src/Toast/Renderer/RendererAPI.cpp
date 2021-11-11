@@ -40,7 +40,7 @@ namespace Toast {
 		sd.Flags = 0;
 		sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		sd.OutputWindow = mWindowHandle;
-		sd.SampleDesc.Count = 1;
+		sd.SampleDesc.Count = 4;
 		sd.SampleDesc.Quality = 0;
 		sd.Windowed = TRUE;
 		sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
@@ -185,6 +185,8 @@ namespace Toast {
 		memset(&rasterDesc, 0, sizeof(D3D11_RASTERIZER_DESC));
 		rasterDesc.CullMode = D3D11_CULL_NONE;
 		rasterDesc.FillMode = D3D11_FILL_SOLID;
+		rasterDesc.AntialiasedLineEnable = true;
+		rasterDesc.MultisampleEnable = true;
 		rasterDesc.DepthClipEnable = true;
 
 		result = mDevice->CreateRasterizerState(&rasterDesc, &mNormalRasterizerState);

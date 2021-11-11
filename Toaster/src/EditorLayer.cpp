@@ -147,6 +147,8 @@ namespace Toast {
 
 		//ImGui::ShowDemoWindow();
 
+		DrawTitlebar();
+
 		static bool dockingEnabled = true;
 		if (dockingEnabled)
 		{
@@ -259,6 +261,7 @@ namespace Toast {
 			mMaterialPanel.OnImGuiRender();
 			mEnvironmentPanel.OnImGuiRender();
 			mConsolePanel.OnImGuiRender();
+			mContentBrowserPanel.OnImGuiRender();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 			ImGui::Begin(ICON_TOASTER_GAMEPAD" Viewport");
@@ -576,6 +579,11 @@ namespace Toast {
 	{
 		std::string title = sceneName + " - Toaster - " + Application::GetPlatformName() + " (" + Application::GetConfigurationName() + ")";
 		Application::Get().GetWindow().SetTitle(title);
+	}
+
+	void EditorLayer::DrawTitlebar()
+	{
+
 	}
 
 }
