@@ -1,7 +1,9 @@
 #include "tpch.h"
 #include "Toast/ImGui/ImGuiLayer.h"
 
+#pragma warning(push, 0)
 #include <imgui.h>
+#pragma warning(pop)
 
 #include "Toast/Core/Application.h"
 
