@@ -19,16 +19,16 @@ namespace Toast {
 		void OnUpdate(Timestep ts);
 		void OnEvent(Event& e);
 
-		const DirectX::XMMATRIX GetViewMatrix() const { return mViewMatrix; }
+		const DirectX::XMMATRIX& GetViewMatrix() const { return mViewMatrix; }
 
 		inline void SetViewportSize(float width, float height) { mViewportWidth = width; mViewportHeight = height; UpdateProjection(); };
 
 		void SetVerticalFOV(float verticalFOV) { mFOV = DirectX::XMConvertToRadians(verticalFOV); UpdateProjection(); }
 		const float GetVerticalFOV() const { return DirectX::XMConvertToDegrees(mFOV); }
 		void SetNearClip(float nearClip) { mNearClip = (std::max)(nearClip, 0.001f); UpdateProjection(); }
-		const float GetNearClip() const { return mNearClip; }
+		const float& GetNearClip() const { return mNearClip; }
 		void SetFarClip(float farClip) { mFarClip = farClip; UpdateProjection(); }
-		const float GetFarClip() const { return mFarClip; }
+		const float& GetFarClip() const { return mFarClip; }
 
 		const float GetAspecRatio() const { return mAspectRatio; }
 		void SetAspectRatio(float aspectRatio) { mAspectRatio = aspectRatio; UpdateProjection(); }
@@ -61,7 +61,7 @@ namespace Toast {
 		DirectX::XMVECTOR mInitialCursorPosition = { 0.0f, 0.0f };
 
 		float mDistance = 10.0f;
-		float mPitch = 0.0f, mYaw = 0.0f;
+		float mPitch = 0.28f, mYaw = 0.0f;
 
 		float mFOV = DirectX::XMConvertToRadians(45.0f), mAspectRatio = 1.778f, mNearClip = 0.1f, mFarClip = 1000.0f;
 

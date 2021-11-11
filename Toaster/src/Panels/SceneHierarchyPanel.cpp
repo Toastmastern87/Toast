@@ -586,14 +586,22 @@ namespace Toast {
 
 		DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, [](auto& component, Entity entity)
 		{
-			ImGui::Columns(2);
-			ImGui::SetColumnWidth(0, 100.0f);
-			ImGui::Text("Color");
-			ImGui::NextColumn();
-			ImGui::PushItemWidth(-1);
-			ImGui::ColorEdit4("##color", &component.Color.x);
-			ImGui::PopItemWidth();
-			ImGui::Columns(1);
+			ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+			if (ImGui::BeginTable("PlanetComponentTable", 2, flags))
+			{
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Color");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::ColorEdit4("##color", &component.Color.x);
+
+				ImGui::EndTable();
+			}
 		});
 
 		DrawComponent<PlanetComponent>(ICON_TOASTER_GLOBE" Planet", entity, [](auto& component, Entity entity)

@@ -515,6 +515,10 @@ namespace Toast {
 			}
 		}
 		RendererDebug::EndScene();
+
+		RenderCommand::DisableWireframeRendering();
+		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
+		RendererDebug::DrawGrid(*editorCamera);
 	}
 
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)
