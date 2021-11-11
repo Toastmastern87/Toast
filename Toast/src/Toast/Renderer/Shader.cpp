@@ -516,6 +516,8 @@ namespace Toast {
 			if (resource.Type == type && resource.BindPoint == bindSlot && resource.Shader == shaderType) 
 				return resource.Name;
 		}	
+
+		return "";
 	}
 
 	std::unordered_map<std::string, Ref<Shader>> ShaderLibrary::mShaders;

@@ -206,8 +206,8 @@ Texture2D SpecularBRDFLUT		: register(t2);
 Texture2D AlbedoTexture			: register(t3);
 Texture2D MetalnessTexture		: register(t5);
 Texture2D RoughnessTexture		: register(t6);
-Texture2D HeightMapTexture		: register(t7);
-Texture2D CraterMapTexture		: register(t8);
+Texture2D HeightMapTexturePS	: register(t7);
+Texture2D CraterMapTexturePS	: register(t8);
 
 SamplerState defaultSampler		: register(s0);
 SamplerState spBRDFSampler		: register(s1);
@@ -262,9 +262,9 @@ float GetHeight(float2 uv)
 {
 	float finalHeight;
 
-	float baseHeight = (HeightMapTexture.SampleLevel(defaultSampler, uv, 0).r * (maxAltitude.x + minAltitude.x) + minAltitude.x);
+	float baseHeight = (HeightMapTexturePS.SampleLevel(defaultSampler, uv, 0).r * (maxAltitude.x + minAltitude.x) + minAltitude.x);
 
-	float craterDetected = CraterMapTexture.SampleLevel(defaultSampler, uv, 0).r;
+	float craterDetected = CraterMapTexturePS.SampleLevel(defaultSampler, uv, 0).r;
 	if (craterDetected == 0.0f)
 	{
 		float craterHeightDetail = SimplexNoise(float3(float2(8192.0f, 4096.0f) * uv, 1.0f), 15.0f, 0.5f, 0.5f);
@@ -283,7 +283,7 @@ float3 CalculateNormal(float3 normalVector, float2 uv)
 	float3 texOffset, N;
 	float3x3 TBN;
 
-	HeightMapTexture.GetDimensions(textureWidth, textureHeight);
+	HeightMapTexturePS.GetDimensions(textureWidth, textureHeight);
 
 	texOffset = float3((1.0f / (textureWidth)), (1.0f / (textureHeight)), 0.0f);
 

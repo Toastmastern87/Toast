@@ -8,6 +8,4 @@ UseNormalMap: 0
 UseMetalnessMap: 0
 UseRoughnessMap: 0
 Textures:
-  - FilePath: C:\dev\Toast\Toaster\assets\textures\Blue.png
-    BindSlot: 3
-    ShaderType: 5
+  []
