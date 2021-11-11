@@ -339,7 +339,7 @@ namespace Toast {
 
 			char buffer[256];
 			memset(buffer, 0, sizeof(buffer));
-			std::strncpy(buffer, tag.c_str(), sizeof(buffer));
+			strncpy_s(buffer, tag.c_str(), sizeof(buffer));
 			if (ImGui::InputText("##Tag", buffer, sizeof(buffer)))
 				tag = std::string(buffer);
 		}

@@ -151,6 +151,8 @@ namespace Toast {
 			if (textureName == name)
 				return textureBinding.Texture;
 		}
+
+		return nullptr;
 	}
 
 	void Material::SetTextureSampler(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureSampler>& sampler)
@@ -237,6 +239,8 @@ namespace Toast {
 			
 			return &buffer.CBufferElements.at(name);
 		}
+
+		return nullptr;
 	}
 
 	std::unordered_map<std::string, Ref<Material>> MaterialLibrary::mMaterials;
@@ -359,8 +363,6 @@ namespace Toast {
 	{
 		for (auto& materialPath : materials)
 		{
-			D3D11_SHADER_TYPE shaderType;
-
 			std::ifstream stream(materialPath);
 			std::stringstream strStream;
 

@@ -175,7 +175,7 @@ namespace Toast {
 			if (mesh->mPlanetPatches.size() > 495000)
 				TOAST_CORE_WARN("Number of instances getting to high: %d", mesh->mPlanetPatches.size());
 
-			RenderCommand::DrawIndexedInstanced(submesh.IndexCount, mesh->mPlanetPatches.size(), 0, 0, 0);
+			RenderCommand::DrawIndexedInstanced(submesh.IndexCount, static_cast<uint32_t>(mesh->mPlanetPatches.size()), 0, 0, 0);
 		}
 	}
 

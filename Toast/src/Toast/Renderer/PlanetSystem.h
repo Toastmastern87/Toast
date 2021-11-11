@@ -72,7 +72,7 @@ namespace Toast {
 
 			for (uint32_t i = 0; i < startIndices.size(); i += 3)
 			{
-				faces.push_back(PlanetFace(startVertices[startIndices[i]], startVertices[startIndices[i + 1]], startVertices[startIndices[i + 2]], nullptr, (short)0));
+				faces.push_back(PlanetFace(startVertices[startIndices[i]], startVertices[startIndices[i + (size_t)1]], startVertices[startIndices[i + (size_t)2]], nullptr, (short)0));
 			}
 		}
 

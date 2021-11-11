@@ -10,6 +10,8 @@
 
 #include "Toast/Renderer/Shader.h"
 
+#include <clocale>
+
 namespace Toast {
 
 	void MaterialPanel::SetContext(const Ref<Material>& context)
@@ -121,18 +123,212 @@ namespace Toast {
 			{
 				std::string textureName = mSelectionContext->GetShader()->GetResourceName(Shader::BindingType::Texture, resource.BindSlot, resource.ShaderType);
 
-				if (textureName != "IrradianceTexture" && textureName != "RadianceTexture" && textureName != "SpecularBRDFLUT") {
-					// Removes the texture part of the string
-					std::size_t pos = textureName.find("Texture");
-					std::string rawName = textureName.substr(0, pos);
-					std::string toggleName = rawName;
-					toggleName.append("TexToggle");
+				ImGuiTableFlags flags = ImGuiTableFlags_NoBordersInBody;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-					//TOAST_CORE_INFO("textureName: %s", textureName.c_str());
-					//TOAST_CORE_INFO("rawName: %s", rawName.c_str());
-					//TOAST_CORE_INFO("toggleName: %s", toggleName.c_str());
+				//Albedo
+				if (textureName == "AlbedoTexture") 
+				{
+					if (ImGui::TreeNodeEx((void*)imguiPtr, treeNodeFlags, "Albedo"))
+					{
+						ImGui::BeginTable("##table1", 2, flags);
+						ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 75.0f);
+						ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::PushItemWidth(-1);
+						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
 
-					if (ImGui::TreeNodeEx((void*)imguiPtr, treeNodeFlags, textureName.c_str()))
+						if (ImGui::IsItemClicked())
+						{
+							std::optional<std::string> filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							if (filename)
+								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
+
+							isDirty = true;
+						}
+						ImGui::TableSetColumnIndex(1);
+						ImGui::BeginTable("##table2", 2, flags);
+						ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthFixed, 55.0f);
+						ImGui::TableSetupColumn("##col4", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 1.1f);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						auto useMap = mSelectionContext->Get<bool>("AlbedoTexToggle");
+						if (ImGui::Checkbox("Use##AlbedoMap", &useMap))
+						{
+							mSelectionContext->Set<int>("AlbedoTexToggle", useMap ? 1 : 0);
+
+							isDirty = true;
+						}
+						ImGui::TableSetColumnIndex(1);
+						ImGui::PushItemWidth(-1);
+						auto& value = mSelectionContext->GetFloat3("Albedo");
+						if (ImGui::ColorEdit3("color", &value.x))
+							isDirty = true;
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						float& emission = mSelectionContext->GetFloat("Emission");
+						ImGui::Text("Emission");
+						ImGui::TableSetColumnIndex(1);
+						std::setlocale(LC_NUMERIC, "de_DE.UTF-8");
+						ImGui::GetCurrentContext()->PlatformLocaleDecimalPoint = *localeconv()->decimal_point;
+						if (ImGui::DragFloat("##emission", &emission))
+							isDirty = true;
+						ImGui::EndTable();
+						ImGui::EndTable();
+						ImGui::TreePop();
+					}
+				}
+
+				//Normal
+				if (textureName == "NormalTexture")
+				{
+					if (ImGui::TreeNodeEx((void*)imguiPtr, treeNodeFlags, "Normal"))
+					{
+						ImGui::BeginTable("##table1", 2, flags);
+						ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 75.0f);
+						ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::PushItemWidth(-1);
+
+						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
+
+						if (ImGui::IsItemClicked())
+						{
+							std::optional<std::string> filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							if (filename)
+								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
+
+							isDirty = true;
+						}
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::BeginTable("##table2", 2, flags);
+						ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthFixed, 55.0f);
+						ImGui::TableSetupColumn("##col4", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 1.1f);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+
+						auto useMap = mSelectionContext->Get<bool>("NormalTexToggle");
+						if (ImGui::Checkbox("Use##NormalMap", &useMap))
+						{
+							mSelectionContext->Set<int>("NormalTexToggle", useMap ? 1 : 0);
+
+							isDirty = true;
+						}
+
+						ImGui::EndTable();
+						ImGui::EndTable();
+						ImGui::TreePop();
+					}
+				}
+
+				//Metalness
+				if (textureName == "MetalnessTexture")
+				{
+					if (ImGui::TreeNodeEx((void*)imguiPtr, treeNodeFlags, "Metalness"))
+					{
+						ImGui::BeginTable("##table1", 2, flags);
+						ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 75.0f);
+						ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::PushItemWidth(-1);
+
+						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
+
+						if (ImGui::IsItemClicked())
+						{
+							std::optional<std::string> filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							if (filename)
+								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
+
+							isDirty = true;
+						}
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::BeginTable("##table2", 2, flags);
+						ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthFixed, 55.0f);
+						ImGui::TableSetupColumn("##col4", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 1.1f);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+
+						auto useMap = mSelectionContext->Get<bool>("MetalnessTexToggle");
+
+						if (ImGui::Checkbox("Use##MetalnessMap", &useMap))
+						{
+							mSelectionContext->Set<int>("MetalnessTexToggle", useMap ? 1 : 0);
+
+							isDirty = true;
+						}
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::PushItemWidth(-1);
+						auto& value = mSelectionContext->GetFloat("Metalness");
+						if (ImGui::DragFloat("##value", &value, 0.001f, 0.0f, 1.0f, "%.3f"))
+							isDirty = true;
+
+						ImGui::EndTable();
+						ImGui::EndTable();
+						ImGui::TreePop();
+					}
+				}
+
+				//Roughness
+				if (textureName == "RoughnessTexture")
+				{
+					if (ImGui::TreeNodeEx((void*)imguiPtr, treeNodeFlags, "Roughness"))
+					{
+						ImGui::BeginTable("##table1", 2, flags);
+						ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 75.0f);
+						ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::PushItemWidth(-1);
+
+						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
+
+						if (ImGui::IsItemClicked())
+						{
+							std::optional<std::string> filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							if (filename)
+								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
+
+							isDirty = true;
+						}
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::BeginTable("##table2", 2, flags);
+						ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthFixed, 55.0f);
+						ImGui::TableSetupColumn("##col4", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 1.1f);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+
+						auto useMap = mSelectionContext->Get<bool>("RoughnessTexToggle");
+						if (ImGui::Checkbox("Use##RoughnessMap", &useMap))
+						{
+							mSelectionContext->Set<int>("RoughnessTexToggle", useMap ? 1 : 0);
+
+							isDirty = true;
+						}
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::PushItemWidth(-1);
+						auto& value = mSelectionContext->GetFloat("Roughness");
+						if (ImGui::DragFloat("##value", &value, 0.001f, 0.0f, 1.0f, "%.3f"))
+							isDirty = true;
+
+						ImGui::EndTable();
+						ImGui::EndTable();
+						ImGui::TreePop();
+					}
+				}
+
+				//Height Map
+				if (textureName == "HeightMapTexture")
+				{
+					if (ImGui::TreeNodeEx((void*)imguiPtr, treeNodeFlags, "Height Map"))
 					{
 						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
 
@@ -145,46 +341,29 @@ namespace Toast {
 							isDirty = true;
 						}
 
-						if(textureName != "HeightMapTexture" && textureName != "CraterMapTexture")
+						ImGui::TreePop();
+					}
+				}
+
+				//Crater Map
+				if (textureName == "CraterMapTexture")
+				{
+					if (ImGui::TreeNodeEx((void*)imguiPtr, treeNodeFlags, "Crater Map"))
+					{
+						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
+
+						if (ImGui::IsItemClicked())
 						{
-							auto useMap = mSelectionContext->Get<bool>(toggleName);
-							ImGui::SameLine();
-							if (ImGui::Checkbox("Use##Map", &useMap))
-							{
-								mSelectionContext->Set<int>(toggleName, useMap ? 1 : 0);
+							std::optional<std::string> filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							if (filename)
+								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
 
-								isDirty = true;
-							}
-
-							if (rawName == "Albedo")
-							{
-								ImGui::PushItemWidth(-1);
-								ImGui::SameLine();
-								auto& value = mSelectionContext->GetFloat3(rawName);
-								if (ImGui::ColorEdit3("color", &value.x))
-									isDirty = true;
-								float& emission = mSelectionContext->GetFloat("Emission");
-								ImGui::Text("Emission");
-								if(ImGui::DragFloat("##emission", &emission))
-									isDirty = true;
-
-							}
-							else if (rawName == "Roughness" || rawName == "Metalness")
-							{
-								ImGui::PushItemWidth(-1);
-								ImGui::SameLine();
-								auto& value = mSelectionContext->GetFloat(rawName);
-								if (ImGui::DragFloat("##value", &value, 0.001f, 0.0f, 1.0f, "%.3f"))
-									isDirty = true;
-							}
+							isDirty = true;
 						}
 
 						ImGui::TreePop();
 					}
 				}
-
-				// 10 being the max number of textures that the material panel can show
-				imguiPtr++;;
 			}
 
 			ImGui::TreePop();
