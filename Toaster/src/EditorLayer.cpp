@@ -12,10 +12,10 @@
 
 #include "Toast/Script/ScriptEngine.h"
 
+#include "Toast/Utils/PlatformUtils.h"
+
 #include <imgui/imgui.h>
 #include <filesystem>
-
-#include "Toast/Utils/PlatformUtils.h"
 
 #include "FontAwesome.h"
 
@@ -43,16 +43,11 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet.hlsl");
 		ShaderLibrary::Load("assets/shaders/ToastPBR.hlsl");
+		ShaderLibrary::Load("assets/shaders/Picking.hlsl");
 
 		// Load all materials from the computer
 		std::vector<std::string> materialStrings = FileDialogs::GetAllFiles("\\assets\\materials");
 		MaterialSerializer::Deserialize(materialStrings);
-
-		FramebufferSpecification fbSpec;
-		fbSpec.Attachments = { FramebufferTextureFormat::R32G32B32A32_FLOAT, FramebufferTextureFormat::R32_SINT, FramebufferTextureFormat::Depth };
-		fbSpec.Width = 1280;
-		fbSpec.Height = 720;
-		mFramebuffer = CreateRef<Framebuffer>(fbSpec);
 
 		mEditorScene = CreateRef<Scene>();
 
@@ -73,12 +68,14 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 		// Resize
-		if (FramebufferSpecification spec = mFramebuffer->GetSpecification();
-			mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && // zero sized framebuffer is invalid
-			(spec.Width != mViewportSize.x || spec.Height != mViewportSize.y))
-		{
-			mFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-
+		Ref<Framebuffer>& baseFramebuffer = Renderer::GetBaseFramebuffer();
+		Ref<Framebuffer>& pickingFramebuffer = Renderer::GetPickingFramebuffer();
+		const FramebufferSpecification spec = baseFramebuffer->GetSpecification();
+		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (spec.Width != mViewportSize.x || spec.Height != mViewportSize.y))
+		{ 
+			baseFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			pickingFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+		 
 			switch (mSceneState)
 			{
 			case SceneState::Edit:
@@ -99,8 +96,6 @@ namespace Toast {
 
 		// Render
 		Renderer2D::ResetStats();
-		mFramebuffer->Bind();
-		mFramebuffer->Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
 
 		// Update scene
 		switch (mSceneState)
@@ -123,7 +118,7 @@ namespace Toast {
 
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 			{
-				int pixelData = mFramebuffer->ReadPixel(1, mouseX, mouseY);
+				int pixelData = pickingFramebuffer->ReadPixel(0, mouseX, mouseY);
 				mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mEditorScene.get());
 			}
 
@@ -136,9 +131,6 @@ namespace Toast {
 			break;
 		}
 		}
-
-		RenderCommand::BindBackbuffer();
-		RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -279,7 +271,8 @@ namespace Toast {
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 			mViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
 
-			ImGui::Image(mFramebuffer->GetColorAttachmentID(), ImVec2{ mViewportSize.x, mViewportSize.y });
+			Ref<Framebuffer>& baseFramebuffer = Renderer::GetBaseFramebuffer();
+			ImGui::Image(baseFramebuffer->GetColorAttachmentIDNonMS(), ImVec2{ mViewportSize.x, mViewportSize.y });
 
 			// Gizmos
 			Entity selectedEntity = mSceneHierarchyPanel.GetSelectedEntity();

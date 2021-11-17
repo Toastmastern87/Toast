@@ -82,6 +82,7 @@ namespace Toast {
 		int ReadPixel(uint32_t attachmentIndex, uint32_t x, uint32_t y);
 
 		void* GetColorAttachmentID(uint32_t index = 0) const { return (void*)mColorAttachments[index].ShaderResourceView.Get(); }
+		void* GetColorAttachmentIDNonMS(uint32_t index = 0);
 		void* GetDepthAttachmentID() const { return (void*)mDepthAttachment.DepthStencilView.Get(); }
 
 		const FramebufferSpecification& GetSpecification() const { return mSpecification; }
@@ -93,6 +94,8 @@ namespace Toast {
 
 		std::vector<FramebufferTextureSpecification> mColorAttachmentSpecifications;
 		std::vector<FramebufferColorAttachment> mColorAttachments;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mShaderResourceView;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRenderTargetView;
 
 		//Depth
 		FramebufferDepthAttachment mDepthAttachment;

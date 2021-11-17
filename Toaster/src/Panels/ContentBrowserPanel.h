@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Toast/Renderer/Texture.h"
+
 #include <filesystem>
 
 namespace Toast {
@@ -13,6 +15,9 @@ namespace Toast {
 		void OnImGuiRender();
 	private:
 		std::filesystem::path mCurrentDirectory;
+
+		Ref<Texture2D> mDirectoryIcon;
+		Ref<Texture2D> mFileIcon;
 	};
 
 }

@@ -14,6 +14,8 @@ namespace Toast {
 	ContentBrowserPanel::ContentBrowserPanel()
 		: mCurrentDirectory(sAssetPath)
 	{
+		mDirectoryIcon = TextureLibrary::LoadTexture2D("Resources/Icons/ContentBrowser/DirectoryIcon.png");
+		mFileIcon = TextureLibrary::LoadTexture2D("Resources/Icons/ContentBrowser/FileIcon.png");
 	}
 
 	void Toast::ContentBrowserPanel::OnImGuiRender()
@@ -28,24 +30,33 @@ namespace Toast {
 			}
 		}
 
-		for(auto& directoryEntry : std::filesystem::directory_iterator(mCurrentDirectory))
+		static float padding = 16.0f;
+		static float thumbnailSize = 128.0f;
+		float cellSize = thumbnailSize + padding;
+
+		float panelWidth = ImGui::GetContentRegionAvail().x;
+		int columnCount = (int)(panelWidth / cellSize);
+		if (columnCount < 1)
+			columnCount = 1;
+
+		ImGui::Columns(columnCount, 0, false);
+
+		for (auto& directoryEntry : std::filesystem::directory_iterator(mCurrentDirectory))
 		{
 			const auto& path = directoryEntry.path();
 			auto relativePath = std::filesystem::relative(path, sAssetPath);
 			std::string filenameStr = relativePath.filename().string();
-			if (directoryEntry.is_directory())
+
+			Ref<Texture2D> icon = directoryEntry.is_directory() ? mDirectoryIcon : mFileIcon;
+			ImGui::ImageButton(icon->GetID(), { thumbnailSize, thumbnailSize }, { 0, 0 }, { 1, 1 });
+			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 			{
-				if (ImGui::Button(filenameStr.c_str()))
-				{
+				if (directoryEntry.is_directory())
 					mCurrentDirectory /= path.filename();
-				}
 			}
-			else
-			{
-				if (ImGui::Button(filenameStr.c_str()))
-				{
-				}
-			}
+			ImGui::TextWrapped(filenameStr.c_str());
+
+			ImGui::NextColumn();
 		}
 
 		ImGui::End();

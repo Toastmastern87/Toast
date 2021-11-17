@@ -8,101 +8,71 @@
 using namespace DirectX;
 
 namespace Toast {
-	
-	struct LineVertex
-	{
-		DirectX::XMFLOAT3 Position;
-		DirectX::XMFLOAT4 Color;
-	};
 
-	struct RendererDebugData
-	{
-		static const uint32_t MaxLines = 20000;
-		static const uint32_t MaxVertices = MaxLines * 2;
-
-		uint32_t LineVertexCount = 0;
-
-		Ref<Shader> DebugShader;
-		Ref<Shader> GridShader;
-		Ref<ShaderLayout::ShaderInputElement> LineShaderInputLayout;
-		Ref<VertexBuffer> LineVertexBuffer;
-
-		LineVertex* LineVertexBufferBase = nullptr;
-		LineVertex* LineVertexBufferPtr = nullptr;
-	};
-
-	static RendererDebugData sData;
-
-	Scope<RendererDebug::SceneData> RendererDebug::mSceneData = CreateScope<RendererDebug::SceneData>();
+	Scope<RendererDebug::DebugData> RendererDebug::mDebugData = CreateScope<RendererDebug::DebugData>();
 
 	void RendererDebug::Init()
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		sData.LineVertexBuffer = CreateRef<VertexBuffer>(sData.MaxVertices * sizeof(LineVertex), sData.MaxVertices, 0);
+		mDebugData->LineVertexBuffer = CreateRef<VertexBuffer>(mDebugData->MaxVertices * sizeof(LineVertex), mDebugData->MaxVertices, 0);
 
-		sData.LineVertexBufferBase = new LineVertex[sData.MaxVertices];
+		mDebugData->LineVertexBufferBase = new LineVertex[mDebugData->MaxVertices];
 
-		sData.DebugShader = CreateRef<Shader>("assets/shaders/Debug.hlsl");
-		sData.GridShader = CreateRef<Shader>("assets/shaders/Grid.hlsl");
+		mDebugData->DebugShader = CreateRef<Shader>("assets/shaders/Debug.hlsl");
+		mDebugData->GridShader = CreateRef<Shader>("assets/shaders/Grid.hlsl");
 
 		// Setting up the constant buffer and data buffer for the debug rendering data
-		mSceneData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 272, D3D11_VERTEX_SHADER, 0);
-		mSceneData->mDebugCBuffer->Bind();
-		mSceneData->mDebugBuffer.Allocate(mSceneData->mDebugCBuffer->GetSize());
-		mSceneData->mDebugBuffer.ZeroInitialize();
+		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 272, D3D11_VERTEX_SHADER, 0);
+		mDebugData->mDebugCBuffer->Bind();
+		mDebugData->mDebugBuffer.Allocate(mDebugData->mDebugCBuffer->GetSize());
+		mDebugData->mDebugBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for the grid rendering
-		mSceneData->mGridCBuffer = ConstantBufferLibrary::Load("Grid", 144, D3D11_PIXEL_SHADER, 10);
-		mSceneData->mGridCBuffer->Bind();
-		mSceneData->mGridBuffer.Allocate(mSceneData->mGridCBuffer->GetSize());
-		mSceneData->mGridBuffer.ZeroInitialize();
+		mDebugData->mGridCBuffer = ConstantBufferLibrary::Load("Grid", 144, D3D11_PIXEL_SHADER, 10);
+		mDebugData->mGridCBuffer->Bind();
+		mDebugData->mGridBuffer.Allocate(mDebugData->mGridCBuffer->GetSize());
+		mDebugData->mGridBuffer.ZeroInitialize();
 	}
 
 	void RendererDebug::Shutdown()
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		delete[] sData.LineVertexBufferBase;
+		delete[] mDebugData->LineVertexBufferBase;
 	}
 
 	void RendererDebug::BeginScene(const EditorCamera& camera)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		ZeroMemory(sData.LineVertexBufferBase, sData.MaxVertices * sizeof(LineVertex));
-		sData.LineVertexCount = 0;
+		ZeroMemory(mDebugData->LineVertexBufferBase, mDebugData->MaxVertices * sizeof(LineVertex));
+		mDebugData->LineVertexCount = 0;
 
 		// Updating the camera data in the buffer and mapping it to the GPU
-		mSceneData->mDebugBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
-		mSceneData->mDebugBuffer.Write((void*)&camera.GetProjection(), 64, 64);
-		mSceneData->mDebugBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()), 64, 128);
-		mSceneData->mDebugBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, camera.GetProjection()), 64, 192);
-		mSceneData->mDebugBuffer.Write((void*)&camera.GetPosition(), 16, 256);
-		mSceneData->mDebugCBuffer->Map(mSceneData->mDebugBuffer);
-		sData.DebugShader->Bind();
+		mDebugData->mDebugBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
+		mDebugData->mDebugBuffer.Write((void*)&camera.GetProjection(), 64, 64);
+		mDebugData->mDebugBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()), 64, 128);
+		mDebugData->mDebugBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, camera.GetProjection()), 64, 192);
+		mDebugData->mDebugBuffer.Write((void*)&camera.GetPosition(), 16, 256);
+		mDebugData->mDebugCBuffer->Map(mDebugData->mDebugBuffer);
 
-		sData.LineVertexBuffer->Bind();
+		mDebugData->LineVertexBuffer->Bind();
 
-		StartBatch();
+		mDebugData->LineVertexBufferPtr = mDebugData->LineVertexBufferBase;
 	}
 
-	void RendererDebug::EndScene()
+	void RendererDebug::EndScene(const bool debugActivated)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		Flush();
-	}
+		DebugPass();
 
-	void RendererDebug::Flush()
-	{
-		if (sData.LineVertexCount == 0)
-			return;
-
-		uint32_t dataSize = (uint32_t)((uint8_t*)sData.LineVertexBufferPtr - (uint8_t*)sData.LineVertexBufferBase);
-		sData.LineVertexBuffer->SetData(sData.LineVertexBufferBase, dataSize);
-
-		RenderCommand::Draw(sData.LineVertexCount);
+		if (debugActivated)
+		{
+			RenderCommand::BindBackbuffer();
+			RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
+		}
 	}
 
 	void RendererDebug::SubmitCameraFrustum(const SceneCamera& camera, DirectX::XMMATRIX& transform, DirectX::XMFLOAT3& pos)
@@ -152,18 +122,15 @@ namespace Toast {
 
 	void RendererDebug::SubmitLine(DirectX::XMFLOAT3& p1, DirectX::XMFLOAT3& p2)
 	{
-		if (sData.LineVertexCount >= RendererDebugData::MaxVertices)
-			NextBatch();
+		mDebugData->LineVertexBufferPtr->Position = p1;
+		mDebugData->LineVertexBufferPtr->Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		mDebugData->LineVertexBufferPtr++;
+		
+		mDebugData->LineVertexBufferPtr->Position = p2;
+		mDebugData->LineVertexBufferPtr->Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		mDebugData->LineVertexBufferPtr++;
 
-		sData.LineVertexBufferPtr->Position = p1;
-		sData.LineVertexBufferPtr->Color = { 1.0f, 1.0f, 1.0f, 1.0f };
-		sData.LineVertexBufferPtr++;
-
-		sData.LineVertexBufferPtr->Position = p2;
-		sData.LineVertexBufferPtr->Color = { 1.0f, 1.0f, 1.0f, 1.0f };
-		sData.LineVertexBufferPtr++;
-
-		sData.LineVertexCount += 2;
+		mDebugData->LineVertexCount += 2;
 	}
 
 	void RendererDebug::SubmitLine(DirectX::XMVECTOR& p1, DirectX::XMVECTOR& p2)
@@ -176,28 +143,43 @@ namespace Toast {
 		RendererDebug::SubmitLine(p1f, p2f);
 	}
 
-	void RendererDebug::DrawGrid(const EditorCamera& camera)
+	void RendererDebug::SubmitGrid(const EditorCamera& camera)
 	{
-		// Updating the grid data in the buffer and mapping it to the GPU
-		mSceneData->mGridBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
-		mSceneData->mGridBuffer.Write((void*)&camera.GetProjection(), 64, 64);
-		mSceneData->mGridBuffer.Write((void*)&camera.GetFarClip(), 4, 128);
-		mSceneData->mGridBuffer.Write((void*)&camera.GetNearClip(), 4, 132);
-		mSceneData->mGridCBuffer->Map(mSceneData->mGridBuffer);
-		sData.GridShader->Bind();
+		mDebugData->GridData.ViewMatrix = camera.GetViewMatrix();
+		mDebugData->GridData.ProjectionMatrix = camera.GetProjection();
+		mDebugData->GridData.FarClip = camera.GetFarClip();
+		mDebugData->GridData.NearClip = camera.GetNearClip();
+	}
+
+	void RendererDebug::DebugPass()
+	{
+		sRendererData->BaseFramebuffer->Bind();
+		mDebugData->DebugShader->Bind();
+		RenderCommand::EnableBlending();
+
+		// Frustum
+		RenderCommand::SetPrimitiveTopology(Topology::LINELIST);
+
+		if (mDebugData->LineVertexCount != 0)
+		{
+			uint32_t dataSize = (uint32_t)((uint8_t*)mDebugData->LineVertexBufferPtr - (uint8_t*)mDebugData->LineVertexBufferBase);
+			mDebugData->LineVertexBuffer->SetData(mDebugData->LineVertexBufferBase, dataSize);
+
+			RenderCommand::Draw(mDebugData->LineVertexCount);
+		}
+
+		//Grid
+		RenderCommand::DisableWireframe();
+		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
+
+		mDebugData->mGridBuffer.Write((void*)&mDebugData->GridData.ViewMatrix, 64, 0);
+		mDebugData->mGridBuffer.Write((void*)&mDebugData->GridData.ProjectionMatrix, 64, 64);
+		mDebugData->mGridBuffer.Write((void*)&mDebugData->GridData.FarClip, 4, 128);
+		mDebugData->mGridBuffer.Write((void*)&mDebugData->GridData.NearClip, 4, 132);
+		mDebugData->mGridCBuffer->Map(mDebugData->mGridBuffer);
+		mDebugData->GridShader->Bind();
 
 		RenderCommand::Draw(6);
-	}
-
-	void RendererDebug::StartBatch()
-	{
-		sData.LineVertexBufferPtr = sData.LineVertexBufferBase;
-	}
-
-	void RendererDebug::NextBatch()
-	{
-		Flush();
-		StartBatch();
 	}
 
 }

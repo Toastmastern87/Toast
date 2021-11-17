@@ -6,14 +6,14 @@
 
 namespace Toast {
 
-	struct RendererData
+	struct RendererStat
 	{
 		Renderer::Statistics Stats;
 	};
 
-	static RendererData sData;
+	static RendererStat sData;
 
-	Scope<Renderer::SceneRendererData> Renderer::mSceneRendererData = CreateScope<Renderer::SceneRendererData>();
+	Scope<Renderer::RendererData> Renderer::sRendererData = CreateScope<Renderer::RendererData>();
 
 	void Renderer::Init()
 	{
@@ -24,22 +24,33 @@ namespace Toast {
 		RendererDebug::Init();
 
 		// Setting up the constant buffer and data buffer for the camera rendering
-		mSceneRendererData->mCameraCBuffer = ConstantBufferLibrary::Load("Camera", 272, D3D11_VERTEX_SHADER, 0);
-		mSceneRendererData->mCameraCBuffer->Bind();
-		mSceneRendererData->mCameraBuffer.Allocate(mSceneRendererData->mCameraCBuffer->GetSize());
-		mSceneRendererData->mCameraBuffer.ZeroInitialize();
+		sRendererData->CameraCBuffer = ConstantBufferLibrary::Load("Camera", 272, D3D11_VERTEX_SHADER, 0);
+		sRendererData->CameraCBuffer->Bind();
+		sRendererData->CameraBuffer.Allocate(sRendererData->CameraCBuffer->GetSize());
+		sRendererData->CameraBuffer.ZeroInitialize();
 
 		//// Setting up the constant buffer and data buffer for lightning rendering
-		mSceneRendererData->mLightningCBuffer = ConstantBufferLibrary::Load("DirectionalLight", 48, D3D11_PIXEL_SHADER, 0);
-		mSceneRendererData->mLightningCBuffer->Bind();
-		mSceneRendererData->mLightningBuffer.Allocate(mSceneRendererData->mLightningCBuffer->GetSize());
-		mSceneRendererData->mLightningBuffer.ZeroInitialize();
+		sRendererData->LightningCBuffer = ConstantBufferLibrary::Load("DirectionalLight", 48, D3D11_PIXEL_SHADER, 0);
+		sRendererData->LightningCBuffer->Bind();
+		sRendererData->LightningBuffer.Allocate(sRendererData->LightningCBuffer->GetSize());
+		sRendererData->LightningBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for enviromental rendering
-		mSceneRendererData->mEnvironmentCBuffer = ConstantBufferLibrary::Load("Environment", 16, D3D11_PIXEL_SHADER, 3);
-		mSceneRendererData->mEnvironmentCBuffer->Bind();
-		mSceneRendererData->mEnvironmentBuffer.Allocate(mSceneRendererData->mEnvironmentCBuffer->GetSize());
-		mSceneRendererData->mEnvironmentBuffer.ZeroInitialize();
+		sRendererData->EnvironmentCBuffer = ConstantBufferLibrary::Load("Environment", 16, D3D11_PIXEL_SHADER, 3);
+		sRendererData->EnvironmentCBuffer->Bind();
+		sRendererData->EnvironmentBuffer.Allocate(sRendererData->EnvironmentCBuffer->GetSize());
+		sRendererData->EnvironmentBuffer.ZeroInitialize();
+
+		FramebufferSpecification baseFBSpec, pickingFBSpec;
+		baseFBSpec.Attachments = { FramebufferTextureFormat::R32G32B32A32_FLOAT, FramebufferTextureFormat::Depth };
+		baseFBSpec.Width = 1280;
+		baseFBSpec.Height = 720;
+		baseFBSpec.Samples = 4;
+		sRendererData->BaseFramebuffer = CreateRef<Framebuffer>(baseFBSpec);
+		pickingFBSpec.Attachments = { FramebufferTextureFormat::R32_SINT, FramebufferTextureFormat::Depth };
+		pickingFBSpec.Width = 1280;
+		pickingFBSpec.Height = 720;
+		sRendererData->PickingFramebuffer = CreateRef<Framebuffer>(pickingFBSpec);
 	}
 
 	void Renderer::Shutdown()
@@ -58,38 +69,47 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		// Updating the camera data in the buffer and mapping it to the GPU
-		mSceneRendererData->mCameraBuffer.Write((void*)&viewMatrix, 64, 0);
-		mSceneRendererData->mCameraBuffer.Write((void*)&camera.GetProjection(), 64, 64);
-		mSceneRendererData->mCameraBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, viewMatrix), 64, 128);
-		mSceneRendererData->mCameraBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, camera.GetProjection()), 64, 192);
-		mSceneRendererData->mCameraBuffer.Write((void*)&cameraPos.x, 16, 256);
-		mSceneRendererData->mCameraCBuffer->Map(mSceneRendererData->mCameraBuffer);
+		sRendererData->CameraBuffer.Write((void*)&viewMatrix, 64, 0);
+		sRendererData->CameraBuffer.Write((void*)&camera.GetProjection(), 64, 64);
+		sRendererData->CameraBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, viewMatrix), 64, 128);
+		sRendererData->CameraBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, camera.GetProjection()), 64, 192);
+		sRendererData->CameraBuffer.Write((void*)&cameraPos.x, 16, 256);
+		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
 		// Updating the lightning data in the buffer and mapping it to the GPU
-		mSceneRendererData->mLightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].Direction, 16, 0);
-		mSceneRendererData->mLightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].Radiance, 16, 16);
-		mSceneRendererData->mLightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].Multiplier, 4, 32);
-		mSceneRendererData->mLightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].SunDisc, 4, 36);
-		mSceneRendererData->mLightningCBuffer->Map(mSceneRendererData->mLightningBuffer);
+		sRendererData->LightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].Direction, 16, 0);
+		sRendererData->LightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].Radiance, 16, 16);
+		sRendererData->LightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].Multiplier, 4, 32);
+		sRendererData->LightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].SunDisc, 4, 36);
+		sRendererData->LightningCBuffer->Map(sRendererData->LightningBuffer);
 
-		mSceneRendererData->SceneData.SceneEnvironment = scene->mEnvironment;
-		mSceneRendererData->SceneData.SceneEnvironmentIntensity = scene->mEnvironmentIntensity;
+		sRendererData->SceneData.SceneEnvironment = scene->mEnvironment;
+		sRendererData->SceneData.SceneEnvironmentIntensity = scene->mEnvironmentIntensity;
 
-		if(mSceneRendererData->SceneData.SceneEnvironment.IrradianceMap)
-			mSceneRendererData->SceneData.SceneEnvironment.IrradianceMap->Bind(0, D3D11_PIXEL_SHADER);
-		if (mSceneRendererData->SceneData.SceneEnvironment.RadianceMap)
-			mSceneRendererData->SceneData.SceneEnvironment.RadianceMap->Bind(1, D3D11_PIXEL_SHADER);
-		if (mSceneRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT)
-			mSceneRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT->Bind(2, D3D11_PIXEL_SHADER);
+		if(sRendererData->SceneData.SceneEnvironment.IrradianceMap)
+			sRendererData->SceneData.SceneEnvironment.IrradianceMap->Bind(0, D3D11_PIXEL_SHADER);
+		if (sRendererData->SceneData.SceneEnvironment.RadianceMap)
+			sRendererData->SceneData.SceneEnvironment.RadianceMap->Bind(1, D3D11_PIXEL_SHADER);
+		if (sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT)
+			sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT->Bind(2, D3D11_PIXEL_SHADER);
 
 		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
 		if (TextureLibrary::ExistsSampler("BRDFSampler"))
 			TextureLibrary::GetSampler("BRDFSampler")->Bind(1, D3D11_PIXEL_SHADER);
 	}
 
-	void Renderer::EndScene()
+	void Renderer::EndScene(const bool debugActivated)
 	{
+		BaseRenderPass();
+		PickingRenderPass();
 
+		if (!debugActivated) 
+		{
+			RenderCommand::BindBackbuffer();
+			RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
+		}
+
+		ClearDrawList();
 	}
 
 	void Renderer::Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform)
@@ -105,78 +125,27 @@ namespace Toast {
 	//Todo should be integrated into SubmitMesh later on
 	void Renderer::SubmitSkybox(const Ref<Mesh> skybox, const DirectX::XMFLOAT4& cameraPos, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMMATRIX& projectionMatrix, float intensity, float LOD)
 	{
-		if (skybox->mVertexBuffer) skybox->mVertexBuffer->Bind();
-		if (skybox->mIndexBuffer) skybox->mIndexBuffer->Bind();
-
-		skybox->Bind();
-
-		mSceneRendererData->mEnvironmentBuffer.Write((void*)&intensity, 4, 0);
-		mSceneRendererData->mEnvironmentBuffer.Write((void*)&LOD, 4, 4);
-		mSceneRendererData->mEnvironmentCBuffer->Map(mSceneRendererData->mEnvironmentBuffer);
-
-		RenderCommand::DisableWireframeRendering();
-		RenderCommand::SetPrimitiveTopology(skybox->mTopology);
-
-		for (Submesh& submesh : skybox->mSubmeshes)
-			RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+		sRendererData->CameraPos = cameraPos;
+		sRendererData->ViewMatrix = viewMatrix;
+		sRendererData->ProjectionMatrix = projectionMatrix;
+		sRendererData->SceneData.SkyboxData.Skybox = skybox;
+		sRendererData->SceneData.SkyboxData.Intensity = intensity;
+		sRendererData->SceneData.SkyboxData.LOD = LOD;
 	}
 
 	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe)
 	{
-		if (mesh->mVertexBuffer) mesh->mVertexBuffer->Bind();
-		if (mesh->mIndexBuffer)	mesh->mIndexBuffer->Bind();
-
-		if (wireframe)
-			RenderCommand::EnableWireframeRendering();
-		else
-			RenderCommand::DisableWireframeRendering();
-
-		RenderCommand::SetPrimitiveTopology(mesh->mTopology);
-
-		for (Submesh& submesh : mesh->mSubmeshes) 
-		{
-			mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, transform));
-			mesh->Set<int>("Model", "entityID", entityID);
-			mesh->Map();
-			mesh->Bind();
-			
-			RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
-		}
+		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, entityID);
 	}
 
 	void Renderer::SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, PlanetComponent::PlanetGPUData planetData, bool wireframe)
 	{
-		if(mesh->mVertexBuffer)	mesh->mVertexBuffer->Bind();
-		if (mesh->mInstanceVertexBuffer) mesh->mInstanceVertexBuffer->Bind();
-		if (mesh->mIndexBuffer)	mesh->mIndexBuffer->Bind();
+		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, entityID, &planetData);
+	}
 
-		if (wireframe)
-			RenderCommand::EnableWireframeRendering();
-		else
-			RenderCommand::DisableWireframeRendering();
-
-		// Planet mesh data
-		mesh->Set<DirectX::XMFLOAT4>("Planet", "radius", planetData.radius);
-		mesh->Set<DirectX::XMFLOAT4>("Planet", "minAltitude", planetData.minAltitude);
-		mesh->Set<DirectX::XMFLOAT4>("Planet", "maxAltitude", planetData.maxAltitude);
-		mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "radius", planetData.radius);
-		mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "minAltitude", planetData.minAltitude);
-		mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "maxAltitude", planetData.maxAltitude);
-
-		mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", transform);
-		mesh->Set<int>("Model", "entityID", entityID);
-		mesh->Map();
-		mesh->Bind();
-
-		RenderCommand::SetPrimitiveTopology(mesh->mTopology);
-
-		for (Submesh& submesh : mesh->mSubmeshes)
-		{
-			if (mesh->mPlanetPatches.size() > 495000)
-				TOAST_CORE_WARN("Number of instances getting to high: %d", mesh->mPlanetPatches.size());
-
-			RenderCommand::DrawIndexedInstanced(submesh.IndexCount, static_cast<uint32_t>(mesh->mPlanetPatches.size()), 0, 0, 0);
-		}
+	void Renderer::ClearDrawList()
+	{
+		sRendererData->MeshDrawList.clear();
 	}
 
 	static Ref<Shader> equirectangularConversionShader, envFilteringShader, envIrradianceShader, spBRDFShader;
@@ -259,6 +228,97 @@ namespace Toast {
 		irradianceMap->UnbindUAV();
 
 		return { envMapFiltered, irradianceMap };
+	}
+
+	void Renderer::BaseRenderPass()
+	{
+		RenderCommand::EnableBlending();
+
+		sRendererData->BaseFramebuffer->Bind();
+		sRendererData->BaseFramebuffer->Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
+
+		if (sRendererData->SceneData.SkyboxData.Skybox)
+		{
+			if (sRendererData->SceneData.SkyboxData.Skybox->mVertexBuffer) sRendererData->SceneData.SkyboxData.Skybox->mVertexBuffer->Bind();
+			if (sRendererData->SceneData.SkyboxData.Skybox->mIndexBuffer) sRendererData->SceneData.SkyboxData.Skybox->mIndexBuffer->Bind();
+
+			sRendererData->SceneData.SkyboxData.Skybox->Bind();
+
+			sRendererData->EnvironmentBuffer.Write((void*)&sRendererData->SceneData.SkyboxData.Intensity, 4, 0);
+			sRendererData->EnvironmentBuffer.Write((void*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
+			sRendererData->EnvironmentCBuffer->Map(sRendererData->EnvironmentBuffer);
+
+			RenderCommand::DisableWireframe();
+			RenderCommand::SetPrimitiveTopology(sRendererData->SceneData.SkyboxData.Skybox->mTopology);
+
+			for (Submesh& submesh : sRendererData->SceneData.SkyboxData.Skybox->mSubmeshes)
+				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+		}
+
+		for (const auto& meshCommand : sRendererData->MeshDrawList) {
+			if (meshCommand.Mesh->mVertexBuffer)	meshCommand.Mesh->mVertexBuffer->Bind();
+			if (meshCommand.Mesh->mInstanceVertexBuffer && meshCommand.PlanetData) meshCommand.Mesh->mInstanceVertexBuffer->Bind();
+			if (meshCommand.Mesh->mIndexBuffer)		meshCommand.Mesh->mIndexBuffer->Bind();
+
+			if (meshCommand.Wireframe)
+				RenderCommand::EnableWireframe();
+			else
+				RenderCommand::DisableWireframe();
+
+			RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
+
+			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+			{
+				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+				meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
+				meshCommand.Mesh->Map();
+				meshCommand.Mesh->Bind();
+
+				if (meshCommand.PlanetData)
+				{
+					// Planet mesh data
+					meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "radius", meshCommand.PlanetData->radius);
+					meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
+					meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
+					meshCommand.Mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "radius", meshCommand.PlanetData->radius);
+					meshCommand.Mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "minAltitude", meshCommand.PlanetData->minAltitude);
+					meshCommand.Mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "maxAltitude", meshCommand.PlanetData->maxAltitude);
+				}
+
+				if (meshCommand.PlanetData)
+					RenderCommand::DrawIndexedInstanced(submesh.IndexCount, static_cast<uint32_t>(meshCommand.Mesh->mPlanetPatches.size()), 0, 0, 0);
+				else
+					RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+			}
+		}
+	}
+
+	void Renderer::PickingRenderPass()
+	{
+		RenderCommand::DisableBlending();
+
+		sRendererData->PickingFramebuffer->Bind();
+		sRendererData->PickingFramebuffer->Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
+
+		for (const auto& meshCommand : sRendererData->MeshDrawList) {
+			if (meshCommand.Mesh->mVertexBuffer)	meshCommand.Mesh->mVertexBuffer->Bind();
+			if (meshCommand.Mesh->mIndexBuffer)		meshCommand.Mesh->mIndexBuffer->Bind();
+
+			RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
+
+			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+			{
+				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+				meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
+				meshCommand.Mesh->Map();
+				meshCommand.Mesh->Bind();
+
+				auto& pickingShader = ShaderLibrary::Get("Picking");
+				pickingShader->Bind();
+
+				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+			}
+		}
 	}
 
 	void Renderer::ResetStats()

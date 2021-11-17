@@ -41,7 +41,6 @@ struct PixelInputType
 	float3 cameraPos		: POSITION1;
 	float3 tangent			: TANGENT0;
 	float3 bitangent		: BITANGENT0;
-	int entityID			: TEXTUREID;
 };
 
 PixelInputType main(VertexInputType input)
@@ -60,8 +59,6 @@ PixelInputType main(VertexInputType input)
 
 	output.texcoord = float2(input.texcoord.x, input.texcoord.y);
 	output.cameraPos = cameraPosition.xyz;
-
-	output.entityID = entityID;
 
 	return output;
 }
@@ -101,13 +98,11 @@ struct PixelInputType
 	float3 cameraPos		: POSITION1;
 	float3 tangent			: TANGENT0;
 	float3 bitangent		: BITANGENT0;
-	int entityID			: TEXTUREID;
 };
 
 struct PixelOutputType
 {
-	float4 Color			: SV_Target0;
-	int EntityID			: SV_Target1;
+	float4 Color			: SV_Target;
 };
 
 struct PBRParameters
@@ -346,7 +341,6 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	float3 iblContribution = IBL(F0, Lr, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness);
 
 	output.Color = float4(lightContribution + iblContribution, 1.0f);//float4(N, 1.0f);//
-	output.EntityID = input.entityID + 1;
 
 	return output;
 }
