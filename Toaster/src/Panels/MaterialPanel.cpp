@@ -10,7 +10,12 @@
 
 #include "Toast/Renderer/Shader.h"
 
+#include <filesystem>
+
 namespace Toast {
+
+	// Once Toast Engine have "projects", change this
+	extern const std::filesystem::path gAssetPath;
 
 	void MaterialPanel::SetContext(const Ref<Material>& context)
 	{
@@ -137,9 +142,29 @@ namespace Toast {
 						ImGui::PushItemWidth(-1);
 						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
 
+						std::optional<std::string> filename;
+
+						if (ImGui::BeginDragDropTarget())
+						{
+							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+							{
+								const wchar_t* path = (const wchar_t*)payload->Data;
+								auto completePath = std::filesystem::path(gAssetPath) / path;
+								filename = completePath.string();
+
+								if (filename)
+									mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
+
+								isDirty = true;
+							}
+
+							ImGui::EndDragDropTarget();
+						}
+
 						if (ImGui::IsItemClicked())
 						{
-							std::optional<std::string> filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+
 							if (filename)
 								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
 
@@ -190,9 +215,28 @@ namespace Toast {
 
 						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
 
+						std::optional<std::string> filename;
+
+						if (ImGui::BeginDragDropTarget())
+						{
+							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+							{
+								const wchar_t* path = (const wchar_t*)payload->Data;
+								auto completePath = std::filesystem::path(gAssetPath) / path;
+								filename = completePath.string();
+
+								if (filename)
+									mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
+
+								isDirty = true;
+							}
+
+							ImGui::EndDragDropTarget();
+						}
+
 						if (ImGui::IsItemClicked())
 						{
-							std::optional<std::string> filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
 							if (filename)
 								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
 
@@ -234,9 +278,28 @@ namespace Toast {
 
 						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
 
+						std::optional<std::string> filename;
+
+						if (ImGui::BeginDragDropTarget())
+						{
+							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+							{
+								const wchar_t* path = (const wchar_t*)payload->Data;
+								auto completePath = std::filesystem::path(gAssetPath) / path;
+								filename = completePath.string();
+
+								if (filename)
+									mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
+
+								isDirty = true;
+							}
+
+							ImGui::EndDragDropTarget();
+						}
+
 						if (ImGui::IsItemClicked())
 						{
-							std::optional<std::string> filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
 							if (filename)
 								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
 
@@ -285,9 +348,28 @@ namespace Toast {
 
 						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
 
+						std::optional<std::string> filename;
+
+						if (ImGui::BeginDragDropTarget())
+						{
+							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+							{
+								const wchar_t* path = (const wchar_t*)payload->Data;
+								auto completePath = std::filesystem::path(gAssetPath) / path;
+								filename = completePath.string();
+
+								if (filename)
+									mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
+
+								isDirty = true;
+							}
+
+							ImGui::EndDragDropTarget();
+						}
+
 						if (ImGui::IsItemClicked())
 						{
-							std::optional<std::string> filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
 							if (filename)
 								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
 
@@ -328,9 +410,28 @@ namespace Toast {
 					{
 						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
 
+						std::optional<std::string> filename;
+
+						if (ImGui::BeginDragDropTarget())
+						{
+							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+							{
+								const wchar_t* path = (const wchar_t*)payload->Data;
+								auto completePath = std::filesystem::path(gAssetPath) / path;
+								filename = completePath.string();
+
+								if (filename)
+									mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
+
+								isDirty = true;
+							}
+
+							ImGui::EndDragDropTarget();
+						}
+
 						if (ImGui::IsItemClicked())
 						{
-							std::optional<std::string> filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
 							if (filename)
 								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
 
@@ -348,9 +449,28 @@ namespace Toast {
 					{
 						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
 
+						std::optional<std::string> filename;
+
+						if (ImGui::BeginDragDropTarget())
+						{
+							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+							{
+								const wchar_t* path = (const wchar_t*)payload->Data;
+								auto completePath = std::filesystem::path(gAssetPath) / path;
+								filename = completePath.string();
+
+								if (filename)
+									mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
+
+								isDirty = true;
+							}
+
+							ImGui::EndDragDropTarget();
+						}
+
 						if (ImGui::IsItemClicked())
 						{
-							std::optional<std::string> filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
 							if (filename)
 								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
 

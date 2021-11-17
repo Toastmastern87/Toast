@@ -23,6 +23,8 @@
 
 namespace Toast {
 	
+	extern const std::filesystem::path gAssetPath;
+
 	EditorLayer::EditorLayer()
 		: Layer("TheNextFrontier2D")
 	{
@@ -274,6 +276,17 @@ namespace Toast {
 			Ref<Framebuffer>& baseFramebuffer = Renderer::GetBaseFramebuffer();
 			ImGui::Image(baseFramebuffer->GetColorAttachmentIDNonMS(), ImVec2{ mViewportSize.x, mViewportSize.y });
 
+			if (ImGui::BeginDragDropTarget()) 
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+				{
+					const wchar_t* path = (const wchar_t*)payload->Data;
+					OpenScene(std::filesystem::path(gAssetPath) / path);
+				}
+
+				ImGui::EndDragDropTarget();
+			}
+
 			// Gizmos
 			Entity selectedEntity = mSceneHierarchyPanel.GetSelectedEntity();
 			if (selectedEntity && mGizmoType != -1 && mSceneState == SceneState::Edit)
@@ -456,19 +469,23 @@ namespace Toast {
 		std::optional<std::string> filepath = FileDialogs::OpenFile("Toast Scene(*.toast)\0*toast\0", "..\\Toaster\\assets\\scenes\\");
 		if (filepath)
 		{
-			mEditorScene = CreateRef<Scene>();
-			mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			mSceneHierarchyPanel.SetContext(mEditorScene);
-			mSceneSettingsPanel.SetContext(mEditorScene);
-			mEnvironmentPanel.SetContext(mEditorScene);
-
 			std::filesystem::path path = *filepath;
 			UpdateWindowTitle(path.filename().string());
 			mSceneFilePath = *filepath;
-
-			SceneSerializer serializer(mEditorScene);
-			serializer.Deserialize(*filepath);
+			OpenScene(path);
 		}
+	}
+
+	void EditorLayer::OpenScene(const std::filesystem::path& path)
+	{
+		mEditorScene = CreateRef<Scene>();
+		mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+		mSceneHierarchyPanel.SetContext(mEditorScene);
+		mSceneSettingsPanel.SetContext(mEditorScene);
+		mEnvironmentPanel.SetContext(mEditorScene);
+
+		SceneSerializer serializer(mEditorScene);
+		serializer.Deserialize(path.string());
 	}
 
 	void EditorLayer::SaveScene()

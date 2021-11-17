@@ -34,6 +34,7 @@ namespace Toast {
 		void OnSceneStop();
 
 		void OpenScene();
+		void OpenScene(const std::filesystem::path& path);
 		void SaveScene();
 		void SaveSceneAs();
 		void NewScene();
