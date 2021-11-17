@@ -31,9 +31,12 @@ namespace Toast {
 			case Severity::Critical:
 				ImGui::TextColored(mCriticalColor, itr->second.c_str()); break;
 			}
-		}
+		}	
+		
+		//bool hovered = ImGui::IsItemHovered();
+		//TOAST_CORE_INFO("Console Panel being hovered: %d", hovered);
 
-		//ImGui::SetScrollHere(1.0f);
+		ImGui::SetScrollHereY(1.0f);
 
 		ImGui::End();
 	}

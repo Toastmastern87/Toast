@@ -52,14 +52,24 @@ namespace Toast {
 			sRendererAPI->ResizeViewport(x, y, width, height);
 		}
 
-		static void EnableWireframeRendering()
+		static void EnableWireframe()
 		{
-			sRendererAPI->EnableWireframeRendering();
+			sRendererAPI->EnableWireframe();
 		}
 
-		static void DisableWireframeRendering()
+		static void DisableWireframe()
 		{
-			sRendererAPI->DisableWireframeRendering();
+			sRendererAPI->DisableWireframe();
+		}
+
+		static void EnableBlending()
+		{
+			sRendererAPI->EnableAlphaBlending();
+		}
+
+		static void DisableBlending()
+		{
+			sRendererAPI->DisableAlphaBlending();
 		}
 
 		static void SetPrimitiveTopology(PrimitiveTopology topology)

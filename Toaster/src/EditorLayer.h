@@ -46,8 +46,6 @@ namespace Toast {
 	private:
 		std::optional<std::string> mSceneFilePath;
 
-		Ref<Framebuffer> mFramebuffer;
-
 		Ref<Scene> mRuntimeScene, mEditorScene;
 
 		Ref<EditorCamera> mEditorCamera;

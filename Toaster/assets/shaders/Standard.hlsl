@@ -38,7 +38,6 @@ struct PixelInputType
 	float3 normal			: NORMAL;
 	float2 texcoord			: TEXCOORD;
 	float3 cameraPos		: POSITION1;
-	int entityID : TEXTUREID;
 };
 
 PixelInputType main(VertexInputType input)
@@ -54,8 +53,6 @@ PixelInputType main(VertexInputType input)
 	output.normal = mul(input.normal, (float3x3)worldMatrix);
 	output.texcoord = float2(input.texcoord.x, 1.0f - input.texcoord.y);
 	output.cameraPos = cameraPosition.xyz;
-
-	output.entityID = entityID;
 
 	return output;
 }
@@ -76,13 +73,11 @@ struct PixelInputType
 	float3 normal			: NORMAL;
 	float2 texcoord			: TEXCOORD;
 	float3 cameraPos		: POSITION1;
-	int entityID : TEXTUREID;
 };
 
 struct PixelOutputType
 {
-	float4 Color			: SV_Target0;
-	int EntityID : SV_Target1;
+	float4 Color			: SV_Target;
 };
 
 PixelOutputType main(PixelInputType input) : SV_TARGET
@@ -90,7 +85,6 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	PixelOutputType output;
 
 	output.Color = float4(1.0f * multiplier, 1.0f * multiplier, 1.0f * multiplier, 1.0f);
-	output.EntityID = input.entityID + 1;
 
 	return output;
 }

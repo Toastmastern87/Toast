@@ -66,7 +66,7 @@ namespace Toast {
 		CreateRasterizerStates();
 
 		EnableAlphaBlending();
-		EnableWireframeRendering();
+		EnableWireframe();
 	}
 
 	void RendererAPI::Clear(const DirectX::XMFLOAT4 clearColor)
@@ -118,12 +118,17 @@ namespace Toast {
 		mDeviceContext->OMSetBlendState(mAlphaBlendEnabledState.Get(), 0, 0xffffffff);
 	}
 
-	void RendererAPI::EnableWireframeRendering()
+	void RendererAPI::DisableAlphaBlending()
+	{
+		mDeviceContext->OMSetBlendState(mAlphaBlendDisabledState.Get(), 0, 0xffffffff);
+	}
+
+	void RendererAPI::EnableWireframe()
 	{
 		mDeviceContext->RSSetState(mWireframeRasterizerState.Get());
 	}
 
-	void RendererAPI::DisableWireframeRendering()
+	void RendererAPI::DisableWireframe()
 	{
 		mDeviceContext->RSSetState(mNormalRasterizerState.Get());
 	}
@@ -163,16 +168,15 @@ namespace Toast {
 		bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-		bd.RenderTarget[1].BlendEnable = false;
-		bd.RenderTarget[1].SrcBlend = D3D11_BLEND_ONE;
-		bd.RenderTarget[1].DestBlend = D3D11_BLEND_ZERO;
-		bd.RenderTarget[1].BlendOp = D3D11_BLEND_OP_ADD;
-		bd.RenderTarget[1].SrcBlendAlpha = D3D11_BLEND_ONE;
-		bd.RenderTarget[1].DestBlendAlpha = D3D11_BLEND_ZERO;
-		bd.RenderTarget[1].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-		bd.RenderTarget[1].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
 		result = mDevice->CreateBlendState(&bd, &mAlphaBlendEnabledState);
+
+		bd.RenderTarget[0].BlendEnable = false;
+		bd.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+		bd.RenderTarget[0].DestBlend = D3D11_BLEND_ZERO;
+		bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+
+		result = mDevice->CreateBlendState(&bd, &mAlphaBlendDisabledState);
 
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create blend states");
 	}

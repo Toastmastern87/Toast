@@ -19,8 +19,13 @@ namespace Toast {
 
 		void OnImGuiRender();
 		void Submit(const std::string& message, Severity level = Severity::Info);
+
+		void SetAutoScroll(bool autoScroll) { mAutoScroll = autoScroll; }
+		bool* GetAutoScroll() { return &mAutoScroll; }
 	private:
 		static Ref<ConsolePanel> sConsole;
+		
+		bool mAutoScroll = true;
 
 		//Colors
 		ImVec4 mTraceColor = { 1.0f, 1.0f, 1.0f, 1.0f };

@@ -291,7 +291,7 @@ namespace Toast {
 					mStats.VerticesCount += static_cast<uint32_t>(mesh.Mesh->GetPlanetVertices().size() * mesh.Mesh->GetPlanetPatches().size());
 				}
 
-				Renderer::EndScene();
+				Renderer::EndScene(false);
 			}
 
 			// 2D Rendering
@@ -479,7 +479,7 @@ namespace Toast {
 				mStats.VerticesCount += static_cast<uint32_t>(mesh.Mesh->GetPlanetVertices().size() * mesh.Mesh->GetPlanetPatches().size());
 			}
 
-			Renderer::EndScene();
+			Renderer::EndScene(true);
 		}
 
 		//// 2D Rendering
@@ -499,8 +499,6 @@ namespace Toast {
 		// Debug Rendering
 		RendererDebug::BeginScene(*editorCamera);
 		{
-			RenderCommand::SetPrimitiveTopology(Topology::LINELIST);
-
 			auto view = mRegistry.view<TransformComponent, CameraComponent>();
 			for (auto entity : view)
 			{
@@ -513,12 +511,10 @@ namespace Toast {
 
 				RendererDebug::SubmitCameraFrustum(camera.Camera, transform.Transform, translationFloat3);
 			}
-		}
-		RendererDebug::EndScene();
 
-		RenderCommand::DisableWireframeRendering();
-		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
-		RendererDebug::DrawGrid(*editorCamera);
+			RendererDebug::SubmitGrid(*editorCamera);
+		}
+		RendererDebug::EndScene(true);
 	}
 
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)
