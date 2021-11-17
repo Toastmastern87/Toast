@@ -9,10 +9,10 @@
 namespace Toast {
 
 	// Once Toast Engine have "projects", change this
-	static const std::filesystem::path sAssetPath = "assets";
+	extern const std::filesystem::path gAssetPath = "assets";
 
 	ContentBrowserPanel::ContentBrowserPanel()
-		: mCurrentDirectory(sAssetPath)
+		: mCurrentDirectory(gAssetPath)
 	{
 		mDirectoryIcon = TextureLibrary::LoadTexture2D("Resources/Icons/ContentBrowser/DirectoryIcon.png");
 		mFileIcon = TextureLibrary::LoadTexture2D("Resources/Icons/ContentBrowser/FileIcon.png");
@@ -22,7 +22,7 @@ namespace Toast {
 	{
 		ImGui::Begin(ICON_TOASTER_FOLDER" Content Browser");
 
-		if (mCurrentDirectory != std::filesystem::path(sAssetPath))
+		if (mCurrentDirectory != std::filesystem::path(gAssetPath))
 		{
 			if (ImGui::Button("<-"))
 			{
@@ -44,11 +44,22 @@ namespace Toast {
 		for (auto& directoryEntry : std::filesystem::directory_iterator(mCurrentDirectory))
 		{
 			const auto& path = directoryEntry.path();
-			auto relativePath = std::filesystem::relative(path, sAssetPath);
+			auto relativePath = std::filesystem::relative(path, gAssetPath);
 			std::string filenameStr = relativePath.filename().string();
 
+			ImGui::PushID(filenameStr.c_str());
 			Ref<Texture2D> icon = directoryEntry.is_directory() ? mDirectoryIcon : mFileIcon;
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 			ImGui::ImageButton(icon->GetID(), { thumbnailSize, thumbnailSize }, { 0, 0 }, { 1, 1 });
+
+			if (ImGui::BeginDragDropSource())
+			{
+				const wchar_t* itemPath = relativePath.c_str();
+				ImGui::SetDragDropPayload("CONTENT_BROWSER_ITEM", itemPath, (wcslen(itemPath) + 1) * sizeof(wchar_t), ImGuiCond_Once);
+				ImGui::EndDragDropSource();
+			}
+
+			ImGui::PopStyleColor();
 			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 			{
 				if (directoryEntry.is_directory())
@@ -57,6 +68,8 @@ namespace Toast {
 			ImGui::TextWrapped(filenameStr.c_str());
 
 			ImGui::NextColumn();
+
+			ImGui::PopID();
 		}
 
 		ImGui::End();
