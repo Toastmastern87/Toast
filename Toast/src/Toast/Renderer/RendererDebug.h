@@ -27,12 +27,12 @@ namespace Toast {
 		static void SubmitLine(DirectX::XMVECTOR& p1, DirectX::XMVECTOR& p2);
 		static void SubmitGrid(const EditorCamera& camera);
 	private:
-		static void DebugPass();
+		static void DebugRenderPass();
+		static void OutlineRenderPass();
 	private:
 		struct DebugData
 		{
-			Ref<Shader> DebugShader;
-			Ref<Shader> GridShader;
+			Ref<Shader> DebugShader, GridShader, SelectedMeshMaskShader, OutlineShader;
 
 			Ref<ShaderLayout::ShaderInputElement> LineShaderInputLayout;
 			Ref<VertexBuffer> LineVertexBuffer;
@@ -42,14 +42,6 @@ namespace Toast {
 
 			uint32_t LineVertexCount = 0;
 			uint32_t MaxVertices = 20000;
-
-			struct GridInfo 
-			{
-				DirectX::XMMATRIX ViewMatrix;
-				DirectX::XMMATRIX ProjectionMatrix;
-				float FarClip;
-				float NearClip;
-			} GridData;
 
 			Ref<ConstantBuffer> mDebugCBuffer, mGridCBuffer;
 			Buffer mDebugBuffer, mGridBuffer;

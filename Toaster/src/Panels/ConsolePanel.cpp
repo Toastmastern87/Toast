@@ -16,6 +16,13 @@ namespace Toast {
 	{
 		ImGui::Begin(ICON_TOASTER_EXCLAMATION_CIRCLE" Console");
 
+		if (ImGui::Button(ICON_TOASTER_PLAY))
+			mScrollLock = true;
+		ImGui::SameLine();
+		if (ImGui::Button(ICON_TOASTER_PAUSE))
+			mScrollLock = false;
+
+		ImGui::BeginChild("Console", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 		for (auto itr = Log::sMessages.begin(); itr != Log::sMessages.end(); ++itr)
 		{
 			switch (itr->first)
@@ -32,12 +39,11 @@ namespace Toast {
 				ImGui::TextColored(mCriticalColor, itr->second.c_str()); break;
 			}
 		}	
-		
-		//bool hovered = ImGui::IsItemHovered();
-		//TOAST_CORE_INFO("Console Panel being hovered: %d", hovered);
 
-		ImGui::SetScrollHereY(1.0f);
+		if(mScrollLock)
+			ImGui::SetScrollHereY(1.0f);
 
+		ImGui::EndChild();
 		ImGui::End();
 	}
 

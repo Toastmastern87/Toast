@@ -67,11 +67,16 @@ namespace Toast {
 
 		UUID GetUUID() const { return mSceneID; }
 
+		void SetSelectedEntity(entt::entity entity) { mSelectedEntity = entity; }
+
 		//Settings
 		struct Settings
 		{
 			enum class Wireframe { NO = 0, YES = 1, ONTOP = 2 };
 			Wireframe WireframeRendering = Wireframe::NO;
+			
+			bool Grid = true;
+			bool CameraFrustum = true;
 		};
 		struct Stats
 		{
@@ -106,6 +111,8 @@ namespace Toast {
 		DirectX::XMVECTOR mOldCameraPos = { 0.0f, 0.0f, 0.0f }, mOldCameraRot = { 0.0f, 0.0f, 0.0f }, mOldCameraScale = { 0.0f, 0.0f, 0.0f };
 
 		bool mIsPlaying = false;
+
+		entt::entity mSelectedEntity;
 
 		friend class Entity;
 		friend class Renderer;

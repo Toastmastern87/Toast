@@ -72,11 +72,15 @@ namespace Toast {
 		// Resize
 		Ref<Framebuffer>& baseFramebuffer = Renderer::GetBaseFramebuffer();
 		Ref<Framebuffer>& pickingFramebuffer = Renderer::GetPickingFramebuffer();
+		Ref<Framebuffer>& outlineFramebuffer = Renderer::GetOutlineFramebuffer();
+		Ref<Framebuffer>& outlineStep2Framebuffer = Renderer::GetOutlineStep2Framebuffer();
 		const FramebufferSpecification spec = baseFramebuffer->GetSpecification();
 		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (spec.Width != mViewportSize.x || spec.Height != mViewportSize.y))
 		{ 
 			baseFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			pickingFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			outlineFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			outlineStep2Framebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		 
 			switch (mSceneState)
 			{
@@ -578,8 +582,11 @@ namespace Toast {
 	{
 		if (e.GetMouseButton() == Mouse::ButtonLeft)
 		{
-			if (mViewportHovered && !ImGuizmo::IsOver() && !Input::IsKeyPressed(Key::LeftAlt))
+			if (mViewportHovered && !ImGuizmo::IsOver() && !Input::IsKeyPressed(Key::LeftAlt)) 
+			{
 				mSceneHierarchyPanel.SetSelectedEntity(mHoveredEntity);
+				mEditorScene->SetSelectedEntity(mHoveredEntity);
+			}
 		}
 
 		return true;

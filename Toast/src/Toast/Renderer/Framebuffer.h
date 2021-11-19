@@ -16,6 +16,7 @@ namespace Toast {
 
 		// Color
 		R32G32B32A32_FLOAT = 2,
+		R16G16B16A16_FLOAT = 10,
 		R8G8B8A8_UNORM = 28,
 		R32_SINT = 43,
 
@@ -74,6 +75,8 @@ namespace Toast {
 		Framebuffer(const FramebufferSpecification& spec);
 		~Framebuffer() = default;
 
+		void CreateDepthDisabledState();
+
 		void Invalidate();
 
 		void Bind() const;
@@ -84,6 +87,9 @@ namespace Toast {
 		void* GetColorAttachmentID(uint32_t index = 0) const { return (void*)mColorAttachments[index].ShaderResourceView.Get(); }
 		void* GetColorAttachmentIDNonMS(uint32_t index = 0);
 		void* GetDepthAttachmentID() const { return (void*)mDepthAttachment.DepthStencilView.Get(); }
+
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV(uint32_t index = 0) const { return mColorAttachments[index].ShaderResourceView; }
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> GetRTTexture(uint32_t index = 0) const { return mColorAttachments[index].RenderTargetTexture; }
 
 		const FramebufferSpecification& GetSpecification() const { return mSpecification; }
 
@@ -100,6 +106,7 @@ namespace Toast {
 		//Depth
 		FramebufferDepthAttachment mDepthAttachment;
 		FramebufferTextureSpecification mDepthAttachmentSpecification = FramebufferTextureFormat::None;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthDisabledStencilState;
 
 		D3D11_VIEWPORT mViewport;
 	};

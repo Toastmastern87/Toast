@@ -445,6 +445,9 @@ namespace Toast {
 					}
 				}
 
+				if (mSelectedEntity == entity)
+					Renderer::SubmitSelecetedMesh(mesh.Mesh, transform.Transform);
+
 				mStats.VerticesCount += static_cast<uint32_t>(mesh.Mesh->GetVertices().size());
 			}
 
@@ -475,6 +478,9 @@ namespace Toast {
 					break;
 				}
 				}
+
+				if (mSelectedEntity == entity)
+					Renderer::SubmitSelecetedMesh(mesh.Mesh, transform.Transform);
 
 				mStats.VerticesCount += static_cast<uint32_t>(mesh.Mesh->GetPlanetVertices().size() * mesh.Mesh->GetPlanetPatches().size());
 			}
@@ -509,10 +515,12 @@ namespace Toast {
 				DirectX::XMMatrixDecompose(&scale, &rotation, &translation, transform.Transform);
 				DirectX::XMStoreFloat3(&translationFloat3, translation);
 
-				RendererDebug::SubmitCameraFrustum(camera.Camera, transform.Transform, translationFloat3);
+				if(mSettings.CameraFrustum)
+					RendererDebug::SubmitCameraFrustum(camera.Camera, transform.Transform, translationFloat3);
 			}
 
-			RendererDebug::SubmitGrid(*editorCamera);
+			if(mSettings.Grid)
+				RendererDebug::SubmitGrid(*editorCamera);
 		}
 		RendererDebug::EndScene(true);
 	}
