@@ -18,7 +18,7 @@ namespace Toast {
 		struct DrawCommand 
 		{
 		public:
-			DrawCommand(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const bool wireframe, const int entityID, PlanetComponent::PlanetGPUData* planetData = nullptr)
+			DrawCommand(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const bool wireframe, const int entityID = 0, PlanetComponent::PlanetGPUData* planetData = nullptr)
 				: Mesh(mesh), Transform(transform), Wireframe(wireframe), EntityID(entityID), PlanetData(planetData){}
 		public:
 			Ref<Mesh> Mesh;
@@ -50,8 +50,8 @@ namespace Toast {
 
 			} SceneData;
 
-			Ref<Framebuffer> BaseFramebuffer, PickingFramebuffer;
-			std::vector<DrawCommand> MeshDrawList;
+			Ref<Framebuffer> BaseFramebuffer, PickingFramebuffer, OutlineFramebuffer, OutlineStep2Framebuffer;
+			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList;
 
 			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer;
 			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer;
@@ -72,7 +72,10 @@ namespace Toast {
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
 		static void SubmitSkybox(const Ref<Mesh> skybox, const DirectX::XMFLOAT4& cameraPos, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMMATRIX& projectionMatrix, float intensity, float LOD);
 		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe = false);
+		static void SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false);
 		static void SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, PlanetComponent::PlanetGPUData planetData, bool wireframe = false);
+
+		static void DrawFullscreenQuad();
 
 		static void ClearDrawList();
 
@@ -83,6 +86,8 @@ namespace Toast {
 
 		static Ref<Framebuffer>& GetBaseFramebuffer() { return sRendererData->BaseFramebuffer; }
 		static Ref<Framebuffer>& GetPickingFramebuffer() { return sRendererData->PickingFramebuffer; }
+		static Ref<Framebuffer>& GetOutlineFramebuffer() { return sRendererData->OutlineFramebuffer; }
+		static Ref<Framebuffer>& GetOutlineStep2Framebuffer() { return sRendererData->OutlineStep2Framebuffer; }
 
 		//Stats
 		struct Statistics

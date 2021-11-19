@@ -37,14 +37,14 @@ namespace Toast {
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create 2D texture!");
 
 			renderTargetViewDesc.Format = (DXGI_FORMAT)textureSpec.TextureFormat;
-			renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
+			renderTargetViewDesc.ViewDimension = framebufferSpec.Samples == 4 ? D3D11_RTV_DIMENSION_TEXTURE2DMS : D3D11_RTV_DIMENSION_TEXTURE2D;
 			renderTargetViewDesc.Texture2D.MipSlice = 0;
 
 			result = device->CreateRenderTargetView(outColorAttachment->RenderTargetTexture.Get(), &renderTargetViewDesc, &outColorAttachment->RenderTargetView);
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create render target view!");
 
 			shaderResourceViewDesc.Format = (DXGI_FORMAT)textureSpec.TextureFormat;
-			shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMS;
+			shaderResourceViewDesc.ViewDimension = framebufferSpec.Samples == 4 ? D3D11_SRV_DIMENSION_TEXTURE2DMS : D3D11_SRV_DIMENSION_TEXTURE2D;
 			shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
 			shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
@@ -103,7 +103,7 @@ namespace Toast {
 			ZeroMemory(&depthStencilViewDesc, sizeof(depthStencilViewDesc));
 
 			depthStencilViewDesc.Format = (DXGI_FORMAT)textureSpec.TextureFormat;
-			depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+			depthStencilViewDesc.ViewDimension = framebufferSpec.Samples == 4 ? D3D11_DSV_DIMENSION_TEXTURE2DMS : D3D11_DSV_DIMENSION_TEXTURE2D;
 			depthStencilViewDesc.Texture2D.MipSlice = 0;
 
 			result = device->CreateDepthStencilView(outDepthAttachment->DepthStencilBuffer.Get(), &depthStencilViewDesc, &outDepthAttachment->DepthStencilView);
@@ -140,9 +140,11 @@ namespace Toast {
 		{
 			if (!Utils::IsDepthFormat(format.TextureFormat)) 
 				mColorAttachmentSpecifications.emplace_back(format);
-			else
+			else 
 				mDepthAttachmentSpecification = format;
 		}
+
+		CreateDepthDisabledState();
 
 		Invalidate();
 	}
@@ -162,6 +164,40 @@ namespace Toast {
 
 		if (mDepthAttachmentSpecification.TextureFormat != FramebufferTextureFormat::None)
 			deviceContext->OMSetDepthStencilState(mDepthAttachment.DepthStencilState.Get(), 1);
+		else 
+			deviceContext->OMSetDepthStencilState(mDepthDisabledStencilState.Get(), 1);
+	}
+
+	void Framebuffer::CreateDepthDisabledState()
+	{
+		HRESULT result;
+		D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		ZeroMemory(&depthStencilDesc, sizeof(depthStencilDesc));
+
+		depthStencilDesc.DepthEnable = false;
+		depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+
+		depthStencilDesc.StencilEnable = false;
+		depthStencilDesc.StencilReadMask = 0x00;
+		depthStencilDesc.StencilWriteMask = 0x00;
+
+		depthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+		depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+		depthStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+		depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+		result = device->CreateDepthStencilState(&depthStencilDesc, &mDepthDisabledStencilState);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create depth stencil state");
 	}
 
 	void Framebuffer::Invalidate()
@@ -195,6 +231,11 @@ namespace Toast {
 					{
 						Utils::AttachColorTexture(mColorAttachmentSpecifications[i], mSpecification, &mColorAttachments[i]);
 						GetColorAttachmentIDNonMS(0);
+						break;
+					}
+					case FramebufferTextureFormat::R16G16B16A16_FLOAT:
+					{
+						Utils::AttachColorTexture(mColorAttachmentSpecifications[i], mSpecification, &mColorAttachments[i]);
 						break;
 					}
 					case FramebufferTextureFormat::R8G8B8A8_UNORM:

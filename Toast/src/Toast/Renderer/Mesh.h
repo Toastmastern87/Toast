@@ -261,6 +261,7 @@ namespace Toast {
 
 		friend class Scene;
 		friend class Renderer;
+		friend class RendererDebug;
 		friend class Primitives;
 		friend class SceneHierarchyPanel;
 		friend class ScriptWrappers;

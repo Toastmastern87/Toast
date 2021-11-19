@@ -21,6 +21,8 @@ namespace Toast {
 
 		mDebugData->DebugShader = CreateRef<Shader>("assets/shaders/Debug.hlsl");
 		mDebugData->GridShader = CreateRef<Shader>("assets/shaders/Grid.hlsl");
+		mDebugData->SelectedMeshMaskShader = CreateRef<Shader>("assets/shaders/SelectedMeshMask.hlsl");
+		mDebugData->OutlineShader = CreateRef<Shader>("assets/shaders/Outline.hlsl");
 
 		// Setting up the constant buffer and data buffer for the debug rendering data
 		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 272, D3D11_VERTEX_SHADER, 0);
@@ -46,9 +48,6 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		ZeroMemory(mDebugData->LineVertexBufferBase, mDebugData->MaxVertices * sizeof(LineVertex));
-		mDebugData->LineVertexCount = 0;
-
 		// Updating the camera data in the buffer and mapping it to the GPU
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetProjection(), 64, 64);
@@ -66,13 +65,22 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		DebugPass();
+		OutlineRenderPass();
+		DebugRenderPass();
 
 		if (debugActivated)
 		{
 			RenderCommand::BindBackbuffer();
 			RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
 		}
+
+		ZeroMemory(mDebugData->LineVertexBufferBase, mDebugData->MaxVertices * sizeof(LineVertex));
+		mDebugData->LineVertexCount = 0;
+
+		mDebugData->mGridBuffer.ZeroInitialize();
+		mDebugData->mGridCBuffer->Map(mDebugData->mGridBuffer);
+
+		sRendererData->MeshSelectedDrawList.clear();
 	}
 
 	void RendererDebug::SubmitCameraFrustum(const SceneCamera& camera, DirectX::XMMATRIX& transform, DirectX::XMFLOAT3& pos)
@@ -145,13 +153,13 @@ namespace Toast {
 
 	void RendererDebug::SubmitGrid(const EditorCamera& camera)
 	{
-		mDebugData->GridData.ViewMatrix = camera.GetViewMatrix();
-		mDebugData->GridData.ProjectionMatrix = camera.GetProjection();
-		mDebugData->GridData.FarClip = camera.GetFarClip();
-		mDebugData->GridData.NearClip = camera.GetNearClip();
+		mDebugData->mGridBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
+		mDebugData->mGridBuffer.Write((void*)&camera.GetProjection(), 64, 64);
+		mDebugData->mGridBuffer.Write((void*)&camera.GetFarClip(), 4, 128);
+		mDebugData->mGridBuffer.Write((void*)&camera.GetNearClip(), 4, 132);
 	}
 
-	void RendererDebug::DebugPass()
+	void RendererDebug::DebugRenderPass()
 	{
 		sRendererData->BaseFramebuffer->Bind();
 		mDebugData->DebugShader->Bind();
@@ -172,14 +180,84 @@ namespace Toast {
 		RenderCommand::DisableWireframe();
 		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
-		mDebugData->mGridBuffer.Write((void*)&mDebugData->GridData.ViewMatrix, 64, 0);
-		mDebugData->mGridBuffer.Write((void*)&mDebugData->GridData.ProjectionMatrix, 64, 64);
-		mDebugData->mGridBuffer.Write((void*)&mDebugData->GridData.FarClip, 4, 128);
-		mDebugData->mGridBuffer.Write((void*)&mDebugData->GridData.NearClip, 4, 132);
 		mDebugData->mGridCBuffer->Map(mDebugData->mGridBuffer);
 		mDebugData->GridShader->Bind();
 
 		RenderCommand::Draw(6);
+	}
+
+	void RendererDebug::OutlineRenderPass()
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		sRendererData->OutlineFramebuffer->Bind();
+		sRendererData->OutlineFramebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
+
+		for (const auto& meshCommand : sRendererData->MeshSelectedDrawList) 
+		{
+			if (meshCommand.Mesh->mVertexBuffer)	meshCommand.Mesh->mVertexBuffer->Bind();
+			if (meshCommand.Mesh->mInstanceVertexBuffer && meshCommand.PlanetData) meshCommand.Mesh->mInstanceVertexBuffer->Bind();
+			if (meshCommand.Mesh->mIndexBuffer)		meshCommand.Mesh->mIndexBuffer->Bind();
+
+			if (meshCommand.Wireframe)
+				RenderCommand::EnableWireframe();
+			else
+				RenderCommand::DisableWireframe();
+
+			RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
+
+			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+			{
+				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+				meshCommand.Mesh->Map();
+				meshCommand.Mesh->Bind();
+
+				mDebugData->SelectedMeshMaskShader->Bind();
+
+				if (meshCommand.Mesh->GetIsPlanet())
+					RenderCommand::DrawIndexedInstanced(submesh.IndexCount, static_cast<uint32_t>(meshCommand.Mesh->mPlanetPatches.size()), 0, 0, 0);
+				else
+					RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+
+				ID3D11RenderTargetView* nullRTV = nullptr;
+				deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
+
+				sRendererData->OutlineStep2Framebuffer->Bind();
+				sRendererData->OutlineStep2Framebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
+
+				auto temp = sRendererData->OutlineFramebuffer->GetSRV(0);
+				deviceContext->PSSetShaderResources(9, 1, temp.GetAddressOf());
+
+				mDebugData->OutlineShader->Bind();
+
+				RenderCommand::Draw(3);	
+
+				ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+				deviceContext->PSSetShaderResources(9, 1, nullSRV);
+
+				//ID3D11RenderTargetView* nullRTV = nullptr; 
+				//deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
+
+				//auto fbspecc = sRendererData->OutlineFramebuffer->GetSpecification();
+				//Ref<TextureSampler> defaultSampler = TextureLibrary::GetSampler("Default");
+				//Ref<Texture2D> jumpFloodInitTexture = CreateRef<Texture2D>((DXGI_FORMAT)FramebufferTextureFormat::R16G16B16A16_FLOAT, fbspecc.Width, fbspecc.Height);
+				//jumpFloodInitTexture->CreateUAV(0);
+
+				//mDebugData->JumpFloodInitShader->Bind();
+
+				//auto temp = sRendererData->OutlineFramebuffer->GetSRV(0);
+				//deviceContext->CSSetShaderResources(9, 1, temp.GetAddressOf());
+
+				//defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+				//jumpFloodInitTexture->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+				//RenderCommand::DispatchCompute(fbspecc.Width / 8, fbspecc.Height / 8, 1);
+				//jumpFloodInitTexture->UnbindUAV();
+
+				//ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+				//deviceContext->CSSetShaderResources(9, 1, nullSRV);
+			}
+		}
 	}
 
 }

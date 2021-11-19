@@ -41,7 +41,7 @@ namespace Toast {
 		sRendererData->EnvironmentBuffer.Allocate(sRendererData->EnvironmentCBuffer->GetSize());
 		sRendererData->EnvironmentBuffer.ZeroInitialize();
 
-		FramebufferSpecification baseFBSpec, pickingFBSpec;
+		FramebufferSpecification baseFBSpec, pickingFBSpec, outlineFBSpec, outlineStep2FBSpec;
 		baseFBSpec.Attachments = { FramebufferTextureFormat::R32G32B32A32_FLOAT, FramebufferTextureFormat::Depth };
 		baseFBSpec.Width = 1280;
 		baseFBSpec.Height = 720;
@@ -51,6 +51,14 @@ namespace Toast {
 		pickingFBSpec.Width = 1280;
 		pickingFBSpec.Height = 720;
 		sRendererData->PickingFramebuffer = CreateRef<Framebuffer>(pickingFBSpec);
+		outlineFBSpec.Attachments = { FramebufferTextureFormat::R8G8B8A8_UNORM };
+		outlineFBSpec.Width = 1280;
+		outlineFBSpec.Height = 720;
+		sRendererData->OutlineFramebuffer = CreateRef<Framebuffer>(outlineFBSpec);
+		outlineStep2FBSpec.Attachments = { FramebufferTextureFormat::R8G8B8A8_UNORM };
+		outlineStep2FBSpec.Width = 1280;
+		outlineStep2FBSpec.Height = 720;
+		sRendererData->OutlineStep2Framebuffer = CreateRef<Framebuffer>(outlineStep2FBSpec);
 	}
 
 	void Renderer::Shutdown()
@@ -138,9 +146,19 @@ namespace Toast {
 		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, entityID);
 	}
 
+	void Renderer::SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
+	{
+		sRendererData->MeshSelectedDrawList.emplace_back(mesh, transform, wireframe);
+	}
+
 	void Renderer::SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, PlanetComponent::PlanetGPUData planetData, bool wireframe)
 	{
 		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, entityID, &planetData);
+	}
+
+	void Renderer::DrawFullscreenQuad()
+	{
+		RenderCommand::Draw(3);
 	}
 
 	void Renderer::ClearDrawList()
@@ -255,7 +273,8 @@ namespace Toast {
 				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 		}
 
-		for (const auto& meshCommand : sRendererData->MeshDrawList) {
+		for (const auto& meshCommand : sRendererData->MeshDrawList) 
+		{
 			if (meshCommand.Mesh->mVertexBuffer)	meshCommand.Mesh->mVertexBuffer->Bind();
 			if (meshCommand.Mesh->mInstanceVertexBuffer && meshCommand.PlanetData) meshCommand.Mesh->mInstanceVertexBuffer->Bind();
 			if (meshCommand.Mesh->mIndexBuffer)		meshCommand.Mesh->mIndexBuffer->Bind();

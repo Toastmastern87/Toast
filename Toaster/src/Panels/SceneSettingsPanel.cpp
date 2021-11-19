@@ -42,6 +42,9 @@ namespace Toast {
 			{
 				mSelectionMode = mSelectionMode == SelectionMode::Entity ? SelectionMode::SubMesh : SelectionMode::Entity;
 			}
+
+			ImGui::Checkbox("Show grid", &mContext->mSettings.Grid);
+			ImGui::Checkbox("Show camera frustum", &mContext->mSettings.CameraFrustum);
 		}
 
 		ImGui::End();

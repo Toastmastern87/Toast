@@ -52,6 +52,17 @@ namespace Toast {
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 			ImGui::ImageButton(icon->GetID(), { thumbnailSize, thumbnailSize }, { 0, 0 }, { 1, 1 });
 
+			// Check if file is a shader file
+			if (filenameStr.find(".hlsl") != std::string::npos)
+			{
+				if (ImGui::BeginPopupContextItem())
+				{
+					ImGui::Text("Reload shader");
+
+					ImGui::EndPopup();
+				}
+			}
+
 			if (ImGui::BeginDragDropSource())
 			{
 				const wchar_t* itemPath = relativePath.c_str();

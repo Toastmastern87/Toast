@@ -18,3 +18,5 @@
 #define ICON_TOASTER_CALCULATOR			u8"\uf1ec"
 #define ICON_TOASTER_WRENCH				u8"\uf0ad"
 #define ICON_TOASTER_FOLDER				u8"\uf07b"
+#define ICON_TOASTER_PAUSE				u8"\uf04c"
+#define ICON_TOASTER_PLAY				u8"\uf04b"
