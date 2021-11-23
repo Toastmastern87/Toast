@@ -146,16 +146,21 @@ namespace Toast {
 		}
 	}
 
-	static bool DrawIntControl(const std::string& label, int& value, float columnWidth = 100.0f, int min = 0, int max = 0)
+	static bool DrawIntControl(const std::string& label, int& value, float imGuiTableWidth = 90.0f, int min = 0, int max = 0)
 	{
 		bool modified = false;
+		ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+		ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
 		ImGui::PushID(label.c_str());
 
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, columnWidth);
+		ImGui::BeginTable("##drawIntControl", 2, flags);
+		ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, imGuiTableWidth);
+		ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - imGuiTableWidth);
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(0);
 		ImGui::Text(label.c_str());
-		ImGui::NextColumn();
+		ImGui::TableSetColumnIndex(1);
 
 		ImGui::PushItemWidth(-1);
 
@@ -163,22 +168,27 @@ namespace Toast {
 			modified = true;
 
 		ImGui::PopItemWidth();
-		ImGui::Columns(1);
+		ImGui::EndTable();
 		ImGui::PopID();
 
 		return modified;
 	}
 
-	static bool DrawFloatControl(const std::string& label, float& value, float columnWidth = 100.0f, float min = 0.0f, float max = 0.0f, float delta = 0.1f)
+	static bool DrawFloatControl(const std::string& label, float& value, float imGuiTableWidth = 90.0f, float min = 0.0f, float max = 0.0f, float delta = 0.1f)
 	{
 		bool modified = false;
+		ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+		ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
 		ImGui::PushID(label.c_str());
 
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, columnWidth);
+		ImGui::BeginTable("##table2", 2, flags);
+		ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthFixed, imGuiTableWidth);
+		ImGui::TableSetupColumn("##col4", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - imGuiTableWidth);
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(0);
 		ImGui::Text(label.c_str());
-		ImGui::NextColumn();
+		ImGui::TableSetColumnIndex(1);
 
 		ImGui::PushItemWidth(-1);
 
@@ -186,8 +196,7 @@ namespace Toast {
 			modified = true;
 		ImGui::PopItemWidth();
 
-		ImGui::Columns(1);
-
+		ImGui::EndTable();
 		ImGui::PopID();
 
 		return modified;
@@ -467,57 +476,58 @@ namespace Toast {
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-				if (ImGui::BeginTable("MeshTable", 3, flags))
+				ImGui::BeginTable("##MeshTable", 3, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
+				ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Mesh ");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (!component.Mesh->GetFilePath().empty())
+					ImGui::InputText("##meshfilepath", (char*)component.Mesh->GetFilePath().c_str(), 256, ImGuiInputTextFlags_ReadOnly);
+				else
+					ImGui::InputText("##meshfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
+				ImGui::TableSetColumnIndex(2);
+				if (ImGui::Button("...##openmesh"))
 				{
-					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
-					ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Mesh ");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					if (!component.Mesh->GetFilePath().empty())
-						ImGui::InputText("##meshfilepath", (char*)component.Mesh->GetFilePath().c_str(), 256, ImGuiInputTextFlags_ReadOnly);	
-					else
-						ImGui::InputText("##meshfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
-					ImGui::TableSetColumnIndex(2);
-					if (ImGui::Button("...##openmesh"))
-					{
-						std::optional<std::string> filepath = FileDialogs::OpenFile("*.fbx", "..\\Toaster\\assets\\meshes\\");
-						if (filepath)
-							component.Mesh = CreateRef<Mesh>(*filepath);
-					}
-
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Material ");
-					ImGui::TableSetColumnIndex(1);
-
-					std::unordered_map<std::string, Ref<Material>> materials = MaterialLibrary::GetMaterials();
-					Ref<Material> currentMaterial = component.Mesh->GetMaterial();
-					if (ImGui::BeginCombo("##material", currentMaterial->GetName().c_str()))
-					{
-						for (auto& material : materials)
-						{
-							bool isSelected = (currentMaterial->GetName() == material.first);
-							if (ImGui::Selectable(material.first.c_str(), isSelected))
-								component.Mesh->SetMaterial(MaterialLibrary::Get(material.first));
-
-							if (isSelected)
-								ImGui::SetItemDefaultFocus();
-						}
-
-						ImGui::EndCombo();
-					}
-					ImGui::PopItemWidth();
-
-					ImGui::EndTable();
+					std::optional<std::string> filepath = FileDialogs::OpenFile("*.fbx", "..\\Toaster\\assets\\meshes\\");
+					if (filepath)
+						component.Mesh = CreateRef<Mesh>(*filepath);
 				}
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Material ");
+				ImGui::TableSetColumnIndex(1);
+
+				std::unordered_map<std::string, Ref<Material>> materials = MaterialLibrary::GetMaterials();
+				Ref<Material> currentMaterial = component.Mesh->GetMaterial();
+				if (ImGui::BeginCombo("##material", currentMaterial->GetName().c_str()))
+				{
+					for (auto& material : materials)
+					{
+						bool isSelected = (currentMaterial->GetName() == material.first);
+						if (ImGui::Selectable(material.first.c_str(), isSelected))
+							component.Mesh->SetMaterial(MaterialLibrary::Get(material.first));
+
+						if (isSelected)
+							ImGui::SetItemDefaultFocus();
+					}
+
+					ImGui::EndCombo();
+				}
+				ImGui::PopItemWidth();
+
+				ImGui::EndTable();
 		});
 
 		DrawComponent<CameraComponent>(ICON_TOASTER_CAMERA" Camera", entity, [](auto& component, Entity entity)
 		{
+			ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
 			auto& camera = component.Camera;
 
 			ImGui::Checkbox("Primary", &component.Primary);
@@ -525,11 +535,15 @@ namespace Toast {
 			const char* projTypeStrings[] = { "Perspective", "Orthographic" };
 			const char* currentProj = projTypeStrings[(int)camera.GetProjectionType()];
 
-			ImGui::Columns(2);
-			ImGui::SetColumnWidth(0, 100.0f);
-			ImGui::Text("Projection");
-			ImGui::NextColumn();
+			ImGui::BeginTable("CameraTable", 2, flags);
+			ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+			ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
 
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+
+			ImGui::Text("Projection");
+			ImGui::TableSetColumnIndex(1);
 			ImGui::PushItemWidth(-1);
 			if (ImGui::BeginCombo("##projection", currentProj))
 			{
@@ -549,35 +563,37 @@ namespace Toast {
 			}
 			ImGui::PopItemWidth();
 
+			ImGui::EndTable();
+
 			ImGui::Columns(1);
 
 			if (camera.GetProjectionType() == SceneCamera::ProjectionType::Perspective)
 			{
 				float perspectiveVerticalFOV = camera.GetPerspectiveVerticalFOV();
-				if (DrawFloatControl("Vertical FOV", perspectiveVerticalFOV))
+				if (DrawFloatControl("Vertical FOV", perspectiveVerticalFOV, 90.0f))
 					camera.SetPerspectiveVerticalFOV(perspectiveVerticalFOV);
 
 				float perspectiveNear = camera.GetPerspectiveNearClip();
-				if (DrawFloatControl("Near Clip", perspectiveNear))
+				if (DrawFloatControl("Near Clip", perspectiveNear, 90.0f))
 					camera.SetPerspectiveNearClip(perspectiveNear);
 
 				float perspectiveFar = camera.GetPerspectiveFarClip();
-				if (DrawFloatControl("Far Clip", perspectiveFar, 100.0f, 0.0f, 0.0f, 10.0f))
+				if (DrawFloatControl("Far Clip", perspectiveFar, 90.0f, 0.0f, 0.0f, 10.0f))
 					camera.SetPerspectiveFarClip(perspectiveFar);
 			}
 
 			if (camera.GetProjectionType() == SceneCamera::ProjectionType::Orthographic)
 			{
 				float orthoSize = camera.GetOrthographicSize();
-				if (DrawFloatControl("Orthographic Size", orthoSize))
+				if (DrawFloatControl("Orthographic Size", orthoSize, 90.0f))
 					camera.SetOrthographicSize(orthoSize);
 
 				float orthoNear = camera.GetOrthographicNearClip();
-				if (DrawFloatControl("Near Clip", orthoNear))
+				if (DrawFloatControl("Near Clip", orthoNear, 90.0f))
 					camera.SetOrthographicNearClip(orthoNear);
 
 				float orthoFar = camera.GetOrthographicFarClip();
-				if (DrawFloatControl("Far Clip", orthoFar))
+				if (DrawFloatControl("Far Clip", orthoFar, 90.0f))
 					camera.SetOrthographicFarClip(orthoFar);
 
 				ImGui::Checkbox("Fixed Aspect Ratio", &component.FixedAspectRatio);
@@ -588,20 +604,19 @@ namespace Toast {
 		{
 			ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-			if (ImGui::BeginTable("PlanetComponentTable", 2, flags))
-			{
-				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
 
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Color");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				ImGui::ColorEdit4("##color", &component.Color.x);
+			ImGui::BeginTable("PlanetComponentTable", 2, flags);
+			ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+			ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
 
-				ImGui::EndTable();
-			}
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text("Color");
+			ImGui::TableSetColumnIndex(1);
+			ImGui::PushItemWidth(-1);
+			ImGui::ColorEdit4("##color", &component.Color.x);
+
+			ImGui::EndTable();
 		});
 
 		DrawComponent<PlanetComponent>(ICON_TOASTER_GLOBE" Planet", entity, [](auto& component, Entity entity)
@@ -615,52 +630,50 @@ namespace Toast {
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-				if (ImGui::BeginTable("PlanetComponentTable", 2, flags))
-				{
-					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Patch levels");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					if (ImGui::SliderInt("##Patchlevels", &patchLevels, 1, 6))
-						modified = true;
+				ImGui::BeginTable("PlanetComponentTable", 2, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Patch levels");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (ImGui::SliderInt("##Patchlevels", &patchLevels, 1, 6))
+					modified = true;
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Subdivisions");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					if (ImGui::SliderInt("##Subdivisions", &subdivions, 0, 8))
-						modified = true;
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Subdivisions");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (ImGui::SliderInt("##Subdivisions", &subdivions, 0, 8))
+					modified = true;
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Max Alt(km)");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					if (ImGui::DragFloat("##MaxAlt", &component.PlanetData.maxAltitude.x, 0.1f, 0.0f, 0.0f, "%.2f"))
-						modified = true;
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Max Alt(km)");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (ImGui::DragFloat("##MaxAlt", &component.PlanetData.maxAltitude.x, 0.1f, 0.0f, 0.0f, "%.2f"))
+					modified = true;
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Min Alt(km)");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					if (ImGui::DragFloat("##MinAltitude", &component.PlanetData.minAltitude.x, 0.1f, 0.0f, 0.0f, "%.2f"))
-						modified = true;
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Min Alt(km)");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (ImGui::DragFloat("##MinAltitude", &component.PlanetData.minAltitude.x, 0.1f, 0.0f, 0.0f, "%.2f"))
+					modified = true;
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Radius(km)");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					if (ImGui::DragFloat("##Radius", &component.PlanetData.radius.x, 0.1f, 0.0f, 0.0f, "%.2f"))
-						modified = true;
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Radius(km)");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (ImGui::DragFloat("##Radius", &component.PlanetData.radius.x, 0.1f, 0.0f, 0.0f, "%.2f"))
+					modified = true;
 
-					ImGui::EndTable();
-				}
+				ImGui::EndTable();
 
 				if (modified)
 				{
@@ -699,30 +712,28 @@ namespace Toast {
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-				if (ImGui::BeginTable("DirectionalLightTable", 2, flags))
-				{
-					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Radiance");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::ColorEdit3("##Radiance", &component.Radiance.x);
+				ImGui::BeginTable("DirectionalLightTable", 2, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Radiance");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::ColorEdit3("##Radiance", &component.Radiance.x);
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Intensity");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::DragFloat("##label", &component.Intensity, 0.01f, 0.0f, 5.0f, "%.2f");
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Intensity");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::DragFloat("##label", &component.Intensity, 0.01f, 0.0f, 5.0f, "%.2f");
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Sun Disc");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::Checkbox("##checkbox", &component.SunDisc);
-					ImGui::EndTable();
-				}
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Sun Disc");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Checkbox("##checkbox", &component.SunDisc);
+				ImGui::EndTable();
 		});
 
 		DrawComponent<SkyLightComponent>(ICON_TOASTER_CLOUD" Sky Light", entity, [](auto& component, Entity entity)
@@ -730,35 +741,34 @@ namespace Toast {
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-				if (ImGui::BeginTable("SkyLightTable", 3, flags))
-				{
-					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
-					ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("File Path");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					if (!component.SceneEnvironment.FilePath.empty())
-						ImGui::InputText("##envfilepath", (char*)component.SceneEnvironment.FilePath.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
-					else
-						ImGui::InputText("##envfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
-					ImGui::TableSetColumnIndex(2);
-					if (ImGui::Button("...##openenv"))
-					{
-						std::optional<std::string> filepath = FileDialogs::OpenFile("*.png", "..\\Toaster\\assets\\textures\\");
-						if (filepath)
-							component.SceneEnvironment = Environment::Load(*filepath);
-					}
+				ImGui::BeginTable("SkyLightTable", 3, flags);
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Intensity");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::DragFloat("##label", &component.Intensity, 0.01f, 0.0f, 5.0f, "%.2f");
-					ImGui::EndTable();
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
+				ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("File Path");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (!component.SceneEnvironment.FilePath.empty())
+					ImGui::InputText("##envfilepath", (char*)component.SceneEnvironment.FilePath.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
+				else
+					ImGui::InputText("##envfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
+				ImGui::TableSetColumnIndex(2);
+				if (ImGui::Button("...##openenv"))
+				{
+					std::optional<std::string> filepath = FileDialogs::OpenFile("*.png", "..\\Toaster\\assets\\textures\\");
+					if (filepath)
+						component.SceneEnvironment = Environment::Load(*filepath);
 				}
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Intensity");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::DragFloat("##label", &component.Intensity, 0.01f, 0.0f, 5.0f, "%.2f");
+				ImGui::EndTable();
 		});
 
 		DrawComponent<ScriptComponent>(ICON_TOASTER_CODE" Script", entity, [=](auto& sc, Entity entity)
@@ -768,92 +778,89 @@ namespace Toast {
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-				if (ImGui::BeginTable("ScriptTable", 3, flags))
+				ImGui::BeginTable("ScriptTable", 3, flags);
+
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
+				ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Script");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (!sc.ModuleName.empty())
+					ImGui::InputText("##scriptfilepath", (char*)sc.ModuleName.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
+				else
+					ImGui::InputText("##scriptfilepath", (char*)"", 256, ImGuiInputTextFlags_ReadOnly);
+				ImGui::TableSetColumnIndex(2);
+				if (ImGui::Button("...##openscript"))
 				{
-					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
-					ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Script");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					if (!sc.ModuleName.empty())
-						ImGui::InputText("##scriptfilepath", (char*)sc.ModuleName.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
-					else
-						ImGui::InputText("##scriptfilepath", (char*)"", 256, ImGuiInputTextFlags_ReadOnly);
-					ImGui::TableSetColumnIndex(2);
-					if (ImGui::Button("...##openscript"))
+					std::optional<std::string> file = FileDialogs::OpenFile("*.cs", "..\\Toaster\\assets\\scripts\\");
+					if (file)
 					{
-						std::optional<std::string> file = FileDialogs::OpenFile("*.cs", "..\\Toaster\\assets\\scripts\\");
-						if (file)
-						{
-							std::filesystem::path filename = *file;
-							std::string filenameString = filename.filename().string();
-							if (filenameString.find('.') != std::string::npos)
-								filenameString = filenameString.substr(0, filenameString.find_last_of('.'));
+						std::filesystem::path filename = *file;
+						std::string filenameString = filename.filename().string();
+						if (filenameString.find('.') != std::string::npos)
+							filenameString = filenameString.substr(0, filenameString.find_last_of('.'));
 
-							sc.ModuleName = filenameString;
-						}
-
-						// Shutdown old script
-						if (ScriptEngine::ModuleExists(oldName))
-							ScriptEngine::ShutdownScriptEntity(entity.mScene->GetUUID(), entity.GetComponent<IDComponent>().ID, oldName);
-
-						if (ScriptEngine::ModuleExists(sc.ModuleName))
-							ScriptEngine::InitScriptEntity(entity);
+						sc.ModuleName = filenameString;
 					}
 
-					ImGui::EndTable();
+					// Shutdown old script
+					if (ScriptEngine::ModuleExists(oldName))
+						ScriptEngine::ShutdownScriptEntity(entity.mScene->GetUUID(), entity.GetComponent<IDComponent>().ID, oldName);
+
+					if (ScriptEngine::ModuleExists(sc.ModuleName))
+						ScriptEngine::InitScriptEntity(entity);
 				}
+
+				ImGui::EndTable();
 
 				if (ScriptEngine::ModuleExists(sc.ModuleName))
 				{
 					sCounter = 0;
 
-					if (ImGui::BeginTable("ScriptPropertiesTable", 2, flags))
+					ImGui::BeginTable("ScriptPropertiesTable", 2, flags);
+					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+
+					EntityInstanceData& entityInstanceData = ScriptEngine::GetEntityInstanceData(entity.GetSceneUUID(), entity.GetComponent<IDComponent>().ID);
+					auto& modulePropertiesMap = entityInstanceData.ModulePropertyMap;
+					if (modulePropertiesMap.find(sc.ModuleName) != modulePropertiesMap.end())
 					{
-						ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-						ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
-						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(0);
-
-						EntityInstanceData& entityInstanceData = ScriptEngine::GetEntityInstanceData(entity.GetSceneUUID(), entity.GetComponent<IDComponent>().ID);
-						auto& modulePropertiesMap = entityInstanceData.ModulePropertyMap;
-						if (modulePropertiesMap.find(sc.ModuleName) != modulePropertiesMap.end())
+						auto& publicProperties = modulePropertiesMap.at(sc.ModuleName);
+						for (auto& [name, prop] : publicProperties)
 						{
-							auto& publicProperties = modulePropertiesMap.at(sc.ModuleName);
-							for (auto& [name, prop] : publicProperties)
+							bool isRuntime = mContext->mIsPlaying && prop.IsRuntimeAvailable();
+							switch (prop.Type)
 							{
-								bool isRuntime = mContext->mIsPlaying && prop.IsRuntimeAvailable();
-								switch (prop.Type)
+							case PropertyType::Float:
+								float value = isRuntime ? prop.GetRuntimeValue<float>() : prop.GetStoredValue<float>();
+								ImGui::TableNextRow();
+								ImGui::TableSetColumnIndex(0);
+								ImGui::Text(name.c_str());
+								ImGui::TableSetColumnIndex(1);
+
+								sIDBuffer[0] = '#';
+								sIDBuffer[1] = '#';
+								memset(sIDBuffer + 2, 0, 14);
+								itoa(sCounter++, sIDBuffer + 2, 16);
+
+								if (ImGui::DragFloat(sIDBuffer, &value, 0.2f, 0.0f, 0.0f, "%.1f"))
 								{
-								case PropertyType::Float:
-									float value = isRuntime ? prop.GetRuntimeValue<float>() : prop.GetStoredValue<float>();
-									ImGui::TableNextRow();
-									ImGui::TableSetColumnIndex(0);
-									ImGui::Text(name.c_str());
-									ImGui::TableSetColumnIndex(1);
-
-									sIDBuffer[0] = '#';
-									sIDBuffer[1] = '#';
-									memset(sIDBuffer + 2, 0, 14);
-									itoa(sCounter++, sIDBuffer + 2, 16);
-
-									if (ImGui::DragFloat(sIDBuffer, &value, 0.2f, 0.0f, 0.0f, "%.1f"))
-									{
-										if (isRuntime)
-											prop.SetRuntimeValue(value);
-										else
-											prop.SetStoredValue(value);
-									}
-
-									break;
+									if (isRuntime)
+										prop.SetRuntimeValue(value);
+									else
+										prop.SetStoredValue(value);
 								}
+
+								break;
 							}
 						}
-						ImGui::EndTable();
 					}
+					ImGui::EndTable();
 				}
 			});
 	}

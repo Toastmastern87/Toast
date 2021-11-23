@@ -171,17 +171,24 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		HRESULT result;
-
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		Microsoft::WRL::ComPtr<ID3D11Device> device = API->GetDevice();
-
 		// Finds the shader name
 		auto lastSlash = filepath.find_last_of("/\\");
 		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
 		auto lastDot = filepath.rfind('.');
 		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
 		mName = filepath.substr(lastSlash, count);
+
+		Invalidate(filepath);
+	}
+
+	void Shader::Invalidate(const std::string& filepath)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		HRESULT result;
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		Microsoft::WRL::ComPtr<ID3D11Device> device = API->GetDevice();
 
 		std::string source = ReadFile(filepath);
 		auto shaderSources = PreProcess(source);
@@ -533,10 +540,16 @@ namespace Toast {
 	void ShaderLibrary::Add(const Ref<Shader>& shader)
 	{
 		auto& name = shader->GetName();
+		TOAST_CORE_INFO("Adding shader with name: %s", name.c_str());
 		Add(name, shader);
 	}
 
-	Ref<Shader> ShaderLibrary::Load(const std::string& filepath) 
+	void ShaderLibrary::Delete(const std::string name)
+	{
+		mShaders.erase(name);
+	}
+
+	Ref<Shader> ShaderLibrary::Load(const std::string& filepath)
 	{
 		auto shader = CreateRef<Shader>(filepath);
 		Add(shader);
@@ -548,6 +561,24 @@ namespace Toast {
 		auto shader = CreateRef<Shader>(filepath);
 		Add(name, shader);
 		return shader;
+	}
+
+	void ShaderLibrary::Reload(const std::string& filepath)
+	{
+		auto lastSlash = filepath.find_last_of("/\\");
+		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
+		auto lastDot = filepath.rfind('.');
+		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
+		std::string name = filepath.substr(lastSlash, count);
+
+		TOAST_CORE_INFO("Reloading shader %s", name.c_str());
+
+		if (Exists(name))
+			mShaders[name]->Invalidate(filepath);
+		else
+			Load(filepath);
+
+		return;
 	}
 
 	Ref<Shader> ShaderLibrary::Get(const std::string& name)

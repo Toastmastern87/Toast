@@ -134,6 +134,8 @@ namespace Toast {
 		Shader(const std::string& filepath);
 		~Shader();
 
+		void Invalidate(const std::string& filepath);
+
 		void Bind() const;
 		void Unbind() const;
 
@@ -173,8 +175,10 @@ namespace Toast {
 	public:
 		static void Add(const std::string name, const Ref<Shader>& shader);
 		static void Add(const Ref<Shader>& shader);
+		static void Delete(const std::string name);
 		static Ref<Shader> Load(const std::string& filepath);
 		static Ref<Shader> Load(const std::string& name, const std::string& filepath);
+		static void Reload(const std::string& filepath);
 
 		static Ref<Shader> Get(const std::string& name);
 		static std::vector<std::string> GetShaderList();
