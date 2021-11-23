@@ -65,6 +65,8 @@ namespace Toast {
 	{
 		const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
 		const ImGuiInputTextFlags inputTextFlags = ImGuiInputTextFlags_EnterReturnsTrue;
+		const ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+		ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
 		bool isDirty = false;
 
@@ -90,10 +92,13 @@ namespace Toast {
 
 			currentShader = mSelectionContext->GetShader();
 
-			ImGui::Columns(2);
-			ImGui::SetColumnWidth(0, 100.0f);
+			ImGui::BeginTable("##table2", 2, flags);
+			ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+			ImGui::TableSetupColumn("##col4", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 100.0f);
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
 			ImGui::Text("Shader");
-			ImGui::NextColumn();
+			ImGui::TableSetColumnIndex(1);
 
 			ImGui::PushItemWidth(-1);
 
@@ -119,7 +124,7 @@ namespace Toast {
 			}
 			ImGui::PopItemWidth();
 
-			ImGui::Columns(1);
+			ImGui::EndTable();
 
 			uint64_t imguiPtr = 54332;
 			for (auto& resource : mSelectionContext->GetTextureBindings())

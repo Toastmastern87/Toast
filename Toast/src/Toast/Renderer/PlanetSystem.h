@@ -146,7 +146,7 @@ namespace Toast {
 
 			DirectX::XMVECTOR dotNV = DirectX::XMVector3Dot(DirectX::XMVector3Normalize(center), DirectX::XMVector3Normalize(center - cameraPos));
 
-			if (DirectX::XMVectorGetX(dotNV) >= faceLevelDotLUT[subdivision + 3]) 
+			if (DirectX::XMVectorGetX(dotNV) >= faceLevelDotLUT[(uint32_t)subdivision + 3]) 
 				return NextPlanetFace::CULL;
 
 			if (subdivision >= maxSubdivisions + 3)
@@ -156,7 +156,7 @@ namespace Toast {
 			bDistance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVector3Transform(b, planetTransform) - cameraPos));
 			cDistance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVector3Transform(c, planetTransform) - cameraPos));			
 
-			if (fminf(aDistance, fminf(bDistance, cDistance)) < distanceLUT[subdivision+3]) 
+			if (fminf(aDistance, fminf(bDistance, cDistance)) < distanceLUT[(uint32_t)subdivision+3]) 
 				return NextPlanetFace::SPLITCULL;
 
 			return NextPlanetFace::LEAF;

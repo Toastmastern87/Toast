@@ -20,14 +20,13 @@ namespace Toast {
 
 	void EnvironmentalPanel::OnImGuiRender()
 	{
+		ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+		ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
 		ImGui::Begin(ICON_TOASTER_CLOUD" Environment");
 
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, 200.0f);
 		ImGui::Text("Skybox LOD");
-		ImGui::NextColumn();
 		ImGui::SliderFloat("##SkyboxLOD", &mContext->GetSkyboxLod(), 0.0f, 11.0f, "%.2f");
-		ImGui::PushItemWidth(-1);
 
 		ImGui::End();
 	}

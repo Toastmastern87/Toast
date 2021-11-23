@@ -2,6 +2,8 @@
 
 #include "ContentBrowserPanel.h"
 
+#include "Toast/Renderer/Shader.h"
+
 #include "../FontAwesome.h"
 
 #include "imgui/imgui.h"
@@ -57,7 +59,11 @@ namespace Toast {
 			{
 				if (ImGui::BeginPopupContextItem())
 				{
-					ImGui::Text("Reload shader");
+					if (ImGui::Button("Reload shader"))
+					{
+						ShaderLibrary::Reload(path.string().c_str());
+						ImGui::CloseCurrentPopup();
+					}
 
 					ImGui::EndPopup();
 				}
