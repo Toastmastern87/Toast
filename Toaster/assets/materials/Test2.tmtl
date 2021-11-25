@@ -1,4 +1,4 @@
 Material: Test2
-Shader: Standard
+Shader: assets/shaders/Standard.hlsl
 Textures:
   []

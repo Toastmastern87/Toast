@@ -187,6 +187,8 @@ namespace Toast {
 
 		HRESULT result;
 
+		mRawBlobs.clear();
+
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		Microsoft::WRL::ComPtr<ID3D11Device> device = API->GetDevice();
 
@@ -527,40 +529,23 @@ namespace Toast {
 		return "";
 	}
 
-	std::unordered_map<std::string, Ref<Shader>> ShaderLibrary::mShaders;
-
-	void ShaderLibrary::Add(const std::string name, const Ref<Shader>& shader)
-	{
-		if (Exists(name))
-			return;
-
-		mShaders[name] = shader;
-	}
-
-	void ShaderLibrary::Add(const Ref<Shader>& shader)
-	{
-		auto& name = shader->GetName();
-		TOAST_CORE_INFO("Adding shader with name: %s", name.c_str());
-		Add(name, shader);
-	}
+	std::unordered_map<std::string, Scope<Shader>> ShaderLibrary::mShaders;
 
 	void ShaderLibrary::Delete(const std::string name)
 	{
 		mShaders.erase(name);
 	}
 
-	Ref<Shader> ShaderLibrary::Load(const std::string& filepath)
+	Shader* ShaderLibrary::Load(const std::string& filepath)
 	{
-		auto shader = CreateRef<Shader>(filepath);
-		Add(shader);
-		return shader;
+		mShaders[filepath] = CreateScope<Shader>(filepath);
+		return mShaders[filepath].get();
 	}
 
-	Ref<Shader> ShaderLibrary::Load(const std::string& name, const std::string& filepath)
+	Shader* ShaderLibrary::Load(const std::string& name, const std::string& filepath)
 	{
-		auto shader = CreateRef<Shader>(filepath);
-		Add(name, shader);
-		return shader;
+		mShaders[filepath] = CreateScope<Shader>(filepath);
+		return mShaders[filepath].get();
 	}
 
 	void ShaderLibrary::Reload(const std::string& filepath)
@@ -581,19 +566,22 @@ namespace Toast {
 		return;
 	}
 
-	Ref<Shader> ShaderLibrary::Get(const std::string& name)
+	Shader* ShaderLibrary::Get(const std::string& name)
 	{
 		TOAST_CORE_ASSERT(Exists(name), "Shader not found!");
-		return mShaders[name];
+		return mShaders[name].get();
 	}
 
 	std::vector<std::string> ShaderLibrary::GetShaderList()
 	{
 		std::vector<std::string> shaderList;
 
-		for (std::pair<std::string, Ref<Shader>> shader : mShaders)
+		std::unordered_map<std::string, Scope<Shader>>::iterator it = mShaders.begin();
+
+		while (it != mShaders.end())
 		{
-			shaderList.push_back(shader.first);
+			shaderList.emplace_back(it->first);
+			it++;
 		}
 
 		return shaderList;

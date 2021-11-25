@@ -87,7 +87,7 @@ namespace Toast {
 				isDirty = true;
 			}
 				
-			Ref<Shader> currentShader;
+			Shader* currentShader;
 			std::vector<std::string> shaders = ShaderLibrary::GetShaderList();
 
 			currentShader = mSelectionContext->GetShader();

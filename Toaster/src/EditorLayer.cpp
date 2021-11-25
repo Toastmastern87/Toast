@@ -59,6 +59,7 @@ namespace Toast {
 		mSceneSettingsPanel.SetContext(mEditorScene);
 		mEnvironmentPanel.SetContext(mEditorScene);
 		mMaterialPanel.SetContext(MaterialLibrary::Get("Standard"));
+		mPropertiesPanel.SetContext(mSceneHierarchyPanel.GetSelectedEntity(), &mSceneHierarchyPanel);
 	}
 
 	void EditorLayer::OnDetach()
@@ -260,6 +261,7 @@ namespace Toast {
 			mEnvironmentPanel.OnImGuiRender();
 			mConsolePanel.OnImGuiRender();
 			mContentBrowserPanel.OnImGuiRender();
+			mPropertiesPanel.OnImGuiRender();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 			ImGui::Begin(ICON_TOASTER_GAMEPAD" Viewport");

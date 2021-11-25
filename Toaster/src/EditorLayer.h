@@ -14,6 +14,7 @@
 #include "Panels/EnvironmentalPanel.h"
 #include "Panels/ConsolePanel.h"
 #include "Panels/ContentBrowserPanel.h"
+#include "Panels/PropertiesPanel.h"
 
 namespace Toast {
 
@@ -78,5 +79,6 @@ namespace Toast {
 		EnvironmentalPanel mEnvironmentPanel;
 		ConsolePanel mConsolePanel;
 		ContentBrowserPanel mContentBrowserPanel;
+		PropertiesPanel mPropertiesPanel;
 	};
 }

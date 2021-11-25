@@ -47,9 +47,9 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		sData.QuadVertexBuffer = CreateRef<VertexBuffer>(sData.MaxVertices * sizeof(QuadVertex), sData.MaxVertices, 0);
+		//sData.QuadVertexBuffer = CreateRef<VertexBuffer>(sData.MaxVertices * sizeof(QuadVertex), sData.MaxVertices, 0);
 
-		sData.QuadVertexBufferBase = new QuadVertex[sData.MaxVertices];
+		//sData.QuadVertexBufferBase = new QuadVertex[sData.MaxVertices];
 
 		uint32_t* quadIndices = new uint32_t[sData.MaxIndices];
 

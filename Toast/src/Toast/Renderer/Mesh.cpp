@@ -132,7 +132,7 @@ namespace Toast {
 				auto aiMaterial = scene->mMaterials[i];
 				auto aiMaterialName = aiMaterial->GetName();
 
-				mMaterial = MaterialLibrary::Load(aiMaterialName.C_Str(), ShaderLibrary::Get("ToastPBR"));
+				mMaterial = MaterialLibrary::Load(aiMaterialName.C_Str(), ShaderLibrary::Get("assets/shaders/ToastPBR.hlsl"));
 
 				aiString aiTexPath;
 

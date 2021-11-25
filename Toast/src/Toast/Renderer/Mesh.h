@@ -209,7 +209,7 @@ namespace Toast {
 		void GeneratePlanetMesh(DirectX::XMMATRIX planetTransform, DirectX::XMVECTOR& cameraPos, int16_t subdivisions);
 
 		const Ref<Material> GetMaterial() const { return mMaterial; }
-		void SetMaterial(Ref<Material>& material) { mMaterial = material; }
+		void SetMaterial(Ref<Material> material) { mMaterial = material; }
 
 		std::vector<PlanetFace>& GetPlanetFaces() { return mPlanetFaces; }
 
@@ -264,6 +264,7 @@ namespace Toast {
 		friend class RendererDebug;
 		friend class Primitives;
 		friend class SceneHierarchyPanel;
+		friend class PropertiesPanel;
 		friend class ScriptWrappers;
 	};
 }

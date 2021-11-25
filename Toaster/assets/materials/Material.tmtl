@@ -1,8 +1,8 @@
 Material: Material
-Shader: ToastPBR
-Albedo: [0, 0, 0, 0]
+Shader: assets/shaders/ToastPBR.hlsl
+Albedo: [0.35864979, 0.0983638614, 0.0983638614, 1]
 Metalness: 0
-Roughness: 0
+Roughness: 0.399999976
 UseAlbedoMap: 0
 UseNormalMap: 0
 UseMetalnessMap: 0

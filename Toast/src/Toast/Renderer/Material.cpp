@@ -81,7 +81,7 @@ namespace YAML
 
 namespace Toast {
 
-	Material::Material(const std::string& name, const Ref<Shader>& shader)
+	Material::Material(const std::string& name, Shader* shader)
 		: mName(name), mShader(shader)
 	{
 		SetUpResourceBindings();
@@ -117,9 +117,11 @@ namespace Toast {
 		return Get<DirectX::XMFLOAT4>(name);
 	}
 
-	void Material::SetShader(const Ref<Shader>& shader)
+	void Material::SetShader(Shader* shader)
 	{
 		mShader = shader;
+
+		TOAST_CORE_INFO("Setting shader in material %s with shader: %s", mName.c_str(), mShader->GetName().c_str());
 
 		SetUpResourceBindings();
 	}
@@ -269,7 +271,7 @@ namespace Toast {
 		Add(name, material);
 	}
 
-	Ref<Material> MaterialLibrary::Load(const std::string& name, const Ref<Shader>& shader)
+	Ref<Material> MaterialLibrary::Load(const std::string& name, Shader* shader)
 	{
 		if (!Exists(name))
 		{

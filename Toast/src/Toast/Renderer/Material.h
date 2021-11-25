@@ -29,7 +29,7 @@ namespace Toast {
 		};
 	public:
 		Material() = default;
-		Material(const std::string& name, const Ref<Shader>& shader);
+		Material(const std::string& name, Shader* shader);
 		~Material() = default;
 
 		bool& GetBool(const std::string& name);
@@ -59,8 +59,8 @@ namespace Toast {
 			return mMaterialBuffer.Read<T>(decl->GetOffset());
 		}
 
-		const Ref<Shader> GetShader() const { return mShader; }
-		void SetShader(const Ref<Shader>& shader);
+		Shader* GetShader() const { return mShader; }
+		void SetShader(Shader* shader);
 
 		std::string& GetName() { return mName; }
 		void SetName(std::string& name) { mName = name; }
@@ -81,7 +81,7 @@ namespace Toast {
 	private:
 		const ShaderCBufferElement* FindCBufferElementDeclaration(const std::string& name);
 	private:
-		Ref<Shader> mShader;
+		Shader* mShader;
 
 		std::vector<TextureBindInfo> mTextureBindings;
 		std::vector<SamplerBindInfo> mSamplerBindings;
@@ -98,7 +98,7 @@ namespace Toast {
 		static void Add(const std::string name, const Ref<Material>& material);
 		static void Add(const Ref<Material>& material);
 		static Ref<Material> Load();
-		static Ref<Material> Load(const std::string& name, const Ref<Shader>& shader);
+		static Ref<Material> Load(const std::string& name, Shader* shader);
 
 		static Ref<Material> Get(const std::string& name);
 		static std::unordered_map<std::string, Ref<Material>> GetMaterials() { return mMaterials; }

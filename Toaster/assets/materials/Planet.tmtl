@@ -1,5 +1,5 @@
 Material: Planet
-Shader: Planet
+Shader: assets/shaders/Planet.hlsl
 Albedo: [0, 0, 0, 0]
 Metalness: 0
 Roughness: 0.187999994
