@@ -65,6 +65,6 @@ float4 main(PixelInputType input) : SV_TARGET
     if (val < 0.2f)
         discard;
 
-    float3 outlineColor = float3(1.0f, 0.2f, 0.0f);
+    float3 outlineColor = float3(122.0f/255.0f, 173.0f/255.0f, 71.0f/255.0f);
     return float4(outlineColor, val);
 }

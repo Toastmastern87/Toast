@@ -44,7 +44,6 @@ namespace Toast {
 		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
 		void UpdateWindowTitle(const std::string& sceneName);
 
-		void DrawTitlebar();
 	private:
 		std::optional<std::string> mSceneFilePath;
 
@@ -56,6 +55,7 @@ namespace Toast {
 		Ref<Texture2D> mPlayButtonTex;
 		Ref<Texture2D> mPauseButtonTex;
 		Ref<Texture2D> mStopButtonTex;
+		Ref<Texture2D> mLogoTex;
 
 		Entity mHoveredEntity;
 

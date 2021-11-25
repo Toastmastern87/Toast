@@ -222,9 +222,8 @@ namespace Toast {
 
 				ID3D11RenderTargetView* nullRTV = nullptr;
 				deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
-
-				sRendererData->OutlineStep2Framebuffer->Bind();
-				sRendererData->OutlineStep2Framebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
+				
+				sRendererData->BaseFramebuffer->Bind();
 
 				auto temp = sRendererData->OutlineFramebuffer->GetSRV(0);
 				deviceContext->PSSetShaderResources(9, 1, temp.GetAddressOf());
@@ -235,27 +234,6 @@ namespace Toast {
 
 				ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
 				deviceContext->PSSetShaderResources(9, 1, nullSRV);
-
-				//ID3D11RenderTargetView* nullRTV = nullptr; 
-				//deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
-
-				//auto fbspecc = sRendererData->OutlineFramebuffer->GetSpecification();
-				//Ref<TextureSampler> defaultSampler = TextureLibrary::GetSampler("Default");
-				//Ref<Texture2D> jumpFloodInitTexture = CreateRef<Texture2D>((DXGI_FORMAT)FramebufferTextureFormat::R16G16B16A16_FLOAT, fbspecc.Width, fbspecc.Height);
-				//jumpFloodInitTexture->CreateUAV(0);
-
-				//mDebugData->JumpFloodInitShader->Bind();
-
-				//auto temp = sRendererData->OutlineFramebuffer->GetSRV(0);
-				//deviceContext->CSSetShaderResources(9, 1, temp.GetAddressOf());
-
-				//defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
-				//jumpFloodInitTexture->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-				//RenderCommand::DispatchCompute(fbspecc.Width / 8, fbspecc.Height / 8, 1);
-				//jumpFloodInitTexture->UnbindUAV();
-
-				//ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-				//deviceContext->CSSetShaderResources(9, 1, nullSRV);
 			}
 		}
 	}

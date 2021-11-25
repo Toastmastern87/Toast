@@ -55,10 +55,6 @@ namespace Toast {
 		outlineFBSpec.Width = 1280;
 		outlineFBSpec.Height = 720;
 		sRendererData->OutlineFramebuffer = CreateRef<Framebuffer>(outlineFBSpec);
-		outlineStep2FBSpec.Attachments = { FramebufferTextureFormat::R8G8B8A8_UNORM };
-		outlineStep2FBSpec.Width = 1280;
-		outlineStep2FBSpec.Height = 720;
-		sRendererData->OutlineStep2Framebuffer = CreateRef<Framebuffer>(outlineStep2FBSpec);
 	}
 
 	void Renderer::Shutdown()
