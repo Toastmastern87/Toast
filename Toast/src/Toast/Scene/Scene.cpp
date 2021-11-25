@@ -309,6 +309,8 @@ namespace Toast {
 
 			//Renderer2D::EndScene();
 		}
+		else
+			TOAST_CORE_ERROR("No main camera! Unable to render scene!");
 	}
 
 	void Scene::OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera)
@@ -712,10 +714,8 @@ namespace Toast {
 	template<>
 	void Scene::OnComponentAdded<SkyLightComponent>(Entity entity, SkyLightComponent& component)
 	{
-		TOAST_CORE_INFO("Skybox being added to the scene");
-
 		// Initiate the skybox
-		Ref<Shader> skyboxShader = CreateRef<Shader>("assets/shaders/Skybox.hlsl");
+		Shader* skyboxShader = ShaderLibrary::Load("assets/shaders/Skybox.hlsl");
 		mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader);
 		mSkybox = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.fbx", true);
 		mSkybox->SetMaterial(mSkyboxMaterial);

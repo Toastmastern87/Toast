@@ -85,8 +85,8 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	PixelOutputType output;
 
 	//output.Color = float4(1.0f * multiplier, 1.0f * multiplier, 1.0f * multiplier, 1.0f);
-	output.Color = float4(1.0f, 0.0f, 0.0f, 1.0f);
-	//output.Color = float4(0.0f, 0.0f, 1.0f, 1.0f);
+	//output.Color = float4(1.0f, 0.0f, 0.0f, 1.0f);
+	output.Color = float4(0.0f, 0.0f, 1.0f, 1.0f);
 
 	return output;
 }

@@ -63,6 +63,7 @@ namespace Toast {
 
 		friend class Scene;
 		friend class SceneHierarchyPanel;
+		friend class PropertiesPanel;
 		friend class ScriptEngine;
 	};
 }

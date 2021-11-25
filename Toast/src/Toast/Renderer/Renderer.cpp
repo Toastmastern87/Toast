@@ -20,7 +20,7 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		RenderCommand::Init();
-		Renderer2D::Init();
+		//Renderer2D::Init();
 		RendererDebug::Init();
 
 		// Setting up the constant buffer and data buffer for the camera rendering
@@ -63,7 +63,7 @@ namespace Toast {
 
 	void Renderer::Shutdown()
 	{
-		Renderer2D::Shutdown();
+		//Renderer2D::Shutdown();
 		RendererDebug::Shutdown();
 	}
 
@@ -166,7 +166,7 @@ namespace Toast {
 		sRendererData->MeshDrawList.clear();
 	}
 
-	static Ref<Shader> equirectangularConversionShader, envFilteringShader, envIrradianceShader, spBRDFShader;
+	static Scope<Shader> equirectangularConversionShader, envFilteringShader, envIrradianceShader;
 
 	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::CreateEnvironmentMap(const std::string& filepath)
 	{
@@ -186,7 +186,7 @@ namespace Toast {
 		envMapUnfiltered->CreateUAV(0);
 
 		if (!equirectangularConversionShader)
-			equirectangularConversionShader = CreateRef<Shader>("assets/shaders/EquirectangularToCubeMap.hlsl");
+			equirectangularConversionShader = CreateScope<Shader>("assets/shaders/EquirectangularToCubeMap.hlsl");
 
 		equirectangularConversionShader->Bind();
 		starMap->Bind();
@@ -209,7 +209,7 @@ namespace Toast {
 		};
 
 		if (!envFilteringShader)
-			envFilteringShader = CreateRef<Shader>("assets/shaders/EnvironmentMipFilter.hlsl");
+			envFilteringShader = CreateScope<Shader>("assets/shaders/EnvironmentMipFilter.hlsl");
 
 		envFilteringShader->Bind();
 		envMapUnfiltered->Bind(0, D3D11_COMPUTE_SHADER);
@@ -234,7 +234,7 @@ namespace Toast {
 		Ref<TextureCube> irradianceMap = CreateRef<TextureCube>("IrradianceMap", irradianceMapSize, irradianceMapSize, 1);
 
 		if (!envIrradianceShader)
-			envIrradianceShader = CreateRef<Shader>("assets/shaders/EnvironmentIrradiance.hlsl");
+			envIrradianceShader = CreateScope<Shader>("assets/shaders/EnvironmentIrradiance.hlsl");
 
 		irradianceMap->CreateUAV(0);
 
@@ -332,7 +332,7 @@ namespace Toast {
 				meshCommand.Mesh->Map();
 				meshCommand.Mesh->Bind();
 
-				auto& pickingShader = ShaderLibrary::Get("Picking");
+				auto pickingShader = ShaderLibrary::Get("assets/shaders/Picking.hlsl");
 				pickingShader->Bind();
 
 				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);

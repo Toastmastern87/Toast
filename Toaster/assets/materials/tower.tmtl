@@ -1,5 +1,5 @@
 Material: tower
-Shader: ToastPBR
+Shader: assets/shaders/ToastPBR.hlsl
 Albedo: [0, 0, 0, 0]
 Metalness: 0
 Roughness: 0

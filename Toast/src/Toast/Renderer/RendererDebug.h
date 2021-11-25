@@ -41,7 +41,7 @@ namespace Toast {
 			LineVertex* LineVertexBufferPtr = nullptr;
 
 			uint32_t LineVertexCount = 0;
-			uint32_t MaxVertices = 20000;
+			uint32_t MaxVertices = 200;
 
 			Ref<ConstantBuffer> mDebugCBuffer, mGridCBuffer;
 			Buffer mDebugBuffer, mGridBuffer;

@@ -1,5 +1,5 @@
 Material: Blue
-Shader: ToastPBR
+Shader: assets/shaders/ToastPBR.hlsl
 Albedo: [0, 0, 1, 0]
 Metalness: 0
 Roughness: 0
