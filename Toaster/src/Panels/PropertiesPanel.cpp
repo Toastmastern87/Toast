@@ -169,7 +169,7 @@ namespace Toast {
 
 	void PropertiesPanel::OnImGuiRender()
 	{
-		ImGui::Begin(ICON_TOASTER_WRENCH" PropertiesUpdated");
+		ImGui::Begin(ICON_TOASTER_WRENCH" Properties");
 
 		mContext = mSceneHierarchyPanel->GetSelectedEntity();
 		mScene = mSceneHierarchyPanel->GetContext();

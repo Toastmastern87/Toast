@@ -50,7 +50,7 @@ namespace Toast {
 
 			} SceneData;
 
-			Ref<Framebuffer> BaseFramebuffer, PickingFramebuffer, OutlineFramebuffer, OutlineStep2Framebuffer;
+			Ref<Framebuffer> BaseFramebuffer, PickingFramebuffer, OutlineFramebuffer;
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList;
 
 			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer;
@@ -87,7 +87,6 @@ namespace Toast {
 		static Ref<Framebuffer>& GetBaseFramebuffer() { return sRendererData->BaseFramebuffer; }
 		static Ref<Framebuffer>& GetPickingFramebuffer() { return sRendererData->PickingFramebuffer; }
 		static Ref<Framebuffer>& GetOutlineFramebuffer() { return sRendererData->OutlineFramebuffer; }
-		static Ref<Framebuffer>& GetOutlineStep2Framebuffer() { return sRendererData->OutlineStep2Framebuffer; }
 
 		//Stats
 		struct Statistics

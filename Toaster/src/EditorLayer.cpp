@@ -14,7 +14,9 @@
 
 #include "Toast/Utils/PlatformUtils.h"
 
-#include <imgui/imgui.h>
+#include "imgui/imgui_internal.h"
+#include "imgui/imgui.h"
+
 #include <filesystem>
 
 #include "FontAwesome.h"
@@ -38,6 +40,7 @@ namespace Toast {
 		mPlayButtonTex = TextureLibrary::LoadTexture2D("assets/textures/PlayButton.png");
 		mPauseButtonTex = TextureLibrary::LoadTexture2D("assets/textures/PauseButton.png");
 		mStopButtonTex = TextureLibrary::LoadTexture2D("assets/textures/StopButton.png");
+		mLogoTex = TextureLibrary::LoadTexture2D("assets/textures/ToastEnginePlanetLogo.png");
 		TextureLibrary::LoadTexture2D("assets/textures/White.png");
 		TextureLibrary::LoadTextureSampler("Default", D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 
@@ -74,14 +77,12 @@ namespace Toast {
 		Ref<Framebuffer>& baseFramebuffer = Renderer::GetBaseFramebuffer();
 		Ref<Framebuffer>& pickingFramebuffer = Renderer::GetPickingFramebuffer();
 		Ref<Framebuffer>& outlineFramebuffer = Renderer::GetOutlineFramebuffer();
-		Ref<Framebuffer>& outlineStep2Framebuffer = Renderer::GetOutlineStep2Framebuffer();
 		const FramebufferSpecification spec = baseFramebuffer->GetSpecification();
 		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (spec.Width != mViewportSize.x || spec.Height != mViewportSize.y))
 		{ 
 			baseFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			pickingFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			outlineFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			outlineStep2Framebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		 
 			switch (mSceneState)
 			{
@@ -143,10 +144,6 @@ namespace Toast {
 	void EditorLayer::OnImGuiRender()
 	{
 		TOAST_PROFILE_FUNCTION();
-
-		//ImGui::ShowDemoWindow();
-
-		DrawTitlebar();
 
 		static bool dockingEnabled = true;
 		if (dockingEnabled)
@@ -598,11 +595,6 @@ namespace Toast {
 	{
 		std::string title = sceneName + " - Toaster - " + Application::GetPlatformName() + " (" + Application::GetConfigurationName() + ")";
 		Application::Get().GetWindow().SetTitle(title);
-	}
-
-	void EditorLayer::DrawTitlebar()
-	{
-
 	}
 
 }
