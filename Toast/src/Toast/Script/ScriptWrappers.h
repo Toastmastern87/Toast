@@ -55,7 +55,7 @@ namespace Toast {
 		MonoArray* Toast_PlanetComponent_GetFaceLevelDotLUT(uint64_t entityID);
 
 		// Mesh Component
-		void Toast_MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos);
+		void Toast_MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform);
 	}
 
 }

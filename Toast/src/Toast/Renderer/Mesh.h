@@ -64,12 +64,10 @@ namespace Toast {
 	struct PlanetVertex
 	{
 		DirectX::XMFLOAT2 Position = { 0.0f, 0.0f };
-		DirectX::XMFLOAT2 Morphing = { 0.0f, 0.0f };
 
-		PlanetVertex(DirectX::XMFLOAT2 pos, DirectX::XMFLOAT2 morph)
+		PlanetVertex(DirectX::XMFLOAT2 pos)
 		{
 			Position = pos;
-			Morphing = morph;
 		}
 	};
 

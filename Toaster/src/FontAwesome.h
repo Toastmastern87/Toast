@@ -20,3 +20,4 @@
 #define ICON_TOASTER_FOLDER				u8"\uf07b"
 #define ICON_TOASTER_PAUSE				u8"\uf04c"
 #define ICON_TOASTER_PLAY				u8"\uf04b"
+#define ICON_TOASTER_TRASH_O			u8"\uf014"

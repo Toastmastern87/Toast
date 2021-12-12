@@ -45,7 +45,7 @@ namespace Toast {
 		virtual const uint32_t GetHeight() const override { return mHeight; }
 		virtual const std::string GetFilePath() const override { return mFilePath; }
 		virtual void* GetID() const override { return (void*)mSRV.Get(); }
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() { return mTexture; }
+		//Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() { return mTexture; }
 		virtual const uint32_t GetMipLevelCount() const override;
 
 		void SetData(void* data, uint32_t size);

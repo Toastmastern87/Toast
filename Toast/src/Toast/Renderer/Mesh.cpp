@@ -282,10 +282,10 @@ namespace Toast {
 
 		if (!mPlanetPatches.empty()) {
 			mVertexBuffer = CreateRef<VertexBuffer>(&mPlanetVertices[0], (sizeof(PlanetVertex) * (uint32_t)mPlanetVertices.size()), (uint32_t)mPlanetVertices.size(), 0);
-			mInstanceVertexBuffer = CreateRef<VertexBuffer>(sizeof(PlanetPatch) * 100000, 100000, 1);
+			mInstanceVertexBuffer = CreateRef<VertexBuffer>(&mPlanetPatches[0], sizeof(PlanetPatch) * (uint32_t)mPlanetPatches.size(), (uint32_t)mPlanetPatches.size(), 1);
 			mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 
-			mInstanceVertexBuffer->SetData(&mPlanetPatches[0], static_cast<uint32_t>(sizeof(PlanetPatch) * mPlanetPatches.size()));
+			//mInstanceVertexBuffer->SetData(&mPlanetPatches[0], static_cast<uint32_t>(sizeof(PlanetPatch) * mPlanetPatches.size()));
 		}
 
 		mMaterial = MaterialLibrary::Get("Planet");

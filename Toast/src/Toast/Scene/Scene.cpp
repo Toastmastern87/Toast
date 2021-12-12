@@ -119,7 +119,7 @@ namespace Toast {
 	void Scene::OnUpdateRuntime(Timestep ts)
 	{
 		DirectX::XMVECTOR cameraPos = { 0.0f, 0.0f, 0.0f }, cameraRot = { 0.0f, 0.0f, 0.0f }, cameraScale = { 0.0f, 0.0f, 0.0f };
-
+		
 		// Update statistics
 		{
 			mStats.FrameTime += ts;
@@ -270,13 +270,13 @@ namespace Toast {
 					{
 					case Settings::Wireframe::NO:
 					{
-						Renderer::SubmitPlanet(mesh.Mesh, transform.Transform, (int)entity, planet.PlanetData, false);
+						Renderer::SubmitMesh(mesh.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
-						Renderer::SubmitPlanet(mesh.Mesh, transform.Transform, (int)entity, planet.PlanetData, true);
+						Renderer::SubmitMesh(mesh.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData);
 
 						break;
 					}
@@ -316,8 +316,11 @@ namespace Toast {
 	void Scene::OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera)
 	{
 		DirectX::XMVECTOR cameraPos = { 0.0f, 0.0f, 0.0f }, cameraRot = { 0.0f, 0.0f, 0.0f }, cameraScale = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMVECTOR cameraForward;
+		DirectX::XMMATRIX cameraTransform = DirectX::XMMatrixIdentity();
 
-		// Makes sure that if there is no camera the position takes the perspective editor camera position instead
+		// Makes sure these values are not crap if there is no main camera in the scene, then it uses the editor camera instead
+		cameraForward = editorCamera->GetForwardDirection();
 		cameraPos = editorCamera->GetPosition();
 
 		// Update statistics
@@ -374,18 +377,26 @@ namespace Toast {
 			{
 				auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
 				if (camera.Primary)
+				{
+					cameraForward = { 0.0f, 0.0f, 1.0f };
+					cameraTransform = transform.Transform;
+
 					DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.Transform);
+					cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRot);
+				}
 
 			}
 
-			if (!DirectX::XMVector3Equal(mOldCameraPos, cameraPos))
+			if (!DirectX::XMVector4Equal(mOldCameraTransform.r[0], cameraTransform.r[0]) || !DirectX::XMVector4Equal(mOldCameraTransform.r[1], cameraTransform.r[1]) || !DirectX::XMVector4Equal(mOldCameraTransform.r[2], cameraTransform.r[2]) || !DirectX::XMVector4Equal(mOldCameraTransform.r[3], cameraTransform.r[3]))
 			{
 				auto view = mRegistry.view<PlanetComponent, MeshComponent, TransformComponent>();
 				for (auto entity : view)
 				{
 					auto [planet, mesh, transform] = view.get<PlanetComponent, MeshComponent, TransformComponent>(entity);
 
-					PlanetSystem::GeneratePlanet(transform.Transform, mesh.Mesh->mPlanetFaces, mesh.Mesh->mPlanetPatches, planet.DistanceLUT, planet.FaceLevelDotLUT, cameraPos, planet.Subdivisions);
+					//TOAST_CORE_INFO("Camera Forward: %f, %f, %f", DirectX::XMVectorGetX(cameraForward), DirectX::XMVectorGetY(cameraForward), DirectX::XMVectorGetZ(cameraForward));
+
+					PlanetSystem::GeneratePlanet(transform.Transform, mesh.Mesh->mPlanetFaces, mesh.Mesh->mPlanetPatches, planet.DistanceLUT, planet.FaceLevelDotLUT, cameraPos, cameraForward, planet.Subdivisions, mSettings.BackfaceCulling);
 
 					mesh.Mesh->InitPlanet();
 					mesh.Mesh->AddSubmesh((uint32_t)(mesh.Mesh->mIndices.size()));
@@ -393,6 +404,25 @@ namespace Toast {
 			}
 
 			mOldCameraPos = cameraPos;
+			mOldCameraTransform = cameraTransform;
+		}
+
+		if (mOldBackfaceCullSetting != mSettings.BackfaceCulling) 
+		{
+			auto view = mRegistry.view<PlanetComponent, MeshComponent, TransformComponent>();
+			for (auto entity : view)
+			{
+				auto [planet, mesh, transform] = view.get<PlanetComponent, MeshComponent, TransformComponent>(entity);
+
+				//TOAST_CORE_INFO("Camera Forward: %f, %f, %f", DirectX::XMVectorGetX(cameraForward), DirectX::XMVectorGetY(cameraForward), DirectX::XMVectorGetZ(cameraForward));
+
+				PlanetSystem::GeneratePlanet(transform.Transform, mesh.Mesh->mPlanetFaces, mesh.Mesh->mPlanetPatches, planet.DistanceLUT, planet.FaceLevelDotLUT, cameraPos, cameraForward, planet.Subdivisions, mSettings.BackfaceCulling);
+
+				mesh.Mesh->InitPlanet();
+				mesh.Mesh->AddSubmesh((uint32_t)(mesh.Mesh->mIndices.size()));
+			}
+
+			mOldBackfaceCullSetting = mSettings.BackfaceCulling;
 		}
 
 		DirectX::XMFLOAT4 cameraPosFloat;
@@ -463,13 +493,13 @@ namespace Toast {
 				{
 				case Settings::Wireframe::NO:
 				{
-					Renderer::SubmitPlanet(mesh.Mesh, transform.Transform, (int)entity, planet.PlanetData, false);
+					Renderer::SubmitMesh(mesh.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData);
 
 					break;
 				}
 				case Settings::Wireframe::YES:
 				{
-					Renderer::SubmitPlanet(mesh.Mesh, transform.Transform, (int)entity, planet.PlanetData, true);
+					Renderer::SubmitMesh(mesh.Mesh, transform.Transform, (int)entity, true, &planet.PlanetData);
 
 					break;
 				}
@@ -674,26 +704,31 @@ namespace Toast {
 
 		tc = entity.GetComponent<TransformComponent>();
 
-		DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
-		if (mainCamera)
+		DirectX::XMVECTOR cameraPos, cameraRot, cameraScale, cameraForward;
+		if (mainCamera) 
+		{
+			cameraForward = { 0.0f, 0.0f, 1.0f };
 			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
-		else
-			cameraPos = {0.0f, 0.0f, 0.0f};
+			cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRot);
+		}
+		else 
+		{
+			cameraForward = { 0.0f, 0.0f, 1.0f };
+			cameraPos = { 0.0f, 0.0f, 0.0f };
+		}
 
 		DirectX::XMVECTOR scale, rotation, translation;
 		DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.Transform);
 
-		if(mainCamera)
-			PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, DirectX::XMVectorGetX(scale), mainCamera->GetPerspectiveVerticalFOV(), (float)(mViewportWidth), 200.0f, 8);
-		else
-			PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, DirectX::XMVectorGetX(scale), 45.0f, (float)(mViewportWidth), 200.0f, 8);
+		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8);
 		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, DirectX::XMVectorGetX(scale), 8, component.PlanetData.maxAltitude.x);
+
 		PlanetSystem::GeneratePatchGeometry(mc.Mesh->mPlanetVertices, mc.Mesh->mIndices, component.PatchLevels);
 		PlanetSystem::GenerateBasePlanet(mc.Mesh->mPlanetFaces);
-		PlanetSystem::GeneratePlanet(tc.Transform, mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, cameraPos, component.Subdivisions);
-		//PlanetSystem::CraterDetailIncrease(mc.Mesh->GetMaterial());
+		PlanetSystem::GeneratePlanet(tc.Transform, mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, cameraPos, cameraPos, component.Subdivisions, mSettings.BackfaceCulling);
 
 		mc.Mesh->InitPlanet();
+		mc.Mesh->AddSubmesh((uint32_t)(mc.Mesh->GetIndices().size()));
 	}
 
 	template<>

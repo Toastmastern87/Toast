@@ -1,6 +1,5 @@
 #inputlayout
 vertex
-vertex
 instance
 instance
 instance
@@ -41,7 +40,6 @@ cbuffer Planet : register(b2)
 struct VertexInputType
 {
 	float2 localPosition : TEXCOORD0;
-	float2 localMorph : TEXCOORD1;
 	int level : TEXTUREID;
 	float3 a : POSITION0;
 	float3 r : POSITION1;

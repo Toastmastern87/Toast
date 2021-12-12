@@ -137,19 +137,14 @@ namespace Toast {
 		sRendererData->SceneData.SkyboxData.LOD = LOD;
 	}
 
-	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe)
+	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe, PlanetComponent::PlanetGPUData* planetData)
 	{
-		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, entityID);
+		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, entityID, planetData);
 	}
 
 	void Renderer::SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
 	{
 		sRendererData->MeshSelectedDrawList.emplace_back(mesh, transform, wireframe);
-	}
-
-	void Renderer::SubmitPlanet(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, PlanetComponent::PlanetGPUData planetData, bool wireframe)
-	{
-		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, entityID, &planetData);
 	}
 
 	void Renderer::DrawFullscreenQuad()
