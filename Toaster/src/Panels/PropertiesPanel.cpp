@@ -163,6 +163,7 @@ namespace Toast {
 	void PropertiesPanel::SetContext(const Entity& context, SceneHierarchyPanel* sceneHierarchyPanel)
 	{
 		mSceneHierarchyPanel = sceneHierarchyPanel;
+		mScene = mSceneHierarchyPanel->GetContext();
 
 		mContext = context;
 	}
@@ -181,7 +182,7 @@ namespace Toast {
 	}
 
 	template<typename T, typename UIFunction>
-	static void DrawComponent(const std::string& name, Entity entity, UIFunction uiFunction)
+	static void DrawComponent(const std::string& name, Entity entity, Scene* scene, UIFunction uiFunction)
 	{
 		const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
 
@@ -196,7 +197,7 @@ namespace Toast {
 			bool open = ImGui::TreeNodeEx((void*)typeid(T).hash_code(), treeNodeFlags, name.c_str());
 			ImGui::PopStyleVar();
 			ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
-			if (ImGui::Button("+", ImVec2{ lineHeight, lineHeight }))
+			if (ImGui::Button(ICON_TOASTER_TRASH_O"", ImVec2{ lineHeight, lineHeight }))
 			{
 				ImGui::OpenPopup("ComponentsSettings");
 			}
@@ -213,7 +214,7 @@ namespace Toast {
 
 			if (open)
 			{
-				uiFunction(component, entity);
+				uiFunction(component, entity, scene);
 				ImGui::TreePop();
 			}
 
@@ -313,11 +314,13 @@ namespace Toast {
 
 		ImGui::TextDisabled("UUID: %llx", entity.GetComponent<IDComponent>().ID);
 
-		DrawComponent<TransformComponent>(ICON_TOASTER_ARROWS_ALT" Transform", entity, [](auto& component, Entity entity)
+		DrawComponent<TransformComponent>(ICON_TOASTER_ARROWS_ALT" Transform", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
 				float fov = 45.0f;
 				DirectX::XMFLOAT3 translationFloat3, scaleFloat3;
 				DirectX::XMVECTOR translation, scale, rotation;
+				DirectX::XMMATRIX cameraTransform;
+				DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
 
 				DirectX::XMMatrixDecompose(&scale, &rotation, &translation, component.Transform);
 				DirectX::XMStoreFloat3(&translationFloat3, translation);
@@ -329,31 +332,48 @@ namespace Toast {
 				updateTransform |= DrawFloat3Control("Rotation", component.RotationEulerAngles);
 				updateTransform |= DrawFloat3Control("Scale", scaleFloat3, 1.0f);
 
-				if (updateTransform)
+				if (updateTransform) 
 					component.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scaleFloat3.x, scaleFloat3.y, scaleFloat3.z)
-					* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(component.RotationEulerAngles.x), DirectX::XMConvertToRadians(component.RotationEulerAngles.y), DirectX::XMConvertToRadians(component.RotationEulerAngles.z))))
-					* DirectX::XMMatrixTranslation(translationFloat3.x, translationFloat3.y, translationFloat3.z);
+						* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(component.RotationEulerAngles.x), DirectX::XMConvertToRadians(component.RotationEulerAngles.y), DirectX::XMConvertToRadians(component.RotationEulerAngles.z))))
+						* DirectX::XMMatrixTranslation(translationFloat3.x, translationFloat3.y, translationFloat3.z);
 
 				// If the component has a planet recalculate the Distance LUT
 				if (entity.HasComponent<PlanetComponent>() && updateTransform)
 				{
+					DirectX::XMVECTOR cameraForward = { 0.0f, 0.0f, 1.0f };
+
 					auto view = entity.mScene->mRegistry.view<TransformComponent, CameraComponent>();
 					for (auto entity : view)
 					{
-						auto& camera = view.get<CameraComponent>(entity);
+						auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
+						cameraTransform = transform.Transform;
 
-						if (camera.Primary)
+						if (camera.Primary) 
+						{
 							fov = camera.Camera.GetPerspectiveVerticalFOV();
+
+							DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
+						}
+						else 
+						{
+							cameraPos = { 0.0f, 0.0f, 0.0f };
+						}
 					}
 
 					auto& pc = entity.GetComponent<PlanetComponent>();
+					auto& mc = entity.GetComponent<MeshComponent>();
 
-					PlanetSystem::GenerateDistanceLUT(pc.DistanceLUT, scaleFloat3.x, fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
-					PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, scaleFloat3.x, 8, pc.PlanetData.maxAltitude.x);
+					PlanetSystem::GenerateDistanceLUT(pc.DistanceLUT, 8.0f);
+					PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, DirectX::XMVectorGetX(scale), 8.0f, pc.PlanetData.maxAltitude.x);
+
+					PlanetSystem::GeneratePlanet(component.Transform, mc.Mesh->GetPlanetFaces(), mc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, cameraPos, cameraPos, pc.Subdivisions, scene->mSettings.BackfaceCulling);
+
+					mc.Mesh->InitPlanet();
+					mc.Mesh->AddSubmesh((uint32_t)(mc.Mesh->GetIndices().size()));
 				}
 			});
 
-		DrawComponent<MeshComponent>(ICON_TOASTER_CUBE" Mesh", entity, [](auto& component, Entity entity)
+		DrawComponent<MeshComponent>(ICON_TOASTER_CUBE" Mesh", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -405,7 +425,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<CameraComponent>(ICON_TOASTER_CAMERA" Camera", entity, [](auto& component, Entity entity)
+		DrawComponent<CameraComponent>(ICON_TOASTER_CAMERA" Camera", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -482,7 +502,7 @@ namespace Toast {
 				}
 			});
 
-		DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, [](auto& component, Entity entity)
+		DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -501,7 +521,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<PlanetComponent>(ICON_TOASTER_GLOBE" Planet", entity, [](auto& component, Entity entity)
+		DrawComponent<PlanetComponent>(ICON_TOASTER_GLOBE" Planet", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
 				DirectX::XMVECTOR cameraPos = { 0.0f, 0.0f, 0.0f }, cameraRot = { 0.0f, 0.0f, 0.0f }, cameraScale = { 0.0f, 0.0f, 0.0f };
 				int patchLevels = component.PatchLevels;
@@ -576,20 +596,21 @@ namespace Toast {
 						}
 					}
 
-					DirectX::XMVECTOR scale, rotation, translation;
+					DirectX::XMVECTOR scale, rotation, translation, cameraForward = { 0.0f, 0.0f, 1.0f };
 					DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.Transform);
 
-					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, DirectX::XMVectorGetX(scale), fov, (float)entity.mScene->mViewportWidth, 200.0f, 8);
-					PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, DirectX::XMVectorGetX(scale), 8, component.PlanetData.maxAltitude.x);
-					PlanetSystem::GeneratePatchGeometry(mc.Mesh->mPlanetVertices, mc.Mesh->mIndices, component.PatchLevels);
-					PlanetSystem::GeneratePlanet(tc.Transform, mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, cameraPos, component.Subdivisions);
+					DirectX::XMVECTOR rotationMatrix = DirectX::XMQuaternionRotationMatrix(tc.Transform);
+					cameraForward = rotationMatrix * cameraForward;
+
+					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8);
+					PlanetSystem::GeneratePlanet(tc.Transform, mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, cameraPos, cameraForward, component.Subdivisions, scene->mSettings.BackfaceCulling);
 
 					mc.Mesh->InitPlanet();
 					mc.Mesh->AddSubmesh((uint32_t)(mc.Mesh->mIndices.size()));
 				}
 			});
 
-		DrawComponent<DirectionalLightComponent>(ICON_TOASTER_SUN_O" Directional Light", entity, [](auto& component, Entity entity)
+		DrawComponent<DirectionalLightComponent>(ICON_TOASTER_SUN_O" Directional Light", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -618,7 +639,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<SkyLightComponent>(ICON_TOASTER_CLOUD" Sky Light", entity, [](auto& component, Entity entity)
+		DrawComponent<SkyLightComponent>(ICON_TOASTER_CLOUD" Sky Light", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -653,7 +674,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<ScriptComponent>(ICON_TOASTER_CODE" Script", entity, [=](auto& sc, Entity entity)
+		DrawComponent<ScriptComponent>(ICON_TOASTER_CODE" Script", entity, mScene, [=](auto& sc, Entity entity, Scene* scene)
 			{
 				std::string oldName = sc.ModuleName;
 

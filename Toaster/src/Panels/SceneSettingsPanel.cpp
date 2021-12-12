@@ -45,6 +45,8 @@ namespace Toast {
 
 			ImGui::Checkbox("Show grid", &mContext->mSettings.Grid);
 			ImGui::Checkbox("Show camera frustum", &mContext->mSettings.CameraFrustum);
+			ImGui::Checkbox("Planet backface culling", &mContext->mSettings.BackfaceCulling);
+			ImGui::Checkbox("Planet frustum culling", &mContext->mSettings.FrustumCulling);
 		}
 
 		ImGui::End();

@@ -287,32 +287,14 @@ namespace Toast {
 			return outDistanceLUT;
 		}
 
-		MonoArray* Toast_PlanetComponent_GetFaceLevelDotLUT(uint64_t entityID)
-		{
-			MonoArray* outFaceLevelDotLUT;
-
-			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
-			TOAST_CORE_ASSERT(scene, "No active scene!");
-			const auto& entityMap = scene->GetEntityMap();
-			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-			Entity entity = entityMap.at(entityID);
-			auto& component = entity.GetComponent<PlanetComponent>();
-
-			outFaceLevelDotLUT = mono_array_new(mono_domain_get(), mono_get_double_class(), component.FaceLevelDotLUT.size());
-
-			for (int i = 0; i < component.FaceLevelDotLUT.size(); i++)
-				mono_array_set(outFaceLevelDotLUT, double, i, component.FaceLevelDotLUT[i]);
-
-			return outFaceLevelDotLUT;
-		}
-
 		////////////////////////////////////////////////////////////////
 		// Mesh ////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////
 
-		void Toast_MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos)
+		void Toast_MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform)
 		{
 			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			auto sceneSettings = scene->GetSettings();
 			TOAST_CORE_ASSERT(scene, "No active scene!");
 			const auto& entityMap = scene->GetEntityMap();
 			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
@@ -322,7 +304,12 @@ namespace Toast {
 			auto& mc = entity.GetComponent<MeshComponent>();
 
 			DirectX::XMVECTOR cameraPosVector = { cameraPos->x, cameraPos->y, cameraPos->z };
-			PlanetSystem::GeneratePlanet(tc.Transform, mc.Mesh->GetPlanetFaces(), mc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, cameraPosVector, pc.Subdivisions);
+			DirectX::XMVECTOR cameraPosVector2, cameraRotVector, cameraScaleVector, cameraForward;
+			cameraForward = { 0.0f, 0.0f, 1.0f };
+			DirectX::XMMatrixDecompose(&cameraScaleVector, &cameraRotVector, &cameraPosVector2, *cameraTransform);
+			cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
+			//TOAST_CORE_INFO("Forward vector: %f, %f, %f", DirectX::XMVectorGetX(cameraForward), DirectX::XMVectorGetY(cameraForward), DirectX::XMVectorGetZ(cameraForward));
+			PlanetSystem::GeneratePlanet(tc.Transform, mc.Mesh->GetPlanetFaces(), mc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, cameraPosVector, cameraForward, pc.Subdivisions, sceneSettings.BackfaceCulling);
 
 			mc.Mesh->InitPlanet();
 			mc.Mesh->AddSubmesh((uint32_t)(mc.Mesh->GetIndices().size()));

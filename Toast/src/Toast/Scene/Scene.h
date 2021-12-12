@@ -36,6 +36,25 @@ namespace Toast {
 	class Scene : public std::enable_shared_from_this<Scene>
 	{
 	public:
+		//Settings
+		struct Settings
+		{
+			enum class Wireframe { NO = 0, YES = 1, ONTOP = 2 };
+			Wireframe WireframeRendering = Wireframe::NO;
+
+			bool Grid = true;
+			bool CameraFrustum = true;
+			bool BackfaceCulling = true;
+			bool FrustumCulling = true;
+		};
+		struct Stats
+		{
+			float TimeSteps = 0.0f;
+			float FrameTime = 0.0f;
+			float FPS = 0.0f;
+			uint32_t VerticesCount = 0;
+		};
+
 		Scene();
 		~Scene();
 
@@ -69,22 +88,7 @@ namespace Toast {
 
 		void SetSelectedEntity(entt::entity entity) { mSelectedEntity = entity; }
 
-		//Settings
-		struct Settings
-		{
-			enum class Wireframe { NO = 0, YES = 1, ONTOP = 2 };
-			Wireframe WireframeRendering = Wireframe::NO;
-			
-			bool Grid = true;
-			bool CameraFrustum = true;
-		};
-		struct Stats
-		{
-			float TimeSteps = 0.0f;
-			float FrameTime = 0.0f;
-			float FPS = 0.0f;
-			uint32_t VerticesCount = 0;
-		};
+		Settings GetSettings() { return mSettings; }
 	private:
 		template<typename T>
 		void OnComponentAdded(Entity entity, T& component);
@@ -109,10 +113,13 @@ namespace Toast {
 		Stats mStats;
 
 		DirectX::XMVECTOR mOldCameraPos = { 0.0f, 0.0f, 0.0f }, mOldCameraRot = { 0.0f, 0.0f, 0.0f }, mOldCameraScale = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMMATRIX mOldCameraTransform = DirectX::XMMatrixIdentity();
 
 		bool mIsPlaying = false;
 
 		entt::entity mSelectedEntity;
+
+		bool mOldBackfaceCullSetting = false;
 
 		friend class Entity;
 		friend class Renderer;

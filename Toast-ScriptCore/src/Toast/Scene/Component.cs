@@ -183,9 +183,9 @@ namespace Toast
             }
         }
 
-        public void RegeneratePlanet(Vector3 cameraPos) 
+        public void RegeneratePlanet(Vector3 cameraPos, Matrix4 cameraTransform) 
         {
-            RegeneratePlanet_Native(Entity.ID, cameraPos);
+            RegeneratePlanet_Native(Entity.ID, cameraPos, cameraTransform);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -193,7 +193,7 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void SetMesh_Native(ulong entityID, IntPtr unmanagedInstance);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void RegeneratePlanet_Native(ulong entityID, Vector3 cameraPos);
+        internal static extern void RegeneratePlanet_Native(ulong entityID, Vector3 cameraPos, Matrix4 cameraForward);
 
     }
 }
