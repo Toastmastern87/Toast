@@ -38,6 +38,7 @@ namespace Toast {
 		RegisterComponent(TransformComponent);
 		RegisterComponent(PlanetComponent);
 		RegisterComponent(MeshComponent);
+		RegisterComponent(CameraComponent);
 
 		//Log
 		mono_add_internal_call("Toast.Console::LogTrace_Native", Toast::Script::Toast_Console_LogTrace);
@@ -79,6 +80,12 @@ namespace Toast {
 
 		//Mesh
 		mono_add_internal_call("Toast.MeshComponent::RegeneratePlanet_Native", Toast::Script::Toast_MeshComponent_GeneratePlanet);
+
+		//Camera
+		mono_add_internal_call("Toast.CameraComponent::GetFarClip_Native", Toast::Script::Toast_CameraComponent_GetFarClip);
+		mono_add_internal_call("Toast.CameraComponent::SetFarClip_Native", Toast::Script::Toast_CameraComponent_SetFarClip);
+		mono_add_internal_call("Toast.CameraComponent::GetNearClip_Native", Toast::Script::Toast_CameraComponent_GetNearClip);
+		mono_add_internal_call("Toast.CameraComponent::SetNearClip_Native", Toast::Script::Toast_CameraComponent_SetNearClip);
 	}
 
 }

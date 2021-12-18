@@ -107,7 +107,58 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         public static extern void SetScale_Native(ulong entityID, ref Vector3 inScale);
     }
+    public class CameraComponent : Component
+    {
+        public Camera Camera
+        {
+            get
+            {
+                Camera result = new Camera(GetCamera_Native(Entity.ID));
+                return result;
+            }
 
+            set
+            {
+                IntPtr ptr = value == null ? IntPtr.Zero : value.mUnmanagedInstance;
+                SetCamera_Native(Entity.ID, ptr);
+            }
+        }
+        public float FarClip
+        {
+            get
+            {
+                return GetFarClip_Native(Entity.ID);
+            }
+            set
+            {
+                SetFarClip_Native(Entity.ID, value);
+            }
+        }
+        public float NearClip
+        {
+            get
+            {
+                return GetNearClip_Native(Entity.ID);
+            }
+            set
+            {
+                SetNearClip_Native(Entity.ID, value);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern IntPtr GetCamera_Native(ulong entityID);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetCamera_Native(ulong entityID, IntPtr unmanagedInstance);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetFarClip_Native(ulong entityID, float farClip);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetFarClip_Native(ulong entityID);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetNearClip_Native(ulong entityID, float nearClip);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float GetNearClip_Native(ulong entityID);
+    }
     public class PlanetComponent : Component
     {
         public float Radius

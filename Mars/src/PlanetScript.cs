@@ -26,7 +26,6 @@ class PlanetScript : Entity
         {
             Vector3 cameraPos = new Vector3(mCameraTransform.Transform.D03, mCameraTransform.Transform.D13, mCameraTransform.Transform.D23);
             Vector3 cameraForward = new Vector3(mCameraTransform.Transform.D03, mCameraTransform.Transform.D13, mCameraTransform.Transform.D23);
-           // Toast.Console.LogInfo("Camera forward vector: " + mCameraTransform.Transform.ToString());
             mMeshComponent.RegeneratePlanet(cameraPos, mCameraTransform.Transform);
         }
 

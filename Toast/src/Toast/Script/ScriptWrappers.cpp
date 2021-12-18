@@ -308,11 +308,62 @@ namespace Toast {
 			cameraForward = { 0.0f, 0.0f, 1.0f };
 			DirectX::XMMatrixDecompose(&cameraScaleVector, &cameraRotVector, &cameraPosVector2, *cameraTransform);
 			cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
-			//TOAST_CORE_INFO("Forward vector: %f, %f, %f", DirectX::XMVectorGetX(cameraForward), DirectX::XMVectorGetY(cameraForward), DirectX::XMVectorGetZ(cameraForward));
 			PlanetSystem::GeneratePlanet(tc.Transform, mc.Mesh->GetPlanetFaces(), mc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, cameraPosVector, cameraForward, pc.Subdivisions, sceneSettings.BackfaceCulling);
 
 			mc.Mesh->InitPlanet();
 			mc.Mesh->AddSubmesh((uint32_t)(mc.Mesh->GetIndices().size()));
+		}
+
+		////////////////////////////////////////////////////////////////
+		// Camera //////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////
+
+		float Toast_CameraComponent_GetFarClip(uint64_t entityID)
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& component = entity.GetComponent<CameraComponent>();
+
+			return component.Camera.GetPerspectiveFarClip();
+		}
+
+		void Toast_CameraComponent_SetFarClip(uint64_t entityID, float inFarClip)
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& component = entity.GetComponent<CameraComponent>();
+
+			component.Camera.SetPerspectiveFarClip(inFarClip);
+		}
+
+		float Toast_CameraComponent_GetNearClip(uint64_t entityID)
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& component = entity.GetComponent<CameraComponent>();
+
+			return component.Camera.GetPerspectiveNearClip();
+		}
+
+		void Toast_CameraComponent_SetNearClip(uint64_t entityID, float inNearClip)
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& component = entity.GetComponent<CameraComponent>();
+
+			component.Camera.SetPerspectiveNearClip(inNearClip);
 		}
 
 	}
