@@ -139,7 +139,10 @@ namespace Toast {
 
 	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe, PlanetComponent::PlanetGPUData* planetData)
 	{
+		//TOAST_CORE_INFO("ADDING MESH TO RENDER LIST");
 		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, entityID, planetData);
+		//if (planetData)
+		//	TOAST_CORE_INFO("PLANET ADDED TO THE RENDERING LIST");
 	}
 
 	void Renderer::SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
@@ -281,8 +284,6 @@ namespace Toast {
 			{
 				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
 				meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
-				meshCommand.Mesh->Map();
-				meshCommand.Mesh->Bind();
 
 				if (meshCommand.PlanetData)
 				{
@@ -294,6 +295,9 @@ namespace Toast {
 					meshCommand.Mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "minAltitude", meshCommand.PlanetData->minAltitude);
 					meshCommand.Mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "maxAltitude", meshCommand.PlanetData->maxAltitude);
 				}
+
+				meshCommand.Mesh->Map();
+				meshCommand.Mesh->Bind();
 
 				if (meshCommand.PlanetData)
 					RenderCommand::DrawIndexedInstanced(submesh.IndexCount, static_cast<uint32_t>(meshCommand.Mesh->mPlanetPatches.size()), 0, 0, 0);
