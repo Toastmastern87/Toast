@@ -122,7 +122,6 @@ namespace Toast {
 		{
 			float aDistance, bDistance, cDistance;
 
-			// need to transform the vertices here?
 			a = DirectX::XMVector3Transform(a, planetTransform);
 			b = DirectX::XMVector3Transform(b, planetTransform);
 			c = DirectX::XMVector3Transform(c, planetTransform);
@@ -130,10 +129,6 @@ namespace Toast {
 			DirectX::XMVECTOR center = (a + b + c) / 3.0f;
 
 			DirectX::XMVECTOR dotProduct = DirectX::XMVector3Dot(DirectX::XMVector3Normalize(center), DirectX::XMVector3Normalize(center - cameraPos));
-
-			//TOAST_CORE_INFO("Center vector: %f, %f, %f", DirectX::XMVectorGetX(center), DirectX::XMVectorGetY(center), DirectX::XMVectorGetZ(center));
-			//TOAST_CORE_INFO("cameraPos vector: %f, %f, %f", DirectX::XMVectorGetX(cameraPos), DirectX::XMVectorGetY(cameraPos), DirectX::XMVectorGetZ(cameraPos));
-			//TOAST_CORE_INFO("Dot product: %f, ", DirectX::XMVectorGetX(dotProduct));
 
 			if (DirectX::XMVectorGetX(dotProduct) >= faceLevelDotLUT[subdivision] && backfaceCull)
 				return NextPlanetFace::CULL;

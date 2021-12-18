@@ -8,6 +8,7 @@ class CameraController : Entity
     public float MaxAltitude = 0.0f;
 
     private TransformComponent mTransform;
+    private CameraComponent mCamera;
     private Vector3 mForward;
     private Vector3 mViewDir;
     private Vector3 mRightMovement;
@@ -20,6 +21,7 @@ class CameraController : Entity
     void OnCreate()
     {
         mTransform = GetComponent<TransformComponent>();
+        mCamera = GetComponent<CameraComponent>();
 
         mForward = new Vector3(0.0f, 1.0f, 0.0f);
         mUpMovement = new Vector3(0.0f, 0.0f, -1.0f);
@@ -38,6 +40,8 @@ class CameraController : Entity
         Vector3 translation = new Vector3(mTransform.Transform.D03, mTransform.Transform.D13, mTransform.Transform.D23);
 
         mUpMovement = Vector3.Normalize(translation);
+
+        mCamera.FarClip = 1.6875f * Vector3.Length(translation) - 5437.5f;
 
         float altitude = Vector3.Length(translation);
         float moveSpeed = 100.0f;// 0.0967f * altitude - 318.0f;

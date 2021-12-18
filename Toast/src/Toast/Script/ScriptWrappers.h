@@ -52,10 +52,15 @@ namespace Toast {
 		void Toast_PlanetComponent_GetRadius(uint64_t entityID, float* outRadius);
 		void Toast_PlanetComponent_GetSubdivisions(uint64_t entityID, int* outRadius);
 		MonoArray* Toast_PlanetComponent_GetDistanceLUT(uint64_t entityID);
-		MonoArray* Toast_PlanetComponent_GetFaceLevelDotLUT(uint64_t entityID);
 
 		// Mesh Component
 		void Toast_MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform);
+
+		// Camera Component
+		float Toast_CameraComponent_GetFarClip(uint64_t entityID);
+		void Toast_CameraComponent_SetFarClip(uint64_t entityID, float inFarClip);
+		float Toast_CameraComponent_GetNearClip(uint64_t entityID);
+		void Toast_CameraComponent_SetNearClip(uint64_t entityID, float inNearClip);
 	}
 
 }

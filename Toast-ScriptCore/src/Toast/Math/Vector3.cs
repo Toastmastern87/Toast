@@ -107,7 +107,6 @@ namespace Toast
                 return true;
             else
                 return false;
-
         }
 
         public static bool operator !=(Vector3 vecOne, Vector3 vecTwo)
