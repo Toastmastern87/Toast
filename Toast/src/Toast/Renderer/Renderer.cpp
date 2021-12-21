@@ -139,10 +139,7 @@ namespace Toast {
 
 	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe, PlanetComponent::PlanetGPUData* planetData)
 	{
-		//TOAST_CORE_INFO("ADDING MESH TO RENDER LIST");
-		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, entityID, planetData);
-		//if (planetData)
-		//	TOAST_CORE_INFO("PLANET ADDED TO THE RENDERING LIST");
+;		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, entityID, planetData);
 	}
 
 	void Renderer::SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
@@ -280,29 +277,36 @@ namespace Toast {
 
 			RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
 
-			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+			if (!meshCommand.PlanetData)
 			{
-				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+				for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+				{
+					meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+					meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
+
+					meshCommand.Mesh->Map();
+					meshCommand.Mesh->Bind();
+					
+					RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+				}
+			}
+			else 
+			{
+				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(meshCommand.Mesh->mSubmeshes[0].Transform, meshCommand.Transform));
 				meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
 
-				if (meshCommand.PlanetData)
-				{
-					// Planet mesh data
-					meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "radius", meshCommand.PlanetData->radius);
-					meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
-					meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
-					meshCommand.Mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "radius", meshCommand.PlanetData->radius);
-					meshCommand.Mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "minAltitude", meshCommand.PlanetData->minAltitude);
-					meshCommand.Mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "maxAltitude", meshCommand.PlanetData->maxAltitude);
-				}
+				// Planet mesh data
+				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "radius", meshCommand.PlanetData->radius);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "radius", meshCommand.PlanetData->radius);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "minAltitude", meshCommand.PlanetData->minAltitude);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("PlanetPS", "maxAltitude", meshCommand.PlanetData->maxAltitude);
 
 				meshCommand.Mesh->Map();
 				meshCommand.Mesh->Bind();
 
-				if (meshCommand.PlanetData)
-					RenderCommand::DrawIndexedInstanced(submesh.IndexCount, static_cast<uint32_t>(meshCommand.Mesh->mPlanetPatches.size()), 0, 0, 0);
-				else
-					RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+				RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, static_cast<uint32_t>(meshCommand.Mesh->mPlanetPatches.size()), 0, 0, 0);
 			}
 		}
 	}
@@ -315,22 +319,25 @@ namespace Toast {
 		sRendererData->PickingFramebuffer->Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
 
 		for (const auto& meshCommand : sRendererData->MeshDrawList) {
-			if (meshCommand.Mesh->mVertexBuffer)	meshCommand.Mesh->mVertexBuffer->Bind();
-			if (meshCommand.Mesh->mIndexBuffer)		meshCommand.Mesh->mIndexBuffer->Bind();
-
-			RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
-
-			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+			if (!meshCommand.PlanetData)
 			{
-				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
-				meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
-				meshCommand.Mesh->Map();
-				meshCommand.Mesh->Bind();
+				if (meshCommand.Mesh->mVertexBuffer)	meshCommand.Mesh->mVertexBuffer->Bind();
+				if (meshCommand.Mesh->mIndexBuffer)		meshCommand.Mesh->mIndexBuffer->Bind();
 
-				auto pickingShader = ShaderLibrary::Get("assets/shaders/Picking.hlsl");
-				pickingShader->Bind();
+				RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
 
-				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+				for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+				{
+					meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+					meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
+					meshCommand.Mesh->Map();
+					meshCommand.Mesh->Bind();
+
+					auto pickingShader = ShaderLibrary::Get("assets/shaders/Picking.hlsl");
+					pickingShader->Bind();
+
+					RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+				}
 			}
 		}
 	}

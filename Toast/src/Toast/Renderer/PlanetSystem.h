@@ -96,20 +96,20 @@ namespace Toast {
 					DirectX::XMFLOAT2 pos = { column / ((float)mRC - 1.0f), row / ((float)mRC - 1.0f) };
 
 					//create vertex
-					vertices.push_back(PlanetVertex(pos));
+					vertices.emplace_back(PlanetVertex(pos));
 
 					//calculate index
 					if (row < mRC - 1 && column < numCols - 1)
 					{
-						indices.push_back(rowIndex + column);
-						indices.push_back(nextIndex + column);
-						indices.push_back(1 + rowIndex + column);
+						indices.emplace_back(rowIndex + column);
+						indices.emplace_back(nextIndex + column);
+						indices.emplace_back(1 + rowIndex + column);
 
 						if (column < numCols - 2)
 						{
-							indices.push_back(nextIndex + column);
-							indices.push_back(1 + nextIndex + column);
-							indices.push_back(1 + rowIndex + column);
+							indices.emplace_back(nextIndex + column);
+							indices.emplace_back(1 + nextIndex + column);
+							indices.emplace_back(1 + rowIndex + column);
 						}
 					}
 				}

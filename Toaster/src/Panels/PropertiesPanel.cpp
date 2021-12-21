@@ -361,15 +361,13 @@ namespace Toast {
 					}
 
 					auto& pc = entity.GetComponent<PlanetComponent>();
-					auto& mc = entity.GetComponent<MeshComponent>();
 
 					PlanetSystem::GenerateDistanceLUT(pc.DistanceLUT, 8.0f);
 					PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, DirectX::XMVectorGetX(scale), 8.0f, pc.PlanetData.maxAltitude.x);
 
-					PlanetSystem::GeneratePlanet(component.Transform, mc.Mesh->GetPlanetFaces(), mc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, cameraPos, cameraPos, pc.Subdivisions, scene->mSettings.BackfaceCulling);
+					PlanetSystem::GeneratePlanet(component.Transform, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, cameraPos, cameraPos, pc.Subdivisions, scene->mSettings.BackfaceCulling);
 
-					mc.Mesh->InitPlanet();
-					mc.Mesh->AddSubmesh((uint32_t)(mc.Mesh->GetIndices().size()));
+					pc.Mesh->InvalidatePlanet(false);
 				}
 			});
 
@@ -581,7 +579,6 @@ namespace Toast {
 				{
 					component.PatchLevels = patchLevels;
 					component.Subdivisions = subdivions;
-					MeshComponent mc = entity.GetComponent<MeshComponent>();
 					TransformComponent tc = entity.GetComponent<TransformComponent>();
 
 					auto view = entity.mScene->mRegistry.view<TransformComponent, CameraComponent>();
@@ -603,10 +600,9 @@ namespace Toast {
 					cameraForward = rotationMatrix * cameraForward;
 
 					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8);
-					PlanetSystem::GeneratePlanet(tc.Transform, mc.Mesh->mPlanetFaces, mc.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, cameraPos, cameraForward, component.Subdivisions, scene->mSettings.BackfaceCulling);
+					PlanetSystem::GeneratePlanet(tc.Transform, component.Mesh->mPlanetFaces, component.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, cameraPos, cameraForward, component.Subdivisions, scene->mSettings.BackfaceCulling);
 
-					mc.Mesh->InitPlanet();
-					mc.Mesh->AddSubmesh((uint32_t)(mc.Mesh->mIndices.size()));
+					component.Mesh->InvalidatePlanet(true);
 				}
 			});
 

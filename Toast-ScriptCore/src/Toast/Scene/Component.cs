@@ -161,6 +161,21 @@ namespace Toast
     }
     public class PlanetComponent : Component
     {
+        public Mesh Mesh
+        {
+            get
+            {
+                Mesh result = new Mesh(GetMesh_Native(Entity.ID));
+                return result;
+            }
+
+            set
+            {
+                IntPtr ptr = value == null ? IntPtr.Zero : value.mUnmanagedInstance;
+                SetMesh_Native(Entity.ID, ptr);
+            }
+        }
+
         public float Radius
         {
             get
@@ -206,7 +221,17 @@ namespace Toast
             {
             }
         }
+        public void RegeneratePlanet(Vector3 cameraPos, Matrix4 cameraTransform)
+        {
+            RegeneratePlanet_Native(Entity.ID, cameraPos, cameraTransform);
+        }
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern IntPtr GetMesh_Native(ulong entityID);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetMesh_Native(ulong entityID, IntPtr unmanagedInstance);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void RegeneratePlanet_Native(ulong entityID, Vector3 cameraPos, Matrix4 cameraForward);
         [MethodImpl(MethodImplOptions.InternalCall)]
         public static extern void GetRadius_Native(ulong entityID, out float inScale);
         [MethodImpl(MethodImplOptions.InternalCall)]

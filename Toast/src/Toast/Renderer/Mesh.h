@@ -192,7 +192,7 @@ namespace Toast {
 		}
 
 		void OnUpdate(Timestep ts);
-		void InitPlanet();
+		void InvalidatePlanet(bool patchGeometryRebuilt);
 
 		const std::string& GetFilePath() const { return mFilePath; }
 
@@ -201,10 +201,7 @@ namespace Toast {
 		std::vector<PlanetVertex>& GetPlanetVertices() { return mPlanetVertices; }
 		std::vector<PlanetPatch>& GetPlanetPatches() { return mPlanetPatches; }
 
-		void CreateFromFile();
 		void AddSubmesh(uint32_t indexCount);
-
-		void GeneratePlanetMesh(DirectX::XMMATRIX planetTransform, DirectX::XMVECTOR& cameraPos, int16_t subdivisions);
 
 		const Ref<Material> GetMaterial() const { return mMaterial; }
 		void SetMaterial(Ref<Material> material) { mMaterial = material; }
@@ -220,7 +217,7 @@ namespace Toast {
 		void Bind();
 
 		bool GetIsPlanet() const { return mIsPlanet; }
-		void SetIsPlanet(bool isPlanet) { mIsPlanet = isPlanet;	}
+		void SetIsPlanet(bool isPlanet);
 	private:
 		const ShaderCBufferElement* FindCBufferElementDeclaration(const std::string& cbufferName, const std::string& name);
 	private:

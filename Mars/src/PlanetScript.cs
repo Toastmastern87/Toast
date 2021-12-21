@@ -9,7 +9,7 @@ class PlanetScript : Entity
     private TransformComponent mCameraTransform;
     private Matrix4 mCameraOldTransform;
 
-    private MeshComponent mMeshComponent;
+    private PlanetComponent mPlanetComponent;
 
     void OnCreate() 
     {
@@ -17,7 +17,7 @@ class PlanetScript : Entity
         mCameraTransform = mCameraEntity.GetComponent<TransformComponent>();
         mCameraOldTransform = mCameraTransform.Transform;
 
-        mMeshComponent = GetComponent<MeshComponent>();
+        mPlanetComponent = GetComponent<PlanetComponent>();
     }
 
     void OnUpdate(float ts)
@@ -26,7 +26,7 @@ class PlanetScript : Entity
         {
             Vector3 cameraPos = new Vector3(mCameraTransform.Transform.D03, mCameraTransform.Transform.D13, mCameraTransform.Transform.D23);
             Vector3 cameraForward = new Vector3(mCameraTransform.Transform.D03, mCameraTransform.Transform.D13, mCameraTransform.Transform.D23);
-            mMeshComponent.RegeneratePlanet(cameraPos, mCameraTransform.Transform);
+            mPlanetComponent.RegeneratePlanet(cameraPos, mCameraTransform.Transform);
         }
 
         mCameraOldTransform = mCameraTransform.Transform;

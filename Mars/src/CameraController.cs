@@ -41,7 +41,7 @@ class CameraController : Entity
 
         mUpMovement = Vector3.Normalize(translation);
 
-        mCamera.FarClip = 1.6875f * Vector3.Length(translation) - 5437.5f;
+        mCamera.FarClip = 1.6875f * Vector3.Length(translation) - 5000.0f;
 
         float altitude = Vector3.Length(translation);
         float moveSpeed = 100.0f;// 0.0967f * altitude - 318.0f;
