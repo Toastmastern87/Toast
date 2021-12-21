@@ -287,6 +287,27 @@ namespace Toast {
 			return outDistanceLUT;
 		}
 
+		void Toast_PlanetComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform)
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			auto sceneSettings = scene->GetSettings();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& pc = entity.GetComponent<PlanetComponent>();
+			auto& tc = entity.GetComponent<TransformComponent>();
+
+			DirectX::XMVECTOR cameraPosVector = { cameraPos->x, cameraPos->y, cameraPos->z };
+			DirectX::XMVECTOR cameraPosVector2, cameraRotVector, cameraScaleVector, cameraForward;
+			cameraForward = { 0.0f, 0.0f, 1.0f };
+			DirectX::XMMatrixDecompose(&cameraScaleVector, &cameraRotVector, &cameraPosVector2, *cameraTransform);
+			cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
+			PlanetSystem::GeneratePlanet(tc.Transform, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, cameraPosVector, cameraForward, pc.Subdivisions, sceneSettings.BackfaceCulling);
+
+			pc.Mesh->InvalidatePlanet(false);
+		}
+
 		////////////////////////////////////////////////////////////////
 		// Mesh ////////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////
@@ -301,17 +322,15 @@ namespace Toast {
 			Entity entity = entityMap.at(entityID);
 			auto& pc = entity.GetComponent<PlanetComponent>();
 			auto& tc = entity.GetComponent<TransformComponent>();
-			auto& mc = entity.GetComponent<MeshComponent>();
 
 			DirectX::XMVECTOR cameraPosVector = { cameraPos->x, cameraPos->y, cameraPos->z };
 			DirectX::XMVECTOR cameraPosVector2, cameraRotVector, cameraScaleVector, cameraForward;
 			cameraForward = { 0.0f, 0.0f, 1.0f };
 			DirectX::XMMatrixDecompose(&cameraScaleVector, &cameraRotVector, &cameraPosVector2, *cameraTransform);
 			cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
-			PlanetSystem::GeneratePlanet(tc.Transform, mc.Mesh->GetPlanetFaces(), mc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, cameraPosVector, cameraForward, pc.Subdivisions, sceneSettings.BackfaceCulling);
+			PlanetSystem::GeneratePlanet(tc.Transform, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, cameraPosVector, cameraForward, pc.Subdivisions, sceneSettings.BackfaceCulling);
 
-			mc.Mesh->InitPlanet();
-			mc.Mesh->AddSubmesh((uint32_t)(mc.Mesh->GetIndices().size()));
+			pc.Mesh->InvalidatePlanet(false);
 		}
 
 		////////////////////////////////////////////////////////////////

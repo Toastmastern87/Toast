@@ -62,7 +62,7 @@ namespace Toast {
 			DirectX::XMFLOAT4 maxAltitude = { 21.2f, 21.2f, 21.2f, 21.2f };
 		};
 
-
+		Ref<Toast::Mesh> Mesh;
 		std::vector<float> DistanceLUT;
 		std::vector<float> FaceLevelDotLUT;
 		int16_t Subdivisions = 0;

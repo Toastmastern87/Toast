@@ -77,6 +77,7 @@ namespace Toast {
 		mono_add_internal_call("Toast.PlanetComponent::GetRadius_Native", Toast::Script::Toast_PlanetComponent_GetRadius);
 		mono_add_internal_call("Toast.PlanetComponent::GetSubdivisions_Native", Toast::Script::Toast_PlanetComponent_GetSubdivisions);
 		mono_add_internal_call("Toast.PlanetComponent::GetDistanceLUT_Native", Toast::Script::Toast_PlanetComponent_GetDistanceLUT);
+		mono_add_internal_call("Toast.PlanetComponent::RegeneratePlanet_Native", Toast::Script::Toast_PlanetComponent_GeneratePlanet);
 
 		//Mesh
 		mono_add_internal_call("Toast.MeshComponent::RegeneratePlanet_Native", Toast::Script::Toast_MeshComponent_GeneratePlanet);

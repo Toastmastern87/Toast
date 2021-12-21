@@ -271,44 +271,37 @@ namespace Toast {
 		mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 	}
 
-	void Mesh::InitPlanet()
+	void Mesh::InvalidatePlanet(bool patchGeometryRebuilt)
 	{
-		mIsPlanet = true;
-
-		mSubmeshes.clear();
-		mVertexBuffer = nullptr;
-		mInstanceVertexBuffer = nullptr;
-		mIndexBuffer = nullptr;
-
-		if (!mPlanetPatches.empty()) {
+		if (patchGeometryRebuilt)
+		{
+			mVertexBuffer = nullptr;
 			mVertexBuffer = CreateRef<VertexBuffer>(&mPlanetVertices[0], (sizeof(PlanetVertex) * (uint32_t)mPlanetVertices.size()), (uint32_t)mPlanetVertices.size(), 0);
-			mInstanceVertexBuffer = CreateRef<VertexBuffer>(&mPlanetPatches[0], sizeof(PlanetPatch) * (uint32_t)mPlanetPatches.size(), (uint32_t)mPlanetPatches.size(), 1);
-			mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 
-			//mInstanceVertexBuffer->SetData(&mPlanetPatches[0], static_cast<uint32_t>(sizeof(PlanetPatch) * mPlanetPatches.size()));
+			mIndexBuffer = nullptr;
+			mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 		}
 
-		mMaterial = MaterialLibrary::Get("Planet");
+		mInstanceVertexBuffer = nullptr;
+		mInstanceVertexBuffer = CreateRef<VertexBuffer>(&mPlanetPatches[0], sizeof(PlanetPatch) * (uint32_t)mPlanetPatches.size(), (uint32_t)mPlanetPatches.size(), 1);
 
-		// Setting up the constant buffer and data buffer for the planet mesh rendering
-		mPlanetCBuffer = ConstantBufferLibrary::Load("Planet", 48, D3D11_VERTEX_SHADER, 2);
-		mPlanetCBuffer->Bind();
-		mPlanetBuffer.Allocate(mPlanetCBuffer->GetSize());
-		mPlanetBuffer.ZeroInitialize();
+		mSubmeshes.clear();
+		mVertexCount = 0;
+		mIndexCount = 0;
+		for (auto& patch : mPlanetPatches) 
+		{
+			Submesh& submesh = mSubmeshes.emplace_back();
+			submesh.BaseVertex = mVertexCount;
+			submesh.BaseIndex = mIndexCount;
+			submesh.VertexCount = mPlanetVertices.size();
+			submesh.IndexCount = mIndices.size();
 
-		// Setting up the constant buffer and data buffer for the planet mesh rendering
-		mPlanetPSCBuffer = ConstantBufferLibrary::Load("PlanetPS", 48, D3D11_PIXEL_SHADER, 4);
-		mPlanetPSCBuffer->Bind();
-		mPlanetPSBuffer.Allocate(mPlanetPSCBuffer->GetSize());
-		mPlanetPSBuffer.ZeroInitialize();
+			mVertexCount += submesh.VertexCount;
+			mIndexCount += submesh.IndexCount;
+		}
 	}
 
 	void Mesh::OnUpdate(Timestep ts)
-	{
-
-	}
-
-	void Mesh::CreateFromFile()
 	{
 
 	}
@@ -335,11 +328,6 @@ namespace Toast {
 		submesh.BaseIndex = mIndexCount;
 		submesh.MaterialIndex = 0;
 		submesh.IndexCount = indexCount;
-	}
-
-	void Mesh::GeneratePlanetMesh(DirectX::XMMATRIX planetTransform, DirectX::XMVECTOR& cameraPos, int16_t subdivisions)
-	{
-
 	}
 
 	void Mesh::TraverseNodes(aiNode* node, const DirectX::XMMATRIX& parentTransform, uint32_t level)
@@ -389,6 +377,23 @@ namespace Toast {
 
 		if (mMaterial)
 			mMaterial->Bind();
+	}
+
+	void Mesh::SetIsPlanet(bool isPlanet)
+	{
+		mIsPlanet = true;
+
+		// Setting up the constant buffer and data buffer for the planet mesh rendering
+		mPlanetCBuffer = ConstantBufferLibrary::Load("Planet", 48, D3D11_VERTEX_SHADER, 2);
+		mPlanetCBuffer->Bind();
+		mPlanetBuffer.Allocate(mPlanetCBuffer->GetSize());
+		mPlanetBuffer.ZeroInitialize();
+
+		// Setting up the constant buffer and data buffer for the planet mesh rendering
+		mPlanetPSCBuffer = ConstantBufferLibrary::Load("PlanetPS", 48, D3D11_PIXEL_SHADER, 4);
+		mPlanetPSCBuffer->Bind();
+		mPlanetPSBuffer.Allocate(mPlanetPSCBuffer->GetSize());
+		mPlanetPSBuffer.ZeroInitialize();
 	}
 
 }

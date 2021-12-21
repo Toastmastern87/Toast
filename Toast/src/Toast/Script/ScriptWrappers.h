@@ -52,6 +52,7 @@ namespace Toast {
 		void Toast_PlanetComponent_GetRadius(uint64_t entityID, float* outRadius);
 		void Toast_PlanetComponent_GetSubdivisions(uint64_t entityID, int* outRadius);
 		MonoArray* Toast_PlanetComponent_GetDistanceLUT(uint64_t entityID);
+		void Toast_PlanetComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform);
 
 		// Mesh Component
 		void Toast_MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform);
