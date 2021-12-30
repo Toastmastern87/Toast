@@ -303,35 +303,36 @@ namespace Toast {
 			cameraForward = { 0.0f, 0.0f, 1.0f };
 			DirectX::XMMatrixDecompose(&cameraScaleVector, &cameraRotVector, &cameraPosVector2, *cameraTransform);
 			cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
-			PlanetSystem::GeneratePlanet(tc.Transform, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, cameraPosVector, cameraForward, pc.Subdivisions, sceneSettings.BackfaceCulling);
+			scene->InvalidateFrustum();
+			PlanetSystem::GeneratePlanet(scene->GetFrustum(), tc.Transform, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPosVector, cameraForward, pc.Subdivisions, sceneSettings.BackfaceCulling, sceneSettings.FrustumCulling);
 
 			pc.Mesh->InvalidatePlanet(false);
 		}
 
-		////////////////////////////////////////////////////////////////
-		// Mesh ////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////////////////
+		//// Mesh ////////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////////////////
 
-		void Toast_MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform)
-		{
-			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
-			auto sceneSettings = scene->GetSettings();
-			TOAST_CORE_ASSERT(scene, "No active scene!");
-			const auto& entityMap = scene->GetEntityMap();
-			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-			Entity entity = entityMap.at(entityID);
-			auto& pc = entity.GetComponent<PlanetComponent>();
-			auto& tc = entity.GetComponent<TransformComponent>();
+		//void Toast_MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform)
+		//{
+		//	Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+		//	auto sceneSettings = scene->GetSettings();
+		//	TOAST_CORE_ASSERT(scene, "No active scene!");
+		//	const auto& entityMap = scene->GetEntityMap();
+		//	TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		//	Entity entity = entityMap.at(entityID);
+		//	auto& pc = entity.GetComponent<PlanetComponent>();
+		//	auto& tc = entity.GetComponent<TransformComponent>();
 
-			DirectX::XMVECTOR cameraPosVector = { cameraPos->x, cameraPos->y, cameraPos->z };
-			DirectX::XMVECTOR cameraPosVector2, cameraRotVector, cameraScaleVector, cameraForward;
-			cameraForward = { 0.0f, 0.0f, 1.0f };
-			DirectX::XMMatrixDecompose(&cameraScaleVector, &cameraRotVector, &cameraPosVector2, *cameraTransform);
-			cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
-			PlanetSystem::GeneratePlanet(tc.Transform, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, cameraPosVector, cameraForward, pc.Subdivisions, sceneSettings.BackfaceCulling);
+		//	DirectX::XMVECTOR cameraPosVector = { cameraPos->x, cameraPos->y, cameraPos->z };
+		//	DirectX::XMVECTOR cameraPosVector2, cameraRotVector, cameraScaleVector, cameraForward;
+		//	cameraForward = { 0.0f, 0.0f, 1.0f };
+		//	DirectX::XMMatrixDecompose(&cameraScaleVector, &cameraRotVector, &cameraPosVector2, *cameraTransform);
+		//	cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
+		//	PlanetSystem::GeneratePlanet(scene->GetFrustum(), tc.Transform, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPosVector, cameraForward, pc.Subdivisions, sceneSettings.BackfaceCulling, sceneSettings.FrustumCulling);
 
-			pc.Mesh->InvalidatePlanet(false);
-		}
+		//	pc.Mesh->InvalidatePlanet(false);
+		//}
 
 		////////////////////////////////////////////////////////////////
 		// Camera //////////////////////////////////////////////////////

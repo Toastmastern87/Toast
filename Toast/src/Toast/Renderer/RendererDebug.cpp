@@ -96,7 +96,7 @@ namespace Toast {
 		float heightNear = 2.0f * tan(DirectX::XMConvertToRadians(camera.GetPerspectiveVerticalFOV()) / 2.0f) * camera.GetPerspectiveNearClip();
 		float widthNear = heightNear * camera.GetAspecRatio();
 
-		float heightFar= 2.0f * tan(DirectX::XMConvertToRadians(camera.GetPerspectiveVerticalFOV()) / 2.0f) * camera.GetPerspectiveFarClip();
+		float heightFar = 2.0f * tan(DirectX::XMConvertToRadians(camera.GetPerspectiveVerticalFOV()) / 2.0f) * camera.GetPerspectiveFarClip();
 		float widthFar = heightFar * camera.GetAspecRatio();
 
 		DirectX::XMVECTOR centerNear = DirectX::XMLoadFloat3(&pos) + DirectX::XMVector3Normalize(forward) * camera.GetPerspectiveNearClip();

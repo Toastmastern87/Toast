@@ -4,9 +4,10 @@
 #include "Toast/Core/Timestep.h"
 
 #include "Toast/Renderer/EditorCamera.h"
-#include "Toast/Renderer/SceneEnvironment.h"
+#include "Toast/Renderer/Frustum.h"
 #include "Toast/Renderer/Material.h"
 #include "Toast/Renderer/Mesh.h"
+#include "Toast/Renderer/SceneEnvironment.h"
 
 #include <memory>
 
@@ -89,6 +90,11 @@ namespace Toast {
 		void SetSelectedEntity(entt::entity entity) { mSelectedEntity = entity; }
 
 		Settings GetSettings() { return mSettings; }
+
+		Frustum* GetFrustum() { return mFrustum.get(); }
+		void InvalidateFrustum();
+
+		void SetOldCameraTransform(DirectX::XMMATRIX transform) { mOldCameraTransform = transform; }
 	private:
 		template<typename T>
 		void OnComponentAdded(Entity entity, T& component);
@@ -120,6 +126,9 @@ namespace Toast {
 		entt::entity mSelectedEntity;
 
 		bool mOldBackfaceCullSetting = false;
+		bool mOldFrustumCullSetting = false;
+
+		Ref<Frustum> mFrustum;
 
 		friend class Entity;
 		friend class Renderer;

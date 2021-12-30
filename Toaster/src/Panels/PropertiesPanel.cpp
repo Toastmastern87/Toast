@@ -364,8 +364,9 @@ namespace Toast {
 
 					PlanetSystem::GenerateDistanceLUT(pc.DistanceLUT, 8.0f);
 					PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, DirectX::XMVectorGetX(scale), 8.0f, pc.PlanetData.maxAltitude.x);
+					PlanetSystem::GenerateHeightMultLUT(pc.Mesh->mPlanetFaces, pc.HeightMultLUT, DirectX::XMVectorGetX(scale), 8, pc.PlanetData.maxAltitude.x, component.Transform);
 
-					PlanetSystem::GeneratePlanet(component.Transform, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, cameraPos, cameraPos, pc.Subdivisions, scene->mSettings.BackfaceCulling);
+					PlanetSystem::GeneratePlanet(scene->GetFrustum(), component.Transform, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPos, cameraPos, pc.Subdivisions, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
 
 					pc.Mesh->InvalidatePlanet(false);
 				}
@@ -538,7 +539,7 @@ namespace Toast {
 				ImGui::Text("Patch levels");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (ImGui::SliderInt("##Patchlevels", &patchLevels, 1, 6))
+				if (ImGui::SliderInt("##Patchlevels", &patchLevels, 1, 8))
 					modified = true;
 
 				ImGui::TableNextRow();
@@ -599,8 +600,9 @@ namespace Toast {
 					DirectX::XMVECTOR rotationMatrix = DirectX::XMQuaternionRotationMatrix(tc.Transform);
 					cameraForward = rotationMatrix * cameraForward;
 
+					PlanetSystem::GeneratePatchGeometry(component.Mesh->mPlanetVertices, component.Mesh->mIndices, component.PatchLevels);
 					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8);
-					PlanetSystem::GeneratePlanet(tc.Transform, component.Mesh->mPlanetFaces, component.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, cameraPos, cameraForward, component.Subdivisions, scene->mSettings.BackfaceCulling);
+					PlanetSystem::GeneratePlanet(scene->GetFrustum(), tc.Transform, component.Mesh->mPlanetFaces, component.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraForward, component.Subdivisions, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
 
 					component.Mesh->InvalidatePlanet(true);
 				}

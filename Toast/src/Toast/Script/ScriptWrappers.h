@@ -55,7 +55,7 @@ namespace Toast {
 		void Toast_PlanetComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform);
 
 		// Mesh Component
-		void Toast_MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform);
+		//void Toast_MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform);
 
 		// Camera Component
 		float Toast_CameraComponent_GetFarClip(uint64_t entityID);

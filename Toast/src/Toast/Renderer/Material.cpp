@@ -377,7 +377,7 @@ namespace Toast {
 			std::string materialName = data["Material"].as<std::string>();
 			std::string shaderName = data["Shader"].as<std::string>();
 
-			TOAST_CORE_TRACE("Deserializing material '%s', Shader : '%s'", materialName.c_str(), shaderName.c_str());
+			TOAST_CORE_TRACE("Deserializing material '%s', Shader: '%s'", materialName.c_str(), shaderName.c_str());
 
 			auto& material = MaterialLibrary::Load(materialName, ShaderLibrary::Get(shaderName));
 
