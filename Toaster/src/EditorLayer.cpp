@@ -452,6 +452,7 @@ namespace Toast {
 	{
 		mRuntimeScene->OnRuntimeStop();
 		mSceneState = SceneState::Edit;
+		mEditorScene->SetOldCameraTransform(DirectX::XMMatrixIdentity());
 
 		mRuntimeScene = nullptr;
 

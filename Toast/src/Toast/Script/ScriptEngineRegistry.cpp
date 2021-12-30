@@ -80,7 +80,7 @@ namespace Toast {
 		mono_add_internal_call("Toast.PlanetComponent::RegeneratePlanet_Native", Toast::Script::Toast_PlanetComponent_GeneratePlanet);
 
 		//Mesh
-		mono_add_internal_call("Toast.MeshComponent::RegeneratePlanet_Native", Toast::Script::Toast_MeshComponent_GeneratePlanet);
+		//mono_add_internal_call("Toast.MeshComponent::RegeneratePlanet_Native", Toast::Script::Toast_MeshComponent_GeneratePlanet);
 
 		//Camera
 		mono_add_internal_call("Toast.CameraComponent::GetFarClip_Native", Toast::Script::Toast_CameraComponent_GetFarClip);

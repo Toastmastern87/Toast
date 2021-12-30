@@ -65,6 +65,7 @@ namespace Toast {
 		Ref<Toast::Mesh> Mesh;
 		std::vector<float> DistanceLUT;
 		std::vector<float> FaceLevelDotLUT;
+		std::vector<float> HeightMultLUT;
 		int16_t Subdivisions = 0;
 		int16_t PatchLevels = 1;
 

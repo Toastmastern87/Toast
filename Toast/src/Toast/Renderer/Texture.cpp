@@ -382,6 +382,9 @@ namespace Toast {
 
 	Ref<Texture2D> TextureLibrary::LoadTexture2D(const std::string& filePath)
 	{
+		if (Exists(filePath)) 
+			return std::static_pointer_cast<Texture2D>(mTextures[filePath]);
+
 		auto texture = CreateRef<Texture2D>(filePath);
 		Add(texture);
 		return texture;
@@ -389,6 +392,9 @@ namespace Toast {
 
 	Ref<TextureCube> TextureLibrary::LoadTextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels)
 	{
+		if (Exists(filePath))
+			return std::static_pointer_cast<TextureCube>(mTextures[filePath]);
+
 		auto texture = CreateRef<TextureCube>(filePath, width, height, levels);
 		Add(texture);
 		return texture;

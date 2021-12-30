@@ -273,17 +273,20 @@ namespace Toast {
 
 	void Mesh::InvalidatePlanet(bool patchGeometryRebuilt)
 	{
-		if (patchGeometryRebuilt)
+		if(mPlanetPatches.size() > 0)
 		{
-			mVertexBuffer = nullptr;
-			mVertexBuffer = CreateRef<VertexBuffer>(&mPlanetVertices[0], (sizeof(PlanetVertex) * (uint32_t)mPlanetVertices.size()), (uint32_t)mPlanetVertices.size(), 0);
+			if (patchGeometryRebuilt)
+			{
+				mVertexBuffer = nullptr;
+				mVertexBuffer = CreateRef<VertexBuffer>(&mPlanetVertices[0], (sizeof(PlanetVertex) * (uint32_t)mPlanetVertices.size()), (uint32_t)mPlanetVertices.size(), 0);
 
-			mIndexBuffer = nullptr;
-			mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
+				mIndexBuffer = nullptr;
+				mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
+			}
+
+			mInstanceVertexBuffer = nullptr;
+			mInstanceVertexBuffer = CreateRef<VertexBuffer>(&mPlanetPatches[0], sizeof(PlanetPatch) * (uint32_t)mPlanetPatches.size(), (uint32_t)mPlanetPatches.size(), 1);
 		}
-
-		mInstanceVertexBuffer = nullptr;
-		mInstanceVertexBuffer = CreateRef<VertexBuffer>(&mPlanetPatches[0], sizeof(PlanetPatch) * (uint32_t)mPlanetPatches.size(), (uint32_t)mPlanetPatches.size(), 1);
 
 		mSubmeshes.clear();
 		mVertexCount = 0;
