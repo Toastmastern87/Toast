@@ -18,14 +18,14 @@ namespace Toast {
 		{
 			D3D11_SHADER_TYPE ShaderType	{ D3D11_VERTEX_SHADER };
 			uint32_t BindSlot				{ 0 };
-			Ref<Texture> Texture			{ nullptr };
+			Texture* Texture				{ nullptr };
 		};
 
 		struct SamplerBindInfo
 		{
 			D3D11_SHADER_TYPE ShaderType	{ D3D11_VERTEX_SHADER };
 			uint32_t BindSlot				{ 0 };
-			Ref<TextureSampler> Sampler		{ nullptr };
+			TextureSampler* Sampler			{ nullptr };
 		};
 	public:
 		Material() = default;
@@ -67,10 +67,10 @@ namespace Toast {
 
 		std::vector<TextureBindInfo> GetTextureBindings() const { return mTextureBindings; }
 
-		void SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<Texture2D>& texture);
-		void SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureCube>& texture);
-		Ref<Texture> GetTexture(std::string name);
-		void SetTextureSampler(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureSampler>& sampler);
+		void SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Texture2D* texture);
+		void SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, TextureCube* texture);
+		Texture* GetTexture(std::string name);
+		void SetTextureSampler(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, TextureSampler* sampler);
 
 		Ref<ConstantBuffer> GetMaterialCBuffer() const { return mMaterialCBuffer; }
 

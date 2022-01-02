@@ -124,7 +124,7 @@ namespace Toast {
 		mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 
 		//Materials
-		Ref<Texture2D> whiteTexture = std::dynamic_pointer_cast<Texture2D>(TextureLibrary::Get("assets/textures/White.png"));
+		Texture2D* whiteTexture = (Texture2D*)(TextureLibrary::Get("assets/textures/White.png"));
 		if (scene->HasMaterials())
 		{
 			for (uint32_t i = 0; i < scene->mNumMaterials; i++)

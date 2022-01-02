@@ -51,11 +51,11 @@ namespace Toast {
 
 		Ref<EditorCamera> mEditorCamera;
 
-		Ref<Texture2D> mCheckerboardTexture;
-		Ref<Texture2D> mPlayButtonTex;
-		Ref<Texture2D> mPauseButtonTex;
-		Ref<Texture2D> mStopButtonTex;
-		Ref<Texture2D> mLogoTex;
+		Texture2D* mCheckerboardTexture;
+		Texture2D* mPlayButtonTex;
+		Texture2D* mPauseButtonTex;
+		Texture2D* mStopButtonTex;
+		Texture2D* mLogoTex;
 
 		Entity mHoveredEntity;
 

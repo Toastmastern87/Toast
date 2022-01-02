@@ -367,56 +367,44 @@ namespace Toast {
 	//     TEXTURE LIBRARY    //////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	std::unordered_map<std::string, Ref<Texture>> TextureLibrary::mTextures;
-	std::unordered_map<std::string, Ref<TextureSampler>> TextureLibrary::mTextureSamplers;
+	std::unordered_map<std::string, Scope<Texture>> TextureLibrary::mTextures;
+	std::unordered_map<std::string, Scope<TextureSampler>> TextureLibrary::mTextureSamplers;
 
-	void TextureLibrary::Add(const Ref<Texture>& texture)
-	{
-		mTextures[texture->GetFilePath()] = texture;
-	}
-
-	void TextureLibrary::AddSampler(const std::string& name, const Ref<TextureSampler>& sampler)
-	{
-		mTextureSamplers[name] = sampler;
-	}
-
-	Ref<Texture2D> TextureLibrary::LoadTexture2D(const std::string& filePath)
+	Texture2D* TextureLibrary::LoadTexture2D(const std::string& filePath)
 	{
 		if (Exists(filePath)) 
-			return std::static_pointer_cast<Texture2D>(mTextures[filePath]);
+			return (Texture2D*)mTextures[filePath].get();
 
-		auto texture = CreateRef<Texture2D>(filePath);
-		Add(texture);
-		return texture;
+		mTextures[filePath] = CreateScope<Texture2D>(filePath);
+
+		return (Texture2D*)mTextures[filePath].get();
 	}
 
-	Ref<TextureCube> TextureLibrary::LoadTextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels)
+	TextureCube* TextureLibrary::LoadTextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels)
 	{
 		if (Exists(filePath))
-			return std::static_pointer_cast<TextureCube>(mTextures[filePath]);
+			return (TextureCube*)mTextures[filePath].get();
 
-		auto texture = CreateRef<TextureCube>(filePath, width, height, levels);
-		Add(texture);
-		return texture;
+		mTextures[filePath] = CreateScope<TextureCube>(filePath, width, height, levels);
+		return (TextureCube*)mTextures[filePath].get();
 	}
 
-	Ref<TextureSampler> TextureLibrary::LoadTextureSampler(const std::string& name, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode)
+	TextureSampler* TextureLibrary::LoadTextureSampler(const std::string& name, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode)
 	{
-		auto sampler = CreateRef<TextureSampler>(filter, addressMode);
-		AddSampler(name, sampler);
-		return sampler;
+		mTextureSamplers[name] = CreateScope<TextureSampler>(filter, addressMode);
+		return mTextureSamplers[name].get();
 	}
 
-	Ref<Texture> TextureLibrary::Get(const std::string& filePath)
+	Texture* TextureLibrary::Get(const std::string& filePath)
 	{
 		TOAST_CORE_ASSERT(Exists(filePath), "Texture not found!");
-		return mTextures[filePath];
+		return mTextures[filePath].get();
 	}
 
-	Ref<TextureSampler> TextureLibrary::GetSampler(const std::string& name)
+	TextureSampler* TextureLibrary::GetSampler(const std::string& name)
 	{
 		TOAST_CORE_ASSERT(ExistsSampler(name), "Texture sampler not found!");
-		return mTextureSamplers[name];
+		return mTextureSamplers[name].get();
 	}
 
 	bool TextureLibrary::Exists(const std::string& filePath)

@@ -170,7 +170,7 @@ namespace Toast {
 		Ref<ConstantBuffer> specularMapFilterSettingsCB = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, D3D11_COMPUTE_SHADER, 0, D3D11_USAGE_DEFAULT);
 
 		Ref<Texture2D> starMap = CreateRef<Texture2D>(filepath);
-		Ref<TextureSampler> defaultSampler = TextureLibrary::GetSampler("Default");
+		TextureSampler* defaultSampler = TextureLibrary::GetSampler("Default");
 		Ref<TextureCube> envMapUnfiltered = CreateRef<TextureCube>("EnvMapUnfiltered", cubemapSize, cubemapSize);
 		Ref<TextureCube> envMapFiltered = CreateRef<TextureCube>("EnvMapFiltered", cubemapSize, cubemapSize);
 

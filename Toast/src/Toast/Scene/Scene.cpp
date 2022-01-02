@@ -573,10 +573,10 @@ namespace Toast {
 		}
 	}
 
-	void Scene::SetSkybox(const Ref<TextureCube>& skybox)
+	void Scene::SetSkybox(Ref<TextureCube> skybox)
 	{
 		mSkyboxTexture = skybox;
-		mSkyboxMaterial->SetTexture(7, D3D11_PIXEL_SHADER, mSkyboxTexture);
+		mSkyboxMaterial->SetTexture(7, D3D11_PIXEL_SHADER, mSkyboxTexture.get());
 	}
 
 	Toast::Entity Scene::FindEntityByTag(const std::string& tag)

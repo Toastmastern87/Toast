@@ -50,7 +50,7 @@ namespace Toast {
 			std::string filenameStr = relativePath.filename().string();
 
 			ImGui::PushID(filenameStr.c_str());
-			Ref<Texture2D> icon = directoryEntry.is_directory() ? mDirectoryIcon : mFileIcon;
+			Texture2D* icon = directoryEntry.is_directory() ? mDirectoryIcon : mFileIcon;
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 			ImGui::ImageButton(icon->GetID(), { thumbnailSize, thumbnailSize }, { 0, 0 }, { 1, 1 });
 
