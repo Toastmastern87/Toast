@@ -126,7 +126,7 @@ namespace Toast {
 		SetUpResourceBindings();
 	}
 
-	void Material::SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<Texture2D>& texture)
+	void Material::SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Texture2D* texture)
 	{
 		for (auto& texturebinding : mTextureBindings)
 		{
@@ -135,7 +135,7 @@ namespace Toast {
 		}
 	}
 
-	void Material::SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureCube>& texture)
+	void Material::SetTexture(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, TextureCube* texture)
 	{
 		for (auto& texturebinding : mTextureBindings)
 		{
@@ -144,7 +144,7 @@ namespace Toast {
 		}
 	}
 
-	Ref<Texture> Material::GetTexture(std::string name)
+	Texture* Material::GetTexture(std::string name)
 	{
 		for (auto& textureBinding : mTextureBindings)
 		{
@@ -157,7 +157,7 @@ namespace Toast {
 		return nullptr;
 	}
 
-	void Material::SetTextureSampler(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, Ref<TextureSampler>& sampler)
+	void Material::SetTextureSampler(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, TextureSampler* sampler)
 	{
 		for (auto& textureSampler : mSamplerBindings)
 		{

@@ -74,7 +74,7 @@ namespace Toast {
 		float& GetEnvironmentIntensity() { return mEnvironmentIntensity; }
 
 		const Environment& GetEnvironment() const { return mEnvironment; }
-		void SetSkybox(const Ref<TextureCube>& skybox);
+		void SetSkybox(Ref<TextureCube> skybox);
 
 		int GetFPS() const { return (int)mStats.FPS; }
 		float GetFrameTime() const { return mStats.FrameTime; }

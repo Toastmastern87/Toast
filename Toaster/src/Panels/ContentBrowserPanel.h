@@ -16,8 +16,8 @@ namespace Toast {
 	private:
 		std::filesystem::path mCurrentDirectory;
 
-		Ref<Texture2D> mDirectoryIcon;
-		Ref<Texture2D> mFileIcon;
+		Texture2D* mDirectoryIcon;
+		Texture2D* mFileIcon;
 	};
 
 }

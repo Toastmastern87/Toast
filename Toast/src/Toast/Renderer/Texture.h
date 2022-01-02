@@ -125,21 +125,19 @@ namespace Toast {
 	class TextureLibrary
 	{
 	public:
-		static void Add(const Ref<Texture>& texture);
-		static void AddSampler(const std::string& name, const Ref<TextureSampler>& sampler);
-		static Ref<Texture2D> LoadTexture2D(const std::string& filePath);
-		static Ref<TextureCube> LoadTextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels = 0);
-		static Ref<TextureSampler> LoadTextureSampler(const std::string& name, D3D11_FILTER filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_MODE addressMode = D3D11_TEXTURE_ADDRESS_WRAP);
+		static Texture2D* LoadTexture2D(const std::string& filePath);
+		static TextureCube* LoadTextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels = 0);
+		static TextureSampler* LoadTextureSampler(const std::string& name, D3D11_FILTER filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_MODE addressMode = D3D11_TEXTURE_ADDRESS_WRAP);
 
-		static Ref<Texture> Get(const std::string& name);
-		static Ref<TextureSampler> GetSampler(const std::string& name);
-		static std::unordered_map<std::string, Ref<Texture>> GetTextures() { return mTextures; }
+		static Texture* Get(const std::string& name);
+		static TextureSampler* GetSampler(const std::string& name);
+		static std::unordered_map<std::string, Scope<Texture>>& GetTextures() { return mTextures; }
 
 		static bool Exists(const std::string& name);
 		static bool ExistsSampler(const std::string& name);
 	private:
-		static std::unordered_map<std::string, Ref<Texture>> mTextures;
-		static std::unordered_map<std::string, Ref<TextureSampler>> mTextureSamplers;
+		static std::unordered_map<std::string, Scope<Texture>> mTextures;
+		static std::unordered_map<std::string, Scope<TextureSampler>> mTextureSamplers;
 	};
 
 }
