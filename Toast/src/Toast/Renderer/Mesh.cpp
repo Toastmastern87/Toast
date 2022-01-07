@@ -33,7 +33,7 @@ namespace Toast {
 		mMaterial = MaterialLibrary::Get("Standard");
 
 		// Setting up the constant buffer and data buffer for the mesh rendering
-		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, D3D11_VERTEX_SHADER, 1);
+		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 1) });
 		mModelCBuffer->Bind();
 		mModelBuffer.Allocate(mModelCBuffer->GetSize());
 		mModelBuffer.ZeroInitialize();
@@ -45,7 +45,7 @@ namespace Toast {
 		: mFilePath(filePath)
 	{
 		// Setting up the constant buffer and data buffer for the mesh rendering
-		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, D3D11_VERTEX_SHADER, 1);
+		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 1) });
 		mModelCBuffer->Bind();
 		mModelBuffer.Allocate(mModelCBuffer->GetSize());
 		mModelBuffer.ZeroInitialize();
@@ -354,10 +354,7 @@ namespace Toast {
 	{
 		// if the planet is a mesh upload Planet data to the GPU
 		if (mIsPlanet)
-		{
 			mPlanetCBuffer->Map(mPlanetBuffer);
-			mPlanetPSCBuffer->Map(mPlanetPSBuffer);
-		}
 
 		if (mModelCBuffer)
 			mModelCBuffer->Map(mModelBuffer);
@@ -370,10 +367,7 @@ namespace Toast {
 	{
 		// if the planet is a mesh upload Planet data to the GPU
 		if (mIsPlanet)
-		{
 			mPlanetCBuffer->Bind();
-			mPlanetPSCBuffer->Bind();
-		}
 
 		if(mModelCBuffer)
 			mModelCBuffer->Bind();
@@ -387,16 +381,10 @@ namespace Toast {
 		mIsPlanet = true;
 
 		// Setting up the constant buffer and data buffer for the planet mesh rendering
-		mPlanetCBuffer = ConstantBufferLibrary::Load("Planet", 48, D3D11_VERTEX_SHADER, 2);
+		mPlanetCBuffer = ConstantBufferLibrary::Load("Planet", 48, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 2), CBufferBindInfo(D3D11_PIXEL_SHADER, 4) });
 		mPlanetCBuffer->Bind();
 		mPlanetBuffer.Allocate(mPlanetCBuffer->GetSize());
 		mPlanetBuffer.ZeroInitialize();
-
-		// Setting up the constant buffer and data buffer for the planet mesh rendering
-		mPlanetPSCBuffer = ConstantBufferLibrary::Load("PlanetPS", 48, D3D11_PIXEL_SHADER, 4);
-		mPlanetPSCBuffer->Bind();
-		mPlanetPSBuffer.Allocate(mPlanetPSCBuffer->GetSize());
-		mPlanetPSBuffer.ZeroInitialize();
 	}
 
 }

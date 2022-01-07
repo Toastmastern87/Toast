@@ -25,13 +25,13 @@ namespace Toast {
 		mDebugData->OutlineShader = CreateRef<Shader>("assets/shaders/Outline.hlsl");
 
 		// Setting up the constant buffer and data buffer for the debug rendering data
-		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 272, D3D11_VERTEX_SHADER, 0);
+		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 272, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 0) });
 		mDebugData->mDebugCBuffer->Bind();
 		mDebugData->mDebugBuffer.Allocate(mDebugData->mDebugCBuffer->GetSize());
 		mDebugData->mDebugBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for the grid rendering
-		mDebugData->mGridCBuffer = ConstantBufferLibrary::Load("Grid", 144, D3D11_PIXEL_SHADER, 10);
+		mDebugData->mGridCBuffer = ConstantBufferLibrary::Load("Grid", 144, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, 10) });
 		mDebugData->mGridCBuffer->Bind();
 		mDebugData->mGridBuffer.Allocate(mDebugData->mGridCBuffer->GetSize());
 		mDebugData->mGridBuffer.ZeroInitialize();
@@ -47,6 +47,35 @@ namespace Toast {
 	void RendererDebug::BeginScene(const EditorCamera& camera)
 	{
 		TOAST_PROFILE_FUNCTION();
+
+
+		//DirectX::XMFLOAT4X4 tempViewMatrix, tempProjectionMatrix, tempInverseViewMatrix, tempInverseProjectionMatrix;
+		//DirectX::XMStoreFloat4x4(&tempViewMatrix, camera.GetViewMatrix());
+		//TOAST_CORE_INFO("RendererDebug::BeginScene");
+		//TOAST_CORE_INFO("ViewMatrix: ");
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempViewMatrix._11, tempViewMatrix._12, tempViewMatrix._13, tempViewMatrix._14);
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempViewMatrix._21, tempViewMatrix._22, tempViewMatrix._23, tempViewMatrix._24);
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempViewMatrix._31, tempViewMatrix._32, tempViewMatrix._33, tempViewMatrix._34);
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempViewMatrix._41, tempViewMatrix._42, tempViewMatrix._43, tempViewMatrix._44);
+		//DirectX::XMStoreFloat4x4(&tempProjectionMatrix, camera.GetProjection());
+		//TOAST_CORE_INFO("ProjectionMatrix: ");
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempProjectionMatrix._11, tempProjectionMatrix._12, tempProjectionMatrix._13, tempProjectionMatrix._14);
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempProjectionMatrix._21, tempProjectionMatrix._22, tempProjectionMatrix._23, tempProjectionMatrix._24);
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempProjectionMatrix._31, tempProjectionMatrix._32, tempProjectionMatrix._33, tempProjectionMatrix._34);
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempProjectionMatrix._41, tempProjectionMatrix._42, tempProjectionMatrix._43, tempProjectionMatrix._44);
+
+		//DirectX::XMStoreFloat4x4(&tempInverseViewMatrix, DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()));
+		//TOAST_CORE_INFO("Inverse ViewMatrix: ");
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempInverseViewMatrix._11, tempInverseViewMatrix._12, tempInverseViewMatrix._13, tempInverseViewMatrix._14);
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempInverseViewMatrix._21, tempInverseViewMatrix._22, tempInverseViewMatrix._23, tempInverseViewMatrix._24);
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempInverseViewMatrix._31, tempInverseViewMatrix._32, tempInverseViewMatrix._33, tempInverseViewMatrix._34);
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempInverseViewMatrix._41, tempInverseViewMatrix._42, tempInverseViewMatrix._43, tempInverseViewMatrix._44);
+		//DirectX::XMStoreFloat4x4(&tempInverseProjectionMatrix, DirectX::XMMatrixInverse(nullptr, camera.GetProjection()));
+		//TOAST_CORE_INFO("Inverse ProjectionMatrix: ");
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempInverseProjectionMatrix._11, tempInverseProjectionMatrix._12, tempInverseProjectionMatrix._13, tempInverseProjectionMatrix._14);
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempInverseProjectionMatrix._21, tempInverseProjectionMatrix._22, tempInverseProjectionMatrix._23, tempInverseProjectionMatrix._24);
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempInverseProjectionMatrix._31, tempInverseProjectionMatrix._32, tempInverseProjectionMatrix._33, tempInverseProjectionMatrix._34);
+		//TOAST_CORE_INFO("			 %f, %f, %f, %f\n\n\n", tempInverseProjectionMatrix._41, tempInverseProjectionMatrix._42, tempInverseProjectionMatrix._43, tempInverseProjectionMatrix._44);
 
 		// Updating the camera data in the buffer and mapping it to the GPU
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);

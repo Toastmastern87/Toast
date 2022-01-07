@@ -173,8 +173,6 @@ namespace Toast {
 				mModelBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
 			else if (cbufferName == "Planet")
 				mPlanetBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
-			else if (cbufferName == "PlanetPS")
-				mPlanetPSBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
 		}
 
 		template <typename T>
@@ -187,8 +185,6 @@ namespace Toast {
 				return mModelBuffer.Read<T>(decl->GetOffset());
 			else if (cbufferName == "Planet")
 				return mPlanetBuffer.Read<T>(decl->GetOffset());
-			else if (cbufferName == "PlanetPS")
-				return mPlanetPSBuffer.Read<T>(decl->GetOffset());
 		}
 
 		void OnUpdate(Timestep ts);
@@ -249,8 +245,8 @@ namespace Toast {
 
 		PrimitiveTopology mTopology = PrimitiveTopology::TRIANGLELIST;
 
-		Ref<ConstantBuffer> mModelCBuffer, mPlanetCBuffer, mPlanetPSCBuffer;
-		Buffer mModelBuffer, mPlanetBuffer, mPlanetPSBuffer;
+		Ref<ConstantBuffer> mModelCBuffer, mPlanetCBuffer;
+		Buffer mModelBuffer, mPlanetBuffer;
 
 		bool mIsPlanet = false;
 

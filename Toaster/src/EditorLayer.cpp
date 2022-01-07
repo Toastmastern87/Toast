@@ -49,6 +49,7 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Planet.hlsl");
 		ShaderLibrary::Load("assets/shaders/ToastPBR.hlsl");
 		ShaderLibrary::Load("assets/shaders/Picking.hlsl");
+		ShaderLibrary::Load("assets/shaders/Planet/SphereTest.hlsl");
 
 		// Load all materials from the computer
 		std::vector<std::string> materialStrings = FileDialogs::GetAllFiles("\\assets\\materials");

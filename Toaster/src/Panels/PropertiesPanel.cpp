@@ -574,6 +574,13 @@ namespace Toast {
 				if (ImGui::DragFloat("##Radius", &component.PlanetData.radius.x, 0.1f, 0.0f, 0.0f, "%.2f"))
 					modified = true;
 
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Atmosphere)");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::Checkbox("##Atmosphere", &component.Atmosphere);
+
 				ImGui::EndTable();
 
 				if (modified)

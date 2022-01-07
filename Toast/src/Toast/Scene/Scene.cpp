@@ -424,7 +424,7 @@ namespace Toast {
 		}
 
 		DirectX::XMFLOAT4 cameraPosFloat;
-		DirectX::XMStoreFloat4(&cameraPosFloat, cameraPos);
+		DirectX::XMStoreFloat4(&cameraPosFloat, editorCamera->GetPosition());
 
 		// 3D Rendering
 		Renderer::BeginScene(this, *editorCamera, editorCamera->GetViewMatrix(), cameraPosFloat);

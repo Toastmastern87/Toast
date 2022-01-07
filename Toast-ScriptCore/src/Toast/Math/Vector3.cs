@@ -76,6 +76,13 @@ namespace Toast
             return ret;
         }
 
+        public static Vector3 Lerp(Vector3 a, Vector3 b, float t)
+        {
+            if (t < 0.0f) t = 0.0f;
+            if (t > 1.0f) t = 1.0f;
+            return (1.0f - t) * a + t * b;
+        }
+
         public static Vector3 operator+(Vector3 vectorOne, Vector3 vectorTwo) 
         {
             return new Vector3(vectorOne.X + vectorTwo.X, vectorOne.Y + vectorTwo.Y, vectorOne.Z + vectorTwo.Z);
@@ -96,7 +103,12 @@ namespace Toast
             return new Vector3(vectorOne.X - vectorTwo.X, vectorOne.Y - vectorTwo.Y, vectorOne.Z - vectorTwo.Z);
         }
 
-        public static Vector3 operator*(Vector3 vectorOne, float value)
+        public static Vector3 operator*(float value, Vector3 vectorOne)
+        {
+            return new Vector3(value * vectorOne.X, value * vectorOne.Y, value * vectorOne.Z);
+        }
+
+        public static Vector3 operator *(Vector3 vectorOne, float value)
         {
             return new Vector3(vectorOne.X * value, vectorOne.Y * value, vectorOne.Z * value);
         }

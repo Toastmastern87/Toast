@@ -294,7 +294,7 @@ namespace Toast {
 	{
 		if (width == 0 || height == 0 || width > sMaxFramebufferSize || height > sMaxFramebufferSize)
 		{
-			TOAST_CORE_WARN("Attempted to resize framebuffer to {0}, {1}", width, height);
+			TOAST_CORE_WARN("Attempted to resize framebuffer to %f, %f", width, height);
 			return;
 		}
 
