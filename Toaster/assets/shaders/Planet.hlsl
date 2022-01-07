@@ -164,7 +164,7 @@ cbuffer Material			: register(b1)
 	int RoughnessTexToggle;
 };
 
-cbuffer PlanetPS			: register(b4)
+cbuffer Planet			: register(b4)
 {
 	float4 radius;
 	float4 minAltitude;

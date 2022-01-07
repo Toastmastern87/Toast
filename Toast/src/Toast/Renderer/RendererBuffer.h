@@ -8,6 +8,17 @@
 
 namespace Toast {
 
+	struct CBufferBindInfo
+	{
+		D3D11_SHADER_TYPE ShaderType = D3D11_SHADER_TYPE::D3D11_VERTEX_SHADER;
+		uint32_t BindPoint = 0;
+
+		CBufferBindInfo(D3D11_SHADER_TYPE type, uint32_t bPoint) 
+			: ShaderType(type), BindPoint(bPoint)
+		{
+		}
+	};
+
 	static uint32_t ShaderDataTypeSize(DXGI_FORMAT type)
 	{
 		switch (type)
@@ -59,7 +70,7 @@ namespace Toast {
 	class ConstantBuffer
 	{
 	public:
-		ConstantBuffer(const std::string name, const uint32_t size, const D3D11_SHADER_TYPE shaderType, const uint32_t bindPoint, D3D11_USAGE usage = D3D11_USAGE_DYNAMIC);
+		ConstantBuffer(const std::string name, const uint32_t size, std::vector<CBufferBindInfo> bindInfo, D3D11_USAGE usage = D3D11_USAGE_DYNAMIC);
 		virtual ~ConstantBuffer() = default;
 
 		virtual void Bind() const;
@@ -68,14 +79,15 @@ namespace Toast {
 		uint32_t GetSize() const { return mSize; }
 		std::string GetName() const { return mName; }
 
-		D3D11_SHADER_TYPE GetShaderType()const { return mShaderType; }
+		//D3D11_SHADER_TYPE GetShaderType()const { return mShaderType; }
 
 		void Map(Buffer& data);
 	private:
+		std::vector<CBufferBindInfo> mBindInfo;
+
 		std::string mName;
 
-		uint32_t mSize, mBindPoint;
-		D3D11_SHADER_TYPE mShaderType;
+		uint32_t mSize;
 		
 		Microsoft::WRL::ComPtr<ID3D11Buffer> mBuffer;
 	};
@@ -85,7 +97,7 @@ namespace Toast {
 	public:
 		static void Add(const std::string name, const Ref<ConstantBuffer>& shader);
 		static void Add(const Ref<ConstantBuffer>& shader);
-		static Ref<ConstantBuffer> Load(const std::string& name, const uint32_t size, const D3D11_SHADER_TYPE shaderType, const uint32_t bindPoint);
+		static Ref<ConstantBuffer> Load(const std::string& name, const uint32_t size, std::vector<CBufferBindInfo> bindInfo);
 
 		static Ref<ConstantBuffer> Get(const std::string& name);
 		static std::vector<std::string> GetBufferList();

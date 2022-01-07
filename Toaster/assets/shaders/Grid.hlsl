@@ -13,11 +13,6 @@ cbuffer Camera : register(b0)
 	float4 cameraPosition;
 };
 
-struct VertexInputType
-{
-	uint vertexID : SV_VertexID;
-};
-
 struct PixelInputType
 {
 	float4 position			: SV_POSITION;
@@ -38,11 +33,11 @@ float3 UnprojectPoint(float x, float y, float z, matrix viewInv, matrix projInv)
 	return unprojectedPoint.xyz / unprojectedPoint.w;
 }
 
-PixelInputType main(VertexInputType input)
+PixelInputType main(uint vID : SV_VertexID)
 {
 	PixelInputType output;
 
-	float3 p = gridPlane[input.vertexID];
+	float3 p = gridPlane[vID];
 
 	output.cameraPosition = cameraPosition.xyz;
 	output.nearPoint = UnprojectPoint(p.x, p.y, 0.0f, inverseViewMatrix, inverseProjectionMatrix); // unprojecting on the near plane

@@ -82,6 +82,7 @@ namespace Toast {
 
 		static void BaseRenderPass();
 		static void PickingRenderPass();
+		static void PostProcessPass();
 
 		static Ref<Framebuffer>& GetBaseFramebuffer() { return sRendererData->BaseFramebuffer; }
 		static Ref<Framebuffer>& GetPickingFramebuffer() { return sRendererData->PickingFramebuffer; }

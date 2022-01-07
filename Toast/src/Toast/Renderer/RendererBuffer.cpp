@@ -181,8 +181,8 @@ namespace Toast {
 	//     CONSTANTBUFFER     //////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	ConstantBuffer::ConstantBuffer(const std::string name, const uint32_t size, const D3D11_SHADER_TYPE shaderType, const uint32_t bindPoint, D3D11_USAGE usage)
-		: mName(name), mSize(size), mShaderType(shaderType), mBindPoint(bindPoint)
+	ConstantBuffer::ConstantBuffer(const std::string name, const uint32_t size, std::vector<CBufferBindInfo> bindInfo, D3D11_USAGE usage)
+		: mName(name), mSize(size), mBindInfo(bindInfo)
 	{
 		//TOAST_CORE_INFO("Creating constant buffer named: %s", name.c_str());
 
@@ -205,17 +205,20 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		switch (mShaderType)
+		for(auto& bindInfo : mBindInfo)
 		{
-		case D3D11_VERTEX_SHADER:
-			deviceContext->VSSetConstantBuffers(mBindPoint, 1, mBuffer.GetAddressOf());
-			break;
-		case D3D11_PIXEL_SHADER:
-			deviceContext->PSSetConstantBuffers(mBindPoint, 1, mBuffer.GetAddressOf());
-			break;
-		case D3D11_COMPUTE_SHADER:
-			deviceContext->CSSetConstantBuffers(mBindPoint, 1, mBuffer.GetAddressOf());
-			break;
+			switch (bindInfo.ShaderType)
+			{
+			case D3D11_VERTEX_SHADER:
+				deviceContext->VSSetConstantBuffers(bindInfo.BindPoint, 1, mBuffer.GetAddressOf());
+				break;
+			case D3D11_PIXEL_SHADER:
+				deviceContext->PSSetConstantBuffers(bindInfo.BindPoint, 1, mBuffer.GetAddressOf());
+				break;
+			case D3D11_COMPUTE_SHADER:
+				deviceContext->CSSetConstantBuffers(bindInfo.BindPoint, 1, mBuffer.GetAddressOf());
+				break;
+			}
 		}
 	}
 
@@ -245,19 +248,20 @@ namespace Toast {
 	}
 
 	void ConstantBufferLibrary::Add(const Ref<ConstantBuffer>& buffer)
+
 	{
 		auto& name = buffer->GetName();
 		Add(name, buffer);
 	}
 
-	Ref<ConstantBuffer> ConstantBufferLibrary::Load(const std::string& name, const uint32_t size, const D3D11_SHADER_TYPE shaderType, const uint32_t bindPoint)
+	Ref<ConstantBuffer> ConstantBufferLibrary::Load(const std::string& name, const uint32_t size, std::vector<CBufferBindInfo> bindInfo)
 	{
 		//TOAST_CORE_INFO("Loading constant buffer named: %s", name.c_str());
 
 		if (Exists(name))
 			return mConstantBuffers[name];
 
-		auto buffer = CreateRef<ConstantBuffer>(name, size, shaderType, bindPoint);
+		auto buffer = CreateRef<ConstantBuffer>(name, size, bindInfo);
 		Add(name, buffer);
 		return buffer;
 	}
