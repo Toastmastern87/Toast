@@ -269,14 +269,14 @@ namespace Toast {
 					case Settings::Wireframe::NO:
 					{
 						if (planet.Mesh->mSubmeshes.size() > 0)
-							Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData);
+							Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData, planet.Atmosphere);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
 						if (planet.Mesh->mSubmeshes.size() > 0)
-							Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData);
+							Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData, planet.Atmosphere);
 
 						break;
 					}
@@ -492,14 +492,14 @@ namespace Toast {
 				case Settings::Wireframe::NO:
 				{
 					if(planet.Mesh->mSubmeshes.size() > 0)
-						Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData);
+						Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData, planet.Atmosphere);
 
 					break;
 				}
 				case Settings::Wireframe::YES:
 				{
 					if (planet.Mesh->mSubmeshes.size() > 0)
-						Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, true, &planet.PlanetData);
+						Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, true, &planet.PlanetData, planet.Atmosphere);
 
 					break;
 				}

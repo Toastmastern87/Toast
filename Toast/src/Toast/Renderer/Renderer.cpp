@@ -24,7 +24,7 @@ namespace Toast {
 		RendererDebug::Init();
 
 		// Setting up the constant buffer and data buffer for the camera rendering
-		sRendererData->CameraCBuffer = ConstantBufferLibrary::Load("Camera", 272, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 0) });
+		sRendererData->CameraCBuffer = ConstantBufferLibrary::Load("Camera", 272, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 0), CBufferBindInfo(D3D11_PIXEL_SHADER, 11) });
 		sRendererData->CameraCBuffer->Bind();
 		sRendererData->CameraBuffer.Allocate(sRendererData->CameraCBuffer->GetSize());
 		sRendererData->CameraBuffer.ZeroInitialize();
@@ -35,13 +35,13 @@ namespace Toast {
 		sRendererData->LightningBuffer.Allocate(sRendererData->LightningCBuffer->GetSize());
 		sRendererData->LightningBuffer.ZeroInitialize();
 
-		// Setting up the constant buffer and data buffer for enviromental rendering
+		// Setting up the constant buffer and data buffer for environmental rendering
 		sRendererData->EnvironmentCBuffer = ConstantBufferLibrary::Load("Environment", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, 3) });
 		sRendererData->EnvironmentCBuffer->Bind();
 		sRendererData->EnvironmentBuffer.Allocate(sRendererData->EnvironmentCBuffer->GetSize());
 		sRendererData->EnvironmentBuffer.ZeroInitialize();
 
-		FramebufferSpecification baseFBSpec, pickingFBSpec, outlineFBSpec;
+		FramebufferSpecification baseFBSpec, pickingFBSpec, outlineFBSpec, planetMaskFBSpec;
 		baseFBSpec.Attachments = { FramebufferTextureFormat::R32G32B32A32_FLOAT, FramebufferTextureFormat::Depth };
 		baseFBSpec.Width = 1280;
 		baseFBSpec.Height = 720;
@@ -55,6 +55,10 @@ namespace Toast {
 		outlineFBSpec.Width = 1280;
 		outlineFBSpec.Height = 720;
 		sRendererData->OutlineFramebuffer = CreateRef<Framebuffer>(outlineFBSpec);
+		planetMaskFBSpec.Attachments = { FramebufferTextureFormat::R8G8B8A8_UNORM  };
+		planetMaskFBSpec.Width = 1280;
+		planetMaskFBSpec.Height = 720;
+		sRendererData->PlanetMaskFramebuffer = CreateRef<Framebuffer>(planetMaskFBSpec);
 	}
 
 	void Renderer::Shutdown()
@@ -71,34 +75,6 @@ namespace Toast {
 	void Renderer::BeginScene(const Scene* scene, const Camera& camera, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMFLOAT4 cameraPos)
 	{
 		TOAST_PROFILE_FUNCTION();
-
-		//DirectX::XMFLOAT4X4 tempViewMatrix, tempProjectionMatrix, tempInverseViewMatrix, tempInverseProjectionMatrix;
-		//DirectX::XMStoreFloat4x4(&tempViewMatrix, viewMatrix);
-		//TOAST_CORE_INFO("Renderer::BeginScene");
-		//TOAST_CORE_INFO("ViewMatrix: ");
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempViewMatrix._11, tempViewMatrix._12, tempViewMatrix._13, tempViewMatrix._14);
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempViewMatrix._21, tempViewMatrix._22, tempViewMatrix._23, tempViewMatrix._24);
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempViewMatrix._31, tempViewMatrix._32, tempViewMatrix._33, tempViewMatrix._34);
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempViewMatrix._41, tempViewMatrix._42, tempViewMatrix._43, tempViewMatrix._44);
-		//DirectX::XMStoreFloat4x4(&tempProjectionMatrix, camera.GetProjection());
-		//TOAST_CORE_INFO("ProjectionMatrix: ");
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempProjectionMatrix._11, tempProjectionMatrix._12, tempProjectionMatrix._13, tempProjectionMatrix._14);
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempProjectionMatrix._21, tempProjectionMatrix._22, tempProjectionMatrix._23, tempProjectionMatrix._24);
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempProjectionMatrix._31, tempProjectionMatrix._32, tempProjectionMatrix._33, tempProjectionMatrix._34);
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempProjectionMatrix._41, tempProjectionMatrix._42, tempProjectionMatrix._43, tempProjectionMatrix._44);
-
-		//DirectX::XMStoreFloat4x4(&tempInverseViewMatrix, DirectX::XMMatrixInverse(nullptr, viewMatrix));
-		//TOAST_CORE_INFO("Inverse ViewMatrix: ");
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempInverseViewMatrix._11, tempInverseViewMatrix._12, tempInverseViewMatrix._13, tempInverseViewMatrix._14);
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempInverseViewMatrix._21, tempInverseViewMatrix._22, tempInverseViewMatrix._23, tempInverseViewMatrix._24);
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempInverseViewMatrix._31, tempInverseViewMatrix._32, tempInverseViewMatrix._33, tempInverseViewMatrix._34);
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempInverseViewMatrix._41, tempInverseViewMatrix._42, tempInverseViewMatrix._43, tempInverseViewMatrix._44);
-		//DirectX::XMStoreFloat4x4(&tempInverseProjectionMatrix, DirectX::XMMatrixInverse(nullptr, camera.GetProjection()));
-		//TOAST_CORE_INFO("Inverse ProjectionMatrix: ");
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempInverseProjectionMatrix._11, tempInverseProjectionMatrix._12, tempInverseProjectionMatrix._13, tempInverseProjectionMatrix._14);
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempInverseProjectionMatrix._21, tempInverseProjectionMatrix._22, tempInverseProjectionMatrix._23, tempInverseProjectionMatrix._24);
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f", tempInverseProjectionMatrix._31, tempInverseProjectionMatrix._32, tempInverseProjectionMatrix._33, tempInverseProjectionMatrix._34);
-		//TOAST_CORE_INFO("			 %f, %f, %f, %f\n\n\n", tempInverseProjectionMatrix._41, tempInverseProjectionMatrix._42, tempInverseProjectionMatrix._43, tempInverseProjectionMatrix._44);
 
 		// Updating the camera data in the buffer and mapping it to the GPU
 		sRendererData->CameraBuffer.Write((void*)&viewMatrix, 64, 0);
@@ -166,8 +142,9 @@ namespace Toast {
 		sRendererData->SceneData.SkyboxData.LOD = LOD;
 	}
 
-	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe, PlanetComponent::PlanetGPUData* planetData)
+	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe, PlanetComponent::PlanetGPUData* planetData, bool atmosphere)
 	{
+		sRendererData->PlanetData.Atmosphere = atmosphere;
 ;		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, entityID, planetData);
 	}
 
@@ -344,6 +321,8 @@ namespace Toast {
 		sRendererData->PickingFramebuffer->Bind();
 		sRendererData->PickingFramebuffer->Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
 
+		auto pickingShader = ShaderLibrary::Get("assets/shaders/Picking.hlsl");
+
 		for (const auto& meshCommand : sRendererData->MeshDrawList) {
 			if (!meshCommand.PlanetData)
 			{
@@ -359,23 +338,80 @@ namespace Toast {
 					meshCommand.Mesh->Map();
 					meshCommand.Mesh->Bind();
 
-					auto pickingShader = ShaderLibrary::Get("assets/shaders/Picking.hlsl");
 					pickingShader->Bind();
 
 					RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 				}
+			}
+			else
+			{
+				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(meshCommand.Mesh->mSubmeshes[0].Transform, meshCommand.Transform));
+				meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
+
+				// Planet mesh data
+				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "radius", meshCommand.PlanetData->radius);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
+
+				meshCommand.Mesh->Map();
+				meshCommand.Mesh->Bind();
+
+				pickingShader->Bind();
+
+				RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, static_cast<uint32_t>(meshCommand.Mesh->mPlanetPatches.size()), 0, 0, 0);
 			}
 		}
 	}
 
 	void Renderer::PostProcessPass()
 	{
-		sRendererData->BaseFramebuffer->Bind();
+		if (sRendererData->PlanetData.Atmosphere) {
+			RendererAPI* API = RenderCommand::sRendererAPI.get();
+			ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		auto sphereShader = ShaderLibrary::Get("assets/shaders/Planet/SphereTest.hlsl");
-		sphereShader->Bind();
+			RenderCommand::EnableBlending();
 
-		RenderCommand::Draw(3);
+			for (const auto& meshCommand : sRendererData->MeshDrawList)
+			{
+				//In theory this should be one mesh only
+				if (meshCommand.PlanetData) 
+				{
+					//Planet mask shader
+					auto planetMaskShader = ShaderLibrary::Get("assets/shaders/Planet/PlanetMask.hlsl");
+					planetMaskShader->Bind();
+
+					meshCommand.Mesh->mPlanetCBuffer->Map(meshCommand.Mesh->mPlanetBuffer);
+					meshCommand.Mesh->mModelCBuffer->Map(meshCommand.Mesh->mModelBuffer);
+
+					meshCommand.Mesh->mPlanetCBuffer->Bind();
+					meshCommand.Mesh->mModelCBuffer->Bind();
+					meshCommand.Mesh->mVertexBuffer->Bind();
+					meshCommand.Mesh->mIndexBuffer->Bind();
+					meshCommand.Mesh->mInstanceVertexBuffer->Bind();
+
+					sRendererData->PlanetMaskFramebuffer->Bind();
+					sRendererData->PlanetMaskFramebuffer->Clear({ 1.0f, 0.0f, 0.0f, 1.0f });
+
+					RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, static_cast<uint32_t>(meshCommand.Mesh->mPlanetPatches.size()), 0, 0, 0);
+				}
+			}
+
+			ID3D11RenderTargetView* nullRTV = nullptr;
+			deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
+
+			sRendererData->BaseFramebuffer->Bind();
+
+			auto temp = sRendererData->PlanetMaskFramebuffer->GetSRV(0);
+			deviceContext->PSSetShaderResources(9, 1, temp.GetAddressOf());
+
+			auto atmosphereShader = ShaderLibrary::Get("assets/shaders/Planet/Atmosphere.hlsl");
+			atmosphereShader->Bind();
+
+			RenderCommand::Draw(3);
+
+			ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+			deviceContext->PSSetShaderResources(9, 1, nullSRV);
+		}
 	}
 
 	void Renderer::ResetStats()

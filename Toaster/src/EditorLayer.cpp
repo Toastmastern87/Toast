@@ -49,7 +49,8 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Planet.hlsl");
 		ShaderLibrary::Load("assets/shaders/ToastPBR.hlsl");
 		ShaderLibrary::Load("assets/shaders/Picking.hlsl");
-		ShaderLibrary::Load("assets/shaders/Planet/SphereTest.hlsl");
+		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere.hlsl");
+		ShaderLibrary::Load("assets/shaders/Planet/PlanetMask.hlsl");
 
 		// Load all materials from the computer
 		std::vector<std::string> materialStrings = FileDialogs::GetAllFiles("\\assets\\materials");
@@ -78,12 +79,14 @@ namespace Toast {
 		Ref<Framebuffer>& baseFramebuffer = Renderer::GetBaseFramebuffer();
 		Ref<Framebuffer>& pickingFramebuffer = Renderer::GetPickingFramebuffer();
 		Ref<Framebuffer>& outlineFramebuffer = Renderer::GetOutlineFramebuffer();
+		Ref<Framebuffer>& planetMaskFramebuffer = Renderer::GetPlanetMaskFramebuffer();
 		const FramebufferSpecification spec = baseFramebuffer->GetSpecification();
 		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (spec.Width != mViewportSize.x || spec.Height != mViewportSize.y))
 		{ 
 			baseFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			pickingFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			outlineFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			planetMaskFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		 
 			switch (mSceneState)
 			{

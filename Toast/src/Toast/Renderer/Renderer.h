@@ -50,7 +50,12 @@ namespace Toast {
 
 			} SceneData;
 
-			Ref<Framebuffer> BaseFramebuffer, PickingFramebuffer, OutlineFramebuffer;
+			struct PlanetInfo
+			{
+				bool Atmosphere = false;
+			} PlanetData;
+
+			Ref<Framebuffer> BaseFramebuffer, PickingFramebuffer, OutlineFramebuffer, PlanetMaskFramebuffer;
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList;
 
 			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer;
@@ -71,7 +76,7 @@ namespace Toast {
 
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
 		static void SubmitSkybox(const Ref<Mesh> skybox, const DirectX::XMFLOAT4& cameraPos, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMMATRIX& projectionMatrix, float intensity, float LOD);
-		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe = false, PlanetComponent::PlanetGPUData* planetData = nullptr);
+		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe = false, PlanetComponent::PlanetGPUData* planetData = nullptr, bool atmosphere = false);
 		static void SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false);
 
 		static void DrawFullscreenQuad();
@@ -87,6 +92,9 @@ namespace Toast {
 		static Ref<Framebuffer>& GetBaseFramebuffer() { return sRendererData->BaseFramebuffer; }
 		static Ref<Framebuffer>& GetPickingFramebuffer() { return sRendererData->PickingFramebuffer; }
 		static Ref<Framebuffer>& GetOutlineFramebuffer() { return sRendererData->OutlineFramebuffer; }
+		static Ref<Framebuffer>& GetPlanetMaskFramebuffer() { return sRendererData->PlanetMaskFramebuffer; }
+
+		static void EnableAtmosphere(bool atmosphere) { sRendererData->PlanetData.Atmosphere = atmosphere; }
 
 		//Stats
 		struct Statistics
