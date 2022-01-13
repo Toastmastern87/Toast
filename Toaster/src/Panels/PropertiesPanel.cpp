@@ -581,6 +581,33 @@ namespace Toast {
 				ImGui::PushItemWidth(-1);
 				ImGui::Checkbox("##Atmosphere", &component.Atmosphere);
 
+				if (component.Atmosphere) 
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("In Scattering Points");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Optical Depth Points");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Density Falloff");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Wavelengths");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Scattering Strength");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Atmosphere Scale");
+				}
+
 				ImGui::EndTable();
 
 				if (modified)

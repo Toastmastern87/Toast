@@ -365,6 +365,11 @@ namespace Toast {
 
 	void Mesh::Bind()
 	{
+		mVertexBuffer->Bind();
+		mIndexBuffer->Bind();
+		if(mInstanceVertexBuffer)
+			mInstanceVertexBuffer->Bind();
+
 		// if the planet is a mesh upload Planet data to the GPU
 		if (mIsPlanet)
 			mPlanetCBuffer->Bind();

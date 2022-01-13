@@ -68,7 +68,7 @@ namespace Toast {
 		std::vector<float> HeightMultLUT;
 		int16_t Subdivisions = 0;
 		int16_t PatchLevels = 1;
-		bool Atmosphere = true;
+		bool Atmosphere = false;
 
 		PlanetGPUData PlanetData;
 
