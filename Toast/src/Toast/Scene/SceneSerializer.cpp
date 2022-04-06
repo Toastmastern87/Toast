@@ -134,11 +134,9 @@ namespace Toast {
 			out << YAML::BeginMap; // Camera
 			out << YAML::Key << "ProjectionType" << YAML::Value << (int)camera.GetProjectionType();
 			out << YAML::Key << "PerspectiveFOV" << YAML::Value << camera.GetPerspectiveVerticalFOV();
-			out << YAML::Key << "PerspectiveNear" << YAML::Value << camera.GetPerspectiveNearClip();
-			out << YAML::Key << "PerspectiveFar" << YAML::Value << camera.GetPerspectiveFarClip();
+			out << YAML::Key << "NearClip" << YAML::Value << camera.GetNearClip();
+			out << YAML::Key << "FarClip" << YAML::Value << camera.GetFarClip();
 			out << YAML::Key << "OrthographicSize" << YAML::Value << camera.GetOrthographicSize();
-			out << YAML::Key << "OrthographicNear" << YAML::Value << camera.GetOrthographicNearClip();
-			out << YAML::Key << "OrthographicFar" << YAML::Value << camera.GetOrthographicFarClip();
 			out << YAML::EndMap; // Camera
 
 			out << YAML::Key << "Primary" << YAML::Value << cc.Primary;
@@ -333,12 +331,10 @@ namespace Toast {
 					cc.Camera.SetProjectionType((SceneCamera::ProjectionType)cameraProps["ProjectionType"].as<int>());
 
 					cc.Camera.SetPerspectiveVerticalFOV(cameraProps["PerspectiveFOV"].as<float>());
-					cc.Camera.SetPerspectiveNearClip(cameraProps["PerspectiveNear"].as<float>());
-					cc.Camera.SetPerspectiveFarClip(cameraProps["PerspectiveFar"].as<float>());
+					cc.Camera.SetNearClip(cameraProps["NearClip"].as<float>());
+					cc.Camera.SetFarClip(cameraProps["FarClip"].as<float>());
 
 					cc.Camera.SetOrthographicSize(cameraProps["OrthographicSize"].as<float>());
-					cc.Camera.SetOrthographicNearClip(cameraProps["OrthographicNear"].as<float>());
-					cc.Camera.SetOrthographicFarClip(cameraProps["OrthographicFar"].as<float>());
 
 					cc.Primary = cameraComponent["Primary"].as<bool>();
 					cc.FixedAspectRatio = cameraComponent["FixedAspectRatio"].as<bool>();

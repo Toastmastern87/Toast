@@ -11,11 +11,9 @@ Entities:
       Camera:
         ProjectionType: 0
         PerspectiveFOV: 45
-        PerspectiveNear: 0.1
-        PerspectiveFar: 3000
+        NearClip: 0.1
+        FarClip: 3000
         OrthographicSize: 10
-        OrthographicNear: -1
-        OrthographicFar: 1
       Primary: true
       FixedAspectRatio: false
     ScriptComponent:

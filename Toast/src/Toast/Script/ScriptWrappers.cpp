@@ -347,7 +347,7 @@ namespace Toast {
 			Entity entity = entityMap.at(entityID);
 			auto& component = entity.GetComponent<CameraComponent>();
 
-			return component.Camera.GetPerspectiveFarClip();
+			return component.Camera.GetFarClip();
 		}
 
 		void Toast_CameraComponent_SetFarClip(uint64_t entityID, float inFarClip)
@@ -359,7 +359,7 @@ namespace Toast {
 			Entity entity = entityMap.at(entityID);
 			auto& component = entity.GetComponent<CameraComponent>();
 
-			component.Camera.SetPerspectiveFarClip(inFarClip);
+			component.Camera.SetFarClip(inFarClip);
 		}
 
 		float Toast_CameraComponent_GetNearClip(uint64_t entityID)
@@ -371,7 +371,7 @@ namespace Toast {
 			Entity entity = entityMap.at(entityID);
 			auto& component = entity.GetComponent<CameraComponent>();
 
-			return component.Camera.GetPerspectiveNearClip();
+			return component.Camera.GetNearClip();
 		}
 
 		void Toast_CameraComponent_SetNearClip(uint64_t entityID, float inNearClip)
@@ -383,7 +383,7 @@ namespace Toast {
 			Entity entity = entityMap.at(entityID);
 			auto& component = entity.GetComponent<CameraComponent>();
 
-			component.Camera.SetPerspectiveNearClip(inNearClip);
+			component.Camera.SetNearClip(inNearClip);
 		}
 
 	}

@@ -74,7 +74,7 @@ namespace Toast {
 
 		static void OnWindowResize(uint32_t width, uint32_t height);
 
-		static void BeginScene(const Scene* scene, const Camera& camera, const DirectX::XMFLOAT4 cameraPos);
+		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos);
 		static void EndScene(const bool debugActivated);
 
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);

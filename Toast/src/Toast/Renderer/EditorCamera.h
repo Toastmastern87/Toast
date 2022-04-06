@@ -19,14 +19,14 @@ namespace Toast {
 		void OnUpdate(Timestep ts);
 		void OnEvent(Event& e);
 
-		inline void SetViewportSize(float width, float height) { mViewportWidth = width; mViewportHeight = height; UpdateProjection(); };
+		void SetViewportSize(float width, float height) { mViewportWidth = width; mViewportHeight = height; UpdateProjection(); };
 
 		void SetVerticalFOV(float verticalFOV) { mFOV = DirectX::XMConvertToRadians(verticalFOV); UpdateProjection(); }
 		const float GetVerticalFOV() const { return DirectX::XMConvertToDegrees(mFOV); }
 		void SetNearClip(float nearClip) { mNearClip = (std::max)(nearClip, 0.001f); UpdateProjection(); }
-		const float& GetNearClip() const { return mNearClip; }
+		float& GetNearClip() { return mNearClip; }
 		void SetFarClip(float farClip) { mFarClip = farClip; UpdateProjection(); }
-		const float& GetFarClip() const { return mFarClip; }
+		float& GetFarClip() { return mFarClip; }
 
 		const float GetAspecRatio() const { return mAspectRatio; }
 		void SetAspectRatio(float aspectRatio) { mAspectRatio = aspectRatio; UpdateProjection(); }
@@ -36,10 +36,10 @@ namespace Toast {
 		DirectX::XMVECTOR GetRightDirection() const;
 		DirectX::XMVECTOR GetPosition() const { return mPosition; }
 		DirectX::XMVECTOR GetOrientation() const;
-	private:
+
 		void UpdateProjection();
 		void UpdateView();
-
+	private:
 		bool OnMouseScroll(MouseScrolledEvent& e);
 
 		void MousePan(const DirectX::XMVECTOR& delta);
@@ -60,7 +60,7 @@ namespace Toast {
 		float mDistance = 10.0f;
 		float mPitch = 0.28f, mYaw = 0.0f;
 
-		float mFOV = DirectX::XMConvertToRadians(45.0f), mAspectRatio = 1.778f, mNearClip = 0.1f, mFarClip = 1000.0f;
+		float mFOV = DirectX::XMConvertToRadians(45.0f), mAspectRatio = 1.778f;
 
 		float mViewportWidth = 1280, mViewportHeight = 720;
 
