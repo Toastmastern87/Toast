@@ -183,6 +183,8 @@ namespace Toast {
 			out << YAML::Key << "MaxAltitude" << YAML::Value << pc.PlanetData.maxAltitude;
 			out << YAML::Key << "MinAltitude" << YAML::Value << pc.PlanetData.minAltitude;
 			out << YAML::Key << "Radius" << YAML::Value << pc.PlanetData.radius;
+			out << YAML::Key << "AtmosphereHeight" << YAML::Value << pc.PlanetData.atmosphereHeight;
+			out << YAML::Key << "AtmosphereToggle" << YAML::Value << pc.PlanetData.atmosphereToggle;
 
 			out << YAML::EndMap; // PlanetComponent
 		}
@@ -366,7 +368,7 @@ namespace Toast {
 				auto planetComponent = entity["PlanetComponent"];
 				if (planetComponent) 
 				{
-					auto& pc = deserializedEntity.AddComponent<PlanetComponent>(planetComponent["Subdivisions"].as<int16_t>(), planetComponent["PatchLevels"].as<int16_t>(), planetComponent["MaxAltitude"].as<DirectX::XMFLOAT4>(), planetComponent["MinAltitude"].as<DirectX::XMFLOAT4>(), planetComponent["Radius"].as<DirectX::XMFLOAT4>());
+					auto& pc = deserializedEntity.AddComponent<PlanetComponent>(planetComponent["Subdivisions"].as<int16_t>(), planetComponent["PatchLevels"].as<int16_t>(), planetComponent["MaxAltitude"].as<float>(), planetComponent["MinAltitude"].as<float>(), planetComponent["Radius"].as<float>(), planetComponent["AtmosphereHeight"].as<float>(), planetComponent["AtmosphereToggle"].as<bool>(), planetComponent["InScatteringPoints"].as<int>(), planetComponent["OpticalDepthPoints"].as<int>(), planetComponent["DensityFalloff"].as<float>());
 				}
 
 				auto skylightComponent = entity["SkyLightComponent"];

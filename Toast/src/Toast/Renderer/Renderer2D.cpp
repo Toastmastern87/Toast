@@ -105,7 +105,7 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		DirectX::XMMATRIX viewProj = DirectX::XMMatrixMultiply(DirectX::XMMatrixInverse(nullptr, transform), camera.GetProjection());
+		DirectX::XMMATRIX viewProj = DirectX::XMMatrixMultiply(DirectX::XMMatrixInverse(nullptr, transform), DirectX::XMLoadFloat4x4(&camera.GetProjection()));
 
 		//sData.TextureShader->SetData("Camera", (void*)&viewProj);
 		sData.TextureShader->Bind();

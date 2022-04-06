@@ -253,7 +253,7 @@ namespace Toast {
 			Entity entity = entityMap.at(entityID);
 			auto& component = entity.GetComponent<PlanetComponent>();
 
-			*outRadius = component.PlanetData.radius.x;
+			*outRadius = component.PlanetData.radius;
 		}
 
 		void Toast_PlanetComponent_GetSubdivisions(uint64_t entityID, int* outSubDivisions)

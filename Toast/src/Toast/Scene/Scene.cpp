@@ -206,8 +206,12 @@ namespace Toast {
 			DirectX::XMFLOAT4 cameraPosFloat;
 			DirectX::XMStoreFloat4(&cameraPosFloat, cameraPos);
 
+			DirectX::XMFLOAT4X4 fView;
+			DirectX::XMStoreFloat4x4(&fView, DirectX::XMMatrixInverse(nullptr, cameraTransform));
+			mainCamera->SetViewMatrix(fView);
+
 			// 3D Rendering
-			Renderer::BeginScene(this, *mainCamera, DirectX::XMMatrixInverse(nullptr, cameraTransform), cameraPosFloat);
+			Renderer::BeginScene(this, *mainCamera, cameraPosFloat);
 			{
 				{
 					auto view = mRegistry.view<TransformComponent, CameraComponent>();
@@ -220,7 +224,7 @@ namespace Toast {
 				// Skybox!
 				{
 					if (mSkyboxTexture)
-						Renderer::SubmitSkybox(mSkybox, cameraPosFloat, DirectX::XMMatrixInverse(nullptr, cameraTransform), mainCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
+						Renderer::SubmitSkybox(mSkybox, cameraPosFloat, mainCamera->GetViewMatrix(), mainCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
 				}
 
 				// Meshes!
@@ -269,14 +273,14 @@ namespace Toast {
 					case Settings::Wireframe::NO:
 					{
 						if (planet.Mesh->mSubmeshes.size() > 0)
-							Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData, planet.Atmosphere);
+							Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
 						if (planet.Mesh->mSubmeshes.size() > 0)
-							Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData, planet.Atmosphere);
+							Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 						break;
 					}
@@ -427,7 +431,7 @@ namespace Toast {
 		DirectX::XMStoreFloat4(&cameraPosFloat, editorCamera->GetPosition());
 
 		// 3D Rendering
-		Renderer::BeginScene(this, *editorCamera, editorCamera->GetViewMatrix(), cameraPosFloat);
+		Renderer::BeginScene(this, *editorCamera, cameraPosFloat);
 		{
 			{
 				auto view = mRegistry.view<TransformComponent, CameraComponent>();
@@ -492,14 +496,14 @@ namespace Toast {
 				case Settings::Wireframe::NO:
 				{
 					if(planet.Mesh->mSubmeshes.size() > 0)
-						Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData, planet.Atmosphere);
+						Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 					break;
 				}
 				case Settings::Wireframe::YES:
 				{
 					if (planet.Mesh->mSubmeshes.size() > 0)
-						Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, true, &planet.PlanetData, planet.Atmosphere);
+						Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, true, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 					break;
 				}
@@ -741,8 +745,8 @@ namespace Toast {
 		PlanetSystem::GeneratePatchGeometry(component.Mesh->mPlanetVertices, component.Mesh->mIndices, component.PatchLevels);
 
 		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8);
-		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, DirectX::XMVectorGetX(scale), 8, component.PlanetData.maxAltitude.x);
-		PlanetSystem::GenerateHeightMultLUT(component.Mesh->mPlanetFaces, component.HeightMultLUT, DirectX::XMVectorGetX(scale), 8, component.PlanetData.maxAltitude.x, tc.Transform);
+		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, DirectX::XMVectorGetX(scale), 8, component.PlanetData.maxAltitude);
+		PlanetSystem::GenerateHeightMultLUT(component.Mesh->mPlanetFaces, component.HeightMultLUT, DirectX::XMVectorGetX(scale), 8, component.PlanetData.maxAltitude, tc.Transform);
 
 		PlanetSystem::GeneratePlanet(mFrustum.get(), tc.Transform, component.Mesh->mPlanetFaces, component.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraPos, component.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
 

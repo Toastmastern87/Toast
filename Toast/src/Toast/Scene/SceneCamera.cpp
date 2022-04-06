@@ -34,10 +34,14 @@ namespace Toast {
 
 	void SceneCamera::RecalculateProjection()
 	{
+		DirectX::XMMATRIX projection;
+
 		switch (mProjectionType) 
 		{
 		case ProjectionType::Perspective:
-			mProjection = DirectX::XMMatrixPerspectiveFovLH(mPerspectiveFOV, mAspectRatio, mPerspectiveNear, mPerspectiveFar);
+			projection = DirectX::XMMatrixPerspectiveFovLH(mPerspectiveFOV, mAspectRatio, mPerspectiveNear, mPerspectiveFar);
+			DirectX::XMStoreFloat4x4(&mProjection, projection);
+			DirectX::XMStoreFloat4x4(&mInvProjection, DirectX::XMMatrixInverse(nullptr, projection));
 
 			break;
 		case ProjectionType::Orthographic:
@@ -46,7 +50,9 @@ namespace Toast {
 			float orthoBottom = mOrthographicSize * 0.5f;
 			float orthoTop = -mOrthographicSize * 0.5f;
 
-			mProjection = DirectX::XMMatrixOrthographicLH((orthoRight - orthoLeft), (orthoBottom - orthoTop), mOrthographicNear, mOrthographicFar);
+			projection = DirectX::XMMatrixOrthographicLH((orthoRight - orthoLeft), (orthoBottom - orthoTop), mOrthographicNear, mOrthographicFar);
+			DirectX::XMStoreFloat4x4(&mProjection, projection);
+			DirectX::XMStoreFloat4x4(&mInvProjection, DirectX::XMMatrixInverse(nullptr, projection));
 
 			break;
 		}

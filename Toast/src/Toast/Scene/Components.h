@@ -57,9 +57,14 @@ namespace Toast {
 	{
 		struct PlanetGPUData
 		{
-			DirectX::XMFLOAT4 radius = { 3389.5f, 3389.5f, 3389.5f, 3389.5f };
-			DirectX::XMFLOAT4 minAltitude = { -8.2f, -8.2f, -8.2f, -8.2f };
-			DirectX::XMFLOAT4 maxAltitude = { 21.2f, 21.2f, 21.2f, 21.2f };
+			float radius = 3389.5f;
+			float minAltitude = -8.2f;
+			float maxAltitude = 21.2f;
+			bool atmosphereToggle = false;
+			float atmosphereHeight = 100.8f;
+			int inScatteringPoints = 1;
+			int opticalDepthPoints = 1;
+			float densityFalloff = 0.0f;
 		};
 
 		Ref<Toast::Mesh> Mesh;
@@ -68,17 +73,21 @@ namespace Toast {
 		std::vector<float> HeightMultLUT;
 		int16_t Subdivisions = 0;
 		int16_t PatchLevels = 1;
-		bool Atmosphere = false;
 
 		PlanetGPUData PlanetData;
 
 		PlanetComponent() = default;
-		PlanetComponent(int16_t subdivisions, int16_t patchLevels, DirectX::XMFLOAT4 maxAltitude, DirectX::XMFLOAT4 minAltitude, DirectX::XMFLOAT4 radius)
+		PlanetComponent(int16_t subdivisions, int16_t patchLevels, float maxAltitude, float minAltitude, float radius, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float densityFalloff)
 			: Subdivisions(subdivisions), PatchLevels(patchLevels)
 		{
 			PlanetData.maxAltitude = maxAltitude;
 			PlanetData.minAltitude = minAltitude;
 			PlanetData.radius = radius;
+			PlanetData.atmosphereToggle = atmosphereToggle;
+			PlanetData.atmosphereHeight = atmosphereHeight;
+			PlanetData.inScatteringPoints = inScatteringPoints;
+			PlanetData.opticalDepthPoints = opticalDepthPoints;
+			PlanetData.densityFalloff = densityFalloff;
 		}
 		PlanetComponent(const PlanetComponent& other) = default;
 	};

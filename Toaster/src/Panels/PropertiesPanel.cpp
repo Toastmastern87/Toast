@@ -363,8 +363,8 @@ namespace Toast {
 					auto& pc = entity.GetComponent<PlanetComponent>();
 
 					PlanetSystem::GenerateDistanceLUT(pc.DistanceLUT, 8.0f);
-					PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, DirectX::XMVectorGetX(scale), 8.0f, pc.PlanetData.maxAltitude.x);
-					PlanetSystem::GenerateHeightMultLUT(pc.Mesh->mPlanetFaces, pc.HeightMultLUT, DirectX::XMVectorGetX(scale), 8, pc.PlanetData.maxAltitude.x, component.Transform);
+					PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, DirectX::XMVectorGetX(scale), 8.0f, pc.PlanetData.maxAltitude);
+					PlanetSystem::GenerateHeightMultLUT(pc.Mesh->mPlanetFaces, pc.HeightMultLUT, DirectX::XMVectorGetX(scale), 8, pc.PlanetData.maxAltitude, component.Transform);
 
 					PlanetSystem::GeneratePlanet(scene->GetFrustum(), component.Transform, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPos, cameraPos, pc.Subdivisions, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
 
@@ -555,7 +555,7 @@ namespace Toast {
 				ImGui::Text("Max Alt(km)");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (ImGui::DragFloat("##MaxAlt", &component.PlanetData.maxAltitude.x, 0.1f, 0.0f, 0.0f, "%.2f"))
+				if (ImGui::DragFloat("##MaxAlt", &component.PlanetData.maxAltitude, 0.1f, 0.0f, 0.0f, "%.2f"))
 					modified = true;
 
 				ImGui::TableNextRow();
@@ -563,7 +563,7 @@ namespace Toast {
 				ImGui::Text("Min Alt(km)");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (ImGui::DragFloat("##MinAltitude", &component.PlanetData.minAltitude.x, 0.1f, 0.0f, 0.0f, "%.2f"))
+				if (ImGui::DragFloat("##MinAltitude", &component.PlanetData.minAltitude, 0.1f, 0.0f, 0.0f, "%.2f"))
 					modified = true;
 
 				ImGui::TableNextRow();
@@ -571,7 +571,7 @@ namespace Toast {
 				ImGui::Text("Radius(km)");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (ImGui::DragFloat("##Radius", &component.PlanetData.radius.x, 0.1f, 0.0f, 0.0f, "%.2f"))
+				if (ImGui::DragFloat("##Radius", &component.PlanetData.radius, 0.1f, 0.0f, 0.0f, "%.2f"))
 					modified = true;
 
 				ImGui::TableNextRow();
@@ -579,21 +579,37 @@ namespace Toast {
 				ImGui::Text("Atmosphere)");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::Checkbox("##Atmosphere", &component.Atmosphere);
+				ImGui::Checkbox("##Atmosphere", &component.PlanetData.atmosphereToggle);
 
-				if (component.Atmosphere) 
+				if (component.PlanetData.atmosphereToggle)
 				{
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("In Scattering Points");
+					ImGui::Text("Atmosphere\nHeight");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::DragFloat("##AtmosphereHeight", &component.PlanetData.atmosphereHeight, 0.1f, 0.0f, 1000.0f, "%.1f");
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Optical Depth Points");
+					ImGui::Text("In Scattering\nPoints");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::DragInt("##InScatteringPoints", &component.PlanetData.inScatteringPoints, 1.0f, 1, 10);
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Density Falloff");
+					ImGui::Text("Optical\nDepth Points");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::DragInt("##OpticalDepthPoints", &component.PlanetData.opticalDepthPoints, 1.0f, 1, 10);
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Density\nFalloff");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::DragFloat("##DensityFalloff", &component.PlanetData.densityFalloff, 0.01f, 0.0f, 30.0f, "%.2f");
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
@@ -601,11 +617,7 @@ namespace Toast {
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Scattering Strength");
-
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Atmosphere Scale");
+					ImGui::Text("Scattering\nStrength");
 				}
 
 				ImGui::EndTable();

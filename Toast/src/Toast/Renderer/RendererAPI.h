@@ -56,5 +56,6 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState> mWireframeRasterizerState;
 
 		Ref<Framebuffer> mBackbuffer = nullptr;
+		Ref<RenderTarget> mBackbufferRT = nullptr;
 	};
 }

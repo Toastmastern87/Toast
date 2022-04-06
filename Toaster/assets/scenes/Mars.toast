@@ -11,7 +11,7 @@ Entities:
       Camera:
         ProjectionType: 0
         PerspectiveFOV: 45
-        PerspectiveNear: 0.00999999978
+        PerspectiveNear: 0.1
         PerspectiveFar: 3000
         OrthographicSize: 10
         OrthographicNear: -1
@@ -48,9 +48,14 @@ Entities:
     PlanetComponent:
       Subdivisions: 4
       PatchLevels: 6
-      MaxAltitude: [21.2000008, 21.2000008, 21.2000008, 21.2000008]
-      MinAltitude: [-8.19999981, -8.19999981, -8.19999981, -8.19999981]
-      Radius: [3389.5, 3389.5, 3389.5, 3389.5]
+      MaxAltitude: 21.2000008
+      MinAltitude: -8.19999981
+      Radius: 3389.5
+      AtmosphereHeight: 100.8
+      AtmosphereToggle: false
+      InScatteringPoints: 1
+      OpticalDepthPoints: 1
+      DensityFalloff: 0.0
     ScriptComponent:
       ModuleName: PlanetScript
       StoredProperties:

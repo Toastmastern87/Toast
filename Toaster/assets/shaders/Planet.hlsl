@@ -32,9 +32,14 @@ cbuffer Model : register(b1)
 
 cbuffer Planet : register(b2)
 {
-	float4 radius;
-	float4 minAltitude;
-	float4 maxAltitude;
+	float radius;
+	float minAltitude;
+	float maxAltitude;
+	float atmosphereHeight;
+	float densityFalloff;
+	int atmosphereToggle;
+	int numInScatteringPoints;
+	int numOpticalDepthPoints;
 };
 
 struct VertexInputType
@@ -116,14 +121,14 @@ PixelInputType main(VertexInputType input)
 	pos = normalize(pos);
 
 	output.texcoord = float2((0.5f + (atan2(pos.z, pos.x) / (2.0f * PI))), (0.5f - (asin(pos.y) / PI)));
-	pos *= 1.0f + ((HeightMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r * (maxAltitude.r - minAltitude.r) + minAltitude.r) / radius.r);
+	pos *= 1.0f + ((HeightMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r * (maxAltitude - minAltitude) + minAltitude) / radius);
 
 	float craterDetected = CraterMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r;
 	if (craterDetected == 0.0f)
 	{
 		float craterHeightDetail = SimplexNoise(float3(float2(8192.0f, 4096.0f) * output.texcoord, 1.0f), 15.0f, 0.5f, 0.5f);
 		//Min and max altitude of the details are 30 and -30. check base height for information on how to change these
-		pos *= 1.0f + craterHeightDetail * (0.03f / radius.r);
+		pos *= 1.0f + craterHeightDetail * (0.03f / radius);
 	}
 
 	finalPos = float4(pos * 0.5f, 1.0f);
@@ -166,9 +171,14 @@ cbuffer Material			: register(b1)
 
 cbuffer Planet			: register(b4)
 {
-	float4 radius;
-	float4 minAltitude;
-	float4 maxAltitude;
+	float radius;
+	float minAltitude;
+	float maxAltitude;
+	float atmosphereHeight;
+	float densityFalloff;
+	int atmosphereToggle;
+	int numInScatteringPoints;
+	int numOpticalDepthPoints;
 };
 
 #pragma pack_matrix( row_major )
@@ -256,7 +266,7 @@ float GetHeight(float2 uv)
 {
 	float finalHeight;
 
-	float baseHeight = (HeightMapTexturePS.SampleLevel(defaultSampler, uv, 0).r * (maxAltitude.x + minAltitude.x) + minAltitude.x);
+	float baseHeight = (HeightMapTexturePS.SampleLevel(defaultSampler, uv, 0).r * (maxAltitude + minAltitude) + minAltitude);
 
 	float craterDetected = CraterMapTexturePS.SampleLevel(defaultSampler, uv, 0).r;
 	if (craterDetected == 0.0f)

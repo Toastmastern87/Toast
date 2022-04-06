@@ -9,140 +9,11 @@ namespace Toast {
 
 	static const uint32_t sMaxFramebufferSize = 8192;
 
-	namespace Utils {
-
-		static void AttachColorTexture(FramebufferTextureSpecification textureSpec, FramebufferSpecification framebufferSpec, FramebufferColorAttachment* outColorAttachment)
-		{
-			HRESULT result;
-			D3D11_TEXTURE2D_DESC textureDesc;
-			D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
-			D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
-
-			RendererAPI* API = RenderCommand::sRendererAPI.get();
-			ID3D11Device* device = API->GetDevice();
-
-			textureDesc.Width = framebufferSpec.Width;
-			textureDesc.Height = framebufferSpec.Height;
-			textureDesc.MipLevels = 1;
-			textureDesc.ArraySize = 1;
-			textureDesc.Format = (DXGI_FORMAT)textureSpec.TextureFormat;
-			textureDesc.SampleDesc.Count = framebufferSpec.Samples;
-			textureDesc.SampleDesc.Quality = 0;
-			textureDesc.Usage = D3D11_USAGE_DEFAULT;
-			textureDesc.BindFlags = (UINT)(TOAST_BIND_RENDER_TARGET | TOAST_BIND_SHADER_RESOURCE);
-			textureDesc.CPUAccessFlags = 0;
-			textureDesc.MiscFlags = 0;
-
-			result = device->CreateTexture2D(&textureDesc, nullptr, outColorAttachment->RenderTargetTexture.GetAddressOf());
-			TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create 2D texture!");
-
-			renderTargetViewDesc.Format = (DXGI_FORMAT)textureSpec.TextureFormat;
-			renderTargetViewDesc.ViewDimension = framebufferSpec.Samples == 4 ? D3D11_RTV_DIMENSION_TEXTURE2DMS : D3D11_RTV_DIMENSION_TEXTURE2D;
-			renderTargetViewDesc.Texture2D.MipSlice = 0;
-
-			result = device->CreateRenderTargetView(outColorAttachment->RenderTargetTexture.Get(), &renderTargetViewDesc, &outColorAttachment->RenderTargetView);
-			TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create render target view!");
-
-			shaderResourceViewDesc.Format = (DXGI_FORMAT)textureSpec.TextureFormat;
-			shaderResourceViewDesc.ViewDimension = framebufferSpec.Samples == 4 ? D3D11_SRV_DIMENSION_TEXTURE2DMS : D3D11_SRV_DIMENSION_TEXTURE2D;
-			shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
-			shaderResourceViewDesc.Texture2D.MipLevels = 1;
-
-			result = device->CreateShaderResourceView(outColorAttachment->RenderTargetTexture.Get(), &shaderResourceViewDesc, &outColorAttachment->ShaderResourceView);
-			TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create shader resource view!");
-		}
-
-		static void AttachDepthTexture(FramebufferTextureSpecification textureSpec, FramebufferSpecification framebufferSpec, FramebufferDepthAttachment* outDepthAttachment)
-		{
-			HRESULT result;
-			D3D11_TEXTURE2D_DESC textureDesc;
-			D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
-			D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
-
-			RendererAPI* API = RenderCommand::sRendererAPI.get();
-			ID3D11Device* device = API->GetDevice();
-
-			textureDesc.Width = framebufferSpec.Width;
-			textureDesc.Height = framebufferSpec.Height;
-			textureDesc.MipLevels = 1;
-			textureDesc.ArraySize = 1;
-			textureDesc.Format = (DXGI_FORMAT)textureSpec.TextureFormat;
-			textureDesc.SampleDesc.Count = framebufferSpec.Samples;
-			textureDesc.SampleDesc.Quality = 0;
-			textureDesc.Usage = D3D11_USAGE_DEFAULT;
-			textureDesc.BindFlags = (UINT)TOAST_BIND_DEPTH_STENCIL;
-			textureDesc.CPUAccessFlags = 0;
-			textureDesc.MiscFlags = 0;
-
-			result = device->CreateTexture2D(&textureDesc, nullptr, outDepthAttachment->DepthStencilBuffer.GetAddressOf());
-			TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create 2D texture!");
-
-			ZeroMemory(&depthStencilDesc, sizeof(depthStencilDesc));
-
-			depthStencilDesc.DepthEnable = true;
-			depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-			depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-
-			depthStencilDesc.StencilEnable = true;
-			depthStencilDesc.StencilReadMask = 0xFF;
-			depthStencilDesc.StencilWriteMask = 0xFF;
-
-			depthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-			depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
-			depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-			depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-
-			depthStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-			depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
-			depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-			depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-
-			result = device->CreateDepthStencilState(&depthStencilDesc, &outDepthAttachment->DepthStencilState);
-			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create depth stencil state");
-
-			ZeroMemory(&depthStencilViewDesc, sizeof(depthStencilViewDesc));
-
-			depthStencilViewDesc.Format = (DXGI_FORMAT)textureSpec.TextureFormat;
-			depthStencilViewDesc.ViewDimension = framebufferSpec.Samples == 4 ? D3D11_DSV_DIMENSION_TEXTURE2DMS : D3D11_DSV_DIMENSION_TEXTURE2D;
-			depthStencilViewDesc.Texture2D.MipSlice = 0;
-
-			result = device->CreateDepthStencilView(outDepthAttachment->DepthStencilBuffer.Get(), &depthStencilViewDesc, &outDepthAttachment->DepthStencilView);
-			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create depth stencil view");
-		}
-
-		static void AttachToSwapchain(FramebufferColorAttachment* outColorAttachment)
-		{
-			Microsoft::WRL::ComPtr<ID3D11Texture2D> backBuffer;
-
-			RendererAPI* API = RenderCommand::sRendererAPI.get();
-			ID3D11Device* device = API->GetDevice();
-			IDXGISwapChain* swapChain = API->GetSwapChain();
-
-			swapChain->GetBuffer(0, __uuidof(ID3D11Resource), &backBuffer);
-			device->CreateRenderTargetView(backBuffer.Get(), nullptr, &outColorAttachment->RenderTargetView);
-		}
-
-		static bool IsDepthFormat(FramebufferTextureFormat format)
-		{
-			switch (format)
-			{
-				case FramebufferTextureFormat::D24_UNORM_S8_UINT:	return true;
-			}
-
-			return false;
-		}
-	}
-
-	Framebuffer::Framebuffer(const FramebufferSpecification& spec)
-		: mSpecification(spec)
+	Framebuffer::Framebuffer(Ref<RenderTarget> color, Ref<RenderTarget> depth, bool swapChainTarget)
+		: mColorTarget(color), mDepthTarget(depth), mSwapChainTarget(swapChainTarget)
 	{
-		for (auto format : mSpecification.Attachments.Attachments)
-		{
-			if (!Utils::IsDepthFormat(format.TextureFormat)) 
-				mColorAttachmentSpecifications.emplace_back(format);
-			else 
-				mDepthAttachmentSpecification = format;
-		}
+		mWidth = 1280;
+		mHeight = 720;
 
 		CreateDepthDisabledState();
 
@@ -156,16 +27,16 @@ namespace Toast {
 
 		deviceContext->RSSetViewports(1, &mViewport);
 
-		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> pRenderViews[2];
-		for (int i = 0; i < mColorAttachments.size(); i++)
-			pRenderViews[i] = mColorAttachments[i].RenderTargetView;
-
-		deviceContext->OMSetRenderTargets(static_cast<UINT>(mColorAttachments.size()), pRenderViews[0].GetAddressOf(), mDepthAttachment.DepthStencilView.Get());
-
-		if (mDepthAttachmentSpecification.TextureFormat != FramebufferTextureFormat::None)
-			deviceContext->OMSetDepthStencilState(mDepthAttachment.DepthStencilState.Get(), 1);
+		if (mDepth)
+		{
+			deviceContext->OMSetRenderTargets(1, mColorTarget->GetView().GetAddressOf(), mDepthTarget->GetDepthView().Get());
+			deviceContext->OMSetDepthStencilState(mDepthTarget->GetDepthState().Get(), 1);
+		}
 		else 
+		{
+			deviceContext->OMSetRenderTargets(1, mColorTarget->GetView().GetAddressOf(), nullptr);
 			deviceContext->OMSetDepthStencilState(mDepthDisabledStencilState.Get(), 1);
+		}
 	}
 
 	void Framebuffer::CreateDepthDisabledState()
@@ -202,92 +73,27 @@ namespace Toast {
 
 	void Framebuffer::Invalidate()
 	{
-		Clean();
 
 		mViewport.TopLeftX = 0.0f;
 		mViewport.TopLeftY = 0.0f;
-		mViewport.Width = static_cast<float>(mSpecification.Width);
-		mViewport.Height = static_cast<float>(mSpecification.Height);
+		mViewport.Width = static_cast<float>(mWidth);
+		mViewport.Height = static_cast<float>(mHeight);
 		mViewport.MinDepth = 0.0f;
 		mViewport.MaxDepth = 1.0f;
 
-		if (mColorAttachmentSpecifications.size())
-		{
-			mColorAttachments.resize(mColorAttachmentSpecifications.size());
+		if (mDepthTarget)
+			mDepth = true;
+		else
+			mDepth = false;
 
-			// Attachments
-			for (size_t i = 0; i < mColorAttachments.size(); i++)
-			{
-				if (mSpecification.SwapChainTarget)
-				{
-					Utils::AttachToSwapchain(&mColorAttachments[i]);
-
-					break;
-				}
-
-				switch (mColorAttachmentSpecifications[i].TextureFormat)
-				{
-					case FramebufferTextureFormat::R32G32B32A32_FLOAT: 
-					{
-						Utils::AttachColorTexture(mColorAttachmentSpecifications[i], mSpecification, &mColorAttachments[i]);
-						GetColorAttachmentIDNonMS(0);
-						break;
-					}
-					case FramebufferTextureFormat::R16G16B16A16_FLOAT:
-					{
-						Utils::AttachColorTexture(mColorAttachmentSpecifications[i], mSpecification, &mColorAttachments[i]);
-						break;
-					}
-					case FramebufferTextureFormat::R8G8B8A8_UNORM:
-					{
-						Utils::AttachColorTexture(mColorAttachmentSpecifications[i], mSpecification, &mColorAttachments[i]);
-						break;
-					}
-					case FramebufferTextureFormat::R32_SINT:
-					{
-						Utils::AttachColorTexture(mColorAttachmentSpecifications[i], mSpecification, &mColorAttachments[i]);
-						break;
-					}
-				}
-			}
-		}
-
-		if (mDepthAttachmentSpecification.TextureFormat != FramebufferTextureFormat::None)
-		{
-			switch (mDepthAttachmentSpecification.TextureFormat)
-			{
-			case FramebufferTextureFormat::D24_UNORM_S8_UINT:
-				Utils::AttachDepthTexture(mDepthAttachmentSpecification, mSpecification, &mDepthAttachment);
-				break;
-			}
-		}
-	}
-
-	void Framebuffer::Clean()
-	{
-		for (size_t i = 0; i < mColorAttachments.size(); i++)
-		{
-			mColorAttachments[i].RenderTargetTexture.Reset();
-			mColorAttachments[i].RenderTargetView.Reset();
-			mColorAttachments[i].ShaderResourceView.Reset();
-		}
-		mColorAttachments.clear();
-
-		mDepthAttachment.DepthStencilView.Reset();
-		mDepthAttachment.DepthStencilState.Reset();
-		mDepthAttachment.DepthStencilBuffer.Reset();
 	}
 
 	void Framebuffer::Clear(const DirectX::XMFLOAT4 clearColor)
-	{
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+	{		
+		mColorTarget->Clear(clearColor);
 
-		for (size_t i = 0; i < mColorAttachments.size(); i++)
-			deviceContext->ClearRenderTargetView(mColorAttachments[i].RenderTargetView.Get(), (float*)&clearColor);
-
-		if (mDepthAttachmentSpecification.TextureFormat != FramebufferTextureFormat::None)
-			deviceContext->ClearDepthStencilView(mDepthAttachment.DepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+		if (mDepth)
+			mDepthTarget->Clear(clearColor);
 	}
 
 	void Framebuffer::Resize(uint32_t width, uint32_t height)
@@ -298,16 +104,14 @@ namespace Toast {
 			return;
 		}
 
-		mSpecification.Width = width;
-		mSpecification.Height = height;
+		mWidth = width;
+		mHeight = height;
 
 		Invalidate();
 	}
 
-	int Framebuffer::ReadPixel(uint32_t attachmentIndex, uint32_t x, uint32_t y)
+	int Framebuffer::ReadPixel(uint32_t x, uint32_t y)
 	{
-		TOAST_CORE_ASSERT(attachmentIndex < mColorAttachments.size(), "");
-
 		HRESULT result;
 		D3D11_TEXTURE2D_DESC textureDesc;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> stagedTexture;
@@ -323,7 +127,7 @@ namespace Toast {
 		textureDesc.Height = 1;
 		textureDesc.MipLevels = 1;
 		textureDesc.ArraySize = 1;
-		textureDesc.Format = (DXGI_FORMAT)FramebufferTextureFormat::R32_SINT;
+		textureDesc.Format = (DXGI_FORMAT)TextureFormat::R32_SINT;
 		textureDesc.SampleDesc.Count = 1;
 		textureDesc.SampleDesc.Quality = 0;
 		textureDesc.Usage = D3D11_USAGE_STAGING;
@@ -334,7 +138,7 @@ namespace Toast {
 		result = device->CreateTexture2D(&textureDesc, nullptr, &stagedTexture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create 2D texture!");
 		
-		deviceContext->CopySubresourceRegion(stagedTexture.Get(), 0, 0, 0, 0, mColorAttachments[attachmentIndex].RenderTargetTexture.Get(), 0, &srcBox);
+		deviceContext->CopySubresourceRegion(stagedTexture.Get(), 0, 0, 0, 0, mColorTarget->GetTexture().Get(), 0, &srcBox);
 		
 		D3D11_MAPPED_SUBRESOURCE msr;
 		deviceContext->Map(stagedTexture.Get(), 0, D3D11_MAP_READ, 0, &msr);
@@ -342,53 +146,6 @@ namespace Toast {
 		deviceContext->Unmap(stagedTexture.Get(), 0);
 
 		return *pixelValue;
-	}
-
-	void* Framebuffer::GetColorAttachmentIDNonMS(uint32_t index)
-	{
-		HRESULT result;
-		D3D11_TEXTURE2D_DESC textureDesc;
-		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc;
-		D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc;
-		Microsoft::WRL::ComPtr<ID3D11Texture2D>  textureNoMS;
-
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11Device* device = API->GetDevice();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
-
-		textureDesc.Width = mSpecification.Width;
-		textureDesc.Height = mSpecification.Height;
-		textureDesc.MipLevels = 1;
-		textureDesc.ArraySize = 1;
-		textureDesc.Format = (DXGI_FORMAT)mColorAttachmentSpecifications[index].TextureFormat;
-		textureDesc.SampleDesc.Count = 1;
-		textureDesc.SampleDesc.Quality = 0;
-		textureDesc.Usage = D3D11_USAGE_DEFAULT;
-		textureDesc.BindFlags = (UINT)(TOAST_BIND_RENDER_TARGET | TOAST_BIND_SHADER_RESOURCE);
-		textureDesc.CPUAccessFlags = 0;
-		textureDesc.MiscFlags = 0;
-
-		result = device->CreateTexture2D(&textureDesc, nullptr, &textureNoMS);
-		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create 2D texture!");
-
-		deviceContext->ResolveSubresource(textureNoMS.Get(), 0, mColorAttachments[index].RenderTargetTexture.Get(), 0, (DXGI_FORMAT)mColorAttachmentSpecifications[index].TextureFormat);
-
-		renderTargetViewDesc.Format = (DXGI_FORMAT)mColorAttachmentSpecifications[index].TextureFormat;
-		renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-		renderTargetViewDesc.Texture2D.MipSlice = 0;
-
-		result = device->CreateRenderTargetView(textureNoMS.Get(), &renderTargetViewDesc, &mRenderTargetView);
-		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create render target view!");
-
-		shaderResourceViewDesc.Format = (DXGI_FORMAT)mColorAttachmentSpecifications[index].TextureFormat;
-		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
-		shaderResourceViewDesc.Texture2D.MipLevels = 1;
-
-		result = device->CreateShaderResourceView(textureNoMS.Get(), &shaderResourceViewDesc, &mShaderResourceView);
-		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create render target view!");
-
-		return (void*)mShaderResourceView.Get();
 	}
 
 }

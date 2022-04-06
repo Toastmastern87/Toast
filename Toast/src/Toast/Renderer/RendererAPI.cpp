@@ -107,6 +107,7 @@ namespace Toast {
 	void RendererAPI::ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 	{
 		mBackbuffer.reset();
+		mBackbufferRT.reset();
 
 		mSwapChain->ResizeBuffers(1, width, height, DXGI_FORMAT_UNKNOWN, 0);
 
@@ -145,12 +146,8 @@ namespace Toast {
 
 	void RendererAPI::CreateBackbuffer()
 	{
-		FramebufferSpecification backbufferSpec;
-		backbufferSpec.SwapChainTarget = true;
-		backbufferSpec.Width = mWidth;
-		backbufferSpec.Height = mHeight;
-		backbufferSpec.Attachments = { FramebufferTextureFormat::R32G32B32A32_FLOAT };
-		mBackbuffer = CreateRef<Framebuffer>(backbufferSpec);
+		mBackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, mWidth, mHeight, 1, TextureFormat::R32G32B32A32_FLOAT, TextureFormat::None, true);
+		mBackbuffer = CreateRef<Framebuffer>(mBackbufferRT, nullptr, true);
 	}
 
 	void RendererAPI::CreateBlendStates()
