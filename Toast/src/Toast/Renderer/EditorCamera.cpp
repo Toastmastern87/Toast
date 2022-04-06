@@ -6,25 +6,42 @@
 namespace Toast {
 
 	EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
-		: mFOV(DirectX::XMConvertToRadians(fov)), mAspectRatio(aspectRatio), mNearClip(nearClip), mFarClip(farClip), Camera(DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(fov), aspectRatio, nearClip, farClip))
+		: mFOV(DirectX::XMConvertToRadians(fov)), mAspectRatio(aspectRatio), mNearClip(nearClip), mFarClip(farClip)
 	{
+		DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, mNearClip, mFarClip);
+		DirectX::XMMATRIX invProjection = DirectX::XMMatrixInverse(nullptr, projection);
+		DirectX::XMMATRIX view = DirectX::XMMatrixLookToLH(mPosition, GetForwardDirection(), GetUpDirection());
+		DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, view);
+
+		DirectX::XMFLOAT4X4 fView, fInvView, fProjection, fInvProjection;
+
+		DirectX::XMStoreFloat4x4(&fView, view);
+		DirectX::XMStoreFloat4x4(&fInvView, invView);
+		DirectX::XMStoreFloat4x4(&fProjection, projection);
+		DirectX::XMStoreFloat4x4(&fProjection, invProjection);
+		Camera(fView, fInvView, fProjection, fInvProjection);
+
 		UpdateView();
 	}
 
 	void EditorCamera::UpdateProjection()
 	{
+		DirectX::XMMATRIX projection = DirectX::XMLoadFloat4x4(&mProjection);
+
 		mAspectRatio = (float)mViewportWidth / (float)mViewportHeight;
-		mProjection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, mNearClip, mFarClip);
+		projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, mNearClip, mFarClip);
+
+		DirectX::XMStoreFloat4x4(&mInvProjection, DirectX::XMMatrixInverse(nullptr, projection));
+		DirectX::XMStoreFloat4x4(&mProjection, projection);
 	}
 
 	void EditorCamera::UpdateView()
 	{
 		mPosition = CalculatePosition();
-		//TOAST_CORE_INFO("Position: %f, %f, %f", DirectX::XMVectorGetX(mPosition), DirectX::XMVectorGetY(mPosition), DirectX::XMVectorGetZ(mPosition));
-		//TOAST_CORE_INFO("Pitch: %f, Yaw: %f", mPitch, mYaw);
-		//TOAST_CORE_INFO("Forward: %f, %f, %f", DirectX::XMVectorGetX(GetForwardDirection()), DirectX::XMVectorGetY(GetForwardDirection()), DirectX::XMVectorGetZ(GetForwardDirection()));
-		//TOAST_CORE_INFO("Up: %f, %f, %f", DirectX::XMVectorGetX(GetUpDirection()), DirectX::XMVectorGetY(GetUpDirection()), DirectX::XMVectorGetZ(GetUpDirection()));
-		mViewMatrix = DirectX::XMMatrixLookToLH(mPosition, GetForwardDirection(), GetUpDirection());
+		DirectX::XMMATRIX view = DirectX::XMMatrixLookToLH(mPosition, GetForwardDirection(), GetUpDirection());
+
+		DirectX::XMStoreFloat4x4(&mViewMatrix, view);
+		DirectX::XMStoreFloat4x4(&mInvViewMatrix, DirectX::XMMatrixInverse(nullptr, view));
 	}
 
 	void EditorCamera::OnUpdate(Timestep ts)

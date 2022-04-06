@@ -51,8 +51,8 @@ namespace Toast {
 		// Updating the camera data in the buffer and mapping it to the GPU
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetProjection(), 64, 64);
-		mDebugData->mDebugBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, camera.GetViewMatrix()), 64, 128);
-		mDebugData->mDebugBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, camera.GetProjection()), 64, 192);
+		mDebugData->mDebugBuffer.Write((void*)&camera.GetInvViewMatrix(), 64, 128);
+		mDebugData->mDebugBuffer.Write((void*)&camera.GetInvProjection(), 64, 192);
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetPosition(), 16, 256);
 		mDebugData->mDebugCBuffer->Map(mDebugData->mDebugBuffer);
 
@@ -161,15 +161,18 @@ namespace Toast {
 
 	void RendererDebug::DebugRenderPass()
 	{
-		sRendererData->BaseFramebuffer->Bind();
-		mDebugData->DebugShader->Bind();
+		sRendererData->FinalFramebuffer->EnableDepth();
+		sRendererData->FinalFramebuffer->Bind();
+		//sRendererData->BaseFramebuffer->Bind();
 		RenderCommand::EnableBlending();
-
-		// Frustum
-		RenderCommand::SetPrimitiveTopology(Topology::LINELIST);
 
 		if (mDebugData->LineVertexCount != 0)
 		{
+			mDebugData->DebugShader->Bind();
+
+			// Frustum
+			RenderCommand::SetPrimitiveTopology(Topology::LINELIST);
+
 			uint32_t dataSize = (uint32_t)((uint8_t*)mDebugData->LineVertexBufferPtr - (uint8_t*)mDebugData->LineVertexBufferBase);
 			mDebugData->LineVertexBuffer->SetData(mDebugData->LineVertexBufferBase, dataSize);
 
@@ -223,7 +226,7 @@ namespace Toast {
 				ID3D11RenderTargetView* nullRTV = nullptr;
 				deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
 				
-				sRendererData->BaseFramebuffer->Bind();
+				sRendererData->FinalFramebuffer->Bind();
 
 				auto temp = sRendererData->OutlineFramebuffer->GetSRV(0);
 				deviceContext->PSSetShaderResources(9, 1, temp.GetAddressOf());

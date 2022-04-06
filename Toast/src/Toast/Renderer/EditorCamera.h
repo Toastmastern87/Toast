@@ -19,8 +19,6 @@ namespace Toast {
 		void OnUpdate(Timestep ts);
 		void OnEvent(Event& e);
 
-		const DirectX::XMMATRIX& GetViewMatrix() const { return mViewMatrix; }
-
 		inline void SetViewportSize(float width, float height) { mViewportWidth = width; mViewportHeight = height; UpdateProjection(); };
 
 		void SetVerticalFOV(float verticalFOV) { mFOV = DirectX::XMConvertToRadians(verticalFOV); UpdateProjection(); }
@@ -54,7 +52,6 @@ namespace Toast {
 		float RotationSpeed() const;
 		float ZoomSpeed() const;
 	private:
-		DirectX::XMMATRIX mViewMatrix;
 		DirectX::XMVECTOR mFocalPoint = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMVECTOR mPosition = { 0.0f, 0.0f, 0.0f };
 		

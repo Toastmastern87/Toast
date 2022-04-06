@@ -5,6 +5,7 @@
 #include "Toast/Renderer/Mesh.h"
 #include "Toast/Renderer/SceneEnvironment.h"
 #include "Toast/Renderer/Framebuffer.h"
+#include "Toast/Renderer/RenderTarget.h"
 
 #include "Toast/Scene/Scene.h"
 #include "Toast/Scene/SceneCamera.h"
@@ -32,8 +33,8 @@ namespace Toast {
 		struct RendererData
 		{
 			DirectX::XMFLOAT4 CameraPos;
-			DirectX::XMMATRIX ViewMatrix;
-			DirectX::XMMATRIX ProjectionMatrix;
+			DirectX::XMFLOAT4X4 ViewMatrix;
+			DirectX::XMFLOAT4X4 ProjectionMatrix;
 
 			struct SceneInfo
 			{
@@ -55,11 +56,13 @@ namespace Toast {
 				bool Atmosphere = false;
 			} PlanetData;
 
-			Ref<Framebuffer> BaseFramebuffer, PickingFramebuffer, OutlineFramebuffer, PlanetMaskFramebuffer;
+			Ref<Framebuffer> BaseFramebuffer, FinalFramebuffer, PickingFramebuffer, OutlineFramebuffer, PlanetMaskFramebuffer;
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList;
 
 			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer;
 			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer;
+
+			Ref<RenderTarget> BaseRenderTarget, FinalRenderTarget, DepthRenderTarget, PickingRenderTarget, OutlineRenderTarget, PlanetMaskRenderTarget;
 		};
 
 	protected:
@@ -71,11 +74,11 @@ namespace Toast {
 
 		static void OnWindowResize(uint32_t width, uint32_t height);
 
-		static void BeginScene(const Scene* scene, const Camera& camera, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMFLOAT4 cameraPos);
+		static void BeginScene(const Scene* scene, const Camera& camera, const DirectX::XMFLOAT4 cameraPos);
 		static void EndScene(const bool debugActivated);
 
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
-		static void SubmitSkybox(const Ref<Mesh> skybox, const DirectX::XMFLOAT4& cameraPos, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMMATRIX& projectionMatrix, float intensity, float LOD);
+		static void SubmitSkybox(const Ref<Mesh> skybox, const DirectX::XMFLOAT4& cameraPos, const DirectX::XMFLOAT4X4& viewMatrix, const DirectX::XMFLOAT4X4& projectionMatrix, float intensity, float LOD);
 		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe = false, PlanetComponent::PlanetGPUData* planetData = nullptr, bool atmosphere = false);
 		static void SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false);
 
@@ -89,7 +92,15 @@ namespace Toast {
 		static void PickingRenderPass();
 		static void PostProcessPass();
 
+		static Ref<RenderTarget>& GetBaseRenderTarget() { return sRendererData->BaseRenderTarget; }
+		static Ref<RenderTarget>& GetDepthRenderTarget() { return sRendererData->DepthRenderTarget; }
+		static Ref<RenderTarget>& GetFinalRenderTarget() { return sRendererData->FinalRenderTarget; }
+		static Ref<RenderTarget>& GetPickingRenderTarget() { return sRendererData->PickingRenderTarget; }
+		static Ref<RenderTarget>& GetOutlineRenderTarget() { return sRendererData->OutlineRenderTarget; }
+		static Ref<RenderTarget>& GetPlanetMaskRenderTarget() { return sRendererData->PlanetMaskRenderTarget; }
+
 		static Ref<Framebuffer>& GetBaseFramebuffer() { return sRendererData->BaseFramebuffer; }
+		static Ref<Framebuffer>& GetFinalFramebuffer() { return sRendererData->FinalFramebuffer; }
 		static Ref<Framebuffer>& GetPickingFramebuffer() { return sRendererData->PickingFramebuffer; }
 		static Ref<Framebuffer>& GetOutlineFramebuffer() { return sRendererData->OutlineFramebuffer; }
 		static Ref<Framebuffer>& GetPlanetMaskFramebuffer() { return sRendererData->PlanetMaskFramebuffer; }

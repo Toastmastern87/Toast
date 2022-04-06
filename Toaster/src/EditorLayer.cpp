@@ -77,16 +77,33 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 		// Resize
 		Ref<Framebuffer>& baseFramebuffer = Renderer::GetBaseFramebuffer();
+		Ref<Framebuffer>& finalFramebuffer = Renderer::GetFinalFramebuffer();
 		Ref<Framebuffer>& pickingFramebuffer = Renderer::GetPickingFramebuffer();
 		Ref<Framebuffer>& outlineFramebuffer = Renderer::GetOutlineFramebuffer();
 		Ref<Framebuffer>& planetMaskFramebuffer = Renderer::GetPlanetMaskFramebuffer();
-		const FramebufferSpecification spec = baseFramebuffer->GetSpecification();
-		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (spec.Width != mViewportSize.x || spec.Height != mViewportSize.y))
+
+		Ref<RenderTarget>& baseRenderTarget = Renderer::GetBaseRenderTarget();
+		Ref<RenderTarget>& depthRenderTarget = Renderer::GetDepthRenderTarget();
+		Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRenderTarget();
+		Ref<RenderTarget>& pickingRenderTarget = Renderer::GetPickingRenderTarget();
+		Ref<RenderTarget>& outlineRenderTarget = Renderer::GetOutlineRenderTarget();
+		Ref<RenderTarget>& planetMaskRenderTarget = Renderer::GetPlanetMaskRenderTarget();
+		auto [width, height] = baseRenderTarget->GetSize();
+
+		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (width != mViewportSize.x || height != mViewportSize.y))
 		{ 
 			baseFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			finalFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			pickingFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			outlineFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			planetMaskFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+
+			baseRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			depthRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			finalRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			pickingRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			outlineRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			planetMaskRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		 
 			switch (mSceneState)
 			{
@@ -130,7 +147,7 @@ namespace Toast {
 
 			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 			{
-				int pixelData = pickingFramebuffer->ReadPixel(0, mouseX, mouseY);
+				int pixelData = pickingFramebuffer->ReadPixel(mouseX, mouseY);
 				mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mEditorScene.get());
 			}
 
@@ -156,6 +173,8 @@ namespace Toast {
 			static bool opt_fullscreen_persistant = true;
 			bool opt_fullscreen = opt_fullscreen_persistant;
 			static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+
+			//ImGui::ShowDemoWindow();
 
 			// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
 			// because it would be confusing to have two docking targets within each others.
@@ -280,8 +299,8 @@ namespace Toast {
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 			mViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
 
-			Ref<Framebuffer>& baseFramebuffer = Renderer::GetBaseFramebuffer();
-			ImGui::Image(baseFramebuffer->GetColorAttachmentIDNonMS(), ImVec2{ mViewportSize.x, mViewportSize.y });
+			Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRenderTarget();
+			ImGui::Image((void*)finalRenderTarget->GetSRV().Get(), ImVec2{ mViewportSize.x, mViewportSize.y });
 
 			if (ImGui::BeginDragDropTarget()) 
 			{
@@ -305,10 +324,8 @@ namespace Toast {
 				ImGuizmo::SetRect(mViewportBounds[0].x, mViewportBounds[0].y, mViewportBounds[1].x - mViewportBounds[0].x, mViewportBounds[1].y - mViewportBounds[0].y);
 
 				// Editor Camera
-				DirectX::XMFLOAT4X4 cameraProjection;
-				DirectX::XMStoreFloat4x4(&cameraProjection, mEditorCamera->GetProjection());
-				DirectX::XMFLOAT4X4 cameraView;
-				DirectX::XMStoreFloat4x4(&cameraView, mEditorCamera->GetViewMatrix());
+				DirectX::XMFLOAT4X4 cameraProjection = mEditorCamera->GetProjection();
+				DirectX::XMFLOAT4X4 cameraView = mEditorCamera->GetViewMatrix();
 
 				// Entity transform
 				DirectX::XMFLOAT3 translationFloat3, scaleFloat3;

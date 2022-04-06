@@ -1,7 +1,7 @@
 #pragma once
 
-
 #include "Toast/Core/Base.h"
+#include "Toast/Renderer/RenderTarget.h"
 #include "Toast/Renderer/Formats.h"
 
 #include <d3d11.h>
@@ -10,102 +10,36 @@
 
 namespace Toast {
 
-	enum class FramebufferTextureFormat
-	{
-		None = 0,
-
-		// Color
-		R32G32B32A32_FLOAT = 2,
-		R16G16B16A16_FLOAT = 10,
-		R8G8B8A8_UNORM = 28,
-		R32_SINT = 43,
-
-		// Depth/stencil
-		D24_UNORM_S8_UINT = 45,
-
-		// Default
-		Depth = D24_UNORM_S8_UINT
-	};
-
-	struct FramebufferTextureSpecification 
-	{
-		FramebufferTextureSpecification() = default;
-		FramebufferTextureSpecification(FramebufferTextureFormat format)
-			: TextureFormat(format) {}
-
-		FramebufferTextureFormat TextureFormat = FramebufferTextureFormat::None;
-		// TODO : filtering/wrap
-	};
-
-	struct FramebufferAttachmentSpecification 
-	{
-		FramebufferAttachmentSpecification() = default;
-		FramebufferAttachmentSpecification(std::initializer_list<FramebufferTextureSpecification> attachments)
-			: Attachments(attachments) {}
-
-		std::vector<FramebufferTextureSpecification> Attachments;
-	};
-
-	struct FramebufferSpecification
-	{
-		uint32_t Width = 0, Height = 0;
-		FramebufferAttachmentSpecification Attachments;
-		uint32_t Samples = 1;
-
-		bool SwapChainTarget = false;
-	};
-
-	struct FramebufferColorAttachment 
-	{
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> RenderTargetTexture;
-		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RenderTargetView;
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ShaderResourceView;
-	};
-
-	struct FramebufferDepthAttachment 
-	{
-		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencilView;
-		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthStencilState;
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> DepthStencilBuffer;
-	};
-
 	class Framebuffer
 	{
 	public:
-		Framebuffer(const FramebufferSpecification& spec);
+		Framebuffer(Ref<RenderTarget> color, Ref<RenderTarget> depth = nullptr, bool swapChainTarget = false);
 		~Framebuffer() = default;
 
 		void CreateDepthDisabledState();
 
+		void Bind() const;
 		void Invalidate();
 
-		void Bind() const;
-
 		void Resize(uint32_t width, uint32_t height);
-		int ReadPixel(uint32_t attachmentIndex, uint32_t x, uint32_t y);
+		int ReadPixel(uint32_t x, uint32_t y);
 
-		void* GetColorAttachmentID(uint32_t index = 0) const { return (void*)mColorAttachments[index].ShaderResourceView.Get(); }
-		void* GetColorAttachmentIDNonMS(uint32_t index = 0);
-		void* GetDepthAttachmentID() const { return (void*)mDepthAttachment.DepthStencilView.Get(); }
+		void DisableDepth() { mDepth = false; }
+		void EnableDepth() { mDepth = true; }
 
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV(uint32_t index = 0) const { return mColorAttachments[index].ShaderResourceView; }
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> GetRTTexture(uint32_t index = 0) const { return mColorAttachments[index].RenderTargetTexture; }
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV(uint32_t index = 0) const { return mColorTarget->GetSRV(); }
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetDepthSRV(uint32_t index = 0) const { return mDepthTarget->GetSRV(); }
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> GetRTTexture(uint32_t index = 0) const { return mColorTarget->GetTexture(); }
 
-		const FramebufferSpecification& GetSpecification() const { return mSpecification; }
 
-		void Clean();
 		virtual void Clear(const DirectX::XMFLOAT4 clearColor);
 	private:
-		FramebufferSpecification mSpecification;
+		bool mSwapChainTarget = false, mDepth;
+		uint32_t mWidth, mHeight;
 
-		std::vector<FramebufferTextureSpecification> mColorAttachmentSpecifications;
-		std::vector<FramebufferColorAttachment> mColorAttachments;
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mShaderResourceView;
-		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRenderTargetView;
+		Ref<RenderTarget> mColorTarget;
+		Ref<RenderTarget> mDepthTarget;
 
-		//Depth
-		FramebufferDepthAttachment mDepthAttachment;
-		FramebufferTextureSpecification mDepthAttachmentSpecification = FramebufferTextureFormat::None;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthDisabledStencilState;
 
 		D3D11_VIEWPORT mViewport;

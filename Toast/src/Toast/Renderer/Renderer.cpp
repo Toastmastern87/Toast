@@ -41,24 +41,18 @@ namespace Toast {
 		sRendererData->EnvironmentBuffer.Allocate(sRendererData->EnvironmentCBuffer->GetSize());
 		sRendererData->EnvironmentBuffer.ZeroInitialize();
 
-		FramebufferSpecification baseFBSpec, pickingFBSpec, outlineFBSpec, planetMaskFBSpec;
-		baseFBSpec.Attachments = { FramebufferTextureFormat::R32G32B32A32_FLOAT, FramebufferTextureFormat::Depth };
-		baseFBSpec.Width = 1280;
-		baseFBSpec.Height = 720;
-		baseFBSpec.Samples = 4;
-		sRendererData->BaseFramebuffer = CreateRef<Framebuffer>(baseFBSpec);
-		pickingFBSpec.Attachments = { FramebufferTextureFormat::R32_SINT, FramebufferTextureFormat::Depth };
-		pickingFBSpec.Width = 1280;
-		pickingFBSpec.Height = 720;
-		sRendererData->PickingFramebuffer = CreateRef<Framebuffer>(pickingFBSpec);
-		outlineFBSpec.Attachments = { FramebufferTextureFormat::R8G8B8A8_UNORM };
-		outlineFBSpec.Width = 1280;
-		outlineFBSpec.Height = 720;
-		sRendererData->OutlineFramebuffer = CreateRef<Framebuffer>(outlineFBSpec);
-		planetMaskFBSpec.Attachments = { FramebufferTextureFormat::R8G8B8A8_UNORM  };
-		planetMaskFBSpec.Width = 1280;
-		planetMaskFBSpec.Height = 720;
-		sRendererData->PlanetMaskFramebuffer = CreateRef<Framebuffer>(planetMaskFBSpec);
+		sRendererData->BaseRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32G32B32A32_FLOAT);
+		sRendererData->FinalRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32G32B32A32_FLOAT);
+		sRendererData->DepthRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::R32_TYPELESS, TextureFormat::D32_FLOAT);
+		sRendererData->PickingRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32_SINT);
+		sRendererData->OutlineRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
+		sRendererData->PlanetMaskRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::R32_TYPELESS, TextureFormat::D32_FLOAT);
+
+		sRendererData->BaseFramebuffer = CreateRef<Framebuffer>(sRendererData->BaseRenderTarget, sRendererData->DepthRenderTarget);
+		sRendererData->FinalFramebuffer = CreateRef<Framebuffer>(sRendererData->FinalRenderTarget, sRendererData->DepthRenderTarget);
+		sRendererData->PickingFramebuffer = CreateRef<Framebuffer>(sRendererData->PickingRenderTarget);
+		sRendererData->OutlineFramebuffer = CreateRef<Framebuffer>(sRendererData->OutlineRenderTarget);
+		sRendererData->PlanetMaskFramebuffer = CreateRef<Framebuffer>(sRendererData->PlanetMaskRenderTarget);
 	}
 
 	void Renderer::Shutdown()
@@ -72,15 +66,15 @@ namespace Toast {
 		RenderCommand::ResizeViewport(0, 0, width, height);
 	}
 
-	void Renderer::BeginScene(const Scene* scene, const Camera& camera, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMFLOAT4 cameraPos)
+	void Renderer::BeginScene(const Scene* scene, const Camera& camera, const DirectX::XMFLOAT4 cameraPos)
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		// Updating the camera data in the buffer and mapping it to the GPU
-		sRendererData->CameraBuffer.Write((void*)&viewMatrix, 64, 0);
+		sRendererData->CameraBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
 		sRendererData->CameraBuffer.Write((void*)&camera.GetProjection(), 64, 64);
-		sRendererData->CameraBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, viewMatrix), 64, 128);
-		sRendererData->CameraBuffer.Write((void*)&DirectX::XMMatrixInverse(nullptr, camera.GetProjection()), 64, 192);
+		sRendererData->CameraBuffer.Write((void*)&camera.GetInvViewMatrix(), 64, 128);
+		sRendererData->CameraBuffer.Write((void*)&camera.GetInvProjection(), 64, 192);
 		sRendererData->CameraBuffer.Write((void*)&cameraPos.x, 16, 256);
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
@@ -132,7 +126,7 @@ namespace Toast {
 	}
 
 	//Todo should be integrated into SubmitMesh later on
-	void Renderer::SubmitSkybox(const Ref<Mesh> skybox, const DirectX::XMFLOAT4& cameraPos, const DirectX::XMMATRIX& viewMatrix, const DirectX::XMMATRIX& projectionMatrix, float intensity, float LOD)
+	void Renderer::SubmitSkybox(const Ref<Mesh> skybox, const DirectX::XMFLOAT4& cameraPos, const DirectX::XMFLOAT4X4& viewMatrix, const DirectX::XMFLOAT4X4& projectionMatrix, float intensity, float LOD)
 	{
 		sRendererData->CameraPos = cameraPos;
 		sRendererData->ViewMatrix = viewMatrix;
@@ -302,9 +296,14 @@ namespace Toast {
 				meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
 
 				// Planet mesh data
-				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "radius", meshCommand.PlanetData->radius);
-				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
-				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
+				meshCommand.Mesh->Set<float>("Planet", "radius", meshCommand.PlanetData->radius);
+				meshCommand.Mesh->Set<float>("Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
+				meshCommand.Mesh->Set<float>("Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
+				meshCommand.Mesh->Set<float>("Planet", "atmosphereHeight", meshCommand.PlanetData->atmosphereHeight);
+				meshCommand.Mesh->Set<int>("Planet", "atmosphereToggle", meshCommand.PlanetData->atmosphereToggle);
+				meshCommand.Mesh->Set<float>("Planet", "densityFalloff", meshCommand.PlanetData->densityFalloff);
+				meshCommand.Mesh->Set<int>("Planet", "numInScatteringPoints", meshCommand.PlanetData->inScatteringPoints);
+				meshCommand.Mesh->Set<int>("Planet", "numOpticalDepthPoints", meshCommand.PlanetData->opticalDepthPoints);
 
 				meshCommand.Mesh->Map();
 				meshCommand.Mesh->Bind();
@@ -349,9 +348,14 @@ namespace Toast {
 				meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
 
 				// Planet mesh data
-				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "radius", meshCommand.PlanetData->radius);
-				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
-				meshCommand.Mesh->Set<DirectX::XMFLOAT4>("Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
+				meshCommand.Mesh->Set<float>("Planet", "radius", meshCommand.PlanetData->radius);
+				meshCommand.Mesh->Set<float>("Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
+				meshCommand.Mesh->Set<float>("Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
+				meshCommand.Mesh->Set<float>("Planet", "atmosphereHeight", meshCommand.PlanetData->atmosphereHeight);
+				meshCommand.Mesh->Set<int>("Planet", "atmosphereToggle", meshCommand.PlanetData->atmosphereToggle);
+				meshCommand.Mesh->Set<float>("Planet", "densityFalloff", meshCommand.PlanetData->densityFalloff);
+				meshCommand.Mesh->Set<int>("Planet", "numInScatteringPoints", meshCommand.PlanetData->inScatteringPoints);
+				meshCommand.Mesh->Set<int>("Planet", "numOpticalDepthPoints", meshCommand.PlanetData->opticalDepthPoints);
 
 				meshCommand.Mesh->Map();
 				meshCommand.Mesh->Bind();
@@ -365,53 +369,61 @@ namespace Toast {
 
 	void Renderer::PostProcessPass()
 	{
-		if (sRendererData->PlanetData.Atmosphere) {
-			RendererAPI* API = RenderCommand::sRendererAPI.get();
-			ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-			RenderCommand::EnableBlending();
+		RenderCommand::EnableBlending();
 
-			for (const auto& meshCommand : sRendererData->MeshDrawList)
-			{
-				//In theory this should be one mesh only
-				if (meshCommand.PlanetData) 
-				{
-					//Planet mask shader
-					auto planetMaskShader = ShaderLibrary::Get("assets/shaders/Planet/PlanetMask.hlsl");
-					planetMaskShader->Bind();
+		//for (const auto& meshCommand : sRendererData->MeshDrawList)
+		//{
+		//	//In theory this should be one mesh only
+		//	if (meshCommand.PlanetData) 
+		//	{
+		//		//Planet mask shader
+		//		auto planetMaskShader = ShaderLibrary::Get("assets/shaders/Planet/PlanetMask.hlsl");
+		//		planetMaskShader->Bind();
 
-					meshCommand.Mesh->mPlanetCBuffer->Map(meshCommand.Mesh->mPlanetBuffer);
-					meshCommand.Mesh->mModelCBuffer->Map(meshCommand.Mesh->mModelBuffer);
+		//		meshCommand.Mesh->mPlanetCBuffer->Map(meshCommand.Mesh->mPlanetBuffer);
+		//		meshCommand.Mesh->mModelCBuffer->Map(meshCommand.Mesh->mModelBuffer);
 
-					meshCommand.Mesh->mPlanetCBuffer->Bind();
-					meshCommand.Mesh->mModelCBuffer->Bind();
-					meshCommand.Mesh->mVertexBuffer->Bind();
-					meshCommand.Mesh->mIndexBuffer->Bind();
-					meshCommand.Mesh->mInstanceVertexBuffer->Bind();
+		//		meshCommand.Mesh->mPlanetCBuffer->Bind();
+		//		meshCommand.Mesh->mModelCBuffer->Bind();
+		//		meshCommand.Mesh->mVertexBuffer->Bind();
+		//		meshCommand.Mesh->mIndexBuffer->Bind();
+		//		meshCommand.Mesh->mInstanceVertexBuffer->Bind();
 
-					sRendererData->PlanetMaskFramebuffer->Bind();
-					sRendererData->PlanetMaskFramebuffer->Clear({ 1.0f, 0.0f, 0.0f, 1.0f });
+		//		sRendererData->PlanetMaskFramebuffer->Bind();
+		//		sRendererData->PlanetMaskFramebuffer->Clear({ 1.0f, 0.0f, 0.0f, 1.0f });
 
-					RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, static_cast<uint32_t>(meshCommand.Mesh->mPlanetPatches.size()), 0, 0, 0);
-				}
-			}
+		//		RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, static_cast<uint32_t>(meshCommand.Mesh->mPlanetPatches.size()), 0, 0, 0);
+		//	}
+		//}
 
-			ID3D11RenderTargetView* nullRTV = nullptr;
-			deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
+		ID3D11RenderTargetView* nullRTV = nullptr;
+		deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
 
-			sRendererData->BaseFramebuffer->Bind();
+		sRendererData->FinalFramebuffer->DisableDepth();
+		sRendererData->FinalFramebuffer->Bind();
+		sRendererData->FinalFramebuffer->Clear({ 0.2f, 0.2f, 0.2f, 1.0f });
 
-			auto temp = sRendererData->PlanetMaskFramebuffer->GetSRV(0);
-			deviceContext->PSSetShaderResources(9, 1, temp.GetAddressOf());
+		auto depthMask = sRendererData->DepthRenderTarget->GetSRV();
+		deviceContext->PSSetShaderResources(9, 1, depthMask.GetAddressOf());
+		auto baseTexture = sRendererData->BaseRenderTarget->GetSRV();
+		deviceContext->PSSetShaderResources(10, 1, baseTexture.GetAddressOf());
 
-			auto atmosphereShader = ShaderLibrary::Get("assets/shaders/Planet/Atmosphere.hlsl");
-			atmosphereShader->Bind();
+		auto sampler = TextureLibrary::GetSampler("Default");
+		sampler->Bind(1, D3D11_PIXEL_SHADER);
 
-			RenderCommand::Draw(3);
+		auto atmosphereShader = ShaderLibrary::Get("assets/shaders/Planet/Atmosphere.hlsl");
+		atmosphereShader->Bind();
 
-			ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-			deviceContext->PSSetShaderResources(9, 1, nullSRV);
-		}
+		RenderCommand::SetPrimitiveTopology(PrimitiveTopology::TRIANGLELIST);
+
+		RenderCommand::Draw(3);
+
+		ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+		deviceContext->PSSetShaderResources(9, 1, nullSRV);
+		deviceContext->PSSetShaderResources(10, 1, nullSRV);
 	}
 
 	void Renderer::ResetStats()
