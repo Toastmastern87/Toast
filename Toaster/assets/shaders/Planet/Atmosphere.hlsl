@@ -56,6 +56,8 @@ cbuffer Camera				: register(b11)
 	matrix inverseViewMatrix;
 	matrix inverseProjectionMatrix;
 	float4 cameraPosition;
+	float far;
+	float near;
 };
 
 struct PixelInputType
@@ -86,23 +88,6 @@ float2 RaySphere(float3 sphereCenter, float sphereRadius, float3 rayOrigin, floa
 	}
 
 	return float2(maxFloat, 0.0f);
-
-	//float3 o_minus_c = rayOrigin - sphereCenter;
-
-	//float p = dot(rayDir, o_minus_c);
-	//float q = dot(o_minus_c, o_minus_c) - (sphereRadius * sphereRadius);
-
-	//float discriminant = (p * p) - q;
-	//if (discriminant < 0.0f)
-	//{
-	//	return float2(maxFloat, 0.0f);
-	//}
-
-	//float dRoot = sqrt(discriminant);
-	//float dist1 = -p - dRoot;
-	//float dist2 = -p + dRoot;
-
-	//return float2(dist1, dist2 - dist1);
 }
 
 float DensityAtPoint(float densitySamplePoint, float atmosphereRadius)
@@ -132,20 +117,29 @@ float OpticalDepth(float3 rayOrigin, float3 rayDir, float rayLength, float atmos
 
 float LinearEyeDepth(float nonLinearDepth)
 { 
-	float far = 3000.0f;
-	float near = 0.1f;
-
+	//Internet
 	//return ((2.0f * near) / (far + near - nonLinearDepth * (far - near)));
+	 
 	//Themp
 	return ((near * far) / (far - (far - near) * nonLinearDepth)); 
 	 
 	//Manpat
-	//float4 view_pos = mul(inverseProjectionMatrix, float4(0.0f, 0.0f, nonLinearDepth, 1.0f)); //inverse(perspective)* vec4(0.0, 0.0, depth, 1.0);
+	//float4 view_pos = mul(float4(0.0f, 0.0f, nonLinearDepth, 1.0f), inverseProjectionMatrix);
 	//float lineardepth = view_pos.z / view_pos.w;
 	//return lineardepth;
 
 	//Markusa
 	//return (- far * near / (nonLinearDepth * far - nonLinearDepth * near - far));
+}
+
+//float Remap(float x, float inputMin, float inputMax, float outputMin, float outputMax)
+//{
+//	float n = (x - outputMin) / (outputMax - outputMin);
+//	return inputMin + ((inputMax - inputMin) * n);
+//}
+
+float Remap(float value, float inputMin, float inputMax, float outputMin, float outputMax) {
+	return (value - inputMin) / (inputMax - inputMin) * (outputMax - outputMin) + outputMin;
 }
 
 float CalculateLight(float3 rayOrigin, float3 rayDir, float rayLength, float atmosphereRadius)
@@ -183,7 +177,8 @@ float4 main(PixelInputType input) : SV_TARGET
 		float3 rayOrigin = cameraPosition;
 
 		float sceneDepthNonLinear = DepthTexture.Sample(DefaultSampler, input.texCoord).r;
-		float sceneDepth = LinearEyeDepth(sceneDepthNonLinear);// *length(position - rayOrigin);
+		float sceneDepth = LinearEyeDepth(sceneDepthNonLinear);
+		sceneDepth = Remap(sceneDepth, near, far, 0.0f, 1.0f) * length(position - rayOrigin);
 
 		float3 rayDirection = normalize(position - rayOrigin);
 		float3 sphereCenter = float3(0.0f, 0.0f, 0.0f);
@@ -191,7 +186,7 @@ float4 main(PixelInputType input) : SV_TARGET
 
 		float2 atmoHitInfo = RaySphere(sphereCenter, atmosphereRadius, rayOrigin, rayDirection);
 		float dstToAtmosphere = atmoHitInfo.x;
-		float dstThroughAtmosphere = atmoHitInfo.y;// min(atmoHitInfo.y, sceneDepth - dstToAtmosphere);
+		float dstThroughAtmosphere = min(atmoHitInfo.y, sceneDepth - dstToAtmosphere);
 
 		//float2 planetHitInfo = RaySphere(sphereCenter, radius, rayOrigin, rayDirection);
 		//float dstToPlanet = planetHitInfo.x;
@@ -218,12 +213,16 @@ float4 main(PixelInputType input) : SV_TARGET
 		//}
 		//else
 		//
-		//if (dstThroughAtmosphere <= 0.0f)
-		//	return originalColor;
-		//else
-		//	return dstThroughAtmosphere / (atmosphereRadius * 2.0f);
-		// 
-		return float4(sceneDepth, sceneDepth, sceneDepth, 1.0f);
+		if (dstThroughAtmosphere <= 0.0f)
+			return originalColor;
+		else
+			return dstThroughAtmosphere / (atmosphereRadius * 2.0f);
+		 
+
+		//return float4(dstColor.xyz, 1.0f);
+		//return dstThroughAtmosphere / (atmosphereRadius * 2.0f);
+		//return float4(remappedSceneDepth, remappedSceneDepth, remappedSceneDepth , 1.0f);
+		//return float4(sceneDepth, sceneDepth, sceneDepth, 1.0f);
 	//}
 
 	//return originalColor;

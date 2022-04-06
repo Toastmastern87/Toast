@@ -474,13 +474,13 @@ namespace Toast {
 					if (DrawFloatControl("Vertical FOV", perspectiveVerticalFOV, 90.0f))
 						camera.SetPerspectiveVerticalFOV(perspectiveVerticalFOV);
 
-					float perspectiveNear = camera.GetPerspectiveNearClip();
+					float perspectiveNear = camera.GetNearClip();
 					if (DrawFloatControl("Near Clip", perspectiveNear, 90.0f))
-						camera.SetPerspectiveNearClip(perspectiveNear);
+						camera.SetNearClip(perspectiveNear);
 
-					float perspectiveFar = camera.GetPerspectiveFarClip();
+					float perspectiveFar = camera.GetFarClip();
 					if (DrawFloatControl("Far Clip", perspectiveFar, 90.0f, 0.0f, 0.0f, 10.0f))
-						camera.SetPerspectiveFarClip(perspectiveFar);
+						camera.SetFarClip(perspectiveFar);
 				}
 
 				if (camera.GetProjectionType() == SceneCamera::ProjectionType::Orthographic)
@@ -489,13 +489,13 @@ namespace Toast {
 					if (DrawFloatControl("Orthographic Size", orthoSize, 90.0f))
 						camera.SetOrthographicSize(orthoSize);
 
-					float orthoNear = camera.GetOrthographicNearClip();
+					float orthoNear = camera.GetNearClip();
 					if (DrawFloatControl("Near Clip", orthoNear, 90.0f))
-						camera.SetOrthographicNearClip(orthoNear);
+						camera.SetNearClip(orthoNear);
 
-					float orthoFar = camera.GetOrthographicFarClip();
+					float orthoFar = camera.GetFarClip();
 					if (DrawFloatControl("Far Clip", orthoFar, 90.0f))
-						camera.SetOrthographicFarClip(orthoFar);
+						camera.SetFarClip(orthoFar);
 
 					ImGui::Checkbox("Fixed Aspect Ratio", &component.FixedAspectRatio);
 				}

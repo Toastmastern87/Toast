@@ -14,6 +14,8 @@ cbuffer Camera : register(b0)
 	matrix projectionMatrix;
 	matrix inverseViewMatrix;
 	float4 cameraPosition;
+	float far;
+	float near;
 };
 
 cbuffer Model : register(b1)

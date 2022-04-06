@@ -24,7 +24,7 @@ namespace Toast {
 		RendererDebug::Init();
 
 		// Setting up the constant buffer and data buffer for the camera rendering
-		sRendererData->CameraCBuffer = ConstantBufferLibrary::Load("Camera", 272, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 0), CBufferBindInfo(D3D11_PIXEL_SHADER, 11) });
+		sRendererData->CameraCBuffer = ConstantBufferLibrary::Load("Camera", 288, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 0), CBufferBindInfo(D3D11_PIXEL_SHADER, 11) });
 		sRendererData->CameraCBuffer->Bind();
 		sRendererData->CameraBuffer.Allocate(sRendererData->CameraCBuffer->GetSize());
 		sRendererData->CameraBuffer.ZeroInitialize();
@@ -66,7 +66,7 @@ namespace Toast {
 		RenderCommand::ResizeViewport(0, 0, width, height);
 	}
 
-	void Renderer::BeginScene(const Scene* scene, const Camera& camera, const DirectX::XMFLOAT4 cameraPos)
+	void Renderer::BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -76,6 +76,8 @@ namespace Toast {
 		sRendererData->CameraBuffer.Write((void*)&camera.GetInvViewMatrix(), 64, 128);
 		sRendererData->CameraBuffer.Write((void*)&camera.GetInvProjection(), 64, 192);
 		sRendererData->CameraBuffer.Write((void*)&cameraPos.x, 16, 256);
+		sRendererData->CameraBuffer.Write((void*)&camera.GetFarClip(), 4, 272);
+		sRendererData->CameraBuffer.Write((void*)&camera.GetNearClip(), 4, 276);
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
 		// Updating the lightning data in the buffer and mapping it to the GPU

@@ -11,6 +11,8 @@ cbuffer Camera : register(b0)
 	matrix inverseViewMatrix;
 	matrix inverseProjectionMatrix;
 	float4 cameraPosition;
+	float far;
+	float near;
 };
 
 struct PixelInputType

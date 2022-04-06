@@ -25,7 +25,7 @@ namespace Toast {
 		mDebugData->OutlineShader = CreateRef<Shader>("assets/shaders/Outline.hlsl");
 
 		// Setting up the constant buffer and data buffer for the debug rendering data
-		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 272, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 0), CBufferBindInfo(D3D11_PIXEL_SHADER, 11) });
+		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 288, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 0), CBufferBindInfo(D3D11_PIXEL_SHADER, 11) });
 		mDebugData->mDebugCBuffer->Bind();
 		mDebugData->mDebugBuffer.Allocate(mDebugData->mDebugCBuffer->GetSize());
 		mDebugData->mDebugBuffer.ZeroInitialize();
@@ -44,7 +44,7 @@ namespace Toast {
 		delete[] mDebugData->LineVertexBufferBase;
 	}
 
-	void RendererDebug::BeginScene(const EditorCamera& camera)
+	void RendererDebug::BeginScene(EditorCamera& camera)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -54,6 +54,8 @@ namespace Toast {
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetInvViewMatrix(), 64, 128);
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetInvProjection(), 64, 192);
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetPosition(), 16, 256);
+		mDebugData->mDebugBuffer.Write((void*)&camera.GetFarClip(), 4, 272);
+		mDebugData->mDebugBuffer.Write((void*)&camera.GetNearClip(), 4, 276);
 		mDebugData->mDebugCBuffer->Map(mDebugData->mDebugBuffer);
 
 		mDebugData->LineVertexBuffer->Bind();
@@ -83,7 +85,7 @@ namespace Toast {
 		sRendererData->MeshSelectedDrawList.clear();
 	}
 
-	void RendererDebug::SubmitCameraFrustum(const SceneCamera& camera, DirectX::XMMATRIX& transform, DirectX::XMFLOAT3& pos)
+	void RendererDebug::SubmitCameraFrustum(SceneCamera& camera, DirectX::XMMATRIX& transform, DirectX::XMFLOAT3& pos)
 	{
 		DirectX::XMVECTOR forward, up, right, posVector;
 		
@@ -93,14 +95,14 @@ namespace Toast {
 
 		posVector = DirectX::XMLoadFloat3(&pos);
 
-		float heightNear = 2.0f * tan(DirectX::XMConvertToRadians(camera.GetPerspectiveVerticalFOV()) / 2.0f) * camera.GetPerspectiveNearClip();
+		float heightNear = 2.0f * tan(DirectX::XMConvertToRadians(camera.GetPerspectiveVerticalFOV()) / 2.0f) * camera.GetNearClip();
 		float widthNear = heightNear * camera.GetAspecRatio();
 
-		float heightFar = 2.0f * tan(DirectX::XMConvertToRadians(camera.GetPerspectiveVerticalFOV()) / 2.0f) * camera.GetPerspectiveFarClip();
+		float heightFar = 2.0f * tan(DirectX::XMConvertToRadians(camera.GetPerspectiveVerticalFOV()) / 2.0f) * camera.GetFarClip();
 		float widthFar = heightFar * camera.GetAspecRatio();
 
-		DirectX::XMVECTOR centerNear = DirectX::XMLoadFloat3(&pos) + DirectX::XMVector3Normalize(forward) * camera.GetPerspectiveNearClip();
-		DirectX::XMVECTOR centerFar = DirectX::XMLoadFloat3(&pos) + DirectX::XMVector3Normalize(forward) * camera.GetPerspectiveFarClip();
+		DirectX::XMVECTOR centerNear = DirectX::XMLoadFloat3(&pos) + DirectX::XMVector3Normalize(forward) * camera.GetNearClip();
+		DirectX::XMVECTOR centerFar = DirectX::XMLoadFloat3(&pos) + DirectX::XMVector3Normalize(forward) * camera.GetFarClip();
 
 		DirectX::XMVECTOR nearTopLeft = centerNear + (up * (heightNear / 2.0f)) - (right * (widthNear / 2.0f));
 		DirectX::XMVECTOR nearTopRight = centerNear + (up * (heightNear / 2.0f)) + (right * (widthNear / 2.0f));
@@ -151,7 +153,8 @@ namespace Toast {
 		RendererDebug::SubmitLine(p1f, p2f);
 	}
 
-	void RendererDebug::SubmitGrid(const EditorCamera& camera)
+	void RendererDebug::SubmitGrid(
+		EditorCamera& camera)
 	{
 		mDebugData->mGridBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
 		mDebugData->mGridBuffer.Write((void*)&camera.GetProjection(), 64, 64);

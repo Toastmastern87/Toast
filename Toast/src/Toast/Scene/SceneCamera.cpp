@@ -12,8 +12,8 @@ namespace Toast {
 	{
 		mProjectionType = ProjectionType::Perspective;
 		mPerspectiveFOV = verticalFOV;
-		mPerspectiveNear = nearClip;
-		mPerspectiveFar = farClip;
+		mNearClip = nearClip;
+		mFarClip = farClip;
 		RecalculateProjection();
 	}
 
@@ -21,8 +21,8 @@ namespace Toast {
 	{
 		mProjectionType = ProjectionType::Orthographic;
 		mOrthographicSize = size;
-		mOrthographicNear = nearClip;
-		mOrthographicFar = farClip;	
+		mNearClip = nearClip;
+		mFarClip = farClip;
 		RecalculateProjection();
 	}
 
@@ -39,7 +39,7 @@ namespace Toast {
 		switch (mProjectionType) 
 		{
 		case ProjectionType::Perspective:
-			projection = DirectX::XMMatrixPerspectiveFovLH(mPerspectiveFOV, mAspectRatio, mPerspectiveNear, mPerspectiveFar);
+			projection = DirectX::XMMatrixPerspectiveFovLH(mPerspectiveFOV, mAspectRatio, mNearClip, mFarClip);
 			DirectX::XMStoreFloat4x4(&mProjection, projection);
 			DirectX::XMStoreFloat4x4(&mInvProjection, DirectX::XMMatrixInverse(nullptr, projection));
 
@@ -50,7 +50,7 @@ namespace Toast {
 			float orthoBottom = mOrthographicSize * 0.5f;
 			float orthoTop = -mOrthographicSize * 0.5f;
 
-			projection = DirectX::XMMatrixOrthographicLH((orthoRight - orthoLeft), (orthoBottom - orthoTop), mOrthographicNear, mOrthographicFar);
+			projection = DirectX::XMMatrixOrthographicLH((orthoRight - orthoLeft), (orthoBottom - orthoTop), mNearClip, mFarClip);
 			DirectX::XMStoreFloat4x4(&mProjection, projection);
 			DirectX::XMStoreFloat4x4(&mInvProjection, DirectX::XMMatrixInverse(nullptr, projection));
 

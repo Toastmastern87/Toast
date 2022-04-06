@@ -551,11 +551,11 @@ namespace Toast {
 				DirectX::XMMatrixDecompose(&scale, &rotation, &translation, transform.Transform);
 				DirectX::XMStoreFloat3(&translationFloat3, translation);
 
-				if(mSettings.CameraFrustum)
+				if (mSettings.CameraFrustum)
 					RendererDebug::SubmitCameraFrustum(camera.Camera, transform.Transform, translationFloat3);
 			}
 
-			if(mSettings.Grid)
+			if (mSettings.Grid)
 				RendererDebug::SubmitGrid(*editorCamera);
 		}
 		RendererDebug::EndScene(true);
@@ -660,8 +660,11 @@ namespace Toast {
 
 			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.Transform);
 
-			if (camera.Primary)
-				mFrustum->Update(transform.Transform, camera.Camera.GetAspecRatio(), camera.Camera.GetPerspectiveVerticalFOV(), camera.Camera.GetPerspectiveNearClip(), camera.Camera.GetPerspectiveFarClip(), cameraPos);
+			if (camera.Primary) 
+			{
+				TOAST_CORE_INFO("Far: %f, Near: %f", camera.Camera.GetFarClip(), camera.Camera.GetNearClip());
+				mFrustum->Update(transform.Transform, camera.Camera.GetAspecRatio(), camera.Camera.GetPerspectiveVerticalFOV(), camera.Camera.GetNearClip(), camera.Camera.GetFarClip(), cameraPos);
+			}
 		}
 	}
 

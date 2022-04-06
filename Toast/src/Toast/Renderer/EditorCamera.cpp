@@ -6,9 +6,9 @@
 namespace Toast {
 
 	EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
-		: mFOV(DirectX::XMConvertToRadians(fov)), mAspectRatio(aspectRatio), mNearClip(nearClip), mFarClip(farClip)
+		: mFOV(DirectX::XMConvertToRadians(fov)), mAspectRatio(aspectRatio)
 	{
-		DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, mNearClip, mFarClip);
+		DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, nearClip, farClip);
 		DirectX::XMMATRIX invProjection = DirectX::XMMatrixInverse(nullptr, projection);
 		DirectX::XMMATRIX view = DirectX::XMMatrixLookToLH(mPosition, GetForwardDirection(), GetUpDirection());
 		DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, view);
@@ -18,8 +18,14 @@ namespace Toast {
 		DirectX::XMStoreFloat4x4(&fView, view);
 		DirectX::XMStoreFloat4x4(&fInvView, invView);
 		DirectX::XMStoreFloat4x4(&fProjection, projection);
-		DirectX::XMStoreFloat4x4(&fProjection, invProjection);
-		Camera(fView, fInvView, fProjection, fInvProjection);
+		DirectX::XMStoreFloat4x4(&fInvProjection, invProjection);
+
+		mViewMatrix = fView;
+		mInvViewMatrix = fInvView;
+		mProjection = fProjection;
+		mInvProjection = fInvProjection;
+		mNearClip = nearClip;
+		mFarClip = farClip;
 
 		UpdateView();
 	}
@@ -39,7 +45,6 @@ namespace Toast {
 	{
 		mPosition = CalculatePosition();
 		DirectX::XMMATRIX view = DirectX::XMMatrixLookToLH(mPosition, GetForwardDirection(), GetUpDirection());
-
 		DirectX::XMStoreFloat4x4(&mViewMatrix, view);
 		DirectX::XMStoreFloat4x4(&mInvViewMatrix, DirectX::XMMatrixInverse(nullptr, view));
 	}
