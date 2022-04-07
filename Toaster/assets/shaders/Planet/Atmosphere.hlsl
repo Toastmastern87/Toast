@@ -117,26 +117,8 @@ float OpticalDepth(float3 rayOrigin, float3 rayDir, float rayLength, float atmos
 
 float LinearEyeDepth(float nonLinearDepth)
 { 
-	//Internet
-	//return ((2.0f * near) / (far + near - nonLinearDepth * (far - near)));
-	 
-	//Themp
 	return ((near * far) / (far - (far - near) * nonLinearDepth)); 
-	 
-	//Manpat
-	//float4 view_pos = mul(float4(0.0f, 0.0f, nonLinearDepth, 1.0f), inverseProjectionMatrix);
-	//float lineardepth = view_pos.z / view_pos.w;
-	//return lineardepth;
-
-	//Markusa
-	//return (- far * near / (nonLinearDepth * far - nonLinearDepth * near - far));
 }
-
-//float Remap(float x, float inputMin, float inputMax, float outputMin, float outputMax)
-//{
-//	float n = (x - outputMin) / (outputMax - outputMin);
-//	return inputMin + ((inputMax - inputMin) * n);
-//}
 
 float Remap(float value, float inputMin, float inputMax, float outputMin, float outputMax) {
 	return (value - inputMin) / (inputMax - inputMin) * (outputMax - outputMin) + outputMin;
@@ -156,7 +138,8 @@ float CalculateLight(float3 rayOrigin, float3 rayDir, float rayLength, float atm
 		float transmittance = exp(-(sunRayOpticalDepth + viewRayOpticalDepth));
 		float localDensity = DensityAtPoint(inScatterPoint, atmosphereRadius);
 
-		inScatteredLight += localDensity * transmittance * stepSize;
+		//In the video Lague has stepSize in the equation but in his repo its not there, for me it makes more sense for them not to be there
+		inScatteredLight += localDensity * transmittance;// *stepSize;
 		inScatterPoint += rayDir * stepSize;
 	}
 
@@ -213,10 +196,18 @@ float4 main(PixelInputType input) : SV_TARGET
 		//}
 		//else
 		//
-		if (dstThroughAtmosphere <= 0.0f)
-			return originalColor;
-		else
-			return dstThroughAtmosphere / (atmosphereRadius * 2.0f);
+
+		if (dstThroughAtmosphere > 0.0f) 
+		{
+			const float epsilon = 0.0001;
+			float3 pointInAtmosphere = rayOrigin + rayDirection * (dstToAtmosphere + epsilon);
+			float light = CalculateLight(pointInAtmosphere, rayDirection, dstThroughAtmosphere - epsilon * 2.0f, atmosphereRadius);
+
+			return originalColor * (1.0f - light) + light;
+			//return dstThroughAtmosphere / (atmosphereRadius * 2.0f);
+		}			
+
+		return originalColor;
 		 
 
 		//return float4(dstColor.xyz, 1.0f);

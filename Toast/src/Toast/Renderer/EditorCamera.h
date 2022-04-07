@@ -46,19 +46,17 @@ namespace Toast {
 		void MouseRotate(const DirectX::XMVECTOR& delta);
 		void MouseZoom(float delta);
 
-		DirectX::XMVECTOR CalculatePosition() const;
-
 		std::pair<float, float> PanSpeed() const;
 		float RotationSpeed() const;
 		float ZoomSpeed() const;
 	private:
-		DirectX::XMVECTOR mFocalPoint = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMVECTOR mPosition = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMVECTOR mFocalPoint = { 0.0f, 1.0f, 7.0f };
+		DirectX::XMVECTOR mPosition = { 0.0f, 1.0f, -3.0f };
 		
 		DirectX::XMVECTOR mInitialCursorPosition = { 0.0f, 0.0f };
 
-		float mDistance = 10.0f;
 		float mPitch = 0.28f, mYaw = 0.0f;
+		//float mPitch = 0.0f, mYaw = 0.0f;
 
 		float mFOV = DirectX::XMConvertToRadians(45.0f), mAspectRatio = 1.778f;
 

@@ -98,10 +98,10 @@ float4 Grid(float3 R, float scale)
 	float4 color = float4(0.4f, 0.4f, 0.4f, 1.0f - min(li, 1.0f));
 	// z axis
 	if (R.x > (-(1.0f/scale) * minimumx) && R.x < ((1.0f / scale) * minimumx))
-		color = float4(0.0f, 0.0f, 1.0f, 1.0f - min(li, 1.0f));
+		color = float4((96.0f / 255.0f), (132.0f / 255.0f), (41.0f / 255.0f), 1.0f - min(li, 1.0f));
 	// x axis
 	if (R.z > (-(1.0f / scale) * minimumz) && R.z < ((1.0f / scale) * minimumz))
-		color = float4(1.0f, 0.0f, 0.0f, 1.0f - min(li, 1.0f));
+		color = float4((147.0f / 255.0f), (59.0f / 255.0f), (72.0f / 255.0f), 1.0f - min(li, 1.0f));
 
 	return color;
 }
@@ -115,8 +115,8 @@ PixelOutputType main(PixelInputType input)
 
 	float distanceToOrigo = sqrt(input.cameraPosition.x * input.cameraPosition.x + input.cameraPosition.y * input.cameraPosition.y + input.cameraPosition.z * input.cameraPosition.z);
 
-	float gradient = 7500.0f / distanceToOrigo;
-	float scale = 10.0f / distanceToOrigo;
+	float gradient = 5000.0f;
+	float scale = 10.0f;
 
 	float linearDepth = ComputeLinearDepth(pos);
 	float fading = saturate(1.0f - gradient * linearDepth);
