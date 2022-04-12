@@ -33,6 +33,8 @@ namespace Toast {
 
 		const float GetAspecRatio() const { return mAspectRatio; }
 		void SetAspectRatio(float aspectRatio) { mAspectRatio = aspectRatio; RecalculateProjection(); }
+
+		DirectX::XMFLOAT4& GetForwardDirection() override;
 	private:
 		void RecalculateProjection();
 	private:

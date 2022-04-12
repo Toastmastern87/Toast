@@ -324,7 +324,7 @@ namespace Toast {
 		DirectX::XMMATRIX cameraTransform = DirectX::XMMatrixIdentity();
 
 		// Makes sure these values are not crap if there is no main camera in the scene, then it uses the editor camera instead
-		cameraForward = editorCamera->GetForwardDirection();
+		cameraForward = DirectX::XMLoadFloat4(&editorCamera->GetForwardDirection());
 		cameraPos = editorCamera->GetPosition();
 
 		// Update statistics

@@ -32,6 +32,13 @@ namespace Toast {
 		RecalculateProjection();
 	}
 
+	DirectX::XMFLOAT4& SceneCamera::GetForwardDirection()
+	{
+		DirectX::XMFLOAT4 fForward = { 0.0f, 0.0f, 1.0f, 0.0f };
+
+		return fForward;
+	}
+
 	void SceneCamera::RecalculateProjection()
 	{
 		DirectX::XMMATRIX projection;

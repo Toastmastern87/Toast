@@ -56,6 +56,7 @@ cbuffer Camera				: register(b11)
 	matrix inverseViewMatrix;
 	matrix inverseProjectionMatrix;
 	float4 cameraPosition;
+	float4 cameraDir;
 	float far;
 	float near;
 };
@@ -66,12 +67,12 @@ struct PixelInputType
 	float2 texCoord			: TEXCOORD;
 };
 
-float2 RaySphere(float3 sphereCenter, float sphereRadius, float3 rayOrigin, float3 rayDir) 
+float2 RaySphere(float3 sphereCenter, float sphereRadius, float3 rayOrigin, float3 rayDir)
 {
-	float3 offset = rayOrigin - sphereCenter;
-	const float a = 1.0f;
-	float b = 2.0f * dot(offset, rayDir);
-	float c = dot(offset, offset) - sphereRadius * sphereRadius;
+	rayOrigin -= sphereCenter;
+	float a = dot(rayDir, rayDir);
+	float b = 2.0f * dot(rayOrigin, rayDir);
+	float c = dot(rayOrigin, rayOrigin) - (sphereRadius * sphereRadius);
 
 	float discriminant = b * b - 4.0f * a * c;
 	// No intersections:  discriminant < 0;
@@ -90,11 +91,11 @@ float2 RaySphere(float3 sphereCenter, float sphereRadius, float3 rayOrigin, floa
 	return float2(maxFloat, 0.0f);
 }
 
-float DensityAtPoint(float densitySamplePoint, float atmosphereRadius)
+float DensityAtPoint(float3 densitySamplePoint, float atmosphereRadius)
 {
 	float heightAboveSurface = length(densitySamplePoint) - radius;
 	float height01 = heightAboveSurface / (atmosphereRadius - radius);
-	float localDensity = exp(-height01 * densityFalloff) * (1.0f - height01);
+	float localDensity = exp(-height01 * densityFalloff) * (1.0f - height01);//densityFalloff) * (1.0f - height01);
 
 	return localDensity;
 }
@@ -102,7 +103,7 @@ float DensityAtPoint(float densitySamplePoint, float atmosphereRadius)
 float OpticalDepth(float3 rayOrigin, float3 rayDir, float rayLength, float atmosphereRadius)
 {
 	float3 densitySamplePoint = rayOrigin;
-	float stepSize = rayLength / (numOpticalDepthPoints - 1);
+	float stepSize = rayLength / (numOpticalDepthPoints - 1); //(numOpticalDepthPoints - 1);
 	float opticalDepth = 0.0f;
 
 	for (int i = 0; i < numOpticalDepthPoints; i++) 
@@ -127,7 +128,7 @@ float Remap(float value, float inputMin, float inputMax, float outputMin, float 
 float CalculateLight(float3 rayOrigin, float3 rayDir, float rayLength, float atmosphereRadius)
 {
 	float3 inScatterPoint = rayOrigin;
-	float stepSize = rayLength / (numInScatteringPoints - 1);
+	float stepSize = rayLength / (numInScatteringPoints - 1);//(numInScatteringPoints - 1);
 	float inScatteredLight = 0.0f;
 
 	for (int i = 0; i < numInScatteringPoints; i++)
@@ -138,8 +139,8 @@ float CalculateLight(float3 rayOrigin, float3 rayDir, float rayLength, float atm
 		float transmittance = exp(-(sunRayOpticalDepth + viewRayOpticalDepth));
 		float localDensity = DensityAtPoint(inScatterPoint, atmosphereRadius);
 
-		//In the video Lague has stepSize in the equation but in his repo its not there, for me it makes more sense for them not to be there
-		inScatteredLight += localDensity * transmittance;// *stepSize;
+		//In the video Lague has stepSize in the equation but in his repo its not there
+		inScatteredLight += localDensity * transmittance * stepSize;
 		inScatterPoint += rayDir * stepSize;
 	}
 
@@ -152,22 +153,21 @@ float4 main(PixelInputType input) : SV_TARGET
 
 	//if (atmosphereToggle)
 	//{
-		float3 ndc = float3(input.texCoord.xy, 1.0f) * 2.0f - 1.0f;
-		// Reversing the projection and view-space transformations.
+		float3 ndc = float3(input.texCoord.x, 1.0f - input.texCoord.y, 1.0f) * 2.0f - 1.0f;
 		float4 tempVector = mul(float4(ndc, 1.0f), inverseProjectionMatrix);
 		tempVector = mul(tempVector, inverseViewMatrix);
-		float3 position = tempVector.xyz / tempVector.w;
+		float3 worldPosPixel = tempVector.xyz / tempVector.w;
 		float3 rayOrigin = cameraPosition;
 
 		float sceneDepthNonLinear = DepthTexture.Sample(DefaultSampler, input.texCoord).r;
 		float sceneDepth = LinearEyeDepth(sceneDepthNonLinear);
-		sceneDepth = Remap(sceneDepth, near, far, 0.0f, 1.0f) * length(position - rayOrigin);
+		sceneDepth = Remap(sceneDepth, near, far, 0.0f, 1.0f) * length(worldPosPixel - rayOrigin);
 
-		float3 rayDirection = normalize(position - rayOrigin);
+		float3 rayDir = normalize(worldPosPixel - rayOrigin);
 		float3 sphereCenter = float3(0.0f, 0.0f, 0.0f);
 		float atmosphereRadius = radius + atmosphereHeight;
 
-		float2 atmoHitInfo = RaySphere(sphereCenter, atmosphereRadius, rayOrigin, rayDirection);
+		float2 atmoHitInfo = RaySphere(sphereCenter, atmosphereRadius, rayOrigin, rayDir);
 		float dstToAtmosphere = atmoHitInfo.x;
 		float dstThroughAtmosphere = min(atmoHitInfo.y, sceneDepth - dstToAtmosphere);
 
@@ -184,30 +184,45 @@ float4 main(PixelInputType input) : SV_TARGET
 		//if (planetTest > 0.9f)
 		//	return originalColor;
 
-		//if (dstThroughAtmosphere > 0.0f)
-		//{
-		//	const float epsilon = 0.0001f;
-		//	float3 pointInAtmosphere = rayOrigin + rayDirection * (dstToAtmosphere + epsilon);
-		//	float light = CalculateLight(pointInAtmosphere, rayDirection, (dstThroughAtmosphere - epsilon * 2.0f), atmosphereRadius); //
-
-		//	return originalColor * (1.0f - light) + light;
-
-		//	//return float4(1.0f, 0.0f, 0.0f, 1.0f);
-		//}
-		//else
-		//
-
-		if (dstThroughAtmosphere > 0.0f) 
+		if (dstThroughAtmosphere > 0.0f)
 		{
-			const float epsilon = 0.0001;
-			float3 pointInAtmosphere = rayOrigin + rayDirection * (dstToAtmosphere + epsilon);
-			float light = CalculateLight(pointInAtmosphere, rayDirection, dstThroughAtmosphere - epsilon * 2.0f, atmosphereRadius);
+			const float epsilon = 0.0001f;
+			float3 pointInAtmosphere = rayOrigin + rayDir * (dstToAtmosphere + epsilon);     
+			float light = CalculateLight(pointInAtmosphere, rayDir, (dstThroughAtmosphere - epsilon * 2.0f), atmosphereRadius);
 
 			return originalColor * (1.0f - light) + light;
-			//return dstThroughAtmosphere / (atmosphereRadius * 2.0f);
-		}			
+
+			//return float4(1.0f, 0.0f, 0.0f, 1.0f);
+		}
 
 		return originalColor;
+
+		//if (dstThroughAtmosphere > 0.0f) 
+		//{
+		//	float3 pointInAtmosphere = rayOrigin + rayDir * dstToAtmosphere;
+		//	float light = CalculateLight(pointInAtmosphere, rayDir, dstThroughAtmosphere, atmosphereRadius);
+
+		//	return originalColor * (1.0f - light) + light;
+		//	//return dstThroughAtmosphere / (atmosphereRadius * 2.0f);
+
+		//	//float3 normPos = normalize(position);
+		//	//return float4(dstThroughAtmosphere, dstThroughAtmosphere, 1.0f, 1.0f);
+		//}			
+
+		//return originalColor;
+		//const float epsilon = 0.0001f;
+		//if (length(rayOrigin) >= radius)
+		//{
+		//	//Outside the atmosphere
+		//	float3 pointInAtmosphere = rayOrigin + rayDir * dstToAtmosphere;
+		//	pointInAtmosphere -= normalize(pointInAtmosphere) * epsilon;
+
+		//	return originalColor;
+		//}
+		//else
+		//	return float4(1.0f, 0.0f, 0.0f, 1.0f);
+
+		//return float4(float3(ndc.xy, 0.0f), 1.0f);
 		 
 
 		//return float4(dstColor.xyz, 1.0f);

@@ -21,6 +21,8 @@ namespace Toast {
 
 		virtual float& GetNearClip() { return mNearClip; }
 		virtual float& GetFarClip() { return mFarClip; }
+		
+		virtual DirectX::XMFLOAT4& GetForwardDirection() = 0;
 	protected:
 		DirectX::XMFLOAT4X4 mViewMatrix, mInvViewMatrix, mProjection, mInvProjection;
 		float mFarClip = 1000.0f, mNearClip = 0.1f;
