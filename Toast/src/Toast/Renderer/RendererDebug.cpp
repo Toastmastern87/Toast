@@ -25,7 +25,7 @@ namespace Toast {
 		mDebugData->OutlineShader = CreateRef<Shader>("assets/shaders/Outline.hlsl");
 
 		// Setting up the constant buffer and data buffer for the debug rendering data
-		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 288, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 0), CBufferBindInfo(D3D11_PIXEL_SHADER, 11) });
+		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 304, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 0), CBufferBindInfo(D3D11_PIXEL_SHADER, 11) });
 		mDebugData->mDebugCBuffer->Bind();
 		mDebugData->mDebugBuffer.Allocate(mDebugData->mDebugCBuffer->GetSize());
 		mDebugData->mDebugBuffer.ZeroInitialize();
@@ -54,8 +54,9 @@ namespace Toast {
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetInvViewMatrix(), 64, 128);
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetInvProjection(), 64, 192);
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetPosition(), 16, 256);
-		mDebugData->mDebugBuffer.Write((void*)&camera.GetFarClip(), 4, 272);
-		mDebugData->mDebugBuffer.Write((void*)&camera.GetNearClip(), 4, 276);
+		mDebugData->mDebugBuffer.Write((void*)&camera.GetForwardDirection(), 16, 272);
+		mDebugData->mDebugBuffer.Write((void*)&camera.GetFarClip(), 4, 288);
+		mDebugData->mDebugBuffer.Write((void*)&camera.GetNearClip(), 4, 292);
 		mDebugData->mDebugCBuffer->Map(mDebugData->mDebugBuffer);
 
 		mDebugData->LineVertexBuffer->Bind();

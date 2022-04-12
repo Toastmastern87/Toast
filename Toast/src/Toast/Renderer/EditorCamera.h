@@ -31,7 +31,7 @@ namespace Toast {
 		const float GetAspecRatio() const { return mAspectRatio; }
 		void SetAspectRatio(float aspectRatio) { mAspectRatio = aspectRatio; UpdateProjection(); }
 
-		DirectX::XMVECTOR GetForwardDirection() const;
+		DirectX::XMFLOAT4& GetForwardDirection() override;
 		DirectX::XMVECTOR GetUpDirection() const;
 		DirectX::XMVECTOR GetRightDirection() const;
 		DirectX::XMVECTOR GetPosition() const { return mPosition; }
@@ -56,7 +56,6 @@ namespace Toast {
 		DirectX::XMVECTOR mInitialCursorPosition = { 0.0f, 0.0f };
 
 		float mPitch = 0.28f, mYaw = 0.0f;
-		//float mPitch = 0.0f, mYaw = 0.0f;
 
 		float mFOV = DirectX::XMConvertToRadians(45.0f), mAspectRatio = 1.778f;
 
