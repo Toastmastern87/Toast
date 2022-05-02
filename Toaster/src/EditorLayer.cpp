@@ -49,6 +49,7 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Planet.hlsl");
 		ShaderLibrary::Load("assets/shaders/ToastPBR.hlsl");
 		ShaderLibrary::Load("assets/shaders/Picking.hlsl");
+		ShaderLibrary::Load("assets/shaders/ToneMapping.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet/PlanetMask.hlsl");
 
@@ -58,7 +59,7 @@ namespace Toast {
 
 		mEditorScene = CreateRef<Scene>();
 
-		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 30000.0f);
+		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 20000.0f);
 
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mSceneSettingsPanel.SetContext(mEditorScene);
@@ -81,6 +82,7 @@ namespace Toast {
 		Ref<Framebuffer>& pickingFramebuffer = Renderer::GetPickingFramebuffer();
 		Ref<Framebuffer>& outlineFramebuffer = Renderer::GetOutlineFramebuffer();
 		Ref<Framebuffer>& planetMaskFramebuffer = Renderer::GetPlanetMaskFramebuffer();
+		Ref<Framebuffer>& postProcessFramebuffer = Renderer::GetPostProcessFramebuffer();
 
 		Ref<RenderTarget>& baseRenderTarget = Renderer::GetBaseRenderTarget();
 		Ref<RenderTarget>& depthRenderTarget = Renderer::GetDepthRenderTarget();
@@ -88,6 +90,7 @@ namespace Toast {
 		Ref<RenderTarget>& pickingRenderTarget = Renderer::GetPickingRenderTarget();
 		Ref<RenderTarget>& outlineRenderTarget = Renderer::GetOutlineRenderTarget();
 		Ref<RenderTarget>& planetMaskRenderTarget = Renderer::GetPlanetMaskRenderTarget();
+		Ref<RenderTarget>& postProcessRenderTarget = Renderer::GetPostProcessRenderTarget();
 		auto [width, height] = baseRenderTarget->GetSize();
 
 		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (width != mViewportSize.x || height != mViewportSize.y))
@@ -97,6 +100,7 @@ namespace Toast {
 			pickingFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			outlineFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			planetMaskFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			postProcessFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
 			baseRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			depthRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
@@ -104,6 +108,7 @@ namespace Toast {
 			pickingRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			outlineRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			planetMaskRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			postProcessRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		 
 			switch (mSceneState)
 			{

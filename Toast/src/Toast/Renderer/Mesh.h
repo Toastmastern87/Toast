@@ -171,7 +171,7 @@ namespace Toast {
 
 			if (cbufferName == "Model")
 				mModelBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
-			else if (cbufferName == "Planet")
+			else if (cbufferName == "Planet") 
 				mPlanetBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
 		}
 

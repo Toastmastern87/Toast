@@ -1,41 +1,25 @@
 Scene: Untitled Scene
 Entities:
-  - Entity: 12837192831273
+  - Entity: 129847189644684762
     TagComponent:
-      Tag: Camera
+      Tag: Starship
     TransformComponent:
-      Translation: [0, 0, -3400]
-      Rotation: [-90, 0, 0]
-      Scale: [1, 0.999999046, 0.999999046]
-    CameraComponent:
-      Camera:
-        ProjectionType: 0
-        PerspectiveFOV: 45
-        NearClip: 0.1
-        FarClip: 3000
-        OrthographicSize: 10
-      Primary: true
-      FixedAspectRatio: false
-    ScriptComponent:
-      ModuleName: CameraController
-      StoredProperties:
-        - Name: MinAltitude
-          Type: 1
-          Data: 3400
-        - Name: MaxAltitude
-          Type: 1
-          Data: 9500
-  - Entity: 12837192831275
+      Translation: [0, 10, -3400]
+      Rotation: [-90, -39.7999992, 0]
+      Scale: [0.0999956802, 0.0999867469, 0.0999857709]
+    MeshComponent:
+      IsPlanet: true
+      Material: StarshipMaterial
+  - Entity: 12837192831272
     TagComponent:
-      Tag: Sunlight
+      Tag: Ambient Light
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [0, -146, 0]
-      Scale: [0.999545157, 0.999894023, 0.999642849]
-    DirectionalLightComponent:
-      Radiance: [0.861003876, 0.822715163, 0.658219159]
-      Intensity: 2
-      SunDisk: true
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SkyLightComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\starmap.png
+      Intensity: 0.150000006
   - Entity: 12837192831271
     TagComponent:
       Tag: Mars
@@ -49,33 +33,52 @@ Entities:
       MaxAltitude: 21.2000008
       MinAltitude: -8.19999981
       Radius: 3389.5
-      AtmosphereHeight: 100.8
-      AtmosphereToggle: false
-      InScatteringPoints: 1
-      OpticalDepthPoints: 1
-      DensityFalloff: 0.0
+      AtmosphereHeight: 60
+      AtmosphereToggle: true
+      InScatteringPoints: 10
+      OpticalDepthPoints: 10
+      MieAnisotropy: 0.758000016
+      RayScaleHeight: 8
+      MieScaleHeight: 1.20000005
+      RayBaseScatteringCoefficient: [0.00520000001, 0.0120999999, 0.0296]
+      MieBaseScatteringCoefficient: 0.0219999999
     ScriptComponent:
       ModuleName: PlanetScript
       StoredProperties:
         []
-  - Entity: 12837192831272
+  - Entity: 12837192831275
     TagComponent:
-      Tag: Ambient Light
+      Tag: Sunlight
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-    SkyLightComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\starmap.png
-      Intensity: 1
-  - Entity: 129847189644684762
+      Rotation: [0, -548, 0]
+      Scale: [0.999441803, 0.999894023, 0.999525607]
+    DirectionalLightComponent:
+      Radiance: [0.861003876, 0.822715163, 0.658219159]
+      Intensity: 10.5
+      SunDisk: true
+  - Entity: 12837192831273
     TagComponent:
-      Tag: Starship
+      Tag: Camera
     TransformComponent:
-      Translation: [0, 10, -3400]
-      Rotation: [-90, -39.7999992, 0]
-      Scale: [0.0999956802, 0.0999870971, 0.0999860838]
-    MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship3.fbx
-      IsPlanet: false
-      Material: StarshipMaterial
+      Translation: [0, 0, -3400]
+      Rotation: [-90, 0, 0]
+      Scale: [1, 0.999996543, 0.999996543]
+    CameraComponent:
+      Camera:
+        ProjectionType: 0
+        PerspectiveFOV: 45
+        NearClip: 0.100000001
+        FarClip: 3000
+        OrthographicSize: 10
+      Primary: true
+      FixedAspectRatio: false
+    ScriptComponent:
+      ModuleName: CameraController
+      StoredProperties:
+        - Name: MinAltitude
+          Type: 1
+          Data: 3300
+        - Name: MaxAltitude
+          Type: 1
+          Data: 9500

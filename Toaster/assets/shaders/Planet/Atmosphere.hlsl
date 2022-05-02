@@ -27,6 +27,8 @@ SamplerState DefaultSampler			: register(s1);
 
 #pragma pack_matrix( row_major )
 
+#define PI 3.141592653589793
+
 static const float maxFloat = 3.402823466e+38;
 
 cbuffer DirectionalLight	: register(b0)
@@ -43,7 +45,11 @@ cbuffer Planet				: register(b4)
 	float minAltitude;
 	float maxAltitude;
 	float atmosphereHeight;
-	float densityFalloff;
+	float mieAnisotropy;
+	float rayScaleHeight;
+	float mieScaleHeight;
+	float3 rayBaseScatteringCoefficient;
+	float mieBaseScatteringCoefficient;
 	int atmosphereToggle;
 	int numInScatteringPoints;
 	int numOpticalDepthPoints;
@@ -75,9 +81,9 @@ float2 RaySphere(float3 sphereCenter, float sphereRadius, float3 rayOrigin, floa
 	float c = dot(rayOrigin, rayOrigin) - (sphereRadius * sphereRadius);
 
 	float discriminant = b * b - 4.0f * a * c;
-	// No intersections:  discriminant < 0;
-	// 1 intersections:  discriminant == 0;
-	// 2 intersections:  discriminant > 0;
+	 //No intersections:  discriminant < 0;
+	 //1 intersections:  discriminant == 0;
+	 //2 intersections:  discriminant > 0;
 	if (discriminant > 0.0f)
 	{
 		float s = sqrt(discriminant);
@@ -85,35 +91,81 @@ float2 RaySphere(float3 sphereCenter, float sphereRadius, float3 rayOrigin, floa
 		float dstToSphereFar = (-b + s) / (2.0f * a);
 
 		if(dstToSphereFar >= 0.0f)
-			return float2(dstToSphereNear, dstToSphereFar - dstToSphereNear);
+			return float2(dstToSphereNear, dstToSphereFar);
 	}
 
 	return float2(maxFloat, 0.0f);
 }
 
-float DensityAtPoint(float3 densitySamplePoint, float atmosphereRadius)
+float3 SampleLightRay(float3 rayOrigin)
 {
-	float heightAboveSurface = length(densitySamplePoint) - radius;
-	float height01 = heightAboveSurface / (atmosphereRadius - radius);
-	float localDensity = exp(-height01 * densityFalloff) * (1.0f - height01);//densityFalloff) * (1.0f - height01);
+	float2 sunRayAtmoPoints = RaySphere(float3(0.0f, 0.0f, 0.0f), radius + atmosphereHeight, rayOrigin, direction);
 
-	return localDensity;
-}
+	float3 rayOpticalDepth = 0.0f;
+	float mieOpticalDepth = 0.0f;
 
-float OpticalDepth(float3 rayOrigin, float3 rayDir, float rayLength, float atmosphereRadius)
-{
-	float3 densitySamplePoint = rayOrigin;
-	float stepSize = rayLength / (numOpticalDepthPoints - 1); //(numOpticalDepthPoints - 1);
-	float opticalDepth = 0.0f;
-
-	for (int i = 0; i < numOpticalDepthPoints; i++) 
+	float time = 0.0f;
+	float stepSize = (sunRayAtmoPoints.y - sunRayAtmoPoints.x) / (float)(numOpticalDepthPoints);
+	for (int i = 0; i < numOpticalDepthPoints; i++)
 	{
-		float localDensity = DensityAtPoint(densitySamplePoint, atmosphereRadius);
-		opticalDepth += localDensity * stepSize;
-		densitySamplePoint += rayDir * stepSize;
+		float3 pointInAtmosphere = rayOrigin + direction * (time + stepSize * 0.5f);
+		float height = length(pointInAtmosphere) - radius;
+
+		// Inside the planet
+		if (height < 0.0f)
+			return 0.0f;
+
+		// Optical depth for the secondary ray
+		rayOpticalDepth += exp(-height / rayScaleHeight) * rayBaseScatteringCoefficient * stepSize;
+		mieOpticalDepth += exp(-height / mieScaleHeight) * mieBaseScatteringCoefficient * stepSize;
+
+		time += stepSize;
 	}
 
-	return opticalDepth;
+	return exp(-(rayOpticalDepth + mieOpticalDepth));
+}
+
+float3 CalculateLightScattering(float3 rayOrigin, float3 rayDir, float tEntryPoint, float tDistanceThroughAtmo, out float3 returnTransmittance)
+{
+	float time = tEntryPoint;
+	float stepSize = tDistanceThroughAtmo / (float)(numInScatteringPoints);
+
+	float3 rayTotalScattering = float3(0.0f, 0.0f, 0.0f);
+	float mieTotalScattering = 0.0f;
+	float3 totalTransmittance = 1.0f;
+
+	for (int i = 0; i < numInScatteringPoints; i++)
+	{
+		float3 pointInAtmosphere = rayOrigin + rayDir * (time + stepSize * 0.5f);
+		float height = length(pointInAtmosphere) - radius;
+
+		float3 lightTransmittance = SampleLightRay(pointInAtmosphere);
+
+		// 11k is mars specific, for earth this is more like 8.5k, will be moved to a setting later
+		float rayHeightFallOff = exp(-height / rayScaleHeight);
+		float mieHeightFallOff = exp(-height / mieScaleHeight);
+		float3 rayOpticalDepth = rayHeightFallOff * rayBaseScatteringCoefficient;
+		float mieOpticalDepth = mieHeightFallOff * mieBaseScatteringCoefficient;
+
+		rayTotalScattering += totalTransmittance * rayOpticalDepth * lightTransmittance * stepSize;
+		mieTotalScattering += totalTransmittance * mieOpticalDepth * lightTransmittance * stepSize;
+
+		float3 samplePointTransmittance = exp(-(rayOpticalDepth + mieOpticalDepth) * stepSize);
+		totalTransmittance *= samplePointTransmittance;
+		time += stepSize;
+	}
+
+	returnTransmittance = totalTransmittance;
+
+	float cosTheta = dot(rayDir, direction.xyz);
+	float cos2Theta = cosTheta * cosTheta;
+	float g = mieAnisotropy;
+	float g2 = g * g;
+	float rayPhase = (3.0f / (16.0f * PI)) * (1.0f + cos2Theta);
+	float miePhase = (3.0f / (8.0f * PI)) * ((1.0f - g2) * (1.0f + cos2Theta)) / (pow(1.0f + g2 - 2.0f * g * cosTheta, 1.5f) * (2.0f + g2));
+
+	//Rename multiplier to intensity
+ 	return multiplier * (rayPhase * rayTotalScattering + miePhase * mieTotalScattering);	                 
 }
 
 float LinearEyeDepth(float nonLinearDepth)
@@ -125,34 +177,12 @@ float Remap(float value, float inputMin, float inputMax, float outputMin, float 
 	return (value - inputMin) / (inputMax - inputMin) * (outputMax - outputMin) + outputMin;
 }
 
-float CalculateLight(float3 rayOrigin, float3 rayDir, float rayLength, float atmosphereRadius)
-{
-	float3 inScatterPoint = rayOrigin;
-	float stepSize = rayLength / (numInScatteringPoints - 1);//(numInScatteringPoints - 1);
-	float inScatteredLight = 0.0f;
-
-	for (int i = 0; i < numInScatteringPoints; i++)
-	{
-		float sunRayLength = RaySphere(float3(0.0f, 0.0f, 0.0f), atmosphereRadius, inScatterPoint, direction).y;
-		float sunRayOpticalDepth = OpticalDepth(inScatterPoint, direction, sunRayLength, atmosphereRadius);
-		float viewRayOpticalDepth = OpticalDepth(inScatterPoint, -rayDir, stepSize * i, atmosphereRadius);
-		float transmittance = exp(-(sunRayOpticalDepth + viewRayOpticalDepth));
-		float localDensity = DensityAtPoint(inScatterPoint, atmosphereRadius);
-
-		//In the video Lague has stepSize in the equation but in his repo its not there
-		inScatteredLight += localDensity * transmittance * stepSize;
-		inScatterPoint += rayDir * stepSize;
-	}
-
-	return inScatteredLight;
-}
-
 float4 main(PixelInputType input) : SV_TARGET
 {
 	float4 originalColor = BaseTexture.Sample(DefaultSampler, input.texCoord);
 
-	//if (atmosphereToggle)
-	//{
+	if (atmosphereToggle)
+	{
 		float3 ndc = float3(input.texCoord.x, 1.0f - input.texCoord.y, 1.0f) * 2.0f - 1.0f;
 		float4 tempVector = mul(float4(ndc, 1.0f), inverseProjectionMatrix);
 		tempVector = mul(tempVector, inverseViewMatrix);
@@ -165,98 +195,23 @@ float4 main(PixelInputType input) : SV_TARGET
 
 		float3 rayDir = normalize(worldPosPixel - rayOrigin);
 		float3 sphereCenter = float3(0.0f, 0.0f, 0.0f);
-		float atmosphereRadius = radius + atmosphereHeight;
 
-		float2 atmoHitInfo = RaySphere(sphereCenter, atmosphereRadius, rayOrigin, rayDir);
+		float2 atmoHitInfo = RaySphere(sphereCenter, radius + atmosphereHeight, rayOrigin, rayDir);
 		float dstToAtmosphere = atmoHitInfo.x;
-		float dstThroughAtmosphere = min(atmoHitInfo.y, sceneDepth - dstToAtmosphere);
+		float dstThroughAtmosphere = min(atmoHitInfo.y - atmoHitInfo.x, sceneDepth - dstToAtmosphere);
 
-		//float2 planetHitInfo = RaySphere(sphereCenter, radius, rayOrigin, rayDirection);
-		//float dstToPlanet = planetHitInfo.x;
-		////float dstThroughAtmosphere;
-		////if (dstToPlanet > 0.0f)
-		////	dstThroughAtmosphere = dstToPlanet - dstToAtmosphere;
-		////else
-		////	dstThroughAtmosphere = atmoHitInfo.y - dstToAtmosphere;
-
-		//float planetTest = InputTexture.Sample(DefaultSampler, input.texCoord).g;
-
-		//if (planetTest > 0.9f)
-		//	return originalColor;
-
-		if (dstThroughAtmosphere > 0.0f)
+		if (dstThroughAtmosphere > 0.0f) 
 		{
-			const float epsilon = 0.0001f;
-			float3 pointInAtmosphere = rayOrigin + rayDir * (dstToAtmosphere + epsilon);     
-			float light = CalculateLight(pointInAtmosphere, rayDir, (dstThroughAtmosphere - epsilon * 2.0f), atmosphereRadius);
+			float3 transmittance;
+			float3 scatteringColor = CalculateLightScattering(rayOrigin, rayDir, dstToAtmosphere, dstThroughAtmosphere, transmittance);
 
-			return originalColor * (1.0f - light) + light;
+			float4 finalColor = (originalColor* float4(transmittance, 1.0f)) + float4(scatteringColor, 0.0f);
 
-			//return float4(1.0f, 0.0f, 0.0f, 1.0f);
+			return finalColor;
 		}
 
 		return originalColor;
+	}
 
-		//if (dstThroughAtmosphere > 0.0f) 
-		//{
-		//	float3 pointInAtmosphere = rayOrigin + rayDir * dstToAtmosphere;
-		//	float light = CalculateLight(pointInAtmosphere, rayDir, dstThroughAtmosphere, atmosphereRadius);
-
-		//	return originalColor * (1.0f - light) + light;
-		//	//return dstThroughAtmosphere / (atmosphereRadius * 2.0f);
-
-		//	//float3 normPos = normalize(position);
-		//	//return float4(dstThroughAtmosphere, dstThroughAtmosphere, 1.0f, 1.0f);
-		//}			
-
-		//return originalColor;
-		//const float epsilon = 0.0001f;
-		//if (length(rayOrigin) >= radius)
-		//{
-		//	//Outside the atmosphere
-		//	float3 pointInAtmosphere = rayOrigin + rayDir * dstToAtmosphere;
-		//	pointInAtmosphere -= normalize(pointInAtmosphere) * epsilon;
-
-		//	return originalColor;
-		//}
-		//else
-		//	return float4(1.0f, 0.0f, 0.0f, 1.0f);
-
-		//return float4(float3(ndc.xy, 0.0f), 1.0f);
-		 
-
-		//return float4(dstColor.xyz, 1.0f);
-		//return dstThroughAtmosphere / (atmosphereRadius * 2.0f);
-		//return float4(remappedSceneDepth, remappedSceneDepth, remappedSceneDepth , 1.0f);
-		//return float4(sceneDepth, sceneDepth, sceneDepth, 1.0f);
-	//}
-
-	//return originalColor;
-
-		//float3 ndc = 2.0f * float3(input.texCoord.xy, 1.0f) - 1.0f;
-		// Reversing the projection and view-space transformations.
-		//float4 tempVector = mul(float4(ndc, 1.0f), inverseProjectionMatrix);
-		//tempVector = mul(tempVector, inverseViewMatrix);
-		//float3 position = tempVector.xyz / tempVector.w;
-
-		//float3 rayOrigin = cameraPosition;
-		//float3 rayDirection = normalize(position - rayOrigin);
-		//float3 sphereCenter = float3(0.0f, 0.0f, 0.0f);
-		//float sphereRadius = 3389.5f + 1010.8f;
-
-		//float2 hitInfo = RaySphere(sphereCenter, sphereRadius, rayOrigin, rayDirection);
-		//float dstToAtmosphere = hitInfo.x;
-		//float dstThroughAtmosphere = hitInfo.y;
-
-		//float planetTest = InputTexture.Sample(DefaultSampler, input.texCoord).g;
-
-		//if (dstToAtmosphere > 90000.0f)
-		//	return originalColor;
-
-		//float color = dstThroughAtmosphere / ((radius + atmosphereHeight) * 2.0f);
-
-		//if (planetTest > 0.9f)
-		//	return originalColor;
-
-		//return float4(color, color, color, color);
+	return originalColor;
 }

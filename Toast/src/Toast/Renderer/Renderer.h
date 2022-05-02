@@ -56,13 +56,13 @@ namespace Toast {
 				bool Atmosphere = false;
 			} PlanetData;
 
-			Ref<Framebuffer> BaseFramebuffer, FinalFramebuffer, PickingFramebuffer, OutlineFramebuffer, PlanetMaskFramebuffer;
+			Ref<Framebuffer> BaseFramebuffer, FinalFramebuffer, PickingFramebuffer, OutlineFramebuffer, PlanetMaskFramebuffer, PostProcessFramebuffer;
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList;
 
 			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer;
 			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer;
 
-			Ref<RenderTarget> BaseRenderTarget, FinalRenderTarget, DepthRenderTarget, PickingRenderTarget, OutlineRenderTarget, PlanetMaskRenderTarget;
+			Ref<RenderTarget> BaseRenderTarget, FinalRenderTarget, DepthRenderTarget, PickingRenderTarget, OutlineRenderTarget, PlanetMaskRenderTarget, PostProcessRenderTarget;
 		};
 
 	protected:
@@ -98,12 +98,14 @@ namespace Toast {
 		static Ref<RenderTarget>& GetPickingRenderTarget() { return sRendererData->PickingRenderTarget; }
 		static Ref<RenderTarget>& GetOutlineRenderTarget() { return sRendererData->OutlineRenderTarget; }
 		static Ref<RenderTarget>& GetPlanetMaskRenderTarget() { return sRendererData->PlanetMaskRenderTarget; }
+		static Ref<RenderTarget>& GetPostProcessRenderTarget() { return sRendererData->PostProcessRenderTarget; }
 
 		static Ref<Framebuffer>& GetBaseFramebuffer() { return sRendererData->BaseFramebuffer; }
 		static Ref<Framebuffer>& GetFinalFramebuffer() { return sRendererData->FinalFramebuffer; }
 		static Ref<Framebuffer>& GetPickingFramebuffer() { return sRendererData->PickingFramebuffer; }
 		static Ref<Framebuffer>& GetOutlineFramebuffer() { return sRendererData->OutlineFramebuffer; }
 		static Ref<Framebuffer>& GetPlanetMaskFramebuffer() { return sRendererData->PlanetMaskFramebuffer; }
+		static Ref<Framebuffer>& GetPostProcessFramebuffer() { return sRendererData->PostProcessFramebuffer; }
 
 		static void EnableAtmosphere(bool atmosphere) { sRendererData->PlanetData.Atmosphere = atmosphere; }
 

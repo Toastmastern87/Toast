@@ -595,29 +595,63 @@ namespace Toast {
 					ImGui::Text("In Scattering\nPoints");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushItemWidth(-1);
-					ImGui::DragInt("##InScatteringPoints", &component.PlanetData.inScatteringPoints, 1.0f, 1, 10);
+					ImGui::DragInt("##InScatteringPoints", &component.PlanetData.inScatteringPoints, 1.0f, 1, 40);
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("Optical\nDepth Points");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushItemWidth(-1);
-					ImGui::DragInt("##OpticalDepthPoints", &component.PlanetData.opticalDepthPoints, 1.0f, 1, 10);
+					ImGui::DragInt("##OpticalDepthPoints", &component.PlanetData.opticalDepthPoints, 1.0f, 1, 40);
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Density\nFalloff");
+					ImGui::Text("Mie\nAnisotropy");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##DensityFalloff", &component.PlanetData.densityFalloff, 0.01f, 0.0f, 30.0f, "%.2f");
+					ImGui::DragFloat("##mieAnisotropy", &component.PlanetData.mieAnisotropy, 0.001f, -1.0f, 1.0f, "%.3f");
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Wavelengths");
+					ImGui::Text("Ray\nScale Height");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::DragFloat("##rayScaleHeight", &component.PlanetData.rayScaleHeight, 0.1f, 0.0f, 40.0f, "%.1f");
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Scattering\nStrength");
+					ImGui::Text("Mie\nScale Height");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::DragFloat("##mieScaleHeight", &component.PlanetData.mieScaleHeight, 0.1f, 0.0f, 40.0f, "%.1f");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Ray Scattering\nCoefficient Red");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::DragFloat("##rayScatteringnCoefficientRed", &component.PlanetData.rayBaseScatteringCoefficient.x, 0.00001f, 0.0f, 1.0f, "%.7f");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Ray Scattering\nCoefficient Green");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::DragFloat("##rayScatteringnCoefficientGreen", &component.PlanetData.rayBaseScatteringCoefficient.y, 0.00001f, 0.0f, 1.0f, "%.7f");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Ray Scattering\nCoefficient Blue");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::DragFloat("##rayScatteringnCoefficientBlue", &component.PlanetData.rayBaseScatteringCoefficient.z, 0.00001f, 0.0f, 1.0f, "%.7f");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Mie Scattering");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::DragFloat("##mieScattering", &component.PlanetData.mieBaseScatteringCoefficient, 0.0001f, 0.0f, 1.0f, "%.4f");
 				}
 
 				ImGui::EndTable();
@@ -673,7 +707,7 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Intensity");
 				ImGui::TableSetColumnIndex(1);
-				ImGui::DragFloat("##label", &component.Intensity, 0.01f, 0.0f, 5.0f, "%.2f");
+				ImGui::DragFloat("##label", &component.Intensity, 0.01f, 0.0f, 25.0f, "%.2f");
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);

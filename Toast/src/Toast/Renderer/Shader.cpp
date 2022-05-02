@@ -309,7 +309,7 @@ namespace Toast {
 				NULL,
 				"main",
 				ShaderVersionFromType(type).c_str(),
-				D3D10_SHADER_ENABLE_STRICTNESS,
+				D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG,
 				0,
 				&mRawBlobs[type],
 				&errorRaw);
@@ -325,6 +325,14 @@ namespace Toast {
 
 				return;
 			}
+			//else 
+			//{
+			//	char* warningText = (char*)errorRaw->GetBufferPointer();
+
+			//	warningText[strlen(warningText) - 1] = '\0';
+
+			//	TOAST_CORE_WARN("%s", warningText);
+			//}
 		}
 	}
 
