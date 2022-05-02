@@ -50,12 +50,15 @@ namespace Toast {
 		float RotationSpeed() const;
 		float ZoomSpeed() const;
 	private:
-		DirectX::XMVECTOR mFocalPoint = { 0.0f, 1.0f, 7.0f };
-		DirectX::XMVECTOR mPosition = { 0.0f, 1.0f, -3.0f };
+		//DirectX::XMVECTOR mFocalPoint = { 0.0f, 1.0f, 7.0f };
+		//DirectX::XMVECTOR mPosition = { 0.0f, 1.0f, -3.0f };
+		DirectX::XMVECTOR mFocalPoint = { 0.0f, 0.0f, 1.0f };
+		DirectX::XMVECTOR mPosition = { 0.0f, 0.0f, -15000.0f };
 		
 		DirectX::XMVECTOR mInitialCursorPosition = { 0.0f, 0.0f };
 
-		float mPitch = 0.28f, mYaw = 0.0f;
+		/*float mPitch = 0.28f, mYaw = 0.0f;*/
+		float mPitch = 0.0f, mYaw = 0.0f;
 
 		float mFOV = DirectX::XMConvertToRadians(45.0f), mAspectRatio = 1.778f;
 

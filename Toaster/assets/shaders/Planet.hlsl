@@ -38,7 +38,11 @@ cbuffer Planet : register(b2)
 	float minAltitude;
 	float maxAltitude;
 	float atmosphereHeight;
-	float densityFalloff;
+	float mieAnisotropy;
+	float rayScaleHeight;
+	float mieScaleHeight;
+	float3 rayBaseScatteringCoefficient;
+	float mieBaseScatteringCoefficient;
 	int atmosphereToggle;
 	int numInScatteringPoints;
 	int numOpticalDepthPoints;
@@ -177,7 +181,11 @@ cbuffer Planet			: register(b4)
 	float minAltitude;
 	float maxAltitude;
 	float atmosphereHeight;
-	float densityFalloff;
+	float mieAnisotropy;
+	float rayScaleHeight;
+	float mieScaleHeight;
+	float3 rayBaseScatteringCoefficient;
+	float mieBaseScatteringCoefficient;
 	int atmosphereToggle;
 	int numInScatteringPoints;
 	int numOpticalDepthPoints;
@@ -465,7 +473,7 @@ float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, 
 	float G = gaSchlickGGX(cosLi, NdotV, roughness);
 
 	float3 kd = (1.0f - F) * (1.0f - metalness);
-	float3 diffuseBRDF = kd * albedo;
+	float3 diffuseBRDF = kd * albedo / PI;
 
 	// Cook-Torrance
 	float3 specularBRDF = (F * D * G) / max(Epsilon, 4.0f * cosLi * NdotV);

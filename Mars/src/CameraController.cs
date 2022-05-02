@@ -72,17 +72,22 @@ class CameraController : Entity
 
         if (Input.GetMouseWheelDelta() != 0.0f)
         {
-            float diffAltitude = 0.0f;
-            float newAltitude = altitude + zoomSpeed * ts * -Input.GetMouseWheelDelta();
+            //float diffAltitude = 0.0f;
+            //float newAltitude = altitude + zoomSpeed * ts * -Input.GetMouseWheelDelta();
 
-            if (newAltitude > MaxAltitude)
-                diffAltitude = newAltitude - MaxAltitude;
+            //if (newAltitude > MaxAltitude)
+            //    diffAltitude = newAltitude - MaxAltitude;
 
-            if (newAltitude < MinAltitude)
-                diffAltitude = newAltitude - MinAltitude;
+            //if (newAltitude < MinAltitude)
+            //    diffAltitude = newAltitude - MinAltitude;
 
-            altitude = newAltitude - diffAltitude;
-            translation = Vector3.Normalize(translation) * altitude;
+            //altitude = newAltitude - diffAltitude;
+            //translation = Vector3.Normalize(translation) * altitude;
+
+            if (Input.GetMouseWheelDelta() > 0.0f)
+                translation += Vector3.Normalize(translation) * 0.001f;
+            else
+                translation -= Vector3.Normalize(translation) * 0.001f;
         }
 
         if (Input.IsKeyPressed(KeyCode.W))

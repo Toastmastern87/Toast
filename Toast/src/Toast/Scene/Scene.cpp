@@ -206,9 +206,11 @@ namespace Toast {
 			DirectX::XMFLOAT4 cameraPosFloat;
 			DirectX::XMStoreFloat4(&cameraPosFloat, cameraPos);
 
-			DirectX::XMFLOAT4X4 fView;
+			DirectX::XMFLOAT4X4 fView, fInvView;
 			DirectX::XMStoreFloat4x4(&fView, DirectX::XMMatrixInverse(nullptr, cameraTransform));
+			DirectX::XMStoreFloat4x4(&fInvView, cameraTransform);
 			mainCamera->SetViewMatrix(fView);
+			mainCamera->SetInvViewMatrix(fInvView);
 
 			// 3D Rendering
 			Renderer::BeginScene(this, *mainCamera, cameraPosFloat);
@@ -661,10 +663,7 @@ namespace Toast {
 			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.Transform);
 
 			if (camera.Primary) 
-			{
-				TOAST_CORE_INFO("Far: %f, Near: %f", camera.Camera.GetFarClip(), camera.Camera.GetNearClip());
 				mFrustum->Update(transform.Transform, camera.Camera.GetAspecRatio(), camera.Camera.GetPerspectiveVerticalFOV(), camera.Camera.GetNearClip(), camera.Camera.GetFarClip(), cameraPos);
-			}
 		}
 	}
 

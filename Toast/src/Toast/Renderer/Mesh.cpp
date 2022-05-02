@@ -386,7 +386,7 @@ namespace Toast {
 		mIsPlanet = true;
 
 		// Setting up the constant buffer and data buffer for the planet mesh rendering
-		mPlanetCBuffer = ConstantBufferLibrary::Load("Planet", 48, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 2), CBufferBindInfo(D3D11_PIXEL_SHADER, 4) });
+		mPlanetCBuffer = ConstantBufferLibrary::Load("Planet", 64, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 2), CBufferBindInfo(D3D11_PIXEL_SHADER, 4) });
 		mPlanetCBuffer->Bind();
 		mPlanetBuffer.Allocate(mPlanetCBuffer->GetSize());
 		mPlanetBuffer.ZeroInitialize();

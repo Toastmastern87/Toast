@@ -60,11 +60,15 @@ namespace Toast {
 			float radius = 3389.5f;
 			float minAltitude = -8.2f;
 			float maxAltitude = 21.2f;
-			bool atmosphereToggle = false;
 			float atmosphereHeight = 100.8f;
+			float mieAnisotropy = 0.0f;
+			float rayScaleHeight = 0.0f;
+			float mieScaleHeight = 0.0f;
+			DirectX::XMFLOAT3 rayBaseScatteringCoefficient = { 0.0f, 0.0f, 0.0f };
+			float mieBaseScatteringCoefficient = 0.0f;
+			bool atmosphereToggle = false;
 			int inScatteringPoints = 1;
 			int opticalDepthPoints = 1;
-			float densityFalloff = 0.0f;
 		};
 
 		Ref<Toast::Mesh> Mesh;
@@ -77,7 +81,7 @@ namespace Toast {
 		PlanetGPUData PlanetData;
 
 		PlanetComponent() = default;
-		PlanetComponent(int16_t subdivisions, int16_t patchLevels, float maxAltitude, float minAltitude, float radius, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float densityFalloff)
+		PlanetComponent(int16_t subdivisions, int16_t patchLevels, float maxAltitude, float minAltitude, float radius, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient)
 			: Subdivisions(subdivisions), PatchLevels(patchLevels)
 		{
 			PlanetData.maxAltitude = maxAltitude;
@@ -87,7 +91,12 @@ namespace Toast {
 			PlanetData.atmosphereHeight = atmosphereHeight;
 			PlanetData.inScatteringPoints = inScatteringPoints;
 			PlanetData.opticalDepthPoints = opticalDepthPoints;
-			PlanetData.densityFalloff = densityFalloff;
+			PlanetData.mieAnisotropy = mieAnisotropy;
+			PlanetData.rayScaleHeight = rayScaleHeight;
+			PlanetData.mieScaleHeight = mieScaleHeight;
+			PlanetData.rayBaseScatteringCoefficient = rayBaseScatteringCoefficient;
+			PlanetData.mieBaseScatteringCoefficient = mieBaseScatteringCoefficient;
+
 		}
 		PlanetComponent(const PlanetComponent& other) = default;
 	};

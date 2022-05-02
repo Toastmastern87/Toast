@@ -42,6 +42,7 @@ namespace Toast {
 		sRendererData->EnvironmentBuffer.ZeroInitialize();
 
 		sRendererData->BaseRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32G32B32A32_FLOAT);
+		sRendererData->PostProcessRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32G32B32A32_FLOAT);
 		sRendererData->FinalRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32G32B32A32_FLOAT);
 		sRendererData->DepthRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::R32_TYPELESS, TextureFormat::D32_FLOAT);
 		sRendererData->PickingRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32_SINT);
@@ -49,6 +50,7 @@ namespace Toast {
 		sRendererData->PlanetMaskRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::R32_TYPELESS, TextureFormat::D32_FLOAT);
 
 		sRendererData->BaseFramebuffer = CreateRef<Framebuffer>(sRendererData->BaseRenderTarget, sRendererData->DepthRenderTarget);
+		sRendererData->PostProcessFramebuffer = CreateRef<Framebuffer>(sRendererData->PostProcessRenderTarget, sRendererData->DepthRenderTarget);
 		sRendererData->FinalFramebuffer = CreateRef<Framebuffer>(sRendererData->FinalRenderTarget, sRendererData->DepthRenderTarget);
 		sRendererData->PickingFramebuffer = CreateRef<Framebuffer>(sRendererData->PickingRenderTarget);
 		sRendererData->OutlineFramebuffer = CreateRef<Framebuffer>(sRendererData->OutlineRenderTarget);
@@ -304,7 +306,11 @@ namespace Toast {
 				meshCommand.Mesh->Set<float>("Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
 				meshCommand.Mesh->Set<float>("Planet", "atmosphereHeight", meshCommand.PlanetData->atmosphereHeight);
 				meshCommand.Mesh->Set<int>("Planet", "atmosphereToggle", meshCommand.PlanetData->atmosphereToggle);
-				meshCommand.Mesh->Set<float>("Planet", "densityFalloff", meshCommand.PlanetData->densityFalloff);
+				meshCommand.Mesh->Set<float>("Planet", "mieAnisotropy", meshCommand.PlanetData->mieAnisotropy);
+				meshCommand.Mesh->Set<float>("Planet", "rayScaleHeight", meshCommand.PlanetData->rayScaleHeight);
+				meshCommand.Mesh->Set<float>("Planet", "mieScaleHeight", meshCommand.PlanetData->mieScaleHeight);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "rayBaseScatteringCoefficient", meshCommand.PlanetData->rayBaseScatteringCoefficient);
+				meshCommand.Mesh->Set<float>("Planet", "mieBaseScatteringCoefficient", meshCommand.PlanetData->mieBaseScatteringCoefficient);
 				meshCommand.Mesh->Set<int>("Planet", "numInScatteringPoints", meshCommand.PlanetData->inScatteringPoints);
 				meshCommand.Mesh->Set<int>("Planet", "numOpticalDepthPoints", meshCommand.PlanetData->opticalDepthPoints);
 
@@ -356,7 +362,11 @@ namespace Toast {
 				meshCommand.Mesh->Set<float>("Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
 				meshCommand.Mesh->Set<float>("Planet", "atmosphereHeight", meshCommand.PlanetData->atmosphereHeight);
 				meshCommand.Mesh->Set<int>("Planet", "atmosphereToggle", meshCommand.PlanetData->atmosphereToggle);
-				meshCommand.Mesh->Set<float>("Planet", "densityFalloff", meshCommand.PlanetData->densityFalloff);
+				meshCommand.Mesh->Set<float>("Planet", "mieAnisotropy", meshCommand.PlanetData->mieAnisotropy);
+				meshCommand.Mesh->Set<float>("Planet", "rayScaleHeight", meshCommand.PlanetData->rayScaleHeight);
+				meshCommand.Mesh->Set<float>("Planet", "mieScaleHeight", meshCommand.PlanetData->mieScaleHeight);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "rayBaseScatteringCoefficient", meshCommand.PlanetData->rayBaseScatteringCoefficient);
+				meshCommand.Mesh->Set<float>("Planet", "mieBaseScatteringCoefficient", meshCommand.PlanetData->mieBaseScatteringCoefficient);
 				meshCommand.Mesh->Set<int>("Planet", "numInScatteringPoints", meshCommand.PlanetData->inScatteringPoints);
 				meshCommand.Mesh->Set<int>("Planet", "numOpticalDepthPoints", meshCommand.PlanetData->opticalDepthPoints);
 
@@ -377,37 +387,12 @@ namespace Toast {
 
 		RenderCommand::EnableBlending();
 
-		//for (const auto& meshCommand : sRendererData->MeshDrawList)
-		//{
-		//	//In theory this should be one mesh only
-		//	if (meshCommand.PlanetData) 
-		//	{
-		//		//Planet mask shader
-		//		auto planetMaskShader = ShaderLibrary::Get("assets/shaders/Planet/PlanetMask.hlsl");
-		//		planetMaskShader->Bind();
-
-		//		meshCommand.Mesh->mPlanetCBuffer->Map(meshCommand.Mesh->mPlanetBuffer);
-		//		meshCommand.Mesh->mModelCBuffer->Map(meshCommand.Mesh->mModelBuffer);
-
-		//		meshCommand.Mesh->mPlanetCBuffer->Bind();
-		//		meshCommand.Mesh->mModelCBuffer->Bind();
-		//		meshCommand.Mesh->mVertexBuffer->Bind();
-		//		meshCommand.Mesh->mIndexBuffer->Bind();
-		//		meshCommand.Mesh->mInstanceVertexBuffer->Bind();
-
-		//		sRendererData->PlanetMaskFramebuffer->Bind();
-		//		sRendererData->PlanetMaskFramebuffer->Clear({ 1.0f, 0.0f, 0.0f, 1.0f });
-
-		//		RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, static_cast<uint32_t>(meshCommand.Mesh->mPlanetPatches.size()), 0, 0, 0);
-		//	}
-		//}
-
 		ID3D11RenderTargetView* nullRTV = nullptr;
 		deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
 
-		sRendererData->FinalFramebuffer->DisableDepth();
-		sRendererData->FinalFramebuffer->Bind();
-		sRendererData->FinalFramebuffer->Clear({ 0.2f, 0.2f, 0.2f, 1.0f });
+		sRendererData->PostProcessFramebuffer->DisableDepth();
+		sRendererData->PostProcessFramebuffer->Bind();
+		sRendererData->PostProcessFramebuffer->Clear({ 0.2f, 0.2f, 0.2f, 1.0f });
 
 		auto depthMask = sRendererData->DepthRenderTarget->GetSRV();
 		deviceContext->PSSetShaderResources(9, 1, depthMask.GetAddressOf());
@@ -426,6 +411,23 @@ namespace Toast {
 
 		ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
 		deviceContext->PSSetShaderResources(9, 1, nullSRV);
+		deviceContext->PSSetShaderResources(10, 1, nullSRV);
+
+		//Tonemapping
+		sRendererData->FinalFramebuffer->DisableDepth();
+		sRendererData->FinalFramebuffer->Bind();
+		sRendererData->FinalFramebuffer->Clear({ 0.2f, 0.2f, 0.2f, 1.0f });
+
+		sampler->Bind(1, D3D11_PIXEL_SHADER);
+
+		auto toneMappingShader = ShaderLibrary::Get("assets/shaders/ToneMapping.hlsl");
+		toneMappingShader->Bind();
+
+		auto texture = sRendererData->PostProcessRenderTarget->GetSRV();
+		deviceContext->PSSetShaderResources(10, 1, texture.GetAddressOf());
+
+		RenderCommand::Draw(3);
+
 		deviceContext->PSSetShaderResources(10, 1, nullSRV);
 	}
 
