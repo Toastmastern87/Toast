@@ -14,7 +14,7 @@ PixelInputType main(uint vID : SV_VertexID)
 
 	//https://wallisc.github.io/rendering/2021/04/18/Fullscreen-Pass.html
 	output.texCoord = float2((vID << 1) & 2, vID & 2);
-	output.position = float4(output.texCoord * float2(2, -2) + float2(-1, 1), 0, 1);
+	output.position = float4(output.texCoord * float2(2, -2) + float2(-1, 1), 0.0f, 1);
 
 	return output;
 }
@@ -170,7 +170,7 @@ float3 CalculateLightScattering(float3 rayOrigin, float3 rayDir, float tEntryPoi
 
 float LinearEyeDepth(float nonLinearDepth)
 { 
-	return ((near * far) / (far - (far - near) * nonLinearDepth)); 
+	return near * far / (near + nonLinearDepth * (far - near));
 }
 
 float Remap(float value, float inputMin, float inputMax, float outputMin, float outputMax) {
@@ -183,7 +183,7 @@ float4 main(PixelInputType input) : SV_TARGET
 
 	if (atmosphereToggle)
 	{
-		float3 ndc = float3(input.texCoord.x, 1.0f - input.texCoord.y, 1.0f) * 2.0f - 1.0f;
+		float3 ndc = float3(float2(input.texCoord.x, 1.0f - input.texCoord.y) * 2.0f - 1.0f, 0.0f) ;
 		float4 tempVector = mul(float4(ndc, 1.0f), inverseProjectionMatrix);
 		tempVector = mul(tempVector, inverseViewMatrix);
 		float3 worldPosPixel = tempVector.xyz / tempVector.w;
@@ -191,7 +191,7 @@ float4 main(PixelInputType input) : SV_TARGET
 
 		float sceneDepthNonLinear = DepthTexture.Sample(DefaultSampler, input.texCoord).r;
 		float sceneDepth = LinearEyeDepth(sceneDepthNonLinear);
-		sceneDepth = Remap(sceneDepth, near, far, 0.0f, 1.0f) * length(worldPosPixel - rayOrigin);
+		sceneDepth = (1.0f - Remap(sceneDepth, far, near, 0.0f, 1.0f)) * length(worldPosPixel - rayOrigin);
 
 		float3 rayDir = normalize(worldPosPixel - rayOrigin);
 		float3 sphereCenter = float3(0.0f, 0.0f, 0.0f);
@@ -205,9 +205,9 @@ float4 main(PixelInputType input) : SV_TARGET
 			float3 transmittance;
 			float3 scatteringColor = CalculateLightScattering(rayOrigin, rayDir, dstToAtmosphere, dstThroughAtmosphere, transmittance);
 
-			float4 finalColor = (originalColor* float4(transmittance, 1.0f)) + float4(scatteringColor, 0.0f);
+			float4 finalColor = (originalColor * float4(transmittance, 1.0f)) + float4(scatteringColor, 0.0f);
 
-			return finalColor;
+			return finalColor;	
 		}
 
 		return originalColor;

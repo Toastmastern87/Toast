@@ -342,7 +342,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	float3 lightContribution = DirectionalLightning(F0, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness) + params.Albedo * Emission;
 	float3 iblContribution = IBL(F0, Lr, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness);
 
-	output.Color = float4(lightContribution + iblContribution, 1.0f);//float4(N, 1.0f);//
+	output.Color = float4(lightContribution + iblContribution, 1.0f);
 
 	return output;
 }

@@ -41,9 +41,9 @@ namespace Toast {
 		sRendererData->EnvironmentBuffer.Allocate(sRendererData->EnvironmentCBuffer->GetSize());
 		sRendererData->EnvironmentBuffer.ZeroInitialize();
 
-		sRendererData->BaseRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32G32B32A32_FLOAT);
-		sRendererData->PostProcessRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32G32B32A32_FLOAT);
-		sRendererData->FinalRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32G32B32A32_FLOAT);
+		sRendererData->BaseRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->PostProcessRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->FinalRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
 		sRendererData->DepthRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::R32_TYPELESS, TextureFormat::D32_FLOAT);
 		sRendererData->PickingRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32_SINT);
 		sRendererData->OutlineRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
@@ -93,10 +93,12 @@ namespace Toast {
 		sRendererData->SceneData.SceneEnvironment = scene->mEnvironment;
 		sRendererData->SceneData.SceneEnvironmentIntensity = scene->mEnvironmentIntensity;
 
-		if(sRendererData->SceneData.SceneEnvironment.IrradianceMap)
+		if (sRendererData->SceneData.SceneEnvironment.IrradianceMap)
 			sRendererData->SceneData.SceneEnvironment.IrradianceMap->Bind(0, D3D11_PIXEL_SHADER);
+
 		if (sRendererData->SceneData.SceneEnvironment.RadianceMap)
 			sRendererData->SceneData.SceneEnvironment.RadianceMap->Bind(1, D3D11_PIXEL_SHADER);
+
 		if (sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT)
 			sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT->Bind(2, D3D11_PIXEL_SHADER);
 
@@ -286,11 +288,13 @@ namespace Toast {
 			{
 				for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
 				{
+					bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
+
 					meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
 					meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
 
 					meshCommand.Mesh->Map();
-					meshCommand.Mesh->Bind();
+					meshCommand.Mesh->Bind(environment);
 					
 					RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 				}
@@ -385,7 +389,7 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		RenderCommand::EnableBlending();
+		RenderCommand::EnableBlending(); 
 
 		ID3D11RenderTargetView* nullRTV = nullptr;
 		deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);

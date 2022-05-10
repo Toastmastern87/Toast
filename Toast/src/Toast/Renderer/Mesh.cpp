@@ -363,7 +363,7 @@ namespace Toast {
 			mMaterial->Map();
 	}
 
-	void Mesh::Bind()
+	void Mesh::Bind(bool environment)
 	{
 		mVertexBuffer->Bind();
 		mIndexBuffer->Bind();
@@ -378,7 +378,7 @@ namespace Toast {
 			mModelCBuffer->Bind();
 
 		if (mMaterial)
-			mMaterial->Bind();
+			mMaterial->Bind(environment);
 	}
 
 	void Mesh::SetIsPlanet(bool isPlanet)

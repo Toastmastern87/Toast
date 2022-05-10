@@ -76,7 +76,7 @@ namespace Toast {
 
 		void SetUpResourceBindings();
 		void Map();
-		void Bind();
+		void Bind(bool environment = true);
 
 	private:
 		const ShaderCBufferElement* FindCBufferElementDeclaration(const std::string& name);
