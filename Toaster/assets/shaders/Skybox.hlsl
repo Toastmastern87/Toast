@@ -42,7 +42,7 @@ PixelInputType main(VertexInputType input)
 	output.pos = input.position;
 	float3 viewPos = mul(input.position, (float3x3)viewMatrix);
 	float4 finalPos = mul(float4(viewPos, 1.0f), projectionMatrix);
-	output.svpos = finalPos.xyww;
+	output.svpos = float4(finalPos.xy, 0.0f, finalPos.w);
 	output.cameraPos = mul(cameraPosition, viewMatrix);
 	output.cameraPos = mul(output.cameraPos, projectionMatrix);
 

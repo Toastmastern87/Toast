@@ -32,7 +32,7 @@ namespace Toast {
 		sd.BufferCount = 1;
 		sd.BufferDesc.Width = mWidth;
 		sd.BufferDesc.Height = mHeight;
-		sd.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+		sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 		sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 		sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 		sd.BufferDesc.RefreshRate.Numerator = 0;
@@ -146,7 +146,7 @@ namespace Toast {
 
 	void RendererAPI::CreateBackbuffer()
 	{
-		mBackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, mWidth, mHeight, 1, TextureFormat::R32G32B32A32_FLOAT, TextureFormat::None, true);
+		mBackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, mWidth, mHeight, 1, TextureFormat::R16G16B16A16_FLOAT, TextureFormat::None, true);
 		mBackbuffer = CreateRef<Framebuffer>(mBackbufferRT, nullptr, true);
 	}
 
@@ -155,7 +155,6 @@ namespace Toast {
 		HRESULT result;
 		D3D11_BLEND_DESC bd = {};
 
-		bd.IndependentBlendEnable = true;
 		bd.RenderTarget[0].BlendEnable = true;
 		bd.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
 		bd.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
@@ -186,14 +185,11 @@ namespace Toast {
 		memset(&rasterDesc, 0, sizeof(D3D11_RASTERIZER_DESC));
 		rasterDesc.CullMode = D3D11_CULL_NONE;
 		rasterDesc.FillMode = D3D11_FILL_SOLID;
-		rasterDesc.AntialiasedLineEnable = true;
-		rasterDesc.MultisampleEnable = true;
 		rasterDesc.DepthClipEnable = true;
 
 		result = mDevice->CreateRasterizerState(&rasterDesc, &mNormalRasterizerState);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create normal rasterizer state");
 
-		rasterDesc.CullMode = D3D11_CULL_NONE;
 		rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
 
 		result = mDevice->CreateRasterizerState(&rasterDesc, &mWireframeRasterizerState);

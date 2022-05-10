@@ -208,24 +208,28 @@ namespace Toast {
 			mMaterialCBuffer->Map(mMaterialBuffer);
 	}
 
-	void Material::Bind()
+	void Material::Bind(bool environment)
 	{
-		mShader->Bind();
+		if (environment) {
+			mShader->Bind();
 
-		for (auto& textureBinding : mTextureBindings)
-		{
-			if (textureBinding.Texture) 
-				textureBinding.Texture->Bind(textureBinding.BindSlot, textureBinding.ShaderType);
+			for (auto& textureBinding : mTextureBindings)
+			{
+				if (textureBinding.Texture)
+					textureBinding.Texture->Bind(textureBinding.BindSlot, textureBinding.ShaderType);
+			}
+
+			for (auto& samplerBinding : mSamplerBindings)
+			{
+				if (samplerBinding.Sampler)
+					samplerBinding.Sampler->Bind(samplerBinding.BindSlot, samplerBinding.ShaderType);
+			}
+
+			if (mMaterialCBuffer)
+				mMaterialCBuffer->Bind();
 		}
-
-		for (auto& samplerBinding : mSamplerBindings)
-		{
-			if (samplerBinding.Sampler)
-				samplerBinding.Sampler->Bind(samplerBinding.BindSlot, samplerBinding.ShaderType);
-		}
-
-		if(mMaterialCBuffer)
-			mMaterialCBuffer->Bind();
+		else
+			ShaderLibrary::Get("assets/shaders/Standard.hlsl")->Bind();
 	}
 
 	const ShaderCBufferElement* Material::FindCBufferElementDeclaration(const std::string& name)

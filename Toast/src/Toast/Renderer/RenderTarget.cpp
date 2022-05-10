@@ -74,7 +74,8 @@ namespace Toast {
 
 			depthStencilDesc.DepthEnable = true;
 			depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-			depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+			depthStencilDesc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+			//depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL; 
 
 			depthStencilDesc.StencilEnable = true;
 			depthStencilDesc.StencilReadMask = 0xFF;
@@ -120,7 +121,8 @@ namespace Toast {
 		if(mType == RenderTargetType::Color)
 			deviceContext->ClearRenderTargetView(mTargetView.Get(), (float*)&clearColor);
 		else if(mType == RenderTargetType::Depth)
-			deviceContext->ClearDepthStencilView(mDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+			deviceContext->ClearDepthStencilView(mDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0);
+			//deviceContext->ClearDepthStencilView(mDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	}
 
 	void RenderTarget::Clean()

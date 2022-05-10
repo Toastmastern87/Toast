@@ -210,7 +210,7 @@ namespace Toast {
 		void SetLocalTransform(DirectX::XMMATRIX& transform) { mSubmeshes[0].Transform = transform; }
 
 		void Map();
-		void Bind();
+		void Bind(bool environment = true);
 
 		bool GetIsPlanet() const { return mIsPlanet; }
 		void SetIsPlanet(bool isPlanet);

@@ -8,7 +8,9 @@ namespace Toast {
 	EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
 		: mFOV(DirectX::XMConvertToRadians(fov)), mAspectRatio(aspectRatio)
 	{
-		DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, nearClip, farClip);
+		//Near and far switched due to Toast Engine running inverted-z depth
+		DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, farClip, nearClip);
+		//DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, nearClip, farClip);
 		DirectX::XMMATRIX invProjection = DirectX::XMMatrixInverse(nullptr, projection);
 		DirectX::XMMATRIX view = DirectX::XMMatrixLookToLH(mPosition, DirectX::XMLoadFloat4(&GetForwardDirection()), GetUpDirection());
 		DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, view);
@@ -36,7 +38,9 @@ namespace Toast {
 	void EditorCamera::UpdateProjection()
 	{
 		mAspectRatio = (float)mViewportWidth / (float)mViewportHeight;
-		DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, mNearClip, mFarClip);
+		//Near and far switched due to Toast Engine running inverted-z depth
+		DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, mFarClip, mNearClip);
+		//DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, mNearClip, mFarClip);
 
 		DirectX::XMStoreFloat4x4(&mInvProjection, DirectX::XMMatrixInverse(nullptr, projection));
 		DirectX::XMStoreFloat4x4(&mProjection, projection);

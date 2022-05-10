@@ -77,18 +77,7 @@ struct PixelInputType
 	float3 cameraPos		: POSITION1;
 };
 
-struct PixelOutputType
+float4 main(PixelInputType input) : SV_TARGET
 {
-	float4 Color			: SV_Target;
-};
-
-PixelOutputType main(PixelInputType input) : SV_TARGET
-{
-	PixelOutputType output;
-
-	//output.Color = float4(1.0f * multiplier, 1.0f * multiplier, 1.0f * multiplier, 1.0f);
-	//output.Color = float4(1.0f, 0.0f, 0.0f, 1.0f);
-	output.Color = float4(0.0f, 0.0f, 1.0f, 1.0f);
-
-	return output;
+	return float4(0.0f, 1.0f, 0.0f, 1.0f);
 }

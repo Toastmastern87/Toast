@@ -46,7 +46,9 @@ namespace Toast {
 		switch (mProjectionType) 
 		{
 		case ProjectionType::Perspective:
-			projection = DirectX::XMMatrixPerspectiveFovLH(mPerspectiveFOV, mAspectRatio, mNearClip, mFarClip);
+			//Near and far switched due to Toast Engine running inverted-z depth
+			projection = DirectX::XMMatrixPerspectiveFovLH(mPerspectiveFOV, mAspectRatio, mFarClip, mNearClip);
+			//projection = DirectX::XMMatrixPerspectiveFovLH(mPerspectiveFOV, mAspectRatio, mNearClip, mFarClip);
 			DirectX::XMStoreFloat4x4(&mProjection, projection);
 			DirectX::XMStoreFloat4x4(&mInvProjection, DirectX::XMMatrixInverse(nullptr, projection));
 
