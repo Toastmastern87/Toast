@@ -14,7 +14,7 @@ PixelInputType main(uint vID : SV_VertexID)
 
 	//https://wallisc.github.io/rendering/2021/04/18/Fullscreen-Pass.html
 	output.texCoord = float2((vID << 1) & 2, vID & 2);
-	output.position = float4(output.texCoord * float2(2, -2) + float2(-1, 1), 0, 1);
+	output.position = float4(output.texCoord * float2(2, -2) + float2(-1, 1), 1, 1);
 
 	return output;
 }
@@ -55,13 +55,13 @@ float3 RRTAndODTFit(float3 v)
 	return a / b;
 }
 
-float3 AcesTonemap(float3 color) {
-
-	float3 v = mul(ACESInputMat, color);
-	float3 a = v * (v + 0.0245786f) - 0.000090537f;
-	float3 b = v * (0.983729f * v + 0.4329510f) + 0.238081f;
-	return pow(clamp(mul(ACESOutputMat, (a / b)), 0.0f, 1.0f), float3(1.0f / 2.2f, 1.0f / 2.2f, 1.0f / 2.2f));
-}
+//float3 AcesTonemap(float3 color) {
+//
+//	float3 v = mul(ACESInputMat, color);
+//	float3 a = v * (v + 0.0245786f) - 0.000090537f;
+//	float3 b = v * (0.983729f * v + 0.4329510f) + 0.238081f;
+//	return pow(clamp(mul(ACESOutputMat, (a / b)), 0.0f, 1.0f), float3(1.0f / 2.2f, 1.0f / 2.2f, 1.0f / 2.2f));
+//}
 
 float3 LinearTosRGB(float3 color)
 {
