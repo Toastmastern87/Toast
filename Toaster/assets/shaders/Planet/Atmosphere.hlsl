@@ -111,8 +111,8 @@ float3 SampleLightRay(float3 rayOrigin)
 		float3 pointInAtmosphere = rayOrigin + direction * (time + stepSize * 0.5f);
 		float height = length(pointInAtmosphere) - radius;
 
-		// Inside the planet
-		if (height < 0.0f)
+		// Inside the planet, minAltitude is to make sure that the ray is lower then even the lowest point of the planet.
+		if (height < minAltitude)
 			return 0.0f;
 
 		// Optical depth for the secondary ray
@@ -141,7 +141,6 @@ float3 CalculateLightScattering(float3 rayOrigin, float3 rayDir, float tEntryPoi
 
 		float3 lightTransmittance = SampleLightRay(pointInAtmosphere);
 
-		// 11k is mars specific, for earth this is more like 8.5k, will be moved to a setting later
 		float rayHeightFallOff = exp(-height / rayScaleHeight);
 		float mieHeightFallOff = exp(-height / mieScaleHeight);
 		float3 rayOpticalDepth = rayHeightFallOff * rayBaseScatteringCoefficient;

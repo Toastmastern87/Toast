@@ -1,69 +1,12 @@
 Scene: Untitled Scene
 Entities:
-  - Entity: 129847189644684762
-    TagComponent:
-      Tag: Starship
-    TransformComponent:
-      Translation: [0, 10, -3400]
-      Rotation: [-90, -39.7999992, 0]
-      Scale: [0.0999956802, 0.0999867469, 0.0999857709]
-    MeshComponent:
-      IsPlanet: true
-      Material: StarshipMaterial
-  - Entity: 12837192831272
-    TagComponent:
-      Tag: Ambient Light
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-    SkyLightComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\starmap.png
-      Intensity: 0.150000006
-  - Entity: 12837192831271
-    TagComponent:
-      Tag: Mars
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [6779, 6779, 6779]
-    PlanetComponent:
-      Subdivisions: 4
-      PatchLevels: 6
-      MaxAltitude: 21.2000008
-      MinAltitude: -8.19999981
-      Radius: 3389.5
-      AtmosphereHeight: 60
-      AtmosphereToggle: true
-      InScatteringPoints: 10
-      OpticalDepthPoints: 10
-      MieAnisotropy: 0.758000016
-      RayScaleHeight: 8
-      MieScaleHeight: 1.20000005
-      RayBaseScatteringCoefficient: [0.00520000001, 0.0120999999, 0.0296]
-      MieBaseScatteringCoefficient: 0.0219999999
-    ScriptComponent:
-      ModuleName: PlanetScript
-      StoredProperties:
-        []
-  - Entity: 12837192831275
-    TagComponent:
-      Tag: Sunlight
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, -548, 0]
-      Scale: [0.999441803, 0.999894023, 0.999525607]
-    DirectionalLightComponent:
-      Radiance: [0.861003876, 0.822715163, 0.658219159]
-      Intensity: 10.5
-      SunDisk: true
   - Entity: 12837192831273
     TagComponent:
       Tag: Camera
     TransformComponent:
-      Translation: [0, 0, -3400]
+      Translation: [0, 0, -3386.959]
       Rotation: [-90, 0, 0]
-      Scale: [1, 0.999996543, 0.999996543]
+      Scale: [1, 0.999996185, 0.999996185]
     CameraComponent:
       Camera:
         ProjectionType: 0
@@ -82,3 +25,60 @@ Entities:
         - Name: MaxAltitude
           Type: 1
           Data: 9500
+  - Entity: 12837192831275
+    TagComponent:
+      Tag: Sunlight
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, -628, 0]
+      Scale: [0.999441445, 0.999894023, 0.999525249]
+    DirectionalLightComponent:
+      Radiance: [0.861003876, 0.822715163, 0.658219159]
+      Intensity: 10.5
+      SunDisk: true
+  - Entity: 12837192831271
+    TagComponent:
+      Tag: Mars
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [6778.92285, 6779, 6778.92285]
+    PlanetComponent:
+      Subdivisions: 4
+      PatchLevels: 6
+      MaxAltitude: 21.2000008
+      MinAltitude: -8.19999981
+      Radius: 3389.5
+      AtmosphereHeight: 60
+      AtmosphereToggle: true
+      InScatteringPoints: 10
+      OpticalDepthPoints: 10
+      MieAnisotropy: 0.758000016
+      RayScaleHeight: 8
+      MieScaleHeight: 1.20000005
+      RayBaseScatteringCoefficient: [0.0209899992, 0.0163499992, 0.01174]
+      MieBaseScatteringCoefficient: 0.0219999999
+    ScriptComponent:
+      ModuleName: PlanetScript
+      StoredProperties:
+        []
+  - Entity: 12837192831272
+    TagComponent:
+      Tag: Ambient Light
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SkyLightComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\starmap.png
+      Intensity: 0.0299999993
+  - Entity: 129847189644684762
+    TagComponent:
+      Tag: Starship
+    TransformComponent:
+      Translation: [0, 10, -3400]
+      Rotation: [-90, -39.7999992, 0]
+      Scale: [0.0999956802, 0.0999866873, 0.0999857262]
+    MeshComponent:
+      IsPlanet: true
+      Material: StarshipMaterial

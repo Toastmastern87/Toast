@@ -47,6 +47,8 @@ class CameraController : Entity
         float moveSpeed = 100.0f;// 0.0967f * altitude - 318.0f;
         float zoomSpeed = 0.39f * altitude - 1056.0f;
 
+        Toast.Console.LogInfo("Altitude: " + altitude);
+
         Vector2 newCursorPos = Input.GetMousePosition();
 
         if (Input.IsMouseButtonPressed(MouseCode.ButtonRight))
@@ -85,9 +87,9 @@ class CameraController : Entity
             //translation = Vector3.Normalize(translation) * altitude;
 
             if (Input.GetMouseWheelDelta() > 0.0f)
-                translation += Vector3.Normalize(translation) * 0.001f;
+                translation += 0.01f;// Vector3.Normalize(translation) * 0.1f;
             else
-                translation -= Vector3.Normalize(translation) * 0.001f;
+                translation -= 0.01f;// Vector3.Normalize(translation) * 0.1f;
         }
 
         if (Input.IsKeyPressed(KeyCode.W))
