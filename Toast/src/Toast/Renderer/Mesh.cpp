@@ -1,32 +1,12 @@
 #include "tpch.h"
 #include "Mesh.h"
 
+#define CGLTF_IMPLEMENTATION
+#include <cgltf.h>
 #include <filesystem>
 #include <math.h>
 
 namespace Toast {
-
-	//DirectX::XMMATRIX Mat4FromAssimpMat4(const aiMatrix4x4& matrix)
-	//{
-	//	DirectX::XMMATRIX result = DirectX::XMMatrixTranspose(DirectX::XMMatrixSet(matrix.a1, matrix.a2, matrix.a3, matrix.a4,
-	//		matrix.b1, matrix.b2, matrix.b3, matrix.b4,
-	//		matrix.c1, matrix.c2, matrix.c3, matrix.c4,
-	//		matrix.d1, matrix.d2, matrix.d3, matrix.d4));
-	//	//the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
-	//	return result;
-	//}
-
-	//static const uint32_t sMeshImportFlags =
-	//	aiProcess_CalcTangentSpace |        // Create binormals/tangents just in case
-	//	aiProcess_Triangulate |             // Make sure we're triangles
-	//	aiProcess_SortByPType |             // Split meshes by primitive type
-	//	aiProcess_GenNormals |              // Make sure we have legit normals
-	//	aiProcess_GenUVCoords |             // Convert UVs if required 
-	//	aiProcess_OptimizeMeshes |          // Batch draws where possible
-	//	aiProcess_JoinIdenticalVertices |
-	//	aiProcess_FlipWindingOrder |
-	//	aiProcess_ConvertToLeftHanded |		// Convert to left hand since Toast engine is running with DirectX
-	//	aiProcess_ValidateDataStructure;    // Validation
 
 	Mesh::Mesh()
 	{
@@ -44,14 +24,179 @@ namespace Toast {
 	Mesh::Mesh(const std::string& filePath, const bool skyboxMesh)
 		: mFilePath(filePath)
 	{
-		//// Setting up the constant buffer and data buffer for the mesh rendering
-		//mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 1) });
-		//mModelCBuffer->Bind();
-		//mModelBuffer.Allocate(mModelCBuffer->GetSize());
-		//mModelBuffer.ZeroInitialize();
+		uint32_t vertexCount = 0;
+		uint32_t indexCount = 0;
 
-		//if(!skyboxMesh)
-		//	TOAST_CORE_INFO("Loading Mesh: '%s'", mFilePath.c_str());
+		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 1) });
+		mModelCBuffer->Bind();
+		mModelBuffer.Allocate(mModelCBuffer->GetSize());
+		mModelBuffer.ZeroInitialize();
+
+		if(!skyboxMesh)
+			TOAST_CORE_INFO("Loading Mesh: '%s'", mFilePath.c_str());
+
+		cgltf_options options = { 0 };
+		cgltf_data* data = NULL;
+		cgltf_result result = cgltf_parse_file(&options, filePath.c_str(), &data);
+
+		if (result == cgltf_result_success)
+		{
+			TOAST_CORE_INFO("cgltf result success!");
+			TOAST_CORE_INFO("Number of meshes: %d", data->meshes_count);
+
+			result = cgltf_load_buffers(&options, data, filePath.c_str());
+			if(result == cgltf_result_success)
+				TOAST_CORE_INFO("cgltf data buffers result success!");
+
+			// TRANSFORM
+			DirectX::XMFLOAT3 translation;
+			DirectX::XMFLOAT4 rotation;
+			DirectX::XMFLOAT3 scale;
+
+			if (data->nodes[0].has_scale)
+				scale = { data->nodes[0].scale[0], data->nodes[0].scale[1], data->nodes[0].scale[2] };
+			else
+				scale = { 1.0f, 1.0f, 1.0f };
+				
+			if (data->nodes[0].has_rotation) 
+				rotation = { data->nodes[0].rotation[0], data->nodes[0].rotation[1], data->nodes[0].rotation[2], data->nodes[0].rotation[3] };
+			else 
+				rotation = { 0.0f, 0.0f, 0.0f, 0.0f };
+			
+			if (data->nodes[0].has_translation) 
+				scale = { data->nodes[0].translation[0], data->nodes[0].translation[1], data->nodes[0].translation[2] };
+			else 
+				translation = { 0.0f, 0.0f, 0.0f };
+
+			mTransform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z)
+				* (DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation)))
+				* DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
+
+			for (unsigned m = 0; m < data->meshes_count; m++) 
+			{
+				Submesh& submesh = mSubmeshes.emplace_back();
+				submesh.BaseVertex = vertexCount;
+				submesh.BaseIndex = indexCount;
+				submesh.MaterialIndex = 0;
+				submesh.VertexCount = data->meshes[m].primitives[0].attributes_count;
+				vertexCount += submesh.VertexCount;
+				submesh.MeshName = data->meshes[m].name;
+				submesh.Transform = mTransform;
+
+				for (unsigned int p = 0; p < data->meshes[m].primitives_count; p++)
+				{
+					if (data->meshes[m].primitives[p].type != cgltf_primitive_type_triangles) 
+						continue;
+					
+					TOAST_CORE_INFO("Mesh holds cgltf_primitive_type_triangles");
+
+					for (unsigned int a = 0; a < data->meshes[m].primitives[p].attributes_count; a++)
+					{
+						// POSITIONS
+						if (data->meshes[m].primitives[p].attributes[a].type == cgltf_attribute_type_position)      
+						{
+							TOAST_CORE_INFO("Mesh holds postion data");
+
+							cgltf_accessor* attribute = data->meshes[m].primitives[p].attributes[a].data;
+
+							if ((attribute->component_type == cgltf_component_type_r_32f) && (attribute->type == cgltf_type_vec3))
+							{
+
+								TOAST_CORE_INFO("Mesh postion data correct format");
+								vertexCount = (int)attribute->count;
+								mVertices.resize(vertexCount);
+								TOAST_CORE_INFO("Attribute count: %d", (int)attribute->count);
+							
+								DirectX::XMFLOAT3* positions = reinterpret_cast<DirectX::XMFLOAT3*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
+								for (int v = 0; v < attribute->count; v++) 
+									mVertices[v].Position = positions[v];
+							}
+						}
+
+						// NORMALS
+						if (data->meshes[m].primitives[p].attributes[a].type == cgltf_attribute_type_normal)
+						{
+							TOAST_CORE_INFO("Mesh holds normal data");
+
+							cgltf_accessor* attribute = data->meshes[m].primitives[p].attributes[a].data;
+
+							if ((attribute->component_type == cgltf_component_type_r_32f) && (attribute->type == cgltf_type_vec3))
+							{
+								DirectX::XMFLOAT3* normals = reinterpret_cast<DirectX::XMFLOAT3*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
+								for (int v = 0; v < attribute->count; v++)
+									mVertices[v].Normal = normals[v];
+							}
+						}
+
+						// TANGENTS
+						if (data->meshes[m].primitives[p].attributes[a].type == cgltf_attribute_type_tangent)
+						{
+							TOAST_CORE_INFO("Mesh holds tangent data");
+
+							cgltf_accessor* attribute = data->meshes[m].primitives[p].attributes[a].data;
+
+							if ((attribute->component_type == cgltf_component_type_r_32f) && (attribute->type == cgltf_type_vec3))
+							{
+								DirectX::XMFLOAT3* tangents = reinterpret_cast<DirectX::XMFLOAT3*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
+								for (int v = 0; v < attribute->count; v++)
+									mVertices[v].Tangent = tangents[v];
+							}
+						}
+
+						// TEXCOORDS
+						if (data->meshes[m].primitives[p].attributes[a].type == cgltf_attribute_type_texcoord)
+						{
+							TOAST_CORE_INFO("Mesh holds texcoords data");
+
+							cgltf_accessor* attribute = data->meshes[m].primitives[p].attributes[a].data;
+
+							if ((attribute->component_type == cgltf_component_type_r_32f) && (attribute->type == cgltf_type_vec2))
+							{
+								DirectX::XMFLOAT2* texCoords = reinterpret_cast<DirectX::XMFLOAT2*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
+								for (int v = 0; v < attribute->count; v++)
+									mVertices[v].Texcoord = texCoords[v];
+							}
+						}
+					}
+
+					// INDICES
+					if (data->meshes[m].primitives[p].indices != NULL)
+					{
+						cgltf_accessor* attribute = data->meshes[m].primitives[p].indices;
+
+						submesh.IndexCount = attribute->count;
+						indexCount += submesh.IndexCount;
+
+						mIndices.resize(indexCount);
+
+						TOAST_CORE_INFO("Mesh indices count: %d", submesh.IndexCount);
+
+						if (attribute->component_type == cgltf_component_type_r_16u)
+						{
+							TOAST_CORE_INFO("Mesh indices of type r_16u");
+
+							uint16_t* indices = reinterpret_cast<uint16_t*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
+							for (int i = 0; i < attribute->count; i++)
+								mIndices[i] = (uint32_t)indices[i];
+						}
+					}
+				}
+			}
+
+			cgltf_free(data);
+
+			TOAST_CORE_INFO("Mesh loaded!");
+			for each (Vertex v in mVertices)
+				TOAST_CORE_INFO("Vertex x: %f, y: %f, z: %f", v.Position.x, v.Position.y, v.Position.z);
+			for each (uint16_t i in mIndices)
+				TOAST_CORE_INFO("Indices: %d ", i);
+
+			//Temporary until I sort everything with material out and loading meshes from files
+			mMaterial = MaterialLibrary::Get("Standard");
+
+			mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
+			mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
+		}
 
 		//mImporter = std::make_unique<Assimp::Importer>();
 
@@ -331,23 +476,6 @@ namespace Toast {
 		submesh.BaseIndex = mIndexCount;
 		submesh.MaterialIndex = 0;
 		submesh.IndexCount = indexCount;
-	}
-
-	void Mesh::TraverseNodes(aiNode* node, const DirectX::XMMATRIX& parentTransform, uint32_t level)
-	{
-		//DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(parentTransform, Mat4FromAssimpMat4(node->mTransformation));
-		//mNodeMap[node].resize(node->mNumMeshes);
-		//for (uint32_t i = 0; i < node->mNumMeshes; i++) 
-		//{
-		//	uint32_t mesh = node->mMeshes[i];
-		//	auto& submesh = mSubmeshes[mesh];
-		//	submesh.MeshName = node->mName.C_Str();
-		//	submesh.Transform = transform;
-		//	mNodeMap[node][i] = mesh;
-		//}
-
-		//for(uint32_t i = 0; i < node->mNumChildren; i++)
-		//	TraverseNodes(node->mChildren[i], transform, level + 1);
 	}
 
 	void Mesh::Map()
