@@ -23,6 +23,7 @@ IncludeDir["entt"] = "Toast/vendor/entt/include"
 IncludeDir["yaml_cpp"] = "Toast/vendor/yaml-cpp/include" 
 IncludeDir["ImGuizmo"] = "Toast/vendor/ImGuizmo"
 IncludeDir["mono"] = "Toast/vendor/mono/include"
+IncludeDir["cgltf"] = "Toast/vendor/cgltf/include" 
 
 LibraryDir = {}
 LibraryDir["directxtk"] = "Toast/vendor/directxtk/Bin/"
@@ -66,13 +67,13 @@ project "Toast"
 	includedirs
 	{
 		"%{prj.name}/src",
-		"%{prj.name}/vendor/spdlog/include",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.directxtk}",
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.ImGuizmo}",
-		"%{IncludeDir.mono}"
+		"%{IncludeDir.mono}",
+		"%{IncludeDir.cgltf}"
 	}
 
 	links

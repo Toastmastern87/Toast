@@ -9,18 +9,6 @@
 
 #include <DirectXMath.h>
 
-#pragma warning(push, 0)
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-#include <assimp/Importer.hpp>
-#pragma warning(pop)
-
-struct aiScene;
-
-namespace Assimp {
-	class Importer;
-}
-
 namespace Toast {
 
 	struct PlanetPatch
@@ -204,8 +192,6 @@ namespace Toast {
 
 		std::vector<PlanetFace>& GetPlanetFaces() { return mPlanetFaces; }
 
-		void TraverseNodes(aiNode* node, const DirectX::XMMATRIX& parentTransform = DirectX::XMMatrixIdentity(), uint32_t level = 0);
-
 		DirectX::XMMATRIX& GetLocalTransform() { return mSubmeshes[0].Transform; }
 		void SetLocalTransform(DirectX::XMMATRIX& transform) { mSubmeshes[0].Transform = transform; }
 
@@ -219,10 +205,6 @@ namespace Toast {
 	private:
 		std::string mFilePath = "";
 
-		std::unique_ptr<Assimp::Importer> mImporter = nullptr;
-		const aiScene* mScene = nullptr;
-		std::unordered_map<aiNode*, std::vector<uint32_t>> mNodeMap;
-
 		DirectX::XMMATRIX mTransform = DirectX::XMMatrixIdentity();
 
 		std::vector<Submesh> mSubmeshes;
@@ -230,7 +212,7 @@ namespace Toast {
 		Ref<VertexBuffer> mVertexBuffer;
 		Ref<VertexBuffer> mInstanceVertexBuffer;
 		Ref<IndexBuffer> mIndexBuffer;
-		Ref<Material> mMaterial = nullptr;
+		Ref<Material> mMaterial = MaterialLibrary::Get("Standard");
 
 		uint32_t mVertexCount = 0;
 		uint32_t mIndexCount = 0;

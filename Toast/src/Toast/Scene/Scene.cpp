@@ -781,7 +781,7 @@ namespace Toast {
 		// Initiate the skybox
 		Shader* skyboxShader = ShaderLibrary::Load("assets/shaders/Skybox.hlsl");
 		mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader);
-		mSkybox = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.fbx", true);
+		mSkybox = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.gltf", true);
 		mSkybox->SetMaterial(mSkyboxMaterial);
 	}
 

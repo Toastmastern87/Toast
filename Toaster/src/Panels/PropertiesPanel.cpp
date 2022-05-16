@@ -405,6 +405,7 @@ namespace Toast {
 
 				std::unordered_map<std::string, Ref<Material>> materials = MaterialLibrary::GetMaterials();
 				Ref<Material> currentMaterial = component.Mesh->GetMaterial();
+
 				if (ImGui::BeginCombo("##material", currentMaterial->GetName().c_str()))
 				{
 					for (auto& material : materials)
@@ -419,6 +420,7 @@ namespace Toast {
 
 					ImGui::EndCombo();
 				}
+
 				ImGui::PopItemWidth();
 
 				ImGui::EndTable();

@@ -63,7 +63,7 @@ namespace Toast {
 				if (ImGui::MenuItem("Cube")) 
 				{
 					auto newEntity = mContext->CreateEntity("Cube");
-					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.fbx"));
+					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("../Toaster/assets/meshes/Cube.gltf"));
 
 					SetSelectedEntity(newEntity);
 				}
