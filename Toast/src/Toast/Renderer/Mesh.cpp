@@ -1,12 +1,21 @@
 #include "tpch.h"
 #include "Mesh.h"
 
-#define CGLTF_IMPLEMENTATION
-#include <cgltf.h>
 #include <filesystem>
 #include <math.h>
 
+#define CGLTF_IMPLEMENTATION
+#include <../cgltf/include/cgltf.h>
+
 namespace Toast {
+
+	template<typename T>
+	static void LoadAttribute(cgltf_accessor* attribute, std::vector<Vertex> vertices)
+	{
+		T* positions = reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
+		for (int v = 0; v < attribute->count; v++)
+			vertices[v].Position = positions[v];
+	}
 
 	Mesh::Mesh()
 	{
@@ -183,90 +192,61 @@ namespace Toast {
 				}
 			}
 
+			// MATERIALS
+			TOAST_CORE_INFO("Number of materials: %d", data->materials_count);
+			mMaterial = MaterialLibrary::Get("Standard");
+
+			Texture2D* whiteTexture = (Texture2D*)(TextureLibrary::Get("assets/textures/White.png"));
+			if (data->materials[0].has_pbr_metallic_roughness) 
+			{
+				std::string materialName(data->materials[0].name);
+				mMaterial = MaterialLibrary::Load(materialName, ShaderLibrary::Get("assets/shaders/ToastPBR.hlsl"));
+
+				// ALBEDO
+				DirectX::XMFLOAT4 albedoColor;
+				albedoColor.x = (unsigned char)data->materials[0].pbr_metallic_roughness.base_color_factor[0];
+				albedoColor.y = (unsigned char)data->materials[0].pbr_metallic_roughness.base_color_factor[1];
+				albedoColor.z = (unsigned char)data->materials[0].pbr_metallic_roughness.base_color_factor[2];
+				albedoColor.w = (unsigned char)data->materials[0].pbr_metallic_roughness.base_color_factor[3];
+
+				bool hasAlbedoMap = data->materials[0].pbr_metallic_roughness.base_color_texture.texture;
+				int useAlbedoMap = 0;
+				if (hasAlbedoMap)
+				{
+					std::string texPath(data->materials[0].pbr_metallic_roughness.base_color_texture.texture->image->uri);
+					std::filesystem::path path = mFilePath;
+					auto parentPath = path.parent_path();
+					std::string texturePath = parentPath.string();
+					std::string completePath = texturePath.append("\\").append(texPath.c_str());
+					albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+					useAlbedoMap = 1;
+					mMaterial->SetTexture(3, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+					TOAST_CORE_INFO("Albedo map found: %s", completePath.c_str());	
+				}
+				else
+				{
+					mMaterial->SetTexture(3, D3D11_PIXEL_SHADER, whiteTexture);
+				}
+				mMaterial->Set<DirectX::XMFLOAT4>("Albedo", albedoColor);
+				mMaterial->Set<int>("AlbedoTexToggle", useAlbedoMap);
+
+				// NORMAL
+			}
+
 			cgltf_free(data);
 
-			TOAST_CORE_INFO("Mesh loaded!");
-			for each (Vertex v in mVertices)
-				TOAST_CORE_INFO("Vertex x: %f, y: %f, z: %f", v.Position.x, v.Position.y, v.Position.z);
-			for each (uint16_t i in mIndices)
-				TOAST_CORE_INFO("Indices: %d ", i);
+			//TOAST_CORE_INFO("Mesh loaded!");
+			//for each (Vertex v in mVertices)
+			//	TOAST_CORE_INFO("Vertex x: %f, y: %f, z: %f", v.Position.x, v.Position.y, v.Position.z);
+			//for each (uint16_t i in mIndices)
+			//	TOAST_CORE_INFO("Indices: %d ", i);
 
 			//Temporary until I sort everything with material out and loading meshes from files
-			mMaterial = MaterialLibrary::Get("Standard");
+			
 
 			mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
 			mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 		}
-
-		//mImporter = std::make_unique<Assimp::Importer>();
-
-		//const aiScene* scene = mImporter->ReadFile(mFilePath, sMeshImportFlags);
-		//if (!scene || !scene->HasMeshes())
-		//{
-		//	TOAST_CORE_ERROR("Failed to load mesh '%s'", mFilePath.c_str());
-		//	return;
-		//}
-
-		//mScene = scene;
-
-		//mTransform = Mat4FromAssimpMat4(scene->mRootNode->mTransformation);
-
-		//uint32_t vertexCount = 0;
-		//uint32_t indexCount = 0;
-
-		//mSubmeshes.reserve(scene->mNumMeshes);
-		//for (unsigned m = 0; m < scene->mNumMeshes; m++) 
-		//{
-		//	aiMesh* mesh = scene->mMeshes[m];
-
-		//	Submesh& submesh = mSubmeshes.emplace_back();
-		//	submesh.BaseVertex = vertexCount;
-		//	submesh.BaseIndex = indexCount;
-		//	submesh.MaterialIndex = mesh->mMaterialIndex;
-		//	submesh.VertexCount = mesh->mNumVertices;
-		//	submesh.IndexCount = mesh->mNumFaces * 3;
-		//	submesh.MeshName = mesh->mName.C_Str();
-
-		//	vertexCount += mesh->mNumVertices;
-		//	indexCount += submesh.IndexCount;
-
-		//	TOAST_CORE_ASSERT(mesh->HasPositions(), "Meshes require positions!");
-		//	TOAST_CORE_ASSERT(mesh->HasNormals(), "Meshes require positions!");
-
-		//	for (size_t i = 0; i < mesh->mNumVertices; i++) 
-		//	{
-		//		Vertex vertex;
-		//		vertex.Position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
-		//		vertex.Normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
-
-		//		if (mesh->HasTangentsAndBitangents()) 
-		//		{
-		//			vertex.Tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
-		//			vertex.Binormal = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
-		//		}
-
-		//		if (mesh->HasTextureCoords(0))
-		//			vertex.Texcoord = { mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
-
-		//		mVertices.push_back(vertex);
-		//	}
-
-		//	for (size_t i = 0; i < mesh->mNumFaces; i++) 
-		//	{
-		//		TOAST_CORE_ASSERT(mesh->mFaces[i].mNumIndices == 3, "Must have 3 indices!");
-		//		mIndices.push_back(mesh->mFaces[i].mIndices[0]);
-		//		mIndices.push_back(mesh->mFaces[i].mIndices[1]);
-		//		mIndices.push_back(mesh->mFaces[i].mIndices[2]);
-		//	}
-		//}
-
-		//TraverseNodes(scene->mRootNode);
-
-		////Temporary until I sort everything with material out and loading meshes from files
-		//mMaterial = MaterialLibrary::Get("Standard");
-
-		//mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
-		//mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 
 		////Materials
 		//Texture2D* whiteTexture = (Texture2D*)(TextureLibrary::Get("assets/textures/White.png"));
