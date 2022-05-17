@@ -213,6 +213,7 @@ namespace Toast {
 		Ref<VertexBuffer> mInstanceVertexBuffer;
 		Ref<IndexBuffer> mIndexBuffer;
 		Ref<Material> mMaterial = MaterialLibrary::Get("Standard");
+		std::vector<Ref<Material>> mMaterials;
 
 		uint32_t mVertexCount = 0;
 		uint32_t mIndexCount = 0;

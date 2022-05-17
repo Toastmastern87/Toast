@@ -5,8 +5,7 @@ Metalness: 1
 Roughness: 0
 UseAlbedoMap: 1
 UseNormalMap: 0
-UseMetalnessMap: 0
-UseRoughnessMap: 0
+UseMetalRoughMap: 0
 Textures:
   - FilePath: C:\dev\Toast\Toaster\assets\textures\Red.png
     BindSlot: 3

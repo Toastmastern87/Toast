@@ -10,11 +10,23 @@
 namespace Toast {
 
 	template<typename T>
-	static void LoadAttribute(cgltf_accessor* attribute, std::vector<Vertex> vertices)
+	static void LoadAttribute(cgltf_accessor* attribute, cgltf_attribute_type attributetype, std::vector<Vertex>& vertices)
 	{
-		T* positions = reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
-		for (int v = 0; v < attribute->count; v++)
-			vertices[v].Position = positions[v];
+		T* data = reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
+		for (int a = 0; a < attribute->count; a++) 
+		{
+			switch (attributetype) 
+			{
+			case cgltf_attribute_type_position:
+				vertices[a].Position = data[a];
+			case cgltf_attribute_type_normal:
+				vertices[a].Normal = data[a];
+			case cgltf_attribute_type_tangent:
+				vertices[a].Tangent = data[a];
+			case cgltf_attribute_type_texcoord:
+				vertices[a].Texcoord = data[a];
+			}
+		}		
 	}
 
 	Mesh::Mesh()
@@ -86,7 +98,7 @@ namespace Toast {
 				Submesh& submesh = mSubmeshes.emplace_back();
 				submesh.BaseVertex = vertexCount;
 				submesh.BaseIndex = indexCount;
-				submesh.MaterialIndex = 0;
+				submesh.MaterialIndex = 0;// data->meshes[m].primitives[0].material;
 				submesh.VertexCount = data->meshes[m].primitives[0].attributes_count;
 				vertexCount += submesh.VertexCount;
 				submesh.MeshName = data->meshes[m].name;
@@ -107,17 +119,19 @@ namespace Toast {
 							TOAST_CORE_INFO("Mesh holds postion data");
 
 							cgltf_accessor* attribute = data->meshes[m].primitives[p].attributes[a].data;
+							vertexCount = (int)attribute->count;
+							mVertices.resize(vertexCount);
 
 							if ((attribute->component_type == cgltf_component_type_r_32f) && (attribute->type == cgltf_type_vec3))
 							{
 
 								TOAST_CORE_INFO("Mesh postion data correct format");
-								vertexCount = (int)attribute->count;
-								mVertices.resize(vertexCount);
 								TOAST_CORE_INFO("Attribute count: %d", (int)attribute->count);
 							
+								//LoadAttribute<DirectX::XMFLOAT3>(attribute, cgltf_attribute_type_position, mVertices);
+
 								DirectX::XMFLOAT3* positions = reinterpret_cast<DirectX::XMFLOAT3*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
-								for (int v = 0; v < attribute->count; v++) 
+								for (int v = 0; v < attribute->count; v++)
 									mVertices[v].Position = positions[v];
 							}
 						}
@@ -131,6 +145,8 @@ namespace Toast {
 
 							if ((attribute->component_type == cgltf_component_type_r_32f) && (attribute->type == cgltf_type_vec3))
 							{
+								//LoadAttribute<DirectX::XMFLOAT3>(attribute, cgltf_attribute_type_normal, mVertices);
+
 								DirectX::XMFLOAT3* normals = reinterpret_cast<DirectX::XMFLOAT3*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
 								for (int v = 0; v < attribute->count; v++)
 									mVertices[v].Normal = normals[v];
@@ -146,6 +162,7 @@ namespace Toast {
 
 							if ((attribute->component_type == cgltf_component_type_r_32f) && (attribute->type == cgltf_type_vec3))
 							{
+								//LoadAttribute<DirectX::XMFLOAT3>(attribute, cgltf_attribute_type_tangent, mVertices);
 								DirectX::XMFLOAT3* tangents = reinterpret_cast<DirectX::XMFLOAT3*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
 								for (int v = 0; v < attribute->count; v++)
 									mVertices[v].Tangent = tangents[v];
@@ -161,6 +178,7 @@ namespace Toast {
 
 							if ((attribute->component_type == cgltf_component_type_r_32f) && (attribute->type == cgltf_type_vec2))
 							{
+								//LoadAttribute<DirectX::XMFLOAT2>(attribute, cgltf_attribute_type_texcoord, mVertices);
 								DirectX::XMFLOAT2* texCoords = reinterpret_cast<DirectX::XMFLOAT2*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
 								for (int v = 0; v < attribute->count; v++)
 									mVertices[v].Texcoord = texCoords[v];
@@ -231,6 +249,46 @@ namespace Toast {
 				mMaterial->Set<int>("AlbedoTexToggle", useAlbedoMap);
 
 				// NORMAL
+				bool hasNormalMap = data->materials[0].normal_texture.texture;
+				int useNormalMap = 0;
+				if (hasNormalMap)
+				{
+					std::string texPath(data->materials[0].normal_texture.texture->image->uri);
+					std::filesystem::path path = mFilePath;
+					auto parentPath = path.parent_path();
+					std::string texturePath = parentPath.string();
+					std::string completePath = texturePath.append("\\").append(texPath.c_str());
+					useNormalMap = 1;
+					mMaterial->SetTexture(4, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+					TOAST_CORE_INFO("Normal map found: %s", completePath.c_str());
+				}
+				else
+				{
+					mMaterial->SetTexture(4, D3D11_PIXEL_SHADER, whiteTexture);
+				}
+				mMaterial->Set<int>("NormalTexToggle", useNormalMap);
+
+				// METALLNESS ROUGHNESS
+				bool hasMetalRoughMap = data->materials[0].pbr_metallic_roughness.metallic_roughness_texture.texture;
+				int useMetalRoughMap = 0;
+				float metalness = 0.0f;
+				if (hasMetalRoughMap)
+				{
+					std::string texPath(data->materials[0].pbr_metallic_roughness.metallic_roughness_texture.texture->image->uri);
+					std::filesystem::path path = mFilePath;
+					auto parentPath = path.parent_path();
+					std::string texturePath = parentPath.string();
+					std::string completePath = texturePath.append("\\").append(texPath.c_str());
+					metalness = 1.0f;
+					useMetalRoughMap = 1;
+					mMaterial->SetTexture(5, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+				}
+				else
+				{
+					mMaterial->SetTexture(5, D3D11_PIXEL_SHADER, whiteTexture);
+				}
+				mMaterial->Set<float>("Metalness", metalness);
+				mMaterial->Set<int>("MetalRoughTexToggle", useMetalRoughMap);
 			}
 
 			cgltf_free(data);
@@ -240,56 +298,10 @@ namespace Toast {
 			//	TOAST_CORE_INFO("Vertex x: %f, y: %f, z: %f", v.Position.x, v.Position.y, v.Position.z);
 			//for each (uint16_t i in mIndices)
 			//	TOAST_CORE_INFO("Indices: %d ", i);
-
-			//Temporary until I sort everything with material out and loading meshes from files
 			
-
 			mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
 			mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 		}
-
-		////Materials
-		//Texture2D* whiteTexture = (Texture2D*)(TextureLibrary::Get("assets/textures/White.png"));
-		//if (scene->HasMaterials())
-		//{
-		//	for (uint32_t i = 0; i < scene->mNumMaterials; i++)
-		//	{
-		//		auto aiMaterial = scene->mMaterials[i];
-		//		auto aiMaterialName = aiMaterial->GetName();
-
-		//		mMaterial = MaterialLibrary::Load(aiMaterialName.C_Str(), ShaderLibrary::Get("assets/shaders/ToastPBR.hlsl"));
-
-		//		aiString aiTexPath;
-
-		//		// Albedo
-		//		DirectX::XMFLOAT4 albedoColor = { 0.8f, 0.8f, 0.8f, 1.0f };
-		//		aiColor3D aiColor;
-		//		if (aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor) == AI_SUCCESS) 
-		//		{
-		//			//TOAST_CORE_INFO("	Albedo Color exists: %f, %f, %f, %f", aiColor.r, aiColor.g, aiColor.b, 1.0f);
-		//			albedoColor = { aiColor.r, aiColor.g, aiColor.b, 1.0f };
-		//		}
-
-		//		bool hasAlbedoMap = aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == AI_SUCCESS;
-		//		int useAlbedoMap = 0;
-		//		if (hasAlbedoMap)
-		//		{
-		//			std::filesystem::path path = mFilePath;
-		//			auto parentPath = path.parent_path();
-		//			std::string texturePath = parentPath.string();
-		//			std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
-		//			//TOAST_CORE_INFO("	Albedo Map exists: %s", aiTexPath.C_Str());
-		//			//TOAST_CORE_INFO("	Albedo map filepath: %s", completePath.c_str());
-		//			albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-		//			useAlbedoMap = 1;
-		//			mMaterial->SetTexture(3, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
-		//		}
-		//		else
-		//		{
-		//			mMaterial->SetTexture(3, D3D11_PIXEL_SHADER, whiteTexture);
-		//		}
-		//		mMaterial->Set<DirectX::XMFLOAT4>("Albedo", albedoColor);
-		//		mMaterial->Set<int>("AlbedoTexToggle", useAlbedoMap);
 
 		//		// Emission
 		//		float emission = 0.0f;
@@ -298,87 +310,6 @@ namespace Toast {
 		//			emission = aiEmission.r;
 		//		
 		//		mMaterial->Set<float>("Emission", emission);
-
-		//		// Normals
-		//		bool hasNormalMap = aiMaterial->GetTexture(aiTextureType_HEIGHT, 0, &aiTexPath) == AI_SUCCESS;
-		//		int useNormalMap = 0;
-		//		if (hasNormalMap)
-		//		{
-		//			std::filesystem::path path = mFilePath;
-		//			auto parentPath = path.parent_path();
-		//			std::string texturePath = parentPath.string();
-		//			std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
-		//			//TOAST_CORE_INFO("	Normal Map exists: %s", aiTexPath.C_Str());
-		//			//TOAST_CORE_INFO("	Normal map filepath: %s", completePath.c_str());
-		//			useNormalMap = 1;
-		//			mMaterial->SetTexture(4, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
-		//		}
-		//		else
-		//		{
-		//			mMaterial->SetTexture(4, D3D11_PIXEL_SHADER, whiteTexture);
-		//		}
-		//		mMaterial->Set<int>("NormalTexToggle", useNormalMap);
-
-		//		// Metalness
-		//		float metalness = 0.0f;
-		//		if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS)
-		//			metalness = 0.0f;
-		//		else 
-		//		{
-		//			//TOAST_CORE_INFO("	metalvalue: %f", metalness);
-		//		}
-
-		//		bool hasMetalnessMap = aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &aiTexPath) == AI_SUCCESS;
-		//		int useMetalnessMap = 0;
-		//		if (hasMetalnessMap)
-		//		{
-		//			std::filesystem::path path = mFilePath;
-		//			auto parentPath = path.parent_path();
-		//			std::string texturePath = parentPath.string();
-		//			std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
-		//			//TOAST_CORE_INFO("	Metalness Map exists: %s", aiTexPath.C_Str());
-		//			//TOAST_CORE_INFO("	Metalness map filepath: %s", completePath.c_str());
-		//			metalness = 1.0f;
-		//			useMetalnessMap = 1;
-		//			mMaterial->SetTexture(5, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
-		//		}
-		//		else
-		//		{
-		//			mMaterial->SetTexture(5, D3D11_PIXEL_SHADER, whiteTexture);
-		//		}
-		//		mMaterial->Set<float>("Metalness", metalness);
-		//		mMaterial->Set<int>("MetalnessTexToggle", useMetalnessMap);
-
-		//		// Roughness
-		//		float shininess;
-		//		if (aiMaterial->Get(AI_MATKEY_SHININESS, shininess) != aiReturn_SUCCESS)
-		//			shininess = 80.0f; // Default value
-
-		//		float roughness = 1.0f - sqrt(shininess / 100.0f);
-		//		//TOAST_CORE_INFO("	roughness: %f", roughness);
-
-		//		bool hasRoughnessMap = aiMaterial->GetTexture(aiTextureType_SHININESS, 0, &aiTexPath) == AI_SUCCESS;
-		//		int useRoughnessMap = 0;
-		//		if (hasRoughnessMap)
-		//		{
-		//			std::filesystem::path path = mFilePath;
-		//			auto parentPath = path.parent_path();
-		//			std::string texturePath = parentPath.string();
-		//			std::string completePath = texturePath.append("\\").append(aiTexPath.C_Str());
-		//			//TOAST_CORE_INFO("	Roughness Map exists: %s", aiTexPath.C_Str());
-		//			//TOAST_CORE_INFO("	Roughness map filepath: %s", completePath.c_str());
-		//			roughness = 1.0f;
-		//			useRoughnessMap = 1;
-		//			mMaterial->SetTexture(6, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
-		//		}
-		//		else
-		//		{
-		//			mMaterial->SetTexture(6, D3D11_PIXEL_SHADER, whiteTexture);
-		//		}
-		//		mMaterial->Set<float>("Roughness", roughness);
-		//		mMaterial->Set<int>("RoughnessTexToggle", useRoughnessMap);
-		//	}
-		//}
 	}
 
 	Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const DirectX::XMMATRIX& transform)

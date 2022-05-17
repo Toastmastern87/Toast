@@ -270,9 +270,9 @@ namespace Toast {
 				}
 
 				//Metalness
-				if (textureName == "MetalnessTexture")
+				if (textureName == "MetalRoughTexture")
 				{
-					if (ImGui::TreeNodeEx((void*)imguiPtr, treeNodeFlags, "Metalness"))
+					if (ImGui::TreeNodeEx((void*)imguiPtr, treeNodeFlags, "Metalness/Roughness"))
 					{
 						ImGui::BeginTable("##table1", 2, flags);
 						ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 75.0f);
@@ -318,90 +318,26 @@ namespace Toast {
 						ImGui::TableNextRow();
 						ImGui::TableSetColumnIndex(0);
 
-						auto useMap = mSelectionContext->Get<bool>("MetalnessTexToggle");
+						auto useMap = mSelectionContext->Get<bool>("MetalRoughTexToggle");
 
-						if (ImGui::Checkbox("Use##MetalnessMap", &useMap))
+						if (ImGui::Checkbox("Use##MetalRoughMap", &useMap))
 						{
-							mSelectionContext->Set<int>("MetalnessTexToggle", useMap ? 1 : 0);
+							mSelectionContext->Set<int>("MetalRoughTexToggle", useMap ? 1 : 0);
 
 							isDirty = true;
 						}
 
 						ImGui::TableSetColumnIndex(1);
 						ImGui::PushItemWidth(-1);
-						auto& value = mSelectionContext->GetFloat("Metalness");
-						if (ImGui::DragFloat("##value", &value, 0.001f, 0.0f, 1.0f, "%.3f"))
+						auto& metalValue = mSelectionContext->GetFloat("Metalness");
+						if (ImGui::DragFloat("##metalValue", &metalValue, 0.001f, 0.0f, 1.0f, "%.3f"))
 							isDirty = true;
-
-						ImGui::EndTable();
-						ImGui::EndTable();
-						ImGui::TreePop();
-					}
-				}
-
-				//Roughness
-				if (textureName == "RoughnessTexture")
-				{
-					if (ImGui::TreeNodeEx((void*)imguiPtr, treeNodeFlags, "Roughness"))
-					{
-						ImGui::BeginTable("##table1", 2, flags);
-						ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 75.0f);
-						ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
 						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(0);
-						ImGui::PushItemWidth(-1);
-
-						ImGui::Image(resource.Texture ? (void*)resource.Texture->GetID() : (void*)TextureLibrary::Get("assets/textures/Checkerboard.png")->GetID(), { 64.0f, 64.0f });
-
-						std::optional<std::string> filename;
-
-						if (ImGui::BeginDragDropTarget())
-						{
-							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
-							{
-								const wchar_t* path = (const wchar_t*)payload->Data;
-								auto completePath = std::filesystem::path(gAssetPath) / path;
-								filename = completePath.string();
-
-								if (filename)
-									mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
-
-								isDirty = true;
-							}
-
-							ImGui::EndDragDropTarget();
-						}
-
-						if (ImGui::IsItemClicked())
-						{
-							filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
-							if (filename)
-								mSelectionContext->SetTexture(resource.BindSlot, resource.ShaderType, TextureLibrary::LoadTexture2D(*filename));
-
-							isDirty = true;
-						}
-
-						ImGui::TableSetColumnIndex(1);
-						ImGui::BeginTable("##table2", 2, flags);
-						ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthFixed, 55.0f);
-						ImGui::TableSetupColumn("##col4", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 1.1f);
-						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(0);
-
-						auto useMap = mSelectionContext->Get<bool>("RoughnessTexToggle");
-						if (ImGui::Checkbox("Use##RoughnessMap", &useMap))
-						{
-							mSelectionContext->Set<int>("RoughnessTexToggle", useMap ? 1 : 0);
-
-							isDirty = true;
-						}
-
 						ImGui::TableSetColumnIndex(1);
 						ImGui::PushItemWidth(-1);
-						auto& value = mSelectionContext->GetFloat("Roughness");
-						if (ImGui::DragFloat("##value", &value, 0.001f, 0.0f, 1.0f, "%.3f"))
+						auto& roughValue = mSelectionContext->GetFloat("Roughness");
+						if (ImGui::DragFloat("##roughValue", &roughValue, 0.001f, 0.0f, 1.0f, "%.3f"))
 							isDirty = true;
-
 						ImGui::EndTable();
 						ImGui::EndTable();
 						ImGui::TreePop();

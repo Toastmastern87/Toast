@@ -5,8 +5,7 @@ Metalness: 0
 Roughness: 0
 UseAlbedoMap: 0
 UseNormalMap: 0
-UseMetalnessMap: 0
-UseRoughnessMap: 0
+UseMetalRoughMap: 0
 Textures:
   - FilePath: C:\dev\Toast\Toaster\assets\textures\Blue.png
     BindSlot: 3

@@ -341,8 +341,7 @@ namespace Toast {
 			out << YAML::Key << "Roughness" << YAML::Value << material->Get<float>("Roughness");
 			out << YAML::Key << "UseAlbedoMap" << YAML::Value << material->Get<int>("AlbedoTexToggle");
 			out << YAML::Key << "UseNormalMap" << YAML::Value << material->Get<int>("NormalTexToggle");
-			out << YAML::Key << "UseMetalnessMap" << YAML::Value << material->Get<int>("MetalnessTexToggle");
-			out << YAML::Key << "UseRoughnessMap" << YAML::Value << material->Get<int>("RoughnessTexToggle");
+			out << YAML::Key << "UseMetalRoughMap" << YAML::Value << material->Get<int>("MetalRoughTexToggle");
 		}
 
 		out << YAML::Key << "Textures" << YAML::Value << YAML::BeginSeq;
@@ -392,8 +391,7 @@ namespace Toast {
 				material->Set<float>("Roughness", data["Roughness"].as<float>());
 				material->Set<int>("AlbedoTexToggle", data["UseAlbedoMap"].as<int>());
 				material->Set<int>("NormalTexToggle", data["UseNormalMap"].as<int>());
-				material->Set<int>("MetalnessTexToggle", data["UseMetalnessMap"].as<int>());
-				material->Set<int>("RoughnessTexToggle", data["UseRoughnessMap"].as<int>());
+				material->Set<int>("MetalRoughTexToggle", data["UseMetalRoughMap"].as<int>());
 			}
 
 			auto textures = data["Textures"];
