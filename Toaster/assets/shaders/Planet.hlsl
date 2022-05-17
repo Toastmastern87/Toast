@@ -171,8 +171,7 @@ cbuffer Material			: register(b1)
 	float Roughness;
 	int AlbedoTexToggle;
 	int NormalTexToggle;
-	int MetalnessTexToggle;
-	int RoughnessTexToggle;
+	int MetalRoughTexToggle;
 };
 
 cbuffer Planet			: register(b4)
@@ -473,7 +472,7 @@ float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, 
 	float G = gaSchlickGGX(cosLi, NdotV, roughness);
 
 	float3 kd = (1.0f - F) * (1.0f - metalness);
-	float3 diffuseBRDF = kd * albedo / PI;
+	float3 diffuseBRDF = kd * albedo;// / PI;
 
 	// Cook-Torrance
 	float3 specularBRDF = (F * D * G) / max(Epsilon, 4.0f * cosLi * NdotV);
@@ -510,8 +509,8 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 
 	// Sample input textures to get shading model params.
 	params.Albedo = AlbedoTexToggle == 1 ? AlbedoTexture.Sample(defaultSampler, input.texcoord).rgb : Albedo.rgb;
-	params.Metalness = MetalnessTexToggle == 1 ? MetalnessTexture.Sample(defaultSampler, input.texcoord).r : Metalness;
-	params.Roughness = RoughnessTexToggle == 1 ? RoughnessTexture.Sample(defaultSampler, input.texcoord).r : Roughness;
+	params.Metalness = MetalRoughTexToggle == 1 ? MetalnessTexture.Sample(defaultSampler, input.texcoord).r : Metalness;
+	params.Roughness = MetalRoughTexToggle == 1 ? RoughnessTexture.Sample(defaultSampler, input.texcoord).b : Roughness;
 	params.Roughness = max(params.Roughness, 0.05f); // Minimum roughness of 0.05 to keep specular highlight
 
 	// Outgoing light direction (vector from world-space fragment position to the "eye").

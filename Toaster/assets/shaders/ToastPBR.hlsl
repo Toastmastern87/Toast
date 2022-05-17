@@ -87,8 +87,7 @@ cbuffer Material			: register(b1)
 	float Roughness;
 	int AlbedoTexToggle;
 	int NormalTexToggle;
-	int MetalnessTexToggle;
-	int RoughnessTexToggle;
+	int MetalRoughTexToggle;
 };
 
 struct PixelInputType
@@ -120,8 +119,7 @@ TextureCube RadianceTexture		: register(t1);
 Texture2D SpecularBRDFLUT		: register(t2);
 Texture2D AlbedoTexture			: register(t3);
 Texture2D NormalTexture			: register(t4);
-Texture2D MetalnessTexture		: register(t5);
-Texture2D RoughnessTexture		: register(t6);
+Texture2D MetalRoughTexture		: register(t5);
 
 SamplerState defaultSampler		: register(s0);
 SamplerState spBRDFSampler		: register(s1);
@@ -268,7 +266,7 @@ float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, 
 {
 	float3 result = float3(0.0f, 0.0f, 0.0f);
 
-	float3 Li = direction;
+	float3 Li = -direction;
 	float3 Lradiance = radiance * multiplier;
 	float3 Lh = normalize(Li + View);
 
@@ -281,7 +279,7 @@ float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, 
 	float G = gaSchlickGGX(cosLi, NdotV, roughness);
 
 	float3 kd = (1.0f - F) * (1.0f - metalness);
-	float3 diffuseBRDF = kd * albedo / PI;
+	float3 diffuseBRDF = kd * albedo;// / PI;
 
 	// Cook-Torrance
 	float3 specularBRDF = (F * D * G) / max(Epsilon, 4.0f * cosLi * NdotV);
@@ -318,8 +316,8 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 
 	// Sample input textures to get shading model params.
 	params.Albedo = AlbedoTexToggle == 1 ? AlbedoTexture.Sample(defaultSampler, input.texcoord).rgb : Albedo.rgb;
-	params.Metalness = MetalnessTexToggle == 1 ? MetalnessTexture.Sample(defaultSampler, input.texcoord).r : Metalness;
-	params.Roughness = RoughnessTexToggle == 1 ? RoughnessTexture.Sample(defaultSampler, input.texcoord).r : Roughness;
+	params.Metalness = MetalRoughTexToggle == 1 ? MetalRoughTexture.Sample(defaultSampler, input.texcoord).b : Metalness;
+	params.Roughness = MetalRoughTexToggle == 1 ? MetalRoughTexture.Sample(defaultSampler, input.texcoord).r : Roughness;
 	params.Roughness = max(params.Roughness, 0.05f); // Minimum roughness of 0.05 to keep specular highlight
 
 	// Outgoing light direction (vector from world-space fragment position to the "eye").
@@ -328,7 +326,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	// Get current fragment's normal and transform to world space.
 	float3 N = normalize(input.normal);
 	if (NormalTexToggle == 1)
-		N = CalculateNormalFromMap(input.normal, input.tangent, input.bitangent, input.texcoord);
+		N = NormalTexture.Sample(defaultSampler, input.texcoord).xyz;//CalculateNormalFromMap(input.normal, input.tangent, input.bitangent, input.texcoord);
 
 	// Angle between surface normal and outgoing light direction.
 	float cosLo = max(dot(N, Lo), 0.0f);
