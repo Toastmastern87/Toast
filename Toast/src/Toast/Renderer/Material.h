@@ -43,7 +43,7 @@ namespace Toast {
 		void Set(const std::string& name, const T& value) 
 		{
 			auto decl = FindCBufferElementDeclaration(name);
-			TOAST_CORE_INFO("Name: %s", name.c_str());
+			//TOAST_CORE_INFO("Name: %s", name.c_str());
 			TOAST_CORE_ASSERT(decl, "Couldn't find constant buffer element!");
 			if (!decl)
 				return;

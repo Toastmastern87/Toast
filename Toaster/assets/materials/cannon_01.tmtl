@@ -1,0 +1,18 @@
+Material: cannon_01
+Shader: assets/shaders/ToastPBR.hlsl
+Albedo: [1, 1, 1, 1]
+Metalness: 1
+Roughness: 0.488000005
+UseAlbedoMap: 1
+UseNormalMap: 1
+UseMetalRoughMap: 1
+Textures:
+  - FilePath: C:\dev\Toast\Toaster\assets\meshes\Cannon_modified\cannon_01_diff_4k.jpg
+    BindSlot: 3
+    ShaderType: 5
+  - FilePath: C:\dev\Toast\Toaster\assets\meshes\Cannon_modified\cannon_01_nor_gl_4k.jpg
+    BindSlot: 4
+    ShaderType: 5
+  - FilePath: C:\dev\Toast\Toaster\assets\meshes\Cannon_modified\cannon_01_arm_4k.jpg
+    BindSlot: 5
+    ShaderType: 5

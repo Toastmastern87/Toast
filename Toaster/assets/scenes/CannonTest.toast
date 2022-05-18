@@ -1,0 +1,34 @@
+Scene: Untitled Scene
+Entities:
+  - Entity: 2221591152084552955
+    TagComponent:
+      Tag: Sky
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SkyLightComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\immenstadter_horn_4k.tif
+      Intensity: 1
+  - Entity: 7108305054924736921
+    TagComponent:
+      Tag: Sun
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, -180, 0]
+      Scale: [0.99999851, 1, 0.99999851]
+    DirectionalLightComponent:
+      Radiance: [1, 1, 1]
+      Intensity: 10
+      SunDisk: true
+  - Entity: 14203559271548070680
+    TagComponent:
+      Tag: Cannon
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Cannon\cannon_01_4k.gltf
+      IsPlanet: false
+      Material: cannon_01

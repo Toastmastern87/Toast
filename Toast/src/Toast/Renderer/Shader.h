@@ -140,6 +140,7 @@ namespace Toast {
 		void Unbind() const;
 
 		const std::string GetName() const { return mName; }
+		const std::string GetFullPathName() const { return mFullPathName; }
 
 		const ID3D10Blob* GetVSRaw() const { return mRawBlobs.at(D3D11_VERTEX_SHADER); }
 
@@ -158,6 +159,7 @@ namespace Toast {
 		Ref<ShaderLayout> mLayout;
 
 		std::string mName;
+		std::string mFullPathName;
 
 		Microsoft::WRL::ComPtr<ID3D11VertexShader> mVertexShader; 
 		Microsoft::WRL::ComPtr<ID3D11PixelShader> mPixelShader;

@@ -3,7 +3,6 @@ vertex
 vertex
 vertex
 vertex
-vertex
 
 #type vertex
 #pragma pack_matrix( row_major )
@@ -29,8 +28,7 @@ struct VertexInputType
 {
 	float3 position			: POSITION;
 	float3 normal			: NORMAL;
-	float3 tangent			: TANGENT;
-	float3 bitangent		: BITANGENT;
+	float4 tangent			: TANGENT;
 	float2 texcoord			: TEXCOORD;
 };
 
@@ -41,8 +39,7 @@ struct PixelInputType
 	float3 normal			: NORMAL;
 	float2 texcoord			: TEXCOORD;
 	float3 cameraPos		: POSITION1;
-	float3 tangent			: TANGENT0;
-	float3 bitangent		: BITANGENT0;
+	float3x3 tangentBasis	: TBASIS;
 };
 
 PixelInputType main(VertexInputType input)
@@ -55,11 +52,14 @@ PixelInputType main(VertexInputType input)
 
 	output.worldPosition = mul(float4(input.position, 1.0f), worldMatrix).xyz;
 
-	output.normal = mul(input.normal, (float3x3)worldMatrix);
-	output.tangent = mul(input.tangent, (float3x3)worldMatrix);
-	output.bitangent = mul(input.bitangent, (float3x3)worldMatrix);
+	float3 worldNormal = mul(input.normal, (float3x3)worldMatrix);
+	float3 worldTangent = mul(input.tangent.xyz, (float3x3)worldMatrix);
+	float3 worldBitangent = cross(worldNormal, worldTangent) * input.tangent.w;
+	float3x3 TBN = float3x3(worldTangent, worldBitangent, worldNormal);
+	output.tangentBasis = mul((float3x3)worldMatrix, TBN);
 
-	output.texcoord = float2(input.texcoord.x, input.texcoord.y);
+	output.normal = worldNormal;
+	output.texcoord = input.texcoord;
 	output.cameraPos = cameraPosition.xyz;
 
 	return output;
@@ -93,12 +93,11 @@ cbuffer Material			: register(b1)
 struct PixelInputType
 {
 	float4 pixelPosition	: SV_POSITION;
-	float3 worldPosition	: POSITION;
+	float3 worldPosition	: POSITION0;
 	float3 normal			: NORMAL;
 	float2 texcoord			: TEXCOORD;
 	float3 cameraPos		: POSITION1;
-	float3 tangent			: TANGENT0;
-	float3 bitangent		: BITANGENT0;
+	float3x3 tangentBasis	: TBASIS;
 };
 
 struct PixelOutputType
@@ -130,7 +129,7 @@ float3 CalculateNormalFromMap(float3 normal, float3 tangent, float3 bitangent, f
 	float3 Tangent = normalize(tangent);
 	float3 Bitangent = normalize(bitangent);
 	float3 BumpMapNormal = NormalTexture.Sample(defaultSampler, texCoords).xyz;
-	BumpMapNormal = 2.0f * BumpMapNormal - float3(1.0f, 1.0f, 1.0f);
+	BumpMapNormal = 2.0f * BumpMapNormal - 1.0f;
 
 	float3 NewNormal;
 	float3x3 TBN = float3x3(Tangent, Bitangent, Normal);
@@ -266,7 +265,7 @@ float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, 
 {
 	float3 result = float3(0.0f, 0.0f, 0.0f);
 
-	float3 Li = -direction;
+	float3 Li = direction;
 	float3 Lradiance = radiance * multiplier;
 	float3 Lh = normalize(Li + View);
 
@@ -326,7 +325,10 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	// Get current fragment's normal and transform to world space.
 	float3 N = normalize(input.normal);
 	if (NormalTexToggle == 1)
-		N = NormalTexture.Sample(defaultSampler, input.texcoord).xyz;//CalculateNormalFromMap(input.normal, input.tangent, input.bitangent, input.texcoord);
+	{
+		float3 N = normalize(2.0f * NormalTexture.Sample(defaultSampler, input.texcoord).rgb - 1.0f);
+		N = normalize(mul(input.tangentBasis, N));
+	}
 
 	// Angle between surface normal and outgoing light direction.
 	float cosLo = max(dot(N, Lo), 0.0f);

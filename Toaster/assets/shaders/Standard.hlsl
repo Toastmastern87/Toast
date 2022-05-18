@@ -3,7 +3,6 @@ vertex
 vertex
 vertex
 vertex
-vertex
 
 #type vertex
 #pragma pack_matrix( row_major )
@@ -29,7 +28,6 @@ struct VertexInputType
 	float3 position		: POSITION;
 	float3 normal		: NORMAL;
 	float3 tangent		: TANGENT;
-	float3 binormal		: BINORMAL;
 	float2 texcoord		: TEXCOORD;
 };
 

@@ -167,7 +167,7 @@ namespace Toast {
 	}
 
 	Shader::Shader(const std::string& filepath)
-		: mName(filepath)
+		: mFullPathName(filepath)
 	{
 		TOAST_PROFILE_FUNCTION();
 

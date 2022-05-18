@@ -1,16 +1,15 @@
 Scene: Untitled Scene
 Entities:
-  - Entity: 9474256362433269823
+  - Entity: 13199103775709886852
     TagComponent:
-      Tag: Skylight
+      Tag: Baseball
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [0, -195.300003, 0]
-      Scale: [0.999979258, 1, 0.999979258]
-    DirectionalLightComponent:
-      Radiance: [1, 1, 1]
-      Intensity: 1
-      SunDisk: true
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      IsPlanet: true
+      Material: baseball_01
   - Entity: 104111520100160931
     TagComponent:
       Tag: Environment
@@ -21,14 +20,14 @@ Entities:
     SkyLightComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\textures\immenstadter_horn_4k.tif
       Intensity: 1
-  - Entity: 13199103775709886852
+  - Entity: 9474256362433269823
     TagComponent:
-      Tag: Baseball
+      Tag: Skylight
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-    MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Baseball\baseball_01_4k.gltf
-      IsPlanet: false
-      Material: baseball_01
+      Rotation: [0, -632.299988, 0]
+      Scale: [0.999962389, 1, 0.999962389]
+    DirectionalLightComponent:
+      Radiance: [1, 1, 1]
+      Intensity: 10
+      SunDisk: true
