@@ -69,10 +69,12 @@ namespace Toast {
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
 		std::wstring stemp = std::wstring(mFilePath.begin(), mFilePath.end());
 
-		result = DirectX::CreateWICTextureFromFile(device, stemp.c_str(), &mResource, &mSRV);
+		result = DirectX::CreateWICTextureFromFileEx(device, deviceContext, stemp.c_str(), 0, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0,
+			WIC_LOADER_FORCE_SRGB, &mResource, &mSRV);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load texture!");
 
 		mResource->QueryInterface<ID3D11Texture2D>(&textureInterface);

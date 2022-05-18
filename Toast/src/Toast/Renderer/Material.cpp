@@ -332,7 +332,7 @@ namespace Toast {
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 		out << YAML::Key << "Material" << YAML::Value << material->GetName();
-		out << YAML::Key << "Shader" << YAML::Value << material->GetShader()->GetName();
+		out << YAML::Key << "Shader" << YAML::Value << material->GetShader()->GetFullPathName();
 
 		if (material->GetMaterialCBuffer()) 
 		{

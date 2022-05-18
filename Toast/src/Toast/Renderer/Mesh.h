@@ -63,16 +63,14 @@ namespace Toast {
 	{
 		DirectX::XMFLOAT3 Position;
 		DirectX::XMFLOAT3 Normal;
-		DirectX::XMFLOAT3 Tangent;
-		DirectX::XMFLOAT3 Binormal;
+		DirectX::XMFLOAT4 Tangent;
 		DirectX::XMFLOAT2 Texcoord;
 
-		Vertex(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 nor, DirectX::XMFLOAT3 tan, DirectX::XMFLOAT3 bin, DirectX::XMFLOAT2 uv)
+		Vertex(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 nor, DirectX::XMFLOAT4 tan, DirectX::XMFLOAT2 uv)
 		{
 			Position = pos;
 			Normal = nor;
 			Tangent = tan;
-			Binormal = bin;
 			Texcoord = uv;
 		}
 
@@ -80,8 +78,7 @@ namespace Toast {
 		{
 			Position = pos;
 			Normal = { 0.0f, 0.0f, 0.0f };
-			Tangent = { 0.0f, 0.0f, 0.0f };
-			Binormal = { 0.0f, 0.0f, 0.0f };
+			Tangent = { 0.0f, 0.0f, 0.0f, 0.0f };
 			Texcoord = { 0.0f, 0.0f };
 		}
 
@@ -89,8 +86,7 @@ namespace Toast {
 		{
 			Position = { 0.0f, 0.0f, 0.0f };
 			Normal = { 0.0f, 0.0f, 0.0f };
-			Tangent = { 0.0f, 0.0f, 0.0f };
-			Binormal = { 0.0f, 0.0f, 0.0f };
+			Tangent = { 0.0f, 0.0f, 0.0f, 0.0f };
 			Texcoord = { 0.0f, 0.0f };
 		}
 

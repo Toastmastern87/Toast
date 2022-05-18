@@ -295,7 +295,7 @@ namespace Toast {
 
 					meshCommand.Mesh->Map();
 					meshCommand.Mesh->Bind(environment);
-					
+
 					RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 				}
 			}
