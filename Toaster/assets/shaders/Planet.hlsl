@@ -217,8 +217,7 @@ TextureCube IrradianceTexture	: register(t0);
 TextureCube RadianceTexture		: register(t1);
 Texture2D SpecularBRDFLUT		: register(t2);
 Texture2D AlbedoTexture			: register(t3);
-Texture2D MetalnessTexture		: register(t5);
-Texture2D RoughnessTexture		: register(t6);
+Texture2D MetalRoughTexture		: register(t5);
 Texture2D HeightMapTexturePS	: register(t7);
 Texture2D CraterMapTexturePS	: register(t8);
 
@@ -509,8 +508,8 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 
 	// Sample input textures to get shading model params.
 	params.Albedo = AlbedoTexToggle == 1 ? AlbedoTexture.Sample(defaultSampler, input.texcoord).rgb : Albedo.rgb;
-	params.Metalness = MetalRoughTexToggle == 1 ? MetalnessTexture.Sample(defaultSampler, input.texcoord).r : Metalness;
-	params.Roughness = MetalRoughTexToggle == 1 ? RoughnessTexture.Sample(defaultSampler, input.texcoord).b : Roughness;
+	params.Metalness = MetalRoughTexToggle == 1 ? MetalRoughTexture.Sample(defaultSampler, input.texcoord).r : Metalness;
+	params.Roughness = MetalRoughTexToggle == 1 ? MetalRoughTexture.Sample(defaultSampler, input.texcoord).b : Roughness;
 	params.Roughness = max(params.Roughness, 0.05f); // Minimum roughness of 0.05 to keep specular highlight
 
 	// Outgoing light direction (vector from world-space fragment position to the "eye").

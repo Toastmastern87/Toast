@@ -53,7 +53,7 @@ namespace Toast {
 		sActiveScenes.erase(mSceneID);
 	}
 
-	Entity Scene::CreateEntity(const std::string& name)
+	Entity Scene::CreateEntity(const std::string& name, UUID parent)
 	{
 		Entity entity = { mRegistry.create(), this };
 		auto& idComponent = entity.AddComponent<IDComponent>();
