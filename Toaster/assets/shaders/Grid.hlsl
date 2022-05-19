@@ -111,7 +111,7 @@ PixelOutputType main(PixelInputType input)
 	float t = -input.nearPoint.y / (input.farPoint.y - input.nearPoint.y);
 	float3 pos = input.nearPoint + t * (input.farPoint - input.nearPoint);
 
-	float gradient = 5000.0f;
+	float gradient = 2500.0f;
 	float scale = 10.0f;
 
 	float linearDepth = ComputeLinearDepth(pos);

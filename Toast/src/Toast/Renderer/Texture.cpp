@@ -75,6 +75,7 @@ namespace Toast {
 
 		result = DirectX::CreateWICTextureFromFileEx(device, deviceContext, stemp.c_str(), 0, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0,
 			WIC_LOADER_FORCE_SRGB, &mResource, &mSRV);
+		//result = DirectX::CreateWICTextureFromFile(device, stemp.c_str(), &mResource, &mSRV);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load texture!");
 
 		mResource->QueryInterface<ID3D11Texture2D>(&textureInterface);

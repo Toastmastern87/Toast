@@ -10,29 +10,29 @@
 namespace Toast {
 
 	template<typename T>
-	static void LoadAttribute(cgltf_accessor* attribute, T Vertex::* member, std::vector<Vertex>& vertices)
+	static void LoadAttribute(cgltf_accessor* attribute, T Vertex::* member, std::vector<Vertex>& vertices, uint32_t baseVertex)
 	{
 		T* data = reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
 
-		for (int a = 0; a < attribute->count; a++)
-			vertices[a].*member = data[a];
+		for (int a = (baseVertex); a < (baseVertex + attribute->count); a++)
+			vertices[a].*member = data[a - baseVertex];
 	}
 
-	static void LoadAttribute(cgltf_accessor* attribute, cgltf_attribute_type attributetype, std::vector<Vertex>& vertices)
+	static void LoadAttribute(cgltf_accessor* attribute, cgltf_attribute_type attributetype, std::vector<Vertex>& vertices, uint32_t baseVertex)
 	{
 		switch (attributetype)
 		{
 		case cgltf_attribute_type_position:
-			LoadAttribute(attribute, &Vertex::Position, vertices);
+			LoadAttribute(attribute, &Vertex::Position, vertices, baseVertex);
 			break;
 		case cgltf_attribute_type_normal:
-			LoadAttribute(attribute, &Vertex::Normal, vertices);
+			LoadAttribute(attribute, &Vertex::Normal, vertices, baseVertex);
 			break;
 		case cgltf_attribute_type_tangent:
-			LoadAttribute(attribute, &Vertex::Tangent, vertices);
+			LoadAttribute(attribute, &Vertex::Tangent, vertices, baseVertex);
 			break;
 		case cgltf_attribute_type_texcoord:
-			LoadAttribute(attribute, &Vertex::Texcoord, vertices);
+			LoadAttribute(attribute, &Vertex::Texcoord, vertices, baseVertex);
 			break;
 		}
 	}
@@ -70,12 +70,7 @@ namespace Toast {
 
 		if (result == cgltf_result_success)
 		{
-			//TOAST_CORE_INFO("cgltf result success!");
-			TOAST_CORE_INFO("Number of meshes: %d", data->meshes_count);
-
 			result = cgltf_load_buffers(&options, data, filePath.c_str());
-			//if(result == cgltf_result_success)
-			//	TOAST_CORE_INFO("cgltf data buffers result success!");
 
 			DirectX::XMFLOAT3 translation;
 			DirectX::XMFLOAT4 rotation;
@@ -103,8 +98,6 @@ namespace Toast {
 				else
 					translation = { 0.0f, 0.0f, 0.0f };
 
-				//TOAST_CORE_INFO("Translation mesh[%d]: %f, %f, %f", m, translation.x, translation.y, translation.z);
-
 				mTransform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z)
 					* (DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation)))
 					* DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
@@ -115,86 +108,20 @@ namespace Toast {
 				{
 					if (data->meshes[m].primitives[p].type != cgltf_primitive_type_triangles) 
 						continue;
-					
-					//TOAST_CORE_INFO("Mesh holds cgltf_primitive_type_triangles");
 
 					for (unsigned int a = 0; a < data->meshes[m].primitives[p].attributes_count; a++)
 					{
-						// POSITIONS
-						if (data->meshes[m].primitives[p].attributes[a].type == cgltf_attribute_type_position)      
-						{
-							//TOAST_CORE_INFO("Mesh holds postion data");
+						cgltf_accessor* attribute = data->meshes[m].primitives[p].attributes[a].data;
 
-							cgltf_accessor* attribute = data->meshes[m].primitives[p].attributes[a].data;
+						if (a == 0) 
+						{
 							submesh.BaseVertex = vertexCount;
-							//TOAST_CORE_INFO("submesh.BaseVertex for submesh: %d", submesh.BaseVertex);
-							//TOAST_CORE_INFO("submesh.VertexCount: %d", attribute->count);
 							submesh.VertexCount = (uint32_t)attribute->count;
 							vertexCount += submesh.VertexCount;
 							mVertices.resize(vertexCount);
-
-							if ((attribute->component_type == cgltf_component_type_r_32f) && (attribute->type == cgltf_type_vec3))
-							{
-
-								//TOAST_CORE_INFO("Mesh postion data correct format");
-								//TOAST_CORE_INFO("Attribute count: %d", (int)attribute->count);
-							
-								//LoadAttribute<DirectX::XMFLOAT3>(attribute, cgltf_attribute_type_position, mVertices);
-
-								DirectX::XMFLOAT3* positions = reinterpret_cast<DirectX::XMFLOAT3*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
-								for (int v = submesh.BaseVertex; v < (submesh.BaseVertex + attribute->count); v++)
-									mVertices[v].Position = positions[v - submesh.BaseVertex];
-							}
 						}
 
-						// NORMALS
-						if (data->meshes[m].primitives[p].attributes[a].type == cgltf_attribute_type_normal)
-						{
-							//TOAST_CORE_INFO("Mesh holds normal data");
-
-							cgltf_accessor* attribute = data->meshes[m].primitives[p].attributes[a].data;
-
-							if ((attribute->component_type == cgltf_component_type_r_32f) && (attribute->type == cgltf_type_vec3))
-							{
-								//LoadAttribute<DirectX::XMFLOAT3>(attribute, cgltf_attribute_type_normal, mVertices);
-
-								DirectX::XMFLOAT3* normals = reinterpret_cast<DirectX::XMFLOAT3*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
-								for (int v = submesh.BaseVertex; v < (submesh.BaseVertex + attribute->count); v++)
-									mVertices[v].Normal = normals[v - submesh.BaseVertex];
-							}
-						}
-
-						// TANGENTS
-						if (data->meshes[m].primitives[p].attributes[a].type == cgltf_attribute_type_tangent)
-						{
-							
-
-							cgltf_accessor* attribute = data->meshes[m].primitives[p].attributes[a].data;
-
-							if ((attribute->component_type == cgltf_component_type_r_32f) && (attribute->type == cgltf_type_vec4))
-							{
-								//LoadAttribute<DirectX::XMFLOAT3>(attribute, cgltf_attribute_type_tangent, mVertices);
-								DirectX::XMFLOAT4* tangents = reinterpret_cast<DirectX::XMFLOAT4*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
-								for (int v = submesh.BaseVertex; v < (submesh.BaseVertex + attribute->count); v++)
-									mVertices[v].Tangent = tangents[v - submesh.BaseVertex];
-							}
-						}
-
-						// TEXCOORDS
-						if (data->meshes[m].primitives[p].attributes[a].type == cgltf_attribute_type_texcoord)
-						{
-							//TOAST_CORE_INFO("Mesh holds texcoords data");
-
-							cgltf_accessor* attribute = data->meshes[m].primitives[p].attributes[a].data;
-
-							if ((attribute->component_type == cgltf_component_type_r_32f) && (attribute->type == cgltf_type_vec2))
-							{
-								//LoadAttribute<DirectX::XMFLOAT2>(attribute, cgltf_attribute_type_texcoord, mVertices);
-								DirectX::XMFLOAT2* texCoords = reinterpret_cast<DirectX::XMFLOAT2*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
-								for (int v = submesh.BaseVertex; v < (submesh.BaseVertex + attribute->count); v++)
-									mVertices[v].Texcoord = texCoords[v - submesh.BaseVertex];
-							}
-						}
+						LoadAttribute(attribute, data->meshes[m].primitives[p].attributes[a].type, mVertices, submesh.BaseVertex);
 					}
 
 					// INDICES
@@ -205,17 +132,11 @@ namespace Toast {
 						submesh.IndexCount = attribute->count;
 						submesh.BaseIndex = indexCount;
 						indexCount += submesh.IndexCount;
-						//TOAST_CORE_INFO("submesh.BaseIndex for submesh: %d", submesh.BaseIndex);
-						//TOAST_CORE_INFO("submesh.IndexCount for submesh: %d\n\n", submesh.IndexCount);
 
 						mIndices.resize(indexCount);
 
-						//TOAST_CORE_INFO("Mesh indices count: %d", submesh.IndexCount);
-
 						if (attribute->component_type == cgltf_component_type_r_16u)
 						{
-							//TOAST_CORE_INFO("Mesh indices of type r_16u");
-
 							uint16_t* indices = reinterpret_cast<uint16_t*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
 							for (int i = submesh.BaseIndex; i < (submesh.BaseIndex + attribute->count); i++)
 								mIndices[i] = (uint32_t)indices[i - submesh.BaseIndex];
@@ -306,12 +227,6 @@ namespace Toast {
 			}
 
 			cgltf_free(data);
-
-			TOAST_CORE_INFO("Mesh loaded!");
-			//for each (Vertex v in mVertices)
-			//	TOAST_CORE_INFO("Vertex Tangent x: %f, y: %f, z: %f", v.Tangent.x, v.Tangent.y, v.Tangent.z);
-			//for each (uint16_t i in mIndices)
-			//	TOAST_CORE_INFO("Indices: %d ", i);
 			
 			mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
 			mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());

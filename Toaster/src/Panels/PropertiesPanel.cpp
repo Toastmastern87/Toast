@@ -393,9 +393,22 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(2);
 				if (ImGui::Button("...##openmesh"))
 				{
-					std::optional<std::string> filepath = FileDialogs::OpenFile("*.fbx", "..\\Toaster\\assets\\meshes\\");
-					if (filepath)
+					std::optional<std::string> filepath = FileDialogs::OpenFile("*.gltf", "..\\Toaster\\assets\\meshes\\");
+					if (filepath) 
+					{
+						auto& tag = entity.GetComponent<TagComponent>().Tag;
+						auto id = entity.GetComponent<IDComponent>().ID;
+						if (tag == "Empty Entity") 
+						{
+							std::string newTag = *filepath;
+							std::size_t found = newTag.find_last_of("/\\");
+							newTag = newTag.substr(found + 1);
+							found = newTag.find_last_of(".\\");
+							tag = newTag.substr(0, found);
+						}
+
 						component.Mesh = CreateRef<Mesh>(*filepath);
+					}
 				}
 
 				ImGui::TableNextRow();

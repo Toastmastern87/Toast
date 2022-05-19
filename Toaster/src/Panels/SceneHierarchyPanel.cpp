@@ -46,8 +46,8 @@ namespace Toast {
 		mContext->mRegistry.each([&](auto entityID)
 			{
 				Entity entity{ entityID, mContext.get() };
-				// TODO change to ID Component once that one is added
-				if (entity.HasComponent<TagComponent>())
+
+				if (entity.HasComponent<IDComponent>()) 
 					DrawEntityNode(entity);
 			});
 
@@ -115,8 +115,7 @@ namespace Toast {
 		if (opened)
 		{
 			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
-			bool opened = ImGui::TreeNodeEx((void*)9817239, flags, tag.c_str());
-			if (opened)
+			if (ImGui::TreeNodeEx((void*)9817239, flags, tag.c_str()))
 				ImGui::TreePop();
 
 			ImGui::TreePop();

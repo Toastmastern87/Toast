@@ -181,7 +181,10 @@ namespace Toast {
 		std::vector<PlanetVertex>& GetPlanetVertices() { return mPlanetVertices; }
 		std::vector<PlanetPatch>& GetPlanetPatches() { return mPlanetPatches; }
 
+
+		std::vector<Submesh>& GetSubmeshes() { return mSubmeshes; }
 		void AddSubmesh(uint32_t indexCount);
+		uint32_t GetNumberOfSubmeshes() { return mSubmeshes.size(); }
 
 		const Ref<Material> GetMaterial() const { return mMaterial; }
 		void SetMaterial(Ref<Material> material) { mMaterial = material; }
