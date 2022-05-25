@@ -23,7 +23,8 @@ IncludeDir["entt"] = "Toast/vendor/entt/include"
 IncludeDir["yaml_cpp"] = "Toast/vendor/yaml-cpp/include" 
 IncludeDir["ImGuizmo"] = "Toast/vendor/ImGuizmo"
 IncludeDir["mono"] = "Toast/vendor/mono/include"
-IncludeDir["cgltf"] = "Toast/vendor/cgltf/include" 
+IncludeDir["cgltf"] = "Toast/vendor/cgltf/include"
+IncludeDir["stb_image"] = "Toast/vendor/stb_image/include"
 
 LibraryDir = {}
 LibraryDir["directxtk"] = "Toast/vendor/directxtk/Bin/"
@@ -73,7 +74,8 @@ project "Toast"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.ImGuizmo}",
 		"%{IncludeDir.mono}",
-		"%{IncludeDir.cgltf}"
+		"%{IncludeDir.cgltf}",
+		"%{IncludeDir.stb_image}"
 	}
 
 	links
