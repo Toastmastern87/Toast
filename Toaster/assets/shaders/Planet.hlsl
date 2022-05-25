@@ -471,7 +471,7 @@ float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, 
 	float G = gaSchlickGGX(cosLi, NdotV, roughness);
 
 	float3 kd = (1.0f - F) * (1.0f - metalness);
-	float3 diffuseBRDF = kd * albedo / PI;
+	float3 diffuseBRDF = (kd * albedo) / PI;
 
 	// Cook-Torrance
 	float3 specularBRDF = (F * D * G) / max(Epsilon, 4.0f * cosLi * NdotV);

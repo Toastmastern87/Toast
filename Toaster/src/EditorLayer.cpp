@@ -42,7 +42,7 @@ namespace Toast {
 		mStopButtonTex = TextureLibrary::LoadTexture2D("assets/textures/StopButton.png");
 		mLogoTex = TextureLibrary::LoadTexture2D("assets/textures/ToastEnginePlanetLogo.png");
 		TextureLibrary::LoadTexture2D("assets/textures/White.png");
-		TextureLibrary::LoadTextureSampler("Default", D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
+		TextureLibrary::LoadTextureSampler("Default", D3D11_FILTER_ANISOTROPIC, D3D11_TEXTURE_ADDRESS_WRAP);
 
 		// Load all material shaders
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");

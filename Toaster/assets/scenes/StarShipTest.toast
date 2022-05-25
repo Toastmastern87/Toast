@@ -1,0 +1,34 @@
+Scene: Untitled Scene
+Entities:
+  - Entity: 12371676076754408838
+    TagComponent:
+      Tag: Sun
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, -134, 0]
+      Scale: [0.999807537, 1, 0.999807537]
+    DirectionalLightComponent:
+      Radiance: [1, 1, 1]
+      Intensity: 10
+      SunDisk: true
+  - Entity: 16123413752760409530
+    TagComponent:
+      Tag: Skybox
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SkyLightComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\immenstadter_horn_4k.tif
+      Intensity: 1.00999999
+  - Entity: 60286282978967867
+    TagComponent:
+      Tag: Starship
+    TransformComponent:
+      Translation: [0, 0.332588494, 0]
+      Rotation: [0, -0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
+      IsPlanet: false
+      Material: StainlessSteel.001
