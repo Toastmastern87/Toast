@@ -31,4 +31,4 @@ Entities:
     MeshComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
       IsPlanet: false
-      Material: StainlessSteel.001
+      Material: StainlessSteel
