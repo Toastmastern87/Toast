@@ -261,7 +261,7 @@ uint queryRadianceTextureLevels()
 	return levels;
 }
 
-float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, float3 albedo, float roughness, float metalness)
+float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float cosLo, float3 albedo, float roughness, float metalness)
 {
 	float3 result = float3(0.0f, 0.0f, 0.0f);
 
@@ -275,13 +275,13 @@ float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, 
 
 	float3 F = fresnelSchlick(F0, max(0.0f, dot(Lh, View)));
 	float D = ndfGGX(cosLh, roughness);
-	float G = gaSchlickGGX(cosLi, NdotV, roughness);
+	float G = gaSchlickGGX(cosLi, cosLo, roughness);
 
-	float3 kd = (1.0f - F) * (1.0f - metalness);
-	float3 diffuseBRDF = kd * albedo;// / PI;
+	float3 kd = lerp(float3(1.0f, 1.0f, 1.0f) - F, float3(0.0f, 0.0f, 0.0f), metalness);
+	float3 diffuseBRDF = (kd * albedo) / PI;
 
 	// Cook-Torrance
-	float3 specularBRDF = (F * D * G) / max(Epsilon, 4.0f * cosLi * NdotV);
+	float3 specularBRDF = (F * D * G) / max(Epsilon, 4.0f * cosLi * cosLo);
 
 	result += (diffuseBRDF + specularBRDF) * Lradiance * cosLi;
 
@@ -289,23 +289,22 @@ float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, 
 }
 
 // Ambient Lightning
-float3 IBL(float3 F0, float3 Lr, float3 Normal, float3 View, float NdotV, float3 albedo, float roughness, float metalness)
+float3 IBL(float3 F0, float3 Lr, float3 Normal, float3 View, float NdotV, float3 albedo, float roughness, float metalness, float cosLo)
 {
 	float3 irradiance = IrradianceTexture.Sample(defaultSampler, Normal).rgb;
-	float3 F = fresnelSchlickRoughness(F0, NdotV, roughness);
-	float3 kd = (1.0f - F) * (1.0f - metalness);
-	float3 diffuseIBL = albedo * irradiance;
+	float3 F = fresnelSchlick(F0, cosLo);
+	float3 kd = lerp(1.0f - F, 0.0f, metalness);
+	float3 diffuseIBL = kd * albedo * irradiance;
 
 	uint specularTextureLevels = queryRadianceTextureLevels();
-	float NoV = clamp(NdotV, 0.0f, 1.0f);
-	float3 R = 2.0f * dot(View, Normal) * Normal - View;
+	//float NoV = clamp(NdotV, 0.0f, 1.0f);
+	//float3 R = 2.0f * dot(View, Normal) * Normal - View;
 	float3 specularIrradiance = RadianceTexture.SampleLevel(defaultSampler, Lr, roughness * specularTextureLevels).rgb;
 
-	// Sample BRDF Lut, 1.0 - roughness for y-coord because texture was generated (in Sparky) for gloss model
-	float2 specularBRDF = SpecularBRDFLUT.Sample(spBRDFSampler, float2(NdotV, 1.0f - roughness)).rg;
+	float2 specularBRDF = SpecularBRDFLUT.Sample(spBRDFSampler, float2(cosLo, roughness)).rg;
 	float3 specularIBL = specularIrradiance * (F0 * specularBRDF.x + specularBRDF.y);
 
-	return kd * diffuseIBL + specularIBL;
+	return diffuseIBL + specularIBL;
 }
 
 PixelOutputType main(PixelInputType input) : SV_TARGET
@@ -340,7 +339,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	float3 F0 = lerp(Fdielectric, params.Albedo, params.Metalness);
 
 	float3 lightContribution = DirectionalLightning(F0, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness) + params.Albedo * Emission;
-	float3 iblContribution = IBL(F0, Lr, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness);
+	float3 iblContribution = IBL(F0, Lr, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness, cosLo);
 
 	output.Color = float4(lightContribution + iblContribution, 1.0f);
 

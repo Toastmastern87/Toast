@@ -1,9 +1,9 @@
 Material: Red
 Shader: assets/shaders/ToastPBR.hlsl
-Albedo: [0, 0, 0, 0]
+Albedo: [1, 0, 0, 0]
 Metalness: 1
 Roughness: 0
-UseAlbedoMap: 1
+UseAlbedoMap: 0
 UseNormalMap: 0
 UseMetalRoughMap: 0
 Textures:

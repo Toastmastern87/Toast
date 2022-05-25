@@ -81,28 +81,15 @@ namespace Toast {
 				Submesh& submesh = mSubmeshes.emplace_back();
 				submesh.MaterialIndex = 0;// data->meshes[m].primitives[0].material;
 				submesh.MeshName = data->meshes[m].name;
-
+				
 				// TRANSFORM
-				if (data->nodes[m].has_scale)
-					scale = { data->nodes[m].scale[0], data->nodes[0].scale[1], data->nodes[0].scale[2] };
-				else
-					scale = { 1.0f, 1.0f, 1.0f };
+				scale = data->nodes[m].has_scale ? DirectX::XMFLOAT3(data->nodes[m].scale[0], data->nodes[m].scale[1], data->nodes[m].scale[2]) : DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
+				rotation = data->nodes[m].has_rotation ? DirectX::XMFLOAT4(data->nodes[m].rotation[0], data->nodes[m].rotation[1], data->nodes[m].rotation[2], data->nodes[m].rotation[3]) : DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+				translation = data->nodes[m].has_translation ? DirectX::XMFLOAT3(data->nodes[m].translation[0], data->nodes[m].translation[1], data->nodes[m].translation[2]) : DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 
-				if (data->nodes[m].has_rotation)
-					rotation = { data->nodes[m].rotation[0], data->nodes[m].rotation[1], data->nodes[m].rotation[2], data->nodes[m].rotation[3] };
-				else
-					rotation = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-				if (data->nodes[m].has_translation)
-					translation = { data->nodes[m].translation[0], data->nodes[m].translation[1], data->nodes[m].translation[2] };
-				else
-					translation = { 0.0f, 0.0f, 0.0f };
-
-				mTransform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z)
-					* (DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation)))
-					* DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
-
-				submesh.Transform = mTransform;
+				submesh.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z)
+						* (DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation)))
+						* DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
 
 				for (unsigned int p = 0; p < data->meshes[m].primitives_count; p++)
 				{
@@ -157,10 +144,10 @@ namespace Toast {
 
 				// ALBEDO
 				DirectX::XMFLOAT4 albedoColor;
-				albedoColor.x = (unsigned char)data->materials[0].pbr_metallic_roughness.base_color_factor[0];
-				albedoColor.y = (unsigned char)data->materials[0].pbr_metallic_roughness.base_color_factor[1];
-				albedoColor.z = (unsigned char)data->materials[0].pbr_metallic_roughness.base_color_factor[2];
-				albedoColor.w = (unsigned char)data->materials[0].pbr_metallic_roughness.base_color_factor[3];
+				albedoColor.x = data->materials[0].pbr_metallic_roughness.base_color_factor[0];
+				albedoColor.y = data->materials[0].pbr_metallic_roughness.base_color_factor[1];
+				albedoColor.z = data->materials[0].pbr_metallic_roughness.base_color_factor[2];
+				albedoColor.w = data->materials[0].pbr_metallic_roughness.base_color_factor[3];
 
 				bool hasAlbedoMap = data->materials[0].pbr_metallic_roughness.base_color_texture.texture;
 				int useAlbedoMap = 0;
@@ -207,6 +194,7 @@ namespace Toast {
 				bool hasMetalRoughMap = data->materials[0].pbr_metallic_roughness.metallic_roughness_texture.texture;
 				int useMetalRoughMap = 0;
 				float metalness = 0.0f;
+				float roughness = 0.0f;
 				if (hasMetalRoughMap)
 				{
 					std::string texPath(data->materials[0].pbr_metallic_roughness.metallic_roughness_texture.texture->image->uri);
@@ -220,9 +208,13 @@ namespace Toast {
 				}
 				else
 				{
+					metalness = data->materials[0].pbr_metallic_roughness.metallic_factor;
+					roughness = data->materials[0].pbr_metallic_roughness.roughness_factor;
+
 					mMaterial->SetTexture(5, D3D11_PIXEL_SHADER, whiteTexture);
 				}
 				mMaterial->Set<float>("Metalness", metalness);
+				mMaterial->Set<float>("Roughness", roughness);
 				mMaterial->Set<int>("MetalRoughTexToggle", useMetalRoughMap);
 			}
 

@@ -1,0 +1,15 @@
+Material: StainlessSteel
+Shader: assets/shaders/ToastPBR.hlsl
+Albedo: [0.800000012, 0.800000012, 0.800000012, 1]
+Metalness: 0.0430000015
+Roughness: 0.558000028
+UseAlbedoMap: 0
+UseNormalMap: 0
+UseMetalRoughMap: 0
+Textures:
+  - FilePath: assets/textures/White.png
+    BindSlot: 3
+    ShaderType: 5
+  - FilePath: assets/textures/White.png
+    BindSlot: 5
+    ShaderType: 5
