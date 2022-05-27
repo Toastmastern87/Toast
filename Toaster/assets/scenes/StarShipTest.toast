@@ -8,7 +8,8 @@ Entities:
       Rotation: [0, -0, 0]
       Scale: [1, 1, 1]
     MeshComponent:
-      IsPlanet: true
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
+      IsPlanet: false
       Material: StainlessSteel
   - Entity: 16123413752760409530
     TagComponent:
@@ -18,7 +19,7 @@ Entities:
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
     SkyLightComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\belfast_sunset_4k.hdr
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\immenstadter_horn_4k.tif
       Intensity: 1.00999999
   - Entity: 12371676076754408838
     TagComponent:
