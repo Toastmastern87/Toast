@@ -18,7 +18,7 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 IncludeDir = {}
 IncludeDir["ImGui"] = "Toast/vendor/imgui"
-IncludeDir["directxtk"] = "Toast/vendor/directxtk/Inc" 
+IncludeDir["directxtk"] = "Toast/vendor/directxtk/" 
 IncludeDir["entt"] = "Toast/vendor/entt/include" 
 IncludeDir["yaml_cpp"] = "Toast/vendor/yaml-cpp/include" 
 IncludeDir["ImGuizmo"] = "Toast/vendor/ImGuizmo"
@@ -27,7 +27,6 @@ IncludeDir["cgltf"] = "Toast/vendor/cgltf/include"
 IncludeDir["stb_image"] = "Toast/vendor/stb_image/include"
 
 LibraryDir = {}
-LibraryDir["directxtk"] = "Toast/vendor/directxtk/Bin/"
 LibraryDir["mono"] = "vendor/mono/lib/Debug/mono-2.0-sgen.lib"
 
 group "Dependencies"
@@ -81,7 +80,6 @@ project "Toast"
 	links
 	{
 		"ImGui",
-		"DirectXTK",
 		"d3d11.lib",
 		"dxgi.lib",
 		"dxguid.lib",

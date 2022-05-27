@@ -8,7 +8,8 @@ Entities:
       Rotation: [-183, -206, -114]
       Scale: [0.999919116, 0.999737501, 0.999841511]
     MeshComponent:
-      IsPlanet: true
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
+      IsPlanet: false
       Material: StainlessSteel
   - Entity: 12837192831272
     TagComponent:
@@ -90,5 +91,6 @@ Entities:
       Rotation: [-90, 0, 0]
       Scale: [0.999999762, 0.999989212, 0.999989212]
     MeshComponent:
-      IsPlanet: true
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
+      IsPlanet: false
       Material: StainlessSteel

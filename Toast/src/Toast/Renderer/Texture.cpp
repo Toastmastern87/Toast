@@ -6,6 +6,9 @@
 
 #include <WICTextureLoader.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <../vendor/stb/include/stb_image.h>
+
 #include <system_error>
 
 namespace Toast {
@@ -71,6 +74,57 @@ namespace Toast {
 		ID3D11Device* device = API->GetDevice();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
+		//int imageWidth;
+		//int imageHeight;
+		//int imageChannels;
+		//int imageDesiredChannels = 4;
+		//void* imageData;
+
+		//if (stbi_is_hdr(filePath.c_str()))
+		//{
+		//	TOAST_CORE_INFO("Texture is HDR");
+		//	float* imageDataRaw = stbi_loadf(filePath.c_str(), &imageWidth, &imageHeight, &imageChannels, imageDesiredChannels);
+		//	imageData = static_cast<void*>(imageDataRaw);
+
+		//	desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		//}
+		//else
+		//{
+		//	unsigned char* imageDataRaw = stbi_load(filePath.c_str(), &imageWidth, &imageHeight, &imageChannels, imageDesiredChannels);
+		//	imageData = static_cast<void*>(imageDataRaw);
+
+		//	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		//}
+
+		//int imagePitch = imageWidth * 4;
+
+		//if (imageData)
+		//{
+		//	desc.Width = imageWidth;
+		//	desc.Height = imageHeight;
+		//	desc.MipLevels = 1;
+		//	desc.ArraySize = 1;
+		//	desc.SampleDesc.Count = 1;
+		//	desc.SampleDesc.Quality = 0;
+		//	desc.Usage = D3D11_USAGE_DEFAULT;
+		//	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+		//	D3D11_SUBRESOURCE_DATA imageSubresourceData = {};
+
+		//	imageSubresourceData.pSysMem = imageData;
+		//	imageSubresourceData.SysMemPitch = imagePitch;
+
+		//	ID3D11Texture2D* imageTexture;
+
+		//	result = device->CreateTexture2D(&desc,	&imageSubresourceData, &mTexture);
+
+		//	CreateSRV();
+		//	mSRV->GetResource(&mResource);
+		//}
+
+
+		//TOAST_CORE_ASSERT(imageData, "Failed to load image!");
+
 		std::wstring stemp = std::wstring(mFilePath.begin(), mFilePath.end());
 
 		result = DirectX::CreateWICTextureFromFileEx(device, deviceContext, stemp.c_str(), 0, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0,
@@ -81,8 +135,12 @@ namespace Toast {
 		mResource->QueryInterface<ID3D11Texture2D>(&textureInterface);
 		textureInterface->GetDesc(&desc);
 
+		TOAST_CORE_INFO("Texture format: %d", desc.Format);
+
 		mWidth = desc.Width;
 		mHeight = desc.Height;
+
+		//stbi_image_free(imageData);
 	}
 
 	void Texture2D::SetData(void* data, uint32_t size)
