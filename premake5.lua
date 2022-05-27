@@ -24,14 +24,12 @@ IncludeDir["yaml_cpp"] = "Toast/vendor/yaml-cpp/include"
 IncludeDir["ImGuizmo"] = "Toast/vendor/ImGuizmo"
 IncludeDir["mono"] = "Toast/vendor/mono/include"
 IncludeDir["cgltf"] = "Toast/vendor/cgltf/include"
-IncludeDir["stb_image"] = "Toast/vendor/stb_image/include"
 
 LibraryDir = {}
 LibraryDir["mono"] = "vendor/mono/lib/Debug/mono-2.0-sgen.lib"
 
 group "Dependencies"
 	include "Toast/vendor/imgui"
-	include "Toast/vendor/directxtk"
 	include "Toast/vendor/yaml-cpp"
 group ""
 
@@ -56,7 +54,10 @@ project "Toast"
 		"%{prj.name}/src/**.cpp",
 
 		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.h",
-		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp"
+		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp",
+
+		"%{prj.name}/vendor/directxtk/**.h",
+		"%{prj.name}/vendor/directxtk/**.cpp"
 	}
 
 	defines
@@ -73,8 +74,7 @@ project "Toast"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.ImGuizmo}",
 		"%{IncludeDir.mono}",
-		"%{IncludeDir.cgltf}",
-		"%{IncludeDir.stb_image}"
+		"%{IncludeDir.cgltf}"
 	}
 
 	links
