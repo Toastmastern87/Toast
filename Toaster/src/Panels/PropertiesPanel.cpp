@@ -591,6 +591,14 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Gravitational acceleration(m/s^2)");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (ImGui::DragFloat("##GravAcc", &component.PlanetData.gravAcc, 0.1f, 0.0f, 0.0f, "%.2f"))
+					modified = true;
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Atmosphere)");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
