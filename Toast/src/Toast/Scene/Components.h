@@ -60,6 +60,7 @@ namespace Toast {
 			float radius = 3389.5f;
 			float minAltitude = -8.2f;
 			float maxAltitude = 21.2f;
+			float gravAcc = 9.82f;
 			float atmosphereHeight = 100.8f;
 			float mieAnisotropy = 0.0f;
 			float rayScaleHeight = 0.0f;
@@ -81,12 +82,13 @@ namespace Toast {
 		PlanetGPUData PlanetData;
 
 		PlanetComponent() = default;
-		PlanetComponent(int16_t subdivisions, int16_t patchLevels, float maxAltitude, float minAltitude, float radius, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient)
+		PlanetComponent(int16_t subdivisions, int16_t patchLevels, float maxAltitude, float minAltitude, float radius, float gravAcc, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient)
 			: Subdivisions(subdivisions), PatchLevels(patchLevels)
 		{
 			PlanetData.maxAltitude = maxAltitude;
 			PlanetData.minAltitude = minAltitude;
 			PlanetData.radius = radius;
+			PlanetData.gravAcc = gravAcc;
 			PlanetData.atmosphereToggle = atmosphereToggle;
 			PlanetData.atmosphereHeight = atmosphereHeight;
 			PlanetData.inScatteringPoints = inScatteringPoints;
@@ -142,5 +144,16 @@ namespace Toast {
 	{
 		Environment SceneEnvironment;
 		float Intensity = 1.0f;
+	};
+
+	struct RigidBodyComponent
+	{
+		float Mass;
+		DirectX::XMFLOAT3 CenterOfMass;
+	};
+
+	struct SphereColliderComponent
+	{
+		float Radius = 0.0f;
 	};
 }

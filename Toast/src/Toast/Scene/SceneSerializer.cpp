@@ -181,6 +181,7 @@ namespace Toast {
 			out << YAML::Key << "MaxAltitude" << YAML::Value << pc.PlanetData.maxAltitude;
 			out << YAML::Key << "MinAltitude" << YAML::Value << pc.PlanetData.minAltitude;
 			out << YAML::Key << "Radius" << YAML::Value << pc.PlanetData.radius;
+			out << YAML::Key << "GravitationalAcceleration" << YAML::Value << pc.PlanetData.gravAcc;
 			out << YAML::Key << "AtmosphereHeight" << YAML::Value << pc.PlanetData.atmosphereHeight;
 			out << YAML::Key << "AtmosphereToggle" << YAML::Value << pc.PlanetData.atmosphereToggle;
 			out << YAML::Key << "InScatteringPoints" << YAML::Value << pc.PlanetData.inScatteringPoints;
@@ -371,7 +372,7 @@ namespace Toast {
 				auto planetComponent = entity["PlanetComponent"];
 				if (planetComponent) 
 				{
-					auto& pc = deserializedEntity.AddComponent<PlanetComponent>(planetComponent["Subdivisions"].as<int16_t>(), planetComponent["PatchLevels"].as<int16_t>(), planetComponent["MaxAltitude"].as<float>(), planetComponent["MinAltitude"].as<float>(), planetComponent["Radius"].as<float>(), planetComponent["AtmosphereHeight"].as<float>(), planetComponent["AtmosphereToggle"].as<bool>(), planetComponent["InScatteringPoints"].as<int>(), planetComponent["OpticalDepthPoints"].as<int>(), planetComponent["MieAnisotropy"].as<float>(), planetComponent["RayScaleHeight"].as<float>(), planetComponent["MieScaleHeight"].as<float>(), planetComponent["RayBaseScatteringCoefficient"].as<DirectX::XMFLOAT3>(), planetComponent["MieBaseScatteringCoefficient"].as<float>());
+					auto& pc = deserializedEntity.AddComponent<PlanetComponent>(planetComponent["Subdivisions"].as<int16_t>(), planetComponent["PatchLevels"].as<int16_t>(), planetComponent["MaxAltitude"].as<float>(), planetComponent["MinAltitude"].as<float>(), planetComponent["Radius"].as<float>(), planetComponent["GravitationalAcceleration"].as<float>(), planetComponent["AtmosphereHeight"].as<float>(), planetComponent["AtmosphereToggle"].as<bool>(), planetComponent["InScatteringPoints"].as<int>(), planetComponent["OpticalDepthPoints"].as<int>(), planetComponent["MieAnisotropy"].as<float>(), planetComponent["RayScaleHeight"].as<float>(), planetComponent["MieScaleHeight"].as<float>(), planetComponent["RayBaseScatteringCoefficient"].as<DirectX::XMFLOAT3>(), planetComponent["MieBaseScatteringCoefficient"].as<float>());
 				}
 
 				auto skylightComponent = entity["SkyLightComponent"];
