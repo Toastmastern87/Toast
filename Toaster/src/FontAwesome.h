@@ -21,3 +21,5 @@
 #define ICON_TOASTER_PAUSE				u8"\uf04c"
 #define ICON_TOASTER_PLAY				u8"\uf04b"
 #define ICON_TOASTER_TRASH_O			u8"\uf014"
+#define ICON_TOASTER_CIRCLE_O			u8"\uf10c"
+#define ICON_TOASTER_HAND_ROCK_O		u8"\uf255"
