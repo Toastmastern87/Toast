@@ -259,6 +259,29 @@ namespace Toast {
 			out << YAML::EndMap; // ScriptComponent
 		}
 
+		if (entity.HasComponent<RigidBodyComponent>())
+		{
+			out << YAML::Key << "RigidBodyComponent";
+			out << YAML::BeginMap; // DirectionalLightComponent
+
+			auto& rbc = entity.GetComponent<RigidBodyComponent>();
+			out << YAML::Key << "Mass" << YAML::Value << rbc.Mass;
+			out << YAML::Key << "CenterOfMass" << YAML::Value << rbc.CenterOfMass;
+
+			out << YAML::EndMap; // RigidBodyComponent
+		}
+
+		if (entity.HasComponent<SphereColliderComponent>())
+		{
+			out << YAML::Key << "SphereColliderComponent";
+			out << YAML::BeginMap; // DirectionalLightComponent
+
+			auto& scc = entity.GetComponent<SphereColliderComponent>();
+			out << YAML::Key << "Radius" << YAML::Value << scc.Radius;
+
+			out << YAML::EndMap; // SphereColliderComponent
+		}
+
 		out << YAML::EndMap; // Entity
 	}
 
@@ -430,6 +453,23 @@ namespace Toast {
 							}
 						}
 					}
+				}
+
+				auto rigidBodyComponent = entity["RigidBodyComponent"];
+				if (rigidBodyComponent)
+				{
+					auto& rbc = deserializedEntity.AddComponent<RigidBodyComponent>();
+
+					rbc.CenterOfMass = rigidBodyComponent["CenterOfMass"].as<DirectX::XMFLOAT3>();
+					rbc.Mass = rigidBodyComponent["Mass"].as<float>();
+				}
+
+				auto sphereColliderComponent = entity["SphereColliderComponent"];
+				if (sphereColliderComponent)
+				{
+					auto& scc = deserializedEntity.AddComponent<SphereColliderComponent>();
+
+					scc.Radius = sphereColliderComponent["Radius"].as<float>();
 				}
 			}
 		}

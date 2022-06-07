@@ -307,6 +307,24 @@ namespace Toast {
 				}
 			}
 
+			if (!mContext.HasComponent<RigidBodyComponent>())
+			{
+				if (ImGui::MenuItem("Rigid Body"))
+				{
+					mContext.AddComponent<RigidBodyComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
+			if (!mContext.HasComponent<SphereColliderComponent>())
+			{
+				if (ImGui::MenuItem("Sphere Collider"))
+				{
+					mContext.AddComponent<SphereColliderComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
 			ImGui::EndPopup();
 		}
 
@@ -866,6 +884,47 @@ namespace Toast {
 					}
 					ImGui::EndTable();
 				}
+			});
+
+		DrawComponent<RigidBodyComponent>(ICON_TOASTER_HAND_ROCK_O" Rigid Body", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+			{
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+				ImGui::BeginTable("RigidBody", 2, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Center of Mass");
+				ImGui::TableSetColumnIndex(1);
+				DrawFloat3Control("CenterOfMass", component.CenterOfMass);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Mass (kg)");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::DragFloat("##label", &component.Mass, 0.1f, 0.0f, 60000.0f, "%.1f");
+
+				ImGui::EndTable();
+			});
+
+		DrawComponent<SphereColliderComponent>(ICON_TOASTER_CIRCLE_O" Sphere Collider", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+			{
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+				ImGui::BeginTable("SphereCollider", 2, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Radius");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::DragFloat("##label", &component.Radius, 0.1f, 0.0f, 600.0f, "%.1f");
+				ImGui::EndTable();
 			});
 	}
 
