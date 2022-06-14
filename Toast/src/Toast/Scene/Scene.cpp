@@ -122,14 +122,35 @@ namespace Toast {
 		
 		// Update statistics
 		{
-			mStats.FrameTime += ts;
-			if (mStats.FrameTime > 0.1f)
+			mStats.TimeSteps += ts;
+			if (mStats.TimeSteps > 0.1f)
 			{
-				mStats.FrameTime -= 0.1f;
-				mStats.FPS = 1.0f / ts;
+				mStats.FrameTime = ts.GetMilliseconds();
+				mStats.TimeSteps -= 0.1f;
+				mStats.FPS = 1.0f / ts.GetSeconds();
 			}
 
 			mStats.VerticesCount = 0;
+		}
+
+		// Update physics
+		{
+			//Gravity
+			auto view = mRegistry.view<TransformComponent, RigidBodyComponent>();
+			auto planetView = mRegistry.view<PlanetComponent>();
+			for (auto entity : view)
+			{
+				auto pc = planetView.get<PlanetComponent>(planetView[0]);
+
+				auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
+				// Calculate linear velocity due to gravity
+				DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+				DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.Transform);
+				DirectX::XMStoreFloat3(&rbc.LinearVelocity, (DirectX::XMLoadFloat3(&rbc.LinearVelocity) + (-DirectX::XMVector3Normalize(pos) * pc.PlanetData.gravAcc * ts.GetSeconds())));
+
+				// Update position due to gravity
+				tc.Transform = DirectX::XMMatrixMultiply(tc.Transform, XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&rbc.LinearVelocity) * ts.GetSeconds()));
+			}
 		}
 
 		// Update all entities with scripts
@@ -643,6 +664,8 @@ namespace Toast {
 		CopyComponent<DirectionalLightComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<SkyLightComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<ScriptComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<RigidBodyComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<SphereColliderComponent>(target->mRegistry, mRegistry, enttMap);
 
 		const auto& entityInstanceMap = ScriptEngine::GetEntityInstanceMap();
 		if (entityInstanceMap.find(target->GetUUID()) != entityInstanceMap.end())

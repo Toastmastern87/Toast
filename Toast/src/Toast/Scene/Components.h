@@ -150,6 +150,7 @@ namespace Toast {
 	{
 		float Mass = 0.0f;
 		DirectX::XMFLOAT3 CenterOfMass = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 LinearVelocity = { 0.0f, 0.0f, 0.0f };
 
 		RigidBodyComponent() = default;
 		RigidBodyComponent(DirectX::XMFLOAT3& centerOfMass, float mass)

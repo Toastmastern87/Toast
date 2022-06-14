@@ -47,7 +47,7 @@ class CameraController : Entity
         float moveSpeed = 100.0f;// 0.0967f * altitude - 318.0f;
         float zoomSpeed = 0.39f * altitude - 1056.0f;
 
-        Toast.Console.LogInfo("Altitude: " + altitude);
+        //Toast.Console.LogInfo("Altitude: " + altitude);
 
         Vector2 newCursorPos = Input.GetMousePosition();
 
