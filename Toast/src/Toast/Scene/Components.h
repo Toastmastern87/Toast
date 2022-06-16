@@ -148,13 +148,13 @@ namespace Toast {
 
 	struct RigidBodyComponent
 	{
-		float Mass = 0.0f;
+		float InvMass = 0.0f;
 		DirectX::XMFLOAT3 CenterOfMass = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 LinearVelocity = { 0.0f, 0.0f, 0.0f };
 
 		RigidBodyComponent() = default;
-		RigidBodyComponent(DirectX::XMFLOAT3& centerOfMass, float mass)
-			: Mass(mass), CenterOfMass(centerOfMass) {}
+		RigidBodyComponent(DirectX::XMFLOAT3& centerOfMass, float invMass)
+			: InvMass(invMass), CenterOfMass(centerOfMass) {}
 	};
 
 	struct SphereColliderComponent

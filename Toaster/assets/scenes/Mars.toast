@@ -8,11 +8,10 @@ Entities:
       Rotation: [-183, -206, -114]
       Scale: [0.999919116, 0.999737501, 0.999841511]
     MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
-      IsPlanet: false
+      IsPlanet: true
       Material: StainlessSteel
     RigidBodyComponent:
-      Mass: 0
+      Mass: 0.000199999995
       CenterOfMass: [0, 0, 0]
     SphereColliderComponent:
       Radius: 0
@@ -47,7 +46,7 @@ Entities:
       MieAnisotropy: 0.758000016
       RayScaleHeight: 8
       MieScaleHeight: 1.20000005
-      RayBaseScatteringCoefficient: [0.0350000001, 0.00678500021, 0.00287500001]
+      RayBaseScatteringCoefficient: [0.0138400001, 0.00678500021, 0.00287500001]
       MieBaseScatteringCoefficient: 0.0037
     ScriptComponent:
       ModuleName: PlanetScript
@@ -70,7 +69,7 @@ Entities:
     TransformComponent:
       Translation: [0, 0, -3386.95898]
       Rotation: [-90, 0, 0]
-      Scale: [1, 0.999995112, 0.999995112]
+      Scale: [1, 0.999994874, 0.999994874]
     CameraComponent:
       Camera:
         ProjectionType: 0
@@ -95,8 +94,17 @@ Entities:
     TransformComponent:
       Translation: [0, 2.29999995, -3387]
       Rotation: [-90, 0, 0]
-      Scale: [0.999999762, 0.999988735, 0.999988735]
+      Scale: [0.999999762, 0.999988496, 0.999988496]
     MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
-      IsPlanet: false
+      IsPlanet: true
       Material: StainlessSteel
+  - Entity: 1614261608780131607
+    TagComponent:
+      Tag: Physics Test
+    TransformComponent:
+      Translation: [2.24300432, 1.51779294, -3387]
+      Rotation: [0, -0, 0]
+      Scale: [0.100000001, 0.100000001, 0.100000001]
+    MeshComponent:
+      IsPlanet: true
+      Material: Material

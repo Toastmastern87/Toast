@@ -265,7 +265,7 @@ namespace Toast {
 			out << YAML::BeginMap; // DirectionalLightComponent
 
 			auto& rbc = entity.GetComponent<RigidBodyComponent>();
-			out << YAML::Key << "Mass" << YAML::Value << rbc.Mass;
+			out << YAML::Key << "Mass" << YAML::Value << rbc.InvMass;
 			out << YAML::Key << "CenterOfMass" << YAML::Value << rbc.CenterOfMass;
 
 			out << YAML::EndMap; // RigidBodyComponent
@@ -461,7 +461,7 @@ namespace Toast {
 					auto& rbc = deserializedEntity.AddComponent<RigidBodyComponent>();
 
 					rbc.CenterOfMass = rigidBodyComponent["CenterOfMass"].as<DirectX::XMFLOAT3>();
-					rbc.Mass = rigidBodyComponent["Mass"].as<float>();
+					rbc.InvMass = rigidBodyComponent["InvMass"].as<float>();
 				}
 
 				auto sphereColliderComponent = entity["SphereColliderComponent"];
