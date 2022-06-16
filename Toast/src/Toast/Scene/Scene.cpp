@@ -11,6 +11,8 @@
 
 #include "Toast/Script/ScriptEngine.h"
 
+#include "Toast/Physics/PhysicsEngine.h"
+
 namespace Toast {
 
 	std::unordered_map<UUID, Scene*> sActiveScenes;
@@ -140,14 +142,18 @@ namespace Toast {
 			auto planetView = mRegistry.view<PlanetComponent>();
 			for (auto entity : view)
 			{
+				//Only one planet can be handled at a time per scene
 				auto pc = planetView.get<PlanetComponent>(planetView[0]);
 
 				auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
 				// Calculate linear velocity due to gravity
 				DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
 				DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.Transform);
-				DirectX::XMStoreFloat3(&rbc.LinearVelocity, (DirectX::XMLoadFloat3(&rbc.LinearVelocity) + (-DirectX::XMVector3Normalize(pos) * pc.PlanetData.gravAcc * ts.GetSeconds())));
-
+				float mass = 1.0f / rbc.InvMass;
+				DirectX::XMVECTOR impulseGravity = (-DirectX::XMVector3Normalize(pos) * (pc.PlanetData.gravAcc / 1000.0f) * mass * ts.GetSeconds());
+				PhysicsEngine::ApplyImpulseLinear(rbc, impulseGravity);
+				//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
+				
 				// Update position due to gravity
 				tc.Transform = DirectX::XMMatrixMultiply(tc.Transform, XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&rbc.LinearVelocity) * ts.GetSeconds()));
 			}

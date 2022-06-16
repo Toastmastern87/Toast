@@ -905,7 +905,9 @@ namespace Toast {
 				ImGui::Text("Mass (kg)");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::DragFloat("##label", &component.Mass, 0.1f, 0.0f, 60000.0f, "%.1f");
+				float mass = 1.0f / component.InvMass;
+				ImGui::DragFloat("##label", &mass, 0.1f, 0.0f, 60000.0f, "%.1f");
+				component.InvMass = 1.0f / mass;
 
 				ImGui::EndTable();
 			});
