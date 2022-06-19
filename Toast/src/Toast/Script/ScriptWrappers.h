@@ -29,6 +29,10 @@ namespace Toast {
 		float Toast_Input_GetMouseWheelDelta();
 		void Toast_Input_SetMouseWheelDelta(float value);
 
+		// Scene
+		bool Toast_Scene_GetRenderColliders();
+		void Toast_Scene_SetRenderColliders(bool runtime);
+
 		// Entity
 		void Toast_Entity_CreateComponent(uint64_t entityID, void* type);
 		bool Toast_Entity_HasComponent(uint64_t entityID, void* type);

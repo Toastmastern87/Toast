@@ -327,6 +327,28 @@ namespace Toast {
 				Renderer::EndScene(false);
 			}
 
+			// Debug Rendering
+			RendererDebug::BeginScene(*mainCamera);
+			{
+				//Colliders
+				auto colliderMeshes = mRegistry.view<TransformComponent, SphereColliderComponent>();
+				for (auto entity : colliderMeshes)
+				{
+					auto [transform, collider] = colliderMeshes.get<TransformComponent, SphereColliderComponent>(entity);
+
+					if (mSettings.RenderColliders)
+					{
+						DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+						DirectX::XMMatrixDecompose(&scale, &rot, &pos, transform.Transform);
+						scale = { collider.Radius, collider.Radius, collider.Radius };
+
+						DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYawFromVector(rot)) * DirectX::XMMatrixTranslationFromVector(pos);
+						RendererDebug::SubmitCollider(collider.ColliderMesh, transform, true);
+					}
+				}
+			}
+			RendererDebug::EndScene(true, true);
+
 			// 2D Rendering
 			//Renderer2D::BeginScene(*mainCamera, cameraTransform);
 			//{
@@ -584,10 +606,27 @@ namespace Toast {
 					RendererDebug::SubmitCameraFrustum(camera.Camera, transform.Transform, translationFloat3);
 			}
 
+			//Colliders
+			auto colliderMeshes = mRegistry.view<TransformComponent, SphereColliderComponent>();
+			for (auto entity : colliderMeshes)
+			{
+				auto [transform, collider] = colliderMeshes.get<TransformComponent, SphereColliderComponent>(entity);
+
+				if (collider.RenderCollider && mSettings.RenderColliders) 
+				{
+					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+					DirectX::XMMatrixDecompose(&scale, &rot, &pos, transform.Transform);
+					scale = { collider.Radius, collider.Radius, collider.Radius };
+
+					DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYawFromVector(rot)) * DirectX::XMMatrixTranslationFromVector(pos);
+					RendererDebug::SubmitCollider(collider.ColliderMesh, transform, true);
+				}
+			}
+
 			if (mSettings.Grid)
 				RendererDebug::SubmitGrid(*editorCamera);
 		}
-		RendererDebug::EndScene(true);
+		RendererDebug::EndScene(true, false);
 	}
 
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)
@@ -648,6 +687,9 @@ namespace Toast {
 		target->mSkyboxMaterial = mSkyboxMaterial;
 		target->mSkyboxLod = mSkyboxLod;
 		target->mSkybox = mSkybox;
+
+		//Collider
+		target->mColliderMaterial = mColliderMaterial;
 
 		std::unordered_map<UUID, entt::entity> enttMap;
 		auto idComponent = mRegistry.view<IDComponent>();
@@ -828,6 +870,12 @@ namespace Toast {
 	template<>
 	void Scene::OnComponentAdded<SphereColliderComponent>(Entity entity, SphereColliderComponent& component)
 	{
+		//This should be handled differently in the future, have material in the material library or not? :thinking:
+		mColliderMaterial = CreateRef<Material>("ColliderMaterial", ShaderLibrary::Load("assets/shaders/Standard.hlsl"));
+		mColliderMaterial->Set<DirectX::XMFLOAT4>("Albedo", { 0.0f, 0.0f, 1.0f, 1.0f });
+
+		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf");
+		component.ColliderMesh->SetMaterial(mColliderMaterial);
 	}
 
 }

@@ -159,10 +159,12 @@ namespace Toast {
 
 	struct SphereColliderComponent
 	{
+		Ref<Toast::Mesh> ColliderMesh;
+		bool RenderCollider = false;
 		float Radius = 0.0f;
 
 		SphereColliderComponent() = default;
-		SphereColliderComponent(float radius)
-			: Radius(Radius) {}
+		SphereColliderComponent(float radius, const Ref<Toast::Mesh>& mesh)
+			: Radius(Radius), ColliderMesh(mesh) {}
 	};
 }

@@ -262,10 +262,10 @@ namespace Toast {
 		if (entity.HasComponent<RigidBodyComponent>())
 		{
 			out << YAML::Key << "RigidBodyComponent";
-			out << YAML::BeginMap; // DirectionalLightComponent
+			out << YAML::BeginMap; // RigidBodyComponent
 
 			auto& rbc = entity.GetComponent<RigidBodyComponent>();
-			out << YAML::Key << "Mass" << YAML::Value << rbc.InvMass;
+			out << YAML::Key << "InvMass" << YAML::Value << rbc.InvMass;
 			out << YAML::Key << "CenterOfMass" << YAML::Value << rbc.CenterOfMass;
 
 			out << YAML::EndMap; // RigidBodyComponent
@@ -274,9 +274,10 @@ namespace Toast {
 		if (entity.HasComponent<SphereColliderComponent>())
 		{
 			out << YAML::Key << "SphereColliderComponent";
-			out << YAML::BeginMap; // DirectionalLightComponent
+			out << YAML::BeginMap; // SphereColliderComponent
 
 			auto& scc = entity.GetComponent<SphereColliderComponent>();
+			out << YAML::Key << "RenderCollider" << YAML::Value << scc.RenderCollider;
 			out << YAML::Key << "Radius" << YAML::Value << scc.Radius;
 
 			out << YAML::EndMap; // SphereColliderComponent
@@ -470,6 +471,7 @@ namespace Toast {
 					auto& scc = deserializedEntity.AddComponent<SphereColliderComponent>();
 
 					scc.Radius = sphereColliderComponent["Radius"].as<float>();
+					scc.RenderCollider = sphereColliderComponent["RenderCollider"].as<bool>();
 				}
 			}
 		}

@@ -1,12 +1,8 @@
 Material: Blue
 Shader: assets/shaders/ToastPBR.hlsl
-Albedo: [0, 0, 1, 0]
+Albedo: [0, 0, 1, 1]
 Metalness: 0
 Roughness: 0
-UseAlbedoMap: 1
+UseAlbedoMap: 0
 UseNormalMap: 0
 UseMetalRoughMap: 0
-Textures:
-  - FilePath: C:\dev\Toast\Toaster\assets\textures\Blue.png
-    BindSlot: 3
-    ShaderType: 5

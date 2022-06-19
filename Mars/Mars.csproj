@@ -20,7 +20,8 @@
     <OutputPath>..\Toaster\assets\scripts\</OutputPath>
     <BaseIntermediateOutputPath>..\bin-int\Debug-windows-x86_64\Mars\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants></DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -31,7 +32,8 @@
     <OutputPath>..\Toaster\assets\scripts\</OutputPath>
     <BaseIntermediateOutputPath>..\bin-int\Release-windows-x86_64\Mars\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants></DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -42,7 +44,8 @@
     <OutputPath>..\Toaster\assets\scripts\</OutputPath>
     <BaseIntermediateOutputPath>..\bin-int\Dist-windows-x86_64\Mars\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants></DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -51,6 +54,7 @@
   <ItemGroup>
     <Compile Include="src\CameraController.cs" />
     <Compile Include="src\ClientHelloWorld.cs" />
+    <Compile Include="src\Debug.cs" />
     <Compile Include="src\PlanetScript.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -19,15 +19,17 @@ namespace Toast {
 		static void Init();
 		static void Shutdown();
 
-		static void BeginScene(EditorCamera& camera);
-		static void EndScene(const bool debugActivated);
+		static void BeginScene(Camera& camera);
+		static void EndScene(const bool debugActivated, const bool runtime);
 
 		static void SubmitCameraFrustum(SceneCamera& camera, DirectX::XMMATRIX& transform, DirectX::XMFLOAT3& pos);
 		static void SubmitLine(DirectX::XMFLOAT3& p1, DirectX::XMFLOAT3& p2);
 		static void SubmitLine(DirectX::XMVECTOR& p1, DirectX::XMVECTOR& p2);
 		static void SubmitGrid(EditorCamera& camera);
+		static void SubmitCollider(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = true);
+
 	private:
-		static void DebugRenderPass();
+		static void DebugRenderPass(const bool runtime);
 		static void OutlineRenderPass();
 	private:
 		struct DebugData

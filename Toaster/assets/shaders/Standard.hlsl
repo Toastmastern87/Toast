@@ -25,10 +25,10 @@ cbuffer Model : register(b1)
 
 struct VertexInputType
 {
-	float3 position		: POSITION;
-	float3 normal		: NORMAL;
-	float3 tangent		: TANGENT;
-	float2 texcoord		: TEXCOORD;
+	float3 position			: POSITION;
+	float3 normal			: NORMAL;
+	float3 tangent			: TANGENT;
+	float2 texcoord			: TEXCOORD;
 };
 
 struct PixelInputType
@@ -66,6 +66,17 @@ cbuffer DirectionalLight : register(b0)
 	float sunDiscToggle;
 };
 
+cbuffer Material			: register(b1)
+{
+	float4 Albedo;
+	float Emission;
+	float Metalness;
+	float Roughness;
+	int AlbedoTexToggle;
+	int NormalTexToggle;
+	int MetalRoughTexToggle;
+};
+
 struct PixelInputType
 {
 	float4 pixelPosition	: SV_POSITION;
@@ -77,5 +88,5 @@ struct PixelInputType
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	return float4(0.0f, 1.0f, 0.0f, 1.0f);
+	return Albedo;
 }

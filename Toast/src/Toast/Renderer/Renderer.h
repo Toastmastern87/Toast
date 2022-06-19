@@ -57,7 +57,7 @@ namespace Toast {
 			} PlanetData;
 
 			Ref<Framebuffer> BaseFramebuffer, FinalFramebuffer, PickingFramebuffer, OutlineFramebuffer, PlanetMaskFramebuffer, PostProcessFramebuffer;
-			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList;
+			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshColliderDrawList;
 
 			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer;
 			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer;
