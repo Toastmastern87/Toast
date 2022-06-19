@@ -224,7 +224,6 @@ namespace Toast {
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
-
 		D3D11_MAPPED_SUBRESOURCE ms;
 		deviceContext->Map(mBuffer.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
 		std::memcpy(ms.pData, data.Data, data.Size);

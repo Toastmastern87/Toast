@@ -54,6 +54,10 @@ namespace Toast {
 		mono_add_internal_call("Toast.Input::GetMouseWheelDelta_Native", Toast::Script::Toast_Input_GetMouseWheelDelta);
 		mono_add_internal_call("Toast.Input::SetMouseWheelDelta_Native", Toast::Script::Toast_Input_SetMouseWheelDelta);
 
+		//Scene
+		mono_add_internal_call("Toast.Scene::SetRenderColliders_Native", Toast::Script::Toast_Scene_SetRenderColliders);
+		mono_add_internal_call("Toast.Scene::GetRenderColliders_Native", Toast::Script::Toast_Scene_GetRenderColliders);
+
 		//Entity
 		mono_add_internal_call("Toast.Entity::CreateComponent_Native", Toast::Script::Toast_Entity_CreateComponent);
 		mono_add_internal_call("Toast.Entity::HasComponent_Native", Toast::Script::Toast_Entity_HasComponent);

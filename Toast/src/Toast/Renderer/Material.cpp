@@ -204,7 +204,7 @@ namespace Toast {
 
 	void Material::Map()
 	{
-		if(mMaterialCBuffer)
+		if (mMaterialCBuffer) 
 			mMaterialCBuffer->Map(mMaterialBuffer);
 	}
 

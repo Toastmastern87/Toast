@@ -917,6 +917,8 @@ namespace Toast {
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
+				ImGui::Checkbox("Render Collider", &component.RenderCollider);
+
 				ImGui::BeginTable("SphereCollider", 2, flags);
 				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
 				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);

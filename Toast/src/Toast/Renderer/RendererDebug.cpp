@@ -44,7 +44,7 @@ namespace Toast {
 		delete[] mDebugData->LineVertexBufferBase;
 	}
 
-	void RendererDebug::BeginScene(EditorCamera& camera)
+	void RendererDebug::BeginScene(Camera& camera)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -53,7 +53,7 @@ namespace Toast {
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetProjection(), 64, 64);
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetInvViewMatrix(), 64, 128);
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetInvProjection(), 64, 192);
-		mDebugData->mDebugBuffer.Write((void*)&camera.GetPosition(), 16, 256);
+		//mDebugData->mDebugBuffer.Write((void*)&camera.GetPosition(), 16, 256);
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetForwardDirection(), 16, 272);
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetFarClip(), 4, 288);
 		mDebugData->mDebugBuffer.Write((void*)&camera.GetNearClip(), 4, 292);
@@ -64,12 +64,13 @@ namespace Toast {
 		mDebugData->LineVertexBufferPtr = mDebugData->LineVertexBufferBase;
 	}
 
-	void RendererDebug::EndScene(const bool debugActivated)
+	void RendererDebug::EndScene(const bool debugActivated, const bool runtime)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		OutlineRenderPass();
-		DebugRenderPass();
+		if(!runtime)
+			OutlineRenderPass();
+		DebugRenderPass(runtime);
 
 		if (debugActivated)
 		{
@@ -80,10 +81,14 @@ namespace Toast {
 		ZeroMemory(mDebugData->LineVertexBufferBase, mDebugData->MaxVertices * sizeof(LineVertex));
 		mDebugData->LineVertexCount = 0;
 
-		mDebugData->mGridBuffer.ZeroInitialize();
-		mDebugData->mGridCBuffer->Map(mDebugData->mGridBuffer);
+		if (!runtime) 
+		{
+			mDebugData->mGridBuffer.ZeroInitialize();
+			mDebugData->mGridCBuffer->Map(mDebugData->mGridBuffer);
 
-		sRendererData->MeshSelectedDrawList.clear();
+			sRendererData->MeshSelectedDrawList.clear();
+		}
+		sRendererData->MeshColliderDrawList.clear();
 	}
 
 	void RendererDebug::SubmitCameraFrustum(SceneCamera& camera, DirectX::XMMATRIX& transform, DirectX::XMFLOAT3& pos)
@@ -163,34 +168,59 @@ namespace Toast {
 		mDebugData->mGridBuffer.Write((void*)&camera.GetNearClip(), 4, 132);
 	}
 
-	void RendererDebug::DebugRenderPass()
+	void RendererDebug::SubmitCollider(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
+	{
+		sRendererData->MeshColliderDrawList.emplace_back(mesh, transform, wireframe);
+	}
+
+	void RendererDebug::DebugRenderPass(const bool runtime)
 	{
 		sRendererData->FinalFramebuffer->EnableDepth();
 		sRendererData->FinalFramebuffer->Bind();
-		//sRendererData->BaseFramebuffer->Bind();
+
 		RenderCommand::EnableBlending();
 
-		if (mDebugData->LineVertexCount != 0)
+		if (!runtime)
 		{
-			mDebugData->DebugShader->Bind();
+			if (mDebugData->LineVertexCount != 0)
+			{
+				mDebugData->DebugShader->Bind();
 
-			// Frustum
-			RenderCommand::SetPrimitiveTopology(Topology::LINELIST);
+				// Frustum
+				RenderCommand::SetPrimitiveTopology(Topology::LINELIST);
 
-			uint32_t dataSize = (uint32_t)((uint8_t*)mDebugData->LineVertexBufferPtr - (uint8_t*)mDebugData->LineVertexBufferBase);
-			mDebugData->LineVertexBuffer->SetData(mDebugData->LineVertexBufferBase, dataSize);
+				uint32_t dataSize = (uint32_t)((uint8_t*)mDebugData->LineVertexBufferPtr - (uint8_t*)mDebugData->LineVertexBufferBase);
+				mDebugData->LineVertexBuffer->SetData(mDebugData->LineVertexBufferBase, dataSize);
 
-			RenderCommand::Draw(mDebugData->LineVertexCount);
+				RenderCommand::Draw(mDebugData->LineVertexCount);
+			}
+
+			//Grid
+			RenderCommand::DisableWireframe();
+			RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
+
+			mDebugData->mGridCBuffer->Map(mDebugData->mGridBuffer);
+			mDebugData->GridShader->Bind();
+
+			RenderCommand::Draw(6);
 		}
 
-		//Grid
+		RenderCommand::EnableWireframe();
+
+		for (const auto& meshCommand : sRendererData->MeshColliderDrawList)
+		{
+			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+			{
+				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+
+				meshCommand.Mesh->Map();
+				meshCommand.Mesh->Bind(true);
+
+				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+			}
+		}
+
 		RenderCommand::DisableWireframe();
-		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
-
-		mDebugData->mGridCBuffer->Map(mDebugData->mGridBuffer);
-		mDebugData->GridShader->Bind();
-
-		RenderCommand::Draw(6);
 	}
 
 	void RendererDebug::OutlineRenderPass()

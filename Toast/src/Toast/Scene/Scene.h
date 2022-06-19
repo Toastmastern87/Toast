@@ -47,6 +47,7 @@ namespace Toast {
 			bool CameraFrustum = true;
 			bool BackfaceCulling = true;
 			bool FrustumCulling = true;
+			bool RenderColliders = false;
 		};
 		struct Stats
 		{
@@ -95,6 +96,9 @@ namespace Toast {
 		void InvalidateFrustum();
 
 		void SetOldCameraTransform(DirectX::XMMATRIX transform) { mOldCameraTransform = transform; }
+
+		void SetRenderColliders(bool renderColliders) { mSettings.RenderColliders = renderColliders; }
+		bool GetRenderColliders() { return mSettings.RenderColliders; }
 	private:
 		template<typename T>
 		void OnComponentAdded(Entity entity, T& component);
@@ -117,6 +121,8 @@ namespace Toast {
 
 		Settings mSettings;
 		Stats mStats;
+
+		Ref<Material> mColliderMaterial;
 
 		DirectX::XMVECTOR mOldCameraPos = { 0.0f, 0.0f, 0.0f }, mOldCameraRot = { 0.0f, 0.0f, 0.0f }, mOldCameraScale = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMMATRIX mOldCameraTransform = DirectX::XMMatrixIdentity();

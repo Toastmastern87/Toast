@@ -71,7 +71,7 @@ namespace Toast {
 				if (ImGui::MenuItem("Sphere"))
 				{
 					auto newEntity = mContext->CreateEntity("Sphere");
-					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.fbx"));
+					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf"));
 
 					SetSelectedEntity(newEntity);
 				}
