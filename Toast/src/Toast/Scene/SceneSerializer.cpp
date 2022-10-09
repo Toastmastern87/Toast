@@ -6,6 +6,8 @@
 
 #include "Toast/Script/ScriptEngine.h"
 
+#include "Toast/Physics/PhysicsEngine.h"
+
 #include <yaml-cpp/yaml.h>
 
 namespace YAML 
@@ -283,6 +285,18 @@ namespace Toast {
 			out << YAML::EndMap; // SphereColliderComponent
 		}
 
+		if (entity.HasComponent<TerrainColliderComponent>())
+		{
+			out << YAML::Key << "TerrainColliderComponent";
+			out << YAML::BeginMap; // TerrainColliderComponent
+
+			auto& scc = entity.GetComponent<TerrainColliderComponent>();
+			out << YAML::Key << "AssetPath" << YAML::Value << scc.FilePath;
+
+			out << YAML::EndMap; // SphereColliderComponent
+		}
+
+
 		out << YAML::EndMap; // Entity
 	}
 
@@ -472,6 +486,15 @@ namespace Toast {
 
 					scc.Radius = sphereColliderComponent["Radius"].as<float>();
 					scc.RenderCollider = sphereColliderComponent["RenderCollider"].as<bool>();
+				}
+
+				auto terrainColliderComponent = entity["TerrainColliderComponent"];
+				if (terrainColliderComponent)
+				{
+					auto& tcc = deserializedEntity.AddComponent<TerrainColliderComponent>();
+
+					tcc.FilePath = terrainColliderComponent["AssetPath"].as<std::string>();
+					tcc.TerrainData = PhysicsEngine::LoadTerrainData(tcc.FilePath.c_str());
 				}
 			}
 		}

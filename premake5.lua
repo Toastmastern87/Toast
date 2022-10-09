@@ -24,9 +24,11 @@ IncludeDir["yaml_cpp"] = "Toast/vendor/yaml-cpp/include"
 IncludeDir["ImGuizmo"] = "Toast/vendor/ImGuizmo"
 IncludeDir["mono"] = "Toast/vendor/mono/include"
 IncludeDir["cgltf"] = "Toast/vendor/cgltf/include"
+IncludeDir["directxtex"] = "Toast/vendor/directxtex/include"
 
 LibraryDir = {}
 LibraryDir["mono"] = "vendor/mono/lib/Debug/mono-2.0-sgen.lib"
+LibraryDir["directxtex"] = "vendor/directxtex/lib/DirectXTex.lib"
 
 group "Dependencies"
 	include "Toast/vendor/imgui"
@@ -74,7 +76,8 @@ project "Toast"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.ImGuizmo}",
 		"%{IncludeDir.mono}",
-		"%{IncludeDir.cgltf}"
+		"%{IncludeDir.cgltf}",
+		"%{IncludeDir.directxtex}"
 	}
 
 	links
@@ -84,6 +87,7 @@ project "Toast"
 		"dxgi.lib",
 		"dxguid.lib",
 		"yaml-cpp",
+		"%{LibraryDir.directxtex}",
 		"%{LibraryDir.mono}"
 	}
 

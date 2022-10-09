@@ -34,7 +34,7 @@ namespace Toast {
 	{
 	public:
 		Texture2D(DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM, uint32_t width = 1, uint32_t height = 1);
-		Texture2D(const std::string& filePath);
+		Texture2D(const std::string& filePath, bool forceSRGB = true);
 		~Texture2D() = default;
 
 		virtual void CreateSRV() override;

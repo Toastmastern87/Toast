@@ -139,23 +139,43 @@ namespace Toast {
 		{
 			//Gravity
 			auto view = mRegistry.view<TransformComponent, RigidBodyComponent>();
-			auto planetView = mRegistry.view<PlanetComponent>();
-			for (auto entity : view)
-			{
-				//Only one planet can be handled at a time per scene
-				auto pc = planetView.get<PlanetComponent>(planetView[0]);
 
-				auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
-				// Calculate linear velocity due to gravity
-				DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-				DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.Transform);
-				float mass = 1.0f / rbc.InvMass;
-				DirectX::XMVECTOR impulseGravity = (-DirectX::XMVector3Normalize(pos) * (pc.PlanetData.gravAcc / 1000.0f) * mass * ts.GetSeconds());
-				PhysicsEngine::ApplyImpulseLinear(rbc, impulseGravity);
-				//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
-				
-				// Update position due to gravity
-				tc.Transform = DirectX::XMMatrixMultiply(tc.Transform, XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&rbc.LinearVelocity) * ts.GetSeconds()));
+			auto planetView = mRegistry.view<PlanetComponent>();
+			if (planetView.size() > 0)
+			{
+				Entity planetEntity = { planetView[0], this };
+
+				for (auto entity : view)
+				{
+					Entity objectEntity = { entity, this };
+
+					//Only one planet can be handled at a time per scene
+					auto pc = planetEntity.GetComponent<PlanetComponent>();
+					auto tcc = planetEntity.GetComponent<TerrainColliderComponent>();
+
+					auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
+					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+					DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.Transform);
+
+					bool terrainCollision = false;
+
+					// Calculate linear velocity due to gravity
+					float mass = 1.0f / rbc.InvMass;
+					DirectX::XMVECTOR impulseGravity = (-DirectX::XMVector3Normalize(pos) * (pc.PlanetData.gravAcc / 1000.0f) * mass * ts.GetSeconds());
+					PhysicsEngine::ApplyImpulseLinear(rbc, impulseGravity);
+					//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
+
+					if (objectEntity.HasComponent<SphereColliderComponent>())
+					{
+						PhysicsEngine::TerrainCollision terrainCollision;
+
+						if (PhysicsEngine::TerrainCollisionCheck(&planetEntity , &objectEntity, pos, terrainCollision))
+							PhysicsEngine::ResolveTerrainCollision(terrainCollision);
+					}
+
+					// Update position due to gravity
+					tc.Transform = DirectX::XMMatrixMultiply(tc.Transform, XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&rbc.LinearVelocity) * ts.GetSeconds()));
+				}
 			}
 		}
 
@@ -339,8 +359,8 @@ namespace Toast {
 					if (mSettings.RenderColliders)
 					{
 						DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-						DirectX::XMMatrixDecompose(&scale, &rot, &pos, transform.Transform);
-						scale = { collider.Radius, collider.Radius, collider.Radius };
+						DirectX::XMMatrixDecompose(&scale, &rot, &pos, transform.Transform);                                                                                                                                                                                                                                                                                                                                                                                                                 
+						scale = { collider.Radius * 2.0f, collider.Radius * 2.0f, collider.Radius * 2.0f };
 
 						DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYawFromVector(rot)) * DirectX::XMMatrixTranslationFromVector(pos);
 						RendererDebug::SubmitCollider(collider.ColliderMesh, transform, true);
@@ -616,7 +636,7 @@ namespace Toast {
 				{
 					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
 					DirectX::XMMatrixDecompose(&scale, &rot, &pos, transform.Transform);
-					scale = { collider.Radius, collider.Radius, collider.Radius };
+					scale = { collider.Radius * 2.0f, collider.Radius * 2.0f, collider.Radius * 2.0f };
 
 					DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYawFromVector(rot)) * DirectX::XMMatrixTranslationFromVector(pos);
 					RendererDebug::SubmitCollider(collider.ColliderMesh, transform, true);
@@ -714,6 +734,7 @@ namespace Toast {
 		CopyComponent<ScriptComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<RigidBodyComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<SphereColliderComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<TerrainColliderComponent>(target->mRegistry, mRegistry, enttMap);
 
 		const auto& entityInstanceMap = ScriptEngine::GetEntityInstanceMap();
 		if (entityInstanceMap.find(target->GetUUID()) != entityInstanceMap.end())
@@ -876,6 +897,11 @@ namespace Toast {
 
 		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf");
 		component.ColliderMesh->SetMaterial(mColliderMaterial);
+	}
+
+	template<>
+	void Scene::OnComponentAdded<TerrainColliderComponent>(Entity entity, TerrainColliderComponent& component)
+	{
 	}
 
 }
