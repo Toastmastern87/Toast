@@ -10,6 +10,8 @@
 #include "Toast/Renderer/PlanetSystem.h"
 #include "Toast/Renderer/SceneEnvironment.h"
 
+#include <../vendor/directxtex/include/DirectXTex.h>
+
 namespace Toast {
 
 	struct IDComponent
@@ -35,7 +37,9 @@ namespace Toast {
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
 		TransformComponent(const DirectX::XMMATRIX& transform)
-			: Transform(Transform) { RotationEulerAngles = { 0.0f, 0.0f, 0.0f }; }
+			: Transform(Transform) {
+			RotationEulerAngles = { 0.0f, 0.0f, 0.0f };
+		}
 
 		operator DirectX::XMMATRIX& () { return Transform; }
 		operator const DirectX::XMMATRIX& () const { return Transform; }
@@ -133,14 +137,14 @@ namespace Toast {
 			: ModuleName(moduleName) {}
 	};
 
-	struct DirectionalLightComponent 
+	struct DirectionalLightComponent
 	{
 		DirectX::XMFLOAT3 Radiance = { 1.0f, 1.0f, 1.0f };
 		float Intensity = 1.0f;
 		bool SunDisc = false;
 	};
 
-	struct SkyLightComponent 
+	struct SkyLightComponent
 	{
 		Environment SceneEnvironment;
 		float Intensity = 1.0f;
@@ -166,5 +170,15 @@ namespace Toast {
 		SphereColliderComponent() = default;
 		SphereColliderComponent(float radius, const Ref<Toast::Mesh>& mesh)
 			: Radius(Radius), ColliderMesh(mesh) {}
+	};
+
+	struct TerrainColliderComponent 
+	{
+		std::string FilePath;
+		std::tuple<DirectX::TexMetadata, DirectX::ScratchImage*> TerrainData;
+
+		TerrainColliderComponent() = default;
+		TerrainColliderComponent(std::tuple<DirectX::TexMetadata, DirectX::ScratchImage*> terrainData, std::string filePath)
+			: TerrainData(terrainData), FilePath(filePath) {}
 	};
 }

@@ -128,6 +128,7 @@ PixelInputType main(VertexInputType input)
 
 	output.texcoord = float2((0.5f + (atan2(pos.z, pos.x) / (2.0f * PI))), (0.5f - (asin(pos.y) / PI)));
 	pos *= 1.0f + ((HeightMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r * (maxAltitude - minAltitude) + minAltitude) / radius);
+	//pos += (HeightMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r * (maxAltitude - minAltitude) + minAltitude) / radius;
 
 	float craterDetected = CraterMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r;
 	if (craterDetected == 0.0f)

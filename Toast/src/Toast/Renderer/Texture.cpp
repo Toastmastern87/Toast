@@ -58,7 +58,7 @@ namespace Toast {
 		mSRV->GetResource(&mResource);
 	}
 
-	Texture2D::Texture2D(const std::string& filePath)
+	Texture2D::Texture2D(const std::string& filePath, bool forceSRGB)
 		: mFilePath(filePath)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -73,12 +73,16 @@ namespace Toast {
 
 		std::wstring stemp = std::wstring(mFilePath.begin(), mFilePath.end());
 
-		result = DirectX::CreateWICTextureFromFileEx(device, deviceContext, stemp.c_str(), 0, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0,
-			WIC_LOADER_FORCE_SRGB, &mResource, &mSRV);
+		if (forceSRGB)
+			result = DirectX::CreateWICTextureFromFileEx(device, deviceContext, stemp.c_str(), 0, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0,
+				WIC_LOADER_FORCE_SRGB, &mResource, &mSRV);
+
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load texture!");
 
 		mResource->QueryInterface<ID3D11Texture2D>(&textureInterface);
 		textureInterface->GetDesc(&desc);
+
+		//TOAST_CORE_INFO("Creating texture: %s, format: %d", mFilePath.c_str(), desc.Format);
 
 		mWidth = desc.Width;
 		mHeight = desc.Height;

@@ -15,20 +15,19 @@ Entities:
     TagComponent:
       Tag: Physics Test
     TransformComponent:
-      Translation: [2.24300432, 1.51779294, -3387]
+      Translation: [2.24300432, 1.51779294, -3397]
       Rotation: [0, -0, 0]
       Scale: [0.100000001, 0.100000001, 0.100000001]
     MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
-      IsPlanet: false
+      IsPlanet: true
       Material: StainlessSteel
   - Entity: 14256283900106705513
     TagComponent:
       Tag: Starship Ground
     TransformComponent:
-      Translation: [0, 2.29999995, -3387]
+      Translation: [0, 2.29999995, -3407]
       Rotation: [-90, 0, 0]
-      Scale: [0.999999762, 0.9999879, 0.9999879]
+      Scale: [0.999999762, 0.999922812, 0.999922812]
     MeshComponent:
       IsPlanet: true
       Material: StainlessSteel
@@ -36,9 +35,9 @@ Entities:
     TagComponent:
       Tag: Camera
     TransformComponent:
-      Translation: [0, 0, -3386.95898]
+      Translation: [0, 0, -3390]
       Rotation: [-90, 0, 0]
-      Scale: [1, 0.999994278, 0.999994278]
+      Scale: [1, 0.999988437, 0.999988437]
     CameraComponent:
       Camera:
         ProjectionType: 0
@@ -74,14 +73,14 @@ Entities:
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
-      Scale: [6778.92285, 6779, 6778.92285]
+      Scale: [6779, 6779, 6779]
     PlanetComponent:
       Subdivisions: 4
       PatchLevels: 6
       MaxAltitude: 21.2000008
-      MinAltitude: -8.19999981
+      MinAltitude: -8.2
       Radius: 3389.5
-      GravitationalAcceleration: 3.72099996
+      GravitationalAcceleration: 3.72
       AtmosphereHeight: 60
       AtmosphereToggle: true
       InScatteringPoints: 10
@@ -95,6 +94,8 @@ Entities:
       ModuleName: PlanetScript
       StoredProperties:
         []
+    TerrainColliderComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
   - Entity: 12837192831272
     TagComponent:
       Tag: Ambient Light
@@ -109,9 +110,9 @@ Entities:
     TagComponent:
       Tag: Starship Atmosphere
     TransformComponent:
-      Translation: [0, 10, -3400]
-      Rotation: [-183, -206, -114]
-      Scale: [0.999919116, 0.999737501, 0.999841511]
+      Translation: [0, 10, -3392]
+      Rotation: [0, 0, 90]
+      Scale: [0.99990356, 0.999720752, 0.999832332]
     MeshComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
       IsPlanet: false
@@ -121,4 +122,4 @@ Entities:
       CenterOfMass: [0, 0, 0]
     SphereColliderComponent:
       RenderCollider: true
-      Radius: 3.29999995
+      Radius: 1.64999998

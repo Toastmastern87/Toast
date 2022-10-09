@@ -7,6 +7,8 @@
 
 #include "Toast/Script/ScriptEngine.h"
 
+#include "Toast/Physics/PhysicsEngine.h"
+
 #include "Toast/Scene/Components.h"
 
 #include "Toast/Utils/PlatformUtils.h"
@@ -321,6 +323,15 @@ namespace Toast {
 				if (ImGui::MenuItem("Sphere Collider"))
 				{
 					mContext.AddComponent<SphereColliderComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
+			if (!mContext.HasComponent<TerrainColliderComponent>())
+			{
+				if (ImGui::MenuItem("Terrain Collider"))
+				{
+					mContext.AddComponent<TerrainColliderComponent>();
 					ImGui::CloseCurrentPopup();
 				}
 			}
@@ -927,7 +938,49 @@ namespace Toast {
 				ImGui::Text("Radius");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::DragFloat("##label", &component.Radius, 0.1f, 0.0f, 600.0f, "%.1f");
+				ImGui::DragFloat("##label", &component.Radius, 0.1f, 0.0f, 600.0f, "%.01f");
+				ImGui::EndTable();
+			});
+
+		DrawComponent<TerrainColliderComponent>(ICON_TOASTER_GLOBE" Terrain Collider", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+			{
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+				ImGui::BeginTable("##TerrainColliderTable", 3, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
+				ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Height Map ");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (!component.FilePath.empty())
+					ImGui::InputText("##heightmapfilepath", (char*)component.FilePath.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
+				else
+					ImGui::InputText("##heightmapfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
+				ImGui::TableSetColumnIndex(2);
+				if (ImGui::Button("...##openheightmapfilepath"))
+				{
+					std::optional<std::string> filepath = FileDialogs::OpenFile("*.png", "..\\Toaster\\assets\\textures\\");
+					if (filepath)
+					{
+						auto& tag = entity.GetComponent<TagComponent>().Tag;
+						auto id = entity.GetComponent<IDComponent>().ID;
+						if (tag == "Empty Entity")
+						{
+							std::string newTag = *filepath;
+							std::size_t found = newTag.find_last_of("/\\");
+							newTag = newTag.substr(found + 1);
+							found = newTag.find_last_of(".\\");
+							tag = newTag.substr(0, found);
+						}
+
+						component.FilePath = *filepath;
+						component.TerrainData = PhysicsEngine::LoadTerrainData(component.FilePath.c_str());
+					}
+				}
 				ImGui::EndTable();
 			});
 	}
