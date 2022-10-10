@@ -43,11 +43,14 @@ class CameraController : Entity
 
         mCamera.FarClip = 1.6875f * Vector3.Length(translation) - 5000.0f;
 
-        float altitude = Vector3.Length(translation);
-        float moveSpeed = 100.0f;// 0.0967f * altitude - 318.0f;
+        float altitude = Vector3.Length(translation) - 3389.5f;
+        float distFromOrigo = Vector3.Length(translation);
+        float moveSpeed = 0.08f * altitude * altitude + 0.1f;
         float zoomSpeed = 0.39f * altitude - 1056.0f;
 
         //Toast.Console.LogInfo("Altitude: " + altitude);
+        //Toast.Console.LogInfo("distFromOrigo: " + distFromOrigo);
+        //Toast.Console.LogInfo("moveSpeed: " + moveSpeed);
 
         Vector2 newCursorPos = Input.GetMousePosition();
 
@@ -97,7 +100,7 @@ class CameraController : Entity
             Vector3 startPos = Vector3.Normalize(translation);
 
             translation += Vector3.Normalize(mForward) * ts * moveSpeed;
-            translation = Vector3.Normalize(translation) * altitude;
+            translation = Vector3.Normalize(translation) * distFromOrigo;
 
             Vector3 endPos = Vector3.Normalize(translation);
 
@@ -111,7 +114,7 @@ class CameraController : Entity
             Vector3 startPos = Vector3.Normalize(translation);
 
             translation -= Vector3.Normalize(mForward) * ts * moveSpeed;
-            translation = Vector3.Normalize(translation) * altitude;
+            translation = Vector3.Normalize(translation) * distFromOrigo;
 
             Vector3 endPos = Vector3.Normalize(translation);
 
@@ -125,7 +128,7 @@ class CameraController : Entity
             Vector3 startPos = Vector3.Normalize(translation);
 
             translation -= Vector3.Normalize(mRightMovement) * ts * moveSpeed;
-            translation = Vector3.Normalize(translation) * altitude;
+            translation = Vector3.Normalize(translation) * distFromOrigo;
 
             Vector3 endPos = Vector3.Normalize(translation);
 
@@ -139,7 +142,7 @@ class CameraController : Entity
             Vector3 startPos = Vector3.Normalize(translation);
 
             translation += Vector3.Normalize(mRightMovement) * ts * moveSpeed;
-            translation = Vector3.Normalize(translation) * altitude;
+            translation = Vector3.Normalize(translation) * distFromOrigo;
 
             Vector3 endPos = Vector3.Normalize(translation);
 

@@ -938,7 +938,7 @@ namespace Toast {
 				ImGui::Text("Radius");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::DragFloat("##label", &component.Radius, 0.1f, 0.0f, 600.0f, "%.01f");
+				ImGui::DragFloat("##label", &component.Radius, 0.1f, 0.0f, 600.0f, "%.4f");
 				ImGui::EndTable();
 			});
 
