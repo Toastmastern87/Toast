@@ -1,7 +1,7 @@
 Material: StainlessSteel
 Shader: assets/shaders/ToastPBR.hlsl
 Albedo: [1, 1, 1, 1]
-Metalness: 0.986999989
+Metalness: 0.987999976
 Roughness: 0.488000005
 UseAlbedoMap: 1
 UseNormalMap: 0
