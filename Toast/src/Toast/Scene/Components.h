@@ -181,4 +181,27 @@ namespace Toast {
 		TerrainColliderComponent(std::tuple<DirectX::TexMetadata, DirectX::ScratchImage*> terrainData, std::string filePath)
 			: TerrainData(terrainData), FilePath(filePath) {}
 	};
+
+	struct UITransformComponent
+	{
+		DirectX::XMMATRIX Transform;
+
+		UITransformComponent() = default;
+		UITransformComponent(const UITransformComponent&) = default;
+		UITransformComponent(const DirectX::XMMATRIX& transform)
+			: Transform(Transform) {}
+
+		operator DirectX::XMMATRIX& () { return Transform; }
+		operator const DirectX::XMMATRIX& () const { return Transform; }
+	};
+
+	struct UIPanelComponent
+	{
+		DirectX::XMFLOAT4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+
+		UIPanelComponent() = default;
+		UIPanelComponent(const UIPanelComponent&) = default;
+		UIPanelComponent(const DirectX::XMFLOAT4& color)
+			: Color(color) {}
+	};
 }

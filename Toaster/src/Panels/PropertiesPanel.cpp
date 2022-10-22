@@ -157,6 +157,70 @@ namespace Toast {
 		return modified;
 	}
 
+	static bool DrawFloat2Control(const std::string& label, DirectX::XMFLOAT2& values, float resetValue = 0.0f, float columnWidth = 100.0f)
+	{
+		bool modified = false;
+
+		ImGuiIO& io = ImGui::GetIO();
+		auto boldFont = io.Fonts->Fonts[0];
+
+		ImGui::PushID(label.c_str());
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, columnWidth);
+		ImGui::Text(label.c_str());
+		ImGui::NextColumn();
+
+		ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
+
+		float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+		ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+		ImGui::PushFont(boldFont);
+		if (ImGui::Button("X", buttonSize))
+		{
+			values.x = resetValue;
+			modified = true;
+		}
+
+		ImGui::PopStyleColor(3);
+		ImGui::PopFont();
+		ImGui::SameLine();
+		if (ImGui::DragFloat("##X", &values.x, CalculateDelta(values.x), 0.0f, 0.0f, (values.x >= 1000.0f || values.x <= -1000.0f) ? "%.0f" : "%.1f"))
+			modified = true;
+		ImGui::PopItemWidth();
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+		ImGui::PushFont(boldFont);
+		if (ImGui::Button("Y", buttonSize))
+		{
+			values.y = resetValue;
+			modified = true;
+		}
+		ImGui::PopStyleColor(3);
+		ImGui::PopFont();
+
+		ImGui::SameLine();
+		if (ImGui::DragFloat("##Y", &values.y, CalculateDelta(values.y), 0.0f, 0.0f, (values.y >= 1000.0f || values.y <= -1000.0f) ? "%.0f" : "%.1f"))
+			modified = true;
+		ImGui::PopItemWidth();
+
+		ImGui::PopStyleVar();
+
+		ImGui::Columns(1);
+
+		ImGui::PopID();
+
+		return modified;
+	}
+
 	PropertiesPanel::PropertiesPanel(const Entity& context, SceneHierarchyPanel* sceneHierarchyPanel)
 	{
 		SetContext(context, sceneHierarchyPanel);
@@ -332,6 +396,24 @@ namespace Toast {
 				if (ImGui::MenuItem("Terrain Collider"))
 				{
 					mContext.AddComponent<TerrainColliderComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
+			if (!mContext.HasComponent<UIPanelComponent>())
+			{
+				if (ImGui::MenuItem("UI Panel"))
+				{
+					mContext.AddComponent<UIPanelComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
+			if (!mContext.HasComponent<UITransformComponent>())
+			{
+				if (ImGui::MenuItem("UI Transform"))
+				{
+					mContext.AddComponent<UITransformComponent>();
 					ImGui::CloseCurrentPopup();
 				}
 			}
@@ -512,37 +594,24 @@ namespace Toast {
 
 				ImGui::Columns(1);
 
-				if (camera.GetProjectionType() == SceneCamera::ProjectionType::Perspective)
-				{
-					float perspectiveVerticalFOV = camera.GetPerspectiveVerticalFOV();
-					if (DrawFloatControl("Vertical FOV", perspectiveVerticalFOV, 90.0f))
-						camera.SetPerspectiveVerticalFOV(perspectiveVerticalFOV);
+				float perspectiveVerticalFOV = camera.GetPerspectiveVerticalFOV();
+				if (DrawFloatControl("Vertical FOV", perspectiveVerticalFOV, 90.0f))
+					camera.SetPerspectiveVerticalFOV(perspectiveVerticalFOV);
 
-					float perspectiveNear = camera.GetNearClip();
-					if (DrawFloatControl("Near Clip", perspectiveNear, 90.0f))
-						camera.SetNearClip(perspectiveNear);
+				float n = camera.GetNearClip();
+				if (DrawFloatControl("Near Clip", n, 90.0f))
+					camera.SetNearClip(n);
 
-					float perspectiveFar = camera.GetFarClip();
-					if (DrawFloatControl("Far Clip", perspectiveFar, 90.0f, 0.0f, 0.0f, 10.0f))
-						camera.SetFarClip(perspectiveFar);
-				}
+				float f = camera.GetFarClip();
+				if (DrawFloatControl("Far Clip", f, 90.0f, 0.0f, 0.0f, 10.0f))
+					camera.SetFarClip(f);
 
-				if (camera.GetProjectionType() == SceneCamera::ProjectionType::Orthographic)
-				{
-					float orthoSize = camera.GetOrthographicSize();
-					if (DrawFloatControl("Orthographic Size", orthoSize, 90.0f))
-						camera.SetOrthographicSize(orthoSize);
+				float orthoWidth = camera.GetOrthographicWidth();
+				float orthoHeight = camera.GetOrthographicHeight();
+				if (DrawFloatControl("Ortho Width", orthoWidth, 90.0f) || DrawFloatControl("Ortho Height", orthoHeight, 90.0f))
+					camera.SetOrthographicSize(orthoWidth, orthoHeight);
 
-					float orthoNear = camera.GetNearClip();
-					if (DrawFloatControl("Near Clip", orthoNear, 90.0f))
-						camera.SetNearClip(orthoNear);
-
-					float orthoFar = camera.GetFarClip();
-					if (DrawFloatControl("Far Clip", orthoFar, 90.0f))
-						camera.SetFarClip(orthoFar);
-
-					ImGui::Checkbox("Fixed Aspect Ratio", &component.FixedAspectRatio);
-				}
+				ImGui::Checkbox("Fixed Aspect Ratio", &component.FixedAspectRatio);
 			});
 
 		DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, mScene, [](auto& component, Entity entity, Scene* scene)
@@ -981,6 +1050,47 @@ namespace Toast {
 						component.TerrainData = PhysicsEngine::LoadTerrainData(component.FilePath.c_str());
 					}
 				}
+				ImGui::EndTable();
+			});
+
+
+		DrawComponent<UITransformComponent>(ICON_TOASTER_ARROWS_ALT" UI Transform", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+			{
+				DirectX::XMFLOAT2 positionFloat2, sizeFloat2;
+				DirectX::XMVECTOR position, size, rotation;
+
+				DirectX::XMMatrixDecompose(&size, &rotation, &position, component.Transform);
+				DirectX::XMStoreFloat2(&positionFloat2, position);
+				DirectX::XMStoreFloat2(&sizeFloat2, size);
+
+				bool updateTransform = false;
+
+				positionFloat2.y *= -1.0f;
+
+				updateTransform |= DrawFloat2Control("Position", positionFloat2);
+				updateTransform |= DrawFloat2Control("Size", sizeFloat2, 1.0f);
+
+				if (updateTransform)
+					component.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(sizeFloat2.x, sizeFloat2.y, 1.0f)
+					* DirectX::XMMatrixTranslation(positionFloat2.x, -positionFloat2.y, 0.0f);
+			});
+
+		DrawComponent<UIPanelComponent>(ICON_TOASTER_SQUARE_O" UI Panel", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+			{
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+				ImGui::BeginTable("UIPanelComponentTable", 2, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Color");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::ColorEdit4("##color", &component.Color.x);
+
 				ImGui::EndTable();
 			});
 	}

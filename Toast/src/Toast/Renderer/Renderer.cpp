@@ -20,7 +20,7 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		RenderCommand::Init();
-		//Renderer2D::Init();
+		Renderer2D::Init();
 		RendererDebug::Init();
 
 		// Setting up the constant buffer and data buffer for the camera rendering
@@ -48,6 +48,7 @@ namespace Toast {
 		sRendererData->PickingRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32_SINT);
 		sRendererData->OutlineRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
 		sRendererData->PlanetMaskRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::R32_TYPELESS, TextureFormat::D32_FLOAT);
+		sRendererData->UIRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
 
 		sRendererData->BaseFramebuffer = CreateRef<Framebuffer>(sRendererData->BaseRenderTarget, sRendererData->DepthRenderTarget);
 		sRendererData->PostProcessFramebuffer = CreateRef<Framebuffer>(sRendererData->PostProcessRenderTarget, sRendererData->DepthRenderTarget);
@@ -55,11 +56,12 @@ namespace Toast {
 		sRendererData->PickingFramebuffer = CreateRef<Framebuffer>(sRendererData->PickingRenderTarget);
 		sRendererData->OutlineFramebuffer = CreateRef<Framebuffer>(sRendererData->OutlineRenderTarget);
 		sRendererData->PlanetMaskFramebuffer = CreateRef<Framebuffer>(sRendererData->PlanetMaskRenderTarget);
+		sRendererData->UIFramebuffer = CreateRef<Framebuffer>(sRendererData->UIRenderTarget);
 	}
 
 	void Renderer::Shutdown()
 	{
-		//Renderer2D::Shutdown();
+		Renderer2D::Shutdown();
 		RendererDebug::Shutdown();
 	}
 

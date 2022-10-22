@@ -90,9 +90,9 @@ class CameraController : Entity
             //translation = Vector3.Normalize(translation) * altitude;
 
             if (Input.GetMouseWheelDelta() > 0.0f)
-                translation += Vector3.Normalize(translation) * 0.01f;
-            else
                 translation -= Vector3.Normalize(translation) * 0.01f;
+            else
+                translation += Vector3.Normalize(translation) * 0.01f;
         }
 
         if (Input.IsKeyPressed(KeyCode.W))

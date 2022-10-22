@@ -20,7 +20,7 @@ namespace Toast {
 		static void Shutdown();
 
 		static void BeginScene(Camera& camera);
-		static void EndScene(const bool debugActivated, const bool runtime);
+		static void EndScene(const bool debugActivated, const bool runtime, bool renderUI);
 
 		static void SubmitCameraFrustum(SceneCamera& camera, DirectX::XMMATRIX& transform, DirectX::XMFLOAT3& pos);
 		static void SubmitLine(DirectX::XMFLOAT3& p1, DirectX::XMFLOAT3& p2);

@@ -14,7 +14,7 @@ namespace Toast {
 		virtual ~SceneCamera() = default;
 
 		void SetPerspective(float verticalFOV, float nearClip = 0.01f, float farClip = 10.0f);
-		void SetOrthographic(float size, float nearClip, float farClip); 
+		void SetOrthographic(float width, float height, float nearClip, float farClip); 
 
 		void SetViewportSize(uint32_t width, uint32_t height);
 
@@ -25,8 +25,9 @@ namespace Toast {
 		void SetFarClip(float farClip) { mFarClip = farClip; RecalculateProjection();	}
 		float& GetFarClip() { return mFarClip; }
 
-		void SetOrthographicSize(float size) { mOrthographicSize = (std::max)(size, 0.1f); RecalculateProjection(); }
-		const float GetOrthographicSize() const { return mOrthographicSize; }
+		void SetOrthographicSize(float width, float height) { mOrthographicWidth = (std::max)(width, 0.1f); mOrthographicHeight = (std::max)(height, 0.1f);  RecalculateProjection(); }
+		const float GetOrthographicWidth() const { return mOrthographicWidth; }
+		const float GetOrthographicHeight() const { return mOrthographicHeight; }
 
 		ProjectionType GetProjectionType() const { return mProjectionType; }
 		void SetProjectionType(ProjectionType type) { mProjectionType = type; RecalculateProjection();	}
@@ -42,7 +43,8 @@ namespace Toast {
 
 		float mPerspectiveFOV = DirectX::XMConvertToRadians(45.0f);
 
-		float mOrthographicSize = 10.0f;
+		float mOrthographicWidth = 10.0f;
+		float mOrthographicHeight = 10.0f;
 
 		float mAspectRatio = 1.0f;
 

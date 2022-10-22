@@ -17,10 +17,11 @@ namespace Toast {
 		RecalculateProjection();
 	}
 
-	void SceneCamera::SetOrthographic(float size, float nearClip, float farClip)
+	void SceneCamera::SetOrthographic(float width, float height, float nearClip, float farClip)
 	{
 		mProjectionType = ProjectionType::Orthographic;
-		mOrthographicSize = size;
+		mOrthographicWidth = width;
+		mOrthographicHeight = height;
 		mNearClip = nearClip;
 		mFarClip = farClip;
 		RecalculateProjection();
@@ -41,30 +42,16 @@ namespace Toast {
 
 	void SceneCamera::RecalculateProjection()
 	{
-		DirectX::XMMATRIX projection;
+		DirectX::XMMATRIX projection, orthoProjection;
+		//Near and far switched due to Toast Engine running inverted-z depth
+		projection = DirectX::XMMatrixPerspectiveFovLH(mPerspectiveFOV, mAspectRatio, mFarClip, mNearClip);
+		//projection = DirectX::XMMatrixPerspectiveFovLH(mPerspectiveFOV, mAspectRatio, mNearClip, mFarClip);
+		DirectX::XMStoreFloat4x4(&mProjection, projection);
+		DirectX::XMStoreFloat4x4(&mInvProjection, DirectX::XMMatrixInverse(nullptr, projection));
 
-		switch (mProjectionType) 
-		{
-		case ProjectionType::Perspective:
-			//Near and far switched due to Toast Engine running inverted-z depth
-			projection = DirectX::XMMatrixPerspectiveFovLH(mPerspectiveFOV, mAspectRatio, mFarClip, mNearClip);
-			//projection = DirectX::XMMatrixPerspectiveFovLH(mPerspectiveFOV, mAspectRatio, mNearClip, mFarClip);
-			DirectX::XMStoreFloat4x4(&mProjection, projection);
-			DirectX::XMStoreFloat4x4(&mInvProjection, DirectX::XMMatrixInverse(nullptr, projection));
-
-			break;
-		case ProjectionType::Orthographic:
-			float orthoLeft = -mOrthographicSize * mAspectRatio * 0.5f;
-			float orthoRight = mOrthographicSize * mAspectRatio * 0.5f;
-			float orthoBottom = mOrthographicSize * 0.5f;
-			float orthoTop = -mOrthographicSize * 0.5f;
-
-			projection = DirectX::XMMatrixOrthographicLH((orthoRight - orthoLeft), (orthoBottom - orthoTop), mNearClip, mFarClip);
-			DirectX::XMStoreFloat4x4(&mProjection, projection);
-			DirectX::XMStoreFloat4x4(&mInvProjection, DirectX::XMMatrixInverse(nullptr, projection));
-
-			break;
-		}
+		orthoProjection = DirectX::XMMatrixOrthographicLH(mOrthographicWidth, mOrthographicHeight, mNearClip, mFarClip);
+		DirectX::XMStoreFloat4x4(&mOrthoProjection, orthoProjection);
+		DirectX::XMStoreFloat4x4(&mInvOrthoProjection, DirectX::XMMatrixInverse(nullptr, orthoProjection));
 	}
 
-}
+} 
