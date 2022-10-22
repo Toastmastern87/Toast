@@ -83,6 +83,7 @@ namespace Toast {
 		Ref<Framebuffer>& outlineFramebuffer = Renderer::GetOutlineFramebuffer();
 		Ref<Framebuffer>& planetMaskFramebuffer = Renderer::GetPlanetMaskFramebuffer();
 		Ref<Framebuffer>& postProcessFramebuffer = Renderer::GetPostProcessFramebuffer();
+		Ref<Framebuffer>& UIFramebuffer = Renderer::GetUIFramebuffer();
 
 		Ref<RenderTarget>& baseRenderTarget = Renderer::GetBaseRenderTarget();
 		Ref<RenderTarget>& depthRenderTarget = Renderer::GetDepthRenderTarget();
@@ -91,6 +92,7 @@ namespace Toast {
 		Ref<RenderTarget>& outlineRenderTarget = Renderer::GetOutlineRenderTarget();
 		Ref<RenderTarget>& planetMaskRenderTarget = Renderer::GetPlanetMaskRenderTarget();
 		Ref<RenderTarget>& postProcessRenderTarget = Renderer::GetPostProcessRenderTarget();
+		Ref<RenderTarget>& UIRenderTarget = Renderer::GetUIRenderTarget();
 		auto [width, height] = baseRenderTarget->GetSize();
 
 		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (width != mViewportSize.x || height != mViewportSize.y))
@@ -101,6 +103,7 @@ namespace Toast {
 			outlineFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			planetMaskFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			postProcessFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			UIFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
 			baseRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			depthRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
@@ -109,6 +112,7 @@ namespace Toast {
 			outlineRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			planetMaskRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			postProcessRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			UIRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		 
 			switch (mSceneState)
 			{
@@ -122,14 +126,10 @@ namespace Toast {
 			case SceneState::Play:
 			{
 				mRuntimeScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-
 				break;
 			}
 			}
 		}
-
-		// Render
-		Renderer2D::ResetStats();
 
 		// Update scene
 		switch (mSceneState)
@@ -431,20 +431,6 @@ namespace Toast {
 			ImGui::Text("Frame time: %fms", mEditorScene->GetFrameTime());
 			ImGui::Text("Vertex count: %d", mEditorScene->GetVertices());
 
-			ImGui::End();
-		}
-		else
-		{
-			ImGui::Begin("Settings");
-
-			auto stats = Renderer2D::GetStats();
-			ImGui::Text("Renderer2D Stats: ");
-			ImGui::Text("Draw Calls: %d", stats.DrawCalls);
-			ImGui::Text("Quads: %d", stats.QuadCount);
-			ImGui::Text("Vertices: %d", stats.GetTotalVertexCount());
-			ImGui::Text("Indices: %d", stats.GetTotalIndexCount());
-
-			ImGui::Image(mCheckerboardTexture->GetID(), ImVec2{ 1280.0f, 720.0f });
 			ImGui::End();
 		}
 	}

@@ -1,0 +1,31 @@
+Scene: Untitled Scene
+Entities:
+  - Entity: 10973876973695962467
+    TagComponent:
+      Tag: Panel
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    UITransformComponent:
+      Translation: [0, 0, 0]
+      Scale: [100, 100, 1]
+    UIPanelComponent:
+      Color: [1, 1, 1, 1]
+  - Entity: 7350744259463354997
+    TagComponent:
+      Tag: Camera
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    CameraComponent:
+      Camera:
+        ProjectionType: 0
+        PerspectiveFOV: 45
+        NearClip: 0.100000001
+        FarClip: 10
+        OrthographicWidth: 2619
+        OrthographicHeight: 962
+      Primary: true
+      FixedAspectRatio: false

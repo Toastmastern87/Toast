@@ -19,7 +19,8 @@ Entities:
       Rotation: [0, -0, 0]
       Scale: [0.100000001, 0.100000001, 0.100000001]
     MeshComponent:
-      IsPlanet: true
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
+      IsPlanet: false
       Material: StainlessSteel
   - Entity: 14256283900106705513
     TagComponent:
@@ -27,24 +28,26 @@ Entities:
     TransformComponent:
       Translation: [0, 2.29999995, -3407]
       Rotation: [-90, 0, 0]
-      Scale: [0.999999762, 0.999922574, 0.999922574]
+      Scale: [0.999999762, 0.999922335, 0.999922335]
     MeshComponent:
-      IsPlanet: true
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
+      IsPlanet: false
       Material: StainlessSteel
   - Entity: 12837192831273
     TagComponent:
       Tag: Camera
     TransformComponent:
-      Translation: [0, 0, -3390]
+      Translation: [0, 7.9000001, -3390]
       Rotation: [-90, 0, 0]
-      Scale: [1, 0.999988198, 0.999988198]
+      Scale: [1, 0.99997592, 0.99997592]
     CameraComponent:
       Camera:
         ProjectionType: 0
         PerspectiveFOV: 45
         NearClip: 0.100000001
         FarClip: 3000
-        OrthographicSize: 10
+        OrthographicWidth: 10
+        OrthographicHeight: 10
       Primary: true
       FixedAspectRatio: false
     ScriptComponent:
@@ -112,7 +115,7 @@ Entities:
     TransformComponent:
       Translation: [0, 10, -3392]
       Rotation: [0, -90, 90]
-      Scale: [0.0191985592, 0.0191989951, 0.0191999935]
+      Scale: [0.0191985518, 0.0191989876, 0.019199986]
     MeshComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
       IsPlanet: false

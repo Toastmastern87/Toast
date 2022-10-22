@@ -61,8 +61,6 @@ namespace Toast {
 		auto& idComponent = entity.AddComponent<IDComponent>();
 		idComponent.ID = {};
 
-		auto& tc = entity.AddComponent<TransformComponent>();
-		tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
 
@@ -77,12 +75,10 @@ namespace Toast {
 		auto& idComponent = entity.AddComponent<IDComponent>();
 		idComponent.ID = uuid;
 
-		auto& tc = entity.AddComponent<TransformComponent>();
-		tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
 
-		TOAST_CORE_ASSERT(mEntityIDMap.find(uuid) == mEntityIDMap.end(), "Entity alread exist!");
+		TOAST_CORE_ASSERT(mEntityIDMap.find(uuid) == mEntityIDMap.end(), "Entity already exist!");
 		mEntityIDMap[uuid] = entity;
 
 		return entity;
@@ -367,22 +363,22 @@ namespace Toast {
 					}
 				}
 			}
-			RendererDebug::EndScene(true, true);
+			RendererDebug::EndScene(true, true, true);
 
-			// 2D Rendering
-			//Renderer2D::BeginScene(*mainCamera, cameraTransform);
-			//{
-			//	auto group = mRegistry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
+			// 2D UI Rendering
+			Renderer2D::BeginScene();
+			{
+				//Panels
+				auto uiEntites = mRegistry.view<UITransformComponent, UIPanelComponent>();
 
-			//	for (auto entity : group)
-			//	{
-			//		auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
+				for (auto entity : uiEntites)
+				{
+					auto [utc, upc] = uiEntites.get<UITransformComponent, UIPanelComponent>(entity);
 
-			//		Renderer2D::DrawQuad(transform.GetTransform(), sprite.Color);
-			//	}
-			//}
-
-			//Renderer2D::EndScene();
+					Renderer2D::SubmitQuad(utc.Transform, upc.Color);
+				}
+			}
+			Renderer2D::EndScene();
 		}
 		else
 			TOAST_CORE_ERROR("No main camera! Unable to render scene!");
@@ -595,20 +591,6 @@ namespace Toast {
 			Renderer::EndScene(true);
 		}
 
-		//// 2D Rendering
-		//Renderer2D::BeginScene(*perspectiveCamera, perspectiveCamera->GetViewMatrix());
-		//{
-		//	auto group = mRegistry.group<TransformComponent>(entt::get<SpriteRendererComponent>);
-
-		//	for (auto entity : group)
-		//	{
-		//		auto [transform, sprite] = group.get<TransformComponent, SpriteRendererComponent>(entity);
-
-		//		Renderer2D::DrawQuad(transform.GetTransform(), sprite.Color);
-		//	}
-		//}
-		//Renderer2D::EndScene();
-
 		// Debug Rendering
 		RendererDebug::BeginScene(*editorCamera);
 		{
@@ -646,7 +628,28 @@ namespace Toast {
 			if (mSettings.Grid)
 				RendererDebug::SubmitGrid(*editorCamera);
 		}
-		RendererDebug::EndScene(true, false);
+
+		RendererDebug::EndScene(true, false, mSettings.RenderUI);
+
+		// 2D UI Rendering
+		if (mSettings.RenderUI) {
+			Renderer2D::BeginScene();
+			{
+				//Panels
+				auto uiEntites = mRegistry.view<UITransformComponent, UIPanelComponent>();
+
+				for (auto entity : uiEntites)
+				{
+					auto [utc, upc] = uiEntites.get<UITransformComponent, UIPanelComponent>(entity);
+
+					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
+
+					Renderer2D::SubmitQuad(utc.Transform, upc.Color);
+				}
+			}
+			Renderer2D::EndScene();
+		}
 	}
 
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)
@@ -735,6 +738,8 @@ namespace Toast {
 		CopyComponent<RigidBodyComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<SphereColliderComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TerrainColliderComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<UIPanelComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<UITransformComponent>(target->mRegistry, mRegistry, enttMap);
 
 		const auto& entityInstanceMap = ScriptEngine::GetEntityInstanceMap();
 		if (entityInstanceMap.find(target->GetUUID()) != entityInstanceMap.end())
@@ -901,6 +906,16 @@ namespace Toast {
 
 	template<>
 	void Scene::OnComponentAdded<TerrainColliderComponent>(Entity entity, TerrainColliderComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<UIPanelComponent>(Entity entity, UIPanelComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<UITransformComponent>(Entity entity, UITransformComponent& component)
 	{
 	}
 

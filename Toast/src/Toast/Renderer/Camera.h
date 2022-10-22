@@ -19,12 +19,15 @@ namespace Toast {
 		const DirectX::XMFLOAT4X4& GetProjection() const { return mProjection; }
 		const DirectX::XMFLOAT4X4& GetInvProjection() const { return mInvProjection; }
 
+		const DirectX::XMFLOAT4X4& GetOrthoProjection() const { return mOrthoProjection; }
+		const DirectX::XMFLOAT4X4& GetInvOrthoProjection() const { return mInvOrthoProjection; }
+
 		virtual float& GetNearClip() { return mNearClip; }
 		virtual float& GetFarClip() { return mFarClip; }
 		
 		virtual DirectX::XMFLOAT4& GetForwardDirection() = 0;
 	protected:
-		DirectX::XMFLOAT4X4 mViewMatrix, mInvViewMatrix, mProjection, mInvProjection;
+		DirectX::XMFLOAT4X4 mViewMatrix, mInvViewMatrix, mProjection, mInvProjection, mOrthoProjection, mInvOrthoProjection;
 		float mFarClip = 1000.0f, mNearClip = 0.1f;
 	};
 }

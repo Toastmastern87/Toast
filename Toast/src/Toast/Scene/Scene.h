@@ -48,6 +48,7 @@ namespace Toast {
 			bool BackfaceCulling = true;
 			bool FrustumCulling = true;
 			bool RenderColliders = false;
+			bool RenderUI = true;
 		};
 		struct Stats
 		{

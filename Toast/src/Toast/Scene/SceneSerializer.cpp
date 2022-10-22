@@ -138,7 +138,8 @@ namespace Toast {
 			out << YAML::Key << "PerspectiveFOV" << YAML::Value << camera.GetPerspectiveVerticalFOV();
 			out << YAML::Key << "NearClip" << YAML::Value << camera.GetNearClip();
 			out << YAML::Key << "FarClip" << YAML::Value << camera.GetFarClip();
-			out << YAML::Key << "OrthographicSize" << YAML::Value << camera.GetOrthographicSize();
+			out << YAML::Key << "OrthographicWidth" << YAML::Value << camera.GetOrthographicWidth();
+			out << YAML::Key << "OrthographicHeight" << YAML::Value << camera.GetOrthographicHeight();
 			out << YAML::EndMap; // Camera
 
 			out << YAML::Key << "Primary" << YAML::Value << cc.Primary;
@@ -293,9 +294,39 @@ namespace Toast {
 			auto& scc = entity.GetComponent<TerrainColliderComponent>();
 			out << YAML::Key << "AssetPath" << YAML::Value << scc.FilePath;
 
-			out << YAML::EndMap; // SphereColliderComponent
+			out << YAML::EndMap; // TerrainColliderComponent
 		}
 
+		if (entity.HasComponent<UITransformComponent>())
+		{
+			auto& uitc = entity.GetComponent<UITransformComponent>();
+
+			DirectX::XMFLOAT3 translationFloat3, scaleFloat3;
+			DirectX::XMVECTOR translation, scale, rotation;
+
+			DirectX::XMMatrixDecompose(&scale, &rotation, &translation, uitc.Transform);
+			DirectX::XMStoreFloat3(&translationFloat3, translation);
+			DirectX::XMStoreFloat3(&scaleFloat3, scale);
+
+			out << YAML::Key << "UITransformComponent";
+			out << YAML::BeginMap; // UITransformComponent
+
+			out << YAML::Key << "Translation" << YAML::Value << translationFloat3;
+			out << YAML::Key << "Scale" << YAML::Value << scaleFloat3;
+
+			out << YAML::EndMap; // UITransformComponent
+		}
+
+		if (entity.HasComponent<UIPanelComponent>())
+		{
+			out << YAML::Key << "UIPanelComponent";
+			out << YAML::BeginMap; // UIPanelComponent
+
+			auto& uipc = entity.GetComponent<UIPanelComponent>();
+			out << YAML::Key << "Color" << YAML::Value << uipc.Color;
+
+			out << YAML::EndMap; // UIPanelComponent
+		}
 
 		out << YAML::EndMap; // Entity
 	}
@@ -357,7 +388,7 @@ namespace Toast {
 				if (transformComponent) 
 				{
 					// Entities always have transforms
-					auto& tc = deserializedEntity.GetComponent<TransformComponent>();
+					auto& tc = deserializedEntity.AddComponent<TransformComponent>();
 					DirectX::XMFLOAT3 translation = transformComponent["Translation"].as<DirectX::XMFLOAT3>();
 					DirectX::XMFLOAT3 rotation = transformComponent["Rotation"].as<DirectX::XMFLOAT3>();
 					DirectX::XMFLOAT3 scale = transformComponent["Scale"].as<DirectX::XMFLOAT3>();
@@ -380,7 +411,7 @@ namespace Toast {
 					cc.Camera.SetNearClip(cameraProps["NearClip"].as<float>());
 					cc.Camera.SetFarClip(cameraProps["FarClip"].as<float>());
 
-					cc.Camera.SetOrthographicSize(cameraProps["OrthographicSize"].as<float>());
+					cc.Camera.SetOrthographicSize(cameraProps["OrthographicWidth"].as<float>(), cameraProps["OrthographicHeight"].as<float>());
 
 					cc.Primary = cameraComponent["Primary"].as<bool>();
 					cc.FixedAspectRatio = cameraComponent["FixedAspectRatio"].as<bool>();
@@ -495,6 +526,25 @@ namespace Toast {
 
 					tcc.FilePath = terrainColliderComponent["AssetPath"].as<std::string>();
 					tcc.TerrainData = PhysicsEngine::LoadTerrainData(tcc.FilePath.c_str());
+				}
+
+				auto uiTransformComponent = entity["UITransformComponent"];
+				if (uiTransformComponent)
+				{
+					auto& uitc = deserializedEntity.AddComponent<UITransformComponent>();
+					DirectX::XMFLOAT3 translation = uiTransformComponent["Translation"].as<DirectX::XMFLOAT3>();
+					DirectX::XMFLOAT3 scale = uiTransformComponent["Scale"].as<DirectX::XMFLOAT3>();
+
+					uitc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, 1.0f)
+						* DirectX::XMMatrixTranslation(translation.x, translation.y, 0.0f);
+				}
+
+				auto uiPanelComponent = entity["UIPanelComponent"];
+				if (uiPanelComponent)
+				{
+					auto& uipc = deserializedEntity.AddComponent<UIPanelComponent>();
+
+					uipc.Color = uiPanelComponent["Color"].as<DirectX::XMFLOAT4>();
 				}
 			}
 		}

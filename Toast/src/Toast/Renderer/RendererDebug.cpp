@@ -64,7 +64,7 @@ namespace Toast {
 		mDebugData->LineVertexBufferPtr = mDebugData->LineVertexBufferBase;
 	}
 
-	void RendererDebug::EndScene(const bool debugActivated, const bool runtime)
+	void RendererDebug::EndScene(const bool debugActivated, const bool runtime, const bool renderUI)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -72,7 +72,7 @@ namespace Toast {
 			OutlineRenderPass();
 		DebugRenderPass(runtime);
 
-		if (debugActivated)
+		if (debugActivated && !renderUI)
 		{
 			RenderCommand::BindBackbuffer();
 			RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
