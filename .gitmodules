@@ -8,3 +8,6 @@
 [submodule "Toast/vendor/ImGuizmo"]
 	path = Toast/vendor/ImGuizmo
 	url = https://github.com/Toastmastern87/ImGuizmo
+[submodule "Toast/vendor/directxtk"]
+	path = Toast/vendor/directxtk
+	url = https://github.com/Toastmastern87/DirectXTK
