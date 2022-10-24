@@ -8,6 +8,3 @@
 [submodule "Toast/vendor/ImGuizmo"]
 	path = Toast/vendor/ImGuizmo
 	url = https://github.com/Toastmastern87/ImGuizmo
-[submodule "Toast\\vendor\\msdf-atlas-gen"]
-	path = Toast\\vendor\\msdf-atlas-gen
-	url = https://github.com/Toastmastern87/msdf-atlas-gen
