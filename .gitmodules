@@ -11,3 +11,6 @@
 [submodule "Toast/vendor/directxtk"]
 	path = Toast/vendor/directxtk
 	url = https://github.com/Toastmastern87/DirectXTK
+[submodule "Toast/vendor/msdf-atlas-gen"]
+	path = Toast/vendor/msdf-atlas-gen
+	url = https://github.com/Toastmastern87/msdf-atlas-gen
