@@ -18,13 +18,15 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 IncludeDir = {}
 IncludeDir["ImGui"] = "Toast/vendor/imgui"
-IncludeDir["directxtk"] = "Toast/vendor/directxtk/" 
+IncludeDir["directxtk"] = "Toast/vendor/directxtk/Inc" 
 IncludeDir["entt"] = "Toast/vendor/entt/include" 
 IncludeDir["yaml_cpp"] = "Toast/vendor/yaml-cpp/include" 
 IncludeDir["ImGuizmo"] = "Toast/vendor/ImGuizmo"
 IncludeDir["mono"] = "Toast/vendor/mono/include"
 IncludeDir["cgltf"] = "Toast/vendor/cgltf/include"
 IncludeDir["directxtex"] = "Toast/vendor/directxtex/include"
+IncludeDir["msdf_atlas_gen"] = "Toast/vendor/msdf-atlas-gen/msdf-atlas-gen"
+IncludeDir["msdfgen"] = "Toast/vendor/msdf-atlas-gen/msdfgen"
 
 LibraryDir = {}
 LibraryDir["mono"] = "vendor/mono/lib/Debug/mono-2.0-sgen.lib"
@@ -32,7 +34,10 @@ LibraryDir["directxtex"] = "vendor/directxtex/lib/DirectXTex.lib"
 
 group "Dependencies"
 	include "Toast/vendor/imgui"
+	include "Toast/vendor/directxtk"
 	include "Toast/vendor/yaml-cpp"
+group "Dependencies/msdf"
+	include "Toast/vendor/msdf-atlas-gen"
 group ""
 
 project "Toast"
@@ -56,10 +61,7 @@ project "Toast"
 		"%{prj.name}/src/**.cpp",
 
 		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.h",
-		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp",
-
-		"%{prj.name}/vendor/directxtk/**.h",
-		"%{prj.name}/vendor/directxtk/**.cpp"
+		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp"
 	}
 
 	defines
@@ -77,16 +79,20 @@ project "Toast"
 		"%{IncludeDir.ImGuizmo}",
 		"%{IncludeDir.mono}",
 		"%{IncludeDir.cgltf}",
-		"%{IncludeDir.directxtex}"
+		"%{IncludeDir.directxtex}",
+		"%{IncludeDir.msdf_atlas_gen}",
+		"%{IncludeDir.msdfgen}",
 	}
 
 	links
 	{
 		"ImGui",
+		"DirectXTK",
 		"d3d11.lib",
 		"dxgi.lib",
 		"dxguid.lib",
 		"yaml-cpp",
+		"msdf-atlas-gen",
 		"%{LibraryDir.directxtex}",
 		"%{LibraryDir.mono}"
 	}
