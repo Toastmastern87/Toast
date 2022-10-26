@@ -12,32 +12,37 @@ namespace Toast {
 	class Renderer2D : Renderer
 	{
 	private:
+		enum ElementType 
+		{
+			Panel = 0
+		};
+
+		struct DrawCommand
+		{
+		public:
+			DrawCommand(const Ref<UIElement> element, const DirectX::XMMATRIX& transform, ElementType type)
+				: Element(element), Transform(transform), Type(type) {}
+		public:
+			Ref<UIElement> Element;
+			DirectX::XMMATRIX Transform;
+			ElementType Type;
+		};
+
 		struct QuadVertex
 		{
 			DirectX::XMFLOAT3 Position;
 			DirectX::XMFLOAT4 Color;
+			DirectX::XMFLOAT2 TexCoord;
 		};
 
 		struct Renderer2DData
 		{
-			static const uint32_t MaxQuads = 20000;
-			static const uint32_t MaxVertices = MaxQuads * 4;
-			static const uint32_t MaxIndices = MaxQuads * 6;
-
 			Ref<Shader> UIShader;
-
-			Ref<ShaderLayout> QuadBufferLayout;
-			Ref<VertexBuffer> QuadVertexBuffer;
-			Ref<IndexBuffer> QuadIndexBuffer;
-
-			uint32_t QuadIndexCount = 0;
-			QuadVertex* QuadVertexBufferBase = nullptr;
-			QuadVertex* QuadVertexBufferPtr = nullptr;
-
-			DirectX::XMVECTOR QuadVertexPositions[4];
 
 			Ref<ConstantBuffer> UICBuffer;
 			Buffer UIBuffer;
+
+			std::vector<DrawCommand> ElementDrawList;
 		};
 
 	protected:
@@ -50,8 +55,8 @@ namespace Toast {
 		static void BeginScene();
 		static void EndScene();
 
-		// Primitives
-		static void SubmitQuad(const DirectX::XMMATRIX& transform, const DirectX::XMFLOAT4& color);
+		static void ClearDrawList();
 
+		static void SubmitQuad(const DirectX::XMMATRIX& transform, const Ref<UIPanel>& panel);
 	};
 }

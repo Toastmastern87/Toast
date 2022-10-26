@@ -10,6 +10,8 @@
 #include "Toast/Renderer/PlanetSystem.h"
 #include "Toast/Renderer/SceneEnvironment.h"
 
+#include "Toast/Renderer/UI/UIElement.h"
+
 #include <../vendor/directxtex/include/DirectXTex.h>
 
 namespace Toast {
@@ -197,11 +199,11 @@ namespace Toast {
 
 	struct UIPanelComponent
 	{
-		DirectX::XMFLOAT4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+		Ref<UIPanel> Panel;
 
 		UIPanelComponent() = default;
 		UIPanelComponent(const UIPanelComponent&) = default;
-		UIPanelComponent(const DirectX::XMFLOAT4& color)
-			: Color(color) {}
+		UIPanelComponent(const Ref<UIPanel>& panel)
+			: Panel(panel) {}
 	};
 }

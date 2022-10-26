@@ -16,18 +16,17 @@ namespace Toast {
 	class Renderer 
 	{
 	private:
-		struct DrawCommand 
+		struct DrawCommand
 		{
 		public:
 			DrawCommand(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const bool wireframe, const int entityID = 0, PlanetComponent::PlanetGPUData* planetData = nullptr)
-				: Mesh(mesh), Transform(transform), Wireframe(wireframe), EntityID(entityID), PlanetData(planetData){}
+				: Mesh(mesh), Transform(transform), Wireframe(wireframe), EntityID(entityID), PlanetData(planetData) {}
 		public:
 			Ref<Mesh> Mesh;
 			DirectX::XMMATRIX Transform;
 			bool Wireframe;
 			const int EntityID;
 			PlanetComponent::PlanetGPUData* PlanetData;
-
 		};
 
 		struct RendererData

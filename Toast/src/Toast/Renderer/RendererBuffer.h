@@ -40,7 +40,7 @@ namespace Toast {
 	{
 	public:
 		VertexBuffer(uint32_t size, uint32_t count, uint32_t bindslot);
-		VertexBuffer(void* vertices, uint32_t size, uint32_t count, uint32_t bindslot);
+		VertexBuffer(void* vertices, uint32_t size, uint32_t count, uint32_t bindslot, D3D11_USAGE usage = D3D11_USAGE_DEFAULT);
 		virtual ~VertexBuffer();
 
 		virtual void Bind() const;

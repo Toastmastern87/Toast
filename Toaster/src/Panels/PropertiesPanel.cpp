@@ -404,7 +404,7 @@ namespace Toast {
 			{
 				if (ImGui::MenuItem("UI Panel"))
 				{
-					mContext.AddComponent<UIPanelComponent>();
+					mContext.AddComponent<UIPanelComponent>(CreateRef<UIPanel>());
 					ImGui::CloseCurrentPopup();
 				}
 			}
@@ -1070,9 +1070,9 @@ namespace Toast {
 				updateTransform |= DrawFloat2Control("Position", positionFloat2);
 				updateTransform |= DrawFloat2Control("Size", sizeFloat2, 1.0f);
 
-				if (updateTransform)
+				if (updateTransform) 
 					component.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(sizeFloat2.x, sizeFloat2.y, 1.0f)
-					* DirectX::XMMatrixTranslation(positionFloat2.x, -positionFloat2.y, 0.0f);
+						* DirectX::XMMatrixTranslation(positionFloat2.x, -positionFloat2.y, 0.0f);
 			});
 
 		DrawComponent<UIPanelComponent>(ICON_TOASTER_SQUARE_O" UI Panel", entity, mScene, [](auto& component, Entity entity, Scene* scene)
@@ -1089,7 +1089,14 @@ namespace Toast {
 				ImGui::Text("Color");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::ColorEdit4("##color", &component.Color.x);
+				ImGui::ColorEdit4("##color", component.Panel->GetColor());
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Corner Radius");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::SliderFloat("##cornerradius", component.Panel->GetCornerRadius(), 0.0f, 50.0f, "%.1f");
 
 				ImGui::EndTable();
 			});
