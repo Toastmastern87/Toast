@@ -323,7 +323,8 @@ namespace Toast {
 			out << YAML::BeginMap; // UIPanelComponent
 
 			auto& uipc = entity.GetComponent<UIPanelComponent>();
-			out << YAML::Key << "Color" << YAML::Value << uipc.Color;
+			out << YAML::Key << "Color" << YAML::Value << uipc.Panel->GetColorF4();
+			out << YAML::Key << "CornerRadius" << YAML::Value << *uipc.Panel->GetCornerRadius();
 
 			out << YAML::EndMap; // UIPanelComponent
 		}
@@ -542,9 +543,10 @@ namespace Toast {
 				auto uiPanelComponent = entity["UIPanelComponent"];
 				if (uiPanelComponent)
 				{
-					auto& uipc = deserializedEntity.AddComponent<UIPanelComponent>();
-
-					uipc.Color = uiPanelComponent["Color"].as<DirectX::XMFLOAT4>();
+					auto& uipc = deserializedEntity.AddComponent<UIPanelComponent>(CreateRef<UIPanel>());
+					
+					uipc.Panel->SetColor(uiPanelComponent["Color"].as<DirectX::XMFLOAT4>());
+					uipc.Panel->SetCornerRadius(uiPanelComponent["CornerRadius"].as<float>());
 				}
 			}
 		}

@@ -42,7 +42,7 @@ namespace Toast {
 		Bind();
 	}
 
-	VertexBuffer::VertexBuffer(void* vertices, uint32_t size, uint32_t count, uint32_t bindslot)
+	VertexBuffer::VertexBuffer(void* vertices, uint32_t size, uint32_t count, uint32_t bindslot, D3D11_USAGE usage)
 		: mSize(size), mCount(count), mBindSlot(bindslot)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -55,11 +55,11 @@ namespace Toast {
 		ID3D11Device* device = API->GetDevice();
 
 		ZeroMemory(&vbd, sizeof(D3D11_BUFFER_DESC));
-
-		vbd.Usage = D3D11_USAGE_DEFAULT;
+		
+		vbd.Usage = usage;
 		vbd.ByteWidth = size;
 		vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		vbd.CPUAccessFlags = 0;
+		vbd.CPUAccessFlags = (usage == D3D11_USAGE_DEFAULT) ?  0 : D3D11_CPU_ACCESS_WRITE;
 		vbd.MiscFlags = 0;
 		vbd.StructureByteStride = 0;
 

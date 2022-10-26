@@ -3,15 +3,12 @@ Entities:
   - Entity: 10973876973695962467
     TagComponent:
       Tag: Panel
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
     UITransformComponent:
-      Translation: [0, 0, 0]
+      Translation: [50, -50, 0]
       Scale: [100, 100, 1]
     UIPanelComponent:
-      Color: [1, 1, 1, 1]
+      Color: [0.767932475, 0.113407753, 0.113407753, 1]
+      CornerRadius: 0
   - Entity: 7350744259463354997
     TagComponent:
       Tag: Camera

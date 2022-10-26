@@ -375,7 +375,7 @@ namespace Toast {
 				{
 					auto [utc, upc] = uiEntites.get<UITransformComponent, UIPanelComponent>(entity);
 
-					Renderer2D::SubmitQuad(utc.Transform, upc.Color);
+					Renderer2D::SubmitQuad(utc.Transform, upc.Panel);
 				}
 			}
 			Renderer2D::EndScene();
@@ -645,7 +645,7 @@ namespace Toast {
 					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
 					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
 
-					Renderer2D::SubmitQuad(utc.Transform, upc.Color);
+					Renderer2D::SubmitQuad(utc.Transform, upc.Panel);
 				}
 			}
 			Renderer2D::EndScene();
