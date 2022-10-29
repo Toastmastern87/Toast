@@ -2,6 +2,7 @@
 
 #include "Toast/Renderer/RendererBuffer.h"
 #include "Toast/Renderer/Shader.h"
+#include "Toast/Renderer/UI/Font.h"
 
 #include <DirectXMath.h>
 
@@ -38,22 +39,33 @@ namespace Toast {
 
 		void Bind();
 
-		void Transform(DirectX::XMMATRIX transform);
+		void SetTransform(DirectX::XMMATRIX transform) { mTransform = transform; }
+
+		uint32_t GetQuadCount() { return mQuadIndexCount; }
 
 	private:
-		float mWidth;
-		float mHeight;
 		DirectX::XMFLOAT4 mColor;
 
 		Ref<VertexBuffer> mVertexBuffer;
 		Ref<IndexBuffer> mIndexBuffer;
 
-		UIVertex mVertices[4];
-		uint32_t mIndices[6];
-
 	protected:
-		Ref<ConstantBuffer> mUIPropCBuffer;
-		Buffer mUIPropBuffer;
+		float mWidth, mHeight;
+
+		Ref<ConstantBuffer> mUIPropCBuffer, mModelCBuffer;
+		Buffer mUIPropBuffer, mModelBuffer;
+
+		const uint32_t mMaxQuads = 256;
+		const uint32_t mMaxVertices = mMaxQuads * 4;
+		const uint32_t mMaxIndices = mMaxQuads * 6;
+
+		uint32_t mQuadIndexCount = 0;
+		UIVertex* mQuadVertexBufferBase = nullptr;
+		UIVertex* mQuadVertexBufferPtr = nullptr;
+
+		DirectX::XMFLOAT3 mQuadVertexPositions[4];
+
+		DirectX::XMMATRIX mTransform;
 	};
 
 	class UIPanel : public UIElement 
@@ -68,5 +80,23 @@ namespace Toast {
 		void SetCornerRadius(float radius) { mCornerRadius = radius; }
 	private:
 		float mCornerRadius = 0.0f;
+	};
+
+	class UIText : public UIElement 
+	{
+	public:
+		UIText();
+		~UIText() = default;
+
+		void Bind();
+
+		void SetText(std::string& str);
+		std::string& GetText() { return TextString; }
+
+		void SetFont(Ref<Font>& f) { TextFont = f; }
+		Ref<Font> GetFont() { return TextFont; }
+	private:
+		std::string TextString = "Enter Text here";
+		Ref<Font> TextFont;
 	};
 }

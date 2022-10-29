@@ -206,4 +206,13 @@ namespace Toast {
 		UIPanelComponent(const Ref<UIPanel>& panel)
 			: Panel(panel) {}
 	};
+
+	struct UITextComponent 
+	{
+		Ref<UIText> Text;
+
+		UITextComponent() = default;
+		UITextComponent(const UITextComponent&) = default;
+	};
+
 }

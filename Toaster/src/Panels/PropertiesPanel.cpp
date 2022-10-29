@@ -400,6 +400,17 @@ namespace Toast {
 				}
 			}
 
+			ImGui::Separator();
+
+			if (!mContext.HasComponent<UITransformComponent>())
+			{
+				if (ImGui::MenuItem("UI Transform"))
+				{
+					mContext.AddComponent<UITransformComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
 			if (!mContext.HasComponent<UIPanelComponent>())
 			{
 				if (ImGui::MenuItem("UI Panel"))
@@ -409,11 +420,11 @@ namespace Toast {
 				}
 			}
 
-			if (!mContext.HasComponent<UITransformComponent>())
+			if (!mContext.HasComponent<UITextComponent>())
 			{
-				if (ImGui::MenuItem("UI Transform"))
+				if (ImGui::MenuItem("UI Text"))
 				{
-					mContext.AddComponent<UITransformComponent>();
+					mContext.AddComponent<UITextComponent>(CreateRef<UIText>());
 					ImGui::CloseCurrentPopup();
 				}
 			}
@@ -1097,6 +1108,53 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
 				ImGui::SliderFloat("##cornerradius", component.Panel->GetCornerRadius(), 0.0f, 50.0f, "%.1f");
+
+				ImGui::EndTable();
+			});
+
+		DrawComponent<UITextComponent>(ICON_TOASTER_FILE_TEXT" UI Text", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+			{
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+				auto& text = component.Text->GetText();
+
+				char buffer[1024 * 5];
+				memset(buffer, 0, sizeof(buffer));
+				strncpy_s(buffer, text.c_str(), sizeof(buffer));
+				ImGuiTableFlags textFlags = ImGuiInputTextFlags_CtrlEnterForNewLine;
+				if (ImGui::InputTextMultiline("##text", buffer, IM_ARRAYSIZE(buffer), ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 5), textFlags)) 
+				{
+					text = std::string(buffer);
+					component.Text->SetText(text);
+				}
+					
+
+				ImGui::BeginTable("##FontTable", 3, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
+				ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Font ");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (!component.Text->GetFont()->GetFilePath().empty())
+					ImGui::InputText("##fontfilepath", (char*)component.Text->GetFont()->GetFilePath().c_str(), 256, ImGuiInputTextFlags_ReadOnly);
+				else
+					ImGui::InputText("##fontfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
+				ImGui::TableSetColumnIndex(2);
+				if (ImGui::Button("...##openfont"))
+				{
+					std::optional<std::string> filepath = FileDialogs::OpenFile("*.ttf", "..\\Toaster\\assets\\fonts\\");
+					if (filepath)
+						component.Text->SetFont(CreateRef<Font>(*filepath));
+				}
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+
+				ImGui::PopItemWidth();
 
 				ImGui::EndTable();
 			});

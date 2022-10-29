@@ -14,7 +14,8 @@ namespace Toast {
 	private:
 		enum ElementType 
 		{
-			Panel = 0
+			Panel = 0,
+			Text = 1
 		};
 
 		struct DrawCommand
@@ -57,6 +58,7 @@ namespace Toast {
 
 		static void ClearDrawList();
 
-		static void SubmitQuad(const DirectX::XMMATRIX& transform, const Ref<UIPanel>& panel);
+		static void SubmitPanel(const DirectX::XMMATRIX& transform, const Ref<UIPanel>& panel);
+		static void SubmitText(const DirectX::XMMATRIX& transform, const Ref<UIText>& text);
 	};
 }

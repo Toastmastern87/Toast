@@ -24,3 +24,4 @@
 #define ICON_TOASTER_CIRCLE_O			u8"\uf10c"
 #define ICON_TOASTER_HAND_ROCK_O		u8"\uf255"
 #define ICON_TOASTER_SQUARE_O			u8"\uf096"
+#define ICON_TOASTER_FILE_TEXT			u8"\uf15c"
