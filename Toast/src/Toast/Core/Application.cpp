@@ -4,6 +4,7 @@
 #include "Toast/Core/Input.h"
 
 #include "Toast/Renderer/Renderer.h"
+#include "Toast/Renderer/UI/Font.h"
 
 #include "Toast/Script/ScriptEngine.h"
 
@@ -33,6 +34,7 @@ namespace Toast {
 		Renderer::Init();
 
 		ScriptEngine::Init("assets/scripts/Mars.dll");
+		Font::StaticInit();
 
 		mImGuiLayer = new ImGuiLayer();
 		PushOverlay(mImGuiLayer);

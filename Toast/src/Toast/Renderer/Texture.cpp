@@ -27,7 +27,7 @@ namespace Toast {
 	//     TEXTURE2D     ///////////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	Texture2D::Texture2D(DXGI_FORMAT format, uint32_t width, uint32_t height)
+	Texture2D::Texture2D(DXGI_FORMAT format, uint32_t width, uint32_t height, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag)
 		: mWidth(width), mHeight(height)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -39,8 +39,8 @@ namespace Toast {
 		ID3D11Device* device = API->GetDevice();
 
 		textureDesc.ArraySize = 1;
-		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-		textureDesc.Usage = D3D11_USAGE_DEFAULT;
+		textureDesc.BindFlags = bindFlag;
+		textureDesc.Usage = usage;
 		textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		textureDesc.Format = format;
 		textureDesc.Height = mHeight;
@@ -97,7 +97,7 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		TOAST_CORE_ASSERT(size == (mWidth * mHeight * size), "Data must be entire texture!");
+		//TOAST_CORE_ASSERT(size == (mWidth * mHeight * size), "Data must be entire texture!");
 		deviceContext->Map(mResource.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
 		memcpy(ms.pData, data, size);
 		deviceContext->Unmap(mResource.Get(), NULL);

@@ -56,15 +56,26 @@ namespace Toast {
 		{
 			if (drawCommand.Type == ElementType::Panel) 
 			{
-				//Transform to correct size and position
-				drawCommand.Element->Transform(drawCommand.Transform);
-				drawCommand.Element->SetWidth(100.0f);
-				drawCommand.Element->SetHeight(100.0f);
+				drawCommand.Element->SetTransform(drawCommand.Transform);
+
+				DirectX::XMVECTOR vScale, vTransform, vRotation;
+				DirectX::XMMatrixDecompose(&vScale, &vTransform, &vRotation, drawCommand.Transform);
+				drawCommand.Element->SetWidth(DirectX::XMVectorGetX(vScale));
+				drawCommand.Element->SetHeight(DirectX::XMVectorGetY(vScale));
 
 				Ref<UIPanel> panel = std::dynamic_pointer_cast<UIPanel>(drawCommand.Element);
 				panel->Bind();
 
 				RenderCommand::DrawIndexed(0, 0, 6);
+			}
+			if (drawCommand.Type == ElementType::Text)
+			{
+				drawCommand.Element->SetTransform(drawCommand.Transform);
+
+				Ref<UIText> text = std::dynamic_pointer_cast<UIText>(drawCommand.Element);
+				text->Bind();
+
+				RenderCommand::DrawIndexed(0, 0, text->GetQuadCount());
 			}
 		}
 
@@ -81,11 +92,17 @@ namespace Toast {
 		sRenderer2DData->ElementDrawList.clear();
 	}
 
-	void Renderer2D::SubmitQuad(const DirectX::XMMATRIX& transform, const Ref<UIPanel>& panel)
+	void Renderer2D::SubmitPanel(const DirectX::XMMATRIX& transform, const Ref<UIPanel>& panel)
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		sRenderer2DData->ElementDrawList.emplace_back(panel, transform, ElementType::Panel);
 	}
 
+	void Renderer2D::SubmitText(const DirectX::XMMATRIX& transform, const Ref<UIText>& text)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		sRenderer2DData->ElementDrawList.emplace_back(text, transform, ElementType::Text);
+	}
 }

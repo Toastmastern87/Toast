@@ -26,3 +26,12 @@ Entities:
         OrthographicHeight: 962
       Primary: true
       FixedAspectRatio: false
+  - Entity: 4095136419299822679
+    TagComponent:
+      Tag: Text
+    UITransformComponent:
+      Translation: [500, -500, 0]
+      Scale: [40, 40, 1]
+    UITextComponent:
+      AssetPath: ..\Toaster\assets\fonts\Roboto Mono\RobotoMono-Regular.ttf
+      Text: Hello World!

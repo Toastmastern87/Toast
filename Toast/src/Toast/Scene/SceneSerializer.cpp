@@ -329,6 +329,18 @@ namespace Toast {
 			out << YAML::EndMap; // UIPanelComponent
 		}
 
+		if (entity.HasComponent<UITextComponent>())
+		{
+			out << YAML::Key << "UITextComponent";
+			out << YAML::BeginMap; // UITextComponent
+
+			auto& uitc = entity.GetComponent<UITextComponent>();
+			out << YAML::Key << "AssetPath" << YAML::Value << uitc.Text->GetFont()->GetFilePath();
+			out << YAML::Key << "Text" << YAML::Value << uitc.Text->GetText();
+
+			out << YAML::EndMap; // UITextComponent
+		}
+
 		out << YAML::EndMap; // Entity
 	}
 
@@ -547,6 +559,15 @@ namespace Toast {
 					
 					uipc.Panel->SetColor(uiPanelComponent["Color"].as<DirectX::XMFLOAT4>());
 					uipc.Panel->SetCornerRadius(uiPanelComponent["CornerRadius"].as<float>());
+				}
+
+				auto uiTextComponent = entity["UITextComponent"];
+				if (uiTextComponent)
+				{
+					auto& uitc = deserializedEntity.AddComponent<UITextComponent>(CreateRef<UIText>());
+
+					uitc.Text->SetFont(CreateRef<Font>(uiTextComponent["AssetPath"].as<std::string>()));
+					uitc.Text->SetText(uiTextComponent["Text"].as<std::string>());
 				}
 			}
 		}

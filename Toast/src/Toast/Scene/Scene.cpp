@@ -369,13 +369,29 @@ namespace Toast {
 			Renderer2D::BeginScene();
 			{
 				//Panels
-				auto uiEntites = mRegistry.view<UITransformComponent, UIPanelComponent>();
+				auto uiPanelEntites = mRegistry.view<UITransformComponent, UIPanelComponent>();
 
-				for (auto entity : uiEntites)
+				for (auto entity : uiPanelEntites)
 				{
-					auto [utc, upc] = uiEntites.get<UITransformComponent, UIPanelComponent>(entity);
+					auto [utc, upc] = uiPanelEntites.get<UITransformComponent, UIPanelComponent>(entity);
 
-					Renderer2D::SubmitQuad(utc.Transform, upc.Panel);
+					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
+
+					Renderer2D::SubmitPanel(utc.Transform, upc.Panel);
+				}
+
+				//Texts
+				auto uiTextEntites = mRegistry.view<UITransformComponent, UITextComponent>();
+
+				for (auto entity : uiTextEntites)
+				{
+					auto [utc, uitc] = uiTextEntites.get<UITransformComponent, UITextComponent>(entity);
+
+					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
+
+					Renderer2D::SubmitText(utc.Transform, uitc.Text);
 				}
 			}
 			Renderer2D::EndScene();
@@ -636,16 +652,29 @@ namespace Toast {
 			Renderer2D::BeginScene();
 			{
 				//Panels
-				auto uiEntites = mRegistry.view<UITransformComponent, UIPanelComponent>();
+				auto uiPanelEntites = mRegistry.view<UITransformComponent, UIPanelComponent>();
 
-				for (auto entity : uiEntites)
+				for (auto entity : uiPanelEntites)
 				{
-					auto [utc, upc] = uiEntites.get<UITransformComponent, UIPanelComponent>(entity);
+					auto [utc, upc] = uiPanelEntites.get<UITransformComponent, UIPanelComponent>(entity);
 
 					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
 					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
 
-					Renderer2D::SubmitQuad(utc.Transform, upc.Panel);
+					Renderer2D::SubmitPanel(utc.Transform, upc.Panel);
+				}
+
+				//Texts
+				auto uiTextEntites = mRegistry.view<UITransformComponent, UITextComponent>();
+
+				for (auto entity : uiTextEntites)
+				{
+					auto [utc, uitc] = uiTextEntites.get<UITransformComponent, UITextComponent>(entity);
+
+					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
+
+					Renderer2D::SubmitText(utc.Transform, uitc.Text);
 				}
 			}
 			Renderer2D::EndScene();
@@ -740,6 +769,7 @@ namespace Toast {
 		CopyComponent<TerrainColliderComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIPanelComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UITransformComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<UITextComponent>(target->mRegistry, mRegistry, enttMap);
 
 		const auto& entityInstanceMap = ScriptEngine::GetEntityInstanceMap();
 		if (entityInstanceMap.find(target->GetUUID()) != entityInstanceMap.end())
@@ -916,6 +946,11 @@ namespace Toast {
 
 	template<>
 	void Scene::OnComponentAdded<UITransformComponent>(Entity entity, UITransformComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<UITextComponent>(Entity entity, UITextComponent& component)
 	{
 	}
 
