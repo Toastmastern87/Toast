@@ -213,6 +213,18 @@ namespace Toast {
 
 		UITextComponent() = default;
 		UITextComponent(const UITextComponent&) = default;
+		UITextComponent(const Ref<UIText>& text)
+			: Text(text) {}
+	};
+
+	struct UIButtonComponent 
+	{
+		Ref<UIButton> Button;
+
+		UIButtonComponent() = default;
+		UIButtonComponent(const UIButtonComponent&) = default;
+		UIButtonComponent(const Ref<UIButton>& button)
+			: Button(button) {}
 	};
 
 }

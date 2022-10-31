@@ -114,6 +114,25 @@ namespace Toast {
 		mIsPlaying = false;
 	}
 
+	void Scene::OnEvent(Event& e)
+	{
+		TOAST_CORE_INFO("Event in Scene.cpp");
+		EventDispatcher dispatcher(e);
+		dispatcher.Dispatch<MouseButtonPressedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseButtonPressed));
+	}
+
+	bool Scene::OnMouseButtonPressed(MouseButtonPressedEvent& e)
+	{
+		TOAST_CORE_INFO("Mouse clicked event in Scene.cpp");
+		return true;
+		//Entity entity = { mHoveredEntity, this };
+
+		//if (ScriptEngine::ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName))
+		//	ScriptEngine::OnClickEntity(entity.mScene->GetUUID(), entity.GetComponent<IDComponent>().ID);
+		//else
+		//	TOAST_CORE_INFO("Module doesn't exist");
+	}
+
 	void Scene::OnUpdateRuntime(Timestep ts)
 	{
 		DirectX::XMVECTOR cameraPos = { 0.0f, 0.0f, 0.0f }, cameraRot = { 0.0f, 0.0f, 0.0f }, cameraScale = { 0.0f, 0.0f, 0.0f };
@@ -770,6 +789,7 @@ namespace Toast {
 		CopyComponent<UIPanelComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UITransformComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UITextComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<UIButtonComponent>(target->mRegistry, mRegistry, enttMap);
 
 		const auto& entityInstanceMap = ScriptEngine::GetEntityInstanceMap();
 		if (entityInstanceMap.find(target->GetUUID()) != entityInstanceMap.end())
@@ -951,6 +971,11 @@ namespace Toast {
 
 	template<>
 	void Scene::OnComponentAdded<UITextComponent>(Entity entity, UITextComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<UIButtonComponent>(Entity entity, UIButtonComponent& component)
 	{
 	}
 

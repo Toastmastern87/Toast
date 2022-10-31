@@ -429,6 +429,15 @@ namespace Toast {
 				}
 			}
 
+			if (!mContext.HasComponent<UIButtonComponent>())
+			{
+				if (ImGui::MenuItem("UI Button"))
+				{
+					mContext.AddComponent<UIButtonComponent>(CreateRef<UIButton>());
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
 			ImGui::EndPopup();
 		}
 

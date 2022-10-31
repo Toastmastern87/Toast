@@ -68,6 +68,9 @@ namespace Toast {
 		void OnRuntimeStart();
 		void OnRuntimeStop();
 
+		void OnEvent(Event& e);
+		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
+
 		void OnUpdateRuntime(Timestep ts);
 		void OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera);
 		void OnViewportResize(uint32_t width, uint32_t height);
@@ -90,6 +93,7 @@ namespace Toast {
 		UUID GetUUID() const { return mSceneID; }
 
 		void SetSelectedEntity(entt::entity entity) { mSelectedEntity = entity; }
+		void SetHoveredEntity(entt::entity entity) { mHoveredEntity = entity; }
 
 		Settings GetSettings() { return mSettings; }
 
@@ -131,6 +135,7 @@ namespace Toast {
 		bool mIsPlaying = false;
 
 		entt::entity mSelectedEntity;
+		entt::entity mHoveredEntity;
 
 		bool mOldBackfaceCullSetting = false;
 		bool mOldFrustumCullSetting = false;

@@ -99,4 +99,19 @@ namespace Toast {
 		std::string TextString = "Enter Text here";
 		Ref<Font> TextFont;
 	};
+
+	class UIButton : public UIElement
+	{
+	public:
+		UIButton();
+		~UIButton() = default;
+
+		void Bind();
+
+		void SetText(Ref<UIText>& text) { Text = text; }
+		Ref<UIText>& GetText() { return Text; }
+
+	private:
+		Ref<UIText> Text;
+	};
 }

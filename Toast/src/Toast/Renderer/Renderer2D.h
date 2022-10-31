@@ -15,7 +15,8 @@ namespace Toast {
 		enum ElementType 
 		{
 			Panel = 0,
-			Text = 1
+			Text = 1,
+			Button = 2
 		};
 
 		struct DrawCommand

@@ -113,6 +113,7 @@ namespace Toast {
 
 		static void OnCreateEntity(Entity entity);
 		static void OnUpdateEntity(UUID sceneID, UUID entityID, Timestep ts);
+		static void OnClickEntity(UUID sceneID, UUID entityID);
 
 		static bool ModuleExists(const std::string& moduleName);
 		static void InitScriptEntity(Entity entity);
