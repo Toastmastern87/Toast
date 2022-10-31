@@ -440,9 +440,7 @@ namespace Toast {
 		if (mSceneState == SceneState::Edit)
 			mEditorCamera->OnEvent(e);
 		else if (mSceneState == SceneState::Play)
-		{
-			;// Shit to be added soon
-		}
+			mRuntimeScene->OnEvent(e);
 
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnKeyPressed));

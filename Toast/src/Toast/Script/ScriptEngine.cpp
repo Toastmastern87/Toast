@@ -34,11 +34,13 @@ namespace Toast {
 		MonoClass* Class = nullptr;
 		MonoMethod* OnCreateMethod = nullptr;
 		MonoMethod* OnUpdateMethod = nullptr;
+		MonoMethod* OnClickMethod = nullptr;
 
 		void InitClassMethods(MonoImage* image)
 		{
 			OnCreateMethod = GetMethod(image, FullName + ":OnCreate()");
 			OnUpdateMethod = GetMethod(image, FullName + ":OnUpdate(single)");
+			OnUpdateMethod = GetMethod(image, FullName + ":OnClick()");
 		}
 	};
 
@@ -286,11 +288,16 @@ namespace Toast {
 	void ScriptEngine::OnUpdateEntity(UUID sceneID, UUID entityID, Timestep ts)
 	{
 		EntityInstance& entityInstance = GetEntityInstanceData(sceneID, entityID).Instance;
-		if (entityInstance.ScriptClass->OnUpdateMethod) 
+		if (entityInstance.ScriptClass->OnClickMethod) 
 		{
 			void* args[] = { &ts };
 			CallMethod(entityInstance.GetInstance(), entityInstance.ScriptClass->OnUpdateMethod, args);
 		}
+
+	}
+
+	void ScriptEngine::OnClickEntity(UUID sceneID, UUID entityID)
+	{
 
 	}
 
