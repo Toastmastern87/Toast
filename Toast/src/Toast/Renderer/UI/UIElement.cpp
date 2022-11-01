@@ -13,6 +13,9 @@ namespace Toast {
 
 	UIElement::UIElement()
 	{
+		mShader = ShaderLibrary::Get("assets/shaders/UI.hlsl");
+		mPickingShader = ShaderLibrary::Get("assets/shaders/UIPicking.hlsl");
+
 		mQuadVertexBufferBase = new UIVertex[mMaxVertices];
 		mQuadVertexBufferPtr = mQuadVertexBufferBase;
 		mQuadIndexCount = 0;
@@ -61,9 +64,23 @@ namespace Toast {
 		mUIPropCBuffer->Map(mUIPropBuffer);
 		mUIPropCBuffer->Bind();
 
-		mModelBuffer.Write((byte*)&mTransform, 64, 0);
 		mModelCBuffer->Map(mModelBuffer);
 		mModelCBuffer->Bind();
+	}
+
+	const Toast::ShaderCBufferElement* UIElement::FindCBufferElementDeclaration(const std::string& cbufferName, const std::string& name)
+	{
+		const auto& shaderCBuffers = mShader->GetCBuffersBindings();
+
+		if (shaderCBuffers.size() > 0)
+		{
+			const ShaderCBufferBindingDesc& buffer = shaderCBuffers.at(cbufferName);
+
+			if (buffer.CBufferElements.find(name) == buffer.CBufferElements.end())
+				return nullptr;
+
+			return &buffer.CBufferElements.at(name);
+		}
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  
@@ -206,7 +223,7 @@ namespace Toast {
 
 	void UIButton::Bind()
 	{
-
+		UIPanel::Bind();
 	}
 
 }

@@ -329,6 +329,19 @@ namespace Toast {
 			out << YAML::EndMap; // UIPanelComponent
 		}
 
+		if (entity.HasComponent<UIButtonComponent>())
+		{
+			out << YAML::Key << "UIButtonComponent";
+			out << YAML::BeginMap; // UIButtonComponent
+
+			auto& ubc = entity.GetComponent<UIButtonComponent>();
+			out << YAML::Key << "CornerRadius" << YAML::Value << *ubc.Button->GetCornerRadius();
+			out << YAML::Key << "Color" << YAML::Value << ubc.Button->GetColorF4();
+			out << YAML::Key << "ClickColor" << YAML::Value << ubc.Button->GetClickColorF4();
+
+			out << YAML::EndMap; // UIButtonComponent
+		}
+
 		if (entity.HasComponent<UITextComponent>())
 		{
 			out << YAML::Key << "UITextComponent";
@@ -559,6 +572,16 @@ namespace Toast {
 					
 					uipc.Panel->SetColor(uiPanelComponent["Color"].as<DirectX::XMFLOAT4>());
 					uipc.Panel->SetCornerRadius(uiPanelComponent["CornerRadius"].as<float>());
+				}
+
+				auto uiButtonComponent = entity["UIButtonComponent"];
+				if (uiButtonComponent)
+				{
+					auto& ubc = deserializedEntity.AddComponent<UIButtonComponent>(CreateRef<UIButton>());
+
+					ubc.Button->SetColor(uiButtonComponent["Color"].as<DirectX::XMFLOAT4>());
+					ubc.Button->SetClickColor(uiButtonComponent["Color"].as<DirectX::XMFLOAT4>());
+					ubc.Button->SetCornerRadius(uiButtonComponent["CornerRadius"].as<float>());
 				}
 
 				auto uiTextComponent = entity["UITextComponent"];

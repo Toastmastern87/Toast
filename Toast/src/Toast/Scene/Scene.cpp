@@ -397,7 +397,20 @@ namespace Toast {
 					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
 					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
 
-					Renderer2D::SubmitPanel(utc.Transform, upc.Panel);
+					Renderer2D::SubmitPanel(utc.Transform, upc.Panel, (int)entity, false);
+				}
+
+				//Buttons
+				auto uiButtonEntites = mRegistry.view<UITransformComponent, UIButtonComponent>();
+
+				for (auto entity : uiButtonEntites)
+				{
+					auto [utc, ubc] = uiButtonEntites.get<UITransformComponent, UIButtonComponent>(entity);
+
+					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
+
+					Renderer2D::SubmitButton(utc.Transform, ubc.Button, (int)entity, true);
 				}
 
 				//Texts
@@ -410,7 +423,7 @@ namespace Toast {
 					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
 					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
 
-					Renderer2D::SubmitText(utc.Transform, uitc.Text);
+					Renderer2D::SubmitText(utc.Transform, uitc.Text, (int)entity, false);
 				}
 			}
 			Renderer2D::EndScene();
@@ -680,7 +693,20 @@ namespace Toast {
 					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
 					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
 
-					Renderer2D::SubmitPanel(utc.Transform, upc.Panel);
+					Renderer2D::SubmitPanel(utc.Transform, upc.Panel, (int)entity, true);
+				}
+
+				//Buttons
+				auto uiButtonEntites = mRegistry.view<UITransformComponent, UIButtonComponent>();
+
+				for (auto entity : uiButtonEntites)
+				{
+					auto [utc, ubc] = uiButtonEntites.get<UITransformComponent, UIButtonComponent>(entity);
+
+					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
+
+					Renderer2D::SubmitButton(utc.Transform, ubc.Button, (int)entity, true);
 				}
 
 				//Texts
@@ -693,7 +719,7 @@ namespace Toast {
 					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
 					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
 
-					Renderer2D::SubmitText(utc.Transform, uitc.Text);
+					Renderer2D::SubmitText(utc.Transform, uitc.Text, (int)entity, true);
 				}
 			}
 			Renderer2D::EndScene();
