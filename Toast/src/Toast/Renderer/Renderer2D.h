@@ -22,12 +22,14 @@ namespace Toast {
 		struct DrawCommand
 		{
 		public:
-			DrawCommand(const Ref<UIElement> element, const DirectX::XMMATRIX& transform, ElementType type)
-				: Element(element), Transform(transform), Type(type) {}
+			DrawCommand(const Ref<UIElement> element, const DirectX::XMMATRIX& transform, ElementType type, const int entityID = 0, const bool targetable = false)
+				: Element(element), Transform(transform), Type(type), EntityID(entityID), Targetable(targetable) {}
 		public:
 			Ref<UIElement> Element;
 			DirectX::XMMATRIX Transform;
 			ElementType Type;
+			const int EntityID;
+			const bool Targetable;
 		};
 
 		struct QuadVertex
@@ -39,8 +41,6 @@ namespace Toast {
 
 		struct Renderer2DData
 		{
-			Ref<Shader> UIShader;
-
 			Ref<ConstantBuffer> UICBuffer;
 			Buffer UIBuffer;
 
@@ -59,7 +59,8 @@ namespace Toast {
 
 		static void ClearDrawList();
 
-		static void SubmitPanel(const DirectX::XMMATRIX& transform, const Ref<UIPanel>& panel);
-		static void SubmitText(const DirectX::XMMATRIX& transform, const Ref<UIText>& text);
+		static void SubmitPanel(const DirectX::XMMATRIX& transform, const Ref<UIPanel>& panel, const int entityID, const bool targetable);
+		static void SubmitButton(const DirectX::XMMATRIX& transform, const Ref<UIButton>& button, const int entityID, const bool targetable);
+		static void SubmitText(const DirectX::XMMATRIX& transform, const Ref<UIText>& text, const int entityID, const bool targetable);
 	};
 }

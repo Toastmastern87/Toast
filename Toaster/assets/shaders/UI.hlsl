@@ -27,6 +27,7 @@ struct PixelInputType
 {
 	float4 position			: SV_POSITION;
 	float2 texCoord			: TEXCOORD;
+	int entityID			: TEXTUREID;
 };
 
 PixelInputType main(VertexInputType input)
@@ -40,6 +41,8 @@ PixelInputType main(VertexInputType input)
 	output.position.w = 1.0f;
 
 	output.texCoord = input.texCoord;
+
+	output.entityID = entityID;
 
 	return output;
 }
@@ -58,6 +61,7 @@ struct PixelInputType
 {
 	float4 position			: SV_POSITION;
 	float2 texCoord			: TEXCOORD;
+	int entityID			: TEXTUREID;
 };
 
 Texture2D MDSFAtlas				: register(t6);

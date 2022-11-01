@@ -314,6 +314,8 @@ namespace Toast {
 			{
 				if (ImGui::MenuItem("Camera"))
 				{
+					auto& tc = mContext.AddComponent<TransformComponent>();
+					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 					mContext.AddComponent<CameraComponent>();
 					ImGui::CloseCurrentPopup();
 				}
@@ -402,19 +404,12 @@ namespace Toast {
 
 			ImGui::Separator();
 
-			if (!mContext.HasComponent<UITransformComponent>())
-			{
-				if (ImGui::MenuItem("UI Transform"))
-				{
-					mContext.AddComponent<UITransformComponent>();
-					ImGui::CloseCurrentPopup();
-				}
-			}
-
 			if (!mContext.HasComponent<UIPanelComponent>())
 			{
 				if (ImGui::MenuItem("UI Panel"))
 				{
+					auto& tc = mContext.AddComponent<UITransformComponent>();
+					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 					mContext.AddComponent<UIPanelComponent>(CreateRef<UIPanel>());
 					ImGui::CloseCurrentPopup();
 				}
@@ -424,6 +419,8 @@ namespace Toast {
 			{
 				if (ImGui::MenuItem("UI Text"))
 				{
+					auto& tc = mContext.AddComponent<UITransformComponent>();
+					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 					mContext.AddComponent<UITextComponent>(CreateRef<UIText>());
 					ImGui::CloseCurrentPopup();
 				}
@@ -433,6 +430,8 @@ namespace Toast {
 			{
 				if (ImGui::MenuItem("UI Button"))
 				{
+					auto& tc = mContext.AddComponent<UITransformComponent>();
+					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 					mContext.AddComponent<UIButtonComponent>(CreateRef<UIButton>());
 					ImGui::CloseCurrentPopup();
 				}
@@ -1164,6 +1163,39 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(0);
 
 				ImGui::PopItemWidth();
+
+				ImGui::EndTable();
+			});
+
+		DrawComponent<UIButtonComponent>(ICON_TOASTER_SQUARE_O" UI Button", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+			{
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+				ImGui::BeginTable("UIButtonComponent", 2, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Color");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::ColorEdit4("##buttoncolor", component.Button->GetColor());
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("ClickColor");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::ColorEdit4("##clickcolor", component.Button->GetClickColor());
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Corner Radius");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::SliderFloat("##cornerradius", component.Button->GetCornerRadius(), 0.0f, 50.0f, "%.1f");
 
 				ImGui::EndTable();
 			});

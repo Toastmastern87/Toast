@@ -28,6 +28,27 @@ namespace Toast {
 		UIElement();
 		virtual ~UIElement() = default;
 
+		template <typename T>
+		void Set(const std::string& cbufferName, const std::string& name, const T& value)
+		{
+			auto decl = FindCBufferElementDeclaration(cbufferName, name);
+
+			TOAST_CORE_ASSERT(decl, "Couldn't find constant buffer element!");
+			if (!decl)
+				return;
+
+			mModelBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
+		}
+
+		template <typename T>
+		T& Get(const std::string& cbufferName, const std::string& name)
+		{
+			auto decl = FindCBufferElementDeclaration(bufferName, name);
+			TOAST_CORE_ASSERT(decl, "Couldn't find constant buffer element!");
+
+			return mModelBuffer.Read<T>(decl->GetOffset());
+		}
+
 		void SetWidth(float w) { mWidth = w; }
 		float* GetWidth() { return &mWidth; }
 		void SetHeight(float h) { mHeight = h; }
@@ -39,12 +60,14 @@ namespace Toast {
 
 		void Bind();
 
-		void SetTransform(DirectX::XMMATRIX transform) { mTransform = transform; }
-
 		uint32_t GetQuadCount() { return mQuadIndexCount; }
-
 	private:
-		DirectX::XMFLOAT4 mColor;
+		const ShaderCBufferElement* FindCBufferElementDeclaration(const std::string& cbufferName, const std::string& name);
+	public:
+		Shader* mShader;
+		Shader* mPickingShader;
+	private:
+		DirectX::XMFLOAT4 mColor = { 1.0f, 1.0f, 1.0f, 1.0f };;
 
 		Ref<VertexBuffer> mVertexBuffer;
 		Ref<IndexBuffer> mIndexBuffer;
@@ -78,7 +101,7 @@ namespace Toast {
 
 		float* GetCornerRadius() { return &mCornerRadius; }
 		void SetCornerRadius(float radius) { mCornerRadius = radius; }
-	private:
+	protected:
 		float mCornerRadius = 0.0f;
 	};
 
@@ -100,7 +123,7 @@ namespace Toast {
 		Ref<Font> TextFont;
 	};
 
-	class UIButton : public UIElement
+	class UIButton : public UIPanel
 	{
 	public:
 		UIButton();
@@ -108,10 +131,10 @@ namespace Toast {
 
 		void Bind();
 
-		void SetText(Ref<UIText>& text) { Text = text; }
-		Ref<UIText>& GetText() { return Text; }
-
+		float* GetClickColor() { return &mClickColor.x; }
+		DirectX::XMFLOAT4 GetClickColorF4() { return mClickColor; }
+		void SetClickColor(DirectX::XMFLOAT4 c) { mClickColor = c; }
 	private:
-		Ref<UIText> Text;
+		DirectX::XMFLOAT4 mClickColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 	};
 }
