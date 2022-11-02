@@ -4,7 +4,9 @@ using Toast;
 
 class ButtonTest : Entity
 {
-    private bool keyPressed;
+    private UIButtonComponent mButton;
+
+    private Vector4 mColor;
 
     void OnCreate()
     {
@@ -16,6 +18,13 @@ class ButtonTest : Entity
 
     void OnClick() 
     {
-        Toast.Console.LogWarning("Button Click in C#!");
+        mButton = GetComponent<UIButtonComponent>();
+
+        mColor = mButton.Color;
+
+        if (mColor == new Vector4(1.0f, 1.0f, 1.0f, 1.0f))
+            mButton.Color = new Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+        else if (mColor == new Vector4(0.0f, 0.0f, 0.0f, 1.0f))
+            mButton.Color = new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
     }
 }

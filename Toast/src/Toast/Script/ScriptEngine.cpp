@@ -40,7 +40,7 @@ namespace Toast {
 		{
 			OnCreateMethod = GetMethod(image, FullName + ":OnCreate()");
 			OnUpdateMethod = GetMethod(image, FullName + ":OnUpdate(single)");
-			OnUpdateMethod = GetMethod(image, FullName + ":OnClick()");
+			OnClickMethod = GetMethod(image, FullName + ":OnClick()");
 		}
 	};
 
@@ -296,9 +296,11 @@ namespace Toast {
 
 	}
 
-	void ScriptEngine::OnClickEntity(UUID sceneID, UUID entityID)
+	void ScriptEngine::OnClickEntity(Entity entity)
 	{
-
+		EntityInstance& entityInstance = GetEntityInstanceData(entity.mScene->GetUUID(), entity.GetComponent<IDComponent>().ID).Instance;
+		if (entityInstance.ScriptClass->OnCreateMethod)
+			CallMethod(entityInstance.GetInstance(), entityInstance.ScriptClass->OnClickMethod);
 	}
 
 	bool ScriptEngine::ModuleExists(const std::string& moduleName)

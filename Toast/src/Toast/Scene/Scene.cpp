@@ -116,21 +116,32 @@ namespace Toast {
 
 	void Scene::OnEvent(Event& e)
 	{
-		TOAST_CORE_INFO("Event in Scene.cpp");
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<MouseButtonPressedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseButtonPressed));
+		dispatcher.Dispatch<MouseButtonReleasedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseButtonReleased));
 	}
 
 	bool Scene::OnMouseButtonPressed(MouseButtonPressedEvent& e)
-	{
-		TOAST_CORE_INFO("Mouse clicked event in Scene.cpp");
-		return true;
-		//Entity entity = { mHoveredEntity, this };
+	{	
+		// Check that a valid entity is being hovered over by the mouse
+		if (mHoveredEntity != entt::null) 
+		{
+			Entity entity = { mHoveredEntity, this };
 
-		//if (ScriptEngine::ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName))
-		//	ScriptEngine::OnClickEntity(entity.mScene->GetUUID(), entity.GetComponent<IDComponent>().ID);
-		//else
-		//	TOAST_CORE_INFO("Module doesn't exist");
+			if (entity.HasComponent<UIButtonComponent>() && entity.HasComponent<ScriptComponent>())
+			{
+				if (ScriptEngine::ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName))
+					ScriptEngine::OnClickEntity(entity);
+				else
+					TOAST_CORE_INFO("Module doesn't exist");
+			}		
+		}
+		return true;
+	}
+
+	bool Scene::OnMouseButtonReleased(MouseButtonReleasedEvent& e)
+	{
+		return true;
 	}
 
 	void Scene::OnUpdateRuntime(Timestep ts)

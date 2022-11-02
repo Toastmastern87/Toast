@@ -144,20 +144,6 @@ namespace Toast {
 
 			mEditorScene->OnUpdateEditor(ts, mEditorCamera);
 
-			auto [mx, my] = ImGui::GetMousePos();
-			mx -= mViewportBounds[0].x;
-			my -= mViewportBounds[0].y;
-			DirectX::XMFLOAT2 viewportSize = { mViewportBounds[1].x - mViewportBounds[0].x,  mViewportBounds[1].y - mViewportBounds[0].y };
-
-			int mouseX = (int)mx;
-			int mouseY = (int)my;
-
-			if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
-			{
-				int pixelData = pickingFramebuffer->ReadPixel(mouseX, mouseY);
-				mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mEditorScene.get());
-			}
-
 			break;
 		}
 		case SceneState::Play:
@@ -447,6 +433,7 @@ namespace Toast {
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
 		dispatcher.Dispatch<MouseButtonPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseButtonPressed));
+		dispatcher.Dispatch<MouseMovedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseMoved));
 	}
 
 	void EditorLayer::OnScenePlay()
@@ -599,6 +586,35 @@ namespace Toast {
 				mSceneHierarchyPanel.SetSelectedEntity(mHoveredEntity);
 				mEditorScene->SetSelectedEntity(mHoveredEntity);
 			}
+		}
+
+		return true;
+	}
+
+	bool EditorLayer::OnMouseMoved(MouseMovedEvent& e)
+	{
+		Ref<Framebuffer>& pickingFramebuffer = Renderer::GetPickingFramebuffer();
+
+		auto [mx, my] = ImGui::GetMousePos();
+		mx -= mViewportBounds[0].x;
+		my -= mViewportBounds[0].y;
+		DirectX::XMFLOAT2 viewportSize = { mViewportBounds[1].x - mViewportBounds[0].x,  mViewportBounds[1].y - mViewportBounds[0].y };
+
+		int mouseX = (int)mx;
+		int mouseY = (int)my;
+
+		if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+		{
+			int pixelData = pickingFramebuffer->ReadPixel(mouseX, mouseY);
+			mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mEditorScene.get());
+		}
+
+		if (mViewportHovered && !ImGuizmo::IsOver())
+		{
+			if (mSceneState == SceneState::Edit)
+				mEditorScene->SetHoveredEntity(mHoveredEntity);
+			else if (mSceneState == SceneState::Play)
+				mRuntimeScene->SetHoveredEntity(mHoveredEntity);
 		}
 
 		return true;

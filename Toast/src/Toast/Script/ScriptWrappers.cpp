@@ -404,5 +404,31 @@ namespace Toast {
 			component.Camera.SetNearClip(inNearClip);
 		}
 
+		////////////////////////////////////////////////////////////////
+		// UI Button ///////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////
+
+		void Toast_UIButtonComponent_GetColor(uint64_t entityID, DirectX::XMFLOAT4* outColor)
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& component = entity.GetComponent<UIButtonComponent>();
+			*outColor = component.Button->GetColorF4();
+		}
+
+		void Toast_UIButtonComponent_SetColor(uint64_t entityID, DirectX::XMFLOAT4* inColor)
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& component = entity.GetComponent<UIButtonComponent>();
+			component.Button->SetColor(*inColor);
+		}
+
 	}
 }

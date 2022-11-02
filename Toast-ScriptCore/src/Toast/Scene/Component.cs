@@ -12,7 +12,7 @@ namespace Toast
         public Entity Entity { get; set; }
     }
 
-    public class TagComponent : Component 
+    public class TagComponent : Component
     {
         public string Tag
         {
@@ -27,17 +27,17 @@ namespace Toast
         public static extern void SetTag_Native(ulong entityID, string tag);
     }
 
-    public class TransformComponent : Component 
+    public class TransformComponent : Component
     {
-        public Matrix4 Transform 
+        public Matrix4 Transform
         {
-            get 
+            get
             {
                 Matrix4 result;
                 GetTransform_Native(Entity.ID, out result);
                 return result;
             }
-            set 
+            set
             {
                 SetTransform_Native(Entity.ID, ref value);
             }
@@ -183,7 +183,7 @@ namespace Toast
                 GetRadius_Native(Entity.ID, out float result);
                 return result;
             }
-            set 
+            set
             {
             }
         }
@@ -242,24 +242,24 @@ namespace Toast
         public static extern double[] GetFaceLevelDotLUT_Native(ulong entityID);
     }
 
-    public class MeshComponent : Component 
+    public class MeshComponent : Component
     {
-        public Mesh Mesh 
+        public Mesh Mesh
         {
-            get 
+            get
             {
                 Mesh result = new Mesh(GetMesh_Native(Entity.ID));
                 return result;
             }
 
-            set 
+            set
             {
                 IntPtr ptr = value == null ? IntPtr.Zero : value.mUnmanagedInstance;
                 SetMesh_Native(Entity.ID, ptr);
             }
         }
 
-        public void RegeneratePlanet(Vector3 cameraPos, Matrix4 cameraTransform) 
+        public void RegeneratePlanet(Vector3 cameraPos, Matrix4 cameraTransform)
         {
             RegeneratePlanet_Native(Entity.ID, cameraPos, cameraTransform);
         }
@@ -271,5 +271,27 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void RegeneratePlanet_Native(ulong entityID, Vector3 cameraPos, Matrix4 cameraForward);
 
+    }
+
+    public class UIButtonComponent : Component
+    {
+        public Vector4 Color
+        {
+            get
+            {
+                GetColor_Native(Entity.ID, out Vector4 result);
+                return result;
+            }
+
+            set
+            {
+                SetColor_Native(Entity.ID, ref value);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern IntPtr GetColor_Native(ulong entityID, out Vector4 result);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void SetColor_Native(ulong entityID, ref Vector4 inColor);
     }
 }

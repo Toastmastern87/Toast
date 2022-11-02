@@ -42,6 +42,7 @@ namespace Toast {
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);
 		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
+		bool OnMouseMoved(MouseMovedEvent& e);
 		void UpdateWindowTitle(const std::string& sceneName);
 
 	private:
