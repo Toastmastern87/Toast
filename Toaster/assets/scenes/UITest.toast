@@ -1,14 +1,37 @@
 Scene: Untitled Scene
 Entities:
-  - Entity: 10973876973695962467
+  - Entity: 15746954707780045583
     TagComponent:
-      Tag: Panel
+      Tag: Button
+    ScriptComponent:
+      ModuleName: ButtonTest
+      StoredProperties:
+        []
     UITransformComponent:
-      Translation: [50, -50, 0]
-      Scale: [100, 100, 1]
+      Translation: [600, -600, 0]
+      Scale: [50, 25, 1]
+    UIButtonComponent:
+      CornerRadius: 0
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+  - Entity: 16081880927353325084
+    TagComponent:
+      Tag: Panel2
+    UITransformComponent:
+      Translation: [285, -208, 0]
+      Scale: [50, 50, 1]
     UIPanelComponent:
-      Color: [0.767932475, 0.113407753, 0.113407753, 1]
-      CornerRadius: 3.9000001
+      Color: [0, 0.048710186, 0.962025344, 1]
+      CornerRadius: 0
+  - Entity: 4095136419299822679
+    TagComponent:
+      Tag: Text
+    UITransformComponent:
+      Translation: [500, -500, 0]
+      Scale: [40, 40, 1]
+    UITextComponent:
+      AssetPath: ..\Toaster\assets\fonts\Roboto Mono\RobotoMono-Regular.ttf
+      Text: Hello World!
   - Entity: 7350744259463354997
     TagComponent:
       Tag: Camera
@@ -26,31 +49,12 @@ Entities:
         OrthographicHeight: 962
       Primary: true
       FixedAspectRatio: false
-  - Entity: 4095136419299822679
+  - Entity: 10973876973695962467
     TagComponent:
-      Tag: Text
+      Tag: Panel
     UITransformComponent:
-      Translation: [500, -500, 0]
-      Scale: [40, 40, 1]
-    UITextComponent:
-      AssetPath: ..\Toaster\assets\fonts\Roboto Mono\RobotoMono-Regular.ttf
-      Text: Hello World!
-  - Entity: 16081880927353325084
-    TagComponent:
-      Tag: Panel2
-    UITransformComponent:
-      Translation: [285, -208, 0]
-      Scale: [50, 50, 1]
+      Translation: [50, -50, 0]
+      Scale: [100, 100, 1]
     UIPanelComponent:
-      Color: [0, 0.048710186, 0.962025344, 1]
-      CornerRadius: 0
-  - Entity: 15746954707780045583
-    TagComponent:
-      Tag: Button
-    UITransformComponent:
-      Translation: [600, -600, 0]
-      Scale: [50, 25, 1]
-    UIButtonComponent:
-      CornerRadius: 0
-      Color: [1, 1, 1, 1]
-      ClickColor: [1, 1, 1, 1]
+      Color: [0.767932475, 0.113407753, 0.113407753, 1]
+      CornerRadius: 3.9000001

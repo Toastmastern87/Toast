@@ -20,7 +20,8 @@
     <OutputPath>..\Toaster\assets\scripts\</OutputPath>
     <BaseIntermediateOutputPath>..\bin-int\Debug-windows-x86_64\Toast-ScriptCore\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants></DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -31,7 +32,8 @@
     <OutputPath>..\Toaster\assets\scripts\</OutputPath>
     <BaseIntermediateOutputPath>..\bin-int\Release-windows-x86_64\Toast-ScriptCore\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants></DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -42,7 +44,8 @@
     <OutputPath>..\Toaster\assets\scripts\</OutputPath>
     <BaseIntermediateOutputPath>..\bin-int\Dist-windows-x86_64\Toast-ScriptCore\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants></DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -56,6 +59,7 @@
     <Compile Include="src\Toast\Math\Matrix4.cs" />
     <Compile Include="src\Toast\Math\Vector2.cs" />
     <Compile Include="src\Toast\Math\Vector3.cs" />
+    <Compile Include="src\Toast\Math\Vector4.cs" />
     <Compile Include="src\Toast\MouseCodes.cs" />
     <Compile Include="src\Toast\Renderer\Camera.cs" />
     <Compile Include="src\Toast\Renderer\Mesh.cs" />

@@ -39,6 +39,7 @@ namespace Toast {
 		RegisterComponent(PlanetComponent);
 		RegisterComponent(MeshComponent);
 		RegisterComponent(CameraComponent);
+		RegisterComponent(UIButtonComponent);
 
 		//Log
 		mono_add_internal_call("Toast.Console::LogTrace_Native", Toast::Script::Toast_Console_LogTrace);
@@ -91,6 +92,10 @@ namespace Toast {
 		mono_add_internal_call("Toast.CameraComponent::SetFarClip_Native", Toast::Script::Toast_CameraComponent_SetFarClip);
 		mono_add_internal_call("Toast.CameraComponent::GetNearClip_Native", Toast::Script::Toast_CameraComponent_GetNearClip);
 		mono_add_internal_call("Toast.CameraComponent::SetNearClip_Native", Toast::Script::Toast_CameraComponent_SetNearClip);
+
+		//UI Button
+		mono_add_internal_call("Toast.UIButtonComponent::GetColor_Native", Toast::Script::Toast_UIButtonComponent_GetColor);
+		mono_add_internal_call("Toast.UIButtonComponent::SetColor_Native", Toast::Script::Toast_UIButtonComponent_SetColor);
 	}
 
 }

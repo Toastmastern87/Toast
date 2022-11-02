@@ -66,6 +66,10 @@ namespace Toast {
 		void Toast_CameraComponent_SetFarClip(uint64_t entityID, float inFarClip);
 		float Toast_CameraComponent_GetNearClip(uint64_t entityID);
 		void Toast_CameraComponent_SetNearClip(uint64_t entityID, float inNearClip);
+
+		// UI Button Component
+		void Toast_UIButtonComponent_GetColor(uint64_t entityID, DirectX::XMFLOAT4* inColor);
+		void Toast_UIButtonComponent_SetColor(uint64_t entityID, DirectX::XMFLOAT4* outColor);
 	}
 
 }

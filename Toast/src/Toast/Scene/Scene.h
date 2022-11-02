@@ -70,6 +70,7 @@ namespace Toast {
 
 		void OnEvent(Event& e);
 		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
+		bool OnMouseButtonReleased(MouseButtonReleasedEvent& e);
 
 		void OnUpdateRuntime(Timestep ts);
 		void OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera);
