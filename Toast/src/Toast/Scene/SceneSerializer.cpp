@@ -104,6 +104,29 @@ namespace Toast {
 			out << YAML::EndMap; // TagComponent
 		}
 
+		if (entity.HasComponent<RelationshipComponent>())
+		{
+			out << YAML::Key << "RelationshipComponent";
+			out << YAML::BeginMap; // RelationshipComponent
+
+			auto& rc = entity.GetComponent<RelationshipComponent>();
+			out << YAML::Key << "ParentHandle" << YAML::Value << rc.ParentHandle;
+
+			out << YAML::Key << "Children";
+			out << YAML::Value << YAML::BeginSeq;
+
+			for (auto child : rc.Children)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Handle" << YAML::Value << child;
+				out << YAML::EndMap;
+			}
+
+			out << YAML::EndSeq;
+
+			out << YAML::EndMap; // RelationshipComponent
+		}
+
 		if (entity.HasComponent<TransformComponent>())
 		{
 			out << YAML::Key << "TransformComponent";
@@ -297,26 +320,6 @@ namespace Toast {
 			out << YAML::EndMap; // TerrainColliderComponent
 		}
 
-		if (entity.HasComponent<UITransformComponent>())
-		{
-			auto& uitc = entity.GetComponent<UITransformComponent>();
-
-			DirectX::XMFLOAT3 translationFloat3, scaleFloat3;
-			DirectX::XMVECTOR translation, scale, rotation;
-
-			DirectX::XMMatrixDecompose(&scale, &rotation, &translation, uitc.Transform);
-			DirectX::XMStoreFloat3(&translationFloat3, translation);
-			DirectX::XMStoreFloat3(&scaleFloat3, scale);
-
-			out << YAML::Key << "UITransformComponent";
-			out << YAML::BeginMap; // UITransformComponent
-
-			out << YAML::Key << "Translation" << YAML::Value << translationFloat3;
-			out << YAML::Key << "Scale" << YAML::Value << scaleFloat3;
-
-			out << YAML::EndMap; // UITransformComponent
-		}
-
 		if (entity.HasComponent<UIPanelComponent>())
 		{
 			out << YAML::Key << "UIPanelComponent";
@@ -410,11 +413,24 @@ namespace Toast {
 
 				Entity deserializedEntity = mScene->CreateEntityWithID(uuid, name);
 
+				auto relationshipComponent = entity["RelationshipComponent"];
+				auto& rc = deserializedEntity.GetComponent<RelationshipComponent>();
+				rc.ParentHandle = relationshipComponent["ParentHandle"].as<uint64_t>();
+				auto children = relationshipComponent["Children"];
+				if (children)
+				{
+					for (auto child : children)
+					{
+						uint64_t childHandle = child["Handle"].as<uint64_t>();
+						rc.Children.push_back(childHandle);
+					}
+				}
+
 				auto transformComponent = entity["TransformComponent"];
 				if (transformComponent) 
 				{
 					// Entities always have transforms
-					auto& tc = deserializedEntity.AddComponent<TransformComponent>();
+					auto& tc = deserializedEntity.GetComponent<TransformComponent>();
 					DirectX::XMFLOAT3 translation = transformComponent["Translation"].as<DirectX::XMFLOAT3>();
 					DirectX::XMFLOAT3 rotation = transformComponent["Rotation"].as<DirectX::XMFLOAT3>();
 					DirectX::XMFLOAT3 scale = transformComponent["Scale"].as<DirectX::XMFLOAT3>();
@@ -552,17 +568,6 @@ namespace Toast {
 
 					tcc.FilePath = terrainColliderComponent["AssetPath"].as<std::string>();
 					tcc.TerrainData = PhysicsEngine::LoadTerrainData(tcc.FilePath.c_str());
-				}
-
-				auto uiTransformComponent = entity["UITransformComponent"];
-				if (uiTransformComponent)
-				{
-					auto& uitc = deserializedEntity.AddComponent<UITransformComponent>();
-					DirectX::XMFLOAT3 translation = uiTransformComponent["Translation"].as<DirectX::XMFLOAT3>();
-					DirectX::XMFLOAT3 scale = uiTransformComponent["Scale"].as<DirectX::XMFLOAT3>();
-
-					uitc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, 1.0f)
-						* DirectX::XMMatrixTranslation(translation.x, translation.y, 0.0f);
 				}
 
 				auto uiPanelComponent = entity["UIPanelComponent"];

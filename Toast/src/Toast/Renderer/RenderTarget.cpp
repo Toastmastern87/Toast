@@ -23,6 +23,9 @@ namespace Toast {
 		D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
 		D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc;
 
+		mWitdh = width;
+		mHeight = height;
+
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
 		textureDesc.Width = width;

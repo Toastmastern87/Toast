@@ -11,6 +11,10 @@ class Debug : Entity
         keyPressed = false;
     }
 
+    void OnClick()
+    {
+    }
+
     void OnUpdate(float ts)
     {
         if (Input.IsKeyPressed(KeyCode.C) && !keyPressed)

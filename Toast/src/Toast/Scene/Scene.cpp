@@ -61,8 +61,12 @@ namespace Toast {
 		auto& idComponent = entity.AddComponent<IDComponent>();
 		idComponent.ID = {};
 
+		auto& tc = entity.AddComponent<TransformComponent>();
+		tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
+
+		entity.AddComponent<RelationshipComponent>();
 
 		mEntityIDMap[idComponent.ID] = entity;
 
@@ -75,8 +79,12 @@ namespace Toast {
 		auto& idComponent = entity.AddComponent<IDComponent>();
 		idComponent.ID = uuid;
 
+		auto& tc = entity.AddComponent<TransformComponent>();
+		tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
+
+		entity.AddComponent<RelationshipComponent>();
 
 		TOAST_CORE_ASSERT(mEntityIDMap.find(uuid) == mEntityIDMap.end(), "Entity already exist!");
 		mEntityIDMap[uuid] = entity;
@@ -396,45 +404,45 @@ namespace Toast {
 			RendererDebug::EndScene(true, true, true);
 
 			// 2D UI Rendering
-			Renderer2D::BeginScene();
+			Renderer2D::BeginScene(*mainCamera);
 			{
 				//Panels
-				auto uiPanelEntites = mRegistry.view<UITransformComponent, UIPanelComponent>();
+				auto uiPanelEntites = mRegistry.view<TransformComponent, UIPanelComponent>();
 
 				for (auto entity : uiPanelEntites)
 				{
-					auto [utc, upc] = uiPanelEntites.get<UITransformComponent, UIPanelComponent>(entity);
+					auto [tc, upc] = uiPanelEntites.get<TransformComponent, UIPanelComponent>(entity);
 
 					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
+					DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.Transform);
 
-					Renderer2D::SubmitPanel(utc.Transform, upc.Panel, (int)entity, false);
+					Renderer2D::SubmitPanel(tc.Transform, upc.Panel, (int)entity, false);
 				}
 
 				//Buttons
-				auto uiButtonEntites = mRegistry.view<UITransformComponent, UIButtonComponent>();
+				auto uiButtonEntites = mRegistry.view<TransformComponent, UIButtonComponent>();
 
 				for (auto entity : uiButtonEntites)
 				{
-					auto [utc, ubc] = uiButtonEntites.get<UITransformComponent, UIButtonComponent>(entity);
+					auto [tc, ubc] = uiButtonEntites.get<TransformComponent, UIButtonComponent>(entity);
 
 					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
+					DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.Transform);
 
-					Renderer2D::SubmitButton(utc.Transform, ubc.Button, (int)entity, true);
+					Renderer2D::SubmitButton(tc.Transform, ubc.Button, (int)entity, true);
 				}
 
 				//Texts
-				auto uiTextEntites = mRegistry.view<UITransformComponent, UITextComponent>();
+				auto uiTextEntites = mRegistry.view<TransformComponent, UITextComponent>();
 
 				for (auto entity : uiTextEntites)
 				{
-					auto [utc, uitc] = uiTextEntites.get<UITransformComponent, UITextComponent>(entity);
+					auto [tc, uitc] = uiTextEntites.get<TransformComponent, UITextComponent>(entity);
 
 					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
+					DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.Transform);
 
-					Renderer2D::SubmitText(utc.Transform, uitc.Text, (int)entity, false);
+					Renderer2D::SubmitText(tc.Transform, uitc.Text, (int)entity, false);
 				}
 			}
 			Renderer2D::EndScene();
@@ -692,45 +700,72 @@ namespace Toast {
 
 		// 2D UI Rendering
 		if (mSettings.RenderUI) {
-			Renderer2D::BeginScene();
+			Renderer2D::BeginScene(*editorCamera);
 			{
+				DirectX::XMMATRIX combinedWorldMatrix = DirectX::XMMatrixIdentity();
+				DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+
 				//Panels
-				auto uiPanelEntites = mRegistry.view<UITransformComponent, UIPanelComponent>();
+				auto uiPanelEntites = mRegistry.view<TransformComponent, UIPanelComponent>();
 
 				for (auto entity : uiPanelEntites)
 				{
-					auto [utc, upc] = uiPanelEntites.get<UITransformComponent, UIPanelComponent>(entity);
+					auto [tc, upc] = uiPanelEntites.get<TransformComponent, UIPanelComponent>(entity);
 
-					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
+					Entity e{ entity, this };
 
-					Renderer2D::SubmitPanel(utc.Transform, upc.Panel, (int)entity, true);
+					if (e.HasParent()) 
+					{
+						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Transform;
+						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
+						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.Transform, DirectX::XMMatrixTranslationFromVector(pos));
+					}
+					else
+						combinedWorldMatrix = tc.Transform;
+
+					Renderer2D::SubmitPanel(combinedWorldMatrix, upc.Panel, (int)entity, true);
 				}
 
 				//Buttons
-				auto uiButtonEntites = mRegistry.view<UITransformComponent, UIButtonComponent>();
+				auto uiButtonEntites = mRegistry.view<TransformComponent, UIButtonComponent>();
 
 				for (auto entity : uiButtonEntites)
 				{
-					auto [utc, ubc] = uiButtonEntites.get<UITransformComponent, UIButtonComponent>(entity);
+					auto [tc, ubc] = uiButtonEntites.get<TransformComponent, UIButtonComponent>(entity);
 
-					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
+					Entity e{ entity, this };
 
-					Renderer2D::SubmitButton(utc.Transform, ubc.Button, (int)entity, true);
+					if (e.HasParent())
+					{
+						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Transform;
+						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
+						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.Transform, DirectX::XMMatrixTranslationFromVector(pos));
+					}
+					else
+						combinedWorldMatrix = tc.Transform;
+
+					Renderer2D::SubmitButton(combinedWorldMatrix, ubc.Button, (int)entity, true);
 				}
 
 				//Texts
-				auto uiTextEntites = mRegistry.view<UITransformComponent, UITextComponent>();
+				auto uiTextEntites = mRegistry.view<TransformComponent, UITextComponent>();
 
 				for (auto entity : uiTextEntites)
 				{
-					auto [utc, uitc] = uiTextEntites.get<UITransformComponent, UITextComponent>(entity);
+					auto [tc, uitc] = uiTextEntites.get<TransformComponent, UITextComponent>(entity);
 
-					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-					DirectX::XMMatrixDecompose(&scale, &rot, &pos, utc.Transform);
+					Entity e{ entity, this };
 
-					Renderer2D::SubmitText(utc.Transform, uitc.Text, (int)entity, true);
+					if (e.HasParent())
+					{
+						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Transform;
+						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
+						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.Transform, DirectX::XMMatrixTranslationFromVector(pos));
+					}
+					else
+						combinedWorldMatrix = tc.Transform;
+
+					Renderer2D::SubmitText(combinedWorldMatrix, uitc.Text, (int)entity, true);
 				}
 			}
 			Renderer2D::EndScene();
@@ -770,6 +805,27 @@ namespace Toast {
 		}
 
 		return Entity{};
+	}
+
+	Toast::Entity Scene::FindEntityByUUID(UUID id)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		auto view = mRegistry.view<IDComponent>();
+		for (auto entity : view)
+		{
+			auto& idc = mRegistry.get<IDComponent>(entity);
+			if (idc.ID == id)
+				return Entity(entity, this);
+		}
+
+		return Entity{};
+	}
+
+	void Scene::AddChildEntity(Entity entity, Entity parent)
+	{
+		entity.SetParentUUID(parent.GetUUID());
+		parent.Children().push_back(entity.GetUUID());
 	}
 
 	template<typename T>
@@ -824,7 +880,6 @@ namespace Toast {
 		CopyComponent<SphereColliderComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TerrainColliderComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIPanelComponent>(target->mRegistry, mRegistry, enttMap);
-		CopyComponent<UITransformComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UITextComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIButtonComponent>(target->mRegistry, mRegistry, enttMap);
 
@@ -1002,11 +1057,6 @@ namespace Toast {
 	}
 
 	template<>
-	void Scene::OnComponentAdded<UITransformComponent>(Entity entity, UITransformComponent& component)
-	{
-	}
-
-	template<>
 	void Scene::OnComponentAdded<UITextComponent>(Entity entity, UITextComponent& component)
 	{
 	}
@@ -1016,4 +1066,8 @@ namespace Toast {
 	{
 	}
 
+	template<>
+	void Scene::OnComponentAdded<RelationshipComponent>(Entity entity, RelationshipComponent& component)
+	{
+	}
 }

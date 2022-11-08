@@ -43,19 +43,23 @@ namespace Toast {
 	{
 		ImGui::Begin(ICON_TOASTER_SITEMAP" Hierarchy");
 
-		mContext->mRegistry.each([&](auto entityID)
-			{
-				Entity entity{ entityID, mContext.get() };
+		for (auto entity : mContext->mRegistry.view<IDComponent, RelationshipComponent>())
+		{
+			Entity e{ entity, mContext.get() };
 
-				if (entity.HasComponent<IDComponent>()) 
-					DrawEntityNode(entity);
-			});
+			if(e.GetParentUUID() == 0)
+				DrawEntityNode(e);
+		}
 
 		// Right-click on blank space
 		if (ImGui::BeginPopupContextWindow(0, 1, false))
 		{
-			if (ImGui::MenuItem("Create Empty Entity"))
-				mContext->CreateEntity("Empty Entity");
+			if (ImGui::MenuItem("Create Empty Entity")) 
+			{
+				auto newEntity = mContext->CreateEntity("Empty Entity");
+
+				SetSelectedEntity(newEntity);
+			}
 
 			ImGui::Separator();
 			if (ImGui::BeginMenu("3D"))
@@ -63,7 +67,7 @@ namespace Toast {
 				if (ImGui::MenuItem("Cube")) 
 				{
 					auto newEntity = mContext->CreateEntity("Cube");
-					auto& tc = newEntity.AddComponent<TransformComponent>();
+					auto& tc = newEntity.GetComponent<TransformComponent>();
 					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("../Toaster/assets/meshes/Cube.gltf"));
 
@@ -73,7 +77,7 @@ namespace Toast {
 				if (ImGui::MenuItem("Sphere"))
 				{
 					auto newEntity = mContext->CreateEntity("Sphere");
-					auto& tc = newEntity.AddComponent<TransformComponent>();
+					auto& tc = newEntity.GetComponent<TransformComponent>();
 					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf"));
 
@@ -100,17 +104,25 @@ namespace Toast {
 	void SceneHierarchyPanel::DrawEntityNode(Entity entity)
 	{
 		auto& tag = entity.GetComponent<TagComponent>().Tag;
-
+		
 		ImGuiTreeNodeFlags flags = ((mSelectionContext == entity) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
+		flags |= entity.GetComponent<RelationshipComponent>().Children.size() == 0 ? ImGuiTreeNodeFlags_Leaf : 0;
 		flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 		bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, tag.c_str());
 		if (ImGui::IsItemClicked()) 
 			mSelectionContext = entity;
 
 		bool entityDeleted = false;
-		if (ImGui::BeginPopupContextItem())
+		if (ImGui::BeginPopupContextItem()) 
 		{
-			if (ImGui::MenuItem("Delete Entity"))
+			if (ImGui::MenuItem("Create Child Entity")) 
+			{
+				Entity childEntity = mContext->CreateEntity("Child Entity");
+
+				mContext->AddChildEntity(childEntity, entity);
+			}
+				
+			else if (ImGui::MenuItem("Delete Entity"))
 				entityDeleted = true;
 
 			ImGui::EndPopup();
@@ -118,15 +130,34 @@ namespace Toast {
 
 		if (opened)
 		{
-			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
-			if (ImGui::TreeNodeEx((void*)9817239, flags, tag.c_str()))
-				ImGui::TreePop();
+			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
+			//TOAST_CORE_INFO("entity.Children().size: %d", entity.Children().size());
+			for (auto child : entity.Children())
+			{
+				Entity e = mContext->FindEntityByUUID(child);
+				if (e.HasComponent<TagComponent>())
+					DrawEntityNode(e);
+			}
 
 			ImGui::TreePop();
 		}
 
 		if (entityDeleted)
 		{
+			if (entity.GetParentUUID()) 
+				mContext->FindEntityByUUID(entity.GetParentUUID()).RemoveChild(entity);		
+
+			if (!entity.Children().empty()) 
+			{
+				for (auto child : entity.Children()) 
+				{
+					auto childEntity = mContext->FindEntityByUUID(child);
+					mContext->DestroyEntity(childEntity);
+					if (mSelectionContext == childEntity)
+						mSelectionContext = {};
+				}
+			}
+
 			mContext->DestroyEntity(entity);
 			if (mSelectionContext == entity)
 				mSelectionContext = {};

@@ -61,7 +61,7 @@ namespace Toast {
 		Scene();
 		~Scene();
 
-		Entity CreateEntity(const std::string& name = std::string(), UUID parent = NULL);
+		Entity CreateEntity(const std::string& name = std::string(), UUID parent = 0);
 		Entity CreateEntityWithID(UUID uuid, const std::string& name);
 		void DestroyEntity(Entity entity);
 
@@ -87,6 +87,9 @@ namespace Toast {
 		int GetVertices() const { return (int)mStats.VerticesCount; }
 
 		Entity FindEntityByTag(const std::string& tag);
+		Entity FindEntityByUUID(UUID id);
+
+		void AddChildEntity(Entity entity, Entity parent);
 
 		const EntityMap& GetEntityMap() const { return mEntityIDMap; }
 		void CopyTo(Ref<Scene>& target);

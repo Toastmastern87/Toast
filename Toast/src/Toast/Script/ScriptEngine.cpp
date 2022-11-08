@@ -293,7 +293,6 @@ namespace Toast {
 			void* args[] = { &ts };
 			CallMethod(entityInstance.GetInstance(), entityInstance.ScriptClass->OnUpdateMethod, args);
 		}
-
 	}
 
 	void ScriptEngine::OnClickEntity(Entity entity)

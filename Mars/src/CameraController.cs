@@ -35,7 +35,11 @@ class CameraController : Entity
             MaxAltitude = MinAltitude;
     }
 
-    void OnUpdate(float ts)
+    void OnClick()
+    { 
+    }
+
+        void OnUpdate(float ts)
     {
         Vector3 translation = new Vector3(mTransform.Transform.D03, mTransform.Transform.D13, mTransform.Transform.D23);
 

@@ -12,12 +12,6 @@ namespace Toast {
 	void Renderer2D::Init()
 	{
 		TOAST_PROFILE_FUNCTION();
-
-		// Setting up the constant buffer and data buffer for the camera rendering
-		sRenderer2DData->UICBuffer = ConstantBufferLibrary::Load("UI", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 12), CBufferBindInfo(D3D11_PIXEL_SHADER, 12) });
-		sRenderer2DData->UICBuffer->Bind();
-		sRenderer2DData->UIBuffer.Allocate(sRenderer2DData->UICBuffer->GetSize());
-		sRenderer2DData->UIBuffer.ZeroInitialize();
 	}
 
 	void Renderer2D::Shutdown()
@@ -25,7 +19,7 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 	}
 
-	void Renderer2D::BeginScene()
+	void Renderer2D::BeginScene(Camera& camera)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -35,10 +29,9 @@ namespace Toast {
 		fWidth = (float)width;
 		fHeight = (float)height;
 
-		// Updating the UI data in the buffer and mapping it to the GPU
-		sRenderer2DData->UIBuffer.Write((void*)&(float)fWidth, 4, 0);
-		sRenderer2DData->UIBuffer.Write((void*)&(float)fHeight, 4, 4);
-		sRenderer2DData->UICBuffer->Map(sRenderer2DData->UIBuffer);
+		sRendererData->CameraBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
+		sRendererData->CameraBuffer.Write((void*)&camera.GetOrthoProjection(), 64, 64);
+		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 	}
 
 	void Renderer2D::EndScene()
