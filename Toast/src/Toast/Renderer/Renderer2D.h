@@ -41,9 +41,6 @@ namespace Toast {
 
 		struct Renderer2DData
 		{
-			Ref<ConstantBuffer> UICBuffer;
-			Buffer UIBuffer;
-
 			std::vector<DrawCommand> ElementDrawList;
 		};
 
@@ -54,7 +51,7 @@ namespace Toast {
 		static void Init();
 		static void Shutdown();
 
-		static void BeginScene();
+		static void BeginScene(Camera& camera);
 		static void EndScene();
 
 		static void ClearDrawList();

@@ -15,6 +15,10 @@ namespace Toast {
 		DirectX::XMMATRIX view = DirectX::XMMatrixLookToLH(mPosition, DirectX::XMLoadFloat4(&GetForwardDirection()), GetUpDirection());
 		DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, view);
 
+		DirectX::XMMATRIX  orthoProjection = DirectX::XMMatrixOrthographicLH(mViewportWidth, mViewportHeight, mNearClip, mFarClip);
+		DirectX::XMStoreFloat4x4(&mOrthoProjection, orthoProjection);
+		DirectX::XMStoreFloat4x4(&mInvOrthoProjection, DirectX::XMMatrixInverse(nullptr, orthoProjection));
+
 		DirectX::XMFLOAT4X4 fView, fInvView, fProjection, fInvProjection;
 
 		DirectX::XMStoreFloat4x4(&fView, view);
@@ -44,6 +48,10 @@ namespace Toast {
 
 		DirectX::XMStoreFloat4x4(&mInvProjection, DirectX::XMMatrixInverse(nullptr, projection));
 		DirectX::XMStoreFloat4x4(&mProjection, projection);
+
+		DirectX::XMMATRIX  orthoProjection = DirectX::XMMatrixOrthographicLH(mViewportWidth, mViewportHeight, mNearClip, mFarClip);
+		DirectX::XMStoreFloat4x4(&mOrthoProjection, orthoProjection);
+		DirectX::XMStoreFloat4x4(&mInvOrthoProjection, DirectX::XMMatrixInverse(nullptr, orthoProjection));
 	}
 
 	void EditorCamera::UpdateView()

@@ -31,6 +31,17 @@ namespace Toast {
 			: Tag(tag) {}
 	};
 
+	struct RelationshipComponent
+	{
+		UUID ParentHandle = 0;
+		std::vector<UUID> Children;
+
+		RelationshipComponent() = default;
+		RelationshipComponent(const RelationshipComponent& other) = default;
+		RelationshipComponent(UUID parent)
+			: ParentHandle(parent) {}
+	};
+
 	struct TransformComponent
 	{
 		DirectX::XMMATRIX Transform;
@@ -182,19 +193,6 @@ namespace Toast {
 		TerrainColliderComponent() = default;
 		TerrainColliderComponent(std::tuple<DirectX::TexMetadata, DirectX::ScratchImage*> terrainData, std::string filePath)
 			: TerrainData(terrainData), FilePath(filePath) {}
-	};
-
-	struct UITransformComponent
-	{
-		DirectX::XMMATRIX Transform;
-
-		UITransformComponent() = default;
-		UITransformComponent(const UITransformComponent&) = default;
-		UITransformComponent(const DirectX::XMMATRIX& transform)
-			: Transform(Transform) {}
-
-		operator DirectX::XMMATRIX& () { return Transform; }
-		operator const DirectX::XMMATRIX& () const { return Transform; }
 	};
 
 	struct UIPanelComponent

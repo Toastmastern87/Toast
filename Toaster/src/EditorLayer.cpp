@@ -272,8 +272,8 @@ namespace Toast {
 			mSceneHierarchyPanel.OnImGuiRender();
 			mMaterialPanel.OnImGuiRender();
 			mEnvironmentPanel.OnImGuiRender();
-			mConsolePanel.OnImGuiRender();
 			mContentBrowserPanel.OnImGuiRender();
+			mConsolePanel.OnImGuiRender();
 			mPropertiesPanel.OnImGuiRender();
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
@@ -291,6 +291,7 @@ namespace Toast {
 
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 			mViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
+			//TOAST_CORE_INFO("Settning viewport size to mViewportSize.x: %f, mViewportSize.y: %f", mViewportSize.x, mViewportSize.y);
 
 			Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRenderTarget();
 			ImGui::Image((void*)finalRenderTarget->GetSRV().Get(), ImVec2{ mViewportSize.x, mViewportSize.y });
@@ -310,20 +311,22 @@ namespace Toast {
 			Entity selectedEntity = mSceneHierarchyPanel.GetSelectedEntity();
 			if (selectedEntity && mGizmoType != -1 && mSceneState == SceneState::Edit)
 			{
-				ImGuizmo::SetOrthographic(false);
+				bool entity2D = selectedEntity.HasComponent<UIPanelComponent>() || selectedEntity.HasComponent<UITextComponent>() || selectedEntity.HasComponent<UIButtonComponent>();
+
+				ImGuizmo::SetOrthographic(entity2D);
+				float rw = (float)ImGui::GetWindowWidth();
+				float rh = (float)ImGui::GetWindowHeight();
+
 				ImGuizmo::SetDrawlist();
-				float windowWidth = (float)ImGui::GetWindowWidth();
-				float windowHeight = (float)ImGui::GetWindowHeight();
-				ImGuizmo::SetRect(mViewportBounds[0].x, mViewportBounds[0].y, mViewportBounds[1].x - mViewportBounds[0].x, mViewportBounds[1].y - mViewportBounds[0].y);
+				ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, rw, rh);
 
 				// Editor Camera
-				DirectX::XMFLOAT4X4 cameraProjection = mEditorCamera->GetProjection();
+				DirectX::XMFLOAT4X4 cameraProjection = !entity2D ? mEditorCamera->GetProjection() : mEditorCamera->GetOrthoProjection();
 				DirectX::XMFLOAT4X4 cameraView = mEditorCamera->GetViewMatrix();
 
 				// Entity transform
 				DirectX::XMFLOAT3 translationFloat3, scaleFloat3;
-				DirectX::XMVECTOR translation, scale, rotation;
-
+				DirectX::XMVECTOR translation, scale, rotation;			
 				auto& tc = selectedEntity.GetComponent<TransformComponent>();
 
 				if (mSceneSettingsPanel.GetSelectionMode() == SceneSettingsPanel::SelectionMode::Entity)
@@ -332,7 +335,7 @@ namespace Toast {
 					DirectX::XMStoreFloat3(&translationFloat3, translation);
 					DirectX::XMStoreFloat3(&scaleFloat3, scale);
 					DirectX::XMFLOAT4X4 transform;
-					float Ftranslation[3] = { translationFloat3.x, translationFloat3.y, translationFloat3.z };
+					float Ftranslation[3] = { translationFloat3.x, translationFloat3.y, translationFloat3.z};
 					float Frotation[3] = { tc.RotationEulerAngles.x, tc.RotationEulerAngles.y, tc.RotationEulerAngles.z };
 					float Fscale[3] = { scaleFloat3.x, scaleFloat3.y, scaleFloat3.z };
 					ImGuizmo::RecomposeMatrixFromComponents(Ftranslation, Frotation, Fscale, *transform.m);
@@ -362,7 +365,7 @@ namespace Toast {
 				}
 				else
 				{
-					if(selectedEntity.HasComponent<MeshComponent>())
+					if (selectedEntity.HasComponent<MeshComponent>())
 					{
 						auto& mc = selectedEntity.GetComponent<MeshComponent>();
 

@@ -5,10 +5,15 @@ vertex
 #type vertex
 #pragma pack_matrix( row_major )
 
-cbuffer UI : register(b12)
+cbuffer Camera : register(b0)
 {
-	float width;
-	float height;
+	matrix viewMatrix;
+	matrix projectionMatrix;
+	matrix inverseViewMatrix;
+	matrix inverseProjectionMatrix;
+	float4 cameraPosition;
+	float far;
+	float near;
 };
 
 cbuffer Model : register(b1)
@@ -35,8 +40,8 @@ PixelInputType main(VertexInputType input)
 	PixelInputType output;
 
 	output.position = mul(float4(input.position.xy, 1.0f, 1.0f), worldMatrix);
-	output.position.x = ((output.position.x / width) * 2.0f) - 1.0f;
-	output.position.y = ((output.position.y / height) * 2.0f) + 1.0f;
+	output.position = mul(output.position, viewMatrix);
+	output.position = mul(output.position, projectionMatrix);
 	output.position.z = 1.0f;
 	output.position.w = 1.0f;
 

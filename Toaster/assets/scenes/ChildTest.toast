@@ -1,0 +1,24 @@
+Scene: Untitled Scene
+Entities:
+  - Entity: 4455573493222705119
+    TagComponent:
+      Tag: Child Entity
+    RelationshipComponent:
+      ParentHandle: 15847298732267979798
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 15847298732267979798
+    TagComponent:
+      Tag: Empty Entity
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        - Handle: 4455573493222705119
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]

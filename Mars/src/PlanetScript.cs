@@ -20,6 +20,10 @@ class PlanetScript : Entity
         mPlanetComponent = GetComponent<PlanetComponent>();
     }
 
+    void OnClick()
+    {
+    }
+
     void OnUpdate(float ts)
     {
         if (mCameraTransform.Transform != mCameraOldTransform) 

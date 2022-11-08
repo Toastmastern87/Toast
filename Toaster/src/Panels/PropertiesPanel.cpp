@@ -3,6 +3,8 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
+#include "Toast/Renderer/Renderer.h"
+
 #include "Toast/Core/UUID.h"
 
 #include "Toast/Script/ScriptEngine.h"
@@ -314,8 +316,6 @@ namespace Toast {
 			{
 				if (ImGui::MenuItem("Camera"))
 				{
-					auto& tc = mContext.AddComponent<TransformComponent>();
-					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 					mContext.AddComponent<CameraComponent>();
 					ImGui::CloseCurrentPopup();
 				}
@@ -408,8 +408,6 @@ namespace Toast {
 			{
 				if (ImGui::MenuItem("UI Panel"))
 				{
-					auto& tc = mContext.AddComponent<UITransformComponent>();
-					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 					mContext.AddComponent<UIPanelComponent>(CreateRef<UIPanel>());
 					ImGui::CloseCurrentPopup();
 				}
@@ -419,8 +417,6 @@ namespace Toast {
 			{
 				if (ImGui::MenuItem("UI Text"))
 				{
-					auto& tc = mContext.AddComponent<UITransformComponent>();
-					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 					mContext.AddComponent<UITextComponent>(CreateRef<UIText>());
 					ImGui::CloseCurrentPopup();
 				}
@@ -430,8 +426,6 @@ namespace Toast {
 			{
 				if (ImGui::MenuItem("UI Button"))
 				{
-					auto& tc = mContext.AddComponent<UITransformComponent>();
-					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 					mContext.AddComponent<UIButtonComponent>(CreateRef<UIButton>());
 					ImGui::CloseCurrentPopup();
 				}
@@ -442,7 +436,7 @@ namespace Toast {
 
 		ImGui::PopItemWidth();
 
-		ImGui::TextDisabled("UUID: %llx", entity.GetComponent<IDComponent>().ID);
+		ImGui::TextDisabled("UUID: %llu", entity.GetComponent<IDComponent>().ID);
 
 		DrawComponent<TransformComponent>(ICON_TOASTER_ARROWS_ALT" Transform", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
@@ -457,12 +451,27 @@ namespace Toast {
 				DirectX::XMStoreFloat3(&scaleFloat3, scale);
 
 				bool updateTransform = false;
+				bool entity2D = entity.HasComponent<UIPanelComponent>() || entity.HasComponent<UITextComponent>() || entity.HasComponent<UIButtonComponent>();
+
+				Ref<RenderTarget>& baseRenderTarget = Renderer::GetBaseRenderTarget();
+				auto [width, height] = baseRenderTarget->GetSize();
+
+				if (entity2D) 
+				{
+					translationFloat3.x += width / 2.0f;
+					translationFloat3.y *= -1.0f;
+					translationFloat3.y += (height / 2.0f);
+				}
 
 				updateTransform |= DrawFloat3Control("Translation", translationFloat3);
 				updateTransform |= DrawFloat3Control("Rotation", component.RotationEulerAngles);
 				updateTransform |= DrawFloat3Control("Scale", scaleFloat3, 1.0f);
 
-				if (updateTransform) 
+				if (updateTransform && entity2D)
+					component.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scaleFloat3.x, scaleFloat3.y, scaleFloat3.z)
+					* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(component.RotationEulerAngles.x), DirectX::XMConvertToRadians(component.RotationEulerAngles.y), DirectX::XMConvertToRadians(component.RotationEulerAngles.z))))
+					* DirectX::XMMatrixTranslation(translationFloat3.x - width / 2.0f, -(translationFloat3.y - height / 2.0f), translationFloat3.z);
+				else if (updateTransform)
 					component.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scaleFloat3.x, scaleFloat3.y, scaleFloat3.z)
 						* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(component.RotationEulerAngles.x), DirectX::XMConvertToRadians(component.RotationEulerAngles.y), DirectX::XMConvertToRadians(component.RotationEulerAngles.z))))
 						* DirectX::XMMatrixTranslation(translationFloat3.x, translationFloat3.y, translationFloat3.z);
@@ -931,8 +940,11 @@ namespace Toast {
 					if (ScriptEngine::ModuleExists(oldName))
 						ScriptEngine::ShutdownScriptEntity(entity.mScene->GetUUID(), entity.GetComponent<IDComponent>().ID, oldName);
 
-					if (ScriptEngine::ModuleExists(sc.ModuleName))
+					if (ScriptEngine::ModuleExists(sc.ModuleName)) 
+					{
+						TOAST_CORE_INFO("InitScriptEntity");
 						ScriptEngine::InitScriptEntity(entity);
+					}
 				}
 
 				ImGui::EndTable();
@@ -1070,28 +1082,6 @@ namespace Toast {
 					}
 				}
 				ImGui::EndTable();
-			});
-
-
-		DrawComponent<UITransformComponent>(ICON_TOASTER_ARROWS_ALT" UI Transform", entity, mScene, [](auto& component, Entity entity, Scene* scene)
-			{
-				DirectX::XMFLOAT2 positionFloat2, sizeFloat2;
-				DirectX::XMVECTOR position, size, rotation;
-
-				DirectX::XMMatrixDecompose(&size, &rotation, &position, component.Transform);
-				DirectX::XMStoreFloat2(&positionFloat2, position);
-				DirectX::XMStoreFloat2(&sizeFloat2, size);
-
-				bool updateTransform = false;
-
-				positionFloat2.y *= -1.0f;
-
-				updateTransform |= DrawFloat2Control("Position", positionFloat2);
-				updateTransform |= DrawFloat2Control("Size", sizeFloat2, 1.0f);
-
-				if (updateTransform) 
-					component.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(sizeFloat2.x, sizeFloat2.y, 1.0f)
-						* DirectX::XMMatrixTranslation(positionFloat2.x, -positionFloat2.y, 0.0f);
 			});
 
 		DrawComponent<UIPanelComponent>(ICON_TOASTER_SQUARE_O" UI Panel", entity, mScene, [](auto& component, Entity entity, Scene* scene)
