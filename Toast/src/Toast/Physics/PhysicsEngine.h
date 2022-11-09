@@ -54,7 +54,6 @@ namespace Toast {
 			const uint16_t* terrainData = reinterpret_cast<const uint16_t*>(heightMap->GetPixels());
 
 			float pixelOneSecondRowValue = (float)terrainData[(int)(heightMap->GetImage(0, 0, 0)->rowPitch / 2.0f) * 50] / MAX_INT_VALUE;
-			TOAST_CORE_INFO("First pixel second row value: %f", pixelOneSecondRowValue);
 
 			return std::make_tuple(heightMapMetadata, heightMap);
 		}

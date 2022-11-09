@@ -113,14 +113,16 @@ namespace Toast {
 
 		void Bind();
 
-		void SetText(std::string& str);
-		std::string& GetText() { return TextString; }
+		void SetText(std::string& str) { mTextString = str; InvalidateText(); }
+		std::string& GetText() { return mTextString; }
 
-		void SetFont(Ref<Font>& f) { TextFont = f; }
-		Ref<Font> GetFont() { return TextFont; }
+		void SetFont(Ref<Font>& f) { mTextFont = f; }
+		Ref<Font> GetFont() { return mTextFont; }
+
+		void InvalidateText();
 	private:
-		std::string TextString = "Enter Text here";
-		Ref<Font> TextFont;
+		std::string mTextString = "Enter Text here";
+		Ref<Font> mTextFont;
 	};
 
 	class UIButton : public UIPanel

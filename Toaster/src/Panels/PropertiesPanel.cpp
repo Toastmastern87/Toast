@@ -1145,11 +1145,19 @@ namespace Toast {
 				if (ImGui::Button("...##openfont"))
 				{
 					std::optional<std::string> filepath = FileDialogs::OpenFile("*.ttf", "..\\Toaster\\assets\\fonts\\");
-					if (filepath)
+					if (filepath) 
+					{
 						component.Text->SetFont(CreateRef<Font>(*filepath));
+						component.Text->InvalidateText();
+					}	
 				}
 
 				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Color");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::ColorEdit4("##color", component.Text->GetColor());
 				ImGui::TableSetColumnIndex(0);
 
 				ImGui::PopItemWidth();

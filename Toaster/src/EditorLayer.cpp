@@ -96,7 +96,7 @@ namespace Toast {
 		Ref<RenderTarget>& postProcessRenderTarget = Renderer::GetPostProcessRenderTarget();
 		Ref<RenderTarget>& UIRenderTarget = Renderer::GetUIRenderTarget();
 		auto [width, height] = baseRenderTarget->GetSize();
-
+		//TOAST_CORE_INFO("mEditorCamera mViewportSize.x: %f, mViewportSize.y: %f", mViewportSize.x, mViewportSize.y);
 		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (width != mViewportSize.x || height != mViewportSize.y))
 		{ 
 			baseFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
@@ -584,7 +584,7 @@ namespace Toast {
 	{
 		if (e.GetMouseButton() == Mouse::ButtonLeft)
 		{
-			if (mViewportHovered && !ImGuizmo::IsOver() && !Input::IsKeyPressed(Key::LeftAlt)) 
+			if (mViewportHovered && !ImGuizmo::IsOver() && !Input::IsKeyPressed(Key::LeftAlt) && mSceneState == SceneState::Edit) 
 			{
 				mSceneHierarchyPanel.SetSelectedEntity(mHoveredEntity);
 				mEditorScene->SetSelectedEntity(mHoveredEntity);

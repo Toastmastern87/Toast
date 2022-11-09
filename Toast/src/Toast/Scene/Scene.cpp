@@ -195,7 +195,7 @@ namespace Toast {
 
 					// Calculate linear velocity due to gravity
 					float mass = 1.0f / rbc.InvMass;
-					DirectX::XMVECTOR impulseGravity = (-DirectX::XMVector3Normalize(pos) * (pc.PlanetData.gravAcc / 1000.0f) * mass * ts.GetSeconds());
+					DirectX::XMVECTOR impulseGravity = (-DirectX::XMVector3Normalize(pos) * (pc.PlanetData.gravAcc / 1000.0f) * mass * (ts.GetSeconds() * mTimeScale));
 					PhysicsEngine::ApplyImpulseLinear(rbc, impulseGravity);
 					//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
 
@@ -208,7 +208,7 @@ namespace Toast {
 					}
 
 					// Update position due to gravity
-					tc.Transform = DirectX::XMMatrixMultiply(tc.Transform, XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&rbc.LinearVelocity) * ts.GetSeconds()));
+					tc.Transform = DirectX::XMMatrixMultiply(tc.Transform, XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&rbc.LinearVelocity) * (ts.GetSeconds() * mTimeScale)));
 				}
 			}
 		}
@@ -220,7 +220,7 @@ namespace Toast {
 			{
 				Entity e = { entity, this };
 				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::OnUpdateEntity(e.mScene->GetUUID(), e.GetComponent<IDComponent>().ID, ts);
+					ScriptEngine::OnUpdateEntity(e.mScene->GetUUID(), e.GetComponent<IDComponent>().ID, (ts * mTimeScale));
 				else
 					TOAST_CORE_INFO("Module doesn't exist");
 			}
@@ -406,6 +406,9 @@ namespace Toast {
 			// 2D UI Rendering
 			Renderer2D::BeginScene(*mainCamera);
 			{
+				DirectX::XMMATRIX combinedWorldMatrix = DirectX::XMMatrixIdentity();
+				DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+
 				//Panels
 				auto uiPanelEntites = mRegistry.view<TransformComponent, UIPanelComponent>();
 
@@ -413,10 +416,18 @@ namespace Toast {
 				{
 					auto [tc, upc] = uiPanelEntites.get<TransformComponent, UIPanelComponent>(entity);
 
-					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-					DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.Transform);
+					Entity e{ entity, this };
 
-					Renderer2D::SubmitPanel(tc.Transform, upc.Panel, (int)entity, false);
+					if (e.HasParent())
+					{
+						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Transform;
+						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
+						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.Transform, DirectX::XMMatrixTranslationFromVector(pos));
+					}
+					else
+						combinedWorldMatrix = tc.Transform;
+
+					Renderer2D::SubmitPanel(combinedWorldMatrix, upc.Panel, (int)entity, false);
 				}
 
 				//Buttons
@@ -426,10 +437,18 @@ namespace Toast {
 				{
 					auto [tc, ubc] = uiButtonEntites.get<TransformComponent, UIButtonComponent>(entity);
 
-					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-					DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.Transform);
+					Entity e{ entity, this };
 
-					Renderer2D::SubmitButton(tc.Transform, ubc.Button, (int)entity, true);
+					if (e.HasParent())
+					{
+						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Transform;
+						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
+						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.Transform, DirectX::XMMatrixTranslationFromVector(pos));
+					}
+					else
+						combinedWorldMatrix = tc.Transform;
+
+					Renderer2D::SubmitButton(combinedWorldMatrix, ubc.Button, (int)entity, true);
 				}
 
 				//Texts
@@ -439,10 +458,18 @@ namespace Toast {
 				{
 					auto [tc, uitc] = uiTextEntites.get<TransformComponent, UITextComponent>(entity);
 
-					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-					DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.Transform);
+					Entity e{ entity, this };
 
-					Renderer2D::SubmitText(tc.Transform, uitc.Text, (int)entity, false);
+					if (e.HasParent())
+					{
+						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Transform;
+						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
+						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.Transform, DirectX::XMMatrixTranslationFromVector(pos));
+					}
+					else
+						combinedWorldMatrix = tc.Transform;
+
+					Renderer2D::SubmitText(combinedWorldMatrix, uitc.Text, (int)entity, false);
 				}
 			}
 			Renderer2D::EndScene();
@@ -867,6 +894,7 @@ namespace Toast {
 		// Frustum
 		target->mFrustum = mFrustum;
 
+		CopyComponent<RelationshipComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TagComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TransformComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<MeshComponent>(target->mRegistry, mRegistry, enttMap);

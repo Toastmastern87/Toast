@@ -400,10 +400,10 @@ namespace Toast {
 		auto entities = data["Entities"];
 		if (entities) 
 		{
-			for (auto entity : entities) 
+			for (auto entity : entities)
 			{
 				uint64_t uuid = entity["Entity"].as<uint64_t>(); // TODO
-				
+
 				std::string name;
 				auto tagComponent = entity["TagComponent"];
 				if (tagComponent)
@@ -596,6 +596,7 @@ namespace Toast {
 
 					uitc.Text->SetFont(CreateRef<Font>(uiTextComponent["AssetPath"].as<std::string>()));
 					uitc.Text->SetText(uiTextComponent["Text"].as<std::string>());
+					uitc.Text->InvalidateText();
 				}
 			}
 		}

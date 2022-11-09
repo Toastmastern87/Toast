@@ -125,7 +125,7 @@ namespace Toast {
 
 	UIText::UIText()
 	{
-		TextFont = Font::GetDefaultFont();
+		mTextFont = Font::GetDefaultFont();
 	}
 
 	void UIText::Bind()
@@ -135,33 +135,31 @@ namespace Toast {
 		mUIPropBuffer.Write((void*)&type, 4, 28);
 
 		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
-		TextFont->GetFontAtlas()->Bind(6, D3D11_PIXEL_SHADER);
+		mTextFont->GetFontAtlas()->Bind(6, D3D11_PIXEL_SHADER);
 
 		UIElement::Bind();
 	}
 
-	void UIText::SetText(std::string& str)
+	void UIText::InvalidateText()
 	{
-		TextString = str;
-
-		if (TextString.empty())
+		if (mTextString.empty())
 			return;
 
 		mQuadVertexBufferPtr = mQuadVertexBufferBase;
 		mQuadIndexCount = 0;
 
-		Ref<Texture2D> texAtlas = TextFont->GetFontAtlas();
+		Ref<Texture2D> texAtlas = mTextFont->GetFontAtlas();
 		TOAST_CORE_ASSERT(texAtlas, "");
 
-		auto& fontGeometry = TextFont->GetMSDFData()->FontGeometry;
+		auto& fontGeometry = mTextFont->GetMSDFData()->FontGeometry;
 		const auto& metrics = fontGeometry.getMetrics();
 
 		double x = 0.0f;
 		double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
 		double y = 0;
-		for (int i = 0; i < TextString.size(); i++)
+		for (int i = 0; i < mTextString.size(); i++)
 		{
-			char32_t character = TextString[i];
+			char32_t character = mTextString[i];
 			// New row
 			if (character == '\n')
 			{
@@ -173,7 +171,7 @@ namespace Toast {
 			auto glyph = fontGeometry.getGlyph(character);
 			if (!glyph)
 				glyph = fontGeometry.getGlyph('?');
-			if (!glyph) 
+			if (!glyph)
 				continue;
 
 			double l, b, r, t;
@@ -188,7 +186,7 @@ namespace Toast {
 			double texelWidth = 1. / texAtlas->GetWidth();
 			double texelHeight = 1. / texAtlas->GetHeight();
 			l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
-			
+
 			mQuadVertexBufferPtr->Position = { (float)pl, (float)pb, 0.0f };
 			mQuadVertexBufferPtr->Texcoord = { (float)l, (float)b };
 			mQuadVertexBufferPtr++;
@@ -208,7 +206,7 @@ namespace Toast {
 			mQuadIndexCount += 6;
 
 			double advance = glyph->getAdvance();
-			fontGeometry.getAdvance(advance, character, TextString[i + 1]);
+			fontGeometry.getAdvance(advance, character, mTextString[i + 1]);
 			x += fsScale * advance;
 		}
 	}

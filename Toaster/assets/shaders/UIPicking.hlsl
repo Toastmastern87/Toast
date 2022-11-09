@@ -39,7 +39,6 @@ PixelInputType main(VertexInputType input)
 	PixelInputType output;
 
 	output.position = mul(float4(input.position.xy, 1.0f, 1.0f), worldMatrix);
-	output.position = mul(output.position, viewMatrix);
 	output.position = mul(output.position, projectionMatrix);
 	output.position.z = 1.0f;
 	output.position.w = 1.0f;

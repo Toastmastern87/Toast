@@ -70,7 +70,7 @@ namespace Toast {
 		config.generatorAttributes.scanlinePass = true;
 		double minEmSize = 0.0;
 		double rangeValue = 2.0;
-		TightAtlasPacker::DimensionsConstraint atlasSizeConstraint = TightAtlasPacker::DimensionsConstraint::MULTIPLE_OF_FOUR_SQUARE;
+		TightAtlasPacker::DimensionsConstraint atlasSizeConstraint = TightAtlasPacker::DimensionsConstraint::POWER_OF_TWO_RECTANGLE;
 		config.angleThreshold = DEFAULT_ANGLE_THRESHOLD;
 		config.miterLimit = DEFAULT_MITER_LIMIT;
 		
@@ -121,7 +121,7 @@ namespace Toast {
 			// Load Glyphs
 			mMSDFData->FontGeometry = FontGeometry(&mMSDFData->Glyphs);
 			int glyphsLoaded = -1;
-			glyphsLoaded = mMSDFData->FontGeometry.loadCharset(font, fontInput.fontScale, msdf_atlas::Charset::ASCII, true, true);
+			glyphsLoaded = mMSDFData->FontGeometry.loadCharset(font, fontInput.fontScale, msdf_atlas::Charset::ASCII);
 			anyCodepointsAvailable |= glyphsLoaded > 0;
 
 			if (glyphsLoaded < 0)

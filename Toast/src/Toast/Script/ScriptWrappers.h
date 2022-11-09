@@ -32,6 +32,8 @@ namespace Toast {
 		// Scene
 		bool Toast_Scene_GetRenderColliders();
 		void Toast_Scene_SetRenderColliders(bool runtime);
+		float Toast_Scene_GetTimeScale();
+		void Toast_Scene_SetTimeScale(float value);
 
 		// Entity
 		void Toast_Entity_CreateComponent(uint64_t entityID, void* type);
@@ -70,6 +72,10 @@ namespace Toast {
 		// UI Button Component
 		void Toast_UIButtonComponent_GetColor(uint64_t entityID, DirectX::XMFLOAT4* inColor);
 		void Toast_UIButtonComponent_SetColor(uint64_t entityID, DirectX::XMFLOAT4* outColor);
+
+		// UI Text Component
+		MonoString* Toast_UITextComponent_GetText(uint64_t entityID);
+		void Toast_UITextComponent_SetText(uint64_t entityID, MonoString* inText);
 	}
 
 }
