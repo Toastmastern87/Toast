@@ -31,7 +31,7 @@ Entities:
       Rotation: [0, 0, 0]
       Scale: [50, 50, 1]
     UITextComponent:
-      AssetPath: ..\Toaster\assets\fonts\Roboto Mono\RobotoMono-Regular.ttf
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\opensans\OpenSans-Regular.ttf
       Text: Hello World
   - Entity: 17775555626305702259
     TagComponent:
@@ -41,7 +41,7 @@ Entities:
       Children:
         - Handle: 14516265475851199654
     TransformComponent:
-      Translation: [26.6999664, 250.746338, 0]
+      Translation: [32.6999283, -44.9813004, 0]
       Rotation: [0, -0, 0]
       Scale: [100, 50, 1]
     UIPanelComponent:
@@ -64,8 +64,8 @@ Entities:
         PerspectiveFOV: 45
         NearClip: 0.100000001
         FarClip: 1000
-        OrthographicWidth: 2640
-        OrthographicHeight: 932
+        OrthographicWidth: 2624
+        OrthographicHeight: 812
       Primary: true
       FixedAspectRatio: false
   - Entity: 14516265475851199654
@@ -76,9 +76,9 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [-392.000092, 185.004059, 0]
+      Translation: [-185.000046, -56.6822815, 0]
       Rotation: [0, -0, 0]
-      Scale: [100, 100, 1]
+      Scale: [100, 99.5, 1]
     UITextComponent:
       AssetPath: ..\Toaster\assets\fonts\Roboto Mono\RobotoMono-Regular.ttf
       Text: Test

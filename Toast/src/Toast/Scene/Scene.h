@@ -76,6 +76,9 @@ namespace Toast {
 		void OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera);
 		void OnViewportResize(uint32_t width, uint32_t height);
 
+		void SetTimeScale(float scale) { mTimeScale = scale; }
+		float GetTimeScale() { return mTimeScale; }
+
 		float& GetSkyboxLod() { return mSkyboxLod; }
 		float& GetEnvironmentIntensity() { return mEnvironmentIntensity; }
 
@@ -137,6 +140,7 @@ namespace Toast {
 		DirectX::XMMATRIX mOldCameraTransform = DirectX::XMMatrixIdentity();
 
 		bool mIsPlaying = false;
+		float mTimeScale = 1.0f;
 
 		entt::entity mSelectedEntity;
 		entt::entity mHoveredEntity;

@@ -95,6 +95,20 @@ namespace Toast {
 			return scene->GetRenderColliders();
 		}
 
+		void Toast_Scene_SetTimeScale(float value)
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			scene->SetTimeScale(value);
+		}
+
+		float Toast_Scene_GetTimeScale()
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			return scene->GetTimeScale();
+		}
+
 		////////////////////////////////////////////////////////////////
 		// Entity //////////////////////////////////////////////////////
 		////////////////////////////////////////////////////////////////
@@ -430,5 +444,35 @@ namespace Toast {
 			component.Button->SetColor(*inColor);
 		}
 
+		////////////////////////////////////////////////////////////////
+		//  UI Text  ///////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////////
+
+		MonoString* Toast_UITextComponent_GetText(uint64_t entityID)
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& component = entity.GetComponent<UITextComponent>();
+
+			std::string text = component.Text->GetText();
+
+			return ConvertCppStringToMonoString(mono_domain_get(), text);
+		}
+
+		void Toast_UITextComponent_SetText(uint64_t entityID, MonoString* inText)
+		{
+			Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+			TOAST_CORE_ASSERT(scene, "No active scene!");
+			const auto& entityMap = scene->GetEntityMap();
+			TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+			Entity entity = entityMap.at(entityID);
+			auto& component = entity.GetComponent<UITextComponent>();
+
+			std::string& textStr = ConvertMonoStringToCppString(inText);
+			component.Text->SetText(textStr);
+		}
 	}
 }

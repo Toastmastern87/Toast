@@ -40,6 +40,7 @@ namespace Toast {
 		RegisterComponent(MeshComponent);
 		RegisterComponent(CameraComponent);
 		RegisterComponent(UIButtonComponent);
+		RegisterComponent(UITextComponent);
 
 		//Log
 		mono_add_internal_call("Toast.Console::LogTrace_Native", Toast::Script::Toast_Console_LogTrace);
@@ -58,6 +59,8 @@ namespace Toast {
 		//Scene
 		mono_add_internal_call("Toast.Scene::SetRenderColliders_Native", Toast::Script::Toast_Scene_SetRenderColliders);
 		mono_add_internal_call("Toast.Scene::GetRenderColliders_Native", Toast::Script::Toast_Scene_GetRenderColliders);
+		mono_add_internal_call("Toast.Scene::SetTimeScale_Native", Toast::Script::Toast_Scene_SetTimeScale);
+		mono_add_internal_call("Toast.Scene::GetTimeScale_Native", Toast::Script::Toast_Scene_GetTimeScale);
 
 		//Entity
 		mono_add_internal_call("Toast.Entity::CreateComponent_Native", Toast::Script::Toast_Entity_CreateComponent);
@@ -96,6 +99,10 @@ namespace Toast {
 		//UI Button
 		mono_add_internal_call("Toast.UIButtonComponent::GetColor_Native", Toast::Script::Toast_UIButtonComponent_GetColor);
 		mono_add_internal_call("Toast.UIButtonComponent::SetColor_Native", Toast::Script::Toast_UIButtonComponent_SetColor);
+
+		//UI Text
+		mono_add_internal_call("Toast.UITextComponent::GetText_Native", Toast::Script::Toast_UITextComponent_GetText);
+		mono_add_internal_call("Toast.UITextComponent::SetText_Native", Toast::Script::Toast_UITextComponent_SetText);
 	}
 
 }

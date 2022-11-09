@@ -53,10 +53,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="src\CameraController.cs" />
-    <Compile Include="src\ButtonTest.cs" />
+    <Compile Include="src\GameSpeedButtons.cs" />
     <Compile Include="src\ClientHelloWorld.cs" />
     <Compile Include="src\Debug.cs" />
     <Compile Include="src\PlanetScript.cs" />
+    <Compile Include="src\TimeText.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Toast-ScriptCore\Toast-ScriptCore.csproj">

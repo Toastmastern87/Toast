@@ -1,8 +1,154 @@
 Scene: Untitled Scene
 Entities:
+  - Entity: 18384185750220347789
+    TagComponent:
+      Tag: TimeScale1
+    RelationshipComponent:
+      ParentHandle: 2577963022771772615
+      Children:
+        []
+    TransformComponent:
+      Translation: [458, -66.2999878, 0]
+      Rotation: [0, -0, 0]
+      Scale: [30, 10, 1]
+    ScriptComponent:
+      ModuleName: GameSpeedButtons
+      StoredProperties:
+        []
+    UIButtonComponent:
+      CornerRadius: 6
+      Color: [0, 0, 0, 1]
+      ClickColor: [0, 0, 0, 1]
+  - Entity: 11806276604423328658
+    TagComponent:
+      Tag: TimeScale2
+    RelationshipComponent:
+      ParentHandle: 2577963022771772615
+      Children:
+        []
+    TransformComponent:
+      Translation: [458, -49, 0]
+      Rotation: [0, -0, 0]
+      Scale: [30, 10, 1]
+    ScriptComponent:
+      ModuleName: GameSpeedButtons
+      StoredProperties:
+        []
+    UIButtonComponent:
+      CornerRadius: 6
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+  - Entity: 2709097365577216560
+    TagComponent:
+      Tag: TimeScale3
+    RelationshipComponent:
+      ParentHandle: 2577963022771772615
+      Children:
+        []
+    TransformComponent:
+      Translation: [458, -32.4000244, 0]
+      Rotation: [0, -0, 0]
+      Scale: [30, 10, 1]
+    ScriptComponent:
+      ModuleName: GameSpeedButtons
+      StoredProperties:
+        []
+    UIButtonComponent:
+      CornerRadius: 6
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+  - Entity: 4566870064654448293
+    TagComponent:
+      Tag: TimeScale4
+    RelationshipComponent:
+      ParentHandle: 2577963022771772615
+      Children:
+        []
+    TransformComponent:
+      Translation: [458, -15.7000122, 0]
+      Rotation: [0, -0, 0]
+      Scale: [30, 10, 1]
+    ScriptComponent:
+      ModuleName: GameSpeedButtons
+      StoredProperties:
+        []
+    UIButtonComponent:
+      CornerRadius: 6
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+  - Entity: 9291025796538517788
+    TagComponent:
+      Tag: TimeText
+    RelationshipComponent:
+      ParentHandle: 2577963022771772615
+      Children:
+        []
+    TransformComponent:
+      Translation: [148, -55.7000122, 0]
+      Rotation: [0, -0, 0]
+      Scale: [30, 30, 1]
+    ScriptComponent:
+      ModuleName: TimeText
+      StoredProperties:
+        []
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
+      Text: 00:00:00
+  - Entity: 2812129723666465913
+    TagComponent:
+      Tag: SText
+    RelationshipComponent:
+      ParentHandle: 2577963022771772615
+      Children:
+        []
+    TransformComponent:
+      Translation: [15.0001221, -66.5, 0]
+      Rotation: [0, -0, 0]
+      Scale: [20, 20, 1]
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
+      Text: "Sol: 1"
+  - Entity: 11451148643943162086
+    TagComponent:
+      Tag: MText
+    RelationshipComponent:
+      ParentHandle: 2577963022771772615
+      Children:
+        []
+    TransformComponent:
+      Translation: [13.9001465, -38.2000122, 0]
+      Rotation: [0, -0, 0]
+      Scale: [20, 20, 1]
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
+      Text: "M: 1"
+  - Entity: 2577963022771772615
+    TagComponent:
+      Tag: TimeUI
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        - Handle: 11451148643943162086
+        - Handle: 2812129723666465913
+        - Handle: 9291025796538517788
+        - Handle: 4566870064654448293
+        - Handle: 2709097365577216560
+        - Handle: 11806276604423328658
+        - Handle: 18384185750220347789
+    TransformComponent:
+      Translation: [809, 510.100006, 0]
+      Rotation: [0, -0, 0]
+      Scale: [600, 83.1999969, 1]
+    UIPanelComponent:
+      Color: [0.0413039252, 0.0980315134, 0.489451468, 1]
+      CornerRadius: 14.1999998
   - Entity: 2187140198057221420
     TagComponent:
       Tag: DebugScript
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
@@ -14,40 +160,50 @@ Entities:
   - Entity: 1614261608780131607
     TagComponent:
       Tag: Physics Test
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
     TransformComponent:
       Translation: [2.24300432, 1.51779294, -3397]
       Rotation: [0, -0, 0]
       Scale: [0.100000001, 0.100000001, 0.100000001]
     MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
-      IsPlanet: false
+      IsPlanet: true
       Material: StainlessSteel
   - Entity: 14256283900106705513
     TagComponent:
       Tag: Starship Ground
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
     TransformComponent:
       Translation: [0, 2.29999995, -3407]
       Rotation: [-90, 0, 0]
-      Scale: [0.999999762, 0.999922335, 0.999922335]
+      Scale: [0.999999762, 0.999919951, 0.999919951]
     MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
-      IsPlanet: false
+      IsPlanet: true
       Material: StainlessSteel
   - Entity: 12837192831273
     TagComponent:
       Tag: Camera
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
     TransformComponent:
       Translation: [0, 7.9000001, -3390]
       Rotation: [-90, 0, 0]
-      Scale: [1, 0.99997592, 0.99997592]
+      Scale: [1, 0.999973536, 0.999973536]
     CameraComponent:
       Camera:
         ProjectionType: 0
         PerspectiveFOV: 45
         NearClip: 0.100000001
         FarClip: 3000
-        OrthographicWidth: 10
-        OrthographicHeight: 10
+        OrthographicWidth: 2624
+        OrthographicHeight: 1001
       Primary: true
       FixedAspectRatio: false
     ScriptComponent:
@@ -62,6 +218,10 @@ Entities:
   - Entity: 12837192831275
     TagComponent:
       Tag: Sunlight
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, -534, 0]
@@ -73,6 +233,10 @@ Entities:
   - Entity: 12837192831271
     TagComponent:
       Tag: Mars
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
@@ -102,6 +266,10 @@ Entities:
   - Entity: 12837192831272
     TagComponent:
       Tag: Ambient Light
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
@@ -112,13 +280,16 @@ Entities:
   - Entity: 129847189644684762
     TagComponent:
       Tag: Starship Atmosphere
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
     TransformComponent:
       Translation: [0, 10, -3392]
       Rotation: [0, -90, 90]
-      Scale: [0.0191985518, 0.0191989876, 0.019199986]
+      Scale: [0.0191984773, 0.0191989131, 0.0191999115]
     MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
-      IsPlanet: false
+      IsPlanet: true
       Material: StainlessSteel
     RigidBodyComponent:
       InvMass: 0.000199999995
