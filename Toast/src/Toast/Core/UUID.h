@@ -2,8 +2,6 @@
 
 #include "Toast/Core/Base.h"
 
-#include <xhash>
-
 namespace Toast {
 
 	class UUID 
@@ -22,6 +20,7 @@ namespace Toast {
 }
 
 namespace std {
+	template <typename T> struct hash;
 
 	template<>
 	struct hash<Toast::UUID>

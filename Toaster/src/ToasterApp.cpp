@@ -5,11 +5,11 @@
 
 namespace Toast {
 
-	class Toaster : public Application
+	class Toaster : public Toast::Application
 	{
 	public:
-		Toaster()
-			: Application("Toaster")
+		Toaster(const Toast::ApplicationSpecification& specification)
+			: Application(specification)
 		{
 			PushLayer(new EditorLayer());
 		}
@@ -21,6 +21,9 @@ namespace Toast {
 
 	Application* CreateApplication()
 	{
-		return new Toaster();
+		ApplicationSpecification spec;
+		spec.Name = "Toaster";
+
+		return new Toaster(spec);
 	}
 }

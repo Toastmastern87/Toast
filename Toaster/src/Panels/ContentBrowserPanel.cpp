@@ -46,8 +46,7 @@ namespace Toast {
 		for (auto& directoryEntry : std::filesystem::directory_iterator(mCurrentDirectory))
 		{
 			const auto& path = directoryEntry.path();
-			auto relativePath = std::filesystem::relative(path, gAssetPath);
-			std::string filenameStr = relativePath.filename().string();
+			std::string filenameStr = path.filename().string();
 
 			ImGui::PushID(filenameStr.c_str());
 			Texture2D* icon = directoryEntry.is_directory() ? mDirectoryIcon : mFileIcon;
@@ -71,6 +70,7 @@ namespace Toast {
 
 			if (ImGui::BeginDragDropSource())
 			{
+				auto relativePath = std::filesystem::relative(path, gAssetPath);
 				const wchar_t* itemPath = relativePath.c_str();
 				ImGui::SetDragDropPayload("CONTENT_BROWSER_ITEM", itemPath, (wcslen(itemPath) + 1) * sizeof(wchar_t), ImGuiCond_Once);
 				ImGui::EndDragDropSource();

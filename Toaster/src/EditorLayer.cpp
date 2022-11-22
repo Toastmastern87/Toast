@@ -59,7 +59,7 @@ namespace Toast {
 		std::vector<std::string> materialStrings = FileDialogs::GetAllFiles("\\assets\\materials");
 		MaterialSerializer::Deserialize(materialStrings);
 
-		mEditorScene = CreateRef<Scene>();
+		NewScene();
 
 		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 20000.0f);
 
@@ -230,9 +230,7 @@ namespace Toast {
 					if (ImGui::MenuItem("Save", "Ctrl+S"))
 						SaveScene();
 					if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S"))
-					{
 						SaveSceneAs();
-					}
 
 					ImGui::Separator();
 					if (ImGui::MenuItem("Exit"))
@@ -464,6 +462,9 @@ namespace Toast {
 
 	void EditorLayer::NewScene()
 	{
+		if (mSceneState != SceneState::Edit)
+			return;
+
 		mEditorScene = CreateRef<Scene>();
 		mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		mSceneHierarchyPanel.SetContext(mEditorScene);

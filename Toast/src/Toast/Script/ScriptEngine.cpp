@@ -20,7 +20,7 @@ namespace Toast {
 
 	static EntityInstanceMap sEntityInstanceMap;
 
-	static MonoAssembly* sAppAssembly = nullptr;
+	static MonoAssembly* sAppAssembly = nullptr; 
 	static MonoAssembly* sCoreAssembly = nullptr;
 
 	static MonoMethod* GetMethod(MonoImage* image, const std::string& methodDesc);

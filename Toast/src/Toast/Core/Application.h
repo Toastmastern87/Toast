@@ -17,10 +17,17 @@
 int main(int argc, char** argv);
 
 namespace Toast {
+
+	struct ApplicationSpecification
+	{
+		std::string Name = "Toast Application";
+		std::string WorkingDirectory;
+	};
+
 	class Application
 	{
 	public:
-		Application(const std::string& name = "Toast App");
+		Application(const ApplicationSpecification& specification);
 		virtual ~Application();
 
 		void OnEvent(Event& e);
@@ -38,11 +45,14 @@ namespace Toast {
 
 		static const char* GetConfigurationName();
 		static const char* GetPlatformName();
+
+		const ApplicationSpecification& GetSpecification() { return mSpecification; }
 	private:
 		void Run();
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
 	private:
+		ApplicationSpecification mSpecification;
 		std::unique_ptr<Window> mWindow;
 		ImGuiLayer* mImGuiLayer;
 		bool mRunning = true;

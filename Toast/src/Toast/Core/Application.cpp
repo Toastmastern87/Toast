@@ -12,7 +12,8 @@ namespace Toast {
 
 	Application* Application::sInstance = nullptr;
 
-	Application::Application(const std::string& name)
+	Application::Application(const ApplicationSpecification& specification)
+		: mSpecification(specification)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -22,12 +23,15 @@ namespace Toast {
 
 		sInstance = this;
 
+		if (!mSpecification.WorkingDirectory.empty())
+			std::filesystem::current_path(mSpecification.WorkingDirectory);
+
 		// Get the resolution of the screen
 		RECT desktop;
 		const HWND hDesktop = GetDesktopWindow();
 		GetWindowRect(hDesktop, &desktop);
 
-		mWindow = Window::Create(WindowProps(name, desktop.right, desktop.bottom));
+		mWindow = Window::Create(WindowProps(mSpecification.Name, desktop.right, desktop.bottom));
 		mWindow->SetEventCallback(TOAST_BIND_EVENT_FN(Application::OnEvent));
 		mWindow->SetVSync(false);
 
