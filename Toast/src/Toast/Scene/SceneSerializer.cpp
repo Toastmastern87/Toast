@@ -390,7 +390,18 @@ namespace Toast {
 
 	bool SceneSerializer::Deserialize(const std::string& filepath)
 	{
-		YAML::Node data = YAML::LoadFile(filepath);
+		YAML::Node data;
+		try 
+		{
+			data = YAML::LoadFile(filepath);
+		}
+		catch (const YAML::ParserException& ex)
+		{
+			TOAST_CORE_ERROR("Failed to deserialize scene %s\n		%s", filepath.c_str(), ex.what());
+
+			return false;
+		}
+
 		if (!data["Scene"])
 			return false;
 
