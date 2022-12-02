@@ -16,7 +16,7 @@ Intermediates/
 **.vcxproj
 **.vcxproj.filters
 **.vcxproj.user
-**.csxproj.user
+**.csproj
 
 # ImGui
 Mars/imgui.ini
