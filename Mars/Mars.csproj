@@ -17,11 +17,10 @@
     <PlatformTarget>x64</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\Toaster\assets\scripts\</OutputPath>
+    <OutputPath>..\bin\Debug-windows-x86_64\Mars\</OutputPath>
     <BaseIntermediateOutputPath>..\bin-int\Debug-windows-x86_64\Mars\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants>
-    </DefineConstants>
+    <DefineConstants></DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -29,11 +28,10 @@
     <PlatformTarget>x64</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\Toaster\assets\scripts\</OutputPath>
+    <OutputPath>..\bin\Release-windows-x86_64\Mars\</OutputPath>
     <BaseIntermediateOutputPath>..\bin-int\Release-windows-x86_64\Mars\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants>
-    </DefineConstants>
+    <DefineConstants></DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -41,11 +39,10 @@
     <PlatformTarget>x64</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\Toaster\assets\scripts\</OutputPath>
+    <OutputPath>..\bin\Dist-windows-x86_64\Mars\</OutputPath>
     <BaseIntermediateOutputPath>..\bin-int\Dist-windows-x86_64\Mars\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
-    <DefineConstants>
-    </DefineConstants>
+    <DefineConstants></DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -53,9 +50,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="src\CameraController.cs" />
-    <Compile Include="src\GameSpeedButtons.cs" />
     <Compile Include="src\ClientHelloWorld.cs" />
     <Compile Include="src\Debug.cs" />
+    <Compile Include="src\GameSpeedButtons.cs" />
     <Compile Include="src\PlanetScript.cs" />
     <Compile Include="src\TimeText.cs" />
   </ItemGroup>

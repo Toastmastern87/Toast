@@ -1,0 +1,6 @@
+C:\dev\Toast\Toaster\assets\scripts\Intermediates\Debug\Toast-ScriptCore.csproj.AssemblyReference.cache
+C:\dev\Toast\Toaster\assets\scripts\Intermediates\Debug\Toast-ScriptCore.csproj.CoreCompileInputs.cache
+C:\dev\Toast\Toaster\assets\scripts\Intermediates\Debug\Toast-ScriptCore.dll
+C:\dev\Toast\Toaster\assets\scripts\Intermediates\Debug\Toast-ScriptCore.pdb
+C:\dev\Toast\Toaster\assets\scripts\Toast-ScriptCore.dll
+C:\dev\Toast\Toaster\assets\scripts\Toast-ScriptCore.pdb

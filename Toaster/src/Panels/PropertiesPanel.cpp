@@ -7,7 +7,7 @@
 
 #include "Toast/Core/UUID.h"
 
-#include "Toast/Script/ScriptEngine.h"
+#include "Toast/Scripting/ScriptEngine.h"
 
 #include "Toast/Physics/PhysicsEngine.h"
 
@@ -901,101 +901,101 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<ScriptComponent>(ICON_TOASTER_CODE" Script", entity, mScene, [=](auto& sc, Entity entity, Scene* scene)
-			{
-				std::string oldName = sc.ModuleName;
+		//DrawComponent<ScriptComponent>(ICON_TOASTER_CODE" Script", entity, mScene, [=](auto& sc, Entity entity, Scene* scene)
+		//	{
+		//		std::string oldName = sc.ModuleName;
 
-				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
-				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+		//		ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+		//		ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-				ImGui::BeginTable("ScriptTable", 3, flags);
+		//		ImGui::BeginTable("ScriptTable", 3, flags);
 
-				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
-				ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Script");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (!sc.ModuleName.empty())
-					ImGui::InputText("##scriptfilepath", (char*)sc.ModuleName.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
-				else
-					ImGui::InputText("##scriptfilepath", (char*)"", 256, ImGuiInputTextFlags_ReadOnly);
-				ImGui::TableSetColumnIndex(2);
-				if (ImGui::Button("...##openscript"))
-				{
-					std::optional<std::string> file = FileDialogs::OpenFile("*.cs", "..\\Toaster\\assets\\scripts\\");
-					if (file)
-					{
-						std::filesystem::path filename = *file;
-						std::string filenameString = filename.filename().string();
-						if (filenameString.find('.') != std::string::npos)
-							filenameString = filenameString.substr(0, filenameString.find_last_of('.'));
+		//		ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+		//		ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
+		//		ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
+		//		ImGui::TableNextRow();
+		//		ImGui::TableSetColumnIndex(0);
+		//		ImGui::Text("Script");
+		//		ImGui::TableSetColumnIndex(1);
+		//		ImGui::PushItemWidth(-1);
+		//		if (!sc.ModuleName.empty())
+		//			ImGui::InputText("##scriptfilepath", (char*)sc.ModuleName.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
+		//		else
+		//			ImGui::InputText("##scriptfilepath", (char*)"", 256, ImGuiInputTextFlags_ReadOnly);
+		//		ImGui::TableSetColumnIndex(2);
+		//		if (ImGui::Button("...##openscript"))
+		//		{
+		//			std::optional<std::string> file = FileDialogs::OpenFile("*.cs", "..\\Toaster\\assets\\scripts\\");
+		//			if (file)
+		//			{
+		//				std::filesystem::path filename = *file;
+		//				std::string filenameString = filename.filename().string();
+		//				if (filenameString.find('.') != std::string::npos)
+		//					filenameString = filenameString.substr(0, filenameString.find_last_of('.'));
 
-						sc.ModuleName = filenameString;
-					}
+		//				sc.ModuleName = filenameString;
+		//			}
 
-					// Shutdown old script
-					if (ScriptEngine::ModuleExists(oldName))
-						ScriptEngine::ShutdownScriptEntity(entity.mScene->GetUUID(), entity.GetComponent<IDComponent>().ID, oldName);
+		//			// Shutdown old script
+		//			if (ScriptEngine::ModuleExists(oldName))
+		//				ScriptEngine::ShutdownScriptEntity(entity.mScene->GetUUID(), entity.GetComponent<IDComponent>().ID, oldName);
 
-					if (ScriptEngine::ModuleExists(sc.ModuleName)) 
-					{
-						TOAST_CORE_INFO("InitScriptEntity");
-						ScriptEngine::InitScriptEntity(entity);
-					}
-				}
+		//			if (ScriptEngine::ModuleExists(sc.ModuleName)) 
+		//			{
+		//				TOAST_CORE_INFO("InitScriptEntity");
+		//				ScriptEngine::InitScriptEntity(entity);
+		//			}
+		//		}
 
-				ImGui::EndTable();
+		//		ImGui::EndTable();
 
-				if (ScriptEngine::ModuleExists(sc.ModuleName))
-				{
-					sCounter = 0;
+		//		if (ScriptEngine::ModuleExists(sc.ModuleName))
+		//		{
+		//			sCounter = 0;
 
-					ImGui::BeginTable("ScriptPropertiesTable", 2, flags);
-					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
+		//			ImGui::BeginTable("ScriptPropertiesTable", 2, flags);
+		//			ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+		//			ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
+		//			ImGui::TableNextRow();
+		//			ImGui::TableSetColumnIndex(0);
 
-					EntityInstanceData& entityInstanceData = ScriptEngine::GetEntityInstanceData(entity.GetSceneUUID(), entity.GetComponent<IDComponent>().ID);
-					auto& modulePropertiesMap = entityInstanceData.ModulePropertyMap;
-					if (modulePropertiesMap.find(sc.ModuleName) != modulePropertiesMap.end())
-					{
-						auto& publicProperties = modulePropertiesMap.at(sc.ModuleName);
-						for (auto& [name, prop] : publicProperties)
-						{
-							bool isRuntime = mScene->mIsPlaying && prop.IsRuntimeAvailable();
-							switch (prop.Type)
-							{
-							case PropertyType::Float:
-								float value = isRuntime ? prop.GetRuntimeValue<float>() : prop.GetStoredValue<float>();
-								ImGui::TableNextRow();
-								ImGui::TableSetColumnIndex(0);
-								ImGui::Text(name.c_str());
-								ImGui::TableSetColumnIndex(1);
+		//			EntityInstanceData& entityInstanceData = ScriptEngine::GetEntityInstanceData(entity.GetSceneUUID(), entity.GetComponent<IDComponent>().ID);
+		//			auto& modulePropertiesMap = entityInstanceData.ModulePropertyMap;
+		//			if (modulePropertiesMap.find(sc.ModuleName) != modulePropertiesMap.end())
+		//			{
+		//				auto& publicProperties = modulePropertiesMap.at(sc.ModuleName);
+		//				for (auto& [name, prop] : publicProperties)
+		//				{
+		//					bool isRuntime = mScene->mIsPlaying && prop.IsRuntimeAvailable();
+		//					switch (prop.Type)
+		//					{
+		//					case PropertyType::Float:
+		//						float value = isRuntime ? prop.GetRuntimeValue<float>() : prop.GetStoredValue<float>();
+		//						ImGui::TableNextRow();
+		//						ImGui::TableSetColumnIndex(0);
+		//						ImGui::Text(name.c_str());
+		//						ImGui::TableSetColumnIndex(1);
 
-								sIDBuffer[0] = '#';
-								sIDBuffer[1] = '#';
-								memset(sIDBuffer + 2, 0, 14);
-								itoa(sCounter++, sIDBuffer + 2, 16);
+		//						sIDBuffer[0] = '#';
+		//						sIDBuffer[1] = '#';
+		//						memset(sIDBuffer + 2, 0, 14);
+		//						itoa(sCounter++, sIDBuffer + 2, 16);
 
-								if (ImGui::DragFloat(sIDBuffer, &value, 0.2f, 0.0f, 0.0f, "%.1f"))
-								{
-									if (isRuntime)
-										prop.SetRuntimeValue(value);
-									else
-										prop.SetStoredValue(value);
-								}
+		//						if (ImGui::DragFloat(sIDBuffer, &value, 0.2f, 0.0f, 0.0f, "%.1f"))
+		//						{
+		//							if (isRuntime)
+		//								prop.SetRuntimeValue(value);
+		//							else
+		//								prop.SetStoredValue(value);
+		//						}
 
-								break;
-							}
-						}
-					}
-					ImGui::EndTable();
-				}
-			});
+		//						break;
+		//					}
+		//				}
+		//			}
+		//			ImGui::EndTable();
+		//		}
+		//	});
 
 		DrawComponent<RigidBodyComponent>(ICON_TOASTER_HAND_ROCK_O" Rigid Body", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{

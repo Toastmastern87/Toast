@@ -4,7 +4,7 @@
 #include "Entity.h"
 #include "Components.h"
 
-#include "Toast/Script/ScriptEngine.h"
+#include "Toast/Scripting/ScriptEngine.h"
 
 #include "Toast/Physics/PhysicsEngine.h"
 
@@ -246,44 +246,44 @@ namespace Toast {
 			out << YAML::EndMap; // SkyLightComponent
 		}
 
-		if (entity.HasComponent<ScriptComponent>())
-		{
-			out << YAML::Key << "ScriptComponent";
-			out << YAML::BeginMap; // ScriptComponent
+		//if (entity.HasComponent<ScriptComponent>())
+		//{
+		//	out << YAML::Key << "ScriptComponent";
+		//	out << YAML::BeginMap; // ScriptComponent
 
-			auto& sc = entity.GetComponent<ScriptComponent>();
-			out << YAML::Key << "ModuleName" << YAML::Value << sc.ModuleName;
+		//	auto& sc = entity.GetComponent<ScriptComponent>();
+		//	out << YAML::Key << "ModuleName" << YAML::Value << sc.ModuleName;
 
-			EntityInstanceData& data = ScriptEngine::GetEntityInstanceData(entity.GetSceneUUID(), uuid);
-			const auto& modulePropertyMap = data.ModulePropertyMap;
+		//	EntityInstanceData& data = ScriptEngine::GetEntityInstanceData(entity.GetSceneUUID(), uuid);
+		//	const auto& modulePropertyMap = data.ModulePropertyMap;
 
-			if (modulePropertyMap.find(sc.ModuleName) != modulePropertyMap.end())
-			{
-				const auto& properties = modulePropertyMap.at(sc.ModuleName);
-				out << YAML::Key << "StoredProperties" << YAML::Value;
-				out << YAML::BeginSeq;
-				for (const auto& [name, prop] : properties)
-				{
-					out << YAML::BeginMap; // Property
-					out << YAML::Key << "Name" << YAML::Value << name;
-					out << YAML::Key << "Type" << YAML::Value << (uint32_t)prop.Type;
-					out << YAML::Key << "Data" << YAML::Value;
+		//	if (modulePropertyMap.find(sc.ModuleName) != modulePropertyMap.end())
+		//	{
+		//		const auto& properties = modulePropertyMap.at(sc.ModuleName);
+		//		out << YAML::Key << "StoredProperties" << YAML::Value;
+		//		out << YAML::BeginSeq;
+		//		for (const auto& [name, prop] : properties)
+		//		{
+		//			out << YAML::BeginMap; // Property
+		//			out << YAML::Key << "Name" << YAML::Value << name;
+		//			out << YAML::Key << "Type" << YAML::Value << (uint32_t)prop.Type;
+		//			out << YAML::Key << "Data" << YAML::Value;
 
-					switch (prop.Type)
-					{
-					case PropertyType::Float:
-					{
-						out << prop.GetStoredValue<float>();
-						break;
-					}
-					}
-					out << YAML::EndMap;
-				}
-				out << YAML::EndSeq;
-			}
+		//			switch (prop.Type)
+		//			{
+		//			case PropertyType::Float:
+		//			{
+		//				out << prop.GetStoredValue<float>();
+		//				break;
+		//			}
+		//			}
+		//			out << YAML::EndMap;
+		//		}
+		//		out << YAML::EndSeq;
+		//	}
 
-			out << YAML::EndMap; // ScriptComponent
-		}
+		//	out << YAML::EndMap; // ScriptComponent
+		//}
 
 		if (entity.HasComponent<RigidBodyComponent>())
 		{
@@ -516,43 +516,43 @@ namespace Toast {
 					dlc.SunDisc = directionalLightComponent["SunDisk"].as<bool>();
 				}
 
-				auto scriptComponent = entity["ScriptComponent"];
-				if (scriptComponent)
-				{
-					std::string moduleName = scriptComponent["ModuleName"].as<std::string>();
-					deserializedEntity.AddComponent<ScriptComponent>(moduleName);
+				//auto scriptComponent = entity["ScriptComponent"];
+				//if (scriptComponent)
+				//{
+				//	std::string moduleName = scriptComponent["ModuleName"].as<std::string>();
+				//	deserializedEntity.AddComponent<ScriptComponent>(moduleName);
 
-					if (ScriptEngine::ModuleExists(moduleName))
-					{
-						auto storedProperties = scriptComponent["StoredProperties"];
-						if (storedProperties)
-						{
-							for (auto prop : storedProperties)
-							{
-								std::string name = prop["Name"].as<std::string>();
-								PropertyType type = (PropertyType)prop["Type"].as<uint32_t>();
-								EntityInstanceData& data = ScriptEngine::GetEntityInstanceData(mScene->GetUUID(), uuid);
-								auto& modulePropertyMap = data.ModulePropertyMap;
-								auto& publicProperties = modulePropertyMap[moduleName];
+				//	if (ScriptEngine::ModuleExists(moduleName))
+				//	{
+				//		auto storedProperties = scriptComponent["StoredProperties"];
+				//		if (storedProperties)
+				//		{
+				//			for (auto prop : storedProperties)
+				//			{
+				//				std::string name = prop["Name"].as<std::string>();
+				//				PropertyType type = (PropertyType)prop["Type"].as<uint32_t>();
+				//				EntityInstanceData& data = ScriptEngine::GetEntityInstanceData(mScene->GetUUID(), uuid);
+				//				auto& modulePropertyMap = data.ModulePropertyMap;
+				//				auto& publicProperties = modulePropertyMap[moduleName];
 
-								if (publicProperties.find(name) == publicProperties.end())
-								{
-									PublicProperty pp = { name, type };
-									publicProperties.emplace(name, std::move(pp));
-								}
-								auto dataNode = prop["Data"];
-								switch (type)
-								{
-								case PropertyType::Float:
-								{
-									publicProperties.at(name).SetStoredValue(dataNode.as<float>());
-									break;
-								}
-								}
-							}
-						}
-					}
-				}
+				//				if (publicProperties.find(name) == publicProperties.end())
+				//				{
+				//					PublicProperty pp = { name, type };
+				//					publicProperties.emplace(name, std::move(pp));
+				//				}
+				//				auto dataNode = prop["Data"];
+				//				switch (type)
+				//				{
+				//				case PropertyType::Float:
+				//				{
+				//					publicProperties.at(name).SetStoredValue(dataNode.as<float>());
+				//					break;
+				//				}
+				//				}
+				//			}
+				//		}
+				//	}
+				//}
 
 				auto rigidBodyComponent = entity["RigidBodyComponent"];
 				if (rigidBodyComponent)

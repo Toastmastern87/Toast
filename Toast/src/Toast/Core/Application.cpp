@@ -6,7 +6,7 @@
 #include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/UI/Font.h"
 
-#include "Toast/Script/ScriptEngine.h"
+#include "Toast/Scripting/ScriptEngine.h"
 
 namespace Toast {
 
@@ -37,7 +37,7 @@ namespace Toast {
 
 		Renderer::Init();
 
-		ScriptEngine::Init("assets/scripts/Mars.dll");
+		ScriptEngine::Init();
 		Font::StaticInit();
 
 		mImGuiLayer = new ImGuiLayer();

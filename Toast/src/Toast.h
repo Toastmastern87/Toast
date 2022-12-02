@@ -39,7 +39,7 @@
 //---------------------------------------
 
 //-------Scripting-----------------------
-#include "Toast/Script/ScriptEngine.h"
-#include "Toast/Script/ScriptEngineRegistry.h"
-#include "Toast/Script/ScriptWrappers.h"
+#include "Toast/Scripting/ScriptEngine.h"
+#include "Toast/Scripting/ScriptEngineRegistry.h"
+#include "Toast/Scripting/ScriptWrappers.h"
 //---------------------------------------

@@ -18,7 +18,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>..\Toaster\assets\scripts\</OutputPath>
-    <BaseIntermediateOutputPath>..\bin-int\Debug-windows-x86_64\Toast-ScriptCore\</BaseIntermediateOutputPath>
+    <BaseIntermediateOutputPath>..\Toaster\assets\scripts\Intermediates\Debug\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
     <DefineConstants>
     </DefineConstants>
@@ -28,9 +28,9 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
     <PlatformTarget>x64</PlatformTarget>
     <DebugType>pdbonly</DebugType>
-    <Optimize>false</Optimize>
+    <Optimize>true</Optimize>
     <OutputPath>..\Toaster\assets\scripts\</OutputPath>
-    <BaseIntermediateOutputPath>..\bin-int\Release-windows-x86_64\Toast-ScriptCore\</BaseIntermediateOutputPath>
+    <BaseIntermediateOutputPath>..\Toaster\assets\scripts\Intermediates\Release\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
     <DefineConstants>
     </DefineConstants>
@@ -40,9 +40,9 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Dist|x64' ">
     <PlatformTarget>x64</PlatformTarget>
     <DebugType>pdbonly</DebugType>
-    <Optimize>false</Optimize>
+    <Optimize>true</Optimize>
     <OutputPath>..\Toaster\assets\scripts\</OutputPath>
-    <BaseIntermediateOutputPath>..\bin-int\Dist-windows-x86_64\Toast-ScriptCore\</BaseIntermediateOutputPath>
+    <BaseIntermediateOutputPath>..\Toaster\assets\scripts\Intermediates\Dist\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)</IntermediateOutputPath>
     <DefineConstants>
     </DefineConstants>
@@ -52,20 +52,21 @@
   <ItemGroup>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="src\Toast\Console.cs" />
-    <Compile Include="src\Toast\Entity.cs" />
-    <Compile Include="src\Toast\Input.cs" />
-    <Compile Include="src\Toast\KeyCodes.cs" />
-    <Compile Include="src\Toast\Math\Matrix4.cs" />
-    <Compile Include="src\Toast\Math\Vector2.cs" />
-    <Compile Include="src\Toast\Math\Vector3.cs" />
-    <Compile Include="src\Toast\Math\Vector4.cs" />
-    <Compile Include="src\Toast\MouseCodes.cs" />
-    <Compile Include="src\Toast\Renderer\Camera.cs" />
-    <Compile Include="src\Toast\Renderer\Mesh.cs" />
-    <Compile Include="src\Toast\Renderer\MeshFactory.cs" />
-    <Compile Include="src\Toast\Scene\Component.cs" />
-    <Compile Include="src\Toast\Scene\Scene.cs" />
+    <Compile Include="Source\Main.cs" />
+    <Compile Include="Source\Toast\Console.cs" />
+    <Compile Include="Source\Toast\Entity.cs" />
+    <Compile Include="Source\Toast\Input.cs" />
+    <Compile Include="Source\Toast\KeyCodes.cs" />
+    <Compile Include="Source\Toast\Math\Matrix4.cs" />
+    <Compile Include="Source\Toast\Math\Vector2.cs" />
+    <Compile Include="Source\Toast\Math\Vector3.cs" />
+    <Compile Include="Source\Toast\Math\Vector4.cs" />
+    <Compile Include="Source\Toast\MouseCodes.cs" />
+    <Compile Include="Source\Toast\Renderer\Camera.cs" />
+    <Compile Include="Source\Toast\Renderer\Mesh.cs" />
+    <Compile Include="Source\Toast\Renderer\MeshFactory.cs" />
+    <Compile Include="Source\Toast\Scene\Component.cs" />
+    <Compile Include="Source\Toast\Scene\Scene.cs" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>
