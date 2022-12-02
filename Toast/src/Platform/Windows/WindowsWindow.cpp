@@ -1,11 +1,10 @@
 #include "tpch.h"
-#include "Platform/Windows/WindowsWindow.h"
+#include "WindowsWindow.h"
 
+#include "Toast/Core/Application.h"
 #include "Toast/Core/Input.h"
 
 #include "Toast/Renderer/Renderer.h"
-
-#include "Toast/Core/Application.h"
 
 #include "Toast/Events/ApplicationEvent.h"
 #include "Toast/Events/KeyEvent.h"

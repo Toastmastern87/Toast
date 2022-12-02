@@ -10,7 +10,7 @@
 
 #include "Toast/Scene/SceneSerializer.h"
 
-#include "Toast/Script/ScriptEngine.h"
+#include "Toast/Scripting/ScriptEngine.h"
 
 #include "Toast/Utils/PlatformUtils.h"
 
@@ -456,7 +456,7 @@ namespace Toast {
 
 		mRuntimeScene = nullptr;
 
-		ScriptEngine::SetSceneContext(mEditorScene);
+		//ScriptEngine::SetSceneContext(mEditorScene);
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 	}
 

@@ -9,7 +9,7 @@
 #include "Toast/Renderer/RendererDebug.h"
 #include "Toast/Renderer/MeshFactory.h"
 
-#include "Toast/Script/ScriptEngine.h"
+#include "Toast/Scripting/ScriptEngine.h"
 
 #include "Toast/Physics/PhysicsEngine.h"
 
@@ -22,27 +22,27 @@ namespace Toast {
 		UUID SceneID;
 	};
 
-	static void OnScriptComponentConstruct(entt::registry& registry, entt::entity entity)
-	{
-		auto sceneView = registry.view<SceneComponent>();
-		UUID sceneID = registry.get<SceneComponent>(sceneView.front()).SceneID;
+	//static void OnScriptComponentConstruct(entt::registry& registry, entt::entity entity)
+	//{
+	//	auto sceneView = registry.view<SceneComponent>();
+	//	UUID sceneID = registry.get<SceneComponent>(sceneView.front()).SceneID;
 
-		Scene* scene = sActiveScenes[sceneID];
+	//	Scene* scene = sActiveScenes[sceneID];
 
-		auto entityID = registry.get<IDComponent>(entity).ID;
-		TOAST_CORE_ASSERT(scene->mEntityIDMap.find(entityID) != scene->mEntityIDMap.end(), "");
-		ScriptEngine::InitScriptEntity(scene->mEntityIDMap.at(entityID));
-	}
+	//	auto entityID = registry.get<IDComponent>(entity).ID;
+	//	TOAST_CORE_ASSERT(scene->mEntityIDMap.find(entityID) != scene->mEntityIDMap.end(), "");
+	//	ScriptEngine::InitScriptEntity(scene->mEntityIDMap.at(entityID));
+	//}
 
-	static void OnScriptComponentDestroy(entt::registry& registry, entt::entity entity)
-	{
-		// TO DO!
-	}
+	//static void OnScriptComponentDestroy(entt::registry& registry, entt::entity entity)
+	//{
+	//	// TO DO!
+	//}
 
 	Scene::Scene()
 	{
-		mRegistry.on_construct<ScriptComponent>().connect<&OnScriptComponentConstruct>();
-		mRegistry.on_destroy<ScriptComponent>().connect<&OnScriptComponentDestroy>();
+		//mRegistry.on_construct<ScriptComponent>().connect<&OnScriptComponentConstruct>();
+		//mRegistry.on_destroy<ScriptComponent>().connect<&OnScriptComponentDestroy>();
 
 		mSceneEntity = mRegistry.create();
 		mRegistry.emplace<SceneComponent>(mSceneEntity, mSceneID);
@@ -99,20 +99,20 @@ namespace Toast {
 
 	void Scene::OnRuntimeStart()
 	{
-		ScriptEngine::SetSceneContext(shared_from_this());
+		//ScriptEngine::SetSceneContext(shared_from_this());
 
-		// Update all entities with scripts
-		{
-			auto view = mRegistry.view<ScriptComponent>();
-			for (auto entity : view)
-			{
-				Entity e = { entity, this };
-				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::InstantiateEntityClass(e);
-				else
-					TOAST_CORE_INFO("Module doesn't exist");
-			}
-		}
+		//// Update all entities with scripts
+		//{
+		//	auto view = mRegistry.view<ScriptComponent>();
+		//	for (auto entity : view)
+		//	{
+		//		Entity e = { entity, this };
+		//		if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
+		//			ScriptEngine::InstantiateEntityClass(e);
+		//		else
+		//			TOAST_CORE_INFO("Module doesn't exist");
+		//	}
+		//}
 
 		mIsPlaying = true;
 	}
@@ -131,19 +131,19 @@ namespace Toast {
 
 	bool Scene::OnMouseButtonPressed(MouseButtonPressedEvent& e)
 	{	
-		// Check that a valid entity is being hovered over by the mouse
-		if (mHoveredEntity != entt::null) 
-		{
-			Entity entity = { mHoveredEntity, this };
+		//// Check that a valid entity is being hovered over by the mouse
+		//if (mHoveredEntity != entt::null) 
+		//{
+		//	Entity entity = { mHoveredEntity, this };
 
-			if (entity.HasComponent<UIButtonComponent>() && entity.HasComponent<ScriptComponent>())
-			{
-				if (ScriptEngine::ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::OnClickEntity(entity);
-				else
-					TOAST_CORE_INFO("Module doesn't exist");
-			}		
-		}
+		//	if (entity.HasComponent<UIButtonComponent>() && entity.HasComponent<ScriptComponent>())
+		//	{
+		//		if (ScriptEngine::ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName))
+		//			ScriptEngine::OnClickEntity(entity);
+		//		else
+		//			TOAST_CORE_INFO("Module doesn't exist");
+		//	}		
+		//}
 		return true;
 	}
 
@@ -215,15 +215,15 @@ namespace Toast {
 
 		// Update all entities with scripts
 		{
-			auto view = mRegistry.view<ScriptComponent>();
-			for (auto entity : view)
-			{
-				Entity e = { entity, this };
-				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::OnUpdateEntity(e.mScene->GetUUID(), e.GetComponent<IDComponent>().ID, (ts * mTimeScale));
-				else
-					TOAST_CORE_INFO("Module doesn't exist");
-			}
+			//auto view = mRegistry.view<ScriptComponent>();
+			//for (auto entity : view)
+			//{
+			//	Entity e = { entity, this };
+			//	if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
+			//		ScriptEngine::OnUpdateEntity(e.mScene->GetUUID(), e.GetComponent<IDComponent>().ID, (ts * mTimeScale));
+			//	else
+			//		TOAST_CORE_INFO("Module doesn't exist");
+			//}
 		}
 
 		// Process lights
@@ -911,11 +911,11 @@ namespace Toast {
 		CopyComponent<UITextComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIButtonComponent>(target->mRegistry, mRegistry, enttMap);
 
-		const auto& entityInstanceMap = ScriptEngine::GetEntityInstanceMap();
-		if (entityInstanceMap.find(target->GetUUID()) != entityInstanceMap.end())
-			ScriptEngine::CopyEntityScriptData(target->GetUUID(), mSceneID);
-		else
-			TOAST_CORE_WARN("NO Data being copied");
+		//const auto& entityInstanceMap = ScriptEngine::GetEntityInstanceMap();
+		//if (entityInstanceMap.find(target->GetUUID()) != entityInstanceMap.end())
+		//	ScriptEngine::CopyEntityScriptData(target->GetUUID(), mSceneID);
+		//else
+			//TOAST_CORE_WARN("NO Data being copied");
 	}
 
 	void Scene::InvalidateFrustum()

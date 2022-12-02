@@ -7,7 +7,7 @@
 
 #include "Toast/Scene/Components.h"
 
-#include "Toast/Script/ScriptEngine.h"
+#include "Toast/Scripting/ScriptEngine.h"
 
 #include "Toast/Renderer/MeshFactory.h"
 
