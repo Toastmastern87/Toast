@@ -2,7 +2,7 @@
 
 using Toast;
 
-class TimeText : Entity
+class TimeText : EntityOld
 {
     private UITextComponent mText;
     private float seconds;

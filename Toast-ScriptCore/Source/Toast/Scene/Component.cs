@@ -9,7 +9,7 @@ namespace Toast
 {
     public abstract class Component
     {
-        public Entity Entity { get; set; }
+        public EntityOld Entity { get; set; }
     }
 
     public class TagComponent : Component
@@ -43,19 +43,19 @@ namespace Toast
             }
         }
 
-        public Vector3 Translation
-        {
-            get
-            {
-                GetTranslation_Native(Entity.ID, out Vector3 result);
-                return result;
-            }
+        //public Vector3 Translation
+        //{
+        //    get
+        //    {
+        //        GetTranslation_Native(Entity.ID, out Vector3 result);
+        //        return result;
+        //    }
 
-            set
-            {
-                SetTranslation_Native(Entity.ID, ref value);
-            }
-        }
+        //    set
+        //    {
+        //        SetTranslation_Native(Entity.ID, ref value);
+        //    }
+        //}
         public Vector3 Rotation
         {
             get

@@ -2,7 +2,7 @@
 
 using Toast;
 
-class Debug : Entity
+class Debug : EntityOld
 {
     private bool keyPressed;
 

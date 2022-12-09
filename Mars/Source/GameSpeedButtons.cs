@@ -2,12 +2,12 @@
 
 using Toast;
 
-class GameSpeedButtons : Entity
+class GameSpeedButtons : EntityOld
 {
     private UIButtonComponent mButton1, mButton2, mButton3, mButton4;
 
     private string mName;
-    private Entity mButton1Entity, mButton2Entity, mButton3Entity, mButton4Entity;
+    private EntityOld mButton1Entity, mButton2Entity, mButton3Entity, mButton4Entity;
 
     void OnCreate()
     {

@@ -90,7 +90,7 @@ namespace Toast {
 		int GetVertices() const { return (int)mStats.VerticesCount; }
 
 		Entity FindEntityByTag(const std::string& tag);
-		Entity FindEntityByUUID(UUID id);
+		Entity FindEntityByUUID(UUID uuid);
 
 		void AddChildEntity(Entity entity, Entity parent);
 
@@ -157,8 +157,8 @@ namespace Toast {
 		friend class PropertiesPanel;
 		friend class SceneSettingsPanel;
 
-		friend void OnScriptComponentConstruct(entt::registry& registry, entt::entity entity);
-		friend void OnScriptComponentDestroy(entt::registry& registry, entt::entity entity);
+		//friend void OnScriptComponentConstruct(entt::registry& registry, entt::entity entity);
+		//friend void OnScriptComponentDestroy(entt::registry& registry, entt::entity entity);
 	};
 }
 	

@@ -2,7 +2,7 @@
 
 using Toast;
 
-class CameraController : Entity
+class CameraController : EntityOld
 {
     public float MinAltitude = 0.0f;
     public float MaxAltitude = 0.0f;

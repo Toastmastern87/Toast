@@ -1,0 +1,25 @@
+Scene: Untitled Scene
+Entities:
+  - Entity: 241364423458334375
+    TagComponent:
+      Tag: Empty Entity
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    CameraComponent:
+      Camera:
+        ProjectionType: 0
+        PerspectiveFOV: 45
+        NearClip: 0.100000001
+        FarClip: 1000
+        OrthographicWidth: 10
+        OrthographicHeight: 10
+      Primary: true
+      FixedAspectRatio: false
+    ScriptComponent:
+      ClassName: Sandbox.Player

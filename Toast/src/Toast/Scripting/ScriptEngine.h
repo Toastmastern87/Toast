@@ -1,17 +1,26 @@
  #pragma once
 
+#include <string>
 //#include "Toast/Core/Base.h"
 //#include "Toast/Core/UUID.h"
 //
 //#include <string>
 //
+#include "Toast/Scene/Scene.h"
 //#include "Toast/Scene/Components.h"
-//#include "Toast/Scene/Entity.h"
+#include "Toast/Scene/Entity.h"
 //
 //extern "C" {
 //	typedef struct _MonoObject MonoObject;
 //	typedef struct _MonoClassField MonoClassField;
 //}
+
+extern "C" {
+	typedef struct _MonoClass MonoClass;
+	typedef struct _MonoMethod MonoMethod;
+	typedef struct _MonoObject MonoObject;
+	typedef struct _MonoAssembly MonoAssembly;
+}
 
 namespace Toast {
 
@@ -97,11 +106,58 @@ namespace Toast {
 
 	//using EntityInstanceMap = std::unordered_map<UUID, std::unordered_map<UUID, EntityInstanceData>>;
 
+	class ScriptClass
+	{
+	public:
+		ScriptClass() = default;
+		ScriptClass(const std::string& classNamespace, const std::string& className);
+
+		MonoObject* Instantiate();
+		MonoMethod* GetMethod(const std::string& name, int parameterCount);
+		MonoObject* InvokeMethod(MonoObject* instance, MonoMethod* method, void** params = nullptr);
+	private:
+		std::string mClassNamespace;
+		std::string mClassName;
+
+		MonoClass* mMonoClass = nullptr;
+	};
+
+	class ScriptInstance
+	{
+	public:
+		ScriptInstance(Ref<ScriptClass> scriptClass, Entity entity);
+
+		void InvokeOnCreate();
+		void InvokeOnUpdate(float ts);
+		void InvokeOnEvent();
+	private:
+		Ref<ScriptClass> mScriptClass;
+
+		MonoObject* mInstance = nullptr;
+		MonoMethod* mConstructor = nullptr;
+		MonoMethod* mOnCreateMethod = nullptr;
+		MonoMethod* mOnUpdateMethod = nullptr;
+		MonoMethod* mOnEventMethod = nullptr;
+	};
+
 	class ScriptEngine 
 	{
 	public:
 		static void Init();
 		static void Shutdown();
+
+		static void LoadAssembly(const std::string& path);
+
+		static void OnRuntimeStart(Scene* scene);
+		static void OnRuntimeStop();
+
+		static bool EntityClassExists(const std::string& fullClassName);
+		static void OnCreateEntity(Entity entity);
+		static void OnUpdateEntity(Entity entity, Timestep ts);
+		static void OnEventEntity(Entity entity);
+
+		static Scene* GetSceneContext();
+		static std::unordered_map<std::string, Ref<ScriptClass>> GetEntityClasses();
 
 		//static void LoadToastRuntimeAssembly(const std::string& path);
 		//static void ReloadAssembly(const std::string& path);
@@ -125,5 +181,11 @@ namespace Toast {
 	private:
 		static void InitMono();
 		static void ShutdownMono();
+
+		static MonoObject* InstantiateClass(MonoClass* monoClass);
+		static void LoadAssemblyClasses(MonoAssembly* assembly);
+
+		friend class ScriptClass;
+		friend class ScriptGlue;
 	};
 }
