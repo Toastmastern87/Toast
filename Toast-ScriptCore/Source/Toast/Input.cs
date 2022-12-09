@@ -6,7 +6,7 @@ namespace Toast
     {
         public static bool IsKeyPressed(KeyCode keyCode) 
         {
-            return IsKeyPressed_Native(keyCode);
+            return InternalCalls.Input_IsKeyPressed(keyCode);
         }
 
         public static bool IsMouseButtonPressed(MouseCode mouseCode)
@@ -30,8 +30,8 @@ namespace Toast
             SetMouseWheelDelta_Native(value);
         }
 
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern bool IsKeyPressed_Native(KeyCode keyCode);
+        //[MethodImpl(MethodImplOptions.InternalCall)]
+        //private static extern bool IsKeyPressed_Native(KeyCode keyCode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         private static extern bool IsMouseButtonPressed_Native(MouseCode mouseCode);

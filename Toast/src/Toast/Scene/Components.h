@@ -142,12 +142,12 @@ namespace Toast {
 
 	struct ScriptComponent
 	{
-		std::string ModuleName;
+		std::string ClassName;
 
 		ScriptComponent() = default;
 		ScriptComponent(const ScriptComponent&) = default;
-		ScriptComponent(const std::string& moduleName)
-			: ModuleName(moduleName) {}
+		ScriptComponent(const std::string& className)
+			: ClassName(className) {}
 	};
 
 	struct DirectionalLightComponent

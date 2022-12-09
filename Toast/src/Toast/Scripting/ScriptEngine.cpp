@@ -1,6 +1,7 @@
 #include "tpch.h"
 #include "ScriptEngine.h"
 
+#include "ScriptGlue.h"
 //#include "Toast/Script/ScriptEngineRegistry.h"
 
 #include <mono/jit/jit.h>
@@ -10,15 +11,97 @@
 
 namespace Toast {
 
+	namespace Utils {
+
+		// TODO move to a filesystem class of some kind, to work together with the shader files
+		static char* ReadBytes(const std::string& filepath, uint32_t* outSize)
+		{
+			std::ifstream stream(filepath, std::ios::binary | std::ios::ate);
+
+			if (!stream)
+			{
+				// Failed to open the file
+				return nullptr;
+			}
+
+			std::streampos end = stream.tellg();
+			stream.seekg(0, std::ios::beg);
+			uint32_t size = end - stream.tellg();
+
+			// Check if file is empty
+			if (size == 0)
+				return nullptr;
+
+			char* buffer = new char[size];
+			stream.read((char*)buffer, size);
+			stream.close();
+
+			*outSize = size;
+			return buffer;
+		}
+
+		static MonoAssembly* LoadMonoAssembly(const std::string& assemblyPath)
+		{
+			uint32_t fileSize = 0;
+			char* fileData = ReadBytes(assemblyPath, &fileSize);
+
+			// NOTE: We can't use this image for anything other than loading the assembly because this image doesn't have a reference to the assembly
+			MonoImageOpenStatus status;
+			MonoImage* image = mono_image_open_from_data_full(fileData, fileSize, 1, &status, 0);
+
+			if (status != MONO_IMAGE_OK)
+			{
+				const char* errorMessage = mono_image_strerror(status);
+				return nullptr;
+			}
+
+			MonoAssembly* assembly = mono_assembly_load_from_full(image, assemblyPath.c_str(), &status, 0);
+			mono_image_close(image);
+
+			delete[] fileData;
+
+			return assembly;
+		}
+
+		void PrintAssemblyTypes(MonoAssembly* assembly)
+		{
+			MonoImage* image = mono_assembly_get_image(assembly);
+			const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
+			int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
+
+			for (int32_t i = 0; i < numTypes; i++)
+			{
+				uint32_t cols[MONO_TYPEDEF_SIZE];
+				mono_metadata_decode_row(typeDefinitionsTable, i, cols, MONO_TYPEDEF_SIZE);
+
+				const char* nameSpace = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAMESPACE]);
+				const char* name = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAME]);
+
+				TOAST_CORE_INFO("%s.%s", nameSpace, name);
+			}
+		}
+	}
+
 	struct ScriptEngineData
 	{
 		MonoDomain* RootDomain = nullptr;
 		MonoDomain* AppDomain = nullptr;
-
+		 
 		MonoAssembly* CoreAssembly = nullptr;
+		MonoImage* CoreAssemblyImage = nullptr;
+
+		ScriptClass EntityClass;
+
+		std::unordered_map<std::string, Ref<ScriptClass>> EntityClasses;
+		std::unordered_map<UUID, Ref<ScriptInstance>> EntityInstances;
+
+		// Runtime
+		Scene* SceneContext = nullptr;
 	};
 
 	static ScriptEngineData* sData = nullptr;
+
+
 	//static MonoDomain* sMonoDomain = nullptr;
 	//static std::string sAssemblyPath;
 	//static Ref<Scene> sSceneContext;
@@ -451,13 +534,46 @@ namespace Toast {
 		sData = new ScriptEngineData();
 
 		InitMono();
+		LoadAssembly("assets/scripts/Toast-ScriptCore.dll");
+		LoadAssemblyClasses(sData->CoreAssembly);
+
+		ScriptGlue::RegisterFunctions();
+
+		// Retrieve and instantiate entity class (with constructor)
+		sData->EntityClass = ScriptClass("Toast", "Entity");
+
+		//// Retrieve and instantiate class (with constructor)
+		//sData->EntityClass = ScriptClass("Toast", "Entity");
+
+		//MonoObject* instance = sData->EntityClass.Instantiate();	
+
+		//// Call method
+		//MonoMethod* printMessageFunc = sData->EntityClass.GetMethod("PrintMessage", 0);
+		//sData->EntityClass.InvokeMethod(instance, printMessageFunc, nullptr);
+
+		//// 3. Call method with param
+		//MonoMethod* printIntFunc = sData->EntityClass.GetMethod("PrintInt", 1);
+
+		//int value = 5;
+		//void* param = &value;
+		//void* params[1] =
+		//{
+		//	&value
+		//};
+
+		//sData->EntityClass.InvokeMethod(instance, printIntFunc, &param);
+
+		//MonoString* monoString = mono_string_new(sData->AppDomain, "Hello World from C++!");
+		//MonoMethod* printCustomMessageFunc = sData->EntityClass.GetMethod("PrintCustomMessage", 1);
+		//void* stringParam = monoString;
+		//sData->EntityClass.InvokeMethod(instance, printCustomMessageFunc, &stringParam);
 	}
 
 	void ScriptEngine::Shutdown()
 	{
 		ShutdownMono();
 
-		delete sData;
+		delete sData; 
 	}
 
 //Toast::EntityInstanceData& ScriptEngine::GetEntityInstanceData(UUID sceneID, UUID entityID)
@@ -468,73 +584,6 @@ namespace Toast {
 	//	return entityIDMap.at(entityID);
 	//}
 
-	char* ReadBytes(const std::string& filepath, uint32_t* outSize)
-	{
-		std::ifstream stream(filepath, std::ios::binary | std::ios::ate);
-
-		if (!stream)
-		{
-			// Failed to open the file
-			return nullptr;
-		}
-
-		std::streampos end = stream.tellg();
-		stream.seekg(0, std::ios::beg);
-		uint32_t size = end - stream.tellg();
-
-		// Check if file is empty
-		if (size == 0) 
-			return nullptr;
-
-		char* buffer = new char[size];
-		stream.read((char*)buffer, size);
-		stream.close();
-
-		*outSize = size;
-		return buffer;
-	}
-
-	MonoAssembly* LoadCSharpAssembly(const std::string& assemblyPath) 
-	{
-		uint32_t fileSize = 0;
-		char* fileData = ReadBytes(assemblyPath, &fileSize);
-
-		// NOTE: We can't use this image for anything other than loading the assembly because this image doesn't have a reference to the assembly
-		MonoImageOpenStatus status;
-		MonoImage* image = mono_image_open_from_data_full(fileData, fileSize, 1, &status, 0);
-
-		if (status != MONO_IMAGE_OK)
-		{
-			const char* errorMessage = mono_image_strerror(status);
-			return nullptr;
-		}
-
-		MonoAssembly* assembly = mono_assembly_load_from_full(image, assemblyPath.c_str(), &status, 0);
-		mono_image_close(image);
-
-		delete[] fileData;
-
-		return assembly;
-	}
-
-	void PrintAssemblyTypes(MonoAssembly* assembly)
-	{
-		MonoImage* image = mono_assembly_get_image(assembly);
-		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
-		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
-
-		for (int32_t i = 0; i < numTypes; i++)
-		{
-			uint32_t cols[MONO_TYPEDEF_SIZE];
-			mono_metadata_decode_row(typeDefinitionsTable, i, cols, MONO_TYPEDEF_SIZE);
-
-			const char* nameSpace = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAMESPACE]);
-			const char* name = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAME]);
-
-			TOAST_CORE_INFO("%s.%s", nameSpace, name);
-		}
-	}
-
 	void ScriptEngine::InitMono()
 	{
 		mono_set_assemblies_path("mono/lib");
@@ -544,51 +593,182 @@ namespace Toast {
 		TOAST_CORE_ASSERT(rootDomain, "Root domain is a nullptr");
 
 		sData->RootDomain = rootDomain;
-
-		// Create the app domain
-		sData->AppDomain = mono_domain_create_appdomain("ToastScriptRuntime", nullptr);
-		mono_domain_set(sData->AppDomain, true);
-
-		sData->CoreAssembly = LoadCSharpAssembly("assets/Scripts/Toast-ScriptCore.dll");
-		
-		PrintAssemblyTypes(sData->CoreAssembly);
-
-		MonoImage* assemblyImage = mono_assembly_get_image(sData->CoreAssembly);
-		MonoClass* monoClass = mono_class_from_name(assemblyImage, "Toast", "Main");
-
-		// 1. Create and object (and call constructor)
-		MonoObject* instance = mono_object_new(sData->AppDomain, monoClass);
-		mono_runtime_object_init(instance);
-
-		// 2. Call function
-		MonoMethod* printMessageFunc = mono_class_get_method_from_name(monoClass, "PrintMessage", 0);
-		mono_runtime_invoke(printMessageFunc, instance, nullptr, nullptr);
-
-		// 3. Call function with param
-		MonoMethod* printIntFunc = mono_class_get_method_from_name(monoClass, "PrintInt", 1);
-
-		int value = 5;
-		void* param = &value;
-		void* params[1] = 
-		{
-			&value
-		};
-
-		mono_runtime_invoke(printIntFunc, instance, &param, nullptr);
-
-		MonoString* monoString = mono_string_new(sData->AppDomain, "Hello World from C++!");
-		MonoMethod* printCustomMessageFunc = mono_class_get_method_from_name(monoClass, "PrintCustomMessage", 1);
-		void* stringParam = monoString;
-		mono_runtime_invoke(printCustomMessageFunc, instance, &stringParam, nullptr);
 	}
 
 	void ScriptEngine::ShutdownMono()
 	{
-		mono_domain_unload(sData->AppDomain);
+		//mono_domain_unload(sData->AppDomain);
 		sData->AppDomain = nullptr;
 
-		mono_jit_cleanup(sData->RootDomain);
+		//mono_jit_cleanup(sData->RootDomain);
 		sData->RootDomain = nullptr;
+	}
+
+	void ScriptEngine::LoadAssembly(const std::string& path)
+	{
+		// Create the app domain
+		sData->AppDomain = mono_domain_create_appdomain("ToastScriptRuntime", nullptr);
+		mono_domain_set(sData->AppDomain, true);
+
+		sData->CoreAssembly = Utils::LoadMonoAssembly(path);
+		sData->CoreAssemblyImage = mono_assembly_get_image(sData->CoreAssembly);
+		//Utils::PrintAssemblyTypes(sData->CoreAssembly);
+	}
+
+	void ScriptEngine::OnRuntimeStart(Scene* scene)
+	{
+		sData->SceneContext = scene;
+	}
+
+	void ScriptEngine::OnRuntimeStop()
+	{
+		sData->SceneContext = nullptr;
+
+		sData->EntityInstances.clear();
+	}
+
+	bool ScriptEngine::EntityClassExists(const std::string& fullClassName)
+	{
+		return sData->EntityClasses.find(fullClassName) != sData->EntityClasses.end();
+	}
+
+	void ScriptEngine::OnCreateEntity(Entity entity)
+	{
+		const auto& sc = entity.GetComponent<ScriptComponent>();
+		if (ScriptEngine::EntityClassExists(sc.ClassName))
+		{
+			Ref<ScriptInstance> instance = CreateRef<ScriptInstance>(sData->EntityClasses[sc.ClassName], entity);
+			sData->EntityInstances[entity.GetUUID()] = instance;
+			instance->InvokeOnCreate();
+		}
+	}
+
+	void ScriptEngine::OnUpdateEntity(Entity entity, Timestep ts)
+	{
+		UUID entityUUID = entity.GetUUID();
+		TOAST_CORE_ASSERT(sData->EntityInstances.find(entity.GetUUID()) != sData->EntityInstances.end(), "Entity Instance does not exist!");
+
+		Ref<ScriptInstance> instance = sData->EntityInstances[entityUUID];
+
+		const auto& sc = entity.GetComponent<ScriptComponent>();
+		instance->InvokeOnUpdate((float)ts);
+	}
+
+	void ScriptEngine::OnEventEntity(Entity entity)
+	{
+
+	}
+
+	Toast::Scene* ScriptEngine::GetSceneContext()
+	{
+		return sData->SceneContext;
+	}
+
+	std::unordered_map<std::string, Ref<ScriptClass>> ScriptEngine::GetEntityClasses()
+	{
+		return sData->EntityClasses;
+	}
+
+	void ScriptEngine::LoadAssemblyClasses(MonoAssembly* assembly)
+	{
+		sData->EntityClasses.clear();
+
+		MonoImage* image = mono_assembly_get_image(assembly);
+		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(image, MONO_TABLE_TYPEDEF);
+		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
+		MonoClass* entityClass = mono_class_from_name(image, "Toast", "Entity");
+
+		for (int32_t i = 0; i < numTypes; i++)
+		{
+			uint32_t cols[MONO_TYPEDEF_SIZE];
+			mono_metadata_decode_row(typeDefinitionsTable, i, cols, MONO_TYPEDEF_SIZE);
+
+			const char* nameSpace = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAMESPACE]);
+			const char* name = mono_metadata_string_heap(image, cols[MONO_TYPEDEF_NAME]);
+			std::string fullName;
+			if (strlen(nameSpace) != 0) 
+			{
+				fullName.append(nameSpace);
+				fullName.append(".");
+				fullName.append(name);
+			}
+			else
+				fullName = name;
+
+			MonoClass* monoClass = mono_class_from_name(image, nameSpace, name);
+
+			if (monoClass == entityClass)
+				continue;
+
+			bool isEntity = mono_class_is_subclass_of(monoClass, entityClass, false);
+			if (isEntity) 
+			{
+				TOAST_CORE_INFO("Adding subclass to Entity Class: %s", fullName.c_str());
+				sData->EntityClasses[fullName] = CreateRef<ScriptClass>(nameSpace, name);
+			}
+				
+		}
+	}
+
+	MonoObject* ScriptEngine::InstantiateClass(MonoClass* monoClass)
+	{
+		MonoObject* instance = mono_object_new(sData->AppDomain, monoClass);
+		mono_runtime_object_init(instance);
+		return instance;
+	}
+
+	ScriptClass::ScriptClass(const std::string& classNamespace, const std::string& className)
+		: mClassNamespace(classNamespace), mClassName(className)
+	{
+		mMonoClass = mono_class_from_name(sData->CoreAssemblyImage, classNamespace.c_str(), className.c_str());
+	}
+
+	MonoObject* ScriptClass::Instantiate()
+	{
+		return ScriptEngine::InstantiateClass(mMonoClass);
+	}
+
+	MonoMethod* ScriptClass::GetMethod(const std::string& name, int parameterCount)
+	{
+		return mono_class_get_method_from_name(mMonoClass, name.c_str(), parameterCount);
+	}
+
+	MonoObject* ScriptClass::InvokeMethod(MonoObject* instance, MonoMethod* method, void** params)
+	{
+		return mono_runtime_invoke(method, instance, params, nullptr);
+	}
+
+	ScriptInstance::ScriptInstance(Ref<ScriptClass> scriptClass, Entity entity)
+		: mScriptClass(scriptClass)
+	{
+		mInstance = scriptClass->Instantiate();
+		mConstructor = sData->EntityClass.GetMethod(".ctor", 1);
+		mOnCreateMethod = scriptClass->GetMethod("OnCreate", 0);
+		mOnUpdateMethod = scriptClass->GetMethod("OnUpdate", 1);
+		mOnEventMethod = scriptClass->GetMethod("OnEvent", 0);
+		
+		// Call Entity Constructor
+		{
+			UUID entityID = entity.GetUUID();
+			void* param = &entityID;
+			mScriptClass->InvokeMethod(mInstance, mConstructor, &param);
+		}
+	}
+
+	void ScriptInstance::InvokeOnCreate()
+	{
+		sData->EntityClass.InvokeMethod(mInstance, mOnCreateMethod);
+	}
+
+	void ScriptInstance::InvokeOnUpdate(float ts)
+	{
+		void* param = &ts;
+		mScriptClass->InvokeMethod(mInstance, mOnUpdateMethod, &param);
+	}
+
+	void ScriptInstance::InvokeOnEvent()
+	{
+		mScriptClass->InvokeMethod(mInstance, mOnEventMethod);
 	}
 
 	//static uint32_t GetPropertySize(PropertyType type)

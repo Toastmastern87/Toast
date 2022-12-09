@@ -6,9 +6,9 @@ namespace Toast
     [StructLayout(LayoutKind.Sequential)]
     public struct Vector3
     {
-        public float X;
-        public float Y;
-        public float Z;
+        public float X, Y, Z;
+
+        public static Vector3 Zero = new Vector3(0.0f);
 
         public Vector3(float scalar) 
         {
@@ -108,9 +108,9 @@ namespace Toast
             return new Vector3(value * vectorOne.X, value * vectorOne.Y, value * vectorOne.Z);
         }
 
-        public static Vector3 operator *(Vector3 vectorOne, float value)
+        public static Vector3 operator*(Vector3 vectorOne, float scalar)
         {
-            return new Vector3(vectorOne.X * value, vectorOne.Y * value, vectorOne.Z * value);
+            return new Vector3(vectorOne.X * scalar, vectorOne.Y * scalar, vectorOne.Z * scalar);
         }
 
         public static bool operator ==(Vector3 vecOne, Vector3 vecTwo) 

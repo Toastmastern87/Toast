@@ -1,6 +1,6 @@
 ﻿using Toast;
 
-class ClientHelloWorld : Entity
+class ClientHelloWorld : EntityOld
 {
     public float Speed = 1.0f;
 

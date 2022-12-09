@@ -3,9 +3,9 @@ using System;
 
 using Toast;
 
-class PlanetScript : Entity
+class PlanetScript : EntityOld
 {
-    private Entity mCameraEntity;
+    private EntityOld mCameraEntity;
     private TransformComponent mCameraTransform;
     private Matrix4 mCameraOldTransform;
 

@@ -4,13 +4,13 @@ using System.Runtime.CompilerServices;
 
 namespace Toast
 {
-    public class Entity
+    public class EntityOld
     {
         public ulong ID { get; private set; }
 
-        protected Entity() { ID = 0; }
-        internal Entity(ulong id) { ID = id; }
-        ~Entity() { }
+        protected EntityOld() { ID = 0; }
+        internal EntityOld(ulong id) { ID = id; }
+        ~EntityOld() { }
 
         public T CreateComponent<T>() where T : Component, new()
         {
@@ -36,10 +36,10 @@ namespace Toast
             return null;
         }
 
-        public Entity FindEntityByTag(string tag) 
+        public EntityOld FindEntityByTag(string tag) 
         {
             ulong entityID = FindEntityByTag_Native(tag);
-            return new Entity(entityID);
+            return new EntityOld(entityID);
         }
 
         [MethodImpl(MethodImplOptions.InternalCall)]

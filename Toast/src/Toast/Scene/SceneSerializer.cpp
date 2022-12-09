@@ -246,13 +246,13 @@ namespace Toast {
 			out << YAML::EndMap; // SkyLightComponent
 		}
 
-		//if (entity.HasComponent<ScriptComponent>())
-		//{
-		//	out << YAML::Key << "ScriptComponent";
-		//	out << YAML::BeginMap; // ScriptComponent
+		if (entity.HasComponent<ScriptComponent>())
+		{
+			out << YAML::Key << "ScriptComponent";
+			out << YAML::BeginMap; // ScriptComponent
 
-		//	auto& sc = entity.GetComponent<ScriptComponent>();
-		//	out << YAML::Key << "ModuleName" << YAML::Value << sc.ModuleName;
+			auto& sc = entity.GetComponent<ScriptComponent>();
+			out << YAML::Key << "ClassName" << YAML::Value << sc.ClassName;
 
 		//	EntityInstanceData& data = ScriptEngine::GetEntityInstanceData(entity.GetSceneUUID(), uuid);
 		//	const auto& modulePropertyMap = data.ModulePropertyMap;
@@ -282,8 +282,8 @@ namespace Toast {
 		//		out << YAML::EndSeq;
 		//	}
 
-		//	out << YAML::EndMap; // ScriptComponent
-		//}
+			out << YAML::EndMap; // ScriptComponent
+		}
 
 		if (entity.HasComponent<RigidBodyComponent>())
 		{
@@ -516,11 +516,11 @@ namespace Toast {
 					dlc.SunDisc = directionalLightComponent["SunDisk"].as<bool>();
 				}
 
-				//auto scriptComponent = entity["ScriptComponent"];
-				//if (scriptComponent)
-				//{
-				//	std::string moduleName = scriptComponent["ModuleName"].as<std::string>();
-				//	deserializedEntity.AddComponent<ScriptComponent>(moduleName);
+				auto scriptComponent = entity["ScriptComponent"];
+				if (scriptComponent)
+				{
+					auto& sc = deserializedEntity.AddComponent<ScriptComponent>();
+					sc.ClassName = scriptComponent["ClassName"].as<std::string>();
 
 				//	if (ScriptEngine::ModuleExists(moduleName))
 				//	{
@@ -552,7 +552,7 @@ namespace Toast {
 				//			}
 				//		}
 				//	}
-				//}
+				}
 
 				auto rigidBodyComponent = entity["RigidBodyComponent"];
 				if (rigidBodyComponent)

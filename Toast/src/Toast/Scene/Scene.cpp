@@ -95,10 +95,25 @@ namespace Toast {
 	void Scene::DestroyEntity(Entity entity)
 	{
 		mRegistry.destroy(entity);
+		mEntityIDMap.erase(entity.GetUUID());
 	}
 
 	void Scene::OnRuntimeStart()
 	{
+		// Scripting
+		{
+			ScriptEngine::OnRuntimeStart(this);
+			// Instantiate all script entities
+
+			auto view = mRegistry.view<ScriptComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				ScriptEngine::OnCreateEntity(e);
+			}
+		}
+
+		// 
 		//ScriptEngine::SetSceneContext(shared_from_this());
 
 		//// Update all entities with scripts
@@ -120,6 +135,8 @@ namespace Toast {
 	void Scene::OnRuntimeStop()
 	{
 		mIsPlaying = false;
+
+		ScriptEngine::OnRuntimeStop();
 	}
 
 	void Scene::OnEvent(Event& e)
@@ -213,17 +230,15 @@ namespace Toast {
 			}
 		}
 
-		// Update all entities with scripts
+		// Scripting
 		{
-			//auto view = mRegistry.view<ScriptComponent>();
-			//for (auto entity : view)
-			//{
-			//	Entity e = { entity, this };
-			//	if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-			//		ScriptEngine::OnUpdateEntity(e.mScene->GetUUID(), e.GetComponent<IDComponent>().ID, (ts * mTimeScale));
-			//	else
-			//		TOAST_CORE_INFO("Module doesn't exist");
-			//}
+			// C# Entity OnUpdate
+			auto view = mRegistry.view<ScriptComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				ScriptEngine::OnUpdateEntity(e, ts * mTimeScale);
+			}
 		}
 
 		// Process lights
@@ -834,19 +849,14 @@ namespace Toast {
 		return Entity{};
 	}
 
-	Toast::Entity Scene::FindEntityByUUID(UUID id)
+	Entity Scene::FindEntityByUUID(UUID uuid)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		auto view = mRegistry.view<IDComponent>();
-		for (auto entity : view)
-		{
-			auto& idc = mRegistry.get<IDComponent>(entity);
-			if (idc.ID == id)
-				return Entity(entity, this);
-		}
+		if (mEntityIDMap.find(uuid) != mEntityIDMap.end())
+			return Entity{ mEntityIDMap.at(uuid), this};
 
-		return Entity{};
+		return {};
 	}
 
 	void Scene::AddChildEntity(Entity entity, Entity parent)
