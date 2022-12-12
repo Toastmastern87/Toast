@@ -9,9 +9,8 @@ namespace Toast {
 	public:
 		UUID();
 		UUID(uint64_t uuid);
-		UUID(const UUID& other);
+		UUID(const UUID&) = default;
 
-		operator uint64_t () { return mUUID; }
 		operator const uint64_t() const { return mUUID; }
 
 	private:
@@ -27,7 +26,7 @@ namespace std {
 	{
 		std::size_t operator()(const Toast::UUID& uuid) const
 		{
-			return hash<uint64_t>()((uint64_t)uuid);
+			return (uint64_t)uuid;
 		}
 	};
 }

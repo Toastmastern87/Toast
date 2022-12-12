@@ -16,6 +16,7 @@
 //}
 
 extern "C" {
+	typedef struct _MonoImage MonoImage;
 	typedef struct _MonoClass MonoClass;
 	typedef struct _MonoMethod MonoMethod;
 	typedef struct _MonoObject MonoObject;
@@ -158,6 +159,8 @@ namespace Toast {
 
 		static Scene* GetSceneContext();
 		static std::unordered_map<std::string, Ref<ScriptClass>> GetEntityClasses();
+
+		static MonoImage* GetCoreAssemblyImage();
 
 		//static void LoadToastRuntimeAssembly(const std::string& path);
 		//static void ReloadAssembly(const std::string& path);

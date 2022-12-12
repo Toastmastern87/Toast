@@ -133,16 +133,10 @@ namespace Toast {
 			out << YAML::BeginMap; // TransformComponent
 
 			auto& tc = entity.GetComponent<TransformComponent>();
-			DirectX::XMFLOAT3 translationFloat3, scaleFloat3;
-			DirectX::XMVECTOR translation, scale, rotation;
 
-			DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.Transform);
-			DirectX::XMStoreFloat3(&translationFloat3, translation);
-			DirectX::XMStoreFloat3(&scaleFloat3, scale);
-
-			out << YAML::Key << "Translation" << YAML::Value << translationFloat3;
+			out << YAML::Key << "Translation" << YAML::Value << tc.Translation;
 			out << YAML::Key << "Rotation" << YAML::Value << tc.RotationEulerAngles;
-			out << YAML::Key << "Scale" << YAML::Value << scaleFloat3;
+			out << YAML::Key << "Scale" << YAML::Value << tc.Scale;
 
 			out << YAML::EndMap; // TransformComponent
 		}
@@ -442,14 +436,9 @@ namespace Toast {
 				{
 					// Entities always have transforms
 					auto& tc = deserializedEntity.GetComponent<TransformComponent>();
-					DirectX::XMFLOAT3 translation = transformComponent["Translation"].as<DirectX::XMFLOAT3>();
-					DirectX::XMFLOAT3 rotation = transformComponent["Rotation"].as<DirectX::XMFLOAT3>();
-					DirectX::XMFLOAT3 scale = transformComponent["Scale"].as<DirectX::XMFLOAT3>();
-
-					tc.RotationEulerAngles = rotation;
-					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z)
-						* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(rotation.x), DirectX::XMConvertToRadians(rotation.y), DirectX::XMConvertToRadians(rotation.z))))
-						* DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
+					tc.Translation = transformComponent["Translation"].as<DirectX::XMFLOAT3>();
+					tc.RotationEulerAngles = transformComponent["Rotation"].as<DirectX::XMFLOAT3>();
+					tc.Scale = transformComponent["Scale"].as<DirectX::XMFLOAT3>();
 				}
 
 				auto cameraComponent = entity["CameraComponent"];

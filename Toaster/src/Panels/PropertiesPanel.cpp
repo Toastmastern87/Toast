@@ -441,40 +441,39 @@ namespace Toast {
 		DrawComponent<TransformComponent>(ICON_TOASTER_ARROWS_ALT" Transform", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
 				float fov = 45.0f;
-				DirectX::XMFLOAT3 translationFloat3, scaleFloat3;
-				DirectX::XMVECTOR translation, scale, rotation;
 				DirectX::XMMATRIX cameraTransform;
 				DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
 
-				DirectX::XMMatrixDecompose(&scale, &rotation, &translation, component.Transform);
-				DirectX::XMStoreFloat3(&translationFloat3, translation);
-				DirectX::XMStoreFloat3(&scaleFloat3, scale);
+				bool entity2D = entity.HasComponent<UIPanelComponent>() || entity.HasComponent<UITextComponent>() || entity.HasComponent<UIButtonComponent>();
 
 				bool updateTransform = false;
-				bool entity2D = entity.HasComponent<UIPanelComponent>() || entity.HasComponent<UITextComponent>() || entity.HasComponent<UIButtonComponent>();
 
 				Ref<RenderTarget>& baseRenderTarget = Renderer::GetBaseRenderTarget();
 				auto [width, height] = baseRenderTarget->GetSize();
 
-				if (entity2D) 
+				if (entity2D)
 				{
-					translationFloat3.x += width / 2.0f;
-					translationFloat3.y *= -1.0f;
-					translationFloat3.y += (height / 2.0f);
+					DirectX::XMFLOAT3 translation2D = component.Translation;
+
+					translation2D.x += width / 2.0f;
+					translation2D.y *= -1.0f;
+					translation2D.y += (height / 2.0f);
+
+					updateTransform |= DrawFloat3Control("Translation", translation2D);
+
+					translation2D.x -= width / 2.0f;
+					translation2D.y -= (height / 2.0f);
+					translation2D.y *= -1.0f;
+
+					component.Translation = translation2D;
+
 				}
+				else
+					updateTransform |= DrawFloat3Control("Translation", component.Translation);
 
-				updateTransform |= DrawFloat3Control("Translation", translationFloat3);
+
 				updateTransform |= DrawFloat3Control("Rotation", component.RotationEulerAngles);
-				updateTransform |= DrawFloat3Control("Scale", scaleFloat3, 1.0f);
-
-				if (updateTransform && entity2D)
-					component.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scaleFloat3.x, scaleFloat3.y, scaleFloat3.z)
-					* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(component.RotationEulerAngles.x), DirectX::XMConvertToRadians(component.RotationEulerAngles.y), DirectX::XMConvertToRadians(component.RotationEulerAngles.z))))
-					* DirectX::XMMatrixTranslation(translationFloat3.x - width / 2.0f, -(translationFloat3.y - height / 2.0f), translationFloat3.z);
-				else if (updateTransform)
-					component.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scaleFloat3.x, scaleFloat3.y, scaleFloat3.z)
-						* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(component.RotationEulerAngles.x), DirectX::XMConvertToRadians(component.RotationEulerAngles.y), DirectX::XMConvertToRadians(component.RotationEulerAngles.z))))
-						* DirectX::XMMatrixTranslation(translationFloat3.x, translationFloat3.y, translationFloat3.z);
+				updateTransform |= DrawFloat3Control("Scale", component.Scale, 1.0f);
 
 				// If the component has a planet recalculate the Distance LUT
 				if (entity.HasComponent<PlanetComponent>() && updateTransform)
@@ -485,7 +484,7 @@ namespace Toast {
 					for (auto entity : view)
 					{
 						auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
-						cameraTransform = transform.Transform;
+						cameraTransform = transform.GetTransform();
 
 						if (camera.Primary) 
 						{
@@ -494,18 +493,16 @@ namespace Toast {
 							DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
 						}
 						else 
-						{
 							cameraPos = { 0.0f, 0.0f, 0.0f };
-						}
 					}
 
 					auto& pc = entity.GetComponent<PlanetComponent>();
 
 					PlanetSystem::GenerateDistanceLUT(pc.DistanceLUT, 8.0f);
-					PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, DirectX::XMVectorGetX(scale), 8.0f, pc.PlanetData.maxAltitude);
-					PlanetSystem::GenerateHeightMultLUT(pc.Mesh->mPlanetFaces, pc.HeightMultLUT, DirectX::XMVectorGetX(scale), 8, pc.PlanetData.maxAltitude, component.Transform);
+					PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, component.Scale.x, 8.0f, pc.PlanetData.maxAltitude);
+					PlanetSystem::GenerateHeightMultLUT(pc.Mesh->mPlanetFaces, pc.HeightMultLUT, component.Scale.x, 8, pc.PlanetData.maxAltitude, component.GetTransform());
 
-					PlanetSystem::GeneratePlanet(scene->GetFrustum(), component.Transform, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPos, cameraPos, pc.Subdivisions, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
+					PlanetSystem::GeneratePlanet(scene->GetFrustum(), component.GetTransform(), pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPos, cameraPos, pc.Subdivisions, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
 
 					pc.Mesh->InvalidatePlanet(false);
 				}
@@ -818,20 +815,19 @@ namespace Toast {
 
 						if (camera.Primary)
 						{
-							DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.Transform);
+							DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.GetTransform());
 							fov = camera.Camera.GetPerspectiveVerticalFOV();
 						}
 					}
 
-					DirectX::XMVECTOR scale, rotation, translation, cameraForward = { 0.0f, 0.0f, 1.0f };
-					DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.Transform);
+					DirectX::XMVECTOR cameraForward = { 0.0f, 0.0f, 1.0f };
 
-					DirectX::XMVECTOR rotationMatrix = DirectX::XMQuaternionRotationMatrix(tc.Transform);
+					DirectX::XMVECTOR rotationMatrix = DirectX::XMQuaternionRotationMatrix(tc.GetTransform());
 					cameraForward = rotationMatrix * cameraForward;
 
 					PlanetSystem::GeneratePatchGeometry(component.Mesh->mPlanetVertices, component.Mesh->mIndices, component.PatchLevels);
 					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8);
-					PlanetSystem::GeneratePlanet(scene->GetFrustum(), tc.Transform, component.Mesh->mPlanetFaces, component.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraForward, component.Subdivisions, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
+					PlanetSystem::GeneratePlanet(scene->GetFrustum(), tc.GetTransform(), component.Mesh->mPlanetFaces, component.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraForward, component.Subdivisions, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
 
 					component.Mesh->InvalidatePlanet(true);
 				}

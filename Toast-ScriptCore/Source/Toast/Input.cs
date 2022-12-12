@@ -11,38 +11,24 @@ namespace Toast
 
         public static bool IsMouseButtonPressed(MouseCode mouseCode)
         {
-            return IsMouseButtonPressed_Native(mouseCode);
+            return InternalCalls.Input_IsMouseButtonPressed(mouseCode);
         }
 
         public static Vector2 GetMousePosition()
         {
-            GetMousePosition_Native(out Vector2 position);
+            InternalCalls.Input_GetMousePosition(out Vector2 position);
             return position;
         }
 
         public static float GetMouseWheelDelta() 
         {
-            return GetMouseWheelDelta_Native();
+            return InternalCalls.Input_GetMouseWheelDelta();
         }
 
         public static void SetMouseWheelDelta(float value)
         {
-            SetMouseWheelDelta_Native(value);
+            InternalCalls.Input_SetMouseWheelDelta(value);
         }
 
-        //[MethodImpl(MethodImplOptions.InternalCall)]
-        //private static extern bool IsKeyPressed_Native(KeyCode keyCode);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern bool IsMouseButtonPressed_Native(MouseCode mouseCode);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void GetMousePosition_Native(out Vector2 position);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern float GetMouseWheelDelta_Native();
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern void SetMouseWheelDelta_Native(float value);
     }
 }

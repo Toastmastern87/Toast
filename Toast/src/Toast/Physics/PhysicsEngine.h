@@ -116,8 +116,12 @@ namespace Toast {
 				TOAST_CORE_WARN("Object colliding with the planet is lacking a RigidBodyComponent");
 
 			DirectX::XMVECTOR resolveVector = -collision.Normal * collision.separationDistance;
+			DirectX::XMVECTOR objectTranslation = DirectX::XMLoadFloat3(&collision.Object->GetComponent<TransformComponent>().Translation);
 
-			collision.Object->GetComponent<TransformComponent>().Transform = DirectX::XMMatrixMultiply(collision.Object->GetComponent<TransformComponent>().Transform, XMMatrixTranslationFromVector(resolveVector));	
+			DirectX::XMFLOAT3 resolvedTranslation;
+			DirectX::XMStoreFloat3(&resolvedTranslation, (objectTranslation - resolveVector));
+
+			collision.Object->GetComponent<TransformComponent>().Translation = resolvedTranslation;
 
 			return;
 		}

@@ -19,8 +19,8 @@ namespace Toast{
 	{
 	}
 
-	UUID::UUID(const UUID& other)
-		: mUUID(other.mUUID)
-	{
-	}
+	//UUID::UUID(const UUID& other)
+	//	: mUUID(other.mUUID)
+	//{
+	//}
 }

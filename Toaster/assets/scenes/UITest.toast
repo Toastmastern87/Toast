@@ -12,7 +12,7 @@ Entities:
       Rotation: [0, 0, 0]
       Scale: [60, 20, 1]
     ScriptComponent:
-      ModuleName: ButtonTest
+      ClassName: ButtonTest
       StoredProperties:
         []
     UIButtonComponent:
