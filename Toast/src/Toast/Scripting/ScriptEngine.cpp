@@ -537,6 +537,7 @@ namespace Toast {
 		LoadAssembly("assets/scripts/Toast-ScriptCore.dll");
 		LoadAssemblyClasses(sData->CoreAssembly);
 
+		ScriptGlue::RegisterComponents();
 		ScriptGlue::RegisterFunctions();
 
 		// Retrieve and instantiate entity class (with constructor)
@@ -702,12 +703,13 @@ namespace Toast {
 
 			bool isEntity = mono_class_is_subclass_of(monoClass, entityClass, false);
 			if (isEntity) 
-			{
-				TOAST_CORE_INFO("Adding subclass to Entity Class: %s", fullName.c_str());
-				sData->EntityClasses[fullName] = CreateRef<ScriptClass>(nameSpace, name);
-			}
-				
+				sData->EntityClasses[fullName] = CreateRef<ScriptClass>(nameSpace, name);				
 		}
+	}
+
+	MonoImage* ScriptEngine::GetCoreAssemblyImage()
+	{
+		return sData->CoreAssemblyImage;
 	}
 
 	MonoObject* ScriptEngine::InstantiateClass(MonoClass* monoClass)

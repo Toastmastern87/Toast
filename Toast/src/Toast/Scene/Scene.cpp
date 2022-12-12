@@ -62,7 +62,6 @@ namespace Toast {
 		idComponent.ID = {};
 
 		auto& tc = entity.AddComponent<TransformComponent>();
-		tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
 
@@ -80,7 +79,6 @@ namespace Toast {
 		idComponent.ID = uuid;
 
 		auto& tc = entity.AddComponent<TransformComponent>();
-		tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 		auto& tag = entity.AddComponent<TagComponent>();
 		tag.Tag = name.empty() ? "Entity" : name;
 
@@ -206,7 +204,7 @@ namespace Toast {
 
 					auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
 					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-					DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.Transform);
+					DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.GetTransform());
 
 					bool terrainCollision = false;
 
@@ -225,7 +223,7 @@ namespace Toast {
 					}
 
 					// Update position due to gravity
-					tc.Transform = DirectX::XMMatrixMultiply(tc.Transform, XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&rbc.LinearVelocity) * (ts.GetSeconds() * mTimeScale)));
+					//tc.Transform = DirectX::XMMatrixMultiply(tc.Transform, XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&rbc.LinearVelocity) * (ts.GetSeconds() * mTimeScale)));
 				}
 			}
 		}
@@ -250,7 +248,7 @@ namespace Toast {
 			{
 				auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
 
-				DirectX::XMFLOAT4 direction = { DirectX::XMVectorGetZ(transformComponent.Transform.r[0]), DirectX::XMVectorGetZ(transformComponent.Transform.r[1]), DirectX::XMVectorGetZ(transformComponent.Transform.r[2]), 0.0f, };
+				DirectX::XMFLOAT4 direction = { DirectX::XMVectorGetZ(transformComponent.GetTransform().r[0]), DirectX::XMVectorGetZ(transformComponent.GetTransform().r[1]), DirectX::XMVectorGetZ(transformComponent.GetTransform().r[2]), 0.0f, };
 				DirectX::XMFLOAT4 radiance = DirectX::XMFLOAT4(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
 				mLightEnvironment.DirectionalLights[directionalLightIndex++] =
 				{
@@ -286,7 +284,7 @@ namespace Toast {
 				if (camera.Primary)
 				{
 					mainCamera = &camera.Camera;
-					cameraTransform = transform.Transform;
+					cameraTransform = transform.GetTransform();
 
 					break;
 				}
@@ -338,13 +336,13 @@ namespace Toast {
 						{
 						case Settings::Wireframe::NO:
 						{
-							Renderer::SubmitMesh(mesh.Mesh, transform.Transform, (int)entity, false);
+							Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, false);
 
 							break;
 						}
 						case Settings::Wireframe::YES:
 						{
-							Renderer::SubmitMesh(mesh.Mesh, transform.Transform, (int)entity, true);
+							Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, true);
 
 							break;
 						}
@@ -371,14 +369,14 @@ namespace Toast {
 					case Settings::Wireframe::NO:
 					{
 						if (planet.Mesh->mSubmeshes.size() > 0)
-							Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
+							Renderer::SubmitMesh(planet.Mesh, transform.GetTransform(), (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
 						if (planet.Mesh->mSubmeshes.size() > 0)
-							Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
+							Renderer::SubmitMesh(planet.Mesh, transform.GetTransform(), (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 						break;
 					}
@@ -408,7 +406,7 @@ namespace Toast {
 					if (mSettings.RenderColliders)
 					{
 						DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-						DirectX::XMMatrixDecompose(&scale, &rot, &pos, transform.Transform);                                                                                                                                                                                                                                                                                                                                                                                                                 
+						DirectX::XMMatrixDecompose(&scale, &rot, &pos, transform.GetTransform());                                                                                                                                                                                                                                                                                                                                                                                                                 
 						scale = { collider.Radius * 2.0f, collider.Radius * 2.0f, collider.Radius * 2.0f };
 
 						DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYawFromVector(rot)) * DirectX::XMMatrixTranslationFromVector(pos);
@@ -435,12 +433,12 @@ namespace Toast {
 
 					if (e.HasParent())
 					{
-						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Transform;
+						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().GetTransform();
 						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
-						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.Transform, DirectX::XMMatrixTranslationFromVector(pos));
+						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.GetTransform(), DirectX::XMMatrixTranslationFromVector(pos));
 					}
 					else
-						combinedWorldMatrix = tc.Transform;
+						combinedWorldMatrix = tc.GetTransform();
 
 					Renderer2D::SubmitPanel(combinedWorldMatrix, upc.Panel, (int)entity, false);
 				}
@@ -456,12 +454,12 @@ namespace Toast {
 
 					if (e.HasParent())
 					{
-						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Transform;
+						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().GetTransform();
 						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
-						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.Transform, DirectX::XMMatrixTranslationFromVector(pos));
+						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.GetTransform(), DirectX::XMMatrixTranslationFromVector(pos));
 					}
 					else
-						combinedWorldMatrix = tc.Transform;
+						combinedWorldMatrix = tc.GetTransform();
 
 					Renderer2D::SubmitButton(combinedWorldMatrix, ubc.Button, (int)entity, true);
 				}
@@ -477,12 +475,12 @@ namespace Toast {
 
 					if (e.HasParent())
 					{
-						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Transform;
+						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().GetTransform();
 						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
-						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.Transform, DirectX::XMMatrixTranslationFromVector(pos));
+						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.GetTransform(), DirectX::XMMatrixTranslationFromVector(pos));
 					}
 					else
-						combinedWorldMatrix = tc.Transform;
+						combinedWorldMatrix = tc.GetTransform();
 
 					Renderer2D::SubmitText(combinedWorldMatrix, uitc.Text, (int)entity, false);
 				}
@@ -525,7 +523,7 @@ namespace Toast {
 			{
 				auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
 
-				DirectX::XMFLOAT4 direction = { DirectX::XMVectorGetZ(transformComponent.Transform.r[0]), DirectX::XMVectorGetZ(transformComponent.Transform.r[1]), DirectX::XMVectorGetZ(transformComponent.Transform.r[2]), 0.0f, };
+				DirectX::XMFLOAT4 direction = { DirectX::XMVectorGetZ(transformComponent.GetTransform().r[0]), DirectX::XMVectorGetZ(transformComponent.GetTransform().r[1]), DirectX::XMVectorGetZ(transformComponent.GetTransform().r[2]), 0.0f, };
 				DirectX::XMFLOAT4 radiance = DirectX::XMFLOAT4(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
 				mLightEnvironment.DirectionalLights[directionalLightIndex++] =
 				{
@@ -559,9 +557,9 @@ namespace Toast {
 				if (camera.Primary)
 				{
 					cameraForward = { 0.0f, 0.0f, 1.0f };
-					cameraTransform = transform.Transform;
+					cameraTransform = transform.GetTransform();
 
-					DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.Transform);
+					DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.GetTransform());
 					cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRot);
 				}
 			}
@@ -576,7 +574,7 @@ namespace Toast {
 					auto [planet, transform] = view.get<PlanetComponent, TransformComponent>(entity);
 
 					//TOAST_CORE_INFO("Camera Forward: %f, %f, %f", DirectX::XMVectorGetX(cameraForward), DirectX::XMVectorGetY(cameraForward), DirectX::XMVectorGetZ(cameraForward));
-					PlanetSystem::GeneratePlanet(mFrustum.get(), transform.Transform, planet.Mesh->mPlanetFaces, planet.Mesh->mPlanetPatches, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, cameraForward, planet.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
+					PlanetSystem::GeneratePlanet(mFrustum.get(), transform.GetTransform(), planet.Mesh->mPlanetFaces, planet.Mesh->mPlanetPatches, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, cameraForward, planet.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
 
 					planet.Mesh->InvalidatePlanet(true);
 				}
@@ -594,7 +592,7 @@ namespace Toast {
 			{
 				auto [planet, transform] = view.get<PlanetComponent, TransformComponent>(entity);
 				//TOAST_CORE_INFO("Camera Forward: %f, %f, %f", DirectX::XMVectorGetX(cameraForward), DirectX::XMVectorGetY(cameraForward), DirectX::XMVectorGetZ(cameraForward));
-				PlanetSystem::GeneratePlanet(mFrustum.get(), transform.Transform, planet.Mesh->mPlanetFaces, planet.Mesh->mPlanetPatches, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, cameraForward, planet.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
+				PlanetSystem::GeneratePlanet(mFrustum.get(), transform.GetTransform(), planet.Mesh->mPlanetFaces, planet.Mesh->mPlanetPatches, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, cameraForward, planet.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
 				
 				planet.Mesh->InvalidatePlanet(true);
 			}
@@ -636,13 +634,13 @@ namespace Toast {
 					{
 					case Settings::Wireframe::NO:
 					{
-						Renderer::SubmitMesh(mesh.Mesh, transform.Transform, (int)entity, false);
+						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, false);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
-						Renderer::SubmitMesh(mesh.Mesh, transform.Transform, (int)entity, true);
+						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, true);
 
 						break;
 					}
@@ -656,7 +654,7 @@ namespace Toast {
 				}
 
 				if (mSelectedEntity == entity)
-					Renderer::SubmitSelecetedMesh(mesh.Mesh, transform.Transform);
+					Renderer::SubmitSelecetedMesh(mesh.Mesh, transform.GetTransform());
 
 				mStats.VerticesCount += static_cast<uint32_t>(mesh.Mesh->GetVertices().size());
 			}
@@ -672,14 +670,14 @@ namespace Toast {
 				case Settings::Wireframe::NO:
 				{
 					if(planet.Mesh->mSubmeshes.size() > 0)
-						Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
+						Renderer::SubmitMesh(planet.Mesh, transform.GetTransform(), (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 					break;
 				}
 				case Settings::Wireframe::YES:
 				{
 					if (planet.Mesh->mSubmeshes.size() > 0)
-						Renderer::SubmitMesh(planet.Mesh, transform.Transform, (int)entity, true, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
+						Renderer::SubmitMesh(planet.Mesh, transform.GetTransform(), (int)entity, true, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 					break;
 				}
@@ -692,7 +690,7 @@ namespace Toast {
 				}
 
 				if (mSelectedEntity == entity)
-					Renderer::SubmitSelecetedMesh(planet.Mesh, transform.Transform);
+					Renderer::SubmitSelecetedMesh(planet.Mesh, transform.GetTransform());
 
 				mStats.VerticesCount += static_cast<uint32_t>(planet.Mesh->GetPlanetVertices().size() * planet.Mesh->GetPlanetPatches().size());
 			}
@@ -710,11 +708,11 @@ namespace Toast {
 
 				DirectX::XMVECTOR scale, rotation, translation;
 				DirectX::XMFLOAT3 translationFloat3;
-				DirectX::XMMatrixDecompose(&scale, &rotation, &translation, transform.Transform);
+				DirectX::XMMatrixDecompose(&scale, &rotation, &translation, transform.GetTransform());
 				DirectX::XMStoreFloat3(&translationFloat3, translation);
 
 				if (mSettings.CameraFrustum)
-					RendererDebug::SubmitCameraFrustum(camera.Camera, transform.Transform, translationFloat3);
+					RendererDebug::SubmitCameraFrustum(camera.Camera, transform.GetTransform(), translationFloat3);
 			}
 
 			//Colliders
@@ -726,7 +724,7 @@ namespace Toast {
 				if (collider.RenderCollider && mSettings.RenderColliders) 
 				{
 					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-					DirectX::XMMatrixDecompose(&scale, &rot, &pos, transform.Transform);
+					DirectX::XMMatrixDecompose(&scale, &rot, &pos, transform.GetTransform());
 					scale = { collider.Radius * 2.0f, collider.Radius * 2.0f, collider.Radius * 2.0f };
 
 					DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYawFromVector(rot)) * DirectX::XMMatrixTranslationFromVector(pos);
@@ -758,12 +756,12 @@ namespace Toast {
 
 					if (e.HasParent()) 
 					{
-						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Transform;
+						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().GetTransform();
 						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
-						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.Transform, DirectX::XMMatrixTranslationFromVector(pos));
+						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.GetTransform(), DirectX::XMMatrixTranslationFromVector(pos));
 					}
 					else
-						combinedWorldMatrix = tc.Transform;
+						combinedWorldMatrix = tc.GetTransform();
 
 					Renderer2D::SubmitPanel(combinedWorldMatrix, upc.Panel, (int)entity, true);
 				}
@@ -779,12 +777,12 @@ namespace Toast {
 
 					if (e.HasParent())
 					{
-						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Transform;
+						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().GetTransform();
 						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
-						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.Transform, DirectX::XMMatrixTranslationFromVector(pos));
+						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.GetTransform(), DirectX::XMMatrixTranslationFromVector(pos));
 					}
 					else
-						combinedWorldMatrix = tc.Transform;
+						combinedWorldMatrix = tc.GetTransform();
 
 					Renderer2D::SubmitButton(combinedWorldMatrix, ubc.Button, (int)entity, true);
 				}
@@ -800,12 +798,12 @@ namespace Toast {
 
 					if (e.HasParent())
 					{
-						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Transform;
+						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().GetTransform();
 						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
-						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.Transform, DirectX::XMMatrixTranslationFromVector(pos));
+						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.GetTransform(), DirectX::XMMatrixTranslationFromVector(pos));
 					}
 					else
-						combinedWorldMatrix = tc.Transform;
+						combinedWorldMatrix = tc.GetTransform();
 
 					Renderer2D::SubmitText(combinedWorldMatrix, uitc.Text, (int)entity, true);
 				}
@@ -937,10 +935,8 @@ namespace Toast {
 		{
 			auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
 
-			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.Transform);
-
 			if (camera.Primary) 
-				mFrustum->Update(transform.Transform, camera.Camera.GetAspecRatio(), camera.Camera.GetPerspectiveVerticalFOV(), camera.Camera.GetNearClip(), camera.Camera.GetFarClip(), cameraPos);
+				mFrustum->Update(transform.GetTransform(), camera.Camera.GetAspecRatio(), camera.Camera.GetPerspectiveVerticalFOV(), camera.Camera.GetNearClip(), camera.Camera.GetFarClip(), DirectX::XMLoadFloat3(&transform.Translation));
 		}
 	}
 
@@ -990,7 +986,7 @@ namespace Toast {
 			if (camera.Primary)
 			{
 				mainCamera = &camera.Camera;
-				cameraTransform = transform.Transform;
+				cameraTransform = transform.GetTransform();
 				break;
 			}
 			else
@@ -1015,8 +1011,9 @@ namespace Toast {
 			cameraPos = { 0.0f, 0.0f, 0.0f };
 		}
 
-		DirectX::XMVECTOR scale, rotation, translation;
-		DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.Transform);
+		// ?????
+		//DirectX::XMVECTOR scale, rotation, translation;
+		//DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.GetTransform());
 
 		InvalidateFrustum();
 
@@ -1024,10 +1021,10 @@ namespace Toast {
 		PlanetSystem::GeneratePatchGeometry(component.Mesh->mPlanetVertices, component.Mesh->mIndices, component.PatchLevels);
 
 		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8);
-		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, DirectX::XMVectorGetX(scale), 8, component.PlanetData.maxAltitude);
-		PlanetSystem::GenerateHeightMultLUT(component.Mesh->mPlanetFaces, component.HeightMultLUT, DirectX::XMVectorGetX(scale), 8, component.PlanetData.maxAltitude, tc.Transform);
+		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude);
+		PlanetSystem::GenerateHeightMultLUT(component.Mesh->mPlanetFaces, component.HeightMultLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude, tc.GetTransform());
 
-		PlanetSystem::GeneratePlanet(mFrustum.get(), tc.Transform, component.Mesh->mPlanetFaces, component.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraPos, component.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
+		PlanetSystem::GeneratePlanet(mFrustum.get(), tc.GetTransform(), component.Mesh->mPlanetFaces, component.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraPos, component.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
 
 		component.Mesh->InvalidatePlanet(true);
 	}

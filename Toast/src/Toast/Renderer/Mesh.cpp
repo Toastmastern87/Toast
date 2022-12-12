@@ -299,6 +299,8 @@ namespace Toast {
 
 			return &buffer.CBufferElements.at(name);
 		}
+
+		return nullptr;
 	}
 
 	void Mesh::AddSubmesh(uint32_t indexCount)

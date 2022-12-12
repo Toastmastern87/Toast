@@ -145,10 +145,10 @@ namespace Toast {
 	std::pair<float, float> EditorCamera::PanSpeed() const
 	{
 		float x = std::min(mViewportWidth / 1000.0f, 2.4f); // Max is 2.4f
-		float xFactor = 0.0366f * (x * x) - 0.1778f * x + 0.3021;
+		float xFactor = 0.0366f * (x * x) - 0.1778f * x + 0.3021f;
 
 		float y = std::min(mViewportHeight / 1000.0f, 2.4f); // Max is 2.4f
-		float yFactor = 0.0366f * (y * y) - 0.1778f * y + 0.3021;
+		float yFactor = 0.0366f * (y * y) - 0.1778f * y + 0.3021f;
 
 		return { xFactor, yFactor };
 	}

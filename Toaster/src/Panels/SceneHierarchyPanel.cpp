@@ -68,7 +68,6 @@ namespace Toast {
 				{
 					auto newEntity = mContext->CreateEntity("Cube");
 					auto& tc = newEntity.GetComponent<TransformComponent>();
-					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("../Toaster/assets/meshes/Cube.gltf"));
 
 					SetSelectedEntity(newEntity);
@@ -78,7 +77,6 @@ namespace Toast {
 				{
 					auto newEntity = mContext->CreateEntity("Sphere");
 					auto& tc = newEntity.GetComponent<TransformComponent>();
-					tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
 					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf"));
 
 					SetSelectedEntity(newEntity);

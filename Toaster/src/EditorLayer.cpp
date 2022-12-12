@@ -289,7 +289,7 @@ namespace Toast {
 
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 			mViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
-			//TOAST_CORE_INFO("Settning viewport size to mViewportSize.x: %f, mViewportSize.y: %f", mViewportSize.x, mViewportSize.y);
+			//TOAST_CORE_INFO("Setting viewport size to mViewportSize.x: %f, mViewportSize.y: %f", mViewportSize.x, mViewportSize.y);
 
 			Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRenderTarget();
 			ImGui::Image((void*)finalRenderTarget->GetSRV().Get(), ImVec2{ mViewportSize.x, mViewportSize.y });
@@ -322,21 +322,13 @@ namespace Toast {
 				DirectX::XMFLOAT4X4 cameraProjection = !entity2D ? mEditorCamera->GetProjection() : mEditorCamera->GetOrthoProjection();
 				DirectX::XMFLOAT4X4 cameraView = mEditorCamera->GetViewMatrix();
 
-				// Entity transform
-				DirectX::XMFLOAT3 translationFloat3, scaleFloat3;
-				DirectX::XMVECTOR translation, scale, rotation;			
+				// Entity transform	
 				auto& tc = selectedEntity.GetComponent<TransformComponent>();
 
 				if (mSceneSettingsPanel.GetSelectionMode() == SceneSettingsPanel::SelectionMode::Entity)
 				{
-					DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.Transform);
-					DirectX::XMStoreFloat3(&translationFloat3, translation);
-					DirectX::XMStoreFloat3(&scaleFloat3, scale);
 					DirectX::XMFLOAT4X4 transform;
-					float Ftranslation[3] = { translationFloat3.x, translationFloat3.y, translationFloat3.z};
-					float Frotation[3] = { tc.RotationEulerAngles.x, tc.RotationEulerAngles.y, tc.RotationEulerAngles.z };
-					float Fscale[3] = { scaleFloat3.x, scaleFloat3.y, scaleFloat3.z };
-					ImGuizmo::RecomposeMatrixFromComponents(Ftranslation, Frotation, Fscale, *transform.m);
+					ImGuizmo::RecomposeMatrixFromComponents(&tc.Translation.x, &tc.RotationEulerAngles.x, &tc.Scale.x, *transform.m);
 
 					// Snapping
 					bool snap = Input::IsKeyPressed(Key::LeftControl);
@@ -350,16 +342,7 @@ namespace Toast {
 					ImGuizmo::Manipulate(*cameraView.m, *cameraProjection.m, (ImGuizmo::OPERATION)mGizmoType, ImGuizmo::LOCAL, *transform.m, nullptr, snap ? snapValues : nullptr);
 
 					if (ImGuizmo::IsUsing())
-					{
-						float Ftranslation[3] = { 0.0f, 0.0f, 0.0f }, Frotation[3] = { 0.0f, 0.0f, 0.0f }, Fscale[3] = { 0.0f, 0.0f, 0.0f };
-						ImGuizmo::DecomposeMatrixToComponents(*transform.m, Ftranslation, Frotation, Fscale);
-
-						tc.RotationEulerAngles = { Frotation[0], Frotation[1], Frotation[2] };
-
-						tc.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Fscale[0], Fscale[1], Fscale[2])
-							* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(Frotation[0]), DirectX::XMConvertToRadians(Frotation[1]), DirectX::XMConvertToRadians(Frotation[2]))))
-							* DirectX::XMMatrixTranslation(Ftranslation[0], Ftranslation[1], Ftranslation[2]);
-					}
+						ImGuizmo::DecomposeMatrixToComponents(*transform.m, &tc.Translation.x, &tc.RotationEulerAngles.x, &tc.Scale.x);
 				}
 				else
 				{
@@ -367,16 +350,10 @@ namespace Toast {
 					{
 						auto& mc = selectedEntity.GetComponent<MeshComponent>();
 
-						DirectX::XMMATRIX transformBase = tc.Transform * mc.Mesh->GetLocalTransform();
+						DirectX::XMMATRIX transformBase = tc.GetTransform() * mc.Mesh->GetLocalTransform();
 
-						DirectX::XMMatrixDecompose(&scale, &rotation, &translation, transformBase);
-						DirectX::XMStoreFloat3(&translationFloat3, translation);
-						DirectX::XMStoreFloat3(&scaleFloat3, scale);
 						DirectX::XMFLOAT4X4 transform;
-						float Ftranslation[3] = { translationFloat3.x, translationFloat3.y, translationFloat3.z };
-						float Frotation[3] = { tc.RotationEulerAngles.x, tc.RotationEulerAngles.y, tc.RotationEulerAngles.z };
-						float Fscale[3] = { scaleFloat3.x, scaleFloat3.y, scaleFloat3.z };
-						ImGuizmo::RecomposeMatrixFromComponents(Ftranslation, Frotation, Fscale, *transform.m);
+						ImGuizmo::RecomposeMatrixFromComponents(&tc.Translation.x, &tc.RotationEulerAngles.x, &tc.Scale.x, *transform.m);
 
 						// Snapping
 						bool snap = Input::IsKeyPressed(Key::LeftControl);
@@ -396,7 +373,7 @@ namespace Toast {
 
 							tc.RotationEulerAngles = { Frotation[0], Frotation[1], Frotation[2] };
 
-							mc.Mesh->SetLocalTransform(DirectX::XMMatrixInverse(nullptr, tc.Transform) * DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Fscale[0], Fscale[1], Fscale[2])
+							mc.Mesh->SetLocalTransform(DirectX::XMMatrixInverse(nullptr, tc.GetTransform()) * DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Fscale[0], Fscale[1], Fscale[2])
 								* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(Frotation[0]), DirectX::XMConvertToRadians(Frotation[1]), DirectX::XMConvertToRadians(Frotation[2]))))
 								* DirectX::XMMatrixTranslation(Ftranslation[0], Ftranslation[1], Ftranslation[2]));
 						}

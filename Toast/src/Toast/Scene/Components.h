@@ -44,18 +44,23 @@ namespace Toast {
 
 	struct TransformComponent
 	{
-		DirectX::XMMATRIX Transform;
-		DirectX::XMFLOAT3 RotationEulerAngles;
+		DirectX::XMFLOAT3 Translation = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 RotationEulerAngles = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 Scale = { 1.0f, 1.0f, 1.0f };
+
+		DirectX::XMFLOAT3 Up = { 0.0f, 1.0f, 0.0f };
+		DirectX::XMFLOAT3 Right = { 1.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 Forward = { 0.0f, 0.0f, 1.0f };
 
 		TransformComponent() = default;
 		TransformComponent(const TransformComponent&) = default;
-		TransformComponent(const DirectX::XMMATRIX& transform)
-			: Transform(Transform) {
-			RotationEulerAngles = { 0.0f, 0.0f, 0.0f };
-		}
 
-		operator DirectX::XMMATRIX& () { return Transform; }
-		operator const DirectX::XMMATRIX& () const { return Transform; }
+		DirectX::XMMATRIX GetTransform() 
+		{
+			return DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Scale.x, Scale.y, Scale.z)
+				* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(RotationEulerAngles.x), DirectX::XMConvertToRadians(RotationEulerAngles.y), DirectX::XMConvertToRadians(RotationEulerAngles.z))))
+				* DirectX::XMMatrixTranslation(Translation.x, Translation.y, Translation.z);
+		}
 	};
 
 	struct MeshComponent
