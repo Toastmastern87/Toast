@@ -63,7 +63,7 @@ Entities:
       RayBaseScatteringCoefficient: [0.0138400001, 0.00678500021, 0.00287500001]
       MieBaseScatteringCoefficient: 0.0037
     ScriptComponent:
-      ModuleName: PlanetScript
+      ClassName: PlanetScript
       StoredProperties:
         []
     TerrainColliderComponent:
@@ -105,7 +105,7 @@ Entities:
       Primary: true
       FixedAspectRatio: false
     ScriptComponent:
-      ModuleName: CameraController
+      ClassName: CameraController
       StoredProperties:
         - Name: MinAltitude
           Type: 1
@@ -153,7 +153,7 @@ Entities:
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
     ScriptComponent:
-      ModuleName: Debug
+      ClassName: Debug
       StoredProperties:
         []
   - Entity: 2577963022771772615
@@ -216,7 +216,7 @@ Entities:
       Rotation: [0, -0, 0]
       Scale: [30, 30, 1]
     ScriptComponent:
-      ModuleName: TimeText
+      ClassName: TimeText
       StoredProperties:
         []
     UITextComponent:
@@ -234,7 +234,7 @@ Entities:
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
-      ModuleName: GameSpeedButtons
+      ClassName: GameSpeedButtons
       StoredProperties:
         []
     UIButtonComponent:
@@ -253,7 +253,7 @@ Entities:
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
-      ModuleName: GameSpeedButtons
+      ClassName: GameSpeedButtons
       StoredProperties:
         []
     UIButtonComponent:
@@ -272,7 +272,7 @@ Entities:
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
-      ModuleName: GameSpeedButtons
+      ClassName: GameSpeedButtons
       StoredProperties:
         []
     UIButtonComponent:
@@ -291,7 +291,7 @@ Entities:
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
-      ModuleName: GameSpeedButtons
+      ClassName: GameSpeedButtons
       StoredProperties:
         []
     UIButtonComponent:
