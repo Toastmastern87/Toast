@@ -3,8 +3,8 @@ project "Toast-ScriptCore"
 	language "C#"
 	dotnetframework "4.7.2"
 
-	targetdir ("%{wks.location}/Toaster/assets/scripts")
-	objdir ("%{wks.location}/Toaster/assets/scripts/Intermediates")
+	targetdir ("../Toaster/assets/scripts")
+	objdir ("../Toaster/assets/scripts/Intermediates")
 
 	files 
 	{
