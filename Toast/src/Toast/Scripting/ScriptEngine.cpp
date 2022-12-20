@@ -6,10 +6,32 @@
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/assembly.h>
+#include <mono/metadata/tabledefs.h>
 //#include <mono/metadata/debug-helpers.h>
 //#include <mono/metadata/attrdefs.h>
 
 namespace Toast {
+
+	static std::unordered_map<std::string, ScriptFieldType> sScriptFieldTypeMap =
+	{
+		{ "System.Single", ScriptFieldType::Float },
+		{ "System.Double", ScriptFieldType::Double },
+		{ "System.Boolean", ScriptFieldType::Bool },
+		{ "System.Char", ScriptFieldType::Char },
+		{ "System.Int16", ScriptFieldType::Short },
+		{ "System.Int32", ScriptFieldType::Int },
+		{ "System.Int64", ScriptFieldType::Long },
+		{ "System.Byte", ScriptFieldType::Byte },
+		{ "System.UInt16", ScriptFieldType::UShort },
+		{ "System.UInt32", ScriptFieldType::UInt },
+		{ "System.UInt64", ScriptFieldType::ULong },
+
+		{ "Toast.Vector2", ScriptFieldType::Vector2 },
+		{ "Toast.Vector3", ScriptFieldType::Vector3 },
+		{ "Toast.Vector4", ScriptFieldType::Vector4 },
+
+		{ "Toast.Entity", ScriptFieldType::Entity },
+	};
 
 	namespace Utils {
 
@@ -80,6 +102,41 @@ namespace Toast {
 				TOAST_CORE_INFO("%s.%s", nameSpace, name);
 			}
 		}
+
+		ScriptFieldType MonoTypeToScriptFieldType(MonoType* monoType)
+		{
+			std::string typeName = mono_type_get_name(monoType);
+
+			auto it = sScriptFieldTypeMap.find(typeName);
+			if (it == sScriptFieldTypeMap.end())
+				return ScriptFieldType::None;
+
+			return it->second;
+		}
+
+		const char* ScriptFieldTypeToString(ScriptFieldType type) 
+		{
+			switch (type)
+			{
+				case ScriptFieldType::Float:	return "Float";
+				case ScriptFieldType::Double:	return "Double";
+				case ScriptFieldType::Bool:		return "Bool";
+				case ScriptFieldType::Char:		return "Char";
+				case ScriptFieldType::Short:	return "Short";
+				case ScriptFieldType::Int:		return "Int";
+				case ScriptFieldType::Long:		return "Long";
+				case ScriptFieldType::Byte:		return "Byte";
+				case ScriptFieldType::UShort:	return "UShort";
+				case ScriptFieldType::UInt:		return "UInt";
+				case ScriptFieldType::ULong:	return "ULong";
+				case ScriptFieldType::Vector2:	return "Vector2";
+				case ScriptFieldType::Vector3:	return "Vector3";
+				case ScriptFieldType::Vector4:	return "Vector4";
+				case ScriptFieldType::Entity:	return "Entity";
+			}
+			return "<Invalid>";
+		}
+
 	}
 
 	struct ScriptEngineData
@@ -676,6 +733,15 @@ namespace Toast {
 		return sData->SceneContext;
 	}
 
+	Toast::Ref<Toast::ScriptInstance> ScriptEngine::GetEntityScriptInstance(UUID entityID)
+	{
+		auto it = sData->EntityInstances.find(entityID);
+		if (it == sData->EntityInstances.end())
+			return nullptr;
+
+		return it->second;
+	}
+
 	std::unordered_map<std::string, Ref<ScriptClass>> ScriptEngine::GetEntityClasses()
 	{
 		return sData->EntityClasses;
@@ -694,25 +760,48 @@ namespace Toast {
 			mono_metadata_decode_row(typeDefinitionsTable, i, cols, MONO_TYPEDEF_SIZE);
 
 			const char* nameSpace = mono_metadata_string_heap(sData->AppAssemblyImage, cols[MONO_TYPEDEF_NAMESPACE]);
-			const char* name = mono_metadata_string_heap(sData->AppAssemblyImage, cols[MONO_TYPEDEF_NAME]);
+			const char* className = mono_metadata_string_heap(sData->AppAssemblyImage, cols[MONO_TYPEDEF_NAME]);
 			std::string fullName;
 			if (strlen(nameSpace) != 0) 
 			{
 				fullName.append(nameSpace);
 				fullName.append(".");
-				fullName.append(name);
+				fullName.append(className);
 			}
 			else
-				fullName = name;
+				fullName = className;
 
-			MonoClass* monoClass = mono_class_from_name(sData->AppAssemblyImage, nameSpace, name);
+			MonoClass* monoClass = mono_class_from_name(sData->AppAssemblyImage, nameSpace, className);
 
 			if (monoClass == entityClass)
 				continue;
 
 			bool isEntity = mono_class_is_subclass_of(monoClass, entityClass, false);
-			if (isEntity) 
-				sData->EntityClasses[fullName] = CreateRef<ScriptClass>(nameSpace, name);				
+			if (!isEntity)
+				continue;
+
+			Ref<ScriptClass> scriptClass = CreateRef<ScriptClass>(nameSpace, className);
+			sData->EntityClasses[fullName] = scriptClass;
+
+			int fieldCount = mono_class_num_fields(monoClass);
+
+			TOAST_CORE_WARN("%s has %d fields: ", className, fieldCount);
+			void* iterator = nullptr;
+			while (MonoClassField * field = mono_class_get_fields(monoClass, &iterator)) 
+			{
+				const char* fieldName = mono_field_get_name(field);
+				uint32_t flags = mono_field_get_flags(field);
+				if (flags & FIELD_ATTRIBUTE_PUBLIC)
+				{
+					MonoType* type = mono_field_get_type(field);
+					ScriptFieldType fieldType = Utils::MonoTypeToScriptFieldType(type);
+					TOAST_CORE_WARN("   %s (%s)", fieldName, Utils::ScriptFieldTypeToString(fieldType));
+
+					scriptClass->mFields[fieldName] = { fieldName, fieldType, field };
+				}
+			}
+
+			//mono_field_get_value()
 		}
 	}
 
@@ -780,6 +869,36 @@ namespace Toast {
 	void ScriptInstance::InvokeOnEvent()
 	{
 		mScriptClass->InvokeMethod(mInstance, mOnEventMethod);
+	}
+
+	bool ScriptInstance::GetFieldValueInternal(const std::string& name, void* buffer)
+	{
+		const auto& fields = mScriptClass->GetFields();
+		auto it = fields.find(name);
+
+		if (it == fields.end())
+			return nullptr;
+
+		const ScriptField& field = it->second;
+		void* result;
+		mono_field_get_value(mInstance, field.ClassField, buffer);
+
+		return true;
+	}
+
+	bool ScriptInstance::SetFieldValueInternal(const std::string& name, const void* value)
+	{
+		const auto& fields = mScriptClass->GetFields();
+		auto it = fields.find(name);
+
+		if (it == fields.end())
+			return nullptr;
+
+		const ScriptField& field = it->second;
+		void* result;
+		mono_field_set_value(mInstance, field.ClassField, (void*)value);
+
+		return true;
 	}
 
 	//static uint32_t GetPropertySize(PropertyType type)

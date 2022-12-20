@@ -112,6 +112,7 @@ namespace Toast {
 			PlanetData.radius = radius;
 			PlanetData.gravAcc = gravAcc;
 			PlanetData.atmosphereToggle = atmosphereToggle;
+
 			PlanetData.atmosphereHeight = atmosphereHeight;
 			PlanetData.inScatteringPoints = inScatteringPoints;
 			PlanetData.opticalDepthPoints = opticalDepthPoints;
