@@ -11,10 +11,10 @@ class GameSpeedButtons : Entity
 
     void OnCreate()
     {
-        mButton1Entity = FindEntityByTag("TimeScale1");
-        mButton2Entity = FindEntityByTag("TimeScale2");
-        mButton3Entity = FindEntityByTag("TimeScale3");
-        mButton4Entity = FindEntityByTag("TimeScale4");
+        //mButton1Entity = FindEntityByTag("TimeScale1");
+        //mButton2Entity = FindEntityByTag("TimeScale2");
+        //mButton3Entity = FindEntityByTag("TimeScale3");
+        //mButton4Entity = FindEntityByTag("TimeScale4");
 
         mButton1 = mButton1Entity.GetComponent<UIButtonComponent>();
         mButton2 = mButton2Entity.GetComponent<UIButtonComponent>();

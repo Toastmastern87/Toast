@@ -21,9 +21,20 @@ extern "C" {
 	typedef struct _MonoMethod MonoMethod;
 	typedef struct _MonoObject MonoObject;
 	typedef struct _MonoAssembly MonoAssembly;
+	typedef struct _MonoClassField MonoClassField;
 }
 
 namespace Toast {
+
+	enum class ScriptFieldType
+	{
+		None = 0,
+		Float, Double,
+		Byte, Char, Short, Int, Long, Bool,
+		UShort, UInt, ULong,
+		Vector2, Vector3, Vector4,
+		Entity
+	};
 
 	//enum class PropertyType 
 	//{
@@ -107,6 +118,14 @@ namespace Toast {
 
 	//using EntityInstanceMap = std::unordered_map<UUID, std::unordered_map<UUID, EntityInstanceData>>;
 
+	struct ScriptField 
+	{
+		std::string Name;
+		ScriptFieldType Type;
+
+		MonoClassField* ClassField;
+	};
+
 	class ScriptClass
 	{
 	public:
@@ -116,11 +135,17 @@ namespace Toast {
 		MonoObject* Instantiate();
 		MonoMethod* GetMethod(const std::string& name, int parameterCount);
 		MonoObject* InvokeMethod(MonoObject* instance, MonoMethod* method, void** params = nullptr);
+
+		const std::unordered_map<std::string, ScriptField>& GetFields() const { return mFields; }
 	private:
 		std::string mClassNamespace;
 		std::string mClassName;
 
+		std::unordered_map<std::string, ScriptField> mFields;
+
 		MonoClass* mMonoClass = nullptr;
+
+		friend class ScriptEngine;
 	};
 
 	class ScriptInstance
@@ -131,6 +156,28 @@ namespace Toast {
 		void InvokeOnCreate();
 		void InvokeOnUpdate(float ts);
 		void InvokeOnEvent();
+
+		Ref<ScriptClass> GetScriptClass() { return mScriptClass; }
+
+		template<typename T>
+		T GetFieldValue(const std::string& name)
+		{
+			bool success = GetFieldValueInternal(name, sFieldValueBuffer);
+			if (!success)
+				return T();
+
+			return *(T*)sFieldValueBuffer;
+		}
+
+		template<typename T>
+		void SetFieldValue(const std::string& name, const T& value)
+		{
+			SetFieldValueInternal(name, &value);
+
+		}
+	private:
+		bool GetFieldValueInternal(const std::string& name, void* buffer);
+		bool SetFieldValueInternal(const std::string& name, const void* value);
 	private:
 		Ref<ScriptClass> mScriptClass;
 
@@ -139,6 +186,8 @@ namespace Toast {
 		MonoMethod* mOnCreateMethod = nullptr;
 		MonoMethod* mOnUpdateMethod = nullptr;
 		MonoMethod* mOnEventMethod = nullptr;
+
+		inline static char sFieldValueBuffer[8];
 	};
 
 	class ScriptEngine 
@@ -159,6 +208,8 @@ namespace Toast {
 		static void OnEventEntity(Entity entity);
 
 		static Scene* GetSceneContext();
+		static Ref<ScriptInstance> GetEntityScriptInstance(UUID entityID);
+
 		static std::unordered_map<std::string, Ref<ScriptClass>> GetEntityClasses();
 
 		static MonoImage* GetCoreAssemblyImage();
