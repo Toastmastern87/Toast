@@ -154,6 +154,7 @@ namespace Toast {
 
 		std::unordered_map<std::string, Ref<ScriptClass>> EntityClasses;
 		std::unordered_map<UUID, Ref<ScriptInstance>> EntityInstances;
+		std::unordered_map<UUID, ScriptFieldMap> EntityScriptFields;
 
 		// Runtime
 		Scene* SceneContext = nullptr;
@@ -706,8 +707,19 @@ namespace Toast {
 		const auto& sc = entity.GetComponent<ScriptComponent>();
 		if (ScriptEngine::EntityClassExists(sc.ClassName))
 		{
+			UUID entityID = entity.GetUUID();
+
 			Ref<ScriptInstance> instance = CreateRef<ScriptInstance>(sData->EntityClasses[sc.ClassName], entity);
-			sData->EntityInstances[entity.GetUUID()] = instance;
+			sData->EntityInstances[entityID] = instance;
+
+			// Copy field values
+			if (sData->EntityScriptFields.find(entityID) != sData->EntityScriptFields.end(), "") 
+			{
+				const ScriptFieldMap& fieldMap = sData->EntityScriptFields.at(entityID);
+				for (const auto& [name, fieldInstance] : fieldMap)
+					instance->SetFieldValueInternal(name, fieldInstance.mBuffer);
+			}
+
 			instance->InvokeOnCreate();
 		}
 	}
@@ -728,12 +740,12 @@ namespace Toast {
 
 	}
 
-	Toast::Scene* ScriptEngine::GetSceneContext()
+	Scene* ScriptEngine::GetSceneContext()
 	{
 		return sData->SceneContext;
 	}
 
-	Toast::Ref<Toast::ScriptInstance> ScriptEngine::GetEntityScriptInstance(UUID entityID)
+	Ref<ScriptInstance> ScriptEngine::GetEntityScriptInstance(UUID entityID)
 	{
 		auto it = sData->EntityInstances.find(entityID);
 		if (it == sData->EntityInstances.end())
@@ -742,9 +754,26 @@ namespace Toast {
 		return it->second;
 	}
 
+	Ref<ScriptClass> ScriptEngine::GetEntityClass(const std::string& name)
+	{
+		if (sData->EntityClasses.find(name) == sData->EntityClasses.end())
+			return nullptr;
+
+		return sData->EntityClasses.at(name);
+	}
+
 	std::unordered_map<std::string, Ref<ScriptClass>> ScriptEngine::GetEntityClasses()
 	{
 		return sData->EntityClasses;
+	}
+
+	ScriptFieldMap& ScriptEngine::GetScriptFieldMap(Entity entity)
+	{
+		TOAST_CORE_ASSERT(entity, "");
+
+		UUID entityID = entity.GetUUID();
+
+		return sData->EntityScriptFields[entityID];
 	}
 
 	void ScriptEngine::LoadAssemblyClasses()
