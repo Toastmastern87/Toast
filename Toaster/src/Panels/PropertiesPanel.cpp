@@ -908,22 +908,69 @@ namespace Toast {
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.2f, 0.3f, 1.0f));
 
 				if (ImGui::InputText("Class", buffer, sizeof(buffer)))
+				{
 					component.ClassName = buffer;
+					bool validScriptClass = ScriptEngine::EntityClassExists(component.ClassName);
+				}
 
 				// Fields
-				Ref<ScriptInstance> scriptInstance = ScriptEngine::GetEntityScriptInstance(entity.GetUUID());
-				if (scriptInstance)
-				{
-					const auto& fields = scriptInstance->GetScriptClass()->GetFields();
 
-					for (const auto& [name, field] : fields)
+				// If Scene running
+				if (scene->mIsPlaying)
+				{
+					Ref<ScriptInstance> scriptInstance = ScriptEngine::GetEntityScriptInstance(entity.GetUUID());
+					if (scriptInstance)
 					{
-						if (field.Type == ScriptFieldType::Float)
+						const auto& fields = scriptInstance->GetScriptClass()->GetFields();
+
+						for (const auto& [name, field] : fields)
 						{
-							float data = scriptInstance->GetFieldValue<float>(name);
-							if (ImGui::DragFloat(name.c_str(), &data)) 
+							if (field.Type == ScriptFieldType::Float)
 							{
-								scriptInstance->SetFieldValue<float>(name, data);
+								float data = scriptInstance->GetFieldValue<float>(name);
+								if (ImGui::DragFloat(name.c_str(), &data))
+								{
+									scriptInstance->SetFieldValue<float>(name, data);
+								}
+							}
+						}
+					}
+				}
+				else
+				{
+					if (scriptClassExists)
+					{
+						Ref<ScriptClass> entityClass = ScriptEngine::GetEntityClass(component.ClassName);
+						const auto& fields = entityClass->GetFields();
+
+						auto& entityFields = ScriptEngine::GetScriptFieldMap(entity);
+						for (const auto& [name, field] : fields)
+						{
+							// Field has been set in the editor
+							if (entityFields.find(name) != entityFields.end())
+							{
+								ScriptFieldInstance& scriptField = entityFields.at(name);
+
+								if (field.Type == ScriptFieldType::Float)
+								{
+									float data = scriptField.GetValue<float>();
+									if (ImGui::DragFloat(name.c_str(), &data))
+										scriptField.SetValue(data);
+								}
+							}
+							else
+							{
+								// Display control to set it maybe
+								if (field.Type == ScriptFieldType::Float)
+								{
+									float data = 0.0f;
+									if (ImGui::DragFloat(name.c_str(), &data))
+									{
+										ScriptFieldInstance& fieldInstance = entityFields[name];
+										fieldInstance.Field = field;
+										fieldInstance.SetValue(data);
+									}
+								}
 							}
 						}
 					}
