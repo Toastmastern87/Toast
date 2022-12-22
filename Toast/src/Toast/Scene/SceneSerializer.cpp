@@ -13,6 +13,29 @@
 namespace YAML 
 {
 	template<>
+	struct convert<DirectX::XMFLOAT2>
+	{
+		static Node encode(const DirectX::XMFLOAT2& rhs)
+		{
+			Node node;
+			node.push_back(rhs.x);
+			node.push_back(rhs.y);
+			node.SetStyle(EmitterStyle::Flow);
+			return node;
+		}
+
+		static bool decode(const Node& node, DirectX::XMFLOAT2& rhs)
+		{
+			if (!node.IsSequence() || node.size() != 2)
+				return false;
+
+			rhs.x = node[0].as<float>();
+			rhs.y = node[1].as<float>();
+			return true;
+		}
+	};
+
+	template<>
 	struct convert<DirectX::XMFLOAT3>
 	{
 		static Node encode(const DirectX::XMFLOAT3& rhs) 
@@ -63,9 +86,47 @@ namespace YAML
 			return true;
 		}
 	};
+
+	template<>
+	struct convert<Toast::UUID>
+	{
+		static Node encode(const Toast::UUID& uuid) 
+		{
+			Node node;
+			node.push_back((uint64_t)uuid);
+			return node;
+		}
+
+		static bool decode(const Node& node, Toast::UUID& uuid)
+		{
+			uuid = node.as<uint64_t>();
+			return true;
+		}
+	};
+
 }
 
 namespace Toast {
+
+#define WRITE_SCRIPT_FIELD(FieldType, Type)								\
+			case ScriptFieldType::FieldType:							\
+					out << scriptField.GetValue<Type>();				\
+					break
+
+#define READ_SCRIPT_FIELD(FieldType, Type)								\
+				case ScriptFieldType::FieldType:						\
+				{														\
+					Type data = scriptField["Data"].as<Type>();		\
+					fieldInstance.SetValue(data);						\
+					break;												\
+				}														\
+
+	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT2& v)
+	{
+		out << YAML::Flow;
+		out << YAML::BeginSeq << v.x << v.y << YAML::EndSeq;
+		return out;
+	}
 
 	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT3& v)
 	{
@@ -248,33 +309,50 @@ namespace Toast {
 			auto& sc = entity.GetComponent<ScriptComponent>();
 			out << YAML::Key << "ClassName" << YAML::Value << sc.ClassName;
 
-		//	EntityInstanceData& data = ScriptEngine::GetEntityInstanceData(entity.GetSceneUUID(), uuid);
-		//	const auto& modulePropertyMap = data.ModulePropertyMap;
+			// Fields
+			Ref<ScriptClass> entityClass = ScriptEngine::GetEntityClass(sc.ClassName);
+			const auto& fields = entityClass->GetFields();
+			if(fields.size() > 0)
+			{
+				out << YAML::Key << "ScriptFields" << YAML::Value;
+				auto& entityFields = ScriptEngine::GetScriptFieldMap(entity);
+				out << YAML::BeginSeq;
+				for (const auto& [name, field] : fields)
+				{
+					if (entityFields.find(name) == entityFields.end())
+						continue;
 
-		//	if (modulePropertyMap.find(sc.ModuleName) != modulePropertyMap.end())
-		//	{
-		//		const auto& properties = modulePropertyMap.at(sc.ModuleName);
-		//		out << YAML::Key << "StoredProperties" << YAML::Value;
-		//		out << YAML::BeginSeq;
-		//		for (const auto& [name, prop] : properties)
-		//		{
-		//			out << YAML::BeginMap; // Property
-		//			out << YAML::Key << "Name" << YAML::Value << name;
-		//			out << YAML::Key << "Type" << YAML::Value << (uint32_t)prop.Type;
-		//			out << YAML::Key << "Data" << YAML::Value;
+					out << YAML::BeginMap; // ScriptFields
 
-		//			switch (prop.Type)
-		//			{
-		//			case PropertyType::Float:
-		//			{
-		//				out << prop.GetStoredValue<float>();
-		//				break;
-		//			}
-		//			}
-		//			out << YAML::EndMap;
-		//		}
-		//		out << YAML::EndSeq;
-		//	}
+					out << YAML::Key << "Name" << YAML::Value << name;
+					out << YAML::Key << "Type" << YAML::Value << Utils::ScriptFieldTypeToString(field.Type);
+
+					out << YAML::Key << "Data" << YAML::Value;
+					ScriptFieldInstance& scriptField = entityFields.at(name);
+
+					switch (field.Type)
+					{
+						WRITE_SCRIPT_FIELD(Float,	float);
+						WRITE_SCRIPT_FIELD(Double,	double);
+						WRITE_SCRIPT_FIELD(Bool,	bool);
+						WRITE_SCRIPT_FIELD(Char,	char);
+						WRITE_SCRIPT_FIELD(Byte,	int8_t);
+						WRITE_SCRIPT_FIELD(Short,	int16_t);
+						WRITE_SCRIPT_FIELD(Int,		int32_t);
+						WRITE_SCRIPT_FIELD(Long,	int64_t);
+						WRITE_SCRIPT_FIELD(UByte,	uint8_t);
+						WRITE_SCRIPT_FIELD(UShort,	uint16_t);
+						WRITE_SCRIPT_FIELD(UInt,	uint32_t);
+						WRITE_SCRIPT_FIELD(ULong,	uint64_t);
+						WRITE_SCRIPT_FIELD(Vector2, DirectX::XMFLOAT2);
+						WRITE_SCRIPT_FIELD(Vector3, DirectX::XMFLOAT3);
+						WRITE_SCRIPT_FIELD(Vector4, DirectX::XMFLOAT4);
+						WRITE_SCRIPT_FIELD(Entity,	UUID);
+					}
+					out << YAML::EndMap; // ScriptFields
+				}
+				out << YAML::EndSeq;
+			}
 
 			out << YAML::EndMap; // ScriptComponent
 		}
@@ -407,7 +485,7 @@ namespace Toast {
 		{
 			for (auto entity : entities)
 			{
-				uint64_t uuid = entity["Entity"].as<uint64_t>(); // TODO
+				uint64_t uuid = entity["Entity"].as<UUID>();
 
 				std::string name;
 				auto tagComponent = entity["TagComponent"];
@@ -511,36 +589,52 @@ namespace Toast {
 					auto& sc = deserializedEntity.AddComponent<ScriptComponent>();
 					sc.ClassName = scriptComponent["ClassName"].as<std::string>();
 
-				//	if (ScriptEngine::ModuleExists(moduleName))
-				//	{
-				//		auto storedProperties = scriptComponent["StoredProperties"];
-				//		if (storedProperties)
-				//		{
-				//			for (auto prop : storedProperties)
-				//			{
-				//				std::string name = prop["Name"].as<std::string>();
-				//				PropertyType type = (PropertyType)prop["Type"].as<uint32_t>();
-				//				EntityInstanceData& data = ScriptEngine::GetEntityInstanceData(mScene->GetUUID(), uuid);
-				//				auto& modulePropertyMap = data.ModulePropertyMap;
-				//				auto& publicProperties = modulePropertyMap[moduleName];
+					auto scriptFields = scriptComponent["ScriptFields"];
+					if (scriptFields)
+					{
+						Ref<ScriptClass> entityClass = ScriptEngine::GetEntityClass(sc.ClassName);
+						TOAST_CORE_ASSERT(entityClass, "");
+						const auto& fields = entityClass->GetFields();
+						auto& entityFields = ScriptEngine::GetScriptFieldMap(deserializedEntity);
 
-				//				if (publicProperties.find(name) == publicProperties.end())
-				//				{
-				//					PublicProperty pp = { name, type };
-				//					publicProperties.emplace(name, std::move(pp));
-				//				}
-				//				auto dataNode = prop["Data"];
-				//				switch (type)
-				//				{
-				//				case PropertyType::Float:
-				//				{
-				//					publicProperties.at(name).SetStoredValue(dataNode.as<float>());
-				//					break;
-				//				}
-				//				}
-				//			}
-				//		}
-				//	}
+						for (auto scriptField : scriptFields)
+						{
+							std::string name = scriptField["Name"].as<std::string>();
+							std::string typeString = scriptField["Type"].as<std::string>();
+							ScriptFieldType type = Utils::ScriptFieldTypeFromString(typeString);
+
+							ScriptFieldInstance& fieldInstance = entityFields[name];
+
+							// Makes this into a Toaster warning
+							TOAST_CORE_ASSERT(fields.find(name) != fields.end(), "");
+
+							if (fields.find(name) == fields.end())
+								continue;
+
+							fieldInstance.Field = fields.at(name);
+
+							switch (type)
+							{
+								READ_SCRIPT_FIELD(Float,	float);
+								READ_SCRIPT_FIELD(Double,	double);
+								READ_SCRIPT_FIELD(Bool,		bool);
+								READ_SCRIPT_FIELD(Char,		char);
+								READ_SCRIPT_FIELD(Byte,		int8_t);
+								READ_SCRIPT_FIELD(Short,	int16_t);
+								READ_SCRIPT_FIELD(Int,		int32_t);
+								READ_SCRIPT_FIELD(Long,		int64_t);
+								READ_SCRIPT_FIELD(UByte,	uint8_t);
+								READ_SCRIPT_FIELD(UShort,	uint16_t);
+								READ_SCRIPT_FIELD(UInt,		uint32_t);
+								READ_SCRIPT_FIELD(ULong,	uint64_t);
+								READ_SCRIPT_FIELD(Vector2,	DirectX::XMFLOAT2);
+								READ_SCRIPT_FIELD(Vector3,	DirectX::XMFLOAT3);
+								READ_SCRIPT_FIELD(Vector4,	DirectX::XMFLOAT4);
+								READ_SCRIPT_FIELD(Entity,	UUID);
+							}
+						}
+							
+					}
 				}
 
 				auto rigidBodyComponent = entity["RigidBodyComponent"];

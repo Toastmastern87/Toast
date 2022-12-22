@@ -299,7 +299,7 @@ namespace Toast {
 
 			char buffer[256];
 			memset(buffer, 0, sizeof(buffer));
-			strncpy_s(buffer, tag.c_str(), sizeof(buffer));
+			strncpy_s(buffer, sizeof(buffer), tag.c_str(), sizeof(buffer));
 			if (ImGui::InputText("##Tag", buffer, sizeof(buffer)))
 				tag = std::string(buffer);
 		}
@@ -902,7 +902,7 @@ namespace Toast {
 				bool scriptClassExists = ScriptEngine::EntityClassExists(component.ClassName);
 				
 				static char buffer[64];
-				strcpy(buffer, component.ClassName.c_str());
+				strcpy_s(buffer, sizeof(buffer), component.ClassName.c_str());
 
 				if (!scriptClassExists)
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.2f, 0.3f, 1.0f));
