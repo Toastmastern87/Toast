@@ -443,7 +443,7 @@ namespace Toast {
 			return;
 
 		mEditorScene = CreateRef<Scene>();
-		mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+		//mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mEnvironmentPanel.SetContext(mEditorScene);
 	}

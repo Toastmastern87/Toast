@@ -7,7 +7,6 @@ namespace Sandbox
         private TransformComponent mTransform;
 
         public float Speed;
-        public Entity OtherPlayer;
 
         void OnCreate() 
         {
