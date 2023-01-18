@@ -136,6 +136,15 @@ namespace Toast {
 
 	#pragma endregion
 
+	#pragma region Script
+
+	static MonoObject* Script_GetInstance(UUID entityID)
+	{
+		return ScriptEngine::GetManagedInstance(entityID);
+	}
+
+	#pragma endregion
+
 	#pragma region Entity
 
 	static bool Entity_HasComponent(UUID entityID, MonoReflectionType* componentType)
@@ -149,6 +158,21 @@ namespace Toast {
 		TOAST_CORE_ASSERT(sEntityHasComponentFuncs.find(managedType) != sEntityHasComponentFuncs.end(), "");
 		return sEntityHasComponentFuncs.at(managedType)(entity);
 
+	}
+
+	static uint64_t Entity_FindEntityByName(MonoString* name)
+	{
+		char* nameCStr = mono_string_to_utf8(name);
+
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity entity = scene->FindEntityByName(nameCStr);
+		mono_free(nameCStr);
+
+		if (!entity)
+			return 0;
+
+		return entity.GetUUID();
 	}
 
 	#pragma endregion
@@ -475,7 +499,10 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Scene_GetTimeScale);
 		TOAST_ADD_INTERNAL_CALL(Scene_SetTimeScale);
 
+		TOAST_ADD_INTERNAL_CALL(Script_GetInstance);
+
 		TOAST_ADD_INTERNAL_CALL(Entity_HasComponent);
+		TOAST_ADD_INTERNAL_CALL(Entity_FindEntityByName);
 
 		TOAST_ADD_INTERNAL_CALL(TagComponent_GetTag);
 		TOAST_ADD_INTERNAL_CALL(TagComponent_SetTag);

@@ -18,6 +18,7 @@ namespace Toast {
 
 		Texture2D* mDirectoryIcon;
 		Texture2D* mFileIcon;
+		Texture2D* mFileIconCSharp;
 	};
 
 }

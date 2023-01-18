@@ -89,7 +89,7 @@ namespace Toast {
 		float GetFrameTime() const { return mStats.FrameTime; }
 		int GetVertices() const { return (int)mStats.VerticesCount; }
 
-		Entity FindEntityByTag(const std::string& tag);
+		Entity FindEntityByName(std::string_view name);
 		Entity FindEntityByUUID(UUID uuid);
 
 		void AddChildEntity(Entity entity, Entity parent);

@@ -59,10 +59,20 @@ namespace Toast
 
         #endregion
 
+        #region Script
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern object Script_GetInstance(ulong entityID);
+
+        #endregion
+
         #region Entity
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool Entity_HasComponent(ulong entityID, Type componentType);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern ulong Entity_FindEntityByName(string name);
 
         #endregion
 

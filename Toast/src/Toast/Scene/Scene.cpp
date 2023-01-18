@@ -834,14 +834,14 @@ namespace Toast {
 		mSkyboxMaterial->SetTexture(7, D3D11_PIXEL_SHADER, mSkyboxTexture.get());
 	}
 
-	Toast::Entity Scene::FindEntityByTag(const std::string& tag)
+	Entity Scene::FindEntityByName(std::string_view name)
 	{
 		auto view = mRegistry.view<TagComponent>();
 		for (auto entity : view)
 		{
 			const auto& canditate = view.get<TagComponent>(entity).Tag;
-			if (canditate == tag) 
-				return Entity(entity, this);
+			if (canditate == name)
+				return Entity{ entity, this };
 		}
 
 		return Entity{};

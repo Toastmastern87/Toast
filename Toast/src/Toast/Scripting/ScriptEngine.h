@@ -212,6 +212,8 @@ namespace Toast {
 
 			SetFieldValueInternal(name, &value);
 		}
+
+		MonoObject* GetManagedObject() { return mInstance; }
 	private:
 		bool GetFieldValueInternal(const std::string& name, void* buffer);
 		bool SetFieldValueInternal(const std::string& name, const void* value);
@@ -255,6 +257,8 @@ namespace Toast {
 		static ScriptFieldMap& GetScriptFieldMap(Entity entity);
 
 		static MonoImage* GetCoreAssemblyImage();
+
+		static MonoObject* GetManagedInstance(UUID uuid);
 
 		//static void LoadToastRuntimeAssembly(const std::string& path);
 		//static void ReloadAssembly(const std::string& path);

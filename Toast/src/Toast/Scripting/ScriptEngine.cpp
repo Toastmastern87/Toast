@@ -816,6 +816,12 @@ namespace Toast {
 		return sData->CoreAssemblyImage;
 	}
 
+	MonoObject* ScriptEngine::GetManagedInstance(UUID uuid)
+	{
+		TOAST_CORE_ASSERT(sData->EntityInstances.find(uuid) != sData->EntityInstances.end(uuid), "");	
+		return sData->EntityInstances.at(uuid)->GetManagedObject();
+	}
+
 	MonoObject* ScriptEngine::InstantiateClass(MonoClass* monoClass)
 	{
 		MonoObject* instance = mono_object_new(sData->AppDomain, monoClass);
