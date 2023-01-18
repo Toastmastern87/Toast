@@ -18,6 +18,7 @@ namespace Toast {
 	{
 		mDirectoryIcon = TextureLibrary::LoadTexture2D("Resources/Icons/ContentBrowser/DirectoryIcon.png");
 		mFileIcon = TextureLibrary::LoadTexture2D("Resources/Icons/ContentBrowser/FileIcon.png");
+		mFileIconCSharp = TextureLibrary::LoadTexture2D("Resources/Icons/ContentBrowser/FileIconCSharp.png");
 	}
 
 	void Toast::ContentBrowserPanel::OnImGuiRender()
@@ -49,7 +50,18 @@ namespace Toast {
 			std::string filenameStr = path.filename().string();
 
 			ImGui::PushID(filenameStr.c_str());
-			Texture2D* icon = directoryEntry.is_directory() ? mDirectoryIcon : mFileIcon;
+
+			Texture2D* icon;
+			if (directoryEntry.is_directory())
+				icon = mDirectoryIcon;
+			else 
+			{
+				if (path.extension() == ".cs")
+					icon = mFileIconCSharp;
+				else
+					icon = mFileIcon;
+			}
+
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 			ImGui::ImageButton(icon->GetID(), { thumbnailSize, thumbnailSize }, { 0, 0 }, { 1, 1 });
 

@@ -116,7 +116,7 @@ namespace Toast {
 #define READ_SCRIPT_FIELD(FieldType, Type)								\
 				case ScriptFieldType::FieldType:						\
 				{														\
-					Type data = scriptField["Data"].as<Type>();		\
+					Type data = scriptField["Data"].as<Type>();			\
 					fieldInstance.SetValue(data);						\
 					break;												\
 				}														\

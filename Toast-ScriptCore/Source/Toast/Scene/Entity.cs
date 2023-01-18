@@ -14,20 +14,6 @@ namespace Toast
 
         public readonly ulong ID;
 
-        //public Vector3 Translation
-        //{
-        //    get
-        //    {
-        //        InternalCalls.Entity_GetTranslation(ID, out Vector3 result);
-        //        return result;
-        //    }
-
-        //    set
-        //    {
-        //        InternalCalls.Entity_SetTranslation(ID, ref value);
-        //    }
-        //}
-
         public bool HasComponent<T>() where T : Component, new()
         {
             Type componentType = typeof(T);
@@ -41,6 +27,21 @@ namespace Toast
 
             T component = new T() { Entity = this };
             return component;
+        }
+
+        public Entity FindEntityByName(string name) 
+        {
+            ulong entityID = InternalCalls.Entity_FindEntityByName(name);
+            if(entityID == 0)
+                return null;
+
+            return new Entity(entityID); 
+        }
+
+        public T As<T>() where T : Entity, new() 
+        {
+            object instance = InternalCalls.Script_GetInstance(ID);
+            return instance as T;
         }
 
     }
