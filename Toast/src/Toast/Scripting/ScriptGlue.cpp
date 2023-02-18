@@ -471,6 +471,7 @@ namespace Toast {
 
 	void ScriptGlue::RegisterComponents()
 	{
+		sEntityHasComponentFuncs.clear();
 		RegisterComponent<TagComponent>();
 		RegisterComponent<TransformComponent>();
 		RegisterComponent<PlanetComponent>();

@@ -36,7 +36,7 @@ namespace Toast {
 	namespace Utils {
 
 		// TODO move to a filesystem class of some kind, to work together with the shader files
-		static char* ReadBytes(const std::string& filepath, uint32_t* outSize)
+		static char* ReadBytes(const std::filesystem::path& filepath, uint32_t* outSize)
 		{
 			std::ifstream stream(filepath, std::ios::binary | std::ios::ate);
 
@@ -62,7 +62,7 @@ namespace Toast {
 			return buffer;
 		}
 
-		static MonoAssembly* LoadMonoAssembly(const std::string& assemblyPath)
+		static MonoAssembly* LoadMonoAssembly(const std::filesystem::path& assemblyPath)
 		{
 			uint32_t fileSize = 0;
 			char* fileData = ReadBytes(assemblyPath, &fileSize);
@@ -77,7 +77,8 @@ namespace Toast {
 				return nullptr;
 			}
 
-			MonoAssembly* assembly = mono_assembly_load_from_full(image, assemblyPath.c_str(), &status, 0);
+			std::string pathString = assemblyPath.string();
+			MonoAssembly* assembly = mono_assembly_load_from_full(image, pathString.c_str(), &status, 0);
 			mono_image_close(image);
 
 			delete[] fileData;
@@ -126,6 +127,9 @@ namespace Toast {
 
 		MonoAssembly* AppAssembly = nullptr;
 		MonoImage* AppAssemblyImage = nullptr;
+
+		std::filesystem::path CoreAssemblyFilepath;
+		std::filesystem::path AppAssemblyFilepath;
 
 		ScriptClass EntityClass;
 
@@ -572,12 +576,13 @@ namespace Toast {
 		sData = new ScriptEngineData();
 
 		InitMono();
+		ScriptGlue::RegisterFunctions();
+
 		LoadAssembly("assets/scripts/Toast-ScriptCore.dll");
 		LoadAppAssembly("SandboxProject/Assets/Scripts/Binaries/Sandbox.dll");
 		LoadAssemblyClasses();
 
 		ScriptGlue::RegisterComponents();
-		ScriptGlue::RegisterFunctions();
 
 		// Retrieve and instantiate entity class (with constructor)
 		sData->EntityClass = ScriptClass("Toast", "Entity", true);
@@ -637,29 +642,49 @@ namespace Toast {
 
 	void ScriptEngine::ShutdownMono()
 	{
-		//mono_domain_unload(sData->AppDomain);
+		mono_domain_set(mono_get_root_domain(), false);
+
+		mono_domain_unload(sData->AppDomain);
 		sData->AppDomain = nullptr;
 
-		//mono_jit_cleanup(sData->RootDomain);
+		mono_jit_cleanup(sData->RootDomain);
 		sData->RootDomain = nullptr;
 	}
 
-	void ScriptEngine::LoadAssembly(const std::string& path)
+	void ScriptEngine::LoadAssembly(const std::filesystem::path& filepath)
 	{
 		// Create the app domain
 		sData->AppDomain = mono_domain_create_appdomain("ToastScriptRuntime", nullptr);
 		mono_domain_set(sData->AppDomain, true);
 
-		sData->CoreAssembly = Utils::LoadMonoAssembly(path);
+		sData->CoreAssemblyFilepath = filepath;
+		sData->CoreAssembly = Utils::LoadMonoAssembly(filepath);
 		sData->CoreAssemblyImage = mono_assembly_get_image(sData->CoreAssembly);
 		//Utils::PrintAssemblyTypes(sData->CoreAssembly);
 	}
 
-	void ScriptEngine::LoadAppAssembly(const std::string& path)
+	void ScriptEngine::LoadAppAssembly(const std::filesystem::path& filepath)
 	{
-		sData->AppAssembly = Utils::LoadMonoAssembly(path);
+		sData->AppAssemblyFilepath = filepath;
+		sData->AppAssembly = Utils::LoadMonoAssembly(filepath);
 		sData->AppAssemblyImage = mono_assembly_get_image(sData->AppAssembly);
 		//Utils::PrintAssemblyTypes(sData->AppAssembly);
+	}
+
+	void ScriptEngine::ReloadAssembly()
+	{
+		mono_domain_set(mono_get_root_domain(), false);
+ 
+		mono_domain_unload(sData->AppDomain);
+
+		LoadAssembly(sData->CoreAssemblyFilepath);
+		LoadAppAssembly(sData->AppAssemblyFilepath);
+
+		LoadAssemblyClasses();
+
+		ScriptGlue::RegisterComponents();
+
+		sData->EntityClass = ScriptClass("Toast", "Entity", true);
 	}
 
 	void ScriptEngine::OnRuntimeStart(Scene* scene)

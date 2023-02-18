@@ -217,7 +217,7 @@ namespace Toast {
 			{
 				if (ImGui::BeginMenu("File"))
 				{
-					// Disabling fullscreen would allow the window to be moved to the front of other windows, 
+					// Disabling full screen would allow the window to be moved to the front of other windows, 
 					// which we can't undo at the moment without finer window depth/z control.
 					//ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen_persistant);
 					if (ImGui::MenuItem("New", "Ctrl+N"))
@@ -235,6 +235,14 @@ namespace Toast {
 					ImGui::Separator();
 					if (ImGui::MenuItem("Exit"))
 						Toast::Application::Get().Close();
+
+					ImGui::EndMenu();
+				}
+
+				if (ImGui::BeginMenu("Script"))
+				{
+					if (ImGui::MenuItem("Reload Assembly", "Ctrl+R"))
+						ScriptEngine::ReloadAssembly();
 
 					ImGui::EndMenu();
 				}
@@ -548,9 +556,16 @@ namespace Toast {
 		}
 		case Key::R:
 		{
-			if (!ImGuizmo::IsUsing())
-				mGizmoType = ImGuizmo::OPERATION::SCALE;
+			if (control)
+			{
+				ScriptEngine::ReloadAssembly();
+			}
+			else 
+			{
+				if (!ImGuizmo::IsUsing())
+					mGizmoType = ImGuizmo::OPERATION::SCALE;
 
+			}
 			break;
 		}
 		}
