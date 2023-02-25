@@ -2,13 +2,14 @@
 #include "ScriptEngine.h"
 
 #include "ScriptGlue.h"
-//#include "Toast/Script/ScriptEngineRegistry.h"
 
 #include <mono/jit/jit.h>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/tabledefs.h>
-//#include <mono/metadata/debug-helpers.h>
-//#include <mono/metadata/attrdefs.h>
+
+#include "FileWatch.h"
+
+#include "Toast/Core/Application.h"
 
 namespace Toast {
 
@@ -139,10 +140,26 @@ namespace Toast {
 
 		// Runtime
 		Scene* SceneContext = nullptr;
+
+		Scope<filewatch::FileWatch<std::string>> AppAssemblyFileWatcher;
+		bool AssemblyReloadPending = false;
 	};
 
 	static ScriptEngineData* sData = nullptr;
 
+	static void OnAppAssemblyFileSystemEvent(const std::string& path, const filewatch::Event change_type)
+	{
+		if (!sData->AssemblyReloadPending && change_type == filewatch::Event::modified)
+		{
+			sData->AssemblyReloadPending = true;
+
+			Application::Get().SubmitToMainThread([]()
+				{
+					sData->AppAssemblyFileWatcher.reset();
+			ScriptEngine::ReloadAssembly();
+				});
+		}
+	}
 
 	//static MonoDomain* sMonoDomain = nullptr;
 	//static std::string sAssemblyPath;
@@ -669,6 +686,9 @@ namespace Toast {
 		sData->AppAssembly = Utils::LoadMonoAssembly(filepath);
 		sData->AppAssemblyImage = mono_assembly_get_image(sData->AppAssembly);
 		//Utils::PrintAssemblyTypes(sData->AppAssembly);
+
+		sData->AppAssemblyFileWatcher = CreateScope<filewatch::FileWatch<std::string>>(filepath.string(), OnAppAssemblyFileSystemEvent);
+		sData->AssemblyReloadPending = false;
 	}
 
 	void ScriptEngine::ReloadAssembly()
@@ -677,7 +697,7 @@ namespace Toast {
  
 		mono_domain_unload(sData->AppDomain);
 
-		LoadAssembly(sData->CoreAssemblyFilepath);
+		LoadAssembly(sData->CoreAssemblyFilepath); 
 		LoadAppAssembly(sData->AppAssemblyFilepath);
 
 		LoadAssemblyClasses();

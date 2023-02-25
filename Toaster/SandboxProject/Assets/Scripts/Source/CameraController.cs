@@ -26,7 +26,7 @@ class CameraController : Entity
         mForward = new Vector3(0.0f, 1.0f, 0.0f);
         mUpMovement = new Vector3(0.0f, 0.0f, -1.0f);
         mRightMovement = new Vector3(1.0f, 0.0f, 0.0f);
-
+        
         mViewDir = new Vector3(0.0f, 1.0f, 0.0f);
         mUpViewDir = new Vector3(0.0f, 0.0f, -1.0f );
         mRightViewDir = new Vector3(1.0f, 0.0f, 0.0f);

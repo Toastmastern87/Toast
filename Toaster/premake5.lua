@@ -20,7 +20,8 @@ project "Toaster"
 		"%{wks.location}/Toast/src",
 		"%{wks.location}/Toast/vendor",
 		"%{IncludeDir.entt}",
-		"%{IncludeDir.ImGuizmo}"
+		"%{IncludeDir.ImGuizmo}",
+		"%{IncludeDir.filewatch}"
 	}
 
 	links

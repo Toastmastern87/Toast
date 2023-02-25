@@ -47,10 +47,14 @@ namespace Toast {
 		static const char* GetPlatformName();
 
 		const ApplicationSpecification& GetSpecification() { return mSpecification; }
+
+		void SubmitToMainThread(const std::function<void()>& function);
 	private:
 		void Run();
 		bool OnWindowClose(WindowCloseEvent& e);
 		bool OnWindowResize(WindowResizeEvent& e);
+
+		void ExecuteMainThreadQueue();
 	private:
 		ApplicationSpecification mSpecification;
 		std::unique_ptr<Window> mWindow;
@@ -61,6 +65,9 @@ namespace Toast {
 		float mLastFrameTime = 0.0f;
 
 		LARGE_INTEGER mStartTime;
+
+		std::vector<std::function<void()>> mMainThreadQueue;
+		std::mutex mMainThreadQueueMutex;
 	private:
 		static Application* sInstance;
 		friend int ::main(int argc, char** argv);

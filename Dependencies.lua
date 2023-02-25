@@ -11,6 +11,7 @@ IncludeDir["cgltf"] = "%{wks.location}/Toast/vendor/cgltf/include"
 IncludeDir["directxtex"] = "%{wks.location}/Toast/vendor/directxtex/include"
 IncludeDir["msdf_atlas_gen"] = "%{wks.location}/Toast/vendor/msdf-atlas-gen/msdf-atlas-gen"
 IncludeDir["msdfgen"] = "%{wks.location}/Toast/vendor/msdf-atlas-gen/msdfgen"
+IncludeDir["filewatch"] = "%{wks.location}/Toast/vendor/filewatch"
 
 LibraryDir = {}
 LibraryDir["mono"] = "%{wks.location}/Toast/vendor/mono/lib/%{cfg.buildcfg}"
