@@ -39,6 +39,7 @@ project "Toast"
 		"%{IncludeDir.directxtex}",
 		"%{IncludeDir.msdf_atlas_gen}",
 		"%{IncludeDir.msdfgen}",
+		"%{IncludeDir.filewatch}"
 	}
 
 	links

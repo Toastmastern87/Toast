@@ -98,6 +98,13 @@ namespace Toast {
 #endif
 	}
 
+	void Application::SubmitToMainThread(const std::function<void()>& function)
+	{
+		std::scoped_lock<std::mutex> lock(mMainThreadQueueMutex);
+
+		mMainThreadQueue.emplace_back(function);
+	}
+
 	void Application::OnEvent(Event& e)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -129,6 +136,8 @@ namespace Toast {
 			float time = static_cast<float>((currentTime.QuadPart - mStartTime.QuadPart) / (double)frequency.QuadPart);
 			Timestep timestep = time - mLastFrameTime;
 			mLastFrameTime = time;
+
+			ExecuteMainThreadQueue();
 
 			if (!mMinimized) 
 			{
@@ -177,4 +186,15 @@ namespace Toast {
 
 		return false;
 	}
+
+	void Application::ExecuteMainThreadQueue()
+	{
+		std::scoped_lock<std::mutex> lock(mMainThreadQueueMutex);
+
+		for (auto& func : mMainThreadQueue)
+			func();
+
+		mMainThreadQueue.clear();
+	}
+
 }
