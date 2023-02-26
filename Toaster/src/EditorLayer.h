@@ -32,6 +32,8 @@ namespace Toast {
 		void OnEvent(Event& e) override;
 
 		void OnScenePlay();
+		void OnScenePause();
+		void OnSceneUnpause();
 		void OnSceneStop();
 
 		void OpenScene();
@@ -67,7 +69,7 @@ namespace Toast {
 
 		enum class SceneState
 		{
-			Edit = 0, Play = 1
+			Edit = 0, Play = 1, Pause = 2
 		};
 		SceneState mSceneState = SceneState::Edit;
 

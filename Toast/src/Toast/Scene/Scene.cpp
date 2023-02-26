@@ -127,12 +127,12 @@ namespace Toast {
 		//	}
 		//}
 
-		mIsPlaying = true;
+		mIsRunning = true;
 	}
 
 	void Scene::OnRuntimeStop()
 	{
-		mIsPlaying = false;
+		mIsRunning = false;
 
 		ScriptEngine::OnRuntimeStop();
 	}
@@ -487,7 +487,7 @@ namespace Toast {
 			}
 			Renderer2D::EndScene();
 		}
-		else
+		else 
 			TOAST_CORE_ERROR("No main camera! Unable to render scene!");
 	}
 

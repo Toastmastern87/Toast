@@ -266,11 +266,31 @@ namespace Toast {
 			{
 				ImGui::ImageButton((ImTextureID)(mPlayButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
 				ImGui::SameLine();
-				ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+				if (ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f))) 
+				{
+					mRuntimeScene->SetPaused(true);
+
+					OnScenePause();
+				}
 				ImGui::SameLine();
 				if (ImGui::ImageButton((ImTextureID)(mStopButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
 					OnSceneStop();
 			}
+
+			else if (mSceneState == SceneState::Pause)
+			{
+				if (ImGui::ImageButton((ImTextureID)(mPlayButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f))) 
+				{
+					OnSceneUnpause();
+					mRuntimeScene->SetPaused(false);
+				}
+				ImGui::SameLine();
+				if (ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f)));
+				ImGui::SameLine();
+				if (ImGui::ImageButton((ImTextureID)(mStopButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
+					OnSceneStop();
+			}
+
 			ImGui::SameLine();
 			ImGui::End();
 
@@ -431,6 +451,22 @@ namespace Toast {
 
 		mRuntimeScene->OnRuntimeStart();
 		mSceneHierarchyPanel.SetContext(mRuntimeScene);
+	}
+
+	void EditorLayer::OnScenePause()
+	{
+		if (mSceneState == SceneState::Edit)
+			return;
+
+		mSceneState = SceneState::Pause;
+	}
+
+	void EditorLayer::OnSceneUnpause()
+	{
+		if (mSceneState == SceneState::Edit)
+			return;
+
+		mSceneState = SceneState::Play;
 	}
 
 	void EditorLayer::OnSceneStop()

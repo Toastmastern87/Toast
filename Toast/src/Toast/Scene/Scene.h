@@ -68,6 +68,10 @@ namespace Toast {
 		void OnRuntimeStart();
 		void OnRuntimeStop();
 
+		bool IsRunning() const { return mIsRunning; }
+		bool IsPaused() const { return mIsPaused; }
+		void SetPaused(bool paused) { mIsPaused = paused; }
+
 		void OnEvent(Event& e);
 		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
 		bool OnMouseButtonReleased(MouseButtonReleasedEvent& e);
@@ -139,7 +143,9 @@ namespace Toast {
 		DirectX::XMVECTOR mOldCameraPos = { 0.0f, 0.0f, 0.0f }, mOldCameraRot = { 0.0f, 0.0f, 0.0f }, mOldCameraScale = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMMATRIX mOldCameraTransform = DirectX::XMMatrixIdentity();
 
-		bool mIsPlaying = false;
+		bool mIsRunning = false;
+		bool mIsPaused = false;
+
 		float mTimeScale = 1.0f;
 
 		entt::entity mSelectedEntity;
