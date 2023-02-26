@@ -916,7 +916,7 @@ namespace Toast {
 				// Fields
 
 				// If Scene running
-				if (scene->mIsPlaying)
+				if (scene->mIsRunning)
 				{
 					Ref<ScriptInstance> scriptInstance = ScriptEngine::GetEntityScriptInstance(entity.GetUUID());
 					if (scriptInstance)
