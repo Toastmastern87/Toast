@@ -162,9 +162,6 @@ namespace Toast {
 		friend class SceneHierarchyPanel;
 		friend class PropertiesPanel;
 		friend class SceneSettingsPanel;
-
-		//friend void OnScriptComponentConstruct(entt::registry& registry, entt::entity entity);
-		//friend void OnScriptComponentDestroy(entt::registry& registry, entt::entity entity);
 	};
 }
 	

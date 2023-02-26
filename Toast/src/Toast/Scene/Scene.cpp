@@ -146,19 +146,16 @@ namespace Toast {
 
 	bool Scene::OnMouseButtonPressed(MouseButtonPressedEvent& e)
 	{	
-		//// Check that a valid entity is being hovered over by the mouse
-		//if (mHoveredEntity != entt::null) 
-		//{
-		//	Entity entity = { mHoveredEntity, this };
+		// Check that a valid entity is being hovered over by the mouse
+		if (mHoveredEntity != entt::null) 
+		{
+			Entity entity = { mHoveredEntity, this };
 
-		//	if (entity.HasComponent<UIButtonComponent>() && entity.HasComponent<ScriptComponent>())
-		//	{
-		//		if (ScriptEngine::ModuleExists(entity.GetComponent<ScriptComponent>().ModuleName))
-		//			ScriptEngine::OnClickEntity(entity);
-		//		else
-		//			TOAST_CORE_INFO("Module doesn't exist");
-		//	}		
-		//}
+			if (entity.HasComponent<UIButtonComponent>() && entity.HasComponent<ScriptComponent>())
+			{
+				ScriptEngine::OnEventEntity(entity);
+			}		
+		}
 		return true;
 	}
 
@@ -184,58 +181,61 @@ namespace Toast {
 			mStats.VerticesCount = 0;
 		}
 
-		// Update physics
+		if (!mIsPaused) 
 		{
-			//Gravity
-			auto view = mRegistry.view<TransformComponent, RigidBodyComponent>();
-
-			auto planetView = mRegistry.view<PlanetComponent>();
-			if (planetView.size() > 0)
+			// Update physics
 			{
-				Entity planetEntity = { planetView[0], this };
+				//Gravity
+				auto view = mRegistry.view<TransformComponent, RigidBodyComponent>();
 
-				for (auto entity : view)
+				auto planetView = mRegistry.view<PlanetComponent>();
+				if (planetView.size() > 0)
 				{
-					Entity objectEntity = { entity, this };
+					Entity planetEntity = { planetView[0], this };
 
-					//Only one planet can be handled at a time per scene
-					auto pc = planetEntity.GetComponent<PlanetComponent>();
-					auto tcc = planetEntity.GetComponent<TerrainColliderComponent>();
-
-					auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
-					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-					DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.GetTransform());
-
-					bool terrainCollision = false;
-
-					// Calculate linear velocity due to gravity
-					float mass = 1.0f / rbc.InvMass;
-					DirectX::XMVECTOR impulseGravity = (-DirectX::XMVector3Normalize(pos) * (pc.PlanetData.gravAcc / 1000.0f) * mass * (ts.GetSeconds() * mTimeScale));
-					PhysicsEngine::ApplyImpulseLinear(rbc, impulseGravity);
-					//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
-
-					if (objectEntity.HasComponent<SphereColliderComponent>())
+					for (auto entity : view)
 					{
-						PhysicsEngine::TerrainCollision terrainCollision;
+						Entity objectEntity = { entity, this };
 
-						if (PhysicsEngine::TerrainCollisionCheck(&planetEntity , &objectEntity, pos, terrainCollision))
-							PhysicsEngine::ResolveTerrainCollision(terrainCollision);
+						//Only one planet can be handled at a time per scene
+						auto pc = planetEntity.GetComponent<PlanetComponent>();
+						auto tcc = planetEntity.GetComponent<TerrainColliderComponent>();
+
+						auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
+						DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+						DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.GetTransform());
+
+						bool terrainCollision = false;
+
+						// Calculate linear velocity due to gravity
+						float mass = 1.0f / rbc.InvMass;
+						DirectX::XMVECTOR impulseGravity = (-DirectX::XMVector3Normalize(pos) * (pc.PlanetData.gravAcc / 1000.0f) * mass * (ts.GetSeconds() * mTimeScale));
+						PhysicsEngine::ApplyImpulseLinear(rbc, impulseGravity);
+						//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
+
+						if (objectEntity.HasComponent<SphereColliderComponent>())
+						{
+							PhysicsEngine::TerrainCollision terrainCollision;
+
+							if (PhysicsEngine::TerrainCollisionCheck(&planetEntity, &objectEntity, pos, terrainCollision))
+								PhysicsEngine::ResolveTerrainCollision(terrainCollision);
+						}
+
+						// Update position due to gravity
+						//tc.Transform = DirectX::XMMatrixMultiply(tc.Transform, XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&rbc.LinearVelocity) * (ts.GetSeconds() * mTimeScale)));
 					}
-
-					// Update position due to gravity
-					//tc.Transform = DirectX::XMMatrixMultiply(tc.Transform, XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&rbc.LinearVelocity) * (ts.GetSeconds() * mTimeScale)));
 				}
 			}
-		}
 
-		// Scripting
-		{
-			// C# Entity OnUpdate
-			auto view = mRegistry.view<ScriptComponent>();
-			for (auto entity : view)
+			// Scripting
 			{
-				Entity e = { entity, this };
-				ScriptEngine::OnUpdateEntity(e, ts * mTimeScale);
+				// C# Entity OnUpdate
+				auto view = mRegistry.view<ScriptComponent>();
+				for (auto entity : view)
+				{
+					Entity e = { entity, this };
+					ScriptEngine::OnUpdateEntity(e, ts * mTimeScale);
+				}
 			}
 		}
 
@@ -918,12 +918,6 @@ namespace Toast {
 		CopyComponent<UIPanelComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UITextComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIButtonComponent>(target->mRegistry, mRegistry, enttMap);
-
-		//const auto& entityInstanceMap = ScriptEngine::GetEntityInstanceMap();
-		//if (entityInstanceMap.find(target->GetUUID()) != entityInstanceMap.end())
-		//	ScriptEngine::CopyEntityScriptData(target->GetUUID(), mSceneID);
-		//else
-			//TOAST_CORE_WARN("NO Data being copied");
 	}
 
 	void Scene::InvalidateFrustum()
