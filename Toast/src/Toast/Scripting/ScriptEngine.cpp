@@ -735,7 +735,7 @@ namespace Toast {
 			sData->EntityInstances[entityID] = instance;
 
 			// Copy field values
-			if (sData->EntityScriptFields.find(entityID) != sData->EntityScriptFields.end(), "") 
+			if (sData->EntityScriptFields.find(entityID) != sData->EntityScriptFields.end()) 
 			{
 				const ScriptFieldMap& fieldMap = sData->EntityScriptFields.at(entityID);
 				for (const auto& [name, fieldInstance] : fieldMap)
@@ -759,7 +759,13 @@ namespace Toast {
 
 	void ScriptEngine::OnEventEntity(Entity entity)
 	{
+		UUID entityUUID = entity.GetUUID();
+		TOAST_CORE_ASSERT(sData->EntityInstances.find(entity.GetUUID()) != sData->EntityInstances.end(), "Entity Instance does not exist!");
 
+		Ref<ScriptInstance> instance = sData->EntityInstances[entityUUID];
+
+		const auto& sc = entity.GetComponent<ScriptComponent>();
+		instance->InvokeOnEvent();
 	}
 
 	Scene* ScriptEngine::GetSceneContext()

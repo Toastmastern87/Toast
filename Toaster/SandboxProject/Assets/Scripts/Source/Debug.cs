@@ -2,28 +2,31 @@
 
 using Toast;
 
-class Debug : Entity
+namespace Sandbox 
 {
-    private bool keyPressed;
-
-    void OnCreate()
+    public class Debug : Entity
     {
-        keyPressed = false;
-    }
+        private bool keyPressed;
 
-    void OnClick()
-    {
-    }
-
-    void OnUpdate(float ts)
-    {
-        if (Input.IsKeyPressed(KeyCode.C) && !keyPressed)
+        void OnCreate()
         {
-            keyPressed = true;
-
-            Scene.SetRenderColliders(!Scene.GetRenderColliders());
-        }
-        else if(!Input.IsKeyPressed(KeyCode.C))
             keyPressed = false;
+        }
+
+        void OnClick()
+        {
+        }
+
+        void OnUpdate(float ts)
+        {
+            if (Input.IsKeyPressed(KeyCode.C) && !keyPressed)
+            {
+                keyPressed = true;
+
+                Scene.SetRenderColliders(!Scene.GetRenderColliders());
+            }
+            else if (!Input.IsKeyPressed(KeyCode.C))
+                keyPressed = false;
+        }
     }
 }

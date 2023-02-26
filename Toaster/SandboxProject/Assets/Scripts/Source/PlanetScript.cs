@@ -3,37 +3,39 @@ using System;
 
 using Toast;
 
-class PlanetScript : Entity
+namespace Sandbox
 {
-    private Entity mCameraEntity;
-    private TransformComponent mCameraTransform;
-    private Matrix4 mCameraOldTransform;
-
-    private PlanetComponent mPlanetComponent;
-
-    void OnCreate() 
+    public class PlanetScript : Entity
     {
-        //mCameraEntity = FindEntityByTag("Camera");
-        //mCameraTransform = mCameraEntity.GetComponent<TransformComponent>();
-        //mCameraOldTransform = mCameraTransform.Transform;
+        private Entity mCameraEntity;
+        private TransformComponent mCameraTransform;
+        private Vector3 mCameraOldRotation;
 
-        //mPlanetComponent = GetComponent<PlanetComponent>();
-    }
+        private PlanetComponent mPlanetComponent;
 
-    void OnClick()
-    {
-    }
+        void OnCreate()
+        {
+            mCameraEntity = FindEntityByName("Camera");
+            mCameraTransform = mCameraEntity.GetComponent<TransformComponent>();
+            mCameraOldRotation = mCameraTransform.Rotation;
 
-    void OnUpdate(float ts)
-    {
-        //if (mCameraTransform.Transform != mCameraOldTransform) 
-        //{
-        //    Vector3 cameraPos = new Vector3(mCameraTransform.Transform.D03, mCameraTransform.Transform.D13, mCameraTransform.Transform.D23);
-        //    Vector3 cameraForward = new Vector3(mCameraTransform.Transform.D03, mCameraTransform.Transform.D13, mCameraTransform.Transform.D23);
-        //    mPlanetComponent.RegeneratePlanet(cameraPos, mCameraTransform.Transform);
-        //}
+            mPlanetComponent = GetComponent<PlanetComponent>();
+        }
 
-        //mCameraOldTransform = mCameraTransform.Transform;
+        void OnClick()
+        {
+        }
+
+        void OnUpdate(float ts)
+        {
+            if (mCameraTransform.Rotation != mCameraOldRotation)
+            {
+
+
+                //mPlanetComponent.RegeneratePlanet(mCameraTransform.Translation, mCameraTransform.Transform);
+            }
+
+            mCameraOldRotation = mCameraTransform.Rotation;
+        }
     }
 }
-
