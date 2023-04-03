@@ -29,8 +29,8 @@ namespace Toast {
 		fWidth = (float)width;
 		fHeight = (float)height;
 
-		sRendererData->CameraBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
-		sRendererData->CameraBuffer.Write((void*)&camera.GetOrthoProjection(), 64, 64);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 0);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetOrthoProjection(), 64, 64);
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 	}
 

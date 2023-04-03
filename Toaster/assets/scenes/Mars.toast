@@ -1,31 +1,217 @@
 Scene: Untitled Scene
 Entities:
-  - Entity: 18384185750220347789
+  - Entity: 12837192831273
     TagComponent:
-      Tag: TimeScale1
+      Tag: Camera
     RelationshipComponent:
-      ParentHandle: 2577963022771772615
+      ParentHandle: 0
       Children:
         []
     TransformComponent:
-      Translation: [458, -66.2999878, 0]
-      Rotation: [0, -0, 0]
-      Scale: [30, 10, 1]
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 0.999973416, 0.999973416]
+    CameraComponent:
+      Camera:
+        ProjectionType: 0
+        PerspectiveFOV: 45
+        NearClip: 0.100000001
+        FarClip: 3000
+        OrthographicWidth: 2624
+        OrthographicHeight: 1001
+      Primary: true
+      FixedAspectRatio: false
     ScriptComponent:
-      ClassName: Sandbox.GameSpeedButtons
-    UIButtonComponent:
-      CornerRadius: 6
-      Color: [0, 0, 0, 1]
-      ClickColor: [0, 0, 0, 1]
-  - Entity: 11806276604423328658
+      ClassName: Sandbox.CameraController
+      ScriptFields:
+        - Name: MinAltitude
+          Type: Float
+          Data: 0.00100000005
+        - Name: MoveM
+          Type: Float
+          Data: 0.0250000004
+        - Name: ZoomK
+          Type: Float
+          Data: 0.150000006
+        - Name: MaxAltitude
+          Type: Float
+          Data: 100
+        - Name: MoveK
+          Type: Float
+          Data: 0.00200000009
+        - Name: ZoomM
+          Type: Float
+          Data: 6
+        - Name: MouseSpeedFactor
+          Type: Float
+          Data: 15
+  - Entity: 129847189644684762
     TagComponent:
-      Tag: TimeScale2
+      Tag: Starship Atmosphere
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0.400000006]
+      Rotation: [0, 0, 0]
+      Scale: [0.0191984735, 0.0191989094, 0.0191999078]
+    MeshComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
+      IsPlanet: false
+      Material: StainlessSteel
+    RigidBodyComponent:
+      InvMass: 0.000199999995
+      CenterOfMass: [0, 0, 0]
+    SphereColliderComponent:
+      RenderCollider: true
+      Radius: 0.0260000005
+  - Entity: 12837192831272
+    TagComponent:
+      Tag: Ambient Light
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SkyLightComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\starmap.png
+      Intensity: 0.170000002
+  - Entity: 12837192831271
+    TagComponent:
+      Tag: Mars
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, -3430, 0]
+      Rotation: [80, 0, 0]
+      Scale: [6779, 6779, 6779]
+    PlanetComponent:
+      Subdivisions: 6
+      PatchLevels: 4
+      MaxAltitude: 21.2000008
+      MinAltitude: -8.19999981
+      Radius: 3389.5
+      GravitationalAcceleration: 3.72000003
+      AtmosphereHeight: 60
+      AtmosphereToggle: true
+      InScatteringPoints: 10
+      OpticalDepthPoints: 10
+      MieAnisotropy: 0.758000016
+      RayScaleHeight: 8
+      MieScaleHeight: 1.20000005
+      RayBaseScatteringCoefficient: [0.0138400001, 0.00678500021, 0.00287500001]
+      MieBaseScatteringCoefficient: 0.0037
+    ScriptComponent:
+      ClassName: Sandbox.PlanetScript
+    TerrainColliderComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
+  - Entity: 12837192831275
+    TagComponent:
+      Tag: Sunlight
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [72, -76, 0]
+      Scale: [0.999434412, 0.999894023, 0.999519885]
+    DirectionalLightComponent:
+      Radiance: [0.861003876, 0.822715163, 0.658219159]
+      Intensity: 10.5
+      SunDisk: true
+  - Entity: 2187140198057221420
+    TagComponent:
+      Tag: Debug
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ScriptComponent:
+      ClassName: Sandbox.Debug
+  - Entity: 2577963022771772615
+    TagComponent:
+      Tag: TimeUI
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        - Handle: 11451148643943162086
+        - Handle: 2812129723666465913
+        - Handle: 9291025796538517788
+        - Handle: 4566870064654448293
+        - Handle: 2709097365577216560
+        - Handle: 11806276604423328658
+        - Handle: 18384185750220347789
+    TransformComponent:
+      Translation: [809, 510.100006, 0]
+      Rotation: [0, -0, 0]
+      Scale: [600, 83.1999969, 1]
+    UIPanelComponent:
+      Color: [0.0413039252, 0.0980315134, 0.489451468, 1]
+      CornerRadius: 14.1999998
+  - Entity: 11451148643943162086
+    TagComponent:
+      Tag: MText
     RelationshipComponent:
       ParentHandle: 2577963022771772615
       Children:
         []
     TransformComponent:
-      Translation: [458, -49, 0]
+      Translation: [13.9001465, -38.2000122, 0]
+      Rotation: [0, -0, 0]
+      Scale: [20, 20, 1]
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
+      Text: "M: 1"
+  - Entity: 2812129723666465913
+    TagComponent:
+      Tag: SText
+    RelationshipComponent:
+      ParentHandle: 2577963022771772615
+      Children:
+        []
+    TransformComponent:
+      Translation: [15.0001221, -66.5, 0]
+      Rotation: [0, -0, 0]
+      Scale: [20, 20, 1]
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
+      Text: "Sol: 1"
+  - Entity: 9291025796538517788
+    TagComponent:
+      Tag: TimeText
+    RelationshipComponent:
+      ParentHandle: 2577963022771772615
+      Children:
+        []
+    TransformComponent:
+      Translation: [148, -55.7000122, 0]
+      Rotation: [0, -0, 0]
+      Scale: [30, 30, 1]
+    ScriptComponent:
+      ClassName: Sandbox.TimeText
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
+      Text: 00:00:00
+  - Entity: 4566870064654448293
+    TagComponent:
+      Tag: TimeScale4
+    RelationshipComponent:
+      ParentHandle: 2577963022771772615
+      Children:
+        []
+    TransformComponent:
+      Translation: [458, -15.7000122, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
@@ -51,15 +237,15 @@ Entities:
       CornerRadius: 6
       Color: [1, 1, 1, 1]
       ClickColor: [1, 1, 1, 1]
-  - Entity: 4566870064654448293
+  - Entity: 11806276604423328658
     TagComponent:
-      Tag: TimeScale4
+      Tag: TimeScale2
     RelationshipComponent:
       ParentHandle: 2577963022771772615
       Children:
         []
     TransformComponent:
-      Translation: [458, -15.7000122, 0]
+      Translation: [458, -49, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
@@ -68,221 +254,20 @@ Entities:
       CornerRadius: 6
       Color: [1, 1, 1, 1]
       ClickColor: [1, 1, 1, 1]
-  - Entity: 9291025796538517788
+  - Entity: 18384185750220347789
     TagComponent:
-      Tag: TimeText
+      Tag: TimeScale1
     RelationshipComponent:
       ParentHandle: 2577963022771772615
       Children:
         []
     TransformComponent:
-      Translation: [148, -55.7000122, 0]
+      Translation: [458, -66.2999878, 0]
       Rotation: [0, -0, 0]
-      Scale: [30, 30, 1]
+      Scale: [30, 10, 1]
     ScriptComponent:
-      ClassName: Sandbox.TimeText
-    UITextComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
-      Text: 00:00:17
-  - Entity: 2812129723666465913
-    TagComponent:
-      Tag: SText
-    RelationshipComponent:
-      ParentHandle: 2577963022771772615
-      Children:
-        []
-    TransformComponent:
-      Translation: [15.0001221, -66.5, 0]
-      Rotation: [0, -0, 0]
-      Scale: [20, 20, 1]
-    UITextComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
-      Text: "Sol: 1"
-  - Entity: 11451148643943162086
-    TagComponent:
-      Tag: MText
-    RelationshipComponent:
-      ParentHandle: 2577963022771772615
-      Children:
-        []
-    TransformComponent:
-      Translation: [13.9001465, -38.2000122, 0]
-      Rotation: [0, -0, 0]
-      Scale: [20, 20, 1]
-    UITextComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
-      Text: "M: 1"
-  - Entity: 2577963022771772615
-    TagComponent:
-      Tag: TimeUI
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        - Handle: 11451148643943162086
-        - Handle: 2812129723666465913
-        - Handle: 9291025796538517788
-        - Handle: 4566870064654448293
-        - Handle: 2709097365577216560
-        - Handle: 11806276604423328658
-        - Handle: 18384185750220347789
-    TransformComponent:
-      Translation: [809, 510.100006, 0]
-      Rotation: [0, -0, 0]
-      Scale: [600, 83.1999969, 1]
-    UIPanelComponent:
-      Color: [0.0413039252, 0.0980315134, 0.489451468, 1]
-      CornerRadius: 14.1999998
-  - Entity: 2187140198057221420
-    TagComponent:
-      Tag: Debug
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-    ScriptComponent:
-      ClassName: Sandbox.Debug
-  - Entity: 1614261608780131607
-    TagComponent:
-      Tag: Physics Test
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [2.24300432, 1.51779294, -3397]
-      Rotation: [0, -0, 0]
-      Scale: [0.100000001, 0.100000001, 0.100000001]
-    MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
-      IsPlanet: false
-      Material: StainlessSteel
-  - Entity: 14256283900106705513
-    TagComponent:
-      Tag: Starship Ground
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 2.29999995, -3407]
-      Rotation: [-90, 0, 0]
-      Scale: [0.999999762, 0.999919832, 0.999919832]
-    MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
-      IsPlanet: false
-      Material: StainlessSteel
-  - Entity: 12837192831273
-    TagComponent:
-      Tag: Camera
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 7.9000001, -3390]
-      Rotation: [-90, 0, 0]
-      Scale: [1, 0.999973416, 0.999973416]
-    CameraComponent:
-      Camera:
-        ProjectionType: 0
-        PerspectiveFOV: 45
-        NearClip: 0.100000001
-        FarClip: 3000
-        OrthographicWidth: 2624
-        OrthographicHeight: 1001
-      Primary: true
-      FixedAspectRatio: false
-    ScriptComponent:
-      ClassName: Sandbox.CameraController
-      ScriptFields:
-        - Name: MinAltitude
-          Type: Float
-          Data: 10
-        - Name: MaxAltitude
-          Type: Float
-          Data: 3000
-  - Entity: 12837192831275
-    TagComponent:
-      Tag: Sunlight
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, -534, 0]
-      Scale: [0.999434412, 0.999894023, 0.999519885]
-    DirectionalLightComponent:
-      Radiance: [0.861003876, 0.822715163, 0.658219159]
-      Intensity: 10.5
-      SunDisk: true
-  - Entity: 12837192831271
-    TagComponent:
-      Tag: Mars
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [6779, 6779, 6779]
-    PlanetComponent:
-      Subdivisions: 4
-      PatchLevels: 6
-      MaxAltitude: 21.2000008
-      MinAltitude: -8.19999981
-      Radius: 3389.5
-      GravitationalAcceleration: 3.72000003
-      AtmosphereHeight: 60
-      AtmosphereToggle: true
-      InScatteringPoints: 10
-      OpticalDepthPoints: 10
-      MieAnisotropy: 0.758000016
-      RayScaleHeight: 8
-      MieScaleHeight: 1.20000005
-      RayBaseScatteringCoefficient: [0.0138400001, 0.00678500021, 0.00287500001]
-      MieBaseScatteringCoefficient: 0.0037
-    ScriptComponent:
-      ClassName: Sandbox.PlanetScript
-    TerrainColliderComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
-  - Entity: 12837192831272
-    TagComponent:
-      Tag: Ambient Light
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-    SkyLightComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\starmap.png
-      Intensity: 0.170000002
-  - Entity: 129847189644684762
-    TagComponent:
-      Tag: Starship Atmosphere
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 10, -3392]
-      Rotation: [0, -90, 90]
-      Scale: [0.0191984735, 0.0191989094, 0.0191999078]
-    MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
-      IsPlanet: false
-      Material: StainlessSteel
-    RigidBodyComponent:
-      InvMass: 0.000199999995
-      CenterOfMass: [0, 0, 0]
-    SphereColliderComponent:
-      RenderCollider: true
-      Radius: 0.0260000005
+      ClassName: Sandbox.GameSpeedButtons
+    UIButtonComponent:
+      CornerRadius: 6
+      Color: [0, 0, 0, 1]
+      ClickColor: [0, 0, 0, 1]

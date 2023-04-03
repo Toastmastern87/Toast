@@ -1,5 +1,4 @@
 ﻿using System;
-
 using Toast;
 
 namespace Sandbox
@@ -8,30 +7,31 @@ namespace Sandbox
     {
         public float MinAltitude = 0.0f;
         public float MaxAltitude = 0.0f;
+        public float ZoomM = 0.0f;
+        public float ZoomK = 0.0f;
+        public float MoveM = 0.0f;
+        public float MoveK = 0.0f;
+        public float MouseSpeedFactor = 1.0f;
 
-        private TransformComponent mTransform;
-        private CameraComponent mCamera;
-        private Vector3 mForward;
-        private Vector3 mViewDir;
-        private Vector3 mRightMovement;
-        private Vector3 mRightViewDir;
-        private Vector3 mUpMovement;
-        private Vector3 mUpViewDir;
+        private TransformComponent mMarsTransform;
+        private TransformComponent mCameraTransformComponent;
+        private TransformComponent mStarshipTransform;
+        private PlanetComponent mMarsPlanet;
+        private Vector3 mCameraRightVector;
+        private Vector3 mCameraForwardVector;
+
+        private Matrix4 mCameraTransform;
 
         private Vector2 mCursorPos;
 
         void OnCreate()
         {
-            mTransform = GetComponent<TransformComponent>();
-            mCamera = GetComponent<CameraComponent>();
+            mCameraTransformComponent = GetComponent<TransformComponent>();
 
-            mForward = new Vector3(0.0f, 1.0f, 0.0f);
-            mUpMovement = new Vector3(0.0f, 0.0f, -1.0f);
-            mRightMovement = new Vector3(1.0f, 0.0f, 0.0f);
+            mMarsTransform = FindEntityByName("Mars").GetComponent<TransformComponent>();
+            mMarsPlanet = FindEntityByName("Mars").GetComponent<PlanetComponent>();
 
-            mViewDir = new Vector3(0.0f, 1.0f, 0.0f);
-            mUpViewDir = new Vector3(0.0f, 0.0f, -1.0f);
-            mRightViewDir = new Vector3(1.0f, 0.0f, 0.0f);
+            mStarshipTransform = FindEntityByName("Starship Atmosphere").GetComponent<TransformComponent>();
 
             if (MaxAltitude < MinAltitude)
                 MaxAltitude = MinAltitude;
@@ -43,138 +43,72 @@ namespace Sandbox
 
         void OnUpdate(float ts)
         {
-            //Vector3 translation = new Vector3(mTransform.Transform.D03, mTransform.Transform.D13, mTransform.Transform.D23);
+            float altitude = Vector3.Length(mMarsTransform.Translation) - mMarsPlanet.Radius;
 
-            //mUpMovement = Vector3.Normalize(translation);
+            float zoomSpeed = (ZoomK * (float)Math.Pow(altitude, 2.0) + ZoomM);
+            float moveSpeed = (MoveK * (float)Math.Pow(altitude, 2.0) + MoveM);
 
-            //mCamera.FarClip = 1.6875f * Vector3.Length(translation) - 5000.0f;
+            mCameraTransform = GetComponent<TransformComponent>().GetTransform();
+            mCameraRightVector = new Vector3(mCameraTransform.D00, mCameraTransform.D10, mCameraTransform.D20);
+            mCameraForwardVector = new Vector3(mCameraTransform.D02, mCameraTransform.D12, mCameraTransform.D22);
 
-            //float altitude = Vector3.Length(translation) - 3389.5f;
-            //float distFromOrigo = Vector3.Length(translation);
-            //float moveSpeed = 0.08f * altitude * altitude + 0.1f;
-            //float zoomSpeed = 0.39f * altitude - 1056.0f;
+            Vector2 newCursorPos = Input.GetMousePosition();
 
-            ////Toast.Console.LogInfo("Altitude: " + altitude);
-            ////Toast.Console.LogInfo("distFromOrigo: " + distFromOrigo);
-            ////Toast.Console.LogInfo("moveSpeed: " + moveSpeed);
+            if (Input.IsMouseButtonPressed(MouseCode.ButtonRight))
+            {
+                if (mCursorPos.X != newCursorPos.X)
+                    mCameraTransformComponent.Yaw += (newCursorPos.X - mCursorPos.X) * ts * MouseSpeedFactor;
 
-            //Vector2 newCursorPos = Input.GetMousePosition();
+                if (mCursorPos.Y != newCursorPos.Y)
+                    mCameraTransformComponent.Pitch += (newCursorPos.Y - mCursorPos.Y) * ts * MouseSpeedFactor;
+            }
 
-            //if (Input.IsMouseButtonPressed(MouseCode.ButtonRight))
-            //{
-            //    if (mCursorPos.X != newCursorPos.X)
-            //    {
-            //        mViewDir = Vector3.Rotate(mViewDir, mUpMovement, (newCursorPos.X - mCursorPos.X) * 0.003f);
-            //        if(mUpViewDir != mUpMovement)
-            //            mUpViewDir = Vector3.Rotate(mUpViewDir, mUpMovement, (newCursorPos.X - mCursorPos.X) * 0.003f);
-            //        mForward = Vector3.Rotate(mForward, mUpMovement, (newCursorPos.X - mCursorPos.X) * 0.003f);
+            mCursorPos = newCursorPos;
 
-            //        mRightMovement = Vector3.Cross(mUpMovement, mForward);
-            //        mRightViewDir = Vector3.Cross(mUpViewDir, mViewDir);
-            //    }
-            //    if (mCursorPos.Y != newCursorPos.Y) 
-            //    {
-            //        mViewDir = Vector3.Rotate(mViewDir, mRightViewDir, (newCursorPos.Y - mCursorPos.Y) * 0.003f);
-            //        mUpViewDir = Vector3.Cross(mViewDir, mRightViewDir);
-            //    }
-            //}
+            if (Input.GetMouseWheelDelta() != 0.0f)
+            {
+                float deltaAltitude = zoomSpeed * ts * -Input.GetMouseWheelDelta();
 
-            //mCursorPos = newCursorPos;
+                // Makes sure that the new altitude is within the limits
+                float newAltitude = altitude + deltaAltitude;
+                newAltitude = Math.Min(newAltitude, MaxAltitude);
+                newAltitude = Math.Max(newAltitude, MinAltitude);
 
-            //if (Input.GetMouseWheelDelta() != 0.0f)
-            //{
-            //    //float diffAltitude = 0.0f;
-            //    //float newAltitude = altitude + zoomSpeed * ts * -Input.GetMouseWheelDelta();
+                deltaAltitude = altitude - newAltitude;
 
-            //    //if (newAltitude > MaxAltitude)
-            //    //    diffAltitude = newAltitude - MaxAltitude;
+                // Check that the values of delta altitude is not to small
+                deltaAltitude = deltaAltitude <= 0.0001f && Input.GetMouseWheelDelta() > 0.0f ?  0.0f : deltaAltitude;
 
-            //    //if (newAltitude < MinAltitude)
-            //    //    diffAltitude = newAltitude - MinAltitude;
+                mMarsTransform.Translation -= Vector3.Normalize(mMarsTransform.Translation) * deltaAltitude;
+                mStarshipTransform.Translation -= (Vector3.Normalize(mMarsTransform.Translation - mStarshipTransform.Translation)) * deltaAltitude;
+            }
 
-            //    //altitude = newAltitude - diffAltitude;
-            //    //translation = Vector3.Normalize(translation) * altitude;
+            if (Input.IsKeyPressed(KeyCode.W)) 
+            {
+                mMarsTransform.TransformComponent_Rotate(mCameraRightVector, (-moveSpeed * ts));
+                mStarshipTransform.TransformComponent_RotateAroundPoint(mMarsTransform.Translation, mCameraRightVector, (-moveSpeed * ts));
+            }
 
-            //    if (Input.GetMouseWheelDelta() > 0.0f)
-            //        translation -= Vector3.Normalize(translation) * 0.01f;
-            //    else
-            //        translation += Vector3.Normalize(translation) * 0.01f;
-            //}
 
-            //if (Input.IsKeyPressed(KeyCode.W))
-            //{
-            //    Vector3 startPos = Vector3.Normalize(translation);
+            if (Input.IsKeyPressed(KeyCode.S))
+            {
+                mMarsTransform.TransformComponent_Rotate(mCameraRightVector, (moveSpeed * ts));
+                mStarshipTransform.TransformComponent_RotateAroundPoint(mMarsTransform.Translation, mCameraRightVector, (moveSpeed * ts));
+            }
 
-            //    translation += Vector3.Normalize(mForward) * ts * moveSpeed;
-            //    translation = Vector3.Normalize(translation) * distFromOrigo;
+            if (Input.IsKeyPressed(KeyCode.A))
+            {
+                mMarsTransform.TransformComponent_Rotate(mCameraForwardVector, (-moveSpeed * ts));
+                mStarshipTransform.TransformComponent_RotateAroundPoint(mMarsTransform.Translation, mCameraForwardVector, (-moveSpeed * ts));
+            }
 
-            //    Vector3 endPos = Vector3.Normalize(translation);
+            if (Input.IsKeyPressed(KeyCode.D))
+            {
+                mMarsTransform.TransformComponent_Rotate(mCameraForwardVector, (moveSpeed * ts));
+                mStarshipTransform.TransformComponent_RotateAroundPoint(mMarsTransform.Translation, mCameraForwardVector, (moveSpeed * ts));
+            }
 
-            //    mViewDir = Vector3.Rotate(mViewDir, mRightMovement, (float)Vector3.AngleNormalizedVectors(startPos, endPos));
-            //    mForward = Vector3.Rotate(mForward, mRightMovement, (float)Vector3.AngleNormalizedVectors(startPos, endPos));
-            //    mUpViewDir = Vector3.Rotate(mUpViewDir, mRightMovement, (float)Vector3.AngleNormalizedVectors(startPos, endPos));
-            //}
-
-            //if (Input.IsKeyPressed(KeyCode.S))
-            //{
-            //    Vector3 startPos = Vector3.Normalize(translation);
-
-            //    translation -= Vector3.Normalize(mForward) * ts * moveSpeed;
-            //    translation = Vector3.Normalize(translation) * distFromOrigo;
-
-            //    Vector3 endPos = Vector3.Normalize(translation);
-
-            //    mViewDir = Vector3.Rotate(mViewDir, mRightMovement, (float)-Vector3.AngleNormalizedVectors(startPos, endPos));
-            //    mForward = Vector3.Rotate(mForward, mRightMovement, (float)-Vector3.AngleNormalizedVectors(startPos, endPos));
-            //    mUpViewDir = Vector3.Rotate(mUpViewDir, mRightMovement, (float)-Vector3.AngleNormalizedVectors(startPos, endPos));
-            //}
-
-            //if (Input.IsKeyPressed(KeyCode.A))
-            //{
-            //    Vector3 startPos = Vector3.Normalize(translation);
-
-            //    translation -= Vector3.Normalize(mRightMovement) * ts * moveSpeed;
-            //    translation = Vector3.Normalize(translation) * distFromOrigo;
-
-            //    Vector3 endPos = Vector3.Normalize(translation);
-
-            //    mRightViewDir = Vector3.Rotate(mRightViewDir, mViewDir, (float)Vector3.AngleNormalizedVectors(startPos, endPos));
-            //    mRightMovement = Vector3.Rotate(mRightMovement, mForward, (float)Vector3.AngleNormalizedVectors(startPos, endPos));
-            //    mUpViewDir = Vector3.Rotate(mUpViewDir, mViewDir, (float)Vector3.AngleNormalizedVectors(startPos, endPos));
-            //}
-
-            //if (Input.IsKeyPressed(KeyCode.D))
-            //{
-            //    Vector3 startPos = Vector3.Normalize(translation);
-
-            //    translation += Vector3.Normalize(mRightMovement) * ts * moveSpeed;
-            //    translation = Vector3.Normalize(translation) * distFromOrigo;
-
-            //    Vector3 endPos = Vector3.Normalize(translation);
-
-            //    mRightViewDir = Vector3.Rotate(mRightViewDir, mViewDir, (float)-Vector3.AngleNormalizedVectors(startPos, endPos));
-            //    mRightMovement = Vector3.Rotate(mRightMovement, mForward, (float)-Vector3.AngleNormalizedVectors(startPos, endPos));
-            //    mUpViewDir = Vector3.Rotate(mUpViewDir, mViewDir, (float)-Vector3.AngleNormalizedVectors(startPos, endPos));
-            //}
-
-            //mRightMovement = Vector3.Cross(mUpMovement, mForward);
-
-            //Matrix4 translationMatrix = Matrix4.Translate(translation);
-            //Matrix4 rotationMatrix = new Matrix4(1.0f);
-
-            //rotationMatrix.D00 = mRightViewDir.X;
-            //rotationMatrix.D10 = mRightViewDir.Y;
-            //rotationMatrix.D20 = mRightViewDir.Z;
-            //rotationMatrix.D02 = mViewDir.X;
-            //rotationMatrix.D12 = mViewDir.Y;
-            //rotationMatrix.D22 = mViewDir.Z;
-            //rotationMatrix.D01 = mUpViewDir.X;
-            //rotationMatrix.D11 = mUpViewDir.Y;
-            //rotationMatrix.D21 = mUpViewDir.Z;
-
-            //mTransform.Transform = translationMatrix * rotationMatrix;
-
-            //Input.SetMouseWheelDelta(0.0f);
+            Input.SetMouseWheelDelta(0.0f);
         }
     }
 }

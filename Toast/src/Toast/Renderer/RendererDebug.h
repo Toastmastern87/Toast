@@ -22,7 +22,7 @@ namespace Toast {
 		static void BeginScene(Camera& camera);
 		static void EndScene(const bool debugActivated, const bool runtime, bool renderUI);
 
-		static void SubmitCameraFrustum(SceneCamera& camera, DirectX::XMMATRIX& transform, DirectX::XMFLOAT3& pos);
+		static void SubmitCameraFrustum(Ref<Frustum> frustum);
 		static void SubmitLine(DirectX::XMFLOAT3& p1, DirectX::XMFLOAT3& p2);
 		static void SubmitLine(DirectX::XMVECTOR& p1, DirectX::XMVECTOR& p2);
 		static void SubmitGrid(EditorCamera& camera);

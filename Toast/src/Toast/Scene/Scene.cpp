@@ -22,28 +22,8 @@ namespace Toast {
 		UUID SceneID;
 	};
 
-	//static void OnScriptComponentConstruct(entt::registry& registry, entt::entity entity)
-	//{
-	//	auto sceneView = registry.view<SceneComponent>();
-	//	UUID sceneID = registry.get<SceneComponent>(sceneView.front()).SceneID;
-
-	//	Scene* scene = sActiveScenes[sceneID];
-
-	//	auto entityID = registry.get<IDComponent>(entity).ID;
-	//	TOAST_CORE_ASSERT(scene->mEntityIDMap.find(entityID) != scene->mEntityIDMap.end(), "");
-	//	ScriptEngine::InitScriptEntity(scene->mEntityIDMap.at(entityID));
-	//}
-
-	//static void OnScriptComponentDestroy(entt::registry& registry, entt::entity entity)
-	//{
-	//	// TO DO!
-	//}
-
 	Scene::Scene()
 	{
-		//mRegistry.on_construct<ScriptComponent>().connect<&OnScriptComponentConstruct>();
-		//mRegistry.on_destroy<ScriptComponent>().connect<&OnScriptComponentDestroy>();
-
 		mSceneEntity = mRegistry.create();
 		mRegistry.emplace<SceneComponent>(mSceneEntity, mSceneID);
 
@@ -92,8 +72,8 @@ namespace Toast {
 
 	void Scene::DestroyEntity(Entity entity)
 	{
-		mRegistry.destroy(entity);
 		mEntityIDMap.erase(entity.GetUUID());
+		mRegistry.destroy(entity);
 	}
 
 	void Scene::OnRuntimeStart()
@@ -110,22 +90,6 @@ namespace Toast {
 				ScriptEngine::OnCreateEntity(e);
 			}
 		}
-
-		// 
-		//ScriptEngine::SetSceneContext(shared_from_this());
-
-		//// Update all entities with scripts
-		//{
-		//	auto view = mRegistry.view<ScriptComponent>();
-		//	for (auto entity : view)
-		//	{
-		//		Entity e = { entity, this };
-		//		if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-		//			ScriptEngine::InstantiateEntityClass(e);
-		//		else
-		//			TOAST_CORE_INFO("Module doesn't exist");
-		//	}
-		//}
 
 		mIsRunning = true;
 	}
@@ -199,17 +163,16 @@ namespace Toast {
 
 						//Only one planet can be handled at a time per scene
 						auto pc = planetEntity.GetComponent<PlanetComponent>();
+						auto ptc = planetEntity.GetComponent<TransformComponent>();
 						auto tcc = planetEntity.GetComponent<TerrainColliderComponent>();
 
 						auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
-						DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-						DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.GetTransform());
 
 						bool terrainCollision = false;
 
 						// Calculate linear velocity due to gravity
 						float mass = 1.0f / rbc.InvMass;
-						DirectX::XMVECTOR impulseGravity = (-DirectX::XMVector3Normalize(pos) * (pc.PlanetData.gravAcc / 1000.0f) * mass * (ts.GetSeconds() * mTimeScale));
+						DirectX::XMVECTOR impulseGravity = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&ptc.Translation) - DirectX::XMLoadFloat3(&tc.Translation) * (pc.PlanetData.gravAcc / 1000.0f) * mass * (ts.GetSeconds() * mTimeScale));
 						PhysicsEngine::ApplyImpulseLinear(rbc, impulseGravity);
 						//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
 
@@ -217,12 +180,17 @@ namespace Toast {
 						{
 							PhysicsEngine::TerrainCollision terrainCollision;
 
-							if (PhysicsEngine::TerrainCollisionCheck(&planetEntity, &objectEntity, pos, terrainCollision))
+							if (PhysicsEngine::TerrainCollisionCheck(&planetEntity, &objectEntity, DirectX::XMLoadFloat3(&tc.Translation), terrainCollision))
+								//TOAST_CORE_INFO("COLLISION!");
 								PhysicsEngine::ResolveTerrainCollision(terrainCollision);
+
 						}
 
 						// Update position due to gravity
-						//tc.Transform = DirectX::XMMatrixMultiply(tc.Transform, XMMatrixTranslationFromVector(DirectX::XMLoadFloat3(&rbc.LinearVelocity) * (ts.GetSeconds() * mTimeScale)));
+						DirectX::XMVECTOR translation = DirectX::XMLoadFloat3(&tc.Translation);
+						DirectX::XMVECTOR deltaGravityTranslation = DirectX::XMLoadFloat3(&rbc.LinearVelocity) * (ts.GetSeconds() * mTimeScale);
+						translation += deltaGravityTranslation;
+						DirectX::XMStoreFloat3(&tc.Translation, translation);
 					}
 				}
 			}
@@ -364,6 +332,8 @@ namespace Toast {
 				{
 					auto [transform, planet] = viewPlanets.get<TransformComponent, PlanetComponent>(entity);
 
+					planet.PlanetData.planetCenter = transform.Translation;
+
 					switch (mSettings.WireframeRendering)
 					{
 					case Settings::Wireframe::NO:
@@ -493,13 +463,29 @@ namespace Toast {
 
 	void Scene::OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera)
 	{
-		DirectX::XMVECTOR cameraPos = { 0.0f, 0.0f, 0.0f }, cameraRot = { 0.0f, 0.0f, 0.0f }, cameraScale = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMVECTOR cameraForward;
-		DirectX::XMMATRIX cameraTransform = DirectX::XMMatrixIdentity();
+		entt::entity* mainCamera = nullptr;
+		TransformComponent* mainCameraTransform;
+		{
+			auto view = mRegistry.view<TransformComponent, CameraComponent>();
+			for (auto entity : view)
+			{
+				auto camera = view.get<CameraComponent>(entity);
 
-		// Makes sure these values are not crap if there is no main camera in the scene, then it uses the editor camera instead
-		cameraForward = DirectX::XMLoadFloat4(&editorCamera->GetForwardDirection());
-		cameraPos = editorCamera->GetPosition();
+				if (camera.Primary) 
+				{
+					mainCamera = &entity;
+					mainCameraTransform = &view.get<TransformComponent>(entity);
+				}
+
+				if (mainCameraTransform->IsDirty)
+				{
+					InvalidateFrustum();
+
+					mInvalidatePlanet = true;
+					mainCameraTransform->IsDirty = false;
+				}
+			}
+		}
 
 		// Update statistics
 		{
@@ -548,57 +534,45 @@ namespace Toast {
 			}
 		}
 
-		// Checks if the game camera have moved
+		// Recreates the planet if needed
 		{
-			auto view = mRegistry.view<TransformComponent, CameraComponent>();
-			for (auto entity : view)
 			{
-				auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
-				if (camera.Primary)
-				{
-					cameraForward = { 0.0f, 0.0f, 1.0f };
-					cameraTransform = transform.GetTransform();
-
-					DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.GetTransform());
-					cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRot);
-				}
-			}
-
-			if (!DirectX::XMVector4Equal(mOldCameraTransform.r[0], cameraTransform.r[0]) || !DirectX::XMVector4Equal(mOldCameraTransform.r[1], cameraTransform.r[1]) || !DirectX::XMVector4Equal(mOldCameraTransform.r[2], cameraTransform.r[2]) || !DirectX::XMVector4Equal(mOldCameraTransform.r[3], cameraTransform.r[3]))
-			{
-				InvalidateFrustum();
-
 				auto view = mRegistry.view<PlanetComponent, TransformComponent>();
 				for (auto entity : view)
 				{
-					auto [planet, transform] = view.get<PlanetComponent, TransformComponent>(entity);
+					auto [planet, planetTransform] = view.get<PlanetComponent, TransformComponent>(entity);
 
-					//TOAST_CORE_INFO("Camera Forward: %f, %f, %f", DirectX::XMVectorGetX(cameraForward), DirectX::XMVectorGetY(cameraForward), DirectX::XMVectorGetZ(cameraForward));
-					PlanetSystem::GeneratePlanet(mFrustum.get(), transform.GetTransform(), planet.Mesh->mPlanetFaces, planet.Mesh->mPlanetPatches, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, cameraForward, planet.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
+					if (mainCamera)
+					{
+						if (planetTransform.IsDirty)
+						{
+							PlanetSystem::GenerateDistanceLUT(planet.DistanceLUT, 8.0f, planet.PlanetData.radius);
+							PlanetSystem::GenerateFaceDotLevelLUT(planet.FaceLevelDotLUT, planetTransform.Scale.x, 8.0f, planet.PlanetData.maxAltitude);
+							PlanetSystem::GenerateHeightMultLUT(planet.Mesh->mPlanetFaces, planet.HeightMultLUT, planetTransform.Scale.x, 8, planet.PlanetData.maxAltitude, planetTransform.GetTransform());
+						}
 
-					planet.Mesh->InvalidatePlanet(true);
+						if (planetTransform.IsDirty || mInvalidatePlanet || mSettings.IsDirty)
+						{
+							DirectX::XMVECTOR cameraForward = { 0.0f, 0.0f, 1.0f };
+							DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
+
+							DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, mainCameraTransform->GetTransform());
+							cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRot);
+
+							InvalidateFrustum();
+
+							PlanetSystem::GeneratePlanet(mFrustum.get(), planetTransform.GetTransform(), planet.Mesh->mPlanetFaces, planet.Mesh->mPlanetPatches, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, cameraForward, planet.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
+
+							planet.Mesh->InvalidatePlanet(true);
+
+							planetTransform.IsDirty = false;
+							mInvalidatePlanet =  false;
+						}
+					}
+					else
+						TOAST_CORE_ERROR("No primary camera present, unable to render the planet");
 				}
-
-				mOldCameraTransform = cameraTransform;
 			}
-
-			mOldCameraPos = cameraPos;
-		}
-
-		if (mOldBackfaceCullSetting != mSettings.BackfaceCulling || mOldFrustumCullSetting != mSettings.FrustumCulling)
-		{
-			auto view = mRegistry.view<PlanetComponent, TransformComponent>();
-			for (auto entity : view)
-			{
-				auto [planet, transform] = view.get<PlanetComponent, TransformComponent>(entity);
-				//TOAST_CORE_INFO("Camera Forward: %f, %f, %f", DirectX::XMVectorGetX(cameraForward), DirectX::XMVectorGetY(cameraForward), DirectX::XMVectorGetZ(cameraForward));
-				PlanetSystem::GeneratePlanet(mFrustum.get(), transform.GetTransform(), planet.Mesh->mPlanetFaces, planet.Mesh->mPlanetPatches, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, cameraForward, planet.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
-				
-				planet.Mesh->InvalidatePlanet(true);
-			}
-
-			mOldBackfaceCullSetting = mSettings.BackfaceCulling;
-			mOldFrustumCullSetting = mSettings.FrustumCulling;
 		}
 
 		DirectX::XMFLOAT4 cameraPosFloat;
@@ -607,14 +581,6 @@ namespace Toast {
 		// 3D Rendering
 		Renderer::BeginScene(this, *editorCamera, cameraPosFloat);
 		{
-			{
-				auto view = mRegistry.view<TransformComponent, CameraComponent>();
-				for (auto entity : view)
-				{
-					auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
-				}
-			}
-
 			// Skybox!
 			{
 				if (mSkyboxTexture)
@@ -665,6 +631,8 @@ namespace Toast {
 			{
 				auto [transform, planet] = viewPlanets.get<TransformComponent, PlanetComponent>(entity);
 
+				planet.PlanetData.planetCenter = transform.Translation;
+
 				switch (mSettings.WireframeRendering)
 				{
 				case Settings::Wireframe::NO:
@@ -701,21 +669,11 @@ namespace Toast {
 		// Debug Rendering
 		RendererDebug::BeginScene(*editorCamera);
 		{
-			auto view = mRegistry.view<TransformComponent, CameraComponent>();
-			for (auto entity : view)
-			{
-				auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
+			// Frustum
+			if (mSettings.CameraFrustum && mFrustum)
+				RendererDebug::SubmitCameraFrustum(mFrustum);
 
-				DirectX::XMVECTOR scale, rotation, translation;
-				DirectX::XMFLOAT3 translationFloat3;
-				DirectX::XMMatrixDecompose(&scale, &rotation, &translation, transform.GetTransform());
-				DirectX::XMStoreFloat3(&translationFloat3, translation);
-
-				if (mSettings.CameraFrustum)
-					RendererDebug::SubmitCameraFrustum(camera.Camera, transform.GetTransform(), translationFloat3);
-			}
-
-			//Colliders
+			// Colliders
 			auto colliderMeshes = mRegistry.view<TransformComponent, SphereColliderComponent>();
 			for (auto entity : colliderMeshes)
 			{
@@ -828,6 +786,32 @@ namespace Toast {
 		}
 	}
 
+	void Scene::InvalidateFrustum()
+	{
+		DirectX::XMVECTOR cameraScale, cameraRot, cameraPos;
+		DirectX::XMMATRIX* planetTransform = nullptr;
+
+		auto view = mRegistry.view<TransformComponent, CameraComponent>();
+		for (auto entity : view)
+		{
+			auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
+
+			if (camera.Primary)
+			{
+				auto planetView = mRegistry.view<TransformComponent, PlanetComponent>();
+				for (auto pEntity : planetView)
+				{
+					auto [pTransform, planet] = planetView.get<TransformComponent, PlanetComponent>(pEntity);
+					planetTransform = &pTransform.GetTransform();
+					mInvalidatePlanet = true;
+				}
+
+				mFrustum->Invalidate(camera.Camera.GetAspecRatio(), camera.Camera.GetPerspectiveVerticalFOV(), camera.Camera.GetNearClip(), camera.Camera.GetFarClip(), DirectX::XMLoadFloat3(&transform.Translation));
+				mFrustum->Update(transform.GetTransform(), planetTransform);
+			}
+		}
+	}
+
 	void Scene::SetSkybox(Ref<TextureCube> skybox)
 	{
 		mSkyboxTexture = skybox;
@@ -920,24 +904,10 @@ namespace Toast {
 		CopyComponent<UIButtonComponent>(target->mRegistry, mRegistry, enttMap);
 	}
 
-	void Scene::InvalidateFrustum()
-	{
-		DirectX::XMVECTOR cameraScale, cameraRot, cameraPos;
-
-		auto view = mRegistry.view<TransformComponent, CameraComponent>();
-		for (auto entity : view)
-		{
-			auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
-
-			if (camera.Primary) 
-				mFrustum->Update(transform.GetTransform(), camera.Camera.GetAspecRatio(), camera.Camera.GetPerspectiveVerticalFOV(), camera.Camera.GetNearClip(), camera.Camera.GetFarClip(), DirectX::XMLoadFloat3(&transform.Translation));
-		}
-	}
-
 	template<typename T>
 	void Scene::OnComponentAdded(Entity entity, T& component) 
 	{
-		static_assert(false);
+		static_assert(false); 
 	}
 
 	template<>
@@ -993,33 +963,22 @@ namespace Toast {
 		tc = entity.GetComponent<TransformComponent>();
 
 		DirectX::XMVECTOR cameraPos, cameraRot, cameraScale, cameraForward;
-		if (mainCamera)
-		{
-			cameraForward = { 0.0f, 0.0f, 1.0f };
-			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
-			cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRot);
-		}
-		else
-		{
-			cameraForward = { 0.0f, 0.0f, 1.0f };
-			cameraPos = { 0.0f, 0.0f, 0.0f };
-		}
 
-		// ?????
-		//DirectX::XMVECTOR scale, rotation, translation;
-		//DirectX::XMMatrixDecompose(&scale, &rotation, &translation, tc.GetTransform());
+		cameraForward = { 0.0f, 0.0f, 1.0f };
+		DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
+		cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRot);
 
 		InvalidateFrustum();
 
-		PlanetSystem::GenerateBasePlanet(component.Mesh->mPlanetFaces);
+		PlanetSystem::GenerateBasePlanet(component.Mesh->mPlanetFaces, tc.GetTransform());
 		PlanetSystem::GeneratePatchGeometry(component.Mesh->mPlanetVertices, component.Mesh->mIndices, component.PatchLevels);
 
-		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8);
+		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8, component.PlanetData.radius);
 		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude);
 		PlanetSystem::GenerateHeightMultLUT(component.Mesh->mPlanetFaces, component.HeightMultLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude, tc.GetTransform());
 
-		PlanetSystem::GeneratePlanet(mFrustum.get(), tc.GetTransform(), component.Mesh->mPlanetFaces, component.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraPos, component.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
-
+		PlanetSystem::GeneratePlanet(mFrustum.get(), tc.GetTransform(), component.Mesh->mPlanetFaces, component.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraForward, component.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
+		
 		component.Mesh->InvalidatePlanet(true);
 	}
 
@@ -1031,7 +990,7 @@ namespace Toast {
 		component.Camera.SetViewportSize(mViewportWidth, mViewportHeight);
 
 		mFrustum = CreateRef<Frustum>();
-		InvalidateFrustum();
+		mFrustum->Invalidate(component.Camera.GetAspecRatio(), component.Camera.GetPerspectiveVerticalFOV(), component.Camera.GetNearClip(), component.Camera.GetFarClip(), DirectX::XMLoadFloat3(&tc.Translation));
 	}
 
 	template<>

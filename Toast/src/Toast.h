@@ -40,6 +40,5 @@
 
 //-------Scripting-----------------------
 #include "Toast/Scripting/ScriptEngine.h"
-#include "Toast/Scripting/ScriptEngineRegistry.h"
-#include "Toast/Scripting/ScriptWrappers.h"
+#include "Toast/Scripting/ScriptGlue.h"
 //---------------------------------------

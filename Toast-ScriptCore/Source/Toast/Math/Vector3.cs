@@ -10,12 +10,12 @@ namespace Toast
 
         public static Vector3 Zero = new Vector3(0.0f);
 
-        public Vector3(float scalar) 
+        public Vector3(float scalar)
         {
             X = Y = Z = scalar;
         }
 
-        public Vector3(float x, float y, float z) 
+        public Vector3(float x, float y, float z)
         {
             X = x;
             Y = y;
@@ -27,7 +27,7 @@ namespace Toast
             return "Vector3[" + X + ", " + Y + ", " + Z + "]";
         }
 
-        public static float Length(Vector3 vec) 
+        public static float Length(Vector3 vec)
         {
             return (float)Math.Sqrt((vec.X * vec.X) + (vec.Y * vec.Y) + (vec.Z * vec.Z));
         }
@@ -53,10 +53,20 @@ namespace Toast
             double lengthVecOne = Length(vecOne);
             double lengthVecTwo = Length(vecTwo);
 
+            dot /= (lengthVecOne * lengthVecTwo);
+
             if (dot > 1)
                 dot = 1.0f;
 
             return Math.Acos(dot);
+        }
+
+        // This one is more expensive then AngleNormalizedVectors but more precise in the calculations
+        public static double AngleNormalizedVectorsTan(Vector3 vecOne, Vector3 vecTwo)
+        {
+            double angle = 2.0 * Math.Atan2(Length(Length(vecTwo) * vecOne - Length(vecOne) * vecTwo), Length(Length(vecTwo) * vecOne + Length(vecOne) * vecTwo));
+
+            return angle;
         }
 
         public static Vector3 Rotate(Vector3 point, Vector3 axis, float angle)
@@ -76,6 +86,14 @@ namespace Toast
             return ret;
         }
 
+        public static Vector3 RotateNew(Vector3 point, Vector3 axis, float angle)
+        {
+            // Rodrigues' rotation formula
+            Vector3 rotation = point * (float)Math.Cos(angle) + Cross(axis, point) * (float)Math.Sin(angle) + axis * Dot(axis, point) * (1.0f - (float)Math.Cos(angle));
+
+            return rotation;
+        }
+
         public static Vector3 Lerp(Vector3 a, Vector3 b, float t)
         {
             if (t < 0.0f) t = 0.0f;
@@ -83,37 +101,37 @@ namespace Toast
             return (1.0f - t) * a + t * b;
         }
 
-        public static Vector3 operator+(Vector3 vectorOne, Vector3 vectorTwo) 
+        public static Vector3 operator +(Vector3 vectorOne, Vector3 vectorTwo)
         {
             return new Vector3(vectorOne.X + vectorTwo.X, vectorOne.Y + vectorTwo.Y, vectorOne.Z + vectorTwo.Z);
         }
 
-        public static Vector3 operator+(Vector3 vectorOne, float value)
+        public static Vector3 operator +(Vector3 vectorOne, float value)
         {
             return new Vector3(vectorOne.X + value, vectorOne.Y + value, vectorOne.Z + value);
         }
 
-        public static Vector3 operator-(Vector3 vectorOne, float value)
+        public static Vector3 operator -(Vector3 vectorOne, float value)
         {
             return new Vector3(vectorOne.X - value, vectorOne.Y - value, vectorOne.Z - value);
         }
 
-        public static Vector3 operator-(Vector3 vectorOne, Vector3 vectorTwo)
+        public static Vector3 operator -(Vector3 vectorOne, Vector3 vectorTwo)
         {
             return new Vector3(vectorOne.X - vectorTwo.X, vectorOne.Y - vectorTwo.Y, vectorOne.Z - vectorTwo.Z);
         }
 
-        public static Vector3 operator*(float value, Vector3 vectorOne)
+        public static Vector3 operator *(float value, Vector3 vectorOne)
         {
             return new Vector3(value * vectorOne.X, value * vectorOne.Y, value * vectorOne.Z);
         }
 
-        public static Vector3 operator*(Vector3 vectorOne, float scalar)
+        public static Vector3 operator *(Vector3 vectorOne, float scalar)
         {
             return new Vector3(vectorOne.X * scalar, vectorOne.Y * scalar, vectorOne.Z * scalar);
         }
 
-        public static bool operator ==(Vector3 vecOne, Vector3 vecTwo) 
+        public static bool operator ==(Vector3 vecOne, Vector3 vecTwo)
         {
             if (vecOne.X == vecTwo.X && vecOne.Y == vecTwo.Y && vecOne.Z == vecTwo.Z)
                 return true;

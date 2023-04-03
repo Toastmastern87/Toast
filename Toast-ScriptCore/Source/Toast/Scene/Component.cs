@@ -44,6 +44,45 @@ namespace Toast
                 InternalCalls.TransformComponent_SetRotation(Entity.ID, ref value);
             }
         }
+        public float Pitch
+        {
+            get
+            {
+                InternalCalls.TransformComponent_GetPitch(Entity.ID, out float result);
+                return result;
+            }
+
+            set
+            {
+                InternalCalls.TransformComponent_SetPitch(Entity.ID, ref value);
+            }
+        }
+        public float Yaw
+        {
+            get
+            {
+                InternalCalls.TransformComponent_GetYaw(Entity.ID, out float result);
+                return result;
+            }
+
+            set
+            {
+                InternalCalls.TransformComponent_SetYaw(Entity.ID, ref value);
+            }
+        }
+        public float Roll
+        {
+            get
+            {
+                InternalCalls.TransformComponent_GetRoll(Entity.ID, out float result);
+                return result;
+            }
+
+            set
+            {
+                InternalCalls.TransformComponent_SetRoll(Entity.ID, ref value);
+            }
+        }
         public Vector3 Scale
         {
             get
@@ -56,6 +95,22 @@ namespace Toast
             {
                 InternalCalls.TransformComponent_SetScale(Entity.ID, ref value);
             }
+        }
+
+        public Matrix4 GetTransform()
+        {
+            InternalCalls.TransformComponent_GetTransform(Entity.ID, out Matrix4 result);
+            return result;
+        }
+
+        public void TransformComponent_Rotate(Vector3 rotationAxis, float angle)
+        {
+            InternalCalls.TransformComponent_Rotate(Entity.ID, ref rotationAxis, ref angle);
+        }
+
+        public void TransformComponent_RotateAroundPoint(Vector3 point, Vector3 rotationAxis, float angle)
+        {
+            InternalCalls.TransformComponent_RotateAroundPoint(Entity.ID, ref point, ref rotationAxis, ref angle);
         }
     }
 
@@ -163,7 +218,7 @@ namespace Toast
         }
         public void RegeneratePlanet(Vector3 cameraPos, Matrix4 cameraTransform)
         {
-            InternalCalls.PlanetComponent_RegeneratePlanet(Entity.ID, cameraPos, cameraTransform);
+            InternalCalls.PlanetComponent_GeneratePlanet(Entity.ID, cameraPos, cameraTransform);
         }
     }
 

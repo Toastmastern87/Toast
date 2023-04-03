@@ -1,19 +1,9 @@
- #pragma once
+#pragma once
 
 #include <string>
-//#include "Toast/Core/Base.h"
-//#include "Toast/Core/UUID.h"
-//
-//#include <string>
-//
+
 #include "Toast/Scene/Scene.h"
-//#include "Toast/Scene/Components.h"
 #include "Toast/Scene/Entity.h"
-//
-//extern "C" {
-//	typedef struct _MonoObject MonoObject;
-//	typedef struct _MonoClassField MonoClassField;
-//}
 
 extern "C" {
 	typedef struct _MonoImage MonoImage;
@@ -36,89 +26,7 @@ namespace Toast {
 		Entity
 	};
 
-	//enum class PropertyType 
-	//{
-	//	None = 0, Float
-	//};
-
-	//struct EntityScriptClass;
-	//struct EntityInstance
-	//{
-	//	EntityScriptClass* ScriptClass = nullptr;
-
-	//	uint32_t Handle = 0;
-	//	Scene* SceneInstance = nullptr;
-
-	//	MonoObject* GetInstance();
-	//};
-
-	//struct PublicProperty 
-	//{
-	//	std::string Name;
-	//	PropertyType Type;
-	//	
-	//	PublicProperty(const std::string& name, PropertyType type);
-	//	PublicProperty(const PublicProperty&) = delete;
-	//	PublicProperty(PublicProperty&& other);
-	//	~PublicProperty();
-
-	//	void CopyStoredValueToRuntime();
-	//	bool IsRuntimeAvailable() const;
-
-	//	template<typename T>
-	//	void SetStoredValue(T value) const
-	//	{
-	//		SetStoredValue_Internal(&value);
-	//	}
-
-	//	template<typename T>
-	//	T GetStoredValue() const 
-	//	{
-	//		T value;
-	//		GetStoredValue_Internal(&value);
-	//		return value;
-	//	}
-
-	//	template<typename T>
-	//	void SetRuntimeValue(T value) const
-	//	{
-	//		SetRuntimeValue_Internal(&value);
-	//	}
-
-	//	template<typename T>
-	//	T GetRuntimeValue() const
-	//	{
-	//		T value;
-	//		GetRuntimeValue_Internal(&value);
-	//		return value;
-	//	}
-
-	//	void SetStoredValueRaw(void* src);
-	//private:
-	//	EntityInstance* mEntityInstance;
-	//	MonoClassField* mMonoClassField;
-	//	uint8_t* mStoredValueBuffer = nullptr;
-
-	//	uint8_t* AllocateBuffer(PropertyType type);
-	//	void SetStoredValue_Internal(void* value) const;
-	//	void GetStoredValue_Internal(void* outValue) const;
-	//	void SetRuntimeValue_Internal(void* value) const;
-	//	void GetRuntimeValue_Internal(void* outValue) const;
-
-	//	friend class ScriptEngine;
-	//};
-
-	//using ScriptModulePropertyMap = std::unordered_map<std::string, std::unordered_map<std::string, PublicProperty>>;
-
-	//struct EntityInstanceData
-	//{
-	//	EntityInstance Instance;
-	//	ScriptModulePropertyMap ModulePropertyMap;
-	//};
-
-	//using EntityInstanceMap = std::unordered_map<UUID, std::unordered_map<UUID, EntityInstanceData>>;
-
-	struct ScriptField 
+	struct ScriptField
 	{
 		std::string Name;
 		ScriptFieldType Type;
@@ -131,7 +39,7 @@ namespace Toast {
 	{
 		ScriptField Field;
 
-		ScriptFieldInstance() 
+		ScriptFieldInstance()
 		{
 			memset(mBuffer, 0, sizeof(mBuffer));
 		}
@@ -232,14 +140,14 @@ namespace Toast {
 		friend struct ScriptFieldInstance;
 	};
 
-	class ScriptEngine 
+	class ScriptEngine
 	{
 	public:
 		static void Init();
 		static void Shutdown();
 
-		static void LoadAssembly(const std::filesystem::path& filepath);
-		static void LoadAppAssembly(const std::filesystem::path& filepath);
+		static bool LoadAssembly(const std::filesystem::path& filepath);
+		static bool LoadAppAssembly(const std::filesystem::path& filepath);
 
 		static void ReloadAssembly();
 
@@ -261,26 +169,6 @@ namespace Toast {
 		static MonoImage* GetCoreAssemblyImage();
 
 		static MonoObject* GetManagedInstance(UUID uuid);
-
-		//static void LoadToastRuntimeAssembly(const std::string& path);
-		//static void ReloadAssembly(const std::string& path);
-
-		//static void SetSceneContext(const Ref<Scene>& scene);
-		//static const Ref<Scene>& GetCurrentSceneContext();
-
-		//static void CopyEntityScriptData(UUID dst, UUID src);
-
-		//static void OnCreateEntity(Entity entity);
-		//static void OnUpdateEntity(UUID sceneID, UUID entityID, Timestep ts);
-		//static void OnClickEntity(Entity entity);
-
-		//static bool ModuleExists(const std::string& moduleName);
-		//static void InitScriptEntity(Entity entity);
-		//static void ShutdownScriptEntity(UUID sceneID, UUID entityID, const std::string& moduleName);
-		//static void InstantiateEntityClass(Entity entity);
-
-		//static EntityInstanceMap& GetEntityInstanceMap();
-		//static EntityInstanceData& GetEntityInstanceData(UUID sceneID, UUID entityID);
 	private:
 		static void InitMono();
 		static void ShutdownMono();
@@ -292,29 +180,29 @@ namespace Toast {
 		friend class ScriptGlue;
 	};
 
-	namespace Utils	{
+	namespace Utils {
 
 		inline const char* ScriptFieldTypeToString(ScriptFieldType fieldType)
 		{
 			switch (fieldType)
 			{
-				case ScriptFieldType::None:	return "None";
-				case ScriptFieldType::Float:	return "Float";
-				case ScriptFieldType::Double:	return "Double";
-				case ScriptFieldType::Bool:		return "Bool";
-				case ScriptFieldType::Char:		return "Char";
-				case ScriptFieldType::Byte:		return "Byte";
-				case ScriptFieldType::Short:	return "Short";
-				case ScriptFieldType::Int:		return "Int";
-				case ScriptFieldType::Long:		return "Long";
-				case ScriptFieldType::UByte:	return "UByte";
-				case ScriptFieldType::UShort:	return "UShort";
-				case ScriptFieldType::UInt:		return "UInt";
-				case ScriptFieldType::ULong:	return "ULong";
-				case ScriptFieldType::Vector2:	return "Vector2";
-				case ScriptFieldType::Vector3:	return "Vector3";
-				case ScriptFieldType::Vector4:	return "Vector4";
-				case ScriptFieldType::Entity:	return "Entity";
+			case ScriptFieldType::None:	return "None";
+			case ScriptFieldType::Float:	return "Float";
+			case ScriptFieldType::Double:	return "Double";
+			case ScriptFieldType::Bool:		return "Bool";
+			case ScriptFieldType::Char:		return "Char";
+			case ScriptFieldType::Byte:		return "Byte";
+			case ScriptFieldType::Short:	return "Short";
+			case ScriptFieldType::Int:		return "Int";
+			case ScriptFieldType::Long:		return "Long";
+			case ScriptFieldType::UByte:	return "UByte";
+			case ScriptFieldType::UShort:	return "UShort";
+			case ScriptFieldType::UInt:		return "UInt";
+			case ScriptFieldType::ULong:	return "ULong";
+			case ScriptFieldType::Vector2:	return "Vector2";
+			case ScriptFieldType::Vector3:	return "Vector3";
+			case ScriptFieldType::Vector4:	return "Vector4";
+			case ScriptFieldType::Entity:	return "Entity";
 			}
 
 			TOAST_CORE_ASSERT(false, "Unknown ScriptFieldType");

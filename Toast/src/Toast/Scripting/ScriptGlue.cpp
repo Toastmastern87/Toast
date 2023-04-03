@@ -11,7 +11,7 @@
 
 namespace Toast {
 
-	namespace Utils 
+	namespace Utils
 	{
 		std::string ConvertMonoStringToCppString(MonoString* msg)
 		{
@@ -48,63 +48,63 @@ namespace Toast {
 
 #define TOAST_ADD_INTERNAL_CALL(Name) mono_add_internal_call("Toast.InternalCalls::" #Name, Name)
 
-	#pragma region Log
-		void Log_Trace(MonoObject* msg)
-		{
-			TOAST_TRACE(Utils::ConvertMonoObjectToCppChar(msg));
-		}
+#pragma region Log
+	void Log_Trace(MonoObject* msg)
+	{
+		TOAST_TRACE(Utils::ConvertMonoObjectToCppChar(msg));
+	}
 
-		void Log_Info(MonoObject* msg)
-		{
-			TOAST_INFO(Utils::ConvertMonoObjectToCppChar(msg));
-		}
+	void Log_Info(MonoObject* msg)
+	{
+		TOAST_INFO(Utils::ConvertMonoObjectToCppChar(msg));
+	}
 
-		void Log_Warning(MonoObject* msg)
-		{
-			TOAST_WARN(Utils::ConvertMonoObjectToCppChar(msg));
-		}
+	void Log_Warning(MonoObject* msg)
+	{
+		TOAST_WARN(Utils::ConvertMonoObjectToCppChar(msg));
+	}
 
-		void Log_Error(MonoObject* msg)
-		{
-			TOAST_ERROR(Utils::ConvertMonoObjectToCppChar(msg));
-		}
+	void Log_Error(MonoObject* msg)
+	{
+		TOAST_ERROR(Utils::ConvertMonoObjectToCppChar(msg));
+	}
 
-		void Log_Critical(MonoObject* msg)
-		{
-			TOAST_CRITICAL(Utils::ConvertMonoObjectToCppChar(msg));
-		}
-	#pragma endregion
+	void Log_Critical(MonoObject* msg)
+	{
+		TOAST_CRITICAL(Utils::ConvertMonoObjectToCppChar(msg));
+	}
+#pragma endregion
 
-	#pragma region Input
+#pragma region Input
 
-		static bool Input_IsKeyPressed(KeyCode key)
-		{
-			return Input::IsKeyPressed(key);
-		}
+	static bool Input_IsKeyPressed(KeyCode key)
+	{
+		return Input::IsKeyPressed(key);
+	}
 
-		bool Input_IsMouseButtonPressed(MouseCode button)
-		{
-			return Input::IsMouseButtonPressed(button);
-		}
+	bool Input_IsMouseButtonPressed(MouseCode button)
+	{
+		return Input::IsMouseButtonPressed(button);
+	}
 
-		void Input_GetMousePosition(DirectX::XMFLOAT2* outPos)
-		{
-			*outPos = Input::GetMousePosition();
-		}
+	void Input_GetMousePosition(DirectX::XMFLOAT2* outPos)
+	{
+		*outPos = Input::GetMousePosition();
+	}
 
-		float Input_GetMouseWheelDelta()
-		{
-			return Input::GetMouseWheelDelta();
-		}
+	float Input_GetMouseWheelDelta()
+	{
+		return Input::GetMouseWheelDelta();
+	}
 
-		void Input_SetMouseWheelDelta(float value)
-		{
-			Input::SetMouseWheelDelta(value);
-		}
+	void Input_SetMouseWheelDelta(float value)
+	{
+		Input::SetMouseWheelDelta(value);
+	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Scene
+#pragma region Scene
 
 	void Scene_SetRenderColliders(bool renderColliders)
 	{
@@ -134,18 +134,18 @@ namespace Toast {
 		return scene->GetTimeScale();
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Script
+#pragma region Script
 
 	static MonoObject* Script_GetInstance(UUID entityID)
 	{
 		return ScriptEngine::GetManagedInstance(entityID);
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Entity
+#pragma region Entity
 
 	static bool Entity_HasComponent(UUID entityID, MonoReflectionType* componentType)
 	{
@@ -175,9 +175,9 @@ namespace Toast {
 		return entity.GetUUID();
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Tag Component
+#pragma region Tag Component
 
 	MonoString* TagComponent_GetTag(uint64_t entityID)
 	{
@@ -204,9 +204,9 @@ namespace Toast {
 		component.Tag = tagStr;
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Transform Component
+#pragma region Transform Component
 
 	static void TransformComponent_GetTranslation(UUID entityID, DirectX::XMFLOAT3* outTranslation)
 	{
@@ -236,6 +236,48 @@ namespace Toast {
 		entity.GetComponent<TransformComponent>().RotationEulerAngles = *rotation;
 	}
 
+	static void TransformComponent_GetPitch(UUID entityID, float* outPitch)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		*outPitch = entity.GetComponent<TransformComponent>().RotationEulerAngles.x;
+	}
+
+	static void TransformComponent_SetPitch(UUID entityID, float* pitch)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		entity.GetComponent<TransformComponent>().RotationEulerAngles.x = *pitch;
+	}
+
+	static void TransformComponent_GetYaw(UUID entityID, float* outYaw)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		*outYaw = entity.GetComponent<TransformComponent>().RotationEulerAngles.y;
+	}
+
+	static void TransformComponent_SetYaw(UUID entityID, float* yaw)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		entity.GetComponent<TransformComponent>().RotationEulerAngles.y = *yaw;
+	}
+
+	static void TransformComponent_GetRoll(UUID entityID, float* outRoll)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		*outRoll = entity.GetComponent<TransformComponent>().RotationEulerAngles.z;
+	}
+
+	static void TransformComponent_SetRoll(UUID entityID, float* roll)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		entity.GetComponent<TransformComponent>().RotationEulerAngles.z = *roll;
+	}
+
 	static void TransformComponent_GetScale(UUID entityID, DirectX::XMFLOAT3* outScale)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
@@ -250,9 +292,42 @@ namespace Toast {
 		entity.GetComponent<TransformComponent>().Scale = *scale;
 	}
 
-	#pragma endregion
+	static void TransformComponent_GetTransform(UUID entityID, DirectX::XMMATRIX* outTransform)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		*outTransform = entity.GetComponent<TransformComponent>().GetTransform();
+	}
 
-	#pragma region Mesh Component
+	static void TransformComponent_Rotate(UUID entityID, DirectX::XMFLOAT3* rotationAxis, float angle)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		DirectX::XMVECTOR rotQuaternion = DirectX::XMQuaternionRotationAxis(DirectX::XMLoadFloat3(rotationAxis), DirectX::XMConvertToRadians(angle));
+		DirectX::XMStoreFloat4(&entity.GetComponent<TransformComponent>().RotationQuaternion, DirectX::XMQuaternionNormalize(DirectX::XMQuaternionMultiply(DirectX::XMLoadFloat4(&entity.GetComponent<TransformComponent>().RotationQuaternion), rotQuaternion)));
+	}
+
+	static void TransformComponent_RotateAroundPoint(UUID entityID, DirectX::XMFLOAT3* point, DirectX::XMFLOAT3* rotationAxis, float angle)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		DirectX::XMVECTOR vectorPoint = DirectX::XMLoadFloat3(point);
+
+		DirectX::XMVECTOR translatedObject = DirectX::XMLoadFloat3(&entity.GetComponent<TransformComponent>().Translation) - vectorPoint;
+
+		DirectX::XMVECTOR rotQuaternion = DirectX::XMQuaternionRotationAxis(DirectX::XMLoadFloat3(rotationAxis), DirectX::XMConvertToRadians(angle));
+
+		translatedObject = DirectX::XMVector3Transform(translatedObject, DirectX::XMMatrixRotationQuaternion(rotQuaternion));
+
+		translatedObject = translatedObject + vectorPoint;
+
+		DirectX::XMStoreFloat3(&entity.GetComponent<TransformComponent>().Translation, translatedObject);
+	}
+
+#pragma endregion
+
+#pragma region Mesh Component
 
 	void MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform)
 	{
@@ -275,9 +350,9 @@ namespace Toast {
 		pc.Mesh->InvalidatePlanet(false);
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Camera Component
+#pragma region Camera Component
 
 	float CameraComponent_GetFarClip(uint64_t entityID)
 	{
@@ -327,9 +402,9 @@ namespace Toast {
 		component.Camera.SetNearClip(inNearClip);
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region Planet Component
+#pragma region Planet Component
 
 	void PlanetComponent_GetRadius(uint64_t entityID, float* outRadius)
 	{
@@ -368,7 +443,7 @@ namespace Toast {
 
 		outDistanceLUT = mono_array_new(mono_domain_get(), mono_get_double_class(), component.DistanceLUT.size());
 
-		for (int i = 0; i < component.DistanceLUT.size(); i++) 
+		for (int i = 0; i < component.DistanceLUT.size(); i++)
 			mono_array_set(outDistanceLUT, double, i, component.DistanceLUT[i]);
 
 		return outDistanceLUT;
@@ -396,9 +471,9 @@ namespace Toast {
 		pc.Mesh->InvalidatePlanet(false);
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region UIButton Component
+#pragma region UIButton Component
 
 	void UIButtonComponent_GetColor(uint64_t entityID, DirectX::XMFLOAT4* outColor)
 	{
@@ -422,9 +497,9 @@ namespace Toast {
 		component.Button->SetColor(*inColor);
 	}
 
-	#pragma endregion
+#pragma endregion
 
-	#pragma region UIText Component
+#pragma region UIText Component
 
 	MonoString* UITextComponent_GetText(uint64_t entityID)
 	{
@@ -453,10 +528,10 @@ namespace Toast {
 		component.Text->SetText(textStr);
 	}
 
-	#pragma endregion
+#pragma endregion
 
 	template<typename Component>
-	static void RegisterComponent() 
+	static void RegisterComponent()
 	{
 		std::string_view typeName = typeid(Component).name();
 		size_t pos = typeName.find_last_of(':');
@@ -512,8 +587,17 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetTranslation);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetRotation);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetRotation);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetPitch);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetPitch);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetYaw);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetYaw);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetRoll);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetRoll);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetScale);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetScale);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetTransform);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_Rotate);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_RotateAroundPoint);
 
 		TOAST_ADD_INTERNAL_CALL(MeshComponent_GeneratePlanet);
 

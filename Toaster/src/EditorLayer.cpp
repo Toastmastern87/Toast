@@ -83,7 +83,6 @@ namespace Toast {
 		Ref<Framebuffer>& finalFramebuffer = Renderer::GetFinalFramebuffer();
 		Ref<Framebuffer>& pickingFramebuffer = Renderer::GetPickingFramebuffer();
 		Ref<Framebuffer>& outlineFramebuffer = Renderer::GetOutlineFramebuffer();
-		Ref<Framebuffer>& planetMaskFramebuffer = Renderer::GetPlanetMaskFramebuffer();
 		Ref<Framebuffer>& postProcessFramebuffer = Renderer::GetPostProcessFramebuffer();
 		Ref<Framebuffer>& UIFramebuffer = Renderer::GetUIFramebuffer();
 
@@ -92,7 +91,6 @@ namespace Toast {
 		Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRenderTarget();
 		Ref<RenderTarget>& pickingRenderTarget = Renderer::GetPickingRenderTarget();
 		Ref<RenderTarget>& outlineRenderTarget = Renderer::GetOutlineRenderTarget();
-		Ref<RenderTarget>& planetMaskRenderTarget = Renderer::GetPlanetMaskRenderTarget();
 		Ref<RenderTarget>& postProcessRenderTarget = Renderer::GetPostProcessRenderTarget();
 		Ref<RenderTarget>& UIRenderTarget = Renderer::GetUIRenderTarget();
 		auto [width, height] = baseRenderTarget->GetSize();
@@ -103,7 +101,6 @@ namespace Toast {
 			finalFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			pickingFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			outlineFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			planetMaskFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			postProcessFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			UIFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
@@ -112,7 +109,6 @@ namespace Toast {
 			finalRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			pickingRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			outlineRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			planetMaskRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			postProcessRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			UIRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		 
@@ -473,12 +469,11 @@ namespace Toast {
 	{
 		mRuntimeScene->OnRuntimeStop();
 		mSceneState = SceneState::Edit;
-		mEditorScene->SetOldCameraTransform(DirectX::XMMatrixIdentity());
 
 		mRuntimeScene = nullptr;
 
-		//ScriptEngine::SetSceneContext(mEditorScene);
 		mSceneHierarchyPanel.SetContext(mEditorScene);
+		mEditorScene->InvalidateFrustum();
 	}
 
 	void EditorLayer::NewScene()

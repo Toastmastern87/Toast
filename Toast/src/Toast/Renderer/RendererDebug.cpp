@@ -49,14 +49,14 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		// Updating the camera data in the buffer and mapping it to the GPU
-		mDebugData->mDebugBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
-		mDebugData->mDebugBuffer.Write((void*)&camera.GetProjection(), 64, 64);
-		mDebugData->mDebugBuffer.Write((void*)&camera.GetInvViewMatrix(), 64, 128);
-		mDebugData->mDebugBuffer.Write((void*)&camera.GetInvProjection(), 64, 192);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 0);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 64);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 128);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 192);
 		//mDebugData->mDebugBuffer.Write((void*)&camera.GetPosition(), 16, 256);
-		mDebugData->mDebugBuffer.Write((void*)&camera.GetForwardDirection(), 16, 272);
-		mDebugData->mDebugBuffer.Write((void*)&camera.GetFarClip(), 4, 288);
-		mDebugData->mDebugBuffer.Write((void*)&camera.GetNearClip(), 4, 292);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetForwardDirection(), 16, 272);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 288);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 292);
 		mDebugData->mDebugCBuffer->Map(mDebugData->mDebugBuffer);
 
 		mDebugData->LineVertexBuffer->Bind();
@@ -91,49 +91,22 @@ namespace Toast {
 		sRendererData->MeshColliderDrawList.clear();
 	}
 
-	void RendererDebug::SubmitCameraFrustum(SceneCamera& camera, DirectX::XMMATRIX& transform, DirectX::XMFLOAT3& pos)
+	void RendererDebug::SubmitCameraFrustum(Ref<Frustum> frustum)
 	{
-		DirectX::XMVECTOR forward, up, right, posVector;
-		
-		right = transform.r[0];
-		up = transform.r[1];
-		forward = transform.r[2];
+		RendererDebug::SubmitLine(frustum->mNearTopLeft, frustum->mFarTopLeft);
+		RendererDebug::SubmitLine(frustum->mNearTopRight, frustum->mFarTopRight);
+		RendererDebug::SubmitLine(frustum->mNearBottomLeft, frustum->mFarBottomLeft);
+		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mFarBottomRight);
 
-		posVector = DirectX::XMLoadFloat3(&pos);
+		RendererDebug::SubmitLine(frustum->mNearTopLeft, frustum->mNearTopRight);
+		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mNearBottomLeft);
+		RendererDebug::SubmitLine(frustum->mNearBottomLeft, frustum->mNearTopLeft);
+		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mNearTopRight);
 
-		float heightNear = 2.0f * tan(DirectX::XMConvertToRadians(camera.GetPerspectiveVerticalFOV()) / 2.0f) * camera.GetNearClip();
-		float widthNear = heightNear * camera.GetAspecRatio();
-
-		float heightFar = 2.0f * tan(DirectX::XMConvertToRadians(camera.GetPerspectiveVerticalFOV()) / 2.0f) * camera.GetFarClip();
-		float widthFar = heightFar * camera.GetAspecRatio();
-
-		DirectX::XMVECTOR centerNear = DirectX::XMLoadFloat3(&pos) + DirectX::XMVector3Normalize(forward) * camera.GetNearClip();
-		DirectX::XMVECTOR centerFar = DirectX::XMLoadFloat3(&pos) + DirectX::XMVector3Normalize(forward) * camera.GetFarClip();
-
-		DirectX::XMVECTOR nearTopLeft = centerNear + (up * (heightNear / 2.0f)) - (right * (widthNear / 2.0f));
-		DirectX::XMVECTOR nearTopRight = centerNear + (up * (heightNear / 2.0f)) + (right * (widthNear / 2.0f));
-		DirectX::XMVECTOR nearBottomLeft = centerNear - (up * (heightNear / 2.0f)) - (right * (widthNear / 2.0f));
-		DirectX::XMVECTOR nearBottomRight = centerNear - (up * (heightNear / 2.0f)) + (right * (widthNear / 2.0f));
-
-		DirectX::XMVECTOR farTopLeft = centerFar + (up * (heightFar / 2.0f)) - (right * (widthFar / 2.0f));
-		DirectX::XMVECTOR farTopRight = centerFar + (up * (heightFar / 2.0f)) + (right * (widthFar / 2.0f));
-		DirectX::XMVECTOR farBottomLeft = centerFar - (up * (heightFar / 2.0f)) - (right * (widthFar / 2.0f));
-		DirectX::XMVECTOR farBottomRight = centerFar - (up * (heightFar / 2.0f)) + (right * (widthFar / 2.0f));
-
-		RendererDebug::SubmitLine(nearTopLeft, farTopLeft);
-		RendererDebug::SubmitLine(nearTopRight, farTopRight);
-		RendererDebug::SubmitLine(nearBottomLeft, farBottomLeft);
-		RendererDebug::SubmitLine(nearBottomRight, farBottomRight);
-
-		RendererDebug::SubmitLine(nearTopLeft, nearTopRight);
-		RendererDebug::SubmitLine(nearBottomRight, nearBottomLeft);
-		RendererDebug::SubmitLine(nearBottomLeft, nearTopLeft);
-		RendererDebug::SubmitLine(nearBottomRight, nearTopRight);
-
-		RendererDebug::SubmitLine(farTopLeft, farTopRight);
-		RendererDebug::SubmitLine(farBottomRight, farBottomLeft);
-		RendererDebug::SubmitLine(farBottomLeft, farTopLeft);
-		RendererDebug::SubmitLine(farBottomRight, farTopRight);
+		RendererDebug::SubmitLine(frustum->mFarTopLeft, frustum->mFarTopRight);
+		RendererDebug::SubmitLine(frustum->mFarBottomRight, frustum->mFarBottomLeft);
+		RendererDebug::SubmitLine(frustum->mFarBottomLeft, frustum->mFarTopLeft);
+		RendererDebug::SubmitLine(frustum->mFarBottomRight, frustum->mFarTopRight);
 	}
 
 	void RendererDebug::SubmitLine(DirectX::XMFLOAT3& p1, DirectX::XMFLOAT3& p2)
@@ -162,10 +135,10 @@ namespace Toast {
 	void RendererDebug::SubmitGrid(
 		EditorCamera& camera)
 	{
-		mDebugData->mGridBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
-		mDebugData->mGridBuffer.Write((void*)&camera.GetProjection(), 64, 64);
-		mDebugData->mGridBuffer.Write((void*)&camera.GetFarClip(), 4, 128);
-		mDebugData->mGridBuffer.Write((void*)&camera.GetNearClip(), 4, 132);
+		mDebugData->mGridBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 0);
+		mDebugData->mGridBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 64);
+		mDebugData->mGridBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 128);
+		mDebugData->mGridBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 132);
 	}
 
 	void RendererDebug::SubmitCollider(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)

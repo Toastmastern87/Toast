@@ -593,47 +593,48 @@ namespace Toast {
 					if (scriptFields)
 					{
 						Ref<ScriptClass> entityClass = ScriptEngine::GetEntityClass(sc.ClassName);
-						TOAST_CORE_ASSERT(entityClass, "");
-						const auto& fields = entityClass->GetFields();
-						auto& entityFields = ScriptEngine::GetScriptFieldMap(deserializedEntity);
-
-						for (auto scriptField : scriptFields)
+						if (entityClass) 
 						{
-							std::string name = scriptField["Name"].as<std::string>();
-							std::string typeString = scriptField["Type"].as<std::string>();
-							ScriptFieldType type = Utils::ScriptFieldTypeFromString(typeString);
+							const auto& fields = entityClass->GetFields();
+							auto& entityFields = ScriptEngine::GetScriptFieldMap(deserializedEntity);
 
-							ScriptFieldInstance& fieldInstance = entityFields[name];
-
-							// Makes this into a Toaster warning
-							TOAST_CORE_ASSERT(fields.find(name) != fields.end(), "");
-
-							if (fields.find(name) == fields.end())
-								continue;
-
-							fieldInstance.Field = fields.at(name);
-
-							switch (type)
+							for (auto scriptField : scriptFields)
 							{
-								READ_SCRIPT_FIELD(Float,	float);
-								READ_SCRIPT_FIELD(Double,	double);
-								READ_SCRIPT_FIELD(Bool,		bool);
-								READ_SCRIPT_FIELD(Char,		char);
-								READ_SCRIPT_FIELD(Byte,		int8_t);
-								READ_SCRIPT_FIELD(Short,	int16_t);
-								READ_SCRIPT_FIELD(Int,		int32_t);
-								READ_SCRIPT_FIELD(Long,		int64_t);
-								READ_SCRIPT_FIELD(UByte,	uint8_t);
-								READ_SCRIPT_FIELD(UShort,	uint16_t);
-								READ_SCRIPT_FIELD(UInt,		uint32_t);
-								READ_SCRIPT_FIELD(ULong,	uint64_t);
-								READ_SCRIPT_FIELD(Vector2,	DirectX::XMFLOAT2);
-								READ_SCRIPT_FIELD(Vector3,	DirectX::XMFLOAT3);
-								READ_SCRIPT_FIELD(Vector4,	DirectX::XMFLOAT4);
-								READ_SCRIPT_FIELD(Entity,	UUID);
+								std::string name = scriptField["Name"].as<std::string>();
+								std::string typeString = scriptField["Type"].as<std::string>();
+								ScriptFieldType type = Utils::ScriptFieldTypeFromString(typeString);
+
+								ScriptFieldInstance& fieldInstance = entityFields[name];
+
+								// Makes this into a Toaster warning
+								TOAST_CORE_ASSERT(fields.find(name) != fields.end(), "");
+
+								if (fields.find(name) == fields.end())
+									continue;
+
+								fieldInstance.Field = fields.at(name);
+
+								switch (type)
+								{
+									READ_SCRIPT_FIELD(Float, float);
+									READ_SCRIPT_FIELD(Double, double);
+									READ_SCRIPT_FIELD(Bool, bool);
+									READ_SCRIPT_FIELD(Char, char);
+									READ_SCRIPT_FIELD(Byte, int8_t);
+									READ_SCRIPT_FIELD(Short, int16_t);
+									READ_SCRIPT_FIELD(Int, int32_t);
+									READ_SCRIPT_FIELD(Long, int64_t);
+									READ_SCRIPT_FIELD(UByte, uint8_t);
+									READ_SCRIPT_FIELD(UShort, uint16_t);
+									READ_SCRIPT_FIELD(UInt, uint32_t);
+									READ_SCRIPT_FIELD(ULong, uint64_t);
+									READ_SCRIPT_FIELD(Vector2, DirectX::XMFLOAT2);
+									READ_SCRIPT_FIELD(Vector3, DirectX::XMFLOAT3);
+									READ_SCRIPT_FIELD(Vector4, DirectX::XMFLOAT4);
+									READ_SCRIPT_FIELD(Entity, UUID);
+								}
 							}
-						}
-							
+						}		
 					}
 				}
 
