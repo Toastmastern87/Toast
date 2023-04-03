@@ -8,7 +8,7 @@ namespace Sandbox
 
         public float Speed;
 
-        void OnCreate() 
+        void OnCreate()
         {
             System.Console.WriteLine($"Player.OnCreated - {ID}");
 

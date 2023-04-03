@@ -69,6 +69,7 @@
 #include <set>
 #include <stdexcept>
 #include <utility>
+#include <filesystem>
 
 #include <string>
 #include <sstream>

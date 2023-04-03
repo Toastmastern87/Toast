@@ -60,7 +60,7 @@ namespace Toast {
 		mVertexBuffer->Bind();
 		mIndexBuffer->Bind();
 
-		mUIPropBuffer.Write((void*)&mColor, 16, 0);
+		mUIPropBuffer.Write((uint8_t*)&mColor, 16, 0);
 		mUIPropCBuffer->Map(mUIPropBuffer);
 		mUIPropCBuffer->Bind();
 
@@ -111,10 +111,10 @@ namespace Toast {
 	{
 		float type = 1.0f;
 
-		mUIPropBuffer.Write((void*)&mCornerRadius, 4, 24);
-		mUIPropBuffer.Write((void*)&mWidth, 4, 16);
-		mUIPropBuffer.Write((void*)&mHeight, 4, 20);
-		mUIPropBuffer.Write((void*)&type, 4, 28);
+		mUIPropBuffer.Write((uint8_t*)&mCornerRadius, 4, 24);
+		mUIPropBuffer.Write((uint8_t*)&mWidth, 4, 16);
+		mUIPropBuffer.Write((uint8_t*)&mHeight, 4, 20);
+		mUIPropBuffer.Write((uint8_t*)&type, 4, 28);
 
 		UIElement::Bind();
 	}
@@ -132,7 +132,7 @@ namespace Toast {
 	{
 		float type = 2.0f;
 
-		mUIPropBuffer.Write((void*)&type, 4, 28);
+		mUIPropBuffer.Write((uint8_t*)&type, 4, 28);
 
 		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
 		mTextFont->GetFontAtlas()->Bind(6, D3D11_PIXEL_SHADER);

@@ -47,7 +47,6 @@ namespace Toast {
 		sRendererData->DepthRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::R32_TYPELESS, TextureFormat::D32_FLOAT);
 		sRendererData->PickingRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32_SINT);
 		sRendererData->OutlineRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
-		sRendererData->PlanetMaskRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::R32_TYPELESS, TextureFormat::D32_FLOAT);
 		sRendererData->UIRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
 
 		sRendererData->BaseFramebuffer = CreateRef<Framebuffer>(sRendererData->BaseRenderTarget, sRendererData->DepthRenderTarget);
@@ -55,7 +54,6 @@ namespace Toast {
 		sRendererData->FinalFramebuffer = CreateRef<Framebuffer>(sRendererData->FinalRenderTarget, sRendererData->DepthRenderTarget);
 		sRendererData->PickingFramebuffer = CreateRef<Framebuffer>(sRendererData->PickingRenderTarget);
 		sRendererData->OutlineFramebuffer = CreateRef<Framebuffer>(sRendererData->OutlineRenderTarget);
-		sRendererData->PlanetMaskFramebuffer = CreateRef<Framebuffer>(sRendererData->PlanetMaskRenderTarget);
 		sRendererData->UIFramebuffer = CreateRef<Framebuffer>(sRendererData->UIRenderTarget);
 	}
 
@@ -75,21 +73,21 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		// Updating the camera data in the buffer and mapping it to the GPU
-		sRendererData->CameraBuffer.Write((void*)&camera.GetViewMatrix(), 64, 0);
-		sRendererData->CameraBuffer.Write((void*)&camera.GetProjection(), 64, 64);
-		sRendererData->CameraBuffer.Write((void*)&camera.GetInvViewMatrix(), 64, 128);
-		sRendererData->CameraBuffer.Write((void*)&camera.GetInvProjection(), 64, 192);
-		sRendererData->CameraBuffer.Write((void*)&cameraPos.x, 16, 256);
-		sRendererData->CameraBuffer.Write((void*)&camera.GetForwardDirection().x, 16, 272);
-		sRendererData->CameraBuffer.Write((void*)&camera.GetFarClip(), 4, 288);
-		sRendererData->CameraBuffer.Write((void*)&camera.GetNearClip(), 4, 292);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 0);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 64);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 128);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 192);
+		sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos.x, 16, 256);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetForwardDirection().x, 16, 272);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 288);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 292);
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
 		// Updating the lightning data in the buffer and mapping it to the GPU
-		sRendererData->LightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].Direction, 16, 0);
-		sRendererData->LightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].Radiance, 16, 16);
-		sRendererData->LightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].Multiplier, 4, 32);
-		sRendererData->LightningBuffer.Write((void*)&scene->mLightEnvironment.DirectionalLights[0].SunDisc, 4, 36);
+		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Direction, 16, 0);
+		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Radiance, 16, 16);
+		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Multiplier, 4, 32);
+		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].SunDisc, 4, 36);
 		sRendererData->LightningCBuffer->Map(sRendererData->LightningBuffer);
 
 		sRendererData->SceneData.SceneEnvironment = scene->mEnvironment;
@@ -263,8 +261,8 @@ namespace Toast {
 
 			sRendererData->SceneData.SkyboxData.Skybox->Bind();
 
-			sRendererData->EnvironmentBuffer.Write((void*)&sRendererData->SceneData.SkyboxData.Intensity, 4, 0);
-			sRendererData->EnvironmentBuffer.Write((void*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
+			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.Intensity, 4, 0);
+			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
 			sRendererData->EnvironmentCBuffer->Map(sRendererData->EnvironmentBuffer);
 
 			RenderCommand::DisableWireframe();
@@ -318,6 +316,7 @@ namespace Toast {
 				meshCommand.Mesh->Set<float>("Planet", "mieScaleHeight", meshCommand.PlanetData->mieScaleHeight);
 				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "rayBaseScatteringCoefficient", meshCommand.PlanetData->rayBaseScatteringCoefficient);
 				meshCommand.Mesh->Set<float>("Planet", "mieBaseScatteringCoefficient", meshCommand.PlanetData->mieBaseScatteringCoefficient);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "planetCenter", meshCommand.PlanetData->planetCenter);
 				meshCommand.Mesh->Set<int>("Planet", "numInScatteringPoints", meshCommand.PlanetData->inScatteringPoints);
 				meshCommand.Mesh->Set<int>("Planet", "numOpticalDepthPoints", meshCommand.PlanetData->opticalDepthPoints);
 
@@ -331,6 +330,7 @@ namespace Toast {
 
 	void Renderer::PickingRenderPass()
 	{
+		RenderCommand::DisableWireframe();
 		RenderCommand::DisableBlending();
 
 		sRendererData->PickingFramebuffer->Bind();
@@ -374,6 +374,7 @@ namespace Toast {
 				meshCommand.Mesh->Set<float>("Planet", "mieScaleHeight", meshCommand.PlanetData->mieScaleHeight);
 				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "rayBaseScatteringCoefficient", meshCommand.PlanetData->rayBaseScatteringCoefficient);
 				meshCommand.Mesh->Set<float>("Planet", "mieBaseScatteringCoefficient", meshCommand.PlanetData->mieBaseScatteringCoefficient);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "planetCenter", meshCommand.PlanetData->planetCenter);
 				meshCommand.Mesh->Set<int>("Planet", "numInScatteringPoints", meshCommand.PlanetData->inScatteringPoints);
 				meshCommand.Mesh->Set<int>("Planet", "numOpticalDepthPoints", meshCommand.PlanetData->opticalDepthPoints);
 

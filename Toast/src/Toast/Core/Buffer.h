@@ -7,27 +7,32 @@ namespace Toast
 {
 	struct Buffer 
 	{
-		void* Data;
-		uint32_t Size;
+		uint8_t* Data = nullptr;
+		uint64_t Size = 0;
 
 		Buffer() : Data(nullptr), Size(0) 
 		{
 		}
 
-		Buffer(void* data, uint32_t size) 
+		Buffer(uint8_t* data, uint32_t size)
 			: Data(data), Size(size)
 		{
 		}
 
-		void Allocate(uint32_t size) 
+		Buffer(uint64_t size)
+			: Size(size)
 		{
-			delete[] Data;
-			Data = nullptr;
+			Allocate(Size);
+		}
+
+		void Allocate(uint64_t size)
+		{
+			Release();
 			
 			if (size == 0)
 				return;
 
-			Data = new byte[size];
+			Data = new uint8_t[size];
 			Size = size;
 		}
 
@@ -45,17 +50,26 @@ namespace Toast
 		}
 
 		template<typename T>
-		T& Read(uint32_t offset = 0)
+		T& Read(uint64_t offset = 0)
 		{
 			return *(T*)((byte*)Data + offset);
 		}
 
-		void Write(void* data, uint32_t size, uint32_t offset = 0) 
+		template<typename T>
+		T* As()
+		{
+			return (T*)Data;
+		}
+
+		void Write(uint8_t* data, uint64_t size, uint64_t offset = 0)
 		{
 			TOAST_CORE_ASSERT((offset + size) <= Size, "Buffer overflow!");
 			std::memcpy((byte*)Data + offset, data, size);
 		}
 
-		inline uint32_t GetSize() const { return Size; }
+		operator bool() const 
+		{
+			return (bool)Data;
+		}
 	};
 }

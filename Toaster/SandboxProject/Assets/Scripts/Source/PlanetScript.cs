@@ -8,8 +8,8 @@ namespace Sandbox
     public class PlanetScript : Entity
     {
         private Entity mCameraEntity;
-        private TransformComponent mCameraTransform;
-        private Vector3 mCameraOldRotation;
+        private TransformComponent mCameraTransform, mMarsTransform;
+        private Vector3 mCameraOldRotation, mCameraOldTranslation, mMarsOldRotation, mMarsOldTranslation;
 
         private PlanetComponent mPlanetComponent;
 
@@ -17,7 +17,12 @@ namespace Sandbox
         {
             mCameraEntity = FindEntityByName("Camera");
             mCameraTransform = mCameraEntity.GetComponent<TransformComponent>();
+            mMarsTransform = GetComponent<TransformComponent>();
             mCameraOldRotation = mCameraTransform.Rotation;
+            mCameraOldTranslation = mCameraTransform.Translation;
+
+            mMarsOldRotation = mMarsTransform.Rotation;
+            mMarsOldTranslation = mMarsTransform.Translation;
 
             mPlanetComponent = GetComponent<PlanetComponent>();
         }
@@ -28,14 +33,16 @@ namespace Sandbox
 
         void OnUpdate(float ts)
         {
-            if (mCameraTransform.Rotation != mCameraOldRotation)
+            if (mCameraTransform.Rotation != mCameraOldRotation || mCameraTransform.Translation != mCameraOldTranslation || mMarsTransform.Rotation != mMarsOldRotation || mMarsTransform.Translation != mMarsTransform.Translation)
             {
-
-
-                //mPlanetComponent.RegeneratePlanet(mCameraTransform.Translation, mCameraTransform.Transform);
+                mPlanetComponent.RegeneratePlanet(mCameraTransform.Translation, mCameraTransform.GetTransform());
             }
 
             mCameraOldRotation = mCameraTransform.Rotation;
+            mCameraOldTranslation = mCameraTransform.Translation;
+
+            mMarsOldRotation = mMarsTransform.Rotation;
+            mMarsOldTranslation = mMarsTransform.Translation;
         }
     }
 }

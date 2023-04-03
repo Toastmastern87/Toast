@@ -44,9 +44,13 @@ namespace Toast {
 
 	struct TransformComponent
 	{
+		bool IsDirty = false;
+
 		DirectX::XMFLOAT3 Translation = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 RotationEulerAngles = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 Scale = { 1.0f, 1.0f, 1.0f };
+
+		DirectX::XMFLOAT4 RotationQuaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 		DirectX::XMFLOAT3 Up = { 0.0f, 1.0f, 0.0f };
 		DirectX::XMFLOAT3 Right = { 1.0f, 0.0f, 0.0f };
@@ -58,7 +62,7 @@ namespace Toast {
 		DirectX::XMMATRIX GetTransform() 
 		{
 			return DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Scale.x, Scale.y, Scale.z)
-				* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(RotationEulerAngles.x), DirectX::XMConvertToRadians(RotationEulerAngles.y), DirectX::XMConvertToRadians(RotationEulerAngles.z))))
+				* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(RotationEulerAngles.x), DirectX::XMConvertToRadians(RotationEulerAngles.y), DirectX::XMConvertToRadians(RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&RotationQuaternion))
 				* DirectX::XMMatrixTranslation(Translation.x, Translation.y, Translation.z);
 		}
 	};
@@ -89,6 +93,7 @@ namespace Toast {
 			float mieScaleHeight = 0.0f;
 			DirectX::XMFLOAT3 rayBaseScatteringCoefficient = { 0.0f, 0.0f, 0.0f };
 			float mieBaseScatteringCoefficient = 0.0f;
+			DirectX::XMFLOAT3 planetCenter = { 0.0f, 0.0f, 0.0f };
 			bool atmosphereToggle = false;
 			int inScatteringPoints = 1;
 			int opticalDepthPoints = 1;
@@ -141,6 +146,7 @@ namespace Toast {
 		SceneCamera Camera;
 		bool Primary = true;
 		bool FixedAspectRatio = false;
+		bool IsDirty = false;
 
 		CameraComponent() = default;
 		CameraComponent(const CameraComponent&) = default;

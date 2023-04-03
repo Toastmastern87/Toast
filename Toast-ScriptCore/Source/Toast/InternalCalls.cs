@@ -101,10 +101,37 @@ namespace Toast
         internal static extern void TransformComponent_SetRotation(ulong entityID, ref Vector3 inRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_GetPitch(ulong entityID, out float outPitch);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_SetPitch(ulong entityID, ref float inPitch);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_GetYaw(ulong entityID, out float outYaw);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_SetYaw(ulong entityID, ref float inYaw);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_GetRoll(ulong entityID, out float outRoll);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_SetRoll(ulong entityID, ref float inRoll);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void TransformComponent_GetScale(ulong entityID, out Vector3 outScale);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void TransformComponent_SetScale(ulong entityID, ref Vector3 inScale);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_GetTransform(ulong entityID, out Matrix4 outTransform);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_Rotate(ulong entityID, ref Vector3 rotationAxis, ref float angle);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_RotateAroundPoint(ulong entityID, ref Vector3 point, ref Vector3 rotationAxis, ref float angle);
 
         #endregion
 
@@ -143,7 +170,7 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void PlanetComponent_SetMesh(ulong entityID, IntPtr unmanagedInstance);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void PlanetComponent_RegeneratePlanet(ulong entityID, Vector3 cameraPos, Matrix4 cameraForward);
+        internal static extern void PlanetComponent_GeneratePlanet(ulong entityID, Vector3 cameraPos, Matrix4 cameraForward);
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void PlanetComponent_GetRadius(ulong entityID, out float inScale);
         [MethodImpl(MethodImplOptions.InternalCall)]

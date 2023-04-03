@@ -19,7 +19,7 @@ namespace Toast {
 			float y1 = floor(P.y);
 			float y2 = floor(P.y + 1.0f);
 
-			//R1(x, y) = Q11 ·(x2 – x) / (x2 – x1) + Q21 ·(x – x1) / (x2 – x1)
+			//R1(x, y) = Q11 · (x2 – x) / (x2 – x1) + Q21 ·(x – x1) / (x2 – x1)
 			float R1 = Q11 * (x2 - P.x) / (x2 - x1) + Q21 * (P.x - x1) / (x2 - x1);
 
 			//R2(x, y) = Q12 · (x2 – x) / (x2 – x1) + Q22 · (x – x1) / (x2 – x1)

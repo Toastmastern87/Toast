@@ -50,6 +50,7 @@ cbuffer Planet				: register(b4)
 	float mieScaleHeight;
 	float3 rayBaseScatteringCoefficient;
 	float mieBaseScatteringCoefficient;
+	float3 planetCenter;
 	int atmosphereToggle;
 	int numInScatteringPoints;
 	int numOpticalDepthPoints;
@@ -80,10 +81,15 @@ float2 RaySphere(float3 sphereCenter, float sphereRadius, float3 rayOrigin, floa
 	float b = 2.0f * dot(rayOrigin, rayDir);
 	float c = dot(rayOrigin, rayOrigin) - (sphereRadius * sphereRadius);
 
+	// If outside and facing away from sphere
+	if (c > 0.0 && b > 0.0)
+		return float2(maxFloat, 0); // No hit
+
 	float discriminant = b * b - 4.0f * a * c;
 	 //No intersections:  discriminant < 0;
 	 //1 intersections:  discriminant == 0;
 	 //2 intersections:  discriminant > 0;
+
 	if (discriminant > 0.0f)
 	{
 		float s = sqrt(discriminant);
@@ -99,7 +105,7 @@ float2 RaySphere(float3 sphereCenter, float sphereRadius, float3 rayOrigin, floa
 
 float3 SampleLightRay(float3 rayOrigin)
 {
-	float2 sunRayAtmoPoints = RaySphere(float3(0.0f, 0.0f, 0.0f), radius + atmosphereHeight, rayOrigin, direction);
+	float2 sunRayAtmoPoints = RaySphere(planetCenter, radius + atmosphereHeight, rayOrigin, direction);
 
 	float3 rayOpticalDepth = 0.0f;
 	float mieOpticalDepth = 0.0f;
@@ -109,7 +115,7 @@ float3 SampleLightRay(float3 rayOrigin)
 	for (int i = 0; i < numOpticalDepthPoints; i++)
 	{
 		float3 pointInAtmosphere = rayOrigin + direction * (time + stepSize * 0.5f);
-		float height = length(pointInAtmosphere) - radius;
+		float height = length(pointInAtmosphere - planetCenter) - radius;
 
 		// Inside the planet, minAltitude is to make sure that the ray is lower then even the lowest point of the planet.
 		if (height < minAltitude)
@@ -137,7 +143,7 @@ float3 CalculateLightScattering(float3 rayOrigin, float3 rayDir, float tEntryPoi
 	for (int i = 0; i < numInScatteringPoints; i++)
 	{
 		float3 pointInAtmosphere = rayOrigin + rayDir * (time + stepSize * 0.5f);
-		float height = length(pointInAtmosphere) - radius;
+		float height = length(pointInAtmosphere - planetCenter) - radius;
 
 		float3 lightTransmittance = SampleLightRay(pointInAtmosphere);
 
@@ -193,9 +199,8 @@ float4 main(PixelInputType input) : SV_TARGET
 		sceneDepth = (1.0f - Remap(sceneDepth, far, near, 0.0f, 1.0f)) * length(worldPosPixel - rayOrigin);
 
 		float3 rayDir = normalize(worldPosPixel - rayOrigin);
-		float3 sphereCenter = float3(0.0f, 0.0f, 0.0f);
 
-		float2 atmoHitInfo = RaySphere(sphereCenter, radius + atmosphereHeight, rayOrigin, rayDir);
+		float2 atmoHitInfo = RaySphere(planetCenter, radius + atmosphereHeight, rayOrigin, rayDir);
 		float dstToAtmosphere = atmoHitInfo.x;
 		float dstThroughAtmosphere = min(atmoHitInfo.y - atmoHitInfo.x, sceneDepth - dstToAtmosphere);
 

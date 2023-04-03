@@ -40,6 +40,8 @@ namespace Toast {
 		//Settings
 		struct Settings
 		{
+			bool IsDirty = false;
+
 			enum class Wireframe { NO = 0, YES = 1, ONTOP = 2 };
 			Wireframe WireframeRendering = Wireframe::NO;
 
@@ -111,8 +113,6 @@ namespace Toast {
 		Frustum* GetFrustum() { return mFrustum.get(); }
 		void InvalidateFrustum();
 
-		void SetOldCameraTransform(DirectX::XMMATRIX transform) { mOldCameraTransform = transform; }
-
 		void SetRenderColliders(bool renderColliders) { mSettings.RenderColliders = renderColliders; }
 		bool GetRenderColliders() { return mSettings.RenderColliders; }
 	private:
@@ -140,9 +140,6 @@ namespace Toast {
 
 		Ref<Material> mColliderMaterial;
 
-		DirectX::XMVECTOR mOldCameraPos = { 0.0f, 0.0f, 0.0f }, mOldCameraRot = { 0.0f, 0.0f, 0.0f }, mOldCameraScale = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMMATRIX mOldCameraTransform = DirectX::XMMatrixIdentity();
-
 		bool mIsRunning = false;
 		bool mIsPaused = false;
 
@@ -151,10 +148,8 @@ namespace Toast {
 		entt::entity mSelectedEntity;
 		entt::entity mHoveredEntity;
 
-		bool mOldBackfaceCullSetting = false;
-		bool mOldFrustumCullSetting = false;
-
 		Ref<Frustum> mFrustum;
+		bool mInvalidatePlanet = false;
 
 		friend class Entity;
 		friend class Renderer;

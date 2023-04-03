@@ -31,8 +31,6 @@ namespace Toast {
 			wireframeButton("Normal", Scene::Settings::Wireframe::NO);
 			ImGui::SameLine();
 			wireframeButton("Wireframe", Scene::Settings::Wireframe::YES);
-			ImGui::SameLine();
-			wireframeButton("Wireframe Overlay", Scene::Settings::Wireframe::ONTOP);
 
 			ImGui::Text("Selection mode");
 			ImGui::SameLine();
@@ -45,8 +43,10 @@ namespace Toast {
 
 			ImGui::Checkbox("Show grid", &mContext->mSettings.Grid);
 			ImGui::Checkbox("Show camera frustum", &mContext->mSettings.CameraFrustum);
-			ImGui::Checkbox("Planet backface culling", &mContext->mSettings.BackfaceCulling);
-			ImGui::Checkbox("Planet frustum culling", &mContext->mSettings.FrustumCulling);
+			if(ImGui::Checkbox("Planet backface culling", &mContext->mSettings.BackfaceCulling))
+				mContext->mSettings.IsDirty = true;
+			if(ImGui::Checkbox("Planet frustum culling", &mContext->mSettings.FrustumCulling))
+				mContext->mSettings.IsDirty = true;
 			ImGui::Checkbox("Render Colliders", &mContext->mSettings.RenderColliders);
 			ImGui::Checkbox("Render UI", &mContext->mSettings.RenderUI);
 		}

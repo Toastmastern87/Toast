@@ -1,0 +1,50 @@
+Scene: Untitled Scene
+Entities:
+  - Entity: 6278107305936859366
+    TagComponent:
+      Tag: Mars
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    PlanetComponent:
+      Subdivisions: 4
+      PatchLevels: 6
+      MaxAltitude: 21.2000008
+      MinAltitude: -8.19999981
+      Radius: 3389.5
+      GravitationalAcceleration: 9.81999969
+      AtmosphereHeight: 100.800003
+      AtmosphereToggle: false
+      InScatteringPoints: 1
+      OpticalDepthPoints: 1
+      MieAnisotropy: 0
+      RayScaleHeight: 0
+      MieScaleHeight: 0
+      RayBaseScatteringCoefficient: [0, 0, 0]
+      MieBaseScatteringCoefficient: 0
+  - Entity: 13981803476726384887
+    TagComponent:
+      Tag: Camera
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    CameraComponent:
+      Camera:
+        ProjectionType: 0
+        PerspectiveFOV: 45
+        NearClip: 0.100000001
+        FarClip: 1000
+        OrthographicWidth: 10
+        OrthographicHeight: 10
+      Primary: true
+      FixedAspectRatio: false

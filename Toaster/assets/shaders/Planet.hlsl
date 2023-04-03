@@ -43,6 +43,7 @@ cbuffer Planet : register(b2)
 	float mieScaleHeight;
 	float3 rayBaseScatteringCoefficient;
 	float mieBaseScatteringCoefficient;
+	float3 planetCenter;
 	int atmosphereToggle;
 	int numInScatteringPoints;
 	int numOpticalDepthPoints;
@@ -118,11 +119,8 @@ PixelInputType main(VertexInputType input)
 	float2 uv;
 	float3 pos;
 	float4 finalPos;
-	float distance, morphPercentage;
 
 	pos = input.a + input.r * input.localPosition.x + input.s * input.localPosition.y;
-
-	distance = length(mul(pos, worldMatrix) - cameraPosition.xyz);
 
 	pos = normalize(pos);
 
@@ -140,11 +138,11 @@ PixelInputType main(VertexInputType input)
 
 	finalPos = float4(pos * 0.5f, 1.0f);
 
-	output.pixelPosition = mul(finalPos, worldMatrix);
+	output.pixelPosition = mul(finalPos, worldMatrix); //float4(pos, 1.0f);// 
 	output.pixelPosition = mul(output.pixelPosition, viewMatrix);
 	output.pixelPosition = mul(output.pixelPosition, projectionMatrix);
 
-	output.worldPosition = mul(finalPos, worldMatrix).xyz;
+	output.worldPosition = mul(finalPos, worldMatrix).xyz;//pos;// 
 	output.cameraPos = cameraPosition.xyz;
 
 	return output;
@@ -186,6 +184,7 @@ cbuffer Planet			: register(b4)
 	float mieScaleHeight;
 	float3 rayBaseScatteringCoefficient;
 	float mieBaseScatteringCoefficient;
+	float3 planetCenter;
 	int atmosphereToggle;
 	int numInScatteringPoints;
 	int numOpticalDepthPoints;
@@ -282,7 +281,7 @@ float GetHeight(float2 uv)
 	{
 		float craterHeightDetail = SimplexNoise(float3(float2(8192.0f, 4096.0f) * uv, 1.0f), 15.0f, 0.5f, 0.5f);
 		//Min and max altitude of the details are 30 and -30. check base height for information on how to change these
-		baseHeight *= 1.0f + (((craterHeightDetail + 1.0f) * 0.5f) * (0.06f) - 0.03f);
+		baseHeight *= 1.0f + (((craterHeightDetail + 1.0f) * 0.5f) * (0.06f) - 0.03f); //*= 1.0f + craterHeightDetail * (0.03f / radius);//
 	}
 
 	finalHeight = baseHeight;
@@ -324,7 +323,7 @@ float3 CalculateNormal(float3 normalVector, float2 uv)
 
 	N = normalize(float3(hL - hR, hU - hD, 2.0f));
 	float3 norm = normalize(normalVector);
-	float3 up = float3(0.0f, 1.0f, 0.0f) - norm;
+	float3 up = float3(0.0f, 1.0f, 0.0f);//; - norm;
 	float3 tang = normalize(cross(norm, up));//might need flipping
 	float3 biTan = normalize(cross(norm, tang));//same
 	float3x3 localAxis = float3x3(tang, biTan, norm);
@@ -517,10 +516,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	float3 Lo = normalize(input.cameraPos - input.worldPosition);
 
 	// Get current fragment's normal and transform to world space.
-	float3 n = normalize(input.worldPosition);
-
-	// Get current fragment's normal and transform to world space.
-	float3 N = CalculateNormal(input.worldPosition, input.texcoord);
+	float3 N = CalculateNormal(input.worldPosition - planetCenter, input.texcoord);
 
 	// Angle between surface normal and outgoing light direction.
 	float cosLo = max(dot(N, Lo), 0.0f);

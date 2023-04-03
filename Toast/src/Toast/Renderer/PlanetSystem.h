@@ -23,7 +23,7 @@ namespace Toast {
 			CULL, LEAF, SPLIT, SPLITCULL
 		};
 	public:
-		static void GenerateBasePlanet(std::vector<PlanetFace>& faces)
+		static void GenerateBasePlanet(std::vector<PlanetFace>& faces, DirectX::XMMATRIX& planetTransform)
 		{
 			float ratio = ((1.0f + sqrt(5.0f)) / 2.0f);
 
@@ -68,6 +68,8 @@ namespace Toast {
 							6, 2, 10,
 							2, 4, 11
 			};
+
+			faces.clear();
 
 			for (uint32_t i = 0; i < startIndices.size(); i += 3)
 				faces.emplace_back(PlanetFace(startVertices[startIndices[i]], startVertices[startIndices[i + (size_t)1]], startVertices[startIndices[i + (size_t)2]], nullptr, (short)0));
@@ -121,16 +123,21 @@ namespace Toast {
 
 		static NextPlanetFace CheckPlanetFaceSplit(Frustum* frustum, DirectX::XMMATRIX planetTransform, DirectX::XMVECTOR a, DirectX::XMVECTOR b, DirectX::XMVECTOR c, int16_t subdivision, int16_t maxSubdivisions, std::vector<float>& distanceLUT, std::vector<float>& faceLevelDotLUT, std::vector<float>& heightMultLUT, DirectX::XMVECTOR& cameraPos, DirectX::XMVECTOR& cameraForward, bool backfaceCull, bool frustumCullActivated, bool frustumCull)
 		{
+			DirectX::XMVECTOR planetTranslation, planetRotation, planetScale;
+
+			DirectX::XMMatrixDecompose(&planetScale, &planetRotation, &planetTranslation, planetTransform);
+
+			XMVECTOR aBeforeTransform = a;
+			XMVECTOR bBeforeTransform = b;
+			XMVECTOR cBeforeTransform = c;
+
 			float aDistance, bDistance, cDistance;
-			a = DirectX::XMVector3Transform(a, planetTransform);
-			b = DirectX::XMVector3Transform(b, planetTransform);
-			c = DirectX::XMVector3Transform(c, planetTransform);
 
 			DirectX::XMVECTOR center = (a + b + c) / 3.0f;
 
-			DirectX::XMVECTOR dotProduct = DirectX::XMVector3Dot(DirectX::XMVector3Normalize(center), DirectX::XMVector3Normalize(center - cameraPos));
+			DirectX::XMVECTOR dotProduct = DirectX::XMVector3Dot(DirectX::XMVector3Normalize(center), DirectX::XMVector3Normalize(center - cameraPos));//DirectX::XMVector3Dot(center, center - cameraPos);
 
-			if (backfaceCull && DirectX::XMVectorGetX(dotProduct) >= faceLevelDotLUT[(uint32_t)subdivision]) 
+			if (backfaceCull && DirectX::XMVectorGetX(dotProduct) >= (faceLevelDotLUT[(uint32_t)subdivision] + 0.1f)) 
 				return NextPlanetFace::CULL;
 
 			if (frustumCullActivated && frustumCull)
@@ -177,7 +184,7 @@ namespace Toast {
 
 			NextPlanetFace nextPlanetFace = CheckPlanetFaceSplit(frustum, planetTransform, a, b, c, subdivision, maxSubdivisions, distanceLUT, faceLevelDotLUT, heightMultLUT, cameraPos, cameraForward, backfaceCull, frustumCullActivated, frustumCull);
 			
-			if (nextPlanetFace == NextPlanetFace::CULL) 
+			if (nextPlanetFace == NextPlanetFace::CULL)
 				return;
 
 			if (subdivision < maxSubdivisions && (nextPlanetFace == NextPlanetFace::SPLIT || nextPlanetFace == NextPlanetFace::SPLITCULL)) {
@@ -208,20 +215,25 @@ namespace Toast {
 			}
 		}
 
-		static void GeneratePlanet(Frustum* frustum, DirectX::XMMATRIX planetTransform, std::vector<PlanetFace>& faces, std::vector<PlanetPatch>& patches, std::vector<float>& distanceLUT, std::vector<float>& faceLevelDotLUT, std::vector<float>& heightMultLUT, DirectX::XMVECTOR& cameraPos, DirectX::XMVECTOR& cameraForward, int16_t subdivisions, bool backfaceCull, bool frustumCullActivated)
+		static void GeneratePlanet(Frustum* frustum, DirectX::XMMATRIX planetTransform, std::vector<PlanetFace>& faces, std::vector<PlanetPatch>& patches, std::vector<float>& distanceLUT, std::vector<float>& faceLevelDotLUT, std::vector<float>& heightMultLUT, DirectX::XMVECTOR cameraPos, DirectX::XMVECTOR& cameraForward, int16_t subdivisions, bool backfaceCull, bool frustumCullActivated)
 		{
 			patches.clear();
 
-			for (auto& face : faces) 
+			cameraPos = DirectX::XMVector3Transform(cameraPos, DirectX::XMMatrixInverse(nullptr, planetTransform));
+
+			for (auto& face : faces)
 				RecursiveFace(frustum, planetTransform, face.A, face.B, face.C, face.Level, subdivisions, patches, distanceLUT, faceLevelDotLUT, heightMultLUT, cameraPos, cameraForward, backfaceCull, frustumCullActivated, true);
 		}
 
-		static void GenerateDistanceLUT(std::vector<float>& distanceLUT, float maxSubdivisions)
+		static void GenerateDistanceLUT(std::vector<float>& distanceLUT, float maxSubdivisions, float scale)
 		{
 			distanceLUT.clear();
 
-			for (int subdivision = 0; subdivision < maxSubdivisions; subdivision++) 				
-				distanceLUT.emplace_back(25123.8186f * exp(-0.9725f * (subdivision + 1)));
+			for (int subdivision = 0; subdivision < maxSubdivisions; subdivision++)
+				distanceLUT.emplace_back(25123.8186f * exp(-0.9725f * (subdivision + 1)) / scale);
+
+			//for (auto level : distanceLUT)
+			//	TOAST_CORE_INFO("distanceLUT: %f", level);
 		}
 
 		static void GenerateFaceDotLevelLUT(std::vector<float>& faceLevelDotLUT, float scale, float maxSubdivisions, float maxHeight)
@@ -234,23 +246,26 @@ namespace Toast {
 			for (int i = 1; i <= maxSubdivisions; i++)
 			{
 				angle *= 0.5f;
-				faceLevelDotLUT.emplace_back(sinf(angle + cullingAngle));	
+				faceLevelDotLUT.emplace_back(sinf(angle + cullingAngle));
 			}
+
+			//for (auto level : faceLevelDotLUT)
+			//	TOAST_CORE_INFO("FacelevelDotLUT: %f", level);
 		}
 
 		static void GenerateHeightMultLUT(std::vector<PlanetFace> faces, std::vector<float>& heightMultLUT, float scale, float maxSubdivisions, float maxHeight, DirectX::XMMATRIX planetTransform)
 		{
+			DirectX::XMVECTOR planetTranslation, planetRotation, planetScale;
+
+			DirectX::XMMatrixDecompose(&planetScale, &planetRotation, &planetTranslation, planetTransform);
+
 			heightMultLUT.clear();
 			DirectX::XMVECTOR a = faces[0].A;
 			DirectX::XMVECTOR b = faces[0].B;
 			DirectX::XMVECTOR c = faces[0].C;
 
-			a = DirectX::XMVector3Transform(a, planetTransform);
-			b = DirectX::XMVector3Transform(b, planetTransform);
-			c = DirectX::XMVector3Transform(c, planetTransform);
-
 			DirectX::XMVECTOR center = (a + b + c) / 3.0f;
-			center *= (scale * 0.5f) / DirectX::XMVectorGetX(DirectX::XMVector3Length(center));//+maxHeight
+			center *= (scale * 0.5f) / DirectX::XMVectorGetX(DirectX::XMVector3Length(center));//+maxHeight 
 			heightMultLUT.push_back(1.0f / DirectX::XMVectorGetX(DirectX::XMVector3Dot(DirectX::XMVector3Normalize(a), DirectX::XMVector3Normalize(center))));
 			float normMaxHeight = maxHeight / (scale * 0.5f);
 			for (int i = 1; i <= maxSubdivisions; i++)
@@ -263,6 +278,9 @@ namespace Toast {
 				c *= (scale * 0.5f) / DirectX::XMVectorGetX(DirectX::XMVector3Length(c));
 				heightMultLUT.push_back(1.0f / DirectX::XMVectorGetX(DirectX::XMVector3Dot(DirectX::XMVector3Normalize(a), DirectX::XMVector3Normalize(center))) + normMaxHeight);
 			}
+
+			//for (auto level : heightMultLUT)
+			//	TOAST_CORE_INFO("heightMultLUT: %f", level);
 		}
 	};
 }

@@ -55,13 +55,13 @@ namespace Toast {
 				bool Atmosphere = false;
 			} PlanetData;
 
-			Ref<Framebuffer> BaseFramebuffer, FinalFramebuffer, PickingFramebuffer, OutlineFramebuffer, PlanetMaskFramebuffer, PostProcessFramebuffer, UIFramebuffer;
+			Ref<Framebuffer> BaseFramebuffer, FinalFramebuffer, PickingFramebuffer, OutlineFramebuffer, PostProcessFramebuffer, UIFramebuffer;
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshColliderDrawList;
 
 			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer;
 			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer;
 
-			Ref<RenderTarget> BaseRenderTarget, FinalRenderTarget, DepthRenderTarget, PickingRenderTarget, OutlineRenderTarget, PlanetMaskRenderTarget, PostProcessRenderTarget, UIRenderTarget;
+			Ref<RenderTarget> BaseRenderTarget, FinalRenderTarget, DepthRenderTarget, PickingRenderTarget, OutlineRenderTarget, PostProcessRenderTarget, UIRenderTarget;
 		};
 
 	protected:
@@ -96,7 +96,6 @@ namespace Toast {
 		static Ref<RenderTarget>& GetFinalRenderTarget() { return sRendererData->FinalRenderTarget; }
 		static Ref<RenderTarget>& GetPickingRenderTarget() { return sRendererData->PickingRenderTarget; }
 		static Ref<RenderTarget>& GetOutlineRenderTarget() { return sRendererData->OutlineRenderTarget; }
-		static Ref<RenderTarget>& GetPlanetMaskRenderTarget() { return sRendererData->PlanetMaskRenderTarget; }
 		static Ref<RenderTarget>& GetPostProcessRenderTarget() { return sRendererData->PostProcessRenderTarget; }
 		static Ref<RenderTarget>& GetUIRenderTarget() { return sRendererData->UIRenderTarget; }
 
@@ -104,7 +103,6 @@ namespace Toast {
 		static Ref<Framebuffer>& GetFinalFramebuffer() { return sRendererData->FinalFramebuffer; }
 		static Ref<Framebuffer>& GetPickingFramebuffer() { return sRendererData->PickingFramebuffer; }
 		static Ref<Framebuffer>& GetOutlineFramebuffer() { return sRendererData->OutlineFramebuffer; }
-		static Ref<Framebuffer>& GetPlanetMaskFramebuffer() { return sRendererData->PlanetMaskFramebuffer; }
 		static Ref<Framebuffer>& GetPostProcessFramebuffer() { return sRendererData->PostProcessFramebuffer; }
 		static Ref<Framebuffer>& GetUIFramebuffer() { return sRendererData->UIFramebuffer; }
 
