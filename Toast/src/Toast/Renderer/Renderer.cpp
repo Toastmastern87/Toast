@@ -259,7 +259,7 @@ namespace Toast {
 			if (sRendererData->SceneData.SkyboxData.Skybox->mVertexBuffer) sRendererData->SceneData.SkyboxData.Skybox->mVertexBuffer->Bind();
 			if (sRendererData->SceneData.SkyboxData.Skybox->mIndexBuffer) sRendererData->SceneData.SkyboxData.Skybox->mIndexBuffer->Bind();
 
-			sRendererData->SceneData.SkyboxData.Skybox->Bind();
+			sRendererData->SceneData.SkyboxData.Skybox->Bind("Skybox");
 
 			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.Intensity, 4, 0);
 			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
@@ -289,39 +289,40 @@ namespace Toast {
 			{
 				for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
 				{
+					//TOAST_CORE_INFO("Rendering submesh with material: %s", submesh.MaterialName.c_str());
 					bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
 
-					meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
-					meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
+					meshCommand.Mesh->Set<DirectX::XMMATRIX>(submesh.MaterialName, "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+					meshCommand.Mesh->Set<int>(submesh.MaterialName, "Model", "entityID", meshCommand.EntityID);
 
-					meshCommand.Mesh->Map();
-					meshCommand.Mesh->Bind(environment);
+					meshCommand.Mesh->Map(submesh.MaterialName);
+					meshCommand.Mesh->Bind(submesh.MaterialName, environment);
 
 					RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 				}
 			}
 			else 
 			{
-				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(meshCommand.Mesh->mSubmeshes[0].Transform, meshCommand.Transform));
-				meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
+				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Planet", "Model", "worldMatrix", DirectX::XMMatrixMultiply(meshCommand.Mesh->mSubmeshes[0].Transform, meshCommand.Transform));
+				meshCommand.Mesh->Set<int>("Planet", "Model", "entityID", meshCommand.EntityID);
 
 				// Planet mesh data
-				meshCommand.Mesh->Set<float>("Planet", "radius", meshCommand.PlanetData->radius);
-				meshCommand.Mesh->Set<float>("Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
-				meshCommand.Mesh->Set<float>("Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
-				meshCommand.Mesh->Set<float>("Planet", "atmosphereHeight", meshCommand.PlanetData->atmosphereHeight);
-				meshCommand.Mesh->Set<int>("Planet", "atmosphereToggle", meshCommand.PlanetData->atmosphereToggle);
-				meshCommand.Mesh->Set<float>("Planet", "mieAnisotropy", meshCommand.PlanetData->mieAnisotropy);
-				meshCommand.Mesh->Set<float>("Planet", "rayScaleHeight", meshCommand.PlanetData->rayScaleHeight);
-				meshCommand.Mesh->Set<float>("Planet", "mieScaleHeight", meshCommand.PlanetData->mieScaleHeight);
-				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "rayBaseScatteringCoefficient", meshCommand.PlanetData->rayBaseScatteringCoefficient);
-				meshCommand.Mesh->Set<float>("Planet", "mieBaseScatteringCoefficient", meshCommand.PlanetData->mieBaseScatteringCoefficient);
-				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "planetCenter", meshCommand.PlanetData->planetCenter);
-				meshCommand.Mesh->Set<int>("Planet", "numInScatteringPoints", meshCommand.PlanetData->inScatteringPoints);
-				meshCommand.Mesh->Set<int>("Planet", "numOpticalDepthPoints", meshCommand.PlanetData->opticalDepthPoints);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "radius", meshCommand.PlanetData->radius);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "atmosphereHeight", meshCommand.PlanetData->atmosphereHeight);
+				meshCommand.Mesh->Set<int>("Planet", "Planet", "atmosphereToggle", meshCommand.PlanetData->atmosphereToggle);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "mieAnisotropy", meshCommand.PlanetData->mieAnisotropy);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "rayScaleHeight", meshCommand.PlanetData->rayScaleHeight);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "mieScaleHeight", meshCommand.PlanetData->mieScaleHeight);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "Planet", "rayBaseScatteringCoefficient", meshCommand.PlanetData->rayBaseScatteringCoefficient);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "mieBaseScatteringCoefficient", meshCommand.PlanetData->mieBaseScatteringCoefficient);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "Planet", "planetCenter", meshCommand.PlanetData->planetCenter);
+				meshCommand.Mesh->Set<int>("Planet", "Planet", "numInScatteringPoints", meshCommand.PlanetData->inScatteringPoints);
+				meshCommand.Mesh->Set<int>("Planet", "Planet", "numOpticalDepthPoints", meshCommand.PlanetData->opticalDepthPoints);
 
-				meshCommand.Mesh->Map();
-				meshCommand.Mesh->Bind();
+				meshCommand.Mesh->Map("Planet");
+				meshCommand.Mesh->Bind("Planet");
 
 				RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, static_cast<uint32_t>(meshCommand.Mesh->mPlanetPatches.size()), 0, 0, 0);
 			}
@@ -348,10 +349,10 @@ namespace Toast {
 
 				for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
 				{
-					meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
-					meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
-					meshCommand.Mesh->Map();
-					meshCommand.Mesh->Bind();
+					meshCommand.Mesh->Set<DirectX::XMMATRIX>(submesh.MaterialName, "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+					meshCommand.Mesh->Set<int>(submesh.MaterialName, "Model", "entityID", meshCommand.EntityID);
+					meshCommand.Mesh->Map(submesh.MaterialName);
+					meshCommand.Mesh->Bind(submesh.MaterialName);
 
 					pickingShader->Bind();
 
@@ -360,26 +361,26 @@ namespace Toast {
 			}
 			else
 			{
-				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Model", "worldMatrix", DirectX::XMMatrixMultiply(meshCommand.Mesh->mSubmeshes[0].Transform, meshCommand.Transform));
-				meshCommand.Mesh->Set<int>("Model", "entityID", meshCommand.EntityID);
+				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Planet", "Model", "worldMatrix", DirectX::XMMatrixMultiply(meshCommand.Mesh->mSubmeshes[0].Transform, meshCommand.Transform));
+				meshCommand.Mesh->Set<int>("Planet", "Model", "entityID", meshCommand.EntityID);
 
 				// Planet mesh data
-				meshCommand.Mesh->Set<float>("Planet", "radius", meshCommand.PlanetData->radius);
-				meshCommand.Mesh->Set<float>("Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
-				meshCommand.Mesh->Set<float>("Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
-				meshCommand.Mesh->Set<float>("Planet", "atmosphereHeight", meshCommand.PlanetData->atmosphereHeight);
-				meshCommand.Mesh->Set<int>("Planet", "atmosphereToggle", meshCommand.PlanetData->atmosphereToggle);
-				meshCommand.Mesh->Set<float>("Planet", "mieAnisotropy", meshCommand.PlanetData->mieAnisotropy);
-				meshCommand.Mesh->Set<float>("Planet", "rayScaleHeight", meshCommand.PlanetData->rayScaleHeight);
-				meshCommand.Mesh->Set<float>("Planet", "mieScaleHeight", meshCommand.PlanetData->mieScaleHeight);
-				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "rayBaseScatteringCoefficient", meshCommand.PlanetData->rayBaseScatteringCoefficient);
-				meshCommand.Mesh->Set<float>("Planet", "mieBaseScatteringCoefficient", meshCommand.PlanetData->mieBaseScatteringCoefficient);
-				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "planetCenter", meshCommand.PlanetData->planetCenter);
-				meshCommand.Mesh->Set<int>("Planet", "numInScatteringPoints", meshCommand.PlanetData->inScatteringPoints);
-				meshCommand.Mesh->Set<int>("Planet", "numOpticalDepthPoints", meshCommand.PlanetData->opticalDepthPoints);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "radius", meshCommand.PlanetData->radius);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "atmosphereHeight", meshCommand.PlanetData->atmosphereHeight);
+				meshCommand.Mesh->Set<int>("Planet", "Planet", "atmosphereToggle", meshCommand.PlanetData->atmosphereToggle);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "mieAnisotropy", meshCommand.PlanetData->mieAnisotropy);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "rayScaleHeight", meshCommand.PlanetData->rayScaleHeight);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "mieScaleHeight", meshCommand.PlanetData->mieScaleHeight);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "Planet", "rayBaseScatteringCoefficient", meshCommand.PlanetData->rayBaseScatteringCoefficient);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "mieBaseScatteringCoefficient", meshCommand.PlanetData->mieBaseScatteringCoefficient);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "Planet", "planetCenter", meshCommand.PlanetData->planetCenter);
+				meshCommand.Mesh->Set<int>("Planet", "Planet", "numInScatteringPoints", meshCommand.PlanetData->inScatteringPoints);
+				meshCommand.Mesh->Set<int>("Planet", "Planet", "numOpticalDepthPoints", meshCommand.PlanetData->opticalDepthPoints);
 
-				meshCommand.Mesh->Map();
-				meshCommand.Mesh->Bind();
+				meshCommand.Mesh->Map("Planet");
+				meshCommand.Mesh->Bind("Planet");
 
 				pickingShader->Bind();
 
