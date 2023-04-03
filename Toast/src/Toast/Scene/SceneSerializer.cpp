@@ -235,7 +235,7 @@ namespace Toast {
 			if(!pmc.Mesh->GetIsPlanet())
 				out << YAML::Key << "AssetPath" << YAML::Value << pmc.Mesh->GetFilePath();
 			out << YAML::Key << "IsPlanet" << YAML::Value << pmc.Mesh->GetIsPlanet();
-			out << YAML::Key << "Material" << YAML::Value << pmc.Mesh->GetMaterial()->GetName();
+			//out << YAML::Key << "Material" << YAML::Value << pmc.Mesh->GetMaterial()->GetName();
 
 			out << YAML::EndMap; // MeshComponent
 		}
@@ -548,7 +548,7 @@ namespace Toast {
 					auto& mc = deserializedEntity.GetComponent<MeshComponent>();
 
 					mc.Mesh->SetIsPlanet(meshComponent["IsPlanet"].as<bool>());
-					mc.Mesh->SetMaterial(MaterialLibrary::Get(meshComponent["Material"].as<std::string>()));
+					//mc.Mesh->SetMaterial(meshComponent["Material"].as<std::string>(), MaterialLibrary::Get(meshComponent["Material"].as<std::string>()));
 				}
 
 				auto spriteRendererComponent = entity["SpriteRendererComponent"];

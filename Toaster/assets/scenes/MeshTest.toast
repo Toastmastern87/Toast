@@ -1,22 +1,59 @@
 Scene: Untitled Scene
 Entities:
-  - Entity: 12389438231821383783
+  - Entity: 206874218262303449
     TagComponent:
-      Tag: Empty Entity
+      Tag: Starship Old
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [-0.699999988, -1.29999995, -5]
+      Rotation: [0, -88.0999985, 0]
+      Scale: [4, 4.5, 4.5]
+    MeshComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
+      IsPlanet: false
+  - Entity: 9356868289497082292
+    TagComponent:
+      Tag: Sun
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [0, 0, -0.800000012]
-      Scale: [0.99999994, 0.99999994, 1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    DirectionalLightComponent:
+      Radiance: [0.945147693, 0.88128978, 0.486531734]
+      Intensity: 1
+      SunDisk: false
+  - Entity: 15143211199185989387
+    TagComponent:
+      Tag: Skylight
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
     SkyLightComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\textures\immenstadter_horn_4k.tif
       Intensity: 1
-  - Entity: 16746000516722475737
+  - Entity: 8766351523377095098
     TagComponent:
-      Tag: Empty Entity
+      Tag: Starship
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [0, 0, -56.5]
-      Scale: [0.999964595, 0.999964595, 1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
     MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\stone watch tower\tower.FBX
-      Material: tower
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 2.0\Starship_SN2.gltf
+      IsPlanet: false

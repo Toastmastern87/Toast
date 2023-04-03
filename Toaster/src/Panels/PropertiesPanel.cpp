@@ -517,26 +517,26 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Material ");
-				ImGui::TableSetColumnIndex(1);
+				//ImGui::Text("Material ");
+				//ImGui::TableSetColumnIndex(1);
 
-				std::unordered_map<std::string, Ref<Material>> materials = MaterialLibrary::GetMaterials();
-				Ref<Material> currentMaterial = component.Mesh->GetMaterial();
+				//std::unordered_map<std::string, Ref<Material>> materials = MaterialLibrary::GetMaterials();
+				//Ref<Material> currentMaterial = component.Mesh->GetMaterial();
 
-				if (ImGui::BeginCombo("##material", currentMaterial->GetName().c_str()))
-				{
-					for (auto& material : materials)
-					{
-						bool isSelected = (currentMaterial->GetName() == material.first);
-						if (ImGui::Selectable(material.first.c_str(), isSelected))
-							component.Mesh->SetMaterial(MaterialLibrary::Get(material.first));
+				//if (ImGui::BeginCombo("##material", currentMaterial->GetName().c_str()))
+				//{
+				//	for (auto& material : materials)
+				//	{
+				//		bool isSelected = (currentMaterial->GetName() == material.first);
+				//		if (ImGui::Selectable(material.first.c_str(), isSelected))
+				//			component.Mesh->SetMaterial(material.first, MaterialLibrary::Get(material.first));
 
-						if (isSelected)
-							ImGui::SetItemDefaultFocus();
-					}
+				//		if (isSelected)
+				//			ImGui::SetItemDefaultFocus();
+				//	}
 
-					ImGui::EndCombo();
-				}
+				//	ImGui::EndCombo();
+				//}
 
 				ImGui::PopItemWidth();
 

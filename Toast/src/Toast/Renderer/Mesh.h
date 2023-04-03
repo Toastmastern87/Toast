@@ -125,7 +125,7 @@ namespace Toast {
 	public:
 		uint32_t BaseVertex;
 		uint32_t BaseIndex;
-		uint32_t MaterialIndex;
+		std::string MaterialName;
 		uint32_t IndexCount;
 		uint32_t VertexCount;
 
@@ -145,9 +145,9 @@ namespace Toast {
 		~Mesh() = default;
 
 		template <typename T>
-		void Set(const std::string& cbufferName, const std::string& name, const T& value)
+		void Set(const std::string& materialName, const std::string& cbufferName, const std::string& name, const T& value)
 		{
-			auto decl = FindCBufferElementDeclaration(cbufferName, name);
+			auto decl = FindCBufferElementDeclaration(materialName, cbufferName, name);
 
 			TOAST_CORE_ASSERT(decl, "Couldn't find constant buffer element!");
 			if (!decl)
@@ -160,9 +160,9 @@ namespace Toast {
 		}
 
 		template <typename T>
-		T& Get(const std::string& cbufferName, const std::string& name)
+		T& Get(const std::string& materialName, const std::string& cbufferName, const std::string& name)
 		{
-			auto decl = FindCBufferElementDeclaration(bufferName, name);
+			auto decl = FindCBufferElementDeclaration(materialName, bufferName, name);
 			TOAST_CORE_ASSERT(decl, "Couldn't find constant buffer element!");
 
 			if(cbufferName == "Model")
@@ -186,21 +186,21 @@ namespace Toast {
 		void AddSubmesh(uint32_t indexCount);
 		uint32_t GetNumberOfSubmeshes() { return mSubmeshes.size(); }
 
-		const Ref<Material> GetMaterial() const { return mMaterial; }
-		void SetMaterial(Ref<Material> material) { mMaterial = material; }
+		const Ref<Material> GetMaterial(std::string materialName) const { if (mMaterials.find(materialName) != mMaterials.end()) return mMaterials.at(materialName); else return nullptr; }
+		void SetMaterial(std::string materialName, Ref<Material> material) { mMaterials.insert({materialName, material}); }
 
 		std::vector<PlanetFace>& GetPlanetFaces() { return mPlanetFaces; }
 
 		DirectX::XMMATRIX& GetLocalTransform() { return mSubmeshes[0].Transform; }
 		void SetLocalTransform(DirectX::XMMATRIX& transform) { mSubmeshes[0].Transform = transform; }
 
-		void Map();
-		void Bind(bool environment = true);
+		void Map(const std::string& materialName);
+		void Bind(const std::string& materialName, bool environment = true);
 
 		bool GetIsPlanet() const { return mIsPlanet; }
 		void SetIsPlanet(bool isPlanet);
 	private:
-		const ShaderCBufferElement* FindCBufferElementDeclaration(const std::string& cbufferName, const std::string& name);
+		const ShaderCBufferElement* FindCBufferElementDeclaration(const std::string& materialName, const std::string& cbufferName, const std::string& name);
 	private:
 		std::string mFilePath = "";
 
@@ -211,8 +211,8 @@ namespace Toast {
 		Ref<VertexBuffer> mVertexBuffer;
 		Ref<VertexBuffer> mInstanceVertexBuffer;
 		Ref<IndexBuffer> mIndexBuffer;
-		Ref<Material> mMaterial = MaterialLibrary::Get("Standard");
-		std::vector<Ref<Material>> mMaterials;
+		//Ref<Material> mMaterial = MaterialLibrary::Get("Standard");
+		std::unordered_map<std::string, Ref<Material>> mMaterials;
 
 		uint32_t mVertexCount = 0;
 		uint32_t mIndexCount = 0;

@@ -1,8 +1,8 @@
-Material: StarshipMaterial
+Material: Heat Shield
 Shader: assets/shaders/ToastPBR.hlsl
-Albedo: [0.420033306, 0.420033306, 0.420033306, 1]
+Albedo: [0.0215108413, 0.0209355038, 0.0219794344, 1]
 Metalness: 1
-Roughness: 0.247999966
+Roughness: 0.5
 UseAlbedoMap: 0
 UseNormalMap: 0
 UseMetalRoughMap: 0

@@ -39,7 +39,7 @@ namespace Toast {
 
 	Mesh::Mesh()
 	{
-		mMaterial = MaterialLibrary::Get("Standard");
+		mMaterials["Standard"] = MaterialLibrary::Get("Standard");
 
 		// Setting up the constant buffer and data buffer for the mesh rendering
 		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 1) });
@@ -75,24 +75,28 @@ namespace Toast {
 			DirectX::XMFLOAT3 translation;
 			DirectX::XMFLOAT4 rotation;
 			DirectX::XMFLOAT3 scale;
-
+			//TOAST_CORE_INFO("data->accessors_count: %d", data->accessors_count);
 			for (unsigned m = 0; m < data->meshes_count; m++) 
 			{
-				Submesh& submesh = mSubmeshes.emplace_back();
-				submesh.MaterialIndex = 0;// data->meshes[m].primitives[0].material;
-				submesh.MeshName = data->meshes[m].name;
-				
-				// TRANSFORM
-				scale = data->nodes[m].has_scale ? DirectX::XMFLOAT3(data->nodes[m].scale[0], data->nodes[m].scale[1], data->nodes[m].scale[2]) : DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
-				rotation = data->nodes[m].has_rotation ? DirectX::XMFLOAT4(data->nodes[m].rotation[0], data->nodes[m].rotation[1], data->nodes[m].rotation[2], data->nodes[m].rotation[3]) : DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-				translation = data->nodes[m].has_translation ? DirectX::XMFLOAT3(data->nodes[m].translation[0], data->nodes[m].translation[1], data->nodes[m].translation[2]) : DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+				//TOAST_CORE_INFO("Loading Mesh: %s", data->meshes[m].name);
 
-				submesh.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z)
-						* (DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation)))
-						* DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
+				//TOAST_CORE_INFO("	primitives_count: %d", data->meshes[m].primitives_count);
 
 				for (unsigned int p = 0; p < data->meshes[m].primitives_count; p++)
 				{
+					Submesh& submesh = mSubmeshes.emplace_back();
+					submesh.MaterialName = std::string(data->meshes[m].primitives[p].material->name);
+					submesh.MeshName = data->meshes[m].name;
+
+					// TRANSFORM
+					scale = data->nodes[m].has_scale ? DirectX::XMFLOAT3(data->nodes[m].scale[0], data->nodes[m].scale[1], data->nodes[m].scale[2]) : DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
+					rotation = data->nodes[m].has_rotation ? DirectX::XMFLOAT4(data->nodes[m].rotation[0], data->nodes[m].rotation[1], data->nodes[m].rotation[2], data->nodes[m].rotation[3]) : DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+					translation = data->nodes[m].has_translation ? DirectX::XMFLOAT3(data->nodes[m].translation[0], data->nodes[m].translation[1], data->nodes[m].translation[2]) : DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+
+					submesh.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z)
+						* (DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation)))
+						* DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
+
 					if (data->meshes[m].primitives[p].type != cgltf_primitive_type_triangles) 
 						continue;
 
@@ -134,89 +138,96 @@ namespace Toast {
 
 			// MATERIALS
 			TOAST_CORE_INFO("Number of materials: %d", data->materials_count);
-			mMaterial = MaterialLibrary::Get("Standard");
-
-			Texture2D* whiteTexture = (Texture2D*)(TextureLibrary::Get("assets/textures/White.png"));
-			if (data->materials[0].has_pbr_metallic_roughness) 
+			for (int m = 0; m < data->materials_count; m++) 
 			{
-				std::string materialName(data->materials[0].name);
-				mMaterial = MaterialLibrary::Load(materialName, ShaderLibrary::Get("assets/shaders/ToastPBR.hlsl"));
+				//TOAST_CORE_INFO("Material name: %s", data->materials[m].name);
+				Texture2D* whiteTexture = (Texture2D*)(TextureLibrary::Get("assets/textures/White.png"));
+				if (data->materials[m].has_pbr_metallic_roughness)
+				{
+					//TOAST_CORE_INFO("is PBR material");
 
-				// ALBEDO
-				DirectX::XMFLOAT4 albedoColor;
-				albedoColor.x = data->materials[0].pbr_metallic_roughness.base_color_factor[0];
-				albedoColor.y = data->materials[0].pbr_metallic_roughness.base_color_factor[1];
-				albedoColor.z = data->materials[0].pbr_metallic_roughness.base_color_factor[2];
-				albedoColor.w = data->materials[0].pbr_metallic_roughness.base_color_factor[3];
+					std::string materialName(data->materials[m].name);
+					mMaterials.insert({ data->materials[m].name,  MaterialLibrary::Load(materialName, ShaderLibrary::Get("assets/shaders/ToastPBR.hlsl")) });
 
-				bool hasAlbedoMap = data->materials[0].pbr_metallic_roughness.base_color_texture.texture;
-				int useAlbedoMap = 0;
-				if (hasAlbedoMap)
-				{
-					std::string texPath(data->materials[0].pbr_metallic_roughness.base_color_texture.texture->image->uri);
-					std::filesystem::path path = mFilePath;
-					auto parentPath = path.parent_path();
-					std::string texturePath = parentPath.string();
-					std::string completePath = texturePath.append("\\").append(texPath.c_str());
-					albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-					useAlbedoMap = 1;
-					mMaterial->SetTexture(3, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
-					//TOAST_CORE_INFO("Albedo map found: %s", completePath.c_str());	
-				}
-				else
-				{
-					mMaterial->SetTexture(3, D3D11_PIXEL_SHADER, whiteTexture);
-				}
-				mMaterial->Set<DirectX::XMFLOAT4>("Albedo", albedoColor);
-				mMaterial->Set<int>("AlbedoTexToggle", useAlbedoMap);
+					// ALBEDO
+					DirectX::XMFLOAT4 albedoColor;
+					albedoColor.x = data->materials[m].pbr_metallic_roughness.base_color_factor[0];
+					albedoColor.y = data->materials[m].pbr_metallic_roughness.base_color_factor[1];
+					albedoColor.z = data->materials[m].pbr_metallic_roughness.base_color_factor[2];
+					albedoColor.w = data->materials[m].pbr_metallic_roughness.base_color_factor[3];
 
-				// NORMAL
-				bool hasNormalMap = data->materials[0].normal_texture.texture;
-				int useNormalMap = 0;
-				if (hasNormalMap)
-				{
-					std::string texPath(data->materials[0].normal_texture.texture->image->uri);
-					std::filesystem::path path = mFilePath;
-					auto parentPath = path.parent_path();
-					std::string texturePath = parentPath.string();
-					std::string completePath = texturePath.append("\\").append(texPath.c_str());
-					useNormalMap = 1;
-					mMaterial->SetTexture(4, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
-					//TOAST_CORE_INFO("Normal map found: %s", completePath.c_str());
-				}
-				else
-				{
-					mMaterial->SetTexture(4, D3D11_PIXEL_SHADER, whiteTexture);
-				}
-				mMaterial->Set<int>("NormalTexToggle", useNormalMap);
+					bool hasAlbedoMap = data->materials[m].pbr_metallic_roughness.base_color_texture.texture;
+					int useAlbedoMap = 0;
+					if (hasAlbedoMap)
+					{
+						std::string texPath(data->materials[m].pbr_metallic_roughness.base_color_texture.texture->image->uri);
+						std::filesystem::path path = mFilePath;
+						auto parentPath = path.parent_path();
+						std::string texturePath = parentPath.string();
+						std::string completePath = texturePath.append("\\").append(texPath.c_str());
+						albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+						useAlbedoMap = 1;
+						mMaterials[data->materials[m].name]->SetTexture(3, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+						//TOAST_CORE_INFO("Albedo map found: %s", completePath.c_str());	
+					}
+					else
+					{
+						mMaterials[data->materials[m].name]->SetTexture(3, D3D11_PIXEL_SHADER, whiteTexture);
+					}
+					mMaterials[data->materials[m].name]->Set<DirectX::XMFLOAT4>("Albedo", albedoColor);
+					mMaterials[data->materials[m].name]->Set<int>("AlbedoTexToggle", useAlbedoMap);
 
-				// METALLNESS ROUGHNESS
-				bool hasMetalRoughMap = data->materials[0].pbr_metallic_roughness.metallic_roughness_texture.texture;
-				int useMetalRoughMap = 0;
-				float metalness = 0.0f;
-				float roughness = 0.0f;
-				if (hasMetalRoughMap)
-				{
-					std::string texPath(data->materials[0].pbr_metallic_roughness.metallic_roughness_texture.texture->image->uri);
-					std::filesystem::path path = mFilePath;
-					auto parentPath = path.parent_path();
-					std::string texturePath = parentPath.string();
-					std::string completePath = texturePath.append("\\").append(texPath.c_str());
-					metalness = 1.0f;
-					useMetalRoughMap = 1;
-					mMaterial->SetTexture(5, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
-				}
-				else
-				{
-					metalness = data->materials[0].pbr_metallic_roughness.metallic_factor;
-					roughness = data->materials[0].pbr_metallic_roughness.roughness_factor;
+					// NORMAL
+					bool hasNormalMap = data->materials[m].normal_texture.texture;
+					int useNormalMap = 0;
+					if (hasNormalMap)
+					{
+						std::string texPath(data->materials[m].normal_texture.texture->image->uri);
+						std::filesystem::path path = mFilePath;
+						auto parentPath = path.parent_path();
+						std::string texturePath = parentPath.string();
+						std::string completePath = texturePath.append("\\").append(texPath.c_str());
+						useNormalMap = 1;
+						mMaterials[data->materials[m].name]->SetTexture(4, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+						//TOAST_CORE_INFO("Normal map found: %s", completePath.c_str());
+					}
+					else
+					{
+						mMaterials[data->materials[m].name]->SetTexture(4, D3D11_PIXEL_SHADER, whiteTexture);
+					}
+					mMaterials[data->materials[m].name]->Set<int>("NormalTexToggle", useNormalMap);
 
-					mMaterial->SetTexture(5, D3D11_PIXEL_SHADER, whiteTexture);
+					// METALLNESS ROUGHNESS
+					bool hasMetalRoughMap = data->materials[m].pbr_metallic_roughness.metallic_roughness_texture.texture;
+					int useMetalRoughMap = 0;
+					float metalness = 0.0f;
+					float roughness = 0.0f;
+					if (hasMetalRoughMap)
+					{
+						std::string texPath(data->materials[m].pbr_metallic_roughness.metallic_roughness_texture.texture->image->uri);
+						std::filesystem::path path = mFilePath;
+						auto parentPath = path.parent_path();
+						std::string texturePath = parentPath.string();
+						std::string completePath = texturePath.append("\\").append(texPath.c_str());
+						metalness = 1.0f;
+						useMetalRoughMap = 1;
+						mMaterials[data->materials[m].name]->SetTexture(5, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+					}
+					else
+					{
+						//TOAST_CORE_INFO("data->materials[m].pbr_metallic_roughness.metallic_factor: %f", data->materials[m].pbr_metallic_roughness.metallic_factor);
+						//TOAST_CORE_INFO("data->materials[m].pbr_metallic_roughness.roughness_factor: %f", data->materials[m].pbr_metallic_roughness.roughness_factor);
+						metalness = data->materials[m].pbr_metallic_roughness.metallic_factor;
+						roughness = data->materials[m].pbr_metallic_roughness.roughness_factor;
+
+						mMaterials[data->materials[m].name]->SetTexture(5, D3D11_PIXEL_SHADER, whiteTexture);
+					}
+					mMaterials[data->materials[m].name]->Set<float>("Metalness", metalness);
+					mMaterials[data->materials[m].name]->Set<float>("Roughness", roughness);
+					mMaterials[data->materials[m].name]->Set<int>("MetalRoughTexToggle", useMetalRoughMap);
 				}
-				mMaterial->Set<float>("Metalness", metalness);
-				mMaterial->Set<float>("Roughness", roughness);
-				mMaterial->Set<int>("MetalRoughTexToggle", useMetalRoughMap);
 			}
+			TOAST_CORE_INFO("Number of materials loaded: %d", mMaterials.size());
 
 			cgltf_free(data);
 			
@@ -240,9 +251,10 @@ namespace Toast {
 		submesh.BaseIndex = 0;
 		submesh.IndexCount = (uint32_t)indices.size() * 3;
 		submesh.Transform = transform;
+		submesh.MaterialName = "Standard";
 		mSubmeshes.push_back(submesh);
 
-		mMaterial = MaterialLibrary::Get("Standard");
+		mMaterials.insert({ "Standard", MaterialLibrary::Get("Standard") });
 
 		mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
 		mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
@@ -286,9 +298,9 @@ namespace Toast {
 
 	}
 
-	const Toast::ShaderCBufferElement* Mesh::FindCBufferElementDeclaration(const std::string& cbufferName, const std::string& name)
+	const Toast::ShaderCBufferElement* Mesh::FindCBufferElementDeclaration(const std::string& materialName, const std::string& cbufferName, const std::string& name)
 	{
-		const auto& shaderCBuffers = mMaterial->GetShader()->GetCBuffersBindings();
+		const auto& shaderCBuffers = mMaterials[materialName]->GetShader()->GetCBuffersBindings();
 
 		if (shaderCBuffers.size() > 0)
 		{
@@ -308,11 +320,11 @@ namespace Toast {
 		Submesh& submesh = mSubmeshes.emplace_back();
 		submesh.BaseVertex = mVertexCount;
 		submesh.BaseIndex = mIndexCount;
-		submesh.MaterialIndex = 0;
+		submesh.MaterialName = "Standard";
 		submesh.IndexCount = indexCount;
 	}
 
-	void Mesh::Map()
+	void Mesh::Map(const std::string& materialName)
 	{
 		// if the planet is a mesh upload Planet data to the GPU
 		if (mIsPlanet)
@@ -321,11 +333,11 @@ namespace Toast {
 		if (mModelCBuffer)
 			mModelCBuffer->Map(mModelBuffer);
 
-		if (mMaterial)
-			mMaterial->Map();
+		if (mMaterials.size() > 0)
+			mMaterials[materialName]->Map();
 	}
 
-	void Mesh::Bind(bool environment)
+	void Mesh::Bind(const std::string& materialName, bool environment)
 	{
 		mVertexBuffer->Bind();
 		mIndexBuffer->Bind();
@@ -339,19 +351,22 @@ namespace Toast {
 		if(mModelCBuffer)
 			mModelCBuffer->Bind();
 
-		if (mMaterial)
-			mMaterial->Bind(environment);
+		if (mMaterials.size() > 0)
+			mMaterials[materialName]->Bind(environment);
 	}
 
 	void Mesh::SetIsPlanet(bool isPlanet)
 	{
-		mIsPlanet = true;
+		mIsPlanet = isPlanet;
 
-		// Setting up the constant buffer and data buffer for the planet mesh rendering
-		mPlanetCBuffer = ConstantBufferLibrary::Load("Planet", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 2), CBufferBindInfo(D3D11_PIXEL_SHADER, 4) });
-		mPlanetCBuffer->Bind();
-		mPlanetBuffer.Allocate(mPlanetCBuffer->GetSize());
-		mPlanetBuffer.ZeroInitialize();
+		if (mIsPlanet) 
+		{
+			// Setting up the constant buffer and data buffer for the planet mesh rendering
+			mPlanetCBuffer = ConstantBufferLibrary::Load("Planet", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 2), CBufferBindInfo(D3D11_PIXEL_SHADER, 4) });
+			mPlanetCBuffer->Bind();
+			mPlanetBuffer.Allocate(mPlanetCBuffer->GetSize());
+			mPlanetBuffer.ZeroInitialize();
+		}
 	}
 
 }

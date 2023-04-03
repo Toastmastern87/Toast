@@ -298,7 +298,7 @@ namespace Toast {
 					auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
 
 					//Do not submit mesh if it's a planet
-					if (mesh.Mesh->GetMaterial()->GetName() != "Planet")
+					if (mesh.Mesh->GetIsPlanet())
 					{
 						switch (mSettings.WireframeRendering)
 						{
@@ -592,9 +592,8 @@ namespace Toast {
 			for (auto entity : viewMeshes)
 			{
 				auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
-
 				//Do not submit mesh if it's a planet
-				if (mesh.Mesh->GetMaterial()->GetName() != "Planet")
+				if (!mesh.Mesh->GetIsPlanet())
 				{
 					switch (mSettings.WireframeRendering)
 					{
@@ -936,7 +935,7 @@ namespace Toast {
 		TransformComponent tc;
 
 		component.Mesh = CreateRef<Mesh>();
-		component.Mesh->SetMaterial(MaterialLibrary::Get("Planet"));
+		component.Mesh->SetMaterial("Planet", MaterialLibrary::Get("Planet"));
 		component.Mesh->mTopology = PrimitiveTopology::TRIANGLELIST;
 		component.Mesh->SetIsPlanet(true);
 
@@ -1010,7 +1009,7 @@ namespace Toast {
 		Shader* skyboxShader = ShaderLibrary::Load("assets/shaders/Skybox.hlsl");
 		mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader);
 		mSkybox = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.gltf", true);
-		mSkybox->SetMaterial(mSkyboxMaterial);
+		mSkybox->SetMaterial("Skybox", mSkyboxMaterial);
 	}
 
 	template<>
@@ -1031,7 +1030,7 @@ namespace Toast {
 		mColliderMaterial->Set<DirectX::XMFLOAT4>("Albedo", { 0.0f, 0.0f, 1.0f, 1.0f });
 
 		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf");
-		component.ColliderMesh->SetMaterial(mColliderMaterial);
+		component.ColliderMesh->SetMaterial("Collider", mColliderMaterial);
 	}
 
 	template<>

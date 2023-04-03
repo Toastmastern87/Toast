@@ -1,13 +1,13 @@
-Material: StainlessSteel
+Material: RaptorEngineMaterial
 Shader: assets/shaders/ToastPBR.hlsl
-Albedo: [1, 1, 1, 1]
-Metalness: 0.987999976
-Roughness: 0.488000005
-UseAlbedoMap: 1
+Albedo: [0.0677650943, 0.0765801966, 0.0353344567, 1]
+Metalness: 1
+Roughness: 0.351999998
+UseAlbedoMap: 0
 UseNormalMap: 0
 UseMetalRoughMap: 0
 Textures:
-  - FilePath: C:\dev\Toast\Toaster\assets\meshes\Starship\Albedo.png
+  - FilePath: assets/textures/White.png
     BindSlot: 3
     ShaderType: 5
   - FilePath: assets/textures/White.png

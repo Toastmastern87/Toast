@@ -277,7 +277,7 @@ float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float cosLo, 
 	float D = ndfGGX(cosLh, roughness);
 	float G = gaSchlickGGX(cosLi, cosLo, roughness);
 
-	float3 kd = lerp(float3(1.0f, 1.0f, 1.0f) - F, float3(0.0f, 0.0f, 0.0f), metalness);
+	float3 kd = lerp(float3(1.0f, 1.0f, 1.0f) - F, float3(0.0f, 0.0f, 0.0f), (1.0f - metalness));
 	float3 diffuseBRDF = (kd * albedo) / PI;
 
 	// Cook-Torrance
@@ -293,7 +293,7 @@ float3 IBL(float3 F0, float3 Lr, float3 Normal, float3 View, float NdotV, float3
 {
 	float3 irradiance = IrradianceTexture.Sample(defaultSampler, Normal).rgb;
 	float3 F = fresnelSchlick(F0, cosLo);
-	float3 kd = lerp(1.0f - F, 0.0f, metalness);
+	float3 kd = lerp(1.0f - F, 0.0f, (1.0f - metalness));
 	float3 diffuseIBL = kd * albedo * irradiance;
 
 	uint specularTextureLevels = queryRadianceTextureLevels();
