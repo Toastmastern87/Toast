@@ -194,7 +194,17 @@ namespace Toast {
 
 		SphereColliderComponent() = default;
 		SphereColliderComponent(float radius, const Ref<Toast::Mesh>& mesh)
-			: Radius(Radius), ColliderMesh(mesh) {}
+			: Radius(radius), ColliderMesh(mesh) {}
+	};
+
+	struct BoxColliderComponent
+	{
+		DirectX::XMFLOAT3 Offset = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 Size = { 0.5f, 0.5f, 0.5f };
+
+		BoxColliderComponent() = default;
+		BoxColliderComponent(DirectX::XMFLOAT3 offset, DirectX::XMFLOAT3 size)
+			: Offset(offset), Size(size){}
 	};
 
 	struct TerrainColliderComponent 

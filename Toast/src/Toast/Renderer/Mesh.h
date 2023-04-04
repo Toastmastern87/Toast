@@ -9,6 +9,8 @@
 
 #include <DirectXMath.h>
 
+#include <../cgltf/include/cgltf.h>
+
 namespace Toast {
 
 	struct PlanetPatch
@@ -120,8 +122,30 @@ namespace Toast {
 		}
 	};
 
+	struct Animation 
+	{
+		bool IsActive = true;
+		float TimeElapsed = 0.0f;
+		cgltf_animation_channel AnimationChannel;
+		cgltf_animation_sampler AnimationSampler;
+		cgltf_accessor SamplerInput;
+		cgltf_accessor SamplerOutput;
+		cgltf_buffer_view Buffer_View;
+		cgltf_buffer BufferData;
+		Buffer DataBuffer;
+
+		Animation() = default;
+		Animation(cgltf_animation_channel animationChannel, cgltf_animation_sampler animationSampler)
+			: AnimationChannel(animationChannel), AnimationSampler(animationSampler) {}
+	};
+
 	class Submesh
 	{
+	public:
+		void OnUpdate(Timestep ts);
+
+		uint32_t FindPosition(float animationTime, const std::string& animationName);
+		DirectX::XMVECTOR InterpolateTranslation(float animationTime, const std::string& animationName);
 	public:
 		uint32_t BaseVertex;
 		uint32_t BaseIndex;
@@ -130,8 +154,14 @@ namespace Toast {
 		uint32_t VertexCount;
 
 		DirectX::XMMATRIX Transform = DirectX::XMMatrixIdentity();
+		DirectX::XMFLOAT3 Translation = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+		DirectX::XMFLOAT4 Rotation = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+		DirectX::XMFLOAT3 Scale = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
 
 		std::string MeshName;
+
+		bool IsAnimated = false;
+		std::unordered_map<std::string, Ref<Animation>> Animations;
 	};
 
 	class Mesh 
@@ -187,7 +217,7 @@ namespace Toast {
 		uint32_t GetNumberOfSubmeshes() { return mSubmeshes.size(); }
 
 		const Ref<Material> GetMaterial(std::string materialName) const { if (mMaterials.find(materialName) != mMaterials.end()) return mMaterials.at(materialName); else return nullptr; }
-		void SetMaterial(std::string materialName, Ref<Material> material) { mMaterials.insert({materialName, material}); }
+		void SetMaterial(std::string materialName, Ref<Material> material) { mMaterials[materialName] = material; TOAST_CORE_INFO("ADDING MATERIAL, Number of materials: %d", mMaterials.size()); }
 
 		std::vector<PlanetFace>& GetPlanetFaces() { return mPlanetFaces; }
 
@@ -199,6 +229,8 @@ namespace Toast {
 
 		bool GetIsPlanet() const { return mIsPlanet; }
 		void SetIsPlanet(bool isPlanet);
+
+		bool GetIsAnimated() const { return mIsAnimated; }
 	private:
 		const ShaderCBufferElement* FindCBufferElementDeclaration(const std::string& materialName, const std::string& cbufferName, const std::string& name);
 	private:
@@ -211,7 +243,6 @@ namespace Toast {
 		Ref<VertexBuffer> mVertexBuffer;
 		Ref<VertexBuffer> mInstanceVertexBuffer;
 		Ref<IndexBuffer> mIndexBuffer;
-		//Ref<Material> mMaterial = MaterialLibrary::Get("Standard");
 		std::unordered_map<std::string, Ref<Material>> mMaterials;
 
 		uint32_t mVertexCount = 0;
@@ -231,6 +262,7 @@ namespace Toast {
 		Buffer mModelBuffer, mPlanetBuffer;
 
 		bool mIsPlanet = false;
+		bool mIsAnimated = false;
 
 		friend class Scene;
 		friend class Renderer;

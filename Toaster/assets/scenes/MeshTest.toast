@@ -1,19 +1,54 @@
 Scene: Untitled Scene
 Entities:
-  - Entity: 206874218262303449
+  - Entity: 10755338950261772821
     TagComponent:
-      Tag: Starship Old
+      Tag: Camera
     RelationshipComponent:
       ParentHandle: 0
       Children:
         []
     TransformComponent:
-      Translation: [-0.699999988, -1.29999995, -5]
-      Rotation: [0, -88.0999985, 0]
-      Scale: [4, 4.5, 4.5]
+      Translation: [2.29999995, -5.80000019, -3.5]
+      Rotation: [0, -39.7000008, 0]
+      Scale: [1, 1, 1]
+    CameraComponent:
+      Camera:
+        ProjectionType: 0
+        PerspectiveFOV: 45
+        NearClip: 0.100000001
+        FarClip: 1000
+        OrthographicWidth: 10
+        OrthographicHeight: 10
+      Primary: true
+      FixedAspectRatio: false
+  - Entity: 8766351523377095098
+    TagComponent:
+      Tag: Starship
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
     MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 2.0\Starship_SN2.gltf
       IsPlanet: false
+  - Entity: 15143211199185989387
+    TagComponent:
+      Tag: Skylight
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SkyLightComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\immenstadter_horn_4k.tif
+      Intensity: 1
   - Entity: 9356868289497082292
     TagComponent:
       Tag: Sun
@@ -29,31 +64,17 @@ Entities:
       Radiance: [0.945147693, 0.88128978, 0.486531734]
       Intensity: 1
       SunDisk: false
-  - Entity: 15143211199185989387
+  - Entity: 206874218262303449
     TagComponent:
-      Tag: Skylight
+      Tag: Starship Old
     RelationshipComponent:
       ParentHandle: 0
       Children:
         []
     TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-    SkyLightComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\immenstadter_horn_4k.tif
-      Intensity: 1
-  - Entity: 8766351523377095098
-    TagComponent:
-      Tag: Starship
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
+      Translation: [-0.699999988, -1.29999995, -5]
+      Rotation: [0, -88.0999985, 0]
+      Scale: [4, 4.5, 4.5]
     MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 2.0\Starship_SN2.gltf
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship\Starship.gltf
       IsPlanet: false

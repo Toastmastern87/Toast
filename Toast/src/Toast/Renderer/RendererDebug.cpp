@@ -184,10 +184,10 @@ namespace Toast {
 		{
 			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
 			{
-				meshCommand.Mesh->Set<DirectX::XMMATRIX>(submesh.MaterialName, "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Collider", "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
 
-				meshCommand.Mesh->Map(submesh.MaterialName);
-				meshCommand.Mesh->Bind(submesh.MaterialName, true);
+				meshCommand.Mesh->Map("Collider");
+				meshCommand.Mesh->Bind("Collider", true);
 
 				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 			}
