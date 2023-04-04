@@ -207,7 +207,7 @@ namespace Toast {
 			}
 		}
 
-		// Process lights
+		// Process Lights
 		{
 			mLightEnvironment = LightEnvironment();
 			auto lights = mRegistry.group<DirectionalLightComponent>(entt::get<TransformComponent>);
@@ -239,6 +239,16 @@ namespace Toast {
 				mEnvironmentIntensity = skylightComponent.Intensity;
 				SetSkybox(mEnvironment.RadianceMap);
 			}
+		}
+
+		// Process Animations
+		auto view = mRegistry.view<TransformComponent, MeshComponent>();
+		for (auto entity : view)
+		{
+			auto [transform, mesh] = view.get<TransformComponent, MeshComponent>(entity);
+			
+			if (mesh.Mesh->GetIsAnimated())
+				mesh.Mesh->OnUpdate(ts * mTimeScale);
 		}
 
 		SceneCamera* mainCamera = nullptr;
@@ -298,7 +308,7 @@ namespace Toast {
 					auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
 
 					//Do not submit mesh if it's a planet
-					if (mesh.Mesh->GetIsPlanet())
+					if (!mesh.Mesh->GetIsPlanet())
 					{
 						switch (mSettings.WireframeRendering)
 						{
@@ -787,7 +797,6 @@ namespace Toast {
 
 	void Scene::InvalidateFrustum()
 	{
-		DirectX::XMVECTOR cameraScale, cameraRot, cameraPos;
 		DirectX::XMMATRIX* planetTransform = nullptr;
 
 		auto view = mRegistry.view<TransformComponent, CameraComponent>();
@@ -897,6 +906,7 @@ namespace Toast {
 		CopyComponent<ScriptComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<RigidBodyComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<SphereColliderComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<BoxColliderComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TerrainColliderComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIPanelComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UITextComponent>(target->mRegistry, mRegistry, enttMap);
@@ -1031,6 +1041,11 @@ namespace Toast {
 
 		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf");
 		component.ColliderMesh->SetMaterial("Collider", mColliderMaterial);
+	}
+
+	template<>
+	void Scene::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& component)
+	{
 	}
 
 	template<>

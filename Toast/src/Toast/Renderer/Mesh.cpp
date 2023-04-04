@@ -1,11 +1,9 @@
 #include "tpch.h"
+#define CGLTF_IMPLEMENTATION
 #include "Mesh.h"
 
 #include <filesystem>
 #include <math.h>
-
-#define CGLTF_IMPLEMENTATION
-#include <../cgltf/include/cgltf.h>
 
 namespace Toast {
 
@@ -47,7 +45,8 @@ namespace Toast {
 		mModelBuffer.Allocate(mModelCBuffer->GetSize());
 		mModelBuffer.ZeroInitialize();
 
-		//TOAST_CORE_INFO("Mesh Initialized!");
+		TOAST_CORE_INFO("Mesh Initialized!");
+		TOAST_CORE_INFO("Number of materials: %d", mMaterials.size());
 	}
 
 	Mesh::Mesh(const std::string& filePath, const bool skyboxMesh)
@@ -72,11 +71,13 @@ namespace Toast {
 		{
 			result = cgltf_load_buffers(&options, data, filePath.c_str());
 
+			mIsAnimated = data->animations_count > 0;
+
 			DirectX::XMFLOAT3 translation;
 			DirectX::XMFLOAT4 rotation;
 			DirectX::XMFLOAT3 scale;
 			//TOAST_CORE_INFO("data->accessors_count: %d", data->accessors_count);
-			for (unsigned m = 0; m < data->meshes_count; m++) 
+			for (unsigned m = 0; m < data->meshes_count; m++)
 			{
 				//TOAST_CORE_INFO("Loading Mesh: %s", data->meshes[m].name);
 
@@ -89,13 +90,14 @@ namespace Toast {
 					submesh.MeshName = data->meshes[m].name;
 
 					// TRANSFORM
-					scale = data->nodes[m].has_scale ? DirectX::XMFLOAT3(data->nodes[m].scale[0], data->nodes[m].scale[1], data->nodes[m].scale[2]) : DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
-					rotation = data->nodes[m].has_rotation ? DirectX::XMFLOAT4(data->nodes[m].rotation[0], data->nodes[m].rotation[1], data->nodes[m].rotation[2], data->nodes[m].rotation[3]) : DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-					translation = data->nodes[m].has_translation ? DirectX::XMFLOAT3(data->nodes[m].translation[0], data->nodes[m].translation[1], data->nodes[m].translation[2]) : DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+					submesh.Scale = data->nodes[m].has_scale ? DirectX::XMFLOAT3(data->nodes[m].scale[0], data->nodes[m].scale[1], data->nodes[m].scale[2]) : DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
+					submesh.Rotation = data->nodes[m].has_rotation ? DirectX::XMFLOAT4(data->nodes[m].rotation[0], data->nodes[m].rotation[1], data->nodes[m].rotation[2], data->nodes[m].rotation[3]) : DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+					submesh.Translation = data->nodes[m].has_translation ? DirectX::XMFLOAT3(data->nodes[m].translation[0], data->nodes[m].translation[1], data->nodes[m].translation[2]) : DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+					DirectX::XMVECTOR test = {0.0f, 0.0f, 0.0f};
 
-					submesh.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z)
-						* (DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotation)))
-						* DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
+					submesh.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(submesh.Scale.x, submesh.Scale.y, submesh.Scale.z)
+						* (DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&submesh.Rotation)))
+						* DirectX::XMMatrixTranslation(submesh.Translation.x, submesh.Translation.y, submesh.Translation.z);
 
 					if (data->meshes[m].primitives[p].type != cgltf_primitive_type_triangles) 
 						continue;
@@ -229,6 +231,43 @@ namespace Toast {
 			}
 			TOAST_CORE_INFO("Number of materials loaded: %d", mMaterials.size());
 
+			// ANIMATIONS
+			for (unsigned int a = 0; a < data->animations_count; a++)
+			{
+				Ref<Animation> animation = CreateRef<Animation>();
+
+				//TOAST_CORE_INFO("data->animations[a].samplers_count: %d", data->animations[a].samplers_count);
+				for (unsigned int s = 0; s < data->animations[a].samplers_count; s++) 
+				{
+					TOAST_CORE_INFO("ADDING SAMPLER");
+					animation->AnimationSampler = data->animations[a].samplers[s];
+					animation->SamplerInput = *data->animations[a].samplers[s].input;
+					animation->SamplerOutput = *data->animations[a].samplers[s].output;
+					animation->Buffer_View = *data->animations[a].samplers[s].output->buffer_view;
+					//TOAST_CORE_INFO("animation->Buffer_View.size: %d", animation->Buffer_View.size);
+					animation->BufferData = *data->animations[a].samplers[s].output->buffer_view->buffer;
+					//TOAST_CORE_INFO("animation->BufferData.size: %d", animation->BufferData.size);
+					animation->DataBuffer = Buffer(animation->BufferData.size);
+					animation->DataBuffer.Write((uint8_t*)(animation->BufferData.data) + animation->Buffer_View.offset, animation->Buffer_View.size);
+				}
+
+				//TOAST_CORE_INFO("data->animations[a].channels_count: %d", data->animations[a].channels_count);
+				for (unsigned int c = 0; c < data->animations[a].channels_count; c++)
+					animation->AnimationChannel = data->animations[a].channels[c];
+
+				for (auto& submesh : mSubmeshes)
+				{
+					if (strcmp(data->animations[a].channels->target_node->name, submesh.MeshName.c_str()) == 0)
+					{
+						std::string name = std::string(data->animations[a].name);
+						submesh.IsAnimated = true;
+						submesh.Animations[name] = animation;
+						//TOAST_CORE_INFO("Submesh %s have an animation, animation channel added to the submesh animation vector", submesh.MeshName.c_str());
+					}
+				}
+
+			}
+
 			cgltf_free(data);
 			
 			mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
@@ -295,7 +334,11 @@ namespace Toast {
 
 	void Mesh::OnUpdate(Timestep ts)
 	{
-
+		for (auto& submesh : mSubmeshes)
+		{
+			if (submesh.IsAnimated)
+				submesh.OnUpdate(ts);
+		}
 	}
 
 	const Toast::ShaderCBufferElement* Mesh::FindCBufferElementDeclaration(const std::string& materialName, const std::string& cbufferName, const std::string& name)
@@ -322,6 +365,7 @@ namespace Toast {
 		submesh.BaseIndex = mIndexCount;
 		submesh.MaterialName = "Standard";
 		submesh.IndexCount = indexCount;
+		TOAST_CORE_INFO("Adding submesh");
 	}
 
 	void Mesh::Map(const std::string& materialName)
@@ -367,6 +411,56 @@ namespace Toast {
 			mPlanetBuffer.Allocate(mPlanetCBuffer->GetSize());
 			mPlanetBuffer.ZeroInitialize();
 		}
+	}
+
+	void Submesh::OnUpdate(Timestep ts)
+	{
+		for (auto& animation : Animations) 
+		{
+			if (animation.second->IsActive) 
+			{
+				DirectX::XMVECTOR animatedTranslation = InterpolateTranslation(animation.second->TimeElapsed, "LandingLegsAction");
+
+				Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Scale.x, Scale.y, Scale.z)
+					* (DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&Rotation)))
+					* DirectX::XMMatrixTranslationFromVector(animatedTranslation);
+
+				animation.second->TimeElapsed += ts;
+			}
+		}
+	}
+
+	uint32_t Submesh::FindPosition(float animationTime, const std::string& animationName)
+	{
+		uint32_t duration = Animations[animationName]->AnimationSampler.interpolation;
+		
+		for (uint32_t i = 0; i < (Animations[animationName]->SamplerInput.count - 1); i++)
+		{
+			if (animationTime < ((Animations[animationName]->SamplerInput.max[0] / Animations[animationName]->SamplerInput.count) * i))
+				return i;
+		}
+
+		return Animations[animationName]->SamplerInput.count - 2;
+	}
+
+	DirectX::XMVECTOR Submesh::InterpolateTranslation(float animationTime, const std::string& animationName)
+	{
+		uint32_t positionIndex = FindPosition(animationTime, animationName);
+		uint32_t nextPositionIndex = (positionIndex + 1);
+		TOAST_CORE_ASSERT("", nextPositionIndex < Animations[animationName]->SamplerInput.count);
+		float deltaTime = (float)(Animations[animationName]->SamplerInput.max[0] / Animations[animationName]->SamplerInput.count);
+		float factor = (animationTime - (float)(deltaTime * positionIndex)) / deltaTime;
+		TOAST_CORE_ASSERT("Factor must be below 1.0f", factor <= 1.0f);
+		factor = std::clamp(factor, 0.0f, 1.0f);
+
+		DirectX::XMFLOAT3* dataPtr = Animations[animationName]->DataBuffer.As<DirectX::XMFLOAT3>();
+
+		const DirectX::XMVECTOR start = { dataPtr[positionIndex].x, dataPtr[positionIndex].y, dataPtr[positionIndex].z };
+		const DirectX::XMVECTOR end = { dataPtr[nextPositionIndex].x, dataPtr[nextPositionIndex].y, dataPtr[nextPositionIndex].z };
+
+		DirectX::XMVECTOR delta = DirectX::XMVectorSubtract(end, start);
+		DirectX::XMVECTOR interpolatedTranslation = DirectX::XMVectorAdd(start, DirectX::XMVectorScale(delta, factor));
+		return interpolatedTranslation;
 	}
 
 }
