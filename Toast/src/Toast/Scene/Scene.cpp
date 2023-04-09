@@ -99,6 +99,15 @@ namespace Toast {
 		mIsRunning = false;
 
 		ScriptEngine::OnRuntimeStop();
+
+		auto view = mRegistry.view<TransformComponent, MeshComponent>();
+		for (auto entity : view)
+		{
+			auto [transform, mesh] = view.get<TransformComponent, MeshComponent>(entity);
+
+			if (mesh.Mesh->GetIsAnimated())
+				mesh.Mesh->ResetAnimations();
+		}
 	}
 
 	void Scene::OnEvent(Event& e)
