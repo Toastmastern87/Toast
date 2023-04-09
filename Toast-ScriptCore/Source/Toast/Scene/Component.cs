@@ -239,6 +239,12 @@ namespace Toast
             }
         }
 
+        public Animation GetAnimation(string name)
+        {
+            Animation result = new Animation(InternalCalls.MeshComponent_GetAnimation(Entity.ID, name));
+            return result;
+        }
+
         public void RegeneratePlanet(Vector3 cameraPos, Matrix4 cameraTransform)
         {
             InternalCalls.MeshComponent_RegeneratePlanet(Entity.ID, cameraPos, cameraTransform);

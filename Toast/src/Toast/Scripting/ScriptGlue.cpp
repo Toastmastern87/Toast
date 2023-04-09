@@ -350,6 +350,31 @@ namespace Toast {
 		pc.Mesh->InvalidatePlanet(false);
 	}
 
+	void* MeshComponent_GetAnimation(uint64_t entityID, MonoString* name)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		auto sceneSettings = scene->GetSettings();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+
+		auto& mc = entity.GetComponent<MeshComponent>();
+
+		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
+
+		for (auto& submesh : mc.Mesh->GetSubmeshes())
+		{
+			if (submesh.IsAnimated) 
+			{
+				if (submesh.Animations.find(nameStr) != submesh.Animations.end())
+					return submesh.Animations[nameStr].get();
+			}
+		}
+
+		return nullptr;
+	}
+
 #pragma endregion
 
 #pragma region Camera Component
@@ -600,6 +625,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_RotateAroundPoint);
 
 		TOAST_ADD_INTERNAL_CALL(MeshComponent_GeneratePlanet);
+		TOAST_ADD_INTERNAL_CALL(MeshComponent_GetAnimation);
 
 		TOAST_ADD_INTERNAL_CALL(CameraComponent_GetFarClip);
 		TOAST_ADD_INTERNAL_CALL(CameraComponent_SetFarClip);

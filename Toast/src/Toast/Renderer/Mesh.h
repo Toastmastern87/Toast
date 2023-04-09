@@ -125,18 +125,15 @@ namespace Toast {
 	struct Animation 
 	{
 		bool IsActive = true;
+		float Duration = 0.0f;
 		float TimeElapsed = 0.0f;
+		uint32_t SampleCount = 0;
 		cgltf_animation_channel AnimationChannel;
-		cgltf_animation_sampler AnimationSampler;
-		cgltf_accessor SamplerInput;
-		cgltf_accessor SamplerOutput;
-		cgltf_buffer_view Buffer_View;
-		cgltf_buffer BufferData;
 		Buffer DataBuffer;
 
 		Animation() = default;
-		Animation(cgltf_animation_channel animationChannel, cgltf_animation_sampler animationSampler)
-			: AnimationChannel(animationChannel), AnimationSampler(animationSampler) {}
+		Animation(cgltf_animation_channel animationChannel)
+			: AnimationChannel(animationChannel) {}
 	};
 
 	class Submesh
@@ -155,6 +152,7 @@ namespace Toast {
 
 		DirectX::XMMATRIX Transform = DirectX::XMMatrixIdentity();
 		DirectX::XMFLOAT3 Translation = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+		DirectX::XMFLOAT3 StartTranslation = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 		DirectX::XMFLOAT4 Rotation = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 		DirectX::XMFLOAT3 Scale = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
 
@@ -230,6 +228,7 @@ namespace Toast {
 		bool GetIsPlanet() const { return mIsPlanet; }
 		void SetIsPlanet(bool isPlanet);
 
+		void ResetAnimations();
 		bool GetIsAnimated() const { return mIsAnimated; }
 	private:
 		const ShaderCBufferElement* FindCBufferElementDeclaration(const std::string& materialName, const std::string& cbufferName, const std::string& name);

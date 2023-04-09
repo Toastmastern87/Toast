@@ -142,6 +142,8 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void MeshComponent_SetMesh(ulong entityID, IntPtr unmanagedInstance);
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern IntPtr MeshComponent_GetAnimation(ulong entityID, string name);
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void MeshComponent_RegeneratePlanet(ulong entityID, Vector3 cameraPos, Matrix4 cameraForward);
 
         #endregion

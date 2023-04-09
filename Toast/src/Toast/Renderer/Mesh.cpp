@@ -93,6 +93,7 @@ namespace Toast {
 					submesh.Scale = data->nodes[m].has_scale ? DirectX::XMFLOAT3(data->nodes[m].scale[0], data->nodes[m].scale[1], data->nodes[m].scale[2]) : DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
 					submesh.Rotation = data->nodes[m].has_rotation ? DirectX::XMFLOAT4(data->nodes[m].rotation[0], data->nodes[m].rotation[1], data->nodes[m].rotation[2], data->nodes[m].rotation[3]) : DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 					submesh.Translation = data->nodes[m].has_translation ? DirectX::XMFLOAT3(data->nodes[m].translation[0], data->nodes[m].translation[1], data->nodes[m].translation[2]) : DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+					submesh.StartTranslation = submesh.Translation;
 					DirectX::XMVECTOR test = {0.0f, 0.0f, 0.0f};
 
 					submesh.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(submesh.Scale.x, submesh.Scale.y, submesh.Scale.z)
@@ -239,16 +240,10 @@ namespace Toast {
 				//TOAST_CORE_INFO("data->animations[a].samplers_count: %d", data->animations[a].samplers_count);
 				for (unsigned int s = 0; s < data->animations[a].samplers_count; s++) 
 				{
-					TOAST_CORE_INFO("ADDING SAMPLER");
-					animation->AnimationSampler = data->animations[a].samplers[s];
-					animation->SamplerInput = *data->animations[a].samplers[s].input;
-					animation->SamplerOutput = *data->animations[a].samplers[s].output;
-					animation->Buffer_View = *data->animations[a].samplers[s].output->buffer_view;
-					//TOAST_CORE_INFO("animation->Buffer_View.size: %d", animation->Buffer_View.size);
-					animation->BufferData = *data->animations[a].samplers[s].output->buffer_view->buffer;
-					//TOAST_CORE_INFO("animation->BufferData.size: %d", animation->BufferData.size);
-					animation->DataBuffer = Buffer(animation->BufferData.size);
-					animation->DataBuffer.Write((uint8_t*)(animation->BufferData.data) + animation->Buffer_View.offset, animation->Buffer_View.size);
+					animation->SampleCount = data->animations[a].samplers[s].input->count;
+					animation->Duration = data->animations[a].samplers[s].input->max[0];
+					animation->DataBuffer = Buffer(data->animations[a].samplers[s].output->buffer_view->size);
+					animation->DataBuffer.Write((uint8_t*)(data->animations[a].samplers[s].output->buffer_view->buffer->data) + data->animations[a].samplers[s].output->buffer_view->offset, data->animations[a].samplers[s].output->buffer_view->size);
 				}
 
 				//TOAST_CORE_INFO("data->animations[a].channels_count: %d", data->animations[a].channels_count);
@@ -262,7 +257,7 @@ namespace Toast {
 						std::string name = std::string(data->animations[a].name);
 						submesh.IsAnimated = true;
 						submesh.Animations[name] = animation;
-						//TOAST_CORE_INFO("Submesh %s have an animation, animation channel added to the submesh animation vector", submesh.MeshName.c_str());
+						TOAST_CORE_INFO("Submesh %s have an animation, animation added to the submesh animation map", submesh.MeshName.c_str());
 					}
 				}
 
@@ -338,6 +333,22 @@ namespace Toast {
 		{
 			if (submesh.IsAnimated)
 				submesh.OnUpdate(ts);
+		}
+	}
+
+	void Mesh::ResetAnimations()
+	{
+		for (auto& submesh : mSubmeshes) 
+		{
+			if (submesh.IsAnimated)
+			{
+				submesh.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(submesh.Scale.x, submesh.Scale.y, submesh.Scale.z)
+					* (DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&submesh.Rotation)))
+					* DirectX::XMMatrixTranslation(submesh.Translation.x, submesh.Translation.y, submesh.Translation.z);
+
+				for (auto& animation : submesh.Animations)
+					animation.second->TimeElapsed = 0.0f;
+			}
 		}
 	}
 
@@ -431,24 +442,22 @@ namespace Toast {
 	}
 
 	uint32_t Submesh::FindPosition(float animationTime, const std::string& animationName)
-	{
-		uint32_t duration = Animations[animationName]->AnimationSampler.interpolation;
-		
-		for (uint32_t i = 0; i < (Animations[animationName]->SamplerInput.count - 1); i++)
+	{		
+		for (uint32_t i = 0; i < (Animations[animationName]->SampleCount - 1); i++)
 		{
-			if (animationTime < ((Animations[animationName]->SamplerInput.max[0] / Animations[animationName]->SamplerInput.count) * i))
+			if (animationTime < ((Animations[animationName]->Duration / Animations[animationName]->SampleCount) * i))
 				return i;
 		}
 
-		return Animations[animationName]->SamplerInput.count - 2;
+		return Animations[animationName]->SampleCount - 2;
 	}
 
 	DirectX::XMVECTOR Submesh::InterpolateTranslation(float animationTime, const std::string& animationName)
 	{
 		uint32_t positionIndex = FindPosition(animationTime, animationName);
 		uint32_t nextPositionIndex = (positionIndex + 1);
-		TOAST_CORE_ASSERT("", nextPositionIndex < Animations[animationName]->SamplerInput.count);
-		float deltaTime = (float)(Animations[animationName]->SamplerInput.max[0] / Animations[animationName]->SamplerInput.count);
+		TOAST_CORE_ASSERT("", nextPositionIndex < Animations[animationName]->SampleCount);
+		float deltaTime = (float)(Animations[animationName]->Duration / Animations[animationName]->SampleCount);
 		float factor = (animationTime - (float)(deltaTime * positionIndex)) / deltaTime;
 		TOAST_CORE_ASSERT("Factor must be below 1.0f", factor <= 1.0f);
 		factor = std::clamp(factor, 0.0f, 1.0f);
