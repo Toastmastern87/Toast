@@ -273,7 +273,7 @@
             ],
             "translation" : [
                 -0.8624275922775269,
-                -6.1798095703125,
+                -6.679810047149658,
                 0.0219879150390625
             ]
         }
@@ -289,12 +289,31 @@
                     }
                 }
             ],
-            "name" : "LandingLegsAction",
+            "name" : "LandingLegs_Deploy",
             "samplers" : [
                 {
                     "input" : 81,
                     "interpolation" : "LINEAR",
                     "output" : 82
+                }
+            ]
+        },
+        {
+            "channels" : [
+                {
+                    "sampler" : 0,
+                    "target" : {
+                        "node" : 14,
+                        "path" : "translation"
+                    }
+                }
+            ],
+            "name" : "LandingLegs_Undeploy",
+            "samplers" : [
+                {
+                    "input" : 81,
+                    "interpolation" : "LINEAR",
+                    "output" : 83
                 }
             ]
         }
@@ -1445,6 +1464,12 @@
             "componentType" : 5126,
             "count" : 60,
             "type" : "VEC3"
+        },
+        {
+            "bufferView" : 83,
+            "componentType" : 5126,
+            "count" : 60,
+            "type" : "VEC3"
         }
     ],
     "bufferViews" : [
@@ -1943,11 +1968,16 @@
             "buffer" : 0,
             "byteLength" : 720,
             "byteOffset" : 916640
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 720,
+            "byteOffset" : 917360
         }
     ],
     "buffers" : [
         {
-            "byteLength" : 917360,
+            "byteLength" : 918080,
             "uri" : "Starship_SN2.bin"
         }
     ]

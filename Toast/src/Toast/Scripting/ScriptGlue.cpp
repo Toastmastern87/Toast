@@ -329,7 +329,7 @@ namespace Toast {
 
 #pragma region Mesh Component
 
-	void MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform)
+	static void MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		auto sceneSettings = scene->GetSettings();
@@ -350,7 +350,7 @@ namespace Toast {
 		pc.Mesh->InvalidatePlanet(false);
 	}
 
-	void* MeshComponent_GetAnimation(uint64_t entityID, MonoString* name)
+	static void MeshComponent_PlayAnimation(uint64_t entityID, MonoString* name, float startTime)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		auto sceneSettings = scene->GetSettings();
@@ -363,16 +363,75 @@ namespace Toast {
 
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
 
+		//TOAST_CORE_INFO("Getting animation: %s", nameStr.c_str());
+
 		for (auto& submesh : mc.Mesh->GetSubmeshes())
 		{
 			if (submesh.IsAnimated) 
 			{
 				if (submesh.Animations.find(nameStr) != submesh.Animations.end())
-					return submesh.Animations[nameStr].get();
+					submesh.Animations[nameStr]->Play(startTime);
+			}
+		}
+	}
+
+	static float MeshComponent_StopAnimation(uint64_t entityID, MonoString* name)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		auto sceneSettings = scene->GetSettings();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+
+		auto& mc = entity.GetComponent<MeshComponent>();
+
+		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
+
+		//TOAST_CORE_INFO("Getting animation: %s", nameStr.c_str());
+
+		for (auto& submesh : mc.Mesh->GetSubmeshes())
+		{
+			if (submesh.IsAnimated)
+			{
+				if (submesh.Animations.find(nameStr) != submesh.Animations.end())
+				{
+					float elapsedTime = submesh.Animations[nameStr]->TimeElapsed;
+					submesh.Animations[nameStr]->Reset();
+
+					return elapsedTime;
+				}	
 			}
 		}
 
-		return nullptr;
+		return 0.0f;
+	}
+
+	static float MeshComponent_GetDurationAnimation(uint64_t entityID, MonoString* name)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		auto sceneSettings = scene->GetSettings();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+
+		auto& mc = entity.GetComponent<MeshComponent>();
+
+		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
+
+		//TOAST_CORE_INFO("Getting animation: %s", nameStr.c_str());
+
+		for (auto& submesh : mc.Mesh->GetSubmeshes())
+		{
+			if (submesh.IsAnimated)
+			{
+				if (submesh.Animations.find(nameStr) != submesh.Animations.end())
+					return submesh.Animations[nameStr]->Duration;
+			}
+		}
+
+		return 0.0f;
 	}
 
 #pragma endregion
@@ -625,7 +684,9 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_RotateAroundPoint);
 
 		TOAST_ADD_INTERNAL_CALL(MeshComponent_GeneratePlanet);
-		TOAST_ADD_INTERNAL_CALL(MeshComponent_GetAnimation);
+		TOAST_ADD_INTERNAL_CALL(MeshComponent_PlayAnimation);
+		TOAST_ADD_INTERNAL_CALL(MeshComponent_StopAnimation);
+		TOAST_ADD_INTERNAL_CALL(MeshComponent_GetDurationAnimation);
 
 		TOAST_ADD_INTERNAL_CALL(CameraComponent_GetFarClip);
 		TOAST_ADD_INTERNAL_CALL(CameraComponent_SetFarClip);

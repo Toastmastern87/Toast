@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 
 namespace Toast
 {
@@ -239,10 +240,19 @@ namespace Toast
             }
         }
 
-        public Animation GetAnimation(string name)
+        public void PlayAnimation(string name, float startTime)
         {
-            Animation result = new Animation(InternalCalls.MeshComponent_GetAnimation(Entity.ID, name));
-            return result;
+            InternalCalls.MeshComponent_PlayAnimation(Entity.ID, name, startTime);
+        }
+
+        public float StopAnimation(string name)
+        {
+            return InternalCalls.MeshComponent_StopAnimation(Entity.ID, name);
+        }
+
+        public float GetDurationAnimation(string name)
+        {
+            return InternalCalls.MeshComponent_GetDurationAnimation(Entity.ID, name);
         }
 
         public void RegeneratePlanet(Vector3 cameraPos, Matrix4 cameraTransform)

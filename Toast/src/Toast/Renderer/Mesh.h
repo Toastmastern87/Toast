@@ -124,7 +124,8 @@ namespace Toast {
 
 	struct Animation 
 	{
-		bool IsActive = true;
+		std::string Name;
+		bool IsActive = false;
 		float Duration = 0.0f;
 		float TimeElapsed = 0.0f;
 		uint32_t SampleCount = 0;
@@ -134,6 +135,18 @@ namespace Toast {
 		Animation() = default;
 		Animation(cgltf_animation_channel animationChannel)
 			: AnimationChannel(animationChannel) {}
+
+		void Play(float startTime) 
+		{
+			IsActive = true;
+			TimeElapsed = startTime;
+		}
+
+		void Reset() 
+		{
+			IsActive = false;
+			TimeElapsed = 0.0f;
+		}
 	};
 
 	class Submesh

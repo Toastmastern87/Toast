@@ -1,5 +1,39 @@
 Scene: Untitled Scene
 Entities:
+  - Entity: 4373465795651842277
+    TagComponent:
+      Tag: Undeploy Legs
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [-812, 20, 0]
+      Rotation: [0, 0, 0]
+      Scale: [50, 20, 1]
+    ScriptComponent:
+      ClassName: Sandbox.AnimationTestTwo
+    UIButtonComponent:
+      CornerRadius: 4.4000001
+      Color: [1, 0, 0, 1]
+      ClickColor: [1, 0, 0, 1]
+  - Entity: 11381949031799054989
+    TagComponent:
+      Tag: Deploy Legs
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [-812, 50, 0]
+      Rotation: [0, 0, 0]
+      Scale: [50, 20, 1]
+    ScriptComponent:
+      ClassName: Sandbox.AnimationTest
+    UIButtonComponent:
+      CornerRadius: 4.4000001
+      Color: [0, 1, 0, 1]
+      ClickColor: [0, 1, 0, 1]
   - Entity: 10755338950261772821
     TagComponent:
       Tag: Camera
@@ -17,8 +51,8 @@ Entities:
         PerspectiveFOV: 45
         NearClip: 0.100000001
         FarClip: 1000
-        OrthographicWidth: 10
-        OrthographicHeight: 10
+        OrthographicWidth: 2624
+        OrthographicHeight: 812
       Primary: true
       FixedAspectRatio: false
   - Entity: 8766351523377095098
