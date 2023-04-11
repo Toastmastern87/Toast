@@ -438,7 +438,8 @@ namespace Toast {
 
 	MonoObject* ScriptClass::InvokeMethod(MonoObject* instance, MonoMethod* method, void** params)
 	{
-		return mono_runtime_invoke(method, instance, params, nullptr);
+		MonoObject* exception = nullptr;
+		return mono_runtime_invoke(method, instance, params, &exception);
 	}
 
 	ScriptInstance::ScriptInstance(Ref<ScriptClass> scriptClass, Entity entity)
@@ -461,9 +462,7 @@ namespace Toast {
 	void ScriptInstance::InvokeOnCreate()
 	{
 		if (mOnCreateMethod)
-		{
-			sData->EntityClass.InvokeMethod(mInstance, mOnCreateMethod);
-		}
+			mScriptClass->InvokeMethod(mInstance, mOnCreateMethod);
 	}
 
 	void ScriptInstance::InvokeOnUpdate(float ts)

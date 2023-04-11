@@ -233,6 +233,7 @@ namespace Toast {
 			TOAST_CORE_INFO("Number of materials loaded: %d", mMaterials.size());
 
 			// ANIMATIONS
+			TOAST_CORE_INFO("Number of animations in mesh: %d", data->animations_count);
 			for (unsigned int a = 0; a < data->animations_count; a++)
 			{
 				Ref<Animation> animation = CreateRef<Animation>();
@@ -248,16 +249,17 @@ namespace Toast {
 
 				//TOAST_CORE_INFO("data->animations[a].channels_count: %d", data->animations[a].channels_count);
 				for (unsigned int c = 0; c < data->animations[a].channels_count; c++)
-					animation->AnimationChannel = data->animations[a].channels[c];
+					//animation->AnimationChannel = data->animations[a].channels[c];
 
 				for (auto& submesh : mSubmeshes)
 				{
 					if (strcmp(data->animations[a].channels->target_node->name, submesh.MeshName.c_str()) == 0)
 					{
 						std::string name = std::string(data->animations[a].name);
+						animation->Name = name;
 						submesh.IsAnimated = true;
 						submesh.Animations[name] = animation;
-						TOAST_CORE_INFO("Submesh %s have an animation, animation added to the submesh animation map", submesh.MeshName.c_str());
+						TOAST_CORE_INFO("Submesh %s have an animation named %s, its now added to the submesh animation map", submesh.MeshName.c_str(), animation->Name.c_str());
 					}
 				}
 
@@ -346,8 +348,8 @@ namespace Toast {
 					* (DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&submesh.Rotation)))
 					* DirectX::XMMatrixTranslation(submesh.Translation.x, submesh.Translation.y, submesh.Translation.z);
 
-				for (auto& animation : submesh.Animations)
-					animation.second->TimeElapsed = 0.0f;
+				for (auto& animation : submesh.Animations) 
+					animation.second->Reset();
 			}
 		}
 	}
@@ -430,19 +432,25 @@ namespace Toast {
 		{
 			if (animation.second->IsActive) 
 			{
-				DirectX::XMVECTOR animatedTranslation = InterpolateTranslation(animation.second->TimeElapsed, "LandingLegsAction");
+				DirectX::XMVECTOR animatedTranslation = InterpolateTranslation(animation.second->TimeElapsed, animation.second->Name);
 
 				Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Scale.x, Scale.y, Scale.z)
 					* (DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&Rotation)))
 					* DirectX::XMMatrixTranslationFromVector(animatedTranslation);
 
 				animation.second->TimeElapsed += ts;
+
+				if (animation.second->TimeElapsed >= animation.second->Duration)
+				{
+					animation.second->IsActive = false;
+					animation.second->TimeElapsed = 0.0f;
+				}
 			}
 		}
 	}
 
 	uint32_t Submesh::FindPosition(float animationTime, const std::string& animationName)
-	{		
+	{	
 		for (uint32_t i = 0; i < (Animations[animationName]->SampleCount - 1); i++)
 		{
 			if (animationTime < ((Animations[animationName]->Duration / Animations[animationName]->SampleCount) * i))
@@ -450,6 +458,7 @@ namespace Toast {
 		}
 
 		return Animations[animationName]->SampleCount - 2;
+
 	}
 
 	DirectX::XMVECTOR Submesh::InterpolateTranslation(float animationTime, const std::string& animationName)
