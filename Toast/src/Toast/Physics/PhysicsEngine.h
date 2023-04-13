@@ -31,7 +31,7 @@ namespace Toast {
 			if (rbc.InvMass == 0.0f)
 				return;
 
-			DirectX::XMStoreFloat3(&rbc.LinearVelocity, (DirectX::XMLoadFloat3(&rbc.LinearVelocity) + impulse * rbc.InvMass));
+			DirectX::XMStoreFloat3(&rbc.LinearVelocity, DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&rbc.LinearVelocity), DirectX::XMVectorScale(impulse, rbc.InvMass)));
 		}
 
 		static std::tuple<DirectX::TexMetadata, DirectX::ScratchImage*> LoadTerrainData(const char* path)
@@ -58,7 +58,7 @@ namespace Toast {
 			return std::make_tuple(heightMapMetadata, heightMap);
 		}
 
-		static bool TerrainCollisionCheck(Entity* planet, Entity* object, DirectX::XMVECTOR objectWorldPos, TerrainCollision& collision)
+		static bool TerrainCollisionCheck(Entity* planet, Entity* object, TerrainCollision& collision)
 		{
 			collision.Planet = planet;
 			collision.Object = object;
@@ -69,10 +69,11 @@ namespace Toast {
 			TransformComponent objectTC = object->GetComponent<TransformComponent>();
 			SphereColliderComponent scc = object->GetComponent<SphereColliderComponent>();
 
-			DirectX::XMVECTOR planetOrigo = DirectX::XMVectorSet(planetTC.Translation.x, planetTC.Translation.y, planetTC.Translation.z, 1.0f);
-			collision.Normal = DirectX::XMVector3Normalize(objectWorldPos - planetOrigo);
+			DirectX::XMVECTOR planetWorldPos = DirectX::XMLoadFloat3(&planetTC.Translation);
+			DirectX::XMVECTOR objectWorldPos = DirectX::XMLoadFloat3(&objectTC.Translation);
+			const DirectX::XMVECTOR ab = DirectX::XMVectorSubtract(objectWorldPos, planetWorldPos);
+			collision.Normal = DirectX::XMVector3Normalize(ab);
 
-			//DirectX::XMVECTOR planetSpaceObjectPosNorm = DirectX::XMVector3Normalize(objectWorldPos);
 			DirectX::XMVECTOR planetSpaceObjectPosNorm = DirectX::XMVector3Normalize(DirectX::XMVector3Transform(objectWorldPos, DirectX::XMMatrixInverse(nullptr, planetTC.GetTransform())));
 
 			size_t width = std::get<0>(tcc.TerrainData).width;
@@ -96,15 +97,10 @@ namespace Toast {
 			float terrainDataValue = Math::BilinearInterpolation(texCoord, Q11, Q12, Q21, Q22);
 
 			float heightAtPos = (terrainDataValue * (pc.PlanetData.maxAltitude - pc.PlanetData.minAltitude) + pc.PlanetData.minAltitude) + pc.PlanetData.radius;
-
-			collision.PtOnPlanetWorldSpace = planetOrigo + collision.Normal * heightAtPos;
-			collision.PtOnObjectWorldSpace = objectWorldPos - collision.Normal * scc.Radius;
-
+	
 			// HeightAtPos is the radius of the planet at contact location
-			const float radiusPlanetObject = scc.Radius + heightAtPos; 
-
-			const DirectX::XMVECTOR planetObjectVector = DirectX::XMLoadFloat3(&planetTC.Translation) - DirectX::XMLoadFloat3(&objectTC.Translation);
-			const float lengthSqr = DirectX::XMVectorGetX(DirectX::XMVector3Length(planetObjectVector) * DirectX::XMVector3Length(planetObjectVector));
+			collision.PtOnPlanetWorldSpace = DirectX::XMVectorAdd(planetWorldPos, DirectX::XMVectorScale(collision.Normal, heightAtPos));
+			collision.PtOnObjectWorldSpace = DirectX::XMVectorSubtract(objectWorldPos, DirectX::XMVectorScale(collision.Normal, scc.Radius));
 
 			collision.separationDistance = DirectX::XMVectorGetX(DirectX::XMVector3Length(collision.PtOnPlanetWorldSpace) - DirectX::XMVector3Length(collision.PtOnObjectWorldSpace));
 
@@ -113,10 +109,13 @@ namespace Toast {
 			//TOAST_CORE_INFO("collision.PtOnObjectWorldSpace: %f, %f, %f", XMVectorGetX(collision.PtOnObjectWorldSpace), XMVectorGetY(collision.PtOnObjectWorldSpace), XMVectorGetZ(collision.PtOnObjectWorldSpace));
 			//TOAST_CORE_INFO("collision.PtOnPlanetWorldSpace: %f, %f, %f", XMVectorGetX(collision.PtOnPlanetWorldSpace), XMVectorGetY(collision.PtOnPlanetWorldSpace), XMVectorGetZ(collision.PtOnPlanetWorldSpace));
 			//TOAST_CORE_INFO("terrainDataValue: %f", terrainDataValue);
+			//TOAST_CORE_INFO("pos: %f", pos);
 			//TOAST_CORE_INFO("heightAtPos: %f", heightAtPos);
-			//TOAST_CORE_INFO("collision.separationDistance: %f", collision.separationDistance);
 
-			if (lengthSqr <= (radiusPlanetObject * radiusPlanetObject))
+			// HeightAtPos is the radius of the planet at contact location
+			const float radiusPlanetObject = scc.Radius + heightAtPos;
+			const float lengthSquare = DirectX::XMVectorGetX(DirectX::XMVector3Length(ab)) * DirectX::XMVectorGetX(DirectX::XMVector3Length(ab));
+			if (lengthSquare <= (radiusPlanetObject * radiusPlanetObject))
 				return true;
 			else
 				return false;
@@ -124,23 +123,38 @@ namespace Toast {
 
 		static void ResolveTerrainCollision(TerrainCollision& collision)
 		{
-			if (collision.Object->HasComponent<RigidBodyComponent>())
-			{
-				if (collision.Planet->HasComponent<RigidBodyComponent>())
-					collision.Planet->GetComponent<RigidBodyComponent>().LinearVelocity = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+			RigidBodyComponent* rbcObject;
+			RigidBodyComponent rbcPlanet;
+			const DirectX::XMVECTOR planetVelocity = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+			const float planetInvMass = 0.0f;
 
-				collision.Object->GetComponent<RigidBodyComponent>().LinearVelocity = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-			}
-			else
-				TOAST_CORE_WARN("Object colliding with the planet is lacking a RigidBodyComponent");
+			bool objectHasRigidBody = collision.Object->HasComponent<RigidBodyComponent>();
+			bool planetHasRigidBody = collision.Planet->HasComponent<RigidBodyComponent>();
 
-			DirectX::XMVECTOR resolveVector = collision.Normal * collision.separationDistance;
-			DirectX::XMVECTOR objectTranslation = DirectX::XMLoadFloat3(&collision.Object->GetComponent<TransformComponent>().Translation);
+			if (objectHasRigidBody)
+				rbcObject = &collision.Object->GetComponent<RigidBodyComponent>();
 
-			DirectX::XMFLOAT3 resolvedTranslation;
-			DirectX::XMStoreFloat3(&resolvedTranslation, (objectTranslation - resolveVector));
+			if (planetHasRigidBody)
+				rbcPlanet = collision.Planet->GetComponent<RigidBodyComponent>();
 
-			collision.Object->GetComponent<TransformComponent>().Translation = resolvedTranslation;
+			const DirectX::XMVECTOR vab = planetVelocity - DirectX::XMLoadFloat3(&rbcObject->LinearVelocity);
+			const float impulseJ = -2.0f * DirectX::XMVectorGetX(DirectX::XMVector3Dot(vab, collision.Normal)) / (rbcObject->InvMass + planetInvMass);
+
+			if (planetHasRigidBody)
+				ApplyImpulseLinear(rbcPlanet, DirectX::XMVectorMultiply(collision.Normal, { impulseJ * 1.0f, impulseJ * 1.0f, impulseJ * 1.0f }));
+
+			ApplyImpulseLinear(*rbcObject, DirectX::XMVectorMultiply(collision.Normal, { impulseJ * -1.0f, impulseJ * -1.0f, impulseJ * -1.0f }));
+		
+			const float tPlanet = planetInvMass / (planetInvMass + rbcObject->InvMass);
+			const float tObject = rbcObject->InvMass / (planetInvMass + rbcObject->InvMass);
+
+			const DirectX::XMVECTOR ds = collision.PtOnObjectWorldSpace - collision.PtOnPlanetWorldSpace;
+
+			DirectX::XMVECTOR planetPosition = DirectX::XMLoadFloat3(&collision.Planet->GetComponent<TransformComponent>().Translation);
+			DirectX::XMVECTOR objectPosition = DirectX::XMLoadFloat3(&collision.Object->GetComponent<TransformComponent>().Translation);
+
+			DirectX::XMStoreFloat3(&collision.Planet->GetComponent<TransformComponent>().Translation, DirectX::XMVectorAdd(planetPosition, (ds * tPlanet)));
+			DirectX::XMStoreFloat3(&collision.Object->GetComponent<TransformComponent>().Translation, DirectX::XMVectorSubtract(objectPosition, (ds * tObject)));
 
 			return;
 		}
