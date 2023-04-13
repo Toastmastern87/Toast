@@ -181,7 +181,7 @@ namespace Toast {
 
 						// Calculate linear velocity due to gravity
 						float mass = 1.0f / rbc.InvMass;
-						DirectX::XMVECTOR impulseGravity = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&ptc.Translation) - DirectX::XMLoadFloat3(&tc.Translation) * (pc.PlanetData.gravAcc / 1000.0f) * mass * (ts.GetSeconds() * mTimeScale));
+						DirectX::XMVECTOR impulseGravity = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&ptc.Translation) - DirectX::XMLoadFloat3(&tc.Translation)) * (pc.PlanetData.gravAcc / 1000.0f) * mass * ts.GetSeconds() * mTimeScale;
 						PhysicsEngine::ApplyImpulseLinear(rbc, impulseGravity);
 						//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
 
@@ -189,7 +189,7 @@ namespace Toast {
 						{
 							PhysicsEngine::TerrainCollision terrainCollision;
 
-							if (PhysicsEngine::TerrainCollisionCheck(&planetEntity, &objectEntity, DirectX::XMLoadFloat3(&tc.Translation), terrainCollision))
+							if (PhysicsEngine::TerrainCollisionCheck(&planetEntity, &objectEntity, terrainCollision))
 								//TOAST_CORE_INFO("COLLISION!");
 								PhysicsEngine::ResolveTerrainCollision(terrainCollision);
 

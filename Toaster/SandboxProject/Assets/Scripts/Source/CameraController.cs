@@ -37,12 +37,13 @@ namespace Sandbox
                 MaxAltitude = MinAltitude;
         }
 
-        void OnClick()
+        void OnEvent()
         {
         }
 
         void OnUpdate(float ts)
         {
+            //Toast.Console.LogCritical("Inside OnUpdate");
             float altitude = Vector3.Length(mMarsTransform.Translation) - mMarsPlanet.Radius;
 
             float zoomSpeed = (ZoomK * (float)Math.Pow(altitude, 2.0) + ZoomM);
@@ -57,17 +58,19 @@ namespace Sandbox
             if (Input.IsMouseButtonPressed(MouseCode.ButtonRight))
             {
                 if (mCursorPos.X != newCursorPos.X)
-                    mCameraTransformComponent.Yaw += (newCursorPos.X - mCursorPos.X) * ts * MouseSpeedFactor;
+                    mCameraTransformComponent.Yaw += (newCursorPos.X - mCursorPos.X) * (ts / Scene.TimeScale) * MouseSpeedFactor;
 
                 if (mCursorPos.Y != newCursorPos.Y)
-                    mCameraTransformComponent.Pitch += (newCursorPos.Y - mCursorPos.Y) * ts * MouseSpeedFactor;
+                    mCameraTransformComponent.Pitch += (newCursorPos.Y - mCursorPos.Y) * (ts / Scene.TimeScale) * MouseSpeedFactor;
             }
 
             mCursorPos = newCursorPos;
 
+            //Toast.Console.LogCritical("Pitch and yaw done");
+
             if (Input.GetMouseWheelDelta() != 0.0f)
             {
-                float deltaAltitude = zoomSpeed * ts * -Input.GetMouseWheelDelta();
+                float deltaAltitude = zoomSpeed * (ts / Scene.TimeScale) * -Input.GetMouseWheelDelta();
 
                 // Makes sure that the new altitude is within the limits
                 float newAltitude = altitude + deltaAltitude;
@@ -77,38 +80,40 @@ namespace Sandbox
                 deltaAltitude = altitude - newAltitude;
 
                 // Check that the values of delta altitude is not to small
-                deltaAltitude = deltaAltitude <= 0.0001f && Input.GetMouseWheelDelta() > 0.0f ?  0.0f : deltaAltitude;
+                deltaAltitude = deltaAltitude <= 0.0001f && Input.GetMouseWheelDelta() > 0.0f ? 0.0f : deltaAltitude;
 
                 mMarsTransform.Translation -= Vector3.Normalize(mMarsTransform.Translation) * deltaAltitude;
                 mStarshipTransform.Translation -= (Vector3.Normalize(mMarsTransform.Translation - mStarshipTransform.Translation)) * deltaAltitude;
             }
 
-            if (Input.IsKeyPressed(KeyCode.W)) 
+            if (Input.IsKeyPressed(KeyCode.W))
             {
                 mMarsTransform.TransformComponent_Rotate(mCameraRightVector, (-moveSpeed * ts));
-                mStarshipTransform.TransformComponent_RotateAroundPoint(mMarsTransform.Translation, mCameraRightVector, (-moveSpeed * ts));
+                mStarshipTransform.TransformComponent_RotateAroundPoint(mMarsTransform.Translation, mCameraRightVector, (-moveSpeed * (ts / Scene.TimeScale)));
             }
 
 
             if (Input.IsKeyPressed(KeyCode.S))
             {
                 mMarsTransform.TransformComponent_Rotate(mCameraRightVector, (moveSpeed * ts));
-                mStarshipTransform.TransformComponent_RotateAroundPoint(mMarsTransform.Translation, mCameraRightVector, (moveSpeed * ts));
+                mStarshipTransform.TransformComponent_RotateAroundPoint(mMarsTransform.Translation, mCameraRightVector, (moveSpeed * (ts / Scene.TimeScale)));
             }
 
             if (Input.IsKeyPressed(KeyCode.A))
             {
                 mMarsTransform.TransformComponent_Rotate(mCameraForwardVector, (-moveSpeed * ts));
-                mStarshipTransform.TransformComponent_RotateAroundPoint(mMarsTransform.Translation, mCameraForwardVector, (-moveSpeed * ts));
+                mStarshipTransform.TransformComponent_RotateAroundPoint(mMarsTransform.Translation, mCameraForwardVector, (-moveSpeed * (ts / Scene.TimeScale)));
             }
 
             if (Input.IsKeyPressed(KeyCode.D))
             {
                 mMarsTransform.TransformComponent_Rotate(mCameraForwardVector, (moveSpeed * ts));
-                mStarshipTransform.TransformComponent_RotateAroundPoint(mMarsTransform.Translation, mCameraForwardVector, (moveSpeed * ts));
+                mStarshipTransform.TransformComponent_RotateAroundPoint(mMarsTransform.Translation, mCameraForwardVector, (moveSpeed * (ts / Scene.TimeScale)));
             }
 
             Input.SetMouseWheelDelta(0.0f);
+
+            //Toast.Console.LogCritical("Done with OnUpdate");
         }
     }
 }

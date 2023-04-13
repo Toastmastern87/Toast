@@ -74,9 +74,9 @@ namespace Toast {
 		ScriptClass() = default;
 		ScriptClass(const std::string& classNamespace, const std::string& className, bool isCore = false);
 
-		MonoObject* Instantiate();
+		uint32_t Instantiate();
 		MonoMethod* GetMethod(const std::string& name, int parameterCount);
-		MonoObject* InvokeMethod(MonoObject* instance, MonoMethod* method, void** params = nullptr);
+		MonoObject* InvokeMethod(uint32_t instance, MonoMethod* method, void** params = nullptr);
 
 		const std::unordered_map<std::string, ScriptField>& GetFields() const { return mFields; }
 	private:
@@ -121,14 +121,14 @@ namespace Toast {
 			SetFieldValueInternal(name, &value);
 		}
 
-		MonoObject* GetManagedObject() { return mInstance; }
+		MonoObject* GetManagedObject();
 	private:
 		bool GetFieldValueInternal(const std::string& name, void* buffer);
 		bool SetFieldValueInternal(const std::string& name, const void* value);
 	private:
 		Ref<ScriptClass> mScriptClass;
 
-		MonoObject* mInstance = nullptr;
+		uint32_t mInstance = 0;
 		MonoMethod* mConstructor = nullptr;
 		MonoMethod* mOnCreateMethod = nullptr;
 		MonoMethod* mOnUpdateMethod = nullptr;
@@ -173,7 +173,7 @@ namespace Toast {
 		static void InitMono();
 		static void ShutdownMono();
 
-		static MonoObject* InstantiateClass(MonoClass* monoClass);
+		static uint32_t InstantiateClass(MonoClass* monoClass);
 		static void LoadAssemblyClasses();
 
 		friend class ScriptClass;

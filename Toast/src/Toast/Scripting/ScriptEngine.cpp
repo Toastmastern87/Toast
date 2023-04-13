@@ -413,11 +413,12 @@ namespace Toast {
 		return sData->EntityInstances.at(uuid)->GetManagedObject();
 	}
 
-	MonoObject* ScriptEngine::InstantiateClass(MonoClass* monoClass)
+	uint32_t ScriptEngine::InstantiateClass(MonoClass* monoClass)
 	{
 		MonoObject* instance = mono_object_new(sData->AppDomain, monoClass);
+		int32_t instanceHandle = mono_gchandle_new(instance, false);
 		mono_runtime_object_init(instance);
-		return instance;
+		return instanceHandle;
 	}
 
 	ScriptClass::ScriptClass(const std::string& classNamespace, const std::string& className, bool isCore)
@@ -426,7 +427,7 @@ namespace Toast {
 		mMonoClass = mono_class_from_name(isCore ? sData->CoreAssemblyImage : sData->AppAssemblyImage, classNamespace.c_str(), className.c_str());
 	}
 
-	MonoObject* ScriptClass::Instantiate()
+	uint32_t ScriptClass::Instantiate()
 	{
 		return ScriptEngine::InstantiateClass(mMonoClass);
 	}
@@ -436,10 +437,11 @@ namespace Toast {
 		return mono_class_get_method_from_name(mMonoClass, name.c_str(), parameterCount);
 	}
 
-	MonoObject* ScriptClass::InvokeMethod(MonoObject* instance, MonoMethod* method, void** params)
+	MonoObject* ScriptClass::InvokeMethod(uint32_t instance, MonoMethod* method, void** params)
 	{
+		MonoObject* monoObject = mono_gchandle_get_target(instance);
 		MonoObject* exception = nullptr;
-		return mono_runtime_invoke(method, instance, params, &exception);
+		return mono_runtime_invoke(method, monoObject, params, &exception);
 	}
 
 	ScriptInstance::ScriptInstance(Ref<ScriptClass> scriptClass, Entity entity)
@@ -479,6 +481,13 @@ namespace Toast {
 		mScriptClass->InvokeMethod(mInstance, mOnEventMethod);
 	}
 
+	MonoObject* ScriptInstance::GetManagedObject()
+	{
+		MonoObject* managedObject = mono_gchandle_get_target(mInstance);
+
+		return managedObject;
+	}
+
 	bool ScriptInstance::GetFieldValueInternal(const std::string& name, void* buffer)
 	{
 		const auto& fields = mScriptClass->GetFields();
@@ -489,7 +498,8 @@ namespace Toast {
 
 		const ScriptField& field = it->second;
 		void* result;
-		mono_field_get_value(mInstance, field.ClassField, buffer);
+		MonoObject* monoObject = mono_gchandle_get_target(mInstance);
+		mono_field_get_value(monoObject, field.ClassField, buffer);
 
 		return true;
 	}
@@ -504,7 +514,8 @@ namespace Toast {
 
 		const ScriptField& field = it->second;
 		void* result;
-		mono_field_set_value(mInstance, field.ClassField, (void*)value);
+		MonoObject* monoObject = mono_gchandle_get_target(mInstance);
+		mono_field_set_value(monoObject, field.ClassField, (void*)value);
 
 		return true;
 	}
