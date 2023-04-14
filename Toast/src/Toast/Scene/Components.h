@@ -178,6 +178,7 @@ namespace Toast {
 	struct RigidBodyComponent
 	{
 		float InvMass = 0.0f;
+		float Elasticity = 0.0f;
 		DirectX::XMFLOAT3 CenterOfMass = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 LinearVelocity = { 0.0f, 0.0f, 0.0f };
 
