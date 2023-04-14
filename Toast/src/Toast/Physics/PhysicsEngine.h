@@ -137,8 +137,12 @@ namespace Toast {
 			if (planetHasRigidBody)
 				rbcPlanet = collision.Planet->GetComponent<RigidBodyComponent>();
 
+			const float elasticityObject = objectHasRigidBody ? rbcObject->Elasticity : 0.0f;
+			const float elasticityPlanet = planetHasRigidBody ? rbcPlanet.Elasticity : 1.0f;
+			const float elasticity = elasticityObject * elasticityPlanet;
+
 			const DirectX::XMVECTOR vab = planetVelocity - DirectX::XMLoadFloat3(&rbcObject->LinearVelocity);
-			const float impulseJ = -2.0f * DirectX::XMVectorGetX(DirectX::XMVector3Dot(vab, collision.Normal)) / (rbcObject->InvMass + planetInvMass);
+			const float impulseJ = -(1.0f + elasticity) * DirectX::XMVectorGetX(DirectX::XMVector3Dot(vab, collision.Normal)) / (rbcObject->InvMass + planetInvMass);
 
 			if (planetHasRigidBody)
 				ApplyImpulseLinear(rbcPlanet, DirectX::XMVectorMultiply(collision.Normal, { impulseJ * 1.0f, impulseJ * 1.0f, impulseJ * 1.0f }));

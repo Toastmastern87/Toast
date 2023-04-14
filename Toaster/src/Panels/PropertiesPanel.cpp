@@ -969,6 +969,13 @@ namespace Toast {
 				ImGui::DragFloat("##label", &mass, 0.1f, 0.0f, 60000.0f, "%.1f");
 				component.InvMass = 1.0f / mass;
 
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Elasticity (0-1)");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::DragFloat("##elasticity", &component.Elasticity, 0.01f, 0.0f, 1.0f, "%.01f");
+
 				ImGui::EndTable();
 			});
 
