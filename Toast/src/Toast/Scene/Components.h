@@ -181,6 +181,7 @@ namespace Toast {
 		float Elasticity = 0.0f;
 		DirectX::XMFLOAT3 CenterOfMass = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 LinearVelocity = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 AngularVelocity = { 0.0f, 0.0f, 0.0f };
 
 		RigidBodyComponent() = default;
 		RigidBodyComponent(DirectX::XMFLOAT3& centerOfMass, float invMass)
@@ -192,6 +193,11 @@ namespace Toast {
 		Ref<Toast::Mesh> ColliderMesh;
 		bool RenderCollider = false;
 		float Radius = 0.0f;
+		DirectX::XMFLOAT3X3 InertiaTensor = DirectX::XMFLOAT3X3(
+			0.0f, 0.0f, 0.0f, // row 1
+			0.0f, 0.0f, 0.0f, // row 2
+			0.0f, 0.0f, 0.0f  // row 3
+			);
 
 		SphereColliderComponent() = default;
 		SphereColliderComponent(float radius, const Ref<Toast::Mesh>& mesh)

@@ -66,6 +66,7 @@ Entities:
     SphereColliderComponent:
       RenderCollider: true
       Radius: 0.126000002
+      InertiaTensor: [0.00635039993, 0, 0, 0, 0.00635039993, 0, 0, 0, 0.00635039993]
   - Entity: 12837192831272
     TagComponent:
       Tag: Ambient Light

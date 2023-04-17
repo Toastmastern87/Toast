@@ -34,6 +34,26 @@ namespace Toast {
 			DirectX::XMStoreFloat3(&rbc.LinearVelocity, DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&rbc.LinearVelocity), DirectX::XMVectorScale(impulse, rbc.InvMass)));
 		}
 
+		static void ApplyImpulseAngular(TransformComponent& tc, RigidBodyComponent& rbc, SphereColliderComponent& scc, DirectX::XMVECTOR impulse)
+		{
+			if (rbc.InvMass == 0.0f)
+				return;
+
+			DirectX::XMMATRIX invInertiaTensorWorldSpace = DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat3x3(&scc.InertiaTensor)) * rbc.InvMass;
+			invInertiaTensorWorldSpace = DirectX::XMMatrixMultiply(invInertiaTensorWorldSpace, DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion));
+
+			DirectX::XMStoreFloat3(&rbc.AngularVelocity, DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&rbc.AngularVelocity),  DirectX::XMVector3Transform(impulse, invInertiaTensorWorldSpace)));
+
+			const float maxtAngularSpeed = 30.0f;
+
+			if (Math::GetVectorLength(rbc.AngularVelocity) > maxtAngularSpeed)
+			{
+				DirectX::XMVECTOR angularVelocity = DirectX::XMLoadFloat3(&rbc.AngularVelocity);
+				DirectX::XMVector3Normalize(angularVelocity);
+				DirectX::XMStoreFloat3(&rbc.AngularVelocity, DirectX::XMVectorScale(angularVelocity, maxtAngularSpeed));
+			}
+		}
+
 		static std::tuple<DirectX::TexMetadata, DirectX::ScratchImage*> LoadTerrainData(const char* path)
 		{
 			HRESULT result;

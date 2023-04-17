@@ -88,6 +88,44 @@ namespace YAML
 	};
 
 	template<>
+	struct convert<DirectX::XMFLOAT3X3>
+	{
+		static Node encode(const DirectX::XMFLOAT3X3& matrix)
+		{
+			Node node;
+			node.push_back(matrix.m[0][0]);
+			node.push_back(matrix.m[0][1]);
+			node.push_back(matrix.m[0][2]);
+			node.push_back(matrix.m[1][0]);
+			node.push_back(matrix.m[1][1]);
+			node.push_back(matrix.m[1][2]);
+			node.push_back(matrix.m[2][0]);
+			node.push_back(matrix.m[2][1]);
+			node.push_back(matrix.m[2][2]);
+			node.SetStyle(EmitterStyle::Flow);
+			return node;
+		}
+
+		static bool decode(const Node& node, DirectX::XMFLOAT3X3& matrix)
+		{
+			if (!node.IsSequence() || node.size() != 9)
+				return false;
+
+			matrix.m[0][0] = node[0].as<float>();
+			matrix.m[0][1] = node[1].as<float>();
+			matrix.m[0][2] = node[2].as<float>();
+			matrix.m[1][0] = node[3].as<float>();
+			matrix.m[1][1] = node[4].as<float>();
+			matrix.m[1][2] = node[5].as<float>();
+			matrix.m[2][0] = node[6].as<float>();
+			matrix.m[2][1] = node[7].as<float>();
+			matrix.m[2][2] = node[8].as<float>();
+
+			return true;
+		}
+	};
+
+	template<>
 	struct convert<Toast::UUID>
 	{
 		static Node encode(const Toast::UUID& uuid) 
@@ -139,6 +177,13 @@ namespace Toast {
 	{
 		out << YAML::Flow;
 		out << YAML::BeginSeq << v.x << v.y << v.z << v.w << YAML::EndSeq;
+		return out;
+	}
+
+	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT3X3& m)
+	{
+		out << YAML::Flow;
+		out << YAML::BeginSeq << m.m[0][0] << m.m[0][1] << m.m[0][2] << m.m[1][0] << m.m[1][1] << m.m[1][2] << m.m[2][0] << m.m[2][1] << m.m[2][2] << YAML::EndSeq;
 		return out;
 	}
 
@@ -378,6 +423,7 @@ namespace Toast {
 			auto& scc = entity.GetComponent<SphereColliderComponent>();
 			out << YAML::Key << "RenderCollider" << YAML::Value << scc.RenderCollider;
 			out << YAML::Key << "Radius" << YAML::Value << scc.Radius;
+			out << YAML::Key << "InertiaTensor" << YAML::Value << scc.InertiaTensor;
 
 			out << YAML::EndMap; // SphereColliderComponent
 		}
@@ -655,6 +701,7 @@ namespace Toast {
 					auto& scc = deserializedEntity.AddComponent<SphereColliderComponent>();
 
 					scc.Radius = sphereColliderComponent["Radius"].as<float>();
+					scc.InertiaTensor = sphereColliderComponent["InertiaTensor"].as<DirectX::XMFLOAT3X3>();
 					scc.RenderCollider = sphereColliderComponent["RenderCollider"].as<bool>();
 				}
 
