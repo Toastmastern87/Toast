@@ -38,7 +38,7 @@ namespace Sandbox
                 mPlanetComponent.RegeneratePlanet(mCameraTransform.Translation, mCameraTransform.GetTransform());
             }
 
-            mCameraOldRotation = mCameraTransform.Rotation;
+            mCameraOldRotation = mCameraTransform.Rotation; 
             mCameraOldTranslation = mCameraTransform.Translation;
 
             mMarsOldRotation = mMarsTransform.Rotation;

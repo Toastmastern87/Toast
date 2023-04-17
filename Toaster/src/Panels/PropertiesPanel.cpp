@@ -994,7 +994,12 @@ namespace Toast {
 				ImGui::Text("Radius");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::DragFloat("##label", &component.Radius, 0.1f, 0.0f, 600.0f, "%.4f");
+				if (ImGui::DragFloat("##label", &component.Radius, 0.1f, 0.0f, 600.0f, "%.4f"))
+				{
+					component.InertiaTensor.m[0][0] = 0.4f * component.Radius * component.Radius;
+					component.InertiaTensor.m[1][1] = 0.4f * component.Radius * component.Radius;
+					component.InertiaTensor.m[2][2] = 0.4f * component.Radius * component.Radius;
+				}
 				ImGui::EndTable();
 			});
 
