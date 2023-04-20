@@ -156,53 +156,7 @@ namespace Toast {
 
 		if (!mIsPaused) 
 		{
-			// Update physics
-			{
-				//Gravity
-				auto view = mRegistry.view<TransformComponent, RigidBodyComponent>();
-
-				auto planetView = mRegistry.view<PlanetComponent>();
-				if (planetView.size() > 0)
-				{
-					Entity planetEntity = { planetView[0], this };
-
-					for (auto entity : view)
-					{
-						Entity objectEntity = { entity, this };
-
-						//Only one planet can be handled at a time per scene
-						auto pc = planetEntity.GetComponent<PlanetComponent>();
-						auto ptc = planetEntity.GetComponent<TransformComponent>();
-						auto tcc = planetEntity.GetComponent<TerrainColliderComponent>();
-
-						auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
-
-						bool terrainCollision = false;
-
-						// Calculate linear velocity due to gravity
-						float mass = 1.0f / rbc.InvMass;
-						DirectX::XMVECTOR impulseGravity = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&ptc.Translation) - DirectX::XMLoadFloat3(&tc.Translation)) * (pc.PlanetData.gravAcc / 1000.0f) * mass * ts.GetSeconds() * mTimeScale;
-						PhysicsEngine::ApplyImpulseLinear(rbc, impulseGravity);
-						//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
-
-						if (objectEntity.HasComponent<SphereColliderComponent>())
-						{
-							PhysicsEngine::TerrainCollision terrainCollision;
-
-							if (PhysicsEngine::TerrainCollisionCheck(&planetEntity, &objectEntity, terrainCollision))
-								//TOAST_CORE_INFO("COLLISION!");
-								PhysicsEngine::ResolveTerrainCollision(terrainCollision);
-
-						}
-
-						// Update position due to gravity
-						DirectX::XMVECTOR translation = DirectX::XMLoadFloat3(&tc.Translation);
-						DirectX::XMVECTOR deltaGravityTranslation = DirectX::XMLoadFloat3(&rbc.LinearVelocity) * (ts.GetSeconds() * mTimeScale);
-						translation += deltaGravityTranslation;
-						DirectX::XMStoreFloat3(&tc.Translation, translation);
-					}
-				}
-			}
+			PhysicsEngine::Update(&mRegistry, this, ts);
 
 			// Scripting
 			{
