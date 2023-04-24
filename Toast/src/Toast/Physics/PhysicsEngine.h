@@ -174,13 +174,25 @@ namespace Toast {
 			const float elasticityPlanet = planetHasRigidBody ? rbcPlanet.Elasticity : 1.0f;
 			const float elasticity = elasticityObject * elasticityPlanet;
 
-			const DirectX::XMVECTOR vab = planetVelocity - DirectX::XMLoadFloat3(&rbcObject->LinearVelocity);
-			const float impulseJ = -(1.0f + elasticity) * DirectX::XMVectorGetX(DirectX::XMVector3Dot(vab, collision.Normal)) / (rbcObject->InvMass + planetInvMass);
+			const DirectX::XMMATRIX invWorldInertiaObject = DirectX::XMMatrixInverse(nullptr, DirectX::XMLoadFloat3x3(&collision.Object->GetComponent<SphereColliderComponent>().InertiaTensor));
+
+			const DirectX::XMVECTOR normal = collision.Normal;
+			
+			const DirectX::XMVECTOR ra = DirectX::XMVectorSubtract (collision.PtOnObjectWorldSpace, DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&rbcObject->CenterOfMass), collision.Object->GetComponent<TransformComponent>().GetTransform()));
+
+			const DirectX::XMVECTOR angularJObject = DirectX::XMVector3Cross(DirectX::XMVector3Transform(DirectX::XMVector3Cross(ra, normal), invWorldInertiaObject), ra);
+			const float angularFactor = DirectX::XMVectorGetX(DirectX::XMVector3Dot(angularJObject, normal));
+
+			const DirectX::XMVECTOR velObject = DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&rbcObject->LinearVelocity), DirectX::XMVector3Cross(DirectX::XMLoadFloat3(&rbcObject->AngularVelocity), ra));
+
+			const DirectX::XMVECTOR vab = DirectX::XMVectorSubtract(planetVelocity, velObject);
+			const float impulseJ = -(1.0f + elasticity) * DirectX::XMVectorGetX(DirectX::XMVector3Dot(vab, collision.Normal)) / (rbcObject->InvMass + planetInvMass + angularFactor);
+			const DirectX::XMVECTOR vectorImpulseJ = DirectX::XMVectorScale(normal, impulseJ);
 
 			if (planetHasRigidBody)
-				ApplyImpulseLinear(rbcPlanet, DirectX::XMVectorMultiply(collision.Normal, { impulseJ * 1.0f, impulseJ * 1.0f, impulseJ * 1.0f }));
+				ApplyImpulse(collision.Planet->GetComponent<TransformComponent>(), *rbcObject, collision.Object->GetComponent<SphereColliderComponent>(), DirectX::XMLoadFloat3(&collision.Planet->GetComponent<TransformComponent>().Translation), DirectX::XMVectorScale(vectorImpulseJ, 1.0f));
 
-			ApplyImpulseLinear(*rbcObject, DirectX::XMVectorMultiply(collision.Normal, { impulseJ * -1.0f, impulseJ * -1.0f, impulseJ * -1.0f }));
+			ApplyImpulse(collision.Object->GetComponent<TransformComponent>(), *rbcObject, collision.Object->GetComponent<SphereColliderComponent>(), DirectX::XMLoadFloat3(&collision.Object->GetComponent<TransformComponent>().Translation), DirectX::XMVectorScale(vectorImpulseJ, -1.0f));
 		
 			const float tPlanet = planetInvMass / (planetInvMass + rbcObject->InvMass);
 			const float tObject = rbcObject->InvMass / (planetInvMass + rbcObject->InvMass);
