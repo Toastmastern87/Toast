@@ -976,6 +976,13 @@ namespace Toast {
 				ImGui::PushItemWidth(-1);
 				ImGui::DragFloat("##elasticity", &component.Elasticity, 0.01f, 0.0f, 1.0f, "%.01f");
 
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Friction (0-1)");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::DragFloat("##friction", &component.Friction, 0.01f, 0.0f, 1.0f, "%.01f");
+
 				ImGui::EndTable();
 			});
 

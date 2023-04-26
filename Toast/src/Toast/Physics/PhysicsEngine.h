@@ -170,6 +170,7 @@ namespace Toast {
 			if (planetHasRigidBody)
 				rbcPlanet = collision.Planet->GetComponent<RigidBodyComponent>();
 
+			// Elasticity
 			const float elasticityObject = objectHasRigidBody ? rbcObject->Elasticity : 0.0f;
 			const float elasticityPlanet = planetHasRigidBody ? rbcPlanet.Elasticity : 1.0f;
 			const float elasticity = elasticityObject * elasticityPlanet;
@@ -194,6 +195,26 @@ namespace Toast {
 
 			ApplyImpulse(collision.Object->GetComponent<TransformComponent>(), *rbcObject, collision.Object->GetComponent<SphereColliderComponent>(), DirectX::XMLoadFloat3(&collision.Object->GetComponent<TransformComponent>().Translation), DirectX::XMVectorScale(vectorImpulseJ, -1.0f));
 		
+			// Friction
+			const float frictionObject = objectHasRigidBody ? rbcObject->Friction : 0.0f;
+			const float frictionPlanet = planetHasRigidBody ? rbcPlanet.Friction : 1.0f;
+			const float friction = frictionObject * frictionPlanet;
+
+			const DirectX::XMVECTOR velNorm = DirectX::XMVectorMultiply(normal, DirectX::XMVector3Dot(normal, vab));
+
+			const DirectX::XMVECTOR velTang = DirectX::XMVectorSubtract(vab, velNorm);
+
+			DirectX::XMVECTOR relativeVelTang = velTang;
+			relativeVelTang = DirectX::XMVector3Normalize(relativeVelTang);
+
+			const DirectX::XMVECTOR inertiaObject = DirectX::XMVector3Cross(DirectX::XMVector3Transform(DirectX::XMVector3Cross(ra, relativeVelTang), invWorldInertiaObject), ra);
+			const float invInertia = DirectX::XMVectorGetX(DirectX::XMVector3Dot(inertiaObject, relativeVelTang));
+
+			const float reducedMass = 1.0f / (rbcObject->InvMass + planetInvMass + invInertia);
+			const DirectX::XMVECTOR impulseFriction = DirectX::XMVectorScale(velTang, (reducedMass * friction));
+
+			ApplyImpulse(collision.Object->GetComponent<TransformComponent>(), *rbcObject, collision.Object->GetComponent<SphereColliderComponent>(), DirectX::XMLoadFloat3(&collision.Object->GetComponent<TransformComponent>().Translation), impulseFriction * 1.0f);
+
 			const float tPlanet = planetInvMass / (planetInvMass + rbcObject->InvMass);
 			const float tObject = rbcObject->InvMass / (planetInvMass + rbcObject->InvMass);
 
