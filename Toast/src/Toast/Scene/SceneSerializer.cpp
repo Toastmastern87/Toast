@@ -410,6 +410,7 @@ namespace Toast {
 			auto& rbc = entity.GetComponent<RigidBodyComponent>();
 			out << YAML::Key << "InvMass" << YAML::Value << rbc.InvMass;
 			out << YAML::Key << "Elasticity" << YAML::Value << rbc.Elasticity;
+			out << YAML::Key << "Friction" << YAML::Value << rbc.Friction;
 			out << YAML::Key << "CenterOfMass" << YAML::Value << rbc.CenterOfMass;
 
 			out << YAML::EndMap; // RigidBodyComponent
@@ -693,6 +694,7 @@ namespace Toast {
 					rbc.CenterOfMass = rigidBodyComponent["CenterOfMass"].as<DirectX::XMFLOAT3>();
 					rbc.InvMass = rigidBodyComponent["InvMass"].as<float>();
 					rbc.Elasticity = rigidBodyComponent["Elasticity"].as<float>();
+					rbc.Friction = rigidBodyComponent["Friction"].as<float>();
 				}
 
 				auto sphereColliderComponent = entity["SphereColliderComponent"];
