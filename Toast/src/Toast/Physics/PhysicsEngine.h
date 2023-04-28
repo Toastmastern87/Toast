@@ -23,8 +23,83 @@ namespace Toast {
 			DirectX::XMVECTOR PtOnPlanetWorldSpace;
 			DirectX::XMVECTOR PtOnObjectWorldSpace;
 
-			float separationDistance;
+			float SeparationDistance;
+			float TimeOfImpact;
 		};
+
+		static bool RaySphere(const DirectX::XMVECTOR& rayStart, const DirectX::XMVECTOR& rayDir, const DirectX::XMVECTOR& sphereCenter, const float sphereRadius, float& t1, float& t2)
+		{
+			const DirectX::XMVECTOR m = DirectX::XMVectorSubtract(sphereCenter, rayStart);
+			const float a = DirectX::XMVectorGetX(DirectX::XMVector3Dot(rayDir, rayDir));
+			const float b = DirectX::XMVectorGetX(DirectX::XMVector3Dot(m, rayDir));
+			const float c = DirectX::XMVectorGetX(DirectX::XMVector3Dot(m, m)) - sphereRadius * sphereRadius;
+
+			const float delta = b * b - a * c;
+
+			const float invA = 1.0f / a;
+
+			// No real solution exists
+			if (delta < 0.0f)
+				return false;
+
+			const float deltaRoot = sqrtf(delta);
+			t1 = invA * (b - deltaRoot);
+			t2 = invA * (b + deltaRoot);
+
+			return true;
+		}
+
+		static bool SpherePlanetDynamic(Entity& planet, Entity& object, DirectX::XMVECTOR& posObject, DirectX::XMVECTOR& posPlanet, DirectX::XMVECTOR& velObject, DirectX::XMVECTOR& velPlanet, const float planetHeight, const float dt, DirectX::XMVECTOR& ptOnPlanet, DirectX::XMVECTOR& ptOnObject, float& timeOfImpact)
+		{
+			RigidBodyComponent rbcObject = object.GetComponent<RigidBodyComponent>();
+			SphereColliderComponent sccObject = object.GetComponent<SphereColliderComponent>();
+
+			const DirectX::XMVECTOR relativeVelocity = DirectX::XMVectorSubtract(velObject, velPlanet);
+
+			const DirectX::XMVECTOR startPtObject = posObject;
+			const DirectX::XMVECTOR endPtObject = DirectX::XMVectorAdd(startPtObject, DirectX::XMVectorScale(relativeVelocity, dt));
+			const DirectX::XMVECTOR rayDir = DirectX::XMVectorSubtract(endPtObject, startPtObject);
+
+			float t0 = 0.0f;
+			float t1 = 0.0f;
+			float length = DirectX::XMVectorGetX(DirectX::XMVector3Length(rayDir));
+			float lengthSqr = length * length;
+			if (lengthSqr < (0.001f * 0.001f))
+			{
+				// Ray is to short, just check if already intersecting
+				DirectX::XMVECTOR ab = posPlanet - posObject;
+				float abLength = DirectX::XMVectorGetX(DirectX::XMVector3Length(ab));
+				float abLengthSqr = abLength * abLength;
+				float radius = sccObject.Radius + planetHeight + 0.001f;
+				if (abLengthSqr > (radius * radius))
+					return false;
+			}
+			else if (!RaySphere(posObject, rayDir, posPlanet, sccObject.Radius + planetHeight, t0, t1))
+				return false;
+
+			// Change from [0,1] range to [0,dt] range
+			t0 *= dt;
+			t1 *= dt;
+
+			// If the collision is only the past, then there's no future collision this frame
+			if (t1 < 0.0f)
+				return false;
+
+			// Get the earliest positive time of impact
+			timeOfImpact = t0 < 0.0f ? 0.0f : t0;
+
+			// If the earliest collision is to far in the future, then there's no collision this frame
+			if (timeOfImpact > dt)
+				return false;
+
+			// Get the points on the respective points of collision and return true
+			DirectX::XMVECTOR newPosObject = DirectX::XMVectorAdd(posObject, DirectX::XMVectorScale(velObject, timeOfImpact));
+			DirectX::XMVECTOR newPosPlanet = DirectX::XMVectorAdd(posPlanet, DirectX::XMVectorScale(velPlanet, timeOfImpact));
+			DirectX::XMVECTOR ab = DirectX::XMVectorSubtract(newPosPlanet, newPosObject);
+			ab = DirectX::XMVector3Normalize(ab);
+			ptOnObject = DirectX::XMVectorAdd(newPosObject, DirectX::XMVectorScale(ab, sccObject.Radius));
+			ptOnPlanet = DirectX::XMVectorAdd(newPosPlanet, DirectX::XMVectorScale(ab, planetHeight));
+		}
 
 		static void ApplyImpulseLinear(RigidBodyComponent& rbc, DirectX::XMVECTOR impulse)
 		{
@@ -91,23 +166,13 @@ namespace Toast {
 			return std::make_tuple(heightMapMetadata, heightMap);
 		}
 
-		static bool TerrainCollisionCheck(Entity* planet, Entity* object, TerrainCollision& collision)
+		static float GetPlanetHeightAtPos(Entity* planet, DirectX::XMVECTOR& pos)
 		{
-			collision.Planet = planet;
-			collision.Object = object;
-
 			TerrainColliderComponent tcc = planet->GetComponent<TerrainColliderComponent>();
-			PlanetComponent pc = planet->GetComponent<PlanetComponent>();
 			TransformComponent planetTC = planet->GetComponent<TransformComponent>();
-			TransformComponent objectTC = object->GetComponent<TransformComponent>();
-			SphereColliderComponent scc = object->GetComponent<SphereColliderComponent>();
+			PlanetComponent pc = planet->GetComponent<PlanetComponent>();
 
-			DirectX::XMVECTOR planetWorldPos = DirectX::XMLoadFloat3(&planetTC.Translation);
-			DirectX::XMVECTOR objectWorldPos = DirectX::XMLoadFloat3(&objectTC.Translation);
-			const DirectX::XMVECTOR ab = DirectX::XMVectorSubtract(objectWorldPos, planetWorldPos);
-			collision.Normal = DirectX::XMVector3Normalize(ab);
-
-			DirectX::XMVECTOR planetSpaceObjectPosNorm = DirectX::XMVector3Normalize(DirectX::XMVector3Transform(objectWorldPos, DirectX::XMMatrixInverse(nullptr, planetTC.GetTransform())));
+			DirectX::XMVECTOR planetSpaceObjectPosNorm = DirectX::XMVector3Normalize(DirectX::XMVector3Transform(pos, DirectX::XMMatrixInverse(nullptr, planetTC.GetTransform())));
 
 			size_t width = std::get<0>(tcc.TerrainData).width;
 			size_t height = std::get<0>(tcc.TerrainData).height;
@@ -117,7 +182,7 @@ namespace Toast {
 			texCoord.y *= (float)(height - 1);
 
 			// Calculates the +1 tiles to check and take texture edge into account
-			float nextXTile = texCoord.x == (float)(width - 1) ? texCoord.x = 0.0f: texCoord.x + 1.0f;
+			float nextXTile = texCoord.x == (float)(width - 1) ? texCoord.x = 0.0f : texCoord.x + 1.0f;
 			float nextYTile = texCoord.y == (float)(height - 1) ? texCoord.y = 0.0f : texCoord.y + 1.0f;
 
 			size_t rowPitch = std::get<1>(tcc.TerrainData)->GetImage(0, 0, 0)->rowPitch;
@@ -130,28 +195,78 @@ namespace Toast {
 			float terrainDataValue = Math::BilinearInterpolation(texCoord, Q11, Q12, Q21, Q22);
 
 			float heightAtPos = (terrainDataValue * (pc.PlanetData.maxAltitude - pc.PlanetData.minAltitude) + pc.PlanetData.minAltitude) + pc.PlanetData.radius;
-	
-			// HeightAtPos is the radius of the planet at contact location
-			collision.PtOnPlanetWorldSpace = DirectX::XMVectorAdd(planetWorldPos, DirectX::XMVectorScale(collision.Normal, heightAtPos));
-			collision.PtOnObjectWorldSpace = DirectX::XMVectorSubtract(objectWorldPos, DirectX::XMVectorScale(collision.Normal, scc.Radius));
 
-			collision.separationDistance = DirectX::XMVectorGetX(DirectX::XMVector3Length(collision.PtOnPlanetWorldSpace) - DirectX::XMVector3Length(collision.PtOnObjectWorldSpace));
+			return heightAtPos;
+		}
 
-			//TOAST_CORE_INFO("planetOrigo: %f, %f, %f", XMVectorGetX(planetOrigo), XMVectorGetY(planetOrigo), XMVectorGetZ(planetOrigo));
-			//TOAST_CORE_INFO("collision.Normal: %f, %f, %f", XMVectorGetX(collision.Normal), XMVectorGetY(collision.Normal), XMVectorGetZ(collision.Normal));
-			//TOAST_CORE_INFO("collision.PtOnObjectWorldSpace: %f, %f, %f", XMVectorGetX(collision.PtOnObjectWorldSpace), XMVectorGetY(collision.PtOnObjectWorldSpace), XMVectorGetZ(collision.PtOnObjectWorldSpace));
-			//TOAST_CORE_INFO("collision.PtOnPlanetWorldSpace: %f, %f, %f", XMVectorGetX(collision.PtOnPlanetWorldSpace), XMVectorGetY(collision.PtOnPlanetWorldSpace), XMVectorGetZ(collision.PtOnPlanetWorldSpace));
-			//TOAST_CORE_INFO("terrainDataValue: %f", terrainDataValue);
-			//TOAST_CORE_INFO("pos: %f", pos);
-			//TOAST_CORE_INFO("heightAtPos: %f", heightAtPos);
+		static void UpdateBody(Entity& body, float dt)
+		{
+			TransformComponent& tc = body.GetComponent<TransformComponent>();
+			RigidBodyComponent& rbc = body.GetComponent<RigidBodyComponent>();
+			SphereColliderComponent& scc = body.GetComponent<SphereColliderComponent>();
 
-			// HeightAtPos is the radius of the planet at contact location
-			const float radiusPlanetObject = scc.Radius + heightAtPos;
-			const float lengthSquare = DirectX::XMVectorGetX(DirectX::XMVector3Length(ab)) * DirectX::XMVectorGetX(DirectX::XMVector3Length(ab));
-			if (lengthSquare <= (radiusPlanetObject * radiusPlanetObject))
+			// Update position due to LinearVelocity
+			DirectX::XMVECTOR translation = DirectX::XMLoadFloat3(&tc.Translation);
+			DirectX::XMVECTOR deltaGravityTranslation = DirectX::XMVectorScale(DirectX::XMLoadFloat3(&rbc.LinearVelocity), dt);
+			translation += deltaGravityTranslation;
+			DirectX::XMStoreFloat3(&tc.Translation, translation);
+
+			// Update rotation due to AngularVelocity
+			if (DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMLoadFloat3(&rbc.AngularVelocity))) > 0.0f)
+			{
+				DirectX::XMVECTOR CoMPositionWorldSpace = DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&rbc.CenterOfMass), tc.GetTransform());
+				DirectX::XMVECTOR CoMToPos = DirectX::XMVectorSubtract(translation, CoMPositionWorldSpace);
+
+				DirectX::XMMATRIX orientation = DirectX::XMMatrixMultiply(DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z))), DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)));
+				DirectX::XMMATRIX inertiaTensor = DirectX::XMMatrixMultiply(orientation, DirectX::XMLoadFloat3x3(&scc.InertiaTensor));
+				DirectX::XMVECTOR alpha = DirectX::XMVector3Transform(DirectX::XMVector3Cross(DirectX::XMLoadFloat3(&rbc.AngularVelocity), DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&rbc.AngularVelocity), inertiaTensor)), DirectX::XMMatrixInverse(nullptr, inertiaTensor));
+				DirectX::XMStoreFloat3(&rbc.AngularVelocity, DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&rbc.AngularVelocity), DirectX::XMVectorScale(alpha, dt)));
+
+				// Update orientation due to AngularVelocity
+				DirectX::XMVECTOR dAngle = DirectX::XMVectorScale(DirectX::XMLoadFloat3(&rbc.AngularVelocity), dt);
+				DirectX::XMVECTOR dq = DirectX::XMQuaternionRotationAxis(dAngle, DirectX::XMVectorGetX(DirectX::XMVector3Length(dAngle)));
+				DirectX::XMStoreFloat4(&tc.RotationQuaternion, DirectX::XMVector4Normalize(DirectX::XMQuaternionMultiply(DirectX::XMLoadFloat4(&tc.RotationQuaternion), dq)));
+
+				// Update position due to CoM translation
+				DirectX::XMStoreFloat3(&tc.Translation, DirectX::XMVectorAdd(CoMPositionWorldSpace, DirectX::XMVector3Rotate(CoMToPos, dq)));
+			}
+		}
+
+		static bool TerrainCollisionCheck(Entity* planet, Entity* object, TerrainCollision& collision, float dt)
+		{
+			collision.Planet = planet;
+			collision.Object = object;
+
+			//RigidBodyComponent rbcPlanet = planet->GetComponent<RigidBodyComponent>();
+			RigidBodyComponent rbcObject = object->GetComponent<RigidBodyComponent>();
+
+			TransformComponent objectTC = object->GetComponent<TransformComponent>();
+			float objectSCCRadius = object->GetComponent<SphereColliderComponent>().Radius;
+
+			float planetHeight = GetPlanetHeightAtPos(planet, DirectX::XMLoadFloat3(&objectTC.Translation));
+
+			DirectX::XMVECTOR posPlanet = DirectX::XMLoadFloat3(&planet->GetComponent<TransformComponent>().Translation);
+			DirectX::XMVECTOR posObject = DirectX::XMLoadFloat3(&object->GetComponent<TransformComponent>().Translation);
+
+			DirectX::XMVECTOR velObject = DirectX::XMLoadFloat3(&rbcObject.LinearVelocity);
+			DirectX::XMVECTOR velPlanet = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+
+			if (SpherePlanetDynamic(*planet, *object, posObject, posPlanet, velObject, velPlanet, planetHeight, dt, collision.PtOnObjectWorldSpace, collision.PtOnPlanetWorldSpace, collision.TimeOfImpact))
+			{
+				UpdateBody(*object, dt);
+
+				collision.Normal = DirectX::XMVectorSubtract(posObject, posPlanet);
+				collision.Normal = DirectX::XMVector3Normalize(collision.Normal);
+
+				UpdateBody(*object, -dt);
+
+				DirectX::XMVECTOR ab = DirectX::XMVectorSubtract(posObject, posPlanet);
+				float r = DirectX::XMVectorGetX(DirectX::XMVector3Length(ab)) - (objectSCCRadius + planetHeight);
+				collision.SeparationDistance = r;
 				return true;
-			else
-				return false;
+			}
+
+			return false;
 		}
 
 		static void ResolveTerrainCollision(TerrainCollision& collision)
@@ -250,7 +365,7 @@ namespace Toast {
 			return	impulseGravity;
 		}
 
-		static void Update(entt::registry* registry, Scene* scene, Timestep ts)
+		static void Update(entt::registry* registry, Scene* scene, float ts)
 		{
 			auto view = registry->view<TransformComponent, RigidBodyComponent>();
 
@@ -267,6 +382,7 @@ namespace Toast {
 					DirectX::XMVECTOR impulseGravity = Gravity(planetEntity, objectEntity, scene, ts);
 					//ApplyImpulseLinear(rbc, impulseGravity);
 					//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
+					//TOAST_CORE_INFO("Translation outside UpdateBody(): %f, %f, %f", tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
 					if (objectEntity.HasComponent<SphereColliderComponent>())
 					{
@@ -275,35 +391,11 @@ namespace Toast {
 						ApplyImpulse(tc, rbc, scc, DirectX::XMLoadFloat3(&tc.Translation), impulseGravity);
 						TerrainCollision terrainCollision;
 
-						if (TerrainCollisionCheck(&planetEntity, &objectEntity, terrainCollision))
-							//TOAST_CORE_INFO("TERRAIN COLLISION!");
-							ResolveTerrainCollision(terrainCollision);
+						if (TerrainCollisionCheck(&planetEntity, &objectEntity, terrainCollision, ts))
+							TOAST_CORE_INFO("TERRAIN COLLISION!");
+							//ResolveTerrainCollision(terrainCollision);
 
-						// Update position due to LinearVelocity
-						DirectX::XMVECTOR translation = DirectX::XMLoadFloat3(&tc.Translation);
-						DirectX::XMVECTOR deltaGravityTranslation = DirectX::XMLoadFloat3(&rbc.LinearVelocity) * (ts.GetSeconds() * scene->GetTimeScale());
-						translation += deltaGravityTranslation;
-						DirectX::XMStoreFloat3(&tc.Translation, translation);
-
-						// Update rotation due to AngularVelocity
-						if (DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMLoadFloat3(&rbc.AngularVelocity))) > 0.0f)
-						{
-							DirectX::XMVECTOR CoMPositionWorldSpace = DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&rbc.CenterOfMass), tc.GetTransform());
-								DirectX::XMVECTOR CoMToPos = DirectX::XMVectorSubtract(translation, CoMPositionWorldSpace);
-
-								DirectX::XMMATRIX orientation = DirectX::XMMatrixMultiply(DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z))), DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)));
-								DirectX::XMMATRIX inertiaTensor = DirectX::XMMatrixMultiply(orientation, DirectX::XMLoadFloat3x3(&scc.InertiaTensor));
-								DirectX::XMVECTOR alpha = DirectX::XMVector3Transform(DirectX::XMVector3Cross(DirectX::XMLoadFloat3(&rbc.AngularVelocity), DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&rbc.AngularVelocity), inertiaTensor)), DirectX::XMMatrixInverse(nullptr, inertiaTensor));
-								DirectX::XMStoreFloat3(&rbc.AngularVelocity, DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&rbc.AngularVelocity), DirectX::XMVectorScale(alpha, ts)));
-
-								// Update orientation due to AngularVelocity
-								DirectX::XMVECTOR dAngle = DirectX::XMVectorScale(DirectX::XMLoadFloat3(&rbc.AngularVelocity), ts.GetSeconds());
-							DirectX::XMVECTOR dq = DirectX::XMQuaternionRotationAxis(dAngle, DirectX::XMVectorGetX(DirectX::XMVector3Length(dAngle)));
-							DirectX::XMStoreFloat4(&tc.RotationQuaternion, DirectX::XMVector4Normalize(DirectX::XMQuaternionMultiply(DirectX::XMLoadFloat4(&tc.RotationQuaternion), dq)));
-
-							// Update position due to CoM translation
-							DirectX::XMStoreFloat3(&tc.Translation, DirectX::XMVectorAdd(CoMPositionWorldSpace, DirectX::XMVector3Rotate(CoMToPos, dq)));
-						}
+						UpdateBody(objectEntity, ts);
 					}
 				}
 			}
