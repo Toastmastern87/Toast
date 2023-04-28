@@ -156,7 +156,7 @@ namespace Toast {
 
 		if (!mIsPaused) 
 		{
-			PhysicsEngine::Update(&mRegistry, this, ts);
+			PhysicsEngine::Update(&mRegistry, this, ts.GetSeconds() * GetTimeScale());
 
 			// Scripting
 			{
