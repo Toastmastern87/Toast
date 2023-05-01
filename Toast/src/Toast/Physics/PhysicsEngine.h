@@ -27,6 +27,21 @@ namespace Toast {
 			float TimeOfImpact;
 		};
 
+		static int CompareContacts(const void* p1, const void* p2) 
+		{
+			TerrainCollision a = *(TerrainCollision*)p1;
+			TerrainCollision b = *(TerrainCollision*)p2;
+
+			if (a.TimeOfImpact < b.TimeOfImpact)
+				return -1;
+			
+			if (a.TimeOfImpact == b.TimeOfImpact)
+				return 0;
+
+			return 1;
+
+		}
+
 		static bool RaySphere(const DirectX::XMVECTOR& rayStart, const DirectX::XMVECTOR& rayDir, const DirectX::XMVECTOR& sphereCenter, const float sphereRadius, float& t1, float& t2)
 		{
 			const DirectX::XMVECTOR m = DirectX::XMVectorSubtract(sphereCenter, rayStart);
@@ -98,7 +113,7 @@ namespace Toast {
 			DirectX::XMVECTOR ab = DirectX::XMVectorSubtract(newPosPlanet, newPosObject);
 			ab = DirectX::XMVector3Normalize(ab);
 			ptOnObject = DirectX::XMVectorAdd(newPosObject, DirectX::XMVectorScale(ab, sccObject.Radius));
-			ptOnPlanet = DirectX::XMVectorAdd(newPosPlanet, DirectX::XMVectorScale(ab, planetHeight));
+			ptOnPlanet = DirectX::XMVectorSubtract(newPosPlanet, DirectX::XMVectorScale(ab, planetHeight));
 		}
 
 		static void ApplyImpulseLinear(RigidBodyComponent& rbc, DirectX::XMVECTOR impulse)
@@ -237,7 +252,6 @@ namespace Toast {
 			collision.Planet = planet;
 			collision.Object = object;
 
-			//RigidBodyComponent rbcPlanet = planet->GetComponent<RigidBodyComponent>();
 			RigidBodyComponent rbcObject = object->GetComponent<RigidBodyComponent>();
 
 			TransformComponent objectTC = object->GetComponent<TransformComponent>();
@@ -330,21 +344,28 @@ namespace Toast {
 
 			ApplyImpulse(collision.Object->GetComponent<TransformComponent>(), *rbcObject, collision.Object->GetComponent<SphereColliderComponent>(), DirectX::XMLoadFloat3(&collision.Object->GetComponent<TransformComponent>().Translation), impulseFriction * 1.0f);
 
-			const float tPlanet = planetInvMass / (planetInvMass + rbcObject->InvMass);
-			const float tObject = rbcObject->InvMass / (planetInvMass + rbcObject->InvMass);
+			if (0.0f == collision.TimeOfImpact) 
+			{
+				const DirectX::XMVECTOR ds = collision.PtOnObjectWorldSpace - collision.PtOnPlanetWorldSpace;
 
-			const DirectX::XMVECTOR ds = collision.PtOnObjectWorldSpace - collision.PtOnPlanetWorldSpace;
+				const float tPlanet = planetInvMass / (planetInvMass + rbcObject->InvMass);
+				const float tObject = rbcObject->InvMass / (planetInvMass + rbcObject->InvMass);
 
-			DirectX::XMVECTOR planetPosition = DirectX::XMLoadFloat3(&collision.Planet->GetComponent<TransformComponent>().Translation);
-			DirectX::XMVECTOR objectPosition = DirectX::XMLoadFloat3(&collision.Object->GetComponent<TransformComponent>().Translation);
+				DirectX::XMVECTOR planetPosition = DirectX::XMLoadFloat3(&collision.Planet->GetComponent<TransformComponent>().Translation);
+				DirectX::XMVECTOR objectPosition = DirectX::XMLoadFloat3(&collision.Object->GetComponent<TransformComponent>().Translation);
 
-			DirectX::XMStoreFloat3(&collision.Planet->GetComponent<TransformComponent>().Translation, DirectX::XMVectorAdd(planetPosition, (ds * tPlanet)));
-			DirectX::XMStoreFloat3(&collision.Object->GetComponent<TransformComponent>().Translation, DirectX::XMVectorSubtract(objectPosition, (ds * tObject)));
+				//TOAST_CORE_INFO("Object translation: %f, %f, %f", DirectX::XMVectorGetX(objectPosition), DirectX::XMVectorGetY(objectPosition), DirectX::XMVectorGetZ(objectPosition));
+				//DirectX::XMVECTOR testVec = DirectX::XMVectorSubtract(objectPosition, (ds * tObject));
+				//TOAST_CORE_INFO("Update object translation: %f, %f, %f", DirectX::XMVectorGetX(testVec), DirectX::XMVectorGetY(testVec), DirectX::XMVectorGetZ(testVec));
+
+				DirectX::XMStoreFloat3(&collision.Planet->GetComponent<TransformComponent>().Translation, DirectX::XMVectorAdd(planetPosition, (ds * tPlanet)));
+				DirectX::XMStoreFloat3(&collision.Object->GetComponent<TransformComponent>().Translation, DirectX::XMVectorSubtract(objectPosition, (ds * tObject)));
+			}
 
 			return;
 		}
 
-		static DirectX::XMVECTOR Gravity(Entity& planet, Entity object, Scene* scene, Timestep ts)
+		static DirectX::XMVECTOR Gravity(Entity& planet, Entity object, float ts)
 		{
 			DirectX::XMVECTOR impulseGravity = { 0.0f, 0.0f, 0.0f, 0.0f };
 
@@ -360,44 +381,41 @@ namespace Toast {
 
 			// Calculate linear velocity due to gravity
 			float mass = 1.0f / rbc.InvMass;
-			impulseGravity = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&ptc.Translation) - DirectX::XMLoadFloat3(&tc.Translation)) * (pc.PlanetData.gravAcc / 1000.0f) * mass * ts.GetSeconds() * scene->GetTimeScale();
+			impulseGravity = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&ptc.Translation) - DirectX::XMLoadFloat3(&tc.Translation)) * (pc.PlanetData.gravAcc / 1000.0f) * mass * ts;
 
-			return	impulseGravity;
+			return impulseGravity;
 		}
 
 		static void Update(entt::registry* registry, Scene* scene, float ts)
 		{
-			auto view = registry->view<TransformComponent, RigidBodyComponent>();
+			auto view = registry->view<TransformComponent, RigidBodyComponent, SphereColliderComponent>();
 
 			auto planetView = registry->view<PlanetComponent>();
 			if (planetView.size() > 0)
 			{
-				SphereColliderComponent scc;
 				Entity planetEntity = { planetView[0], scene };
 				for (auto entity : view)
 				{
 					Entity objectEntity = { entity, scene };
-					auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
+					auto [tc, rbc, scc] = view.get<TransformComponent, RigidBodyComponent, SphereColliderComponent>(entity);
 
-					DirectX::XMVECTOR impulseGravity = Gravity(planetEntity, objectEntity, scene, ts);
+					// Gravity
+					DirectX::XMVECTOR impulseGravity = Gravity(planetEntity, objectEntity, ts);
+					ApplyImpulse(tc, rbc, scc, DirectX::XMLoadFloat3(&tc.Translation), impulseGravity);
 					//ApplyImpulseLinear(rbc, impulseGravity);
 					//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
 					//TOAST_CORE_INFO("Translation outside UpdateBody(): %f, %f, %f", tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
-					if (objectEntity.HasComponent<SphereColliderComponent>())
-					{
-						scc = objectEntity.GetComponent<SphereColliderComponent>();
-						// Gravity
-						ApplyImpulse(tc, rbc, scc, DirectX::XMLoadFloat3(&tc.Translation), impulseGravity);
-						TerrainCollision terrainCollision;
+					TerrainCollision terrainCollision;
+					if (TerrainCollisionCheck(&planetEntity, &objectEntity, terrainCollision, ts))
+						ResolveTerrainCollision(terrainCollision);
 
-						if (TerrainCollisionCheck(&planetEntity, &objectEntity, terrainCollision, ts))
-							TOAST_CORE_INFO("TERRAIN COLLISION!");
-							//ResolveTerrainCollision(terrainCollision);
-
-						UpdateBody(objectEntity, ts);
-					}
+					UpdateBody(objectEntity, ts);
 				}
+
+				// This will be used later for when collision is added between entities.
+				int numContacts = 0;
+				const int maxContacts = view.size() * view.size();
 			}
 
 		}
