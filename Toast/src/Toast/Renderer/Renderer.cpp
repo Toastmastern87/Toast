@@ -249,10 +249,20 @@ namespace Toast {
 
 	void Renderer::BaseRenderPass()
 	{
+	TOAST_PROFILE_FUNCTION();
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"Base Render Pass");
+#endif
+
 		RenderCommand::EnableBlending();
 
 		sRendererData->BaseFramebuffer->Bind();
 		sRendererData->BaseFramebuffer->Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
+
+		const char* drawCallName = "Base Render Pass";
 
 		if (sRendererData->SceneData.SkyboxData.Skybox)
 		{
@@ -327,10 +337,22 @@ namespace Toast {
 				RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, static_cast<uint32_t>(meshCommand.Mesh->mPlanetPatches.size()), 0, 0, 0);
 			}
 		}
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
 	}
 
 	void Renderer::PickingRenderPass()
 	{
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"Picking Render Pass");
+#endif
+
 		RenderCommand::DisableWireframe();
 		RenderCommand::DisableBlending();
 
@@ -360,10 +382,20 @@ namespace Toast {
 				}
 			}
 		}
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
 	}
 
 	void Renderer::PostProcessPass()
 	{
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"Post Process Render Pass");
+#endif
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
@@ -411,6 +443,10 @@ namespace Toast {
 		RenderCommand::Draw(3);
 
 		deviceContext->PSSetShaderResources(10, 1, nullSRV);
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
 	}
 
 	void Renderer::ResetStats()

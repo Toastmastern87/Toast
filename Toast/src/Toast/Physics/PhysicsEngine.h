@@ -354,10 +354,6 @@ namespace Toast {
 				DirectX::XMVECTOR planetPosition = DirectX::XMLoadFloat3(&collision.Planet->GetComponent<TransformComponent>().Translation);
 				DirectX::XMVECTOR objectPosition = DirectX::XMLoadFloat3(&collision.Object->GetComponent<TransformComponent>().Translation);
 
-				//TOAST_CORE_INFO("Object translation: %f, %f, %f", DirectX::XMVectorGetX(objectPosition), DirectX::XMVectorGetY(objectPosition), DirectX::XMVectorGetZ(objectPosition));
-				//DirectX::XMVECTOR testVec = DirectX::XMVectorSubtract(objectPosition, (ds * tObject));
-				//TOAST_CORE_INFO("Update object translation: %f, %f, %f", DirectX::XMVectorGetX(testVec), DirectX::XMVectorGetY(testVec), DirectX::XMVectorGetZ(testVec));
-
 				DirectX::XMStoreFloat3(&collision.Planet->GetComponent<TransformComponent>().Translation, DirectX::XMVectorAdd(planetPosition, (ds * tPlanet)));
 				DirectX::XMStoreFloat3(&collision.Object->GetComponent<TransformComponent>().Translation, DirectX::XMVectorSubtract(objectPosition, (ds * tObject)));
 			}
@@ -413,7 +409,8 @@ namespace Toast {
 					UpdateBody(objectEntity, ts);
 				}
 
-				// This will be used later for when collision is added between entities.
+				// This will be used later for when collision is added between entities. Right now Toast Physics only work with
+				// Collision with terrain.
 				int numContacts = 0;
 				const int maxContacts = view.size() * view.size();
 			}

@@ -77,6 +77,11 @@ namespace Toast {
 			sRendererAPI->SetPrimitiveTopology(topology);
 		}
 
+		static void GetAnnotation(Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>& annotation)
+		{
+			sRendererAPI->GetAnnotation(annotation);
+		}
+
 		static void CleanUp()
 		{
 			sRendererAPI->CleanUp();
