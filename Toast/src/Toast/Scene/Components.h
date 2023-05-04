@@ -12,6 +12,8 @@
 
 #include "Toast/Renderer/UI/UIElement.h"
 
+#include "Toast/Physics/Bounds.h"
+
 #include <../vendor/directxtex/include/DirectXTex.h>
 
 namespace Toast {
@@ -200,9 +202,11 @@ namespace Toast {
 			0.0f, 0.0f, 0.0f  // row 3
 			);
 
+		std::tuple<DirectX::XMFLOAT3, DirectX::XMFLOAT3> Bounds;
+
 		SphereColliderComponent() = default;
 		SphereColliderComponent(float radius, const Ref<Toast::Mesh>& mesh)
-			: Radius(radius), ColliderMesh(mesh) {}
+			: Radius(radius), ColliderMesh(mesh){}
 	};
 
 	struct BoxColliderComponent

@@ -10,6 +10,7 @@
 #include "Toast/Scripting/ScriptEngine.h"
 
 #include "Toast/Physics/PhysicsEngine.h"
+#include "Toast/Physics/Bounds.h"
 
 #include "Toast/Scene/Components.h"
 
@@ -1006,6 +1007,11 @@ namespace Toast {
 					component.InertiaTensor.m[0][0] = 0.4f * component.Radius * component.Radius;
 					component.InertiaTensor.m[1][1] = 0.4f * component.Radius * component.Radius;
 					component.InertiaTensor.m[2][2] = 0.4f * component.Radius * component.Radius;
+
+					DirectX::XMFLOAT3 translation = entity.GetComponent<TransformComponent>().Translation;
+					// TODO  - Orientation needs to take the euler angles into account aswell.
+					DirectX::XMFLOAT4 orientation = entity.GetComponent<TransformComponent>().RotationQuaternion;
+					component.Bounds = Bounds::GetBounds(translation, orientation, component.Radius);
 				}
 				ImGui::EndTable();
 			});
