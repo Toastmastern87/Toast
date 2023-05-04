@@ -196,6 +196,11 @@ namespace Toast {
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create wireframe rasterizer state");
 	}
 
+	void RendererAPI::GetAnnotation(Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>& annotation)
+	{
+		mDeviceContext->QueryInterface(__uuidof(ID3DUserDefinedAnnotation), reinterpret_cast<void**>(annotation.GetAddressOf()));
+	}
+
 	void RendererAPI::LogAdapterInfo()
 	{
 		IDXGIFactory* factory = nullptr;

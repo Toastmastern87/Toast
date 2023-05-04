@@ -7,6 +7,7 @@
 
 #include <DirectXMath.h>
 #include <d3d11.h>
+#include <d3d11_1.h>
 #include <wrl.h>
 
 namespace Toast {
@@ -32,6 +33,8 @@ namespace Toast {
 		void DisableWireframe();
 		void SetPrimitiveTopology(PrimitiveTopology topology);
 		void CleanUp();
+
+		void GetAnnotation(Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>& annotation);
 
 		ID3D11Device* GetDevice() { return mDevice.Get(); }
 		ID3D11DeviceContext* GetDeviceContext() { return mDeviceContext.Get(); }

@@ -148,6 +148,13 @@ namespace Toast {
 
 	void RendererDebug::DebugRenderPass(const bool runtime)
 	{
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"Debug Render Pass");
+#endif
+
 		sRendererData->FinalFramebuffer->EnableDepth();
 		sRendererData->FinalFramebuffer->Bind();
 
@@ -194,10 +201,22 @@ namespace Toast {
 		}
 
 		RenderCommand::DisableWireframe();
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
 	}
 
 	void RendererDebug::OutlineRenderPass()
 	{
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"Outline Render Pass");
+#endif
+
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
@@ -246,6 +265,11 @@ namespace Toast {
 				deviceContext->PSSetShaderResources(9, 1, nullSRV);
 			}
 		}
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
 	}
 
 }
