@@ -382,7 +382,51 @@ namespace Toast {
 			return impulseGravity;
 		}
 
-		static void Update(entt::registry* registry, Scene* scene, float ts)
+		static bool BroadPhaseCheck(Entity& planet, Entity& object, float dt)
+		{
+			DirectX::XMFLOAT3 planetPos = planet.GetComponent<TransformComponent>().Translation;
+			DirectX::XMFLOAT3 objectPos = object.GetComponent<TransformComponent>().Translation;
+			DirectX::XMFLOAT4 objectRot = object.GetComponent<TransformComponent>().RotationQuaternion;
+			DirectX::XMFLOAT3 objectLinearVel = object.GetComponent<RigidBodyComponent>().LinearVelocity;
+
+			auto pc = planet.GetComponent<PlanetComponent>();
+
+			auto planetBounds = Bounds::GetPlanetBounds(planetPos, pc.PlanetData.maxAltitude, pc.PlanetData.radius);
+			auto objectBounds = Bounds::GetBounds(objectPos, objectRot, object.GetComponent<SphereColliderComponent>().Radius);
+
+			DirectX::XMFLOAT3 planetMins = std::get<0>(planetBounds);
+			DirectX::XMFLOAT3 planetMaxs = std::get<1>(planetBounds);
+
+			TOAST_CORE_INFO("Planet Bounds: ");
+			TOAST_CORE_INFO("Max: %f, %f, %f", planetMaxs.x, planetMaxs.y, planetMaxs.z);
+			TOAST_CORE_INFO("Min: %f, %f, %f", planetMins.x, planetMins.y, planetMins.z);
+
+			DirectX::XMFLOAT3 objectMins = std::get<0>(objectBounds);
+			DirectX::XMFLOAT3 objectMaxs = std::get<1>(objectBounds);
+
+			TOAST_CORE_INFO("Object Bounds: ");
+			TOAST_CORE_INFO("Max: %f, %f, %f", objectMaxs.x, objectMaxs.y, objectMaxs.z);
+			TOAST_CORE_INFO("Min: %f, %f, %f", objectMins.x, objectMins.y, objectMins.z);
+
+			DirectX::XMFLOAT3 expandVector = { objectLinearVel.x * dt,  objectLinearVel.y * dt, objectLinearVel.z * dt };
+
+			TOAST_CORE_INFO("Expand Vector: %f, %f, %f", expandVector.x, expandVector.y, expandVector.z);
+
+			objectBounds = Bounds::Expand(objectBounds, expandVector);
+
+			objectMins = std::get<0>(objectBounds);
+			objectMaxs = std::get<1>(objectBounds);
+
+			TOAST_CORE_INFO("Object Bounds AFTER EXPAND: ");
+			TOAST_CORE_INFO("Max: %f, %f, %f", objectMaxs.x, objectMaxs.y, objectMaxs.z);
+			TOAST_CORE_INFO("Min: %f, %f, %f", objectMins.x, objectMins.y, objectMins.z);
+
+			bool intersects = Bounds::Intersects(objectBounds, planetBounds);
+
+			return intersects;
+		}
+
+		static void Update(entt::registry* registry, Scene* scene, float dt)
 		{
 			auto view = registry->view<TransformComponent, RigidBodyComponent, SphereColliderComponent>();
 
@@ -396,17 +440,25 @@ namespace Toast {
 					auto [tc, rbc, scc] = view.get<TransformComponent, RigidBodyComponent, SphereColliderComponent>(entity);
 
 					// Gravity
-					DirectX::XMVECTOR impulseGravity = Gravity(planetEntity, objectEntity, ts);
+					DirectX::XMVECTOR impulseGravity = Gravity(planetEntity, objectEntity, dt);
 					ApplyImpulse(tc, rbc, scc, DirectX::XMLoadFloat3(&tc.Translation), impulseGravity);
 					//ApplyImpulseLinear(rbc, impulseGravity);
 					//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
 					//TOAST_CORE_INFO("Translation outside UpdateBody(): %f, %f, %f", tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
-					TerrainCollision terrainCollision;
-					if (TerrainCollisionCheck(&planetEntity, &objectEntity, terrainCollision, ts))
-						ResolveTerrainCollision(terrainCollision);
+					// Broad Phase
+					if (BroadPhaseCheck(planetEntity, objectEntity, dt))
+					{
+						// Narrow Phase
+						TOAST_CORE_INFO("Narrow Phase!");
+						TerrainCollision terrainCollision;
+						if (TerrainCollisionCheck(&planetEntity, &objectEntity, terrainCollision, dt))
+							ResolveTerrainCollision(terrainCollision);
+					}
+					else
+						TOAST_CORE_INFO("Broad Phase!");
 
-					UpdateBody(objectEntity, ts);
+					UpdateBody(objectEntity, dt);
 				}
 
 				// This will be used later for when collision is added between entities. Right now Toast Physics only work with
