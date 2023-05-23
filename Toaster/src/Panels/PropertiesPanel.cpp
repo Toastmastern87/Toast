@@ -660,7 +660,7 @@ namespace Toast {
 				ImGui::Text("Max Alt(km)");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (ImGui::DragFloat("##MaxAlt", &component.PlanetData.maxAltitude, 0.1f, 0.0f, 0.0f, "%.2f"))
+				if (ImGui::DragFloat("##MaxAltitude", &component.PlanetData.maxAltitude, 0.1f, 0.0f, 0.0f, "%.2f")) 
 					modified = true;
 
 				ImGui::TableNextRow();
@@ -676,7 +676,7 @@ namespace Toast {
 				ImGui::Text("Radius(km)");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (ImGui::DragFloat("##Radius", &component.PlanetData.radius, 0.1f, 0.0f, 0.0f, "%.2f"))
+				if (ImGui::DragFloat("##Radius", &component.PlanetData.radius, 0.1f, 0.0f, 0.0f, "%.2f")) {}
 					modified = true;
 
 				ImGui::TableNextRow();
@@ -1007,11 +1007,6 @@ namespace Toast {
 					component.InertiaTensor.m[0][0] = 0.4f * component.Radius * component.Radius;
 					component.InertiaTensor.m[1][1] = 0.4f * component.Radius * component.Radius;
 					component.InertiaTensor.m[2][2] = 0.4f * component.Radius * component.Radius;
-
-					DirectX::XMFLOAT3 translation = entity.GetComponent<TransformComponent>().Translation;
-					// TODO  - Orientation needs to take the euler angles into account aswell.
-					DirectX::XMFLOAT4 orientation = entity.GetComponent<TransformComponent>().RotationQuaternion;
-					component.Bounds = Bounds::GetBounds(translation, orientation, component.Radius);
 				}
 				ImGui::EndTable();
 			});
