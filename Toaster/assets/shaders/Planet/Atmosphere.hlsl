@@ -211,7 +211,7 @@ float4 main(PixelInputType input) : SV_TARGET
 
 			float4 finalColor = (originalColor * float4(transmittance, 1.0f)) + float4(scatteringColor, 0.0f);
 
-			return finalColor;	
+			return finalColor;
 		}
 
 		return originalColor;

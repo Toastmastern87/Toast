@@ -262,8 +262,6 @@ namespace Toast {
 		sRendererData->BaseFramebuffer->Bind();
 		sRendererData->BaseFramebuffer->Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
 
-		const char* drawCallName = "Base Render Pass";
-
 		if (sRendererData->SceneData.SkyboxData.Skybox)
 		{
 			if (sRendererData->SceneData.SkyboxData.Skybox->mVertexBuffer) sRendererData->SceneData.SkyboxData.Skybox->mVertexBuffer->Bind();
@@ -394,7 +392,7 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
 		RenderCommand::GetAnnotation(annotation);
 		if (annotation)
-			annotation->BeginEvent(L"Post Process Render Pass");
+			annotation->BeginEvent(L"Atmosphere Pass");
 #endif
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
@@ -422,6 +420,14 @@ namespace Toast {
 		RenderCommand::SetPrimitiveTopology(PrimitiveTopology::TRIANGLELIST);
 
 		RenderCommand::Draw(3);
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+
+		if (annotation)
+			annotation->BeginEvent(L"Tonemapping Pass");
+#endif
 
 		ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
 		deviceContext->PSSetShaderResources(9, 1, nullSRV);
