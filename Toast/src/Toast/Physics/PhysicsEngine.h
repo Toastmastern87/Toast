@@ -383,43 +383,28 @@ namespace Toast {
 		}
 
 		static bool BroadPhaseCheck(Entity& planet, Entity& object, float dt)
-		{
+		{ 
 			DirectX::XMFLOAT3 planetPos = planet.GetComponent<TransformComponent>().Translation;
-			DirectX::XMFLOAT3 objectPos = object.GetComponent<TransformComponent>().Translation;
+			DirectX::XMFLOAT3 objectPos = object.GetComponent<TransformComponent>().Translation; 
 			DirectX::XMFLOAT4 objectRot = object.GetComponent<TransformComponent>().RotationQuaternion;
 			DirectX::XMFLOAT3 objectLinearVel = object.GetComponent<RigidBodyComponent>().LinearVelocity;
-
 			auto pc = planet.GetComponent<PlanetComponent>();
 
-			auto planetBounds = Bounds::GetPlanetBounds(planetPos, pc.PlanetData.maxAltitude, pc.PlanetData.radius);
+			auto planetBounds = Bounds::GetPlanetBounds(planetPos, pc.PlanetData.maxAltitude, pc.PlanetData.radius); 
 			auto objectBounds = Bounds::GetBounds(objectPos, objectRot, object.GetComponent<SphereColliderComponent>().Radius);
 
 			DirectX::XMFLOAT3 planetMins = std::get<0>(planetBounds);
-			DirectX::XMFLOAT3 planetMaxs = std::get<1>(planetBounds);
-
-			TOAST_CORE_INFO("Planet Bounds: ");
-			TOAST_CORE_INFO("Max: %f, %f, %f", planetMaxs.x, planetMaxs.y, planetMaxs.z);
-			TOAST_CORE_INFO("Min: %f, %f, %f", planetMins.x, planetMins.y, planetMins.z);
+			DirectX::XMFLOAT3 planetMaxs = std::get<1>(planetBounds); 
 
 			DirectX::XMFLOAT3 objectMins = std::get<0>(objectBounds);
 			DirectX::XMFLOAT3 objectMaxs = std::get<1>(objectBounds);
 
-			TOAST_CORE_INFO("Object Bounds: ");
-			TOAST_CORE_INFO("Max: %f, %f, %f", objectMaxs.x, objectMaxs.y, objectMaxs.z);
-			TOAST_CORE_INFO("Min: %f, %f, %f", objectMins.x, objectMins.y, objectMins.z);
-
 			DirectX::XMFLOAT3 expandVector = { objectLinearVel.x * dt,  objectLinearVel.y * dt, objectLinearVel.z * dt };
-
-			TOAST_CORE_INFO("Expand Vector: %f, %f, %f", expandVector.x, expandVector.y, expandVector.z);
 
 			objectBounds = Bounds::Expand(objectBounds, expandVector);
 
 			objectMins = std::get<0>(objectBounds);
 			objectMaxs = std::get<1>(objectBounds);
-
-			TOAST_CORE_INFO("Object Bounds AFTER EXPAND: ");
-			TOAST_CORE_INFO("Max: %f, %f, %f", objectMaxs.x, objectMaxs.y, objectMaxs.z);
-			TOAST_CORE_INFO("Min: %f, %f, %f", objectMins.x, objectMins.y, objectMins.z);
 
 			bool intersects = Bounds::Intersects(objectBounds, planetBounds);
 
@@ -450,13 +435,10 @@ namespace Toast {
 					if (BroadPhaseCheck(planetEntity, objectEntity, dt))
 					{
 						// Narrow Phase
-						TOAST_CORE_INFO("Narrow Phase!");
 						TerrainCollision terrainCollision;
 						if (TerrainCollisionCheck(&planetEntity, &objectEntity, terrainCollision, dt))
 							ResolveTerrainCollision(terrainCollision);
 					}
-					else
-						TOAST_CORE_INFO("Broad Phase!");
 
 					UpdateBody(objectEntity, dt);
 				}
