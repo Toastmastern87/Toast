@@ -385,6 +385,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	float sunlightAngle = max(dot(normalize(input.worldPosition - planetCenter), normalize(direction)), 0.0f);
 	float objectIntensity = lerp(0.2f, 50.0f, sunlightAngle);
 
+	//The hardcoded float3 i ambient lightning which is just there 
 	output.Color = float4((lightContribution + iblContribution + float3(0.001f, 0.001f, 0.001f)) * objectIntensity, 1.0f);
 
 	return output;

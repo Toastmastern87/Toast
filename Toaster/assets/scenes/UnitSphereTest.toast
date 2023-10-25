@@ -1,0 +1,50 @@
+Scene: Untitled Scene
+Entities:
+  - Entity: 15287997148056389042
+    TagComponent:
+      Tag: Empty Entity
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 1658217975157530237
+    TagComponent:
+      Tag: Empty Entity
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    CameraComponent:
+      Camera:
+        ProjectionType: 0
+        PerspectiveFOV: 45
+        NearClip: 0.100000001
+        FarClip: 1000
+        OrthographicWidth: 10
+        OrthographicHeight: 10
+      Primary: true
+      FixedAspectRatio: false
+    PlanetComponent:
+      Subdivisions: 0
+      PatchLevels: 1
+      MaxAltitude: 21.2000008
+      MinAltitude: -8.19999981
+      Radius: 1.0
+      GravitationalAcceleration: 9.81999969
+      AtmosphereHeight: 100.800003
+      AtmosphereToggle: false
+      InScatteringPoints: 1
+      OpticalDepthPoints: 1
+      MieAnisotropy: 0
+      RayScaleHeight: 0
+      MieScaleHeight: 0
+      RayBaseScatteringCoefficient: [0, 0, 0]
+      MieBaseScatteringCoefficient: 0

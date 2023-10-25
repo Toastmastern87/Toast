@@ -81,6 +81,7 @@ namespace Toast {
 		void OnUpdateRuntime(Timestep ts);
 		void OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera);
 		void OnViewportResize(uint32_t width, uint32_t height);
+		const float GetViewportWidth() const { return mViewportWidth; }
 
 		void SetTimeScale(float scale) { mTimeScale = scale; }
 		float GetTimeScale() { return mTimeScale; }
@@ -138,7 +139,7 @@ namespace Toast {
 		Settings mSettings;
 		Stats mStats;
 
-		Ref<Material> mColliderMaterial;
+		Ref<Material> mCubeColliderMaterial, mSphereColliderMaterial;
 
 		bool mIsRunning = false;
 		bool mIsPaused = false;

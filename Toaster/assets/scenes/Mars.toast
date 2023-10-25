@@ -16,7 +16,7 @@ Entities:
         ProjectionType: 0
         PerspectiveFOV: 45
         NearClip: 0.100000001
-        FarClip: 3000
+        FarClip: 400000
         OrthographicWidth: 2624
         OrthographicHeight: 1001
       Primary: true
@@ -26,22 +26,22 @@ Entities:
       ScriptFields:
         - Name: MinAltitude
           Type: Float
-          Data: 0.00100000005
+          Data: -344
         - Name: MoveM
           Type: Float
-          Data: 0.0250000004
+          Data: 0.00200000009
         - Name: ZoomK
           Type: Float
-          Data: 0.150000006
+          Data: 0.00100000005
         - Name: MaxAltitude
           Type: Float
-          Data: 100
+          Data: 100000
         - Name: MoveK
           Type: Float
-          Data: 0.00200000009
+          Data: 1.99999999e-08
         - Name: ZoomM
           Type: Float
-          Data: 6
+          Data: 663
         - Name: MouseSpeedFactor
           Type: Float
           Data: 15
@@ -128,7 +128,7 @@ Entities:
       ClassName: Sandbox.TimeText
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
-      Text: 00:01:07
+      Text: 00:00:11
   - Entity: 2812129723666465913
     TagComponent:
       Tag: SText
@@ -199,11 +199,11 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [72, -76, 0]
+      Rotation: [-655.340027, 0, 0]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
-      Radiance: [0.861003876, 0.822715163, 0.658219159]
-      Intensity: 10.5
+      Radiance: [0.759493649, 0.721373737, 0.557602942]
+      Intensity: 9.02000046
       SunDisk: true
   - Entity: 12837192831271
     TagComponent:
@@ -213,25 +213,25 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [0, -3430, 0]
+      Translation: [0, -3391600, 0]
       Rotation: [80, 0, 0]
-      Scale: [6779, 6779, 6779]
+      Scale: [3389500, 3389500, 3389500]
     PlanetComponent:
-      Subdivisions: 6
+      Subdivisions: 8
       PatchLevels: 4
-      MaxAltitude: 21.2000008
-      MinAltitude: -8.19999981
-      Radius: 3389.5
+      MaxAltitude: 21200
+      MinAltitude: -8200
+      Radius: 3389500
       GravitationalAcceleration: 3.72000003
-      AtmosphereHeight: 60
+      AtmosphereHeight: 60000
       AtmosphereToggle: true
       InScatteringPoints: 10
       OpticalDepthPoints: 10
-      MieAnisotropy: 0.758000016
-      RayScaleHeight: 8
-      MieScaleHeight: 1.20000005
-      RayBaseScatteringCoefficient: [0.0138400001, 0.00678500021, 0.00287500001]
-      MieBaseScatteringCoefficient: 0.0037
+      MieAnisotropy: 0.776000023
+      RayScaleHeight: 10800
+      MieScaleHeight: 1200
+      RayBaseScatteringCoefficient: [2.49999994e-05, 1.35700002e-05, 5.75000013e-06]
+      MieBaseScatteringCoefficient: 1.30000002e-08
     ScriptComponent:
       ClassName: Sandbox.PlanetScript
     TerrainColliderComponent:
@@ -258,9 +258,31 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [0, 0, 0.400000006]
+      Translation: [4.4000001, 50, 50]
+      Rotation: [45, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 2.0\Starship_SN2.gltf
+      IsPlanet: false
+    RigidBodyComponent:
+      InvMass: 0.000199999995
+      Elasticity: 0.100000001
+      Friction: 0
+      CenterOfMass: [0, 0, 0]
+    BoxColliderComponent:
+      RenderCollider: true
+      Size: [1.20000005, 7.19999981, 1.39999998]
+  - Entity: 1011378371315993937
+    TagComponent:
+      Tag: Starship Atmosphere Two
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [-7.5, 50, 50]
       Rotation: [0, 0, 0]
-      Scale: [0.0101984739, 0.0101989098, 0.0101999082]
+      Scale: [1, 1, 1]
     MeshComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 2.0\Starship_SN2.gltf
       IsPlanet: false
@@ -271,5 +293,4 @@ Entities:
       CenterOfMass: [0, 0, 0]
     SphereColliderComponent:
       RenderCollider: true
-      Radius: 0.126000002
-      InertiaTensor: [0.00635039993, 0, 0, 0, 0.00635039993, 0, 0, 0, 0.00635039993]
+      Radius: 6.6100

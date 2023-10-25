@@ -7,59 +7,13 @@
 #include "Toast/Renderer/Material.h"
 #include "Toast/Renderer/Formats.h"
 
+#include "Toast/Core/Math/Math.h"
+
 #include <DirectXMath.h>
 
 #include <../cgltf/include/cgltf.h>
 
 namespace Toast {
-
-	struct PlanetPatch
-	{
-		int level = 0;
-		DirectX::XMFLOAT3 a = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMFLOAT3 r = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMFLOAT3 s = { 0.0f, 0.0f, 0.0f };
-
-		PlanetPatch(int Level, DirectX::XMFLOAT3 A, DirectX::XMFLOAT3 R, DirectX::XMFLOAT3 S)
-		{
-			level = Level;
-			a = A;
-			r = R;
-			s = S;
-		}
-	};
-
-	struct PlanetFace
-	{
-		DirectX::XMVECTOR A = { 0.0f, 0.0f, 0.0f }, B = { 0.0f, 0.0f, 0.0f }, C = { 0.0f, 0.0f, 0.0f };
-		PlanetFace* Parent = nullptr;
-		short Level = 0;
-
-		PlanetFace()
-		{
-		}
-
-		PlanetFace(DirectX::XMVECTOR a, DirectX::XMVECTOR b, DirectX::XMVECTOR c, PlanetFace* parent, short level)
-		{
-			A = a;
-			B = b;
-			C = c;
-
-			Parent = parent;
-
-			Level = level;
-		}
-	};
-
-	struct PlanetVertex
-	{
-		DirectX::XMFLOAT2 Position = { 0.0f, 0.0f };
-
-		PlanetVertex(DirectX::XMFLOAT2 pos)
-		{
-			Position = pos;
-		}
-	};
 
 	struct Vertex
 	{
@@ -84,6 +38,14 @@ namespace Toast {
 			Texcoord = { 0.0f, 0.0f };
 		}
 
+		Vertex(Vector3 pos)
+		{
+			Position = { (float)pos.x, (float)pos.y, (float)pos.z };
+			Normal = { 0.0f, 0.0f, 0.0f };
+			Tangent = { 0.0f, 0.0f, 0.0f, 0.0f };
+			Texcoord = { 0.0f, 0.0f };
+		}
+
 		Vertex()
 		{
 			Position = { 0.0f, 0.0f, 0.0f };
@@ -94,17 +56,20 @@ namespace Toast {
 
 		Vertex operator+(const Vertex& a)
 		{
-			return Vertex({ this->Position.x + a.Position.x, this->Position.y + a.Position.y, this->Position.z + a.Position.z });
+			DirectX::XMFLOAT3 newPos = { this->Position.x + a.Position.x, this->Position.y + a.Position.y, this->Position.z + a.Position.z };
+			return Vertex(newPos);
 		}
 
 		Vertex operator*(const float factor)
 		{
-			return Vertex({ this->Position.x * factor, this->Position.y * factor, this->Position.z * factor });
+			DirectX::XMFLOAT3 newPos = { this->Position.x * factor, this->Position.y * factor, this->Position.z * factor };
+			return Vertex(newPos);
 		}
 
 		Vertex operator/(const float factor)
 		{
-			return Vertex({ this->Position.x / factor, this->Position.y / factor, this->Position.z / factor });
+			DirectX::XMFLOAT3 newPos = { this->Position.x / factor, this->Position.y / factor, this->Position.z / factor };
+			return Vertex(newPos);
 		}
 
 		Vertex& operator*=(const float factor)
@@ -118,7 +83,8 @@ namespace Toast {
 
 		Vertex operator-(const Vertex& a)
 		{
-			return Vertex({ this->Position.x - a.Position.x, this->Position.y - a.Position.y, this->Position.z - a.Position.z });
+			DirectX::XMFLOAT3 newPos = { this->Position.x - a.Position.x, this->Position.y - a.Position.y, this->Position.z - a.Position.z };
+			return Vertex(newPos);
 		}
 	};
 
@@ -213,24 +179,19 @@ namespace Toast {
 		}
 
 		void OnUpdate(Timestep ts);
-		void InvalidatePlanet(bool patchGeometryRebuilt);
+		void InvalidatePlanet();
 
 		const std::string& GetFilePath() const { return mFilePath; }
 
 		std::vector<Vertex>& GetVertices() { return mVertices; }
 		std::vector<uint32_t>& GetIndices() { return mIndices; }
-		std::vector<PlanetVertex>& GetPlanetVertices() { return mPlanetVertices; }
-		std::vector<PlanetPatch>& GetPlanetPatches() { return mPlanetPatches; }
-
 
 		std::vector<Submesh>& GetSubmeshes() { return mSubmeshes; }
 		void AddSubmesh(uint32_t indexCount);
 		uint32_t GetNumberOfSubmeshes() { return mSubmeshes.size(); }
 
 		const Ref<Material> GetMaterial(std::string materialName) const { if (mMaterials.find(materialName) != mMaterials.end()) return mMaterials.at(materialName); else return nullptr; }
-		void SetMaterial(std::string materialName, Ref<Material> material) { mMaterials[materialName] = material; TOAST_CORE_INFO("ADDING MATERIAL, Number of materials: %d", mMaterials.size()); }
-
-		std::vector<PlanetFace>& GetPlanetFaces() { return mPlanetFaces; }
+		void SetMaterial(std::string materialName, Ref<Material> material) { mMaterials[materialName] = material; TOAST_CORE_INFO("ADDING MATERIAL: %s, Number of materials: %d", materialName.c_str(), mMaterials.size()); }
 
 		DirectX::XMMATRIX& GetLocalTransform() { return mSubmeshes[0].Transform; }
 		void SetLocalTransform(DirectX::XMMATRIX& transform) { mSubmeshes[0].Transform = transform; }
@@ -253,7 +214,6 @@ namespace Toast {
 		std::vector<Submesh> mSubmeshes;
 
 		Ref<VertexBuffer> mVertexBuffer;
-		Ref<VertexBuffer> mInstanceVertexBuffer;
 		Ref<IndexBuffer> mIndexBuffer;
 		std::unordered_map<std::string, Ref<Material>> mMaterials;
 
@@ -261,11 +221,6 @@ namespace Toast {
 		uint32_t mIndexCount = 0;
 
 		std::vector<Vertex> mVertices;
-
-		std::vector<PlanetVertex> mPlanetVertices = {};
-		std::vector<PlanetFace> mPlanetFaces = {};
-		std::vector<PlanetPatch> mPlanetPatches = {};
-
 		std::vector<uint32_t> mIndices;
 
 		PrimitiveTopology mTopology = PrimitiveTopology::TRIANGLELIST;

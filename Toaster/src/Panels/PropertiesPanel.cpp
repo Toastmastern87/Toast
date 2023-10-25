@@ -75,7 +75,117 @@ namespace Toast {
 		else if (value >= 1.0f || value <= -1.0f)
 			return 0.01f;
 		else
-			return 0.01f;
+		
+		return 0.01f;
+	}
+
+	static const char* GetPrecision(float value) 
+	{
+		if (value >= 10.0f)
+			return "%.0f";
+		else if (value >= 1.0f && value < 10.0f)
+			return "%.1f";
+		else if (value >= 0.1f && value < 1.0f)
+			return "%.2f";
+		else if (value >= 0.01f && value < 0.1f)
+			return "%.3f";
+		else
+			return "%.4f";
+	}
+
+	static bool DrawDouble3Control(const std::string& label, Vector3& values, double resetValue = 0.0, float columnWidth = 100.0f)
+	{
+		bool modified = false;
+		float temp;
+
+		ImGuiIO& io = ImGui::GetIO();
+		auto boldFont = io.Fonts->Fonts[0];
+
+		ImGui::PushID(label.c_str());
+
+		ImGui::Columns(2);
+		ImGui::SetColumnWidth(0, columnWidth);
+		ImGui::Text(label.c_str());
+		ImGui::NextColumn();
+
+		ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
+
+		float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+		ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+		ImGui::PushFont(boldFont);
+		if (ImGui::Button("X", buttonSize))
+		{
+			values.x = resetValue;
+			modified = true;
+		}
+		
+		ImGui::PopStyleColor(3);
+		ImGui::PopFont();
+		ImGui::SameLine();
+		temp = static_cast<float>(values.x);
+		if (ImGui::DragFloat("##X", &temp, CalculateDelta(temp), 0.0f, 0.0f, GetPrecision(temp)))
+		{
+			values.x = static_cast<double>(temp);
+			modified = true;
+		}
+		ImGui::PopItemWidth();
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+		ImGui::PushFont(boldFont);
+		if (ImGui::Button("Y", buttonSize))
+		{
+			values.y = resetValue;
+			modified = true;
+		}
+		ImGui::PopStyleColor(3);
+		ImGui::PopFont();
+
+		ImGui::SameLine();
+		temp = static_cast<float>(values.y);
+		if (ImGui::DragFloat("##Y", &temp, CalculateDelta(temp), 0.0f, 0.0f, GetPrecision(temp)))
+		{
+			values.y = static_cast<double>(temp);
+			modified = true;
+		}
+		ImGui::PopItemWidth();
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
+		ImGui::PushFont(boldFont);
+		if (ImGui::Button("Z", buttonSize))
+		{
+			values.z = resetValue;
+			modified = true;
+		}
+		ImGui::PopStyleColor(3);
+		ImGui::PopFont();
+
+		ImGui::SameLine();
+		temp = static_cast<float>(values.z);
+		if (ImGui::DragFloat("##X", &temp, CalculateDelta(temp), 0.0f, 0.0f, GetPrecision(temp)))
+		{
+			values.z = static_cast<double>(temp);
+			modified = true;
+		}
+		ImGui::PopItemWidth();
+
+		ImGui::PopStyleVar();
+
+		ImGui::Columns(1);
+
+		ImGui::PopID();
+
+		return modified;
 	}
 
 	static bool DrawFloat3Control(const std::string& label, DirectX::XMFLOAT3& values, float resetValue = 0.0f, float columnWidth = 100.0f)
@@ -111,7 +221,7 @@ namespace Toast {
 		ImGui::PopStyleColor(3);
 		ImGui::PopFont();
 		ImGui::SameLine();
-		if (ImGui::DragFloat("##X", &values.x, CalculateDelta(values.x), 0.0f, 0.0f, (values.x >= 1000.0f || values.x <= -1000.0f) ? "%.0f" : "%.1f"))
+		if (ImGui::DragFloat("##X", &values.x, CalculateDelta(values.x), 0.0f, 0.0f, GetPrecision(values.x)))
 			modified = true;
 		ImGui::PopItemWidth();
 		ImGui::SameLine();
@@ -129,7 +239,7 @@ namespace Toast {
 		ImGui::PopFont();
 
 		ImGui::SameLine();
-		if (ImGui::DragFloat("##Y", &values.y, CalculateDelta(values.y), 0.0f, 0.0f, (values.y >= 1000.0f || values.y <= -1000.0f) ? "%.0f" : "%.1f"))
+		if (ImGui::DragFloat("##Y", &values.y, CalculateDelta(values.y), 0.0f, 0.0f, GetPrecision(values.x)))
 			modified = true;
 		ImGui::PopItemWidth();
 		ImGui::SameLine();
@@ -147,7 +257,7 @@ namespace Toast {
 		ImGui::PopFont();
 
 		ImGui::SameLine();
-		if (ImGui::DragFloat("##Z", &values.z, CalculateDelta(values.z), 0.0f, 0.0f, (values.z >= 1000.0f || values.z <= -1000.0f) ? "%.0f" : "%.1f"))
+		if (ImGui::DragFloat("##Z", &values.z, CalculateDelta(values.z), 0.0f, 0.0f, GetPrecision(values.x)))
 			modified = true;
 		ImGui::PopItemWidth();
 
@@ -456,6 +566,7 @@ namespace Toast {
 				bool entity2D = entity.HasComponent<UIPanelComponent>() || entity.HasComponent<UITextComponent>() || entity.HasComponent<UIButtonComponent>();
 
 				bool updateTransform = false;
+				bool updateRotTransform = false;
 
 				Ref<RenderTarget>& baseRenderTarget = Renderer::GetBaseRenderTarget();
 				auto [width, height] = baseRenderTarget->GetSize();
@@ -480,10 +591,19 @@ namespace Toast {
 				else
 					updateTransform |= DrawFloat3Control("Translation", component.Translation);
 
-				updateTransform |= DrawFloat3Control("Rotation", component.RotationEulerAngles);
+				updateRotTransform |= DrawFloat3Control("Rotation", component.RotationEulerAngles);
 				updateTransform |= DrawFloat3Control("Scale", component.Scale, 1.0f);
 
-				component.IsDirty = updateTransform;
+				if (updateRotTransform && entity.HasComponent<BoxColliderComponent>())
+				{
+					auto bcc = entity.GetComponent<BoxColliderComponent>();
+
+					DirectX::XMVECTOR totalRotVec = DirectX::XMQuaternionMultiply(DirectX::XMLoadFloat4(&component.RotationQuaternion), DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(component.RotationEulerAngles.x), DirectX::XMConvertToRadians(component.RotationEulerAngles.y), DirectX::XMConvertToRadians(component.RotationEulerAngles.z)));
+					DirectX::XMFLOAT4 totalRot;
+					DirectX::XMStoreFloat4(&totalRot, totalRotVec);
+				}
+
+				component.IsDirty = updateTransform || updateRotTransform;
 			});
 
 		DrawComponent<MeshComponent>(ICON_TOASTER_CUBE" Mesh", entity, mScene, [](auto& component, Entity entity, Scene* scene)
@@ -500,8 +620,8 @@ namespace Toast {
 				ImGui::Text("Mesh ");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (!component.Mesh->GetFilePath().empty())
-					ImGui::InputText("##meshfilepath", (char*)component.Mesh->GetFilePath().c_str(), 256, ImGuiInputTextFlags_ReadOnly);
+				if (!component.MeshObject->GetFilePath().empty())
+					ImGui::InputText("##meshfilepath", (char*)component.MeshObject->GetFilePath().c_str(), 256, ImGuiInputTextFlags_ReadOnly);
 				else
 					ImGui::InputText("##meshfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
 				ImGui::TableSetColumnIndex(2);
@@ -521,7 +641,7 @@ namespace Toast {
 							tag = newTag.substr(0, found);
 						}
 
-						component.Mesh = CreateRef<Mesh>(*filepath);
+						component.MeshObject = CreateRef<Mesh>(*filepath);
 					}
 				}
 
@@ -641,14 +761,6 @@ namespace Toast {
 				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Patch levels");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (ImGui::SliderInt("##Patchlevels", &patchLevels, 1, 8))
-					modified = true;
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Subdivisions");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
@@ -676,7 +788,7 @@ namespace Toast {
 				ImGui::Text("Radius(km)");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (ImGui::DragFloat("##Radius", &component.PlanetData.radius, 0.1f, 0.0f, 0.0f, "%.2f")) {}
+				if (ImGui::DragFloat("##Radius", &component.PlanetData.radius, 0.1f, 0.0f, 0.0f, "%.2f"))
 					modified = true;
 
 				ImGui::TableNextRow();
@@ -791,12 +903,14 @@ namespace Toast {
 
 					DirectX::XMVECTOR rotationMatrix = DirectX::XMQuaternionRotationMatrix(tc.GetTransform());
 					cameraForward = rotationMatrix * cameraForward;
+					
+					DirectX::XMMATRIX planetTransformNoScale = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)) * DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
-					PlanetSystem::GeneratePatchGeometry(component.Mesh->mPlanetVertices, component.Mesh->mIndices, component.PatchLevels);
-					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8, component.PlanetData.radius);
-					PlanetSystem::GeneratePlanet(scene->GetFrustum(), tc.GetTransform(), component.Mesh->mPlanetFaces, component.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraForward, component.Subdivisions, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
+					//PlanetSystem::GeneratePatchGeometry(component.Mesh->mPlanetVertices, component.Mesh->mIndices, component.PatchLevels);
+					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8, component.PlanetData.radius, fov, scene->GetViewportWidth());
+					PlanetSystem::GeneratePlanet(scene->GetFrustum(), planetTransformNoScale, component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraForward, component.Subdivisions, component.PlanetData.radius, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
 
-					component.Mesh->InvalidatePlanet(true);
+					component.Mesh->InvalidatePlanet();
 				}
 			});
 
@@ -949,6 +1063,8 @@ namespace Toast {
 
 		DrawComponent<RigidBodyComponent>(ICON_TOASTER_HAND_ROCK_O" Rigid Body", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
+				float temp;
+
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
@@ -959,14 +1075,14 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Center of Mass");
 				ImGui::TableSetColumnIndex(1);
-				DrawFloat3Control("CenterOfMass", component.CenterOfMass);
+				DrawDouble3Control("CenterOfMass", component.CenterOfMass);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Mass (kg)");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				float mass = 1.0f / component.InvMass;
+				float mass = 1.0f / (float)component.InvMass;
 				ImGui::DragFloat("##label", &mass, 0.1f, 0.0f, 60000.0f, "%.1f");
 				component.InvMass = 1.0f / mass;
 
@@ -975,20 +1091,26 @@ namespace Toast {
 				ImGui::Text("Elasticity (0-1)");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::DragFloat("##elasticity", &component.Elasticity, 0.01f, 0.0f, 1.0f, "%.01f");
+				temp = static_cast<float>(component.Elasticity);
+				if(ImGui::DragFloat("##elasticity", &temp, 0.01f, 0.0f, 1.0f, "%.01f"))
+					component.Elasticity = static_cast<double>(temp);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Friction (0-1)");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::DragFloat("##friction", &component.Friction, 0.01f, 0.0f, 1.0f, "%.01f");
+				temp = static_cast<float>(component.Friction);
+				if(ImGui::DragFloat("##friction", &temp, 0.01f, 0.0f, 1.0f, "%.01f"))
+					component.Friction = static_cast<double>(temp);
 
 				ImGui::EndTable();
 			});
 
 		DrawComponent<SphereColliderComponent>(ICON_TOASTER_CIRCLE_O" Sphere Collider", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
+				float temp;
+
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
@@ -1002,17 +1124,36 @@ namespace Toast {
 				ImGui::Text("Radius");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (ImGui::DragFloat("##label", &component.Radius, 0.1f, 0.0f, 600.0f, "%.4f"))
-				{
-					component.InertiaTensor.m[0][0] = 0.4f * component.Radius * component.Radius;
-					component.InertiaTensor.m[1][1] = 0.4f * component.Radius * component.Radius;
-					component.InertiaTensor.m[2][2] = 0.4f * component.Radius * component.Radius;
-				}
+				temp = static_cast<float>(component.Collider->mRadius);
+				if(ImGui::DragFloat("##radius", &temp, 0.1f, 0.0f, 600.0f, "%.4f"))
+					component.Collider->mRadius = static_cast<double>(temp);
 				ImGui::EndTable();
 			});
 
-		DrawComponent<BoxColliderComponent>(ICON_TOASTER_CUBE" AABB Collider", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<BoxColliderComponent>(ICON_TOASTER_CUBE" Box Collider", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+				ImGui::Checkbox("Render Collider", &component.RenderCollider);
+
+				ImGui::BeginTable("BoxCollider", 2, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Size");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (DrawDouble3Control("Size", component.Collider->mSize, 1.0f)) 
+				{
+					TransformComponent tc = entity.GetComponent<TransformComponent>();
+					// TODO Add eular angles into the mix
+					DirectX::XMVECTOR totalRotVec = DirectX::XMQuaternionMultiply(DirectX::XMLoadFloat4(&tc.RotationQuaternion), DirectX::XMQuaternionRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&tc.RotationEulerAngles)));
+					DirectX::XMFLOAT4 totalRot;
+					DirectX::XMStoreFloat4(&totalRot, totalRotVec);
+				}
+				ImGui::EndTable();
 			});
 
 		DrawComponent<TerrainColliderComponent>(ICON_TOASTER_GLOBE" Terrain Collider", entity, mScene, [](auto& component, Entity entity, Scene* scene)
@@ -1029,8 +1170,8 @@ namespace Toast {
 				ImGui::Text("Height Map ");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (!component.FilePath.empty())
-					ImGui::InputText("##heightmapfilepath", (char*)component.FilePath.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
+				if (!component.Collider->FilePath.empty())
+					ImGui::InputText("##heightmapfilepath", (char*)component.Collider->FilePath.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
 				else
 					ImGui::InputText("##heightmapfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
 				ImGui::TableSetColumnIndex(2);
@@ -1050,8 +1191,8 @@ namespace Toast {
 							tag = newTag.substr(0, found);
 						}
 
-						component.FilePath = *filepath;
-						component.TerrainData = PhysicsEngine::LoadTerrainData(component.FilePath.c_str());
+						component.Collider->FilePath = *filepath;
+						component.Collider->TerrainData = PhysicsEngine::LoadTerrainData(component.Collider->FilePath.c_str());
 					}
 				}
 				ImGui::EndTable();

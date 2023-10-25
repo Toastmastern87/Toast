@@ -2,7 +2,7 @@
 
 #include "Toast/Renderer/Mesh.h"
 
-#include "Toast/Core/Math.h"
+#include "Toast/Core/Math/Math.h"
 
 #include <DirectXMath.h>
 #include <vector>
@@ -88,55 +88,111 @@ namespace Toast {
 			return CreateRef<Mesh>(vertices, indices, DirectX::XMMatrixIdentity());
 		}
 
-		static uint32_t CreateSphere(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, uint32_t subdivisions = 0)
+		static Ref<Mesh> CreateNoneTexturedCube(DirectX::XMFLOAT3 size)
 		{
-			uint32_t indexCount = 0;
+			std::vector<Vertex> vertices;
+			vertices.resize(8);
 
-			std::vector<Vertex> startVertices;
+			// Upper corners
+			// Top Right
+			vertices[0] = Vertex({ size.x * 0.5f,  size.y * 0.5f,  size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.25f });
+			// Top left
+			vertices[1] = Vertex({ -size.x * 0.5f,  size.y * 0.5f,  size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.5f });
+			// Bottom left
+			vertices[2] = Vertex({ -size.x * 0.5f,  size.y * 0.5f,  -size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.25f });
+			// Bottom right
+			vertices[3] = Vertex({ size.x * 0.5f,  size.y * 0.5f,  -size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.5f });
 
-			float ratio = (1.0f + sqrt(5.0f)) / 2.0f;
-			float vectorLength = Math::GetVectorLength({ ratio, 0.0f, -1.0f });
+			// Lower corners
+			// Top right
+			vertices[4] = Vertex({ size.x * 0.5f,  -size.y * 0.5f, size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.25f });
+			// Top left
+			vertices[5] = Vertex({ -size.x * 0.5f,  -size.y * 0.5f, size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.5f });
+			// Bottom left
+			vertices[6] = Vertex({ -size.x * 0.5f,  -size.y * 0.5f, -size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.25f });
+			// Bottom right
+			vertices[7] = Vertex({ size.x * 0.5f,  -size.y * 0.5f, -size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.5f });
 
-			startVertices.push_back(Vertex({ ratio, 0.0f, -1.0f }) / vectorLength * 0.5f);
-			startVertices.push_back(Vertex({ -ratio, 0.0f, -1.0f }) / vectorLength * 0.5f);
-			startVertices.push_back(Vertex({ ratio, 0.0f, 1.0f }) / vectorLength * 0.5f);
-			startVertices.push_back(Vertex({ -ratio, 0.0f, 1.0f }) / vectorLength * 0.5f);
-			startVertices.push_back(Vertex({ 0.0f, -1.0f, ratio }) / vectorLength * 0.5f);
-			startVertices.push_back(Vertex({ 0.0f, -1.0f, -ratio }) / vectorLength * 0.5f);
-			startVertices.push_back(Vertex({ 0.0f, 1.0f, ratio }) / vectorLength * 0.5f);
-			startVertices.push_back(Vertex({ 0.0f, 1.0f, -ratio }) / vectorLength * 0.5f);
-			startVertices.push_back(Vertex({ -1.0f, ratio, 0.0f }) / vectorLength * 0.5f);
-			startVertices.push_back(Vertex({ -1.0f, -ratio, 0.0f }) / vectorLength * 0.5f);
-			startVertices.push_back(Vertex({ 1.0f , ratio, 0.0f }) / vectorLength * 0.5f);
-			startVertices.push_back(Vertex({ 1.0f , -ratio, 0.0f }) / vectorLength * 0.5f);
+			std::vector<uint32_t> indices;
+			indices.resize(36);
+			indices = {
+				//Top	
+				0, 1, 3,
+				1, 2, 3,
 
-			indexCount += SplitTriangle(vertices, indices, startVertices[1], startVertices[3], startVertices[8], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[3], startVertices[1], startVertices[9], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[2], startVertices[0], startVertices[10], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[0], startVertices[2], startVertices[11], 0, subdivisions);
-			
-			indexCount += SplitTriangle(vertices, indices, startVertices[5], startVertices[7], startVertices[0], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[7], startVertices[5], startVertices[1], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[6], startVertices[4], startVertices[2], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[4], startVertices[6], startVertices[3], 0, subdivisions);
-			 
-			indexCount += SplitTriangle(vertices, indices, startVertices[9], startVertices[11], startVertices[4], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[11], startVertices[9], startVertices[5], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[10], startVertices[8], startVertices[6], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[8], startVertices[10], startVertices[7], 0, subdivisions);
-			 
-			indexCount += SplitTriangle(vertices, indices, startVertices[7], startVertices[1], startVertices[8], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[1], startVertices[5], startVertices[9], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[0], startVertices[7], startVertices[10], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[5], startVertices[0], startVertices[11], 0, subdivisions);
-			
-			indexCount += SplitTriangle(vertices, indices, startVertices[3], startVertices[6], startVertices[8], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[4], startVertices[3], startVertices[9], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[6], startVertices[2], startVertices[10], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[2], startVertices[4], startVertices[11], 0, subdivisions);
+				//Front
+				3, 2, 7,
+				2, 6, 7,
 
-			return indexCount;
+				//Back
+				0, 1, 4,
+				0, 5, 4,
+
+				//Bottom
+				4, 5, 7,
+				5, 6, 7,
+
+				//Left
+				2, 1, 6,
+				1, 5, 6,
+
+				//Right
+				3, 0, 7,
+				3, 4, 7
+			};
+
+			return CreateRef<Mesh>(vertices, indices, DirectX::XMMatrixIdentity());
 		}
+
+		//static uint32_t CreateSphere(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, uint32_t subdivisions = 0)
+		//{
+		//	uint32_t indexCount = 0;
+
+		//	std::vector<Vertex> startVertices;
+
+		//	float ratio = (1.0f + sqrt(5.0f)) / 2.0f;
+		//	float vectorLength = Math::GetVectorLength({ ratio, 0.0f, -1.0f });
+
+		//	startVertices.push_back(Vertex({ ratio, 0.0f, -1.0f }) / vectorLength * 0.5f);
+		//	startVertices.push_back(Vertex({ -ratio, 0.0f, -1.0f }) / vectorLength * 0.5f);
+		//	startVertices.push_back(Vertex({ ratio, 0.0f, 1.0f }) / vectorLength * 0.5f);
+		//	startVertices.push_back(Vertex({ -ratio, 0.0f, 1.0f }) / vectorLength * 0.5f);
+		//	startVertices.push_back(Vertex({ 0.0f, -1.0f, ratio }) / vectorLength * 0.5f);
+		//	startVertices.push_back(Vertex({ 0.0f, -1.0f, -ratio }) / vectorLength * 0.5f);
+		//	startVertices.push_back(Vertex({ 0.0f, 1.0f, ratio }) / vectorLength * 0.5f);
+		//	startVertices.push_back(Vertex({ 0.0f, 1.0f, -ratio }) / vectorLength * 0.5f);
+		//	startVertices.push_back(Vertex({ -1.0f, ratio, 0.0f }) / vectorLength * 0.5f);
+		//	startVertices.push_back(Vertex({ -1.0f, -ratio, 0.0f }) / vectorLength * 0.5f);
+		//	startVertices.push_back(Vertex({ 1.0f , ratio, 0.0f }) / vectorLength * 0.5f);
+		//	startVertices.push_back(Vertex({ 1.0f , -ratio, 0.0f }) / vectorLength * 0.5f);
+
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[1], startVertices[3], startVertices[8], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[3], startVertices[1], startVertices[9], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[2], startVertices[0], startVertices[10], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[0], startVertices[2], startVertices[11], 0, subdivisions);
+		//	
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[5], startVertices[7], startVertices[0], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[7], startVertices[5], startVertices[1], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[6], startVertices[4], startVertices[2], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[4], startVertices[6], startVertices[3], 0, subdivisions);
+		//	 
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[9], startVertices[11], startVertices[4], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[11], startVertices[9], startVertices[5], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[10], startVertices[8], startVertices[6], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[8], startVertices[10], startVertices[7], 0, subdivisions);
+		//	 
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[7], startVertices[1], startVertices[8], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[1], startVertices[5], startVertices[9], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[0], startVertices[7], startVertices[10], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[5], startVertices[0], startVertices[11], 0, subdivisions);
+		//	
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[3], startVertices[6], startVertices[8], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[4], startVertices[3], startVertices[9], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[6], startVertices[2], startVertices[10], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[2], startVertices[4], startVertices[11], 0, subdivisions);
+
+		//	return indexCount;
+		//}
 
 		static uint32_t SplitTriangle(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Vertex a, Vertex b, Vertex c, int8_t subdivision, int8_t maxSubdivisions)
 		{
@@ -176,32 +232,32 @@ namespace Toast {
 			return indexCount;
 		}
 
-		static uint32_t CreateOctahedron(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, uint32_t subdivisions = 0)
-		{
-			uint32_t indexCount = 0;
+		//static uint32_t CreateOctahedron(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, uint32_t subdivisions = 0)
+		//{
+		//	uint32_t indexCount = 0;
 
-			std::vector<Vertex> startVertices;
+		//	std::vector<Vertex> startVertices;
 
-			float goldenValue = 0.5f * std::sinf(M_PI / 4.0f);
+		//	float goldenValue = 0.5f * std::sinf(M_PI / 4.0f);
 
-			startVertices.push_back(Vertex({0.0f, 0.5f, 0.0f}));
-			startVertices.push_back(Vertex({ goldenValue, 0.0f, goldenValue }));
-			startVertices.push_back(Vertex({ goldenValue, 0.0f, -goldenValue }));
-			startVertices.push_back(Vertex({-goldenValue, 0.0f, -goldenValue }));
-			startVertices.push_back(Vertex({-goldenValue, 0.0f, goldenValue }));
-			startVertices.push_back(Vertex({0.0f, -0.5f, 0.0f}));
+		//	startVertices.push_back(Vertex({0.0f, 0.5f, 0.0f}));
+		//	startVertices.push_back(Vertex({ goldenValue, 0.0f, goldenValue }));
+		//	startVertices.push_back(Vertex({ goldenValue, 0.0f, -goldenValue }));
+		//	startVertices.push_back(Vertex({-goldenValue, 0.0f, -goldenValue }));
+		//	startVertices.push_back(Vertex({-goldenValue, 0.0f, goldenValue }));
+		//	startVertices.push_back(Vertex({0.0f, -0.5f, 0.0f}));
 
-			indexCount += SplitTriangle(vertices, indices, startVertices[0], startVertices[1], startVertices[2], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[0], startVertices[2], startVertices[3], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[0], startVertices[3], startVertices[4], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[0], startVertices[4], startVertices[1], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[0], startVertices[1], startVertices[2], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[0], startVertices[2], startVertices[3], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[0], startVertices[3], startVertices[4], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[0], startVertices[4], startVertices[1], 0, subdivisions);
 
-			indexCount += SplitTriangle(vertices, indices, startVertices[5], startVertices[1], startVertices[2], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[5], startVertices[2], startVertices[3], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[5], startVertices[3], startVertices[4], 0, subdivisions);
-			indexCount += SplitTriangle(vertices, indices, startVertices[5], startVertices[4], startVertices[1], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[5], startVertices[1], startVertices[2], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[5], startVertices[2], startVertices[3], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[5], startVertices[3], startVertices[4], 0, subdivisions);
+		//	indexCount += SplitTriangle(vertices, indices, startVertices[5], startVertices[4], startVertices[1], 0, subdivisions);
 
-			return indexCount;
-		}
+		//	return indexCount;
+		//}
 	};
 }

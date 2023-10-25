@@ -3,6 +3,7 @@
 #include <DirectXMath.h>
 
 #include "Toast/Core/UUID.h"
+#include "Toast/Core/Math/Math.h"
 
 #include "Toast/Scene/SceneCamera.h"
 
@@ -13,6 +14,7 @@
 #include "Toast/Renderer/UI/UIElement.h"
 
 #include "Toast/Physics/Bounds.h"
+#include "Toast/Physics/Shapes.h"
 
 #include <../vendor/directxtex/include/DirectXTex.h>
 
@@ -71,14 +73,14 @@ namespace Toast {
 
 	struct MeshComponent
 	{
-		Ref<Toast::Mesh> Mesh;
+		Ref<Mesh> MeshObject;
 
 		MeshComponent() = default;
 		MeshComponent(const MeshComponent& other) = default;
-		MeshComponent(const Ref<Toast::Mesh>& mesh)
-			: Mesh(mesh) {}
+		MeshComponent(const Ref<Mesh>& mesh)
+			: MeshObject(mesh) {}
 
-		operator Ref<Toast::Mesh>() { return Mesh; }
+		operator Ref<Mesh>() { return MeshObject; }
 	};
 
 	struct PlanetComponent
@@ -101,7 +103,7 @@ namespace Toast {
 			int opticalDepthPoints = 1;
 		};
 
-		Ref<Toast::Mesh> Mesh;
+		Ref<Mesh> Mesh;
 		std::vector<float> DistanceLUT;
 		std::vector<float> FaceLevelDotLUT;
 		std::vector<float> HeightMultLUT;
@@ -179,52 +181,49 @@ namespace Toast {
 
 	struct RigidBodyComponent
 	{
-		float InvMass = 0.0f;
-		float Elasticity = 0.0f;
-		float Friction = 0.0f;
-		DirectX::XMFLOAT3 CenterOfMass = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMFLOAT3 LinearVelocity = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMFLOAT3 AngularVelocity = { 0.0f, 0.0f, 0.0f };
+		double InvMass = 0.0f;
+		double Elasticity = 0.0f;
+		double Friction = 0.0f;
+		Vector3 CenterOfMass = { 0.0f, 0.0f, 0.0f };
+		Vector3 LinearVelocity = { 0.0f, 0.0f, 0.0f };
+		Vector3 AngularVelocity = { 0.0f, 0.0f, 0.0f };
 
 		RigidBodyComponent() = default;
-		RigidBodyComponent(DirectX::XMFLOAT3& centerOfMass, float invMass)
+		RigidBodyComponent(Vector3& centerOfMass, double invMass)
 			: InvMass(invMass), CenterOfMass(centerOfMass) {}
 	};
 
 	struct SphereColliderComponent
 	{
-		Ref<Toast::Mesh> ColliderMesh;
+		Ref<ShapeSphere> Collider;
+
+		Ref<Mesh> ColliderMesh;
 		bool RenderCollider = false;
-		float Radius = 0.0f;
-		DirectX::XMFLOAT3X3 InertiaTensor = DirectX::XMFLOAT3X3(
-			0.0f, 0.0f, 0.0f, // row 1
-			0.0f, 0.0f, 0.0f, // row 2
-			0.0f, 0.0f, 0.0f  // row 3
-			);
 
 		SphereColliderComponent() = default;
-		SphereColliderComponent(float radius, const Ref<Toast::Mesh>& mesh)
-			: Radius(radius), ColliderMesh(mesh){}
+		SphereColliderComponent(Ref<ShapeSphere>& collider, const Ref<Mesh>& mesh)
+			: Collider(collider), ColliderMesh(mesh) {}
 	};
 
 	struct BoxColliderComponent
 	{
-		DirectX::XMFLOAT3 Offset = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMFLOAT3 Size = { 0.5f, 0.5f, 0.5f };
+		Ref<ShapeBox> Collider;
+
+		Ref<Mesh> ColliderMesh;
+		bool RenderCollider = false;
 
 		BoxColliderComponent() = default;
-		BoxColliderComponent(DirectX::XMFLOAT3 offset, DirectX::XMFLOAT3 size)
-			: Offset(offset), Size(size){}
+		BoxColliderComponent(Ref<ShapeBox>& collider)
+			: Collider(collider) {}
 	};
 
 	struct TerrainColliderComponent 
 	{
-		std::string FilePath;
-		std::tuple<DirectX::TexMetadata, DirectX::ScratchImage*> TerrainData;
+		Ref<ShapeTerrain> Collider;
 
 		TerrainColliderComponent() = default;
-		TerrainColliderComponent(std::tuple<DirectX::TexMetadata, DirectX::ScratchImage*> terrainData, std::string filePath)
-			: TerrainData(terrainData), FilePath(filePath) {}
+		TerrainColliderComponent(const Ref<ShapeTerrain>& collider)
+			: Collider(collider) {}
 	};
 
 	struct UIPanelComponent

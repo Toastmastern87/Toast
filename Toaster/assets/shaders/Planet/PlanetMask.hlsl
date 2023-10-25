@@ -110,8 +110,15 @@ PixelInputType main(VertexInputType input)
 
 	pos = normalize(pos);
 
-	texcoord = float2((0.5f + (atan2(pos.z, pos.x) / (2.0f * PI))), (0.5f - (asin(pos.y) / PI)));
-	pos *= 1.0f + ((HeightMapTexture.SampleLevel(defaultSampler, texcoord, 0).r * (maxAltitude.r - minAltitude.r) + minAltitude.r) / radius.r);
+	float theta = atan2(pos.z, pos.x);
+	float phi = asin(pos.y);
+
+	texcoord = float2(theta / PI, phi / (PI / 2.0f));
+	texcoord.x = texcoord.x * 0.5f + 0.5f;
+	texcoord.y = texcoord.y * 0.5f + 0.5f;
+	//output.texcoord = float2((0.5f + (atan2(pos.z, pos.x) / (2.0f * PI))), (0.5f - (asin(pos.y) / PI)));
+	pos *= 1.0f + ((HeightMapTexture.SampleLevel(defaultSampler, texcoord, 0).r * (maxAltitude - minAltitude) + minAltitude) / radius);
+
 	float craterDetected = CraterMapTexture.SampleLevel(defaultSampler, texcoord, 0).r;
 	if (craterDetected == 0.0f)
 	{
@@ -120,9 +127,7 @@ PixelInputType main(VertexInputType input)
 		pos *= 1.0f + craterHeightDetail * (0.03f / radius.r);
 	}
 
-	finalPos = float4(pos * 0.5f, 1.0f);
-
-	output.pixelPosition = mul(finalPos, worldMatrix);
+	output.pixelPosition = mul(pos, worldMatrix);
 	output.pixelPosition = mul(output.pixelPosition, viewMatrix);
 	output.pixelPosition = mul(output.pixelPosition, projectionMatrix);
 
