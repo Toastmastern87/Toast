@@ -1,24 +1,18 @@
 Material: Planet
 Shader: assets/shaders/Planet.hlsl
-Albedo: [0.0424244106, 0.0108244764, 0.0801687837, 0]
+Albedo: [0.864978909, 0.495989591, 0.270077825, 0]
 Metalness: 1
 Roughness: 0.984000027
-UseAlbedoMap: 1
+UseAlbedoMap: 0
 UseNormalMap: 0
 UseMetalRoughMap: 0
 Textures:
   - FilePath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
     BindSlot: 4
     ShaderType: 1
-  - FilePath: C:\dev\Toast\Toaster\assets\textures\CraterMap.png
-    BindSlot: 5
-    ShaderType: 1
   - FilePath: C:\dev\Toast\Toaster\assets\textures\MarsAlbedo.png
     BindSlot: 3
     ShaderType: 5
   - FilePath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
     BindSlot: 7
-    ShaderType: 5
-  - FilePath: C:\dev\Toast\Toaster\assets\textures\CraterMap.png
-    BindSlot: 8
     ShaderType: 5

@@ -1,24 +1,22 @@
 #pragma once
 
-#include <DirectXMath.h>
-
-using namespace DirectX;
+#include "Toast/Core/Math/Math.h"
 
 struct Plane
 {
-	DirectX::XMVECTOR Normal;
-	float D;
+	Toast::Vector3 Normal;
+	double D;
 
 	Plane()
 	{
-		Normal = { 0.0f, 1.0f, 0.0f };
-		D = 0.0f;
+		Normal = { 0.0, 1.0, 0.0 };
+		D = 0.0;
 	}
 
-	Plane(DirectX::XMVECTOR a, DirectX::XMVECTOR b, DirectX::XMVECTOR c)
+	Plane(Toast::Vector3 a, Toast::Vector3 b, Toast::Vector3 c)
 	{
-		Normal = DirectX::XMVector3Normalize(DirectX::XMVector3Cross(b - a, c - a));
-		D = DirectX::XMVectorGetX((DirectX::XMVector3Dot(Normal, a)));
+		Normal = Toast::Vector3::Normalize(Toast::Vector3::Cross(b - a, c - a));
+		D = Toast::Vector3::Dot(Normal, a);
 	}
 };
 
@@ -38,35 +36,36 @@ namespace Toast {
 		Frustum() = default;
 		~Frustum() = default;
 
-		void Invalidate(float aspectRatio, float FOV, float nearClip, float farClip, DirectX::XMVECTOR& pos);
-		void Update(DirectX::XMMATRIX& transform, DirectX::XMMATRIX* planetTransform = nullptr);
+		void Invalidate(float aspectRatio, float FOV, float nearClip, float farClip, Vector3& pos);
+		void Update(Matrix& transform, Matrix& planetTransform);
+		void Update(Matrix& transform);
 
-		bool Contains(DirectX::XMVECTOR p);
-		VolumeTri ContainsTriangle(DirectX::XMVECTOR p1, DirectX::XMVECTOR p2, DirectX::XMVECTOR p3);
-		VolumeTri ContainsTriangleVolume(DirectX::XMVECTOR p1, DirectX::XMVECTOR p2, DirectX::XMVECTOR p3, float height);
+		bool Contains(Vector3 p);
+		VolumeTri ContainsTriangle(Vector3 p1, Vector3 p2, Vector3 p3);
+		VolumeTri ContainsTriangleVolume(Vector3 p1, Vector3 p2, Vector3 p3, float height);
 	public:
-		DirectX::XMVECTOR mCenterNear;
-		DirectX::XMVECTOR mCenterFar;
+		Vector3 mCenterNear;
+		Vector3 mCenterFar;
 
-		DirectX::XMVECTOR mNearTopLeft;
-		DirectX::XMVECTOR mNearTopRight;
-		DirectX::XMVECTOR mNearBottomLeft;
-		DirectX::XMVECTOR mNearBottomRight;
+		Vector3 mNearTopLeft;
+		Vector3 mNearTopRight;
+		Vector3 mNearBottomLeft;
+		Vector3 mNearBottomRight;
 
-		DirectX::XMVECTOR mFarTopLeft;
-		DirectX::XMVECTOR mFarTopRight;
-		DirectX::XMVECTOR mFarBottomLeft;
-		DirectX::XMVECTOR mFarBottomRight;
+		Vector3 mFarTopLeft;
+		Vector3 mFarTopRight;
+		Vector3 mFarBottomLeft;
+		Vector3 mFarBottomRight;
 
-		DirectX::XMVECTOR mPlanetSpaceNearTopLeft;
-		DirectX::XMVECTOR mPlanetSpaceNearTopRight;
-		DirectX::XMVECTOR mPlanetSpaceNearBottomLeft;
-		DirectX::XMVECTOR mPlanetSpaceNearBottomRight;
+		Vector3 mPlanetSpaceNearTopLeft;
+		Vector3 mPlanetSpaceNearTopRight;
+		Vector3 mPlanetSpaceNearBottomLeft;
+		Vector3 mPlanetSpaceNearBottomRight;
 
-		DirectX::XMVECTOR mPlanetSpaceFarTopLeft;
-		DirectX::XMVECTOR mPlanetSpaceFarTopRight;
-		DirectX::XMVECTOR mPlanetSpaceFarBottomLeft;
-		DirectX::XMVECTOR mPlanetSpaceFarBottomRight;
+		Vector3 mPlanetSpaceFarTopLeft;
+		Vector3 mPlanetSpaceFarTopRight;
+		Vector3 mPlanetSpaceFarBottomLeft;
+		Vector3 mPlanetSpaceFarBottomRight;
 	private:
 		std::vector<Plane> mPlanes;
 		std::vector<Plane> mPlanetCheckPlanes;

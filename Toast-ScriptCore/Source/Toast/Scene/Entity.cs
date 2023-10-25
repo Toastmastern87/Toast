@@ -22,7 +22,7 @@ namespace Toast
 
         public T GetComponent<T>() where T : Component, new() 
         {
-            if (!HasComponent<T>())
+            if (!HasComponent<T>()) 
                 return null;
 
             T component = new T() { Entity = this };
@@ -32,6 +32,7 @@ namespace Toast
         public Entity FindEntityByName(string name) 
         {
             ulong entityID = InternalCalls.Entity_FindEntityByName(name);
+
             if(entityID == 0)
                 return null;
 

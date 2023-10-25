@@ -170,7 +170,10 @@ namespace Toast {
 		mono_free(nameCStr);
 
 		if (!entity)
+		{
+			TOAST_CORE_CRITICAL("Entity not found!");
 			return 0;
+		}
 
 		return entity.GetUUID();
 	}
@@ -345,9 +348,9 @@ namespace Toast {
 		cameraForward = { 0.0f, 0.0f, 1.0f };
 		DirectX::XMMatrixDecompose(&cameraScaleVector, &cameraRotVector, &cameraPosVector2, *cameraTransform);
 		cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
-		PlanetSystem::GeneratePlanet(scene->GetFrustum(), tc.GetTransform(), pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPosVector, cameraForward, pc.Subdivisions, sceneSettings.BackfaceCulling, sceneSettings.FrustumCulling);
+		//PlanetSystem::GeneratePlanet(scene->GetFrustum(), tc.GetTransform(), pc.Mesh->mVertices, pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPosVector, cameraForward, pc.Subdivisions, pc.PlanetData.radius, sceneSettings.BackfaceCulling, sceneSettings.FrustumCulling);
 
-		pc.Mesh->InvalidatePlanet(false);
+		pc.Mesh->InvalidatePlanet();
 	}
 
 	static void MeshComponent_PlayAnimation(uint64_t entityID, MonoString* name, float startTime)
@@ -365,7 +368,7 @@ namespace Toast {
 
 		//TOAST_CORE_INFO("Getting animation: %s", nameStr.c_str());
 
-		for (auto& submesh : mc.Mesh->GetSubmeshes())
+		for (auto& submesh : mc.MeshObject->GetSubmeshes())
 		{
 			if (submesh.IsAnimated) 
 			{
@@ -390,7 +393,7 @@ namespace Toast {
 
 		//TOAST_CORE_INFO("Getting animation: %s", nameStr.c_str());
 
-		for (auto& submesh : mc.Mesh->GetSubmeshes())
+		for (auto& submesh : mc.MeshObject->GetSubmeshes())
 		{
 			if (submesh.IsAnimated)
 			{
@@ -422,7 +425,7 @@ namespace Toast {
 
 		//TOAST_CORE_INFO("Getting animation: %s", nameStr.c_str());
 
-		for (auto& submesh : mc.Mesh->GetSubmeshes())
+		for (auto& submesh : mc.MeshObject->GetSubmeshes())
 		{
 			if (submesh.IsAnimated)
 			{
@@ -550,9 +553,12 @@ namespace Toast {
 		DirectX::XMMatrixDecompose(&cameraScaleVector, &cameraRotVector, &cameraPosVector2, *cameraTransform);
 		cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
 		scene->InvalidateFrustum();
-		PlanetSystem::GeneratePlanet(scene->GetFrustum(), tc.GetTransform(), pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPosVector, cameraForward, pc.Subdivisions, sceneSettings.BackfaceCulling, sceneSettings.FrustumCulling);
 
-		pc.Mesh->InvalidatePlanet(false);
+		DirectX::XMMATRIX planetTransformNoScale = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)) * DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
+
+		//PlanetSystem::GeneratePlanet(scene->GetFrustum(), planetTransformNoScale, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPosVector, cameraForward, pc.Subdivisions, pc.PlanetData.radius, sceneSettings.BackfaceCulling, sceneSettings.FrustumCulling);
+
+		pc.Mesh->InvalidatePlanet();
 	}
 
 #pragma endregion

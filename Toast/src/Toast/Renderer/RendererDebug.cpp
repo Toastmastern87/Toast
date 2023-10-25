@@ -93,43 +93,51 @@ namespace Toast {
 
 	void RendererDebug::SubmitCameraFrustum(Ref<Frustum> frustum)
 	{
-		RendererDebug::SubmitLine(frustum->mNearTopLeft, frustum->mFarTopLeft);
-		RendererDebug::SubmitLine(frustum->mNearTopRight, frustum->mFarTopRight);
-		RendererDebug::SubmitLine(frustum->mNearBottomLeft, frustum->mFarBottomLeft);
-		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mFarBottomRight);
+		RendererDebug::SubmitLine(frustum->mNearTopLeft, frustum->mFarTopLeft, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mNearTopRight, frustum->mFarTopRight, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mNearBottomLeft, frustum->mFarBottomLeft, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mFarBottomRight, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 
-		RendererDebug::SubmitLine(frustum->mNearTopLeft, frustum->mNearTopRight);
-		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mNearBottomLeft);
-		RendererDebug::SubmitLine(frustum->mNearBottomLeft, frustum->mNearTopLeft);
-		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mNearTopRight);
+		RendererDebug::SubmitLine(frustum->mNearTopLeft, frustum->mNearTopRight, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mNearBottomLeft, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mNearBottomLeft, frustum->mNearTopLeft, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mNearTopRight, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 
-		RendererDebug::SubmitLine(frustum->mFarTopLeft, frustum->mFarTopRight);
-		RendererDebug::SubmitLine(frustum->mFarBottomRight, frustum->mFarBottomLeft);
-		RendererDebug::SubmitLine(frustum->mFarBottomLeft, frustum->mFarTopLeft);
-		RendererDebug::SubmitLine(frustum->mFarBottomRight, frustum->mFarTopRight);
+		RendererDebug::SubmitLine(frustum->mFarTopLeft, frustum->mFarTopRight, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mFarBottomRight, frustum->mFarBottomLeft, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mFarBottomLeft, frustum->mFarTopLeft, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mFarBottomRight, frustum->mFarTopRight, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 	}
 
-	void RendererDebug::SubmitLine(DirectX::XMFLOAT3& p1, DirectX::XMFLOAT3& p2)
+	void RendererDebug::SubmitLine(DirectX::XMFLOAT3& p1, DirectX::XMFLOAT3& p2, DirectX::XMFLOAT4& color)
 	{
 		mDebugData->LineVertexBufferPtr->Position = p1;
-		mDebugData->LineVertexBufferPtr->Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		mDebugData->LineVertexBufferPtr->Color = color;
 		mDebugData->LineVertexBufferPtr++;
 		
 		mDebugData->LineVertexBufferPtr->Position = p2;
-		mDebugData->LineVertexBufferPtr->Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		mDebugData->LineVertexBufferPtr->Color = color;
 		mDebugData->LineVertexBufferPtr++;
 
 		mDebugData->LineVertexCount += 2;
 	}
 
-	void RendererDebug::SubmitLine(DirectX::XMVECTOR& p1, DirectX::XMVECTOR& p2)
+	void RendererDebug::SubmitLine(DirectX::XMVECTOR& p1, DirectX::XMVECTOR& p2, DirectX::XMFLOAT4& color)
 	{
 		DirectX::XMFLOAT3 p1f;
 		DirectX::XMStoreFloat3(&p1f, p1);
 		DirectX::XMFLOAT3 p2f;
 		DirectX::XMStoreFloat3(&p2f, p2);
 
-		RendererDebug::SubmitLine(p1f, p2f);
+		RendererDebug::SubmitLine(p1f, p2f, color);
+	}
+
+	void RendererDebug::SubmitLine(Vector3& p1, Vector3& p2, DirectX::XMFLOAT4& color)
+	{
+		DirectX::XMFLOAT3 p1f = { (float)p1.x, (float)p1.y, (float)p1.z };
+		DirectX::XMFLOAT3 p2f = { (float)p2.x, (float)p2.y, (float)p2.z };
+
+		RendererDebug::SubmitLine(p1f, p2f, color);
 	}
 
 	void RendererDebug::SubmitGrid(
@@ -160,8 +168,8 @@ namespace Toast {
 
 		RenderCommand::EnableBlending();
 
-		if (!runtime)
-		{
+		//if (!runtime)
+		//{
 			if (mDebugData->LineVertexCount != 0)
 			{
 				mDebugData->DebugShader->Bind();
@@ -183,7 +191,7 @@ namespace Toast {
 			mDebugData->GridShader->Bind();
 
 			RenderCommand::Draw(6);
-		}
+		//}
 
 		RenderCommand::EnableWireframe();
 
@@ -226,7 +234,7 @@ namespace Toast {
 		for (const auto& meshCommand : sRendererData->MeshSelectedDrawList) 
 		{
 			if (meshCommand.Mesh->mVertexBuffer)	meshCommand.Mesh->mVertexBuffer->Bind();
-			if (meshCommand.Mesh->mInstanceVertexBuffer && meshCommand.PlanetData) meshCommand.Mesh->mInstanceVertexBuffer->Bind();
+			//if (meshCommand.Mesh->mInstanceVertexBuffer && meshCommand.PlanetData) meshCommand.Mesh->mInstanceVertexBuffer->Bind();
 			if (meshCommand.Mesh->mIndexBuffer)		meshCommand.Mesh->mIndexBuffer->Bind();
 
 			if (meshCommand.Wireframe)
@@ -244,10 +252,7 @@ namespace Toast {
 
 				mDebugData->SelectedMeshMaskShader->Bind();
 
-				if (meshCommand.Mesh->GetIsPlanet())
-					RenderCommand::DrawIndexedInstanced(submesh.IndexCount, static_cast<uint32_t>(meshCommand.Mesh->mPlanetPatches.size()), 0, 0, 0);
-				else
-					RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 
 				ID3D11RenderTargetView* nullRTV = nullptr;
 				deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);

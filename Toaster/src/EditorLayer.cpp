@@ -61,7 +61,7 @@ namespace Toast {
 
 		NewScene();
 
-		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 20000.0f);
+		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 1000000.0f);
 
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mSceneSettingsPanel.SetContext(mEditorScene);
@@ -374,7 +374,7 @@ namespace Toast {
 					{
 						auto& mc = selectedEntity.GetComponent<MeshComponent>();
 
-						DirectX::XMMATRIX transformBase = tc.GetTransform() * mc.Mesh->GetLocalTransform();
+						DirectX::XMMATRIX transformBase = tc.GetTransform() * mc.MeshObject->GetLocalTransform();
 
 						DirectX::XMFLOAT4X4 transform;
 						ImGuizmo::RecomposeMatrixFromComponents(&tc.Translation.x, &tc.RotationEulerAngles.x, &tc.Scale.x, *transform.m);
@@ -397,7 +397,7 @@ namespace Toast {
 
 							tc.RotationEulerAngles = { Frotation[0], Frotation[1], Frotation[2] };
 
-							mc.Mesh->SetLocalTransform(DirectX::XMMatrixInverse(nullptr, tc.GetTransform()) * DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Fscale[0], Fscale[1], Fscale[2])
+							mc.MeshObject->SetLocalTransform(DirectX::XMMatrixInverse(nullptr, tc.GetTransform()) * DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Fscale[0], Fscale[1], Fscale[2])
 								* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(Frotation[0]), DirectX::XMConvertToRadians(Frotation[1]), DirectX::XMConvertToRadians(Frotation[2]))))
 								* DirectX::XMMatrixTranslation(Ftranslation[0], Ftranslation[1], Ftranslation[2]));
 						}

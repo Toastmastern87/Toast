@@ -4,6 +4,8 @@
 #include "Entity.h"
 #include "Components.h"
 
+#include "Toast/Core/Math/Vector.h"
+
 #include "Toast/Scripting/ScriptEngine.h"
 
 #include "Toast/Physics/PhysicsEngine.h"
@@ -12,6 +14,31 @@
 
 namespace YAML 
 {
+	template<>
+	struct convert<Toast::Vector3>
+	{
+		static Node encode(const Toast::Vector3& rhs)
+		{
+			Node node;
+			node.push_back(rhs.x);
+			node.push_back(rhs.y);
+			node.push_back(rhs.z);
+			node.SetStyle(EmitterStyle::Flow);
+			return node;
+		}
+
+		static bool decode(const Node& node, Toast::Vector3& rhs)
+		{
+			if (!node.IsSequence() || node.size() != 3)
+				return false;
+
+			rhs.x = node[0].as<double>();
+			rhs.y = node[1].as<double>();
+			rhs.z = node[2].as<double>();
+			return true;
+		}
+	};
+
 	template<>
 	struct convert<DirectX::XMFLOAT2>
 	{
@@ -159,6 +186,13 @@ namespace Toast {
 					break;												\
 				}														\
 
+	YAML::Emitter& operator<<(YAML::Emitter& out, const Vector3& v)
+	{
+		out << YAML::Flow;
+		out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
+		return out;
+	}
+
 	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT2& v)
 	{
 		out << YAML::Flow;
@@ -277,9 +311,9 @@ namespace Toast {
 			out << YAML::BeginMap; // MeshComponent
 
 			auto& pmc = entity.GetComponent<MeshComponent>();
-			if(!pmc.Mesh->GetIsPlanet())
-				out << YAML::Key << "AssetPath" << YAML::Value << pmc.Mesh->GetFilePath();
-			out << YAML::Key << "IsPlanet" << YAML::Value << pmc.Mesh->GetIsPlanet();
+			if(!pmc.MeshObject->GetIsPlanet())
+				out << YAML::Key << "AssetPath" << YAML::Value << pmc.MeshObject->GetFilePath();
+			out << YAML::Key << "IsPlanet" << YAML::Value << pmc.MeshObject->GetIsPlanet();
 			//out << YAML::Key << "Material" << YAML::Value << pmc.Mesh->GetMaterial()->GetName();
 
 			out << YAML::EndMap; // MeshComponent
@@ -423,10 +457,21 @@ namespace Toast {
 
 			auto& scc = entity.GetComponent<SphereColliderComponent>();
 			out << YAML::Key << "RenderCollider" << YAML::Value << scc.RenderCollider;
-			out << YAML::Key << "Radius" << YAML::Value << scc.Radius;
-			out << YAML::Key << "InertiaTensor" << YAML::Value << scc.InertiaTensor;
+			out << YAML::Key << "Radius" << YAML::Value << scc.Collider->mRadius;
 
 			out << YAML::EndMap; // SphereColliderComponent
+		}
+
+		if (entity.HasComponent<BoxColliderComponent>())
+		{
+			out << YAML::Key << "BoxColliderComponent";
+			out << YAML::BeginMap; // BoxColliderComponent
+
+			auto& bcc = entity.GetComponent<BoxColliderComponent>();
+			out << YAML::Key << "RenderCollider" << YAML::Value << bcc.RenderCollider;
+			out << YAML::Key << "Size" << YAML::Value << bcc.Collider->mSize;
+
+			out << YAML::EndMap; // BoxColliderComponent
 		}
 
 		if (entity.HasComponent<TerrainColliderComponent>())
@@ -434,8 +479,8 @@ namespace Toast {
 			out << YAML::Key << "TerrainColliderComponent";
 			out << YAML::BeginMap; // TerrainColliderComponent
 
-			auto& scc = entity.GetComponent<TerrainColliderComponent>();
-			out << YAML::Key << "AssetPath" << YAML::Value << scc.FilePath;
+			auto& tcc = entity.GetComponent<TerrainColliderComponent>();
+			out << YAML::Key << "AssetPath" << YAML::Value << tcc.Collider->FilePath;
 
 			out << YAML::EndMap; // TerrainColliderComponent
 		}
@@ -595,7 +640,7 @@ namespace Toast {
 			
 					auto& mc = deserializedEntity.GetComponent<MeshComponent>();
 
-					mc.Mesh->SetIsPlanet(meshComponent["IsPlanet"].as<bool>());
+					mc.MeshObject->SetIsPlanet(meshComponent["IsPlanet"].as<bool>());
 					//mc.Mesh->SetMaterial(meshComponent["Material"].as<std::string>(), MaterialLibrary::Get(meshComponent["Material"].as<std::string>()));
 				}
 
@@ -691,10 +736,10 @@ namespace Toast {
 				{
 					auto& rbc = deserializedEntity.AddComponent<RigidBodyComponent>();
 
-					rbc.CenterOfMass = rigidBodyComponent["CenterOfMass"].as<DirectX::XMFLOAT3>();
-					rbc.InvMass = rigidBodyComponent["InvMass"].as<float>();
-					rbc.Elasticity = rigidBodyComponent["Elasticity"].as<float>();
-					rbc.Friction = rigidBodyComponent["Friction"].as<float>();
+					rbc.CenterOfMass = rigidBodyComponent["CenterOfMass"].as<Vector3>();
+					rbc.InvMass = rigidBodyComponent["InvMass"].as<double>();
+					rbc.Elasticity = rigidBodyComponent["Elasticity"].as<double>();
+					rbc.Friction = rigidBodyComponent["Friction"].as<double>();
 				}
 
 				auto sphereColliderComponent = entity["SphereColliderComponent"];
@@ -702,9 +747,19 @@ namespace Toast {
 				{
 					auto& scc = deserializedEntity.AddComponent<SphereColliderComponent>();
 
-					scc.Radius = sphereColliderComponent["Radius"].as<float>();
-					scc.InertiaTensor = sphereColliderComponent["InertiaTensor"].as<DirectX::XMFLOAT3X3>();
+					scc.Collider->mRadius = sphereColliderComponent["Radius"].as<float>();
 					scc.RenderCollider = sphereColliderComponent["RenderCollider"].as<bool>();
+				}
+
+				auto boxColliderComponent = entity["BoxColliderComponent"];
+				if (boxColliderComponent)
+				{
+					auto& bcc = deserializedEntity.AddComponent<BoxColliderComponent>();
+
+					bcc.Collider->mSize = boxColliderComponent["Size"].as<DirectX::XMFLOAT3>();
+					bcc.RenderCollider = boxColliderComponent["RenderCollider"].as<bool>();
+
+					auto& tc = deserializedEntity.GetComponent<TransformComponent>();
 				}
 
 				auto terrainColliderComponent = entity["TerrainColliderComponent"];
@@ -712,8 +767,8 @@ namespace Toast {
 				{
 					auto& tcc = deserializedEntity.AddComponent<TerrainColliderComponent>();
 
-					tcc.FilePath = terrainColliderComponent["AssetPath"].as<std::string>();
-					tcc.TerrainData = PhysicsEngine::LoadTerrainData(tcc.FilePath.c_str());
+					tcc.Collider->FilePath = terrainColliderComponent["AssetPath"].as<std::string>();
+					tcc.Collider->TerrainData = PhysicsEngine::LoadTerrainData(tcc.Collider->FilePath.c_str());
 				}
 
 				auto uiPanelComponent = entity["UIPanelComponent"];

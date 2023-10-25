@@ -1,9 +1,8 @@
 #inputlayout
 vertex
-instance
-instance
-instance
-instance
+vertex
+vertex
+vertex
 
 #type vertex
 #pragma pack_matrix( row_major )
@@ -32,30 +31,29 @@ cbuffer Model : register(b1)
 	int entityID;
 };
 
-cbuffer Planet : register(b2)
-{
-	float radius;
-	float minAltitude;
-	float maxAltitude;
-	float atmosphereHeight;
-	float mieAnisotropy;
-	float rayScaleHeight;
-	float mieScaleHeight;
-	float3 rayBaseScatteringCoefficient;
-	float mieBaseScatteringCoefficient;
-	float3 planetCenter;
-	int atmosphereToggle;
-	int numInScatteringPoints;
-	int numOpticalDepthPoints;
-};
+//cbuffer Planet : register(b2)
+//{
+//	float radius;
+//	float minAltitude;
+//	float maxAltitude;
+//	float atmosphereHeight;
+//	float mieAnisotropy;
+//	float rayScaleHeight;
+//	float mieScaleHeight;
+//	float3 rayBaseScatteringCoefficient;
+//	float mieBaseScatteringCoefficient;
+//	float3 planetCenter;
+//	int atmosphereToggle;
+//	int numInScatteringPoints;
+//	int numOpticalDepthPoints;
+//};
 
 struct VertexInputType
 {
-	float2 localPosition : TEXCOORD0;
-	int level : TEXTUREID;
-	float3 a : POSITION0;
-	float3 r : POSITION1;
-	float3 s : POSITION2;
+	float3 globalPosition	: POSITION0;
+	float3 normal			: NORMAL;
+	float4 tangent			: TANGENT;
+	float2 texcoord			: TEXCOORD0;
 };
 
 struct PixelInputType
@@ -116,33 +114,66 @@ float SimplexNoise(float3 pos, float octaves, float scale, float persistence)
 PixelInputType main(VertexInputType input)
 {
 	PixelInputType output;
-	float2 uv;
 	float3 pos;
+	float3 texCoordPos;
 	float4 finalPos;
+	
+	//pos = input.a + input.r * input.localPosition.x + input.s * input.localPosition.y;
 
-	pos = input.a + input.r * input.localPosition.x + input.s * input.localPosition.y;
+	//float3 cornerA = input.a;
+	//float3 cornerB = input.a + input.s;
+	//float3 cornerC = input.a + input.r;
 
-	pos = normalize(pos);
+	//float3 vectorFromCenter = pos - planetCenter;
+	//float lengthFromCenterToPoint = length(vectorFromCenter);
+	//float pushOutScaleFactor = radius / lengthFromCenterToPoint;
 
-	output.texcoord = float2((0.5f + (atan2(pos.z, pos.x) / (2.0f * PI))), (0.5f - (asin(pos.y) / PI)));
-	pos *= 1.0f + ((HeightMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r * (maxAltitude - minAltitude) + minAltitude) / radius);
+	//////pos = normalize(pos) * radius;
+
+	//pos = planetCenter + (vectorFromCenter * pushOutScaleFactor);
+
+	//float3 displacement = pos - planetCenter;
+
+	// Compute the new scaled position.
+	//if ((input.localPosition.z + input.level) == 1.0f)
+	//	pos = planetCenter + (displacement * 1.175571f);
+	//	//pos *= 1.175571f;
+	//else if ((input.localPosition.z + input.level) == 2.0f)
+	//	pos = planetCenter + (displacement * 1.131566f);
+	//else if ((input.localPosition.z + input.level) == 3.0f)
+	//	pos = planetCenter + (displacement * 1.064545);
+	
+
+	//pos = pos + pos * (input.localPosition.w * );
+	//pos *= (radius / length(pos));
+
+	//texCoordPos = normalize(pos - planetCenter);
+
+	//float theta = atan2(texCoordPos.z, texCoordPos.x);
+	//float phi = asin(texCoordPos.y);
+
+	output.texcoord = input.texcoord;// float2(theta / PI, phi / (PI / 2.0f)) * 0.5f + 0.5f;
+	//output.texcoord.x = output.texcoord.x * 0.5f + 0.5f;
+	//output.texcoord.y = output.texcoord.y * 0.5f + 0.5f;
+	//output.texcoord = float2((0.5f + (atan2(pos.z, pos.x) / (2.0f * PI))), (0.5f - (asin(pos.y) / PI)));
+
+	//pos += ((HeightMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r * (maxAltitude - minAltitude) + minAltitude) * normalize(pos));
+
 	//pos += (HeightMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r * (maxAltitude - minAltitude) + minAltitude) / radius;
 
-	float craterDetected = CraterMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r;
-	if (craterDetected == 0.0f)
-	{
-		float craterHeightDetail = SimplexNoise(float3(float2(8192.0f, 4096.0f) * output.texcoord, 1.0f), 15.0f, 0.5f, 0.5f);
-		//Min and max altitude of the details are 30 and -30. check base height for information on how to change these
-		pos *= 1.0f + craterHeightDetail * (0.03f / radius);
-	}
+	//float craterDetected = CraterMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r;
+	//if (craterDetected == 0.0f)
+	//{
+	//	float craterHeightDetail = SimplexNoise(float3(float2(8192.0f, 4096.0f) * output.texcoord, 1.0f), 15.0f, 0.5f, 0.5f);
+	//	//Min and max altitude of the details are 30 and -30. check base height for information on how to change these
+	//	pos *= 1.0f + craterHeightDetail * (30.0f / radius);
+	//}
 
-	finalPos = float4(pos * 0.5f, 1.0f);
-
-	output.pixelPosition = mul(finalPos, worldMatrix); //float4(pos, 1.0f);// 
+	output.pixelPosition = float4(input.globalPosition, 1.0f);//mul(float4(pos, 1.0f), worldMatrix); //float4(pos, 1.0f);// 
+	output.worldPosition = input.globalPosition;
 	output.pixelPosition = mul(output.pixelPosition, viewMatrix);
 	output.pixelPosition = mul(output.pixelPosition, projectionMatrix);
 
-	output.worldPosition = mul(finalPos, worldMatrix).xyz;//pos;// 
 	output.cameraPos = cameraPosition.xyz;
 
 	return output;
@@ -274,14 +305,15 @@ float GetHeight(float2 uv)
 {
 	float finalHeight;
 
-	float baseHeight = (HeightMapTexturePS.SampleLevel(defaultSampler, uv, 0).r * (maxAltitude + minAltitude) + minAltitude);
+	float baseHeight = HeightMapTexturePS.SampleLevel(defaultSampler, uv, 0).r;// *(maxAltitude + minAltitude)) + minAltitude;
 
 	float craterDetected = CraterMapTexturePS.SampleLevel(defaultSampler, uv, 0).r;
 	if (craterDetected == 0.0f)
 	{
 		float craterHeightDetail = SimplexNoise(float3(float2(8192.0f, 4096.0f) * uv, 1.0f), 15.0f, 0.5f, 0.5f);
 		//Min and max altitude of the details are 30 and -30. check base height for information on how to change these
-		baseHeight *= 1.0f + (((craterHeightDetail + 1.0f) * 0.5f) * (0.06f) - 0.03f); //*= 1.0f + craterHeightDetail * (0.03f / radius);//
+		//baseHeight *= 1.0f + craterHeightDetail * 30.0f;
+		//baseHeight *= 1.0f + (((craterHeightDetail + 1.0f) * 0.5f) * (0.06f) - 0.03f); //*= 1.0f + craterHeightDetail * (0.03f / radius);//
 	}
 
 	finalHeight = baseHeight;
@@ -289,11 +321,10 @@ float GetHeight(float2 uv)
 	return finalHeight; 
 }
 
-float3 CalculateNormal(float3 normalVector, float2 uv)
+float3 CalculateNormal(float3 radialNormalVector, float2 uv)
 {
 	float textureWidth, textureHeight, hL, hR, hD, hU;
 	float3 texOffset, N;
-	float3x3 TBN;
 
 	HeightMapTexturePS.GetDimensions(textureWidth, textureHeight);
 
@@ -321,14 +352,15 @@ float3 CalculateNormal(float3 normalVector, float2 uv)
 		hU = GetHeight((uv - texOffset.zy));
 	}
 
-	N = normalize(float3(hL - hR, hU - hD, 2.0f));
-	float3 norm = normalize(normalVector);
-	float3 up = float3(0.0f, 1.0f, 0.0f);//; - norm;
-	float3 tang = normalize(cross(norm, up));//might need flipping
-	float3 biTan = normalize(cross(norm, tang));//same
-	float3x3 localAxis = float3x3(tang, biTan, norm);
+	N = normalize(float3(hL - hR, hU - hD, 1.0f));
+	float3 up = normalize(radialNormalVector);
+	float3 worldUp = float3(0.0f, 1.0f, 0.0f);
+	float3 refDirection = abs(dot(up, worldUp)) < 0.9 ? worldUp : float3(1.0f, 0.0f, 0.0f);
+	float3 tang = normalize(cross(refDirection, up));
+	float3 biTan = normalize(cross(up, tang));
+	float3x3 TBN = float3x3(tang, biTan, up);
 
-	return normalize(mul(normalize(N), localAxis));
+	return normalize(mul(N, TBN));
 }
 
 // GGX/Towbridge-Reitz normal distribution function.
@@ -530,7 +562,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	float3 lightContribution = DirectionalLightning(F0, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness);
 	float3 iblContribution = IBL(F0, Lr, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness);
 
-	output.Color = float4(lightContribution + iblContribution, 1.0f); //float4(N, 1.0f);//
+	output.Color = float4(lightContribution + iblContribution, 1.0f); //float4(GetHeight(input.texcoord), GetHeight(input.texcoord), GetHeight(input.texcoord), 1.0f);//float4(input.texcoord, 0.0f, 1.0f);//float4(N * 0.5 + 0.5, 1.0f);//  
 
 	return output;
 }

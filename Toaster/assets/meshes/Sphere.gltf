@@ -1,6 +1,6 @@
 {
     "asset" : {
-        "generator" : "Khronos glTF Blender I/O v1.8.19",
+        "generator" : "Khronos glTF Blender I/O v3.4.50",
         "version" : "2.0"
     },
     "scene" : 0,
@@ -30,7 +30,7 @@
                     1
                 ],
                 "metallicFactor" : 0,
-                "roughnessFactor" : 0.4000000059604645
+                "roughnessFactor" : 0.5
             }
         }
     ],
@@ -41,11 +41,10 @@
                 {
                     "attributes" : {
                         "POSITION" : 0,
-                        "NORMAL" : 1,
-                        "TANGENT" : 2,
-                        "TEXCOORD_0" : 3
+                        "TEXCOORD_0" : 1,
+                        "NORMAL" : 2
                     },
-                    "indices" : 4,
+                    "indices" : 3,
                     "material" : 0
                 }
             ]
@@ -57,14 +56,14 @@
             "componentType" : 5126,
             "count" : 15360,
             "max" : [
-                0.5,
-                0.5,
-                0.4999999701976776
+                1,
+                1,
+                0.9999999403953552
             ],
             "min" : [
-                -0.4999999701976776,
-                -0.5,
-                -0.4999999701976776
+                -0.9999999403953552,
+                -1,
+                -0.9999999403953552
             ],
             "type" : "VEC3"
         },
@@ -72,22 +71,16 @@
             "bufferView" : 1,
             "componentType" : 5126,
             "count" : 15360,
-            "type" : "VEC3"
+            "type" : "VEC2"
         },
         {
             "bufferView" : 2,
             "componentType" : 5126,
             "count" : 15360,
-            "type" : "VEC4"
+            "type" : "VEC3"
         },
         {
             "bufferView" : 3,
-            "componentType" : 5126,
-            "count" : 15360,
-            "type" : "VEC2"
-        },
-        {
-            "bufferView" : 4,
             "componentType" : 5123,
             "count" : 15360,
             "type" : "SCALAR"
@@ -97,32 +90,31 @@
         {
             "buffer" : 0,
             "byteLength" : 184320,
-            "byteOffset" : 0
-        },
-        {
-            "buffer" : 0,
-            "byteLength" : 184320,
-            "byteOffset" : 184320
-        },
-        {
-            "buffer" : 0,
-            "byteLength" : 245760,
-            "byteOffset" : 368640
+            "byteOffset" : 0,
+            "target" : 34962
         },
         {
             "buffer" : 0,
             "byteLength" : 122880,
-            "byteOffset" : 614400
+            "byteOffset" : 184320,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 184320,
+            "byteOffset" : 307200,
+            "target" : 34962
         },
         {
             "buffer" : 0,
             "byteLength" : 30720,
-            "byteOffset" : 737280
+            "byteOffset" : 491520,
+            "target" : 34963
         }
     ],
     "buffers" : [
         {
-            "byteLength" : 768000,
+            "byteLength" : 522240,
             "uri" : "Sphere.bin"
         }
     ]

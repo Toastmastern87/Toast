@@ -105,8 +105,8 @@ namespace Toast {
 		{
 			auto [transform, mesh] = view.get<TransformComponent, MeshComponent>(entity);
 
-			if (mesh.Mesh->GetIsAnimated())
-				mesh.Mesh->ResetAnimations();
+			if (mesh.MeshObject->GetIsAnimated())
+				mesh.MeshObject->ResetAnimations();
 		}
 	}
 
@@ -156,7 +156,19 @@ namespace Toast {
 
 		if (!mIsPaused) 
 		{
-			PhysicsEngine::Update(&mRegistry, this, ts.GetSeconds() * GetTimeScale());
+			// Updating box colliders
+			{
+				auto view = mRegistry.view<BoxColliderComponent, TransformComponent>();
+				for (auto entity : view)
+				{
+					auto [bcc, tc] = view.get<BoxColliderComponent, TransformComponent>(entity);
+					DirectX::XMVECTOR totalRotVec = DirectX::XMQuaternionMultiply(DirectX::XMLoadFloat4(&tc.RotationQuaternion), DirectX::XMQuaternionRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&tc.RotationEulerAngles)));
+					DirectX::XMFLOAT4 totalRot;
+					DirectX::XMStoreFloat4(&totalRot, totalRotVec);;
+				}
+			}
+
+			PhysicsEngine::Update(&mRegistry, this, (double)(ts.GetSeconds() * GetTimeScale()));
 
 			// Scripting
 			{
@@ -210,8 +222,8 @@ namespace Toast {
 		{
 			auto [transform, mesh] = view.get<TransformComponent, MeshComponent>(entity);
 			
-			if (mesh.Mesh->GetIsAnimated())
-				mesh.Mesh->OnUpdate(ts * mTimeScale);
+			if (mesh.MeshObject->GetIsAnimated())
+				mesh.MeshObject->OnUpdate(ts * mTimeScale);
 		}
 
 		SceneCamera* mainCamera = nullptr;
@@ -271,19 +283,19 @@ namespace Toast {
 					auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
 
 					//Do not submit mesh if it's a planet
-					if (!mesh.Mesh->GetIsPlanet())
+					if (!mesh.MeshObject->GetIsPlanet())
 					{
 						switch (mSettings.WireframeRendering)
 						{
 						case Settings::Wireframe::NO:
 						{
-							Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, false);
+							Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, false);
 
 							break;
 						}
 						case Settings::Wireframe::YES:
 						{
-							Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, true);
+							Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, true);
 
 							break;
 						}
@@ -296,7 +308,7 @@ namespace Toast {
 						}
 					}
 
-					mStats.VerticesCount += static_cast<uint32_t>(mesh.Mesh->GetVertices().size());
+					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 				}
 
 				// Planets!
@@ -331,7 +343,7 @@ namespace Toast {
 					}
 					}
 
-					mStats.VerticesCount += static_cast<uint32_t>(planet.Mesh->GetPlanetVertices().size() * planet.Mesh->GetPlanetPatches().size());
+					mStats.VerticesCount += static_cast<uint32_t>(planet.Mesh->GetVertices().size());
 				}
 
 				Renderer::EndScene(false);
@@ -340,21 +352,42 @@ namespace Toast {
 			// Debug Rendering
 			RendererDebug::BeginScene(*mainCamera);
 			{
-				//Colliders
-				auto colliderMeshes = mRegistry.view<TransformComponent, SphereColliderComponent>();
-				for (auto entity : colliderMeshes)
+				// Colliders
+				auto entities = mRegistry.view<TransformComponent>();
+				for (auto entity : entities)
 				{
-					auto [transform, collider] = colliderMeshes.get<TransformComponent, SphereColliderComponent>(entity);
+					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
 
-					if (mSettings.RenderColliders)
+					Entity e{ entity, this };
+
+					auto tc = e.GetComponent<TransformComponent>();
+					DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.GetTransform());
+
+					bool hasSphereCollider = e.HasComponent<SphereColliderComponent>();
+					bool hasBoxCollider = e.HasComponent<BoxColliderComponent>();
+
+					Ref<Mesh> colliderMesh;
+					bool renderCollider = false;
+
+					if (hasSphereCollider)
 					{
-						DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-						DirectX::XMMatrixDecompose(&scale, &rot, &pos, transform.GetTransform());                                                                                                                                                                                                                                                                                                                                                                                                                 
-						scale = { collider.Radius * 2.0f, collider.Radius * 2.0f, collider.Radius * 2.0f };
-
-						DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYawFromVector(rot)) * DirectX::XMMatrixTranslationFromVector(pos);
-						RendererDebug::SubmitCollider(collider.ColliderMesh, transform, true);
+						auto scc = e.GetComponent<SphereColliderComponent>();
+						scale = { (float)scc.Collider->mRadius, (float)scc.Collider->mRadius, (float)scc.Collider->mRadius };
+						colliderMesh = scc.ColliderMesh;
+						renderCollider = scc.RenderCollider;
 					}
+					else if (hasBoxCollider)
+					{
+						auto bcc = e.GetComponent<BoxColliderComponent>();
+						scale = { (float)bcc.Collider->mSize.x, (float)bcc.Collider->mSize.y, (float)bcc.Collider->mSize.z };
+						colliderMesh = bcc.ColliderMesh;
+						renderCollider = bcc.RenderCollider;
+					}
+
+					DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(rot) * DirectX::XMMatrixTranslationFromVector(pos);
+
+					if (renderCollider && mSettings.RenderColliders)
+						RendererDebug::SubmitCollider(colliderMesh, transform, false);
 				}
 			}
 			RendererDebug::EndScene(true, true, true);
@@ -438,6 +471,7 @@ namespace Toast {
 	{
 		entt::entity* mainCamera = nullptr;
 		TransformComponent* mainCameraTransform;
+		CameraComponent* mainCameraComponent;
 		{
 			auto view = mRegistry.view<TransformComponent, CameraComponent>();
 			for (auto entity : view)
@@ -448,6 +482,7 @@ namespace Toast {
 				{
 					mainCamera = &entity;
 					mainCameraTransform = &view.get<TransformComponent>(entity);
+					mainCameraComponent = &view.get<CameraComponent>(entity);
 				}
 
 				if (mainCameraTransform->IsDirty)
@@ -519,9 +554,9 @@ namespace Toast {
 					{
 						if (planetTransform.IsDirty)
 						{
-							PlanetSystem::GenerateDistanceLUT(planet.DistanceLUT, 8.0f, planet.PlanetData.radius);
+							PlanetSystem::GenerateDistanceLUT(planet.DistanceLUT, 8.0f, planet.PlanetData.radius, mainCameraComponent->Camera.GetPerspectiveVerticalFOV(), mViewportWidth);
 							PlanetSystem::GenerateFaceDotLevelLUT(planet.FaceLevelDotLUT, planetTransform.Scale.x, 8.0f, planet.PlanetData.maxAltitude);
-							PlanetSystem::GenerateHeightMultLUT(planet.Mesh->mPlanetFaces, planet.HeightMultLUT, planetTransform.Scale.x, 8, planet.PlanetData.maxAltitude, planetTransform.GetTransform());
+							//PlanetSystem::GenerateHeightMultLUT(planet.Mesh->mVertices, planet.HeightMultLUT, planetTransform.Scale.x, 8, planet.PlanetData.maxAltitude);
 						}
 
 						if (planetTransform.IsDirty || mInvalidatePlanet || mSettings.IsDirty)
@@ -534,12 +569,13 @@ namespace Toast {
 
 							InvalidateFrustum();
 
-							PlanetSystem::GeneratePlanet(mFrustum.get(), planetTransform.GetTransform(), planet.Mesh->mPlanetFaces, planet.Mesh->mPlanetPatches, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, cameraForward, planet.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
+							PlanetSystem::GeneratePlanet(mFrustum.get(), planetTransform.GetTransform(), planet.Mesh->mVertices, planet.Mesh->mIndices, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, cameraForward, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling);
 
-							planet.Mesh->InvalidatePlanet(true);
+							planet.Mesh->InvalidatePlanet();
 
 							planetTransform.IsDirty = false;
 							mInvalidatePlanet =  false;
+							mSettings.IsDirty = false;
 						}
 					}
 					else
@@ -566,19 +602,19 @@ namespace Toast {
 			{
 				auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
 				//Do not submit mesh if it's a planet
-				if (!mesh.Mesh->GetIsPlanet())
+				if (!mesh.MeshObject->GetIsPlanet())
 				{
 					switch (mSettings.WireframeRendering)
 					{
 					case Settings::Wireframe::NO:
 					{
-						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, false);
+						Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, false);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
-						Renderer::SubmitMesh(mesh.Mesh, transform.GetTransform(), (int)entity, true);
+						Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, true);
 
 						break;
 					}
@@ -592,9 +628,9 @@ namespace Toast {
 				}
 
 				if (mSelectedEntity == entity)
-					Renderer::SubmitSelecetedMesh(mesh.Mesh, transform.GetTransform());
+					Renderer::SubmitSelecetedMesh(mesh.MeshObject, transform.GetTransform());
 
-				mStats.VerticesCount += static_cast<uint32_t>(mesh.Mesh->GetVertices().size());
+				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 			}
 
 			// Planets!
@@ -616,7 +652,7 @@ namespace Toast {
 				}
 				case Settings::Wireframe::YES:
 				{
-					if (planet.Mesh->mSubmeshes.size() > 0)
+					if (planet.Mesh->mSubmeshes.size() > 0) 
 						Renderer::SubmitMesh(planet.Mesh, transform.GetTransform(), (int)entity, true, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 					break;
@@ -632,7 +668,7 @@ namespace Toast {
 				if (mSelectedEntity == entity)
 					Renderer::SubmitSelecetedMesh(planet.Mesh, transform.GetTransform());
 
-				mStats.VerticesCount += static_cast<uint32_t>(planet.Mesh->GetPlanetVertices().size() * planet.Mesh->GetPlanetPatches().size());
+				mStats.VerticesCount += static_cast<uint32_t>(planet.Mesh->GetVertices().size());
 			}
 
 			Renderer::EndScene(true);
@@ -646,20 +682,41 @@ namespace Toast {
 				RendererDebug::SubmitCameraFrustum(mFrustum);
 
 			// Colliders
-			auto colliderMeshes = mRegistry.view<TransformComponent, SphereColliderComponent>();
-			for (auto entity : colliderMeshes)
+			auto entities = mRegistry.view<TransformComponent>();
+			for (auto entity : entities)
 			{
-				auto [transform, collider] = colliderMeshes.get<TransformComponent, SphereColliderComponent>(entity);
+				DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
 
-				if (collider.RenderCollider && mSettings.RenderColliders) 
+				Entity e{ entity, this };
+
+				auto tc = e.GetComponent<TransformComponent>();
+				DirectX::XMMatrixDecompose(&scale, &rot, &pos, tc.GetTransform());
+
+				bool hasSphereCollider = e.HasComponent<SphereColliderComponent>();
+				bool hasBoxCollider = e.HasComponent<BoxColliderComponent>();
+
+				Ref<Mesh> colliderMesh;
+				bool renderCollider = false;
+
+				if (hasSphereCollider)
 				{
-					DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
-					DirectX::XMMatrixDecompose(&scale, &rot, &pos, transform.GetTransform());
-					scale = { collider.Radius * 2.0f, collider.Radius * 2.0f, collider.Radius * 2.0f };
-
-					DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYawFromVector(rot)) * DirectX::XMMatrixTranslationFromVector(pos);
-					RendererDebug::SubmitCollider(collider.ColliderMesh, transform, true);
+					auto scc = e.GetComponent<SphereColliderComponent>();
+					scale = { (float)scc.Collider->mRadius, (float)scc.Collider->mRadius , (float)scc.Collider->mRadius };
+					colliderMesh = scc.ColliderMesh;
+					renderCollider = scc.RenderCollider;
 				}
+				else if (hasBoxCollider)
+				{
+					auto bcc = e.GetComponent<BoxColliderComponent>();
+					scale = { (float)bcc.Collider->mSize.x, (float)bcc.Collider->mSize.y, (float)bcc.Collider->mSize.z };
+					colliderMesh = bcc.ColliderMesh;
+					renderCollider = bcc.RenderCollider;
+				}
+
+				DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(rot) * DirectX::XMMatrixTranslationFromVector(pos);
+
+				if(renderCollider && mSettings.RenderColliders)
+					RendererDebug::SubmitCollider(colliderMesh, transform, false);
 			}
 
 			if (mSettings.Grid)
@@ -760,7 +817,7 @@ namespace Toast {
 
 	void Scene::InvalidateFrustum()
 	{
-		DirectX::XMMATRIX* planetTransform = nullptr;
+		Matrix planetTransform;
 
 		auto view = mRegistry.view<TransformComponent, CameraComponent>();
 		for (auto entity : view)
@@ -773,12 +830,17 @@ namespace Toast {
 				for (auto pEntity : planetView)
 				{
 					auto [pTransform, planet] = planetView.get<TransformComponent, PlanetComponent>(pEntity);
-					planetTransform = &pTransform.GetTransform();
+
+					planetTransform = { pTransform.GetTransform() };
+
 					mInvalidatePlanet = true;
 				}
 
-				mFrustum->Invalidate(camera.Camera.GetAspecRatio(), camera.Camera.GetPerspectiveVerticalFOV(), camera.Camera.GetNearClip(), camera.Camera.GetFarClip(), DirectX::XMLoadFloat3(&transform.Translation));
-				mFrustum->Update(transform.GetTransform(), planetTransform);
+				Vector3 cameraTranslation = { transform.Translation };
+				Matrix cameraTransform = { transform.GetTransform() };
+
+				mFrustum->Invalidate(camera.Camera.GetAspecRatio(), camera.Camera.GetPerspectiveVerticalFOV(), camera.Camera.GetNearClip(), camera.Camera.GetFarClip(), cameraTranslation);
+				mFrustum->Update(cameraTransform, planetTransform);
 			}
 		}
 	}
@@ -843,7 +905,8 @@ namespace Toast {
 		target->mSkybox = mSkybox;
 
 		//Collider
-		target->mColliderMaterial = mColliderMaterial;
+		target->mCubeColliderMaterial = mCubeColliderMaterial;
+		target->mSphereColliderMaterial = mSphereColliderMaterial;
 
 		std::unordered_map<UUID, entt::entity> enttMap;
 		auto idComponent = mRegistry.view<IDComponent>();
@@ -927,7 +990,7 @@ namespace Toast {
 			}
 			else
 			{
-				TOAST_CORE_INFO("To add a planet a camera most be present");
+				TOAST_CORE_INFO("To add a planet a camera must be present");
 				return;
 			}
 		}
@@ -942,27 +1005,28 @@ namespace Toast {
 
 		InvalidateFrustum();
 
-		PlanetSystem::GenerateBasePlanet(component.Mesh->mPlanetFaces, tc.GetTransform());
-		PlanetSystem::GeneratePatchGeometry(component.Mesh->mPlanetVertices, component.Mesh->mIndices, component.PatchLevels);
+		//PlanetSystem::GenerateBasePlanet(component.Mesh->mVertices, component.Mesh->mIndices);
 
-		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8, component.PlanetData.radius);
+		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8, component.PlanetData.radius, mainCamera->GetPerspectiveVerticalFOV(), mViewportWidth);
 		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude);
-		PlanetSystem::GenerateHeightMultLUT(component.Mesh->mPlanetFaces, component.HeightMultLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude, tc.GetTransform());
+		//PlanetSystem::GenerateHeightMultLUT(component.Mesh->mPlanetFaces, component.HeightMultLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude);
 
-		PlanetSystem::GeneratePlanet(mFrustum.get(), tc.GetTransform(), component.Mesh->mPlanetFaces, component.Mesh->mPlanetPatches, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraForward, component.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
+		PlanetSystem::GeneratePlanet(mFrustum.get(), tc.GetTransform(), component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraForward, component.PlanetData.radius, component.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
 		
-		component.Mesh->InvalidatePlanet(true);
+		component.Mesh->InvalidatePlanet();
 	}
 
 	template<>
 	void Scene::OnComponentAdded<CameraComponent>(Entity entity, CameraComponent& component)
 	{
 		auto tc = entity.GetComponent<TransformComponent>();
+		Vector3 cameraTranslation = { tc.Translation };
+
 
 		component.Camera.SetViewportSize(mViewportWidth, mViewportHeight);
 
 		mFrustum = CreateRef<Frustum>();
-		mFrustum->Invalidate(component.Camera.GetAspecRatio(), component.Camera.GetPerspectiveVerticalFOV(), component.Camera.GetNearClip(), component.Camera.GetFarClip(), DirectX::XMLoadFloat3(&tc.Translation));
+		mFrustum->Invalidate(component.Camera.GetAspecRatio(), component.Camera.GetPerspectiveVerticalFOV(), component.Camera.GetNearClip(), component.Camera.GetFarClip(), cameraTranslation);
 	}
 
 	template<>
@@ -998,22 +1062,32 @@ namespace Toast {
 	template<>
 	void Scene::OnComponentAdded<SphereColliderComponent>(Entity entity, SphereColliderComponent& component)
 	{
+		component.Collider = CreateRef<ShapeSphere>(1.0f);
+
 		//This should be handled differently in the future, have material in the material library or not? :thinking:
-		mColliderMaterial = CreateRef<Material>("ColliderMaterial", ShaderLibrary::Load("assets/shaders/Standard.hlsl"));
-		mColliderMaterial->Set<DirectX::XMFLOAT4>("Albedo", { 0.0f, 0.0f, 1.0f, 1.0f });
+		mSphereColliderMaterial = CreateRef<Material>("ColliderMaterial", new Shader("assets/shaders/Standard.hlsl"));
+		mSphereColliderMaterial->Set<DirectX::XMFLOAT4>("Albedo", { 0.0f, 0.0f, 1.0f, 1.0f });
 
 		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf");
-		component.ColliderMesh->SetMaterial("Collider", mColliderMaterial);
+		component.ColliderMesh->SetMaterial("Collider", mSphereColliderMaterial);
 	}
 
 	template<>
 	void Scene::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& component)
 	{
+		component.Collider = CreateRef<ShapeBox>(DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
+
+		mCubeColliderMaterial = CreateRef<Material>("ColliderMaterial", new Shader("assets/shaders/Standard.hlsl"));
+		mCubeColliderMaterial->Set<DirectX::XMFLOAT4>("Albedo", { 0.0f, 0.0f, 1.0f, 1.0f });
+
+		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.gltf");
+		component.ColliderMesh->SetMaterial("Collider", mCubeColliderMaterial);
 	}
 
 	template<>
 	void Scene::OnComponentAdded<TerrainColliderComponent>(Entity entity, TerrainColliderComponent& component)
 	{
+		component.Collider = CreateRef<ShapeTerrain>();
 	}
 
 	template<>
