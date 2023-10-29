@@ -146,106 +146,6 @@ namespace Toast {
 		//	return subDivisionX > subDivisionY ? subDivisionX : subDivisionY;
 		//}
 
-		//static void GeneratePatchGeometry(std::vector<PlanetVertex>& vertices, std::vector<uint32_t>& indices, int16_t patchLevel)
-		//{
-		//	vertices.clear();
-		//	indices.clear();
-
-		//	double ratio = ((1.0 + sqrt(5.0)) / 2.0);
-
-		//	//TOAST_CORE_CRITICAL("Ratio: %f, scale: %f", ratio, scale);
-
-		//	std::vector<Vector3> startFaceVertices = std::vector<Vector3>{
-		//																 Vector3::Normalize({ ratio, 0.0, -1.0 }),
-		//																 Vector3::Normalize({ ratio, 0.0, 1.0 }),
-		//	};
-
-		//	Vector3 midPt = (startFaceVertices[0] + startFaceVertices[1]) / 2.0;
-		//	double midPtLength = midPt.Magnitude();
-		//	// 1.0 is the radius
-		//	double scaleFactor = 1.0 / midPtLength;
-		//	midPt = Vector3::Normalize(midPt);
-		//	//TOAST_CORE_CRITICAL("startFaceVertices[0].Magnitude: %lf", startFaceVertices[0].Magnitude());
-		//	//TOAST_CORE_CRITICAL("Subdivision 1: scaleFactorF: %lf", scaleFactor);
-
-		//	Vector3 secondMidPt = (startFaceVertices[0] + midPt) / 2.0;
-		//	double secondMidPtLength = secondMidPt.Magnitude();
-		//	double secondScaleFactor = 1.0 / secondMidPtLength;
-		//	secondMidPt = Vector3::Normalize(secondMidPt);
-		//	//TOAST_CORE_CRITICAL("from first scaleFactorF: %lf", (((scaleFactor - 1.0) * 0.5) + 1.0));
-		//	//TOAST_CORE_CRITICAL("Subdivision 2: scaleFactorF: %lf", secondScaleFactor * (((scaleFactor - 1.0) * 0.5) + 1.0));
-
-
-		//	Vector3 thirdMidPt = (startFaceVertices[0] + secondMidPt) / 2.0;
-		//	double thirdMidPtLength = secondMidPt.Magnitude();
-		//	double thirdScaleFactor = 1.0 / thirdMidPtLength;
-		//	thirdMidPt = Vector3::Normalize(thirdMidPt);
-		//	//TOAST_CORE_CRITICAL("from first scaleFactorF: %lf", (((scaleFactor - 1.0) * 0.25) + 1.0));
-		//	//TOAST_CORE_CRITICAL("from second scaleFactorF: %lf", (((secondScaleFactor - 1.0) * 0.5) + 1.0));
-		//	//TOAST_CORE_CRITICAL("Subdivision 3: scaleFactorF: %lf", thirdScaleFactor * (((secondScaleFactor - 1.0) * 0.5) + 1.0) * (((scaleFactor - 1.0) * 0.25) + 1.0));
-		//	//DirectX::XMVECTOR thirdMidPt = (startFaceVertices[0] + secondMidPt) / 2.0f;
-		//	//double thirdMidPtLength = (double)DirectX::XMVectorGetX(DirectX::XMVector3Length(thirdMidPt));
-		//	//double thirdScaleFactor = (double)radius / thirdMidPtLength;
-		//	//thirdMidPt = DirectX::XMVector3Normalize(thirdMidPt);
-		//	////TOAST_CORE_CRITICAL("Subdivision 3: scaleFactorF: %lf", thirdScaleFactor);
-
-		//	//DirectX::XMVECTOR fourthMidPt = (startFaceVertices[0] + thirdMidPt) / 2.0f;
-		//	//double fourthMidPtLength = (double)DirectX::XMVectorGetX(DirectX::XMVector3Length(fourthMidPt));
-		//	//double fourthScaleFactor = (double)radius / fourthMidPtLength;
-		//	////TOAST_CORE_CRITICAL("Subdivision 4: scaleFactorF: %lf", fourthScaleFactor);
-
-		//	uint32_t mRC = 1 + (uint32_t)pow(2, patchLevel);
-
-		//	float delta = 1.0f / ((float)mRC - 1.0f);
-
-		//	//TOAST_CORE_CRITICAL("Patch levels: %d", patchLevel);
-		//	//TOAST_CORE_CRITICAL("delta: %f", delta);
-
-		//	uint32_t rowIndex = 0;
-		//	uint32_t nextIndex = 0;
-
-		//	for (uint32_t row = 0; row < mRC; row++)
-		//	{
-		//		uint32_t numCols = mRC - row;
-
-		//		nextIndex += numCols;
-
-		//		for (uint32_t column = 0; column < numCols; column++)
-		//		{
-		//			//TOAST_CORE_CRITICAL("Column: %d", column);
-		//			int32_t currentPatchLevel = column / patchLevel;
-		//			//TOAST_CORE_CRITICAL("Position patch level: %d", currentPatchLevel);
-
-		//			// calculate position
-		//			DirectX::XMFLOAT4 pos = { column / ((float)mRC - 1.0f), row / ((float)mRC - 1.0f), 0.0f, 0.0f };
-		//			pos.z = (float)GetSubdivisionLevel(pos, patchLevel);
-		//			//TOAST_CORE_INFO("Patch position: %f, %f", pos.x, pos.y);
-		//			//TOAST_CORE_INFO("Position Subdivision: %f", (float)GetSubdivisionLevel(pos, patchLevel));
-		//			//create vertex
-		//			vertices.emplace_back(PlanetVertex(pos));
-
-		//			//calculate index
-		//			if (row < mRC - 1 && column < numCols - 1)
-		//			{
-		//				//TOAST_CORE_CRITICAL("Row: %d", row);
-
-		//				indices.emplace_back(rowIndex + column);
-		//				indices.emplace_back(nextIndex + column);
-		//				indices.emplace_back(1 + rowIndex + column);
-
-		//				if (column < numCols - 2)
-		//				{
-		//					indices.emplace_back(nextIndex + column);
-		//					indices.emplace_back(1 + nextIndex + column);
-		//					indices.emplace_back(1 + rowIndex + column);
-		//				}
-		//			}
-		//		}
-
-		//		rowIndex = nextIndex;
-		//	}
-		//}
-
 		//static NextPlanetFace CheckPlanetFaceSplit(Frustum* frustum, Matrix planetTransform, Vector3 a, Vector3 b, Vector3 c, int16_t subdivision, int16_t maxSubdivisions, std::vector<float>& distanceLUT, std::vector<float>& faceLevelDotLUT, std::vector<float>& heightMultLUT, Vector3& cameraPos, DirectX::XMVECTOR& cameraForward, bool backfaceCull, bool frustumCullActivated, bool frustumCull)
 		//{
 		//	//DirectX::XMVECTOR planetTranslation, planetRotation, planetScale;
@@ -379,46 +279,21 @@ namespace Toast {
 		{
 			Matrix planetTransform = { transform };
 			Vector3 cameraPos = { camPos };
-			//TOAST_CORE_INFO("Recreating planet!");
-			//planetTransform.ToString();
 
-			int numberOfPatches = 0;
-
-			//DirectX::XMVECTOR row = transform.r[0];
-			//DirectX::XMFLOAT4 elements;
-			//DirectX::XMStoreFloat4(&elements, row);
-			//TOAST_CORE_INFO("XMMATRIX Planet Transform: ");
-			//TOAST_CORE_INFO("						   %f, %f, %f, %f", elements.x, elements.y, elements.z, elements.w);
-			//row = transform.r[1];
-			//DirectX::XMStoreFloat4(&elements, row);
-			//TOAST_CORE_INFO("						   %f, %f, %f, %f", elements.x, elements.y, elements.z, elements.w);
-			//row = transform.r[2];
-			//DirectX::XMStoreFloat4(&elements, row);
-			//TOAST_CORE_INFO("						   %f, %f, %f, %f", elements.x, elements.y, elements.z, elements.w);
-			//row = transform.r[3];
-			//DirectX::XMStoreFloat4(&elements, row);
-			//TOAST_CORE_INFO("						   %f, %f, %f, %f", elements.x, elements.y, elements.z, elements.w);
-
-			//vertices.clear();
-
-			cameraPos = Matrix::Inverse(planetTransform) * cameraPos;
+			Vector3 cameraPosPlanetSpace = Matrix::Inverse(planetTransform) * cameraPos;
 
 			std::vector<Vector3> startVertices;
 			std::vector<uint32_t> startIndices;
 			GetBasePlanet(startVertices, startIndices);
 
-			//TOAST_CORE_CRITICAL("cameraPos: %f, %f, %f", DirectX::XMVectorGetX(cameraPos), DirectX::XMVectorGetY(cameraPos), DirectX::XMVectorGetZ(cameraPos));
 
-			for (int i = 0; i < startVertices.size(); i++)
+			vertices.clear();
+			indices.clear();
+
+			for (int i = 0; i < startIndices.size() - 2; i += 3)
 			{
-				vertices.emplace_back(startVertices.at(i));
-			}
-
-			for (int i = 0; i < startIndices.size(); i++)
-			{
-				indices.emplace_back(startIndices.at(i));
-
-				//RecursiveFace(numberOfPatches, frustum, planetTransform, vertices.at(i), vertices.at(i+1), vertices.at(i+2), face.Level, subdivisions, patches, distanceLUT, faceLevelDotLUT, heightMultLUT, cameraPos, cameraForward, radius, backfaceCull, frustumCullActivated, true);
+				int16_t firstSubdivision = 0;
+				SubdivideFace(frustum, planetTransform, vertices, indices, startVertices.at(startIndices.at(i)), startVertices.at(startIndices.at(i+1)), startVertices.at(startIndices.at(i + 2)), firstSubdivision, subdivisions);
 			}
 		}
 
@@ -487,5 +362,49 @@ namespace Toast {
 		//	//for (auto level : heightMultLUT)
 		//	//	TOAST_CORE_INFO("heightMultLUT: %f", level);
 		//}
+
+		static void SubdivideFace(Frustum* frustum, Matrix planetTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Vector3& a, Vector3& b, Vector3& c, int16_t& subdivision, int16_t maxSubdivisions)
+		{
+			Vector3 A, B, C;
+
+			NextPlanetFace nextPlanetFace = CheckFaceSplit(subdivision, maxSubdivisions);
+
+			if (nextPlanetFace == NextPlanetFace::SPLIT) {
+				A = b + ((c - b) * 0.5);
+				B = c + ((a - c) * 0.5);
+				C = a + ((b - a) * 0.5);
+
+				A = Vector3::Normalize(A);
+				B = Vector3::Normalize(B);
+				C = Vector3::Normalize(C);
+
+				int16_t nextSubdivision = subdivision + 1;
+				
+				SubdivideFace(frustum, planetTransform, vertices, indices, C, B, a, nextSubdivision, maxSubdivisions);
+				SubdivideFace(frustum, planetTransform, vertices, indices, b, A, C, nextSubdivision, maxSubdivisions);
+				SubdivideFace(frustum, planetTransform, vertices, indices, B, A, c, nextSubdivision, maxSubdivisions);
+				SubdivideFace(frustum, planetTransform, vertices, indices, A, B, C, nextSubdivision, maxSubdivisions);
+			}
+			else
+			{
+				uint32_t currentIndex = static_cast<uint32_t>(vertices.size());
+
+				vertices.emplace_back(a);
+				vertices.emplace_back(b);
+				vertices.emplace_back(c);
+
+				indices.emplace_back(currentIndex);
+				indices.emplace_back(currentIndex + 1);
+				indices.emplace_back(currentIndex + 2);
+			}
+		}
+
+		static NextPlanetFace CheckFaceSplit(int16_t subdivision, int16_t maxSubdivisions)
+		{
+			if (subdivision >= maxSubdivisions)
+				return NextPlanetFace::LEAF;
+
+			return NextPlanetFace::SPLIT;
+		}
 	};
 }
