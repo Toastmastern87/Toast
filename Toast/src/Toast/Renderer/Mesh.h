@@ -231,6 +231,8 @@ namespace Toast {
 		bool mIsPlanet = false;
 		bool mIsAnimated = false;
 
+		//std::unordered_map<Vertex, uint32_t, PlanetSystem::VertexHasher, PlanetSystem::VertexEquality> vertexMap;
+
 		friend class Scene;
 		friend class Renderer;
 		friend class RendererDebug;

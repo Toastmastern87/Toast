@@ -108,13 +108,14 @@ namespace Toast {
 		std::vector<float> FaceLevelDotLUT;
 		std::vector<float> HeightMultLUT;
 		int16_t Subdivisions = 0;
-		int16_t PatchLevels = 1;
+		
+		std::unordered_map<Vertex, uint32_t, PlanetSystem::VertexHasher, PlanetSystem::VertexEquality> PlanetVertexMap;
 
 		PlanetGPUData PlanetData;
 
 		PlanetComponent() = default;
 		PlanetComponent(int16_t subdivisions, int16_t patchLevels, float maxAltitude, float minAltitude, float radius, float gravAcc, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient)
-			: Subdivisions(subdivisions), PatchLevels(patchLevels)
+			: Subdivisions(subdivisions)
 		{
 			PlanetData.maxAltitude = maxAltitude;
 			PlanetData.minAltitude = minAltitude;

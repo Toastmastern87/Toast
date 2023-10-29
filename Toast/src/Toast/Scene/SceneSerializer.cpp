@@ -337,7 +337,6 @@ namespace Toast {
 
 			auto& pc = entity.GetComponent<PlanetComponent>();
 			out << YAML::Key << "Subdivisions" << YAML::Value << pc.Subdivisions;
-			out << YAML::Key << "PatchLevels" << YAML::Value << pc.PatchLevels;
 			out << YAML::Key << "MaxAltitude" << YAML::Value << pc.PlanetData.maxAltitude;
 			out << YAML::Key << "MinAltitude" << YAML::Value << pc.PlanetData.minAltitude;
 			out << YAML::Key << "Radius" << YAML::Value << pc.PlanetData.radius;

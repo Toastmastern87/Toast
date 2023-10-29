@@ -23,6 +23,23 @@ namespace Toast {
 			CULL, LEAF, SPLIT, SPLITCULL
 		};
 	public:
+		struct VertexHasher {
+			size_t operator()(const Vertex& v) const {
+				return	static_cast<size_t>(v.Position.x * 73856093) ^
+						static_cast<size_t>(v.Position.y * 19349663) ^
+						static_cast<size_t>(v.Position.z * 83492791);
+			}
+		};
+
+		struct VertexEquality {
+			bool operator()(const Vertex& v1, const Vertex& v2) const {
+				float threshold = 0.0001f;  // adjust based on your needs
+				return	abs(v1.Position.x - v2.Position.x) < threshold &&
+						abs(v1.Position.y - v2.Position.y) < threshold &&
+						abs(v1.Position.z - v2.Position.z) < threshold;
+			}
+		};
+
 		static void GetBasePlanet(std::vector<Vector3>& vertices, std::vector<uint32_t>& indices)
 		{
 			double ratio = ((1.0 + sqrt(5.0)) / 2.0);
@@ -69,78 +86,6 @@ namespace Toast {
 							2, 4, 11
 			};
 		}
-
-		//static int32_t GetSubdivisionLevel(DirectX::XMFLOAT4& pos, int16_t nrOfSubDivisions)
-		//{
-		//	int32_t subDivisionX = -1, subDivisionY = -1;
-
-		//	// X evaluation
-		//	if (pos.x == 0.0f || pos.x == 1.0f)
-		//		subDivisionX = 0;
-		//	else
-		//	{
-		//		for (int i = nrOfSubDivisions; i > 0; i--)
-		//		{
-		//			bool valueFound = false;
-		//			float startValue = 1.0f * std::powf(0.5f, i);
-		//			float delta = startValue * 2.0f;
-
-		//			// Step through the line to see if the x value is at this subdivision level
-		//			float p = startValue;
-		//			while (p < 1.0f)
-		//			{
-		//				//TOAST_CORE_INFO("Finding X testing: %f", p);
-		//				// Value found
-		//				if (pos.x == p)
-		//				{
-		//					valueFound = true;
-		//					break;
-		//				}
-
-		//				p += delta;
-		//			}
-
-		//			if (valueFound) 
-		//			{
-		//				subDivisionX = i;
-		//				break;
-		//			}
-		//		}
-		//	}
-
-		//	// Y evaluation
-		//	if (pos.y == 0.0f || pos.y == 1.0f)
-		//		subDivisionY = 0;
-		//	else
-		//	{
-		//		for (int i = nrOfSubDivisions; i > 0; i--)
-		//		{
-		//			bool valueFound = false;
-		//			float startValue = 1.0f * std::powf(0.5f, i);
-		//			float delta = startValue * 2.0f;
-
-		//			// Step through the line to see if the y value is at this subdivision level
-		//			float p = startValue;
-		//			while (p < 1.0f)
-		//			{
-		//				//TOAST_CORE_INFO("Finding Y testing: %f", p);
-		//				// Value found
-		//				if (pos.y == p)
-		//				{
-		//					valueFound = true;
-		//					break;
-		//				}
-
-		//				p += delta;
-		//			}
-
-		//			if (valueFound)
-		//			{
-		//				subDivisionY = i;
-		//				break;
-		//			}
-		//		}
-		//	}
 
 		//	// Return the highest subdivision level detected
 		//	return subDivisionX > subDivisionY ? subDivisionX : subDivisionY;
@@ -275,7 +220,7 @@ namespace Toast {
 		//	}
 		//}
 
-		static void GeneratePlanet(Frustum* frustum, DirectX::XMMATRIX transform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<float>& distanceLUT, std::vector<float>& faceLevelDotLUT, std::vector<float>& heightMultLUT, DirectX::XMVECTOR camPos, DirectX::XMVECTOR& cameraForward, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated)
+		static void GeneratePlanet(std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Frustum* frustum, DirectX::XMMATRIX transform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<float>& distanceLUT, std::vector<float>& faceLevelDotLUT, std::vector<float>& heightMultLUT, DirectX::XMVECTOR camPos, DirectX::XMVECTOR& cameraForward, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated)
 		{
 			Matrix planetTransform = { transform };
 			Vector3 cameraPos = { camPos };
@@ -286,17 +231,18 @@ namespace Toast {
 			std::vector<uint32_t> startIndices;
 			GetBasePlanet(startVertices, startIndices);
 
-
+			vertexMap.clear();
 			vertices.clear();
 			indices.clear();
 
 			for (int i = 0; i < startIndices.size() - 2; i += 3)
 			{
 				int16_t firstSubdivision = 0;
-				SubdivideFace(frustum, planetTransform, vertices, indices, startVertices.at(startIndices.at(i)), startVertices.at(startIndices.at(i+1)), startVertices.at(startIndices.at(i + 2)), firstSubdivision, subdivisions);
+				SubdivideFace(vertexMap, frustum, planetTransform, vertices, indices, startVertices.at(startIndices.at(i)), startVertices.at(startIndices.at(i+1)), startVertices.at(startIndices.at(i + 2)), firstSubdivision, subdivisions);
 			}
-		}
 
+			TOAST_CORE_CRITICAL("vertices.size(): %d", vertices.size());
+		}
 
 		static void GenerateDistanceLUT(std::vector<float>& distanceLUT, float maxSubdivisions, float radius, float FoV, float viewportSizeX)
 		{
@@ -363,7 +309,7 @@ namespace Toast {
 		//	//	TOAST_CORE_INFO("heightMultLUT: %f", level);
 		//}
 
-		static void SubdivideFace(Frustum* frustum, Matrix planetTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Vector3& a, Vector3& b, Vector3& c, int16_t& subdivision, int16_t maxSubdivisions)
+		static void SubdivideFace(std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Frustum* frustum, Matrix planetTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Vector3& a, Vector3& b, Vector3& c, int16_t& subdivision, int16_t maxSubdivisions)
 		{
 			Vector3 A, B, C;
 
@@ -380,22 +326,21 @@ namespace Toast {
 
 				int16_t nextSubdivision = subdivision + 1;
 				
-				SubdivideFace(frustum, planetTransform, vertices, indices, C, B, a, nextSubdivision, maxSubdivisions);
-				SubdivideFace(frustum, planetTransform, vertices, indices, b, A, C, nextSubdivision, maxSubdivisions);
-				SubdivideFace(frustum, planetTransform, vertices, indices, B, A, c, nextSubdivision, maxSubdivisions);
-				SubdivideFace(frustum, planetTransform, vertices, indices, A, B, C, nextSubdivision, maxSubdivisions);
+				SubdivideFace(vertexMap, frustum, planetTransform, vertices, indices, A, B, C, nextSubdivision, maxSubdivisions);
+				SubdivideFace(vertexMap, frustum, planetTransform, vertices, indices, C, B, a, nextSubdivision, maxSubdivisions);
+				SubdivideFace(vertexMap, frustum, planetTransform, vertices, indices, b, A, C, nextSubdivision, maxSubdivisions);
+				SubdivideFace(vertexMap, frustum, planetTransform, vertices, indices, B, A, c, nextSubdivision, maxSubdivisions);
 			}
 			else
 			{
-				uint32_t currentIndex = static_cast<uint32_t>(vertices.size());
-
-				vertices.emplace_back(a);
-				vertices.emplace_back(b);
-				vertices.emplace_back(c);
-
+				uint32_t currentIndex = GetOrAddVertex(vertexMap, a, vertices);
 				indices.emplace_back(currentIndex);
-				indices.emplace_back(currentIndex + 1);
-				indices.emplace_back(currentIndex + 2);
+
+				currentIndex = GetOrAddVertex(vertexMap, b, vertices);
+				indices.emplace_back(currentIndex);
+
+				currentIndex = GetOrAddVertex(vertexMap, c, vertices);
+				indices.emplace_back(currentIndex);
 			}
 		}
 
@@ -405,6 +350,19 @@ namespace Toast {
 				return NextPlanetFace::LEAF;
 
 			return NextPlanetFace::SPLIT;
+		}
+
+		static uint32_t GetOrAddVertex(std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, const Vertex& vertex, std::vector<Vertex>& vertices) {
+			auto it = vertexMap.find(vertex);
+			if (it != vertexMap.end()) {
+				return it->second;
+			}
+			else {
+				vertices.emplace_back(vertex);
+				uint32_t newIndex = vertices.size() - 1;
+				vertexMap[vertex] = newIndex;
+				return newIndex;
+			}
 		}
 	};
 }

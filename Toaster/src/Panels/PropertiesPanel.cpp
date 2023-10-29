@@ -748,7 +748,6 @@ namespace Toast {
 		DrawComponent<PlanetComponent>(ICON_TOASTER_GLOBE" Planet", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
 				DirectX::XMVECTOR cameraPos = { 0.0f, 0.0f, 0.0f }, cameraRot = { 0.0f, 0.0f, 0.0f }, cameraScale = { 0.0f, 0.0f, 0.0f };
-				int patchLevels = component.PatchLevels;
 				int subdivions = component.Subdivisions;
 				float fov = 45.0f;
 				bool modified = false;
@@ -883,7 +882,6 @@ namespace Toast {
 
 				if (modified)
 				{
-					component.PatchLevels = patchLevels;
 					component.Subdivisions = subdivions;
 					TransformComponent tc = entity.GetComponent<TransformComponent>();
 
@@ -908,7 +906,7 @@ namespace Toast {
 
 					//PlanetSystem::GeneratePatchGeometry(component.Mesh->mPlanetVertices, component.Mesh->mIndices, component.PatchLevels);
 					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8, component.PlanetData.radius, fov, scene->GetViewportWidth());
-					PlanetSystem::GeneratePlanet(scene->GetFrustum(), planetTransformNoScale, component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraForward, component.Subdivisions, component.PlanetData.radius, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
+					PlanetSystem::GeneratePlanet(component.PlanetVertexMap, scene->GetFrustum(), planetTransformNoScale, component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraForward, component.Subdivisions, component.PlanetData.radius, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
 
 					component.Mesh->InvalidatePlanet();
 				}
