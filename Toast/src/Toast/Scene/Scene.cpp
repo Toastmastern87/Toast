@@ -569,7 +569,7 @@ namespace Toast {
 
 							InvalidateFrustum();
 
-							PlanetSystem::GeneratePlanet(mFrustum.get(), planetTransform.GetTransform(), planet.Mesh->mVertices, planet.Mesh->mIndices, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, cameraForward, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling);
+							PlanetSystem::GeneratePlanet(planet.PlanetVertexMap, mFrustum.get(), planetTransform.GetTransform(), planet.Mesh->mVertices, planet.Mesh->mIndices, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, cameraForward, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling);
 
 							planet.Mesh->InvalidatePlanet();
 
@@ -1011,7 +1011,7 @@ namespace Toast {
 		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude);
 		//PlanetSystem::GenerateHeightMultLUT(component.Mesh->mPlanetFaces, component.HeightMultLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude);
 
-		PlanetSystem::GeneratePlanet(mFrustum.get(), tc.GetTransform(), component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraForward, component.PlanetData.radius, component.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
+		PlanetSystem::GeneratePlanet(component.PlanetVertexMap, mFrustum.get(), tc.GetTransform(), component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, cameraForward, component.PlanetData.radius, component.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
 		
 		component.Mesh->InvalidatePlanet();
 	}
