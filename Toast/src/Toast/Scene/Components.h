@@ -104,17 +104,19 @@ namespace Toast {
 		};
 
 		Ref<Mesh> Mesh;
-		std::vector<float> DistanceLUT;
+		std::vector<double> DistanceLUT;
 		std::vector<float> FaceLevelDotLUT;
 		std::vector<float> HeightMultLUT;
+		std::vector<double> SubdivisionLUT;
 		int16_t Subdivisions = 0;
 		
 		std::unordered_map<Vertex, uint32_t, PlanetSystem::VertexHasher, PlanetSystem::VertexEquality> PlanetVertexMap;
+		std::vector<PlanetSystem::Edge> PlanetEdges;
 
 		PlanetGPUData PlanetData;
 
 		PlanetComponent() = default;
-		PlanetComponent(int16_t subdivisions, int16_t patchLevels, float maxAltitude, float minAltitude, float radius, float gravAcc, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient)
+		PlanetComponent(int16_t subdivisions, float maxAltitude, float minAltitude, float radius, float gravAcc, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient)
 			: Subdivisions(subdivisions)
 		{
 			PlanetData.maxAltitude = maxAltitude;
