@@ -29,6 +29,7 @@ struct VertexInputType
 	float3 normal			: NORMAL;
 	float3 tangent			: TANGENT;
 	float2 texcoord			: TEXCOORD;
+	float3 color			: COLOR0;
 };
 
 struct PixelInputType

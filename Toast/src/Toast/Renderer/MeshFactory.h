@@ -22,40 +22,40 @@ namespace Toast {
 			vertices.resize(24);
 
 			//Front
-			vertices[0] = Vertex({ -(size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }, { 0.0f, 0.25f });
-			vertices[1] = Vertex({ -(size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }, { 0.25f, 0.25f });
-			vertices[2] = Vertex({ (size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }, { 0.0f, 0.5f });
-			vertices[3] = Vertex({ (size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }, { 0.25f, 0.5f });
+			vertices[0] = Vertex({ -(size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }, { 0.0f, 0.25f }, { 0.0f, 0.0f, 0.0f });
+			vertices[1] = Vertex({ -(size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }, { 0.25f, 0.25f }, { 0.0f, 0.0f, 0.0f });
+			vertices[2] = Vertex({ (size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }, { 0.0f, 0.5f }, { 0.0f, 0.0f, 0.0f });
+			vertices[3] = Vertex({ (size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }, { 0.25f, 0.5f }, { 0.0f, 0.0f, 0.0f });
 			
 			//Back
-			vertices[4] = Vertex({ -(size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.25f });
-			vertices[5] = Vertex({ (size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.5f });
-			vertices[6] = Vertex({ -(size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.75f, 0.25f });
-			vertices[7] = Vertex({ (size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.75f, 0.5f });
+			vertices[4] = Vertex({ -(size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.25f }, { 0.0f, 0.0f, 0.0f });
+			vertices[5] = Vertex({ (size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.5f }, { 0.0f, 0.0f, 0.0f });
+			vertices[6] = Vertex({ -(size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.75f, 0.25f }, { 0.0f, 0.0f, 0.0f });
+			vertices[7] = Vertex({ (size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.75f, 0.5f }, { 0.0f, 0.0f, 0.0f });
 			
 			//Top
-			vertices[8] = Vertex({ -(size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.25f });
-			vertices[9] = Vertex({ (size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.5f });
-			vertices[10] = Vertex({ -(size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.25f });
-			vertices[11] = Vertex({ (size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.5f });
+			vertices[8] = Vertex({ -(size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.25f }, { 0.0f, 0.0f, 0.0f });
+			vertices[9] = Vertex({ (size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.5f }, { 0.0f, 0.0f, 0.0f });
+			vertices[10] = Vertex({ -(size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.25f }, { 0.0f, 0.0f, 0.0f });
+			vertices[11] = Vertex({ (size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.5f }, { 0.0f, 0.0f, 0.0f });
 
 			//Bottom
-			vertices[12] = Vertex({ -(size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.25f, 0.25f });
-			vertices[13] = Vertex({ (size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.25f, 0.5f });
-			vertices[14] = Vertex({ -(size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.5f, 0.25f });
-			vertices[15] = Vertex({ (size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.5f, 0.5f });
+			vertices[12] = Vertex({ -(size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.25f, 0.25f }, { 0.0f, 0.0f, 0.0f });
+			vertices[13] = Vertex({ (size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.25f, 0.5f }, { 0.0f, 0.0f, 0.0f });
+			vertices[14] = Vertex({ -(size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.5f, 0.25f }, { 0.0f, 0.0f, 0.0f });
+			vertices[15] = Vertex({ (size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.5f, 0.5f }, { 0.0f, 0.0f, 0.0f });
 
 			//Left
-			vertices[16] = Vertex({ -(size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.25f, 0.25f });
-			vertices[17] = Vertex({ -(size / 2.0f), (size / 2.0f), (size / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.0f });
-			vertices[18] = Vertex({ -(size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.25f, 0.0f });
-			vertices[19] = Vertex({ -(size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.25f });
+			vertices[16] = Vertex({ -(size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.25f, 0.25f }, { 0.0f, 0.0f, 0.0f });
+			vertices[17] = Vertex({ -(size / 2.0f), (size / 2.0f), (size / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f });
+			vertices[18] = Vertex({ -(size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.25f, 0.0f }, { 0.0f, 0.0f, 0.0f });
+			vertices[19] = Vertex({ -(size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.25f }, { 0.0f, 0.0f, 0.0f });
 
 			//Right
-			vertices[20] = Vertex({ (size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.25f, 0.5f });
-			vertices[21] = Vertex({ (size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.25f, 0.75f });
-			vertices[22] = Vertex({ (size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.5f });
-			vertices[23] = Vertex({ (size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.75f });
+			vertices[20] = Vertex({ (size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.25f, 0.5f }, { 0.0f, 0.0f, 0.0f });
+			vertices[21] = Vertex({ (size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.25f, 0.75f }, { 0.0f, 0.0f, 0.0f });
+			vertices[22] = Vertex({ (size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.5f }, { 0.0f, 0.0f, 0.0f });
+			vertices[23] = Vertex({ (size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.75f }, { 0.0f, 0.0f, 0.0f });
 
 			std::vector<uint32_t> indices;
 			indices.resize(36);
@@ -95,23 +95,23 @@ namespace Toast {
 
 			// Upper corners
 			// Top Right
-			vertices[0] = Vertex({ size.x * 0.5f,  size.y * 0.5f,  size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.25f });
+			vertices[0] = Vertex({ size.x * 0.5f,  size.y * 0.5f,  size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.25f }, { 0.0f, 0.0f, 0.0f });
 			// Top left
-			vertices[1] = Vertex({ -size.x * 0.5f,  size.y * 0.5f,  size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.5f });
+			vertices[1] = Vertex({ -size.x * 0.5f,  size.y * 0.5f,  size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.5f }, { 0.0f, 0.0f, 0.0f });
 			// Bottom left
-			vertices[2] = Vertex({ -size.x * 0.5f,  size.y * 0.5f,  -size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.25f });
+			vertices[2] = Vertex({ -size.x * 0.5f,  size.y * 0.5f,  -size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.25f }, { 0.0f, 0.0f, 0.0f });
 			// Bottom right
-			vertices[3] = Vertex({ size.x * 0.5f,  size.y * 0.5f,  -size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.5f });
+			vertices[3] = Vertex({ size.x * 0.5f,  size.y * 0.5f,  -size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.5f }, { 0.0f, 0.0f, 0.0f });
 
 			// Lower corners
 			// Top right
-			vertices[4] = Vertex({ size.x * 0.5f,  -size.y * 0.5f, size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.25f });
+			vertices[4] = Vertex({ size.x * 0.5f,  -size.y * 0.5f, size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.25f }, { 0.0f, 0.0f, 0.0f });
 			// Top left
-			vertices[5] = Vertex({ -size.x * 0.5f,  -size.y * 0.5f, size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.5f });
+			vertices[5] = Vertex({ -size.x * 0.5f,  -size.y * 0.5f, size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.5f }, { 0.0f, 0.0f, 0.0f });
 			// Bottom left
-			vertices[6] = Vertex({ -size.x * 0.5f,  -size.y * 0.5f, -size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.25f });
+			vertices[6] = Vertex({ -size.x * 0.5f,  -size.y * 0.5f, -size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.25f }, { 0.0f, 0.0f, 0.0f });
 			// Bottom right
-			vertices[7] = Vertex({ size.x * 0.5f,  -size.y * 0.5f, -size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.5f });
+			vertices[7] = Vertex({ size.x * 0.5f,  -size.y * 0.5f, -size.z * 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.5f }, { 0.0f, 0.0f, 0.0f });
 
 			std::vector<uint32_t> indices;
 			indices.resize(36);

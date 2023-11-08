@@ -36,7 +36,7 @@ namespace Toast {
 		Frustum() = default;
 		~Frustum() = default;
 
-		void Invalidate(float aspectRatio, float FOV, float nearClip, float farClip, Vector3& pos);
+		void Invalidate(float aspectRatio, float FOV, float nearClip, float farClip);
 		void Update(Matrix& transform, Matrix& planetTransform);
 		void Update(Matrix& transform);
 

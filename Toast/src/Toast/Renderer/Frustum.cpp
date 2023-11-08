@@ -3,7 +3,7 @@
 
 namespace Toast {
 
-	void Frustum::Invalidate(float aspectRatio, float FOV, float nearClip, float farClip, Vector3& pos)
+	void Frustum::Invalidate(float aspectRatio, float FOV, float nearClip, float farClip)
 	{
 		Vector3 right = { 1.0, 0.0, 0.0 };
 		Vector3 up = { 0.0, 1.0, 0.0 };
@@ -15,8 +15,8 @@ namespace Toast {
 		double heightFar = 2.0 * tan(Math::DegreesToRadians(FOV) / 2.0) * (double)farClip;
 		double widthFar = heightFar * aspectRatio;
 
-		mCenterNear = pos + Vector3::Normalize(forward) * nearClip;
-		mCenterFar = pos + Vector3::Normalize(forward) * farClip;
+		mCenterNear = Vector3::Normalize(forward) * nearClip;
+		mCenterFar = Vector3::Normalize(forward) * farClip;
 
 		mNearTopLeft = mCenterNear + (up * (heightNear / 2.0)) - (right * (widthNear / 2.0));
 		mNearTopRight = mCenterNear + (up * (heightNear / 2.0)) + (right * (widthNear / 2.0));
@@ -31,8 +31,8 @@ namespace Toast {
 
 	void Frustum::Update(Matrix& transform, Matrix& planetTransform)
 	{
-	//	TOAST_CORE_INFO("Updating camera frustum");
-
+		//	TOAST_CORE_INFO("Updating camera frustum");
+		//TOAST_CORE_CRITICAL("BEFORE mNearTopLeft: %lf, %lf, %lf", mNearTopLeft.x, mNearTopLeft.y, mNearTopLeft.z);
 		mNearTopLeft = transform * mNearTopLeft; 
 		mNearTopRight = transform * mNearTopRight; 
 		mNearBottomLeft = transform * mNearBottomLeft; 
@@ -41,6 +41,8 @@ namespace Toast {
 		mFarTopRight = transform * mFarTopRight;
 		mFarBottomLeft = transform * mFarBottomLeft;
 		mFarBottomRight = transform * mFarBottomRight;
+
+		//TOAST_CORE_CRITICAL("AFTER mNearTopLeft: %lf, %lf, %lf", mNearTopLeft.x, mNearTopLeft.y, mNearTopLeft.z);
 
 		mPlanes.clear();
 		//winding in an outside perspective so the cross product creates normals pointing inward

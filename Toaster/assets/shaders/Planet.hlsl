@@ -54,6 +54,7 @@ struct VertexInputType
 	float3 normal			: NORMAL;
 	float4 tangent			: TANGENT;
 	float2 texcoord			: TEXCOORD0;
+	float3 color			: COLOR0;
 };
 
 struct PixelInputType
@@ -62,7 +63,7 @@ struct PixelInputType
 	float3 worldPosition	: POSITION0;
 	float2 texcoord			: TEXCOORD0;
 	float3 cameraPos		: POSITION1;
-	int entityID			: TEXTUREID;
+	float3 color			: COLOR0;
 };
 
 float3 hash33(float3 p3)
@@ -173,6 +174,7 @@ PixelInputType main(VertexInputType input)
 	output.worldPosition = input.globalPosition;
 	output.pixelPosition = mul(output.pixelPosition, viewMatrix);
 	output.pixelPosition = mul(output.pixelPosition, projectionMatrix);
+	output.color = input.color;
 
 	output.cameraPos = cameraPosition.xyz;
 
@@ -229,6 +231,7 @@ struct PixelInputType
 	float3 worldPosition	: POSITION0;
 	float2 texcoord			: TEXCOORD0;
 	float3 cameraPos		: POSITION1;
+	float3 color			: COLOR0;
 };
 
 struct PixelOutputType
@@ -562,7 +565,10 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	float3 lightContribution = DirectionalLightning(F0, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness);
 	float3 iblContribution = IBL(F0, Lr, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness);
 
-	output.Color = float4(lightContribution + iblContribution, 1.0f); //float4(GetHeight(input.texcoord), GetHeight(input.texcoord), GetHeight(input.texcoord), 1.0f);//float4(input.texcoord, 0.0f, 1.0f);//float4(N * 0.5 + 0.5, 1.0f);//  
+	if(input.color.x == 0.0 )
+		output.Color = float4(lightContribution + iblContribution, 1.0f); //float4(GetHeight(input.texcoord), GetHeight(input.texcoord), GetHeight(input.texcoord), 1.0f);//float4(input.texcoord, 0.0f, 1.0f);//float4(N * 0.5 + 0.5, 1.0f);//  
+	else
+		output.Color = float4(input.color, 1.0f);
 
 	return output;
 }

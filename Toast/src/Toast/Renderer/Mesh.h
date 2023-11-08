@@ -21,13 +21,15 @@ namespace Toast {
 		DirectX::XMFLOAT3 Normal;
 		DirectX::XMFLOAT4 Tangent;
 		DirectX::XMFLOAT2 Texcoord;
+		DirectX::XMFLOAT3 Color;
 
-		Vertex(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 nor, DirectX::XMFLOAT4 tan, DirectX::XMFLOAT2 uv)
+		Vertex(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 nor, DirectX::XMFLOAT4 tan, DirectX::XMFLOAT2 uv, DirectX::XMFLOAT3 color)
 		{
 			Position = pos;
 			Normal = nor;
 			Tangent = tan;
 			Texcoord = uv;
+			Color = color;
 		}
 
 		Vertex(DirectX::XMFLOAT3 pos)
@@ -36,6 +38,7 @@ namespace Toast {
 			Normal = { 0.0f, 0.0f, 0.0f };
 			Tangent = { 0.0f, 0.0f, 0.0f, 0.0f };
 			Texcoord = { 0.0f, 0.0f };
+			Color = { 0.0f, 0.0f, 0.0f };
 		}
 
 		Vertex(Vector3 pos)
@@ -44,6 +47,7 @@ namespace Toast {
 			Normal = { 0.0f, 0.0f, 0.0f };
 			Tangent = { 0.0f, 0.0f, 0.0f, 0.0f };
 			Texcoord = { 0.0f, 0.0f };
+			Color = { 0.0f, 0.0f, 0.0f };
 		}
 
 		Vertex()
@@ -52,6 +56,7 @@ namespace Toast {
 			Normal = { 0.0f, 0.0f, 0.0f };
 			Tangent = { 0.0f, 0.0f, 0.0f, 0.0f };
 			Texcoord = { 0.0f, 0.0f };
+			Color = { 0.0f, 0.0f, 0.0f };
 		}
 
 		Vertex operator+(const Vertex& a)
