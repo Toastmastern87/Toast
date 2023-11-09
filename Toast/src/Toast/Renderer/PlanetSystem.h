@@ -22,23 +22,6 @@ namespace Toast {
 
 		using Edge = std::pair<uint32_t, uint32_t>;
 
-		struct Triangle {
-			std::array<uint32_t, 3> vertices;  // Stores three vertex indices representing a triangle.
-			bool processed = false;  
-			uint16_t lod = 0;// Flag to mark if the triangle has been processed or not.
-
-			// You can also add some utility functions or operators if needed.
-
-			// Access vertices using an index, similar to array indexing.
-			uint32_t& operator[](size_t index) {
-				return vertices[index];
-			}
-
-			const uint32_t& operator[](size_t index) const {
-				return vertices[index];
-			}
-		};
-
 		struct EdgeHash {
 			std::size_t operator()(const Edge& edge) const {
 				// Hash combining based on Boost's hash_combine
@@ -47,8 +30,6 @@ namespace Toast {
 				return hash;
 			}
 		};
-
-		using AdjencyTriangleMap = std::unordered_map<Edge, std::vector<Triangle>, EdgeHash>;
 
 		enum class NextPlanetFace
 		{
@@ -252,7 +233,7 @@ namespace Toast {
 		//	}
 		//}
 
-		static void GeneratePlanet(std::vector<PlanetSystem::Edge>& planetEdges, std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Frustum* frustum, DirectX::XMMATRIX transform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<double>& distanceLUT, std::vector<float>& faceLevelDotLUT, std::vector<float>& heightMultLUT, std::vector<double>& subdivisionLUT, DirectX::XMVECTOR camPos, DirectX::XMVECTOR& cameraForward, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated)
+		static void GeneratePlanet(std::vector<PlanetSystem::Edge>& planetEdges, std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Frustum* frustum, DirectX::XMMATRIX transform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<double>& distanceLUT, std::vector<float>& faceLevelDotLUT, std::vector<float>& heightMultLUT, std::vector<double>& subdivisionLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated)
 		{
 			int triangleAdded = 0;
 
@@ -279,17 +260,15 @@ namespace Toast {
 
 			//TOAST_CORE_CRITICAL("planetEdges.size(): %d", planetEdges.size());
 
-			FindVerticesNotToPushOut(planetEdges, indices, vertices, subdivisionLUT, subdivisions);
+			FindLODGapsAndCover(planetEdges, indices, vertices, subdivisionLUT, subdivisions);
 
-			for (int i = 0; i < vertices.size(); i++)
+			for (auto& vertex : vertices)
 			{
-				Vertex& vertex = vertices.at(i);
-				Vector3 vertexDouble = { vertex.Position.x, vertex.Position.y, vertex.Position.z };
-				vertexDouble = Vector3::Normalize(vertexDouble);
+				Vector3 vertexDouble = Vector3::Normalize({ vertex.Position.x, vertex.Position.y, vertex.Position.z });
+				vertexDouble = planetTransform * vertexDouble;
 				vertex.Position = { (float)vertexDouble.x, (float)vertexDouble.y, (float)vertexDouble.z };
 			}
 		}
-
 
 		static bool IsPointOnLineSegment(const Vector3& point, const Vector3& lineStart, const Vector3& lineEnd, double tolerance = 0.00001) {
 			Vector3 lineVector = lineEnd - lineStart;
@@ -312,7 +291,7 @@ namespace Toast {
 		}
 
 		// Function to check if two edges are coincidental
-		static std::pair<int32_t, int32_t> AreEdgesCoincidental(const Edge& edge1, const Edge& edge2, std::vector<uint32_t>& indices, const std::vector<Vertex>& vertices, std::vector<double>& subdivisionLUT, float maxSubdivision) {
+		static int32_t AreEdgesCoincidental(const Edge& edge1, const Edge& edge2, std::vector<uint32_t>& indices, const std::vector<Vertex>& vertices, std::vector<double>& subdivisionLUT, float maxSubdivision) {
 			// Now check if the vertices of the edges are the same or coincidental
 			const Vector3& v1A = vertices[edge1.first].Position;  // Assuming Vertex has a Vector3 called position
 			const Vector3& v1B = vertices[edge1.second].Position;
@@ -352,35 +331,22 @@ namespace Toast {
 						indices.emplace_back(longEdge.first);
 						indices.emplace_back(longEdge.second);
 
-						int32_t subdivisionLevel = FindSubdivisionLevel({ vertices[shortEdge.first].Position }, { vertices[shortEdge.second].Position }, subdivisionLUT, maxSubdivision);
-
-						return std::make_pair(uniqueVertexIndex, subdivisionLevel);
+						return uniqueVertexIndex;
 					}
 				}
 			}	
 
-			return std::make_pair(-1, -1);
+			return -1;
 		}
 
-		static int32_t FindSubdivisionLevel(Vector3 firstVertex, Vector3 secondVertex, std::vector<double>& subdivisionLUT, float maxSubdivision)
-		{
-			for (int i = 0; i <= maxSubdivision; i++)
-			{
-				if ((subdivisionLUT[i] - (firstVertex - secondVertex).Magnitude()) > 0.000001)
-					continue;
-				else
-					return i;
-			}
-		}
-
-		static void FindVerticesNotToPushOut(const std::vector<Edge>& planetEdges, std::vector<uint32_t>& indices, const std::vector<Vertex>& vertices, std::vector<double>& subdivisionLUT, float maxSubdivision) {
-			std::unordered_map<uint32_t, uint32_t> coincidentalEdges;
+		static void FindLODGapsAndCover(const std::vector<Edge>& planetEdges, std::vector<uint32_t>& indices, const std::vector<Vertex>& vertices, std::vector<double>& subdivisionLUT, float maxSubdivision) {
+			std::unordered_set<uint32_t> coincidentalEdges;
 
 			for (size_t i = 0; i < planetEdges.size(); i++) {
 				for (size_t j = i + 1; j < planetEdges.size(); j++) {
-					std::pair<int32_t, int32_t> vertexIndex = AreEdgesCoincidental(planetEdges[i], planetEdges[j], indices, vertices, subdivisionLUT, maxSubdivision);
-					if (vertexIndex.first >= 0 && !coincidentalEdges.count(vertexIndex.first)) {
-						coincidentalEdges[vertexIndex.first] = vertexIndex.second;
+					int32_t vertexIndex = AreEdgesCoincidental(planetEdges[i], planetEdges[j], indices, vertices, subdivisionLUT, maxSubdivision);
+					if (vertexIndex >= 0 && !coincidentalEdges.count(vertexIndex)) {
+						coincidentalEdges.emplace(vertexIndex);
 						break;  // Once we find a coincidental edge, we don't need to check this edge against others
 					}
 				}
