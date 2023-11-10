@@ -105,9 +105,8 @@ namespace Toast {
 
 		Ref<Mesh> Mesh;
 		std::vector<double> DistanceLUT;
-		std::vector<float> FaceLevelDotLUT;
-		std::vector<float> HeightMultLUT;
-		std::vector<double> SubdivisionLUT;
+		std::vector<double> FaceLevelDotLUT;
+		std::vector<double> HeightMultLUT;
 		int16_t Subdivisions = 0;
 		
 		std::unordered_map<Vertex, uint32_t, PlanetSystem::VertexHasher, PlanetSystem::VertexEquality> PlanetVertexMap;

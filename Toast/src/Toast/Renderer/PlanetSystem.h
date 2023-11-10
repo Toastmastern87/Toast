@@ -172,6 +172,7 @@ namespace Toast {
 		//	NextPlanetFace nextPlanetFace = CheckPlanetFaceSplit(frustum, planetTransform, a, b, c, subdivision, maxSubdivisions, distanceLUT, faceLevelDotLUT, heightMultLUT, cameraPos, cameraForward, backfaceCull, frustumCullActivated, frustumCull);
 		//	
 		//	if (nextPlanetFace == NextPlanetFace::CULL)
+		// 
 		//		return;
 
 		//	if (subdivision < maxSubdivisions && (nextPlanetFace == NextPlanetFace::SPLIT || nextPlanetFace == NextPlanetFace::SPLITCULL)) {
@@ -233,7 +234,7 @@ namespace Toast {
 		//	}
 		//}
 
-		static void GeneratePlanet(std::vector<PlanetSystem::Edge>& planetEdges, std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Frustum* frustum, DirectX::XMMATRIX transform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<double>& distanceLUT, std::vector<float>& faceLevelDotLUT, std::vector<float>& heightMultLUT, std::vector<double>& subdivisionLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated)
+		static void GeneratePlanet(std::vector<PlanetSystem::Edge>& planetEdges, std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Frustum* frustum, DirectX::XMMATRIX transform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated)
 		{
 			int triangleAdded = 0;
 
@@ -255,12 +256,12 @@ namespace Toast {
 			for (int i = 0; i < startIndices.size() - 2; i += 3)
 			{
 				int16_t firstSubdivision = 0;
-				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, startVertices.at(startIndices.at(i)), startVertices.at(startIndices.at(i+1)), startVertices.at(startIndices.at(i + 2)), firstSubdivision, subdivisions, cameraPosPlanetSpace, distanceLUT, faceLevelDotLUT, backfaceCull);
+				SubdivideFace(frustum, planetEdges, triangleAdded, vertexMap, planetTransform, vertices, indices, startVertices.at(startIndices.at(i)), startVertices.at(startIndices.at(i+1)), startVertices.at(startIndices.at(i + 2)), firstSubdivision, subdivisions, cameraPosPlanetSpace, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, true);
 			}
 
 			//TOAST_CORE_CRITICAL("planetEdges.size(): %d", planetEdges.size());
 
-			FindLODGapsAndCover(planetEdges, indices, vertices, subdivisionLUT, subdivisions);
+			FindLODGapsAndCover(planetEdges, indices, vertices, subdivisions);
 
 			for (auto& vertex : vertices)
 			{
@@ -291,7 +292,7 @@ namespace Toast {
 		}
 
 		// Function to check if two edges are coincidental
-		static int32_t AreEdgesCoincidental(const Edge& edge1, const Edge& edge2, std::vector<uint32_t>& indices, const std::vector<Vertex>& vertices, std::vector<double>& subdivisionLUT, float maxSubdivision) {
+		static int32_t AreEdgesCoincidental(const Edge& edge1, const Edge& edge2, std::vector<uint32_t>& indices, const std::vector<Vertex>& vertices, float maxSubdivision) {
 			// Now check if the vertices of the edges are the same or coincidental
 			const Vector3& v1A = vertices[edge1.first].Position;  // Assuming Vertex has a Vector3 called position
 			const Vector3& v1B = vertices[edge1.second].Position;
@@ -339,12 +340,12 @@ namespace Toast {
 			return -1;
 		}
 
-		static void FindLODGapsAndCover(const std::vector<Edge>& planetEdges, std::vector<uint32_t>& indices, const std::vector<Vertex>& vertices, std::vector<double>& subdivisionLUT, float maxSubdivision) {
+		static void FindLODGapsAndCover(const std::vector<Edge>& planetEdges, std::vector<uint32_t>& indices, const std::vector<Vertex>& vertices, float maxSubdivision) {
 			std::unordered_set<uint32_t> coincidentalEdges;
 
 			for (size_t i = 0; i < planetEdges.size(); i++) {
 				for (size_t j = i + 1; j < planetEdges.size(); j++) {
-					int32_t vertexIndex = AreEdgesCoincidental(planetEdges[i], planetEdges[j], indices, vertices, subdivisionLUT, maxSubdivision);
+					int32_t vertexIndex = AreEdgesCoincidental(planetEdges[i], planetEdges[j], indices, vertices, maxSubdivision);
 					if (vertexIndex >= 0 && !coincidentalEdges.count(vertexIndex)) {
 						coincidentalEdges.emplace(vertexIndex);
 						break;  // Once we find a coincidental edge, we don't need to check this edge against others
@@ -353,29 +354,6 @@ namespace Toast {
 			}
 
 			return;
-		}
-
-		static void GenerateSubdivisionLUT(std::vector<double>& subdivisionLUT, float maxSubdivisions)
-		{
-			subdivisionLUT.clear();
-
-			double ratio = ((1.0 + sqrt(5.0)) / 2.0);
-
-			std::vector<Vector3> startValues = std::vector<Vector3>{
-				Vector3::Normalize({ ratio, 0.0, -1.0 }),
-				Vector3::Normalize({ ratio, 0.0, 1.0 }),
-			};
-
-			double magnitude = (startValues.at(0) - startValues.at(1)).Magnitude();
-			subdivisionLUT.emplace_back(magnitude);
-
-			for (size_t i = 1; i <= maxSubdivisions; ++i) {
-				magnitude *= 0.5;
-				subdivisionLUT.emplace_back(magnitude);
-			}
-
-			//for (auto level : subdivisionLUT)
-			//	TOAST_CORE_INFO("subdivisionLUT: %lf", level);
 		}
 
 		static void GenerateDistanceLUT(std::vector<double>& distanceLUT, float maxSubdivisions, float radius, float FoV, float viewportSizeX)
@@ -404,54 +382,63 @@ namespace Toast {
 			//	TOAST_CORE_INFO("distanceLUT: %lf", level * 33790000.0f);
 		}
 
-		static void GenerateFaceDotLevelLUT(std::vector<float>& faceLevelDotLUT, float scale, float maxSubdivisions, float maxHeight)
+		static void GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float scale, float maxSubdivisions, float maxHeight)
 		{
-			float cullingAngle = acosf(scale / (scale + maxHeight));
+			float cullingAngle = acos((double)scale / ((double)scale + (double)maxHeight));
 
 			faceLevelDotLUT.clear();
-			faceLevelDotLUT.emplace_back(0.5f + sinf(cullingAngle));
-			float angle = acosf(0.5f);
+			faceLevelDotLUT.emplace_back(0.5 + sinf(cullingAngle));
+			double angle = acos(0.5);
 			for (int i = 1; i <= maxSubdivisions; i++)
 			{
-				angle *= 0.5f;
-				faceLevelDotLUT.emplace_back(sinf(angle + cullingAngle));
+				angle *= 0.5;
+				faceLevelDotLUT.emplace_back(sin(angle + cullingAngle));
 			}
 
-			for (auto level : faceLevelDotLUT)
-				TOAST_CORE_INFO("FacelevelDotLUT: %f", level);
+			//for (auto level : faceLevelDotLUT)
+			//	TOAST_CORE_INFO("FacelevelDotLUT: %f", level);
 		}
 
-		static void GenerateHeightMultLUT(std::vector<float>& heightMultLUT, float scale, float maxSubdivisions, float maxHeight)
+		static void GenerateHeightMultLUT(std::vector<double>& heightMultLUT, float scale, float maxSubdivisions, float maxHeight)
 		{
-		//	heightMultLUT.clear();
-		//	Vector3 a = faces[0].A;
-		//	Vector3 b = faces[0].B;
-		//	Vector3 c = faces[0].C;
+			heightMultLUT.clear();
 
-		//	Vector3 center = (a + b + c) / 3.0;
-		//	center *= scale / center.Magnitude();//+maxHeight 
-		//	heightMultLUT.push_back(1.0 / Vector3::Dot(Vector3::Normalize(a), Vector3::Normalize(center)));
-		//	float normMaxHeight = maxHeight / scale;
-		//	for (int i = 1; i <= maxSubdivisions; i++)
-		//	{
-		//		Vector3 A = b + ((c - b) * 0.5);
-		//		Vector3 B = c + ((a - c) * 0.5);
-		//		c = a + ((b - a) * 0.5);
-		//		a = A * scale / A.Magnitude();
-		//		b = B * scale / B.Magnitude();
-		//		c *= scale / c.Magnitude();
-		//		heightMultLUT.push_back((float)(1.0 / Vector3::Dot(Vector3::Normalize(a), Vector3::Normalize(center)) + normMaxHeight));
-		//	}
+			double ratio = ((1.0 + sqrt(5.0)) / 2.0);
 
-		//	//for (auto level : heightMultLUT)
-		//	//	TOAST_CORE_INFO("heightMultLUT: %f", level);
+			std::vector<Vector3> vertices = std::vector<Vector3>{
+				Vector3::Normalize({ -ratio, 0.0, -1.0 }),
+				Vector3::Normalize({ -ratio, 0.0, 1.0 }),
+				Vector3::Normalize({ -1.0, ratio, 0.0 }),
+			};
+
+			Vector3 a = vertices[0];
+			Vector3 b = vertices[1];
+			Vector3 c = vertices[2];
+
+			Vector3 center = (a + b + c) / 3.0;
+			center *= scale / center.Magnitude();//+maxHeight 
+			heightMultLUT.push_back(1.0 / Vector3::Dot(Vector3::Normalize(a), Vector3::Normalize(center)));
+			double normMaxHeight = (double)maxHeight / (double)scale;
+			for (int i = 1; i <= maxSubdivisions; i++)
+			{
+				Vector3 A = b + ((c - b) * 0.5);
+				Vector3 B = c + ((a - c) * 0.5);
+				c = a + ((b - a) * 0.5);
+				a = A * scale / A.Magnitude();
+				b = B * scale / B.Magnitude();
+				c *= scale / c.Magnitude();
+				heightMultLUT.push_back((float)(1.0 / Vector3::Dot(Vector3::Normalize(a), Vector3::Normalize(center)) + normMaxHeight));
+			}
+
+			//for (auto level : heightMultLUT)
+			//	TOAST_CORE_INFO("heightMultLUT: %f", level);
 		}
 
-		static void SubdivideFace(std::vector<PlanetSystem::Edge>& planetEdges, int& triangleAdded, std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Frustum* frustum, Matrix planetTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Vector3& a, Vector3& b, Vector3& c, int16_t& subdivision, int16_t maxSubdivisions, Vector3& cameraPosUnitSpace, std::vector<double>& distanceLUT, std::vector<float>& faceLevelDotLUT, bool backfaceCull)
+		static void SubdivideFace(Frustum* frustum, std::vector<PlanetSystem::Edge>& planetEdges, int& triangleAdded, std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Matrix planetTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Vector3& a, Vector3& b, Vector3& c, int16_t& subdivision, int16_t maxSubdivisions, Vector3& cameraPosUnitSpace, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, bool backfaceCull, bool frustumCullActivated, bool frustumCull)
 		{
 			Vector3 A, B, C;
 
-			NextPlanetFace nextPlanetFace = CheckFaceSplit(subdivision, maxSubdivisions, a, b, c, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, backfaceCull);
+			NextPlanetFace nextPlanetFace = CheckFaceSplit(frustum, subdivision, maxSubdivisions, a, b, c, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, frustumCull);
 
 			if (nextPlanetFace == NextPlanetFace::CULL) 
 				return;
@@ -467,10 +454,10 @@ namespace Toast {
 
 				int16_t nextSubdivision = subdivision + 1;
 				
-				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, A, B, C, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, backfaceCull);
-				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, C, B, a, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, backfaceCull);
-				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, b, A, C, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, backfaceCull);
-				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, B, A, c, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, backfaceCull);
+				SubdivideFace(frustum, planetEdges, triangleAdded, vertexMap, planetTransform, vertices, indices, A, B, C, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, nextPlanetFace == NextPlanetFace::SPLITCULL);
+				SubdivideFace(frustum, planetEdges, triangleAdded, vertexMap, planetTransform, vertices, indices, C, B, a, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, nextPlanetFace == NextPlanetFace::SPLITCULL);
+				SubdivideFace(frustum, planetEdges, triangleAdded, vertexMap, planetTransform, vertices, indices, b, A, C, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, nextPlanetFace == NextPlanetFace::SPLITCULL);
+				SubdivideFace(frustum, planetEdges, triangleAdded, vertexMap, planetTransform, vertices, indices, B, A, c, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, nextPlanetFace == NextPlanetFace::SPLITCULL);
 			}
 			else
 			{
@@ -493,7 +480,7 @@ namespace Toast {
 			}
 		}
 
-		static NextPlanetFace CheckFaceSplit(int16_t subdivision, int16_t maxSubdivisions, Vector3 a, Vector3 b, Vector3 c, Vector3& cameraPos, std::vector<double>& distanceLUT, std::vector<float>& faceLevelDotLUT, bool backfaceCull)
+		static NextPlanetFace CheckFaceSplit(Frustum* frustum, int16_t subdivision, int16_t maxSubdivisions, Vector3 a, Vector3 b, Vector3 c, Vector3& cameraPos, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, bool backfaceCull, bool frustumCullActivated, bool frustumCull)
 		{
 			Vector3 center = (a + b + c) / 3.0;
 
@@ -502,12 +489,32 @@ namespace Toast {
 			if (backfaceCull && dotProduct >= (faceLevelDotLUT[(uint32_t)subdivision] + 0.1))
 				return NextPlanetFace::CULL;
 
-			if (subdivision >= maxSubdivisions)
-				return NextPlanetFace::LEAF;
-
 			double aDistance = (a - cameraPos).Magnitude();
 			double bDistance = (b - cameraPos).Magnitude();
 			double cDistance = (c - cameraPos).Magnitude();
+
+			if (frustumCullActivated && frustumCull)
+			{
+				auto intersect = frustum->ContainsTriangleVolume(a, b, c, heightMultLUT[(uint32_t)subdivision]);
+
+				if (intersect == VolumeTri::OUTSIDE) 
+					return NextPlanetFace::CULL;
+
+				if (intersect == VolumeTri::CONTAINS)//stop frustum culling -> all children are also inside the frustum
+				{
+					//check if new splits are allowed
+					if (subdivision >= maxSubdivisions)
+						return NextPlanetFace::LEAF;		
+
+					if ((std::min)(aDistance, (std::min)(bDistance, cDistance)) < (double)distanceLUT[(uint32_t)subdivision])
+						return NextPlanetFace::SPLIT;
+
+					return NextPlanetFace::LEAF;
+				}
+			}
+
+			if (subdivision >= maxSubdivisions)
+				return NextPlanetFace::LEAF;
 
 			//TOAST_CORE_INFO("aDistance: %f", aDistance);
 			//TOAST_CORE_INFO("bDistance: %f", bDistance);

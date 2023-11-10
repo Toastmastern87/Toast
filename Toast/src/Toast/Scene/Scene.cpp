@@ -554,10 +554,9 @@ namespace Toast {
 					{
 						if (planetTransform.IsDirty)
 						{
-							PlanetSystem::GenerateDistanceLUT(planet.DistanceLUT, 8.0f, planet.PlanetData.radius, mainCameraComponent->Camera.GetPerspectiveVerticalFOV(), mViewportWidth);
-							PlanetSystem::GenerateSubdivisionLUT(planet.SubdivisionLUT, planet.Subdivisions);
-							PlanetSystem::GenerateFaceDotLevelLUT(planet.FaceLevelDotLUT, planetTransform.Scale.x, 8.0f, planet.PlanetData.maxAltitude);
-							//PlanetSystem::GenerateHeightMultLUT(planet.Mesh->mVertices, planet.HeightMultLUT, planetTransform.Scale.x, 8, planet.PlanetData.maxAltitude);
+							PlanetSystem::GenerateDistanceLUT(planet.DistanceLUT, planet.Subdivisions, planet.PlanetData.radius, mainCameraComponent->Camera.GetPerspectiveVerticalFOV(), mViewportWidth);
+							PlanetSystem::GenerateFaceDotLevelLUT(planet.FaceLevelDotLUT, planetTransform.Scale.x, planet.Subdivisions, planet.PlanetData.maxAltitude);
+							PlanetSystem::GenerateHeightMultLUT(planet.HeightMultLUT, planetTransform.Scale.x, planet.Subdivisions, planet.PlanetData.maxAltitude);
 						}
 
 						if (planetTransform.IsDirty || mInvalidatePlanet || mSettings.IsDirty)
@@ -570,7 +569,7 @@ namespace Toast {
 
 							InvalidateFrustum();
 
-							PlanetSystem::GeneratePlanet(planet.PlanetEdges, planet.PlanetVertexMap, mFrustum.get(), planetTransform.GetTransform(), planet.Mesh->mVertices, planet.Mesh->mIndices, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, planet.SubdivisionLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling);
+							PlanetSystem::GeneratePlanet(planet.PlanetEdges, planet.PlanetVertexMap, mFrustum.get(), planetTransform.GetTransform(), planet.Mesh->mVertices, planet.Mesh->mIndices, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling);
 
 							planet.Mesh->InvalidatePlanet();
 
@@ -1009,11 +1008,10 @@ namespace Toast {
 		//PlanetSystem::GenerateBasePlanet(component.Mesh->mVertices, component.Mesh->mIndices);
 
 		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8, component.PlanetData.radius, mainCamera->GetPerspectiveVerticalFOV(), mViewportWidth);
-		PlanetSystem::GenerateSubdivisionLUT(component.SubdivisionLUT, component.Subdivisions);
+		PlanetSystem::GenerateHeightMultLUT(component.HeightMultLUT, component.PlanetData.radius, component.Subdivisions, component.PlanetData.maxAltitude);
 		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, component.Subdivisions, component.PlanetData.maxAltitude);
-		//PlanetSystem::GenerateHeightMultLUT(component.Mesh->mPlanetFaces, component.HeightMultLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude);
 
-		PlanetSystem::GeneratePlanet(component.PlanetEdges, component.PlanetVertexMap, mFrustum.get(), tc.GetTransform(), component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, component.SubdivisionLUT, cameraPos, component.PlanetData.radius, component.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
+		PlanetSystem::GeneratePlanet(component.PlanetEdges, component.PlanetVertexMap, mFrustum.get(), tc.GetTransform(), component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.PlanetData.radius, component.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
 		
 		component.Mesh->InvalidatePlanet();
 	}

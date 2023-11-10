@@ -906,8 +906,8 @@ namespace Toast {
 
 					PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, component.PlanetData.radius, component.Subdivisions, component.PlanetData.maxAltitude);
 					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8, component.PlanetData.radius, fov, scene->GetViewportWidth());
-					PlanetSystem::GenerateSubdivisionLUT(component.SubdivisionLUT, component.Subdivisions);
-					PlanetSystem::GeneratePlanet(component.PlanetEdges, component.PlanetVertexMap, scene->GetFrustum(), planetTransformNoScale, component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, component.SubdivisionLUT, cameraPos, component.Subdivisions, component.PlanetData.radius, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
+					PlanetSystem::GenerateHeightMultLUT(component.HeightMultLUT, component.PlanetData.radius, component.Subdivisions, component.PlanetData.maxAltitude);
+					PlanetSystem::GeneratePlanet(component.PlanetEdges, component.PlanetVertexMap, scene->GetFrustum(), planetTransformNoScale, component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.Subdivisions, component.PlanetData.radius, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
 
 					component.Mesh->InvalidatePlanet();
 				}
