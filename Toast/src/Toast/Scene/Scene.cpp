@@ -1010,7 +1010,7 @@ namespace Toast {
 
 		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8, component.PlanetData.radius, mainCamera->GetPerspectiveVerticalFOV(), mViewportWidth);
 		PlanetSystem::GenerateSubdivisionLUT(component.SubdivisionLUT, component.Subdivisions);
-		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude);
+		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, component.Subdivisions, component.PlanetData.maxAltitude);
 		//PlanetSystem::GenerateHeightMultLUT(component.Mesh->mPlanetFaces, component.HeightMultLUT, tc.Scale.x, 8, component.PlanetData.maxAltitude);
 
 		PlanetSystem::GeneratePlanet(component.PlanetEdges, component.PlanetVertexMap, mFrustum.get(), tc.GetTransform(), component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, component.SubdivisionLUT, cameraPos, component.PlanetData.radius, component.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
