@@ -34,8 +34,8 @@ Entities:
       Scale: [1, 1, 1]
     PlanetComponent:
       Subdivisions: 2
-      MaxAltitude: 21.2000008
-      MinAltitude: -8.19999981
+      MaxAltitude: 0.0
+      MinAltitude: 0.0
       Radius: 1
       GravitationalAcceleration: 9.81999969
       AtmosphereHeight: 100.800003

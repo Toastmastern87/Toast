@@ -255,7 +255,7 @@ namespace Toast {
 			for (int i = 0; i < startIndices.size() - 2; i += 3)
 			{
 				int16_t firstSubdivision = 0;
-				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, startVertices.at(startIndices.at(i)), startVertices.at(startIndices.at(i+1)), startVertices.at(startIndices.at(i + 2)), firstSubdivision, subdivisions, cameraPosPlanetSpace, distanceLUT);
+				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, startVertices.at(startIndices.at(i)), startVertices.at(startIndices.at(i+1)), startVertices.at(startIndices.at(i + 2)), firstSubdivision, subdivisions, cameraPosPlanetSpace, distanceLUT, faceLevelDotLUT, backfaceCull);
 			}
 
 			//TOAST_CORE_CRITICAL("planetEdges.size(): %d", planetEdges.size());
@@ -417,8 +417,8 @@ namespace Toast {
 				faceLevelDotLUT.emplace_back(sinf(angle + cullingAngle));
 			}
 
-			//for (auto level : faceLevelDotLUT)
-			//	TOAST_CORE_INFO("FacelevelDotLUT: %f", level);
+			for (auto level : faceLevelDotLUT)
+				TOAST_CORE_INFO("FacelevelDotLUT: %f", level);
 		}
 
 		static void GenerateHeightMultLUT(std::vector<float>& heightMultLUT, float scale, float maxSubdivisions, float maxHeight)
@@ -447,11 +447,14 @@ namespace Toast {
 		//	//	TOAST_CORE_INFO("heightMultLUT: %f", level);
 		}
 
-		static void SubdivideFace(std::vector<PlanetSystem::Edge>& planetEdges, int& triangleAdded, std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Frustum* frustum, Matrix planetTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Vector3& a, Vector3& b, Vector3& c, int16_t& subdivision, int16_t maxSubdivisions, Vector3& cameraPosUnitSpace, std::vector<double>& distanceLUT)
+		static void SubdivideFace(std::vector<PlanetSystem::Edge>& planetEdges, int& triangleAdded, std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Frustum* frustum, Matrix planetTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Vector3& a, Vector3& b, Vector3& c, int16_t& subdivision, int16_t maxSubdivisions, Vector3& cameraPosUnitSpace, std::vector<double>& distanceLUT, std::vector<float>& faceLevelDotLUT, bool backfaceCull)
 		{
 			Vector3 A, B, C;
 
-			NextPlanetFace nextPlanetFace = CheckFaceSplit(subdivision, maxSubdivisions, a, b, c, cameraPosUnitSpace, distanceLUT);
+			NextPlanetFace nextPlanetFace = CheckFaceSplit(subdivision, maxSubdivisions, a, b, c, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, backfaceCull);
+
+			if (nextPlanetFace == NextPlanetFace::CULL) 
+				return;
 
 			if (nextPlanetFace == NextPlanetFace::SPLIT || nextPlanetFace == NextPlanetFace::SPLITCULL) {
 				A = b + ((c - b) * 0.5);
@@ -464,34 +467,41 @@ namespace Toast {
 
 				int16_t nextSubdivision = subdivision + 1;
 				
-				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, A, B, C, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT);
-				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, C, B, a, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT);
-				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, b, A, C, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT);
-				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, B, A, c, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT);
+				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, A, B, C, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, backfaceCull);
+				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, C, B, a, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, backfaceCull);
+				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, b, A, C, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, backfaceCull);
+				SubdivideFace(planetEdges, triangleAdded, vertexMap, frustum, planetTransform, vertices, indices, B, A, c, nextSubdivision, maxSubdivisions, cameraPosUnitSpace, distanceLUT, faceLevelDotLUT, backfaceCull);
 			}
 			else
 			{
 				//if (triangleAdded == 12) {
-					uint32_t currentIndexA = GetOrAddVertex(vertexMap, a, vertices);
-					indices.emplace_back(currentIndexA);
+				uint32_t currentIndexA = GetOrAddVertex(vertexMap, a, vertices);
+				indices.emplace_back(currentIndexA);
 
-					uint32_t currentIndexB = GetOrAddVertex(vertexMap, b, vertices);
-					indices.emplace_back(currentIndexB);
+				uint32_t currentIndexB = GetOrAddVertex(vertexMap, b, vertices);
+				indices.emplace_back(currentIndexB);
 
-					uint32_t currentIndexC = GetOrAddVertex(vertexMap, c, vertices);
-					indices.emplace_back(currentIndexC);
+				uint32_t currentIndexC = GetOrAddVertex(vertexMap, c, vertices);
+				indices.emplace_back(currentIndexC);
 
-					planetEdges.emplace_back(currentIndexA, currentIndexB);
-					planetEdges.emplace_back(currentIndexA, currentIndexC);
-					planetEdges.emplace_back(currentIndexC, currentIndexB);
+				planetEdges.emplace_back(currentIndexA, currentIndexB);
+				planetEdges.emplace_back(currentIndexA, currentIndexC);
+				planetEdges.emplace_back(currentIndexC, currentIndexB);
 				//}
 
 				triangleAdded++;
 			}
 		}
 
-		static NextPlanetFace CheckFaceSplit(int16_t subdivision, int16_t maxSubdivisions, Vector3 a, Vector3 b, Vector3 c, Vector3& cameraPos, std::vector<double>& distanceLUT)
+		static NextPlanetFace CheckFaceSplit(int16_t subdivision, int16_t maxSubdivisions, Vector3 a, Vector3 b, Vector3 c, Vector3& cameraPos, std::vector<double>& distanceLUT, std::vector<float>& faceLevelDotLUT, bool backfaceCull)
 		{
+			Vector3 center = (a + b + c) / 3.0;
+
+			double dotProduct = Vector3::Dot(Vector3::Normalize(center), Vector3::Normalize(center - cameraPos));
+
+			if (backfaceCull && dotProduct >= (faceLevelDotLUT[(uint32_t)subdivision] + 0.1))
+				return NextPlanetFace::CULL;
+
 			if (subdivision >= maxSubdivisions)
 				return NextPlanetFace::LEAF;
 
