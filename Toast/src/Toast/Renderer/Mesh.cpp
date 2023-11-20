@@ -49,6 +49,17 @@ namespace Toast {
 		TOAST_CORE_INFO("Number of materials: %d", mMaterials.size());
 	}
 
+	Mesh::Mesh(bool isPlanet)
+	{
+		mIsPlanet = isPlanet;
+
+		// Setting up the constant buffer and data buffer for the planet mesh rendering
+		mPlanetCBuffer = ConstantBufferLibrary::Load("Planet", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, 4) });
+		mPlanetCBuffer->Bind();
+		mPlanetBuffer.Allocate(mPlanetCBuffer->GetSize());
+		mPlanetBuffer.ZeroInitialize();
+	}
+
 	Mesh::Mesh(const std::string& filePath, const bool skyboxMesh)
 		: mFilePath(filePath)
 	{
@@ -393,7 +404,7 @@ namespace Toast {
 	void Mesh::Map(const std::string& materialName)
 	{
 		// if the planet is a mesh upload Planet data to the GPU
-		if (mIsPlanet)
+		if (mIsPlanet) 
 			mPlanetCBuffer->Map(mPlanetBuffer);
 
 		if (mModelCBuffer)
@@ -419,20 +430,6 @@ namespace Toast {
 
 		if (mMaterials.size() > 0)
 			mMaterials[materialName]->Bind(environment);
-	}
-
-	void Mesh::SetIsPlanet(bool isPlanet)
-	{
-		mIsPlanet = isPlanet;
-
-		if (mIsPlanet) 
-		{
-			// Setting up the constant buffer and data buffer for the planet mesh rendering
-			mPlanetCBuffer = ConstantBufferLibrary::Load("Planet", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, 4) });
-			mPlanetCBuffer->Bind();
-			mPlanetBuffer.Allocate(mPlanetCBuffer->GetSize());
-			mPlanetBuffer.ZeroInitialize();
-		}
 	}
 
 	void Submesh::OnUpdate(Timestep ts)

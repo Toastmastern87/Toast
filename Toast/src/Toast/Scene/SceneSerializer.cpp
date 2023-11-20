@@ -635,12 +635,9 @@ namespace Toast {
 					if (!meshComponent["IsPlanet"].as<bool>())
 						deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>(meshComponent["AssetPath"].as<std::string>()));
 					else
-						deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>());
+						deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>(meshComponent["IsPlanet"].as<bool>()));
 			
 					auto& mc = deserializedEntity.GetComponent<MeshComponent>();
-
-					mc.MeshObject->SetIsPlanet(meshComponent["IsPlanet"].as<bool>());
-					//mc.Mesh->SetMaterial(meshComponent["Material"].as<std::string>(), MaterialLibrary::Get(meshComponent["Material"].as<std::string>()));
 				}
 
 				auto spriteRendererComponent = entity["SpriteRendererComponent"];

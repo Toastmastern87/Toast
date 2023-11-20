@@ -152,6 +152,7 @@ namespace Toast {
 		enum class MeshType { NONE = 0, MODEL, CUBE, SPHERE, PLANET };
 	public:
 		Mesh();
+		Mesh(bool isPlanet);
 		Mesh(const std::string& filePath, const bool skyboxMesh = false);
 		Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const DirectX::XMMATRIX& transform);
 		~Mesh() = default;
@@ -205,7 +206,6 @@ namespace Toast {
 		void Bind(const std::string& materialName, bool environment = true);
 
 		bool GetIsPlanet() const { return mIsPlanet; }
-		void SetIsPlanet(bool isPlanet);
 
 		void ResetAnimations();
 		bool GetIsAnimated() const { return mIsAnimated; }
