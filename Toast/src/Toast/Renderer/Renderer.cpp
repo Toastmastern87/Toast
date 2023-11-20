@@ -29,7 +29,7 @@ namespace Toast {
 		sRendererData->CameraBuffer.Allocate(sRendererData->CameraCBuffer->GetSize());
 		sRendererData->CameraBuffer.ZeroInitialize();
 
-		//// Setting up the constant buffer and data buffer for lightning rendering
+		// Setting up the constant buffer and data buffer for lightning rendering
 		sRendererData->LightningCBuffer = ConstantBufferLibrary::Load("DirectionalLight", 48, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, 0) });
 		sRendererData->LightningCBuffer->Bind();
 		sRendererData->LightningBuffer.Allocate(sRendererData->LightningCBuffer->GetSize());
@@ -314,20 +314,20 @@ namespace Toast {
 				//meshCommand.Mesh->Set<DirectX::XMMATRIX>("Planet", "Model", "worldMatrix", DirectX::XMMatrixMultiply(meshCommand.Mesh->mSubmeshes[0].Transform, meshCommand.Transform));
 				//meshCommand.Mesh->Set<int>("Planet", "Model", "entityID", meshCommand.EntityID);
 
-				// Planet mesh data
-				//meshCommand.Mesh->Set<float>("Planet", "Planet", "radius", meshCommand.PlanetData->radius);
-				//meshCommand.Mesh->Set<float>("Planet", "Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
-				//meshCommand.Mesh->Set<float>("Planet", "Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
-				//meshCommand.Mesh->Set<float>("Planet", "Planet", "atmosphereHeight", meshCommand.PlanetData->atmosphereHeight);
-				//meshCommand.Mesh->Set<int>("Planet", "Planet", "atmosphereToggle", meshCommand.PlanetData->atmosphereToggle);
-				//meshCommand.Mesh->Set<float>("Planet", "Planet", "mieAnisotropy", meshCommand.PlanetData->mieAnisotropy);
-				//meshCommand.Mesh->Set<float>("Planet", "Planet", "rayScaleHeight", meshCommand.PlanetData->rayScaleHeight);
-				//meshCommand.Mesh->Set<float>("Planet", "Planet", "mieScaleHeight", meshCommand.PlanetData->mieScaleHeight);
-				//meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "Planet", "rayBaseScatteringCoefficient", meshCommand.PlanetData->rayBaseScatteringCoefficient);
-				//meshCommand.Mesh->Set<float>("Planet", "Planet", "mieBaseScatteringCoefficient", meshCommand.PlanetData->mieBaseScatteringCoefficient);
-				//meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "Planet", "planetCenter", meshCommand.PlanetData->planetCenter);
-				//meshCommand.Mesh->Set<int>("Planet", "Planet", "numInScatteringPoints", meshCommand.PlanetData->inScatteringPoints);
-				//meshCommand.Mesh->Set<int>("Planet", "Planet", "numOpticalDepthPoints", meshCommand.PlanetData->opticalDepthPoints);
+				//Planet mesh data
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "radius", meshCommand.PlanetData->radius);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "atmosphereHeight", meshCommand.PlanetData->atmosphereHeight);
+				meshCommand.Mesh->Set<int>("Planet", "Planet", "atmosphereToggle", meshCommand.PlanetData->atmosphereToggle);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "mieAnisotropy", meshCommand.PlanetData->mieAnisotropy);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "rayScaleHeight", meshCommand.PlanetData->rayScaleHeight);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "mieScaleHeight", meshCommand.PlanetData->mieScaleHeight);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "Planet", "rayBaseScatteringCoefficient", meshCommand.PlanetData->rayBaseScatteringCoefficient);
+				meshCommand.Mesh->Set<float>("Planet", "Planet", "mieBaseScatteringCoefficient", meshCommand.PlanetData->mieBaseScatteringCoefficient);
+				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "Planet", "planetCenter", meshCommand.PlanetData->planetCenter);
+				meshCommand.Mesh->Set<int>("Planet", "Planet", "numInScatteringPoints", meshCommand.PlanetData->inScatteringPoints);
+				meshCommand.Mesh->Set<int>("Planet", "Planet", "numOpticalDepthPoints", meshCommand.PlanetData->opticalDepthPoints);
 
 				meshCommand.Mesh->Map("Planet");
 				meshCommand.Mesh->Bind("Planet");

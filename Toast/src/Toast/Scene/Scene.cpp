@@ -970,10 +970,9 @@ namespace Toast {
 	{
 		TransformComponent tc;
 
-		component.Mesh = CreateRef<Mesh>();
+		component.Mesh = CreateRef<Mesh>(true);
 		component.Mesh->SetMaterial("Planet", MaterialLibrary::Get("Planet"));
 		component.Mesh->mTopology = PrimitiveTopology::TRIANGLELIST;
-		component.Mesh->SetIsPlanet(true);
 
 		SceneCamera* mainCamera = nullptr;
 		DirectX::XMMATRIX cameraTransform;
