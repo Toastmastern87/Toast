@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <../vendor/directxtex/include/DirectXTex.h>
+
 #include "Toast/Core/Timestep.h"
 #include "Toast/Core/Math/Math.h"
 
@@ -19,6 +21,7 @@ namespace Toast {
 	{
 	public:
 		const int16_t BASE_SUBDIVISION = 4;
+		static const int16_t MAX_SUBDIVISION = 16;
 
 		using Edge = std::pair<uint32_t, uint32_t>;
 
@@ -237,7 +240,7 @@ namespace Toast {
 		//	}
 		//}
 
-		static void GeneratePlanet(std::vector<PlanetSystem::Edge>& planetEdges, std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Frustum* frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated)
+		static void GeneratePlanet(std::vector<PlanetSystem::Edge>& planetEdges, std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Frustum* frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, std::tuple<DirectX::TexMetadata, DirectX::ScratchImage*> heightData)
 		{
 			int triangleAdded = 0;
 
@@ -272,8 +275,13 @@ namespace Toast {
 			for (auto& vertex : vertices)
 			{
 				Vector3 vertexDouble = scaleTransform * Vector3::Normalize({ vertex.Position.x, vertex.Position.y, vertex.Position.z });
+
+				Vector3 texCoordPos = vertexDouble;
+				texCoordPos = Vector3::Normalize(texCoordPos);
+
 				vertexDouble = planetTransform * vertexDouble;
 				vertex.Position = { (float)vertexDouble.x, (float)vertexDouble.y, (float)vertexDouble.z };
+				vertex.Texcoord = DirectX::XMFLOAT2((0.5f + (atan2(texCoordPos.z, texCoordPos.x) / (2.0f * M_PI))), (0.5f - (asin(texCoordPos.y) / M_PI)));
 			}
 		}
 
@@ -362,17 +370,17 @@ namespace Toast {
 			return;
 		}
 
-		static void GenerateDistanceLUT(std::vector<double>& distanceLUT, float maxSubdivisions, float radius, float FoV, float viewportSizeX)
+		static void GenerateDistanceLUT(std::vector<double>& distanceLUT, float radius, float FoV, float viewportSizeX)
 		{
 			distanceLUT.clear();
 
 			double startLog = log(radius * 6.0);  // Starting log value for 1,000,000
 			double endLog = log(radius * 0.00001475143826523086);  // Ending log value for 50
 
-			for (int level = 0; level < 16; level++)
+			for (int level = 0; level < MAX_SUBDIVISION; level++)
 			{
 				// Interpolate between startLog and endLog based on current level
-				double t = static_cast<double>(level) / 16;
+				double t = static_cast<double>(level) / MAX_SUBDIVISION;
 				double currentLog = (1 - t) * startLog + t * endLog;
 
 				// Convert the logarithmic value back to linear space

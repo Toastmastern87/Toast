@@ -114,6 +114,8 @@ namespace Toast {
 
 		PlanetGPUData PlanetData;
 
+		std::tuple<DirectX::TexMetadata, DirectX::ScratchImage*> TerrainData;
+
 		PlanetComponent() = default;
 		PlanetComponent(int16_t subdivisions, float maxAltitude, float minAltitude, float radius, float gravAcc, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient)
 			: Subdivisions(subdivisions)
