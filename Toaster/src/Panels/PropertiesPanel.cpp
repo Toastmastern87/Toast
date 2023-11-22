@@ -905,9 +905,9 @@ namespace Toast {
 					DirectX::XMMATRIX planetTransformNoScale = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)) * DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
 					PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, component.PlanetData.radius, component.Subdivisions, component.PlanetData.maxAltitude);
-					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8, component.PlanetData.radius, fov, scene->GetViewportWidth());
+					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, component.PlanetData.radius, fov, scene->GetViewportWidth());
 					PlanetSystem::GenerateHeightMultLUT(component.HeightMultLUT, component.PlanetData.radius, component.Subdivisions, component.PlanetData.maxAltitude);
-					PlanetSystem::GeneratePlanet(component.PlanetEdges, component.PlanetVertexMap, scene->GetFrustum(), tc.Scale, planetTransformNoScale, component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.Subdivisions, tc.Scale.x, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
+					PlanetSystem::GeneratePlanet(component.PlanetEdges, component.PlanetVertexMap, scene->GetFrustum(), tc.Scale, planetTransformNoScale, component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.Subdivisions, tc.Scale.x, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling, component.TerrainData);
 
 					component.Mesh->InvalidatePlanet();
 				}

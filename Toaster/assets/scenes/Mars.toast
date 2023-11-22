@@ -217,7 +217,7 @@ Entities:
       Rotation: [80, 0, 0]
       Scale: [3389500, 3389500, 3389500]
     PlanetComponent:
-      Subdivisions: 8
+      Subdivisions: 16
       PatchLevels: 4
       MaxAltitude: 21200
       MinAltitude: -8200

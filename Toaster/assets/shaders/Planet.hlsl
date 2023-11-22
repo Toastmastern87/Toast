@@ -31,23 +31,6 @@ cbuffer Model : register(b1)
 	int entityID;
 };
 
-//cbuffer Planet : register(b2)
-//{
-//	float radius;
-//	float minAltitude;
-//	float maxAltitude;
-//	float atmosphereHeight;
-//	float mieAnisotropy;
-//	float rayScaleHeight;
-//	float mieScaleHeight;
-//	float3 rayBaseScatteringCoefficient;
-//	float mieBaseScatteringCoefficient;
-//	float3 planetCenter;
-//	int atmosphereToggle;
-//	int numInScatteringPoints;
-//	int numOpticalDepthPoints;
-//};
-
 struct VertexInputType
 {
 	float3 globalPosition	: POSITION0;
@@ -118,59 +101,10 @@ PixelInputType main(VertexInputType input)
 	float3 pos;
 	float3 texCoordPos;
 	float4 finalPos;
-	
-	//pos = input.a + input.r * input.localPosition.x + input.s * input.localPosition.y;
 
-	//float3 cornerA = input.a;
-	//float3 cornerB = input.a + input.s;
-	//float3 cornerC = input.a + input.r;
+	output.texcoord = input.texcoord;
 
-	//float3 vectorFromCenter = pos - planetCenter;
-	//float lengthFromCenterToPoint = length(vectorFromCenter);
-	//float pushOutScaleFactor = radius / lengthFromCenterToPoint;
-
-	//////pos = normalize(pos) * radius;
-
-	//pos = planetCenter + (vectorFromCenter * pushOutScaleFactor);
-
-	//float3 displacement = pos - planetCenter;
-
-	// Compute the new scaled position.
-	//if ((input.localPosition.z + input.level) == 1.0f)
-	//	pos = planetCenter + (displacement * 1.175571f);
-	//	//pos *= 1.175571f;
-	//else if ((input.localPosition.z + input.level) == 2.0f)
-	//	pos = planetCenter + (displacement * 1.131566f);
-	//else if ((input.localPosition.z + input.level) == 3.0f)
-	//	pos = planetCenter + (displacement * 1.064545);
-	
-
-	//pos = pos + pos * (input.localPosition.w * );
-	//pos *= (radius / length(pos));
-
-	//texCoordPos = normalize(pos - planetCenter);
-
-	//float theta = atan2(texCoordPos.z, texCoordPos.x);
-	//float phi = asin(texCoordPos.y);
-
-	output.texcoord = input.texcoord;// float2(theta / PI, phi / (PI / 2.0f)) * 0.5f + 0.5f;
-	//output.texcoord.x = output.texcoord.x * 0.5f + 0.5f;
-	//output.texcoord.y = output.texcoord.y * 0.5f + 0.5f;
-	//output.texcoord = float2((0.5f + (atan2(pos.z, pos.x) / (2.0f * PI))), (0.5f - (asin(pos.y) / PI)));
-
-	//pos += ((HeightMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r * (maxAltitude - minAltitude) + minAltitude) * normalize(pos));
-
-	//pos += (HeightMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r * (maxAltitude - minAltitude) + minAltitude) / radius;
-
-	//float craterDetected = CraterMapTexture.SampleLevel(defaultSampler, output.texcoord, 0).r;
-	//if (craterDetected == 0.0f)
-	//{
-	//	float craterHeightDetail = SimplexNoise(float3(float2(8192.0f, 4096.0f) * output.texcoord, 1.0f), 15.0f, 0.5f, 0.5f);
-	//	//Min and max altitude of the details are 30 and -30. check base height for information on how to change these
-	//	pos *= 1.0f + craterHeightDetail * (30.0f / radius);
-	//}
-
-	output.pixelPosition = float4(input.globalPosition, 1.0f);//mul(float4(pos, 1.0f), worldMatrix); //float4(pos, 1.0f);// 
+	output.pixelPosition = float4(input.globalPosition, 1.0f);
 	output.worldPosition = input.globalPosition;
 	output.pixelPosition = mul(output.pixelPosition, viewMatrix);
 	output.pixelPosition = mul(output.pixelPosition, projectionMatrix);
