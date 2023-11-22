@@ -319,19 +319,22 @@ namespace Toast {
 
 					planet.PlanetData.planetCenter = transform.Translation;
 
+					DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(transform.RotationEulerAngles.x), DirectX::XMConvertToRadians(transform.RotationEulerAngles.y), DirectX::XMConvertToRadians(transform.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&transform.RotationQuaternion))
+						* DirectX::XMMatrixTranslation(transform.Translation.x, transform.Translation.y, transform.Translation.z);
+
 					switch (mSettings.WireframeRendering)
 					{
 					case Settings::Wireframe::NO:
 					{
 						if (planet.Mesh->mSubmeshes.size() > 0)
-							Renderer::SubmitMesh(planet.Mesh, transform.GetTransform(), (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
+							Renderer::SubmitMesh(planet.Mesh, noScaleModelMatrix, (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
 						if (planet.Mesh->mSubmeshes.size() > 0)
-							Renderer::SubmitMesh(planet.Mesh, transform.GetTransform(), (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
+							Renderer::SubmitMesh(planet.Mesh, noScaleModelMatrix, (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 						break;
 					}
@@ -554,7 +557,7 @@ namespace Toast {
 					{
 						if (planetTransform.IsDirty)
 						{
-							PlanetSystem::GenerateDistanceLUT(planet.DistanceLUT, planet.Subdivisions, planet.PlanetData.radius, mainCameraComponent->Camera.GetPerspectiveVerticalFOV(), mViewportWidth);
+							PlanetSystem::GenerateDistanceLUT(planet.DistanceLUT, 8, planet.PlanetData.radius, mainCameraComponent->Camera.GetPerspectiveVerticalFOV(), mViewportWidth);
 							PlanetSystem::GenerateFaceDotLevelLUT(planet.FaceLevelDotLUT, planetTransform.Scale.x, planet.Subdivisions, planet.PlanetData.maxAltitude);
 							PlanetSystem::GenerateHeightMultLUT(planet.HeightMultLUT, planetTransform.Scale.x, planet.Subdivisions, planet.PlanetData.maxAltitude);
 						}
@@ -569,7 +572,10 @@ namespace Toast {
 
 							InvalidateFrustum();
 
-							PlanetSystem::GeneratePlanet(planet.PlanetEdges, planet.PlanetVertexMap, mFrustum.get(), planetTransform.GetTransform(), planet.Mesh->mVertices, planet.Mesh->mIndices, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling);
+							DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(planetTransform.RotationEulerAngles.x), DirectX::XMConvertToRadians(planetTransform.RotationEulerAngles.y), DirectX::XMConvertToRadians(planetTransform.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&planetTransform.RotationQuaternion))
+								* DirectX::XMMatrixTranslation(planetTransform.Translation.x, planetTransform.Translation.y, planetTransform.Translation.z);
+
+							PlanetSystem::GeneratePlanet(planet.PlanetEdges, planet.PlanetVertexMap, mFrustum.get(), planetTransform.Scale, noScaleModelMatrix, planet.Mesh->mVertices, planet.Mesh->mIndices, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling);
 
 							planet.Mesh->InvalidatePlanet();
 
@@ -641,19 +647,22 @@ namespace Toast {
 
 				planet.PlanetData.planetCenter = transform.Translation;
 
+				DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(transform.RotationEulerAngles.x), DirectX::XMConvertToRadians(transform.RotationEulerAngles.y), DirectX::XMConvertToRadians(transform.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&transform.RotationQuaternion))
+					* DirectX::XMMatrixTranslation(transform.Translation.x, transform.Translation.y, transform.Translation.z);
+
 				switch (mSettings.WireframeRendering)
 				{
 				case Settings::Wireframe::NO:
 				{
 					if(planet.Mesh->mSubmeshes.size() > 0)
-						Renderer::SubmitMesh(planet.Mesh, transform.GetTransform(), (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
+						Renderer::SubmitMesh(planet.Mesh, noScaleModelMatrix, (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 					break;
 				}
 				case Settings::Wireframe::YES:
 				{
 					if (planet.Mesh->mSubmeshes.size() > 0) 
-						Renderer::SubmitMesh(planet.Mesh, transform.GetTransform(), (int)entity, true, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
+						Renderer::SubmitMesh(planet.Mesh, noScaleModelMatrix, (int)entity, true, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 					break;
 				}
@@ -831,7 +840,10 @@ namespace Toast {
 				{
 					auto [pTransform, planet] = planetView.get<TransformComponent, PlanetComponent>(pEntity);
 
-					planetTransform = { pTransform.GetTransform() };
+					DirectX::XMMATRIX noScalePlanetMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(pTransform.RotationEulerAngles.x), DirectX::XMConvertToRadians(pTransform.RotationEulerAngles.y), DirectX::XMConvertToRadians(pTransform.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&pTransform.RotationQuaternion))
+						* DirectX::XMMatrixTranslation(pTransform.Translation.x, pTransform.Translation.y, pTransform.Translation.z);
+
+					planetTransform = { noScalePlanetMatrix };
 
 					mInvalidatePlanet = true;
 				}
@@ -1010,7 +1022,10 @@ namespace Toast {
 		PlanetSystem::GenerateHeightMultLUT(component.HeightMultLUT, component.PlanetData.radius, component.Subdivisions, component.PlanetData.maxAltitude);
 		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, component.Subdivisions, component.PlanetData.maxAltitude);
 
-		PlanetSystem::GeneratePlanet(component.PlanetEdges, component.PlanetVertexMap, mFrustum.get(), tc.GetTransform(), component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.PlanetData.radius, component.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
+		DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion))
+			* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
+
+		PlanetSystem::GeneratePlanet(component.PlanetEdges, component.PlanetVertexMap, mFrustum.get(), tc.Scale, noScaleModelMatrix, component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, tc.Scale.x, component.Subdivisions, mSettings.BackfaceCulling, mSettings.FrustumCulling);
 		
 		component.Mesh->InvalidatePlanet();
 	}
@@ -1020,7 +1035,6 @@ namespace Toast {
 	{
 		auto tc = entity.GetComponent<TransformComponent>();
 		Vector3 cameraTranslation = { tc.Translation };
-
 
 		component.Camera.SetViewportSize(mViewportWidth, mViewportHeight);
 

@@ -763,7 +763,7 @@ namespace Toast {
 				ImGui::Text("Subdivisions");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (ImGui::SliderInt("##Subdivisions", &subdivions, 0, 8))
+				if (ImGui::SliderInt("##Subdivisions", &subdivions, 0, 16))
 					modified = true;
 
 				ImGui::TableNextRow();
@@ -907,7 +907,7 @@ namespace Toast {
 					PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, component.PlanetData.radius, component.Subdivisions, component.PlanetData.maxAltitude);
 					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, 8, component.PlanetData.radius, fov, scene->GetViewportWidth());
 					PlanetSystem::GenerateHeightMultLUT(component.HeightMultLUT, component.PlanetData.radius, component.Subdivisions, component.PlanetData.maxAltitude);
-					PlanetSystem::GeneratePlanet(component.PlanetEdges, component.PlanetVertexMap, scene->GetFrustum(), planetTransformNoScale, component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.Subdivisions, component.PlanetData.radius, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
+					PlanetSystem::GeneratePlanet(component.PlanetEdges, component.PlanetVertexMap, scene->GetFrustum(), tc.Scale, planetTransformNoScale, component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.Subdivisions, tc.Scale.x, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling);
 
 					component.Mesh->InvalidatePlanet();
 				}
