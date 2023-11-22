@@ -309,8 +309,8 @@ namespace Toast {
 
 	void Mesh::InvalidatePlanet()
 	{
-		//if(mPlanetPatches.size() > 0)
-		//{
+		if(mVertices.size() > 0)
+		{
 		//	if (patchGeometryRebuilt)
 		//	{
 				mVertexBuffer = nullptr;
@@ -328,7 +328,7 @@ namespace Toast {
 				//submesh.Transform = transform;
 				//submesh.MaterialName = "Standard";
 				mSubmeshes.push_back(submesh);
-		//	}
+			}
 
 		//	mInstanceVertexBuffer = nullptr;
 		//	mInstanceVertexBuffer = CreateRef<VertexBuffer>(&mPlanetPatches[0], sizeof(PlanetPatch) * (uint32_t)mPlanetPatches.size(), (uint32_t)mPlanetPatches.size(), 1);
@@ -404,7 +404,7 @@ namespace Toast {
 	void Mesh::Map(const std::string& materialName)
 	{
 		// if the planet is a mesh upload Planet data to the GPU
-		if (mIsPlanet) 
+		if (mPlanetCBuffer)
 			mPlanetCBuffer->Map(mPlanetBuffer);
 
 		if (mModelCBuffer)
@@ -418,11 +418,9 @@ namespace Toast {
 	{
 		mVertexBuffer->Bind();
 		mIndexBuffer->Bind();
-		//if(mInstanceVertexBuffer)
-		//	mInstanceVertexBuffer->Bind();
 
 		// if the planet is a mesh upload Planet data to the GPU
-		if (mIsPlanet)
+		if (mPlanetCBuffer)
 			mPlanetCBuffer->Bind();
 
 		if(mModelCBuffer)
