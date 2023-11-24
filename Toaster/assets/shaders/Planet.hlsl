@@ -99,7 +99,6 @@ PixelInputType main(VertexInputType input)
 {
 	PixelInputType output;
 	float3 pos;
-	float3 texCoordPos;
 	float4 finalPos;
 
 	output.texcoord = input.texcoord;
@@ -499,7 +498,9 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	float3 lightContribution = DirectionalLightning(F0, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness);
 	float3 iblContribution = IBL(F0, Lr, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness);
 
-	if(input.color.x == 0.0 )
+	if(input.color.z > 0.5 )
+		output.Color = float4(params.Albedo, 1.0f);
+	else if(input.color.x < 0.5 )
 		output.Color = float4(lightContribution + iblContribution, 1.0f); //float4(GetHeight(input.texcoord), GetHeight(input.texcoord), GetHeight(input.texcoord), 1.0f);//float4(input.texcoord, 0.0f, 1.0f);//float4(N * 0.5 + 0.5, 1.0f);//  
 	else
 		output.Color = float4(input.color, 1.0f);

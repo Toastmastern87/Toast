@@ -274,14 +274,14 @@ namespace Toast {
 
 			for (auto& vertex : vertices)
 			{
-				Vector3 vertexDouble = scaleTransform * Vector3::Normalize({ vertex.Position.x, vertex.Position.y, vertex.Position.z });
+				Vector3 normalizedPos = Vector3::Normalize({ vertex.Position.x, vertex.Position.y, vertex.Position.z });
 
-				Vector3 texCoordPos = vertexDouble;
-				texCoordPos = Vector3::Normalize(texCoordPos);
+				Vector3 scaledPos = scaleTransform * normalizedPos;
 
-				vertexDouble = planetTransform * vertexDouble;
-				vertex.Position = { (float)vertexDouble.x, (float)vertexDouble.y, (float)vertexDouble.z };
-				vertex.Texcoord = DirectX::XMFLOAT2((0.5f + (atan2(texCoordPos.z, texCoordPos.x) / (2.0f * M_PI))), (0.5f - (asin(texCoordPos.y) / M_PI)));
+				scaledPos = planetTransform * scaledPos;
+				vertex.Position = { (float)scaledPos.x, (float)scaledPos.y, (float)scaledPos.z };
+				vertex.Texcoord = DirectX::XMFLOAT2((float)(0.5 + (atan2(normalizedPos.z, normalizedPos.x) / (2.0f * M_PI))), (float)(0.5 - (asin(normalizedPos.y) / M_PI)));
+				vertex.Color = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 			}
 		}
 
