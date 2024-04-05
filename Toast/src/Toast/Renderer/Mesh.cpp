@@ -307,46 +307,40 @@ namespace Toast {
 		mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 	}
 
+	Mesh& Mesh::operator=(const Mesh& other)
+	{
+		if (this != &other) {
+			// GPU Data
+			mVertices = other.mVertices;
+			mIndices = other.mIndices;
+
+			// Buffers
+			mPlanetBuffer = other.mPlanetBuffer;
+			mModelBuffer = other.mModelBuffer;
+		}
+		return *this;
+	}
+
 	void Mesh::InvalidatePlanet()
 	{
 		if(mVertices.size() > 0)
 		{
-		//	if (patchGeometryRebuilt)
-		//	{
-				mVertexBuffer = nullptr;
-				mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
+			mVertexBuffer = nullptr;
+			mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
 
-				mIndexBuffer = nullptr;
-				mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
-				mIndexCount = (uint32_t)mIndices.size();
+			mIndexBuffer = nullptr;
+			mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
+			mIndexCount = (uint32_t)mIndices.size();
 
-				mSubmeshes.clear();
-				Submesh submesh;
-				submesh.BaseVertex = 0;
-				submesh.BaseIndex = 0;
-				submesh.IndexCount = mIndexCount;
-				//submesh.Transform = transform;
-				//submesh.MaterialName = "Standard";
-				mSubmeshes.push_back(submesh);
-			}
-
-		//	mInstanceVertexBuffer = nullptr;
-		//	mInstanceVertexBuffer = CreateRef<VertexBuffer>(&mPlanetPatches[0], sizeof(PlanetPatch) * (uint32_t)mPlanetPatches.size(), (uint32_t)mPlanetPatches.size(), 1);
-		//}
-
-		//mVertexCount = 0;
-		//mIndexCount = 0;
-		//for (auto& patch : mPlanetPatches) 
-		//{
-		//	Submesh& submesh = mSubmeshes.emplace_back();
-		//	submesh.BaseVertex = mVertexCount;
-		//	submesh.BaseIndex = mIndexCount;
-		//	submesh.VertexCount = mPlanetVertices.size();
-		//	submesh.IndexCount = mIndices.size();
-
-		//	mVertexCount += submesh.VertexCount;
-		//	mIndexCount += submesh.IndexCount;
-		//}
+			mSubmeshes.clear();
+			Submesh submesh;
+			submesh.BaseVertex = 0;
+			submesh.BaseIndex = 0;
+			submesh.IndexCount = mIndexCount;
+			//submesh.Transform = transform;
+			//submesh.MaterialName = "Standard";
+			mSubmeshes.push_back(submesh);
+		}
 	}
 
 	void Mesh::OnUpdate(Timestep ts)

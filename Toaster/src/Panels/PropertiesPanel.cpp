@@ -763,8 +763,8 @@ namespace Toast {
 				ImGui::Text("Subdivisions");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (ImGui::SliderInt("##Subdivisions", &subdivions, 0, 16))
-					modified = true;
+				if (ImGui::SliderInt("##Subdivisions", &subdivions, 0, 20))
+					component.Subdivisions = subdivions;
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -880,37 +880,8 @@ namespace Toast {
 
 				ImGui::EndTable();
 
-				if (modified)
-				{
-					component.Subdivisions = subdivions;
-					TransformComponent tc = entity.GetComponent<TransformComponent>();
-
-					auto view = entity.mScene->mRegistry.view<TransformComponent, CameraComponent>();
-					for (auto entity : view)
-					{
-						auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
-
-						if (camera.Primary)
-						{
-							DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, transform.GetTransform());
-							fov = camera.Camera.GetPerspectiveVerticalFOV();
-						}
-					}
-
-					DirectX::XMVECTOR cameraForward = { 0.0f, 0.0f, 1.0f };
-
-					DirectX::XMVECTOR rotationMatrix = DirectX::XMQuaternionRotationMatrix(tc.GetTransform());
-					cameraForward = rotationMatrix * cameraForward;
-					
-					DirectX::XMMATRIX planetTransformNoScale = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)) * DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
-
-					PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, component.PlanetData.radius, component.Subdivisions, component.PlanetData.maxAltitude);
-					PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, component.PlanetData.radius, fov, scene->GetViewportWidth());
-					PlanetSystem::GenerateHeightMultLUT(component.HeightMultLUT, component.PlanetData.radius, component.Subdivisions, component.PlanetData.maxAltitude);
-					PlanetSystem::GeneratePlanet(component.PlanetEdges, component.PlanetVertexMap, scene->GetFrustum(), tc.Scale, planetTransformNoScale, component.Mesh->mVertices, component.Mesh->mIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.Subdivisions, tc.Scale.x, scene->mSettings.BackfaceCulling, scene->mSettings.FrustumCulling, component.TerrainData);
-
-					component.Mesh->InvalidatePlanet();
-				}
+				if(modified)
+					component.IsDirty = true;
 			});
 
 		DrawComponent<DirectionalLightComponent>(ICON_TOASTER_SUN_O" Directional Light", entity, mScene, [](auto& component, Entity entity, Scene* scene)

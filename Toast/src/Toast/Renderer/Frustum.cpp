@@ -109,45 +109,38 @@ namespace Toast {
 	VolumeTri Frustum::ContainsTriangle(Vector3 p1, Vector3 p2, Vector3 p3)
 	{
 		VolumeTri ret = VolumeTri::CONTAINS;
-		for (auto plane : mPlanes)
+		for (auto plane : mPlanetCheckPlanes)
 		{
 			uint8_t rejects = 0;
 
-			if (Vector3::Dot(plane.Normal, p1) - plane.D < 0.0)
+			if (Vector3::Dot(plane.Normal, p1) - plane.D < -0.01)
 				rejects++;
-			if (Vector3::Dot(plane.Normal, p2) - plane.D < 0.0)
+			if (Vector3::Dot(plane.Normal, p2) - plane.D < -0.01)
 				rejects++;
-			if (Vector3::Dot(plane.Normal, p3) - plane.D < 0.0)
+			if (Vector3::Dot(plane.Normal, p3) - plane.D < -0.01)
 				rejects++;
 
 			// if all three are outside a plane the triangle is outside the frustrum
 			if (rejects >= 3)
 			{
-				//TOAST_CORE_INFO("CONTAINS TRIANGLE OUTSIDE");
+				TOAST_CORE_INFO("CONTAINS TRIANGLE OUTSIDE");
 				return VolumeTri::OUTSIDE;
 			}
 
 			// if at least one is outside the triangle intersects at least one plane
 			else if (rejects > 0)
 			{
-				//TOAST_CORE_INFO("INTERSECTS");
+				TOAST_CORE_INFO("INTERSECTS");
 				ret = VolumeTri::INTERSECT;
 			}
 		}
 
-		//TOAST_CORE_INFO("RETURN VALUE CONTAINS TRIANGLE: %d", ret);
 		return ret;
 	}
 
-	VolumeTri Frustum::ContainsTriangleVolume(Vector3 p1, Vector3 p2, Vector3 p3, float height)
+	VolumeTri Frustum::ContainsTriangleVolume(Vector3 p1, Vector3 p2, Vector3 p3, double height)
 	{
 		VolumeTri ret = VolumeTri::CONTAINS;
-
-		Vector3 firstC = p1;
-		Vector3 secondC = p2 - p1;
-		Vector3 thirdC = p3 - p1;
-
-		int i = 0;
 
 		for (auto plane : mPlanetCheckPlanes)
 		{
@@ -164,13 +157,21 @@ namespace Toast {
 			// if all three are outside a plane the triangle is outside the frustrum
 			if (rejects >= 3)
 			{
-				if (Vector3::Dot(plane.Normal, p1 * height) - plane.D < -0.01)
+				//TOAST_CORE_CRITICAL("height: %lf", height);
+				//height = 1.50;// works, but its waaay to high I believe.
+				if (Vector3::Dot(plane.Normal, p1 * (1.0 + height)) - plane.D < -0.01)
 					rejects++;
-				if (Vector3::Dot(plane.Normal, p2 * height) - plane.D < -0.01)
+				if (Vector3::Dot(plane.Normal, p2 * (1.0 + height)) - plane.D < -0.01)
 					rejects++;
-				if (Vector3::Dot(plane.Normal, p3 * height) - plane.D < -0.01)
+				if (Vector3::Dot(plane.Normal, p3 * (1.0 + height)) - plane.D < -0.01)
 					rejects++;
-				if (rejects >= 6) 
+				if (Vector3::Dot(plane.Normal, p1 * (1.0 - height)) - plane.D < -0.01)
+					rejects++;
+				if (Vector3::Dot(plane.Normal, p2 * (1.0 - height)) - plane.D < -0.01)
+					rejects++;
+				if (Vector3::Dot(plane.Normal, p3 * (1.0 - height)) - plane.D < -0.01)
+					rejects++;
+				if (rejects >= 9)
 					return VolumeTri::OUTSIDE;
 				else
 					ret = VolumeTri::INTERSECT;
@@ -178,11 +179,20 @@ namespace Toast {
 			// if at least one is outside the triangle intersects at least one plane
 			else if (rejects > 0)
 				ret = VolumeTri::INTERSECT;
-
-			i++;
 		}
 
 		return ret;
+	}
+
+	void Frustum::ToString()
+	{
+		TOAST_CORE_INFO("Frustum planet planes!");
+		for (auto plane : mPlanetCheckPlanes)
+		{
+			TOAST_CORE_INFO("Plane D: %lf", plane.D);
+			TOAST_CORE_INFO("Plane Normal:");
+			plane.Normal.ToString();
+		}
 	}
 
 }

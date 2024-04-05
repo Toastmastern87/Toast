@@ -50,6 +50,15 @@ namespace Toast {
 			Color = { 0.0f, 0.0f, 0.0f };
 		}
 
+		Vertex(Vector3 pos, Vector3 color)
+		{
+			Position = { (float)pos.x, (float)pos.y, (float)pos.z };
+			Normal = { 0.0f, 0.0f, 0.0f };
+			Tangent = { 0.0f, 0.0f, 0.0f, 0.0f };
+			Texcoord = { 0.0f, 0.0f };
+			Color = { (float)color.x, (float)color.y, (float)color.z };
+		}
+
 		Vertex()
 		{
 			Position = { 0.0f, 0.0f, 0.0f };
@@ -157,6 +166,8 @@ namespace Toast {
 		Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const DirectX::XMMATRIX& transform);
 		~Mesh() = default;
 
+		Mesh& Mesh::operator=(const Mesh& other);
+
 		template <typename T>
 		void Set(const std::string& materialName, const std::string& cbufferName, const std::string& name, const T& value)
 		{
@@ -245,5 +256,6 @@ namespace Toast {
 		friend class SceneHierarchyPanel;
 		friend class PropertiesPanel;
 		friend class ScriptWrappers;
+		friend class PlanetSystem;
 	};
 }

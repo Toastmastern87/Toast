@@ -108,6 +108,12 @@ cbuffer Planet : register(b2)
 	int numOpticalDepthPoints;
 };
 
+cbuffer RenderSettings : register(b9)
+{
+    float renderOverlay;
+    float3 padding;
+};
+
 struct PixelInputType
 {
 	float4 pixelPosition	: SV_POSITION;

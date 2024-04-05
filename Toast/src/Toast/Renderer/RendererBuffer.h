@@ -50,6 +50,7 @@ namespace Toast {
 	private:
 		Microsoft::WRL::ComPtr<ID3D11Buffer> mVertexBuffer = nullptr;
 		uint32_t mSize = 0, mCount, mBindSlot = 0;
+		D3D11_USAGE mUsage;
 	};
 
 	class IndexBuffer

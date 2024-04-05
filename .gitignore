@@ -6,6 +6,11 @@ Intermediates/
 # Files
 *.user
 
+# Profile files
+ToastProfile-Runtime.json
+ToastProfile-Shutdown.json
+ToastProfile-Startup.json
+
 # Toast files
 *.log
 *.tlog

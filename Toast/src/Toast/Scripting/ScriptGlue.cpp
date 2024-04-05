@@ -350,7 +350,7 @@ namespace Toast {
 		cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
 		//PlanetSystem::GeneratePlanet(scene->GetFrustum(), tc.GetTransform(), pc.Mesh->mVertices, pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPosVector, cameraForward, pc.Subdivisions, pc.PlanetData.radius, sceneSettings.BackfaceCulling, sceneSettings.FrustumCulling);
 
-		pc.Mesh->InvalidatePlanet();
+		pc.RenderMesh->InvalidatePlanet();
 	}
 
 	static void MeshComponent_PlayAnimation(uint64_t entityID, MonoString* name, float startTime)
@@ -538,27 +538,27 @@ namespace Toast {
 
 	void PlanetComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform)
 	{
-		Scene* scene = ScriptEngine::GetSceneContext();
-		auto sceneSettings = scene->GetSettings();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
-		auto& pc = entity.GetComponent<PlanetComponent>();
-		auto& tc = entity.GetComponent<TransformComponent>();
+		//Scene* scene = ScriptEngine::GetSceneContext();
+		//auto sceneSettings = scene->GetSettings();
+		//TOAST_CORE_ASSERT(scene, "No active scene!");
+		//const auto& entityMap = scene->GetEntityMap();
+		//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		//Entity entity = entityMap.at(entityID);
+		//auto& pc = entity.GetComponent<PlanetComponent>();
+		//auto& tc = entity.GetComponent<TransformComponent>();
 
-		DirectX::XMVECTOR cameraPosVector = { cameraPos->x, cameraPos->y, cameraPos->z };
-		DirectX::XMVECTOR cameraPosVector2, cameraRotVector, cameraScaleVector, cameraForward;
-		cameraForward = { 0.0f, 0.0f, 1.0f };
-		DirectX::XMMatrixDecompose(&cameraScaleVector, &cameraRotVector, &cameraPosVector2, *cameraTransform);
-		cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
-		scene->InvalidateFrustum();
+		//DirectX::XMVECTOR cameraPosVector = { cameraPos->x, cameraPos->y, cameraPos->z };
+		//DirectX::XMVECTOR cameraPosVector2, cameraRotVector, cameraScaleVector, cameraForward;
+		//cameraForward = { 0.0f, 0.0f, 1.0f };
+		//DirectX::XMMatrixDecompose(&cameraScaleVector, &cameraRotVector, &cameraPosVector2, *cameraTransform);
+		//cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
+		//scene->InvalidateFrustum();
 
-		DirectX::XMMATRIX planetTransformNoScale = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)) * DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
+		//DirectX::XMMATRIX planetTransformNoScale = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)) * DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
-		//PlanetSystem::GeneratePlanet(scene->GetFrustum(), planetTransformNoScale, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPosVector, cameraForward, pc.Subdivisions, pc.PlanetData.radius, sceneSettings.BackfaceCulling, sceneSettings.FrustumCulling);
+		////PlanetSystem::GeneratePlanet(scene->GetFrustum(), planetTransformNoScale, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPosVector, cameraForward, pc.Subdivisions, pc.PlanetData.radius, sceneSettings.BackfaceCulling, sceneSettings.FrustumCulling);
 
-		pc.Mesh->InvalidatePlanet();
+		//pc.RenderMesh->InvalidatePlanet();
 	}
 
 #pragma endregion

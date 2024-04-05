@@ -446,7 +446,7 @@ namespace Toast {
 							ID3D11ShaderReflectionVariable* variable = cbReflection->GetVariableByIndex(i);
 							D3D11_SHADER_VARIABLE_DESC variableDesc;
 							variable->GetDesc(&variableDesc);
-
+							std::string tempName = variableDesc.Name;
 							buffer.CBufferElements[variableDesc.Name] = ShaderCBufferElement( variableDesc.Name, variableDesc.Size, variableDesc.StartOffset );
 							mCBufferElementBindings.push_back(CBufferElementBindingDesc{ variableDesc.Name, resourceDesc.Name, variableDesc.Size, variableDesc.StartOffset });
 						}

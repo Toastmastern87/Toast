@@ -32,7 +32,6 @@ namespace Toast {
 	class Frustum
 	{
 	public:
-
 		Frustum() = default;
 		~Frustum() = default;
 
@@ -42,7 +41,9 @@ namespace Toast {
 
 		bool Contains(Vector3 p);
 		VolumeTri ContainsTriangle(Vector3 p1, Vector3 p2, Vector3 p3);
-		VolumeTri ContainsTriangleVolume(Vector3 p1, Vector3 p2, Vector3 p3, float height);
+		VolumeTri ContainsTriangleVolume(Vector3 p1, Vector3 p2, Vector3 p3, double heightRange);
+
+		void ToString();
 	public:
 		Vector3 mCenterNear;
 		Vector3 mCenterFar;

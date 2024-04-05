@@ -156,6 +156,12 @@ cbuffer Planet				: register(b4)
 	int numOpticalDepthPoints;
 };
 
+cbuffer RenderSettings : register(b9)
+{
+    float renderOverlay;
+    float3 padding;
+};
+
 #pragma pack_matrix( row_major )
 	
 struct PixelInputType
@@ -498,12 +504,16 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	float3 lightContribution = DirectionalLightning(F0, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness);
 	float3 iblContribution = IBL(F0, Lr, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness);
 
-	if(input.color.z > 0.5 )
-		output.Color = float4(params.Albedo, 1.0f);
-	else if(input.color.x < 0.5 )
-		output.Color = float4(lightContribution + iblContribution, 1.0f); //float4(GetHeight(input.texcoord), GetHeight(input.texcoord), GetHeight(input.texcoord), 1.0f);//float4(input.texcoord, 0.0f, 1.0f);//float4(N * 0.5 + 0.5, 1.0f);//  
-	else
-		output.Color = float4(input.color, 1.0f);
+    if (renderOverlay > 0.5f && renderOverlay <= 1.5f)
+        output.Color = float4(params.Albedo, 1.0f);
+    else if (renderOverlay > 1.5f && renderOverlay <= 2.5f)
+        output.Color = float4(GetHeight(input.texcoord), GetHeight(input.texcoord), GetHeight(input.texcoord), 1.0f); //float4(input.texcoord, 0.0f, 1.0f);//float4(N * 0.5 + 0.5, 1.0f);//  
+    else if (renderOverlay > 2.5f && renderOverlay <= 3.5f)
+        output.Color = float4(N * 0.5 + 0.5, 1.0f);
+    else if (renderOverlay > 3.5f && renderOverlay <= 4.5f)
+        output.Color = float4(input.color, 1.0f);
+    else
+        output.Color = float4(lightContribution + iblContribution, 1.0f);
 
 	return output;
 }

@@ -4,6 +4,10 @@
 
 namespace Toast {
 
+	////////////////////////////////////////////////////////////////////////////////////////  
+	//		  VECTOR3	  	  //////////////////////////////////////////////////////////////  
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
 	Vector3::Vector3(float xIn, float yIn, float zIn, float wIn) {
 		x = (double)xIn;
 		y = (double)yIn;
@@ -39,16 +43,17 @@ namespace Toast {
 		return sqrt(x * x + y * y + z * z);
 	}
 
-	Vector3 Vector3::Normalize(Vector3& vec) {
+	Vector3 Vector3::Normalize(const Vector3& vec) {
+		Vector3 result = vec;
 		double magnitude = vec.Magnitude();
 		if (magnitude > 0.0)
 		{
-			vec.x /= magnitude;
-			vec.y /= magnitude;
-			vec.z /= magnitude;
+			result.x /= magnitude;
+			result.y /= magnitude;
+			result.z /= magnitude;
 		}
 
-		return vec;
+		return result;
 	}
 
 	Vector3 Vector3::Normalize(std::initializer_list<double> list)
@@ -82,4 +87,71 @@ namespace Toast {
 		return Vector3(resultQuat.x, resultQuat.y, resultQuat.z);
 	}
 
+	void Vector3::ToString() 
+	{
+		TOAST_CORE_INFO("Vector3: %lf, %lf, %lf", x, y, z);
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////  
+	//		  VECTOR2	  	  //////////////////////////////////////////////////////////////  
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	Vector2::Vector2(float xIn, float yIn) {
+		x = (double)xIn;
+		y = (double)yIn;
+	}
+
+	Vector2::Vector2(DirectX::XMVECTOR vec) {
+		x = DirectX::XMVectorGetX(vec);
+		y = DirectX::XMVectorGetY(vec);
+	}
+
+	Vector2::Vector2(DirectX::XMFLOAT2 vec) {
+		x = vec.x;
+		y = vec.y;
+	}
+
+	Vector2::Vector2(std::initializer_list<double> list)
+	{
+		auto it = list.begin();
+
+		x = (it != list.end()) ? static_cast<double>(*it++) : 0.0;
+		y = (it != list.end()) ? static_cast<double>(*it++) : 0.0;
+	}
+
+	double Vector2::Magnitude() const {
+		return sqrt(x * x + y * y);
+	}
+
+	Vector2 Vector2::Normalize(Vector2& vec) {
+		double magnitude = vec.Magnitude();
+		if (magnitude > 0.0)
+		{
+			vec.x /= magnitude;
+			vec.y /= magnitude;
+		}
+
+		return vec;
+	}
+
+	Vector2 Vector2::Normalize(std::initializer_list<double> list)
+	{
+		Vector2 vec(list);
+		return Normalize(vec);
+	}
+
+	Vector2 Vector2::Cross(const Vector2& a, const Vector2& b) {
+		return Vector2(
+			a.x * b.y - a.y * b.x
+		);
+	}
+
+	double Vector2::Dot(const Vector2& a, const Vector2& b) {
+		return a.x * b.x + a.y * b.y;
+	}
+
+	void Vector2::ToString()
+	{
+		TOAST_CORE_INFO("Vector2: %lf, %lf", x, y);
+	}
 }

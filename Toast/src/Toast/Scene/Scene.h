@@ -42,6 +42,9 @@ namespace Toast {
 		{
 			bool IsDirty = false;
 
+			enum class PlanetOverlay { NONE = 0, ALBEDO = 1, HEIGHTMAP = 2, NORMAL = 3, COLOR = 4 };
+			PlanetOverlay PlanetOverlaySetting = PlanetOverlay::NONE;
+
 			enum class Wireframe { NO = 0, YES = 1, ONTOP = 2 };
 			Wireframe WireframeRendering = Wireframe::NO;
 
@@ -111,7 +114,7 @@ namespace Toast {
 
 		Settings GetSettings() { return mSettings; }
 
-		Frustum* GetFrustum() { return mFrustum.get(); }
+		Ref<Frustum> GetFrustum() { return mFrustum; }
 		void InvalidateFrustum();
 
 		void SetRenderColliders(bool renderColliders) { mSettings.RenderColliders = renderColliders; }

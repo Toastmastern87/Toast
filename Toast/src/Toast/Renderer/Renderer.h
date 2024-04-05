@@ -19,14 +19,14 @@ namespace Toast {
 		struct DrawCommand
 		{
 		public:
-			DrawCommand(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const bool wireframe, const int entityID = 0, PlanetComponent::PlanetGPUData* planetData = nullptr)
+			DrawCommand(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const bool wireframe, const int entityID = 0, PlanetComponent::GPUData* planetData = nullptr)
 				: Mesh(mesh), Transform(transform), Wireframe(wireframe), EntityID(entityID), PlanetData(planetData) {}
 		public:
 			Ref<Mesh> Mesh;
 			DirectX::XMMATRIX Transform;
 			bool Wireframe;
 			const int EntityID;
-			PlanetComponent::PlanetGPUData* PlanetData;
+			PlanetComponent::GPUData* PlanetData;
 		};
 
 		struct RendererData
@@ -58,8 +58,8 @@ namespace Toast {
 			Ref<Framebuffer> BaseFramebuffer, FinalFramebuffer, PickingFramebuffer, OutlineFramebuffer, PostProcessFramebuffer, UIFramebuffer;
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshColliderDrawList;
 
-			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer;
-			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer;
+			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer, RenderSettingsCBuffer;
+			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer, RenderSettingsBuffer;
 
 			Ref<RenderTarget> BaseRenderTarget, FinalRenderTarget, DepthRenderTarget, PickingRenderTarget, OutlineRenderTarget, PostProcessRenderTarget, UIRenderTarget;
 		};
@@ -78,7 +78,7 @@ namespace Toast {
 
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
 		static void SubmitSkybox(const Ref<Mesh> skybox, const DirectX::XMFLOAT4& cameraPos, const DirectX::XMFLOAT4X4& viewMatrix, const DirectX::XMFLOAT4X4& projectionMatrix, float intensity, float LOD);
-		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe = false, PlanetComponent::PlanetGPUData* planetData = nullptr, bool atmosphere = false);
+		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe = false, PlanetComponent::GPUData* planetData = nullptr, bool atmosphere = false);
 		static void SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false);
 
 		static void DrawFullscreenQuad();
