@@ -8,7 +8,9 @@
 
 #include <DirectXMath.h>
 
-#define MAX_INT_VALUE 65535.0f
+#define MAX_INT_VALUE	65535.0
+#define M_PI			3.14159265358979323846
+#define M_PIDIV2		3.14159265358979323846 / 2.0
 
 namespace Toast {
 
@@ -178,30 +180,71 @@ namespace Toast {
 
 			const uint16_t* terrainData = reinterpret_cast<const uint16_t*>(heightMap->GetPixels());
 
-			//float pixelOneSecondRowValue = (float)terrainData[(int)(heightMap->GetImage(0, 0, 0)->rowPitch / 2.0f) * 50] / MAX_INT_VALUE;
+			//size_t rowPitch = std::get<1>(terrainData)->GetImage(0, 0, 0)->rowPitch;
+			//const uint16_t* terrainDataRaw = reinterpret_cast<const uint16_t*>(std::get<1>(terrainData)->GetPixels());
+			//double rawHeightValue = static_cast<double>(terrainDataRaw[((uint32_t)texCoordY * (rowPitch / 2) + (uint32_t)texCoordX)]) / MAX_INT_VALUE;
 
+			//float pixelOneSecondRowValue = (float)terrainData[(int)(heightMap->GetImage(0, 0, 0)->rowPitch / 2.0f) * 50] / MAX_INT_VALUE;
+			//TOAST_CORE_INFO("TEST!");
 			return std::make_tuple(heightMapMetadata, heightMap);
+		}
+
+		static TerrainData LoadTerrainDataUpdated(const char* path, const double maxAltitude, const double minAltitude)
+		{
+			HRESULT result;
+
+			std::wstring w;
+			std::copy(path, path + strlen(path), back_inserter(w));
+			const WCHAR* pathWChar = w.c_str();
+
+			DirectX::TexMetadata heightMapMetadata;
+			DirectX::ScratchImage* heightMap = new DirectX::ScratchImage();
+
+			result = DirectX::LoadFromWICFile(pathWChar, WIC_FLAGS_NONE, &heightMapMetadata, *heightMap);
+
+			TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load height map!");
+
+			TOAST_CORE_INFO("Terrain data loaded width: %d, height: %d, format: %d", heightMapMetadata.width, heightMapMetadata.height, heightMapMetadata.format);
+
+			const uint16_t* rawTerrainData = reinterpret_cast<const uint16_t*>(heightMap->GetPixels());
+
+			size_t totalPixels = heightMapMetadata.width * heightMapMetadata.height;
+			TerrainData terrainDataUpdated;
+			terrainDataUpdated.HeightData.reserve(totalPixels);
+
+			for (size_t i = 0; i < totalPixels; ++i) 
+				terrainDataUpdated.HeightData.emplace_back(((static_cast<double>(rawTerrainData[i]) / MAX_INT_VALUE) * (maxAltitude - minAltitude)) + minAltitude);
+
+			terrainDataUpdated.RowPitch = heightMap->GetImage(0, 0, 0)->rowPitch;
+			terrainDataUpdated.Width = heightMapMetadata.width;
+			terrainDataUpdated.Height = heightMapMetadata.height;
+			//const uint16_t* terrainDataRaw = reinterpret_cast<const uint16_t*>(std::get<1>(terrainData)->GetPixels());
+			//double rawHeightValue = static_cast<double>(terrainDataRaw[((uint32_t)texCoordY * (rowPitch / 2) + (uint32_t)texCoordX)]) / MAX_INT_VALUE;
+
+			//float pixelOneSecondRowValue = (float)terrainData[(int)(heightMap->GetImage(0, 0, 0)->rowPitch / 2.0f) * 50] / MAX_INT_VALUE;
+			//TOAST_CORE_INFO("TEST!");
+			return terrainDataUpdated;
 		}
 
 		static double GetPlanetHeightAtPos(Entity* planet, Vector3& planetSpaceObjectPos)
 		{
 			TerrainColliderComponent tcc = planet->GetComponent<TerrainColliderComponent>();
 			
-			PlanetComponent pc = planet->GetComponent<PlanetComponent>();
+			PlanetComponent& pc = planet->GetComponent<PlanetComponent>();
 
 			size_t width = std::get<0>(tcc.Collider->TerrainData).width;
 			size_t height = std::get<0>(tcc.Collider->TerrainData).height;
 
-			float theta = atan2((float)planetSpaceObjectPos.z, (float)planetSpaceObjectPos.x);
-			float phi = asin((float)planetSpaceObjectPos.y);
+			double theta = atan2(planetSpaceObjectPos.z, planetSpaceObjectPos.x);
+			double phi = asin(planetSpaceObjectPos.y);
 
 			// Using floats from now on to better match up with the GPU
 			// Get texCoord in -1..1 range
-			DirectX::XMFLOAT2 texCoord = DirectX::XMFLOAT2(theta / DirectX::XM_PI, phi / DirectX::XM_PIDIV2);
+			Vector2 texCoord = Vector2(theta / M_PI, phi / M_PIDIV2);
 
 			// texCoord in 0..1 range, to match the ones on the GPU
-			texCoord.x = (texCoord.x * 0.5f + 0.5f) * (float)(width - 1);
-			texCoord.y = (texCoord.y * 0.5f + 0.5f) * (float)(height - 1);
+			texCoord.x = (texCoord.x * 0.5 + 0.5) * (double)(width - 1);
+			texCoord.y = (texCoord.y * 0.5 + 0.5) * (double)(height - 1);
 			//TOAST_CORE_INFO("texCoord: %f, %f", texCoord.x, texCoord.y);
 
 			uint32_t x1 = (uint32_t)(texCoord.x);
@@ -217,7 +260,7 @@ namespace Toast {
 			double Q21 = static_cast<double>(terrainData[y1 * (rowPitch / 2) + x2]) / MAX_INT_VALUE;
 			double Q22 = static_cast<double>(terrainData[y2 * (rowPitch / 2) + x2]) / MAX_INT_VALUE;
 
-			double terrainDataValue = Math::BilinearInterpolation(texCoord, Q11, Q12, Q21, Q22);
+			double terrainDataValue = Math::BilinearInterpolation({ (float)texCoord.x, (float)texCoord.y }, Q11, Q12, Q21, Q22);
 			//TOAST_CORE_CRITICAL("planetSpaceObjectPos: %lf, %lf, %lf", planetSpaceObjectPos.x, planetSpaceObjectPos.y, planetSpaceObjectPos.z);
 
 			double planetPtAtPos = (terrainDataValue * ((double)pc.PlanetData.maxAltitude - (double)pc.PlanetData.minAltitude) + (double)pc.PlanetData.minAltitude) + (double)pc.PlanetData.radius;
@@ -276,7 +319,7 @@ namespace Toast {
 			RigidBodyComponent rbcObject = object->GetComponent<RigidBodyComponent>();
 			TransformComponent objectTC = object->GetComponent<TransformComponent>();
 			TransformComponent planetTC = planet->GetComponent<TransformComponent>();
-			PlanetComponent planetPC = planet->GetComponent<PlanetComponent>();
+			PlanetComponent& planetPC = planet->GetComponent<PlanetComponent>();
 
 			Vector3 posPlanet = { planet->GetComponent<TransformComponent>().Translation };
 			Vector3 posObject = { object->GetComponent<TransformComponent>().Translation };
@@ -588,7 +631,7 @@ namespace Toast {
 			Vector3 planetPos = { planet.GetComponent<TransformComponent>().Translation.x, planet.GetComponent<TransformComponent>().Translation.y, planet.GetComponent<TransformComponent>().Translation.z };
 			Vector3 objectPos = { object.GetComponent<TransformComponent>().Translation.x, object.GetComponent<TransformComponent>().Translation.y, object.GetComponent<TransformComponent>().Translation.z };
 
-			auto pc = planet.GetComponent<PlanetComponent>();
+			auto& pc = planet.GetComponent<PlanetComponent>();
 			auto ptc = planet.GetComponent<TransformComponent>();
 			auto tcc = planet.GetComponent<TerrainColliderComponent>();
 
@@ -624,7 +667,7 @@ namespace Toast {
 				objectBounds = collider->GetBounds(colliderPts, objectTransform);
 			}
 
-			auto pc = planet.GetComponent<PlanetComponent>();
+			auto& pc = planet.GetComponent<PlanetComponent>();
 			auto tcc = planet.GetComponent<TerrainColliderComponent>();
 
 			Bounds planetBounds = tcc.Collider->GetBounds({ planetPos.x + pc.PlanetData.maxAltitude + pc.PlanetData.radius, planetPos.y + pc.PlanetData.maxAltitude + pc.PlanetData.radius, planetPos.z + pc.PlanetData.maxAltitude + pc.PlanetData.radius }, { 0.0f, 0.0f, 0.0f, 0.0f });
@@ -640,65 +683,65 @@ namespace Toast {
 		{
 			auto view = registry->view<TransformComponent, RigidBodyComponent>();
 
-			auto planetView = registry->view<PlanetComponent>();
-			if (planetView.size() > 0)
-			{
-				Entity planetEntity = { planetView[0], scene };
-				for (auto entity : view)
-				{
-					Entity objectEntity = { entity, scene };
-					auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
+			//auto planetView = registry->view<PlanetComponent>();
+			//if (planetView.size() > 0)
+			//{
+			//	Entity planetEntity = { planetView[0], scene };
+			//	for (auto entity : view)
+			//	{
+			//		Entity objectEntity = { entity, scene };
+			//		auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
 
-					Ref<Shape> collider;
-					if(objectEntity.HasComponent<SphereColliderComponent>())
-						collider = objectEntity.GetComponent<SphereColliderComponent>().Collider;
-					if(objectEntity.HasComponent<BoxColliderComponent>())
-						collider = objectEntity.GetComponent<BoxColliderComponent>().Collider;
+			//		Ref<Shape> collider;
+			//		if(objectEntity.HasComponent<SphereColliderComponent>())
+			//			collider = objectEntity.GetComponent<SphereColliderComponent>().Collider;
+			//		if(objectEntity.HasComponent<BoxColliderComponent>())
+			//			collider = objectEntity.GetComponent<BoxColliderComponent>().Collider;
 
-					if (collider != nullptr)
-					{
-						// Gravity
-						Vector3 impulseGravity = Gravity(planetEntity, objectEntity, dt);
-						ApplyImpulse(tc, rbc, collider, { tc.Translation }, impulseGravity);
-						//ApplyImpulseLinear(rbc, impulseGravity);
-						//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
-						//TOAST_CORE_INFO("Translation outside UpdateBody(): %f, %f, %f", tc.Translation.x, tc.Translation.y, tc.Translation.z);
+			//		if (collider != nullptr)
+			//		{
+			//			// Gravity
+			//			Vector3 impulseGravity = Gravity(planetEntity, objectEntity, dt);
+			//			ApplyImpulse(tc, rbc, collider, { tc.Translation }, impulseGravity);
+			//			//ApplyImpulseLinear(rbc, impulseGravity);
+			//			//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
+			//			//TOAST_CORE_INFO("Translation outside UpdateBody(): %f, %f, %f", tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
-						// Broad Phase
-						if (BroadPhaseCheck(planetEntity, objectEntity, dt))
-						{
-							// Narrow Phase
-							TerrainCollision terrainCollision;
-							if (TerrainCollisionCheck(&planetEntity, &objectEntity, terrainCollision, dt))
-							{
-								bool hasSphereCollider = objectEntity.HasComponent<SphereColliderComponent>();
-								bool hasBoxCollider = objectEntity.HasComponent<BoxColliderComponent>();
+			//			// Broad Phase
+			//			if (BroadPhaseCheck(planetEntity, objectEntity, dt))
+			//			{
+			//				// Narrow Phase
+			//				TerrainCollision terrainCollision;
+			//				if (TerrainCollisionCheck(&planetEntity, &objectEntity, terrainCollision, dt))
+			//				{
+			//					bool hasSphereCollider = objectEntity.HasComponent<SphereColliderComponent>();
+			//					bool hasBoxCollider = objectEntity.HasComponent<BoxColliderComponent>();
 
-								if (hasSphereCollider) 
-								{
-									//ResolveTerrainCollision(terrainCollision);
-									objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity = { 0.0f, 0.0f, 0.0f };
-								}
+			//					if (hasSphereCollider) 
+			//					{
+			//						//ResolveTerrainCollision(terrainCollision);
+			//						objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity = { 0.0f, 0.0f, 0.0f };
+			//					}
 
-								if (hasBoxCollider)
-								{
-									//ResolveTerrainCollision(terrainCollision);
-									//TOAST_CORE_INFO("COLLISION!!");
-									//objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity = { 0.0f, 0.0f, 0.0f };
-								}
+			//					if (hasBoxCollider)
+			//					{
+			//						//ResolveTerrainCollision(terrainCollision);
+			//						//TOAST_CORE_INFO("COLLISION!!");
+			//						//objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity = { 0.0f, 0.0f, 0.0f };
+			//					}
 
-							}	
-						}
+			//				}	
+			//			}
 
-						UpdateBody(objectEntity, dt);
-					}
-				}
+			//			UpdateBody(objectEntity, dt);
+			//		}
+			//	}
 
 				// This will be used later for when collision is added between entities. Right now Toast Physics only work with
 				// Collision with terrain.
 				int numContacts = 0;
 				const int maxContacts = view.size() * view.size();
-			}
+			//}
 
 		}
 	}

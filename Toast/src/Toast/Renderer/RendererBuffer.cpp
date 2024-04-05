@@ -8,7 +8,31 @@
 
 #include "Toast/Core/Application.h"
 
+#include <system_error>  // For std::system_category
+#include <locale>        // For std::wstring_convert
+#include <codecvt>       // For std::codecvt_utf8
+
 namespace Toast {
+
+	std::string HResultToString(HRESULT hr)
+	{
+		LPVOID messageBuffer = nullptr;
+		size_t size = FormatMessageA(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL,
+			hr,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPSTR)&messageBuffer,
+			0,
+			NULL);
+
+		std::string message((LPSTR)messageBuffer, size);
+
+		// Free the buffer allocated by FormatMessage
+		LocalFree(messageBuffer);
+
+		return message;
+	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  
 	//     VERTEXBUFFER     ////////////////////////////////////////////////////////////////  
@@ -43,7 +67,7 @@ namespace Toast {
 	}
 
 	VertexBuffer::VertexBuffer(void* vertices, uint32_t size, uint32_t count, uint32_t bindslot, D3D11_USAGE usage)
-		: mSize(size), mCount(count), mBindSlot(bindslot)
+		: mSize(size), mCount(count), mBindSlot(bindslot), mUsage(usage)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -55,11 +79,11 @@ namespace Toast {
 		ID3D11Device* device = API->GetDevice();
 
 		ZeroMemory(&vbd, sizeof(D3D11_BUFFER_DESC));
-		
-		vbd.Usage = usage;
-		vbd.ByteWidth = size;
+
+		vbd.Usage = mUsage;
+		vbd.ByteWidth = mSize;
 		vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		vbd.CPUAccessFlags = (usage == D3D11_USAGE_DEFAULT) ?  0 : D3D11_CPU_ACCESS_WRITE;
+		vbd.CPUAccessFlags = (mUsage == D3D11_USAGE_DEFAULT) ? 0 : D3D11_CPU_ACCESS_WRITE;
 		vbd.MiscFlags = 0;
 		vbd.StructureByteStride = 0;
 
@@ -68,9 +92,12 @@ namespace Toast {
 		vd.SysMemSlicePitch = 0;
 
 		result = device->CreateBuffer(&vbd, &vd, &mVertexBuffer);
-
+		
 		if (FAILED(result))
-			TOAST_CORE_ERROR("Error creating Vertexbuffer!");
+		{
+			std::string errorMessage = HResultToString(result);
+			TOAST_CORE_ERROR("Error creating Vertexbuffer: %s", errorMessage.c_str());
+		}
 
 		Bind();
 	}
@@ -134,7 +161,7 @@ namespace Toast {
 		ZeroMemory(&ibd, sizeof(D3D11_BUFFER_DESC));
 
 		ibd.Usage = D3D11_USAGE_DEFAULT;
-		ibd.ByteWidth = sizeof(uint32_t) * count;
+		ibd.ByteWidth = sizeof(uint32_t) * mCount;
 		ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		ibd.CPUAccessFlags = 0;
 		ibd.MiscFlags = 0;
@@ -147,7 +174,10 @@ namespace Toast {
 		result = device->CreateBuffer(&ibd, &id, &mIndexBuffer);
 
 		if (FAILED(result))
-			TOAST_CORE_ERROR("Error creating Indexbuffer!");
+		{
+			std::string errorMessage = HResultToString(result);
+			TOAST_CORE_ERROR("Error creating Indexbuffer: %s", errorMessage.c_str());
+		}
 
 		Bind();
 	}
@@ -186,6 +216,7 @@ namespace Toast {
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
+		HRESULT result;
 
 		D3D11_BUFFER_DESC bufferDesc;
 		bufferDesc.ByteWidth = size;
@@ -194,17 +225,24 @@ namespace Toast {
 		bufferDesc.CPUAccessFlags = (usage == D3D11_USAGE_DYNAMIC) ? D3D11_CPU_ACCESS_WRITE : NULL;
 		bufferDesc.MiscFlags = 0;
 		bufferDesc.StructureByteStride = 0;
-		
-		device->CreateBuffer(&bufferDesc, nullptr, &mBuffer);
+
+		result = device->CreateBuffer(&bufferDesc, nullptr, &mBuffer);
+
+		if (FAILED(result))
+		{
+			std::string errorMessage = HResultToString(result);
+			TOAST_CORE_ERROR("Error creating Constantbuffer: %s", errorMessage.c_str());
+		}
 	}
 
 	void ConstantBuffer::Bind() const
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
-
+		//TOAST_CORE_CRITICAL("Binding buffer named: %s", mName.c_str());
 		for(auto& bindInfo : mBindInfo)
 		{
+			//TOAST_CORE_CRITICAL("Binding buffer with bind point: %d", bindInfo.BindPoint);
 			switch (bindInfo.ShaderType)
 			{
 			case D3D11_VERTEX_SHADER:

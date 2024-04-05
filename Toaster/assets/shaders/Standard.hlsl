@@ -87,6 +87,12 @@ struct PixelInputType
 	float3 cameraPos		: POSITION1;
 };
 
+cbuffer RenderSettings : register(b9)
+{
+    float renderOverlay;
+    float3 padding;
+};
+
 float4 main(PixelInputType input) : SV_TARGET
 {
 	return Albedo;

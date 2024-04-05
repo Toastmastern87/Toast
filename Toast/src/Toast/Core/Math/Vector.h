@@ -51,7 +51,7 @@ namespace Toast {
 		double Magnitude() const;
 
 		static Vector3 Normalize(std::initializer_list<double> list);
-		static Vector3 Normalize(Vector3& vec);
+		static Vector3 Normalize(const Vector3& vec);
 
 		Vector3 HomogeneousNormalize() const;
 
@@ -60,8 +60,65 @@ namespace Toast {
 		static double Dot(const Vector3& a, const Vector3& b);
 
 		static Vector3 Rotate(const Vector3 vec, const Quaternion& q);
+
+		void ToString();
 	public:
 		double x, y, z, w;
+	};
+
+	class Vector2
+	{
+	public:
+		Vector2() = default;
+		Vector2(float xIn, float yIn = 1.0f);
+		Vector2(double xIn, double yIn, double zIn, double wIn = 1.0f) : x(xIn), y(yIn) {}
+		Vector2(DirectX::XMVECTOR vec);
+		Vector2(std::initializer_list<double> list);
+
+		Vector2(DirectX::XMFLOAT2 vec);
+
+		Vector2 operator+(const Vector3& rhs) const {
+			return Vector2(x + rhs.x, y + rhs.y);
+		}
+
+		Vector2& operator+=(const Vector2& rhs) {
+			x += rhs.x;
+			y += rhs.y;
+			return *this;
+		}
+
+		bool operator==(const Vector2& rhs) const {
+			return x == rhs.x && y == rhs.y;
+		}
+
+		Vector2 operator-(const Vector2& rhs) const {
+			return Vector2(x - rhs.x, y - rhs.y);
+		}
+
+		Vector2 operator*(double scalar) const {
+			return Vector2(x * scalar, y * scalar);
+		}
+
+		Vector2 operator*=(double scalar) const {
+			return Vector2(x * scalar, y * scalar);
+		}
+
+		Vector2 operator/(double scalar) const {
+			return Vector2(x / scalar, y / scalar);
+		}
+
+		double Magnitude() const;
+
+		static Vector2 Normalize(std::initializer_list<double> list);
+		static Vector2 Normalize(Vector2& vec);
+
+		static Vector2 Cross(const Vector2& a, const Vector2& b);
+
+		static double Dot(const Vector2& a, const Vector2& b);
+
+		void ToString();
+	public:
+		double x, y;
 	};
 
 }

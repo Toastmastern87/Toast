@@ -157,6 +157,17 @@ namespace Toast {
 		return nullptr;
 	}
 
+	Toast::Texture* Material::GetTexture(uint32_t bindSlot, D3D11_SHADER_TYPE shaderType)
+	{
+		for (auto& textureBinding : mTextureBindings)
+		{
+			if (bindSlot == textureBinding.BindSlot && shaderType == textureBinding.ShaderType)
+				return textureBinding.Texture;
+		}
+
+		return nullptr;
+	}
+
 	void Material::SetTextureSampler(uint32_t bindslot, D3D11_SHADER_TYPE shaderType, TextureSampler* sampler)
 	{
 		for (auto& textureSampler : mSamplerBindings)

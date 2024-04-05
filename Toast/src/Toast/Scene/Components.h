@@ -85,7 +85,7 @@ namespace Toast {
 
 	struct PlanetComponent
 	{
-		struct PlanetGPUData
+		struct GPUData
 		{
 			float radius = 3389.5f;
 			float minAltitude = -8.2f;
@@ -103,7 +103,11 @@ namespace Toast {
 			int opticalDepthPoints = 1;
 		};
 
-		Ref<Mesh> Mesh;
+		bool IsDirty;
+
+		Ref<Mesh> RenderMesh;
+		Ref<Mesh> BuildMesh;
+
 		std::vector<double> DistanceLUT;
 		std::vector<double> FaceLevelDotLUT;
 		std::vector<double> HeightMultLUT;
@@ -112,14 +116,16 @@ namespace Toast {
 		std::unordered_map<Vertex, uint32_t, PlanetSystem::VertexHasher, PlanetSystem::VertexEquality> PlanetVertexMap;
 		std::vector<PlanetSystem::Edge> PlanetEdges;
 
-		PlanetGPUData PlanetData;
+		GPUData PlanetData;
 
-		std::tuple<DirectX::TexMetadata, DirectX::ScratchImage*> TerrainData;
+		TerrainData TerrainDataUpdated;
 
 		PlanetComponent() = default;
 		PlanetComponent(int16_t subdivisions, float maxAltitude, float minAltitude, float radius, float gravAcc, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient)
 			: Subdivisions(subdivisions)
 		{
+			IsDirty = false;
+
 			PlanetData.maxAltitude = maxAltitude;
 			PlanetData.minAltitude = minAltitude;
 			PlanetData.radius = radius;
@@ -136,7 +142,6 @@ namespace Toast {
 			PlanetData.mieBaseScatteringCoefficient = mieBaseScatteringCoefficient;
 
 		}
-		PlanetComponent(const PlanetComponent& other) = default;
 	};
 
 	struct SpriteRendererComponent

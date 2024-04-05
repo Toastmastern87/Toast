@@ -41,6 +41,12 @@ namespace Toast {
 		sRendererData->EnvironmentBuffer.Allocate(sRendererData->EnvironmentCBuffer->GetSize());
 		sRendererData->EnvironmentBuffer.ZeroInitialize();
 
+		// Setting up the constant buffer and data buffer for the render settings
+		sRendererData->RenderSettingsCBuffer = ConstantBufferLibrary::Load("RenderSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, 9) });
+		sRendererData->RenderSettingsCBuffer->Bind();
+		sRendererData->RenderSettingsBuffer.Allocate(sRendererData->RenderSettingsCBuffer->GetSize());
+		sRendererData->RenderSettingsBuffer.ZeroInitialize();
+
 		sRendererData->BaseRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
 		sRendererData->PostProcessRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
 		sRendererData->FinalRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
@@ -105,6 +111,11 @@ namespace Toast {
 		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
 		if (TextureLibrary::ExistsSampler("BRDFSampler"))
 			TextureLibrary::GetSampler("BRDFSampler")->Bind(1, D3D11_PIXEL_SHADER);
+
+		// Updating the render settings data in the buffer and mapping it to the GPU
+		float renderOverlay = (float)scene->mSettings.PlanetOverlaySetting;
+		sRendererData->RenderSettingsBuffer.Write((uint8_t*)&renderOverlay, 4, 0);
+		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
 
 	void Renderer::EndScene(const bool debugActivated)
@@ -120,6 +131,8 @@ namespace Toast {
 		}
 
 		ClearDrawList();
+
+		TOAST_CORE_CRITICAL("END OF SCENE!");
 	}
 
 	void Renderer::Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform)
@@ -143,7 +156,7 @@ namespace Toast {
 		sRendererData->SceneData.SkyboxData.LOD = LOD;
 	}
 
-	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe, PlanetComponent::PlanetGPUData* planetData, bool atmosphere)
+	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe, PlanetComponent::GPUData* planetData, bool atmosphere)
 	{
 		sRendererData->PlanetData.Atmosphere = atmosphere;
 ;		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, entityID, planetData);
@@ -257,6 +270,8 @@ namespace Toast {
 			annotation->BeginEvent(L"Base Render Pass");
 #endif
 
+		TOAST_CORE_CRITICAL("Base Render Pass");
+
 		RenderCommand::EnableBlending();
 
 		sRendererData->BaseFramebuffer->Bind();
@@ -350,6 +365,7 @@ namespace Toast {
 		if (annotation)
 			annotation->BeginEvent(L"Picking Render Pass");
 #endif
+		TOAST_CORE_CRITICAL("Picking Render Pass");
 
 		RenderCommand::DisableWireframe();
 		RenderCommand::DisableBlending();
@@ -394,6 +410,8 @@ namespace Toast {
 		if (annotation)
 			annotation->BeginEvent(L"Atmosphere Pass");
 #endif
+		TOAST_CORE_CRITICAL("Post Process Pass");
+
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 

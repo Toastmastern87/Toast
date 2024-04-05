@@ -25,6 +25,16 @@ namespace Toast
 			Allocate(Size);
 		}
 
+		Buffer(const Buffer& other)
+			: Data(nullptr), Size(0)
+		{
+			if (other.Size > 0) {
+				Allocate(other.Size);
+				std::memcpy(Data, other.Data, Size);
+			}
+		}
+
+
 		void Allocate(uint64_t size)
 		{
 			Release();
@@ -70,6 +80,15 @@ namespace Toast
 		operator bool() const 
 		{
 			return (bool)Data;
+		}
+
+		Buffer& operator=(const Buffer& other)
+		{
+			if (this != &other) {
+				Allocate(other.Size);
+				std::memcpy(Data, other.Data, Size);
+			}
+			return *this;
 		}
 	};
 }

@@ -22,6 +22,14 @@ namespace Toast {
 
 		if(mContext)
 		{
+			const char* items[] = { "None", "Albedo", "Height Map", "Normal" };
+			int currentOverlay = static_cast<int>(mContext->mSettings.PlanetOverlaySetting);
+
+			ImGui::Text("Render Overlay");
+			ImGui::SameLine();
+			if (ImGui::Combo("", &currentOverlay, items, IM_ARRAYSIZE(items)))
+				mContext->mSettings.PlanetOverlaySetting = static_cast<Scene::Settings::PlanetOverlay>(currentOverlay);
+
 			auto& wireframeButton = [&](const char* label, Scene::Settings::Wireframe mode)
 			{
 				if (ImGui::RadioButton(label, mContext->mSettings.WireframeRendering == mode))

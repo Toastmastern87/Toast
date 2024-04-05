@@ -1,50 +1,5 @@
 Scene: Untitled Scene
 Entities:
-  - Entity: 12837192831273
-    TagComponent:
-      Tag: Camera
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 0.999973416, 0.999973416]
-    CameraComponent:
-      Camera:
-        ProjectionType: 0
-        PerspectiveFOV: 45
-        NearClip: 0.100000001
-        FarClip: 4000
-        OrthographicWidth: 2624
-        OrthographicHeight: 1001
-      Primary: true
-      FixedAspectRatio: false
-    ScriptComponent:
-      ClassName: Sandbox.CameraController
-      ScriptFields:
-        - Name: MinAltitude
-          Type: Float
-          Data: -344
-        - Name: MoveM
-          Type: Float
-          Data: 0.00200000009
-        - Name: ZoomK
-          Type: Float
-          Data: 0.00100000005
-        - Name: MaxAltitude
-          Type: Float
-          Data: 100000
-        - Name: MoveK
-          Type: Float
-          Data: 1.99999999e-08
-        - Name: ZoomM
-          Type: Float
-          Data: 663
-        - Name: MouseSpeedFactor
-          Type: Float
-          Data: 15
   - Entity: 18384185750220347789
     TagComponent:
       Tag: TimeScale1
@@ -128,7 +83,7 @@ Entities:
       ClassName: Sandbox.TimeText
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
-      Text: 00:00:11
+      Text: 00:00:01
   - Entity: 2812129723666465913
     TagComponent:
       Tag: SText
@@ -213,14 +168,14 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [0, -3384160.0, 0]
-      Rotation: [75, -30, 55]
-      Scale: [3389500, 3389500, 3389500]
+      Translation: [0, -4481, 0]
+      Rotation: [0, 0, 0]
+      Scale: [3389.5, 3389.5, 3389.5]
     PlanetComponent:
-      Subdivisions: 9
-      MaxAltitude: 21200
+      Subdivisions: 3
+      MaxAltitude: 21.2000008
       MinAltitude: -8200
-      Radius: 3389500
+      Radius: 3389.5
       GravitationalAcceleration: 3.72000003
       AtmosphereHeight: 60000
       AtmosphereToggle: false
@@ -293,3 +248,48 @@ Entities:
     SphereColliderComponent:
       RenderCollider: true
       Radius: 6.6100001335144043
+- Entity: 12837192831273
+    TagComponent:
+      Tag: Camera
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 0.999973416, 0.999973416]
+    CameraComponent:
+      Camera:
+        ProjectionType: 0
+        PerspectiveFOV: 45
+        NearClip: 0.100000001
+        FarClip: 400000
+        OrthographicWidth: 2624
+        OrthographicHeight: 1001
+      Primary: true
+      FixedAspectRatio: false
+    ScriptComponent:
+      ClassName: Sandbox.CameraController
+      ScriptFields:
+        - Name: MinAltitude
+          Type: Float
+          Data: -344
+        - Name: MoveM
+          Type: Float
+          Data: 0.00200000009
+        - Name: ZoomK
+          Type: Float
+          Data: 0.00100000005
+        - Name: MaxAltitude
+          Type: Float
+          Data: 100000
+        - Name: MoveK
+          Type: Float
+          Data: 1.99999999e-08
+        - Name: ZoomM
+          Type: Float
+          Data: 663
+        - Name: MouseSpeedFactor
+          Type: Float
+          Data: 15
