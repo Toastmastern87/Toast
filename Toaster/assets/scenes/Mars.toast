@@ -213,7 +213,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [0, -3384160.0, 0]
+      Translation: [0, -3384118.0000, 0]
       Rotation: [75, -30, 55]
       Scale: [3389500, 3389500, 3389500]
     PlanetComponent:
@@ -279,7 +279,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [-7.5, 50, 50]
+      Translation: [-20, 50, 50]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
     MeshComponent:

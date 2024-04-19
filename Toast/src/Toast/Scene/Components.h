@@ -114,11 +114,10 @@ namespace Toast {
 		int16_t Subdivisions = 0;
 		
 		std::unordered_map<Vertex, uint32_t, PlanetSystem::VertexHasher, PlanetSystem::VertexEquality> PlanetVertexMap;
-		std::vector<PlanetSystem::Edge> PlanetEdges;
 
 		GPUData PlanetData;
 
-		TerrainData TerrainDataUpdated;
+		TerrainData PlanetTerrainData;
 
 		PlanetComponent() = default;
 		PlanetComponent(int16_t subdivisions, float maxAltitude, float minAltitude, float radius, float gravAcc, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient)

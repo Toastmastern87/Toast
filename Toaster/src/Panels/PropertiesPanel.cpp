@@ -128,7 +128,7 @@ namespace Toast {
 		ImGui::PopFont();
 		ImGui::SameLine();
 		temp = static_cast<float>(values.x);
-		if (ImGui::DragFloat("##X", &temp, CalculateDelta(temp), 0.0f, 0.0f, GetPrecision(temp)))
+		if (ImGui::DragFloat("##X", &temp, 0.01f, 0.0f, 0.0f, GetPrecision(temp)))
 		{
 			values.x = static_cast<double>(temp);
 			modified = true;
@@ -150,7 +150,7 @@ namespace Toast {
 
 		ImGui::SameLine();
 		temp = static_cast<float>(values.y);
-		if (ImGui::DragFloat("##Y", &temp, CalculateDelta(temp), 0.0f, 0.0f, GetPrecision(temp)))
+		if (ImGui::DragFloat("##Y", &temp, 0.01f, 0.0f, 0.0f, GetPrecision(temp)))
 		{
 			values.y = static_cast<double>(temp);
 			modified = true;
@@ -172,7 +172,7 @@ namespace Toast {
 
 		ImGui::SameLine();
 		temp = static_cast<float>(values.z);
-		if (ImGui::DragFloat("##X", &temp, CalculateDelta(temp), 0.0f, 0.0f, GetPrecision(temp)))
+		if (ImGui::DragFloat("##X", &temp, 0.01f, 0.0f, 0.0f, GetPrecision(temp)))
 		{
 			values.z = static_cast<double>(temp);
 			modified = true;
@@ -221,7 +221,7 @@ namespace Toast {
 		ImGui::PopStyleColor(3);
 		ImGui::PopFont();
 		ImGui::SameLine();
-		if (ImGui::DragFloat("##X", &values.x, CalculateDelta(values.x), 0.0f, 0.0f, GetPrecision(values.x)))
+		if (ImGui::DragFloat("##X", &values.x, 0.01f, 0.0f, 0.0f, GetPrecision(values.x)))
 			modified = true;
 		ImGui::PopItemWidth();
 		ImGui::SameLine();
@@ -239,7 +239,7 @@ namespace Toast {
 		ImGui::PopFont();
 
 		ImGui::SameLine();
-		if (ImGui::DragFloat("##Y", &values.y, CalculateDelta(values.y), 0.0f, 0.0f, GetPrecision(values.x)))
+		if (ImGui::DragFloat("##Y", &values.y, 0.01f, 0.0f, 0.0f, GetPrecision(values.x)))
 			modified = true;
 		ImGui::PopItemWidth();
 		ImGui::SameLine();
@@ -257,7 +257,7 @@ namespace Toast {
 		ImGui::PopFont();
 
 		ImGui::SameLine();
-		if (ImGui::DragFloat("##Z", &values.z, CalculateDelta(values.z), 0.0f, 0.0f, GetPrecision(values.x)))
+		if (ImGui::DragFloat("##Z", &values.z, 0.01f, 0.0f, 0.0f, GetPrecision(values.x)))
 			modified = true;
 		ImGui::PopItemWidth();
 
@@ -1160,9 +1160,6 @@ namespace Toast {
 							found = newTag.find_last_of(".\\");
 							tag = newTag.substr(0, found);
 						}
-
-						component.Collider->FilePath = *filepath;
-						component.Collider->TerrainData = PhysicsEngine::LoadTerrainData(component.Collider->FilePath.c_str());
 					}
 				}
 				ImGui::EndTable();

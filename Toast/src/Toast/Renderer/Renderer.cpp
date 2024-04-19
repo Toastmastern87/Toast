@@ -132,7 +132,7 @@ namespace Toast {
 
 		ClearDrawList();
 
-		TOAST_CORE_CRITICAL("END OF SCENE!");
+		//TOAST_CORE_CRITICAL("END OF SCENE!");
 	}
 
 	void Renderer::Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform)
@@ -270,7 +270,7 @@ namespace Toast {
 			annotation->BeginEvent(L"Base Render Pass");
 #endif
 
-		TOAST_CORE_CRITICAL("Base Render Pass");
+		//TOAST_CORE_CRITICAL("Base Render Pass");
 
 		RenderCommand::EnableBlending();
 
@@ -365,7 +365,7 @@ namespace Toast {
 		if (annotation)
 			annotation->BeginEvent(L"Picking Render Pass");
 #endif
-		TOAST_CORE_CRITICAL("Picking Render Pass");
+		//TOAST_CORE_CRITICAL("Picking Render Pass");
 
 		RenderCommand::DisableWireframe();
 		RenderCommand::DisableBlending();
@@ -410,7 +410,7 @@ namespace Toast {
 		if (annotation)
 			annotation->BeginEvent(L"Atmosphere Pass");
 #endif
-		TOAST_CORE_CRITICAL("Post Process Pass");
+		//TOAST_CORE_CRITICAL("Post Process Pass");
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();

@@ -274,7 +274,7 @@ namespace Toast {
 					* DirectX::XMMatrixTranslation(planetTransform.Translation.x, planetTransform.Translation.y, planetTransform.Translation.z);
 
 				// Starting new thread to create a new planet if one isn't already being created
-				PlanetSystem::RegeneratePlanet(planet.PlanetEdges, planet.PlanetVertexMap, mFrustum, planetTransform.Scale, noScaleModelMatrix, planet.BuildMesh, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, planet.TerrainDataUpdated, planet.PlanetData.minAltitude, planet.PlanetData.maxAltitude);
+				PlanetSystem::RegeneratePlanet(planet.PlanetVertexMap, mFrustum, planetTransform.Scale, noScaleModelMatrix, planet.BuildMesh, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, planet.PlanetTerrainData, planet.PlanetData.minAltitude, planet.PlanetData.maxAltitude);
 
 				PlanetSystem::UpdatePlanet(planet.RenderMesh, planet.BuildMesh);
 			}
@@ -605,7 +605,7 @@ namespace Toast {
 						* DirectX::XMMatrixTranslation(planetTransform.Translation.x, planetTransform.Translation.y, planetTransform.Translation.z);
 
 					// Starting new thread to create a new planet if one isn't already being created
-					PlanetSystem::RegeneratePlanet(planet.PlanetEdges, planet.PlanetVertexMap, mFrustum, planetTransform.Scale, noScaleModelMatrix, planet.BuildMesh, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, planet.TerrainDataUpdated, planet.PlanetData.minAltitude, planet.PlanetData.maxAltitude);
+					PlanetSystem::RegeneratePlanet(planet.PlanetVertexMap, mFrustum, planetTransform.Scale, noScaleModelMatrix, planet.BuildMesh, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, planet.PlanetTerrainData, planet.PlanetData.minAltitude, planet.PlanetData.maxAltitude);
 
 					// Check if planet build is ready and if that is the case move it to the render mesh
 					PlanetSystem::UpdatePlanet(planet.RenderMesh, planet.BuildMesh);
@@ -1050,12 +1050,12 @@ namespace Toast {
 		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, component.PlanetData.maxAltitude);
 
 		if (component.RenderMesh->GetMaterial("Planet")->GetTexture(7, D3D11_SHADER_TYPE::D3D11_PIXEL_SHADER)) 
-			component.TerrainDataUpdated = PhysicsEngine::LoadTerrainDataUpdated(component.RenderMesh->GetMaterial("Planet")->GetTexture(7, D3D11_SHADER_TYPE::D3D11_PIXEL_SHADER)->GetFilePath().c_str(), component.PlanetData.maxAltitude, component.PlanetData.minAltitude);
+			component.PlanetTerrainData = PhysicsEngine::LoadTerrainData(component.RenderMesh->GetMaterial("Planet")->GetTexture(7, D3D11_SHADER_TYPE::D3D11_PIXEL_SHADER)->GetFilePath().c_str(), component.PlanetData.maxAltitude, component.PlanetData.minAltitude);
 
 		DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion))
 			* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
-		PlanetSystem::RegeneratePlanet(component.PlanetEdges, component.PlanetVertexMap, mFrustum, tc.Scale, noScaleModelMatrix, component.BuildMesh, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.Subdivisions, component.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, component.TerrainDataUpdated, component.PlanetData.minAltitude, component.PlanetData.maxAltitude);
+		PlanetSystem::RegeneratePlanet(component.PlanetVertexMap, mFrustum, tc.Scale, noScaleModelMatrix, component.BuildMesh, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.Subdivisions, component.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, component.PlanetTerrainData, component.PlanetData.minAltitude, component.PlanetData.maxAltitude);
 	}
 
 	template<>
@@ -1109,7 +1109,7 @@ namespace Toast {
 		mSphereColliderMaterial = CreateRef<Material>("ColliderMaterial", new Shader("assets/shaders/Standard.hlsl"));
 		mSphereColliderMaterial->Set<DirectX::XMFLOAT4>("Albedo", { 0.0f, 0.0f, 1.0f, 1.0f });
 
-		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf");
+		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf", false);
 		component.ColliderMesh->SetMaterial("Collider", mSphereColliderMaterial);
 	}
 
@@ -1121,7 +1121,7 @@ namespace Toast {
 		mCubeColliderMaterial = CreateRef<Material>("ColliderMaterial", new Shader("assets/shaders/Standard.hlsl"));
 		mCubeColliderMaterial->Set<DirectX::XMFLOAT4>("Albedo", { 0.0f, 0.0f, 1.0f, 1.0f });
 
-		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.gltf");
+		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.gltf", false);
 		component.ColliderMesh->SetMaterial("Collider", mCubeColliderMaterial);
 	}
 

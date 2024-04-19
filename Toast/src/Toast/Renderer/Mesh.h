@@ -208,7 +208,7 @@ namespace Toast {
 		uint32_t GetNumberOfSubmeshes() { return mSubmeshes.size(); }
 
 		const Ref<Material> GetMaterial(std::string materialName) const { if (mMaterials.find(materialName) != mMaterials.end()) return mMaterials.at(materialName); else return nullptr; }
-		void SetMaterial(std::string materialName, Ref<Material> material) { mMaterials[materialName] = material; TOAST_CORE_INFO("ADDING MATERIAL: %s, Number of materials: %d", materialName.c_str(), mMaterials.size()); }
+		void SetMaterial(std::string materialName, Ref<Material> material) { mMaterials[materialName] = material; }
 
 		DirectX::XMMATRIX& GetLocalTransform() { return mSubmeshes[0].Transform; }
 		void SetLocalTransform(DirectX::XMMATRIX& transform) { mSubmeshes[0].Transform = transform; }
@@ -245,6 +245,7 @@ namespace Toast {
 		Buffer mModelBuffer, mPlanetBuffer;
 
 		bool mIsPlanet = false;
+
 		bool mIsAnimated = false;
 
 		//std::unordered_map<Vertex, uint32_t, PlanetSystem::VertexHasher, PlanetSystem::VertexEquality> vertexMap;
