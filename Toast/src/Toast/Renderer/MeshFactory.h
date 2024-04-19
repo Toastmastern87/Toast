@@ -194,43 +194,43 @@ namespace Toast {
 		//	return indexCount;
 		//}
 
-		static uint32_t SplitTriangle(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Vertex a, Vertex b, Vertex c, int8_t subdivision, int8_t maxSubdivisions)
-		{
-			uint32_t indexCount = 0;
+		//static uint32_t SplitTriangle(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Vertex a, Vertex b, Vertex c, int8_t subdivision, int8_t maxSubdivisions)
+		//{
+		//	uint32_t indexCount = 0;
 
-			if (subdivision < maxSubdivisions)
-			{
-				int8_t nSubdivision = subdivision + 1;
+		//	if (subdivision < maxSubdivisions)
+		//	{
+		//		int8_t nSubdivision = subdivision + 1;
 
-				Vertex A = b + ((c - b) * 0.5f);
-				Vertex B = c + ((a - c) * 0.5f);
-				Vertex C = a + ((b - a) * 0.5f);
+		//		Vertex A = b + ((c - b) * 0.5f);
+		//		Vertex B = c + ((a - c) * 0.5f);
+		//		Vertex C = a + ((b - a) * 0.5f);
 
-				A *= 0.5f / Math::GetVectorLength({ A.Position.x, A.Position.y, A.Position.z });
-				B *= 0.5f / Math::GetVectorLength({ B.Position.x, B.Position.y, B.Position.z });
-				C *= 0.5f / Math::GetVectorLength({ C.Position.x, C.Position.y, C.Position.z });
+		//		A *= 0.5f / Math::GetVectorLength({ A.Position.x, A.Position.y, A.Position.z });
+		//		B *= 0.5f / Math::GetVectorLength({ B.Position.x, B.Position.y, B.Position.z });
+		//		C *= 0.5f / Math::GetVectorLength({ C.Position.x, C.Position.y, C.Position.z });
 
-				indexCount += SplitTriangle(vertices, indices, C, B, a, nSubdivision, maxSubdivisions);
-				indexCount += SplitTriangle(vertices, indices, C, b, A, nSubdivision, maxSubdivisions);
-				indexCount += SplitTriangle(vertices, indices, c, B, A, nSubdivision, maxSubdivisions);
-				indexCount += SplitTriangle(vertices, indices, C, A, B, nSubdivision, maxSubdivisions);
-			}
-			else 
-			{
-				vertices.push_back(a);
-				indices.push_back((uint32_t)(vertices.size() - 1));
+		//		indexCount += SplitTriangle(vertices, indices, C, B, a, nSubdivision, maxSubdivisions);
+		//		indexCount += SplitTriangle(vertices, indices, C, b, A, nSubdivision, maxSubdivisions);
+		//		indexCount += SplitTriangle(vertices, indices, c, B, A, nSubdivision, maxSubdivisions);
+		//		indexCount += SplitTriangle(vertices, indices, C, A, B, nSubdivision, maxSubdivisions);
+		//	}
+		//	else 
+		//	{
+		//		vertices.push_back(a);
+		//		indices.push_back((uint32_t)(vertices.size() - 1));
 	
-				vertices.push_back(b);
-				indices.push_back((uint32_t)(vertices.size() - 1));
+		//		vertices.push_back(b);
+		//		indices.push_back((uint32_t)(vertices.size() - 1));
 
-				vertices.push_back(c);
-				indices.push_back((uint32_t)(vertices.size() - 1));
+		//		vertices.push_back(c);
+		//		indices.push_back((uint32_t)(vertices.size() - 1));
 
-				indexCount += 3;
-			}
+		//		indexCount += 3;
+		//	}
 
-			return indexCount;
-		}
+		//	return indexCount;
+		//}
 
 		//static uint32_t CreateOctahedron(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, uint32_t subdivisions = 0)
 		//{

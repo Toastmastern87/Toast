@@ -86,7 +86,7 @@ namespace Toast {
 	{
 	public:
 		ShapeTerrain() = default;
-		ShapeTerrain(std::string filePath, std::tuple<DirectX::TexMetadata, DirectX::ScratchImage*> terrainData) : FilePath(filePath), TerrainData(terrainData) {}
+		ShapeTerrain(std::string filePath) : FilePath(filePath) {}
 
 		ShapeType GetType() const override { return ShapeType::TERRAIN; }
 		Matrix GetInertiaTensor() const override;
@@ -98,7 +98,6 @@ namespace Toast {
 
 	public:
 		std::string FilePath;
-		std::tuple<DirectX::TexMetadata, DirectX::ScratchImage*> TerrainData;
 	};
 
 }

@@ -92,6 +92,11 @@ namespace Toast {
 		TOAST_CORE_INFO("Vector3: %lf, %lf, %lf", x, y, z);
 	}
 
+	void Vector3::ToString(const std::string& label)
+	{
+		TOAST_CORE_INFO("%s: %lf, %lf, %lf", label.c_str(), x, y, z);
+	}
+
 	////////////////////////////////////////////////////////////////////////////////////////  
 	//		  VECTOR2	  	  //////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
@@ -117,6 +122,14 @@ namespace Toast {
 
 		x = (it != list.end()) ? static_cast<double>(*it++) : 0.0;
 		y = (it != list.end()) ? static_cast<double>(*it++) : 0.0;
+	}
+
+	Vector2::Vector2(std::initializer_list<uint32_t> list)
+	{
+		auto it = list.begin();
+
+		x = (it != list.end()) ? static_cast<double>(*it++) : 0;
+		y = (it != list.end()) ? static_cast<double>(*it++) : 0;
 	}
 
 	double Vector2::Magnitude() const {
@@ -153,5 +166,10 @@ namespace Toast {
 	void Vector2::ToString()
 	{
 		TOAST_CORE_INFO("Vector2: %lf, %lf", x, y);
+	}
+
+	void Vector2::ToString(const std::string& label)
+	{
+		TOAST_CORE_INFO("%s: %lf, %lf", label.c_str(), x, y);
 	}
 }

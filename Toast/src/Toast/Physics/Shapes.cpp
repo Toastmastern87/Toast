@@ -35,10 +35,10 @@ namespace Toast {
 	Matrix ShapeSphere::GetInertiaTensor() const
 	{
 		Matrix tensor(
-			1.0, 0.0, 0.0, 0.0,
-			0.0, 1.0, 0.0, 0.0,
-			0.0, 0.0, 1.0, 0.0,
-			0.0, 0.0, 0.0, 1.0
+			0.0, 0.0, 0.0, 0.0,
+			0.0, 0.0, 0.0, 0.0,
+			0.0, 0.0, 0.0, 0.0,
+			0.0, 0.0, 0.0, 0.0
 		);
 		tensor.m_00 = 0.4 * mRadius * mRadius;
 		tensor.m_11 = 0.4 * mRadius * mRadius;

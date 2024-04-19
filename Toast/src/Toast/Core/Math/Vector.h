@@ -62,6 +62,7 @@ namespace Toast {
 		static Vector3 Rotate(const Vector3 vec, const Quaternion& q);
 
 		void ToString();
+		void ToString(const std::string& label);
 	public:
 		double x, y, z, w;
 	};
@@ -74,6 +75,7 @@ namespace Toast {
 		Vector2(double xIn, double yIn, double zIn, double wIn = 1.0f) : x(xIn), y(yIn) {}
 		Vector2(DirectX::XMVECTOR vec);
 		Vector2(std::initializer_list<double> list);
+		Vector2(std::initializer_list<uint32_t> list);
 
 		Vector2(DirectX::XMFLOAT2 vec);
 
@@ -117,6 +119,7 @@ namespace Toast {
 		static double Dot(const Vector2& a, const Vector2& b);
 
 		void ToString();
+		void ToString(const std::string& label);
 	public:
 		double x, y;
 	};

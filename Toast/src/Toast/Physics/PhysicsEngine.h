@@ -10,7 +10,7 @@
 
 #define MAX_INT_VALUE	65535.0
 #define M_PI			3.14159265358979323846
-#define M_PIDIV2		3.14159265358979323846 / 2.0
+#define M_PIDIV2		(3.14159265358979323846 / 2.0)
 
 namespace Toast {
 
@@ -161,35 +161,7 @@ namespace Toast {
 			//ApplyImpulseAngular(tc, rbc, shape, dL);
 		}
 
-		static std::tuple<DirectX::TexMetadata, DirectX::ScratchImage*> LoadTerrainData(const char* path)
-		{
-			HRESULT result;
-
-			std::wstring w;
-			std::copy(path, path + strlen(path), back_inserter(w));
-			const WCHAR* pathWChar = w.c_str();
-
-			DirectX::TexMetadata heightMapMetadata;
-			DirectX::ScratchImage* heightMap = new DirectX::ScratchImage();
-
-			result = DirectX::LoadFromWICFile(pathWChar, WIC_FLAGS_NONE, &heightMapMetadata, *heightMap);
-
-			TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load height map!");
-
-			TOAST_CORE_INFO("Terrain data loaded width: %d, height: %d, format: %d", heightMapMetadata.width, heightMapMetadata.height, heightMapMetadata.format);
-
-			const uint16_t* terrainData = reinterpret_cast<const uint16_t*>(heightMap->GetPixels());
-
-			//size_t rowPitch = std::get<1>(terrainData)->GetImage(0, 0, 0)->rowPitch;
-			//const uint16_t* terrainDataRaw = reinterpret_cast<const uint16_t*>(std::get<1>(terrainData)->GetPixels());
-			//double rawHeightValue = static_cast<double>(terrainDataRaw[((uint32_t)texCoordY * (rowPitch / 2) + (uint32_t)texCoordX)]) / MAX_INT_VALUE;
-
-			//float pixelOneSecondRowValue = (float)terrainData[(int)(heightMap->GetImage(0, 0, 0)->rowPitch / 2.0f) * 50] / MAX_INT_VALUE;
-			//TOAST_CORE_INFO("TEST!");
-			return std::make_tuple(heightMapMetadata, heightMap);
-		}
-
-		static TerrainData LoadTerrainDataUpdated(const char* path, const double maxAltitude, const double minAltitude)
+		static TerrainData LoadTerrainData(const char* path, const double maxAltitude, const double minAltitude)
 		{
 			HRESULT result;
 
@@ -218,54 +190,27 @@ namespace Toast {
 			terrainDataUpdated.RowPitch = heightMap->GetImage(0, 0, 0)->rowPitch;
 			terrainDataUpdated.Width = heightMapMetadata.width;
 			terrainDataUpdated.Height = heightMapMetadata.height;
-			//const uint16_t* terrainDataRaw = reinterpret_cast<const uint16_t*>(std::get<1>(terrainData)->GetPixels());
-			//double rawHeightValue = static_cast<double>(terrainDataRaw[((uint32_t)texCoordY * (rowPitch / 2) + (uint32_t)texCoordX)]) / MAX_INT_VALUE;
 
-			//float pixelOneSecondRowValue = (float)terrainData[(int)(heightMap->GetImage(0, 0, 0)->rowPitch / 2.0f) * 50] / MAX_INT_VALUE;
-			//TOAST_CORE_INFO("TEST!");
 			return terrainDataUpdated;
 		}
 
-		static double GetPlanetHeightAtPos(Entity* planet, Vector3& planetSpaceObjectPos)
-		{
-			TerrainColliderComponent tcc = planet->GetComponent<TerrainColliderComponent>();
-			
+		static double GetObjectDistanceToPlanet(Entity* planet, Vector3& worldSpaceObjectPos)
+		{	
 			PlanetComponent& pc = planet->GetComponent<PlanetComponent>();
 
-			size_t width = std::get<0>(tcc.Collider->TerrainData).width;
-			size_t height = std::get<0>(tcc.Collider->TerrainData).height;
+			std::vector<uint32_t> indices = pc.RenderMesh->GetIndices();
+			std::vector<Vertex> vertices = pc.RenderMesh->GetVertices();
 
-			double theta = atan2(planetSpaceObjectPos.z, planetSpaceObjectPos.x);
-			double phi = asin(planetSpaceObjectPos.y);
+			if (indices.size() > 0)
+			{
+				for (int i = 0; i < indices.size() - 2; i += 3)
+				{
+					double distance = Math::PointToPlaneDistance(worldSpaceObjectPos, vertices[indices[i]].Position, vertices[indices[i + 1]].Position, vertices[indices[i + 2]].Position);
 
-			// Using floats from now on to better match up with the GPU
-			// Get texCoord in -1..1 range
-			Vector2 texCoord = Vector2(theta / M_PI, phi / M_PIDIV2);
-
-			// texCoord in 0..1 range, to match the ones on the GPU
-			texCoord.x = (texCoord.x * 0.5 + 0.5) * (double)(width - 1);
-			texCoord.y = (texCoord.y * 0.5 + 0.5) * (double)(height - 1);
-			//TOAST_CORE_INFO("texCoord: %f, %f", texCoord.x, texCoord.y);
-
-			uint32_t x1 = (uint32_t)(texCoord.x);
-			uint32_t y1 = (uint32_t)(texCoord.y);
-
-			uint32_t x2 = x1 == (width - 1) ? 0 : x1 + 1;
-			uint32_t y2 = y1 == (height - 1) ? 0 : y1 + 1;
-
-			size_t rowPitch = std::get<1>(tcc.Collider->TerrainData)->GetImage(0, 0, 0)->rowPitch;
-			const uint16_t* terrainData = reinterpret_cast<const uint16_t*>(std::get<1>(tcc.Collider->TerrainData)->GetPixels());
-			double Q11 = static_cast<double>(terrainData[y1 * (rowPitch / 2) + x1]) / MAX_INT_VALUE;
-			double Q12 = static_cast<double>(terrainData[y2 * (rowPitch / 2) + x1]) / MAX_INT_VALUE;
-			double Q21 = static_cast<double>(terrainData[y1 * (rowPitch / 2) + x2]) / MAX_INT_VALUE;
-			double Q22 = static_cast<double>(terrainData[y2 * (rowPitch / 2) + x2]) / MAX_INT_VALUE;
-
-			double terrainDataValue = Math::BilinearInterpolation({ (float)texCoord.x, (float)texCoord.y }, Q11, Q12, Q21, Q22);
-			//TOAST_CORE_CRITICAL("planetSpaceObjectPos: %lf, %lf, %lf", planetSpaceObjectPos.x, planetSpaceObjectPos.y, planetSpaceObjectPos.z);
-
-			double planetPtAtPos = (terrainDataValue * ((double)pc.PlanetData.maxAltitude - (double)pc.PlanetData.minAltitude) + (double)pc.PlanetData.minAltitude) + (double)pc.PlanetData.radius;
-			//TOAST_CORE_CRITICAL("Planet height: %lf", planetPtAtPos);
-			return planetPtAtPos;
+					if (distance != -100.0f)
+						return distance;
+				}
+			}
 		}
 
 		static void UpdateBody(Entity& body, float dt)
@@ -286,26 +231,26 @@ namespace Toast {
 			tc.Translation = { (float)translation.x , (float)translation.y, (float)translation.z };
 
 			// Update rotation due to AngularVelocity
-			if (rbc.AngularVelocity.Magnitude() > 0.0f && collider != nullptr)
-			{
-				Vector3 CoMPositionWorldSpace = Matrix(tc.GetTransform()) * rbc.CenterOfMass;
-				Vector3 CoMToPos = translation - CoMPositionWorldSpace;
+			//if (rbc.AngularVelocity.Magnitude() > 0.0f && collider != nullptr)
+			//{
+			//	Vector3 CoMPositionWorldSpace = Matrix(tc.GetTransform()) * rbc.CenterOfMass;
+			//	Vector3 CoMToPos = translation - CoMPositionWorldSpace;
 
-				Matrix orientation = Matrix::FromQuaternion(Quaternion::FromRollPitchYaw(Math::DegreesToRadians(tc.RotationEulerAngles.x), Math::DegreesToRadians(tc.RotationEulerAngles.y), Math::DegreesToRadians(tc.RotationEulerAngles.z))) * Matrix::FromQuaternion({ tc.RotationQuaternion });
-				Matrix inertiaTensor = orientation * collider->GetInertiaTensor();
-				Vector3 alpha = Matrix::Inverse(inertiaTensor) * Vector3::Cross(rbc.AngularVelocity, inertiaTensor * rbc.AngularVelocity);
-				rbc.AngularVelocity = rbc.AngularVelocity + alpha * dt;
+			//	Matrix orientation = Matrix::FromQuaternion(Quaternion::FromRollPitchYaw(Math::DegreesToRadians(tc.RotationEulerAngles.x), Math::DegreesToRadians(tc.RotationEulerAngles.y), Math::DegreesToRadians(tc.RotationEulerAngles.z))) * Matrix::FromQuaternion({ tc.RotationQuaternion });
+			//	Matrix inertiaTensor = orientation * collider->GetInertiaTensor();
+			//	Vector3 alpha = Matrix::Inverse(inertiaTensor) * Vector3::Cross(rbc.AngularVelocity, inertiaTensor * rbc.AngularVelocity);
+			//	rbc.AngularVelocity = rbc.AngularVelocity + alpha * dt;
 
-				// Update orientation due to AngularVelocity
-				Vector3 dAngle = rbc.AngularVelocity * dt;
-				Quaternion dq = Quaternion::FromAxisAngle(dAngle, dAngle.Magnitude());
-				Quaternion finalQuaternion = Quaternion::Normalize(Quaternion(tc.RotationQuaternion) * dq);
-				tc.RotationQuaternion = { (float)finalQuaternion.x, (float)finalQuaternion.y, (float)finalQuaternion.z, (float)finalQuaternion.w };
+			//	// Update orientation due to AngularVelocity
+			//	Vector3 dAngle = rbc.AngularVelocity * dt;
+			//	Quaternion dq = Quaternion::FromAxisAngle(dAngle, dAngle.Magnitude());
+			//	Quaternion finalQuaternion = Quaternion::Normalize(Quaternion(tc.RotationQuaternion) * dq);
+			//	tc.RotationQuaternion = { (float)finalQuaternion.x, (float)finalQuaternion.y, (float)finalQuaternion.z, (float)finalQuaternion.w };
 
-				// Update position due to CoM translation
-				Vector3 finalPos = CoMPositionWorldSpace + Vector3::Rotate(CoMToPos, dq);
-				tc.Translation = { (float)finalPos.x, (float)finalPos.y, (float)finalPos.z };
-			}
+			//	// Update position due to CoM translation
+			//	Vector3 finalPos = CoMPositionWorldSpace + Vector3::Rotate(CoMToPos, dq);
+			//	tc.Translation = { (float)finalPos.x, (float)finalPos.y, (float)finalPos.z };
+			//}
 		}
 
 		static bool TerrainCollisionCheck(Entity* planet, Entity* object, TerrainCollision& collision, float dt)
@@ -327,127 +272,38 @@ namespace Toast {
 			Matrix planetTransform = { planetTC.GetTransform() };
 			Matrix objectTransform = { objectTC.GetTransform() };
 
-			//Matrix identityMatrix = Matrix::Identity();
-			//TOAST_CORE_INFO("Identity matrix");
-			//identityMatrix.ToString();
-			//TOAST_CORE_INFO("inverse Identity matrix");
-			//Matrix::Inverse(identityMatrix).ToString();
+			//posPlanet.ToString("posPlanet: ");
+			//posObject.ToString("posObject: ");
 
-			//TOAST_CORE_INFO("Original planet matrix");
-			//planetTransform.ToString();
-			//TOAST_CORE_INFO("Original planet matrix DXMath:");
-			//DirectX::XMVECTOR row = planetTC.GetTransform().r[0];
-			//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-			//row = planetTC.GetTransform().r[1];
-			//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-			//row = planetTC.GetTransform().r[2];
-			//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-			//row = planetTC.GetTransform().r[3];
-			//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-
-			//TOAST_CORE_INFO("Original object matrix");
-			//objectTransform.ToString();
-			//TOAST_CORE_INFO("Original object matrix DXMath:");
-			//row = objectTC.GetTransform().r[0];
-			//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-			//row = objectTC.GetTransform().r[1];
-			//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-			//row = objectTC.GetTransform().r[2];
-			//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-			//row = objectTC.GetTransform().r[3];
-			//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-
-			//DirectX::XMMATRIX inverseMatrixTestDXMath = DirectX::XMMatrixInverse(nullptr, planetTC.GetTransform());
-			//TOAST_CORE_INFO("Inverse planetTransform:");
-			//Matrix::Inverse(planetTransform).ToString();
-			//TOAST_CORE_INFO("Inverse planetTransform DXMath:");
-			//row = inverseMatrixTestDXMath.r[0];
-			//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-			//row = inverseMatrixTestDXMath.r[1];
-			//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-			//row = inverseMatrixTestDXMath.r[2];
-			//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-			//row = inverseMatrixTestDXMath.r[3];
-			//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-			////TOAST_CORE_CRITICAL("posObject: %lf, %lf, %lf, %lf", posObject.x, posObject.y, posObject.z, posObject.w);
 			Vector3 planetSpaceObjectPos = Matrix::Inverse(planetTransform) * posObject;
 
-			//DirectX::XMVECTOR planetSpaceObjectPosDXMath = DirectX::XMVector3Transform(DirectX::XMVectorSet(posObject.x, posObject.y, posObject.z, posObject.w), inverseMatrixTestDXMath);
-
-			//TOAST_CORE_CRITICAL("planetSpaceObjectPos: %lf, %lf, %lf, %lf", planetSpaceObjectPos.x, planetSpaceObjectPos.y, planetSpaceObjectPos.z, planetSpaceObjectPos.w);
-			//TOAST_CORE_CRITICAL("planetSpaceObjectPosDXMath: %f, %f, %f, %f", DirectX::XMVectorGetX(planetSpaceObjectPosDXMath), DirectX::XMVectorGetY(planetSpaceObjectPosDXMath), DirectX::XMVectorGetZ(planetSpaceObjectPosDXMath), DirectX::XMVectorGetW(planetSpaceObjectPosDXMath));
-
-			double planetHeight = GetPlanetHeightAtPos(planet, Vector3::Normalize(planetSpaceObjectPos));
+			//planetTransform.ToString();
+			//planetSpaceObjectPos.ToString("planetSpaceObjectPos: ");
+			
+			double objectDistance = GetObjectDistanceToPlanet(planet, posObject);
+			double planetHeight = (posObject - posPlanet).Magnitude() - objectDistance;
+			//TOAST_CORE_CRITICAL("(posObject - posPlanet).Magnitude(): %lf", (posObject - posPlanet).Magnitude());
 			//TOAST_CORE_CRITICAL("planetHeight: %lf", planetHeight);
-			Vector3 terrainPointWorldPos = posPlanet + Vector3::Normalize(posObject - posPlanet) * planetHeight;
-			//TOAST_CORE_INFO("Starship transform");
-			//objectTransform.ToString();
-			Vector3 terrainPointObjectSpacePos = Matrix::Inverse(objectTransform) * terrainPointWorldPos;
-			//TOAST_CORE_INFO("objectTransform:");
-			//objectTransform.ToString();
-
-			DirectX::XMMATRIX inverseMatrixDXMath = DirectX::XMMatrixInverse(nullptr, objectTC.GetTransform());
-			DirectX::XMVECTOR terrainPointWorldPosDXMath = DirectX::XMVectorSet(terrainPointWorldPos.x, terrainPointWorldPos.y, terrainPointWorldPos.z, terrainPointWorldPos.w);
-			DirectX::XMVECTOR terrainPointObjectSpacePosDXMath = DirectX::XMVector3Transform(terrainPointWorldPosDXMath, inverseMatrixDXMath);
+			//Vector3 terrainPointWorldPos = posPlanet + Vector3::Normalize(posObject - posPlanet) * (planetHeight + planetPC.PlanetData.radius);
+			//terrainPointWorldPos.ToString("terrainPointWorldPos: ");
+			//Vector3 terrainPointObjectSpacePos = Matrix::Inverse(objectTransform) * terrainPointWorldPos;
+			//terrainPointObjectSpacePos.ToString("terrainPointObjectSpacePos: ");
 
 			if (hasSphereCollider)
 			{
-				//TOAST_CORE_INFO("Inverse Starship transform");
-				//Matrix::Inverse(objectTransform).ToString();
+				double distance = objectDistance - object->GetComponent<SphereColliderComponent>().Collider->mRadius;
 
-				//TOAST_CORE_INFO("Inverse Starship transform DXMath:");
-				//DirectX::XMVECTOR row = inverseMatrixDXMath.r[0];
-				//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-				//row = inverseMatrixDXMath.r[1];
-				//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-				//row = inverseMatrixDXMath.r[2];
-				//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-				//row = inverseMatrixDXMath.r[3];
-				//TOAST_CORE_INFO("			%f, %f, %f, %f", DirectX::XMVectorGetX(row), DirectX::XMVectorGetY(row), DirectX::XMVectorGetZ(row), DirectX::XMVectorGetW(row));
-				//TOAST_CORE_CRITICAL("posObject: %lf, %lf, %lf, %lf", posObject.x, posObject.y, posObject.z, posObject.w);
+				bool collisionDetected = SpherePlanetDynamic(*planet, *object, posObject, posPlanet, rbcObject.LinearVelocity, Vector3(0.0, 0.0, 0.0), planetHeight, dt, collision.PtOnObjectWorldSpace, collision.PtOnPlanetWorldSpace, collision.TimeOfImpact);
 
-				//TOAST_CORE_INFO("Terrain position in world space: %lf, %lf, %lf, %lf", terrainPointWorldPos.x, terrainPointWorldPos.y, terrainPointWorldPos.z, terrainPointWorldPos.w);
-				//TOAST_CORE_INFO("Terrain position in world space DXMath: %f, %f, %f, %f", DirectX::XMVectorGetX(terrainPointWorldPosDXMath), DirectX::XMVectorGetY(terrainPointWorldPosDXMath), DirectX::XMVectorGetZ(terrainPointWorldPosDXMath), DirectX::XMVectorGetW(terrainPointWorldPosDXMath));
-				//TOAST_CORE_INFO("Starship position in worldSpace: %lf, %lf, %lf, %lf", posObject.x, posObject.y, posObject.z, posObject.w);
-				//TOAST_CORE_INFO("Terrain position in object space: %lf, %lf, %lf, %lf", terrainPointObjectSpacePos.x, terrainPointObjectSpacePos.y, terrainPointObjectSpacePos.z, terrainPointObjectSpacePos.w);
-				//TOAST_CORE_INFO("Terrain position in object space DXMath: %f, %f, %f, %f", DirectX::XMVectorGetX(terrainPointObjectSpacePosDXMath), DirectX::XMVectorGetY(terrainPointObjectSpacePosDXMath), DirectX::XMVectorGetZ(terrainPointObjectSpacePosDXMath), DirectX::XMVectorGetW(terrainPointObjectSpacePosDXMath));
-				double distance = terrainPointObjectSpacePos.Magnitude() - object->GetComponent<SphereColliderComponent>().Collider->mRadius;
-				//double distance = (terrainPointWorldPos - posObject).Magnitude() - object->GetComponent<SphereColliderComponent>().Collider->mRadius;
-				//double distance = (posObject - posPlanet).Magnitude() - planetHeight - object->GetComponent<SphereColliderComponent>().Collider->mRadius;
-
-				////TOAST_CORE_INFO("Vector planet position: %f, %f, %f", DirectX::XMVectorGetX(posPlanet), DirectX::XMVectorGetY(posPlanet), DirectX::XMVectorGetZ(posPlanet));
-				////TOAST_CORE_INFO("Vector object position: %f, %f, %f", DirectX::XMVectorGetX(posObject), DirectX::XMVectorGetY(posObject), DirectX::XMVectorGetZ(posObject));
-				//TOAST_CORE_INFO("Vector length between planet center and object center: %lf", (posObject - posPlanet).Magnitude());
-				//TOAST_CORE_INFO("planetHeight: %lf", planetHeight);
-				////TOAST_CORE_INFO("object->GetComponent<SphereColliderComponent>().Collider->mRadius: %f", object->GetComponent<SphereColliderComponent>().Collider->mRadius);
-				TOAST_CORE_INFO("Distance: %lf", distance);
-
-				if (distance < 0.0) 
+				if (collisionDetected)
 				{
-					TOAST_CORE_CRITICAL("NEW WAY COLLISION!");
-					TOAST_CORE_INFO("Starship position: %lf, %lf, %lf", posObject.x, posObject.y, posObject.z);
+					UpdateBody(*object, dt);
+					collision.Normal = Vector3::Normalize(posObject - posPlanet);
+					collision.SeparationDistance = distance;
+					UpdateBody(*object, -dt);
+
 					return true;
 				}
-
-				//bool temps = SpherePlanetDynamic(*planet, *object, posObject, posPlanet, rbcObject.LinearVelocity, Vector3(0.0, 0.0, 0.0), planetHeight, dt, collision.PtOnObjectWorldSpace, collision.PtOnPlanetWorldSpace, collision.TimeOfImpact);
-				//TOAST_CORE_CRITICAL("collision.TimeOfImpact: %f", collision.TimeOfImpact);
-				//if(temps)
-				//{
-				//	UpdateBody(*object, dt);
-				//	
-				//	TOAST_CORE_INFO("COLLISION!");
-				//	TOAST_CORE_INFO("Starship position: %f, %f, %f", posObject.x, posObject.y, posObject.z);
-				//	collision.Normal = Vector3::Normalize(posObject - posPlanet);
-				//	TOAST_CORE_INFO("collision.Normal: %f, %f, %f", collision.Normal.x, collision.Normal.y, collision.Normal.z);
-				//	UpdateBody(*object, -dt);
-
-				//	double objectSCCRadius = object->GetComponent<SphereColliderComponent>().Collider->mRadius;
-				//	Vector3 ab = posObject - posPlanet;
-				//	double r = ab.Magnitude() - (objectSCCRadius + planetHeight);
-				//	collision.SeparationDistance = r;
-				//	TOAST_CORE_INFO("collision.SeparationDistance: %f", collision.SeparationDistance);
-				//	return true;
-				//}
 			}
 			//else if (hasBoxCollider) 
 			//{
@@ -611,14 +467,14 @@ namespace Toast {
 			if (0.0 == collision.TimeOfImpact) 
 			{
 				const Vector3 ds = collision.PtOnObjectWorldSpace - collision.PtOnPlanetWorldSpace;
-				TOAST_CORE_CRITICAL("Collision ds Vector: %lf, %lf, %lf", ds.x, ds.y, ds.z);
+				//TOAST_CORE_CRITICAL("Collision ds Vector: %lf, %lf, %lf", ds.x, ds.y, ds.z);
 
 				const double tObject = rbcObject->InvMass / (planetInvMass + rbcObject->InvMass);
-				TOAST_CORE_CRITICAL("tObject: %lf", tObject);
+				//TOAST_CORE_CRITICAL("tObject: %lf", tObject);
 				Vector3 objectPosition = { collision.Object->GetComponent<TransformComponent>().Translation };
-				TOAST_CORE_CRITICAL("Translation BEFORE resolving: %lf, %lf, %lf", collision.Object->GetComponent<TransformComponent>().Translation.x, collision.Object->GetComponent<TransformComponent>().Translation.y, collision.Object->GetComponent<TransformComponent>().Translation.z);
+				//TOAST_CORE_CRITICAL("Translation BEFORE resolving: %lf, %lf, %lf", collision.Object->GetComponent<TransformComponent>().Translation.x, collision.Object->GetComponent<TransformComponent>().Translation.y, collision.Object->GetComponent<TransformComponent>().Translation.z);
 				collision.Object->GetComponent<TransformComponent>().Translation = { (float)(objectPosition + ds * tObject).x, (float)(objectPosition + ds * tObject).y, (float)(objectPosition + ds * tObject).z };
-				TOAST_CORE_CRITICAL("Translation AFTER resolving: %f, %f, %f", collision.Object->GetComponent<TransformComponent>().Translation.x, collision.Object->GetComponent<TransformComponent>().Translation.y, collision.Object->GetComponent<TransformComponent>().Translation.z);
+				//TOAST_CORE_CRITICAL("Translation AFTER resolving: %f, %f, %f", collision.Object->GetComponent<TransformComponent>().Translation.x, collision.Object->GetComponent<TransformComponent>().Translation.y, collision.Object->GetComponent<TransformComponent>().Translation.z);
 			}
 
 			return;
@@ -683,65 +539,68 @@ namespace Toast {
 		{
 			auto view = registry->view<TransformComponent, RigidBodyComponent>();
 
-			//auto planetView = registry->view<PlanetComponent>();
-			//if (planetView.size() > 0)
-			//{
-			//	Entity planetEntity = { planetView[0], scene };
-			//	for (auto entity : view)
-			//	{
-			//		Entity objectEntity = { entity, scene };
-			//		auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
+			auto planetView = registry->view<PlanetComponent>();
+			if (planetView.size() > 0)
+			{
+				Entity planetEntity = { planetView[0], scene };
+				for (auto entity : view)
+				{
+					Entity objectEntity = { entity, scene };
+					auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
 
-			//		Ref<Shape> collider;
-			//		if(objectEntity.HasComponent<SphereColliderComponent>())
-			//			collider = objectEntity.GetComponent<SphereColliderComponent>().Collider;
-			//		if(objectEntity.HasComponent<BoxColliderComponent>())
-			//			collider = objectEntity.GetComponent<BoxColliderComponent>().Collider;
+					Ref<Shape> collider;
+					if(objectEntity.HasComponent<SphereColliderComponent>())
+						collider = objectEntity.GetComponent<SphereColliderComponent>().Collider;
+					if(objectEntity.HasComponent<BoxColliderComponent>())
+						collider = objectEntity.GetComponent<BoxColliderComponent>().Collider;
 
-			//		if (collider != nullptr)
-			//		{
-			//			// Gravity
-			//			Vector3 impulseGravity = Gravity(planetEntity, objectEntity, dt);
-			//			ApplyImpulse(tc, rbc, collider, { tc.Translation }, impulseGravity);
-			//			//ApplyImpulseLinear(rbc, impulseGravity);
-			//			//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
-			//			//TOAST_CORE_INFO("Translation outside UpdateBody(): %f, %f, %f", tc.Translation.x, tc.Translation.y, tc.Translation.z);
+					if (collider != nullptr)
+					{
+						// Gravity
+						Vector3 impulseGravity = Gravity(planetEntity, objectEntity, dt);
+						ApplyImpulse(tc, rbc, collider, { tc.Translation }, impulseGravity);
+						//ApplyImpulseLinear(rbc, impulseGravity);
+						//TOAST_CORE_INFO("Linear Velocity: %f, %f, %f", rbc.LinearVelocity.x, rbc.LinearVelocity.y, rbc.LinearVelocity.z);
+						//TOAST_CORE_INFO("Translation outside UpdateBody(): %f, %f, %f", tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
-			//			// Broad Phase
-			//			if (BroadPhaseCheck(planetEntity, objectEntity, dt))
-			//			{
-			//				// Narrow Phase
-			//				TerrainCollision terrainCollision;
-			//				if (TerrainCollisionCheck(&planetEntity, &objectEntity, terrainCollision, dt))
-			//				{
-			//					bool hasSphereCollider = objectEntity.HasComponent<SphereColliderComponent>();
-			//					bool hasBoxCollider = objectEntity.HasComponent<BoxColliderComponent>();
+						// Broad Phase
+						if (BroadPhaseCheck(planetEntity, objectEntity, dt))
+						{
+							// Narrow Phase
+							TerrainCollision terrainCollision;
+							if (TerrainCollisionCheck(&planetEntity, &objectEntity, terrainCollision, dt))
+							{
+								bool hasSphereCollider = objectEntity.HasComponent<SphereColliderComponent>();
+								bool hasBoxCollider = objectEntity.HasComponent<BoxColliderComponent>();
 
-			//					if (hasSphereCollider) 
-			//					{
-			//						//ResolveTerrainCollision(terrainCollision);
-			//						objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity = { 0.0f, 0.0f, 0.0f };
-			//					}
+								if (hasSphereCollider) 
+								{
+									//objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity = { 0.0f, 0.0f, 0.0f };
+									ResolveTerrainCollision(terrainCollision);
+									//TOAST_CORE_CRITICAL("Object translation after resolving the collision: %f, %f, %f", tc.Translation.x, tc.Translation.y, tc.Translation.z);
+								}
 
-			//					if (hasBoxCollider)
-			//					{
-			//						//ResolveTerrainCollision(terrainCollision);
-			//						//TOAST_CORE_INFO("COLLISION!!");
-			//						//objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity = { 0.0f, 0.0f, 0.0f };
-			//					}
+								if (hasBoxCollider)
+								{
+									//ResolveTerrainCollision(terrainCollision);
+									//TOAST_CORE_INFO("COLLISION!!");
+									//objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity = { 0.0f, 0.0f, 0.0f };
+								}
 
-			//				}	
-			//			}
+							}	
+						}
 
-			//			UpdateBody(objectEntity, dt);
-			//		}
-			//	}
+						UpdateBody(objectEntity, dt);
+
+						//TOAST_CORE_CRITICAL("Object translation after Update resolving the collision: %f, %f, %f", tc.Translation.x, tc.Translation.y, tc.Translation.z);
+					}
+				}
 
 				// This will be used later for when collision is added between entities. Right now Toast Physics only work with
 				// Collision with terrain.
 				int numContacts = 0;
 				const int maxContacts = view.size() * view.size();
-			//}
+			}
 
 		}
 	}

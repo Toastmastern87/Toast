@@ -762,9 +762,6 @@ namespace Toast {
 				if (terrainColliderComponent)
 				{
 					auto& tcc = deserializedEntity.AddComponent<TerrainColliderComponent>();
-
-					tcc.Collider->FilePath = terrainColliderComponent["AssetPath"].as<std::string>();
-					tcc.Collider->TerrainData = PhysicsEngine::LoadTerrainData(tcc.Collider->FilePath.c_str());
 				}
 
 				auto uiPanelComponent = entity["UIPanelComponent"];

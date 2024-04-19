@@ -90,7 +90,7 @@ namespace Toast {
 		}
 		sRendererData->MeshColliderDrawList.clear();
 
-		TOAST_CORE_CRITICAL("DEBUG END SCENE!");
+		//TOAST_CORE_CRITICAL("DEBUG END SCENE!");
 	}
 
 	void RendererDebug::SubmitCameraFrustum(Ref<Frustum> frustum)

@@ -22,7 +22,7 @@ namespace Toast {
 
 		if(mContext)
 		{
-			const char* items[] = { "None", "Albedo", "Height Map", "Normal" };
+			const char* items[] = { "None", "Albedo", "Height Map", "Normal", "DebugColor" };
 			int currentOverlay = static_cast<int>(mContext->mSettings.PlanetOverlaySetting);
 
 			ImGui::Text("Render Overlay");

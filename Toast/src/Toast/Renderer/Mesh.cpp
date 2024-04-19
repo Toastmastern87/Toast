@@ -90,7 +90,7 @@ namespace Toast {
 			//TOAST_CORE_INFO("data->accessors_count: %d", data->accessors_count);
 			for (unsigned m = 0; m < data->meshes_count; m++)
 			{
-				//TOAST_CORE_INFO("Loading Mesh: %s", data->meshes[m].name);
+				TOAST_CORE_INFO("Loading Mesh: %s", data->meshes[m].name);
 
 				//TOAST_CORE_INFO("	primitives_count: %d", data->meshes[m].primitives_count);
 

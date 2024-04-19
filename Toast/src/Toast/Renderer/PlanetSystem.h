@@ -166,7 +166,7 @@ namespace Toast {
 			};
 		}
 
-		static void SubdivideFace(TerrainData& terrainDataUpdated, double radius, Vector3& cameraPosPlanetSpace, Matrix& planetScaleTransform, Ref<Frustum>& frustum, std::vector<PlanetSystem::Edge>& planetEdges, int& triangleAdded, std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Matrix planetTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Vector3& a, Vector3& b, Vector3& c, int16_t& subdivision, int16_t maxSubdivisions, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, bool backfaceCull, bool frustumCullActivated, bool frustumCull)
+		static void SubdivideFace(TerrainData& terrainDataUpdated, double radius, Vector3& cameraPosPlanetSpace, Matrix& planetScaleTransform, Ref<Frustum>& frustum, int& triangleAdded, std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Matrix planetTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Vector3& a, Vector3& b, Vector3& c, int16_t& subdivision, int16_t maxSubdivisions, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, bool backfaceCull, bool frustumCullActivated, bool frustumCull)
 		{
 			TOAST_PROFILE_FUNCTION();
 
@@ -189,10 +189,10 @@ namespace Toast {
 
 				int16_t nextSubdivision = subdivision + 1;
 
-				SubdivideFace(terrainDataUpdated, radius, cameraPosPlanetSpace, planetScaleTransform, frustum, planetEdges, triangleAdded, vertexMap, planetTransform, vertices, indices, A, B, C, nextSubdivision, maxSubdivisions, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, nextPlanetFace == NextPlanetFace::SPLITCULL);
-				SubdivideFace(terrainDataUpdated, radius, cameraPosPlanetSpace, planetScaleTransform, frustum, planetEdges, triangleAdded, vertexMap, planetTransform, vertices, indices, C, B, a, nextSubdivision, maxSubdivisions, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, nextPlanetFace == NextPlanetFace::SPLITCULL);
-				SubdivideFace(terrainDataUpdated, radius, cameraPosPlanetSpace, planetScaleTransform, frustum, planetEdges, triangleAdded, vertexMap, planetTransform, vertices, indices, b, A, C, nextSubdivision, maxSubdivisions, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, nextPlanetFace == NextPlanetFace::SPLITCULL);
-				SubdivideFace(terrainDataUpdated, radius, cameraPosPlanetSpace, planetScaleTransform, frustum, planetEdges, triangleAdded, vertexMap, planetTransform, vertices, indices, B, A, c, nextSubdivision, maxSubdivisions, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, nextPlanetFace == NextPlanetFace::SPLITCULL);
+				SubdivideFace(terrainDataUpdated, radius, cameraPosPlanetSpace, planetScaleTransform, frustum, triangleAdded, vertexMap, planetTransform, vertices, indices, A, B, C, nextSubdivision, maxSubdivisions, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, nextPlanetFace == NextPlanetFace::SPLITCULL);
+				SubdivideFace(terrainDataUpdated, radius, cameraPosPlanetSpace, planetScaleTransform, frustum, triangleAdded, vertexMap, planetTransform, vertices, indices, C, B, a, nextSubdivision, maxSubdivisions, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, nextPlanetFace == NextPlanetFace::SPLITCULL);
+				SubdivideFace(terrainDataUpdated, radius, cameraPosPlanetSpace, planetScaleTransform, frustum, triangleAdded, vertexMap, planetTransform, vertices, indices, b, A, C, nextSubdivision, maxSubdivisions, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, nextPlanetFace == NextPlanetFace::SPLITCULL);
+				SubdivideFace(terrainDataUpdated, radius, cameraPosPlanetSpace, planetScaleTransform, frustum, triangleAdded, vertexMap, planetTransform, vertices, indices, B, A, c, nextSubdivision, maxSubdivisions, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, nextPlanetFace == NextPlanetFace::SPLITCULL);
 			}
 			else
 			{
@@ -280,7 +280,7 @@ namespace Toast {
 					uint32_t currentIndexC = GetOrAddVertex(vertexMap, c, vertices);
 					indices.emplace_back(currentIndexC);
 				}
-				else 
+				else
 				{
 					Vertex newVertex = (closestVertex + middleVertex) * 0.5;
 
@@ -311,7 +311,7 @@ namespace Toast {
 			}
 		}
 
-		static void GeneratePlanet(std::vector<PlanetSystem::Edge>& planetEdges, std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, Ref<Mesh>& planetMesh, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, TerrainData& terrainDataUpdated, double minAltitude, double maxAltitude)
+		static void GeneratePlanet(std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, Ref<Mesh>& planetMesh, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, TerrainData& terrainData, double minAltitude, double maxAltitude)
 		{
 			TOAST_PROFILE_FUNCTION();
 
@@ -324,13 +324,13 @@ namespace Toast {
 			Vector3 cameraPos = { camPos };
 
 			Vector3 cameraPosPlanetSpace = Matrix::Inverse(planetTransform) * cameraPos;
+			//TOAST_CORE_INFO("cameraPosPlanetSpace.Magnitude(): %lf", cameraPosPlanetSpace.Magnitude());
 
 			std::vector<Vector3> startVertices;
 			std::vector<uint32_t> startIndices;
 			GetBasePlanet(startVertices, startIndices, scale);
 
 			vertexMap.clear();
-			planetEdges.clear();
 
 			planetMesh->mVertices.clear();
 			planetMesh->mIndices.clear();
@@ -338,36 +338,54 @@ namespace Toast {
 			for (int i = 0; i < startIndices.size() - 2; i += 3)
 			{
 				int16_t firstSubdivision = 0;
-				SubdivideFace(terrainDataUpdated, radius, cameraPosPlanetSpace, scaleTransform, frustum, planetEdges, triangleAdded, vertexMap, planetTransform, planetMesh->mVertices, planetMesh->mIndices, startVertices.at(startIndices.at(i)), startVertices.at(startIndices.at(i+1)), startVertices.at(startIndices.at(i + 2)), firstSubdivision, subdivisions, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, true);
+				SubdivideFace(terrainData, radius, cameraPosPlanetSpace, scaleTransform, frustum, triangleAdded, vertexMap, planetTransform, planetMesh->mVertices, planetMesh->mIndices, startVertices.at(startIndices.at(i)), startVertices.at(startIndices.at(i + 1)), startVertices.at(startIndices.at(i + 2)), firstSubdivision, subdivisions, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, true);
 			}
 
+			int i = 0;
 			for (auto& vertex : planetMesh->mVertices)
 			{
 				Vector3 normalizedPos = Vector3::Normalize({ vertex.Position.x, vertex.Position.y, vertex.Position.z });
 
 				//TOAST_CORE_CRITICAL("vertex.Texcoord: %lf, %lf", vertex.Texcoord.x, vertex.Texcoord.y);
-				Vector3 scaledPos = scaleTransform * normalizedPos;
+				Vector3 scaledPos;// = scaleTransform * normalizedPos;
 
 				//Apply height to the planet
-				if (!terrainDataUpdated.HeightData.empty())
-				{ 
-					Vector2 uvCoord = GetUVFromPosition(scaledPos, (double)terrainDataUpdated.Width, (double)terrainDataUpdated.Height);
-					vertex.Texcoord = GetGPUUVFromPosition(scaledPos);
+				if (!terrainData.HeightData.empty())
+				{
+					Vector2 uvCoord = GetUVFromPosition(normalizedPos, (double)terrainData.Width, (double)terrainData.Height);
+					vertex.Texcoord = GetGPUUVFromPosition(normalizedPos);
 
-					scaledPos += normalizedPos * terrainDataUpdated.HeightData[((uint32_t)uvCoord.y * (terrainDataUpdated.RowPitch / 2) + (uint32_t)uvCoord.x)];
-				}
-				
+					uint32_t x1 = (uint32_t)(uvCoord.x);
+					uint32_t y1 = (uint32_t)(uvCoord.y);
+
+					uint32_t x2 = x1 == (terrainData.Width - 1) ? 0 : x1 + 1;
+					uint32_t y2 = y1 == (terrainData.Height - 1) ? 0 : y1 + 1;
+
+					double Q11 = static_cast<double>(terrainData.HeightData[y1 * (terrainData.RowPitch / 2) + x1]);
+					double Q12 = static_cast<double>(terrainData.HeightData[y2 * (terrainData.RowPitch / 2) + x1]);
+					double Q21 = static_cast<double>(terrainData.HeightData[y1 * (terrainData.RowPitch / 2) + x2]);
+					double Q22 = static_cast<double>(terrainData.HeightData[y2 * (terrainData.RowPitch / 2) + x2]);
+
+					double terrainDataValue = Math::BilinearInterpolation(uvCoord, Q11, Q12, Q21, Q22);
+
+					scaledPos = normalizedPos * (radius + terrainDataValue);
+				}	
+
 				scaledPos = planetTransform * scaledPos;
-				
+
 				vertex.Position = { (float)scaledPos.x, (float)scaledPos.y, (float)scaledPos.z };
 
 				vertex.Color = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+				i++;
 			}
+
+			Vector3 cameraPosOnPlanetSurface = Vector3::Normalize(cameraPosPlanetSpace);
+			Matrix inversePlanetTransform = Matrix::Inverse(planetTransform);
 
 			newPlanetReady.store(true);
 		}
 
-		static void RegeneratePlanet(std::vector<PlanetSystem::Edge>& planetEdges, std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, Ref<Mesh>& planetMesh, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, TerrainData& terrainDataUpdated, double minAltitude, double maxAltitude)
+		static void RegeneratePlanet(std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, Ref<Mesh>& planetMesh, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, TerrainData& terrainDataUpdated, double minAltitude, double maxAltitude)
 		{
 			if (generationFuture.valid() && generationFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready) 
 				return;
@@ -375,7 +393,6 @@ namespace Toast {
 			if (!newPlanetReady.load())
 			{
 				generationFuture = std::async(std::launch::async, &PlanetSystem::GeneratePlanet,
-					std::ref(planetEdges),
 					std::ref(vertexMap),
 					std::ref(frustum),
 					std::ref(scale),
@@ -432,12 +449,12 @@ namespace Toast {
 				distanceLUT.emplace_back(currentDistance);
 			}
 
-			int i = 0;
-			for (auto level : distanceLUT) 
-			{
-				i++;
-				TOAST_CORE_INFO("distanceLUT[%d]: %lf", i, level);
-			}
+			//int i = 0;
+			//for (auto level : distanceLUT) 
+			//{
+			//	i++;
+			//	TOAST_CORE_INFO("distanceLUT[%d]: %lf", i, level);
+			//}
 		}
 
 		static void GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight)

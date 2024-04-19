@@ -45,9 +45,9 @@ namespace Toast {
 
 			if (vec.w == 0.0)
 			{
-				xResult = vec.x * m_00 + vec.y * m_01 + vec.z * m_02;
-				yResult = vec.x * m_10 + vec.y * m_11 + vec.z * m_12;
-				zResult = vec.x * m_20 + vec.y * m_21 + vec.z * m_22;
+				xResult = vec.x * m_00 + vec.y * m_01 + vec.z * m_02 + m_03;
+				yResult = vec.x * m_10 + vec.y * m_11 + vec.z * m_12 + m_13;
+				zResult = vec.x * m_20 + vec.y * m_21 + vec.z * m_22 + m_23;
 				wResult = 0.0;
 			}
 			else
