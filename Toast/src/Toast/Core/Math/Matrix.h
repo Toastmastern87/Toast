@@ -15,6 +15,7 @@ namespace Toast {
 		double Determinant() const;
 
 		static Matrix Identity();
+		static Matrix Zero();
 
 		Matrix Transpose() const;
 

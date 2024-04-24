@@ -311,7 +311,7 @@ namespace Toast {
 			}
 		}
 
-		static void GeneratePlanet(std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, Ref<Mesh>& planetMesh, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, TerrainData& terrainData, double minAltitude, double maxAltitude)
+		static void GeneratePlanet(std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, TerrainData& terrainData, double minAltitude, double maxAltitude)
 		{
 			TOAST_PROFILE_FUNCTION();
 
@@ -332,17 +332,17 @@ namespace Toast {
 
 			vertexMap.clear();
 
-			planetMesh->mVertices.clear();
-			planetMesh->mIndices.clear();
+			vertices.clear();
+			indices.clear();
 
 			for (int i = 0; i < startIndices.size() - 2; i += 3)
 			{
 				int16_t firstSubdivision = 0;
-				SubdivideFace(terrainData, radius, cameraPosPlanetSpace, scaleTransform, frustum, triangleAdded, vertexMap, planetTransform, planetMesh->mVertices, planetMesh->mIndices, startVertices.at(startIndices.at(i)), startVertices.at(startIndices.at(i + 1)), startVertices.at(startIndices.at(i + 2)), firstSubdivision, subdivisions, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, true);
+				SubdivideFace(terrainData, radius, cameraPosPlanetSpace, scaleTransform, frustum, triangleAdded, vertexMap, planetTransform, vertices, indices, startVertices.at(startIndices.at(i)), startVertices.at(startIndices.at(i + 1)), startVertices.at(startIndices.at(i + 2)), firstSubdivision, subdivisions, distanceLUT, faceLevelDotLUT, heightMultLUT, backfaceCull, frustumCullActivated, true);
 			}
 
 			int i = 0;
-			for (auto& vertex : planetMesh->mVertices)
+			for (auto& vertex : vertices)
 			{
 				Vector3 normalizedPos = Vector3::Normalize({ vertex.Position.x, vertex.Position.y, vertex.Position.z });
 
@@ -385,7 +385,7 @@ namespace Toast {
 			newPlanetReady.store(true);
 		}
 
-		static void RegeneratePlanet(std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, Ref<Mesh>& planetMesh, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, TerrainData& terrainDataUpdated, double minAltitude, double maxAltitude)
+		static void RegeneratePlanet(std::unordered_map<Vertex, uint32_t, VertexHasher, VertexEquality>& vertexMap, Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, TerrainData& terrainDataUpdated, double minAltitude, double maxAltitude)
 		{
 			if (generationFuture.valid() && generationFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready) 
 				return;
@@ -397,7 +397,8 @@ namespace Toast {
 					std::ref(frustum),
 					std::ref(scale),
 					std::ref(noScaleTransform),
-					std::ref(planetMesh),
+					std::ref(vertices),
+					std::ref(indices),
 					distanceLUT,
 					faceLevelDotLUT,
 					heightMultLUT,
@@ -412,12 +413,13 @@ namespace Toast {
 			}
 		}
 
-		static void UpdatePlanet(Ref<Mesh>& renderPlanet, Ref<Mesh>& buildPlanet)
+		static void UpdatePlanet(Ref<Mesh>& renderPlanet, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
 		{
 			std::lock_guard<std::mutex> lock(planetDataMutex);
 			if (newPlanetReady.load())
 			{
-				renderPlanet = buildPlanet;
+				renderPlanet->mVertices = vertices;
+				renderPlanet->mIndices = indices;
 				renderPlanet->InvalidatePlanet();
 				newPlanetReady.store(false);
 			}

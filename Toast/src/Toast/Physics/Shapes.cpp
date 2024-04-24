@@ -34,12 +34,8 @@ namespace Toast {
 
 	Matrix ShapeSphere::GetInertiaTensor() const
 	{
-		Matrix tensor(
-			0.0, 0.0, 0.0, 0.0,
-			0.0, 0.0, 0.0, 0.0,
-			0.0, 0.0, 0.0, 0.0,
-			0.0, 0.0, 0.0, 0.0
-		);
+		Matrix tensor = Matrix::Zero();
+
 		tensor.m_00 = 0.4 * mRadius * mRadius;
 		tensor.m_11 = 0.4 * mRadius * mRadius;
 		tensor.m_22 = 0.4 * mRadius * mRadius;
@@ -88,12 +84,7 @@ namespace Toast {
 		const double dy = mBounds.maxs.y - mBounds.mins.y;
 		const double dz = mBounds.maxs.z - mBounds.mins.z;
 
-		Matrix tensor(
-			1.0, 0.0, 0.0, 0.0,
-			0.0, 1.0, 0.0, 0.0,
-			0.0, 0.0, 1.0, 0.0,
-			0.0, 0.0, 0.0, 1.0
-		);
+		Matrix tensor = Matrix::Zero();
 
 		tensor.m_00 = (dy * dy + dz * dz) / 12.0;
 		tensor.m_11 = (dx * dx + dz * dz) / 12.0;

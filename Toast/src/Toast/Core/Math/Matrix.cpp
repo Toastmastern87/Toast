@@ -67,6 +67,18 @@ namespace Toast {
 		return identityMatrix;
 	}
 
+	Matrix Matrix::Zero()
+	{
+		Matrix zeroMatrix;
+
+		zeroMatrix.m_00 = 0.0; zeroMatrix.m_01 = 0.0; zeroMatrix.m_02 = 0.0; zeroMatrix.m_03 = 0.0;
+		zeroMatrix.m_10 = 0.0; zeroMatrix.m_11 = 0.0; zeroMatrix.m_12 = 0.0; zeroMatrix.m_13 = 0.0;
+		zeroMatrix.m_20 = 0.0; zeroMatrix.m_21 = 0.0; zeroMatrix.m_22 = 0.0; zeroMatrix.m_23 = 0.0;
+		zeroMatrix.m_30 = 0.0; zeroMatrix.m_31 = 0.0; zeroMatrix.m_32 = 0.0; zeroMatrix.m_33 = 0.0;
+
+		return zeroMatrix;
+	}
+
 	Matrix Matrix::Transpose() const {
 		return Matrix(m_00, m_10, m_20, m_30,
 			m_01, m_11, m_21, m_31,

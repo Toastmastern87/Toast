@@ -106,15 +106,15 @@ namespace Toast {
 		bool IsDirty;
 
 		Ref<Mesh> RenderMesh;
-		Ref<Mesh> BuildMesh;
+		std::vector<Vertex> BuildVertices;
+		std::vector<uint32_t> BuildIndices;
+		std::unordered_map<Vertex, uint32_t, PlanetSystem::VertexHasher, PlanetSystem::VertexEquality> PlanetVertexMap;
 
 		std::vector<double> DistanceLUT;
 		std::vector<double> FaceLevelDotLUT;
 		std::vector<double> HeightMultLUT;
 		int16_t Subdivisions = 0;
 		
-		std::unordered_map<Vertex, uint32_t, PlanetSystem::VertexHasher, PlanetSystem::VertexEquality> PlanetVertexMap;
-
 		GPUData PlanetData;
 
 		TerrainData PlanetTerrainData;
