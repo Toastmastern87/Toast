@@ -274,9 +274,9 @@ namespace Toast {
 					* DirectX::XMMatrixTranslation(planetTransform.Translation.x, planetTransform.Translation.y, planetTransform.Translation.z);
 
 				// Starting new thread to create a new planet if one isn't already being created
-				PlanetSystem::RegeneratePlanet(planet.PlanetVertexMap, mFrustum, planetTransform.Scale, noScaleModelMatrix, planet.BuildMesh, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, planet.PlanetTerrainData, planet.PlanetData.minAltitude, planet.PlanetData.maxAltitude);
+				PlanetSystem::RegeneratePlanet(planet.PlanetVertexMap, mFrustum, planetTransform.Scale, noScaleModelMatrix, planet.BuildVertices, planet.BuildIndices, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, planet.PlanetTerrainData, planet.PlanetData.minAltitude, planet.PlanetData.maxAltitude);
 
-				PlanetSystem::UpdatePlanet(planet.RenderMesh, planet.BuildMesh);
+				PlanetSystem::UpdatePlanet(planet.RenderMesh, planet.BuildVertices, planet.BuildIndices);
 			}
 
 			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
@@ -605,10 +605,10 @@ namespace Toast {
 						* DirectX::XMMatrixTranslation(planetTransform.Translation.x, planetTransform.Translation.y, planetTransform.Translation.z);
 
 					// Starting new thread to create a new planet if one isn't already being created
-					PlanetSystem::RegeneratePlanet(planet.PlanetVertexMap, mFrustum, planetTransform.Scale, noScaleModelMatrix, planet.BuildMesh, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, planet.PlanetTerrainData, planet.PlanetData.minAltitude, planet.PlanetData.maxAltitude);
+					PlanetSystem::RegeneratePlanet(planet.PlanetVertexMap, mFrustum, planetTransform.Scale, noScaleModelMatrix, planet.BuildVertices, planet.BuildIndices, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, planet.PlanetTerrainData, planet.PlanetData.minAltitude, planet.PlanetData.maxAltitude);
 
 					// Check if planet build is ready and if that is the case move it to the render mesh
-					PlanetSystem::UpdatePlanet(planet.RenderMesh, planet.BuildMesh);
+					PlanetSystem::UpdatePlanet(planet.RenderMesh, planet.BuildVertices, planet.BuildIndices);
 				}
 				else
 					TOAST_CORE_ERROR("No primary camera present, unable to render the planet");
@@ -1011,10 +1011,6 @@ namespace Toast {
 		component.RenderMesh->SetMaterial("Planet", MaterialLibrary::Get("Planet"));
 		component.RenderMesh->mTopology = PrimitiveTopology::TRIANGLELIST;
 
-		component.BuildMesh = CreateRef<Mesh>(true);
-		component.BuildMesh->SetMaterial("Planet", MaterialLibrary::Get("Planet"));
-		component.BuildMesh->mTopology = PrimitiveTopology::TRIANGLELIST;
-
 		SceneCamera* mainCamera = nullptr;
 		DirectX::XMMATRIX cameraTransform;
 		auto view = mRegistry.view<TransformComponent, CameraComponent>();
@@ -1055,7 +1051,7 @@ namespace Toast {
 		DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion))
 			* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
-		PlanetSystem::RegeneratePlanet(component.PlanetVertexMap, mFrustum, tc.Scale, noScaleModelMatrix, component.BuildMesh, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.Subdivisions, component.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, component.PlanetTerrainData, component.PlanetData.minAltitude, component.PlanetData.maxAltitude);
+		PlanetSystem::RegeneratePlanet(component.PlanetVertexMap, mFrustum, tc.Scale, noScaleModelMatrix, component.BuildVertices, component.BuildIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.Subdivisions, component.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, component.PlanetTerrainData, component.PlanetData.minAltitude, component.PlanetData.maxAltitude);
 	}
 
 	template<>

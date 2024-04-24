@@ -307,20 +307,6 @@ namespace Toast {
 		mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 	}
 
-	Mesh& Mesh::operator=(const Mesh& other)
-	{
-		if (this != &other) {
-			// GPU Data
-			mVertices = other.mVertices;
-			mIndices = other.mIndices;
-
-			// Buffers
-			mPlanetBuffer = other.mPlanetBuffer;
-			mModelBuffer = other.mModelBuffer;
-		}
-		return *this;
-	}
-
 	void Mesh::InvalidatePlanet()
 	{
 		if(mVertices.size() > 0)

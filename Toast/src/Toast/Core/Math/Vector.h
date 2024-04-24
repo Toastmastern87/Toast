@@ -21,6 +21,10 @@ namespace Toast {
 			return Vector3(x + rhs.x, y + rhs.y, z + rhs.z);
 		}
 
+		Vector3 operator-() const {
+			return Vector3(-x, -y, -z, w);
+		}
+
 		Vector3& operator+=(const Vector3& rhs) {
 			x += rhs.x;
 			y += rhs.y;
