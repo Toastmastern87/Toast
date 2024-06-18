@@ -67,6 +67,7 @@ namespace Toast {
 
 		void ToString();
 		void ToString(const std::string& label);
+		void ToString(const std::string& label) const;
 	public:
 		double x, y, z, w;
 	};

@@ -393,7 +393,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	float objectIntensity = lerp(0.2f, 50.0f, sunlightAngle);
 
 	//The hardcoded float3 i ambient lightning which is just there 
-	output.Color = float4((lightContribution + iblContribution + float3(0.001f, 0.001f, 0.001f)) * objectIntensity, 1.0f);
+    output.Color = float4((lightContribution + iblContribution + float3(0.001f, 0.001f, 0.001f)) * objectIntensity, 1.0f);
 
 	return output;
 }

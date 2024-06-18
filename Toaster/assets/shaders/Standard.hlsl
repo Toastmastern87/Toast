@@ -3,18 +3,20 @@ vertex
 vertex
 vertex
 vertex
+vertex
 
 #type vertex
 #pragma pack_matrix( row_major )
 
 cbuffer Camera : register(b0)
 {
-	matrix viewMatrix;
-	matrix projectionMatrix;
-	matrix inverseViewMatrix;
-	float4 cameraPosition;
-	float far;
-	float near;
+    matrix viewMatrix;
+    matrix projectionMatrix;
+    matrix inverseViewMatrix;
+    matrix inverseProjectionMatrix;
+    float4 cameraPosition;
+    float far;
+    float near;
 };
 
 cbuffer Model : register(b1)
@@ -27,7 +29,7 @@ struct VertexInputType
 {
 	float3 position			: POSITION;
 	float3 normal			: NORMAL;
-	float3 tangent			: TANGENT;
+	float4 tangent			: TANGENT;
 	float2 texcoord			: TEXCOORD;
 	float3 color			: COLOR0;
 };
@@ -39,6 +41,7 @@ struct PixelInputType
 	float3 normal			: NORMAL;
 	float2 texcoord			: TEXCOORD;
 	float3 cameraPos		: POSITION1;
+    float3 color			: COLOR0;
 };
 
 PixelInputType main(VertexInputType input)
@@ -54,6 +57,7 @@ PixelInputType main(VertexInputType input)
 	output.normal = mul(input.normal, (float3x3)worldMatrix);
 	output.texcoord = float2(input.texcoord.x, 1.0f - input.texcoord.y);
 	output.cameraPos = cameraPosition.xyz;
+    output.color = input.color;
 
 	return output;
 }
@@ -85,6 +89,7 @@ struct PixelInputType
 	float3 normal			: NORMAL;
 	float2 texcoord			: TEXCOORD;
 	float3 cameraPos		: POSITION1;
+    float3 color			: COLOR0;
 };
 
 cbuffer RenderSettings : register(b9)
@@ -95,5 +100,5 @@ cbuffer RenderSettings : register(b9)
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	return Albedo;
+    return float4(input.color, 1.0f);
 }

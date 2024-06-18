@@ -1101,12 +1101,8 @@ namespace Toast {
 	{
 		component.Collider = CreateRef<ShapeSphere>(1.0f);
 
-		//This should be handled differently in the future, have material in the material library or not? :thinking:
-		mSphereColliderMaterial = CreateRef<Material>("ColliderMaterial", new Shader("assets/shaders/Standard.hlsl"));
-		mSphereColliderMaterial->Set<DirectX::XMFLOAT4>("Albedo", { 0.0f, 0.0f, 1.0f, 1.0f });
-
-		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf", false);
-		component.ColliderMesh->SetMaterial("Collider", mSphereColliderMaterial);
+		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf", false, Vector3(0.0, 0.0, 1.0));
+		component.ColliderMesh->SetMaterial("Standard", MaterialLibrary::Get("Standard"));
 	}
 
 	template<>
@@ -1114,11 +1110,8 @@ namespace Toast {
 	{
 		component.Collider = CreateRef<ShapeBox>(DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
 
-		mCubeColliderMaterial = CreateRef<Material>("ColliderMaterial", new Shader("assets/shaders/Standard.hlsl"));
-		mCubeColliderMaterial->Set<DirectX::XMFLOAT4>("Albedo", { 0.0f, 0.0f, 1.0f, 1.0f });
 
-		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.gltf", false);
-		component.ColliderMesh->SetMaterial("Collider", mCubeColliderMaterial);
+		component.ColliderMesh = MeshFactory::CreateCube(1.0f, { 0.0, 0.0, 1.0 });
 	}
 
 	template<>
