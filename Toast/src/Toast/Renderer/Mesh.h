@@ -162,7 +162,7 @@ namespace Toast {
 	public:
 		Mesh();
 		Mesh(bool isPlanet);
-		Mesh(const std::string& filePath, const bool skyboxMesh = false);
+		Mesh(const std::string& filePath, const bool skyboxMesh = false, Vector3 colorOverride = { 0.0, 0.0, 0.0 });
 		Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const DirectX::XMMATRIX& transform);
 		~Mesh() = default;
 
@@ -175,7 +175,7 @@ namespace Toast {
 			if (!decl)
 				return;
 
-			if (cbufferName == "Model")
+			if (cbufferName == "Model") 
 				mModelBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
 			else if (cbufferName == "Planet") 
 				mPlanetBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());

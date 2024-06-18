@@ -195,7 +195,7 @@ namespace Toast {
 			return terrainDataUpdated;
 		}
 
-		static double GetObjectDistanceToPlanet(Entity* planet, Vector3& worldSpaceObjectPos)
+		static double GetObjectDistanceToPlanet(Entity* planet, Vector3& worldSpaceObjectPos, Vector3& triangleNormal, Vector3& A, Vector3& B, Vector3& C)
 		{	
 			PlanetComponent& pc = planet->GetComponent<PlanetComponent>();
 			Vector3 worldSpacePlanetPos = planet->GetComponent<TransformComponent>().Translation;
@@ -211,8 +211,19 @@ namespace Toast {
 				{
 					distance = Math::PointToPlaneDistance(worldSpaceObjectPos, worldSpacePlanetPos, vertices[indices[i]].Position, vertices[indices[i + 1]].Position, vertices[indices[i + 2]].Position);
 
-					if (distance != -100.0f)
+					if (distance != -100.0f) 
+					{
+						Vector3 v1(vertices[indices[i + 1]].Position);
+						Vector3 v2(vertices[indices[i]].Position);
+						Vector3 v3(vertices[indices[i + 2]].Position);
+
+						A = v1;
+						B = v2;
+						C = v3;
+
+						triangleNormal = Vector3::Normalize(Vector3::Cross(v1 - v2, v3 - v1));
 						return distance;
+					}
 				}
 			}
 
@@ -259,6 +270,47 @@ namespace Toast {
 			//}
 		}
 
+		static std::pair<double, double> ProjectShapeOntoAxis(const std::vector<Vector3>& vertices, const Vector3& axis) {
+			double minProjection = DBL_MAX;
+			double maxProjection = -DBL_MAX;
+
+			axis.ToString("Axis: ");
+
+			for (const auto& vertex : vertices) {
+
+				vertex.ToString("Vertex: ");
+
+				double projection = Vector3::Dot(vertex, axis);
+				minProjection = min(minProjection, projection);
+				maxProjection = max(maxProjection, projection);
+
+				TOAST_CORE_CRITICAL("projection: %lf, minProjection: % lf, maxProjection: %lf", projection, minProjection, maxProjection);
+			}
+			return { minProjection, maxProjection };
+		}
+
+		static bool OverlapOnAxis(const std::vector<Vector3>& obbVertices, const std::vector<Vector3>& triangleVertices, const Vector3& axis, double& minPenetration) {
+			auto [obbMin, obbMax] = ProjectShapeOntoAxis(obbVertices, axis);
+			auto [triMin, triMax] = ProjectShapeOntoAxis(triangleVertices, axis);
+
+			TOAST_CORE_CRITICAL("obbMin: % lf, obbMax: %lf", obbMin, obbMax);
+			TOAST_CORE_CRITICAL("triMin: % lf, triMax: %lf", triMin, triMax);
+
+			double penetration = (std::min)(obbMax, triMax) - (std::max)(obbMin, triMin);
+			TOAST_CORE_CRITICAL("penetration: %lf", penetration);
+
+			if (penetration < 0) {
+				return false;
+			}
+
+			if (penetration < minPenetration) {
+				minPenetration = penetration;
+			}
+
+			return true;
+		}
+
+
 		static bool TerrainCollisionCheck(Entity* planet, Entity* object, TerrainCollision& collision, float dt)
 		{
 			bool hasSphereCollider = object->HasComponent<SphereColliderComponent>();
@@ -282,8 +334,9 @@ namespace Toast {
 
 			//planetTransform.ToString();
 			//planetSpaceObjectPos.ToString("planetSpaceObjectPos: ");
-			
-			double objectDistance = GetObjectDistanceToPlanet(planet, posObject);
+
+			Vector3 triangleNormal, A, B, C;
+			double objectDistance = GetObjectDistanceToPlanet(planet, posObject, triangleNormal, A, B, C);
 			double planetHeight = (posObject - posPlanet).Magnitude() - objectDistance;
 			//TOAST_CORE_CRITICAL("(posObject - posPlanet).Magnitude(): %lf", (posObject - posPlanet).Magnitude());
 			//TOAST_CORE_CRITICAL("planetHeight: %lf", planetHeight);
@@ -313,54 +366,129 @@ namespace Toast {
 			}
 			else if (hasBoxCollider) 
 			{
-				std::vector<Vertex> colliderPts = object->GetComponent<BoxColliderComponent>().ColliderMesh->GetVertices();
+				TOAST_CORE_CRITICAL("objectDistance: %lf", objectDistance
+				);
+				std::vector<Vector3> axes, colliderPts, terrainPts;
+				auto& rotEuler = object->GetComponent<TransformComponent>().RotationEulerAngles;
+				Matrix objTransform = { object->GetComponent<TransformComponent>().GetTransform() };
+
+				std::vector<Vertex> colliderVertices = object->GetComponent<BoxColliderComponent>().ColliderMesh->GetVertices();
+				for (auto& vertex : colliderVertices) 
+				{
+					colliderPts.emplace_back(vertex.Position);
+					colliderPts.at(colliderPts.size() - 1).ToString("Collider Point before Transform: ");
+					colliderPts.at(colliderPts.size() - 1) = objTransform * colliderPts.at(colliderPts.size() - 1);
+				}
+
+				terrainPts.emplace_back(A);
+				terrainPts.emplace_back(B);
+				terrainPts.emplace_back(C);
+
+				A.ToString("Triangle vertex A: ");
+				B.ToString("Triangle vertex B: ");
+				C.ToString("Triangle vertex C: ");
+
+				triangleNormal.ToString("Triangle Normal: ");
+
+				TOAST_CORE_CRITICAL("Transformed collider points: ");
+				for (auto& pts : colliderPts)
+					pts.ToString("Transformed Collider Point: ");
+
+				Matrix colliderRot = { DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(rotEuler.x), DirectX::XMConvertToRadians(rotEuler.y), DirectX::XMConvertToRadians(rotEuler.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&object->GetComponent<TransformComponent>().RotationQuaternion)) };
 				Ref<ShapeBox> collider = object->GetComponent<BoxColliderComponent>().Collider;
 
-				Vector3 velObject = rbcObject.LinearVelocity;
-				Vector3 velPlanet = Vector3(0.0, 0.0, 0.0);
+				Vector3 obbAxes[3] = {
+					colliderRot * Vector3(1.0, 0.0, 0.0),  // Local X-axis
+					colliderRot * Vector3(0.0, 1.0, 0.0),  // Local Y-axis
+					colliderRot * Vector3(0.0, 0.0, 1.0)   // Local Z-axis
+				};
 
-				auto bounds = collider->GetBounds(colliderPts, objectTransform);
+				axes.emplace_back(triangleNormal);
+				axes.insert(axes.end(), std::begin(obbAxes), std::end(obbAxes));
 
-				const Vector3 relativeVelocity = velObject - velPlanet;
+				Vector3 triEdges[3] = {
+					B - A,
+					C - B,
+					A - C
+				};
 
-				const Vector3 startMinsObject = bounds.mins;
-				const Vector3 startMaxsObject = bounds.maxs;
-				const Vector3 endMinsObject = startMinsObject + relativeVelocity * dt;
-				const Vector3 endMaxsObject = startMaxsObject + relativeVelocity * dt;
+				for (const auto& obbAxis : obbAxes) {
+					for (const auto& triEdge : triEdges) {
+						Vector3 crossProduct = Vector3::Cross(obbAxis, triEdge);
+						crossProduct = Vector3::Normalize(crossProduct);
+						axes.emplace_back(crossProduct);
+						crossProduct.ToString("Cross Product Axis : ");
+					}
+				}
 
-				const Vector3 startPtObject = posObject;
-				const Vector3 endPtObject = startPtObject + relativeVelocity * dt;
-				const Vector3 rayDir = endPtObject - startPtObject;
+				TOAST_CORE_CRITICAL("Axis to test: ");
+				for (auto& axis : axes) 
+				{
+					axis.ToString("Axis: ");
+					axis = Vector3::Normalize(axis);
+				}
 
-			//	DirectX::XMVECTOR planetPt = DirectX::XMVectorAdd(DirectX::XMVectorScale(DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(posObject, posPlanet)), planetHeight), posPlanet);
+				double minPenetration = 0.0;
+				for (auto& axis : axes) {
+					bool collision = OverlapOnAxis(colliderPts, terrainPts, axis, minPenetration);
 
-				double endMinsObjectLength = (endMinsObject - posPlanet).Magnitude();
-				double endMaxsObjectLength = (endMaxsObject - posPlanet).Magnitude();
+					if (!collision)
+					{
+						TOAST_CORE_CRITICAL("No overlap on axis: ");
+						axis.ToString("Axis: ");
+						//TOAST_CORE_CRITICAL("minPenetration: %lf", minPenetration);
+						return false; // No overlap found, shapes do not collide
+					}
+				}
 
-				// Determine which bound is closer to planet center
-				double distanceToPlanetOrigoMin = endMinsObjectLength < endMaxsObjectLength ? endMinsObjectLength : endMaxsObjectLength;
-				double distanceToPlanetOrigoMax = endMinsObjectLength > endMaxsObjectLength ? endMinsObjectLength : endMaxsObjectLength;
+				//TOAST_CORE_CRITICAL("minPenetration: %lf", minPenetration);
+				return true;
 
-				double enterTime = (distanceToPlanetOrigoMin - planetHeight) / relativeVelocity.Magnitude();
-				double exitTime = (distanceToPlanetOrigoMax - planetHeight) / relativeVelocity.Magnitude();
-
-			//	//TOAST_CORE_INFO("distanceToPlanetOrigoMin: %f, planetHeight: %f", distanceToPlanetOrigoMin, planetHeight);
-
-				enterTime = enterTime < 0.0f ? 0.0f : enterTime;
-
-				collision.TimeOfImpact = enterTime;
-				//collision.Normal = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(posObject, planetPt));
-// 				collision.PtOnPlanetWorldSpace = planetPt;
-// 				collision.PtOnObjectWorldSpace = planetPt;
-
-				// No collision this frame
-				if(enterTime > dt)
-					return false;
-
-				if (enterTime > exitTime || enterTime > 1.0f || exitTime < 0.0f) 
-					return false;
-				else
-					return true;
+//				Vector3 velObject = rbcObject.LinearVelocity;
+//				Vector3 velPlanet = Vector3(0.0, 0.0, 0.0);
+//
+//				//auto bounds = collider->GetBounds(colliderPts, objectTransform);
+//
+//				const Vector3 relativeVelocity = velObject - velPlanet;
+//
+//				const Vector3 startMinsObject = bounds.mins;
+//				const Vector3 startMaxsObject = bounds.maxs;
+//				const Vector3 endMinsObject = startMinsObject + relativeVelocity * dt;
+//				const Vector3 endMaxsObject = startMaxsObject + relativeVelocity * dt;
+//
+//				const Vector3 startPtObject = posObject;
+//				const Vector3 endPtObject = startPtObject + relativeVelocity * dt;
+//				const Vector3 rayDir = endPtObject - startPtObject;
+//
+//			//	DirectX::XMVECTOR planetPt = DirectX::XMVectorAdd(DirectX::XMVectorScale(DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(posObject, posPlanet)), planetHeight), posPlanet);
+//
+//				double endMinsObjectLength = (endMinsObject - posPlanet).Magnitude();
+//				double endMaxsObjectLength = (endMaxsObject - posPlanet).Magnitude();
+//
+//				// Determine which bound is closer to planet center
+//				double distanceToPlanetOrigoMin = endMinsObjectLength < endMaxsObjectLength ? endMinsObjectLength : endMaxsObjectLength;
+//				double distanceToPlanetOrigoMax = endMinsObjectLength > endMaxsObjectLength ? endMinsObjectLength : endMaxsObjectLength;
+//
+//				double enterTime = (distanceToPlanetOrigoMin - planetHeight) / relativeVelocity.Magnitude();
+//				double exitTime = (distanceToPlanetOrigoMax - planetHeight) / relativeVelocity.Magnitude();
+//
+//			//	//TOAST_CORE_INFO("distanceToPlanetOrigoMin: %f, planetHeight: %f", distanceToPlanetOrigoMin, planetHeight);
+//
+//				enterTime = enterTime < 0.0f ? 0.0f : enterTime;
+//
+//				collision.TimeOfImpact = enterTime;
+//				//collision.Normal = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(posObject, planetPt));
+//// 				collision.PtOnPlanetWorldSpace = planetPt;
+//// 				collision.PtOnObjectWorldSpace = planetPt;
+//
+//				// No collision this frame
+//				if(enterTime > dt)
+//					return false;
+//
+//				if (enterTime > exitTime || enterTime > 1.0f || exitTime < 0.0f) 
+//					return false;
+//				else
+//					return true;
 			}
 
 			return false;

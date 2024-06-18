@@ -153,7 +153,7 @@ namespace Toast {
 
 	void RendererDebug::SubmitCollider(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
 	{
-		sRendererData->MeshColliderDrawList.emplace_back(mesh, transform, wireframe);
+			sRendererData->MeshColliderDrawList.emplace_back(mesh, transform, wireframe);
 	}
 
 	void RendererDebug::DebugRenderPass(const bool runtime)
@@ -201,14 +201,14 @@ namespace Toast {
 		{
 			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
 			{
-				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Collider", "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Standard", "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
 
-				meshCommand.Mesh->Map("Collider");
-				meshCommand.Mesh->Bind("Collider", true);
+				meshCommand.Mesh->Map("Standard");
+				meshCommand.Mesh->Bind("Standard", true);
 
 				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 			}
-		}
+		}	
 
 		RenderCommand::DisableWireframe();
 

@@ -16,73 +16,47 @@ namespace Toast {
 	class MeshFactory
 	{
 	public:
-		static Ref<Mesh> CreateCube(float size = 1.0f)
+		static Ref<Mesh> CreateCube(float size = 1.0f, Vector3 color = { 0.0, 0.0, 0.0 })
 		{
 			std::vector<Vertex> vertices;
-			vertices.resize(24);
+			vertices.resize(8);
 
-			//Front
-			vertices[0] = Vertex({ -(size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }, { 0.0f, 0.25f }, { 0.0f, 0.0f, 0.0f });
-			vertices[1] = Vertex({ -(size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }, { 0.25f, 0.25f }, { 0.0f, 0.0f, 0.0f });
-			vertices[2] = Vertex({ (size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }, { 0.0f, 0.5f }, { 0.0f, 0.0f, 0.0f });
-			vertices[3] = Vertex({ (size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f, 0.0f, 0.0f }, { 0.25f, 0.5f }, { 0.0f, 0.0f, 0.0f });
-			
-			//Back
-			vertices[4] = Vertex({ -(size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.25f }, { 0.0f, 0.0f, 0.0f });
-			vertices[5] = Vertex({ (size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.5f }, { 0.0f, 0.0f, 0.0f });
-			vertices[6] = Vertex({ -(size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.75f, 0.25f }, { 0.0f, 0.0f, 0.0f });
-			vertices[7] = Vertex({ (size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 0.0f, 0.0f, 1.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.75f, 0.5f }, { 0.0f, 0.0f, 0.0f });
-			
-			//Top
-			vertices[8] = Vertex({ -(size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.25f }, { 0.0f, 0.0f, 0.0f });
-			vertices[9] = Vertex({ (size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.75f, 0.5f }, { 0.0f, 0.0f, 0.0f });
-			vertices[10] = Vertex({ -(size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.25f }, { 0.0f, 0.0f, 0.0f });
-			vertices[11] = Vertex({ (size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 1.0f, 0.5f }, { 0.0f, 0.0f, 0.0f });
+			vertices[0] = Vertex(Vector3(-size, -size, -size), color); // Left-Bottom-Back
+			vertices[1] = Vertex(Vector3(size, -size, -size), color);  // Right-Bottom-Back
+			vertices[2] = Vertex(Vector3(-size, size, -size), color);  // Left-Top-Back
+			vertices[3] = Vertex(Vector3(size, size, -size), color);   // Right-Top-Back
+			vertices[4] = Vertex(Vector3(-size, -size, size), color);  // Left-Bottom-Front
+			vertices[5] = Vertex(Vector3(size, -size, size), color);   // Right-Bottom-Front
+			vertices[6] = Vertex(Vector3(-size, size, size), color);   // Left-Top-Front
+			vertices[7] = Vertex(Vector3(size, size, size), color);    // Right-Top-Front
 
-			//Bottom
-			vertices[12] = Vertex({ -(size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.25f, 0.25f }, { 0.0f, 0.0f, 0.0f });
-			vertices[13] = Vertex({ (size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.25f, 0.5f }, { 0.0f, 0.0f, 0.0f });
-			vertices[14] = Vertex({ -(size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.5f, 0.25f }, { 0.0f, 0.0f, 0.0f });
-			vertices[15] = Vertex({ (size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f, 0.0f }, { 0.5f, 0.5f }, { 0.0f, 0.0f, 0.0f });
-
-			//Left
-			vertices[16] = Vertex({ -(size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.25f, 0.25f }, { 0.0f, 0.0f, 0.0f });
-			vertices[17] = Vertex({ -(size / 2.0f), (size / 2.0f), (size / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f });
-			vertices[18] = Vertex({ -(size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.25f, 0.0f }, { 0.0f, 0.0f, 0.0f });
-			vertices[19] = Vertex({ -(size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { -1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.25f }, { 0.0f, 0.0f, 0.0f });
-
-			//Right
-			vertices[20] = Vertex({ (size / 2.0f), -(size / 2.0f), -(size / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.25f, 0.5f }, { 0.0f, 0.0f, 0.0f });
-			vertices[21] = Vertex({ (size / 2.0f), (size / 2.0f), -(size / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.25f, 0.75f }, { 0.0f, 0.0f, 0.0f });
-			vertices[22] = Vertex({ (size / 2.0f), -(size / 2.0f), (size / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.5f }, { 0.0f, 0.0f, 0.0f });
-			vertices[23] = Vertex({ (size / 2.0f), (size / 2.0f), (size / 2.0f) }, { 1.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.5f, 0.75f }, { 0.0f, 0.0f, 0.0f });
 
 			std::vector<uint32_t> indices;
 			indices.resize(36);
 			indices = {
-						//Front
-						0, 2, 1,
-						1, 2, 3,
+					// Front face
+					4, 6, 5,  
+					5, 6, 7,  
 
-						//Back
-						4, 5, 6,
-						5, 7, 6,
+					// Back face
+					0, 1, 2,  
+					1, 3, 2,  
 
-						//Top	
-						8, 9, 10,
-						9, 11, 10,
+					// Top face
+					2, 3, 6,
+					3, 7, 6,
 
-						//Bottom
-						12, 13, 14,
-						13, 15, 14,
+					// Bottom face
+					0, 4, 1,
+					1, 4, 5,
 
-						//Left
-						16, 17, 18,
-						16, 19, 17,
+					// Left face
+					0, 2, 4,  
+					4, 2, 6,  
 
-						//Right
-						20, 21, 22,
-						22, 21, 23
+					// Right face
+					1, 5, 3,
+					5, 7, 3
 			};
 
 			return CreateRef<Mesh>(vertices, indices, DirectX::XMMatrixIdentity());

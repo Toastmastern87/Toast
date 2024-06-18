@@ -60,7 +60,7 @@ namespace Toast {
 		mPlanetBuffer.ZeroInitialize();
 	}
 
-	Mesh::Mesh(const std::string& filePath, const bool skyboxMesh)
+	Mesh::Mesh(const std::string& filePath, const bool skyboxMesh, Vector3 colorOverride)
 		: mFilePath(filePath)
 	{
 		uint32_t vertexCount = 0;
@@ -127,6 +127,13 @@ namespace Toast {
 						}
 
 						LoadAttribute(attribute, data->meshes[m].primitives[p].attributes[a].type, mVertices, submesh.BaseVertex);
+					}
+
+					// Color override
+					if (colorOverride.z != 0.0)
+					{
+						for (auto& vertex : mVertices)
+							vertex.Color = { (float)colorOverride.x, (float)colorOverride.y, (float)colorOverride.z };
 					}
 
 					// INDICES
@@ -301,7 +308,15 @@ namespace Toast {
 		submesh.MaterialName = "Standard";
 		mSubmeshes.push_back(submesh);
 
+		mVertices = vertices;
+		mIndices = indices;
+
 		mMaterials.insert({ "Standard", MaterialLibrary::Get("Standard") });
+
+		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 1) });
+		mModelCBuffer->Bind();
+		mModelBuffer.Allocate(mModelCBuffer->GetSize());
+		mModelBuffer.ZeroInitialize();
 
 		mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
 		mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());

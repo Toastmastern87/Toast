@@ -1,5 +1,5 @@
 Material: Standard
-Shader: assets/shaders/ToastPBR.hlsl
+Shader: assets/shaders/Standard.hlsl
 Albedo: [1, 0.58227843, 0, 0]
 Metalness: 0
 Roughness: 0
