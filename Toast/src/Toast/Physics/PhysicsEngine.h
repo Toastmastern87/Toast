@@ -274,18 +274,16 @@ namespace Toast {
 			double minProjection = DBL_MAX;
 			double maxProjection = -DBL_MAX;
 
-			axis.ToString("Axis: ");
+			//axis.ToString("ProjectShapeOntoAxis Axis: ");
 
-			for (const auto& vertex : vertices) {
+			for (int i = 0; i < vertices.size(); i++)
+			{
+				double projection = Vector3::Dot(vertices.at(i), axis);
 
-				vertex.ToString("Vertex: ");
-
-				double projection = Vector3::Dot(vertex, axis);
 				minProjection = min(minProjection, projection);
 				maxProjection = max(maxProjection, projection);
-
-				TOAST_CORE_CRITICAL("projection: %lf, minProjection: % lf, maxProjection: %lf", projection, minProjection, maxProjection);
 			}
+
 			return { minProjection, maxProjection };
 		}
 
@@ -293,11 +291,7 @@ namespace Toast {
 			auto [obbMin, obbMax] = ProjectShapeOntoAxis(obbVertices, axis);
 			auto [triMin, triMax] = ProjectShapeOntoAxis(triangleVertices, axis);
 
-			TOAST_CORE_CRITICAL("obbMin: % lf, obbMax: %lf", obbMin, obbMax);
-			TOAST_CORE_CRITICAL("triMin: % lf, triMax: %lf", triMin, triMax);
-
 			double penetration = (std::min)(obbMax, triMax) - (std::max)(obbMin, triMin);
-			TOAST_CORE_CRITICAL("penetration: %lf", penetration);
 
 			if (penetration < 0) {
 				return false;
@@ -366,33 +360,26 @@ namespace Toast {
 			}
 			else if (hasBoxCollider) 
 			{
-				TOAST_CORE_CRITICAL("objectDistance: %lf", objectDistance
-				);
 				std::vector<Vector3> axes, colliderPts, terrainPts;
 				auto& rotEuler = object->GetComponent<TransformComponent>().RotationEulerAngles;
-				Matrix objTransform = { object->GetComponent<TransformComponent>().GetTransform() };
+				auto& rotQuat = object->GetComponent<TransformComponent>().RotationQuaternion;
+				auto& scale = object->GetComponent<BoxColliderComponent>().Collider->mSize;
+				auto& translation = object->GetComponent<TransformComponent>().Translation;
+
+				Matrix objTransform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z)
+					* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(rotEuler.x), DirectX::XMConvertToRadians(rotEuler.y), DirectX::XMConvertToRadians(rotEuler.z))))* DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotQuat))
+					* DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
 
 				std::vector<Vertex> colliderVertices = object->GetComponent<BoxColliderComponent>().ColliderMesh->GetVertices();
 				for (auto& vertex : colliderVertices) 
 				{
 					colliderPts.emplace_back(vertex.Position);
-					colliderPts.at(colliderPts.size() - 1).ToString("Collider Point before Transform: ");
 					colliderPts.at(colliderPts.size() - 1) = objTransform * colliderPts.at(colliderPts.size() - 1);
 				}
 
 				terrainPts.emplace_back(A);
 				terrainPts.emplace_back(B);
 				terrainPts.emplace_back(C);
-
-				A.ToString("Triangle vertex A: ");
-				B.ToString("Triangle vertex B: ");
-				C.ToString("Triangle vertex C: ");
-
-				triangleNormal.ToString("Triangle Normal: ");
-
-				TOAST_CORE_CRITICAL("Transformed collider points: ");
-				for (auto& pts : colliderPts)
-					pts.ToString("Transformed Collider Point: ");
 
 				Matrix colliderRot = { DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(rotEuler.x), DirectX::XMConvertToRadians(rotEuler.y), DirectX::XMConvertToRadians(rotEuler.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&object->GetComponent<TransformComponent>().RotationQuaternion)) };
 				Ref<ShapeBox> collider = object->GetComponent<BoxColliderComponent>().Collider;
@@ -417,15 +404,7 @@ namespace Toast {
 						Vector3 crossProduct = Vector3::Cross(obbAxis, triEdge);
 						crossProduct = Vector3::Normalize(crossProduct);
 						axes.emplace_back(crossProduct);
-						crossProduct.ToString("Cross Product Axis : ");
 					}
-				}
-
-				TOAST_CORE_CRITICAL("Axis to test: ");
-				for (auto& axis : axes) 
-				{
-					axis.ToString("Axis: ");
-					axis = Vector3::Normalize(axis);
 				}
 
 				double minPenetration = 0.0;
@@ -434,14 +413,10 @@ namespace Toast {
 
 					if (!collision)
 					{
-						TOAST_CORE_CRITICAL("No overlap on axis: ");
-						axis.ToString("Axis: ");
-						//TOAST_CORE_CRITICAL("minPenetration: %lf", minPenetration);
 						return false; // No overlap found, shapes do not collide
 					}
 				}
 
-				//TOAST_CORE_CRITICAL("minPenetration: %lf", minPenetration);
 				return true;
 
 //				Vector3 velObject = rbcObject.LinearVelocity;
@@ -712,7 +687,6 @@ namespace Toast {
 									//ResolveTerrainCollision(terrainCollision);
 									TOAST_CORE_INFO("COLLISION!!");
 									objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity = { 0.0f, 0.0f, 0.0f };
-									//objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity = { 0.0f, 0.0f, 0.0f };
 								}
 
 							}	
