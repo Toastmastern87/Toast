@@ -27,6 +27,7 @@ namespace Toast {
 			Vector3 PtOnPlanetWorldSpace;
 			Vector3 PtOnObjectWorldSpace;
 
+			double PlanetHeight;
 			double SeparationDistance;
 			double TimeOfImpact;
 		};
@@ -68,12 +69,22 @@ namespace Toast {
 			return true;
 		}
 
-		static bool SpherePlanetDynamic(Entity& planet, Entity& object, Vector3& posObject, Vector3& posPlanet, Vector3& velObject, Vector3& velPlanet, const double planetHeight, const double dt, Vector3& ptOnPlanet, Vector3& ptOnObject, double& timeOfImpact)
+		static bool BoxPlanetCollisionCheck(const double planetHeight, const double dt, TerrainCollision& collision)
 		{
-			RigidBodyComponent rbcObject = object.GetComponent<RigidBodyComponent>();
-			SphereColliderComponent sccObject = object.GetComponent<SphereColliderComponent>();
 
-			const Vector3 relativeVelocity = velObject - velPlanet;
+			return false;
+		}
+
+		static bool SpherePlanetCollisionCheck(const double planetHeight, const double dt, TerrainCollision& collision)
+		{
+			RigidBodyComponent rbcObject = collision.Object->GetComponent<RigidBodyComponent>();
+			SphereColliderComponent sccObject = collision.Object->GetComponent<SphereColliderComponent>();
+
+			Vector3 posPlanet = { collision.Planet->GetComponent<TransformComponent>().Translation };
+			Vector3 posObject = { collision.Object->GetComponent<TransformComponent>().Translation };
+
+			// Planet has 0.0 in speed.
+			const Vector3 relativeVelocity = rbcObject.LinearVelocity;
 
 			const Vector3 startPtObject = posObject;
 			const Vector3 endPtObject = startPtObject + relativeVelocity * dt;
@@ -105,19 +116,22 @@ namespace Toast {
 				return false;
 
 			// Get the earliest positive time of impact
-			timeOfImpact = t0 < 0.0 ? 0.0 : t0;
+			collision.TimeOfImpact = t0 < 0.0 ? 0.0 : t0;
 
 			// If the earliest collision is to far in the future, then there's no collision this frame
-			if (timeOfImpact > dt)
+			if (collision.TimeOfImpact > dt)
 				return false;
 
 			// Get the points on the respective points of collision and return true
-			Vector3 newPosObject = posObject + velObject * timeOfImpact;
-			Vector3 newPosPlanet = posPlanet + velPlanet * timeOfImpact;
+			Vector3 newPosObject = posObject + rbcObject.LinearVelocity * collision.TimeOfImpact;
+			// Planet does not move.
+			Vector3 newPosPlanet = posPlanet;
 			Vector3 ab = newPosPlanet - newPosObject;
 			ab = Vector3::Normalize(ab);
-			ptOnObject = newPosObject + ab * sccObject.Collider->mRadius;
-			ptOnPlanet = newPosPlanet - ab * planetHeight;
+			collision.PtOnObjectWorldSpace = newPosObject + ab * sccObject.Collider->mRadius;
+			collision.PtOnPlanetWorldSpace = newPosPlanet - ab * planetHeight;
+
+			collision.Normal = Vector3::Normalize(posPlanet - posObject);
 
 			return true;
 		}
@@ -274,8 +288,6 @@ namespace Toast {
 			double minProjection = DBL_MAX;
 			double maxProjection = -DBL_MAX;
 
-			//axis.ToString("ProjectShapeOntoAxis Axis: ");
-
 			for (int i = 0; i < vertices.size(); i++)
 			{
 				double projection = Vector3::Dot(vertices.at(i), axis);
@@ -291,25 +303,19 @@ namespace Toast {
 			auto [obbMin, obbMax] = ProjectShapeOntoAxis(obbVertices, axis);
 			auto [triMin, triMax] = ProjectShapeOntoAxis(triangleVertices, axis);
 
-			double penetration = (std::min)(obbMax, triMax) - (std::max)(obbMin, triMin);
-
-			if (penetration < 0) {
+			if(obbMin >= triMax || triMin >= obbMax)
 				return false;
-			}
 
-			if (penetration < minPenetration) {
+			double penetration = (std::min)(triMax - obbMin, obbMax - triMin);
+
+			if (penetration < minPenetration)
 				minPenetration = penetration;
-			}
 
 			return true;
 		}
 
-
 		static bool TerrainCollisionCheck(Entity* planet, Entity* object, TerrainCollision& collision, float dt)
 		{
-			bool hasSphereCollider = object->HasComponent<SphereColliderComponent>();
-			bool hasBoxCollider = object->HasComponent<BoxColliderComponent>();
-
 			collision.Planet = planet;
 			collision.Object = object;
 
@@ -326,39 +332,21 @@ namespace Toast {
 
 			Vector3 planetSpaceObjectPos = Matrix::Inverse(planetTransform) * posObject;
 
-			//planetTransform.ToString();
-			//planetSpaceObjectPos.ToString("planetSpaceObjectPos: ");
-
 			Vector3 triangleNormal, A, B, C;
 			double objectDistance = GetObjectDistanceToPlanet(planet, posObject, triangleNormal, A, B, C);
-			double planetHeight = (posObject - posPlanet).Magnitude() - objectDistance;
-			//TOAST_CORE_CRITICAL("(posObject - posPlanet).Magnitude(): %lf", (posObject - posPlanet).Magnitude());
-			//TOAST_CORE_CRITICAL("planetHeight: %lf", planetHeight);
-			//Vector3 terrainPointWorldPos = posPlanet + Vector3::Normalize(posObject - posPlanet) * (planetHeight + planetPC.PlanetData.radius);
-			//terrainPointWorldPos.ToString("terrainPointWorldPos: ");
-			//Vector3 terrainPointObjectSpacePos = Matrix::Inverse(objectTransform) * terrainPointWorldPos;
-			//terrainPointObjectSpacePos.ToString("terrainPointObjectSpacePos: ");
+			collision.PlanetHeight = (posObject - posPlanet).Magnitude() - objectDistance;
 
-			if (hasSphereCollider)
+			if (object->HasComponent<SphereColliderComponent>())
 			{
 				double distance = objectDistance - object->GetComponent<SphereColliderComponent>().Collider->mRadius;
 
-				bool collisionDetected = SpherePlanetDynamic(*planet, *object, posObject, posPlanet, rbcObject.LinearVelocity, Vector3(0.0, 0.0, 0.0), planetHeight, dt, collision.PtOnObjectWorldSpace, collision.PtOnPlanetWorldSpace, collision.TimeOfImpact);
+				bool collisionDetected = SpherePlanetCollisionCheck(collision.PlanetHeight, dt, collision);
+				collision.SeparationDistance = distance;
 
 				if (collisionDetected)
-				{
-					//posPlanet.ToString("posPlanet: ");
-					//posObject.ToString("posObject: ");
-					//TOAST_CORE_CRITICAL("Weird collision planetHeight: %lf, objectDistance: %lf", planetHeight, objectDistance);
-					UpdateBody(*object, dt);
-					collision.Normal = Vector3::Normalize(posObject - posPlanet);
-					collision.SeparationDistance = distance;
-					UpdateBody(*object, -dt);
-
 					return true;
-				}
 			}
-			else if (hasBoxCollider) 
+			else if (object->HasComponent<BoxColliderComponent>())
 			{
 				std::vector<Vector3> axes, colliderPts, terrainPts;
 				auto& rotEuler = object->GetComponent<TransformComponent>().RotationEulerAngles;
@@ -407,63 +395,18 @@ namespace Toast {
 					}
 				}
 
-				double minPenetration = 0.0;
-				for (auto& axis : axes) {
-					bool collision = OverlapOnAxis(colliderPts, terrainPts, axis, minPenetration);
-
-					if (!collision)
-					{
+				double minPenetration = DBL_MAX;
+				for (auto& axis : axes) 
+				{
+					if (!OverlapOnAxis(colliderPts, terrainPts, axis, minPenetration))
 						return false; // No overlap found, shapes do not collide
-					}
 				}
 
-				return true;
+				collision.SeparationDistance = minPenetration;
+				collision.Normal = Vector3::Normalize(posObject - posPlanet);
+				collision.TimeOfImpact = 0.0;
 
-//				Vector3 velObject = rbcObject.LinearVelocity;
-//				Vector3 velPlanet = Vector3(0.0, 0.0, 0.0);
-//
-//				//auto bounds = collider->GetBounds(colliderPts, objectTransform);
-//
-//				const Vector3 relativeVelocity = velObject - velPlanet;
-//
-//				const Vector3 startMinsObject = bounds.mins;
-//				const Vector3 startMaxsObject = bounds.maxs;
-//				const Vector3 endMinsObject = startMinsObject + relativeVelocity * dt;
-//				const Vector3 endMaxsObject = startMaxsObject + relativeVelocity * dt;
-//
-//				const Vector3 startPtObject = posObject;
-//				const Vector3 endPtObject = startPtObject + relativeVelocity * dt;
-//				const Vector3 rayDir = endPtObject - startPtObject;
-//
-//			//	DirectX::XMVECTOR planetPt = DirectX::XMVectorAdd(DirectX::XMVectorScale(DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(posObject, posPlanet)), planetHeight), posPlanet);
-//
-//				double endMinsObjectLength = (endMinsObject - posPlanet).Magnitude();
-//				double endMaxsObjectLength = (endMaxsObject - posPlanet).Magnitude();
-//
-//				// Determine which bound is closer to planet center
-//				double distanceToPlanetOrigoMin = endMinsObjectLength < endMaxsObjectLength ? endMinsObjectLength : endMaxsObjectLength;
-//				double distanceToPlanetOrigoMax = endMinsObjectLength > endMaxsObjectLength ? endMinsObjectLength : endMaxsObjectLength;
-//
-//				double enterTime = (distanceToPlanetOrigoMin - planetHeight) / relativeVelocity.Magnitude();
-//				double exitTime = (distanceToPlanetOrigoMax - planetHeight) / relativeVelocity.Magnitude();
-//
-//			//	//TOAST_CORE_INFO("distanceToPlanetOrigoMin: %f, planetHeight: %f", distanceToPlanetOrigoMin, planetHeight);
-//
-//				enterTime = enterTime < 0.0f ? 0.0f : enterTime;
-//
-//				collision.TimeOfImpact = enterTime;
-//				//collision.Normal = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(posObject, planetPt));
-//// 				collision.PtOnPlanetWorldSpace = planetPt;
-//// 				collision.PtOnObjectWorldSpace = planetPt;
-//
-//				// No collision this frame
-//				if(enterTime > dt)
-//					return false;
-//
-//				if (enterTime > exitTime || enterTime > 1.0f || exitTime < 0.0f) 
-//					return false;
-//				else
-//					return true;
+				return true;
 			}
 
 			return false;
@@ -524,16 +467,16 @@ namespace Toast {
 			const Vector3 angularJObject = Vector3::Cross(invWorldInertiaObject * Vector3::Cross(ra, normal), ra);
 			const double angularFactor = Vector3::Dot(angularJObject, normal);
 
-			if (collision.Object->HasComponent<BoxColliderComponent>())
-			{
-				TOAST_CORE_INFO("Angular factor for the box collider: %lf", angularFactor);
-				TOAST_CORE_INFO("collision.PtOnObjectWorldSpace Vector: %lf, %lf, %lf", collision.PtOnObjectWorldSpace.x, collision.PtOnObjectWorldSpace.y, collision.PtOnObjectWorldSpace.z);
-				TOAST_CORE_INFO("Center of Mass world space Vector: %lf, %lf, %lf", (transform * rbcObject->CenterOfMass).x, (transform * rbcObject->CenterOfMass).y, (transform * rbcObject->CenterOfMass).z);
-				TOAST_CORE_INFO("Collision ra Vector: %lf, %lf, %lf", ra.x, ra.y, ra.z);
-				TOAST_CORE_INFO("Collision normal Vector: %lf, %lf, %lf", normal.x, normal.y, normal.z);
-				TOAST_CORE_INFO("ra x normal: %lf, %lf, %lf", Vector3::Cross(ra, normal).x, Vector3::Cross(ra, normal).y, Vector3::Cross(ra, normal).z);
-				TOAST_CORE_INFO("angularJObject Vector: %lf, %lf, %lf", angularJObject.x, angularJObject.y, angularJObject.z);
-			}
+			//if (collision.Object->HasComponent<BoxColliderComponent>())
+			//{
+			//	TOAST_CORE_INFO("Angular factor for the box collider: %lf", angularFactor);
+			//	TOAST_CORE_INFO("collision.PtOnObjectWorldSpace Vector: %lf, %lf, %lf", collision.PtOnObjectWorldSpace.x, collision.PtOnObjectWorldSpace.y, collision.PtOnObjectWorldSpace.z);
+			//	TOAST_CORE_INFO("Center of Mass world space Vector: %lf, %lf, %lf", (transform * rbcObject->CenterOfMass).x, (transform * rbcObject->CenterOfMass).y, (transform * rbcObject->CenterOfMass).z);
+			//	TOAST_CORE_INFO("Collision ra Vector: %lf, %lf, %lf", ra.x, ra.y, ra.z);
+			//	TOAST_CORE_INFO("Collision normal Vector: %lf, %lf, %lf", normal.x, normal.y, normal.z);
+			//	TOAST_CORE_INFO("ra x normal: %lf, %lf, %lf", Vector3::Cross(ra, normal).x, Vector3::Cross(ra, normal).y, Vector3::Cross(ra, normal).z);
+			//	TOAST_CORE_INFO("angularJObject Vector: %lf, %lf, %lf", angularJObject.x, angularJObject.y, angularJObject.z);
+			//}
 
 			const Vector3 velObject = rbcObject->LinearVelocity + Vector3::Cross(rbcObject->AngularVelocity, ra);
 
@@ -547,37 +490,30 @@ namespace Toast {
 			ApplyImpulse(collision.Object->GetComponent<TransformComponent>(), *rbcObject, collider, { collision.Object->GetComponent<TransformComponent>().Translation }, vectorImpulseJ * -1.0);
 		
 			// Friction
-			const double frictionObject = objectHasRigidBody ? rbcObject->Friction : 0.0;
-			const double frictionPlanet = planetHasRigidBody ? rbcPlanet.Friction : 1.0;
-			const double friction = frictionObject * frictionPlanet;
+			//const double frictionObject = objectHasRigidBody ? rbcObject->Friction : 0.0;
+			//const double frictionPlanet = planetHasRigidBody ? rbcPlanet.Friction : 1.0;
+			//const double friction = frictionObject * frictionPlanet;
 
-			const Vector3 velNorm = normal * Vector3::Dot(normal, vab);
+			//const Vector3 velNorm = normal * Vector3::Dot(normal, vab);
 
-			const Vector3 velTang = vab - velNorm;
+			//const Vector3 velTang = vab - velNorm;
 
-			Vector3 relativeVelTang = velTang;
-			relativeVelTang = Vector3::Normalize(relativeVelTang);
+			//Vector3 relativeVelTang = velTang;
+			//relativeVelTang = Vector3::Normalize(relativeVelTang);
 
-			const Vector3 inertiaObject = Vector3::Cross(invWorldInertiaObject * Vector3::Cross(ra, relativeVelTang), ra);
-			const double invInertia = Vector3::Dot(inertiaObject, relativeVelTang);
+			//const Vector3 inertiaObject = Vector3::Cross(invWorldInertiaObject * Vector3::Cross(ra, relativeVelTang), ra);
+			//const double invInertia = Vector3::Dot(inertiaObject, relativeVelTang);
 
-			const double reducedMass = 1.0 / (rbcObject->InvMass + planetInvMass + invInertia);
-			const Vector3 impulseFriction = velTang * (reducedMass * friction);
+			//const double reducedMass = 1.0 / (rbcObject->InvMass + planetInvMass + invInertia);
+			//const Vector3 impulseFriction = velTang * (reducedMass * friction);
 
-			ApplyImpulse(collision.Object->GetComponent<TransformComponent>(), *rbcObject, collider, { collision.Object->GetComponent<TransformComponent>().Translation }, impulseFriction * 1.0);
+			//ApplyImpulse(collision.Object->GetComponent<TransformComponent>(), *rbcObject, collider, { collision.Object->GetComponent<TransformComponent>().Translation }, impulseFriction * 1.0);
 			
-			if (0.0 == collision.TimeOfImpact) 
-			{
-				const Vector3 ds = collision.PtOnObjectWorldSpace - collision.PtOnPlanetWorldSpace;
-				//TOAST_CORE_CRITICAL("Collision ds Vector: %lf, %lf, %lf", ds.x, ds.y, ds.z);
+			Vector3 objectPos = { collision.Object->GetComponent<TransformComponent>().Translation } ;
+			Vector3 planetPos = { collision.Planet->GetComponent<TransformComponent>().Translation };
 
-				const double tObject = rbcObject->InvMass / (planetInvMass + rbcObject->InvMass);
-				//TOAST_CORE_CRITICAL("tObject: %lf", tObject);
-				Vector3 objectPosition = { collision.Object->GetComponent<TransformComponent>().Translation };
-				//TOAST_CORE_CRITICAL("Translation BEFORE resolving: %lf, %lf, %lf", collision.Object->GetComponent<TransformComponent>().Translation.x, collision.Object->GetComponent<TransformComponent>().Translation.y, collision.Object->GetComponent<TransformComponent>().Translation.z);
-				collision.Object->GetComponent<TransformComponent>().Translation = { (float)(objectPosition + ds * tObject).x, (float)(objectPosition + ds * tObject).y, (float)(objectPosition + ds * tObject).z };
-				//TOAST_CORE_CRITICAL("Translation AFTER resolving: %f, %f, %f", collision.Object->GetComponent<TransformComponent>().Translation.x, collision.Object->GetComponent<TransformComponent>().Translation.y, collision.Object->GetComponent<TransformComponent>().Translation.z);
-			}
+			Vector3 updatedPos = Vector3(objectPos) + collision.Normal * collision.SeparationDistance;
+			collision.Object->GetComponent<TransformComponent>().Translation = { (float)updatedPos.x, (float)updatedPos.y, (float)updatedPos.z };
 
 			return;
 		}
@@ -676,17 +612,17 @@ namespace Toast {
 								bool hasBoxCollider = objectEntity.HasComponent<BoxColliderComponent>();
 
 								if (hasSphereCollider) 
-								{
-									//objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity = { 0.0f, 0.0f, 0.0f };
 									ResolveTerrainCollision(terrainCollision);
-									//TOAST_CORE_CRITICAL("Object translation after resolving the collision: %f, %f, %f", tc.Translation.x, tc.Translation.y, tc.Translation.z);
-								}
 
 								if (hasBoxCollider)
 								{
-									//ResolveTerrainCollision(terrainCollision);
-									TOAST_CORE_INFO("COLLISION!!");
-									objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity = { 0.0f, 0.0f, 0.0f };
+									ResolveTerrainCollision(terrainCollision);
+									//TOAST_CORE_CRITICAL("Object translation before resolving the collision: %f, %f, %f", tc.Translation.x, tc.Translation.y, tc.Translation.z);
+									//TOAST_CORE_INFO("COLLISION DISTANCE: %lf", terrainCollision.SeparationDistance);
+									//terrainCollision.Normal.ToString("COLLISION NORMAL: ");
+									//objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity = { 0.0f, 0.0f, 0.0f };
+									//Vector3 updatedTranslation = Vector3(tc.Translation) + terrainCollision.Normal * terrainCollision.SeparationDistance;
+									//objectEntity.GetComponent < TransformComponent>().Translation = { (float)updatedTranslation.x, (float)updatedTranslation.y, (float)updatedTranslation.z};
 								}
 
 							}	
