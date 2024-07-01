@@ -53,6 +53,7 @@ namespace Toast {
 		}
 
 		double Magnitude() const;
+		double MagnitudeSqrt() const;
 
 		static Vector3 Normalize(std::initializer_list<double> list);
 		static Vector3 Normalize(const Vector3& vec);

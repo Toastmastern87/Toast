@@ -25,7 +25,7 @@ namespace Toast {
 		virtual void Build(const Vector3* pts, const int num) {}
 
 		virtual ShapeType GetType() const = 0;
-		virtual Matrix GetInertiaTensor() const = 0;
+		virtual void RecalcInertiaTensor() = 0;
 
 		virtual Vector3 Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const = 0;
 
@@ -35,9 +35,13 @@ namespace Toast {
 		virtual Bounds GetBounds() const = 0;
 
 		virtual Vector3 GetCenterOfMass() const { return mCenterOfMass; }
+		virtual Matrix GetInertiaTensor() const { return mInertiaTensor; }
+		virtual Matrix GetInvInertiaTensor() const { return mInvInertiaTensor; }
 
 	protected:
-		DirectX::XMFLOAT3 mCenterOfMass;
+		Vector3 mCenterOfMass;
+		Matrix mInertiaTensor;
+		Matrix mInvInertiaTensor;
 	};
 
 	class ShapeSphere : public Shape
@@ -46,7 +50,8 @@ namespace Toast {
 		ShapeSphere(double radius);
 
 		ShapeType GetType() const override { return ShapeType::SPHERE; }
-		Matrix GetInertiaTensor() const override;
+
+		void RecalcInertiaTensor() override;
 
 		Vector3 Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const override;
 
@@ -60,14 +65,14 @@ namespace Toast {
 	class ShapeBox : public Shape
 	{
 	public:
-		ShapeBox(Vector3 size) : mSize(size) {}
+		ShapeBox(Vector3 size) : mSize(size) { RecalcInertiaTensor(); }
 		explicit ShapeBox(const Vector3* pts, const int num) {}
 
 		ShapeType GetType() const override { return ShapeType::BOX; }
 
 		Vector3 Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const override;
 
-		Matrix GetInertiaTensor() const override;
+		void RecalcInertiaTensor() override;
 
 		Bounds GetBounds(const Vector3& pos, const Quaternion& quat) const override;
 		Bounds GetBounds() const override;
@@ -89,7 +94,8 @@ namespace Toast {
 		ShapeTerrain(std::string filePath) : FilePath(filePath) {}
 
 		ShapeType GetType() const override { return ShapeType::TERRAIN; }
-		Matrix GetInertiaTensor() const override;
+
+		void RecalcInertiaTensor() override;
 
 		Vector3 Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const override;
 
