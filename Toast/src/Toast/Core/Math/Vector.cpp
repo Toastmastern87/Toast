@@ -43,6 +43,10 @@ namespace Toast {
 		return sqrt(x * x + y * y + z * z);
 	}
 
+	double Vector3::MagnitudeSqrt() const {
+		return x * x + y * y + z * z;
+	}
+
 	Vector3 Vector3::Normalize(const Vector3& vec) {
 		Vector3 result = vec;
 		double magnitude = vec.Magnitude();

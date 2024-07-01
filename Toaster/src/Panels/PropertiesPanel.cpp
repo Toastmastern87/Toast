@@ -1095,8 +1095,11 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
 				temp = static_cast<float>(component.Collider->mRadius);
-				if(ImGui::DragFloat("##radius", &temp, 0.1f, 0.0f, 600.0f, "%.4f"))
+				if (ImGui::DragFloat("##radius", &temp, 0.1f, 0.0f, 600.0f, "%.4f")) 
+				{
 					component.Collider->mRadius = static_cast<double>(temp);
+					component.Collider->RecalcInertiaTensor();
+				}
 				ImGui::EndTable();
 			});
 
@@ -1122,6 +1125,8 @@ namespace Toast {
 					DirectX::XMVECTOR totalRotVec = DirectX::XMQuaternionMultiply(DirectX::XMLoadFloat4(&tc.RotationQuaternion), DirectX::XMQuaternionRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&tc.RotationEulerAngles)));
 					DirectX::XMFLOAT4 totalRot;
 					DirectX::XMStoreFloat4(&totalRot, totalRotVec);
+
+					component.Collider->RecalcInertiaTensor();
 				}
 				ImGui::EndTable();
 			});

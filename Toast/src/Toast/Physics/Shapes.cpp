@@ -11,7 +11,9 @@ namespace Toast {
 
 	ShapeSphere::ShapeSphere(double radius) : mRadius(radius)
 	{
-		mCenterOfMass = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+		mCenterOfMass = Vector3(0.0f, 0.0f, 0.0f);
+		
+		RecalcInertiaTensor();
 	}
 
 	Bounds ShapeSphere::GetBounds(const Vector3& pos, const Quaternion& quat) const
@@ -32,14 +34,16 @@ namespace Toast {
 		return result;
 	}
 
-	Matrix ShapeSphere::GetInertiaTensor() const
+	void ShapeSphere::RecalcInertiaTensor()
 	{
 		Matrix tensor = Matrix::Zero();
 
 		tensor.m_00 = 0.4 * mRadius * mRadius;
 		tensor.m_11 = 0.4 * mRadius * mRadius;
 		tensor.m_22 = 0.4 * mRadius * mRadius;
-		return tensor;
+		
+		mInertiaTensor = tensor;
+		mInvInertiaTensor = Matrix::Inverse(mInertiaTensor);
 	}
 
 	Vector3 ShapeSphere::Support(Vector3& dir, const Vector3& pos, const Quaternion& rot, const double bias) const
@@ -77,7 +81,7 @@ namespace Toast {
 		return result;
 	}
 
-	Matrix ShapeBox::GetInertiaTensor() const
+	void ShapeBox::RecalcInertiaTensor()
 	{
 		// Inertia Tensor for a box centered around zero
 		const double dx = mBounds.maxs.x - mBounds.mins.x;
@@ -124,7 +128,9 @@ namespace Toast {
 		tensor.m_32 += patTensor.m_32;
 		tensor.m_33 += patTensor.m_33;
 
-		return tensor;
+		mInertiaTensor = tensor;
+
+		mInvInertiaTensor = Matrix::Inverse(mInertiaTensor);
 	}
 
 	Bounds ShapeBox::GetBounds(const Vector3& pos, const Quaternion& quat) const
@@ -185,7 +191,7 @@ namespace Toast {
 		double maxSpeed = 0.0;
 		for (int i = 0; i < mPoints.size(); i++)
 		{
-			Vector3 r = mPoints[i] - DirectX::XMLoadFloat3(&mCenterOfMass);
+			Vector3 r = mPoints[i] - mCenterOfMass;
 			Vector3 linearVelocity = Vector3::Cross(angularVelocity, r);
 			double speed = Vector3::Dot(dir, linearVelocity);
 
@@ -218,7 +224,7 @@ namespace Toast {
 		return result;
 	}
 
-	Matrix ShapeTerrain::GetInertiaTensor() const
+	void ShapeTerrain::RecalcInertiaTensor()
 	{
 		Matrix tensor(
 			1.0, 0.0, 0.0, 0.0,
@@ -227,7 +233,8 @@ namespace Toast {
 			0.0, 0.0, 0.0, 1.0
 		);
 
-		return tensor;
+		mInertiaTensor = tensor;
+		mInvInertiaTensor = tensor;
 	}
 
 	Vector3 ShapeTerrain::Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const
