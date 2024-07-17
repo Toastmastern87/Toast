@@ -206,10 +206,10 @@ namespace Toast {
 	{
 		Matrix translationMatrix;
 
-		translationMatrix.m_00 = 1.0; translationMatrix.m_01 = 0.0; translationMatrix.m_02 = 0.0; translationMatrix.m_03 = translationVector.x;
-		translationMatrix.m_10 = 0.0; translationMatrix.m_11 = 1.0; translationMatrix.m_12 = 0.0; translationMatrix.m_13 = translationVector.y;
-		translationMatrix.m_20 = 0.0; translationMatrix.m_21 = 0.0; translationMatrix.m_22 = 1.0; translationMatrix.m_23 = translationVector.z;
-		translationMatrix.m_30 = 0.0; translationMatrix.m_31 = 0.0; translationMatrix.m_32 = 0.0; translationMatrix.m_33 = 1.0;
+		translationMatrix.m_00 = 1.0; translationMatrix.m_01 = 0.0; translationMatrix.m_02 = 0.0; translationMatrix.m_03 = 0.0;
+		translationMatrix.m_10 = 0.0; translationMatrix.m_11 = 1.0; translationMatrix.m_12 = 0.0; translationMatrix.m_13 = 0.0;
+		translationMatrix.m_20 = 0.0; translationMatrix.m_21 = 0.0; translationMatrix.m_22 = 1.0; translationMatrix.m_23 = 0.0;
+		translationMatrix.m_30 = translationVector.x; translationMatrix.m_31 = translationVector.y; translationMatrix.m_32 = translationVector.z; translationMatrix.m_33 = 1.0;
 
 		return translationMatrix;
 	}
@@ -224,6 +224,44 @@ namespace Toast {
 		scalingMatrix.m_30 = 0.0;             scalingMatrix.m_31 = 0.0;             scalingMatrix.m_32 = 0.0;             scalingMatrix.m_33 = 1.0;
 
 		return scalingMatrix;
+	}
+
+	Matrix Matrix::RotationFromEauler(const Vector3& rot) 
+	{
+		Matrix m;
+
+		double cosX = std::cos(rot.x);
+		double sinX = std::sin(rot.x);
+		double cosY = std::cos(rot.y);
+		double sinY = std::sin(rot.y);
+		double cosZ = std::cos(rot.z);
+		double sinZ = std::sin(rot.z);
+
+		// Rotation matrix around X-axis (pitch)
+		Matrix Rx = Matrix::Identity();
+		Rx.m_11 = cosX;
+		Rx.m_12 = -sinX;
+		Rx.m_21 = sinX;
+		Rx.m_22 = cosX;
+
+		// Rotation matrix around Y-axis (yaw)
+		Matrix Ry = Matrix::Identity();
+		Ry.m_00 = cosY;
+		Ry.m_02= sinY;
+		Ry.m_20 = -sinY;
+		Ry.m_22 = cosY;
+
+		// Rotation matrix around Z-axis (roll)
+		Matrix Rz = Matrix::Identity();
+		Rz.m_00 = cosZ;
+		Rz.m_01 = -sinZ;
+		Rz.m_10 = sinZ;
+		Rz.m_11 = cosZ;
+
+		// Combined rotation matrix: R = Rz * Ry * Rx
+		m = Rz * Ry * Rx;
+
+		return m;
 	}
 
 	Matrix Matrix::FromQuaternion(const Quaternion& q) {

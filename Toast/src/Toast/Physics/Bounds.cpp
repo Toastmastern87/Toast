@@ -3,10 +3,31 @@
 
 namespace Toast {
 
-	const Bounds& Bounds::operator= (const Bounds& rhs)
+	const Bounds& Bounds::operator=(const Bounds& rhs)
 	{
 		mins = rhs.mins;
 		maxs = rhs.maxs;
+		return *this;
+	}
+
+	const Toast::Bounds& Bounds::operator+(const Vector3& rhs)
+	{
+		mins = mins + rhs;
+		maxs = maxs + rhs;
+		return *this;
+	}
+
+	const Toast::Bounds& Bounds::operator-(const Vector3& rhs)
+	{
+		mins = mins - rhs;
+		maxs = maxs - rhs;
+		return *this;
+	}
+
+	const Bounds& Bounds::operator*(Matrix& transform)
+	{
+		mins = transform * mins;
+		maxs = transform * maxs;
 		return *this;
 	}
 
@@ -48,6 +69,12 @@ namespace Toast {
 	{
 		Expand(rhs.mins);
 		Expand(rhs.maxs);
+	}
+
+	void Bounds::ToString(const std::string& label)
+	{
+		TOAST_CORE_INFO("%s: Min: %lf, %lf, %lf", label.c_str(), mins.x, mins.y, mins.z);
+		TOAST_CORE_INFO("    Max: %lf, %lf, %lf", maxs.x, maxs.y, maxs.z);
 	}
 
 }

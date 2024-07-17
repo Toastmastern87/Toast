@@ -479,7 +479,7 @@ namespace Toast {
 			out << YAML::BeginMap; // TerrainColliderComponent
 
 			auto& tcc = entity.GetComponent<TerrainColliderComponent>();
-			out << YAML::Key << "AssetPath" << YAML::Value << tcc.Collider->FilePath;
+			out << YAML::Key << "AssetPath" << YAML::Value << tcc.Collider->mFilePath;
 
 			out << YAML::EndMap; // TerrainColliderComponent
 		}
@@ -745,6 +745,8 @@ namespace Toast {
 
 					scc.Collider->mRadius = sphereColliderComponent["Radius"].as<float>();
 					scc.RenderCollider = sphereColliderComponent["RenderCollider"].as<bool>();
+
+					scc.Collider->CalculateBounds();
 				}
 
 				auto boxColliderComponent = entity["BoxColliderComponent"];
@@ -755,13 +757,19 @@ namespace Toast {
 					bcc.Collider->mSize = boxColliderComponent["Size"].as<DirectX::XMFLOAT3>();
 					bcc.RenderCollider = boxColliderComponent["RenderCollider"].as<bool>();
 
-					auto& tc = deserializedEntity.GetComponent<TransformComponent>();
+					bcc.Collider->CalculateBounds();
 				}
 
 				auto terrainColliderComponent = entity["TerrainColliderComponent"];
 				if (terrainColliderComponent)
 				{
 					auto& tcc = deserializedEntity.AddComponent<TerrainColliderComponent>();
+
+					if (planetComponent)
+					{
+						tcc.Collider->mMaxAltitude = planetComponent["MaxAltitude"].as<float>() + planetComponent["Radius"].as<float>();
+						tcc.Collider->CalculateBounds();
+					}
 				}
 
 				auto uiPanelComponent = entity["UIPanelComponent"];

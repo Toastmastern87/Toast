@@ -10,6 +10,9 @@ namespace Toast {
 		Bounds() { Clear(); }
 		Bounds(const Bounds& rhs) : mins(rhs.mins), maxs(rhs.maxs) {}
 		const Bounds& operator= (const Bounds& rhs);
+		const Bounds& operator+ (const Vector3& rhs);
+		const Bounds& operator- (const Vector3& rhs);
+		const Bounds& operator* (Matrix& transform);
 		~Bounds() = default;
 
 		void Clear() {
@@ -23,6 +26,8 @@ namespace Toast {
 		float WidthX() const { return maxs.x - mins.x; }
 		float WidthY() const { return maxs.y - mins.y; }
 		float WidthZ() const { return maxs.z - mins.z; }
+
+		void ToString(const std::string& label);
 
 	public:
 		Vector3 mins;

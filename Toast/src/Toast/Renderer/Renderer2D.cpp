@@ -23,6 +23,8 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		RenderCommand::SetPrimitiveTopology(PrimitiveTopology::TRIANGLELIST);
+
 		auto[width, height] = sRendererData->FinalRenderTarget->GetSize();
 
 		float fWidth, fHeight;
@@ -37,6 +39,13 @@ namespace Toast {
 	void Renderer2D::EndScene()
 	{
 		TOAST_PROFILE_FUNCTION();
+
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"2D Render Pass");
+#endif
 
 		sRendererData->FinalFramebuffer->DisableDepth();
 		sRendererData->FinalFramebuffer->Bind();
@@ -131,6 +140,11 @@ namespace Toast {
 		
 		RenderCommand::BindBackbuffer();
 		RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
 	}
 
 	void Renderer2D::ClearDrawList()

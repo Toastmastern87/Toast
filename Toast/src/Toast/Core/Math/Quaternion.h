@@ -8,8 +8,13 @@ namespace Toast {
 	public:
 		Quaternion() : x(0), y(0), z(0), w(1) {}  // Default constructor for identity quaternion
 		Quaternion(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {}
+		Quaternion(Vector3 vec, double w);
 		Quaternion(DirectX::XMFLOAT4 quat) : x(quat.x), y(quat.y), z(quat.z), w(quat.w) {}
 		Quaternion(DirectX::XMVECTOR quat);
+
+		Quaternion operator+(const Quaternion& rhs) const {
+			return Quaternion(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
+		}
 
 		// Multiplication of two quaternions
 		Quaternion operator*(const Quaternion& rhs) const {
@@ -29,6 +34,7 @@ namespace Toast {
 		// Function to create a quaternion from roll, pitch, yaw
 		static Quaternion FromRollPitchYaw(double roll, double pitch, double yaw);
 
+		void ToString(const std::string& label);
 	public:
 		double x, y, z, w;
 	};

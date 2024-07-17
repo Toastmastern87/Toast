@@ -54,6 +54,8 @@ namespace Toast {
 			bool FrustumCulling = true;
 			bool RenderColliders = false;
 			bool RenderUI = true;
+
+			int physicSlowmotion = 1;
 		};
 		struct Stats
 		{
