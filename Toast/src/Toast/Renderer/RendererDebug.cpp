@@ -122,6 +122,8 @@ namespace Toast {
 		mDebugData->LineVertexBufferPtr++;
 
 		mDebugData->LineVertexCount += 2;
+
+		//TOAST_CORE_INFO("Adding line! Count number: %d", mDebugData->LineVertexCount);
 	}
 
 	void RendererDebug::SubmitLine(DirectX::XMVECTOR& p1, DirectX::XMVECTOR& p2, DirectX::XMFLOAT4& color)
@@ -186,16 +188,20 @@ namespace Toast {
 			}
 
 			//Grid
-			RenderCommand::DisableWireframe();
-			RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
+			if (!runtime)
+			{
+				RenderCommand::DisableWireframe();
+				RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
-			mDebugData->mGridCBuffer->Map(mDebugData->mGridBuffer);
-			mDebugData->GridShader->Bind();
+				mDebugData->mGridCBuffer->Map(mDebugData->mGridBuffer);
+				mDebugData->GridShader->Bind();
 
-			RenderCommand::Draw(6);
+				RenderCommand::Draw(6);
+			}
 		//}
 
 		RenderCommand::EnableWireframe();
+		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
 		for (const auto& meshCommand : sRendererData->MeshColliderDrawList)
 		{

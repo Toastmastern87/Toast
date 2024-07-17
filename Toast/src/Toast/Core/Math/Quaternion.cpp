@@ -14,6 +14,14 @@ namespace Toast {
 		w = DirectX::XMVectorGetW(quat);
 	}
 
+	Quaternion::Quaternion(Vector3 vec, double w)
+	{
+		x = vec.x;
+		y = vec.y;
+		z = vec.z;
+		this->w = w;
+	}
+
 	Quaternion Quaternion::Conjugate() const {
 		return Quaternion(-x, -y, -z, w);
 	}
@@ -74,4 +82,8 @@ namespace Toast {
 		return qYaw * qPitch * qRoll;
 	}
 
+	void Quaternion::ToString(const std::string& label)
+	{
+		TOAST_CORE_INFO("%s: %lf, %lf, %lf, %lf", label.c_str(), x, y, z, w);
+	}
 }

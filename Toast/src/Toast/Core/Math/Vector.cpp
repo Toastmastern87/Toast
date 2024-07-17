@@ -8,6 +8,13 @@ namespace Toast {
 	//		  VECTOR3	  	  //////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
+	Vector3::Vector3() {
+		x = 0.0;
+		y = 0.0;
+		z = 0.0;
+		w = 1.0;
+	}
+
 	Vector3::Vector3(float xIn, float yIn, float zIn, float wIn) {
 		x = (double)xIn;
 		y = (double)yIn;

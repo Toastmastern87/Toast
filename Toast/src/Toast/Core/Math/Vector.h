@@ -9,7 +9,7 @@ namespace Toast {
 	class Vector3
 	{
 	public:
-		Vector3() = default;
+		Vector3();
 		Vector3(float xIn, float yIn, float zIn, float wIn = 1.0f);
 		Vector3(double xIn, double yIn, double zIn, double wIn = 1.0f) : x(xIn), y(yIn), z(zIn), w(wIn) {}
 		Vector3(DirectX::XMVECTOR vec);
@@ -49,6 +49,10 @@ namespace Toast {
 		}
 
 		Vector3 operator/(double scalar) const {
+			return Vector3(x / scalar, y / scalar, z / scalar, w);
+		}
+
+		Vector3 operator/=(double scalar) const {
 			return Vector3(x / scalar, y / scalar, z / scalar, w);
 		}
 

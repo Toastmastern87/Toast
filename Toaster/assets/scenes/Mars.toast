@@ -265,7 +265,7 @@ Entities:
       IsPlanet: false
     RigidBodyComponent:
       InvMass: 0.000199999995
-      Elasticity: 0.10000000100000001
+      Elasticity: 0.0
       Friction: 0
       CenterOfMass: [0, 0, 0]
     BoxColliderComponent:
@@ -287,7 +287,7 @@ Entities:
       IsPlanet: false
     RigidBodyComponent:
       InvMass: 0.000199999995
-      Elasticity: 0.10000000100000001
+      Elasticity: 0.0
       Friction: 0
       CenterOfMass: [0, 0, 0]
     SphereColliderComponent:

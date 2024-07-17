@@ -772,7 +772,15 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
 				if (ImGui::DragFloat("##MaxAltitude", &component.PlanetData.maxAltitude, 0.1f, 0.0f, 0.0f, "%.2f")) 
+				{
+					if (entity.HasComponent<TerrainColliderComponent>()) 
+					{
+						entity.GetComponent<TerrainColliderComponent>().Collider->mMaxAltitude = component.PlanetData.maxAltitude + component.PlanetData.radius;
+						entity.GetComponent<TerrainColliderComponent>().Collider->CalculateBounds();
+					}
+
 					modified = true;
+				}
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -788,7 +796,15 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
 				if (ImGui::DragFloat("##Radius", &component.PlanetData.radius, 0.1f, 0.0f, 0.0f, "%.2f"))
+				{
+					if (entity.HasComponent<TerrainColliderComponent>())
+					{
+						entity.GetComponent<TerrainColliderComponent>().Collider->mMaxAltitude = component.PlanetData.maxAltitude + component.PlanetData.radius;
+						entity.GetComponent<TerrainColliderComponent>().Collider->CalculateBounds();
+					}
+
 					modified = true;
+				}
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -1098,7 +1114,9 @@ namespace Toast {
 				if (ImGui::DragFloat("##radius", &temp, 0.1f, 0.0f, 600.0f, "%.4f")) 
 				{
 					component.Collider->mRadius = static_cast<double>(temp);
-					component.Collider->RecalcInertiaTensor();
+
+					component.Collider->CalculateBounds();
+					component.Collider->CalculateInertiaTensor();
 				}
 				ImGui::EndTable();
 			});
@@ -1120,13 +1138,14 @@ namespace Toast {
 				ImGui::PushItemWidth(-1);
 				if (DrawDouble3Control("Size", component.Collider->mSize, 1.0f)) 
 				{
-					TransformComponent tc = entity.GetComponent<TransformComponent>();
-					// TODO Add eular angles into the mix
-					DirectX::XMVECTOR totalRotVec = DirectX::XMQuaternionMultiply(DirectX::XMLoadFloat4(&tc.RotationQuaternion), DirectX::XMQuaternionRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&tc.RotationEulerAngles)));
-					DirectX::XMFLOAT4 totalRot;
-					DirectX::XMStoreFloat4(&totalRot, totalRotVec);
+					//TransformComponent tc = entity.GetComponent<TransformComponent>();
+					//// TODO Add eular angles into the mix
+					//DirectX::XMVECTOR totalRotVec = DirectX::XMQuaternionMultiply(DirectX::XMLoadFloat4(&tc.RotationQuaternion), DirectX::XMQuaternionRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&tc.RotationEulerAngles)));
+					//DirectX::XMFLOAT4 totalRot;
+					//DirectX::XMStoreFloat4(&totalRot, totalRotVec);
 
-					component.Collider->RecalcInertiaTensor();
+					component.Collider->CalculateBounds();
+					component.Collider->CalculateInertiaTensor();
 				}
 				ImGui::EndTable();
 			});
@@ -1145,8 +1164,8 @@ namespace Toast {
 				ImGui::Text("Height Map ");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (!component.Collider->FilePath.empty())
-					ImGui::InputText("##heightmapfilepath", (char*)component.Collider->FilePath.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
+				if (!component.Collider->mFilePath.empty())
+					ImGui::InputText("##heightmapfilepath", (char*)component.Collider->mFilePath.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
 				else
 					ImGui::InputText("##heightmapfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
 				ImGui::TableSetColumnIndex(2);

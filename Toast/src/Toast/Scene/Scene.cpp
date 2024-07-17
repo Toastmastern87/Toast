@@ -176,7 +176,7 @@ namespace Toast {
 				}
 			}
 
-			PhysicsEngine::Update(&mRegistry, this, (double)(ts.GetSeconds() * GetTimeScale()));
+			PhysicsEngine::Update(&mRegistry, this, (double)(ts.GetSeconds() * GetTimeScale()), mSettings.physicSlowmotion);
 
 			// Scripting
 			{
@@ -379,7 +379,7 @@ namespace Toast {
 					mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices().size());
 				}
 
-				Renderer::EndScene(false);
+				Renderer::EndScene(true);
 			}
 
 			// Debug Rendering
@@ -932,6 +932,9 @@ namespace Toast {
 
 	void Scene::CopyTo(Ref<Scene>& target)
 	{
+		// Settings
+		target->mSettings.physicSlowmotion = mSettings.physicSlowmotion;
+
 		// Environment
 		target->mLightEnvironment = mLightEnvironment;
 

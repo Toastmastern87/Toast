@@ -69,6 +69,16 @@ namespace Toast {
 				* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(RotationEulerAngles.x), DirectX::XMConvertToRadians(RotationEulerAngles.y), DirectX::XMConvertToRadians(RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&RotationQuaternion))
 				* DirectX::XMMatrixTranslation(Translation.x, Translation.y, Translation.z);
 		}
+
+		DirectX::XMMATRIX GetTransformWithoutScale()
+		{
+			return DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(RotationEulerAngles.x), DirectX::XMConvertToRadians(RotationEulerAngles.y), DirectX::XMConvertToRadians(RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&RotationQuaternion)) * DirectX::XMMatrixTranslation(Translation.x, Translation.y, Translation.z);
+		}
+
+		DirectX::XMMATRIX GetRotation()
+		{
+			return DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(RotationEulerAngles.x), DirectX::XMConvertToRadians(RotationEulerAngles.y), DirectX::XMConvertToRadians(RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&RotationQuaternion));
+		}
 	};
 
 	struct MeshComponent
@@ -189,6 +199,7 @@ namespace Toast {
 
 	struct RigidBodyComponent
 	{
+		bool IsStatic = false;
 		double InvMass = 0.0f;
 		double Elasticity = 0.0f;
 		double Friction = 0.0f;

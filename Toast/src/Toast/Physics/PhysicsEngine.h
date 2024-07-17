@@ -2,6 +2,8 @@
 
 #include "Toast/Scene/Components.h"
 
+#include "Toast/Renderer/RendererDebug.h"
+
 #include <../vendor/directxtex/include/DirectXTex.h>
 
 #define NOMINMAX
@@ -16,36 +18,25 @@
 namespace Toast {
 
 	namespace PhysicsEngine {
+		struct ContactPoint 
+		{
+			Vector3 PtOnPlanetWorldSpace;
+			Vector3 PtOnObjectWorldSpace;
+
+			ContactPoint() = default;
+			ContactPoint(const Vector3& ptOnPlanet, const Vector3& ptOnObject) : PtOnPlanetWorldSpace(ptOnPlanet), PtOnObjectWorldSpace(ptOnObject) {}
+		};
 
 		struct TerrainCollision
 		{
 			Entity* Planet;
 			Entity* Object;
-
-			Vector3 Normal;
-
-			Vector3 PtOnPlanetWorldSpace;
-			Vector3 PtOnObjectWorldSpace;
-
-			double PlanetHeight;
-			double SeparationDistance;
-			double TimeOfImpact;
-		};
-
-		static int CompareContacts(const void* p1, const void* p2) 
-		{
-			TerrainCollision a = *(TerrainCollision*)p1;
-			TerrainCollision b = *(TerrainCollision*)p2;
-
-			if (a.TimeOfImpact < b.TimeOfImpact)
-				return -1;
 			
-			if (a.TimeOfImpact == b.TimeOfImpact)
-				return 0;
+			Vector3 Normal;
+			double Depth;
 
-			return 1;
-
-		}
+			std::vector<ContactPoint> ContactPoints;
+		};
 
 		static bool RaySphere(const Vector3& rayStart, const Vector3& rayDir, const Vector3& sphereCenter, const double sphereRadius, double& t1, double& t2)
 		{
@@ -60,6 +51,7 @@ namespace Toast {
 
 			// No real solution exists
 			if (delta < 0.0)
+
 				return false;
 
 			const double deltaRoot = sqrt(delta);
@@ -84,104 +76,89 @@ namespace Toast {
 			return { minProjection, maxProjection };
 		}
 
-		static bool OverlapOnAxis(const std::vector<Vector3>& obbVertices, const std::vector<Vector3>& triangleVertices, const Vector3& axis, double& minPenetration) {
+		static std::tuple<bool, double, Vector3> OverlapOnAxis(const std::vector<Vector3>& obbVertices, const std::vector<Vector3>& triangleVertices, const Vector3& axis, double minPenetration) {
 			auto [obbMin, obbMax] = ProjectShapeOntoAxis(obbVertices, axis);
 			auto [triMin, triMax] = ProjectShapeOntoAxis(triangleVertices, axis);
 
 			if (obbMin >= triMax || triMin >= obbMax)
-				return false;
+				return { false, minPenetration, axis };
 
 			double penetration = (std::min)(triMax - obbMin, obbMax - triMin);
 
 			if (penetration < minPenetration)
 				minPenetration = penetration;
 
-			return true;
+			return { true, minPenetration, axis };
 		}
 
-		static Vector3 FindContactPointOBB(const std::vector<Vector3>& colliderPts, const std::vector<Vector3>& terrainPts, const Vector3& collisionNormal, double minPenetration)
+		static void FindContactPointsOBB(const Vector3 planetPos, const std::vector<Vector3>& colliderPts, const std::vector<Vector3>& terrainPts, TerrainCollision& collision)
 		{
-			Vector3 closestPoint;
-			double minDistance = DBL_MAX;
+			Vector3 p1 = terrainPts[0];
+			Vector3 p2 = terrainPts[1];
+			Vector3 p3 = terrainPts[2];
 
-			// Vertices of the OBB, easiest one to find
-			for (const auto& pt : colliderPts)
+			// Calculate vectors lying on the plane
+			Vector3 v1 = { p2.x - p1.x, p2.y - p1.y, p2.z - p1.z };
+			Vector3 v2 = { p3.x - p1.x, p3.y - p1.y, p3.z - p1.z };
+
+			// Calculate the normal vector to the plane
+			Vector3 planeNormal = Vector3::Cross(v1, v2);
+
+			// Plane coefficients
+			double a = planeNormal.x;
+			double b = planeNormal.y;
+			double c = planeNormal.z;
+			double d = -Vector3::Dot(planeNormal, p1);
+
+			std::vector<Vector3> pointsBelowPlane;
+			for (const auto& p : colliderPts) 
 			{
-				double distance = Vector3::Dot(pt, collisionNormal) - minPenetration;
-
-				if (distance < minDistance)
+				double f = a * p.x + b * p.y + c * p.z + d;
+				if (f > 0.0) 
 				{
-					minDistance = distance;
-					closestPoint = pt;
-				}
-			}
+					// Calculate t
+					double denominator = a * collision.Normal.x + b * collision.Normal.y + c * collision.Normal.z;
+					if (denominator != 0)
+					{ // Avoid division by zero
+						double t = -f / denominator;
+						// Calculate the intersection point
+						Vector3 ptOnPlanet = p + collision.Normal * t;
+						ContactPoint newContact = { ptOnPlanet, p };
 
-			// Consider the edges of the OBB, harder then vertices, but easier the faces.
-			for (size_t i = 0; i < colliderPts.size(); ++i)
-			{
-				for (size_t j = i + 1; j < colliderPts.size(); ++j)
-				{
-					Vector3 edge = colliderPts[j] - colliderPts[i];
-					double edgeLength = edge.Magnitude();
-					Vector3 edgeDirection = Vector3::Normalize(edge);
+						bool addNewContact = true;
 
-					// Project the edge onto the collision normal
-					double t = Vector3::Dot(collisionNormal, edgeDirection);
-					if (t > 0 && t < edgeLength)
-					{
-						Vector3 pointOnEdge = colliderPts[i] + edgeDirection * t;
-						double distance = Vector3::Dot(pointOnEdge, collisionNormal) - minPenetration;
-						if (distance < minDistance)
+						for (const auto& pt : collision.ContactPoints)
 						{
-							minDistance = distance;
-							closestPoint = pointOnEdge;
-						}
-					}
-				}
-			}
+							double distance = (pt.PtOnObjectWorldSpace - newContact.PtOnObjectWorldSpace).Magnitude();
 
-			// Consider faces of the OBB (using pairs of points defining edges)
-			for (size_t i = 0; i < colliderPts.size(); ++i)
-			{
-				for (size_t j = i + 1; j < colliderPts.size(); ++j)
-				{
-					for (size_t k = j + 1; k < colliderPts.size(); ++k)
-					{
-						Vector3 edge1 = colliderPts[j] - colliderPts[i];
-						Vector3 edge2 = colliderPts[k] - colliderPts[i];
-						Vector3 faceNormal = Vector3::Cross(edge1, edge2);
-
-						// Check if face normal is close to the collision normal
-						if (Vector3::Dot(faceNormal, collisionNormal) > 0.99)
-						{
-							Vector3 pointOnFace = (colliderPts[i] + colliderPts[j] + colliderPts[k]) / 3.0;
-							double distance = Vector3::Dot(pointOnFace, collisionNormal) - minPenetration;
-							if (distance < minDistance)
+							if (distance < 0.1)
 							{
-								minDistance = distance;
-								closestPoint = pointOnFace;
+								addNewContact = false;
+								break;
 							}
 						}
+
+						if (addNewContact)
+							collision.ContactPoints.emplace_back(newContact);
 					}
 				}
 			}
 
-			return closestPoint;
 		}
 
 		static bool BoxPlanetCollisionCheck(TerrainCollision& collision, const Vector3 triangleNormal, const Vector3 A, const Vector3 B, const Vector3 C )
 		{
-
+			auto& planetPos = collision.Planet->GetComponent<TransformComponent>().Translation;
 			std::vector<Vector3> axes, colliderPts, terrainPts;
 			auto& rotEuler = collision.Object->GetComponent<TransformComponent>().RotationEulerAngles;
 			auto& rotQuat = collision.Object->GetComponent<TransformComponent>().RotationQuaternion;
 			auto& scale = collision.Object->GetComponent<BoxColliderComponent>().Collider->mSize;
-			auto& translation = collision.Object->GetComponent<TransformComponent>().Translation;
+			auto& objectPos = collision.Object->GetComponent<TransformComponent>().Translation;
 			std::vector<Vertex> colliderVertices = collision.Object->GetComponent<BoxColliderComponent>().ColliderMesh->GetVertices();
 
 			Matrix objTransform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z)
 				* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(rotEuler.x), DirectX::XMConvertToRadians(rotEuler.y), DirectX::XMConvertToRadians(rotEuler.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotQuat))
-				* DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z);
+				* DirectX::XMMatrixTranslation(objectPos.x, objectPos.y, objectPos.z);
 
 			for (auto& vertex : colliderVertices)
 			{
@@ -222,13 +199,19 @@ namespace Toast {
 			double minPenetration = DBL_MAX;
 			for (auto& axis : axes)
 			{
-				if (!OverlapOnAxis(colliderPts, terrainPts, axis, minPenetration))
+				auto [overlap, penetration, normal] = OverlapOnAxis(colliderPts, terrainPts, axis, minPenetration);
+				if (!overlap)
 					return false; // No overlap found, shapes do not collide
+
+				if (penetration < minPenetration) 
+					minPenetration = penetration;
+				
 			}
 
-			collision.SeparationDistance = minPenetration;
-			collision.PtOnObjectWorldSpace = FindContactPointOBB(colliderPts, terrainPts, collision.Normal, minPenetration);
-			collision.TimeOfImpact = 0.0; // Not used for terrain collision with OBB
+			collision.Depth = minPenetration;
+			collision.Normal = Vector3::Normalize(Vector3(objectPos) - Vector3(planetPos));
+
+			FindContactPointsOBB(planetPos, colliderPts, terrainPts, collision);
 
 			return true;
 		}
@@ -241,76 +224,41 @@ namespace Toast {
 			Vector3 posPlanet = { collision.Planet->GetComponent<TransformComponent>().Translation };
 			Vector3 posObject = { collision.Object->GetComponent<TransformComponent>().Translation };
 
-			// Planet has 0.0 in speed.
-			const Vector3 relativeVelocity = rbcObject.LinearVelocity;
+			const Vector3 ab = posObject - posPlanet;
 
-			const Vector3 startPtObject = posObject;
-			const Vector3 endPtObject = startPtObject + relativeVelocity * dt;
-			const Vector3 rayDir = endPtObject - startPtObject;
+			const double radiusAB = planetHeight + sccObject.Collider->mRadius;
 
-			double t0 = 0.0;
-			double t1 = 0.0;
-			double length = rayDir.Magnitude();
-			double lengthSqr = length * length;
-			if (lengthSqr < (0.001f * 0.001f))
+			const double lengthSqr = ab.MagnitudeSqrt();
+
+			if (lengthSqr < (radiusAB * radiusAB)) 
 			{
-				// Ray is to short, just check if already intersecting
-				Vector3 ab = posPlanet - posObject;
-				double abLength = ab.Magnitude();
-				double abLengthSqr = abLength * abLength;
-				double radius = (double)sccObject.Collider->mRadius + planetHeight;// +0.001;
-				if (abLengthSqr > (radius * radius))
-					return false;
+				collision.ContactPoints.emplace_back();
+				collision.ContactPoints.at(0).PtOnPlanetWorldSpace = posPlanet - Vector3::Normalize(ab) * planetHeight;
+				collision.ContactPoints.at(0).PtOnObjectWorldSpace = posObject + Vector3::Normalize(ab) * sccObject.Collider->mRadius;
+				collision.Depth = radiusAB - sqrt(lengthSqr);
+
+				collision.Normal = Vector3::Normalize(ab);
+
+				return true;
 			}
-			else if (!RaySphere(posObject, rayDir, posPlanet, sccObject.Collider->mRadius + planetHeight, t0, t1))
-				return false;
 
-			// Change from [0,1] range to [0,dt] range
-			t0 *= dt;
-			t1 *= dt;
-
-			// If the collision is only the past, then there's no future collision this frame
-			if (t1 < 0.0)
-				return false;
-
-			// Get the earliest positive time of impact
-			collision.TimeOfImpact = t0 < 0.0 ? 0.0 : t0;
-
-			// If the earliest collision is to far in the future, then there's no collision this frame
-			if (collision.TimeOfImpact > dt)
-				return false;
-
-			// Get the points on the respective points of collision and return true
-			Vector3 newPosObject = posObject + rbcObject.LinearVelocity * collision.TimeOfImpact;
-			// Planet does not move.
-			Vector3 newPosPlanet = posPlanet;
-			Vector3 ab = newPosPlanet - newPosObject;
-			ab = Vector3::Normalize(ab);
-			collision.PtOnObjectWorldSpace = newPosObject + ab * sccObject.Collider->mRadius;
-			collision.PtOnPlanetWorldSpace = newPosPlanet - ab * planetHeight;
-
-			collision.Normal = Vector3::Normalize(posPlanet - posObject);
-
-			return true;
+			return false;
 		}
 
-		static void ApplyImpulseLinear(RigidBodyComponent& rbc, Vector3 impulse)
+		static void ApplyLinearImpulse(RigidBodyComponent& rbc, Vector3 impulse)
 		{
 			if (rbc.InvMass == 0.0)
 				return;
 
-			rbc.LinearVelocity = rbc.LinearVelocity + (impulse * rbc.InvMass);
+			rbc.LinearVelocity += (impulse * rbc.InvMass);
 		}
 
-		static void ApplyImpulseAngular(TransformComponent& tc, RigidBodyComponent& rbc, const Ref<Shape>& shape, Vector3 impulse)
+		static void ApplyImpulseAngular(RigidBodyComponent& rbc, Matrix objectInvInertiaWorld, Vector3 impulse)
 		{
 			if (rbc.InvMass == 0.0)
 				return;
 
-			Matrix invInertiaTensorWorldSpace = shape->GetInvInertiaTensor() * rbc.InvMass;
-			invInertiaTensorWorldSpace = invInertiaTensorWorldSpace * Matrix::FromQuaternion(Quaternion::FromRollPitchYaw(Math::DegreesToRadians(tc.RotationEulerAngles.x), Math::DegreesToRadians(tc.RotationEulerAngles.y), Math::DegreesToRadians(tc.RotationEulerAngles.z))) * Matrix::FromQuaternion({ tc.RotationQuaternion });
-
-			rbc.AngularVelocity = rbc.AngularVelocity + invInertiaTensorWorldSpace * impulse;
+			rbc.AngularVelocity += objectInvInertiaWorld * impulse;
 
 			const double maxAngularSpeed = 30.0;
 
@@ -318,22 +266,6 @@ namespace Toast {
 				rbc.AngularVelocity = Vector3::Normalize(rbc.AngularVelocity) * maxAngularSpeed;
 		}
 		
-		static void ApplyImpulse(TransformComponent& tc, RigidBodyComponent& rbc, const Ref<Shape>& shape, Vector3 impulsePoint, Vector3 impulse)
-		{
-			if (rbc.InvMass == 0.0)
-				return;
-			
-			ApplyImpulseLinear(rbc, impulse);
-
-			Matrix transform = { tc.GetTransform() };
-			Vector3 CoM = { rbc.CenterOfMass };
-
-			Vector3 position = transform * CoM;
-			Vector3 r = impulsePoint - position;
-			Vector3 dL = Vector3::Cross(r, impulse);
-			//ApplyImpulseAngular(tc, rbc, shape, dL);
-		}
-
 		static TerrainData LoadTerrainData(const char* path, const double maxAltitude, const double minAltitude)
 		{
 			HRESULT result;
@@ -404,42 +336,22 @@ namespace Toast {
 
 		static void UpdateBody(Entity& body, float dt)
 		{
-			Ref<Shape> collider;
-
 			TransformComponent& tc = body.GetComponent<TransformComponent>();
 			RigidBodyComponent& rbc = body.GetComponent<RigidBodyComponent>();
-			if(body.HasComponent<SphereColliderComponent>())
-				collider = body.GetComponent<SphereColliderComponent>().Collider;
-			if (body.HasComponent<BoxColliderComponent>())
-				collider = body.GetComponent<BoxColliderComponent>().Collider;
 
 			// Update position due to LinearVelocity
 			Vector3 translation = { tc.Translation };
-			Vector3 deltaGravityTranslation = rbc.LinearVelocity * dt;
-			translation += deltaGravityTranslation;
+			Vector3 deltaTranslation = rbc.LinearVelocity * dt;
+			translation += deltaTranslation;
 			tc.Translation = { (float)translation.x , (float)translation.y, (float)translation.z };
 
 			// Update rotation due to AngularVelocity
-			//if (rbc.AngularVelocity.Magnitude() > 0.0f && collider != nullptr)
-			//{
-			//	Vector3 CoMPositionWorldSpace = Matrix(tc.GetTransform()) * rbc.CenterOfMass;
-			//	Vector3 CoMToPos = translation - CoMPositionWorldSpace;
+			Quaternion updatedQuaternion = tc.RotationQuaternion;
 
-			//	Matrix orientation = Matrix::FromQuaternion(Quaternion::FromRollPitchYaw(Math::DegreesToRadians(tc.RotationEulerAngles.x), Math::DegreesToRadians(tc.RotationEulerAngles.y), Math::DegreesToRadians(tc.RotationEulerAngles.z))) * Matrix::FromQuaternion({ tc.RotationQuaternion });
-			//	Matrix inertiaTensor = orientation * collider->GetInertiaTensor();
-			//	Vector3 alpha = Matrix::Inverse(inertiaTensor) * Vector3::Cross(rbc.AngularVelocity, inertiaTensor * rbc.AngularVelocity);
-			//	rbc.AngularVelocity = rbc.AngularVelocity + alpha * dt;
+			updatedQuaternion = Quaternion::Normalize(updatedQuaternion + (Quaternion(rbc.AngularVelocity * dt * 0.5, 0.0) * Quaternion(tc.RotationQuaternion)));// *Quaternion(tc.RotationQuaternion));
 
-			//	// Update orientation due to AngularVelocity
-			//	Vector3 dAngle = rbc.AngularVelocity * dt;
-			//	Quaternion dq = Quaternion::FromAxisAngle(dAngle, dAngle.Magnitude());
-			//	Quaternion finalQuaternion = Quaternion::Normalize(Quaternion(tc.RotationQuaternion) * dq);
-			//	tc.RotationQuaternion = { (float)finalQuaternion.x, (float)finalQuaternion.y, (float)finalQuaternion.z, (float)finalQuaternion.w };
 
-			//	// Update position due to CoM translation
-			//	Vector3 finalPos = CoMPositionWorldSpace + Vector3::Rotate(CoMToPos, dq);
-			//	tc.Translation = { (float)finalPos.x, (float)finalPos.y, (float)finalPos.z };
-			//}
+			tc.RotationQuaternion = { (float)updatedQuaternion.x, (float)updatedQuaternion.y, (float)updatedQuaternion.z, (float)updatedQuaternion.w };
 		}
 
 		static bool TerrainCollisionCheck(Entity* planet, Entity* object, TerrainCollision& collision, float dt)
@@ -462,12 +374,11 @@ namespace Toast {
 
 			Vector3 triangleNormal, A, B, C;
 			double objectDistance = GetObjectDistanceToPlanet(planet, posObject, triangleNormal, A, B, C);
-			collision.PlanetHeight = (posObject - posPlanet).Magnitude() - objectDistance;
+			double planetHeight = (posObject - posPlanet).Magnitude() - objectDistance;
 
 			if (object->HasComponent<SphereColliderComponent>())
 			{
-				bool collisionDetected = SpherePlanetCollisionCheck(collision.PlanetHeight, dt, collision);
-				collision.SeparationDistance = objectDistance - object->GetComponent<SphereColliderComponent>().Collider->mRadius;
+				bool collisionDetected = SpherePlanetCollisionCheck(planetHeight, dt, collision);
 
 				if (collisionDetected)
 					return true;
@@ -475,7 +386,6 @@ namespace Toast {
 			else if (object->HasComponent<BoxColliderComponent>())
 			{
 				bool collisionDetected = BoxPlanetCollisionCheck(collision, triangleNormal, A, B, C);
-				collision.Normal = Vector3::Normalize(posObject - posPlanet);
 
 				if (collisionDetected)
 					return true;
@@ -488,8 +398,6 @@ namespace Toast {
 		{
 			RigidBodyComponent* rbcObject;
 			RigidBodyComponent rbcPlanet;
-			const Vector3 planetVelocity = { 0.0, 0.0, 0.0 };
-			const double planetInvMass = 0.0;
 
 			bool objectHasRigidBody = collision.Object->HasComponent<RigidBodyComponent>();
 			bool planetHasRigidBody = collision.Planet->HasComponent<RigidBodyComponent>();
@@ -500,67 +408,65 @@ namespace Toast {
 			if (planetHasRigidBody)
 				rbcPlanet = collision.Planet->GetComponent<RigidBodyComponent>();
 
-			Matrix invWorldInertiaObject;
 			Ref<Shape> collider;
 			if (collision.Object->HasComponent<SphereColliderComponent>())
-			{
 				collider = collision.Object->GetComponent<SphereColliderComponent>().Collider;
-				invWorldInertiaObject = collider->GetInvInertiaTensor();
-			}
-			if (collision.Object->HasComponent<BoxColliderComponent>())
-			{
+			else if (collision.Object->HasComponent<BoxColliderComponent>())
 				collider = collision.Object->GetComponent<BoxColliderComponent>().Collider;
-				invWorldInertiaObject = collider->GetInvInertiaTensor();
-			}
+
+			Vector3 objectCoMWorld = Matrix(collision.Object->GetComponent<TransformComponent>().GetTransform()) * rbcObject->CenterOfMass;
+
+			Matrix objectInvInertiaWorld = collider->GetInvInertiaTensor() * collision.Object->GetComponent<TransformComponent>().GetRotation() * Matrix(collision.Object->GetComponent<TransformComponent>().GetRotation()).Transpose();
 
 			// Elasticity
 			const double elasticityObject = objectHasRigidBody ? rbcObject->Elasticity : 0.0;
 			const double elasticityPlanet = planetHasRigidBody ? rbcPlanet.Elasticity : 1.0;
 			const double elasticity = elasticityObject * elasticityPlanet;
 
-			const Vector3 normal = collision.Normal;
-			
-			DirectX::XMVECTOR posDx = { 0.0f, 0.0f, 0.0f }, rotDx = { 0.0f, 0.0f, 0.0f }, scaleDx = { 0.0f, 0.0f, 0.0f };
-			Vector3 pos, scale;
-			Quaternion rot;
+			Vector3 totalImpulse = { 0, 0, 0 };
+			Vector3 totalAngularImpulse = { 0, 0, 0 };
 
-			auto tc = collision.Object->GetComponent<TransformComponent>();
-			DirectX::XMMatrixDecompose(&scaleDx, &rotDx, &posDx, tc.GetTransform());
-			pos = { posDx };
-			rot = { rotDx };
-			scale = { scaleDx };
-			if (collision.Object->HasComponent<BoxColliderComponent>())
-				scale = collision.Object->GetComponent<BoxColliderComponent>().Collider->mSize;
+			for (const ContactPoint& contact : collision.ContactPoints)
+			{
+				const Vector3 rObject = contact.PtOnObjectWorldSpace - objectCoMWorld;
 
-			Matrix transform = Matrix::Identity() * Matrix::ScalingFromVector(scale) * Matrix::FromQuaternion(rot) * Matrix::TranslationFromVector(pos);
+				const Vector3 angularJObject = Vector3::Cross(objectInvInertiaWorld * Vector3::Cross(rObject, collision.Normal), rObject);
+				const double angularFactor = Vector3::Dot(angularJObject, collision.Normal);
 
-			const Vector3 ra = collision.PtOnObjectWorldSpace - transform * rbcObject->CenterOfMass;
+				const Vector3 velObject = rbcObject->LinearVelocity / collision.ContactPoints.size() + Vector3::Cross(rbcObject->AngularVelocity, rObject);
 
-			const Vector3 angularJObject = Vector3::Cross(invWorldInertiaObject * Vector3::Cross(ra, normal), ra);
-			const double angularFactor = Vector3::Dot(angularJObject, normal);
+				// In terrain collision we can set the vab to velObject cause the planet isn't really moving in that sense.
+				const Vector3 vab = velObject;
+				const double impulseJ = (-(1.0 + elasticity) * Vector3::Dot(vab, collision.Normal)) / (rbcObject->InvMass + angularFactor);
+				const Vector3 vectorImpulseJ = collision.Normal * impulseJ;
 
-			//if (collision.Object->HasComponent<BoxColliderComponent>())
-			//{
-			//	TOAST_CORE_INFO("Angular factor for the box collider: %lf", angularFactor);
-			//	TOAST_CORE_INFO("collision.PtOnObjectWorldSpace Vector: %lf, %lf, %lf", collision.PtOnObjectWorldSpace.x, collision.PtOnObjectWorldSpace.y, collision.PtOnObjectWorldSpace.z);
-			//	TOAST_CORE_INFO("Center of Mass world space Vector: %lf, %lf, %lf", (transform * rbcObject->CenterOfMass).x, (transform * rbcObject->CenterOfMass).y, (transform * rbcObject->CenterOfMass).z);
-			//	TOAST_CORE_INFO("Collision ra Vector: %lf, %lf, %lf", ra.x, ra.y, ra.z);
-			//	TOAST_CORE_INFO("Collision normal Vector: %lf, %lf, %lf", normal.x, normal.y, normal.z);
-			//	TOAST_CORE_INFO("ra x normal: %lf, %lf, %lf", Vector3::Cross(ra, normal).x, Vector3::Cross(ra, normal).y, Vector3::Cross(ra, normal).z);
-			//	TOAST_CORE_INFO("angularJObject Vector: %lf, %lf, %lf", angularJObject.x, angularJObject.y, angularJObject.z);
-			//}
+				totalImpulse += vectorImpulseJ;
+				totalAngularImpulse += Vector3::Cross(rObject, vectorImpulseJ);
+			}
 
-			const Vector3 velObject = rbcObject->LinearVelocity + Vector3::Cross(rbcObject->AngularVelocity, ra);
+			totalImpulse /= collision.ContactPoints.size();
+			totalAngularImpulse /= collision.ContactPoints.size();
 
-			const Vector3 vab = planetVelocity - velObject;
-			const float impulseJ = -(1.0 + elasticity) * Vector3::Dot(vab, collision.Normal) / (rbcObject->InvMass + planetInvMass + angularFactor);
-			const Vector3 vectorImpulseJ = normal * impulseJ;
+			if (collision.Object->HasComponent<SphereColliderComponent>() && totalImpulse.Magnitude() < 5000.0)
+			{
+				rbcObject->IsStatic = true;
+			}
+			else if (collision.Object->HasComponent<BoxColliderComponent>() && totalImpulse.Magnitude() < 1500.0 && collision.ContactPoints.size() >= 3)
+			{
+				rbcObject->IsStatic = true;
+			}
+			else 
+			{
+				ApplyLinearImpulse(*rbcObject, totalImpulse);
+				ApplyImpulseAngular(*rbcObject, objectInvInertiaWorld, totalAngularImpulse);
+			}
 
-			if (planetHasRigidBody && collider)
-				ApplyImpulse(collision.Planet->GetComponent<TransformComponent>(), *rbcObject, collider, { collision.Planet->GetComponent<TransformComponent>().Translation }, vectorImpulseJ * 1.0);
+			Vector3 objectPos = { collision.Object->GetComponent<TransformComponent>().Translation };
 
-			ApplyImpulse(collision.Object->GetComponent<TransformComponent>(), *rbcObject, collider, { collision.Object->GetComponent<TransformComponent>().Translation }, vectorImpulseJ * -1.0);
-		
+			Vector3 updatedPos = objectPos + collision.Normal * collision.Depth;
+
+			collision.Object->GetComponent<TransformComponent>().Translation = { (float)updatedPos.x, (float)updatedPos.y, (float)updatedPos.z };
+
 			// Friction
 			//const double frictionObject = objectHasRigidBody ? rbcObject->Friction : 0.0;
 			//const double frictionPlanet = planetHasRigidBody ? rbcPlanet.Friction : 1.0;
@@ -580,12 +486,6 @@ namespace Toast {
 			//const Vector3 impulseFriction = velTang * (reducedMass * friction);
 
 			//ApplyImpulse(collision.Object->GetComponent<TransformComponent>(), *rbcObject, collider, { collision.Object->GetComponent<TransformComponent>().Translation }, impulseFriction * 1.0);
-			
-			Vector3 objectPos = { collision.Object->GetComponent<TransformComponent>().Translation } ;
-			Vector3 planetPos = { collision.Planet->GetComponent<TransformComponent>().Translation };
-
-			Vector3 updatedPos = Vector3(objectPos) + collision.Normal * collision.SeparationDistance;
-			collision.Object->GetComponent<TransformComponent>().Translation = { (float)updatedPos.x, (float)updatedPos.y, (float)updatedPos.z };
 
 			return;
 		}
@@ -610,28 +510,24 @@ namespace Toast {
 		{
 			Vector3 planetPos = planet.GetComponent<TransformComponent>().Translation;
 			Vector3 objectPos = object.GetComponent<TransformComponent>().Translation;
-			Quaternion objectRot = object.GetComponent<TransformComponent>().RotationQuaternion;
 			Vector3 objectLinearVel = object.GetComponent<RigidBodyComponent>().LinearVelocity;
 
 			Bounds objectBounds;
+			Ref<Shape> collider;
 			if (object.HasComponent<SphereColliderComponent>())
-			{
-				Ref<ShapeSphere> collider = object.GetComponent<SphereColliderComponent>().Collider;
-				objectBounds = collider->GetBounds(objectPos, objectRot);
-			}
+				collider = object.GetComponent<SphereColliderComponent>().Collider;
 
 			if (object.HasComponent<BoxColliderComponent>())
-			{
-				std::vector<Vertex> colliderPts = object.GetComponent<BoxColliderComponent>().ColliderMesh->GetVertices();
-				Ref<ShapeBox> collider = object.GetComponent<BoxColliderComponent>().Collider;
-				Matrix objectTransform = { object.GetComponent<TransformComponent>().GetTransform() };
-				objectBounds = collider->GetBounds(colliderPts, objectTransform);
-			}
+				collider = object.GetComponent<BoxColliderComponent>().Collider;
+
+			objectBounds = collider->GetBounds();
+
+			objectBounds = objectBounds * Matrix(object.GetComponent<TransformComponent>().GetTransformWithoutScale());
 
 			auto& pc = planet.GetComponent<PlanetComponent>();
 			auto tcc = planet.GetComponent<TerrainColliderComponent>();
 
-			Bounds planetBounds = tcc.Collider->GetBounds({ planetPos.x + pc.PlanetData.maxAltitude + pc.PlanetData.radius, planetPos.y + pc.PlanetData.maxAltitude + pc.PlanetData.radius, planetPos.z + pc.PlanetData.maxAltitude + pc.PlanetData.radius }, { 0.0f, 0.0f, 0.0f, 0.0f });
+			Bounds planetBounds = tcc.Collider->GetBounds() + planetPos;
 
 			objectBounds.Expand({ objectPos.x + objectLinearVel.x * dt, objectPos.y + objectLinearVel.y * dt, objectPos.z + objectLinearVel.z * dt });
 
@@ -640,8 +536,12 @@ namespace Toast {
 			return intersects;
 		}
 
-		static void Update(entt::registry* registry, Scene* scene, double dt)
+		static void Update(entt::registry* registry, Scene* scene, double dt, double slowmotion)
 		{
+			dt = dt / slowmotion;
+
+			//RendererDebug::SubmitLine(Vector3(-10.0, 10.0, 10.0), Vector3(10.0, 10.0, 10.0), DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f));
+
 			auto view = registry->view<TransformComponent, RigidBodyComponent>();
 
 			auto planetView = registry->view<PlanetComponent>();
@@ -659,11 +559,25 @@ namespace Toast {
 					if(objectEntity.HasComponent<BoxColliderComponent>())
 						collider = objectEntity.GetComponent<BoxColliderComponent>().Collider;
 
-					if (collider != nullptr)
+					if (collider != nullptr && !rbc.IsStatic)
 					{
+						// Update inertia tensor if needed.
+						if (collider->GetIsDirty()) 
+						{
+							Vector3 objectPos = tc.Translation;
+							Matrix transform = tc.GetTransform();
+
+							collider->CalculateInertiaTensor(1.0 / rbc.InvMass);
+
+							collider->SetIsDirty(false);
+						}
+
 						// Gravity
-						Vector3 impulseGravity = Gravity(planetEntity, objectEntity, dt);
-						ApplyImpulse(tc, rbc, collider, { tc.Translation }, impulseGravity);
+						if (!rbc.IsStatic) 
+						{
+							Vector3 impulseGravity = Gravity(planetEntity, objectEntity, dt);
+							ApplyLinearImpulse(rbc, impulseGravity);
+						}
 
 						// Broad Phase
 						if (BroadPhaseCheck(planetEntity, objectEntity, dt))
@@ -675,15 +589,15 @@ namespace Toast {
 								bool hasSphereCollider = objectEntity.HasComponent<SphereColliderComponent>();
 								bool hasBoxCollider = objectEntity.HasComponent<BoxColliderComponent>();
 
-								if (hasSphereCollider) 
+								if (hasSphereCollider)
 									ResolveTerrainCollision(terrainCollision);
 
 								if (hasBoxCollider)
 									ResolveTerrainCollision(terrainCollision);
-							}	
+							}
 						}
 
-						UpdateBody(objectEntity, dt);
+						UpdateBody(objectEntity, dt);;
 					}
 				}
 

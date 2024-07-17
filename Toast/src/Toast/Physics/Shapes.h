@@ -25,20 +25,27 @@ namespace Toast {
 		virtual void Build(const Vector3* pts, const int num) {}
 
 		virtual ShapeType GetType() const = 0;
-		virtual void RecalcInertiaTensor() = 0;
+		virtual void CalculateInertiaTensor(double mass) = 0;
 
 		virtual Vector3 Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const = 0;
 
 		virtual float FastestLinearSpeed(const Vector3& angularVelocity, const Vector3& dir) const { return 0.0f; }
 
-		virtual Bounds GetBounds(const Vector3& pos, const Quaternion& quat) const = 0;
-		virtual Bounds GetBounds() const = 0;
+		virtual void CalculateBounds() = 0;
+		virtual Bounds GetBounds() { return mBounds;  }
+
+		virtual void SetIsDirty(bool dirty) { mIsDirty = dirty; }
+		virtual bool GetIsDirty() const { return mIsDirty; }
 
 		virtual Vector3 GetCenterOfMass() const { return mCenterOfMass; }
 		virtual Matrix GetInertiaTensor() const { return mInertiaTensor; }
 		virtual Matrix GetInvInertiaTensor() const { return mInvInertiaTensor; }
 
 	protected:
+		bool mIsDirty = true;
+
+		Bounds mBounds;
+
 		Vector3 mCenterOfMass;
 		Matrix mInertiaTensor;
 		Matrix mInvInertiaTensor;
@@ -51,12 +58,11 @@ namespace Toast {
 
 		ShapeType GetType() const override { return ShapeType::SPHERE; }
 
-		void RecalcInertiaTensor() override;
+		void CalculateInertiaTensor(double mass = 100.0) override;
 
 		Vector3 Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const override;
 
-		Bounds GetBounds(const Vector3& pos, const Quaternion& quat) const override;
-		Bounds GetBounds() const override;
+		void CalculateBounds() override;
 
 	public:
 		double mRadius;
@@ -65,18 +71,16 @@ namespace Toast {
 	class ShapeBox : public Shape
 	{
 	public:
-		ShapeBox(Vector3 size) : mSize(size) { RecalcInertiaTensor(); }
+		ShapeBox(Vector3 size) : mSize(size) {};
 		explicit ShapeBox(const Vector3* pts, const int num) {}
 
 		ShapeType GetType() const override { return ShapeType::BOX; }
 
 		Vector3 Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const override;
 
-		void RecalcInertiaTensor() override;
+		void CalculateInertiaTensor(double mass = 100.0) override;
 
-		Bounds GetBounds(const Vector3& pos, const Quaternion& quat) const override;
-		Bounds GetBounds() const override;
-		Bounds GetBounds(std::vector<Vertex>& pts, Matrix& transform);
+		void CalculateBounds() override;
 
 		float FastestLinearSpeed(const Vector3& angularVelocity, const Vector3& dir) const override;
 
@@ -84,26 +88,26 @@ namespace Toast {
 		Vector3 mSize = { 1.0f, 1.0f, 1.0f };
 
 		std::vector<Vector3> mPoints;
-		Bounds mBounds;
+		
 	};
 
 	class ShapeTerrain : public Shape
 	{
 	public:
-		ShapeTerrain() = default;
-		ShapeTerrain(std::string filePath) : FilePath(filePath) {}
+		ShapeTerrain(double maxAltitude = 1.0) : mMaxAltitude(maxAltitude) {}
+		ShapeTerrain(double maxAltitude, std::string filePath) : mMaxAltitude(maxAltitude), mFilePath(filePath) {};
 
 		ShapeType GetType() const override { return ShapeType::TERRAIN; }
 
-		void RecalcInertiaTensor() override;
+		void CalculateInertiaTensor(double mass) override;
 
 		Vector3 Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const override;
 
-		Bounds GetBounds(const Vector3& pos, const Quaternion& quat) const override;
-		Bounds GetBounds() const override;
-
+		void CalculateBounds() override;
 	public:
-		std::string FilePath;
+		double mMaxAltitude;
+
+		std::string mFilePath;
 	};
 
 }
