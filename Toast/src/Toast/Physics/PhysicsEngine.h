@@ -143,7 +143,6 @@ namespace Toast {
 					}
 				}
 			}
-
 		}
 
 		static bool BoxPlanetCollisionCheck(TerrainCollision& collision, const Vector3 triangleNormal, const Vector3 A, const Vector3 B, const Vector3 C )
