@@ -172,7 +172,7 @@ namespace Toast {
 
 		ImGui::SameLine();
 		temp = static_cast<float>(values.z);
-		if (ImGui::DragFloat("##X", &temp, 0.01f, 0.0f, 0.0f, GetPrecision(temp)))
+		if (ImGui::DragFloat("##Z", &temp, 0.01f, 0.0f, 0.0f, GetPrecision(temp)))
 		{
 			values.z = static_cast<double>(temp);
 			modified = true;

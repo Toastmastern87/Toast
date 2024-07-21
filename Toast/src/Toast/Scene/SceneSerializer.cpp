@@ -227,7 +227,7 @@ namespace Toast {
 
 	}
 
-	static void SerializeEntity(YAML::Emitter& out, Entity entity)
+	static void SerializeEntity(YAML::Emitter& out, Entity entity, bool mainCamera = false)
 	{
 		UUID uuid = entity.GetComponent<IDComponent>().ID;
 		out << YAML::BeginMap; // Entity
@@ -283,26 +283,29 @@ namespace Toast {
 
 		if (entity.HasComponent<CameraComponent>())
 		{
-			out << YAML::Key << "CameraComponent";
-			out << YAML::BeginMap; // CameraComponent
-
 			auto& cc = entity.GetComponent<CameraComponent>();
 			auto& camera = cc.Camera;
 
-			out << YAML::Key << "Camera" << YAML::Value;
-			out << YAML::BeginMap; // Camera
-			out << YAML::Key << "ProjectionType" << YAML::Value << (int)camera.GetProjectionType();
-			out << YAML::Key << "PerspectiveFOV" << YAML::Value << camera.GetPerspectiveVerticalFOV();
-			out << YAML::Key << "NearClip" << YAML::Value << camera.GetNearClip();
-			out << YAML::Key << "FarClip" << YAML::Value << camera.GetFarClip();
-			out << YAML::Key << "OrthographicWidth" << YAML::Value << camera.GetOrthographicWidth();
-			out << YAML::Key << "OrthographicHeight" << YAML::Value << camera.GetOrthographicHeight();
-			out << YAML::EndMap; // Camera
+			if (!cc.Primary || mainCamera) 
+			{
+				out << YAML::Key << "CameraComponent";
+				out << YAML::BeginMap; // CameraComponent
 
-			out << YAML::Key << "Primary" << YAML::Value << cc.Primary;
-			out << YAML::Key << "FixedAspectRatio" << YAML::Value << cc.FixedAspectRatio;
+				out << YAML::Key << "Camera" << YAML::Value;
+				out << YAML::BeginMap; // Camera
+				out << YAML::Key << "ProjectionType" << YAML::Value << (int)camera.GetProjectionType();
+				out << YAML::Key << "PerspectiveFOV" << YAML::Value << camera.GetPerspectiveVerticalFOV();
+				out << YAML::Key << "NearClip" << YAML::Value << camera.GetNearClip();
+				out << YAML::Key << "FarClip" << YAML::Value << camera.GetFarClip();
+				out << YAML::Key << "OrthographicWidth" << YAML::Value << camera.GetOrthographicWidth();
+				out << YAML::Key << "OrthographicHeight" << YAML::Value << camera.GetOrthographicHeight();
+				out << YAML::EndMap; // Camera
 
-			out << YAML::EndMap; // CameraComponent
+				out << YAML::Key << "Primary" << YAML::Value << cc.Primary;
+				out << YAML::Key << "FixedAspectRatio" << YAML::Value << cc.FixedAspectRatio;
+
+				out << YAML::EndMap; // CameraComponent
+			}
 		}
 
 		if (entity.HasComponent<MeshComponent>())
@@ -531,13 +534,31 @@ namespace Toast {
 		// TODO, should be scene name instead of just untitled scene
 		out << YAML::Key << "Scene" << YAML::Value << "Untitled Scene";
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
+
+		// Making sure the main camera is serialized first
+		mScene->mRegistry.each([&](auto entityID)
+		{
+			Entity entity = { entityID, mScene.get() };
+			if (entity.HasComponent<CameraComponent>())
+			{
+				if (entity.GetComponent<CameraComponent>().Primary)
+					SerializeEntity(out, entity, true);
+			}
+		});
+
 		mScene->mRegistry.each([&](auto entityID)
 		{
 			Entity entity = { entityID, mScene.get() };
 			if (!entity || !entity.HasComponent<IDComponent>())
 				return;
 
-			SerializeEntity(out, entity);
+			if (entity.HasComponent<CameraComponent>())
+			{
+				if (!entity.GetComponent<CameraComponent>().Primary)
+					SerializeEntity(out, entity);					
+			}
+			else
+				SerializeEntity(out, entity);		
 		});
 		out << YAML::EndSeq;
 		out << YAML::EndMap;
