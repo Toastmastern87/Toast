@@ -1,5 +1,9 @@
 #pragma once
 
+#include <random>
+#include <cstdint>
+#include <ctime>
+
 #include "Toast/Core/Math/Vector.h"
 #include "Toast/Core/Math/Quaternion.h"
 #include "Toast/Core/Math/Matrix.h"
@@ -40,6 +44,15 @@ namespace Toast {
 		#define MAX_INT_VALUE	65535.0
 		#define M_PI			3.14159265358979323846
 		#define M_PIDIV2		(3.14159265358979323846 / 2.0)
+
+		static uint32_t GenerateRandomSeed() {
+			// Seed the random number generator with the current time
+			std::mt19937 generator(static_cast<uint32_t>(std::time(nullptr)));
+
+			// Generate a random number
+			std::uniform_int_distribution<uint32_t> distribution(0, UINT32_MAX);
+			return distribution(generator);
+		}
 
 		static double DegreesToRadians(double degrees)
 		{

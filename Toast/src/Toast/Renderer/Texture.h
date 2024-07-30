@@ -7,6 +7,8 @@
 
 #include "Toast/Core/Base.h"
 
+#include <../vendor/directxtex/include/DirectXTex.h>
+
 namespace Toast {
 
 	class Texture 

@@ -9,6 +9,8 @@
 #include "mono/metadata/object.h"
 #include "mono/metadata/reflection.h"
 
+#include <DirectXMath.h>
+
 namespace Toast {
 
 	namespace Utils
@@ -317,13 +319,13 @@ namespace Toast {
 
 		DirectX::XMVECTOR vectorPoint = DirectX::XMLoadFloat3(point);
 
-		DirectX::XMVECTOR translatedObject = DirectX::XMLoadFloat3(&entity.GetComponent<TransformComponent>().Translation) - vectorPoint;
+		DirectX::XMVECTOR translatedObject = DirectX::XMVectorSubtract(DirectX::XMLoadFloat3(&entity.GetComponent<TransformComponent>().Translation), vectorPoint);
 
 		DirectX::XMVECTOR rotQuaternion = DirectX::XMQuaternionRotationAxis(DirectX::XMLoadFloat3(rotationAxis), DirectX::XMConvertToRadians(angle));
 
 		translatedObject = DirectX::XMVector3Transform(translatedObject, DirectX::XMMatrixRotationQuaternion(rotQuaternion));
 
-		translatedObject = translatedObject + vectorPoint;
+		translatedObject = DirectX::XMVectorAdd(translatedObject, vectorPoint);
 
 		DirectX::XMStoreFloat3(&entity.GetComponent<TransformComponent>().Translation, translatedObject);
 	}

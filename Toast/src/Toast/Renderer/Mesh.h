@@ -15,6 +15,14 @@
 
 namespace Toast {
 
+	struct TerrainData
+	{
+		size_t RowPitch;
+		size_t Width;
+		size_t Height;
+		std::vector<double> HeightData;
+	};
+
 	struct Vertex
 	{
 		DirectX::XMFLOAT3 Position;
@@ -100,6 +108,23 @@ namespace Toast {
 			DirectX::XMFLOAT3 newPos = { this->Position.x - a.Position.x, this->Position.y - a.Position.y, this->Position.z - a.Position.z };
 			return Vertex(newPos);
 		}
+
+		static struct Hasher {
+			size_t operator()(const Vertex& v) const {
+				return	static_cast<size_t>(v.Position.x * 73856093) ^
+					static_cast<size_t>(v.Position.y * 19349663) ^
+					static_cast<size_t>(v.Position.z * 83492791);
+			}
+		};
+
+		static struct Equal {
+			bool operator()(const Vertex& v1, const Vertex& v2) const {
+				float threshold = 0.0001f;  // adjust based on your needs
+				return	abs(v1.Position.x - v2.Position.x) < threshold &&
+					abs(v1.Position.y - v2.Position.y) < threshold &&
+					abs(v1.Position.z - v2.Position.z) < threshold;
+			}
+		};
 	};
 
 	struct Animation 

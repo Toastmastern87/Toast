@@ -551,6 +551,34 @@ namespace Toast {
 				}
 			}
 
+			if (mContext.HasComponent<PlanetComponent>())
+			{
+				ImGui::Separator();
+
+				if (ImGui::BeginMenu("Planet Specific"))
+				{
+					if (!mContext.HasComponent<TerrainDetailComponent>())
+					{
+						if (ImGui::MenuItem("Terrain Details")) 
+						{
+							mContext.AddComponent<TerrainDetailComponent>();
+							ImGui::CloseCurrentPopup();
+						}
+					}
+
+					if (!mContext.HasComponent<TerrainObjectComponent>())
+					{
+						if (ImGui::MenuItem("Terrain Objects"))
+						{
+							mContext.AddComponent<TerrainObjectComponent>();
+							ImGui::CloseCurrentPopup();
+						}
+					}	
+
+					ImGui::EndMenu();
+				}
+			}
+
 			ImGui::EndPopup();
 		}
 
@@ -1301,6 +1329,41 @@ namespace Toast {
 				ImGui::SliderFloat("##cornerradius", component.Button->GetCornerRadius(), 0.0f, 50.0f, "%.1f");
 
 				ImGui::EndTable();
+			});
+
+		DrawComponent<TerrainDetailComponent>(ICON_TOASTER_GLOBE" Terrain Detail", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+			{
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+				ImGui::BeginTable("TerrainDetailComponent", 2, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Seed");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+				ImGui::InputText("##seed", (char*)std::to_string(component.Seed).c_str(), 256, ImGuiInputTextFlags_ReadOnly);
+				ImGui::PopStyleColor();
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Octaves");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::SliderInt("##octaves", &component.Octaves, 0, 10);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Frequency");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::SliderFloat("##frequency", &component.Frequency, 0.1, 64.0f, "%.1f");
+				ImGui::EndTable();
+			});
+
+		DrawComponent<TerrainObjectComponent>(ICON_TOASTER_CUBE" Transform", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+			{
 			});
 	}
 
