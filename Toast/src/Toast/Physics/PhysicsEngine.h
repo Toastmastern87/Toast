@@ -3,6 +3,7 @@
 #include "Toast/Scene/Components.h"
 
 #include "Toast/Renderer/RendererDebug.h"
+#include "Toast/Renderer/PlanetSystem.h"
 
 #include <../vendor/directxtex/include/DirectXTex.h>
 

@@ -8,7 +8,6 @@
 #include "Toast/Scene/SceneCamera.h"
 
 #include "Toast/Renderer/Mesh.h"
-#include "Toast/Renderer/PlanetSystem.h"
 #include "Toast/Renderer/SceneEnvironment.h"
 
 #include "Toast/Renderer/UI/UIElement.h"
@@ -118,7 +117,7 @@ namespace Toast {
 		Ref<Mesh> RenderMesh;
 		std::vector<Vertex> BuildVertices;
 		std::vector<uint32_t> BuildIndices;
-		std::unordered_map<Vertex, uint32_t, PlanetSystem::VertexHasher, PlanetSystem::VertexEquality> PlanetVertexMap;
+		std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal> PlanetVertexMap;
 
 		std::vector<double> DistanceLUT;
 		std::vector<double> FaceLevelDotLUT;
@@ -273,6 +272,27 @@ namespace Toast {
 		UIButtonComponent(const UIButtonComponent&) = default;
 		UIButtonComponent(const Ref<UIButton>& button)
 			: Button(button) {}
+	};
+
+	struct TerrainDetailComponent
+	{
+		uint32_t Seed = 0;
+		int Octaves = 1;
+		float Frequency = 1.0f;
+		float Amplitude = 1.0f;
+
+		TerrainDetailComponent() = default;
+		TerrainDetailComponent(const TerrainDetailComponent& other) = default;
+	};
+
+	struct TerrainObjectComponent
+	{
+		Ref<Mesh> MeshObject;
+
+		TerrainObjectComponent() = default;
+		TerrainObjectComponent(const TerrainObjectComponent& other) = default;
+		TerrainObjectComponent(const Ref<Mesh>& mesh)
+			: MeshObject(mesh) {}
 	};
 
 }

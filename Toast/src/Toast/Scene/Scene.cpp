@@ -8,6 +8,7 @@
 #include "Toast/Renderer/Renderer2D.h"
 #include "Toast/Renderer/RendererDebug.h"
 #include "Toast/Renderer/MeshFactory.h"
+#include "Toast/Renderer/PlanetSystem.h"
 
 #include "Toast/Scripting/ScriptEngine.h"
 
@@ -274,7 +275,7 @@ namespace Toast {
 					* DirectX::XMMatrixTranslation(planetTransform.Translation.x, planetTransform.Translation.y, planetTransform.Translation.z);
 
 				// Starting new thread to create a new planet if one isn't already being created
-				PlanetSystem::RegeneratePlanet(planet.PlanetVertexMap, mFrustum, planetTransform.Scale, noScaleModelMatrix, planet.BuildVertices, planet.BuildIndices, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, planet.PlanetTerrainData, planet.PlanetData.minAltitude, planet.PlanetData.maxAltitude);
+				PlanetSystem::RegeneratePlanet(planet.PlanetVertexMap, mFrustum, planetTransform.Scale, noScaleModelMatrix, planet.BuildVertices, planet.BuildIndices, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, planet.PlanetTerrainData, planet.PlanetData.minAltitude, planet.PlanetData.maxAltitude, 0, 0, 0, nullptr);
 
 				PlanetSystem::UpdatePlanet(planet.RenderMesh, planet.BuildVertices, planet.BuildIndices);
 			}
@@ -605,7 +606,7 @@ namespace Toast {
 						* DirectX::XMMatrixTranslation(planetTransform.Translation.x, planetTransform.Translation.y, planetTransform.Translation.z);
 
 					// Starting new thread to create a new planet if one isn't already being created
-					PlanetSystem::RegeneratePlanet(planet.PlanetVertexMap, mFrustum, planetTransform.Scale, noScaleModelMatrix, planet.BuildVertices, planet.BuildIndices, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, planet.PlanetTerrainData, planet.PlanetData.minAltitude, planet.PlanetData.maxAltitude);
+					PlanetSystem::RegeneratePlanet(planet.PlanetVertexMap, mFrustum, planetTransform.Scale, noScaleModelMatrix, planet.BuildVertices, planet.BuildIndices, planet.DistanceLUT, planet.FaceLevelDotLUT, planet.HeightMultLUT, cameraPos, planet.Subdivisions, planet.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, planet.PlanetTerrainData, planet.PlanetData.minAltitude, planet.PlanetData.maxAltitude, 0, 0, 0, nullptr);
 
 					// Check if planet build is ready and if that is the case move it to the render mesh
 					PlanetSystem::UpdatePlanet(planet.RenderMesh, planet.BuildVertices, planet.BuildIndices);
@@ -1054,7 +1055,7 @@ namespace Toast {
 		DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion))
 			* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
-		PlanetSystem::RegeneratePlanet(component.PlanetVertexMap, mFrustum, tc.Scale, noScaleModelMatrix, component.BuildVertices, component.BuildIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.Subdivisions, component.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, component.PlanetTerrainData, component.PlanetData.minAltitude, component.PlanetData.maxAltitude);
+		PlanetSystem::RegeneratePlanet(component.PlanetVertexMap, mFrustum, tc.Scale, noScaleModelMatrix, component.BuildVertices, component.BuildIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.Subdivisions, component.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, component.PlanetTerrainData, component.PlanetData.minAltitude, component.PlanetData.maxAltitude, 0, 0, 0, nullptr);
 	}
 
 	template<>
@@ -1140,6 +1141,18 @@ namespace Toast {
 
 	template<>
 	void Scene::OnComponentAdded<RelationshipComponent>(Entity entity, RelationshipComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<TerrainDetailComponent>(Entity entity, TerrainDetailComponent& component)
+	{
+		if(component.Seed = 0)
+			component.Seed = Math::GenerateRandomSeed();
+	}
+
+	template<>
+	void Scene::OnComponentAdded<TerrainObjectComponent>(Entity entity, TerrainObjectComponent& component)
 	{
 	}
 }
