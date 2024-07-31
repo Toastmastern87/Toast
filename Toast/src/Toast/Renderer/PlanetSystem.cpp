@@ -232,7 +232,7 @@ namespace Toast {
 		}
 	}
 
-	void PlanetSystem::GeneratePlanet(std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal>& vertexMap, Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, TerrainData& terrainData, double minAltitude, double maxAltitude, uint32_t octaves, float frequencey, float amplitude, uint32_t* seed)
+	void PlanetSystem::GeneratePlanet(std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal>& vertexMap, Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, TerrainData& terrainData, double minAltitude, double maxAltitude, PlanetComponent& planet, TerrainDetailComponent* terrainDetail)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -306,9 +306,10 @@ namespace Toast {
 		newPlanetReady.store(true);
 	}
 
-	void PlanetSystem::RegeneratePlanet(std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal>& vertexMap, Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, TerrainData& terrainDataUpdated, double minAltitude, double maxAltitude, uint32_t octaves, float frequencey, float amplitude, uint32_t* seed)
+	void PlanetSystem::RegeneratePlanet(std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal>& vertexMap, Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, TerrainData& terrainDataUpdated, double minAltitude, double maxAltitude, PlanetComponent& planet, TerrainDetailComponent* terrainDetail)
 	{
-		const siv::PerlinNoise perlin{ (uint32_t)seed };
+		if(terrainDetail)
+			const siv::PerlinNoise perlin{ (uint32_t)terrainDetail->Seed };
 
 		if (generationFuture.valid() && generationFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 			return;
@@ -333,10 +334,8 @@ namespace Toast {
 				std::ref(terrainDataUpdated),
 				minAltitude,
 				maxAltitude,
-				octaves,
-				frequencey,
-				amplitude,
-				seed);
+				planet,
+				terrainDetail);
 		}
 	}
 
