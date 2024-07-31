@@ -277,7 +277,7 @@ namespace Toast {
 			DirectX::TexMetadata heightMapMetadata;
 			DirectX::ScratchImage* heightMap = new DirectX::ScratchImage();
 
-			result = DirectX::LoadFromWICFile(pathWChar, WIC_FLAGS_NONE, &heightMapMetadata, *heightMap);
+			result = DirectX::LoadFromWICFile(pathWChar, DirectX::WIC_FLAGS_NONE, &heightMapMetadata, *heightMap);
 
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load height map!");
 
