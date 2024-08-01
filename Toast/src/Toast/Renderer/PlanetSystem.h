@@ -35,6 +35,7 @@ namespace Toast {
 		static std::mutex planetDataMutex;
 		static std::future<void> generationFuture;
 		static std::atomic<bool> newPlanetReady;
+		static std::atomic<bool> planetGenerationOngoing;
 
 		static const int16_t MAX_SUBDIVISION = 20;
 
@@ -50,7 +51,7 @@ namespace Toast {
 	public:
 		static void UpdatePlanet(Ref<Mesh>& renderPlanet, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
 
-		static void RegeneratePlanet(std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal>& vertexMap, Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, TerrainData& terrainDataUpdated, double minAltitude, double maxAltitude, PlanetComponent& planet, TerrainDetailComponent* terrainDetail = nullptr);
+		static void RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, TerrainDetailComponent* terrainDetail = nullptr);
 
 		static void Shutdown();
 
@@ -62,11 +63,11 @@ namespace Toast {
 		static DirectX::XMFLOAT2 GetGPUUVFromPosition(Vector3& pos);
 		static void GetBasePlanet(std::vector<Vector3>& vertices, std::vector<uint32_t>& indices, DirectX::XMFLOAT3& scale);
 
-		static void GeneratePlanet(std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal>& vertexMap, Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, DirectX::XMVECTOR camPos, int16_t subdivisions, float radius, bool backfaceCull, bool frustumCullActivated, TerrainData& terrainData, double minAltitude, double maxAltitude, PlanetComponent& planet, TerrainDetailComponent* terrainDetail = nullptr);
+		static void GeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, TerrainDetailComponent* terrainDetail = nullptr);
 
-		static void SubdivideFace(TerrainData& terrainDataUpdated, double radius, Vector3& cameraPosPlanetSpace, Matrix& planetScaleTransform, Ref<Frustum>& frustum, int& triangleAdded, std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal>& vertexMap, Matrix planetTransform, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, Vector3& a, Vector3& b, Vector3& c, int16_t& subdivision, int16_t maxSubdivisions, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, bool backfaceCull, bool frustumCullActivated, bool frustumCull);
+		static void SubdivideFace(Vector3& cameraPosPlanetSpace, Matrix& planetScaleTransform, Ref<Frustum>& frustum, int& triangleAdded, Matrix planetTransform, Vector3& a, Vector3& b, Vector3& c, int16_t& subdivision, bool backfaceCull, bool frustumCullActivated, bool frustumCull, PlanetComponent& planet);
 
-		static NextPlanetFace CheckFaceSplit(TerrainData& terrainDataUpdated, double radius, Vector3& cameraPosPlanetSpace, Matrix& planetScaleTransform, Ref<Frustum>& frustum, int16_t subdivision, int16_t maxSubdivisions, Vector3 a, Vector3 b, Vector3 c, std::vector<double>& distanceLUT, std::vector<double>& faceLevelDotLUT, std::vector<double>& heightMultLUT, bool backfaceCull, bool frustumCullActivated, bool frustumCull);
+		static NextPlanetFace CheckFaceSplit(Vector3& cameraPosPlanetSpace, Matrix& planetScaleTransform, Ref<Frustum>& frustum, int16_t subdivision, Vector3 a, Vector3 b, Vector3 c, bool backfaceCull, bool frustumCullActivated, bool frustumCull, PlanetComponent& planet);
 
 		static uint32_t GetOrAddVertex(std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal>& vertexMap, const Vertex& vertex, std::vector<Vertex>& vertices);
 	};
