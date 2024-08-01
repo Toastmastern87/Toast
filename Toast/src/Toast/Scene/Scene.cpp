@@ -283,7 +283,7 @@ namespace Toast {
 					* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
 				// Starting new thread to create a new planet if one isn't already being created
-				PlanetSystem::RegeneratePlanet(pc.PlanetVertexMap, mFrustum, tc.Scale, noScaleModelMatrix, pc.BuildVertices, pc.BuildIndices, pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPos, pc.Subdivisions, pc.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc.PlanetTerrainData, pc.PlanetData.minAltitude, pc.PlanetData.maxAltitude, pc, tdc);
+				PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, noScaleModelMatrix, cameraPos, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tdc);
 
 				PlanetSystem::UpdatePlanet(pc.RenderMesh, pc.BuildVertices, pc.BuildIndices);
 			}
@@ -621,7 +621,7 @@ namespace Toast {
 						* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
 					// Starting new thread to create a new planet if one isn't already being created
-					PlanetSystem::RegeneratePlanet(pc.PlanetVertexMap, mFrustum, tc.Scale, noScaleModelMatrix, pc.BuildVertices, pc.BuildIndices, pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPos, pc.Subdivisions, pc.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc.PlanetTerrainData, pc.PlanetData.minAltitude, pc.PlanetData.maxAltitude, pc, tdc);
+					PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, noScaleModelMatrix, cameraPos, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tdc);
 
 					// Check if planet build is ready and if that is the case move it to the render mesh
 					PlanetSystem::UpdatePlanet(pc.RenderMesh, pc.BuildVertices, pc.BuildIndices);
@@ -1068,12 +1068,14 @@ namespace Toast {
 		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, component.PlanetData.maxAltitude);
 
 		if (component.RenderMesh->GetMaterial("Planet")->GetTexture(7, D3D11_SHADER_TYPE::D3D11_PIXEL_SHADER)) 
-			component.PlanetTerrainData = PhysicsEngine::LoadTerrainData(component.RenderMesh->GetMaterial("Planet")->GetTexture(7, D3D11_SHADER_TYPE::D3D11_PIXEL_SHADER)->GetFilePath().c_str(), component.PlanetData.maxAltitude, component.PlanetData.minAltitude);
+			component.TerrainData = PhysicsEngine::LoadTerrainData(component.RenderMesh->GetMaterial("Planet")->GetTexture(7, D3D11_SHADER_TYPE::D3D11_PIXEL_SHADER)->GetFilePath().c_str(), component.PlanetData.maxAltitude, component.PlanetData.minAltitude);
 
 		DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion))
 			* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
-		PlanetSystem::RegeneratePlanet(component.PlanetVertexMap, mFrustum, tc.Scale, noScaleModelMatrix, component.BuildVertices, component.BuildIndices, component.DistanceLUT, component.FaceLevelDotLUT, component.HeightMultLUT, cameraPos, component.Subdivisions, component.PlanetData.radius, mSettings.BackfaceCulling, mSettings.FrustumCulling, component.PlanetTerrainData, component.PlanetData.minAltitude, component.PlanetData.maxAltitude, component, tdc);
+		TOAST_CORE_CRITICAL("component.FaceLevelDotLUT.size: %d", component.FaceLevelDotLUT.size());
+
+		PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, noScaleModelMatrix, cameraPos,  mSettings.BackfaceCulling, mSettings.FrustumCulling, component, tdc);
 	}
 
 	template<>

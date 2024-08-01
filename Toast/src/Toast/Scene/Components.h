@@ -16,6 +16,7 @@
 #include "Toast/Physics/Shapes.h"
 
 #include <../vendor/directxtex/include/DirectXTex.h>
+#include <mutex>
 
 namespace Toast {
 
@@ -117,7 +118,7 @@ namespace Toast {
 		Ref<Mesh> RenderMesh;
 		std::vector<Vertex> BuildVertices;
 		std::vector<uint32_t> BuildIndices;
-		std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal> PlanetVertexMap;
+		std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal> VertexMap;
 
 		std::vector<double> DistanceLUT;
 		std::vector<double> FaceLevelDotLUT;
@@ -126,7 +127,7 @@ namespace Toast {
 		
 		GPUData PlanetData;
 
-		TerrainData PlanetTerrainData;
+		TerrainData TerrainData;
 
 		PlanetComponent() = default;
 		PlanetComponent(int16_t subdivisions, float maxAltitude, float minAltitude, float radius, float gravAcc, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient)
