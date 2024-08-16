@@ -48,7 +48,14 @@ namespace Toast {
 			double minHeight;
 			double maxHeight;
 		};
+	private:
+		static std::vector<std::tuple<double, double>> sBarycentricCoordinates;
+
+		static std::vector<Vector3> sBaseVertices;
+		static std::vector<uint32_t> sBaseIndices;
+		static std::unordered_map<Vector3, uint32_t, Vector3::Hasher, Vector3::Equal> sBaseVertexMap;
 	public:
+		static void PlanetSystem::CalculateBasePlanet(double scale);
 		static void UpdatePlanet(Ref<Mesh>& renderPlanet, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
 
 		static void RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, TerrainDetailComponent* terrainDetail = nullptr);
@@ -70,6 +77,8 @@ namespace Toast {
 		static NextPlanetFace CheckFaceSplit(Vector3& cameraPosPlanetSpace, Matrix& planetScaleTransform, Ref<Frustum>& frustum, int16_t subdivision, Vector3 a, Vector3 b, Vector3 c, bool backfaceCull, bool frustumCullActivated, bool frustumCull, PlanetComponent& planet);
 
 		static uint32_t GetOrAddVertex(std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal>& vertexMap, const Vertex& vertex, std::vector<Vertex>& vertices);
+
+		static uint32_t GetOrAddVector3(std::unordered_map<Vector3, uint32_t, Vector3::Hasher, Vector3::Equal>& vertexMap, const Vector3& vertex, std::vector<Vector3>& vertices);
 	};
 
 }

@@ -4,6 +4,10 @@
 
 #include "Toast/Scene/Components.h"
 
+#include <chrono>
+
+#define MAX_SUBDIVISION 9
+
 namespace Toast {
 
 	std::mutex PlanetSystem::planetDataMutex;
@@ -11,8 +15,16 @@ namespace Toast {
 	std::atomic<bool> PlanetSystem::newPlanetReady{ false };
 	std::atomic<bool> PlanetSystem::planetGenerationOngoing{ false };
 
+	std::vector<std::tuple<double, double>> PlanetSystem::sBarycentricCoordinates;
+
+	std::vector<Vector3> PlanetSystem::sBaseVertices;
+	std::vector<uint32_t> PlanetSystem::sBaseIndices;
+	std::unordered_map<Vector3, uint32_t, Vector3::Hasher, Vector3::Equal> PlanetSystem::sBaseVertexMap;
+
 	Vector2 PlanetSystem::GetUVFromPosition(Vector3& pos, double width, double height)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		Vector3 normalizedPos = Vector3::Normalize(pos);
 
 		double theta = atan2(normalizedPos.z, normalizedPos.x);
@@ -42,6 +54,166 @@ namespace Toast {
 		DirectX::XMFLOAT2 uvFloat = { (float)uv.x, (float)uv.y };
 
 		return uvFloat;
+	}
+
+	void PlanetSystem::CalculateBasePlanet(double scale)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		auto start = std::chrono::high_resolution_clock::now();
+
+		sBaseVertexMap.clear();
+		sBaseVertices.clear();
+		sBaseIndices.clear();
+
+		sBaseVertices.reserve(20 * std::pow(4, MAX_SUBDIVISION));
+		sBaseIndices.reserve(20 * std::pow(4, MAX_SUBDIVISION));
+		sBaseVertexMap.reserve(20 * std::pow(4, MAX_SUBDIVISION));
+
+		DirectX::XMMATRIX scaleMatrix = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale, scale, scale);
+		Matrix scaleTransform = { scaleMatrix };
+
+		double ratio = ((1.0 + sqrt(5.0)) / 2.0);
+
+		std::vector<Vector3> vertices;
+		std::vector<uint32_t> indices;
+
+		vertices = std::vector<Vector3>{
+			scaleTransform * Vector3::Normalize({ ratio, 0.0, -1.0 }),
+			scaleTransform * Vector3::Normalize({ -ratio, 0.0, -1.0 }),
+			scaleTransform * Vector3::Normalize({ ratio, 0.0, 1.0 }),
+			scaleTransform * Vector3::Normalize({ -ratio, 0.0, 1.0 }),
+			scaleTransform * Vector3::Normalize({ 0.0, -1.0, ratio }),
+			scaleTransform * Vector3::Normalize({ 0.0, -1.0, -ratio }),
+			scaleTransform * Vector3::Normalize({ 0.0, 1.0, ratio }),
+			scaleTransform * Vector3::Normalize({ 0.0, 1.0, -ratio }),
+			scaleTransform * Vector3::Normalize({ -1.0, ratio, 0.0 }),
+			scaleTransform * Vector3::Normalize({ -1.0, -ratio, 0.0 }),
+			scaleTransform * Vector3::Normalize({ 1.0, ratio, 0.0 }),
+			scaleTransform * Vector3::Normalize({ 1.0, -ratio, 0.0 })
+		};
+
+		indices = std::vector<uint32_t>{
+						1, 3, 8,
+						3, 1, 9,
+						2, 0, 10,
+						0, 2, 11,
+
+						5, 7, 0,
+						7, 5, 1,
+						6, 4, 2,
+						4, 6, 3,
+
+						9, 11, 4,
+						11, 9, 5,
+						10, 8, 6,
+						8, 10, 7,
+
+						7, 1, 8,
+						1, 5, 9,
+						0, 7, 10,
+						5, 0, 11,
+
+						3, 6, 8,
+						4, 3, 9,
+						6, 2, 10,
+						2, 4, 11
+		};
+
+		int subdivisionType = 1;
+
+		// NORMAL SUBDIVISION
+		if (subdivisionType == 0) {
+			std::vector<uint32_t> newIndices;
+			for (int subdivision = 0; subdivision < MAX_SUBDIVISION; subdivision++)
+			{
+				for (int i = 0; i < indices.size() - 2; i += 3)
+				{
+					//std::vector<uint32_t> faceIndices;
+
+					Vector3 A = vertices[indices[i]];
+					Vector3 B = vertices[indices[i + 1]];
+					Vector3 C = vertices[indices[i + 2]];
+
+					int vertexIndexM1 = GetOrAddVector3(sBaseVertexMap, Vector3::Normalize((A + B) * 0.5f), sBaseVertices);
+					int vertexIndexM2 = GetOrAddVector3(sBaseVertexMap, Vector3::Normalize((B + C) * 0.5f), sBaseVertices);
+					int vertexIndexM3 = GetOrAddVector3(sBaseVertexMap, Vector3::Normalize((C + A) * 0.5f), sBaseVertices);
+
+					newIndices.emplace_back(indices[i]); newIndices.emplace_back(vertexIndexM1); newIndices.emplace_back(vertexIndexM3);
+					newIndices.emplace_back(vertexIndexM1); newIndices.emplace_back(indices[i + 1]); newIndices.emplace_back(vertexIndexM2);
+					newIndices.emplace_back(vertexIndexM1); newIndices.emplace_back(vertexIndexM2); newIndices.emplace_back(vertexIndexM3);
+					newIndices.emplace_back(vertexIndexM3); newIndices.emplace_back(vertexIndexM2); newIndices.emplace_back(indices[i + 2]);
+				}
+
+				indices = newIndices;
+			}
+
+			sBaseIndices = std::move(indices);
+		}
+		// BILINEAR SUBDIVISION
+		else if (subdivisionType == 1)
+		{
+			uint32_t RC = 1 + (uint32_t)pow(2, (uint32_t)MAX_SUBDIVISION);
+
+			std::vector<Vector2> barycentricCoordinates;
+			barycentricCoordinates.reserve(RC * (RC + 1) / 2);
+
+			double delta = 1.0 / (double)(RC - 1.0);
+
+			uint32_t rowIdx = 0;
+			uint32_t nextIdx = 0;
+			for (uint32_t row = 0; row < RC; row++)
+			{
+				uint32_t numCols = RC - row;
+				nextIdx += numCols;
+				for (uint32_t column = 0; column < numCols; column++)
+				{
+					// calculate internal patch position
+					barycentricCoordinates.emplace_back(column / (float)(RC - 1), row / (float)(RC - 1));
+				}
+				rowIdx = nextIdx;
+			}
+
+			for (int i = 0; i < indices.size() - 2; i += 3)
+			{
+				Vector3 A = vertices[indices[i]];
+				Vector3 B = vertices[indices[i + 1]];
+				Vector3 C = vertices[indices[i + 2]];
+
+				Vector3 R = B - A;
+				Vector3 S = C - A;
+
+				for (auto& patchPos : barycentricCoordinates) 
+				{
+					Vector3 finalVec = A + R * patchPos.x + S * patchPos.y;
+					uint32_t vecIndex;
+
+					auto it = sBaseVertexMap.find(finalVec);
+					if (it != sBaseVertexMap.end()) {
+						vecIndex = it->second;
+					}
+					else {
+						sBaseVertices.emplace_back(finalVec);
+						uint32_t newIndex = sBaseVertices.size() - 1;
+						sBaseVertexMap[finalVec] = newIndex;
+						vecIndex = newIndex;
+					}
+
+					sBaseIndices.emplace_back(vecIndex);
+				}
+			}
+
+			//for (auto& vec : barycentricCoordinates)
+			//	vec.ToString("Barycentric Coordinate: ");
+		}
+
+		// Stop timing
+		auto end = std::chrono::high_resolution_clock::now();
+
+		// Calculate the duration
+		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+		TOAST_CORE_INFO("Base planet created with %d number of vertices and %d number indices, time: %dms", sBaseVertices.size(), sBaseIndices.size(), duration.count());
 	}
 
 	void PlanetSystem::GetBasePlanet(std::vector<Vector3>& vertices, std::vector<uint32_t>& indices, DirectX::XMFLOAT3& scale)
@@ -99,7 +271,7 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		Vector3 A, B, C;
-		TOAST_CORE_CRITICAL("Subdividing face, subdivision #%d, vector size: %d", subdivision, planet.FaceLevelDotLUT.size());
+
 		NextPlanetFace nextPlanetFace = CheckFaceSplit(cameraPosPlanetSpace, planetScaleTransform, frustum, subdivision, a, b, c, backfaceCull, frustumCullActivated, frustumCull, planet);
 
 		if (nextPlanetFace == NextPlanetFace::CULL)
@@ -204,6 +376,7 @@ namespace Toast {
 			}
 			else
 			{
+				// Calculate new vertex	
 				Vertex newVertex = (closestVertex + middleVertex) * 0.5;
 
 				// First triangle
@@ -239,7 +412,8 @@ namespace Toast {
 
 		planetGenerationOngoing.store(true);
 
-		TOAST_CORE_CRITICAL("Planet regeneration started in planet thread, vector size: %d", planet.FaceLevelDotLUT.size());
+		if (terrainDetail)
+			const siv::PerlinNoise perlin{ (uint32_t)(terrainDetail->Seed) };
 
 		int triangleAdded = 0;
 
@@ -265,11 +439,16 @@ namespace Toast {
 			planet.BuildIndices.clear();
 		}
 
-		//TOAST_CORE_CRITICAL("planet.FaceLevelDotLUT: %d", planet.FaceLevelDotLUT.size());
-		for (int i = 0; i < startIndices.size() - 2; i += 3)
+		//for (int i = 0; i < startIndices.size() - 2; i += 3)
+		//{
+		//	int16_t firstSubdivision = 0;
+		//	SubdivideFace(cameraPosPlanetSpace, scaleTransform, frustum, triangleAdded, planetTransform, startVertices.at(startIndices.at(i)), startVertices.at(startIndices.at(i + 1)), startVertices.at(startIndices.at(i + 2)), firstSubdivision, backfaceCull, frustumCullActivated, true, planet);
+		//}
+
+		for (int i = 0; i < sBaseIndices.size() - 2; i += 3)
 		{
 			int16_t firstSubdivision = 0;
-			SubdivideFace(cameraPosPlanetSpace, scaleTransform, frustum, triangleAdded, planetTransform, startVertices.at(startIndices.at(i)), startVertices.at(startIndices.at(i + 1)), startVertices.at(startIndices.at(i + 2)), firstSubdivision, backfaceCull, frustumCullActivated, true, planet);
+			SubdivideFace(cameraPosPlanetSpace, scaleTransform, frustum, triangleAdded, planetTransform, sBaseVertices.at(sBaseIndices.at(i)), sBaseVertices.at(sBaseIndices.at(i + 1)), sBaseVertices.at(sBaseIndices.at(i + 2)), firstSubdivision, backfaceCull, frustumCullActivated, true, planet);
 		}
 
 		int i = 0;
@@ -315,15 +494,12 @@ namespace Toast {
 
 		newPlanetReady.store(true);
 		planetGenerationOngoing.store(false);
+
+		return;
 	}
 
 	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, TerrainDetailComponent* terrainDetail)
 	{
-		TOAST_CORE_CRITICAL("Planet regeneration ABOUT TO started from main thread, vector size: %d, new planet ready: %d, planet regeneration ongoing: %d", planet.FaceLevelDotLUT.size(), newPlanetReady.load(), planetGenerationOngoing.load());
-
-		if(terrainDetail)
-			const siv::PerlinNoise perlin{ (uint32_t)terrainDetail->Seed };
-
 		if (generationFuture.valid() && generationFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 			return;
 
@@ -337,13 +513,10 @@ namespace Toast {
 				backfaceCull,
 				frustumCullActivated,
 				std::ref(planet),
-				std::ref(terrainDetail));
-
-			TOAST_CORE_CRITICAL("Planet regeneration started from main thread, vector size: %d", planet.FaceLevelDotLUT.size());
+				terrainDetail);
 		}
-		else
-			TOAST_CORE_CRITICAL("Planet regeneration not started from main thread, regeneration already in process, vector size: %d", planet.FaceLevelDotLUT.size());
 
+		return;
 	}
 
 	void PlanetSystem::UpdatePlanet(Ref<Mesh>& renderPlanet, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
@@ -394,8 +567,6 @@ namespace Toast {
 
 	void PlanetSystem::GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight)
 	{
-		TOAST_CORE_CRITICAL("FaceDotLevelLUT being created on the main thread");
-
 		std::lock_guard<std::mutex> lock(planetDataMutex);
 
 		float cullingAngle = acos((double)planetRadius / ((double)planetRadius + (double)maxHeight));
@@ -408,8 +579,6 @@ namespace Toast {
 			angle *= 0.5;
 			faceLevelDotLUT.emplace_back(sin(angle + cullingAngle));
 		}
-
-		TOAST_CORE_CRITICAL("FaceDotLevelLUT created on the main thread, vector size: %d", faceLevelDotLUT.size());
 
 		//for (auto level : faceLevelDotLUT)
 		//	TOAST_CORE_INFO("FacelevelDotLUT: %f", level);
@@ -487,8 +656,7 @@ namespace Toast {
 
 		{
 			std::lock_guard<std::mutex> lock(planetDataMutex);
-			TOAST_CORE_CRITICAL("Check planet split faceLevelDotLUT.size: %d, subdivision: %d", planet.FaceLevelDotLUT.size(), subdivision);
-			if (backfaceCull && dotProduct >= (planet.FaceLevelDotLUT[(uint32_t)subdivision] + 0.5))
+			if (backfaceCull && dotProduct >= (planet.FaceLevelDotLUT[(uint32_t)subdivision]))
 				return NextPlanetFace::CULL;
 		}
 
@@ -528,6 +696,22 @@ namespace Toast {
 	}
 
 	uint32_t PlanetSystem::GetOrAddVertex(std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal>& vertexMap, const Vertex& vertex, std::vector<Vertex>& vertices) {
+		auto it = vertexMap.find(vertex);
+		if (it != vertexMap.end()) {
+			return it->second;
+		}
+		else {
+			vertices.emplace_back(vertex);
+			uint32_t newIndex = vertices.size() - 1;
+			vertexMap[vertex] = newIndex;
+			return newIndex;
+		}
+	}
+
+	uint32_t PlanetSystem::GetOrAddVector3(std::unordered_map<Vector3, uint32_t, Vector3::Hasher, Vector3::Equal>& vertexMap, const Vector3& vertex, std::vector<Vector3>& vertices)
+	{
+		TOAST_PROFILE_FUNCTION();
+
 		auto it = vertexMap.find(vertex);
 		if (it != vertexMap.end()) {
 			return it->second;
