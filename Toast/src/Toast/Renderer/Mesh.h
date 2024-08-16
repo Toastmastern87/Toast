@@ -109,20 +109,24 @@ namespace Toast {
 			return Vertex(newPos);
 		}
 
-		static struct Hasher {
-			size_t operator()(const Vertex& v) const {
-				return	static_cast<size_t>(v.Position.x * 73856093) ^
-					static_cast<size_t>(v.Position.y * 19349663) ^
-					static_cast<size_t>(v.Position.z * 83492791);
+		// Nested Hasher
+		struct Hasher {
+			std::size_t operator()(const Vertex& v) const {
+				std::size_t hx = std::hash<float>()(v.Position.x);
+				std::size_t hy = std::hash<float>()(v.Position.y);
+				std::size_t hz = std::hash<float>()(v.Position.z);
+
+				return hx ^ (hy << 1) ^ (hz << 2) ^ (hx >> 2) ^ (hy >> 1);
 			}
 		};
 
-		static struct Equal {
+		// Nested Equal
+		struct Equal {
 			bool operator()(const Vertex& v1, const Vertex& v2) const {
-				float threshold = 0.0001f;  // adjust based on your needs
-				return	abs(v1.Position.x - v2.Position.x) < threshold &&
-					abs(v1.Position.y - v2.Position.y) < threshold &&
-					abs(v1.Position.z - v2.Position.z) < threshold;
+				constexpr double epsilon = 1e-6f;
+				return (std::abs(v1.Position.x - v2.Position.x) < epsilon) &&
+					(std::abs(v1.Position.y - v2.Position.y) < epsilon) &&
+					(std::abs(v1.Position.z - v2.Position.z) < epsilon);
 			}
 		};
 	};

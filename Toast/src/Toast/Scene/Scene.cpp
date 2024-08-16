@@ -265,10 +265,10 @@ namespace Toast {
 				Entity e = { entity, this };
 
 				TerrainDetailComponent* tdc = nullptr;
-				PlanetComponent pc = e.GetComponent<PlanetComponent>();
-				TransformComponent tc = e.GetComponent<TransformComponent>();
+				PlanetComponent& pc = e.GetComponent<PlanetComponent>();
+				TransformComponent& tc = e.GetComponent<TransformComponent>();
 
-				if(e.HasComponent<TerrainColliderComponent>())
+				if(e.HasComponent<TerrainDetailComponent>())
 					tdc = &e.GetComponent<TerrainDetailComponent>();
 
 				DirectX::XMVECTOR cameraForward = { 0.0f, 0.0f, 1.0f };
@@ -592,8 +592,8 @@ namespace Toast {
 				Entity e = { entity, this };
 
 				TerrainDetailComponent* tdc = nullptr;
-				PlanetComponent pc = e.GetComponent<PlanetComponent>();
-				TransformComponent tc = e.GetComponent<TransformComponent>();
+				PlanetComponent& pc = e.GetComponent<PlanetComponent>();
+				TransformComponent& tc = e.GetComponent<TransformComponent>();
 
 				if(e.HasComponent<TerrainDetailComponent>())
 					tdc = &e.GetComponent<TerrainDetailComponent>();
@@ -1063,6 +1063,8 @@ namespace Toast {
 
 		InvalidateFrustum();
 
+		PlanetSystem::CalculateBasePlanet(component.PlanetData.radius);
+
 		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, component.PlanetData.radius, mainCamera->GetPerspectiveVerticalFOV(), mViewportWidth);
 		PlanetSystem::GenerateHeightMultLUT(component.HeightMultLUT, component.PlanetData.radius, component.PlanetData.maxAltitude);
 		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, component.PlanetData.maxAltitude);
@@ -1072,8 +1074,6 @@ namespace Toast {
 
 		DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion))
 			* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
-
-		TOAST_CORE_CRITICAL("component.FaceLevelDotLUT.size: %d", component.FaceLevelDotLUT.size());
 
 		PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, noScaleModelMatrix, cameraPos,  mSettings.BackfaceCulling, mSettings.FrustumCulling, component, tdc);
 	}

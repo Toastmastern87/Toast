@@ -14,8 +14,28 @@ namespace Toast {
 		Vector3(double xIn, double yIn, double zIn, double wIn = 1.0f) : x(xIn), y(yIn), z(zIn), w(wIn) {}
 		Vector3(DirectX::XMVECTOR vec);
 		Vector3(std::initializer_list<double> list);
-
 		Vector3(DirectX::XMFLOAT3 vec);
+
+		// Nested Hasher
+		struct Hasher {
+			std::size_t operator()(const Vector3& v) const {
+				std::size_t hx = std::hash<double>()(v.x);
+				std::size_t hy = std::hash<double>()(v.y);
+				std::size_t hz = std::hash<double>()(v.z);
+
+				return hx ^ (hy << 1) ^ (hz << 2) ^ (hx >> 2) ^ (hy >> 1);
+			}
+		};
+
+		// Nested Equal
+		struct Equal {
+			bool operator()(const Vector3& v1, const Vector3& v2) const {
+				constexpr double epsilon = 1e-6;
+				return (std::abs(v1.x - v2.x) < epsilon) &&
+					(std::abs(v1.y - v2.y) < epsilon) &&
+					(std::abs(v1.z - v2.z) < epsilon);
+			}
+		};
 
 		Vector3 operator+(const Vector3& rhs) const {
 			return Vector3(x + rhs.x, y + rhs.y, z + rhs.z);

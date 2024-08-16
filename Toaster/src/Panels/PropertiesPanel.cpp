@@ -825,6 +825,8 @@ namespace Toast {
 				ImGui::PushItemWidth(-1);
 				if (ImGui::DragFloat("##Radius", &component.PlanetData.radius, 0.1f, 0.0f, 0.0f, "%.2f"))
 				{
+					PlanetSystem::CalculateBasePlanet(component.PlanetData.radius);
+
 					if (entity.HasComponent<TerrainColliderComponent>())
 					{
 						entity.GetComponent<TerrainColliderComponent>().Collider->mMaxAltitude = component.PlanetData.maxAltitude + component.PlanetData.radius;
