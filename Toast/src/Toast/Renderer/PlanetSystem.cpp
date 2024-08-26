@@ -68,7 +68,7 @@ namespace Toast {
 			SubdivideBasePlanet(planet, child, scale);
 	}
 
-	void PlanetSystem::SubdivideFace(CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, Matrix& planetTransform, uint16_t subdivision)
+	void PlanetSystem::SubdivideFace(CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
 	{
 		double height;
 		NextPlanetFace nextFace;
@@ -99,6 +99,7 @@ namespace Toast {
 		if (nextFace == NextPlanetFace::SPLIT)
 		{
 			CPUVertex a, b, c;
+			double mediumTerrainDetailNoise = 0.0;
 
 			a.Position = B.Position + ((C.Position - B.Position) * 0.5);
 			b.Position = C.Position + ((A.Position - C.Position) * 0.5);
@@ -106,25 +107,31 @@ namespace Toast {
 
 			Vector3 aNormalized = Vector3::Normalize(a.Position);
 			a.UV = GetUVFromPosition(aNormalized, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+			if (terrainDetail)
+				mediumTerrainDetailNoise = perlin.octave2D_01(a.UV.x * terrainDetail->Frequency, a.UV.y * terrainDetail->Frequency, terrainDetail->Octaves) * terrainDetail->Amplitude;
 			height = GetHeight(a.UV, planet.TerrainData);
-			a.Position = aNormalized * (planet.PlanetData.radius + height);
+			a.Position = aNormalized * (planet.PlanetData.radius + height + mediumTerrainDetailNoise);
 
 			Vector3 bNormalized = Vector3::Normalize(b.Position);
 			b.UV = GetUVFromPosition(bNormalized, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+			if (terrainDetail)
+				mediumTerrainDetailNoise = perlin.octave2D_01(b.UV.x * terrainDetail->Frequency, b.UV.y * terrainDetail->Frequency, terrainDetail->Octaves) * terrainDetail->Amplitude;
 			height = GetHeight(b.UV, planet.TerrainData);
-			b.Position = bNormalized * (planet.PlanetData.radius + height);
+			b.Position = bNormalized * (planet.PlanetData.radius + height + mediumTerrainDetailNoise);
 
 			Vector3 cNormalized = Vector3::Normalize(c.Position);
 			c.UV = GetUVFromPosition(cNormalized, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+			if (terrainDetail)
+				mediumTerrainDetailNoise = perlin.octave2D_01(c.UV.x * terrainDetail->Frequency, c.UV.y * terrainDetail->Frequency, terrainDetail->Octaves) * terrainDetail->Amplitude;
 			height = GetHeight(c.UV, planet.TerrainData);
-			c.Position = cNormalized * (planet.PlanetData.radius + height);
+			c.Position = cNormalized * (planet.PlanetData.radius + height + mediumTerrainDetailNoise);
 
 			int16_t nextSubdivision = subdivision + 1;
 
-			SubdivideFace(a, b, c, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision);
-			SubdivideFace(c, b, A, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision);
-			SubdivideFace(B, a, c, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision);
-			SubdivideFace(b, a, C, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision);
+			SubdivideFace(a, b, c, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail);
+			SubdivideFace(c, b, A, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail);
+			SubdivideFace(B, a, c, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail);
+			SubdivideFace(b, a, C, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail);
 		}
 		else
 		{
@@ -192,13 +199,16 @@ namespace Toast {
 			}
 			else
 			{
+				double mediumTerrainDetailNoise = 0.0;
 				// Calculate new vertex	
 				CPUVertex additionalVertex;
 				additionalVertex.Position = (closestVertex.Position + middleVertex.Position) * 0.5;
 				Vector3 additionalVertexNormalized = Vector3::Normalize(additionalVertex.Position);
 				additionalVertex.UV = GetUVFromPosition(additionalVertexNormalized, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+				if(terrainDetail)
+					mediumTerrainDetailNoise = perlin.octave2D_01(additionalVertex.UV.x * terrainDetail->Frequency, additionalVertex.UV.y * terrainDetail->Frequency, terrainDetail->Octaves) * terrainDetail->Amplitude;
 				double height = GetHeight(additionalVertex.UV, planet.TerrainData);
-				additionalVertex.Position = additionalVertexNormalized * (planet.PlanetData.radius + height);
+				additionalVertex.Position = additionalVertexNormalized * (planet.PlanetData.radius + height + mediumTerrainDetailNoise);
 
 				Vector3 additionalVertexPos = planetTransform * additionalVertex.Position;
 				Vector3 closestVertexPos = planetTransform * closestVertex.Position;
@@ -482,7 +492,7 @@ namespace Toast {
 		}
 	}
 
-	void PlanetSystem::TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform)
+	void PlanetSystem::TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
 	{
 		Vector3 center = (node->A.Position + node->B.Position + node->C.Position) / 3.0;
 		Vector3 viewVector = center - cameraPosPlanetSpace;
@@ -518,11 +528,11 @@ namespace Toast {
 		//TOAST_CORE_CRITICAL("node->SubdivisionLevel going to subdivision: %d", node->SubdivisionLevel);
 
 		if (node->SubdivisionLevel >= BASE_PLANET_SUBDIVISIONS)
-			SubdivideFace(node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetTransform, BASE_PLANET_SUBDIVISIONS);
+			SubdivideFace(node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetTransform, BASE_PLANET_SUBDIVISIONS, perlin, terrainDetail);
 		else 
 		{
 			for (auto& child : node->ChildNodes)
-				TraverseNode(child, planet, cameraPosPlanetSpace, backfaceCull, frustumCullActivated, frustum, planetTransform);
+				TraverseNode(child, planet, cameraPosPlanetSpace, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail);
 		}
 	}
 
@@ -536,8 +546,10 @@ namespace Toast {
 
 		planetGenerationOngoing.store(true);
 
+		siv::PerlinNoise perlin;
+
 		if (terrainDetail)
-			const siv::PerlinNoise perlin{ (uint32_t)(terrainDetail->Seed) };
+			perlin = siv::PerlinNoise(static_cast<uint32_t>(terrainDetail->Seed));
 
 		int triangleAdded = 0;
 
@@ -560,7 +572,7 @@ namespace Toast {
 			TOAST_PROFILE_SCOPE("Looping through the tree structure!");
 
 			for (auto& node : sPlanetNodes) 
-				TraverseNode(node, planet, cameraPosPlanetSpace, backfaceCull, frustumCullActivated, frustum, planetTransform);
+				TraverseNode(node, planet, cameraPosPlanetSpace, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail);
 		}
 
 		newPlanetReady.store(true);
