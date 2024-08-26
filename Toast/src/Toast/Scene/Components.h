@@ -118,7 +118,6 @@ namespace Toast {
 		Ref<Mesh> RenderMesh;
 		std::vector<Vertex> BuildVertices;
 		std::vector<uint32_t> BuildIndices;
-		std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal> VertexMap;
 
 		std::vector<double> DistanceLUT;
 		std::vector<double> FaceLevelDotLUT;

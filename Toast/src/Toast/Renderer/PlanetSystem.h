@@ -29,6 +29,51 @@
 
 namespace Toast {
 
+	struct CPUVertex
+	{
+		Vector3 Position;
+		Vector3 Normal;
+		Vector2 UV;
+
+		CPUVertex() = default;
+		CPUVertex(const Vector3& position, const Vector3& normal, const Vector2& uv)
+			: Position(position), Normal(normal), UV(uv) {}
+		CPUVertex(Vector3 pos)
+			: Position(pos) {}
+
+		// Copy constructor
+		CPUVertex(const CPUVertex& other)
+			: Position(other.Position), Normal(other.Normal), UV(other.UV) {}
+
+		// Optional: Assignment operator
+		CPUVertex& operator=(const CPUVertex& other)
+		{
+			if (this != &other) // Check for self-assignment
+			{
+				Position = other.Position;
+				Normal = other.Normal;
+				UV = other.UV;
+			}
+			return *this;
+		}
+	};
+
+	struct PlanetNode
+	{
+		CPUVertex A, B, C;  // The three vertices of the triangle
+		std::vector<Ref<PlanetNode>> ChildNodes;
+		int16_t SubdivisionLevel = 0;
+
+		PlanetNode(const CPUVertex& v0, const CPUVertex& v1, const CPUVertex& v2, const int16_t level)
+		{
+			A = v0;
+			B = v1;
+			C = v2;
+
+			SubdivisionLevel = level;
+		}
+	};
+
 	class PlanetSystem
 	{
 	public:
@@ -49,14 +94,19 @@ namespace Toast {
 			double maxHeight;
 		};
 	private:
-		static std::vector<std::tuple<double, double>> sBarycentricCoordinates;
+		static std::vector<Ref<PlanetNode>> sPlanetNodes;
 
 		static std::vector<Vector3> sBaseVertices;
 		static std::vector<uint32_t> sBaseIndices;
 		static std::unordered_map<Vector3, uint32_t, Vector3::Hasher, Vector3::Equal> sBaseVertexMap;
 	public:
-		static void PlanetSystem::CalculateBasePlanet(double scale);
+		static void SubdivideBasePlanet(PlanetComponent& planet, Ref<PlanetNode>& node, double scale);
+		static void SubdivideFace(CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, Matrix& planetTransform, uint16_t subdivision);
+		static void CalculateBasePlanet(PlanetComponent& planet, double scale);
+
 		static void UpdatePlanet(Ref<Mesh>& renderPlanet, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
+
+		static double GetHeight(Vector2 uvCoords, TerrainData& terrainData);
 
 		static void RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, TerrainDetailComponent* terrainDetail = nullptr);
 
@@ -66,17 +116,16 @@ namespace Toast {
 		static void GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight);
 		static void GenerateHeightMultLUT(std::vector<double>& heightMultLUT, double planetRadius, double maxHeight);
 	private:
-		static Vector2 GetUVFromPosition(Vector3& pos, double width, double height);
-		static DirectX::XMFLOAT2 GetGPUUVFromPosition(Vector3& pos);
-		static void GetBasePlanet(std::vector<Vector3>& vertices, std::vector<uint32_t>& indices, DirectX::XMFLOAT3& scale);
+		static Vector2 GetUVFromPosition(const Vector3 pos, double width, double height);
 
 		static void GeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, TerrainDetailComponent* terrainDetail = nullptr);
 
+		static void TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform);
 		static void SubdivideFace(Vector3& cameraPosPlanetSpace, Matrix& planetScaleTransform, Ref<Frustum>& frustum, int& triangleAdded, Matrix planetTransform, Vector3& a, Vector3& b, Vector3& c, int16_t& subdivision, bool backfaceCull, bool frustumCullActivated, bool frustumCull, PlanetComponent& planet);
 
-		static NextPlanetFace CheckFaceSplit(Vector3& cameraPosPlanetSpace, Matrix& planetScaleTransform, Ref<Frustum>& frustum, int16_t subdivision, Vector3 a, Vector3 b, Vector3 c, bool backfaceCull, bool frustumCullActivated, bool frustumCull, PlanetComponent& planet);
+		static NextPlanetFace CheckFaceSplit(Vector3& cameraPosPlanetSpace, Matrix& planetScaleTransform, int16_t subdivision, Vector3 a, Vector3 b, Vector3 c, PlanetComponent& planet);
 
-		static uint32_t GetOrAddVertex(std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal>& vertexMap, const Vertex& vertex, std::vector<Vertex>& vertices);
+		//static uint32_t GetOrAddVertex(std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal>& vertexMap, const Vertex& vertex, std::vector<Vertex>& vertices);
 
 		static uint32_t GetOrAddVector3(std::unordered_map<Vector3, uint32_t, Vector3::Hasher, Vector3::Equal>& vertexMap, const Vector3& vertex, std::vector<Vector3>& vertices);
 	};

@@ -788,6 +788,14 @@ namespace Toast {
 
 					if (planetComponent)
 					{
+						PlanetComponent& pc = deserializedEntity.GetComponent<PlanetComponent>();
+
+						tcc.Collider->mFilePath = terrainColliderComponent["AssetPath"].as<std::string>();
+						if (!tcc.Collider->mFilePath.empty())
+							pc.TerrainData = PhysicsEngine::LoadTerrainData(tcc.Collider->mFilePath.c_str(), pc.PlanetData.maxAltitude, pc.PlanetData.minAltitude);
+
+						PlanetSystem::CalculateBasePlanet(pc, pc.PlanetData.radius);
+
 						tcc.Collider->mMaxAltitude = planetComponent["MaxAltitude"].as<float>() + planetComponent["Radius"].as<float>();
 						tcc.Collider->CalculateBounds();
 					}

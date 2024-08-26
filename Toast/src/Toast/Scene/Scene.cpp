@@ -1063,19 +1063,12 @@ namespace Toast {
 
 		InvalidateFrustum();
 
-		PlanetSystem::CalculateBasePlanet(component.PlanetData.radius);
-
 		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, component.PlanetData.radius, mainCamera->GetPerspectiveVerticalFOV(), mViewportWidth);
 		PlanetSystem::GenerateHeightMultLUT(component.HeightMultLUT, component.PlanetData.radius, component.PlanetData.maxAltitude);
 		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, component.PlanetData.maxAltitude);
 
-		if (component.RenderMesh->GetMaterial("Planet")->GetTexture(7, D3D11_SHADER_TYPE::D3D11_PIXEL_SHADER)) 
-			component.TerrainData = PhysicsEngine::LoadTerrainData(component.RenderMesh->GetMaterial("Planet")->GetTexture(7, D3D11_SHADER_TYPE::D3D11_PIXEL_SHADER)->GetFilePath().c_str(), component.PlanetData.maxAltitude, component.PlanetData.minAltitude);
-
 		DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion))
 			* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
-
-		PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, noScaleModelMatrix, cameraPos,  mSettings.BackfaceCulling, mSettings.FrustumCulling, component, tdc);
 	}
 
 	template<>
@@ -1133,7 +1126,6 @@ namespace Toast {
 	void Scene::OnComponentAdded<BoxColliderComponent>(Entity entity, BoxColliderComponent& component)
 	{
 		component.Collider = CreateRef<ShapeBox>(DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
-
 
 		component.ColliderMesh = MeshFactory::CreateCube(1.0f, { 0.0, 0.0, 1.0 });
 	}

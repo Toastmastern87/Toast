@@ -77,6 +77,7 @@ namespace Toast {
 		}
 
 		double Magnitude() const;
+		static double Magnitude(Vector3 vec);
 		double MagnitudeSqrt() const;
 
 		static Vector3 Normalize(std::initializer_list<double> list);

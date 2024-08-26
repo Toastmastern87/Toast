@@ -50,6 +50,11 @@ namespace Toast {
 		return sqrt(x * x + y * y + z * z);
 	}
 
+	double Vector3::Magnitude(Vector3 vec)
+	{
+		return sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
+	}
+
 	double Vector3::MagnitudeSqrt() const {
 		return x * x + y * y + z * z;
 	}

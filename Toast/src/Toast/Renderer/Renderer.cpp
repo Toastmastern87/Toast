@@ -47,6 +47,12 @@ namespace Toast {
 		sRendererData->RenderSettingsBuffer.Allocate(sRendererData->RenderSettingsCBuffer->GetSize());
 		sRendererData->RenderSettingsBuffer.ZeroInitialize();
 
+		// Setting up the constant buffer for atmosphere rendering
+		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 80, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, 2) });
+		sRendererData->AtmosphereCBuffer->Bind();
+		sRendererData->AtmosphereBuffer.Allocate(sRendererData->AtmosphereCBuffer->GetSize());
+		sRendererData->AtmosphereBuffer.ZeroInitialize();
+
 		sRendererData->BaseRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
 		sRendererData->PostProcessRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
 		sRendererData->FinalRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
@@ -326,24 +332,6 @@ namespace Toast {
 			}
 			else 
 			{
-				//meshCommand.Mesh->Set<DirectX::XMMATRIX>("Planet", "Model", "worldMatrix", DirectX::XMMatrixMultiply(meshCommand.Mesh->mSubmeshes[0].Transform, meshCommand.Transform));
-				//meshCommand.Mesh->Set<int>("Planet", "Model", "entityID", meshCommand.EntityID);
-
-				//Planet mesh data
-				meshCommand.Mesh->Set<float>("Planet", "Planet", "radius", meshCommand.PlanetData->radius);
-				meshCommand.Mesh->Set<float>("Planet", "Planet", "minAltitude", meshCommand.PlanetData->minAltitude);
-				meshCommand.Mesh->Set<float>("Planet", "Planet", "maxAltitude", meshCommand.PlanetData->maxAltitude);
-				meshCommand.Mesh->Set<float>("Planet", "Planet", "atmosphereHeight", meshCommand.PlanetData->atmosphereHeight);
-				meshCommand.Mesh->Set<int>("Planet", "Planet", "atmosphereToggle", meshCommand.PlanetData->atmosphereToggle);
-				meshCommand.Mesh->Set<float>("Planet", "Planet", "mieAnisotropy", meshCommand.PlanetData->mieAnisotropy);
-				meshCommand.Mesh->Set<float>("Planet", "Planet", "rayScaleHeight", meshCommand.PlanetData->rayScaleHeight);
-				meshCommand.Mesh->Set<float>("Planet", "Planet", "mieScaleHeight", meshCommand.PlanetData->mieScaleHeight);
-				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "Planet", "rayBaseScatteringCoefficient", meshCommand.PlanetData->rayBaseScatteringCoefficient);
-				meshCommand.Mesh->Set<float>("Planet", "Planet", "mieBaseScatteringCoefficient", meshCommand.PlanetData->mieBaseScatteringCoefficient);
-				meshCommand.Mesh->Set<DirectX::XMFLOAT3>("Planet", "Planet", "planetCenter", meshCommand.PlanetData->planetCenter);
-				meshCommand.Mesh->Set<int>("Planet", "Planet", "numInScatteringPoints", meshCommand.PlanetData->inScatteringPoints);
-				meshCommand.Mesh->Set<int>("Planet", "Planet", "numOpticalDepthPoints", meshCommand.PlanetData->opticalDepthPoints);
-
 				meshCommand.Mesh->Map("Planet");
 				meshCommand.Mesh->Bind("Planet");
 
@@ -433,7 +421,31 @@ namespace Toast {
 		sampler->Bind(1, D3D11_PIXEL_SHADER);
 
 		auto atmosphereShader = ShaderLibrary::Get("assets/shaders/Planet/Atmosphere.hlsl");
-		atmosphereShader->Bind();
+		atmosphereShader->Bind();	
+
+		for (const auto& meshCommand : sRendererData->MeshDrawList)
+		{
+			if (meshCommand.PlanetData)
+			{
+				int atmosphereToggle = meshCommand.PlanetData->atmosphereToggle ? 1 : 0;
+
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->radius, 4, 0);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->minAltitude, 4, 4);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->maxAltitude, 4, 8);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->atmosphereHeight, 4, 12);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieAnisotropy, 4, 16);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->rayScaleHeight, 4, 20);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieScaleHeight, 4, 24);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->rayBaseScatteringCoefficient, 12, 32);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieBaseScatteringCoefficient, 4, 44);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->planetCenter, 16, 48);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphereToggle, 4, 60);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->inScatteringPoints, 4, 64);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->opticalDepthPoints, 4, 68);
+
+				sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
+			}
+		}
 
 		RenderCommand::SetPrimitiveTopology(PrimitiveTopology::TRIANGLELIST);
 

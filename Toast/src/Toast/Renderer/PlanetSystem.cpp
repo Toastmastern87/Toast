@@ -6,7 +6,7 @@
 
 #include <chrono>
 
-#define MAX_SUBDIVISION 9
+#define BASE_PLANET_SUBDIVISIONS 7
 
 namespace Toast {
 
@@ -15,13 +15,9 @@ namespace Toast {
 	std::atomic<bool> PlanetSystem::newPlanetReady{ false };
 	std::atomic<bool> PlanetSystem::planetGenerationOngoing{ false };
 
-	std::vector<std::tuple<double, double>> PlanetSystem::sBarycentricCoordinates;
+	std::vector<Ref<PlanetNode>> PlanetSystem::sPlanetNodes;
 
-	std::vector<Vector3> PlanetSystem::sBaseVertices;
-	std::vector<uint32_t> PlanetSystem::sBaseIndices;
-	std::unordered_map<Vector3, uint32_t, Vector3::Hasher, Vector3::Equal> PlanetSystem::sBaseVertexMap;
-
-	Vector2 PlanetSystem::GetUVFromPosition(Vector3& pos, double width, double height)
+	Vector2 PlanetSystem::GetUVFromPosition(const Vector3 pos, double width, double height)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -40,60 +36,244 @@ namespace Toast {
 		return uv;
 	}
 
-	DirectX::XMFLOAT2 PlanetSystem::GetGPUUVFromPosition(Vector3& pos)
+	void PlanetSystem::SubdivideBasePlanet(PlanetComponent& planet, Ref<PlanetNode>& node, double scale)
 	{
-		Vector3 posNormalized = Vector3::Normalize(pos);
+		if (node->SubdivisionLevel >= BASE_PLANET_SUBDIVISIONS)
+			return;
 
-		double theta = atan2(posNormalized.z, posNormalized.x);
-		double phi = asin(posNormalized.y);
+		CPUVertex A, B, C;
+		double height;
 
-		Vector2 uv = Vector2(theta / M_PI, phi / M_PIDIV2);
-		uv.x = uv.x * 0.5 + 0.5;
-		uv.y = uv.y * 0.5 + 0.5;
+		A.Position = node->B.Position + ((node->C.Position - node->B.Position) * 0.5);
+		A.UV = GetUVFromPosition(Vector3::Normalize(A.Position), (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+		height = GetHeight(A.UV, planet.TerrainData);
+		A.Position = Vector3::Normalize(A.Position) * (planet.PlanetData.radius + height);
 
-		DirectX::XMFLOAT2 uvFloat = { (float)uv.x, (float)uv.y };
+		B.Position = node->C.Position + ((node->A.Position - node->C.Position) * 0.5);
+		B.UV = GetUVFromPosition(Vector3::Normalize(B.Position), (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+		height = GetHeight(B.UV, planet.TerrainData);
+		B.Position = Vector3::Normalize(B.Position) * (planet.PlanetData.radius + height);
 
-		return uvFloat;
+		C.Position = node->A.Position + ((node->B.Position - node->A.Position) * 0.5);
+		C.UV = GetUVFromPosition(Vector3::Normalize(C.Position), (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+		height = GetHeight(C.UV, planet.TerrainData);
+		C.Position = Vector3::Normalize(C.Position) * (planet.PlanetData.radius + height);
+
+		node->ChildNodes.emplace_back(CreateRef<PlanetNode>(A, B, C, node->SubdivisionLevel + 1));
+		node->ChildNodes.emplace_back(CreateRef<PlanetNode>(C, B, node->A, node->SubdivisionLevel + 1));
+		node->ChildNodes.emplace_back(CreateRef<PlanetNode>(node->B, A, C, node->SubdivisionLevel + 1));
+		node->ChildNodes.emplace_back(CreateRef<PlanetNode>(B, A, node->C, node->SubdivisionLevel + 1));
+
+		for (auto& child : node->ChildNodes) 
+			SubdivideBasePlanet(planet, child, scale);
 	}
 
-	void PlanetSystem::CalculateBasePlanet(double scale)
+	void PlanetSystem::SubdivideFace(CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, Matrix& planetTransform, uint16_t subdivision)
+	{
+		double height;
+		NextPlanetFace nextFace;
+		Vector2 uvCoords;
+
+		double aDistance = (A.Position - cameraPosPlanetSpace).MagnitudeSqrt();
+		double bDistance = (B.Position - cameraPosPlanetSpace).MagnitudeSqrt();
+		double cDistance = (C.Position - cameraPosPlanetSpace).MagnitudeSqrt();
+
+		if (subdivision >= BASE_PLANET_SUBDIVISIONS + planet.Subdivisions)	
+		{
+			//TOAST_CORE_CRITICAL("LEAF Due to subdivision");
+			nextFace = NextPlanetFace::LEAF;
+		}
+		else
+		{
+			//TOAST_CORE_CRITICAL("aDistance: %lf, bDistance: %lf, cDistance: %lf", aDistance, bDistance, cDistance);
+
+			if (aDistance < planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS] && bDistance < planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS] && cDistance < planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS])
+				nextFace = NextPlanetFace::SPLIT;
+			else 
+			{
+				//TOAST_CORE_CRITICAL("LEAF Due to distance");
+				nextFace = NextPlanetFace::LEAF;
+			}
+		}
+
+		if (nextFace == NextPlanetFace::SPLIT)
+		{
+			CPUVertex a, b, c;
+
+			a.Position = B.Position + ((C.Position - B.Position) * 0.5);
+			b.Position = C.Position + ((A.Position - C.Position) * 0.5);
+			c.Position = A.Position + ((B.Position - A.Position) * 0.5);
+
+			Vector3 aNormalized = Vector3::Normalize(a.Position);
+			a.UV = GetUVFromPosition(aNormalized, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+			height = GetHeight(a.UV, planet.TerrainData);
+			a.Position = aNormalized * (planet.PlanetData.radius + height);
+
+			Vector3 bNormalized = Vector3::Normalize(b.Position);
+			b.UV = GetUVFromPosition(bNormalized, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+			height = GetHeight(b.UV, planet.TerrainData);
+			b.Position = bNormalized * (planet.PlanetData.radius + height);
+
+			Vector3 cNormalized = Vector3::Normalize(c.Position);
+			c.UV = GetUVFromPosition(cNormalized, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+			height = GetHeight(c.UV, planet.TerrainData);
+			c.Position = cNormalized * (planet.PlanetData.radius + height);
+
+			int16_t nextSubdivision = subdivision + 1;
+
+			SubdivideFace(a, b, c, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision);
+			SubdivideFace(c, b, A, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision);
+			SubdivideFace(B, a, c, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision);
+			SubdivideFace(b, a, C, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision);
+		}
+		else
+		{
+			bool crackTriangle = false;
+			CPUVertex closestVertex, furthestVertex, middleVertex;
+
+			double closestDistance = (std::min)(aDistance, (std::min)(bDistance, cDistance));
+			double furthestDistance = (std::max)(aDistance, (std::max)(bDistance, cDistance));
+			double secondClosestDistance;
+
+			if (closestDistance == aDistance)
+				closestVertex = A;
+			else if (closestDistance == bDistance)
+				closestVertex = B;
+			else
+				closestVertex = C;
+
+			if (furthestDistance == aDistance)
+				furthestVertex = A;
+			else if (furthestDistance == bDistance)
+				furthestVertex = B;
+			else
+				furthestVertex = C;
+
+			if (closestDistance == aDistance)
+				secondClosestDistance = (furthestDistance == bDistance) ? cDistance : bDistance;
+			else if (closestDistance == bDistance)
+				secondClosestDistance = (furthestDistance == aDistance) ? cDistance : aDistance;
+			else
+				secondClosestDistance = (furthestDistance == aDistance) ? bDistance : aDistance;
+
+			// Identify middle vertex based on distances
+			if ((closestDistance != aDistance) && (furthestDistance != aDistance))
+				middleVertex = A;
+			else if ((closestDistance != bDistance) && (furthestDistance != bDistance))
+				middleVertex = B;
+			else
+				middleVertex = C;
+
+			if(subdivision < (planet.Subdivisions + BASE_PLANET_SUBDIVISIONS))
+			{
+				if (closestDistance < planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS] && secondClosestDistance < planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS])
+					crackTriangle = true;
+			}
+
+			if (!crackTriangle)
+			{
+				Vector3 vecA = planetTransform * A.Position;
+				Vector3 vecB = planetTransform * B.Position;
+				Vector3 vecC = planetTransform * C.Position;
+
+				Vector3 normal = Vector3::Normalize(Vector3::Cross(vecB - vecA, vecC - vecA));
+
+				Vertex vertexA = Vertex(vecA, A.UV, normal);
+				planet.BuildVertices.emplace_back(vertexA);
+				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+				Vertex vertexB = Vertex(vecB, B.UV, normal);
+				planet.BuildVertices.emplace_back(vertexB);
+				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+				Vertex vertexC = Vertex(vecC, C.UV, normal);
+				planet.BuildVertices.emplace_back(vertexC);
+				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+			}
+			else
+			{
+				// Calculate new vertex	
+				CPUVertex additionalVertex;
+				additionalVertex.Position = (closestVertex.Position + middleVertex.Position) * 0.5;
+				Vector3 additionalVertexNormalized = Vector3::Normalize(additionalVertex.Position);
+				additionalVertex.UV = GetUVFromPosition(additionalVertexNormalized, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+				double height = GetHeight(additionalVertex.UV, planet.TerrainData);
+				additionalVertex.Position = additionalVertexNormalized * (planet.PlanetData.radius + height);
+
+				Vector3 additionalVertexPos = planetTransform * additionalVertex.Position;
+				Vector3 closestVertexPos = planetTransform * closestVertex.Position;
+				Vector3 middleVertexPos = planetTransform * middleVertex.Position;
+				Vector3 furthestVertexPos = planetTransform * furthestVertex.Position;
+
+				// First triangle
+				Vector3 normal = Vector3::Normalize(Vector3::Cross(additionalVertexPos - closestVertexPos, additionalVertexPos - furthestVertexPos));
+
+				if (normal.y < 0.0)
+					normal = normal * -1.0;
+
+				Vertex vertexA = Vertex(additionalVertexPos, additionalVertex.UV, normal);
+				planet.BuildVertices.emplace_back(vertexA);
+				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+				Vertex vertexB = Vertex(closestVertexPos, closestVertex.UV, normal);
+				planet.BuildVertices.emplace_back(vertexB);
+				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+				Vertex vertexC = Vertex(furthestVertexPos, furthestVertex.UV, normal);
+				planet.BuildVertices.emplace_back(vertexC);
+				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+				// Second triangle
+				normal = Vector3::Normalize(Vector3::Cross(additionalVertexPos - furthestVertexPos, additionalVertexPos - middleVertexPos));
+				if (normal.y < 0.0)
+					normal = normal * -1.0;
+
+				Vertex vertexD = Vertex(additionalVertexPos, additionalVertex.UV, normal);
+				vertexD.Color = { 1.0f, 0.0f, 0.0f };
+				planet.BuildVertices.emplace_back(vertexD);
+				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+				Vertex vertexF = Vertex(furthestVertexPos, furthestVertex.UV, normal);
+				planet.BuildVertices.emplace_back(vertexF);
+				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+				Vertex vertexE = Vertex(middleVertexPos, middleVertex.UV, normal);
+				planet.BuildVertices.emplace_back(vertexE);
+				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+			}
+		
+			return;
+		}
+
+	}
+
+	void PlanetSystem::CalculateBasePlanet(PlanetComponent& planet, double scale)
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		auto start = std::chrono::high_resolution_clock::now();
 
-		sBaseVertexMap.clear();
-		sBaseVertices.clear();
-		sBaseIndices.clear();
-
-		sBaseVertices.reserve(20 * std::pow(4, MAX_SUBDIVISION));
-		sBaseIndices.reserve(20 * std::pow(4, MAX_SUBDIVISION));
-		sBaseVertexMap.reserve(20 * std::pow(4, MAX_SUBDIVISION));
-
-		DirectX::XMMATRIX scaleMatrix = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale, scale, scale);
-		Matrix scaleTransform = { scaleMatrix };
-
 		double ratio = ((1.0 + sqrt(5.0)) / 2.0);
 
-		std::vector<Vector3> vertices;
-		std::vector<uint32_t> indices;
+		std::vector<Vector3> initialVertices;
+		std::vector<uint32_t> initialIndices;
 
-		vertices = std::vector<Vector3>{
-			scaleTransform * Vector3::Normalize({ ratio, 0.0, -1.0 }),
-			scaleTransform * Vector3::Normalize({ -ratio, 0.0, -1.0 }),
-			scaleTransform * Vector3::Normalize({ ratio, 0.0, 1.0 }),
-			scaleTransform * Vector3::Normalize({ -ratio, 0.0, 1.0 }),
-			scaleTransform * Vector3::Normalize({ 0.0, -1.0, ratio }),
-			scaleTransform * Vector3::Normalize({ 0.0, -1.0, -ratio }),
-			scaleTransform * Vector3::Normalize({ 0.0, 1.0, ratio }),
-			scaleTransform * Vector3::Normalize({ 0.0, 1.0, -ratio }),
-			scaleTransform * Vector3::Normalize({ -1.0, ratio, 0.0 }),
-			scaleTransform * Vector3::Normalize({ -1.0, -ratio, 0.0 }),
-			scaleTransform * Vector3::Normalize({ 1.0, ratio, 0.0 }),
-			scaleTransform * Vector3::Normalize({ 1.0, -ratio, 0.0 })
+		initialVertices = std::vector<Vector3>{
+			Vector3::Normalize({ ratio, 0.0, -1.0 }) * scale,
+			Vector3::Normalize({ -ratio, 0.0, -1.0 }) * scale,
+			Vector3::Normalize({ ratio, 0.0, 1.0 }) * scale,
+			Vector3::Normalize({ -ratio, 0.0, 1.0 }) * scale,
+			Vector3::Normalize({ 0.0, -1.0, ratio }) * scale,
+			Vector3::Normalize({ 0.0, -1.0, -ratio }) * scale,
+			Vector3::Normalize({ 0.0, 1.0, ratio }) * scale,
+			Vector3::Normalize({ 0.0, 1.0, -ratio }) * scale,
+			Vector3::Normalize({ -1.0, ratio, 0.0 }) * scale,
+			Vector3::Normalize({ -1.0, -ratio, 0.0 }) * scale,
+			Vector3::Normalize({ 1.0, ratio, 0.0 }) * scale,
+			Vector3::Normalize({ 1.0, -ratio, 0.0 }) * scale
 		};
 
-		indices = std::vector<uint32_t>{
+		initialIndices = std::vector<uint32_t>{
 						1, 3, 8,
 						3, 1, 9,
 						2, 0, 10,
@@ -120,91 +300,30 @@ namespace Toast {
 						2, 4, 11
 		};
 
-		int subdivisionType = 1;
-
-		// NORMAL SUBDIVISION
-		if (subdivisionType == 0) {
-			std::vector<uint32_t> newIndices;
-			for (int subdivision = 0; subdivision < MAX_SUBDIVISION; subdivision++)
-			{
-				for (int i = 0; i < indices.size() - 2; i += 3)
-				{
-					//std::vector<uint32_t> faceIndices;
-
-					Vector3 A = vertices[indices[i]];
-					Vector3 B = vertices[indices[i + 1]];
-					Vector3 C = vertices[indices[i + 2]];
-
-					int vertexIndexM1 = GetOrAddVector3(sBaseVertexMap, Vector3::Normalize((A + B) * 0.5f), sBaseVertices);
-					int vertexIndexM2 = GetOrAddVector3(sBaseVertexMap, Vector3::Normalize((B + C) * 0.5f), sBaseVertices);
-					int vertexIndexM3 = GetOrAddVector3(sBaseVertexMap, Vector3::Normalize((C + A) * 0.5f), sBaseVertices);
-
-					newIndices.emplace_back(indices[i]); newIndices.emplace_back(vertexIndexM1); newIndices.emplace_back(vertexIndexM3);
-					newIndices.emplace_back(vertexIndexM1); newIndices.emplace_back(indices[i + 1]); newIndices.emplace_back(vertexIndexM2);
-					newIndices.emplace_back(vertexIndexM1); newIndices.emplace_back(vertexIndexM2); newIndices.emplace_back(vertexIndexM3);
-					newIndices.emplace_back(vertexIndexM3); newIndices.emplace_back(vertexIndexM2); newIndices.emplace_back(indices[i + 2]);
-				}
-
-				indices = newIndices;
-			}
-
-			sBaseIndices = std::move(indices);
-		}
-		// BILINEAR SUBDIVISION
-		else if (subdivisionType == 1)
+		for (int i = 0; i < initialIndices.size() - 2; i += 3)
 		{
-			uint32_t RC = 1 + (uint32_t)pow(2, (uint32_t)MAX_SUBDIVISION);
+			int16_t subdivision = 0;
+			double height;
 
-			std::vector<Vector2> barycentricCoordinates;
-			barycentricCoordinates.reserve(RC * (RC + 1) / 2);
+			CPUVertex A, B, C;
+			A.Position = initialVertices[initialIndices[i]];
+			A.UV = GetUVFromPosition(Vector3::Normalize(A.Position), (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+			height = GetHeight(A.UV, planet.TerrainData);
+			A.Position = Vector3::Normalize(A.Position) * (planet.PlanetData.radius + height);
+			
+			B.Position = initialVertices[initialIndices[i + 1]];
+			B.UV = GetUVFromPosition(Vector3::Normalize(B.Position), (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+			height = GetHeight(B.UV, planet.TerrainData);
+			B.Position = Vector3::Normalize(B.Position) * (planet.PlanetData.radius + height);
 
-			double delta = 1.0 / (double)(RC - 1.0);
+			C.Position = initialVertices[initialIndices[i + 2]];
+			C.UV = GetUVFromPosition(Vector3::Normalize(C.Position), (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+			height = GetHeight(C.UV, planet.TerrainData);
+			C.Position = Vector3::Normalize(C.Position) * (planet.PlanetData.radius + height);
 
-			uint32_t rowIdx = 0;
-			uint32_t nextIdx = 0;
-			for (uint32_t row = 0; row < RC; row++)
-			{
-				uint32_t numCols = RC - row;
-				nextIdx += numCols;
-				for (uint32_t column = 0; column < numCols; column++)
-				{
-					// calculate internal patch position
-					barycentricCoordinates.emplace_back(column / (float)(RC - 1), row / (float)(RC - 1));
-				}
-				rowIdx = nextIdx;
-			}
-
-			for (int i = 0; i < indices.size() - 2; i += 3)
-			{
-				Vector3 A = vertices[indices[i]];
-				Vector3 B = vertices[indices[i + 1]];
-				Vector3 C = vertices[indices[i + 2]];
-
-				Vector3 R = B - A;
-				Vector3 S = C - A;
-
-				for (auto& patchPos : barycentricCoordinates) 
-				{
-					Vector3 finalVec = A + R * patchPos.x + S * patchPos.y;
-					uint32_t vecIndex;
-
-					auto it = sBaseVertexMap.find(finalVec);
-					if (it != sBaseVertexMap.end()) {
-						vecIndex = it->second;
-					}
-					else {
-						sBaseVertices.emplace_back(finalVec);
-						uint32_t newIndex = sBaseVertices.size() - 1;
-						sBaseVertexMap[finalVec] = newIndex;
-						vecIndex = newIndex;
-					}
-
-					sBaseIndices.emplace_back(vecIndex);
-				}
-			}
-
-			//for (auto& vec : barycentricCoordinates)
-			//	vec.ToString("Barycentric Coordinate: ");
+			Ref<PlanetNode> rootNode = CreateRef<PlanetNode>(A, B, C, 0);
+			SubdivideBasePlanet(planet, rootNode, scale);
+			sPlanetNodes.emplace_back(rootNode);
 		}
 
 		// Stop timing
@@ -213,57 +332,7 @@ namespace Toast {
 		// Calculate the duration
 		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
-		TOAST_CORE_INFO("Base planet created with %d number of vertices and %d number indices, time: %dms", sBaseVertices.size(), sBaseIndices.size(), duration.count());
-	}
-
-	void PlanetSystem::GetBasePlanet(std::vector<Vector3>& vertices, std::vector<uint32_t>& indices, DirectX::XMFLOAT3& scale)
-	{
-		DirectX::XMMATRIX scaleMatrix = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
-		Matrix scaleTransform = { scaleMatrix };
-
-		double ratio = ((1.0 + sqrt(5.0)) / 2.0);
-
-		vertices = std::vector<Vector3>{
-			scaleTransform * Vector3::Normalize({ ratio, 0.0, -1.0 }),
-			scaleTransform * Vector3::Normalize({ -ratio, 0.0, -1.0 }),
-			scaleTransform * Vector3::Normalize({ ratio, 0.0, 1.0 }),
-			scaleTransform * Vector3::Normalize({ -ratio, 0.0, 1.0 }),
-			scaleTransform * Vector3::Normalize({ 0.0, -1.0, ratio }),
-			scaleTransform * Vector3::Normalize({ 0.0, -1.0, -ratio }),
-			scaleTransform * Vector3::Normalize({ 0.0, 1.0, ratio }),
-			scaleTransform * Vector3::Normalize({ 0.0, 1.0, -ratio }),
-			scaleTransform * Vector3::Normalize({ -1.0, ratio, 0.0 }),
-			scaleTransform * Vector3::Normalize({ -1.0, -ratio, 0.0 }),
-			scaleTransform * Vector3::Normalize({ 1.0, ratio, 0.0 }),
-			scaleTransform * Vector3::Normalize({ 1.0, -ratio, 0.0 })
-		};
-
-		indices = std::vector<uint32_t>{
-						1, 3, 8,
-						3, 1, 9,
-						2, 0, 10,
-						0, 2, 11,
-
-						5, 7, 0,
-						7, 5, 1,
-						6, 4, 2,
-						4, 6, 3,
-
-						9, 11, 4,
-						11, 9, 5,
-						10, 8, 6,
-						8, 10, 7,
-
-						7, 1, 8,
-						1, 5, 9,
-						0, 7, 10,
-						5, 0, 11,
-
-						3, 6, 8,
-						4, 3, 9,
-						6, 2, 10,
-						2, 4, 11
-		};
+		TOAST_CORE_INFO("Base planet created with %d number of planet nodes, example of child node: %d, time: %dms", sPlanetNodes.size(), sPlanetNodes[0]->ChildNodes.size(), duration);
 	}
 
 	void PlanetSystem::SubdivideFace(Vector3& cameraPosPlanetSpace, Matrix& planetScaleTransform, Ref<Frustum>& frustum, int& triangleAdded, Matrix planetTransform, Vector3& a, Vector3& b, Vector3& c, int16_t& subdivision, bool backfaceCull, bool frustumCullActivated, bool frustumCull, PlanetComponent& planet)
@@ -272,7 +341,7 @@ namespace Toast {
 
 		Vector3 A, B, C;
 
-		NextPlanetFace nextPlanetFace = CheckFaceSplit(cameraPosPlanetSpace, planetScaleTransform, frustum, subdivision, a, b, c, backfaceCull, frustumCullActivated, frustumCull, planet);
+		NextPlanetFace nextPlanetFace = CheckFaceSplit(cameraPosPlanetSpace, planetScaleTransform, subdivision, a, b, c, planet);
 
 		if (nextPlanetFace == NextPlanetFace::CULL)
 			return;
@@ -283,9 +352,9 @@ namespace Toast {
 			B = c + ((a - c) * 0.5);
 			C = a + ((b - a) * 0.5);
 
-			//A = Vector3::Normalize(A);
-			//B = Vector3::Normalize(B);
-			//C = Vector3::Normalize(C);
+			//A = Vector3::Normalize(A) * planet.PlanetData.radius;
+			//B = Vector3::Normalize(B) * planet.PlanetData.radius;
+			//C = Vector3::Normalize(C) * planet.PlanetData.radius;
 
 			int16_t nextSubdivision = subdivision + 1;
 
@@ -296,6 +365,7 @@ namespace Toast {
 		}
 		else
 		{
+			TOAST_PROFILE_SCOPE("New triangle added to the planet")
 			bool crackTriangle = false;
 			Vector3 closestVertex, furthestVertex, middleVertex;
 
@@ -317,9 +387,9 @@ namespace Toast {
 					testC = Vector3::Normalize(testC) * (planet.PlanetData.radius + planet.TerrainData.HeightData[((uint32_t)uvCoord.y * (planet.TerrainData.RowPitch / 2) + (uint32_t)uvCoord.x)]);
 				}
 
-				double cDistance = (testC - cameraPosPlanetSpace).Magnitude();
-				double aDistance = (testA - cameraPosPlanetSpace).Magnitude();
-				double bDistance = (testB - cameraPosPlanetSpace).Magnitude();
+				double cDistance = (testC - cameraPosPlanetSpace).MagnitudeSqrt();
+				double aDistance = (testA - cameraPosPlanetSpace).MagnitudeSqrt();
+				double bDistance = (testB - cameraPosPlanetSpace).MagnitudeSqrt();
 
 				double closestDistance = (std::min)(aDistance, (std::min)(bDistance, cDistance));
 				double furthestDistance = (std::max)(aDistance, (std::max)(bDistance, cDistance));
@@ -359,56 +429,110 @@ namespace Toast {
 			}
 
 			// Back to normal code
-			if (!crackTriangle)
-			{
+			//if (!crackTriangle)
+			//{
+				planet.BuildVertices.emplace_back(a);
+				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
 				//if (triangleAdded == 0 || triangleAdded == 3 || triangleAdded == 8 || triangleAdded == 9) {
 				//a.ToString();
-				uint32_t currentIndexA = GetOrAddVertex(planet.VertexMap, a, planet.BuildVertices);
-				planet.BuildIndices.emplace_back(currentIndexA);
+				//uint32_t currentIndexA = GetOrAddVertex(planet.VertexMap, a, planet.BuildVertices);
+				//planet.BuildIndices.emplace_back(currentIndexA);
 
 				//b.ToString();
-				uint32_t currentIndexB = GetOrAddVertex(planet.VertexMap, b, planet.BuildVertices);
-				planet.BuildIndices.emplace_back(currentIndexB);
+				planet.BuildVertices.emplace_back(b);
+				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+				//uint32_t currentIndexB = GetOrAddVertex(planet.VertexMap, b, planet.BuildVertices);
+				//planet.BuildIndices.emplace_back(currentIndexB);
 
 				//c.ToString();
-				uint32_t currentIndexC = GetOrAddVertex(planet.VertexMap, c, planet.BuildVertices);
-				planet.BuildIndices.emplace_back(currentIndexC);
-			}
-			else
-			{
-				// Calculate new vertex	
-				Vertex newVertex = (closestVertex + middleVertex) * 0.5;
+				planet.BuildVertices.emplace_back(c);
+				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+				//uint32_t currentIndexC = GetOrAddVertex(planet.VertexMap, c, planet.BuildVertices);
+				//planet.BuildIndices.emplace_back(currentIndexC);
+			//}
+			//else
+			//{
+			//	// Calculate new vertex	
+			//	Vertex newVertex = (closestVertex + middleVertex) * 0.5;
 
-				// First triangle
-				uint32_t currentIndexA = GetOrAddVertex(planet.VertexMap, newVertex, planet.BuildVertices);
-				planet.BuildIndices.emplace_back(currentIndexA);
+			//	// First triangle
+			//	uint32_t currentIndexA = GetOrAddVertex(planet.VertexMap, newVertex, planet.BuildVertices);
+			//	planet.BuildIndices.emplace_back(currentIndexA);
 
-				//b.ToString();
-				uint32_t currentIndexB = GetOrAddVertex(planet.VertexMap, closestVertex, planet.BuildVertices);
-				planet.BuildIndices.emplace_back(currentIndexB);
+			//	//b.ToString();
+			//	uint32_t currentIndexB = GetOrAddVertex(planet.VertexMap, closestVertex, planet.BuildVertices);
+			//	planet.BuildIndices.emplace_back(currentIndexB);
 
-				uint32_t currentIndexC = GetOrAddVertex(planet.VertexMap, furthestVertex, planet.BuildVertices);
-				planet.BuildIndices.emplace_back(currentIndexC);
+			//	uint32_t currentIndexC = GetOrAddVertex(planet.VertexMap, furthestVertex, planet.BuildVertices);
+			//	planet.BuildIndices.emplace_back(currentIndexC);
 
-				// Second triangle
-				uint32_t currentIndexD = GetOrAddVertex(planet.VertexMap, newVertex, planet.BuildVertices);
-				planet.BuildIndices.emplace_back(currentIndexD);
+			//	// Second triangle
+			//	uint32_t currentIndexD = GetOrAddVertex(planet.VertexMap, newVertex, planet.BuildVertices);
+			//	planet.BuildIndices.emplace_back(currentIndexD);
 
-				//b.ToString();
-				uint32_t currentIndexE = GetOrAddVertex(planet.VertexMap, middleVertex, planet.BuildVertices);
-				planet.BuildIndices.emplace_back(currentIndexE);
+			//	//b.ToString();
+			//	uint32_t currentIndexE = GetOrAddVertex(planet.VertexMap, middleVertex, planet.BuildVertices);
+			//	planet.BuildIndices.emplace_back(currentIndexE);
 
-				uint32_t currentIndexF = GetOrAddVertex(planet.VertexMap, furthestVertex, planet.BuildVertices);
-				planet.BuildIndices.emplace_back(currentIndexF);
-			}
+			//	uint32_t currentIndexF = GetOrAddVertex(planet.VertexMap, furthestVertex, planet.BuildVertices);
+			//	planet.BuildIndices.emplace_back(currentIndexF);
+			//}
 
 			triangleAdded++;
+		}
+	}
+
+	void PlanetSystem::TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform)
+	{
+		Vector3 center = (node->A.Position + node->B.Position + node->C.Position) / 3.0;
+		Vector3 viewVector = center - cameraPosPlanetSpace;
+		double cameraDistance = viewVector.Magnitude();
+
+		double dotProduct = Vector3::Dot(Vector3::Normalize(center), Vector3::Normalize(viewVector));
+
+		double backFaceCullingIgnoreDistance = 50000.0;
+		if (cameraDistance > backFaceCullingIgnoreDistance)
+		{
+			TOAST_PROFILE_SCOPE("Backface culling test");
+			std::lock_guard<std::mutex> lock(planetDataMutex);
+			if (backfaceCull && dotProduct >= planet.FaceLevelDotLUT[(uint32_t)node->SubdivisionLevel]) 
+			{
+				//TOAST_CORE_CRITICAL("BACKFACE CULLING");
+
+				return;
+			}
+		}
+
+		if (frustumCullActivated)
+		{
+			TOAST_PROFILE_SCOPE("Frustum culling test");
+			auto intersect = frustum->ContainsTriangleVolume(Vector3::Normalize(node->A.Position) * planet.PlanetData.radius, Vector3::Normalize(node->B.Position) * planet.PlanetData.radius, Vector3::Normalize(node->C.Position) * planet.PlanetData.radius, planet.HeightMultLUT[node->SubdivisionLevel]);
+
+			if (intersect == VolumeTri::OUTSIDE) 
+			{
+				//TOAST_CORE_CRITICAL("FRUSTUM CULLING");
+				return;
+			}
+		}
+
+		//TOAST_CORE_CRITICAL("node->SubdivisionLevel going to subdivision: %d", node->SubdivisionLevel);
+
+		if (node->SubdivisionLevel >= BASE_PLANET_SUBDIVISIONS)
+			SubdivideFace(node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetTransform, BASE_PLANET_SUBDIVISIONS);
+		else 
+		{
+			for (auto& child : node->ChildNodes)
+				TraverseNode(child, planet, cameraPosPlanetSpace, backfaceCull, frustumCullActivated, frustum, planetTransform);
 		}
 	}
 
 	void PlanetSystem::GeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated,  PlanetComponent& planet, TerrainDetailComponent* terrainDetail)
 	{
 		TOAST_PROFILE_FUNCTION();
+
+		auto start = std::chrono::high_resolution_clock::now();
+
+		//TOAST_CORE_INFO("Planet build started on planet thread");
 
 		planetGenerationOngoing.store(true);
 
@@ -417,83 +541,38 @@ namespace Toast {
 
 		int triangleAdded = 0;
 
-		DirectX::XMMATRIX scaleMatrix = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
-		Matrix scaleTransform = { scaleMatrix };
+		//DirectX::XMMATRIX scaleMatrix = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
+		//Matrix scaleTransform = { scaleMatrix };
 
 		Matrix planetTransform = { noScaleTransform };
 		Vector3 cameraPos = { camPos };
 
 		Vector3 cameraPosPlanetSpace = Matrix::Inverse(planetTransform) * cameraPos;
-		//TOAST_CORE_INFO("cameraPosPlanetSpace.Magnitude(): %lf", cameraPosPlanetSpace.Magnitude());
-
-		std::vector<Vector3> startVertices;
-		std::vector<uint32_t> startIndices;
-		GetBasePlanet(startVertices, startIndices, scale);
 		
 		{
 			std::lock_guard<std::mutex> lock(planetDataMutex);
-
-			planet.VertexMap.clear();
 
 			planet.BuildVertices.clear();
 			planet.BuildIndices.clear();
 		}
 
-		//for (int i = 0; i < startIndices.size() - 2; i += 3)
-		//{
-		//	int16_t firstSubdivision = 0;
-		//	SubdivideFace(cameraPosPlanetSpace, scaleTransform, frustum, triangleAdded, planetTransform, startVertices.at(startIndices.at(i)), startVertices.at(startIndices.at(i + 1)), startVertices.at(startIndices.at(i + 2)), firstSubdivision, backfaceCull, frustumCullActivated, true, planet);
-		//}
-
-		for (int i = 0; i < sBaseIndices.size() - 2; i += 3)
 		{
-			int16_t firstSubdivision = 0;
-			SubdivideFace(cameraPosPlanetSpace, scaleTransform, frustum, triangleAdded, planetTransform, sBaseVertices.at(sBaseIndices.at(i)), sBaseVertices.at(sBaseIndices.at(i + 1)), sBaseVertices.at(sBaseIndices.at(i + 2)), firstSubdivision, backfaceCull, frustumCullActivated, true, planet);
+			TOAST_PROFILE_SCOPE("Looping through the tree structure!");
+
+			for (auto& node : sPlanetNodes) 
+				TraverseNode(node, planet, cameraPosPlanetSpace, backfaceCull, frustumCullActivated, frustum, planetTransform);
 		}
-
-		int i = 0;
-		for (auto& vertex : planet.BuildVertices)
-		{
-			Vector3 normalizedPos = Vector3::Normalize({ vertex.Position.x, vertex.Position.y, vertex.Position.z });
-
-			//TOAST_CORE_CRITICAL("vertex.Texcoord: %lf, %lf", vertex.Texcoord.x, vertex.Texcoord.y);
-			Vector3 scaledPos;// = scaleTransform * normalizedPos;
-
-			//Apply height to the planet
-			if (!planet.TerrainData.HeightData.empty())
-			{
-				Vector2 uvCoord = GetUVFromPosition(normalizedPos, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
-				vertex.Texcoord = GetGPUUVFromPosition(normalizedPos);
-
-				uint32_t x1 = (uint32_t)(uvCoord.x);
-				uint32_t y1 = (uint32_t)(uvCoord.y);
-
-				uint32_t x2 = x1 == (planet.TerrainData.Width - 1) ? 0 : x1 + 1;
-				uint32_t y2 = y1 == (planet.TerrainData.Height - 1) ? 0 : y1 + 1;
-
-				double Q11 = static_cast<double>(planet.TerrainData.HeightData[y1 * (planet.TerrainData.RowPitch / 2) + x1]);
-				double Q12 = static_cast<double>(planet.TerrainData.HeightData[y2 * (planet.TerrainData.RowPitch / 2) + x1]);
-				double Q21 = static_cast<double>(planet.TerrainData.HeightData[y1 * (planet.TerrainData.RowPitch / 2) + x2]);
-				double Q22 = static_cast<double>(planet.TerrainData.HeightData[y2 * (planet.TerrainData.RowPitch / 2) + x2]);
-
-				double terrainDataValue = Math::BilinearInterpolation(uvCoord, Q11, Q12, Q21, Q22);
-
-				scaledPos = normalizedPos * (planet.PlanetData.radius + terrainDataValue);
-			}
-
-			scaledPos = planetTransform * scaledPos;
-
-			vertex.Position = { (float)scaledPos.x, (float)scaledPos.y, (float)scaledPos.z };
-
-			vertex.Color = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-			i++;
-		}
-
-		Vector3 cameraPosOnPlanetSurface = Vector3::Normalize(cameraPosPlanetSpace);
-		Matrix inversePlanetTransform = Matrix::Inverse(planetTransform);
 
 		newPlanetReady.store(true);
 		planetGenerationOngoing.store(false);
+
+		// Stop timing
+		auto end = std::chrono::high_resolution_clock::now();
+
+		// Calculate the duration
+		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+		//TOAST_CORE_INFO("Planet created with %d number of vertices and %d number indices, time: %dms", planet.BuildVertices.size(), planet.BuildIndices.size(), duration.count());
 
 		return;
 	}
@@ -531,6 +610,22 @@ namespace Toast {
 		}
 	}
 
+	double PlanetSystem::GetHeight(Vector2 uvCoords, TerrainData& terrainData)
+	{
+		uint32_t x1 = (uint32_t)(uvCoords.x);
+		uint32_t y1 = (uint32_t)(uvCoords.y);
+
+		uint32_t x2 = x1 == (terrainData.Width - 1) ? 0 : x1 + 1;
+		uint32_t y2 = y1 == (terrainData.Height - 1) ? 0 : y1 + 1;
+
+		double Q11 = static_cast<double>(terrainData.HeightData[y1 * (terrainData.RowPitch / 2) + x1]);
+		double Q12 = static_cast<double>(terrainData.HeightData[y2 * (terrainData.RowPitch / 2) + x1]);
+		double Q21 = static_cast<double>(terrainData.HeightData[y1 * (terrainData.RowPitch / 2) + x2]);
+		double Q22 = static_cast<double>(terrainData.HeightData[y2 * (terrainData.RowPitch / 2) + x2]);
+
+		return Math::BilinearInterpolation(uvCoords, Q11, Q12, Q21, Q22);
+	}
+
 	void PlanetSystem::Shutdown()
 	{
 		if (generationFuture.valid()) {
@@ -542,27 +637,49 @@ namespace Toast {
 	{
 		distanceLUT.clear();
 
-		double startLog = log(radius * 6.0);  // Starting log value for 1,000,000
-		double endLog = log(radius * 0.00001475143826523086);  // Ending log value for 50
+		distanceLUT.emplace_back(100000.0 * 100000.0);
+		distanceLUT.emplace_back(50000.0 * 50000.0);
+		distanceLUT.emplace_back(25000.0 * 25000.0);
+		distanceLUT.emplace_back(15000.0 * 15000.0);
+		distanceLUT.emplace_back(10000.0 * 10000.0);
+		distanceLUT.emplace_back(7500.0 * 7500.0);
+		distanceLUT.emplace_back(5000.0 * 5000.0);
+		distanceLUT.emplace_back(2500.0 * 2500.0);
+		distanceLUT.emplace_back(2000.0 * 2000.0);
+		distanceLUT.emplace_back(1500.0 * 1500.0);
+		distanceLUT.emplace_back(1000.0 * 1000.0);
+		distanceLUT.emplace_back(750.0 * 750.0);
+		distanceLUT.emplace_back(500.0 * 500.0);
+		distanceLUT.emplace_back(250.0 * 250.0);
+		distanceLUT.emplace_back(150.0 * 150.0);
+		distanceLUT.emplace_back(100.0 * 100.0);
+		distanceLUT.emplace_back(75.0 * 75);
+		distanceLUT.emplace_back(50.0 * 50.0);
+		distanceLUT.emplace_back(25.0 * 25.0);
+		distanceLUT.emplace_back(15.0 * 15.0);
+		distanceLUT.emplace_back(5.0 * 5.0);
 
-		for (int level = 0; level < MAX_SUBDIVISION; level++)
-		{
-			// Interpolate between startLog and endLog based on current level
-			double t = static_cast<double>(level) / MAX_SUBDIVISION;
-			double currentLog = (1 - t) * startLog + t * endLog;
+		//double startLog = log(radius * 6.0);  // Starting log value for 1,000,000
+		//double endLog = log(radius * 0.00001475143826523086);  // Ending log value for 50
 
-			// Convert the logarithmic value back to linear space
-			double currentDistance = exp(currentLog);
-
-			distanceLUT.emplace_back(currentDistance);
-		}
-
-		//int i = 0;
-		//for (auto level : distanceLUT) 
+		//for (int level = 0; level < 20; level++)
 		//{
-		//	i++;
-		//	TOAST_CORE_INFO("distanceLUT[%d]: %lf", i, level);
+		//	// Interpolate between startLog and endLog based on current level
+		//	double t = static_cast<double>(level) / MAX_SUBDIVISION;
+		//	double currentLog = (1 - t) * startLog + t * endLog;
+
+		//	// Convert the logarithmic value back to linear space
+		//	double currentDistance = exp(currentLog);
+
+		//	distanceLUT.emplace_back(currentDistance);
 		//}
+
+		int i = 0;
+		for (auto level : distanceLUT)
+		{
+			i++;
+			TOAST_CORE_INFO("distanceLUT[%d]: %f", i, level);
+		}
 	}
 
 	void PlanetSystem::GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight)
@@ -621,7 +738,7 @@ namespace Toast {
 		//	TOAST_CORE_INFO("heightMultLUT: %lf", level);
 	}
 
-	PlanetSystem::NextPlanetFace PlanetSystem::CheckFaceSplit(Vector3& cameraPosPlanetSpace, Matrix& planetScaleTransform, Ref<Frustum>& frustum, int16_t subdivision, Vector3 a, Vector3 b, Vector3 c, bool backfaceCull, bool frustumCullActivated, bool frustumCull, PlanetComponent& planet)
+	PlanetSystem::NextPlanetFace PlanetSystem::CheckFaceSplit(Vector3& cameraPosPlanetSpace, Matrix& planetScaleTransform, int16_t subdivision, Vector3 a, Vector3 b, Vector3 c, PlanetComponent& planet)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -636,8 +753,16 @@ namespace Toast {
 
 		if (!planet.TerrainData.HeightData.empty())
 		{
-			uvCoord = GetUVFromPosition(a, planet.TerrainData.Width, planet.TerrainData.Height);
-			aHeight = Vector3::Normalize(a) * (planet.PlanetData.radius + planet.TerrainData.HeightData[((uint32_t)uvCoord.y * (planet.TerrainData.RowPitch / 2) + (uint32_t)uvCoord.x)]);
+			TOAST_PROFILE_SCOPE("Adding height to planet!");
+			{
+				TOAST_PROFILE_SCOPE("Getting uv coords!");
+				uvCoord = GetUVFromPosition(a, planet.TerrainData.Width, planet.TerrainData.Height);
+			}
+			{
+				TOAST_PROFILE_SCOPE("Adding height to aHeight!");
+				aHeight = Vector3::Normalize(a) * (planet.PlanetData.radius + planet.TerrainData.HeightData[((uint32_t)uvCoord.y * (planet.TerrainData.RowPitch / 2) + (uint32_t)uvCoord.x)]);
+			}
+
 			uvCoord = GetUVFromPosition(b, planet.TerrainData.Width, planet.TerrainData.Height);
 			bHeight = Vector3::Normalize(b) * (planet.PlanetData.radius + planet.TerrainData.HeightData[((uint32_t)uvCoord.y * (planet.TerrainData.RowPitch / 2) + (uint32_t)uvCoord.x)]);
 			uvCoord = GetUVFromPosition(c, planet.TerrainData.Width, planet.TerrainData.Height);
@@ -650,41 +775,9 @@ namespace Toast {
 			cHeight = cNoHeight;
 		}
 
-		Vector3 center = ((aHeight + bHeight + cHeight) / 3.0);// *(1.0 - heightMultLUT[subdivision]);
-
-		double dotProduct = Vector3::Dot(Vector3::Normalize(center), Vector3::Normalize(center - cameraPosPlanetSpace));
-
-		{
-			std::lock_guard<std::mutex> lock(planetDataMutex);
-			if (backfaceCull && dotProduct >= (planet.FaceLevelDotLUT[(uint32_t)subdivision]))
-				return NextPlanetFace::CULL;
-		}
-
 		double aDistance = (aHeight - cameraPosPlanetSpace).Magnitude();
 		double bDistance = (bHeight - cameraPosPlanetSpace).Magnitude();
 		double cDistance = (cHeight - cameraPosPlanetSpace).Magnitude();
-
-		if (frustumCullActivated && frustumCull)
-		{
-			// Need to get ContainTriangle to work correctly, something is off here
-			//auto intersect = frustum->ContainsTriangle(aHeight, bHeight, cHeight);
-			auto intersect = frustum->ContainsTriangleVolume(aNoHeight, bNoHeight, cNoHeight, planet.HeightMultLUT[subdivision]);
-
-			if (intersect == VolumeTri::OUTSIDE)
-				return NextPlanetFace::CULL;
-
-			if (intersect == VolumeTri::CONTAINS)//stop frustum culling -> all children are also inside the frustum
-			{
-				//check if new splits are allowed
-				if (subdivision >= planet.Subdivisions)
-					return NextPlanetFace::LEAF;
-
-				if (aDistance < planet.DistanceLUT[(uint32_t)subdivision] && bDistance < planet.DistanceLUT[(uint32_t)subdivision] && cDistance < planet.DistanceLUT[(uint32_t)subdivision])
-					return NextPlanetFace::SPLIT;
-
-				return NextPlanetFace::LEAF;
-			}
-		}
 
 		if (subdivision >= planet.Subdivisions)
 			return NextPlanetFace::LEAF;
@@ -693,19 +786,6 @@ namespace Toast {
 			return NextPlanetFace::SPLITCULL;
 
 		return NextPlanetFace::LEAF;
-	}
-
-	uint32_t PlanetSystem::GetOrAddVertex(std::unordered_map<Vertex, uint32_t, Vertex::Hasher, Vertex::Equal>& vertexMap, const Vertex& vertex, std::vector<Vertex>& vertices) {
-		auto it = vertexMap.find(vertex);
-		if (it != vertexMap.end()) {
-			return it->second;
-		}
-		else {
-			vertices.emplace_back(vertex);
-			uint32_t newIndex = vertices.size() - 1;
-			vertexMap[vertex] = newIndex;
-			return newIndex;
-		}
 	}
 
 	uint32_t PlanetSystem::GetOrAddVector3(std::unordered_map<Vector3, uint32_t, Vector3::Hasher, Vector3::Equal>& vertexMap, const Vector3& vertex, std::vector<Vector3>& vertices)

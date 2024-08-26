@@ -246,6 +246,11 @@ namespace Toast {
 				ImGui::EndMenuBar();
 			}
 
+			ImGuiWindowClass windowClass;
+			windowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar;
+
+			ImGui::SetNextWindowClass(&windowClass);
+
 			ImGui::Begin("Toolbar", false, ImGuiWindowFlags_NoDecoration);
 			ImGui::SetCursorPosX(static_cast<float>(ImGui::GetWindowWidth() / 2.0f));
 			if (mSceneState == SceneState::Edit)

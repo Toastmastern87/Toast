@@ -39,11 +39,11 @@ cbuffer DirectionalLight	: register(b0)
 	float sunDiscToggle;
 };
 
-cbuffer Planet				: register(b4)
+cbuffer Atmosphere : register(b2)
 {
 	float radius;
-	float minAltitude;
-	float maxAltitude;
+    float minAltitude;
+    float maxAltitude;
 	float atmosphereHeight;
 	float mieAnisotropy;
 	float rayScaleHeight;
