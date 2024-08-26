@@ -993,6 +993,8 @@ namespace Toast {
 		CopyComponent<UIPanelComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UITextComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIButtonComponent>(target->mRegistry, mRegistry, enttMap);
+		//CopyComponent<TerrainDetailComponent>(target->mRegistry, mRegistry, enttMap);
+		//CopyComponent<TerrainObjectComponent>(target->mRegistry, mRegistry, enttMap);
 	}
 
 	template<typename T>
@@ -1159,8 +1161,10 @@ namespace Toast {
 	template<>
 	void Scene::OnComponentAdded<TerrainDetailComponent>(Entity entity, TerrainDetailComponent& component)
 	{
-		if(component.Seed = 0)
+		if(component.Seed == 0)
 			component.Seed = Math::GenerateRandomSeed();
+
+		TOAST_CORE_CRITICAL("Seed: %ld", component.Seed);
 	}
 
 	template<>

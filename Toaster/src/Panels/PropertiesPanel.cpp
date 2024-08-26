@@ -1168,12 +1168,6 @@ namespace Toast {
 				ImGui::PushItemWidth(-1);
 				if (DrawDouble3Control("Size", component.Collider->mSize, 1.0f)) 
 				{
-					//TransformComponent tc = entity.GetComponent<TransformComponent>();
-					//// TODO Add eular angles into the mix
-					//DirectX::XMVECTOR totalRotVec = DirectX::XMQuaternionMultiply(DirectX::XMLoadFloat4(&tc.RotationQuaternion), DirectX::XMQuaternionRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&tc.RotationEulerAngles)));
-					//DirectX::XMFLOAT4 totalRot;
-					//DirectX::XMStoreFloat4(&totalRot, totalRotVec);
-
 					component.Collider->CalculateBounds();
 					component.Collider->CalculateInertiaTensor();
 				}
@@ -1357,6 +1351,12 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
 				ImGui::SliderFloat("##frequency", &component.Frequency, 0.1, 64.0f, "%.1f");
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Amplitude");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::SliderFloat("##amplitude", &component.Amplitude, 0.1, 256.0f, "%.1f");
 				ImGui::EndTable();
 			});
 

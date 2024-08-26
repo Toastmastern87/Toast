@@ -524,6 +524,20 @@ namespace Toast {
 			out << YAML::EndMap; // UITextComponent
 		}
 
+		if (entity.HasComponent<TerrainDetailComponent>())
+		{
+			out << YAML::Key << "TerrainDetailComponent";
+			out << YAML::BeginMap; // TerrainDetailComponent
+
+			auto& tdc = entity.GetComponent<TerrainDetailComponent>();
+			out << YAML::Key << "Seed" << YAML::Value << tdc.Seed;
+			out << YAML::Key << "Octaves" << YAML::Value << tdc.Octaves;
+			out << YAML::Key << "Frequency" << YAML::Value << tdc.Frequency;
+			out << YAML::Key << "Amplitude" << YAML::Value << tdc.Amplitude;
+
+			out << YAML::EndMap; // TerrainDetailComponent
+		}
+
 		out << YAML::EndMap; // Entity
 	}
 
@@ -828,6 +842,18 @@ namespace Toast {
 					uitc.Text->SetFont(CreateRef<Font>(uiTextComponent["AssetPath"].as<std::string>()));
 					uitc.Text->SetText(uiTextComponent["Text"].as<std::string>());
 					uitc.Text->InvalidateText();
+				}
+
+				auto terrainDetailComponent = entity["TerrainDetailComponent"];
+				if (terrainDetailComponent)
+				{
+					auto& tdc = deserializedEntity.AddComponent<TerrainDetailComponent>();
+
+					if(terrainDetailComponent["Seed"].as<uint32_t>() != 0)
+						tdc.Seed = terrainDetailComponent["Seed"].as<uint32_t>();
+					tdc.Octaves = terrainDetailComponent["Octaves"].as<int>();
+					tdc.Frequency = terrainDetailComponent["Frequency"].as<float>();
+					tdc.Amplitude = terrainDetailComponent["Amplitude"].as<float>();
 				}
 			}
 		}
