@@ -58,8 +58,8 @@ namespace Toast {
 			Ref<Framebuffer> BaseFramebuffer, FinalFramebuffer, PickingFramebuffer, OutlineFramebuffer, PostProcessFramebuffer, UIFramebuffer;
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshColliderDrawList;
 
-			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer, RenderSettingsCBuffer;
-			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer, RenderSettingsBuffer;
+			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer;
+			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer, RenderSettingsBuffer, AtmosphereBuffer;
 
 			Ref<RenderTarget> BaseRenderTarget, FinalRenderTarget, DepthRenderTarget, PickingRenderTarget, OutlineRenderTarget, PostProcessRenderTarget, UIRenderTarget;
 		};

@@ -9,8 +9,8 @@ vertex
 
 #define PI 3.141592653589793
 
-Texture2D HeightMapTexture		: register(t4);
-Texture2D CraterMapTexture		: register(t5);
+//Texture2D HeightMapTexture		: register(t4);
+//Texture2D CraterMapTexture		: register(t5);
 
 SamplerState defaultSampler;
 
@@ -47,6 +47,7 @@ struct PixelInputType
 	float2 texcoord			: TEXCOORD0;
 	float3 cameraPos		: POSITION1;
 	float3 color			: COLOR0;
+    float3 normal			: NORMAL0;
 };
 
 float3 hash33(float3 p3)
@@ -105,6 +106,7 @@ PixelInputType main(VertexInputType input)
 
 	output.pixelPosition = float4(input.globalPosition, 1.0f);
 	output.worldPosition = input.globalPosition;
+	output.normal = input.normal;
 	output.pixelPosition = mul(output.pixelPosition, viewMatrix);
 	output.pixelPosition = mul(output.pixelPosition, projectionMatrix);
 	output.color = input.color;
@@ -139,23 +141,6 @@ cbuffer Material			: register(b1)
 	int MetalRoughTexToggle;
 };
 
-cbuffer Planet				: register(b4)
-{
-	float radius;
-	float minAltitude;
-	float maxAltitude;
-	float atmosphereHeight;
-	float mieAnisotropy;
-	float rayScaleHeight;
-	float mieScaleHeight;
-	float3 rayBaseScatteringCoefficient;
-	float mieBaseScatteringCoefficient;
-	float3 planetCenter;
-	int atmosphereToggle;
-	int numInScatteringPoints;
-	int numOpticalDepthPoints;
-};
-
 cbuffer RenderSettings : register(b9)
 {
     float renderOverlay;
@@ -171,6 +156,7 @@ struct PixelInputType
 	float2 texcoord			: TEXCOORD0;
 	float3 cameraPos		: POSITION1;
 	float3 color			: COLOR0;
+    float3 normal			: NORMAL0;
 };
 
 struct PixelOutputType
@@ -191,8 +177,6 @@ TextureCube RadianceTexture		: register(t1);
 Texture2D SpecularBRDFLUT		: register(t2);
 Texture2D AlbedoTexture			: register(t3);
 Texture2D MetalRoughTexture		: register(t5);
-Texture2D HeightMapTexturePS	: register(t7);
-Texture2D CraterMapTexturePS	: register(t8);
 
 SamplerState defaultSampler		: register(s0);
 SamplerState spBRDFSampler		: register(s1);
@@ -241,68 +225,6 @@ float SimplexNoise(float3 pos, float octaves, float scale, float persistence)
 	}
 
 	return (final / maxAmplitude);
-}
-
-float GetHeight(float2 uv)
-{
-	float finalHeight;
-
-	float baseHeight = HeightMapTexturePS.SampleLevel(defaultSampler, uv, 0).r;// *(maxAltitude + minAltitude)) + minAltitude;
-
-	float craterDetected = CraterMapTexturePS.SampleLevel(defaultSampler, uv, 0).r;
-	if (craterDetected == 0.0f)
-	{
-		float craterHeightDetail = SimplexNoise(float3(float2(8192.0f, 4096.0f) * uv, 1.0f), 15.0f, 0.5f, 0.5f);
-		//Min and max altitude of the details are 30 and -30. check base height for information on how to change these
-		//baseHeight *= 1.0f + craterHeightDetail * 30.0f;
-		//baseHeight *= 1.0f + (((craterHeightDetail + 1.0f) * 0.5f) * (0.06f) - 0.03f); //*= 1.0f + craterHeightDetail * (0.03f / radius);//
-	}
-
-	finalHeight = baseHeight;
-
-	return finalHeight; 
-}
-
-float3 CalculateNormal(float3 radialNormalVector, float2 uv)
-{
-	float textureWidth, textureHeight, hL, hR, hD, hU;
-	float3 texOffset, N;
-
-	HeightMapTexturePS.GetDimensions(textureWidth, textureHeight);
-
-	texOffset = float3((1.0f / (textureWidth)), (1.0f / (textureHeight)), 0.0f);
-
-	if (uv.x >= (1.0f - (1.0f / textureWidth)))
-	{
-		hL = GetHeight(float2(0.0f, uv.y));
-		hR = GetHeight(float2(0.0f, uv.y));
-		hD = GetHeight((uv + texOffset.zy));
-		hU = GetHeight((uv - texOffset.zy));
-	}
-	else if (uv.x <= (1.0f / textureWidth))
-	{
-		hL = GetHeight(float2(textureWidth, uv.y));
-		hR = GetHeight(float2(textureWidth, uv.y));
-		hD = GetHeight((uv + texOffset.zy));
-		hU = GetHeight((uv - texOffset.zy));
-	}
-	else
-	{
-		hL = GetHeight((uv - texOffset.xz));
-		hR = GetHeight((uv + texOffset.xz));
-		hD = GetHeight((uv + texOffset.zy));
-		hU = GetHeight((uv - texOffset.zy));
-	}
-
-	N = normalize(float3(hL - hR, hU - hD, 1.0f));
-	float3 up = normalize(radialNormalVector);
-	float3 worldUp = float3(0.0f, 1.0f, 0.0f);
-	float3 refDirection = abs(dot(up, worldUp)) < 0.9 ? worldUp : float3(1.0f, 0.0f, 0.0f);
-	float3 tang = normalize(cross(refDirection, up));
-	float3 biTan = normalize(cross(up, tang));
-	float3x3 TBN = float3x3(tang, biTan, up);
-
-	return normalize(mul(N, TBN));
 }
 
 // GGX/Towbridge-Reitz normal distribution function.
@@ -490,7 +412,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	float3 Lo = normalize(input.cameraPos - input.worldPosition);
 
 	// Get current fragment's normal and transform to world space.
-	float3 N = CalculateNormal(input.worldPosition - planetCenter, input.texcoord);
+    float3 N = input.normal; // CalculateNormal(input.worldPosition - planetCenter, input.texcoord);
 
 	// Angle between surface normal and outgoing light direction.
 	float cosLo = max(dot(N, Lo), 0.0f);
@@ -507,7 +429,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
     if (renderOverlay > 0.5f && renderOverlay <= 1.5f)
         output.Color = float4(params.Albedo, 1.0f);
     else if (renderOverlay > 1.5f && renderOverlay <= 2.5f)
-        output.Color = float4(GetHeight(input.texcoord), GetHeight(input.texcoord), GetHeight(input.texcoord), 1.0f); //float4(input.texcoord, 0.0f, 1.0f);//float4(N * 0.5 + 0.5, 1.0f);//  
+        output.Color = float4(N * 0.5 + 0.5, 1.0f);
     else if (renderOverlay > 2.5f && renderOverlay <= 3.5f)
         output.Color = float4(N * 0.5 + 0.5, 1.0f);
     else if (renderOverlay > 3.5f && renderOverlay <= 4.5f)

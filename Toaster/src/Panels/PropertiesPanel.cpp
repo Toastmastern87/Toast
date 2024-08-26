@@ -513,15 +513,6 @@ namespace Toast {
 				}
 			}
 
-			if (!mContext.HasComponent<TerrainColliderComponent>())
-			{
-				if (ImGui::MenuItem("Terrain Collider"))
-				{
-					mContext.AddComponent<TerrainColliderComponent>();
-					ImGui::CloseCurrentPopup();
-				}
-			}
-
 			ImGui::Separator();
 
 			if (!mContext.HasComponent<UIPanelComponent>())
@@ -557,6 +548,15 @@ namespace Toast {
 
 				if (ImGui::BeginMenu("Planet Specific"))
 				{
+					if (!mContext.HasComponent<TerrainColliderComponent>())
+					{
+						if (ImGui::MenuItem("Terrain Collider"))
+						{
+							mContext.AddComponent<TerrainColliderComponent>();
+							ImGui::CloseCurrentPopup();
+						}
+					}
+
 					if (!mContext.HasComponent<TerrainDetailComponent>())
 					{
 						if (ImGui::MenuItem("Terrain Details")) 
@@ -825,7 +825,7 @@ namespace Toast {
 				ImGui::PushItemWidth(-1);
 				if (ImGui::DragFloat("##Radius", &component.PlanetData.radius, 0.1f, 0.0f, 0.0f, "%.2f"))
 				{
-					PlanetSystem::CalculateBasePlanet(component.PlanetData.radius);
+					PlanetSystem::CalculateBasePlanet(component, component.PlanetData.radius);
 
 					if (entity.HasComponent<TerrainColliderComponent>())
 					{
@@ -1199,23 +1199,19 @@ namespace Toast {
 				else
 					ImGui::InputText("##heightmapfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
 				ImGui::TableSetColumnIndex(2);
-				if (ImGui::Button("...##openheightmapfilepath"))
+				if (ImGui::Button("...##openheightmapfilepath")) 
 				{
 					std::optional<std::string> filepath = FileDialogs::OpenFile("*.png", "..\\Toaster\\assets\\textures\\");
-					if (filepath)
+
+					if (filepath) 
 					{
-						auto& tag = entity.GetComponent<TagComponent>().Tag;
-						auto id = entity.GetComponent<IDComponent>().ID;
-						if (tag == "Empty Entity")
-						{
-							std::string newTag = *filepath;
-							std::size_t found = newTag.find_last_of("/\\");
-							newTag = newTag.substr(found + 1);
-							found = newTag.find_last_of(".\\");
-							tag = newTag.substr(0, found);
-						}
+						PlanetComponent& pc = entity.GetComponent<PlanetComponent>();
+
+						component.Collider->mFilePath = *filepath;
+						PhysicsEngine::LoadTerrainData(component.Collider->mFilePath.c_str(), pc.PlanetData.maxAltitude, pc.PlanetData.minAltitude);
 					}
 				}
+
 				ImGui::EndTable();
 			});
 
@@ -1364,7 +1360,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<TerrainObjectComponent>(ICON_TOASTER_CUBE" Transform", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<TerrainObjectComponent>(ICON_TOASTER_CUBE" Terrain Object", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
 			});
 	}

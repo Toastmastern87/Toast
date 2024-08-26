@@ -91,7 +91,7 @@ cbuffer Material			: register(b1)
 	int MetalRoughTexToggle;
 };
 
-cbuffer Planet : register(b2)
+cbuffer Atmosphere : register(b2)
 {
 	float radius;
 	float minAltitude;

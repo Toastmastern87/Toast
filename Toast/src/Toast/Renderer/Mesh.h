@@ -67,6 +67,24 @@ namespace Toast {
 			Color = { (float)color.x, (float)color.y, (float)color.z };
 		}
 
+		Vertex(Vector3 pos, Vector2 uv)
+		{
+			Position = { (float)pos.x, (float)pos.y, (float)pos.z };
+			Normal = { 0.0f, 0.0f, 0.0f };
+			Tangent = { 0.0f, 0.0f, 0.0f, 0.0f };
+			Texcoord = { (float)uv.x, (float)uv.y };
+			Color = { 0.0f, 0.0f, 0.0f };
+		}
+
+		Vertex(Vector3 pos, Vector2 uv, Vector3 normal)
+		{
+			Position = { (float)pos.x, (float)pos.y, (float)pos.z };
+			Normal = { (float)normal.x, (float)normal.y, (float)normal.z };
+			Tangent = { 0.0f, 0.0f, 0.0f, 0.0f };
+			Texcoord = { (float)uv.x, (float)uv.y };
+			Color = { 0.0f, 0.0f, 0.0f };
+		}
+
 		Vertex()
 		{
 			Position = { 0.0f, 0.0f, 0.0f };
