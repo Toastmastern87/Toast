@@ -60,9 +60,11 @@ namespace Toast {
 		mPlanetBuffer.ZeroInitialize();
 	}
 
-	Mesh::Mesh(const std::string& filePath, const bool skyboxMesh, Vector3 colorOverride)
+	Mesh::Mesh(const std::string& filePath, const bool skyboxMesh, Vector3 colorOverride, bool isInstanced, uint32_t maxNrOfInstanceObjects)
 		: mFilePath(filePath)
 	{
+		mInstanced = isInstanced;
+
 		uint32_t vertexCount = 0;
 		uint32_t indexCount = 0;
 
@@ -286,6 +288,10 @@ namespace Toast {
 			cgltf_free(data);
 			
 			mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
+
+			if(mInstanced && maxNrOfInstanceObjects > 0)
+				mVertexBuffer = CreateRef<VertexBuffer>((sizeof(DirectX::XMFLOAT3) * maxNrOfInstanceObjects), maxNrOfInstanceObjects, 1);
+
 			mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 		}
 

@@ -625,6 +625,13 @@ namespace Toast {
 
 					// Check if planet build is ready and if that is the case move it to the render mesh
 					PlanetSystem::UpdatePlanet(pc.RenderMesh, pc.BuildVertices, pc.BuildIndices);
+
+					if (e.HasComponent<TerrainObjectComponent>()) 
+					{
+						TerrainObjectComponent& toc = e.GetComponent<TerrainObjectComponent>();
+
+						PlanetSystem::DetailObjectPlacement(pc, toc, noScaleModelMatrix, cameraPos);
+					}
 				}
 				else
 					TOAST_CORE_ERROR("No primary camera present, unable to render the planet");
@@ -993,7 +1000,7 @@ namespace Toast {
 		CopyComponent<UIPanelComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UITextComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIButtonComponent>(target->mRegistry, mRegistry, enttMap);
-		//CopyComponent<TerrainDetailComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<TerrainDetailComponent>(target->mRegistry, mRegistry, enttMap);
 		//CopyComponent<TerrainObjectComponent>(target->mRegistry, mRegistry, enttMap);
 	}
 
@@ -1164,7 +1171,6 @@ namespace Toast {
 		if(component.Seed == 0)
 			component.Seed = Math::GenerateRandomSeed();
 
-		TOAST_CORE_CRITICAL("Seed: %ld", component.Seed);
 	}
 
 	template<>
