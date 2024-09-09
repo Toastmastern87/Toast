@@ -114,6 +114,9 @@ Entities:
       Translation: [0, -3384285.25, 0]
       Rotation: [75, -30, 55]
       Scale: [3389500, 3389500, 3389500]
+    MeshComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Stone\Stone.gltf
+      IsPlanet: false
     PlanetComponent:
       Subdivisions: 7
       MaxAltitude: 21200
@@ -135,9 +138,15 @@ Entities:
       AssetPath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
     TerrainDetailComponent:
       Seed: 3521520863
+      SubdivisionActivation: 9
       Octaves: 4
       Frequency: 3
       Amplitude: 60.9000015
+    TerrainObjectComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Stone\Stone.gltf
+      SubdivisionActivation: 9
+      MaxNumberOfObjectsPerFace: 4
+      MaxNumberOfObjects: 149
   - Entity: 12837192831275
     TagComponent:
       Tag: Sunlight

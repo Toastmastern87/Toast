@@ -531,11 +531,26 @@ namespace Toast {
 
 			auto& tdc = entity.GetComponent<TerrainDetailComponent>();
 			out << YAML::Key << "Seed" << YAML::Value << tdc.Seed;
+			out << YAML::Key << "SubdivisionActivation" << YAML::Value << tdc.SubdivisionActivation;
 			out << YAML::Key << "Octaves" << YAML::Value << tdc.Octaves;
 			out << YAML::Key << "Frequency" << YAML::Value << tdc.Frequency;
 			out << YAML::Key << "Amplitude" << YAML::Value << tdc.Amplitude;
 
 			out << YAML::EndMap; // TerrainDetailComponent
+		}
+
+		if (entity.HasComponent<TerrainObjectComponent>())
+		{
+			out << YAML::Key << "TerrainObjectComponent";
+			out << YAML::BeginMap; // TerrainObjectComponent
+
+			auto& toc = entity.GetComponent<TerrainObjectComponent>();
+			if(toc.MeshObject)
+				out << YAML::Key << "AssetPath" << YAML::Value << toc.MeshObject->GetFilePath();
+			out << YAML::Key << "SubdivisionActivation" << YAML::Value << toc.SubdivisionActivation;
+			out << YAML::Key << "MaxNumberOfObjectsPerFace" << YAML::Value << toc.MaxNrOfObjectPerFace;
+			out << YAML::Key << "MaxNumberOfObjects" << YAML::Value << toc.MaxNrOfObjects;
+			out << YAML::EndMap; // TerrainObjectComponent
 		}
 
 		out << YAML::EndMap; // Entity
@@ -851,9 +866,23 @@ namespace Toast {
 
 					if(terrainDetailComponent["Seed"].as<uint32_t>() != 0)
 						tdc.Seed = terrainDetailComponent["Seed"].as<uint32_t>();
+					tdc.SubdivisionActivation = terrainDetailComponent["SubdivisionActivation"].as<int>();
 					tdc.Octaves = terrainDetailComponent["Octaves"].as<int>();
 					tdc.Frequency = terrainDetailComponent["Frequency"].as<float>();
 					tdc.Amplitude = terrainDetailComponent["Amplitude"].as<float>();
+				}
+
+				auto terrainObjectComponent = entity["TerrainObjectComponent"];
+				if (terrainObjectComponent)
+				{
+					auto& toc = deserializedEntity.AddComponent<TerrainObjectComponent>();
+
+					toc.MaxNrOfObjects = terrainObjectComponent["MaxNumberOfObjects"].as<int>();
+
+					toc.MeshObject = CreateRef<Mesh>(terrainObjectComponent["AssetPath"].as<std::string>(), false, DirectX::XMFLOAT3(0.0, 0.0, 0.0), true, toc.MaxNrOfObjects);
+
+					toc.SubdivisionActivation = terrainObjectComponent["SubdivisionActivation"].as<int>();
+					toc.MaxNrOfObjectPerFace = terrainObjectComponent["MaxNumberOfObjectsPerFace"].as<int>();
 				}
 			}
 		}

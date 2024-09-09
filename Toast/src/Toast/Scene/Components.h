@@ -277,6 +277,7 @@ namespace Toast {
 	struct TerrainDetailComponent
 	{
 		uint32_t Seed = 0;
+		int SubdivisionActivation = 0;
 		int Octaves = 1;
 		float Frequency = 1.0f;
 		float Amplitude = 1.0f;
@@ -287,6 +288,9 @@ namespace Toast {
 
 	struct TerrainObjectComponent
 	{
+		int SubdivisionActivation = 0;
+		int MaxNrOfObjectPerFace = 0;
+		int MaxNrOfObjects = 0;
 		Ref<Mesh> MeshObject;
 
 		TerrainObjectComponent() = default;

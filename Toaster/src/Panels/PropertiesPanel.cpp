@@ -542,7 +542,9 @@ namespace Toast {
 				}
 			}
 
-			if (mContext.HasComponent<PlanetComponent>())
+			bool noPlanetSpecific = mContext.HasComponent<TerrainColliderComponent>() && mContext.HasComponent<TerrainDetailComponent>() && mContext.HasComponent<TerrainObjectComponent>();
+
+			if (mContext.HasComponent<PlanetComponent>() && !noPlanetSpecific)
 			{
 				ImGui::Separator();
 
@@ -1328,7 +1330,7 @@ namespace Toast {
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-				ImGui::BeginTable("TerrainDetailComponent", 2, flags);
+				ImGui::BeginTable("##TerrainDetailComponent", 2, flags);
 				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
 				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
 				ImGui::TableNextRow();
@@ -1339,6 +1341,12 @@ namespace Toast {
 				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
 				ImGui::InputText("##seed", (char*)std::to_string(component.Seed).c_str(), 256, ImGuiInputTextFlags_ReadOnly);
 				ImGui::PopStyleColor();
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Subdivision");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::SliderInt("##subdivisionactivation", &component.SubdivisionActivation, 0, 20);
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Octaves");
@@ -1362,6 +1370,54 @@ namespace Toast {
 
 		DrawComponent<TerrainObjectComponent>(ICON_TOASTER_CUBE" Terrain Object", entity, mScene, [](auto& component, Entity entity, Scene* scene)
 			{
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+				ImGui::BeginTable("##TerrainObjectComponent", 3, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
+				ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Mesh ");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (component.MeshObject)
+				{
+					if (!component.MeshObject->GetFilePath().empty())
+						ImGui::InputText("##terrainobjectfilepath", (char*)component.MeshObject->GetFilePath().c_str(), 256, ImGuiInputTextFlags_ReadOnly);
+					else
+						ImGui::InputText("##terrainobjectfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
+				}
+				else
+					ImGui::InputText("##terrainobjectfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
+				ImGui::TableSetColumnIndex(2);
+				if (ImGui::Button("...##openmesh"))
+				{
+					std::optional<std::string> filepath = FileDialogs::OpenFile("*.gltf", "..\\Toaster\\assets\\meshes\\");
+					if (filepath)
+						component.MeshObject = CreateRef<Mesh>(*filepath);
+				}
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Subdivision");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::SliderInt("##subdivisionactivation", &component.SubdivisionActivation, 0, 20);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Max per face");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::SliderInt("##maxnrofobjectsperface", &component.MaxNrOfObjectPerFace, 0, 20);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Total max");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::SliderInt("##maxnrofobjects", &component.MaxNrOfObjects, 0, 500);
+				ImGui::EndTable();
+
 			});
 	}
 

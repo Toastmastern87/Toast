@@ -110,7 +110,7 @@ namespace Toast {
 
 		Vector2(DirectX::XMFLOAT2 vec);
 
-		Vector2 operator+(const Vector3& rhs) const {
+		Vector2 operator+(const Vector2& rhs) const {
 			return Vector2(x + rhs.x, y + rhs.y);
 		}
 

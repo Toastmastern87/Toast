@@ -48,6 +48,7 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet.hlsl");
 		ShaderLibrary::Load("assets/shaders/ToastPBR.hlsl");
+		ShaderLibrary::Load("assets/shaders/ToastPBRInstance.hlsl");
 		ShaderLibrary::Load("assets/shaders/Picking.hlsl");
 		ShaderLibrary::Load("assets/shaders/ToneMapping.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere.hlsl");
