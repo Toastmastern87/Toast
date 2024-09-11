@@ -46,6 +46,8 @@ namespace Toast {
 		virtual void Bind() const;
 		virtual void Unbind() const;
 
+		virtual size_t GetBufferSize() const { return mSize; }
+
 		virtual void SetData(const void* data, uint32_t size);
 	private:
 		Microsoft::WRL::ComPtr<ID3D11Buffer> mVertexBuffer = nullptr;

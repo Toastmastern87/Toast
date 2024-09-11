@@ -687,6 +687,27 @@ namespace Toast {
 				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 			}
 
+			auto terrainObjectMeshes = mRegistry.view<TransformComponent, TerrainObjectComponent>();
+			for (auto entity : terrainObjectMeshes)
+			{
+				auto [transform, terrainObject] = terrainObjectMeshes.get<TransformComponent, TerrainObjectComponent>(entity);
+				switch (mSettings.WireframeRendering)
+				{
+				case Settings::Wireframe::NO:
+				{
+					Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, false);
+
+					break;
+				}
+				case Settings::Wireframe::YES:
+				{
+					Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, true);
+
+					break;
+				}
+				}
+			}
+
 			// Planets!
 			auto viewPlanets = mRegistry.view<TransformComponent, PlanetComponent>();
 			for (auto entity : viewPlanets)

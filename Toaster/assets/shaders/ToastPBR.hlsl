@@ -3,6 +3,7 @@ vertex
 vertex
 vertex
 vertex
+vertex
 
 #type vertex
 #pragma pack_matrix( row_major )

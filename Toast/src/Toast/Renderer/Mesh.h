@@ -265,6 +265,9 @@ namespace Toast {
 
 		void ResetAnimations();
 		bool GetIsAnimated() const { return mIsAnimated; }
+
+		bool IsInstanced() const { return mInstanced; }
+		void SetInstanceData(const void* data, uint32_t size);
 	private:
 		const ShaderCBufferElement* FindCBufferElementDeclaration(const std::string& materialName, const std::string& cbufferName, const std::string& name);
 	private:

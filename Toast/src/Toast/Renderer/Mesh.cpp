@@ -197,6 +197,8 @@ namespace Toast {
 					{
 						mMaterials[data->materials[m].name]->SetTexture(3, D3D11_PIXEL_SHADER, whiteTexture);
 					}
+
+					TOAST_CORE_CRITICAL("Albedo Color: %f, %f, %f, %f", albedoColor.x, albedoColor.y, albedoColor.z, albedoColor.w);
 					mMaterials[data->materials[m].name]->Set<DirectX::XMFLOAT4>("Albedo", albedoColor);
 					mMaterials[data->materials[m].name]->Set<int>("AlbedoTexToggle", useAlbedoMap);
 
@@ -290,7 +292,7 @@ namespace Toast {
 			mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
 
 			if(mInstanced && maxNrOfInstanceObjects > 0)
-				mVertexBuffer = CreateRef<VertexBuffer>((sizeof(DirectX::XMFLOAT3) * maxNrOfInstanceObjects), maxNrOfInstanceObjects, 1);
+				mInstanceVertexBuffer = CreateRef<VertexBuffer>((sizeof(DirectX::XMFLOAT3) * maxNrOfInstanceObjects), maxNrOfInstanceObjects, 1);
 
 			mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 		}
@@ -373,6 +375,12 @@ namespace Toast {
 					animation.second->Reset();
 			}
 		}
+	}
+
+	void Mesh::SetInstanceData(const void* data, uint32_t size)
+	{
+		if(mInstanceVertexBuffer)
+			mInstanceVertexBuffer->SetData(data, size);
 	}
 
 	const Toast::ShaderCBufferElement* Mesh::FindCBufferElementDeclaration(const std::string& materialName, const std::string& cbufferName, const std::string& name)

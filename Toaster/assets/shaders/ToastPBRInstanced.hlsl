@@ -3,6 +3,7 @@ vertex
 vertex
 vertex
 vertex
+vertex
 instance
 
 #type vertex
@@ -27,11 +28,12 @@ cbuffer Model : register(b1)
 
 struct VertexInputType
 {
-    float3 position : POSITION;
+    float3 localPosition : POSITION0;
     float3 normal : NORMAL;
     float4 tangent : TANGENT;
     float2 texcoord : TEXCOORD;
     float3 color : COLOR0;
+    float3 worldPosition : POSITION1;
 };
 
 struct PixelInputType
@@ -48,11 +50,12 @@ PixelInputType main(VertexInputType input)
 {
     PixelInputType output;
 
-    output.pixelPosition = mul(float4(input.position, 1.0f), worldMatrix);
+    output.worldPosition = input.localPosition + input.worldPosition;
+    
+    output.pixelPosition = float4(output.worldPosition, 1.0f);
     output.pixelPosition = mul(output.pixelPosition, viewMatrix);
     output.pixelPosition = mul(output.pixelPosition, projectionMatrix);
 
-    output.worldPosition = mul(float4(input.position, 1.0f), worldMatrix).xyz;
 
     float3 worldNormal = mul(input.normal, (float3x3) worldMatrix);
     float3 worldTangent = mul(input.tangent.xyz, (float3x3) worldMatrix);
