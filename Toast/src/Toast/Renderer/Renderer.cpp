@@ -303,10 +303,6 @@ namespace Toast {
 
 		for (const auto& meshCommand : sRendererData->MeshDrawList) 
 		{
-			if (meshCommand.Mesh->mVertexBuffer)	meshCommand.Mesh->mVertexBuffer->Bind();
-			//if (meshCommand.Mesh->mInstanceVertexBuffer && meshCommand.PlanetData) meshCommand.Mesh->mInstanceVertexBuffer->Bind();
-			if (meshCommand.Mesh->mIndexBuffer)		meshCommand.Mesh->mIndexBuffer->Bind();
-
 			if (meshCommand.Wireframe)
 				RenderCommand::EnableWireframe();
 			else
@@ -316,6 +312,24 @@ namespace Toast {
 
 			if (!meshCommand.PlanetData)
 			{
+				if (meshCommand.Mesh->IsInstanced())
+				{
+					for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+					{
+						//TOAST_CORE_INFO("Rendering submesh with material: %s", submesh.MaterialName.c_str());
+						bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
+
+						meshCommand.Mesh->Set<DirectX::XMMATRIX>(submesh.MaterialName, "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+						meshCommand.Mesh->Set<int>(submesh.MaterialName, "Model", "entityID", meshCommand.EntityID);
+
+						meshCommand.Mesh->Map(submesh.MaterialName);
+						meshCommand.Mesh->Bind(submesh.MaterialName, environment);
+
+						uint32_t bufferElements = meshCommand.Mesh->mInstanceVertexBuffer->GetBufferSize() / sizeof(DirectX::XMFLOAT3);
+
+						RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, bufferElements, 0, 0, 0);
+					}
+				}
 				for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
 				{
 					//TOAST_CORE_INFO("Rendering submesh with material: %s", submesh.MaterialName.c_str());

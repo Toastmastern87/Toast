@@ -146,7 +146,7 @@ Entities:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\Stone\Stone.gltf
       SubdivisionActivation: 9
       MaxNumberOfObjectsPerFace: 4
-      MaxNumberOfObjects: 149
+      MaxNumberOfObjects: 999
   - Entity: 12837192831275
     TagComponent:
       Tag: Sunlight

@@ -1415,7 +1415,7 @@ namespace Toast {
 				ImGui::Text("Total max");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::SliderInt("##maxnrofobjects", &component.MaxNrOfObjects, 0, 500);
+				ImGui::SliderInt("##maxnrofobjects", &component.MaxNrOfObjects, 0, 1000);
 				ImGui::EndTable();
 
 			});

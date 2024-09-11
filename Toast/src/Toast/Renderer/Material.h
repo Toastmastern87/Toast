@@ -54,7 +54,7 @@ namespace Toast {
 		template <typename T>
 		T& Get(const std::string& name)
 		{
-			/*TOAST_CORE_INFO("Name: %s", name.c_str());*/
+			//TOAST_CORE_INFO("Name: %s", name.c_str());
 			auto decl = FindCBufferElementDeclaration(name);
 			TOAST_CORE_ASSERT(decl, "Couldn't find constant buffer element!");
 

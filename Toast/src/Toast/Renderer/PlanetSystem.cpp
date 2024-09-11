@@ -345,6 +345,8 @@ namespace Toast {
 
 	void PlanetSystem::DetailObjectPlacement(const PlanetComponent& planet, TerrainObjectComponent& objects, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR& camPos)
 	{
+		std::vector<DirectX::XMFLOAT3> objectPositions;
+
 		Matrix planetTransform = { noScaleTransform };
 		Vector3 cameraPos = { camPos };
 
@@ -392,22 +394,18 @@ namespace Toast {
 							}
 							float w = 1.0f - u - v;
 
-							// Calculate the stone's local position
-							Vector3 stonePosition = A * u + B * v + C * w;
+							// Calculate the object's local position
+							Vector3 objectPosition = A * u + B * v + C * w;
 
-
-							// Normalize, scale, and transform to world space
-							//stonePositionLocal.Normalize();
-							//stonePositionLocal *= planetRadius;
-							//Vector3 stonePositionWorld = Vector3::Transform(stonePositionLocal, icosphereWorldMatrix);
-
-							// Store or use stonePositionWorld for rendering
-							//stonePositions.push_back(stonePosition);
+							objectPositions.emplace_back(DirectX::XMFLOAT3(objectPosition.x, objectPosition.y, objectPosition.z));
 						}
 					}
 				}
 			}
 		}
+		
+		if(objectPositions.size() > 0)
+			objects.MeshObject->SetInstanceData(&objectPositions[0], objectPositions.size());
 	}
 
 	void PlanetSystem::TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
@@ -604,12 +602,12 @@ namespace Toast {
 		//	distanceLUT.emplace_back(currentDistance);
 		//}
 
-		int i = 0;
-		for (auto level : distanceLUT)
-		{
-			i++;
-			TOAST_CORE_INFO("distanceLUT[%d]: %f", i, level);
-		}
+		//int i = 0;
+		//for (auto level : distanceLUT)
+		//{
+		//	i++;
+		//	TOAST_CORE_INFO("distanceLUT[%d]: %f", i, level);
+		//}
 	}
 
 	void PlanetSystem::GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight)

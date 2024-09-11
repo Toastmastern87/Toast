@@ -178,6 +178,8 @@ namespace Toast {
 		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
 		mName = filepath.substr(lastSlash, count);
 
+		TOAST_CORE_INFO("Compiling shader: %s", mName.c_str());
+
 		Invalidate(filepath);
 	}
 

@@ -345,6 +345,9 @@ namespace Toast {
 		out << YAML::Key << "Material" << YAML::Value << material->GetName();
 		out << YAML::Key << "Shader" << YAML::Value << material->GetShader()->GetFullPathName();
 
+		TOAST_CORE_CRITICAL("Serializing material: %s", material->GetName().c_str());
+		TOAST_CORE_CRITICAL("Shader: %s", material->GetShader()->GetFullPathName().c_str());
+
 		if (material->GetMaterialCBuffer()) 
 		{
 			out << YAML::Key << "Albedo" << YAML::Value << material->Get<DirectX::XMFLOAT4>("Albedo");
