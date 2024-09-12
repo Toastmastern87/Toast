@@ -198,7 +198,6 @@ namespace Toast {
 						mMaterials[data->materials[m].name]->SetTexture(3, D3D11_PIXEL_SHADER, whiteTexture);
 					}
 
-					TOAST_CORE_CRITICAL("Albedo Color: %f, %f, %f, %f", albedoColor.x, albedoColor.y, albedoColor.z, albedoColor.w);
 					mMaterials[data->materials[m].name]->Set<DirectX::XMFLOAT4>("Albedo", albedoColor);
 					mMaterials[data->materials[m].name]->Set<int>("AlbedoTexToggle", useAlbedoMap);
 
@@ -377,8 +376,10 @@ namespace Toast {
 		}
 	}
 
-	void Mesh::SetInstanceData(const void* data, uint32_t size)
+	void Mesh::SetInstanceData(const void* data, uint32_t size, uint32_t numberOfInstances)
 	{
+		mNumberOfInstances = numberOfInstances;
+
 		if(mInstanceVertexBuffer)
 			mInstanceVertexBuffer->SetData(data, size);
 	}
@@ -427,6 +428,9 @@ namespace Toast {
 	{
 		mVertexBuffer->Bind();
 		mIndexBuffer->Bind();
+
+		if(mInstanceVertexBuffer)
+			mInstanceVertexBuffer->Bind();
 
 		// if the planet is a mesh upload Planet data to the GPU
 		if (mPlanetCBuffer)

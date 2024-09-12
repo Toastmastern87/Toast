@@ -46,19 +46,78 @@ struct PixelInputType
     float3x3 tangentBasis : TBASIS;
 };
 
+float PseudoRandom(float3 seed)
+{
+    // Simple pseudo-random function based on the dot product
+    return frac(sin(dot(seed, float3(12.9898f, 78.233f, 45.164f)) * 43758.5453f));
+}
+
+float4x4 createRotationMatrix(float3 rotationAngles)
+{
+    // Rotation matrix around the X axis
+    float cosX = cos(rotationAngles.x);
+    float sinX = sin(rotationAngles.x);
+    float4x4 rotationX = float4x4(
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, cosX, -sinX, 0.0f,
+        0.0f, sinX, cosX, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    );
+
+    // Rotation matrix around the Y axis
+    float cosY = cos(rotationAngles.y);
+    float sinY = sin(rotationAngles.y);
+    float4x4 rotationY = float4x4(
+        cosY, 0.0f, sinY, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        -sinY, 0.0f, cosY, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    );
+
+    // Rotation matrix around the Z axis
+    float cosZ = cos(rotationAngles.z);
+    float sinZ = sin(rotationAngles.z);
+    float4x4 rotationZ = float4x4(
+        cosZ, -sinZ, 0.0f, 0.0f,
+        sinZ, cosZ, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    );
+
+    // Combine all rotations
+    return mul(mul(rotationX, rotationY), rotationZ);
+}
+
 PixelInputType main(VertexInputType input)
 {
     PixelInputType output;
-
-    output.worldPosition = input.localPosition + input.worldPosition;
+    
+    // Generate pseudo-random scale and rotation
+    float seed = PseudoRandom(input.worldPosition);
+    float scale = lerp(1.0f, 5.0f, seed); // Scale between 80% and 120%
+    
+    // Generate random rotation angles (between 0 and 2 * PI)
+    float3 rotationAngles = float3(
+        seed * 6.2831853, // Random X rotation
+        (seed + 0.33f) * 6.2831853, // Random Y rotation
+        (seed + 0.66f) * 6.2831853 // Random Z rotation
+    );
+    
+    // Create rotation matrix
+    float4x4 rotationMatrix = createRotationMatrix(rotationAngles);
+    
+     // Apply scale and rotation
+    float4 transformedPosition = float4(input.localPosition * scale, 1.0f);
+    transformedPosition = mul(transformedPosition, rotationMatrix);
+    
+    output.worldPosition = transformedPosition.xyz + input.worldPosition;
     
     output.pixelPosition = float4(output.worldPosition, 1.0f);
     output.pixelPosition = mul(output.pixelPosition, viewMatrix);
     output.pixelPosition = mul(output.pixelPosition, projectionMatrix);
 
-
-    float3 worldNormal = mul(input.normal, (float3x3) worldMatrix);
-    float3 worldTangent = mul(input.tangent.xyz, (float3x3) worldMatrix);
+    float3 worldNormal = mul(input.normal, (float3x3) rotationMatrix);
+    float3 worldTangent = mul(input.tangent.xyz, (float3x3) rotationMatrix);
     float3 worldBitangent = cross(worldNormal, worldTangent) * input.tangent.w;
     float3x3 TBN = float3x3(worldTangent, worldBitangent, worldNormal);
     output.tangentBasis = mul((float3x3) worldMatrix, TBN);
@@ -394,7 +453,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
     float3 iblContribution = IBL(F0, Lr, N, Lo, cosLo, params.Albedo, params.Roughness, params.Metalness, cosLo);
 
     float sunlightAngle = max(dot(normalize(input.worldPosition - planetCenter), normalize(direction)), 0.0f);
-    float objectIntensity = lerp(0.2f, 50.0f, sunlightAngle);
+    float objectIntensity = 1.0f;
 
 	//The hardcoded float3 i ambient lightning which is just there 
     output.Color = float4((lightContribution + iblContribution + float3(0.001f, 0.001f, 0.001f)) * objectIntensity, 1.0f);
