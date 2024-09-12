@@ -403,9 +403,9 @@ namespace Toast {
 				}
 			}
 		}
-		
+
 		if(objectPositions.size() > 0)
-			objects.MeshObject->SetInstanceData(&objectPositions[0], objectPositions.size());
+			objects.MeshObject->SetInstanceData(&objectPositions[0], objectPositions.size() * sizeof(DirectX::XMFLOAT3), objectPositions.size());
 	}
 
 	void PlanetSystem::TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)

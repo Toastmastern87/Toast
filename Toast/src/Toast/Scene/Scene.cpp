@@ -350,6 +350,30 @@ namespace Toast {
 					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 				}
 
+				auto terrainObjectMeshes = mRegistry.view<TransformComponent, TerrainObjectComponent>();
+				for (auto entity : terrainObjectMeshes)
+				{
+					auto [transform, terrainObject] = terrainObjectMeshes.get<TransformComponent, TerrainObjectComponent>(entity);
+					switch (mSettings.WireframeRendering)
+					{
+					case Settings::Wireframe::NO:
+					{
+						Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, false);
+
+						break;
+					}
+					case Settings::Wireframe::YES:
+					{
+						Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, true);
+
+						break;
+					}
+					}
+
+					// TODO fix the count number for vertices
+					//mStats.VerticesCount += static_cast<uint32_t>(terrainObject.MeshObject->GetVertices().size() * terrainObject.);
+				}
+
 				// Planets!
 				auto viewPlanets = mRegistry.view<TransformComponent, PlanetComponent>();
 				for (auto entity : viewPlanets)
@@ -658,6 +682,12 @@ namespace Toast {
 				//Do not submit mesh if it's a planet
 				if (!mesh.MeshObject->GetIsPlanet())
 				{
+					//Entity e = { entity, this };
+					//auto& tc = e.GetComponent<TagComponent>();
+
+					//if (mesh.MeshObject->GetSubmeshes().at(0).IndexCount == 234)
+					//	TOAST_CORE_CRITICAL("MESH WITH 234 indices FOUND!!: %s, instanced: %d", tc.Tag.c_str(), mesh.MeshObject->IsInstanced());
+
 					switch (mSettings.WireframeRendering)
 					{
 					case Settings::Wireframe::NO:
@@ -691,20 +721,23 @@ namespace Toast {
 			for (auto entity : terrainObjectMeshes)
 			{
 				auto [transform, terrainObject] = terrainObjectMeshes.get<TransformComponent, TerrainObjectComponent>(entity);
-				switch (mSettings.WireframeRendering)
+				if (terrainObject.MeshObject->GetNumberOfInstances() > 0)
 				{
-				case Settings::Wireframe::NO:
-				{
-					Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, false);
+					switch (mSettings.WireframeRendering)
+					{
+					case Settings::Wireframe::NO:
+					{
+						Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, false);
 
-					break;
-				}
-				case Settings::Wireframe::YES:
-				{
-					Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, true);
+						break;
+					}
+					case Settings::Wireframe::YES:
+					{
+						Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, true);
 
-					break;
-				}
+						break;
+					}
+					}
 				}
 			}
 
@@ -1022,7 +1055,7 @@ namespace Toast {
 		CopyComponent<UITextComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIButtonComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TerrainDetailComponent>(target->mRegistry, mRegistry, enttMap);
-		//CopyComponent<TerrainObjectComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<TerrainObjectComponent>(target->mRegistry, mRegistry, enttMap);
 	}
 
 	template<typename T>

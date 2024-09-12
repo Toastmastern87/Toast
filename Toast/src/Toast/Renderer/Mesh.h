@@ -267,13 +267,14 @@ namespace Toast {
 		bool GetIsAnimated() const { return mIsAnimated; }
 
 		bool IsInstanced() const { return mInstanced; }
-		void SetInstanceData(const void* data, uint32_t size);
+		uint32_t GetNumberOfInstances() const { return mNumberOfInstances; }
+		void SetInstanceData(const void* data, uint32_t size, uint32_t numberOfInstances);
 	private:
 		const ShaderCBufferElement* FindCBufferElementDeclaration(const std::string& materialName, const std::string& cbufferName, const std::string& name);
 	private:
 		std::string mFilePath = "";
 
-		bool mInstanced;
+		bool mInstanced = false;
 
 		DirectX::XMMATRIX mTransform = DirectX::XMMatrixIdentity();
 
@@ -281,6 +282,7 @@ namespace Toast {
 
 		Ref<VertexBuffer> mVertexBuffer;
 		Ref<VertexBuffer> mInstanceVertexBuffer;
+		uint32_t mNumberOfInstances = 0;
 		Ref<IndexBuffer> mIndexBuffer;
 		std::unordered_map<std::string, Ref<Material>> mMaterials;
 

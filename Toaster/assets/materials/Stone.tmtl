@@ -1,10 +1,15 @@
 Material: Stone
 Shader: assets/shaders/ToastPBRInstanced.hlsl
-Albedo: [0, 0, 0, 0]
+Albedo: [0.282362163, 0.548523188, 0.535848916, 1]
 Metalness: 0
-Roughness: 0
+Roughness: 0.877358496
 UseAlbedoMap: 0
 UseNormalMap: 0
 UseMetalRoughMap: 0
 Textures:
-  []
+  - FilePath: assets/textures/White.png
+    BindSlot: 3
+    ShaderType: 5
+  - FilePath: assets/textures/White.png
+    BindSlot: 5
+    ShaderType: 5
