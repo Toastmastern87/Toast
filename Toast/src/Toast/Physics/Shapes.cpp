@@ -174,4 +174,33 @@ namespace Toast {
 		return { 0.0, 0.0, 0.0 };
 	}
 
+	////////////////////////////////////////////////////////////////////////////////////////  
+	//      TERRAIN FACE      //////////////////////////////////////////////////////////////  
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	ShapeTerrainFace::ShapeTerrainFace(Vector3 p1, Vector3 p2, Vector3 p3, Vector3 p4, Vector3 p5, Vector3 p6)
+	{
+		mPoints.emplace_back(p1);
+		mPoints.emplace_back(p2);
+		mPoints.emplace_back(p3);
+		mPoints.emplace_back(p4);
+		mPoints.emplace_back(p5);
+		mPoints.emplace_back(p6);
+	}
+
+	void ShapeTerrainFace::CalculateInertiaTensor(double mass)
+	{
+
+	}
+
+	Vector3 ShapeTerrainFace::Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const
+	{
+		return { 0.0, 0.0, 0.0 };
+	}
+
+	void ShapeTerrainFace::CalculateBounds()
+	{
+
+	}
+
 }

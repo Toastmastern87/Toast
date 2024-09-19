@@ -265,11 +265,15 @@ namespace Toast {
 				Entity e = { entity, this };
 
 				TerrainDetailComponent* tdc = nullptr;
+				TerrainColliderComponent* tcc = nullptr;
 				PlanetComponent& pc = e.GetComponent<PlanetComponent>();
 				TransformComponent& tc = e.GetComponent<TransformComponent>();
 
 				if(e.HasComponent<TerrainDetailComponent>())
 					tdc = &e.GetComponent<TerrainDetailComponent>();
+
+				if (e.HasComponent<TerrainColliderComponent>())
+					tcc = &e.GetComponent<TerrainColliderComponent>();
 
 				DirectX::XMVECTOR cameraForward = { 0.0f, 0.0f, 1.0f };
 				DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
@@ -285,7 +289,7 @@ namespace Toast {
 				// Starting new thread to create a new planet if one isn't already being created
 				PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, noScaleModelMatrix, cameraPos, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tdc);
 
-				PlanetSystem::UpdatePlanet(pc.RenderMesh, pc.BuildVertices, pc.BuildIndices);
+				PlanetSystem::UpdatePlanet(pc.RenderMesh, pc.BuildVertices, pc.BuildIndices, *tcc);
 			}
 
 			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
@@ -616,11 +620,15 @@ namespace Toast {
 				Entity e = { entity, this };
 
 				TerrainDetailComponent* tdc = nullptr;
+				TerrainColliderComponent* tcc = nullptr;
 				PlanetComponent& pc = e.GetComponent<PlanetComponent>();
 				TransformComponent& tc = e.GetComponent<TransformComponent>();
 
 				if(e.HasComponent<TerrainDetailComponent>())
 					tdc = &e.GetComponent<TerrainDetailComponent>();
+
+				if (e.HasComponent<TerrainColliderComponent>())
+					tcc = &e.GetComponent<TerrainColliderComponent>();
 
 				if (mainCamera)
 				{
@@ -648,7 +656,7 @@ namespace Toast {
 					PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, noScaleModelMatrix, cameraPos, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tdc);
 
 					// Check if planet build is ready and if that is the case move it to the render mesh
-					PlanetSystem::UpdatePlanet(pc.RenderMesh, pc.BuildVertices, pc.BuildIndices);
+					PlanetSystem::UpdatePlanet(pc.RenderMesh, pc.BuildVertices, pc.BuildIndices, *tcc);
 
 					if (e.HasComponent<TerrainObjectComponent>()) 
 					{
