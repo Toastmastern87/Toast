@@ -110,4 +110,22 @@ namespace Toast {
 		std::string mFilePath;
 	};
 
+	class ShapeTerrainFace : public Shape
+	{
+	public:
+		ShapeTerrainFace(double maxAltitude = 1.0){};
+		ShapeTerrainFace(double maxAltitude, std::string filePath){};
+		ShapeTerrainFace(Vector3 p1, Vector3 p2, Vector3 p3, Vector3 p4, Vector3 p5, Vector3 p6);
+
+		ShapeType GetType() const override { return ShapeType::TERRAIN; }
+
+		void CalculateInertiaTensor(double mass) override;
+
+		Vector3 Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const override;
+
+		void CalculateBounds() override;
+	public:
+		std::vector<Vector3> mPoints;
+	};
+
 }

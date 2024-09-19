@@ -39,27 +39,57 @@ namespace Toast {
 			std::vector<ContactPoint> ContactPoints;
 		};
 
-		static bool RaySphere(const Vector3& rayStart, const Vector3& rayDir, const Vector3& sphereCenter, const double sphereRadius, double& t1, double& t2)
-		{
-			const Vector3 m = sphereCenter - rayStart;
-			const double a = Vector3::Dot(rayDir, rayDir);
-			const double b = Vector3::Dot(m, rayDir);
-			const double c = Vector3::Dot(m, m) - sphereRadius * sphereRadius;
+		static Vector3 ClosestPointOnTriangle(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& p) {
+			// Compute vectors
+			Vector3 ab = b - a;
+			Vector3 ac = c - a;
+			Vector3 ap = p - a;
 
-			const double delta = b * b - a * c;
+			// Compute dot products
+			double d1 = Vector3::Dot(ab, ap);
+			double d2 = Vector3::Dot(ac, ap);
 
-			const double invA = 1.0 / a;
+			// Check if P in vertex region outside A
+			if (d1 <= 0.0 && d2 <= 0.0) return a;
 
-			// No real solution exists
-			if (delta < 0.0)
+			// Check if P in vertex region outside B
+			Vector3 bp = p - b;
+			double d3 = Vector3::Dot(ab, bp);
+			double d4 = Vector3::Dot(ac, bp);
+			if (d3 >= 0.0 && d4 <= d3) return b;
 
-				return false;
+			// Check if P in edge region of AB
+			double vc = d1 * d4 - d3 * d2;
+			if (vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0) {
+				double v = d1 / (d1 - d3);
+				return a + ab * v;
+			}
 
-			const double deltaRoot = sqrt(delta);
-			t1 = invA * (b - deltaRoot);
-			t2 = invA * (b + deltaRoot);
+			// Check if P in vertex region outside C
+			Vector3 cp = p - c;
+			double d5 = Vector3::Dot(ab, cp);
+			double d6 = Vector3::Dot(ac, cp);
+			if (d6 >= 0.0 && d5 <= d6) return c;
 
-			return true;
+			// Check if P in edge region of AC
+			double vb = d5 * d2 - d1 * d6;
+			if (vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0) {
+				double w = d2 / (d2 - d6);
+				return a + ac * w;
+			}
+
+			// Check if P in edge region of BC
+			double va = d3 * d6 - d5 * d4;
+			if (va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0) {
+				double w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+				return b + (c - b) * w;
+			}
+
+			// P inside face region. Compute Q through its barycentric coordinates (u,v,w)
+			double denom = 1.0 / (va + vb + vc);
+			double v = vb * denom;
+			double w = vc * denom;
+			return a + ab * v + ac * w;
 		}
 
 		static std::pair<double, double> ProjectShapeOntoAxis(const std::vector<Vector3>& vertices, const Vector3& axis) {
@@ -70,8 +100,8 @@ namespace Toast {
 			{
 				double projection = Vector3::Dot(vertices.at(i), axis);
 
-				minProjection = min(minProjection, projection);
-				maxProjection = max(maxProjection, projection);
+				minProjection = (std::min)(minProjection, projection);
+				maxProjection = (std::max)(maxProjection, projection);
 			}
 
 			return { minProjection, maxProjection };
@@ -216,33 +246,54 @@ namespace Toast {
 			return true;
 		}
 
-		static bool SpherePlanetCollisionCheck(const double planetHeight, const double dt, TerrainCollision& collision)
+		static bool SphereTerrainCollisionCheck(Vector3 sphereCenter, double radius, const double dt, TerrainCollision& collision, const std::vector<Vertex>& terrainVertices, const std::vector<uint32_t>& terrainIndices)
 		{
-			RigidBodyComponent rbcObject = collision.Object->GetComponent<RigidBodyComponent>();
-			SphereColliderComponent sccObject = collision.Object->GetComponent<SphereColliderComponent>();
+			collision.Depth = -DBL_MAX;
+			collision.Normal = Vector3(0.0, 0.0, 0.0);
+			bool collisionDetected = false;
+			double minDistanceSquared = DBL_MAX;
 
-			Vector3 posPlanet = { collision.Planet->GetComponent<TransformComponent>().Translation };
-			Vector3 posObject = { collision.Object->GetComponent<TransformComponent>().Translation };
-
-			const Vector3 ab = posObject - posPlanet;
-
-			const double radiusAB = planetHeight + sccObject.Collider->mRadius;
-
-			const double lengthSqr = ab.MagnitudeSqrt();
-
-			if (lengthSqr < (radiusAB * radiusAB)) 
+			for (size_t i = 0; i < terrainIndices.size() - 2; i += 3)
 			{
-				collision.ContactPoints.emplace_back();
-				collision.ContactPoints.at(0).PtOnPlanetWorldSpace = posPlanet - Vector3::Normalize(ab) * planetHeight;
-				collision.ContactPoints.at(0).PtOnObjectWorldSpace = posObject + Vector3::Normalize(ab) * sccObject.Collider->mRadius;
-				collision.Depth = radiusAB - sqrt(lengthSqr);
+				Vector3 va = terrainVertices[terrainIndices[i]].Position;
+				Vector3 vb = terrainVertices[terrainIndices[i + 1]].Position;
+				Vector3 vc = terrainVertices[terrainIndices[i + 2]].Position;
 
-				collision.Normal = Vector3::Normalize(ab);
+				Vector3 closestPoint = ClosestPointOnTriangle(va, vb, vc, sphereCenter);
 
-				return true;
+				Vector3 diff = closestPoint - sphereCenter;
+				double distanceSqr = diff.MagnitudeSqrt();
+
+				if (distanceSqr < minDistanceSquared)
+				{
+					minDistanceSquared = distanceSqr;
+
+					double distance = sqrt(distanceSqr);
+					collision.Depth = radius - distance;
+
+					if (distance > 0)
+						collision.Normal = diff / distance;
+					else
+					{
+						Vector3 faceNormal = Vector3::Cross(vb - va, vc - va);
+						if (faceNormal.MagnitudeSqrt() > 0)
+							collision.Normal = Vector3::Normalize(faceNormal);
+						else
+							collision.Normal = Vector3(0.0, 1.0, 0.0);
+					}
+
+					Vector3 sphereContactPoint = sphereCenter - collision.Normal * (radius - collision.Depth);
+
+					collision.ContactPoints.clear();
+					collision.ContactPoints.emplace_back();
+					collision.ContactPoints.back().PtOnPlanetWorldSpace = closestPoint;
+					collision.ContactPoints.back().PtOnObjectWorldSpace = sphereContactPoint;
+
+					collisionDetected = collision.Depth >= 0;
+				}
 			}
 
-			return false;
+			return collisionDetected;
 		}
 
 		static void ApplyLinearImpulse(RigidBodyComponent& rbc, Vector3 impulse)
@@ -370,17 +421,16 @@ namespace Toast {
 			Matrix planetTransform = { planetTC.GetTransform() };
 			Matrix objectTransform = { objectTC.GetTransform() };
 
-			Vector3 planetSpaceObjectPos = Matrix::Inverse(planetTransform) * posObject;
-
 			Vector3 triangleNormal, A, B, C;
 			double objectDistance = GetObjectDistanceToPlanet(planet, posObject, triangleNormal, A, B, C);
-			double planetHeight = (posObject - posPlanet).Magnitude() - objectDistance;
 
 			if (object->HasComponent<SphereColliderComponent>())
 			{
-				bool collisionDetected = SpherePlanetCollisionCheck(planetHeight, dt, collision);
+				double sphereRadius = object->GetComponent<SphereColliderComponent>().Collider->mRadius;
 
-				if (collisionDetected)
+				bool collisionDetected = SphereTerrainCollisionCheck(posObject, sphereRadius, dt, collision, planetPC.RenderMesh->GetVertices(), planetPC.RenderMesh->GetIndices());
+
+				if (collisionDetected) 
 					return true;
 			}
 			else if (object->HasComponent<BoxColliderComponent>())
@@ -463,7 +513,7 @@ namespace Toast {
 
 			Vector3 objectPos = { collision.Object->GetComponent<TransformComponent>().Translation };
 
-			Vector3 updatedPos = objectPos + collision.Normal * collision.Depth;
+			Vector3 updatedPos = objectPos - collision.Normal * collision.Depth;
 
 			collision.Object->GetComponent<TransformComponent>().Translation = { (float)updatedPos.x, (float)updatedPos.y, (float)updatedPos.z };
 
@@ -525,7 +575,7 @@ namespace Toast {
 			objectBounds = objectBounds * Matrix(object.GetComponent<TransformComponent>().GetTransformWithoutScale());
 
 			auto& pc = planet.GetComponent<PlanetComponent>();
-			auto tcc = planet.GetComponent<TerrainColliderComponent>();
+			auto& tcc = planet.GetComponent<TerrainColliderComponent>();
 
 			Bounds planetBounds = tcc.Collider->GetBounds() + planetPos;
 

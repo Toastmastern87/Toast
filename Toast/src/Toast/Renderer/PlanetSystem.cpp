@@ -252,7 +252,6 @@ namespace Toast {
 		
 			return;
 		}
-
 	}
 
 	void PlanetSystem::CalculateBasePlanet(PlanetComponent& planet, double scale)
@@ -422,11 +421,7 @@ namespace Toast {
 			TOAST_PROFILE_SCOPE("Backface culling test");
 			std::lock_guard<std::mutex> lock(planetDataMutex);
 			if (backfaceCull && dotProduct >= planet.FaceLevelDotLUT[(uint32_t)node->SubdivisionLevel]) 
-			{
-				//TOAST_CORE_CRITICAL("BACKFACE CULLING");
-
 				return;
-			}
 		}
 
 		if (frustumCullActivated)
@@ -435,10 +430,7 @@ namespace Toast {
 			auto intersect = frustum->ContainsTriangleVolume(Vector3::Normalize(node->A.Position) * planet.PlanetData.radius, Vector3::Normalize(node->B.Position) * planet.PlanetData.radius, Vector3::Normalize(node->C.Position) * planet.PlanetData.radius, planet.HeightMultLUT[node->SubdivisionLevel]);
 
 			if (intersect == VolumeTri::OUTSIDE) 
-			{
-				//TOAST_CORE_CRITICAL("FRUSTUM CULLING");
 				return;
-			}
 		}
 
 		//TOAST_CORE_CRITICAL("node->SubdivisionLevel going to subdivision: %d", node->SubdivisionLevel);
@@ -526,7 +518,7 @@ namespace Toast {
 		return;
 	}
 
-	void PlanetSystem::UpdatePlanet(Ref<Mesh>& renderPlanet, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
+	void PlanetSystem::UpdatePlanet(Ref<Mesh>& renderPlanet, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, TerrainColliderComponent& terrainCollider)
 	{
 		std::lock_guard<std::mutex> lock(planetDataMutex);
 		if (newPlanetReady.load())
@@ -534,6 +526,7 @@ namespace Toast {
 			renderPlanet->mVertices = vertices;
 			renderPlanet->mIndices = indices;
 			renderPlanet->InvalidatePlanet();
+
 			newPlanetReady.store(false);
 		}
 	}
