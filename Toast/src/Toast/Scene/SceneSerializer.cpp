@@ -448,6 +448,8 @@ namespace Toast {
 			out << YAML::Key << "Elasticity" << YAML::Value << rbc.Elasticity;
 			out << YAML::Key << "Friction" << YAML::Value << rbc.Friction;
 			out << YAML::Key << "CenterOfMass" << YAML::Value << rbc.CenterOfMass;
+			out << YAML::Key << "LinearDamping" << YAML::Value << rbc.LinearDamping;
+			out << YAML::Key << "AngularDamping" << YAML::Value << rbc.AngularDamping;
 
 			out << YAML::EndMap; // RigidBodyComponent
 		}
@@ -786,6 +788,8 @@ namespace Toast {
 					rbc.InvMass = rigidBodyComponent["InvMass"].as<double>();
 					rbc.Elasticity = rigidBodyComponent["Elasticity"].as<double>();
 					rbc.Friction = rigidBodyComponent["Friction"].as<double>();
+					rbc.LinearDamping = rigidBodyComponent["LinearDamping"].as<double>();
+					rbc.AngularDamping = rigidBodyComponent["AngularDamping"].as<double>();
 				}
 
 				auto sphereColliderComponent = entity["SphereColliderComponent"];

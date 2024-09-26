@@ -46,22 +46,22 @@ namespace Toast {
 		w = 1.0;
 	}
 
-	double Vector3::Magnitude() const {
+	double Vector3::Length() const {
 		return sqrt(x * x + y * y + z * z);
 	}
 
-	double Vector3::Magnitude(Vector3 vec)
+	double Vector3::Length(Vector3 vec)
 	{
 		return sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 	}
 
-	double Vector3::MagnitudeSqrt() const {
+	double Vector3::LengthSqrt() const {
 		return x * x + y * y + z * z;
 	}
 
 	Vector3 Vector3::Normalize(const Vector3& vec) {
 		Vector3 result = vec;
-		double magnitude = vec.Magnitude();
+		double magnitude = vec.Length();
 		if (magnitude > 0.0)
 		{
 			result.x /= magnitude;
@@ -153,12 +153,12 @@ namespace Toast {
 		y = (it != list.end()) ? static_cast<double>(*it++) : 0;
 	}
 
-	double Vector2::Magnitude() const {
+	double Vector2::Length() const {
 		return sqrt(x * x + y * y);
 	}
 
 	Vector2 Vector2::Normalize(Vector2& vec) {
-		double magnitude = vec.Magnitude();
+		double magnitude = vec.Length();
 		if (magnitude > 0.0)
 		{
 			vec.x /= magnitude;
