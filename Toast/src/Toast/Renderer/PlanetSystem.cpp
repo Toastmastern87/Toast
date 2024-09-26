@@ -11,6 +11,7 @@
 namespace Toast {
 
 	std::mutex PlanetSystem::planetDataMutex;
+	std::mutex PlanetSystem::terrainCollidersMutex;
 	std::future<void> PlanetSystem::generationFuture;
 	std::atomic<bool> PlanetSystem::newPlanetReady{ false };
 	std::atomic<bool> PlanetSystem::planetGenerationOngoing{ false };
@@ -40,6 +41,37 @@ namespace Toast {
 		uv.y = uv.y * (height - 1.0);
 
 		return uv;
+	}
+
+	void PlanetSystem::GetFaceBounds(const std::initializer_list<Vector3>& vertices, Bounds& bounds)
+	{
+		// Check if the list is empty
+		if (vertices.size() == 0)
+		{
+			// Handle the error as needed, e.g., throw an exception or set min/max to zero
+			bounds.mins = bounds.maxs = Vector3(0.0f, 0.0f, 0.0f);
+			return;
+		}
+
+		// Initialize min and max with the first vertex
+		auto it = vertices.begin();
+		bounds.mins = bounds.maxs = *it;
+
+		// Iterate over the rest of the vertices
+		for (++it; it != vertices.end(); ++it)
+		{
+			const Vector3& vertex = *it;
+
+			// Update min bounds
+			if (vertex.x < bounds.mins.x) bounds.mins.x = vertex.x;
+			if (vertex.y < bounds.mins.y) bounds.mins.y = vertex.y;
+			if (vertex.z < bounds.mins.z) bounds.mins.z = vertex.z;
+
+			// Update max bounds
+			if (vertex.x > bounds.maxs.x) bounds.maxs.x = vertex.x;
+			if (vertex.y > bounds.maxs.y) bounds.maxs.y = vertex.y;
+			if (vertex.z > bounds.maxs.z) bounds.maxs.z = vertex.z;
+		}
 	}
 
 	void PlanetSystem::SubdivideBasePlanet(PlanetComponent& planet, Ref<PlanetNode>& node, double scale)
@@ -74,15 +106,16 @@ namespace Toast {
 			SubdivideBasePlanet(planet, child, scale);
 	}
 
-	void PlanetSystem::SubdivideFace(CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::SubdivideFace(CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail, std::vector<Ref<ShapeBox>>& terrainColliders)
 	{
 		double height;
 		NextPlanetFace nextFace;
 		Vector2 uvCoords;
+		Bounds bounds;
 
-		double aDistance = (A.Position - cameraPosPlanetSpace).MagnitudeSqrt();
-		double bDistance = (B.Position - cameraPosPlanetSpace).MagnitudeSqrt();
-		double cDistance = (C.Position - cameraPosPlanetSpace).MagnitudeSqrt();
+		double aDistance = (A.Position - cameraPosPlanetSpace).LengthSqrt();
+		double bDistance = (B.Position - cameraPosPlanetSpace).LengthSqrt();
+		double cDistance = (C.Position - cameraPosPlanetSpace).LengthSqrt();
 
 		if (subdivision >= BASE_PLANET_SUBDIVISIONS + planet.Subdivisions)	
 			nextFace = NextPlanetFace::LEAF;
@@ -126,10 +159,10 @@ namespace Toast {
 
 			int16_t nextSubdivision = subdivision + 1;
 
-			SubdivideFace(a, b, c, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail);
-			SubdivideFace(c, b, A, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail);
-			SubdivideFace(B, a, c, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail);
-			SubdivideFace(b, a, C, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail);
+			SubdivideFace(a, b, c, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail, terrainColliders);
+			SubdivideFace(c, b, A, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail, terrainColliders);
+			SubdivideFace(B, a, c, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail, terrainColliders);
+			SubdivideFace(b, a, C, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail, terrainColliders);
 		}
 		else
 		{
@@ -194,6 +227,12 @@ namespace Toast {
 				Vertex vertexC = Vertex(vecC, C.UV, normal);
 				planet.BuildVertices.emplace_back(vertexC);
 				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+				Ref<ShapeBox> collider = CreateRef<ShapeBox>();
+				GetFaceBounds({ vertexA.Position, vertexB.Position, vertexC.Position }, bounds);
+				collider->SetBounds(bounds);
+
+				terrainColliders.emplace_back(collider);
 			}
 			else
 			{
@@ -231,6 +270,12 @@ namespace Toast {
 				planet.BuildVertices.emplace_back(vertexC);
 				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
 
+				Ref<ShapeBox> colliderOne = CreateRef<ShapeBox>();
+				GetFaceBounds({ vertexA.Position, vertexB.Position, vertexC.Position }, bounds);
+				colliderOne->SetBounds(bounds);
+
+				terrainColliders.emplace_back(colliderOne);
+
 				// Second triangle
 				normal = Vector3::Normalize(Vector3::Cross(additionalVertexPos - furthestVertexPos, additionalVertexPos - middleVertexPos));
 				if (normal.y < 0.0)
@@ -248,6 +293,12 @@ namespace Toast {
 				Vertex vertexE = Vertex(middleVertexPos, middleVertex.UV, normal);
 				planet.BuildVertices.emplace_back(vertexE);
 				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+				Ref<ShapeBox> colliderTwo = CreateRef<ShapeBox>();
+				GetFaceBounds({ vertexD.Position, vertexE.Position, vertexF.Position }, bounds);
+				colliderTwo->SetBounds(bounds);
+
+				terrainColliders.emplace_back(colliderTwo);
 			}
 		
 			return;
@@ -362,9 +413,9 @@ namespace Toast {
 				Vector3 B = vertices[indices[i + 1]].Position;
 				Vector3 C = vertices[indices[i + 2]].Position;
 
-				double aDistance = (A - cameraPos).MagnitudeSqrt();
-				double bDistance = (B - cameraPos).MagnitudeSqrt();
-				double cDistance = (C - cameraPos).MagnitudeSqrt();
+				double aDistance = (A - cameraPos).LengthSqrt();
+				double bDistance = (B - cameraPos).LengthSqrt();
+				double cDistance = (C - cameraPos).LengthSqrt();
 
 				if (aDistance < planet.DistanceLUT[(uint32_t)objects.SubdivisionActivation] && bDistance < planet.DistanceLUT[(uint32_t)objects.SubdivisionActivation] && cDistance < planet.DistanceLUT[(uint32_t)objects.SubdivisionActivation])
 				{
@@ -407,11 +458,11 @@ namespace Toast {
 			objects.MeshObject->SetInstanceData(&objectPositions[0], objectPositions.size() * sizeof(DirectX::XMFLOAT3), objectPositions.size());
 	}
 
-	void PlanetSystem::TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform, const siv::PerlinNoise& perlin, std::vector<Ref<ShapeBox>>& terrainColliders, TerrainDetailComponent* terrainDetail)
 	{
 		Vector3 center = (node->A.Position + node->B.Position + node->C.Position) / 3.0;
 		Vector3 viewVector = center - cameraPosPlanetSpace;
-		double cameraDistance = viewVector.Magnitude();
+		double cameraDistance = viewVector.Length();
 
 		double dotProduct = Vector3::Dot(Vector3::Normalize(center), Vector3::Normalize(viewVector));
 
@@ -423,7 +474,7 @@ namespace Toast {
 			if (backfaceCull && dotProduct >= planet.FaceLevelDotLUT[(uint32_t)node->SubdivisionLevel]) 
 				return;
 		}
-
+		 
 		if (frustumCullActivated)
 		{
 			TOAST_PROFILE_SCOPE("Frustum culling test");
@@ -436,15 +487,15 @@ namespace Toast {
 		//TOAST_CORE_CRITICAL("node->SubdivisionLevel going to subdivision: %d", node->SubdivisionLevel);
 
 		if (node->SubdivisionLevel >= BASE_PLANET_SUBDIVISIONS)
-			SubdivideFace(node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetTransform, BASE_PLANET_SUBDIVISIONS, perlin, terrainDetail);
+			SubdivideFace(node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetTransform, BASE_PLANET_SUBDIVISIONS, perlin, terrainDetail, terrainColliders);
 		else 
 		{
 			for (auto& child : node->ChildNodes)
-				TraverseNode(child, planet, cameraPosPlanetSpace, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail);
+				TraverseNode(child, planet, cameraPosPlanetSpace, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainColliders, terrainDetail);
 		}
 	}
 
-	void PlanetSystem::GeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated,  PlanetComponent& planet, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::GeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated,  PlanetComponent& planet, std::vector<Ref<ShapeBox>>& terrainColliders, TerrainDetailComponent* terrainDetail)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -477,10 +528,15 @@ namespace Toast {
 		}
 
 		{
+			std::lock_guard<std::mutex> lock(terrainCollidersMutex);
+			terrainColliders.clear();
+		}
+
+		{
 			TOAST_PROFILE_SCOPE("Looping through the tree structure!");
 
 			for (auto& node : sPlanetNodes) 
-				TraverseNode(node, planet, cameraPosPlanetSpace, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail);
+				TraverseNode(node, planet, cameraPosPlanetSpace, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainColliders, terrainDetail);
 		}
 
 		newPlanetReady.store(true);
@@ -497,7 +553,7 @@ namespace Toast {
 		return;
 	}
 
-	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, std::vector<Ref<ShapeBox>>& terrainColliders, TerrainDetailComponent* terrainDetail)
 	{
 		if (generationFuture.valid() && generationFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 			return;
@@ -512,6 +568,7 @@ namespace Toast {
 				backfaceCull,
 				frustumCullActivated,
 				std::ref(planet),
+				std::ref(terrainColliders),
 				terrainDetail);
 		}
 
@@ -523,6 +580,11 @@ namespace Toast {
 		std::lock_guard<std::mutex> lock(planetDataMutex);
 		if (newPlanetReady.load())
 		{
+			{
+				std::lock_guard<std::mutex> lock(terrainCollidersMutex);
+				terrainCollider.Colliders = terrainCollider.BuildColliders;
+			}
+
 			renderPlanet->mVertices = vertices;
 			renderPlanet->mIndices = indices;
 			renderPlanet->InvalidatePlanet();
@@ -640,7 +702,7 @@ namespace Toast {
 
 		Vector3 center = (a + b + c) / 3.0;
 
-		center *= planetRadius / (center.Magnitude() + maxHeight);
+		center *= planetRadius / (center.Length() + maxHeight);
 		heightMultLUT.push_back(1.0 / Vector3::Dot(Vector3::Normalize(a), Vector3::Normalize(center)) - 1.0);
 		double normMaxHeight = maxHeight / planetRadius;
 
@@ -649,9 +711,9 @@ namespace Toast {
 			Vector3 A = b + ((c - b) * 0.5);
 			Vector3 B = c + ((a - c) * 0.5);
 			c = a + ((b - a) * 0.5);
-			a = A * planetRadius / A.Magnitude();
-			b = B * planetRadius / B.Magnitude();
-			c *= planetRadius / c.Magnitude();
+			a = A * planetRadius / A.Length();
+			b = B * planetRadius / B.Length();
+			c *= planetRadius / c.Length();
 			heightMultLUT.push_back((1.0 / Vector3::Dot(Vector3::Normalize(a), Vector3::Normalize(center)) + normMaxHeight) - 1.0);
 		}
 

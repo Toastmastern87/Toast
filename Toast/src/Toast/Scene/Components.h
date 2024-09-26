@@ -72,7 +72,7 @@ namespace Toast {
 
 		DirectX::XMMATRIX GetTransformWithoutScale()
 		{
-			return DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(RotationEulerAngles.x), DirectX::XMConvertToRadians(RotationEulerAngles.y), DirectX::XMConvertToRadians(RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&RotationQuaternion)) * DirectX::XMMatrixTranslation(Translation.x, Translation.y, Translation.z);
+			return DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(RotationEulerAngles.x), DirectX::XMConvertToRadians(RotationEulerAngles.y), DirectX::XMConvertToRadians(RotationEulerAngles.z))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&RotationQuaternion)) * DirectX::XMMatrixTranslation(Translation.x, Translation.y, Translation.z);
 		}
 
 		DirectX::XMMATRIX GetRotation()
@@ -204,7 +204,9 @@ namespace Toast {
 		double Friction = 0.0f;
 		Vector3 CenterOfMass = { 0.0f, 0.0f, 0.0f };
 		Vector3 LinearVelocity = { 0.0f, 0.0f, 0.0f };
+		double LinearDamping = 0.0;
 		Vector3 AngularVelocity = { 0.0f, 0.0f, 0.0f };
+		double AngularDamping = 0.0;
 
 		RigidBodyComponent() = default;
 		RigidBodyComponent(Vector3& centerOfMass, double invMass)
@@ -238,6 +240,8 @@ namespace Toast {
 	struct TerrainColliderComponent 
 	{
 		Ref<ShapeTerrain> Collider;
+		std::vector<Ref<ShapeBox>> BuildColliders;
+		std::vector<Ref<ShapeBox>> Colliders;
 
 		TerrainColliderComponent() = default;
 		TerrainColliderComponent(const Ref<ShapeTerrain>& collider)

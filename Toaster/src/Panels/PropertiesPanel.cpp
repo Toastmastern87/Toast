@@ -1122,6 +1122,24 @@ namespace Toast {
 				if(ImGui::DragFloat("##friction", &temp, 0.01f, 0.0f, 1.0f, "%.01f"))
 					component.Friction = static_cast<double>(temp);
 
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Linear Damping (0-1)");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				temp = static_cast<float>(component.LinearDamping);
+				if (ImGui::DragFloat("##lineardamping", &temp, 0.01f, 0.0f, 25.0f, "%.1f"))
+					component.LinearDamping = static_cast<double>(temp);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Angular Damping (0-1)");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				temp = static_cast<float>(component.AngularDamping);
+				if (ImGui::DragFloat("##angulardamping", &temp, 0.01f, 0.0f, 10.0f, "%.2f"))
+					component.AngularDamping = static_cast<double>(temp);
+
 				ImGui::EndTable();
 			});
 

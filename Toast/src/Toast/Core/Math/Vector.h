@@ -76,9 +76,9 @@ namespace Toast {
 			return Vector3(x / scalar, y / scalar, z / scalar, w);
 		}
 
-		double Magnitude() const;
-		static double Magnitude(Vector3 vec);
-		double MagnitudeSqrt() const;
+		double Length() const;
+		static double Length(Vector3 vec);
+		double LengthSqrt() const;
 
 		static Vector3 Normalize(std::initializer_list<double> list);
 		static Vector3 Normalize(const Vector3& vec);
@@ -140,7 +140,7 @@ namespace Toast {
 			return Vector2(x / scalar, y / scalar);
 		}
 
-		double Magnitude() const;
+		double Length() const;
 
 		static Vector2 Normalize(std::initializer_list<double> list);
 		static Vector2 Normalize(Vector2& vec);
