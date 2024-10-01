@@ -23,6 +23,13 @@ namespace Toast {
 		std::vector<double> HeightData;
 	};
 
+	struct Face
+	{
+		std::tuple<uint32_t, uint32_t, uint32_t> Indices;
+
+		Face() = default;
+	};
+
 	struct Vertex
 	{
 		DirectX::XMFLOAT3 Position;

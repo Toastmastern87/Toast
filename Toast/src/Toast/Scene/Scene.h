@@ -55,7 +55,9 @@ namespace Toast {
 			bool RenderColliders = false;
 			bool RenderUI = true;
 
-			int physicSlowmotion = 1;
+			int PhysicSlowmotion = 1;
+			int PhysicsFPS = 60;
+			float physicsElapsedTime = 0.0;
 		};
 		struct Stats
 		{

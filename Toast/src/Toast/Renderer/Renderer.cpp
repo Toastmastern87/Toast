@@ -363,6 +363,8 @@ namespace Toast {
 
 	void Renderer::PickingRenderPass()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 #ifdef TOAST_DEBUG
 		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
 		RenderCommand::GetAnnotation(annotation);
@@ -408,6 +410,8 @@ namespace Toast {
 
 	void Renderer::PostProcessPass()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 #ifdef TOAST_DEBUG
 		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
 		RenderCommand::GetAnnotation(annotation);

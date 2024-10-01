@@ -59,7 +59,7 @@ namespace Toast {
 			ImGui::Checkbox("Render UI", &mContext->mSettings.RenderUI);
 
 			ImGui::Text("Physics slow motion");
-			ImGui::SliderInt("##physicsslowmotion", &mContext->mSettings.physicSlowmotion, 1, 30);
+			ImGui::SliderInt("##physicsslowmotion", &mContext->mSettings.PhysicSlowmotion, 1, 30);
 		}
 
 		ImGui::End();
