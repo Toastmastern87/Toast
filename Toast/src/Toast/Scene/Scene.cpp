@@ -148,6 +148,8 @@ namespace Toast {
 
 	void Scene::OnUpdateRuntime(Timestep ts)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		DirectX::XMVECTOR cameraPos = { 0.0f, 0.0f, 0.0f }, cameraRot = { 0.0f, 0.0f, 0.0f }, cameraScale = { 0.0f, 0.0f, 0.0f };
 		
 		// Update statistics
@@ -177,7 +179,29 @@ namespace Toast {
 				}
 			}
 
-			PhysicsEngine::Update(&mRegistry, this, (double)(ts.GetSeconds() * GetTimeScale()), mSettings.physicSlowmotion);
+			double deltaTime = ts.GetSeconds() * mTimeScale;
+			double targetFrameTime = 1.0 / mSettings.PhysicsFPS; // Fixed time step in seconds
+
+			mSettings.physicsElapsedTime += deltaTime;
+
+			int maxPhysicsUpdatesPerFrame = 1; // Prevents spiral of death
+			int physicsUpdateCount = 0;
+
+			while (mSettings.physicsElapsedTime >= targetFrameTime && physicsUpdateCount < maxPhysicsUpdatesPerFrame)
+			{
+				//TOAST_CORE_CRITICAL("Elapsed time: %lf", mSettings.physicsElapsedTime);
+
+				// Call PhysicsEngine::Update with the fixed time step
+				PhysicsEngine::Update(&mRegistry, this, targetFrameTime, mSettings.PhysicSlowmotion, 1);
+
+				mSettings.physicsElapsedTime -= targetFrameTime;
+				physicsUpdateCount++;
+			}
+
+			if (physicsUpdateCount == maxPhysicsUpdatesPerFrame)
+			{
+				mSettings.physicsElapsedTime = 0.0;
+			}
 
 			// Scripting
 			{
@@ -287,7 +311,7 @@ namespace Toast {
 					* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
 				// Starting new thread to create a new planet if one isn't already being created
-				PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, noScaleModelMatrix, cameraPos, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc->BuildColliders, tdc);
+				PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPos, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc->BuildColliders, tcc->BuildColliderPositions, tdc);
 
 				PlanetSystem::UpdatePlanet(pc.RenderMesh, pc.BuildVertices, pc.BuildIndices, *tcc);
 			}
@@ -653,7 +677,7 @@ namespace Toast {
 						* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
 					// Starting new thread to create a new planet if one isn't already being created
-					PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, noScaleModelMatrix, cameraPos, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc->BuildColliders, tdc);
+					PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPos, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc->BuildColliders, tcc->BuildColliderPositions, tdc);
 
 					// Check if planet build is ready and if that is the case move it to the render mesh
 					PlanetSystem::UpdatePlanet(pc.RenderMesh, pc.BuildVertices, pc.BuildIndices, *tcc);
@@ -1018,7 +1042,7 @@ namespace Toast {
 	void Scene::CopyTo(Ref<Scene>& target)
 	{
 		// Settings
-		target->mSettings.physicSlowmotion = mSettings.physicSlowmotion;
+		target->mSettings.PhysicSlowmotion = mSettings.PhysicSlowmotion;
 
 		// Environment
 		target->mLightEnvironment = mLightEnvironment;

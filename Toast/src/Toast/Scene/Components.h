@@ -20,6 +20,12 @@
 
 namespace Toast {
 
+	struct PairHash {
+		std::size_t operator()(const std::pair<int, int>& p) const {
+			return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1);
+		}
+	};
+
 	struct IDComponent
 	{
 		UUID ID = 0;
@@ -126,6 +132,8 @@ namespace Toast {
 		
 		GPUData PlanetData;
 
+		std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash> TerrainChunks;
+
 		TerrainData TerrainData;
 
 		PlanetComponent() = default;
@@ -148,7 +156,6 @@ namespace Toast {
 			PlanetData.mieScaleHeight = mieScaleHeight;
 			PlanetData.rayBaseScatteringCoefficient = rayBaseScatteringCoefficient;
 			PlanetData.mieBaseScatteringCoefficient = mieBaseScatteringCoefficient;
-
 		}
 	};
 
@@ -240,8 +247,10 @@ namespace Toast {
 	struct TerrainColliderComponent 
 	{
 		Ref<ShapeTerrain> Collider;
-		std::vector<Ref<ShapeBox>> BuildColliders;
-		std::vector<Ref<ShapeBox>> Colliders;
+		std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash> BuildColliders;
+		std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash> BuildColliderPositions;
+		std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash> Colliders;
+		std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash> ColliderPositions;
 
 		TerrainColliderComponent() = default;
 		TerrainColliderComponent(const Ref<ShapeTerrain>& collider)

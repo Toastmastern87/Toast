@@ -106,12 +106,13 @@ namespace Toast {
 			SubdivideBasePlanet(planet, child, scale);
 	}
 
-	void PlanetSystem::SubdivideFace(CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail, std::vector<Ref<ShapeBox>>& terrainColliders)
+	void PlanetSystem::SubdivideFace(CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, const Vector3& planetCenter, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
 	{
 		double height;
 		NextPlanetFace nextFace;
 		Vector2 uvCoords;
 		Bounds bounds;
+
 
 		double aDistance = (A.Position - cameraPosPlanetSpace).LengthSqrt();
 		double bDistance = (B.Position - cameraPosPlanetSpace).LengthSqrt();
@@ -159,10 +160,10 @@ namespace Toast {
 
 			int16_t nextSubdivision = subdivision + 1;
 
-			SubdivideFace(a, b, c, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail, terrainColliders);
-			SubdivideFace(c, b, A, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail, terrainColliders);
-			SubdivideFace(B, a, c, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail, terrainColliders);
-			SubdivideFace(b, a, C, cameraPosPlanetSpace, planet, planetTransform, nextSubdivision, perlin, terrainDetail, terrainColliders);
+			SubdivideFace(a, b, c, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
+			SubdivideFace(c, b, A, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
+			SubdivideFace(B, a, c, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
+			SubdivideFace(b, a, C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
 		}
 		else
 		{
@@ -228,11 +229,7 @@ namespace Toast {
 				planet.BuildVertices.emplace_back(vertexC);
 				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
 
-				Ref<ShapeBox> collider = CreateRef<ShapeBox>();
-				GetFaceBounds({ vertexA.Position, vertexB.Position, vertexC.Position }, bounds);
-				collider->SetBounds(bounds);
-
-				terrainColliders.emplace_back(collider);
+				AssignFaceToChunk(vecA, vecB, vecC, planet.TerrainChunks, planetCenter);
 			}
 			else
 			{
@@ -270,11 +267,7 @@ namespace Toast {
 				planet.BuildVertices.emplace_back(vertexC);
 				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
 
-				Ref<ShapeBox> colliderOne = CreateRef<ShapeBox>();
-				GetFaceBounds({ vertexA.Position, vertexB.Position, vertexC.Position }, bounds);
-				colliderOne->SetBounds(bounds);
-
-				terrainColliders.emplace_back(colliderOne);
+				AssignFaceToChunk(additionalVertexPos, closestVertexPos, furthestVertexPos, planet.TerrainChunks, planetCenter);
 
 				// Second triangle
 				normal = Vector3::Normalize(Vector3::Cross(additionalVertexPos - furthestVertexPos, additionalVertexPos - middleVertexPos));
@@ -294,11 +287,7 @@ namespace Toast {
 				planet.BuildVertices.emplace_back(vertexE);
 				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
 
-				Ref<ShapeBox> colliderTwo = CreateRef<ShapeBox>();
-				GetFaceBounds({ vertexD.Position, vertexE.Position, vertexF.Position }, bounds);
-				colliderTwo->SetBounds(bounds);
-
-				terrainColliders.emplace_back(colliderTwo);
+				AssignFaceToChunk(additionalVertexPos, furthestVertexPos, middleVertexPos, planet.TerrainChunks, planetCenter);
 			}
 		
 			return;
@@ -458,7 +447,7 @@ namespace Toast {
 			objects.MeshObject->SetInstanceData(&objectPositions[0], objectPositions.size() * sizeof(DirectX::XMFLOAT3), objectPositions.size());
 	}
 
-	void PlanetSystem::TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform, const siv::PerlinNoise& perlin, std::vector<Ref<ShapeBox>>& terrainColliders, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, const Vector3& planetCenter, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
 	{
 		Vector3 center = (node->A.Position + node->B.Position + node->C.Position) / 3.0;
 		Vector3 viewVector = center - cameraPosPlanetSpace;
@@ -487,15 +476,15 @@ namespace Toast {
 		//TOAST_CORE_CRITICAL("node->SubdivisionLevel going to subdivision: %d", node->SubdivisionLevel);
 
 		if (node->SubdivisionLevel >= BASE_PLANET_SUBDIVISIONS)
-			SubdivideFace(node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetTransform, BASE_PLANET_SUBDIVISIONS, perlin, terrainDetail, terrainColliders);
+			SubdivideFace(node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, BASE_PLANET_SUBDIVISIONS, perlin, terrainDetail);
 		else 
 		{
 			for (auto& child : node->ChildNodes)
-				TraverseNode(child, planet, cameraPosPlanetSpace, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainColliders, terrainDetail);
+				TraverseNode(child, planet, cameraPosPlanetSpace, planetCenter, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail);
 		}
 	}
 
-	void PlanetSystem::GeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated,  PlanetComponent& planet, std::vector<Ref<ShapeBox>>& terrainColliders, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::GeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated,  PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -525,18 +514,45 @@ namespace Toast {
 
 			planet.BuildVertices.clear();
 			planet.BuildIndices.clear();
+
+			planet.TerrainChunks.clear();
 		}
 
 		{
 			std::lock_guard<std::mutex> lock(terrainCollidersMutex);
 			terrainColliders.clear();
+			terrainColliderPositions.clear();
 		}
 
 		{
 			TOAST_PROFILE_SCOPE("Looping through the tree structure!");
 
 			for (auto& node : sPlanetNodes) 
-				TraverseNode(node, planet, cameraPosPlanetSpace, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainColliders, terrainDetail);
+				TraverseNode(node, planet, cameraPosPlanetSpace, planetCenter, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail);
+		}
+
+		for (const auto& chunkEntry : planet.TerrainChunks)
+		{
+			const auto& chunkKey = chunkEntry.first;
+			const auto& verticesInChunk = chunkEntry.second;
+
+			if (verticesInChunk.empty()) 
+				continue;
+
+			{
+				std::lock_guard<std::mutex> lock(terrainCollidersMutex);
+				terrainColliderPositions[chunkKey].insert(terrainColliderPositions[chunkKey].end(), verticesInChunk.begin(), verticesInChunk.end());
+			}
+
+			Bounds chunkBounds;
+			GetVerticesBounds(verticesInChunk, chunkBounds);
+
+			// Create a collider for the chunk
+			Ref<ShapeBox> collider = CreateRef<ShapeBox>();
+			collider->SetBounds(chunkBounds);
+
+			// Add the collider to the list
+			terrainColliders[chunkKey] = collider;
 		}
 
 		newPlanetReady.store(true);
@@ -553,7 +569,7 @@ namespace Toast {
 		return;
 	}
 
-	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, std::vector<Ref<ShapeBox>>& terrainColliders, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail)
 	{
 		if (generationFuture.valid() && generationFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 			return;
@@ -563,12 +579,14 @@ namespace Toast {
 			generationFuture = std::async(std::launch::async, &PlanetSystem::GeneratePlanet,
 				std::ref(frustum),
 				std::ref(scale),
+				std::ref(planetCenter),
 				std::ref(noScaleTransform),
 				camPos,
 				backfaceCull,
 				frustumCullActivated,
 				std::ref(planet),
 				std::ref(terrainColliders),
+				std::ref(terrainColliderPositions),
 				terrainDetail);
 		}
 
@@ -583,6 +601,7 @@ namespace Toast {
 			{
 				std::lock_guard<std::mutex> lock(terrainCollidersMutex);
 				terrainCollider.Colliders = terrainCollider.BuildColliders;
+				terrainCollider.ColliderPositions = terrainCollider.BuildColliderPositions;
 			}
 
 			renderPlanet->mVertices = vertices;
@@ -735,6 +754,70 @@ namespace Toast {
 			vertexMap[vertex] = newIndex;
 			return newIndex;
 		}
+	}
+
+	void PlanetSystem::AssignFaceToChunk(const Vector3& vecA, const Vector3& vecB, const Vector3& vecC,
+		std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& chunks,
+		const Vector3& planetCenter)
+	{
+		Vector3 centerPoint = (vecA + vecB + vecC) / 3.0;
+
+		// Compute the direction vector from the planet's center to the vertex
+		Vector3 direction = centerPoint - planetCenter;
+		Vector3 normalizedDirection = Vector3::Normalize(direction);
+
+		// Convert to spherical coordinates
+		double latitude = std::asin(normalizedDirection.y) * (180.0 / M_PI); // Degrees
+		double longitude = std::atan2(normalizedDirection.z, normalizedDirection.x) * (180.0 / M_PI);
+		if (longitude < 0.0)
+			longitude += 360.0;
+
+		// Determine bin indices
+		const int NUM_LATITUDE_BINS = 18;   // Adjust as needed
+		const int NUM_LONGITUDE_BINS = 36;  // Adjust as needed
+
+		int latIndex = static_cast<int>((latitude + 90.0) / (180.0 / NUM_LATITUDE_BINS));
+		int lonIndex = static_cast<int>(longitude / (360.0 / NUM_LONGITUDE_BINS));
+
+		// Clamp indices to valid ranges
+		latIndex = (std::min)(latIndex, NUM_LATITUDE_BINS - 1);
+		lonIndex = (std::min)(lonIndex, NUM_LONGITUDE_BINS - 1);
+
+		// Create the chunk key
+		std::pair<int, int> chunkKey = { latIndex, lonIndex };
+
+		// Add the vertex to the chunk
+		chunks[chunkKey].emplace_back(vecA);
+		chunks[chunkKey].emplace_back(vecB);
+		chunks[chunkKey].emplace_back(vecC);
+	}
+
+	void PlanetSystem::GetVerticesBounds(const std::vector<Vector3>& vertices, Bounds& bounds)
+	{
+		if (vertices.empty())
+		{
+			bounds = Bounds();
+			return;
+		}
+
+		// Initialize min and max with the first vertex
+		Vector3 min = vertices[0];
+		Vector3 max = vertices[0];
+
+		// Iterate over all vertices
+		for (const auto& vertex : vertices)
+		{
+			min.x = (std::min)(min.x, vertex.x);
+			min.y = (std::min)(min.y, vertex.y);
+			min.z = (std::min)(min.z, vertex.z);
+
+			max.x = (std::max)(max.x, vertex.x);
+			max.y = (std::max)(max.y, vertex.y);
+			max.z = (std::max)(max.z, vertex.z);
+		}
+
+		bounds.mins = min;
+		bounds.maxs = max;
 	}
 
 }
