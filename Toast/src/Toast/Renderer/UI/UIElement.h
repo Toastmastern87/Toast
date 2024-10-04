@@ -10,15 +10,21 @@ namespace Toast {
 
 	struct UIVertex
 	{
-		DirectX::XMFLOAT3 Position;
+		DirectX::XMFLOAT3 Position; // z component holds what type of UI Element this is
+		DirectX::XMFLOAT3 Size; // z component holds the corner radius for a panel
+		DirectX::XMFLOAT4 Color;
 		DirectX::XMFLOAT2 Texcoord;
+		uint32_t EntityID;
 
 		UIVertex() = default;
 
-		UIVertex(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT2 uv)
+		UIVertex(DirectX::XMFLOAT3 pos, DirectX::XMFLOAT3 size, DirectX::XMFLOAT4 color, DirectX::XMFLOAT2 uv, uint32_t id)
 		{
 			Position = pos;
+			Size = size;
+			Color = color;
 			Texcoord = uv;
+			EntityID = id;
 		}
 	};
 
@@ -26,6 +32,8 @@ namespace Toast {
 	{
 	public:
 		UIElement();
+		UIElement(float posX, float posY, float width, float height)
+			: mPosX(posX), mPosY(posY), mWidth(width), mHeight(height) {}
 		virtual ~UIElement() = default;
 
 		template <typename T>
@@ -59,6 +67,7 @@ namespace Toast {
 		DirectX::XMFLOAT4 GetColorF4() { return mColor; }
 
 		void Bind();
+		void Map();
 
 		uint32_t GetQuadCount() { return mQuadIndexCount; }
 	private:
@@ -73,6 +82,7 @@ namespace Toast {
 		Ref<IndexBuffer> mIndexBuffer;
 
 	protected:
+		float mPosX, mPosY;
 		float mWidth, mHeight;
 
 		Ref<ConstantBuffer> mUIPropCBuffer, mModelCBuffer;
@@ -86,7 +96,7 @@ namespace Toast {
 		UIVertex* mQuadVertexBufferBase = nullptr;
 		UIVertex* mQuadVertexBufferPtr = nullptr;
 
-		DirectX::XMFLOAT3 mQuadVertexPositions[4];
+		DirectX::XMFLOAT2 mQuadVertexPositions[4];
 
 		DirectX::XMMATRIX mTransform;
 	};
@@ -95,9 +105,13 @@ namespace Toast {
 	{
 	public:
 		UIPanel();
+		UIPanel(float posX, float posY, float width, float height);
 		~UIPanel() = default;
 
 		void Bind();
+		void Map();
+
+		void Invalidate(float posX, float posY, float width, float height);
 
 		float* GetCornerRadius() { return &mCornerRadius; }
 		void SetCornerRadius(float radius) { mCornerRadius = radius; }
@@ -112,6 +126,7 @@ namespace Toast {
 		~UIText() = default;
 
 		void Bind();
+		void Map();
 
 		void SetText(std::string& str) { mTextString = str; InvalidateText(); }
 		std::string& GetText() { return mTextString; }
@@ -129,9 +144,12 @@ namespace Toast {
 	{
 	public:
 		UIButton();
+		UIButton(float posX, float posY, float width, float height)
+			: UIPanel(posX, posY, width, height) {}
 		~UIButton() = default;
 
 		void Bind();
+		void Map();
 
 		float* GetClickColor() { return &mClickColor.x; }
 		DirectX::XMFLOAT4 GetClickColorF4() { return mClickColor; }

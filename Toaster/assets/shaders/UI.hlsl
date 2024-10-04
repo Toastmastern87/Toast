@@ -24,48 +24,57 @@ cbuffer Model : register(b1)
 
 struct VertexInputType
 {
-	float3 position			: POSITION;
+	float3 position			: POSITION0;
+	float3 size				: POSITION1;
+    float4 color			: COLOR;
 	float2 texCoord			: TEXCOORD;
+    uint EntityID			: TEXTUREID;
 };
 
 struct PixelInputType
 {
-	float4 position			: SV_POSITION;
-	float2 texCoord			: TEXCOORD;
-	int entityID			: TEXTUREID;
+    float4 position : SV_POSITION;
+    float4 color : COLOR;
+    float2 size : POSITION;
+    float2 texCoord : TEXCOORD;
+    float cornerRadius : PSIZE;
+    int entityID : TEXTUREID0;
+    int UIType : TEXTUREID1;
 };
 
 PixelInputType main(VertexInputType input)
 {
 	PixelInputType output;
 
-	output.position = mul(float4(input.position.xy, 1.0f, 1.0f), worldMatrix);
+	output.position = float4(input.position.xy, 1.0f, 1.0f);
 	output.position = mul(output.position, projectionMatrix);
 	output.position.z = 1.0f;
 	output.position.w = 1.0f;
 
 	output.texCoord = input.texCoord;
+	
+    output.color = input.color;
 
 	output.entityID = entityID;
+	
+    output.size = input.size.xy;
+	
+    output.UIType = (int) input.position.z;
+    output.cornerRadius = input.size.z;
 
 	return output;
 }
 
 #type pixel
-cbuffer UIProp : register(b13)
-{
-	float4 color;
-	float width;
-	float height;
-	float cornerRadius;
-	float type;
-};
-
 struct PixelInputType
 {
-	float4 position			: SV_POSITION;
-	float2 texCoord			: TEXCOORD;
-	int entityID			: TEXTUREID;
+    float4 position		: SV_POSITION;
+    float4 color		: COLOR;
+    float2 size			: POSITION;
+    float2 texCoord		: TEXCOORD;
+    float cornerRadius	: PSIZE;
+    int entityID		: TEXTUREID0;
+    int UIType			: TEXTUREID1;
 };
 
 Texture2D MDSFAtlas				: register(t6);
@@ -113,22 +122,20 @@ float ScreenPxRange()
 float4 main(PixelInputType input) : SV_TARGET
 {
 	// Panels
-	if (type == 1.0f)
+	if (input.UIType == 1.0f)
 	{
-		float2 dimensions = float2(width, height);
-
-		float2 coords = input.texCoord * dimensions;
-		if (ShouldDiscard(coords, dimensions, cornerRadius))
+		float2 coords = input.texCoord * input.size;
+        if (ShouldDiscard(coords, input.size, input.cornerRadius))
 			discard;
 
-		return color;
+		return input.color;
 	}
 
 	// TEXT
-	if (type == 2.0f)
+    if (input.UIType == 2.0f)
 	{
-		float4 bgColor = float4(color.rgb, 0.0); 
-		float4 fgColor = color;
+		float4 bgColor = float4(input.color.rgb, 0.0); 
+		float4 fgColor = input.color;
 
 		float3 msd = MDSFAtlas.Sample(defaultSampler, input.texCoord).rgb;
 		float sd = median(msd.r, msd.g, msd.b);
@@ -141,5 +148,5 @@ float4 main(PixelInputType input) : SV_TARGET
 		return finalColor;
 	}
 
-	return color;
+    return input.color;
 }

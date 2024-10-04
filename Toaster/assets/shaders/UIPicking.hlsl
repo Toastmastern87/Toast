@@ -24,8 +24,10 @@ cbuffer Model : register(b1)
 
 struct VertexInputType
 {
-	float3 position			: POSITION;
-	float2 texCoord			: TEXCOORD;
+    float2 position		: POSITION0;
+    float2 size			: POSITION1;
+    float2 texCoord		: TEXCOORD;
+    uint EntityID		: TEXTUREID;
 };
 
 struct PixelInputType

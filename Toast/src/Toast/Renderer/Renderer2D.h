@@ -22,26 +22,31 @@ namespace Toast {
 		struct DrawCommand
 		{
 		public:
-			DrawCommand(const Ref<UIElement> element, const DirectX::XMMATRIX& transform, ElementType type, const int entityID = 0, const bool targetable = false)
-				: Element(element), Transform(transform), Type(type), EntityID(entityID), Targetable(targetable) {}
+			DrawCommand(const Ref<UIElement> element, const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& size, ElementType type, const int entityID = 0, const bool targetable = false)
+				: Element(element), Position(position), Size(size), Type(type), EntityID(entityID), Targetable(targetable) {}
 		public:
 			Ref<UIElement> Element;
-			DirectX::XMMATRIX Transform;
+			DirectX::XMFLOAT2 Position;
+			DirectX::XMFLOAT2 Size;
 			ElementType Type;
 			const int EntityID;
 			const bool Targetable;
 		};
 
-		struct QuadVertex
-		{
-			DirectX::XMFLOAT3 Position;
-			DirectX::XMFLOAT4 Color;
-			DirectX::XMFLOAT2 TexCoord;
-		};
-
 		struct Renderer2DData
 		{
 			std::vector<DrawCommand> ElementDrawList;
+			std::string shaderNameBound = "";
+			bool UIBuffersBound = false;
+			bool UITextBuffersBound = false;
+
+			const uint32_t MaxUIElements = 256;
+			const uint32_t MaxUIVertices = MaxUIElements * 4;
+			const uint32_t MaxUIIndices = MaxUIElements * 6;
+			UIVertex* UIVertexBufferBase = nullptr;
+			UIVertex* UIVertexBufferPtr = nullptr;
+			Ref<VertexBuffer> UIVertexBuffer;
+			Ref<IndexBuffer> UIIndexBuffer;
 		};
 
 	protected:
@@ -56,8 +61,9 @@ namespace Toast {
 
 		static void ClearDrawList();
 
-		static void SubmitPanel(const DirectX::XMMATRIX& transform, const Ref<UIPanel>& panel, const int entityID, const bool targetable);
-		static void SubmitButton(const DirectX::XMMATRIX& transform, const Ref<UIButton>& button, const int entityID, const bool targetable);
-		static void SubmitText(const DirectX::XMMATRIX& transform, const Ref<UIText>& text, const int entityID, const bool targetable);
+		static void SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, DirectX::XMFLOAT4& color, const int entityID, const bool targetable);
+		static void SubmitButton(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, const Ref<UIButton>& button, const int entityID, const bool targetable);
+		static void SubmitText(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, const Ref<UIText>& text, const int entityID, const bool targetable);
+	private:
 	};
 }
