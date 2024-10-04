@@ -606,14 +606,12 @@ namespace Toast {
 					DirectX::XMFLOAT3 translation2D = component.Translation;
 
 					translation2D.x += width / 2.0f;
-					translation2D.y *= -1.0f;
 					translation2D.y += (height / 2.0f);
 
 					updateTransform |= DrawFloat3Control("Translation", translation2D);
 
 					translation2D.x -= width / 2.0f;
 					translation2D.y -= (height / 2.0f);
-					translation2D.y *= -1.0f;
 
 					component.Translation = translation2D;
 
@@ -631,6 +629,12 @@ namespace Toast {
 					DirectX::XMVECTOR totalRotVec = DirectX::XMQuaternionMultiply(DirectX::XMLoadFloat4(&component.RotationQuaternion), DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(component.RotationEulerAngles.x), DirectX::XMConvertToRadians(component.RotationEulerAngles.y), DirectX::XMConvertToRadians(component.RotationEulerAngles.z)));
 					DirectX::XMFLOAT4 totalRot;
 					DirectX::XMStoreFloat4(&totalRot, totalRotVec);
+				}
+
+				if (updateTransform && entity.HasComponent<UIPanelComponent>()) 
+				{
+					auto& uiPanel = entity.GetComponent<UIPanelComponent>().Panel;
+					uiPanel->Invalidate(component.Translation.x, component.Translation.y, component.Scale.x, component.Scale.y);
 				}
 
 				component.IsDirty = updateTransform || updateRotTransform;

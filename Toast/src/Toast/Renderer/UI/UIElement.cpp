@@ -41,7 +41,7 @@ namespace Toast {
 
 		delete[] quadIndices;
 
-		mUIPropCBuffer = ConstantBufferLibrary::Load("UIProp", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, 13) });
+		mUIPropCBuffer = ConstantBufferLibrary::Load("UIProp", 32, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, 13) });
 		mUIPropCBuffer->Bind();
 		mUIPropBuffer.Allocate(mUIPropCBuffer->GetSize());
 		mUIPropBuffer.ZeroInitialize();
@@ -54,6 +54,8 @@ namespace Toast {
 
 	void UIElement::Bind()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		uint32_t dataSize = (uint32_t)((uint8_t*)mQuadVertexBufferPtr - (uint8_t*)mQuadVertexBufferBase);
 		mVertexBuffer->SetData(mQuadVertexBufferBase, dataSize);
 
@@ -66,6 +68,22 @@ namespace Toast {
 
 		mModelCBuffer->Map(mModelBuffer);
 		mModelCBuffer->Bind();
+	}
+
+	void UIElement::Map()
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		uint32_t dataSize = (uint32_t)((uint8_t*)mQuadVertexBufferPtr - (uint8_t*)mQuadVertexBufferBase);
+		mVertexBuffer->SetData(mQuadVertexBufferBase, dataSize);
+
+		mVertexBuffer->Bind();
+		mIndexBuffer->Bind();
+
+		mUIPropBuffer.Write((uint8_t*)&mColor, 16, 0);
+		mUIPropCBuffer->Map(mUIPropBuffer);
+
+		mModelCBuffer->Map(mModelBuffer);
 	}
 
 	const Toast::ShaderCBufferElement* UIElement::FindCBufferElementDeclaration(const std::string& cbufferName, const std::string& name)
@@ -89,26 +107,50 @@ namespace Toast {
 
 	UIPanel::UIPanel()
 	{
-		constexpr size_t quadVertexCount = 4;
-		constexpr DirectX::XMFLOAT2 textureCoords[] = { DirectX::XMFLOAT2(0.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 0.0f) };
+		//constexpr size_t quadVertexCount = 4;
+		//constexpr DirectX::XMFLOAT2 textureCoords[] = { DirectX::XMFLOAT2(0.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 0.0f) };
 
-		mQuadVertexPositions[0] = DirectX::XMFLOAT3(0.0f, -1.0f, 0.0f);
-		mQuadVertexPositions[1] = DirectX::XMFLOAT3(1.0f, -1.0f, 0.0f);
-		mQuadVertexPositions[2] = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
-		mQuadVertexPositions[3] = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+		//mQuadVertexPositions[0] = DirectX::XMFLOAT2(0.0f, -1.0f);
+		//mQuadVertexPositions[1] = DirectX::XMFLOAT2(1.0f, -1.0f);
+		//mQuadVertexPositions[2] = DirectX::XMFLOAT2(1.0f, 0.0f);
+		//mQuadVertexPositions[3] = DirectX::XMFLOAT2(0.0f, 0.0f);
 
-		for (size_t i = 0; i < quadVertexCount; i++)
-		{
-			mQuadVertexBufferPtr->Position = mQuadVertexPositions[i];
-			mQuadVertexBufferPtr->Texcoord = textureCoords[i];
-			mQuadVertexBufferPtr++;
-		}
+		//for (size_t i = 0; i < quadVertexCount; i++)
+		//{
+		//	mQuadVertexBufferPtr->Position = mQuadVertexPositions[i];
+		//	mQuadVertexBufferPtr->Texcoord = textureCoords[i];
+		//	mQuadVertexBufferPtr++;
+		//}
 
-		mQuadIndexCount = 6;
+		//mQuadIndexCount = 6;
+	}
+
+	UIPanel::UIPanel(float posX, float posY, float width, float height)
+	{
+		//UIElement(posX, posY, width, height);
+
+		//constexpr size_t quadVertexCount = 4;
+		//constexpr DirectX::XMFLOAT2 textureCoords[] = { DirectX::XMFLOAT2(0.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 0.0f) };
+
+		//mQuadVertexPositions[0] = DirectX::XMFLOAT2(posX, posY);
+		//mQuadVertexPositions[1] = DirectX::XMFLOAT2(posX + width, posY);
+		//mQuadVertexPositions[2] = DirectX::XMFLOAT2(posX + width, posY+height);
+		//mQuadVertexPositions[3] = DirectX::XMFLOAT2(posX, posY + height);
+
+		//for (size_t i = 0; i < quadVertexCount; i++)
+		//{
+		//	mQuadVertexBufferPtr->Position = mQuadVertexPositions[i];
+		//	mQuadVertexBufferPtr->Texcoord = textureCoords[i];
+		//	mQuadVertexBufferPtr++;
+		//}
+
+		//mQuadIndexCount = 6;
 	}
 
 	void UIPanel::Bind()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		float type = 1.0f;
 
 		mUIPropBuffer.Write((uint8_t*)&mCornerRadius, 4, 24);
@@ -119,6 +161,45 @@ namespace Toast {
 		UIElement::Bind();
 	}
 	
+	void UIPanel::Map()
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		float type = 1.0f;
+
+		mUIPropBuffer.Write((uint8_t*)&mCornerRadius, 4, 24);
+		mUIPropBuffer.Write((uint8_t*)&mWidth, 4, 16);
+		mUIPropBuffer.Write((uint8_t*)&mHeight, 4, 20);
+		mUIPropBuffer.Write((uint8_t*)&type, 4, 28);
+
+		UIElement::Map();
+	}
+
+	void UIPanel::Invalidate(float posX, float posY, float width, float height)
+	{
+		//mPosX = posX;
+		//mPosY = posY;
+		//mWidth = width;
+		//mHeight = height;
+
+		//constexpr DirectX::XMFLOAT2 textureCoords[] = { DirectX::XMFLOAT2(0.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 0.0f) };
+
+		//mQuadVertexPositions[0] = DirectX::XMFLOAT2(posX, posY);
+		//mQuadVertexPositions[1] = DirectX::XMFLOAT2(posX + width, posY);
+		//mQuadVertexPositions[2] = DirectX::XMFLOAT2(posX + width, posY + height);
+		//mQuadVertexPositions[3] = DirectX::XMFLOAT2(posX, posY + height);
+
+		//constexpr size_t quadVertexCount = 4;
+
+		//mQuadVertexBufferPtr = mQuadVertexBufferBase;
+		//for (size_t i = 0; i < quadVertexCount; i++)
+		//{
+		//	mQuadVertexBufferPtr->Position = mQuadVertexPositions[i];
+		//	mQuadVertexBufferPtr->Texcoord = textureCoords[i];
+		//	mQuadVertexBufferPtr++;
+		//}
+	}
+
 	////////////////////////////////////////////////////////////////////////////////////////  
 	//       UITEXT         ////////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
@@ -130,6 +211,8 @@ namespace Toast {
 
 	void UIText::Bind()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		float type = 2.0f;
 
 		mUIPropBuffer.Write((uint8_t*)&type, 4, 28);
@@ -140,75 +223,86 @@ namespace Toast {
 		UIElement::Bind();
 	}
 
+	void UIText::Map()
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		float type = 2.0f;
+
+		mUIPropBuffer.Write((uint8_t*)&type, 4, 28);
+
+		UIElement::Map();
+	}
+
 	void UIText::InvalidateText()
 	{
-		if (mTextString.empty())
-			return;
+		//if (mTextString.empty())
+		//	return;
 
-		mQuadVertexBufferPtr = mQuadVertexBufferBase;
-		mQuadIndexCount = 0;
+		//mQuadVertexBufferPtr = mQuadVertexBufferBase;
+		//mQuadIndexCount = 0;
 
-		Ref<Texture2D> texAtlas = mTextFont->GetFontAtlas();
-		TOAST_CORE_ASSERT(texAtlas, "");
+		//Ref<Texture2D> texAtlas = mTextFont->GetFontAtlas();
+		//TOAST_CORE_ASSERT(texAtlas, "");
 
-		auto& fontGeometry = mTextFont->GetMSDFData()->FontGeometry;
-		const auto& metrics = fontGeometry.getMetrics();
+		//auto& fontGeometry = mTextFont->GetMSDFData()->FontGeometry;
+		//const auto& metrics = fontGeometry.getMetrics();
 
-		double x = 0.0f;
-		double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
-		double y = 0;
-		for (int i = 0; i < mTextString.size(); i++)
-		{
-			char32_t character = mTextString[i];
-			// New row
-			if (character == '\n')
-			{
-				x = 0;
-				y -= fsScale * metrics.lineHeight;
-				continue;
-			}
+		//double x = 0.0f;
+		//double fsScale = 1 / (metrics.ascenderY - metrics.descenderY);
+		//double y = 0;
+		//for (int i = 0; i < mTextString.size(); i++)
+		//{
+		//	char32_t character = mTextString[i];
+		//	// New row
+		//	if (character == '\n')
+		//	{
+		//		x = 0;
+		//		y -= fsScale * metrics.lineHeight;
+		//		continue;
+		//	}
 
-			auto glyph = fontGeometry.getGlyph(character);
-			if (!glyph)
-				glyph = fontGeometry.getGlyph('?');
-			if (!glyph)
-				continue;
+		//	auto glyph = fontGeometry.getGlyph(character);
+		//	if (!glyph)
+		//		glyph = fontGeometry.getGlyph('?');
+		//	if (!glyph)
+		//		continue;
 
-			double l, b, r, t;
-			glyph->getQuadAtlasBounds(l, b, r, t);
+		//	double l, b, r, t;
+		//	glyph->getQuadAtlasBounds(l, b, r, t);
 
-			double pl, pb, pr, pt;
-			glyph->getQuadPlaneBounds(pl, pb, pr, pt);
+		//	double pl, pb, pr, pt;
+		//	glyph->getQuadPlaneBounds(pl, pb, pr, pt);
 
-			pl *= fsScale, pb *= fsScale, pr *= fsScale, pt *= fsScale;
-			pl += x, pb += y, pr += x, pt += y;
+		//	pl *= fsScale, pb *= fsScale, pr *= fsScale, pt *= fsScale;
+		//	pl += x, pb += y, pr += x, pt += y;
 
-			double texelWidth = 1. / texAtlas->GetWidth();
-			double texelHeight = 1. / texAtlas->GetHeight();
-			l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
+		//	double texelWidth = 1. / texAtlas->GetWidth();
+		//	double texelHeight = 1. / texAtlas->GetHeight();
+		//	l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
 
-			mQuadVertexBufferPtr->Position = { (float)pl, (float)pb, 0.0f };
-			mQuadVertexBufferPtr->Texcoord = { (float)l, (float)b };
-			mQuadVertexBufferPtr++;
+		//	mQuadVertexBufferPtr->Position = { (float)pl, (float)pb };
+		//	mQuadVertexBufferPtr->Texcoord = { (float)l, (float)b };
+		//	mQuadVertexBufferPtr++;
 
-			mQuadVertexBufferPtr->Position = { (float)pl, (float)pt, 0.0f };
-			mQuadVertexBufferPtr->Texcoord = { (float)l, (float)t };
-			mQuadVertexBufferPtr++;
+		//	mQuadVertexBufferPtr->Position = { (float)pl, (float)pt };
+		//	mQuadVertexBufferPtr->Texcoord = { (float)l, (float)t };
+		//	mQuadVertexBufferPtr++;
 
-			mQuadVertexBufferPtr->Position = { (float)pr, (float)pt, 0.0f };
-			mQuadVertexBufferPtr->Texcoord = { (float)r, (float)t };
-			mQuadVertexBufferPtr++;
+		//	mQuadVertexBufferPtr->Position = { (float)pr, (float)pt };
+		//	mQuadVertexBufferPtr->Texcoord = { (float)r, (float)t };
+		//	mQuadVertexBufferPtr++;
 
-			mQuadVertexBufferPtr->Position = { (float)pr, (float)pb, 0.0f };
-			mQuadVertexBufferPtr->Texcoord = { (float)r, (float)b };
-			mQuadVertexBufferPtr++;
+		//	mQuadVertexBufferPtr->Position = { (float)pr, (float)pb };
+		//	mQuadVertexBufferPtr->Texcoord = { (float)r, (float)b };
+		//	mQuadVertexBufferPtr++;
 
-			mQuadIndexCount += 6;
+		//	mQuadIndexCount += 6;
 
-			double advance = glyph->getAdvance();
-			fontGeometry.getAdvance(advance, character, mTextString[i + 1]);
-			x += fsScale * advance;
-		}
+		//	double advance = glyph->getAdvance();
+		//	fontGeometry.getAdvance(advance, character, mTextString[i + 1]);
+		//	x += fsScale * advance;
+		// }
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  
@@ -221,7 +315,16 @@ namespace Toast {
 
 	void UIButton::Bind()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		UIPanel::Bind();
+	}
+
+	void UIButton::Map()
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		UIPanel::Map();
 	}
 
 }

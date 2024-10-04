@@ -489,8 +489,7 @@ namespace Toast {
 			// 2D UI Rendering
 			Renderer2D::BeginScene(*mainCamera);
 			{
-				DirectX::XMMATRIX combinedWorldMatrix = DirectX::XMMatrixIdentity();
-				DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+				DirectX::XMFLOAT3 finalPosition;
 
 				//Panels
 				auto uiPanelEntites = mRegistry.view<TransformComponent, UIPanelComponent>();
@@ -503,14 +502,14 @@ namespace Toast {
 
 					if (e.HasParent())
 					{
-						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().GetTransform();
-						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
-						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.GetTransform(), DirectX::XMMatrixTranslationFromVector(pos));
+						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
+						DirectX::XMFLOAT3 position = tc.Translation;
+						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 1.0f };
 					}
 					else
-						combinedWorldMatrix = tc.GetTransform();
+						finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
 
-					Renderer2D::SubmitPanel(combinedWorldMatrix, upc.Panel, (int)entity, false);
+					Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius() }, upc.Panel->GetColorF4(), (int)entity, false);
 				}
 
 				//Buttons
@@ -524,14 +523,14 @@ namespace Toast {
 
 					if (e.HasParent())
 					{
-						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().GetTransform();
-						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
-						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.GetTransform(), DirectX::XMMatrixTranslationFromVector(pos));
+						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
+						DirectX::XMFLOAT3 position = tc.Translation;
+						//finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y };
 					}
 					else
-						combinedWorldMatrix = tc.GetTransform();
+						;//finalPosition = { tc.Translation.x , tc.Translation.y };
 
-					Renderer2D::SubmitButton(combinedWorldMatrix, ubc.Button, (int)entity, true);
+					//Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y }, ubc.Button, (int)entity, true);
 				}
 
 				//Texts
@@ -545,14 +544,14 @@ namespace Toast {
 
 					if (e.HasParent())
 					{
-						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().GetTransform();
-						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
-						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.GetTransform(), DirectX::XMMatrixTranslationFromVector(pos));
+						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
+						DirectX::XMFLOAT3 position = tc.Translation;
+						//finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y };
 					}
 					else
-						combinedWorldMatrix = tc.GetTransform();
+						;	//finalPosition = { tc.Translation.x , tc.Translation.y };
 
-					Renderer2D::SubmitText(combinedWorldMatrix, uitc.Text, (int)entity, false);
+					//Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y }, uitc.Text, (int)entity, false);
 				}
 			}
 			Renderer2D::EndScene();
@@ -875,8 +874,7 @@ namespace Toast {
 		if (mSettings.RenderUI) {
 			Renderer2D::BeginScene(*editorCamera);
 			{
-				DirectX::XMMATRIX combinedWorldMatrix = DirectX::XMMatrixIdentity();
-				DirectX::XMVECTOR pos = { 0.0f, 0.0f, 0.0f }, rot = { 0.0f, 0.0f, 0.0f }, scale = { 0.0f, 0.0f, 0.0f };
+				DirectX::XMFLOAT3 finalPosition;
 
 				//Panels
 				auto uiPanelEntites = mRegistry.view<TransformComponent, UIPanelComponent>();
@@ -889,14 +887,14 @@ namespace Toast {
 
 					if (e.HasParent()) 
 					{
-						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().GetTransform();
-						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
-						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.GetTransform(), DirectX::XMMatrixTranslationFromVector(pos));
+						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
+						DirectX::XMFLOAT3 position = tc.Translation;
+						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 1.0f };
 					}
 					else
-						combinedWorldMatrix = tc.GetTransform();
+						finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
 
-					Renderer2D::SubmitPanel(combinedWorldMatrix, upc.Panel, (int)entity, true);
+					Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius() }, upc.Panel->GetColorF4(), (int)entity, false);
 				}
 
 				//Buttons
@@ -910,14 +908,14 @@ namespace Toast {
 
 					if (e.HasParent())
 					{
-						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().GetTransform();
-						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
-						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.GetTransform(), DirectX::XMMatrixTranslationFromVector(pos));
+						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
+						DirectX::XMFLOAT3 position = tc.Translation;
+						//finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y };
 					}
 					else
-						combinedWorldMatrix = tc.GetTransform();
+						;//finalPosition = { tc.Translation.x , tc.Translation.y };
 
-					Renderer2D::SubmitButton(combinedWorldMatrix, ubc.Button, (int)entity, true);
+					//Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y }, ubc.Button, (int)entity, true);
 				}
 
 				//Texts
@@ -931,14 +929,14 @@ namespace Toast {
 
 					if (e.HasParent())
 					{
-						DirectX::XMMATRIX parentWorldMatrix = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().GetTransform();
-						DirectX::XMMatrixDecompose(&scale, &rot, &pos, parentWorldMatrix);
-						combinedWorldMatrix = DirectX::XMMatrixMultiply(tc.GetTransform(), DirectX::XMMatrixTranslationFromVector(pos));
+						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
+						DirectX::XMFLOAT3 position = tc.Translation;
+						//finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y };
 					}
 					else
-						combinedWorldMatrix = tc.GetTransform();
+						;//finalPosition = { tc.Translation.x , tc.Translation.y };
 
-					Renderer2D::SubmitText(combinedWorldMatrix, uitc.Text, (int)entity, true);
+					//Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y }, uitc.Text, (int)entity, true);
 				}
 			}
 			Renderer2D::EndScene();

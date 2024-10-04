@@ -63,6 +63,7 @@ namespace Toast {
 		if (FAILED(result))
 			TOAST_CORE_ERROR("Error creating Vertexbuffer!");
 
+		// TODO remove the bind here, creating a vertex buffer doesn't mean you want to bind it.
 		Bind();
 	}
 
@@ -132,6 +133,8 @@ namespace Toast {
 
 	void VertexBuffer::SetData(const void* data, uint32_t size)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		D3D11_MAPPED_SUBRESOURCE ms;
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
@@ -237,6 +240,8 @@ namespace Toast {
 
 	void ConstantBuffer::Bind() const
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 		//TOAST_CORE_CRITICAL("Binding buffer named: %s", mName.c_str());
@@ -260,6 +265,8 @@ namespace Toast {
 
 	void ConstantBuffer::Map(Buffer& data)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 		D3D11_MAPPED_SUBRESOURCE ms;

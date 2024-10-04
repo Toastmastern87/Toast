@@ -837,7 +837,8 @@ namespace Toast {
 				auto uiPanelComponent = entity["UIPanelComponent"];
 				if (uiPanelComponent)
 				{
-					auto& uipc = deserializedEntity.AddComponent<UIPanelComponent>(CreateRef<UIPanel>());
+					auto& tc = deserializedEntity.GetComponent<TransformComponent>();
+					auto& uipc = deserializedEntity.AddComponent<UIPanelComponent>(CreateRef<UIPanel>(tc.Translation.x, tc.Translation.y, tc.Scale.x, tc.Scale.y));
 					
 					uipc.Panel->SetColor(uiPanelComponent["Color"].as<DirectX::XMFLOAT4>());
 					uipc.Panel->SetCornerRadius(uiPanelComponent["CornerRadius"].as<float>());
