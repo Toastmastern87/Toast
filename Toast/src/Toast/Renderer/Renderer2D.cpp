@@ -242,11 +242,28 @@ namespace Toast {
 		}
 	}
 
-	void Renderer2D::SubmitButton(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, const Ref<UIButton>& button, const int entityID, const bool targetable)
+	void Renderer2D::SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, DirectX::XMFLOAT4& color, const int entityID, const bool targetable)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		sRenderer2DData->ElementDrawList.emplace_back(button, pos, size, ElementType::Button, entityID, targetable);
+		DirectX::XMFLOAT3 UIVertexPositions[4];
+
+		constexpr DirectX::XMFLOAT2 textureCoords[] = { DirectX::XMFLOAT2(0.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 0.0f) };
+
+		UIVertexPositions[0] = DirectX::XMFLOAT3(pos.x, pos.y, 1.0f);
+		UIVertexPositions[1] = DirectX::XMFLOAT3(pos.x + size.x, pos.y, 1.0f);
+		UIVertexPositions[2] = DirectX::XMFLOAT3(pos.x + size.x, pos.y + size.y, 1.0f);
+		UIVertexPositions[3] = DirectX::XMFLOAT3(pos.x, pos.y + size.y, 1.0f);
+
+		for (size_t i = 0; i < 4; i++)
+		{
+			sRenderer2DData->UIVertexBufferPtr->Position = UIVertexPositions[i];
+			sRenderer2DData->UIVertexBufferPtr->Size = size;
+			sRenderer2DData->UIVertexBufferPtr->Color = color;
+			sRenderer2DData->UIVertexBufferPtr->Texcoord = textureCoords[i];
+			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
+			sRenderer2DData->UIVertexBufferPtr++;
+		}
 	}
 
 	void Renderer2D::SubmitText(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, const Ref<UIText>& text, const int entityID, const bool targetable)

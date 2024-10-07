@@ -62,7 +62,7 @@ namespace Toast {
 		static void ClearDrawList();
 
 		static void SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, DirectX::XMFLOAT4& color, const int entityID, const bool targetable);
-		static void SubmitButton(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, const Ref<UIButton>& button, const int entityID, const bool targetable);
+		static void SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, DirectX::XMFLOAT4& color, const int entityID, const bool targetable);
 		static void SubmitText(const DirectX::XMFLOAT2& pos, const DirectX::XMFLOAT2& size, const Ref<UIText>& text, const int entityID, const bool targetable);
 	private:
 	};
