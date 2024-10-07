@@ -631,12 +631,6 @@ namespace Toast {
 					DirectX::XMStoreFloat4(&totalRot, totalRotVec);
 				}
 
-				if (updateTransform && entity.HasComponent<UIPanelComponent>()) 
-				{
-					auto& uiPanel = entity.GetComponent<UIPanelComponent>().Panel;
-					uiPanel->Invalidate(component.Translation.x, component.Translation.y, component.Scale.x, component.Scale.y);
-				}
-
 				component.IsDirty = updateTransform || updateRotTransform;
 			});
 

@@ -32,8 +32,6 @@ namespace Toast {
 	{
 	public:
 		UIElement();
-		UIElement(float posX, float posY, float width, float height)
-			: mPosX(posX), mPosY(posY), mWidth(width), mHeight(height) {}
 		virtual ~UIElement() = default;
 
 		template <typename T>
@@ -57,48 +55,11 @@ namespace Toast {
 			return mModelBuffer.Read<T>(decl->GetOffset());
 		}
 
-		void SetWidth(float w) { mWidth = w; }
-		float* GetWidth() { return &mWidth; }
-		void SetHeight(float h) { mHeight = h; }
-		float* GetHeight() { return &mHeight; }
-
 		void SetColor(DirectX::XMFLOAT4 c) { mColor = c; }
 		float* GetColor() { return &mColor.x; }
 		DirectX::XMFLOAT4 GetColorF4() { return mColor; }
-
-		void Bind();
-		void Map();
-
-		uint32_t GetQuadCount() { return mQuadIndexCount; }
 	private:
-		const ShaderCBufferElement* FindCBufferElementDeclaration(const std::string& cbufferName, const std::string& name);
-	public:
-		Shader* mShader;
-		Shader* mPickingShader;
-	private:
-		DirectX::XMFLOAT4 mColor = { 1.0f, 1.0f, 1.0f, 1.0f };;
-
-		Ref<VertexBuffer> mVertexBuffer;
-		Ref<IndexBuffer> mIndexBuffer;
-
-	protected:
-		float mPosX, mPosY;
-		float mWidth, mHeight;
-
-		Ref<ConstantBuffer> mUIPropCBuffer, mModelCBuffer;
-		Buffer mUIPropBuffer, mModelBuffer;
-
-		const uint32_t mMaxQuads = 256;
-		const uint32_t mMaxVertices = mMaxQuads * 4;
-		const uint32_t mMaxIndices = mMaxQuads * 6;
-
-		uint32_t mQuadIndexCount = 0;
-		UIVertex* mQuadVertexBufferBase = nullptr;
-		UIVertex* mQuadVertexBufferPtr = nullptr;
-
-		DirectX::XMFLOAT2 mQuadVertexPositions[4];
-
-		DirectX::XMMATRIX mTransform;
+		DirectX::XMFLOAT4 mColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 	};
 
 	class UIPanel : public UIElement 
@@ -107,11 +68,6 @@ namespace Toast {
 		UIPanel();
 		UIPanel(float posX, float posY, float width, float height);
 		~UIPanel() = default;
-
-		void Bind();
-		void Map();
-
-		void Invalidate(float posX, float posY, float width, float height);
 
 		float* GetCornerRadius() { return &mCornerRadius; }
 		void SetCornerRadius(float radius) { mCornerRadius = radius; }
@@ -124,9 +80,6 @@ namespace Toast {
 	public:
 		UIText();
 		~UIText() = default;
-
-		void Bind();
-		void Map();
 
 		void SetText(std::string& str) { mTextString = str; InvalidateText(); }
 		std::string& GetText() { return mTextString; }
@@ -144,12 +97,7 @@ namespace Toast {
 	{
 	public:
 		UIButton();
-		UIButton(float posX, float posY, float width, float height)
-			: UIPanel(posX, posY, width, height) {}
 		~UIButton() = default;
-
-		void Bind();
-		void Map();
 
 		float* GetClickColor() { return &mClickColor.x; }
 		DirectX::XMFLOAT4 GetClickColorF4() { return mClickColor; }
