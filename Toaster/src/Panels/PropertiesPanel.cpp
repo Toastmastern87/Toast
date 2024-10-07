@@ -1413,8 +1413,10 @@ namespace Toast {
 				if (ImGui::Button("...##openmesh"))
 				{
 					std::optional<std::string> filepath = FileDialogs::OpenFile("*.gltf", "..\\Toaster\\assets\\meshes\\");
-					if (filepath)
-						component.MeshObject = CreateRef<Mesh>(*filepath);
+					if (filepath) 
+					{
+						component.MeshObject = CreateRef<Mesh>(*filepath, false, DirectX::XMFLOAT3(0.0, 0.0, 0.0), true, component.MaxNrOfObjects);
+					}
 				}
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
