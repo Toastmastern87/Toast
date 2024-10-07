@@ -1289,10 +1289,7 @@ namespace Toast {
 				{
 					std::optional<std::string> filepath = FileDialogs::OpenFile("*.ttf", "..\\Toaster\\assets\\fonts\\");
 					if (filepath) 
-					{
-						component.Text->SetFont(CreateRef<Font>(*filepath));
-						component.Text->InvalidateText();
-					}	
+						component.Text->SetFont(CreateRef<Font>(*filepath));	
 				}
 
 				ImGui::TableNextRow();

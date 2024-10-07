@@ -186,7 +186,7 @@ namespace Toast {
 		sDefaultFont = CreateRef<Font>("..\\Toaster\\assets\\fonts\\Roboto Mono\\RobotoMono-Regular.ttf");
 	}
 
-	Toast::Ref<Font> Font::GetDefaultFont()
+	Ref<Font> Font::GetDefaultFont()
 	{
 		return sDefaultFont;
 	}

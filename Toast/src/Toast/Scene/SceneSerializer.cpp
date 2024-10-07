@@ -861,7 +861,6 @@ namespace Toast {
 
 					uitc.Text->SetFont(CreateRef<Font>(uiTextComponent["AssetPath"].as<std::string>()));
 					uitc.Text->SetText(uiTextComponent["Text"].as<std::string>());
-					uitc.Text->InvalidateText();
 				}
 
 				auto terrainDetailComponent = entity["TerrainDetailComponent"];

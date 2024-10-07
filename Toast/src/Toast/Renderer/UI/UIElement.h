@@ -81,13 +81,11 @@ namespace Toast {
 		UIText();
 		~UIText() = default;
 
-		void SetText(std::string& str) { mTextString = str; InvalidateText(); }
+		void SetText(std::string& str) { mTextString = str; }
 		std::string& GetText() { return mTextString; }
 
 		void SetFont(Ref<Font>& f) { mTextFont = f; }
 		Ref<Font> GetFont() { return mTextFont; }
-
-		void InvalidateText();
 	private:
 		std::string mTextString = "Enter Text here";
 		Ref<Font> mTextFont;
