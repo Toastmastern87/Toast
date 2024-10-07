@@ -525,12 +525,12 @@ namespace Toast {
 					{
 						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
 						DirectX::XMFLOAT3 position = tc.Translation;
-						//finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y };
+						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 1.0f };
 					}
 					else
-						;//finalPosition = { tc.Translation.x , tc.Translation.y };
+						finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
 
-					//Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y }, ubc.Button, (int)entity, true);
+					Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius() }, ubc.Button->GetColorF4(), (int)entity, false);
 				}
 
 				//Texts
@@ -546,12 +546,12 @@ namespace Toast {
 					{
 						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
 						DirectX::XMFLOAT3 position = tc.Translation;
-						//finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y };
+						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 2.0f };
 					}
 					else
-						;	//finalPosition = { tc.Translation.x , tc.Translation.y };
+						finalPosition = { tc.Translation.x , tc.Translation.y, 2.0f };
 
-					//Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y }, uitc.Text, (int)entity, false);
+					Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y, 1.0f }, uitc.Text, (int)entity, false);
 				}
 			}
 			Renderer2D::EndScene();
@@ -910,12 +910,12 @@ namespace Toast {
 					{
 						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
 						DirectX::XMFLOAT3 position = tc.Translation;
-						//finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y };
+						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 1.0f };
 					}
 					else
-						;//finalPosition = { tc.Translation.x , tc.Translation.y };
+						finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
 
-					//Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y }, ubc.Button, (int)entity, true);
+					Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius() }, ubc.Button->GetColorF4(), (int)entity, false);
 				}
 
 				//Texts
@@ -931,12 +931,12 @@ namespace Toast {
 					{
 						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
 						DirectX::XMFLOAT3 position = tc.Translation;
-						//finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y };
+						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 2.0f };
 					}
 					else
-						;//finalPosition = { tc.Translation.x , tc.Translation.y };
+						finalPosition = { tc.Translation.x , tc.Translation.y, 2.0f };
 
-					//Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y }, uitc.Text, (int)entity, true);
+					Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y, 1.0f }, uitc.Text, (int)entity, true);
 				}
 			}
 			Renderer2D::EndScene();
