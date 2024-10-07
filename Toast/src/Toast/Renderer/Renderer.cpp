@@ -316,7 +316,6 @@ namespace Toast {
 				{
 					for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
 					{
-						//TOAST_CORE_INFO("Rendering submesh with material: %s", submesh.MaterialName.c_str());
 						bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
 
 						meshCommand.Mesh->Set<DirectX::XMMATRIX>(submesh.MaterialName, "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));

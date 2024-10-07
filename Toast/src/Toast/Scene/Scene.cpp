@@ -753,22 +753,25 @@ namespace Toast {
 			for (auto entity : terrainObjectMeshes)
 			{
 				auto [transform, terrainObject] = terrainObjectMeshes.get<TransformComponent, TerrainObjectComponent>(entity);
-				if (terrainObject.MeshObject->GetNumberOfInstances() > 0)
+				if (terrainObject.MeshObject)
 				{
-					switch (mSettings.WireframeRendering)
+					if (terrainObject.MeshObject->GetNumberOfInstances() > 0)
 					{
-					case Settings::Wireframe::NO:
-					{
-						Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, false);
+						switch (mSettings.WireframeRendering)
+						{
+						case Settings::Wireframe::NO:
+						{
+							Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, false);
 
-						break;
-					}
-					case Settings::Wireframe::YES:
-					{
-						Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, true);
+							break;
+						}
+						case Settings::Wireframe::YES:
+						{
+							Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, true);
 
-						break;
-					}
+							break;
+						}
+						}
 					}
 				}
 			}
