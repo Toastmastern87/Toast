@@ -85,7 +85,6 @@ namespace Toast {
 		Ref<Framebuffer>& pickingFramebuffer = Renderer::GetPickingFramebuffer();
 		Ref<Framebuffer>& outlineFramebuffer = Renderer::GetOutlineFramebuffer();
 		Ref<Framebuffer>& postProcessFramebuffer = Renderer::GetPostProcessFramebuffer();
-		Ref<Framebuffer>& UIFramebuffer = Renderer::GetUIFramebuffer();
 
 		Ref<RenderTarget>& baseRenderTarget = Renderer::GetBaseRenderTarget();
 		Ref<RenderTarget>& depthRenderTarget = Renderer::GetDepthRenderTarget();
@@ -93,7 +92,6 @@ namespace Toast {
 		Ref<RenderTarget>& pickingRenderTarget = Renderer::GetPickingRenderTarget();
 		Ref<RenderTarget>& outlineRenderTarget = Renderer::GetOutlineRenderTarget();
 		Ref<RenderTarget>& postProcessRenderTarget = Renderer::GetPostProcessRenderTarget();
-		Ref<RenderTarget>& UIRenderTarget = Renderer::GetUIRenderTarget();
 		auto [width, height] = baseRenderTarget->GetSize();
 		//TOAST_CORE_INFO("mEditorCamera mViewportSize.x: %f, mViewportSize.y: %f", mViewportSize.x, mViewportSize.y);
 		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (width != mViewportSize.x || height != mViewportSize.y))
@@ -103,7 +101,6 @@ namespace Toast {
 			pickingFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			outlineFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			postProcessFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			UIFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
 			baseRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			depthRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
@@ -111,7 +108,6 @@ namespace Toast {
 			pickingRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			outlineRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			postProcessRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			UIRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		 
 			switch (mSceneState)
 			{

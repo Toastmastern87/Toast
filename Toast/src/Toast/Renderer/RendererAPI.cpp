@@ -147,13 +147,16 @@ namespace Toast {
 	void RendererAPI::CreateBackbuffer()
 	{
 		mBackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, mWidth, mHeight, 1, TextureFormat::R16G16B16A16_FLOAT, TextureFormat::None, true);
-		mBackbuffer = CreateRef<Framebuffer>(mBackbufferRT, nullptr, true);
+		mBackbuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ mBackbufferRT }, nullptr, true);
 	}
 
 	void RendererAPI::CreateBlendStates()
 	{
 		HRESULT result;
 		D3D11_BLEND_DESC bd = {};
+
+		bd.AlphaToCoverageEnable = FALSE;
+		bd.IndependentBlendEnable = TRUE; // Enable independent blending
 
 		bd.RenderTarget[0].BlendEnable = true;
 		bd.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
@@ -164,6 +167,10 @@ namespace Toast {
 		bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 		bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
+		// For the second render target (slot 1)
+		bd.RenderTarget[1].BlendEnable = FALSE; // Disable blending for slot 1
+		bd.RenderTarget[1].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
 		result = mDevice->CreateBlendState(&bd, &mAlphaBlendEnabledState);
 
 		bd.RenderTarget[0].BlendEnable = false;
@@ -171,6 +178,10 @@ namespace Toast {
 		bd.RenderTarget[0].DestBlend = D3D11_BLEND_ZERO;
 		bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
 		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+
+		// For the second render target (slot 1)
+		bd.RenderTarget[1].BlendEnable = FALSE; // Disable blending for slot 1
+		bd.RenderTarget[1].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
 		result = mDevice->CreateBlendState(&bd, &mAlphaBlendDisabledState);
 

@@ -47,6 +47,8 @@ namespace Toast {
 			UIVertex* UIVertexBufferPtr = nullptr;
 			Ref<VertexBuffer> UIVertexBuffer;
 			Ref<IndexBuffer> UIIndexBuffer;
+
+			Ref<Font> TextFont;
 		};
 
 	protected:

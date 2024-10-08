@@ -9,8 +9,8 @@ namespace Toast {
 
 	static const uint32_t sMaxFramebufferSize = 8192;
 
-	Framebuffer::Framebuffer(Ref<RenderTarget> color, Ref<RenderTarget> depth, bool swapChainTarget)
-		: mColorTarget(color), mDepthTarget(depth), mSwapChainTarget(swapChainTarget)
+	Framebuffer::Framebuffer(const std::vector<Ref<RenderTarget>>& colors, Ref<RenderTarget> depth, bool swapChainTarget)
+		: mColorTargets(colors), mDepthTarget(depth), mSwapChainTarget(swapChainTarget)
 	{
 		mWidth = 1280;
 		mHeight = 720;
@@ -27,14 +27,21 @@ namespace Toast {
 
 		deviceContext->RSSetViewports(1, &mViewport);
 
+		std::vector<ID3D11RenderTargetView*> renderTargetViews;
+		renderTargetViews.reserve(mColorTargets.size());
+		for (const auto& colorTarget : mColorTargets)
+		{
+			renderTargetViews.emplace_back(colorTarget->GetView().Get());
+		}
+
 		if (mDepth)
 		{
-			deviceContext->OMSetRenderTargets(1, mColorTarget->GetView().GetAddressOf(), mDepthTarget->GetDepthView().Get());
+			deviceContext->OMSetRenderTargets(static_cast<UINT>(renderTargetViews.size()), renderTargetViews.data(), mDepthTarget->GetDepthView().Get());
 			deviceContext->OMSetDepthStencilState(mDepthTarget->GetDepthState().Get(), 1);
 		}
 		else 
 		{
-			deviceContext->OMSetRenderTargets(1, mColorTarget->GetView().GetAddressOf(), nullptr);
+			deviceContext->OMSetRenderTargets(static_cast<UINT>(renderTargetViews.size()), renderTargetViews.data(), nullptr);
 			deviceContext->OMSetDepthStencilState(mDepthDisabledStencilState.Get(), 1);
 		}
 	}
@@ -73,7 +80,6 @@ namespace Toast {
 
 	void Framebuffer::Invalidate()
 	{
-
 		mViewport.TopLeftX = 0.0f;
 		mViewport.TopLeftY = 0.0f;
 		mViewport.Width = static_cast<float>(mWidth);
@@ -90,7 +96,8 @@ namespace Toast {
 
 	void Framebuffer::Clear(const DirectX::XMFLOAT4 clearColor)
 	{		
-		mColorTarget->Clear(clearColor);
+		for (auto& colorTarget : mColorTargets)
+			colorTarget->Clear(clearColor);
 
 		if (mDepth)
 			mDepthTarget->Clear(clearColor);
@@ -106,6 +113,12 @@ namespace Toast {
 
 		mWidth = width;
 		mHeight = height;
+
+		for (auto& colorTarget : mColorTargets)
+			colorTarget->Resize(width, height);
+
+		if (mDepthTarget)
+			mDepthTarget->Resize(width, height);
 
 		Invalidate();
 	}
@@ -138,7 +151,7 @@ namespace Toast {
 		result = device->CreateTexture2D(&textureDesc, nullptr, &stagedTexture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create 2D texture!");
 		
-		deviceContext->CopySubresourceRegion(stagedTexture.Get(), 0, 0, 0, 0, mColorTarget->GetTexture().Get(), 0, &srcBox);
+		deviceContext->CopySubresourceRegion(stagedTexture.Get(), 0, 0, 0, 0, mColorTargets[0]->GetTexture().Get(), 0, &srcBox);
 		
 		D3D11_MAPPED_SUBRESOURCE msr;
 		deviceContext->Map(stagedTexture.Get(), 0, D3D11_MAP_READ, 0, &msr);

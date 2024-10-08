@@ -55,13 +55,13 @@ namespace Toast {
 				bool Atmosphere = false;
 			} PlanetData;
 
-			Ref<Framebuffer> BaseFramebuffer, FinalFramebuffer, PickingFramebuffer, OutlineFramebuffer, PostProcessFramebuffer, UIFramebuffer;
+			Ref<Framebuffer> BaseFramebuffer, FinalFramebuffer, PickingFramebuffer, OutlineFramebuffer, PostProcessFramebuffer;
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshColliderDrawList;
 
 			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer;
 			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer, RenderSettingsBuffer, AtmosphereBuffer;
 
-			Ref<RenderTarget> BaseRenderTarget, FinalRenderTarget, DepthRenderTarget, PickingRenderTarget, OutlineRenderTarget, PostProcessRenderTarget, UIRenderTarget;
+			Ref<RenderTarget> BaseRenderTarget, FinalRenderTarget, DepthRenderTarget, PickingRenderTarget, OutlineRenderTarget, PostProcessRenderTarget;
 		};
 
 	protected:
@@ -97,14 +97,12 @@ namespace Toast {
 		static Ref<RenderTarget>& GetPickingRenderTarget() { return sRendererData->PickingRenderTarget; }
 		static Ref<RenderTarget>& GetOutlineRenderTarget() { return sRendererData->OutlineRenderTarget; }
 		static Ref<RenderTarget>& GetPostProcessRenderTarget() { return sRendererData->PostProcessRenderTarget; }
-		static Ref<RenderTarget>& GetUIRenderTarget() { return sRendererData->UIRenderTarget; }
 
 		static Ref<Framebuffer>& GetBaseFramebuffer() { return sRendererData->BaseFramebuffer; }
 		static Ref<Framebuffer>& GetFinalFramebuffer() { return sRendererData->FinalFramebuffer; }
 		static Ref<Framebuffer>& GetPickingFramebuffer() { return sRendererData->PickingFramebuffer; }
 		static Ref<Framebuffer>& GetOutlineFramebuffer() { return sRendererData->OutlineFramebuffer; }
 		static Ref<Framebuffer>& GetPostProcessFramebuffer() { return sRendererData->PostProcessFramebuffer; }
-		static Ref<Framebuffer>& GetUIFramebuffer() { return sRendererData->UIFramebuffer; }
 
 		static void EnableAtmosphere(bool atmosphere) { sRendererData->PlanetData.Atmosphere = atmosphere; }
 

@@ -28,7 +28,7 @@ struct VertexInputType
 	float3 size				: POSITION1;
     float4 color			: COLOR;
 	float2 texCoord			: TEXCOORD;
-    uint EntityID			: TEXTUREID;
+    uint entityID			: TEXTUREID;
 };
 
 struct PixelInputType
@@ -55,7 +55,7 @@ PixelInputType main(VertexInputType input)
 	
     output.color = input.color;
 
-	output.entityID = entityID;
+	output.entityID = input.entityID;
 	
     output.size = input.size.xy;
 	
@@ -75,6 +75,12 @@ struct PixelInputType
     float cornerRadius	: PSIZE;
     int entityID		: TEXTUREID0;
     int UIType			: TEXTUREID1;
+};
+
+struct PixelOutputType
+{
+    float4 color		: SV_Target0;
+    int entityID		: SV_Target1;
 };
 
 Texture2D MDSFAtlas				: register(t6);
@@ -119,8 +125,10 @@ float ScreenPxRange()
 	return geoSize / 32.0f * pixRange;
 }
 
-float4 main(PixelInputType input) : SV_TARGET
+PixelOutputType main(PixelInputType input) : SV_TARGET
 {
+    PixelOutputType output;
+	
 	// Panels
 	if (input.UIType == 1.0f)
 	{
@@ -128,11 +136,10 @@ float4 main(PixelInputType input) : SV_TARGET
         if (ShouldDiscard(coords, input.size, input.cornerRadius))
 			discard;
 
-		return input.color;
-	}
-
+        output.color = input.color;
+    }
 	// TEXT
-    if (input.UIType == 2.0f)
+    else if (input.UIType == 2.0f)
 	{
 		float4 bgColor = float4(input.color.rgb, 0.0); 
 		float4 fgColor = input.color;
@@ -145,8 +152,12 @@ float4 main(PixelInputType input) : SV_TARGET
 		if (opacity == 0.0)
 			discard;
 
-		return finalColor;
-	}
+        output.color = finalColor;
+    }
+	else
+        output.color = input.color;
+	
+    output.entityID = input.entityID + 1;
 
-    return input.color;
+    return output;
 }
