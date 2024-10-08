@@ -83,74 +83,14 @@ namespace Toast {
 
 		ShaderLibrary::Get("assets/shaders/UI.hlsl")->Bind();
 		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
-		Font::GetDefaultFont()->GetFontAtlas()->Bind(6, D3D11_PIXEL_SHADER);
+		if(sRenderer2DData->TextFont)
+			sRenderer2DData->TextFont->GetFontAtlas()->Bind(6, D3D11_PIXEL_SHADER);
 		sRenderer2DData->UIVertexBuffer->SetData(sRenderer2DData->UIVertexBufferBase, vertexDataSize);
 		sRenderer2DData->UIVertexBuffer->Bind();
 		sRenderer2DData->UIIndexBuffer->Bind();
 		RenderCommand::DrawIndexed(0, 0, indexCount);
 
 		sRendererData->FinalFramebuffer->EnableDepth();
-
-		// Picking
-		sRendererData->PickingFramebuffer->Bind();
-		RenderCommand::DisableBlending();
-
-		/*for (const auto& drawCommand : sRenderer2DData->ElementDrawList)
-		{
-			if (sRenderer2DData->shaderNameBound != drawCommand.Element->mPickingShader->GetName())
-			{
-				drawCommand.Element->mPickingShader->Bind();
-				sRenderer2DData->shaderNameBound = drawCommand.Element->mPickingShader->GetName();
-			}
-
-			if (drawCommand.Targetable) 
-			{
-				if (drawCommand.Type == ElementType::Panel)
-				{
-					drawCommand.Element->Set("UIProp", "size", drawCommand.Size);
-
-					Ref<UIPanel> panel = std::dynamic_pointer_cast<UIPanel>(drawCommand.Element);
-					if (!sRenderer2DData->UIBuffersBound)
-					{
-						panel->Bind();
-						sRenderer2DData->UIBuffersBound = true;
-					}
-					else
-						panel->Map();
-
-					RenderCommand::DrawIndexed(0, 0, 6);
-				}
-				if (drawCommand.Type == ElementType::Button)
-				{
-					drawCommand.Element->Set("UIProp", "size", drawCommand.Size);
-
-					Ref<UIButton> button = std::dynamic_pointer_cast<UIButton>(drawCommand.Element);
-					if (!sRenderer2DData->UIBuffersBound)
-					{
-						button->Bind();
-						sRenderer2DData->UIBuffersBound = true;
-					}
-					else
-						button->Map();
-
-					RenderCommand::DrawIndexed(0, 0, 6);
-				}
-				if (drawCommand.Type == ElementType::Text)
-				{
-					Ref<UIText> text = std::dynamic_pointer_cast<UIText>(drawCommand.Element);
-					if (!sRenderer2DData->UITextBuffersBound)
-					{
-						text->Bind();
-						sRenderer2DData->UITextBuffersBound = true;
-					}
-					else
-						text->Map();
-
-					RenderCommand::DrawIndexed(0, 0, text->GetQuadCount());
-				}
-			}
-		}*/
-
 		
 		RenderCommand::BindBackbuffer();
 		RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
@@ -216,6 +156,8 @@ namespace Toast {
 		std::string& textString = text->GetText();
 		Ref<Font> textFont = text->GetFont();
 
+		sRenderer2DData->TextFont = textFont;
+
 		if (textString.empty())
 			return;
 
@@ -264,11 +206,6 @@ namespace Toast {
 			double texelWidth = 1. / texAtlas->GetWidth();
 			double texelHeight = 1. / texAtlas->GetHeight();
 			l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
-
-			if (character == 'M')
-			{
-				TOAST_CORE_CRITICAL("Rendering M, UVs: %lf, %lf, %lf, %lf", l, b, r, t);
-			}
 
 			// Set vertex data
 			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pl, (float)pb, pos.z }; // Bottom-Left

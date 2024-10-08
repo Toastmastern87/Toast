@@ -59,14 +59,15 @@ namespace Toast {
 		sRendererData->DepthRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::R32_TYPELESS, TextureFormat::D32_FLOAT);
 		sRendererData->PickingRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32_SINT);
 		sRendererData->OutlineRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
-		sRendererData->UIRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
 
-		sRendererData->BaseFramebuffer = CreateRef<Framebuffer>(sRendererData->BaseRenderTarget, sRendererData->DepthRenderTarget);
-		sRendererData->PostProcessFramebuffer = CreateRef<Framebuffer>(sRendererData->PostProcessRenderTarget, sRendererData->DepthRenderTarget);
-		sRendererData->FinalFramebuffer = CreateRef<Framebuffer>(sRendererData->FinalRenderTarget, sRendererData->DepthRenderTarget);
-		sRendererData->PickingFramebuffer = CreateRef<Framebuffer>(sRendererData->PickingRenderTarget);
-		sRendererData->OutlineFramebuffer = CreateRef<Framebuffer>(sRendererData->OutlineRenderTarget);
-		sRendererData->UIFramebuffer = CreateRef<Framebuffer>(sRendererData->UIRenderTarget);
+		sRendererData->BaseFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->BaseRenderTarget}, sRendererData->DepthRenderTarget);
+		sRendererData->PostProcessFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->PostProcessRenderTarget}, sRendererData->DepthRenderTarget);
+		sRendererData->FinalFramebuffer = CreateRef<Framebuffer>(
+			std::vector<Ref<RenderTarget>>{ sRendererData->FinalRenderTarget, sRendererData->PickingRenderTarget },
+			sRendererData->DepthRenderTarget
+		);
+		sRendererData->PickingFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->PickingRenderTarget});
+		sRendererData->OutlineFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->OutlineRenderTarget});
 	}
 
 	void Renderer::Shutdown()

@@ -13,7 +13,7 @@ namespace Toast {
 	class Framebuffer
 	{
 	public:
-		Framebuffer(Ref<RenderTarget> color, Ref<RenderTarget> depth = nullptr, bool swapChainTarget = false);
+		Framebuffer(const std::vector<Ref<RenderTarget>>& colors, Ref<RenderTarget> depth = nullptr, bool swapChainTarget = false);
 		~Framebuffer() = default;
 
 		void CreateDepthDisabledState();
@@ -27,17 +27,17 @@ namespace Toast {
 		void DisableDepth() { mDepth = false; }
 		void EnableDepth() { mDepth = true; }
 
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV(uint32_t index = 0) const { return mColorTarget->GetSRV(); }
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetDepthSRV(uint32_t index = 0) const { return mDepthTarget->GetSRV(); }
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> GetRTTexture(uint32_t index = 0) const { return mColorTarget->GetTexture(); }
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV(uint32_t index = 0) const { return mColorTargets[index]->GetSRV(); }
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> GetRTTexture(uint32_t index = 0) const { return mColorTargets[index]->GetTexture(); }
 
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetDepthSRV(uint32_t index = 0) const { return mDepthTarget->GetSRV(); }
 
 		virtual void Clear(const DirectX::XMFLOAT4 clearColor);
 	private:
 		bool mSwapChainTarget = false, mDepth;
 		uint32_t mWidth, mHeight;
 
-		Ref<RenderTarget> mColorTarget;
+		std::vector<Ref<RenderTarget>> mColorTargets;
 		Ref<RenderTarget> mDepthTarget;
 
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthDisabledStencilState;
