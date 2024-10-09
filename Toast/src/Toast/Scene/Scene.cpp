@@ -509,7 +509,11 @@ namespace Toast {
 					else
 						finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
 
-					Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius() }, upc.Panel->GetColorF4(), (int)entity, false);
+					std::string panelTextureName;
+					if(!upc.Panel->GetUseColor())
+						panelTextureName = upc.Panel->GetTextureFilepath();
+
+					Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false);
 				}
 
 				//Buttons
@@ -530,7 +534,7 @@ namespace Toast {
 					else
 						finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
 
-					Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius() }, ubc.Button->GetColorF4(), (int)entity, false);
+					Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius() }, ubc.Button->GetColorF4(), (int)entity, !ubc.Button->GetUseColor(), false);
 				}
 
 				//Texts
@@ -894,7 +898,11 @@ namespace Toast {
 					else
 						finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
 
-					Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius() }, upc.Panel->GetColorF4(), (int)entity, false);
+					std::string panelTextureName;
+					if (!upc.Panel->GetUseColor())
+						panelTextureName = upc.Panel->GetTextureFilepath();
+
+					Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false);
 				}
 
 				//Buttons
@@ -915,7 +923,7 @@ namespace Toast {
 					else
 						finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
 
-					Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius() }, ubc.Button->GetColorF4(), (int)entity, false);
+					Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius() }, ubc.Button->GetColorF4(), (int)entity, !ubc.Button->GetUseColor(), false);
 				}
 
 				//Texts

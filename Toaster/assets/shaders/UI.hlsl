@@ -24,7 +24,7 @@ cbuffer Model : register(b1)
 
 struct VertexInputType
 {
-	float3 position			: POSITION0;
+	float4 position			: POSITION0;
 	float3 size				: POSITION1;
     float4 color			: COLOR;
 	float2 texCoord			: TEXCOORD;
@@ -33,13 +33,14 @@ struct VertexInputType
 
 struct PixelInputType
 {
-    float4 position : SV_POSITION;
-    float4 color : COLOR;
-    float2 size : POSITION;
-    float2 texCoord : TEXCOORD;
-    float cornerRadius : PSIZE;
-    int entityID : TEXTUREID0;
-    int UIType : TEXTUREID1;
+    float4 position         : SV_POSITION;
+    float4 color            : COLOR;
+    float2 size             : POSITION;
+    float2 texCoord         : TEXCOORD;
+    float cornerRadius      : PSIZE0;
+    float textured          : PSIZE1;
+    int entityID            : TEXTUREID0;
+    int UIType              : TEXTUREID1;
 };
 
 PixelInputType main(VertexInputType input)
@@ -61,6 +62,8 @@ PixelInputType main(VertexInputType input)
 	
     output.UIType = (int) input.position.z;
     output.cornerRadius = input.size.z;
+    
+    output.textured = input.position.w;
 
 	return output;
 }
@@ -72,7 +75,8 @@ struct PixelInputType
     float4 color		: COLOR;
     float2 size			: POSITION;
     float2 texCoord		: TEXCOORD;
-    float cornerRadius	: PSIZE;
+    float cornerRadius	: PSIZE0;
+    float textured      : PSIZE1;
     int entityID		: TEXTUREID0;
     int UIType			: TEXTUREID1;
 };
@@ -84,6 +88,7 @@ struct PixelOutputType
 };
 
 Texture2D MDSFAtlas				: register(t6);
+Texture2D PanelTexture          : register(t8);
 
 SamplerState defaultSampler		: register(s0);
 
@@ -136,7 +141,167 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
         if (ShouldDiscard(coords, input.size, input.cornerRadius))
 			discard;
 
-        output.color = input.color;
+        if (input.textured >= 0.5f)
+        {                        
+            // Texture dimensions in texture space
+            float w;
+            float h;
+            PanelTexture.GetDimensions(w, h);
+            float2 textureSize = float2(w, h);
+            
+            float texBorderSizeX = 10.0f; // Width of the corner slice in the texture
+            float texBorderSizeY = 10.0f; // Height of the corner slice in the texture
+            
+            float borderSizeX = 10.0f;
+            float borderSizeY = 10.0f;
+        
+            // Compute the size of the middle slice in the texture
+            float texMiddleSizeX = textureSize.x - 2.0f * texBorderSizeX;
+            float texMiddleSizeY = textureSize.y - 2.0f * texBorderSizeY;
+            
+            // Compute the size of the middle region in screen space
+            float middleSizeX = max(input.size.x - 2.0f * borderSizeX, 0.0f);
+            float middleSizeY = max(input.size.y - 2.0f * borderSizeY, 0.0f);
+
+            bool inLeft = coords.x <= borderSizeX;
+            bool inRight = coords.x >= (input.size.x - borderSizeX);
+            bool inTop = coords.y >= (input.size.y - borderSizeY);
+            bool inBottom = coords.y <= borderSizeY;
+
+            bool isCorner = (inLeft && inTop) || (inRight && inTop) || (inLeft && inBottom) || (inRight && inBottom);
+            bool isEdgeHorizontal = (coords.x > borderSizeX && coords.x < (input.size.x - borderSizeX)) && (inTop || inBottom);
+            bool isEdgeVertical = (coords.y > borderSizeY && coords.y < (input.size.y - borderSizeY)) && (inLeft || inRight);
+            bool isMiddle = !isCorner && !isEdgeHorizontal && !isEdgeVertical;
+            
+            float2 uv;
+            float2 cornerPosition;
+            float2 cornerUVStart;
+            
+            float4 textureColor;
+            if (isCorner)
+            {
+                // Determine corner positions and UV starts
+                if (inLeft && inTop)
+                {
+                    // Top-left corner
+                    cornerPosition = float2(0.0f, input.size.y - borderSizeY);
+                    cornerUVStart = float2(0.0f, 0.0f);
+                }
+                else if (inRight && inTop)
+                {
+                    // Top-right corner
+                    cornerPosition = float2(input.size.x - borderSizeX, input.size.y - borderSizeY);
+                    cornerUVStart = float2(textureSize.x - texBorderSizeX, 0.0f);
+                }
+                else if (inLeft && inBottom)
+                {
+                    // Bottom-left corner
+                    cornerPosition = float2(0.0f, 0.0f);
+                    cornerUVStart = float2(0.0f, textureSize.y - texBorderSizeY);
+                }
+                else // inRight && inBottom
+                {
+                    // Bottom-right corner
+                    cornerPosition = float2(input.size.x - borderSizeX, 0.0f);
+                    cornerUVStart = float2(textureSize.x - texBorderSizeX, textureSize.y - texBorderSizeY);
+                }
+
+                // Calculate local coordinates within the corner (screen space)
+                float2 localCoords = coords - cornerPosition;
+
+                   // Scale localCoords to match the size of the texture slices
+                float2 scaledCoords = localCoords * float2(texBorderSizeX / borderSizeX, texBorderSizeY / borderSizeY);
+
+                // Compute UVs
+                uv = (cornerUVStart + scaledCoords) / textureSize;
+
+                textureColor = PanelTexture.Sample(defaultSampler, uv);
+            }
+            else if (isEdgeHorizontal)
+            {
+                // Determine if top or bottom edge
+                bool isTopEdge = inTop;
+
+                // Screen space positions and sizes
+                float2 edgePosition = float2(borderSizeX, isTopEdge ? input.size.y - borderSizeY : 0.0f);
+                float2 edgeSize = float2(middleSizeX, borderSizeY);
+
+                // Texture space UV starts
+                float2 edgeUVStart = float2(texBorderSizeX, isTopEdge ? 0.0f : textureSize.y - texBorderSizeY);
+
+                // Local coordinates within the edge
+                float2 localCoords = coords - edgePosition;
+
+                // Scale localCoords to match texture slice size
+                float2 scaledCoords = localCoords * float2(texMiddleSizeX / edgeSize.x, texBorderSizeY / edgeSize.y);
+
+                // Compute UVs
+                uv = (edgeUVStart + scaledCoords) / textureSize;
+
+                // Sample the texture
+                textureColor = PanelTexture.Sample(defaultSampler, uv);
+            }
+            else if (isEdgeVertical)
+            {
+                // Determine if left or right edge
+                bool isLeftEdge = inLeft;
+
+                // Screen space positions and sizes
+                float2 edgePosition = float2(isLeftEdge ? 0.0f : input.size.x - borderSizeX, borderSizeY);
+                float2 edgeSize = float2(borderSizeX, middleSizeY);
+
+                // Texture space UV starts
+                float2 edgeUVStart = float2(isLeftEdge ? 0.0f : textureSize.x - texBorderSizeX, texBorderSizeY);
+
+                // Local coordinates within the edge
+                float2 localCoords = coords - edgePosition;
+
+                // Scale localCoords to match texture slice size
+                float2 scaledCoords = localCoords * float2(texBorderSizeX / edgeSize.x, texMiddleSizeY / edgeSize.y);
+
+                // Compute UVs
+                uv = (edgeUVStart + scaledCoords) / textureSize;
+
+                // Sample the texture
+                textureColor = PanelTexture.Sample(defaultSampler, uv);
+            }
+            else // Middle
+            {
+                 // Local coordinates within the middle region
+                float2 localCoords = coords - float2(borderSizeX, borderSizeY);
+
+                // Ensure middleSizeX and middleSizeY are not zero
+                float safeMiddleSizeX = max(middleSizeX, 1.0f);
+                float safeMiddleSizeY = max(middleSizeY, 1.0f);
+
+                // Compute tileUV in [0,1] range
+                float2 tileUV = localCoords / float2(safeMiddleSizeX, safeMiddleSizeY);
+
+                // Implement tiling using frac
+                tileUV = frac(tileUV);
+
+                // Define UV coordinates for the middle slice
+                float2 uvMin = float2(texBorderSizeX, texBorderSizeY) / textureSize;
+                float2 uvMax = (float2(texBorderSizeX, texBorderSizeY) + float2(texMiddleSizeX, texMiddleSizeY)) / textureSize;
+
+                // Calculate texel size
+                float2 texelSize = 1.0f / textureSize;
+
+                // Inset uvMin and uvMax to avoid sampling at the edges
+                uvMin += texelSize * 0.5f; // Adjust multiplier as needed
+                uvMax -= texelSize * 0.5f;
+
+                // Map tileUV from [0,1] to [uvMin, uvMax]
+                uv = uvMin + tileUV * (uvMax - uvMin);
+
+                // Sample the texture
+                textureColor = PanelTexture.Sample(defaultSampler, uv);
+            }
+            
+            output.color = textureColor;
+        }
+        else
+            output.color = input.color;
     }
 	// TEXT
     else if (input.UIType == 2.0f)
