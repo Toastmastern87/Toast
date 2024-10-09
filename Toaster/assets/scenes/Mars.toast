@@ -190,12 +190,14 @@ Entities:
         - Handle: 11806276604423328658
         - Handle: 18384185750220347789
     TransformComponent:
-      Translation: [813, 431.5, 0]
+      Translation: [812.999512, 414.458374, 0]
       Rotation: [0, -0, 0]
-      Scale: [521, 83.1999969, 1]
+      Scale: [521, 100, 1]
     UIPanelComponent:
       Color: [0.0413039252, 0.0980315134, 0.489451468, 1]
       CornerRadius: 14.1999998
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\UIPanel.png
+      UseColor: false
   - Entity: 11451148643943162086
     TagComponent:
       Tag: MText
@@ -204,7 +206,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [13.9001465, 42.5, 0]
+      Translation: [22.9000244, 57.1878662, 0]
       Rotation: [0, -0, 0]
       Scale: [20, 20, 1]
     UITextComponent:
@@ -218,7 +220,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [15.0001221, 11.5, 0]
+      Translation: [24, 25.2086182, 0]
       Rotation: [0, -0, 0]
       Scale: [20, 20, 1]
     UITextComponent:
@@ -232,14 +234,14 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [148, 24.5, 0]
+      Translation: [162.001099, 34.2918091, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 30, 1]
     ScriptComponent:
       ClassName: Sandbox.TimeText
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
-      Text: 00:00:12
+      Text: 00:00:05
   - Entity: 4566870064654448293
     TagComponent:
       Tag: TimeScale4
@@ -248,7 +250,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [458, 53.5, 0]
+      Translation: [458, 69.1669922, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
@@ -265,7 +267,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [458, 36.5, 0]
+      Translation: [458, 50.2086182, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
@@ -282,7 +284,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [458, 19.5, 0]
+      Translation: [458, 30.2711182, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
@@ -299,7 +301,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [458, 4.5, 0]
+      Translation: [458, 15.2709961, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:

@@ -43,6 +43,7 @@ namespace Toast {
 		mLogoTex = TextureLibrary::LoadTexture2D("assets/textures/ToastEnginePlanetLogo.png");
 		TextureLibrary::LoadTexture2D("assets/textures/White.png");
 		TextureLibrary::LoadTextureSampler("Default", D3D11_FILTER_ANISOTROPIC, D3D11_TEXTURE_ADDRESS_WRAP);
+		TextureLibrary::LoadTextureSampler("PointSampler", D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP);
 
 		// Load all material shaders
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
@@ -54,7 +55,6 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet/PlanetMask.hlsl");
 		ShaderLibrary::Load("assets/shaders/UI.hlsl");
-		ShaderLibrary::Load("assets/shaders/UIPicking.hlsl");
 
 		// Load all materials from the computer
 		std::vector<std::string> materialStrings = FileDialogs::GetAllFiles("\\assets\\materials");

@@ -497,6 +497,8 @@ namespace Toast {
 			auto& uipc = entity.GetComponent<UIPanelComponent>();
 			out << YAML::Key << "Color" << YAML::Value << uipc.Panel->GetColorF4();
 			out << YAML::Key << "CornerRadius" << YAML::Value << *uipc.Panel->GetCornerRadius();
+			out << YAML::Key << "AssetPath" << YAML::Value << uipc.Panel->GetTextureFilepath();
+			out << YAML::Key << "UseColor" << YAML::Value << uipc.Panel->GetUseColor();
 
 			out << YAML::EndMap; // UIPanelComponent
 		}
@@ -842,6 +844,11 @@ namespace Toast {
 					
 					uipc.Panel->SetColor(uiPanelComponent["Color"].as<DirectX::XMFLOAT4>());
 					uipc.Panel->SetCornerRadius(uiPanelComponent["CornerRadius"].as<float>());
+					uipc.Panel->SetUseColor(uiPanelComponent["UseColor"].as<bool>());
+
+					uipc.Panel->SetTextureFilepath(uiPanelComponent["AssetPath"].as<std::string>());
+					if (!uipc.Panel->GetTextureFilepath().empty())
+						TextureLibrary::LoadTexture2D(uipc.Panel->GetTextureFilepath());
 				}
 
 				auto uiButtonComponent = entity["UIButtonComponent"];

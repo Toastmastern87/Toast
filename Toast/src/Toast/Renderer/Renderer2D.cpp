@@ -85,6 +85,8 @@ namespace Toast {
 		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
 		if(sRenderer2DData->TextFont)
 			sRenderer2DData->TextFont->GetFontAtlas()->Bind(6, D3D11_PIXEL_SHADER);
+		if (sRenderer2DData->PanelTextureName != "")
+			TextureLibrary::Get(sRenderer2DData->PanelTextureName)->Bind(8, D3D11_PIXEL_SHADER);
 		sRenderer2DData->UIVertexBuffer->SetData(sRenderer2DData->UIVertexBufferBase, vertexDataSize);
 		sRenderer2DData->UIVertexBuffer->Bind();
 		sRenderer2DData->UIIndexBuffer->Bind();
@@ -101,18 +103,23 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer2D::SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, DirectX::XMFLOAT4& color, const int entityID, const bool targetable)
+	void Renderer2D::SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, std::string panelTextureName, const bool targetable)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		DirectX::XMFLOAT3 UIVertexPositions[4];
+		DirectX::XMFLOAT4 UIVertexPositions[4];
+
+		float texturedF = textured == true ? 1.0f : 0.0f;
+
+		if (textured)
+			sRenderer2DData->PanelTextureName = panelTextureName;
 
 		constexpr DirectX::XMFLOAT2 textureCoords[] = { DirectX::XMFLOAT2(0.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 0.0f) };
 
-		UIVertexPositions[0] = DirectX::XMFLOAT3(pos.x, pos.y, 1.0f);
-		UIVertexPositions[1] = DirectX::XMFLOAT3(pos.x + size.x, pos.y, 1.0f);
-		UIVertexPositions[2] = DirectX::XMFLOAT3(pos.x + size.x, pos.y + size.y, 1.0f);
-		UIVertexPositions[3] = DirectX::XMFLOAT3(pos.x, pos.y + size.y, 1.0f);
+		UIVertexPositions[0] = DirectX::XMFLOAT4(pos.x, pos.y, 1.0f, texturedF);
+		UIVertexPositions[1] = DirectX::XMFLOAT4(pos.x + size.x, pos.y, 1.0f, texturedF);
+		UIVertexPositions[2] = DirectX::XMFLOAT4(pos.x + size.x, pos.y + size.y, 1.0f, texturedF);
+		UIVertexPositions[3] = DirectX::XMFLOAT4(pos.x, pos.y + size.y, 1.0f, texturedF);
 
 		for (size_t i = 0; i < 4; i++)
 		{
@@ -125,18 +132,20 @@ namespace Toast {
 		}
 	}
 
-	void Renderer2D::SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, DirectX::XMFLOAT4& color, const int entityID, const bool targetable)
+	void Renderer2D::SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		DirectX::XMFLOAT3 UIVertexPositions[4];
+		DirectX::XMFLOAT4 UIVertexPositions[4];
+
+		float texturedF = textured == true ? 1.0f : 0.0f;
 
 		constexpr DirectX::XMFLOAT2 textureCoords[] = { DirectX::XMFLOAT2(0.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 1.0f), DirectX::XMFLOAT2(1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 0.0f) };
 
-		UIVertexPositions[0] = DirectX::XMFLOAT3(pos.x, pos.y, 1.0f);
-		UIVertexPositions[1] = DirectX::XMFLOAT3(pos.x + size.x, pos.y, 1.0f);
-		UIVertexPositions[2] = DirectX::XMFLOAT3(pos.x + size.x, pos.y + size.y, 1.0f);
-		UIVertexPositions[3] = DirectX::XMFLOAT3(pos.x, pos.y + size.y, 1.0f);
+		UIVertexPositions[0] = DirectX::XMFLOAT4(pos.x, pos.y, 1.0f, texturedF);
+		UIVertexPositions[1] = DirectX::XMFLOAT4(pos.x + size.x, pos.y, 1.0f, texturedF);
+		UIVertexPositions[2] = DirectX::XMFLOAT4(pos.x + size.x, pos.y + size.y, 1.0f, texturedF);
+		UIVertexPositions[3] = DirectX::XMFLOAT4(pos.x, pos.y + size.y, 1.0f, texturedF);
 
 		for (size_t i = 0; i < 4; i++)
 		{
@@ -208,28 +217,28 @@ namespace Toast {
 			l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
 
 			// Set vertex data
-			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pl, (float)pb, pos.z }; // Bottom-Left
+			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pl, (float)pb, pos.z, 0.0f }; // Bottom-Left
 			sRenderer2DData->UIVertexBufferPtr->Size = size;
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)l, (float)b };
 			sRenderer2DData->UIVertexBufferPtr->Color = text->GetColorF4();// Assuming text has a color
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
 			sRenderer2DData->UIVertexBufferPtr++;
 
-			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pr, (float)pb, pos.z }; // Bottom-Right
+			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pr, (float)pb, pos.z, 0.0f }; // Bottom-Right
 			sRenderer2DData->UIVertexBufferPtr->Size = size;
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)r, (float)b };
 			sRenderer2DData->UIVertexBufferPtr->Color = text->GetColorF4();
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
 			sRenderer2DData->UIVertexBufferPtr++;
 
-			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pr, (float)pt, pos.z }; // Top-Right
+			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pr, (float)pt, pos.z, 0.0f }; // Top-Right
 			sRenderer2DData->UIVertexBufferPtr->Size = size;
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)r, (float)t };
 			sRenderer2DData->UIVertexBufferPtr->Color = text->GetColorF4();
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
 			sRenderer2DData->UIVertexBufferPtr++;
 
-			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pl, (float)pt, pos.z }; // Top-Left
+			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pl, (float)pt, pos.z, 0.0f }; // Top-Left
 			sRenderer2DData->UIVertexBufferPtr->Size = size;
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)l, (float)t };
 			sRenderer2DData->UIVertexBufferPtr->Color = text->GetColorF4();

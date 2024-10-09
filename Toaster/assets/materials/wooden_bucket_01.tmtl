@@ -10,9 +10,6 @@ Textures:
   - FilePath: C:\dev\Toast\Toaster\assets\meshes\WoodenBucket\textures/wooden_bucket_01_diff_4k.jpg
     BindSlot: 3
     ShaderType: 5
-  - FilePath: C:\dev\Toast\Toaster\assets\meshes\WoodenBucket\textures/wooden_bucket_01_nor_gl_4k.jpg
-    BindSlot: 4
-    ShaderType: 5
   - FilePath: C:\dev\Toast\Toaster\assets\meshes\WoodenBucket\textures/wooden_bucket_01_arm_4k.jpg
     BindSlot: 5
     ShaderType: 5
