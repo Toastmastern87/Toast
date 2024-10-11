@@ -103,7 +103,7 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer2D::SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, std::string panelTextureName, const bool targetable)
+	void Renderer2D::SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, std::string panelTextureName, const bool targetable)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -132,7 +132,7 @@ namespace Toast {
 		}
 	}
 
-	void Renderer2D::SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable)
+	void Renderer2D::SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -158,7 +158,7 @@ namespace Toast {
 		}
 	}
 
-	void Renderer2D::SubmitText(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, const Ref<UIText>& text, const int entityID, const bool targetable)
+	void Renderer2D::SubmitText(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, const Ref<UIText>& text, const int entityID, const bool targetable)
 	{
 		TOAST_PROFILE_FUNCTION();
 

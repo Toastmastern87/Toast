@@ -25,7 +25,7 @@ cbuffer Model : register(b1)
 struct VertexInputType
 {
 	float4 position			: POSITION0;
-	float3 size				: POSITION1;
+	float4 size				: POSITION1;
     float4 color			: COLOR;
 	float2 texCoord			: TEXCOORD;
     uint entityID			: TEXTUREID;
@@ -33,14 +33,15 @@ struct VertexInputType
 
 struct PixelInputType
 {
-    float4 position         : SV_POSITION;
-    float4 color            : COLOR;
-    float2 size             : POSITION;
-    float2 texCoord         : TEXCOORD;
-    float cornerRadius      : PSIZE0;
-    float textured          : PSIZE1;
-    int entityID            : TEXTUREID0;
-    int UIType              : TEXTUREID1;
+    float4 position : SV_POSITION;
+    float4 color : COLOR;
+    float2 size : POSITION;
+    float2 texCoord : TEXCOORD;
+    float cornerRadius : PSIZE0;
+    float textured : PSIZE1;
+    float borderSize : PSIZE2;
+    int entityID : TEXTUREID0;
+    int UIType : TEXTUREID1;
 };
 
 PixelInputType main(VertexInputType input)
@@ -62,6 +63,7 @@ PixelInputType main(VertexInputType input)
 	
     output.UIType = (int) input.position.z;
     output.cornerRadius = input.size.z;
+    output.borderSize = input.size.w;
     
     output.textured = input.position.w;
 
@@ -77,6 +79,7 @@ struct PixelInputType
     float2 texCoord		: TEXCOORD;
     float cornerRadius	: PSIZE0;
     float textured      : PSIZE1;
+    float borderSize    : PSIZE2;
     int entityID		: TEXTUREID0;
     int UIType			: TEXTUREID1;
 };
@@ -152,9 +155,9 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
             float texBorderSizeX = 10.0f; // Width of the corner slice in the texture
             float texBorderSizeY = 10.0f; // Height of the corner slice in the texture
             
-            float borderSizeX = 10.0f;
-            float borderSizeY = 10.0f;
-        
+            float borderSizeX = input.borderSize;
+            float borderSizeY = input.borderSize;
+            
             // Compute the size of the middle slice in the texture
             float texMiddleSizeX = textureSize.x - 2.0f * texBorderSizeX;
             float texMiddleSizeY = textureSize.y - 2.0f * texBorderSizeY;
