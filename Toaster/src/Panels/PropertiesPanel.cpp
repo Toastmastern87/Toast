@@ -1302,6 +1302,12 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
 				ImGui::SliderFloat("##cornerradius", component.Panel->GetCornerRadius(), 0.0f, 50.0f, "%.1f");
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Border size");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::SliderFloat("##bordersize", component.Panel->GetBorderSize(), 0.0f, 50.0f, "%.1f");
 
 				ImGui::EndTable();
 

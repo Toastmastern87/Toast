@@ -513,7 +513,7 @@ namespace Toast {
 					if(!upc.Panel->GetUseColor())
 						panelTextureName = upc.Panel->GetTextureFilepath();
 
-					Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false);
+					Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius(), *upc.Panel->GetBorderSize() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false);
 				}
 
 				//Buttons
@@ -534,7 +534,7 @@ namespace Toast {
 					else
 						finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
 
-					Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius() }, ubc.Button->GetColorF4(), (int)entity, !ubc.Button->GetUseColor(), false);
+					Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius(), 1.0f }, ubc.Button->GetColorF4(), (int)entity, !ubc.Button->GetUseColor(), false);
 				}
 
 				//Texts
@@ -555,7 +555,7 @@ namespace Toast {
 					else
 						finalPosition = { tc.Translation.x , tc.Translation.y, 2.0f };
 
-					Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y, 1.0f }, uitc.Text, (int)entity, false);
+					Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y, 1.0f, 1.0f }, uitc.Text, (int)entity, false);
 				}
 			}
 			Renderer2D::EndScene();
@@ -902,7 +902,7 @@ namespace Toast {
 					if (!upc.Panel->GetUseColor())
 						panelTextureName = upc.Panel->GetTextureFilepath();
 
-					Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false);
+					Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius(), *upc.Panel->GetBorderSize() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false);
 				}
 
 				//Buttons
@@ -923,7 +923,7 @@ namespace Toast {
 					else
 						finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
 
-					Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius() }, ubc.Button->GetColorF4(), (int)entity, !ubc.Button->GetUseColor(), false);
+					Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius(), 1.0f }, ubc.Button->GetColorF4(), (int)entity, !ubc.Button->GetUseColor(), false);
 				}
 
 				//Texts
@@ -944,7 +944,7 @@ namespace Toast {
 					else
 						finalPosition = { tc.Translation.x , tc.Translation.y, 2.0f };
 
-					Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y, 1.0f }, uitc.Text, (int)entity, true);
+					Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y, 1.0f, 1.0f }, uitc.Text, (int)entity, true);
 				}
 			}
 			Renderer2D::EndScene();
