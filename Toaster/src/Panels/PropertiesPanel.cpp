@@ -354,8 +354,10 @@ namespace Toast {
 	{
 		ImGui::Begin(ICON_TOASTER_WRENCH" Properties");
 
+
 		mContext = mSceneHierarchyPanel->GetSelectedEntity();
 		mScene = mSceneHierarchyPanel->GetContext();
+
 
 		if (mContext)
 			DrawComponents(mContext);

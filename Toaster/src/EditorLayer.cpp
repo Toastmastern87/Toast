@@ -196,6 +196,8 @@ namespace Toast {
 			// DockSpace
 			ImGuiIO& io = ImGui::GetIO();
 			ImGuiStyle& style = ImGui::GetStyle();
+
+			style.WindowMenuButtonPosition = ImGuiDir_None;
 			float minWinSize = style.WindowMinSize.x;
 			style.WindowMinSize.x = 370.0f;
 			if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
