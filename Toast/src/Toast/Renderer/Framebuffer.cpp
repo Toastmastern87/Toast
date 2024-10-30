@@ -126,7 +126,8 @@ namespace Toast {
 	int Framebuffer::ReadPixel(uint32_t x, uint32_t y)
 	{
 		HRESULT result;
-		D3D11_TEXTURE2D_DESC textureDesc;
+		D3D11_TEXTURE2D_DESC textureDesc = {};
+		D3D11_TEXTURE2D_DESC sourceDesc;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> stagedTexture;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> stagedSRV;
 
@@ -135,6 +136,12 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		mColorTargets[0]->GetTexture()->GetDesc(&sourceDesc);
+
+		// Coordinates out of bounds
+		if (x >= sourceDesc.Width || y >= sourceDesc.Height)
+			return 0;
 
 		textureDesc.Width = 1;
 		textureDesc.Height = 1;
@@ -147,6 +154,7 @@ namespace Toast {
 		textureDesc.BindFlags = 0;
 		textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 		textureDesc.MiscFlags = 0;
+		textureDesc.Format = sourceDesc.Format;
 
 		result = device->CreateTexture2D(&textureDesc, nullptr, &stagedTexture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create 2D texture!");
@@ -154,7 +162,9 @@ namespace Toast {
 		deviceContext->CopySubresourceRegion(stagedTexture.Get(), 0, 0, 0, 0, mColorTargets[0]->GetTexture().Get(), 0, &srcBox);
 		
 		D3D11_MAPPED_SUBRESOURCE msr;
-		deviceContext->Map(stagedTexture.Get(), 0, D3D11_MAP_READ, 0, &msr);
+		HRESULT hr = deviceContext->Map(stagedTexture.Get(), 0, D3D11_MAP_READ, 0, &msr);
+		if (FAILED(hr))
+			return 0;
 		int* pixelValue = reinterpret_cast<int*>(msr.pData);
 		deviceContext->Unmap(stagedTexture.Get(), 0);
 
