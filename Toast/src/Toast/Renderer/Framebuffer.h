@@ -34,6 +34,10 @@ namespace Toast {
 
 		virtual void Clear(const DirectX::XMFLOAT4 clearColor);
 	private:
+		void CreateBlendState();
+
+		bool IsIntegerFormat(TextureFormat format);
+	private:
 		bool mSwapChainTarget = false, mDepth;
 		uint32_t mWidth, mHeight;
 
@@ -43,5 +47,9 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthDisabledStencilState;
 
 		D3D11_VIEWPORT mViewport;
+
+		// Blending
+		Microsoft::WRL::ComPtr<ID3D11BlendState> mBlendState;
+		std::vector<D3D11_RENDER_TARGET_BLEND_DESC> mBlendDescriptions;
 	};
 }

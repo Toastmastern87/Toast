@@ -24,6 +24,7 @@ cbuffer Model : register(b1)
 {
     matrix worldMatrix;
     int entityID;
+    int planet;
 };
 
 struct VertexInputType

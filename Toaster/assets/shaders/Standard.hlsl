@@ -21,8 +21,9 @@ cbuffer Camera : register(b0)
 
 cbuffer Model : register(b1)
 {
-	matrix worldMatrix;
-	int entityID;
+    matrix worldMatrix;
+    int entityID;
+    int planet;
 };
 
 struct VertexInputType

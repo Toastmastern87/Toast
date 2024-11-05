@@ -15,7 +15,35 @@ namespace Toast {
 		mWidth = 1280;
 		mHeight = 720;
 
+		// Initialize blend descriptions
+		mBlendDescriptions.resize(mColorTargets.size());
+		for (size_t i = 0; i < mColorTargets.size(); ++i)
+		{
+			TextureFormat format = mColorTargets[i]->GetFormat();
+			D3D11_RENDER_TARGET_BLEND_DESC& rtBlendDesc = mBlendDescriptions[i];
+
+			if (IsIntegerFormat(format))
+			{
+				// Disable blending for integer formats
+				rtBlendDesc.BlendEnable = FALSE;
+				rtBlendDesc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+			}
+			else
+			{
+				// Set blending settings for floating-point formats as needed
+				rtBlendDesc.BlendEnable = FALSE; // Set to TRUE if blending is needed
+				rtBlendDesc.SrcBlend = D3D11_BLEND_ONE;
+				rtBlendDesc.DestBlend = D3D11_BLEND_ZERO;
+				rtBlendDesc.BlendOp = D3D11_BLEND_OP_ADD;
+				rtBlendDesc.SrcBlendAlpha = D3D11_BLEND_ONE;
+				rtBlendDesc.DestBlendAlpha = D3D11_BLEND_ZERO;
+				rtBlendDesc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+				rtBlendDesc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+			}
+		}
+
 		CreateDepthDisabledState();
+		CreateBlendState();
 
 		Invalidate();
 	}
@@ -44,6 +72,10 @@ namespace Toast {
 			deviceContext->OMSetRenderTargets(static_cast<UINT>(renderTargetViews.size()), renderTargetViews.data(), nullptr);
 			deviceContext->OMSetDepthStencilState(mDepthDisabledStencilState.Get(), 1);
 		}
+
+		// Bind the blend state
+		const float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		deviceContext->OMSetBlendState(mBlendState.Get(), blendFactor, 0xFFFFFFFF);
 	}
 
 	void Framebuffer::CreateDepthDisabledState()
@@ -101,6 +133,53 @@ namespace Toast {
 
 		if (mDepth)
 			mDepthTarget->Clear(clearColor);
+	}
+
+	void Framebuffer::CreateBlendState()
+	{
+		HRESULT result;
+		D3D11_BLEND_DESC blendDesc = {};
+		blendDesc.AlphaToCoverageEnable = FALSE;
+		blendDesc.IndependentBlendEnable = TRUE; 
+
+		if (mBlendDescriptions.size() != mColorTargets.size())
+		{
+			mBlendDescriptions.resize(mColorTargets.size());
+			// Initialize default blend descriptions
+			for (size_t i = 0; i < mBlendDescriptions.size(); i++)
+			{
+				D3D11_RENDER_TARGET_BLEND_DESC& rtBlendDesc = mBlendDescriptions[i];
+				rtBlendDesc.BlendEnable = FALSE; // Default to no blending
+				rtBlendDesc.SrcBlend = D3D11_BLEND_ONE;
+				rtBlendDesc.DestBlend = D3D11_BLEND_ZERO;
+				rtBlendDesc.BlendOp = D3D11_BLEND_OP_ADD;
+				rtBlendDesc.SrcBlendAlpha = D3D11_BLEND_ONE;
+				rtBlendDesc.DestBlendAlpha = D3D11_BLEND_ZERO;
+				rtBlendDesc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+				rtBlendDesc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+			}
+		}
+
+		// Copy blend descriptions into the blend state
+		for (size_t i = 0; i < mBlendDescriptions.size(); ++i)
+			blendDesc.RenderTarget[i] = mBlendDescriptions[i];
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		result = device->CreateBlendState(&blendDesc, &mBlendState);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create blend state");
+	}
+
+	bool Framebuffer::IsIntegerFormat(TextureFormat format)
+	{
+		switch (format)
+		{
+		case TextureFormat::R32_SINT:
+			return true;
+		default:
+			return false;
+		}
 	}
 
 	void Framebuffer::Resize(uint32_t width, uint32_t height)
