@@ -101,7 +101,7 @@ struct PixelOutputType
     int entityID            : SV_Target4;
 };
 
-cbuffer Material : register(b1)
+cbuffer Material : register(b2)
 {
     float4 Albedo;
     float Emission;

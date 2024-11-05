@@ -234,7 +234,7 @@ namespace Toast {
 		if (FAILED(result))
 		{
 			std::string errorMessage = HResultToString(result);
-			TOAST_CORE_ERROR("Error creating Constantbuffer: %s", errorMessage.c_str());
+			TOAST_CORE_ERROR("Error creating Constantbuffer[%s]: %s", name.c_str(), errorMessage.c_str());
 		}
 	}
 
@@ -251,13 +251,13 @@ namespace Toast {
 			switch (bindInfo.ShaderType)
 			{
 			case D3D11_VERTEX_SHADER:
-				deviceContext->VSSetConstantBuffers(bindInfo.BindPoint, 1, mBuffer.GetAddressOf());
+				deviceContext->VSSetConstantBuffers((UINT)bindInfo.BindPoint, 1, mBuffer.GetAddressOf());
 				break;
 			case D3D11_PIXEL_SHADER:
-				deviceContext->PSSetConstantBuffers(bindInfo.BindPoint, 1, mBuffer.GetAddressOf());
+				deviceContext->PSSetConstantBuffers((UINT)bindInfo.BindPoint, 1, mBuffer.GetAddressOf());
 				break;
 			case D3D11_COMPUTE_SHADER:
-				deviceContext->CSSetConstantBuffers(bindInfo.BindPoint, 1, mBuffer.GetAddressOf());
+				deviceContext->CSSetConstantBuffers((UINT)bindInfo.BindPoint, 1, mBuffer.GetAddressOf());
 				break;
 			}
 		}

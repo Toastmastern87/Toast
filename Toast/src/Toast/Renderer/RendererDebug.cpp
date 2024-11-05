@@ -25,16 +25,10 @@ namespace Toast {
 		mDebugData->OutlineShader = CreateRef<Shader>("assets/shaders/Outline.hlsl");
 
 		// Setting up the constant buffer and data buffer for the debug rendering data
-		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 304, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 0), CBufferBindInfo(D3D11_PIXEL_SHADER, 11) });
+		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 288, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Camera) });
 		mDebugData->mDebugCBuffer->Bind();
 		mDebugData->mDebugBuffer.Allocate(mDebugData->mDebugCBuffer->GetSize());
 		mDebugData->mDebugBuffer.ZeroInitialize();
-
-		// Setting up the constant buffer and data buffer for the grid rendering
-		mDebugData->mGridCBuffer = ConstantBufferLibrary::Load("Grid", 144, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, 10) });
-		mDebugData->mGridCBuffer->Bind();
-		mDebugData->mGridBuffer.Allocate(mDebugData->mGridCBuffer->GetSize());
-		mDebugData->mGridBuffer.ZeroInitialize();
 	}
 
 	void RendererDebug::Shutdown()
@@ -54,9 +48,8 @@ namespace Toast {
 		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 128);
 		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 192);
 		//mDebugData->mDebugBuffer.Write((void*)&camera.GetPosition(), 16, 256);
-		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetForwardDirection(), 16, 272);
-		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 288);
-		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 292);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 272);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 276);
 		mDebugData->mDebugCBuffer->Map(mDebugData->mDebugBuffer);
 
 		mDebugData->LineVertexBuffer->Bind();
@@ -64,13 +57,13 @@ namespace Toast {
 		mDebugData->LineVertexBufferPtr = mDebugData->LineVertexBufferBase;
 	}
 
-	void RendererDebug::EndScene(const bool debugActivated, const bool runtime, const bool renderUI)
+	void RendererDebug::EndScene(const bool debugActivated, const bool runtime, const bool renderUI, const bool renderGrid)
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		if(!runtime)
 			OutlineRenderPass();
-		DebugRenderPass(runtime);
+		DebugRenderPass(runtime, renderGrid);
 
 		if (debugActivated && !renderUI)
 		{
@@ -82,12 +75,8 @@ namespace Toast {
 		mDebugData->LineVertexCount = 0;
 
 		if (!runtime) 
-		{
-			mDebugData->mGridBuffer.ZeroInitialize();
-			mDebugData->mGridCBuffer->Map(mDebugData->mGridBuffer);
-
 			sRendererData->MeshSelectedDrawList.clear();
-		}
+		
 		sRendererData->MeshColliderDrawList.clear();
 
 		//TOAST_CORE_CRITICAL("DEBUG END SCENE!");
@@ -144,21 +133,12 @@ namespace Toast {
 		RendererDebug::SubmitLine(p1f, p2f, color);
 	}
 
-	void RendererDebug::SubmitGrid(
-		EditorCamera& camera)
-	{
-		mDebugData->mGridBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 0);
-		mDebugData->mGridBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 64);
-		mDebugData->mGridBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 128);
-		mDebugData->mGridBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 132);
-	}
-
 	void RendererDebug::SubmitCollider(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
 	{
 			sRendererData->MeshColliderDrawList.emplace_back(mesh, transform, wireframe);
 	}
 
-	void RendererDebug::DebugRenderPass(const bool runtime)
+	void RendererDebug::DebugRenderPass(const bool runtime, const bool renderGrid)
 	{
 #ifdef TOAST_DEBUG
 		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
@@ -186,18 +166,6 @@ namespace Toast {
 
 				RenderCommand::Draw(mDebugData->LineVertexCount);
 			}
-
-			//Grid
-			if (!runtime)
-			{
-				RenderCommand::DisableWireframe();
-				RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
-
-				mDebugData->mGridCBuffer->Map(mDebugData->mGridBuffer);
-				mDebugData->GridShader->Bind();
-
-				RenderCommand::Draw(6);
-			}
 		//}
 
 		RenderCommand::EnableWireframe();
@@ -215,6 +183,17 @@ namespace Toast {
 				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 			}
 		}	
+
+		//Grid
+		if (!runtime && renderGrid)
+		{
+			RenderCommand::DisableWireframe();
+			RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
+
+			mDebugData->GridShader->Bind();
+
+			RenderCommand::Draw(6);
+		}
 
 		RenderCommand::DisableWireframe();
 

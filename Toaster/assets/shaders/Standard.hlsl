@@ -64,7 +64,7 @@ PixelInputType main(VertexInputType input)
 }
 
 #type pixel
-cbuffer DirectionalLight : register(b0)
+cbuffer DirectionalLight : register(b3)
 {
 	float4 direction;
 	float4 radiance;
@@ -72,7 +72,7 @@ cbuffer DirectionalLight : register(b0)
 	float sunDiscToggle;
 };
 
-cbuffer Material			: register(b1)
+cbuffer Material			: register(b2)
 {
 	float4 Albedo;
 	float Emission;

@@ -33,11 +33,21 @@ cbuffer Model : register(b1)
     int planet;
 };
 
-cbuffer Planet : register(b2)
+cbuffer Atmosphere : register(b4)
 {
-	float4 radius;
-	float4 minAltitude;
-	float4 maxAltitude;
+    float radius;
+    float minAltitude;
+    float maxAltitude;
+    float atmosphereHeight;
+    float mieAnisotropy;
+    float rayScaleHeight;
+    float mieScaleHeight;
+    float3 rayBaseScatteringCoefficient;
+    float mieBaseScatteringCoefficient;
+    float3 planetCenter;
+    int atmosphereToggle;
+    int numInScatteringPoints;
+    int numOpticalDepthPoints;
 };
 
 struct VertexInputType

@@ -90,7 +90,10 @@ namespace Toast {
 
 		static std::pair<Ref<TextureCube>, Ref<TextureCube>> CreateEnvironmentMap(const std::string& filepath);
 
+		// Deffered Rendering
 		static void GeometryPass();
+		static void LightningPass();
+
 		static void BaseRenderPass();
 		static void PickingRenderPass();
 		static void PostProcessPass();

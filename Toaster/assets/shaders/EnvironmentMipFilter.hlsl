@@ -14,7 +14,7 @@ static const float Epsilon = 0.00001;
 static const uint NumSamples = 1024;
 static const float InvNumSamples = 1.0 / float(NumSamples);
 
-cbuffer SpecularMapFilterSettings : register(b0)
+cbuffer SpecularMapFilterSettings : register(b5)
 {
 	// Roughness value to pre-filter for.
 	float roughness;

@@ -24,31 +24,31 @@ namespace Toast {
 		RendererDebug::Init();
 
 		// Setting up the constant buffer and data buffer for the camera rendering
-		sRendererData->CameraCBuffer = ConstantBufferLibrary::Load("Camera", 304, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 0), CBufferBindInfo(D3D11_PIXEL_SHADER, 11) });
+		sRendererData->CameraCBuffer = ConstantBufferLibrary::Load("Camera", 288, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Camera) });
 		sRendererData->CameraCBuffer->Bind();
 		sRendererData->CameraBuffer.Allocate(sRendererData->CameraCBuffer->GetSize());
 		sRendererData->CameraBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for lightning rendering
-		sRendererData->LightningCBuffer = ConstantBufferLibrary::Load("DirectionalLight", 48, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, 0) });
+		sRendererData->LightningCBuffer = ConstantBufferLibrary::Load("DirectionalLight", 48, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::DirectionalLight) });
 		sRendererData->LightningCBuffer->Bind();
 		sRendererData->LightningBuffer.Allocate(sRendererData->LightningCBuffer->GetSize());
 		sRendererData->LightningBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for environmental rendering
-		sRendererData->EnvironmentCBuffer = ConstantBufferLibrary::Load("Environment", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, 3) });
+		sRendererData->EnvironmentCBuffer = ConstantBufferLibrary::Load("Environment", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Environment) });
 		sRendererData->EnvironmentCBuffer->Bind();
 		sRendererData->EnvironmentBuffer.Allocate(sRendererData->EnvironmentCBuffer->GetSize());
 		sRendererData->EnvironmentBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for the render settings
-		sRendererData->RenderSettingsCBuffer = ConstantBufferLibrary::Load("RenderSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, 9) });
+		sRendererData->RenderSettingsCBuffer = ConstantBufferLibrary::Load("RenderSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::RenderSettings) });
 		sRendererData->RenderSettingsCBuffer->Bind();
 		sRendererData->RenderSettingsBuffer.Allocate(sRendererData->RenderSettingsCBuffer->GetSize());
 		sRendererData->RenderSettingsBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer for atmosphere rendering
-		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 80, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, 2) });
+		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 80, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Atmosphere) });
 		sRendererData->AtmosphereCBuffer->Bind();
 		sRendererData->AtmosphereBuffer.Allocate(sRendererData->AtmosphereCBuffer->GetSize());
 		sRendererData->AtmosphereBuffer.ZeroInitialize();
@@ -100,9 +100,8 @@ namespace Toast {
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 128);
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 192);
 		sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos.x, 16, 256);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetForwardDirection().x, 16, 272);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 288);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 292);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 272);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 276);
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
 		// Updating the lightning data in the buffer and mapping it to the GPU
@@ -136,7 +135,9 @@ namespace Toast {
 
 	void Renderer::EndScene(const bool debugActivated)
 	{
+		// Deffered Renderer
 		GeometryPass();
+		LightningPass();
 
 		BaseRenderPass();
 		//PickingRenderPass();
@@ -206,7 +207,7 @@ namespace Toast {
 		const uint32_t cubemapSize = 2048;
 		const uint32_t irradianceMapSize = 32;
 
-		Ref<ConstantBuffer> specularMapFilterSettingsCB = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, 0) }, D3D11_USAGE_DEFAULT);
+		Ref<ConstantBuffer> specularMapFilterSettingsCB = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SpecularLightEnvironmental) }, D3D11_USAGE_DEFAULT);
 
 		Ref<Texture2D> starMap = CreateRef<Texture2D>(filepath);
 		TextureSampler* defaultSampler = TextureLibrary::GetSampler("Default");
@@ -343,13 +344,38 @@ namespace Toast {
 			else
 			{
 				//meshCommand.Mesh->Map("Planet");
-				//meshCommand.Mesh->Bind("Planet");
+				//meshCommand.Mesh->Bind("Planet", true, false);
 
 				//meshCommand.Mesh->Set<int>(meshCommand.Mesh->mSubmeshes[0].MaterialName, "Model", "entityID", -1);
+				//meshCommand.Mesh->Set<int>(meshCommand.Mesh->mSubmeshes[0].MaterialName, "Model", "planet", 1);
 
 				//RenderCommand::DrawIndexed(meshCommand.Mesh->mSubmeshes[0].BaseVertex, meshCommand.Mesh->mSubmeshes[0].BaseIndex, meshCommand.Mesh->mSubmeshes[0].IndexCount);
 			}
 		}
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
+	}
+
+	void Renderer::LightningPass()
+	{
+		TOAST_PROFILE_FUNCTION();
+
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"Lightning Pass");
+#endif
+
+		RenderCommand::Draw(3);
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
 	}
 
 	void Renderer::BaseRenderPass()

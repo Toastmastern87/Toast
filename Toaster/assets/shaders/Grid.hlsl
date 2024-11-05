@@ -50,12 +50,15 @@ PixelInputType main(uint vID : SV_VertexID)
 #type pixel
 #pragma pack_matrix( row_major )
 
-cbuffer Grid			: register(b10)
+cbuffer Camera : register(b0)
 {
-	matrix viewMatrix;
-	matrix projectionMatrix;
-	float far;
-	float near;
+    matrix viewMatrix;
+    matrix projectionMatrix;
+    matrix inverseViewMatrix;
+    matrix inverseProjectionMatrix;
+    float4 cameraPosition;
+    float far;
+    float near;
 };
 
 struct PixelInputType
