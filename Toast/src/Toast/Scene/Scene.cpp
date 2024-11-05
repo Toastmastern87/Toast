@@ -484,7 +484,7 @@ namespace Toast {
 						RendererDebug::SubmitCollider(colliderMesh, transform, false);
 				}
 			}
-			RendererDebug::EndScene(true, true, true);
+			RendererDebug::EndScene(true, true, true, false);
 
 			// 2D UI Rendering
 			Renderer2D::BeginScene(*mainCamera);
@@ -867,12 +867,9 @@ namespace Toast {
 				if(renderCollider && mSettings.RenderColliders)
 					RendererDebug::SubmitCollider(colliderMesh, transform, false);
 			}
-
-			if (mSettings.Grid)
-				RendererDebug::SubmitGrid(*editorCamera);
 		}
 
-		RendererDebug::EndScene(true, false, mSettings.RenderUI);
+		RendererDebug::EndScene(true, false, mSettings.RenderUI, mSettings.Grid);
 
 		// 2D UI Rendering
 		if (mSettings.RenderUI) {

@@ -3,6 +3,7 @@ vertex
 vertex
 vertex
 vertex
+vertex
 
 #type vertex
 #pragma pack_matrix( row_major )
@@ -123,15 +124,7 @@ static const float3 Fdielectric = 0.04f;
 static const float Epsilon = 0.00001f;
 static const float PI = 3.141592f;
 
-cbuffer DirectionalLight	: register(b0)
-{
-	float4 direction;
-	float4 radiance;
-	float multiplier;
-	float sunDiscToggle;
-};
-
-cbuffer Material			: register(b1)
+cbuffer Material			: register(b2)
 {
 	float4 Albedo;
 	float Emission;
@@ -140,6 +133,14 @@ cbuffer Material			: register(b1)
 	int AlbedoTexToggle;
 	int NormalTexToggle;
 	int MetalRoughTexToggle;
+};
+
+cbuffer DirectionalLight : register(b3)
+{
+    float4 direction;
+    float4 radiance;
+    float multiplier;
+    float sunDiscToggle;
 };
 
 cbuffer RenderSettings : register(b9)

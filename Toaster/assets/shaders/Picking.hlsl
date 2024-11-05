@@ -1,4 +1,3 @@
-
 #inputlayout
 vertex
 vertex

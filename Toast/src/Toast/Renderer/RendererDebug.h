@@ -20,17 +20,16 @@ namespace Toast {
 		static void Shutdown();
 
 		static void BeginScene(Camera& camera);
-		static void EndScene(const bool debugActivated, const bool runtime, bool renderUI);
+		static void EndScene(const bool debugActivated, const bool runtime, bool renderUI, const bool renderGrid);
 
 		static void SubmitCameraFrustum(Ref<Frustum> frustum);
 		static void SubmitLine(DirectX::XMFLOAT3& p1, DirectX::XMFLOAT3& p2, DirectX::XMFLOAT4& color);
 		static void SubmitLine(Vector3& p1, Vector3& p2, DirectX::XMFLOAT4& color);
 		static void SubmitLine(DirectX::XMVECTOR& p1, DirectX::XMVECTOR& p2, DirectX::XMFLOAT4& color);
-		static void SubmitGrid(EditorCamera& camera);
 		static void SubmitCollider(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = true);
 
 	private:
-		static void DebugRenderPass(const bool runtime);
+		static void DebugRenderPass(const bool runtime, const bool renderGrid);
 		static void OutlineRenderPass();
 	private:
 		struct DebugData
@@ -46,8 +45,8 @@ namespace Toast {
 			uint32_t LineVertexCount = 0;
 			uint32_t MaxVertices = 200;
 
-			Ref<ConstantBuffer> mDebugCBuffer, mGridCBuffer;
-			Buffer mDebugBuffer, mGridBuffer;
+			Ref<ConstantBuffer> mDebugCBuffer;
+			Buffer mDebugBuffer;
 		};
 
 		static Scope<DebugData> mDebugData;

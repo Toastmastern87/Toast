@@ -40,7 +40,7 @@ namespace Toast {
 		mMaterials["Standard"] = MaterialLibrary::Get("Standard");
 
 		// Setting up the constant buffer and data buffer for the mesh rendering
-		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 1) });
+		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Model) });
 		mModelCBuffer->Bind();
 		mModelBuffer.Allocate(mModelCBuffer->GetSize());
 		mModelBuffer.ZeroInitialize();
@@ -52,12 +52,6 @@ namespace Toast {
 	Mesh::Mesh(bool isPlanet)
 	{
 		mIsPlanet = isPlanet;
-
-		// Setting up the constant buffer and data buffer for the planet mesh rendering
-		mPlanetCBuffer = ConstantBufferLibrary::Load("Planet", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, 4) });
-		mPlanetCBuffer->Bind();
-		mPlanetBuffer.Allocate(mPlanetCBuffer->GetSize());
-		mPlanetBuffer.ZeroInitialize();
 	}
 
 	Mesh::Mesh(const std::string& filePath, const bool skyboxMesh, Vector3 colorOverride, bool isInstanced, uint32_t maxNrOfInstanceObjects)
@@ -68,7 +62,7 @@ namespace Toast {
 		uint32_t vertexCount = 0;
 		uint32_t indexCount = 0;
 
-		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 1) });
+		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Model) });
 		mModelCBuffer->Bind();
 		mModelBuffer.Allocate(mModelCBuffer->GetSize());
 		mModelBuffer.ZeroInitialize();
@@ -320,7 +314,7 @@ namespace Toast {
 
 		mMaterials.insert({ "Standard", MaterialLibrary::Get("Standard") });
 
-		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, 1) });
+		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Model) });
 		mModelCBuffer->Bind();
 		mModelBuffer.Allocate(mModelCBuffer->GetSize());
 		mModelBuffer.ZeroInitialize();
@@ -413,10 +407,6 @@ namespace Toast {
 
 	void Mesh::Map(const std::string& materialName)
 	{
-		// if the planet is a mesh upload Planet data to the GPU
-		if (mPlanetCBuffer)
-			mPlanetCBuffer->Map(mPlanetBuffer);
-
 		if (mModelCBuffer)
 			mModelCBuffer->Map(mModelBuffer);
 
@@ -431,10 +421,6 @@ namespace Toast {
 
 		if(mInstanceVertexBuffer)
 			mInstanceVertexBuffer->Bind();
-
-		// if the planet is a mesh upload Planet data to the GPU
-		if (mPlanetCBuffer)
-			mPlanetCBuffer->Bind();
 
 		if(mModelCBuffer)
 			mModelCBuffer->Bind();

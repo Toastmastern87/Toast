@@ -8,12 +8,24 @@
 
 namespace Toast {
 
+	enum class CBufferBindSlot : UINT
+	{
+		Camera = 0,
+		Model = 1, 
+		Material = 2,  
+		DirectionalLight = 3,
+		Atmosphere = 4,
+		SpecularLightEnvironmental = 5,
+		Environment = 6,
+		RenderSettings = 9
+	};
+
 	struct CBufferBindInfo
 	{
 		D3D11_SHADER_TYPE ShaderType = D3D11_SHADER_TYPE::D3D11_VERTEX_SHADER;
-		uint32_t BindPoint = 0;
+		CBufferBindSlot BindPoint = CBufferBindSlot::Camera;
 
-		CBufferBindInfo(D3D11_SHADER_TYPE type, uint32_t bPoint) 
+		CBufferBindInfo(D3D11_SHADER_TYPE type, CBufferBindSlot bPoint)
 			: ShaderType(type), BindPoint(bPoint)
 		{
 		}

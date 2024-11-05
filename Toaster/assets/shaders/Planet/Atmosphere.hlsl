@@ -31,7 +31,18 @@ SamplerState DefaultSampler			: register(s1);
 
 static const float maxFloat = 3.402823466e+38;
 
-cbuffer DirectionalLight	: register(b0)
+cbuffer Camera : register(b0)
+{
+    matrix viewMatrix;
+    matrix projectionMatrix;
+    matrix inverseViewMatrix;
+    matrix inverseProjectionMatrix;
+    float4 cameraPosition;
+    float far;
+    float near;
+};
+
+cbuffer DirectionalLight	: register(b3)
 {
 	float4 direction;
 	float4 radiance;
@@ -39,7 +50,7 @@ cbuffer DirectionalLight	: register(b0)
 	float sunDiscToggle;
 };
 
-cbuffer Atmosphere : register(b2)
+cbuffer Atmosphere : register(b4)
 {
 	float radius;
     float minAltitude;
@@ -54,18 +65,6 @@ cbuffer Atmosphere : register(b2)
 	int atmosphereToggle;
 	int numInScatteringPoints;
 	int numOpticalDepthPoints;
-};
-
-cbuffer Camera				: register(b11)
-{
-	matrix viewMatrix;
-	matrix projectionMatrix;
-	matrix inverseViewMatrix;
-	matrix inverseProjectionMatrix;
-	float4 cameraPosition;
-	float4 cameraDir;
-	float far;
-	float near;
 };
 
 struct PixelInputType

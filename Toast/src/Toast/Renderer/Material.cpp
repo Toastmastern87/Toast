@@ -192,7 +192,7 @@ namespace Toast {
 			mMaterialBuffer.Allocate(cbufferBindings.at("Material").Size);
 			mMaterialBuffer.ZeroInitialize();
 
-			mMaterialCBuffer = ConstantBufferLibrary::Load(cbufferBindings.at("Material").Name, cbufferBindings.at("Material").Size, std::vector<CBufferBindInfo>{ CBufferBindInfo(cbufferBindings.at("Material").ShaderType, cbufferBindings.at("Material").BindPoint) });
+			mMaterialCBuffer = ConstantBufferLibrary::Load(cbufferBindings.at("Material").Name, cbufferBindings.at("Material").Size, std::vector<CBufferBindInfo>{ CBufferBindInfo(cbufferBindings.at("Material").ShaderType, (CBufferBindSlot)cbufferBindings.at("Material").BindPoint) });
 		}
 
 		for (auto& resource : resourceBindings)

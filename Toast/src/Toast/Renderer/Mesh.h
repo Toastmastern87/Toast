@@ -229,10 +229,7 @@ namespace Toast {
 			if (!decl)
 				return;
 
-			if (cbufferName == "Model") 
-				mModelBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
-			else if (cbufferName == "Planet") 
-				mPlanetBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
+			mModelBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
 		}
 
 		template <typename T>
@@ -241,10 +238,7 @@ namespace Toast {
 			auto decl = FindCBufferElementDeclaration(materialName, bufferName, name);
 			TOAST_CORE_ASSERT(decl, "Couldn't find constant buffer element!");
 
-			if(cbufferName == "Model")
-				return mModelBuffer.Read<T>(decl->GetOffset());
-			else if (cbufferName == "Planet")
-				return mPlanetBuffer.Read<T>(decl->GetOffset());
+			return mModelBuffer.Read<T>(decl->GetOffset());
 		}
 
 		void OnUpdate(Timestep ts);
@@ -301,8 +295,8 @@ namespace Toast {
 
 		PrimitiveTopology mTopology = PrimitiveTopology::TRIANGLELIST;
 
-		Ref<ConstantBuffer> mModelCBuffer, mPlanetCBuffer;
-		Buffer mModelBuffer, mPlanetBuffer;
+		Ref<ConstantBuffer> mModelCBuffer;
+		Buffer mModelBuffer;
 
 		bool mIsPlanet = false;
 

@@ -52,7 +52,7 @@ PixelInputType main(VertexInputType input)
 #type pixel
 static const float PI = 3.141592f;
 
-cbuffer DirectionalLight : register(b0)
+cbuffer DirectionalLight : register(b3)
 {
 	float4 direction;
 	float4 radiance;
@@ -60,7 +60,7 @@ cbuffer DirectionalLight : register(b0)
 	float sunDiscToggle;
 };
 
-cbuffer Environment : register(b3)
+cbuffer Environment : register(b6)
 {
 	float environmentStrength;
 	float textureLOD;

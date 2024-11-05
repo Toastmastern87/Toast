@@ -136,7 +136,7 @@ static const float3 Fdielectric = 0.04f;
 static const float Epsilon = 0.00001f;
 static const float PI = 3.141592f;
 
-cbuffer DirectionalLight : register(b0)
+cbuffer DirectionalLight : register(b3)
 {
     float4 direction;
     float4 radiance;
@@ -144,7 +144,7 @@ cbuffer DirectionalLight : register(b0)
     float sunDiscToggle;
 };
 
-cbuffer Material : register(b1)
+cbuffer Material : register(b2)
 {
     float4 Albedo;
     float Emission;
@@ -155,7 +155,7 @@ cbuffer Material : register(b1)
     int MetalRoughTexToggle;
 };
 
-cbuffer Atmosphere : register(b2)
+cbuffer Atmosphere : register(b4)
 {
     float radius;
     float minAltitude;
