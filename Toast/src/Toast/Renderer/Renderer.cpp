@@ -56,17 +56,26 @@ namespace Toast {
 		sRendererData->BaseRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
 		sRendererData->PostProcessRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
 		sRendererData->FinalRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
-		sRendererData->DepthRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::R32_TYPELESS, TextureFormat::D32_FLOAT);
-		sRendererData->PickingRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32_SINT);
 		sRendererData->OutlineRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
 
-		sRendererData->BaseFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->BaseRenderTarget}, sRendererData->DepthRenderTarget);
-		sRendererData->PostProcessFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->PostProcessRenderTarget}, sRendererData->DepthRenderTarget);
+		// Setting up the render targets for the Geometry Pass
+		sRendererData->GPassPositionRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32G32B32A32_FLOAT);
+		sRendererData->GPassNormalRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->GPassAlbedoMetallicRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
+		sRendererData->GPassRoughnessAORT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
+		sRendererData->GPassPickingRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32_SINT);
+		sRendererData->GPassDepthRT = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::R32_TYPELESS, TextureFormat::D32_FLOAT);
+
+		// Setting up the framebuffer for the Geometry Pass
+		sRendererData->GPassFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->GPassPositionRT, sRendererData->GPassNormalRT, sRendererData->GPassAlbedoMetallicRT, sRendererData->GPassRoughnessAORT, sRendererData->GPassPickingRT }, sRendererData->GPassDepthRT);
+
+		sRendererData->BaseFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->BaseRenderTarget}, sRendererData->GPassDepthRT);
+		sRendererData->PostProcessFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->PostProcessRenderTarget}, sRendererData->GPassDepthRT);
 		sRendererData->FinalFramebuffer = CreateRef<Framebuffer>(
-			std::vector<Ref<RenderTarget>>{ sRendererData->FinalRenderTarget, sRendererData->PickingRenderTarget },
-			sRendererData->DepthRenderTarget
+			std::vector<Ref<RenderTarget>>{ sRendererData->FinalRenderTarget, sRendererData->GPassPickingRT },
+			sRendererData->GPassDepthRT
 		);
-		sRendererData->PickingFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->PickingRenderTarget});
+		sRendererData->PickingFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->GPassPickingRT});
 		sRendererData->OutlineFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->OutlineRenderTarget});
 	}
 
@@ -127,8 +136,10 @@ namespace Toast {
 
 	void Renderer::EndScene(const bool debugActivated)
 	{
+		GeometryPass();
+
 		BaseRenderPass();
-		PickingRenderPass();
+		//PickingRenderPass();
 		PostProcessPass();
 
 		if (!debugActivated) 
@@ -267,9 +278,84 @@ namespace Toast {
 		return { envMapFiltered, irradianceMap };
 	}
 
+	void Renderer::GeometryPass()
+	{
+		TOAST_PROFILE_FUNCTION();
+
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"Geometry Pass");
+#endif
+
+		sRendererData->GPassFramebuffer->Bind();
+		sRendererData->GPassFramebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
+
+		ShaderLibrary::Get("assets/shaders/Deffered Rendering/GeometryPass.hlsl")->Bind();
+
+		for (const auto& meshCommand : sRendererData->MeshDrawList)
+		{
+			if (meshCommand.Wireframe)
+				RenderCommand::EnableWireframe();
+			else
+				RenderCommand::DisableWireframe();
+
+			RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
+
+			if (!meshCommand.PlanetData)
+			{
+				if (meshCommand.Mesh->IsInstanced())
+				{
+					for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+					{
+						bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
+
+						meshCommand.Mesh->Set<DirectX::XMMATRIX>(submesh.MaterialName, "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+						meshCommand.Mesh->Set<int>(submesh.MaterialName, "Model", "entityID", meshCommand.EntityID);
+						meshCommand.Mesh->Set<int>(submesh.MaterialName, "Model", "planet", 0);
+
+						meshCommand.Mesh->Map(submesh.MaterialName);
+						meshCommand.Mesh->Bind(submesh.MaterialName, environment, false);
+
+						uint32_t bufferElements = meshCommand.Mesh->mInstanceVertexBuffer->GetBufferSize() / sizeof(DirectX::XMFLOAT3);
+						RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, meshCommand.Mesh->GetNumberOfInstances(), 0, 0, 0);
+					}
+				}
+				else
+				{
+					for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+					{
+						//TOAST_CORE_INFO("Rendering submesh with material: %s", submesh.MaterialName.c_str());
+						bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
+
+						meshCommand.Mesh->Set<DirectX::XMMATRIX>(submesh.MaterialName, "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+						meshCommand.Mesh->Set<int>(submesh.MaterialName, "Model", "entityID", meshCommand.EntityID);
+						meshCommand.Mesh->Set<int>(submesh.MaterialName, "Model", "planet", 0);
+
+						meshCommand.Mesh->Map(submesh.MaterialName);
+						meshCommand.Mesh->Bind(submesh.MaterialName, environment, false);
+
+						RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+					}
+				}
+			}
+			else
+			{
+				//meshCommand.Mesh->Map("Planet");
+				//meshCommand.Mesh->Bind("Planet");
+
+				//meshCommand.Mesh->Set<int>(meshCommand.Mesh->mSubmeshes[0].MaterialName, "Model", "entityID", -1);
+
+				//RenderCommand::DrawIndexed(meshCommand.Mesh->mSubmeshes[0].BaseVertex, meshCommand.Mesh->mSubmeshes[0].BaseIndex, meshCommand.Mesh->mSubmeshes[0].IndexCount);
+			}
+		}
+	}
+
 	void Renderer::BaseRenderPass()
 	{
 	TOAST_PROFILE_FUNCTION();
+
 #ifdef TOAST_DEBUG
 		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
 		RenderCommand::GetAnnotation(annotation);
@@ -432,7 +518,7 @@ namespace Toast {
 		sRendererData->PostProcessFramebuffer->Bind();
 		sRendererData->PostProcessFramebuffer->Clear({ 0.2f, 0.2f, 0.2f, 1.0f });
 
-		auto depthMask = sRendererData->DepthRenderTarget->GetSRV();
+		auto depthMask = sRendererData->GPassDepthRT->GetSRV();
 		deviceContext->PSSetShaderResources(9, 1, depthMask.GetAddressOf());
 		auto baseTexture = sRendererData->BaseRenderTarget->GetSRV();
 		deviceContext->PSSetShaderResources(10, 1, baseTexture.GetAddressOf());

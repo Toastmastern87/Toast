@@ -45,7 +45,11 @@ namespace Toast {
 		TextureLibrary::LoadTextureSampler("Default", D3D11_FILTER_ANISOTROPIC, D3D11_TEXTURE_ADDRESS_WRAP);
 		TextureLibrary::LoadTextureSampler("PointSampler", D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP);
 
-		// Load all material shaders
+		// Load all shaders
+		// Deffered Rendering
+		ShaderLibrary::Load("assets/shaders/Deffered Rendering/GeometryPass.hlsl");
+
+		// Others
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet.hlsl");
 		ShaderLibrary::Load("assets/shaders/ToastPBR.hlsl");
@@ -80,32 +84,47 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 		// Resize
+		Ref<Framebuffer>& gpassFramebuffer = Renderer::GetGPassFramebuffer();
+
 		Ref<Framebuffer>& baseFramebuffer = Renderer::GetBaseFramebuffer();
 		Ref<Framebuffer>& finalFramebuffer = Renderer::GetFinalFramebuffer();
 		Ref<Framebuffer>& pickingFramebuffer = Renderer::GetPickingFramebuffer();
 		Ref<Framebuffer>& outlineFramebuffer = Renderer::GetOutlineFramebuffer();
 		Ref<Framebuffer>& postProcessFramebuffer = Renderer::GetPostProcessFramebuffer();
 
+		Ref<RenderTarget>& positionRT = Renderer::GetGPassPositionRT();
+		Ref<RenderTarget>& normalRT = Renderer::GetGPassNormalRT();
+		Ref<RenderTarget>& albedoMetallicRT = Renderer::GetGPassAlbedoMetallicRT();
+		Ref<RenderTarget>& roughnessAORT = Renderer::GetGPassRoughnessAORT();
+		Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
+		Ref<RenderTarget>& depthRT = Renderer::GetDepthRenderTarget();
+
 		Ref<RenderTarget>& baseRenderTarget = Renderer::GetBaseRenderTarget();
-		Ref<RenderTarget>& depthRenderTarget = Renderer::GetDepthRenderTarget();
 		Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRenderTarget();
-		Ref<RenderTarget>& pickingRenderTarget = Renderer::GetPickingRenderTarget();
+
 		Ref<RenderTarget>& outlineRenderTarget = Renderer::GetOutlineRenderTarget();
 		Ref<RenderTarget>& postProcessRenderTarget = Renderer::GetPostProcessRenderTarget();
 		auto [width, height] = baseRenderTarget->GetSize();
 		//TOAST_CORE_INFO("mEditorCamera mViewportSize.x: %f, mViewportSize.y: %f", mViewportSize.x, mViewportSize.y);
 		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (width != mViewportSize.x || height != mViewportSize.y))
 		{ 
+			gpassFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+
 			baseFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			finalFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			pickingFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			outlineFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			postProcessFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
+			positionRT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			normalRT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			albedoMetallicRT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			roughnessAORT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			pickingRT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			depthRT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+
 			baseRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			depthRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			finalRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			pickingRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			outlineRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			postProcessRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		 

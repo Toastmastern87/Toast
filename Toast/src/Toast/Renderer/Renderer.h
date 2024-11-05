@@ -61,7 +61,10 @@ namespace Toast {
 			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer;
 			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer, RenderSettingsBuffer, AtmosphereBuffer;
 
-			Ref<RenderTarget> BaseRenderTarget, FinalRenderTarget, DepthRenderTarget, PickingRenderTarget, OutlineRenderTarget, PostProcessRenderTarget;
+			Ref<RenderTarget> BaseRenderTarget, FinalRenderTarget, OutlineRenderTarget, PostProcessRenderTarget;
+
+			Ref<Framebuffer> GPassFramebuffer;
+			Ref<RenderTarget> GPassPositionRT, GPassNormalRT, GPassAlbedoMetallicRT, GPassRoughnessAORT, GPassPickingRT, GPassDepthRT;
 		};
 
 	protected:
@@ -87,16 +90,25 @@ namespace Toast {
 
 		static std::pair<Ref<TextureCube>, Ref<TextureCube>> CreateEnvironmentMap(const std::string& filepath);
 
+		static void GeometryPass();
 		static void BaseRenderPass();
 		static void PickingRenderPass();
 		static void PostProcessPass();
 
+		static Ref<RenderTarget>& GetDepthRT() { return sRendererData->GPassDepthRT; }
+		static Ref<RenderTarget>& GetGPassPositionRT() { return sRendererData->GPassPositionRT; }
+		static Ref<RenderTarget>& GetGPassNormalRT() { return sRendererData->GPassNormalRT; }
+		static Ref<RenderTarget>& GetGPassAlbedoMetallicRT() { return sRendererData->GPassAlbedoMetallicRT; }
+		static Ref<RenderTarget>& GetGPassRoughnessAORT() { return sRendererData->GPassRoughnessAORT; }
+		static Ref<RenderTarget>& GetGPassPickingRT() { return sRendererData->GPassPickingRT; }
+		static Ref<RenderTarget>& GetDepthRenderTarget() { return sRendererData->GPassDepthRT; }
+
 		static Ref<RenderTarget>& GetBaseRenderTarget() { return sRendererData->BaseRenderTarget; }
-		static Ref<RenderTarget>& GetDepthRenderTarget() { return sRendererData->DepthRenderTarget; }
 		static Ref<RenderTarget>& GetFinalRenderTarget() { return sRendererData->FinalRenderTarget; }
-		static Ref<RenderTarget>& GetPickingRenderTarget() { return sRendererData->PickingRenderTarget; }
 		static Ref<RenderTarget>& GetOutlineRenderTarget() { return sRendererData->OutlineRenderTarget; }
 		static Ref<RenderTarget>& GetPostProcessRenderTarget() { return sRendererData->PostProcessRenderTarget; }
+
+		static Ref<Framebuffer>& GetGPassFramebuffer() { return sRendererData->GPassFramebuffer; }
 
 		static Ref<Framebuffer>& GetBaseFramebuffer() { return sRendererData->BaseFramebuffer; }
 		static Ref<Framebuffer>& GetFinalFramebuffer() { return sRendererData->FinalFramebuffer; }

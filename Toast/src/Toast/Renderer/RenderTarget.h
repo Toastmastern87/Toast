@@ -35,6 +35,7 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> GetDepthView();
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> GetDepthState();
 
+		TextureFormat GetFormat() { return mFormat; }
 	private:
 		RenderTargetType mType;
 		uint32_t mWitdh, mHeight, mSamples;

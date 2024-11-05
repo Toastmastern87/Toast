@@ -424,7 +424,7 @@ namespace Toast {
 			mMaterials[materialName]->Map();
 	}
 
-	void Mesh::Bind(const std::string& materialName, bool environment)
+	void Mesh::Bind(const std::string& materialName, bool environment, bool bindShader)
 	{
 		mVertexBuffer->Bind();
 		mIndexBuffer->Bind();
@@ -440,7 +440,7 @@ namespace Toast {
 			mModelCBuffer->Bind();
 
 		if (mMaterials.size() > 0)
-			mMaterials[materialName]->Bind(environment);
+			mMaterials[materialName]->Bind(environment, bindShader);
 	}
 
 	void Submesh::OnUpdate(Timestep ts)

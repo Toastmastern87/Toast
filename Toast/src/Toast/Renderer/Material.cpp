@@ -219,10 +219,11 @@ namespace Toast {
 			mMaterialCBuffer->Map(mMaterialBuffer);
 	}
 
-	void Material::Bind(bool environment)
+	void Material::Bind(bool environment, bool bindShader)
 	{
 		if (environment) {
-			mShader->Bind();
+			if(bindShader)
+				mShader->Bind();
 
 			for (auto& textureBinding : mTextureBindings)
 			{

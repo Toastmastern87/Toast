@@ -30,6 +30,7 @@ cbuffer Model : register(b1)
 {
 	matrix worldMatrix;
 	int entityID;
+    int planet;
 };
 
 cbuffer Planet : register(b2)

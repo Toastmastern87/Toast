@@ -266,7 +266,7 @@ namespace Toast {
 		void SetLocalTransform(DirectX::XMMATRIX& transform) { mSubmeshes[0].Transform = transform; }
 
 		void Map(const std::string& materialName);
-		void Bind(const std::string& materialName, bool environment = true);
+		void Bind(const std::string& materialName, bool environment = true, bool bindShader = true);
 
 		bool GetIsPlanet() const { return mIsPlanet; }
 

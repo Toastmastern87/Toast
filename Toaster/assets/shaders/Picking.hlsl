@@ -37,8 +37,9 @@ struct PixelInputType
 
 cbuffer Model : register(b1)
 {
-	matrix worldMatrix;
-	int entityID;
+    matrix worldMatrix;
+    int entityID;
+    int planet;
 };
 
 PixelInputType main(VertexInputType input)
