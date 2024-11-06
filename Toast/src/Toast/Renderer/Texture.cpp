@@ -379,11 +379,11 @@ namespace Toast {
 	Texture2D* TextureLibrary::LoadTexture2D(const std::string& filePath)
 	{
 		if (Exists(filePath)) 
-			return (Texture2D*)mTextures[filePath].get();
+			return dynamic_cast<Texture2D*>(mTextures[filePath].get());
 
 		mTextures[filePath] = CreateScope<Texture2D>(filePath);
 
-		return (Texture2D*)mTextures[filePath].get();
+		return dynamic_cast<Texture2D*>(mTextures[filePath].get());
 	}
 
 	TextureCube* TextureLibrary::LoadTextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels)

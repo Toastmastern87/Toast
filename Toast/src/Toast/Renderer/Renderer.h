@@ -58,8 +58,8 @@ namespace Toast {
 			Ref<Framebuffer> BaseFramebuffer, FinalFramebuffer, PickingFramebuffer, OutlineFramebuffer, PostProcessFramebuffer;
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshColliderDrawList;
 
-			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer;
-			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer, RenderSettingsBuffer, AtmosphereBuffer;
+			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer;
+			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer, RenderSettingsBuffer, AtmosphereBuffer, ModelBuffer, MaterialBuffer;
 
 			Ref<RenderTarget> BaseRenderTarget, FinalRenderTarget, OutlineRenderTarget, PostProcessRenderTarget;
 
@@ -95,7 +95,6 @@ namespace Toast {
 		static void LightningPass();
 
 		static void BaseRenderPass();
-		static void PickingRenderPass();
 		static void PostProcessPass();
 
 		static Ref<RenderTarget>& GetDepthRT() { return sRendererData->GPassDepthRT; }

@@ -29,6 +29,12 @@ namespace Toast {
 		sRendererData->CameraBuffer.Allocate(sRendererData->CameraCBuffer->GetSize());
 		sRendererData->CameraBuffer.ZeroInitialize();
 
+		// Setting up the constant buffer and data buffer for the Mesh rendering
+		sRendererData->ModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Model) });
+		sRendererData->ModelCBuffer->Bind();
+		sRendererData->ModelBuffer.Allocate(sRendererData->ModelCBuffer->GetSize());
+		sRendererData->ModelBuffer.ZeroInitialize();
+
 		// Setting up the constant buffer and data buffer for lightning rendering
 		sRendererData->LightningCBuffer = ConstantBufferLibrary::Load("DirectionalLight", 48, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::DirectionalLight) });
 		sRendererData->LightningCBuffer->Bind();
@@ -304,6 +310,8 @@ namespace Toast {
 
 			RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
 
+			int planet;
+
 			if (!meshCommand.PlanetData)
 			{
 				if (meshCommand.Mesh->IsInstanced())
@@ -312,11 +320,14 @@ namespace Toast {
 					{
 						bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
 
-						meshCommand.Mesh->Set<DirectX::XMMATRIX>(submesh.MaterialName, "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
-						meshCommand.Mesh->Set<int>(submesh.MaterialName, "Model", "entityID", meshCommand.EntityID);
-						meshCommand.Mesh->Set<int>(submesh.MaterialName, "Model", "planet", 0);
+						planet = 0;
 
-						meshCommand.Mesh->Map(submesh.MaterialName);
+						sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+						sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
+						sRendererData->ModelBuffer.Write((uint8_t*)&planet, 4, 68);
+						sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+
+						//meshCommand.Mesh->Map(submesh.MaterialName);
 						meshCommand.Mesh->Bind(submesh.MaterialName, environment, false);
 
 						uint32_t bufferElements = meshCommand.Mesh->mInstanceVertexBuffer->GetBufferSize() / sizeof(DirectX::XMFLOAT3);
@@ -330,11 +341,13 @@ namespace Toast {
 						//TOAST_CORE_INFO("Rendering submesh with material: %s", submesh.MaterialName.c_str());
 						bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
 
-						meshCommand.Mesh->Set<DirectX::XMMATRIX>(submesh.MaterialName, "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
-						meshCommand.Mesh->Set<int>(submesh.MaterialName, "Model", "entityID", meshCommand.EntityID);
-						meshCommand.Mesh->Set<int>(submesh.MaterialName, "Model", "planet", 0);
+						planet = 0;
 
-						meshCommand.Mesh->Map(submesh.MaterialName);
+						sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+						sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
+						sRendererData->ModelBuffer.Write((uint8_t*)&planet, 4, 68);
+						sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+
 						meshCommand.Mesh->Bind(submesh.MaterialName, environment, false);
 
 						RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
@@ -423,6 +436,8 @@ namespace Toast {
 
 			RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
 
+			int planet;
+
 			if (!meshCommand.PlanetData)
 			{
 				if (meshCommand.Mesh->IsInstanced())
@@ -431,10 +446,14 @@ namespace Toast {
 					{
 						bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
 
-						meshCommand.Mesh->Set<DirectX::XMMATRIX>(submesh.MaterialName, "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
-						meshCommand.Mesh->Set<int>(submesh.MaterialName, "Model", "entityID", meshCommand.EntityID);
+						planet = 0;
 
-						meshCommand.Mesh->Map(submesh.MaterialName);
+						sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+						sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
+						sRendererData->ModelBuffer.Write((uint8_t*)&planet, 4, 68);
+						sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+
+						//meshCommand.Mesh->Map(submesh.MaterialName);
 						meshCommand.Mesh->Bind(submesh.MaterialName, environment);
 
 						uint32_t bufferElements = meshCommand.Mesh->mInstanceVertexBuffer->GetBufferSize() / sizeof(DirectX::XMFLOAT3);
@@ -448,10 +467,14 @@ namespace Toast {
 						//TOAST_CORE_INFO("Rendering submesh with material: %s", submesh.MaterialName.c_str());
 						bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
 
-						meshCommand.Mesh->Set<DirectX::XMMATRIX>(submesh.MaterialName, "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
-						meshCommand.Mesh->Set<int>(submesh.MaterialName, "Model", "entityID", meshCommand.EntityID);
+						planet = 0;
 
-						meshCommand.Mesh->Map(submesh.MaterialName);
+						sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+						sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
+						sRendererData->ModelBuffer.Write((uint8_t*)&planet, 4, 68);
+						sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+
+						//meshCommand.Mesh->Map(submesh.MaterialName);
 						meshCommand.Mesh->Bind(submesh.MaterialName, environment);
 
 						RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
@@ -460,60 +483,13 @@ namespace Toast {
 			}
 			else 
 			{
-				meshCommand.Mesh->Map("Planet");
+				//meshCommand.Mesh->Map("Planet");
 				meshCommand.Mesh->Bind("Planet");
 
 				RenderCommand::DrawIndexed(meshCommand.Mesh->mSubmeshes[0].BaseVertex, meshCommand.Mesh->mSubmeshes[0].BaseIndex, meshCommand.Mesh->mSubmeshes[0].IndexCount);
 			}
 		}
 
-#ifdef TOAST_DEBUG
-		if (annotation)
-			annotation->EndEvent();
-#endif
-	}
-
-	void Renderer::PickingRenderPass()
-	{
-		TOAST_PROFILE_FUNCTION();
-
-#ifdef TOAST_DEBUG
-		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
-		RenderCommand::GetAnnotation(annotation);
-		if (annotation)
-			annotation->BeginEvent(L"Picking Render Pass");
-#endif
-		//TOAST_CORE_CRITICAL("Picking Render Pass");
-
-		RenderCommand::DisableWireframe();
-		RenderCommand::DisableBlending();
-
-		sRendererData->PickingFramebuffer->Bind();
-		sRendererData->PickingFramebuffer->Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
-
-		auto pickingShader = ShaderLibrary::Get("assets/shaders/Picking.hlsl");
-
-		for (const auto& meshCommand : sRendererData->MeshDrawList) {
-			if (!meshCommand.PlanetData)
-			{
-				if (meshCommand.Mesh->mVertexBuffer)	meshCommand.Mesh->mVertexBuffer->Bind();
-				if (meshCommand.Mesh->mIndexBuffer)		meshCommand.Mesh->mIndexBuffer->Bind();
-
-				RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
-
-				for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
-				{
-					meshCommand.Mesh->Set<DirectX::XMMATRIX>(submesh.MaterialName, "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
-					meshCommand.Mesh->Set<int>(submesh.MaterialName, "Model", "entityID", meshCommand.EntityID);
-					meshCommand.Mesh->Map(submesh.MaterialName);
-					meshCommand.Mesh->Bind(submesh.MaterialName);
-
-					pickingShader->Bind();
-
-					RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
-				}
-			}
-		}
 #ifdef TOAST_DEBUG
 		if (annotation)
 			annotation->EndEvent();
