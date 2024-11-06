@@ -39,12 +39,6 @@ namespace Toast {
 	{
 		mMaterials["Standard"] = MaterialLibrary::Get("Standard");
 
-		// Setting up the constant buffer and data buffer for the mesh rendering
-		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Model) });
-		mModelCBuffer->Bind();
-		mModelBuffer.Allocate(mModelCBuffer->GetSize());
-		mModelBuffer.ZeroInitialize();
-
 		TOAST_CORE_INFO("Mesh Initialized!");
 		TOAST_CORE_INFO("Number of materials: %d", mMaterials.size());
 	}
@@ -61,11 +55,6 @@ namespace Toast {
 
 		uint32_t vertexCount = 0;
 		uint32_t indexCount = 0;
-
-		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Model) });
-		mModelCBuffer->Bind();
-		mModelBuffer.Allocate(mModelCBuffer->GetSize());
-		mModelBuffer.ZeroInitialize();
 
 		if(!skyboxMesh)
 			TOAST_CORE_INFO("Loading Mesh: '%s'", mFilePath.c_str());
@@ -164,7 +153,7 @@ namespace Toast {
 					//TOAST_CORE_INFO("is PBR material");
 
 					std::string materialName(data->materials[m].name);
-					mMaterials.insert({ data->materials[m].name,  MaterialLibrary::Load(materialName, ShaderLibrary::Get("assets/shaders/ToastPBR.hlsl")) });
+					mMaterials.insert({ data->materials[m].name,  MaterialLibrary::Load(materialName, true) });
 
 					// ALBEDO
 					DirectX::XMFLOAT4 albedoColor;
@@ -184,16 +173,12 @@ namespace Toast {
 						std::string completePath = texturePath.append("\\").append(texPath.c_str());
 						albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 						useAlbedoMap = 1;
-						mMaterials[data->materials[m].name]->SetTexture(3, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+						mMaterials[data->materials[m].name]->SetAlbedoTexture(TextureLibrary::LoadTexture2D(completePath.c_str()));
 						//TOAST_CORE_INFO("Albedo map found: %s", completePath.c_str());	
 					}
-					else
-					{
-						mMaterials[data->materials[m].name]->SetTexture(3, D3D11_PIXEL_SHADER, whiteTexture);
-					}
 
-					mMaterials[data->materials[m].name]->Set<DirectX::XMFLOAT4>("Albedo", albedoColor);
-					mMaterials[data->materials[m].name]->Set<int>("AlbedoTexToggle", useAlbedoMap);
+					mMaterials[data->materials[m].name]->SetAlbedo({ albedoColor.x, albedoColor.y, albedoColor.z });
+					mMaterials[data->materials[m].name]->SetUseAlbedo(useAlbedoMap);
 
 					// NORMAL
 					bool hasNormalMap = data->materials[m].normal_texture.texture;
@@ -206,14 +191,10 @@ namespace Toast {
 						std::string texturePath = parentPath.string();
 						std::string completePath = texturePath.append("\\").append(texPath.c_str());
 						useNormalMap = 1;
-						mMaterials[data->materials[m].name]->SetTexture(4, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+						mMaterials[data->materials[m].name]->SetNormalTexture(TextureLibrary::LoadTexture2D(completePath.c_str()));
 						//TOAST_CORE_INFO("Normal map found: %s", completePath.c_str());
 					}
-					else
-					{
-						mMaterials[data->materials[m].name]->SetTexture(4, D3D11_PIXEL_SHADER, whiteTexture);
-					}
-					mMaterials[data->materials[m].name]->Set<int>("NormalTexToggle", useNormalMap);
+					mMaterials[data->materials[m].name]->SetUseNormal(useNormalMap);
 
 					// METALLNESS ROUGHNESS
 					bool hasMetalRoughMap = data->materials[m].pbr_metallic_roughness.metallic_roughness_texture.texture;
@@ -229,7 +210,7 @@ namespace Toast {
 						std::string completePath = texturePath.append("\\").append(texPath.c_str());
 						metalness = 1.0f;
 						useMetalRoughMap = 1;
-						mMaterials[data->materials[m].name]->SetTexture(5, D3D11_PIXEL_SHADER, TextureLibrary::LoadTexture2D(completePath.c_str()));
+						mMaterials[data->materials[m].name]->SetMetalRoughTexture(TextureLibrary::LoadTexture2D(completePath.c_str()));
 					}
 					else
 					{
@@ -237,12 +218,10 @@ namespace Toast {
 						//TOAST_CORE_INFO("data->materials[m].pbr_metallic_roughness.roughness_factor: %f", data->materials[m].pbr_metallic_roughness.roughness_factor);
 						metalness = data->materials[m].pbr_metallic_roughness.metallic_factor;
 						roughness = data->materials[m].pbr_metallic_roughness.roughness_factor;
-
-						mMaterials[data->materials[m].name]->SetTexture(5, D3D11_PIXEL_SHADER, whiteTexture);
 					}
-					mMaterials[data->materials[m].name]->Set<float>("Metalness", metalness);
-					mMaterials[data->materials[m].name]->Set<float>("Roughness", roughness);
-					mMaterials[data->materials[m].name]->Set<int>("MetalRoughTexToggle", useMetalRoughMap);
+					mMaterials[data->materials[m].name]->SetMetalness(metalness);
+					mMaterials[data->materials[m].name]->SetRoughness(roughness);
+					mMaterials[data->materials[m].name]->SetUseMetalRough(useMetalRoughMap);
 				}
 			}
 			TOAST_CORE_INFO("Number of materials loaded: %d", mMaterials.size());
@@ -312,13 +291,6 @@ namespace Toast {
 		mVertices = vertices;
 		mIndices = indices;
 
-		mMaterials.insert({ "Standard", MaterialLibrary::Get("Standard") });
-
-		mModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Model) });
-		mModelCBuffer->Bind();
-		mModelBuffer.Allocate(mModelCBuffer->GetSize());
-		mModelBuffer.ZeroInitialize();
-
 		mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
 		mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
 	}
@@ -378,23 +350,6 @@ namespace Toast {
 			mInstanceVertexBuffer->SetData(data, size);
 	}
 
-	const Toast::ShaderCBufferElement* Mesh::FindCBufferElementDeclaration(const std::string& materialName, const std::string& cbufferName, const std::string& name)
-	{
-		const auto& shaderCBuffers = mMaterials[materialName]->GetShader()->GetCBuffersBindings();
-
-		if (shaderCBuffers.size() > 0)
-		{
-			const ShaderCBufferBindingDesc& buffer = shaderCBuffers.at(cbufferName);
-
-			if (buffer.CBufferElements.find(name) == buffer.CBufferElements.end())
-				return nullptr;
-
-			return &buffer.CBufferElements.at(name);
-		}
-
-		return nullptr;
-	}
-
 	void Mesh::AddSubmesh(uint32_t indexCount)
 	{
 		Submesh& submesh = mSubmeshes.emplace_back();
@@ -405,15 +360,6 @@ namespace Toast {
 		TOAST_CORE_INFO("Adding submesh");
 	}
 
-	void Mesh::Map(const std::string& materialName)
-	{
-		if (mModelCBuffer)
-			mModelCBuffer->Map(mModelBuffer);
-
-		if (mMaterials.size() > 0)
-			mMaterials[materialName]->Map();
-	}
-
 	void Mesh::Bind(const std::string& materialName, bool environment, bool bindShader)
 	{
 		mVertexBuffer->Bind();
@@ -421,12 +367,6 @@ namespace Toast {
 
 		if(mInstanceVertexBuffer)
 			mInstanceVertexBuffer->Bind();
-
-		if(mModelCBuffer)
-			mModelCBuffer->Bind();
-
-		if (mMaterials.size() > 0)
-			mMaterials[materialName]->Bind(environment, bindShader);
 	}
 
 	void Submesh::OnUpdate(Timestep ts)

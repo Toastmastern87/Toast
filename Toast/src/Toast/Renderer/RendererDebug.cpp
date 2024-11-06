@@ -175,9 +175,9 @@ namespace Toast {
 		{
 			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
 			{
-				meshCommand.Mesh->Set<DirectX::XMMATRIX>("Standard", "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
+				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-				meshCommand.Mesh->Map("Standard");
 				meshCommand.Mesh->Bind("Standard", true);
 
 				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
@@ -233,8 +233,9 @@ namespace Toast {
 
 			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
 			{
-				meshCommand.Mesh->Set<DirectX::XMMATRIX>(submesh.MaterialName, "Model", "worldMatrix", DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform));
-				meshCommand.Mesh->Map(submesh.MaterialName);
+				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+				//meshCommand.Mesh->Map(submesh.MaterialName);
 				meshCommand.Mesh->Bind(submesh.MaterialName);
 
 				mDebugData->SelectedMeshMaskShader->Bind();

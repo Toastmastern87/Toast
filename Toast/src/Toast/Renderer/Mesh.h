@@ -220,27 +220,6 @@ namespace Toast {
 		Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const DirectX::XMMATRIX& transform);
 		~Mesh() = default;
 
-		template <typename T>
-		void Set(const std::string& materialName, const std::string& cbufferName, const std::string& name, const T& value)
-		{
-			auto decl = FindCBufferElementDeclaration(materialName, cbufferName, name);
-
-			TOAST_CORE_ASSERT(decl, "Couldn't find constant buffer element!");
-			if (!decl)
-				return;
-
-			mModelBuffer.Write((byte*)&value, decl->GetSize(), decl->GetOffset());
-		}
-
-		template <typename T>
-		T& Get(const std::string& materialName, const std::string& cbufferName, const std::string& name)
-		{
-			auto decl = FindCBufferElementDeclaration(materialName, bufferName, name);
-			TOAST_CORE_ASSERT(decl, "Couldn't find constant buffer element!");
-
-			return mModelBuffer.Read<T>(decl->GetOffset());
-		}
-
 		void OnUpdate(Timestep ts);
 		void InvalidatePlanet();
 
@@ -259,7 +238,6 @@ namespace Toast {
 		DirectX::XMMATRIX& GetLocalTransform() { return mSubmeshes[0].Transform; }
 		void SetLocalTransform(DirectX::XMMATRIX& transform) { mSubmeshes[0].Transform = transform; }
 
-		void Map(const std::string& materialName);
 		void Bind(const std::string& materialName, bool environment = true, bool bindShader = true);
 
 		bool GetIsPlanet() const { return mIsPlanet; }
@@ -294,9 +272,6 @@ namespace Toast {
 		std::vector<uint32_t> mIndices;
 
 		PrimitiveTopology mTopology = PrimitiveTopology::TRIANGLELIST;
-
-		Ref<ConstantBuffer> mModelCBuffer;
-		Buffer mModelBuffer;
 
 		bool mIsPlanet = false;
 

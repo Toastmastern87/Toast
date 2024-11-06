@@ -1,21 +1,10 @@
 Material: Material
-Shader: assets/shaders/ToastPBR.hlsl
-Albedo: [0.94092828, 0.0357314274, 0.0357314274, 1]
+Albedo: [-431602080, -431602080, -431602080]
 Metalness: 0
-Roughness: 0.399999976
-UseAlbedoMap: 0
-UseNormalMap: 0
-UseMetalRoughMap: 0
-Textures:
-  - FilePath: assets/textures/White.png
-    BindSlot: 3
-    ShaderType: 5
-  - FilePath: assets/textures/White.png
-    BindSlot: 4
-    ShaderType: 5
-  - FilePath: assets/textures/White.png
-    BindSlot: 5
-    ShaderType: 5
-  - FilePath: assets/textures/White.png
-    BindSlot: 6
-    ShaderType: 5
+Roughness: 0
+UseAlbedoMap: false
+UseNormalMap: false
+UseMetalRoughMap: false
+AlbedoAssetPath: assets/textures/Checkerboard.png
+NormalAssetPath: assets/textures/Checkerboard.png
+MetalRoughAssetPath: assets/textures/Checkerboard.png

@@ -1000,7 +1000,7 @@ namespace Toast {
 	void Scene::SetSkybox(Ref<TextureCube> skybox)
 	{
 		mSkyboxTexture = skybox;
-		mSkyboxMaterial->SetTexture(7, D3D11_PIXEL_SHADER, mSkyboxTexture.get());
+		//mSkyboxMaterial->SetTexture(7, D3D11_PIXEL_SHADER, mSkyboxTexture.get());
 	}
 
 	Entity Scene::FindEntityByName(std::string_view name)
@@ -1129,7 +1129,7 @@ namespace Toast {
 		TerrainDetailComponent* tdc = nullptr;
 
 		component.RenderMesh = CreateRef<Mesh>(true);
-		component.RenderMesh->SetMaterial("Planet", MaterialLibrary::Get("Planet"));
+		//component.RenderMesh->SetMaterial("Planet", MaterialLibrary::Get("Planet"));
 		component.RenderMesh->mTopology = PrimitiveTopology::TRIANGLELIST;
 
 		SceneCamera* mainCamera = nullptr;
@@ -1198,10 +1198,10 @@ namespace Toast {
 	void Scene::OnComponentAdded<SkyLightComponent>(Entity entity, SkyLightComponent& component)
 	{
 		// Initiate the skybox
-		Shader* skyboxShader = ShaderLibrary::Load("assets/shaders/Skybox.hlsl");
-		mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader);
-		mSkybox = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.gltf", true);
-		mSkybox->SetMaterial("Skybox", mSkyboxMaterial);
+		//Shader* skyboxShader = ShaderLibrary::Load("assets/shaders/Skybox.hlsl");
+		//mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader);
+		//mSkybox = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.gltf", true);
+		//mSkybox->SetMaterial("Skybox", mSkyboxMaterial);
 	}
 
 	template<>
@@ -1220,7 +1220,6 @@ namespace Toast {
 		component.Collider = CreateRef<ShapeSphere>(1.0f);
 
 		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf", false, Vector3(0.0, 0.0, 1.0));
-		component.ColliderMesh->SetMaterial("Standard", MaterialLibrary::Get("Standard"));
 	}
 
 	template<>

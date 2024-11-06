@@ -60,7 +60,7 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Planet/PlanetMask.hlsl");
 		ShaderLibrary::Load("assets/shaders/UI.hlsl");
 
-		// Load all materials from the computer
+		// Load all materials from the asset folder
 		std::vector<std::string> materialStrings = FileDialogs::GetAllFiles("\\assets\\materials");
 		MaterialSerializer::Deserialize(materialStrings);
 
@@ -71,7 +71,7 @@ namespace Toast {
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mSceneSettingsPanel.SetContext(mEditorScene);
 		mEnvironmentPanel.SetContext(mEditorScene);
-		mMaterialPanel.SetContext(MaterialLibrary::Get("Standard"));
+		//mMaterialPanel.SetContext(MaterialLibrary::Get("Standard"));
 		mPropertiesPanel.SetContext(mSceneHierarchyPanel.GetSelectedEntity(), &mSceneHierarchyPanel);
 	}
 

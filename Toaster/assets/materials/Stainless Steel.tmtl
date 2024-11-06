@@ -1,15 +1,10 @@
 Material: Stainless Steel
-Shader: assets/shaders/ToastPBR.hlsl
-Albedo: [1, 1, 1, 1]
-Metalness: 1
+Albedo: [-431602080, -431602080, -431602080]
+Metalness: 0
 Roughness: 0
-UseAlbedoMap: 0
-UseNormalMap: 0
-UseMetalRoughMap: 0
-Textures:
-  - FilePath: assets/textures/White.png
-    BindSlot: 3
-    ShaderType: 5
-  - FilePath: assets/textures/White.png
-    BindSlot: 5
-    ShaderType: 5
+UseAlbedoMap: false
+UseNormalMap: false
+UseMetalRoughMap: false
+AlbedoAssetPath: assets/textures/Checkerboard.png
+NormalAssetPath: assets/textures/Checkerboard.png
+MetalRoughAssetPath: assets/textures/Checkerboard.png
