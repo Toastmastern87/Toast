@@ -146,7 +146,7 @@ namespace Toast {
 
 	void RendererAPI::CreateBackbuffer()
 	{
-		mBackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, mWidth, mHeight, 1, TextureFormat::R16G16B16A16_FLOAT, TextureFormat::None, true);
+		mBackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, mWidth, mHeight, 1, TextureFormat::R16G16B16A16_FLOAT, true);
 		mBackbuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ mBackbufferRT }, nullptr, true);
 	}
 

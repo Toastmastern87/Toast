@@ -360,7 +360,7 @@ namespace Toast {
 		TOAST_CORE_INFO("Adding submesh");
 	}
 
-	void Mesh::Bind(const std::string& materialName, bool environment, bool bindShader)
+	void Mesh::Bind()
 	{
 		mVertexBuffer->Bind();
 		mIndexBuffer->Bind();

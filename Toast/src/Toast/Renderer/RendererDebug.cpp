@@ -47,7 +47,6 @@ namespace Toast {
 		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 64);
 		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 128);
 		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 192);
-		//mDebugData->mDebugBuffer.Write((void*)&camera.GetPosition(), 16, 256);
 		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 272);
 		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 276);
 		mDebugData->mDebugCBuffer->Map(mDebugData->mDebugBuffer);
@@ -178,7 +177,7 @@ namespace Toast {
 				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
 				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-				meshCommand.Mesh->Bind("Standard", true);
+				meshCommand.Mesh->Bind();
 
 				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 			}
@@ -236,7 +235,7 @@ namespace Toast {
 				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
 				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 				//meshCommand.Mesh->Map(submesh.MaterialName);
-				meshCommand.Mesh->Bind(submesh.MaterialName);
+				meshCommand.Mesh->Bind();
 
 				mDebugData->SelectedMeshMaskShader->Bind();
 

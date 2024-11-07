@@ -27,8 +27,8 @@ namespace Toast {
 	//     TEXTURE2D     ///////////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	Texture2D::Texture2D(DXGI_FORMAT format, uint32_t width, uint32_t height, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag)
-		: mWidth(width), mHeight(height)
+	Texture2D::Texture2D(DXGI_FORMAT format, DXGI_FORMAT srvFormat, uint32_t width, uint32_t height, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags)
+		: mWidth(width), mHeight(height), mFormat(format), mSRVFormat(srvFormat)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -41,13 +41,13 @@ namespace Toast {
 		textureDesc.ArraySize = 1;
 		textureDesc.BindFlags = bindFlag;
 		textureDesc.Usage = usage;
-		textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		textureDesc.CPUAccessFlags = cpuAccessFlags;
 		textureDesc.Format = format;
 		textureDesc.Height = mHeight;
 		textureDesc.Width = mWidth;
 		textureDesc.MipLevels = 1;
 		textureDesc.MiscFlags = 0;
-		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Count = samples;
 		textureDesc.SampleDesc.Quality = 0;
 
 		result = device->CreateTexture2D(&textureDesc, nullptr, &mTexture);
@@ -161,7 +161,7 @@ namespace Toast {
 		ID3D11Device* device = API->GetDevice();
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc = {};
-		shaderResourceViewDesc.Format = desc.Format;
+		shaderResourceViewDesc.Format = (mSRVFormat != DXGI_FORMAT_UNKNOWN) ? mSRVFormat : desc.Format;
 		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 		shaderResourceViewDesc.Texture2D.MipLevels = -1;
 		shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;

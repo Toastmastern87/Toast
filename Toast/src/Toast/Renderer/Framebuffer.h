@@ -19,6 +19,7 @@ namespace Toast {
 		void CreateDepthDisabledState();
 
 		void Bind() const;
+		void Unbind() const;
 		void Invalidate();
 
 		void Resize(uint32_t width, uint32_t height);
