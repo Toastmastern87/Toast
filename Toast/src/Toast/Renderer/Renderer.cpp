@@ -29,11 +29,17 @@ namespace Toast {
 		sRendererData->CameraBuffer.Allocate(sRendererData->CameraCBuffer->GetSize());
 		sRendererData->CameraBuffer.ZeroInitialize();
 
-		// Setting up the constant buffer and data buffer for the Mesh rendering
+		// Setting up the constant buffer and data buffer for the Model
 		sRendererData->ModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Model) });
 		sRendererData->ModelCBuffer->Bind();
 		sRendererData->ModelBuffer.Allocate(sRendererData->ModelCBuffer->GetSize());
 		sRendererData->ModelBuffer.ZeroInitialize();
+
+		// Setting up the constant buffer and data buffer for the PBR Material
+		sRendererData->MaterialCBuffer = ConstantBufferLibrary::Load("Material", 48, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Material) });
+		sRendererData->MaterialCBuffer->Bind();
+		sRendererData->MaterialBuffer.Allocate(sRendererData->MaterialCBuffer->GetSize());
+		sRendererData->MaterialBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for lightning rendering
 		sRendererData->LightningCBuffer = ConstantBufferLibrary::Load("DirectionalLight", 48, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::DirectionalLight) });
@@ -70,7 +76,7 @@ namespace Toast {
 		sRendererData->GPassAlbedoMetallicRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
 		sRendererData->GPassRoughnessAORT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
 		sRendererData->GPassPickingRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32_SINT);
-		sRendererData->GPassDepthRT = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::R32_TYPELESS, TextureFormat::D32_FLOAT);
+		sRendererData->GPassDepthRT = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::D32_FLOAT);
 
 		// Setting up the framebuffer for the Geometry Pass
 		sRendererData->GPassFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->GPassPositionRT, sRendererData->GPassNormalRT, sRendererData->GPassAlbedoMetallicRT, sRendererData->GPassRoughnessAORT, sRendererData->GPassPickingRT }, sRendererData->GPassDepthRT);
@@ -145,9 +151,9 @@ namespace Toast {
 		GeometryPass();
 		LightningPass();
 
-		BaseRenderPass();
+		//BaseRenderPass();
 		//PickingRenderPass();
-		PostProcessPass();
+		//PostProcessPass();
 
 		if (!debugActivated) 
 		{
@@ -296,6 +302,9 @@ namespace Toast {
 			annotation->BeginEvent(L"Geometry Pass");
 #endif
 
+		// Temp
+		sRendererData->FinalFramebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
+
 		sRendererData->GPassFramebuffer->Bind();
 		sRendererData->GPassFramebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
 
@@ -328,7 +337,7 @@ namespace Toast {
 						sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
 						//meshCommand.Mesh->Map(submesh.MaterialName);
-						meshCommand.Mesh->Bind(submesh.MaterialName, environment, false);
+						meshCommand.Mesh->Bind();
 
 						uint32_t bufferElements = meshCommand.Mesh->mInstanceVertexBuffer->GetBufferSize() / sizeof(DirectX::XMFLOAT3);
 						RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, meshCommand.Mesh->GetNumberOfInstances(), 0, 0, 0);
@@ -348,7 +357,8 @@ namespace Toast {
 						sRendererData->ModelBuffer.Write((uint8_t*)&planet, 4, 68);
 						sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-						meshCommand.Mesh->Bind(submesh.MaterialName, environment, false);
+						//meshCommand.Mesh->Bind(submesh.MaterialName, environment, false);
+						meshCommand.Mesh->Bind();
 
 						RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 					}
@@ -365,6 +375,8 @@ namespace Toast {
 				//RenderCommand::DrawIndexed(meshCommand.Mesh->mSubmeshes[0].BaseVertex, meshCommand.Mesh->mSubmeshes[0].BaseIndex, meshCommand.Mesh->mSubmeshes[0].IndexCount);
 			}
 		}
+
+		sRendererData->GPassFramebuffer->Unbind();
 
 #ifdef TOAST_DEBUG
 		if (annotation)
@@ -383,215 +395,222 @@ namespace Toast {
 			annotation->BeginEvent(L"Lightning Pass");
 #endif
 
-		RenderCommand::Draw(3);
-
-#ifdef TOAST_DEBUG
-		if (annotation)
-			annotation->EndEvent();
-#endif
-	}
-
-	void Renderer::BaseRenderPass()
-	{
-	TOAST_PROFILE_FUNCTION();
-
-#ifdef TOAST_DEBUG
-		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
-		RenderCommand::GetAnnotation(annotation);
-		if (annotation)
-			annotation->BeginEvent(L"Base Render Pass");
-#endif
-
-		//TOAST_CORE_CRITICAL("Base Render Pass");
-
-		RenderCommand::EnableBlending();
-
-		sRendererData->BaseFramebuffer->Bind();
-		sRendererData->BaseFramebuffer->Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
-
-		if (sRendererData->SceneData.SkyboxData.Skybox)
-		{
-			if (sRendererData->SceneData.SkyboxData.Skybox->mVertexBuffer) sRendererData->SceneData.SkyboxData.Skybox->mVertexBuffer->Bind();
-			if (sRendererData->SceneData.SkyboxData.Skybox->mIndexBuffer) sRendererData->SceneData.SkyboxData.Skybox->mIndexBuffer->Bind();
-
-			sRendererData->SceneData.SkyboxData.Skybox->Bind("Skybox");
-
-			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.Intensity, 4, 0);
-			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
-			sRendererData->EnvironmentCBuffer->Map(sRendererData->EnvironmentBuffer);
-
-			RenderCommand::DisableWireframe();
-			RenderCommand::SetPrimitiveTopology(sRendererData->SceneData.SkyboxData.Skybox->mTopology);
-
-			for (Submesh& submesh : sRendererData->SceneData.SkyboxData.Skybox->mSubmeshes)
-				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
-		}
-
-		for (const auto& meshCommand : sRendererData->MeshDrawList) 
-		{
-			if (meshCommand.Wireframe)
-				RenderCommand::EnableWireframe();
-			else
-				RenderCommand::DisableWireframe();
-
-			RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
-
-			int planet;
-
-			if (!meshCommand.PlanetData)
-			{
-				if (meshCommand.Mesh->IsInstanced())
-				{
-					for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
-					{
-						bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
-
-						planet = 0;
-
-						sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
-						sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
-						sRendererData->ModelBuffer.Write((uint8_t*)&planet, 4, 68);
-						sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
-
-						//meshCommand.Mesh->Map(submesh.MaterialName);
-						meshCommand.Mesh->Bind(submesh.MaterialName, environment);
-
-						uint32_t bufferElements = meshCommand.Mesh->mInstanceVertexBuffer->GetBufferSize() / sizeof(DirectX::XMFLOAT3);
-						RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, meshCommand.Mesh->GetNumberOfInstances(), 0, 0, 0);
-					}
-				}
-				else
-				{
-					for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
-					{
-						//TOAST_CORE_INFO("Rendering submesh with material: %s", submesh.MaterialName.c_str());
-						bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
-
-						planet = 0;
-
-						sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
-						sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
-						sRendererData->ModelBuffer.Write((uint8_t*)&planet, 4, 68);
-						sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
-
-						//meshCommand.Mesh->Map(submesh.MaterialName);
-						meshCommand.Mesh->Bind(submesh.MaterialName, environment);
-
-						RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
-					}
-				}
-			}
-			else 
-			{
-				//meshCommand.Mesh->Map("Planet");
-				meshCommand.Mesh->Bind("Planet");
-
-				RenderCommand::DrawIndexed(meshCommand.Mesh->mSubmeshes[0].BaseVertex, meshCommand.Mesh->mSubmeshes[0].BaseIndex, meshCommand.Mesh->mSubmeshes[0].IndexCount);
-			}
-		}
-
-#ifdef TOAST_DEBUG
-		if (annotation)
-			annotation->EndEvent();
-#endif
-	}
-
-	void Renderer::PostProcessPass()
-	{
-		TOAST_PROFILE_FUNCTION();
-
-#ifdef TOAST_DEBUG
-		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
-		RenderCommand::GetAnnotation(annotation);
-		if (annotation)
-			annotation->BeginEvent(L"Atmosphere Pass");
-#endif
-		//TOAST_CORE_CRITICAL("Post Process Pass");
-
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
-
-		RenderCommand::EnableBlending(); 
-
-		ID3D11RenderTargetView* nullRTV = nullptr;
-		deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
-
-		sRendererData->PostProcessFramebuffer->DisableDepth();
-		sRendererData->PostProcessFramebuffer->Bind();
-		sRendererData->PostProcessFramebuffer->Clear({ 0.2f, 0.2f, 0.2f, 1.0f });
-
-		auto depthMask = sRendererData->GPassDepthRT->GetSRV();
-		deviceContext->PSSetShaderResources(9, 1, depthMask.GetAddressOf());
-		auto baseTexture = sRendererData->BaseRenderTarget->GetSRV();
-		deviceContext->PSSetShaderResources(10, 1, baseTexture.GetAddressOf());
-
-		auto sampler = TextureLibrary::GetSampler("Default");
-		sampler->Bind(1, D3D11_PIXEL_SHADER);
-
-		auto atmosphereShader = ShaderLibrary::Get("assets/shaders/Planet/Atmosphere.hlsl");
-		atmosphereShader->Bind();	
-
-		for (const auto& meshCommand : sRendererData->MeshDrawList)
-		{
-			if (meshCommand.PlanetData)
-			{
-				int atmosphereToggle = meshCommand.PlanetData->atmosphereToggle ? 1 : 0;
-
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->radius, 4, 0);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->minAltitude, 4, 4);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->maxAltitude, 4, 8);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->atmosphereHeight, 4, 12);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieAnisotropy, 4, 16);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->rayScaleHeight, 4, 20);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieScaleHeight, 4, 24);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->rayBaseScatteringCoefficient, 12, 32);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieBaseScatteringCoefficient, 4, 44);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->planetCenter, 16, 48);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphereToggle, 4, 60);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->inScatteringPoints, 4, 64);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->opticalDepthPoints, 4, 68);
-
-				sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
-			}
-		}
-
-		RenderCommand::SetPrimitiveTopology(PrimitiveTopology::TRIANGLELIST);
+		deviceContext->PSSetShaderResources(0, 1, sRendererData->GPassPositionRT->GetSRV().GetAddressOf());
+		deviceContext->PSSetShaderResources(1, 1, sRendererData->GPassNormalRT->GetSRV().GetAddressOf());
+		deviceContext->PSSetShaderResources(2, 1, sRendererData->GPassAlbedoMetallicRT->GetSRV().GetAddressOf());
+		deviceContext->PSSetShaderResources(3, 1, sRendererData->GPassRoughnessAORT->GetSRV().GetAddressOf());
 
 		RenderCommand::Draw(3);
 
-#ifdef TOAST_DEBUG
-		if (annotation)
-			annotation->EndEvent();
-
-		if (annotation)
-			annotation->BeginEvent(L"Tonemapping Pass");
-#endif
-
-		ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-		deviceContext->PSSetShaderResources(9, 1, nullSRV);
-		deviceContext->PSSetShaderResources(10, 1, nullSRV);
-
-		//Tonemapping
-		sRendererData->FinalFramebuffer->DisableDepth();
-		sRendererData->FinalFramebuffer->Bind();
-		sRendererData->FinalFramebuffer->Clear({ 0.2f, 0.2f, 0.2f, 1.0f });
-
-		sampler->Bind(1, D3D11_PIXEL_SHADER);
-
-		auto toneMappingShader = ShaderLibrary::Get("assets/shaders/ToneMapping.hlsl");
-		toneMappingShader->Bind();
-
-		auto texture = sRendererData->PostProcessRenderTarget->GetSRV();
-		deviceContext->PSSetShaderResources(10, 1, texture.GetAddressOf());
-
-		RenderCommand::Draw(3);
-
-		deviceContext->PSSetShaderResources(10, 1, nullSRV);
 #ifdef TOAST_DEBUG
 		if (annotation)
 			annotation->EndEvent();
 #endif
 	}
+
+//	void Renderer::BaseRenderPass()
+//	{
+//	TOAST_PROFILE_FUNCTION();
+//
+//#ifdef TOAST_DEBUG
+//		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+//		RenderCommand::GetAnnotation(annotation);
+//		if (annotation)
+//			annotation->BeginEvent(L"Base Render Pass");
+//#endif
+//
+//		//TOAST_CORE_CRITICAL("Base Render Pass");
+//
+//		RenderCommand::EnableBlending();
+//
+//		sRendererData->BaseFramebuffer->Bind();
+//		sRendererData->BaseFramebuffer->Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
+//
+//		if (sRendererData->SceneData.SkyboxData.Skybox)
+//		{
+//			if (sRendererData->SceneData.SkyboxData.Skybox->mVertexBuffer) sRendererData->SceneData.SkyboxData.Skybox->mVertexBuffer->Bind();
+//			if (sRendererData->SceneData.SkyboxData.Skybox->mIndexBuffer) sRendererData->SceneData.SkyboxData.Skybox->mIndexBuffer->Bind();
+//
+//			sRendererData->SceneData.SkyboxData.Skybox->Bind("Skybox");
+//
+//			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.Intensity, 4, 0);
+//			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
+//			sRendererData->EnvironmentCBuffer->Map(sRendererData->EnvironmentBuffer);
+//
+//			RenderCommand::DisableWireframe();
+//			RenderCommand::SetPrimitiveTopology(sRendererData->SceneData.SkyboxData.Skybox->mTopology);
+//
+//			for (Submesh& submesh : sRendererData->SceneData.SkyboxData.Skybox->mSubmeshes)
+//				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+//		}
+//
+//		for (const auto& meshCommand : sRendererData->MeshDrawList) 
+//		{
+//			if (meshCommand.Wireframe)
+//				RenderCommand::EnableWireframe();
+//			else
+//				RenderCommand::DisableWireframe();
+//
+//			RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
+//
+//			int planet;
+//
+//			if (!meshCommand.PlanetData)
+//			{
+//				if (meshCommand.Mesh->IsInstanced())
+//				{
+//					for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+//					{
+//						bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
+//
+//						planet = 0;
+//
+//						sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+//						sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
+//						sRendererData->ModelBuffer.Write((uint8_t*)&planet, 4, 68);
+//						sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+//
+//						//meshCommand.Mesh->Map(submesh.MaterialName);
+//						meshCommand.Mesh->Bind(submesh.MaterialName, environment);
+//
+//						uint32_t bufferElements = meshCommand.Mesh->mInstanceVertexBuffer->GetBufferSize() / sizeof(DirectX::XMFLOAT3);
+//						RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, meshCommand.Mesh->GetNumberOfInstances(), 0, 0, 0);
+//					}
+//				}
+//				else
+//				{
+//					for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+//					{
+//						//TOAST_CORE_INFO("Rendering submesh with material: %s", submesh.MaterialName.c_str());
+//						bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
+//
+//						planet = 0;
+//
+//						sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+//						sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
+//						sRendererData->ModelBuffer.Write((uint8_t*)&planet, 4, 68);
+//						sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+//
+//						//meshCommand.Mesh->Map(submesh.MaterialName);
+//						meshCommand.Mesh->Bind(submesh.MaterialName, environment);
+//
+//						RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+//					}
+//				}
+//			}
+//			else 
+//			{
+//				//meshCommand.Mesh->Map("Planet");
+//				meshCommand.Mesh->Bind("Planet");
+//
+//				RenderCommand::DrawIndexed(meshCommand.Mesh->mSubmeshes[0].BaseVertex, meshCommand.Mesh->mSubmeshes[0].BaseIndex, meshCommand.Mesh->mSubmeshes[0].IndexCount);
+//			}
+//		}
+//
+//#ifdef TOAST_DEBUG
+//		if (annotation)
+//			annotation->EndEvent();
+//#endif
+//	}
+//
+//	void Renderer::PostProcessPass()
+//	{
+//		TOAST_PROFILE_FUNCTION();
+//
+//#ifdef TOAST_DEBUG
+//		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+//		RenderCommand::GetAnnotation(annotation);
+//		if (annotation)
+//			annotation->BeginEvent(L"Atmosphere Pass");
+//#endif
+//		//TOAST_CORE_CRITICAL("Post Process Pass");
+//
+//		RendererAPI* API = RenderCommand::sRendererAPI.get();
+//		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+//
+//		RenderCommand::EnableBlending(); 
+//
+//		ID3D11RenderTargetView* nullRTV = nullptr;
+//		deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
+//
+//		sRendererData->PostProcessFramebuffer->DisableDepth();
+//		sRendererData->PostProcessFramebuffer->Bind();
+//		sRendererData->PostProcessFramebuffer->Clear({ 0.2f, 0.2f, 0.2f, 1.0f });
+//
+//		auto depthMask = sRendererData->GPassDepthRT->GetSRV();
+//		deviceContext->PSSetShaderResources(9, 1, depthMask.GetAddressOf());
+//		auto baseTexture = sRendererData->BaseRenderTarget->GetSRV();
+//		deviceContext->PSSetShaderResources(10, 1, baseTexture.GetAddressOf());
+//
+//		auto sampler = TextureLibrary::GetSampler("Default");
+//		sampler->Bind(1, D3D11_PIXEL_SHADER);
+//
+//		auto atmosphereShader = ShaderLibrary::Get("assets/shaders/Planet/Atmosphere.hlsl");
+//		atmosphereShader->Bind();	
+//
+//		for (const auto& meshCommand : sRendererData->MeshDrawList)
+//		{
+//			if (meshCommand.PlanetData)
+//			{
+//				int atmosphereToggle = meshCommand.PlanetData->atmosphereToggle ? 1 : 0;
+//
+//				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->radius, 4, 0);
+//				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->minAltitude, 4, 4);
+//				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->maxAltitude, 4, 8);
+//				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->atmosphereHeight, 4, 12);
+//				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieAnisotropy, 4, 16);
+//				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->rayScaleHeight, 4, 20);
+//				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieScaleHeight, 4, 24);
+//				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->rayBaseScatteringCoefficient, 12, 32);
+//				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieBaseScatteringCoefficient, 4, 44);
+//				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->planetCenter, 16, 48);
+//				sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphereToggle, 4, 60);
+//				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->inScatteringPoints, 4, 64);
+//				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->opticalDepthPoints, 4, 68);
+//
+//				sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
+//			}
+//		}
+//
+//		RenderCommand::SetPrimitiveTopology(PrimitiveTopology::TRIANGLELIST);
+//
+//		RenderCommand::Draw(3);
+//
+//#ifdef TOAST_DEBUG
+//		if (annotation)
+//			annotation->EndEvent();
+//
+//		if (annotation)
+//			annotation->BeginEvent(L"Tonemapping Pass");
+//#endif
+//
+//		ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+//		deviceContext->PSSetShaderResources(9, 1, nullSRV);
+//		deviceContext->PSSetShaderResources(10, 1, nullSRV);
+//
+//		//Tonemapping
+//		sRendererData->FinalFramebuffer->DisableDepth();
+//		sRendererData->FinalFramebuffer->Bind();
+//		sRendererData->FinalFramebuffer->Clear({ 0.2f, 0.2f, 0.2f, 1.0f });
+//
+//		sampler->Bind(1, D3D11_PIXEL_SHADER);
+//
+//		auto toneMappingShader = ShaderLibrary::Get("assets/shaders/ToneMapping.hlsl");
+//		toneMappingShader->Bind();
+//
+//		auto texture = sRendererData->PostProcessRenderTarget->GetSRV();
+//		deviceContext->PSSetShaderResources(10, 1, texture.GetAddressOf());
+//
+//		RenderCommand::Draw(3);
+//
+//		deviceContext->PSSetShaderResources(10, 1, nullSRV);
+//#ifdef TOAST_DEBUG
+//		if (annotation)
+//			annotation->EndEvent();
+//#endif
+//	}
 
 	void Renderer::ResetStats()
 	{

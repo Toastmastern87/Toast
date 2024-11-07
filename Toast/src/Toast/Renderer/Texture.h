@@ -35,7 +35,7 @@ namespace Toast {
 	class Texture2D : public Texture
 	{
 	public:
-		Texture2D(DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM, uint32_t width = 1, uint32_t height = 1, D3D11_USAGE usage = D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG bindFlag = (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS));
+		Texture2D(DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT srvFormat = DXGI_FORMAT_UNKNOWN, uint32_t width = 1, uint32_t height = 1, D3D11_USAGE usage = D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG bindFlag = (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), uint32_t samples = 1, UINT cpuAccessFlags = 0);
 		Texture2D(const std::string& filePath, bool forceSRGB = true);
 		~Texture2D() = default;
 
@@ -47,7 +47,7 @@ namespace Toast {
 		virtual const uint32_t GetHeight() const override { return mHeight; }
 		virtual const std::string GetFilePath() const override { return mFilePath; }
 		virtual void* GetID() const override { return (void*)mSRV.Get(); }
-		//Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() { return mTexture; }
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() { return mSRV; }
 		virtual const uint32_t GetMipLevelCount() const override;
 
 		void SetData(void* data, uint32_t size);
@@ -62,14 +62,19 @@ namespace Toast {
 		{
 			return mSRV == ((Texture2D&)other).mSRV;
 		};
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() { return mTexture; }
 	private:
 		std::string mFilePath = "";
 		uint32_t mWidth, mHeight;
+
+		DXGI_FORMAT mFormat, mSRVFormat;
 
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> mTexture;
 		Microsoft::WRL::ComPtr<ID3D11Resource> mResource;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mSRV;
 		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mUAV;
+
 		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mNullUAV = { nullptr };
 	};
 

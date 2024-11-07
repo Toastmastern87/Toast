@@ -47,7 +47,7 @@ namespace Toast {
 
 		msdfgen::BitmapConstRef<T, N> bitmap = (msdfgen::BitmapConstRef<T, N>) generator.atlasStorage();
 
-		Ref<Texture2D> texture = CreateRef<Texture2D>(DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT, bitmap.width, bitmap.height, D3D11_USAGE_DYNAMIC, D3D11_BIND_SHADER_RESOURCE);
+		Ref<Texture2D> texture = CreateRef<Texture2D>(DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT, DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT, bitmap.width, bitmap.height, D3D11_USAGE_DYNAMIC, D3D11_BIND_SHADER_RESOURCE, 1, D3D11_CPU_ACCESS_WRITE);
 		texture->SetData((void*)bitmap.pixels, ((bitmap.width * bitmap.height) * 4 * sizeof(float)));
 		return texture;
 	}

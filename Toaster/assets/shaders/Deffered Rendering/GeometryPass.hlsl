@@ -58,7 +58,7 @@ PixelInputType main(VertexInputType input)
  
     float4 viewPosition = mul(worldPosition, viewMatrix);
     output.pixelPosition = mul(viewPosition, projectionMatrix);
-    output.viewPosition = viewPosition.xyz;
+    output.viewPosition = worldPosition; //viewPosition.xyz;
     
     float3 worldNormal = mul(input.normal, (float3x3) worldMatrix);
     float3 viewNormal = mul(worldNormal, (float3x3) viewMatrix);

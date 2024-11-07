@@ -238,7 +238,7 @@ namespace Toast {
 		DirectX::XMMATRIX& GetLocalTransform() { return mSubmeshes[0].Transform; }
 		void SetLocalTransform(DirectX::XMMATRIX& transform) { mSubmeshes[0].Transform = transform; }
 
-		void Bind(const std::string& materialName, bool environment = true, bool bindShader = true);
+		void Bind();
 
 		bool GetIsPlanet() const { return mIsPlanet; }
 
@@ -248,8 +248,6 @@ namespace Toast {
 		bool IsInstanced() const { return mInstanced; }
 		uint32_t GetNumberOfInstances() const { return mNumberOfInstances; }
 		void SetInstanceData(const void* data, uint32_t size, uint32_t numberOfInstances);
-	private:
-		const ShaderCBufferElement* FindCBufferElementDeclaration(const std::string& materialName, const std::string& cbufferName, const std::string& name);
 	private:
 		std::string mFilePath = "";
 

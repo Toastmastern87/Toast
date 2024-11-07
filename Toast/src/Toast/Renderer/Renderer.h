@@ -94,8 +94,8 @@ namespace Toast {
 		static void GeometryPass();
 		static void LightningPass();
 
-		static void BaseRenderPass();
-		static void PostProcessPass();
+		//static void BaseRenderPass();
+		//static void PostProcessPass();
 
 		static Ref<RenderTarget>& GetDepthRT() { return sRendererData->GPassDepthRT; }
 		static Ref<RenderTarget>& GetGPassPositionRT() { return sRendererData->GPassPositionRT; }
