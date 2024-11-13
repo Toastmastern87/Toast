@@ -603,8 +603,7 @@ namespace Toast {
 				bool updateTransform = false;
 				bool updateRotTransform = false;
 
-				Ref<RenderTarget>& baseRenderTarget = Renderer::GetBaseRenderTarget();
-				auto [width, height] = baseRenderTarget->GetSize();
+				auto [width, height] = Renderer::GetGPassPositionRT()->GetSize();
 
 				if (entity2D)
 				{

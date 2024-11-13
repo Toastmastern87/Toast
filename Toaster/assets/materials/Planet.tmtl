@@ -1,7 +1,7 @@
-Material: RaptorEngineMaterial
-Albedo: [0.0677650943, 0.0765801966, 0.0353344567, 1]
+Material: Planet
+Albedo: [0.662447214, 0.39545849, 0.231996283, 1.0]
 Metalness: 1
-Roughness: 0.349999994
+Roughness: 0.984000027
 UseAlbedoMap: false
 UseNormalMap: false
 UseMetalRoughMap: false

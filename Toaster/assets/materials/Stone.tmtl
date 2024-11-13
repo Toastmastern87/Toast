@@ -1,7 +1,7 @@
 Material: Stone
-Albedo: [-431602080, -431602080, -431602080]
+Albedo: [0.428687692, 0.428690821, 0.428690672, 1]
 Metalness: 0
-Roughness: 0
+Roughness: 0.877358496
 UseAlbedoMap: false
 UseNormalMap: false
 UseMetalRoughMap: false

@@ -1,6 +1,10 @@
 #inputlayout
 vertex
 vertex
+vertex
+vertex
+vertex
+instance
 
 #type vertex
 #pragma pack_matrix( row_major )
@@ -20,16 +24,18 @@ cbuffer Model : register(b1)
 {
     matrix worldMatrix;
     int entityID;
-    int planet;
+    int noWorldTransform;
+    int isInstanced;
 };
 
 struct VertexInputType
 {
-    float3 position         : POSITION;
-    float3 normal           : NORMAL;
-    float4 tangent          : TANGENT;
-    float2 texCoord         : TEXCOORD;
-    float3 color            : COLOR0;
+    float3 position                 : POSITION0;
+    float3 normal                   : NORMAL;
+    float4 tangent                  : TANGENT;
+    float2 texCoord                 : TEXCOORD;
+    float3 color                    : COLOR0;
+    float3 worldInstancePosition    : POSITION1;
 };
 
 struct PixelInputType
@@ -42,30 +48,104 @@ struct PixelInputType
     int entityID            : TEXTUREID;
 };
 
+float Random(float3 seed)
+{
+    // Simple random function based on the dot product
+    return frac(sin(dot(seed, float3(12.9898f, 78.233f, 45.164f)) * 43758.5453f));
+    
+}
+
+float4x4 CreateRotationMatrix(float3 rotationAngles)
+{
+    // Rotation matrix around the X axis
+    float cosX = cos(rotationAngles.x);
+    float sinX = sin(rotationAngles.x);
+    float4x4 rotationX = float4x4(
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, cosX, -sinX, 0.0f,
+        0.0f, sinX, cosX, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    );
+
+    // Rotation matrix around the Y axis
+    float cosY = cos(rotationAngles.y);
+    float sinY = sin(rotationAngles.y);
+    float4x4 rotationY = float4x4(
+        cosY, 0.0f, sinY, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        -sinY, 0.0f, cosY, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    );
+
+    // Rotation matrix around the Z axis
+    float cosZ = cos(rotationAngles.z);
+    float sinZ = sin(rotationAngles.z);
+    float4x4 rotationZ = float4x4(
+        cosZ, -sinZ, 0.0f, 0.0f,
+        sinZ, cosZ, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    );
+
+    // Combine all rotations
+    return mul(mul(rotationX, rotationY), rotationZ);
+}
+
 PixelInputType main(VertexInputType input)
 {
     PixelInputType output;
 
     float4 worldPosition;
-    if (planet != 1)
+    float3 worldNormal;
+    float3 worldTangent;
+    
+    if (isInstanced)
     {
-        worldPosition = mul(float4(input.position, 1.0f), worldMatrix);
+        // Generate pseudo-random scale and rotation
+        float seed = Random(input.worldInstancePosition);
+        float scale = lerp(1.0f, 5.0f, seed); // Scale between 80% and 120%
+    
+        // Generate random rotation angles (between 0 and 2 * PI)
+        float3 rotationAngles = float3(
+        seed * 6.2831853, // Random X rotation
+        (seed + 0.33f) * 6.2831853, // Random Y rotation
+        (seed + 0.66f) * 6.2831853); // Random Z rotation
+        
+        // Create rotation matrix
+        float4x4 rotationMatrix = CreateRotationMatrix(rotationAngles);
+        
+        // Apply scale and rotation
+        float4 transformedPosition = float4(input.position * scale, 1.0f);
+        transformedPosition = mul(transformedPosition, rotationMatrix);
+        
+        worldPosition = float4(transformedPosition.xyz + input.worldInstancePosition, 1.0f);
+        
+        float3 worldNormal = mul(input.normal, (float3x3) rotationMatrix);
+        float3 worldTangent = mul(input.tangent.xyz, (float3x3) rotationMatrix);
     }
     else
     {
-        worldPosition = float4(input.position, 1.0f);
+        if (noWorldTransform == 1)
+        {
+            worldPosition = float4(input.position, 1.0f);
+            worldNormal = input.normal;
+            worldTangent = input.tangent.xyz;
+
+        }
+        else
+        {
+            worldPosition = mul(float4(input.position, 1.0f), worldMatrix);
+            worldNormal = mul(input.normal, (float3x3) worldMatrix);
+            worldTangent = mul(input.tangent.xyz, (float3x3) worldMatrix);
+        }
     }
- 
+
     float4 viewPosition = mul(worldPosition, viewMatrix);
     output.pixelPosition = mul(viewPosition, projectionMatrix);
-    output.viewPosition = worldPosition; //viewPosition.xyz;
-    
-    float3 worldNormal = mul(input.normal, (float3x3) worldMatrix);
-    float3 viewNormal = mul(worldNormal, (float3x3) viewMatrix);
-    
-    float3 worldTangent = mul(input.tangent.xyz, (float3x3) worldMatrix);
-    float3 viewTangent = mul(worldTangent, (float3x3) viewMatrix);
-    viewTangent = normalize(viewTangent);
+    output.viewPosition = viewPosition.xyz;
+
+    float3 viewNormal = normalize(mul(worldNormal, (float3x3) viewMatrix));
+    float3 viewTangent = normalize(mul(worldTangent, (float3x3) viewMatrix));
     
     float3 viewBitangent = cross(viewNormal, viewTangent) * input.tangent.w;
     
@@ -82,6 +162,8 @@ PixelInputType main(VertexInputType input)
 }
 
 #type pixel
+#pragma pack_matrix( row_major )
+
 struct PixelInputType
 {
     float4 pixelPosition    : SV_POSITION;
@@ -144,13 +226,7 @@ PixelOutputType main(PixelInputType input)
     output.entityID = input.entityID + 1;
     
     // Normal
-    float3 N = normalize(input.viewNormal);
-    if (NormalTexToggle == 1)
-    {
-        float3 normalMap = 2.0f * NormalTexture.Sample(defaultSampler, input.texCoord).rgb - 1.0f;
-        N = normalize(mul(normalMap, input.TBN));
-    }
-    
+    float3 N = normalize(input.viewNormal);    
     float3 encodedNormal = N * 0.5 + 0.5;
 
     output.normal = float4(encodedNormal, 0.0);

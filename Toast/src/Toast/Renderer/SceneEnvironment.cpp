@@ -13,7 +13,6 @@ namespace Toast {
 
 		// Compute Cook-Torrance BRDF 2D LUT for split-sum approximation.
 		Ref<Texture2D> spBRDFLUT = CreateRef<Texture2D>(DXGI_FORMAT_R16G16_FLOAT, DXGI_FORMAT_R16G16_FLOAT, 256, 256);
-		TextureLibrary::LoadTextureSampler("BRDFSampler", D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
 
 		if (!spBRDFShader)
 			spBRDFShader = CreateRef<Shader>("assets/shaders/SPBRDF.hlsl");

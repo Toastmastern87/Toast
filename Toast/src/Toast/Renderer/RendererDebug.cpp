@@ -146,8 +146,8 @@ namespace Toast {
 			annotation->BeginEvent(L"Debug Render Pass");
 #endif
 
-		sRendererData->FinalFramebuffer->EnableDepth();
-		sRendererData->FinalFramebuffer->Bind();
+// 		sRendererData->FinalFramebuffer->EnableDepth();
+// 		sRendererData->FinalFramebuffer->Bind();
 
 		RenderCommand::EnableBlending();
 
@@ -214,49 +214,49 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		sRendererData->OutlineFramebuffer->Bind();
-		sRendererData->OutlineFramebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
+		//sRendererData->OutlineFramebuffer->Bind();
+		//sRendererData->OutlineFramebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
 
-		for (const auto& meshCommand : sRendererData->MeshSelectedDrawList) 
-		{
-			if (meshCommand.Mesh->mVertexBuffer)	meshCommand.Mesh->mVertexBuffer->Bind();
-			//if (meshCommand.Mesh->mInstanceVertexBuffer && meshCommand.PlanetData) meshCommand.Mesh->mInstanceVertexBuffer->Bind();
-			if (meshCommand.Mesh->mIndexBuffer)		meshCommand.Mesh->mIndexBuffer->Bind();
+		//for (const auto& meshCommand : sRendererData->MeshSelectedDrawList) 
+		//{
+		//	if (meshCommand.Mesh->mVertexBuffer)	meshCommand.Mesh->mVertexBuffer->Bind();
+		//	//if (meshCommand.Mesh->mInstanceVertexBuffer && meshCommand.PlanetData) meshCommand.Mesh->mInstanceVertexBuffer->Bind();
+		//	if (meshCommand.Mesh->mIndexBuffer)		meshCommand.Mesh->mIndexBuffer->Bind();
 
-			if (meshCommand.Wireframe)
-				RenderCommand::EnableWireframe();
-			else
-				RenderCommand::DisableWireframe();
+		//	if (meshCommand.Wireframe)
+		//		RenderCommand::EnableWireframe();
+		//	else
+		//		RenderCommand::DisableWireframe();
 
-			RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
+		//	RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
 
-			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
-			{
-				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
-				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
-				//meshCommand.Mesh->Map(submesh.MaterialName);
-				meshCommand.Mesh->Bind();
+		//	for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+		//	{
+		//		sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+		//		sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+		//		//meshCommand.Mesh->Map(submesh.MaterialName);
+		//		meshCommand.Mesh->Bind();
 
-				mDebugData->SelectedMeshMaskShader->Bind();
+		//		mDebugData->SelectedMeshMaskShader->Bind();
 
-				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+		//		RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 
-				ID3D11RenderTargetView* nullRTV = nullptr;
-				deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
-				
-				sRendererData->FinalFramebuffer->Bind();
+		//		ID3D11RenderTargetView* nullRTV = nullptr;
+		//		deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
+		//		
+		//		sRendererData->FinalFramebuffer->Bind();
 
-				auto temp = sRendererData->OutlineFramebuffer->GetSRV(0);
-				deviceContext->PSSetShaderResources(9, 1, temp.GetAddressOf());
+		//		auto temp = sRendererData->OutlineFramebuffer->GetSRV(0);
+		//		deviceContext->PSSetShaderResources(9, 1, temp.GetAddressOf());
 
-				mDebugData->OutlineShader->Bind();
+		//		mDebugData->OutlineShader->Bind();
 
-				RenderCommand::Draw(3);	
+		//		RenderCommand::Draw(3);	
 
-				ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-				deviceContext->PSSetShaderResources(9, 1, nullSRV);
-			}
-		}
+		//		ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+		//		deviceContext->PSSetShaderResources(9, 1, nullSRV);
+		//	}
+		//}
 
 #ifdef TOAST_DEBUG
 		if (annotation)

@@ -36,7 +36,7 @@ namespace Toast {
 		sRendererData->ModelBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for the PBR Material
-		sRendererData->MaterialCBuffer = ConstantBufferLibrary::Load("Material", 48, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Material) });
+		sRendererData->MaterialCBuffer = ConstantBufferLibrary::Load("Material", 48, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Material) });
 		sRendererData->MaterialCBuffer->Bind();
 		sRendererData->MaterialBuffer.Allocate(sRendererData->MaterialCBuffer->GetSize());
 		sRendererData->MaterialBuffer.ZeroInitialize();
@@ -65,10 +65,10 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Allocate(sRendererData->AtmosphereCBuffer->GetSize());
 		sRendererData->AtmosphereBuffer.ZeroInitialize();
 
-		sRendererData->BaseRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
-		sRendererData->PostProcessRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
-		sRendererData->FinalRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
-		sRendererData->OutlineRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
+		//sRendererData->BaseRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
+		//sRendererData->PostProcessRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
+		//sRendererData->FinalRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
+		//sRendererData->OutlineRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
 
 		// Setting up the render targets for the Geometry Pass
 		sRendererData->GPassPositionRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32G32B32A32_FLOAT);
@@ -78,17 +78,23 @@ namespace Toast {
 		sRendererData->GPassPickingRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32_SINT);
 		sRendererData->GPassDepthRT = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::D32_FLOAT);
 
+		// Setting up the render targets for the Lightning Pass
+		sRendererData->LPassFinalRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
+
 		// Setting up the framebuffer for the Geometry Pass
 		sRendererData->GPassFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->GPassPositionRT, sRendererData->GPassNormalRT, sRendererData->GPassAlbedoMetallicRT, sRendererData->GPassRoughnessAORT, sRendererData->GPassPickingRT }, sRendererData->GPassDepthRT);
+		sRendererData->LPassFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->LPassFinalRT } );
 
-		sRendererData->BaseFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->BaseRenderTarget}, sRendererData->GPassDepthRT);
-		sRendererData->PostProcessFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->PostProcessRenderTarget}, sRendererData->GPassDepthRT);
-		sRendererData->FinalFramebuffer = CreateRef<Framebuffer>(
-			std::vector<Ref<RenderTarget>>{ sRendererData->FinalRenderTarget, sRendererData->GPassPickingRT },
-			sRendererData->GPassDepthRT
-		);
-		sRendererData->PickingFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->GPassPickingRT});
-		sRendererData->OutlineFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->OutlineRenderTarget});
+		// Setting up the framebuffer for the Lightning pass
+
+		//sRendererData->BaseFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->BaseRenderTarget}, sRendererData->GPassDepthRT);
+		//sRendererData->PostProcessFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->PostProcessRenderTarget}, sRendererData->GPassDepthRT);
+		//sRendererData->FinalFramebuffer = CreateRef<Framebuffer>(
+		//	std::vector<Ref<RenderTarget>>{ sRendererData->FinalRenderTarget, sRendererData->GPassPickingRT },
+		//	sRendererData->GPassDepthRT
+		//);
+		//sRendererData->PickingFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->GPassPickingRT});
+		//sRendererData->OutlineFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->OutlineRenderTarget});
 	}
 
 	void Renderer::Shutdown()
@@ -187,10 +193,10 @@ namespace Toast {
 		sRendererData->SceneData.SkyboxData.LOD = LOD;
 	}
 
-	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe, PlanetComponent::GPUData* planetData, bool atmosphere)
+	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe, int noWorldTransform, PlanetComponent::GPUData* planetData, bool atmosphere)
 	{
 		sRendererData->PlanetData.Atmosphere = atmosphere;
-;		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, entityID, planetData);
+;		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, planetData);
 	}
 
 	void Renderer::SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
@@ -303,7 +309,7 @@ namespace Toast {
 #endif
 
 		// Temp
-		sRendererData->FinalFramebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
+		//sRendererData->FinalFramebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
 
 		sRendererData->GPassFramebuffer->Bind();
 		sRendererData->GPassFramebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
@@ -319,60 +325,42 @@ namespace Toast {
 
 			RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
 
-			int planet;
-
-			if (!meshCommand.PlanetData)
+			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
 			{
-				if (meshCommand.Mesh->IsInstanced())
+				bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
+
+				int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
+
+				// Model data
+				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
+				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 68);
+				sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 72);
+				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+
+				// Material data
+				auto& material = meshCommand.Mesh->GetMaterial(submesh.MaterialName);
+				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetAlbedo(), 16, 0);
+				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetEmission(), 4, 16);
+				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetMetalness(), 4, 20);
+				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetRoughness(), 4, 24);
+				int useAlbedo = static_cast<int>(material->GetUseAlbedo());
+				sRendererData->MaterialBuffer.Write((uint8_t*)&useAlbedo, 4, 28);
+				int useNormal = static_cast<int>(material->GetUseNormal());
+				sRendererData->MaterialBuffer.Write((uint8_t*)&useNormal, 4, 32);
+				int useMetalRough = static_cast<int>(material->GetUseMetalRough());
+				sRendererData->MaterialBuffer.Write((uint8_t*)&useMetalRough, 4, 36);
+				sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
+
+				meshCommand.Mesh->Bind();
+
+				if(isInstanced == 0)
+					RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+				else 
 				{
-					for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
-					{
-						bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
-
-						planet = 0;
-
-						sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
-						sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
-						sRendererData->ModelBuffer.Write((uint8_t*)&planet, 4, 68);
-						sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
-
-						//meshCommand.Mesh->Map(submesh.MaterialName);
-						meshCommand.Mesh->Bind();
-
-						uint32_t bufferElements = meshCommand.Mesh->mInstanceVertexBuffer->GetBufferSize() / sizeof(DirectX::XMFLOAT3);
-						RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, meshCommand.Mesh->GetNumberOfInstances(), 0, 0, 0);
-					}
+					uint32_t bufferElements = meshCommand.Mesh->mInstanceVertexBuffer->GetBufferSize() / sizeof(DirectX::XMFLOAT3);
+					RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, meshCommand.Mesh->GetNumberOfInstances(), 0, 0, 0);
 				}
-				else
-				{
-					for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
-					{
-						//TOAST_CORE_INFO("Rendering submesh with material: %s", submesh.MaterialName.c_str());
-						bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
-
-						planet = 0;
-
-						sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
-						sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
-						sRendererData->ModelBuffer.Write((uint8_t*)&planet, 4, 68);
-						sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
-
-						//meshCommand.Mesh->Bind(submesh.MaterialName, environment, false);
-						meshCommand.Mesh->Bind();
-
-						RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
-					}
-				}
-			}
-			else
-			{
-				//meshCommand.Mesh->Map("Planet");
-				//meshCommand.Mesh->Bind("Planet", true, false);
-
-				//meshCommand.Mesh->Set<int>(meshCommand.Mesh->mSubmeshes[0].MaterialName, "Model", "entityID", -1);
-				//meshCommand.Mesh->Set<int>(meshCommand.Mesh->mSubmeshes[0].MaterialName, "Model", "planet", 1);
-
-				//RenderCommand::DrawIndexed(meshCommand.Mesh->mSubmeshes[0].BaseVertex, meshCommand.Mesh->mSubmeshes[0].BaseIndex, meshCommand.Mesh->mSubmeshes[0].IndexCount);
 			}
 		}
 
@@ -395,6 +383,14 @@ namespace Toast {
 			annotation->BeginEvent(L"Lightning Pass");
 #endif
 
+		ID3D11ShaderResourceView* defaultWhiteCubemapSRV = TextureLibrary::Get("assets/textures/WhiteCube.png")->GetSRV().Get();
+		ID3D11ShaderResourceView* defaultWhite2DSRV = TextureLibrary::Get("assets/textures/White.png")->GetSRV().Get();
+
+		sRendererData->LPassFramebuffer->Bind();
+		sRendererData->LPassFramebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
+
+		ShaderLibrary::Get("assets/shaders/Deffered Rendering/LightningPass.hlsl")->Bind();
+
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 		deviceContext->PSSetShaderResources(0, 1, sRendererData->GPassPositionRT->GetSRV().GetAddressOf());
@@ -402,7 +398,27 @@ namespace Toast {
 		deviceContext->PSSetShaderResources(2, 1, sRendererData->GPassAlbedoMetallicRT->GetSRV().GetAddressOf());
 		deviceContext->PSSetShaderResources(3, 1, sRendererData->GPassRoughnessAORT->GetSRV().GetAddressOf());
 
+		if (sRendererData->SceneData.SceneEnvironment.IrradianceMap)
+			deviceContext->PSSetShaderResources(4, 1, sRendererData->SceneData.SceneEnvironment.IrradianceMap->GetSRV().GetAddressOf());
+		else
+			deviceContext->PSSetShaderResources(4, 1, &defaultWhiteCubemapSRV);
+
+		if (sRendererData->SceneData.SceneEnvironment.RadianceMap)
+			deviceContext->PSSetShaderResources(5, 1, sRendererData->SceneData.SceneEnvironment.RadianceMap->GetSRV().GetAddressOf());
+		else
+			deviceContext->PSSetShaderResources(5, 1, &defaultWhiteCubemapSRV);
+
+		if (sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT)
+			deviceContext->PSSetShaderResources(6, 1, sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT->GetSRV().GetAddressOf());
+		else
+			deviceContext->PSSetShaderResources(6, 1, &defaultWhite2DSRV);
+
+		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
+		TextureLibrary::GetSampler("BRDFSampler")->Bind(1, D3D11_PIXEL_SHADER);
+
 		RenderCommand::Draw(3);
+
+		sRendererData->LPassFramebuffer->Unbind();
 
 #ifdef TOAST_DEBUG
 		if (annotation)

@@ -1,7 +1,7 @@
 Material: Material
-Albedo: [-431602080, -431602080, -431602080]
+Albedo: [0.800000012, 0.800000012, 0.800000012, 1]
 Metalness: 0
-Roughness: 0
+Roughness: 0.5
 UseAlbedoMap: false
 UseNormalMap: false
 UseMetalRoughMap: false
