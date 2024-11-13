@@ -231,6 +231,44 @@ namespace Toast {
 		mSRV->GetResource(&mResource);
 	}
 
+	TextureCube::TextureCube()
+	{
+		TOAST_PROFILE_FUNCTION();
+		D3D11_TEXTURE2D_DESC textureDesc = {};
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+		textureDesc.Width = 1;
+		textureDesc.Height = 1;
+		textureDesc.MipLevels = 1;
+		textureDesc.ArraySize = 6;
+		textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		textureDesc.CPUAccessFlags = 0;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.Usage = D3D11_USAGE_DEFAULT;
+		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+
+		// Create white pixel data
+		UINT whitePixel[1] = { 0xFFFFFFFF }; // White color in RGBA8
+
+		D3D11_SUBRESOURCE_DATA initData[6] = {};
+		for (int i = 0; i < 6; ++i)
+		{
+			initData[i].pSysMem = whitePixel;
+			initData[i].SysMemPitch = sizeof(UINT);
+			initData[i].SysMemSlicePitch = 0;
+		}
+
+		HRESULT result = device->CreateTexture2D(&textureDesc, initData, &mTexture);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
+
+		CreateSRV();
+
+		mSRV->GetResource(&mResource);
+	}
+
 	const uint32_t TextureCube::GetMipLevelCount() const
 	{
 		return Texture::CalculateMipMapCount(mWidth, mHeight);
@@ -294,8 +332,8 @@ namespace Toast {
 		D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc = {};
 		shaderResourceViewDesc.Format = desc.Format;
 		shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
-		shaderResourceViewDesc.Texture2DArray.MipLevels = -1;
-		shaderResourceViewDesc.Texture2DArray.MostDetailedMip = 0;
+		shaderResourceViewDesc.TextureCube.MipLevels = desc.MipLevels;
+		shaderResourceViewDesc.TextureCube.MostDetailedMip = 0;
 
 		HRESULT result = device->CreateShaderResourceView(mTexture.Get(), &shaderResourceViewDesc, &mSRV);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the SRV!");

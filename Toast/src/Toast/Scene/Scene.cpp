@@ -350,19 +350,19 @@ namespace Toast {
 					auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
 
 					//Do not submit mesh if it's a planet
-					if (!mesh.MeshObject->GetIsPlanet())
-					{
+					//if (!mesh.MeshObject->GetIsPlanet())
+					//{
 						switch (mSettings.WireframeRendering)
 						{
 						case Settings::Wireframe::NO:
 						{
-							Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, false);
+							Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, false, 0);
 
 							break;
 						}
 						case Settings::Wireframe::YES:
 						{
-							Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, true);
+							Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, true, 0);
 
 							break;
 						}
@@ -373,7 +373,7 @@ namespace Toast {
 							break;
 						}
 						}
-					}
+				//	}
 
 					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 				}
@@ -386,13 +386,13 @@ namespace Toast {
 					{
 					case Settings::Wireframe::NO:
 					{
-						Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, false);
+						Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, false, 0);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
-						Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, true);
+						Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, true, 0);
 
 						break;
 					}
@@ -410,22 +410,19 @@ namespace Toast {
 
 					planet.PlanetData.planetCenter = transform.Translation;
 
-					DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(transform.RotationEulerAngles.x), DirectX::XMConvertToRadians(transform.RotationEulerAngles.y), DirectX::XMConvertToRadians(transform.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&transform.RotationQuaternion))
-						* DirectX::XMMatrixTranslation(transform.Translation.x, transform.Translation.y, transform.Translation.z);
-
 					switch (mSettings.WireframeRendering)
 					{
 					case Settings::Wireframe::NO:
 					{
 						if (planet.RenderMesh->mSubmeshes.size() > 0)
-							Renderer::SubmitMesh(planet.RenderMesh, noScaleModelMatrix, (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
+							Renderer::SubmitMesh(planet.RenderMesh, DirectX::XMMatrixIdentity(), (int)entity, false, 1, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
 						if (planet.RenderMesh->mSubmeshes.size() > 0)
-							Renderer::SubmitMesh(planet.RenderMesh, noScaleModelMatrix, (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
+							Renderer::SubmitMesh(planet.RenderMesh, DirectX::XMMatrixIdentity(), (int)entity, false, 1, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 						break;
 					}
@@ -715,8 +712,8 @@ namespace Toast {
 			{
 				auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
 				//Do not submit mesh if it's a planet
-				if (!mesh.MeshObject->GetIsPlanet())
-				{
+				//if (!mesh.MeshObject->GetIsPlanet())
+				//{
 					//Entity e = { entity, this };
 					//auto& tc = e.GetComponent<TagComponent>();
 
@@ -727,13 +724,13 @@ namespace Toast {
 					{
 					case Settings::Wireframe::NO:
 					{
-						Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, false);
+						Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, false, 0);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
-						Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, true);
+						Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, true, 0);
 
 						break;
 					}
@@ -744,7 +741,7 @@ namespace Toast {
 						break;
 					}
 					}
-				}
+				//}
 
 				if (mSelectedEntity == entity)
 					Renderer::SubmitSelecetedMesh(mesh.MeshObject, transform.GetTransform());
@@ -764,13 +761,13 @@ namespace Toast {
 						{
 						case Settings::Wireframe::NO:
 						{
-							Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, false);
+							Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, false, 0);
 
 							break;
 						}
 						case Settings::Wireframe::YES:
 						{
-							Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, true);
+							Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, true, 0);
 
 							break;
 						}
@@ -787,22 +784,19 @@ namespace Toast {
 				
 				planet.PlanetData.planetCenter = transform.Translation;
 
-				DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(transform.RotationEulerAngles.x), DirectX::XMConvertToRadians(transform.RotationEulerAngles.y), DirectX::XMConvertToRadians(transform.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&transform.RotationQuaternion))
-					* DirectX::XMMatrixTranslation(transform.Translation.x, transform.Translation.y, transform.Translation.z);
-
 				switch (mSettings.WireframeRendering)
 				{
 				case Settings::Wireframe::NO:
 				{
 					if (planet.RenderMesh->mSubmeshes.size() > 0)
-						Renderer::SubmitMesh(planet.RenderMesh, noScaleModelMatrix, (int)entity, false, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
+						Renderer::SubmitMesh(planet.RenderMesh, DirectX::XMMatrixIdentity(), (int)entity, false, 1, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 					break;
 				}
 				case Settings::Wireframe::YES:
 				{
 					if (planet.RenderMesh->mSubmeshes.size() > 0)
-						Renderer::SubmitMesh(planet.RenderMesh, noScaleModelMatrix, (int)entity, true, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
+						Renderer::SubmitMesh(planet.RenderMesh, DirectX::XMMatrixIdentity(), (int)entity, true, 1, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 					break;
 				}
@@ -1128,8 +1122,9 @@ namespace Toast {
 		TransformComponent tc;
 		TerrainDetailComponent* tdc = nullptr;
 
-		component.RenderMesh = CreateRef<Mesh>(true);
-		//component.RenderMesh->SetMaterial("Planet", MaterialLibrary::Get("Planet"));
+		Ref<Material> planetMaterial = MaterialLibrary::Get("Planet");
+
+		component.RenderMesh = CreateRef<Mesh>(planetMaterial);
 		component.RenderMesh->mTopology = PrimitiveTopology::TRIANGLELIST;
 
 		SceneCamera* mainCamera = nullptr;

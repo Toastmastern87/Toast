@@ -48,11 +48,11 @@ namespace Toast {
 
 		RenderCommand::SetPrimitiveTopology(PrimitiveTopology::TRIANGLELIST);
 
-		auto[width, height] = sRendererData->FinalRenderTarget->GetSize();
-
-		float fWidth, fHeight;
-		fWidth = (float)width;
-		fHeight = (float)height;
+		//auto[width, height] = sRendererData->FinalRenderTarget->GetSize();
+// 
+// 		float fWidth, fHeight;
+// 		fWidth = (float)width;
+// 		fHeight = (float)height;
 
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 0);
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetOrthoProjection(), 64, 64);
@@ -72,8 +72,8 @@ namespace Toast {
 			annotation->BeginEvent(L"2D Render Pass");
 #endif
 
-		sRendererData->FinalFramebuffer->DisableDepth();
-		sRendererData->FinalFramebuffer->Bind();
+		//sRendererData->FinalFramebuffer->DisableDepth();
+		//sRendererData->FinalFramebuffer->Bind();
 
 		// New way of rendering UI with one big vertex buffer
 		uint32_t vertexCount = sRenderer2DData->UIVertexBufferPtr - sRenderer2DData->UIVertexBufferBase;
@@ -92,7 +92,7 @@ namespace Toast {
 		sRenderer2DData->UIIndexBuffer->Bind();
 		RenderCommand::DrawIndexed(0, 0, indexCount);
 
-		sRendererData->FinalFramebuffer->EnableDepth();
+		//sRendererData->FinalFramebuffer->EnableDepth();
 		
 		RenderCommand::BindBackbuffer();
 		RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });

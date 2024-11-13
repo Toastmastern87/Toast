@@ -43,9 +43,14 @@ namespace Toast {
 		TOAST_CORE_INFO("Number of materials: %d", mMaterials.size());
 	}
 
-	Mesh::Mesh(bool isPlanet)
+	Mesh::Mesh(Ref<Material>& planetMaterial)
 	{
-		mIsPlanet = isPlanet;
+		Submesh& submesh = mSubmeshes.emplace_back();
+		submesh.MaterialName = planetMaterial->GetName();
+
+		mMaterials.insert({ submesh.MaterialName,  MaterialLibrary::Load(submesh.MaterialName, false) });
+
+		TOAST_CORE_CRITICAL("Mesh created with submesh materialName: %s", submesh.MaterialName.c_str());
 	}
 
 	Mesh::Mesh(const std::string& filePath, const bool skyboxMesh, Vector3 colorOverride, bool isInstanced, uint32_t maxNrOfInstanceObjects)
@@ -147,13 +152,13 @@ namespace Toast {
 			for (int m = 0; m < data->materials_count; m++) 
 			{
 				TOAST_CORE_INFO("Material name: %s", data->materials[m].name);
-				Texture2D* whiteTexture = (Texture2D*)(TextureLibrary::Get("assets/textures/White.png"));
+				
 				if (data->materials[m].has_pbr_metallic_roughness)
 				{
 					//TOAST_CORE_INFO("is PBR material");
 
 					std::string materialName(data->materials[m].name);
-					mMaterials.insert({ data->materials[m].name,  MaterialLibrary::Load(materialName, true) });
+					mMaterials.insert({ data->materials[m].name,  MaterialLibrary::Load(materialName, false) });
 
 					// ALBEDO
 					DirectX::XMFLOAT4 albedoColor;
@@ -177,7 +182,7 @@ namespace Toast {
 						//TOAST_CORE_INFO("Albedo map found: %s", completePath.c_str());	
 					}
 
-					mMaterials[data->materials[m].name]->SetAlbedo({ albedoColor.x, albedoColor.y, albedoColor.z });
+					mMaterials[data->materials[m].name]->SetAlbedo(albedoColor);
 					mMaterials[data->materials[m].name]->SetUseAlbedo(useAlbedoMap);
 
 					// NORMAL
@@ -222,6 +227,8 @@ namespace Toast {
 					mMaterials[data->materials[m].name]->SetMetalness(metalness);
 					mMaterials[data->materials[m].name]->SetRoughness(roughness);
 					mMaterials[data->materials[m].name]->SetUseMetalRough(useMetalRoughMap);
+
+					MaterialSerializer::Serialize(MaterialLibrary::Get(data->materials[m].name));
 				}
 			}
 			TOAST_CORE_INFO("Number of materials loaded: %d", mMaterials.size());
@@ -311,8 +318,7 @@ namespace Toast {
 			submesh.BaseVertex = 0;
 			submesh.BaseIndex = 0;
 			submesh.IndexCount = mIndexCount;
-			//submesh.Transform = transform;
-			//submesh.MaterialName = "Standard";
+			submesh.MaterialName = "Planet";
 			mSubmeshes.push_back(submesh);
 		}
 	}
@@ -362,8 +368,11 @@ namespace Toast {
 
 	void Mesh::Bind()
 	{
-		mVertexBuffer->Bind();
-		mIndexBuffer->Bind();
+		if (mVertexBuffer)
+			mVertexBuffer->Bind();
+
+		if (mIndexBuffer)
+			mIndexBuffer->Bind();
 
 		if(mInstanceVertexBuffer)
 			mInstanceVertexBuffer->Bind();

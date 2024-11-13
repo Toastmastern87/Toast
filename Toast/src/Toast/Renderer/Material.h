@@ -13,7 +13,7 @@ namespace Toast {
 
 	struct PBRParameters 
 	{
-		DirectX::XMFLOAT3 Albedo;
+		DirectX::XMFLOAT4 Albedo;
 		float Emission = 0.0;
 		float Metalness = 0.0;
 		float Roughness = 0.0;
@@ -47,8 +47,8 @@ namespace Toast {
 		void SetMetalRoughTexture(Texture2D* texture) { mMetalRoughTexture = texture; }
 		Texture2D* GetMetalRoughTexture() const { return mMetalRoughTexture; }
 
-		void SetAlbedo(const DirectX::XMFLOAT3& albedo) { mPBRParameters.Albedo = albedo; }
-		DirectX::XMFLOAT3& GetAlbedo() { return mPBRParameters.Albedo; }
+		void SetAlbedo(const DirectX::XMFLOAT4 albedo) { mPBRParameters.Albedo = albedo; }
+		DirectX::XMFLOAT4& GetAlbedo() { return mPBRParameters.Albedo; }
 
 		void SetEmission(const float emission) { mPBRParameters.Emission = emission; }
 		float& GetEmission() { return mPBRParameters.Emission; }
@@ -73,10 +73,10 @@ namespace Toast {
 	public:
 		static void Add(const std::string name, const Ref<Material>& material);
 		static void Add(const Ref<Material>& material);
-		static Ref<Material> Load();
-		static Ref<Material> Load(const std::string& name, bool serialize = false);
+		static Ref<Material>& Load();
+		static Ref<Material>& Load(const std::string& name, bool serialize = false);
 
-		static Ref<Material> Get(const std::string& name);
+		static Ref<Material>& Get(const std::string& name);
 		static std::unordered_map<std::string, Ref<Material>> GetMaterials() { return mMaterials; }
 
 		static bool Exists(const std::string& name);

@@ -24,6 +24,7 @@ namespace Toast {
 		virtual const uint32_t GetHeight() const = 0;
 		virtual const std::string GetFilePath() const = 0;
 		virtual void* GetID() const = 0;
+		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const = 0;
 		virtual const uint32_t GetMipLevelCount() const = 0;
 
 		static uint32_t CalculateMipMapCount(uint32_t width, uint32_t height);
@@ -47,7 +48,7 @@ namespace Toast {
 		virtual const uint32_t GetHeight() const override { return mHeight; }
 		virtual const std::string GetFilePath() const override { return mFilePath; }
 		virtual void* GetID() const override { return (void*)mSRV.Get(); }
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() { return mSRV; }
+		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const override { return mSRV; }
 		virtual const uint32_t GetMipLevelCount() const override;
 
 		void SetData(void* data, uint32_t size);
@@ -82,6 +83,7 @@ namespace Toast {
 	{
 	public:
 		TextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels = 0);
+		TextureCube();
 		~TextureCube() = default;
 
 		virtual void CreateSRV() override;
@@ -92,6 +94,7 @@ namespace Toast {
 		virtual const uint32_t GetHeight() const override { return mHeight; }
 		virtual const std::string GetFilePath() const override { return mFilePath; }
 		virtual void* GetID() const override { return (void*)mSRV.Get(); }
+		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const override { return mSRV; }
 		virtual const uint32_t GetMipLevelCount() const override;
 
 		ID3D11Resource* GetResource() const { return mResource.Get(); }

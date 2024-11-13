@@ -36,18 +36,24 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		// Standard Textures
 		mCheckerboardTexture = TextureLibrary::LoadTexture2D("assets/textures/Checkerboard.png");
 		mPlayButtonTex = TextureLibrary::LoadTexture2D("assets/textures/PlayButton.png");
 		mPauseButtonTex = TextureLibrary::LoadTexture2D("assets/textures/PauseButton.png");
 		mStopButtonTex = TextureLibrary::LoadTexture2D("assets/textures/StopButton.png");
 		mLogoTex = TextureLibrary::LoadTexture2D("assets/textures/ToastEnginePlanetLogo.png");
 		TextureLibrary::LoadTexture2D("assets/textures/White.png");
+		TextureLibrary::LoadTextureCube("assets/textures/WhiteCube.png", 1, 1);
+
+		// Samplers
 		TextureLibrary::LoadTextureSampler("Default", D3D11_FILTER_ANISOTROPIC, D3D11_TEXTURE_ADDRESS_WRAP);
 		TextureLibrary::LoadTextureSampler("PointSampler", D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP);
+		TextureLibrary::LoadTextureSampler("BRDFSampler", D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
 
 		// Load all shaders
 		// Deffered Rendering
 		ShaderLibrary::Load("assets/shaders/Deffered Rendering/GeometryPass.hlsl");
+		ShaderLibrary::Load("assets/shaders/Deffered Rendering/LightningPass.hlsl");
 
 		// Others
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
@@ -86,11 +92,11 @@ namespace Toast {
 		// Resize
 		Ref<Framebuffer>& gpassFramebuffer = Renderer::GetGPassFramebuffer();
 
-		Ref<Framebuffer>& baseFramebuffer = Renderer::GetBaseFramebuffer();
-		Ref<Framebuffer>& finalFramebuffer = Renderer::GetFinalFramebuffer();
-		Ref<Framebuffer>& pickingFramebuffer = Renderer::GetPickingFramebuffer();
-		Ref<Framebuffer>& outlineFramebuffer = Renderer::GetOutlineFramebuffer();
-		Ref<Framebuffer>& postProcessFramebuffer = Renderer::GetPostProcessFramebuffer();
+		//Ref<Framebuffer>& baseFramebuffer = Renderer::GetBaseFramebuffer();
+		//Ref<Framebuffer>& finalFramebuffer = Renderer::GetFinalFramebuffer();
+		////Ref<Framebuffer>& pickingFramebuffer = Renderer::GetPickingFramebuffer();
+		//Ref<Framebuffer>& outlineFramebuffer = Renderer::GetOutlineFramebuffer();
+		//Ref<Framebuffer>& postProcessFramebuffer = Renderer::GetPostProcessFramebuffer();
 
 		Ref<RenderTarget>& positionRT = Renderer::GetGPassPositionRT();
 		Ref<RenderTarget>& normalRT = Renderer::GetGPassNormalRT();
@@ -99,22 +105,22 @@ namespace Toast {
 		Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
 		Ref<RenderTarget>& depthRT = Renderer::GetDepthRenderTarget();
 
-		Ref<RenderTarget>& baseRenderTarget = Renderer::GetBaseRenderTarget();
-		Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRenderTarget();
+		//Ref<RenderTarget>& baseRenderTarget = Renderer::GetBaseRenderTarget();
+		//Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRenderTarget();
 
-		Ref<RenderTarget>& outlineRenderTarget = Renderer::GetOutlineRenderTarget();
-		Ref<RenderTarget>& postProcessRenderTarget = Renderer::GetPostProcessRenderTarget();
-		auto [width, height] = baseRenderTarget->GetSize();
+		//Ref<RenderTarget>& outlineRenderTarget = Renderer::GetOutlineRenderTarget();
+		//Ref<RenderTarget>& postProcessRenderTarget = Renderer::GetPostProcessRenderTarget();
+		auto [width, height] = positionRT->GetSize();
 		//TOAST_CORE_INFO("mEditorCamera mViewportSize.x: %f, mViewportSize.y: %f", mViewportSize.x, mViewportSize.y);
 		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (width != mViewportSize.x || height != mViewportSize.y))
 		{ 
 			gpassFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
-			baseFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			finalFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			pickingFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			outlineFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			postProcessFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			//baseFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			//finalFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			////pickingFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			//outlineFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			//postProcessFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
 			positionRT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			normalRT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
@@ -123,10 +129,10 @@ namespace Toast {
 			pickingRT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 			depthRT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
-			baseRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			finalRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			outlineRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			postProcessRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			//baseRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			//finalRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			//outlineRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			//postProcessRenderTarget->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		 
 			switch (mSceneState)
 			{
@@ -338,7 +344,7 @@ namespace Toast {
 			mViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
 			//TOAST_CORE_INFO("Setting viewport size to mViewportSize.x: %f, mViewportSize.y: %f", mViewportSize.x, mViewportSize.y);
 
-			Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRenderTarget();
+			Ref<RenderTarget>& finalRenderTarget = Renderer::GetLPassRenderTarget();
 			ImGui::Image((void*)finalRenderTarget->GetSRV().Get(), ImVec2{ mViewportSize.x, mViewportSize.y });
 
 			if (ImGui::BeginDragDropTarget()) 
@@ -643,7 +649,7 @@ namespace Toast {
 
 	bool EditorLayer::OnMouseMoved(MouseMovedEvent& e)
 	{
-		Ref<Framebuffer>& pickingFramebuffer = Renderer::GetPickingFramebuffer();
+		//Ref<Framebuffer>& pickingFramebuffer = Renderer::GetPickingFramebuffer();
 
 		auto [mx, my] = ImGui::GetMousePos();
 		mx -= mViewportBounds[0].x;
@@ -655,8 +661,8 @@ namespace Toast {
 
 		if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 		{
-			int pixelData = pickingFramebuffer->ReadPixel(mouseX, mouseY);
-			mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mEditorScene.get());
+			//int pixelData = pickingFramebuffer->ReadPixel(mouseX, mouseY);
+			//mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mEditorScene.get());
 		}
 
 		if (mViewportHovered && !ImGuizmo::IsOver())

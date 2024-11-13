@@ -122,7 +122,7 @@ namespace Toast {
 		Add(name, material);
 	}
 
-	Ref<Material> MaterialLibrary::Load(const std::string& name, bool serialize)
+	Ref<Material>& MaterialLibrary::Load(const std::string& name, bool serialize)
 	{
 		if (!Exists(name))
 		{
@@ -138,14 +138,14 @@ namespace Toast {
 			return Get(name);
 	}
 
-	Ref<Material> MaterialLibrary::Load()
+	Ref<Material>& MaterialLibrary::Load()
 	{
 		auto material = CreateRef<Material>("New Material");
 		Add("New Material", material);
 		return material;
 	}
 
-	Ref<Material> MaterialLibrary::Get(const std::string& name)
+	Ref<Material>& MaterialLibrary::Get(const std::string& name)
 	{
 		TOAST_CORE_ASSERT(Exists(name), "Material not found!");
 		return mMaterials[name];
@@ -184,8 +184,6 @@ namespace Toast {
 		out << YAML::BeginMap;
 		out << YAML::Key << "Material" << YAML::Value << material->GetName();
 
-		TOAST_CORE_CRITICAL("Serializing material: %s", material->GetName().c_str());
-
 		out << YAML::Key << "Albedo" << YAML::Value << material->GetAlbedo();
 		out << YAML::Key << "Metalness" << YAML::Value << material->GetMetalness();
 		out << YAML::Key << "Roughness" << YAML::Value << material->GetRoughness();
@@ -221,7 +219,7 @@ namespace Toast {
 
 			auto& material = MaterialLibrary::Load(materialName);
 
-			material->SetAlbedo(data["Albedo"].as<DirectX::XMFLOAT3>());
+			material->SetAlbedo(data["Albedo"].as<DirectX::XMFLOAT4>());
 			material->SetMetalness(data["Metalness"].as<float>());
 			material->SetRoughness(data["Roughness"].as<float>());
 			material->SetUseAlbedo(data["UseAlbedoMap"].as<bool>());

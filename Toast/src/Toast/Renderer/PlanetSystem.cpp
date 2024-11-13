@@ -113,7 +113,6 @@ namespace Toast {
 		Vector2 uvCoords;
 		Bounds bounds;
 
-
 		double aDistance = (A.Position - cameraPosPlanetSpace).LengthSqrt();
 		double bDistance = (B.Position - cameraPosPlanetSpace).LengthSqrt();
 		double cDistance = (C.Position - cameraPosPlanetSpace).LengthSqrt();

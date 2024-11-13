@@ -68,7 +68,7 @@ namespace Toast {
 				{
 					auto newEntity = mContext->CreateEntity("Cube");
 					auto& tc = newEntity.GetComponent<TransformComponent>();
-					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("../Toaster/assets/meshes/Cube.gltf"));
+					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("../Toaster/assets/meshes/Cube.gltf", false));
 
 					SetSelectedEntity(newEntity);
 				}
@@ -77,7 +77,7 @@ namespace Toast {
 				{
 					auto newEntity = mContext->CreateEntity("Sphere");
 					auto& tc = newEntity.GetComponent<TransformComponent>();
-					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf"));
+					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf", false));
 
 					SetSelectedEntity(newEntity);
 				}
