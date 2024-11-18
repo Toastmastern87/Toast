@@ -91,23 +91,16 @@ float3 SRGBToLinear(float3 color)
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-	float4 color = BaseTexture.Sample(DefaultSampler, input.texCoord);
+    float4 color = BaseTexture.Sample(DefaultSampler, input.texCoord);
 
-	float3 colorToned = mul(ACESInputMat, color.rgb);
+    // Apply ACES tone mapping
+    float3 colorToned = mul(ACESInputMat, color.rgb);
+    colorToned = RRTAndODTFit(colorToned);
+    colorToned = mul(ACESOutputMat, colorToned);
+    colorToned = saturate(colorToned);
 
-	colorToned = RRTAndODTFit(colorToned);
+    // Convert to sRGB
+    colorToned = LinearTosRGB(colorToned);
 
-	colorToned = mul(ACESOutputMat, colorToned);
-
-	colorToned = saturate(colorToned);
-
-	float lumBefore = 0.2126f * color.r + 0.7152f * color.g + 0.0722f * color.b;
-
-	//Dolkar solution
-	float lumAfter = (log(lumBefore + 0.5f) - log(0.5f)) / (log(10.0f + 0.5f) - log(0.5f));
-
-	float3 colorAfter = color.rgb * (lumAfter / lumBefore);
-
-	return float4(colorAfter, 1.0f);
-	//return float4(AcesTonemap(color.rgb), 1.0f);
+    return float4(colorToned, 1.0f);
 }

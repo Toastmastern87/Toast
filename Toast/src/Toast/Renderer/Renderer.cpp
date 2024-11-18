@@ -23,6 +23,17 @@ namespace Toast {
 		Renderer2D::Init();
 		RendererDebug::Init();
 
+		sRendererData->Viewport.TopLeftX = 0.0f;
+		sRendererData->Viewport.TopLeftY = 0.0f;
+		sRendererData->Viewport.Width = static_cast<float>(1280);
+		sRendererData->Viewport.Height = static_cast<float>(720);
+		sRendererData->Viewport.MinDepth = 0.0f;
+		sRendererData->Viewport.MaxDepth = 1.0f;
+
+		CreateDepthBuffer(1280, 720);
+		CreateDepthStencilView();
+		CreateDepthStencilStates();
+
 		// Setting up the constant buffer and data buffer for the camera rendering
 		sRendererData->CameraCBuffer = ConstantBufferLibrary::Load("Camera", 288, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Camera) });
 		sRendererData->CameraCBuffer->Bind();
@@ -65,36 +76,25 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Allocate(sRendererData->AtmosphereCBuffer->GetSize());
 		sRendererData->AtmosphereBuffer.ZeroInitialize();
 
-		//sRendererData->BaseRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
-		//sRendererData->PostProcessRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
-		//sRendererData->FinalRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
-		//sRendererData->OutlineRenderTarget = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
-
 		// Setting up the render targets for the Geometry Pass
 		sRendererData->GPassPositionRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32G32B32A32_FLOAT);
 		sRendererData->GPassNormalRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
 		sRendererData->GPassAlbedoMetallicRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
 		sRendererData->GPassRoughnessAORT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
 		sRendererData->GPassPickingRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32_SINT);
-		sRendererData->GPassDepthRT = CreateRef<RenderTarget>(RenderTargetType::Depth, 1280, 720, 1, TextureFormat::D32_FLOAT);
+
+		// Setting up the render targets for the Post Process pass
+		sRendererData->FinalRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
+
+		// Setting up the render target for the back buffer
+		sRendererData->BackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT, true);
 
 		// Setting up the render targets for the Lightning Pass
-		sRendererData->LPassFinalRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->LPassRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
 
 		// Setting up the framebuffer for the Geometry Pass
-		sRendererData->GPassFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->GPassPositionRT, sRendererData->GPassNormalRT, sRendererData->GPassAlbedoMetallicRT, sRendererData->GPassRoughnessAORT, sRendererData->GPassPickingRT }, sRendererData->GPassDepthRT);
-		sRendererData->LPassFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->LPassFinalRT } );
-
-		// Setting up the framebuffer for the Lightning pass
-
-		//sRendererData->BaseFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->BaseRenderTarget}, sRendererData->GPassDepthRT);
-		//sRendererData->PostProcessFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->PostProcessRenderTarget}, sRendererData->GPassDepthRT);
-		//sRendererData->FinalFramebuffer = CreateRef<Framebuffer>(
-		//	std::vector<Ref<RenderTarget>>{ sRendererData->FinalRenderTarget, sRendererData->GPassPickingRT },
-		//	sRendererData->GPassDepthRT
-		//);
-		//sRendererData->PickingFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->GPassPickingRT});
-		//sRendererData->OutlineFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->OutlineRenderTarget});
+		sRendererData->GPassFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->GPassPositionRT, sRendererData->GPassNormalRT, sRendererData->GPassAlbedoMetallicRT, sRendererData->GPassRoughnessAORT, sRendererData->GPassPickingRT });
+		sRendererData->LPassFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->LPassRT } );
 	}
 
 	void Renderer::Shutdown()
@@ -105,6 +105,8 @@ namespace Toast {
 
 	void Renderer::OnWindowResize(uint32_t width, uint32_t height)
 	{
+		sRendererData->BackbufferRT->Resize(width, height);
+
 		RenderCommand::ResizeViewport(0, 0, width, height);
 	}
 
@@ -153,13 +155,18 @@ namespace Toast {
 
 	void Renderer::EndScene(const bool debugActivated)
 	{
+		RenderCommand::SetViewport(sRendererData->Viewport);
+
 		// Deffered Renderer
 		GeometryPass();
 		LightningPass();
 
+		// Post Processes
+		SkyboxPass();
+		PostProcessPass();
+
 		//BaseRenderPass();
 		//PickingRenderPass();
-		//PostProcessPass();
 
 		if (!debugActivated) 
 		{
@@ -170,6 +177,97 @@ namespace Toast {
 		ClearDrawList();
 
 		//TOAST_CORE_CRITICAL("END OF SCENE!");
+	}
+
+	void Renderer::CreateDepthBuffer(uint32_t width, uint32_t height)
+	{
+		sRendererData->DepthBuffer = CreateScope<Texture2D>((DXGI_FORMAT)TextureFormat::R32_TYPELESS, (DXGI_FORMAT)TextureFormat::R32_FLOAT, width, height, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE), 1);
+	}
+
+	void Renderer::CreateDepthStencilView()
+	{
+		HRESULT result;
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+		dsvDesc.Format = (DXGI_FORMAT)TextureFormat::D32_FLOAT;
+		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		dsvDesc.Texture2D.MipSlice = 0;
+
+		result = device->CreateDepthStencilView(sRendererData->DepthBuffer->GetTexture().Get(), &dsvDesc, &sRendererData->DepthStencilView);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create depth stencil view!");
+	}
+
+	void Renderer::CreateDepthStencilStates()
+	{
+		HRESULT result;
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		// Create Depth Stencil State
+		D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
+		depthStencilDesc.DepthEnable = true;
+		depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		depthStencilDesc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+
+		depthStencilDesc.StencilEnable = true;
+		depthStencilDesc.StencilReadMask = 0xFF;
+		depthStencilDesc.StencilWriteMask = 0xFF;
+
+		depthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
+		depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+		depthStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+		depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
+		depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+		depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+
+		result = device->CreateDepthStencilState(&depthStencilDesc, &sRendererData->DepthEnabledStencilState);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create enabled depth stencil state");
+
+		depthStencilDesc.DepthEnable = false;
+		depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+
+		depthStencilDesc.StencilEnable = false;
+		depthStencilDesc.StencilReadMask = 0x00;
+		depthStencilDesc.StencilWriteMask = 0x00;
+
+		result = device->CreateDepthStencilState(&depthStencilDesc, &sRendererData->DepthDisabledStencilState);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create disabled depth stencil state");
+
+		depthStencilDesc.DepthEnable = true;
+		depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		depthStencilDesc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+
+		depthStencilDesc.StencilEnable = false;
+		depthStencilDesc.StencilReadMask = 0x00;
+		depthStencilDesc.StencilWriteMask = 0x00;
+
+		result = device->CreateDepthStencilState(&depthStencilDesc, &sRendererData->DepthSkyboxPassStencilState);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Skybox pass depth stencil state");
+	}
+
+	void Renderer::Resize(uint32_t width, uint32_t height)
+	{
+		sRendererData->Viewport.TopLeftX = 0.0f;
+		sRendererData->Viewport.TopLeftY = 0.0f;
+		sRendererData->Viewport.Width = static_cast<float>(width);
+		sRendererData->Viewport.Height = static_cast<float>(height);
+		sRendererData->Viewport.MinDepth = 0.0f;
+		sRendererData->Viewport.MaxDepth = 1.0f;
+
+		sRendererData->FinalRT->Resize(width, height);
+
+		sRendererData->DepthStencilView.Reset();
+
+		CreateDepthBuffer(width, height);
+		CreateDepthStencilView();
 	}
 
 	void Renderer::Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform)
@@ -307,12 +405,14 @@ namespace Toast {
 		if (annotation)
 			annotation->BeginEvent(L"Geometry Pass");
 #endif
+		//NEW WAY, MOVING THINGS TO THIS
+		RenderCommand::SetRenderTargets(sRendererData->GPassFramebuffer->GetColorRenderTargets(), sRendererData->DepthStencilView);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
+		RenderCommand::ClearDepthStencilView(sRendererData->DepthStencilView);
+		RenderCommand::ClearRenderTargets(sRendererData->GPassFramebuffer->GetColorRenderTargets(), { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		// Temp
-		//sRendererData->FinalFramebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
-
+		//OLD WAY KEEPING FOR NOW!
 		sRendererData->GPassFramebuffer->Bind();
-		sRendererData->GPassFramebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
 
 		ShaderLibrary::Get("assets/shaders/Deffered Rendering/GeometryPass.hlsl")->Bind();
 
@@ -327,8 +427,6 @@ namespace Toast {
 
 			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
 			{
-				bool environment = sRendererData->SceneData.SceneEnvironment.IrradianceMap && sRendererData->SceneData.SceneEnvironment.RadianceMap;
-
 				int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
 
 				// Model data
@@ -383,43 +481,116 @@ namespace Toast {
 			annotation->BeginEvent(L"Lightning Pass");
 #endif
 
-		ID3D11ShaderResourceView* defaultWhiteCubemapSRV = TextureLibrary::Get("assets/textures/WhiteCube.png")->GetSRV().Get();
-		ID3D11ShaderResourceView* defaultWhite2DSRV = TextureLibrary::Get("assets/textures/White.png")->GetSRV().Get();
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> defaultWhiteCubemapSRV = TextureLibrary::Get("assets/textures/WhiteCube.png")->GetSRV();
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> defaultWhite2DSRV = TextureLibrary::Get("assets/textures/White.png")->GetSRV();
 
+		RenderCommand::SetRenderTargets(sRendererData->LPassFramebuffer->GetColorRenderTargets(), nullptr);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
+		RenderCommand::ClearRenderTargets(sRendererData->LPassFramebuffer->GetColorRenderTargets(), { 0.0f, 0.0f, 0.0f, 1.0f });
+
+		// TODO Remove this and move to new way
 		sRendererData->LPassFramebuffer->Bind();
-		sRendererData->LPassFramebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
 
 		ShaderLibrary::Get("assets/shaders/Deffered Rendering/LightningPass.hlsl")->Bind();
 
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
-		deviceContext->PSSetShaderResources(0, 1, sRendererData->GPassPositionRT->GetSRV().GetAddressOf());
-		deviceContext->PSSetShaderResources(1, 1, sRendererData->GPassNormalRT->GetSRV().GetAddressOf());
-		deviceContext->PSSetShaderResources(2, 1, sRendererData->GPassAlbedoMetallicRT->GetSRV().GetAddressOf());
-		deviceContext->PSSetShaderResources(3, 1, sRendererData->GPassRoughnessAORT->GetSRV().GetAddressOf());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0 , sRendererData->GPassPositionRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassNormalRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->GPassAlbedoMetallicRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->GPassRoughnessAORT->GetSRV());
 
 		if (sRendererData->SceneData.SceneEnvironment.IrradianceMap)
-			deviceContext->PSSetShaderResources(4, 1, sRendererData->SceneData.SceneEnvironment.IrradianceMap->GetSRV().GetAddressOf());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->SceneData.SceneEnvironment.IrradianceMap->GetSRV());
 		else
-			deviceContext->PSSetShaderResources(4, 1, &defaultWhiteCubemapSRV);
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, defaultWhiteCubemapSRV);
 
 		if (sRendererData->SceneData.SceneEnvironment.RadianceMap)
-			deviceContext->PSSetShaderResources(5, 1, sRendererData->SceneData.SceneEnvironment.RadianceMap->GetSRV().GetAddressOf());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->SceneData.SceneEnvironment.RadianceMap->GetSRV());
 		else
-			deviceContext->PSSetShaderResources(5, 1, &defaultWhiteCubemapSRV);
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, defaultWhiteCubemapSRV);
 
 		if (sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT)
-			deviceContext->PSSetShaderResources(6, 1, sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT->GetSRV().GetAddressOf());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT->GetSRV());
 		else
-			deviceContext->PSSetShaderResources(6, 1, &defaultWhite2DSRV);
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, defaultWhite2DSRV);
 
 		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("BRDFSampler")->Bind(1, D3D11_PIXEL_SHADER);
 
-		RenderCommand::Draw(3);
+		DrawFullscreenQuad();
 
 		sRendererData->LPassFramebuffer->Unbind();
 
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
+	}
+
+	void Renderer::SkyboxPass()
+	{
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"Skybox Pass");
+#endif
+
+		if (sRendererData->SceneData.SkyboxData.Skybox)
+		{
+			sRendererData->LPassFramebuffer->Bind();
+
+			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> defaultWhiteCubemapSRV = TextureLibrary::Get("assets/textures/WhiteCube.png")->GetSRV();
+
+			RenderCommand::SetRenderTargets(sRendererData->LPassFramebuffer->GetColorRenderTargets(), sRendererData->DepthStencilView);
+			RenderCommand::SetDepthStencilState(sRendererData->DepthSkyboxPassStencilState);
+
+			if (sRendererData->SceneData.SceneEnvironment.RadianceMap)
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->SceneData.SceneEnvironment.RadianceMap->GetSRV());
+			else
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, defaultWhiteCubemapSRV);
+
+			ShaderLibrary::Get("assets/shaders/Post Process/Skybox.hlsl")->Bind();
+
+			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.Intensity, 4, 0);
+			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
+			sRendererData->EnvironmentCBuffer->Map(sRendererData->EnvironmentBuffer);
+
+			sRendererData->SceneData.SkyboxData.Skybox->Bind();
+
+			RenderCommand::DrawIndexed(sRendererData->SceneData.SkyboxData.Skybox->mSubmeshes[0].BaseVertex, sRendererData->SceneData.SkyboxData.Skybox->mSubmeshes[0].BaseIndex, sRendererData->SceneData.SkyboxData.Skybox->mSubmeshes[0].IndexCount);
+		}
+
+		sRendererData->LPassFramebuffer->Unbind();
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
+	}
+
+	void Renderer::PostProcessPass()
+	{
+		TOAST_PROFILE_FUNCTION();
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+
+		if (annotation)
+			annotation->BeginEvent(L"Tonemapping Pass");
+#endif
+
+		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
+
+		//Tonemapping
+		sRendererData->LPassFramebuffer->Bind();
+		RenderCommand::ClearRenderTargets(sRendererData->FinalRT->GetView().Get(), {0.0f, 0.0f, 0.0f, 1.0f});
+
+		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
+
+		ShaderLibrary::Get("assets/shaders/Post Process/ToneMapping.hlsl")->Bind();
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
+
+		DrawFullscreenQuad();
 #ifdef TOAST_DEBUG
 		if (annotation)
 			annotation->EndEvent();
@@ -594,39 +765,6 @@ namespace Toast {
 //
 //		RenderCommand::Draw(3);
 //
-//#ifdef TOAST_DEBUG
-//		if (annotation)
-//			annotation->EndEvent();
-//
-//		if (annotation)
-//			annotation->BeginEvent(L"Tonemapping Pass");
-//#endif
-//
-//		ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-//		deviceContext->PSSetShaderResources(9, 1, nullSRV);
-//		deviceContext->PSSetShaderResources(10, 1, nullSRV);
-//
-//		//Tonemapping
-//		sRendererData->FinalFramebuffer->DisableDepth();
-//		sRendererData->FinalFramebuffer->Bind();
-//		sRendererData->FinalFramebuffer->Clear({ 0.2f, 0.2f, 0.2f, 1.0f });
-//
-//		sampler->Bind(1, D3D11_PIXEL_SHADER);
-//
-//		auto toneMappingShader = ShaderLibrary::Get("assets/shaders/ToneMapping.hlsl");
-//		toneMappingShader->Bind();
-//
-//		auto texture = sRendererData->PostProcessRenderTarget->GetSRV();
-//		deviceContext->PSSetShaderResources(10, 1, texture.GetAddressOf());
-//
-//		RenderCommand::Draw(3);
-//
-//		deviceContext->PSSetShaderResources(10, 1, nullSRV);
-//#ifdef TOAST_DEBUG
-//		if (annotation)
-//			annotation->EndEvent();
-//#endif
-//	}
 
 	void Renderer::ResetStats()
 	{

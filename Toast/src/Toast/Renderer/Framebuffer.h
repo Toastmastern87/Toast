@@ -13,25 +13,22 @@ namespace Toast {
 	class Framebuffer
 	{
 	public:
-		Framebuffer(const std::vector<Ref<RenderTarget>>& colors, Ref<RenderTarget> depth = nullptr, bool swapChainTarget = false);
+		Framebuffer(const std::vector<Ref<RenderTarget>>& colors, bool swapChainTarget = false);
 		~Framebuffer() = default;
 
-		void CreateDepthDisabledState();
+		std::vector<ID3D11RenderTargetView*>  Framebuffer::GetColorRenderTargets() const;
 
 		void Bind() const;
 		void Unbind() const;
-		void Invalidate();
 
 		void Resize(uint32_t width, uint32_t height);
-		int ReadPixel(uint32_t x, uint32_t y);
+		int ReadPixel(uint32_t x, uint32_t y, uint32_t RTIdx);
 
 		void DisableDepth() { mDepth = false; }
 		void EnableDepth() { mDepth = true; }
 
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV(uint32_t index = 0) const { return mColorTargets[index]->GetSRV(); }
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> GetRTTexture(uint32_t index = 0) const { return mColorTargets[index]->GetTexture(); }
-
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetDepthSRV(uint32_t index = 0) const { return mDepthTarget->GetSRV(); }
 
 		virtual void Clear(const DirectX::XMFLOAT4 clearColor);
 	private:
@@ -43,11 +40,6 @@ namespace Toast {
 		uint32_t mWidth, mHeight;
 
 		std::vector<Ref<RenderTarget>> mColorTargets;
-		Ref<RenderTarget> mDepthTarget;
-
-		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthDisabledStencilState;
-
-		D3D11_VIEWPORT mViewport;
 
 		// Blending
 		Microsoft::WRL::ComPtr<ID3D11BlendState> mBlendState;

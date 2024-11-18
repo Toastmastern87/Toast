@@ -32,7 +32,6 @@ struct PixelInputType
 {
 	float4 svpos		: SV_POSITION;
     float3 pos			: POSITION;
-	float3 cameraPos	: POSITION1;
 };
 
 PixelInputType main(VertexInputType input)
@@ -40,18 +39,15 @@ PixelInputType main(VertexInputType input)
     PixelInputType output;
 
 	output.pos = input.position;
+	
 	float3 viewPos = mul(input.position, (float3x3)viewMatrix);
 	float4 finalPos = mul(float4(viewPos, 1.0f), projectionMatrix);
 	output.svpos = float4(finalPos.xy, 0.0f, finalPos.w);
-	output.cameraPos = mul(cameraPosition, viewMatrix);
-	output.cameraPos = mul(output.cameraPos, projectionMatrix);
 
 	return output;
 }
 
 #type pixel
-static const float PI = 3.141592f;
-
 cbuffer DirectionalLight : register(b3)
 {
 	float4 direction;
@@ -71,46 +67,16 @@ struct PixelInputType
 {
 	float4 svpos		: SV_POSITION;
 	float3 pos			: POSITION;
-	float3 cameraPos	: POSITION1;
 };
 
-TextureCube skybox		: register(t7);
-SamplerState sampleType;
+TextureCube radianceTexture			: register(t5);
+
+// Sampler state
+SamplerState defaultSampler			: register(s0);
 
 float4 main(PixelInputType input) : SV_Target
 {
-	float3 sunColor, skycolor;
+    float3 skycolor = radianceTexture.SampleLevel(defaultSampler, normalize(input.pos), textureLOD).rgb * environmentStrength;
 
-	if (sunDiscToggle == 1.0f)
-	{
-		float sun = 1.0f - acos(dot(normalize(input.pos), normalize(direction)));
-		sun = clamp(sun, 0.0f, 1.0f);
-
-		float glow = sun;
-		glow = clamp(glow, 0.0f, 1.0f);
-
-		sun = pow(sun, 100.0f);
-		sun *= 100.0f;
-		sun = clamp(sun, 0.0f, 1.0f);
-
-		glow = pow(glow, 6.0f) * 1.0f;
-		glow = pow(glow, 1.0f);
-		glow = clamp(glow, 0.0f, 1.0f);
-
-		sun *= pow(1.0f, 1.0f / 1.65f);
-
-		glow *= pow(1.0f, 1.0f / 2.0f);
-
-		sun += glow;
-
-		sunColor = radiance * sun;
-	}
-	else
-	{
-		sunColor = 0.0f;
-	}
-
-	skycolor = skybox.SampleLevel(sampleType, normalize(input.pos), textureLOD).rgb * environmentStrength;
-
-	return float4(skycolor + sunColor, 1.0f);
+	return float4(skycolor, 1.0f);
 }

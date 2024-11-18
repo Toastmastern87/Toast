@@ -32,10 +32,8 @@ namespace Toast {
 
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> GetView();
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV();
-		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> GetDepthView();
 
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() { return mTexture->GetTexture(); }
-		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> GetDepthState() const { return mDepthStencilState; }
 
 		TextureFormat GetFormat() { return mFormat; }
 
@@ -50,10 +48,7 @@ namespace Toast {
 		Scope<Texture2D> mTexture;
 
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRTV;
-		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> mDSV;
 
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mSwapChainRTV;
-
-		Microsoft::WRL::ComPtr<ID3D11DepthStencilState> mDepthStencilState;
 	};
 }
