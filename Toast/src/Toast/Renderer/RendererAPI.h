@@ -26,6 +26,7 @@ namespace Toast {
 		void Draw(uint32_t count);
 		void DispatchCompute(uint32_t x, uint32_t y, uint32_t z);
 		void SwapBuffers(bool vSync);
+		void SetShaderResource(D3D11_SHADER_TYPE shaderType, uint32_t bindSlot, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
 		void ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 		void EnableAlphaBlending();
 		void DisableAlphaBlending();
@@ -33,6 +34,13 @@ namespace Toast {
 		void DisableWireframe();
 		void SetPrimitiveTopology(PrimitiveTopology topology);
 		void CleanUp();
+
+		void SetViewport(D3D11_VIEWPORT& viewport);
+		void SetRenderTargets(std::vector<ID3D11RenderTargetView*>& colors, Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView);
+		void ClearRenderTargets(ID3D11RenderTargetView* renderTarget, const DirectX::XMFLOAT4& clearColor);
+		void ClearRenderTargets(std::vector<ID3D11RenderTargetView*>& colorTargets, const DirectX::XMFLOAT4& clearColor);
+		void ClearDepthStencilView(Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView);
+		void SetDepthStencilState(Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depthStencilState);
 
 		void GetAnnotation(Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>& annotation);
 

@@ -4,13 +4,12 @@
 #include "Toast/Renderer/Framebuffer.h"
 #include "Toast/Renderer/RendererAPI.h"
 
-
 namespace Toast {
 
 	static const uint32_t sMaxFramebufferSize = 8192;
 
-	Framebuffer::Framebuffer(const std::vector<Ref<RenderTarget>>& colors, Ref<RenderTarget> depth, bool swapChainTarget)
-		: mColorTargets(colors), mDepthTarget(depth), mSwapChainTarget(swapChainTarget)
+	Framebuffer::Framebuffer(const std::vector<Ref<RenderTarget>>& colors, bool swapChainTarget)
+		: mColorTargets(colors), mSwapChainTarget(swapChainTarget)
 	{
 		mWidth = 1280;
 		mHeight = 720;
@@ -42,19 +41,11 @@ namespace Toast {
 			}
 		}
 
-		CreateDepthDisabledState();
 		CreateBlendState();
-
-		Invalidate();
 	}
 
-	void Framebuffer::Bind() const
+	std::vector<ID3D11RenderTargetView*>  Framebuffer::GetColorRenderTargets() const
 	{
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
-
-		deviceContext->RSSetViewports(1, &mViewport);
-
 		std::vector<ID3D11RenderTargetView*> renderTargetViews;
 		renderTargetViews.reserve(mColorTargets.size());
 		for (const auto& colorTarget : mColorTargets)
@@ -62,16 +53,13 @@ namespace Toast {
 			renderTargetViews.emplace_back(colorTarget->GetView().Get());
 		}
 
-		if (mDepth)
-		{
-			deviceContext->OMSetRenderTargets(static_cast<UINT>(renderTargetViews.size()), renderTargetViews.data(), mDepthTarget->GetDepthView().Get());
-			deviceContext->OMSetDepthStencilState(mDepthTarget->GetDepthState().Get(), 1);
-		}
-		else 
-		{
-			deviceContext->OMSetRenderTargets(static_cast<UINT>(renderTargetViews.size()), renderTargetViews.data(), nullptr);
-			deviceContext->OMSetDepthStencilState(mDepthDisabledStencilState.Get(), 1);
-		}
+		return renderTargetViews;
+	}
+
+	void Framebuffer::Bind() const
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
 		// Bind the blend state
 		const float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -109,60 +97,10 @@ namespace Toast {
 		deviceContext->CSSetShaderResources(0, 16, nullSRVs);
 	}
 
-	void Framebuffer::CreateDepthDisabledState()
-	{
-		HRESULT result;
-		D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
-
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11Device* device = API->GetDevice();
-
-		ZeroMemory(&depthStencilDesc, sizeof(depthStencilDesc));
-
-		depthStencilDesc.DepthEnable = false;
-		depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-		depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-
-		depthStencilDesc.StencilEnable = false;
-		depthStencilDesc.StencilReadMask = 0x00;
-		depthStencilDesc.StencilWriteMask = 0x00;
-
-		depthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-		depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
-		depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-		depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-
-		depthStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-		depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
-		depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-		depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-
-		result = device->CreateDepthStencilState(&depthStencilDesc, &mDepthDisabledStencilState);
-		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create depth stencil state");
-	}
-
-	void Framebuffer::Invalidate()
-	{
-		mViewport.TopLeftX = 0.0f;
-		mViewport.TopLeftY = 0.0f;
-		mViewport.Width = static_cast<float>(mWidth);
-		mViewport.Height = static_cast<float>(mHeight);
-		mViewport.MinDepth = 0.0f;
-		mViewport.MaxDepth = 1.0f;
-
-		if (mDepthTarget)
-			mDepth = true;
-		else
-			mDepth = false;
-	}
-
 	void Framebuffer::Clear(const DirectX::XMFLOAT4 clearColor)
 	{		
 		for (auto& colorTarget : mColorTargets)
 			colorTarget->Clear(clearColor);
-
-		if (mDepth)
-			mDepthTarget->Clear(clearColor);
 	}
 
 	void Framebuffer::CreateBlendState()
@@ -225,14 +163,9 @@ namespace Toast {
 
 		for (auto& colorTarget : mColorTargets)
 			colorTarget->Resize(width, height);
-
-		if (mDepthTarget)
-			mDepthTarget->Resize(width, height);
-
-		Invalidate();
 	}
 
-	int Framebuffer::ReadPixel(uint32_t x, uint32_t y)
+	int Framebuffer::ReadPixel(uint32_t x, uint32_t y, uint32_t RTIdx)
 	{
 		HRESULT result;
 		D3D11_TEXTURE2D_DESC textureDesc = {};
@@ -246,7 +179,7 @@ namespace Toast {
 		ID3D11Device* device = API->GetDevice();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		mColorTargets[0]->GetTexture()->GetDesc(&sourceDesc);
+		mColorTargets[RTIdx]->GetTexture()->GetDesc(&sourceDesc);
 
 		// Coordinates out of bounds
 		if (x >= sourceDesc.Width || y >= sourceDesc.Height)
@@ -268,7 +201,7 @@ namespace Toast {
 		result = device->CreateTexture2D(&textureDesc, nullptr, &stagedTexture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create 2D texture!");
 		
-		deviceContext->CopySubresourceRegion(stagedTexture.Get(), 0, 0, 0, 0, mColorTargets[0]->GetTexture().Get(), 0, &srcBox);
+		deviceContext->CopySubresourceRegion(stagedTexture.Get(), 0, 0, 0, 0, mColorTargets[RTIdx]->GetTexture().Get(), 0, &srcBox);
 		
 		D3D11_MAPPED_SUBRESOURCE msr;
 		HRESULT hr = deviceContext->Map(stagedTexture.Get(), 0, D3D11_MAP_READ, 0, &msr);

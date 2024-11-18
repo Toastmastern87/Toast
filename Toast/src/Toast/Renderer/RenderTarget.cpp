@@ -48,41 +48,6 @@ namespace Toast {
 			swapChain->GetBuffer(0, __uuidof(ID3D11Resource), &backBuffer);
 			device->CreateRenderTargetView(backBuffer.Get(), nullptr, &mSwapChainRTV);
 		}
-		else if (type == RenderTargetType::Depth)
-		{
-			mTexture = CreateScope<Texture2D>((DXGI_FORMAT)TextureFormat::R32_TYPELESS, (DXGI_FORMAT)TextureFormat::R32_FLOAT, width, height, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE), samples);
-
-			D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-			dsvDesc.Format = (DXGI_FORMAT)format;
-			dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-			dsvDesc.Texture2D.MipSlice = 0;
-
-			result = device->CreateDepthStencilView(mTexture->GetTexture().Get(), &dsvDesc, &mDSV);
-			TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create depth stencil view!");
-
-			// Create Depth Stencil State
-			D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
-			depthStencilDesc.DepthEnable = true;
-			depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-			depthStencilDesc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
-
-			depthStencilDesc.StencilEnable = true;
-			depthStencilDesc.StencilReadMask = 0xFF;
-			depthStencilDesc.StencilWriteMask = 0xFF;
-
-			depthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-			depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
-			depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-			depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-
-			depthStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-			depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
-			depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-			depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-
-			result = device->CreateDepthStencilState(&depthStencilDesc, &mDepthStencilState);
-			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create depth stencil state");
-		}
 	}
 
 	void RenderTarget::Clear(const DirectX::XMFLOAT4 clearColor)
@@ -99,16 +64,12 @@ namespace Toast {
 			{
 				deviceContext->ClearRenderTargetView(mRTV.Get(), reinterpret_cast<const float*>(&clearColor));
 			}
-		else if(mType == RenderTargetType::Depth)
-			deviceContext->ClearDepthStencilView(mDSV.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0);
-			//deviceContext->ClearDepthStencilView(mDepthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	}
 
 	void RenderTarget::Clean()
 	{
 		mTexture.reset();
 		mRTV.Reset();
-		mDSV.Reset();
 		mSwapChainRTV.Reset();
 	}
 
@@ -135,11 +96,6 @@ namespace Toast {
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> RenderTarget::GetSRV()
 	{
 		return mTexture->GetSRV();
-	}
-
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> RenderTarget::GetDepthView()
-	{
-		return mDSV;
 	}
 
 	void RenderTarget::Unbind()

@@ -104,6 +104,16 @@ namespace Toast {
 			mSwapChain->Present(0, 0);
 	}
 
+	void RendererAPI::SetShaderResource(D3D11_SHADER_TYPE shaderType, uint32_t bindSlot, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv)
+	{
+		if(shaderType == D3D11_VERTEX_SHADER)
+			mDeviceContext->VSSetShaderResources(bindSlot, 1, srv.GetAddressOf());
+		else if(shaderType == D3D11_PIXEL_SHADER)
+			mDeviceContext->PSSetShaderResources(bindSlot, 1, srv.GetAddressOf());
+		else if(shaderType == D3D11_COMPUTE_SHADER)
+			mDeviceContext->CSSetShaderResources(bindSlot, 1, srv.GetAddressOf());
+	}
+
 	void RendererAPI::ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 	{
 		mBackbuffer.reset();
@@ -141,13 +151,46 @@ namespace Toast {
 
 	void RendererAPI::BindBackbuffer()
 	{
-		mBackbuffer->Bind();
+		std::vector<ID3D11RenderTargetView*>& colors = mBackbuffer->GetColorRenderTargets();
+
+		mDeviceContext->OMSetRenderTargets(static_cast<UINT>(colors.size()), colors.data(), nullptr);
+	}
+
+	void RendererAPI::SetViewport(D3D11_VIEWPORT& viewport)
+	{
+		mDeviceContext->RSSetViewports(1, &viewport);
+	}
+
+	void RendererAPI::SetRenderTargets(std::vector<ID3D11RenderTargetView*>& colors, Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView)
+	{
+		mDeviceContext->OMSetRenderTargets(static_cast<UINT>(colors.size()), colors.data(), depthView.Get());
+	}
+
+	void RendererAPI::ClearRenderTargets(ID3D11RenderTargetView* colorTarget, const DirectX::XMFLOAT4& clearColor)
+	{
+		mDeviceContext->ClearRenderTargetView(colorTarget, reinterpret_cast<const float*>(&clearColor));
+	}
+
+	void RendererAPI::ClearRenderTargets(std::vector<ID3D11RenderTargetView*>& colorTargets, const DirectX::XMFLOAT4& clearColor)
+	{
+		for (auto& colorTarget : colorTargets)
+			mDeviceContext->ClearRenderTargetView(colorTarget, reinterpret_cast<const float*>(&clearColor));
+	}
+
+	void RendererAPI::ClearDepthStencilView(Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView)
+	{
+		mDeviceContext->ClearDepthStencilView(depthView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0);
+	}
+
+	void RendererAPI::SetDepthStencilState(Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depthStencilState)
+	{
+		mDeviceContext->OMSetDepthStencilState(depthStencilState.Get(), 1);
 	}
 
 	void RendererAPI::CreateBackbuffer()
 	{
 		mBackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, mWidth, mHeight, 1, TextureFormat::R16G16B16A16_FLOAT, true);
-		mBackbuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ mBackbufferRT }, nullptr, true);
+		mBackbuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ mBackbufferRT }, true);
 	}
 
 	void RendererAPI::CreateBlendStates()
@@ -253,4 +296,5 @@ namespace Toast {
 		TOAST_CORE_INFO("  Renderer: %s", videoCardDescription);
 		TOAST_CORE_INFO("  Version: %s.%s.%s.%s", major.c_str(), minor.c_str(), release.c_str(), build.c_str());
 	}
+
 }

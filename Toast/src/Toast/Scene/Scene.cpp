@@ -245,7 +245,6 @@ namespace Toast {
 				auto [transformComponent, skylightComponent] = skylights.get<TransformComponent, SkyLightComponent>(entity);
 				mEnvironment = skylightComponent.SceneEnvironment;
 				mEnvironmentIntensity = skylightComponent.Intensity;
-				SetSkybox(mEnvironment.RadianceMap);
 			}
 		}
 
@@ -632,7 +631,6 @@ namespace Toast {
 				auto [transformComponent, skylightComponent] = skylights.get<TransformComponent, SkyLightComponent>(entity);
 				mEnvironment = skylightComponent.SceneEnvironment;
 				mEnvironmentIntensity = skylightComponent.Intensity;
-				SetSkybox(mEnvironment.RadianceMap);
 			}
 		}
 
@@ -702,7 +700,7 @@ namespace Toast {
 		{
 			// Skybox!
 			{
-				if (mSkyboxTexture)
+				if (mSkybox)
 					Renderer::SubmitSkybox(mSkybox, DirectX::XMFLOAT4(DirectX::XMVectorGetX(editorCamera->GetPosition()), DirectX::XMVectorGetY(editorCamera->GetPosition()), DirectX::XMVectorGetZ(editorCamera->GetPosition()), 0.0f), editorCamera->GetViewMatrix(), editorCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
 			}
 
@@ -991,12 +989,6 @@ namespace Toast {
 		}
 	}
 
-	void Scene::SetSkybox(Ref<TextureCube> skybox)
-	{
-		mSkyboxTexture = skybox;
-		//mSkyboxMaterial->SetTexture(7, D3D11_PIXEL_SHADER, mSkyboxTexture.get());
-	}
-
 	Entity Scene::FindEntityByName(std::string_view name)
 	{
 		auto view = mRegistry.view<TagComponent>();
@@ -1193,10 +1185,7 @@ namespace Toast {
 	void Scene::OnComponentAdded<SkyLightComponent>(Entity entity, SkyLightComponent& component)
 	{
 		// Initiate the skybox
-		//Shader* skyboxShader = ShaderLibrary::Load("assets/shaders/Skybox.hlsl");
-		//mSkyboxMaterial = CreateRef<Material>("Skybox", skyboxShader);
-		//mSkybox = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.gltf", true);
-		//mSkybox->SetMaterial("Skybox", mSkyboxMaterial);
+		mSkybox = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.gltf", true);
 	}
 
 	template<>
