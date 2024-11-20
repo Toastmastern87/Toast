@@ -66,8 +66,8 @@ namespace Toast {
 
 		if (debugActivated && !renderUI)
 		{
-			RenderCommand::BindBackbuffer();
-			RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
+			RenderCommand::SetRenderTargets({ sRendererData->BackbufferRT->GetView().Get() }, nullptr);
+			RenderCommand::ClearRenderTargets(sRendererData->BackbufferRT->GetView().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
 		}
 
 		ZeroMemory(mDebugData->LineVertexBufferBase, mDebugData->MaxVertices * sizeof(LineVertex));
@@ -149,7 +149,7 @@ namespace Toast {
 // 		sRendererData->FinalFramebuffer->EnableDepth();
 // 		sRendererData->FinalFramebuffer->Bind();
 
-		RenderCommand::EnableBlending();
+		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 		//if (!runtime)
 		//{
