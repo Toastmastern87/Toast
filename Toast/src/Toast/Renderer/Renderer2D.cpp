@@ -94,8 +94,8 @@ namespace Toast {
 
 		//sRendererData->FinalFramebuffer->EnableDepth();
 		
-		RenderCommand::BindBackbuffer();
-		RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
+		RenderCommand::SetRenderTargets({ sRendererData->BackbufferRT->GetView().Get() }, nullptr);
+		RenderCommand::ClearRenderTargets(sRendererData->BackbufferRT->GetView().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
 
 #ifdef TOAST_DEBUG
 		if (annotation)

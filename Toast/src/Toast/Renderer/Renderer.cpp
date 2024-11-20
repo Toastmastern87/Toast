@@ -84,7 +84,7 @@ namespace Toast {
 		sRendererData->GPassPickingRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32_SINT);
 
 		// Setting up the render targets for the Post Process pass
-		sRendererData->FinalRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->FinalRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT, false, true);
 
 		// Setting up the render target for the back buffer
 		sRendererData->BackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT, true);
@@ -165,18 +165,15 @@ namespace Toast {
 		SkyboxPass();
 		PostProcessPass();
 
-		//BaseRenderPass();
 		//PickingRenderPass();
 
 		if (!debugActivated) 
 		{
-			RenderCommand::BindBackbuffer();
-			RenderCommand::Clear({ 0.24f, 0.24f, 0.24f, 1.0f });
+			RenderCommand::SetRenderTargets({ sRendererData->BackbufferRT->GetView().Get() }, nullptr);
+			RenderCommand::ClearRenderTargets(sRendererData->BackbufferRT->GetView().Get() , { 0.0f, 0.0f, 0.0f, 1.0f });
 		}
 
 		ClearDrawList();
-
-		//TOAST_CORE_CRITICAL("END OF SCENE!");
 	}
 
 	void Renderer::CreateDepthBuffer(uint32_t width, uint32_t height)
@@ -253,6 +250,56 @@ namespace Toast {
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Skybox pass depth stencil state");
 	}
 
+	void Renderer::CreateBlendStates()
+	{
+		HRESULT result;
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		// Geometry Pass Blend State
+		{
+			D3D11_BLEND_DESC blendDesc = {};
+			blendDesc.AlphaToCoverageEnable = FALSE;
+			blendDesc.IndependentBlendEnable = TRUE; // Allows different settings per render target
+
+			const auto& renderTargets = sRendererData->GPassFramebuffer->GetRenderTargets();
+			size_t numRenderTargets = renderTargets.size();
+
+			TOAST_CORE_ASSERT(numRenderTargets <= D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, "Too many render targets");
+
+			// Collect blend descriptions from each render target
+			for (size_t i = 0; i < numRenderTargets; ++i)
+			{
+				const D3D11_RENDER_TARGET_BLEND_DESC& rtBlendDesc = renderTargets[i]->GetBlendDesc();
+				blendDesc.RenderTarget[i] = rtBlendDesc;
+			}
+
+			result = device->CreateBlendState(&blendDesc, &sRendererData->GPassBlendState);
+			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create GPass blend state");
+		}
+
+		// Lightning Pass Blend State
+		{
+			D3D11_BLEND_DESC blendDesc = {};
+			blendDesc.AlphaToCoverageEnable = FALSE;
+			blendDesc.IndependentBlendEnable = TRUE;
+
+			const auto& renderTargets = sRendererData->LPassFramebuffer->GetRenderTargets();
+			size_t numRenderTargets = renderTargets.size();
+
+			TOAST_CORE_ASSERT(numRenderTargets <= D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, "Too many render targets");
+
+			for (size_t i = 0; i < numRenderTargets; ++i)
+			{
+				const D3D11_RENDER_TARGET_BLEND_DESC& rtBlendDesc = renderTargets[i]->GetBlendDesc();
+				blendDesc.RenderTarget[i] = rtBlendDesc;
+			}
+
+			result = device->CreateBlendState(&blendDesc, &sRendererData->LPassBlendState);
+			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create LPass blend state");
+		}
+	}
+
 	void Renderer::Resize(uint32_t width, uint32_t height)
 	{
 		sRendererData->Viewport.TopLeftX = 0.0f;
@@ -263,6 +310,7 @@ namespace Toast {
 		sRendererData->Viewport.MaxDepth = 1.0f;
 
 		sRendererData->FinalRT->Resize(width, height);
+		sRendererData->BackbufferRT->Resize(width, height);
 
 		sRendererData->DepthStencilView.Reset();
 
@@ -405,14 +453,12 @@ namespace Toast {
 		if (annotation)
 			annotation->BeginEvent(L"Geometry Pass");
 #endif
-		//NEW WAY, MOVING THINGS TO THIS
+
 		RenderCommand::SetRenderTargets(sRendererData->GPassFramebuffer->GetColorRenderTargets(), sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
+		RenderCommand::SetBlendState(sRendererData->GPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::ClearDepthStencilView(sRendererData->DepthStencilView);
 		RenderCommand::ClearRenderTargets(sRendererData->GPassFramebuffer->GetColorRenderTargets(), { 0.0f, 0.0f, 0.0f, 1.0f });
-
-		//OLD WAY KEEPING FOR NOW!
-		sRendererData->GPassFramebuffer->Bind();
 
 		ShaderLibrary::Get("assets/shaders/Deffered Rendering/GeometryPass.hlsl")->Bind();
 
@@ -486,10 +532,11 @@ namespace Toast {
 
 		RenderCommand::SetRenderTargets(sRendererData->LPassFramebuffer->GetColorRenderTargets(), nullptr);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
+		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::ClearRenderTargets(sRendererData->LPassFramebuffer->GetColorRenderTargets(), { 0.0f, 0.0f, 0.0f, 1.0f });
 
 		// TODO Remove this and move to new way
-		sRendererData->LPassFramebuffer->Bind();
+		//sRendererData->LPassFramebuffer->Bind();
 
 		ShaderLibrary::Get("assets/shaders/Deffered Rendering/LightningPass.hlsl")->Bind();
 
@@ -537,12 +584,11 @@ namespace Toast {
 
 		if (sRendererData->SceneData.SkyboxData.Skybox)
 		{
-			sRendererData->LPassFramebuffer->Bind();
-
 			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> defaultWhiteCubemapSRV = TextureLibrary::Get("assets/textures/WhiteCube.png")->GetSRV();
 
 			RenderCommand::SetRenderTargets(sRendererData->LPassFramebuffer->GetColorRenderTargets(), sRendererData->DepthStencilView);
 			RenderCommand::SetDepthStencilState(sRendererData->DepthSkyboxPassStencilState);
+			RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 			if (sRendererData->SceneData.SceneEnvironment.RadianceMap)
 				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->SceneData.SceneEnvironment.RadianceMap->GetSRV());
@@ -555,9 +601,9 @@ namespace Toast {
 			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
 			sRendererData->EnvironmentCBuffer->Map(sRendererData->EnvironmentBuffer);
 
-			sRendererData->SceneData.SkyboxData.Skybox->Bind();
+			//sRendererData->SceneData.SkyboxData.Skybox->Bind();
 
-			RenderCommand::DrawIndexed(sRendererData->SceneData.SkyboxData.Skybox->mSubmeshes[0].BaseVertex, sRendererData->SceneData.SkyboxData.Skybox->mSubmeshes[0].BaseIndex, sRendererData->SceneData.SkyboxData.Skybox->mSubmeshes[0].IndexCount);
+			DrawFullscreenQuad();
 		}
 
 		sRendererData->LPassFramebuffer->Unbind();
@@ -581,8 +627,8 @@ namespace Toast {
 		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
 
 		//Tonemapping
-		sRendererData->LPassFramebuffer->Bind();
 		RenderCommand::ClearRenderTargets(sRendererData->FinalRT->GetView().Get(), {0.0f, 0.0f, 0.0f, 1.0f});
+		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
 

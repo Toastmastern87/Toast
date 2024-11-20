@@ -20,10 +20,10 @@ namespace Toast {
 	class RenderTarget 
 	{
 	public:
-		RenderTarget(RenderTargetType type, uint32_t width, uint32_t height, uint32_t samples, TextureFormat format, bool swapChainTarget = false);
+		RenderTarget(RenderTargetType type, uint32_t width, uint32_t height, uint32_t samples, TextureFormat format, bool swapChainTarget = false, bool blending = false);
 		~RenderTarget() = default;
 
-		void Init(RenderTargetType type, uint32_t width, uint32_t height, uint32_t samples, TextureFormat format, bool swapChainTarget = false);
+		void Init(RenderTargetType type, uint32_t width, uint32_t height, uint32_t samples, TextureFormat format, bool swapChainTarget = false, bool blending = false);
 		void Clear(const DirectX::XMFLOAT4 clearColor);
 		void Clean();
 		void Resize(uint32_t width, uint32_t height);
@@ -37,7 +37,12 @@ namespace Toast {
 
 		TextureFormat GetFormat() { return mFormat; }
 
+		const D3D11_RENDER_TARGET_BLEND_DESC& GetBlendDesc() const { return mBlendDesc; }
+		void SetBlendDesc(const D3D11_RENDER_TARGET_BLEND_DESC& blendDesc) { mBlendDesc = blendDesc; }
+
 		void Unbind();
+	private:
+		bool IsIntegerFormat(TextureFormat format);
 	private:
 		RenderTargetType mType;
 		uint32_t mWitdh, mHeight, mSamples;
@@ -50,5 +55,7 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRTV;
 
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mSwapChainRTV;
+
+		D3D11_RENDER_TARGET_BLEND_DESC mBlendDesc;
 	};
 }

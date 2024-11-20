@@ -12,17 +12,17 @@ namespace Toast {
 			sRendererAPI->Init();
 		}
 
-		static void Clear(const DirectX::XMFLOAT4 clearColor)
-		{
-			sRendererAPI->Clear(clearColor);
-		}
+		//static void Clear(const DirectX::XMFLOAT4 clearColor)
+		//{
+		//	sRendererAPI->Clear(clearColor);
+		//}
 
 		static void SetViewport(D3D11_VIEWPORT& viewport)
 		{
 			sRendererAPI->SetViewport(viewport);
 		}
 
-		static void SetRenderTargets(std::vector<ID3D11RenderTargetView*>& colors, Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView)
+		static void SetRenderTargets(const std::vector<ID3D11RenderTargetView*>& colors, Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView)
 		{
 			sRendererAPI->SetRenderTargets(colors, depthView);
 		}
@@ -41,15 +41,15 @@ namespace Toast {
 		{
 			sRendererAPI->ClearDepthStencilView(depthView);
 		}
-		
-		static void BindBackbuffer()
-		{
-			sRendererAPI->BindBackbuffer();
-		}
 
 		static void SetDepthStencilState(Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depthStencilState)
 		{
 			sRendererAPI->SetDepthStencilState(depthStencilState);
+		}
+
+		static void SetBlendState(Microsoft::WRL::ComPtr<ID3D11BlendState> blendState, const DirectX::XMFLOAT4& blendFactor)
+		{
+			sRendererAPI->SetBlendState(blendState, blendFactor);
 		}
 
 		static void DrawIndexed(const uint32_t baseVertex, const uint32_t baseIndex, const uint32_t indexCount)
@@ -95,16 +95,6 @@ namespace Toast {
 		static void DisableWireframe()
 		{
 			sRendererAPI->DisableWireframe();
-		}
-
-		static void EnableBlending()
-		{
-			sRendererAPI->EnableAlphaBlending();
-		}
-
-		static void DisableBlending()
-		{
-			sRendererAPI->DisableAlphaBlending();
 		}
 
 		static void SetPrimitiveTopology(PrimitiveTopology topology)

@@ -59,19 +59,9 @@ namespace Toast {
 
 		LogAdapterInfo();
 
-		CreateBackbuffer();
-
-		CreateBlendStates();
-
 		CreateRasterizerStates();
 
-		EnableAlphaBlending();
 		EnableWireframe();
-	}
-
-	void RendererAPI::Clear(const DirectX::XMFLOAT4 clearColor)
-	{
-		mBackbuffer->Clear(clearColor);
 	}
 
 	void RendererAPI::DrawIndexed(const uint32_t baseVertex, const uint32_t baseIndex, const uint32_t indexCount)
@@ -116,22 +106,7 @@ namespace Toast {
 
 	void RendererAPI::ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 	{
-		mBackbuffer.reset();
-		mBackbufferRT.reset();
-
 		mSwapChain->ResizeBuffers(1, width, height, DXGI_FORMAT_UNKNOWN, 0);
-
-		CreateBackbuffer();
-	}
-
-	void RendererAPI::EnableAlphaBlending()
-	{
-		mDeviceContext->OMSetBlendState(mAlphaBlendEnabledState.Get(), 0, 0xffffffff);
-	}
-
-	void RendererAPI::DisableAlphaBlending()
-	{
-		mDeviceContext->OMSetBlendState(mAlphaBlendDisabledState.Get(), 0, 0xffffffff);
 	}
 
 	void RendererAPI::EnableWireframe()
@@ -149,19 +124,12 @@ namespace Toast {
 		mDeviceContext->IASetPrimitiveTopology((D3D11_PRIMITIVE_TOPOLOGY)topology);
 	}
 
-	void RendererAPI::BindBackbuffer()
-	{
-		std::vector<ID3D11RenderTargetView*>& colors = mBackbuffer->GetColorRenderTargets();
-
-		mDeviceContext->OMSetRenderTargets(static_cast<UINT>(colors.size()), colors.data(), nullptr);
-	}
-
 	void RendererAPI::SetViewport(D3D11_VIEWPORT& viewport)
 	{
 		mDeviceContext->RSSetViewports(1, &viewport);
 	}
 
-	void RendererAPI::SetRenderTargets(std::vector<ID3D11RenderTargetView*>& colors, Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView)
+	void RendererAPI::SetRenderTargets(const std::vector<ID3D11RenderTargetView*>& colors, Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView)
 	{
 		mDeviceContext->OMSetRenderTargets(static_cast<UINT>(colors.size()), colors.data(), depthView.Get());
 	}
@@ -187,48 +155,9 @@ namespace Toast {
 		mDeviceContext->OMSetDepthStencilState(depthStencilState.Get(), 1);
 	}
 
-	void RendererAPI::CreateBackbuffer()
+	void RendererAPI::SetBlendState(Microsoft::WRL::ComPtr<ID3D11BlendState> blendState, const DirectX::XMFLOAT4& blendFactor)
 	{
-		mBackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, mWidth, mHeight, 1, TextureFormat::R16G16B16A16_FLOAT, true);
-		mBackbuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ mBackbufferRT }, true);
-	}
-
-	void RendererAPI::CreateBlendStates()
-	{
-		HRESULT result;
-		D3D11_BLEND_DESC bd = {};
-
-		bd.AlphaToCoverageEnable = FALSE;
-		bd.IndependentBlendEnable = TRUE; // Enable independent blending
-
-		bd.RenderTarget[0].BlendEnable = true;
-		bd.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-		bd.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-		bd.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-		bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_INV_DEST_ALPHA;
-		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-		bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-		bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
-		// For the second render target (slot 1)
-		bd.RenderTarget[1].BlendEnable = FALSE; // Disable blending for slot 1
-		bd.RenderTarget[1].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
-		result = mDevice->CreateBlendState(&bd, &mAlphaBlendEnabledState);
-
-		bd.RenderTarget[0].BlendEnable = false;
-		bd.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
-		bd.RenderTarget[0].DestBlend = D3D11_BLEND_ZERO;
-		bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-		bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-
-		// For the second render target (slot 1)
-		bd.RenderTarget[1].BlendEnable = FALSE; // Disable blending for slot 1
-		bd.RenderTarget[1].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
-		result = mDevice->CreateBlendState(&bd, &mAlphaBlendDisabledState);
-
-		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create blend states");
+		mDeviceContext->OMSetBlendState(blendState.Get(), &blendFactor.x, 0xffffffff);
 	}
 
 	void RendererAPI::CreateRasterizerStates()

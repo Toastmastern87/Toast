@@ -8,13 +8,13 @@ namespace Toast {
 
 	static const uint32_t sMaxRenderTargetSize = 8192;
 
-	RenderTarget::RenderTarget(RenderTargetType type, uint32_t width, uint32_t height, uint32_t samples, TextureFormat format, bool swapChainTarget)
+	RenderTarget::RenderTarget(RenderTargetType type, uint32_t width, uint32_t height, uint32_t samples, TextureFormat format, bool swapChainTarget, bool blending)
 		: mType(type), mWitdh(width), mHeight(height), mSamples(samples), mFormat(format), mSwapChainTarget(swapChainTarget)
 	{
 		Init(type, width, height, samples, format, swapChainTarget);
 	}
 
-	void RenderTarget::Init(RenderTargetType type, uint32_t width, uint32_t height, uint32_t samples, TextureFormat format, bool swapChainTarget)
+	void RenderTarget::Init(RenderTargetType type, uint32_t width, uint32_t height, uint32_t samples, TextureFormat format, bool swapChainTarget, bool blending)
 	{
 		mWitdh = width;
 		mHeight = height;
@@ -47,6 +47,25 @@ namespace Toast {
 
 			swapChain->GetBuffer(0, __uuidof(ID3D11Resource), &backBuffer);
 			device->CreateRenderTargetView(backBuffer.Get(), nullptr, &mSwapChainRTV);
+		}
+
+		if (IsIntegerFormat(mFormat))
+		{
+			// Disable blending for integer formats
+			mBlendDesc.BlendEnable = FALSE;
+			mBlendDesc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		}
+		else
+		{
+			// Set default blending settings for floating-point formats
+			mBlendDesc.BlendEnable = blending; 
+			mBlendDesc.SrcBlend = D3D11_BLEND_ONE;
+			mBlendDesc.DestBlend = D3D11_BLEND_ZERO;
+			mBlendDesc.BlendOp = D3D11_BLEND_OP_ADD;
+			mBlendDesc.SrcBlendAlpha = D3D11_BLEND_ONE;
+			mBlendDesc.DestBlendAlpha = D3D11_BLEND_ZERO;
+			mBlendDesc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+			mBlendDesc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 		}
 	}
 
@@ -105,6 +124,17 @@ namespace Toast {
 
 		ID3D11RenderTargetView* nullRTV[1] = { nullptr };
 		deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
+	}
+
+	bool RenderTarget::IsIntegerFormat(TextureFormat format)
+	{
+		switch (format)
+		{
+		case TextureFormat::R32_SINT:
+			return true;
+		default:
+			return false;
+		}
 	}
 
 }

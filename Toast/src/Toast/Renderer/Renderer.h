@@ -82,6 +82,9 @@ namespace Toast {
 			Scope<Texture2D> DepthBuffer;
 			Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthEnabledStencilState, DepthDisabledStencilState, DepthSkyboxPassStencilState;
 			Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencilView;
+
+			// Blend data
+			Microsoft::WRL::ComPtr<ID3D11BlendState> GPassBlendState, LPassBlendState, SkyboxPassBlendState, PostProcessBlendState;
 		};
 
 	protected:
@@ -99,6 +102,7 @@ namespace Toast {
 		static void CreateDepthBuffer(uint32_t width, uint32_t height);
 		static void CreateDepthStencilView();
 		static void CreateDepthStencilStates();
+		static void CreateBlendStates();
 		static void Resize(uint32_t width, uint32_t height);
 
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);

@@ -19,8 +19,7 @@ namespace Toast {
 		~RendererAPI() = default;
 
 		void Init();
-		void Clear(const DirectX::XMFLOAT4 clearColor);
-		void BindBackbuffer();
+		//void Clear(const DirectX::XMFLOAT4 clearColor);
 		void DrawIndexed(const uint32_t baseVertex, const uint32_t baseIndex, const uint32_t indexCount);
 		void DrawIndexedInstanced(const uint32_t indexCountPerInstance, const uint32_t instanceCount, const uint32_t startIndexLocation, const uint32_t baseVertexLocation, const uint32_t startInstanceLocation);
 		void Draw(uint32_t count);
@@ -28,19 +27,18 @@ namespace Toast {
 		void SwapBuffers(bool vSync);
 		void SetShaderResource(D3D11_SHADER_TYPE shaderType, uint32_t bindSlot, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
 		void ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
-		void EnableAlphaBlending();
-		void DisableAlphaBlending();
 		void EnableWireframe();
 		void DisableWireframe();
 		void SetPrimitiveTopology(PrimitiveTopology topology);
 		void CleanUp();
 
 		void SetViewport(D3D11_VIEWPORT& viewport);
-		void SetRenderTargets(std::vector<ID3D11RenderTargetView*>& colors, Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView);
+		void SetRenderTargets(const std::vector<ID3D11RenderTargetView*>& colors, Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView);
 		void ClearRenderTargets(ID3D11RenderTargetView* renderTarget, const DirectX::XMFLOAT4& clearColor);
 		void ClearRenderTargets(std::vector<ID3D11RenderTargetView*>& colorTargets, const DirectX::XMFLOAT4& clearColor);
 		void ClearDepthStencilView(Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView);
 		void SetDepthStencilState(Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depthStencilState);
+		void SetBlendState(Microsoft::WRL::ComPtr<ID3D11BlendState> blendState, const DirectX::XMFLOAT4& blendFactor);
 
 		void GetAnnotation(Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>& annotation);
 
@@ -48,8 +46,6 @@ namespace Toast {
 		ID3D11DeviceContext* GetDeviceContext() { return mDeviceContext.Get(); }
 		IDXGISwapChain* GetSwapChain() { return mSwapChain.Get(); }
 	private:
-		void CreateBackbuffer();
-		void CreateBlendStates();
 		void CreateRasterizerStates();
 
 		void LogAdapterInfo();
@@ -61,12 +57,7 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11Device> mDevice;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> mDeviceContext;
 		Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain;
-		Microsoft::WRL::ComPtr<ID3D11BlendState> mAlphaBlendEnabledState;
-		Microsoft::WRL::ComPtr<ID3D11BlendState> mAlphaBlendDisabledState;
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState> mNormalRasterizerState;
 		Microsoft::WRL::ComPtr<ID3D11RasterizerState> mWireframeRasterizerState;
-
-		Ref<Framebuffer> mBackbuffer = nullptr;
-		Ref<RenderTarget> mBackbufferRT = nullptr;
 	};
 }

@@ -16,9 +16,9 @@ namespace Toast {
 		Framebuffer(const std::vector<Ref<RenderTarget>>& colors, bool swapChainTarget = false);
 		~Framebuffer() = default;
 
-		std::vector<ID3D11RenderTargetView*>  Framebuffer::GetColorRenderTargets() const;
+		std::vector<ID3D11RenderTargetView*>  GetColorRenderTargets() const;
+		std::vector<Ref<RenderTarget>>& GetRenderTargets() { return mColorTargets;  };
 
-		void Bind() const;
 		void Unbind() const;
 
 		void Resize(uint32_t width, uint32_t height);
@@ -32,17 +32,11 @@ namespace Toast {
 
 		virtual void Clear(const DirectX::XMFLOAT4 clearColor);
 	private:
-		void CreateBlendState();
-
 		bool IsIntegerFormat(TextureFormat format);
 	private:
 		bool mSwapChainTarget = false, mDepth;
 		uint32_t mWidth, mHeight;
 
 		std::vector<Ref<RenderTarget>> mColorTargets;
-
-		// Blending
-		Microsoft::WRL::ComPtr<ID3D11BlendState> mBlendState;
-		std::vector<D3D11_RENDER_TARGET_BLEND_DESC> mBlendDescriptions;
 	};
 }
