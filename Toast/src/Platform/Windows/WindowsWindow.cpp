@@ -18,8 +18,6 @@ namespace Toast
 {
 	static bool sWin32Initialized = false;
 
-	static int windowCreationBlocking = 0;
-
 	HINSTANCE hInstance;
 
 	static void Win32ErrorCallback(int error, const char* description) 
@@ -49,7 +47,7 @@ namespace Toast
 		mData.Width = props.Width;
 		mData.Height = props.Height;
 
-		TOAST_CORE_INFO("Creating window %s %ix%i", props.Title.c_str(), props.Width, props.Height);
+		TOAST_CORE_INFO("Creating window %s %dx%d", props.Title.c_str(), props.Width, props.Height);
 
 		hInstance = GetModuleHandle(0);
 
@@ -85,6 +83,8 @@ namespace Toast
 		ShowWindow(mWin32Window, SW_SHOWDEFAULT);
 		UpdateWindow(mWin32Window);
 		SetFocus(mWin32Window);
+
+		mData.IsInitialized = true;
 	}
 
 	void WindowsWindow::Shutdown() 
@@ -136,17 +136,15 @@ namespace Toast
 		{
 			case WM_SIZE: 
 			{
-				if (windowCreationBlocking > 0)
+				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+				if (data->IsInitialized)
 				{
-					WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
-					data->Width = (UINT)LOWORD(lParam);
-					data->Height = (UINT)HIWORD(lParam);
+					data->Width = LOWORD(lParam);
+					data->Height = HIWORD(lParam);
 
 					WindowResizeEvent event((UINT)LOWORD(lParam), (UINT)HIWORD(lParam));
 					data->EventCallback(event);
 				}
-
-				windowCreationBlocking++;
 
 				break;
 			}

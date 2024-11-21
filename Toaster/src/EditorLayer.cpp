@@ -57,6 +57,7 @@ namespace Toast {
 
 		// Post Processes
 		ShaderLibrary::Load("assets/shaders/Post Process/Skybox.hlsl");
+		ShaderLibrary::Load("assets/shaders/Post Process/Atmosphere.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/ToneMapping.hlsl");
 
 		// Others
@@ -65,7 +66,6 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/ToastPBR.hlsl");
 		ShaderLibrary::Load("assets/shaders/ToastPBRInstanced.hlsl");
 		ShaderLibrary::Load("assets/shaders/Picking.hlsl");
-		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet/PlanetMask.hlsl");
 		ShaderLibrary::Load("assets/shaders/UI.hlsl");
 
@@ -80,7 +80,6 @@ namespace Toast {
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mSceneSettingsPanel.SetContext(mEditorScene);
 		mEnvironmentPanel.SetContext(mEditorScene);
-		//mMaterialPanel.SetContext(MaterialLibrary::Get("Standard"));
 		mPropertiesPanel.SetContext(mSceneHierarchyPanel.GetSelectedEntity(), &mSceneHierarchyPanel);
 	}
 
@@ -92,20 +91,10 @@ namespace Toast {
 	void EditorLayer::OnUpdate(Timestep ts)
 	{
 		TOAST_PROFILE_FUNCTION();
-		//// Resize
-		//Ref<Framebuffer>& gpassFramebuffer = Renderer::GetGPassFramebuffer();
-		//Ref<Framebuffer>& lpassFramebuffer = Renderer::GetLPassFramebuffer();
 
 		Ref<RenderTarget>& positionRT = Renderer::GetGPassPositionRT();
-		//Ref<RenderTarget>& normalRT = Renderer::GetGPassNormalRT();
-		//Ref<RenderTarget>& albedoMetallicRT = Renderer::GetGPassAlbedoMetallicRT();
-		//Ref<RenderTarget>& roughnessAORT = Renderer::GetGPassRoughnessAORT();
-		//Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
-
-		//Ref<RenderTarget>& finalRT = Renderer::GetLPassRenderTarget();
 
 		auto [width, height] = positionRT->GetSize();
-		//TOAST_CORE_INFO("mEditorCamera mViewportSize.x: %f, mViewportSize.y: %f", mViewportSize.x, mViewportSize.y);
 		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (width != mViewportSize.x || height != mViewportSize.y))
 		{ 	 
 			switch (mSceneState)
@@ -318,7 +307,7 @@ namespace Toast {
 			mViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
 			//TOAST_CORE_INFO("Setting viewport size to mViewportSize.x: %f, mViewportSize.y: %f", mViewportSize.x, mViewportSize.y);
 
-			Ref<RenderTarget>& finalRenderTarget = Renderer::GetLPassRenderTarget();
+			Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRenderTarget();
 			ImGui::Image((void*)finalRenderTarget->GetSRV().Get(), ImVec2{ mViewportSize.x, mViewportSize.y });
 
 			if (ImGui::BeginDragDropTarget()) 
@@ -623,7 +612,7 @@ namespace Toast {
 
 	bool EditorLayer::OnMouseMoved(MouseMovedEvent& e)
 	{
-		Ref<Framebuffer>& GPassFramebuffer = Renderer::GetGPassFramebuffer();
+		Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
 
 		auto [mx, my] = ImGui::GetMousePos();
 		mx -= mViewportBounds[0].x;
@@ -635,7 +624,20 @@ namespace Toast {
 
 		if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 		{
-			int pixelData = GPassFramebuffer->ReadPixel(mouseX, mouseY, 4);
+			D3D11_TEXTURE2D_DESC textureDesc;
+			pickingRT->GetTexture()->GetDesc(&textureDesc);
+			float textureWidth = static_cast<float>(textureDesc.Width);
+			float textureHeight = static_cast<float>(textureDesc.Height);
+
+			// Calculate the scaling factors
+			float scaleX = textureWidth / viewportSize.x;
+			float scaleY = textureHeight / viewportSize.y;
+
+			// Adjust the mouse coordinates to texture space
+			int texX = static_cast<int>(mouseX * scaleX);
+			int texY = static_cast<int>(mouseY * scaleY);
+
+			int pixelData = pickingRT->ReadPixel(texX, texY);
 			mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mEditorScene.get());
 		}
 

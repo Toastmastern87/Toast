@@ -890,14 +890,14 @@ namespace Toast {
 					ImGui::Text("Ray\nScale Height");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##rayScaleHeight", &component.PlanetData.rayScaleHeight, 0.1f, 0.0f, 40.0f, "%.1f");
+					ImGui::DragFloat("##rayScaleHeight", &component.PlanetData.rayScaleHeight, 10.0f, 0.0f, 15000.0f, "%.0f");
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("Mie\nScale Height");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##mieScaleHeight", &component.PlanetData.mieScaleHeight, 0.1f, 0.0f, 40.0f, "%.1f");
+					ImGui::DragFloat("##mieScaleHeight", &component.PlanetData.mieScaleHeight, 10.0f, 0.0f, 5000.0f, "%.0f");
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
@@ -926,6 +926,19 @@ namespace Toast {
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushItemWidth(-1);
 					ImGui::DragFloat("##mieScattering", &component.PlanetData.mieBaseScatteringCoefficient, 0.0001f, 0.0f, 1.0f, "%.4f");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Sun Disc");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Checkbox("##checkbox", &component.PlanetData.SunDisc);
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Sun Disc Radius");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::DragFloat("##sundiscradius", &component.PlanetData.mieBaseScatteringCoefficient, 1.0f, 0.0f, 100.0f, "%.0f");
 				}
 
 				ImGui::EndTable();
@@ -955,11 +968,6 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(1);
 				ImGui::DragFloat("##label", &component.Intensity, 0.01f, 0.0f, 25.0f, "%.2f");
 
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Sun Disc");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::Checkbox("##checkbox", &component.SunDisc);
 				ImGui::EndTable();
 			});
 

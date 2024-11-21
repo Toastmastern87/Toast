@@ -207,7 +207,6 @@ Entities:
     DirectionalLightComponent:
       Radiance: [0.759493649, 0.721373737, 0.557602942]
       Intensity: 1
-      SunDisk: true
   - Entity: 12837192831271
     TagComponent:
       Tag: Mars
@@ -234,6 +233,8 @@ Entities:
       MieScaleHeight: 1200
       RayBaseScatteringCoefficient: [2.49999994e-05, 1.35700002e-05, 5.75000013e-06]
       MieBaseScatteringCoefficient: 1.30000002e-08
+      SunDisc: true
+      SunDiscRadius: 0.0
     ScriptComponent:
       ClassName: Sandbox.PlanetScript
     TerrainColliderComponent:

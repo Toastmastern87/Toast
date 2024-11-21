@@ -102,5 +102,5 @@ float4 main(PixelInputType input) : SV_TARGET
     // Convert to sRGB
     colorToned = LinearTosRGB(colorToned);
 
-    return float4(colorToned, 1.0f);
+	return float4(colorToned, 1.0f);
 }

@@ -19,10 +19,10 @@ namespace Toast {
 
 		mDebugData->LineVertexBufferBase = new LineVertex[mDebugData->MaxVertices];
 
-		mDebugData->DebugShader = CreateRef<Shader>("assets/shaders/Debug.hlsl");
-		mDebugData->GridShader = CreateRef<Shader>("assets/shaders/Grid.hlsl");
-		mDebugData->SelectedMeshMaskShader = CreateRef<Shader>("assets/shaders/SelectedMeshMask.hlsl");
-		mDebugData->OutlineShader = CreateRef<Shader>("assets/shaders/Outline.hlsl");
+		mDebugData->DebugShader = CreateRef<Shader>("assets/shaders/Debug/Debug.hlsl");
+		mDebugData->GridShader = CreateRef<Shader>("assets/shaders/Debug/Grid.hlsl");
+		mDebugData->SelectedMeshMaskShader = CreateRef<Shader>("assets/shaders/Debug/SelectedMeshMask.hlsl");
+		mDebugData->OutlineShader = CreateRef<Shader>("assets/shaders/Debug/Outline.hlsl");
 
 		// Setting up the constant buffer and data buffer for the debug rendering data
 		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 288, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Camera) });
@@ -146,10 +146,9 @@ namespace Toast {
 			annotation->BeginEvent(L"Debug Render Pass");
 #endif
 
-// 		sRendererData->FinalFramebuffer->EnableDepth();
-// 		sRendererData->FinalFramebuffer->Bind();
-
-		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetView().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthSkyboxPassStencilState);
+		RenderCommand::SetBlendState(sRendererData->AtmospherePassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 		//if (!runtime)
 		//{

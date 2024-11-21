@@ -15,7 +15,7 @@ namespace Toast {
 
 	Scope<Renderer::RendererData> Renderer::sRendererData = CreateScope<Renderer::RendererData>();
 
-	void Renderer::Init()
+	void Renderer::Init(uint32_t width, uint32_t height)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -25,12 +25,12 @@ namespace Toast {
 
 		sRendererData->Viewport.TopLeftX = 0.0f;
 		sRendererData->Viewport.TopLeftY = 0.0f;
-		sRendererData->Viewport.Width = static_cast<float>(1280);
-		sRendererData->Viewport.Height = static_cast<float>(720);
+		sRendererData->Viewport.Width = static_cast<float>(width);
+		sRendererData->Viewport.Height = static_cast<float>(height);
 		sRendererData->Viewport.MinDepth = 0.0f;
 		sRendererData->Viewport.MaxDepth = 1.0f;
 
-		CreateDepthBuffer(1280, 720);
+		CreateDepthBuffer(width, height);
 		CreateDepthStencilView();
 		CreateDepthStencilStates();
 
@@ -77,20 +77,23 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.ZeroInitialize();
 
 		// Setting up the render targets for the Geometry Pass
-		sRendererData->GPassPositionRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32G32B32A32_FLOAT);
-		sRendererData->GPassNormalRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
-		sRendererData->GPassAlbedoMetallicRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
-		sRendererData->GPassRoughnessAORT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R8G8B8A8_UNORM);
-		sRendererData->GPassPickingRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R32_SINT);
+		sRendererData->GPassPositionRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R32G32B32A32_FLOAT);
+		sRendererData->GPassNormalRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->GPassAlbedoMetallicRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
+		sRendererData->GPassRoughnessAORT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
+		sRendererData->GPassPickingRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R32_SINT);
 
 		// Setting up the render targets for the Post Process pass
-		sRendererData->FinalRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT, false, true);
+		sRendererData->FinalRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT, false, true);
 
 		// Setting up the render target for the back buffer
-		sRendererData->BackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT, true);
+		sRendererData->BackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT, true);
 
-		// Setting up the render targets for the Lightning Pass
-		sRendererData->LPassRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT);
+		// Setting up the render target for the Lightning Pass
+		sRendererData->LPassRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
+
+		// Setting up the render target for the Atmosphere Pass
+		sRendererData->AtmospherePassRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
 
 		// Setting up the framebuffer for the Geometry Pass
 		sRendererData->GPassFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->GPassPositionRT, sRendererData->GPassNormalRT, sRendererData->GPassAlbedoMetallicRT, sRendererData->GPassRoughnessAORT, sRendererData->GPassPickingRT });
@@ -114,13 +117,17 @@ namespace Toast {
 
 		sRendererData->BackbufferRT.reset();
 		RenderCommand::ResizeViewport(0, 0, width, height);
-		sRendererData->BackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT, true);
+		sRendererData->BackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT, true);
 
 		sRendererData->GPassPositionRT->Resize(width, height);
 		sRendererData->GPassNormalRT->Resize(width, height);
 		sRendererData->GPassAlbedoMetallicRT->Resize(width, height);
 		sRendererData->GPassRoughnessAORT->Resize(width, height);
 		sRendererData->GPassPickingRT->Resize(width, height);
+
+		sRendererData->LPassRT->Resize(width, height);
+
+		sRendererData->AtmospherePassRT->Resize(width, height);
 
 		sRendererData->FinalRT->Resize(width, height);
 
@@ -183,6 +190,7 @@ namespace Toast {
 
 		// Post Processes
 		SkyboxPass();
+		AtmospherePass();
 		PostProcessPass();
 
 		//PickingRenderPass();
@@ -215,6 +223,15 @@ namespace Toast {
 
 		result = device->CreateDepthStencilView(sRendererData->DepthBuffer->GetTexture().Get(), &dsvDesc, &sRendererData->DepthStencilView);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create depth stencil view!");
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+		SRVDesc.Format = (DXGI_FORMAT)TextureFormat::R32_FLOAT;
+		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		SRVDesc.Texture2D.MostDetailedMip = 0;
+		SRVDesc.Texture2D.MipLevels = 1;
+
+		result = device->CreateShaderResourceView(sRendererData->DepthBuffer->GetTexture().Get(), &SRVDesc, &sRendererData->DepthSRV);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create depth shader resource view!");
 	}
 
 	void Renderer::CreateDepthStencilStates()
@@ -317,6 +334,22 @@ namespace Toast {
 
 			result = device->CreateBlendState(&blendDesc, &sRendererData->LPassBlendState);
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create LPass blend state");
+		}
+
+		// Atmosphere Pass Blend State
+		{
+			D3D11_BLEND_DESC bd = {};
+
+			bd.RenderTarget[0].BlendEnable = true;
+			bd.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+			bd.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+			bd.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+			bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_INV_DEST_ALPHA;
+			bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+			bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+			bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+			result = device->CreateBlendState(&bd, &sRendererData->AtmospherePassBlendState);
 		}
 	}
 
@@ -537,9 +570,6 @@ namespace Toast {
 		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::ClearRenderTargets(sRendererData->LPassFramebuffer->GetColorRenderTargets(), { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		// TODO Remove this and move to new way
-		//sRendererData->LPassFramebuffer->Bind();
-
 		ShaderLibrary::Get("assets/shaders/Deffered Rendering/LightningPass.hlsl")->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0 , sRendererData->GPassPositionRT->GetSRV());
@@ -603,10 +633,64 @@ namespace Toast {
 			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
 			sRendererData->EnvironmentCBuffer->Map(sRendererData->EnvironmentBuffer);
 
-			//sRendererData->SceneData.SkyboxData.Skybox->Bind();
-
 			DrawFullscreenQuad();
 		}
+
+		sRendererData->LPassFramebuffer->Unbind();
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
+	}
+
+	void Renderer::AtmospherePass()
+	{
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"Atmosphere Pass");
+#endif
+
+		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetView().Get() }, nullptr);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
+		RenderCommand::SetBlendState(sRendererData->AtmospherePassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
+
+		for (const auto& meshCommand : sRendererData->MeshDrawList)
+		{
+			if (meshCommand.PlanetData)
+			{
+				int atmosphereToggle = meshCommand.PlanetData->atmosphereToggle ? 1 : 0;
+				int sunDiscToggle = meshCommand.PlanetData->SunDisc ? 1 : 0;
+
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->radius, 4, 0);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->minAltitude, 4, 4);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->maxAltitude, 4, 8);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->atmosphereHeight, 4, 12);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieAnisotropy, 4, 16);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->rayScaleHeight, 4, 20);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieScaleHeight, 4, 24);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->rayBaseScatteringCoefficient, 12, 32);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieBaseScatteringCoefficient, 4, 44);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->planetCenter, 16, 48);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphereToggle, 4, 60);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->inScatteringPoints, 4, 64);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->opticalDepthPoints, 4, 68);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&sunDiscToggle, 4, 72);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunDiscRadius, 4, 76);
+
+				sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
+			}
+		}
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthSRV);
+
+		ShaderLibrary::Get("assets/shaders/Post Process/Atmosphere.hlsl")->Bind();
+
+		DrawFullscreenQuad();
 
 		sRendererData->LPassFramebuffer->Unbind();
 
@@ -621,7 +705,7 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 #ifdef TOAST_DEBUG
 		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
-
+		RenderCommand::GetAnnotation(annotation);
 		if (annotation)
 			annotation->BeginEvent(L"Tonemapping Pass");
 #endif
@@ -629,6 +713,7 @@ namespace Toast {
 		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
 
 		//Tonemapping
+		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetView().Get() }, nullptr);
 		RenderCommand::ClearRenderTargets(sRendererData->FinalRT->GetView().Get(), {0.0f, 0.0f, 0.0f, 1.0f});
 		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
@@ -636,7 +721,7 @@ namespace Toast {
 
 		ShaderLibrary::Get("assets/shaders/Post Process/ToneMapping.hlsl")->Bind();
 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->AtmospherePassRT->GetSRV());
 
 		DrawFullscreenQuad();
 #ifdef TOAST_DEBUG

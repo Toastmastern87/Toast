@@ -117,6 +117,8 @@ namespace Toast {
 			bool atmosphereToggle = false;
 			int inScatteringPoints = 1;
 			int opticalDepthPoints = 1;
+			bool SunDisc = false;
+			float SunDiscRadius = 0.0f;
 		};
 
 		bool IsDirty;
@@ -137,7 +139,7 @@ namespace Toast {
 		TerrainData TerrainData;
 
 		PlanetComponent() = default;
-		PlanetComponent(int16_t subdivisions, float maxAltitude, float minAltitude, float radius, float gravAcc, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient)
+		PlanetComponent(int16_t subdivisions, float maxAltitude, float minAltitude, float radius, float gravAcc, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient, bool sunDisc, float sunDiscRadius)
 			: Subdivisions(subdivisions)
 		{
 			IsDirty = false;
@@ -156,6 +158,8 @@ namespace Toast {
 			PlanetData.mieScaleHeight = mieScaleHeight;
 			PlanetData.rayBaseScatteringCoefficient = rayBaseScatteringCoefficient;
 			PlanetData.mieBaseScatteringCoefficient = mieBaseScatteringCoefficient;
+			PlanetData.SunDisc = sunDisc;
+			PlanetData.SunDiscRadius = sunDiscRadius;
 		}
 	};
 
@@ -194,7 +198,6 @@ namespace Toast {
 	{
 		DirectX::XMFLOAT3 Radiance = { 1.0f, 1.0f, 1.0f };
 		float Intensity = 1.0f;
-		bool SunDisc = false;
 	};
 
 	struct SkyLightComponent
