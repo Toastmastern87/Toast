@@ -230,8 +230,7 @@ namespace Toast {
 				{
 					direction,
 					radiance,
-					lightComponent.Intensity,
-					lightComponent.SunDisc == true ? 1.0f : 0.0f
+					lightComponent.Intensity
 				};
 			}
 		}
@@ -616,8 +615,7 @@ namespace Toast {
 				{
 					direction,
 					radiance,
-					lightComponent.Intensity,
-					lightComponent.SunDisc == true ? 1.0f : 0.0f
+					lightComponent.Intensity
 				};
 			}
 		}

@@ -72,6 +72,9 @@ namespace Toast {
 			Ref<Framebuffer> LPassFramebuffer;
 			Ref<RenderTarget> LPassRT;
 
+			// Atmosphere pass
+			Ref<RenderTarget> AtmospherePassRT;
+
 			// Post Process
 			Ref<RenderTarget> FinalRT;
 
@@ -82,16 +85,17 @@ namespace Toast {
 			Scope<Texture2D> DepthBuffer;
 			Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthEnabledStencilState, DepthDisabledStencilState, DepthSkyboxPassStencilState;
 			Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencilView;
+			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> DepthSRV;
 
 			// Blend data
-			Microsoft::WRL::ComPtr<ID3D11BlendState> GPassBlendState, LPassBlendState, SkyboxPassBlendState, PostProcessBlendState;
+			Microsoft::WRL::ComPtr<ID3D11BlendState> GPassBlendState, LPassBlendState, AtmospherePassBlendState, PostProcessBlendState;
 		};
 
 	protected:
 		static Scope<RendererData> sRendererData;
 
 	public:
-		static void Init();
+		static void Init(uint32_t width, uint32_t height);
 		static void Shutdown();
 
 		static void OnWindowResize(uint32_t width, uint32_t height);
@@ -121,6 +125,7 @@ namespace Toast {
 
 		// Post Processes
 		static void SkyboxPass();
+		static void AtmospherePass();
 		static void PostProcessPass();
 
 		static Ref<RenderTarget>& GetGPassPositionRT() { return sRendererData->GPassPositionRT; }
@@ -130,6 +135,8 @@ namespace Toast {
 		static Ref<RenderTarget>& GetGPassPickingRT() { return sRendererData->GPassPickingRT; }
 
 		static Ref<RenderTarget>& GetLPassRenderTarget() { return sRendererData->LPassRT; }
+
+		static Ref<RenderTarget>& GetFinalRenderTarget() { return sRendererData->FinalRT; }
 
 		static Ref<Framebuffer>& GetGPassFramebuffer() { return sRendererData->GPassFramebuffer; }
 		static Ref<Framebuffer>& GetLPassFramebuffer() { return sRendererData->LPassFramebuffer; }

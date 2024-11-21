@@ -41,6 +41,8 @@ namespace Toast {
 		void SetBlendDesc(const D3D11_RENDER_TARGET_BLEND_DESC& blendDesc) { mBlendDesc = blendDesc; }
 
 		void Unbind();
+
+		int ReadPixel(uint32_t x, uint32_t y);
 	private:
 		bool IsIntegerFormat(TextureFormat format);
 	private:

@@ -35,7 +35,7 @@ namespace Toast {
 		mWindow->SetEventCallback(TOAST_BIND_EVENT_FN(Application::OnEvent));
 		mWindow->SetVSync(false);
 
-		Renderer::Init();
+		Renderer::Init(mWindow->GetWidth(), mWindow->GetHeight());
 
 		ScriptEngine::Init();
 		Font::StaticInit();

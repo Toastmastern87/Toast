@@ -44,7 +44,6 @@ cbuffer DirectionalLight : register(b3)
 	float4 direction;
 	float4 radiance;
 	float multiplier;
-	float sunDiscToggle;
 };
 
 cbuffer Environment : register(b6)
@@ -64,6 +63,7 @@ TextureCube radianceTexture			: register(t5);
 
 // Sampler state
 SamplerState defaultSampler			: register(s0);
+
 
 float4 main(PixelInputType input) : SV_Target
 {

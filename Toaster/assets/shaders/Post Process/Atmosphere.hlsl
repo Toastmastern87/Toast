@@ -47,7 +47,6 @@ cbuffer DirectionalLight	: register(b3)
 	float4 direction;
 	float4 radiance;
 	float multiplier;
-	float sunDiscToggle;
 };
 
 cbuffer Atmosphere : register(b4)
@@ -65,6 +64,8 @@ cbuffer Atmosphere : register(b4)
 	int atmosphereToggle;
 	int numInScatteringPoints;
 	int numOpticalDepthPoints;
+    float sunDiscToggle;
+    float sunDiscRadius;
 };
 
 struct PixelInputType

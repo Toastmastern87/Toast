@@ -21,17 +21,10 @@ namespace Toast {
 
 		void Unbind() const;
 
-		int ReadPixel(uint32_t x, uint32_t y, uint32_t RTIdx);
-
-		void DisableDepth() { mDepth = false; }
-		void EnableDepth() { mDepth = true; }
-
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV(uint32_t index = 0) const { return mColorTargets[index]->GetSRV(); }
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> GetRTTexture(uint32_t index = 0) const { return mColorTargets[index]->GetTexture(); }
 
 		virtual void Clear(const DirectX::XMFLOAT4 clearColor);
-	private:
-		bool IsIntegerFormat(TextureFormat format);
 	private:
 		bool mSwapChainTarget = false, mDepth;
 		uint32_t mWidth, mHeight;

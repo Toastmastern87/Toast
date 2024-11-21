@@ -12,11 +12,6 @@ namespace Toast {
 			sRendererAPI->Init();
 		}
 
-		//static void Clear(const DirectX::XMFLOAT4 clearColor)
-		//{
-		//	sRendererAPI->Clear(clearColor);
-		//}
-
 		static void SetViewport(D3D11_VIEWPORT& viewport)
 		{
 			sRendererAPI->SetViewport(viewport);

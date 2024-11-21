@@ -42,7 +42,6 @@ cbuffer DirectionalLight : register(b3)
     float4 direction;
     float4 radiance;
     float multiplier;
-    float sunDiscToggle;
 };
 
 // G-buffer Textures

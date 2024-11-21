@@ -350,6 +350,8 @@ namespace Toast {
 			out << YAML::Key << "MieScaleHeight" << YAML::Value << pc.PlanetData.mieScaleHeight;
 			out << YAML::Key << "RayBaseScatteringCoefficient" << YAML::Value << pc.PlanetData.rayBaseScatteringCoefficient;
 			out << YAML::Key << "MieBaseScatteringCoefficient" << YAML::Value << pc.PlanetData.mieBaseScatteringCoefficient;
+			out << YAML::Key << "SunDisc" << YAML::Value << pc.PlanetData.SunDisc;
+			out << YAML::Key << "SunDiscRadius" << YAML::Value << pc.PlanetData.SunDiscRadius;
 
 			out << YAML::EndMap; // PlanetComponent
 		}
@@ -374,7 +376,6 @@ namespace Toast {
 			auto& dlc = entity.GetComponent<DirectionalLightComponent>();
 			out << YAML::Key << "Radiance" << YAML::Value << dlc.Radiance;
 			out << YAML::Key << "Intensity" << YAML::Value << dlc.Intensity;
-			out << YAML::Key << "SunDisk" << YAML::Value << dlc.SunDisc;
 
 			out << YAML::EndMap; // SkyLightComponent
 		}
@@ -701,7 +702,7 @@ namespace Toast {
 				auto planetComponent = entity["PlanetComponent"];
 				if (planetComponent) 
 				{
-					auto& pc = deserializedEntity.AddComponent<PlanetComponent>(planetComponent["Subdivisions"].as<int16_t>(), planetComponent["MaxAltitude"].as<float>(), planetComponent["MinAltitude"].as<float>(), planetComponent["Radius"].as<float>(), planetComponent["GravitationalAcceleration"].as<float>(), planetComponent["AtmosphereHeight"].as<float>(), planetComponent["AtmosphereToggle"].as<bool>(), planetComponent["InScatteringPoints"].as<int>(), planetComponent["OpticalDepthPoints"].as<int>(), planetComponent["MieAnisotropy"].as<float>(), planetComponent["RayScaleHeight"].as<float>(), planetComponent["MieScaleHeight"].as<float>(), planetComponent["RayBaseScatteringCoefficient"].as<DirectX::XMFLOAT3>(), planetComponent["MieBaseScatteringCoefficient"].as<float>());
+					auto& pc = deserializedEntity.AddComponent<PlanetComponent>(planetComponent["Subdivisions"].as<int16_t>(), planetComponent["MaxAltitude"].as<float>(), planetComponent["MinAltitude"].as<float>(), planetComponent["Radius"].as<float>(), planetComponent["GravitationalAcceleration"].as<float>(), planetComponent["AtmosphereHeight"].as<float>(), planetComponent["AtmosphereToggle"].as<bool>(), planetComponent["InScatteringPoints"].as<int>(), planetComponent["OpticalDepthPoints"].as<int>(), planetComponent["MieAnisotropy"].as<float>(), planetComponent["RayScaleHeight"].as<float>(), planetComponent["MieScaleHeight"].as<float>(), planetComponent["RayBaseScatteringCoefficient"].as<DirectX::XMFLOAT3>(), planetComponent["MieBaseScatteringCoefficient"].as<float>(), planetComponent["SunDisc"].as<bool>(), planetComponent["SunDiscRadius"].as<float>());
 				}
 
 				auto skylightComponent = entity["SkyLightComponent"];
@@ -720,7 +721,6 @@ namespace Toast {
 
 					dlc.Radiance = directionalLightComponent["Radiance"].as<DirectX::XMFLOAT3>();
 					dlc.Intensity = directionalLightComponent["Intensity"].as<float>();
-					dlc.SunDisc = directionalLightComponent["SunDisk"].as<bool>();
 				}
 
 				auto scriptComponent = entity["ScriptComponent"];
