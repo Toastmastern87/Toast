@@ -92,36 +92,22 @@ namespace Toast {
 	void EditorLayer::OnUpdate(Timestep ts)
 	{
 		TOAST_PROFILE_FUNCTION();
-		// Resize
-		Ref<Framebuffer>& gpassFramebuffer = Renderer::GetGPassFramebuffer();
-		Ref<Framebuffer>& lpassFramebuffer = Renderer::GetLPassFramebuffer();
+		//// Resize
+		//Ref<Framebuffer>& gpassFramebuffer = Renderer::GetGPassFramebuffer();
+		//Ref<Framebuffer>& lpassFramebuffer = Renderer::GetLPassFramebuffer();
 
 		Ref<RenderTarget>& positionRT = Renderer::GetGPassPositionRT();
-		Ref<RenderTarget>& normalRT = Renderer::GetGPassNormalRT();
-		Ref<RenderTarget>& albedoMetallicRT = Renderer::GetGPassAlbedoMetallicRT();
-		Ref<RenderTarget>& roughnessAORT = Renderer::GetGPassRoughnessAORT();
-		Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
+		//Ref<RenderTarget>& normalRT = Renderer::GetGPassNormalRT();
+		//Ref<RenderTarget>& albedoMetallicRT = Renderer::GetGPassAlbedoMetallicRT();
+		//Ref<RenderTarget>& roughnessAORT = Renderer::GetGPassRoughnessAORT();
+		//Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
 
-
-		Ref<RenderTarget>& finalRT = Renderer::GetLPassRenderTarget();
+		//Ref<RenderTarget>& finalRT = Renderer::GetLPassRenderTarget();
 
 		auto [width, height] = positionRT->GetSize();
 		//TOAST_CORE_INFO("mEditorCamera mViewportSize.x: %f, mViewportSize.y: %f", mViewportSize.x, mViewportSize.y);
 		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (width != mViewportSize.x || height != mViewportSize.y))
-		{ 
-			gpassFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			lpassFramebuffer->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-
-			positionRT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			normalRT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			albedoMetallicRT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			roughnessAORT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			pickingRT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			
-			Renderer::Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-
-			finalRT->Resize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-		 
+		{ 	 
 			switch (mSceneState)
 			{
 			case SceneState::Edit:

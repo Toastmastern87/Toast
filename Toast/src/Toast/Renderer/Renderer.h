@@ -103,7 +103,6 @@ namespace Toast {
 		static void CreateDepthStencilView();
 		static void CreateDepthStencilStates();
 		static void CreateBlendStates();
-		static void Resize(uint32_t width, uint32_t height);
 
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
 		static void SubmitSkybox(const Ref<Mesh> skybox, const DirectX::XMFLOAT4& cameraPos, const DirectX::XMFLOAT4X4& viewMatrix, const DirectX::XMFLOAT4X4& projectionMatrix, float intensity, float LOD);

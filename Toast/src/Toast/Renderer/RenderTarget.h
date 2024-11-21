@@ -54,8 +54,6 @@ namespace Toast {
 
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRTV;
 
-		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mSwapChainRTV;
-
 		D3D11_RENDER_TARGET_BLEND_DESC mBlendDesc;
 	};
 }

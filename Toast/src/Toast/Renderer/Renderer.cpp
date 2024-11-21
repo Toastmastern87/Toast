@@ -105,9 +105,29 @@ namespace Toast {
 
 	void Renderer::OnWindowResize(uint32_t width, uint32_t height)
 	{
-		sRendererData->BackbufferRT->Resize(width, height);
+		sRendererData->Viewport.TopLeftX = 0.0f;
+		sRendererData->Viewport.TopLeftY = 0.0f;
+		sRendererData->Viewport.Width = static_cast<float>(width);
+		sRendererData->Viewport.Height = static_cast<float>(height);
+		sRendererData->Viewport.MinDepth = 0.0f;
+		sRendererData->Viewport.MaxDepth = 1.0f;
 
+		sRendererData->BackbufferRT.reset();
 		RenderCommand::ResizeViewport(0, 0, width, height);
+		sRendererData->BackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, 1280, 720, 1, TextureFormat::R16G16B16A16_FLOAT, true);
+
+		sRendererData->GPassPositionRT->Resize(width, height);
+		sRendererData->GPassNormalRT->Resize(width, height);
+		sRendererData->GPassAlbedoMetallicRT->Resize(width, height);
+		sRendererData->GPassRoughnessAORT->Resize(width, height);
+		sRendererData->GPassPickingRT->Resize(width, height);
+
+		sRendererData->FinalRT->Resize(width, height);
+
+		sRendererData->DepthStencilView.Reset();
+
+		CreateDepthBuffer(width, height);
+		CreateDepthStencilView();
 	}
 
 	void Renderer::BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos)
@@ -298,24 +318,6 @@ namespace Toast {
 			result = device->CreateBlendState(&blendDesc, &sRendererData->LPassBlendState);
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create LPass blend state");
 		}
-	}
-
-	void Renderer::Resize(uint32_t width, uint32_t height)
-	{
-		sRendererData->Viewport.TopLeftX = 0.0f;
-		sRendererData->Viewport.TopLeftY = 0.0f;
-		sRendererData->Viewport.Width = static_cast<float>(width);
-		sRendererData->Viewport.Height = static_cast<float>(height);
-		sRendererData->Viewport.MinDepth = 0.0f;
-		sRendererData->Viewport.MaxDepth = 1.0f;
-
-		sRendererData->FinalRT->Resize(width, height);
-		sRendererData->BackbufferRT->Resize(width, height);
-
-		sRendererData->DepthStencilView.Reset();
-
-		CreateDepthBuffer(width, height);
-		CreateDepthStencilView();
 	}
 
 	void Renderer::Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform)
