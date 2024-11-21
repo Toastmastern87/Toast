@@ -46,7 +46,7 @@ namespace Toast {
 			IDXGISwapChain* swapChain = API->GetSwapChain();
 
 			swapChain->GetBuffer(0, __uuidof(ID3D11Resource), &backBuffer);
-			device->CreateRenderTargetView(backBuffer.Get(), nullptr, &mSwapChainRTV);
+			device->CreateRenderTargetView(backBuffer.Get(), nullptr, &mRTV);
 		}
 
 		if (IsIntegerFormat(mFormat))
@@ -77,7 +77,7 @@ namespace Toast {
 		if(mType == RenderTargetType::Color)
 			if (mSwapChainTarget)
 			{
-				deviceContext->ClearRenderTargetView(mSwapChainRTV.Get(), reinterpret_cast<const float*>(&clearColor));
+				deviceContext->ClearRenderTargetView(mRTV.Get(), reinterpret_cast<const float*>(&clearColor));
 			}
 			else
 			{
@@ -89,7 +89,6 @@ namespace Toast {
 	{
 		mTexture.reset();
 		mRTV.Reset();
-		mSwapChainRTV.Reset();
 	}
 
 	void RenderTarget::Resize(uint32_t width, uint32_t height)
@@ -106,10 +105,7 @@ namespace Toast {
 
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RenderTarget::GetView()
 	{
-		if (mSwapChainTarget)
-			return mSwapChainRTV;
-		else
-			return mRTV;
+		return mRTV;
 	}
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> RenderTarget::GetSRV()

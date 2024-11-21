@@ -75,21 +75,6 @@ namespace Toast {
 		}
 	}
 
-	void Framebuffer::Resize(uint32_t width, uint32_t height)
-	{
-		if (width == 0 || height == 0 || width > sMaxFramebufferSize || height > sMaxFramebufferSize)
-		{
-			TOAST_CORE_WARN("Attempted to resize framebuffer to %f, %f", width, height);
-			return;
-		}
-
-		mWidth = width;
-		mHeight = height;
-
-		for (auto& colorTarget : mColorTargets)
-			colorTarget->Resize(width, height);
-	}
-
 	int Framebuffer::ReadPixel(uint32_t x, uint32_t y, uint32_t RTIdx)
 	{
 		HRESULT result;
