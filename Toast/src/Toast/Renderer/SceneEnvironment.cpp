@@ -15,7 +15,7 @@ namespace Toast {
 		Ref<Texture2D> spBRDFLUT = CreateRef<Texture2D>(DXGI_FORMAT_R16G16_FLOAT, DXGI_FORMAT_R16G16_FLOAT, 256, 256);
 
 		if (!spBRDFShader)
-			spBRDFShader = CreateRef<Shader>("assets/shaders/SPBRDF.hlsl");
+			spBRDFShader = CreateRef<Shader>("assets/shaders/Environment/SPBRDF.hlsl");
 
 		spBRDFLUT->CreateUAV(0);
 

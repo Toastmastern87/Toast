@@ -104,7 +104,7 @@ Entities:
       Scale: [1, 1, 1]
     SkyLightComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\textures\starmap.png
-      Intensity: 0.239999995
+      Intensity: 0.170000002
   - Entity: 12837192831271
     TagComponent:
       Tag: Mars
@@ -129,11 +129,13 @@ Entities:
       MieAnisotropy: 0.776000023
       RayScaleHeight: 10800
       MieScaleHeight: 1200
-      RayBaseScatteringCoefficient: [2.49999994e-05, 1.35700002e-05, 5.75000013e-06]
+      RayBaseScatteringCoefficient: [1.29999999e-05, 8.6e-06, 5.7000002e-06]
       MieBaseScatteringCoefficient: 1.30000002e-08
       SunDisc: true
-      SunDiscRadius: 0.409999996
-      SunGlowIntensity: 14.8000002
+      SunDiscRadius: 0.00359999994
+      SunGlowIntensity: 1
+      SunEdgeSoftness: 0.0129000004
+      SunGlowSize: 0.0199999996
     ScriptComponent:
       ClassName: Sandbox.PlanetScript
     TerrainColliderComponent:
@@ -158,11 +160,11 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-655.340027, 0, 0]
+      Rotation: [-715.570129, 0, 0]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
-      Radiance: [0.759493649, 0.721373737, 0.557602942]
-      Intensity: 1
+      Radiance: [0.886075974, 0.82748425, 0.575762451]
+      Intensity: 0.529999971
   - Entity: 2187140198057221420
     TagComponent:
       Tag: Debug

@@ -904,21 +904,21 @@ namespace Toast {
 					ImGui::Text("Ray Scattering\nCoefficient Red");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##rayScatteringnCoefficientRed", &component.PlanetData.rayBaseScatteringCoefficient.x, 0.00001f, 0.0f, 1.0f, "%.7f");
+					ImGui::DragFloat("##rayScatteringnCoefficientRed", &component.PlanetData.rayBaseScatteringCoefficient.x, 0.000001f, 0.0f, 1.0f, "%.7f");
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("Ray Scattering\nCoefficient Green");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##rayScatteringnCoefficientGreen", &component.PlanetData.rayBaseScatteringCoefficient.y, 0.00001f, 0.0f, 1.0f, "%.7f");
+					ImGui::DragFloat("##rayScatteringnCoefficientGreen", &component.PlanetData.rayBaseScatteringCoefficient.y, 0.000001f, 0.0f, 1.0f, "%.7f");
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("Ray Scattering\nCoefficient Blue");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##rayScatteringnCoefficientBlue", &component.PlanetData.rayBaseScatteringCoefficient.z, 0.00001f, 0.0f, 1.0f, "%.7f");
+					ImGui::DragFloat("##rayScatteringnCoefficientBlue", &component.PlanetData.rayBaseScatteringCoefficient.z, 0.000001f, 0.0f, 1.0f, "%.7f");
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
@@ -938,14 +938,28 @@ namespace Toast {
 					ImGui::Text("Sun Disc Radius");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##sundiscradius", &component.PlanetData.SunDiscRadius, 0.01f, 0.0f, 1.0f, "%.2f");
+					ImGui::DragFloat("##sundiscradius", &component.PlanetData.SunDiscRadius, 0.0001f, 0.0f, 2*M_PI, "%.5f");
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
 					ImGui::Text("Sun Glow Intensity");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##sunglowintensity", &component.PlanetData.SunGlowIntensity, 0.1f, 10.0f, 0.0f, "%.2f");
+					ImGui::DragFloat("##sunglowintensity", &component.PlanetData.SunGlowIntensity, 0.1f, 0.0f, 10.0f, "%.2f");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Sun Edge Softness");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::DragFloat("##sunedgesoftness", &component.PlanetData.SunEdgeSoftness, 0.0001f, 0.0f, 2 * M_PI, "%.5f");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Sun Glow Sizes");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::DragFloat("##sunglowsize", &component.PlanetData.SunGlowSize, 0.01f, 0.0f, 2 * M_PI, "%.3f");
 				}
 
 				ImGui::EndTable();

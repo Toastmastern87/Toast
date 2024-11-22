@@ -120,6 +120,8 @@ namespace Toast {
 			bool SunDisc = false;
 			float SunDiscRadius = 0.0f;
 			float SunGlowIntensity = 0.0f;
+			float SunEdgeSoftness = 0.0f;
+			float SunGlowSize = 0.0f;
 		};
 
 		bool IsDirty;
@@ -140,7 +142,7 @@ namespace Toast {
 		TerrainData TerrainData;
 
 		PlanetComponent() = default;
-		PlanetComponent(int16_t subdivisions, float maxAltitude, float minAltitude, float radius, float gravAcc, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient, bool sunDisc, float sunDiscRadius, float sunGlowIntensity)
+		PlanetComponent(int16_t subdivisions, float maxAltitude, float minAltitude, float radius, float gravAcc, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient, bool sunDisc, float sunDiscRadius, float sunGlowIntensity, float sunEdgeSoftness, float sunGlowSize)
 			: Subdivisions(subdivisions)
 		{
 			IsDirty = false;
@@ -162,6 +164,8 @@ namespace Toast {
 			PlanetData.SunDisc = sunDisc;
 			PlanetData.SunDiscRadius = sunDiscRadius;
 			PlanetData.SunGlowIntensity = sunGlowIntensity;
+			PlanetData.SunEdgeSoftness = sunEdgeSoftness;
+			PlanetData.SunGlowSize = sunGlowSize;
 		}
 	};
 
