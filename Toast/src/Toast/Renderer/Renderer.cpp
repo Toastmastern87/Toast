@@ -21,7 +21,7 @@ namespace Toast {
 
 		RenderCommand::Init();
 		Renderer2D::Init();
-		RendererDebug::Init();
+		RendererDebug::Init(width, height);
 
 		sRendererData->Viewport.TopLeftX = 0.0f;
 		sRendererData->Viewport.TopLeftY = 0.0f;
@@ -29,10 +29,6 @@ namespace Toast {
 		sRendererData->Viewport.Height = static_cast<float>(height);
 		sRendererData->Viewport.MinDepth = 0.0f;
 		sRendererData->Viewport.MaxDepth = 1.0f;
-
-		CreateDepthBuffer(width, height);
-		CreateDepthStencilView();
-		CreateDepthStencilStates();
 
 		// Setting up the constant buffer and data buffer for the camera rendering
 		sRendererData->CameraCBuffer = ConstantBufferLibrary::Load("Camera", 288, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Camera) });
@@ -98,6 +94,12 @@ namespace Toast {
 		// Setting up the framebuffer for the Geometry Pass
 		sRendererData->GPassFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->GPassPositionRT, sRendererData->GPassNormalRT, sRendererData->GPassAlbedoMetallicRT, sRendererData->GPassRoughnessAORT, sRendererData->GPassPickingRT });
 		sRendererData->LPassFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->LPassRT } );
+
+		CreateDepthBuffer(width, height);
+		CreateDepthStencilView();
+		CreateDepthStencilStates();
+
+		CreateBlendStates();
 	}
 
 	void Renderer::Shutdown()
@@ -135,6 +137,8 @@ namespace Toast {
 
 		CreateDepthBuffer(width, height);
 		CreateDepthStencilView();
+
+		RendererDebug::OnWindowResize(width, height);
 	}
 
 	void Renderer::BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos)
@@ -338,18 +342,21 @@ namespace Toast {
 
 		// Atmosphere Pass Blend State
 		{
-			D3D11_BLEND_DESC bd = {};
+			D3D11_BLEND_DESC blendDesc = {};
+			blendDesc.AlphaToCoverageEnable = FALSE;
+			blendDesc.IndependentBlendEnable = FALSE;
 
-			bd.RenderTarget[0].BlendEnable = true;
-			bd.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-			bd.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-			bd.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-			bd.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_INV_DEST_ALPHA;
-			bd.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-			bd.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-			bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+			blendDesc.RenderTarget[0].BlendEnable = TRUE;
+			blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+			blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+			blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+			blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_INV_DEST_ALPHA;
+			blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+			blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+			blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-			result = device->CreateBlendState(&bd, &sRendererData->AtmospherePassBlendState);
+			result = device->CreateBlendState(&blendDesc, &sRendererData->AtmospherePassBlendState);
+			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Atmosphere Pass blend state");
 		}
 	}
 
@@ -364,12 +371,11 @@ namespace Toast {
 	}
 
 	//Todo should be integrated into SubmitMesh later on
-	void Renderer::SubmitSkybox(const Ref<Mesh> skybox, const DirectX::XMFLOAT4& cameraPos, const DirectX::XMFLOAT4X4& viewMatrix, const DirectX::XMFLOAT4X4& projectionMatrix, float intensity, float LOD)
+	void Renderer::SubmitSkybox(const DirectX::XMFLOAT4& cameraPos, const DirectX::XMFLOAT4X4& viewMatrix, const DirectX::XMFLOAT4X4& projectionMatrix, float intensity, float LOD)
 	{
 		sRendererData->CameraPos = cameraPos;
 		sRendererData->ViewMatrix = viewMatrix;
 		sRendererData->ProjectionMatrix = projectionMatrix;
-		sRendererData->SceneData.SkyboxData.Skybox = skybox;
 		sRendererData->SceneData.SkyboxData.Intensity = intensity;
 		sRendererData->SceneData.SkyboxData.LOD = LOD;
 	}
@@ -494,6 +500,7 @@ namespace Toast {
 		RenderCommand::SetBlendState(sRendererData->GPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::ClearDepthStencilView(sRendererData->DepthStencilView);
 		RenderCommand::ClearRenderTargets(sRendererData->GPassFramebuffer->GetColorRenderTargets(), { 0.0f, 0.0f, 0.0f, 1.0f });
+		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
 		ShaderLibrary::Get("assets/shaders/Deffered Rendering/GeometryPass.hlsl")->Bind();
 
@@ -572,7 +579,7 @@ namespace Toast {
 
 		ShaderLibrary::Get("assets/shaders/Deffered Rendering/LightningPass.hlsl")->Bind();
 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0 , sRendererData->GPassPositionRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->GPassPositionRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassNormalRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->GPassAlbedoMetallicRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->GPassRoughnessAORT->GetSRV());
@@ -614,7 +621,7 @@ namespace Toast {
 			annotation->BeginEvent(L"Skybox Pass");
 #endif
 
-		if (sRendererData->SceneData.SkyboxData.Skybox)
+		if (sRendererData->SceneData.SceneEnvironment.RadianceMap)
 		{
 			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> defaultWhiteCubemapSRV = TextureLibrary::Get("assets/textures/WhiteCube.png")->GetSRV();
 
@@ -655,7 +662,6 @@ namespace Toast {
 
 		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetView().Get() }, nullptr);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
-		RenderCommand::SetBlendState(sRendererData->AtmospherePassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
 
@@ -690,6 +696,7 @@ namespace Toast {
 
 		ShaderLibrary::Get("assets/shaders/Post Process/Atmosphere.hlsl")->Bind();
 
+		RenderCommand::SetBlendState(sRendererData->AtmospherePassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		DrawFullscreenQuad();
 
 		sRendererData->LPassFramebuffer->Unbind();

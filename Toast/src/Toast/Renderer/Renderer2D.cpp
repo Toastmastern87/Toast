@@ -48,12 +48,6 @@ namespace Toast {
 
 		RenderCommand::SetPrimitiveTopology(PrimitiveTopology::TRIANGLELIST);
 
-		//auto[width, height] = sRendererData->FinalRenderTarget->GetSize();
-// 
-// 		float fWidth, fHeight;
-// 		fWidth = (float)width;
-// 		fHeight = (float)height;
-
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 0);
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetOrthoProjection(), 64, 64);
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
@@ -76,21 +70,21 @@ namespace Toast {
 		//sRendererData->FinalFramebuffer->Bind();
 
 		// New way of rendering UI with one big vertex buffer
-		uint32_t vertexCount = sRenderer2DData->UIVertexBufferPtr - sRenderer2DData->UIVertexBufferBase;
-		uint32_t vertexDataSize = vertexCount * sizeof(UIVertex);
-		uint32_t quadCount = vertexCount / 4; 
-		uint32_t indexCount = quadCount * 6;
+		//uint32_t vertexCount = sRenderer2DData->UIVertexBufferPtr - sRenderer2DData->UIVertexBufferBase;
+		//uint32_t vertexDataSize = vertexCount * sizeof(UIVertex);
+		//uint32_t quadCount = vertexCount / 4; 
+		//uint32_t indexCount = quadCount * 6;
 
-		ShaderLibrary::Get("assets/shaders/UI.hlsl")->Bind();
-		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
-		if(sRenderer2DData->TextFont)
-			sRenderer2DData->TextFont->GetFontAtlas()->Bind(6, D3D11_PIXEL_SHADER);
-		if (sRenderer2DData->PanelTextureName != "")
-			TextureLibrary::Get(sRenderer2DData->PanelTextureName)->Bind(8, D3D11_PIXEL_SHADER);
-		sRenderer2DData->UIVertexBuffer->SetData(sRenderer2DData->UIVertexBufferBase, vertexDataSize);
-		sRenderer2DData->UIVertexBuffer->Bind();
-		sRenderer2DData->UIIndexBuffer->Bind();
-		RenderCommand::DrawIndexed(0, 0, indexCount);
+		//ShaderLibrary::Get("assets/shaders/UI.hlsl")->Bind();
+		//TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
+		//if(sRenderer2DData->TextFont)
+		//	sRenderer2DData->TextFont->GetFontAtlas()->Bind(6, D3D11_PIXEL_SHADER);
+		//if (sRenderer2DData->PanelTextureName != "")
+		//	TextureLibrary::Get(sRenderer2DData->PanelTextureName)->Bind(8, D3D11_PIXEL_SHADER);
+		//sRenderer2DData->UIVertexBuffer->SetData(sRenderer2DData->UIVertexBufferBase, vertexDataSize);
+		//sRenderer2DData->UIVertexBuffer->Bind();
+		//sRenderer2DData->UIIndexBuffer->Bind();
+		//RenderCommand::DrawIndexed(0, 0, indexCount);
 
 		//sRendererData->FinalFramebuffer->EnableDepth();
 		

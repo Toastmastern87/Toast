@@ -135,10 +135,8 @@ namespace Toast {
 		EntityMap mEntityIDMap;
 
 		Environment mEnvironment;
-		Ref<Material> mSkyboxMaterial;
 		Ref<TextureCube> mSkyboxTexture = nullptr;
 		float mEnvironmentIntensity = 1.0f, mSkyboxLod = 0.0f;
-		Ref<Mesh> mSkybox;
 
 		LightEnvironment mLightEnvironment;
 

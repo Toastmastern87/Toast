@@ -11,7 +11,7 @@ namespace Toast {
 
 	Scope<RendererDebug::DebugData> RendererDebug::mDebugData = CreateScope<RendererDebug::DebugData>();
 
-	void RendererDebug::Init()
+	void RendererDebug::Init(uint32_t width, uint32_t height)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -29,6 +29,9 @@ namespace Toast {
 		mDebugData->mDebugCBuffer->Bind();
 		mDebugData->mDebugBuffer.Allocate(mDebugData->mDebugCBuffer->GetSize());
 		mDebugData->mDebugBuffer.ZeroInitialize();
+
+		// Setting up the Render Target for 
+		mDebugData->SelectedMeshMaskRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
 	}
 
 	void RendererDebug::Shutdown()
@@ -36,6 +39,11 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		delete[] mDebugData->LineVertexBufferBase;
+	}
+
+	void RendererDebug::OnWindowResize(uint32_t width, uint32_t height)
+	{
+		mDebugData->SelectedMeshMaskRT->Resize(width, height);
 	}
 
 	void RendererDebug::BeginScene(Camera& camera)
@@ -147,8 +155,7 @@ namespace Toast {
 #endif
 
 		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetView().Get() }, sRendererData->DepthStencilView);
-		RenderCommand::SetDepthStencilState(sRendererData->DepthSkyboxPassStencilState);
-		RenderCommand::SetBlendState(sRendererData->AtmospherePassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
 
 		//if (!runtime)
 		//{
@@ -182,18 +189,19 @@ namespace Toast {
 			}
 		}	
 
+		RenderCommand::DisableWireframe();
+
 		//Grid
 		if (!runtime && renderGrid)
 		{
-			RenderCommand::DisableWireframe();
 			RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
 			mDebugData->GridShader->Bind();
 
+			RenderCommand::SetBlendState(sRendererData->AtmospherePassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+
 			RenderCommand::Draw(6);
 		}
-
-		RenderCommand::DisableWireframe();
 
 #ifdef TOAST_DEBUG
 		if (annotation)
@@ -213,49 +221,41 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		//sRendererData->OutlineFramebuffer->Bind();
-		//sRendererData->OutlineFramebuffer->Clear({ 0.0f, 0.0f, 0.0f, 1.0f });
+		RenderCommand::DisableWireframe();
+		RenderCommand::SetRenderTargets({ mDebugData->SelectedMeshMaskRT->GetView().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::ClearRenderTargets(mDebugData->SelectedMeshMaskRT->GetView().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		//for (const auto& meshCommand : sRendererData->MeshSelectedDrawList) 
-		//{
-		//	if (meshCommand.Mesh->mVertexBuffer)	meshCommand.Mesh->mVertexBuffer->Bind();
-		//	//if (meshCommand.Mesh->mInstanceVertexBuffer && meshCommand.PlanetData) meshCommand.Mesh->mInstanceVertexBuffer->Bind();
-		//	if (meshCommand.Mesh->mIndexBuffer)		meshCommand.Mesh->mIndexBuffer->Bind();
+		mDebugData->SelectedMeshMaskShader->Bind();
 
-		//	if (meshCommand.Wireframe)
-		//		RenderCommand::EnableWireframe();
-		//	else
-		//		RenderCommand::DisableWireframe();
+		// TODO: This should be done in a single draw call, will be fixed with the updated star ship model.
+		// Mask out the selected meshes
+		for (const auto& meshCommand : sRendererData->MeshSelectedDrawList)
+		{
+			meshCommand.Mesh->Bind();
 
-		//	RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
+			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes) 
+			{
+				int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
 
-		//	for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
-		//	{
-		//		sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
-		//		sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
-		//		//meshCommand.Mesh->Map(submesh.MaterialName);
-		//		meshCommand.Mesh->Bind();
+				// Model data
+				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
+				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 68);
+				sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 72);
+				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-		//		mDebugData->SelectedMeshMaskShader->Bind();
+				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+			}
+		}
 
-		//		RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+		// Draw the outline
+		mDebugData->OutlineShader->Bind();
+		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetView().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
 
-		//		ID3D11RenderTargetView* nullRTV = nullptr;
-		//		deviceContext->OMSetRenderTargets(1, &nullRTV, nullptr);
-		//		
-		//		sRendererData->FinalFramebuffer->Bind();
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, mDebugData->SelectedMeshMaskRT->GetSRV());
 
-		//		auto temp = sRendererData->OutlineFramebuffer->GetSRV(0);
-		//		deviceContext->PSSetShaderResources(9, 1, temp.GetAddressOf());
-
-		//		mDebugData->OutlineShader->Bind();
-
-		//		RenderCommand::Draw(3);	
-
-		//		ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-		//		deviceContext->PSSetShaderResources(9, 1, nullSRV);
-		//	}
-		//}
+		Renderer::DrawFullscreenQuad();
 
 #ifdef TOAST_DEBUG
 		if (annotation)
