@@ -938,7 +938,14 @@ namespace Toast {
 					ImGui::Text("Sun Disc Radius");
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##sundiscradius", &component.PlanetData.mieBaseScatteringCoefficient, 1.0f, 0.0f, 100.0f, "%.0f");
+					ImGui::DragFloat("##sundiscradius", &component.PlanetData.SunDiscRadius, 0.01f, 0.0f, 1.0f, "%.2f");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Sun Glow Intensity");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::DragFloat("##sunglowintensity", &component.PlanetData.SunGlowIntensity, 0.1f, 10.0f, 0.0f, "%.2f");
 				}
 
 				ImGui::EndTable();
