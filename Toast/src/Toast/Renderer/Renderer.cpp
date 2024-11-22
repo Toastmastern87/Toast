@@ -358,6 +358,28 @@ namespace Toast {
 			result = device->CreateBlendState(&blendDesc, &sRendererData->AtmospherePassBlendState);
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Atmosphere Pass blend state");
 		}
+
+		// UI Pass Blend State
+		{
+			D3D11_BLEND_DESC blendDesc = {};
+			blendDesc.AlphaToCoverageEnable = FALSE;
+			blendDesc.IndependentBlendEnable = TRUE;
+
+			blendDesc.RenderTarget[0].BlendEnable = TRUE;
+			blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+			blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+			blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+			blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_INV_DEST_ALPHA;
+			blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+			blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+			blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+			blendDesc.RenderTarget[1].BlendEnable = FALSE; // Disable blending for slot 1
+			blendDesc.RenderTarget[1].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+			result = device->CreateBlendState(&blendDesc, &sRendererData->UIBlendState);
+			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Atmosphere Pass blend state");
+		}
 	}
 
 	void Renderer::Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform)
@@ -410,7 +432,7 @@ namespace Toast {
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
 		const uint32_t cubemapSize = 2048;
-		const uint32_t irradianceMapSize = 32;
+		const uint32_t irradianceMapSize = 64;
 
 		Ref<ConstantBuffer> specularMapFilterSettingsCB = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SpecularLightEnvironmental) }, D3D11_USAGE_DEFAULT);
 
@@ -422,7 +444,7 @@ namespace Toast {
 		envMapUnfiltered->CreateUAV(0);
 
 		if (!equirectangularConversionShader)
-			equirectangularConversionShader = CreateScope<Shader>("assets/shaders/EquirectangularToCubeMap.hlsl");
+			equirectangularConversionShader = CreateScope<Shader>("assets/shaders/Environment/EquirectangularToCubeMap.hlsl");
 
 		equirectangularConversionShader->Bind();
 		starMap->Bind();
@@ -445,7 +467,7 @@ namespace Toast {
 		};
 
 		if (!envFilteringShader)
-			envFilteringShader = CreateScope<Shader>("assets/shaders/EnvironmentMipFilter.hlsl");
+			envFilteringShader = CreateScope<Shader>("assets/shaders/Environment/EnvironmentMipFilter.hlsl");
 
 		envFilteringShader->Bind();
 		envMapUnfiltered->Bind(0, D3D11_COMPUTE_SHADER);
@@ -470,7 +492,7 @@ namespace Toast {
 		Ref<TextureCube> irradianceMap = CreateRef<TextureCube>("IrradianceMap", irradianceMapSize, irradianceMapSize, 1);
 
 		if (!envIrradianceShader)
-			envIrradianceShader = CreateScope<Shader>("assets/shaders/EnvironmentIrradiance.hlsl");
+			envIrradianceShader = CreateScope<Shader>("assets/shaders/Environment/EnvironmentIrradiance.hlsl");
 
 		irradianceMap->CreateUAV(0);
 

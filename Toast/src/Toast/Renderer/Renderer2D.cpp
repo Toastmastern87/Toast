@@ -66,27 +66,28 @@ namespace Toast {
 			annotation->BeginEvent(L"2D Render Pass");
 #endif
 
-		//sRendererData->FinalFramebuffer->DisableDepth();
-		//sRendererData->FinalFramebuffer->Bind();
+		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetView().Get(), sRendererData->GPassPickingRT->GetView().Get() }, nullptr);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
+		RenderCommand::SetBlendState(sRendererData->UIBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 		// New way of rendering UI with one big vertex buffer
-		//uint32_t vertexCount = sRenderer2DData->UIVertexBufferPtr - sRenderer2DData->UIVertexBufferBase;
-		//uint32_t vertexDataSize = vertexCount * sizeof(UIVertex);
-		//uint32_t quadCount = vertexCount / 4; 
-		//uint32_t indexCount = quadCount * 6;
+		uint32_t vertexCount = sRenderer2DData->UIVertexBufferPtr - sRenderer2DData->UIVertexBufferBase;
+		uint32_t vertexDataSize = vertexCount * sizeof(UIVertex);
+		uint32_t quadCount = vertexCount / 4; 
+		uint32_t indexCount = quadCount * 6;
 
-		//ShaderLibrary::Get("assets/shaders/UI.hlsl")->Bind();
-		//TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
-		//if(sRenderer2DData->TextFont)
-		//	sRenderer2DData->TextFont->GetFontAtlas()->Bind(6, D3D11_PIXEL_SHADER);
-		//if (sRenderer2DData->PanelTextureName != "")
-		//	TextureLibrary::Get(sRenderer2DData->PanelTextureName)->Bind(8, D3D11_PIXEL_SHADER);
-		//sRenderer2DData->UIVertexBuffer->SetData(sRenderer2DData->UIVertexBufferBase, vertexDataSize);
-		//sRenderer2DData->UIVertexBuffer->Bind();
-		//sRenderer2DData->UIIndexBuffer->Bind();
-		//RenderCommand::DrawIndexed(0, 0, indexCount);
+		ShaderLibrary::Get("assets/shaders/UI.hlsl")->Bind();
 
-		//sRendererData->FinalFramebuffer->EnableDepth();
+		if (sRenderer2DData->TextFont)
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRenderer2DData->TextFont->GetFontAtlas()->GetSRV());
+		if (sRenderer2DData->PanelTextureName != "")
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, TextureLibrary::Get(sRenderer2DData->PanelTextureName)->GetSRV());
+
+		sRenderer2DData->UIVertexBuffer->SetData(sRenderer2DData->UIVertexBufferBase, vertexDataSize);
+		sRenderer2DData->UIVertexBuffer->Bind();
+		sRenderer2DData->UIIndexBuffer->Bind();
+
+		RenderCommand::DrawIndexed(0, 0, indexCount);
 		
 		RenderCommand::SetRenderTargets({ sRendererData->BackbufferRT->GetView().Get() }, nullptr);
 		RenderCommand::ClearRenderTargets(sRendererData->BackbufferRT->GetView().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
