@@ -16,8 +16,10 @@ namespace Toast {
 			DirectX::XMFLOAT4 Color;
 		};
 	public:
-		static void Init();
+		static void Init(uint32_t width, uint32_t height);
 		static void Shutdown();
+
+		static void OnWindowResize(uint32_t width, uint32_t height);
 
 		static void BeginScene(Camera& camera);
 		static void EndScene(const bool debugActivated, const bool runtime, bool renderUI, const bool renderGrid);
@@ -47,6 +49,8 @@ namespace Toast {
 
 			Ref<ConstantBuffer> mDebugCBuffer;
 			Buffer mDebugBuffer;
+
+			Ref<RenderTarget> SelectedMeshMaskRT;
 		};
 
 		static Scope<DebugData> mDebugData;

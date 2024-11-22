@@ -51,8 +51,7 @@ struct PixelInputType
 float Random(float3 seed)
 {
     // Simple random function based on the dot product
-    return frac(sin(dot(seed, float3(12.9898f, 78.233f, 45.164f)) * 43758.5453f));
-    
+    return frac(sin(dot(seed, float3(12.9898f, 78.233f, 45.164f)) * 43758.5453f));   
 }
 
 float4x4 CreateRotationMatrix(float3 rotationAngles)

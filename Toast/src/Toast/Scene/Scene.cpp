@@ -337,8 +337,8 @@ namespace Toast {
 
 				// Skybox!
 				{
-					if (mSkyboxTexture)
-						Renderer::SubmitSkybox(mSkybox, cameraPosFloat, mainCamera->GetViewMatrix(), mainCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
+					if (mEnvironment.RadianceMap)
+						Renderer::SubmitSkybox(cameraPosFloat, mainCamera->GetViewMatrix(), mainCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
 				}
 
 				// Meshes!
@@ -698,8 +698,8 @@ namespace Toast {
 		{
 			// Skybox!
 			{
-				if (mSkybox)
-					Renderer::SubmitSkybox(mSkybox, DirectX::XMFLOAT4(DirectX::XMVectorGetX(editorCamera->GetPosition()), DirectX::XMVectorGetY(editorCamera->GetPosition()), DirectX::XMVectorGetZ(editorCamera->GetPosition()), 0.0f), editorCamera->GetViewMatrix(), editorCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
+				if (mEnvironment.RadianceMap)
+					Renderer::SubmitSkybox(DirectX::XMFLOAT4(DirectX::XMVectorGetX(editorCamera->GetPosition()), DirectX::XMVectorGetY(editorCamera->GetPosition()), DirectX::XMVectorGetZ(editorCamera->GetPosition()), 0.0f), editorCamera->GetViewMatrix(), editorCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
 			}
 
 			// Meshes!
@@ -1039,9 +1039,7 @@ namespace Toast {
 
 		target->mEnvironment = mEnvironment;
 		target->mSkyboxTexture = mSkyboxTexture;
-		target->mSkyboxMaterial = mSkyboxMaterial;
 		target->mSkyboxLod = mSkyboxLod;
-		target->mSkybox = mSkybox;
 
 		//Collider
 		target->mCubeColliderMaterial = mCubeColliderMaterial;
@@ -1182,8 +1180,6 @@ namespace Toast {
 	template<>
 	void Scene::OnComponentAdded<SkyLightComponent>(Entity entity, SkyLightComponent& component)
 	{
-		// Initiate the skybox
-		mSkybox = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Cube.gltf", true);
 	}
 
 	template<>

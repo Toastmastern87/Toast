@@ -19,7 +19,8 @@ PixelInputType main(uint vID : SV_VERTEXID)
 }
 
 #type pixel
-Texture2D InputTexture          : register(t9);
+Texture2D InputTexture          : register(t11);
+
 SamplerState DefaultSampler     : register(s1);
 
 struct PixelInputType
@@ -36,7 +37,7 @@ float SampleTexture(float2 uv, float2 pixeloffset)
     InputTexture.GetDimensions(width, height);
     float2 pixelSize = 1.0f / float2(width, height);
 
-    float p = 3.0f; // Outline width
+    float p = 2.0f; // Outline width
     samples[0] = InputTexture.Sample(DefaultSampler, uv + (float2(-p, -p) + pixeloffset) * pixelSize).r;
     samples[1] = InputTexture.Sample(DefaultSampler, uv + (float2(0.0f, -p) + pixeloffset) * pixelSize).r;
     samples[2] = InputTexture.Sample(DefaultSampler, uv + (float2(p, -p) + pixeloffset) * pixelSize).r;
@@ -65,6 +66,6 @@ float4 main(PixelInputType input) : SV_TARGET
     if (val < 0.2f)
         discard;
 
-    float3 outlineColor = float3(122.0f/255.0f, 173.0f/255.0f, 71.0f/255.0f);
+    float3 outlineColor = float3(1.0f, 0.0, 0.0f);
     return float4(outlineColor, val);
 }
