@@ -711,6 +711,8 @@ namespace Toast {
 				sRendererData->AtmosphereBuffer.Write((uint8_t*)&sunDiscToggle, 4, 72);
 				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunDiscRadius, 4, 76);
 				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunGlowIntensity, 4, 80);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunEdgeSoftness, 4, 84);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunGlowSize, 4, 88);
 
 				sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 			}
