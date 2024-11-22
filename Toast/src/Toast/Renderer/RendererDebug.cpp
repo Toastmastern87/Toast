@@ -15,9 +15,9 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mDebugData->LineVertexBuffer = CreateRef<VertexBuffer>(mDebugData->MaxVertices * sizeof(LineVertex), mDebugData->MaxVertices, 0);
+		mDebugData->LineVertexBuffer = CreateRef<VertexBuffer>(mDebugData->MaxVertices * sizeof(Vertex), mDebugData->MaxVertices, 0);
 
-		mDebugData->LineVertexBufferBase = new LineVertex[mDebugData->MaxVertices];
+		mDebugData->LineVertexBufferBase = new Vertex[mDebugData->MaxVertices];
 
 		mDebugData->DebugShader = CreateRef<Shader>("assets/shaders/Debug/Debug.hlsl");
 		mDebugData->GridShader = CreateRef<Shader>("assets/shaders/Debug/Grid.hlsl");
@@ -76,7 +76,7 @@ namespace Toast {
 			RenderCommand::ClearRenderTargets(sRendererData->BackbufferRT->GetView().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
 		}
 
-		ZeroMemory(mDebugData->LineVertexBufferBase, mDebugData->MaxVertices * sizeof(LineVertex));
+		ZeroMemory(mDebugData->LineVertexBufferBase, mDebugData->MaxVertices * sizeof(Vertex));
 		mDebugData->LineVertexCount = 0;
 
 		if (!runtime) 
@@ -89,30 +89,36 @@ namespace Toast {
 
 	void RendererDebug::SubmitCameraFrustum(Ref<Frustum> frustum)
 	{
-		RendererDebug::SubmitLine(frustum->mNearTopLeft, frustum->mFarTopLeft, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
-		RendererDebug::SubmitLine(frustum->mNearTopRight, frustum->mFarTopRight, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
-		RendererDebug::SubmitLine(frustum->mNearBottomLeft, frustum->mFarBottomLeft, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
-		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mFarBottomRight, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mNearTopLeft, frustum->mFarTopLeft, DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mNearTopRight, frustum->mFarTopRight, DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mNearBottomLeft, frustum->mFarBottomLeft, DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mFarBottomRight, DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
 
-		RendererDebug::SubmitLine(frustum->mNearTopLeft, frustum->mNearTopRight, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
-		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mNearBottomLeft, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
-		RendererDebug::SubmitLine(frustum->mNearBottomLeft, frustum->mNearTopLeft, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
-		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mNearTopRight, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mNearTopLeft, frustum->mNearTopRight, DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mNearBottomLeft, DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mNearBottomLeft, frustum->mNearTopLeft, DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mNearBottomRight, frustum->mNearTopRight, DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
 
-		RendererDebug::SubmitLine(frustum->mFarTopLeft, frustum->mFarTopRight, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
-		RendererDebug::SubmitLine(frustum->mFarBottomRight, frustum->mFarBottomLeft, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
-		RendererDebug::SubmitLine(frustum->mFarBottomLeft, frustum->mFarTopLeft, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
-		RendererDebug::SubmitLine(frustum->mFarBottomRight, frustum->mFarTopRight, DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mFarTopLeft, frustum->mFarTopRight, DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mFarBottomRight, frustum->mFarBottomLeft, DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mFarBottomLeft, frustum->mFarTopLeft, DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
+		RendererDebug::SubmitLine(frustum->mFarBottomRight, frustum->mFarTopRight, DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
 	}
 
-	void RendererDebug::SubmitLine(DirectX::XMFLOAT3& p1, DirectX::XMFLOAT3& p2, DirectX::XMFLOAT4& color)
+	void RendererDebug::SubmitLine(DirectX::XMFLOAT3& p1, DirectX::XMFLOAT3& p2, DirectX::XMFLOAT3& color)
 	{
 		mDebugData->LineVertexBufferPtr->Position = p1;
 		mDebugData->LineVertexBufferPtr->Color = color;
+		mDebugData->LineVertexBufferPtr->Normal = { 0.0f, 0.0f, 0.0f };
+		mDebugData->LineVertexBufferPtr->Tangent = { 0.0f, 0.0f, 0.0f, 0.0f };
+		mDebugData->LineVertexBufferPtr->Texcoord = { 0.0f, 0.0f  };
 		mDebugData->LineVertexBufferPtr++;
 		
 		mDebugData->LineVertexBufferPtr->Position = p2;
 		mDebugData->LineVertexBufferPtr->Color = color;
+		mDebugData->LineVertexBufferPtr->Normal = { 0.0f, 0.0f, 0.0f };
+		mDebugData->LineVertexBufferPtr->Tangent = { 0.0f, 0.0f, 0.0f, 0.0f };
+		mDebugData->LineVertexBufferPtr->Texcoord = { 0.0f, 0.0f };
 		mDebugData->LineVertexBufferPtr++;
 
 		mDebugData->LineVertexCount += 2;
@@ -120,7 +126,7 @@ namespace Toast {
 		//TOAST_CORE_INFO("Adding line! Count number: %d", mDebugData->LineVertexCount);
 	}
 
-	void RendererDebug::SubmitLine(DirectX::XMVECTOR& p1, DirectX::XMVECTOR& p2, DirectX::XMFLOAT4& color)
+	void RendererDebug::SubmitLine(DirectX::XMVECTOR& p1, DirectX::XMVECTOR& p2, DirectX::XMFLOAT3& color)
 	{
 		DirectX::XMFLOAT3 p1f;
 		DirectX::XMStoreFloat3(&p1f, p1);
@@ -130,7 +136,7 @@ namespace Toast {
 		RendererDebug::SubmitLine(p1f, p2f, color);
 	}
 
-	void RendererDebug::SubmitLine(Vector3& p1, Vector3& p2, DirectX::XMFLOAT4& color)
+	void RendererDebug::SubmitLine(Vector3& p1, Vector3& p2, DirectX::XMFLOAT3& color)
 	{
 		DirectX::XMFLOAT3 p1f = { (float)p1.x, (float)p1.y, (float)p1.z };
 		DirectX::XMFLOAT3 p2f = { (float)p2.x, (float)p2.y, (float)p2.z };
@@ -151,6 +157,7 @@ namespace Toast {
 		if (annotation)
 			annotation->BeginEvent(L"Debug Render Pass");
 #endif
+		int noWorldTransform;
 
 		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetView().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
@@ -167,6 +174,11 @@ namespace Toast {
 			uint32_t dataSize = (uint32_t)((uint8_t*)mDebugData->LineVertexBufferPtr - (uint8_t*)mDebugData->LineVertexBufferBase);
 			mDebugData->LineVertexBuffer->SetData(mDebugData->LineVertexBufferBase, dataSize);
 
+			noWorldTransform = 1;
+
+			sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 68);
+			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+
 			RenderCommand::Draw(mDebugData->LineVertexCount);
 		}
 
@@ -177,7 +189,10 @@ namespace Toast {
 		{
 			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
 			{
+				noWorldTransform = 0;
+
 				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+				sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 68);
 				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
 				meshCommand.Mesh->Bind();
