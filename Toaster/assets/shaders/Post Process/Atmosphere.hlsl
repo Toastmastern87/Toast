@@ -64,8 +64,9 @@ cbuffer Atmosphere : register(b4)
 	int atmosphereToggle;
 	int numInScatteringPoints;
 	int numOpticalDepthPoints;
-    float sunDiscToggle;
+    int sunDiscToggle;
     float sunDiscRadius;
+    float sunGlowIntensity;
 };
 
 struct PixelInputType
@@ -203,16 +204,79 @@ float4 main(PixelInputType input) : SV_TARGET
 		float2 atmoHitInfo = RaySphere(planetCenter, radius + atmosphereHeight, rayOrigin, rayDir);
 		float dstToAtmosphere = atmoHitInfo.x;
 		float dstThroughAtmosphere = min(atmoHitInfo.y - atmoHitInfo.x, sceneDepth - dstToAtmosphere);
+		
+        if (dstThroughAtmosphere > 0.0f)
+        {
+            float3 transmittance;
+            float3 scatteringColor = CalculateLightScattering(rayOrigin, rayDir, dstToAtmosphere, dstThroughAtmosphere, transmittance);
+			
+			 // Sun disc logic with scattering-based color modulation
+            float3 sunDir = normalize(direction.xyz);
+            float3 sunColor = 0.0f;
 
-		if (dstThroughAtmosphere > 0.0f) 
-		{
-			float3 transmittance;
-			float3 scatteringColor = CalculateLightScattering(rayOrigin, rayDir, dstToAtmosphere, dstThroughAtmosphere, transmittance);
+            if (sunDiscToggle > 0)
+            {
+                // Calculate angle to the sun
+                float sunAngle = 1.0f - acos(dot(normalize(worldPosPixel), sunDir)) / sunDiscRadius;
+                sunAngle = clamp(sunAngle, 0.0f, 1.0f);
 
-			float4 finalColor = (originalColor * float4(transmittance, 1.0f)) + float4(scatteringColor, 0.0f);
+                // Sun disc intensity
+                float sunIntensity = pow(sunAngle, 100.0f);
+                sunIntensity *= 100.0f;
+                sunIntensity = clamp(sunIntensity, 0.0f, 1.0f);
 
-			return finalColor;
-		}
+                // Compute optical depth for the sun direction
+                float3 sunRayOpticalDepth = float3(0.0f, 0.0f, 0.0f);
+                float sunRayStepSize = atmosphereHeight / numOpticalDepthPoints;
+                for (int i = 0; i < numOpticalDepthPoints; i++)
+                {
+                    float3 sunPoint = rayOrigin + sunDir * (i * sunRayStepSize);
+                    float height = length(sunPoint - planetCenter) - radius;
+
+                    // Accumulate optical depth if within atmosphere
+                    if (height > 0.0f)
+                    {
+                        float rayHeightFalloff = exp(-height / rayScaleHeight);
+                        float mieHeightFalloff = exp(-height / mieScaleHeight);
+                        sunRayOpticalDepth += (rayHeightFalloff * rayBaseScatteringCoefficient +
+                                               mieHeightFalloff * mieBaseScatteringCoefficient) *
+                                              sunRayStepSize;
+                    }
+                }
+
+                // Modulate the sun color with optical depth
+                float3 modulatedSunColor = exp(-sunRayOpticalDepth) * radiance.rgb * multiplier;
+
+                // Adjust for color blending at lower altitudes (near horizon)
+                float altitudeFactor = smoothstep(0.0f, 1.0f, dot(sunDir, float3(0.0f, 1.0f, 0.0f)));
+                modulatedSunColor = lerp(scatteringColor, modulatedSunColor, altitudeFactor);
+
+                // Add glow bleeding effect
+                float glowBleedFactor = pow(sunAngle, sunGlowIntensity); // Stronger glow closer to the center
+                float3 glowBleedColor = modulatedSunColor * glowBleedFactor;
+                scatteringColor += glowBleedColor;
+
+                // Respect depth: Sun should fade behind the planet
+                if (sceneDepth < dstToAtmosphere)
+                {
+                    sunColor = 0.0f; // Sun is behind the planet
+                }
+                else
+                {
+                    sunColor = modulatedSunColor * sunIntensity;
+                }
+            }
+
+            // Combine sun color and atmospheric scattering
+            float cosTheta = dot(rayDir, sunDir);
+            float phaseShift = smoothstep(-0.1, 0.1, cosTheta); // Sunrise/sunset bleeding effect
+            scatteringColor += phaseShift * sunColor;
+			
+            // Combine with original color and atmospheric transmittance
+            float4 finalColor = (originalColor * float4(transmittance, 1.0f)) + float4(scatteringColor, 0.0f);
+
+            return finalColor;
+        }
 
 		return originalColor;
 	}

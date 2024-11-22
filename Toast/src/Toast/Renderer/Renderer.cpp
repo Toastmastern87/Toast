@@ -67,7 +67,7 @@ namespace Toast {
 		sRendererData->RenderSettingsBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer for atmosphere rendering
-		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 80, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Atmosphere) });
+		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 96, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Atmosphere) });
 		sRendererData->AtmosphereCBuffer->Bind();
 		sRendererData->AtmosphereBuffer.Allocate(sRendererData->AtmosphereCBuffer->GetSize());
 		sRendererData->AtmosphereBuffer.ZeroInitialize();
@@ -683,7 +683,8 @@ namespace Toast {
 #endif
 
 		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetView().Get() }, nullptr);
-		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
+		RenderCommand::SetBlendState(sRendererData->AtmospherePassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
 
@@ -709,6 +710,7 @@ namespace Toast {
 				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->opticalDepthPoints, 4, 68);
 				sRendererData->AtmosphereBuffer.Write((uint8_t*)&sunDiscToggle, 4, 72);
 				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunDiscRadius, 4, 76);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunGlowIntensity, 4, 80);
 
 				sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 			}
@@ -718,7 +720,6 @@ namespace Toast {
 
 		ShaderLibrary::Get("assets/shaders/Post Process/Atmosphere.hlsl")->Bind();
 
-		RenderCommand::SetBlendState(sRendererData->AtmospherePassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		DrawFullscreenQuad();
 
 		sRendererData->LPassFramebuffer->Unbind();
