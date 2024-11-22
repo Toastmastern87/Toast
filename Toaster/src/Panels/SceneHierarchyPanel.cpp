@@ -95,6 +95,7 @@ namespace Toast {
 	void SceneHierarchyPanel::SetSelectedEntity(Entity entity)
 	{
 		mSelectionContext = entity;
+		mContext->SetSelectedEntity(entity);
 	}
 
 	static std::string sID;
@@ -107,8 +108,8 @@ namespace Toast {
 		flags |= entity.GetComponent<RelationshipComponent>().Children.size() == 0 ? ImGuiTreeNodeFlags_Leaf : 0;
 		flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
 		bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, tag.c_str());
-		if (ImGui::IsItemClicked()) 
-			mSelectionContext = entity;
+		if (ImGui::IsItemClicked())
+			SetSelectedEntity(entity);
 
 		bool entityDeleted = false;
 		if (ImGui::BeginPopupContextItem()) 
