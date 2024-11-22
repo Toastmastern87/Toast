@@ -59,8 +59,6 @@ namespace Toast {
 		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 276);
 		mDebugData->mDebugCBuffer->Map(mDebugData->mDebugBuffer);
 
-		mDebugData->LineVertexBuffer->Bind();
-
 		mDebugData->LineVertexBufferPtr = mDebugData->LineVertexBufferBase;
 	}
 
@@ -157,21 +155,20 @@ namespace Toast {
 		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetView().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
 
-		//if (!runtime)
-		//{
-			if (mDebugData->LineVertexCount != 0)
-			{
-				mDebugData->DebugShader->Bind();
+		mDebugData->LineVertexBuffer->Bind();
 
-				// Frustum
-				RenderCommand::SetPrimitiveTopology(Topology::LINELIST);
+		if (mDebugData->LineVertexCount != 0)
+		{
+			mDebugData->DebugShader->Bind();
 
-				uint32_t dataSize = (uint32_t)((uint8_t*)mDebugData->LineVertexBufferPtr - (uint8_t*)mDebugData->LineVertexBufferBase);
-				mDebugData->LineVertexBuffer->SetData(mDebugData->LineVertexBufferBase, dataSize);
+			// Frustum
+			RenderCommand::SetPrimitiveTopology(Topology::LINELIST);
 
-				RenderCommand::Draw(mDebugData->LineVertexCount);
-			}
-		//}
+			uint32_t dataSize = (uint32_t)((uint8_t*)mDebugData->LineVertexBufferPtr - (uint8_t*)mDebugData->LineVertexBufferBase);
+			mDebugData->LineVertexBuffer->SetData(mDebugData->LineVertexBufferBase, dataSize);
+
+			RenderCommand::Draw(mDebugData->LineVertexCount);
+		}
 
 		RenderCommand::EnableWireframe();
 		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
