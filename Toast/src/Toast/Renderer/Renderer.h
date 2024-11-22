@@ -87,7 +87,7 @@ namespace Toast {
 			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> DepthSRV;
 
 			// Blend data
-			Microsoft::WRL::ComPtr<ID3D11BlendState> GPassBlendState, LPassBlendState, AtmospherePassBlendState, PostProcessBlendState;
+			Microsoft::WRL::ComPtr<ID3D11BlendState> GPassBlendState, LPassBlendState, AtmospherePassBlendState, PostProcessBlendState, UIBlendState;
 		};
 
 	protected:

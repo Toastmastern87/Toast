@@ -108,7 +108,7 @@ void main(uint3 ThreadID : SV_DispatchThreadID)
 		float cosTheta = max(0.0, dot(Li, N));
 
 		// PIs here cancel out because of division by pdf.
-		irradiance += 2.0 * inputTexture.SampleLevel(defaultSampler, Li, 0).rgb * cosTheta; 
+		irradiance += 2.0 * inputTexture.SampleLevel(defaultSampler, Li, 2).rgb * cosTheta; 
 	}
 	irradiance /= float(NumSamples);
 
