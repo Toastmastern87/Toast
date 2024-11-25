@@ -59,7 +59,7 @@ Entities:
     MeshComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 2.0\Starship_SN2.gltf
     RigidBodyComponent:
-      InvMass: 0.000199999995
+      InvMass: 0.00019999999494757503
       Elasticity: 0
       Friction: 0
       CenterOfMass: [0, 0, 0]
@@ -129,11 +129,11 @@ Entities:
       MieAnisotropy: 0.776000023
       RayScaleHeight: 10800
       MieScaleHeight: 1200
-      RayBaseScatteringCoefficient: [1.29999999e-05, 8.6e-06, 5.7000002e-06]
+      RayBaseScatteringCoefficient: [1.40000002e-05, 9.60000034e-06, 6.00000021e-06]
       MieBaseScatteringCoefficient: 1.30000002e-08
       SunDisc: true
-      SunDiscRadius: 0.00359999994
-      SunGlowIntensity: 1
+      SunDiscRadius: 0
+      SunGlowIntensity: 0.300000012
       SunEdgeSoftness: 0.0129000004
       SunGlowSize: 0.0199999996
     ScriptComponent:
@@ -160,11 +160,11 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-715.570129, 0, 0]
+      Rotation: [-715.72998, 0, 0]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [0.886075974, 0.82748425, 0.575762451]
-      Intensity: 0.529999971
+      Intensity: 1
   - Entity: 2187140198057221420
     TagComponent:
       Tag: Debug
