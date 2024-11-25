@@ -117,7 +117,7 @@ float3 SampleLightRay(float3 rayOrigin)
 	float stepSize = (sunRayAtmoPoints.y - sunRayAtmoPoints.x) / (float)(numOpticalDepthPoints);
 	for (int i = 0; i < numOpticalDepthPoints; i++)
 	{
-		float3 pointInAtmosphere = rayOrigin + direction * (time + stepSize * 0.5f);
+		float3 pointInAtmosphere = rayOrigin + direction.xyz * (time + stepSize * 0.5f);
 		float height = length(pointInAtmosphere - planetCenter) - radius;
 
 		// Inside the planet, minAltitude is to make sure that the ray is lower then even the lowest point of the planet.
@@ -298,22 +298,19 @@ float4 main(PixelInputType input) : SV_TARGET
             // Compute the viewer's height above the planet surface
             float viewerHeight = length(rayOrigin - planetCenter) - radius;
 
-            // Determine if the viewer is inside the atmosphere
-            bool viewerInAtmosphere = viewerHeight < atmosphereHeight;
+            // Normalize viewer height to a range [0, 1] for blending
+            float atmosphereTransitionHeight = atmosphereHeight * 0.1f; // Adjust as needed
+            float blendFactor = saturate((viewerHeight - (atmosphereHeight - atmosphereTransitionHeight)) / atmosphereTransitionHeight);
 
-            // Adjust sun glow color based on viewer position
-            float3 sunGlowColor;
-            if (viewerInAtmosphere)
-            {
-                // Inside atmosphere: use atmospheric scattering color along sun's direction
-                float glowBrightness = 1.1f; // Adjust as needed
-                sunGlowColor = sunScatteringColor * glowBrightness;
-            }
-            else
-            {
-                // In space: use sun's radiance color for the glow
-                sunGlowColor = radiance.rgb;
-            }
+            // Adjust sun scattering color brightness for the glow
+            float glowBrightness = 1.1f; // Adjust as needed
+
+            // Compute the glow color by blending based on viewer position
+            float3 atmosphericGlowColor = sunScatteringColor * glowBrightness;
+            float3 spaceGlowColor = radiance.rgb;
+
+            float3 sunGlowColor = lerp(atmosphericGlowColor, spaceGlowColor, blendFactor);
+            sunGlowColor = max(sunGlowColor, float3(0.0f, 0.0f, 0.0f));
 
             // Boost glow color intensity for HDR
             sunGlowColor *= 10.0f;
@@ -327,12 +324,11 @@ float4 main(PixelInputType input) : SV_TARGET
             {
                 sunColor = float3(0.0f, 0.0f, 0.0f); // Sun is behind geometry
             }
-           
         }
 
 		// Combine with original color and atmospheric transmittance
         float4 finalColor = (originalColor * float4(transmittance, 1.0f)) + float4(scatteringColor + sunColor, 0.0f);
-
+        
         return finalColor;
 		
     }

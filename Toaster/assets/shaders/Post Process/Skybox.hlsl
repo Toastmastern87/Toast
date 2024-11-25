@@ -46,6 +46,28 @@ cbuffer DirectionalLight : register(b3)
 	float multiplier;
 };
 
+cbuffer Atmosphere : register(b4)
+{
+    float radius;
+    float minAltitude;
+    float maxAltitude;
+    float atmosphereHeight;
+    float mieAnisotropy;
+    float rayScaleHeight;
+    float mieScaleHeight;
+    float3 rayBaseScatteringCoefficient;
+    float mieBaseScatteringCoefficient;
+    float3 planetCenter;
+    int atmosphereToggle;
+    int numInScatteringPoints;
+    int numOpticalDepthPoints;
+    int sunDiscToggle;
+    float sunDiscRadius;
+    float sunGlowIntensity;
+    float sunEdgeSoftness;
+    float sunGlowSize;
+};
+
 cbuffer Environment : register(b6)
 {
 	float environmentStrength;
@@ -84,8 +106,35 @@ float4 main(PixelInputType input) : SV_Target
     // Transform from view space to world space
     float3 worldDir = mul(viewDir, (float3x3) inverseViewMatrix);
 
+    // Sun direction (assuming it points from the sun to the scene)
+    float3 sunDirection = normalize(direction.xyz);
+
+    // Calculate sun elevation (dot product with up vector)
+    float sunElevation = dot(sunDirection, float3(0.0f, 1.0f, 0.0f));
+
+    // Sun factor ranges from 0 (sun below horizon) to 1 (sun overhead)
+    float sunFactor = saturate(sunElevation);
+
+    // Star visibility transitions from 0 to 1 as sunElevation goes from 0.0 to -0.1
+    float starVisibility = smoothstep(0.0f, -0.1f, sunElevation);
+
+    // Compute camera altitude
+    float cameraAltitude = length(cameraPosition.xyz - planetCenter);
+
+    // Altitude factor ranges from 0 (surface) to 1 (space)
+    float altitudeFactor = saturate((cameraAltitude - (radius + minAltitude)) / (maxAltitude - minAltitude));
+
+    // Altitude visibility transitions from 0 to 1 as altitudeFactor goes from 0.9 to 1.0
+    float altitudeVisibility = smoothstep(0.9f, 1.0f, altitudeFactor);
+
+    // Combine star visibility based on sun position and altitude
+    float combinedVisibility = saturate(max(starVisibility, altitudeVisibility));
+
+    // Adjust the environment strength based on combined visibility
+    float adjustedEnvironmentStrength = environmentStrength * combinedVisibility;
+    
     // Sample the cubemap texture
-    float3 skyColor = radianceTexture.SampleLevel(defaultSampler, worldDir, textureLOD).rgb * environmentStrength;
+    float3 skyColor = radianceTexture.SampleLevel(defaultSampler, worldDir, textureLOD).rgb * adjustedEnvironmentStrength;
     
     return float4(skyColor, 1.0f);
 }

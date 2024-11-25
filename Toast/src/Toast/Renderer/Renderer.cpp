@@ -159,7 +159,6 @@ namespace Toast {
 		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Direction, 16, 0);
 		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Radiance, 16, 16);
 		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Multiplier, 4, 32);
-		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].SunDisc, 4, 36);
 		sRendererData->LightningCBuffer->Map(sRendererData->LightningBuffer);
 
 		sRendererData->SceneData.SceneEnvironment = scene->mEnvironment;
