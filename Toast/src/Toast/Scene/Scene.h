@@ -51,6 +51,7 @@ namespace Toast {
 
 			bool Grid = true;
 			bool CameraFrustum = true;
+			bool SunLightFrustum = true;
 			bool BackfaceCulling = true;
 			bool FrustumCulling = true;
 			bool RenderColliders = false;
@@ -59,9 +60,6 @@ namespace Toast {
 			int PhysicSlowmotion = 1;
 			int PhysicsFPS = 60;
 			float physicsElapsedTime = 0.0;
-
-			float SunDesiredCoverage = 10000.0f;
-			float SunLightDistance = 5000.0f;
 		};
 		struct Stats
 		{

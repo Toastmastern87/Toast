@@ -989,6 +989,18 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(1);
 				ImGui::DragFloat("##label", &component.Intensity, 0.01f, 0.0f, 25.0f, "%.2f");
 
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Sun Desired Coverage Area");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::DragFloat("##sundesiredcoverage", &component.SunDesiredCoverage, 1.0f, 0.0f, 20000.0f, "%.1f");
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Sun Light Distance");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::DragFloat("##sunlightdistance", &component.SunLightDistance, 1.0f, 0.0f, 10000.0f, "%.1f");
+
 				ImGui::EndTable();
 			});
 
