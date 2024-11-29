@@ -5,6 +5,3 @@ Roughness: 0.200000003
 UseAlbedoMap: false
 UseNormalMap: false
 UseMetalRoughMap: false
-AlbedoAssetPath: assets/textures/Checkerboard.png
-NormalAssetPath: assets/textures/Checkerboard.png
-MetalRoughAssetPath: assets/textures/Checkerboard.png

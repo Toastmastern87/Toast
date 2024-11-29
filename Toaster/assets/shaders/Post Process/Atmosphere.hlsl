@@ -42,11 +42,12 @@ cbuffer Camera : register(b0)
     float near;
 };
 
-cbuffer DirectionalLight	: register(b3)
+cbuffer DirectionalLight : register(b3)
 {
-	float4 direction;
-	float4 radiance;
-	float multiplier;
+    matrix lightViewProj;
+    float4 direction;
+    float4 radiance;
+    float multiplier;
 };
 
 cbuffer Atmosphere : register(b4)
@@ -268,7 +269,7 @@ float4 main(PixelInputType input) : SV_TARGET
         }
 
 		// Sun disc logic (always render sun disc)
-        float3 sunDir = normalize(direction.xyz);
+        float3 sunDir = normalize(-direction.xyz);
         float3 sunColor = 0.0f;
 
         if (sunDiscToggle > 0)

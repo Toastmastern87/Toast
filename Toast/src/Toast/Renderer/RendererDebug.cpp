@@ -111,7 +111,7 @@ namespace Toast {
 		mDebugData->LineVertexBufferPtr->Color = color;
 		mDebugData->LineVertexBufferPtr->Normal = { 0.0f, 0.0f, 0.0f };
 		mDebugData->LineVertexBufferPtr->Tangent = { 0.0f, 0.0f, 0.0f, 0.0f };
-		mDebugData->LineVertexBufferPtr->Texcoord = { 0.0f, 0.0f  };
+		mDebugData->LineVertexBufferPtr->Texcoord = { 0.0f, 0.0f };
 		mDebugData->LineVertexBufferPtr++;
 		
 		mDebugData->LineVertexBufferPtr->Position = p2;
@@ -245,19 +245,16 @@ namespace Toast {
 		{
 			meshCommand.Mesh->Bind();
 
-			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes) 
-			{
-				int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
+			int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
 
-				// Model data
-				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
-				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
-				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 68);
-				sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 72);
-				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+			// Model data
+			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
+			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
+			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 68);
+			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 72);
+			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
-			}
+			RenderCommand::DrawIndexed(0, 0, meshCommand.Mesh->GetIndices().size());
 		}
 
 		// Draw the outline

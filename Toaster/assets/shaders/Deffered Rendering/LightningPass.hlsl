@@ -25,6 +25,8 @@ PixelInputType main(uint vID : SV_VertexID)
 static const float3 Fdielectric = 0.04f;
 static const float Epsilon = 0.00001f;
 static const float PI = 3.141592f;
+// Define a bias to prevent shadow acne
+static const float bias = 0.005f;
 
 cbuffer Camera : register(b0)
 {
@@ -39,9 +41,32 @@ cbuffer Camera : register(b0)
 
 cbuffer DirectionalLight : register(b3)
 {
+    matrix lightViewProj;
     float4 direction;
     float4 radiance;
     float multiplier;
+};
+
+cbuffer Atmosphere : register(b4)
+{
+    float radius;
+    float minAltitude;
+    float maxAltitude;
+    float atmosphereHeight;
+    float mieAnisotropy;
+    float rayScaleHeight;
+    float mieScaleHeight;
+    float3 rayBaseScatteringCoefficient;
+    float mieBaseScatteringCoefficient;
+    float3 planetCenter;
+    int atmosphereToggle;
+    int numInScatteringPoints;
+    int numOpticalDepthPoints;
+    int sunDiscToggle;
+    float sunDiscRadius;
+    float sunGlowIntensity;
+    float sunEdgeSoftness;
+    float sunGlowSize;
 };
 
 // G-buffer Textures
@@ -54,6 +79,9 @@ Texture2D roughnessAOTexture        : register(t3); // Roughness R and AO A
 TextureCube IrradianceTexture       : register(t4);
 TextureCube RadianceTexture         : register(t5);
 Texture2D SpecularBRDFLUT           : register(t6);
+
+// Shadow Pass Texture
+Texture2D ShadowDepthTexture        : register(t12);
 
 // Sampler state
 SamplerState defaultSampler         : register(s0);
@@ -183,13 +211,11 @@ uint queryRadianceTextureLevels()
     return levels;
 }
 
-float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, float3 albedo, float roughness, float metalness)
+float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, float3 albedo, float roughness, float metalness, float3 sunDir)
 {   
     float3 result = float3(0.0f, 0.0f, 0.0f);
 
-    float3 directionVS = normalize(mul(direction.xyz, (float3x3) viewMatrix));
-    
-    float3 Li = directionVS;
+    float3 Li = sunDir;
     float3 Lradiance = radiance * multiplier;
     float3 Lh = normalize(Li + View);
 
@@ -254,6 +280,10 @@ PixelOutputType main(PixelInputType input)
     normal = normalize(normal * 2.0f - 1.0f); // Convert to [-1, 1]
     float3 position = positionTexture.Sample(defaultSampler, uv).rgb;
     
+    // Reconstruct World Position from View Space
+    float4 positionWorld = mul(float4(position, 1.0f), inverseViewMatrix);
+    float3 worldPos = positionWorld.xyz / positionWorld.w;
+    
     // Metalness and Roughness
     float metalness = albedoMetallicTexture.Sample(defaultSampler, uv).a;
     float roughness = roughnessAOTexture.Sample(defaultSampler, uv).r;
@@ -269,13 +299,35 @@ PixelOutputType main(PixelInputType input)
     // Fresnel reflectance at normal incidence (for metals use albedo color).
     float3 F0 = lerp(Fdielectric, albedo, metalness);
     
+    // Recalculate sun direction to view space
+    float3 directionVS = normalize(mul(-direction.xyz, (float3x3)viewMatrix));
+    
+    // Shadow Map calculations
+    // Transform World Position to Light's Clip Space
+    float4 pixelPosLightSpace = mul(float4(worldPos, 1.0f), lightViewProj);
+    pixelPosLightSpace /= pixelPosLightSpace.w; // Perspective divide
+    
+    // Convert from Clip Space [-1,1] to UV Space [0,1]
+    float2 shadowUV = pixelPosLightSpace.xy * 0.5f + 0.5f;
+    float currentDepth = pixelPosLightSpace.z * 0.5f + 0.5f;
+    
+    // Check if shadowUV is within [0,1]
+    bool outsideShadowMap = (shadowUV.x < 0.0f || shadowUV.x > 1.0f || shadowUV.y < 0.0f || shadowUV.y > 1.0f);
+    
+    // Sample the Shadow Map Depth
+    float shadowMapDepth = ShadowDepthTexture.Sample(defaultSampler, shadowUV).r;
+    
+    // Determine if the pixel is in Shadow
+    float shadow = (outsideShadowMap || currentDepth - bias > shadowMapDepth) ? 0.0f : 1.0f;
+    
     // Directional Light Contribution
-    float3 lightContribution = DirectionalLightning(F0, normal, V, NdotV, albedo, roughness, metalness);
+    float3 lightContribution = DirectionalLightning(F0, normal, V, NdotV, albedo, roughness, metalness, directionVS) * shadow;
     
     // IBL Contribution
     float3 Lr = reflect(V, normal);
     float3 iblContribution = IBL(F0, Lr, normal, V, NdotV, albedo, roughness, metalness, NdotV);
 
     output.color = float4((lightContribution + iblContribution) * ao, 1.0f);
+    
     return output;
 }

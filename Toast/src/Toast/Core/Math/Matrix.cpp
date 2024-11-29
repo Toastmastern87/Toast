@@ -300,4 +300,20 @@ namespace Toast {
 		TOAST_CORE_INFO("        %lf, %lf, %lf, %lf", m_30, m_31, m_32, m_33);
 	}
 
+	void Matrix::ToString(const std::string& label)
+	{
+		TOAST_CORE_INFO("%s:  %lf, %lf, %lf, %lf", label.c_str(), m_00, m_01, m_02, m_03);
+		TOAST_CORE_INFO("        %lf, %lf, %lf, %lf", m_10, m_11, m_12, m_13);
+		TOAST_CORE_INFO("        %lf, %lf, %lf, %lf", m_20, m_21, m_22, m_23);
+		TOAST_CORE_INFO("        %lf, %lf, %lf, %lf", m_30, m_31, m_32, m_33);
+	}
+
+	void Matrix::ToString(const std::string& label) const
+	{
+		TOAST_CORE_INFO("%s:  %lf, %lf, %lf, %lf", label.c_str(), m_00, m_01, m_02, m_03);
+		TOAST_CORE_INFO("        %lf, %lf, %lf, %lf", m_10, m_11, m_12, m_13);
+		TOAST_CORE_INFO("        %lf, %lf, %lf, %lf", m_20, m_21, m_22, m_23);
+		TOAST_CORE_INFO("        %lf, %lf, %lf, %lf", m_30, m_31, m_32, m_33);
+	}
+
 }
