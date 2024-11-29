@@ -124,18 +124,19 @@ namespace Toast {
 
 	Ref<Material>& MaterialLibrary::Load(const std::string& name, bool serialize)
 	{
-		if (!Exists(name))
+		auto it = mMaterials.find(name);
+		if (it == mMaterials.end())
 		{
 			auto material = CreateRef<Material>(name);
-			Add(name, material);
+			mMaterials[name] = material;
 
 			if (serialize)
 				MaterialSerializer::Serialize(material);
 
-			return material;
+			return mMaterials[name];
 		}
 		else
-			return Get(name);
+			return it->second;
 	}
 
 	Ref<Material>& MaterialLibrary::Load()
@@ -190,9 +191,12 @@ namespace Toast {
 		out << YAML::Key << "UseAlbedoMap" << YAML::Value << material->GetUseAlbedo();
 		out << YAML::Key << "UseNormalMap" << YAML::Value << material->GetUseNormal();
 		out << YAML::Key << "UseMetalRoughMap" << YAML::Value << material->GetUseMetalRough();
-		out << YAML::Key << "AlbedoAssetPath" << YAML::Value << material->GetAlbedoTexture()->GetFilePath();
-		out << YAML::Key << "NormalAssetPath" << YAML::Value << material->GetNormalTexture()->GetFilePath();
-		out << YAML::Key << "MetalRoughAssetPath" << YAML::Value << material->GetMetalRoughTexture()->GetFilePath();
+		if(material->GetUseAlbedo())
+			out << YAML::Key << "AlbedoAssetPath" << YAML::Value << material->GetAlbedoTexture()->GetFilePath();
+		if (material->GetUseNormal())
+			out << YAML::Key << "NormalAssetPath" << YAML::Value << material->GetNormalTexture()->GetFilePath();
+		if (material->GetUseMetalRough())
+			out << YAML::Key << "MetalRoughAssetPath" << YAML::Value << material->GetMetalRoughTexture()->GetFilePath();
 
 		out << YAML::EndMap;
 
@@ -225,9 +229,12 @@ namespace Toast {
 			material->SetUseAlbedo(data["UseAlbedoMap"].as<bool>());
 			material->SetUseNormal(data["UseNormalMap"].as<bool>());
 			material->SetUseMetalRough(data["UseMetalRoughMap"].as<bool>());
-			material->SetAlbedoTexture(TextureLibrary::LoadTexture2D(data["AlbedoAssetPath"].as<std::string>()));
-			material->SetNormalTexture(TextureLibrary::LoadTexture2D(data["NormalAssetPath"].as<std::string>()));
-			material->SetMetalRoughTexture(TextureLibrary::LoadTexture2D(data["MetalRoughAssetPath"].as<std::string>()));
+			if (material->GetUseAlbedo()) 
+				material->SetAlbedoTexture(TextureLibrary::LoadTexture2D(data["AlbedoAssetPath"].as<std::string>()));
+			if(material->GetUseNormal())
+				material->SetNormalTexture(TextureLibrary::LoadTexture2D(data["NormalAssetPath"].as<std::string>()));
+			if(material->GetUseMetalRough())
+				material->SetMetalRoughTexture(TextureLibrary::LoadTexture2D(data["MetalRoughAssetPath"].as<std::string>()));
 		}
 
 		return true;

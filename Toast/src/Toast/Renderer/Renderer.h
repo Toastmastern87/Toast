@@ -66,6 +66,9 @@ namespace Toast {
 			// Geometry Pass
 			Ref<Framebuffer> GPassFramebuffer;
 			Ref<RenderTarget> GPassPositionRT, GPassNormalRT, GPassAlbedoMetallicRT, GPassRoughnessAORT, GPassPickingRT;
+
+			// Shadow mapping Pass
+			Ref<RenderTarget> ShadowMapRT;
 			
 			// Lightning Pass
 			Ref<Framebuffer> LPassFramebuffer;
@@ -78,13 +81,12 @@ namespace Toast {
 			Ref<RenderTarget> FinalRT;
 
 			// Viewport
-			D3D11_VIEWPORT Viewport;
+			D3D11_VIEWPORT Viewport, ShadowMapViewport;
 
 			// Depth data
-			Scope<Texture2D> DepthBuffer;
-			Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthEnabledStencilState, DepthDisabledStencilState, DepthSkyboxPassStencilState;
-			Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencilView;
-			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> DepthSRV;
+			Scope<Texture2D> DepthBuffer, ShadowPassDepth;
+			Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthEnabledStencilState, DepthDisabledStencilState, DepthSkyboxPassStencilState, ShadowPassDepthStencilState;
+			Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencilView, ShadowPassStencilView;
 
 			// Blend data
 			Microsoft::WRL::ComPtr<ID3D11BlendState> GPassBlendState, LPassBlendState, AtmospherePassBlendState, PostProcessBlendState, UIBlendState;
@@ -120,6 +122,7 @@ namespace Toast {
 
 		// Deffered Rendering
 		static void GeometryPass();
+		static void ShadowPass();
 		static void LightningPass();
 
 		// Post Processes

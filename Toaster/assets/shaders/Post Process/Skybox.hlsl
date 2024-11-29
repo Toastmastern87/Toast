@@ -41,9 +41,10 @@ cbuffer Camera : register(b0)
 
 cbuffer DirectionalLight : register(b3)
 {
-	float4 direction;
-	float4 radiance;
-	float multiplier;
+    matrix lightViewProj;
+    float4 direction;
+    float4 radiance;
+    float multiplier;
 };
 
 cbuffer Atmosphere : register(b4)

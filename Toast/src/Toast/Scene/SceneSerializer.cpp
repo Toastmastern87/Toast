@@ -690,7 +690,7 @@ namespace Toast {
 				{
 					std::string assetPath = meshComponent["AssetPath"].as<std::string>();
 
-					deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>(assetPath, false));
+					deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>(assetPath));
 			
 					auto& mc = deserializedEntity.GetComponent<MeshComponent>();
 				}
@@ -891,7 +891,7 @@ namespace Toast {
 
 					toc.MaxNrOfObjects = terrainObjectComponent["MaxNumberOfObjects"].as<int>();
 
-					toc.MeshObject = CreateRef<Mesh>(terrainObjectComponent["AssetPath"].as<std::string>(), false, DirectX::XMFLOAT3(0.0, 0.0, 0.0), true, toc.MaxNrOfObjects);
+					toc.MeshObject = CreateRef<Mesh>(terrainObjectComponent["AssetPath"].as<std::string>(), DirectX::XMFLOAT3(0.0, 0.0, 0.0), true, toc.MaxNrOfObjects);
 
 					toc.SubdivisionActivation = terrainObjectComponent["SubdivisionActivation"].as<int>();
 					toc.MaxNrOfObjectPerFace = terrainObjectComponent["MaxNumberOfObjectsPerFace"].as<int>();

@@ -17,9 +17,9 @@ namespace Toast {
 		float Emission = 0.0;
 		float Metalness = 0.0;
 		float Roughness = 0.0;
-		int AlbedoTexToggle = 0;
-		int NormalTexToggle = 0;
-		int MetalRoughTexToggle = 0;
+		uint32_t AlbedoTexToggle = 0;
+		uint32_t NormalTexToggle = 0;
+		uint32_t MetalRoughTexToggle = 0;
 	};
 
 	class Material
@@ -32,18 +32,18 @@ namespace Toast {
 		std::string& GetName() { return mName; }
 		void SetName(std::string& name) { mName = name; }
 
-		void SetUseAlbedo(const uint32_t useAlbedo) { mPBRParameters.AlbedoTexToggle = useAlbedo; }
-		bool GetUseAlbedo() const { return mPBRParameters.AlbedoTexToggle; }
+		void SetUseAlbedo(const bool useAlbedo) { mPBRParameters.AlbedoTexToggle = useAlbedo ? 1 : 0; }
+		bool GetUseAlbedo() const { return mPBRParameters.AlbedoTexToggle ? true : false; }
 		void SetAlbedoTexture(Texture2D* texture) { mAlbedoTexture = texture; }
 		Texture2D* GetAlbedoTexture() const { return mAlbedoTexture; }
 
-		void SetUseNormal(const uint32_t useNormal) { mPBRParameters.NormalTexToggle = useNormal; }
-		bool GetUseNormal() const { return mPBRParameters.NormalTexToggle; }
+		void SetUseNormal(const bool useNormal) { mPBRParameters.NormalTexToggle = useNormal ? 1 : 0;	}
+		bool GetUseNormal() const { return mPBRParameters.NormalTexToggle ? true : false;	}
 		void SetNormalTexture(Texture2D* texture) { mNormalTexture = texture; }
 		Texture2D* GetNormalTexture() const { return mNormalTexture; }
 
-		void SetUseMetalRough(const uint32_t useMetalRough) { mPBRParameters.MetalRoughTexToggle = useMetalRough; }
-		bool GetUseMetalRough() const { return mPBRParameters.MetalRoughTexToggle; }
+		void SetUseMetalRough(const bool useMetalRough) { mPBRParameters.MetalRoughTexToggle = useMetalRough ? 1 : 0; }
+		bool GetUseMetalRough() const { return mPBRParameters.MetalRoughTexToggle ? true : false; }
 		void SetMetalRoughTexture(Texture2D* texture) { mMetalRoughTexture = texture; }
 		Texture2D* GetMetalRoughTexture() const { return mMetalRoughTexture; }
 
@@ -61,7 +61,7 @@ namespace Toast {
 	private:
 		std::string mName = "No name";
 
-		PBRParameters mPBRParameters;
+		PBRParameters mPBRParameters = {};
 
 		Texture2D* mAlbedoTexture;
 		Texture2D* mNormalTexture;

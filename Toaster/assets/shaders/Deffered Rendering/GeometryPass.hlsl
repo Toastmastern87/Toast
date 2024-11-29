@@ -96,7 +96,7 @@ PixelInputType main(VertexInputType input)
 
     float4 worldPosition;
     float3 worldNormal;
-    float3 worldTangent;
+    float4 worldTangent;
     
     if (isInstanced)
     {
@@ -128,14 +128,14 @@ PixelInputType main(VertexInputType input)
         {
             worldPosition = float4(input.position, 1.0f);
             worldNormal = input.normal;
-            worldTangent = input.tangent.xyz;
+            worldTangent = input.tangent;
 
         }
         else
         {
             worldPosition = mul(float4(input.position, 1.0f), worldMatrix);
             worldNormal = mul(input.normal, (float3x3) worldMatrix);
-            worldTangent = mul(input.tangent.xyz, (float3x3) worldMatrix);
+            worldTangent = mul(input.tangent, worldMatrix);
         }
     }
 
@@ -144,11 +144,11 @@ PixelInputType main(VertexInputType input)
     output.viewPosition = viewPosition.xyz;
 
     float3 viewNormal = normalize(mul(worldNormal, (float3x3) viewMatrix));
-    float3 viewTangent = normalize(mul(worldTangent, (float3x3) viewMatrix));
+    float4 viewTangent = normalize(mul(worldTangent, viewMatrix));
     
-    float3 viewBitangent = cross(viewNormal, viewTangent) * input.tangent.w;
+    float3 viewBitangent = cross(viewNormal, viewTangent.xyz) * viewTangent.w;
     
-    float3x3 TBN = float3x3(viewTangent, viewBitangent, viewNormal);
+    float3x3 TBN = float3x3(viewTangent.xyz, viewBitangent, viewNormal);
     
     output.TBN = TBN;
     output.viewNormal = viewNormal;

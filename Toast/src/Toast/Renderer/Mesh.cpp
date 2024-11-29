@@ -53,16 +53,13 @@ namespace Toast {
 		TOAST_CORE_CRITICAL("Mesh created with submesh materialName: %s", submesh.MaterialName.c_str());
 	}
 
-	Mesh::Mesh(const std::string& filePath, const bool skyboxMesh, Vector3 colorOverride, bool isInstanced, uint32_t maxNrOfInstanceObjects)
+	Mesh::Mesh(const std::string& filePath, Vector3 colorOverride, bool isInstanced, uint32_t maxNrOfInstanceObjects)
 		: mFilePath(filePath)
 	{
 		mInstanced = isInstanced;
 
 		uint32_t vertexCount = 0;
 		uint32_t indexCount = 0;
-
-		if(!skyboxMesh)
-			TOAST_CORE_INFO("Loading Mesh: '%s'", mFilePath.c_str());
 
 		cgltf_options options = { 0 };
 		cgltf_data* data = NULL;
@@ -95,7 +92,6 @@ namespace Toast {
 					submesh.Rotation = data->nodes[m].has_rotation ? DirectX::XMFLOAT4(data->nodes[m].rotation[0], data->nodes[m].rotation[1], data->nodes[m].rotation[2], data->nodes[m].rotation[3]) : DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 					submesh.Translation = data->nodes[m].has_translation ? DirectX::XMFLOAT3(data->nodes[m].translation[0], data->nodes[m].translation[1], data->nodes[m].translation[2]) : DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 					submesh.StartTranslation = submesh.Translation;
-					DirectX::XMVECTOR test = {0.0f, 0.0f, 0.0f};
 
 					submesh.Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(submesh.Scale.x, submesh.Scale.y, submesh.Scale.z)
 						* (DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&submesh.Rotation)))
@@ -111,13 +107,41 @@ namespace Toast {
 						if (a == 0) 
 						{
 							submesh.BaseVertex = vertexCount;
-							submesh.VertexCount = (uint32_t)attribute->count;
+							submesh.VertexCount = static_cast<uint32_t>(attribute->count);
 							vertexCount += submesh.VertexCount;
 							mVertices.resize(vertexCount);
 						}
 
 						LoadAttribute(attribute, data->meshes[m].primitives[p].attributes[a].type, mVertices, submesh.BaseVertex);
 					}
+
+					// Iterate over the vertices belonging to this submesh
+					DirectX::XMMATRIX normalMatrix = DirectX::XMMatrixInverse(nullptr, DirectX::XMMatrixTranspose(submesh.Transform));
+					for (uint32_t i = submesh.BaseVertex; i < submesh.BaseVertex + submesh.VertexCount; ++i)
+					{
+						// Transform Position
+						DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&mVertices[i].Position);
+						pos = DirectX::XMVector3TransformCoord(pos, submesh.Transform);
+						DirectX::XMStoreFloat3(&mVertices[i].Position, pos);
+
+						// Transform Normal
+						DirectX::XMVECTOR normal = DirectX::XMLoadFloat3(&mVertices[i].Normal);
+						normal = DirectX::XMVector3TransformNormal(normal, normalMatrix);
+						normal = DirectX::XMVector3Normalize(normal);
+						DirectX::XMStoreFloat3(&mVertices[i].Normal, normal);
+
+						DirectX::XMVECTOR tangent = DirectX::XMLoadFloat4(&mVertices[i].Tangent);
+						DirectX::XMVECTOR tangentVec3 = DirectX::XMVectorSetW(tangent, 0.0f); // Removing the w component for rotation
+						tangentVec3 = DirectX::XMVector3TransformNormal(tangentVec3, submesh.Transform);
+						tangentVec3 = DirectX::XMVector3Normalize(tangentVec3);
+						// Preserve the original w component (handedness)
+						float w = mVertices[i].Tangent.w;
+						DirectX::XMStoreFloat4(&mVertices[i].Tangent, DirectX::XMVectorSetW(tangentVec3, w));
+
+					}
+
+					// Reset the submesh transform to identity
+					submesh.Transform = DirectX::XMMatrixIdentity();
 
 					// Color override
 					if (colorOverride.z != 0.0)
@@ -129,19 +153,18 @@ namespace Toast {
 					// INDICES
 					if (data->meshes[m].primitives[p].indices != NULL)
 					{
-						cgltf_accessor* attribute = data->meshes[m].primitives[p].indices;
+						cgltf_accessor* indexAccessor = data->meshes[m].primitives[p].indices;
+						const uint16_t* indices = reinterpret_cast<const uint16_t*>(reinterpret_cast<const uint8_t*>(indexAccessor->buffer_view->buffer->data) + indexAccessor->buffer_view->offset + indexAccessor->offset);
 
-						submesh.IndexCount = attribute->count;
+						submesh.IndexCount = indexAccessor->count;
 						submesh.BaseIndex = indexCount;
 						indexCount += submesh.IndexCount;
-
 						mIndices.resize(indexCount);
 
-						if (attribute->component_type == cgltf_component_type_r_16u)
+						for (size_t i = 0; i < indexAccessor->count; ++i)
 						{
-							uint16_t* indices = reinterpret_cast<uint16_t*>(reinterpret_cast<uint8_t*>(attribute->buffer_view->buffer->data) + attribute->buffer_view->offset + attribute->offset);
-							for (int i = submesh.BaseIndex; i < (submesh.BaseIndex + attribute->count); i++)
-								mIndices[i] = (uint32_t)indices[i - submesh.BaseIndex];
+							// Convert 16-bit indices to 32-bit and add baseVertex to make them absolute
+							mIndices[submesh.BaseIndex + i] = static_cast<uint32_t>(indices[i]) + submesh.BaseVertex;
 						}
 					}
 				}
@@ -268,12 +291,12 @@ namespace Toast {
 
 			cgltf_free(data);
 			
-			mVertexBuffer = CreateRef<VertexBuffer>(&mVertices[0], (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
+			mVertexBuffer = CreateRef<VertexBuffer>(mVertices.data(), (sizeof(Vertex) * (uint32_t)mVertices.size()), (uint32_t)mVertices.size(), 0);
 
 			if(mInstanced && maxNrOfInstanceObjects > 0)
 				mInstanceVertexBuffer = CreateRef<VertexBuffer>((sizeof(DirectX::XMFLOAT3) * maxNrOfInstanceObjects), maxNrOfInstanceObjects, 1);
 
-			mIndexBuffer = CreateRef<IndexBuffer>(&mIndices[0], (uint32_t)mIndices.size());
+			mIndexBuffer = CreateRef<IndexBuffer>(mIndices.data(), (uint32_t)mIndices.size());
 		}
 
 		//		// Emission

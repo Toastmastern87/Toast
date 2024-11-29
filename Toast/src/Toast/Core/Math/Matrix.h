@@ -31,6 +31,8 @@ namespace Toast {
 		static Matrix RotationFromEauler(const Vector3& rot);
 
 		void ToString();
+		void ToString(const std::string& label);
+		void ToString(const std::string& label) const;
 
 		double& element(int i, int j) {
 			return *(&m_00 + i * 4 + j);

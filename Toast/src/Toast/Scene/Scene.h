@@ -19,6 +19,7 @@ namespace Toast {
 
 	struct DirectionalLight
 	{
+		DirectX::XMMATRIX ViewProjectionMatrix = DirectX::XMMatrixIdentity();
 		DirectX::XMFLOAT4 Direction = { 0.0f, 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT4 Radiance = { 0.0f, 0.0f, 0.0f, 0.0f };
 
@@ -58,6 +59,9 @@ namespace Toast {
 			int PhysicSlowmotion = 1;
 			int PhysicsFPS = 60;
 			float physicsElapsedTime = 0.0;
+
+			float SunDesiredCoverage = 10000.0f;
+			float SunLightDistance = 5000.0f;
 		};
 		struct Stats
 		{

@@ -226,8 +226,25 @@ namespace Toast {
 
 				DirectX::XMFLOAT4 direction = { DirectX::XMVectorGetZ(transformComponent.GetTransform().r[0]), DirectX::XMVectorGetZ(transformComponent.GetTransform().r[1]), DirectX::XMVectorGetZ(transformComponent.GetTransform().r[2]), 0.0f, };
 				DirectX::XMFLOAT4 radiance = DirectX::XMFLOAT4(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
+
+				float orthoWidth = 2048.0f;    // Adjust based on your scene's scale
+				float orthoHeight = 2048.0f;   // Adjust based on your scene's scale
+				float orthoNear = 1.0f;
+				float orthoFar = 1000.0f;
+
+				// Create the orthographic projection matrix for the light
+				DirectX::XMMATRIX lightProj = XMMatrixOrthographicLH(orthoWidth, orthoHeight, orthoNear, orthoFar);
+
+				DirectX::XMVECTOR lightPos = XMVectorScale(DirectX::XMLoadFloat4(&direction), -1000.0f);
+				DirectX::XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+				DirectX::XMMATRIX lightView = XMMatrixLookAtLH(lightPos, XMVectorZero(), up);
+
+				XMMATRIX lightViewProj = XMMatrixMultiply(lightView, lightProj);
+
 				mLightEnvironment.DirectionalLights[directionalLightIndex++] =
 				{
+					lightViewProj,
 					direction,
 					radiance,
 					lightComponent.Intensity
@@ -599,7 +616,10 @@ namespace Toast {
 
 			mStats.VerticesCount = 0;
 		}
-
+		// Frustum corners in light's view space
+		DirectX::XMVECTOR frustumCorners[8];
+		// Define the color blue
+		DirectX::XMFLOAT3 blueColor = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
 		// Process lights
 		{
 			mLightEnvironment = LightEnvironment();
@@ -609,10 +629,88 @@ namespace Toast {
 			{
 				auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
 
-				DirectX::XMFLOAT4 direction = { DirectX::XMVectorGetZ(transformComponent.GetTransform().r[0]), DirectX::XMVectorGetZ(transformComponent.GetTransform().r[1]), DirectX::XMVectorGetZ(transformComponent.GetTransform().r[2]), 0.0f, };
+				DirectX::XMMATRIX transform = transformComponent.GetTransform();
+
+				// Extract the forward vector (Z-axis)
+				DirectX::XMVECTOR forward = transform.r[2];
+				forward = DirectX::XMVector3Normalize(forward);
+				DirectX::XMVECTOR lightDir = DirectX::XMVectorNegate(forward);
+
+				DirectX::XMFLOAT4 direction;
+				DirectX::XMStoreFloat4(&direction, lightDir);
+				direction.w = 0.0f;
 				DirectX::XMFLOAT4 radiance = DirectX::XMFLOAT4(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
+				//TOAST_CORE_CRITICAL("Sun Direction: %f, %f, %f", direction.x, direction.y, direction.z);
+				float orthoWidth = 5000.0f;    // Adjust based on your scene's scale
+				float orthoHeight = 5000.0f;   // Adjust based on your scene's scale
+				float orthoNear = 0.1f;
+				float orthoFar = mSettings.SunDesiredCoverage;
+
+				// Calculate half dimensions
+				float halfWidth = orthoWidth / 2.0f;
+				float halfHeight = orthoHeight / 2.0f;
+
+
+				// Near plane
+				frustumCorners[0] = DirectX::XMVectorSet(-halfWidth, -halfHeight, orthoNear, 1.0f); // Near Bottom Left
+				frustumCorners[1] = DirectX::XMVectorSet(halfWidth, -halfHeight, orthoNear, 1.0f);  // Near Bottom Right
+				frustumCorners[2] = DirectX::XMVectorSet(halfWidth, halfHeight, orthoNear, 1.0f);   // Near Top Right
+				frustumCorners[3] = DirectX::XMVectorSet(-halfWidth, halfHeight, orthoNear, 1.0f);  // Near Top Left
+
+				// Far plane
+				frustumCorners[4] = DirectX::XMVectorSet(-halfWidth, -halfHeight, orthoFar, 1.0f);  // Far Bottom Left
+				frustumCorners[5] = DirectX::XMVectorSet(halfWidth, -halfHeight, orthoFar, 1.0f);   // Far Bottom Right
+				frustumCorners[6] = DirectX::XMVectorSet(halfWidth, halfHeight, orthoFar, 1.0f);    // Far Top Right
+				frustumCorners[7] = DirectX::XMVectorSet(-halfWidth, halfHeight, orthoFar, 1.0f); // Far Top Left
+
+				// Create the orthographic projection matrix for the light
+				DirectX::XMMATRIX lightProj = XMMatrixOrthographicLH(orthoWidth, orthoHeight, orthoNear, orthoFar);
+
+				// Position the light to cover the area around the origin
+				DirectX::XMVECTOR centerPos = DirectX::XMVectorZero(); // or your area of interest
+				DirectX::XMVECTOR lightPos = DirectX::XMVectorSubtract(centerPos, DirectX::XMVectorScale(lightDir, mSettings.SunLightDistance));
+
+
+				DirectX::XMVECTOR defaultUp = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+				DirectX::XMVECTOR right = DirectX::XMVector3Cross(defaultUp, lightDir);
+				// Check if the right vector is valid (not zero length)
+				float rightLengthSq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(right));
+				if (rightLengthSq < 1e-6f)
+				{
+					// If invalid, choose a different default up vector (e.g., Z-axis)
+					defaultUp = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+					right = DirectX::XMVector3Cross(defaultUp, lightDir);
+				}
+				right = DirectX::XMVector3Normalize(right);
+
+				// Recompute the up vector to be orthogonal to the light direction and right vector
+				DirectX::XMVECTOR up = DirectX::XMVector3Cross(lightDir, right);
+				up = DirectX::XMVector3Normalize(up);
+				// Check if light direction is close to world up or down
+
+				DirectX::XMMATRIX lightView = DirectX::XMMatrixLookToLH(lightPos, lightDir, up);
+
+
+				DirectX::XMMATRIX invLightView = DirectX::XMMatrixInverse(nullptr, lightView);
+
+				// Transform corners to world space
+				for (int i = 0; i < 8; ++i)
+				{
+					frustumCorners[i] = DirectX::XMVector4Transform(frustumCorners[i], invLightView);
+				}
+
+
+				// Near plane edges
+
+
+				//// Far plane edges
+
+
+				XMMATRIX lightViewProj = XMMatrixMultiply(lightView, lightProj);
+
 				mLightEnvironment.DirectionalLights[directionalLightIndex++] =
 				{
+					lightViewProj,
 					direction,
 					radiance,
 					lightComponent.Intensity
@@ -819,6 +917,22 @@ namespace Toast {
 			// Frustum
 			if (mSettings.CameraFrustum && mFrustum)
 				RendererDebug::SubmitCameraFrustum(mFrustum);
+
+			RendererDebug::SubmitLine(frustumCorners[0], frustumCorners[1], blueColor);
+			RendererDebug::SubmitLine(frustumCorners[1], frustumCorners[2], blueColor);
+			RendererDebug::SubmitLine(frustumCorners[2], frustumCorners[3], blueColor);
+			RendererDebug::SubmitLine(frustumCorners[3], frustumCorners[0], blueColor);
+
+			RendererDebug::SubmitLine(frustumCorners[4], frustumCorners[5], blueColor);
+			RendererDebug::SubmitLine(frustumCorners[5], frustumCorners[6], blueColor);
+			RendererDebug::SubmitLine(frustumCorners[6], frustumCorners[7], blueColor);
+			RendererDebug::SubmitLine(frustumCorners[7], frustumCorners[4], blueColor);
+
+			// Connecting edges between near and far planes
+			RendererDebug::SubmitLine(frustumCorners[0], frustumCorners[4], blueColor);
+			RendererDebug::SubmitLine(frustumCorners[1], frustumCorners[5], blueColor);
+			RendererDebug::SubmitLine(frustumCorners[2], frustumCorners[6], blueColor);
+			RendererDebug::SubmitLine(frustumCorners[3], frustumCorners[7], blueColor);
 
 			// Colliders
 			auto entities = mRegistry.view<TransformComponent>();
@@ -1197,7 +1311,7 @@ namespace Toast {
 	{
 		component.Collider = CreateRef<ShapeSphere>(1.0f);
 
-		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf", false, Vector3(0.0, 0.0, 1.0));
+		component.ColliderMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf", Vector3(0.0, 0.0, 1.0));
 	}
 
 	template<>
