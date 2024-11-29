@@ -60,6 +60,7 @@ namespace Toast {
 			int PhysicSlowmotion = 1;
 			int PhysicsFPS = 60;
 			float physicsElapsedTime = 0.0;
+			float SunFrustumOrthoSize = 500.0f;
 		};
 		struct Stats
 		{

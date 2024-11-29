@@ -30,7 +30,7 @@ namespace Toast {
 	private:
 		struct DebugData
 		{
-			Ref<Shader> DebugShader, GridShader, SelectedMeshMaskShader, OutlineShader;
+			Ref<Shader> DebugShader, GridShader, ObjectMaskShader, OutlineShader;
 
 			Ref<ShaderLayout::ShaderInputElement> LineShaderInputLayout;
 			Ref<VertexBuffer> LineVertexBuffer;

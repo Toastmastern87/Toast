@@ -60,8 +60,6 @@ namespace Toast {
 		LogAdapterInfo();
 
 		CreateRasterizerStates();
-
-		EnableWireframe();
 	}
 
 	void RendererAPI::DrawIndexed(const uint32_t baseVertex, const uint32_t baseIndex, const uint32_t indexCount)
@@ -109,16 +107,6 @@ namespace Toast {
 		mSwapChain->ResizeBuffers(1, width, height, DXGI_FORMAT_UNKNOWN, 0);
 	}
 
-	void RendererAPI::EnableWireframe()
-	{
-		mDeviceContext->RSSetState(mWireframeRasterizerState.Get());
-	}
-
-	void RendererAPI::DisableWireframe()
-	{
-		mDeviceContext->RSSetState(mNormalRasterizerState.Get());
-	}
-
 	void RendererAPI::SetPrimitiveTopology(PrimitiveTopology topology)
 	{
 		mDeviceContext->IASetPrimitiveTopology((D3D11_PRIMITIVE_TOPOLOGY)topology);
@@ -127,6 +115,11 @@ namespace Toast {
 	void RendererAPI::SetViewport(D3D11_VIEWPORT& viewport)
 	{
 		mDeviceContext->RSSetViewports(1, &viewport);
+	}
+
+	void RendererAPI::SetRasterizerState(Microsoft::WRL::ComPtr<ID3D11RasterizerState>& rasterizerState)
+	{
+		mDeviceContext->RSSetState(rasterizerState.Get());
 	}
 
 	void RendererAPI::SetRenderTargets(const std::vector<ID3D11RenderTargetView*>& colors, Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView)

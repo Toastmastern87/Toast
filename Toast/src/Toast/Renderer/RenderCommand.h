@@ -17,6 +17,11 @@ namespace Toast {
 			sRendererAPI->SetViewport(viewport);
 		}
 
+		static void SetRasterizerState(Microsoft::WRL::ComPtr<ID3D11RasterizerState>& rasterizerState) 
+		{
+			sRendererAPI->SetRasterizerState(rasterizerState);
+		}
+
 		static void SetRenderTargets(const std::vector<ID3D11RenderTargetView*>& colors, Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView)
 		{
 			sRendererAPI->SetRenderTargets(colors, depthView);
@@ -80,16 +85,6 @@ namespace Toast {
 		static void SetShaderResource(D3D11_SHADER_TYPE shaderType, uint32_t bindSlot, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv)
 		{
 			sRendererAPI->SetShaderResource(shaderType, bindSlot, srv);
-		}
-
-		static void EnableWireframe()
-		{
-			sRendererAPI->EnableWireframe();
-		}
-
-		static void DisableWireframe()
-		{
-			sRendererAPI->DisableWireframe();
 		}
 
 		static void SetPrimitiveTopology(PrimitiveTopology topology)

@@ -639,9 +639,9 @@ namespace Toast {
 				DirectX::XMStoreFloat4(&direction, lightDir);
 				direction.w = 0.0f;
 				DirectX::XMFLOAT4 radiance = DirectX::XMFLOAT4(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
-				//TOAST_CORE_CRITICAL("Sun Direction: %f, %f, %f", direction.x, direction.y, direction.z);
-				float orthoWidth = 5000.0f;    // Adjust based on your scene's scale
-				float orthoHeight = 5000.0f;   // Adjust based on your scene's scale
+				
+				float orthoWidth = mSettings.SunFrustumOrthoSize;    
+				float orthoHeight = mSettings.SunFrustumOrthoSize;    
 				float orthoNear = 0.1f;
 				float orthoFar = lightComponent.SunDesiredCoverage;
 
@@ -668,9 +668,8 @@ namespace Toast {
 				DirectX::XMMATRIX lightProj = XMMatrixOrthographicLH(orthoWidth, orthoHeight, orthoNear, orthoFar);
 
 				// Position the light to cover the area around the origin
-				DirectX::XMVECTOR centerPos = DirectX::XMVectorZero(); // or your area of interest
+				DirectX::XMVECTOR centerPos = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f); // or your area of interest
 				DirectX::XMVECTOR lightPos = DirectX::XMVectorSubtract(centerPos, DirectX::XMVectorScale(lightDir, lightComponent.SunLightDistance));
-
 
 				DirectX::XMVECTOR defaultUp = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 				DirectX::XMVECTOR right = DirectX::XMVector3Cross(defaultUp, lightDir);
@@ -690,7 +689,6 @@ namespace Toast {
 				// Check if light direction is close to world up or down
 
 				DirectX::XMMATRIX lightView = DirectX::XMMatrixLookToLH(lightPos, lightDir, up);
-
 
 				DirectX::XMMATRIX invLightView = DirectX::XMMatrixInverse(nullptr, lightView);
 

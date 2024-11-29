@@ -108,7 +108,7 @@ float4 main(PixelInputType input) : SV_Target
     float3 worldDir = mul(viewDir, (float3x3) inverseViewMatrix);
 
     // Sun direction (assuming it points from the sun to the scene)
-    float3 sunDirection = normalize(direction.xyz);
+    float3 sunDirection = normalize(-direction.xyz);
 
     // Calculate sun elevation (dot product with up vector)
     float sunElevation = dot(sunDirection, float3(0.0f, 1.0f, 0.0f));
@@ -117,7 +117,7 @@ float4 main(PixelInputType input) : SV_Target
     float sunFactor = saturate(sunElevation);
 
     // Star visibility transitions from 0 to 1 as sunElevation goes from 0.0 to -0.1
-    float starVisibility = smoothstep(0.0f, -0.1f, sunElevation);
+    float starVisibility = smoothstep(0.2f, -0.4f, sunElevation);
 
     // Compute camera altitude
     float cameraAltitude = length(cameraPosition.xyz - planetCenter);
