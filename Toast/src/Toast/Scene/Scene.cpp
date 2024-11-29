@@ -644,7 +644,7 @@ namespace Toast {
 				float orthoWidth = 5000.0f;    // Adjust based on your scene's scale
 				float orthoHeight = 5000.0f;   // Adjust based on your scene's scale
 				float orthoNear = 0.1f;
-				float orthoFar = mSettings.SunDesiredCoverage;
+				float orthoFar = lightComponent.SunDesiredCoverage;
 
 				// Calculate half dimensions
 				float halfWidth = orthoWidth / 2.0f;
@@ -668,7 +668,7 @@ namespace Toast {
 
 				// Position the light to cover the area around the origin
 				DirectX::XMVECTOR centerPos = DirectX::XMVectorZero(); // or your area of interest
-				DirectX::XMVECTOR lightPos = DirectX::XMVectorSubtract(centerPos, DirectX::XMVectorScale(lightDir, mSettings.SunLightDistance));
+				DirectX::XMVECTOR lightPos = DirectX::XMVectorSubtract(centerPos, DirectX::XMVectorScale(lightDir, lightComponent.SunLightDistance));
 
 
 				DirectX::XMVECTOR defaultUp = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);

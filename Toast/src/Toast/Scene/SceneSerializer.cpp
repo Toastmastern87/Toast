@@ -379,6 +379,8 @@ namespace Toast {
 			auto& dlc = entity.GetComponent<DirectionalLightComponent>();
 			out << YAML::Key << "Radiance" << YAML::Value << dlc.Radiance;
 			out << YAML::Key << "Intensity" << YAML::Value << dlc.Intensity;
+			out << YAML::Key << "SunDesiredCoverage" << YAML::Value << dlc.SunDesiredCoverage;
+			out << YAML::Key << "SunLightDistance" << YAML::Value << dlc.SunLightDistance;
 
 			out << YAML::EndMap; // SkyLightComponent
 		}
@@ -724,6 +726,8 @@ namespace Toast {
 
 					dlc.Radiance = directionalLightComponent["Radiance"].as<DirectX::XMFLOAT3>();
 					dlc.Intensity = directionalLightComponent["Intensity"].as<float>();
+					dlc.SunDesiredCoverage = directionalLightComponent["SunDesiredCoverage"].as<float>();
+					dlc.SunLightDistance = directionalLightComponent["SunLightDistance"].as<float>();
 				}
 
 				auto scriptComponent = entity["ScriptComponent"];

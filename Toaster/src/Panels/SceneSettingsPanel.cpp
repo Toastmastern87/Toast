@@ -51,6 +51,7 @@ namespace Toast {
 
 			ImGui::Checkbox("Show grid", &mContext->mSettings.Grid);
 			ImGui::Checkbox("Show camera frustum", &mContext->mSettings.CameraFrustum);
+			ImGui::Checkbox("Show sun light frustum", &mContext->mSettings.SunLightFrustum);
 			if(ImGui::Checkbox("Planet backface culling", &mContext->mSettings.BackfaceCulling))
 				mContext->mSettings.IsDirty = true;
 			if(ImGui::Checkbox("Planet frustum culling", &mContext->mSettings.FrustumCulling))
@@ -60,12 +61,6 @@ namespace Toast {
 
 			ImGui::Text("Physics slow motion");
 			ImGui::SliderInt("##physicsslowmotion", &mContext->mSettings.PhysicSlowmotion, 1, 30);
-
-			ImGui::Text("Sun Desired Coverage Area");
-			ImGui::DragFloat("##sundesiredcoverage", &mContext->mSettings.SunDesiredCoverage, 1.0f, 0.0f, 10000.0f, "%.1f");
-
-			ImGui::Text("SunLightDistance");
-			ImGui::DragFloat("##sunlightdistance", &mContext->mSettings.SunLightDistance, 1.0f, 0.0f, 5000.0f, "%.1f");
 		}
 
 		ImGui::End();
