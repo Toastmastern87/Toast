@@ -21,7 +21,7 @@ namespace Toast {
 
 		mDebugData->DebugShader = CreateRef<Shader>("assets/shaders/Debug/Debug.hlsl");
 		mDebugData->GridShader = CreateRef<Shader>("assets/shaders/Debug/Grid.hlsl");
-		mDebugData->SelectedMeshMaskShader = CreateRef<Shader>("assets/shaders/Debug/SelectedMeshMask.hlsl");
+		mDebugData->ObjectMaskShader = CreateRef<Shader>("assets/shaders/Debug/ObjectMask.hlsl");
 		mDebugData->OutlineShader = CreateRef<Shader>("assets/shaders/Debug/Outline.hlsl");
 
 		// Setting up the constant buffer and data buffer for the debug rendering data
@@ -182,7 +182,7 @@ namespace Toast {
 			RenderCommand::Draw(mDebugData->LineVertexCount);
 		}
 
-		RenderCommand::EnableWireframe();
+		RenderCommand::SetRasterizerState(sRendererData->WireframeRasterizerState);
 		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
 		for (const auto& meshCommand : sRendererData->MeshColliderDrawList)
@@ -201,7 +201,7 @@ namespace Toast {
 			}
 		}	
 
-		RenderCommand::DisableWireframe();
+		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
 
 		//Grid
 		if (!runtime && renderGrid)
@@ -233,11 +233,11 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		RenderCommand::DisableWireframe();
+		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
 		RenderCommand::SetRenderTargets({ mDebugData->SelectedMeshMaskRT->GetView().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::ClearRenderTargets(mDebugData->SelectedMeshMaskRT->GetView().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		mDebugData->SelectedMeshMaskShader->Bind();
+		mDebugData->ObjectMaskShader->Bind();
 
 		// TODO: This should be done in a single draw call, will be fixed with the updated star ship model.
 		// Mask out the selected meshes

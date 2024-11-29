@@ -109,7 +109,7 @@ float2 RaySphere(float3 sphereCenter, float sphereRadius, float3 rayOrigin, floa
 
 float3 SampleLightRay(float3 rayOrigin)
 {
-	float2 sunRayAtmoPoints = RaySphere(planetCenter, radius + atmosphereHeight, rayOrigin, direction);
+	float2 sunRayAtmoPoints = RaySphere(planetCenter, radius + atmosphereHeight, rayOrigin, -direction.xyz);
 
 	float3 rayOpticalDepth = 0.0f;
 	float mieOpticalDepth = 0.0f;
@@ -118,7 +118,7 @@ float3 SampleLightRay(float3 rayOrigin)
 	float stepSize = (sunRayAtmoPoints.y - sunRayAtmoPoints.x) / (float)(numOpticalDepthPoints);
 	for (int i = 0; i < numOpticalDepthPoints; i++)
 	{
-		float3 pointInAtmosphere = rayOrigin + direction.xyz * (time + stepSize * 0.5f);
+		float3 pointInAtmosphere = rayOrigin - direction.xyz * (time + stepSize * 0.5f);
 		float height = length(pointInAtmosphere - planetCenter) - radius;
 
 		// Inside the planet, minAltitude is to make sure that the ray is lower then even the lowest point of the planet.
@@ -166,7 +166,7 @@ float3 CalculateLightScattering(float3 rayOrigin, float3 rayDir, float tEntryPoi
 
 	returnTransmittance = totalTransmittance;
 
-	float cosTheta = dot(rayDir, direction.xyz);
+    float cosTheta = dot(rayDir, -direction.xyz);
 	float cos2Theta = cosTheta * cosTheta;
 	float g = mieAnisotropy;
 	float g2 = g * g;
@@ -217,7 +217,7 @@ float3 ComputeScatteringAlongRay(float3 rayOrigin, float3 rayDir)
     }
 
     // Calculate phase functions
-    float cosTheta = dot(rayDir, direction.xyz); // direction.xyz is the sun direction
+    float cosTheta = dot(rayDir, -direction.xyz); // direction.xyz is the sun direction
     float cos2Theta = cosTheta * cosTheta;
     float g = mieAnisotropy;
     float g2 = g * g;

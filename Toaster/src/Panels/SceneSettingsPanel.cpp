@@ -61,6 +61,9 @@ namespace Toast {
 
 			ImGui::Text("Physics slow motion");
 			ImGui::SliderInt("##physicsslowmotion", &mContext->mSettings.PhysicSlowmotion, 1, 30);
+
+			ImGui::Text("Sun Frustum Ortho Size");
+			ImGui::DragFloat("##sunlightdistance", &mContext->mSettings.SunFrustumOrthoSize, 10.0f, 50.0f, 10000.0f, "%.1f");
 		}
 
 		ImGui::End();

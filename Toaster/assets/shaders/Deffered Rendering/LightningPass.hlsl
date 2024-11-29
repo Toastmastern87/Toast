@@ -25,8 +25,6 @@ PixelInputType main(uint vID : SV_VertexID)
 static const float3 Fdielectric = 0.04f;
 static const float Epsilon = 0.00001f;
 static const float PI = 3.141592f;
-// Define a bias to prevent shadow acne
-static const float bias = 0.005f;
 
 cbuffer Camera : register(b0)
 {
@@ -82,6 +80,7 @@ Texture2D SpecularBRDFLUT           : register(t6);
 
 // Shadow Pass Texture
 Texture2D ShadowDepthTexture        : register(t12);
+Texture2D ObjectMaskTexture         : register(t13);
 
 // Sampler state
 SamplerState defaultSampler         : register(s0);
@@ -215,7 +214,7 @@ float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, 
 {   
     float3 result = float3(0.0f, 0.0f, 0.0f);
 
-    float3 Li = sunDir;
+    float3 Li = normalize(-sunDir);
     float3 Lradiance = radiance * multiplier;
     float3 Lh = normalize(Li + View);
 
@@ -300,25 +299,121 @@ PixelOutputType main(PixelInputType input)
     float3 F0 = lerp(Fdielectric, albedo, metalness);
     
     // Recalculate sun direction to view space
-    float3 directionVS = normalize(mul(-direction.xyz, (float3x3)viewMatrix));
+    float3 directionVS = normalize(mul(direction.xyz, (float3x3)viewMatrix));
     
-    // Shadow Map calculations
-    // Transform World Position to Light's Clip Space
-    float4 pixelPosLightSpace = mul(float4(worldPos, 1.0f), lightViewProj);
+    //// Shadow Map calculations
+    //// Transform World Position to Light's Clip Space
+    //float4 pixelPosLightSpace = mul(float4(worldPos, 1.0f), lightViewProj);
+    //pixelPosLightSpace /= pixelPosLightSpace.w; // Perspective divide
+    
+    //// Convert from Clip Space [-1,1] to UV Space [0,1]
+    //float2 shadowUV = pixelPosLightSpace.xy * 0.5f + 0.5f;
+    //shadowUV.y = 1.0f - shadowUV.y;
+    //float currentDepth = pixelPosLightSpace.z * 0.5f + 0.5f;
+    
+    //// Check if shadowUV is within [0,1]
+    //bool outsideShadowMap = (shadowUV.x < 0.0f || shadowUV.x > 1.0f || shadowUV.y < 0.0f || shadowUV.y > 1.0f);
+    
+    //// Initialize shadow factor
+    //float shadow = 1.0f;
+
+    //if (!outsideShadowMap)
+    //{
+    //    // PCF parameters
+    //    int samples = 4; // Adjust as needed
+    //    float2 texelSize = 1.0f / 4096.0f;
+
+    //    float shadowSum = 0.0f;
+    //    int sampleCount = 0;
+
+    //    // PCF sampling loop
+    //    for (int x = -samples / 2; x <= samples / 2; x++)
+    //    {
+    //        for (int y = -samples / 2; y <= samples / 2; y++)
+    //        {
+    //            float2 offset = float2(x, y) * texelSize;
+    //            float2 sampleUV = shadowUV + offset;
+
+    //            if (sampleUV.x >= 0.0f && sampleUV.x <= 1.0f && sampleUV.y >= 0.0f && sampleUV.y <= 1.0f)
+    //            {
+    //                float sampledDepth = ShadowDepthTexture.Sample(defaultSampler, sampleUV).r;
+
+    //                if (currentDepth <= sampledDepth || sampledDepth == 0.0f)
+    //                {
+    //                    shadowSum += 1.0f;
+    //                }
+
+    //                sampleCount++;
+    //            }
+    //        }
+    //    }
+
+    //    shadow = shadowSum / sampleCount;
+    //}
+    
+    // **1. Normal Offset Biasing**
+    // Offset the world position along the normal to reduce self-shadowing artifacts
+    float normalOffsetScale = 5.0f; // Adjust based on your scene's scale
+    float3 offsetPosition = worldPos + normal * normalOffsetScale;
+
+    // Transform the offset position to Light's Clip Space
+    float4 pixelPosLightSpace = mul(float4(offsetPosition, 1.0f), lightViewProj);
     pixelPosLightSpace /= pixelPosLightSpace.w; // Perspective divide
-    
+
     // Convert from Clip Space [-1,1] to UV Space [0,1]
     float2 shadowUV = pixelPosLightSpace.xy * 0.5f + 0.5f;
+    shadowUV.y = 1.0f - shadowUV.y; // Flip Y-coordinate
     float currentDepth = pixelPosLightSpace.z * 0.5f + 0.5f;
-    
-    // Check if shadowUV is within [0,1]
+
+    // Check if 'shadowUV' is within [0,1]
     bool outsideShadowMap = (shadowUV.x < 0.0f || shadowUV.x > 1.0f || shadowUV.y < 0.0f || shadowUV.y > 1.0f);
-    
-    // Sample the Shadow Map Depth
-    float shadowMapDepth = ShadowDepthTexture.Sample(defaultSampler, shadowUV).r;
-    
-    // Determine if the pixel is in Shadow
-    float shadow = (outsideShadowMap || currentDepth - bias > shadowMapDepth) ? 0.0f : 1.0f;
+
+    // Initialize shadow factor
+    float shadow = 1.0f;
+
+    if (!outsideShadowMap)
+    {
+        // **2. Dynamic Bias Based on Surface Slope**
+        // Calculate bias based on normal and light direction to reduce self-shadowing
+        float biasMultiplier = 0.5f; // Adjust based on your scene's scale
+        float minBias = 0.1f; // Minimum bias to prevent bias from being too small
+        float3 Li = normalize(-directionVS);
+        float bias = max(biasMultiplier * (1.0f - dot(normal, Li)), minBias);
+
+        // **3. Optimized Percentage Closer Filtering (PCF)**
+        int samples = 4; // 4x4 samples for a balance between quality and performance
+        float2 texelSize = 1.0f / float2(8192.0f, 8192.0f); // Shadow map resolution
+
+        float shadowSum = 0.0f;
+        int sampleCount = 0;
+
+        // PCF sampling loop
+        for (int x = -samples / 2; x <= samples / 2; x++)
+        {
+            for (int y = -samples / 2; y <= samples / 2; y++)
+            {
+                float2 offset = float2(x, y) * texelSize;
+                float2 sampleUV = shadowUV + offset;
+
+            // Check if 'sampleUV' is within [0,1]
+                if (sampleUV.x >= 0.0f && sampleUV.x <= 1.0f && sampleUV.y >= 0.0f && sampleUV.y <= 1.0f)
+                {
+                    float sampledDepth = ShadowDepthTexture.Sample(defaultSampler, sampleUV).r;
+
+                // Adjusted depth comparison with bias
+                    if (currentDepth <= sampledDepth + bias || sampledDepth == 0.0f)
+                    {
+                        shadowSum += 1.0f;
+                    }
+
+                    sampleCount++;
+                }
+            }
+        }
+
+        // Average the shadow factor
+        shadow = shadowSum / sampleCount;
+    }
     
     // Directional Light Contribution
     float3 lightContribution = DirectionalLightning(F0, normal, V, NdotV, albedo, roughness, metalness, directionVS) * shadow;
@@ -326,8 +421,10 @@ PixelOutputType main(PixelInputType input)
     // IBL Contribution
     float3 Lr = reflect(V, normal);
     float3 iblContribution = IBL(F0, Lr, normal, V, NdotV, albedo, roughness, metalness, NdotV);
-
-    output.color = float4((lightContribution + iblContribution) * ao, 1.0f);
     
+    float3 ambient = float3(0.005f, 0.005f, 0.005f);
+
+    output.color = float4((ambient + lightContribution + iblContribution) * ao, 1.0f);
+
     return output;
 }

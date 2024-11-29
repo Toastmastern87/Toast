@@ -33,8 +33,8 @@ namespace Toast {
 		// Setting viewport for shadow mapping
 		sRendererData->ShadowMapViewport.TopLeftX = 0.0f;
 		sRendererData->ShadowMapViewport.TopLeftY = 0.0f;
-		sRendererData->ShadowMapViewport.Width = 4096.0f;
-		sRendererData->ShadowMapViewport.Height = 4096.0f;
+		sRendererData->ShadowMapViewport.Width = 8192.0f;
+		sRendererData->ShadowMapViewport.Height = 8192.0f;
 		sRendererData->ShadowMapViewport.MinDepth = 0.0f;
 		sRendererData->ShadowMapViewport.MaxDepth = 1.0f;
 
@@ -88,7 +88,7 @@ namespace Toast {
 		sRendererData->GPassPickingRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R32_SINT);
 
 		// Setting up the render target for Shadow Pass
-		sRendererData->ShadowMapRT = CreateRef<RenderTarget>(RenderTargetType::Color, 4096, 4096, 1, TextureFormat::R8G8B8A8_UNORM);
+		sRendererData->ShadowMapRT = CreateRef<RenderTarget>(RenderTargetType::Color, 8192, 8192, 1, TextureFormat::R8G8B8A8_UNORM);
 
 		// Setting up the render target for the Lightning Pass
 		sRendererData->LPassRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
@@ -106,6 +106,7 @@ namespace Toast {
 		sRendererData->GPassFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->GPassPositionRT, sRendererData->GPassNormalRT, sRendererData->GPassAlbedoMetallicRT, sRendererData->GPassRoughnessAORT, sRendererData->GPassPickingRT });
 		sRendererData->LPassFramebuffer = CreateRef<Framebuffer>(std::vector<Ref<RenderTarget>>{ sRendererData->LPassRT } );
 
+		CreateRasterizerStates();
 		CreateDepthBuffer(width, height);
 		CreateDepthStencilView();
 		CreateDepthStencilStates();
@@ -225,7 +226,7 @@ namespace Toast {
 	{
 		sRendererData->DepthBuffer = CreateScope<Texture2D>((DXGI_FORMAT)TextureFormat::R32_TYPELESS, (DXGI_FORMAT)TextureFormat::R32_FLOAT, width, height, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE), 1);
 
-		sRendererData->ShadowPassDepth = CreateScope<Texture2D>((DXGI_FORMAT)TextureFormat::R32_TYPELESS, (DXGI_FORMAT)TextureFormat::R32_FLOAT, 4096, 4096, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE), 1);
+		sRendererData->ShadowPassDepth = CreateScope<Texture2D>((DXGI_FORMAT)TextureFormat::R32_TYPELESS, (DXGI_FORMAT)TextureFormat::R32_FLOAT, 8192, 8192, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE), 1);
 	}
 
 	void Renderer::CreateDepthStencilView()
@@ -391,6 +392,34 @@ namespace Toast {
 		}
 	}
 
+	void Renderer::CreateRasterizerStates()
+	{
+		HRESULT result;
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+		D3D11_RASTERIZER_DESC rasterDesc{};
+
+		memset(&rasterDesc, 0, sizeof(D3D11_RASTERIZER_DESC));
+		rasterDesc.CullMode = D3D11_CULL_NONE;
+		rasterDesc.FillMode = D3D11_FILL_SOLID;
+		rasterDesc.DepthClipEnable = true;
+
+		result = device->CreateRasterizerState(&rasterDesc, &sRendererData->NormalRasterizerState);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create normal rasterizer state");
+
+		rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
+
+		result = device->CreateRasterizerState(&rasterDesc, &sRendererData->WireframeRasterizerState);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create wireframe rasterizer state");
+
+		rasterDesc.CullMode = D3D11_CULL_FRONT;
+		rasterDesc.FillMode = D3D11_FILL_SOLID;
+		rasterDesc.DepthClipEnable = true;
+
+		result = device->CreateRasterizerState(&rasterDesc, &sRendererData->ShadowMapRasterizerState);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create shadow pass rasterizer state");
+	}
+
 	void Renderer::Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform)
 	{
 		bufferLayout->Bind();
@@ -538,9 +567,9 @@ namespace Toast {
 		for (const auto& meshCommand : sRendererData->MeshDrawList)
 		{
 			if (meshCommand.Wireframe)
-				RenderCommand::EnableWireframe();
+				RenderCommand::SetRasterizerState(sRendererData->WireframeRasterizerState);
 			else
-				RenderCommand::DisableWireframe();
+				RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
 
 			RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
 
@@ -601,6 +630,7 @@ namespace Toast {
 #endif
 
 		RenderCommand::SetViewport(sRendererData->ShadowMapViewport);
+		RenderCommand::SetRasterizerState(sRendererData->ShadowMapRasterizerState);
 		RenderCommand::SetRenderTargets({ sRendererData->ShadowMapRT->GetView().Get() }, sRendererData->ShadowPassStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
 		RenderCommand::SetBlendState(sRendererData->GPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
@@ -647,6 +677,7 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> defaultWhite2DSRV = TextureLibrary::Get("assets/textures/White.png")->GetSRV();
 
 		RenderCommand::SetViewport(sRendererData->Viewport);
+		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
 		RenderCommand::SetRenderTargets(sRendererData->LPassFramebuffer->GetColorRenderTargets(), nullptr);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
 		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });

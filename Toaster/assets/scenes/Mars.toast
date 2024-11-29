@@ -208,7 +208,7 @@ Entities:
       Radiance: [0.886075974, 0.82748425, 0.575762451]
       Intensity: 1
       SunDesiredCoverage: 10000
-      SunLightDistance: 5000
+      SunLightDistance: 961
   - Entity: 12837192831271
     TagComponent:
       Tag: Mars
@@ -277,7 +277,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [4.4000001, 50, 50]
+      Translation: [4.4000001, -133, 50]
       Rotation: [45, 0, 0]
       Scale: [1, 1, 1]
     MeshComponent:
