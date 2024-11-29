@@ -618,8 +618,7 @@ namespace Toast {
 		}
 		// Frustum corners in light's view space
 		DirectX::XMVECTOR frustumCorners[8];
-		// Define the color blue
-		DirectX::XMFLOAT3 blueColor = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
+
 		// Process lights
 		{
 			mLightEnvironment = LightEnvironment();
@@ -646,22 +645,24 @@ namespace Toast {
 				float orthoNear = 0.1f;
 				float orthoFar = lightComponent.SunDesiredCoverage;
 
-				// Calculate half dimensions
-				float halfWidth = orthoWidth / 2.0f;
-				float halfHeight = orthoHeight / 2.0f;
+				if (mSettings.SunLightFrustum)
+				{
+					// Calculate half dimensions
+					float halfWidth = orthoWidth / 2.0f;
+					float halfHeight = orthoHeight / 2.0f;
 
+					// Near plane
+					frustumCorners[0] = DirectX::XMVectorSet(-halfWidth, -halfHeight, orthoNear, 1.0f); // Near Bottom Left
+					frustumCorners[1] = DirectX::XMVectorSet(halfWidth, -halfHeight, orthoNear, 1.0f);  // Near Bottom Right
+					frustumCorners[2] = DirectX::XMVectorSet(halfWidth, halfHeight, orthoNear, 1.0f);   // Near Top Right
+					frustumCorners[3] = DirectX::XMVectorSet(-halfWidth, halfHeight, orthoNear, 1.0f);  // Near Top Left
 
-				// Near plane
-				frustumCorners[0] = DirectX::XMVectorSet(-halfWidth, -halfHeight, orthoNear, 1.0f); // Near Bottom Left
-				frustumCorners[1] = DirectX::XMVectorSet(halfWidth, -halfHeight, orthoNear, 1.0f);  // Near Bottom Right
-				frustumCorners[2] = DirectX::XMVectorSet(halfWidth, halfHeight, orthoNear, 1.0f);   // Near Top Right
-				frustumCorners[3] = DirectX::XMVectorSet(-halfWidth, halfHeight, orthoNear, 1.0f);  // Near Top Left
-
-				// Far plane
-				frustumCorners[4] = DirectX::XMVectorSet(-halfWidth, -halfHeight, orthoFar, 1.0f);  // Far Bottom Left
-				frustumCorners[5] = DirectX::XMVectorSet(halfWidth, -halfHeight, orthoFar, 1.0f);   // Far Bottom Right
-				frustumCorners[6] = DirectX::XMVectorSet(halfWidth, halfHeight, orthoFar, 1.0f);    // Far Top Right
-				frustumCorners[7] = DirectX::XMVectorSet(-halfWidth, halfHeight, orthoFar, 1.0f); // Far Top Left
+					// Far plane
+					frustumCorners[4] = DirectX::XMVectorSet(-halfWidth, -halfHeight, orthoFar, 1.0f);  // Far Bottom Left
+					frustumCorners[5] = DirectX::XMVectorSet(halfWidth, -halfHeight, orthoFar, 1.0f);   // Far Bottom Right
+					frustumCorners[6] = DirectX::XMVectorSet(halfWidth, halfHeight, orthoFar, 1.0f);    // Far Top Right
+					frustumCorners[7] = DirectX::XMVectorSet(-halfWidth, halfHeight, orthoFar, 1.0f); // Far Top Left
+				}
 
 				// Create the orthographic projection matrix for the light
 				DirectX::XMMATRIX lightProj = XMMatrixOrthographicLH(orthoWidth, orthoHeight, orthoNear, orthoFar);
@@ -693,18 +694,12 @@ namespace Toast {
 
 				DirectX::XMMATRIX invLightView = DirectX::XMMatrixInverse(nullptr, lightView);
 
-				// Transform corners to world space
-				for (int i = 0; i < 8; ++i)
+				if (mSettings.SunLightFrustum)
 				{
-					frustumCorners[i] = DirectX::XMVector4Transform(frustumCorners[i], invLightView);
+					// Transform corners to world space
+					for (int i = 0; i < 8; ++i)
+						frustumCorners[i] = DirectX::XMVector4Transform(frustumCorners[i], invLightView);
 				}
-
-
-				// Near plane edges
-
-
-				//// Far plane edges
-
 
 				XMMATRIX lightViewProj = XMMatrixMultiply(lightView, lightProj);
 
@@ -918,21 +913,27 @@ namespace Toast {
 			if (mSettings.CameraFrustum && mFrustum)
 				RendererDebug::SubmitCameraFrustum(mFrustum);
 
-			RendererDebug::SubmitLine(frustumCorners[0], frustumCorners[1], blueColor);
-			RendererDebug::SubmitLine(frustumCorners[1], frustumCorners[2], blueColor);
-			RendererDebug::SubmitLine(frustumCorners[2], frustumCorners[3], blueColor);
-			RendererDebug::SubmitLine(frustumCorners[3], frustumCorners[0], blueColor);
+			// Sun light frustum
+			if (mSettings.SunLightFrustum) 
+			{
+				DirectX::XMFLOAT3 sunLightFrustumColor = { 1.0f, 1.0f, 0.0f };
 
-			RendererDebug::SubmitLine(frustumCorners[4], frustumCorners[5], blueColor);
-			RendererDebug::SubmitLine(frustumCorners[5], frustumCorners[6], blueColor);
-			RendererDebug::SubmitLine(frustumCorners[6], frustumCorners[7], blueColor);
-			RendererDebug::SubmitLine(frustumCorners[7], frustumCorners[4], blueColor);
+				RendererDebug::SubmitLine(frustumCorners[0], frustumCorners[1], sunLightFrustumColor);
+				RendererDebug::SubmitLine(frustumCorners[1], frustumCorners[2], sunLightFrustumColor);
+				RendererDebug::SubmitLine(frustumCorners[2], frustumCorners[3], sunLightFrustumColor);
+				RendererDebug::SubmitLine(frustumCorners[3], frustumCorners[0], sunLightFrustumColor);
 
-			// Connecting edges between near and far planes
-			RendererDebug::SubmitLine(frustumCorners[0], frustumCorners[4], blueColor);
-			RendererDebug::SubmitLine(frustumCorners[1], frustumCorners[5], blueColor);
-			RendererDebug::SubmitLine(frustumCorners[2], frustumCorners[6], blueColor);
-			RendererDebug::SubmitLine(frustumCorners[3], frustumCorners[7], blueColor);
+				RendererDebug::SubmitLine(frustumCorners[4], frustumCorners[5], sunLightFrustumColor);
+				RendererDebug::SubmitLine(frustumCorners[5], frustumCorners[6], sunLightFrustumColor);
+				RendererDebug::SubmitLine(frustumCorners[6], frustumCorners[7], sunLightFrustumColor);
+				RendererDebug::SubmitLine(frustumCorners[7], frustumCorners[4], sunLightFrustumColor);
+
+				// Connecting edges between near and far planes
+				RendererDebug::SubmitLine(frustumCorners[0], frustumCorners[4], sunLightFrustumColor);
+				RendererDebug::SubmitLine(frustumCorners[1], frustumCorners[5], sunLightFrustumColor);
+				RendererDebug::SubmitLine(frustumCorners[2], frustumCorners[6], sunLightFrustumColor);
+				RendererDebug::SubmitLine(frustumCorners[3], frustumCorners[7], sunLightFrustumColor);
+			}
 
 			// Colliders
 			auto entities = mRegistry.view<TransformComponent>();
