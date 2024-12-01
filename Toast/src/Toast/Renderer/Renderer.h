@@ -64,14 +64,12 @@ namespace Toast {
 			Ref<RenderTarget> BackbufferRT;
 
 			// Geometry Pass
-			Ref<Framebuffer> GPassFramebuffer;
 			Ref<RenderTarget> GPassPositionRT, GPassNormalRT, GPassAlbedoMetallicRT, GPassRoughnessAORT, GPassPickingRT;
 
 			// Shadow mapping Pass
 			Ref<RenderTarget> ShadowMapRT;
 			
 			// Lightning Pass
-			Ref<Framebuffer> LPassFramebuffer;
 			Ref<RenderTarget> LPassRT;
 
 			// Atmosphere pass
@@ -143,9 +141,6 @@ namespace Toast {
 		static Ref<RenderTarget>& GetLPassRenderTarget() { return sRendererData->LPassRT; }
 
 		static Ref<RenderTarget>& GetFinalRenderTarget() { return sRendererData->FinalRT; }
-
-		static Ref<Framebuffer>& GetGPassFramebuffer() { return sRendererData->GPassFramebuffer; }
-		static Ref<Framebuffer>& GetLPassFramebuffer() { return sRendererData->LPassFramebuffer; }
 
 		static void EnableAtmosphere(bool atmosphere) { sRendererData->PlanetData.Atmosphere = atmosphere; }
 

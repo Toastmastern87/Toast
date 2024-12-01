@@ -32,7 +32,7 @@ namespace Toast {
 			sRendererAPI->ClearRenderTargets(renderTarget, clearColor);
 		}
 
-		static void ClearRenderTargets(std::vector<ID3D11RenderTargetView*>& colorTargets, const DirectX::XMFLOAT4& clearColor)
+		static void ClearRenderTargets(const std::vector<ID3D11RenderTargetView*>& colorTargets, const DirectX::XMFLOAT4& clearColor)
 		{
 			sRendererAPI->ClearRenderTargets(colorTargets, clearColor);
 		}
@@ -47,7 +47,7 @@ namespace Toast {
 			sRendererAPI->SetDepthStencilState(depthStencilState);
 		}
 
-		static void SetBlendState(Microsoft::WRL::ComPtr<ID3D11BlendState> blendState, const DirectX::XMFLOAT4& blendFactor)
+		static void SetBlendState(Microsoft::WRL::ComPtr<ID3D11BlendState> blendState, const DirectX::XMFLOAT4& blendFactor = { 0.0f, 0.0f, 0.0f, 0.0f })
 		{
 			sRendererAPI->SetBlendState(blendState, blendFactor);
 		}
@@ -85,6 +85,11 @@ namespace Toast {
 		static void SetShaderResource(D3D11_SHADER_TYPE shaderType, uint32_t bindSlot, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv)
 		{
 			sRendererAPI->SetShaderResource(shaderType, bindSlot, srv);
+		}
+
+		static void ClearShaderResources()
+		{
+			sRendererAPI->ClearShaderResources();
 		}
 
 		static void SetPrimitiveTopology(PrimitiveTopology topology)

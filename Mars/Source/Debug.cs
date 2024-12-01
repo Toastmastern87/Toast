@@ -9,6 +9,7 @@ class Debug : Entity
     void OnCreate()
     {
         keyPressed = false;
+        Toast.Console.LogCritical("OnCreate");
     }
 
     void OnClick()
@@ -20,6 +21,8 @@ class Debug : Entity
         if (Input.IsKeyPressed(KeyCode.C) && !keyPressed)
         {
             keyPressed = true;
+
+            Toast.Console.LogCritical("Activating Colliders");
 
             Scene.SetRenderColliders(!Scene.GetRenderColliders());
         }
