@@ -66,7 +66,7 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		if(!runtime)
+		if (!runtime)
 			OutlineRenderPass();
 		DebugRenderPass(runtime, renderGrid);
 
@@ -146,7 +146,7 @@ namespace Toast {
 
 	void RendererDebug::SubmitCollider(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
 	{
-			sRendererData->MeshColliderDrawList.emplace_back(mesh, transform, wireframe);
+		sRendererData->MeshColliderDrawList.emplace_back(mesh, transform, wireframe);
 	}
 
 	void RendererDebug::DebugRenderPass(const bool runtime, const bool renderGrid)
@@ -162,12 +162,12 @@ namespace Toast {
 		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetView().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
 
+		mDebugData->DebugShader->Bind();
+
 		mDebugData->LineVertexBuffer->Bind();
 
 		if (mDebugData->LineVertexCount != 0)
 		{
-			mDebugData->DebugShader->Bind();
-
 			// Frustum
 			RenderCommand::SetPrimitiveTopology(Topology::LINELIST);
 
@@ -214,6 +214,8 @@ namespace Toast {
 
 			RenderCommand::Draw(6);
 		}
+
+		RenderCommand::ClearShaderResources();
 
 #ifdef TOAST_DEBUG
 		if (annotation)
@@ -265,6 +267,8 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, mDebugData->SelectedMeshMaskRT->GetSRV());
 
 		Renderer::DrawFullscreenQuad();
+
+		RenderCommand::ClearShaderResources();
 
 #ifdef TOAST_DEBUG
 		if (annotation)

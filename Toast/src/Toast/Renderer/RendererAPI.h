@@ -26,6 +26,7 @@ namespace Toast {
 		void DispatchCompute(uint32_t x, uint32_t y, uint32_t z);
 		void SwapBuffers(bool vSync);
 		void SetShaderResource(D3D11_SHADER_TYPE shaderType, uint32_t bindSlot, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
+		void ClearShaderResources();
 		void ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 		void SetPrimitiveTopology(PrimitiveTopology topology);
 		void CleanUp();
@@ -34,7 +35,7 @@ namespace Toast {
 		void SetRasterizerState(Microsoft::WRL::ComPtr<ID3D11RasterizerState>& rasterizerState);
 		void SetRenderTargets(const std::vector<ID3D11RenderTargetView*>& colors, Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView);
 		void ClearRenderTargets(ID3D11RenderTargetView* renderTarget, const DirectX::XMFLOAT4& clearColor);
-		void ClearRenderTargets(std::vector<ID3D11RenderTargetView*>& colorTargets, const DirectX::XMFLOAT4& clearColor);
+		void ClearRenderTargets(const std::vector<ID3D11RenderTargetView*>& colorTargets, const DirectX::XMFLOAT4& clearColor);
 		void ClearDepthStencilView(Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView);
 		void SetDepthStencilState(Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depthStencilState);
 		void SetBlendState(Microsoft::WRL::ComPtr<ID3D11BlendState> blendState, const DirectX::XMFLOAT4& blendFactor);

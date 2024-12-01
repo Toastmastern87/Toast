@@ -16,10 +16,7 @@ namespace Toast {
 		Framebuffer(const std::vector<Ref<RenderTarget>>& colors, bool swapChainTarget = false);
 		~Framebuffer() = default;
 
-		std::vector<ID3D11RenderTargetView*>  GetColorRenderTargets() const;
 		std::vector<Ref<RenderTarget>>& GetRenderTargets() { return mColorTargets;  };
-
-		void Unbind() const;
 
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV(uint32_t index = 0) const { return mColorTargets[index]->GetSRV(); }
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> GetRTTexture(uint32_t index = 0) const { return mColorTargets[index]->GetTexture(); }

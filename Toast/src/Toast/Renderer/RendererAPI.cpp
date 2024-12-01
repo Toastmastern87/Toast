@@ -102,6 +102,14 @@ namespace Toast {
 			mDeviceContext->CSSetShaderResources(bindSlot, 1, srv.GetAddressOf());
 	}
 
+	void RendererAPI::ClearShaderResources()
+	{
+		ID3D11ShaderResourceView* nullSRVs[16] = { nullptr };
+		mDeviceContext->VSSetShaderResources(0, 16, nullSRVs);
+		mDeviceContext->PSSetShaderResources(0, 16, nullSRVs);
+		mDeviceContext->CSSetShaderResources(0, 16, nullSRVs);
+	}
+
 	void RendererAPI::ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 	{
 		mSwapChain->ResizeBuffers(1, width, height, DXGI_FORMAT_UNKNOWN, 0);
@@ -132,7 +140,7 @@ namespace Toast {
 		mDeviceContext->ClearRenderTargetView(colorTarget, reinterpret_cast<const float*>(&clearColor));
 	}
 
-	void RendererAPI::ClearRenderTargets(std::vector<ID3D11RenderTargetView*>& colorTargets, const DirectX::XMFLOAT4& clearColor)
+	void RendererAPI::ClearRenderTargets(const std::vector<ID3D11RenderTargetView*>& colorTargets, const DirectX::XMFLOAT4& clearColor)
 	{
 		for (auto& colorTarget : colorTargets)
 			mDeviceContext->ClearRenderTargetView(colorTarget, reinterpret_cast<const float*>(&clearColor));
