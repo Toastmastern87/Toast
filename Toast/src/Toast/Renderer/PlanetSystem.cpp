@@ -106,7 +106,7 @@ namespace Toast {
 			SubdivideBasePlanet(planet, child, scale);
 	}
 
-	void PlanetSystem::SubdivideFace(CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, const Vector3& planetCenter, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::SubdivideFace(CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, const Vector3& planetCenter, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail, bool smoothShading)
 	{
 		double height;
 		NextPlanetFace nextFace;
@@ -159,10 +159,10 @@ namespace Toast {
 
 			int16_t nextSubdivision = subdivision + 1;
 
-			SubdivideFace(a, b, c, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
-			SubdivideFace(c, b, A, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
-			SubdivideFace(B, a, c, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
-			SubdivideFace(b, a, C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
+			SubdivideFace(a, b, c, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail, smoothShading);
+			SubdivideFace(c, b, A, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail, smoothShading);
+			SubdivideFace(B, a, c, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail, smoothShading);
+			SubdivideFace(b, a, C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail, smoothShading);
 		}
 		else
 		{
@@ -208,6 +208,27 @@ namespace Toast {
 					crackTriangle = true;
 			}
 
+			// Function to add or retrieve a vertex
+			auto addVertex = [&](const CPUVertex& cpuVertex, const Vector3& transformedPos) -> size_t {
+				// Create a Vertex instance
+				Vertex v;
+				v.Position = { (float)transformedPos.x, (float)transformedPos.y, (float)transformedPos.z };
+				v.Texcoord = { (float)cpuVertex.UV.x, (float)cpuVertex.UV.y };
+				// Initialize normal to zero; we'll accumulate face normals
+				v.Normal = { 0.0f, 0.0f, 0.0f };
+				v.Tangent = { 0.0f, 0.0f, 0.0f, 0.0f };
+				v.Color = { 0.0f, 0.0f, 0.0f };
+
+				// Try to insert the vertex into the map
+				auto result = planet.VertexMap.emplace(v, planet.BuildVertices.size());
+				if (result.second) {
+					// Vertex was not in the map; add it to the vertex list
+					planet.BuildVertices.emplace_back(v);
+				}
+				// Return the index of the vertex
+				return result.first->second;
+				};
+
 			if (!crackTriangle)
 			{
 				Vector3 vecA = planetTransform * A.Position;
@@ -216,18 +237,47 @@ namespace Toast {
 
 				Vector3 normal = Vector3::Normalize(Vector3::Cross(vecB - vecA, vecC - vecA));
 
-				Vertex vertexA = Vertex(vecA, A.UV, normal);
-				planet.BuildVertices.emplace_back(vertexA);
-				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+				if (smoothShading)
+				{
+					// Add or retrieve vertices
+					size_t indexA = addVertex(A, vecA);
+					size_t indexB = addVertex(B, vecB);
+					size_t indexC = addVertex(C, vecC);
 
-				Vertex vertexB = Vertex(vecB, B.UV, normal);
-				planet.BuildVertices.emplace_back(vertexB);
-				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+					// Accumulate normals
+					planet.BuildVertices[indexA].Normal.x += (float)normal.x;
+					planet.BuildVertices[indexA].Normal.y += (float)normal.y;
+					planet.BuildVertices[indexA].Normal.z += (float)normal.z;
 
-				Vertex vertexC = Vertex(vecC, C.UV, normal);
-				planet.BuildVertices.emplace_back(vertexC);
-				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+					planet.BuildVertices[indexB].Normal.x += (float)normal.x;
+					planet.BuildVertices[indexB].Normal.y += (float)normal.y;
+					planet.BuildVertices[indexB].Normal.z += (float)normal.z;
 
+					planet.BuildVertices[indexC].Normal.x += (float)normal.x;
+					planet.BuildVertices[indexC].Normal.y += (float)normal.y;
+					planet.BuildVertices[indexC].Normal.z += (float)normal.z;
+
+					// Add indices
+					planet.BuildIndices.emplace_back(indexA);
+					planet.BuildIndices.emplace_back(indexB);
+					planet.BuildIndices.emplace_back(indexC);
+				}
+				else 
+				{
+					Vertex vertexA = Vertex(vecA, A.UV, normal);
+					planet.BuildVertices.emplace_back(vertexA);
+					planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+					Vertex vertexB = Vertex(vecB, B.UV, normal);
+					planet.BuildVertices.emplace_back(vertexB);
+					planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+					Vertex vertexC = Vertex(vecC, C.UV, normal);
+					planet.BuildVertices.emplace_back(vertexC);
+					planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+				}
+
+				// Chunks are used by the physics engine
 				AssignFaceToChunk(vecA, vecB, vecC, planet.TerrainChunks, planetCenter);
 			}
 			else
@@ -254,17 +304,45 @@ namespace Toast {
 				if (normal.y < 0.0)
 					normal = normal * -1.0;
 
-				Vertex vertexA = Vertex(additionalVertexPos, additionalVertex.UV, normal);
-				planet.BuildVertices.emplace_back(vertexA);
-				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+				if (smoothShading)
+				{
+					// Add or retrieve vertices
+					size_t indexA = addVertex(A, additionalVertexPos);
+					size_t indexB = addVertex(B, closestVertexPos);
+					size_t indexC = addVertex(C, furthestVertexPos);
 
-				Vertex vertexB = Vertex(closestVertexPos, closestVertex.UV, normal);
-				planet.BuildVertices.emplace_back(vertexB);
-				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+					// Accumulate normals
+					planet.BuildVertices[indexA].Normal.x += (float)normal.x;
+					planet.BuildVertices[indexA].Normal.y += (float)normal.y;
+					planet.BuildVertices[indexA].Normal.z += (float)normal.z;
 
-				Vertex vertexC = Vertex(furthestVertexPos, furthestVertex.UV, normal);
-				planet.BuildVertices.emplace_back(vertexC);
-				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+					planet.BuildVertices[indexB].Normal.x += (float)normal.x;
+					planet.BuildVertices[indexB].Normal.y += (float)normal.y;
+					planet.BuildVertices[indexB].Normal.z += (float)normal.z;
+
+					planet.BuildVertices[indexC].Normal.x += (float)normal.x;
+					planet.BuildVertices[indexC].Normal.y += (float)normal.y;
+					planet.BuildVertices[indexC].Normal.z += (float)normal.z;
+
+					// Add indices
+					planet.BuildIndices.emplace_back(indexA);
+					planet.BuildIndices.emplace_back(indexB);
+					planet.BuildIndices.emplace_back(indexC);
+				}
+				else
+				{
+					Vertex vertexA = Vertex(additionalVertexPos, additionalVertex.UV, normal);
+					planet.BuildVertices.emplace_back(vertexA);
+					planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+					Vertex vertexB = Vertex(closestVertexPos, closestVertex.UV, normal);
+					planet.BuildVertices.emplace_back(vertexB);
+					planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+					Vertex vertexC = Vertex(furthestVertexPos, furthestVertex.UV, normal);
+					planet.BuildVertices.emplace_back(vertexC);
+					planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+				}
 
 				AssignFaceToChunk(additionalVertexPos, closestVertexPos, furthestVertexPos, planet.TerrainChunks, planetCenter);
 
@@ -273,18 +351,46 @@ namespace Toast {
 				if (normal.y < 0.0)
 					normal = normal * -1.0;
 
-				Vertex vertexD = Vertex(additionalVertexPos, additionalVertex.UV, normal);
-				vertexD.Color = { 1.0f, 0.0f, 0.0f };
-				planet.BuildVertices.emplace_back(vertexD);
-				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+				if (smoothShading)
+				{
+					// Add or retrieve vertices
+					size_t indexA = addVertex(A, additionalVertexPos);
+					size_t indexB = addVertex(B, furthestVertexPos);
+					size_t indexC = addVertex(C, middleVertexPos);
 
-				Vertex vertexF = Vertex(furthestVertexPos, furthestVertex.UV, normal);
-				planet.BuildVertices.emplace_back(vertexF);
-				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+					// Accumulate normals
+					planet.BuildVertices[indexA].Normal.x += (float)normal.x;
+					planet.BuildVertices[indexA].Normal.y += (float)normal.y;
+					planet.BuildVertices[indexA].Normal.z += (float)normal.z;
 
-				Vertex vertexE = Vertex(middleVertexPos, middleVertex.UV, normal);
-				planet.BuildVertices.emplace_back(vertexE);
-				planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+					planet.BuildVertices[indexB].Normal.x += (float)normal.x;
+					planet.BuildVertices[indexB].Normal.y += (float)normal.y;
+					planet.BuildVertices[indexB].Normal.z += (float)normal.z;
+
+					planet.BuildVertices[indexC].Normal.x += (float)normal.x;
+					planet.BuildVertices[indexC].Normal.y += (float)normal.y;
+					planet.BuildVertices[indexC].Normal.z += (float)normal.z;
+
+					// Add indices
+					planet.BuildIndices.emplace_back(indexA);
+					planet.BuildIndices.emplace_back(indexB);
+					planet.BuildIndices.emplace_back(indexC);
+				}
+				else
+				{
+					Vertex vertexD = Vertex(additionalVertexPos, additionalVertex.UV, normal);
+					vertexD.Color = { 1.0f, 0.0f, 0.0f };
+					planet.BuildVertices.emplace_back(vertexD);
+					planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+					Vertex vertexF = Vertex(furthestVertexPos, furthestVertex.UV, normal);
+					planet.BuildVertices.emplace_back(vertexF);
+					planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+
+					Vertex vertexE = Vertex(middleVertexPos, middleVertex.UV, normal);
+					planet.BuildVertices.emplace_back(vertexE);
+					planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
+				}
 
 				AssignFaceToChunk(additionalVertexPos, furthestVertexPos, middleVertexPos, planet.TerrainChunks, planetCenter);
 			}
@@ -446,7 +552,7 @@ namespace Toast {
 			objects.MeshObject->SetInstanceData(&objectPositions[0], objectPositions.size() * sizeof(DirectX::XMFLOAT3), objectPositions.size());
 	}
 
-	void PlanetSystem::TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, const Vector3& planetCenter, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, const Vector3& planetCenter, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail, bool smoothShading)
 	{
 		Vector3 center = (node->A.Position + node->B.Position + node->C.Position) / 3.0;
 		Vector3 viewVector = center - cameraPosPlanetSpace;
@@ -475,15 +581,15 @@ namespace Toast {
 		//TOAST_CORE_CRITICAL("node->SubdivisionLevel going to subdivision: %d", node->SubdivisionLevel);
 
 		if (node->SubdivisionLevel >= BASE_PLANET_SUBDIVISIONS)
-			SubdivideFace(node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, BASE_PLANET_SUBDIVISIONS, perlin, terrainDetail);
+			SubdivideFace(node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, BASE_PLANET_SUBDIVISIONS, perlin, terrainDetail, smoothShading);
 		else 
 		{
 			for (auto& child : node->ChildNodes)
-				TraverseNode(child, planet, cameraPosPlanetSpace, planetCenter, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail);
+				TraverseNode(child, planet, cameraPosPlanetSpace, planetCenter, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail, smoothShading);
 		}
 	}
 
-	void PlanetSystem::GeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated,  PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::GeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated,  PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, bool smoothShading, TerrainDetailComponent* terrainDetail)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -500,9 +606,6 @@ namespace Toast {
 
 		int triangleAdded = 0;
 
-		//DirectX::XMMATRIX scaleMatrix = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z);
-		//Matrix scaleTransform = { scaleMatrix };
-
 		Matrix planetTransform = { noScaleTransform };
 		Vector3 cameraPos = { camPos };
 
@@ -511,6 +614,7 @@ namespace Toast {
 		{
 			std::lock_guard<std::mutex> lock(planetDataMutex);
 
+			planet.VertexMap.clear();
 			planet.BuildVertices.clear();
 			planet.BuildIndices.clear();
 
@@ -527,7 +631,13 @@ namespace Toast {
 			TOAST_PROFILE_SCOPE("Looping through the tree structure!");
 
 			for (auto& node : sPlanetNodes) 
-				TraverseNode(node, planet, cameraPosPlanetSpace, planetCenter, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail);
+				TraverseNode(node, planet, cameraPosPlanetSpace, planetCenter, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail, smoothShading);
+
+			for (auto& vertex : planet.BuildVertices) {
+				Vector3 normal(vertex.Normal.x, vertex.Normal.y, vertex.Normal.z);
+				normal = Vector3::Normalize(normal);
+				vertex.Normal = { (float)normal.x, (float)normal.y, (float)normal.z };
+			}
 		}
 
 		for (const auto& chunkEntry : planet.TerrainChunks)
@@ -568,7 +678,7 @@ namespace Toast {
 		return;
 	}
 
-	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, bool smoothShading, TerrainDetailComponent* terrainDetail)
 	{
 		if (generationFuture.valid() && generationFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 			return;
@@ -586,6 +696,7 @@ namespace Toast {
 				std::ref(planet),
 				std::ref(terrainColliders),
 				std::ref(terrainColliderPositions),
+				smoothShading,
 				terrainDetail);
 		}
 

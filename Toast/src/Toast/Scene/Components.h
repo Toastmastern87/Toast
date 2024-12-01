@@ -137,6 +137,8 @@ namespace Toast {
 		
 		GPUData PlanetData;
 
+		std::unordered_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> VertexMap;
+
 		std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash> TerrainChunks;
 
 		TerrainData TerrainData;

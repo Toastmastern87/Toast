@@ -56,6 +56,7 @@ namespace Toast {
 			bool FrustumCulling = true;
 			bool RenderColliders = false;
 			bool RenderUI = true;
+			bool PlanetSmoothShading = false;
 
 			int PhysicSlowmotion = 1;
 			int PhysicsFPS = 60;
