@@ -62,6 +62,10 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Post Process/Atmosphere.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/ToneMapping.hlsl");
 
+		// Environment
+		ShaderLibrary::Load("assets/shaders/Environment/EnvironmentMipFilter.hlsl");
+		ShaderLibrary::Load("assets/shaders/Environment/EnvironmentIrradiance.hlsl");
+
 		// Others
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet.hlsl");

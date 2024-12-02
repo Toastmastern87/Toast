@@ -58,7 +58,6 @@ namespace Toast {
 				mContext->mSettings.IsDirty = true;
 			ImGui::Checkbox("Render Colliders", &mContext->mSettings.RenderColliders);
 			ImGui::Checkbox("Render UI", &mContext->mSettings.RenderUI);
-			ImGui::Checkbox("Planet Smooth Shading", &mContext->mSettings.PlanetSmoothShading);
 
 			ImGui::Text("Physics slow motion");
 			ImGui::SliderInt("##physicsslowmotion", &mContext->mSettings.PhysicSlowmotion, 1, 30);

@@ -36,6 +36,9 @@ namespace Toast {
 			DirectX::XMFLOAT4X4 ViewMatrix;
 			DirectX::XMFLOAT4X4 ProjectionMatrix;
 
+			DirectX::XMMATRIX AtmosphericScatteringViewMatrices[6];
+			DirectX::XMMATRIX AtmosphericScatteringInvViewMatrices[6];
+
 			struct SceneInfo
 			{
 				Environment SceneEnvironment;
@@ -57,8 +60,8 @@ namespace Toast {
 
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshColliderDrawList;
 
-			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer;
-			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer, RenderSettingsBuffer, AtmosphereBuffer, ModelBuffer, MaterialBuffer;
+			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer, SpecularMapFilterSettingsCBuffer;
+			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer, RenderSettingsBuffer, AtmosphereBuffer, ModelBuffer, MaterialBuffer, SpecularMapFilterSettingsBuffer;
 
 			// Back buffer
 			Ref<RenderTarget> BackbufferRT;
@@ -74,6 +77,10 @@ namespace Toast {
 
 			// Atmosphere pass
 			Ref<RenderTarget> AtmospherePassRT;
+			Ref<RenderTarget> AtmosphereCubeRT;
+
+			// Environmental Textures
+			Ref<TextureCube> EnvMapFiltered;
 
 			// Post Process
 			Ref<RenderTarget> FinalRT;
@@ -111,6 +118,8 @@ namespace Toast {
 		static void CreateBlendStates();
 		static void CreateRasterizerStates();
 
+		static void SetUpAtmosphericScatteringMatrices();
+
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
 		static void SubmitSkybox(const DirectX::XMFLOAT4& cameraPos, const DirectX::XMFLOAT4X4& viewMatrix, const DirectX::XMFLOAT4X4& projectionMatrix, float intensity, float LOD);
 		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe = false, int noWorldTransform = 0, PlanetComponent::GPUData* planetData = nullptr, bool atmosphere = false);
@@ -120,7 +129,7 @@ namespace Toast {
 
 		static void ClearDrawList();
 
-		static std::pair<Ref<TextureCube>, Ref<TextureCube>> CreateEnvironmentMap(const std::string& filepath);
+		static void CreateEnvironmentMap(const std::string& filepath);
 
 		// Deffered Rendering
 		static void GeometryPass();
@@ -156,6 +165,8 @@ namespace Toast {
 
 		static Statistics GetStats();
 		static void ResetStats();
+
+		static void GeneratePrefilteredEnvMapForFace(int faceIndex);
 
 	};
 }

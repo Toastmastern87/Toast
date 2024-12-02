@@ -72,8 +72,8 @@ namespace Toast {
 
 		if (debugActivated && !renderUI)
 		{
-			RenderCommand::SetRenderTargets({ sRendererData->BackbufferRT->GetView().Get() }, nullptr);
-			RenderCommand::ClearRenderTargets(sRendererData->BackbufferRT->GetView().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
+			RenderCommand::SetRenderTargets({ sRendererData->BackbufferRT->GetRTV().Get() }, nullptr);
+			RenderCommand::ClearRenderTargets(sRendererData->BackbufferRT->GetRTV().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
 		}
 
 		ZeroMemory(mDebugData->LineVertexBufferBase, mDebugData->MaxVertices * sizeof(Vertex));
@@ -159,7 +159,7 @@ namespace Toast {
 #endif
 		int noWorldTransform;
 
-		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetView().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
 
 		mDebugData->DebugShader->Bind();
@@ -236,8 +236,8 @@ namespace Toast {
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
 		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
-		RenderCommand::SetRenderTargets({ mDebugData->SelectedMeshMaskRT->GetView().Get() }, sRendererData->DepthStencilView);
-		RenderCommand::ClearRenderTargets(mDebugData->SelectedMeshMaskRT->GetView().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
+		RenderCommand::SetRenderTargets({ mDebugData->SelectedMeshMaskRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::ClearRenderTargets(mDebugData->SelectedMeshMaskRT->GetRTV().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
 
 		mDebugData->ObjectMaskShader->Bind();
 
@@ -261,7 +261,7 @@ namespace Toast {
 
 		// Draw the outline
 		mDebugData->OutlineShader->Bind();
-		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetView().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, mDebugData->SelectedMeshMaskRT->GetSRV());

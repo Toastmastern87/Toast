@@ -66,7 +66,7 @@ namespace Toast {
 			annotation->BeginEvent(L"2D Render Pass");
 #endif
 
-		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetView().Get(), sRendererData->GPassPickingRT->GetView().Get() }, nullptr);
+		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get() }, nullptr);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
 		RenderCommand::SetBlendState(sRendererData->UIBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
@@ -89,8 +89,8 @@ namespace Toast {
 
 		RenderCommand::DrawIndexed(0, 0, indexCount);
 		
-		RenderCommand::SetRenderTargets({ sRendererData->BackbufferRT->GetView().Get() }, nullptr);
-		RenderCommand::ClearRenderTargets(sRendererData->BackbufferRT->GetView().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
+		RenderCommand::SetRenderTargets({ sRendererData->BackbufferRT->GetRTV().Get() }, nullptr);
+		RenderCommand::ClearRenderTargets(sRendererData->BackbufferRT->GetRTV().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
 
 		RenderCommand::ClearShaderResources();
 

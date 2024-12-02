@@ -14,7 +14,8 @@ namespace Toast {
 	enum class RenderTargetType
 	{
 		Color = 0,
-		Depth = 1
+		Depth = 1,
+		ColorCube = 2
 	};
 
 	class RenderTarget 
@@ -30,10 +31,12 @@ namespace Toast {
 
 		std::tuple<uint32_t, uint32_t> GetSize() { return { mWitdh, mHeight }; }
 
-		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> GetView();
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> GetRTV();
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> GetRTVFace(uint32_t faceIndex);
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV();
 
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() { return mTexture->GetTexture(); }
+		Texture* GetTextureOriginal() { return mTexture.get(); }
 
 		TextureFormat GetFormat() { return mFormat; }
 
@@ -52,9 +55,10 @@ namespace Toast {
 
 		bool mSwapChainTarget = false;
 
-		Scope<Texture2D> mTexture;
+		Scope<Texture> mTexture;
 
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRTV;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRTVArray[6];
 
 		D3D11_RENDER_TARGET_BLEND_DESC mBlendDesc;
 	};

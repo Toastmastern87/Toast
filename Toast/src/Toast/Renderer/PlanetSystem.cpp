@@ -106,7 +106,7 @@ namespace Toast {
 			SubdivideBasePlanet(planet, child, scale);
 	}
 
-	void PlanetSystem::SubdivideFace(CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, const Vector3& planetCenter, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail, bool smoothShading)
+	void PlanetSystem::SubdivideFace(CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, const Vector3& planetCenter, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
 	{
 		double height;
 		NextPlanetFace nextFace;
@@ -159,10 +159,10 @@ namespace Toast {
 
 			int16_t nextSubdivision = subdivision + 1;
 
-			SubdivideFace(a, b, c, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail, smoothShading);
-			SubdivideFace(c, b, A, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail, smoothShading);
-			SubdivideFace(B, a, c, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail, smoothShading);
-			SubdivideFace(b, a, C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail, smoothShading);
+			SubdivideFace(a, b, c, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
+			SubdivideFace(c, b, A, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
+			SubdivideFace(B, a, c, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
+			SubdivideFace(b, a, C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
 		}
 		else
 		{
@@ -237,7 +237,7 @@ namespace Toast {
 
 				Vector3 normal = Vector3::Normalize(Vector3::Cross(vecB - vecA, vecC - vecA));
 
-				if (smoothShading)
+				if (planet.PlanetData.smoothShading)
 				{
 					// Add or retrieve vertices
 					size_t indexA = addVertex(A, vecA);
@@ -304,7 +304,7 @@ namespace Toast {
 				if (normal.y < 0.0)
 					normal = normal * -1.0;
 
-				if (smoothShading)
+				if (planet.PlanetData.smoothShading)
 				{
 					// Add or retrieve vertices
 					size_t indexA = addVertex(A, additionalVertexPos);
@@ -351,7 +351,7 @@ namespace Toast {
 				if (normal.y < 0.0)
 					normal = normal * -1.0;
 
-				if (smoothShading)
+				if (planet.PlanetData.smoothShading)
 				{
 					// Add or retrieve vertices
 					size_t indexA = addVertex(A, additionalVertexPos);
@@ -552,7 +552,7 @@ namespace Toast {
 			objects.MeshObject->SetInstanceData(&objectPositions[0], objectPositions.size() * sizeof(DirectX::XMFLOAT3), objectPositions.size());
 	}
 
-	void PlanetSystem::TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, const Vector3& planetCenter, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail, bool smoothShading)
+	void PlanetSystem::TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, const Vector3& planetCenter, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
 	{
 		Vector3 center = (node->A.Position + node->B.Position + node->C.Position) / 3.0;
 		Vector3 viewVector = center - cameraPosPlanetSpace;
@@ -581,15 +581,15 @@ namespace Toast {
 		//TOAST_CORE_CRITICAL("node->SubdivisionLevel going to subdivision: %d", node->SubdivisionLevel);
 
 		if (node->SubdivisionLevel >= BASE_PLANET_SUBDIVISIONS)
-			SubdivideFace(node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, BASE_PLANET_SUBDIVISIONS, perlin, terrainDetail, smoothShading);
+			SubdivideFace(node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, BASE_PLANET_SUBDIVISIONS, perlin, terrainDetail);
 		else 
 		{
 			for (auto& child : node->ChildNodes)
-				TraverseNode(child, planet, cameraPosPlanetSpace, planetCenter, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail, smoothShading);
+				TraverseNode(child, planet, cameraPosPlanetSpace, planetCenter, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail);
 		}
 	}
 
-	void PlanetSystem::GeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated,  PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, bool smoothShading, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::GeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated,  PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -631,7 +631,7 @@ namespace Toast {
 			TOAST_PROFILE_SCOPE("Looping through the tree structure!");
 
 			for (auto& node : sPlanetNodes) 
-				TraverseNode(node, planet, cameraPosPlanetSpace, planetCenter, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail, smoothShading);
+				TraverseNode(node, planet, cameraPosPlanetSpace, planetCenter, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail);
 
 			for (auto& vertex : planet.BuildVertices) {
 				Vector3 normal(vertex.Normal.x, vertex.Normal.y, vertex.Normal.z);
@@ -678,7 +678,7 @@ namespace Toast {
 		return;
 	}
 
-	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, bool smoothShading, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail)
 	{
 		if (generationFuture.valid() && generationFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 			return;
@@ -696,7 +696,6 @@ namespace Toast {
 				std::ref(planet),
 				std::ref(terrainColliders),
 				std::ref(terrainColliderPositions),
-				smoothShading,
 				terrainDetail);
 		}
 

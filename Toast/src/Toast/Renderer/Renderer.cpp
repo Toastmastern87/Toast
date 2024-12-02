@@ -80,6 +80,12 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Allocate(sRendererData->AtmosphereCBuffer->GetSize());
 		sRendererData->AtmosphereBuffer.ZeroInitialize();
 
+		// Setting up the constant buffer for dynamic environmental mapping
+		sRendererData->SpecularMapFilterSettingsCBuffer = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SpecularLightEnvironmental) } );
+		sRendererData->SpecularMapFilterSettingsCBuffer->Bind();
+		sRendererData->SpecularMapFilterSettingsBuffer.Allocate(sRendererData->SpecularMapFilterSettingsCBuffer->GetSize());
+		sRendererData->SpecularMapFilterSettingsBuffer.ZeroInitialize();
+
 		// Setting up the render targets for the Geometry Pass
 		sRendererData->GPassPositionRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R32G32B32A32_FLOAT);
 		sRendererData->GPassNormalRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
@@ -101,6 +107,13 @@ namespace Toast {
 
 		// Setting up the render target for the Atmosphere Pass
 		sRendererData->AtmospherePassRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->AtmosphereCubeRT = CreateRef<RenderTarget>(RenderTargetType::ColorCube, 256, 256, 1, TextureFormat::R16G16B16A16_FLOAT);
+		// Setting -Y led to the black since nothing should reflect. 
+		// TODO this should most likely be dynamic in the future depending on which color the surface is. It is gray during the night but orange during the day.
+		RenderCommand::ClearRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(3).Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+
+		// Setting up dynamic environmental maps 
+		sRendererData->EnvMapFiltered = CreateRef<TextureCube>("EnvMapFiltered", 256, 256, 9);
 
 		CreateRasterizerStates();
 		CreateDepthBuffer(width, height);
@@ -108,6 +121,8 @@ namespace Toast {
 		CreateDepthStencilStates();
 
 		CreateBlendStates();
+
+		SetUpAtmosphericScatteringMatrices();
 	}
 
 	void Renderer::Shutdown()
@@ -209,8 +224,8 @@ namespace Toast {
 
 		if (!debugActivated) 
 		{
-			RenderCommand::SetRenderTargets({ sRendererData->BackbufferRT->GetView().Get() }, nullptr);
-			RenderCommand::ClearRenderTargets(sRendererData->BackbufferRT->GetView().Get() , { 0.0f, 0.0f, 0.0f, 1.0f });
+			RenderCommand::SetRenderTargets({ sRendererData->BackbufferRT->GetRTV().Get() }, nullptr);
+			RenderCommand::ClearRenderTargets(sRendererData->BackbufferRT->GetRTV().Get() , { 0.0f, 0.0f, 0.0f, 1.0f });
 		}
 
 		ClearDrawList();
@@ -406,14 +421,45 @@ namespace Toast {
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create shadow pass rasterizer state");
 	}
 
+	void Renderer::SetUpAtmosphericScatteringMatrices()
+	{
+		// Define the directions and up vectors for each cube face
+		static const DirectX::XMVECTOR directions[6] = {
+			DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f),  // +X
+			DirectX::XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f), // -X
+			DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f),  // +Y
+			DirectX::XMVectorSet(0.0f, -1.0f, 0.0f, 0.0f), // -Y
+			DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f),  // +Z
+			DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f)  // -Z
+		};
+
+		static const DirectX::XMVECTOR upVectors[6] = {
+			DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), // Up for +X
+			DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), // Up for -X
+			DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f),  // Up for +Y
+			DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), // Up for -Y
+			DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), // Up for +Z
+			DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f)  // Up for -Z
+		};
+
+		// Cube center
+		DirectX::XMVECTOR cubeCenter = DirectX::XMVectorZero();
+
+		// Calculate view matrices for each face
+		for (int i = 0; i < 6; ++i)
+		{
+			// Compute the view matrix for this face
+			sRendererData->AtmosphericScatteringViewMatrices[i] = DirectX::XMMatrixLookToLH(cubeCenter, directions[i], upVectors[i]);
+			sRendererData->AtmosphericScatteringInvViewMatrices[i] = DirectX::XMMatrixInverse(nullptr, sRendererData->AtmosphericScatteringViewMatrices[i]);
+		}
+	}
+
 	void Renderer::Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform)
 	{
 		bufferLayout->Bind();
 		vertexBuffer->Bind();
 		indexBuffer->Bind();
 		shader->Bind();
-
-		//RenderCommand::DrawIndexed(indexBuffer);
 	}
 
 	//Todo should be integrated into SubmitMesh later on
@@ -450,84 +496,84 @@ namespace Toast {
 
 	static Scope<Shader> equirectangularConversionShader, envFilteringShader, envIrradianceShader;
 
-	std::pair<Ref<TextureCube>, Ref<TextureCube>> Renderer::CreateEnvironmentMap(const std::string& filepath)
+	void Renderer::CreateEnvironmentMap(const std::string& filepath)
 	{
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+		//RendererAPI* API = RenderCommand::sRendererAPI.get();
+		//ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		const uint32_t cubemapSize = 2048;
-		const uint32_t irradianceMapSize = 64;
+		//const uint32_t cubemapSize = 2048;
+		//const uint32_t irradianceMapSize = 64;
 
-		Ref<ConstantBuffer> specularMapFilterSettingsCB = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SpecularLightEnvironmental) }, D3D11_USAGE_DEFAULT);
+		//Ref<ConstantBuffer> specularMapFilterSettingsCB = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SpecularLightEnvironmental) }, D3D11_USAGE_DEFAULT);
 
-		Ref<Texture2D> starMap = CreateRef<Texture2D>(filepath);
-		TextureSampler* defaultSampler = TextureLibrary::GetSampler("Default");
-		Ref<TextureCube> envMapUnfiltered = CreateRef<TextureCube>("EnvMapUnfiltered", cubemapSize, cubemapSize);
-		Ref<TextureCube> envMapFiltered = CreateRef<TextureCube>("EnvMapFiltered", cubemapSize, cubemapSize);
+		//Ref<Texture2D> starMap = CreateRef<Texture2D>(filepath);
+		//TextureSampler* defaultSampler = TextureLibrary::GetSampler("Default");
+		//Ref<TextureCube> envMapUnfiltered = CreateRef<TextureCube>("EnvMapUnfiltered", cubemapSize, cubemapSize);
+		//Ref<TextureCube> envMapFiltered = CreateRef<TextureCube>("EnvMapFiltered", cubemapSize, cubemapSize);
 
-		envMapUnfiltered->CreateUAV(0);
+		//envMapUnfiltered->CreateUAV(0);
 
-		if (!equirectangularConversionShader)
-			equirectangularConversionShader = CreateScope<Shader>("assets/shaders/Environment/EquirectangularToCubeMap.hlsl");
+		//if (!equirectangularConversionShader)
+		//	equirectangularConversionShader = CreateScope<Shader>("assets/shaders/Environment/EquirectangularToCubeMap.hlsl");
 
-		equirectangularConversionShader->Bind();
-		starMap->Bind();
-		defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
-		envMapUnfiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-		RenderCommand::DispatchCompute(cubemapSize / 32, cubemapSize / 32, 6);
-		envMapUnfiltered->UnbindUAV();
+		//equirectangularConversionShader->Bind();
+		//starMap->Bind();
+		//defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+		//envMapUnfiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+		//RenderCommand::DispatchCompute(cubemapSize / 32, cubemapSize / 32, 6);
+		//envMapUnfiltered->UnbindUAV();
 
-		envMapUnfiltered->GenerateMips();
+		//envMapUnfiltered->GenerateMips();
 
-		for (int arraySlice = 0; arraySlice < 6; ++arraySlice) {
-			const uint32_t subresourceIndex = D3D11CalcSubresource(0, arraySlice, envMapFiltered->GetMipLevelCount());
-			deviceContext->CopySubresourceRegion(envMapFiltered->GetResource(), subresourceIndex, 0, 0, 0, envMapUnfiltered->GetResource(), subresourceIndex, nullptr);
-		}
+		//for (int arraySlice = 0; arraySlice < 6; ++arraySlice) {
+		//	const uint32_t subresourceIndex = D3D11CalcSubresource(0, arraySlice, envMapFiltered->GetMipLevelCount());
+		//	deviceContext->CopySubresourceRegion(envMapFiltered->GetResource(), subresourceIndex, 0, 0, 0, envMapUnfiltered->GetResource(), subresourceIndex, nullptr);
+		//}
 
-		struct SpecularMapFilterSettingsCB
-		{
-			float roughness;
-			float padding[3];
-		};
+		//struct SpecularMapFilterSettingsCB
+		//{
+		//	float roughness;
+		//	float padding[3];
+		//};
 
-		if (!envFilteringShader)
-			envFilteringShader = CreateScope<Shader>("assets/shaders/Environment/EnvironmentMipFilter.hlsl");
+		//if (!envFilteringShader)
+		//	envFilteringShader = CreateScope<Shader>("assets/shaders/Environment/EnvironmentMipFilter.hlsl");
 
-		envFilteringShader->Bind();
-		envMapUnfiltered->Bind(0, D3D11_COMPUTE_SHADER);
-		defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+		//envFilteringShader->Bind();
+		//envMapUnfiltered->Bind(0, D3D11_COMPUTE_SHADER);
+		//defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
 
-		// Pre-filter rest of the mip chain.
-		const float deltaRoughness = 1.0f / std::max(float(envMapFiltered->GetMipLevelCount() - 1.0f), 1.0f);
-		for (int level = 1, size = cubemapSize / 2; level < envMapFiltered->GetMipLevelCount(); ++level, size /= 2) {
-			const int numGroups = std::max(1, size / 32);
+		//// Pre-filter rest of the mip chain.
+		//const float deltaRoughness = 1.0f / std::max(float(envMapFiltered->GetMipLevelCount() - 1.0f), 1.0f);
+		//for (int level = 1, size = cubemapSize / 2; level < envMapFiltered->GetMipLevelCount(); ++level, size /= 2) {
+		//	const int numGroups = std::max(1, size / 32);
 
-			envMapFiltered->CreateUAV(level);
-			
-			const SpecularMapFilterSettingsCB spmapConstants = { level * deltaRoughness };
-			deviceContext->UpdateSubresource(specularMapFilterSettingsCB->GetBuffer(), 0, nullptr, &spmapConstants, 0, 0);
+		//	envMapFiltered->CreateUAV(level);
+		//	
+		//	const SpecularMapFilterSettingsCB spmapConstants = { level * deltaRoughness };
+		//	deviceContext->UpdateSubresource(specularMapFilterSettingsCB->GetBuffer(), 0, nullptr, &spmapConstants, 0, 0);
 
-			specularMapFilterSettingsCB->Bind();
-			envMapFiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-			RenderCommand::DispatchCompute(numGroups, numGroups, 6);
-		}
-		envMapFiltered->UnbindUAV();
+		//	specularMapFilterSettingsCB->Bind();
+		//	envMapFiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+		//	RenderCommand::DispatchCompute(numGroups, numGroups, 6);
+		//}
+		//envMapFiltered->UnbindUAV();
 
-		Ref<TextureCube> irradianceMap = CreateRef<TextureCube>("IrradianceMap", irradianceMapSize, irradianceMapSize, 1);
+		//Ref<TextureCube> irradianceMap = CreateRef<TextureCube>("IrradianceMap", irradianceMapSize, irradianceMapSize, 1);
 
-		if (!envIrradianceShader)
-			envIrradianceShader = CreateScope<Shader>("assets/shaders/Environment/EnvironmentIrradiance.hlsl");
+		//if (!envIrradianceShader)
+		//	envIrradianceShader = CreateScope<Shader>("assets/shaders/Environment/EnvironmentIrradiance.hlsl");
 
-		irradianceMap->CreateUAV(0);
+		//irradianceMap->CreateUAV(0);
 
-		envMapFiltered->Bind(0, D3D11_COMPUTE_SHADER);
-		irradianceMap->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-		defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
-		envIrradianceShader->Bind();
-		RenderCommand::DispatchCompute(irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6);
-		irradianceMap->UnbindUAV();
+		//envMapFiltered->Bind(0, D3D11_COMPUTE_SHADER);
+		//irradianceMap->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+		//defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+		//envIrradianceShader->Bind();
+		//RenderCommand::DispatchCompute(irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6);
+		//irradianceMap->UnbindUAV();
 
-		return { envMapFiltered, irradianceMap };
+		//return { envMapFiltered, irradianceMap };
 	}
 
 	void Renderer::GeometryPass()
@@ -541,11 +587,11 @@ namespace Toast {
 			annotation->BeginEvent(L"Geometry Pass");
 #endif
 
-		RenderCommand::SetRenderTargets({ sRendererData->GPassPositionRT->GetView().Get(), sRendererData->GPassNormalRT->GetView().Get(), sRendererData->GPassAlbedoMetallicRT->GetView().Get(), sRendererData->GPassRoughnessAORT->GetView().Get(), sRendererData->GPassPickingRT->GetView().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetRenderTargets({ sRendererData->GPassPositionRT->GetRTV().Get(), sRendererData->GPassNormalRT->GetRTV().Get(), sRendererData->GPassAlbedoMetallicRT->GetRTV().Get(), sRendererData->GPassRoughnessAORT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
 		RenderCommand::SetBlendState(sRendererData->GPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::ClearDepthStencilView(sRendererData->DepthStencilView);
-		RenderCommand::ClearRenderTargets({ sRendererData->GPassPositionRT->GetView().Get(), sRendererData->GPassNormalRT->GetView().Get(), sRendererData->GPassAlbedoMetallicRT->GetView().Get(), sRendererData->GPassRoughnessAORT->GetView().Get(), sRendererData->GPassPickingRT->GetView().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+		RenderCommand::ClearRenderTargets({ sRendererData->GPassPositionRT->GetRTV().Get(), sRendererData->GPassNormalRT->GetRTV().Get(), sRendererData->GPassAlbedoMetallicRT->GetRTV().Get(), sRendererData->GPassRoughnessAORT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
 		ShaderLibrary::Get("assets/shaders/Deffered Rendering/GeometryPass.hlsl")->Bind();
@@ -622,11 +668,11 @@ namespace Toast {
 
 		RenderCommand::SetViewport(sRendererData->ShadowMapViewport);
 		RenderCommand::SetRasterizerState(sRendererData->ShadowMapRasterizerState);
-		RenderCommand::SetRenderTargets({ sRendererData->ShadowMapRT->GetView().Get() }, sRendererData->ShadowPassStencilView);
+		RenderCommand::SetRenderTargets({ sRendererData->ShadowMapRT->GetRTV().Get() }, sRendererData->ShadowPassStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
 		RenderCommand::SetBlendState(sRendererData->GPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::ClearDepthStencilView(sRendererData->ShadowPassStencilView);
-		RenderCommand::ClearRenderTargets({ sRendererData->ShadowMapRT->GetView().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+		RenderCommand::ClearRenderTargets({ sRendererData->ShadowMapRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
 		ShaderLibrary::Get("assets/shaders/Deffered Rendering/ShadowPass.hlsl")->Bind();
@@ -669,10 +715,10 @@ namespace Toast {
 
 		RenderCommand::SetViewport(sRendererData->Viewport);
 		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
-		RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetView().Get() }, nullptr);
+		RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, nullptr);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
 		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
-		RenderCommand::ClearRenderTargets({ sRendererData->LPassRT->GetView().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+		RenderCommand::ClearRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
 		ShaderLibrary::Get("assets/shaders/Deffered Rendering/LightningPass.hlsl")->Bind();
 
@@ -727,7 +773,7 @@ namespace Toast {
 		{
 			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> defaultWhiteCubemapSRV = TextureLibrary::Get("assets/textures/WhiteCube.png")->GetSRV();
 
-			RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetView().Get() }, sRendererData->DepthStencilView);
+			RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 			RenderCommand::SetDepthStencilState(sRendererData->DepthSkyboxPassStencilState);
 			RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
@@ -763,12 +809,14 @@ namespace Toast {
 			annotation->BeginEvent(L"Atmosphere Pass");
 #endif
 
-		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetView().Get() }, nullptr);
+		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, nullptr);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
 		RenderCommand::SetBlendState(sRendererData->AtmospherePassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
+
+		int useDepth = 1;
 
 		for (const auto& meshCommand : sRendererData->MeshDrawList)
 		{
@@ -795,6 +843,7 @@ namespace Toast {
 				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunGlowIntensity, 4, 80);
 				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunEdgeSoftness, 4, 84);
 				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunGlowSize, 4, 88);
+				sRendererData->AtmosphereBuffer.Write((uint8_t*)&useDepth, 4, 92);
 
 				sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 			}
@@ -803,6 +852,37 @@ namespace Toast {
 		ShaderLibrary::Get("assets/shaders/Post Process/Atmosphere.hlsl")->Bind();
 
 		DrawFullscreenQuad();
+
+		static int currentFace = 0;// Tracks which face of the cube to render
+
+
+		if (currentFace != 3)
+		{
+			const DirectX::XMMATRIX& viewMatrix = sRendererData->AtmosphericScatteringViewMatrices[currentFace];
+			const DirectX::XMMATRIX& invViewMatrix = sRendererData->AtmosphericScatteringInvViewMatrices[currentFace];
+			DirectX::XMFLOAT4 cameraPos = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+			sRendererData->CameraBuffer.Write((uint8_t*)&viewMatrix, sizeof(viewMatrix), 0);
+			sRendererData->CameraBuffer.Write((uint8_t*)&invViewMatrix, sizeof(invViewMatrix), 128);
+			sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos, sizeof(cameraPos), 256);
+			sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
+
+			useDepth = 0;
+
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&useDepth, 4, 92);
+			sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
+
+			RenderCommand::SetRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(currentFace).Get() }, nullptr);
+
+			DrawFullscreenQuad();
+
+			RenderCommand::SetRenderTargets({ nullptr }, nullptr);
+			RenderCommand::ClearShaderResources();
+
+			GeneratePrefilteredEnvMapForFace(currentFace);
+		}
+
+		currentFace = (currentFace + 1) % 6;
 
 		RenderCommand::SetRenderTargets({ nullptr }, nullptr);
 		RenderCommand::SetDepthStencilState(nullptr);
@@ -828,8 +908,8 @@ namespace Toast {
 		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
 
 		//Tonemapping
-		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetView().Get() }, nullptr);
-		RenderCommand::ClearRenderTargets(sRendererData->FinalRT->GetView().Get(), {0.0f, 0.0f, 0.0f, 1.0f});
+		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get() }, nullptr);
+		RenderCommand::ClearRenderTargets(sRendererData->FinalRT->GetRTV().Get(), {0.0f, 0.0f, 0.0f, 1.0f});
 		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
@@ -853,5 +933,66 @@ namespace Toast {
 	Renderer::Statistics Renderer::GetStats()
 	{
 		return sData.Stats;
+	}
+
+	void Renderer::GeneratePrefilteredEnvMapForFace(int faceIndex)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		ShaderLibrary::Get("assets/shaders/Environment/EnvironmentMipFilter.hlsl")->Bind();
+
+		// Bind the atmospheric scattering cube map as input (unfiltered environment map)
+		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 14, sRendererData->AtmosphereCubeRT->GetSRV());
+
+		// Bind the sampler
+		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_COMPUTE_SHADER);
+
+		// Calculate source and destination sub resource indices
+		const uint32_t srcMipLevels = sRendererData->AtmosphereCubeRT->GetTextureOriginal()->GetMipLevelCount(); // 1
+		const uint32_t srcSubresourceIndex = D3D11CalcSubresource(0, faceIndex, srcMipLevels); // faceIndex
+
+		const uint32_t destMipLevels = sRendererData->EnvMapFiltered->GetMipLevelCount(); // 9
+		const uint32_t destSubresourceIndex = D3D11CalcSubresource(0, faceIndex, destMipLevels); // faceIndex * 9
+		
+		const uint32_t subresourceIndex = D3D11CalcSubresource(0, faceIndex, srcMipLevels);
+		// Perform the copy operation from AtmosphereCubeRT to EnvMapFiltered
+		deviceContext->CopySubresourceRegion(
+			sRendererData->EnvMapFiltered->GetResource(), destSubresourceIndex, // Destination sub resource
+			0, 0, 0, // Destination X, Y, Z
+			sRendererData->AtmosphereCubeRT->GetTextureOriginal()->GetResource(), // Source resource
+			srcSubresourceIndex, // Source sub resource index
+			nullptr // Source box
+		);
+
+		// Pre-filter the rest of the mip chain for the current face
+		const float deltaRoughness = 1.0f / std::max(float(sRendererData->EnvMapFiltered->GetMipLevelCount() - 1.0f), 1.0f);
+		const uint32_t cubemapSize = sRendererData->EnvMapFiltered->GetWidth();
+		int size = cubemapSize / 2;
+
+		for (int mipLevel = 1; mipLevel < sRendererData->EnvMapFiltered->GetMipLevelCount(); ++mipLevel, size /= 2)
+		{
+			uint32_t size = sRendererData->EnvMapFiltered->GetWidth() / (1 << mipLevel);
+			int numGroups = (std::max)(1, static_cast<int>(size / 8));
+
+			sRendererData->EnvMapFiltered->CreateUAVUpdated(mipLevel, faceIndex);
+
+			const float roughness = { mipLevel * deltaRoughness };
+			sRendererData->SpecularMapFilterSettingsBuffer.Write((uint8_t*)&roughness, sizeof(float), 0);
+			sRendererData->SpecularMapFilterSettingsBuffer.Write((uint8_t*)&faceIndex, 4, 4);
+			sRendererData->SpecularMapFilterSettingsCBuffer->Map(sRendererData->SpecularMapFilterSettingsBuffer);
+
+			// Bind the filtered environment map for writing (current face and mip level)
+			sRendererData->EnvMapFiltered->BindForReadWriteUpdated(0, D3D11_COMPUTE_SHADER, mipLevel, faceIndex);
+
+			// Dispatch compute shader for the current face and mip level
+			RenderCommand::DispatchCompute(numGroups, numGroups, 1); // Process one face at a time
+
+			// Unbind UAV for this mip level
+			sRendererData->EnvMapFiltered->UnbindUAV(0, D3D11_COMPUTE_SHADER);
+		}
+
+		// Unbind resources
+		RenderCommand::ClearShaderResources();
 	}
 }

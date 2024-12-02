@@ -107,6 +107,7 @@ namespace Toast {
 			float minAltitude = -8.2f;
 			float maxAltitude = 21.2f;
 			float gravAcc = 9.82f;
+			bool smoothShading = false;
 			float atmosphereHeight = 100.8f;
 			float mieAnisotropy = 0.0f;
 			float rayScaleHeight = 0.0f;
@@ -144,7 +145,7 @@ namespace Toast {
 		TerrainData TerrainData;
 
 		PlanetComponent() = default;
-		PlanetComponent(int16_t subdivisions, float maxAltitude, float minAltitude, float radius, float gravAcc, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient, bool sunDisc, float sunDiscRadius, float sunGlowIntensity, float sunEdgeSoftness, float sunGlowSize)
+		PlanetComponent(int16_t subdivisions, float maxAltitude, float minAltitude, float radius, float gravAcc, bool smoothShading, float atmosphereHeight, bool atmosphereToggle, int inScatteringPoints, int opticalDepthPoints, float mieAnisotropy, float rayScaleHeight, float mieScaleHeight, DirectX::XMFLOAT3 rayBaseScatteringCoefficient, float mieBaseScatteringCoefficient, bool sunDisc, float sunDiscRadius, float sunGlowIntensity, float sunEdgeSoftness, float sunGlowSize)
 			: Subdivisions(subdivisions)
 		{
 			IsDirty = false;
@@ -153,6 +154,7 @@ namespace Toast {
 			PlanetData.minAltitude = minAltitude;
 			PlanetData.radius = radius;
 			PlanetData.gravAcc = gravAcc;
+			PlanetData.smoothShading = smoothShading;
 			PlanetData.atmosphereToggle = atmosphereToggle;
 
 			PlanetData.atmosphereHeight = atmosphereHeight;
