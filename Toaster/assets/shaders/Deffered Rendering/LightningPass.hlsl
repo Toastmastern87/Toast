@@ -65,6 +65,7 @@ cbuffer Atmosphere : register(b4)
     float sunGlowIntensity;
     float sunEdgeSoftness;
     float sunGlowSize;
+    int useDepth;
 };
 
 // G-buffer Textures
@@ -300,56 +301,6 @@ PixelOutputType main(PixelInputType input)
     
     // Recalculate sun direction to view space
     float3 directionVS = normalize(mul(direction.xyz, (float3x3)viewMatrix));
-    
-    //// Shadow Map calculations
-    //// Transform World Position to Light's Clip Space
-    //float4 pixelPosLightSpace = mul(float4(worldPos, 1.0f), lightViewProj);
-    //pixelPosLightSpace /= pixelPosLightSpace.w; // Perspective divide
-    
-    //// Convert from Clip Space [-1,1] to UV Space [0,1]
-    //float2 shadowUV = pixelPosLightSpace.xy * 0.5f + 0.5f;
-    //shadowUV.y = 1.0f - shadowUV.y;
-    //float currentDepth = pixelPosLightSpace.z * 0.5f + 0.5f;
-    
-    //// Check if shadowUV is within [0,1]
-    //bool outsideShadowMap = (shadowUV.x < 0.0f || shadowUV.x > 1.0f || shadowUV.y < 0.0f || shadowUV.y > 1.0f);
-    
-    //// Initialize shadow factor
-    //float shadow = 1.0f;
-
-    //if (!outsideShadowMap)
-    //{
-    //    // PCF parameters
-    //    int samples = 4; // Adjust as needed
-    //    float2 texelSize = 1.0f / 4096.0f;
-
-    //    float shadowSum = 0.0f;
-    //    int sampleCount = 0;
-
-    //    // PCF sampling loop
-    //    for (int x = -samples / 2; x <= samples / 2; x++)
-    //    {
-    //        for (int y = -samples / 2; y <= samples / 2; y++)
-    //        {
-    //            float2 offset = float2(x, y) * texelSize;
-    //            float2 sampleUV = shadowUV + offset;
-
-    //            if (sampleUV.x >= 0.0f && sampleUV.x <= 1.0f && sampleUV.y >= 0.0f && sampleUV.y <= 1.0f)
-    //            {
-    //                float sampledDepth = ShadowDepthTexture.Sample(defaultSampler, sampleUV).r;
-
-    //                if (currentDepth <= sampledDepth || sampledDepth == 0.0f)
-    //                {
-    //                    shadowSum += 1.0f;
-    //                }
-
-    //                sampleCount++;
-    //            }
-    //        }
-    //    }
-
-    //    shadow = shadowSum / sampleCount;
-    //}
     
     // **1. Normal Offset Biasing**
     // Offset the world position along the normal to reduce self-shadowing artifacts

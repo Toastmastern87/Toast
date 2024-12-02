@@ -70,6 +70,7 @@ cbuffer Atmosphere : register(b4)
     float sunGlowIntensity;
     float sunEdgeSoftness;
     float sunGlowSize;
+    int useDepth;
 };
 
 struct PixelInputType
@@ -166,12 +167,21 @@ float3 CalculateLightScattering(float3 rayOrigin, float3 rayDir, float tEntryPoi
 
 	returnTransmittance = totalTransmittance;
 
-    float cosTheta = dot(rayDir, -direction.xyz);
+    rayDir = normalize(rayDir);
+    float3 sunDir = normalize(direction.xyz);
+    float cosTheta = dot(rayDir, -sunDir);
 	float cos2Theta = cosTheta * cosTheta;
 	float g = mieAnisotropy;
 	float g2 = g * g;
+    
+    // Compute denominator safely
+    float denominatorBase = 1.0f + g2 - 2.0f * g * cosTheta;
+    denominatorBase = max(denominatorBase, 1e-6f); // Prevent negative or zero
+    float denominator = pow(denominatorBase, 1.5f) * (2.0f + g2);
+    denominator = max(denominator, 1e-6f); // Prevent division by zero
+    
 	float rayPhase = (3.0f / (16.0f * PI)) * (1.0f + cos2Theta);
-	float miePhase = (3.0f / (8.0f * PI)) * ((1.0f - g2) * (1.0f + cos2Theta)) / (pow(1.0f + g2 - 2.0f * g * cosTheta, 1.5f) * (2.0f + g2));
+    float miePhase = (3.0f / (8.0f * PI)) * ((1.0f - g2) * (1.0f + cos2Theta)) / denominator;
 
 	//Rename multiplier to intensity
  	return multiplier * (rayPhase * rayTotalScattering + miePhase * mieTotalScattering);	                 
@@ -217,7 +227,9 @@ float3 ComputeScatteringAlongRay(float3 rayOrigin, float3 rayDir)
     }
 
     // Calculate phase functions
-    float cosTheta = dot(rayDir, -direction.xyz); // direction.xyz is the sun direction
+    rayDir = normalize(rayDir);
+    float3 sunDir = normalize(direction.xyz);
+    float cosTheta = dot(rayDir, -sunDir); // direction.xyz is the sun direction
     float cos2Theta = cosTheta * cosTheta;
     float g = mieAnisotropy;
     float g2 = g * g;
@@ -253,10 +265,18 @@ float4 main(PixelInputType input) : SV_TARGET
         sceneDepth = (1.0f - Remap(sceneDepth, far, near, 0.0f, 1.0f)) * length(worldPosPixel - rayOrigin);
 		
         float3 rayDir = normalize(worldPosPixel - rayOrigin);
-
+        
         float2 atmoHitInfo = RaySphere(planetCenter, radius + atmosphereHeight, rayOrigin, rayDir);
         float dstToAtmosphere = atmoHitInfo.x;
-        float dstThroughAtmosphere = min(atmoHitInfo.y - atmoHitInfo.x, sceneDepth - dstToAtmosphere);
+        float dstThroughAtmosphere;
+        if (useDepth == 1)
+        {
+            dstThroughAtmosphere = min(atmoHitInfo.y - atmoHitInfo.x, sceneDepth - dstToAtmosphere);
+        }
+        else
+        {
+            dstThroughAtmosphere = atmoHitInfo.y - atmoHitInfo.x;
+        }
 
 		// Initialize contributions
         float3 scatteringColor = 0.0f;
@@ -329,9 +349,9 @@ float4 main(PixelInputType input) : SV_TARGET
 
 		// Combine with original color and atmospheric transmittance
         float4 finalColor = (originalColor * float4(transmittance, 1.0f)) + float4(scatteringColor + sunColor, 0.0f);
+ 
         
-        return finalColor;
-		
+        return finalColor;	
     }
 	
     return originalColor;

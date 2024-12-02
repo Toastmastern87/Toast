@@ -24,7 +24,25 @@ namespace Toast {
 
 		HRESULT result;
 
-		if (type == RenderTargetType::Color && !mSwapChainTarget)
+		if (type == RenderTargetType::ColorCube)
+		{
+			mTexture = CreateScope<TextureCube>((DXGI_FORMAT)format, (DXGI_FORMAT)format, width, height, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE), samples);
+
+			// Create render target views for each face
+			for (int i = 0; i < 6; ++i)
+			{
+				D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+				rtvDesc.Format = (DXGI_FORMAT)format;
+				rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+				rtvDesc.Texture2DArray.MipSlice = 0;
+				rtvDesc.Texture2DArray.FirstArraySlice = i;
+				rtvDesc.Texture2DArray.ArraySize = 1;
+
+				result = device->CreateRenderTargetView(mTexture->GetTexture().Get(), &rtvDesc, &mRTVArray[i]);
+				TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create render target view for cube face!");
+			}
+		}
+		else if (type == RenderTargetType::Color && !mSwapChainTarget)
 		{
 			mTexture = CreateScope<Texture2D>((DXGI_FORMAT)format, (DXGI_FORMAT)format, width, height, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE), samples);
 
@@ -103,9 +121,16 @@ namespace Toast {
 		Init(mType, width, height, mSamples, mFormat);
 	}
 
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RenderTarget::GetView()
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RenderTarget::GetRTV()
 	{
 		return mRTV;
+	}
+
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> RenderTarget::GetRTVFace(uint32_t faceIndex)
+	{
+		TOAST_CORE_ASSERT(mType == RenderTargetType::ColorCube, "Not a cube render target!");
+		TOAST_CORE_ASSERT(faceIndex < 6, "Invalid RTV face index!");
+		return mRTVArray[faceIndex];
 	}
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> RenderTarget::GetSRV()

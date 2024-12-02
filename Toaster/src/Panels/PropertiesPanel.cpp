@@ -850,6 +850,13 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Smooth Shading)");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::Checkbox("##smoothShading", &component.PlanetData.smoothShading);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Atmosphere)");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);

@@ -198,12 +198,12 @@ namespace Toast {
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
 	TextureCube::TextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels)
-		: mFilePath(filePath), mWidth(width), mHeight(height)
+		: mFilePath(filePath), mWidth(width), mHeight(height), mMipLevels(levels)
 	{
 		TOAST_PROFILE_FUNCTION();
 		D3D11_TEXTURE2D_DESC textureDesc = {};
 
-		mLevels = (levels > 0) ? levels : CalculateMipMapCount(width, height);
+		mFormat = DXGI_FORMAT_R16G16B16A16_FLOAT;
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
@@ -211,7 +211,7 @@ namespace Toast {
 		textureDesc.Height = mHeight;
 		textureDesc.MipLevels = levels;
 		textureDesc.ArraySize = 6;
-		textureDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+		textureDesc.Format = mFormat;
 		textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		textureDesc.SampleDesc.Count = 1;
 		textureDesc.SampleDesc.Quality = 0;
@@ -229,6 +229,29 @@ namespace Toast {
 		CreateSRV();
 
 		mSRV->GetResource(&mResource);
+
+		// Initialize UAVs: Resize to [6][mMipLevels] and initialize with nullptr
+		mUAVs.resize(6, std::vector<Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView>>(mMipLevels, nullptr));
+
+		// Create UAVs for each face and mip level
+		for (uint32_t face = 0; face < 6; ++face)
+		{
+			for (uint32_t mip = 0; mip < mMipLevels; ++mip)
+			{
+				D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+				uavDesc.Format = mFormat;
+				uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
+				uavDesc.Texture2DArray.MipSlice = mip;
+				uavDesc.Texture2DArray.FirstArraySlice = face;
+				uavDesc.Texture2DArray.ArraySize = 1;
+
+				Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> uav;
+				result = device->CreateUnorderedAccessView(mTexture.Get(), &uavDesc, &uav);
+				assert(SUCCEEDED(result) && "Unable to create UAV for TextureCube!");
+
+				mUAVs[face][mip] = uav;
+			}
+		}
 	}
 
 	TextureCube::TextureCube()
@@ -269,9 +292,36 @@ namespace Toast {
 		mSRV->GetResource(&mResource);
 	}
 
-	const uint32_t TextureCube::GetMipLevelCount() const
+	TextureCube::TextureCube(DXGI_FORMAT format, DXGI_FORMAT srvFormat, uint32_t width, uint32_t height, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags, uint32_t mipLevels)
+		: mFormat(format), mWidth(width), mHeight(height), mMipLevels(mipLevels)
 	{
-		return Texture::CalculateMipMapCount(mWidth, mHeight);
+		D3D11_TEXTURE2D_DESC textureDesc = {};
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+		textureDesc.Width = width;
+		textureDesc.Height = height;
+		textureDesc.MipLevels = 1;
+		textureDesc.ArraySize = 6;
+		textureDesc.Format = (DXGI_FORMAT)format;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.Usage = usage;
+		textureDesc.BindFlags = bindFlag;
+		textureDesc.CPUAccessFlags = cpuAccessFlags;
+		textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+
+		HRESULT result = device->CreateTexture2D(&textureDesc, nullptr, &mTexture);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
+
+		CreateSRV();
+
+		mSRV->GetResource(&mResource);
+	}
+
+	const uint32_t TextureCube::GetMipLevelCount() const
+	{ 
+		return mMipLevels;
 	}
 
 	void TextureCube::SetData(void* data, uint32_t size)
@@ -309,6 +359,29 @@ namespace Toast {
 		}
 	}
 
+	void TextureCube::BindForReadWriteUpdated(uint32_t bindSlot, D3D11_SHADER_TYPE shaderType, uint32_t mipLevel, uint32_t faceIndex) const
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		if (faceIndex >= mUAVs.size() || mipLevel >= mUAVs[0].size())
+			return;
+
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> uav = mUAVs[faceIndex][mipLevel];
+		if (!uav)
+			return;
+
+		switch (shaderType)
+		{
+		case D3D11_COMPUTE_SHADER:
+			deviceContext->CSSetUnorderedAccessViews(bindSlot, 1, uav.GetAddressOf(), nullptr);
+			break;
+			// Handle other shader types if necessary
+		default:
+			break;
+		}
+	}
+
 	void TextureCube::UnbindUAV(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
@@ -318,6 +391,23 @@ namespace Toast {
 		{
 		case D3D11_COMPUTE_SHADER:
 			deviceContext->CSSetUnorderedAccessViews(bindslot, 1, mNullUAV.GetAddressOf(), nullptr);
+		}
+	}
+
+	void TextureCube::UnbindUAVUpdated(uint32_t bindSlot, D3D11_SHADER_TYPE shaderType) const
+	{
+		ID3D11UnorderedAccessView* nullUAV = nullptr;
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		switch (shaderType)
+		{
+		case D3D11_COMPUTE_SHADER:
+			deviceContext->CSSetUnorderedAccessViews(bindSlot, 1, &nullUAV, nullptr);
+			break;
+			// Handle other shader types if necessary
+		default:
+			break;
 		}
 	}
 
@@ -356,6 +446,36 @@ namespace Toast {
 
 		HRESULT result = device->CreateUnorderedAccessView(mTexture.Get(), &uavDesc, &mUAV);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the UAV!");
+	}
+
+	void TextureCube::CreateUAVUpdated(uint32_t mipLevel, uint32_t faceIndex)
+	{
+		// Ensure mipLevel and faceIndex are within valid ranges
+		if (faceIndex >= 6)
+			return;
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		// Describe the UAV
+		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+		uavDesc.Format = mFormat;
+		uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
+		uavDesc.Texture2DArray.MipSlice = mipLevel;
+		uavDesc.Texture2DArray.FirstArraySlice = faceIndex;
+		uavDesc.Texture2DArray.ArraySize = 1;
+
+		// Create the UAV
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> uav;
+		HRESULT hr = device->CreateUnorderedAccessView(mTexture.Get(), &uavDesc, &uav);
+		if (SUCCEEDED(hr))
+		{
+			// Store UAVs in a 2D vector [face][mip]
+			if (mUAVs.size() < 6)
+				mUAVs.resize(6, std::vector<Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView>>(mMipLevels, nullptr));
+
+			mUAVs[faceIndex][mipLevel] = uav;
+		}
 	}
 
 	void TextureCube::GenerateMips() const

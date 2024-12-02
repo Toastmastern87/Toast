@@ -67,6 +67,7 @@ cbuffer Atmosphere : register(b4)
     float sunGlowIntensity;
     float sunEdgeSoftness;
     float sunGlowSize;
+    int useDepth;
 };
 
 cbuffer Environment : register(b6)

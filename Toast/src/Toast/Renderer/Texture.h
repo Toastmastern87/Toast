@@ -25,10 +25,13 @@ namespace Toast {
 		virtual const std::string GetFilePath() const = 0;
 		virtual void* GetID() const = 0;
 		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const = 0;
+		virtual Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() const = 0;
 		virtual const uint32_t GetMipLevelCount() const = 0;
 
 		static uint32_t CalculateMipMapCount(uint32_t width, uint32_t height);
 		virtual void GenerateMips() const = 0;
+
+		virtual ID3D11Resource* GetResource() const = 0;
 
 		virtual bool operator==(const Texture& other) const = 0;
 	};
@@ -59,12 +62,14 @@ namespace Toast {
 
 		virtual void GenerateMips() const override;
 
+		virtual ID3D11Resource* GetResource() const override { return mResource.Get(); }
+
 		virtual bool operator==(const Texture& other) const override
 		{
 			return mSRV == ((Texture2D&)other).mSRV;
 		};
 
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() { return mTexture; }
+		virtual Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() const override { return mTexture; }
 	private:
 		std::string mFilePath = "";
 		uint32_t mWidth, mHeight;
@@ -82,7 +87,8 @@ namespace Toast {
 	class TextureCube : public Texture
 	{
 	public:
-		TextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels = 0);
+		TextureCube(DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT srvFormat = DXGI_FORMAT_UNKNOWN, uint32_t width = 1, uint32_t height = 1, D3D11_USAGE usage = D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG bindFlag = (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), uint32_t samples = 1, UINT cpuAccessFlags = 0, uint32_t mipLevels = 1);
+		TextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t mipLevels = 0);
 		TextureCube();
 		~TextureCube() = default;
 
@@ -97,12 +103,15 @@ namespace Toast {
 		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const override { return mSRV; }
 		virtual const uint32_t GetMipLevelCount() const override;
 
-		ID3D11Resource* GetResource() const { return mResource.Get(); }
+		virtual ID3D11Resource* GetResource() const override { return mResource.Get(); }
 		void SetData(void* data, uint32_t size);
 
 		void BindForReadWrite(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_COMPUTE_SHADER) const;
+		void BindForReadWriteUpdated(uint32_t bindSlot, D3D11_SHADER_TYPE shaderType, uint32_t mipLevel, uint32_t faceIndex) const;
 		void UnbindUAV(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_COMPUTE_SHADER) const;
+		void UnbindUAVUpdated(uint32_t bindSlot, D3D11_SHADER_TYPE shaderType) const;
 		void CreateUAV(uint32_t mipSlice);
+		void CreateUAVUpdated(uint32_t mipLevel, uint32_t faceIndex);
 
 		virtual void GenerateMips() const override;
 
@@ -110,13 +119,19 @@ namespace Toast {
 		{
 			return mSRV == ((TextureCube&)other).mSRV;
 		};
+
+		virtual Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() const override { return mTexture; }
 	private:
 		std::string mFilePath = "";
-		uint32_t mWidth, mHeight, mLevels;
+		uint32_t mWidth, mHeight, mMipLevels;
+		DXGI_FORMAT mFormat;
 
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> mTexture;
 		Microsoft::WRL::ComPtr<ID3D11Resource> mResource;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mSRV;
+
+		std::vector<std::vector<Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView>>> mUAVs; // [face][mip]
+
 		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mUAV;
 		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mNullUAV = { nullptr };
 	};

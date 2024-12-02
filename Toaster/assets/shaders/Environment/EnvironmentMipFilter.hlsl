@@ -18,10 +18,12 @@ cbuffer SpecularMapFilterSettings : register(b5)
 {
 	// Roughness value to pre-filter for.
 	float roughness;
+    uint faceIndex;
 };
 
-TextureCube inputTexture : register(t0);
-RWTexture2DArray<float4> outputTexture : register(u0);
+TextureCube inputTexture				: register(t14);
+
+RWTexture2DArray<float4> outputTexture	: register(u0);
 
 SamplerState defaultSampler : register(s0);
 
@@ -72,18 +74,15 @@ float ndfGGX(float cosLh, float roughness)
 // Calculate normalized sampling direction vector based on current fragment coordinates.
 // This is essentially "inverse-sampling": we reconstruct what the sampling vector would be if we wanted it to "hit"
 // this particular fragment in a cubemap.
-float3 getSamplingVector(uint3 ThreadID)
+float3 getSamplingVector(uint2 coord, int faceIndex, float outputWidth, float outputHeight)
 {
-	float outputWidth, outputHeight, outputDepth;
-	outputTexture.GetDimensions(outputWidth, outputHeight, outputDepth);
-
-	float2 st = ThreadID.xy / float2(outputWidth, outputHeight);
-	float2 uv = 2.0 * float2(st.x, 1.0 - st.y) - 1.0;
+    float2 st = coord / float2(outputWidth, outputHeight);
+    float2 uv = 2.0 * float2(st.x, 1.0 - st.y) - 1.0;
 
 	// Select vector based on cubemap face index.
 	float3 ret;
-	switch (ThreadID.z)
-	{
+    switch (faceIndex)
+    {
 	case 0: ret = float3(1.0, uv.y, -uv.x); break;
 	case 1: ret = float3(-1.0, uv.y, uv.x); break;
 	case 2: ret = float3(uv.x, 1.0, -uv.y); break;
@@ -111,7 +110,7 @@ float3 tangentToWorld(const float3 v, const float3 N, const float3 S, const floa
 	return S * v.x + T * v.y + N * v.z;
 }
 
-[numthreads(32, 32, 1)]
+[numthreads(8, 8, 1)]
 void main(uint3 ThreadID : SV_DispatchThreadID)
 {
 	// Make sure we won't write past output when computing higher mipmap levels.
@@ -121,6 +120,9 @@ void main(uint3 ThreadID : SV_DispatchThreadID)
 		return;
 	}
 
+    uint2 coord = ThreadID.xy;
+    int face = faceIndex;
+	
 	// Get input cubemap dimensions at zero mipmap level.
 	float inputWidth, inputHeight, inputLevels;
 	inputTexture.GetDimensions(0, inputWidth, inputHeight, inputLevels);
@@ -130,8 +132,7 @@ void main(uint3 ThreadID : SV_DispatchThreadID)
 	float wt = 4.0 * PI / (6 * inputWidth * inputHeight);
 
 	// Approximation: Assume zero viewing angle (isotropic reflections).
-	float3 N = getSamplingVector(ThreadID);
-	float3 Lo = N;
+    float3 N = getSamplingVector(coord, face, outputWidth, outputHeight);
 
 	float3 S, T;
 	computeBasisVectors(N, S, T);
@@ -146,7 +147,7 @@ void main(uint3 ThreadID : SV_DispatchThreadID)
 		float3 Lh = tangentToWorld(sampleGGX(u.x, u.y, roughness), N, S, T);
 
 		// Compute incident direction (Li) by reflecting viewing direction (Lo) around half-vector (Lh).
-		float3 Li = 2.0 * dot(Lo, Lh) * Lh - Lo;
+		float3 Li = 2.0 * dot(N, Lh) * Lh - N;
 
 		float cosLi = dot(N, Li);
 		if (cosLi > 0.0) {
@@ -171,5 +172,5 @@ void main(uint3 ThreadID : SV_DispatchThreadID)
 	}
 	color /= weight;
 
-	outputTexture[ThreadID] = float4(color, 1.0);
+    outputTexture[uint3(coord.x, coord.y, face)] = float4(color, 1.0);
 }
