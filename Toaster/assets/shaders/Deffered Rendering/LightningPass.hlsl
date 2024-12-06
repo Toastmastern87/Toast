@@ -22,7 +22,7 @@ PixelInputType main(uint vID : SV_VertexID)
 #type pixel
 #pragma pack_matrix( row_major )
 
-static const float3 Fdielectric = 0.04f;
+static const float3 Fdielectric = float3(0.04f, 0.04f, 0.04f);
 static const float Epsilon = 0.00001f;
 static const float PI = 3.141592f;
 
@@ -211,7 +211,7 @@ uint queryRadianceTextureLevels()
     return levels;
 }
 
-float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, float3 albedo, float roughness, float metalness, float3 sunDir)
+float3 DirectionalLightning(float3 F0, float3 NormalWorldSpace, float3 View, float NdotV, float3 albedo, float roughness, float metalness, float3 sunDir)
 {   
     float3 result = float3(0.0f, 0.0f, 0.0f);
 
@@ -220,8 +220,8 @@ float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, 
     float3 Lh = normalize(Li + View);
 
 	// Calculate angles between surface normal and various light vectors.
-    float cosLi = max(0.0f, dot(Normal, Li));
-    float cosLh = max(0.0f, dot(Normal, Lh));
+    float cosLi = max(0.0f, dot(NormalWorldSpace, Li));
+    float cosLh = max(0.0f, dot(NormalWorldSpace, Lh));
 
     float3 F = fresnelSchlick(F0, max(0.0f, dot(Lh, View)));
     float D = ndfGGX(cosLh, roughness);
@@ -238,22 +238,26 @@ float3 DirectionalLightning(float3 F0, float3 Normal, float3 View, float NdotV, 
     return result;
 }
 
-float3 IBL(float3 F0, float3 Lr, float3 Normal, float3 View, float NdotV, float3 albedo, float roughness, float metalness, float cosLo)
+float3 IBL(float3 F0, float3 Lr, float3 NormalWorldSpace, float3 albedo, float roughness, float metalness, float NdotV)
 {
-    float3 irradiance = IrradianceTexture.Sample(defaultSampler, Normal).rgb;
-    float3 F = fresnelSchlick(F0, cosLo);
-    float3 kd = lerp(float3(1.0f - F), float3(0.0f, 0.0f, 0.0f), (1.0f - metalness));
+    float3 irradiance = IrradianceTexture.Sample(spBRDFSampler, NormalWorldSpace).rgb;
+
+    // Correct Fresnel term using NdotV
+    float3 F = fresnelSchlickRoughness(F0, NdotV, roughness);
+
+    // Correct kd calculation
+    float3 kd = (1.0f - F) * (1.0f - metalness);
     float3 diffuseIBL = kd * albedo * irradiance;
 
     uint specularTextureLevels = queryRadianceTextureLevels();
-	//float NoV = clamp(NdotV, 0.0f, 1.0f);
-	//float3 R = 2.0f * dot(View, Normal) * Normal - View;
-    float3 specularIrradiance = RadianceTexture.SampleLevel(defaultSampler, Lr, roughness * specularTextureLevels).rgb;
+    float mipLevel = roughness * (float) (specularTextureLevels - 1);
+    float3 specularIrradiance = RadianceTexture.SampleLevel(spBRDFSampler, Lr, mipLevel).rgb;
 
-    float2 specularBRDF = SpecularBRDFLUT.Sample(spBRDFSampler, float2(cosLo, roughness)).rg;
-    float3 specularIBL = specularIrradiance * (F0 * specularBRDF.x + specularBRDF.y);
+    // Use NdotV in BRDF LUT sampling
+    float2 specularBRDF = SpecularBRDFLUT.Sample(spBRDFSampler, float2(NdotV, roughness)).rg;
+    float3 specularIBL = specularIrradiance * (F * specularBRDF.x + specularBRDF.y);
 
-    return diffuseIBL + specularIBL;
+    return specularIBL + diffuseIBL;
 }
 
 struct PixelOutputType
@@ -284,6 +288,9 @@ PixelOutputType main(PixelInputType input)
     float4 positionWorld = mul(float4(position, 1.0f), inverseViewMatrix);
     float3 worldPos = positionWorld.xyz / positionWorld.w;
     
+    // Reconstruct World Normal from View Space
+    float3 normalWorld = normalize(mul(normal, (float3x3) inverseViewMatrix));
+    
     // Metalness and Roughness
     float metalness = albedoMetallicTexture.Sample(defaultSampler, uv).a;
     float roughness = roughnessAOTexture.Sample(defaultSampler, uv).r;
@@ -294,7 +301,8 @@ PixelOutputType main(PixelInputType input)
     
     // In View Space, the camera is at the origin (0, 0, 0)
     float3 V = normalize(-position); 
-    float NdotV = max(dot(normal, V), 0.0f);
+    float3 VWorld = normalize(cameraPosition.xyz - worldPos);
+    float NdotV = max(dot(normalWorld, VWorld), 0.05f);
     
     // Fresnel reflectance at normal incidence (for metals use albedo color).
     float3 F0 = lerp(Fdielectric, albedo, metalness);
@@ -328,8 +336,8 @@ PixelOutputType main(PixelInputType input)
         // Calculate bias based on normal and light direction to reduce self-shadowing
         float biasMultiplier = 0.5f; // Adjust based on your scene's scale
         float minBias = 0.1f; // Minimum bias to prevent bias from being too small
-        float3 Li = normalize(-directionVS);
-        float bias = max(biasMultiplier * (1.0f - dot(normal, Li)), minBias);
+        float3 Li = normalize(-direction.xyz);
+        float bias = max(biasMultiplier * (1.0f - dot(normalWorld, Li)), minBias);
 
         // **3. Optimized Percentage Closer Filtering (PCF)**
         int samples = 4; // 4x4 samples for a balance between quality and performance
@@ -367,15 +375,18 @@ PixelOutputType main(PixelInputType input)
     }
     
     // Directional Light Contribution
-    float3 lightContribution = DirectionalLightning(F0, normal, V, NdotV, albedo, roughness, metalness, directionVS) * shadow;
+    float3 lightContribution = DirectionalLightning(F0, normalWorld, VWorld, NdotV, albedo, roughness, metalness, direction.xyz) * shadow;
     
     // IBL Contribution
-    float3 Lr = reflect(V, normal);
-    float3 iblContribution = IBL(F0, Lr, normal, V, NdotV, albedo, roughness, metalness, NdotV);
+    float3 Lr = reflect(VWorld, normalWorld);
+    float3 iblContribution = IBL(F0, Lr, normalWorld, albedo, roughness, metalness, NdotV);
     
-    float3 ambient = float3(0.005f, 0.005f, 0.005f);
+    float3 ambient = float3(0.009f, 0.009f, 0.009f);
 
-    output.color = float4((ambient + lightContribution + iblContribution) * ao, 1.0f);
+    float3 finalShading = float4((ambient + lightContribution + iblContribution) * ao, 1.0f);
 
+    // Output the final color
+    output.color = float4(finalShading, 1.0f);
+    
     return output;
 }

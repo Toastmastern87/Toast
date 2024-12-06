@@ -429,7 +429,7 @@ namespace Toast {
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the SRV!");
 	}
 
-	void TextureCube::CreateUAV(uint32_t mipSlice)
+	void TextureCube::CreateUAV(uint32_t mipLevel)
 	{
 		D3D11_TEXTURE2D_DESC desc = {};
 		mTexture->GetDesc(&desc);
@@ -440,7 +440,7 @@ namespace Toast {
 		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
 		uavDesc.Format = desc.Format;
 		uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
-		uavDesc.Texture2DArray.MipSlice = mipSlice;
+		uavDesc.Texture2DArray.MipSlice = mipLevel;
 		uavDesc.Texture2DArray.FirstArraySlice = 0;
 		uavDesc.Texture2DArray.ArraySize = 6;
 

@@ -110,10 +110,16 @@ namespace Toast {
 		sRendererData->AtmosphereCubeRT = CreateRef<RenderTarget>(RenderTargetType::ColorCube, 256, 256, 1, TextureFormat::R16G16B16A16_FLOAT);
 		// Setting -Y led to the black since nothing should reflect. 
 		// TODO this should most likely be dynamic in the future depending on which color the surface is. It is gray during the night but orange during the day.
-		RenderCommand::ClearRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(3).Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+		RenderCommand::ClearRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(0).Get() }, { 0.0f, 0.0f, 0.0f, 0.0f });
+		RenderCommand::ClearRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(1).Get() }, { 0.0f, 0.0f, 0.0f, 0.0f });
+		RenderCommand::ClearRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(2).Get() }, { 0.0f, 0.0f, 0.0f, 0.0f });
+		RenderCommand::ClearRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(3).Get() }, { 0.0f, 0.0f, 0.0f, 0.0f });
+		RenderCommand::ClearRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(4).Get() }, { 0.0f, 0.0f, 0.0f, 0.0f });
+		RenderCommand::ClearRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(5).Get() }, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 		// Setting up dynamic environmental maps 
 		sRendererData->EnvMapFiltered = CreateRef<TextureCube>("EnvMapFiltered", 256, 256, 9);
+		sRendererData->IrradianceCubeMap = CreateRef<TextureCube>("IrradianceCubemap", 256, 256, 1);
 
 		CreateRasterizerStates();
 		CreateDepthBuffer(width, height);
@@ -189,6 +195,7 @@ namespace Toast {
 		sRendererData->SceneData.SceneEnvironment = scene->mEnvironment;
 		sRendererData->SceneData.SceneEnvironmentIntensity = scene->mEnvironmentIntensity;
 
+		// TODO: These one could most likely be removed 
 		if (sRendererData->SceneData.SceneEnvironment.IrradianceMap)
 			sRendererData->SceneData.SceneEnvironment.IrradianceMap->Bind(0, D3D11_PIXEL_SHADER);
 
@@ -496,32 +503,32 @@ namespace Toast {
 
 	static Scope<Shader> equirectangularConversionShader, envFilteringShader, envIrradianceShader;
 
-	void Renderer::CreateEnvironmentMap(const std::string& filepath)
+	Ref<TextureCube> Renderer::CreateEnvironmentMap(const std::string& filepath)
 	{
-		//RendererAPI* API = RenderCommand::sRendererAPI.get();
-		//ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		//const uint32_t cubemapSize = 2048;
-		//const uint32_t irradianceMapSize = 64;
+		const uint32_t cubemapSize = 2048;
+		const uint32_t irradianceMapSize = 64;
 
-		//Ref<ConstantBuffer> specularMapFilterSettingsCB = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SpecularLightEnvironmental) }, D3D11_USAGE_DEFAULT);
+		Ref<ConstantBuffer> specularMapFilterSettingsCB = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SpecularLightEnvironmental) }, D3D11_USAGE_DEFAULT);
 
-		//Ref<Texture2D> starMap = CreateRef<Texture2D>(filepath);
-		//TextureSampler* defaultSampler = TextureLibrary::GetSampler("Default");
-		//Ref<TextureCube> envMapUnfiltered = CreateRef<TextureCube>("EnvMapUnfiltered", cubemapSize, cubemapSize);
+		Ref<Texture2D> starMap = CreateRef<Texture2D>(filepath);
+		TextureSampler* defaultSampler = TextureLibrary::GetSampler("Default");
+		Ref<TextureCube> envMapUnfiltered = CreateRef<TextureCube>("EnvMapUnfiltered", cubemapSize, cubemapSize);
 		//Ref<TextureCube> envMapFiltered = CreateRef<TextureCube>("EnvMapFiltered", cubemapSize, cubemapSize);
 
-		//envMapUnfiltered->CreateUAV(0);
+		envMapUnfiltered->CreateUAV(0);
 
-		//if (!equirectangularConversionShader)
-		//	equirectangularConversionShader = CreateScope<Shader>("assets/shaders/Environment/EquirectangularToCubeMap.hlsl");
+		if (!equirectangularConversionShader)
+			equirectangularConversionShader = CreateScope<Shader>("assets/shaders/Environment/EquirectangularToCubeMap.hlsl");
 
-		//equirectangularConversionShader->Bind();
-		//starMap->Bind();
-		//defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
-		//envMapUnfiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-		//RenderCommand::DispatchCompute(cubemapSize / 32, cubemapSize / 32, 6);
-		//envMapUnfiltered->UnbindUAV();
+		equirectangularConversionShader->Bind();
+		starMap->Bind();
+		defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+		envMapUnfiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+		RenderCommand::DispatchCompute(cubemapSize / 32, cubemapSize / 32, 6);
+		envMapUnfiltered->UnbindUAV();
 
 		//envMapUnfiltered->GenerateMips();
 
@@ -573,7 +580,7 @@ namespace Toast {
 		//RenderCommand::DispatchCompute(irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6);
 		//irradianceMap->UnbindUAV();
 
-		//return { envMapFiltered, irradianceMap };
+		return envMapUnfiltered;
 	}
 
 	void Renderer::GeometryPass()
@@ -710,7 +717,6 @@ namespace Toast {
 			annotation->BeginEvent(L"Lightning Pass");
 #endif
 
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> defaultWhiteCubemapSRV = TextureLibrary::Get("assets/textures/WhiteCube.png")->GetSRV();
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> defaultWhite2DSRV = TextureLibrary::Get("assets/textures/White.png")->GetSRV();
 
 		RenderCommand::SetViewport(sRendererData->Viewport);
@@ -728,15 +734,8 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->GPassRoughnessAORT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 12, sRendererData->ShadowPassDepth->GetSRV());
 
-		if (sRendererData->SceneData.SceneEnvironment.IrradianceMap)
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->SceneData.SceneEnvironment.IrradianceMap->GetSRV());
-		else
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, defaultWhiteCubemapSRV);
-
-		if (sRendererData->SceneData.SceneEnvironment.RadianceMap)
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->SceneData.SceneEnvironment.RadianceMap->GetSRV());
-		else
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, defaultWhiteCubemapSRV);
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->IrradianceCubeMap->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->EnvMapFiltered->GetSRV());
 
 		if (sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT)
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT->GetSRV());
@@ -771,16 +770,11 @@ namespace Toast {
 
 		if (sRendererData->SceneData.SceneEnvironment.RadianceMap)
 		{
-			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> defaultWhiteCubemapSRV = TextureLibrary::Get("assets/textures/WhiteCube.png")->GetSRV();
-
 			RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 			RenderCommand::SetDepthStencilState(sRendererData->DepthSkyboxPassStencilState);
 			RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
-			if (sRendererData->SceneData.SceneEnvironment.RadianceMap)
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->SceneData.SceneEnvironment.RadianceMap->GetSRV());
-			else
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, defaultWhiteCubemapSRV);
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->SceneData.SceneEnvironment.RadianceMap->GetSRV());
 
 			ShaderLibrary::Get("assets/shaders/Post Process/Skybox.hlsl")->Bind();
 
@@ -855,8 +849,7 @@ namespace Toast {
 
 		static int currentFace = 0;// Tracks which face of the cube to render
 
-
-		if (currentFace != 3)
+		if (sRendererData->SceneData.SceneEnvironment.RadianceMap)
 		{
 			const DirectX::XMMATRIX& viewMatrix = sRendererData->AtmosphericScatteringViewMatrices[currentFace];
 			const DirectX::XMMATRIX& invViewMatrix = sRendererData->AtmosphericScatteringInvViewMatrices[currentFace];
@@ -879,7 +872,9 @@ namespace Toast {
 			RenderCommand::SetRenderTargets({ nullptr }, nullptr);
 			RenderCommand::ClearShaderResources();
 
-			GeneratePrefilteredEnvMapForFace(currentFace);
+			GeneratePrefilteredEnvMap(currentFace);
+
+			GenerateIrradianceCubemap(currentFace);
 		}
 
 		currentFace = (currentFace + 1) % 6;
@@ -887,6 +882,7 @@ namespace Toast {
 		RenderCommand::SetRenderTargets({ nullptr }, nullptr);
 		RenderCommand::SetDepthStencilState(nullptr);
 		RenderCommand::SetBlendState(nullptr);
+
 		RenderCommand::ClearShaderResources();
 
 #ifdef TOAST_DEBUG
@@ -935,7 +931,7 @@ namespace Toast {
 		return sData.Stats;
 	}
 
-	void Renderer::GeneratePrefilteredEnvMapForFace(int faceIndex)
+	void Renderer::GeneratePrefilteredEnvMap(int faceIndex)
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
@@ -995,4 +991,30 @@ namespace Toast {
 		// Unbind resources
 		RenderCommand::ClearShaderResources();
 	}
+
+	void Renderer::GenerateIrradianceCubemap(int faceIndex)
+	{
+		ShaderLibrary::Get("assets/shaders/Environment/EnvironmentIrradiance.hlsl")->Bind();
+
+		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 15, sRendererData->EnvMapFiltered->GetSRV());
+
+		sRendererData->IrradianceCubeMap->CreateUAVUpdated(0, faceIndex);
+
+		sRendererData->IrradianceCubeMap->BindForReadWriteUpdated(0, D3D11_COMPUTE_SHADER, 0, faceIndex);
+
+		// Determine dispatch dimensions
+		uint32_t textureDepth;
+		uint32_t textureWidth = sRendererData->IrradianceCubeMap->GetWidth(); 
+		uint32_t textureHeight = sRendererData->IrradianceCubeMap->GetHeight();
+
+		uint32_t dispatchX = (textureWidth + 31) / 32;
+		uint32_t dispatchY = (textureHeight + 31) / 32;
+
+		RenderCommand::DispatchCompute(dispatchX, dispatchY, 1); 
+
+		RenderCommand::ClearShaderResources();
+
+		sRendererData->IrradianceCubeMap->UnbindUAVUpdated(0, D3D11_COMPUTE_SHADER);
+	}
+
 }
