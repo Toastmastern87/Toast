@@ -4,7 +4,6 @@
 #include "Toast/Renderer/OrthographicCamera.h"
 #include "Toast/Renderer/Mesh.h"
 #include "Toast/Renderer/SceneEnvironment.h"
-#include "Toast/Renderer/Framebuffer.h"
 #include "Toast/Renderer/RenderTarget.h"
 
 #include "Toast/Scene/Scene.h"
@@ -80,7 +79,7 @@ namespace Toast {
 			Ref<RenderTarget> AtmosphereCubeRT;
 
 			// Environmental Textures
-			Ref<TextureCube> EnvMapFiltered;
+			Ref<TextureCube> EnvMapFiltered, IrradianceCubeMap;
 
 			// Post Process
 			Ref<RenderTarget> FinalRT;
@@ -129,7 +128,7 @@ namespace Toast {
 
 		static void ClearDrawList();
 
-		static void CreateEnvironmentMap(const std::string& filepath);
+		static Ref<TextureCube> CreateEnvironmentMap(const std::string& filepath);
 
 		// Deffered Rendering
 		static void GeometryPass();
@@ -166,7 +165,8 @@ namespace Toast {
 		static Statistics GetStats();
 		static void ResetStats();
 
-		static void GeneratePrefilteredEnvMapForFace(int faceIndex);
+		static void GeneratePrefilteredEnvMap(int faceIndex);
+		static void GenerateIrradianceCubemap(int faceIndex);
 
 	};
 }

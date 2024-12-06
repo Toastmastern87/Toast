@@ -110,7 +110,7 @@ namespace Toast {
 		void BindForReadWriteUpdated(uint32_t bindSlot, D3D11_SHADER_TYPE shaderType, uint32_t mipLevel, uint32_t faceIndex) const;
 		void UnbindUAV(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_COMPUTE_SHADER) const;
 		void UnbindUAVUpdated(uint32_t bindSlot, D3D11_SHADER_TYPE shaderType) const;
-		void CreateUAV(uint32_t mipSlice);
+		void CreateUAV(uint32_t mipLevel);
 		void CreateUAVUpdated(uint32_t mipLevel, uint32_t faceIndex);
 
 		virtual void GenerateMips() const override;

@@ -12,10 +12,18 @@ static const float TwoPI = 2 * PI;
 static const float Epsilon = 0.00001;
 
 //static const uint NumSamples = 64 * 1024;
-static const uint NumSamples = 1024;
+static const uint NumSamples = 512;
 static const float InvNumSamples = 1.0 / float(NumSamples);
 
-TextureCube inputTexture : register(t0);
+cbuffer SpecularMapFilterSettings : register(b5)
+{
+	// Roughness value to pre-filter for.
+    float roughness;
+    uint faceIndex;
+};
+
+TextureCube inputTexture : register(t15);
+
 RWTexture2DArray<float4> outputTexture : register(u0);
 
 SamplerState defaultSampler : register(s0);
@@ -53,24 +61,25 @@ float3 sampleHemisphere(float u1, float u2)
 // this particular fragment in a cubemap.
 float3 getSamplingVector(uint3 ThreadID)
 {
-	float outputWidth, outputHeight, outputDepth;
-	outputTexture.GetDimensions(outputWidth, outputHeight, outputDepth);
+    float outputWidth, outputHeight, outputDepth;
+    outputTexture.GetDimensions(outputWidth, outputHeight, outputDepth);
 
-	float2 st = ThreadID.xy / float2(outputWidth, outputHeight);
-	float2 uv = 2.0 * float2(st.x, 1.0 - st.y) - 1.0;
+    float2 st = ThreadID.xy / float2(outputWidth, outputHeight);
+    float2 uv = 2.0 * float2(st.x, 1.0 - st.y) - 1.0;
 
-	// Select vector based on cubemap face index.
-	float3 ret;
-	switch (ThreadID.z)
-	{
-	case 0: ret = float3(1.0, uv.y, -uv.x); break;
-	case 1: ret = float3(-1.0, uv.y, uv.x); break;
-	case 2: ret = float3(uv.x, 1.0, -uv.y); break;
-	case 3: ret = float3(uv.x, -1.0, uv.y); break;
-	case 4: ret = float3(uv.x, uv.y, 1.0); break;
-	case 5: ret = float3(-uv.x, uv.y, -1.0); break;
-	}
-	return normalize(ret);
+    // Select vector based on cubemap face index from the constant buffer.
+    float3 ret;
+    switch (faceIndex)
+    {
+        case 0: ret = float3(1.0, uv.y, -uv.x);  break;
+        case 1: ret = float3(-1.0, uv.y, uv.x);  break;
+        case 2: ret = float3(uv.x, 1.0, -uv.y);  break;
+        case 3: ret = float3(uv.x, -1.0, uv.y);  break;
+        case 4: ret = float3(uv.x, uv.y, 1.0);   break;
+        case 5: ret = float3(-uv.x, uv.y, -1.0); break;
+        default: ret = float3(0.0, 0.0, 1.0); break; // Default case
+    }
+    return normalize(ret);
 }
 
 // Compute orthonormal basis for converting from tanget/shading space to world space.
@@ -112,5 +121,5 @@ void main(uint3 ThreadID : SV_DispatchThreadID)
 	}
 	irradiance /= float(NumSamples);
 
-	outputTexture[ThreadID] = float4(irradiance, 1.0);
+    outputTexture[uint3(ThreadID.x, ThreadID.y, 0)] = float4(irradiance, 1.0);
 }

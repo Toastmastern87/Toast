@@ -112,6 +112,21 @@ float3 SampleLightRay(float3 rayOrigin)
 {
 	float2 sunRayAtmoPoints = RaySphere(planetCenter, radius + atmosphereHeight, rayOrigin, -direction.xyz);
 
+    if (sunRayAtmoPoints.x == maxFloat)
+    {
+		// No intersection: return full transmittance (no attenuation)
+        return float3(1.0f, 1.0f, 1.0f);
+    }
+    
+    float totalDist = sunRayAtmoPoints.y - sunRayAtmoPoints.x;
+    
+    // If totalDist <= 0, invalid scenario, return full transmittance
+    if (totalDist <= 0.0f)
+    {
+        return float3(1.0f, 1.0f, 1.0f);
+    }
+
+    
 	float3 rayOpticalDepth = 0.0f;
 	float mieOpticalDepth = 0.0f;
 
@@ -123,8 +138,8 @@ float3 SampleLightRay(float3 rayOrigin)
 		float height = length(pointInAtmosphere - planetCenter) - radius;
 
 		// Inside the planet, minAltitude is to make sure that the ray is lower then even the lowest point of the planet.
-		if (height < minAltitude)
-			return 0.0f;
+        if (height < minAltitude)
+            return float3(0.0f, 0.0f, 0.0f);
 
 		// Optical depth for the secondary ray
 		rayOpticalDepth += exp(-height / rayScaleHeight) * rayBaseScatteringCoefficient * stepSize;
@@ -150,6 +165,12 @@ float3 CalculateLightScattering(float3 rayOrigin, float3 rayDir, float tEntryPoi
 		float3 pointInAtmosphere = rayOrigin + rayDir * (time + stepSize * 0.5f);
 		float height = length(pointInAtmosphere - planetCenter) - radius;
 
+        if (height < minAltitude)
+        {
+            returnTransmittance = float3(0.0f, 0.0f, 0.0f);
+            return float3(0.0f, 0.0f, 0.0f);
+        }
+        
 		float3 lightTransmittance = SampleLightRay(pointInAtmosphere);
 
 		float rayHeightFallOff = exp(-height / rayScaleHeight);
@@ -210,6 +231,9 @@ float3 ComputeScatteringAlongRay(float3 rayOrigin, float3 rayDir)
         float3 pointInAtmosphere = rayOrigin + rayDir * (time + stepSize * 0.5f);
         float height = length(pointInAtmosphere - planetCenter) - radius;
 
+        if (height < minAltitude)
+            return float3(0.0f, 0.0f, 0.0f);
+        
         // Compute light transmittance from point to sun
         float3 lightTransmittance = SampleLightRay(pointInAtmosphere);
 
@@ -259,23 +283,26 @@ float4 main(PixelInputType input) : SV_TARGET
         tempVector = mul(tempVector, inverseViewMatrix);
         float3 worldPosPixel = tempVector.xyz / tempVector.w;
         float3 rayOrigin = cameraPosition.xyz;
-
-        float sceneDepthNonLinear = DepthTexture.Sample(DefaultSampler, input.texCoord).r;
-        float sceneDepth = LinearEyeDepth(sceneDepthNonLinear);
-        sceneDepth = (1.0f - Remap(sceneDepth, far, near, 0.0f, 1.0f)) * length(worldPosPixel - rayOrigin);
 		
         float3 rayDir = normalize(worldPosPixel - rayOrigin);
         
         float2 atmoHitInfo = RaySphere(planetCenter, radius + atmosphereHeight, rayOrigin, rayDir);
         float dstToAtmosphere = atmoHitInfo.x;
-        float dstThroughAtmosphere;
+        float dstThroughAtmosphere = atmoHitInfo.y - atmoHitInfo.x;
+        
+        // Variables for scene depth
+        float sceneDepthNonLinear = 0.0f;
+        float sceneDepth = 1000000.0f; // A large value that effectively means "no geometry"
+        
         if (useDepth == 1)
         {
-            dstThroughAtmosphere = min(atmoHitInfo.y - atmoHitInfo.x, sceneDepth - dstToAtmosphere);
-        }
-        else
-        {
-            dstThroughAtmosphere = atmoHitInfo.y - atmoHitInfo.x;
+            // Only use the scene's depth information if requested
+            sceneDepthNonLinear = DepthTexture.Sample(DefaultSampler, input.texCoord).r;
+            sceneDepth = LinearEyeDepth(sceneDepthNonLinear);
+            sceneDepth = (1.0f - Remap(sceneDepth, far, near, 0.0f, 1.0f)) * length(worldPosPixel - rayOrigin);
+
+            // If using depth, constrain the atmospheric distance by scene geometry
+            dstThroughAtmosphere = min(dstThroughAtmosphere, sceneDepth - dstToAtmosphere);
         }
 
 		// Initialize contributions
@@ -293,7 +320,7 @@ float4 main(PixelInputType input) : SV_TARGET
         float3 sunColor = 0.0f;
 
         if (sunDiscToggle > 0)
-        {  
+        {
             // Compute the angle between the view direction and the sun direction
             float cosAngle = dot(rayDir, sunDir);
             cosAngle = clamp(cosAngle, -1.0f, 1.0f);
@@ -340,10 +367,13 @@ float4 main(PixelInputType input) : SV_TARGET
             sunColor = (radiance.rgb * sunDiscIntensity) + (sunGlowColor * sunGlowIntensity);
 
             // Respect depth: Sun should fade behind geometry
-            float epsilon = 1e-15f;
-            if (sceneDepthNonLinear > epsilon)
+            if (useDepth == 1)
             {
-                sunColor = float3(0.0f, 0.0f, 0.0f); // Sun is behind geometry
+                float epsilon = 1e-15f;
+                if (sceneDepthNonLinear > epsilon)
+                {
+                    sunColor = float3(0.0f, 0.0f, 0.0f); // Sun is behind geometry
+                }
             }
         }
 

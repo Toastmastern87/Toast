@@ -9,8 +9,7 @@ namespace Toast {
 
 	Environment Environment::Load(const std::string& filepath)
 	{
-		//auto [radiance, irradiance] = Renderer::CreateEnvironmentMap(filepath);
-
+		auto radiance = Renderer::CreateEnvironmentMap(filepath);
 		// Compute Cook-Torrance BRDF 2D LUT for split-sum approximation.
 		Ref<Texture2D> spBRDFLUT = CreateRef<Texture2D>(DXGI_FORMAT_R16G16_FLOAT, DXGI_FORMAT_R16G16_FLOAT, 256, 256);
 
@@ -24,6 +23,6 @@ namespace Toast {
 		RenderCommand::DispatchCompute(spBRDFLUT->GetWidth() / 32, spBRDFLUT->GetHeight() / 32, 1);
 		spBRDFLUT->UnbindUAV();
 
-		return { filepath, nullptr, nullptr, spBRDFLUT };
+		return { filepath, radiance, nullptr, spBRDFLUT };
 	}
 }
