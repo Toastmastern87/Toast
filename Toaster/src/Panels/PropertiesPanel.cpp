@@ -1,4 +1,4 @@
-#include "PropertiesPanel.h"
+﻿#include "PropertiesPanel.h"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
@@ -680,7 +680,118 @@ namespace Toast {
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 
-				ImGui::PopItemWidth();
+				if (component.MeshObject->HasLODGroups())
+				{
+					ImGui::Text("LOD Groups ");
+					ImGui::TableSetColumnIndex(1);
+
+					std::vector<float>& thresholds = component.MeshObject->GetLODThresholds();
+
+					if (thresholds[0] > thresholds[1]) {
+						std::swap(thresholds[0], thresholds[1]);
+					}
+
+					// Define bar dimensions
+					ImVec2 region = ImGui::GetContentRegionAvail();
+					float barHeight = 40.0f; // Adjust as needed
+					float barWidth = region.x;
+
+					// Reserve space for the LOD bar
+					ImGui::Dummy(ImVec2(barWidth, barHeight));
+					ImVec2 startPos = ImGui::GetItemRectMin();
+					ImVec2 endPos = ImGui::GetItemRectMax();
+
+					// Calculate actual bar width
+					barWidth = endPos.x - startPos.x;
+
+					ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+					// Draw bar background
+					ImU32 bgColor = IM_COL32(60, 60, 60, 255);
+					drawList->AddRectFilled(startPos, endPos, bgColor);
+
+					// Calculate positions based on normalized thresholds
+					float x_threshold0 = ImLerp(startPos.x, endPos.x, thresholds[0]);
+					float x_threshold1 = ImLerp(startPos.x, endPos.x, thresholds[1]);
+
+					// Draw LOD segments with distinct colors
+					// LOD0: [0.0, threshold0] (Green)
+					// LOD1: (threshold0, threshold1] (Yellow)
+					// LOD2: (threshold1, 1.0] (Red)
+					drawList->AddRectFilled(ImVec2(startPos.x, startPos.y), ImVec2(x_threshold0, endPos.y), IM_COL32(0, 255, 0, 255)); // Green
+					drawList->AddRectFilled(ImVec2(x_threshold0, startPos.y), ImVec2(x_threshold1, endPos.y), IM_COL32(255, 255, 0, 255)); // Yellow
+					drawList->AddRectFilled(ImVec2(x_threshold1, startPos.y), ImVec2(endPos.x, endPos.y), IM_COL32(255, 0, 0, 255)); // Red
+
+					// Draw drag able handles for each threshold
+					for (int i = 0; i < 2; ++i) {
+						ImGui::PushID(i);
+						float threshold = thresholds[i];
+						float handleX = ImLerp(startPos.x, endPos.x, threshold);
+
+						// Draw a vertical line at the threshold
+						ImU32 lineColor = IM_COL32(200, 200, 200, 255);
+						drawList->AddLine(ImVec2(handleX, startPos.y), ImVec2(handleX, endPos.y), lineColor, 2.0f);
+
+						// Define handle dimensions
+						float handleHalfWidth = 8.0f; // Clickable area width
+						ImRect handleRect(ImVec2(handleX - handleHalfWidth, startPos.y),
+							ImVec2(handleX + handleHalfWidth, endPos.y));
+
+						// Create an invisible button for the handle with a unique label
+						std::string handleLabel = "handle" + std::to_string(i);
+						ImGui::SetCursorScreenPos(handleRect.Min);
+						bool hovered = ImGui::InvisibleButton(handleLabel.c_str(), ImVec2(handleRect.GetWidth(), handleRect.GetHeight()));
+
+						// Show tooltip with current threshold value on hover
+						if (ImGui::IsItemHovered()) {
+							ImGui::BeginTooltip();
+							ImGui::Text("LOD%d Threshold: %.2f", i, thresholds[i]);
+							ImGui::EndTooltip();
+						}
+
+						// Highlight handle if hovered or active
+						if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
+							ImU32 highlightColor = IM_COL32(255, 255, 255, 100);
+							drawList->AddRectFilled(handleRect.Min, handleRect.Max, highlightColor);
+						}
+
+						// Handle dragging of the threshold
+						if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+							float mouseX = ImGui::GetIO().MousePos.x;
+
+							// Compute new normalized position based on mouse X
+							float new_norm = (mouseX - startPos.x) / barWidth;
+							new_norm = std::clamp(new_norm, 0.0f, 1.0f);
+							float new_threshold = new_norm;
+
+							// Maintain ordering: thresholds[0] < thresholds[1]
+							if (i == 0) { // LOD0 threshold (Left)
+								float epsilon = 0.01f; // Minimal separation
+								new_threshold = (std::min)(new_threshold, thresholds[1] - epsilon);
+							}
+							else { // LOD1 threshold (Right)
+								float epsilon = 0.01f;
+								new_threshold = (std::max)(new_threshold, thresholds[0] + epsilon);
+							}
+
+							// Clamp to [0.0, 1.0]
+							new_threshold = std::clamp(new_threshold, 0.0f, 1.0f);
+
+							// Update the threshold
+							thresholds[i] = new_threshold;
+
+							// Ensure thresholds are sorted
+							if (thresholds[0] > thresholds[1]) {
+								std::swap(thresholds[0], thresholds[1]);
+							}
+
+							// Persist the updated thresholds
+							component.MeshObject->SetLODThresholds(thresholds);
+						}
+
+						ImGui::PopID();
+					}
+				}
 
 				ImGui::EndTable();
 			});
