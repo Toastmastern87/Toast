@@ -220,6 +220,13 @@ namespace Toast {
 		Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const DirectX::XMMATRIX& transform);
 		~Mesh() = default;
 
+		void LoadMesh(cgltf_data* data);
+		void LoadMeshWithLODs(cgltf_data* data);
+
+		bool HasLODGroups() { return mHasLODs; }
+		void SetLODThresholds(std::vector<float>& updatedThreshold) { mLODThresholds = updatedThreshold; }
+		std::vector<float>& GetLODThresholds() { return mLODThresholds; }
+
 		void OnUpdate(Timestep ts);
 		void InvalidatePlanet();
 
@@ -249,6 +256,10 @@ namespace Toast {
 	private:
 		std::string mFilePath = "";
 
+		bool mHasLODs = false;
+		std::vector<float> mLODThresholds = { 0.3f, 0.6f };
+		Vector3 mColorOverride;
+		uint32_t mMaxNrOfInstanceObjects = 0;
 		bool mInstanced = false;
 
 		DirectX::XMMATRIX mTransform = DirectX::XMMatrixIdentity();
@@ -270,8 +281,6 @@ namespace Toast {
 		PrimitiveTopology mTopology = PrimitiveTopology::TRIANGLELIST;
 
 		bool mIsAnimated = false;
-
-		//std::unordered_map<Vertex, uint32_t, PlanetSystem::VertexHasher, PlanetSystem::VertexEquality> vertexMap;
 
 		friend class Scene;
 		friend class Renderer;
