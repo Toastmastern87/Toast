@@ -187,7 +187,7 @@ namespace Toast {
 
 		for (const auto& meshCommand : sRendererData->MeshColliderDrawList)
 		{
-			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+			for (Submesh& submesh : meshCommand.Mesh->mLODGroups[0]->Submeshes)
 			{
 				noWorldTransform = 0;
 
@@ -256,7 +256,7 @@ namespace Toast {
 			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 72);
 			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-			RenderCommand::DrawIndexed(0, 0, meshCommand.Mesh->GetIndices().size());
+			RenderCommand::DrawIndexed(0, 0, meshCommand.Mesh->GetIndices(0).size());
 		}
 
 		// Draw the outline

@@ -1,0 +1,7 @@
+Material: RaptorSN3
+Albedo: [0.0645126179, 0.0710062683, 0.0328640789, 1]
+Metalness: 0.676999986
+Roughness: 0.893999994
+UseAlbedoMap: false
+UseNormalMap: false
+UseMetalRoughMap: false
