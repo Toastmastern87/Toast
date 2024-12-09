@@ -195,7 +195,7 @@ namespace Toast {
 			auto& rotQuat = collision.Object->GetComponent<TransformComponent>().RotationQuaternion;
 			auto& scale = collision.Object->GetComponent<BoxColliderComponent>().Collider->mSize;
 			auto& objectPos = collision.Object->GetComponent<TransformComponent>().Translation;
-			std::vector<Vertex> objectColliderVertices = collision.Object->GetComponent<BoxColliderComponent>().ColliderMesh->GetVertices();
+			std::vector<Vertex> objectColliderVertices = collision.Object->GetComponent<BoxColliderComponent>().ColliderMesh->GetVertices(0);
 
 			Matrix objTransform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(scale.x, scale.y, scale.z)
 				* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(rotEuler.x), DirectX::XMConvertToRadians(rotEuler.y), DirectX::XMConvertToRadians(rotEuler.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&rotQuat))
@@ -413,8 +413,8 @@ namespace Toast {
 			PlanetComponent& pc = planet->GetComponent<PlanetComponent>();
 			Vector3 worldSpacePlanetPos = planet->GetComponent<TransformComponent>().Translation;
 
-			std::vector<uint32_t> indices = pc.RenderMesh->GetIndices();
-			std::vector<Vertex> vertices = pc.RenderMesh->GetVertices();
+			std::vector<uint32_t> indices = pc.RenderMesh->GetIndices(0);
+			std::vector<Vertex> vertices = pc.RenderMesh->GetVertices(0);
 
 			double distance;
 

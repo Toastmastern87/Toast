@@ -621,7 +621,7 @@ namespace Toast {
 			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 72);
 			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-			for (Submesh& submesh : meshCommand.Mesh->mSubmeshes)
+			for (Submesh& submesh : meshCommand.Mesh->mLODGroups[0]->Submeshes)
 			{
 				// Material data
 				auto& material = meshCommand.Mesh->GetMaterial(submesh.MaterialName);
@@ -637,14 +637,24 @@ namespace Toast {
 				sRendererData->MaterialBuffer.Write((uint8_t*)&useMetalRough, 4, 36);
 				sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
 
+				if(material->GetUseAlbedo())
+					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, material->GetAlbedoTexture()->GetSRV());
+				if (material->GetUseNormal())
+					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, material->GetNormalTexture()->GetSRV());
+				if (material->GetUseMetalRough())
+					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, material->GetMetalRoughTexture()->GetSRV());
+
 				meshCommand.Mesh->Bind();
 
-				if(isInstanced == 0)
+				if (isInstanced == 0) 
+				{
+					//TOAST_CORE_CRITICAL("Drawing Submesh '%s'", submesh.MeshName.c_str());
 					RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
+				}
 				else 
 				{
-					uint32_t bufferElements = meshCommand.Mesh->mInstanceVertexBuffer->GetBufferSize() / sizeof(DirectX::XMFLOAT3);
-					RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mSubmeshes[0].IndexCount, meshCommand.Mesh->GetNumberOfInstances(), 0, 0, 0);
+					uint32_t bufferElements = meshCommand.Mesh->mLODGroups[0]->InstancedVBuffer->GetBufferSize() / sizeof(DirectX::XMFLOAT3);
+					RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mLODGroups[0]->Submeshes[0].IndexCount, meshCommand.Mesh->GetNumberOfInstances(0), 0, 0, 0);
 				}
 			}
 		}
@@ -697,7 +707,7 @@ namespace Toast {
 			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 72);
 			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-			RenderCommand::DrawIndexed(0, 0, meshCommand.Mesh->GetIndices().size());
+			RenderCommand::DrawIndexed(0, 0, meshCommand.Mesh->GetIndices(0).size());
 		}
 
 #ifdef TOAST_DEBUG

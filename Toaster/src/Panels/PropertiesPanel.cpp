@@ -706,9 +706,14 @@ namespace Toast {
 
 					ImDrawList* drawList = ImGui::GetWindowDrawList();
 
+					ImU32 color_LOD0 = IM_COL32(0, 120, 0, 200); // Light Green with some transparency
+					ImU32 color_LOD1 = IM_COL32(255, 216, 0, 200); // Light Yellow with some transparency
+					ImU32 color_LOD2 = IM_COL32(120, 0, 0, 200); // Light Pink with some transparency
+					ImU32 barBackgroundColor = IM_COL32(50, 50, 50, 150); // Dark Gray with transparency
+					ImU32 handleHighlightColor = IM_COL32(255, 255, 255, 150); // White with transparency
+
 					// Draw bar background
-					ImU32 bgColor = IM_COL32(60, 60, 60, 255);
-					drawList->AddRectFilled(startPos, endPos, bgColor);
+					drawList->AddRectFilled(startPos, endPos, barBackgroundColor);
 
 					// Calculate positions based on normalized thresholds
 					float x_threshold0 = ImLerp(startPos.x, endPos.x, thresholds[0]);
@@ -718,9 +723,9 @@ namespace Toast {
 					// LOD0: [0.0, threshold0] (Green)
 					// LOD1: (threshold0, threshold1] (Yellow)
 					// LOD2: (threshold1, 1.0] (Red)
-					drawList->AddRectFilled(ImVec2(startPos.x, startPos.y), ImVec2(x_threshold0, endPos.y), IM_COL32(0, 255, 0, 255)); // Green
-					drawList->AddRectFilled(ImVec2(x_threshold0, startPos.y), ImVec2(x_threshold1, endPos.y), IM_COL32(255, 255, 0, 255)); // Yellow
-					drawList->AddRectFilled(ImVec2(x_threshold1, startPos.y), ImVec2(endPos.x, endPos.y), IM_COL32(255, 0, 0, 255)); // Red
+					drawList->AddRectFilled(ImVec2(startPos.x, startPos.y), ImVec2(x_threshold0, endPos.y), color_LOD0); // Green
+					drawList->AddRectFilled(ImVec2(x_threshold0, startPos.y), ImVec2(x_threshold1, endPos.y), color_LOD1); // Yellow
+					drawList->AddRectFilled(ImVec2(x_threshold1, startPos.y), ImVec2(endPos.x, endPos.y), color_LOD2); // Red
 
 					// Draw drag able handles for each threshold
 					for (int i = 0; i < 2; ++i) {
@@ -730,7 +735,7 @@ namespace Toast {
 
 						// Draw a vertical line at the threshold
 						ImU32 lineColor = IM_COL32(200, 200, 200, 255);
-						drawList->AddLine(ImVec2(handleX, startPos.y), ImVec2(handleX, endPos.y), lineColor, 2.0f);
+						drawList->AddLine(ImVec2(handleX, startPos.y), ImVec2(handleX, endPos.y), lineColor, 1.0f);
 
 						// Define handle dimensions
 						float handleHalfWidth = 8.0f; // Clickable area width
@@ -750,10 +755,8 @@ namespace Toast {
 						}
 
 						// Highlight handle if hovered or active
-						if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
-							ImU32 highlightColor = IM_COL32(255, 255, 255, 100);
-							drawList->AddRectFilled(handleRect.Min, handleRect.Max, highlightColor);
-						}
+						if (ImGui::IsItemHovered() || ImGui::IsItemActive()) 
+							drawList->AddRectFilled(handleRect.Min, handleRect.Max, handleHighlightColor, 5.0f);
 
 						// Handle dragging of the threshold
 						if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {

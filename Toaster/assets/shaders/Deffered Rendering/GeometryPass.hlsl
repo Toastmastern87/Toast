@@ -199,6 +199,20 @@ Texture2D MetalRoughTexture : register(t5);
 
 SamplerState defaultSampler : register(s0);
 
+SamplerState defaultSampler2
+{
+    Filter = MIN_MAG_MIP_LINEAR;
+    AddressU = Wrap;
+    AddressV = Wrap;
+    AddressW = Wrap;
+    MipLODBias = 0.0f;
+    MaxAnisotropy = 1;
+    ComparisonFunc = NEVER;
+    BorderColor = float4(0, 0, 0, 0);
+    MinLOD = 0.0f;
+    MaxLOD = FLT_MAX;
+};
+
 struct PBRParameters
 {
     float3 Albedo;
@@ -213,9 +227,9 @@ PixelOutputType main(PixelInputType input)
     PBRParameters params;
 	
     // Sample input textures to get shading model params.
-    params.Albedo = AlbedoTexToggle == 1 ? AlbedoTexture.Sample(defaultSampler, input.texCoord).rgb : Albedo.rgb;
-    params.Metalness = MetalRoughTexToggle == 1 ? MetalRoughTexture.Sample(defaultSampler, input.texCoord).b : Metalness;
-    params.Roughness = MetalRoughTexToggle == 1 ? MetalRoughTexture.Sample(defaultSampler, input.texCoord).r : Roughness;
+    params.Albedo = AlbedoTexToggle > 0 ? AlbedoTexture.Sample(defaultSampler, input.texCoord).rgb : Albedo.rgb;
+    params.Metalness = MetalRoughTexToggle > 0 ? MetalRoughTexture.Sample(defaultSampler, input.texCoord).b : Metalness;
+    params.Roughness = MetalRoughTexToggle > 0 ? MetalRoughTexture.Sample(defaultSampler, input.texCoord).r : Roughness;
     params.Roughness = max(params.Roughness, 0.05f); // Minimum roughness of 0.05 to keep specular highlight
     
     // Position
@@ -224,8 +238,28 @@ PixelOutputType main(PixelInputType input)
     // Entity ID
     output.entityID = input.entityID + 1;
     
-    // Normal
-    float3 N = normalize(input.viewNormal);    
+    // Handle Normal Mapping
+    float3 N;
+    
+    if (NormalTexToggle > 0)
+    {
+        // Sample the normal map
+        float3 sampledNormal = NormalTexture.Sample(defaultSampler, input.texCoord).rgb;
+        
+        // Decode the normal from [0,1] to [-1,1]
+        sampledNormal = sampledNormal * 2.0f - 1.0f;
+        sampledNormal = normalize(sampledNormal);
+        
+        // Transform the sampled normal to view space
+        N = normalize(mul(sampledNormal, input.TBN));
+    }
+    else
+    {
+        // Use the default view normal
+        N = normalize(input.viewNormal);
+    }
+    
+    // Encode Normal  
     float3 encodedNormal = N * 0.5 + 0.5;
 
     output.normal = float4(encodedNormal, 0.0);

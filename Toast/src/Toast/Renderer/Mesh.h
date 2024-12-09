@@ -209,6 +209,24 @@ namespace Toast {
 		std::unordered_map<std::string, Ref<Animation>> Animations;
 	};
 
+	struct LODGroup
+	{
+		LODGroup() = default;
+
+		std::vector<Submesh> Submeshes;
+
+		uint32_t VertexCount = 0;
+		uint32_t IndexCount = 0;
+
+		std::vector<Vertex> Vertices;
+		std::vector<uint32_t> Indices;
+
+		Ref<VertexBuffer> VBuffer;
+		Ref<VertexBuffer> InstancedVBuffer;
+		Ref<IndexBuffer> IBuffer;
+		uint32_t NumberOfInstances = 0;
+	};
+
 	class Mesh 
 	{
 	public:
@@ -223,6 +241,8 @@ namespace Toast {
 		void LoadMesh(cgltf_data* data);
 		void LoadMeshWithLODs(cgltf_data* data);
 
+		void SetActiveLODGroup(size_t LODGroupIndex) { mActiveLODGroup = LODGroupIndex; }
+
 		bool HasLODGroups() { return mHasLODs; }
 		void SetLODThresholds(std::vector<float>& updatedThreshold) { mLODThresholds = updatedThreshold; }
 		std::vector<float>& GetLODThresholds() { return mLODThresholds; }
@@ -232,18 +252,18 @@ namespace Toast {
 
 		const std::string& GetFilePath() const { return mFilePath; }
 
-		std::vector<Vertex>& GetVertices() { return mVertices; }
-		std::vector<uint32_t>& GetIndices() { return mIndices; }
+		std::vector<Vertex>& GetVertices(size_t LODGroupIndex = 0) { return mLODGroups[LODGroupIndex]->Vertices; }
+		std::vector<uint32_t>& GetIndices(size_t LODGroupIndex = 0) { return mLODGroups[LODGroupIndex]->Indices; }
 
-		std::vector<Submesh>& GetSubmeshes() { return mSubmeshes; }
-		void AddSubmesh(uint32_t indexCount);
-		uint32_t GetNumberOfSubmeshes() { return mSubmeshes.size(); }
+		std::vector<Submesh>& GetSubmeshes(size_t LODGroupIndex = 0) { return mLODGroups[LODGroupIndex]->Submeshes; }
+		void AddSubmesh(uint32_t indexCount, size_t LODGroupIndex = 0);
+		uint32_t GetNumberOfSubmeshes(size_t LODGroupIndex = 0) { return mLODGroups[LODGroupIndex]->Submeshes.size(); }
 
 		const Ref<Material> GetMaterial(std::string materialName) const { if (mMaterials.find(materialName) != mMaterials.end()) return mMaterials.at(materialName); else return nullptr; }
 		void SetMaterial(std::string materialName, Ref<Material> material) { mMaterials[materialName] = material; }
 
-		DirectX::XMMATRIX& GetLocalTransform() { return mSubmeshes[0].Transform; }
-		void SetLocalTransform(DirectX::XMMATRIX& transform) { mSubmeshes[0].Transform = transform; }
+		DirectX::XMMATRIX& GetLocalTransform(size_t LODGroupIndex = 0) { return mLODGroups[LODGroupIndex]->Submeshes[0].Transform; }
+		void SetLocalTransform(DirectX::XMMATRIX& transform, size_t LODGroupIndex = 0) { mLODGroups[LODGroupIndex]->Submeshes[0].Transform = transform; }
 
 		void Bind();
 
@@ -251,32 +271,23 @@ namespace Toast {
 		bool GetIsAnimated() const { return mIsAnimated; }
 
 		bool IsInstanced() const { return mInstanced; }
-		uint32_t GetNumberOfInstances() const { return mNumberOfInstances; }
+		uint32_t GetNumberOfInstances(size_t LODGroupIndex) const { return mLODGroups[LODGroupIndex]->NumberOfInstances; }
 		void SetInstanceData(const void* data, uint32_t size, uint32_t numberOfInstances);
 	private:
 		std::string mFilePath = "";
 
 		bool mHasLODs = false;
 		std::vector<float> mLODThresholds = { 0.3f, 0.6f };
+		std::vector<Ref<LODGroup>> mLODGroups;
+		size_t mActiveLODGroup = 0;
+
 		Vector3 mColorOverride;
 		uint32_t mMaxNrOfInstanceObjects = 0;
 		bool mInstanced = false;
 
-		DirectX::XMMATRIX mTransform = DirectX::XMMatrixIdentity();
-
-		std::vector<Submesh> mSubmeshes;
-
-		Ref<VertexBuffer> mVertexBuffer;
-		Ref<VertexBuffer> mInstanceVertexBuffer;
-		uint32_t mNumberOfInstances = 0;
-		Ref<IndexBuffer> mIndexBuffer;
 		std::unordered_map<std::string, Ref<Material>> mMaterials;
 
-		uint32_t mVertexCount = 0;
-		uint32_t mIndexCount = 0;
-
-		std::vector<Vertex> mVertices;
-		std::vector<uint32_t> mIndices;
+		DirectX::XMMATRIX mTransform = DirectX::XMMatrixIdentity();
 
 		PrimitiveTopology mTopology = PrimitiveTopology::TRIANGLELIST;
 

@@ -421,7 +421,7 @@ namespace Toast {
 						}
 				//	}
 
-					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
+					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices(0).size());
 				}
 
 				auto terrainObjectMeshes = mRegistry.view<TransformComponent, TerrainObjectComponent>();
@@ -460,14 +460,14 @@ namespace Toast {
 					{
 					case Settings::Wireframe::NO:
 					{
-						if (planet.RenderMesh->mSubmeshes.size() > 0)
+						if (planet.RenderMesh->mLODGroups[0]->Submeshes.size() > 0)
 							Renderer::SubmitMesh(planet.RenderMesh, DirectX::XMMatrixIdentity(), (int)entity, false, 1, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 						break;
 					}
 					case Settings::Wireframe::YES:
 					{
-						if (planet.RenderMesh->mSubmeshes.size() > 0)
+						if (planet.RenderMesh->mLODGroups[0]->Submeshes.size() > 0)
 							Renderer::SubmitMesh(planet.RenderMesh, DirectX::XMMatrixIdentity(), (int)entity, false, 1, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 						break;
@@ -480,7 +480,7 @@ namespace Toast {
 					}
 					}
 
-					mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices().size());
+					mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices(0).size());
 				}
 
 				Renderer::EndScene(true);
@@ -748,6 +748,21 @@ namespace Toast {
 			}
 		}
 
+		// TODO: Make use of this system, currently just setting to 0.
+		// Updated Meshes to check which LOD Group it should use during the rendering.
+		{
+			auto view = mRegistry.view<MeshComponent, TransformComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+
+				MeshComponent& mc = e.GetComponent<MeshComponent>();
+				TransformComponent& tc = e.GetComponent<TransformComponent>();
+
+				mc.MeshObject->SetActiveLODGroup(0);
+			}
+		}
+
 		// Start a rebuild of the planet if needed
 		{
 			auto view = mRegistry.view<PlanetComponent, TransformComponent>();
@@ -858,7 +873,7 @@ namespace Toast {
 				if (mSelectedEntity == entity)
 					Renderer::SubmitSelecetedMesh(mesh.MeshObject, transform.GetTransform());
 
-				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
+				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices(0).size());
 			}
 
 			auto terrainObjectMeshes = mRegistry.view<TransformComponent, TerrainObjectComponent>();
@@ -867,7 +882,7 @@ namespace Toast {
 				auto [transform, terrainObject] = terrainObjectMeshes.get<TransformComponent, TerrainObjectComponent>(entity);
 				if (terrainObject.MeshObject)
 				{
-					if (terrainObject.MeshObject->GetNumberOfInstances() > 0)
+					if (terrainObject.MeshObject->GetNumberOfInstances(0) > 0)
 					{
 						switch (mSettings.WireframeRendering)
 						{
@@ -900,14 +915,14 @@ namespace Toast {
 				{
 				case Settings::Wireframe::NO:
 				{
-					if (planet.RenderMesh->mSubmeshes.size() > 0)
+					if (planet.RenderMesh->mLODGroups[0]->Submeshes.size() > 0)
 						Renderer::SubmitMesh(planet.RenderMesh, DirectX::XMMatrixIdentity(), (int)entity, false, 1, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 					break;
 				}
 				case Settings::Wireframe::YES:
 				{
-					if (planet.RenderMesh->mSubmeshes.size() > 0)
+					if (planet.RenderMesh->mLODGroups[0]->Submeshes.size() > 0)
 						Renderer::SubmitMesh(planet.RenderMesh, DirectX::XMMatrixIdentity(), (int)entity, true, 1, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
 
 					break;
@@ -923,7 +938,7 @@ namespace Toast {
 				if (mSelectedEntity == entity)
 					Renderer::SubmitSelecetedMesh(planet.RenderMesh, transform.GetTransform());
 
-				mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices().size());
+				mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices(0).size());
 			}
 
 			Renderer::EndScene(true);
@@ -1377,7 +1392,6 @@ namespace Toast {
 	{
 		if(component.Seed == 0)
 			component.Seed = Math::GenerateRandomSeed();
-
 	}
 
 	template<>
