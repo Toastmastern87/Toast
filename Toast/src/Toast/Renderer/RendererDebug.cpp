@@ -256,7 +256,7 @@ namespace Toast {
 			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 72);
 			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-			RenderCommand::DrawIndexed(0, 0, meshCommand.Mesh->GetIndices(0).size());
+			RenderCommand::DrawIndexed(0, 0, meshCommand.Mesh->GetIndices().size());
 		}
 
 		// Draw the outline

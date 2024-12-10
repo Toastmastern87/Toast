@@ -313,8 +313,15 @@ namespace Toast {
 			out << YAML::Key << "MeshComponent";
 			out << YAML::BeginMap; // MeshComponent
 
-			auto& pmc = entity.GetComponent<MeshComponent>();
-			out << YAML::Key << "AssetPath" << YAML::Value << pmc.MeshObject->GetFilePath();
+			auto& mc = entity.GetComponent<MeshComponent>();
+			out << YAML::Key << "AssetPath" << YAML::Value << mc.MeshObject->GetFilePath();
+
+			out << YAML::Key << "LODThresholds" << YAML::BeginSeq;
+			for (const float& threshold : mc.MeshObject->GetLODThresholds())
+			{
+				out << threshold;
+			}
+			out << YAML::EndSeq;
 
 			out << YAML::EndMap; // MeshComponent
 		}
@@ -694,8 +701,19 @@ namespace Toast {
 					std::string assetPath = meshComponent["AssetPath"].as<std::string>();
 
 					deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>(assetPath));
-			
+
 					auto& mc = deserializedEntity.GetComponent<MeshComponent>();
+
+					if (meshComponent["LODThresholds"])
+					{
+						const YAML::Node& thresholdsNode = meshComponent["LODThresholds"];
+						std::vector<float>& thresholds = mc.MeshObject->GetLODThresholds();
+						thresholds.clear(); // Ensure the vector is empty before adding
+						for (std::size_t i = 0; i < thresholdsNode.size(); ++i)
+						{
+							thresholds.emplace_back(thresholdsNode[i].as<float>());
+						}
+					}
 				}
 
 				auto spriteRendererComponent = entity["SpriteRendererComponent"];

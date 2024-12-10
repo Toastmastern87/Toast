@@ -55,7 +55,7 @@ namespace Toast {
 
 		mMaterials.insert({ submesh.MaterialName,  MaterialLibrary::Load(submesh.MaterialName, false) });
 
-		TOAST_CORE_CRITICAL("Mesh created with submesh materialName: %s", submesh.MaterialName.c_str());
+		TOAST_CORE_INFO("Planet Mesh created");
 	}
 
 	Mesh::Mesh(const std::string& filePath, Vector3 colorOverride, bool isInstanced, uint32_t maxNrOfInstanceObjects)
@@ -73,6 +73,7 @@ namespace Toast {
 
 			for (size_t i = 0; i < data->nodes_count; ++i)
 			{
+
 				const cgltf_node* node = &data->nodes[i];
 				std::string nodeName(node->name);
 				if (nodeName.find("LOD") != std::string::npos) 
@@ -516,10 +517,27 @@ namespace Toast {
 
 	void Mesh::OnUpdate(Timestep ts)
 	{
-		for (auto& submesh : mLODGroups[mActiveLODGroup]->Submeshes)
+		if (mHasLODs)
 		{
-			if (submesh.IsAnimated)
-				submesh.OnUpdate(ts);
+			for (int i = 0; i <= 2; ++i)
+			{
+				for (auto& submesh : mLODGroups[i]->Submeshes)
+				{
+					if (submesh.IsAnimated)
+						submesh.OnUpdate(ts);
+				}
+			}
+		}
+		else 
+		{
+			for (int i = 0; i <= 2; ++i)
+			{
+				for (auto& submesh : mLODGroups[0]->Submeshes)
+				{
+					if (submesh.IsAnimated)
+						submesh.OnUpdate(ts);
+				}
+			}
 		}
 	}
 
