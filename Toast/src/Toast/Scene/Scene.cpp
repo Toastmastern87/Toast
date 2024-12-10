@@ -328,6 +328,37 @@ namespace Toast {
 
 		if (mainCamera)
 		{
+			// Updated Meshes to check which LOD Group it should use during the rendering.
+			{
+				auto view = mRegistry.view<MeshComponent, TransformComponent>();
+				for (auto entity : view)
+				{
+					Entity e = { entity, this };
+
+					MeshComponent& mc = e.GetComponent<MeshComponent>();
+					TransformComponent& tc = e.GetComponent<TransformComponent>();
+
+					if (mc.MeshObject->HasLODGroups())
+					{
+						double maxDistance = 10000.0;
+						double distance = Vector3::Length(tc.Translation);
+						double remappedDistance = std::clamp(distance / maxDistance, 0.0, 1.0);
+						mc.MeshObject->UpdateLODDistance(remappedDistance);
+
+						std::vector<float> thresholds = mc.MeshObject->GetLODThresholds();
+
+						int activeLOD = 0; // Default to LOD0
+
+						if (remappedDistance > thresholds[1])
+							activeLOD = 2; // LOD2
+						else if (remappedDistance > thresholds[0])
+							activeLOD = 1; // LOD1
+
+						mc.MeshObject->SetActiveLODGroup(activeLOD);
+					}
+				}
+			}
+
 			// Rebuild planet if needed
 			auto view = mRegistry.view<PlanetComponent, TransformComponent>();
 			for (auto entity : view)
@@ -421,7 +452,7 @@ namespace Toast {
 						}
 				//	}
 
-					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices(0).size());
+					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 				}
 
 				auto terrainObjectMeshes = mRegistry.view<TransformComponent, TerrainObjectComponent>();
@@ -480,7 +511,7 @@ namespace Toast {
 					}
 					}
 
-					mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices(0).size());
+					mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices().size());
 				}
 
 				Renderer::EndScene(true);
@@ -889,7 +920,7 @@ namespace Toast {
 				if (mSelectedEntity == entity)
 					Renderer::SubmitSelecetedMesh(mesh.MeshObject, transform.GetTransform());
 
-				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices(0).size());
+				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 			}
 
 			auto terrainObjectMeshes = mRegistry.view<TransformComponent, TerrainObjectComponent>();
@@ -954,7 +985,7 @@ namespace Toast {
 				if (mSelectedEntity == entity)
 					Renderer::SubmitSelecetedMesh(planet.RenderMesh, transform.GetTransform());
 
-				mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices(0).size());
+				mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices().size());
 			}
 
 			Renderer::EndScene(true);

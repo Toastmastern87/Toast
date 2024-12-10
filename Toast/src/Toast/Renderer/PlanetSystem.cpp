@@ -496,8 +496,8 @@ namespace Toast {
 
 		const siv::PerlinNoise& perlin = siv::PerlinNoise(static_cast<uint32_t>(19871102));
 
-		std::vector<Vertex> vertices = planet.RenderMesh->GetVertices(0);
-		std::vector<uint32_t> indices = planet.RenderMesh->GetIndices(0);
+		std::vector<Vertex> vertices = planet.RenderMesh->GetVertices();
+		std::vector<uint32_t> indices = planet.RenderMesh->GetIndices();
 		
 		if (indices.size() > 0 && vertices.size() > 0)
 		{

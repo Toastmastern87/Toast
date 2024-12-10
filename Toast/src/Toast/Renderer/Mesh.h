@@ -254,18 +254,18 @@ namespace Toast {
 
 		const std::string& GetFilePath() const { return mFilePath; }
 
-		std::vector<Vertex>& GetVertices(size_t LODGroupIndex = 0) { return mLODGroups[LODGroupIndex]->Vertices; }
-		std::vector<uint32_t>& GetIndices(size_t LODGroupIndex = 0) { return mLODGroups[LODGroupIndex]->Indices; }
+		std::vector<Vertex>& GetVertices() { return mLODGroups[mActiveLODGroup]->Vertices; }
+		std::vector<uint32_t>& GetIndices() { return mLODGroups[mActiveLODGroup]->Indices; }
 
-		std::vector<Submesh>& GetSubmeshes(size_t LODGroupIndex = 0) { return mLODGroups[LODGroupIndex]->Submeshes; }
+		std::vector<Submesh>& GetSubmeshes() { return mLODGroups[mActiveLODGroup]->Submeshes; }
 		void AddSubmesh(uint32_t indexCount, size_t LODGroupIndex = 0);
-		uint32_t GetNumberOfSubmeshes(size_t LODGroupIndex = 0) { return mLODGroups[LODGroupIndex]->Submeshes.size(); }
+		uint32_t GetNumberOfSubmeshes() { return mLODGroups[mActiveLODGroup]->Submeshes.size(); }
 
 		const Ref<Material> GetMaterial(std::string materialName) const { if (mMaterials.find(materialName) != mMaterials.end()) return mMaterials.at(materialName); else return nullptr; }
 		void SetMaterial(std::string materialName, Ref<Material> material) { mMaterials[materialName] = material; }
 
-		DirectX::XMMATRIX& GetLocalTransform(size_t LODGroupIndex = 0) { return mLODGroups[LODGroupIndex]->Submeshes[0].Transform; }
-		void SetLocalTransform(DirectX::XMMATRIX& transform, size_t LODGroupIndex = 0) { mLODGroups[LODGroupIndex]->Submeshes[0].Transform = transform; }
+		DirectX::XMMATRIX& GetLocalTransform() { return mLODGroups[mActiveLODGroup]->Submeshes[0].Transform; }
+		void SetLocalTransform(DirectX::XMMATRIX& transform) { mLODGroups[mActiveLODGroup]->Submeshes[0].Transform = transform; }
 
 		void Bind();
 
