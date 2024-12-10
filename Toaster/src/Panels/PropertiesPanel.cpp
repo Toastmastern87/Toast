@@ -738,7 +738,7 @@ namespace Toast {
 						drawList->AddLine(ImVec2(handleX, startPos.y), ImVec2(handleX, endPos.y), lineColor, 1.0f);
 
 						// Define handle dimensions
-						float handleHalfWidth = 8.0f; // Clickable area width
+						float handleHalfWidth = 4.0f; // Clickable area width
 						ImRect handleRect(ImVec2(handleX - handleHalfWidth, startPos.y),
 							ImVec2(handleX + handleHalfWidth, endPos.y));
 
@@ -793,6 +793,39 @@ namespace Toast {
 						}
 
 						ImGui::PopID();
+					}
+
+					float lodDistance = component.MeshObject->GetLODDistance();
+
+					// Calculate the x position based on normalized LOD distance
+					float x_lod = ImLerp(startPos.x, endPos.x, lodDistance);
+
+					// Calculate the y position to center the dot vertically on the bar
+					float y_lod = (startPos.y + endPos.y) / 2.0f;
+
+					// Define the dot's properties
+					float dotRadius = 5.0f; // Adjust size as needed
+					ImU32 dotColor = IM_COL32(0, 0, 0, 255); // Solid Black
+
+					// Draw the filled circle (dot)
+					drawList->AddCircleFilled(ImVec2(x_lod, y_lod), dotRadius, dotColor);
+
+					// Optionally, add a border to the dot for better visibility against various bar colors
+					ImU32 dotBorderColor = IM_COL32(255, 255, 255, 255); // Solid White Border
+					drawList->AddCircle(ImVec2(x_lod, y_lod), dotRadius, dotBorderColor, 12, 2.0f); // 12 segments, 2.0f thickness
+
+					// Define a unique identifier for the dot to handle hover detection
+					std::string dotID = "LOD_Dot";
+
+					// Create an invisible button over the dot's area for hover detection
+					ImGui::SetCursorScreenPos(ImVec2(x_lod - dotRadius, y_lod - dotRadius));
+					ImGui::InvisibleButton(dotID.c_str(), ImVec2(dotRadius * 2, dotRadius * 2));
+
+					// Check if the invisible button (dot) is hovered
+					if (ImGui::IsItemHovered()) {
+						ImGui::BeginTooltip();
+						ImGui::Text("Current LOD Distance: %.2f", lodDistance);
+						ImGui::EndTooltip();
 					}
 				}
 

@@ -243,6 +243,8 @@ namespace Toast {
 
 		void SetActiveLODGroup(size_t LODGroupIndex) { mActiveLODGroup = LODGroupIndex; }
 
+		void UpdateLODDistance(float LODDistance) { mLODDistance = LODDistance; }
+		float GetLODDistance() { return mLODDistance; }
 		bool HasLODGroups() { return mHasLODs; }
 		void SetLODThresholds(std::vector<float>& updatedThreshold) { mLODThresholds = updatedThreshold; }
 		std::vector<float>& GetLODThresholds() { return mLODThresholds; }
@@ -277,6 +279,7 @@ namespace Toast {
 		std::string mFilePath = "";
 
 		bool mHasLODs = false;
+		float mLODDistance = 0.0f;
 		std::vector<float> mLODThresholds = { 0.3f, 0.6f };
 		std::vector<Ref<LODGroup>> mLODGroups;
 		size_t mActiveLODGroup = 0;
