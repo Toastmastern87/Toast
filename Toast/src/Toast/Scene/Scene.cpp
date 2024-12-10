@@ -748,7 +748,6 @@ namespace Toast {
 			}
 		}
 
-		// TODO: Make use of this system, currently just setting to 0.
 		// Updated Meshes to check which LOD Group it should use during the rendering.
 		{
 			auto view = mRegistry.view<MeshComponent, TransformComponent>();
@@ -759,7 +758,24 @@ namespace Toast {
 				MeshComponent& mc = e.GetComponent<MeshComponent>();
 				TransformComponent& tc = e.GetComponent<TransformComponent>();
 
-				mc.MeshObject->SetActiveLODGroup(0);
+				if (mc.MeshObject->HasLODGroups())
+				{
+					double maxDistance = 10000.0;
+					double distance = Vector3::Length(tc.Translation);
+					double remappedDistance = std::clamp(distance / maxDistance, 0.0, 1.0);
+					mc.MeshObject->UpdateLODDistance(remappedDistance);
+
+					std::vector<float> thresholds = mc.MeshObject->GetLODThresholds();
+
+					int activeLOD = 0; // Default to LOD0
+
+					if (remappedDistance > thresholds[1])
+						activeLOD = 2; // LOD2
+					else if (remappedDistance > thresholds[0])
+						activeLOD = 1; // LOD1
+
+					mc.MeshObject->SetActiveLODGroup(activeLOD);
+				}
 			}
 		}
 
