@@ -302,4 +302,19 @@ namespace Toast
             set => InternalCalls.UITextComponent_SetText(Entity.ID, value);
         }
     }
+
+    public class RigidBodyComponent : Component
+    {
+        public Vector3 LinearVelocity
+        {
+            get
+            {
+                InternalCalls.RigidBodyComponent_GetLinearVelocity(Entity.ID, out Vector3 result);
+                return result;
+            }
+            set
+            {
+            }
+        }
+    }
 }

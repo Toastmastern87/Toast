@@ -597,7 +597,7 @@ namespace Toast {
 
 #pragma endregion
 
-#pragma region UIPanel Component
+#pragma region UI Panel Component
 
 	bool UIPanelComponent_GetVisible(uint64_t entityID)
 	{
@@ -623,7 +623,7 @@ namespace Toast {
 
 #pragma endregion
 
-#pragma region UIButton Component
+#pragma region UI Button Component
 
 	void UIButtonComponent_GetColor(uint64_t entityID, DirectX::XMFLOAT4* outColor)
 	{
@@ -649,7 +649,7 @@ namespace Toast {
 
 #pragma endregion
 
-#pragma region UIText Component
+#pragma region UI Text Component
 
 	MonoString* UITextComponent_GetText(uint64_t entityID)
 	{
@@ -680,6 +680,24 @@ namespace Toast {
 
 #pragma endregion
 
+#pragma region Rigid Body Component
+
+	void RigidBodyComponent_GetLinearVelocity(uint64_t entityID, DirectX::XMFLOAT3* outLinearVelocity)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<RigidBodyComponent>();
+
+		DirectX::XMFLOAT3 linearVelocity = { (float)component.LinearVelocity.x, (float)component.LinearVelocity.y, (float)component.LinearVelocity.z };
+
+		*outLinearVelocity = linearVelocity;
+	}
+
+#pragma endregion
+
 	template<typename Component>
 	static void RegisterComponent()
 	{
@@ -705,6 +723,7 @@ namespace Toast {
 		RegisterComponent<UIPanelComponent>();
 		RegisterComponent<UIButtonComponent>();
 		RegisterComponent<UITextComponent>();
+		RegisterComponent<RigidBodyComponent>();
 	}
 
 	void ScriptGlue::RegisterFunctions()
@@ -774,6 +793,8 @@ namespace Toast {
 
 		TOAST_ADD_INTERNAL_CALL(UITextComponent_GetText);
 		TOAST_ADD_INTERNAL_CALL(UITextComponent_SetText);
+
+		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetLinearVelocity);
 	}
 
 }

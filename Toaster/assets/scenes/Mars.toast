@@ -45,6 +45,34 @@ Entities:
         - Name: MouseSpeedFactor
           Type: Float
           Data: 15
+  - Entity: 10825484583839580020
+    TagComponent:
+      Tag: AltitudeText
+    RelationshipComponent:
+      ParentHandle: 14703621591902257205
+      Children:
+        []
+    TransformComponent:
+      Translation: [20.0002441, 424.967041, 0]
+      Rotation: [0, -0, 0]
+      Scale: [1, 18, 1]
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
+      Text: "Altitude:"
+  - Entity: 10576137050822311080
+    TagComponent:
+      Tag: VelocityText
+    RelationshipComponent:
+      ParentHandle: 14703621591902257205
+      Children:
+        []
+    TransformComponent:
+      Translation: [21.0002441, 448.009033, 0]
+      Rotation: [0, -0, 0]
+      Scale: [14, 18, 1]
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
+      Text: "Velocity: 1 m/s"
   - Entity: 9950678948338922188
     TagComponent:
       Tag: CloseButton
@@ -98,7 +126,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [4.4000001, 50, 50]
+      Translation: [10, 50, 50]
       Rotation: [45, 0, 0]
       Scale: [1, 1, 1]
     MeshComponent:
@@ -230,6 +258,7 @@ Entities:
       AssetPath: C:\dev\Toast\Toaster\assets\textures\UIPanel.png
       UseColor: false
       Visible: true
+      ConnectToParent: false
   - Entity: 11451148643943162086
     TagComponent:
       Tag: MText
@@ -240,9 +269,9 @@ Entities:
     TransformComponent:
       Translation: [22.9000244, 57.1878662, 0]
       Rotation: [0, -0, 0]
-      Scale: [20, 20, 1]
+      Scale: [20, 29, 1]
     UITextComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
       Text: "M: 1"
   - Entity: 2812129723666465913
     TagComponent:
@@ -254,9 +283,9 @@ Entities:
     TransformComponent:
       Translation: [24, 25.2086182, 0]
       Rotation: [0, -0, 0]
-      Scale: [20, 20, 1]
+      Scale: [20, 28, 1]
     UITextComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
       Text: "Sol: 1"
   - Entity: 9291025796538517788
     TagComponent:
@@ -266,14 +295,14 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [162.001099, 34.2918091, 0]
+      Translation: [135, 17.5, 0]
       Rotation: [0, -0, 0]
-      Scale: [30, 30, 1]
+      Scale: [30, 75, 1]
     ScriptComponent:
       ClassName: Sandbox.TimeText
     UITextComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Turnpike\Turnpike.ttf
-      Text: 00:00:07
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
+      Text: 00:00:18
   - Entity: 4566870064654448293
     TagComponent:
       Tag: TimeScale4
@@ -349,14 +378,17 @@ Entities:
       ParentHandle: 1011378371315993937
       Children:
         - Handle: 9950678948338922188
+        - Handle: 10576137050822311080
+        - Handle: 10825484583839580020
     TransformComponent:
-      Translation: [154.750122, -226.296814, -12.6181641]
+      Translation: [194.750122, -180.275024, -12.6181641]
       Rotation: [0, -0, 0]
       Scale: [300, 483, 1]
     UIPanelComponent:
       Color: [1, 1, 1, 1]
-      CornerRadius: 11
+      CornerRadius: 21.2999992
       BorderSize: 9.69999981
       AssetPath: C:\dev\Toast\Toaster\assets\textures\UIPanel.png
       UseColor: false
       Visible: false
+      ConnectToParent: true
