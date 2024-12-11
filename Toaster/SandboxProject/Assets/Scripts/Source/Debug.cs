@@ -17,6 +17,10 @@ namespace Sandbox
         {
         }
 
+        void OnEvent()
+        {
+        }
+
         void OnUpdate(float ts)
         {
             if (Input.IsKeyPressed(KeyCode.C) && !keyPressed)

@@ -261,6 +261,22 @@ namespace Toast
         }
     }
 
+    public class UIPanelComponent : Component
+    {
+        public bool Visible
+        {
+            get
+            {
+                return InternalCalls.UIPanelComponent_GetVisible(Entity.ID);
+            }
+
+            set
+            {
+                InternalCalls.UIPanelComponent_SetVisible(Entity.ID, value);
+            }
+        }
+    }
+
     public class UIButtonComponent : Component
     {
         public Vector4 Color

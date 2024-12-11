@@ -1505,44 +1505,16 @@ namespace Toast {
 				ImGui::PushItemWidth(-1);
 				ImGui::SliderFloat("##bordersize", component.Panel->GetBorderSize(), 0.0f, 50.0f, "%.1f");
 
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Visible");
+				ImGui::TableSetColumnIndex(1);
+				bool visible = component.Panel->GetVisible();
+				if (ImGui::Checkbox("##visible", &visible))
+					component.Panel->SetVisible(visible);
+				ImGui::TableNextRow();
+
 				ImGui::EndTable();
-
-			/*	ImGui::BeginTable("UIPanelComponentTable", 3, flags);
-				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
-				ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Texture ");
-				ImGui::TableSetColumnIndex(1);
-				if (!component.Panel->GetFilePath().empty())
-					ImGui::InputText("##uitexturefilepath", (char*)component.Panel->GetFilePath().c_str(), 256, ImGuiInputTextFlags_ReadOnly);
-				else
-					ImGui::InputText("##uitexturefilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
-				ImGui::TableSetColumnIndex(2);
-				if (ImGui::Button("...##openuitexturefilepath"))
-				{
-					std::optional<std::string> filepath = FileDialogs::OpenFile("*.png", "..\\Toaster\\assets\\textures\\");
-
-					if (filepath)
-						component.Panel->SetFilePath(*filepath);
-				}
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Color");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				ImGui::ColorEdit4("##color", component.Panel->GetColor());
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Corner Radius");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				ImGui::SliderFloat("##cornerradius", component.Panel->GetCornerRadius(), 0.0f, 50.0f, "%.1f");
-
-				ImGui::EndTable();*/
 			});
 
 		DrawComponent<UITextComponent>(ICON_TOASTER_FILE_TEXT" UI Text", entity, mScene, [](auto& component, Entity entity, Scene* scene)
