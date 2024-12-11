@@ -229,6 +229,7 @@ namespace Toast {
 		double LinearDamping = 0.0;
 		Vector3 AngularVelocity = { 0.0f, 0.0f, 0.0f };
 		double AngularDamping = 0.0;
+		double Altitude = 0.0;
 
 		RigidBodyComponent() = default;
 		RigidBodyComponent(Vector3& centerOfMass, double invMass)

@@ -196,7 +196,7 @@ namespace Toast
 
         #endregion
 
-        #region UIPanel Component
+        #region UI Panel Component
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool UIPanelComponent_GetVisible(ulong entityID);
@@ -205,7 +205,7 @@ namespace Toast
 
         #endregion
 
-        #region UIButton Component
+        #region UI Button Component
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern IntPtr UIButtonComponent_GetColor(ulong entityID, out Vector4 result);
@@ -214,12 +214,19 @@ namespace Toast
 
         #endregion
 
-        #region UIText Component
+        #region UI Text Component
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern string UITextComponent_GetText(ulong entityID);
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void UITextComponent_SetText(ulong entityID, string text);
+
+        #endregion
+
+        #region Rigid Body Component
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern IntPtr RigidBodyComponent_GetLinearVelocity(ulong entityID, out Vector3 result);
 
         #endregion
     }

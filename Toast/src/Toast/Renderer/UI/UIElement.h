@@ -84,12 +84,17 @@ namespace Toast {
 		bool GetUseColor() { return mUseColor; }
 		void SetTextureFilepath(std::string& textureFilepath) { mTextureFilepath = textureFilepath; }
 		std::string& GetTextureFilepath() { return mTextureFilepath; }
+
+		bool GetConnectToParent() { return mConnectToParent; }
+		void SetConnectToParent(bool connectToParent) { mConnectToParent = connectToParent; }
 	protected:
 		float mCornerRadius = 0.0f;
 		float mBorderSize = 0.0f;
 
 		bool mUseColor = true;
 		std::string mTextureFilepath;
+
+		bool mConnectToParent = false;
 	};
 
 	class UIText : public UIElement 

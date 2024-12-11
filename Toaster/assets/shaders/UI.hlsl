@@ -134,6 +134,12 @@ float ScreenPxRange()
 	return geoSize / 32.0f * pixRange;
 }
 
+// Function to check distance from a point to a corner center
+float CheckCornerDistance(float2 p, float2 center, float radius)
+{
+    return length(p - center) > radius;
+}
+
 PixelOutputType main(PixelInputType input) : SV_TARGET
 {
     PixelOutputType output;
@@ -269,37 +275,136 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
                 // Sample the texture
                 textureColor = PanelTexture.Sample(defaultSampler, uv);
             }
-            else // Middle
+            else if (isMiddle)
             {
-                 // Local coordinates within the middle region
-                float2 localCoords = coords - float2(borderSizeX, borderSizeY);
+                // Define inner dimensions
+                float innerBorderSizeX = borderSizeX;
+                float innerBorderSizeY = borderSizeY;
+                float2 innerSize = input.size - 2.0f * float2(innerBorderSizeX, innerBorderSizeY);
 
-                // Ensure middleSizeX and middleSizeY are not zero
-                float safeMiddleSizeX = max(middleSizeX, 1.0f);
-                float safeMiddleSizeY = max(middleSizeY, 1.0f);
+                // Ensure the inner corner radius is valid
+                float innerCornerRadius = max(input.cornerRadius - borderSizeX, 0.0f);
 
-                // Compute tileUV in [0,1] range
-                float2 tileUV = localCoords / float2(safeMiddleSizeX, safeMiddleSizeY);
+                // Determine if the current pixel is near an inner corner
+                bool inInnerTopLeft = (coords.x < innerBorderSizeX + innerCornerRadius) && (coords.y > input.size.y - innerBorderSizeY - innerCornerRadius);
+                bool inInnerTopRight = (coords.x > input.size.x - innerBorderSizeX - innerCornerRadius) && (coords.y > input.size.y - innerBorderSizeY - innerCornerRadius);
+                bool inInnerBottomLeft = (coords.x < innerBorderSizeX + innerCornerRadius) && (coords.y < innerBorderSizeY + innerCornerRadius);
+                bool inInnerBottomRight = (coords.x > input.size.x - innerBorderSizeX - innerCornerRadius) && (coords.y < innerBorderSizeY + innerCornerRadius);
 
-                // Implement tiling using frac
-                tileUV = frac(tileUV);
+                bool shouldRenderInnerBorder = false;
+                float2 innerCornerPosition;
+                float2 innerCornerUVStart;
 
-                // Define UV coordinates for the middle slice
-                float2 uvMin = float2(texBorderSizeX, texBorderSizeY) / textureSize;
-                float2 uvMax = (float2(texBorderSizeX, texBorderSizeY) + float2(texMiddleSizeX, texMiddleSizeY)) / textureSize;
+                if (inInnerTopLeft)
+                {
+                    float2 center = float2(innerBorderSizeX + innerCornerRadius, input.size.y - innerBorderSizeY - innerCornerRadius);
+                    shouldRenderInnerBorder = CheckCornerDistance(coords, center, innerCornerRadius) > 0.0f;
 
-                // Calculate texel size
-                float2 texelSize = 1.0f / textureSize;
+                    if (shouldRenderInnerBorder)
+                    {
+                    // Compute UV for inner top-left corner
+                        innerCornerPosition = float2(innerBorderSizeX, input.size.y - innerBorderSizeY);
+                        innerCornerUVStart = float2(0.0f, 0.0f);
 
-                // Inset uvMin and uvMax to avoid sampling at the edges
-                uvMin += texelSize * 0.5f; // Adjust multiplier as needed
-                uvMax -= texelSize * 0.5f;
+                        float2 localCoords = coords - innerCornerPosition;
 
-                // Map tileUV from [0,1] to [uvMin, uvMax]
-                uv = uvMin + tileUV * (uvMax - uvMin);
+                        float2 scaledCoords = localCoords * float2(texBorderSizeX / borderSizeX, texBorderSizeY / borderSizeY);
 
-                // Sample the texture
-                textureColor = PanelTexture.Sample(defaultSampler, uv);
+                        uv = (innerCornerUVStart + scaledCoords) / textureSize;
+
+                        textureColor = PanelTexture.Sample(defaultSampler, uv);
+                    }
+                }
+                else if (inInnerTopRight)
+                {
+                    float2 center = float2(input.size.x - innerBorderSizeX - innerCornerRadius, input.size.y - innerBorderSizeY - innerCornerRadius);
+                    shouldRenderInnerBorder = CheckCornerDistance(coords, center, innerCornerRadius) > 0.0f;
+
+                    if (shouldRenderInnerBorder)
+                    {
+                    // Compute UV for inner top-right corner
+                        innerCornerPosition = float2(input.size.x - innerBorderSizeX, input.size.y - innerBorderSizeY);
+                        innerCornerUVStart = float2(textureSize.x - texBorderSizeX, 0.0f);
+
+                        float2 localCoords = coords - innerCornerPosition;
+
+                        float2 scaledCoords = localCoords * float2(texBorderSizeX / borderSizeX, texBorderSizeY / borderSizeY);
+
+                        uv = (innerCornerUVStart + scaledCoords) / textureSize;
+
+                        textureColor = PanelTexture.Sample(defaultSampler, uv);
+                    }
+                }
+                else if (inInnerBottomLeft)
+                {
+                    float2 center = float2(innerBorderSizeX + innerCornerRadius, innerBorderSizeY + innerCornerRadius);
+                    shouldRenderInnerBorder = CheckCornerDistance(coords, center, innerCornerRadius) > 0.0f;
+
+                    if (shouldRenderInnerBorder)
+                    {
+                    // Compute UV for inner bottom-left corner
+                        innerCornerPosition = float2(innerBorderSizeX, innerBorderSizeY);
+                        innerCornerUVStart = float2(0.0f, textureSize.y - texBorderSizeY);
+
+                        float2 localCoords = coords - innerCornerPosition;
+
+                        float2 scaledCoords = localCoords * float2(texBorderSizeX / borderSizeX, texBorderSizeY / borderSizeY);
+
+                        uv = (innerCornerUVStart + scaledCoords) / textureSize;
+
+                        textureColor = PanelTexture.Sample(defaultSampler, uv);
+                    }
+                }
+                else if (inInnerBottomRight)
+                {
+                    float2 center = float2(input.size.x - innerBorderSizeX - innerCornerRadius, innerBorderSizeY + innerCornerRadius);
+                    shouldRenderInnerBorder = CheckCornerDistance(coords, center, innerCornerRadius) > 0.0f;
+
+                    if (shouldRenderInnerBorder)
+                    {
+                    // Compute UV for inner bottom-right corner
+                        innerCornerPosition = float2(input.size.x - innerBorderSizeX, innerBorderSizeY);
+                        innerCornerUVStart = float2(textureSize.x - texBorderSizeX, textureSize.y - texBorderSizeY);
+
+                        float2 localCoords = coords - innerCornerPosition;
+
+                        float2 scaledCoords = localCoords * float2(texBorderSizeX / borderSizeX, texBorderSizeY / borderSizeY);
+
+                        uv = (innerCornerUVStart + scaledCoords) / textureSize;
+
+                        textureColor = PanelTexture.Sample(defaultSampler, uv);
+                    }
+                }
+
+                if (!shouldRenderInnerBorder)
+                {
+                    // Local coordinates within the middle region
+                    float2 localCoords = coords - float2(borderSizeX, borderSizeY);
+
+                    // Ensure middleSizeX and middleSizeY are not zero
+                    float safeMiddleSizeX = max(middleSizeX, 1.0f);
+                    float safeMiddleSizeY = max(middleSizeY, 1.0f);
+
+                    // Compute tileUV in [0,1] range
+                    float2 tileUV = frac(localCoords / float2(safeMiddleSizeX, safeMiddleSizeY));
+
+                    // Define UV coordinates for the middle slice
+                    float2 uvMin = float2(texBorderSizeX, texBorderSizeY) / textureSize;
+                    float2 uvMax = (float2(texBorderSizeX, texBorderSizeY) + float2(texMiddleSizeX, texMiddleSizeY)) / textureSize;
+
+                    // Calculate texel size
+                    float2 texelSize = 1.0f / textureSize;
+
+                    // Inset uvMin and uvMax to avoid sampling at the edges
+                    uvMin += texelSize * 0.5f; // Adjust multiplier as needed
+                    uvMax -= texelSize * 0.5f;
+
+                    // Map tileUV from [0,1] to [uvMin, uvMax]
+                    float2 uvMiddle = uvMin + tileUV * (uvMax - uvMin);
+
+                    // Sample the texture for the inner area
+                    textureColor = PanelTexture.Sample(defaultSampler, uvMiddle);
+                }  
             }
             
             output.color = textureColor;
