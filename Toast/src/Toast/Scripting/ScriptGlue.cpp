@@ -173,7 +173,31 @@ namespace Toast {
 
 		if (!entity)
 		{
-			TOAST_CORE_CRITICAL("Entity not found!");
+			std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
+			TOAST_CORE_CRITICAL("Entity '%s' not found!", nameStr.c_str());
+			return 0;
+		}
+
+		return entity.GetUUID();
+	}
+
+	static uint64_t Entity_FindChildEntityByName(MonoString* parentName, MonoString* childName)
+	{
+		char* parentNameCStr = mono_string_to_utf8(parentName);
+		char* childNameCStr = mono_string_to_utf8(childName);
+
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity entity = scene->FindChildEntityByName(parentNameCStr, childNameCStr);
+		mono_free(parentNameCStr);
+		mono_free(childNameCStr);
+
+		if (!entity)
+		{
+			std::string& parentNameStr = Utils::ConvertMonoStringToCppString(parentName);
+			std::string& childNameStr = Utils::ConvertMonoStringToCppString(parentName);
+
+			TOAST_CORE_CRITICAL("Child to Entity '%s' with name '%s' not found!", parentNameStr.c_str(), childNameStr.c_str());
 			return 0;
 		}
 
@@ -181,6 +205,7 @@ namespace Toast {
 	}
 
 #pragma endregion
+
 
 #pragma region Tag Component
 
@@ -191,8 +216,15 @@ namespace Toast {
 		const auto& entityMap = scene->GetEntityMap();
 		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
 		Entity entity = entityMap.at(entityID);
-		auto& component = entity.GetComponent<TagComponent>();
-		std::string tag = component.Tag;
+		std::string tag;
+
+		if (!entity.HasComponent<TagComponent>())
+			tag = "Unknown";
+		else 
+		{
+			auto& component = entity.GetComponent<TagComponent>();
+			tag = component.Tag;
+		}
 
 		return Utils::ConvertCppStringToMonoString(mono_domain_get(), tag);
 	}
@@ -565,6 +597,32 @@ namespace Toast {
 
 #pragma endregion
 
+#pragma region UIPanel Component
+
+	bool UIPanelComponent_GetVisible(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<UIPanelComponent>();
+		return component.Panel->GetVisible();
+	}
+
+	void UIPanelComponent_SetVisible(uint64_t entityID, bool value)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<UIPanelComponent>();
+		component.Panel->SetVisible(value);
+	}
+
+#pragma endregion
+
 #pragma region UIButton Component
 
 	void UIButtonComponent_GetColor(uint64_t entityID, DirectX::XMFLOAT4* outColor)
@@ -644,6 +702,7 @@ namespace Toast {
 		RegisterComponent<PlanetComponent>();
 		RegisterComponent<MeshComponent>();
 		RegisterComponent<CameraComponent>();
+		RegisterComponent<UIPanelComponent>();
 		RegisterComponent<UIButtonComponent>();
 		RegisterComponent<UITextComponent>();
 	}
@@ -671,6 +730,7 @@ namespace Toast {
 
 		TOAST_ADD_INTERNAL_CALL(Entity_HasComponent);
 		TOAST_ADD_INTERNAL_CALL(Entity_FindEntityByName);
+		TOAST_ADD_INTERNAL_CALL(Entity_FindChildEntityByName);
 
 		TOAST_ADD_INTERNAL_CALL(TagComponent_GetTag);
 		TOAST_ADD_INTERNAL_CALL(TagComponent_SetTag);
@@ -705,6 +765,9 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(PlanetComponent_GetSubdivisions);
 		TOAST_ADD_INTERNAL_CALL(PlanetComponent_GetDistanceLUT);
 		TOAST_ADD_INTERNAL_CALL(PlanetComponent_GeneratePlanet);
+
+		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_GetVisible);
+		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_SetVisible);
 
 		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_GetColor);
 		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_SetColor);

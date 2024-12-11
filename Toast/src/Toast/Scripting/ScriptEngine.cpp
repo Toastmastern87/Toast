@@ -478,7 +478,8 @@ namespace Toast {
 
 	void ScriptInstance::InvokeOnEvent()
 	{
-		mScriptClass->InvokeMethod(mInstance, mOnEventMethod);
+		if(mOnEventMethod)
+			mScriptClass->InvokeMethod(mInstance, mOnEventMethod);
 	}
 
 	MonoObject* ScriptInstance::GetManagedObject()

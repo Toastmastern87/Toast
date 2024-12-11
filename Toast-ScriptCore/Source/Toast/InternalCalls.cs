@@ -74,6 +74,9 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern ulong Entity_FindEntityByName(string name);
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern ulong Entity_FindChildEntityByName(string name, string childName);
+
         #endregion
 
         #region Tag Component
@@ -190,6 +193,15 @@ namespace Toast
         internal static extern double[] PlanetComponent_GetDistanceLUT(ulong entityID);
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern double[] PlanetComponent_GetFaceLevelDotLUT(ulong entityID);
+
+        #endregion
+
+        #region UIPanel Component
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool UIPanelComponent_GetVisible(ulong entityID);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void UIPanelComponent_SetVisible(ulong entityID, bool value);
 
         #endregion
 

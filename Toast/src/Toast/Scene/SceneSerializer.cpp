@@ -511,6 +511,7 @@ namespace Toast {
 			out << YAML::Key << "BorderSize" << YAML::Value << *uipc.Panel->GetBorderSize();
 			out << YAML::Key << "AssetPath" << YAML::Value << uipc.Panel->GetTextureFilepath();
 			out << YAML::Key << "UseColor" << YAML::Value << uipc.Panel->GetUseColor();
+			out << YAML::Key << "Visible" << YAML::Value << uipc.Panel->GetVisible();
 
 			out << YAML::EndMap; // UIPanelComponent
 		}
@@ -869,6 +870,7 @@ namespace Toast {
 					uipc.Panel->SetCornerRadius(uiPanelComponent["CornerRadius"].as<float>());
 					uipc.Panel->SetBorderSize(uiPanelComponent["BorderSize"].as<float>());
 					uipc.Panel->SetUseColor(uiPanelComponent["UseColor"].as<bool>());
+					uipc.Panel->SetVisible(uiPanelComponent["Visible"].as<bool>());
 
 					uipc.Panel->SetTextureFilepath(uiPanelComponent["AssetPath"].as<std::string>());
 					if (!uipc.Panel->GetTextureFilepath().empty())

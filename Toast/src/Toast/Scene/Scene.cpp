@@ -133,11 +133,10 @@ namespace Toast {
 		{
 			Entity entity = { mHoveredEntity, this };
 
-			if (entity.HasComponent<UIButtonComponent>() && entity.HasComponent<ScriptComponent>())
-			{
-				ScriptEngine::OnEventEntity(entity);
-			}		
+			if (entity.HasComponent<ScriptComponent>())
+				ScriptEngine::OnEventEntity(entity);	
 		}
+
 		return true;
 	}
 
@@ -574,20 +573,33 @@ namespace Toast {
 
 					Entity e{ entity, this };
 
-					if (e.HasParent())
+					const auto& name = e.GetComponent<TagComponent>().Tag;
+
+					if (upc.Panel->GetVisible())
 					{
-						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
-						DirectX::XMFLOAT3 position = tc.Translation;
-						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 1.0f };
+						if (e.HasParent())
+						{
+							Entity parent = FindEntityByUUID(e.GetParentUUID());
+							bool is2DParent = parent.HasComponent<UIPanelComponent>() || parent.HasComponent<UIButtonComponent>() || parent.HasComponent<UITextComponent>();
+
+							if (is2DParent)
+							{
+								DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
+								DirectX::XMFLOAT3 position = tc.Translation;
+								finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 1.0f };
+							}
+							else
+								finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
+						}
+						else
+							finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
+
+						std::string panelTextureName;
+						if (!upc.Panel->GetUseColor())
+							panelTextureName = upc.Panel->GetTextureFilepath();
+
+						Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius(), *upc.Panel->GetBorderSize() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false);
 					}
-					else
-						finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
-
-					std::string panelTextureName;
-					if(!upc.Panel->GetUseColor())
-						panelTextureName = upc.Panel->GetTextureFilepath();
-
-					Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius(), *upc.Panel->GetBorderSize() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false);
 				}
 
 				//Buttons
@@ -599,8 +611,19 @@ namespace Toast {
 
 					Entity e{ entity, this };
 
+					bool renderButton = true;
+
 					if (e.HasParent())
 					{
+						Entity parent = FindEntityByUUID(e.GetParentUUID());
+
+						if (parent.HasComponent<UIPanelComponent>())
+						{
+							UIPanelComponent parentPanel = parent.GetComponent<UIPanelComponent>();
+
+							renderButton = parentPanel.Panel->GetVisible();
+						}
+
 						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
 						DirectX::XMFLOAT3 position = tc.Translation;
 						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 1.0f };
@@ -608,7 +631,8 @@ namespace Toast {
 					else
 						finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
 
-					Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius(), 1.0f }, ubc.Button->GetColorF4(), (int)entity, !ubc.Button->GetUseColor(), false);
+					if (renderButton)
+						Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius(), 1.0f }, ubc.Button->GetColorF4(), (int)entity, !ubc.Button->GetUseColor(), false);
 				}
 
 				//Texts
@@ -620,8 +644,19 @@ namespace Toast {
 
 					Entity e{ entity, this };
 
+					bool renderText = true;
+
 					if (e.HasParent())
 					{
+						Entity parent = FindEntityByUUID(e.GetParentUUID());
+
+						if (parent.HasComponent<UIPanelComponent>())
+						{
+							UIPanelComponent parentPanel = parent.GetComponent<UIPanelComponent>();
+
+							renderText = parentPanel.Panel->GetVisible();
+						}
+
 						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
 						DirectX::XMFLOAT3 position = tc.Translation;
 						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 2.0f };
@@ -629,7 +664,8 @@ namespace Toast {
 					else
 						finalPosition = { tc.Translation.x , tc.Translation.y, 2.0f };
 
-					Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y, 1.0f, 1.0f }, uitc.Text, (int)entity, false);
+					if (renderText)
+						Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y, 1.0f, 1.0f }, uitc.Text, (int)entity, true);
 				}
 			}
 			Renderer2D::EndScene();
@@ -1062,7 +1098,8 @@ namespace Toast {
 		RendererDebug::EndScene(true, false, mSettings.RenderUI, mSettings.Grid);
 
 		// 2D UI Rendering
-		if (mSettings.RenderUI) {
+		if (mSettings.RenderUI) 
+		{
 			Renderer2D::BeginScene(*editorCamera);
 			{
 				DirectX::XMFLOAT3 finalPosition;
@@ -1076,20 +1113,33 @@ namespace Toast {
 
 					Entity e{ entity, this };
 
-					if (e.HasParent()) 
+					const auto& name = e.GetComponent<TagComponent>().Tag;
+					
+					if (upc.Panel->GetVisible())
 					{
-						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
-						DirectX::XMFLOAT3 position = tc.Translation;
-						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 1.0f };
+						if (e.HasParent())
+						{
+							Entity parent = FindEntityByUUID(e.GetParentUUID());
+							bool is2DParent = parent.HasComponent<UIPanelComponent>() || parent.HasComponent<UIButtonComponent>() || parent.HasComponent<UITextComponent>();
+
+							if (is2DParent)
+							{
+								DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
+								DirectX::XMFLOAT3 position = tc.Translation;
+								finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 1.0f };
+							}
+							else
+								finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
+						}
+						else
+							finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
+
+						std::string panelTextureName;
+						if (!upc.Panel->GetUseColor())
+							panelTextureName = upc.Panel->GetTextureFilepath();
+
+						Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius(), *upc.Panel->GetBorderSize() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false);
 					}
-					else
-						finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
-
-					std::string panelTextureName;
-					if (!upc.Panel->GetUseColor())
-						panelTextureName = upc.Panel->GetTextureFilepath();
-
-					Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius(), *upc.Panel->GetBorderSize() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false);
 				}
 
 				//Buttons
@@ -1101,8 +1151,19 @@ namespace Toast {
 
 					Entity e{ entity, this };
 
+					bool renderButton = true;
+
 					if (e.HasParent())
 					{
+						Entity parent = FindEntityByUUID(e.GetParentUUID());
+
+						if (parent.HasComponent<UIPanelComponent>())
+						{
+							UIPanelComponent parentPanel = parent.GetComponent<UIPanelComponent>();
+
+							renderButton = parentPanel.Panel->GetVisible();
+						}
+
 						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
 						DirectX::XMFLOAT3 position = tc.Translation;
 						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 1.0f };
@@ -1110,7 +1171,8 @@ namespace Toast {
 					else
 						finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
 
-					Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius(), 1.0f }, ubc.Button->GetColorF4(), (int)entity, !ubc.Button->GetUseColor(), false);
+					if(renderButton)
+						Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius(), 1.0f }, ubc.Button->GetColorF4(), (int)entity, !ubc.Button->GetUseColor(), false);
 				}
 
 				//Texts
@@ -1122,8 +1184,19 @@ namespace Toast {
 
 					Entity e{ entity, this };
 
+					bool renderText = true;
+
 					if (e.HasParent())
 					{
+						Entity parent = FindEntityByUUID(e.GetParentUUID());
+
+						if (parent.HasComponent<UIPanelComponent>())
+						{
+							UIPanelComponent parentPanel = parent.GetComponent<UIPanelComponent>();
+
+							renderText = parentPanel.Panel->GetVisible();
+						}
+
 						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
 						DirectX::XMFLOAT3 position = tc.Translation;
 						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 2.0f };
@@ -1131,7 +1204,8 @@ namespace Toast {
 					else
 						finalPosition = { tc.Translation.x , tc.Translation.y, 2.0f };
 
-					Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y, 1.0f, 1.0f }, uitc.Text, (int)entity, true);
+					if (renderText)
+						Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y, 1.0f, 1.0f }, uitc.Text, (int)entity, true);
 				}
 			}
 			Renderer2D::EndScene();
@@ -1195,6 +1269,34 @@ namespace Toast {
 			const auto& canditate = view.get<TagComponent>(entity).Tag;
 			if (canditate == name)
 				return Entity{ entity, this };
+		}
+
+		return Entity{};
+	}
+
+	Entity Scene::FindChildEntityByName(std::string_view parentName, std::string_view childName)
+	{
+		Entity parentEntity = FindEntityByName(parentName);
+		if (!parentEntity)
+			return Entity{};
+
+		if (!parentEntity.HasComponent<RelationshipComponent>())
+			return Entity{};
+
+		const RelationshipComponent& relationship = parentEntity.GetComponent<RelationshipComponent>();
+
+		for (const UUID& childUUID : relationship.Children)
+		{
+			Entity childEntity = FindEntityByUUID(childUUID);
+			if (!childEntity)
+				continue;
+
+			if (childEntity.HasComponent<TagComponent>())
+			{
+				const TagComponent& tagComp = childEntity.GetComponent<TagComponent>();
+				if (tagComp.Tag == childName)
+					return childEntity;
+			}
 		}
 
 		return Entity{};

@@ -17,6 +17,10 @@ class ClientHelloWorld : Entity
         Toast.Console.LogInfo("Creating Entity: " + mTag.Tag);
     }
 
+    void OnEvent()
+    {
+    }
+
     void OnUpdate(float ts)
     {
         mTransform.Translation = mTransform.Translation + new Vector3(ts * Speed, 0.0f, 0.0f);

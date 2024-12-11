@@ -55,10 +55,15 @@ namespace Toast {
 			return mModelBuffer.Read<T>(decl->GetOffset());
 		}
 
+		bool GetVisible() { return mVisible; }
+		void SetVisible(bool visible) { mVisible = visible; }
+
 		void SetColor(DirectX::XMFLOAT4 c) { mColor = c; }
 		float* GetColor() { return &mColor.x; }
 		DirectX::XMFLOAT4 GetColorF4() { return mColor; }
 	private:
+		bool mVisible = false;
+
 		DirectX::XMFLOAT4 mColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 	};
 

@@ -108,6 +108,8 @@ namespace Toast {
 		Entity FindEntityByName(std::string_view name);
 		Entity FindEntityByUUID(UUID uuid);
 
+		Entity FindChildEntityByName(std::string_view parentName, std::string_view childName);
+
 		void AddChildEntity(Entity entity, Entity parent);
 
 		const EntityMap& GetEntityMap() const { return mEntityIDMap; }
