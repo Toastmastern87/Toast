@@ -82,7 +82,7 @@ namespace Sandbox
                     mCameraTransformComponent.Yaw += (newCursorPos.X - mCursorPos.X) * (ts / Scene.TimeScale) * MouseSpeedFactor;
 
                 if (mCursorPos.Y != newCursorPos.Y)
-                    mCameraTransformComponent.Pitch += (newCursorPos.Y - mCursorPos.Y) * (ts / Scene.TimeScale) * MouseSpeedFactor;
+                    mCameraTransformComponent.Pitch -= (newCursorPos.Y - mCursorPos.Y) * (ts / Scene.TimeScale) * MouseSpeedFactor;
             }
 
             mCursorPos = newCursorPos;

@@ -38,5 +38,10 @@ namespace Toast
         {
             return new Vector2(vectorOne.X + value, vectorOne.Y + value);
         }
+
+        public static Vector2 operator -(Vector2 vectorOne, Vector2 vectorTwo)
+        {
+            return new Vector2(vectorOne.X - vectorTwo.X, vectorOne.Y - vectorTwo.Y);
+        }
     }
 }

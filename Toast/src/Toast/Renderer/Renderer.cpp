@@ -23,12 +23,12 @@ namespace Toast {
 		Renderer2D::Init();
 		RendererDebug::Init(width, height);
 
-		sRendererData->Viewport.TopLeftX = 0.0f;
-		sRendererData->Viewport.TopLeftY = 0.0f;
-		sRendererData->Viewport.Width = static_cast<float>(width);
-		sRendererData->Viewport.Height = static_cast<float>(height);
-		sRendererData->Viewport.MinDepth = 0.0f;
-		sRendererData->Viewport.MaxDepth = 1.0f;
+		sRendererData->EditorViewport.TopLeftX = 0.0f;
+		sRendererData->EditorViewport.TopLeftY = 0.0f;
+		sRendererData->EditorViewport.Width = static_cast<float>(width);
+		sRendererData->EditorViewport.Height = static_cast<float>(height);
+		sRendererData->EditorViewport.MinDepth = 0.0f;
+		sRendererData->EditorViewport.MaxDepth = 1.0f;
 
 		// Setting viewport for shadow mapping
 		sRendererData->ShadowMapViewport.TopLeftX = 0.0f;
@@ -139,16 +139,28 @@ namespace Toast {
 
 	void Renderer::OnWindowResize(uint32_t width, uint32_t height)
 	{
+		sRendererData->EditorViewport.TopLeftX = 0.0f;
+		sRendererData->EditorViewport.TopLeftY = 0.0f;
+		sRendererData->EditorViewport.Width = static_cast<float>(width);
+		sRendererData->EditorViewport.Height = static_cast<float>(height);
+		sRendererData->EditorViewport.MinDepth = 0.0f;
+		sRendererData->EditorViewport.MaxDepth = 1.0f;
+
+		sRendererData->BackbufferRT.reset();
+		RenderCommand::ResizeViewport(0, 0, width, height);
+		sRendererData->BackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT, true);
+
+
+	}
+
+	void Renderer::OnViewportResize(uint32_t width, uint32_t height)
+	{
 		sRendererData->Viewport.TopLeftX = 0.0f;
 		sRendererData->Viewport.TopLeftY = 0.0f;
 		sRendererData->Viewport.Width = static_cast<float>(width);
 		sRendererData->Viewport.Height = static_cast<float>(height);
 		sRendererData->Viewport.MinDepth = 0.0f;
 		sRendererData->Viewport.MaxDepth = 1.0f;
-
-		sRendererData->BackbufferRT.reset();
-		RenderCommand::ResizeViewport(0, 0, width, height);
-		sRendererData->BackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT, true);
 
 		sRendererData->GPassPositionRT->Resize(width, height);
 		sRendererData->GPassNormalRT->Resize(width, height);
@@ -593,7 +605,7 @@ namespace Toast {
 		if (annotation)
 			annotation->BeginEvent(L"Geometry Pass");
 #endif
-
+		RenderCommand::SetViewport(sRendererData->Viewport);
 		RenderCommand::SetRenderTargets({ sRendererData->GPassPositionRT->GetRTV().Get(), sRendererData->GPassNormalRT->GetRTV().Get(), sRendererData->GPassAlbedoMetallicRT->GetRTV().Get(), sRendererData->GPassRoughnessAORT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
 		RenderCommand::SetBlendState(sRendererData->GPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
