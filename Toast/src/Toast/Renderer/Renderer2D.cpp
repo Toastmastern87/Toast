@@ -93,6 +93,7 @@ namespace Toast {
 		RenderCommand::ClearRenderTargets(sRendererData->BackbufferRT->GetRTV().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
 
 		RenderCommand::ClearShaderResources();
+		RenderCommand::SetViewport(sRendererData->EditorViewport);
 
 #ifdef TOAST_DEBUG
 		if (annotation)

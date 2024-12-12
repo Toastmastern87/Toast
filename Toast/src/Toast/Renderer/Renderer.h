@@ -85,7 +85,7 @@ namespace Toast {
 			Ref<RenderTarget> FinalRT;
 
 			// Viewports
-			D3D11_VIEWPORT Viewport, ShadowMapViewport;
+			D3D11_VIEWPORT Viewport, ShadowMapViewport, EditorViewport;
 
 			// Rasterization states
 			Microsoft::WRL::ComPtr<ID3D11RasterizerState> NormalRasterizerState, WireframeRasterizerState, ShadowMapRasterizerState;
@@ -107,6 +107,7 @@ namespace Toast {
 		static void Shutdown();
 
 		static void OnWindowResize(uint32_t width, uint32_t height);
+		static void OnViewportResize(uint32_t width, uint32_t height);
 
 		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos);
 		static void EndScene(const bool debugActivated);

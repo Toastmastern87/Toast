@@ -98,6 +98,9 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		if(mViewportSize.x > 0.0f && mViewportSize.y > 0.0f)
+			mEditorCamera->SetViewportSize(mViewportSize.x, mViewportSize.y);
+
 		Ref<RenderTarget>& positionRT = Renderer::GetGPassPositionRT();
 
 		auto [width, height] = positionRT->GetSize();
@@ -135,6 +138,8 @@ namespace Toast {
 		}
 		case SceneState::Play:
 		{
+			mRuntimeScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			mRuntimeScene->SetViewportPos(mAbsoluteViewportPos);
 			mRuntimeScene->OnUpdateRuntime(ts);
 
 			break;
@@ -298,19 +303,29 @@ namespace Toast {
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 			ImGui::Begin(ICON_TOASTER_GAMEPAD" Viewport");
-			auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
-			auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
-			auto viewportOffset = ImGui::GetWindowPos();
-
-			mViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y };
-			mViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y };
 
 			mViewportFocused = ImGui::IsWindowFocused();
 			mViewportHovered = ImGui::IsWindowHovered();
 			Application::Get().GetImGuiLayer()->BlockEvents(!mViewportFocused && !mViewportHovered);
 
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-			mViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
+
+			ImVec2 windowPos = ImGui::GetWindowPos();
+			auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
+			auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
+			ImVec2 contentMin = ImGui::GetWindowContentRegionMin();
+			ImVec2 contentMax = ImGui::GetWindowContentRegionMax();
+			mAbsoluteViewportPos = DirectX::XMFLOAT2(windowPos.x + contentMin.x, windowPos.y + contentMin.y);
+
+			//mViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
+			mViewportSize = { (contentMax.x - contentMin.x), (contentMax.y - contentMin.y) };
+
+			mViewportBounds[0] = { viewportMinRegion.x + windowPos.x, viewportMinRegion.y + windowPos.y };
+			mViewportBounds[1] = { viewportMaxRegion.x + windowPos.x, viewportMaxRegion.y + windowPos.y };
+
+			if(mViewportSize.x != mPreviousViewportSize.x || mViewportSize.y != mPreviousViewportSize.y)
+				Renderer::OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+
 			//TOAST_CORE_INFO("Setting viewport size to mViewportSize.x: %f, mViewportSize.y: %f", mViewportSize.x, mViewportSize.y);
 
 			Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRenderTarget();
@@ -420,6 +435,8 @@ namespace Toast {
 			ImGui::Text("Vertex count: %d", mEditorScene->GetVertices());
 
 			ImGui::End();
+
+			mPreviousViewportSize = mViewportSize;
 		}
 	}
 
@@ -630,20 +647,7 @@ namespace Toast {
 
 		if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 		{
-			D3D11_TEXTURE2D_DESC textureDesc;
-			pickingRT->GetTexture()->GetDesc(&textureDesc);
-			float textureWidth = static_cast<float>(textureDesc.Width);
-			float textureHeight = static_cast<float>(textureDesc.Height);
-
-			// Calculate the scaling factors
-			float scaleX = textureWidth / viewportSize.x;
-			float scaleY = textureHeight / viewportSize.y;
-
-			// Adjust the mouse coordinates to texture space
-			int texX = static_cast<int>(mouseX * scaleX);
-			int texY = static_cast<int>(mouseY * scaleY);
-
-			int pixelData = pickingRT->ReadPixel(texX, texY);
+			int pixelData = pickingRT->ReadPixel(mouseX, mouseY);
 			mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mEditorScene.get());
 		}
 

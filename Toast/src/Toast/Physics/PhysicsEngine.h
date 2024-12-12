@@ -180,7 +180,7 @@ namespace Toast {
 			}
 		}
 
-		static bool BoxPlanetCollisionCheck(TerrainCollision& collision, const std::vector<Vector3>& terrainColliderVertices)
+		static bool BoxPlanetCollisionCheck(TerrainCollision& collision, const std::vector<Vector3>& terrainColliderVertices, double* outAltitude)
 		{
 			TOAST_PROFILE_FUNCTION();
 
@@ -293,21 +293,40 @@ namespace Toast {
 						collision.Normal = -collision.Normal;
 					}
 					
+					// Once we find a collision, we can stop.
+					// But we still want altitude, so we don't return yet.
+					FindContactPointsOBB(objectColliderPts, terrainPts, collision);
 					break;
 				}
 			}
 
-			if (collisionDetected) 
+			// Compute altitude from box vertices:
+				// For each vertex of the box, find the closest terrain point (like we did for sphere).
+			double globalMinDistance = DBL_MAX;
+			for (size_t i = 0; i < terrainColliderVertices.size() - 2; i += 3)
 			{
-				FindContactPointsOBB(objectColliderPts, terrainPts, collision);
+				const Vector3& va = terrainColliderVertices[i];
+				const Vector3& vb = terrainColliderVertices[i + 1];
+				const Vector3& vc = terrainColliderVertices[i + 2];
 
-				return true;
+				for (auto& v : objectColliderPts)
+				{
+					Vector3 closestPoint = ClosestPointOnTriangle(va, vb, vc, v);
+					double distSqr = (closestPoint - v).LengthSqrt();
+					if (distSqr < globalMinDistance) {
+						globalMinDistance = distSqr;
+					}
+				}
 			}
-			else
-				return false;
+
+			double altitude = sqrt(globalMinDistance);
+			if (outAltitude)
+				*outAltitude = altitude;
+
+			return collisionDetected;
 		}
 
-		static bool SphereTerrainCollisionCheck(Vector3 sphereCenter, double radius, const double dt, TerrainCollision& collision, const std::vector<Vector3>& colliderVertices)
+		static bool SphereTerrainCollisionCheck(Vector3 sphereCenter, double radius, const double dt, TerrainCollision& collision, const std::vector<Vector3>& colliderVertices, double* outAltitude)
 		{
 			TOAST_PROFILE_FUNCTION();
 
@@ -346,6 +365,12 @@ namespace Toast {
 					collisionDetected = collision.Depth >= 0;
 				}
 			}
+
+			// Compute altitude: altitude = distanceToTerrain - radius
+			double minDistance = sqrt(minDistanceSquared);
+			double altitude = minDistance - radius;
+			if (outAltitude)
+				*outAltitude = altitude;
 
 			return collisionDetected;
 		}
@@ -483,7 +508,7 @@ namespace Toast {
 				double sphereRadius = object->GetComponent<SphereColliderComponent>().Collider->mRadius;
 
 				if(planetTCC.ColliderPositions.size() > 3)
-					collisionDetected = SphereTerrainCollisionCheck(posObject, sphereRadius, dt, collision, planetTCC.ColliderPositions[chunkKey]);
+					collisionDetected = SphereTerrainCollisionCheck(posObject, sphereRadius, dt, collision, planetTCC.ColliderPositions[chunkKey], &rbcObject.Altitude);
 
 				if (collisionDetected) 
 					return true;
@@ -493,7 +518,7 @@ namespace Toast {
 				bool collisionDetected = false;
 
 				if (planetTCC.ColliderPositions.size() > 3)
-					collisionDetected = BoxPlanetCollisionCheck(collision, planetTCC.ColliderPositions[chunkKey]);
+					collisionDetected = BoxPlanetCollisionCheck(collision, planetTCC.ColliderPositions[chunkKey], &rbcObject.Altitude);
 
 				if (collisionDetected)
 					return true;

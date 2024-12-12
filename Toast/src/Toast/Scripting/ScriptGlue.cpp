@@ -91,7 +91,16 @@ namespace Toast {
 
 	void Input_GetMousePosition(DirectX::XMFLOAT2* outPos)
 	{
-		*outPos = Input::GetMousePosition();
+		Scene* scene = ScriptEngine::GetSceneContext();
+
+		auto viewportPos = scene->GetViewportPos();
+		auto viewportSize = scene->GetViewportSize();
+
+		DirectX::XMFLOAT2 outputPos;
+		outputPos.x = Input::GetMousePosition().x - (float)std::get<0>(viewportPos);
+		outputPos.y = (Input::GetMousePosition().y - (float)std::get<1>(viewportPos) - (float)std::get<1>(viewportSize)) * -1.0f;
+
+		*outPos = outputPos;
 	}
 
 	float Input_GetMouseWheelDelta()
@@ -621,6 +630,17 @@ namespace Toast {
 		component.Panel->SetVisible(value);
 	}
 
+	float UIPanelComponent_GetBorderSize(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<UIPanelComponent>();
+		return *component.Panel->GetBorderSize();
+	}
+
 #pragma endregion
 
 #pragma region UI Button Component
@@ -681,6 +701,18 @@ namespace Toast {
 #pragma endregion
 
 #pragma region Rigid Body Component
+
+	float RigidBodyComponent_GetAltitude(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<RigidBodyComponent>();
+
+		return component.Altitude;
+	}
 
 	void RigidBodyComponent_GetLinearVelocity(uint64_t entityID, DirectX::XMFLOAT3* outLinearVelocity)
 	{
@@ -787,13 +819,15 @@ namespace Toast {
 
 		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_GetVisible);
 		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_SetVisible);
+		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_GetBorderSize);
 
 		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_GetColor);
 		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_SetColor);
 
 		TOAST_ADD_INTERNAL_CALL(UITextComponent_GetText);
 		TOAST_ADD_INTERNAL_CALL(UITextComponent_SetText);
-
+		
+		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetAltitude);
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetLinearVelocity);
 	}
 

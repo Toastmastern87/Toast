@@ -202,6 +202,8 @@ namespace Toast
         internal static extern bool UIPanelComponent_GetVisible(ulong entityID);
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void UIPanelComponent_SetVisible(ulong entityID, bool value);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float UIPanelComponent_GetBorderSize(ulong entityID);
 
         #endregion
 
@@ -224,6 +226,9 @@ namespace Toast
         #endregion
 
         #region Rigid Body Component
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float RigidBodyComponent_GetAltitude(ulong entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern IntPtr RigidBodyComponent_GetLinearVelocity(ulong entityID, out Vector3 result);

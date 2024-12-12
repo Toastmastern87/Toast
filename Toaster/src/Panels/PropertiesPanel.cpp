@@ -609,16 +609,15 @@ namespace Toast {
 				{
 					DirectX::XMFLOAT3 translation2D = component.Translation;
 
-					translation2D.x += width / 2.0f;
+					translation2D.x += (width / 2.0f);
 					translation2D.y += (height / 2.0f);
 
 					updateTransform |= DrawFloat3Control("Translation", translation2D);
 
-					translation2D.x -= width / 2.0f;
+					translation2D.x -= (width / 2.0f);
 					translation2D.y -= (height / 2.0f);
 
 					component.Translation = translation2D;
-
 				}
 				else
 					updateTransform |= DrawFloat3Control("Translation", component.Translation);
@@ -1542,7 +1541,6 @@ namespace Toast {
 					component.Text->SetText(text);
 				}
 					
-
 				ImGui::BeginTable("##FontTable", 3, flags);
 				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
 				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);

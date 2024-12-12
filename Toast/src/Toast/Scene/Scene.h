@@ -91,7 +91,9 @@ namespace Toast {
 		void OnUpdateRuntime(Timestep ts);
 		void OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera);
 		void OnViewportResize(uint32_t width, uint32_t height);
-		const float GetViewportWidth() const { return mViewportWidth; }
+		const std::tuple<uint32_t, uint32_t> GetViewportSize() const { return std::make_tuple(mViewportWidth, mViewportHeight); }
+		void SetViewportPos(DirectX::XMFLOAT2 absoluteViewportPos) { mViewportPosX = absoluteViewportPos.x; mViewportPosY = absoluteViewportPos.y; }
+		const std::tuple<uint32_t, uint32_t> GetViewportPos() { return std::make_tuple(mViewportPosX, mViewportPosY); }
 
 		void SetTimeScale(float scale) { mTimeScale = scale; }
 		float GetTimeScale() { return mTimeScale; }
@@ -136,6 +138,7 @@ namespace Toast {
 		entt::registry mRegistry;
 
 		uint32_t mViewportWidth = 0, mViewportHeight = 0;
+		uint32_t mViewportPosX = 0, mViewportPosY = 0;
 
 		EntityMap mEntityIDMap;
 

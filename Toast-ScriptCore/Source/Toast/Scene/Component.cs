@@ -275,6 +275,19 @@ namespace Toast
                 InternalCalls.UIPanelComponent_SetVisible(Entity.ID, value);
             }
         }
+
+        public float BorderSize
+        {
+            get
+            {
+                return InternalCalls.UIPanelComponent_GetBorderSize(Entity.ID);
+            }
+
+            set
+            {
+
+            }
+        }
     }
 
     public class UIButtonComponent : Component
@@ -305,6 +318,17 @@ namespace Toast
 
     public class RigidBodyComponent : Component
     {
+        public float Altitude
+        {
+            get
+            {
+                return InternalCalls.RigidBodyComponent_GetAltitude(Entity.ID);
+            }
+            set
+            {
+            }
+        }
+
         public Vector3 LinearVelocity
         {
             get
