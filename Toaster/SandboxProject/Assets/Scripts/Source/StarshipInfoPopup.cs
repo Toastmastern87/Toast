@@ -9,24 +9,32 @@ namespace Sandbox
         private Entity mStarship;
         private Entity mStarshipInfoPanel;
         private Entity mVelocityEntity;
+        private Entity mAltitudeEntity;
 
         private TransformComponent mPanelTransform;
         private UIPanelComponent mPanel;
         private RigidBodyComponent mRigidBody;
         private UITextComponent mVelocityText;
+        private UITextComponent mAltitudeText;
 
         private Vector2 mPreviousPos;
         private bool mIsDragging;
 
+        private float mTotalTime;
+
         void OnCreate()
         {
+            mTotalTime = 0.0f;
+
             mStarship = FindEntityByName("Starship SN3");
             mStarshipInfoPanel = FindChildEntityByName("Starship SN3", "InfoPopup");
             mVelocityEntity = FindChildEntityByName("InfoPopup", "VelocityText");
+            mAltitudeEntity = FindChildEntityByName("InfoPopup", "AltitudeText");
             mPanel = mStarshipInfoPanel.GetComponent<UIPanelComponent>();
             mPanelTransform = mStarshipInfoPanel.GetComponent<TransformComponent>();
             mRigidBody = mStarship.GetComponent<RigidBodyComponent>();
             mVelocityText = mVelocityEntity.GetComponent<UITextComponent>();
+            mAltitudeText = mAltitudeEntity.GetComponent<UITextComponent>();
 
             bool mIsDragging = false;
         }
@@ -42,6 +50,8 @@ namespace Sandbox
             if (mPanel.Visible == true)
             {
                 Vector2 mousePos = Input.GetMousePosition();
+
+                mRigidBody.ReqAltitude = true;
 
                 if (Input.IsMouseButtonPressed(MouseCode.ButtonLeft))
                 {
@@ -71,13 +81,24 @@ namespace Sandbox
                     }
                 }
                 else
-
                     mIsDragging = false;
 
-                float linearVelocity = Vector3.Length(mRigidBody.LinearVelocity);
+                if (mTotalTime > 0.15f)
+                {
+                    float linearVelocity = Vector3.Length(mRigidBody.LinearVelocity);
+                    float altitude = mRigidBody.Altitude;
 
-                mVelocityText.Text = "Velocity: " + (float)Math.Round(linearVelocity, 0) + " m/s";
+                    mVelocityText.Text = "Velocity: " + (float)Math.Round(linearVelocity, 1) + " m/s";
+                    mAltitudeText.Text = "Altitude: " + (float)Math.Round(altitude, 1) + " m";
+                }
+
+                if (mTotalTime > 0.2f)
+                    mTotalTime -= 0.2f;
+
+                mTotalTime += ts;
             }
+            else
+                mRigidBody.ReqAltitude = false;
         }
     }
 }

@@ -102,16 +102,26 @@ namespace Toast {
 		node->ChildNodes.emplace_back(CreateRef<PlanetNode>(node->B, A, C, node->SubdivisionLevel + 1));
 		node->ChildNodes.emplace_back(CreateRef<PlanetNode>(B, A, node->C, node->SubdivisionLevel + 1));
 
-		for (auto& child : node->ChildNodes) 
+		for (auto& child : node->ChildNodes)
+		{
 			SubdivideBasePlanet(planet, child, scale);
+
+			child->UpdateBoundsFromChildren();
+		}
+
+		node->UpdateBoundsFromChildren();
 	}
 
-	void PlanetSystem::SubdivideFace(CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, const Vector3& planetCenter, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::SubdivideFace(Ref<PlanetNode>& node, CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, const Vector3& planetCenter, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
 	{
 		double height;
 		NextPlanetFace nextFace;
 		Vector2 uvCoords;
 		Bounds bounds;
+
+		//double aDistance = A.Position.LengthSqrt();
+		//double bDistance = B.Position.LengthSqrt();
+		//double cDistance = C.Position.LengthSqrt();
 
 		double aDistance = (A.Position - cameraPosPlanetSpace).LengthSqrt();
 		double bDistance = (B.Position - cameraPosPlanetSpace).LengthSqrt();
@@ -129,40 +139,63 @@ namespace Toast {
 
 		if (nextFace == NextPlanetFace::SPLIT)
 		{
-			CPUVertex a, b, c;
+			CPUVertex aMid, bMid, cMid;
 			double mediumTerrainDetailNoise = 0.0;
 
-			a.Position = B.Position + ((C.Position - B.Position) * 0.5);
-			b.Position = C.Position + ((A.Position - C.Position) * 0.5);
-			c.Position = A.Position + ((B.Position - A.Position) * 0.5);
+			aMid.Position = B.Position + ((C.Position - B.Position) * 0.5);
+			bMid.Position = C.Position + ((A.Position - C.Position) * 0.5);
+			cMid.Position = A.Position + ((B.Position - A.Position) * 0.5);
 
-			Vector3 aNormalized = Vector3::Normalize(a.Position);
-			a.UV = GetUVFromPosition(aNormalized, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
-			if (terrainDetail && subdivision > terrainDetail->SubdivisionActivation)
-				mediumTerrainDetailNoise = perlin.octave2D_01(a.UV.x * terrainDetail->Frequency, a.UV.y * terrainDetail->Frequency, terrainDetail->Octaves) * terrainDetail->Amplitude;
-			height = GetHeight(a.UV, planet.TerrainData);
-			a.Position = aNormalized * (planet.PlanetData.radius + height + mediumTerrainDetailNoise);
+			auto ComputeVertex = [&](CPUVertex& v) {
+				Vector3 n = Vector3::Normalize(v.Position);
+				v.UV = GetUVFromPosition(n, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
+				double mediumTerrainDetailNoise = 0.0;
+				if (terrainDetail && subdivision > terrainDetail->SubdivisionActivation) {
+					mediumTerrainDetailNoise = perlin.octave2D_01(v.UV.x * terrainDetail->Frequency, v.UV.y * terrainDetail->Frequency, terrainDetail->Octaves) * terrainDetail->Amplitude;
+				}
+				double h = GetHeight(v.UV, planet.TerrainData);
+				v.Position = n * (planet.PlanetData.radius + h + mediumTerrainDetailNoise);
+				};
 
-			Vector3 bNormalized = Vector3::Normalize(b.Position);
-			b.UV = GetUVFromPosition(bNormalized, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
-			if (terrainDetail && subdivision > terrainDetail->SubdivisionActivation)
-				mediumTerrainDetailNoise = perlin.octave2D_01(b.UV.x * terrainDetail->Frequency, b.UV.y * terrainDetail->Frequency, terrainDetail->Octaves) * terrainDetail->Amplitude;
-			height = GetHeight(b.UV, planet.TerrainData);
-			b.Position = bNormalized * (planet.PlanetData.radius + height + mediumTerrainDetailNoise);
+			ComputeVertex(aMid);
+			ComputeVertex(bMid);
+			ComputeVertex(cMid);
 
-			Vector3 cNormalized = Vector3::Normalize(c.Position);
-			c.UV = GetUVFromPosition(cNormalized, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
-			if (terrainDetail && subdivision > terrainDetail->SubdivisionActivation)
-				mediumTerrainDetailNoise = perlin.octave2D_01(c.UV.x * terrainDetail->Frequency, c.UV.y * terrainDetail->Frequency, terrainDetail->Octaves) * terrainDetail->Amplitude;
-			height = GetHeight(c.UV, planet.TerrainData);
-			c.Position = cNormalized * (planet.PlanetData.radius + height + mediumTerrainDetailNoise);
+			// Create child nodes for the four new faces
+			node->ChildNodes.clear();
+			node->ChildNodes.reserve(4);
 
-			int16_t nextSubdivision = subdivision + 1;
+			// For each of the four subdivided triangles, create a new node
+			// Triangle 1: aMid, bMid, cMid
+			{
+				Ref<PlanetNode> child = CreateRef<PlanetNode>(aMid, bMid, cMid, (uint16_t)(subdivision + 1), planetTransform);
+				SubdivideFace(child, aMid, bMid, cMid, cameraPosPlanetSpace, planet, planetCenter, planetTransform, subdivision + 1, perlin, terrainDetail);
+				node->ChildNodes.emplace_back(child);
+			}
 
-			SubdivideFace(a, b, c, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
-			SubdivideFace(c, b, A, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
-			SubdivideFace(B, a, c, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
-			SubdivideFace(b, a, C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, nextSubdivision, perlin, terrainDetail);
+			// Triangle 2: cMid, bMid, A
+			{
+				Ref<PlanetNode> child = CreateRef<PlanetNode>(cMid, bMid, A, (uint16_t)(subdivision + 1), planetTransform);
+				SubdivideFace(child, cMid, bMid, A, cameraPosPlanetSpace, planet, planetCenter, planetTransform, subdivision + 1, perlin, terrainDetail);
+				node->ChildNodes.emplace_back(child);
+			}
+
+			// Triangle 3: B, aMid, cMid
+			{
+				Ref<PlanetNode> child = CreateRef<PlanetNode>(B, aMid, cMid, (uint16_t)(subdivision + 1), planetTransform);
+				SubdivideFace(child, B, aMid, cMid, cameraPosPlanetSpace, planet, planetCenter, planetTransform, subdivision + 1, perlin, terrainDetail);
+				node->ChildNodes.emplace_back(child);
+			}
+
+			// Triangle 4: bMid, aMid, C
+			{
+				Ref<PlanetNode> child = CreateRef<PlanetNode>(bMid, aMid, C, (uint16_t)(subdivision + 1), planetTransform);
+				SubdivideFace(child, bMid, aMid, C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, subdivision + 1, perlin, terrainDetail);
+				node->ChildNodes.emplace_back(child);
+			}
+
+			// After all children are subdivided
+			node->UpdateBoundsFromChildren();
 		}
 		else
 		{
@@ -277,8 +310,10 @@ namespace Toast {
 					planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
 				}
 
+				node->ComputeBoundsFromTriangle();
+
 				// Chunks are used by the physics engine
-				AssignFaceToChunk(vecA, vecB, vecC, planet.TerrainChunks, planetCenter);
+				//AssignFaceToChunk(vecA, vecB, vecC, planet.TerrainChunks, planetCenter);
 			}
 			else
 			{
@@ -344,7 +379,10 @@ namespace Toast {
 					planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
 				}
 
-				AssignFaceToChunk(additionalVertexPos, closestVertexPos, furthestVertexPos, planet.TerrainChunks, planetCenter);
+				Ref<PlanetNode> child1 = CreateRef<PlanetNode>(A, B, C, subdivision + 1);
+				node->ChildNodes.push_back(child1);
+
+				//AssignFaceToChunk(additionalVertexPos, closestVertexPos, furthestVertexPos, planet.TerrainChunks, planetCenter);
 
 				// Second triangle
 				normal = Vector3::Normalize(Vector3::Cross(additionalVertexPos - furthestVertexPos, additionalVertexPos - middleVertexPos));
@@ -392,7 +430,10 @@ namespace Toast {
 					planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
 				}
 
-				AssignFaceToChunk(additionalVertexPos, furthestVertexPos, middleVertexPos, planet.TerrainChunks, planetCenter);
+				Ref<PlanetNode> child2 = CreateRef<PlanetNode>(A, B, C, subdivision + 1);
+				node->ChildNodes.push_back(child2);
+
+				//AssignFaceToChunk(additionalVertexPos, furthestVertexPos, middleVertexPos, planet.TerrainChunks, planetCenter);
 			}
 		
 			return;
@@ -452,6 +493,8 @@ namespace Toast {
 						2, 4, 11
 		};
 
+		sPlanetNodes.clear();
+
 		for (int i = 0; i < initialIndices.size() - 2; i += 3)
 		{
 			int16_t subdivision = 0;
@@ -475,6 +518,9 @@ namespace Toast {
 
 			Ref<PlanetNode> rootNode = CreateRef<PlanetNode>(A, B, C, 0);
 			SubdivideBasePlanet(planet, rootNode, scale);
+
+			rootNode->UpdateBoundsFromChildren();
+
 			sPlanetNodes.emplace_back(rootNode);
 		}
 
@@ -484,7 +530,7 @@ namespace Toast {
 		// Calculate the duration
 		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
-		TOAST_CORE_INFO("Base planet created with %d number of planet nodes, example of child node: %d, time: %dms", sPlanetNodes.size(), sPlanetNodes[0]->ChildNodes.size(), duration);
+		TOAST_CORE_INFO("Base planet created with %d number of planet nodes, time: %dms", sPlanetNodes.size(), duration);
 	}
 
 	void PlanetSystem::DetailObjectPlacement(const PlanetComponent& planet, TerrainObjectComponent& objects, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR& camPos)
@@ -560,6 +606,13 @@ namespace Toast {
 
 		double dotProduct = Vector3::Dot(Vector3::Normalize(center), Vector3::Normalize(viewVector));
 
+		Ref<PlanetNode> nodeWorldSpace = CreateRef<PlanetNode>(*node);
+
+		nodeWorldSpace->A = planetTransform * node->A.Position;
+		nodeWorldSpace->B = planetTransform * node->B.Position;
+		nodeWorldSpace->C = planetTransform * node->C.Position;
+		planet.PlanetNodesWorldSpace.emplace_back(nodeWorldSpace);
+
 		double backFaceCullingIgnoreDistance = 50000.0;
 		if (cameraDistance > backFaceCullingIgnoreDistance)
 		{
@@ -581,7 +634,7 @@ namespace Toast {
 		//TOAST_CORE_CRITICAL("node->SubdivisionLevel going to subdivision: %d", node->SubdivisionLevel);
 
 		if (node->SubdivisionLevel >= BASE_PLANET_SUBDIVISIONS)
-			SubdivideFace(node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, BASE_PLANET_SUBDIVISIONS, perlin, terrainDetail);
+			SubdivideFace(nodeWorldSpace, node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, BASE_PLANET_SUBDIVISIONS, perlin, terrainDetail);
 		else 
 		{
 			for (auto& child : node->ChildNodes)
@@ -618,6 +671,8 @@ namespace Toast {
 			planet.BuildVertices.clear();
 			planet.BuildIndices.clear();
 
+			planet.PlanetNodesWorldSpace.clear();
+
 			planet.TerrainChunks.clear();
 		}
 
@@ -640,29 +695,29 @@ namespace Toast {
 			}
 		}
 
-		for (const auto& chunkEntry : planet.TerrainChunks)
-		{
-			const auto& chunkKey = chunkEntry.first;
-			const auto& verticesInChunk = chunkEntry.second;
+		//for (const auto& chunkEntry : planet.TerrainChunks)
+		//{
+		//	const auto& chunkKey = chunkEntry.first;
+		//	const auto& verticesInChunk = chunkEntry.second;
 
-			if (verticesInChunk.empty()) 
-				continue;
+		//	if (verticesInChunk.empty()) 
+		//		continue;
 
-			{
-				std::lock_guard<std::mutex> lock(terrainCollidersMutex);
-				terrainColliderPositions[chunkKey].insert(terrainColliderPositions[chunkKey].end(), verticesInChunk.begin(), verticesInChunk.end());
-			}
+		//	{
+		//		std::lock_guard<std::mutex> lock(terrainCollidersMutex);
+		//		terrainColliderPositions[chunkKey].insert(terrainColliderPositions[chunkKey].end(), verticesInChunk.begin(), verticesInChunk.end());
+		//	}
 
-			Bounds chunkBounds;
-			GetVerticesBounds(verticesInChunk, chunkBounds);
+		//	Bounds chunkBounds;
+		//	GetVerticesBounds(verticesInChunk, chunkBounds);
 
-			// Create a collider for the chunk
-			Ref<ShapeBox> collider = CreateRef<ShapeBox>();
-			collider->SetBounds(chunkBounds);
+		//	// Create a collider for the chunk
+		//	Ref<ShapeBox> collider = CreateRef<ShapeBox>();
+		//	collider->SetBounds(chunkBounds);
 
-			// Add the collider to the list
-			terrainColliders[chunkKey] = collider;
-		}
+		//	// Add the collider to the list
+		//	terrainColliders[chunkKey] = collider;
+		//}
 
 		newPlanetReady.store(true);
 		planetGenerationOngoing.store(false);
@@ -882,8 +937,8 @@ namespace Toast {
 			longitude += 360.0;
 
 		// Determine bin indices
-		const int NUM_LATITUDE_BINS = 18;   // Adjust as needed
-		const int NUM_LONGITUDE_BINS = 36;  // Adjust as needed
+		const int NUM_LATITUDE_BINS = 720;   // Adjust as needed
+		const int NUM_LONGITUDE_BINS = 1440;  // Adjust as needed
 
 		int latIndex = static_cast<int>((latitude + 90.0) / (180.0 / NUM_LATITUDE_BINS));
 		int lonIndex = static_cast<int>(longitude / (360.0 / NUM_LONGITUDE_BINS));

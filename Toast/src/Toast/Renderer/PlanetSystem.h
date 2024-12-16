@@ -63,14 +63,70 @@ namespace Toast {
 		CPUVertex A, B, C;  // The three vertices of the triangle
 		std::vector<Ref<PlanetNode>> ChildNodes;
 		int16_t SubdivisionLevel = 0;
+		Bounds NodeBounds;
 
-		PlanetNode(const CPUVertex& v0, const CPUVertex& v1, const CPUVertex& v2, const int16_t level)
+		PlanetNode(const CPUVertex& v0, const CPUVertex& v1, const CPUVertex& v2, const int16_t level, Matrix transform = Matrix::Identity())
 		{
 			A = v0;
 			B = v1;
 			C = v2;
 
+			A.Position = transform * A.Position;
+			B.Position = transform * B.Position;
+			C.Position = transform * C.Position;
+
 			SubdivisionLevel = level;
+
+			ComputeBoundsFromTriangle();
+		}
+
+		PlanetNode(const PlanetNode& other)
+		{
+			A = other.A;
+			B = other.B;
+			C = other.C;
+			SubdivisionLevel = other.SubdivisionLevel;
+			NodeBounds = other.NodeBounds;
+
+			// Shallow copy of the child nodes
+			ChildNodes = other.ChildNodes;
+		}
+
+		void ComputeBoundsFromTriangle()
+		{
+			NodeBounds.mins = {
+				(std::min)({A.Position.x, B.Position.x, C.Position.x}),
+				(std::min)({A.Position.y, B.Position.y, C.Position.y}),
+				(std::min)({A.Position.z, B.Position.z, C.Position.z})
+			};
+			NodeBounds.maxs = {
+				(std::max)({A.Position.x, B.Position.x, C.Position.x}),
+				(std::max)({A.Position.y, B.Position.y, C.Position.y}),
+				(std::max)({A.Position.z, B.Position.z, C.Position.z})
+			};
+		}
+
+		void UpdateBoundsFromChildren() {
+			// If no children, bounds are already computed from the triangle
+			if (ChildNodes.empty()) return;
+
+			// Start with a large inverted bounding box
+			Bounds childBounds;
+			childBounds.mins = { DBL_MAX, DBL_MAX, DBL_MAX };
+			childBounds.maxs = { -DBL_MAX, -DBL_MAX, -DBL_MAX };
+
+			for (auto& child : ChildNodes)
+			{
+				childBounds.mins.x = (std::min)(childBounds.mins.x, child->NodeBounds.mins.x);
+				childBounds.mins.y = (std::min)(childBounds.mins.y, child->NodeBounds.mins.y);
+				childBounds.mins.z = (std::min)(childBounds.mins.z, child->NodeBounds.mins.z);
+
+				childBounds.maxs.x = (std::max)(childBounds.maxs.x, child->NodeBounds.maxs.x);
+				childBounds.maxs.y = (std::max)(childBounds.maxs.y, child->NodeBounds.maxs.y);
+				childBounds.maxs.z = (std::max)(childBounds.maxs.z, child->NodeBounds.maxs.z);
+			}
+
+			NodeBounds = childBounds;
 		}
 	};
 
@@ -104,7 +160,7 @@ namespace Toast {
 		static uint32_t HashFace(uint32_t index0, uint32_t index1, uint32_t index2);
 
 		static void SubdivideBasePlanet(PlanetComponent& planet, Ref<PlanetNode>& node, double scale);
-		static void SubdivideFace(CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, const Vector3& planetCenter, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail);
+		static void SubdivideFace(Ref<PlanetNode>& node, CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, const Vector3& planetCenter, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail);
 		static void CalculateBasePlanet(PlanetComponent& planet, double scale);
 
 		static void DetailObjectPlacement(const PlanetComponent& planet, TerrainObjectComponent& objects, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR& camPos);

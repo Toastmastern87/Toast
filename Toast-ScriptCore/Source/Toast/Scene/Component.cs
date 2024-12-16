@@ -318,6 +318,18 @@ namespace Toast
 
     public class RigidBodyComponent : Component
     {
+        public bool ReqAltitude
+        {
+            get
+            {
+                return false;
+            }
+            set
+            {
+                InternalCalls.RigidBodyComponent_RequestAltitude(Entity.ID, value);
+            }
+        }
+
         public float Altitude
         {
             get

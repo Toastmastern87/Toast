@@ -231,6 +231,9 @@ namespace Toast
         internal static extern float RigidBodyComponent_GetAltitude(ulong entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float RigidBodyComponent_RequestAltitude(ulong entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern IntPtr RigidBodyComponent_GetLinearVelocity(ulong entityID, out Vector3 result);
 
         #endregion
