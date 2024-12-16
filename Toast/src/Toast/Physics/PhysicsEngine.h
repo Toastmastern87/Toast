@@ -41,6 +41,132 @@ namespace Toast {
 			std::vector<ContactPoint> ContactPoints;
 		};
 
+		struct Ray {
+			Vector3 Origin;
+			Vector3 Direction; // should be normalized
+		};
+
+		// Test ray against bounding box
+		static bool RayIntersectsBounds(const Ray& ray, const Bounds& bounds)
+		{
+			// Unpack for clarity
+			const Vector3& O = ray.Origin;
+			const Vector3& D = ray.Direction;
+
+			// For each axis (x, y, z), compute intersection t-values
+			// When direction is 0 along an axis, handle separately.
+			double tmin = -DBL_MAX;
+			double tmax = DBL_MAX;
+
+			// Lambda to handle one dimension
+			auto checkAxis = [&](double start, double dir, double minVal, double maxVal) {
+				// If dir is zero, ray is parallel to that axis
+				if (fabs(dir) < 1e-12) {
+					// If origin not in slab range, no hit
+					if (start < minVal || start > maxVal) {
+						return false;
+					}
+					return true; // No update to t needed since parallel
+				}
+				else {
+					double t1 = (minVal - start) / dir;
+					double t2 = (maxVal - start) / dir;
+
+					if (t1 > t2) std::swap(t1, t2);
+
+					// Update global tmin/tmax
+					if (t1 > tmin) tmin = t1;
+					if (t2 < tmax) tmax = t2;
+					if (tmin > tmax) return false;
+				}
+				return true;
+				};
+
+			// Check X-axis
+			if (!checkAxis(O.x, D.x, bounds.mins.x, bounds.maxs.x)) return false;
+			// Check Y-axis
+			if (!checkAxis(O.y, D.y, bounds.mins.y, bounds.maxs.y)) return false;
+			// Check Z-axis
+			if (!checkAxis(O.z, D.z, bounds.mins.z, bounds.maxs.z)) return false;
+
+			// If we get here, tmin <= tmax, so there's an intersection
+			// Intersection occurs at t >= 0 (forward in ray direction)
+			return tmax >= 0.0;
+		}
+
+		// Test ray against a single triangle
+		static bool RayIntersectsTriangle(const Vector3& origin, const Vector3& dir,
+			const Vector3& A, const Vector3& B, const Vector3& C,
+			double& tOut)
+		{
+			const double EPSILON = 1e-12;
+			Vector3 AB = B - A;
+			Vector3 AC = C - A;
+			Vector3 pvec = Vector3::Cross(dir, AC);
+			double det = Vector3::Dot(AB, pvec);
+
+			// If det is near zero, the ray lies in plane of triangle or is parallel
+			if (fabs(det) < EPSILON) return false;
+
+			double invDet = 1.0 / det;
+
+			Vector3 tvec = origin - A;
+			double u = Vector3::Dot(tvec, pvec) * invDet;
+			if (u < 0.0 || u > 1.0) return false;
+
+			Vector3 qvec = Vector3::Cross(tvec, AB);
+			double v = Vector3::Dot(dir, qvec) * invDet;
+			if (v < 0.0 || u + v > 1.0) return false;
+
+			double t = Vector3::Dot(AC, qvec) * invDet;
+			if (t < EPSILON) return false; // Intersection behind the ray origin or too close
+
+			tOut = t;
+			return true;
+		}
+
+		// Recursively ray cast through the node hierarchy
+		static bool RaycastPlanetNode(const Ray& ray, Ref<PlanetNode>& node, double& closestT, Vector3& hitPoint) {
+			// Broad phase: check bounding box intersection
+			if (!RayIntersectsBounds(ray, node->NodeBounds))
+				return false;
+
+			bool hitFound = false;
+
+			if (!node->ChildNodes.empty()) {
+				// Not a leaf, go deeper
+				for (auto& child : node->ChildNodes) {
+					double tChild;
+					Vector3 hpChild;
+					if (RaycastPlanetNode(ray, child, tChild, hpChild)) {
+						if (!hitFound || tChild < closestT) {
+							hitFound = true;
+							closestT = tChild;
+							hitPoint = hpChild;
+						}
+					}
+				}
+			}
+			else {
+				// Leaf node: test ray against node's triangle
+				Vector3 Apos = node->A.Position;
+				Vector3 Bpos = node->B.Position;
+				Vector3 Cpos = node->C.Position;
+
+				double t;
+				if (RayIntersectsTriangle(ray.Origin, ray.Direction, Apos, Bpos, Cpos, t)) {
+					Vector3 currentHit = ray.Origin + ray.Direction * t;
+					if (!hitFound || t < closestT) {
+						hitFound = true;
+						closestT = t;
+						hitPoint = currentHit;
+					}
+				}
+			}
+
+			return hitFound;
+		}
+
 		static Vector3 ClosestPointOnTriangle(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& p) {
 			// Compute vectors
 			Vector3 ab = b - a;
@@ -180,7 +306,7 @@ namespace Toast {
 			}
 		}
 
-		static bool BoxPlanetCollisionCheck(TerrainCollision& collision, const std::vector<Vector3>& terrainColliderVertices, double* outAltitude)
+		static bool BoxPlanetCollisionCheck(TerrainCollision& collision, const std::vector<Vector3>& terrainColliderVertices)
 		{
 			TOAST_PROFILE_FUNCTION();
 
@@ -239,9 +365,9 @@ namespace Toast {
 					terrainPts.at(0) - terrainPts.at(2)
 				};
 
-				for (const auto& obbAxis : obbAxes) 
+				for (const auto& obbAxis : obbAxes)
 				{
-					for (const auto& triEdge : triEdges) 
+					for (const auto& triEdge : triEdges)
 					{
 						Vector3 crossProduct = Vector3::Cross(obbAxis, triEdge);
 						if (crossProduct.LengthSqrt() < 1e-6)
@@ -265,7 +391,7 @@ namespace Toast {
 					if (!overlap)
 					{
 						separatingAxisFound = true;
-						break; 
+						break;
 					}
 
 					if (penetration < minPenetration)
@@ -292,68 +418,48 @@ namespace Toast {
 						// Invert the collision normal
 						collision.Normal = -collision.Normal;
 					}
-					
-					// Once we find a collision, we can stop.
-					// But we still want altitude, so we don't return yet.
-					FindContactPointsOBB(objectColliderPts, terrainPts, collision);
+
 					break;
 				}
 			}
 
-			// Compute altitude from box vertices:
-				// For each vertex of the box, find the closest terrain point (like we did for sphere).
-			double globalMinDistance = DBL_MAX;
-			for (size_t i = 0; i < terrainColliderVertices.size() - 2; i += 3)
+			if (collisionDetected)
 			{
-				const Vector3& va = terrainColliderVertices[i];
-				const Vector3& vb = terrainColliderVertices[i + 1];
-				const Vector3& vc = terrainColliderVertices[i + 2];
+				FindContactPointsOBB(objectColliderPts, terrainPts, collision);
 
-				for (auto& v : objectColliderPts)
-				{
-					Vector3 closestPoint = ClosestPointOnTriangle(va, vb, vc, v);
-					double distSqr = (closestPoint - v).LengthSqrt();
-					if (distSqr < globalMinDistance) {
-						globalMinDistance = distSqr;
-					}
-				}
+				return true;
 			}
-
-			double altitude = sqrt(globalMinDistance);
-			if (outAltitude)
-				*outAltitude = altitude;
-
-			return collisionDetected;
+			else
+				return false;
 		}
 
-		static bool SphereTerrainCollisionCheck(Vector3 sphereCenter, double radius, const double dt, TerrainCollision& collision, const std::vector<Vector3>& colliderVertices, double* outAltitude)
+		static bool SphereTerrainCollisionCheck(Vector3 sphereCenter, double radius, const double dt, TerrainCollision& collision, const std::vector<Vector3>& colliderVertices)
 		{
 			TOAST_PROFILE_FUNCTION();
 
+			// Initialize collision depth to a very large negative number to ensure
+			// the first positive collision depth found will replace it.
 			collision.Depth = -DBL_MAX;
 			collision.Normal = Vector3(0.0, 0.0, 0.0);
 			bool collisionDetected = false;
-			double minDistanceSquared = DBL_MAX;
 
-			for (size_t i = 0; i < colliderVertices.size() - 2; i += 3)
+			for (size_t i = 0; i + 2 < colliderVertices.size(); i += 3)
 			{
-				Vector3 va = colliderVertices[i];
-				Vector3 vb = colliderVertices[i + 1];
-				Vector3 vc = colliderVertices[i + 2];
+				const Vector3& va = colliderVertices[i];
+				const Vector3& vb = colliderVertices[i + 1];
+				const Vector3& vc = colliderVertices[i + 2];
 
 				Vector3 closestPoint = ClosestPointOnTriangle(va, vb, vc, sphereCenter);
 
 				Vector3 diff = closestPoint - sphereCenter;
-				double distanceSqr = diff.LengthSqrt();
+				double distance = diff.Length();
+				double penetrationDepth = radius - distance;
 
-				if (distanceSqr < minDistanceSquared)
+				// If this triangle gives a greater penetration depth (i.e., it's a tighter collision), update.
+				if (penetrationDepth > collision.Depth)
 				{
-					minDistanceSquared = distanceSqr;
-
-					double distance = sqrt(distanceSqr);
-					collision.Depth = radius - distance;
-
-					collision.Normal = Vector3::Normalize(sphereCenter - closestPoint);
+					collision.Depth = penetrationDepth;
+					collision.Normal = (penetrationDepth >= 0.0) ? Vector3::Normalize(sphereCenter - closestPoint) : Vector3(0.0, 0.0, 0.0);
 
 					Vector3 sphereContactPoint = sphereCenter - collision.Normal * (radius - collision.Depth);
 
@@ -362,15 +468,9 @@ namespace Toast {
 					collision.ContactPoints.back().PtOnPlanetWorldSpace = closestPoint;
 					collision.ContactPoints.back().PtOnObjectWorldSpace = sphereContactPoint;
 
-					collisionDetected = collision.Depth >= 0;
+					collisionDetected = (collision.Depth >= 0.0);
 				}
 			}
-
-			// Compute altitude: altitude = distanceToTerrain - radius
-			double minDistance = sqrt(minDistanceSquared);
-			double altitude = minDistance - radius;
-			if (outAltitude)
-				*outAltitude = altitude;
 
 			return collisionDetected;
 		}
@@ -487,28 +587,28 @@ namespace Toast {
 			tc.RotationQuaternion = { (float)updatedQuaternion.x, (float)updatedQuaternion.y, (float)updatedQuaternion.z, (float)updatedQuaternion.w };
 		}
 
-		static bool TerrainCollisionCheck(Entity* planet, Entity* object, TerrainCollision& collision, float dt, const std::pair<int, int>& chunkKey)
+		static bool TerrainCollisionCheck(Ref<PlanetNode>& leafNode, Entity* planet, Entity* object, TerrainCollision& collision, float dt)
 		{
 			TOAST_PROFILE_FUNCTION();
 
-			collision.Planet = planet;
 			collision.Object = object;
+			collision.Planet = planet;
 
-			RigidBodyComponent rbcObject = object->GetComponent<RigidBodyComponent>();
+			RigidBodyComponent& rbcObject = object->GetComponent<RigidBodyComponent>();
 			TransformComponent objectTC = object->GetComponent<TransformComponent>();
-			TransformComponent planetTC = planet->GetComponent<TransformComponent>();
-			PlanetComponent& planetPC = planet->GetComponent<PlanetComponent>();
-			TerrainColliderComponent& planetTCC = planet->GetComponent<TerrainColliderComponent>();
 
 			Vector3 posObject = { object->GetComponent<TransformComponent>().Translation };
+
+			Vector3 Apos = leafNode->A.Position;
+			Vector3 Bpos = leafNode->B.Position;
+			Vector3 Cpos = leafNode->C.Position;
 
 			if (object->HasComponent<SphereColliderComponent>())
 			{
 				bool collisionDetected = false;
 				double sphereRadius = object->GetComponent<SphereColliderComponent>().Collider->mRadius;
 
-				if(planetTCC.ColliderPositions.size() > 3)
-					collisionDetected = SphereTerrainCollisionCheck(posObject, sphereRadius, dt, collision, planetTCC.ColliderPositions[chunkKey], &rbcObject.Altitude);
+				collisionDetected = SphereTerrainCollisionCheck(posObject, sphereRadius, dt, collision, { Apos, Bpos, Cpos });
 
 				if (collisionDetected) 
 					return true;
@@ -517,8 +617,7 @@ namespace Toast {
 			{
 				bool collisionDetected = false;
 
-				if (planetTCC.ColliderPositions.size() > 3)
-					collisionDetected = BoxPlanetCollisionCheck(collision, planetTCC.ColliderPositions[chunkKey], &rbcObject.Altitude);
+				collisionDetected = BoxPlanetCollisionCheck(collision, { Apos, Bpos, Cpos });
 
 				if (collisionDetected)
 					return true;
@@ -533,13 +632,10 @@ namespace Toast {
 			RigidBodyComponent rbcPlanet;
 
 			bool objectHasRigidBody = collision.Object->HasComponent<RigidBodyComponent>();
-			bool planetHasRigidBody = collision.Planet->HasComponent<RigidBodyComponent>();
 
 			if (objectHasRigidBody)
 				rbcObject = &collision.Object->GetComponent<RigidBodyComponent>();
 
-			if (planetHasRigidBody)
-				rbcPlanet = collision.Planet->GetComponent<RigidBodyComponent>();
 
 			Ref<Shape> collider;
 			if (collision.Object->HasComponent<SphereColliderComponent>())
@@ -554,8 +650,7 @@ namespace Toast {
 
 			// Elasticity
 			const double elasticityObject = objectHasRigidBody ? rbcObject->Elasticity : 0.0;
-			const double elasticityPlanet = planetHasRigidBody ? rbcPlanet.Elasticity : 1.0;
-			const double elasticity = elasticityObject * elasticityPlanet;
+			const double elasticity = elasticityObject;
 
 			Vector3 totalImpulse = { 0, 0, 0 };
 			Vector3 totalAngularImpulse = { 0, 0, 0 };
@@ -627,33 +722,181 @@ namespace Toast {
 			return impulseGravity;
 		}
 
-		static bool BroadPhaseCheck(Ref<ShapeBox>& terrainCollider, Entity& object, float dt)
-		{
-			TOAST_PROFILE_FUNCTION();
+		//static bool BroadPhaseCheck(Ref<ShapeBox>& terrainCollider, Entity& object, float dt)
+		//{
+		//	TOAST_PROFILE_FUNCTION();
 
-			Vector3 objectPos = object.GetComponent<TransformComponent>().Translation;
-			Vector3 objectLinearVel = object.GetComponent<RigidBodyComponent>().LinearVelocity;
-			Bounds terrainBounds = terrainCollider->GetBounds();
-			Bounds objectBounds;
+		//	Vector3 objectPos = object.GetComponent<TransformComponent>().Translation;
+		//	Vector3 objectLinearVel = object.GetComponent<RigidBodyComponent>().LinearVelocity;
+		//	Bounds terrainBounds = terrainCollider->GetBounds();
+		//	Bounds objectBounds;
+
+		//	Ref<Shape> collider;
+		//	if (object.HasComponent<SphereColliderComponent>())
+		//		collider = object.GetComponent<SphereColliderComponent>().Collider;
+		//	else if (object.HasComponent<BoxColliderComponent>())
+		//		collider = object.GetComponent<BoxColliderComponent>().Collider;
+
+		//	if (!collider)
+		//		return false;
+
+		//	objectBounds = collider->GetBounds();
+
+		//	objectBounds = objectBounds + objectPos;
+
+		//	objectBounds.Expand(objectPos + objectLinearVel * dt);
+
+		//	bool intersects = terrainBounds.Intersects(objectBounds);
+
+		//	if (intersects)
+		//	{
+		//		//TOAST_CORE_CRITICAL("Broadphase about to be passed");
+		//		//objectBounds.maxs.ToString("Object Maxs: ");
+		//		//objectBounds.mins.ToString("Object Mins: ");
+		//		//terrainBounds.maxs.ToString("Terrain Maxs: ");
+		//		//terrainBounds.mins.ToString("Terrain Mins: ");
+
+		//	}
+
+		//	return intersects;
+		//}
+
+		static void UpdateSphereAltitudeAndCollision(Entity* planetEntity, Entity* objectEntity, double dt) 
+		{
+			TerrainCollision terrainCollision;
+
+			terrainCollision.Planet = planetEntity;
+			terrainCollision.Object = objectEntity;
+
+			auto& planet = planetEntity->GetComponent<PlanetComponent>();
+			auto& transform = objectEntity->GetComponent<TransformComponent>();
+			auto& rigidBody = objectEntity->GetComponent<RigidBodyComponent>();
+
+			double sphereRadius = 0.0;
+			if (objectEntity->HasComponent<SphereColliderComponent>()) 
+				sphereRadius = objectEntity->GetComponent<SphereColliderComponent>().Collider->mRadius;
+
+			Vector3 objectPos = transform.Translation;
+			Vector3 planetCenter = Vector3(planet.PlanetData.planetCenter.x,
+				planet.PlanetData.planetCenter.y,
+				planet.PlanetData.planetCenter.z);
+
+			Vector3 toCenter = planetCenter - objectPos;
+			double distToCenter = toCenter.Length();
+			if (distToCenter < 1e-8) {
+				// Object is basically at the planet center
+				rigidBody.Altitude = -(planet.PlanetData.radius);
+				return;
+			}
+
+			// Create a ray from object to planet center
+			Ray ray;
+			ray.Origin = objectPos;
+			ray.Direction = toCenter / distToCenter; // normalize direction
+
+			// Ray cast against the planet nodes
+			double closestT = DBL_MAX;
+			Vector3 bestHit;
+			bool hitFound = false;
+			for (auto& rootNode : planet.PlanetNodesWorldSpace) {
+
+				if (rootNode == NULL)
+					continue;
+
+				double t;
+				Vector3 hp;
+				if (RaycastPlanetNode(ray, rootNode, t, hp)) {
+					if (!hitFound || t < closestT) {
+						hitFound = true;
+						closestT = t;
+						bestHit = hp;
+					}
+				}
+			}
+
+			if (!hitFound)
+			{
+				// No intersection found, object is above no actual mesh intersection
+				// Approximate altitude by planet radius (no local terrain detail)
+				return;
+			}
+
+			// We have a hit point on the planet surface mesh
+			double surfaceDistFromCenter = (bestHit - planetCenter).Length();
+
+			// Check if the sphere is penetrating the terrain
+			double penetration = sphereRadius - (distToCenter - surfaceDistFromCenter);
+			terrainCollision.Depth = penetration;
+			rigidBody.Altitude = -terrainCollision.Depth;
+
+			terrainCollision.Normal = Vector3::Normalize(bestHit - planetCenter);
+
+			Vector3 sphereContactPoint = objectPos - terrainCollision.Normal * (sphereRadius - penetration);
+
+			terrainCollision.ContactPoints.clear();
+			terrainCollision.ContactPoints.emplace_back();
+			terrainCollision.ContactPoints.back().PtOnPlanetWorldSpace = bestHit;
+			terrainCollision.ContactPoints.back().PtOnObjectWorldSpace = sphereContactPoint;
+
+			if (penetration > 0.0) 
+				ResolveTerrainCollision(terrainCollision);
+		}
+
+		static void CheckTerrainBroadPhase(Ref<PlanetNode>& node, Entity* planetEntity, Entity* objectEntity, double dt_sub, const Bounds& objectBounds)
+		{
+			// Broad phase intersection test
+			if (!node->NodeBounds.Intersects(objectBounds)) 
+				return;
+
+			// If not a leaf, go deeper
+			//TOAST_CORE_CRITICAL("Subdivision Level: %d, Number of children: %d", node->SubdivisionLevel, node->ChildNodes.size());
+			if (!node->ChildNodes.empty()) 
+			{
+				for (auto& child : node->ChildNodes) 
+					CheckTerrainBroadPhase(child, planetEntity, objectEntity, dt_sub, objectBounds);
+			}
+			else 
+			{
+				// Leaf node: Perform narrow-phase on its triangle(s)
+				TerrainCollision terrainCollision;
+				if (TerrainCollisionCheck(node, planetEntity, objectEntity, terrainCollision, dt_sub))
+					ResolveTerrainCollision(terrainCollision);
+			}
+		}
+
+		static void CheckPlanetCollisions(Entity planetEntity, Entity objectEntity, double dt_sub) {
+			auto& planet = planetEntity.GetComponent<PlanetComponent>();
+
+			//TOAST_CORE_CRITICAL("NEW PLANET CHECK");
 
 			Ref<Shape> collider;
-			if (object.HasComponent<SphereColliderComponent>())
-				collider = object.GetComponent<SphereColliderComponent>().Collider;
-			else if (object.HasComponent<BoxColliderComponent>())
-				collider = object.GetComponent<BoxColliderComponent>().Collider;
+			if (objectEntity.HasComponent<SphereColliderComponent>())
+				collider = objectEntity.GetComponent<SphereColliderComponent>().Collider;
+			else if (objectEntity.HasComponent<BoxColliderComponent>())
+				collider = objectEntity.GetComponent<BoxColliderComponent>().Collider;
 
 			if (!collider)
-				return false;
+				return;
 
+			Vector3 objectPos = objectEntity.GetComponent<TransformComponent>().Translation;
+			Vector3 objectLinearVel = objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity;
+			bool reqAltitude = objectEntity.GetComponent<RigidBodyComponent>().ReqAltitude;
+
+			// Get object bounds
+			Bounds objectBounds;
 			objectBounds = collider->GetBounds();
-
 			objectBounds = objectBounds + objectPos;
+			objectBounds.Expand(objectPos + objectLinearVel * dt_sub);
 
-			objectBounds.Expand(objectPos + objectLinearVel * dt);
-
-			bool intersects = terrainBounds.Intersects(objectBounds);
-
-			return intersects;
+			// Traverse the planets root nodes
+			if (!reqAltitude)
+			{
+				int i = 0;
+				for (auto& rootNode : planet.PlanetNodesWorldSpace)
+					CheckTerrainBroadPhase(rootNode, &planetEntity, &objectEntity, dt_sub, objectBounds);
+			}
+			else 
+				UpdateSphereAltitudeAndCollision(&planetEntity, &objectEntity, dt_sub);
 		}
 
 		static void Update(entt::registry* registry, Scene* scene, double dt, double slowmotion, uint32_t numSubSteps)
@@ -681,7 +924,7 @@ namespace Toast {
 					Ref<Shape> collider;
 					if(objectEntity.HasComponent<SphereColliderComponent>())
 						collider = objectEntity.GetComponent<SphereColliderComponent>().Collider;
-					if(objectEntity.HasComponent<BoxColliderComponent>())
+					if (objectEntity.HasComponent<BoxColliderComponent>())
 						collider = objectEntity.GetComponent<BoxColliderComponent>().Collider;
 
 					if (collider != nullptr && !rbc.IsStatic)
@@ -707,18 +950,7 @@ namespace Toast {
 							}
 
 							// Terrain collision check
-							for (auto& [chunkKey, chunkCollider] : tcc.Colliders) 
-							{
-								if (BroadPhaseCheck(chunkCollider, objectEntity, dt_sub))
-								{
-									TerrainCollision terrainCollision;
-									if (TerrainCollisionCheck(&planetEntity, &objectEntity, terrainCollision, dt_sub, chunkKey))
-									{
-										ResolveTerrainCollision(terrainCollision);
-									}
-								}
-
-							}
+							CheckPlanetCollisions(planetEntity, objectEntity, dt_sub);
 
 							UpdateBody(objectEntity, dt);
 						}

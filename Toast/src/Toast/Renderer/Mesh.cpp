@@ -102,7 +102,7 @@ namespace Toast {
 		Submesh submesh;
 		submesh.BaseVertex = 0;
 		submesh.BaseIndex = 0;
-		submesh.IndexCount = (uint32_t)indices.size() * 3;
+		submesh.IndexCount = (uint32_t)indices.size();
 		submesh.Transform = transform;
 		submesh.MaterialName = "Standard";
 

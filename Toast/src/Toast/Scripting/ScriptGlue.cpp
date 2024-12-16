@@ -710,8 +710,19 @@ namespace Toast {
 		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
 		Entity entity = entityMap.at(entityID);
 		auto& component = entity.GetComponent<RigidBodyComponent>();
+		return (float)component.Altitude;
+	}
 
-		return component.Altitude;
+	void RigidBodyComponent_RequestAltitude(uint64_t entityID, bool value)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<RigidBodyComponent>();
+
+		component.ReqAltitude = value;
 	}
 
 	void RigidBodyComponent_GetLinearVelocity(uint64_t entityID, DirectX::XMFLOAT3* outLinearVelocity)
@@ -828,6 +839,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(UITextComponent_SetText);
 		
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetAltitude);
+		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_RequestAltitude);
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetLinearVelocity);
 	}
 

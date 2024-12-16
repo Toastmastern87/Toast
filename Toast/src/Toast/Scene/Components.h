@@ -20,6 +20,9 @@
 
 namespace Toast {
 
+	// Forward deceleration, PlanetNode is found in PlanetSystem.cpp
+	struct PlanetNode;
+
 	struct PairHash {
 		std::size_t operator()(const std::pair<int, int>& p) const {
 			return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1);
@@ -140,6 +143,9 @@ namespace Toast {
 
 		std::unordered_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> VertexMap;
 
+		std::vector<Ref<PlanetNode>> PlanetNodesWorldSpace;
+
+		// Remove
 		std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash> TerrainChunks;
 
 		TerrainData TerrainData;
@@ -230,6 +236,7 @@ namespace Toast {
 		Vector3 AngularVelocity = { 0.0f, 0.0f, 0.0f };
 		double AngularDamping = 0.0;
 		double Altitude = 0.0;
+		bool ReqAltitude = false;
 
 		RigidBodyComponent() = default;
 		RigidBodyComponent(Vector3& centerOfMass, double invMass)
