@@ -98,8 +98,11 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		if(mViewportSize.x > 0.0f && mViewportSize.y > 0.0f)
+		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f) 
+		{
 			mEditorCamera->SetViewportSize(mViewportSize.x, mViewportSize.y);
+			mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+		}
 
 		Ref<RenderTarget>& positionRT = Renderer::GetGPassPositionRT();
 
@@ -133,6 +136,7 @@ namespace Toast {
 				mEditorCamera->OnUpdate(ts);
 
 			mEditorScene->OnUpdateEditor(ts, mEditorCamera);
+			mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
 			break;
 		}

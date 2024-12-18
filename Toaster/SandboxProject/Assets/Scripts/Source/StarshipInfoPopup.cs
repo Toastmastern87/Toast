@@ -55,6 +55,7 @@ namespace Sandbox
 
                 if (Input.IsMouseButtonPressed(MouseCode.ButtonLeft))
                 {
+
                     if (!mIsDragging)
                     {
                         Vector3 panelTranslation = mPanelTransform.Translation;
@@ -70,6 +71,8 @@ namespace Sandbox
                     }
                     else
                     {
+                        Toast.Console.LogCritical("Dragging!");
+
                         // Calculate the delta movement
                         Vector2 deltaMousePos = mousePos - mPreviousPos;
 
