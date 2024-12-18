@@ -242,6 +242,7 @@ namespace Toast {
 		void LoadMeshWithLODs(cgltf_data* data);
 
 		void SetActiveLODGroup(size_t LODGroupIndex) { mActiveLODGroup = LODGroupIndex; }
+		size_t GetActiveLODGroup() { return mActiveLODGroup; }
 
 		void UpdateLODDistance(float LODDistance) { mLODDistance = LODDistance; }
 		float GetLODDistance() { return mLODDistance; }

@@ -633,7 +633,7 @@ namespace Toast {
 			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 72);
 			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-			for (Submesh& submesh : meshCommand.Mesh->mLODGroups[0]->Submeshes)
+			for (Submesh& submesh : meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes)
 			{
 				// Material data
 				auto& material = meshCommand.Mesh->GetMaterial(submesh.MaterialName);
