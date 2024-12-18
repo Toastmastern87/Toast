@@ -582,6 +582,33 @@ namespace Toast {
 							Entity parent = FindEntityByUUID(e.GetParentUUID());
 							bool is2DParent = parent.HasComponent<UIPanelComponent>() || parent.HasComponent<UIButtonComponent>() || parent.HasComponent<UITextComponent>();
 
+							auto& parentTC = parent.GetComponent<TransformComponent>();
+
+							DirectX::XMVECTOR parentWorldPos = XMLoadFloat3(&parentTC.Translation);
+							DirectX::XMMATRIX viewMatrix = DirectX::XMLoadFloat4x4(&mainCamera->GetViewMatrix());
+							DirectX::XMMATRIX projectionMatrix = DirectX::XMLoadFloat4x4(&mainCamera->GetProjection());
+
+							DirectX::XMFLOAT3 parentScreenPos;
+
+							DirectX::XMVECTOR parentViewPos = DirectX::XMVector3Transform(parentWorldPos, viewMatrix);
+							DirectX::XMVECTOR clipSpacePos = DirectX::XMVector3Transform(parentViewPos, projectionMatrix);
+
+							float x = clipSpacePos.m128_f32[0];
+							float y = clipSpacePos.m128_f32[1];
+							float z = clipSpacePos.m128_f32[2];
+							float w = clipSpacePos.m128_f32[3];
+
+							float ndcX = x / w;
+							float ndcY = y / w;
+							float ndcZ = z / w;
+
+							float screenX = (ndcX * 0.5f + 0.5f) * mViewportWidth;
+							float screenY = (1.0f - (ndcY * 0.5f + 0.5f)) * mViewportHeight;
+
+							parentScreenPos.x = screenX - (mViewportWidth / 2.0f);
+							parentScreenPos.y = -(screenY - (mViewportHeight / 2.0f));
+							parentScreenPos.z = ndcZ;
+
 							if (is2DParent)
 							{
 								DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
@@ -590,6 +617,9 @@ namespace Toast {
 							}
 							else
 								finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
+
+							if (upc.Panel->GetConnectToParent())
+								Renderer2D::SubmitConnector(tc.Translation, tc.Scale, *upc.Panel->GetCornerRadius(), parentScreenPos, 3.0f, *upc.Panel->GetBorderSize());
 						}
 						else
 							finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
@@ -1122,6 +1152,33 @@ namespace Toast {
 							Entity parent = FindEntityByUUID(e.GetParentUUID());
 							bool is2DParent = parent.HasComponent<UIPanelComponent>() || parent.HasComponent<UIButtonComponent>() || parent.HasComponent<UITextComponent>();
 
+							auto& parentTC = parent.GetComponent<TransformComponent>();
+
+							DirectX::XMVECTOR parentWorldPos = XMLoadFloat3(&parentTC.Translation);
+							DirectX::XMMATRIX viewMatrix = DirectX::XMLoadFloat4x4(&editorCamera->GetViewMatrix());
+							DirectX::XMMATRIX projectionMatrix = DirectX::XMLoadFloat4x4(&editorCamera->GetProjection());
+
+							DirectX::XMFLOAT3 parentScreenPos;
+
+							DirectX::XMVECTOR parentViewPos = DirectX::XMVector3Transform(parentWorldPos, viewMatrix);
+							DirectX::XMVECTOR clipSpacePos = DirectX::XMVector3Transform(parentViewPos, projectionMatrix);
+
+							float x = clipSpacePos.m128_f32[0];
+							float y = clipSpacePos.m128_f32[1];
+							float z = clipSpacePos.m128_f32[2];
+							float w = clipSpacePos.m128_f32[3];
+
+							float ndcX = x / w;
+							float ndcY = y / w;
+							float ndcZ = z / w;
+
+							float screenX = (ndcX * 0.5f + 0.5f) * mViewportWidth;
+							float screenY = (1.0f - (ndcY * 0.5f + 0.5f)) * mViewportHeight;
+
+							parentScreenPos.x = screenX - (mViewportWidth / 2.0f);
+							parentScreenPos.y = -(screenY - (mViewportHeight / 2.0f));
+							parentScreenPos.z = ndcZ;
+
 							if (is2DParent)
 							{
 								DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
@@ -1130,6 +1187,9 @@ namespace Toast {
 							}
 							else
 								finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
+
+							if (upc.Panel->GetConnectToParent()) 
+								Renderer2D::SubmitConnector(tc.Translation, tc.Scale, *upc.Panel->GetCornerRadius(), parentScreenPos, 3.0f, *upc.Panel->GetBorderSize());
 						}
 						else
 							finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };

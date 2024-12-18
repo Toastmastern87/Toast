@@ -130,6 +130,26 @@ namespace Toast {
 		}
 	}
 
+	void Renderer2D::SubmitConnector(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, const float borderRadius, const DirectX::XMFLOAT3& parentPos, const float connectorThickness, const float borderThickness)
+	{
+		DirectX::XMFLOAT4 UIVertexPositions[4];
+
+		UIVertexPositions[0] = DirectX::XMFLOAT4(parentPos.x, parentPos.y, 1.0f, 0.0f);
+		UIVertexPositions[1] = DirectX::XMFLOAT4(pos.x + borderThickness, pos.y - borderThickness + size.y - connectorThickness, 1.0f, 0.0f);
+		UIVertexPositions[2] = DirectX::XMFLOAT4(pos.x + borderThickness, pos.y - borderThickness + size.y, 1.0f, 0.0f);
+		UIVertexPositions[3] = DirectX::XMFLOAT4(parentPos.x, parentPos.y - connectorThickness, 1.0f, 0.0f);
+
+		for (size_t i = 0; i < 4; i++)
+		{
+			sRenderer2DData->UIVertexBufferPtr->Position = UIVertexPositions[i];
+			sRenderer2DData->UIVertexBufferPtr->Size = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
+			sRenderer2DData->UIVertexBufferPtr->Color = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+			sRenderer2DData->UIVertexBufferPtr->Texcoord = DirectX::XMFLOAT2(0.0f, 0.0f);
+			sRenderer2DData->UIVertexBufferPtr->EntityID = 0;
+			sRenderer2DData->UIVertexBufferPtr++;
+		}
+	}
+
 	void Renderer2D::SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable)
 	{
 		TOAST_PROFILE_FUNCTION();

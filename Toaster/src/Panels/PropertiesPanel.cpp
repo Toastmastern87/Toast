@@ -1513,13 +1513,16 @@ namespace Toast {
 					component.Panel->SetVisible(visible);
 				ImGui::TableNextRow();
 
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Connect to parent");
-				ImGui::TableSetColumnIndex(1);
-				bool connectToParent = component.Panel->GetConnectToParent();
-				if (ImGui::Checkbox("##connecttoparent", &connectToParent))
-					component.Panel->SetConnectToParent(connectToParent);
+				if (entity.HasParent())
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Connect to parent");
+					ImGui::TableSetColumnIndex(1);
+					bool connectToParent = component.Panel->GetConnectToParent();
+					if (ImGui::Checkbox("##connecttoparent", &connectToParent))
+						component.Panel->SetConnectToParent(connectToParent);
+				}
 
 				ImGui::EndTable();
 			});

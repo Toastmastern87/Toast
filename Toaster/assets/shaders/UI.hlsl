@@ -431,7 +431,10 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	else
         output.color = input.color;
 	
-    output.entityID = input.entityID + 1;
+    if (input.entityID > 0)
+        output.entityID = input.entityID + 1;
+    else
+        output.entityID = input.entityID;
 
     return output;
 }
