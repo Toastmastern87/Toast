@@ -350,6 +350,7 @@ namespace Toast {
 
 						Submesh& submesh = currentLOD->Submeshes.emplace_back();
 						submesh.MaterialName = std::string(primitive->material->name);
+						//TOAST_CORE_CRITICAL("Loading submesh in currentLOD[%d] with material name: %s", mLODGroups.size(), primitive->material->name);
 						submesh.MeshName = child->mesh->name;
 						submesh.Transform = DirectX::XMMatrixIdentity();
 
