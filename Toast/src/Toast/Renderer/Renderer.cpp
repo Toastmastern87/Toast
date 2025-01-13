@@ -86,6 +86,12 @@ namespace Toast {
 		sRendererData->SpecularMapFilterSettingsBuffer.Allocate(sRendererData->SpecularMapFilterSettingsCBuffer->GetSize());
 		sRendererData->SpecularMapFilterSettingsBuffer.ZeroInitialize();
 
+		// Setting up the constant buffer for SSAO
+		sRendererData->SSAOCBuffer = ConstantBufferLibrary::Load("SSAO", 1040, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::SSAO) });
+		sRendererData->SSAOCBuffer->Bind();
+		sRendererData->SSAOBuffer.Allocate(sRendererData->SSAOCBuffer->GetSize());
+		sRendererData->SSAOBuffer.ZeroInitialize();
+
 		// Setting up the render targets for the Geometry Pass
 		sRendererData->GPassPositionRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R32G32B32A32_FLOAT);
 		sRendererData->GPassNormalRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
@@ -95,6 +101,9 @@ namespace Toast {
 
 		// Setting up the render target for Shadow Pass
 		sRendererData->ShadowMapRT = CreateRef<RenderTarget>(RenderTargetType::Color, 8192, 8192, 1, TextureFormat::R8G8B8A8_UNORM);
+
+		// Setting up the render target for SSAO Pass
+		sRendererData->SSAORT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
 
 		// Setting up the render target for the Lightning Pass
 		sRendererData->LPassRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
@@ -129,6 +138,9 @@ namespace Toast {
 		CreateBlendStates();
 
 		SetUpAtmosphericScatteringMatrices();
+
+		GenerateSampleKernel();
+		GenerateNoiseTexture();
 	}
 
 	void Renderer::Shutdown()
@@ -149,8 +161,6 @@ namespace Toast {
 		sRendererData->BackbufferRT.reset();
 		RenderCommand::ResizeViewport(0, 0, width, height);
 		sRendererData->BackbufferRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT, true);
-
-
 	}
 
 	void Renderer::OnViewportResize(uint32_t width, uint32_t height)
@@ -167,6 +177,8 @@ namespace Toast {
 		sRendererData->GPassAlbedoMetallicRT->Resize(width, height);
 		sRendererData->GPassRoughnessAORT->Resize(width, height);
 		sRendererData->GPassPickingRT->Resize(width, height);
+
+		sRendererData->SSAORT->Resize(width, height);
 
 		sRendererData->LPassRT->Resize(width, height);
 
@@ -195,6 +207,8 @@ namespace Toast {
 		sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos.x, 16, 256);
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 272);
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 276);
+		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Width, 4, 280);
+		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Height, 4, 284);
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
 		// Updating the lightning data in the buffer and mapping it to the GPU
@@ -227,18 +241,28 @@ namespace Toast {
 		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
 
-	void Renderer::EndScene(const bool debugActivated)
+	void Renderer::EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL)
 	{
 		RenderCommand::SetViewport(sRendererData->Viewport);
 
 		// Deffered Renderer
 		GeometryPass();
-		ShadowPass();
+
+		if(shadows)
+			ShadowPass();
+		else
+			RenderCommand::ClearDepthStencilView(sRendererData->ShadowPassStencilView);
+
+		if(SSAO)
+			SSAOPass();
+		else
+			RenderCommand::ClearRenderTargets(sRendererData->SSAORT->GetRTV().Get(), { 1.0f, 1.0f, 1.0f, 1.0f });
+
 		LightningPass();
 
 		// Post Processes
 		SkyboxPass();
-		AtmospherePass();
+		AtmospherePass(dynamicIBL);
 		PostProcessPass();
 
 		if (!debugActivated) 
@@ -438,6 +462,78 @@ namespace Toast {
 
 		result = device->CreateRasterizerState(&rasterDesc, &sRendererData->ShadowMapRasterizerState);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create shadow pass rasterizer state");
+	}
+
+	void Renderer::GenerateSampleKernel()
+	{
+		// Random engine & distribution setup
+		std::random_device rd;
+		std::mt19937 gen(rd());
+
+		// For sampling -1..1 on x/y, and 0..1 on z
+		// We only allow z >= 0 to constrain to the hemisphere pointing +Z
+		std::uniform_real_distribution<float> randomX(-1.0f, 1.0f);
+		std::uniform_real_distribution<float> randomY(-1.0f, 1.0f);
+		std::uniform_real_distribution<float> randomZ(0.0f, 1.0f);
+
+		// The resulting kernel
+		const int KERNEL_SIZE = 64;
+		sRendererData->SSAOKernel.reserve(KERNEL_SIZE);
+
+		for (int i = 0; i < KERNEL_SIZE; ++i)
+		{
+			float x = randomX(gen);
+			float y = randomY(gen);
+			float z = randomZ(gen);
+
+			Vector3 sample = { x, y, z };
+			sample = Vector3::Normalize(sample);
+
+			// Scale samples so more are close to the origin
+			float scale = static_cast<float>(i) / static_cast<float>(KERNEL_SIZE);
+			// You can tweak how fast the scale ramps up
+			// e.g. "scale = lerp(0.1f, 1.0f, scale * scale)" is a common approach
+			scale = 0.1f + scale * (1.0f - 0.1f); 
+
+			sample *= scale;
+
+			sRendererData->SSAOKernel.emplace_back(DirectX::XMFLOAT4(sample.x, sample.y, sample.z, 0.0f));
+		}
+
+		float radius = 7.5f;
+
+		sRendererData->SSAOBuffer.Write((uint8_t*)&sRendererData->SSAOKernel[0], 1024, 0);
+		sRendererData->SSAOBuffer.Write((uint8_t*)&radius, 4, 1024);
+	}
+
+	void Renderer::GenerateNoiseTexture()
+	{
+		const int NOISE_DIM = 4;
+		std::vector<DirectX::XMFLOAT3> SSAONoise;
+		SSAONoise.reserve(NOISE_DIM * NOISE_DIM);
+		for (int i = 0; i < NOISE_DIM * NOISE_DIM; i++) {
+			float x = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+			float y = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+			// z=0 so the noise vectors lie in the tangent plane
+			SSAONoise.push_back({ x, y, 0.0f });
+		}
+
+		uint32_t width = NOISE_DIM;
+		uint32_t height = NOISE_DIM;
+		uint32_t rowPitch = static_cast<uint32_t>(width * sizeof(DirectX::XMFLOAT3));
+
+		sRendererData->SSAONoiseTexture = CreateScope<Texture2D>(
+			DXGI_FORMAT_R32G32B32A32_FLOAT,  // Texture format
+			DXGI_FORMAT_R32G32B32A32_FLOAT,  // SRV format (same as texture in this case)
+			width,
+			height,
+			D3D11_USAGE_IMMUTABLE,
+			D3D11_BIND_SHADER_RESOURCE,
+			1,                 // samples
+			0,                 // CPU access flags
+			SSAONoise.data(),   // initial data
+			rowPitch
+		);
 	}
 
 	void Renderer::SetUpAtmosphericScatteringMatrices()
@@ -722,6 +818,53 @@ namespace Toast {
 			RenderCommand::DrawIndexed(0, 0, meshCommand.Mesh->GetIndices().size());
 		}
 
+		ID3D11RenderTargetView* nullRTV = nullptr;
+		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
+		RenderCommand::SetDepthStencilState(nullptr);
+		RenderCommand::SetBlendState(nullptr);
+		RenderCommand::ClearShaderResources();
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
+	}
+
+	void Renderer::SSAOPass()
+	{
+		TOAST_PROFILE_FUNCTION();
+
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"SSAO Pass");
+#endif
+
+		RenderCommand::SetViewport(sRendererData->Viewport);
+		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
+		RenderCommand::SetRenderTargets({ sRendererData->SSAORT->GetRTV().Get() }, nullptr);
+		RenderCommand::ClearRenderTargets({ sRendererData->SSAORT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+
+		ShaderLibrary::Get("assets/shaders/Deffered Rendering/SSAOPass.hlsl")->Bind();
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->GPassPositionRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassNormalRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SSAONoiseTexture->GetSRV());
+
+		TextureLibrary::GetSampler("LinearSampler")->Bind(4, D3D11_PIXEL_SHADER);
+
+		sRendererData->SSAOCBuffer->Map(sRendererData->SSAOBuffer);
+
+		DrawFullscreenQuad();
+
+		ID3D11RenderTargetView* nullRTV = nullptr;
+		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
+		RenderCommand::SetDepthStencilState(nullptr);
+		RenderCommand::SetBlendState(nullptr);
+		RenderCommand::ClearShaderResources();
+
 #ifdef TOAST_DEBUG
 		if (annotation)
 			annotation->EndEvent();
@@ -754,6 +897,7 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassNormalRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->GPassAlbedoMetallicRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->GPassRoughnessAORT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->SSAORT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 12, sRendererData->ShadowPassDepth->GetSRV());
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->IrradianceCubeMap->GetSRV());
@@ -816,7 +960,7 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer::AtmospherePass()
+	void Renderer::AtmospherePass(const bool dynamicIBL)
 	{
 #ifdef TOAST_DEBUG
 		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
@@ -871,7 +1015,7 @@ namespace Toast {
 
 		static int currentFace = 0;// Tracks which face of the cube to render
 
-		if (sRendererData->SceneData.SceneEnvironment.RadianceMap)
+		if (sRendererData->SceneData.SceneEnvironment.RadianceMap && dynamicIBL)
 		{
 			const DirectX::XMMATRIX& viewMatrix = sRendererData->AtmosphericScatteringViewMatrices[currentFace];
 			const DirectX::XMMATRIX& invViewMatrix = sRendererData->AtmosphericScatteringInvViewMatrices[currentFace];
@@ -893,6 +1037,14 @@ namespace Toast {
 
 			RenderCommand::SetRenderTargets({ nullptr }, nullptr);
 			RenderCommand::ClearShaderResources();
+
+			GeneratePrefilteredEnvMap(currentFace);
+
+			GenerateIrradianceCubemap(currentFace);
+		}
+		else 
+		{
+			RenderCommand::ClearRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(currentFace).Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
 			GeneratePrefilteredEnvMap(currentFace);
 

@@ -1,10 +1,7 @@
 Material: Planet
-Albedo: [0.662447214, 0.39545849, 0.231996283, 1.0]
+Albedo: [0.265822768, 0.160774231, 0.096458897, 1]
 Metalness: 1
 Roughness: 0.984000027
 UseAlbedoMap: false
 UseNormalMap: false
 UseMetalRoughMap: false
-AlbedoAssetPath: assets/textures/Checkerboard.png
-NormalAssetPath: assets/textures/Checkerboard.png
-MetalRoughAssetPath: assets/textures/Checkerboard.png

@@ -52,6 +52,9 @@ namespace Toast {
 			ImGui::Checkbox("Show grid", &mContext->mSettings.Grid);
 			ImGui::Checkbox("Show camera frustum", &mContext->mSettings.CameraFrustum);
 			ImGui::Checkbox("Show sun light frustum", &mContext->mSettings.SunLightFrustum);
+			ImGui::Checkbox("Shadows", &mContext->mSettings.Shadows);
+			ImGui::Checkbox("SSAO", &mContext->mSettings.SSAO);
+			ImGui::Checkbox("Dynamic IBL", &mContext->mSettings.DynamicIBL);
 			if(ImGui::Checkbox("Planet backface culling", &mContext->mSettings.BackfaceCulling))
 				mContext->mSettings.IsDirty = true;
 			if(ImGui::Checkbox("Planet frustum culling", &mContext->mSettings.FrustumCulling))

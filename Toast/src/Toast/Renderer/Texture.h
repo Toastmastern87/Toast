@@ -40,6 +40,7 @@ namespace Toast {
 	{
 	public:
 		Texture2D(DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT srvFormat = DXGI_FORMAT_UNKNOWN, uint32_t width = 1, uint32_t height = 1, D3D11_USAGE usage = D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG bindFlag = (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), uint32_t samples = 1, UINT cpuAccessFlags = 0);
+		Texture2D(DXGI_FORMAT format, DXGI_FORMAT srvFormat, uint32_t width, uint32_t height, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags, void* initialData, UINT rowPitch);
 		Texture2D(const std::string& filePath, bool forceSRGB = true);
 		~Texture2D() = default;
 

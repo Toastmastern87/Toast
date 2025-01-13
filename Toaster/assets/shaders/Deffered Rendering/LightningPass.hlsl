@@ -35,6 +35,8 @@ cbuffer Camera : register(b0)
     float4 cameraPosition;
     float far;
     float near;
+    float viewportWidth;
+    float viewportHeight;
 };
 
 cbuffer DirectionalLight : register(b3)
@@ -78,6 +80,9 @@ Texture2D roughnessAOTexture        : register(t3); // Roughness R and AO A
 TextureCube IrradianceTexture       : register(t4);
 TextureCube RadianceTexture         : register(t5);
 Texture2D SpecularBRDFLUT           : register(t6);
+
+// SSAO Textures
+Texture2D SSAOTexture               : register(t10);
 
 // Shadow Pass Texture
 Texture2D ShadowDepthTexture        : register(t12);
@@ -296,8 +301,8 @@ PixelOutputType main(PixelInputType input)
     float roughness = roughnessAOTexture.Sample(defaultSampler, uv).r;
     roughness = max(roughness, 0.05f); // Avoid zero roughness
     
-    // Ambient Occlusion to 1.0f but to be implemented in updates in the future.
-    float ao = 1.0f;
+    // Ambient Occlusion from the SSAO texture
+    float ao = SSAOTexture.Sample(defaultSampler, uv).r;
     
     // In View Space, the camera is at the origin (0, 0, 0)
     float3 V = normalize(-position); 
@@ -378,7 +383,7 @@ PixelOutputType main(PixelInputType input)
     float3 lightContribution = DirectionalLightning(F0, normalWorld, VWorld, NdotV, albedo, roughness, metalness, direction.xyz) * shadow;
     
     // IBL Contribution
-    float3 Lr = reflect(VWorld, normalWorld);
+    float3 Lr = reflect(-VWorld, normalWorld);
     float3 iblContribution = IBL(F0, Lr, normalWorld, albedo, roughness, metalness, NdotV);
     
     float3 ambient = float3(0.009f, 0.009f, 0.009f);

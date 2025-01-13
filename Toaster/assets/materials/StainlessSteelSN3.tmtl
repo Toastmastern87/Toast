@@ -1,7 +1,7 @@
 Material: StainlessSteelSN3
 Albedo: [0.34191215, 0.341914713, 0.371237934, 1]
 Metalness: 1
-Roughness: 0.751467466
+Roughness: 0.880838096
 UseAlbedoMap: false
 UseNormalMap: false
 UseMetalRoughMap: false

@@ -38,6 +38,8 @@ namespace Toast {
 			DirectX::XMMATRIX AtmosphericScatteringViewMatrices[6];
 			DirectX::XMMATRIX AtmosphericScatteringInvViewMatrices[6];
 
+			std::vector<DirectX::XMFLOAT4> SSAOKernel;
+
 			struct SceneInfo
 			{
 				Environment SceneEnvironment;
@@ -59,8 +61,8 @@ namespace Toast {
 
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshColliderDrawList;
 
-			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer, SpecularMapFilterSettingsCBuffer;
-			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer, RenderSettingsBuffer, AtmosphereBuffer, ModelBuffer, MaterialBuffer, SpecularMapFilterSettingsBuffer;
+			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer, SpecularMapFilterSettingsCBuffer, SSAOCBuffer;
+			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer, RenderSettingsBuffer, AtmosphereBuffer, ModelBuffer, MaterialBuffer, SpecularMapFilterSettingsBuffer, SSAOBuffer;
 
 			// Back buffer
 			Ref<RenderTarget> BackbufferRT;
@@ -70,6 +72,9 @@ namespace Toast {
 
 			// Shadow mapping Pass
 			Ref<RenderTarget> ShadowMapRT;
+
+			// SSAO Pass
+			Ref<RenderTarget> SSAORT;
 			
 			// Lightning Pass
 			Ref<RenderTarget> LPassRT;
@@ -91,7 +96,7 @@ namespace Toast {
 			Microsoft::WRL::ComPtr<ID3D11RasterizerState> NormalRasterizerState, WireframeRasterizerState, ShadowMapRasterizerState;
 
 			// Depth data
-			Scope<Texture2D> DepthBuffer, ShadowPassDepth;
+			Scope<Texture2D> DepthBuffer, ShadowPassDepth, SSAONoiseTexture;
 			Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthEnabledStencilState, DepthDisabledStencilState, DepthSkyboxPassStencilState, ShadowPassDepthStencilState;
 			Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencilView, ShadowPassStencilView;
 
@@ -110,13 +115,17 @@ namespace Toast {
 		static void OnViewportResize(uint32_t width, uint32_t height);
 
 		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos);
-		static void EndScene(const bool debugActivated);
+		static void EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL);
 
 		static void CreateDepthBuffer(uint32_t width, uint32_t height);
 		static void CreateDepthStencilView();
 		static void CreateDepthStencilStates();
 		static void CreateBlendStates();
 		static void CreateRasterizerStates();
+
+		// SSAO
+		static void GenerateSampleKernel();
+		static void GenerateNoiseTexture();
 
 		static void SetUpAtmosphericScatteringMatrices();
 
@@ -135,10 +144,11 @@ namespace Toast {
 		static void GeometryPass();
 		static void ShadowPass();
 		static void LightningPass();
+		static void SSAOPass();
 
 		// Post Processes
 		static void SkyboxPass();
-		static void AtmospherePass();
+		static void AtmospherePass(const bool dynamicIBL);
 		static void PostProcessPass();
 
 		static Ref<RenderTarget>& GetGPassPositionRT() { return sRendererData->GPassPositionRT; }

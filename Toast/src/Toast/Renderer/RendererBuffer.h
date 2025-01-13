@@ -17,7 +17,8 @@ namespace Toast {
 		Atmosphere = 4,
 		SpecularLightEnvironmental = 5,
 		Environment = 6,
-		RenderSettings = 9
+		RenderSettings = 9,
+		SSAO = 10
 	};
 
 	struct CBufferBindInfo

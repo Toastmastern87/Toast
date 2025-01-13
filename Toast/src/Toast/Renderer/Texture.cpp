@@ -58,6 +58,39 @@ namespace Toast {
 		mSRV->GetResource(&mResource);
 	}
 
+	Texture2D::Texture2D(DXGI_FORMAT format, DXGI_FORMAT srvFormat, uint32_t width, uint32_t height, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags, void* initialData, UINT rowPitch)
+		: mWidth(width), mHeight(height), mFormat(format), mSRVFormat(srvFormat)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		D3D11_TEXTURE2D_DESC textureDesc = {};
+		textureDesc.ArraySize = 1;
+		textureDesc.BindFlags = bindFlag;
+		textureDesc.Usage = usage;
+		textureDesc.CPUAccessFlags = cpuAccessFlags;
+		textureDesc.Format = format;
+		textureDesc.Height = mHeight;
+		textureDesc.Width = mWidth;
+		textureDesc.MipLevels = 1;
+		textureDesc.MiscFlags = 0;
+		textureDesc.SampleDesc.Count = samples;
+		textureDesc.SampleDesc.Quality = 0;
+
+		D3D11_SUBRESOURCE_DATA subresourceData = {};
+		subresourceData.pSysMem = initialData;
+		subresourceData.SysMemPitch = rowPitch;
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		HRESULT result = device->CreateTexture2D(&textureDesc, initialData ? &subresourceData : nullptr, &mTexture);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
+
+		CreateSRV();
+
+		mSRV->GetResource(&mResource);
+	}
+
 	Texture2D::Texture2D(const std::string& filePath, bool forceSRGB)
 		: mFilePath(filePath)
 	{
