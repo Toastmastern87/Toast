@@ -13,6 +13,8 @@ cbuffer Camera : register(b0)
 	float4 cameraPosition;
 	float far;
 	float near;
+    float viewportWidth;
+    float viewportHeight;
 };
 
 struct PixelInputType
@@ -59,6 +61,8 @@ cbuffer Camera : register(b0)
     float4 cameraPosition;
     float far;
     float near;
+    float viewportWidth;
+    float viewportHeight;
 };
 
 struct PixelInputType

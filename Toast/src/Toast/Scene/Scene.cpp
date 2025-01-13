@@ -513,7 +513,7 @@ namespace Toast {
 					mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices().size());
 				}
 
-				Renderer::EndScene(true);
+				Renderer::EndScene(true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL);
 			}
 
 			// Debug Rendering
@@ -1054,7 +1054,7 @@ namespace Toast {
 				mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices().size());
 			}
 
-			Renderer::EndScene(true);
+			Renderer::EndScene(true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL);
 		}
 
 		// Debug Rendering

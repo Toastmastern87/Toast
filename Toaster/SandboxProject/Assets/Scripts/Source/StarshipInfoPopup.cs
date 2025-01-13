@@ -71,8 +71,6 @@ namespace Sandbox
                     }
                     else
                     {
-                        Toast.Console.LogCritical("Dragging!");
-
                         // Calculate the delta movement
                         Vector2 deltaMousePos = mousePos - mPreviousPos;
 

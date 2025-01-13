@@ -56,6 +56,9 @@ namespace Toast {
 			bool FrustumCulling = true;
 			bool RenderColliders = false;
 			bool RenderUI = true;
+			bool Shadows = true;
+			bool SSAO = true;
+			bool DynamicIBL = true;
 
 			int PhysicSlowmotion = 1;
 			int PhysicsFPS = 60;

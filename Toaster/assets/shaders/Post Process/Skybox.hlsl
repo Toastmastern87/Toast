@@ -37,6 +37,8 @@ cbuffer Camera : register(b0)
     float4 cameraPosition;
     float far;
     float near;
+    float viewportWidth;
+    float viewportHeight;
 };
 
 cbuffer DirectionalLight : register(b3)

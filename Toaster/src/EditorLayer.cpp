@@ -47,6 +47,7 @@ namespace Toast {
 
 		// Samplers
 		TextureLibrary::LoadTextureSampler("Default", D3D11_FILTER_ANISOTROPIC, D3D11_TEXTURE_ADDRESS_WRAP);
+		TextureLibrary::LoadTextureSampler("LinearSampler", D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 		TextureLibrary::LoadTextureSampler("PointSampler", D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP);
 		TextureLibrary::LoadTextureSampler("BRDFSampler", D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
 
@@ -54,6 +55,7 @@ namespace Toast {
 		// Deffered Rendering
 		ShaderLibrary::Load("assets/shaders/Deffered Rendering/GeometryPass.hlsl");
 		ShaderLibrary::Load("assets/shaders/Deffered Rendering/ShadowPass.hlsl");
+		ShaderLibrary::Load("assets/shaders/Deffered Rendering/SSAOPass.hlsl");
 		ShaderLibrary::Load("assets/shaders/Deffered Rendering/LightningPass.hlsl");
 		ShaderLibrary::Load("assets/shaders/Debug/ObjectMask.hlsl");
 
@@ -68,11 +70,6 @@ namespace Toast {
 
 		// Others
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
-		ShaderLibrary::Load("assets/shaders/Planet.hlsl");
-		ShaderLibrary::Load("assets/shaders/ToastPBR.hlsl");
-		ShaderLibrary::Load("assets/shaders/ToastPBRInstanced.hlsl");
-		ShaderLibrary::Load("assets/shaders/Picking.hlsl");
-		ShaderLibrary::Load("assets/shaders/Planet/PlanetMask.hlsl");
 		ShaderLibrary::Load("assets/shaders/UI.hlsl");
 
 		// Load all materials from the asset folder
