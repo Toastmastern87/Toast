@@ -666,7 +666,12 @@ namespace Toast {
 	void EditorLayer::UpdateWindowTitle(const std::string& sceneName)
 	{
 		std::string title = sceneName + " - Toaster - " + Application::GetPlatformName() + " (" + Application::GetConfigurationName() + ")";
-		Application::Get().GetWindow().SetTitle(title);
+		//Application::Get().GetWindow().SetTitle(title);
+	}
+
+	void EditorLayer::UpdateWindowIcon(const std::string& iconPath)
+	{
+		Application::Get().GetWindow().SetIcon(iconPath);
 	}
 	
 }

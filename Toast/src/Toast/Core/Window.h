@@ -10,13 +10,15 @@ namespace Toast
 	struct WindowProps
 	{
 		std::string Title;
+		std::string IconStr;
 		uint32_t Width;
 		uint32_t Height;
 
-		WindowProps(const std::string& title = "Toaster",
+		WindowProps(const std::string& title = "Toaster", 
+					const std::string& iconStr = "",
 					uint32_t width = 2400,
 					uint32_t height = 1300)
-			: Title(title), Width(width), Height(height)
+			: Title(title), IconStr(iconStr), Width(width), Height(height)
 		{
 		}
 	};
@@ -40,6 +42,7 @@ namespace Toast
 		virtual bool IsVSync() const = 0;
 
 		virtual void SetTitle(const std::string& title) = 0;
+		virtual void SetIcon(const std::string& iconPath) = 0;
 
 		static Scope<Window> Create(const WindowProps& props = WindowProps());
 
