@@ -45,6 +45,7 @@ namespace Toast {
 		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
 		bool OnMouseMoved(MouseMovedEvent& e);
 		void UpdateWindowTitle(const std::string& sceneName);
+		void UpdateWindowIcon(const std::string& iconPath);
 
 	private:
 		std::optional<std::string> mSceneFilePath;

@@ -21,6 +21,7 @@ namespace Toast {
 	struct ApplicationSpecification
 	{
 		std::string Name = "Toast Application";
+		std::string IconStr = "Resources/ToasterIcon32x32.png";
 		std::string WorkingDirectory;
 	};
 

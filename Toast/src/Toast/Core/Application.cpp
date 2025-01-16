@@ -31,7 +31,7 @@ namespace Toast {
 		const HWND hDesktop = GetDesktopWindow();
 		GetWindowRect(hDesktop, &desktop);
 
-		mWindow = Window::Create(WindowProps(mSpecification.Name, desktop.right, desktop.bottom));
+		mWindow = Window::Create(WindowProps(mSpecification.Name, mSpecification.IconStr, desktop.right, desktop.bottom));
 		mWindow->SetEventCallback(TOAST_BIND_EVENT_FN(Application::OnEvent));
 		mWindow->SetVSync(false);
 

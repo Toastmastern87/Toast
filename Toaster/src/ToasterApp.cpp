@@ -23,6 +23,7 @@ namespace Toast {
 	{
 		ApplicationSpecification spec;
 		spec.Name = "Toaster";
+		spec.IconStr = "..\\Toaster/Resources/Icons/ToasterIcon32x32.ico";
 
 		return new Toaster(spec);
 	}

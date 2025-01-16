@@ -65,6 +65,46 @@ namespace Toast
 		wc.lpszMenuName = NULL;
 		wc.cbSize = sizeof(WNDCLASSEX);
 
+		wc.hIcon = (HICON)LoadImage(
+			nullptr,
+			props.IconStr.c_str(),// File path to your .ico
+			IMAGE_ICON,
+			32,                   // Desired icon width
+			32,                   // Desired icon height
+			LR_LOADFROMFILE | LR_DEFAULTCOLOR
+		);
+
+		if (!wc.hIcon)
+		{
+			// Grab the error code
+			DWORD error = GetLastError();
+
+			// Format a readable error message
+			LPVOID lpMsgBuf = nullptr;
+			FormatMessage(
+				FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+				nullptr,
+				error,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				(LPTSTR)&lpMsgBuf,
+				0,
+				nullptr
+			);
+
+			// lpMsgBuf now points to a string with the error text.
+			// You can log it, display it in a MessageBox, etc. For example:
+			if (lpMsgBuf)
+			{
+				MessageBox(nullptr, (LPCTSTR)lpMsgBuf, TEXT("LoadImage Failed"), MB_OK | MB_ICONERROR);
+
+				// Free the buffer allocated by FormatMessage
+				LocalFree(lpMsgBuf);
+			}
+		}
+
+		if (!wc.hIcon)
+			TOAST_CORE_CRITICAL("Icon not loaded correctly");
+
 		if (!RegisterClassEx(&wc)) 
 		{
 			TOAST_CORE_ERROR("Could not initialize the window class!");
@@ -123,6 +163,28 @@ namespace Toast
 	{
 		mData.Title = title;
 		SetWindowText(mWin32Window, mData.Title.c_str());
+	}
+
+	void WindowsWindow::SetIcon(const std::string& iconPath)
+	{
+		HICON hIcon = (HICON)LoadImage(
+			nullptr,               // Not loading from resources
+			iconPath.c_str(),      // Path to the .ico file
+			IMAGE_ICON,
+			32,                    // Width
+			32,                    // Height
+			LR_LOADFROMFILE | LR_DEFAULTCOLOR
+		);
+
+		// If either of these fails, you may want to handle it (fallback to default, etc.)
+		if (!hIcon)
+		{
+			// As a fallback, load a default icon or just return
+			hIcon = LoadIcon(nullptr, IDI_WINLOGO);
+		}
+
+		// Set the large icon
+		SendMessage(mWin32Window, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 	}
 
 	LRESULT CALLBACK WindowsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)

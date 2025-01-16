@@ -20,6 +20,7 @@ namespace Toast
 		bool IsVSync() const override;
 
 		virtual void SetTitle(const std::string& title) override;
+		virtual void SetIcon(const std::string& iconPath) override;
 
 		virtual void* GetNativeWindow() const override { return mWin32Window; }
 
