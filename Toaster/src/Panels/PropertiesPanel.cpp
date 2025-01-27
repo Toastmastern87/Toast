@@ -5,6 +5,8 @@
 
 #include "Toast/Renderer/Renderer.h"
 
+#include "Toast/ImGui/ImGuiHelpers.h"
+
 #include "Toast/Core/UUID.h"
 
 #include "Toast/Scripting/ScriptEngine.h"
@@ -17,8 +19,6 @@
 #include "Toast/Utils/PlatformUtils.h"
 
 #include "../FontAwesome.h"
-
-#include "imgui/imgui.h"
 
 #include <filesystem>
 #include <string>
@@ -39,334 +39,111 @@ namespace Toast {
 	static uint32_t sCounter = 0;
 	static char sIDBuffer[16];
 
-	static bool DrawFloatControl(const std::string& label, float& value, float imGuiTableWidth = 90.0f, float min = 0.0f, float max = 0.0f, float delta = 0.1f)
-	{
+	static bool DrawFloatControl(const std::string& label, float& value, WindowsWindow* window, std::string& activeDragArea, float imGuiTableWidth = 90.0f, float min = 0.0f, float max = 0.0f, float delta = 0.5f, const char* displayFormat = "%.1f"){
 		bool modified = false;
 		ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 		ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
+		// We will measure how tall the label text will be when wrapped at `imGuiTableWidth`.
+		// ImGui::CalcTextSize can do wrapping if we pass a 'wrap_width' parameter.
+		float wrapWidth = imGuiTableWidth - ImGui::GetStyle().ItemSpacing.x;
+		if (wrapWidth < 1.0f)
+			wrapWidth = 1.0f;
+
+		// Temporarily set a wrap pos so CalcTextSize accounts for wrapping
+		ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+		ImVec2 textSize = ImGui::CalcTextSize(label.c_str(), nullptr, false, wrapWidth);
+		ImGui::PopTextWrapPos();
+
+		// The drag widget typically has about one line of height:
+		float dragLineHeight = ImGui::GetTextLineHeight() + ImGui::GetStyle().FramePadding.y * 2.0f;
+
+		// The row must be at least as tall as our text or the drag area, whichever is bigger:
+		float rowHeight = textSize.y;
+		if (rowHeight < dragLineHeight)
+			rowHeight = dragLineHeight;
+
 		ImGui::PushID(label.c_str());
+		if (ImGui::BeginTable("##table2", 2, flags))
+		{
+			// Fix the first column to imGuiTableWidth, second column is the remainder
+			ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthFixed, imGuiTableWidth);
+			ImGui::TableSetupColumn("##col4", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - imGuiTableWidth);
 
-		ImGui::BeginTable("##table2", 2, flags);
-		ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthFixed, imGuiTableWidth);
-		ImGui::TableSetupColumn("##col4", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - imGuiTableWidth);
-		ImGui::TableNextRow();
-		ImGui::TableSetColumnIndex(0);
-		ImGui::Text(label.c_str());
-		ImGui::TableSetColumnIndex(1);
+			// Enforce a specific height for this row
+			ImGui::TableNextRow(ImGuiTableRowFlags_None, rowHeight);
 
-		ImGui::PushItemWidth(-1);
+			// --- Column 0: The label text ---
+			ImGui::TableSetColumnIndex(0);
+			{
+				// Vertical offset so the text is centered if the row is taller than the text
+				float offsetY = (rowHeight - textSize.y) * 0.5f;
+				if (offsetY < 0.0f)
+					offsetY = 0.0f;
 
-		if (ImGui::DragFloat("##label", &value, delta, min, max, "%.2f"))
-			modified = true;
-		ImGui::PopItemWidth();
+				// Move the cursor down by offsetY
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
 
-		ImGui::EndTable();
+				// Wrap the text at the end of this column
+				ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+				ImGui::TextUnformatted(label.c_str());
+				ImGui::PopTextWrapPos();
+			}
+
+			ImGui::TableSetColumnIndex(1);
+			{
+				float offsetY = (rowHeight - dragLineHeight) * 0.5f;
+				if (offsetY < 0.0f)
+					offsetY = 0.0f;
+
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() + offsetY);
+				ImGui::PushItemWidth(-1);
+
+				// This is the same drag area size you used before
+				ImVec2 dragAreaSize(contentRegionAvailable.x - imGuiTableWidth,	dragLineHeight);
+				if (ImGuiHelpers::ManualDragFloat(label.c_str(), value, window, activeDragArea, delta, dragAreaSize, displayFormat, min, max))
+					modified = true;
+
+				ImGui::PopItemWidth();
+			}
+
+			ImGui::EndTable();
+		}
 		ImGui::PopID();
 
 		return modified;
 	}
 
-	static float CalculateDelta(float value)
+	PropertiesPanel::PropertiesPanel(const Entity& context, SceneHierarchyPanel* sceneHierarchyPanel, WindowsWindow* window)
 	{
-		if (value >= 1000.0f || value <= -1000.0f)
-			return 10.0f;
-		else if (value >= 100.0f || value <= -100.0f)
-			return 1.0f;
-		else if (value >= 10.0f || value <= -10.0f)
-			return 0.1f;
-		else if (value >= 1.0f || value <= -1.0f)
-			return 0.01f;
-		else
-		
-		return 0.01f;
+		SetContext(context, sceneHierarchyPanel, window);
 	}
 
-	static const char* GetPrecision(float value) 
-	{
-		if (value >= 10.0f)
-			return "%.0f";
-		else if (value >= 1.0f && value < 10.0f)
-			return "%.1f";
-		else if (value >= 0.1f && value < 1.0f)
-			return "%.2f";
-		else if (value >= 0.01f && value < 0.1f)
-			return "%.3f";
-		else
-			return "%.4f";
-	}
-
-	static bool DrawDouble3Control(const std::string& label, Vector3& values, double resetValue = 0.0, float columnWidth = 100.0f)
-	{
-		bool modified = false;
-		float temp;
-
-		ImGuiIO& io = ImGui::GetIO();
-		auto boldFont = io.Fonts->Fonts[0];
-
-		ImGui::PushID(label.c_str());
-
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, columnWidth);
-		ImGui::Text(label.c_str());
-		ImGui::NextColumn();
-
-		ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
-
-		float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-		ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
-		ImGui::PushFont(boldFont);
-		if (ImGui::Button("X", buttonSize))
-		{
-			values.x = resetValue;
-			modified = true;
-		}
-		
-		ImGui::PopStyleColor(3);
-		ImGui::PopFont();
-		ImGui::SameLine();
-		temp = static_cast<float>(values.x);
-		if (ImGui::DragFloat("##X", &temp, 0.01f, 0.0f, 0.0f, GetPrecision(temp)))
-		{
-			values.x = static_cast<double>(temp);
-			modified = true;
-		}
-		ImGui::PopItemWidth();
-		ImGui::SameLine();
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
-		ImGui::PushFont(boldFont);
-		if (ImGui::Button("Y", buttonSize))
-		{
-			values.y = resetValue;
-			modified = true;
-		}
-		ImGui::PopStyleColor(3);
-		ImGui::PopFont();
-
-		ImGui::SameLine();
-		temp = static_cast<float>(values.y);
-		if (ImGui::DragFloat("##Y", &temp, 0.01f, 0.0f, 0.0f, GetPrecision(temp)))
-		{
-			values.y = static_cast<double>(temp);
-			modified = true;
-		}
-		ImGui::PopItemWidth();
-		ImGui::SameLine();
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
-		ImGui::PushFont(boldFont);
-		if (ImGui::Button("Z", buttonSize))
-		{
-			values.z = resetValue;
-			modified = true;
-		}
-		ImGui::PopStyleColor(3);
-		ImGui::PopFont();
-
-		ImGui::SameLine();
-		temp = static_cast<float>(values.z);
-		if (ImGui::DragFloat("##Z", &temp, 0.01f, 0.0f, 0.0f, GetPrecision(temp)))
-		{
-			values.z = static_cast<double>(temp);
-			modified = true;
-		}
-		ImGui::PopItemWidth();
-
-		ImGui::PopStyleVar();
-
-		ImGui::Columns(1);
-
-		ImGui::PopID();
-
-		return modified;
-	}
-
-	static bool DrawFloat3Control(const std::string& label, DirectX::XMFLOAT3& values, float resetValue = 0.0f, float columnWidth = 100.0f)
-	{
-		bool modified = false;
-
-		ImGuiIO& io = ImGui::GetIO();
-		auto boldFont = io.Fonts->Fonts[0];
-
-		ImGui::PushID(label.c_str());
-
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, columnWidth);
-		ImGui::Text(label.c_str());
-		ImGui::NextColumn();
-
-		ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
-
-		float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-		ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
-		ImGui::PushFont(boldFont);
-		if (ImGui::Button("X", buttonSize))
-		{
-			values.x = resetValue;
-			modified = true;
-		}
-
-		ImGui::PopStyleColor(3);
-		ImGui::PopFont();
-		ImGui::SameLine();
-		if (ImGui::DragFloat("##X", &values.x, 0.01f, 0.0f, 0.0f, GetPrecision(values.x)))
-			modified = true;
-		ImGui::PopItemWidth();
-		ImGui::SameLine();
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
-		ImGui::PushFont(boldFont);
-		if (ImGui::Button("Y", buttonSize))
-		{
-			values.y = resetValue;
-			modified = true;
-		}
-		ImGui::PopStyleColor(3);
-		ImGui::PopFont();
-
-		ImGui::SameLine();
-		if (ImGui::DragFloat("##Y", &values.y, 0.01f, 0.0f, 0.0f, GetPrecision(values.x)))
-			modified = true;
-		ImGui::PopItemWidth();
-		ImGui::SameLine();
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
-		ImGui::PushFont(boldFont);
-		if (ImGui::Button("Z", buttonSize))
-		{
-			values.z = resetValue;
-			modified = true;
-		}
-		ImGui::PopStyleColor(3);
-		ImGui::PopFont();
-
-		ImGui::SameLine();
-		if (ImGui::DragFloat("##Z", &values.z, 0.01f, 0.0f, 0.0f, GetPrecision(values.x)))
-			modified = true;
-		ImGui::PopItemWidth();
-
-		ImGui::PopStyleVar();
-
-		ImGui::Columns(1);
-
-		ImGui::PopID();
-
-		return modified;
-	}
-
-	static bool DrawFloat2Control(const std::string& label, DirectX::XMFLOAT2& values, float resetValue = 0.0f, float columnWidth = 100.0f)
-	{
-		bool modified = false;
-
-		ImGuiIO& io = ImGui::GetIO();
-		auto boldFont = io.Fonts->Fonts[0];
-
-		ImGui::PushID(label.c_str());
-
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, columnWidth);
-		ImGui::Text(label.c_str());
-		ImGui::NextColumn();
-
-		ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
-
-		float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-		ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
-		ImGui::PushFont(boldFont);
-		if (ImGui::Button("X", buttonSize))
-		{
-			values.x = resetValue;
-			modified = true;
-		}
-
-		ImGui::PopStyleColor(3);
-		ImGui::PopFont();
-		ImGui::SameLine();
-		if (ImGui::DragFloat("##X", &values.x, CalculateDelta(values.x), 0.0f, 0.0f, (values.x >= 1000.0f || values.x <= -1000.0f) ? "%.0f" : "%.1f"))
-			modified = true;
-		ImGui::PopItemWidth();
-		ImGui::SameLine();
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
-		ImGui::PushFont(boldFont);
-		if (ImGui::Button("Y", buttonSize))
-		{
-			values.y = resetValue;
-			modified = true;
-		}
-		ImGui::PopStyleColor(3);
-		ImGui::PopFont();
-
-		ImGui::SameLine();
-		if (ImGui::DragFloat("##Y", &values.y, CalculateDelta(values.y), 0.0f, 0.0f, (values.y >= 1000.0f || values.y <= -1000.0f) ? "%.0f" : "%.1f"))
-			modified = true;
-		ImGui::PopItemWidth();
-
-		ImGui::PopStyleVar();
-
-		ImGui::Columns(1);
-
-		ImGui::PopID();
-
-		return modified;
-	}
-
-	PropertiesPanel::PropertiesPanel(const Entity& context, SceneHierarchyPanel* sceneHierarchyPanel)
-	{
-		SetContext(context, sceneHierarchyPanel);
-	}
-
-	void PropertiesPanel::SetContext(const Entity& context, SceneHierarchyPanel* sceneHierarchyPanel)
+	void PropertiesPanel::SetContext(const Entity& context, SceneHierarchyPanel* sceneHierarchyPanel, WindowsWindow* window)
 	{
 		mSceneHierarchyPanel = sceneHierarchyPanel;
 		mScene = mSceneHierarchyPanel->GetContext();
 
 		mContext = context;
+
+		mWindow = window;
 	}
 
-	void PropertiesPanel::OnImGuiRender()
+	void PropertiesPanel::OnImGuiRender(std::string& activeDragArea)
 	{
 		ImGui::Begin(ICON_TOASTER_WRENCH" Properties");
-
 
 		mContext = mSceneHierarchyPanel->GetSelectedEntity();
 		mScene = mSceneHierarchyPanel->GetContext();
 
-
 		if (mContext)
-			DrawComponents(mContext);
+			DrawComponents(mContext, activeDragArea);
 
 		ImGui::End();
 	}
 
 	template<typename T, typename UIFunction>
-	static void DrawComponent(const std::string& name, Entity entity, Scene* scene, UIFunction uiFunction)
+	static void DrawComponent(const std::string& name, Entity entity, Scene* scene, std::string& activeDragArea, WindowsWindow* window, UIFunction uiFunction)
 	{
 		const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
 
@@ -398,7 +175,7 @@ namespace Toast {
 
 			if (open)
 			{
-				uiFunction(component, entity, scene);
+				uiFunction(component, entity, scene, window, activeDragArea);
 				ImGui::TreePop();
 			}
 
@@ -407,7 +184,7 @@ namespace Toast {
 		}
 	}
 
-	void PropertiesPanel::DrawComponents(Entity entity)
+	void PropertiesPanel::DrawComponents(Entity entity, std::string& activeDragArea)
 	{
 		if (entity.HasComponent<TagComponent>())
 		{
@@ -593,7 +370,7 @@ namespace Toast {
 
 		ImGui::TextDisabled("UUID: %llu", entity.GetComponent<IDComponent>().ID);
 
-		DrawComponent<TransformComponent>(ICON_TOASTER_ARROWS_ALT" Transform", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<TransformComponent>(ICON_TOASTER_ARROWS_ALT" Transform", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				float fov = 45.0f;
 				DirectX::XMMATRIX cameraTransform;
@@ -612,7 +389,7 @@ namespace Toast {
 					translation2D.x += (width / 2.0f);
 					translation2D.y += (height / 2.0f);
 
-					updateTransform |= DrawFloat3Control("Translation", translation2D);
+					updateTransform |= ImGuiHelpers::ManualDragFloat3("Translation", translation2D, 1.0f, 0.0f, window, activeDragArea);
 
 					translation2D.x -= (width / 2.0f);
 					translation2D.y -= (height / 2.0f);
@@ -620,10 +397,11 @@ namespace Toast {
 					component.Translation = translation2D;
 				}
 				else
-					updateTransform |= DrawFloat3Control("Translation", component.Translation);
+					updateTransform |= ImGuiHelpers::ManualDragFloat3("Translation", component.Translation, 1.0f, 0.0f, window, activeDragArea);
 
-				updateRotTransform |= DrawFloat3Control("Rotation", component.RotationEulerAngles);
-				updateTransform |= DrawFloat3Control("Scale", component.Scale, 1.0f);
+				updateRotTransform |= ImGuiHelpers::ManualDragFloat3("Rotation", component.RotationEulerAngles, 1.0f, 0.0f, window, activeDragArea);
+
+				updateTransform |= ImGuiHelpers::ManualDragFloat3("Scale", component.Scale, 1.0f, 0.0f, window, activeDragArea);
 
 				if (updateRotTransform && entity.HasComponent<BoxColliderComponent>())
 				{
@@ -637,7 +415,7 @@ namespace Toast {
 				component.IsDirty = updateTransform || updateRotTransform;
 			});
 
-		DrawComponent<MeshComponent>(ICON_TOASTER_CUBE" Mesh", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<MeshComponent>(ICON_TOASTER_CUBE" Mesh", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -831,7 +609,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<CameraComponent>(ICON_TOASTER_CAMERA" Camera", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<CameraComponent>(ICON_TOASTER_CAMERA" Camera", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -876,21 +654,21 @@ namespace Toast {
 				ImGui::Columns(1);
 
 				float perspectiveVerticalFOV = camera.GetPerspectiveVerticalFOV();
-				if (DrawFloatControl("Vertical FOV", perspectiveVerticalFOV, 90.0f)) 
+				if (DrawFloatControl("Vertical FOV", perspectiveVerticalFOV, window, activeDragArea, 90.0f))
 				{
 					camera.SetPerspectiveVerticalFOV(perspectiveVerticalFOV);
 					component.IsDirty = true;
 				}
 
 				float n = camera.GetNearClip();
-				if (DrawFloatControl("Near Clip", n, 90.0f))
+				if (DrawFloatControl("Near Clip", n, window, activeDragArea, 90.0f))
 				{
 					camera.SetNearClip(n);
 					component.IsDirty = true;
 				}
 
 				float f = camera.GetFarClip();
-				if (DrawFloatControl("Far Clip", f, 90.0f, 0.0f, 0.0f, 10.0f)) 
+				if (DrawFloatControl("Far Clip", f, window, activeDragArea, 90.0f, 0.0f, 0.0f, 10.0f))
 				{
 					camera.SetFarClip(f);
 					component.IsDirty = true;
@@ -898,13 +676,13 @@ namespace Toast {
 
 				float orthoWidth = camera.GetOrthographicWidth();
 				float orthoHeight = camera.GetOrthographicHeight();
-				if (DrawFloatControl("Ortho Width", orthoWidth, 90.0f) || DrawFloatControl("Ortho Height", orthoHeight, 90.0f))
+				if (DrawFloatControl("Ortho Width", orthoWidth, window, activeDragArea, 90.0f) || DrawFloatControl("Ortho Height", orthoHeight, window, activeDragArea, 90.0f))
 					camera.SetOrthographicSize(orthoWidth, orthoHeight);
 
 				ImGui::Checkbox("Fixed Aspect Ratio", &component.FixedAspectRatio);
 			});
 
-		DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -923,7 +701,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<PlanetComponent>(ICON_TOASTER_GLOBE" Planet", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<PlanetComponent>(ICON_TOASTER_GLOBE" Planet", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				DirectX::XMVECTOR cameraPos = { 0.0f, 0.0f, 0.0f }, cameraRot = { 0.0f, 0.0f, 0.0f }, cameraScale = { 0.0f, 0.0f, 0.0f };
 				int subdivions = component.Subdivisions;
@@ -944,12 +722,9 @@ namespace Toast {
 				if (ImGui::SliderInt("##Subdivisions", &subdivions, 0, 20))
 					component.Subdivisions = subdivions;
 
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Max Alt(km)");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (ImGui::DragFloat("##MaxAltitude", &component.PlanetData.maxAltitude, 0.1f, 0.0f, 0.0f, "%.2f")) 
+				ImGui::EndTable();
+
+				if (DrawFloatControl("Max Alt(km)", component.PlanetData.maxAltitude, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.1f, "%.2f"))
 				{
 					if (entity.HasComponent<TerrainColliderComponent>()) 
 					{
@@ -960,20 +735,10 @@ namespace Toast {
 					modified = true;
 				}
 
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Min Alt(km)");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (ImGui::DragFloat("##MinAltitude", &component.PlanetData.minAltitude, 0.1f, 0.0f, 0.0f, "%.2f"))
+				if (DrawFloatControl("Min Alt(km)", component.PlanetData.minAltitude, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.1f, "%.2f"))
 					modified = true;
 
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Radius(km)");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (ImGui::DragFloat("##Radius", &component.PlanetData.radius, 0.1f, 0.0f, 0.0f, "%.2f"))
+				if (DrawFloatControl("Radius(km)", component.PlanetData.radius, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.1f, "%.2f"))
 				{
 					PlanetSystem::CalculateBasePlanet(component, component.PlanetData.radius);
 
@@ -986,13 +751,12 @@ namespace Toast {
 					modified = true;
 				}
 
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Gravitational acceleration(m/s^2)");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (ImGui::DragFloat("##GravAcc", &component.PlanetData.gravAcc, 0.1f, 0.0f, 0.0f, "%.2f"))
+				if (DrawFloatControl("Gravitational acceleration(m/s^2)", component.PlanetData.gravAcc, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.1f, "%.2f"))
 					modified = true;
+
+				ImGui::BeginTable("PlanetComponentTable2", 2, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -1008,14 +772,15 @@ namespace Toast {
 				ImGui::PushItemWidth(-1);
 				ImGui::Checkbox("##Atmosphere", &component.PlanetData.atmosphereToggle);
 
+				ImGui::EndTable();
+
 				if (component.PlanetData.atmosphereToggle)
 				{
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Atmosphere\nHeight");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##AtmosphereHeight", &component.PlanetData.atmosphereHeight, 0.1f, 0.0f, 1000.0f, "%.1f");
+					DrawFloatControl("Atmosphere Height", component.PlanetData.atmosphereHeight, window, activeDragArea, 90.0f, 0.0f, 1000.0f, 0.1f, "%.1f");
+
+					ImGui::BeginTable("PlanetComponentTable3", 2, flags);
+					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
@@ -1031,54 +796,25 @@ namespace Toast {
 					ImGui::PushItemWidth(-1);
 					ImGui::DragInt("##OpticalDepthPoints", &component.PlanetData.opticalDepthPoints, 1.0f, 1, 40);
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Mie\nAnisotropy");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##mieAnisotropy", &component.PlanetData.mieAnisotropy, 0.001f, -1.0f, 1.0f, "%.3f");
+					ImGui::EndTable();
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Ray\nScale Height");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##rayScaleHeight", &component.PlanetData.rayScaleHeight, 10.0f, 0.0f, 15000.0f, "%.0f");
+					DrawFloatControl("Mie Anisotropy", component.PlanetData.mieAnisotropy, window, activeDragArea, 90.0f, -1.0f, 1.0f, 0.001f, "%.3f");
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Mie\nScale Height");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##mieScaleHeight", &component.PlanetData.mieScaleHeight, 10.0f, 0.0f, 5000.0f, "%.0f");
+					DrawFloatControl("Ray Scale Height", component.PlanetData.rayScaleHeight, window, activeDragArea, 90.0f, 0.0f, 15000.0f, 10.0f, "%.0f");
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Ray Scattering\nCoefficient Red");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##rayScatteringnCoefficientRed", &component.PlanetData.rayBaseScatteringCoefficient.x, 0.000001f, 0.0f, 1.0f, "%.7f");
+					DrawFloatControl("Mie Scale Height", component.PlanetData.mieScaleHeight, window, activeDragArea, 90.0f, 0.0f, 5000.0f, 10.0f, "%.0f");
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Ray Scattering\nCoefficient Green");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##rayScatteringnCoefficientGreen", &component.PlanetData.rayBaseScatteringCoefficient.y, 0.000001f, 0.0f, 1.0f, "%.7f");
+					DrawFloatControl("Ray Scattering Coefficient Red", component.PlanetData.rayBaseScatteringCoefficient.x, window, activeDragArea, 90.0f, 0.0f, 1.0f, 0.000001f, "%.7f");
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Ray Scattering\nCoefficient Blue");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##rayScatteringnCoefficientBlue", &component.PlanetData.rayBaseScatteringCoefficient.z, 0.000001f, 0.0f, 1.0f, "%.7f");
+					DrawFloatControl("Ray Scattering Coefficient Green", component.PlanetData.rayBaseScatteringCoefficient.y, window, activeDragArea, 90.0f, 0.0f, 1.0f, 0.000001f, "%.7f");
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Mie Scattering");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##mieScattering", &component.PlanetData.mieBaseScatteringCoefficient, 0.0001f, 0.0f, 1.0f, "%.4f");
+					DrawFloatControl("Ray Scattering Coefficient Blue", component.PlanetData.rayBaseScatteringCoefficient.z, window, activeDragArea, 90.0f, 0.0f, 1.0f, 0.000001f, "%.7f");
+
+					DrawFloatControl("Mie Scattering", component.PlanetData.mieBaseScatteringCoefficient, window, activeDragArea, 90.0f, 0.0f, 1.0f, 0.0001f, "%.4f");
+
+					ImGui::BeginTable("PlanetComponentTable3", 2, flags);
+					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
@@ -1086,42 +822,22 @@ namespace Toast {
 					ImGui::TableSetColumnIndex(1);
 					ImGui::Checkbox("##checkbox", &component.PlanetData.SunDisc);
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Sun Disc Radius");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##sundiscradius", &component.PlanetData.SunDiscRadius, 0.0001f, 0.0f, 2*M_PI, "%.5f");
+					ImGui::EndTable();
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Sun Glow Intensity");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##sunglowintensity", &component.PlanetData.SunGlowIntensity, 0.1f, 0.0f, 10.0f, "%.2f");
+					DrawFloatControl("Sun Disc Radius", component.PlanetData.SunDiscRadius, window, activeDragArea, 90.0f, 0.0f, 2 * M_PI, 0.0001f, "%.5f");
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Sun Edge Softness");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##sunedgesoftness", &component.PlanetData.SunEdgeSoftness, 0.0001f, 0.0f, 2 * M_PI, "%.5f");
+					DrawFloatControl("Sun Glow Intensity", component.PlanetData.SunEdgeSoftness, window, activeDragArea, 90.0f, 0.0f, 210.0f, 0.1f, "%.2f");
 
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Sun Glow Sizes");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::DragFloat("##sunglowsize", &component.PlanetData.SunGlowSize, 0.01f, 0.0f, 2 * M_PI, "%.3f");
+					DrawFloatControl("Sun Edge Softness", component.PlanetData.SunEdgeSoftness, window, activeDragArea, 90.0f, 0.0f, 2 * M_PI, 0.0001f, "%.5f");
+
+					DrawFloatControl("Sun Glow Sizes", component.PlanetData.SunGlowSize, window, activeDragArea, 90.0f, 0.0f, 2 * M_PI, 0.01f, "%.3f");
 				}
-
-				ImGui::EndTable();
 
 				if(modified)
 					component.IsDirty = true;
 			});
 
-		DrawComponent<DirectionalLightComponent>(ICON_TOASTER_SUN_O" Directional Light", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<DirectionalLightComponent>(ICON_TOASTER_SUN_O" Directional Light", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -1136,28 +852,16 @@ namespace Toast {
 				ImGui::PushItemWidth(-1);
 				ImGui::ColorEdit3("##Radiance", &component.Radiance.x);
 
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Intensity");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::DragFloat("##label", &component.Intensity, 0.01f, 0.0f, 25.0f, "%.2f");
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Sun Desired Coverage Area");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::DragFloat("##sundesiredcoverage", &component.SunDesiredCoverage, 1.0f, 0.0f, 20000.0f, "%.1f");
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Sun Light Distance");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::DragFloat("##sunlightdistance", &component.SunLightDistance, 1.0f, 0.0f, 10000.0f, "%.1f");
-
 				ImGui::EndTable();
+
+				DrawFloatControl("Intensity", component.Intensity, window, activeDragArea, 90.0f, 0.0f, 25.0f, 0.01f, "%.2f");
+
+				DrawFloatControl("Sun Desired Coverage Area", component.SunDesiredCoverage, window, activeDragArea, 90.0f, 0.0f, 20000.0f, 1.0f);
+
+				DrawFloatControl("Sun Light Distance", component.SunLightDistance, window, activeDragArea, 90.0f, 0.0f, 10000, 1.0f);
 			});
 
-		DrawComponent<SkyLightComponent>(ICON_TOASTER_CLOUD" Sky Light", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<SkyLightComponent>(ICON_TOASTER_CLOUD" Sky Light", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -1184,15 +888,12 @@ namespace Toast {
 						component.SceneEnvironment = Environment::Load(*filepath);
 				}
 
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Intensity");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::DragFloat("##label", &component.Intensity, 0.01f, 0.0f, 5.0f, "%.2f");
 				ImGui::EndTable();
+
+				DrawFloatControl("Intensity", component.Intensity, window, activeDragArea, 90.0f, 0.0f, 5.0f, 0.01f, "%.2f");
 			});
 
-		DrawComponent<ScriptComponent>(ICON_TOASTER_CODE" Script", entity, mScene, [=](auto& component, Entity entity, Scene* scene)
+		DrawComponent<ScriptComponent>(ICON_TOASTER_CODE" Script", entity, mScene, activeDragArea, mWindow, [=](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				bool scriptClassExists = ScriptEngine::EntityClassExists(component.ClassName);
 				
@@ -1275,7 +976,7 @@ namespace Toast {
 					ImGui::PopStyleColor();
 			});
 
-		DrawComponent<RigidBodyComponent>(ICON_TOASTER_HAND_ROCK_O" Rigid Body", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<RigidBodyComponent>(ICON_TOASTER_HAND_ROCK_O" Rigid Body", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				float temp;
 
@@ -1283,63 +984,39 @@ namespace Toast {
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
 				ImGui::BeginTable("RigidBody", 2, flags);
+
 				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
 				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Center of Mass");
 				ImGui::TableSetColumnIndex(1);
-				DrawDouble3Control("CenterOfMass", component.CenterOfMass);
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Mass (kg)");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				float mass = 1.0f / (float)component.InvMass;
-				ImGui::DragFloat("##label", &mass, 0.1f, 0.0f, 60000.0f, "%.1f");
-				component.InvMass = 1.0f / mass;
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Elasticity (0-1)");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				temp = static_cast<float>(component.Elasticity);
-				if(ImGui::DragFloat("##elasticity", &temp, 0.01f, 0.0f, 1.0f, "%.01f"))
-					component.Elasticity = static_cast<double>(temp);
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Friction (0-1)");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				temp = static_cast<float>(component.Friction);
-				if(ImGui::DragFloat("##friction", &temp, 0.01f, 0.0f, 1.0f, "%.01f"))
-					component.Friction = static_cast<double>(temp);
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Linear Damping (0-1)");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				temp = static_cast<float>(component.LinearDamping);
-				if (ImGui::DragFloat("##lineardamping", &temp, 0.01f, 0.0f, 25.0f, "%.1f"))
-					component.LinearDamping = static_cast<double>(temp);
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Angular Damping (0-1)");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				temp = static_cast<float>(component.AngularDamping);
-				if (ImGui::DragFloat("##angulardamping", &temp, 0.01f, 0.0f, 10.0f, "%.2f"))
-					component.AngularDamping = static_cast<double>(temp);
+				ImGuiHelpers::ManualDragDouble3("CenterOfMass", component.CenterOfMass, 1.0f, 0.0f, window, activeDragArea);
 
 				ImGui::EndTable();
+
+				float mass = 1.0f / (float)component.InvMass;
+				DrawFloatControl("Mass (kg)", mass, window, activeDragArea, 90.0f, 0.0f, 60000.0f, 0.1f);
+				component.InvMass = 1.0f / mass;
+
+				temp = static_cast<float>(component.Elasticity);
+				if(DrawFloatControl("Elasticity (0-1)", temp, window, activeDragArea, 90.0f, 0.0f, 1.0f, 0.01f, "%.2f"))
+					component.Elasticity = static_cast<double>(temp);
+
+				temp = static_cast<float>(component.Friction);
+				if(DrawFloatControl("Friction (0-1)", temp, window, activeDragArea, 90.0f, 0.0f, 1.0f, 0.01f, "%.2f"))
+					component.Friction = static_cast<double>(temp);
+
+				temp = static_cast<float>(component.LinearDamping);
+				if (DrawFloatControl("Linear Damping (0-1)", temp, window, activeDragArea, 90.0f, 0.0f, 25.0f, 0.01f, "%.1f"))
+					component.LinearDamping = static_cast<double>(temp);
+
+				temp = static_cast<float>(component.AngularDamping);
+				if (DrawFloatControl("Angular Damping (0-1)", temp, window, activeDragArea, 90.0f, 0.0f, 10.0f, 0.01f, "%.2f"))
+					component.AngularDamping = static_cast<double>(temp);
 			});
 
-		DrawComponent<SphereColliderComponent>(ICON_TOASTER_CIRCLE_O" Sphere Collider", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<SphereColliderComponent>(ICON_TOASTER_CIRCLE_O" Sphere Collider", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				float temp;
 
@@ -1348,26 +1025,17 @@ namespace Toast {
 
 				ImGui::Checkbox("Render Collider", &component.RenderCollider);
 
-				ImGui::BeginTable("SphereCollider", 2, flags);
-				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Radius");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
 				temp = static_cast<float>(component.Collider->mRadius);
-				if (ImGui::DragFloat("##radius", &temp, 0.1f, 0.0f, 600.0f, "%.4f")) 
+				if (DrawFloatControl("Radius", temp, window, activeDragArea, 90.0f, 0.0f, 600.0f, 0.1f, "%.4f"))
 				{
 					component.Collider->mRadius = static_cast<double>(temp);
 
 					component.Collider->CalculateBounds();
 					component.Collider->CalculateInertiaTensor();
 				}
-				ImGui::EndTable();
 			});
 
-		DrawComponent<BoxColliderComponent>(ICON_TOASTER_CUBE" Box Collider", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<BoxColliderComponent>(ICON_TOASTER_CUBE" Box Collider", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -1382,7 +1050,7 @@ namespace Toast {
 				ImGui::Text("Size");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (DrawDouble3Control("Size", component.Collider->mSize, 1.0f)) 
+				if (ImGuiHelpers::ManualDragDouble3("Size", component.Collider->mSize, 1.0f, 0.0f, window, activeDragArea))
 				{
 					component.Collider->CalculateBounds();
 					component.Collider->CalculateInertiaTensor();
@@ -1390,7 +1058,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<TerrainColliderComponent>(ICON_TOASTER_GLOBE" Terrain Collider", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<TerrainColliderComponent>(ICON_TOASTER_GLOBE" Terrain Collider", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -1425,7 +1093,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<UIPanelComponent>(ICON_TOASTER_SQUARE_O" UI Panel", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<UIPanelComponent>(ICON_TOASTER_SQUARE_O" UI Panel", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -1527,7 +1195,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<UITextComponent>(ICON_TOASTER_FILE_TEXT" UI Text", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<UITextComponent>(ICON_TOASTER_FILE_TEXT" UI Text", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -1578,7 +1246,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<UIButtonComponent>(ICON_TOASTER_SQUARE_O" UI Button", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<UIButtonComponent>(ICON_TOASTER_SQUARE_O" UI Button", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -1611,7 +1279,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<TerrainDetailComponent>(ICON_TOASTER_GLOBE" Terrain Detail", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<TerrainDetailComponent>(ICON_TOASTER_GLOBE" Terrain Detail", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -1654,7 +1322,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<TerrainObjectComponent>(ICON_TOASTER_CUBE" Terrain Object", entity, mScene, [](auto& component, Entity entity, Scene* scene)
+		DrawComponent<TerrainObjectComponent>(ICON_TOASTER_CUBE" Terrain Object", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();

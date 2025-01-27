@@ -2,21 +2,25 @@
 
 #include "../FontAwesome.h"
 
+#include "Toast/ImGui/ImGuiHelpers.h"
+
 #include "imgui/imgui.h"
 
 namespace Toast {
 
-	SceneSettingsPanel::SceneSettingsPanel(const Ref<Scene>& context)
+	SceneSettingsPanel::SceneSettingsPanel(const Ref<Scene>& context, WindowsWindow* window)
 	{
-		SetContext(context);
+		SetContext(context, window);
 	}
 
-	void SceneSettingsPanel::SetContext(const Ref<Scene>& context)
+	void SceneSettingsPanel::SetContext(const Ref<Scene>& context, WindowsWindow* window)
 	{
 		mContext = context;
+
+		mWindow = window;
 	}
 
-	void SceneSettingsPanel::OnImGuiRender()
+	void SceneSettingsPanel::OnImGuiRender(std::string& activeDragArea)
 	{
 		ImGui::Begin(ICON_TOASTER_COG" Settings");
 
@@ -66,7 +70,7 @@ namespace Toast {
 			ImGui::SliderInt("##physicsslowmotion", &mContext->mSettings.PhysicSlowmotion, 1, 30);
 
 			ImGui::Text("Sun Frustum Ortho Size");
-			ImGui::DragFloat("##sunlightdistance", &mContext->mSettings.SunFrustumOrthoSize, 10.0f, 50.0f, 10000.0f, "%.1f");
+			ImGuiHelpers::ManualDragFloat("##sunlightdistance", mContext->mSettings.SunFrustumOrthoSize, mWindow, activeDragArea, 10.0f, ImVec2{ 255.0f, 20.0f }, "%.1f", 50.0f, 10000.0f);
 		}
 
 		ImGui::End();

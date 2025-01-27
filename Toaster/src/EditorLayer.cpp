@@ -27,9 +27,10 @@ namespace Toast {
 	
 	extern const std::filesystem::path gAssetPath;
 
-	EditorLayer::EditorLayer()
-		: Layer("TheNextFrontier2D")
+	EditorLayer::EditorLayer(WindowsWindow* window)
+		: Layer("TheNextFrontier2D", window)
 	{
+		mWindow = window;
 	}
 
 	void EditorLayer::OnAttach()
@@ -81,9 +82,9 @@ namespace Toast {
 		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 1000000.0f);
 
 		mSceneHierarchyPanel.SetContext(mEditorScene);
-		mSceneSettingsPanel.SetContext(mEditorScene);
+		mSceneSettingsPanel.SetContext(mEditorScene, mWindow);
 		mEnvironmentPanel.SetContext(mEditorScene);
-		mPropertiesPanel.SetContext(mSceneHierarchyPanel.GetSelectedEntity(), &mSceneHierarchyPanel);
+		mPropertiesPanel.SetContext(mSceneHierarchyPanel.GetSelectedEntity(), &mSceneHierarchyPanel, mWindow);
 	}
 
 	void EditorLayer::OnDetach()
@@ -186,6 +187,7 @@ namespace Toast {
 			// all active windows docked into it will lose their parent and become undocked.
 			// We cannot preserve the docking relationship between an active window and an inactive docking, otherwise 
 			// any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
+
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 			ImGui::Begin("DockSpace Demo", &dockspaceOpen, window_flags);
 			ImGui::PopStyleVar();
@@ -196,6 +198,11 @@ namespace Toast {
 			// DockSpace
 			ImGuiIO& io = ImGui::GetIO();
 			ImGuiStyle& style = ImGui::GetStyle();
+
+			if (mWindow->IsDragging())
+				io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
+			else
+				io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
 
 			style.WindowMenuButtonPosition = ImGuiDir_None;
 			float minWinSize = style.WindowMinSize.x;
@@ -294,13 +301,13 @@ namespace Toast {
 			ImGui::SameLine();
 			ImGui::End();
 
-			mSceneSettingsPanel.OnImGuiRender();
+			mSceneSettingsPanel.OnImGuiRender(mActiveDragArea);
 			mSceneHierarchyPanel.OnImGuiRender();
 			mMaterialPanel.OnImGuiRender();
 			mEnvironmentPanel.OnImGuiRender();
 			mContentBrowserPanel.OnImGuiRender();
 			mConsolePanel.OnImGuiRender();
-			mPropertiesPanel.OnImGuiRender();
+			mPropertiesPanel.OnImGuiRender(mActiveDragArea);
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 			ImGui::Begin(ICON_TOASTER_GAMEPAD" Viewport");
@@ -451,6 +458,7 @@ namespace Toast {
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
 		dispatcher.Dispatch<MouseButtonPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseButtonPressed));
+		dispatcher.Dispatch<MouseButtonReleasedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseButtonReleased));
 		dispatcher.Dispatch<MouseMovedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseMoved));
 	}
 
@@ -520,7 +528,7 @@ namespace Toast {
 		mEditorScene = CreateRef<Scene>();
 		mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		mSceneHierarchyPanel.SetContext(mEditorScene);
-		mSceneSettingsPanel.SetContext(mEditorScene);
+		mSceneSettingsPanel.SetContext(mEditorScene, mWindow);
 		mEnvironmentPanel.SetContext(mEditorScene);
 
 		SceneSerializer serializer(mEditorScene);
@@ -628,7 +636,25 @@ namespace Toast {
 			{
 				mSceneHierarchyPanel.SetSelectedEntity(mHoveredEntity);
 				mEditorScene->SetSelectedEntity(mHoveredEntity);
+
+
 			}
+
+			ImGuiIO& io = ImGui::GetIO();
+			io.MouseDown[0] = true;
+		}
+
+		return true;
+	}
+
+	bool EditorLayer::OnMouseButtonReleased(MouseButtonReleasedEvent& e)
+	{
+		if (e.GetMouseButton() == Mouse::ButtonLeft)
+		{
+			TOAST_CORE_CRITICAL("Left mouse button released");
+
+			ImGuiIO& io = ImGui::GetIO();
+			io.MouseDown[0] = false;
 		}
 
 		return true;

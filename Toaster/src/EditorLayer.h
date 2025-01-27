@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Toast/Core/Layer.h"
+#include "Platform/Windows/WindowsWindow.h"
+
 #include "Toast/Events/KeyEvent.h"
 
 #include "Toast/Renderer/Texture.h"
@@ -20,7 +22,7 @@ namespace Toast {
 	class EditorLayer : public Layer
 	{
 	public:
-		EditorLayer();
+		EditorLayer(WindowsWindow* window = nullptr);
 		virtual ~EditorLayer() = default;
 
 		virtual void OnAttach() override;
@@ -43,6 +45,7 @@ namespace Toast {
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);
 		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
+		bool OnMouseButtonReleased(MouseButtonReleasedEvent& e);
 		bool OnMouseMoved(MouseMovedEvent& e);
 		void UpdateWindowTitle(const std::string& sceneName);
 		void UpdateWindowIcon(const std::string& iconPath);
@@ -63,6 +66,10 @@ namespace Toast {
 		Entity mHoveredEntity;
 
 		bool mViewportFocused = false, mViewportHovered = false;
+
+		WindowsWindow* mWindow;
+		
+		std::string mActiveDragArea;
 
 		DirectX::XMFLOAT2 mViewportSize = { 0.0f, 0.0f };
 		DirectX::XMFLOAT2 mPreviousViewportSize = { 0.0f, 0.0f };
