@@ -103,63 +103,112 @@ namespace Toast {
 	void SceneHierarchyPanel::DrawEntityNode(Entity entity)
 	{
 		auto& tag = entity.GetComponent<TagComponent>().Tag;
+
+		bool isRenaming = (mEntityBeingRenamed == entity);
 		
-		ImGuiTreeNodeFlags flags = ((mSelectionContext == entity) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
-		flags |= entity.GetComponent<RelationshipComponent>().Children.size() == 0 ? ImGuiTreeNodeFlags_Leaf : 0;
-		flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
-		bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, tag.c_str());
-		if (ImGui::IsItemClicked())
-			SetSelectedEntity(entity);
-
-		bool entityDeleted = false;
-		if (ImGui::BeginPopupContextItem()) 
+		if (isRenaming)
 		{
-			if (ImGui::MenuItem("Create Child Entity")) 
+			// We can indent manually so it lines up similarly to siblings
+			ImGui::Indent();
+
+			// On the first frame we show this InputText, set keyboard focus
+			if (mSetRenameFocus)
 			{
-				Entity childEntity = mContext->CreateEntity("Child Entity");
-
-				mContext->AddChildEntity(childEntity, entity);
-			}
-				
-			else if (ImGui::MenuItem("Delete Entity"))
-				entityDeleted = true;
-
-			ImGui::EndPopup();
-		}
-
-		if (opened)
-		{
-			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
-			//TOAST_CORE_INFO("entity.Children().size: %d", entity.Children().size());
-			for (auto child : entity.Children())
-			{
-				Entity e = mContext->FindEntityByUUID(child);
-				if (e.HasComponent<TagComponent>())
-					DrawEntityNode(e);
+				ImGui::SetKeyboardFocusHere();  // Focus this widget
+				mSetRenameFocus = false;
 			}
 
-			ImGui::TreePop();
-		}
-
-		if (entityDeleted)
-		{
-			if (entity.GetParentUUID()) 
-				mContext->FindEntityByUUID(entity.GetParentUUID()).RemoveChild(entity);		
-
-			if (!entity.Children().empty()) 
+			// Draw the rename text box. Since we’re not calling TreeNodeEx at all,
+			// there is no arrow or highlight.
+			if (ImGui::InputText(
+				"##RenameEntityInput",
+				mRenameBuffer,
+				IM_ARRAYSIZE(mRenameBuffer),
+				ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
 			{
-				for (auto child : entity.Children()) 
+				// Pressed ENTER
+				entity.GetComponent<TagComponent>().Tag = mRenameBuffer;
+				mEntityBeingRenamed = {};
+			}
+
+			// If the user clicks away or it deactivates, commit the rename
+			if (!ImGui::IsItemActive() && ImGui::IsItemDeactivated())
+			{
+				entity.GetComponent<TagComponent>().Tag = mRenameBuffer;
+				mEntityBeingRenamed = {};
+			}
+
+			ImGui::Unindent();
+		}
+		else
+		{
+			ImGuiTreeNodeFlags flags = ((mSelectionContext == entity) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
+			flags |= entity.GetComponent<RelationshipComponent>().Children.size() == 0 ? ImGuiTreeNodeFlags_Leaf : 0;
+			flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
+			bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, tag.c_str());
+			if (ImGui::IsItemClicked() && !ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+				SetSelectedEntity(entity);
+			else if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && ImGui::IsItemHovered())
+			{
+				// Enter rename mode for this Entity
+				mEntityBeingRenamed = entity;
+				// Copy current tag into buffer
+				memset(mRenameBuffer, 0, sizeof(mRenameBuffer));
+				strncpy(mRenameBuffer, tag.c_str(), sizeof(mRenameBuffer) - 1);
+
+				mSetRenameFocus = true;
+			}
+
+			bool entityDeleted = false;
+			if (ImGui::BeginPopupContextItem())
+			{
+				if (ImGui::MenuItem("Create Child Entity"))
 				{
-					auto childEntity = mContext->FindEntityByUUID(child);
-					mContext->DestroyEntity(childEntity);
-					if (mSelectionContext == childEntity)
-						mSelectionContext = {};
+					Entity childEntity = mContext->CreateEntity("Child Entity");
+
+					mContext->AddChildEntity(childEntity, entity);
 				}
+
+				else if (ImGui::MenuItem("Delete Entity"))
+					entityDeleted = true;
+
+				ImGui::EndPopup();
 			}
 
-			mContext->DestroyEntity(entity);
-			if (mSelectionContext == entity)
-				mSelectionContext = {};
+			if (opened)
+			{
+				ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
+				//TOAST_CORE_INFO("entity.Children().size: %d", entity.Children().size());
+				for (auto child : entity.Children())
+				{
+					Entity e = mContext->FindEntityByUUID(child);
+					if (e.HasComponent<TagComponent>())
+						DrawEntityNode(e);
+				}
+
+				ImGui::TreePop();
+			}
+
+			if (entityDeleted)
+			{
+				if (entity.GetParentUUID())
+					mContext->FindEntityByUUID(entity.GetParentUUID()).RemoveChild(entity);
+
+				if (!entity.Children().empty())
+				{
+					for (auto child : entity.Children())
+					{
+						auto childEntity = mContext->FindEntityByUUID(child);
+						mContext->DestroyEntity(childEntity);
+						if (mSelectionContext == childEntity)
+							mSelectionContext = {};
+					}
+				}
+
+				mContext->DestroyEntity(entity);
+				if (mSelectionContext == entity)
+					mSelectionContext = {};
+			}
 		}
 	}
 
