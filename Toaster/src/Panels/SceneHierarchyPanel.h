@@ -27,5 +27,9 @@ namespace Toast {
 	private:
 		Ref<Scene> mContext;
 		Entity mSelectionContext;
+
+		Entity mEntityBeingRenamed;
+		char mRenameBuffer[256];
+		bool mSetRenameFocus = false;
 	};
 }
