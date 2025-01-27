@@ -11,7 +11,7 @@ namespace Toast
 	class ImGuiLayer : public Layer
 	{
 	public:
-		ImGuiLayer();
+		ImGuiLayer(WindowsWindow* window = nullptr);
 		~ImGuiLayer() = default;
 
 		virtual void OnAttach() override;

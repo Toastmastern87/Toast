@@ -3,7 +3,7 @@
 
 namespace Toast 
 {
-	Layer::Layer(const std::string& debugName) 
+	Layer::Layer(const std::string& debugName, WindowsWindow* window)
 		: mDebugName(debugName)
 	{
 	}

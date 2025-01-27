@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sstream>
+#include <windows.h>
 
 #include "Toast/Core/Base.h"
 #include "Toast/Events/Event.h"
@@ -43,6 +44,9 @@ namespace Toast
 
 		virtual void SetTitle(const std::string& title) = 0;
 		virtual void SetIcon(const std::string& iconPath) = 0;
+
+		virtual void SetDragOnGoing(bool drag) = 0;
+		virtual POINT GetDeltaDrag() = 0;
 
 		static Scope<Window> Create(const WindowProps& props = WindowProps());
 

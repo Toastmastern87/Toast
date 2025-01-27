@@ -11,7 +11,12 @@ namespace Toast {
 		Toaster(const Toast::ApplicationSpecification& specification)
 			: Application(specification)
 		{
-			PushLayer(new EditorLayer());
+			Window& windowRef = GetWindow();
+
+			// Attempt to cast the Window reference to a WindowsWindow pointer
+			WindowsWindow* windowsWindow = dynamic_cast<WindowsWindow*>(&windowRef);
+
+			PushLayer(new EditorLayer(windowsWindow));
 		}
 
 		~Toaster()

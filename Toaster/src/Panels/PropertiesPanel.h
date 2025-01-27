@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Platform/Windows/WindowsWindow.h"
+
 #include "Toast/Core/Base.h"
 
 #include "Toast/Scene/Entity.h"
@@ -13,17 +15,19 @@ namespace Toast {
 	{
 	public:
 		PropertiesPanel() = default;
-		PropertiesPanel(const Entity& context, SceneHierarchyPanel* sceneHierarchyPanel);
+		PropertiesPanel(const Entity& context, SceneHierarchyPanel* sceneHierarchyPanel, WindowsWindow* window);
 		~PropertiesPanel() = default;
 
-		void SetContext(const Entity& context, SceneHierarchyPanel* sceneHierarchyPanel);
+		void SetContext(const Entity& context, SceneHierarchyPanel* sceneHierarchyPanel, WindowsWindow* window);
 
-		void OnImGuiRender();
+		void OnImGuiRender(std::string& activeDragArea);
 	private:
-		void DrawComponents(Entity entity);
+		void DrawComponents(Entity entity, std::string& activeDragArea);
 	private:
 		Entity mContext;
 		Scene* mScene;
+
+		WindowsWindow* mWindow;
 
 		SceneHierarchyPanel* mSceneHierarchyPanel;
 	};

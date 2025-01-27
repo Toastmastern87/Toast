@@ -17,7 +17,7 @@
 
 namespace Toast 
 {
-	ImGuiLayer::ImGuiLayer()
+	ImGuiLayer::ImGuiLayer(WindowsWindow* window)
 		: Layer("ImGuiLayer")
 	{
 	}

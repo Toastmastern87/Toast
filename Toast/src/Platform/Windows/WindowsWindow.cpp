@@ -140,6 +140,26 @@ namespace Toast
 
 		MSG message;
 
+		if (mData.DragOngoing)
+		{
+			while (ShowCursor(false) >= 0) {}
+
+			POINT currentPos;
+			GetCursorPos(&currentPos);
+
+			mData.DeltaDrag.x += (currentPos.x - mData.DragStartPos.x);
+			mData.DeltaDrag.y += (currentPos.y - mData.DragStartPos.y);
+
+			SetCursorPos(mData.DragStartPos.x, mData.DragStartPos.y);
+		}
+		else 
+		{
+			mData.DragStartPos = { 0, 0 };
+			mData.DeltaDrag = { 0, 0 };
+
+			while (ShowCursor(true) < 0) {}
+		}
+
 		while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE) > 0)
 		{
 			TranslateMessage(&message);
@@ -168,23 +188,31 @@ namespace Toast
 	void WindowsWindow::SetIcon(const std::string& iconPath)
 	{
 		HICON hIcon = (HICON)LoadImage(
-			nullptr,               // Not loading from resources
-			iconPath.c_str(),      // Path to the .ico file
+			nullptr,              
+			iconPath.c_str(),      
 			IMAGE_ICON,
 			32,                    // Width
 			32,                    // Height
 			LR_LOADFROMFILE | LR_DEFAULTCOLOR
 		);
 
-		// If either of these fails, you may want to handle it (fallback to default, etc.)
 		if (!hIcon)
-		{
-			// As a fallback, load a default icon or just return
 			hIcon = LoadIcon(nullptr, IDI_WINLOGO);
-		}
 
 		// Set the large icon
 		SendMessage(mWin32Window, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+	}
+
+	void WindowsWindow::SetDragOnGoing(bool drag)
+	{
+		if (!mData.DragOngoing && drag)
+		{
+			POINT currentPos;
+			GetCursorPos(&currentPos);
+			mData.DragStartPos = currentPos;
+		}
+
+		mData.DragOngoing = drag; 
 	}
 
 	LRESULT CALLBACK WindowsWindow::WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -250,6 +278,7 @@ namespace Toast
 
 				MouseMovedEvent event((float)GET_X_LPARAM(lParam), (float)GET_Y_LPARAM(lParam));
 				data->EventCallback(event) ;
+
 				break;
 			}
 			case WM_MOUSEWHEEL:
@@ -271,6 +300,8 @@ namespace Toast
 			case WM_LBUTTONUP:
 			{
 				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
+
+				data->DragOngoing = false;
 
 				MouseButtonReleasedEvent event(static_cast<MouseCode>(VK_LBUTTON));
 				data->EventCallback(event);
