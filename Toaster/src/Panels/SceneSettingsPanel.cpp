@@ -26,13 +26,13 @@ namespace Toast {
 
 		if(mContext)
 		{
-			const char* items[] = { "None", "Albedo", "Height Map", "Normal", "DebugColor" };
-			int currentOverlay = static_cast<int>(mContext->mSettings.PlanetOverlaySetting);
+			const char* items[] = { "None", "G-Buffer Positions", "G-Buffer Normals", "G-Buffer Albedo/Metallic", "Roughness", "Lighting Pass Output", "Atmospheric Scattering Output", "SSAO"};
+			int currentOverlay = static_cast<int>(mContext->mSettings.RenderOverlaySetting);
 
 			ImGui::Text("Render Overlay");
 			ImGui::SameLine();
 			if (ImGui::Combo("", &currentOverlay, items, IM_ARRAYSIZE(items)))
-				mContext->mSettings.PlanetOverlaySetting = static_cast<Scene::Settings::PlanetOverlay>(currentOverlay);
+				mContext->mSettings.RenderOverlaySetting = static_cast<RenderOverlay>(currentOverlay);
 
 			auto& wireframeButton = [&](const char* label, Scene::Settings::Wireframe mode)
 			{

@@ -336,8 +336,39 @@ namespace Toast {
 
 			//TOAST_CORE_INFO("Setting viewport size to mViewportSize.x: %f, mViewportSize.y: %f", mViewportSize.x, mViewportSize.y);
 
-			Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRenderTarget();
-			ImGui::Image((void*)finalRenderTarget->GetSRV().Get(), ImVec2{ mViewportSize.x, mViewportSize.y });
+			void* textureID = nullptr;
+
+			switch (mEditorScene->GetSettings().RenderOverlaySetting)
+			{
+			case RenderOverlay::NONE:
+				textureID = (void*)Renderer::GetFinalRT()->GetSRV().Get();
+				break;
+			case RenderOverlay::POSITIONS:
+				textureID = (void*)Renderer::GetGPassPositionRT()->GetSRV().Get();
+				break;
+			case RenderOverlay::NORMALS:
+				textureID = (void*)Renderer::GetGPassNormalRT()->GetSRV().Get();
+				break;
+			case RenderOverlay::ALBEDOMETALLIC:
+				textureID = (void*)Renderer::GetGPassAlbedoMetallicRT()->GetSRV().Get();
+				break;
+			case RenderOverlay::ROUGHNESS:
+				textureID = (void*)Renderer::GetGPassRoughnessAORT()->GetSRV().Get();
+				break;
+			case RenderOverlay::LPASS:
+				textureID = (void*)Renderer::GetLPassRT()->GetSRV().Get();
+				break;
+			case RenderOverlay::ATMOSPHERICSCATTERING:
+				textureID = (void*)Renderer::GetAtmosphericScatteringRT()->GetSRV().Get();
+				break;
+			case RenderOverlay::SSAO:
+				textureID = (void*)Renderer::GetSSAORT()->GetSRV().Get();
+				break;
+			}
+
+
+			Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRT();
+			ImGui::Image(textureID, ImVec2{ mViewportSize.x, mViewportSize.y });
 
 			if (ImGui::BeginDragDropTarget()) 
 			{

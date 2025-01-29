@@ -90,7 +90,6 @@ TextureCube radianceTexture			: register(t5);
 // Sampler state
 SamplerState defaultSampler			: register(s0);
 
-
 float4 main(PixelInputType input) : SV_Target
 {
     // Reconstruct NDC coordinates from texture coordinates
