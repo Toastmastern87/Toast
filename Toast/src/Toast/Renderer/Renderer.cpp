@@ -236,7 +236,7 @@ namespace Toast {
 			TextureLibrary::GetSampler("BRDFSampler")->Bind(1, D3D11_PIXEL_SHADER);
 
 		// Updating the render settings data in the buffer and mapping it to the GPU
-		float renderOverlay = (float)scene->mSettings.PlanetOverlaySetting;
+		float renderOverlay = (float)scene->mSettings.RenderOverlaySetting;
 		sRendererData->RenderSettingsBuffer.Write((uint8_t*)&renderOverlay, 4, 0);
 		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
@@ -940,6 +940,7 @@ namespace Toast {
 			RenderCommand::SetDepthStencilState(sRendererData->DepthSkyboxPassStencilState);
 			RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->SceneData.SceneEnvironment.RadianceMap->GetSRV());
 
 			ShaderLibrary::Get("assets/shaders/Post Process/Skybox.hlsl")->Bind();

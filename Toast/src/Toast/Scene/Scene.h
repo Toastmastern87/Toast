@@ -17,6 +17,8 @@
 
 namespace Toast {
 
+	enum class RenderOverlay { NONE = 0, POSITIONS = 1, NORMALS = 2, ALBEDOMETALLIC = 3, ROUGHNESS = 4, LPASS = 5, ATMOSPHERICSCATTERING = 6, SSAO = 7 };
+
 	struct DirectionalLight
 	{
 		DirectX::XMMATRIX ViewProjectionMatrix = DirectX::XMMatrixIdentity();
@@ -43,8 +45,7 @@ namespace Toast {
 		{
 			bool IsDirty = false;
 
-			enum class PlanetOverlay { NONE = 0, ALBEDO = 1, HEIGHTMAP = 2, NORMAL = 3, COLOR = 4 };
-			PlanetOverlay PlanetOverlaySetting = PlanetOverlay::NONE;
+			RenderOverlay RenderOverlaySetting = RenderOverlay::NONE;
 
 			enum class Wireframe { NO = 0, YES = 1, ONTOP = 2 };
 			Wireframe WireframeRendering = Wireframe::NO;

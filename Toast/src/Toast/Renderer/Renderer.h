@@ -157,9 +157,13 @@ namespace Toast {
 		static Ref<RenderTarget>& GetGPassRoughnessAORT() { return sRendererData->GPassRoughnessAORT; }
 		static Ref<RenderTarget>& GetGPassPickingRT() { return sRendererData->GPassPickingRT; }
 
-		static Ref<RenderTarget>& GetLPassRenderTarget() { return sRendererData->LPassRT; }
+		static Ref<RenderTarget>& GetAtmosphericScatteringRT() { return sRendererData->AtmospherePassRT; }
 
-		static Ref<RenderTarget>& GetFinalRenderTarget() { return sRendererData->FinalRT; }
+		static Ref<RenderTarget>& GetSSAORT() { return sRendererData->SSAORT; }
+
+		static Ref<RenderTarget>& GetLPassRT() { return sRendererData->LPassRT; }
+
+		static Ref<RenderTarget>& GetFinalRT() { return sRendererData->FinalRT; }
 
 		static void EnableAtmosphere(bool atmosphere) { sRendererData->PlanetData.Atmosphere = atmosphere; }
 
