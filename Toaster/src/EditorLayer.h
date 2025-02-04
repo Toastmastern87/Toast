@@ -50,6 +50,7 @@ namespace Toast {
 		void UpdateWindowTitle(const std::string& sceneName);
 		void UpdateWindowIcon(const std::string& iconPath);
 
+		void RenderCustomTitleBar();
 	private:
 		std::optional<std::string> mSceneFilePath;
 
@@ -62,6 +63,9 @@ namespace Toast {
 		Texture2D* mPauseButtonTex;
 		Texture2D* mStopButtonTex;
 		Texture2D* mLogoTex;
+		Texture2D* mCloseButtonTex;
+		Texture2D* mMinButtonTex;
+		Texture2D* mMaxButtonTex;
 
 		Entity mHoveredEntity;
 

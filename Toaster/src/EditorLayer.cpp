@@ -39,10 +39,14 @@ namespace Toast {
 
 		// Standard Textures
 		mCheckerboardTexture = TextureLibrary::LoadTexture2D("assets/textures/Checkerboard.png");
-		mPlayButtonTex = TextureLibrary::LoadTexture2D("assets/textures/PlayButton.png");
-		mPauseButtonTex = TextureLibrary::LoadTexture2D("assets/textures/PauseButton.png");
-		mStopButtonTex = TextureLibrary::LoadTexture2D("assets/textures/StopButton.png");
-		mLogoTex = TextureLibrary::LoadTexture2D("assets/textures/ToastEnginePlanetLogo.png");
+		mPlayButtonTex = TextureLibrary::LoadTexture2D("..\\Toaster/Resources/Icons/PlayButton.png");
+		mPauseButtonTex = TextureLibrary::LoadTexture2D("..\\Toaster/Resources/Icons/PauseButton.png");
+		mStopButtonTex = TextureLibrary::LoadTexture2D("..\\Toaster/Resources/Icons/StopButton.png");
+		mCloseButtonTex = TextureLibrary::LoadTexture2D("..\\Toaster/Resources/Icons/CloseWindowButton.png");
+		mMinButtonTex = TextureLibrary::LoadTexture2D("..\\Toaster/Resources/Icons/MinWindowButton.png");
+		mMaxButtonTex = TextureLibrary::LoadTexture2D("..\\Toaster/Resources/Icons/MaxWindowButton.png");
+		mLogoTex = TextureLibrary::LoadTexture2D("..\\Toaster/Resources/Icons/ToasterIcon48x48.png");
+
 		TextureLibrary::LoadTexture2D("assets/textures/White.png");
 		TextureLibrary::LoadTextureCube("assets/textures/WhiteCube.png", 1, 1);
 
@@ -165,7 +169,7 @@ namespace Toast {
 
 			// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
 			// because it would be confusing to have two docking targets within each others.
-			ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+			ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
 			if (opt_fullscreen)
 			{
 				ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -174,8 +178,14 @@ namespace Toast {
 				ImGui::SetNextWindowViewport(viewport->ID);
 				ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-				window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-				window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+				window_flags |= ImGuiWindowFlags_NoTitleBar 
+					| ImGuiWindowFlags_NoCollapse 
+					| ImGuiWindowFlags_NoResize 
+					| ImGuiWindowFlags_NoMove 
+					| ImGuiWindowFlags_NoBringToFrontOnFocus 
+					| ImGuiWindowFlags_NoNavFocus 
+					| ImGuiWindowFlags_NoScrollbar 
+					| ImGuiWindowFlags_NoScrollWithMouse;
 			}
 
 			// When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background and handle the pass-thru hole, so we ask Begin() to not render a background.
@@ -192,6 +202,8 @@ namespace Toast {
 			ImGui::Begin("DockSpace Demo", &dockspaceOpen, window_flags);
 			ImGui::PopStyleVar();
 
+			RenderCustomTitleBar();
+
 			if (opt_fullscreen)
 				ImGui::PopStyleVar(2);
 
@@ -207,99 +219,26 @@ namespace Toast {
 			style.WindowMenuButtonPosition = ImGuiDir_None;
 			float minWinSize = style.WindowMinSize.x;
 			style.WindowMinSize.x = 370.0f;
+
+			ImGui::BeginChild("DockSpaceRegion", ImVec2(0, 0), false,
+				ImGuiWindowFlags_NoScrollbar 
+				| ImGuiWindowFlags_NoScrollWithMouse 
+				| ImGuiWindowFlags_NoDecoration);
+
 			if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
 			{
 				ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
 				ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
 			}
 
+			ImGui::EndChild();
+
 			style.WindowMinSize.x = minWinSize;
-
-			if (ImGui::BeginMenuBar())
-			{
-				if (ImGui::BeginMenu("File"))
-				{
-					// Disabling full screen would allow the window to be moved to the front of other windows, 
-					// which we can't undo at the moment without finer window depth/z control.
-					//ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen_persistant);
-					if (ImGui::MenuItem("New", "Ctrl+N"))
-						NewScene();
-
-					if (ImGui::MenuItem("Open...", "Ctrl+O"))
-						OpenScene();
-
-					ImGui::Separator();
-					if (ImGui::MenuItem("Save", "Ctrl+S"))
-						SaveScene();
-					if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S"))
-						SaveSceneAs();
-
-					ImGui::Separator();
-					if (ImGui::MenuItem("Exit"))
-						Toast::Application::Get().Close();
-
-					ImGui::EndMenu();
-				}
-
-				if (ImGui::BeginMenu("Script"))
-				{
-					if (ImGui::MenuItem("Reload Assembly", "Ctrl+R"))
-						ScriptEngine::ReloadAssembly();
-
-					ImGui::EndMenu();
-				}
-
-				ImGui::EndMenuBar();
-			}
 
 			ImGuiWindowClass windowClass;
 			windowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar;
 
 			ImGui::SetNextWindowClass(&windowClass);
-
-			ImGui::Begin("Toolbar", false, ImGuiWindowFlags_NoDecoration);
-			ImGui::SetCursorPosX(static_cast<float>(ImGui::GetWindowWidth() / 2.0f));
-			if (mSceneState == SceneState::Edit)
-			{
-				if (ImGui::ImageButton((ImTextureID)(mPlayButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
-					OnScenePlay();
-
-				ImGui::SameLine();
-				ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-				ImGui::SameLine();
-				ImGui::ImageButton((ImTextureID)(mStopButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-			}
-			else if (mSceneState == SceneState::Play)
-			{
-				ImGui::ImageButton((ImTextureID)(mPlayButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-				ImGui::SameLine();
-				if (ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f))) 
-				{
-					mRuntimeScene->SetPaused(true);
-
-					OnScenePause();
-				}
-				ImGui::SameLine();
-				if (ImGui::ImageButton((ImTextureID)(mStopButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
-					OnSceneStop();
-			}
-
-			else if (mSceneState == SceneState::Pause)
-			{
-				if (ImGui::ImageButton((ImTextureID)(mPlayButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f))) 
-				{
-					OnSceneUnpause();
-					mRuntimeScene->SetPaused(false);
-				}
-				ImGui::SameLine();
-				if (ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f)));
-				ImGui::SameLine();
-				if (ImGui::ImageButton((ImTextureID)(mStopButtonTex->GetID()), ImVec2(16, 16), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
-					OnSceneStop();
-			}
-
-			ImGui::SameLine();
-			ImGui::End();
 
 			mSceneSettingsPanel.OnImGuiRender(mActiveDragArea);
 			mSceneHierarchyPanel.OnImGuiRender();
@@ -365,7 +304,6 @@ namespace Toast {
 				textureID = (void*)Renderer::GetSSAORT()->GetSRV().Get();
 				break;
 			}
-
 
 			Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRT();
 			ImGui::Image(textureID, ImVec2{ mViewportSize.x, mViewportSize.y });
@@ -460,8 +398,6 @@ namespace Toast {
 			ImGui::End();
 			ImGui::PopStyleVar();
 
-			ImGui::End();
-
 			ImGui::Begin(ICON_TOASTER_CALCULATOR" Statistics");
 
 			std::string name = "none";
@@ -475,8 +411,270 @@ namespace Toast {
 
 			ImGui::End();
 
+			ImGui::End();
+
 			mPreviousViewportSize = mViewportSize;
 		}
+	}
+
+	void EditorLayer::RenderCustomTitleBar()
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+
+		const float barHeight = 75.0f; // The height you want
+		ImGui::BeginChild("TitleBar", ImVec2(ImGui::GetContentRegionAvail().x, barHeight),
+			false,
+			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoDecoration);
+
+		// Draw the background rectangle
+		ImVec2 barPos = ImGui::GetCursorScreenPos();
+		float  width = ImGui::GetContentRegionAvail().x;
+		ImVec2 barEnd(barPos.x + width, barPos.y + barHeight);
+
+		// For example, use the same color as TitleBgActive:
+		ImU32 barColor = ImGui::ColorConvertFloat4ToU32(
+			ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive]);
+		ImGui::GetWindowDrawList()->AddRectFilled(barPos, barEnd, barColor);
+
+		ImVec4 titleBarColor = ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive];
+		ImVec4 titleBarHoveredColor = ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered];
+
+		// --- Left Icon ---
+		float leftIconSize = 56.0f;
+		float leftMargin = 5.0f;
+		float topMargin = 3.0f;
+		ImGui::PushStyleColor(ImGuiCol_Button, titleBarColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, titleBarHoveredColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, titleBarColor);
+		ImGui::SetCursorScreenPos(ImVec2(barPos.x + leftMargin, barPos.y + topMargin));
+		ImGui::ImageButton((ImTextureID)(mLogoTex->GetID()), ImVec2(leftIconSize, leftIconSize), ImVec2(0, 0), ImVec2(1, 1));
+		
+		//// --- Menu Bar (File / Script) ---
+		//ImFont* normalFont = io.Fonts->Fonts[0];
+		//ImGui::PushFont(normalFont);
+		//float menuBarMargin = 20.0f; // gap between left icon and menu
+		//float menuBarX = barPos.x + leftMargin + leftIconSize + menuBarMargin;
+		//float menuBarY = barPos.y + topMargin + 5.0f;
+		//ImGui::SetCursorScreenPos(ImVec2(menuBarX, menuBarY));
+		//ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 4));
+		//
+		//// --- "File" Menu Container ---
+		//{
+		//	float fileWidth = ImGui::CalcTextSize("File").x + 10.0f; // text width plus padding
+		//	ImGui::BeginChild("FileMenuContainer", ImVec2(fileWidth, 0), false,
+		//		ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoDecoration);
+
+		//	if (ImGui::BeginMenu("File"))
+		//	{
+		//		if (ImGui::MenuItem("New", "Ctrl+N"))
+		//			NewScene();
+		//		if (ImGui::MenuItem("Open...", "Ctrl+O"))
+		//			OpenScene();
+		//		ImGui::Separator();
+		//		if (ImGui::MenuItem("Save", "Ctrl+S"))
+		//			SaveScene();
+		//		if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S"))
+		//			SaveSceneAs();
+		//		ImGui::Separator();
+		//		if (ImGui::MenuItem("Exit"))
+		//			Application::Get().Close();
+		//		ImGui::EndMenu();
+		//	}
+		//	// If the mouse is not over the container, force the popup to close.
+		//	if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+		//		ImGui::CloseCurrentPopup();
+
+		//	ImGui::EndChild();
+		//}
+
+		//// Place the "Script" menu immediately next to "File" with a small gap.
+		//ImGui::SameLine(0, 5);
+		//{
+		//	float scriptWidth = ImGui::CalcTextSize("Script").x + 10.0f;
+		//	ImGui::BeginChild("ScriptMenuContainer", ImVec2(scriptWidth, 0), false,
+		//		ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoDecoration);
+
+		//	if (ImGui::BeginMenu("Script"))
+		//	{
+		//		if (ImGui::MenuItem("Reload Assembly", "Ctrl+R"))
+		//			ScriptEngine::ReloadAssembly();
+		//		ImGui::EndMenu();
+		//	}
+		//	if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+		//		ImGui::CloseCurrentPopup();
+		//	ImGui::EndChild();
+		//}	
+		//ImGui::PopStyleVar(); // Pop the ItemSpacing override.
+		//ImGui::PopFont();
+
+		// --- Menu Bar (File / Script) ---
+		{
+			// Use the normal (default) font.
+			ImFont* normalFont = io.Fonts->Fonts[0];
+			ImGui::PushFont(normalFont);
+
+			// Position the menu area: start at a gap (menuBarMargin) to the right of the left icon.
+			float menuBarMargin = 20.0f; // gap between left icon and menu area
+			float menuBarX = barPos.x + leftMargin + leftIconSize + menuBarMargin;
+			float menuBarY = barPos.y + topMargin + 5.0f; // a slight vertical adjustment
+			ImGui::SetCursorScreenPos(ImVec2(menuBarX, menuBarY));
+
+			// Compute the widths of the two menus (adding a bit of padding)
+			float fileWidth = ImGui::CalcTextSize("File").x + 10.0f;
+			float scriptWidth = ImGui::CalcTextSize("Script").x + 10.0f;
+			// Define a small gap between them (e.g. 5px)
+			float gapBetweenMenus = 15.0f;
+			// The total width of the menus container
+			float menusAreaWidth = fileWidth + scriptWidth + gapBetweenMenus;
+
+			// Create a child container for the menu buttons. We add the MenuBar flag so that
+			// the popups open below rather than to the side.
+			ImGui::BeginChild("MenusContainer", ImVec2(menusAreaWidth, 0), false,
+				ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoDecoration);
+
+			// Optionally, push a tighter item spacing for the menu buttons.
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 4));
+
+			if(ImGui::BeginMenuBar())
+			{
+				// Draw the "File" menu.
+				if (ImGui::BeginMenu("File"))
+				{
+					if (ImGui::MenuItem("New Project"))
+					if (ImGui::MenuItem("New", "Ctrl+N"))
+						NewScene();
+					if (ImGui::MenuItem("Open...", "Ctrl+O"))
+						OpenScene();
+					ImGui::Separator();
+					if (ImGui::MenuItem("Save", "Ctrl+S"))
+						SaveScene();
+					if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S"))
+						SaveSceneAs();
+					ImGui::Separator();
+					if (ImGui::MenuItem("Exit"))
+						Application::Get().Close();
+					ImGui::EndMenu();
+				}
+				// Place the "Script" menu immediately next to "File" with the small gap.
+				ImGui::SameLine(0, gapBetweenMenus);
+				if (ImGui::BeginMenu("Script"))
+				{
+					if (ImGui::MenuItem("Reload Assembly", "Ctrl+R"))
+						ScriptEngine::ReloadAssembly();
+					ImGui::EndMenu();
+				}
+
+				ImGui::EndMenuBar();
+			}
+
+			ImGui::PopStyleVar(); // Pop ItemSpacing override.
+			ImGui::EndChild();
+			ImGui::PopFont();
+		}
+
+		// --- Center Section: Title Text and Toolbar Icons ---
+		 // Center the text and icons relative to the entire bar width.
+		const char* titleText = "Toast Engine";
+		float textTopMargin = 2.0f;
+		// Retrieve the large font from ImGui's IO. (Index 1 is the second font loaded.)
+		ImFont* largeFont = io.Fonts->Fonts[1];
+		ImGui::PushFont(largeFont);
+
+		ImVec2 textSize = ImGui::CalcTextSize(titleText);
+		float textX = barPos.x + width * 0.5f - textSize.x * 0.5f;
+		float textY = barPos.y + textTopMargin;
+		ImGui::SetCursorScreenPos(ImVec2(textX, textY));
+		ImGui::Text("%s", titleText);
+		if (largeFont)
+			ImGui::PopFont();
+
+		// Place the toolbar icons just below the text.
+		float iconsTopMargin = 5.0f; // vertical margin between text and icons
+		float centerIconSize = 16.0f;
+		float centerIconSpacing = 5.0f;
+		// Total width for 3 icons.
+		float totalIconsWidth = centerIconSize * 3 + centerIconSpacing * 2;
+		float iconsX = barPos.x + width * 0.5f - totalIconsWidth * 0.5f;
+		float iconsY = textY + textSize.y + iconsTopMargin;
+		ImGui::SetCursorScreenPos(ImVec2(iconsX, iconsY));
+
+		// Now inline your ImageButton code (no separate ImGui::Begin/End for "Toolbar"):
+		if (mSceneState == SceneState::Edit)
+		{
+			if (ImGui::ImageButton((ImTextureID)(mPlayButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1),
+				-1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1)))
+			{
+				OnScenePlay();
+			}
+			ImGui::SameLine();
+			ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()),
+				ImVec2(centerIconSize, centerIconSize));
+			ImGui::SameLine();
+			ImGui::ImageButton((ImTextureID)(mStopButtonTex->GetID()),
+				ImVec2(centerIconSize, centerIconSize));
+		}
+		else if (mSceneState == SceneState::Play)
+		{
+			ImGui::ImageButton((ImTextureID)(mPlayButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+			ImGui::SameLine();
+			if (ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
+			{
+				mRuntimeScene->SetPaused(true);
+
+				OnScenePause();
+			}
+			ImGui::SameLine();
+			if (ImGui::ImageButton((ImTextureID)(mStopButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
+				OnSceneStop();
+		}
+		else if (mSceneState == SceneState::Pause)
+		{
+			if (ImGui::ImageButton((ImTextureID)(mPlayButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
+			{
+				OnSceneUnpause();
+				mRuntimeScene->SetPaused(false);
+			}
+			ImGui::SameLine();
+			if (ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f)));
+			ImGui::SameLine();
+			if (ImGui::ImageButton((ImTextureID)(mStopButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
+				OnSceneStop();
+		}
+
+		// --- Right Side Buttons(Minimize, Maximize, Close) ---
+		float rightMargin = 10.0f;
+		float rightButtonSpacing = 15.0f;
+		float buttonSize = 12.0f;
+		float rightButtonsY = barPos.y + 5.0f;
+
+		// Close button (furthest right)
+		float closeButtonX = barPos.x + width - rightMargin - buttonSize;
+		ImGui::SetCursorScreenPos(ImVec2(closeButtonX, rightButtonsY));
+		if (ImGui::ImageButton((ImTextureID)(mCloseButtonTex->GetID()), ImVec2(buttonSize, buttonSize)))
+		{
+			Application::Get().Close();
+		}
+		// Maximize button to the left of Close.
+		float maxButtonX = closeButtonX - rightButtonSpacing - buttonSize;
+		ImGui::SetCursorScreenPos(ImVec2(maxButtonX, rightButtonsY));
+		if (ImGui::ImageButton((ImTextureID)(mMaxButtonTex->GetID()), ImVec2(buttonSize, buttonSize)))
+		{
+			// Maximize action.
+		}
+		// Minimize button to the left of Maximize.
+		float minButtonX = maxButtonX - rightButtonSpacing - buttonSize;
+		ImGui::SetCursorScreenPos(ImVec2(minButtonX, rightButtonsY));
+		if (ImGui::ImageButton((ImTextureID)(mMinButtonTex->GetID()), ImVec2(buttonSize, buttonSize)))
+		{
+			// Minimize action.
+		}
+		ImGui::PopStyleColor(3);
+
+		ImGui::EndChild();
+		ImGui::PopStyleVar(2);
 	}
 
 	void EditorLayer::OnEvent(Event& e)
@@ -682,8 +880,6 @@ namespace Toast {
 	{
 		if (e.GetMouseButton() == Mouse::ButtonLeft)
 		{
-			TOAST_CORE_CRITICAL("Left mouse button released");
-
 			ImGuiIO& io = ImGui::GetIO();
 			io.MouseDown[0] = false;
 		}
@@ -696,8 +892,7 @@ namespace Toast {
 		Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
 
 		auto [mx, my] = ImGui::GetMousePos();
-		mx -= mViewportBounds[0].x;
-		my -= mViewportBounds[0].y;
+		mx -= mViewportBounds[0].x;		my -= mViewportBounds[0].y;
 		DirectX::XMFLOAT2 viewportSize = { mViewportBounds[1].x - mViewportBounds[0].x,  mViewportBounds[1].y - mViewportBounds[0].y };
 
 		int mouseX = (int)mx;
@@ -730,5 +925,5 @@ namespace Toast {
 	{
 		Application::Get().GetWindow().SetIcon(iconPath);
 	}
-	
+
 }

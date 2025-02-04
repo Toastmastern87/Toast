@@ -110,7 +110,7 @@ namespace Toast
 			TOAST_CORE_ERROR("Could not initialize the window class!");
 		}
 
-		mWin32Window = CreateWindow(wc.lpszClassName, mData.Title.c_str(), WS_OVERLAPPEDWINDOW, 0, 0, mData.Width, mData.Height, NULL, NULL, wc.hInstance, NULL);
+		mWin32Window = CreateWindow(wc.lpszClassName, mData.Title.c_str(), WS_POPUP, 0, 0, mData.Width, mData.Height, NULL, NULL, wc.hInstance, NULL);
 
 		if (!sWin32Initialized)
 		{
@@ -227,7 +227,7 @@ namespace Toast
 			case WM_SIZE: 
 			{
 				WindowData* data = (WindowData*)GetWindowLongPtr(hWnd, 0);
-				if (data->IsInitialized)
+				if (data)
 				{
 					data->Width = LOWORD(lParam);
 					data->Height = HIWORD(lParam);
