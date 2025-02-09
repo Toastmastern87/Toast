@@ -204,6 +204,15 @@ namespace Toast {
 
 			RenderCustomTitleBar();
 
+			if (mShowNewProjectPopup)
+			{
+				// Call OpenPopup *after* the menu has been closed.
+				ImGui::OpenPopup("NewProjectPopup");
+				mShowNewProjectPopup = false;
+			}
+
+			ShowCreateNewProject();
+
 			if (opt_fullscreen)
 				ImGui::PopStyleVar(2);
 
@@ -424,7 +433,7 @@ namespace Toast {
 		ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 0.0f);
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
-		const float barHeight = 75.0f; // The height you want
+		const float barHeight = 40.0f; // The height you want
 		ImGui::BeginChild("TitleBar", ImVec2(ImGui::GetContentRegionAvail().x, barHeight),
 			false,
 			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoDecoration);
@@ -443,7 +452,7 @@ namespace Toast {
 		ImVec4 titleBarHoveredColor = ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered];
 
 		// --- Left Icon ---
-		float leftIconSize = 56.0f;
+		float leftIconSize = 24.0f;
 		float leftMargin = 5.0f;
 		float topMargin = 3.0f;
 		ImGui::PushStyleColor(ImGuiCol_Button, titleBarColor);
@@ -451,64 +460,6 @@ namespace Toast {
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, titleBarColor);
 		ImGui::SetCursorScreenPos(ImVec2(barPos.x + leftMargin, barPos.y + topMargin));
 		ImGui::ImageButton((ImTextureID)(mLogoTex->GetID()), ImVec2(leftIconSize, leftIconSize), ImVec2(0, 0), ImVec2(1, 1));
-		
-		//// --- Menu Bar (File / Script) ---
-		//ImFont* normalFont = io.Fonts->Fonts[0];
-		//ImGui::PushFont(normalFont);
-		//float menuBarMargin = 20.0f; // gap between left icon and menu
-		//float menuBarX = barPos.x + leftMargin + leftIconSize + menuBarMargin;
-		//float menuBarY = barPos.y + topMargin + 5.0f;
-		//ImGui::SetCursorScreenPos(ImVec2(menuBarX, menuBarY));
-		//ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 4));
-		//
-		//// --- "File" Menu Container ---
-		//{
-		//	float fileWidth = ImGui::CalcTextSize("File").x + 10.0f; // text width plus padding
-		//	ImGui::BeginChild("FileMenuContainer", ImVec2(fileWidth, 0), false,
-		//		ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoDecoration);
-
-		//	if (ImGui::BeginMenu("File"))
-		//	{
-		//		if (ImGui::MenuItem("New", "Ctrl+N"))
-		//			NewScene();
-		//		if (ImGui::MenuItem("Open...", "Ctrl+O"))
-		//			OpenScene();
-		//		ImGui::Separator();
-		//		if (ImGui::MenuItem("Save", "Ctrl+S"))
-		//			SaveScene();
-		//		if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S"))
-		//			SaveSceneAs();
-		//		ImGui::Separator();
-		//		if (ImGui::MenuItem("Exit"))
-		//			Application::Get().Close();
-		//		ImGui::EndMenu();
-		//	}
-		//	// If the mouse is not over the container, force the popup to close.
-		//	if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
-		//		ImGui::CloseCurrentPopup();
-
-		//	ImGui::EndChild();
-		//}
-
-		//// Place the "Script" menu immediately next to "File" with a small gap.
-		//ImGui::SameLine(0, 5);
-		//{
-		//	float scriptWidth = ImGui::CalcTextSize("Script").x + 10.0f;
-		//	ImGui::BeginChild("ScriptMenuContainer", ImVec2(scriptWidth, 0), false,
-		//		ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoDecoration);
-
-		//	if (ImGui::BeginMenu("Script"))
-		//	{
-		//		if (ImGui::MenuItem("Reload Assembly", "Ctrl+R"))
-		//			ScriptEngine::ReloadAssembly();
-		//		ImGui::EndMenu();
-		//	}
-		//	if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
-		//		ImGui::CloseCurrentPopup();
-		//	ImGui::EndChild();
-		//}	
-		//ImGui::PopStyleVar(); // Pop the ItemSpacing override.
-		//ImGui::PopFont();
 
 		// --- Menu Bar (File / Script) ---
 		{
@@ -543,9 +494,18 @@ namespace Toast {
 				// Draw the "File" menu.
 				if (ImGui::BeginMenu("File"))
 				{
-					if (ImGui::MenuItem("New Project"))
-					if (ImGui::MenuItem("New", "Ctrl+N"))
-						NewScene();
+					ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX));
+					if (ImGui::BeginMenu("New"))
+					{
+						if (ImGui::MenuItem("Project", "Ctrl+Shift+N"))
+							mShowNewProjectPopup = true;
+
+						if (ImGui::MenuItem("Scene", "Ctrl+N"))
+							NewScene();
+
+						ImGui::EndMenu();
+					}
+
 					if (ImGui::MenuItem("Open...", "Ctrl+O"))
 						OpenScene();
 					ImGui::Separator();
@@ -575,30 +535,15 @@ namespace Toast {
 			ImGui::PopFont();
 		}
 
-		// --- Center Section: Title Text and Toolbar Icons ---
-		 // Center the text and icons relative to the entire bar width.
-		const char* titleText = "Toast Engine";
-		float textTopMargin = 2.0f;
-		// Retrieve the large font from ImGui's IO. (Index 1 is the second font loaded.)
-		ImFont* largeFont = io.Fonts->Fonts[1];
-		ImGui::PushFont(largeFont);
-
-		ImVec2 textSize = ImGui::CalcTextSize(titleText);
-		float textX = barPos.x + width * 0.5f - textSize.x * 0.5f;
-		float textY = barPos.y + textTopMargin;
-		ImGui::SetCursorScreenPos(ImVec2(textX, textY));
-		ImGui::Text("%s", titleText);
-		if (largeFont)
-			ImGui::PopFont();
-
+		// --- Center Section: Toolbar Icons ---
 		// Place the toolbar icons just below the text.
-		float iconsTopMargin = 5.0f; // vertical margin between text and icons
+		float iconsTopMargin = 10.0f; // vertical margin between text and icons
 		float centerIconSize = 16.0f;
 		float centerIconSpacing = 5.0f;
 		// Total width for 3 icons.
 		float totalIconsWidth = centerIconSize * 3 + centerIconSpacing * 2;
 		float iconsX = barPos.x + width * 0.5f - totalIconsWidth * 0.5f;
-		float iconsY = textY + textSize.y + iconsTopMargin;
+		float iconsY = barPos.y + iconsTopMargin;
 		ImGui::SetCursorScreenPos(ImVec2(iconsX, iconsY));
 
 		// Now inline your ImageButton code (no separate ImGui::Begin/End for "Toolbar"):
@@ -675,6 +620,98 @@ namespace Toast {
 
 		ImGui::EndChild();
 		ImGui::PopStyleVar(2);
+	}
+
+	void EditorLayer::ShowCreateNewProject()
+	{
+		ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, ImVec4(0, 0, 0, 0));
+
+		ImVec4 titleBarColor = ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive];
+		ImVec4 titleBarHoveredColor = ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered];
+		ImVec4 buttonColor = ImGui::GetStyle().Colors[ImGuiCol_Button];
+
+		ImGui::PushStyleColor(ImGuiCol_Button, titleBarColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, titleBarHoveredColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, titleBarColor);
+
+		ImGui::PushStyleColor(ImGuiCol_PopupBg, titleBarColor);
+
+		ImGui::SetNextWindowBgAlpha(1.0f);
+
+		ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+		if (ImGui::BeginPopupModal("NewProjectPopup", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove ))
+		{
+			// Calculate positioning for the close button
+			float contentWidth = ImGui::GetWindowContentRegionMax().x;
+			float closeButtonSize = 16.0f;  // Adjust as needed
+			float padding = 10.0f;  // Padding from the right edge
+
+			// Display header text
+			ImGui::Text("Create New Project");
+			// Position the close button on the same line at the right
+			ImGui::SameLine(contentWidth - closeButtonSize - padding);
+			if (ImGui::ImageButton((ImTextureID)(mCloseButtonTex->GetID()), ImVec2(closeButtonSize, closeButtonSize)))
+			{
+				// Close the popup when the button is clicked
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::Separator();
+			
+			ImGui::Spacing();  // A few pixels vertical margin.
+			ImGui::Text("Project Name");
+			ImGui::PushItemWidth(250);
+			static char projectName[256] = "";
+			ImGui::InputText("##projectName", projectName, sizeof(projectName));
+			ImGui::PopItemWidth();
+
+			ImGui::Spacing();  // A few pixels vertical margin.
+			ImGui::Text("Location");
+			ImGui::PushItemWidth(250);
+			static char location[256] = "";
+			ImGui::InputText("##Location", location, sizeof(location));
+			ImGui::PopItemWidth();
+			ImGui::SameLine();
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2)); // Small padding for the button.
+			if (ImGui::Button("...", ImVec2(30, 0)))
+			{
+				std::optional<std::string> folderPath = FileDialogs::OpenFolder("C:\\");
+				if (folderPath.has_value())
+				{
+					// Copy the folder path into the 'location' buffer.
+					strncpy(location, folderPath->c_str(), sizeof(location));
+					location[sizeof(location) - 1] = '\0';
+				}
+			}
+			ImGui::PopStyleVar();
+
+			// --- Push "Create" button to the bottom right ---
+			{
+				// Get the available vertical space.
+				float winHeight = ImGui::GetWindowSize().y;
+				float currentY = ImGui::GetCursorPosY();
+				float buttonHeight = ImGui::GetFrameHeight();
+				float marginBottom = 20.0f;
+				float dummyHeight = winHeight - currentY - (buttonHeight + marginBottom);
+				if (dummyHeight > 0)
+					ImGui::Dummy(ImVec2(0, dummyHeight));
+
+				// Align the button to the right.
+				float availWidth = ImGui::GetWindowContentRegionMax().x;
+				float buttonWidth = 80.0f;
+				float marginRight = 10.0f;
+				ImGui::SetCursorPosX(availWidth - buttonWidth - marginRight);
+				if (ImGui::Button("Create", ImVec2(buttonWidth, 0)))
+				{
+					// Handle the create action.
+				}
+			}
+
+
+			ImGui::EndPopup();
+		}
+
+		ImGui::PopStyleColor(5);
 	}
 
 	void EditorLayer::OnEvent(Event& e)

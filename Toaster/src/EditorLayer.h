@@ -51,6 +51,8 @@ namespace Toast {
 		void UpdateWindowIcon(const std::string& iconPath);
 
 		void RenderCustomTitleBar();
+
+		void ShowCreateNewProject();
 	private:
 		std::optional<std::string> mSceneFilePath;
 
@@ -87,6 +89,8 @@ namespace Toast {
 		SceneState mSceneState = SceneState::Edit;
 
 		int mGizmoType = -1;
+
+		bool mShowNewProjectPopup = false;
 
 		// Panels
 		SceneHierarchyPanel mSceneHierarchyPanel;

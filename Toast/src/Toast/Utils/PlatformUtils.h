@@ -13,6 +13,8 @@ namespace Toast {
 		static std::optional<std::string> SaveFile(const char* filter);
 		static bool DeleteFile(const std::string& path);
 		static std::vector<std::string> GetAllFiles(std::string path);
+
+		static std::optional<std::string> OpenFolder(const char* dir);
 	};
 
 }
