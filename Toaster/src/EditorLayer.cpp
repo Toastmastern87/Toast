@@ -624,17 +624,14 @@ namespace Toast {
 
 	void EditorLayer::ShowCreateNewProject()
 	{
-		ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, ImVec4(0, 0, 0, 0));
-
 		ImVec4 titleBarColor = ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive];
 		ImVec4 titleBarHoveredColor = ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered];
 		ImVec4 buttonColor = ImGui::GetStyle().Colors[ImGuiCol_Button];
 
-		ImGui::PushStyleColor(ImGuiCol_Button, titleBarColor);
+		ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, ImVec4(0, 0, 0, 0));
+		ImGui::PushStyleColor(ImGuiCol_PopupBg, titleBarColor);
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, titleBarHoveredColor);
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, titleBarColor);
-
-		ImGui::PushStyleColor(ImGuiCol_PopupBg, titleBarColor);
 
 		ImGui::SetNextWindowBgAlpha(1.0f);
 
@@ -650,11 +647,17 @@ namespace Toast {
 			ImGui::Text("Create New Project");
 			// Position the close button on the same line at the right
 			ImGui::SameLine(contentWidth - closeButtonSize - padding);
-			if (ImGui::ImageButton((ImTextureID)(mCloseButtonTex->GetID()), ImVec2(closeButtonSize, closeButtonSize)))
+
 			{
-				// Close the popup when the button is clicked
-				ImGui::CloseCurrentPopup();
+				// Push a style override for the close button.
+				ImGui::PushStyleColor(ImGuiCol_Button, titleBarColor);
+				if (ImGui::ImageButton((ImTextureID)(mCloseButtonTex->GetID()), ImVec2(closeButtonSize, closeButtonSize)))
+					ImGui::CloseCurrentPopup();
+
+				ImGui::PopStyleColor();
 			}
+
+			ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
 
 			ImGui::Separator();
 			
@@ -703,15 +706,42 @@ namespace Toast {
 				ImGui::SetCursorPosX(availWidth - buttonWidth - marginRight);
 				if (ImGui::Button("Create", ImVec2(buttonWidth, 0)))
 				{
-					// Handle the create action.
+					try
+					{
+						std::filesystem::path basePath(location);
+
+						std::filesystem::path projectPath = basePath / projectName;
+						std::filesystem::create_directories(projectPath);
+
+						std::string projectNameStr(projectName);
+						mProject = CreateRef<Project>(projectNameStr, projectPath);
+
+						std::filesystem::path assetsPath = projectPath / "Assets";
+						std::filesystem::create_directories(assetsPath);
+
+						// Create sub folders inside the "Assets" folder.
+						std::filesystem::create_directories(assetsPath / "Scenes");
+						std::filesystem::create_directories(assetsPath / "Textures");
+						std::filesystem::create_directories(assetsPath / "Fonts");
+						std::filesystem::create_directories(assetsPath / "Meshes");
+						std::filesystem::create_directories(assetsPath / "Scripts");
+						std::filesystem::create_directories(assetsPath / "Materials");
+
+						ImGui::CloseCurrentPopup();
+					}
+					catch (const std::filesystem::filesystem_error& e)
+					{
+						TOAST_CORE_CRITICAL("Something went wrong with creating the projet");
+					}
 				}
 			}
 
+			ImGui::PopStyleColor();
 
 			ImGui::EndPopup();
 		}
 
-		ImGui::PopStyleColor(5);
+		ImGui::PopStyleColor(4);
 	}
 
 	void EditorLayer::OnEvent(Event& e)
