@@ -9,6 +9,8 @@
 
 #include "Toast/Utils/PlatformUtils.h"
 
+#include "Toast/Project/Project.h"
+
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/SceneSettingsPanel.h"
 #include "Panels/MaterialPanel.h"
@@ -55,6 +57,8 @@ namespace Toast {
 		void ShowCreateNewProject();
 	private:
 		std::optional<std::string> mSceneFilePath;
+
+		Ref<Project> mProject;
 
 		Ref<Scene> mRuntimeScene, mEditorScene;
 
