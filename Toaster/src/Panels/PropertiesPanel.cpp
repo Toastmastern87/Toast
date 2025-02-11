@@ -295,6 +295,15 @@ namespace Toast {
 				}
 			}
 
+			if (!mContext.HasComponent<ParticlesComponent>())
+			{
+				if (ImGui::MenuItem("Particles"))
+				{
+					mContext.AddComponent<ParticlesComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
 			ImGui::Separator();
 
 			if (!mContext.HasComponent<UIPanelComponent>())
@@ -1374,6 +1383,10 @@ namespace Toast {
 				ImGui::SliderInt("##maxnrofobjects", &component.MaxNrOfObjects, 0, 1000);
 				ImGui::EndTable();
 
+			});
+
+		DrawComponent<ParticlesComponent>(ICON_TOASTER_SNOWFLAKE" Particles", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
+			{
 			});
 	}
 
