@@ -1438,6 +1438,7 @@ namespace Toast {
 		CopyComponent<UIButtonComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TerrainDetailComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TerrainObjectComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<ParticlesComponent>(target->mRegistry, mRegistry, enttMap);
 	}
 
 	template<typename T>
@@ -1607,4 +1608,10 @@ namespace Toast {
 	void Scene::OnComponentAdded<TerrainObjectComponent>(Entity entity, TerrainObjectComponent& component)
 	{
 	}
+
+	template<>
+	void Scene::OnComponentAdded<ParticlesComponent>(Entity entity, ParticlesComponent& component)
+	{
+	}
+
 }

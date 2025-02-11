@@ -335,4 +335,12 @@ namespace Toast {
 			: MeshObject(mesh) {}
 	};
 
+	struct ParticlesComponent
+	{
+		bool temp;
+
+		ParticlesComponent() = default;
+		ParticlesComponent(const ParticlesComponent& other) = default;
+	};
+
 }
