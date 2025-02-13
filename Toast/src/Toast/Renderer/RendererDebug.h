@@ -22,7 +22,7 @@ namespace Toast {
 		static void SubmitLine(DirectX::XMFLOAT3& p1, DirectX::XMFLOAT3& p2, DirectX::XMFLOAT3& color);
 		static void SubmitLine(Vector3& p1, Vector3& p2, DirectX::XMFLOAT3& color);
 		static void SubmitLine(DirectX::XMVECTOR& p1, DirectX::XMVECTOR& p2, DirectX::XMFLOAT3& color);
-		static void SubmitCollider(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = true);
+		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = true);
 
 	private:
 		static void DebugRenderPass(const bool runtime, const bool renderGrid);
