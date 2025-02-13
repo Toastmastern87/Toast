@@ -606,7 +606,8 @@ namespace Toast {
 	void Renderer::ClearDrawList()
 	{
 		sRendererData->MeshDrawList.clear();
-		sRendererData->MeshColliderDrawList.clear();
+		sRendererData->MeshWireframeDrawList.clear();
+		sRendererData->MeshNoWireframeDrawList.clear();
 	}
 
 	static Scope<Shader> equirectangularConversionShader, envFilteringShader, envIrradianceShader;

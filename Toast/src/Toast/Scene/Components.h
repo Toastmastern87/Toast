@@ -11,6 +11,7 @@
 #include "Toast/Renderer/SceneEnvironment.h"
 
 #include "Toast/Renderer/UI/UIElement.h"
+#include "Toast/Renderer/ParticleSystem.h"
 
 #include "Toast/Physics/Bounds.h"
 #include "Toast/Physics/Shapes.h"
@@ -337,7 +338,14 @@ namespace Toast {
 
 	struct ParticlesComponent
 	{
-		bool temp;
+		bool Emitting;
+		Ref<Mesh> GuideMesh;
+		std::vector<Particle> particles;
+		uint32_t MaxNrOfParticles;
+		float MaxLifeTime; // in seconds
+		float SpawnRate; // particles per second
+		Vector3 StartVelocity;
+		Vector3 StartAcceleration;
 
 		ParticlesComponent() = default;
 		ParticlesComponent(const ParticlesComponent& other) = default;

@@ -554,7 +554,7 @@ namespace Toast {
 					DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(rot) * DirectX::XMMatrixTranslationFromVector(pos);
 
 					if (renderCollider && mSettings.RenderColliders)
-						RendererDebug::SubmitCollider(colliderMesh, transform, false);
+						RendererDebug::SubmitMesh(colliderMesh, transform, false);
 				}
 			}
 			RendererDebug::EndScene(true, true, true, false);
@@ -1121,7 +1121,27 @@ namespace Toast {
 				DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(rot) * DirectX::XMMatrixTranslationFromVector(pos);
 
 				if(renderCollider && mSettings.RenderColliders)
-					RendererDebug::SubmitCollider(colliderMesh, transform, false);
+					RendererDebug::SubmitMesh(colliderMesh, transform);
+			}
+
+			// Particles Cubes, this is to guide the user to easier see where the particles will spawn
+			auto viewEntitiesParticles = mRegistry.view<TransformComponent, ParticlesComponent>();
+			for (auto entity : viewEntitiesParticles)
+			{
+				Entity e{ entity, this };
+
+				DirectX::XMMATRIX transform = e.GetComponent<TransformComponent>().GetTransform();
+				auto pc = e.GetComponent<ParticlesComponent>();
+
+				if (e.HasParent())
+				{
+					Entity parent = FindEntityByUUID(e.GetParentUUID());
+
+					DirectX::XMMATRIX& parentTransform = parent.GetComponent<TransformComponent>().GetTransform();
+					transform = DirectX::XMMatrixMultiply(transform, parentTransform);
+				}
+
+				RendererDebug::SubmitMesh(pc.GuideMesh, transform, false);
 			}
 		}
 
@@ -1612,6 +1632,9 @@ namespace Toast {
 	template<>
 	void Scene::OnComponentAdded<ParticlesComponent>(Entity entity, ParticlesComponent& component)
 	{
+		entity.GetComponent<TransformComponent>().Scale = { 0.3f, 0.3f, 0.3f };
+
+		component.GuideMesh = MeshFactory::CreateCube(1.0f, { 1.0, 0.0, 0.0 });
 	}
 
 }

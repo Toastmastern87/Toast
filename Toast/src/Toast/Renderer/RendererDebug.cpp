@@ -82,7 +82,8 @@ namespace Toast {
 		if (!runtime) 
 			sRendererData->MeshSelectedDrawList.clear();
 		
-		sRendererData->MeshColliderDrawList.clear();
+		sRendererData->MeshWireframeDrawList.clear();
+		sRendererData->MeshNoWireframeDrawList.clear();
 
 		//TOAST_CORE_CRITICAL("DEBUG END SCENE!");
 	}
@@ -144,9 +145,12 @@ namespace Toast {
 		RendererDebug::SubmitLine(p1f, p2f, color);
 	}
 
-	void RendererDebug::SubmitCollider(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
+	void RendererDebug::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
 	{
-		sRendererData->MeshColliderDrawList.emplace_back(mesh, transform, wireframe);
+		if(wireframe)
+			sRendererData->MeshWireframeDrawList.emplace_back(mesh, transform, wireframe);
+		else
+			sRendererData->MeshNoWireframeDrawList.emplace_back(mesh, transform, wireframe);
 	}
 
 	void RendererDebug::DebugRenderPass(const bool runtime, const bool renderGrid)
@@ -185,7 +189,8 @@ namespace Toast {
 		RenderCommand::SetRasterizerState(sRendererData->WireframeRasterizerState);
 		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
-		for (const auto& meshCommand : sRendererData->MeshColliderDrawList)
+		// Colliders
+		for (const auto& meshCommand : sRendererData->MeshWireframeDrawList)
 		{
 			for (Submesh& submesh : meshCommand.Mesh->mLODGroups[0]->Submeshes)
 			{
@@ -202,6 +207,23 @@ namespace Toast {
 		}	
 
 		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
+
+		// Particle Guides, for now only but in the future more non wireframe debugging objects will be added here.
+		for (const auto& meshCommand : sRendererData->MeshNoWireframeDrawList)
+		{
+			for (Submesh& submesh : meshCommand.Mesh->mLODGroups[0]->Submeshes)
+			{
+				noWorldTransform = 0;
+
+				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+				sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 68);
+				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+
+				meshCommand.Mesh->Bind();
+
+				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+			}
+		}
 
 		//Grid
 		if (!runtime && renderGrid)
