@@ -1396,10 +1396,27 @@ namespace Toast {
 				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Activated");
+				ImGui::TextWrapped("Emitting");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::Checkbox("##activatedCheckbox", &component.Activated);
+				ImGui::Checkbox("##emittingCheckbox", &component.Emitting);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextWrapped("Max life time");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::DragFloat("##maxlifetime", &component.MaxLifeTime, 0.1f, 0.0, 100.0f, "%.1f");
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextWrapped("Spawn delay");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::DragFloat("##spawndelay", &component.SpawnDelay, 0.01f, 0.01, 10.0f, "%.2f");
+
+				ImGui::TableNextRow();
+				ImGuiHelpers::ManualDragFloat3("Start Velocity", component.StartVelocity, 1.0f, 0.0f, window, activeDragArea);
 
 				ImGui::EndTable();
 			});

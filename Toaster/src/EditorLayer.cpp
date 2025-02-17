@@ -58,10 +58,11 @@ namespace Toast {
 
 		// Load all shaders
 		// Deffered Rendering
-		ShaderLibrary::Load("assets/shaders/Deffered Rendering/GeometryPass.hlsl");
-		ShaderLibrary::Load("assets/shaders/Deffered Rendering/ShadowPass.hlsl");
-		ShaderLibrary::Load("assets/shaders/Deffered Rendering/SSAOPass.hlsl");
-		ShaderLibrary::Load("assets/shaders/Deffered Rendering/LightningPass.hlsl");
+		ShaderLibrary::Load("assets/shaders/Rendering/GeometryPass.hlsl");
+		ShaderLibrary::Load("assets/shaders/Rendering/ShadowPass.hlsl");
+		ShaderLibrary::Load("assets/shaders/Rendering/SSAOPass.hlsl");
+		ShaderLibrary::Load("assets/shaders/Rendering/LightningPass.hlsl");
+		ShaderLibrary::Load("assets/shaders/Rendering/Particles.hlsl");
 		ShaderLibrary::Load("assets/shaders/Debug/ObjectMask.hlsl");
 
 		// Post Processes

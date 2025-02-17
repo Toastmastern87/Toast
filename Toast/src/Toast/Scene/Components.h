@@ -11,7 +11,6 @@
 #include "Toast/Renderer/SceneEnvironment.h"
 
 #include "Toast/Renderer/UI/UIElement.h"
-#include "Toast/Renderer/ParticleSystem.h"
 
 #include "Toast/Physics/Bounds.h"
 #include "Toast/Physics/Shapes.h"
@@ -23,6 +22,9 @@ namespace Toast {
 
 	// Forward deceleration, PlanetNode is found in PlanetSystem.cpp
 	struct PlanetNode;
+
+	// Forward deceleration, Particle is found in ParticleSystem.h
+	struct Particle;
 
 	struct PairHash {
 		std::size_t operator()(const std::pair<int, int>& p) const {
@@ -340,12 +342,12 @@ namespace Toast {
 	{
 		bool Emitting;
 		Ref<Mesh> GuideMesh;
-		std::vector<Particle> particles;
-		uint32_t MaxNrOfParticles;
+		std::vector<Particle> Particles;
 		float MaxLifeTime; // in seconds
-		float SpawnRate; // particles per second
+		float SpawnDelay = 1.0f; // Delay between particle spawn
 		Vector3 StartVelocity;
-		Vector3 StartAcceleration;
+
+		float ElapsedTime;
 
 		ParticlesComponent() = default;
 		ParticlesComponent(const ParticlesComponent& other) = default;

@@ -7,6 +7,7 @@
 #include "Toast/Renderer/Frustum.h"
 #include "Toast/Renderer/Material.h"
 #include "Toast/Renderer/Mesh.h"
+#include "Toast/Renderer/ParticleSystem.h"
 #include "Toast/Renderer/SceneEnvironment.h"
 
 #include <memory>
@@ -167,6 +168,8 @@ namespace Toast {
 
 		Ref<Frustum> mFrustum;
 		bool mInvalidatePlanet = false;
+
+		Ref<ParticleSystem> mParticleSystem;
 
 		friend class Entity;
 		friend class Renderer;

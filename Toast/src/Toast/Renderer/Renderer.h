@@ -102,6 +102,11 @@ namespace Toast {
 
 			// Blend data
 			Microsoft::WRL::ComPtr<ID3D11BlendState> GPassBlendState, LPassBlendState, AtmospherePassBlendState, PostProcessBlendState, UIBlendState;
+
+			//Particle Data
+			Microsoft::WRL::ComPtr<ID3D11Buffer> ParticleIndexBuffer;
+			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ParticlesSRV;
+			size_t NrOfParticlesToRender;
 		};
 
 	protected:
@@ -144,6 +149,7 @@ namespace Toast {
 		static void GeometryPass();
 		static void ShadowPass();
 		static void LightningPass();
+		static void ParticlesPass();
 		static void SSAOPass();
 
 		// Post Processes
@@ -166,6 +172,10 @@ namespace Toast {
 		static Ref<RenderTarget>& GetFinalRT() { return sRendererData->FinalRT; }
 
 		static void EnableAtmosphere(bool atmosphere) { sRendererData->PlanetData.Atmosphere = atmosphere; }
+
+		static void SetParticlesIndexBuffer(Microsoft::WRL::ComPtr<ID3D11Buffer>& indexBuffer) { sRendererData->ParticleIndexBuffer = indexBuffer; }
+		static void SetParticlesSRV(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv) { sRendererData->ParticlesSRV = srv; }
+		static void SetNrOfParticles(size_t particles) { sRendererData->NrOfParticlesToRender = particles; }
 
 		//Stats
 		struct Statistics
