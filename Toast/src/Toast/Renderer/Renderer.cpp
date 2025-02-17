@@ -260,6 +260,11 @@ namespace Toast {
 
 		LightningPass();
 
+		// Particles only for now, but will most likely be renamed and handle more things in the future.
+		// If there are no particles that needs to be rendered, this pass will be skipped.
+		if(sRendererData->ParticleIndexBuffer.Get())
+			ParticlesPass();
+
 		// Post Processes
 		SkyboxPass();
 		AtmospherePass(dynamicIBL);
@@ -710,7 +715,7 @@ namespace Toast {
 		RenderCommand::ClearRenderTargets({ sRendererData->GPassPositionRT->GetRTV().Get(), sRendererData->GPassNormalRT->GetRTV().Get(), sRendererData->GPassAlbedoMetallicRT->GetRTV().Get(), sRendererData->GPassRoughnessAORT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
-		ShaderLibrary::Get("assets/shaders/Deffered Rendering/GeometryPass.hlsl")->Bind();
+		ShaderLibrary::Get("assets/shaders/Rendering/GeometryPass.hlsl")->Bind();
 
 		for (const auto& meshCommand : sRendererData->MeshDrawList)
 		{
@@ -801,7 +806,7 @@ namespace Toast {
 		RenderCommand::ClearRenderTargets({ sRendererData->ShadowMapRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
-		ShaderLibrary::Get("assets/shaders/Deffered Rendering/ShadowPass.hlsl")->Bind();
+		ShaderLibrary::Get("assets/shaders/Rendering/ShadowPass.hlsl")->Bind();
 
 		for (const auto& meshCommand : sRendererData->MeshDrawList)
 		{
@@ -848,7 +853,7 @@ namespace Toast {
 		RenderCommand::SetRenderTargets({ sRendererData->SSAORT->GetRTV().Get() }, nullptr);
 		RenderCommand::ClearRenderTargets({ sRendererData->SSAORT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		ShaderLibrary::Get("assets/shaders/Deffered Rendering/SSAOPass.hlsl")->Bind();
+		ShaderLibrary::Get("assets/shaders/Rendering/SSAOPass.hlsl")->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->GPassPositionRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassNormalRT->GetSRV());
@@ -892,7 +897,7 @@ namespace Toast {
 		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::ClearRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		ShaderLibrary::Get("assets/shaders/Deffered Rendering/LightningPass.hlsl")->Bind();
+		ShaderLibrary::Get("assets/shaders/Rendering/LightningPass.hlsl")->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->GPassPositionRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassNormalRT->GetSRV());
@@ -926,6 +931,44 @@ namespace Toast {
 #endif
 	}
 
+	void Renderer::ParticlesPass()
+	{
+		TOAST_PROFILE_FUNCTION();
+
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"Particle Pass");
+#endif
+
+		RenderCommand::SetViewport(sRendererData->Viewport);
+		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
+		RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
+		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->ParticlesSRV);
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->IASetIndexBuffer(sRendererData->ParticleIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+
+		ShaderLibrary::Get("assets/shaders/Rendering/Particles.hlsl")->Bind();
+
+		RenderCommand::DrawIndexedInstanced(6, sRendererData->NrOfParticlesToRender, 0, 0, 0);
+
+		ID3D11RenderTargetView* nullRTV = nullptr;
+		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
+		RenderCommand::SetDepthStencilState(nullptr);
+		RenderCommand::SetBlendState(nullptr);
+		RenderCommand::ClearShaderResources();
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
+	}
+
 	void Renderer::SkyboxPass()
 	{
 #ifdef TOAST_DEBUG
@@ -941,7 +984,6 @@ namespace Toast {
 			RenderCommand::SetDepthStencilState(sRendererData->DepthSkyboxPassStencilState);
 			RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->SceneData.SceneEnvironment.RadianceMap->GetSRV());
 
 			ShaderLibrary::Get("assets/shaders/Post Process/Skybox.hlsl")->Bind();
@@ -1055,7 +1097,8 @@ namespace Toast {
 
 		currentFace = (currentFace + 1) % 6;
 
-		RenderCommand::SetRenderTargets({ nullptr }, nullptr);
+		ID3D11RenderTargetView* nullRTV = nullptr;
+		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
 		RenderCommand::SetDepthStencilState(nullptr);
 		RenderCommand::SetBlendState(nullptr);
 

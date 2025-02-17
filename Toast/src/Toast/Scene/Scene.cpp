@@ -29,6 +29,10 @@ namespace Toast {
 		mRegistry.emplace<SceneComponent>(mSceneEntity, mSceneID);
 
 		sActiveScenes[mSceneID] = this;
+
+		mParticleSystem = CreateRef<ParticleSystem>();
+
+		mParticleSystem->Initialize();
 	}
 
 	Scene::~Scene()
@@ -843,6 +847,52 @@ namespace Toast {
 				mEnvironment = skylightComponent.SceneEnvironment;
 				mEnvironmentIntensity = skylightComponent.Intensity;
 			}
+		}
+
+		// Process Particles
+		{
+			size_t maxParticleCount = 0;
+
+			auto view = mRegistry.view<ParticlesComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+
+				ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
+
+				maxParticleCount += (pc.MaxLifeTime / pc.SpawnDelay) + 1;
+			}
+
+			if (mParticleSystem->GetCurrentMaxNrOfParticles() != maxParticleCount && maxParticleCount > 0)
+				mParticleSystem->InvalidateBuffer(maxParticleCount);
+
+			int32_t nrOfParticles = 0;
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+
+				ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
+				TransformComponent& tc = e.GetComponent<TransformComponent>();
+
+				DirectX::XMFLOAT3 translation = e.GetComponent<TransformComponent>().Translation;
+
+				if (e.HasParent())
+				{
+					Entity parent = FindEntityByUUID(e.GetParentUUID());
+
+					DirectX::XMFLOAT3 parentTranslation = parent.GetComponent<TransformComponent>().Translation;
+					translation = { translation.x + parentTranslation.x, translation.y + parentTranslation.y, translation.z + parentTranslation.z };
+				}
+
+				Renderer::SetParticlesIndexBuffer(mParticleSystem->GetIndexBuffer());
+				Renderer::SetParticlesSRV(mParticleSystem->GetSRV());
+
+				mParticleSystem->OnUpdate(ts, pc, translation);
+
+				nrOfParticles += pc.Particles.size();
+			}
+
+			Renderer::SetNrOfParticles(nrOfParticles);
 		}
 
 		// Updated Meshes to check which LOD Group it should use during the rendering.

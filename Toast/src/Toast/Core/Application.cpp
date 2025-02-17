@@ -38,6 +38,7 @@ namespace Toast {
 		Renderer::Init(mWindow->GetWidth(), mWindow->GetHeight());
 
 		ScriptEngine::Init();
+
 		Font::StaticInit();
 
 		mImGuiLayer = new ImGuiLayer();
