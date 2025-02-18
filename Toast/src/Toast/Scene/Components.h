@@ -26,6 +26,9 @@ namespace Toast {
 	// Forward deceleration, Particle is found in ParticleSystem.h
 	struct Particle;
 
+	// Forward deceleration, EmitFunction is found in ParticleSystem.h
+	enum class EmitFunction;
+
 	struct PairHash {
 		std::size_t operator()(const std::pair<int, int>& p) const {
 			return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1);
@@ -345,9 +348,12 @@ namespace Toast {
 		std::vector<Particle> Particles;
 		float MaxLifeTime; // in seconds
 		float SpawnDelay = 1.0f; // Delay between particle spawn
-		Vector3 StartVelocity;
+		Vector3 Velocity = { 0.0f, 0.0f, 0.0f };
+		double ConeAngleDegrees = 0.0;
 
 		float ElapsedTime;
+
+		EmitFunction SpawnFunction;
 
 		ParticlesComponent() = default;
 		ParticlesComponent(const ParticlesComponent& other) = default;

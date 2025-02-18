@@ -40,25 +40,35 @@ namespace Toast{
 		return true;
 	}
 
-	void ParticleSystem::OnUpdate(float dt, ParticlesComponent& particles, DirectX::XMFLOAT3 spawnPos)
+	void ParticleSystem::OnUpdate(float dt, ParticlesComponent& particles, DirectX::XMFLOAT3 spawnPos, float spawnSize)
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
 		particles.ElapsedTime += dt;
 
-		if (particles.ElapsedTime >= particles.SpawnDelay)
+		while (particles.ElapsedTime >= particles.SpawnDelay)
 		{
 			particles.ElapsedTime -= particles.SpawnDelay;
 
 			// Create a new particle and add it to the list
 			if (particles.Particles.size() < mMaxNrOfParticles && particles.Emitting) {
+
+				DirectX::XMFLOAT3 velocity = { 0.0f, 0.0f, 0.0f };
+				if (particles.SpawnFunction == EmitFunction::CONE)
+				{
+					Vector3 velocityVec = RandomVelocityInCone(particles.Velocity, particles.ConeAngleDegrees);
+					velocity = { (float)velocityVec.x, (float)velocityVec.y, (float)velocityVec.z };
+				}
+				else
+					velocity = { (float)particles.Velocity.x, (float)particles.Velocity.y, (float)particles.Velocity.z };
+
 				Particle newParticle;
 				newParticle.position = spawnPos;
-				newParticle.velocity = { (float)particles.StartVelocity.x, (float)particles.StartVelocity.y, (float)particles.StartVelocity.z };
+				newParticle.velocity = velocity;
 				newParticle.age = 0.0f;
 				newParticle.lifetime = particles.MaxLifeTime;
-				newParticle.size = 1.0f;  // Default size
+				newParticle.size = spawnSize;
 				particles.Particles.push_back(newParticle);
 			}
 		}
@@ -118,6 +128,45 @@ namespace Toast{
 		device->CreateShaderResourceView(mBuffer.Get(), &srvDesc, &mSRV);
 
 		mMaxNrOfParticles = newSize;
+	}
+
+	Vector3 ParticleSystem::RandomVelocityInCone(const Vector3& baseDir, double coneAngleDegrees)
+	{
+		double coneAngleRadians = coneAngleDegrees * M_PI / 180.0;
+
+		// Generate two random values in [0, 1]
+		double u = static_cast<double>(rand()) / RAND_MAX;
+		double v = static_cast<double>(rand()) / RAND_MAX;
+
+		// Compute the offset angles.
+		double theta = u * coneAngleRadians; // deviation angle from center
+		double phi = v * 2.0 * M_PI;           // azimuthal angle
+
+		// Spherical coordinates to Cartesian (assuming cone aligned with +Z)
+		double sinTheta = std::sin(theta);
+		double cosTheta = std::cos(theta);
+		double x = sinTheta * std::cos(phi);
+		double y = sinTheta * std::sin(phi);
+		double z = cosTheta;  // along the cone's central axis
+
+		// Normalize the base direction
+		Vector3 base = Vector3::Normalize(baseDir);
+
+		// Choose an arbitrary "up" vector; if base is nearly (0,1,0) choose (1,0,0)
+		Vector3 up(0.0, 1.0, 0.0);
+		if (std::abs(Vector3::Dot(base, up)) > 0.99)
+			up = Vector3(1.0, 0.0, 0.0);
+
+		// Compute a right vector and a new up vector for the orthonormal basis.
+		Vector3 right = Vector3::Normalize(Vector3::Cross(up, base));
+		Vector3 newUp = Vector3::Cross(base, right);
+
+		// Transform the local vector (x, y, z) to world space:
+		// worldVec = right * x + newUp * y + base * z.
+		Vector3 worldVec = right * x + newUp * y + base * z;
+
+		// Return the normalized world vector.
+		return Vector3::Normalize(worldVec);
 	}
 
 }
