@@ -14,15 +14,23 @@ namespace Toast {
 		float size;
 	};
 
+	enum class EmitFunction 
+	{
+		NONE = 0,
+		CONE = 1
+	};
+
 	class ParticleSystem
 	{
 	public:
 		ParticleSystem() = default;
 
 		bool Initialize();
-		void OnUpdate(float dt, ParticlesComponent& particles, DirectX::XMFLOAT3 spawnPos);
+		void OnUpdate(float dt, ParticlesComponent& particles, DirectX::XMFLOAT3 spawnPos, float spawnSize);
 
 		void InvalidateBuffer(size_t newSize);
+
+		Vector3 RandomVelocityInCone(const Vector3& baseDir, double coneAngleDegrees);
 
 		Microsoft::WRL::ComPtr<ID3D11Buffer> GetIndexBuffer() { return mIndexBuffer; }
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() { return mSRV; }

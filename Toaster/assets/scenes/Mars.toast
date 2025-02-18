@@ -326,6 +326,7 @@ Entities:
       ParentHandle: 0
       Children:
         - Handle: 14703621591902257205
+        - Handle: 5011225552529671311
     TransformComponent:
       Translation: [-20, 50, 50]
       Rotation: [0, 0, 0]
@@ -392,3 +393,21 @@ Entities:
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
       Text: "Altitude:"
+  - Entity: 5011225552529671311
+    TagComponent:
+      Tag: Rocket Exhaust
+    RelationshipComponent:
+      ParentHandle: 1011378371315993937
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.300000012, -22, -1.09000003]
+      Rotation: [0, 0, 0]
+      Scale: [0.300000012, 0.300000012, 0.300000012]
+    ParticlesComponent:
+      Emitting: true
+      MaxLifeTime: 4.29999971
+      SpawnDelay: 0.00100000005
+      Velocity: [0, -109, 0]
+      ConeAngleDegrees: 44.600002288818359
+      SpawnFunction: 1

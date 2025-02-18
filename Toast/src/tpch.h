@@ -56,6 +56,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
+#include <cmath>  
 #include <iostream>
 #include <memory>
 #include <utility>

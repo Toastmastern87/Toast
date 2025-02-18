@@ -571,6 +571,21 @@ namespace Toast {
 			out << YAML::EndMap; // TerrainObjectComponent
 		}
 
+		if (entity.HasComponent<ParticlesComponent>())
+		{
+			out << YAML::Key << "ParticlesComponent";
+			out << YAML::BeginMap; // ParticlesComponent
+
+			auto& pc = entity.GetComponent<ParticlesComponent>();
+			out << YAML::Key << "Emitting" << YAML::Value << pc.Emitting;
+			out << YAML::Key << "MaxLifeTime" << YAML::Value << pc.MaxLifeTime;
+			out << YAML::Key << "SpawnDelay" << YAML::Value << pc.SpawnDelay;
+			out << YAML::Key << "Velocity" << YAML::Value << pc.Velocity;
+			out << YAML::Key << "ConeAngleDegrees" << YAML::Value << pc.ConeAngleDegrees;
+			out << YAML::Key << "SpawnFunction" << YAML::Value << static_cast<uint16_t>(pc.SpawnFunction);
+			out << YAML::EndMap; // ParticlesComponent
+		}
+
 		out << YAML::EndMap; // Entity
 	}
 
@@ -922,6 +937,20 @@ namespace Toast {
 
 					toc.SubdivisionActivation = terrainObjectComponent["SubdivisionActivation"].as<int>();
 					toc.MaxNrOfObjectPerFace = terrainObjectComponent["MaxNumberOfObjectsPerFace"].as<int>();
+				}
+
+				auto particlesComponent = entity["ParticlesComponent"];
+				if (particlesComponent)
+				{
+					auto& pc = deserializedEntity.AddComponent<ParticlesComponent>();
+
+					pc.Emitting = particlesComponent["Emitting"].as<bool>();
+
+					pc.MaxLifeTime = particlesComponent["MaxLifeTime"].as<float>();
+					pc.SpawnDelay = particlesComponent["SpawnDelay"].as<float>();
+					pc.Velocity = particlesComponent["Velocity"].as<Vector3>();
+					pc.ConeAngleDegrees = particlesComponent["ConeAngleDegrees"].as<double>();
+					pc.SpawnFunction = static_cast<EmitFunction>(particlesComponent["SpawnFunction"].as<uint16_t>());
 				}
 			}
 		}

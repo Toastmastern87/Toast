@@ -853,6 +853,7 @@ namespace Toast {
 		{
 			size_t maxParticleCount = 0;
 
+			int32_t nrOfParticles = 0;
 			auto view = mRegistry.view<ParticlesComponent>();
 			for (auto entity : view)
 			{
@@ -861,12 +862,14 @@ namespace Toast {
 				ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
 
 				maxParticleCount += (pc.MaxLifeTime / pc.SpawnDelay) + 1;
+				nrOfParticles += pc.Particles.size();
 			}
 
-			if (mParticleSystem->GetCurrentMaxNrOfParticles() != maxParticleCount && maxParticleCount > 0)
+			if (mParticleSystem->GetCurrentMaxNrOfParticles() != maxParticleCount && maxParticleCount > 0 && nrOfParticles <= maxParticleCount)
 				mParticleSystem->InvalidateBuffer(maxParticleCount);
+			else if(nrOfParticles > maxParticleCount)
+				mParticleSystem->InvalidateBuffer(nrOfParticles + maxParticleCount);
 
-			int32_t nrOfParticles = 0;
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
@@ -874,22 +877,26 @@ namespace Toast {
 				ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
 				TransformComponent& tc = e.GetComponent<TransformComponent>();
 
-				DirectX::XMFLOAT3 translation = e.GetComponent<TransformComponent>().Translation;
+				DirectX::XMFLOAT3 spawnPosition = e.GetComponent<TransformComponent>().Translation;
 
 				if (e.HasParent())
 				{
 					Entity parent = FindEntityByUUID(e.GetParentUUID());
 
-					DirectX::XMFLOAT3 parentTranslation = parent.GetComponent<TransformComponent>().Translation;
-					translation = { translation.x + parentTranslation.x, translation.y + parentTranslation.y, translation.z + parentTranslation.z };
+					auto parentTC = parent.GetComponent<TransformComponent>();
+
+					DirectX::XMMATRIX parentTransform = parentTC.GetTransformWithoutScale();
+
+					// Transform the local spawn position by the parent's transform.
+					DirectX::XMVECTOR localPos = DirectX::XMLoadFloat3(&spawnPosition);
+					DirectX::XMVECTOR worldPos = DirectX::XMVector3Transform(localPos, parentTransform);
+					DirectX::XMStoreFloat3(&spawnPosition, worldPos);
 				}
 
 				Renderer::SetParticlesIndexBuffer(mParticleSystem->GetIndexBuffer());
 				Renderer::SetParticlesSRV(mParticleSystem->GetSRV());
 
-				mParticleSystem->OnUpdate(ts, pc, translation);
-
-				nrOfParticles += pc.Particles.size();
+				mParticleSystem->OnUpdate(ts, pc, spawnPosition, tc.Scale.x);
 			}
 
 			Renderer::SetNrOfParticles(nrOfParticles);

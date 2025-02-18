@@ -535,12 +535,10 @@ namespace Toast
 			// layout example: we do columns or a simple horizontal layout
 			ImGui::PushID(label.c_str());
 
-			ImGui::Columns(2);
-			ImGui::SetColumnWidth(0, 105.0f);
-
-			ImGui::AlignTextToFramePadding();
-			ImGui::TextUnformatted(label.c_str());
-			ImGui::NextColumn();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::TextWrapped(label.c_str());
+			ImGui::TableSetColumnIndex(1);
+			ImGui::PushItemWidth(-1);
 
 			float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
 			ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };

@@ -1392,8 +1392,8 @@ namespace Toast {
 
 				ImGui::BeginTable("##ParticlesComponent", 2, flags);
 
-				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 75.0f);
-				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.30f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.70f);
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::TextWrapped("Emitting");
@@ -1403,22 +1403,36 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::TextWrapped("Max life time");
+				ImGui::TextWrapped("Emit Function");
 				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				ImGui::DragFloat("##maxlifetime", &component.MaxLifeTime, 0.1f, 0.0, 100.0f, "%.1f");
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::TextWrapped("Spawn delay");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				ImGui::DragFloat("##spawndelay", &component.SpawnDelay, 0.01f, 0.01, 10.0f, "%.2f");
-
-				ImGui::TableNextRow();
-				ImGuiHelpers::ManualDragFloat3("Start Velocity", component.StartVelocity, 1.0f, 0.0f, window, activeDragArea);
+				int currentSpawnFunction = static_cast<int>(component.SpawnFunction);
+				const char* emitFuncs[] = { "None", "Cone" };
+				if (ImGui::Combo("##emitFunction", &currentSpawnFunction, emitFuncs, IM_ARRAYSIZE(emitFuncs)))
+				{
+					component.SpawnFunction = static_cast<EmitFunction>(currentSpawnFunction);
+				}
 
 				ImGui::EndTable();
+
+				DrawFloatControl("Max life time", component.MaxLifeTime, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 100.0f, 0.1f, "%.1f");
+
+				DrawFloatControl("Spawn delay", component.SpawnDelay, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.001f, 10.0f, 0.001f, "%.3f");
+
+				ImGui::BeginTable("##VelocityTable", 2, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.30);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.70f);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(1);
+				ImGuiHelpers::ManualDragDouble3("Velocity", component.Velocity, 1.0f, 0.0f, window, activeDragArea);
+				ImGui::EndTable();
+
+				if (component.SpawnFunction == EmitFunction::CONE)
+				{
+					float temp = static_cast<float>(component.ConeAngleDegrees);
+					if (DrawFloatControl("Cone Angle (deg)", temp, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 180.0f, 0.1f, "%.1f"))
+						component.ConeAngleDegrees = static_cast<double>(temp);
+				}
+
 			});
 	}
 
