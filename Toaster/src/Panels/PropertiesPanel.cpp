@@ -1414,6 +1414,26 @@ namespace Toast {
 
 				ImGui::EndTable();
 
+				ImGui::BeginTable("##ColorPickers", 2, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.30);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.70f);
+
+				// Start Color Picker
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextWrapped("Start Color");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::ColorEdit4("##StartColor", reinterpret_cast<float*>(&component.StartColor));
+
+				// End Color Picker
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextWrapped("End Color");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::ColorEdit4("##EndColor", reinterpret_cast<float*>(&component.EndColor));
+
+				ImGui::EndTable();
+
 				DrawFloatControl("Max life time", component.MaxLifeTime, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 100.0f, 0.1f, "%.1f");
 
 				DrawFloatControl("Spawn delay", component.SpawnDelay, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.001f, 10.0f, 0.001f, "%.3f");
@@ -1426,11 +1446,11 @@ namespace Toast {
 				ImGuiHelpers::ManualDragDouble3("Velocity", component.Velocity, 1.0f, 0.0f, window, activeDragArea);
 				ImGui::EndTable();
 
+				DrawFloatControl("Grow Rate", component.GrowRate, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 10.0f, 0.1f, "%.1f");
+
 				if (component.SpawnFunction == EmitFunction::CONE)
 				{
-					float temp = static_cast<float>(component.ConeAngleDegrees);
-					if (DrawFloatControl("Cone Angle (deg)", temp, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 180.0f, 0.1f, "%.1f"))
-						component.ConeAngleDegrees = static_cast<double>(temp);
+					DrawFloatControl("Cone Angle (deg)", component.ConeAngleDegrees, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 180.0f, 0.1f, "%.1f");
 				}
 
 			});

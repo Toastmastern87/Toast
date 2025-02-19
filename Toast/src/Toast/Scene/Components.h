@@ -349,7 +349,10 @@ namespace Toast {
 		float MaxLifeTime; // in seconds
 		float SpawnDelay = 1.0f; // Delay between particle spawn
 		Vector3 Velocity = { 0.0f, 0.0f, 0.0f };
-		double ConeAngleDegrees = 0.0;
+		Vector3 StartColor = { 0.0f, 0.0f, 0.0f };
+		Vector3 EndColor = { 0.0f, 0.0f, 0.0f };
+		float ConeAngleDegrees = 0.0;
+		float GrowRate = 0.0f;
 
 		float ElapsedTime;
 

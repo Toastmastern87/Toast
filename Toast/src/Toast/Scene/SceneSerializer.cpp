@@ -581,7 +581,10 @@ namespace Toast {
 			out << YAML::Key << "MaxLifeTime" << YAML::Value << pc.MaxLifeTime;
 			out << YAML::Key << "SpawnDelay" << YAML::Value << pc.SpawnDelay;
 			out << YAML::Key << "Velocity" << YAML::Value << pc.Velocity;
+			out << YAML::Key << "StartColor" << YAML::Value << pc.StartColor;
+			out << YAML::Key << "EndColor" << YAML::Value << pc.EndColor;
 			out << YAML::Key << "ConeAngleDegrees" << YAML::Value << pc.ConeAngleDegrees;
+			out << YAML::Key << "GrowRate" << YAML::Value << pc.GrowRate;
 			out << YAML::Key << "SpawnFunction" << YAML::Value << static_cast<uint16_t>(pc.SpawnFunction);
 			out << YAML::EndMap; // ParticlesComponent
 		}
@@ -949,8 +952,11 @@ namespace Toast {
 					pc.MaxLifeTime = particlesComponent["MaxLifeTime"].as<float>();
 					pc.SpawnDelay = particlesComponent["SpawnDelay"].as<float>();
 					pc.Velocity = particlesComponent["Velocity"].as<Vector3>();
-					pc.ConeAngleDegrees = particlesComponent["ConeAngleDegrees"].as<double>();
+					pc.StartColor = particlesComponent["StartColor"].as<Vector3>();
+					pc.EndColor = particlesComponent["EndColor"].as<Vector3>();
+					pc.ConeAngleDegrees = particlesComponent["ConeAngleDegrees"].as<float>();
 					pc.SpawnFunction = static_cast<EmitFunction>(particlesComponent["SpawnFunction"].as<uint16_t>());
+					pc.GrowRate = particlesComponent["GrowRate"].as<float>();
 				}
 			}
 		}

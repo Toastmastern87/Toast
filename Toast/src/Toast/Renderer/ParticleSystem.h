@@ -7,11 +7,14 @@
 namespace Toast {
 
 	struct Particle {
-		DirectX::XMFLOAT3 position;
-		DirectX::XMFLOAT3 velocity;
-		float age;
-		float lifetime;
-		float size;
+		DirectX::XMFLOAT3 Position;
+		DirectX::XMFLOAT3 Velocity;
+		DirectX::XMFLOAT3 StartColor;
+		DirectX::XMFLOAT3 EndColor;
+		float Age;
+		float Lifetime;
+		float Size;
+		float GrowRate;
 	};
 
 	enum class EmitFunction 

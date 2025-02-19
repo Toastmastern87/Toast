@@ -64,20 +64,24 @@ namespace Toast{
 					velocity = { (float)particles.Velocity.x, (float)particles.Velocity.y, (float)particles.Velocity.z };
 
 				Particle newParticle;
-				newParticle.position = spawnPos;
-				newParticle.velocity = velocity;
-				newParticle.age = 0.0f;
-				newParticle.lifetime = particles.MaxLifeTime;
-				newParticle.size = spawnSize;
+				newParticle.Position = spawnPos;
+				newParticle.Velocity = velocity;
+				newParticle.StartColor = { 0.0f, 0.0f, 0.0f };
+				newParticle.EndColor = { 0.0f, 0.0f, 0.0f };
+				newParticle.Velocity = velocity;
+				newParticle.Age = 0.0f;
+				newParticle.Lifetime = particles.MaxLifeTime;
+				newParticle.Size = spawnSize;
+				newParticle.GrowRate = particles.GrowRate;
 				particles.Particles.push_back(newParticle);
 			}
 		}
 
 		auto it = particles.Particles.begin();
 		while (it != particles.Particles.end()) {
-			it->age += dt;
+			it->Age += dt;
 
-			if (it->age >= it->lifetime) {
+			if (it->Age >= it->Lifetime) {
 				it = particles.Particles.erase(it);  // Remove dead particle
 			}
 			else {
@@ -93,11 +97,14 @@ namespace Toast{
 
 			for (size_t i = 0; i < particles.Particles.size(); ++i) {
 				instances[i] = {
-					particles.Particles[i].position,
-					particles.Particles[i].velocity,
-					particles.Particles[i].age,
-					particles.Particles[i].lifetime,
-					particles.Particles[i].size
+					particles.Particles[i].Position,
+					particles.Particles[i].Velocity,
+					particles.Particles[i].StartColor,
+					particles.Particles[i].EndColor,
+					particles.Particles[i].Age,
+					particles.Particles[i].Lifetime,
+					particles.Particles[i].Size,
+					particles.Particles[i].GrowRate
 				};
 			}
 
