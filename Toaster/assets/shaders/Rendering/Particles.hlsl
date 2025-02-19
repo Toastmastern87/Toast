@@ -13,9 +13,12 @@ struct ParticleInstance
 {
     float3 position;
     float3 velocity;
+    float3 startColor;
+    float3 endColor;
     float age;
     float lifetime;
     float size;
+    float growRate;
 };
 
 // Quad corner offsets
@@ -58,10 +61,11 @@ PixelInputType main(uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID
     // Apply gravity (particles fall over time)
     float3 worldPos = p.position + p.velocity * p.age;
     worldPos.y -= 3.73f * p.age;
-
+    
     // Compute size scaling over lifetime
     float lifeRatio = p.age / p.lifetime;
-    float scaledSize = p.size * (1.0f - lifeRatio);
+    float scaledSize = p.size * (1.0f + p.growRate * lifeRatio);
+    float alpha = lerp(1.0, 0.0, lifeRatio);
 
     float4 viewPos = mul(float4(worldPos, 1.0f), viewMatrix);
     
@@ -71,11 +75,13 @@ PixelInputType main(uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID
     float2 cornerOffset = offsets[vertexID] * scaledSize;
     float3 viewOffset = (cornerOffset.x * right) + (cornerOffset.y * up);
     viewPos.xyz += viewOffset;
+    
+    viewPos.z += instanceID * 0.0001;
 
     output.position = mul(viewPos, projectionMatrix);
 
     // Always output a red color (ignoring texture)
-    output.color = float4(1.0f, 0.0f, 0.0f, 1.0f); // Red color
+    output.color = float4(1.0f, 0.0f, 0.0f, alpha); // Red color
 
     return output;
 }

@@ -241,7 +241,7 @@ namespace Toast {
 		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
 
-	void Renderer::EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL)
+	void Renderer::EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos)
 	{
 		RenderCommand::SetViewport(sRendererData->Viewport);
 
@@ -260,14 +260,15 @@ namespace Toast {
 
 		LightningPass();
 
-		// Particles only for now, but will most likely be renamed and handle more things in the future.
-		// If there are no particles that needs to be rendered, this pass will be skipped.
-		if(sRendererData->ParticleIndexBuffer.Get())
-			ParticlesPass();
-
 		// Post Processes
 		SkyboxPass();
 		AtmospherePass(dynamicIBL);
+
+		// Particles only for now, but will most likely be renamed and handle more things in the future.
+		// If there are no particles that needs to be rendered, this pass will be skipped.
+		if (sRendererData->ParticleIndexBuffer.Get())
+			ParticlesPass(camera, cameraPos);
+
 		PostProcessPass();
 
 		if (!debugActivated) 
@@ -397,6 +398,25 @@ namespace Toast {
 
 			result = device->CreateBlendState(&blendDesc, &sRendererData->LPassBlendState);
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create LPass blend state");
+		}
+
+		// Particle Pass Blend State
+		{
+			D3D11_BLEND_DESC blendDesc = {};
+			blendDesc.AlphaToCoverageEnable = FALSE;
+			blendDesc.IndependentBlendEnable = FALSE;
+
+			blendDesc.RenderTarget[0].BlendEnable = TRUE;
+			blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+			blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+			blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+			blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+			blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+			blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+			blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+			HRESULT hr = device->CreateBlendState(&blendDesc, &sRendererData->ParticleBlendState);
+			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Particle Pass blend state");
 		}
 
 		// Atmosphere Pass Blend State
@@ -931,44 +951,6 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer::ParticlesPass()
-	{
-		TOAST_PROFILE_FUNCTION();
-
-#ifdef TOAST_DEBUG
-		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
-		RenderCommand::GetAnnotation(annotation);
-		if (annotation)
-			annotation->BeginEvent(L"Particle Pass");
-#endif
-
-		RenderCommand::SetViewport(sRendererData->Viewport);
-		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
-		RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
-		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
-		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->ParticlesSRV);
-
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
-
-		deviceContext->IASetIndexBuffer(sRendererData->ParticleIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
-
-		ShaderLibrary::Get("assets/shaders/Rendering/Particles.hlsl")->Bind();
-
-		RenderCommand::DrawIndexedInstanced(6, sRendererData->NrOfParticlesToRender, 0, 0, 0);
-
-		ID3D11RenderTargetView* nullRTV = nullptr;
-		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
-		RenderCommand::SetDepthStencilState(nullptr);
-		RenderCommand::SetBlendState(nullptr);
-		RenderCommand::ClearShaderResources();
-
-#ifdef TOAST_DEBUG
-		if (annotation)
-			annotation->EndEvent();
-#endif
-	}
-
 	void Renderer::SkyboxPass()
 	{
 #ifdef TOAST_DEBUG
@@ -1102,6 +1084,57 @@ namespace Toast {
 		RenderCommand::SetDepthStencilState(nullptr);
 		RenderCommand::SetBlendState(nullptr);
 
+		RenderCommand::ClearShaderResources();
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
+	}
+
+	void Renderer::ParticlesPass(Camera& camera, const DirectX::XMFLOAT4 cameraPos)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"Particle Pass");
+#endif
+
+		// Camera needs rebinding at this stage
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 0);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 64);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 128);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 192);
+		sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos.x, 16, 256);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 272);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 276);
+		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Width, 4, 280);
+		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Height, 4, 284);
+		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
+
+		RenderCommand::SetViewport(sRendererData->Viewport);
+		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
+		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
+		RenderCommand::SetBlendState(sRendererData->ParticleBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->ParticlesSRV);
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->IASetIndexBuffer(sRendererData->ParticleIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+
+		ShaderLibrary::Get("assets/shaders/Rendering/Particles.hlsl")->Bind();
+
+		RenderCommand::DrawIndexedInstanced(6, sRendererData->NrOfParticlesToRender, 0, 0, 0);
+
+		ID3D11RenderTargetView* nullRTV = nullptr;
+		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
+		RenderCommand::SetDepthStencilState(nullptr);
+		RenderCommand::SetBlendState(nullptr);
 		RenderCommand::ClearShaderResources();
 
 #ifdef TOAST_DEBUG

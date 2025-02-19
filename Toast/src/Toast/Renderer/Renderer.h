@@ -79,6 +79,9 @@ namespace Toast {
 			// Lightning Pass
 			Ref<RenderTarget> LPassRT;
 
+			// Particle Pass
+			Microsoft::WRL::ComPtr<ID3D11BlendState> ParticleBlendState;
+
 			// Atmosphere pass
 			Ref<RenderTarget> AtmospherePassRT;
 			Ref<RenderTarget> AtmosphereCubeRT;
@@ -120,7 +123,7 @@ namespace Toast {
 		static void OnViewportResize(uint32_t width, uint32_t height);
 
 		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos);
-		static void EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL);
+		static void EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos);
 
 		static void CreateDepthBuffer(uint32_t width, uint32_t height);
 		static void CreateDepthStencilView();
@@ -149,7 +152,7 @@ namespace Toast {
 		static void GeometryPass();
 		static void ShadowPass();
 		static void LightningPass();
-		static void ParticlesPass();
+		static void ParticlesPass(Camera& camera, const DirectX::XMFLOAT4 cameraPos);
 		static void SSAOPass();
 
 		// Post Processes
