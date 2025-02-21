@@ -865,10 +865,7 @@ namespace Toast {
 				nrOfParticles += pc.Particles.size();
 			}
 
-			if (mParticleSystem->GetCurrentMaxNrOfParticles() != maxParticleCount && maxParticleCount > 0 && nrOfParticles <= maxParticleCount)
-				mParticleSystem->InvalidateBuffer(maxParticleCount);
-			else if(nrOfParticles > maxParticleCount)
-				mParticleSystem->InvalidateBuffer(nrOfParticles + maxParticleCount);
+			Renderer::InvalidateParticleBuffers(nrOfParticles, maxParticleCount);
 
 			for (auto entity : view)
 			{
@@ -879,6 +876,7 @@ namespace Toast {
 
 				DirectX::XMFLOAT3 spawnPosition = e.GetComponent<TransformComponent>().Translation;
 
+				DirectX::XMMATRIX rotationMatrix = tc.GetRotation();
 				if (e.HasParent())
 				{
 					Entity parent = FindEntityByUUID(e.GetParentUUID());
@@ -891,15 +889,25 @@ namespace Toast {
 					DirectX::XMVECTOR localPos = DirectX::XMLoadFloat3(&spawnPosition);
 					DirectX::XMVECTOR worldPos = DirectX::XMVector3Transform(localPos, parentTransform);
 					DirectX::XMStoreFloat3(&spawnPosition, worldPos);
+
+					rotationMatrix = DirectX::XMMatrixMultiply(rotationMatrix, parentTC.GetRotation());
 				}
 
-				Renderer::SetParticlesIndexBuffer(mParticleSystem->GetIndexBuffer());
-				Renderer::SetParticlesSRV(mParticleSystem->GetSRV());
+				Renderer::SetParticleMaskTexture(pc.MaskTexture);
 
-				mParticleSystem->OnUpdate(ts, pc, spawnPosition, tc.Scale.x);
+				mParticleSystem->OnUpdate(ts, pc, spawnPosition, tc.Scale, rotationMatrix, maxParticleCount);
 			}
 
-			Renderer::SetNrOfParticles(nrOfParticles);
+			// Gather particles from all Particle Systems
+			std::vector<Particle> aggregatedParticles;
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
+				aggregatedParticles.insert(aggregatedParticles.end(), pc.Particles.begin(), pc.Particles.end());
+			}
+
+			Renderer::FillParticleBuffer(aggregatedParticles);
 		}
 
 		// Updated Meshes to check which LOD Group it should use during the rendering.
@@ -1689,8 +1697,6 @@ namespace Toast {
 	template<>
 	void Scene::OnComponentAdded<ParticlesComponent>(Entity entity, ParticlesComponent& component)
 	{
-		entity.GetComponent<TransformComponent>().Scale = { 0.3f, 0.3f, 0.3f };
-
 		component.GuideMesh = MeshFactory::CreateCube(1.0f, { 1.0, 0.0, 0.0 });
 	}
 

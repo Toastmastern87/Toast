@@ -346,17 +346,24 @@ namespace Toast {
 		bool Emitting;
 		Ref<Mesh> GuideMesh;
 		std::vector<Particle> Particles;
+		float Size = 0.0f;
 		float MaxLifeTime; // in seconds
 		float SpawnDelay = 1.0f; // Delay between particle spawn
-		Vector3 Velocity = { 0.0f, 0.0f, 0.0f };
-		Vector3 StartColor = { 0.0f, 0.0f, 0.0f };
-		Vector3 EndColor = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 Velocity = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 StartColor = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 EndColor = { 0.0f, 0.0f, 0.0f };
+		float ColorBlendFactor = 0.0f;
 		float ConeAngleDegrees = 0.0;
+		float BiasExponent = 1.0f;
 		float GrowRate = 0.0f;
+		float BurstInitial = 1.0f;
+		float BurstDecay = 0.0f;
 
 		float ElapsedTime;
 
 		EmitFunction SpawnFunction;
+
+		Texture2D* MaskTexture;
 
 		ParticlesComponent() = default;
 		ParticlesComponent(const ParticlesComponent& other) = default;

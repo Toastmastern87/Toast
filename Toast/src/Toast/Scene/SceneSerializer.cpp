@@ -583,9 +583,15 @@ namespace Toast {
 			out << YAML::Key << "Velocity" << YAML::Value << pc.Velocity;
 			out << YAML::Key << "StartColor" << YAML::Value << pc.StartColor;
 			out << YAML::Key << "EndColor" << YAML::Value << pc.EndColor;
+			out << YAML::Key << "ColorBlendFactor" << YAML::Value << pc.ColorBlendFactor;
 			out << YAML::Key << "ConeAngleDegrees" << YAML::Value << pc.ConeAngleDegrees;
+			out << YAML::Key << "BiasExponent" << YAML::Value << pc.BiasExponent;
 			out << YAML::Key << "GrowRate" << YAML::Value << pc.GrowRate;
+			out << YAML::Key << "BurstInitial" << YAML::Value << pc.BurstInitial;
+			out << YAML::Key << "BurstDecay" << YAML::Value << pc.BurstDecay;
+			out << YAML::Key << "Size" << YAML::Value << pc.Size;
 			out << YAML::Key << "SpawnFunction" << YAML::Value << static_cast<uint16_t>(pc.SpawnFunction);
+			out << YAML::Key << "AssetPath" << YAML::Value << pc.MaskTexture->GetFilePath();
 			out << YAML::EndMap; // ParticlesComponent
 		}
 
@@ -951,12 +957,19 @@ namespace Toast {
 
 					pc.MaxLifeTime = particlesComponent["MaxLifeTime"].as<float>();
 					pc.SpawnDelay = particlesComponent["SpawnDelay"].as<float>();
-					pc.Velocity = particlesComponent["Velocity"].as<Vector3>();
-					pc.StartColor = particlesComponent["StartColor"].as<Vector3>();
-					pc.EndColor = particlesComponent["EndColor"].as<Vector3>();
+					pc.Velocity = particlesComponent["Velocity"].as<DirectX::XMFLOAT3>();
+					pc.StartColor = particlesComponent["StartColor"].as<DirectX::XMFLOAT3>();
+					pc.EndColor = particlesComponent["EndColor"].as<DirectX::XMFLOAT3>();
+					pc.ColorBlendFactor = particlesComponent["ColorBlendFactor"].as<float>();
+					pc.BiasExponent = particlesComponent["BiasExponent"].as<float>();
 					pc.ConeAngleDegrees = particlesComponent["ConeAngleDegrees"].as<float>();
 					pc.SpawnFunction = static_cast<EmitFunction>(particlesComponent["SpawnFunction"].as<uint16_t>());
 					pc.GrowRate = particlesComponent["GrowRate"].as<float>();
+					pc.BurstInitial = particlesComponent["BurstInitial"].as<float>();
+					pc.BurstDecay = particlesComponent["BurstDecay"].as<float>();
+					pc.Size = particlesComponent["Size"].as<float>();
+
+					pc.MaskTexture = TextureLibrary::LoadTexture2D(particlesComponent["AssetPath"].as<std::string>());
 				}
 			}
 		}

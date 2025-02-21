@@ -381,6 +381,9 @@ namespace Toast {
 
 		DrawComponent<TransformComponent>(ICON_TOASTER_ARROWS_ALT" Transform", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
+				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
 				float fov = 45.0f;
 				DirectX::XMMATRIX cameraTransform;
 
@@ -1406,7 +1409,7 @@ namespace Toast {
 				ImGui::TextWrapped("Emit Function");
 				ImGui::TableSetColumnIndex(1);
 				int currentSpawnFunction = static_cast<int>(component.SpawnFunction);
-				const char* emitFuncs[] = { "None", "Cone" };
+				const char* emitFuncs[] = { "None", "Cone", "Box" };
 				if (ImGui::Combo("##emitFunction", &currentSpawnFunction, emitFuncs, IM_ARRAYSIZE(emitFuncs)))
 				{
 					component.SpawnFunction = static_cast<EmitFunction>(currentSpawnFunction);
@@ -1423,36 +1426,87 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(0);
 				ImGui::TextWrapped("Start Color");
 				ImGui::TableSetColumnIndex(1);
-				ImGui::ColorEdit4("##StartColor", reinterpret_cast<float*>(&component.StartColor));
+				ImGui::ColorEdit3("##StartColor", &component.StartColor.x);
 
 				// End Color Picker
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::TextWrapped("End Color");
 				ImGui::TableSetColumnIndex(1);
-				ImGui::ColorEdit4("##EndColor", reinterpret_cast<float*>(&component.EndColor));
+				ImGui::ColorEdit3("##EndColor", &component.EndColor.x);
 
 				ImGui::EndTable();
+
+				DrawFloatControl("Size", component.Size, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 10.0f, 0.01f, "%.2f");
+
+				DrawFloatControl("Color Blend Factor", component.ColorBlendFactor, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 1.0f, 0.01f, "%.2f");
 
 				DrawFloatControl("Max life time", component.MaxLifeTime, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 100.0f, 0.1f, "%.1f");
 
-				DrawFloatControl("Spawn delay", component.SpawnDelay, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.001f, 10.0f, 0.001f, "%.3f");
+				DrawFloatControl("Spawn delay", component.SpawnDelay, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0001f, 10.0f, 0.0001f, "%.4f");
 
-				ImGui::BeginTable("##VelocityTable", 2, flags);
-				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.30);
-				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.70f);
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(1);
-				ImGuiHelpers::ManualDragDouble3("Velocity", component.Velocity, 1.0f, 0.0f, window, activeDragArea);
-				ImGui::EndTable();
+				ImGuiHelpers::ManualDragFloat3("Velocity", component.Velocity, 1.0f, 0.0f, window, activeDragArea);
 
 				DrawFloatControl("Grow Rate", component.GrowRate, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 10.0f, 0.1f, "%.1f");
+
+				DrawFloatControl("Burst Initial", component.BurstInitial, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 50.0f, 0.1f, "%.1f");
+
+				DrawFloatControl("Burst Decay", component.BurstDecay, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 100.0f, 0.1f, "%.1f");
 
 				if (component.SpawnFunction == EmitFunction::CONE)
 				{
 					DrawFloatControl("Cone Angle (deg)", component.ConeAngleDegrees, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 180.0f, 0.1f, "%.1f");
 				}
+				else if (component.SpawnFunction == EmitFunction::BOX)
+				{
+					DrawFloatControl("Box Bias Exponent", component.BiasExponent, window, activeDragArea, contentRegionAvailable.x * 0.30, 1.0f, 10.0f, 0.1f, "%.1f");
+				}
 
+				ImGui::BeginTable("##textures", 2, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.30);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.70f);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextWrapped("Mask Texture");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+
+				std::optional<std::string> textureFilepathOpt;
+				if(component.MaskTexture)
+					textureFilepathOpt = component.MaskTexture->GetFilePath();
+
+				const std::string& textureFilepath = (textureFilepathOpt && !textureFilepathOpt->empty()) ?	*textureFilepathOpt : "assets/textures/Checkerboard.png";
+
+				void* textureID = (void*)(uintptr_t)TextureLibrary::Get(textureFilepath)->GetID();
+				
+				ImGui::Image(textureID, ImVec2(64.0f, 64.0f));
+
+				std::optional<std::string> filepath;
+				if (ImGui::BeginDragDropTarget())
+				{
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+					{
+						const wchar_t* path = (const wchar_t*)payload->Data;
+						auto completePath = std::filesystem::path(gAssetPath) / path;
+						filepath = completePath.string();
+
+						if (filepath)
+							component.MaskTexture = TextureLibrary::LoadTexture2D(*filepath);
+					}
+
+					ImGui::EndDragDropTarget();
+				}
+
+				if (ImGui::IsItemClicked())
+				{
+					filepath = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+
+					if (filepath)
+						component.MaskTexture = TextureLibrary::LoadTexture2D(*filepath);
+				}
+
+				ImGui::EndTable();
 			});
 	}
 

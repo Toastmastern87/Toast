@@ -7,40 +7,10 @@ namespace Toast{
 
 	bool ParticleSystem::Initialize()
 	{
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11Device* device = API->GetDevice();
-
-		D3D11_BUFFER_DESC bufferDesc = {};
-		bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-		bufferDesc.ByteWidth = sizeof(Particle) * 1000;
-		bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-		bufferDesc.StructureByteStride = sizeof(Particle);
-
-		device->CreateBuffer(&bufferDesc, nullptr, &mBuffer);
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = DXGI_FORMAT_UNKNOWN; // Structured buffers don’t have a format
-		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-		srvDesc.Buffer.NumElements = 1000;
-
-		device->CreateShaderResourceView(mBuffer.Get(), &srvDesc, &mSRV);
-
-		uint16_t indices[] = { 0, 1, 2, 2, 1, 3 };
-
-		D3D11_BUFFER_DESC indexBufferDesc = {};
-		indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-		indexBufferDesc.ByteWidth = sizeof(indices);
-		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-		D3D11_SUBRESOURCE_DATA indexData = { indices, 0, 0 };
-		device->CreateBuffer(&indexBufferDesc, &indexData, &mIndexBuffer);
-
 		return true;
 	}
 
-	void ParticleSystem::OnUpdate(float dt, ParticlesComponent& particles, DirectX::XMFLOAT3 spawnPos, float spawnSize)
+	void ParticleSystem::OnUpdate(float dt, ParticlesComponent& particles, DirectX::XMFLOAT3 spawnPos, DirectX::XMFLOAT3 spawnSize, DirectX::XMMATRIX roationQuat, size_t maxNrOfParticles)
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
@@ -52,27 +22,59 @@ namespace Toast{
 			particles.ElapsedTime -= particles.SpawnDelay;
 
 			// Create a new particle and add it to the list
-			if (particles.Particles.size() < mMaxNrOfParticles && particles.Emitting) {
+			if (particles.Particles.size() < maxNrOfParticles && particles.Emitting) {
 
 				DirectX::XMFLOAT3 velocity = { 0.0f, 0.0f, 0.0f };
-				if (particles.SpawnFunction == EmitFunction::CONE)
-				{
-					Vector3 velocityVec = RandomVelocityInCone(particles.Velocity, particles.ConeAngleDegrees);
-					velocity = { (float)velocityVec.x, (float)velocityVec.y, (float)velocityVec.z };
-				}
-				else
-					velocity = { (float)particles.Velocity.x, (float)particles.Velocity.y, (float)particles.Velocity.z };
 
+				DirectX::XMVECTOR originalVel = DirectX::XMLoadFloat3(&particles.Velocity);
+				DirectX::XMVECTOR rotatedVel = DirectX::XMVector3Transform(originalVel, roationQuat);
+
+				DirectX::XMFLOAT3 tempVelocity;
+				DirectX::XMStoreFloat3(&tempVelocity, rotatedVel);
+
+				DirectX::XMFLOAT3 finalSpawnPos;
+
+				switch (particles.SpawnFunction)
+				{
+					case EmitFunction::CONE:
+					{
+						Vector3 velocityVec = RandomVelocityInCone(tempVelocity, particles.ConeAngleDegrees);
+						velocity = { (float)velocityVec.x, (float)velocityVec.y, (float)velocityVec.z };
+
+						finalSpawnPos = spawnPos;
+
+						break;
+					}
+					case EmitFunction::BOX:
+					{
+						finalSpawnPos = RandomPointInBox(spawnPos, spawnSize, particles.BiasExponent);
+
+						velocity = tempVelocity;
+
+						break;
+					}
+					default:
+					{
+						velocity = tempVelocity;
+
+						finalSpawnPos = spawnPos;
+
+						break;
+					}
+				}
+					
 				Particle newParticle;
-				newParticle.Position = spawnPos;
+				newParticle.Position = finalSpawnPos;
 				newParticle.Velocity = velocity;
-				newParticle.StartColor = { 0.0f, 0.0f, 0.0f };
-				newParticle.EndColor = { 0.0f, 0.0f, 0.0f };
-				newParticle.Velocity = velocity;
+				newParticle.StartColor = particles.StartColor;
+				newParticle.EndColor = particles.EndColor;
+				newParticle.ColorBlendFactor = particles.ColorBlendFactor;
 				newParticle.Age = 0.0f;
 				newParticle.Lifetime = particles.MaxLifeTime;
-				newParticle.Size = spawnSize;
+				newParticle.Size = particles.Size;
 				newParticle.GrowRate = particles.GrowRate;
+				newParticle.BurstInitial = particles.BurstInitial;
+				newParticle.BurstDecay = particles.BurstDecay;
 				particles.Particles.push_back(newParticle);
 			}
 		}
@@ -88,53 +90,6 @@ namespace Toast{
 				++it;
 			}
 		}
-
-		if (!particles.Particles.empty()) {
-			D3D11_MAPPED_SUBRESOURCE mappedResource;
-			deviceContext->Map(mBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-
-			Particle* instances = (Particle*)mappedResource.pData;
-
-			for (size_t i = 0; i < particles.Particles.size(); ++i) {
-				instances[i] = {
-					particles.Particles[i].Position,
-					particles.Particles[i].Velocity,
-					particles.Particles[i].StartColor,
-					particles.Particles[i].EndColor,
-					particles.Particles[i].Age,
-					particles.Particles[i].Lifetime,
-					particles.Particles[i].Size,
-					particles.Particles[i].GrowRate
-				};
-			}
-
-			deviceContext->Unmap(mBuffer.Get(), 0);
-		}
-	}
-
-	void ParticleSystem::InvalidateBuffer(size_t newSize)
-	{
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11Device* device = API->GetDevice();
-
-		D3D11_BUFFER_DESC bufferDesc = {};
-		bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-		bufferDesc.ByteWidth = sizeof(Particle) * newSize;
-		bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-		bufferDesc.StructureByteStride = sizeof(Particle);
-
-		device->CreateBuffer(&bufferDesc, nullptr, &mBuffer);
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = DXGI_FORMAT_UNKNOWN; // Structured buffers don’t have a format
-		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-		srvDesc.Buffer.NumElements = newSize;
-
-		device->CreateShaderResourceView(mBuffer.Get(), &srvDesc, &mSRV);
-
-		mMaxNrOfParticles = newSize;
 	}
 
 	Vector3 ParticleSystem::RandomVelocityInCone(const Vector3& baseDir, double coneAngleDegrees)
@@ -174,6 +129,31 @@ namespace Toast{
 
 		// Return the normalized world vector.
 		return Vector3::Normalize(worldVec);
+	}
+
+	DirectX::XMFLOAT3 ParticleSystem::RandomPointInBox(const DirectX::XMFLOAT3& boxCenter, const DirectX::XMFLOAT3& boxSize, float biasExponent)
+	{
+		float rx = BiasedRandomValue(boxSize.x, biasExponent);
+		float ry = BiasedRandomValue(boxSize.y, biasExponent);
+		float rz = BiasedRandomValue(boxSize.z, biasExponent);
+
+		DirectX::XMFLOAT3 randomPos;
+		randomPos.x = boxCenter.x + rx;
+		randomPos.y = boxCenter.y + ry;
+		randomPos.z = boxCenter.z + rz;
+
+		return randomPos;
+	}
+
+	float ParticleSystem::BiasedRandomValue(float halfExtent, float biasExponent)
+	{
+		// Get a random value in [0, 1]
+		float r = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+		// Map to [-1, 1]
+		float value = r * 2.0f - 1.0f;
+		// Apply bias: if biasExponent > 1, the distribution is peaked near zero.
+		float biasedValue = (value < 0.0f ? -1.0f : 1.0f) * pow(fabs(value), biasExponent);
+		return biasedValue * halfExtent;
 	}
 
 }
