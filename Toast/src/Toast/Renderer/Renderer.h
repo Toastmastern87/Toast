@@ -81,6 +81,7 @@ namespace Toast {
 
 			// Particle Pass
 			Microsoft::WRL::ComPtr<ID3D11BlendState> ParticleBlendState;
+			Microsoft::WRL::ComPtr<ID3D11DepthStencilState> ParticleDepthStencilState;
 
 			// Atmosphere pass
 			Ref<RenderTarget> AtmospherePassRT;
@@ -107,9 +108,11 @@ namespace Toast {
 			Microsoft::WRL::ComPtr<ID3D11BlendState> GPassBlendState, LPassBlendState, AtmospherePassBlendState, PostProcessBlendState, UIBlendState;
 
 			//Particle Data
+			Microsoft::WRL::ComPtr<ID3D11Buffer> ParticleBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> ParticleIndexBuffer;
 			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ParticlesSRV;
 			size_t NrOfParticlesToRender;
+			Texture2D* ParticleMaskTexture;
 		};
 
 	protected:
@@ -179,6 +182,7 @@ namespace Toast {
 		static void SetParticlesIndexBuffer(Microsoft::WRL::ComPtr<ID3D11Buffer>& indexBuffer) { sRendererData->ParticleIndexBuffer = indexBuffer; }
 		static void SetParticlesSRV(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv) { sRendererData->ParticlesSRV = srv; }
 		static void SetNrOfParticles(size_t particles) { sRendererData->NrOfParticlesToRender = particles; }
+		static void SetParticleMaskTexture(Texture2D* maskTexture) { sRendererData->ParticleMaskTexture = maskTexture; }
 
 		//Stats
 		struct Statistics
@@ -196,5 +200,9 @@ namespace Toast {
 		static void GeneratePrefilteredEnvMap(int faceIndex);
 		static void GenerateIrradianceCubemap(int faceIndex);
 
+		// Particle System TODO: This needs reworking!
+		static void GenerateParticleBuffers();
+		static void InvalidateParticleBuffers(size_t nrOfParticles, size_t maxNrOfParticles);
+		static void FillParticleBuffer(std::vector<Particle>& particles);
 	};
 }

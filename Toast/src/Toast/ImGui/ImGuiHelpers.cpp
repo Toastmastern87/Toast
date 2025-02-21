@@ -341,15 +341,22 @@ namespace Toast
 			ImGuiIO& io = ImGui::GetIO();
 			auto boldFont = io.Fonts->Fonts[0];
 
+			ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
 			// layout example: we do columns or a simple horizontal layout
 			ImGui::PushID(label.c_str());
 
-			ImGui::Columns(2);
-			ImGui::SetColumnWidth(0, 105.0f);
+			// layout example: we do columns or a simple horizontal layout
+			ImGui::BeginTable("", 2, flags);
+			ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.30f);
+			ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.65f);
 
-			ImGui::AlignTextToFramePadding();
-			ImGui::TextUnformatted(label.c_str());
-			ImGui::NextColumn();
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::TextWrapped(label.c_str());
+			ImGui::TableSetColumnIndex(1);
+			ImGui::PushItemWidth(-1);
 
 			float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
 			ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
@@ -424,7 +431,7 @@ namespace Toast
 
 			ImGui::PopStyleVar();
 
-			ImGui::Columns(1);
+			ImGui::EndTable();
 			ImGui::PopID();
 
 			return changed;
@@ -437,7 +444,6 @@ namespace Toast
 			ImGuiIO& io = ImGui::GetIO();
 			auto boldFont = io.Fonts->Fonts[0];
 
-			// layout example: we do columns or a simple horizontal layout
 			ImGui::PushID(label.c_str());
 
 			ImGui::TableSetColumnIndex(0);

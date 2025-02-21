@@ -141,6 +141,8 @@ namespace Toast {
 
 		GenerateSampleKernel();
 		GenerateNoiseTexture();
+
+		GenerateParticleBuffers();
 	}
 
 	void Renderer::Shutdown()
@@ -336,6 +338,14 @@ namespace Toast {
 		result = device->CreateDepthStencilState(&depthStencilDesc, &sRendererData->DepthEnabledStencilState);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create enabled depth stencil state");
 
+		depthStencilDesc.DepthEnable = TRUE;
+		depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		depthStencilDesc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
+		depthStencilDesc.StencilEnable = FALSE;
+
+		HRESULT hr = device->CreateDepthStencilState(&depthStencilDesc, &sRendererData->ParticleDepthStencilState);
+		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Failed to create depth stencil state");
+
 		depthStencilDesc.DepthEnable = false;
 		depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 		depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
@@ -413,6 +423,12 @@ namespace Toast {
 			blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
 			blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 			blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+			//blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+			//blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+			//blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+			//blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+			//blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+			//blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 			blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
 			HRESULT hr = device->CreateBlendState(&blendDesc, &sRendererData->ParticleBlendState);
@@ -1118,9 +1134,11 @@ namespace Toast {
 		RenderCommand::SetViewport(sRendererData->Viewport);
 		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
 		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
-		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
+		RenderCommand::SetDepthStencilState(sRendererData->ParticleDepthStencilState);
 		RenderCommand::SetBlendState(sRendererData->ParticleBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->ParticlesSRV);
+		if(sRendererData->ParticleMaskTexture)
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->ParticleMaskTexture->GetSRV());
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
@@ -1267,6 +1285,87 @@ namespace Toast {
 		RenderCommand::ClearShaderResources();
 
 		sRendererData->IrradianceCubeMap->UnbindUAVUpdated(0, D3D11_COMPUTE_SHADER);
+	}
+
+	void Renderer::GenerateParticleBuffers()
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_BUFFER_DESC bufferDesc = {};
+		bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		bufferDesc.ByteWidth = sizeof(Particle) * 1000;
+		bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		bufferDesc.StructureByteStride = sizeof(Particle);
+
+		device->CreateBuffer(&bufferDesc, nullptr, &sRendererData->ParticleBuffer);
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Format = DXGI_FORMAT_UNKNOWN; // Structured buffers don’t have a format
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+		srvDesc.Buffer.NumElements = 1000;
+
+		device->CreateShaderResourceView(sRendererData->ParticleBuffer.Get(), &srvDesc, &sRendererData->ParticlesSRV);
+
+		uint16_t indices[] = { 0, 1, 2, 2, 1, 3 };
+
+		D3D11_BUFFER_DESC indexBufferDesc = {};
+		indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		indexBufferDesc.ByteWidth = sizeof(indices);
+		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+		D3D11_SUBRESOURCE_DATA indexData = { indices, 0, 0 };
+		device->CreateBuffer(&indexBufferDesc, &indexData, &sRendererData->ParticleIndexBuffer);
+	}
+
+	void Renderer::InvalidateParticleBuffers(size_t nrOfParticles, size_t maxNrOfParticles)
+	{
+		size_t newSize;
+		if (maxNrOfParticles != sRendererData->NrOfParticlesToRender && maxNrOfParticles > 0 && nrOfParticles <= maxNrOfParticles)
+			newSize = maxNrOfParticles;
+		else if (nrOfParticles > maxNrOfParticles)
+			newSize = nrOfParticles + maxNrOfParticles;
+		else
+			return;
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_BUFFER_DESC bufferDesc = {};
+		bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		bufferDesc.ByteWidth = sizeof(Particle) * newSize;
+		bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		bufferDesc.StructureByteStride = sizeof(Particle);
+
+		device->CreateBuffer(&bufferDesc, nullptr, &sRendererData->ParticleBuffer);
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Format = DXGI_FORMAT_UNKNOWN; // Structured buffers don’t have a format
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+		srvDesc.Buffer.NumElements = newSize;
+
+		device->CreateShaderResourceView(sRendererData->ParticleBuffer.Get(), &srvDesc, &sRendererData->ParticlesSRV);
+	}
+
+	void Renderer::FillParticleBuffer(std::vector<Particle>& particles)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		D3D11_MAPPED_SUBRESOURCE mappedResource;
+		deviceContext->Map(sRendererData->ParticleBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		Particle* instances = reinterpret_cast<Particle*>(mappedResource.pData);
+
+		for (size_t i = 0; i < particles.size(); ++i)
+			instances[i] = particles[i];
+
+		deviceContext->Unmap(sRendererData->ParticleBuffer.Get(), 0);
+
+		sRendererData->NrOfParticlesToRender = particles.size();
 	}
 
 }
