@@ -362,6 +362,76 @@ namespace Toast {
 				}
 			}
 
+			// Process Particles
+			{
+				size_t maxParticleCount = 0;
+
+				int32_t nrOfParticles = 0;
+				auto view = mRegistry.view<ParticlesComponent>();
+				for (auto entity : view)
+				{
+					Entity e = { entity, this };
+
+					ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
+
+					maxParticleCount += (pc.MaxLifeTime / pc.SpawnDelay) + 1;
+					nrOfParticles += pc.Particles.size();
+				}
+
+				Renderer::InvalidateParticleBuffers(nrOfParticles, maxParticleCount);
+
+				for (auto entity : view)
+				{
+					Entity e = { entity, this };
+
+					ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
+					TransformComponent& tc = e.GetComponent<TransformComponent>();
+
+					DirectX::XMFLOAT3 spawnPosition = e.GetComponent<TransformComponent>().Translation;
+
+					DirectX::XMFLOAT3 finalVelocity = { 0.0f, 0.0f, 0.0f };
+
+					DirectX::XMMATRIX rotationMatrix = tc.GetRotation();
+					if (e.HasParent())
+					{
+						Entity parent = FindEntityByUUID(e.GetParentUUID());
+
+						auto parentTC = parent.GetComponent<TransformComponent>();
+
+						RigidBodyComponent parentRB;
+
+						if (parent.HasComponent<RigidBodyComponent>())
+							parentRB = parent.GetComponent<RigidBodyComponent>();
+
+						DirectX::XMMATRIX parentTransform = parentTC.GetTransformWithoutScale();
+
+						finalVelocity = { pc.Velocity.x + (float)parentRB.LinearVelocity.x, pc.Velocity.y + (float)parentRB.LinearVelocity.y, pc.Velocity.z + (float)parentRB.LinearVelocity.z };
+
+						// Transform the local spawn position by the parent's transform.
+						DirectX::XMVECTOR localPos = DirectX::XMLoadFloat3(&spawnPosition);
+						DirectX::XMVECTOR worldPos = DirectX::XMVector3Transform(localPos, parentTransform);
+						DirectX::XMStoreFloat3(&spawnPosition, worldPos);
+
+						rotationMatrix = DirectX::XMMatrixMultiply(rotationMatrix, parentTC.GetRotation());
+					}
+
+					Renderer::SetParticleMaskTexture(pc.MaskTexture);
+
+					mParticleSystem->OnUpdate(ts, pc, spawnPosition, tc.Scale, rotationMatrix, maxParticleCount, finalVelocity);
+				}
+
+				// Gather particles from all Particle Systems
+				std::vector<Particle> aggregatedParticles;
+				for (auto entity : view)
+				{
+					Entity e = { entity, this };
+					ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
+					aggregatedParticles.insert(aggregatedParticles.end(), pc.Particles.begin(), pc.Particles.end());
+				}
+
+				Renderer::FillParticleBuffer(aggregatedParticles);
+			}
+
 			// Rebuild planet if needed
 			auto view = mRegistry.view<PlanetComponent, TransformComponent>();
 			for (auto entity : view)
@@ -895,7 +965,7 @@ namespace Toast {
 
 				Renderer::SetParticleMaskTexture(pc.MaskTexture);
 
-				mParticleSystem->OnUpdate(ts, pc, spawnPosition, tc.Scale, rotationMatrix, maxParticleCount);
+				mParticleSystem->OnUpdate(ts, pc, spawnPosition, tc.Scale, rotationMatrix, maxParticleCount, pc.Velocity);
 			}
 
 			// Gather particles from all Particle Systems

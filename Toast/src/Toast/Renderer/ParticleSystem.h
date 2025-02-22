@@ -33,7 +33,7 @@ namespace Toast {
 		ParticleSystem() = default;
 
 		bool Initialize();
-		void OnUpdate(float dt, ParticlesComponent& particles, DirectX::XMFLOAT3 spawnPos, DirectX::XMFLOAT3 spawnSize, DirectX::XMMATRIX roationQuat, size_t maxNrOfParticles);
+		void OnUpdate(float dt, ParticlesComponent& particles, DirectX::XMFLOAT3 spawnPos, DirectX::XMFLOAT3 spawnSize, DirectX::XMMATRIX roationQuat, size_t maxNrOfParticles, DirectX::XMFLOAT3 velocity);
 
 		Vector3 RandomVelocityInCone(const Vector3& baseDir, double coneAngleDegrees);
 		DirectX::XMFLOAT3 RandomPointInBox(const DirectX::XMFLOAT3& boxCenter, const DirectX::XMFLOAT3& boxSize, float biasExponent);

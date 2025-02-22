@@ -237,5 +237,15 @@ namespace Toast
         internal static extern IntPtr RigidBodyComponent_GetLinearVelocity(ulong entityID, out Vector3 result);
 
         #endregion
+
+        #region Particles Component
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool ParticlesComponent_GetEmitting(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool ParticlesComponent_SetEmitting(ulong entityID, bool value);
+
+        #endregion
     }
 }

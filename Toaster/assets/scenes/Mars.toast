@@ -45,6 +45,19 @@ Entities:
         - Name: MouseSpeedFactor
           Type: Float
           Data: 15
+  - Entity: 6550578897121100505
+    TagComponent:
+      Tag: Control Script
+    RelationshipComponent:
+      ParentHandle: 1011378371315993937
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    ScriptComponent:
+      ClassName: Sandbox.StarshipController
   - Entity: 10932979762110412218
     TagComponent:
       Tag: Rocket Exhaust RB3
@@ -60,15 +73,15 @@ Entities:
       Emitting: false
       MaxLifeTime: 0.600000024
       SpawnDelay: 0.00079999998
-      Velocity: [0, -2, 0]
+      Velocity: [0, -32, 0]
       StartColor: [0.784313738, 0.517647088, 0]
       EndColor: [0.407843143, 0.203921571, 0.827450991]
       ColorBlendFactor: 0.150000006
       ConeAngleDegrees: 0
       BiasExponent: 1
       GrowRate: 1
-      BurstInitial: 21.2000008
-      BurstDecay: 13.3999996
+      BurstInitial: 1.10000002
+      BurstDecay: 4.5
       Size: 1.09000003
       SpawnFunction: 2
       AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
@@ -87,15 +100,15 @@ Entities:
       Emitting: false
       MaxLifeTime: 0.600000024
       SpawnDelay: 0.00079999998
-      Velocity: [0, -2, 0]
+      Velocity: [0, -32, 0]
       StartColor: [0.784313738, 0.517647088, 0]
       EndColor: [0.407843143, 0.203921571, 0.827450991]
       ColorBlendFactor: 0.150000006
       ConeAngleDegrees: 0
       BiasExponent: 1
       GrowRate: 1
-      BurstInitial: 21.2000008
-      BurstDecay: 13.3999996
+      BurstInitial: 1.10000002
+      BurstDecay: 4.5
       Size: 1.09000003
       SpawnFunction: 2
       AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
@@ -114,15 +127,15 @@ Entities:
       Emitting: false
       MaxLifeTime: 0.599978328
       SpawnDelay: 0.000800004229
-      Velocity: [0, -2, 0]
+      Velocity: [0, -32, 0]
       StartColor: [0.784810126, 0.516583741, 0]
       EndColor: [0.407843143, 0.203921571, 0.827450991]
       ColorBlendFactor: 0.149999991
       ConeAngleDegrees: 1.29999447
       BiasExponent: 1
       GrowRate: 1
-      BurstInitial: 21.2000198
-      BurstDecay: 13.3999596
+      BurstInitial: 1.0999999
+      BurstDecay: 4.49999952
       Size: 1.07999933
       SpawnFunction: 2
       AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
@@ -139,7 +152,7 @@ Entities:
       Scale: [1, 18, 1]
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
-      Text: "Altitude:"
+      Text: "Altitude: 0 m"
   - Entity: 10576137050822311080
     TagComponent:
       Tag: VelocityText
@@ -153,7 +166,7 @@ Entities:
       Scale: [14, 18, 1]
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
-      Text: "Velocity: 16 m/s"
+      Text: "Velocity: 0,1 m/s"
   - Entity: 9950678948338922188
     TagComponent:
       Tag: CloseButton
@@ -181,8 +194,9 @@ Entities:
         - Handle: 5011225552529671311
         - Handle: 5971587976312402801
         - Handle: 10932979762110412218
+        - Handle: 6550578897121100505
     TransformComponent:
-      Translation: [-20, 50, 50]
+      Translation: [-20, 50, 291]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
     MeshComponent:
@@ -386,7 +400,7 @@ Entities:
       ClassName: Sandbox.TimeText
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
-      Text: 00:00:01
+      Text: 00:00:16
   - Entity: 4566870064654448293
     TagComponent:
       Tag: TimeScale4
