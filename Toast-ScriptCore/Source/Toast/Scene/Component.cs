@@ -353,4 +353,20 @@ namespace Toast
             }
         }
     }
+
+    public class ParticlesComponent : Component
+    {
+        public bool Emitting
+        {
+            get
+            {
+                return InternalCalls.ParticlesComponent_GetEmitting(Entity.ID);
+            }
+
+            set
+            {
+                InternalCalls.ParticlesComponent_SetEmitting(Entity.ID, value);
+            }
+        }
+    }
 }

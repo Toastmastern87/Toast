@@ -741,6 +741,34 @@ namespace Toast {
 
 #pragma endregion
 
+#pragma region Particles Component
+
+	void ParticlesComponent_SetEmitting(uint64_t entityID, bool value)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<ParticlesComponent>();
+
+		component.Emitting = value;
+	}
+
+	bool ParticlesComponent_GetEmitting(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<ParticlesComponent>();
+
+		return component.Emitting;
+	}
+
+#pragma endregion
+
 	template<typename Component>
 	static void RegisterComponent()
 	{
@@ -767,6 +795,7 @@ namespace Toast {
 		RegisterComponent<UIButtonComponent>();
 		RegisterComponent<UITextComponent>();
 		RegisterComponent<RigidBodyComponent>();
+		RegisterComponent<ParticlesComponent>();
 	}
 
 	void ScriptGlue::RegisterFunctions()
@@ -841,6 +870,9 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetAltitude);
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_RequestAltitude);
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetLinearVelocity);
+
+		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_GetEmitting);
+		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_SetEmitting);
 	}
 
 }

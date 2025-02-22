@@ -10,7 +10,7 @@ namespace Toast{
 		return true;
 	}
 
-	void ParticleSystem::OnUpdate(float dt, ParticlesComponent& particles, DirectX::XMFLOAT3 spawnPos, DirectX::XMFLOAT3 spawnSize, DirectX::XMMATRIX roationQuat, size_t maxNrOfParticles)
+	void ParticleSystem::OnUpdate(float dt, ParticlesComponent& particles, DirectX::XMFLOAT3 spawnPos, DirectX::XMFLOAT3 spawnSize, DirectX::XMMATRIX roationQuat, size_t maxNrOfParticles, DirectX::XMFLOAT3 velocity)
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
@@ -24,9 +24,9 @@ namespace Toast{
 			// Create a new particle and add it to the list
 			if (particles.Particles.size() < maxNrOfParticles && particles.Emitting) {
 
-				DirectX::XMFLOAT3 velocity = { 0.0f, 0.0f, 0.0f };
+				DirectX::XMFLOAT3 finalVelocity = { 0.0f, 0.0f, 0.0f };
 
-				DirectX::XMVECTOR originalVel = DirectX::XMLoadFloat3(&particles.Velocity);
+				DirectX::XMVECTOR originalVel = DirectX::XMLoadFloat3(&velocity);
 				DirectX::XMVECTOR rotatedVel = DirectX::XMVector3Transform(originalVel, roationQuat);
 
 				DirectX::XMFLOAT3 tempVelocity;
@@ -39,7 +39,7 @@ namespace Toast{
 					case EmitFunction::CONE:
 					{
 						Vector3 velocityVec = RandomVelocityInCone(tempVelocity, particles.ConeAngleDegrees);
-						velocity = { (float)velocityVec.x, (float)velocityVec.y, (float)velocityVec.z };
+						finalVelocity = { (float)velocityVec.x, (float)velocityVec.y, (float)velocityVec.z };
 
 						finalSpawnPos = spawnPos;
 
@@ -49,13 +49,13 @@ namespace Toast{
 					{
 						finalSpawnPos = RandomPointInBox(spawnPos, spawnSize, particles.BiasExponent);
 
-						velocity = tempVelocity;
+						finalVelocity = tempVelocity;
 
 						break;
 					}
 					default:
 					{
-						velocity = tempVelocity;
+						finalVelocity = tempVelocity;
 
 						finalSpawnPos = spawnPos;
 
@@ -65,7 +65,7 @@ namespace Toast{
 					
 				Particle newParticle;
 				newParticle.Position = finalSpawnPos;
-				newParticle.Velocity = velocity;
+				newParticle.Velocity = finalVelocity;
 				newParticle.StartColor = particles.StartColor;
 				newParticle.EndColor = particles.EndColor;
 				newParticle.ColorBlendFactor = particles.ColorBlendFactor;
