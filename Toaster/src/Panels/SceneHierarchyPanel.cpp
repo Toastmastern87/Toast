@@ -6,6 +6,7 @@
 #include "Toast/Core/UUID.h"
 
 #include "Toast/Scene/Components.h"
+#include "Toast/Scene/Prefab.h"
 
 #include "Toast/Scripting/ScriptEngine.h"
 
@@ -27,6 +28,9 @@
 #endif
 
 namespace Toast {
+
+	static bool showPrefabPopup = false;
+	static char prefabName[128] = "NewPrefab";
 
 	SceneHierarchyPanel::SceneHierarchyPanel(const Ref<Scene>& context)
 	{
@@ -168,12 +172,71 @@ namespace Toast {
 
 					mContext->AddChildEntity(childEntity, entity);
 				}
+				else if (ImGui::MenuItem("Create Prefab"))
+				{
+					showPrefabPopup = true;
+					memset(prefabName, 0, sizeof(prefabName)); // Clear the name input
+					strcpy(prefabName, "NewPrefab"); // Set default name
+					ImGui::OpenPopup("Prefab Name");
+				}
 
 				else if (ImGui::MenuItem("Delete Entity"))
 					entityDeleted = true;
 
 				ImGui::EndPopup();
 			}
+
+			ImVec4 titleBarColor = ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive];
+			ImVec4 titleBarHoveredColor = ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered];
+			ImVec4 buttonColor = ImGui::GetStyle().Colors[ImGuiCol_Button];
+
+			ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, ImVec4(0, 0, 0, 0));
+			ImGui::PushStyleColor(ImGuiCol_PopupBg, titleBarColor);
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, titleBarHoveredColor);
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, titleBarColor);
+
+			ImGui::SetNextWindowBgAlpha(1.0f);
+
+			// Prefab name popup
+			if (showPrefabPopup)
+			{
+				ImGui::OpenPopup("Prefab Name");
+			}
+
+			if (ImGui::BeginPopupModal("Prefab Name", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				ImGui::Text("Enter Prefab Name:");
+				ImGui::InputText("##PrefabName", prefabName, IM_ARRAYSIZE(prefabName));
+
+				// Spacing before buttons
+				ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+				// Center buttons
+				float buttonWidth = 80.0f; // Adjust as needed
+				float spacing = 10.0f;     // Space between buttons
+				float totalWidth = (buttonWidth * 2) + spacing;
+				float offsetX = (ImGui::GetContentRegionAvail().x - totalWidth) * 0.5f;
+
+				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
+				if (ImGui::Button("Ok", ImVec2(buttonWidth, 0)))
+				{
+					entity.AddComponent<PrefabComponent>();
+					std::string prefabNameStr = prefabName;
+					PrefabLibrary::Load(entity, prefabNameStr); // Assuming Load() can take a name
+					showPrefabPopup = false;
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0)))
+				{
+					showPrefabPopup = false;
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndPopup();
+			}
+
+			ImGui::PopStyleColor(4);
 
 			if (opened)
 			{

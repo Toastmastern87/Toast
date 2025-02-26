@@ -91,5 +91,6 @@ namespace Toast {
 		friend class SceneHierarchyPanel;
 		friend class PropertiesPanel;
 		friend class ScriptEngine;
+		friend class Prefab;
 	};
 }

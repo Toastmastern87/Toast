@@ -1476,6 +1476,11 @@ namespace Toast {
 		}
 	}
 
+	Ref<Scene> Scene::CreateEmpty()
+	{
+		return CreateRef<Scene>();
+	}
+
 	Entity Scene::FindEntityByName(std::string_view name)
 	{
 		auto view = mRegistry.view<TagComponent>();
@@ -1576,6 +1581,7 @@ namespace Toast {
 
 		CopyComponent<RelationshipComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TagComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<PrefabComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TransformComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<MeshComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<PlanetComponent>(target->mRegistry, mRegistry, enttMap);
@@ -1609,6 +1615,11 @@ namespace Toast {
 
 	template<>
 	void Scene::OnComponentAdded<TagComponent>(Entity entity, TagComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<PrefabComponent>(Entity entity, PrefabComponent& component)
 	{
 	}
 

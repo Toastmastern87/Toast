@@ -727,6 +727,7 @@ namespace Toast {
 						std::filesystem::create_directories(assetsPath / "Meshes");
 						std::filesystem::create_directories(assetsPath / "Scripts");
 						std::filesystem::create_directories(assetsPath / "Materials");
+						std::filesystem::create_directories(assetsPath / "Prefabs");
 
 						ImGui::CloseCurrentPopup();
 					}
