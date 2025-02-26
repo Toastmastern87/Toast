@@ -134,6 +134,8 @@ namespace Toast {
 
 		void SetRenderColliders(bool renderColliders) { mSettings.RenderColliders = renderColliders; }
 		bool GetRenderColliders() { return mSettings.RenderColliders; }
+	public:
+		static Ref<Scene> CreateEmpty();
 	private:
 		template<typename T>
 		void OnComponentAdded(Entity entity, T& component);
@@ -177,6 +179,7 @@ namespace Toast {
 		friend class SceneHierarchyPanel;
 		friend class PropertiesPanel;
 		friend class SceneSettingsPanel;
+		friend class Prefab;
 	};
 }
 	

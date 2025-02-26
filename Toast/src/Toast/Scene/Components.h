@@ -61,6 +61,14 @@ namespace Toast {
 			: ParentHandle(parent) {}
 	};
 
+	struct PrefabComponent
+	{
+		UUID PrefabHandle = 0;
+
+		PrefabComponent() = default;
+		PrefabComponent(const PrefabComponent& other) = default;
+	};
+
 	struct TransformComponent
 	{
 		bool IsDirty = false;
