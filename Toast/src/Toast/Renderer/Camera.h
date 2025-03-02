@@ -16,6 +16,9 @@ namespace Toast {
 		void SetViewMatrix(DirectX::XMFLOAT4X4 viewMatrix) { mViewMatrix = viewMatrix; }
 		void SetInvViewMatrix(DirectX::XMFLOAT4X4 invViewMatrix) { mInvViewMatrix = invViewMatrix; }
 
+		void AddWorldMovement(DirectX::XMFLOAT3 worldMovement) { mWorldMovement = { mWorldMovement.x + worldMovement.x, mWorldMovement.y + worldMovement.y , mWorldMovement.z + worldMovement.z }; }
+		const DirectX::XMMATRIX& GetWorldMovementMatrix() const { return DirectX::XMMatrixIdentity() * DirectX::XMMatrixTranslation(mWorldMovement.x, mWorldMovement.y, mWorldMovement.z); }
+
 		const DirectX::XMFLOAT4X4& GetProjection() const { return mProjection; }
 		const DirectX::XMFLOAT4X4& GetInvProjection() const { return mInvProjection; }
 
@@ -28,6 +31,9 @@ namespace Toast {
 		virtual DirectX::XMFLOAT4& GetForwardDirection() = 0;
 	protected:
 		DirectX::XMFLOAT4X4 mViewMatrix, mInvViewMatrix, mProjection, mInvProjection, mOrthoProjection, mInvOrthoProjection;
+
+		DirectX::XMFLOAT3 mWorldMovement;
+
 		float mFarClip = 1000.0f, mNearClip = 0.1f;
 	};
 }

@@ -33,6 +33,7 @@ static const float maxFloat = 3.402823466e+38;
 
 cbuffer Camera : register(b0)
 {
+    matrix worldMovementMatrix;
     matrix viewMatrix;
     matrix projectionMatrix;
     matrix inverseViewMatrix;

@@ -28,6 +28,7 @@ static const float PI = 3.141592f;
 
 cbuffer Camera : register(b0)
 {
+    matrix worldMovementMatrix;
     matrix viewMatrix;
     matrix projectionMatrix;
     matrix inverseViewMatrix;

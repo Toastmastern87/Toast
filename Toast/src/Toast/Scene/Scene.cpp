@@ -629,7 +629,7 @@ namespace Toast {
 					DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(rot) * DirectX::XMMatrixTranslationFromVector(pos);
 
 					if (renderCollider && mSettings.RenderColliders)
-						RendererDebug::SubmitMesh(colliderMesh, transform, false);
+						RendererDebug::SubmitMesh(colliderMesh, transform);
 				}
 			}
 			RendererDebug::EndScene(true, true, true, false);

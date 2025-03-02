@@ -24,6 +24,7 @@ PixelInputType main(uint vID : SV_VertexID)
 
 cbuffer Camera : register(b0)
 {
+    matrix worldMovementMatrix;
     matrix viewMatrix;
     matrix projectionMatrix;
     matrix inverseViewMatrix;
