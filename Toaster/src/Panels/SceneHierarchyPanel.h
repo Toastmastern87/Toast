@@ -7,6 +7,8 @@
 
 #include <DirectXMath.h>
 
+#include <imgui\imgui.h>
+
 namespace Toast {
 
 	class SceneHierarchyPanel 
@@ -31,5 +33,9 @@ namespace Toast {
 		Entity mEntityBeingRenamed;
 		char mRenameBuffer[256];
 		bool mSetRenameFocus = false;
+
+		Entity mPrefabEntity;
+		bool mShowPrefabPopup = false;
+		ImVec2 mPrefabPopupPos;
 	};
 }

@@ -1,0 +1,7 @@
+Scene: Untitled Scene
+Entities:
+  - Entity: 1034185941074640339
+    TagComponent:
+      Tag: Empty Entity
+    PrefabComponent:
+      PrefabHandle: NewPrefab

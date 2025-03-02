@@ -1,0 +1,36 @@
+Prefab Name: NewPrefab
+Entities:
+  - Entity: 1705921641518105795
+    TagComponent:
+      Tag: TestName
+    RelationshipComponent:
+      ParentHandle: 18357309353755304169
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    SpriteRendererComponent:
+      Color: [1, 1, 1, 1]
+  - Entity: 18357309353755304169
+    TagComponent:
+      Tag: Entity
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        - Handle: 13440773533260087559
+        - Handle: 1705921641518105795
+    PrefabComponent:
+      PrefabHandle: NewPrefab
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    RigidBodyComponent:
+      InvMass: 0
+      Elasticity: 0
+      Friction: 0
+      CenterOfMass: [0, 0, 0]
+      LinearDamping: 0
+      AngularDamping: 0

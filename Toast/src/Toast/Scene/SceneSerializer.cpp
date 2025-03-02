@@ -4,6 +4,8 @@
 #include "Entity.h"
 #include "Components.h"
 
+#include "Toast/Scene/Prefab.h"
+
 #include "Toast/Core/Math/Vector.h"
 
 #include "Toast/Scripting/ScriptEngine.h"
@@ -194,6 +196,21 @@ namespace Toast {
 			out << YAML::EndMap; // TagComponent
 		}
 
+		if (entity.HasComponent<PrefabComponent>())
+		{
+			out << YAML::Key << "PrefabComponent";
+			out << YAML::BeginMap; // PrefabComponent
+
+			auto& pc = entity.GetComponent<PrefabComponent>();
+			out << YAML::Key << "PrefabHandle" << YAML::Value << pc.PrefabHandle;
+
+			out << YAML::EndMap; // PrefabComponent
+
+			out << YAML::EndMap; // Entity
+
+			return;
+		}
+
 		if (entity.HasComponent<RelationshipComponent>())
 		{
 			out << YAML::Key << "RelationshipComponent";
@@ -215,17 +232,16 @@ namespace Toast {
 			out << YAML::EndSeq;
 
 			out << YAML::EndMap; // RelationshipComponent
-		}
 
-		if (entity.HasComponent<PrefabComponent>())
-		{
-			out << YAML::Key << "PrefabComponent";
-			out << YAML::BeginMap; // PrefabComponent
+			if (rc.ParentHandle > 0)
+			{
+				if (entity.GetScene()->FindEntityByUUID(rc.ParentHandle).HasComponent<PrefabComponent>())
+				{
+					out << YAML::EndMap; // Entity
 
-			auto& pc = entity.GetComponent<PrefabComponent>();
-			out << YAML::Key << "PrefabHandle" << YAML::Value << pc.PrefabHandle;
-
-			out << YAML::EndMap; // PrefabComponent
+					return;
+				}
+			}
 		}
 
 		if (entity.HasComponent<TransformComponent>())
@@ -559,6 +575,73 @@ namespace Toast {
 		out << YAML::EndMap; // Entity
 	}
 
+	template<typename T>
+	static void CopyComponentIfExists(entt::entity dst, entt::registry& dstRegistry, entt::entity src, entt::registry& srcRegistry)
+	{
+		if (srcRegistry.has<T>(src))
+		{
+			auto& srcComponent = srcRegistry.get<T>(src);
+			dstRegistry.emplace_or_replace<T>(dst, srcComponent);
+		}
+	}
+
+	void SceneSerializer::CopyComponents(Entity& target, Entity& source)
+	{
+		CopyComponentIfExists<PrefabComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<TransformComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<MeshComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<PlanetComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<CameraComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<SpriteRendererComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<DirectionalLightComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<SkyLightComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<ScriptComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<RigidBodyComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<SphereColliderComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<BoxColliderComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<TerrainColliderComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<UIPanelComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<UITextComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<UIButtonComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<TerrainDetailComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<TerrainObjectComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+		CopyComponentIfExists<ParticlesComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+	}
+
+	void SceneSerializer::InstantiatePrefabChildren(Scene* currentScene, Entity& sceneParent, Entity prefabParent)
+	{
+		// Check if the prefab parent has any children.
+		if (!prefabParent.HasComponent<RelationshipComponent>())
+			return;
+
+		auto& prefabRel = prefabParent.GetComponent<RelationshipComponent>();
+
+		// Loop over each child handle from the prefab parent's RelationshipComponent.
+		for (auto childFileHandle : prefabRel.Children)
+		{
+			// In the prefab scene, find the child entity by its file handle.
+			Entity prefabChild = prefabParent.GetScene()->FindEntityByUUID(childFileHandle);
+			if (!prefabChild)
+				continue;
+
+			// Create a new entity in the current scene for this prefab child.
+			std::string childName = "Prefab Child";
+			if (prefabChild.HasComponent<TagComponent>()) 
+				childName = prefabChild.GetComponent<TagComponent>().Tag;
+			Entity newChild = currentScene->CreateEntity(childName);
+
+			// Set up the parent-child relationship: newChild becomes a child of sceneParent.
+			newChild.SetParentUUID(sceneParent.GetUUID());
+			sceneParent.Children().push_back(newChild.GetUUID());
+
+			// Copy all desired components from the prefab child to the new scene entity.
+			CopyComponents(newChild, prefabChild);
+
+			// Recursively instantiate any children of this prefab child.
+			InstantiatePrefabChildren(currentScene, newChild, prefabChild);
+		}
+	}
+
 	void SceneSerializer::Serialize(const std::string& filepath)
 	{
 		YAML::Emitter out;
@@ -571,6 +654,19 @@ namespace Toast {
 		mScene->mRegistry.each([&](auto entityID)
 		{
 			Entity entity = { entityID, mScene.get() };
+
+			// Skip if this entity is a child of a prefab.
+			if (entity.HasComponent<RelationshipComponent>())
+			{
+				auto parentHandle = entity.GetComponent<RelationshipComponent>().ParentHandle;
+				if (parentHandle != 0)
+				{
+					Entity parent = mScene->FindEntityByUUID(parentHandle);
+					if (parent && parent.HasComponent<PrefabComponent>())
+						return; // Skip serializing this entity.
+				}
+			}
+
 			if (entity.HasComponent<CameraComponent>())
 			{
 				if (entity.GetComponent<CameraComponent>().Primary)
@@ -581,6 +677,19 @@ namespace Toast {
 		mScene->mRegistry.each([&](auto entityID)
 		{
 			Entity entity = { entityID, mScene.get() };
+
+			// Skip if this entity is a child of a prefab.
+			if (entity.HasComponent<RelationshipComponent>())
+			{
+				auto parentHandle = entity.GetComponent<RelationshipComponent>().ParentHandle;
+				if (parentHandle != 0)
+				{
+					Entity parent = mScene->FindEntityByUUID(parentHandle);
+					if (parent && parent.HasComponent<PrefabComponent>())
+						return; // Skip serializing this entity.
+				}
+			}
+
 			if (!entity || !entity.HasComponent<IDComponent>())
 				return;
 
@@ -641,16 +750,42 @@ namespace Toast {
 
 				Entity deserializedEntity = mScene->CreateEntityWithID(uuid, name);
 
-				auto relationshipComponent = entity["RelationshipComponent"];
-				auto& rc = deserializedEntity.GetComponent<RelationshipComponent>();
-				rc.ParentHandle = relationshipComponent["ParentHandle"].as<uint64_t>();
-				auto children = relationshipComponent["Children"];
-				if (children)
+				auto prefabComponent = entity["PrefabComponent"];
+				if (prefabComponent)
 				{
-					for (auto child : children)
+					// Add the prefab component to the deserialized entity.
+					auto& pc = deserializedEntity.AddComponent<PrefabComponent>();
+					pc.PrefabHandle = prefabComponent["PrefabHandle"].as<std::string>();
+
+					// Retrieve the entire prefab hierarchy from the library.
+					std::vector<Entity> prefabEntities = PrefabLibrary::GetEntities(pc.PrefabHandle);
+					if (!prefabEntities.empty())
 					{
-						uint64_t childHandle = child["Handle"].as<uint64_t>();
-						rc.Children.push_back(childHandle);
+						// Use the prefab root (first entity) to update the scene entity.
+						Entity prefabRoot = prefabEntities.front();
+
+						// Copy the prefab root's components to the deserialized entity.
+						CopyComponents(deserializedEntity, prefabRoot);
+
+						// Instantiate any children from the prefab hierarchy as children of deserializedEntity.
+						InstantiatePrefabChildren(mScene.get(), deserializedEntity, prefabRoot);
+					}
+				}
+
+				auto relationshipComponent = entity["RelationshipComponent"];
+				if (relationshipComponent) 
+				{
+					auto& rc = deserializedEntity.GetComponent<RelationshipComponent>();
+					rc.ParentHandle = relationshipComponent["ParentHandle"].as<uint64_t>();
+
+					auto children = relationshipComponent["Children"];
+					if (children)
+					{
+						for (auto child : children)
+						{
+							uint64_t childHandle = child["Handle"].as<uint64_t>();
+							rc.Children.push_back(childHandle);
+						}
 					}
 				}
 

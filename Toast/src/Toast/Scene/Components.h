@@ -63,7 +63,7 @@ namespace Toast {
 
 	struct PrefabComponent
 	{
-		UUID PrefabHandle = 0;
+		std::string PrefabHandle;
 
 		PrefabComponent() = default;
 		PrefabComponent(const PrefabComponent& other) = default;
