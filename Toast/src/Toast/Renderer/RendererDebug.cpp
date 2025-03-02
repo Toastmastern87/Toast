@@ -25,7 +25,7 @@ namespace Toast {
 		mDebugData->OutlineShader = CreateRef<Shader>("assets/shaders/Debug/Outline.hlsl");
 
 		// Setting up the constant buffer and data buffer for the debug rendering data
-		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 288, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Camera) });
+		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 352, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Camera) });
 		mDebugData->mDebugCBuffer->Bind();
 		mDebugData->mDebugBuffer.Allocate(mDebugData->mDebugCBuffer->GetSize());
 		mDebugData->mDebugBuffer.ZeroInitialize();
@@ -51,12 +51,13 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		// Updating the camera data in the buffer and mapping it to the GPU
-		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 0);
-		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 64);
-		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 128);
-		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 192);
-		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 272);
-		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 276);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 0); // Temp
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 64);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 128);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 192);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 256);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 336);
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 340);
 		mDebugData->mDebugCBuffer->Map(mDebugData->mDebugBuffer);
 
 		mDebugData->LineVertexBufferPtr = mDebugData->LineVertexBufferBase;
@@ -197,7 +198,7 @@ namespace Toast {
 				noWorldTransform = 0;
 
 				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
-				sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 68);
+				sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 72);
 				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
 				meshCommand.Mesh->Bind();
@@ -209,19 +210,22 @@ namespace Toast {
 		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
 
 		// Particle Guides, for now only but in the future more non wireframe debugging objects will be added here.
-		for (const auto& meshCommand : sRendererData->MeshNoWireframeDrawList)
+		if (!runtime) 
 		{
-			for (Submesh& submesh : meshCommand.Mesh->mLODGroups[0]->Submeshes)
+			for (const auto& meshCommand : sRendererData->MeshNoWireframeDrawList)
 			{
-				noWorldTransform = 0;
+				for (Submesh& submesh : meshCommand.Mesh->mLODGroups[0]->Submeshes)
+				{
+					noWorldTransform = 0;
 
-				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
-				sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 68);
-				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+					sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+					sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 68);
+					sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-				meshCommand.Mesh->Bind();
+					meshCommand.Mesh->Bind();
 
-				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+					RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+				}
 			}
 		}
 

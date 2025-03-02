@@ -10,6 +10,7 @@ vertex
 
 cbuffer Camera : register(b0)
 {
+    matrix worldMovementMatrix;
     matrix viewMatrix;
     matrix projectionMatrix;
     matrix inverseViewMatrix;

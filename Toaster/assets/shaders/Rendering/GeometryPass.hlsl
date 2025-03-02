@@ -11,6 +11,7 @@ instance
 
 cbuffer Camera : register(b0)
 {
+    matrix worldMovementMatrix;
     matrix viewMatrix;
     matrix projectionMatrix;
     matrix inverseViewMatrix;
@@ -25,6 +26,7 @@ cbuffer Camera : register(b0)
 cbuffer Model : register(b1)
 {
     matrix worldMatrix;
+    float clickable;
     int entityID;
     int noWorldTransform;
     int isInstanced;
@@ -157,7 +159,10 @@ PixelInputType main(VertexInputType input)
 
     output.texCoord = input.texCoord;
 
-    output.entityID = entityID;
+    if (clickable > 0)
+        output.entityID = entityID;
+    else
+        output.entityID = -1;
 
     return output;
 }
@@ -238,7 +243,8 @@ PixelOutputType main(PixelInputType input)
     output.position = float4(input.viewPosition, 1.0f);
 	
     // Entity ID
-    output.entityID = input.entityID + 1;
+    if (input.entityID > -1)
+        output.entityID = input.entityID + 1;
     
     // Handle Normal Mapping
     float3 N;

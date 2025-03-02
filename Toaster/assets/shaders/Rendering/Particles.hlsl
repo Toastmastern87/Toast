@@ -38,6 +38,7 @@ StructuredBuffer<ParticleInstance> particleBuffer : register(t0);
 
 cbuffer Camera : register(b0)
 {
+    matrix worldMovementMatrix;
     matrix viewMatrix;
     matrix projectionMatrix;
     matrix inverseViewMatrix;

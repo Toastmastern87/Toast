@@ -39,7 +39,7 @@ namespace Toast {
 		sRendererData->ShadowMapViewport.MaxDepth = 1.0f;
 
 		// Setting up the constant buffer and data buffer for the camera rendering
-		sRendererData->CameraCBuffer = ConstantBufferLibrary::Load("Camera", 288, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Camera) });
+		sRendererData->CameraCBuffer = ConstantBufferLibrary::Load("Camera", 352, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Camera) });
 		sRendererData->CameraCBuffer->Bind();
 		sRendererData->CameraBuffer.Allocate(sRendererData->CameraCBuffer->GetSize());
 		sRendererData->CameraBuffer.ZeroInitialize();
@@ -202,15 +202,16 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		// Updating the camera data in the buffer and mapping it to the GPU
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 0);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 64);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 128);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 192);
-		sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos.x, 16, 256);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 272);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 276);
-		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Width, 4, 280);
-		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Height, 4, 284);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetWorldMovementMatrix(), 64, 0);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 64);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 128);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 192);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 256);
+		sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos.x, 16, 320);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 336);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 340);
+		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Width, 4, 344);
+		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Height, 4, 348);
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
 		// Updating the lightning data in the buffer and mapping it to the GPU
@@ -764,11 +765,14 @@ namespace Toast {
 
 			int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
 
+			float clickable = meshCommand.PlanetData ? 0 : 1;
+
 			// Model data
 			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
-			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
-			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 68);
-			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 72);
+			sRendererData->ModelBuffer.Write((uint8_t*)&clickable, 4, 64);
+			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 68);
+			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 72);
+			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 76);
 			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
 			for (Submesh& submesh : meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes)
@@ -850,11 +854,14 @@ namespace Toast {
 
 			int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
 
+			float clickable = meshCommand.PlanetData ? 0 : 1;
+
 			// Model data
 			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
-			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
-			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 68);
-			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 72);
+			sRendererData->ModelBuffer.Write((uint8_t*)&clickable, 4, 64);
+			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 68);
+			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 72);
+			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 76);
 			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
 			RenderCommand::DrawIndexed(0, 0, meshCommand.Mesh->GetIndices().size());
@@ -1120,15 +1127,16 @@ namespace Toast {
 #endif
 
 		// Camera needs rebinding at this stage
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 0);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 64);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 128);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 192);
-		sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos.x, 16, 256);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 272);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 276);
-		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Width, 4, 280);
-		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Height, 4, 284);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetWorldMovementMatrix(), 64, 0); 
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 64);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 128);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 192);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 256);
+		sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos.x, 16, 320);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 336);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 340);
+		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Width, 4, 344);
+		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Height, 4, 348);
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
 		RenderCommand::SetViewport(sRendererData->Viewport);
