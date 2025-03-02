@@ -1,6 +1,5 @@
 #include "SceneHierarchyPanel.h"
 
-#include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
 #include "Toast/Core/UUID.h"
@@ -29,7 +28,6 @@
 
 namespace Toast {
 
-	static bool showPrefabPopup = false;
 	static char prefabName[128] = "NewPrefab";
 
 	SceneHierarchyPanel::SceneHierarchyPanel(const Ref<Scene>& context)
@@ -54,6 +52,60 @@ namespace Toast {
 			if(e.GetParentUUID() == 0)
 				DrawEntityNode(e);
 		}
+
+		ImVec4 titleBarColor = ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive];
+		ImVec4 titleBarHoveredColor = ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered];
+		ImVec4 buttonColor = ImGui::GetStyle().Colors[ImGuiCol_Button];
+
+		ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, ImVec4(0, 0, 0, 0));
+		ImGui::PushStyleColor(ImGuiCol_PopupBg, titleBarColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, titleBarHoveredColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, titleBarColor);
+
+		ImGui::SetNextWindowBgAlpha(1.0f);
+
+		// Prefab name popup
+		if (mShowPrefabPopup)
+		{
+			ImGui::SetNextWindowPos(ImVec2(mPrefabPopupPos.x + 50, mPrefabPopupPos.y + 50), ImGuiCond_Appearing);
+			ImGui::OpenPopup("Prefab Name");
+		}
+
+		if (ImGui::BeginPopupModal("Prefab Name", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			ImGui::Text("Enter Prefab Name:");
+			ImGui::InputText("##PrefabName", prefabName, IM_ARRAYSIZE(prefabName));
+
+			// Spacing before buttons
+			ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+			// Center buttons
+			float buttonWidth = 80.0f; // Adjust as needed
+			float spacing = 10.0f;     // Space between buttons
+			float totalWidth = (buttonWidth * 2) + spacing;
+			float offsetX = (ImGui::GetContentRegionAvail().x - totalWidth) * 0.5f;
+
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
+			if (ImGui::Button("Ok", ImVec2(buttonWidth, 0)))
+			{
+				auto& pc = mPrefabEntity.AddComponent<PrefabComponent>();
+				std::string prefabNameStr = prefabName;
+				pc.PrefabHandle = prefabNameStr;
+				PrefabLibrary::Load(mPrefabEntity, prefabNameStr); // Assuming Load() can take a name
+				mShowPrefabPopup = false;
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0)))
+			{
+				mShowPrefabPopup = false;
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+
+		ImGui::PopStyleColor(4);
 
 		// Right-click on blank space
 		if (ImGui::BeginPopupContextWindow(0, 1, false))
@@ -146,9 +198,14 @@ namespace Toast {
 		}
 		else
 		{
+			if (entity.HasComponent<PrefabComponent>())
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.5f, 1.0f, 1.0f)); 
+
 			ImGuiTreeNodeFlags flags = ((mSelectionContext == entity) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
 			flags |= entity.GetComponent<RelationshipComponent>().Children.size() == 0 ? ImGuiTreeNodeFlags_Leaf : 0;
 			flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
+
+
 			bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, tag.c_str());
 			if (ImGui::IsItemClicked() && !ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 				SetSelectedEntity(entity);
@@ -163,8 +220,11 @@ namespace Toast {
 				mSetRenameFocus = true;
 			}
 
+			if (entity.HasComponent<PrefabComponent>())
+				ImGui::PopStyleColor(); // Reset text color
+
 			bool entityDeleted = false;
-			if (ImGui::BeginPopupContextItem())
+			if (ImGui::BeginPopupContextItem("EntityContextMenu"))
 			{
 				if (ImGui::MenuItem("Create Child Entity"))
 				{
@@ -172,74 +232,38 @@ namespace Toast {
 
 					mContext->AddChildEntity(childEntity, entity);
 				}
-				else if (ImGui::MenuItem("Create Prefab"))
+				
+				if (entity.HasComponent<PrefabComponent>())
 				{
-					showPrefabPopup = true;
-					memset(prefabName, 0, sizeof(prefabName)); // Clear the name input
-					strcpy(prefabName, "NewPrefab"); // Set default name
-					ImGui::OpenPopup("Prefab Name");
+					auto& pc = entity.GetComponent<PrefabComponent>();
+
+					if (ImGui::MenuItem("Update Prefab"))
+						PrefabLibrary::Update(entity, pc.PrefabHandle);
+				}
+				else 
+				{
+					if (ImGui::MenuItem("Create Prefab"))
+					{
+						mPrefabEntity = entity;
+						mShowPrefabPopup = true;
+						mPrefabPopupPos = ImGui::GetMousePos();
+						memset(prefabName, 0, sizeof(prefabName)); // Clear the name input
+						strcpy(prefabName, "NewPrefab"); // Set default name
+					}
+
 				}
 
-				else if (ImGui::MenuItem("Delete Entity"))
+				if(ImGui::MenuItem("Delete Entity"))
 					entityDeleted = true;
 
 				ImGui::EndPopup();
 			}
 
-			ImVec4 titleBarColor = ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive];
-			ImVec4 titleBarHoveredColor = ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered];
-			ImVec4 buttonColor = ImGui::GetStyle().Colors[ImGuiCol_Button];
-
-			ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, ImVec4(0, 0, 0, 0));
-			ImGui::PushStyleColor(ImGuiCol_PopupBg, titleBarColor);
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, titleBarHoveredColor);
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, titleBarColor);
-
-			ImGui::SetNextWindowBgAlpha(1.0f);
-
-			// Prefab name popup
-			if (showPrefabPopup)
-			{
-				ImGui::OpenPopup("Prefab Name");
-			}
-
-			if (ImGui::BeginPopupModal("Prefab Name", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-			{
-				ImGui::Text("Enter Prefab Name:");
-				ImGui::InputText("##PrefabName", prefabName, IM_ARRAYSIZE(prefabName));
-
-				// Spacing before buttons
-				ImGui::Dummy(ImVec2(0.0f, 10.0f));
-
-				// Center buttons
-				float buttonWidth = 80.0f; // Adjust as needed
-				float spacing = 10.0f;     // Space between buttons
-				float totalWidth = (buttonWidth * 2) + spacing;
-				float offsetX = (ImGui::GetContentRegionAvail().x - totalWidth) * 0.5f;
-
-				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
-				if (ImGui::Button("Ok", ImVec2(buttonWidth, 0)))
-				{
-					entity.AddComponent<PrefabComponent>();
-					std::string prefabNameStr = prefabName;
-					PrefabLibrary::Load(entity, prefabNameStr); // Assuming Load() can take a name
-					showPrefabPopup = false;
-					ImGui::CloseCurrentPopup();
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0)))
-				{
-					showPrefabPopup = false;
-					ImGui::CloseCurrentPopup();
-				}
-
-				ImGui::EndPopup();
-			}
-
-			ImGui::PopStyleColor(4);
-
 			if (opened)
 			{
+				if (entity.HasComponent<PrefabComponent>())
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.5f, 1.0f, 1.0f));
+
 				ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
 				//TOAST_CORE_INFO("entity.Children().size: %d", entity.Children().size());
 				for (auto child : entity.Children())
@@ -250,6 +274,9 @@ namespace Toast {
 				}
 
 				ImGui::TreePop();
+
+				if (entity.HasComponent<PrefabComponent>())
+					ImGui::PopStyleColor(); // Reset text color
 			}
 
 			if (entityDeleted)

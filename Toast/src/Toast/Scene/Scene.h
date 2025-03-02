@@ -119,6 +119,8 @@ namespace Toast {
 
 		void AddChildEntity(Entity entity, Entity parent);
 
+		void AddPrefab(std::string& prefabName);
+
 		const EntityMap& GetEntityMap() const { return mEntityIDMap; }
 		void CopyTo(Ref<Scene>& target);
 

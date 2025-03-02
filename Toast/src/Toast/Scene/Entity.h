@@ -83,6 +83,8 @@ namespace Toast {
 		UUID GetUUID() { return GetComponent<IDComponent>().ID; }
 
 		UUID GetSceneUUID() { return mScene->GetUUID(); }
+
+		Scene* GetScene() { return mScene; }
 	private:
 		entt::entity mEntityHandle{ entt::null };
 		Scene* mScene = nullptr;

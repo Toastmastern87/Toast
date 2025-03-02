@@ -283,8 +283,6 @@ namespace Toast {
 			if(mViewportSize.x != mPreviousViewportSize.x || mViewportSize.y != mPreviousViewportSize.y)
 				Renderer::OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
-			//TOAST_CORE_INFO("Setting viewport size to mViewportSize.x: %f, mViewportSize.y: %f", mViewportSize.x, mViewportSize.y);
-
 			void* textureID = nullptr;
 
 			switch (mEditorScene->GetSettings().RenderOverlaySetting)
@@ -323,7 +321,22 @@ namespace Toast {
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 				{
 					const wchar_t* path = (const wchar_t*)payload->Data;
-					OpenScene(std::filesystem::path(gAssetPath) / path);
+					auto completePath = std::filesystem::path(gAssetPath) / path;
+					std::string filename = completePath.string();
+
+					// Get the file extension in lowercase
+					std::string extension = completePath.extension().string();
+					std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+
+					if (extension == ".ptoast")
+					{
+						std::string prefabName = completePath.stem().string();
+						mEditorScene->AddPrefab(prefabName);
+					}
+					else if (extension == ".toast")
+						OpenScene(completePath);
+					else
+						TOAST_CORE_WARN("Unhandled file type dropped: %s", filename.c_str());
 				}
 
 				ImGui::EndDragDropTarget();

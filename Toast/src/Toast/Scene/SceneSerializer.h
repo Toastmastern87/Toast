@@ -64,6 +64,10 @@ namespace Toast {
 
 		bool Deserialize(const std::string& filepath);
 		bool DeserializeRuntime(const std::string& filepath);
+
+		void CopyComponents(Entity& target, Entity& source);
+
+		void InstantiatePrefabChildren(Scene* currentScene, Entity& parentEntity, Entity prefabParent);
 	private:
 		Ref<Scene> mScene;
 	};

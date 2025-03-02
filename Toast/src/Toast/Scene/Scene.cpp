@@ -3,6 +3,7 @@
 
 #include "Toast/Scene/Entity.h"
 #include "Toast/Scene/Components.h"
+#include "Toast/Scene/Prefab.h"
 
 #include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/Renderer2D.h"
@@ -1536,6 +1537,80 @@ namespace Toast {
 	{
 		entity.SetParentUUID(parent.GetUUID());
 		parent.Children().push_back(entity.GetUUID());
+	}
+
+	template<typename T>
+	static void CopyComponentIfExists(entt::entity dst, entt::registry& dstRegistry, entt::entity src, entt::registry& srcRegistry)
+	{
+		if (srcRegistry.has<T>(src))
+		{
+			auto& srcComponent = srcRegistry.get<T>(src);
+			dstRegistry.emplace_or_replace<T>(dst, srcComponent);
+		}
+	}
+
+	void Scene::AddPrefab(std::string& prefabName)
+	{
+		std::vector<Entity> prefabEntities = PrefabLibrary::GetEntities(prefabName);
+		if (prefabEntities.empty())
+			return;
+
+		Entity newRootEntity = CreateEntity("Prefab Entity");
+
+		Entity prefabRoot = prefabEntities[0];
+		CopyComponentIfExists<RelationshipComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<PrefabComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<TransformComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<MeshComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<PlanetComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<CameraComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<SpriteRendererComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<DirectionalLightComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<SkyLightComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<ScriptComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<RigidBodyComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<SphereColliderComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<BoxColliderComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<TerrainColliderComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<UIPanelComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<UITextComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<UIButtonComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<TerrainDetailComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<TerrainObjectComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<ParticlesComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+
+		for (size_t i = 1; i < prefabEntities.size(); ++i)
+		{
+			Entity prefabChild = prefabEntities[i];
+			std::string childName = prefabChild.HasComponent<TagComponent>() ?
+				prefabChild.GetComponent<TagComponent>().Tag : "Prefab Child";
+			Entity newChild = CreateEntity(childName);
+
+			// Copy components from the prefab child to the new child entity.
+			CopyComponentIfExists<RelationshipComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<PrefabComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<TransformComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<MeshComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<PlanetComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<CameraComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<SpriteRendererComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<DirectionalLightComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<SkyLightComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<ScriptComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<RigidBodyComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<SphereColliderComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<BoxColliderComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<TerrainColliderComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<UIPanelComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<UITextComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<UIButtonComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<TerrainDetailComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<TerrainObjectComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			CopyComponentIfExists<ParticlesComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+
+			newChild.SetParentUUID(newRootEntity.GetUUID());
+			newRootEntity.Children().push_back(newChild.GetUUID());
+		}
 	}
 
 	template<typename T>
