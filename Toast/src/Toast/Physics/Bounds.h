@@ -9,10 +9,11 @@ namespace Toast {
 	public:
 		Bounds() { Clear(); }
 		Bounds(const Bounds& rhs) : mins(rhs.mins), maxs(rhs.maxs) {}
-		const Bounds& operator= (const Bounds& rhs);
+		Bounds& operator= (const Bounds& rhs);
 		const Bounds& operator+ (const Vector3& rhs);
 		const Bounds& operator- (const Vector3& rhs);
 		const Bounds& operator* (Matrix& transform);
+		Bounds& operator+=(const Vector3& rhs);
 		~Bounds() = default;
 
 		void Clear() {

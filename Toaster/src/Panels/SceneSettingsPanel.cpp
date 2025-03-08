@@ -26,7 +26,7 @@ namespace Toast {
 
 		if(mContext)
 		{
-			const char* items[] = { "None", "G-Buffer Positions", "G-Buffer Normals", "G-Buffer Albedo/Metallic", "Roughness", "Lighting Pass Output", "Atmospheric Scattering Output", "SSAO"};
+			const char* items[] = { "None", "G-Buffer Positions", "G-Buffer Normals", "G-Buffer Albedo/Metallic", "Roughness", "Lighting Pass Output", "Atmospheric Scattering Output", "SSAO", "SSAOBlur" };
 			int currentOverlay = static_cast<int>(mContext->mSettings.RenderOverlaySetting);
 
 			ImGui::Text("Render Overlay");
@@ -58,6 +58,11 @@ namespace Toast {
 			ImGui::Checkbox("Show sun light frustum", &mContext->mSettings.SunLightFrustum);
 			ImGui::Checkbox("Shadows", &mContext->mSettings.Shadows);
 			ImGui::Checkbox("SSAO", &mContext->mSettings.SSAO);
+			ImGui::Checkbox("SSAODebugging", &mContext->mSettings.SSAODebugging);
+			ImGui::Text("SSAO Radius");
+			ImGuiHelpers::ManualDragFloat("##ssaoradius", mContext->mSettings.SSAORadius, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 50.0f);
+			ImGui::Text("SSAO bias");
+			ImGuiHelpers::ManualDragFloat("##ssaobias", mContext->mSettings.SSAObias, mWindow, activeDragArea, 0.001f, ImVec2{ 255.0f, 20.0f }, "%.4f", -1.0f, 1.0f);
 			ImGui::Checkbox("Dynamic IBL", &mContext->mSettings.DynamicIBL);
 			if(ImGui::Checkbox("Planet backface culling", &mContext->mSettings.BackfaceCulling))
 				mContext->mSettings.IsDirty = true;

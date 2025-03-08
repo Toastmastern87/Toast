@@ -13,6 +13,7 @@ namespace Sandbox
 
         private TransformComponent mPanelTransform;
         private UIPanelComponent mPanel;
+        private SphereColliderComponent mCollider;
         private RigidBodyComponent mRigidBody;
         private UITextComponent mVelocityText;
         private UITextComponent mAltitudeText;
@@ -32,7 +33,8 @@ namespace Sandbox
             mAltitudeEntity = FindChildEntityByName("InfoPopup", "AltitudeText");
             mPanel = mStarshipInfoPanel.GetComponent<UIPanelComponent>();
             mPanelTransform = mStarshipInfoPanel.GetComponent<TransformComponent>();
-            mRigidBody = mStarship.GetComponent<RigidBodyComponent>();
+            mCollider = mStarship.GetComponent<SphereColliderComponent>();
+            mRigidBody = mStarship.GetComponent <RigidBodyComponent>();
             mVelocityText = mVelocityEntity.GetComponent<UITextComponent>();
             mAltitudeText = mAltitudeEntity.GetComponent<UITextComponent>();
 
@@ -41,7 +43,7 @@ namespace Sandbox
 
         void OnEvent()
         {
-            if (Input.IsMouseButtonPressed(MouseCode.ButtonLeft))
+            if (Input.IsMouseButtonPressed(MouseCode.ButtonLeft)) 
                 mPanel.Visible = true;
         }
 
@@ -51,7 +53,7 @@ namespace Sandbox
             {
                 Vector2 mousePos = Input.GetMousePosition();
 
-                mRigidBody.ReqAltitude = true;
+                mCollider.ReqAltitude = true;
 
                 if (Input.IsMouseButtonPressed(MouseCode.ButtonLeft))
                 {
@@ -98,8 +100,6 @@ namespace Sandbox
 
                 mTotalTime += ts;
             }
-            else
-                mRigidBody.ReqAltitude = false;
         }
     }
 }

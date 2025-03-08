@@ -30,7 +30,7 @@ PixelInputType main(uint vID : SV_VertexID)
 
 cbuffer Camera : register(b0)
 {
-    matrix worldMovementMatrix;
+    matrix worldTranslationMatrix;
     matrix viewMatrix;
     matrix projectionMatrix;
     matrix inverseViewMatrix;
@@ -122,8 +122,10 @@ float4 main(PixelInputType input) : SV_Target
     // Star visibility transitions from 0 to 1 as sunElevation goes from 0.0 to -0.1
     float starVisibility = smoothstep(0.2f, -0.4f, sunElevation);
 
+    float3 planetCenterTranslated = mul(float4(planetCenter, 1.0f), worldTranslationMatrix).xyz;
+    
     // Compute camera altitude
-    float cameraAltitude = length(cameraPosition.xyz - planetCenter);
+    float cameraAltitude = length(cameraPosition.xyz - planetCenterTranslated);
 
     // Altitude factor ranges from 0 (surface) to 1 (space)
     float altitudeFactor = saturate((cameraAltitude - (radius + minAltitude)) / (maxAltitude - minAltitude));

@@ -51,7 +51,7 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		// Updating the camera data in the buffer and mapping it to the GPU
-		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 0); // Temp
+		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetWorldTranslationMatrix(), 64, 0);
 		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 64);
 		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 128);
 		mDebugData->mDebugBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 192);
@@ -181,7 +181,7 @@ namespace Toast {
 
 			noWorldTransform = 1;
 
-			sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 68);
+			sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 72);
 			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
 			RenderCommand::Draw(mDebugData->LineVertexCount);
@@ -219,7 +219,7 @@ namespace Toast {
 					noWorldTransform = 0;
 
 					sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
-					sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 68);
+					sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 72);
 					sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
 					meshCommand.Mesh->Bind();

@@ -72,9 +72,6 @@ namespace Toast {
 
 			// Shadow mapping Pass
 			Ref<RenderTarget> ShadowMapRT;
-
-			// SSAO Pass
-			Ref<RenderTarget> SSAORT;
 			
 			// Lightning Pass
 			Ref<RenderTarget> LPassRT;
@@ -100,14 +97,19 @@ namespace Toast {
 			Microsoft::WRL::ComPtr<ID3D11RasterizerState> NormalRasterizerState, WireframeRasterizerState, ShadowMapRasterizerState;
 
 			// Depth data
-			Scope<Texture2D> DepthBuffer, ShadowPassDepth, SSAONoiseTexture;
+			Scope<Texture2D> DepthBuffer, ShadowPassDepth;
 			Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthEnabledStencilState, DepthDisabledStencilState, DepthSkyboxPassStencilState, ShadowPassDepthStencilState;
 			Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencilView, ShadowPassStencilView;
 
 			// Blend data
 			Microsoft::WRL::ComPtr<ID3D11BlendState> GPassBlendState, LPassBlendState, AtmospherePassBlendState, PostProcessBlendState, UIBlendState;
 
-			//Particle Data
+			// SSAO data
+			Ref<RenderTarget> SSAORT, SSAOBlurRT;
+			std::vector<DirectX::XMFLOAT4> SSAONoiseCPU;
+			Scope<Texture2D> SSAONoiseTexture;
+
+			// Particle Data
 			Microsoft::WRL::ComPtr<ID3D11Buffer> ParticleBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> ParticleIndexBuffer;
 			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ParticlesSRV;
@@ -126,7 +128,7 @@ namespace Toast {
 		static void OnViewportResize(uint32_t width, uint32_t height);
 
 		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos);
-		static void EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos);
+		static void EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias);
 
 		static void CreateDepthBuffer(uint32_t width, uint32_t height);
 		static void CreateDepthStencilView();
@@ -156,7 +158,7 @@ namespace Toast {
 		static void ShadowPass();
 		static void LightningPass();
 		static void ParticlesPass(Camera& camera, const DirectX::XMFLOAT4 cameraPos);
-		static void SSAOPass();
+		static void SSAOPass(float radius, float bias);
 
 		// Post Processes
 		static void SkyboxPass();
@@ -172,6 +174,7 @@ namespace Toast {
 		static Ref<RenderTarget>& GetAtmosphericScatteringRT() { return sRendererData->AtmospherePassRT; }
 
 		static Ref<RenderTarget>& GetSSAORT() { return sRendererData->SSAORT; }
+		static Ref<RenderTarget>& GetSSAOBlurRT() { return sRendererData->SSAOBlurRT; }
 
 		static Ref<RenderTarget>& GetLPassRT() { return sRendererData->LPassRT; }
 
@@ -199,6 +202,9 @@ namespace Toast {
 
 		static void GeneratePrefilteredEnvMap(int faceIndex);
 		static void GenerateIrradianceCubemap(int faceIndex);
+
+		static DirectX::XMFLOAT3 SampleSSAONoiseTexture(uint32_t x, uint32_t y);
+		static std::vector<DirectX::XMFLOAT4> GetSSAOKernel() { return sRendererData->SSAOKernel; }
 
 		// Particle System TODO: This needs reworking!
 		static void GenerateParticleBuffers();

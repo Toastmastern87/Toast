@@ -11,7 +11,7 @@ instance
 
 cbuffer Camera : register(b0)
 {
-    matrix worldMovementMatrix;
+    matrix worldTranslationMatrix;
     matrix viewMatrix;
     matrix projectionMatrix;
     matrix inverseViewMatrix;
@@ -123,14 +123,17 @@ PixelInputType main(VertexInputType input)
         
         worldPosition = float4(transformedPosition.xyz + input.worldInstancePosition, 1.0f);
         
-        float3 worldNormal = mul(input.normal, (float3x3) rotationMatrix);
-        float3 worldTangent = mul(input.tangent.xyz, (float3x3) rotationMatrix);
+        worldPosition = mul(worldPosition, worldTranslationMatrix);
+        
+        worldNormal = mul(input.normal, (float3x3) rotationMatrix);
+        worldTangent = mul(input.tangent, rotationMatrix);
     }
     else
     {
         if (noWorldTransform == 1)
         {
             worldPosition = float4(input.position, 1.0f);
+            worldPosition = mul(worldPosition, worldTranslationMatrix);
             worldNormal = input.normal;
             worldTangent = input.tangent;
 
@@ -138,6 +141,7 @@ PixelInputType main(VertexInputType input)
         else
         {
             worldPosition = mul(float4(input.position, 1.0f), worldMatrix);
+            worldPosition = mul(worldPosition, worldTranslationMatrix);
             worldNormal = mul(input.normal, (float3x3) worldMatrix);
             worldTangent = mul(input.tangent, worldMatrix);
         }
@@ -270,7 +274,10 @@ PixelOutputType main(PixelInputType input)
     // Encode Normal  
     float3 encodedNormal = N * 0.5 + 0.5;
 
-    output.normal = float4(encodedNormal, 0.0);
+    if (input.entityID > -1)
+       output.normal = float4(encodedNormal, 0.0);
+    else
+        output.normal = float4(encodedNormal, (float)input.entityID);
     
     // Albedo & Metallic
     output.albedoMetallic.rgb = params.Albedo;

@@ -345,7 +345,7 @@ namespace Toast {
 					if (mc.MeshObject->HasLODGroups())
 					{
 						double maxDistance = 10000.0;
-						double distance = Vector3::Length(tc.Translation);
+						double distance = Vector3::Length(Vector3(tc.Translation) + Vector3(mainCamera->GetWorldTranslation()));
 						double remappedDistance = std::clamp(distance / maxDistance, 0.0, 1.0);
 						mc.MeshObject->UpdateLODDistance(remappedDistance);
 
@@ -588,7 +588,7 @@ namespace Toast {
 					mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices().size());
 				}
 
-				Renderer::EndScene(true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mainCamera, cameraPosFloat);
+				Renderer::EndScene(true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias);
 			}
 
 			// Debug Rendering
@@ -611,25 +611,29 @@ namespace Toast {
 					Ref<Mesh> colliderMesh;
 					bool renderCollider = false;
 
-					if (hasSphereCollider)
+					// If the entity is a camera we don't renderer the collider during runtime
+					if (!e.HasComponent<CameraComponent>())
 					{
-						auto scc = e.GetComponent<SphereColliderComponent>();
-						scale = { (float)scc.Collider->mRadius, (float)scc.Collider->mRadius, (float)scc.Collider->mRadius };
-						colliderMesh = scc.ColliderMesh;
-						renderCollider = scc.RenderCollider;
-					}
-					else if (hasBoxCollider)
-					{
-						auto bcc = e.GetComponent<BoxColliderComponent>();
-						scale = { (float)bcc.Collider->mSize.x, (float)bcc.Collider->mSize.y, (float)bcc.Collider->mSize.z };
-						colliderMesh = bcc.ColliderMesh;
-						renderCollider = bcc.RenderCollider;
-					}
+						if (hasSphereCollider)
+						{
+							auto scc = e.GetComponent<SphereColliderComponent>();
+							scale = { (float)scc.Collider->mRadius, (float)scc.Collider->mRadius, (float)scc.Collider->mRadius };
+							colliderMesh = scc.ColliderMesh;
+							renderCollider = scc.RenderCollider;
+						}
+						else if (hasBoxCollider)
+						{
+							auto bcc = e.GetComponent<BoxColliderComponent>();
+							scale = { (float)bcc.Collider->mSize.x, (float)bcc.Collider->mSize.y, (float)bcc.Collider->mSize.z };
+							colliderMesh = bcc.ColliderMesh;
+							renderCollider = bcc.RenderCollider;
+						}
 
-					DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(rot) * DirectX::XMMatrixTranslationFromVector(pos);
+						DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(rot) * DirectX::XMMatrixTranslationFromVector(pos);
 
-					if (renderCollider && mSettings.RenderColliders)
-						RendererDebug::SubmitMesh(colliderMesh, transform);
+						if (renderCollider && mSettings.RenderColliders)
+							RendererDebug::SubmitMesh(colliderMesh, transform);
+					}
 				}
 			}
 			RendererDebug::EndScene(true, true, true, false);
@@ -659,13 +663,17 @@ namespace Toast {
 
 							auto& parentTC = parent.GetComponent<TransformComponent>();
 
-							DirectX::XMVECTOR parentWorldPos = XMLoadFloat3(&parentTC.Translation);
+							DirectX::XMFLOAT3 parentWorldPos = parentTC.Translation;
+							if (!is2DParent)
+								parentWorldPos = { parentWorldPos.x + mainCamera->GetWorldTranslation().x, parentWorldPos.y + mainCamera->GetWorldTranslation().y, parentWorldPos.z + mainCamera->GetWorldTranslation().z };
+
+							DirectX::XMVECTOR parentWorldPosVec = XMLoadFloat3(&parentWorldPos);
 							DirectX::XMMATRIX viewMatrix = DirectX::XMLoadFloat4x4(&mainCamera->GetViewMatrix());
 							DirectX::XMMATRIX projectionMatrix = DirectX::XMLoadFloat4x4(&mainCamera->GetProjection());
 
 							DirectX::XMFLOAT3 parentScreenPos;
 
-							DirectX::XMVECTOR parentViewPos = DirectX::XMVector3Transform(parentWorldPos, viewMatrix);
+							DirectX::XMVECTOR parentViewPos = DirectX::XMVector3Transform(parentWorldPosVec, viewMatrix);
 							DirectX::XMVECTOR clipSpacePos = DirectX::XMVector3Transform(parentViewPos, projectionMatrix);
 
 							float x = clipSpacePos.m128_f32[0];
@@ -1190,7 +1198,7 @@ namespace Toast {
 				mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices().size());
 			}
 
-			Renderer::EndScene(true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat);
+			Renderer::EndScene(true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias);
 		}
 
 		// Debug Rendering
@@ -1220,6 +1228,65 @@ namespace Toast {
 				RendererDebug::SubmitLine(frustumCorners[1], frustumCorners[5], sunLightFrustumColor);
 				RendererDebug::SubmitLine(frustumCorners[2], frustumCorners[6], sunLightFrustumColor);
 				RendererDebug::SubmitLine(frustumCorners[3], frustumCorners[7], sunLightFrustumColor);
+			}
+
+			// SSAO Debugging
+			if(mSettings.SSAODebugging)
+			{
+				const uint32_t NOISE_DIM = 16;
+				int centerX = static_cast<int>(mViewportWidth * 0.5f);
+				int centerY = static_cast<int>(mViewportHeight * 0.5f);
+
+				float u = (centerX / (float)mViewportWidth) * NOISE_DIM;
+				float v = (centerY / (float)mViewportHeight) * NOISE_DIM;
+
+				int noiseX = static_cast<int>(floorf(u)) % NOISE_DIM;
+				int noiseY = static_cast<int>(floorf(v)) % NOISE_DIM;
+
+				DirectX::XMFLOAT2 noiseScale = DirectX::XMFLOAT2(mViewportWidth / 16.0, mViewportHeight / 16.0);
+
+				DirectX::XMFLOAT4 posTextureValue = Renderer::GetGPassPositionRT()->ReadPixel<DirectX::XMFLOAT4>(centerX, centerY);
+				DirectX::XMFLOAT3 debugPosViewSpace = DirectX::XMFLOAT3(posTextureValue.x, posTextureValue.y, posTextureValue.z);
+				DirectX::XMVECTOR debugPosViewSpaceVec = DirectX::XMLoadFloat3(&debugPosViewSpace);
+
+				DirectX::XMFLOAT4 normalTextureValue = Renderer::GetGPassNormalRT()->ReadPixel<DirectX::XMFLOAT4>(centerX, centerY);
+				DirectX::XMFLOAT3 debugNormalViewSpace = DirectX::XMFLOAT3(normalTextureValue.x, normalTextureValue.y, normalTextureValue.z);
+				DirectX::XMVECTOR debugNormalViewSpaceVec = DirectX::XMLoadFloat3(&debugNormalViewSpace);
+				debugNormalViewSpaceVec = DirectX::XMVector3Normalize(
+					debugNormalViewSpaceVec * 2.0f - DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f)
+				);
+
+				DirectX::XMFLOAT3 randomNoise = Renderer::SampleSSAONoiseTexture(noiseX, noiseY);
+				DirectX::XMVECTOR randomNoiseVec = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&randomNoise));
+
+				float dotNV = DirectX::XMVectorGetX(DirectX::XMVector3Dot(randomNoiseVec, debugNormalViewSpaceVec));
+				DirectX::XMVECTOR tangent = DirectX::XMVector3Normalize(randomNoiseVec - debugNormalViewSpaceVec * dotNV);
+
+				DirectX::XMVECTOR bitangent = DirectX::XMVector3Cross(debugNormalViewSpaceVec, tangent);
+
+				DirectX::XMMATRIX TBN(tangent,     // tangent (row 1)
+									  bitangent, // row 2
+									  debugNormalViewSpaceVec, // row 3
+									  DirectX::XMVectorSet(0, 0, 0, 1) // row 4
+				);
+
+				//Matrix tempMatrix = Matrix(TBN);
+				//tempMatrix.ToString();
+
+				DirectX::XMVECTOR debugPointWorld = DirectX::XMVector3TransformCoord(debugPosViewSpaceVec, DirectX::XMLoadFloat4x4(&editorCamera->GetInvViewMatrix()));
+
+				for (const auto& sample : Renderer::GetSSAOKernel())
+				{
+					DirectX::XMVECTOR sampleDirView = DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat4(&sample), TBN);
+					DirectX::XMVECTOR sampleEndView = debugPosViewSpaceVec + sampleDirView * mSettings.SSAORadius;
+					DirectX::XMVECTOR sampleEndWorld = DirectX::XMVector3TransformCoord(sampleEndView, DirectX::XMLoadFloat4x4(&editorCamera->GetInvViewMatrix()));
+
+					DirectX::XMFLOAT3 sampleEndWorldFloat, debugPointWorldFloat;
+					DirectX::XMStoreFloat3(&debugPointWorldFloat, debugPointWorld);
+					DirectX::XMStoreFloat3(&sampleEndWorldFloat, sampleEndWorld);
+
+					RendererDebug::SubmitLine(debugPointWorldFloat, sampleEndWorldFloat, DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f));
+				}
 			}
 
 			// Colliders
@@ -1256,7 +1323,7 @@ namespace Toast {
 
 				DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(rot) * DirectX::XMMatrixTranslationFromVector(pos);
 
-				if(renderCollider && mSettings.RenderColliders)
+				if (renderCollider && mSettings.RenderColliders)
 					RendererDebug::SubmitMesh(colliderMesh, transform);
 			}
 

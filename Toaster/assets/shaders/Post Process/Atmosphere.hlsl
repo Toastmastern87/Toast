@@ -33,7 +33,7 @@ static const float maxFloat = 3.402823466e+38;
 
 cbuffer Camera : register(b0)
 {
-    matrix worldMovementMatrix;
+    matrix worldTranslationMatrix;
     matrix viewMatrix;
     matrix projectionMatrix;
     matrix inverseViewMatrix;
@@ -112,8 +112,10 @@ float2 RaySphere(float3 sphereCenter, float sphereRadius, float3 rayOrigin, floa
 }
 
 float3 SampleLightRay(float3 rayOrigin)
-{
-	float2 sunRayAtmoPoints = RaySphere(planetCenter, radius + atmosphereHeight, rayOrigin, -direction.xyz);
+{    
+    float3 planetCenterTranslated = mul(float4(planetCenter, 1.0f), worldTranslationMatrix).xyz;
+    
+    float2 sunRayAtmoPoints = RaySphere(planetCenterTranslated, radius + atmosphereHeight, rayOrigin, -direction.xyz);
 
     if (sunRayAtmoPoints.x == maxFloat)
     {
@@ -138,7 +140,7 @@ float3 SampleLightRay(float3 rayOrigin)
 	for (int i = 0; i < numOpticalDepthPoints; i++)
 	{
 		float3 pointInAtmosphere = rayOrigin - direction.xyz * (time + stepSize * 0.5f);
-		float height = length(pointInAtmosphere - planetCenter) - radius;
+		float height = length(pointInAtmosphere - planetCenterTranslated) - radius;
 
 		// Inside the planet, minAltitude is to make sure that the ray is lower then even the lowest point of the planet.
         if (height < minAltitude)
@@ -159,6 +161,8 @@ float3 CalculateLightScattering(float3 rayOrigin, float3 rayDir, float tEntryPoi
 	float time = tEntryPoint;
 	float stepSize = tDistanceThroughAtmo / (float)(numInScatteringPoints);
 
+    float3 planetCenterTranslated = mul(float4(planetCenter, 1.0f), worldTranslationMatrix).xyz;
+    
 	float3 rayTotalScattering = float3(0.0f, 0.0f, 0.0f);
 	float mieTotalScattering = 0.0f;
 	float3 totalTransmittance = 1.0f;
@@ -166,7 +170,7 @@ float3 CalculateLightScattering(float3 rayOrigin, float3 rayDir, float tEntryPoi
 	for (int i = 0; i < numInScatteringPoints; i++)
 	{
 		float3 pointInAtmosphere = rayOrigin + rayDir * (time + stepSize * 0.5f);
-		float height = length(pointInAtmosphere - planetCenter) - radius;
+		float height = length(pointInAtmosphere - planetCenterTranslated) - radius;
 
         if (height < minAltitude)
         {
@@ -213,7 +217,9 @@ float3 CalculateLightScattering(float3 rayOrigin, float3 rayDir, float tEntryPoi
 
 float3 ComputeScatteringAlongRay(float3 rayOrigin, float3 rayDir)
 {
-    float2 atmoHitInfo = RaySphere(planetCenter, radius + atmosphereHeight, rayOrigin, rayDir);
+    float3 planetCenterTranslated = mul(float4(planetCenter, 1.0f), worldTranslationMatrix).xyz;
+    
+    float2 atmoHitInfo = RaySphere(planetCenterTranslated, radius + atmosphereHeight, rayOrigin, rayDir);
     float tEntryPoint = atmoHitInfo.x;
     float tExitPoint = atmoHitInfo.y;
 
@@ -232,7 +238,7 @@ float3 ComputeScatteringAlongRay(float3 rayOrigin, float3 rayDir)
     for (int i = 0; i < numInScatteringPoints; i++)
     {
         float3 pointInAtmosphere = rayOrigin + rayDir * (time + stepSize * 0.5f);
-        float height = length(pointInAtmosphere - planetCenter) - radius;
+        float height = length(pointInAtmosphere - planetCenterTranslated) - radius;
 
         if (height < minAltitude)
             return float3(0.0f, 0.0f, 0.0f);
@@ -289,7 +295,9 @@ float4 main(PixelInputType input) : SV_TARGET
 		
         float3 rayDir = normalize(worldPosPixel - rayOrigin);
         
-        float2 atmoHitInfo = RaySphere(planetCenter, radius + atmosphereHeight, rayOrigin, rayDir);
+        float3 planetCenterTranslated = mul(float4(planetCenter, 1.0f), worldTranslationMatrix).xyz;
+        
+        float2 atmoHitInfo = RaySphere(planetCenterTranslated, radius + atmosphereHeight, rayOrigin, rayDir);
         float dstToAtmosphere = atmoHitInfo.x;
         float dstThroughAtmosphere = atmoHitInfo.y - atmoHitInfo.x;
         
@@ -303,7 +311,7 @@ float4 main(PixelInputType input) : SV_TARGET
             sceneDepthNonLinear = DepthTexture.Sample(DefaultSampler, input.texCoord).r;
             sceneDepth = LinearEyeDepth(sceneDepthNonLinear);
             sceneDepth = (1.0f - Remap(sceneDepth, far, near, 0.0f, 1.0f)) * length(worldPosPixel - rayOrigin);
-
+            
             // If using depth, constrain the atmospheric distance by scene geometry
             dstThroughAtmosphere = min(dstThroughAtmosphere, sceneDepth - dstToAtmosphere);
         }
@@ -347,7 +355,7 @@ float4 main(PixelInputType input) : SV_TARGET
             float3 sunScatteringColor = ComputeScatteringAlongRay(rayOrigin, sunDir);
 
             // Compute the viewer's height above the planet surface
-            float viewerHeight = length(rayOrigin - planetCenter) - radius;
+            float viewerHeight = length(rayOrigin - planetCenterTranslated) - radius;
 
             // Normalize viewer height to a range [0, 1] for blending
             float atmosphereTransitionHeight = atmosphereHeight * 0.1f; // Adjust as needed

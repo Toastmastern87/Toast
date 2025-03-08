@@ -11,7 +11,7 @@ instance
 
 cbuffer Camera : register(b0)
 {
-    matrix worldMovementMatrix;
+    matrix worldTranslationMatrix;
 	matrix viewMatrix;
 	matrix projectionMatrix;
 	matrix inverseViewMatrix;
@@ -26,6 +26,7 @@ cbuffer Camera : register(b0)
 cbuffer Model : register(b1)
 {
     matrix worldMatrix;
+    float clickable;
     int entityID;
     int noWorldTransform;
     int isInstanced;
@@ -61,6 +62,7 @@ PixelInputType main(VertexInputType input)
         worldPosition = mul(float4(input.position, 1.0f), worldMatrix);
     }
 
+    worldPosition = mul(worldPosition, worldTranslationMatrix);
     output.position = mul(worldPosition, viewMatrix);
 	output.position = mul(output.position, projectionMatrix);
 

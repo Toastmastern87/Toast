@@ -3,7 +3,7 @@
 
 namespace Toast {
 
-	const Bounds& Bounds::operator=(const Bounds& rhs)
+	Bounds& Bounds::operator=(const Bounds& rhs)
 	{
 		mins = rhs.mins;
 		maxs = rhs.maxs;
@@ -28,6 +28,12 @@ namespace Toast {
 	{
 		mins = transform * mins;
 		maxs = transform * maxs;
+		return *this;
+	}
+
+	Bounds& Bounds::operator+=(const Vector3& rhs) {
+		mins += rhs;
+		maxs += rhs;
 		return *this;
 	}
 

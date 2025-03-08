@@ -250,7 +250,6 @@ namespace Toast {
 		Vector3 AngularVelocity = { 0.0f, 0.0f, 0.0f };
 		double AngularDamping = 0.0;
 		double Altitude = 0.0;
-		bool ReqAltitude = false;
 
 		RigidBodyComponent() = default;
 		RigidBodyComponent(Vector3& centerOfMass, double invMass)
@@ -263,6 +262,7 @@ namespace Toast {
 
 		Ref<Mesh> ColliderMesh;
 		bool RenderCollider = false;
+		bool ReqAltitude = false;
 
 		SphereColliderComponent() = default;
 		SphereColliderComponent(Ref<ShapeSphere>& collider, const Ref<Mesh>& mesh)
@@ -275,6 +275,7 @@ namespace Toast {
 
 		Ref<Mesh> ColliderMesh;
 		bool RenderCollider = false;
+		bool ReqAltitude = false;
 
 		BoxColliderComponent() = default;
 		BoxColliderComponent(Ref<ShapeBox>& collider)
