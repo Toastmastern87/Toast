@@ -9,6 +9,20 @@ instance
 #type vertex
 #pragma pack_matrix( row_major )
 
+cbuffer Camera : register(b0)
+{
+    matrix worldTranslationMatrix;
+    matrix viewMatrix;
+    matrix projectionMatrix;
+    matrix inverseViewMatrix;
+    matrix inverseProjectionMatrix;
+    float4 cameraPosition;
+    float far;
+    float near;
+    float viewportWidth;
+    float viewportHeight;
+};
+
 cbuffer Model : register(b1)
 {
     matrix worldMatrix;
@@ -111,13 +125,9 @@ PixelInputType main(VertexInputType input)
     else
     {
         if (noWorldTransform == 1)
-        {
             worldPosition = float4(input.position, 1.0f);
-        }
         else
-        {
             worldPosition = mul(float4(input.position, 1.0f), worldMatrix);
-        }
     }
 
     output.position = mul(worldPosition, lightViewProj);

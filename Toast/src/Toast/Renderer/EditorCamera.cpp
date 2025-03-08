@@ -44,7 +44,7 @@ namespace Toast {
 		mAspectRatio = (float)mViewportWidth / (float)mViewportHeight;
 		//Near and far switched due to Toast Engine running inverted-z depth
 		DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, mFarClip, mNearClip);
-		//DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, mNearClip, mFarClip);
+		//DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovRH(mFOV, mAspectRatio, mNearClip, mFarClip);
 
 		DirectX::XMStoreFloat4x4(&mInvProjection, DirectX::XMMatrixInverse(nullptr, projection));
 		DirectX::XMStoreFloat4x4(&mProjection, projection);

@@ -215,7 +215,6 @@ namespace Toast {
 
 #pragma endregion
 
-
 #pragma region Tag Component
 
 	MonoString* TagComponent_GetTag(uint64_t entityID)
@@ -532,6 +531,13 @@ namespace Toast {
 		component.Camera.SetNearClip(inNearClip);
 	}
 
+	static void CameraComponent_AddWorldTranslation(UUID entityID, DirectX::XMFLOAT3* translation)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		entity.GetComponent<CameraComponent>().Camera.AddWorldTranslation(*translation);
+	}
+
 #pragma endregion
 
 #pragma region Planet Component
@@ -713,18 +719,6 @@ namespace Toast {
 		return (float)component.Altitude;
 	}
 
-	void RigidBodyComponent_RequestAltitude(uint64_t entityID, bool value)
-	{
-		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
-		auto& component = entity.GetComponent<RigidBodyComponent>();
-
-		component.ReqAltitude = value;
-	}
-
 	void RigidBodyComponent_GetLinearVelocity(uint64_t entityID, DirectX::XMFLOAT3* outLinearVelocity)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
@@ -737,6 +731,38 @@ namespace Toast {
 		DirectX::XMFLOAT3 linearVelocity = { (float)component.LinearVelocity.x, (float)component.LinearVelocity.y, (float)component.LinearVelocity.z };
 
 		*outLinearVelocity = linearVelocity;
+	}
+
+#pragma endregion
+
+#pragma region Sphere Collider Component
+
+	void SphereColliderComponent_RequestAltitude(uint64_t entityID, bool value)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<SphereColliderComponent>();
+
+		component.ReqAltitude = value;
+	}
+
+#pragma endregion
+
+#pragma region Box Collider Component
+
+	void BoxColliderComponent_RequestAltitude(uint64_t entityID, bool value)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<BoxColliderComponent>();
+
+		component.ReqAltitude = value;
 	}
 
 #pragma endregion
@@ -795,6 +821,8 @@ namespace Toast {
 		RegisterComponent<UIButtonComponent>();
 		RegisterComponent<UITextComponent>();
 		RegisterComponent<RigidBodyComponent>();
+		RegisterComponent<SphereColliderComponent>();
+		RegisterComponent<BoxColliderComponent>();
 		RegisterComponent<ParticlesComponent>();
 	}
 
@@ -851,6 +879,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(CameraComponent_SetFarClip);
 		TOAST_ADD_INTERNAL_CALL(CameraComponent_GetNearClip);
 		TOAST_ADD_INTERNAL_CALL(CameraComponent_SetNearClip);
+		TOAST_ADD_INTERNAL_CALL(CameraComponent_AddWorldTranslation);
 
 		TOAST_ADD_INTERNAL_CALL(PlanetComponent_GetRadius);
 		TOAST_ADD_INTERNAL_CALL(PlanetComponent_GetSubdivisions);
@@ -868,8 +897,11 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(UITextComponent_SetText);
 		
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetAltitude);
-		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_RequestAltitude);
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetLinearVelocity);
+
+		TOAST_ADD_INTERNAL_CALL(SphereColliderComponent_RequestAltitude);
+
+		TOAST_ADD_INTERNAL_CALL(BoxColliderComponent_RequestAltitude);
 
 		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_GetEmitting);
 		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_SetEmitting);

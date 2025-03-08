@@ -126,9 +126,13 @@ namespace Toast {
 		}
 
 		// Recursively ray cast through the node hierarchy
-		static bool RaycastPlanetNode(const Ray& ray, Ref<PlanetNode>& node, double& closestT, Vector3& hitPoint) {
+		static bool RaycastPlanetNode(const Ray& ray, Ref<PlanetNode>& node, Vector3& worldTranslation, bool isCamera, double& closestT, Vector3& hitPoint) {
 			// Broad phase: check bounding box intersection
-			if (!RayIntersectsBounds(ray, node->NodeBounds))
+			Bounds nodeBounds = node->NodeBounds;
+			if (isCamera)
+				nodeBounds += worldTranslation;
+
+			if (!RayIntersectsBounds(ray, nodeBounds))
 				return false;
 
 			bool hitFound = false;
@@ -138,7 +142,7 @@ namespace Toast {
 				for (auto& child : node->ChildNodes) {
 					double tChild;
 					Vector3 hpChild;
-					if (RaycastPlanetNode(ray, child, tChild, hpChild)) {
+					if (RaycastPlanetNode(ray, child, worldTranslation, isCamera, tChild, hpChild)) {
 						if (!hitFound || tChild < closestT) {
 							hitFound = true;
 							closestT = tChild;
@@ -152,6 +156,12 @@ namespace Toast {
 				Vector3 Apos = node->A.Position;
 				Vector3 Bpos = node->B.Position;
 				Vector3 Cpos = node->C.Position;
+
+				if (isCamera) {
+					Apos += worldTranslation;
+					Bpos += worldTranslation;
+					Cpos += worldTranslation;
+				}
 
 				double t;
 				if (RayIntersectsTriangle(ray.Origin, ray.Direction, Apos, Bpos, Cpos, t)) {
@@ -610,7 +620,7 @@ namespace Toast {
 
 				collisionDetected = SphereTerrainCollisionCheck(posObject, sphereRadius, dt, collision, { Apos, Bpos, Cpos });
 
-				if (collisionDetected) 
+				if (collisionDetected)
 					return true;
 			}
 			else if (object->HasComponent<BoxColliderComponent>())
@@ -635,7 +645,6 @@ namespace Toast {
 
 			if (objectHasRigidBody)
 				rbcObject = &collision.Object->GetComponent<RigidBodyComponent>();
-
 
 			Ref<Shape> collider;
 			if (collision.Object->HasComponent<SphereColliderComponent>())
@@ -722,46 +731,7 @@ namespace Toast {
 			return impulseGravity;
 		}
 
-		//static bool BroadPhaseCheck(Ref<ShapeBox>& terrainCollider, Entity& object, float dt)
-		//{
-		//	TOAST_PROFILE_FUNCTION();
-
-		//	Vector3 objectPos = object.GetComponent<TransformComponent>().Translation;
-		//	Vector3 objectLinearVel = object.GetComponent<RigidBodyComponent>().LinearVelocity;
-		//	Bounds terrainBounds = terrainCollider->GetBounds();
-		//	Bounds objectBounds;
-
-		//	Ref<Shape> collider;
-		//	if (object.HasComponent<SphereColliderComponent>())
-		//		collider = object.GetComponent<SphereColliderComponent>().Collider;
-		//	else if (object.HasComponent<BoxColliderComponent>())
-		//		collider = object.GetComponent<BoxColliderComponent>().Collider;
-
-		//	if (!collider)
-		//		return false;
-
-		//	objectBounds = collider->GetBounds();
-
-		//	objectBounds = objectBounds + objectPos;
-
-		//	objectBounds.Expand(objectPos + objectLinearVel * dt);
-
-		//	bool intersects = terrainBounds.Intersects(objectBounds);
-
-		//	if (intersects)
-		//	{
-		//		//TOAST_CORE_CRITICAL("Broadphase about to be passed");
-		//		//objectBounds.maxs.ToString("Object Maxs: ");
-		//		//objectBounds.mins.ToString("Object Mins: ");
-		//		//terrainBounds.maxs.ToString("Terrain Maxs: ");
-		//		//terrainBounds.mins.ToString("Terrain Mins: ");
-
-		//	}
-
-		//	return intersects;
-		//}
-
-		static void UpdateSphereAltitudeAndCollision(Entity* planetEntity, Entity* objectEntity, double dt) 
+		static void UpdateSphereAltitudeAndCollision(Entity* planetEntity, Entity* objectEntity, Vector3& worldTranslation, bool isCamera, double dt)
 		{
 			TerrainCollision terrainCollision;
 
@@ -769,17 +739,20 @@ namespace Toast {
 			terrainCollision.Object = objectEntity;
 
 			auto& planet = planetEntity->GetComponent<PlanetComponent>();
-			auto& transform = objectEntity->GetComponent<TransformComponent>();
 			auto& rigidBody = objectEntity->GetComponent<RigidBodyComponent>();
 
 			double sphereRadius = 0.0;
 			if (objectEntity->HasComponent<SphereColliderComponent>()) 
 				sphereRadius = objectEntity->GetComponent<SphereColliderComponent>().Collider->mRadius;
 
-			Vector3 objectPos = transform.Translation;
+			Vector3 objectPos = objectEntity->GetComponent<TransformComponent>().Translation;
+
 			Vector3 planetCenter = Vector3(planet.PlanetData.planetCenter.x,
 				planet.PlanetData.planetCenter.y,
 				planet.PlanetData.planetCenter.z);
+			
+			if(isCamera)
+				planetCenter += worldTranslation;
 
 			Vector3 toCenter = planetCenter - objectPos;
 			double distToCenter = toCenter.Length();
@@ -805,7 +778,7 @@ namespace Toast {
 
 				double t;
 				Vector3 hp;
-				if (RaycastPlanetNode(ray, rootNode, t, hp)) {
+				if (RaycastPlanetNode(ray, rootNode, worldTranslation, isCamera, t, hp)) {
 					if (!hitFound || t < closestT) {
 						hitFound = true;
 						closestT = t;
@@ -845,7 +818,7 @@ namespace Toast {
 		static void CheckTerrainBroadPhase(Ref<PlanetNode>& node, Entity* planetEntity, Entity* objectEntity, double dt_sub, const Bounds& objectBounds)
 		{
 			// Broad phase intersection test
-			if (!node->NodeBounds.Intersects(objectBounds)) 
+			if (!node->NodeBounds.Intersects(objectBounds))
 				return;
 
 			// If not a leaf, go deeper
@@ -864,23 +837,30 @@ namespace Toast {
 			}
 		}
 
-		static void CheckPlanetCollisions(Entity planetEntity, Entity objectEntity, double dt_sub) {
+		static void CheckPlanetCollisions(Entity planetEntity, Entity objectEntity, Vector3& worldTranslation, bool isCamera, double dt_sub) {
 			auto& planet = planetEntity.GetComponent<PlanetComponent>();
 
 			//TOAST_CORE_CRITICAL("NEW PLANET CHECK");
 
 			Ref<Shape> collider;
+			bool reqAltitude = false;
 			if (objectEntity.HasComponent<SphereColliderComponent>())
+			{
 				collider = objectEntity.GetComponent<SphereColliderComponent>().Collider;
+				reqAltitude = objectEntity.GetComponent<SphereColliderComponent>().ReqAltitude;
+			}
 			else if (objectEntity.HasComponent<BoxColliderComponent>())
+			{
 				collider = objectEntity.GetComponent<BoxColliderComponent>().Collider;
+				reqAltitude = objectEntity.GetComponent<BoxColliderComponent>().ReqAltitude;
+			}
 
 			if (!collider)
 				return;
 
 			Vector3 objectPos = objectEntity.GetComponent<TransformComponent>().Translation;
+
 			Vector3 objectLinearVel = objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity;
-			bool reqAltitude = objectEntity.GetComponent<RigidBodyComponent>().ReqAltitude;
 
 			// Get object bounds
 			Bounds objectBounds;
@@ -896,7 +876,7 @@ namespace Toast {
 					CheckTerrainBroadPhase(rootNode, &planetEntity, &objectEntity, dt_sub, objectBounds);
 			}
 			else 
-				UpdateSphereAltitudeAndCollision(&planetEntity, &objectEntity, dt_sub);
+				UpdateSphereAltitudeAndCollision(&planetEntity, &objectEntity, worldTranslation, isCamera, dt_sub);
 		}
 
 		static void Update(entt::registry* registry, Scene* scene, double dt, double slowmotion, uint32_t numSubSteps)
@@ -911,11 +891,28 @@ namespace Toast {
 
 			auto view = registry->view<TransformComponent, RigidBodyComponent>();
 
+			Vector3 worldTranslation;
+			bool isCamera = false;
+
 			auto planetView = registry->view<PlanetComponent>();
 			if (planetView.size() > 0)
 			{
 				Entity planetEntity = { planetView[0], scene };
 				TerrainColliderComponent& tcc = planetEntity.GetComponent<TerrainColliderComponent>();
+
+				// Find Camera to get worldTranslation
+				for (auto entity : view)
+				{
+					Entity objectEntity = { entity, scene };
+					if (objectEntity.HasComponent<CameraComponent>())
+					{
+						auto& camera = objectEntity.GetComponent<CameraComponent>();
+
+						if (camera.Primary)
+							worldTranslation = camera.Camera.GetWorldTranslation();
+					}
+				}
+
 				for (auto entity : view)
 				{
 					Entity objectEntity = { entity, scene };
@@ -926,6 +923,11 @@ namespace Toast {
 						collider = objectEntity.GetComponent<SphereColliderComponent>().Collider;
 					if (objectEntity.HasComponent<BoxColliderComponent>())
 						collider = objectEntity.GetComponent<BoxColliderComponent>().Collider;
+
+					if (objectEntity.HasComponent<CameraComponent>())
+						isCamera = true;
+					else
+						isCamera = false;
 
 					if (collider != nullptr && !rbc.IsStatic)
 					{
@@ -950,8 +952,9 @@ namespace Toast {
 							}
 
 							// Terrain collision check
-							CheckPlanetCollisions(planetEntity, objectEntity, dt_sub);
+							CheckPlanetCollisions(planetEntity, objectEntity, worldTranslation, isCamera, dt_sub);
 
+							// Do not let the camera be effected by gravity for example
 							UpdateBody(objectEntity, dt);
 						}
 					}

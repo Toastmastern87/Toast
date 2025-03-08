@@ -104,6 +104,7 @@ namespace Toast {
 
 		// Setting up the render target for SSAO Pass
 		sRendererData->SSAORT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
+		sRendererData->SSAOBlurRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
 
 		// Setting up the render target for the Lightning Pass
 		sRendererData->LPassRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
@@ -181,6 +182,7 @@ namespace Toast {
 		sRendererData->GPassPickingRT->Resize(width, height);
 
 		sRendererData->SSAORT->Resize(width, height);
+		sRendererData->SSAOBlurRT->Resize(width, height);
 
 		sRendererData->LPassRT->Resize(width, height);
 
@@ -202,7 +204,7 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		// Updating the camera data in the buffer and mapping it to the GPU
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetWorldMovementMatrix(), 64, 0);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetWorldTranslationMatrix(), 64, 0);
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 64);
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 128);
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 192);
@@ -244,7 +246,7 @@ namespace Toast {
 		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
 
-	void Renderer::EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos)
+	void Renderer::EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias)
 	{
 		RenderCommand::SetViewport(sRendererData->Viewport);
 
@@ -257,7 +259,7 @@ namespace Toast {
 			RenderCommand::ClearDepthStencilView(sRendererData->ShadowPassStencilView);
 
 		if(SSAO)
-			SSAOPass();
+			SSAOPass(SSAORadius, SSAObias);
 		else
 			RenderCommand::ClearRenderTargets(sRendererData->SSAORT->GetRTV().Get(), { 1.0f, 1.0f, 1.0f, 1.0f });
 
@@ -506,6 +508,11 @@ namespace Toast {
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create shadow pass rasterizer state");
 	}
 
+	float lerp(float a, float b, float f)
+	{
+		return a + f * (b - a);
+	}
+
 	void Renderer::GenerateSampleKernel()
 	{
 		// Random engine & distribution setup
@@ -522,7 +529,7 @@ namespace Toast {
 		const int KERNEL_SIZE = 64;
 		sRendererData->SSAOKernel.reserve(KERNEL_SIZE);
 
-		for (int i = 0; i < KERNEL_SIZE; ++i)
+		for (int i = 0; i < KERNEL_SIZE; i++)
 		{
 			float x = randomX(gen);
 			float y = randomY(gen);
@@ -531,38 +538,31 @@ namespace Toast {
 			Vector3 sample = { x, y, z };
 			sample = Vector3::Normalize(sample);
 
-			// Scale samples so more are close to the origin
-			float scale = static_cast<float>(i) / static_cast<float>(KERNEL_SIZE);
-			// You can tweak how fast the scale ramps up
-			// e.g. "scale = lerp(0.1f, 1.0f, scale * scale)" is a common approach
-			scale = 0.1f + scale * (1.0f - 0.1f); 
-
+			float scale = (float)i / (float)KERNEL_SIZE;
+			scale = lerp(0.1f, 1.0f, scale * scale);
 			sample *= scale;
 
 			sRendererData->SSAOKernel.emplace_back(DirectX::XMFLOAT4(sample.x, sample.y, sample.z, 0.0f));
 		}
-
-		float radius = 7.5f;
-
-		sRendererData->SSAOBuffer.Write((uint8_t*)&sRendererData->SSAOKernel[0], 1024, 0);
-		sRendererData->SSAOBuffer.Write((uint8_t*)&radius, 4, 1024);
 	}
 
 	void Renderer::GenerateNoiseTexture()
 	{
-		const int NOISE_DIM = 4;
-		std::vector<DirectX::XMFLOAT3> SSAONoise;
+		const int NOISE_DIM = 16;
+		std::vector<DirectX::XMFLOAT4> SSAONoise;
 		SSAONoise.reserve(NOISE_DIM * NOISE_DIM);
 		for (int i = 0; i < NOISE_DIM * NOISE_DIM; i++) {
 			float x = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
 			float y = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
-			// z=0 so the noise vectors lie in the tangent plane
-			SSAONoise.push_back({ x, y, 0.0f });
+			// y=0 so the noise vectors lie in the tangent plane
+			SSAONoise.push_back({ x, y, 0.0f, 0.0f });
 		}
+
+		sRendererData->SSAONoiseCPU = SSAONoise;
 
 		uint32_t width = NOISE_DIM;
 		uint32_t height = NOISE_DIM;
-		uint32_t rowPitch = static_cast<uint32_t>(width * sizeof(DirectX::XMFLOAT3));
+		uint32_t rowPitch = static_cast<uint32_t>(width * sizeof(DirectX::XMFLOAT4));
 
 		sRendererData->SSAONoiseTexture = CreateScope<Texture2D>(
 			DXGI_FORMAT_R32G32B32A32_FLOAT,  // Texture format
@@ -879,7 +879,7 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer::SSAOPass()
+	void Renderer::SSAOPass(float radius, float bias)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -904,7 +904,19 @@ namespace Toast {
 
 		TextureLibrary::GetSampler("LinearSampler")->Bind(4, D3D11_PIXEL_SHADER);
 
+		sRendererData->SSAOBuffer.Write((uint8_t*)&sRendererData->SSAOKernel[0], 1024, 0);
+		sRendererData->SSAOBuffer.Write((uint8_t*)&radius, 4, 1024);
+		sRendererData->SSAOBuffer.Write((uint8_t*)&bias, 4, 1028);
+
 		sRendererData->SSAOCBuffer->Map(sRendererData->SSAOBuffer);
+
+		DrawFullscreenQuad();
+
+		RenderCommand::SetRenderTargets({ sRendererData->SSAOBlurRT->GetRTV().Get() }, nullptr);
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->SSAORT->GetSRV());
+
+		ShaderLibrary::Get("assets/shaders/Rendering/SSAOBlurPass.hlsl")->Bind();
 
 		DrawFullscreenQuad();
 
@@ -946,7 +958,7 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassNormalRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->GPassAlbedoMetallicRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->GPassRoughnessAORT->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->SSAORT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->SSAOBlurRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 12, sRendererData->ShadowPassDepth->GetSRV());
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->IrradianceCubeMap->GetSRV());
@@ -1070,9 +1082,9 @@ namespace Toast {
 			const DirectX::XMMATRIX& invViewMatrix = sRendererData->AtmosphericScatteringInvViewMatrices[currentFace];
 			DirectX::XMFLOAT4 cameraPos = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-			sRendererData->CameraBuffer.Write((uint8_t*)&viewMatrix, sizeof(viewMatrix), 0);
-			sRendererData->CameraBuffer.Write((uint8_t*)&invViewMatrix, sizeof(invViewMatrix), 128);
-			sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos, sizeof(cameraPos), 256);
+			sRendererData->CameraBuffer.Write((uint8_t*)&viewMatrix, sizeof(viewMatrix), 64);
+			sRendererData->CameraBuffer.Write((uint8_t*)&invViewMatrix, sizeof(invViewMatrix), 192);
+			sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos, sizeof(cameraPos), 320);
 			sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
 			useDepth = 0;
@@ -1127,7 +1139,7 @@ namespace Toast {
 #endif
 
 		// Camera needs rebinding at this stage
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetWorldMovementMatrix(), 64, 0); 
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetWorldTranslationMatrix(), 64, 0); 
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 64);
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 128);
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 192);
@@ -1293,6 +1305,16 @@ namespace Toast {
 		RenderCommand::ClearShaderResources();
 
 		sRendererData->IrradianceCubeMap->UnbindUAVUpdated(0, D3D11_COMPUTE_SHADER);
+	}
+
+	DirectX::XMFLOAT3 Renderer::SampleSSAONoiseTexture(uint32_t x, uint32_t y)
+	{
+		const uint32_t NOISE_DIM = 16;  // same dimension as your SSAO noise texture
+		x = x % NOISE_DIM;
+		y = y % NOISE_DIM;
+
+		const DirectX::XMFLOAT4& sample = sRendererData->SSAONoiseCPU[y * NOISE_DIM + x];
+		return { sample.x, sample.y, sample.z };
 	}
 
 	void Renderer::GenerateParticleBuffers()

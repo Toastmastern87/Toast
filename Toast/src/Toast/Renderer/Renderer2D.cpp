@@ -48,8 +48,8 @@ namespace Toast {
 
 		RenderCommand::SetPrimitiveTopology(PrimitiveTopology::TRIANGLELIST);
 
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 0);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetOrthoProjection(), 64, 64);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 64);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetOrthoProjection(), 64, 128);
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
 		sRenderer2DData->UIVertexBufferPtr = sRenderer2DData->UIVertexBufferBase;

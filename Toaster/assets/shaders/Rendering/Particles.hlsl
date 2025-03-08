@@ -38,7 +38,7 @@ StructuredBuffer<ParticleInstance> particleBuffer : register(t0);
 
 cbuffer Camera : register(b0)
 {
-    matrix worldMovementMatrix;
+    matrix worldTranslationMatrix;
     matrix viewMatrix;
     matrix projectionMatrix;
     matrix inverseViewMatrix;
@@ -65,6 +65,8 @@ PixelInputType main(uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID
     
     float burstFactor = lerp(p.burstInitial, 1.0f, saturate(p.age / p.burstDecay));
     float3 worldPos = p.position + p.velocity * p.age * burstFactor;
+    
+    worldPos = mul(float4(worldPos, 1.0f), worldTranslationMatrix).xyz;
     
     float lifeRatio = p.age / p.lifetime;
     float scaledSize = p.size * (1.0f + p.growRate * lifeRatio);

@@ -153,6 +153,11 @@ namespace Toast
                 InternalCalls.CameraComponent_SetNearClip(Entity.ID, value);
             }
         }
+
+        public void AddWorldMovement(Vector3 translationChange) 
+        {
+            InternalCalls.CameraComponent_AddWorldTranslation(Entity.ID, ref translationChange);
+        }
     }
 
     public class PlanetComponent : Component
@@ -318,17 +323,6 @@ namespace Toast
 
     public class RigidBodyComponent : Component
     {
-        public bool ReqAltitude
-        {
-            get
-            {
-                return false;
-            }
-            set
-            {
-                InternalCalls.RigidBodyComponent_RequestAltitude(Entity.ID, value);
-            }
-        }
 
         public float Altitude
         {
@@ -350,6 +344,36 @@ namespace Toast
             }
             set
             {
+            }
+        }
+    }
+
+    public class SphereColliderComponent : Component
+    {
+        public bool ReqAltitude
+        {
+            get
+            {
+                return false;
+            }
+            set
+            {
+                InternalCalls.SphereColliderComponent_RequestAltitude(Entity.ID, value);
+            }
+        }
+    }
+
+    public class BoxColliderComponent : Component
+    {
+        public bool ReqAltitude
+        {
+            get
+            {
+                return false;
+            }
+            set
+            {
+                InternalCalls.BoxColliderComponent_RequestAltitude(Entity.ID, value);
             }
         }
     }

@@ -61,6 +61,7 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Rendering/GeometryPass.hlsl");
 		ShaderLibrary::Load("assets/shaders/Rendering/ShadowPass.hlsl");
 		ShaderLibrary::Load("assets/shaders/Rendering/SSAOPass.hlsl");
+		ShaderLibrary::Load("assets/shaders/Rendering/SSAOBlurPass.hlsl");
 		ShaderLibrary::Load("assets/shaders/Rendering/LightningPass.hlsl");
 		ShaderLibrary::Load("assets/shaders/Rendering/Particles.hlsl");
 		ShaderLibrary::Load("assets/shaders/Debug/ObjectMask.hlsl");
@@ -310,6 +311,9 @@ namespace Toast {
 				break;
 			case RenderOverlay::SSAO:
 				textureID = (void*)Renderer::GetSSAORT()->GetSRV().Get();
+				break;
+			case RenderOverlay::SSAOBlur:
+				textureID = (void*)Renderer::GetSSAOBlurRT()->GetSRV().Get();
 				break;
 			}
 
@@ -982,7 +986,7 @@ namespace Toast {
 
 		if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 		{
-			int pixelData = pickingRT->ReadPixel(mouseX, mouseY);
+			int pixelData = pickingRT->ReadPixel<int>(mouseX, mouseY);
 			mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mEditorScene.get());
 		}
 
