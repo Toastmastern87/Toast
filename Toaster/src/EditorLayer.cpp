@@ -952,7 +952,11 @@ namespace Toast {
 				mSceneHierarchyPanel.SetSelectedEntity(mHoveredEntity);
 				mEditorScene->SetSelectedEntity(mHoveredEntity);
 
-
+				if (mHoveredEntity)
+				{
+					DirectX::XMFLOAT3 focalPoint = mHoveredEntity.GetComponent<TransformComponent>().Translation;
+					mEditorCamera->UpdateFocalPoint(DirectX::XMLoadFloat3(&focalPoint));
+				}
 			}
 
 			ImGuiIO& io = ImGui::GetIO();
