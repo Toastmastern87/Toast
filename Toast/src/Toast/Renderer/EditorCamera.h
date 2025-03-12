@@ -39,6 +39,8 @@ namespace Toast {
 
 		void UpdateProjection();
 		void UpdateView();
+
+		void UpdateFocalPoint(DirectX::XMVECTOR& newFocalPoint);
 	private:
 		bool OnMouseScroll(MouseScrolledEvent& e);
 

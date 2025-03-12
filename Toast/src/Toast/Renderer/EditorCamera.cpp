@@ -61,6 +61,11 @@ namespace Toast {
 		DirectX::XMStoreFloat4x4(&mInvViewMatrix, DirectX::XMMatrixInverse(nullptr, view));
 	}
 
+	void EditorCamera::UpdateFocalPoint(DirectX::XMVECTOR& newFocalPoint)
+	{
+		mFocalPoint = DirectX::XMVector3Rotate(newFocalPoint, DirectX::XMQuaternionRotationRollPitchYaw(mPitch, mYaw, 0.0f));
+	}
+
 	void EditorCamera::OnUpdate(Timestep ts)
 	{
 		const DirectX::XMVECTOR& mouse{ Input::GetMouseX(), Input::GetMouseY() };
@@ -144,13 +149,15 @@ namespace Toast {
 
 	std::pair<float, float> EditorCamera::PanSpeed() const
 	{
-		float x = std::min(mViewportWidth / 1000.0f, 2.4f); // Max is 2.4f
-		float xFactor = 0.0366f * (x * x) - 0.1778f * x + 0.3021f;
+		float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(mPosition, mFocalPoint)));
 
-		float y = std::min(mViewportHeight / 1000.0f, 2.4f); // Max is 2.4f
-		float yFactor = 0.0366f * (y * y) - 0.1778f * y + 0.3021f;
+		const float baseSpeed = 2.4f;
+		
+		const float panSpeedScale = 0.01f; // Adjust this constant to tune the sensitivity
 
-		return { xFactor, yFactor };
+		float panSpeed = baseSpeed + distance * panSpeedScale;
+
+		return { panSpeed, panSpeed };
 	}
 
 	float EditorCamera::RotationSpeed() const
@@ -161,8 +168,10 @@ namespace Toast {
 	float EditorCamera::ZoomSpeed() const
 	{
 		float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(mPosition, mFocalPoint))) * 0.2f;
-		distance = std::max(distance, 0.0f);
-		float speed = distance * distance;
+		float base = distance * 0.1f; // Adjust this constant to tune the sensitivity
+		float speed = std::pow(base, 1.5f);
+
+		speed = std::max(speed, 0.1f);
 		speed = std::min(speed, 1000.0f); // max speed = 1000
 		return speed;
 	}
