@@ -27,6 +27,8 @@ namespace Sandbox
 
         private Vector2 mCursorPos;
 
+        private float altitude = 0.0f;
+
         private float Clamp(float value, float min, float max)
         {
             return (value < min) ? min : (value > max) ? max : value;
@@ -61,7 +63,7 @@ namespace Sandbox
             //}
 
             mCollider.ReqAltitude = true;
-
+            Toast.Console.LogTrace("mCollider.ReqAltitude: " + mCollider.ReqAltitude);
             if (MaxAltitude < MinAltitude)
                 MaxAltitude = MinAltitude;
         }
@@ -72,8 +74,16 @@ namespace Sandbox
 
         void OnUpdate(float ts)
         {
-            float altitude = mRigidbody.Altitude;
-            //Toast.Console.LogTrace("Altitude at start of Update: " + altitude);
+            if (altitude > 1000.0f)
+                mCollider.ReqAltitude = false;
+            else
+                mCollider.ReqAltitude = true;
+
+            if (altitude <= 1000.0f && mCollider.ReqAltitude)
+                altitude = mRigidbody.Altitude;
+               
+
+           // Toast.Console.LogTrace("Altitude at start of Update: " + altitude + ", mCollider.ReqAltitude: " + mCollider.ReqAltitude);
             mCameraTransform = GetComponent<TransformComponent>().GetTransform();
             //mCameraRightVector = new Vector3(mCameraTransform.D00, mCameraTransform.D10, mCameraTransform.D20);
             //mCameraForwardVector = new Vector3(mCameraTransform.D02, mCameraTransform.D12, mCameraTransform.D22);
@@ -91,7 +101,6 @@ namespace Sandbox
 
             mCursorPos = newCursorPos;
 
-            // NEW WAY START
             float scaleFactor = 5.5f; // or a value that suits your needs
             float zoomSpeed = BaseZoomSpeed * (1.0f + scaleFactor * (float)Math.Log(1.0f + altitude / ReferenceAltitude));
             zoomSpeed = Clamp(zoomSpeed, 1.0f, 15000.0f);
@@ -100,15 +109,20 @@ namespace Sandbox
 
             if (Math.Abs(scrollDelta) > 0.001f)
             {
-                float deltaAltitude = zoomSpeed * (ts / Scene.TimeScale) * -scrollDelta;
+                float newAltitude = 0.0f;
+                float deltaAltitude = 0.0f;
 
-                // Ensure the new altitude remains within limits smoothly
-                float newAltitude = Clamp(altitude + deltaAltitude, MinAltitude, MaxAltitude);
+                deltaAltitude = zoomSpeed * (ts / Scene.TimeScale) * -scrollDelta;
+
+                newAltitude = Clamp(altitude + deltaAltitude, MinAltitude, MaxAltitude);
                 deltaAltitude = altitude - newAltitude;
+                altitude = newAltitude;
 
                 if (Math.Abs(deltaAltitude) > 0.0001f || scrollDelta > 0.0f)
                 {
                     Vector3 normalizedDirection = Vector3.Normalize(mMarsTransform.Translation);
+                    //Toast.Console.LogCritical("zoomSpeed: " + zoomSpeed + ", ts: " + ts + ", Scene.TimeScale: " + Scene.TimeScale + ", scrollDelta: " + scrollDelta);
+                    //Toast.Console.LogCritical("deltaAltitude: " + deltaAltitude + ", MinAltitude: " + MinAltitude + ", MaxAltitude: " + MaxAltitude);
                     mCameraComponent.AddWorldMovement(normalizedDirection * -deltaAltitude);
                 }
             }

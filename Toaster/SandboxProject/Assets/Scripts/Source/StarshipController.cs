@@ -39,9 +39,6 @@ namespace Sandbox
 
         void OnUpdate(float ts)
         {
-            if(mSphereCollider.ReqAltitude)
-                Toast.Console.LogInfo("Starship Altitude: " + mRigidBody.Altitude);
-
             if (mRigidBody.Altitude <= 130.0f && mRigidBody.Altitude > 1.0) 
             {
                 mRB1Particles.Emitting = true;
