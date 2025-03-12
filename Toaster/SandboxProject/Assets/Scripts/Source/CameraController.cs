@@ -27,7 +27,12 @@ namespace Sandbox
 
         private Vector2 mCursorPos;
 
+        private float minAltitudeForCamera = 10.0f;
+        private float maxAltitudeForCamera = 60000.0f;
+        private float minCameraFar = 250000.0f;
+        private float maxCameraFar = 800000.0f;
         private float altitude = 0.0f;
+        private float tCamera = 0.0f;
 
         private float Clamp(float value, float min, float max)
         {
@@ -62,6 +67,9 @@ namespace Sandbox
             //    Toast.Console.LogError("'Starship SN3' entity not found.");
             //}
 
+            tCamera = (altitude - minAltitudeForCamera) / (maxAltitudeForCamera - minAltitudeForCamera);
+            tCamera = Clamp(tCamera, 0.0f, 1.0f);
+
             mCollider.ReqAltitude = true;
             Toast.Console.LogTrace("mCollider.ReqAltitude: " + mCollider.ReqAltitude);
             if (MaxAltitude < MinAltitude)
@@ -74,6 +82,9 @@ namespace Sandbox
 
         void OnUpdate(float ts)
         {
+            float newCameraFar = minCameraFar + (maxCameraFar - minCameraFar) * tCamera;
+            mCameraComponent.FarClip = newCameraFar;
+
             if (altitude > 1000.0f)
                 mCollider.ReqAltitude = false;
             else
