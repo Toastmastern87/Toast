@@ -20,8 +20,8 @@ namespace Sandbox
         private SphereColliderComponent mCollider;
         private RigidBodyComponent mRigidbody;
         private PlanetComponent mMarsPlanet;
-        //private Vector3 mCameraRightVector;
-        //private Vector3 mCameraForwardVector;
+        private Vector3 mCameraRightVector;
+        private Vector3 mCameraForwardVector;
 
         private Matrix4 mCameraTransform;
 
@@ -96,8 +96,8 @@ namespace Sandbox
 
            // Toast.Console.LogTrace("Altitude at start of Update: " + altitude + ", mCollider.ReqAltitude: " + mCollider.ReqAltitude);
             mCameraTransform = GetComponent<TransformComponent>().GetTransform();
-            //mCameraRightVector = new Vector3(mCameraTransform.D00, mCameraTransform.D10, mCameraTransform.D20);
-            //mCameraForwardVector = new Vector3(mCameraTransform.D02, mCameraTransform.D12, mCameraTransform.D22);
+            mCameraRightVector = new Vector3(mCameraTransform.D00, mCameraTransform.D10, mCameraTransform.D20);
+            mCameraForwardVector = new Vector3(mCameraTransform.D02, mCameraTransform.D12, mCameraTransform.D22);
 
             Vector2 newCursorPos = Input.GetMousePosition();
 
@@ -139,6 +139,44 @@ namespace Sandbox
             }
 
             Input.SetMouseWheelDelta(0.0f);
+
+            // WASD Movement
+            Vector3 keyboardDirection = Vector3.Zero;
+            if (Input.IsKeyPressed(KeyCode.W))
+            {
+                keyboardDirection += mCameraForwardVector;
+            }
+            if (Input.IsKeyPressed(KeyCode.S))
+            {
+                keyboardDirection -= mCameraForwardVector;
+            }
+            if (Input.IsKeyPressed(KeyCode.D))
+            {
+                keyboardDirection += mCameraRightVector;
+            }
+            if (Input.IsKeyPressed(KeyCode.A))
+            {
+                keyboardDirection -= mCameraRightVector;
+            }
+
+            if (Vector3.Length(keyboardDirection) > 0.0f)
+            {
+                // Normalize to have consistent movement speed when moving diagonally.
+                keyboardDirection = Vector3.Normalize(keyboardDirection);
+
+                // Define a base speed. You can tweak this value to suit your needs.
+                float baseMovementSpeed = 50.0f;
+
+                // Increase the speed with altitude so that at higher altitudes the camera travels faster.
+                float keyboardSpeed = baseMovementSpeed * (1.0f + altitude / (ReferenceAltitude * 0.2f));
+
+                // Calculate the movement vector scaled by time
+                Vector3 keyboardMovement = keyboardDirection * keyboardSpeed * (ts / Scene.TimeScale);
+                keyboardDirection = -1.0f * keyboardMovement;
+
+                // Call AddWorldMovement with the negative vector so the world moves opposite to the intended camera motion.
+                mCameraComponent.AddWorldMovement(keyboardDirection);
+            }
         }
     }
 }
