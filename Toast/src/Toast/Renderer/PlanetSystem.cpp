@@ -127,15 +127,22 @@ namespace Toast {
 		double bDistance = (B.Position - cameraPosPlanetSpace).LengthSqrt();
 		double cDistance = (C.Position - cameraPosPlanetSpace).LengthSqrt();
 
+		//TOAST_CORE_CRITICAL("SubdivideFace: Subdivision=%d, aDistance=%.2f, bDistance=%.2f, cDistance=%.2f",
+		//	subdivision, aDistance, bDistance, cDistance);
+
 		if (subdivision >= BASE_PLANET_SUBDIVISIONS + planet.Subdivisions)	
 			nextFace = NextPlanetFace::LEAF;
 		else
 		{
+			double threshold = planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS];
+			//TOAST_CORE_CRITICAL("SubdivideFace: Threshold for subdivision %d is %.2f", subdivision, threshold);
 			if (aDistance < planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS] && bDistance < planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS] && cDistance < planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS])
 				nextFace = NextPlanetFace::SPLIT;
 			else 
 				nextFace = NextPlanetFace::LEAF; // Add triangle due to distance
 		}
+
+		//TOAST_CORE_CRITICAL("SubdivideFace: nextFace = %s", (nextFace == NextPlanetFace::SPLIT ? "SPLIT" : "LEAF"));
 
 		if (nextFace == NextPlanetFace::SPLIT)
 		{
@@ -199,6 +206,8 @@ namespace Toast {
 		}
 		else
 		{
+			//TOAST_CORE_CRITICAL("SubdivideFace: LEAF branch - adding vertices for subdivision %d", subdivision);
+
 			bool crackTriangle = false;
 			CPUVertex closestVertex, furthestVertex, middleVertex;
 
@@ -433,6 +442,8 @@ namespace Toast {
 				Ref<PlanetNode> child2 = CreateRef<PlanetNode>(A, B, C, subdivision + 1);
 				node->ChildNodes.push_back(child2);
 
+				//TOAST_CORE_CRITICAL("Planet vertices count after adding face: %zu", planet.BuildVertices.size());
+
 				//AssignFaceToChunk(additionalVertexPos, furthestVertexPos, middleVertexPos, planet.TerrainChunks, planetCenter);
 			}
 		
@@ -606,6 +617,9 @@ namespace Toast {
 
 		double dotProduct = Vector3::Dot(Vector3::Normalize(center), Vector3::Normalize(viewVector));
 
+		//TOAST_CORE_CRITICAL("TraverseNode: Node subdivision=%d, cameraDistance=%.2f, dotProduct=%.2f",
+		//	node->SubdivisionLevel, cameraDistance, dotProduct);
+
 		Ref<PlanetNode> nodeWorldSpace = CreateRef<PlanetNode>(*node);
 
 		nodeWorldSpace->A = planetTransform * node->A.Position;
@@ -618,8 +632,12 @@ namespace Toast {
 		{
 			TOAST_PROFILE_SCOPE("Backface culling test");
 			std::lock_guard<std::mutex> lock(planetDataMutex);
-			if (backfaceCull && dotProduct >= planet.FaceLevelDotLUT[(uint32_t)node->SubdivisionLevel]) 
+			if (backfaceCull && dotProduct >= planet.FaceLevelDotLUT[(uint32_t)node->SubdivisionLevel])
+			{
+				//TOAST_CORE_CRITICAL("TraverseNode: Node culled by backface (subdivision %d, dotProduct=%.2f, threshold=%.2f)",
+					//node->SubdivisionLevel, dotProduct, planet.FaceLevelDotLUT[(uint32_t)node->SubdivisionLevel]);
 				return;
+			}
 		}
 		 
 		if (frustumCullActivated)
@@ -627,14 +645,22 @@ namespace Toast {
 			TOAST_PROFILE_SCOPE("Frustum culling test");
 			auto intersect = frustum->ContainsTriangleVolume(Vector3::Normalize(node->A.Position) * planet.PlanetData.radius, Vector3::Normalize(node->B.Position) * planet.PlanetData.radius, Vector3::Normalize(node->C.Position) * planet.PlanetData.radius, planet.HeightMultLUT[node->SubdivisionLevel]);
 
-			if (intersect == VolumeTri::OUTSIDE) 
+			if (intersect == VolumeTri::OUTSIDE)
+			{
+				//TOAST_CORE_CRITICAL("TraverseNode: Node culled by frustum (subdivision %d)", node->SubdivisionLevel);
+
 				return;
+			}
 		}
 
 		//TOAST_CORE_CRITICAL("node->SubdivisionLevel going to subdivision: %d", node->SubdivisionLevel);
 
 		if (node->SubdivisionLevel >= BASE_PLANET_SUBDIVISIONS)
+		{
+			//TOAST_CORE_CRITICAL("TraverseNode: Processing face at subdivision %d", node->SubdivisionLevel);
+
 			SubdivideFace(nodeWorldSpace, node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, BASE_PLANET_SUBDIVISIONS, perlin, terrainDetail);
+		}
 		else 
 		{
 			for (auto& child : node->ChildNodes)
@@ -663,6 +689,8 @@ namespace Toast {
 		Vector3 cameraPos = { camPos };
 
 		Vector3 cameraPosPlanetSpace = Matrix::Inverse(planetTransform) * cameraPos;
+
+		//cameraPosPlanetSpace.ToString("Camera pos in planet space: ");
 		
 		{
 			std::lock_guard<std::mutex> lock(planetDataMutex);
@@ -721,6 +749,9 @@ namespace Toast {
 
 		newPlanetReady.store(true);
 		planetGenerationOngoing.store(false);
+
+		if (planet.BuildVertices.size() == 0)
+			TOAST_CORE_CRITICAL("Empty planet!!");
 
 		// Stop timing
 		auto end = std::chrono::high_resolution_clock::now();

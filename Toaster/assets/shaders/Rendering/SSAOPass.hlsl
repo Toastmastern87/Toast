@@ -67,8 +67,8 @@ float4 main(PixelInputType input) : SV_TARGET
     
     float skipSSAO = normalViewWithSkipSSAO.w;
 
-    // If no geometry at this pixel (z=0?), early out
-    if (pixelPos.z == 0.0f)
+    // If no geometry at this pixel (z=0?), early out also ignore pixels more then 1000m away 
+    if (pixelPos.z == 0.0f || pixelPos.z > 1000.0f)
         return float4(1, 1, 1, 1);
     
     float2 noiseScale = float2(viewportWidth / 16.0, viewportHeight / 16.0);
@@ -108,7 +108,6 @@ float4 main(PixelInputType input) : SV_TARGET
     // 4. Average, invert, and apply distance fade
     //------------------------------------------------------------
     occlusion = 1.0f - (occlusion / KERNEL_SIZE);
-    //occlusion *= fade; // Multiply by the distance-based fade factor
     
     return float4(occlusion, occlusion, occlusion, 1.0f);
 }

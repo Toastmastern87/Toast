@@ -131,6 +131,7 @@ namespace Toast
                 InternalCalls.CameraComponent_SetCamera(Entity.ID, ptr);
             }
         }
+
         public float FarClip
         {
             get
@@ -142,6 +143,7 @@ namespace Toast
                 InternalCalls.CameraComponent_SetFarClip(Entity.ID, value);
             }
         }
+
         public float NearClip
         {
             get
@@ -151,6 +153,19 @@ namespace Toast
             set
             {
                 InternalCalls.CameraComponent_SetNearClip(Entity.ID, value);
+            }
+        }
+
+        public Vector3 WorldTranslation
+        {
+            get
+            {
+                InternalCalls.CameraComponent_GetWorldTranslation(Entity.ID, out Vector3 result);
+                return result;
+            }
+            set
+            {
+                ;
             }
         }
 
@@ -354,7 +369,7 @@ namespace Toast
         {
             get
             {
-                return false;
+                return InternalCalls.SphereColliderComponent_GetRequestAltitude(Entity.ID);
             }
             set
             {

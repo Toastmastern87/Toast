@@ -802,6 +802,8 @@ namespace Toast {
 			terrainCollision.Depth = penetration;
 			rigidBody.Altitude = -terrainCollision.Depth;
 
+			//TOAST_CORE_CRITICAL("Altitude: %lf, number of nodes: %d ", rigidBody.Altitude, planet.PlanetNodesWorldSpace.size());
+
 			terrainCollision.Normal = Vector3::Normalize(bestHit - planetCenter);
 
 			Vector3 sphereContactPoint = objectPos - terrainCollision.Normal * (sphereRadius - penetration);

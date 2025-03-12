@@ -260,8 +260,11 @@ namespace Toast {
 
 		if(SSAO)
 			SSAOPass(SSAORadius, SSAObias);
-		else
+		else 
+		{
 			RenderCommand::ClearRenderTargets(sRendererData->SSAORT->GetRTV().Get(), { 1.0f, 1.0f, 1.0f, 1.0f });
+			RenderCommand::ClearRenderTargets(sRendererData->SSAOBlurRT->GetRTV().Get(), { 1.0f, 1.0f, 1.0f, 1.0f });
+		}
 
 		LightningPass();
 
@@ -931,7 +934,7 @@ namespace Toast {
 			annotation->EndEvent();
 #endif
 	}
-
+	
 	void Renderer::LightningPass()
 	{
 		TOAST_PROFILE_FUNCTION();

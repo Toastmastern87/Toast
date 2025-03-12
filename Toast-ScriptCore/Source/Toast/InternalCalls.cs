@@ -175,6 +175,8 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float CameraComponent_GetNearClip(ulong entityID);
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern IntPtr CameraComponent_GetWorldTranslation(ulong entityID, out Vector3 result);
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void CameraComponent_AddWorldTranslation(ulong entityID, ref Vector3 translationChange);
 
         #endregion
@@ -240,7 +242,10 @@ namespace Toast
         #region Sphere Collider Component
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float SphereColliderComponent_RequestAltitude(ulong entityID, bool value);
+        internal static extern void SphereColliderComponent_RequestAltitude(ulong entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool SphereColliderComponent_GetRequestAltitude(ulong entityID);
 
         #endregion
 

@@ -31,8 +31,6 @@ namespace Toast {
 
 	void Frustum::Update(Matrix& transform, Matrix& planetTransform)
 	{
-		//	TOAST_CORE_INFO("Updating camera frustum");
-		//TOAST_CORE_CRITICAL("BEFORE mNearTopLeft: %lf, %lf, %lf", mNearTopLeft.x, mNearTopLeft.y, mNearTopLeft.z);
 		mNearTopLeft = transform * mNearTopLeft; 
 		mNearTopRight = transform * mNearTopRight; 
 		mNearBottomLeft = transform * mNearBottomLeft; 
@@ -41,8 +39,6 @@ namespace Toast {
 		mFarTopRight = transform * mFarTopRight;
 		mFarBottomLeft = transform * mFarBottomLeft;
 		mFarBottomRight = transform * mFarBottomRight;
-
-		//TOAST_CORE_CRITICAL("AFTER mNearTopLeft: %lf, %lf, %lf", mNearTopLeft.x, mNearTopLeft.y, mNearTopLeft.z);
 
 		mPlanes.clear();
 		//winding in an outside perspective so the cross product creates normals pointing inward
