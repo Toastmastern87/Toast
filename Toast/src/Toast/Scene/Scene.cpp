@@ -1632,11 +1632,30 @@ namespace Toast {
 		if (prefabEntities.empty())
 			return;
 
-		Entity newRootEntity = CreateEntity("Prefab Entity");
+		// Mapping from old prefab UUID to new entity.
+		std::unordered_map<UUID, Entity> mapping;
+		// Mapping from old prefab UUID to its original children list.
+		std::unordered_map<UUID, std::vector<UUID>> oldChildrenMapping;
 
+		// ----- First Pass: Create new entities and store mapping -----
+
+		// Process the root prefab entity.
 		Entity prefabRoot = prefabEntities[0];
+		UUID prefabRootID = prefabRoot.GetUUID();
+		Entity newRootEntity = CreateEntity("Prefab Entity");
+		newRootEntity.AddComponent<PrefabComponent>(prefabName);
+		mapping[prefabRootID] = newRootEntity;
+
+		// If the prefab root has a RelationshipComponent, record its children.
+		if (prefabRoot.HasComponent<RelationshipComponent>())
+			oldChildrenMapping[prefabRootID] = prefabRoot.GetComponent<RelationshipComponent>().Children;
+
+		// Copy the RelationshipComponent (but clear the children list)
 		CopyComponentIfExists<RelationshipComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
-		CopyComponentIfExists<PrefabComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		if (newRootEntity.HasComponent<RelationshipComponent>())
+			newRootEntity.GetComponent<RelationshipComponent>().Children.clear();
+
+		// Copy the remaining components from the prefab root.
 		CopyComponentIfExists<TransformComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<MeshComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<PlanetComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
@@ -1656,37 +1675,72 @@ namespace Toast {
 		CopyComponentIfExists<TerrainObjectComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<ParticlesComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 
+		// Process the rest of the prefab entities.
 		for (size_t i = 1; i < prefabEntities.size(); ++i)
 		{
-			Entity prefabChild = prefabEntities[i];
-			std::string childName = prefabChild.HasComponent<TagComponent>() ?
-				prefabChild.GetComponent<TagComponent>().Tag : "Prefab Child";
-			Entity newChild = CreateEntity(childName);
+			Entity prefabEntity = prefabEntities[i];
+			UUID prefabID = prefabEntity.GetUUID();
+			std::string tagName = prefabEntity.HasComponent<TagComponent>() ?
+				prefabEntity.GetComponent<TagComponent>().Tag : "Prefab Child";
+			Entity newEntity = CreateEntity(tagName);
+			mapping[prefabID] = newEntity;
 
-			// Copy components from the prefab child to the new child entity.
-			CopyComponentIfExists<RelationshipComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<PrefabComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<TransformComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<MeshComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<PlanetComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<CameraComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<SpriteRendererComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<DirectionalLightComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<SkyLightComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<ScriptComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<RigidBodyComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<SphereColliderComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<BoxColliderComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<TerrainColliderComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<UIPanelComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<UITextComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<UIButtonComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<TerrainDetailComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<TerrainObjectComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
-			CopyComponentIfExists<ParticlesComponent>(newChild, mRegistry, prefabChild, prefabChild.mScene->mRegistry);
+			// Record the original children from the prefab's RelationshipComponent.
+			if (prefabEntity.HasComponent<RelationshipComponent>())
+				oldChildrenMapping[prefabID] = prefabEntity.GetComponent<RelationshipComponent>().Children;
 
-			newChild.SetParentUUID(newRootEntity.GetUUID());
-			newRootEntity.Children().push_back(newChild.GetUUID());
+			// Copy the RelationshipComponent and clear its children list.
+			CopyComponentIfExists<RelationshipComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			if (newEntity.HasComponent<RelationshipComponent>())
+				newEntity.GetComponent<RelationshipComponent>().Children.clear();
+
+			// Copy the remaining components.
+			CopyComponentIfExists<TransformComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<MeshComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<PlanetComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<CameraComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<SpriteRendererComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<DirectionalLightComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<SkyLightComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<ScriptComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<RigidBodyComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<SphereColliderComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<BoxColliderComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<TerrainColliderComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<UIPanelComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<UITextComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<UIButtonComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<TerrainDetailComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<TerrainObjectComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<ParticlesComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+		}
+
+		// ----- Second Pass: Update parent-child relationships using the mapping -----
+
+		for (auto& pair : mapping)
+		{
+			UUID oldID = pair.first;
+			Entity newEntity = pair.second;
+			// If this prefab entity had children...
+			if (oldChildrenMapping.find(oldID) != oldChildrenMapping.end())
+			{
+				std::vector<UUID> newChildren;
+				// For each child UUID in the prefab...
+				for (UUID oldChildID : oldChildrenMapping[oldID])
+				{
+					// Check if a new entity was created for that child.
+					if (mapping.find(oldChildID) != mapping.end())
+					{
+						Entity childEntity = mapping[oldChildID];
+						newChildren.push_back(childEntity.GetUUID());
+						// Update the child's parent pointer.
+						childEntity.SetParentUUID(newEntity.GetUUID());
+					}
+				}
+				// Update the current new entity's RelationshipComponent with the remapped children.
+				if (newEntity.HasComponent<RelationshipComponent>())
+					newEntity.GetComponent<RelationshipComponent>().Children = newChildren;
+			}
 		}
 	}
 

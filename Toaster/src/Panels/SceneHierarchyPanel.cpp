@@ -224,7 +224,8 @@ namespace Toast {
 				ImGui::PopStyleColor(); // Reset text color
 
 			bool entityDeleted = false;
-			if (ImGui::BeginPopupContextItem("EntityContextMenu"))
+			std::string popupID = "EntityContextMenu_" + std::to_string((uint32_t)entity);
+			if (ImGui::BeginPopupContextItem(popupID.c_str()))
 			{
 				if (ImGui::MenuItem("Create Child Entity"))
 				{

@@ -1,0 +1,148 @@
+Prefab Name: NewPrefab2
+Entities:
+  - Entity: 17909396776432843005
+    TagComponent:
+      Tag: TimeScale1
+    RelationshipComponent:
+      ParentHandle: 16279866250692140478
+      Children:
+        []
+    TransformComponent:
+      Translation: [458, 15.2709961, 0]
+      Rotation: [0, -0, 0]
+      Scale: [30, 10, 1]
+    ScriptComponent:
+      ClassName: Sandbox.GameSpeedButtons
+    UIButtonComponent:
+      CornerRadius: 4
+      Color: [0, 0, 0, 1]
+      ClickColor: [0, 0, 0, 1]
+  - Entity: 18159766356466617579
+    TagComponent:
+      Tag: TimeScale2
+    RelationshipComponent:
+      ParentHandle: 16279866250692140478
+      Children:
+        []
+    TransformComponent:
+      Translation: [458, 30.2711182, 0]
+      Rotation: [0, -0, 0]
+      Scale: [30, 10, 1]
+    ScriptComponent:
+      ClassName: Sandbox.GameSpeedButtons
+    UIButtonComponent:
+      CornerRadius: 4
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+  - Entity: 14280835681628790715
+    TagComponent:
+      Tag: TimeScale3
+    RelationshipComponent:
+      ParentHandle: 16279866250692140478
+      Children:
+        []
+    TransformComponent:
+      Translation: [458, 50.2086182, 0]
+      Rotation: [0, -0, 0]
+      Scale: [30, 10, 1]
+    ScriptComponent:
+      ClassName: Sandbox.GameSpeedButtons
+    UIButtonComponent:
+      CornerRadius: 4
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+  - Entity: 3533593297056682628
+    TagComponent:
+      Tag: TimeScale4
+    RelationshipComponent:
+      ParentHandle: 16279866250692140478
+      Children:
+        []
+    TransformComponent:
+      Translation: [458, 69.1669922, 0]
+      Rotation: [0, -0, 0]
+      Scale: [30, 10, 1]
+    ScriptComponent:
+      ClassName: Sandbox.GameSpeedButtons
+    UIButtonComponent:
+      CornerRadius: 4
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+  - Entity: 7060238305984675538
+    TagComponent:
+      Tag: TimeText
+    RelationshipComponent:
+      ParentHandle: 16279866250692140478
+      Children:
+        []
+    TransformComponent:
+      Translation: [135, 17.5, 0]
+      Rotation: [0, -0, 0]
+      Scale: [30, 75, 1]
+    ScriptComponent:
+      ClassName: Sandbox.TimeText
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
+      Text: 00:00:08
+  - Entity: 15980734229356442957
+    TagComponent:
+      Tag: SText
+    RelationshipComponent:
+      ParentHandle: 16279866250692140478
+      Children:
+        []
+    TransformComponent:
+      Translation: [24, 25.2086182, 0]
+      Rotation: [0, -0, 0]
+      Scale: [20, 28, 1]
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
+      Text: "Sol: 1"
+  - Entity: 6898669929104176644
+    TagComponent:
+      Tag: MText
+    RelationshipComponent:
+      ParentHandle: 16279866250692140478
+      Children:
+        []
+    TransformComponent:
+      Translation: [22.9000244, 57.1878662, 0]
+      Rotation: [0, -0, 0]
+      Scale: [20, 29, 1]
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
+      Text: "M: 1"
+  - Entity: 16279866250692140478
+    TagComponent:
+      Tag: Entity
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        - Handle: 11451148643943162086
+        - Handle: 2812129723666465913
+        - Handle: 9291025796538517788
+        - Handle: 4566870064654448293
+        - Handle: 2709097365577216560
+        - Handle: 11806276604423328658
+        - Handle: 18384185750220347789
+        - Handle: 6898669929104176644
+        - Handle: 15980734229356442957
+        - Handle: 7060238305984675538
+        - Handle: 3533593297056682628
+        - Handle: 14280835681628790715
+        - Handle: 18159766356466617579
+        - Handle: 17909396776432843005
+    PrefabComponent:
+      PrefabHandle: NewPrefab2
+    TransformComponent:
+      Translation: [770, 429.5, 0]
+      Rotation: [0, -0, 0]
+      Scale: [521, 100, 1]
+    UIPanelComponent:
+      Color: [0.0413039252, 0.0980315134, 0.489451468, 1]
+      CornerRadius: 14.1999998
+      BorderSize: 9.89999962
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\UIPanel.png
+      UseColor: false
+      Visible: true
+      ConnectToParent: false
