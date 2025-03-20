@@ -1041,10 +1041,24 @@ namespace Toast {
 		CopyComponentIfExists<TerrainObjectComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<ParticlesComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 
-		for (auto childId : entity.Children())
-		{
-			Entity childDuplicate = CreatePrefabFromEntity(entity.mScene->FindEntityByUUID(childId));
+		// Make a local copy of the original children from the source entity.
+		auto originalChildren = entity.Children();
 
+		// Clear the new entity's children list to avoid reusing stale or copied children.
+		if (newEntity.HasComponent<RelationshipComponent>())
+		{
+			newEntity.GetComponent<RelationshipComponent>().Children.clear();
+		}
+
+		// Recursively duplicate each child.
+		for (auto childId : originalChildren)
+		{
+			Entity childEntity = entity.mScene->FindEntityByUUID(childId);
+			if (!childEntity)
+				continue;
+
+			// Recursively create a duplicate for the child.
+			Entity childDuplicate = CreatePrefabFromEntity(childEntity);
 			childDuplicate.SetParentUUID(newEntity.GetUUID());
 			newEntity.Children().push_back(childDuplicate.GetUUID());
 		}
