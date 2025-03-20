@@ -682,11 +682,20 @@ namespace Toast {
 			if (entity.HasComponent<RelationshipComponent>())
 			{
 				auto parentHandle = entity.GetComponent<RelationshipComponent>().ParentHandle;
-				if (parentHandle != 0)
+				while (parentHandle != 0)
 				{
 					Entity parent = mScene->FindEntityByUUID(parentHandle);
-					if (parent && parent.HasComponent<PrefabComponent>())
-						return; // Skip serializing this entity.
+					if (!parent)
+						break; // Just in case the parent doesn't exist.
+
+					if (parent.HasComponent<PrefabComponent>())
+						return; // Skip serializing this entity if any ancestor is a prefab.
+
+					// Update parentHandle to check the next level up.
+					if (parent.HasComponent<RelationshipComponent>())
+						parentHandle = parent.GetComponent<RelationshipComponent>().ParentHandle;
+					else
+						break; // Reached the root.
 				}
 			}
 
