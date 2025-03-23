@@ -110,7 +110,7 @@ namespace Toast {
 			Scope<Texture2D> SSAONoiseTexture;
 
 			// Bloom data
-			Ref<RenderTarget> BloomRT, HorizontalBlurRT, VerticalBlurRT;
+			Ref<RenderTarget> BloomRT, HorizontalBlurRT, VerticalBlurRT, FinalBloomRT;
 			Ref<ConstantBuffer> BloomCBuffer;
 			Buffer BloomBuffer;
 
@@ -137,7 +137,7 @@ namespace Toast {
 		static void OnViewportResize(uint32_t width, uint32_t height);
 
 		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos);
-		static void EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, float bloomThreshold);
+		static void EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, const bool bloom, float bloomThreshold, float bloomIntensity);
 
 		static void CreateDepthBuffer(uint32_t width, uint32_t height);
 		static void CreateDepthStencilView();
@@ -172,8 +172,8 @@ namespace Toast {
 		// Post Processes
 		static void SkyboxPass();
 		static void AtmospherePass(const bool dynamicIBL);
-		static void BloomPass(float threshold);
-		static void PostProcessPass();
+		static void BloomPass(float threshold, float intensity);
+		static void PostProcessPass(const bool bloom);
 
 		static Ref<RenderTarget>& GetGPassPositionRT() { return sRendererData->GPassPositionRT; }
 		static Ref<RenderTarget>& GetGPassNormalRT() { return sRendererData->GPassNormalRT; }
@@ -188,6 +188,7 @@ namespace Toast {
 
 		static Ref<RenderTarget>& GetBloomRT() { return sRendererData->BloomRT; }
 		static Ref<RenderTarget>& GetBloomBlurRT() { return sRendererData->VerticalBlurRT; }
+		static Ref<RenderTarget>& GetFinalBloomRT() { return sRendererData->FinalBloomRT; }
 
 		static Ref<RenderTarget>& GetLPassRT() { return sRendererData->LPassRT; }
 

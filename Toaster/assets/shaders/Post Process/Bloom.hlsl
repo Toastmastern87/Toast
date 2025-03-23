@@ -30,7 +30,7 @@ cbuffer BloomParams : register(b11)
 
 Texture2D sceneBaseTexture : register(t0);
 
-SamplerState defaultSampler : register(s0);
+SamplerState clampSampler : register(s3);
 
 struct PixelInputType
 {
@@ -40,7 +40,7 @@ struct PixelInputType
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-    float4 color = sceneBaseTexture.Sample(defaultSampler, input.texCoord);
+    float4 color = sceneBaseTexture.Sample(clampSampler, input.texCoord);
     
     float brightness = dot(color.rgb, float3(0.2126f, 0.7152f, 0.0722f));
     

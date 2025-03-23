@@ -125,6 +125,7 @@ namespace Toast {
 		sRendererData->BloomRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
 		sRendererData->HorizontalBlurRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
 		sRendererData->VerticalBlurRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->FinalBloomRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
 
 		// Setting up the render targets for the Post Process pass
 		sRendererData->FinalRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT, false, true);
@@ -204,6 +205,7 @@ namespace Toast {
 		sRendererData->BloomRT->Resize(width, height);
 		sRendererData->HorizontalBlurRT->Resize(width, height);
 		sRendererData->VerticalBlurRT->Resize(width, height);
+		sRendererData->FinalBloomRT->Resize(width, height);
 
 		sRendererData->LPassRT->Resize(width, height);
 
@@ -267,7 +269,7 @@ namespace Toast {
 		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
 
-	void Renderer::EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, float bloomThreshold)
+	void Renderer::EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, const bool bloom, float bloomThreshold, float bloomIntensity)
 	{
 		RenderCommand::SetViewport(sRendererData->Viewport);
 
@@ -298,9 +300,10 @@ namespace Toast {
 		if (sRendererData->ParticleIndexBuffer.Get())
 			ParticlesPass(camera, cameraPos);
 
-		BloomPass(bloomThreshold);
+		if(bloom)
+			BloomPass(bloomThreshold, bloomIntensity);
 
-		PostProcessPass();
+		PostProcessPass(bloom);
 
 		if (!debugActivated) 
 		{
@@ -1207,7 +1210,7 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer::BloomPass(float threshold)
+	void Renderer::BloomPass(float threshold, float intensity)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -1225,6 +1228,7 @@ namespace Toast {
 		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::ClearRenderTargets({ sRendererData->BloomRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
+		sRendererData->BloomBuffer.Write((uint8_t*)&intensity, sizeof(float), 0);
 		sRendererData->BloomBuffer.Write((uint8_t*)&threshold, sizeof(float), 4);
 		sRendererData->BloomCBuffer->Map(sRendererData->BloomBuffer);
 
@@ -1261,6 +1265,16 @@ namespace Toast {
 
 		DrawFullscreenQuad();
 
+		RenderCommand::SetRenderTargets({ sRendererData->FinalBloomRT->GetRTV().Get() }, nullptr);
+		RenderCommand::ClearRenderTargets({ sRendererData->FinalBloomRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->AtmospherePassRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->VerticalBlurRT->GetSRV());
+
+		ShaderLibrary::Get("assets/shaders/Post Process/BloomComposition.hlsl")->Bind();
+
+		DrawFullscreenQuad();
+
 		ID3D11RenderTargetView* nullRTV = nullptr;
 		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
 		RenderCommand::SetDepthStencilState(nullptr);
@@ -1273,7 +1287,7 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer::PostProcessPass()
+	void Renderer::PostProcessPass(const bool bloom)
 	{
 		TOAST_PROFILE_FUNCTION();
 #ifdef TOAST_DEBUG
@@ -1294,9 +1308,13 @@ namespace Toast {
 
 		ShaderLibrary::Get("assets/shaders/Post Process/ToneMapping.hlsl")->Bind();
 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->AtmospherePassRT->GetSRV());
+		if(bloom)
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->FinalBloomRT->GetSRV());
+		else
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->AtmospherePassRT->GetSRV());
 
 		DrawFullscreenQuad();
+
 #ifdef TOAST_DEBUG
 		if (annotation)
 			annotation->EndEvent();

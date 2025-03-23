@@ -317,7 +317,7 @@ namespace Toast {
 			case RenderOverlay::SSAO:
 				textureID = (void*)Renderer::GetSSAORT()->GetSRV().Get();
 				break;
-			case RenderOverlay::SSAOBlur:
+			case RenderOverlay::SSAOBLUR:
 				textureID = (void*)Renderer::GetSSAOBlurRT()->GetSRV().Get();
 				break;
 			case RenderOverlay::BLOOM:
@@ -325,6 +325,9 @@ namespace Toast {
 				break;
 			case RenderOverlay::BLOOMBLUR:
 				textureID = (void*)Renderer::GetBloomBlurRT()->GetSRV().Get();
+				break;
+			case RenderOverlay::BLOOMFINAL:
+				textureID = (void*)Renderer::GetFinalBloomRT()->GetSRV().Get();
 				break;
 			}
 
