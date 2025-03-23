@@ -52,6 +52,7 @@ namespace Toast {
 
 		// Samplers
 		TextureLibrary::LoadTextureSampler("Default", D3D11_FILTER_ANISOTROPIC, D3D11_TEXTURE_ADDRESS_WRAP);
+		TextureLibrary::LoadTextureSampler("ClampSampler", D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
 		TextureLibrary::LoadTextureSampler("LinearSampler", D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 		TextureLibrary::LoadTextureSampler("PointSampler", D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP);
 		TextureLibrary::LoadTextureSampler("BRDFSampler", D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
@@ -69,6 +70,8 @@ namespace Toast {
 		// Post Processes
 		ShaderLibrary::Load("assets/shaders/Post Process/Skybox.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/Atmosphere.hlsl");
+		ShaderLibrary::Load("assets/shaders/Post Process/Bloom.hlsl");
+		ShaderLibrary::Load("assets/shaders/Post Process/BloomComposition.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/ToneMapping.hlsl");
 
 		// Environment
@@ -76,6 +79,8 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Environment/EnvironmentIrradiance.hlsl");
 
 		// Others
+		ShaderLibrary::Load("assets/shaders/Utilities/HorizontalBlur.hlsl");
+		ShaderLibrary::Load("assets/shaders/Utilities/VerticalBlur.hlsl");
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
 		ShaderLibrary::Load("assets/shaders/UI.hlsl");
 
@@ -314,6 +319,12 @@ namespace Toast {
 				break;
 			case RenderOverlay::SSAOBlur:
 				textureID = (void*)Renderer::GetSSAOBlurRT()->GetSRV().Get();
+				break;
+			case RenderOverlay::BLOOM:
+				textureID = (void*)Renderer::GetBloomRT()->GetSRV().Get();
+				break;
+			case RenderOverlay::BLOOMBLUR:
+				textureID = (void*)Renderer::GetBloomBlurRT()->GetSRV().Get();
 				break;
 			}
 

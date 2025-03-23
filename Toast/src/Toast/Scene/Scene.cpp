@@ -590,7 +590,7 @@ namespace Toast {
 					mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices().size());
 				}
 
-				Renderer::EndScene(true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias);
+				Renderer::EndScene(true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.BloomThreshold);
 			}
 
 			// Debug Rendering
@@ -1200,7 +1200,7 @@ namespace Toast {
 				mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices().size());
 			}
 
-			Renderer::EndScene(true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias);
+			Renderer::EndScene(true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.BloomThreshold);
 		}
 
 		// Debug Rendering
@@ -1761,6 +1761,9 @@ namespace Toast {
 	{
 		// Settings
 		target->mSettings.PhysicSlowmotion = mSettings.PhysicSlowmotion;
+		target->mSettings.SSAObias = mSettings.SSAObias;
+		target->mSettings.SSAORadius = mSettings.SSAORadius;
+		target->mSettings.BloomThreshold = mSettings.BloomThreshold;
 
 		// Environment
 		target->mLightEnvironment = mLightEnvironment;

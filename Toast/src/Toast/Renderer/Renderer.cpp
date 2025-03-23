@@ -92,6 +92,18 @@ namespace Toast {
 		sRendererData->SSAOBuffer.Allocate(sRendererData->SSAOCBuffer->GetSize());
 		sRendererData->SSAOBuffer.ZeroInitialize();
 
+		// Setting up the constant buffer for bloom rendering
+		sRendererData->BloomCBuffer = ConstantBufferLibrary::Load("Bloom", 16, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Bloom) });
+		sRendererData->BloomCBuffer->Bind();
+		sRendererData->BloomBuffer.Allocate(sRendererData->BloomCBuffer->GetSize());
+		sRendererData->BloomBuffer.ZeroInitialize();
+
+		// Setting up the constant buffer for blur passes
+		sRendererData->BlurCBuffer = ConstantBufferLibrary::Load("Blur", 16, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Blur) });
+		sRendererData->BlurCBuffer->Bind();
+		sRendererData->BlurBuffer.Allocate(sRendererData->BlurCBuffer->GetSize());
+		sRendererData->BlurBuffer.ZeroInitialize();
+
 		// Setting up the render targets for the Geometry Pass
 		sRendererData->GPassPositionRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R32G32B32A32_FLOAT);
 		sRendererData->GPassNormalRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
@@ -108,6 +120,11 @@ namespace Toast {
 
 		// Setting up the render target for the Lightning Pass
 		sRendererData->LPassRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
+
+		// Setting up the render target for Bloom Pass
+		sRendererData->BloomRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->HorizontalBlurRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->VerticalBlurRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
 
 		// Setting up the render targets for the Post Process pass
 		sRendererData->FinalRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT, false, true);
@@ -184,6 +201,10 @@ namespace Toast {
 		sRendererData->SSAORT->Resize(width, height);
 		sRendererData->SSAOBlurRT->Resize(width, height);
 
+		sRendererData->BloomRT->Resize(width, height);
+		sRendererData->HorizontalBlurRT->Resize(width, height);
+		sRendererData->VerticalBlurRT->Resize(width, height);
+
 		sRendererData->LPassRT->Resize(width, height);
 
 		sRendererData->AtmospherePassRT->Resize(width, height);
@@ -246,7 +267,7 @@ namespace Toast {
 		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
 
-	void Renderer::EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias)
+	void Renderer::EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, float bloomThreshold)
 	{
 		RenderCommand::SetViewport(sRendererData->Viewport);
 
@@ -276,6 +297,8 @@ namespace Toast {
 		// If there are no particles that needs to be rendered, this pass will be skipped.
 		if (sRendererData->ParticleIndexBuffer.Get())
 			ParticlesPass(camera, cameraPos);
+
+		BloomPass(bloomThreshold);
 
 		PostProcessPass();
 
@@ -1171,6 +1194,72 @@ namespace Toast {
 		ShaderLibrary::Get("assets/shaders/Rendering/Particles.hlsl")->Bind();
 
 		RenderCommand::DrawIndexedInstanced(6, sRendererData->NrOfParticlesToRender, 0, 0, 0);
+
+		ID3D11RenderTargetView* nullRTV = nullptr;
+		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
+		RenderCommand::SetDepthStencilState(nullptr);
+		RenderCommand::SetBlendState(nullptr);
+		RenderCommand::ClearShaderResources();
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
+	}
+
+	void Renderer::BloomPass(float threshold)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"Bloom Pass");
+#endif
+
+		RenderCommand::SetViewport(sRendererData->Viewport);
+		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
+		RenderCommand::SetRenderTargets({ sRendererData->BloomRT->GetRTV().Get() }, nullptr);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
+		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+		RenderCommand::ClearRenderTargets({ sRendererData->BloomRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+
+		sRendererData->BloomBuffer.Write((uint8_t*)&threshold, sizeof(float), 4);
+		sRendererData->BloomCBuffer->Map(sRendererData->BloomBuffer);
+
+		ShaderLibrary::Get("assets/shaders/Post Process/Bloom.hlsl")->Bind();
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->AtmospherePassRT->GetSRV());
+
+		TextureLibrary::GetSampler("ClampSampler")->Bind(3, D3D11_PIXEL_SHADER);
+
+		DrawFullscreenQuad();
+
+		auto& renderTargetSize = sRendererData->HorizontalBlurRT->GetSize();
+		DirectX::XMFLOAT2 texelSize(1.0f / static_cast<float>(std::get<0>(renderTargetSize)),
+									1.0f / static_cast<float>(std::get<1>(renderTargetSize)));
+
+		sRendererData->BlurBuffer.Write((uint8_t*)&texelSize.x, 8, 0);
+		sRendererData->BlurCBuffer->Map(sRendererData->BlurBuffer);
+
+		RenderCommand::SetRenderTargets({ sRendererData->HorizontalBlurRT->GetRTV().Get() }, nullptr);
+		RenderCommand::ClearRenderTargets({ sRendererData->HorizontalBlurRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->BloomRT->GetSRV());
+
+		ShaderLibrary::Get("assets/shaders/Utilities/HorizontalBlur.hlsl")->Bind();
+
+		DrawFullscreenQuad();
+
+		RenderCommand::SetRenderTargets({ sRendererData->VerticalBlurRT->GetRTV().Get() }, nullptr);
+		RenderCommand::ClearRenderTargets({ sRendererData->VerticalBlurRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->HorizontalBlurRT->GetSRV());
+
+		ShaderLibrary::Get("assets/shaders/Utilities/VerticalBlur.hlsl")->Bind();
+
+		DrawFullscreenQuad();
 
 		ID3D11RenderTargetView* nullRTV = nullptr;
 		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);

@@ -18,7 +18,8 @@
 
 namespace Toast {
 
-	enum class RenderOverlay { NONE = 0, POSITIONS = 1, NORMALS = 2, ALBEDOMETALLIC = 3, ROUGHNESS = 4, LPASS = 5, ATMOSPHERICSCATTERING = 6, SSAO = 7, SSAOBlur = 8 };
+	enum class RenderOverlay {
+		NONE = 0, POSITIONS = 1, NORMALS = 2, ALBEDOMETALLIC = 3, ROUGHNESS = 4, LPASS = 5, ATMOSPHERICSCATTERING = 6, SSAO = 7, SSAOBlur = 8, BLOOM = 9, BLOOMBLUR = 10 };
 
 	struct DirectionalLight
 	{
@@ -63,6 +64,9 @@ namespace Toast {
 			bool SSAODebugging = false;
 			float SSAORadius = 0.5f;
 			float SSAObias = 0.025f;
+			bool Bloom = true;
+			float BloomIntensity = 1.0f;
+			float BloomThreshold = 0.0f;
 			bool DynamicIBL = true;
 
 			int PhysicSlowmotion = 1;
