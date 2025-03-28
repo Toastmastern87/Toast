@@ -172,8 +172,15 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
             float texBorderSizeX = input.textureBorderSizeX; // Width of the corner slice in the texture
             float texBorderSizeY = input.textureBorderSizeY; // Height of the corner slice in the texture
             
-            float borderSizeX = (texBorderSizeX / textureSize.x) * input.size.x;
-            float borderSizeY = (texBorderSizeY / textureSize.y) * input.size.y;
+            //float borderSizeX = (texBorderSizeX / textureSize.x) * input.size.x;
+            //float borderSizeY = (texBorderSizeY / textureSize.y) * input.size.y;
+            
+            float scaleX = input.size.x / textureSize.x;
+            float scaleY = input.size.y / textureSize.y;
+            float uniformScale = min(scaleX, scaleY);
+    
+            float borderSizeX = texBorderSizeX * uniformScale;
+            float borderSizeY = texBorderSizeY * uniformScale;
             
             // Compute the size of the middle slice in the texture
             float texMiddleSizeX = textureSize.x - 2.0f * texBorderSizeX;
