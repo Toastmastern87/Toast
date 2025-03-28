@@ -13,12 +13,12 @@ namespace Toast {
 		DirectX::XMFLOAT4 Position; // z component holds what type of UI Element this is, w component holds if the element is textured or not
 		DirectX::XMFLOAT4 Size; // z component holds the corner radius for a panel, w component holds the size of the border
 		DirectX::XMFLOAT4 Color;
-		DirectX::XMFLOAT2 Texcoord;
+		DirectX::XMFLOAT4 Texcoord;
 		uint32_t EntityID;
 
 		UIVertex() = default;
 
-		UIVertex(DirectX::XMFLOAT4 pos, DirectX::XMFLOAT4 size, DirectX::XMFLOAT4 color, DirectX::XMFLOAT2 uv, uint32_t id)
+		UIVertex(DirectX::XMFLOAT4 pos, DirectX::XMFLOAT4 size, DirectX::XMFLOAT4 color, DirectX::XMFLOAT4 uv, uint32_t id)
 		{
 			Position = pos;
 			Size = size;
@@ -80,6 +80,11 @@ namespace Toast {
 		float* GetBorderSize() { return &mBorderSize; }
 		void SetBorderSize(float size) { mBorderSize = size; }
 
+		float* GetTextureBorderSizeX() { return &mTextureBorderSizeX; }
+		void SetTextureBorderSizeX(float size) { mTextureBorderSizeX = size; }
+		float* GetTextureBorderSizeY() { return &mTextureBorderSizeY; }
+		void SetTextureBorderSizeY(float size) { mTextureBorderSizeY = size; }
+
 		void SetUseColor(bool useColor) { mUseColor = useColor; }
 		bool GetUseColor() { return mUseColor; }
 		void SetTextureFilepath(std::string& textureFilepath) { mTextureFilepath = textureFilepath; }
@@ -90,6 +95,10 @@ namespace Toast {
 	protected:
 		float mCornerRadius = 0.0f;
 		float mBorderSize = 0.0f;
+
+		// These ones are used to set the border sizes for 9-patch panel system.
+		float mTextureBorderSizeX = 10.0f;
+		float mTextureBorderSizeY = 10.0f;
 
 		bool mUseColor = true;
 		std::string mTextureFilepath;

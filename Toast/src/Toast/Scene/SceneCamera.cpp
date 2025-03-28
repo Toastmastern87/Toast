@@ -30,6 +30,8 @@ namespace Toast {
 	void SceneCamera::SetViewportSize(uint32_t width, uint32_t height)
 	{
 		mAspectRatio = (float)width / (float)height;
+		mOrthographicWidth = width;
+		mOrthographicHeight = height;
 		RecalculateProjection();
 	}
 

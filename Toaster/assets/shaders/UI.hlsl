@@ -31,7 +31,7 @@ struct VertexInputType
 	float4 position			: POSITION0;
 	float4 size				: POSITION1;
     float4 color			: COLOR;
-	float2 texCoord			: TEXCOORD;
+    float4 texCoord         : POSITION2;
     uint entityID			: TEXTUREID;
 };
 
@@ -44,6 +44,8 @@ struct PixelInputType
     float cornerRadius : PSIZE0;
     float textured : PSIZE1;
     float borderSize : PSIZE2;
+    float textureBorderSizeX : PSIZE3;
+    float textureBorderSizeY : PSIZE4;
     int entityID : TEXTUREID0;
     int UIType : TEXTUREID1;
 };
@@ -57,7 +59,7 @@ PixelInputType main(VertexInputType input)
 	output.position.z = 1.0f;
 	output.position.w = 1.0f;
 
-	output.texCoord = input.texCoord;
+	output.texCoord = input.texCoord.xy;
 	
     output.color = input.color;
 
@@ -67,9 +69,12 @@ PixelInputType main(VertexInputType input)
 	
     output.UIType = (int) input.position.z;
     output.cornerRadius = input.size.z;
-    output.borderSize = input.size.w;
+    output.borderSize = input.size.w;   
     
     output.textured = input.position.w;
+    output.textureBorderSizeX = input.texCoord.z;
+    output.textureBorderSizeY = input.texCoord.w;
+    output.borderSize = input.size.w;
 
 	return output;
 }
@@ -77,15 +82,17 @@ PixelInputType main(VertexInputType input)
 #type pixel
 struct PixelInputType
 {
-    float4 position		: SV_POSITION0;
-    float4 color		: COLOR;
-    float2 size			: POSITION;
-    float2 texCoord		: TEXCOORD;
-    float cornerRadius	: PSIZE0;
-    float textured      : PSIZE1;
-    float borderSize    : PSIZE2;
-    int entityID		: TEXTUREID0;
-    int UIType			: TEXTUREID1;
+    float4 position		        : SV_POSITION0;
+    float4 color		        : COLOR;
+    float2 size			        : POSITION;
+    float2 texCoord		        : TEXCOORD;
+    float cornerRadius	        : PSIZE0;
+    float textured              : PSIZE1;
+    float borderSize            : PSIZE2;
+    float textureBorderSizeX    : PSIZE3;
+    float textureBorderSizeY    : PSIZE4;
+    int entityID		        : TEXTUREID0;
+    int UIType			        : TEXTUREID1;
 };
 
 struct PixelOutputType
@@ -162,11 +169,11 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
             PanelTexture.GetDimensions(w, h);
             float2 textureSize = float2(w, h);
             
-            float texBorderSizeX = 10.0f; // Width of the corner slice in the texture
-            float texBorderSizeY = 10.0f; // Height of the corner slice in the texture
+            float texBorderSizeX = input.textureBorderSizeX; // Width of the corner slice in the texture
+            float texBorderSizeY = input.textureBorderSizeY; // Height of the corner slice in the texture
             
-            float borderSizeX = input.borderSize;
-            float borderSizeY = input.borderSize;
+            float borderSizeX = (texBorderSizeX / textureSize.x) * input.size.x;
+            float borderSizeY = (texBorderSizeY / textureSize.y) * input.size.y;
             
             // Compute the size of the middle slice in the texture
             float texMiddleSizeX = textureSize.x - 2.0f * texBorderSizeX;

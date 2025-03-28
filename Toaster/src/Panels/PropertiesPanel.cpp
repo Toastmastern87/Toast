@@ -1186,6 +1186,20 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
+				ImGui::TextWrapped("Texture Border Size X");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::SliderFloat("##texturebordersizex", component.Panel->GetTextureBorderSizeX(), 0.0f, 500.0f, "%.0f");
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextWrapped("Texture Border Size Y");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				ImGui::SliderFloat("##texturebordersizey", component.Panel->GetTextureBorderSizeY(), 0.0f, 500.0f, "%.0f");
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Visible");
 				ImGui::TableSetColumnIndex(1);
 				bool visible = component.Panel->GetVisible();

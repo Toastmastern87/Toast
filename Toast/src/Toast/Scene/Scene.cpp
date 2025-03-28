@@ -320,6 +320,13 @@ namespace Toast {
 				if (camera.Primary)
 				{
 					mainCamera = &camera.Camera;
+
+					if (Renderer::GetFinalRT()->GetSize() != std::make_tuple(mainCamera->GetOrthographicWidth(), mainCamera->GetOrthographicHeight()))
+					{
+						auto [width, height] = Renderer::GetFinalRT()->GetSize();
+						mainCamera->SetOrthographicSize(width, height);
+					}
+
 					cameraTransform = transform.GetTransform();
 
 					break;
@@ -713,7 +720,7 @@ namespace Toast {
 						if (!upc.Panel->GetUseColor())
 							panelTextureName = upc.Panel->GetTextureFilepath();
 
-						Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius(), *upc.Panel->GetBorderSize() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false);
+						Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius(), *upc.Panel->GetBorderSize() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false, *upc.Panel->GetTextureBorderSizeX(), * upc.Panel->GetTextureBorderSizeY());
 					}
 				}
 
@@ -1423,7 +1430,7 @@ namespace Toast {
 						if (!upc.Panel->GetUseColor())
 							panelTextureName = upc.Panel->GetTextureFilepath();
 
-						Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius(), *upc.Panel->GetBorderSize() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false);
+						Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius(), *upc.Panel->GetBorderSize() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false, *upc.Panel->GetTextureBorderSizeX(), *upc.Panel->GetTextureBorderSizeY());
 					}
 				}
 
