@@ -35,6 +35,57 @@ namespace Toast {
 
 		sRenderer2DData->UIVertexBuffer = CreateRef<VertexBuffer>(&sRenderer2DData->UIVertexBufferBase[0], (uint32_t)(sRenderer2DData->MaxUIVertices * sizeof(UIVertex)), sRenderer2DData->MaxUIVertices, 0, D3D11_USAGE_DYNAMIC);
 		sRenderer2DData->UIIndexBuffer = CreateRef<IndexBuffer>(&UIIndices[0], sRenderer2DData->MaxUIIndices);
+
+		// TODO Fix to use Asset handler in the future
+		std::string UITextureFolder = "../Toaster/assets/textures/UI";
+		std::vector<std::string> texturePaths;
+
+		// Collect all file paths in the folder
+		for (const auto& entry : std::filesystem::directory_iterator(UITextureFolder))
+		{
+			if (entry.is_regular_file())
+				texturePaths.push_back(entry.path().string());
+		}
+
+		if (texturePaths.empty())
+			return;
+
+		std::vector<Texture2D*> loadedTextures;
+		for (const auto& path : texturePaths)
+		{
+			Texture2D* texture = TextureLibrary::LoadTexture2D(path);
+		
+			loadedTextures.push_back(texture);
+		}
+
+		uint32_t width = loadedTextures[0]->GetWidth();
+		uint32_t height = loadedTextures[0]->GetHeight();
+		uint32_t arraySize = static_cast<uint32_t>(loadedTextures.size());
+		DXGI_FORMAT format = loadedTextures[0]->GetFormat();
+
+		std::vector<const void*> initialData;
+		std::vector<UINT> rowPitches;
+		for (auto& texture : loadedTextures)
+		{
+			const void* data = texture->GetInitialData(); 
+			UINT rowPitch = texture->GetRowPitch(); 
+			initialData.push_back(data);
+			rowPitches.push_back(rowPitch);
+		}
+
+		sRenderer2DData->UITextureArray = CreateRef<Texture2DArray>(
+			format,
+			width, height,
+			arraySize,
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_SHADER_RESOURCE,
+			1, // samples
+			0, // cpuAccessFlags
+			initialData,
+			rowPitches
+		);
+
+		sRenderer2DData->UITextureArray->SetSliceMapping(texturePaths);
 	}
 
 	void Renderer2D::Shutdown()
@@ -53,6 +104,8 @@ namespace Toast {
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
 		sRenderer2DData->UIVertexBufferPtr = sRenderer2DData->UIVertexBufferBase;
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRenderer2DData->UITextureArray->GetSRV());
 	}
 
 	void Renderer2D::EndScene()
@@ -79,9 +132,7 @@ namespace Toast {
 		ShaderLibrary::Get("assets/shaders/UI.hlsl")->Bind();
 
 		if (sRenderer2DData->TextFont)
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRenderer2DData->TextFont->GetFontAtlas()->GetSRV());
-		if (sRenderer2DData->PanelTextureName != "")
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, TextureLibrary::Get(sRenderer2DData->PanelTextureName)->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRenderer2DData->TextFont->GetFontAtlas()->GetSRV());		
 
 		sRenderer2DData->UIVertexBuffer->SetData(sRenderer2DData->UIVertexBufferBase, vertexDataSize);
 		sRenderer2DData->UIVertexBuffer->Bind();
@@ -101,16 +152,13 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer2D::SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, std::string panelTextureName, const bool targetable, float textureBorderSizeX, float textureBorderSizeY)
+	void Renderer2D::SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, float textureBorderSizeX, float textureBorderSizeY, uint32_t textureIndex)
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		DirectX::XMFLOAT4 UIVertexPositions[4];
 
 		float texturedF = textured == true ? 1.0f : 0.0f;
-
-		if (textured)
-			sRenderer2DData->PanelTextureName = panelTextureName;
 
 		DirectX::XMFLOAT4 textureCoords[] = { DirectX::XMFLOAT4(0.0f, 1.0f, textureBorderSizeX, textureBorderSizeY), DirectX::XMFLOAT4(1.0f, 1.0f, textureBorderSizeX, textureBorderSizeY), DirectX::XMFLOAT4(1.0f, 0.0f, textureBorderSizeX, textureBorderSizeY), DirectX::XMFLOAT4(0.0f, 0.0f, textureBorderSizeX, textureBorderSizeY) };
 
@@ -126,6 +174,7 @@ namespace Toast {
 			sRenderer2DData->UIVertexBufferPtr->Color = color;
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = textureCoords[i];
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
+			sRenderer2DData->UIVertexBufferPtr->TextureIndex = textureIndex;
 			sRenderer2DData->UIVertexBufferPtr++;
 		}
 	}
@@ -146,6 +195,7 @@ namespace Toast {
 			sRenderer2DData->UIVertexBufferPtr->Color = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 			sRenderer2DData->UIVertexBufferPtr->EntityID = 0;
+			sRenderer2DData->UIVertexBufferPtr->TextureIndex = 1;
 			sRenderer2DData->UIVertexBufferPtr++;
 		}
 	}
@@ -172,6 +222,7 @@ namespace Toast {
 			sRenderer2DData->UIVertexBufferPtr->Color = color;
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = textureCoords[i];
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
+			sRenderer2DData->UIVertexBufferPtr->TextureIndex = 1;
 			sRenderer2DData->UIVertexBufferPtr++;
 		}
 	}
@@ -240,6 +291,7 @@ namespace Toast {
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)l, (float)b, 0.0f, 0.0f };
 			sRenderer2DData->UIVertexBufferPtr->Color = text->GetColorF4();// Assuming text has a color
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
+			sRenderer2DData->UIVertexBufferPtr->TextureIndex = 1;
 			sRenderer2DData->UIVertexBufferPtr++;
 
 			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pr, (float)pb, pos.z, 0.0f }; // Bottom-Right
@@ -247,6 +299,7 @@ namespace Toast {
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)r, (float)b, 0.0f, 0.0f };
 			sRenderer2DData->UIVertexBufferPtr->Color = text->GetColorF4();
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
+			sRenderer2DData->UIVertexBufferPtr->TextureIndex = 1;
 			sRenderer2DData->UIVertexBufferPtr++;
 
 			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pr, (float)pt, pos.z, 0.0f }; // Top-Right
@@ -254,6 +307,7 @@ namespace Toast {
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)r, (float)t, 0.0f, 0.0f };
 			sRenderer2DData->UIVertexBufferPtr->Color = text->GetColorF4();
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
+			sRenderer2DData->UIVertexBufferPtr->TextureIndex = 1;
 			sRenderer2DData->UIVertexBufferPtr++;
 
 			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pl, (float)pt, pos.z, 0.0f }; // Top-Left
@@ -261,6 +315,7 @@ namespace Toast {
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)l, (float)t, 0.0f, 0.0f };
 			sRenderer2DData->UIVertexBufferPtr->Color = text->GetColorF4();
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
+			sRenderer2DData->UIVertexBufferPtr->TextureIndex = 1;
 			sRenderer2DData->UIVertexBufferPtr++;
 
 			double advance = glyph->getAdvance();

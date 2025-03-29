@@ -15,16 +15,17 @@ namespace Toast {
 		DirectX::XMFLOAT4 Color;
 		DirectX::XMFLOAT4 Texcoord;
 		uint32_t EntityID;
+		uint32_t TextureIndex;
 
 		UIVertex() = default;
 
-		UIVertex(DirectX::XMFLOAT4 pos, DirectX::XMFLOAT4 size, DirectX::XMFLOAT4 color, DirectX::XMFLOAT4 uv, uint32_t id)
+		UIVertex(DirectX::XMFLOAT4 pos, DirectX::XMFLOAT4 size, DirectX::XMFLOAT4 color, DirectX::XMFLOAT4 uv, uint32_t id, uint32_t texIdx)
 		{
 			Position = pos;
 			Size = size;
 			Color = color;
 			Texcoord = uv;
-			EntityID = id;
+			TextureIndex = texIdx;
 		}
 	};
 
@@ -61,8 +62,12 @@ namespace Toast {
 		void SetColor(DirectX::XMFLOAT4 c) { mColor = c; }
 		float* GetColor() { return &mColor.x; }
 		DirectX::XMFLOAT4 GetColorF4() { return mColor; }
+
+		void SetTextureIndex(uint32_t idx) { mTextureIndex = idx; }
+		uint32_t GetTextureIndex() { return mTextureIndex; }
 	private:
 		bool mVisible = false;
+		uint32_t mTextureIndex = 0;
 
 		DirectX::XMFLOAT4 mColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 	};

@@ -5,6 +5,8 @@
 #include <wrl.h>
 #include <string>
 
+#include <filesystem>
+
 #include "Toast/Core/Base.h"
 
 #include <../vendor/directxtex/include/DirectXTex.h>
@@ -23,6 +25,7 @@ namespace Toast {
 		virtual const uint32_t GetWidth() const = 0;
 		virtual const uint32_t GetHeight() const = 0;
 		virtual const std::string GetFilePath() const = 0;
+		virtual const DXGI_FORMAT GetFormat() const = 0;
 		virtual void* GetID() const = 0;
 		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const = 0;
 		virtual Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() const = 0;
@@ -51,9 +54,13 @@ namespace Toast {
 		virtual const uint32_t GetWidth() const override { return mWidth; }
 		virtual const uint32_t GetHeight() const override { return mHeight; }
 		virtual const std::string GetFilePath() const override { return mFilePath; }
+		virtual const DXGI_FORMAT GetFormat() const override { return mFormat; }
 		virtual void* GetID() const override { return (void*)mSRV.Get(); }
 		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const override { return mSRV; }
 		virtual const uint32_t GetMipLevelCount() const override;
+
+		const void* GetInitialData() const { return mImageData.data(); }
+		UINT GetRowPitch() const { return mRowPitch; }
 
 		void SetData(void* data, uint32_t size);
 
@@ -76,6 +83,9 @@ namespace Toast {
 		uint32_t mWidth, mHeight;
 
 		DXGI_FORMAT mFormat, mSRVFormat;
+
+		std::vector<uint8_t> mImageData; 
+		UINT mRowPitch = 0;
 
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> mTexture;
 		Microsoft::WRL::ComPtr<ID3D11Resource> mResource;
@@ -100,6 +110,7 @@ namespace Toast {
 		virtual const uint32_t GetWidth() const override { return mWidth; }
 		virtual const uint32_t GetHeight() const override { return mHeight; }
 		virtual const std::string GetFilePath() const override { return mFilePath; }
+		virtual const DXGI_FORMAT GetFormat() const override { return mFormat; }
 		virtual void* GetID() const override { return (void*)mSRV.Get(); }
 		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const override { return mSRV; }
 		virtual const uint32_t GetMipLevelCount() const override;
@@ -135,6 +146,69 @@ namespace Toast {
 
 		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mUAV;
 		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mNullUAV = { nullptr };
+	};
+
+	class Texture2DArray : public Texture
+	{
+	public:
+		Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags);
+		Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize,
+			D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags,	const std::vector<const void*>& initialData, const std::vector<UINT>& rowPitches);
+		~Texture2DArray() = default;
+
+		virtual const uint32_t GetWidth() const override { return mWidth; }
+		virtual const uint32_t GetHeight() const override { return mHeight; }
+		virtual const std::string GetFilePath() const override { return ""; } 
+		virtual void* GetID() const override { return mSRV.Get(); } 
+		virtual Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() const override { return mTexture; }
+		virtual const uint32_t GetMipLevelCount() const override { return 1; } 
+
+		virtual void GenerateMips() const override;
+
+		virtual bool operator==(const Texture& other) const override
+		{
+			return this == &other;
+		}
+
+		void SetSliceMapping(const std::vector<std::string>& texturePaths)
+		{
+			mSliceMapping.clear();
+			for (size_t i = 0; i < texturePaths.size(); i++)
+			{
+				std::string canonicalPath = std::filesystem::canonical(texturePaths[i]).string();
+				mSliceMapping[canonicalPath] = static_cast<uint32_t>(i);
+			}
+		}
+
+		// Retrieve the slice index for a given texture file path.
+		uint32_t GetSliceIndexForTexture(const std::string& texturePath) const
+		{
+			std::string canonicalPath = std::filesystem::canonical(texturePath).string();
+			auto it = mSliceMapping.find(canonicalPath);
+			if (it != mSliceMapping.end())
+				return it->second;
+			return 0; // or some invalid value if not found
+		}
+
+		virtual const DXGI_FORMAT GetFormat() const override { return mFormat; }
+
+		virtual void Bind(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const override;
+
+		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const { return mSRV.Get(); }
+
+		ID3D11Resource* GetResource() const { return mResource.Get(); }
+	private:
+		void CreateSRV();
+
+	private:
+		uint32_t mWidth, mHeight, mArraySize;
+		DXGI_FORMAT mFormat;
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> mTexture;
+		Microsoft::WRL::ComPtr<ID3D11Resource> mResource;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mSRV;
+
+		std::unordered_map<std::string, uint32_t> mSliceMapping;
 	};
 
 	class TextureSampler

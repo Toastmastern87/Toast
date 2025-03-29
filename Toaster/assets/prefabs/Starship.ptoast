@@ -156,7 +156,7 @@ Entities:
       Color: [1, 1, 1, 1]
       CornerRadius: 0
       BorderSize: 20.5
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UIPanelV3.png
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\UIPanelV3.png
       UseColor: false
       Visible: true
       ConnectToParent: true

@@ -492,6 +492,7 @@ namespace Toast {
 			out << YAML::Key << "UseColor" << YAML::Value << uipc.Panel->GetUseColor();
 			out << YAML::Key << "Visible" << YAML::Value << uipc.Panel->GetVisible();
 			out << YAML::Key << "ConnectToParent" << YAML::Value << uipc.Panel->GetConnectToParent();
+			out << YAML::Key << "TextureIndex" << YAML::Value << uipc.Panel->GetTextureIndex();
 
 			out << YAML::EndMap; // UIPanelComponent
 		}
@@ -1006,6 +1007,7 @@ namespace Toast {
 					uipc.Panel->SetUseColor(uiPanelComponent["UseColor"].as<bool>());
 					uipc.Panel->SetVisible(uiPanelComponent["Visible"].as<bool>());
 					uipc.Panel->SetConnectToParent(uiPanelComponent["ConnectToParent"].as<bool>());
+					uipc.Panel->SetTextureIndex(uiPanelComponent["TextureIndex"].as<int>());
 
 					uipc.Panel->SetTextureFilepath(uiPanelComponent["AssetPath"].as<std::string>());
 					if (!uipc.Panel->GetTextureFilepath().empty())

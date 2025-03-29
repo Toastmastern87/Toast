@@ -4,6 +4,7 @@
 #include "imgui/imgui_internal.h"
 
 #include "Toast/Renderer/Renderer.h"
+#include "Toast/Renderer/Renderer2D.h"
 
 #include "Toast/ImGui/ImGuiHelpers.h"
 
@@ -1148,12 +1149,16 @@ namespace Toast {
 
 				if (ImGui::IsItemClicked())
 				{
-					filepath = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+					filepath = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\UI\\");
 
 					if (filepath)
 					{
 						component.Panel->SetTextureFilepath(*filepath);
 						TextureLibrary::LoadTexture2D(*filepath);
+						std::string temp = *filepath;
+						
+						uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
+						component.Panel->SetTextureIndex(sliceIndex);
 					}
 				}
 				ImGui::TableSetColumnIndex(1);

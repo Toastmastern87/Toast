@@ -32,22 +32,24 @@ struct VertexInputType
 	float4 size				: POSITION1;
     float4 color			: COLOR;
     float4 texCoord         : POSITION2;
-    uint entityID			: TEXTUREID;
+    uint entityID           : TEXTUREID0;
+    uint textureIndex       : TEXTUREID1;
 };
 
 struct PixelInputType
 {
-    float4 position : SV_POSITION;
-    float4 color : COLOR;
-    float2 size : POSITION;
-    float2 texCoord : TEXCOORD;
-    float cornerRadius : PSIZE0;
-    float textured : PSIZE1;
-    float borderSize : PSIZE2;
-    float textureBorderSizeX : PSIZE3;
-    float textureBorderSizeY : PSIZE4;
-    int entityID : TEXTUREID0;
-    int UIType : TEXTUREID1;
+    float4 position             : SV_POSITION;
+    float4 color                : COLOR;
+    float2 size                 : POSITION;
+    float2 texCoord             : TEXCOORD0;
+    float cornerRadius          : PSIZE0;
+    float textured              : PSIZE1;
+    float borderSize            : PSIZE2;
+    float textureBorderSizeX    : PSIZE3;
+    float textureBorderSizeY    : PSIZE4;
+    int entityID                : TEXTUREID0;
+    int UIType                  : TEXTUREID1;
+    uint textureIndex           : TEXTUREID2;
 };
 
 PixelInputType main(VertexInputType input)
@@ -75,6 +77,8 @@ PixelInputType main(VertexInputType input)
     output.textureBorderSizeX = input.texCoord.z;
     output.textureBorderSizeY = input.texCoord.w;
     output.borderSize = input.size.w;
+    
+    output.textureIndex = input.textureIndex;
 
 	return output;
 }
@@ -93,6 +97,7 @@ struct PixelInputType
     float textureBorderSizeY    : PSIZE4;
     int entityID		        : TEXTUREID0;
     int UIType			        : TEXTUREID1;
+    uint textureIndex           : TEXTUREID2;
 };
 
 struct PixelOutputType
@@ -102,7 +107,7 @@ struct PixelOutputType
 };
 
 Texture2D MDSFAtlas				: register(t6);
-Texture2D PanelTexture          : register(t8);
+Texture2DArray UITextures       : register(t8);
 
 SamplerState defaultSampler		: register(s0);
 
@@ -164,9 +169,8 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
         if (input.textured >= 0.5f)
         {                        
             // Texture dimensions in texture space
-            float w;
-            float h;
-            PanelTexture.GetDimensions(w, h);
+            float w, h, numLayers;
+            UITextures.GetDimensions(w, h, numLayers);
             float2 textureSize = float2(w, h);
             
             float texBorderSizeX = input.textureBorderSizeX; // Width of the corner slice in the texture
@@ -242,7 +246,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
                 // Compute UVs
                 uv = (cornerUVStart + scaledCoords) / textureSize;
 
-                textureColor = PanelTexture.Sample(defaultSampler, uv);
+                textureColor = UITextures.Sample(defaultSampler, float3(uv, input.textureIndex));
             }
             else if (isEdgeHorizontal)
             {
@@ -266,7 +270,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
                 uv = (edgeUVStart + scaledCoords) / textureSize;
 
                 // Sample the texture
-                textureColor = PanelTexture.Sample(defaultSampler, uv);
+                textureColor = UITextures.Sample(defaultSampler, float3(uv, input.textureIndex));
             }
             else if (isEdgeVertical)
             {
@@ -290,7 +294,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
                 uv = (edgeUVStart + scaledCoords) / textureSize;
 
                 // Sample the texture
-                textureColor = PanelTexture.Sample(defaultSampler, uv);
+                textureColor = UITextures.Sample(defaultSampler, float3(uv, input.textureIndex));
             }
             else if (isMiddle)
             {
@@ -329,7 +333,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 
                         uv = (innerCornerUVStart + scaledCoords) / textureSize;
 
-                        textureColor = PanelTexture.Sample(defaultSampler, uv);
+                        textureColor = UITextures.Sample(defaultSampler, float3(uv, input.textureIndex));
                     }
                 }
                 else if (inInnerTopRight)
@@ -349,7 +353,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 
                         uv = (innerCornerUVStart + scaledCoords) / textureSize;
 
-                        textureColor = PanelTexture.Sample(defaultSampler, uv);
+                        textureColor = UITextures.Sample(defaultSampler, float3(uv, input.textureIndex));
                     }
                 }
                 else if (inInnerBottomLeft)
@@ -369,7 +373,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 
                         uv = (innerCornerUVStart + scaledCoords) / textureSize;
 
-                        textureColor = PanelTexture.Sample(defaultSampler, uv);
+                        textureColor = UITextures.Sample(defaultSampler, float3(uv, input.textureIndex));
                     }
                 }
                 else if (inInnerBottomRight)
@@ -389,7 +393,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 
                         uv = (innerCornerUVStart + scaledCoords) / textureSize;
 
-                        textureColor = PanelTexture.Sample(defaultSampler, uv);
+                        textureColor = UITextures.Sample(defaultSampler, float3(uv, input.textureIndex));
                     }
                 }
 
@@ -420,7 +424,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
                     float2 uvMiddle = uvMin + tileUV * (uvMax - uvMin);
 
                     // Sample the texture for the inner area
-                    textureColor = PanelTexture.Sample(defaultSampler, uvMiddle);
+                    textureColor = UITextures.Sample(defaultSampler, float3(uv, input.textureIndex));
                 }  
             }
             

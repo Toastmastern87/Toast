@@ -6,9 +6,76 @@
 
 #include <WICTextureLoader.h>
 
+#include <wincodec.h>
+#include <wrl/client.h>
+
 #include <system_error>
 
 namespace Toast {
+
+	HRESULT LoadImageDataFromFile(const std::wstring& filename,
+		std::vector<uint8_t>& imageData,
+		UINT& width, UINT& height,
+		DXGI_FORMAT& format, UINT& rowPitch)
+	{
+		using namespace Microsoft::WRL;
+
+		ComPtr<IWICImagingFactory> factory;
+		HRESULT hr = CoCreateInstance(
+			CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
+			IID_PPV_ARGS(&factory));
+		if (FAILED(hr))
+			return hr;
+
+		ComPtr<IWICBitmapDecoder> decoder;
+		hr = factory->CreateDecoderFromFilename(filename.c_str(), nullptr,
+			GENERIC_READ, WICDecodeMetadataCacheOnDemand, &decoder);
+		if (FAILED(hr))
+			return hr;
+
+		ComPtr<IWICBitmapFrameDecode> frame;
+		hr = decoder->GetFrame(0, &frame);
+		if (FAILED(hr))
+			return hr;
+
+		hr = frame->GetSize(&width, &height);
+		if (FAILED(hr))
+			return hr;
+
+		WICPixelFormatGUID pixelFormat;
+		hr = frame->GetPixelFormat(&pixelFormat);
+		if (FAILED(hr))
+			return hr;
+
+		// If the image is not in 32bpp BGRA, convert it.
+		if (memcmp(&pixelFormat, &GUID_WICPixelFormat32bppBGRA, sizeof(WICPixelFormatGUID)) != 0)
+		{
+			ComPtr<IWICFormatConverter> converter;
+			hr = factory->CreateFormatConverter(&converter);
+			if (FAILED(hr))
+				return hr;
+
+			hr = converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppBGRA,
+				WICBitmapDitherTypeNone, nullptr, 0.f, WICBitmapPaletteTypeCustom);
+			if (FAILED(hr))
+				return hr;
+
+			format = DXGI_FORMAT_B8G8R8A8_UNORM;
+			rowPitch = width * 4; // 4 bytes per pixel
+			imageData.resize(rowPitch * height);
+			hr = converter->CopyPixels(nullptr, rowPitch, static_cast<UINT>(imageData.size()), imageData.data());
+		}
+		else
+		{
+			// Already in BGRA.
+			format = DXGI_FORMAT_B8G8R8A8_UNORM;
+			rowPitch = width * 4;
+			imageData.resize(rowPitch * height);
+			hr = frame->CopyPixels(nullptr, rowPitch, static_cast<UINT>(imageData.size()), imageData.data());
+		}
+
+		return hr;
+	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  
 	//     TEXTURE       ///////////////////////////////////////////////////////////////////  
@@ -104,13 +171,36 @@ namespace Toast {
 		ID3D11Device* device = API->GetDevice();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		std::wstring stemp = std::wstring(mFilePath.begin(), mFilePath.end());
+		std::wstring wFilePath = std::wstring(mFilePath.begin(), mFilePath.end());
 
-		if (forceSRGB)
-			result = DirectX::CreateWICTextureFromFileEx(device, deviceContext, stemp.c_str(), 0, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0,
-				DirectX::WIC_LOADER_FLAGS::WIC_LOADER_FORCE_SRGB, &mResource, &mSRV);
-
+		result = LoadImageDataFromFile(wFilePath, mImageData, mWidth, mHeight, mFormat, mRowPitch);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load texture!");
+
+		mSRVFormat = forceSRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : mFormat;
+
+		// Create the texture using the loaded data.
+		D3D11_SUBRESOURCE_DATA subresourceData = {};
+		subresourceData.pSysMem = mImageData.data();
+		subresourceData.SysMemPitch = mRowPitch;
+
+		D3D11_TEXTURE2D_DESC textureDesc = {};
+		textureDesc.ArraySize = 1;
+		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		textureDesc.Usage = D3D11_USAGE_DEFAULT;
+		textureDesc.CPUAccessFlags = 0;
+		textureDesc.Format = forceSRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : mFormat;
+		textureDesc.Height = mHeight;
+		textureDesc.Width = mWidth;
+		textureDesc.MipLevels = 1;
+		textureDesc.MiscFlags = 0;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Quality = 0;
+
+		result = device->CreateTexture2D(&textureDesc, &subresourceData, &mTexture);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
+
+		CreateSRV();
+		mSRV->GetResource(&mResource);
 
 		mResource->QueryInterface<ID3D11Texture2D>(&textureInterface);
 		textureInterface->GetDesc(&desc);
@@ -119,6 +209,7 @@ namespace Toast {
 
 		mWidth = desc.Width;
 		mHeight = desc.Height;
+		mFormat = desc.Format;
 	}
 
 	void Texture2D::SetData(void* data, uint32_t size)
@@ -512,6 +603,123 @@ namespace Toast {
 	}
 
 	void TextureCube::GenerateMips() const
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->GenerateMips(mSRV.Get());
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////  
+	//     TEXTURE2DARRAY    ///////////////////////////////////////////////////////////////  
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	Texture2DArray::Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize,
+		D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags)
+		: mWidth(width), mHeight(height), mArraySize(arraySize), mFormat(format)
+	{
+		D3D11_TEXTURE2D_DESC textureDesc = {};
+		textureDesc.ArraySize = mArraySize;
+		textureDesc.BindFlags = bindFlag;
+		textureDesc.Usage = usage;
+		textureDesc.CPUAccessFlags = cpuAccessFlags;
+		textureDesc.Format = format;
+		textureDesc.Height = mHeight;
+		textureDesc.Width = mWidth;
+		textureDesc.MipLevels = 1;
+		textureDesc.MiscFlags = 0;
+		textureDesc.SampleDesc.Count = samples;
+		textureDesc.SampleDesc.Quality = 0;
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		HRESULT result = device->CreateTexture2D(&textureDesc, nullptr, &mTexture);
+		assert(SUCCEEDED(result) && "Unable to create texture array!");
+
+		CreateSRV();
+	}
+
+	Texture2DArray::Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize,
+		D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags,	const std::vector<const void*>& initialData,
+		const std::vector<UINT>& rowPitches)
+		: mWidth(width), mHeight(height), mArraySize(arraySize), mFormat(format)
+	{
+		// Make sure we have the right number of initial data pointers.
+		assert(initialData.size() == arraySize && rowPitches.size() == arraySize);
+
+		D3D11_TEXTURE2D_DESC textureDesc = {};
+		textureDesc.ArraySize = mArraySize;
+		textureDesc.BindFlags = bindFlag;
+		textureDesc.Usage = usage;
+		textureDesc.CPUAccessFlags = cpuAccessFlags;
+		textureDesc.Format = format;
+		textureDesc.Height = mHeight;
+		textureDesc.Width = mWidth;
+		textureDesc.MipLevels = 1;
+		textureDesc.MiscFlags = 0;
+		textureDesc.SampleDesc.Count = samples;
+		textureDesc.SampleDesc.Quality = 0;
+
+		std::vector<D3D11_SUBRESOURCE_DATA> subresources(mArraySize);
+		for (uint32_t i = 0; i < mArraySize; ++i)
+		{
+			subresources[i].pSysMem = initialData[i];
+			subresources[i].SysMemPitch = rowPitches[i];
+			subresources[i].SysMemSlicePitch = 0;
+		}
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		HRESULT result = device->CreateTexture2D(&textureDesc, subresources.data(), &mTexture);
+		assert(SUCCEEDED(result) && "Unable to create texture array with initial data!");
+
+		CreateSRV();
+	}
+
+	void Texture2DArray::CreateSRV()
+	{
+		D3D11_TEXTURE2D_DESC desc = {};
+		mTexture->GetDesc(&desc);
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Format = desc.Format;
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+		srvDesc.Texture2DArray.MostDetailedMip = 0;
+		srvDesc.Texture2DArray.MipLevels = desc.MipLevels;
+		srvDesc.Texture2DArray.FirstArraySlice = 0;
+		srvDesc.Texture2DArray.ArraySize = mArraySize;
+
+		HRESULT result = device->CreateShaderResourceView(mTexture.Get(), &srvDesc, &mSRV);
+		assert(SUCCEEDED(result) && "Unable to create texture array SRV!");
+	}
+
+	void Texture2DArray::Bind(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		switch (shaderType)
+		{
+		case D3D11_VERTEX_SHADER:
+			deviceContext->VSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
+			break;
+		case D3D11_PIXEL_SHADER:
+			deviceContext->PSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
+			break;
+		case D3D11_COMPUTE_SHADER:
+			deviceContext->CSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
+			break;
+		default:
+			break;
+		}
+	}
+
+	void Texture2DArray::GenerateMips() const
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();

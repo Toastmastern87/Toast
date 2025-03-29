@@ -720,7 +720,7 @@ namespace Toast {
 						if (!upc.Panel->GetUseColor())
 							panelTextureName = upc.Panel->GetTextureFilepath();
 
-						Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius(), *upc.Panel->GetBorderSize() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false, *upc.Panel->GetTextureBorderSizeX(), * upc.Panel->GetTextureBorderSizeY());
+						Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius(), *upc.Panel->GetBorderSize() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), false, *upc.Panel->GetTextureBorderSizeX(), *upc.Panel->GetTextureBorderSizeY(), upc.Panel->GetTextureIndex());
 					}
 				}
 
@@ -1430,7 +1430,7 @@ namespace Toast {
 						if (!upc.Panel->GetUseColor())
 							panelTextureName = upc.Panel->GetTextureFilepath();
 
-						Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius(), *upc.Panel->GetBorderSize() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), panelTextureName, false, *upc.Panel->GetTextureBorderSizeX(), *upc.Panel->GetTextureBorderSizeY());
+						Renderer2D::SubmitPanel(finalPosition, { tc.Scale.x, tc.Scale.y, *upc.Panel->GetCornerRadius(), *upc.Panel->GetBorderSize() }, upc.Panel->GetColorF4(), (int)entity, !upc.Panel->GetUseColor(), false, *upc.Panel->GetTextureBorderSizeX(), *upc.Panel->GetTextureBorderSizeY(), upc.Panel->GetTextureIndex());
 					}
 				}
 

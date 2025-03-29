@@ -50,7 +50,7 @@ namespace Toast {
 
 			Ref<Font> TextFont;
 
-			std::string PanelTextureName;
+			Ref<Texture2DArray> UITextureArray;
 		};
 
 	protected:
@@ -63,10 +63,12 @@ namespace Toast {
 		static void BeginScene(Camera& camera);
 		static void EndScene();
 
-		static void SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, std::string panelTextureName, const bool targetable, float textureBorderSizeX, float textureBorderSizeY);
+		static void SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, float textureBorderSizeX, float textureBorderSizeY, uint32_t textureIndex);
 		static void SubmitConnector(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, const float borderRadius, const DirectX::XMFLOAT3& parentPos, const float connectorThickness, const float borderThicknesse);
 		static void SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable);
 		static void SubmitText(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, const Ref<UIText>& text, const int entityID, const bool targetable);
+
+		static Renderer2DData* GetRendererData() { return sRenderer2DData.get(); }
 	private:
 	};
 }
