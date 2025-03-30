@@ -63,8 +63,8 @@ namespace Toast {
 		static void BeginScene(Camera& camera);
 		static void EndScene();
 
-		static void SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, float textureBorderSizeX, float textureBorderSizeY, uint32_t textureIndex);
-		static void SubmitConnector(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, const float borderRadius, const DirectX::XMFLOAT3& parentPos, const float connectorThickness, const float borderThicknesse);
+		static void SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, uint32_t textureIndex);
+		static void SubmitConnector(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, const float borderRadius, const DirectX::XMFLOAT3& parentPos, const float connectorThickness);
 		static void SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable);
 		static void SubmitText(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, const Ref<UIText>& text, const int entityID, const bool targetable);
 

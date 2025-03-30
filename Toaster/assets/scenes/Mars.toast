@@ -60,7 +60,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [458, 38.2709961, 0]
+      Translation: [458, 365.270996, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
@@ -77,7 +77,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [458, 54.2711182, 0]
+      Translation: [458, 378.271118, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
@@ -94,7 +94,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [458, 70.2086182, 0]
+      Translation: [458, 393.208618, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
@@ -111,7 +111,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [458, 87.1669922, 0]
+      Translation: [458, 408.166992, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
@@ -128,14 +128,14 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [135, 32.5, 0]
+      Translation: [135, 355.5, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 75, 1]
     ScriptComponent:
       ClassName: Sandbox.TimeText
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
-      Text: 00:00:02
+      Text: 00:00:01
   - Entity: 2812129723666465913
     TagComponent:
       Tag: SText
@@ -144,7 +144,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [38, 37, 0]
+      Translation: [38, 359, 0]
       Rotation: [0, -0, 0]
       Scale: [20, 28, 1]
     UITextComponent:
@@ -158,7 +158,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [38, 66, 0]
+      Translation: [38, 393, 0]
       Rotation: [0, -0, 0]
       Scale: [20, 29, 1]
     UITextComponent:
@@ -178,20 +178,17 @@ Entities:
         - Handle: 11806276604423328658
         - Handle: 18384185750220347789
     TransformComponent:
-      Translation: [788, 444.5, 0]
+      Translation: [798, 128.5, 0]
       Rotation: [0, -0, 0]
-      Scale: [704, 604, 1]
+      Scale: [560, 438, 1]
     UIPanelComponent:
       Color: [0.0413039252, 0.0980315134, 0.489451468, 1]
       CornerRadius: 0
-      BorderSize: 0
-      TextureBorderSizeX: 88
-      TextureBorderSizeY: 0
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\Sex.png
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\UIPanelV3.png
       UseColor: false
       Visible: true
       ConnectToParent: false
-      TextureIndex: 2
+      TextureIndex: 4
   - Entity: 2187140198057221420
     TagComponent:
       Tag: Debug
@@ -321,20 +318,17 @@ Entities:
       Children:
         - Handle: 5004313190604184181
     TransformComponent:
-      Translation: [526.99707, 483.502441, 0]
+      Translation: [526.99707, 237.502441, 0]
       Rotation: [0, -0, 0]
-      Scale: [704, 604, 1]
+      Scale: [452, 331, 1]
     UIPanelComponent:
       Color: [1, 1, 1, 1]
       CornerRadius: 0
-      BorderSize: 0
-      TextureBorderSizeX: 0
-      TextureBorderSizeY: 0
       AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\UIMoneyPanel.png
       UseColor: false
       Visible: true
       ConnectToParent: false
-      TextureIndex: 0
+      TextureIndex: 3
   - Entity: 5004313190604184181
     TagComponent:
       Tag: MoneyText
@@ -343,9 +337,9 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [62.9996338, 31.2015381, 4.00051451]
+      Translation: [48.9996338, 264.201538, 4.00051451]
       Rotation: [0, -0, 0]
-      Scale: [8, 42, 16]
+      Scale: [52, 54, 16]
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
       Text: $500.000

@@ -643,17 +643,6 @@ namespace Toast {
 		component.Panel->SetVisible(value);
 	}
 
-	float UIPanelComponent_GetBorderSize(uint64_t entityID)
-	{
-		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
-		auto& component = entity.GetComponent<UIPanelComponent>();
-		return *component.Panel->GetBorderSize();
-	}
-
 #pragma endregion
 
 #pragma region UI Button Component
@@ -909,7 +898,6 @@ namespace Toast {
 
 		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_GetVisible);
 		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_SetVisible);
-		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_GetBorderSize);
 
 		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_GetColor);
 		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_SetColor);

@@ -485,9 +485,6 @@ namespace Toast {
 			auto& uipc = entity.GetComponent<UIPanelComponent>();
 			out << YAML::Key << "Color" << YAML::Value << uipc.Panel->GetColorF4();
 			out << YAML::Key << "CornerRadius" << YAML::Value << *uipc.Panel->GetCornerRadius();
-			out << YAML::Key << "BorderSize" << YAML::Value << *uipc.Panel->GetBorderSize();
-			out << YAML::Key << "TextureBorderSizeX" << YAML::Value << *uipc.Panel->GetTextureBorderSizeX();
-			out << YAML::Key << "TextureBorderSizeY" << YAML::Value << *uipc.Panel->GetTextureBorderSizeY();
 			out << YAML::Key << "AssetPath" << YAML::Value << uipc.Panel->GetTextureFilepath();
 			out << YAML::Key << "UseColor" << YAML::Value << uipc.Panel->GetUseColor();
 			out << YAML::Key << "Visible" << YAML::Value << uipc.Panel->GetVisible();
@@ -1001,9 +998,6 @@ namespace Toast {
 					
 					uipc.Panel->SetColor(uiPanelComponent["Color"].as<DirectX::XMFLOAT4>());
 					uipc.Panel->SetCornerRadius(uiPanelComponent["CornerRadius"].as<float>());
-					uipc.Panel->SetBorderSize(uiPanelComponent["BorderSize"].as<float>());
-					uipc.Panel->SetTextureBorderSizeX(uiPanelComponent["TextureBorderSizeX"].as<float>());
-					uipc.Panel->SetTextureBorderSizeY(uiPanelComponent["TextureBorderSizeY"].as<float>());
 					uipc.Panel->SetUseColor(uiPanelComponent["UseColor"].as<bool>());
 					uipc.Panel->SetVisible(uiPanelComponent["Visible"].as<bool>());
 					uipc.Panel->SetConnectToParent(uiPanelComponent["ConnectToParent"].as<bool>());

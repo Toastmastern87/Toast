@@ -1,10 +1,10 @@
 Prefab Name: Starship
 Entities:
-  - Entity: 1711200196964396884
+  - Entity: 7508225965177975219
     TagComponent:
       Tag: Control Script
     RelationshipComponent:
-      ParentHandle: 2856141450698146481
+      ParentHandle: 13920226976006597292
       Children:
         []
     TransformComponent:
@@ -13,11 +13,11 @@ Entities:
       Scale: [1, 1, 1]
     ScriptComponent:
       ClassName: Sandbox.StarshipController
-  - Entity: 1014084166893817824
+  - Entity: 14389114465692561347
     TagComponent:
       Tag: Rocket Exhaust RB3
     RelationshipComponent:
-      ParentHandle: 2856141450698146481
+      ParentHandle: 13920226976006597292
       Children:
         []
     TransformComponent:
@@ -40,11 +40,11 @@ Entities:
       Size: 1.09000003
       SpawnFunction: 2
       AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
-  - Entity: 15985865054705131445
+  - Entity: 9357630096146816593
     TagComponent:
       Tag: Rocket Exhaust RB2
     RelationshipComponent:
-      ParentHandle: 2856141450698146481
+      ParentHandle: 13920226976006597292
       Children:
         []
     TransformComponent:
@@ -67,11 +67,11 @@ Entities:
       Size: 1.09000003
       SpawnFunction: 2
       AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
-  - Entity: 17416125515018188823
+  - Entity: 11234979721916064531
     TagComponent:
       Tag: Rocket Exhaust RB1
     RelationshipComponent:
-      ParentHandle: 2856141450698146481
+      ParentHandle: 13920226976006597292
       Children:
         []
     TransformComponent:
@@ -94,43 +94,43 @@ Entities:
       Size: 1.07999933
       SpawnFunction: 2
       AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
-  - Entity: 1031267174739278677
+  - Entity: 17631153613245837967
     TagComponent:
       Tag: AltitudeText
     RelationshipComponent:
-      ParentHandle: 13956540886050971450
+      ParentHandle: 8693418818493056498
       Children:
         []
     TransformComponent:
-      Translation: [20.0002441, 424.967041, 0]
+      Translation: [29, 453.967041, 0]
       Rotation: [0, -0, 0]
       Scale: [1, 18, 1]
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
-      Text: "Altitude: 38,2 m"
-  - Entity: 15565975224278084272
+      Text: "Altitude: 165,6 m"
+  - Entity: 12497922625525939399
     TagComponent:
       Tag: VelocityText
     RelationshipComponent:
-      ParentHandle: 13956540886050971450
+      ParentHandle: 8693418818493056498
       Children:
         []
     TransformComponent:
-      Translation: [21.0002441, 448.009033, 0]
+      Translation: [29.0002441, 484.009033, 0]
       Rotation: [0, -0, 0]
       Scale: [14, 18, 1]
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\Ubuntu\UbuntuMono-R.ttf
-      Text: "Velocity: 30,9 m/s"
-  - Entity: 2555457931122298736
+      Text: "Velocity: 2,3 m/s"
+  - Entity: 12886881621474648762
     TagComponent:
       Tag: CloseButton
     RelationshipComponent:
-      ParentHandle: 13956540886050971450
+      ParentHandle: 8693418818493056498
       Children:
         []
     TransformComponent:
-      Translation: [260.999512, 442.592285, 0]
+      Translation: [251.999512, 525.592285, 0]
       Rotation: [0, -0, 0]
       Scale: [20, 20, 1]
     ScriptComponent:
@@ -139,38 +139,38 @@ Entities:
       CornerRadius: 0
       Color: [0.949367106, 0.0200288594, 0.0200288594, 1]
       ClickColor: [0.949367106, 0.0200288594, 0.0200288594, 1]
-  - Entity: 13956540886050971450
+  - Entity: 8693418818493056498
     TagComponent:
       Tag: InfoPopup
     RelationshipComponent:
-      ParentHandle: 2856141450698146481
+      ParentHandle: 13920226976006597292
       Children:
-        - Handle: 2555457931122298736
-        - Handle: 15565975224278084272
-        - Handle: 1031267174739278677
+        - Handle: 12886881621474648762
+        - Handle: 12497922625525939399
+        - Handle: 17631153613245837967
     TransformComponent:
-      Translation: [140.003418, -100.349823, -12.6181641]
+      Translation: [140.003418, -149.349823, -12.6181641]
       Rotation: [0, -0, 0]
-      Scale: [312, 496, 1]
+      Scale: [510, 581, 1]
     UIPanelComponent:
       Color: [1, 1, 1, 1]
       CornerRadius: 0
-      BorderSize: 20.5
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\UIPanelV3.png
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\UIStarshipPopupPanel.png
       UseColor: false
-      Visible: true
+      Visible: false
       ConnectToParent: true
-  - Entity: 2856141450698146481
+      TextureIndex: 5
+  - Entity: 13920226976006597292
     TagComponent:
       Tag: Entity
     RelationshipComponent:
       ParentHandle: 0
       Children:
-        - Handle: 13956540886050971450
-        - Handle: 17416125515018188823
-        - Handle: 15985865054705131445
-        - Handle: 1014084166893817824
-        - Handle: 1711200196964396884
+        - Handle: 8693418818493056498
+        - Handle: 11234979721916064531
+        - Handle: 9357630096146816593
+        - Handle: 14389114465692561347
+        - Handle: 7508225965177975219
     PrefabComponent:
       PrefabHandle: Starship
     TransformComponent:
