@@ -13,13 +13,13 @@ namespace Toast {
 		DirectX::XMFLOAT4 Position; // z component holds what type of UI Element this is, w component holds if the element is textured or not
 		DirectX::XMFLOAT4 Size; // z component holds the corner radius for a panel, w component holds the size of the border
 		DirectX::XMFLOAT4 Color;
-		DirectX::XMFLOAT2 Texcoord;
+		DirectX::XMFLOAT3 Texcoord;
 		uint32_t EntityID;
 		uint32_t TextureIndex;
 
 		UIVertex() = default;
 
-		UIVertex(DirectX::XMFLOAT4 pos, DirectX::XMFLOAT4 size, DirectX::XMFLOAT4 color, DirectX::XMFLOAT2 uv, uint32_t id, uint32_t texIdx)
+		UIVertex(DirectX::XMFLOAT4 pos, DirectX::XMFLOAT4 size, DirectX::XMFLOAT4 color, DirectX::XMFLOAT3 uv, uint32_t id, uint32_t texIdx)
 		{
 			Position = pos;
 			Size = size;
@@ -120,10 +120,28 @@ namespace Toast {
 		UIButton();
 		~UIButton() = default;
 
+		bool GetIsClicked() { return mIsClicked; }
+		void SetIsClicked(bool clicked) { mIsClicked = clicked; }
+
 		float* GetClickColor() { return &mClickColor.x; }
 		DirectX::XMFLOAT4 GetClickColorF4() { return mClickColor; }
 		void SetClickColor(DirectX::XMFLOAT4 c) { mClickColor = c; }
+
+		void SetTextureFilepath(std::string& textureFilepath) { mTextureFilepath = textureFilepath; }
+		std::string& GetTextureFilepath() { return mTextureFilepath; }
+
+		void SetClickTextureFilepath(std::string& textureFilepath) { mClickTextureFilepath = textureFilepath; }
+		std::string& GetClickTextureFilepath() { return mClickTextureFilepath; }
+
+		void SetClickTextureIndex(uint32_t idx) { mClickTextureIndex = idx; }
+		uint32_t GetClickTextureIndex() { return mClickTextureIndex; }
 	private:
+		bool mIsClicked = false;
+		
 		DirectX::XMFLOAT4 mClickColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+		uint32_t mClickTextureIndex = 0;
+
+		std::string mClickTextureFilepath;
+		std::string mTextureFilepath;
 	};
 }

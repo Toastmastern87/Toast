@@ -62,7 +62,7 @@ namespace Sandbox
                     {
                         Vector3 panelTranslation = mPanelTransform.Translation;
                         Vector3 panelScale = mPanelTransform.Scale;
-                        float borderSize = mPanel.BorderSize;
+                        float borderSize = 5.0f;
 
                         // Check if the mouse is over the panel to start dragging
                         if (mousePos.X >= (panelTranslation.X + 1273.0) && mousePos.X <= (panelTranslation.X + 1273.0 + panelScale.X) && mousePos.Y >= (panelTranslation.Y + 517.5 + panelScale.Y - borderSize) && mousePos.Y <= (panelTranslation.Y + 517.5 + panelScale.Y))

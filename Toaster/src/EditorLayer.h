@@ -60,7 +60,7 @@ namespace Toast {
 
 		Ref<Project> mProject;
 
-		Ref<Scene> mRuntimeScene, mEditorScene;
+		Scene *mRuntimeScene, *mEditorScene;
 
 		Ref<EditorCamera> mEditorCamera;
 

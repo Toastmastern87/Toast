@@ -8,12 +8,12 @@
 
 namespace Toast {
 
-	SceneSettingsPanel::SceneSettingsPanel(const Ref<Scene>& context, WindowsWindow* window)
+	SceneSettingsPanel::SceneSettingsPanel(Scene* context, WindowsWindow* window)
 	{
 		SetContext(context, window);
 	}
 
-	void SceneSettingsPanel::SetContext(const Ref<Scene>& context, WindowsWindow* window)
+	void SceneSettingsPanel::SetContext(Scene* context, WindowsWindow* window)
 	{
 		mContext = context;
 

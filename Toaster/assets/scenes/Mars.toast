@@ -52,6 +52,46 @@ Entities:
     SphereColliderComponent:
       RenderCollider: true
       Radius: 0.39999991655349731
+  - Entity: 13550521646691037742
+    TagComponent:
+      Tag: AllStarshipUI
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [-1203, 546, 0]
+      Rotation: [0, 0, 0]
+      Scale: [64, -64, 1]
+    UIButtonComponent:
+      CornerRadius: 0
+      UseColor: false
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\6_AllStarshipsButton.png
+      TextureIndex: 5
+      ClickAssetPath: ""
+      ClickTextureIndex: 0
+  - Entity: 2584980814812506026
+    TagComponent:
+      Tag: AddStarshipButton
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [-1279, 546, 0]
+      Rotation: [0, 0, 0]
+      Scale: [418, -341, 1]
+    UIButtonComponent:
+      CornerRadius: 0
+      UseColor: false
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\5_AddStarshipButton.png
+      TextureIndex: 4
+      ClickAssetPath: ""
+      ClickTextureIndex: 0
   - Entity: 18384185750220347789
     TagComponent:
       Tag: TimeScale1
@@ -60,15 +100,20 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [458, 365.270996, 0]
+      Translation: [466, -178.729004, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
       ClassName: Sandbox.GameSpeedButtons
     UIButtonComponent:
       CornerRadius: 4
+      UseColor: true
       Color: [0, 0, 0, 1]
       ClickColor: [0, 0, 0, 1]
+      AssetPath: ""
+      TextureIndex: 0
+      ClickAssetPath: ""
+      ClickTextureIndex: 0
   - Entity: 11806276604423328658
     TagComponent:
       Tag: TimeScale2
@@ -77,15 +122,20 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [458, 378.271118, 0]
+      Translation: [466, -163.728882, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
       ClassName: Sandbox.GameSpeedButtons
     UIButtonComponent:
       CornerRadius: 4
+      UseColor: true
       Color: [1, 1, 1, 1]
       ClickColor: [1, 1, 1, 1]
+      AssetPath: ""
+      TextureIndex: 0
+      ClickAssetPath: ""
+      ClickTextureIndex: 0
   - Entity: 2709097365577216560
     TagComponent:
       Tag: TimeScale3
@@ -94,15 +144,20 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [458, 393.208618, 0]
+      Translation: [466, -148.791382, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
       ClassName: Sandbox.GameSpeedButtons
     UIButtonComponent:
       CornerRadius: 4
+      UseColor: true
       Color: [1, 1, 1, 1]
       ClickColor: [1, 1, 1, 1]
+      AssetPath: ""
+      TextureIndex: 0
+      ClickAssetPath: ""
+      ClickTextureIndex: 0
   - Entity: 4566870064654448293
     TagComponent:
       Tag: TimeScale4
@@ -111,15 +166,20 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [458, 408.166992, 0]
+      Translation: [466, -132.833008, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 10, 1]
     ScriptComponent:
       ClassName: Sandbox.GameSpeedButtons
     UIButtonComponent:
       CornerRadius: 4
+      UseColor: true
       Color: [1, 1, 1, 1]
       ClickColor: [1, 1, 1, 1]
+      AssetPath: ""
+      TextureIndex: 0
+      ClickAssetPath: ""
+      ClickTextureIndex: 0
   - Entity: 9291025796538517788
     TagComponent:
       Tag: TimeText
@@ -128,7 +188,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [135, 355.5, 0]
+      Translation: [155, -190.5, 0]
       Rotation: [0, -0, 0]
       Scale: [30, 75, 1]
     ScriptComponent:
@@ -144,7 +204,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [38, 359, 0]
+      Translation: [58, -190, 0]
       Rotation: [0, -0, 0]
       Scale: [20, 28, 1]
     UITextComponent:
@@ -158,7 +218,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [38, 393, 0]
+      Translation: [58, -152, 0]
       Rotation: [0, -0, 0]
       Scale: [20, 29, 1]
     UITextComponent:
@@ -178,17 +238,17 @@ Entities:
         - Handle: 11806276604423328658
         - Handle: 18384185750220347789
     TransformComponent:
-      Translation: [798, 128.5, 0]
+      Translation: [798, 668.5, 0]
       Rotation: [0, -0, 0]
-      Scale: [560, 438, 1]
+      Scale: [560, -264, 1]
     UIPanelComponent:
       Color: [0.0413039252, 0.0980315134, 0.489451468, 1]
       CornerRadius: 0
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\UIPanelV3.png
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\2_UIPanelV3.png
       UseColor: false
       Visible: true
       ConnectToParent: false
-      TextureIndex: 4
+      TextureIndex: 1
   - Entity: 2187140198057221420
     TagComponent:
       Tag: Debug
@@ -318,17 +378,17 @@ Entities:
       Children:
         - Handle: 5004313190604184181
     TransformComponent:
-      Translation: [526.99707, 237.502441, 0]
+      Translation: [504.99707, 735.502441, 0]
       Rotation: [0, -0, 0]
-      Scale: [452, 331, 1]
+      Scale: [452, -310, 1]
     UIPanelComponent:
       Color: [1, 1, 1, 1]
       CornerRadius: 0
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\UIMoneyPanel.png
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\1_UIMoneyPanel.png
       UseColor: false
       Visible: true
       ConnectToParent: false
-      TextureIndex: 3
+      TextureIndex: 0
   - Entity: 5004313190604184181
     TagComponent:
       Tag: MoneyText
@@ -337,7 +397,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [48.9996338, 264.201538, 4.00051451]
+      Translation: [64.9996338, -227.798462, 4.00051451]
       Rotation: [0, -0, 0]
       Scale: [52, 54, 16]
     UITextComponent:

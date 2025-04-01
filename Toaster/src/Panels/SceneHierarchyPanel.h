@@ -15,10 +15,10 @@ namespace Toast {
 	{
 	public:
 		SceneHierarchyPanel() = default;
-		SceneHierarchyPanel(const Ref<Scene>& context);
+		SceneHierarchyPanel(Scene* context);
 
-		void SetContext(const Ref<Scene>& context);
-		Scene* GetContext() const { return mContext.get(); }
+		void SetContext(Scene* context);
+		Scene* GetContext() const { return mContext; }
 
 		void OnImGuiRender();
 
@@ -27,7 +27,7 @@ namespace Toast {
 	private:
 		void DrawEntityNode(Entity entity);
 	private:
-		Ref<Scene> mContext;
+		Scene* mContext;
 		Entity mSelectionContext;
 
 		Entity mEntityBeingRenamed;

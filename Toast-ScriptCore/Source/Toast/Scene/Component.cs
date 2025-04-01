@@ -295,19 +295,6 @@ namespace Toast
                 InternalCalls.UIPanelComponent_SetVisible(Entity.ID, value);
             }
         }
-
-        public float BorderSize
-        {
-            get
-            {
-                return InternalCalls.UIPanelComponent_GetBorderSize(Entity.ID);
-            }
-
-            set
-            {
-
-            }
-        }
     }
 
     public class UIButtonComponent : Component

@@ -31,7 +31,7 @@ struct VertexInputType
 	float4 position			: POSITION0;
 	float4 size				: POSITION1;
     float4 color			: COLOR;
-    float2 texCoord         : POSITION2;
+    float3 texCoord         : POSITION2;
     uint entityID           : TEXTUREID0;
     uint textureIndex       : TEXTUREID1;
 };
@@ -53,9 +53,8 @@ PixelInputType main(VertexInputType input)
 {
 	PixelInputType output;
 
-	output.position = float4(input.position.xy, 1.0f, 1.0f);
+	output.position = float4(input.position.xyz, 1.0f);
 	output.position = mul(output.position, projectionMatrix);
-	output.position.z = 1.0f;
 	output.position.w = 1.0f;
 
 	output.texCoord = input.texCoord.xy;
@@ -66,7 +65,7 @@ PixelInputType main(VertexInputType input)
 	
     output.size = input.size.xy;
 	
-    output.UIType = (int) input.position.z;
+    output.UIType = (int) input.texCoord.z;
     output.cornerRadius = input.size.z;
     
     output.textured = input.position.w;
@@ -160,13 +159,16 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 
         if (input.textured >= 0.5f)
         {
-            textureColor = UITextures.Sample(defaultSampler, float3(input.texCoord, input.textureIndex));
+            float2 activeUV;
+            activeUV.x = input.texCoord.x * (input.size.x / 1000.0f);
+            activeUV.y = (1.0f - (input.size.y / 1000.0f)) + input.texCoord.y * (input.size.y / 1000.0f);
+            textureColor = UITextures.Sample(defaultSampler, float3(activeUV, input.textureIndex));
             output.color = textureColor;
         }
         else
             output.color = input.color;
     }
-	// TEXT
+	// Text
     else if (input.UIType == 2.0f)
 	{
 		float4 bgColor = float4(input.color.rgb, 0.0); 
@@ -181,6 +183,22 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 			discard;
 
         output.color = finalColor;
+    }
+    // Buttons
+    else if (input.UIType == 3.0f)
+    {
+        float4 textureColor;  
+
+        if (input.textured >= 0.5f)
+        {
+            float2 activeUV;
+            activeUV.x = input.texCoord.x * (input.size.x / 1000.0f);
+            activeUV.y = (1.0f - (input.size.y / 1000.0f)) + input.texCoord.y * (input.size.y / 1000.0f);
+            textureColor = UITextures.Sample(defaultSampler, float3(activeUV, input.textureIndex));
+            output.color = textureColor;
+        }
+        else
+            output.color = input.color;
     }
 	else
         output.color = input.color;

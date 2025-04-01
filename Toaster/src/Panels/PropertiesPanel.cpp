@@ -1141,6 +1141,9 @@ namespace Toast {
 						{
 							component.Panel->SetTextureFilepath(*filepath);
 							TextureLibrary::LoadTexture2D(*filepath);
+
+							uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
+							component.Panel->SetTextureIndex(sliceIndex);
 						}
 					}
 
@@ -1265,20 +1268,145 @@ namespace Toast {
 				ImGui::BeginTable("UIButtonComponent", 2, flags);
 				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
 				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
-
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Color");
+				ImGui::PushItemWidth(-1);
+				ImGui::Text("Normal texture/color");
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::PushItemWidth(-1);
+
+				std::optional<std::string> textureFilepathOpt = component.Button->GetTextureFilepath();
+				const std::string& textureFilepath = (textureFilepathOpt && !textureFilepathOpt->empty()) ?
+					*textureFilepathOpt :
+					"assets/textures/Checkerboard.png";
+
+				void* textureID = (void*)(uintptr_t)TextureLibrary::Get(textureFilepath)->GetID();
+
+				ImGui::Image(textureID, ImVec2(64.0f, 64.0f));
+
+				std::optional<std::string> filepath;
+
+				if (ImGui::BeginDragDropTarget())
+				{
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+					{
+						const wchar_t* path = (const wchar_t*)payload->Data;
+						auto completePath = std::filesystem::path(gAssetPath) / path;
+						filepath = completePath.string();
+
+						if (filepath)
+						{
+							component.Button->SetTextureFilepath(*filepath);
+							TextureLibrary::LoadTexture2D(*filepath);
+
+							uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
+							component.Button->SetTextureIndex(sliceIndex);
+						}
+					}
+
+					ImGui::EndDragDropTarget();
+				}
+
+				if (ImGui::IsItemClicked())
+				{
+					filepath = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\UI\\");
+
+					if (filepath)
+					{
+						component.Button->SetTextureFilepath(*filepath);
+						TextureLibrary::LoadTexture2D(*filepath);
+						std::string temp = *filepath;
+
+						uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
+						component.Button->SetTextureIndex(sliceIndex);
+					}
+				}
+
+				ImGui::TableSetColumnIndex(1);
+				ImGui::BeginTable("##table2", 2, flags);
+				ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthFixed, 55.0f);
+				ImGui::TableSetupColumn("##col4", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 1.1f);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				bool useColor = component.Button->GetUseColor();
+				if (ImGui::Checkbox("Use##Color", &useColor))
+				{
+					component.Button->SetUseColor(useColor);
+				}
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
 				ImGui::ColorEdit4("##buttoncolor", component.Button->GetColor());
+				ImGui::EndTable();
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("ClickColor");
+				ImGui::PushItemWidth(-1);
+				ImGui::Text("Click texture/color");
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::PushItemWidth(-1);
+
+				textureFilepathOpt = component.Button->GetClickTextureFilepath();
+				const std::string& clickTextureFilepath = (textureFilepathOpt && !textureFilepathOpt->empty()) ?
+					*textureFilepathOpt :
+					"assets/textures/Checkerboard.png";
+
+				void* clickTextureID = (void*)(uintptr_t)TextureLibrary::Get(clickTextureFilepath)->GetID();
+
+				ImGui::Image(clickTextureID, ImVec2(64.0f, 64.0f));
+
+				if (ImGui::BeginDragDropTarget())
+				{
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+					{
+						const wchar_t* path = (const wchar_t*)payload->Data;
+						auto completePath = std::filesystem::path(gAssetPath) / path;
+						filepath = completePath.string();
+
+						if (filepath)
+						{
+							component.Button->SetTextureFilepath(*filepath);
+							TextureLibrary::LoadTexture2D(*filepath);
+
+							uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
+							component.Button->SetClickTextureIndex(sliceIndex);
+						}
+					}
+
+					ImGui::EndDragDropTarget();
+				}
+
+				if (ImGui::IsItemClicked())
+				{
+					filepath = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\UI\\");
+
+					if (filepath)
+					{
+						component.Button->SetClickTextureFilepath(*filepath);
+						TextureLibrary::LoadTexture2D(*filepath);
+						std::string temp = *filepath;
+
+						uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
+						component.Button->SetClickTextureIndex(sliceIndex);
+					}
+				}
+
+				ImGui::TableSetColumnIndex(1);
+				ImGui::BeginTable("##table2", 2, flags);
+				ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthFixed, 55.0f);
+				ImGui::TableSetupColumn("##col4", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 1.1f);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				useColor = component.Button->GetUseColor();
+				if (ImGui::Checkbox("Use##Color", &useColor))
+				{
+					component.Button->SetUseColor(useColor);
+				}
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::ColorEdit4("##clickcolor", component.Button->GetClickColor());
+				ImGui::ColorEdit4("##buttonclickcolor", component.Button->GetClickColor());
+				ImGui::EndTable();
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);

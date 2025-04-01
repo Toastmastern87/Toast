@@ -8,12 +8,12 @@
 
 namespace Toast {
 
-	EnvironmentalPanel::EnvironmentalPanel(const Ref<Scene>& context)
+	EnvironmentalPanel::EnvironmentalPanel(Scene* context)
 	{
 		SetContext(context);
 	}
 
-	void EnvironmentalPanel::SetContext(const Ref<Scene>& context)
+	void EnvironmentalPanel::SetContext(Scene* context)
 	{
 		mContext = context;
 	}

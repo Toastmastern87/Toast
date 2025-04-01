@@ -100,6 +100,7 @@ namespace Toast {
 		void OnEvent(Event& e);
 		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
 		bool OnMouseButtonReleased(MouseButtonReleasedEvent& e);
+		bool OnMouseMoved(MouseMovedEvent& e);
 
 		void OnUpdateRuntime(Timestep ts);
 		void OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera);
@@ -130,11 +131,12 @@ namespace Toast {
 		void AddPrefab(std::string& prefabName);
 
 		const EntityMap& GetEntityMap() const { return mEntityIDMap; }
-		void CopyTo(Ref<Scene>& target);
+		void CopyTo(Scene* target);
 
 		UUID GetUUID() const { return mSceneID; }
 
 		void SetSelectedEntity(entt::entity entity) { mSelectedEntity = entity; }
+		entt::entity GetHoveredEntity() { return mHoveredEntity; }
 		void SetHoveredEntity(entt::entity entity) { mHoveredEntity = entity; }
 
 		Settings GetSettings() { return mSettings; }
@@ -144,6 +146,8 @@ namespace Toast {
 
 		void SetRenderColliders(bool renderColliders) { mSettings.RenderColliders = renderColliders; }
 		bool GetRenderColliders() { return mSettings.RenderColliders; }
+
+		entt::registry& GetRegistry() { return mRegistry; }
 	public:
 		static Ref<Scene> CreateEmpty();
 	private:

@@ -57,7 +57,7 @@ namespace Toast {
 	class SceneSerializer 
 	{
 	public:
-		SceneSerializer(const Ref<Scene>& scene);
+		SceneSerializer(Scene* scene);
 
 		void Serialize(const std::string& filepath);
 		void SerializeRuntime(const std::string& filepath);
@@ -69,6 +69,6 @@ namespace Toast {
 
 		void InstantiatePrefabChildren(Scene* currentScene, Entity& parentEntity, Entity prefabParent);
 	private:
-		Ref<Scene> mScene;
+		Scene* mScene;
 	};
 }

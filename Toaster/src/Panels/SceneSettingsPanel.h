@@ -16,16 +16,16 @@ namespace Toast {
 		};
 
 		SceneSettingsPanel() = default;
-		SceneSettingsPanel(const Ref<Scene>& context, WindowsWindow* window);
+		SceneSettingsPanel(Scene* context, WindowsWindow* window);
 		~SceneSettingsPanel() = default;
 
-		void SetContext(const Ref<Scene>& context, WindowsWindow* window);
+		void SetContext(Scene* context, WindowsWindow* window);
 
 		void OnImGuiRender(std::string& activeDragArea);
 
 		SelectionMode GetSelectionMode() { return mSelectionMode; }
 	private:
-		Ref<Scene> mContext;
+		Scene* mContext;
 
 		WindowsWindow* mWindow;
 		

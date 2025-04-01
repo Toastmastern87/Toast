@@ -206,8 +206,6 @@ namespace Toast
         internal static extern bool UIPanelComponent_GetVisible(ulong entityID);
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void UIPanelComponent_SetVisible(ulong entityID, bool value);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float UIPanelComponent_GetBorderSize(ulong entityID);
 
         #endregion
 

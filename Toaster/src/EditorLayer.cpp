@@ -8,6 +8,7 @@
 #include "Toast/Core/Application.h"
 #include "Toast/Core/Input.h"
 
+#include "Toast/Scene/SceneManager.h"
 #include "Toast/Scene/SceneSerializer.h"
 
 #include "Toast/Scripting/ScriptEngine.h"
@@ -779,10 +780,10 @@ namespace Toast {
 
 	void EditorLayer::OnEvent(Event& e)
 	{
-		if (mSceneState == SceneState::Edit)
-			mEditorCamera->OnEvent(e);
-		else if (mSceneState == SceneState::Play)
-			mRuntimeScene->OnEvent(e);
+		//if (mSceneState == SceneState::Edit)
+		//	mEditorCamera->OnEvent(e);
+		//else if (mSceneState == SceneState::Play)
+		//	mRuntimeScene->OnEvent(e);
 
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
@@ -795,7 +796,7 @@ namespace Toast {
 	{
 		mSceneState = SceneState::Play;
 
-		mRuntimeScene = CreateRef<Scene>();
+		mRuntimeScene = SceneManager::AddScene(CreateScope<Scene>());
 		mEditorScene->CopyTo(mRuntimeScene);
 
 		mRuntimeScene->OnRuntimeStart();
@@ -823,7 +824,7 @@ namespace Toast {
 		mRuntimeScene->OnRuntimeStop();
 		mSceneState = SceneState::Edit;
 
-		mRuntimeScene = nullptr;
+		SceneManager::RemoveScene(mRuntimeScene->GetUUID());
 
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mEditorScene->InvalidateFrustum();
@@ -834,8 +835,8 @@ namespace Toast {
 		if (mSceneState != SceneState::Edit)
 			return;
 
-		mEditorScene = CreateRef<Scene>();
-		//mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+		mEditorScene = SceneManager::AddScene(CreateScope<Scene>());
+
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mEnvironmentPanel.SetContext(mEditorScene);
 	}
@@ -854,7 +855,7 @@ namespace Toast {
 
 	void EditorLayer::OpenScene(const std::filesystem::path& path)
 	{
-		mEditorScene = CreateRef<Scene>();
+		mEditorScene = SceneManager::AddScene(CreateScope<Scene>());
 		mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mSceneSettingsPanel.SetContext(mEditorScene, mWindow);
@@ -993,7 +994,7 @@ namespace Toast {
 
 	bool EditorLayer::OnMouseMoved(MouseMovedEvent& e)
 	{
-		Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
+		/*Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
 
 		auto [mx, my] = ImGui::GetMousePos();
 		mx -= mViewportBounds[0].x;		my -= mViewportBounds[0].y;
@@ -1005,7 +1006,7 @@ namespace Toast {
 		if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
 		{
 			int pixelData = pickingRT->ReadPixel<int>(mouseX, mouseY);
-			mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mEditorScene.get());
+			mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mEditorScene);
 		}
 
 		if (mViewportHovered && !ImGuizmo::IsOver())
@@ -1014,7 +1015,9 @@ namespace Toast {
 				mEditorScene->SetHoveredEntity(mHoveredEntity);
 			else if (mSceneState == SceneState::Play)
 				mRuntimeScene->SetHoveredEntity(mHoveredEntity);
-		}
+		}*/
+
+		//mHoveredEntity = SceneManager::GetActiveScene()->GetHoveredEntity();
 
 		return true;
 	}

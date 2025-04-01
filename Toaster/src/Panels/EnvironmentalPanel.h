@@ -9,13 +9,13 @@ namespace Toast {
 	{
 	public:
 		EnvironmentalPanel() = default;
-		EnvironmentalPanel(const Ref<Scene>& context);
+		EnvironmentalPanel(Scene* context);
 		~EnvironmentalPanel() = default;
 
-		void SetContext(const Ref<Scene>& context);
+		void SetContext(Scene* context);
 
 		void OnImGuiRender();
 	private:
-		Ref<Scene> mContext;
+		Scene* mContext;
 	};
 }

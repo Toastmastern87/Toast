@@ -30,14 +30,14 @@ namespace Toast {
 
 	static char prefabName[128] = "NewPrefab";
 
-	SceneHierarchyPanel::SceneHierarchyPanel(const Ref<Scene>& context)
+	SceneHierarchyPanel::SceneHierarchyPanel(Scene* context)
 	{
 		SetContext(context);
 	}
 
-	void SceneHierarchyPanel::SetContext(const Ref<Scene>& context)
+	void SceneHierarchyPanel::SetContext(Scene* context)
 	{
-		mContext = context;
+		mContext = std::move(context);
 		mSelectionContext = {};
 	}
 
@@ -47,7 +47,7 @@ namespace Toast {
 
 		for (auto entity : mContext->mRegistry.view<IDComponent, RelationshipComponent>())
 		{
-			Entity e{ entity, mContext.get() };
+			Entity e{ entity, mContext };
 
 			if(e.GetParentUUID() == 0)
 				DrawEntityNode(e);

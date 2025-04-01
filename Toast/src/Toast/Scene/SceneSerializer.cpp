@@ -173,7 +173,7 @@ namespace YAML
 
 namespace Toast {
 
-	SceneSerializer::SceneSerializer(const Ref<Scene>& scene)
+	SceneSerializer::SceneSerializer(Scene* scene)
 		: mScene(scene)
 	{
 
@@ -501,8 +501,13 @@ namespace Toast {
 
 			auto& ubc = entity.GetComponent<UIButtonComponent>();
 			out << YAML::Key << "CornerRadius" << YAML::Value << *ubc.Button->GetCornerRadius();
+			out << YAML::Key << "UseColor" << YAML::Value << ubc.Button->GetUseColor();
 			out << YAML::Key << "Color" << YAML::Value << ubc.Button->GetColorF4();
 			out << YAML::Key << "ClickColor" << YAML::Value << ubc.Button->GetClickColorF4();
+			out << YAML::Key << "AssetPath" << YAML::Value << ubc.Button->GetTextureFilepath();
+			out << YAML::Key << "TextureIndex" << YAML::Value << ubc.Button->GetTextureIndex();
+			out << YAML::Key << "ClickAssetPath" << YAML::Value << ubc.Button->GetClickTextureFilepath();
+			out << YAML::Key << "ClickTextureIndex" << YAML::Value << ubc.Button->GetClickTextureIndex();
 
 			out << YAML::EndMap; // UIButtonComponent
 		}
@@ -653,7 +658,7 @@ namespace Toast {
 		// Making sure the main camera is serialized first
 		mScene->mRegistry.each([&](auto entityID)
 		{
-			Entity entity = { entityID, mScene.get() };
+			Entity entity = { entityID, mScene };
 
 			// Skip if this entity is a child of a prefab.
 			if (entity.HasComponent<RelationshipComponent>())
@@ -676,7 +681,7 @@ namespace Toast {
 
 		mScene->mRegistry.each([&](auto entityID)
 		{
-			Entity entity = { entityID, mScene.get() };
+			Entity entity = { entityID, mScene };
 
 			// Skip if this entity is a child of a prefab.
 			if (entity.HasComponent<RelationshipComponent>())
@@ -777,7 +782,7 @@ namespace Toast {
 						CopyComponents(deserializedEntity, prefabRoot);
 
 						// Instantiate any children from the prefab hierarchy as children of deserializedEntity.
-						InstantiatePrefabChildren(mScene.get(), deserializedEntity, prefabRoot);
+						InstantiatePrefabChildren(mScene, deserializedEntity, prefabRoot);
 					}
 				}
 
@@ -1014,8 +1019,29 @@ namespace Toast {
 					auto& ubc = deserializedEntity.AddComponent<UIButtonComponent>(CreateRef<UIButton>());
 
 					ubc.Button->SetColor(uiButtonComponent["Color"].as<DirectX::XMFLOAT4>());
+					ubc.Button->SetUseColor(uiButtonComponent["UseColor"].as<bool>());
 					ubc.Button->SetClickColor(uiButtonComponent["Color"].as<DirectX::XMFLOAT4>());
 					ubc.Button->SetCornerRadius(uiButtonComponent["CornerRadius"].as<float>());
+
+					if (uiButtonComponent["TextureIndex"])
+						ubc.Button->SetTextureIndex(uiButtonComponent["TextureIndex"].as<int>());
+
+					if (uiButtonComponent["AssetPath"]) 
+					{
+						ubc.Button->SetTextureFilepath(uiButtonComponent["AssetPath"].as<std::string>());
+						if (!ubc.Button->GetTextureFilepath().empty())
+							TextureLibrary::LoadTexture2D(ubc.Button->GetTextureFilepath());
+					}
+
+					if (uiButtonComponent["ClickTextureIndex"])
+						ubc.Button->SetClickTextureIndex(uiButtonComponent["ClickTextureIndex"].as<int>());
+
+					if (uiButtonComponent["ClickAssetPath"])
+					{
+						ubc.Button->SetClickTextureFilepath(uiButtonComponent["ClickAssetPath"].as<std::string>());
+						if (!ubc.Button->GetClickTextureFilepath().empty())
+							TextureLibrary::LoadTexture2D(ubc.Button->GetClickTextureFilepath());
+					}
 				}
 
 				auto uiTextComponent = entity["UITextComponent"];

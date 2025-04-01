@@ -6,6 +6,8 @@
 #include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/UI/Font.h"
 
+#include "Toast/Scene/SceneManager.h"
+
 #include "Toast/Scripting/ScriptEngine.h"
 
 namespace Toast {
@@ -35,6 +37,8 @@ namespace Toast {
 		mWindow->SetEventCallback(TOAST_BIND_EVENT_FN(Application::OnEvent));
 		mWindow->SetVSync(false);
 
+		SceneManager::Init();
+
 		Renderer::Init(mWindow->GetWidth(), mWindow->GetHeight());
 
 		ScriptEngine::Init();
@@ -48,6 +52,8 @@ namespace Toast {
 	Application::~Application() 
 	{
 		TOAST_PROFILE_FUNCTION();
+
+		SceneManager::Shutdown();
 
 		ScriptEngine::Shutdown();
 
@@ -113,6 +119,8 @@ namespace Toast {
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(TOAST_BIND_EVENT_FN(Application::OnWindowClose));
 		dispatcher.Dispatch<WindowResizeEvent>(TOAST_BIND_EVENT_FN(Application::OnWindowResize));
+
+		SceneManager::GetActiveScene()->OnEvent(e);
 
 		for (auto it = mLayerStack.rbegin(); it != mLayerStack.rend(); ++it) 
 		{
