@@ -55,7 +55,7 @@ PixelInputType main(VertexInputType input)
 
 	output.position = float4(input.position.xyz, 1.0f);
 	output.position = mul(output.position, projectionMatrix);
-	output.position.w = 1.0f;
+	//output.position.w = 1.0f;
 
 	output.texCoord = input.texCoord.xy;
 	

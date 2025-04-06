@@ -11,7 +11,8 @@ namespace Toast {
 	class Entity 
 	{
 	public:
-		Entity() = default;
+		Entity()
+			: mEntityHandle(entt::null), mScene(nullptr) {}
 		Entity(entt::entity handle, Scene* scene)
 			: mEntityHandle(handle), mScene(scene) {}
 		Entity(const Entity& other) = default;

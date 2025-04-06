@@ -119,8 +119,9 @@ namespace Toast {
 			annotation->BeginEvent(L"2D Render Pass");
 #endif
 
-		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get() }, nullptr);
-		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
+		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::ClearDepthStencilView(sRendererData->DepthStencilView);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
 		RenderCommand::SetBlendState(sRendererData->UIBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 		// New way of rendering UI with one big vertex buffer

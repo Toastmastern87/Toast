@@ -133,8 +133,18 @@ namespace Toast {
 		{
 			Entity entity = { mHoveredEntity, this };
 
-			if (entity.HasComponent<ScriptComponent>())
-				ScriptEngine::OnEventEntity(entity);	
+			UUID uuid = entity.GetComponent<IDComponent>().ID;
+			std::string tag = entity.GetComponent<TagComponent>().Tag;
+
+			if (entity.HasComponent<ScriptComponent>() && !entity.HasComponent<UIButtonComponent>())
+				ScriptEngine::OnEventEntity(entity);
+
+			if (entity.HasComponent<UIButtonComponent>())
+			{
+				auto& button = entity.GetComponent<UIButtonComponent>().Button;
+
+				button->SetIsClicked(true);
+			}
 		}
 
 		return true;
@@ -142,6 +152,22 @@ namespace Toast {
 
 	bool Scene::OnMouseButtonReleased(MouseButtonReleasedEvent& e)
 	{
+		auto buttonView = mRegistry.view<UIButtonComponent, IDComponent>();
+
+		if (mHoveredEntity != entt::null)
+		{
+			Entity entity = { mHoveredEntity, this };
+
+			if (entity.HasComponent<ScriptComponent>() && entity.HasComponent<UIButtonComponent>())
+				ScriptEngine::OnEventEntity(entity);
+		}
+
+		for (auto buttonEntity : buttonView)
+		{
+			Entity e = { buttonEntity, this };
+			e.GetComponent<UIButtonComponent>().Button->SetIsClicked(false);
+		}
+
 		return true;
 	}
 
@@ -149,18 +175,44 @@ namespace Toast {
 	{
 		Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
 
-		auto [mx, my] = ImGui::GetMousePos();
-		//mx -= mViewportBounds[0].x;		my -= mViewportBounds[0].y;
-		//DirectX::XMFLOAT2 viewportSize = { mViewportBounds[1].x - mViewportBounds[0].x,  mViewportBounds[1].y - mViewportBounds[0].y };
+		// Get raw mouse coordinates from the event.
+		float screenX = e.GetX();
+		float screenY = e.GetY();
 
-		int mouseX = (int)mx;
-		int mouseY = (int)my;
+		// Use the viewport bounds (set previously via SetViewportBounds)
+		float viewportX = mViewportBounds[0].x;
+		float viewportY = mViewportBounds[0].y;
+		float viewportWidth = mViewportBounds[1].x - mViewportBounds[0].x;
+		float viewportHeight = mViewportBounds[1].y - mViewportBounds[0].y;
 
-		//if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
-		//{
-			int pixelData = pickingRT->ReadPixel<int>(mouseX, mouseY);
-			mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), this);
-		//}
+		// Convert screen coordinates to viewport-local coordinates.
+		float adjustedX = screenX - viewportX;
+		float adjustedY = screenY - viewportY;
+
+		// Check that the mouse is within the viewport bounds.
+		if (adjustedX < 0 || adjustedY < 0 || adjustedX >= viewportWidth || adjustedY >= viewportHeight)
+		{
+			mHoveredEntity = Entity(); // explicitly clear it
+		}
+		else
+		{
+			// Scale the coordinates to match the picking render target's resolution.
+			auto [rtWidth, rtHeight] = pickingRT->GetSize();
+			int textureX = static_cast<int>((adjustedX / viewportWidth) * rtWidth);
+			int textureY = static_cast<int>((adjustedY / viewportHeight) * rtHeight);
+
+			// Read the pixel from the picking render target.
+			int pixelData = pickingRT->ReadPixel<int>(textureX, textureY);
+			mHoveredEntity = (pixelData == 0) ? entt::null : (entt::entity)(pixelData - 1);
+
+			if (pixelData > 0)
+			{
+				Entity entity = { mHoveredEntity, this };
+
+				UUID uuid = entity.GetComponent<IDComponent>().ID;
+				std::string tag = entity.GetComponent<TagComponent>().Tag;
+			}
+		}
 
 		return false;
 	}
@@ -720,16 +772,16 @@ namespace Toast {
 							{
 								DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
 								DirectX::XMFLOAT3 position = tc.Translation;
-								finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 1.0f };
+								finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, position.z + parentPosition.z };
 							}
 							else
-								finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
+								finalPosition = { tc.Translation.x , tc.Translation.y, tc.Translation.z };
 
 							if (upc.Panel->GetConnectToParent())
 								Renderer2D::SubmitConnector(tc.Translation, tc.Scale, *upc.Panel->GetCornerRadius(), parentScreenPos, 3.0f);
 						}
 						else
-							finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
+							finalPosition = { tc.Translation.x , tc.Translation.y, tc.Translation.z };
 
 						std::string panelTextureName;
 						if (!upc.Panel->GetUseColor())
@@ -763,10 +815,10 @@ namespace Toast {
 
 						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
 						DirectX::XMFLOAT3 position = tc.Translation;
-						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 3.0f };
+						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, position.z + parentPosition.z };
 					}
 					else
-						finalPosition = { tc.Translation.x , tc.Translation.y, 3.0f };
+						finalPosition = { tc.Translation.x , tc.Translation.y, tc.Translation.z };
 
 					if (renderButton)
 						Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius(), 1.0f }, ubc.Button->GetColorF4(), (int)entity, !ubc.Button->GetUseColor(), ubc.Button->GetIsClicked(), ubc.Button->GetTextureIndex(), ubc.Button->GetClickTextureIndex());
@@ -1430,16 +1482,16 @@ namespace Toast {
 							{
 								DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
 								DirectX::XMFLOAT3 position = tc.Translation;
-								finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 1.0f };
+								finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, position.z + parentPosition.z };
 							}
 							else
-								finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
+								finalPosition = { tc.Translation.x , tc.Translation.y, tc.Translation.z };
 
 							if (upc.Panel->GetConnectToParent()) 
 								Renderer2D::SubmitConnector(tc.Translation, tc.Scale, *upc.Panel->GetCornerRadius(), parentScreenPos, 3.0f);
 						}
 						else
-							finalPosition = { tc.Translation.x , tc.Translation.y, 1.0f };
+							finalPosition = { tc.Translation.x , tc.Translation.y, tc.Translation.z };
 
 						std::string panelTextureName;
 						if (!upc.Panel->GetUseColor())
@@ -1473,10 +1525,10 @@ namespace Toast {
 
 						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
 						DirectX::XMFLOAT3 position = tc.Translation;
-						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, 3.0f };
+						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, position.z + parentPosition.z };
 					}
 					else
-						finalPosition = { tc.Translation.x , tc.Translation.y, 3.0f };
+						finalPosition = { tc.Translation.x , tc.Translation.y, tc.Translation.z };
 
 					if(renderButton)
 						Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius(), 1.0f }, ubc.Button->GetColorF4(), (int)entity, !ubc.Button->GetUseColor(), ubc.Button->GetIsClicked(), ubc.Button->GetTextureIndex(), ubc.Button->GetClickTextureIndex());
@@ -1533,6 +1585,12 @@ namespace Toast {
 				cameraComponent.Camera.SetViewportSize(width, height);
 			}
 		}
+	}
+
+	void Scene::SetViewportBounds(DirectX::XMFLOAT2 viewportBounds[2])
+	{
+		for (int i = 0; i < 2; ++i)
+			mViewportBounds[i] = viewportBounds[i];
 	}
 
 	void Scene::InvalidateFrustum()

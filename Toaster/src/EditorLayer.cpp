@@ -287,6 +287,8 @@ namespace Toast {
 			mViewportBounds[0] = { viewportMinRegion.x + windowPos.x, viewportMinRegion.y + windowPos.y };
 			mViewportBounds[1] = { viewportMaxRegion.x + windowPos.x, viewportMaxRegion.y + windowPos.y };
 
+			SceneManager::GetActiveScene()->SetViewportBounds(mViewportBounds);
+
 			if(mViewportSize.x != mPreviousViewportSize.x || mViewportSize.y != mPreviousViewportSize.y)
 				Renderer::OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
@@ -796,8 +798,13 @@ namespace Toast {
 	{
 		mSceneState = SceneState::Play;
 
-		mRuntimeScene = SceneManager::AddScene(CreateScope<Scene>());
+		mRuntimeScene = SceneManager::AddScene();
+
 		mEditorScene->CopyTo(mRuntimeScene);
+
+		mRuntimeScene->SetHoveredEntity(entt::null);
+
+		SceneManager::SetActiveScene(mRuntimeScene);
 
 		mRuntimeScene->OnRuntimeStart();
 		mSceneHierarchyPanel.SetContext(mRuntimeScene);
@@ -823,6 +830,8 @@ namespace Toast {
 	{
 		mRuntimeScene->OnRuntimeStop();
 		mSceneState = SceneState::Edit;
+
+		SceneManager::SetActiveScene(mEditorScene);
 
 		SceneManager::RemoveScene(mRuntimeScene->GetUUID());
 
@@ -855,7 +864,6 @@ namespace Toast {
 
 	void EditorLayer::OpenScene(const std::filesystem::path& path)
 	{
-		mEditorScene = SceneManager::AddScene(CreateScope<Scene>());
 		mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mSceneSettingsPanel.SetContext(mEditorScene, mWindow);
@@ -994,30 +1002,18 @@ namespace Toast {
 
 	bool EditorLayer::OnMouseMoved(MouseMovedEvent& e)
 	{
-		/*Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
-
-		auto [mx, my] = ImGui::GetMousePos();
-		mx -= mViewportBounds[0].x;		my -= mViewportBounds[0].y;
-		DirectX::XMFLOAT2 viewportSize = { mViewportBounds[1].x - mViewportBounds[0].x,  mViewportBounds[1].y - mViewportBounds[0].y };
-
-		int mouseX = (int)mx;
-		int mouseY = (int)my;
-
-		if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)viewportSize.x && mouseY < (int)viewportSize.y)
+		if (mSceneState == SceneState::Edit)
 		{
-			int pixelData = pickingRT->ReadPixel<int>(mouseX, mouseY);
-			mHoveredEntity = pixelData == 0 ? Entity() : Entity((entt::entity)(pixelData - 1), mEditorScene);
+			entt::entity sceneHovered = mEditorScene->GetHoveredEntity();
+
+			mHoveredEntity = (sceneHovered == entt::null) ? Entity() : Entity(sceneHovered, mEditorScene);
 		}
-
-		if (mViewportHovered && !ImGuizmo::IsOver())
+		else if (mSceneState == SceneState::Play)
 		{
-			if (mSceneState == SceneState::Edit)
-				mEditorScene->SetHoveredEntity(mHoveredEntity);
-			else if (mSceneState == SceneState::Play)
-				mRuntimeScene->SetHoveredEntity(mHoveredEntity);
-		}*/
+			entt::entity sceneHovered = mRuntimeScene->GetHoveredEntity();
 
-		//mHoveredEntity = SceneManager::GetActiveScene()->GetHoveredEntity();
+			mHoveredEntity = (sceneHovered == entt::null) ? Entity() : Entity(sceneHovered, mRuntimeScene);
+		}
 
 		return true;
 	}

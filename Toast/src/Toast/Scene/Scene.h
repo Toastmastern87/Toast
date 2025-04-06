@@ -109,6 +109,8 @@ namespace Toast {
 		void SetViewportPos(DirectX::XMFLOAT2 absoluteViewportPos) { mViewportPosX = absoluteViewportPos.x; mViewportPosY = absoluteViewportPos.y; }
 		const std::tuple<uint32_t, uint32_t> GetViewportPos() { return std::make_tuple(mViewportPosX, mViewportPosY); }
 
+		void SetViewportBounds(DirectX::XMFLOAT2 viewportBounds[2]);
+
 		void SetTimeScale(float scale) { mTimeScale = scale; }
 		float GetTimeScale() { return mTimeScale; }
 
@@ -184,6 +186,8 @@ namespace Toast {
 
 		Ref<Frustum> mFrustum;
 		bool mInvalidatePlanet = false;
+
+		DirectX::XMFLOAT2 mViewportBounds[2];
 
 		Ref<ParticleSystem> mParticleSystem;
 

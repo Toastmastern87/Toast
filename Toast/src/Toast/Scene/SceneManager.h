@@ -26,13 +26,17 @@ namespace Toast {
 	public:
 		static void Init();
 		static void Shutdown();
+		static bool IsShuttingDown() { return sIsShuttingDown; }
 
 		static void OnEvent(Event& e);
+		static Scene* AddScene();
 		static Scene* AddScene(Scope<Scene> scene);
 		static void RemoveScene(UUID sceneID);
 
 		static Scene* GetActiveScene() { return sSceneManagerData->ActiveScene; }
 		static void SetActiveScene(Scene* scene);
+	private:
+		inline static bool sIsShuttingDown = false;
 	};
 
 }

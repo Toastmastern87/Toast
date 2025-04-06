@@ -5,6 +5,8 @@ namespace Toast {
 
 	Scope<SceneManager::SceneManagerData> SceneManager::sSceneManagerData;
 
+
+
 	void SceneManager::Init()
 	{
 		sSceneManagerData = CreateScope<SceneManagerData>();
@@ -12,6 +14,8 @@ namespace Toast {
 
 	void SceneManager::Shutdown()
 	{
+		sIsShuttingDown = true;
+
 		sSceneManagerData.reset();
 	}
 
@@ -34,6 +38,13 @@ namespace Toast {
 		sSceneManagerData->Scenes[id] = std::move(scene);
 
 		return sSceneManagerData->Scenes[id].get();
+	}
+
+	Scene* SceneManager::AddScene()
+	{
+		Scope<Scene> newScene = CreateScope<Scene>();
+		
+		return AddScene(std::move(newScene));
 	}
 
 	void SceneManager::RemoveScene(UUID sceneID)

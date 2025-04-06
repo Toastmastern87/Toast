@@ -89,6 +89,11 @@ namespace Toast {
 		return Input::IsMouseButtonPressed(button);
 	}
 
+	bool Input_IsMouseButtonReleased(MouseCode button)
+	{
+		return Input::IsMouseButtonReleased(button);
+	}
+
 	void Input_GetMousePosition(DirectX::XMFLOAT2* outPos)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
@@ -845,6 +850,7 @@ namespace Toast {
 
 		TOAST_ADD_INTERNAL_CALL(Input_IsKeyPressed);
 		TOAST_ADD_INTERNAL_CALL(Input_IsMouseButtonPressed);
+		TOAST_ADD_INTERNAL_CALL(Input_IsMouseButtonReleased);
 		TOAST_ADD_INTERNAL_CALL(Input_GetMousePosition);
 		TOAST_ADD_INTERNAL_CALL(Input_GetMouseWheelDelta);
 		TOAST_ADD_INTERNAL_CALL(Input_SetMouseWheelDelta);

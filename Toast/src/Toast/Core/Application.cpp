@@ -120,7 +120,8 @@ namespace Toast {
 		dispatcher.Dispatch<WindowCloseEvent>(TOAST_BIND_EVENT_FN(Application::OnWindowClose));
 		dispatcher.Dispatch<WindowResizeEvent>(TOAST_BIND_EVENT_FN(Application::OnWindowResize));
 
-		SceneManager::GetActiveScene()->OnEvent(e);
+		if (!SceneManager::IsShuttingDown())
+			SceneManager::GetActiveScene()->OnEvent(e);
 
 		for (auto it = mLayerStack.rbegin(); it != mLayerStack.rend(); ++it) 
 		{
