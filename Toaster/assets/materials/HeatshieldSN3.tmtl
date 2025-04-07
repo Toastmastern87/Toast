@@ -1,10 +1,9 @@
 Material: HeatshieldSN3
 Albedo: [1, 1, 1, 1]
 Metalness: 1
-Roughness: 0
+Roughness: 1
 UseAlbedoMap: true
 UseNormalMap: true
-UseMetalRoughMap: true
+UseMetalRoughMap: false
 AlbedoAssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_Heat_Shield_basecolor.png
 NormalAssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_Heat_Shield_normal.png
-MetalRoughAssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_Heat_Shield_roughness.png

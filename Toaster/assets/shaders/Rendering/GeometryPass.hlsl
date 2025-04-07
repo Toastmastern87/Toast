@@ -100,7 +100,7 @@ PixelInputType main(VertexInputType input)
 
     float4 worldPosition;
     float3 worldNormal;
-    float4 worldTangent;
+    float3 worldTangent;
     
     if (isInstanced)
     {
@@ -143,7 +143,7 @@ PixelInputType main(VertexInputType input)
             worldPosition = mul(float4(input.position, 1.0f), worldMatrix);
             worldPosition = mul(worldPosition, worldTranslationMatrix);
             worldNormal = mul(input.normal, (float3x3) worldMatrix);
-            worldTangent = mul(input.tangent, worldMatrix);
+            worldTangent = mul(input.tangent.xyz, (float3x3) worldMatrix);
         }
     }
 
@@ -152,11 +152,11 @@ PixelInputType main(VertexInputType input)
     output.viewPosition = viewPosition.xyz;
 
     float3 viewNormal = normalize(mul(worldNormal, (float3x3) viewMatrix));
-    float4 viewTangent = normalize(mul(worldTangent, viewMatrix));
+    float3 viewTangent = normalize(mul(worldTangent, (float3x3) viewMatrix));
     
-    float3 viewBitangent = cross(viewNormal, viewTangent.xyz) * viewTangent.w;
+    float3 viewBitangent = cross(viewTangent, viewNormal) * input.tangent.w;
     
-    float3x3 TBN = float3x3(viewTangent.xyz, viewBitangent, viewNormal);
+    float3x3 TBN = float3x3(viewTangent, viewBitangent, viewNormal);
     
     output.TBN = TBN;
     output.viewNormal = viewNormal;
@@ -209,20 +209,6 @@ Texture2D NormalTexture : register(t4);
 Texture2D MetalRoughTexture : register(t5);
 
 SamplerState defaultSampler : register(s0);
-
-SamplerState defaultSampler2
-{
-    Filter = MIN_MAG_MIP_LINEAR;
-    AddressU = Wrap;
-    AddressV = Wrap;
-    AddressW = Wrap;
-    MipLODBias = 0.0f;
-    MaxAnisotropy = 1;
-    ComparisonFunc = NEVER;
-    BorderColor = float4(0, 0, 0, 0);
-    MinLOD = 0.0f;
-    MaxLOD = FLT_MAX;
-};
 
 struct PBRParameters
 {

@@ -238,7 +238,7 @@ namespace Toast {
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					useNormalMap = 1;
-					mMaterials[data->materials[m].name]->SetNormalTexture(TextureLibrary::LoadTexture2D(completePath.c_str()));
+					mMaterials[data->materials[m].name]->SetNormalTexture(TextureLibrary::LoadTexture2D(completePath.c_str(), false));
 					//TOAST_CORE_INFO("Normal map found: %s", completePath.c_str());
 				}
 				mMaterials[data->materials[m].name]->SetUseNormal(useNormalMap);
@@ -257,7 +257,7 @@ namespace Toast {
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					metalness = 1.0f;
 					useMetalRoughMap = 1;
-					mMaterials[data->materials[m].name]->SetMetalRoughTexture(TextureLibrary::LoadTexture2D(completePath.c_str()));
+					mMaterials[data->materials[m].name]->SetMetalRoughTexture(TextureLibrary::LoadTexture2D(completePath.c_str(), false));
 				}
 				else
 				{
@@ -456,7 +456,7 @@ namespace Toast {
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					useNormalMap = 1;
-					mMaterials[data->materials[m].name]->SetNormalTexture(TextureLibrary::LoadTexture2D(completePath.c_str()));
+					mMaterials[data->materials[m].name]->SetNormalTexture(TextureLibrary::LoadTexture2D(completePath.c_str(), false));
 					TOAST_CORE_INFO("Normal map found for %s: %s", materialName.c_str(), completePath.c_str());
 				}
 				mMaterials[data->materials[m].name]->SetUseNormal(useNormalMap);
@@ -475,7 +475,7 @@ namespace Toast {
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					metalness = 1.0f;
 					useMetalRoughMap = 1;
-					mMaterials[data->materials[m].name]->SetMetalRoughTexture(TextureLibrary::LoadTexture2D(completePath.c_str()));
+					mMaterials[data->materials[m].name]->SetMetalRoughTexture(TextureLibrary::LoadTexture2D(completePath.c_str(), false));
 					TOAST_CORE_INFO("Metalness/Roughness map found for %s: %s", materialName.c_str(), completePath.c_str());
 				}
 				else

@@ -207,6 +207,6 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
         output.entityID = input.entityID + 1;
     else
         output.entityID = input.entityID;
-
+    
     return output;
 }

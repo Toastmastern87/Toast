@@ -35,7 +35,7 @@
 			"mesh":4,
 			"name":"LandingLegs0",
 			"translation":[
-				-0.1434694081544876,
+				0.27653056383132935,
 				0.14491599798202515,
 				0.4385715126991272
 			]
@@ -272,10 +272,6 @@
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":1
-				},
-				"metallicFactor":0,
-				"metallicRoughnessTexture":{
-					"index":2
 				}
 			}
 		},
@@ -757,10 +753,6 @@
 		{
 			"sampler":0,
 			"source":1
-		},
-		{
-			"sampler":0,
-			"source":2
 		}
 	],
 	"images":[
@@ -773,11 +765,6 @@
 			"mimeType":"image/png",
 			"name":"Starship_Heat_Shield_basecolor",
 			"uri":"Starship_Heat_Shield_basecolor.png"
-		},
-		{
-			"mimeType":"image/png",
-			"name":"Starship_Heat_Shield_roughness",
-			"uri":"Starship_Heat_Shield_roughness.png"
 		}
 	],
 	"accessors":[
@@ -1100,14 +1087,14 @@
 			"componentType":5126,
 			"count":774,
 			"max":[
-				2.9485838413238525,
-				-16.965438842773438,
-				2.91823673248291
+				3.225114345550537,
+				-16.82052230834961,
+				3.3568081855773926
 			],
 			"min":[
-				-4.352609634399414,
-				-24.06343650817871,
-				-4.293889045715332
+				-4.07607889175415,
+				-23.918519973754883,
+				-3.8553175926208496
 			],
 			"type":"VEC3"
 		},

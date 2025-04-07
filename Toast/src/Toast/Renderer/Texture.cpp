@@ -13,6 +13,39 @@
 
 namespace Toast {
 
+HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* pBPP)
+{
+    if (!pGuid || !pBPP)
+        return E_INVALIDARG;
+        
+    if (memcmp(pGuid, &GUID_WICPixelFormat32bppRGBA, sizeof(WICPixelFormatGUID)) == 0)
+    {
+        *pBPP = 32;
+        return S_OK;
+    }
+    else if (memcmp(pGuid, &GUID_WICPixelFormat64bppRGBA, sizeof(WICPixelFormatGUID)) == 0)
+    {
+        *pBPP = 64;
+        return S_OK;
+    }
+    else if (memcmp(pGuid, &GUID_WICPixelFormat24bppBGR, sizeof(WICPixelFormatGUID)) == 0)
+    {
+        *pBPP = 24;
+        return S_OK;
+    }
+    else if (memcmp(pGuid, &GUID_WICPixelFormat24bppRGB, sizeof(WICPixelFormatGUID)) == 0)
+    {
+        *pBPP = 24;
+        return S_OK;
+    }
+    else
+    {
+        // Fallback: assume 32 bits per pixel if unknown.
+        *pBPP = 32;
+        return S_OK;
+    }
+}
+
 	HRESULT LoadImageDataFromFile(const std::wstring& filename,
 		std::vector<uint8_t>& imageData,
 		UINT& width, UINT& height,
@@ -20,6 +53,7 @@ namespace Toast {
 	{
 		using namespace Microsoft::WRL;
 
+		// Create the WIC factory.
 		ComPtr<IWICImagingFactory> factory;
 		HRESULT hr = CoCreateInstance(
 			CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
@@ -27,49 +61,77 @@ namespace Toast {
 		if (FAILED(hr))
 			return hr;
 
+		// Create a decoder for the image.
 		ComPtr<IWICBitmapDecoder> decoder;
 		hr = factory->CreateDecoderFromFilename(filename.c_str(), nullptr,
 			GENERIC_READ, WICDecodeMetadataCacheOnDemand, &decoder);
 		if (FAILED(hr))
 			return hr;
 
+		// Retrieve the first frame of the image.
 		ComPtr<IWICBitmapFrameDecode> frame;
 		hr = decoder->GetFrame(0, &frame);
 		if (FAILED(hr))
 			return hr;
 
+		// Get the image dimensions.
 		hr = frame->GetSize(&width, &height);
 		if (FAILED(hr))
 			return hr;
 
+		// Retrieve the pixel format of the image.
 		WICPixelFormatGUID pixelFormat;
 		hr = frame->GetPixelFormat(&pixelFormat);
 		if (FAILED(hr))
 			return hr;
 
-		// If the image is not in 32bpp BGRA, convert it.
-		if (memcmp(&pixelFormat, &GUID_WICPixelFormat32bppBGRA, sizeof(WICPixelFormatGUID)) != 0)
+		// Query the bit depth.
+		UINT bitsPerPixel = 0;
+		hr = MyWICGetPixelFormatBitsPerPixel(&pixelFormat, &bitsPerPixel);
+		if (FAILED(hr))
+			return hr;
+
+		// Decide on the desired format based on bit depth.
+		GUID desiredGUID;
+		if (bitsPerPixel == 32)
+		{
+			desiredGUID = GUID_WICPixelFormat32bppRGBA;
+			format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			rowPitch = width * 4; // 4 bytes per pixel.
+		}
+		else if (bitsPerPixel == 64)
+		{
+			desiredGUID = GUID_WICPixelFormat64bppRGBA;
+			format = DXGI_FORMAT_R16G16B16A16_UNORM;
+			rowPitch = width * 8; // 8 bytes per pixel (16 bits per channel).
+		}
+		else
+		{
+			// Default to 32bpp if unexpected bit depth.
+			desiredGUID = GUID_WICPixelFormat32bppRGBA;
+			format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			rowPitch = width * 4;
+		}
+
+		// Convert the image to the desired format if necessary.
+		if (memcmp(&pixelFormat, &desiredGUID, sizeof(WICPixelFormatGUID)) != 0)
 		{
 			ComPtr<IWICFormatConverter> converter;
 			hr = factory->CreateFormatConverter(&converter);
 			if (FAILED(hr))
 				return hr;
 
-			hr = converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppBGRA,
+			hr = converter->Initialize(frame.Get(), desiredGUID,
 				WICBitmapDitherTypeNone, nullptr, 0.f, WICBitmapPaletteTypeCustom);
 			if (FAILED(hr))
 				return hr;
 
-			format = DXGI_FORMAT_B8G8R8A8_UNORM;
-			rowPitch = width * 4; // 4 bytes per pixel
 			imageData.resize(rowPitch * height);
 			hr = converter->CopyPixels(nullptr, rowPitch, static_cast<UINT>(imageData.size()), imageData.data());
 		}
 		else
 		{
-			// Already in BGRA.
-			format = DXGI_FORMAT_B8G8R8A8_UNORM;
-			rowPitch = width * 4;
+			// If already in the desired format, just copy the pixels.
 			imageData.resize(rowPitch * height);
 			hr = frame->CopyPixels(nullptr, rowPitch, static_cast<UINT>(imageData.size()), imageData.data());
 		}
@@ -176,7 +238,7 @@ namespace Toast {
 		result = LoadImageDataFromFile(wFilePath, mImageData, mWidth, mHeight, mFormat, mRowPitch);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load texture!");
 
-		mSRVFormat = forceSRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : mFormat;
+		mSRVFormat = forceSRGB ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : mFormat;
 
 		// Create the texture using the loaded data.
 		D3D11_SUBRESOURCE_DATA subresourceData = {};
@@ -185,25 +247,29 @@ namespace Toast {
 
 		D3D11_TEXTURE2D_DESC textureDesc = {};
 		textureDesc.ArraySize = 1;
-		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
 		textureDesc.Usage = D3D11_USAGE_DEFAULT;
 		textureDesc.CPUAccessFlags = 0;
-		textureDesc.Format = forceSRGB ? DXGI_FORMAT_B8G8R8A8_UNORM_SRGB : mFormat;
+		textureDesc.Format = forceSRGB ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : mFormat;
 		textureDesc.Height = mHeight;
 		textureDesc.Width = mWidth;
-		textureDesc.MipLevels = 1;
-		textureDesc.MiscFlags = 0;
+		textureDesc.MipLevels = 0;
+		textureDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
 		textureDesc.SampleDesc.Count = 1;
 		textureDesc.SampleDesc.Quality = 0;
 
-		result = device->CreateTexture2D(&textureDesc, &subresourceData, &mTexture);
+		result = device->CreateTexture2D(&textureDesc, nullptr, &mTexture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
+
+		deviceContext->UpdateSubresource(mTexture.Get(), 0, nullptr, mImageData.data(), mRowPitch, 0);
 
 		CreateSRV();
 		mSRV->GetResource(&mResource);
 
 		mResource->QueryInterface<ID3D11Texture2D>(&textureInterface);
 		textureInterface->GetDesc(&desc);
+
+		GenerateMips();
 
 		//TOAST_CORE_INFO("Creating texture: %s, format: %d", mFilePath.c_str(), desc.Format);
 
@@ -775,12 +841,12 @@ namespace Toast {
 	std::unordered_map<std::string, Scope<Texture>> TextureLibrary::mTextures;
 	std::unordered_map<std::string, Scope<TextureSampler>> TextureLibrary::mTextureSamplers;
 
-	Texture2D* TextureLibrary::LoadTexture2D(const std::string& filePath)
+	Texture2D* TextureLibrary::LoadTexture2D(const std::string& filePath, const bool sRGB)
 	{
 		if (Exists(filePath)) 
 			return dynamic_cast<Texture2D*>(mTextures[filePath].get());
 
-		mTextures[filePath] = CreateScope<Texture2D>(filePath);
+		mTextures[filePath] = CreateScope<Texture2D>(filePath, sRGB);
 
 		return dynamic_cast<Texture2D*>(mTextures[filePath].get());
 	}

@@ -232,9 +232,9 @@ namespace Toast {
 			if (material->GetUseAlbedo()) 
 				material->SetAlbedoTexture(TextureLibrary::LoadTexture2D(data["AlbedoAssetPath"].as<std::string>()));
 			if(material->GetUseNormal())
-				material->SetNormalTexture(TextureLibrary::LoadTexture2D(data["NormalAssetPath"].as<std::string>()));
+				material->SetNormalTexture(TextureLibrary::LoadTexture2D(data["NormalAssetPath"].as<std::string>(), false));
 			if(material->GetUseMetalRough())
-				material->SetMetalRoughTexture(TextureLibrary::LoadTexture2D(data["MetalRoughAssetPath"].as<std::string>()));
+				material->SetMetalRoughTexture(TextureLibrary::LoadTexture2D(data["MetalRoughAssetPath"].as<std::string>(), false));
 		}
 
 		return true;

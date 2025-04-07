@@ -121,8 +121,13 @@ namespace Toast {
 	void Scene::OnEvent(Event& e)
 	{
 		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<MouseButtonPressedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseButtonPressed));
-		dispatcher.Dispatch<MouseButtonReleasedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseButtonReleased));
+
+		if (mIsRunning)
+		{
+			dispatcher.Dispatch<MouseButtonPressedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseButtonPressed));
+			dispatcher.Dispatch<MouseButtonReleasedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseButtonReleased));
+		}
+
 		dispatcher.Dispatch<MouseMovedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseMoved));
 	}
 
