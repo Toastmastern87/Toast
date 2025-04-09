@@ -86,6 +86,8 @@ namespace Toast {
 		);
 
 		sRenderer2DData->UITextureArray->SetSliceMapping(texturePaths);
+
+		LoadFontTextures();
 	}
 
 	void Renderer2D::Shutdown()
@@ -104,8 +106,6 @@ namespace Toast {
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
 		sRenderer2DData->UIVertexBufferPtr = sRenderer2DData->UIVertexBufferBase;
-
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRenderer2DData->UITextureArray->GetSRV());
 	}
 
 	void Renderer2D::EndScene()
@@ -132,8 +132,8 @@ namespace Toast {
 
 		ShaderLibrary::Get("assets/shaders/UI.hlsl")->Bind();
 
-		if (sRenderer2DData->TextFont)
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRenderer2DData->TextFont->GetFontAtlas()->GetSRV());		
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRenderer2DData->FontsTextureArray->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRenderer2DData->UITextureArray->GetSRV());
 
 		sRenderer2DData->UIVertexBuffer->SetData(sRenderer2DData->UIVertexBufferBase, vertexDataSize);
 		sRenderer2DData->UIVertexBuffer->Bind();
@@ -230,14 +230,11 @@ namespace Toast {
 		}
 	}
 
-	void Renderer2D::SubmitText(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, const Ref<UIText>& text, const int entityID, const bool targetable)
+	void Renderer2D::SubmitText(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const std::string& textString, const uint32_t fontTextureIndex, const int entityID, const bool targetable)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		std::string& textString = text->GetText();
-		Ref<Font> textFont = text->GetFont();
-
-		sRenderer2DData->TextFont = textFont;
+		auto& textFont = sRenderer2DData->TextFonts[fontTextureIndex];
 
 		if (textString.empty())
 			return;
@@ -292,33 +289,33 @@ namespace Toast {
 			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pl, (float)pb, pos.z, 0.0f }; // Bottom-Left
 			sRenderer2DData->UIVertexBufferPtr->Size = size;
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)l, (float)b, 2.0f };
-			sRenderer2DData->UIVertexBufferPtr->Color = text->GetColorF4();// Assuming text has a color
+			sRenderer2DData->UIVertexBufferPtr->Color = color;// Assuming text has a color
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
-			sRenderer2DData->UIVertexBufferPtr->TextureIndex = 1;
+			sRenderer2DData->UIVertexBufferPtr->TextureIndex = fontTextureIndex;
 			sRenderer2DData->UIVertexBufferPtr++;
 
 			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pr, (float)pb, pos.z, 0.0f }; // Bottom-Right
 			sRenderer2DData->UIVertexBufferPtr->Size = size;
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)r, (float)b, 2.0f };
-			sRenderer2DData->UIVertexBufferPtr->Color = text->GetColorF4();
+			sRenderer2DData->UIVertexBufferPtr->Color = color;
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
-			sRenderer2DData->UIVertexBufferPtr->TextureIndex = 1;
+			sRenderer2DData->UIVertexBufferPtr->TextureIndex = fontTextureIndex;
 			sRenderer2DData->UIVertexBufferPtr++;
 
 			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pr, (float)pt, pos.z, 0.0f }; // Top-Right
 			sRenderer2DData->UIVertexBufferPtr->Size = size;
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)r, (float)t, 2.0f };
-			sRenderer2DData->UIVertexBufferPtr->Color = text->GetColorF4();
+			sRenderer2DData->UIVertexBufferPtr->Color = color;
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
-			sRenderer2DData->UIVertexBufferPtr->TextureIndex = 1;
+			sRenderer2DData->UIVertexBufferPtr->TextureIndex = fontTextureIndex;
 			sRenderer2DData->UIVertexBufferPtr++;
 
 			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pl, (float)pt, pos.z, 0.0f }; // Top-Left
 			sRenderer2DData->UIVertexBufferPtr->Size = size;
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)l, (float)t, 2.0f };
-			sRenderer2DData->UIVertexBufferPtr->Color = text->GetColorF4();
+			sRenderer2DData->UIVertexBufferPtr->Color = color;
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
-			sRenderer2DData->UIVertexBufferPtr->TextureIndex = 1;
+			sRenderer2DData->UIVertexBufferPtr->TextureIndex = fontTextureIndex;
 			sRenderer2DData->UIVertexBufferPtr++;
 
 			double advance = glyph->getAdvance();
@@ -326,4 +323,103 @@ namespace Toast {
 			x += fsScale * advance;
 		 }
 	}
+
+	void Renderer2D::LoadFontTextures()
+	{
+		// Path to your fonts folder – each font is in its own folder inside this directory.
+		std::string fontsFolder = "../Toaster/assets/fonts";
+
+		// Use recursive_directory_iterator to find font files in subdirectories.
+		std::vector<std::string> fontPaths;
+		for (auto it = std::filesystem::recursive_directory_iterator(fontsFolder);
+			it != std::filesystem::recursive_directory_iterator(); ++it)
+		{
+			// If this is a directory and its name is "fontAwesome", skip recursing into it.
+			if (it->is_directory() && it->path().filename() == "FontAwesome")
+			{
+				it.disable_recursion_pending(); // Do not traverse this folder.
+				continue;
+			}
+
+			// Otherwise, if this is a regular file, add it to your list.
+			if (it->is_regular_file())
+			{
+				// Check that the file extension is not ".txt".
+				if (it->path().extension() != ".txt")
+					fontPaths.push_back(it->path().string());
+			}
+		}
+
+		// If no font files were found, exit early.
+		if (fontPaths.empty())
+			return;
+
+		// Load each font using your Font class.
+		std::vector<Ref<Font>> loadedFonts;
+		for (const auto& path : fontPaths)
+			loadedFonts.push_back(CreateRef<Font>(path));
+
+		// Ensure we have loaded some fonts.
+		if (loadedFonts.empty())
+			return;
+
+		// Collect valid texture atlases from the loaded fonts.
+		std::vector<Texture2D*> fontAtlases;
+		// Also, rebuild the fontPaths vector to contain only those that have a valid atlas.
+		std::vector<std::string> validFontPaths;
+		for (const auto& font : loadedFonts)
+		{
+			Texture2D* atlas = font->GetFontAtlas().get();
+			if (!atlas)
+				continue;
+
+			// Check initial data and row pitch before adding.
+			const void* data = atlas->GetInitialData();
+			UINT rowPitch = atlas->GetRowPitch();
+			if (data == nullptr || rowPitch == 0)
+				continue;
+
+			fontAtlases.push_back(atlas);
+			validFontPaths.push_back(font->GetFilePath());
+
+			sRenderer2DData->TextFonts.push_back(font);
+		}
+
+		if (fontAtlases.empty())
+			return;
+
+		// Assume all font atlases are created with the same dimensions and DXGI_FORMAT.
+		uint32_t width = fontAtlases[0]->GetWidth();
+		uint32_t height = fontAtlases[0]->GetHeight();
+		uint32_t arraySize = static_cast<uint32_t>(fontAtlases.size());
+		DXGI_FORMAT format = fontAtlases[0]->GetFormat();
+
+		// Prepare vectors to hold initial texture data and row pitch for each font atlas.
+		std::vector<const void*> initialData;
+		std::vector<UINT> rowPitches;
+		for (auto texture : fontAtlases)
+		{
+			initialData.push_back(texture->GetInitialData());
+			rowPitches.push_back(texture->GetRowPitch());
+		}
+
+		// Create the Texture2DArray containing all font atlases.
+		sRenderer2DData->FontsTextureArray = CreateRef<Texture2DArray>(
+			format,
+			width, height,
+			arraySize,
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_SHADER_RESOURCE,
+			1, // samples
+			0, // cpuAccessFlags
+			initialData,
+			rowPitches
+		);
+
+		// Optionally, map each array slice back to its originating file for later reference.
+		sRenderer2DData->FontsTextureArray->SetSliceMapping(fontPaths);
+
+		TOAST_CORE_CRITICAL("Loaded %d number of fonts", fontAtlases.size());
+	}
+
 }

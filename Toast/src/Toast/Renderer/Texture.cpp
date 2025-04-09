@@ -291,6 +291,11 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		deviceContext->Map(mResource.Get(), NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);
 		memcpy(ms.pData, data, size);
 		deviceContext->Unmap(mResource.Get(), NULL);
+
+		mImageData.resize(size);
+		memcpy(mImageData.data(), data, size);
+
+		mRowPitch = mWidth * 4 * sizeof(float);
 	}
 
 	void Texture2D::BindForReadWrite(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
@@ -701,7 +706,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		ID3D11Device* device = API->GetDevice();
 
 		HRESULT result = device->CreateTexture2D(&textureDesc, nullptr, &mTexture);
-		assert(SUCCEEDED(result) && "Unable to create texture array!");
+		TOAST_CORE_ASSERT(SUCCEEDED(result),"Unable to create texture array!");
 
 		CreateSRV();
 	}
@@ -711,8 +716,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		const std::vector<UINT>& rowPitches)
 		: mWidth(width), mHeight(height), mArraySize(arraySize), mFormat(format)
 	{
-		// Make sure we have the right number of initial data pointers.
-		assert(initialData.size() == arraySize && rowPitches.size() == arraySize);
+		TOAST_CORE_ASSERT(initialData.size() == arraySize && rowPitches.size() == arraySize, "Wrong initial data");
 
 		D3D11_TEXTURE2D_DESC textureDesc = {};
 		textureDesc.ArraySize = mArraySize;
@@ -739,7 +743,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		ID3D11Device* device = API->GetDevice();
 
 		HRESULT result = device->CreateTexture2D(&textureDesc, subresources.data(), &mTexture);
-		assert(SUCCEEDED(result) && "Unable to create texture array with initial data!");
+		TOAST_CORE_ASSERT(SUCCEEDED(result),"Unable to create texture array with initial data!");
 
 		CreateSRV();
 	}
@@ -761,7 +765,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		srvDesc.Texture2DArray.ArraySize = mArraySize;
 
 		HRESULT result = device->CreateShaderResourceView(mTexture.Get(), &srvDesc, &mSRV);
-		assert(SUCCEEDED(result) && "Unable to create texture array SRV!");
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture array SRV!");
 	}
 
 	void Texture2DArray::Bind(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const

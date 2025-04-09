@@ -95,7 +95,7 @@ struct PixelOutputType
     int entityID		    : SV_Target1;
 };
 
-Texture2D MDSFAtlas				: register(t6);
+Texture2DArray MDSFAtlas        : register(t6);
 Texture2DArray UITextures       : register(t8);
 
 SamplerState defaultSampler		: register(s0);
@@ -174,7 +174,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 		float4 bgColor = float4(input.color.rgb, 0.0); 
 		float4 fgColor = input.color;
 
-		float3 msd = MDSFAtlas.Sample(defaultSampler, input.texCoord).rgb;
+        float3 msd = MDSFAtlas.Sample(defaultSampler, float3(input.texCoord, input.textureIndex)).rgb;
 		float sd = median(msd.r, msd.g, msd.b);
 		float screenPxDistance = ScreenPxRange() * (sd - 0.5f);
 		float opacity = clamp(screenPxDistance + 0.5f, 0.0f, 1.0f);

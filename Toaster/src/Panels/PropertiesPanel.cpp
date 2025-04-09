@@ -1243,8 +1243,13 @@ namespace Toast {
 				if (ImGui::Button("...##openfont"))
 				{
 					std::optional<std::string> filepath = FileDialogs::OpenFile("*.ttf", "..\\Toaster\\assets\\fonts\\");
-					if (filepath) 
-						component.Text->SetFont(CreateRef<Font>(*filepath));	
+					if (filepath)
+					{
+						component.Text->SetFont(CreateRef<Font>(*filepath));
+
+						uint32_t sliceIndex = Renderer2D::GetRendererData()->FontsTextureArray->GetSliceIndexForTexture(*filepath);
+						component.Text->SetTextureIndex(sliceIndex);
+					}
 				}
 
 				ImGui::TableNextRow();
@@ -1271,7 +1276,7 @@ namespace Toast {
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
-				ImGui::Text("Normal texture/color");
+				ImGui::TextWrapped("Texture");
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
@@ -1342,7 +1347,7 @@ namespace Toast {
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
-				ImGui::Text("Click texture/color");
+				ImGui::TextWrapped("Click Texture");
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
@@ -1410,7 +1415,7 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Corner Radius");
+				ImGui::TextWrapped("Corner Radius");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
 				ImGui::SliderFloat("##cornerradius", component.Button->GetCornerRadius(), 0.0f, 50.0f, "%.1f");

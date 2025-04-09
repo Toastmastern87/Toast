@@ -135,11 +135,15 @@ namespace Toast {
 
 		void SetClickTextureIndex(uint32_t idx) { mClickTextureIndex = idx; }
 		uint32_t GetClickTextureIndex() { return mClickTextureIndex; }
+
+		Ref<UIText> GetText() { return mText; }
 	private:
 		bool mIsClicked = false;
 		
 		DirectX::XMFLOAT4 mClickColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 		uint32_t mClickTextureIndex = 0;
+
+		Ref<UIText> mText;
 
 		std::string mClickTextureFilepath;
 		std::string mTextureFilepath;

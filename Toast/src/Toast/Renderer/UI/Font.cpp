@@ -3,6 +3,9 @@
 
 #include "MSDFData.h"
 
+#define NOMINMAX
+#include <algorithm>
+
 namespace Toast {
 
 	using namespace msdf_atlas;
@@ -47,8 +50,39 @@ namespace Toast {
 
 		msdfgen::BitmapConstRef<T, N> bitmap = (msdfgen::BitmapConstRef<T, N>) generator.atlasStorage();
 
-		Ref<Texture2D> texture = CreateRef<Texture2D>(DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT, DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT, bitmap.width, bitmap.height, D3D11_USAGE_DYNAMIC, D3D11_BIND_SHADER_RESOURCE, 1, D3D11_CPU_ACCESS_WRITE);
-		texture->SetData((void*)bitmap.pixels, ((bitmap.width * bitmap.height) * 4 * sizeof(float)));
+		uint32_t targetWidth = 512;
+		uint32_t targetHeight = 512;
+
+		size_t dataSize = targetWidth * targetHeight * 4 * sizeof(float);
+
+		std::vector<float> paddedData(targetWidth * targetHeight * 4, 0.0f);
+
+		uint32_t copyWidth = std::min<uint32_t>(static_cast<uint32_t>(bitmap.width), targetWidth);
+		uint32_t copyHeight = std::min<uint32_t>(static_cast<uint32_t>(bitmap.height), targetHeight);
+
+		for (uint32_t y = 0; y < copyHeight; y++)
+		{
+			// Destination pointer: offset to row y in the target buffer.
+			float* destRow = paddedData.data() + y * targetWidth * 4;
+			// Source pointer: offset to row y in the generated bitmap.
+			const float* srcRow = reinterpret_cast<const float*>(bitmap.pixels) + y * static_cast<uint32_t>(bitmap.width) * 4;
+			memcpy(destRow, srcRow, copyWidth * 4 * sizeof(float));
+		}
+
+		// Create the Texture2D using the fixed 512x512 dimensions.
+		Ref<Texture2D> texture = CreateRef<Texture2D>(
+			DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT,
+			DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT,
+			targetWidth, targetHeight,
+			D3D11_USAGE_DYNAMIC,
+			D3D11_BIND_SHADER_RESOURCE,
+			1,
+			D3D11_CPU_ACCESS_WRITE
+		);
+
+		// Upload the padded data. This copies the 512x512 buffer into the GPU texture.
+		texture->SetData((void*)paddedData.data(), dataSize);
+
 		return texture;
 	}
 
@@ -126,7 +160,7 @@ namespace Toast {
 
 			if (glyphsLoaded < 0)
 				TOAST_CORE_ERROR("No glyphs loaded!");
-			TOAST_CORE_INFO("Loaded font gemometry of %d out of %d glyphs", glyphsLoaded, msdf_atlas::Charset::ASCII.size());
+			TOAST_CORE_INFO("Loaded font(%s) gemometry of %d out of %d glyphs", mFilePath.c_str(), glyphsLoaded, msdf_atlas::Charset::ASCII.size());
 
 			if (fontInput.fontName)
 				mMSDFData->FontGeometry.setName(fontInput.fontName);
@@ -183,7 +217,7 @@ namespace Toast {
 
 	void Font::StaticInit()
 	{
-		sDefaultFont = CreateRef<Font>("..\\Toaster\\assets\\fonts\\Roboto Mono\\RobotoMono-Regular.ttf");
+		sDefaultFont = CreateRef<Font>("..\\Toaster\\assets\\fonts\\1_Roboto Mono\\RobotoMono-Regular.ttf");
 	}
 
 	Ref<Font> Font::GetDefaultFont()

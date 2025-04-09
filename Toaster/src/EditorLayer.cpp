@@ -782,10 +782,8 @@ namespace Toast {
 
 	void EditorLayer::OnEvent(Event& e)
 	{
-		//if (mSceneState == SceneState::Edit)
-		//	mEditorCamera->OnEvent(e);
-		//else if (mSceneState == SceneState::Play)
-		//	mRuntimeScene->OnEvent(e);
+		if (mSceneState == SceneState::Edit)
+			mEditorCamera->OnEvent(e);
 
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnKeyPressed));

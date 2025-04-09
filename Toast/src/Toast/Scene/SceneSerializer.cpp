@@ -520,6 +520,7 @@ namespace Toast {
 			auto& uitc = entity.GetComponent<UITextComponent>();
 			out << YAML::Key << "AssetPath" << YAML::Value << uitc.Text->GetFont()->GetFilePath();
 			out << YAML::Key << "Text" << YAML::Value << uitc.Text->GetText();
+			out << YAML::Key << "TextureIndex" << YAML::Value << uitc.Text->GetTextureIndex();
 
 			out << YAML::EndMap; // UITextComponent
 		}
@@ -1051,6 +1052,9 @@ namespace Toast {
 
 					uitc.Text->SetFont(CreateRef<Font>(uiTextComponent["AssetPath"].as<std::string>()));
 					uitc.Text->SetText(uiTextComponent["Text"].as<std::string>());
+
+					if (uiTextComponent["TextureIndex"])
+						uitc.Text->SetTextureIndex(uiTextComponent["TextureIndex"].as<int>());
 				}
 
 				auto terrainDetailComponent = entity["TerrainDetailComponent"];

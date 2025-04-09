@@ -38,9 +38,9 @@ namespace Toast
 		io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;
 		io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports;
 
-		io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto Mono/RobotoMono-Bold.ttf", 16.0f);
-		io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto Mono/RobotoMono-Bold.ttf", 48.0f);
-		io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/Roboto Mono/RobotoMono-Regular.ttf", 16.0f);
+		io.Fonts->AddFontFromFileTTF("assets/fonts/1_Roboto Mono/RobotoMono-Bold.ttf", 16.0f);
+		io.Fonts->AddFontFromFileTTF("assets/fonts/1_Roboto Mono/RobotoMono-Bold.ttf", 48.0f);
+		io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/1_Roboto Mono/RobotoMono-Regular.ttf", 16.0f);
 
 		// Add the icons
 		ImFontConfig config;

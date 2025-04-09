@@ -44,6 +44,7 @@ namespace Toast {
 
 	UIButton::UIButton() 
 	{
+		mText = CreateRef<UIText>();
 	}
 
 }

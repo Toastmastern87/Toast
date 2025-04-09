@@ -154,7 +154,7 @@ PixelInputType main(VertexInputType input)
     float3 viewNormal = normalize(mul(worldNormal, (float3x3) viewMatrix));
     float3 viewTangent = normalize(mul(worldTangent, (float3x3) viewMatrix));
     
-    float3 viewBitangent = cross(viewTangent, viewNormal) * input.tangent.w;
+    float3 viewBitangent = cross(viewNormal, viewTangent) * input.tangent.w;
     
     float3x3 TBN = float3x3(viewTangent, viewBitangent, viewNormal);
     

@@ -272,6 +272,9 @@
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":1
+				},
+				"metallicRoughnessTexture":{
+					"index":2
 				}
 			}
 		},
@@ -753,6 +756,10 @@
 		{
 			"sampler":0,
 			"source":1
+		},
+		{
+			"sampler":0,
+			"source":2
 		}
 	],
 	"images":[
@@ -765,6 +772,11 @@
 			"mimeType":"image/png",
 			"name":"Starship_Heat_Shield_basecolor",
 			"uri":"Starship_Heat_Shield_basecolor.png"
+		},
+		{
+			"mimeType":"image/png",
+			"name":"Starship_Heat_Shield_roughness",
+			"uri":"Starship_Heat_Shield_roughness.png"
 		}
 	],
 	"accessors":[
