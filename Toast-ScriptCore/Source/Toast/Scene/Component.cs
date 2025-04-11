@@ -395,4 +395,19 @@ namespace Toast
             }
         }
     }
+
+    public class ScriptComponent : Component
+    {
+        public IntPtr ScriptInstance
+        {
+            get
+            {
+                return InternalCalls.ScriptComponent_GetInstance(Entity.ID);
+            }
+            set
+            {
+                
+            }
+        }
+    }
 }

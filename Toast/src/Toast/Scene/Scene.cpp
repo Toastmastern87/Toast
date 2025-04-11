@@ -838,25 +838,41 @@ namespace Toast {
 
 					Entity e{ entity, this };
 
+					finalPosition = tc.Translation;
 					bool renderText = true;
 
-					if (e.HasParent())
+					Entity current = e;
+					while (current.HasParent())
 					{
-						Entity parent = FindEntityByUUID(e.GetParentUUID());
+						Entity parent = FindEntityByUUID(current.GetParentUUID());
 
-						if (parent.HasComponent<UIPanelComponent>())
+						// Check if the parent has a UI element component.
+						bool parentHasUI = parent.HasComponent<UITextComponent>() ||
+							parent.HasComponent<UIButtonComponent>() ||
+							parent.HasComponent<UIPanelComponent>();
+
+						if (parentHasUI)
 						{
-							UIPanelComponent parentPanel = parent.GetComponent<UIPanelComponent>();
+							// Add the parent's translation.
+							auto& parentTransform = parent.GetComponent<TransformComponent>();
+							finalPosition.x += parentTransform.Translation.x;
+							finalPosition.y += parentTransform.Translation.y;
+							finalPosition.z += parentTransform.Translation.z;
 
-							renderText = parentPanel.Panel->GetVisible();
+							// If the parent has a UIPanelComponent, check its visibility.
+							if (parent.HasComponent<UIPanelComponent>())
+							{
+								UIPanelComponent parentPanel = parent.GetComponent<UIPanelComponent>();
+								if (!parentPanel.Panel->GetVisible())
+								{
+									renderText = false;
+									break;
+								}
+							}
 						}
-
-						DirectX::XMFLOAT3 parentPosition = FindEntityByUUID(e.GetParentUUID()).GetComponent<TransformComponent>().Translation;
-						DirectX::XMFLOAT3 position = tc.Translation;
-						finalPosition = { position.x + parentPosition.x, position.y + parentPosition.y, position.z + parentPosition.z };
+						// Move up one level.
+						current = parent;
 					}
-					else
-						finalPosition = { tc.Translation.x , tc.Translation.y, tc.Translation.z };
 
 					if (renderText)
 						Renderer2D::SubmitText(finalPosition, { tc.Scale.x, tc.Scale.y, 1.0f, 1.0f }, uitc.Text->GetColorF4(), uitc.Text->GetText(), uitc.Text->GetTextureIndex(), (int)entity, true);

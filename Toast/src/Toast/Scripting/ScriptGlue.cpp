@@ -809,6 +809,25 @@ namespace Toast {
 
 #pragma endregion
 
+#pragma region Script Component
+
+	void* ScriptComponent_GetInstance(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<ScriptComponent>();
+
+		Ref<ScriptInstance> instance = ScriptEngine::GetEntityScriptInstance(entityID);
+		TOAST_CORE_ASSERT(instance, "Script Instance not found!");
+
+		return reinterpret_cast<void*>(instance->GetInstanceHandle());
+	}
+
+#pragma endregion
+
 	template<typename Component>
 	static void RegisterComponent()
 	{
@@ -838,6 +857,7 @@ namespace Toast {
 		RegisterComponent<SphereColliderComponent>();
 		RegisterComponent<BoxColliderComponent>();
 		RegisterComponent<ParticlesComponent>();
+		RegisterComponent<ScriptComponent>();
 	}
 
 	void ScriptGlue::RegisterFunctions()
@@ -921,6 +941,8 @@ namespace Toast {
 
 		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_GetEmitting);
 		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_SetEmitting);
+
+		TOAST_ADD_INTERNAL_CALL(ScriptComponent_GetInstance);
 	}
 
 }

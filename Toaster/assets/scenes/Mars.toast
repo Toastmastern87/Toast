@@ -52,6 +52,25 @@ Entities:
     SphereColliderComponent:
       RenderCollider: true
       Radius: 0.39999991655349731
+  - Entity: 5004313190604184181
+    TagComponent:
+      Tag: MoneyText
+    RelationshipComponent:
+      ParentHandle: 3130812133437718439
+      Children:
+        []
+    TransformComponent:
+      Translation: [64.9996338, -227.798462, 4.00051451]
+      Rotation: [0, -0, 0]
+      Scale: [52, 54, 16]
+    ScriptComponent:
+      ClassName: Sandbox.Money
+      ScriptFields:
+        []
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
+      Text: $500.000
+      TextureIndex: 3
   - Entity: 13550521646691037742
     TagComponent:
       Tag: AllStarshipUI
@@ -83,6 +102,8 @@ Entities:
       Translation: [-1279, 546, 6]
       Rotation: [0, 0, 0]
       Scale: [418, -341, 1]
+    ScriptComponent:
+      ClassName: Sandbox.AddStarship
     UIButtonComponent:
       CornerRadius: 0
       UseColor: false
@@ -90,8 +111,8 @@ Entities:
       ClickColor: [1, 1, 1, 1]
       AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\5_AddStarshipButton.png
       TextureIndex: 4
-      ClickAssetPath: ""
-      ClickTextureIndex: 0
+      ClickAssetPath: C:\dev\Toast\Toaster\assets\textures\UI\5_AddStarshipButton.png
+      ClickTextureIndex: 4
   - Entity: 18384185750220347789
     TagComponent:
       Tag: TimeScale1
@@ -392,18 +413,3 @@ Entities:
       Visible: true
       ConnectToParent: false
       TextureIndex: 0
-  - Entity: 5004313190604184181
-    TagComponent:
-      Tag: MoneyText
-    RelationshipComponent:
-      ParentHandle: 3130812133437718439
-      Children:
-        []
-    TransformComponent:
-      Translation: [64.9996338, -227.798462, 4.00051451]
-      Rotation: [0, -0, 0]
-      Scale: [52, 54, 16]
-    UITextComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
-      Text: $500.000
-      TextureIndex: 3

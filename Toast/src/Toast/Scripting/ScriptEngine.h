@@ -101,6 +101,8 @@ namespace Toast {
 
 		Ref<ScriptClass> GetScriptClass() { return mScriptClass; }
 
+		uint32_t GetInstanceHandle() const { return mInstance; }
+
 		template<typename T>
 		T GetFieldValue(const std::string& name)
 		{

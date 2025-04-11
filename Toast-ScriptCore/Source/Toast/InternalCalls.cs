@@ -263,5 +263,12 @@ namespace Toast
         internal static extern bool ParticlesComponent_SetEmitting(ulong entityID, bool value);
 
         #endregion
+
+        #region Script Component
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern IntPtr ScriptComponent_GetInstance(ulong entityID);
+
+        #endregion
     }
 }
