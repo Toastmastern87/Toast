@@ -292,9 +292,7 @@ namespace Toast {
 			instance->InvokeOnUpdate((float)ts);
 		}
 		else
-		{
 			TOAST_CORE_ERROR("Could not find ScriptInstance for entity instance %d", entityUUID);
-		}
 	}
 
 	void ScriptEngine::OnEventEntity(Entity entity)

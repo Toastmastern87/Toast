@@ -15,7 +15,7 @@ namespace Sandbox
 
         void OnCreate()
         {
-            mMoney = FindEntityByName("MoneyText");
+            mMoney = FindEntityByName("Money");
             mMoneyScriptHandle = mMoney.GetComponent<ScriptComponent>().ScriptInstance;
 
             GCHandle gch = GCHandle.FromIntPtr(mMoneyScriptHandle);
@@ -27,7 +27,10 @@ namespace Sandbox
 
         void OnEvent()
         {
-            mMoneyInstance.SetRetracttMoney(50000);
+            bool starshipAdded = mMoneyInstance.SetRetracttMoney(50000);
+
+            if (starshipAdded)
+                Scene.AddPrefab("Starship");
         }
 
         void OnUpdate(float ts)

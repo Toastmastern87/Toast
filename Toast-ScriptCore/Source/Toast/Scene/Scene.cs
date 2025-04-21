@@ -18,5 +18,10 @@ namespace Toast
             get => InternalCalls.Scene_GetTimeScale();
             set => InternalCalls.Scene_SetTimeScale( value);
         }
+
+        public static void AddPrefab(string name)
+        {
+            InternalCalls.Scene_AddPrefab(name);
+        }
     }
 }

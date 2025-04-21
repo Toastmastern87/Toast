@@ -22,7 +22,7 @@ namespace Sandbox
 
         void OnCreate()
         {
-            mMoneyText = GetComponent<UITextComponent>();
+            mMoneyText = FindEntityByName("MoneyText").GetComponent<UITextComponent>();
 
             mCurrentMoney = 400000;
             mTargetMoney = mCurrentMoney;
@@ -57,23 +57,31 @@ namespace Sandbox
                 mCurrentMoney = (int)Math.Round(interpolatedValue);
             }
 
-
             mMoneyText.Text = "$" + mCurrentMoney.ToString("N", mNFI);
         }
 
-        public void SetRetracttMoney(int retractMoney)
+        public bool SetRetracttMoney(int retractMoney)
         {
-            mStartMoney = mCurrentMoney;
-            mTargetMoney -= retractMoney;
+            if (mTargetMoney >= retractMoney)
+            {
+                mStartMoney = mCurrentMoney;
+                mTargetMoney -= retractMoney;
 
-            // Calculate the absolute difference.
-            int diff = Math.Abs(mCurrentMoney - mTargetMoney);
-            // Determine a duration for the animation.
-            // For example: 1 second per 100,000 units difference, with a minimum of 0.5 seconds.
-            mCountdownDuration = Math.Max(0.5f, diff / 100000.0f);
+                // Calculate the absolute difference.
+                int diff = Math.Abs(mCurrentMoney - mTargetMoney);
+                // Determine a duration for the animation.
+                // For example: 1 second per 100,000 units difference, with a minimum of 0.5 seconds.
+                mCountdownDuration = Math.Max(0.5f, diff / 100000.0f);
 
-            mCountdownElapsed = 0f;
-            mIsCountingDown = true;
+                mCountdownElapsed = 0f;
+                mIsCountingDown = true;
+
+                return true;
+            }
+            else
+                return false;
+
+            return false;
         }
     }
 }

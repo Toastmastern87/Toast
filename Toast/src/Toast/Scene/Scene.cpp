@@ -1834,10 +1834,8 @@ namespace Toast {
 
 		// ----- Second Pass: Update parent-child relationships using the mapping -----
 
-		for (auto& pair : mapping)
+		for (auto& [oldID, newEntity] : mapping)
 		{
-			UUID oldID = pair.first;
-			Entity newEntity = pair.second;
 			// If this prefab entity had children...
 			if (oldChildrenMapping.find(oldID) != oldChildrenMapping.end())
 			{
@@ -1858,6 +1856,13 @@ namespace Toast {
 				if (newEntity.HasComponent<RelationshipComponent>())
 					newEntity.GetComponent<RelationshipComponent>().Children = newChildren;
 			}
+		}
+
+		// Fixing the script instances to make sure the Script Engine can run the prefab scripts
+		for (auto& [oldID, newEntity] : mapping)
+		{
+			if (newEntity.HasComponent<ScriptComponent>())
+				ScriptEngine::OnCreateEntity(newEntity);
 		}
 	}
 

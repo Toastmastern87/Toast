@@ -57,6 +57,9 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void Scene_SetTimeScale(float value);
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool Scene_AddPrefab(string name);
+
         #endregion
 
         #region Script

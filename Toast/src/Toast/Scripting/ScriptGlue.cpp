@@ -150,6 +150,19 @@ namespace Toast {
 		return scene->GetTimeScale();
 	}
 
+	void Scene_AddPrefab(MonoString* name)
+	{
+		char* nameCStr = mono_string_to_utf8(name);
+
+		std::string nameStr = std::string(nameCStr);
+
+		Scene* scene = ScriptEngine::GetSceneContext();
+
+		scene->AddPrefab(nameStr);
+
+		TOAST_CORE_CRITICAL("Adding Prefab!");
+	}
+
 #pragma endregion
 
 #pragma region Script
@@ -879,6 +892,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Scene_SetRenderColliders);
 		TOAST_ADD_INTERNAL_CALL(Scene_GetTimeScale);
 		TOAST_ADD_INTERNAL_CALL(Scene_SetTimeScale);
+		TOAST_ADD_INTERNAL_CALL(Scene_AddPrefab);
 
 		TOAST_ADD_INTERNAL_CALL(Script_GetInstance);
 

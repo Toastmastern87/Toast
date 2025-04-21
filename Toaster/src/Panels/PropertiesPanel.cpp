@@ -1404,7 +1404,7 @@ namespace Toast {
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				useColor = component.Button->GetUseColor();
-				if (ImGui::Checkbox("Use##Color", &useColor))
+				if (ImGui::Checkbox("Use##ColorClick", &useColor))
 				{
 					component.Button->SetUseColor(useColor);
 				}

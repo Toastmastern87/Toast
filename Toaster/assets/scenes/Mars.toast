@@ -52,6 +52,25 @@ Entities:
     SphereColliderComponent:
       RenderCollider: true
       Radius: 0.39999991655349731
+  - Entity: 6399342346770279097
+    TagComponent:
+      Tag: AllStarshipsPopup
+    RelationshipComponent:
+      ParentHandle: 13550521646691037742
+      Children:
+        - Handle: 104127274712065705
+    TransformComponent:
+      Translation: [126, -1390, 0]
+      Rotation: [0, 0, 0]
+      Scale: [392, 1003, 1]
+    UIPanelComponent:
+      Color: [1, 1, 1, 1]
+      CornerRadius: 0
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\9_UIAllStarshipPopupPanel.png
+      UseColor: false
+      Visible: false
+      ConnectToParent: false
+      TextureIndex: 8
   - Entity: 5004313190604184181
     TagComponent:
       Tag: MoneyText
@@ -63,13 +82,9 @@ Entities:
       Translation: [64.9996338, -227.798462, 4.00051451]
       Rotation: [0, -0, 0]
       Scale: [52, 54, 16]
-    ScriptComponent:
-      ClassName: Sandbox.Money
-      ScriptFields:
-        []
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
-      Text: $500.000
+      Text: $0
       TextureIndex: 3
   - Entity: 13550521646691037742
     TagComponent:
@@ -77,7 +92,7 @@ Entities:
     RelationshipComponent:
       ParentHandle: 0
       Children:
-        []
+        - Handle: 6399342346770279097
     TransformComponent:
       Translation: [-1203, 546, 7]
       Rotation: [0, 0, 0]
@@ -216,7 +231,7 @@ Entities:
       ClassName: Sandbox.TimeText
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
-      Text: 00:00:01
+      Text: 00:00:22
       TextureIndex: 3
   - Entity: 2812129723666465913
     TagComponent:
@@ -396,7 +411,7 @@ Entities:
       PrefabHandle: Starship
   - Entity: 3130812133437718439
     TagComponent:
-      Tag: MoneyUI
+      Tag: Money
     RelationshipComponent:
       ParentHandle: 0
       Children:
@@ -405,6 +420,10 @@ Entities:
       Translation: [504.99707, 735.502441, 5]
       Rotation: [0, -0, 0]
       Scale: [452, -310, 1]
+    ScriptComponent:
+      ClassName: Sandbox.Money
+      ScriptFields:
+        []
     UIPanelComponent:
       Color: [1, 1, 1, 1]
       CornerRadius: 0
@@ -413,3 +432,23 @@ Entities:
       Visible: true
       ConnectToParent: false
       TextureIndex: 0
+  - Entity: 104127274712065705
+    TagComponent:
+      Tag: AllStarshipCloseButton
+    RelationshipComponent:
+      ParentHandle: 6399342346770279097
+      Children:
+        []
+    TransformComponent:
+      Translation: [-867, 1516, 8]
+      Rotation: [0, 0, 0]
+      Scale: [20, -28, 1]
+    UIButtonComponent:
+      CornerRadius: 0
+      UseColor: false
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\4_CloseButton.png
+      TextureIndex: 3
+      ClickAssetPath: C:\dev\Toast\Toaster\assets\textures\UI\8_ClickCloseButton.png
+      ClickTextureIndex: 7
