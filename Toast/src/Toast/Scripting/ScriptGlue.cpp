@@ -150,7 +150,7 @@ namespace Toast {
 		return scene->GetTimeScale();
 	}
 
-	void Scene_AddPrefab(MonoString* name)
+	uint64_t Scene_AddPrefab(MonoString* name)
 	{
 		char* nameCStr = mono_string_to_utf8(name);
 
@@ -158,9 +158,32 @@ namespace Toast {
 
 		Scene* scene = ScriptEngine::GetSceneContext();
 
-		scene->AddPrefab(nameStr);
+		Entity& prefabEntity = scene->AddPrefab(nameStr);
 
 		TOAST_CORE_CRITICAL("Adding Prefab!");
+
+		return prefabEntity.GetUUID();
+	}
+
+	static MonoArray* Scene_GetEntitiesWithPrefab(MonoString* prefabNameMono)
+	{
+		char* prefabNameCStr = mono_string_to_utf8(prefabNameMono);
+		std::string prefabName = std::string(prefabNameCStr);
+
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		std::vector<Entity> entities = scene->GetEntitiesWithPrefab(prefabName);
+
+		mono_free(prefabNameCStr);
+
+		MonoDomain* domain = mono_domain_get();
+		MonoClass* ulongClass = mono_get_uint64_class();       
+		MonoArray* resultArray = mono_array_new(domain, ulongClass, static_cast<uint32_t>(entities.size()));
+
+		for (uint32_t i = 0; i < entities.size(); ++i)
+			mono_array_set(resultArray, uint64_t, i, entities[i].GetUUID());
+
+		return resultArray;
 	}
 
 #pragma endregion
@@ -893,6 +916,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Scene_GetTimeScale);
 		TOAST_ADD_INTERNAL_CALL(Scene_SetTimeScale);
 		TOAST_ADD_INTERNAL_CALL(Scene_AddPrefab);
+		TOAST_ADD_INTERNAL_CALL(Scene_GetEntitiesWithPrefab);
 
 		TOAST_ADD_INTERNAL_CALL(Script_GetInstance);
 

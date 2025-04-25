@@ -1743,11 +1743,9 @@ namespace Toast {
 		}
 	}
 
-	void Scene::AddPrefab(std::string& prefabName)
+	Entity Scene::AddPrefab(std::string& prefabName)
 	{
 		std::vector<Entity> prefabEntities = PrefabLibrary::GetEntities(prefabName);
-		if (prefabEntities.empty())
-			return;
 
 		// Mapping from old prefab UUID to new entity.
 		std::unordered_map<UUID, Entity> mapping;
@@ -1864,6 +1862,23 @@ namespace Toast {
 			if (newEntity.HasComponent<ScriptComponent>())
 				ScriptEngine::OnCreateEntity(newEntity);
 		}
+
+		return newRootEntity;
+	}
+
+	std::vector<Toast::Entity> Scene::GetEntitiesWithPrefab(std::string prefabName)
+	{
+		std::vector<Entity> result;
+		auto view = mRegistry.view<PrefabComponent>();
+
+		for (auto entityID : view)
+		{
+			const auto& prefab = view.get<PrefabComponent>(entityID);
+			if (prefab.PrefabHandle == prefabName)           
+				result.emplace_back(Entity{ entityID, this });
+		}
+
+		return result;
 	}
 
 	template<typename T>

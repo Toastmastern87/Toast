@@ -58,7 +58,10 @@ namespace Toast
         internal static extern void Scene_SetTimeScale(float value);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool Scene_AddPrefab(string name);
+        internal static extern ulong Scene_AddPrefab(string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern ulong[] Scene_GetEntitiesWithPrefab(string prefabName);
 
         #endregion
 
