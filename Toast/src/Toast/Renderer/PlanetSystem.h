@@ -9,6 +9,7 @@
 #include "../vendor/perlin-noise/include/PerlinNoise.hpp"
 
 #include "Toast/Core/Timestep.h"
+
 #include "Toast/Core/Math/Math.h"
 
 #include "Toast/Renderer/Frustum.h"
@@ -28,6 +29,31 @@
 #define M_PIDIV2		(3.14159265358979323846 / 2.0)
 
 namespace Toast {
+
+	struct EdgeKey
+	{
+		uint64_t h;
+		explicit EdgeKey(const Vector3& a, const Vector3& b)
+		{
+			auto q = [](double d)->uint64_t
+				{ return uint64_t(std::llround(d * 100.0)); };
+
+			uint64_t ax = q(a.x), ay = q(a.y), az = q(a.z);
+			uint64_t bx = q(b.x), by = q(b.y), bz = q(b.z);
+
+			h = (ax ^ bx) * 0x9E3779B97F4A7C15ULL
+				^ (ay ^ by) * 0xC2B2AE3D27D4EB4FULL
+				^ (az ^ bz);
+		}
+		bool operator==(const EdgeKey& o)const noexcept { return h == o.h; }
+		struct Hasher { size_t operator()(EdgeKey k)const noexcept { return k.h; } };
+	};
+
+	/* ---------- helper used in the cache ----------------------- */
+	inline EdgeKey MakeKey(const Vector3& a, const Vector3& b)
+	{
+		return EdgeKey(a, b); 
+	}
 
 	struct CPUVertex
 	{
@@ -57,6 +83,8 @@ namespace Toast {
 			return *this;
 		}
 	};
+
+	inline thread_local std::unordered_map<EdgeKey, CPUVertex, EdgeKey::Hasher> tMidCache;
 
 	struct PlanetNode
 	{
@@ -159,7 +187,7 @@ namespace Toast {
 	public:
 		static uint32_t HashFace(uint32_t index0, uint32_t index1, uint32_t index2);
 
-		static void SubdivideBasePlanet(PlanetComponent& planet, Ref<PlanetNode>& node, double scale);
+		static void SubdivideBasePlanet(PlanetComponent& planet, Ref<PlanetNode>& node);
 		static void SubdivideFace(Ref<PlanetNode>& node, CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, const Vector3& planetCenter, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail);
 		static void CalculateBasePlanet(PlanetComponent& planet, double scale);
 

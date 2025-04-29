@@ -193,4 +193,5 @@ namespace Toast {
 	{
 		TOAST_CORE_INFO("%s: %lf, %lf", label.c_str(), x, y);
 	}
+
 }

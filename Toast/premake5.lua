@@ -60,6 +60,10 @@ project "Toast"
 		"%{Library.BCrypt}",
 	}
 
+	filter { "system:windows", "action:vs*" } -- all VS versions
+		vectorextensions "AVX2"
+ 	filter {}
+
 	filter "files:vendor/ImGuizmo/**.cpp"
 		flags { "NoPCH" }
 

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <random>
 #include <cstdint>
@@ -176,6 +176,66 @@ namespace Toast {
 			return distance;
 		}
 
+		/* constants -------------------------------------------------------- */
+		static inline __m128 vset1(float x) { return _mm_set1_ps(x); }
+		static const __m128  VC_PI = { 3.14159265f,3.14159265f,3.14159265f,3.14159265f };
+		static const __m128  VC_PI2 = { 1.57079633f,1.57079633f,1.57079633f,1.57079633f };
+		static const __m128  VC_PI4 = { 0.78539816f,0.78539816f,0.78539816f,0.78539816f };
+		static const __m128  ONE = { 1.f,1.f,1.f,1.f };
+
+		static inline __m128 vabs(__m128 x) { return _mm_and_ps(x, _mm_castsi128_ps(_mm_set1_epi32(0x7fffffff))); }
+		static inline __m128 vsign(__m128 x) { return _mm_and_ps(x, _mm_castsi128_ps(_mm_set1_epi32(0x80000000))); }
+
+		/* minimax atan(x) on |x|<=1  (6th-order) --------------------------- */
+		static inline __m128 atan_poly(__m128 z)
+		{
+			const __m128 c1 = vset1(+0.999787841279f);
+			const __m128 c2 = vset1(-0.325808397464f);
+			const __m128 c3 = vset1(+0.155578651846f);
+			const __m128 c4 = vset1(-0.044326555547f);
+
+			__m128 z2 = _mm_mul_ps(z, z);
+			__m128 z4 = _mm_mul_ps(z2, z2);
+
+			__m128 p = _mm_fmadd_ps(c4, z4,
+				_mm_fmadd_ps(c3, z2,
+					_mm_fmadd_ps(c2, z, c1)));
+			return p;
+		}
+
+		/* accurate atan2(y,x)  -------------------------------------------- */
+		static inline __m128 fast_atan2(__m128 y, __m128 x)
+		{
+			__m128 ax = vabs(x);
+			__m128 ay = vabs(y);
+
+			/* swap if |y|>|x|  (octant mapping) */
+			__m128 swap = _mm_cmpgt_ps(ay, ax);
+			__m128 max = _mm_blendv_ps(ax, ay, swap);
+			__m128 min = _mm_blendv_ps(ay, ax, swap);
+			__m128 z = _mm_div_ps(min, max);
+
+			__m128 base = _mm_blendv_ps(VC_PI4, _mm_sub_ps(VC_PI2, VC_PI4), swap);
+			__m128 ang = _mm_add_ps(base, _mm_mul_ps(atan_poly(z), z));
+
+			/* adjust quadrant */
+			__m128 negX = _mm_cmplt_ps(x, _mm_setzero_ps());
+			ang = _mm_blendv_ps(ang, _mm_sub_ps(VC_PI, ang), negX);
+			return _mm_xor_ps(ang, vsign(y));
+		}
+
+		/* accurate asin(y)  (handles |y|==1) ------------------------------ */
+		static inline __m128 fast_asin(__m128 x)
+		{
+			__m128 ax = vabs(x);
+			__m128 bigMask = _mm_cmpgt_ps(ax, vset1(0.99999988f)); // |x|>~1-2^-23 ?
+
+			__m128 denom = _mm_sqrt_ps(_mm_sub_ps(ONE, _mm_mul_ps(ax, ax)));
+			__m128 atan = _mm_mul_ps(atan_poly(_mm_div_ps(x, denom)), _mm_div_ps(x, denom));
+
+			__m128 res = _mm_blendv_ps(atan, _mm_xor_ps(VC_PI2, vsign(x)), bigMask);
+			return res;
+		}
 	}
 
 }

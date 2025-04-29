@@ -1,8 +1,12 @@
-#include "tpch.h"
+﻿#include "tpch.h"
 
 #include "PlanetSystem.h"
 
 #include "Toast/Scene/Components.h"
+
+#include "Toast/Core/Math/Math.h"
+
+#include "Toast/Utils/FixedThreadPool.h"
 
 #include <chrono>
 
@@ -18,6 +22,82 @@ namespace Toast {
 
 	std::vector<Ref<PlanetNode>> PlanetSystem::sPlanetNodes;
 
+	static FixedThreadPool gJobPool(4);
+
+	//------------------------------------------------------------------
+	//  Bilinear height for 4 texel coords  (uint16 height map)
+	//------------------------------------------------------------------
+	static __m256d GetHeightBilinearSIMD(const __m256d& u, const __m256d& v, const TerrainData& td)
+	{
+		alignas(32) double U[4], V[4];   _mm256_store_pd(U, u); _mm256_store_pd(V, v);
+		const double* base = td.HeightData.data();
+		int pitch = td.RowPitch >> 1;    // row length in uint16
+		double H[4];
+
+		for (int i = 0; i < 4; ++i)
+		{
+			int x1 = int(U[i]);  int y1 = int(V[i]);
+			int x2 = (x1 + 1) % td.Width;
+			int y2 = std::min<int>(y1 + 1, td.Height - 1);
+
+			double fx = U[i] - x1, fy = V[i] - y1;
+
+			double Q11 = base[y1 * pitch + x1];
+			double Q21 = base[y1 * pitch + x2];
+			double Q12 = base[y2 * pitch + x1];
+			double Q22 = base[y2 * pitch + x2];
+
+			double R1 = Q11 * (1.0 - fx) + Q21 * fx;
+			double R2 = Q12 * (1.0 - fx) + Q22 * fx;
+			H[i] = R1 * (1.0 - fy) + R2 * fy;
+		}
+
+		return _mm256_load_pd(H);        // packed doubles
+	}
+
+	static void BuildCPUVertex4(const Vec3x4d& in, CPUVertex* out, const PlanetComponent& planet)
+	{
+		// Unpacking the doubles
+		alignas(32) double xd[4], yd[4], zd[4];
+		_mm256_store_pd(xd, in.x);
+		_mm256_store_pd(yd, in.y);
+		_mm256_store_pd(zd, in.z);
+
+		/* 1. per-lane normalize (double, scalar ‒ cost is tiny) ------------ */
+		double nx[4], ny[4], nz[4], theta[4], phi[4];
+		for (int i = 0; i < 4; ++i)
+		{
+			double lenInv = 1.0 / std::sqrt(xd[i] * xd[i] + yd[i] * yd[i] + zd[i] * zd[i]);
+			nx[i] = xd[i] * lenInv;  ny[i] = yd[i] * lenInv;  nz[i] = zd[i] * lenInv;
+			theta[i] = std::atan2(nz[i], nx[i]);           // –π..π
+			phi[i] = std::asin(ny[i]);                  // –π/2..π/2
+		}
+
+		/* 2. map to texel space (doubles) ---------------------------------- */
+		__m256d U = _mm256_set_pd((theta[3] / M_PI) * 0.5 + 0.5, (theta[2] / M_PI) * 0.5 + 0.5,	(theta[1] / M_PI) * 0.5 + 0.5, (theta[0] / M_PI) * 0.5 + 0.5);
+
+		__m256d V = _mm256_set_pd((phi[3] / (M_PI / 2)) * 0.5 + 0.5, (phi[2] / (M_PI / 2)) * 0.5 + 0.5, (phi[1] / (M_PI / 2)) * 0.5 + 0.5, (phi[0] / (M_PI / 2)) * 0.5 + 0.5);
+
+		__m256d fW = _mm256_set1_pd(double(planet.TerrainData.Width - 1));
+		__m256d fH = _mm256_set1_pd(double(planet.TerrainData.Height - 1));
+		U = _mm256_mul_pd(U, fW);
+		V = _mm256_mul_pd(V, fH);
+
+		// Getting the height by using Bilinear Interpolation and SIMD
+		__m256d H = GetHeightBilinearSIMD(U, V, planet.TerrainData);
+
+		/* 4. scatter results ---------------------------------------------- */
+		alignas(32) double hu[4], hv[4], hh[4];
+		_mm256_store_pd(hu, U);  _mm256_store_pd(hv, V);  _mm256_store_pd(hh, H);
+
+		for (int i = 0; i < 4; ++i)
+		{
+			Vector3 dir{ nx[i], ny[i], nz[i] };
+			out[i].Position = dir * (planet.PlanetData.radius + hh[i]);
+			out[i].UV = { hu[i], hv[i] };
+		}
+	}
+
 	uint32_t PlanetSystem::HashFace(uint32_t index0, uint32_t index1, uint32_t index2)
 	{
 		// Simple hash combining indices; you can make this more complex as needed
@@ -28,19 +108,31 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		Vector3 normalizedPos = Vector3::Normalize(pos);
+		__m128 v = _mm_setr_ps((float)pos.x, (float)pos.y, (float)pos.z, 0.f);
+		__m128 len2 = _mm_dp_ps(v, v, 0x7F);
+		__m128 rsqrt = _mm_rsqrt_ps(len2);
+		rsqrt = _mm_mul_ps(rsqrt, _mm_sub_ps(_mm_set1_ps(1.5f), _mm_mul_ps(_mm_mul_ps(rsqrt, rsqrt), _mm_mul_ps(len2, _mm_set1_ps(0.5f)))));
+		v = _mm_mul_ps(v, rsqrt);
 
-		double theta = atan2(normalizedPos.z, normalizedPos.x);
-		double phi = asin(normalizedPos.y);
+		float x = _mm_cvtss_f32(v);
+		float y = _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(1, 1, 1, 1)));
+		float z = _mm_cvtss_f32(_mm_shuffle_ps(v, v, _MM_SHUFFLE(2, 2, 2, 2)));
 
-		Vector2 uv = Vector2(theta / M_PI, phi / M_PIDIV2);
-		uv.x = uv.x * 0.5 + 0.5;
-		uv.y = uv.y * 0.5 + 0.5;
+		// 2. *scalar* trig (exactly as before)
+		double theta = std::atan2((double)z, (double)x);   // –π .. π
+		double  phi = std::asin((double)y);              // –π/2 .. π/2
 
-		uv.x = uv.x * (width - 1.0);
-		uv.y = uv.y * (height - 1.0);
+		// 3. map to texel space, wrap U
+		double u = theta / M_PI * 0.5 + 0.5;
+		double vTex = phi / M_PIDIV2 * 0.5 + 0.5;
 
-		return uv;
+		u *= (width - 1.0);
+		vTex *= (height - 1.0);
+
+		u = std::fmod(u + width, width);
+		vTex = std::clamp(vTex, 0.0, height - 1.000001);
+
+		return { u, vTex };
 	}
 
 	void PlanetSystem::GetFaceBounds(const std::initializer_list<Vector3>& vertices, Bounds& bounds)
@@ -74,28 +166,36 @@ namespace Toast {
 		}
 	}
 
-	void PlanetSystem::SubdivideBasePlanet(PlanetComponent& planet, Ref<PlanetNode>& node, double scale)
+	void PlanetSystem::SubdivideBasePlanet(PlanetComponent& planet, Ref<PlanetNode>& node)
 	{
 		if (node->SubdivisionLevel >= BASE_PLANET_SUBDIVISIONS)
 			return;
 
-		CPUVertex A, B, C;
-		double height;
+		// This checks if the Mid point is already existing and if
+		auto keep = [&](const Vector3& a, const Vector3& b,	const CPUVertex& v) -> CPUVertex
+			{
+				auto [it, inserted] = tMidCache.try_emplace(MakeKey(a, b), v);
+				return it->second;
+			};
 
-		A.Position = node->B.Position + ((node->C.Position - node->B.Position) * 0.5);
-		A.UV = GetUVFromPosition(Vector3::Normalize(A.Position), (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
-		height = GetHeight(A.UV, planet.TerrainData);
-		A.Position = Vector3::Normalize(A.Position) * (planet.PlanetData.radius + height);
+		Vector3 midPos[4];
+		midPos[0] = node->B.Position + (node->C.Position - node->B.Position) * 0.5;
+		midPos[1] = node->C.Position + (node->A.Position - node->C.Position) * 0.5;
+		midPos[2] = node->A.Position + (node->B.Position - node->A.Position) * 0.5;
+		midPos[3] = midPos[2];
 
-		B.Position = node->C.Position + ((node->A.Position - node->C.Position) * 0.5);
-		B.UV = GetUVFromPosition(Vector3::Normalize(B.Position), (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
-		height = GetHeight(B.UV, planet.TerrainData);
-		B.Position = Vector3::Normalize(B.Position) * (planet.PlanetData.radius + height);
+		CPUVertex children[4];                         
+		Vec3x4d midPoints = Vec3x4d::Load(midPos);
 
-		C.Position = node->A.Position + ((node->B.Position - node->A.Position) * 0.5);
-		C.UV = GetUVFromPosition(Vector3::Normalize(C.Position), (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
-		height = GetHeight(C.UV, planet.TerrainData);
-		C.Position = Vector3::Normalize(C.Position) * (planet.PlanetData.radius + height);
+		// By using this function we save 3 trigg calls per Vertex
+		BuildCPUVertex4(midPoints, children, planet);
+
+		CPUVertex A = keep(node->B.Position, node->C.Position, children[0]);   // M12
+		CPUVertex B = keep(node->C.Position, node->A.Position, children[1]);   // M20
+		CPUVertex C = keep(node->A.Position, node->B.Position, children[2]);   // M01
+
+		node->ChildNodes.clear();
+		node->ChildNodes.reserve(4);
 
 		node->ChildNodes.emplace_back(CreateRef<PlanetNode>(A, B, C, node->SubdivisionLevel + 1));
 		node->ChildNodes.emplace_back(CreateRef<PlanetNode>(C, B, node->A, node->SubdivisionLevel + 1));
@@ -104,7 +204,7 @@ namespace Toast {
 
 		for (auto& child : node->ChildNodes)
 		{
-			SubdivideBasePlanet(planet, child, scale);
+			SubdivideBasePlanet(planet, child);
 
 			child->UpdateBoundsFromChildren();
 		}
@@ -505,35 +605,48 @@ namespace Toast {
 		};
 
 		sPlanetNodes.clear();
+		sPlanetNodes.resize(20);
 
-		for (int i = 0; i < initialIndices.size() - 2; i += 3)
-		{
-			int16_t subdivision = 0;
-			double height;
+		tMidCache.clear();
 
-			CPUVertex A, B, C;
-			A.Position = initialVertices[initialIndices[i]];
-			A.UV = GetUVFromPosition(Vector3::Normalize(A.Position), (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
-			height = GetHeight(A.UV, planet.TerrainData);
-			A.Position = Vector3::Normalize(A.Position) * (planet.PlanetData.radius + height);
-			
-			B.Position = initialVertices[initialIndices[i + 1]];
-			B.UV = GetUVFromPosition(Vector3::Normalize(B.Position), (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
-			height = GetHeight(B.UV, planet.TerrainData);
-			B.Position = Vector3::Normalize(B.Position) * (planet.PlanetData.radius + height);
+		auto BuildCPUVertex = [&](const Vector3& srcPos) -> CPUVertex
+			{
+				CPUVertex v;
 
-			C.Position = initialVertices[initialIndices[i + 2]];
-			C.UV = GetUVFromPosition(Vector3::Normalize(C.Position), (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
-			height = GetHeight(C.UV, planet.TerrainData);
-			C.Position = Vector3::Normalize(C.Position) * (planet.PlanetData.radius + height);
+				// 1. SIMD normalize 
+				Vector3AVX2 p(srcPos);   
+				p = p.Normalised();        
 
-			Ref<PlanetNode> rootNode = CreateRef<PlanetNode>(A, B, C, 0);
-			SubdivideBasePlanet(planet, rootNode, scale);
+				// 2. UV from the unit vector 
+				Vector3 unit = p.ToVector3();  
+				v.UV = GetUVFromPosition(unit,
+					double(planet.TerrainData.Width),
+					double(planet.TerrainData.Height));
 
-			rootNode->UpdateBoundsFromChildren();
+				// 3. height lookup + radial displacement 
+				double h = GetHeight(v.UV, planet.TerrainData);
+				p = p * (planet.PlanetData.radius + h);  
 
-			sPlanetNodes.emplace_back(rootNode);
-		}
+				v.Position = p.ToVector3();
+				return v;
+			};
+
+		auto buildFace = [&](std::size_t f)
+			{
+				int idx = int(f) * 3;     // index into initialIndices
+
+				CPUVertex A = BuildCPUVertex(initialVertices[initialIndices[idx]]);
+				CPUVertex B = BuildCPUVertex(initialVertices[initialIndices[idx + 1]]);
+				CPUVertex C = BuildCPUVertex(initialVertices[initialIndices[idx + 2]]);
+
+				Ref<PlanetNode> root = CreateRef<PlanetNode>(A, B, C, 0);
+				SubdivideBasePlanet(planet, root);
+				root->UpdateBoundsFromChildren();
+
+				sPlanetNodes[f] = std::move(root);   // write into its slot
+			};
+
+		gJobPool.parallelFor(20, buildFace);
 
 		// Stop timing
 		auto end = std::chrono::high_resolution_clock::now();

@@ -543,7 +543,9 @@ namespace Toast {
 				// Starting new thread to create a new planet if one isn't already being created
 				DirectX::XMVECTOR cameraPosWorldMovement = DirectX::XMLoadFloat3(&mainCamera->GetWorldTranslation());
 
-				PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, -cameraPosWorldMovement, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc->BuildColliders, tcc->BuildColliderPositions, tdc);
+				DirectX::XMVECTOR cameraPosWorldMovementNeg = DirectX::XMVectorScale(cameraPosWorldMovement, 1.0f);
+
+				PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPosWorldMovementNeg, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc->BuildColliders, tcc->BuildColliderPositions, tdc);
 
 				PlanetSystem::UpdatePlanet(pc.RenderMesh, pc.BuildVertices, pc.BuildIndices, *tcc);
 			}
@@ -1350,14 +1352,13 @@ namespace Toast {
 				DirectX::XMFLOAT3 debugNormalViewSpace = DirectX::XMFLOAT3(normalTextureValue.x, normalTextureValue.y, normalTextureValue.z);
 				DirectX::XMVECTOR debugNormalViewSpaceVec = DirectX::XMLoadFloat3(&debugNormalViewSpace);
 				debugNormalViewSpaceVec = DirectX::XMVector3Normalize(
-					debugNormalViewSpaceVec * 2.0f - DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f)
-				);
+					DirectX::XMVectorSubtract(DirectX::XMVectorScale(debugNormalViewSpaceVec, 2.0f), DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f)));
 
 				DirectX::XMFLOAT3 randomNoise = Renderer::SampleSSAONoiseTexture(noiseX, noiseY);
 				DirectX::XMVECTOR randomNoiseVec = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&randomNoise));
 
 				float dotNV = DirectX::XMVectorGetX(DirectX::XMVector3Dot(randomNoiseVec, debugNormalViewSpaceVec));
-				DirectX::XMVECTOR tangent = DirectX::XMVector3Normalize(randomNoiseVec - debugNormalViewSpaceVec * dotNV);
+				DirectX::XMVECTOR tangent = DirectX::XMVector3Normalize(DirectX::XMVectorSubtract(randomNoiseVec, DirectX::XMVectorScale(debugNormalViewSpaceVec, dotNV)));
 
 				DirectX::XMVECTOR bitangent = DirectX::XMVector3Cross(debugNormalViewSpaceVec, tangent);
 
@@ -1375,7 +1376,7 @@ namespace Toast {
 				for (const auto& sample : Renderer::GetSSAOKernel())
 				{
 					DirectX::XMVECTOR sampleDirView = DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat4(&sample), TBN);
-					DirectX::XMVECTOR sampleEndView = debugPosViewSpaceVec + sampleDirView * mSettings.SSAORadius;
+					DirectX::XMVECTOR sampleEndView = DirectX::XMVectorAdd(debugPosViewSpaceVec, DirectX::XMVectorScale(sampleDirView, mSettings.SSAORadius));
 					DirectX::XMVECTOR sampleEndWorld = DirectX::XMVector3TransformCoord(sampleEndView, DirectX::XMLoadFloat4x4(&editorCamera->GetInvViewMatrix()));
 
 					DirectX::XMFLOAT3 sampleEndWorldFloat, debugPointWorldFloat;
