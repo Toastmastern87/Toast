@@ -11,7 +11,15 @@
 
 #include <DirectXMath.h>
 
+#pragma push_macro("free")
+#pragma push_macro("malloc")
+#undef free
+#undef malloc
+
 #include <../cgltf/include/cgltf.h>
+
+#pragma pop_macro("malloc")
+#pragma pop_macro("free")
 
 namespace Toast {
 

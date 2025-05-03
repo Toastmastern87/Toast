@@ -145,8 +145,8 @@ namespace Toast {
 		bool IsDirty;
 
 		Ref<Mesh> RenderMesh;
-		std::vector<Vertex> BuildVertices;
-		std::vector<uint32_t> BuildIndices;
+		//std::vector<Vertex> BuildVertices;
+		//std::vector<uint32_t> BuildIndices;
 
 		std::vector<double> DistanceLUT;
 		std::vector<double> FaceLevelDotLUT;
@@ -155,8 +155,7 @@ namespace Toast {
 		
 		GPUData PlanetData;
 
-		std::unordered_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> VertexMap;
-
+		// Remove
 		std::vector<Ref<PlanetNode>> PlanetNodesWorldSpace;
 
 		// Remove

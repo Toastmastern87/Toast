@@ -78,7 +78,7 @@ namespace Toast {
 
 		double Length() const;
 		static double Length(Vector3 vec);
-		double LengthSqrt() const;
+		double LengthSquared() const;
 
 		static Vector3 Normalize(std::initializer_list<double> list);
 		static Vector3 Normalize(const Vector3& vec);
@@ -220,10 +220,10 @@ namespace Toast {
 	#pragma message("Vector3AVX2 disabled – compile with AVX2 to enable.")
 #endif
 
-////////////////////////////////////////////////////////////////////////////////////////
-//      VECTOR3x4 SIMD – AVX2 implementation (double precision)					      //
-//		Batching 4 vectors to eachother to optimize even more   	                  //
-////////////////////////////////////////////////////////////////////////////////////////	
+	////////////////////////////////////////////////////////////////////////////////////////
+	//      VECTOR3x4 SIMD – AVX2 implementation (double precision)					      //
+	//		Batching 4 vectors to eachother to optimize even more   	                  //
+	////////////////////////////////////////////////////////////////////////////////////////	
 
 #ifdef __AVX2__ 
 
@@ -237,6 +237,16 @@ namespace Toast {
 					 _mm256_set_pd(p[3].y,p[2].y,p[1].y,p[0].y),
 					 _mm256_set_pd(p[3].z,p[2].z,p[1].z,p[0].z) };
 		}
+
+		static Vec3x4d Load(const Vector3& v0, const Vector3& v1, const Vector3& v2, const Vector3& v3)
+		{
+			return {
+				_mm256_set_pd(v3.x,v2.x,v1.x,v0.x),
+				_mm256_set_pd(v3.y,v2.y,v1.y,v0.y),
+				_mm256_set_pd(v3.z,v2.z,v1.z,v0.z)
+			};
+		}
+
 		void Store(Vector3* p) const                   // scatter back
 		{
 			alignas(32) double sx[4], sy[4], sz[4];
@@ -250,6 +260,25 @@ namespace Toast {
 				p[i].y = sy[i];
 				p[i].z = sz[i];
 			}
+		}
+
+		inline Vec3x4d Normalize() const {
+			// length² = x*x + y*y + z*z
+			__m256d xsq = _mm256_mul_pd(x, x);
+			__m256d ysq = _mm256_mul_pd(y, y);
+			__m256d zsq = _mm256_mul_pd(z, z);
+			__m256d sum = _mm256_add_pd(_mm256_add_pd(xsq, ysq), zsq);
+
+			// len = sqrt(sum)
+			__m256d len = _mm256_sqrt_pd(sum);
+			// invLen = 1/len
+			__m256d invLen = _mm256_div_pd(_mm256_set1_pd(1.0), len);
+
+			return {
+				_mm256_mul_pd(x, invLen),
+				_mm256_mul_pd(y, invLen),
+				_mm256_mul_pd(z, invLen)
+			};
 		}
 	};
 

@@ -732,7 +732,7 @@ namespace Toast {
 				ImGui::Text("Subdivisions");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (ImGui::SliderInt("##Subdivisions", &subdivions, 0, 20))
+				if (ImGui::SliderInt("##Subdivisions", &subdivions, 0, 25))
 					component.Subdivisions = subdivions;
 
 				ImGui::EndTable();

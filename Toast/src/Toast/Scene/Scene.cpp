@@ -547,7 +547,7 @@ namespace Toast {
 
 				PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPosWorldMovementNeg, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc->BuildColliders, tcc->BuildColliderPositions, tdc);
 
-				PlanetSystem::UpdatePlanet(pc.RenderMesh, pc.BuildVertices, pc.BuildIndices, *tcc);
+				PlanetSystem::UpdatePlanet(pc.RenderMesh, *tcc);
 			}
 
 			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
@@ -1141,7 +1141,7 @@ namespace Toast {
 				{
 					if (pc.IsDirty)
 					{
-						PlanetSystem::GenerateDistanceLUT(pc.DistanceLUT, pc.PlanetData.radius, mainCameraComponent->Camera.GetPerspectiveVerticalFOV(), mViewportWidth);
+						PlanetSystem::GenerateDistanceLUT(pc.DistanceLUT, pc.PlanetData.radius, mainCameraComponent->Camera.GetPerspectiveVerticalFOV(), mViewportWidth, mViewportHeight, 2.0);
 						PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, tc.Scale.x, pc.PlanetData.maxAltitude);
 						PlanetSystem::GenerateHeightMultLUT(pc.HeightMultLUT, tc.Scale.x, pc.PlanetData.maxAltitude);
 
@@ -1163,7 +1163,7 @@ namespace Toast {
 					PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPos, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc->BuildColliders, tcc->BuildColliderPositions, tdc);
 
 					// Check if planet build is ready and if that is the case move it to the render mesh
-					PlanetSystem::UpdatePlanet(pc.RenderMesh, pc.BuildVertices, pc.BuildIndices, *tcc);
+					PlanetSystem::UpdatePlanet(pc.RenderMesh, *tcc);
 
 					if (e.HasComponent<TerrainObjectComponent>()) 
 					{
@@ -2026,7 +2026,7 @@ namespace Toast {
 
 		InvalidateFrustum();
 
-		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, component.PlanetData.radius, mainCamera->GetPerspectiveVerticalFOV(), mViewportWidth);
+		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, component.PlanetData.radius, mainCamera->GetPerspectiveVerticalFOV(), mViewportWidth, mViewportHeight, 2.0);
 		PlanetSystem::GenerateHeightMultLUT(component.HeightMultLUT, component.PlanetData.radius, component.PlanetData.maxAltitude);
 		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, component.PlanetData.maxAltitude);
 

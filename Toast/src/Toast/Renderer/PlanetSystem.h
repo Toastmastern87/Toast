@@ -89,9 +89,19 @@ namespace Toast {
 	struct PlanetNode
 	{
 		CPUVertex A, B, C;  // The three vertices of the triangle
+		Vector3 center;
+		PlanetNode* parent = nullptr;
 		std::vector<Ref<PlanetNode>> ChildNodes;
 		int16_t SubdivisionLevel = 0;
 		Bounds NodeBounds;
+
+		enum class State : uint8_t
+		{
+			ActiveLeaf,      // rendered this frame
+			WantSplit,
+			WantCollapse,
+			Culled
+		} state = State::ActiveLeaf;
 
 		PlanetNode(const CPUVertex& v0, const CPUVertex& v1, const CPUVertex& v2, const int16_t level, Matrix transform = Matrix::Identity())
 		{
@@ -103,6 +113,8 @@ namespace Toast {
 			B.Position = transform * B.Position;
 			C.Position = transform * C.Position;
 
+			center = (A.Position + B.Position + C.Position) / 3.0f;
+
 			SubdivisionLevel = level;
 
 			ComputeBoundsFromTriangle();
@@ -113,6 +125,9 @@ namespace Toast {
 			A = other.A;
 			B = other.B;
 			C = other.C;
+
+			center = (A.Position + B.Position + C.Position) / 3.0f;
+
 			SubdivisionLevel = other.SubdivisionLevel;
 			NodeBounds = other.NodeBounds;
 
@@ -179,34 +194,58 @@ namespace Toast {
 			double maxHeight;
 		};
 	private:
-		static std::vector<Ref<PlanetNode>> sPlanetNodes;
-
 		static std::vector<Vector3> sBaseVertices;
 		static std::vector<uint32_t> sBaseIndices;
+
+		static std::unordered_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> sVertexMap;
+		static std::vector<Vertex> sBuildVertices;
+		static std::vector<uint32_t> sBuildIndices;
+
+		// Remove?
 		static std::unordered_map<Vector3, uint32_t, Vector3::Hasher, Vector3::Equal> sBaseVertexMap;
 	public:
+		// Helper functions to be used during runtime updates of the planet
+		static inline bool NeedSplit(int lvl, double d2, const PlanetComponent& p) 
+		{
+			if (lvl >= p.Subdivisions) 
+				return false;
+
+			return d2 < p.DistanceLUT[lvl];
+		}
+		static inline bool NeedCollapse(int lvl, double d2, const PlanetComponent& p)
+		{
+			if (lvl == 0) 
+				return false;
+
+			return d2 > p.DistanceLUT[lvl - 1];
+		}
+
 		static uint32_t HashFace(uint32_t index0, uint32_t index1, uint32_t index2);
 
-		static void SubdivideBasePlanet(PlanetComponent& planet, Ref<PlanetNode>& node);
-		static void SubdivideFace(Ref<PlanetNode>& node, CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, const Vector3& planetCenter, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail);
+		// These functions are used to create the base planet when a scene with a planet is loaded.
 		static void CalculateBasePlanet(PlanetComponent& planet, double scale);
+
+		// These functions are used to update the active leaves during runtime.
+		static void UpdatePlanetLOD(PlanetComponent& planet, const Vector3& camPlanetSpace, const Vector3& planetCenter, Matrix& planetNoScaleTransform);
+		static void ComputeVisibleNodes(const PlanetComponent& planet, const Vector3& camPlanetSpace, const Vector3& planetCenter, bool backfaceCull);
+		static void RebuildPlanetMesh(PlanetComponent& planet, Matrix& planetNoScaleTransform);
+
+		static void SubdivideFace(Ref<PlanetNode>& node, CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, const Vector3& planetCenter, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail);
 
 		static void DetailObjectPlacement(const PlanetComponent& planet, TerrainObjectComponent& objects, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR& camPos);
 
-		static void UpdatePlanet(Ref<Mesh>& renderPlanet, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, TerrainColliderComponent& terrainCollider);
+		static void UpdatePlanet(Ref<Mesh>& renderPlanet, TerrainColliderComponent& terrainCollider);
 
-		static double GetHeight(Vector2 uvCoords, TerrainData& terrainData);
+		static double GetHeight(Vector2 uvCoords, const TerrainData& terrainData);
 
 		static void RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail = nullptr);
 
 		static void Shutdown();
 
-		static void GenerateDistanceLUT(std::vector<double>& distanceLUT, float radius, float FoV, float viewportSizeX);
+		static void GenerateDistanceLUT(std::vector<double>& distanceLUT, float radius, float FoV, float screenWdth, float screenHeight, double maxPixelError);
 		static void GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight);
 		static void GenerateHeightMultLUT(std::vector<double>& heightMultLUT, double planetRadius, double maxHeight);
 	private:
-		static Vector2 GetUVFromPosition(const Vector3 pos, double width, double height);
-
 		static void GetFaceBounds(const std::initializer_list<Vector3>& vertices, Bounds& bounds);
 
 		static void GeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail = nullptr);

@@ -154,7 +154,7 @@ Entities:
       Rotation: [75, -30, 55]
       Scale: [3389500, 3389500, 3389500]
     PlanetComponent:
-      Subdivisions: 7
+      Subdivisions: 0
       MaxAltitude: 21200
       MinAltitude: -8200
       Radius: 3389500

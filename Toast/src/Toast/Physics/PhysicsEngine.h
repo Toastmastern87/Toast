@@ -363,7 +363,7 @@ namespace Toast {
 
 				Vector3 triangleNormal = Vector3::Normalize(Vector3::Cross(terrainPts[1] - terrainPts[0], terrainPts[2] - terrainPts[0]));
 
-				if (triangleNormal.LengthSqrt() == 0)
+				if (triangleNormal.LengthSquared() == 0)
 					continue;
 
 				axes.emplace_back(triangleNormal);
@@ -380,7 +380,7 @@ namespace Toast {
 					for (const auto& triEdge : triEdges)
 					{
 						Vector3 crossProduct = Vector3::Cross(obbAxis, triEdge);
-						if (crossProduct.LengthSqrt() < 1e-6)
+						if (crossProduct.LengthSquared() < 1e-6)
 							continue;
 
 						crossProduct = Vector3::Normalize(crossProduct);
@@ -394,7 +394,7 @@ namespace Toast {
 
 				for (auto& axis : axes)
 				{
-					if (axis.LengthSqrt() < 1e-6)
+					if (axis.LengthSquared() < 1e-6)
 						continue;
 
 					auto [overlap, penetration] = OverlapOnAxis(objectColliderPts, terrainPts, axis);

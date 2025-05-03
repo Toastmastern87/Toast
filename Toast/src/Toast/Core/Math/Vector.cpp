@@ -55,7 +55,7 @@ namespace Toast {
 		return sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 	}
 
-	double Vector3::LengthSqrt() const {
+	double Vector3::LengthSquared() const {
 		return x * x + y * y + z * z;
 	}
 
