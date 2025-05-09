@@ -71,8 +71,19 @@ namespace Toast {
 
 	struct PlanetNode
 	{
+		enum EdgeIdx : uint8_t { IDX_AB = 0, IDX_BC = 1, IDX_CA = 2 };
+
+		/* ---- bit mask for stitching (can be ORed) ---------------------- */
+		enum StitchBit : uint8_t {
+			EDGE_AB = 1u << IDX_AB,   // 0000'0001
+			EDGE_BC = 1u << IDX_BC,   // 0000'0010
+			EDGE_CA = 1u << IDX_CA    // 0000'0100
+		};
+
 		CPUVertex A, B, C;  // The three vertices of the triangle
 		PlanetNode* EdgeNeighbour[3] = { nullptr,nullptr,nullptr };
+		uint8_t StitchMask = 0;
+
 		Vector3 Center;
 		PlanetNode* Parent = nullptr;
 		std::vector<Ref<PlanetNode>> ChildNodes;
@@ -212,6 +223,19 @@ namespace Toast {
 				return seed;
 			}
 		};
+	};
+
+	struct EdgeInfo        // was Rim
+	{
+		int childA, edgeA;   // first half of the parent edge
+		int childB, edgeB;   // second half
+	};
+
+	static constexpr EdgeInfo EDGE[3] =
+	{
+		/* parent AB */ { 0, PlanetNode::EDGE_AB,  1, PlanetNode::EDGE_CA },
+		/* parent BC */ { 1, PlanetNode::EDGE_AB,  2, PlanetNode::EDGE_CA },
+		/* parent CA */ { 2, PlanetNode::EDGE_AB,  0, PlanetNode::EDGE_CA },
 	};
 
 	class PlanetSystem

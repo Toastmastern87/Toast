@@ -185,6 +185,59 @@ namespace Toast {
 		}
 	}
 
+	inline bool NeedsCrackPatch(const PlanetNode* n, const Vector3& camPS, const PlanetComponent& planet)
+	{
+		/* compute camera‑space distances of the three vertices (sqrt → linear) */
+		double dA = (n->A.Position - camPS).LengthSquared();
+		double dB = (n->B.Position - camPS).LengthSquared();
+		double dC = (n->C.Position - camPS).LengthSquared();
+
+		const int L = n->SubdivisionLevel;
+		if (L >= planet.Subdivisions)
+			return false;                                    // at max LOD already
+
+		double thresh = planet.DistanceLUT[L]; // Check if 2 of the vertices are in the lower level, that means that this is a edge node and crack is needed.
+
+		/* how many of the three are inside the threshold? */
+		int inside = int(dA < thresh) + int(dB < thresh) + int(dC < thresh);
+
+		return inside == 2;                                  // your old rule
+	}
+
+	static std::array<PlanetNode*, 2> MakeCrackPatches(const PlanetNode* n,	const PlanetComponent& planet, const Vector3& camPS)
+	{
+		/* ---- 1. classify the three vertices by camera distance ------------ */
+		struct Vtx { const CPUVertex* v; double d2; };
+		Vtx v[3] = {
+			{ &n->A, 0 }, { &n->B, 0 }, { &n->C, 0 }
+		};
+
+		v[0].d2 = (v[0].v->Position - camPS).LengthSquared();
+		v[1].d2 = (v[1].v->Position - camPS).LengthSquared();
+		v[2].d2 = (v[2].v->Position - camPS).LengthSquared();
+
+		std::sort(std::begin(v), std::end(v),
+			[](const Vtx& a, const Vtx& b) { return a.d2 < b.d2; });
+		// v[0] = closest, v[1] = middle, v[2] = furthest
+
+		/* ---- 2. build the mid‑point between closest & middle -------------- */
+		Vector3 mp = (v[0].v->Position + v[1].v->Position) * 0.5f;
+		CPUVertex M = BuildCPUVertex(mp, planet);
+
+		/* ---- 3. make the two little faces --------------------------------- */
+		auto newNode = [&](const CPUVertex& A, const CPUVertex& B, const CPUVertex& C)
+			{
+				auto ref = CreateRef<PlanetNode>(A, B, C, n->SubdivisionLevel);
+				gAllNodes.push_back(ref);          // keep ownership alive
+				return ref;
+			};
+
+		Ref<PlanetNode> p0 = newNode(M, *v[0].v, *v[2].v);   // ①  M‑closest‑furthest
+		Ref<PlanetNode> p1 = newNode(M, *v[2].v, *v[1].v);   // ②  M‑furthest‑middle
+
+		return { p0.get(), p1.get() };
+	}
+
 	static Ref<PlanetNode> AddOrGetNode(const CPUVertex& A,	const CPUVertex& B,	const CPUVertex& C,	int level)
 	{
 		PlanetNode proto(A, B, C, level);     // temporary value just for comparison
@@ -353,6 +406,8 @@ namespace Toast {
 				for (auto* v : victims) if (v) 
 					skipSet.insert(v);
 
+				n->NodeState = PlanetNode::State::ActiveLeaf;
+
 				updatedLeaves.emplace_back(n);
 
 				continue;
@@ -388,6 +443,7 @@ namespace Toast {
 						for (auto* v : victims) if (v)
 							skipSet.insert(v);
 
+						n->NodeState = PlanetNode::State::ActiveLeaf;
 						updatedLeaves.emplace_back(parent);
 					}
 					else
@@ -452,7 +508,16 @@ namespace Toast {
 					double dp = Vector3::Dot(Vector3::Normalize(n->Center), Vector3::Normalize(n->Center - camPlanetSpace));
 
 					if (dp < dotThresh[n->SubdivisionLevel])
-						local.push_back(n);
+					{
+						if (NeedsCrackPatch(n, camPlanetSpace, planet) && n->SubdivisionLevel > 0)
+						{
+							auto pp = MakeCrackPatches(n, planet, camPlanetSpace);  // two little fixes
+							local.emplace_back(pp[0]);
+							local.emplace_back(pp[1]);
+						}
+						else
+							local.emplace_back(n);
+					}
 				}
 			}
 			});
