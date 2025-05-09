@@ -21,12 +21,15 @@ namespace Toast {
 	static std::vector<Ref<PlanetNode>> gBaseNodes;
 
 	static std::mutex gActiveMutex;
+	static std::mutex sBuildMutex;
+	static std::mutex gNodeLookupMutex;
 
 	std::vector<Vector3> PlanetSystem::sBaseVertices;
 	std::vector<uint32_t> PlanetSystem::sBaseIndices;
 	std::vector<Vertex> PlanetSystem::sBuildVertices;
 	std::vector<uint32_t> PlanetSystem::sBuildIndices;
 	std::unordered_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> PlanetSystem::sVertexMap;
+	std::unordered_map<PlanetNode, Ref<PlanetNode>,	PlanetNode::Hasher> gNodeLookup;
 	static std::vector<Ref<PlanetNode>> gAllNodes;
 	static std::vector<PlanetNode*> gActiveNodes; 
 	static std::vector<PlanetNode*> gVisibleNodes;
@@ -58,10 +61,33 @@ namespace Toast {
 		u *= (width - 1.0);
 		vTex *= (height - 1.0);
 
-		u = std::fmod(u + width, width);
-		vTex = std::clamp(vTex, 0.0, height - 1.000001);
+		//u = std::fmod(u + width, width);
+		//vTex = std::clamp(vTex, 0.0, height - 1.000001);
 
 		return { u, vTex };
+	}
+
+	inline size_t rowStride(const TerrainData& td)
+	{
+		return td.RowPitch / sizeof(double);   // = bytes‑per‑row / 8
+	}
+
+	static double GetHeight(Vector2 uvCoords, const TerrainData& terrainData)
+	{
+		uint32_t x1 = (uint32_t)(uvCoords.x);
+		uint32_t y1 = (uint32_t)(uvCoords.y);
+
+		uint32_t x2 = x1 == (terrainData.Width - 1) ? 0 : x1 + 1;
+		uint32_t y2 = y1 == (terrainData.Height - 1) ? 0 : y1 + 1;
+
+		size_t pitch = rowStride(terrainData);
+
+		double Q11 = terrainData.HeightData[y1 * pitch + x1];
+		double Q12 = terrainData.HeightData[y2 * pitch + x1];
+		double Q21 = terrainData.HeightData[y1 * pitch + x2];
+		double Q22 = terrainData.HeightData[y2 * pitch + x2];
+
+		return Math::BilinearInterpolation(uvCoords, Q11, Q12, Q21, Q22);
 	}
 
 	//------------------------------------------------------------------
@@ -71,14 +97,14 @@ namespace Toast {
 	{
 		alignas(32) double U[4], V[4];   _mm256_store_pd(U, u); _mm256_store_pd(V, v);
 		const double* base = td.HeightData.data();
-		int pitch = td.RowPitch >> 1;    // row length in uint16
+		size_t pitch = rowStride(td);
 		double H[4];
 
 		for (int i = 0; i < 4; ++i)
 		{
 			int x1 = int(U[i]);  int y1 = int(V[i]);
 			int x2 = (x1 + 1) % td.Width;
-			int y2 = std::min<int>(y1 + 1, td.Height - 1);
+			int y2 = (y1 + 1) % td.Height;
 
 			double fx = U[i] - x1, fy = V[i] - y1;
 
@@ -106,7 +132,7 @@ namespace Toast {
 		Vector2 uv = GetUVFromPosition(unit, double(planet.TerrainData.Width), double(planet.TerrainData.Height));
 
 		// 3) height lookup + radial displacement
-		double h = PlanetSystem::GetHeight(uv, planet.TerrainData);
+		double h = GetHeight(uv, planet.TerrainData);
 		p = p * (planet.PlanetData.radius + h);
 
 		// 4) assemble
@@ -159,6 +185,23 @@ namespace Toast {
 		}
 	}
 
+	static Ref<PlanetNode> AddOrGetNode(const CPUVertex& A,	const CPUVertex& B,	const CPUVertex& C,	int level)
+	{
+		PlanetNode proto(A, B, C, level);     // temporary value just for comparison
+
+		std::scoped_lock lock(gNodeLookupMutex);
+
+		auto it = gNodeLookup.find(proto);
+		if (it != gNodeLookup.end())
+			return it->second;             // already exists → reuse
+
+		// create, register, and hand back a fresh node
+		Ref<PlanetNode> fresh = CreateRef<PlanetNode>(A, B, C, level);
+		gNodeLookup.emplace(*fresh, fresh); // key = *fresh (value semantics)
+		gAllNodes.emplace_back(fresh);      // optional: keep linear list
+		return fresh;
+	}
+
 	static void MakeMidVertices(const CPUVertex& A, const CPUVertex& B, const CPUVertex& C, CPUVertex& mAB, CPUVertex& mBC, CPUVertex& mCA, const PlanetComponent& planet)
 	{
 		// 1) compute the raw mid-positions
@@ -181,6 +224,24 @@ namespace Toast {
 		// out[3] is a duplicate of out[2], ignore it
 	}
 
+	static size_t AddVertexThreadSafe(const CPUVertex& cpuV,
+		const Vector3& worldPos)
+	{
+		Vertex v;
+		v.Position = { (float)worldPos.x, (float)worldPos.y, (float)worldPos.z };
+		v.Texcoord = { (float)cpuV.UV.x,  (float)cpuV.UV.y };
+		v.Normal = { 0,0,0 };
+		v.Tangent = { 0,0,0,0 };
+		v.Color = { 0,0,0 };
+
+		std::scoped_lock lk(sBuildMutex);          // tiny critical section
+		auto [it, inserted] = PlanetSystem::sVertexMap.emplace(v,
+			PlanetSystem::sBuildVertices.size());
+		if (inserted)
+			PlanetSystem::sBuildVertices.emplace_back(v);
+		return it->second;
+	}
+
 	void SplitNode(PlanetNode* n, const PlanetComponent& planet) 
 	{
 		if (!n->ChildNodes.empty()) return;  // already split
@@ -191,26 +252,26 @@ namespace Toast {
 
 		int nextL = n->SubdivisionLevel + 1;
 		n->ChildNodes.resize(4);
-		n->ChildNodes[0] = CreateRef<PlanetNode>(mAB, mBC, mCA, nextL);
-		n->ChildNodes[1] = CreateRef<PlanetNode>(mBC, mCA, n->A, nextL);
-		n->ChildNodes[2] = CreateRef<PlanetNode>(n->B, mAB, mBC, nextL);
-		n->ChildNodes[3] = CreateRef<PlanetNode>(mCA, mAB, n->C, nextL);
+		n->ChildNodes[0] = AddOrGetNode(n->A, mAB, mCA, nextL);
+		n->ChildNodes[1] = AddOrGetNode(n->B, mBC, mAB, nextL);
+		n->ChildNodes[2] = AddOrGetNode(n->C, mCA, mBC, nextL);
+		n->ChildNodes[3] = AddOrGetNode(mAB, mBC, mCA, nextL);
 
 		for (auto& c : n->ChildNodes)
-			c->parent = n;
+			c->Parent = n;
 	}
 
-	void CollapseNode(PlanetNode* n)
+	std::array<PlanetNode*, 4> CollapseNode(PlanetNode* n)
 	{
-		if (n->ChildNodes.empty()) return;
-		// drop only the immediate children:
+		std::array<PlanetNode*, 4> out{};
+		if (!n || n->ChildNodes.empty()) 
+			return out;
+
+		for (size_t i = 0; i < n->ChildNodes.size(); ++i)
+			out[i] = n->ChildNodes[i].get();
+
 		n->ChildNodes.clear();
-	}
-
-	uint32_t PlanetSystem::HashFace(uint32_t index0, uint32_t index1, uint32_t index2)
-	{
-		// Simple hash combining indices; you can make this more complex as needed
-		return static_cast<uint32_t>(index0 * 73856093 ^ index1 * 19349663 ^ index2 * 83492791);
+		return out;
 	}
 
 	void PlanetSystem::GetFaceBounds(const std::initializer_list<Vector3>& vertices, Bounds& bounds)
@@ -244,7 +305,7 @@ namespace Toast {
 		}
 	}
 
-	void PlanetSystem::UpdatePlanetLOD(PlanetComponent& planet, const Vector3& camPlanetSpace, const Vector3& planetCenter, Matrix& planetNoScaleTransform)
+	void PlanetSystem::UpdateActiveNodes(PlanetComponent& planet, const Vector3& camPlanetSpace, const Vector3& planetCenter, Matrix& planetNoScaleTransform)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -262,41 +323,84 @@ namespace Toast {
 				for (size_t i = begin; i < end; ++i)
 				{
 					PlanetNode* n = gWorkQueue[i];
-					double dist2 = (n->center - camPlanetSpace).LengthSquared();
+					double dist2 = (n->Center - camPlanetSpace).LengthSquared();
 
 					if (NeedSplit(n->SubdivisionLevel, dist2, planet))
-						n->state = PlanetNode::State::WantSplit;
+						n->NodeState = PlanetNode::State::WantSplit;
 					else if (NeedCollapse(n->SubdivisionLevel, dist2, planet))
-						n->state = PlanetNode::State::WantCollapse;
+						n->NodeState = PlanetNode::State::WantCollapse;
 					else
-						n->state = PlanetNode::State::ActiveLeaf;
+						n->NodeState = PlanetNode::State::ActiveLeaf;
 				}
 			});
 
-
 		// Apply the split, collapse or keep to build the updated active leaves list
-		std::vector<PlanetNode*> newLeaves;
-		newLeaves.reserve(gActiveNodes.size() * 1.2);
+		std::vector<PlanetNode*> updatedLeaves;
+		updatedLeaves.reserve(gActiveNodes.size() * 1.2);
+
+		std::unordered_set<PlanetNode*> skipSet;
 
 		for (PlanetNode* n : gActiveNodes)
 		{
-			switch (n->state)
+			if (skipSet.count(n)) continue;
+
+			if (n->SubdivisionLevel > planet.Subdivisions)
+			{
+				while (n->SubdivisionLevel > planet.Subdivisions && n->Parent)
+					n = n->Parent;
+
+				auto victims = CollapseNode(n);
+				for (auto* v : victims) if (v) 
+					skipSet.insert(v);
+
+				updatedLeaves.emplace_back(n);
+
+				continue;
+			}
+
+			switch (n->NodeState)
 			{
 			case PlanetNode::State::WantSplit:
 				SplitNode(n, planet);
 				for (auto& c : n->ChildNodes)
-					newLeaves.push_back(c.get());
+					updatedLeaves.push_back(c.get());
 				break;
-
 			case PlanetNode::State::WantCollapse:
-				CollapseNode(n);
-				newLeaves.push_back(n);
-				break;
+			{
+				if (n->Parent)
+				{
+					PlanetNode* parent = n->Parent;
 
+					bool allWantCollapse = true;
+
+					for (auto& child : parent->ChildNodes)
+					{
+						if (child->NodeState != PlanetNode::State::WantCollapse)
+						{
+							allWantCollapse = false;
+							break;
+						}
+					}
+
+					if (allWantCollapse)
+					{
+						auto victims = CollapseNode(parent);
+						for (auto* v : victims) if (v)
+							skipSet.insert(v);
+
+						updatedLeaves.emplace_back(parent);
+					}
+					else
+						updatedLeaves.push_back(n);
+				}
+				else
+					updatedLeaves.push_back(n);
+
+				break;
+			}
 			case PlanetNode::State::ActiveLeaf:
-				newLeaves.push_back(n);
+				updatedLeaves.push_back(n);
 				break;
-
 			default:
 				// no culling here — we ignore Culled state
 				break;
@@ -306,7 +410,7 @@ namespace Toast {
 		// Swap the new leaves into the active leaves list
 		{
 			std::scoped_lock lock(gActiveMutex);
-			gActiveNodes.swap(newLeaves);
+			gActiveNodes.swap(updatedLeaves);
 		}
 	}
 
@@ -345,7 +449,7 @@ namespace Toast {
 					local.push_back(n);
 				else
 				{
-					double dp = Vector3::Dot(Vector3::Normalize(n->center), Vector3::Normalize(n->center - camPlanetSpace));
+					double dp = Vector3::Dot(Vector3::Normalize(n->Center), Vector3::Normalize(n->Center - camPlanetSpace));
 
 					if (dp < dotThresh[n->SubdivisionLevel])
 						local.push_back(n);
@@ -369,498 +473,115 @@ namespace Toast {
 		}
 	}
 
-	void PlanetSystem::RebuildPlanetMesh(PlanetComponent& planet, Matrix& planetNoScaleTransform)
+	void PlanetSystem::RebuildPlanetMesh(PlanetComponent& planet,
+		Matrix& planetNoScaleTf)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		// Clear the old build data.
+		/* --------------- clear global build buffers -------------------- */
 		sBuildVertices.clear();
 		sBuildIndices.clear();
 		sVertexMap.clear();
 
-		// 3) Helper to add‐or‐reuse a vertex when doing smooth shading
-		auto addVertex = [&](const CPUVertex& cpuV, const Vector3 worldPos) -> size_t {
-			Vertex v;
-			v.Position = { (float)worldPos.x, (float)worldPos.y, (float)worldPos.z };
-			v.Texcoord = { (float)cpuV.UV.x,  (float)cpuV.UV.y };
-			v.Normal = { 0, 0, 0 };
-			v.Tangent = { 0, 0, 0, 0 };
-			v.Color = { 0, 0, 0 };
+		constexpr size_t CHUNK = 512;
+		size_t numTasks = (gVisibleNodes.size() + CHUNK - 1) / CHUNK;
 
-			auto result = sVertexMap.emplace(v, sBuildVertices.size());
-			if (result.second) {
-				sBuildVertices.emplace_back(v);
-			}
-			return result.first->second;
-			};
-
-		// Loop through all visible nodes to but them back into the build vertices and indices.
-		for (PlanetNode* n : gVisibleNodes)
+		/* --------------- per‑thread scratch space ---------------------- */
+		struct ThreadScratch
 		{
-			CPUVertex& A = n->A, & B = n->B, & C = n->C;
+			std::vector<uint32_t> localIndices;
+		};
+		std::vector<ThreadScratch> tls(numTasks);
 
-			Vector3 worldPosA = planetNoScaleTransform * A.Position;
-			Vector3 worldPosB = planetNoScaleTransform * B.Position;
-			Vector3 worldPosC = planetNoScaleTransform * C.Position;
-
-			// load positions into SIMD vectors (w lane = 1.0 by default)
-			Vector3AVX2 sA(worldPosA.x, worldPosA.y, worldPosA.z);
-			Vector3AVX2 sB(worldPosB.x, worldPosB.y, worldPosB.z);
-			Vector3AVX2 sC(worldPosC.x, worldPosC.y, worldPosC.z);
-
-			// cross + normalize
-			Vector3AVX2 sn = Vector3AVX2::Cross(sB - sA, sC - sA).Normalised();
-
-			// extract back to scalar Vector3
-			Vector3 faceN = sn.ToVector3();
-
-			if (planet.PlanetData.smoothShading)
+		/* --------------- first pass: generate verts / indices ---------- */
+		gJobPool.parallelFor(numTasks, [&](size_t task)
 			{
-				size_t iA = addVertex(A, worldPosA);
-				size_t iB = addVertex(B, worldPosB);
-				size_t iC = addVertex(C, worldPosC);
+				size_t begin = task * CHUNK;
+				size_t end = std::min(begin + CHUNK, gVisibleNodes.size());
+				auto& scratch = tls[task];
+				scratch.localIndices.reserve((end - begin) * 3);
 
-				// accumulate into each shared vertex
-				sBuildVertices[iA].Normal.x += (float)faceN.x;
-				sBuildVertices[iA].Normal.y += (float)faceN.y;
-				sBuildVertices[iA].Normal.z += (float)faceN.z;
-
-				sBuildVertices[iB].Normal.x += (float)faceN.x;
-				sBuildVertices[iB].Normal.y += (float)faceN.y;
-				sBuildVertices[iB].Normal.z += (float)faceN.z;
-
-				sBuildVertices[iC].Normal.x += (float)faceN.x;
-				sBuildVertices[iC].Normal.y += (float)faceN.y;
-				sBuildVertices[iC].Normal.z += (float)faceN.z;
-
-				// emit one triangle
-				sBuildIndices.emplace_back(iA);
-				sBuildIndices.emplace_back(iB);
-				sBuildIndices.emplace_back(iC);
-			}
-			else
-			{
-				// flat shading: unique vertex per corner
-				Vertex vA(A.Position, A.UV, faceN);
-				sBuildVertices.emplace_back(vA);
-				sBuildIndices.emplace_back(sBuildVertices.size() - 1);
-
-				Vertex vB(B.Position, B.UV, faceN);
-				sBuildVertices.emplace_back(vB);
-				sBuildIndices.emplace_back(sBuildVertices.size() - 1);
-
-				Vertex vC(C.Position, C.UV, faceN);
-				sBuildVertices.emplace_back(vC);
-				sBuildIndices.emplace_back(sBuildVertices.size() - 1);
-			}
-
-			if (planet.PlanetData.smoothShading)
-			{
-#ifdef __AVX2__
-				size_t N = sBuildVertices.size();
-				size_t i = 0;
-
-				// SIMD‐accelerate in blocks of 4
-				for (; i + 3 < N; i += 4)
+				for (size_t i = begin; i < end; ++i)
 				{
-					// Gather 4 normals (float→double)
-					__m256d nx = _mm256_set_pd(
-						(double)sBuildVertices[i + 3].Normal.x,
-						(double)sBuildVertices[i + 2].Normal.x,
-						(double)sBuildVertices[i + 1].Normal.x,
-						(double)sBuildVertices[i + 0].Normal.x
-					);
-					__m256d ny = _mm256_set_pd(
-						(double)sBuildVertices[i + 3].Normal.y,
-						(double)sBuildVertices[i + 2].Normal.y,
-						(double)sBuildVertices[i + 1].Normal.y,
-						(double)sBuildVertices[i + 0].Normal.y
-					);
-					__m256d nz = _mm256_set_pd(
-						(double)sBuildVertices[i + 3].Normal.z,
-						(double)sBuildVertices[i + 2].Normal.z,
-						(double)sBuildVertices[i + 1].Normal.z,
-						(double)sBuildVertices[i + 0].Normal.z
-					);
+					PlanetNode* n = gVisibleNodes[i];
+					CPUVertex& A = n->A, & B = n->B, & C = n->C;
 
-					Vec3x4d batch{ nx, ny, nz };
-					Vec3x4d normed = batch.Normalize();
+					Vector3 wpA = planetNoScaleTf * A.Position;
+					Vector3 wpB = planetNoScaleTf * B.Position;
+					Vector3 wpC = planetNoScaleTf * C.Position;
 
-					// Scatter back (double→float)
-					alignas(32) double ox[4], oy[4], oz[4];
-					_mm256_store_pd(ox, normed.x);
-					_mm256_store_pd(oy, normed.y);
-					_mm256_store_pd(oz, normed.z);
+					/* face normal (SIMD) */
+					Vector3AVX2 sA(wpA.x, wpA.y, wpA.z),
+						sB(wpB.x, wpB.y, wpB.z),
+						sC(wpC.x, wpC.y, wpC.z);
+					Vector3AVX2 sn = Vector3AVX2::Cross(sB - sA, sC - sA).Normalised();
+					Vector3 faceN = sn.ToVector3();
 
-					for (int k = 0; k < 4; ++k)
+					if (planet.PlanetData.smoothShading)
 					{
-						sBuildVertices[i + k].Normal.x = (float)ox[3 - k];
-						sBuildVertices[i + k].Normal.y = (float)oy[3 - k];
-						sBuildVertices[i + k].Normal.z = (float)oz[3 - k];
+						size_t iA = AddVertexThreadSafe(A, wpA);
+						size_t iB = AddVertexThreadSafe(B, wpB);
+						size_t iC = AddVertexThreadSafe(C, wpC);
+
+						{   /* accumulate normals under mutex */
+							std::scoped_lock lk(sBuildMutex);
+							sBuildVertices[iA].Normal = { sBuildVertices[iA].Normal.x + (float)faceN.x, sBuildVertices[iA].Normal.y + (float)faceN.y, sBuildVertices[iA].Normal.z + (float)faceN.z };
+							sBuildVertices[iB].Normal = { sBuildVertices[iB].Normal.x + (float)faceN.x, sBuildVertices[iB].Normal.y + (float)faceN.y, sBuildVertices[iB].Normal.z + (float)faceN.z };
+							sBuildVertices[iC].Normal = { sBuildVertices[iC].Normal.x + (float)faceN.x, sBuildVertices[iC].Normal.y + (float)faceN.y, sBuildVertices[iC].Normal.z + (float)faceN.z };
+						}
+
+						scratch.localIndices.emplace_back((uint32_t)iA);
+						scratch.localIndices.emplace_back((uint32_t)iB);
+						scratch.localIndices.emplace_back((uint32_t)iC);
+					}
+					else
+					{
+						Vertex vA(wpA, A.UV, faceN);
+						Vertex vB(wpB, B.UV, faceN);
+						Vertex vC(wpC, C.UV, faceN);
+
+						std::scoped_lock lk(sBuildMutex);
+						sBuildVertices.emplace_back(vA);
+						sBuildVertices.emplace_back(vB);
+						sBuildVertices.emplace_back(vC);
+
+						uint32_t base = (uint32_t)sBuildVertices.size();
+						scratch.localIndices.push_back(base - 3);
+						scratch.localIndices.push_back(base - 2);
+						scratch.localIndices.push_back(base - 1);
 					}
 				}
+			});
 
-				// Scalar tail for any leftover 1–3 verts
-				for (; i < N; ++i)
-				{
-					Vector3 n{
-						sBuildVertices[i].Normal.x,
-						sBuildVertices[i].Normal.y,
-						sBuildVertices[i].Normal.z
-					};
-					n = Vector3::Normalize(n);
-					sBuildVertices[i].Normal = { (float)n.x, (float)n.y, (float)n.z };
-				}
-#else
-				// No AVX2: do it the old way
-				for (auto& v : sBuildVertices)
-				{
-					Vector3 n{ v.Normal.x, v.Normal.y, v.Normal.z };
-					n = Vector3::Normalize(n);
-					v.Normal = { (float)n.x, (float)n.y, (float)n.z };
-				}
-#endif
-			}
+		/* --------------- merge indices from all threads --------------- */
+		{
+			std::scoped_lock lk(sBuildMutex);
+			for (auto& t : tls)
+				sBuildIndices.insert(sBuildIndices.end(),
+					t.localIndices.begin(), t.localIndices.end());
 		}
-	}
 
-	void PlanetSystem::SubdivideFace(Ref<PlanetNode>& node, CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, const Vector3& planetCenter, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
-	{
-		//double height;
-		//NextPlanetFace nextFace;
-		//Vector2 uvCoords;
-		//Bounds bounds;
+		/* --------------- second pass: normalise (SIMD, parallel) ------ */
+		if (planet.PlanetData.smoothShading)
+		{
+			size_t N = sBuildVertices.size();
+			size_t nTasks = (N + CHUNK - 1) / CHUNK;
 
-		////double aDistance = A.Position.LengthSqrt();
-		////double bDistance = B.Position.LengthSqrt();
-		////double cDistance = C.Position.LengthSqrt();
+			gJobPool.parallelFor(nTasks, [&](size_t task)
+				{
+					size_t begin = task * CHUNK;
+					size_t end = std::min(begin + CHUNK, N);
 
-		//double aDistance = (A.Position - cameraPosPlanetSpace).LengthSquared();
-		//double bDistance = (B.Position - cameraPosPlanetSpace).LengthSquared();
-		//double cDistance = (C.Position - cameraPosPlanetSpace).LengthSquared();
-
-		////TOAST_CORE_CRITICAL("SubdivideFace: Subdivision=%d, aDistance=%.2f, bDistance=%.2f, cDistance=%.2f",
-		////	subdivision, aDistance, bDistance, cDistance);
-
-		//if (subdivision >= BASE_PLANET_SUBDIVISIONS + planet.Subdivisions)	
-		//	nextFace = NextPlanetFace::LEAF;
-		//else
-		//{
-		//	double threshold = planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS];
-		//	//TOAST_CORE_CRITICAL("SubdivideFace: Threshold for subdivision %d is %.2f", subdivision, threshold);
-		//	if (aDistance < planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS] && bDistance < planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS] && cDistance < planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS])
-		//		nextFace = NextPlanetFace::SPLIT;
-		//	else 
-		//		nextFace = NextPlanetFace::LEAF; // Add triangle due to distance
-		//}
-
-		////TOAST_CORE_CRITICAL("SubdivideFace: nextFace = %s", (nextFace == NextPlanetFace::SPLIT ? "SPLIT" : "LEAF"));
-
-		//if (nextFace == NextPlanetFace::SPLIT)
-		//{
-		//	CPUVertex aMid, bMid, cMid;
-		//	double mediumTerrainDetailNoise = 0.0;
-
-		//	aMid.Position = B.Position + ((C.Position - B.Position) * 0.5);
-		//	bMid.Position = C.Position + ((A.Position - C.Position) * 0.5);
-		//	cMid.Position = A.Position + ((B.Position - A.Position) * 0.5);
-
-		//	auto ComputeVertex = [&](CPUVertex& v) {
-		//		Vector3 n = Vector3::Normalize(v.Position);
-		//		v.UV = GetUVFromPosition(n, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
-		//		double mediumTerrainDetailNoise = 0.0;
-		//		if (terrainDetail && subdivision > terrainDetail->SubdivisionActivation) {
-		//			mediumTerrainDetailNoise = perlin.octave2D_01(v.UV.x * terrainDetail->Frequency, v.UV.y * terrainDetail->Frequency, terrainDetail->Octaves) * terrainDetail->Amplitude;
-		//		}
-		//		double h = GetHeight(v.UV, planet.TerrainData);
-		//		v.Position = n * (planet.PlanetData.radius + h + mediumTerrainDetailNoise);
-		//		};
-
-		//	ComputeVertex(aMid);
-		//	ComputeVertex(bMid);
-		//	ComputeVertex(cMid);
-
-		//	// Create child nodes for the four new faces
-		//	node->ChildNodes.clear();
-		//	node->ChildNodes.reserve(4);
-
-		//	// For each of the four subdivided triangles, create a new node
-		//	// Triangle 1: aMid, bMid, cMid
-		//	{
-		//		Ref<PlanetNode> child = CreateRef<PlanetNode>(aMid, bMid, cMid, (uint16_t)(subdivision + 1), planetTransform);
-		//		SubdivideFace(child, aMid, bMid, cMid, cameraPosPlanetSpace, planet, planetCenter, planetTransform, subdivision + 1, perlin, terrainDetail);
-		//		node->ChildNodes.emplace_back(child);
-		//	}
-
-		//	// Triangle 2: cMid, bMid, A
-		//	{
-		//		Ref<PlanetNode> child = CreateRef<PlanetNode>(cMid, bMid, A, (uint16_t)(subdivision + 1), planetTransform);
-		//		SubdivideFace(child, cMid, bMid, A, cameraPosPlanetSpace, planet, planetCenter, planetTransform, subdivision + 1, perlin, terrainDetail);
-		//		node->ChildNodes.emplace_back(child);
-		//	}
-
-		//	// Triangle 3: B, aMid, cMid
-		//	{
-		//		Ref<PlanetNode> child = CreateRef<PlanetNode>(B, aMid, cMid, (uint16_t)(subdivision + 1), planetTransform);
-		//		SubdivideFace(child, B, aMid, cMid, cameraPosPlanetSpace, planet, planetCenter, planetTransform, subdivision + 1, perlin, terrainDetail);
-		//		node->ChildNodes.emplace_back(child);
-		//	}
-
-		//	// Triangle 4: bMid, aMid, C
-		//	{
-		//		Ref<PlanetNode> child = CreateRef<PlanetNode>(bMid, aMid, C, (uint16_t)(subdivision + 1), planetTransform);
-		//		SubdivideFace(child, bMid, aMid, C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, subdivision + 1, perlin, terrainDetail);
-		//		node->ChildNodes.emplace_back(child);
-		//	}
-
-		//	// After all children are subdivided
-		//	node->UpdateBoundsFromChildren();
-		//}
-		//else
-		//{
-		//	//TOAST_CORE_CRITICAL("SubdivideFace: LEAF branch - adding vertices for subdivision %d", subdivision);
-
-		//	bool crackTriangle = false;
-		//	CPUVertex closestVertex, furthestVertex, middleVertex;
-
-		//	double closestDistance = (std::min)(aDistance, (std::min)(bDistance, cDistance));
-		//	double furthestDistance = (std::max)(aDistance, (std::max)(bDistance, cDistance));
-		//	double secondClosestDistance;
-
-		//	if (closestDistance == aDistance)
-		//		closestVertex = A;
-		//	else if (closestDistance == bDistance)
-		//		closestVertex = B;
-		//	else
-		//		closestVertex = C;
-
-		//	if (furthestDistance == aDistance)
-		//		furthestVertex = A;
-		//	else if (furthestDistance == bDistance)
-		//		furthestVertex = B;
-		//	else
-		//		furthestVertex = C;
-
-		//	if (closestDistance == aDistance)
-		//		secondClosestDistance = (furthestDistance == bDistance) ? cDistance : bDistance;
-		//	else if (closestDistance == bDistance)
-		//		secondClosestDistance = (furthestDistance == aDistance) ? cDistance : aDistance;
-		//	else
-		//		secondClosestDistance = (furthestDistance == aDistance) ? bDistance : aDistance;
-
-		//	// Identify middle vertex based on distances
-		//	if ((closestDistance != aDistance) && (furthestDistance != aDistance))
-		//		middleVertex = A;
-		//	else if ((closestDistance != bDistance) && (furthestDistance != bDistance))
-		//		middleVertex = B;
-		//	else
-		//		middleVertex = C;
-
-		//	if(subdivision < (planet.Subdivisions + BASE_PLANET_SUBDIVISIONS))
-		//	{
-		//		if (closestDistance < planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS] && secondClosestDistance < planet.DistanceLUT[(uint32_t)subdivision - BASE_PLANET_SUBDIVISIONS])
-		//			crackTriangle = true;
-		//	}
-
-		//	// Function to add or retrieve a vertex
-		//	auto addVertex = [&](const CPUVertex& cpuVertex, const Vector3& transformedPos) -> size_t {
-		//		// Create a Vertex instance
-		//		Vertex v;
-		//		v.Position = { (float)transformedPos.x, (float)transformedPos.y, (float)transformedPos.z };
-		//		v.Texcoord = { (float)cpuVertex.UV.x, (float)cpuVertex.UV.y };
-		//		// Initialize normal to zero; we'll accumulate face normals
-		//		v.Normal = { 0.0f, 0.0f, 0.0f };
-		//		v.Tangent = { 0.0f, 0.0f, 0.0f, 0.0f };
-		//		v.Color = { 0.0f, 0.0f, 0.0f };
-
-		//		// Try to insert the vertex into the map
-		//		auto result = planet.VertexMap.emplace(v, planet.BuildVertices.size());
-		//		if (result.second) {
-		//			// Vertex was not in the map; add it to the vertex list
-		//			planet.BuildVertices.emplace_back(v);
-		//		}
-		//		// Return the index of the vertex
-		//		return result.first->second;
-		//		};
-
-		//	if (!crackTriangle)
-		//	{
-		//		Vector3 vecA = planetTransform * A.Position;
-		//		Vector3 vecB = planetTransform * B.Position;
-		//		Vector3 vecC = planetTransform * C.Position;
-
-		//		Vector3 normal = Vector3::Normalize(Vector3::Cross(vecB - vecA, vecC - vecA));
-
-		//		if (planet.PlanetData.smoothShading)
-		//		{
-		//			// Add or retrieve vertices
-		//			size_t indexA = addVertex(A, vecA);
-		//			size_t indexB = addVertex(B, vecB);
-		//			size_t indexC = addVertex(C, vecC);
-
-		//			// Accumulate normals
-		//			planet.BuildVertices[indexA].Normal.x += (float)normal.x;
-		//			planet.BuildVertices[indexA].Normal.y += (float)normal.y;
-		//			planet.BuildVertices[indexA].Normal.z += (float)normal.z;
-
-		//			planet.BuildVertices[indexB].Normal.x += (float)normal.x;
-		//			planet.BuildVertices[indexB].Normal.y += (float)normal.y;
-		//			planet.BuildVertices[indexB].Normal.z += (float)normal.z;
-
-		//			planet.BuildVertices[indexC].Normal.x += (float)normal.x;
-		//			planet.BuildVertices[indexC].Normal.y += (float)normal.y;
-		//			planet.BuildVertices[indexC].Normal.z += (float)normal.z;
-
-		//			// Add indices
-		//			planet.BuildIndices.emplace_back(indexA);
-		//			planet.BuildIndices.emplace_back(indexB);
-		//			planet.BuildIndices.emplace_back(indexC);
-		//		}
-		//		else 
-		//		{
-		//			Vertex vertexA = Vertex(vecA, A.UV, normal);
-		//			planet.BuildVertices.emplace_back(vertexA);
-		//			planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
-
-		//			Vertex vertexB = Vertex(vecB, B.UV, normal);
-		//			planet.BuildVertices.emplace_back(vertexB);
-		//			planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
-
-		//			Vertex vertexC = Vertex(vecC, C.UV, normal);
-		//			planet.BuildVertices.emplace_back(vertexC);
-		//			planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
-		//		}
-
-		//		node->ComputeBoundsFromTriangle();
-
-		//		// Chunks are used by the physics engine
-		//		//AssignFaceToChunk(vecA, vecB, vecC, planet.TerrainChunks, planetCenter);
-		//	}
-		//	else
-		//	{
-		//		double mediumTerrainDetailNoise = 0.0;
-		//		// Calculate new vertex	
-		//		CPUVertex additionalVertex;
-		//		additionalVertex.Position = (closestVertex.Position + middleVertex.Position) * 0.5;
-		//		Vector3 additionalVertexNormalized = Vector3::Normalize(additionalVertex.Position);
-		//		additionalVertex.UV = GetUVFromPosition(additionalVertexNormalized, (double)planet.TerrainData.Width, (double)planet.TerrainData.Height);
-		//		if(terrainDetail && subdivision > terrainDetail->SubdivisionActivation)
-		//			mediumTerrainDetailNoise = perlin.octave2D_01(additionalVertex.UV.x * terrainDetail->Frequency, additionalVertex.UV.y * terrainDetail->Frequency, terrainDetail->Octaves) * terrainDetail->Amplitude;
-		//		double height = GetHeight(additionalVertex.UV, planet.TerrainData);
-		//		additionalVertex.Position = additionalVertexNormalized * (planet.PlanetData.radius + height + mediumTerrainDetailNoise);
-
-		//		Vector3 additionalVertexPos = planetTransform * additionalVertex.Position;
-		//		Vector3 closestVertexPos = planetTransform * closestVertex.Position;
-		//		Vector3 middleVertexPos = planetTransform * middleVertex.Position;
-		//		Vector3 furthestVertexPos = planetTransform * furthestVertex.Position;
-
-		//		// First triangle
-		//		Vector3 normal = Vector3::Normalize(Vector3::Cross(additionalVertexPos - closestVertexPos, additionalVertexPos - furthestVertexPos));
-
-		//		if (normal.y < 0.0)
-		//			normal = normal * -1.0;
-
-		//		if (planet.PlanetData.smoothShading)
-		//		{
-		//			// Add or retrieve vertices
-		//			size_t indexA = addVertex(A, additionalVertexPos);
-		//			size_t indexB = addVertex(B, closestVertexPos);
-		//			size_t indexC = addVertex(C, furthestVertexPos);
-
-		//			// Accumulate normals
-		//			planet.BuildVertices[indexA].Normal.x += (float)normal.x;
-		//			planet.BuildVertices[indexA].Normal.y += (float)normal.y;
-		//			planet.BuildVertices[indexA].Normal.z += (float)normal.z;
-
-		//			planet.BuildVertices[indexB].Normal.x += (float)normal.x;
-		//			planet.BuildVertices[indexB].Normal.y += (float)normal.y;
-		//			planet.BuildVertices[indexB].Normal.z += (float)normal.z;
-
-		//			planet.BuildVertices[indexC].Normal.x += (float)normal.x;
-		//			planet.BuildVertices[indexC].Normal.y += (float)normal.y;
-		//			planet.BuildVertices[indexC].Normal.z += (float)normal.z;
-
-		//			// Add indices
-		//			planet.BuildIndices.emplace_back(indexA);
-		//			planet.BuildIndices.emplace_back(indexB);
-		//			planet.BuildIndices.emplace_back(indexC);
-		//		}
-		//		else
-		//		{
-		//			Vertex vertexA = Vertex(additionalVertexPos, additionalVertex.UV, normal);
-		//			planet.BuildVertices.emplace_back(vertexA);
-		//			planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
-
-		//			Vertex vertexB = Vertex(closestVertexPos, closestVertex.UV, normal);
-		//			planet.BuildVertices.emplace_back(vertexB);
-		//			planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
-
-		//			Vertex vertexC = Vertex(furthestVertexPos, furthestVertex.UV, normal);
-		//			planet.BuildVertices.emplace_back(vertexC);
-		//			planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
-		//		}
-
-		//		Ref<PlanetNode> child1 = CreateRef<PlanetNode>(A, B, C, subdivision + 1);
-		//		node->ChildNodes.push_back(child1);
-
-		//		//AssignFaceToChunk(additionalVertexPos, closestVertexPos, furthestVertexPos, planet.TerrainChunks, planetCenter);
-
-		//		// Second triangle
-		//		normal = Vector3::Normalize(Vector3::Cross(additionalVertexPos - furthestVertexPos, additionalVertexPos - middleVertexPos));
-		//		if (normal.y < 0.0)
-		//			normal = normal * -1.0;
-
-		//		if (planet.PlanetData.smoothShading)
-		//		{
-		//			// Add or retrieve vertices
-		//			size_t indexA = addVertex(A, additionalVertexPos);
-		//			size_t indexB = addVertex(B, furthestVertexPos);
-		//			size_t indexC = addVertex(C, middleVertexPos);
-
-		//			// Accumulate normals
-		//			planet.BuildVertices[indexA].Normal.x += (float)normal.x;
-		//			planet.BuildVertices[indexA].Normal.y += (float)normal.y;
-		//			planet.BuildVertices[indexA].Normal.z += (float)normal.z;
-
-		//			planet.BuildVertices[indexB].Normal.x += (float)normal.x;
-		//			planet.BuildVertices[indexB].Normal.y += (float)normal.y;
-		//			planet.BuildVertices[indexB].Normal.z += (float)normal.z;
-
-		//			planet.BuildVertices[indexC].Normal.x += (float)normal.x;
-		//			planet.BuildVertices[indexC].Normal.y += (float)normal.y;
-		//			planet.BuildVertices[indexC].Normal.z += (float)normal.z;
-
-		//			// Add indices
-		//			planet.BuildIndices.emplace_back(indexA);
-		//			planet.BuildIndices.emplace_back(indexB);
-		//			planet.BuildIndices.emplace_back(indexC);
-		//		}
-		//		else
-		//		{
-		//			Vertex vertexD = Vertex(additionalVertexPos, additionalVertex.UV, normal);
-		//			vertexD.Color = { 1.0f, 0.0f, 0.0f };
-		//			planet.BuildVertices.emplace_back(vertexD);
-		//			planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
-
-		//			Vertex vertexF = Vertex(furthestVertexPos, furthestVertex.UV, normal);
-		//			planet.BuildVertices.emplace_back(vertexF);
-		//			planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
-
-		//			Vertex vertexE = Vertex(middleVertexPos, middleVertex.UV, normal);
-		//			planet.BuildVertices.emplace_back(vertexE);
-		//			planet.BuildIndices.emplace_back(planet.BuildVertices.size() - 1);
-		//		}
-
-		//		Ref<PlanetNode> child2 = CreateRef<PlanetNode>(A, B, C, subdivision + 1);
-		//		node->ChildNodes.push_back(child2);
-
-		//		//TOAST_CORE_CRITICAL("Planet vertices count after adding face: %zu", planet.BuildVertices.size());
-
-		//		//AssignFaceToChunk(additionalVertexPos, furthestVertexPos, middleVertexPos, planet.TerrainChunks, planetCenter);
-		//	}
-		//
-		//	return;
-		//}
+					for (size_t i = begin; i < end; ++i)
+					{
+						Vector3 n(sBuildVertices[i].Normal);
+						n = Vector3::Normalize(n);
+						{
+							sBuildVertices[i].Normal = { (float)n.x, (float)n.y, (float)n.z };
+						}
+					}
+				});
+		}
 	}
 
 	void PlanetSystem::CalculateBasePlanet(PlanetComponent& planet, double scale)
@@ -933,7 +654,7 @@ namespace Toast {
 			// create the node at level 0
 			Ref<PlanetNode> root = CreateRef<PlanetNode>(A, B, C, 0);
 
-			// Here all the nodes ever creates is keept alive
+			// Here all the nodes ever creates is kept alive
 			gAllNodes.push_back(root);
 
 			// Here we keep a raw pointer to the node so that it can be cheaply be split, collapsed and shuffled around
@@ -1006,161 +727,6 @@ namespace Toast {
 			objects.MeshObject->SetInstanceData(&objectPositions[0], objectPositions.size() * sizeof(DirectX::XMFLOAT3), objectPositions.size());
 	}
 
-	void PlanetSystem::TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, const Vector3& planetCenter, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail)
-	{
-		//Vector3 center = (node->A.Position + node->B.Position + node->C.Position) / 3.0;
-		//Vector3 viewVector = center - cameraPosPlanetSpace;
-		//double cameraDistance = viewVector.Length();
-
-		//double dotProduct = Vector3::Dot(Vector3::Normalize(center), Vector3::Normalize(viewVector));
-
-		////TOAST_CORE_CRITICAL("TraverseNode: Node subdivision=%d, cameraDistance=%.2f, dotProduct=%.2f",
-		////	node->SubdivisionLevel, cameraDistance, dotProduct);
-
-		//Ref<PlanetNode> nodeWorldSpace = CreateRef<PlanetNode>(*node);
-
-		//nodeWorldSpace->A = planetTransform * node->A.Position;
-		//nodeWorldSpace->B = planetTransform * node->B.Position;
-		//nodeWorldSpace->C = planetTransform * node->C.Position;
-		//planet.PlanetNodesWorldSpace.emplace_back(nodeWorldSpace);
-
-		//double backFaceCullingIgnoreDistance = 50000.0;
-		//if (cameraDistance > backFaceCullingIgnoreDistance)
-		//{
-		//	TOAST_PROFILE_SCOPE("Backface culling test");
-		//	std::lock_guard<std::mutex> lock(planetDataMutex);
-		//	if (backfaceCull && dotProduct >= planet.FaceLevelDotLUT[(uint32_t)node->SubdivisionLevel])
-		//	{
-		//		//TOAST_CORE_CRITICAL("TraverseNode: Node culled by backface (subdivision %d, dotProduct=%.2f, threshold=%.2f)",
-		//			//node->SubdivisionLevel, dotProduct, planet.FaceLevelDotLUT[(uint32_t)node->SubdivisionLevel]);
-		//		return;
-		//	}
-		//}
-		// 
-		//if (frustumCullActivated)
-		//{
-		//	TOAST_PROFILE_SCOPE("Frustum culling test");
-		//	auto intersect = frustum->ContainsTriangleVolume(Vector3::Normalize(node->A.Position) * planet.PlanetData.radius, Vector3::Normalize(node->B.Position) * planet.PlanetData.radius, Vector3::Normalize(node->C.Position) * planet.PlanetData.radius, planet.HeightMultLUT[node->SubdivisionLevel]);
-
-		//	if (intersect == VolumeTri::OUTSIDE)
-		//	{
-		//		//TOAST_CORE_CRITICAL("TraverseNode: Node culled by frustum (subdivision %d)", node->SubdivisionLevel);
-
-		//		return;
-		//	}
-		//}
-
-		////TOAST_CORE_CRITICAL("node->SubdivisionLevel going to subdivision: %d", node->SubdivisionLevel);
-
-		//if (node->SubdivisionLevel >= BASE_PLANET_SUBDIVISIONS)
-		//{
-		//	//TOAST_CORE_CRITICAL("TraverseNode: Processing face at subdivision %d", node->SubdivisionLevel);
-
-		//	SubdivideFace(nodeWorldSpace, node->A, node->B, node->C, cameraPosPlanetSpace, planet, planetCenter, planetTransform, BASE_PLANET_SUBDIVISIONS, perlin, terrainDetail);
-		//}
-		//else 
-		//{
-		//	for (auto& child : node->ChildNodes)
-		//		TraverseNode(child, planet, cameraPosPlanetSpace, planetCenter, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail);
-		//}
-	}
-
-	void PlanetSystem::GeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated,  PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail)
-	{
-		TOAST_PROFILE_FUNCTION();
-
-		auto start = std::chrono::high_resolution_clock::now();
-
-		//TOAST_CORE_INFO("Planet build started on planet thread");
-
-		planetGenerationOngoing.store(true);
-
-		siv::PerlinNoise perlin;
-
-		if (terrainDetail)
-			perlin = siv::PerlinNoise(static_cast<uint32_t>(terrainDetail->Seed));
-
-		int triangleAdded = 0;
-
-		Matrix planetTransform = { noScaleTransform };
-		Vector3 cameraPos = { camPos };
-
-		Vector3 cameraPosPlanetSpace = Matrix::Inverse(planetTransform) * cameraPos;
-
-		//cameraPosPlanetSpace.ToString("Camera pos in planet space: ");
-		
-		{
-			std::lock_guard<std::mutex> lock(planetDataMutex);
-
-			sVertexMap.clear();
-			sBuildVertices.clear();
-			sBuildIndices.clear();
-
-			planet.PlanetNodesWorldSpace.clear();
-
-			planet.TerrainChunks.clear();
-		}
-
-		{
-			std::lock_guard<std::mutex> lock(terrainCollidersMutex);
-			terrainColliders.clear();
-			terrainColliderPositions.clear();
-		}
-
-		{
-			TOAST_PROFILE_SCOPE("Looping through the tree structure!");
-
-			for (auto& node : gBaseNodes)
-				TraverseNode(node, planet, cameraPosPlanetSpace, planetCenter, backfaceCull, frustumCullActivated, frustum, planetTransform, perlin, terrainDetail);
-
-			for (auto& vertex : sBuildVertices) {
-				Vector3 normal(vertex.Normal.x, vertex.Normal.y, vertex.Normal.z);
-				normal = Vector3::Normalize(normal);
-				vertex.Normal = { (float)normal.x, (float)normal.y, (float)normal.z };
-			}
-		}
-
-		//for (const auto& chunkEntry : planet.TerrainChunks)
-		//{
-		//	const auto& chunkKey = chunkEntry.first;
-		//	const auto& verticesInChunk = chunkEntry.second;
-
-		//	if (verticesInChunk.empty()) 
-		//		continue;
-
-		//	{
-		//		std::lock_guard<std::mutex> lock(terrainCollidersMutex);
-		//		terrainColliderPositions[chunkKey].insert(terrainColliderPositions[chunkKey].end(), verticesInChunk.begin(), verticesInChunk.end());
-		//	}
-
-		//	Bounds chunkBounds;
-		//	GetVerticesBounds(verticesInChunk, chunkBounds);
-
-		//	// Create a collider for the chunk
-		//	Ref<ShapeBox> collider = CreateRef<ShapeBox>();
-		//	collider->SetBounds(chunkBounds);
-
-		//	// Add the collider to the list
-		//	terrainColliders[chunkKey] = collider;
-		//}
-
-		newPlanetReady.store(true);
-		planetGenerationOngoing.store(false);
-
-		if (sBuildVertices.size() == 0)
-			TOAST_CORE_CRITICAL("Empty planet!!");
-
-		// Stop timing
-		auto end = std::chrono::high_resolution_clock::now();
-
-		// Calculate the duration
-		auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
-		//TOAST_CORE_INFO("Planet created with %d number of vertices and %d number indices, time: %dms", planet.BuildVertices.size(), planet.BuildIndices.size(), duration.count());
-
-		return;
-	}
-
 	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail)
 	{
 		if (generationFuture.valid() && generationFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
@@ -1192,7 +758,7 @@ namespace Toast {
 					auto camWV = DirectX::XMLoadFloat4(&vecCopy);
 					Vector3 camPS = Matrix::Inverse(planetTF) * Vector3 { camWV };
 
-					UpdatePlanetLOD(*pPtr, camPS, planetCenterCopy, planetNoScaleTransform);
+					UpdateActiveNodes(*pPtr, camPS, planetCenterCopy, planetNoScaleTransform);
 
 					ComputeVisibleNodes(*pPtr, camPS, planetCenterCopy, backfaceCullCopy);
 
@@ -1225,22 +791,6 @@ namespace Toast {
 
 			newPlanetReady.store(false);
 		}
-	}
-
-	double PlanetSystem::GetHeight(Vector2 uvCoords, const TerrainData& terrainData)
-	{
-		uint32_t x1 = (uint32_t)(uvCoords.x);
-		uint32_t y1 = (uint32_t)(uvCoords.y);
-
-		uint32_t x2 = x1 == (terrainData.Width - 1) ? 0 : x1 + 1;
-		uint32_t y2 = y1 == (terrainData.Height - 1) ? 0 : y1 + 1;
-
-		double Q11 = static_cast<double>(terrainData.HeightData[y1 * (terrainData.RowPitch / 2) + x1]);
-		double Q12 = static_cast<double>(terrainData.HeightData[y2 * (terrainData.RowPitch / 2) + x1]);
-		double Q21 = static_cast<double>(terrainData.HeightData[y1 * (terrainData.RowPitch / 2) + x2]);
-		double Q22 = static_cast<double>(terrainData.HeightData[y2 * (terrainData.RowPitch / 2) + x2]);
-
-		return Math::BilinearInterpolation(uvCoords, Q11, Q12, Q21, Q22);
 	}
 
 	void PlanetSystem::Shutdown()
@@ -1408,7 +958,7 @@ namespace Toast {
 		const int NUM_LONGITUDE_BINS = 1440;  // Adjust as needed
 
 		int latIndex = static_cast<int>((latitude + 90.0) / (180.0 / NUM_LATITUDE_BINS));
-		int lonIndex = static_cast<int>(longitude / (360.0 / NUM_LONGITUDE_BINS));
+		int lonIndex = static_cast<int>(longitude / (360.0 / NUM_LONGITUDE_BINS)); 
 
 		// Clamp indices to valid ranges
 		latIndex = (std::min)(latIndex, NUM_LATITUDE_BINS - 1);

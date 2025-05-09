@@ -497,7 +497,7 @@ namespace Toast {
 
 	void Mesh::InvalidatePlanet()
 	{
-		if(mLODGroups[mActiveLODGroup]->Vertices.size() > 0)
+		if(mLODGroups[mActiveLODGroup]->Vertices.size() > 0 && mLODGroups[mActiveLODGroup]->Indices.size() > 0)
 		{
 			mLODGroups[mActiveLODGroup]->VBuffer = nullptr;
 			mLODGroups[mActiveLODGroup]->VBuffer = CreateRef<VertexBuffer>(&mLODGroups[0]->Vertices[0], (sizeof(Vertex) * (uint32_t)mLODGroups[0]->Vertices.size()), (uint32_t)mLODGroups[0]->Vertices.size(), 0);

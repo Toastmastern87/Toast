@@ -1165,12 +1165,12 @@ namespace Toast {
 					// Check if planet build is ready and if that is the case move it to the render mesh
 					PlanetSystem::UpdatePlanet(pc.RenderMesh, *tcc);
 
-					if (e.HasComponent<TerrainObjectComponent>()) 
-					{
-						TerrainObjectComponent& toc = e.GetComponent<TerrainObjectComponent>();
+					//if (e.HasComponent<TerrainObjectComponent>())
+					//{
+					//	TerrainObjectComponent& toc = e.GetComponent<TerrainObjectComponent>();
 
-						PlanetSystem::DetailObjectPlacement(pc, toc, noScaleModelMatrix, cameraPos);
-					}
+					//	PlanetSystem::DetailObjectPlacement(pc, toc, noScaleModelMatrix, cameraPos);
+					//}
 				}
 				else
 					TOAST_CORE_ERROR("No primary camera present, unable to render the planet");

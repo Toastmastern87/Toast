@@ -30,31 +30,6 @@
 
 namespace Toast {
 
-	struct EdgeKey
-	{
-		uint64_t h;
-		explicit EdgeKey(const Vector3& a, const Vector3& b)
-		{
-			auto q = [](double d)->uint64_t
-				{ return uint64_t(std::llround(d * 100.0)); };
-
-			uint64_t ax = q(a.x), ay = q(a.y), az = q(a.z);
-			uint64_t bx = q(b.x), by = q(b.y), bz = q(b.z);
-
-			h = (ax ^ bx) * 0x9E3779B97F4A7C15ULL
-				^ (ay ^ by) * 0xC2B2AE3D27D4EB4FULL
-				^ (az ^ bz);
-		}
-		bool operator==(const EdgeKey& o)const noexcept { return h == o.h; }
-		struct Hasher { size_t operator()(EdgeKey k)const noexcept { return k.h; } };
-	};
-
-	/* ---------- helper used in the cache ----------------------- */
-	inline EdgeKey MakeKey(const Vector3& a, const Vector3& b)
-	{
-		return EdgeKey(a, b); 
-	}
-
 	struct CPUVertex
 	{
 		Vector3 Position;
@@ -84,13 +59,22 @@ namespace Toast {
 		}
 	};
 
-	inline thread_local std::unordered_map<EdgeKey, CPUVertex, EdgeKey::Hasher> tMidCache;
+	struct EdgeKey {
+		uint32_t v0, v1;                  // vertex indices in *base* icosahedron order
+		bool operator==(const EdgeKey& o) const { return v0 == o.v0 && v1 == o.v1; }
+	};
+	struct EdgeKeyHash {
+		size_t operator()(const EdgeKey& k) const { return (size_t)k.v0 * 73856093u ^ k.v1; }
+	};
+
+	inline thread_local std::unordered_map<EdgeKey, CPUVertex, EdgeKeyHash> tMidCache;
 
 	struct PlanetNode
 	{
 		CPUVertex A, B, C;  // The three vertices of the triangle
-		Vector3 center;
-		PlanetNode* parent = nullptr;
+		PlanetNode* EdgeNeighbour[3] = { nullptr,nullptr,nullptr };
+		Vector3 Center;
+		PlanetNode* Parent = nullptr;
 		std::vector<Ref<PlanetNode>> ChildNodes;
 		int16_t SubdivisionLevel = 0;
 		Bounds NodeBounds;
@@ -101,7 +85,8 @@ namespace Toast {
 			WantSplit,
 			WantCollapse,
 			Culled
-		} state = State::ActiveLeaf;
+		} 
+		NodeState = State::ActiveLeaf;
 
 		PlanetNode(const CPUVertex& v0, const CPUVertex& v1, const CPUVertex& v2, const int16_t level, Matrix transform = Matrix::Identity())
 		{
@@ -113,7 +98,7 @@ namespace Toast {
 			B.Position = transform * B.Position;
 			C.Position = transform * C.Position;
 
-			center = (A.Position + B.Position + C.Position) / 3.0f;
+			Center = (A.Position + B.Position + C.Position) / 3.0f;
 
 			SubdivisionLevel = level;
 
@@ -126,7 +111,7 @@ namespace Toast {
 			B = other.B;
 			C = other.C;
 
-			center = (A.Position + B.Position + C.Position) / 3.0f;
+			Center = (A.Position + B.Position + C.Position) / 3.0f;
 
 			SubdivisionLevel = other.SubdivisionLevel;
 			NodeBounds = other.NodeBounds;
@@ -171,6 +156,62 @@ namespace Toast {
 
 			NodeBounds = childBounds;
 		}
+
+		friend bool operator==(const PlanetNode& lhs, const PlanetNode& rhs) noexcept
+		{
+			if (lhs.SubdivisionLevel != rhs.SubdivisionLevel) return false;
+
+			// Gather the three vertex positions from each triangle
+			std::array<Vector3, 3> L{ lhs.A.Position, lhs.B.Position, lhs.C.Position };
+			std::array<Vector3, 3> R{ rhs.A.Position, rhs.B.Position, rhs.C.Position };
+
+			// Sort them into a canonical order so winding does not matter
+			auto key = [](const Vector3& p)
+				{
+					return std::tuple<double, double, double>(p.x, p.y, p.z);
+				};
+			std::sort(L.begin(), L.end(),
+				[&](const Vector3& a, const Vector3& b) { return key(a) < key(b); });
+			std::sort(R.begin(), R.end(),
+				[&](const Vector3& a, const Vector3& b) { return key(a) < key(b); });
+
+			constexpr double eps = 1e-6;
+			auto eq = [&](const Vector3& a, const Vector3& b)
+				{
+					return std::fabs(a.x - b.x) < eps &&
+						std::fabs(a.y - b.y) < eps &&
+						std::fabs(a.z - b.z) < eps;
+				};
+			return eq(L[0], R[0]) && eq(L[1], R[1]) && eq(L[2], R[2]);
+		}
+
+		struct Hasher
+		{
+			size_t operator()(const PlanetNode& n) const noexcept
+			{
+				// same canonical sort as in operator==
+				std::array<Vector3, 3> v{ n.A.Position, n.B.Position, n.C.Position };
+				auto key = [](const Vector3& p)
+					{
+						return std::tuple<double, double, double>(p.x, p.y, p.z);
+					};
+				std::sort(v.begin(), v.end(),
+					[&](const Vector3& a, const Vector3& b) { return key(a) < key(b); });
+
+				// Simple FNV‑1a combine
+				auto h = [](double d)
+					{
+						return std::hash<int64_t>{}(static_cast<int64_t>(std::llround(d * 1e6)));
+					};
+				size_t seed = 14695981039346656037ULL;      // FNV offset
+				auto mix = [&](size_t val) { seed ^= val; seed *= 1099511628211ULL; };
+				mix(h(v[0].x)); mix(h(v[0].y)); mix(h(v[0].z));
+				mix(h(v[1].x)); mix(h(v[1].y)); mix(h(v[1].z));
+				mix(h(v[2].x)); mix(h(v[2].y)); mix(h(v[2].z));
+				mix(std::hash<int16_t>{}(n.SubdivisionLevel));
+				return seed;
+			}
+		};
 	};
 
 	class PlanetSystem
@@ -193,7 +234,7 @@ namespace Toast {
 			double minHeight;
 			double maxHeight;
 		};
-	private:
+
 		static std::vector<Vector3> sBaseVertices;
 		static std::vector<uint32_t> sBaseIndices;
 
@@ -220,23 +261,17 @@ namespace Toast {
 			return d2 > p.DistanceLUT[lvl - 1];
 		}
 
-		static uint32_t HashFace(uint32_t index0, uint32_t index1, uint32_t index2);
-
 		// These functions are used to create the base planet when a scene with a planet is loaded.
 		static void CalculateBasePlanet(PlanetComponent& planet, double scale);
 
 		// These functions are used to update the active leaves during runtime.
-		static void UpdatePlanetLOD(PlanetComponent& planet, const Vector3& camPlanetSpace, const Vector3& planetCenter, Matrix& planetNoScaleTransform);
+		static void UpdateActiveNodes(PlanetComponent& planet, const Vector3& camPlanetSpace, const Vector3& planetCenter, Matrix& planetNoScaleTransform);
 		static void ComputeVisibleNodes(const PlanetComponent& planet, const Vector3& camPlanetSpace, const Vector3& planetCenter, bool backfaceCull);
 		static void RebuildPlanetMesh(PlanetComponent& planet, Matrix& planetNoScaleTransform);
-
-		static void SubdivideFace(Ref<PlanetNode>& node, CPUVertex& A, CPUVertex& B, CPUVertex& C, Vector3& cameraPosPlanetSpace, PlanetComponent& planet, const Vector3& planetCenter, Matrix& planetTransform, uint16_t subdivision, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail);
 
 		static void DetailObjectPlacement(const PlanetComponent& planet, TerrainObjectComponent& objects, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR& camPos);
 
 		static void UpdatePlanet(Ref<Mesh>& renderPlanet, TerrainColliderComponent& terrainCollider);
-
-		static double GetHeight(Vector2 uvCoords, const TerrainData& terrainData);
 
 		static void RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail = nullptr);
 
@@ -247,10 +282,6 @@ namespace Toast {
 		static void GenerateHeightMultLUT(std::vector<double>& heightMultLUT, double planetRadius, double maxHeight);
 	private:
 		static void GetFaceBounds(const std::initializer_list<Vector3>& vertices, Bounds& bounds);
-
-		static void GeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail = nullptr);
-
-		static void TraverseNode(Ref<PlanetNode>& node, PlanetComponent& planet, Vector3& cameraPosPlanetSpace, const Vector3& planetCenter, bool backfaceCull, bool frustumCullActivated, Ref<Frustum>& frustum, Matrix& planetTransform, const siv::PerlinNoise& perlin, TerrainDetailComponent* terrainDetail);
 
 		static uint32_t GetOrAddVector3(std::unordered_map<Vector3, uint32_t, Vector3::Hasher, Vector3::Equal>& vertexMap, const Vector3& vertex, std::vector<Vector3>& vertices);
 

@@ -76,6 +76,11 @@ namespace Toast {
 			return Vector3(x / scalar, y / scalar, z / scalar, w);
 		}
 
+		inline bool operator<(const Vector3& rhs) noexcept
+		{
+			return (x < rhs.x) || (x == rhs.x && y < rhs.y) || (x == rhs.x && y == rhs.y && z < rhs.z);
+		}
+
 		double Length() const;
 		static double Length(Vector3 vec);
 		double LengthSquared() const;
