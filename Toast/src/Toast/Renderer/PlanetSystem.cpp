@@ -23,12 +23,15 @@ namespace Toast {
 	static std::mutex gActiveMutex;
 	static std::mutex sBuildMutex;
 	static std::mutex gNodeLookupMutex;
+	static std::mutex sCPUVertMutex;
 
 	std::vector<Vector3> PlanetSystem::sBaseVertices;
 	std::vector<uint32_t> PlanetSystem::sBaseIndices;
 	std::vector<Vertex> PlanetSystem::sBuildVertices;
 	std::vector<uint32_t> PlanetSystem::sBuildIndices;
 	std::unordered_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> PlanetSystem::sVertexMap;
+	std::unordered_map<CPUVertex, size_t, CPUVertexHasher, CPUVertexEqual> PlanetSystem::sCPUVertexMap;
+	std::vector<CPUVertex> PlanetSystem::sCPUVertices;
 	std::unordered_map<PlanetNode, Ref<PlanetNode>,	PlanetNode::Hasher> gNodeLookup;
 	static std::vector<Ref<PlanetNode>> gAllNodes;
 	static std::vector<PlanetNode*> gActiveNodes; 
@@ -72,22 +75,35 @@ namespace Toast {
 		return td.RowPitch / sizeof(double);   // = bytes‑per‑row / 8
 	}
 
-	static double GetHeight(Vector2 uvCoords, const TerrainData& terrainData)
+	static size_t AddVertexThreadSafe(const CPUVertex& cpuV,
+		const Vector3& worldPos)
 	{
-		uint32_t x1 = (uint32_t)(uvCoords.x);
-		uint32_t y1 = (uint32_t)(uvCoords.y);
+		Vertex v;
+		v.Position = { (float)worldPos.x, (float)worldPos.y, (float)worldPos.z };
+		v.Texcoord = { (float)cpuV.UV.x,  (float)cpuV.UV.y };
+		v.Normal = { 0,0,0 };
+		v.Tangent = { 0,0,0,0 };
+		v.Color = { 0,0,0 };
 
-		uint32_t x2 = x1 == (terrainData.Width - 1) ? 0 : x1 + 1;
-		uint32_t y2 = y1 == (terrainData.Height - 1) ? 0 : y1 + 1;
+		std::scoped_lock lk(sBuildMutex);          // tiny critical section
+		auto [it, inserted] = PlanetSystem::sVertexMap.emplace(v, PlanetSystem::sBuildVertices.size());
 
-		size_t pitch = rowStride(terrainData);
+		if (inserted)
+			PlanetSystem::sBuildVertices.emplace_back(v);
+		return it->second;
+	}
 
-		double Q11 = terrainData.HeightData[y1 * pitch + x1];
-		double Q12 = terrainData.HeightData[y2 * pitch + x1];
-		double Q21 = terrainData.HeightData[y1 * pitch + x2];
-		double Q22 = terrainData.HeightData[y2 * pitch + x2];
+	static const CPUVertex& CacheCPUVertex(const CPUVertex& in)
+	{
+		std::scoped_lock lk(sCPUVertMutex);
 
-		return Math::BilinearInterpolation(uvCoords, Q11, Q12, Q21, Q22);
+		auto [it, inserted] =
+			PlanetSystem::sCPUVertexMap.emplace(in, PlanetSystem::sCPUVertices.size());
+
+		if (inserted)                 // first time we see this position
+			PlanetSystem::sCPUVertices.emplace_back(in);
+
+		return PlanetSystem::sCPUVertices[it->second];   // cached (or newly added) copy
 	}
 
 	//------------------------------------------------------------------
@@ -121,6 +137,17 @@ namespace Toast {
 		return _mm256_load_pd(H);        // packed doubles
 	}
 
+	static double GetHeightSIMD(double u, double v,
+		const TerrainData& td)
+	{
+		__m256d U = _mm256_set_pd(0, 0, 0, u);
+		__m256d V = _mm256_set_pd(0, 0, 0, v);
+		__m256d H = GetHeightBilinearSIMD(U, V, td);
+		alignas(32) double hh[4];
+		_mm256_store_pd(hh, H);
+		return hh[0];       // our value in the lowest lane
+	}
+
 	static CPUVertex BuildCPUVertex(const Vector3& srcPos, const PlanetComponent& planet)
 	{
 		// 1) normalize
@@ -132,14 +159,14 @@ namespace Toast {
 		Vector2 uv = GetUVFromPosition(unit, double(planet.TerrainData.Width), double(planet.TerrainData.Height));
 
 		// 3) height lookup + radial displacement
-		double h = GetHeight(uv, planet.TerrainData);
+		double h = GetHeightSIMD(uv.x, uv.y, planet.TerrainData);
 		p = p * (planet.PlanetData.radius + h);
 
 		// 4) assemble
 		CPUVertex v;
 		v.Position = p.ToVector3();
 		v.UV = uv;
-		return v;
+		return CacheCPUVertex(v);
 	}
 
 	static void BuildCPUVertex4(const Vec3x4d& in, CPUVertex* out, const PlanetComponent& planet)
@@ -179,9 +206,11 @@ namespace Toast {
 
 		for (int i = 0; i < 4; ++i)
 		{
+			CPUVertex tmp;
 			Vector3 dir{ nx[i], ny[i], nz[i] };
-			out[i].Position = dir * (planet.PlanetData.radius + hh[i]);
-			out[i].UV = { hu[i], hv[i] };
+			tmp.Position = dir * (planet.PlanetData.radius + hh[i]);
+			tmp.UV = { hu[i], hv[i] };
+			out[i] = CacheCPUVertex(tmp);
 		}
 	}
 
@@ -204,7 +233,7 @@ namespace Toast {
 		return inside == 2;                                  // your old rule
 	}
 
-	static std::array<PlanetNode*, 2> MakeCrackPatches(const PlanetNode* n,	const PlanetComponent& planet, const Vector3& camPS)
+	static std::array<PlanetNode*, 2> MakeCrackPatches(const PlanetNode* n,	const PlanetComponent& planet, const Vector3& camPS, std::vector<Ref<PlanetNode>>& patchKeepAlive)
 	{
 		/* ---- 1. classify the three vertices by camera distance ------------ */
 		struct Vtx { const CPUVertex* v; double d2; };
@@ -222,18 +251,21 @@ namespace Toast {
 
 		/* ---- 2. build the mid‑point between closest & middle -------------- */
 		Vector3 mp = (v[0].v->Position + v[1].v->Position) * 0.5f;
-		CPUVertex M = BuildCPUVertex(mp, planet);
+		Vec3x4d vPack = Vec3x4d::Load(mp, mp, mp, mp);
+		CPUVertex tmp[4];
+		BuildCPUVertex4(vPack, tmp, planet);       // tmp[0] has the result
+		CPUVertex M = tmp[0];
 
 		/* ---- 3. make the two little faces --------------------------------- */
 		auto newNode = [&](const CPUVertex& A, const CPUVertex& B, const CPUVertex& C)
 			{
 				auto ref = CreateRef<PlanetNode>(A, B, C, n->SubdivisionLevel);
-				gAllNodes.push_back(ref);          // keep ownership alive
+				patchKeepAlive.emplace_back(ref);
 				return ref;
 			};
 
-		Ref<PlanetNode> p0 = newNode(M, *v[0].v, *v[2].v);   // ①  M‑closest‑furthest
-		Ref<PlanetNode> p1 = newNode(M, *v[2].v, *v[1].v);   // ②  M‑furthest‑middle
+		Ref<PlanetNode> p0 = newNode(M, *v[0].v, *v[2].v);   // M‑closest‑furthest
+		Ref<PlanetNode> p1 = newNode(M, *v[2].v, *v[1].v);   // M‑furthest‑middle
 
 		return { p0.get(), p1.get() };
 	}
@@ -275,24 +307,6 @@ namespace Toast {
 		mBC = out[1];
 		mCA = out[2];
 		// out[3] is a duplicate of out[2], ignore it
-	}
-
-	static size_t AddVertexThreadSafe(const CPUVertex& cpuV,
-		const Vector3& worldPos)
-	{
-		Vertex v;
-		v.Position = { (float)worldPos.x, (float)worldPos.y, (float)worldPos.z };
-		v.Texcoord = { (float)cpuV.UV.x,  (float)cpuV.UV.y };
-		v.Normal = { 0,0,0 };
-		v.Tangent = { 0,0,0,0 };
-		v.Color = { 0,0,0 };
-
-		std::scoped_lock lk(sBuildMutex);          // tiny critical section
-		auto [it, inserted] = PlanetSystem::sVertexMap.emplace(v,
-			PlanetSystem::sBuildVertices.size());
-		if (inserted)
-			PlanetSystem::sBuildVertices.emplace_back(v);
-		return it->second;
 	}
 
 	void SplitNode(PlanetNode* n, const PlanetComponent& planet) 
@@ -376,11 +390,10 @@ namespace Toast {
 				for (size_t i = begin; i < end; ++i)
 				{
 					PlanetNode* n = gWorkQueue[i];
-					double dist2 = (n->Center - camPlanetSpace).LengthSquared();
 
-					if (NeedSplit(n->SubdivisionLevel, dist2, planet))
+					if (NeedSplit(n, planet, camPlanetSpace))
 						n->NodeState = PlanetNode::State::WantSplit;
-					else if (NeedCollapse(n->SubdivisionLevel, dist2, planet))
+					else if (NeedCollapse(n, planet, camPlanetSpace))
 						n->NodeState = PlanetNode::State::WantCollapse;
 					else
 						n->NodeState = PlanetNode::State::ActiveLeaf;
@@ -484,16 +497,24 @@ namespace Toast {
 			return;
 		}
 
+		struct ThreadScratch
+		{
+			std::vector<PlanetNode*>       visible;     // raw ptrs → renderer
+			std::vector<Ref<PlanetNode>>   patches;     // keep Ref<>‑ownership
+		};
+
 		const size_t CHUNK = 512;
 		size_t numTasks = (N + CHUNK - 1) / CHUNK;
 
-		std::vector<std::vector<PlanetNode*>> tls(numTasks);
+		std::vector<ThreadScratch> tls(numTasks);
 
-		gJobPool.parallelFor(numTasks, [&](size_t task){
+		gJobPool.parallelFor(numTasks, [&](size_t task)
+		{
 			size_t begin = task * CHUNK;
 			size_t end = std::min(begin + CHUNK, N);
-			auto& local = tls[task];
-			local.reserve(end - begin);
+			auto& td = tls[task];
+
+			td.visible.reserve(end - begin);
 
 			const double* dotThresh = planet.FaceLevelDotLUT.data();
 			for (size_t i = begin; i < end; ++i)
@@ -501,40 +522,50 @@ namespace Toast {
 				PlanetNode* n = gActiveNodes[i];
 
 				// back-face test
-				if (!backfaceCull)
-					local.push_back(n);
-				else
+				if (backfaceCull)
 				{
 					double dp = Vector3::Dot(Vector3::Normalize(n->Center), Vector3::Normalize(n->Center - camPlanetSpace));
 
-					if (dp < dotThresh[n->SubdivisionLevel])
-					{
-						if (NeedsCrackPatch(n, camPlanetSpace, planet) && n->SubdivisionLevel > 0)
-						{
-							auto pp = MakeCrackPatches(n, planet, camPlanetSpace);  // two little fixes
-							local.emplace_back(pp[0]);
-							local.emplace_back(pp[1]);
-						}
-						else
-							local.emplace_back(n);
-					}
+					if (dp >= dotThresh[n->SubdivisionLevel])
+						continue;
 				}
+				
+				if (NeedsCrackPatch(n, camPlanetSpace, planet) && n->SubdivisionLevel > 0)
+				{
+					auto pp = MakeCrackPatches(n, planet, camPlanetSpace, td.patches);
+					td.visible.emplace_back(pp[0]);
+					td.visible.emplace_back(pp[1]);
+				}
+				else
+					td.visible.emplace_back(n);
 			}
-			});
+		});
 
 		// merge visible nodes from the different threads under lock
+		static std::vector<Ref<PlanetNode>> sPatchKeepAlive;     // ▼ lifetime bucket
+
 		{
 			std::scoped_lock lk(gActiveMutex);
-			size_t total = 0;
-			for (auto& v : tls) 
-				total += v.size();
 
+			/* 1. visible list */
 			gVisibleNodes.clear();
-			gVisibleNodes.reserve(total);
+			size_t totalVis = 0;
+			for (auto& t : tls) totalVis += t.visible.size();
+			gVisibleNodes.reserve(totalVis);
 
-			for (auto& v : tls)
-				for (auto* n : v)
-					gVisibleNodes.emplace_back(n);
+			for (auto& t : tls)
+				gVisibleNodes.insert(gVisibleNodes.end(),
+					t.visible.begin(), t.visible.end());
+
+			/* 2. keep patch nodes alive for the whole frame */
+			sPatchKeepAlive.clear();
+			size_t totalPatches = 0;
+			for (auto& t : tls) totalPatches += t.patches.size();
+			sPatchKeepAlive.reserve(totalPatches);
+
+			for (auto& t : tls)
+				sPatchKeepAlive.insert(sPatchKeepAlive.end(),
+					t.patches.begin(), t.patches.end());
 		}
 	}
 
@@ -581,6 +612,9 @@ namespace Toast {
 						sC(wpC.x, wpC.y, wpC.z);
 					Vector3AVX2 sn = Vector3AVX2::Cross(sB - sA, sC - sA).Normalised();
 					Vector3 faceN = sn.ToVector3();
+
+					if (faceN.y < 0.0)
+						faceN = faceN * -1.0;
 
 					if (planet.PlanetData.smoothShading)
 					{
@@ -808,6 +842,9 @@ namespace Toast {
 			DirectX::XMStoreFloat4x4(&matCopy, noScaleTransform);
 			DirectX::XMFLOAT4   vecCopy;
 			DirectX::XMStoreFloat4(&vecCopy, camPos);
+
+			sCPUVertexMap.clear();
+			sCPUVertices.clear();
 
 			bool backfaceCullCopy = backfaceCull;
 

@@ -30,6 +30,9 @@
 
 namespace Toast {
 
+	constexpr double kQuant = 0.1;     // 1 cm grid
+	constexpr double kInvQ = 1.0 / kQuant;
+
 	struct CPUVertex
 	{
 		Vector3 Position;
@@ -59,6 +62,34 @@ namespace Toast {
 		}
 	};
 
+	struct CPUVertexHasher
+	{
+		std::size_t operator()(const CPUVertex& v) const noexcept
+		{
+			// round to grid and pack into 3 * 21‑bit signed ints  (fits in 64‑bit)
+			auto q = [](double x) -> int64_t
+				{
+					return (int64_t)std::llround(x * kInvQ);   // quantised integer
+				};
+
+			uint64_t kx = (uint64_t)(q(v.Position.x) & 0x1FFFFF);     // 21 bits
+			uint64_t ky = (uint64_t)(q(v.Position.y) & 0x1FFFFF);
+			uint64_t kz = (uint64_t)(q(v.Position.z) & 0x1FFFFF);
+
+			return  kx | (ky << 21) | (kz << 42);          // 63 bits, no clash
+		}
+	};
+
+	struct CPUVertexEqual
+	{
+		bool operator()(const CPUVertex& a, const CPUVertex& b) const noexcept
+		{
+			return std::abs(a.Position.x - b.Position.x) < kQuant &&
+				std::abs(a.Position.y - b.Position.y) < kQuant &&
+				std::abs(a.Position.z - b.Position.z) < kQuant;
+		}
+	};
+
 	struct EdgeKey {
 		uint32_t v0, v1;                  // vertex indices in *base* icosahedron order
 		bool operator==(const EdgeKey& o) const { return v0 == o.v0 && v1 == o.v1; }
@@ -67,22 +98,9 @@ namespace Toast {
 		size_t operator()(const EdgeKey& k) const { return (size_t)k.v0 * 73856093u ^ k.v1; }
 	};
 
-	inline thread_local std::unordered_map<EdgeKey, CPUVertex, EdgeKeyHash> tMidCache;
-
 	struct PlanetNode
 	{
-		enum EdgeIdx : uint8_t { IDX_AB = 0, IDX_BC = 1, IDX_CA = 2 };
-
-		/* ---- bit mask for stitching (can be ORed) ---------------------- */
-		enum StitchBit : uint8_t {
-			EDGE_AB = 1u << IDX_AB,   // 0000'0001
-			EDGE_BC = 1u << IDX_BC,   // 0000'0010
-			EDGE_CA = 1u << IDX_CA    // 0000'0100
-		};
-
 		CPUVertex A, B, C;  // The three vertices of the triangle
-		PlanetNode* EdgeNeighbour[3] = { nullptr,nullptr,nullptr };
-		uint8_t StitchMask = 0;
 
 		Vector3 Center;
 		PlanetNode* Parent = nullptr;
@@ -225,19 +243,6 @@ namespace Toast {
 		};
 	};
 
-	struct EdgeInfo        // was Rim
-	{
-		int childA, edgeA;   // first half of the parent edge
-		int childB, edgeB;   // second half
-	};
-
-	static constexpr EdgeInfo EDGE[3] =
-	{
-		/* parent AB */ { 0, PlanetNode::EDGE_AB,  1, PlanetNode::EDGE_CA },
-		/* parent BC */ { 1, PlanetNode::EDGE_AB,  2, PlanetNode::EDGE_CA },
-		/* parent CA */ { 2, PlanetNode::EDGE_AB,  0, PlanetNode::EDGE_CA },
-	};
-
 	class PlanetSystem
 	{
 	public:
@@ -263,26 +268,40 @@ namespace Toast {
 		static std::vector<uint32_t> sBaseIndices;
 
 		static std::unordered_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> sVertexMap;
+		static std::unordered_map<CPUVertex, size_t, CPUVertexHasher, CPUVertexEqual>  sCPUVertexMap;
 		static std::vector<Vertex> sBuildVertices;
 		static std::vector<uint32_t> sBuildIndices;
+		static std::vector<CPUVertex> sCPUVertices;
 
 		// Remove?
 		static std::unordered_map<Vector3, uint32_t, Vector3::Hasher, Vector3::Equal> sBaseVertexMap;
 	public:
 		// Helper functions to be used during runtime updates of the planet
-		static inline bool NeedSplit(int lvl, double d2, const PlanetComponent& p) 
+		static inline bool NeedSplit(PlanetNode* node, const PlanetComponent& p, const Vector3& camPlanetSpace)
 		{
-			if (lvl >= p.Subdivisions) 
+			int level = node->SubdivisionLevel;
+
+			if (level >= p.Subdivisions)
 				return false;
 
-			return d2 < p.DistanceLUT[lvl];
+			double d1 = (node->A.Position - camPlanetSpace).LengthSquared();
+			double d2 = (node->B.Position - camPlanetSpace).LengthSquared();
+			double d3 = (node->C.Position - camPlanetSpace).LengthSquared();
+
+			return d1 < p.DistanceLUT[level] && d2 < p.DistanceLUT[level] && d3 < p.DistanceLUT[level];
 		}
-		static inline bool NeedCollapse(int lvl, double d2, const PlanetComponent& p)
+		static inline bool NeedCollapse(PlanetNode* node, const PlanetComponent& p, const Vector3& camPlanetSpace)
 		{
-			if (lvl == 0) 
+			int level = node->SubdivisionLevel;
+
+			if (level == 0)
 				return false;
 
-			return d2 > p.DistanceLUT[lvl - 1];
+			double d1 = (node->A.Position - camPlanetSpace).LengthSquared();
+			double d2 = (node->B.Position - camPlanetSpace).LengthSquared();
+			double d3 = (node->C.Position - camPlanetSpace).LengthSquared();
+
+			return d1 > p.DistanceLUT[level - 1] && d2 > p.DistanceLUT[level - 1] && d3 > p.DistanceLUT[level - 1];
 		}
 
 		// These functions are used to create the base planet when a scene with a planet is loaded.
