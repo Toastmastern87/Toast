@@ -70,9 +70,9 @@ namespace Toast {
 		return { u, vTex };
 	}
 
-	inline size_t rowStride(const TerrainData& td)
+	inline size_t RowStride(const TerrainData& td)
 	{
-		return td.RowPitch / sizeof(double);   // = bytes‑per‑row / 8
+		return td.Stride;  
 	}
 
 	static size_t AddVertexThreadSafe(const CPUVertex& cpuV,
@@ -113,7 +113,6 @@ namespace Toast {
 	{
 		alignas(32) double U[4], V[4];   _mm256_store_pd(U, u); _mm256_store_pd(V, v);
 		const double* base = td.HeightData.data();
-		size_t pitch = rowStride(td);
 		double H[4];
 
 		for (int i = 0; i < 4; ++i)
@@ -124,10 +123,10 @@ namespace Toast {
 
 			double fx = U[i] - x1, fy = V[i] - y1;
 
-			double Q11 = base[y1 * pitch + x1];
-			double Q21 = base[y1 * pitch + x2];
-			double Q12 = base[y2 * pitch + x1];
-			double Q22 = base[y2 * pitch + x2];
+			double Q11 = base[y1 * RowStride(td) + x1];
+			double Q21 = base[y1 * RowStride(td) + x2];
+			double Q12 = base[y2 * RowStride(td) + x1];
+			double Q22 = base[y2 * RowStride(td) + x2];
 
 			double R1 = Q11 * (1.0 - fx) + Q21 * fx;
 			double R2 = Q12 * (1.0 - fx) + Q22 * fx;

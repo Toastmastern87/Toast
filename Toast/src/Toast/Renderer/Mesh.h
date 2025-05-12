@@ -25,9 +25,10 @@ namespace Toast {
 
 	struct TerrainData
 	{
-		size_t RowPitch;
-		size_t Width;
-		size_t Height;
+		uint32_t Width;
+		uint32_t Height;
+		uint32_t RowPitch;
+		uint32_t Stride;
 		std::vector<double> HeightData;
 	};
 

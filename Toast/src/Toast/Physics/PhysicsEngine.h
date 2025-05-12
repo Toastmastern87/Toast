@@ -527,20 +527,22 @@ namespace Toast {
 
 			TOAST_CORE_INFO("Terrain data loaded width: %d, height: %d, format: %d", heightMapMetadata.width, heightMapMetadata.height, heightMapMetadata.format);
 
-			const uint16_t* rawTerrainData = reinterpret_cast<const uint16_t*>(heightMap->GetPixels());
+			TerrainData td;
+			td.Width = heightMapMetadata.width;
+			td.Height = heightMapMetadata.height;
+			td.RowPitch = heightMap->GetImage(0, 0, 0)->rowPitch;
 
-			size_t totalPixels = heightMapMetadata.width * heightMapMetadata.height;
-			TerrainData terrainDataUpdated;
-			terrainDataUpdated.HeightData.reserve(totalPixels);
+			const uint16_t* src = reinterpret_cast<const uint16_t*>(heightMap->GetPixels());
 
-			for (size_t i = 0; i < totalPixels; ++i) 
-				terrainDataUpdated.HeightData.emplace_back(((static_cast<double>(rawTerrainData[i]) / MAX_INT_VALUE) * (maxAltitude - minAltitude)) + minAltitude);
+			size_t total = td.Width * td.Height;
 
-			terrainDataUpdated.RowPitch = heightMap->GetImage(0, 0, 0)->rowPitch;
-			terrainDataUpdated.Width = heightMapMetadata.width;
-			terrainDataUpdated.Height = heightMapMetadata.height;
+			td.HeightData.resize(total);
+			for (size_t i = 0; i < total; ++i)
+				td.HeightData[i] =	((static_cast<double>(src[i]) / MAX_INT_VALUE) * (maxAltitude - minAltitude)) + minAltitude;
 
-			return terrainDataUpdated;
+			td.Stride = td.Width;
+
+			return td;
 		}
 
 		static double GetObjectDistanceToPlanet(Entity* planet, Vector3& worldSpaceObjectPos, Vector3& triangleNormal, Vector3& A, Vector3& B, Vector3& C)
