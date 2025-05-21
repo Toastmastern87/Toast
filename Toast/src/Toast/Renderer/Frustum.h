@@ -13,10 +13,10 @@ struct Plane
 		D = 0.0;
 	}
 
-	Plane(Toast::Vector3 a, Toast::Vector3 b, Toast::Vector3 c)
+	Plane(Toast::Vector3 a, Toast::Vector3 b, Toast::Vector3 c, double bias = 0.0)
 	{
 		Normal = Toast::Vector3::Normalize(Toast::Vector3::Cross(b - a, c - a));
-		D = Toast::Vector3::Dot(Normal, a);
+		D = Toast::Vector3::Dot(Normal, a) - bias;
 	}
 };
 
@@ -36,12 +36,12 @@ namespace Toast {
 		~Frustum() = default;
 
 		void Invalidate(float aspectRatio, float FOV, float nearClip, float farClip);
-		void Update(Matrix& transform, Matrix& planetTransform);
+		void Update(Matrix& transform, Matrix& planetTransform, double bias = 5000.0);
 		void Update(Matrix& transform);
 
 		bool Contains(Vector3 p);
-		VolumeTri ContainsTriangle(Vector3 p1, Vector3 p2, Vector3 p3);
-		VolumeTri ContainsTriangleVolume(Vector3 p1, Vector3 p2, Vector3 p3, double heightRange);
+		VolumeTri ContainsTriangle(Vector3 p1, Vector3 p2, Vector3 p3) const;
+		VolumeTri ContainsTriangleVolume(Vector3 p1, Vector3 p2, Vector3 p3, double heightRange) const;
 
 		void ToString();
 	public:
@@ -70,5 +70,7 @@ namespace Toast {
 	private:
 		std::vector<Plane> mPlanes;
 		std::vector<Plane> mPlanetCheckPlanes;
+
+		friend class PlanetSystem;
 	};
 }

@@ -350,7 +350,7 @@ namespace Toast {
 				if (!tcc.Collider->mFilePath.empty())
 					pc.TerrainData = PhysicsEngine::LoadTerrainData(tcc.Collider->mFilePath.c_str(), pc.PlanetData.maxAltitude, pc.PlanetData.minAltitude);
 
-				PlanetSystem::CalculateBasePlanet(pc, pc.PlanetData.radius);
+				PlanetSystem::CalculateBasePlanet(pc, nullptr, pc.PlanetData.radius);
 
 				tcc.Collider->mMaxAltitude = planetComponent["MaxAltitude"].as<float>() + planetComponent["Radius"].as<float>();
 				tcc.Collider->CalculateBounds();

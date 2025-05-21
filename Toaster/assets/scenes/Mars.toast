@@ -52,29 +52,6 @@ Entities:
     SphereColliderComponent:
       RenderCollider: true
       Radius: 0.39999991655349731
-  - Entity: 3130812133437718439
-    TagComponent:
-      Tag: Money
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        - Handle: 5004313190604184181
-    TransformComponent:
-      Translation: [504.99707, 735.502441, 5]
-      Rotation: [0, -0, 0]
-      Scale: [452, -310, 1]
-    ScriptComponent:
-      ClassName: Sandbox.Money
-      ScriptFields:
-        []
-    UIPanelComponent:
-      Color: [1, 1, 1, 1]
-      CornerRadius: 0
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\1_UIMoneyPanel.png
-      UseColor: false
-      Visible: true
-      ConnectToParent: false
-      TextureIndex: 0
   - Entity: 104127274712065705
     TagComponent:
       Tag: AllStarshipCloseButton
@@ -154,7 +131,7 @@ Entities:
       Rotation: [75, -30, 55]
       Scale: [3389500, 3389500, 3389500]
     PlanetComponent:
-      Subdivisions: 0
+      Subdivisions: 20
       MaxAltitude: 21200
       MinAltitude: -8200
       Radius: 3389500
@@ -181,9 +158,14 @@ Entities:
     TerrainDetailComponent:
       Seed: 3521520863
       SubdivisionActivation: 9
-      Octaves: 4
-      Frequency: 3
-      Amplitude: 60.9000015
+      Octaves: 6
+      Frequency: 350
+      Amplitude: 127.5
+      GravelOctaves: 6
+      GravelFrequency: 66816
+      GravelAmplitude: 0.49000001
+      GravelLowThreshold: 18.8999996
+      GravelHighThreshold: 49.4000015
     TerrainObjectComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\Stone\Stone.gltf
       SubdivisionActivation: 9
@@ -288,7 +270,7 @@ Entities:
       ClassName: Sandbox.TimeText
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
-      Text: 00:00:22
+      Text: 00:00:15
       TextureIndex: 3
   - Entity: 4566870064654448293
     TagComponent:
@@ -413,7 +395,7 @@ Entities:
       Scale: [52, 54, 16]
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
-      Text: $0
+      Text: $400.000
       TextureIndex: 3
   - Entity: 6399342346770279097
     TagComponent:
@@ -448,7 +430,7 @@ Entities:
       Scale: [23, 25, 1]
     UITextComponent:
       AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
-      Text: Test Text
+      Text: "Starship SN3\n"
       TextureIndex: 0
   - Entity: 2584980814812506026
     TagComponent:
@@ -472,3 +454,26 @@ Entities:
       TextureIndex: 4
       ClickAssetPath: C:\dev\Toast\Toaster\assets\textures\UI\5_AddStarshipButton.png
       ClickTextureIndex: 4
+  - Entity: 3130812133437718439
+    TagComponent:
+      Tag: Money
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        - Handle: 5004313190604184181
+    TransformComponent:
+      Translation: [504.99707, 735.502441, 5]
+      Rotation: [0, -0, 0]
+      Scale: [452, -310, 1]
+    ScriptComponent:
+      ClassName: Sandbox.Money
+      ScriptFields:
+        []
+    UIPanelComponent:
+      Color: [1, 1, 1, 1]
+      CornerRadius: 0
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\1_UIMoneyPanel.png
+      UseColor: false
+      Visible: true
+      ConnectToParent: false
+      TextureIndex: 0

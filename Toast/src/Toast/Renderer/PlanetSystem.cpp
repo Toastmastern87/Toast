@@ -39,6 +39,14 @@ namespace Toast {
 	static std::vector<PlanetNode*> gWorkQueue;
 	static FixedThreadPool gJobPool(4);
 
+	static thread_local siv::PerlinNoise gPerlin{ 19871102u };
+
+	inline double smoothstep(double edge0, double edge1, double x)
+	{
+		double t = std::clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+		return t * t * (3.0 - 2.0 * t);
+	}
+
 	static Vector2 GetUVFromPosition(const Vector3 pos, double width, double height)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -147,7 +155,19 @@ namespace Toast {
 		return hh[0];       // our value in the lowest lane
 	}
 
-	static CPUVertex BuildCPUVertex(const Vector3& srcPos, const PlanetComponent& planet)
+	inline double Hill3DLOD(const Vector3& unitDir, int maxOct, double baseFreq, double amp, double planetRadius, int subdivision, double persistence = 0.55)
+	{
+		int allowedOct = std::min(maxOct, subdivision + 2);
+
+		double f = baseFreq;   // *long* wavelength octave
+		double a = amp;
+
+		double h = gPerlin.octave3D(unitDir.x * baseFreq, unitDir.y * baseFreq, unitDir.z * baseFreq, allowedOct, persistence);
+
+		return std::abs(h) * amp;
+	}
+
+	static CPUVertex BuildCPUVertex(const Vector3& srcPos, int subdivision, const PlanetComponent& planet, const TerrainDetailComponent* td)
 	{
 		// 1) normalize
 		Vector3AVX2 p(srcPos);
@@ -158,7 +178,22 @@ namespace Toast {
 		Vector2 uv = GetUVFromPosition(unit, double(planet.TerrainData.Width), double(planet.TerrainData.Height));
 
 		// 3) height lookup + radial displacement
-		double h = GetHeightSIMD(uv.x, uv.y, planet.TerrainData);
+		double baseHeight = GetHeightSIMD(uv.x, uv.y, planet.TerrainData);
+		double hRolling = 0.0;
+		double mask = 0.0;
+		double hGravel = 0.0;
+
+		if (td) 
+		{
+			double hRolling = Hill3DLOD(unit, td->Octaves, td->Frequency, td->Amplitude, planet.PlanetData.radius, subdivision);
+
+			double mask = 1.0 - smoothstep(td->GravelLowThreshold, td->GravelHighThreshold, hRolling);
+
+			double hGravel = 0.7 * std::fabs(gPerlin.octave3D(unit.x * td->GravelFrequency, unit.y * td->GravelFrequency, unit.z * td->GravelFrequency, td->GravelOctaves, td->GravelAmplitude));
+		}
+
+		double h = baseHeight + hRolling + mask * hGravel;
+
 		p = p * (planet.PlanetData.radius + h);
 
 		// 4) assemble
@@ -168,7 +203,7 @@ namespace Toast {
 		return CacheCPUVertex(v);
 	}
 
-	static void BuildCPUVertex4(const Vec3x4d& in, CPUVertex* out, const PlanetComponent& planet)
+	static void BuildCPUVertex4(const Vec3x4d& in, CPUVertex* out, int subdivision, const PlanetComponent& planet, const TerrainDetailComponent* terrainDetail)
 	{
 		// Unpacking the doubles
 		alignas(32) double xd[4], yd[4], zd[4];
@@ -199,10 +234,31 @@ namespace Toast {
 		// Getting the height by using Bilinear Interpolation and SIMD
 		__m256d H = GetHeightBilinearSIMD(U, V, planet.TerrainData);
 
-		/* 4. scatter results ---------------------------------------------- */
 		alignas(32) double hu[4], hv[4], hh[4];
-		_mm256_store_pd(hu, U);  _mm256_store_pd(hv, V);  _mm256_store_pd(hh, H);
 
+		_mm256_store_pd(hu, U);
+		_mm256_store_pd(hv, V);
+		_mm256_store_pd(hh, H);
+
+		for (int i = 0; i < 4; ++i)
+		{
+			Vector3 dir{ nx[i], ny[i], nz[i] };
+			double extra = 0.0;
+			if (terrainDetail)
+			{
+				const auto& td = *terrainDetail;
+				double hRolling = Hill3DLOD(dir, td.Octaves, td.Frequency, td.Amplitude, planet.PlanetData.radius, subdivision);
+
+				double mask = 1.0 - smoothstep(td.GravelLowThreshold, td.GravelHighThreshold, hRolling);
+
+				double hGravel = 0.7 * std::fabs(gPerlin.octave3D(dir.x * td.GravelFrequency, dir.y * td.GravelFrequency, dir.z * td.GravelFrequency, td.GravelOctaves, td.GravelAmplitude));
+
+				extra = hRolling + mask * hGravel;
+			}
+			hh[i] += extra;
+		}
+
+		/* 4. scatter results ---------------------------------------------- */
 		for (int i = 0; i < 4; ++i)
 		{
 			CPUVertex tmp;
@@ -232,7 +288,7 @@ namespace Toast {
 		return inside == 2;                                  // your old rule
 	}
 
-	static std::array<PlanetNode*, 2> MakeCrackPatches(const PlanetNode* n,	const PlanetComponent& planet, const Vector3& camPS, std::vector<Ref<PlanetNode>>& patchKeepAlive)
+	static std::array<PlanetNode*, 2> MakeCrackPatches(const PlanetNode* n,	const PlanetComponent& planet, const TerrainDetailComponent* terrainDetail, const Vector3& camPS, std::vector<Ref<PlanetNode>>& patchKeepAlive)
 	{
 		/* ---- 1. classify the three vertices by camera distance ------------ */
 		struct Vtx { const CPUVertex* v; double d2; };
@@ -252,7 +308,7 @@ namespace Toast {
 		Vector3 mp = (v[0].v->Position + v[1].v->Position) * 0.5f;
 		Vec3x4d vPack = Vec3x4d::Load(mp, mp, mp, mp);
 		CPUVertex tmp[4];
-		BuildCPUVertex4(vPack, tmp, planet);       // tmp[0] has the result
+		BuildCPUVertex4(vPack, tmp, n->SubdivisionLevel, planet, terrainDetail);       // tmp[0] has the result
 		CPUVertex M = tmp[0];
 
 		/* ---- 3. make the two little faces --------------------------------- */
@@ -286,7 +342,7 @@ namespace Toast {
 		return fresh;
 	}
 
-	static void MakeMidVertices(const CPUVertex& A, const CPUVertex& B, const CPUVertex& C, CPUVertex& mAB, CPUVertex& mBC, CPUVertex& mCA, const PlanetComponent& planet)
+	static void MakeMidVertices(const CPUVertex& A, const CPUVertex& B, const CPUVertex& C, CPUVertex& mAB, CPUVertex& mBC, CPUVertex& mCA, int subdivision, const PlanetComponent& planet, const TerrainDetailComponent* terrainDetail)
 	{
 		// 1) compute the raw mid-positions
 		Vector3 pAB = (A.Position + B.Position) * 0.5f;
@@ -299,7 +355,7 @@ namespace Toast {
 
 		// 3) call your existing SIMD builder
 		CPUVertex out[4];
-		BuildCPUVertex4(ins, out, planet);
+		BuildCPUVertex4(ins, out, subdivision, planet, terrainDetail);
 
 		// 4) scatter back to the three mids
 		mAB = out[0];
@@ -308,13 +364,13 @@ namespace Toast {
 		// out[3] is a duplicate of out[2], ignore it
 	}
 
-	void SplitNode(PlanetNode* n, const PlanetComponent& planet) 
+	void SplitNode(PlanetNode* n, const PlanetComponent& planet, const TerrainDetailComponent* terrainDetail)
 	{
 		if (!n->ChildNodes.empty()) return;  // already split
 
 		// get the three mid vertices
 		CPUVertex mAB, mBC, mCA;
-		MakeMidVertices(n->A, n->B, n->C, mAB, mBC, mCA, planet);
+		MakeMidVertices(n->A, n->B, n->C, mAB, mBC, mCA, n->SubdivisionLevel, planet, terrainDetail);
 
 		int nextL = n->SubdivisionLevel + 1;
 		n->ChildNodes.resize(4);
@@ -371,7 +427,7 @@ namespace Toast {
 		}
 	}
 
-	void PlanetSystem::UpdateActiveNodes(PlanetComponent& planet, const Vector3& camPlanetSpace, const Vector3& planetCenter, Matrix& planetNoScaleTransform)
+	void PlanetSystem::UpdateActiveNodes(PlanetComponent& planet, const TerrainDetailComponent* terrainDetails, const Vector3& camPlanetSpace, const Vector3& planetCenter, Matrix& planetNoScaleTransform)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -428,7 +484,7 @@ namespace Toast {
 			switch (n->NodeState)
 			{
 			case PlanetNode::State::WantSplit:
-				SplitNode(n, planet);
+				SplitNode(n, planet, terrainDetails);
 				for (auto& c : n->ChildNodes)
 					updatedLeaves.push_back(c.get());
 				break;
@@ -482,7 +538,7 @@ namespace Toast {
 		}
 	}
 
-	void PlanetSystem::ComputeVisibleNodes(const PlanetComponent& planet, const Vector3& camPlanetSpace, const Vector3& planetCenter, bool backfaceCull)
+	void PlanetSystem::ComputeVisibleNodes(const PlanetComponent& planet, const TerrainDetailComponent* terrainDetails, const Vector3& camPlanetSpace, const Vector3& planetCenter, bool backfaceCull, bool frustumCull, const Frustum* frustum)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -495,6 +551,20 @@ namespace Toast {
 			gVisibleNodes.clear();
 			return;
 		}
+
+		alignas(32) double pNX[8], pNY[8], pNZ[8], pD[8];   // 8 = next power of two
+		int planeCount = int(frustumCull ? frustum->mPlanetCheckPlanes.size() : 0);
+
+		for (int i = 0; i < planeCount; ++i) {
+			const auto& pl = frustum->mPlanetCheckPlanes[i];
+			pNX[i] = pl.Normal.x;
+			pNY[i] = pl.Normal.y;
+			pNZ[i] = pl.Normal.z;
+			pD[i] = pl.D;
+		}
+		/* pad the remaining lanes so we can always load 4 doubles */
+		for (int i = planeCount; i < 8; ++i)
+			pNX[i] = pNY[i] = pNZ[i] = pD[i] = 0.0;
 
 		struct ThreadScratch
 		{
@@ -528,10 +598,59 @@ namespace Toast {
 					if (dp >= dotThresh[n->SubdivisionLevel])
 						continue;
 				}
+
+				if (frustumCull)
+				{
+					bool outside = false;
+
+					const double maxHeight = planet.PlanetData.maxAltitude;
+					const double radius = n->SphereRadius + maxHeight;
+
+					__m256d cx = _mm256_set1_pd(n->Center.x);
+					__m256d cy = _mm256_set1_pd(n->Center.y);
+					__m256d cz = _mm256_set1_pd(n->Center.z);
+					__m256d R = _mm256_set1_pd(-radius);          // we compare ‘dist < -R’
+
+					/* two batches: planes 0‑3 and planes 4‑7 (only first 6 are valid) */
+					for (int batch = 0; batch < 2; ++batch)
+					{
+						int idx = batch * 4;
+
+						__m256d nx = _mm256_load_pd(pNX + idx);
+						__m256d ny = _mm256_load_pd(pNY + idx);
+						__m256d nz = _mm256_load_pd(pNZ + idx);
+						__m256d  d = _mm256_load_pd(pD + idx);
+
+						/* dist = cx*nx + cy*ny + cz*nz - d  (FMA) */
+						__m256d dist = _mm256_mul_pd(cx, nx);              // cx*nx
+						dist = _mm256_fmadd_pd(cy, ny, dist);              // + cy*ny
+						dist = _mm256_fmadd_pd(cz, nz, dist);              // + cz*nz
+						dist = _mm256_sub_pd(dist, d);                     // - d
+
+						/* compare: dist < -radius  ? */
+						__m256d cmp = _mm256_cmp_pd(dist, R, _CMP_LT_OQ);
+						if (_mm256_movemask_pd(cmp))                       // any plane says ‘outside’
+						{
+							outside = true;
+							break;
+						}
+					}
+
+					if (outside) 
+						continue;     // reject this leaf immediately
+
+					double planetRadius = planet.PlanetData.radius;
+					double heightRange = planet.HeightMultLUT[n->SubdivisionLevel];
+
+					auto intersect = frustum->ContainsTriangle(n->A.Position, n->B.Position, n->C.Position);
+
+					if (intersect == VolumeTri::OUTSIDE)
+						continue;
+				}
 				
 				if (NeedsCrackPatch(n, camPlanetSpace, planet) && n->SubdivisionLevel > 0)
 				{
-					auto pp = MakeCrackPatches(n, planet, camPlanetSpace, td.patches);
+					auto pp = MakeCrackPatches(n, planet, terrainDetails, camPlanetSpace, td.patches);
 					td.visible.emplace_back(pp[0]);
 					td.visible.emplace_back(pp[1]);
 				}
@@ -682,25 +801,25 @@ namespace Toast {
 		}
 	}
 
-	void PlanetSystem::CalculateBasePlanet(PlanetComponent& planet, double scale)
+	void PlanetSystem::CalculateBasePlanet(PlanetComponent& planet, TerrainDetailComponent* terrainDetail, double scale)
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		double ratio = ((1.0 + sqrt(5.0)) / 2.0);
 
 		sBaseVertices = std::vector<Vector3>{
-			Vector3::Normalize({ ratio, 0.0, -1.0 })* scale,
-			Vector3::Normalize({ -ratio, 0.0, -1.0 })* scale,
-			Vector3::Normalize({ ratio, 0.0, 1.0 })* scale,
-			Vector3::Normalize({ -ratio, 0.0, 1.0 })* scale,
-			Vector3::Normalize({ 0.0, -1.0, ratio })* scale,
-			Vector3::Normalize({ 0.0, -1.0, -ratio })* scale,
-			Vector3::Normalize({ 0.0, 1.0, ratio })* scale,
-			Vector3::Normalize({ 0.0, 1.0, -ratio })* scale,
-			Vector3::Normalize({ -1.0, ratio, 0.0 })* scale,
-			Vector3::Normalize({ -1.0, -ratio, 0.0 })* scale,
-			Vector3::Normalize({ 1.0, ratio, 0.0 })* scale,
-			Vector3::Normalize({ 1.0, -ratio, 0.0 })* scale
+			Vector3::Normalize({ ratio, 0.0, -1.0 }) * scale,
+			Vector3::Normalize({ -ratio, 0.0, -1.0 }) * scale,
+			Vector3::Normalize({ ratio, 0.0, 1.0 }) * scale,
+			Vector3::Normalize({ -ratio, 0.0, 1.0 }) * scale,
+			Vector3::Normalize({ 0.0, -1.0, ratio }) * scale,
+			Vector3::Normalize({ 0.0, -1.0, -ratio }) * scale,
+			Vector3::Normalize({ 0.0, 1.0, ratio }) * scale,
+			Vector3::Normalize({ 0.0, 1.0, -ratio }) * scale,
+			Vector3::Normalize({ -1.0, ratio, 0.0 }) * scale,
+			Vector3::Normalize({ -1.0, -ratio, 0.0 }) * scale,
+			Vector3::Normalize({ 1.0, ratio, 0.0 }) * scale,
+			Vector3::Normalize({ 1.0, -ratio, 0.0 }) * scale
 		};
 
 		sBaseIndices = std::vector<uint32_t>{
@@ -745,9 +864,9 @@ namespace Toast {
 			Vector3 v2 = sBaseVertices[sBaseIndices[idx + 2]];
 
 			// use your scalar helper for single vertices
-			CPUVertex A = BuildCPUVertex(v0, planet);
-			CPUVertex B = BuildCPUVertex(v1, planet);
-			CPUVertex C = BuildCPUVertex(v2, planet);
+			CPUVertex A = BuildCPUVertex(v0, 0, planet, terrainDetail);
+			CPUVertex B = BuildCPUVertex(v1, 0, planet, terrainDetail);
+			CPUVertex C = BuildCPUVertex(v2, 0, planet, terrainDetail);
 
 			// create the node at level 0
 			Ref<PlanetNode> root = CreateRef<PlanetNode>(A, B, C, 0);
@@ -825,16 +944,36 @@ namespace Toast {
 			objects.MeshObject->SetInstanceData(&objectPositions[0], objectPositions.size() * sizeof(DirectX::XMFLOAT3), objectPositions.size());
 	}
 
-	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::InvalidateAllNodes()
+	{
+		std::scoped_lock lk(gActiveMutex, gNodeLookupMutex);
+		gActiveNodes.clear();
+		gVisibleNodes.clear();
+		gAllNodes.clear();
+		gNodeLookup.clear();
+		sCPUVertexMap.clear();
+		sCPUVertices.clear();
+	}
+
+	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCull, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail)
 	{
 		if (generationFuture.valid() && generationFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 			return;
+
+		if (terrainDetail && terrainDetail->Generation != planet.BuiltDetailGeneration)
+		{
+			InvalidateAllNodes();            // toss old LOD tree & caches
+			CalculateBasePlanet(planet, terrainDetail, planet.PlanetData.radius);   // rebuild level-0 icosahedron
+			planet.BuiltDetailGeneration = terrainDetail->Generation;
+		}
 
 		if (!planetGenerationOngoing.exchange(true))
 		{
 			// **POD copies** of only the data we actually need on the worker thread:
 			PlanetComponent* pPtr = &planet;
+			TerrainDetailComponent* tdPtr = terrainDetail;
 			Vector3 planetCenterCopy = planetCenter;
+			Frustum* frustumPtr = frustum.get();
 
 			// pack XMMATRIX/XMVECTOR into unaligned floats
 			DirectX::XMFLOAT4X4 matCopy;
@@ -846,22 +985,26 @@ namespace Toast {
 			sCPUVertices.clear();
 
 			bool backfaceCullCopy = backfaceCull;
+			bool frustumCullCopy = frustumCull;
 
 			generationFuture = std::async(std::launch::async,
 				[pPtr,
+				tdPtr,
 				matCopy,
 				vecCopy,
 				planetCenterCopy,
-				backfaceCullCopy]()
+				backfaceCullCopy,
+				frustumCullCopy,
+				frustumPtr]()
 				{
 					auto planetTF = DirectX::XMLoadFloat4x4(&matCopy);
 					Matrix planetNoScaleTransform = planetTF;
 					auto camWV = DirectX::XMLoadFloat4(&vecCopy);
 					Vector3 camPS = Matrix::Inverse(planetTF) * Vector3 { camWV };
 
-					UpdateActiveNodes(*pPtr, camPS, planetCenterCopy, planetNoScaleTransform);
+					UpdateActiveNodes(*pPtr, tdPtr, camPS, planetCenterCopy, planetNoScaleTransform);
 
-					ComputeVisibleNodes(*pPtr, camPS, planetCenterCopy, backfaceCullCopy);
+					ComputeVisibleNodes(*pPtr, tdPtr, camPS, planetCenterCopy, backfaceCullCopy, frustumCullCopy, frustumPtr);
 
 					RebuildPlanetMesh(*pPtr, planetNoScaleTransform);
 

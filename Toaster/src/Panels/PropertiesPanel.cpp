@@ -753,7 +753,7 @@ namespace Toast {
 
 				if (DrawFloatControl("Radius(km)", component.PlanetData.radius, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.1f, "%.2f"))
 				{
-					PlanetSystem::CalculateBasePlanet(component, component.PlanetData.radius);
+					PlanetSystem::CalculateBasePlanet(component, nullptr, component.PlanetData.radius);
 
 					if (entity.HasComponent<TerrainColliderComponent>())
 					{
@@ -1444,25 +1444,66 @@ namespace Toast {
 				ImGui::Text("Subdivision");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::SliderInt("##subdivisionactivation", &component.SubdivisionActivation, 0, 20);
+				if(ImGui::SliderInt("##subdivisionactivation", &component.SubdivisionActivation, 0, 25))
+					component.Generation++;
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Octaves");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::SliderInt("##octaves", &component.Octaves, 0, 10);
+				if (ImGui::SliderInt("##octaves", &component.Octaves, 0, 10))
+					component.Generation++;
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Frequency");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::SliderFloat("##frequency", &component.Frequency, 0.1, 64.0f, "%.1f");
+				if(ImGui::SliderFloat("##frequency", &component.Frequency, 0.1, 512.0f, "%.1f"))
+					component.Generation++;
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Amplitude");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::SliderFloat("##amplitude", &component.Amplitude, 0.1, 256.0f, "%.1f");
+				if(ImGui::SliderFloat("##amplitude", &component.Amplitude, 0.1, 256.0f, "%.1f"))
+					component.Generation++;
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Gravel Octaves");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (ImGui::SliderInt("##graveloctaves", &component.GravelOctaves, 0, 10))
+					component.Generation++;
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Gravel Frequency");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (ImGui::SliderFloat("##gravelfrequency", &component.GravelFrequency, 0.1, 100000.0f, "%.0f"))
+					component.Generation++;
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Gravel Amplitude");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (ImGui::DragFloat("##gravelamplitude", &component.GravelAmplitude, 0.01, 0.01, 256.0f, "%.2f"))
+					component.Generation++;
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Gravel Low Threshold");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (ImGui::SliderFloat("##gravellowthreshold", &component.GravelLowThreshold, 0.1, 100.0f, "%.1f"))
+					component.Generation++;
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Gravel High Threshold");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-1);
+				if (ImGui::SliderFloat("##gravelhighthreshold", &component.GravelHighThreshold, 0.1, 100.0f, "%.1f"))
+					component.Generation++;
+
 				ImGui::EndTable();
 			});
 

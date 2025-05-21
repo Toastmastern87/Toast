@@ -108,6 +108,8 @@ namespace Toast {
 		int16_t SubdivisionLevel = 0;
 		Bounds NodeBounds;
 
+		double SphereRadius = 0.0;
+
 		enum class State : uint8_t
 		{
 			ActiveLeaf,      // rendered this frame
@@ -132,6 +134,7 @@ namespace Toast {
 			SubdivisionLevel = level;
 
 			ComputeBoundsFromTriangle();
+			ComputeSphereRadius();
 		}
 
 		PlanetNode(const PlanetNode& other)
@@ -149,7 +152,7 @@ namespace Toast {
 			ChildNodes = other.ChildNodes;
 		}
 
-		void ComputeBoundsFromTriangle()
+		inline void ComputeBoundsFromTriangle()
 		{
 			NodeBounds.mins = {
 				(std::min)({A.Position.x, B.Position.x, C.Position.x}),
@@ -163,7 +166,15 @@ namespace Toast {
 			};
 		}
 
-		void UpdateBoundsFromChildren() {
+		inline void ComputeSphereRadius()
+		{
+			double r0 = (A.Position - Center).Length();
+			double r1 = (B.Position - Center).Length();
+			double r2 = (C.Position - Center).Length();
+			SphereRadius = (std::max)({ r0, r1, r2 });
+		}
+
+		inline void UpdateBoundsFromChildren() {
 			// If no children, bounds are already computed from the triangle
 			if (ChildNodes.empty()) return;
 
@@ -305,18 +316,19 @@ namespace Toast {
 		}
 
 		// These functions are used to create the base planet when a scene with a planet is loaded.
-		static void CalculateBasePlanet(PlanetComponent& planet, double scale);
+		static void CalculateBasePlanet(PlanetComponent& planet, TerrainDetailComponent* terrainDetail, double scale);
 
 		// These functions are used to update the active leaves during runtime.
-		static void UpdateActiveNodes(PlanetComponent& planet, const Vector3& camPlanetSpace, const Vector3& planetCenter, Matrix& planetNoScaleTransform);
-		static void ComputeVisibleNodes(const PlanetComponent& planet, const Vector3& camPlanetSpace, const Vector3& planetCenter, bool backfaceCull);
+		static void UpdateActiveNodes(PlanetComponent& planet, const TerrainDetailComponent* terrainDetails, const Vector3& camPlanetSpace, const Vector3& planetCenter, Matrix& planetNoScaleTransform);
+		static void ComputeVisibleNodes(const PlanetComponent& planet, const TerrainDetailComponent* terrainDetails, const Vector3& camPlanetSpace, const Vector3& planetCenter, bool backfaceCull, bool frustumCull, const Frustum* frustum);
 		static void RebuildPlanetMesh(PlanetComponent& planet, Matrix& planetNoScaleTransform);
 
 		static void DetailObjectPlacement(const PlanetComponent& planet, TerrainObjectComponent& objects, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR& camPos);
 
 		static void UpdatePlanet(Ref<Mesh>& renderPlanet, TerrainColliderComponent& terrainCollider);
 
-		static void RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCullActivated, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail = nullptr);
+		static void InvalidateAllNodes();
+		static void RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCull, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail = nullptr);
 
 		static void Shutdown();
 

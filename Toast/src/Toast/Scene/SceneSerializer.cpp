@@ -536,6 +536,11 @@ namespace Toast {
 			out << YAML::Key << "Octaves" << YAML::Value << tdc.Octaves;
 			out << YAML::Key << "Frequency" << YAML::Value << tdc.Frequency;
 			out << YAML::Key << "Amplitude" << YAML::Value << tdc.Amplitude;
+			out << YAML::Key << "GravelOctaves" << YAML::Value << tdc.GravelOctaves;
+			out << YAML::Key << "GravelFrequency" << YAML::Value << tdc.GravelFrequency;
+			out << YAML::Key << "GravelAmplitude" << YAML::Value << tdc.GravelAmplitude;
+			out << YAML::Key << "GravelLowThreshold" << YAML::Value << tdc.GravelLowThreshold;
+			out << YAML::Key << "GravelHighThreshold" << YAML::Value << tdc.GravelHighThreshold;
 
 			out << YAML::EndMap; // TerrainDetailComponent
 		}
@@ -989,7 +994,7 @@ namespace Toast {
 						if (!tcc.Collider->mFilePath.empty())
 							pc.TerrainData = PhysicsEngine::LoadTerrainData(tcc.Collider->mFilePath.c_str(), pc.PlanetData.maxAltitude, pc.PlanetData.minAltitude);
 
-						PlanetSystem::CalculateBasePlanet(pc, pc.PlanetData.radius);
+						PlanetSystem::CalculateBasePlanet(pc, nullptr, pc.PlanetData.radius);
 
 						tcc.Collider->mMaxAltitude = planetComponent["MaxAltitude"].as<float>() + planetComponent["Radius"].as<float>();
 						tcc.Collider->CalculateBounds();
@@ -1068,6 +1073,12 @@ namespace Toast {
 					tdc.Octaves = terrainDetailComponent["Octaves"].as<int>();
 					tdc.Frequency = terrainDetailComponent["Frequency"].as<float>();
 					tdc.Amplitude = terrainDetailComponent["Amplitude"].as<float>();
+
+					tdc.GravelOctaves = terrainDetailComponent["GravelOctaves"].as<int>();
+					tdc.GravelFrequency = terrainDetailComponent["GravelFrequency"].as<float>();
+					tdc.GravelAmplitude = terrainDetailComponent["GravelAmplitude"].as<float>();
+					tdc.GravelLowThreshold = terrainDetailComponent["GravelLowThreshold"].as<float>();
+					tdc.GravelHighThreshold = terrainDetailComponent["GravelHighThreshold"].as<float>();
 				}
 
 				auto terrainObjectComponent = entity["TerrainObjectComponent"];

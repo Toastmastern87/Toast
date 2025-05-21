@@ -1929,6 +1929,10 @@ namespace Toast {
 		// Frustum
 		target->mFrustum = mFrustum;
 
+		// Culling
+		target->mSettings.BackfaceCulling = mSettings.BackfaceCulling;
+		target->mSettings.FrustumCulling = mSettings.FrustumCulling;
+
 		CopyComponent<RelationshipComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TagComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<PrefabComponent>(target->mRegistry, mRegistry, enttMap);

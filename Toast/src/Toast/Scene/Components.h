@@ -155,6 +155,8 @@ namespace Toast {
 		
 		GPUData PlanetData;
 
+		uint32_t BuiltDetailGeneration = UINT32_MAX;
+
 		// Remove
 		std::vector<Ref<PlanetNode>> PlanetNodesWorldSpace;
 
@@ -331,6 +333,14 @@ namespace Toast {
 		int Octaves = 1;
 		float Frequency = 1.0f;
 		float Amplitude = 1.0f;
+
+		int GravelOctaves = 1;
+		float GravelFrequency = 1.0f;
+		float GravelAmplitude = 1.0f;
+		float GravelLowThreshold = 1.0f;
+		float GravelHighThreshold = 1.0f;
+
+		uint32_t Generation = 0;
 
 		TerrainDetailComponent() = default;
 		TerrainDetailComponent(const TerrainDetailComponent& other) = default;
