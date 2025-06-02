@@ -1012,7 +1012,7 @@ namespace Toast {
 					planetGenerationOngoing.store(false);
 				});
 
-			TOAST_CORE_CRITICAL("Planet ready: active nodes=%d, visible nodes=%d, vertices=%d, indices=%d", gActiveNodes.size(), gVisibleNodes.size(), sBuildVertices.size(), sBuildIndices.size());
+			//TOAST_CORE_CRITICAL("Planet ready: active nodes=%d, visible nodes=%d, vertices=%d, indices=%d", gActiveNodes.size(), gVisibleNodes.size(), sBuildVertices.size(), sBuildIndices.size());
 		}
 
 		return;

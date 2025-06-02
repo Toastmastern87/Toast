@@ -1,4 +1,4 @@
-#include "tpch.h"
+ï»¿#include "tpch.h"
 #include "Renderer.h"
 
 #include "Toast/Renderer/Renderer2D.h"
@@ -92,6 +92,12 @@ namespace Toast {
 		sRendererData->SSAOBuffer.Allocate(sRendererData->SSAOCBuffer->GetSize());
 		sRendererData->SSAOBuffer.ZeroInitialize();
 
+		// Setting up the constant buffer for God Rays
+		sRendererData->GodRaysCBuffer = ConstantBufferLibrary::Load("God Rays", 16, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::GodRays) });
+		sRendererData->GodRaysCBuffer->Bind();
+		sRendererData->GodRaysBuffer.Allocate(sRendererData->GodRaysCBuffer->GetSize());
+		sRendererData->GodRaysBuffer.ZeroInitialize();
+
 		// Setting up the constant buffer for bloom rendering
 		sRendererData->BloomCBuffer = ConstantBufferLibrary::Load("Bloom", 16, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Bloom) });
 		sRendererData->BloomCBuffer->Bind();
@@ -120,6 +126,9 @@ namespace Toast {
 
 		// Setting up the render target for the Lightning Pass
 		sRendererData->LPassRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
+
+		// Setting up the render target for the God Ray pass
+		sRendererData->GodRaySunMaskRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, width, 1, TextureFormat::R16G16B16A16_FLOAT);
 
 		// Setting up the render target for Bloom Pass
 		sRendererData->BloomRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
@@ -202,6 +211,8 @@ namespace Toast {
 		sRendererData->SSAORT->Resize(width, height);
 		sRendererData->SSAOBlurRT->Resize(width, height);
 
+		sRendererData->GodRaySunMaskRT->Resize(width, height);
+
 		sRendererData->BloomRT->Resize(width, height);
 		sRendererData->HorizontalBlurRT->Resize(width, height);
 		sRendererData->VerticalBlurRT->Resize(width, height);
@@ -269,7 +280,7 @@ namespace Toast {
 		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
 
-	void Renderer::EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, const bool bloom, float bloomThreshold, float bloomIntensity)
+	void Renderer::EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, const bool bloom, float bloomThreshold, float bloomIntensity, float godRayExposure, float godRayDecay, float godRayDensity, float godRayWeight)
 	{
 		RenderCommand::SetViewport(sRendererData->Viewport);
 
@@ -299,6 +310,8 @@ namespace Toast {
 		// If there are no particles that needs to be rendered, this pass will be skipped.
 		if (sRendererData->ParticleIndexBuffer.Get())
 			ParticlesPass(camera, cameraPos);
+
+		GodRayPass(godRayExposure, godRayDecay, godRayDensity, godRayWeight);
 
 		if(bloom)
 			BloomPass(bloomThreshold, bloomIntensity);
@@ -1210,6 +1223,62 @@ namespace Toast {
 #endif
 	}
 
+	void Renderer::GodRayPass(float exposure, float decay, float density, float weight)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"God Ray Pass");
+#endif
+
+		// Disable depth test for screen-space passes
+		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
+
+		// Set render target for the sun mask (this needs to be created in RendererData)
+		RenderCommand::SetRenderTargets({ sRendererData->GodRaySunMaskRT->GetRTV().Get() }, nullptr);
+		RenderCommand::ClearRenderTargets(sRendererData->GodRaySunMaskRT->GetRTV().Get(), { 0,0,0,0 });
+
+		// Bind shader for rendering the sun mask (assumed to be created at assets/shaders/Post Process/SunDiscMask.hlsl)
+		ShaderLibrary::Get("assets/shaders/Utilities/SunDiscMask.hlsl")->Bind();
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
+
+		DrawFullscreenQuad();
+
+		RenderCommand::ClearShaderResources();
+
+		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, nullptr);
+
+		ShaderLibrary::Get("assets/shaders/Post Process/GodRays.hlsl")->Bind();
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->DepthBuffer->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GodRaySunMaskRT->GetSRV());
+
+		RenderCommand::SetBlendState(sRendererData->ParticleBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+
+		sRendererData->GodRaysBuffer.Write((uint8_t*)&exposure, 4, 0);
+		sRendererData->GodRaysBuffer.Write((uint8_t*)&decay, 4, 4);
+		sRendererData->GodRaysBuffer.Write((uint8_t*)&density, 4, 8);
+		sRendererData->GodRaysBuffer.Write((uint8_t*)&weight, 4, 12);
+		sRendererData->GodRaysCBuffer->Map(sRendererData->GodRaysBuffer);
+
+		DrawFullscreenQuad();
+
+		ID3D11RenderTargetView* nullRTV = nullptr;
+		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
+		RenderCommand::SetDepthStencilState(nullptr);
+		RenderCommand::SetBlendState(nullptr);
+		RenderCommand::ClearShaderResources();
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
+	}
+
 	void Renderer::BloomPass(float threshold, float intensity)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -1242,7 +1311,7 @@ namespace Toast {
 
 		auto& renderTargetSize = sRendererData->HorizontalBlurRT->GetSize();
 		DirectX::XMFLOAT2 texelSize(1.0f / static_cast<float>(std::get<0>(renderTargetSize)),
-									1.0f / static_cast<float>(std::get<1>(renderTargetSize)));
+			1.0f / static_cast<float>(std::get<1>(renderTargetSize)));
 
 		sRendererData->BlurBuffer.Write((uint8_t*)&texelSize.x, 8, 0);
 		sRendererData->BlurCBuffer->Map(sRendererData->BlurBuffer);
@@ -1443,7 +1512,7 @@ namespace Toast {
 		device->CreateBuffer(&bufferDesc, nullptr, &sRendererData->ParticleBuffer);
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = DXGI_FORMAT_UNKNOWN; // Structured buffers don’t have a format
+		srvDesc.Format = DXGI_FORMAT_UNKNOWN; // Structured buffers donâ€™t have a format
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 		srvDesc.Buffer.NumElements = 1000;
 
@@ -1484,7 +1553,7 @@ namespace Toast {
 		device->CreateBuffer(&bufferDesc, nullptr, &sRendererData->ParticleBuffer);
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = DXGI_FORMAT_UNKNOWN; // Structured buffers don’t have a format
+		srvDesc.Format = DXGI_FORMAT_UNKNOWN; // Structured buffers donâ€™t have a format
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 		srvDesc.Buffer.NumElements = newSize;
 

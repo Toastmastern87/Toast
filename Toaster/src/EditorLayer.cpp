@@ -71,6 +71,7 @@ namespace Toast {
 		// Post Processes
 		ShaderLibrary::Load("assets/shaders/Post Process/Skybox.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/Atmosphere.hlsl");
+		ShaderLibrary::Load("assets/shaders/Post Process/GodRays.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/Bloom.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/BloomComposition.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/ToneMapping.hlsl");
@@ -82,8 +83,10 @@ namespace Toast {
 		// Others
 		ShaderLibrary::Load("assets/shaders/Utilities/HorizontalBlur.hlsl");
 		ShaderLibrary::Load("assets/shaders/Utilities/VerticalBlur.hlsl");
+		ShaderLibrary::Load("assets/shaders/Utilities/SunDiscMask.hlsl");
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
 		ShaderLibrary::Load("assets/shaders/UI.hlsl");
+		ShaderLibrary::Load("assets/shaders/Utilities/Copy.hlsl");
 
 		// Load all materials from the asset folder
 		std::vector<std::string> materialStrings = FileDialogs::GetAllFiles("\\assets\\materials");

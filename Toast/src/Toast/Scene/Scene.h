@@ -74,6 +74,11 @@ namespace Toast {
 			int PhysicsFPS = 60;
 			float physicsElapsedTime = 0.0;
 			float SunFrustumOrthoSize = 500.0f;
+
+			float GodRaysExposure = 0.21f;
+			float GodRaysDecay = 0.94f;
+			float GodRaysDensity = 3.0f;
+			float GodRaysWeight = 0.02f;
 		};
 		struct Stats
 		{

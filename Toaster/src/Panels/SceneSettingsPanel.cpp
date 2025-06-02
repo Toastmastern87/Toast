@@ -26,7 +26,7 @@ namespace Toast {
 
 		if(mContext)
 		{
-			const char* items[] = { "None", "G-Buffer Positions", "G-Buffer Normals", "G-Buffer Albedo/Metallic", "Roughness", "Lighting Pass Output", "Atmospheric Scattering Output", "SSAO", "SSAO Blur", "Bloom", "Bloom Blur", "Bloom Final"};
+			const char* items[] = { "None", "G-Buffer Positions", "G-Buffer Normals", "G-Buffer Albedo/Metallic", "Roughness", "Lighting Pass Output", "Atmospheric Scattering Output", "SSAO", "SSAO Blur", "Bloom", "Bloom Blur", "Bloom Final" };
 			int currentOverlay = static_cast<int>(mContext->mSettings.RenderOverlaySetting);
 
 			ImGui::Text("Render Overlay");
@@ -81,6 +81,15 @@ namespace Toast {
 
 			ImGui::Text("Sun Frustum Ortho Size");
 			ImGuiHelpers::ManualDragFloat("##sunlightdistance", mContext->mSettings.SunFrustumOrthoSize, mWindow, activeDragArea, 10.0f, ImVec2{ 255.0f, 20.0f }, "%.1f", 50.0f, 10000.0f);
+
+			ImGui::Text("God Rays Exposure");
+			ImGuiHelpers::ManualDragFloat("##godraysexposure", mContext->mSettings.GodRaysExposure, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
+			ImGui::Text("God Rays Decay");
+			ImGuiHelpers::ManualDragFloat("##godraysdecay", mContext->mSettings.GodRaysDecay, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
+			ImGui::Text("God Rays Density");
+			ImGuiHelpers::ManualDragFloat("##godraysdensity", mContext->mSettings.GodRaysDensity, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 5.0f);
+			ImGui::Text("God Rays Weight");
+			ImGuiHelpers::ManualDragFloat("##godraysweight", mContext->mSettings.GodRaysWeight, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
 		}
 
 		ImGui::End();

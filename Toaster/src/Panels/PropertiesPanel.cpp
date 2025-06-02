@@ -412,7 +412,7 @@ namespace Toast {
 				else
 					updateTransform |= ImGuiHelpers::ManualDragFloat3("Translation", component.Translation, 1.0f, 0.0f, window, activeDragArea);
 
-				updateRotTransform |= ImGuiHelpers::ManualDragFloat3("Rotation", component.RotationEulerAngles, 1.0f, 0.0f, window, activeDragArea);
+				updateRotTransform |= ImGuiHelpers::ManualDragFloat3("Rotation", component.RotationEulerAngles, 0.1f, 0.0f, window, activeDragArea);
 
 				updateTransform |= ImGuiHelpers::ManualDragFloat3("Scale", component.Scale, 1.0f, 0.0f, window, activeDragArea);
 
@@ -837,13 +837,13 @@ namespace Toast {
 
 					ImGui::EndTable();
 
-					DrawFloatControl("Sun Disc Radius", component.PlanetData.SunDiscRadius, window, activeDragArea, 90.0f, 0.0f, 2 * M_PI, 0.0001f, "%.5f");
+					DrawFloatControl("Sun Disc Radius", component.PlanetData.SunDiscRadius, window, activeDragArea, 90.0f, 0.0f, 2 * M_PI, 0.00001f, "%.5f");
 
-					DrawFloatControl("Sun Glow Intensity", component.PlanetData.SunEdgeSoftness, window, activeDragArea, 90.0f, 0.0f, 210.0f, 0.1f, "%.2f");
+					DrawFloatControl("Sun Glow Intensity", component.PlanetData.SunGlowIntensity, window, activeDragArea, 90.0f, 0.0f, 210.0f, 0.01f, "%.2f");
 
-					DrawFloatControl("Sun Edge Softness", component.PlanetData.SunEdgeSoftness, window, activeDragArea, 90.0f, 0.0f, 2 * M_PI, 0.0001f, "%.5f");
+					DrawFloatControl("Sun Edge Softness", component.PlanetData.SunEdgeSoftness, window, activeDragArea, 90.0f, 0.0f, 2 * M_PI, 0.0001f, "%.4f");
 
-					DrawFloatControl("Sun Glow Sizes", component.PlanetData.SunGlowSize, window, activeDragArea, 90.0f, 0.0f, 2 * M_PI, 0.01f, "%.3f");
+					DrawFloatControl("Sun Glow Sizes", component.PlanetData.SunGlowSize, window, activeDragArea, 90.0f, 0.0f, 2 * M_PI, 0.001f, "%.3f");
 				}
 
 				if(modified)

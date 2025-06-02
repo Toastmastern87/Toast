@@ -1,4 +1,4 @@
-#inputlayout
+﻿#inputlayout
 #type vertex
 #pragma pack_matrix( row_major )
 
@@ -20,12 +20,12 @@ PixelInputType main(uint vID : SV_VertexID)
 }
 
 #type pixel
+#pragma pack_matrix( row_major )
+
 Texture2D DepthTexture				: register(t9);
 Texture2D BaseTexture				: register(t10);
 
 SamplerState DefaultSampler			: register(s1);
-
-#pragma pack_matrix( row_major )
 
 #define PI 3.141592653589793
 
@@ -81,6 +81,43 @@ struct PixelInputType
 	float4 position			: SV_POSITION0;
 	float2 texCoord			: TEXCOORD;
 };
+
+struct SunParams
+{
+    float discRadius; // rad, phys radius  (e.g. 0.00465)
+    float edgeSoftness; // rad, 1–10 % of radius
+    float glowSize; // rad, ~3–8 × discRadius
+    float glowFalloff; // 1/σ² for gaussian ( >0 )
+    float3 discColour; // usually radiance.rgb
+    float3 glowColour; // atmospheric tint
+    float discHDR; // HDR boost for disc   (10-20)
+    float glowHDR; // HDR boost for glow   ( 1-5 )
+};
+
+// -----------------------------------------------------------------------------
+// Returns inner-disc (RGB) and halo (RGB) separately so caller can decide how
+// to combine / mask them.
+// angle2     – squared angle between view dir and sun dir (radians²)
+// ----------------------------------------------------------------------------- 
+void EvaluateSun(in SunParams P,
+                 in float angle2,
+                 out float3 discOut,
+                 out float3 glowOut)
+{
+    float r2 = P.discRadius * P.discRadius;
+    float softR2A = (P.discRadius - P.edgeSoftness);
+    float softR2B = (P.discRadius + P.edgeSoftness);
+    softR2A *= softR2A;
+    softR2B *= softR2B;
+
+    // disc (smoothstep on squared radius avoids expensive sqrt/acos)
+    float discMask = 1.0f - smoothstep(softR2A, softR2B, angle2);
+    discOut = P.discColour * discMask * P.discHDR;
+
+    // gaussian glow  exp(- (θ/σ)² )
+    float glowMask = exp(-angle2 * P.glowFalloff);
+    glowOut = P.glowColour * glowMask * P.glowHDR;
+}
 
 float2 RaySphere(float3 sphereCenter, float sphereRadius, float3 rayOrigin, float3 rayDir)
 {
@@ -327,56 +364,49 @@ float4 main(PixelInputType input) : SV_TARGET
         }
 
 		// Sun disc logic (always render sun disc)
-        float3 sunDir = normalize(-direction.xyz);
+        float3 sunDir = normalize(direction.xyz);
         float3 sunColor = 0.0f;
+        
+        // ──────────────────────────────────────────────────────────────────────────────
+        //  ADD just after you compute   rayDir   and   sunDir  (≈ line 615)
+        // ──────────────────────────────────────────────────────────────────────────────
+        float horizonCos = dot(rayDir, sunDir); //  1  when looking at Sun,
+                                                 //  0  on horizon,
+                                                 // <0  when Sun is behind terrain
+        float horizonFade = smoothstep(-0.07, 0.02, horizonCos); // soft in-out     (Fix-1)
+        
+        float camHeightKm = (length(rayOrigin - planetCenterTranslated) - radius) * 0.001;
+        float spaceFade = saturate(camHeightKm / (atmosphereHeight * 0.001)); // (Fix-2)
 
         if (sunDiscToggle > 0)
         {
-            // Compute the angle between the view direction and the sun direction
-            float cosAngle = dot(rayDir, sunDir);
-            cosAngle = clamp(cosAngle, -1.0f, 1.0f);
-            float angle = acos(cosAngle); // angle in radians
-
-            // Sun disc parameters
-            float sunAngularRadius = sunDiscRadius; // in radians (e.g., 0.00465f for Earth)
-            float edgeSoftness = sunEdgeSoftness; // Small value for sharp edge
-            float glowSize = sunGlowSize; // Glow size in radians
-            float sunGlowFactor = sunGlowIntensity; // Glow intensity factor from Atmosphere cbuffer
-
-            // Sun disc intensity
-            float sunDiscIntensity = 1.0f - smoothstep(sunAngularRadius - edgeSoftness, sunAngularRadius + edgeSoftness, angle);
-            sunDiscIntensity *= 10.0f; // Boost intensity for HDR
-
-            // Sun glow intensity using Gaussian falloff
-            float angleFromSunCenter = angle;
-            float sunGlowIntensity = sunGlowFactor * exp(-pow(angleFromSunCenter / glowSize, 2.0f));
-
-            // Compute atmospheric scattering along the sun's direction
             float3 sunScatteringColor = ComputeScatteringAlongRay(rayOrigin, sunDir);
-
-            // Compute the viewer's height above the planet surface
-            float viewerHeight = length(rayOrigin - planetCenterTranslated) - radius;
-
-            // Normalize viewer height to a range [0, 1] for blending
-            float atmosphereTransitionHeight = atmosphereHeight * 0.1f; // Adjust as needed
-            float blendFactor = saturate((viewerHeight - (atmosphereHeight - atmosphereTransitionHeight)) / atmosphereTransitionHeight);
-
-            // Adjust sun scattering color brightness for the glow
-            float glowBrightness = 1.1f; // Adjust as needed
-
-            // Compute the glow color by blending based on viewer position
+            float glowBrightness = 1.1f;
             float3 atmosphericGlowColor = sunScatteringColor * glowBrightness;
-            float3 spaceGlowColor = radiance.rgb;
+            
+            float viewerHeight = length(rayOrigin - planetCenterTranslated) - radius;
+            float atmosphereTransitionHeight = atmosphereHeight * 0.1f;
+            float blendFactor = saturate((viewerHeight - (atmosphereHeight - atmosphereTransitionHeight)) / atmosphereTransitionHeight);
+            
+            SunParams s;
+            s.discRadius = sunDiscRadius;
+            s.edgeSoftness = sunEdgeSoftness;
+            s.glowSize = sunGlowSize; // 3-6 × disc radius
+            s.glowFalloff = 1.0 / (s.glowSize * s.glowSize);
+            s.discColour = radiance.rgb;
+            s.glowColour = lerp(atmosphericGlowColor, radiance.rgb, blendFactor);
+            s.discHDR = 12.0;
+            s.glowHDR = 2.0;
 
-            float3 sunGlowColor = lerp(atmosphericGlowColor, spaceGlowColor, blendFactor);
-            sunGlowColor = max(sunGlowColor, float3(0.0f, 0.0f, 0.0f));
+            float3 discTerm, glowTerm;
+            float angle2 = 1.0 - dot(rayDir, -sunDir); // 1-cosθ ≈ θ²/2 for small θ
+            EvaluateSun(s, angle2, discTerm, glowTerm);
 
-            // Boost glow color intensity for HDR
-            sunGlowColor *= 10.0f;
-
-            // Final sun color: combine inner disc and glow
-            sunColor = (radiance.rgb * sunDiscIntensity) + (sunGlowColor * sunGlowIntensity);
-
+            discTerm *= horizonFade; // Fix-1
+            glowTerm *= horizonFade * (1.0 - spaceFade * 0.5);
+            
+            sunColor = discTerm + glowTerm;
+            
             // Respect depth: Sun should fade behind geometry
             if (useDepth == 1)
             {
@@ -385,7 +415,7 @@ float4 main(PixelInputType input) : SV_TARGET
                 {
                     sunColor = float3(0.0f, 0.0f, 0.0f); // Sun is behind geometry
                 }
-            }
+            }        
         }
 
 		// Combine with original color and atmospheric transmittance

@@ -20,7 +20,8 @@ namespace Toast {
 		RenderSettings = 9,
 		SSAO = 10,
 		Bloom = 11,
-		Blur = 12
+		Blur = 12,
+		GodRays = 13
 	};
 
 	struct CBufferBindInfo
