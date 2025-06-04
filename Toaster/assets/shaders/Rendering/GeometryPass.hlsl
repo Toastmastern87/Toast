@@ -106,7 +106,7 @@ PixelInputType main(VertexInputType input)
     {
         // Generate pseudo-random scale and rotation
         float seed = Random(input.worldInstancePosition);
-        float scale = lerp(1.0f, 5.0f, seed); // Scale between 80% and 120%
+        float scale = lerp(0.1f, 0.3f, seed); // Scale between 80% and 120%
     
         // Generate random rotation angles (between 0 and 2 * PI)
         float3 rotationAngles = float3(

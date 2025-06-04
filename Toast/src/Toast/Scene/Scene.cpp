@@ -520,6 +520,7 @@ namespace Toast {
 
 				TerrainDetailComponent* tdc = nullptr;
 				TerrainColliderComponent* tcc = nullptr;
+				TerrainObjectComponent* toc = nullptr;
 				PlanetComponent& pc = e.GetComponent<PlanetComponent>();
 				TransformComponent& tc = e.GetComponent<TransformComponent>();
 
@@ -528,6 +529,9 @@ namespace Toast {
 
 				if (e.HasComponent<TerrainColliderComponent>())
 					tcc = &e.GetComponent<TerrainColliderComponent>();
+
+				if (e.HasComponent<TerrainObjectComponent>())
+					toc = &e.GetComponent<TerrainObjectComponent>();
 
 				DirectX::XMVECTOR cameraForward = { 0.0f, 0.0f, 1.0f };
 				DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
@@ -545,9 +549,9 @@ namespace Toast {
 
 				DirectX::XMVECTOR cameraPosWorldMovementNeg = DirectX::XMVectorScale(cameraPosWorldMovement, 1.0f);
 
-				PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPosWorldMovementNeg, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc->BuildColliders, tcc->BuildColliderPositions, tdc);
+				PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPosWorldMovementNeg, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc->BuildColliders, tcc->BuildColliderPositions, tdc, toc);
 
-				PlanetSystem::UpdatePlanet(pc.RenderMesh, *tcc);
+				PlanetSystem::UpdatePlanet(pc.RenderMesh, *tcc, *toc);
 			}
 
 			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
@@ -1128,6 +1132,7 @@ namespace Toast {
 
 				TerrainDetailComponent* tdc = nullptr;
 				TerrainColliderComponent* tcc = nullptr;
+				TerrainObjectComponent* toc = nullptr;
 				PlanetComponent& pc = e.GetComponent<PlanetComponent>();
 				TransformComponent& tc = e.GetComponent<TransformComponent>();
 
@@ -1136,6 +1141,9 @@ namespace Toast {
 
 				if (e.HasComponent<TerrainColliderComponent>())
 					tcc = &e.GetComponent<TerrainColliderComponent>();
+
+				if (e.HasComponent<TerrainObjectComponent>())
+					toc = &e.GetComponent<TerrainObjectComponent>();
 
 				if (mainCamera)
 				{
@@ -1160,17 +1168,10 @@ namespace Toast {
 						* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
 					// Starting new thread to create a new planet if one isn't already being created
-					PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPos, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc->BuildColliders, tcc->BuildColliderPositions, tdc);
+					PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPos, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc->BuildColliders, tcc->BuildColliderPositions, tdc, toc);
 
 					// Check if planet build is ready and if that is the case move it to the render mesh
-					PlanetSystem::UpdatePlanet(pc.RenderMesh, *tcc);
-
-					//if (e.HasComponent<TerrainObjectComponent>())
-					//{
-					//	TerrainObjectComponent& toc = e.GetComponent<TerrainObjectComponent>();
-
-					//	PlanetSystem::DetailObjectPlacement(pc, toc, noScaleModelMatrix, cameraPos);
-					//}
+					PlanetSystem::UpdatePlanet(pc.RenderMesh, *tcc, *toc);
 				}
 				else
 					TOAST_CORE_ERROR("No primary camera present, unable to render the planet");

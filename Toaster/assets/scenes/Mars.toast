@@ -407,9 +407,9 @@ Entities:
       GravelHighThreshold: 49.4000015
     TerrainObjectComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\Stone\Stone.gltf
-      SubdivisionActivation: 9
+      SubdivisionActivation: 20
       MaxNumberOfObjectsPerFace: 4
-      MaxNumberOfObjects: 999
+      MaxNumberOfObjects: 65000
   - Entity: 12837192831272
     TagComponent:
       Tag: Ambient Light

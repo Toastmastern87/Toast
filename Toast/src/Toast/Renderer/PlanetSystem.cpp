@@ -36,6 +36,7 @@ namespace Toast {
 	static std::vector<Ref<PlanetNode>> gAllNodes;
 	static std::vector<PlanetNode*> gActiveNodes; 
 	static std::vector<PlanetNode*> gVisibleNodes;
+	static std::vector<DirectX::XMFLOAT3> gTerrainObjectsPosition;
 	static std::vector<PlanetNode*> gWorkQueue;
 	static FixedThreadPool gJobPool(4);
 
@@ -183,7 +184,7 @@ namespace Toast {
 		double mask = 0.0;
 		double hGravel = 0.0;
 
-		if (td) 
+		if (td)
 		{
 			double hRolling = Hill3DLOD(unit, td->Octaves, td->Frequency, td->Amplitude, planet.PlanetData.radius, subdivision);
 
@@ -661,7 +662,6 @@ namespace Toast {
 
 		// merge visible nodes from the different threads under lock
 		static std::vector<Ref<PlanetNode>> sPatchKeepAlive;     // ▼ lifetime bucket
-
 		{
 			std::scoped_lock lk(gActiveMutex);
 
@@ -879,69 +879,63 @@ namespace Toast {
 		}
 	}
 
-	void PlanetSystem::DetailObjectPlacement(const PlanetComponent& planet, TerrainObjectComponent& objects, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR& camPos)
+	void PlanetSystem::DetailObjectPlacement(PlanetComponent& planet, TerrainObjectComponent* objects, Matrix& planetNoScaleTransform)
 	{
-		std::vector<DirectX::XMFLOAT3> objectPositions;
+		TOAST_PROFILE_FUNCTION();
 
-		//Matrix planetTransform = { noScaleTransform };
-		//Vector3 cameraPos = { camPos };
+		gTerrainObjectsPosition.clear();
+		gTerrainObjectsPosition.reserve(objects->MaxNrOfObjects);
 
-		//const siv::PerlinNoise& perlin = siv::PerlinNoise(static_cast<uint32_t>(19871102));
+		const siv::PerlinNoise& perlin = siv::PerlinNoise(static_cast<uint32_t>(19871102));
 
-		//std::vector<Vertex> vertices = planet.RenderMesh->GetVertices();
-		//std::vector<uint32_t> indices = planet.RenderMesh->GetIndices();
-		//
-		//if (indices.size() > 0 && vertices.size() > 0)
-		//{
-		//	for (int i = 0; i < indices.size() - 2; i += 3)
-		//	{
-		//		Vector3 A = vertices[indices[i]].Position;
-		//		Vector3 B = vertices[indices[i + 1]].Position;
-		//		Vector3 C = vertices[indices[i + 2]].Position;
+		std::vector<PlanetNode*> visible;   // local snapshot
+		{
+			std::scoped_lock lk(gActiveMutex);   // lock writer side
+			visible = gVisibleNodes;             // cheap pointer copy
+		}
 
-		//		double aDistance = (A - cameraPos).LengthSquared();
-		//		double bDistance = (B - cameraPos).LengthSquared();
-		//		double cDistance = (C - cameraPos).LengthSquared();
+		if (!visible.empty())
+		{
+			for (PlanetNode* node : visible)
+			{
+				if (node->SubdivisionLevel < objects->SubdivisionActivation)
+					continue;
 
-		//		if (aDistance < planet.DistanceLUT[(uint32_t)objects.SubdivisionActivation] && bDistance < planet.DistanceLUT[(uint32_t)objects.SubdivisionActivation] && cDistance < planet.DistanceLUT[(uint32_t)objects.SubdivisionActivation])
-		//		{
-		//			Vector2 aUV = vertices[indices[i]].Texcoord;
-		//			Vector2 bUV = vertices[indices[i + 1]].Texcoord;
-		//			Vector2 cUV = vertices[indices[i + 2]].Texcoord;
+				if (node->CachedDetailObjectPosition.empty())
+				{
+					Vector2 centerUV = (node->A.UV + node->B.UV + node->C.UV) / 3.0;
 
-		//			Vector2 centerUV = (aUV + bUV + cUV) / 3.0;
+					double noiseValue = perlin.octave2D_01(centerUV.x, centerUV.y, 4);
+					int stonesInThisTriangle = static_cast<int>(std::round(static_cast<double>(objects->MaxNrOfObjectPerFace) * noiseValue));
 
-		//			double noiseValue = perlin.octave2D_01(centerUV.x, centerUV.y, 4);
-		//			int stonesInThisTriangle = static_cast<int>(std::round(static_cast<double>(objects.MaxNrOfObjectPerFace) * noiseValue));
+					if (!(stonesInThisTriangle > 0))
+						continue;
 
-		//			if (stonesInThisTriangle > 0)
-		//			{
-		//				uint32_t seed = HashFace(indices[i], indices[i+1], indices[i+2]);
-		//				std::mt19937 rng(seed);
-		//				std::uniform_real_distribution<double> dist(0.0f, 1.0f);
+					std::mt19937 rng(PlanetNode::Hasher{}(*node));
+					std::uniform_real_distribution<double> dist(0.0f, 1.0f);
 
-		//				for (int j = 0; j < stonesInThisTriangle; ++j) {
-		//					// Generate barycentric coordinates deterministically
-		//					double u = dist(rng);
-		//					double v = dist(rng);
-		//					if (u + v > 1.0f) {
-		//						u = 1.0f - u;
-		//						v = 1.0f - v;
-		//					}
-		//					float w = 1.0f - u - v;
+					for (int j = 0; j < stonesInThisTriangle; ++j)
+					{
+						// Generate barycentric coordinates deterministically
+						double u = dist(rng);
+						double v = dist(rng);
+						if (u + v > 1.0f) {
+							u = 1.0f - u;
+							v = 1.0f - v;
+						}
+						float w = 1.0f - u - v;
 
-		//					// Calculate the object's local position
-		//					Vector3 objectPosition = A * u + B * v + C * w;
+						// Calculate the object's local position
+						Vector3 objectPosition = node->A.Position * u + node->B.Position * v + node->C.Position * w;
+						Vector3 objectPositionworldPos = planetNoScaleTransform * objectPosition;
 
-		//					objectPositions.emplace_back(DirectX::XMFLOAT3(objectPosition.x, objectPosition.y, objectPosition.z));
-		//				}
-		//			}
-		//		}
-		//	}
-		//}
+						node->CachedDetailObjectPosition.emplace_back(DirectX::XMFLOAT3((float)objectPositionworldPos.x, (float)objectPositionworldPos.y, (float)objectPositionworldPos.z));
+					}
+				}
 
-		if(objectPositions.size() > 0)
-			objects.MeshObject->SetInstanceData(&objectPositions[0], objectPositions.size() * sizeof(DirectX::XMFLOAT3), objectPositions.size());
+				gTerrainObjectsPosition.insert(gTerrainObjectsPosition.end(), node->CachedDetailObjectPosition.begin(), node->CachedDetailObjectPosition.end());
+			}
+		}
 	}
 
 	void PlanetSystem::InvalidateAllNodes()
@@ -955,7 +949,7 @@ namespace Toast {
 		sCPUVertices.clear();
 	}
 
-	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCull, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail)
+	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCull, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail, TerrainObjectComponent* terrainObject)
 	{
 		if (generationFuture.valid() && generationFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 			return;
@@ -972,6 +966,7 @@ namespace Toast {
 			// **POD copies** of only the data we actually need on the worker thread:
 			PlanetComponent* pPtr = &planet;
 			TerrainDetailComponent* tdPtr = terrainDetail;
+			TerrainObjectComponent* toPtr = terrainObject;
 			Vector3 planetCenterCopy = planetCenter;
 			Frustum* frustumPtr = frustum.get();
 
@@ -990,6 +985,7 @@ namespace Toast {
 			generationFuture = std::async(std::launch::async,
 				[pPtr,
 				tdPtr,
+				toPtr,
 				matCopy,
 				vecCopy,
 				planetCenterCopy,
@@ -1008,6 +1004,9 @@ namespace Toast {
 
 					RebuildPlanetMesh(*pPtr, planetNoScaleTransform);
 
+					if(toPtr)
+						DetailObjectPlacement(*pPtr, toPtr, planetNoScaleTransform);
+
 					newPlanetReady.store(true);
 					planetGenerationOngoing.store(false);
 				});
@@ -1018,7 +1017,7 @@ namespace Toast {
 		return;
 	}
 
-	void PlanetSystem::UpdatePlanet(Ref<Mesh>& renderPlanet, TerrainColliderComponent& terrainCollider)
+	void PlanetSystem::UpdatePlanet(Ref<Mesh>& renderPlanet, TerrainColliderComponent& terrainCollider, TerrainObjectComponent& terrainObject)
 	{
 		std::lock_guard<std::mutex> lock(planetDataMutex);
 		if (newPlanetReady.load())
@@ -1032,6 +1031,11 @@ namespace Toast {
 			renderPlanet->mLODGroups[0]->Vertices = sBuildVertices;
 			renderPlanet->mLODGroups[0]->Indices = sBuildIndices;
 			renderPlanet->InvalidatePlanet();
+
+			if (!gTerrainObjectsPosition.empty())
+			{
+				terrainObject.MeshObject->SetInstanceData(&gTerrainObjectsPosition[0], gTerrainObjectsPosition.size() * sizeof(DirectX::XMFLOAT3), gTerrainObjectsPosition.size());
+			}
 
 			newPlanetReady.store(false);
 		}

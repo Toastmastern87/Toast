@@ -105,8 +105,10 @@ namespace Toast {
 		Vector3 Center;
 		PlanetNode* Parent = nullptr;
 		std::vector<Ref<PlanetNode>> ChildNodes;
-		int16_t SubdivisionLevel = 0;
+		int32_t SubdivisionLevel = 0;
 		Bounds NodeBounds;
+
+		std::vector<DirectX::XMFLOAT3> CachedDetailObjectPosition;
 
 		double SphereRadius = 0.0;
 
@@ -119,7 +121,7 @@ namespace Toast {
 		} 
 		NodeState = State::ActiveLeaf;
 
-		PlanetNode(const CPUVertex& v0, const CPUVertex& v1, const CPUVertex& v2, const int16_t level, Matrix transform = Matrix::Identity())
+		PlanetNode(const CPUVertex& v0, const CPUVertex& v1, const CPUVertex& v2, const int32_t level, Matrix transform = Matrix::Identity())
 		{
 			A = v0;
 			B = v1;
@@ -322,13 +324,12 @@ namespace Toast {
 		static void UpdateActiveNodes(PlanetComponent& planet, const TerrainDetailComponent* terrainDetails, const Vector3& camPlanetSpace, const Vector3& planetCenter, Matrix& planetNoScaleTransform);
 		static void ComputeVisibleNodes(const PlanetComponent& planet, const TerrainDetailComponent* terrainDetails, const Vector3& camPlanetSpace, const Vector3& planetCenter, bool backfaceCull, bool frustumCull, const Frustum* frustum);
 		static void RebuildPlanetMesh(PlanetComponent& planet, Matrix& planetNoScaleTransform);
+		static void DetailObjectPlacement(PlanetComponent& planet, TerrainObjectComponent* objects, Matrix& planetNoScaleTransform);
 
-		static void DetailObjectPlacement(const PlanetComponent& planet, TerrainObjectComponent& objects, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR& camPos);
-
-		static void UpdatePlanet(Ref<Mesh>& renderPlanet, TerrainColliderComponent& terrainCollider);
+		static void UpdatePlanet(Ref<Mesh>& renderPlanet, TerrainColliderComponent& terrainCollider, TerrainObjectComponent& terrainObject);
 
 		static void InvalidateAllNodes();
-		static void RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCull, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail = nullptr);
+		static void RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCull, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail = nullptr, TerrainObjectComponent* terrainObject = nullptr);
 
 		static void Shutdown();
 
