@@ -29,8 +29,8 @@ namespace Toast {
 	std::vector<uint32_t> PlanetSystem::sBaseIndices;
 	std::vector<Vertex> PlanetSystem::sBuildVertices;
 	std::vector<uint32_t> PlanetSystem::sBuildIndices;
-	std::unordered_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> PlanetSystem::sVertexMap;
-	std::unordered_map<CPUVertex, size_t, CPUVertexHasher, CPUVertexEqual> PlanetSystem::sCPUVertexMap;
+	robin_hood::unordered_flat_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> PlanetSystem::sVertexMap;
+	robin_hood::unordered_flat_map<CPUVertex, size_t, CPUVertexHasher, CPUVertexEqual> PlanetSystem::sCPUVertexMap;
 	std::vector<CPUVertex> PlanetSystem::sCPUVertices;
 	std::unordered_map<PlanetNode, Ref<PlanetNode>,	PlanetNode::Hasher> gNodeLookup;
 	static std::vector<Ref<PlanetNode>> gAllNodes;
@@ -82,24 +82,6 @@ namespace Toast {
 	inline size_t RowStride(const TerrainData& td)
 	{
 		return td.Stride;  
-	}
-
-	static size_t AddVertexThreadSafe(const CPUVertex& cpuV,
-		const Vector3& worldPos)
-	{
-		Vertex v;
-		v.Position = { (float)worldPos.x, (float)worldPos.y, (float)worldPos.z };
-		v.Texcoord = { (float)cpuV.UV.x,  (float)cpuV.UV.y };
-		v.Normal = { 0,0,0 };
-		v.Tangent = { 0,0,0,0 };
-		v.Color = { 0,0,0 };
-
-		std::scoped_lock lk(sBuildMutex);          // tiny critical section
-		auto [it, inserted] = PlanetSystem::sVertexMap.emplace(v, PlanetSystem::sBuildVertices.size());
-
-		if (inserted)
-			PlanetSystem::sBuildVertices.emplace_back(v);
-		return it->second;
 	}
 
 	static const CPUVertex& CacheCPUVertex(const CPUVertex& in)
@@ -687,8 +669,7 @@ namespace Toast {
 		}
 	}
 
-	void PlanetSystem::RebuildPlanetMesh(PlanetComponent& planet,
-		Matrix& planetNoScaleTf)
+	void PlanetSystem::RebuildPlanetMesh(PlanetComponent& planet, Matrix& planetNoScaleTf)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -703,17 +684,22 @@ namespace Toast {
 		/* --------------- per‑thread scratch space ---------------------- */
 		struct ThreadScratch
 		{
+			std::vector<Vertex>   localVerts;     // deduplicated per worker
 			std::vector<uint32_t> localIndices;
+			std::unordered_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> map;
 		};
 		std::vector<ThreadScratch> tls(numTasks);
 
 		/* --------------- first pass: generate verts / indices ---------- */
 		gJobPool.parallelFor(numTasks, [&](size_t task)
 			{
-				size_t begin = task * CHUNK;
-				size_t end = std::min(begin + CHUNK, gVisibleNodes.size());
-				auto& scratch = tls[task];
-				scratch.localIndices.reserve((end - begin) * 3);
+				auto& T = tls[task];
+				T.localVerts.reserve(CHUNK * 6);    // heuristic
+				T.localIndices.reserve(CHUNK * 3);
+				T.map.reserve(CHUNK * 3);
+
+				const size_t begin = task * CHUNK;
+				const size_t end = std::min(begin + CHUNK, gVisibleNodes.size());
 
 				for (size_t i = begin; i < end; ++i)
 				{
@@ -724,32 +710,46 @@ namespace Toast {
 					Vector3 wpB = planetNoScaleTf * B.Position;
 					Vector3 wpC = planetNoScaleTf * C.Position;
 
-					/* face normal (SIMD) */
-					Vector3AVX2 sA(wpA.x, wpA.y, wpA.z),
-						sB(wpB.x, wpB.y, wpB.z),
-						sC(wpC.x, wpC.y, wpC.z);
-					Vector3AVX2 sn = Vector3AVX2::Cross(sB - sA, sC - sA).Normalised();
-					Vector3 faceN = sn.ToVector3();
-
-					if (faceN.y < 0.0)
+					Vector3 faceN = Vector3AVX2::Cross(Vector3AVX2(wpB) - Vector3AVX2(wpA),	Vector3AVX2(wpC) - Vector3AVX2(wpA)).ToVector3();
+					if (faceN.y < 0) 
 						faceN = faceN * -1.0;
 
 					if (planet.PlanetData.smoothShading)
 					{
-						size_t iA = AddVertexThreadSafe(A, wpA);
-						size_t iB = AddVertexThreadSafe(B, wpB);
-						size_t iC = AddVertexThreadSafe(C, wpC);
+						auto addLocalVert = [&](const CPUVertex& cpu, const Vector3& wp)->uint32_t
+							{
+								Vertex v;
+								v.Position = { (float)wp.x,(float)wp.y,(float)wp.z };
+								v.Texcoord = { (float)cpu.UV.x,(float)cpu.UV.y };
+								v.Normal = { 0,0,0 };
+								v.Tangent = { 0,0,0,0 };
+								v.Color = { 0,0,0 };
 
-						{   /* accumulate normals under mutex */
-							std::scoped_lock lk(sBuildMutex);
-							sBuildVertices[iA].Normal = { sBuildVertices[iA].Normal.x + (float)faceN.x, sBuildVertices[iA].Normal.y + (float)faceN.y, sBuildVertices[iA].Normal.z + (float)faceN.z };
-							sBuildVertices[iB].Normal = { sBuildVertices[iB].Normal.x + (float)faceN.x, sBuildVertices[iB].Normal.y + (float)faceN.y, sBuildVertices[iB].Normal.z + (float)faceN.z };
-							sBuildVertices[iC].Normal = { sBuildVertices[iC].Normal.x + (float)faceN.x, sBuildVertices[iC].Normal.y + (float)faceN.y, sBuildVertices[iC].Normal.z + (float)faceN.z };
-						}
+								auto [it, ins] = T.map.emplace(v, T.localVerts.size());
+								if (ins) T.localVerts.emplace_back(v);
+								return (uint32_t)it->second;
+							};
 
-						scratch.localIndices.emplace_back((uint32_t)iA);
-						scratch.localIndices.emplace_back((uint32_t)iB);
-						scratch.localIndices.emplace_back((uint32_t)iC);
+						uint32_t iA = addLocalVert(A, wpA);
+						uint32_t iB = addLocalVert(B, wpB);
+						uint32_t iC = addLocalVert(C, wpC);
+
+						const DirectX::XMFLOAT3 fn{ (float)faceN.x,(float)faceN.y,(float)faceN.z };
+
+						auto add = [](DirectX::XMFLOAT3& dst, const DirectX::XMFLOAT3& src)
+							{                                     /*  ► helper lambda            */
+								dst.x += src.x;
+								dst.y += src.y;
+								dst.z += src.z;
+							};
+
+						add(T.localVerts[iA].Normal, fn); 
+						add(T.localVerts[iB].Normal, fn);   
+						add(T.localVerts[iC].Normal, fn);
+
+						T.localIndices.push_back(iA);
+						T.localIndices.push_back(iB);
+						T.localIndices.push_back(iC);
 					}
 					else
 					{
@@ -763,41 +763,69 @@ namespace Toast {
 						sBuildVertices.emplace_back(vC);
 
 						uint32_t base = (uint32_t)sBuildVertices.size();
-						scratch.localIndices.push_back(base - 3);
-						scratch.localIndices.push_back(base - 2);
-						scratch.localIndices.push_back(base - 1);
+						T.localIndices.push_back(base - 3);
+						T.localIndices.push_back(base - 2);
+						T.localIndices.push_back(base - 1);
 					}
 				}
 			});
 
-		/* --------------- merge indices from all threads --------------- */
+		size_t totalV = 0, totalI = 0;
+		for (auto& T : tls)
 		{
-			std::scoped_lock lk(sBuildMutex);
-			for (auto& t : tls)
-				sBuildIndices.insert(sBuildIndices.end(),
-					t.localIndices.begin(), t.localIndices.end());
+			totalV += T.localVerts.size();
+			totalI += T.localIndices.size();
 		}
+		sBuildVertices.reserve(totalV);
+		sBuildIndices.reserve(totalI);
 
-		/* --------------- second pass: normalise (SIMD, parallel) ------ */
-		if (planet.PlanetData.smoothShading)
+		size_t estVerts = gVisibleNodes.size() * 3;   // worst-case unique
+		sVertexMap.reserve(estVerts);
+
+		/* --------------- merge indices from all threads --------------- */
+		for (auto& T : tls)
 		{
-			size_t N = sBuildVertices.size();
-			size_t nTasks = (N + CHUNK - 1) / CHUNK;
+			if (T.localVerts.empty())            // flat-shaded slice
+			{
+				sBuildIndices.insert(sBuildIndices.end(), T.localIndices.begin(), T.localIndices.end());
+				continue;
+			}
 
-			gJobPool.parallelFor(nTasks, [&](size_t task)
+			std::vector<uint32_t> remap(T.localVerts.size());
+
+			for (size_t l = 0; l < T.localVerts.size(); ++l)
+			{
+				const Vertex& src = T.localVerts[l];            // 1) read TLS vertex
+
+				auto [it, ins] = sVertexMap.emplace(src, (uint32_t)sBuildVertices.size());
+
+				if (ins)                                        // ← new unique vertex
 				{
-					size_t begin = task * CHUNK;
-					size_t end = std::min(begin + CHUNK, N);
+					Vertex dst = src;                           // make a modifiable copy
 
-					for (size_t i = begin; i < end; ++i)
+					/* ---------- normalise the accumulated normal right here -------- */
+					Vector3 n(dst.Normal);                      // (already summed)
+					float   lenSq = n.LengthSquared();
+
+					if (lenSq > 1e-12f)
 					{
-						Vector3 n(sBuildVertices[i].Normal);
-						n = Vector3::Normalize(n);
-						{
-							sBuildVertices[i].Normal = { (float)n.x, (float)n.y, (float)n.z };
-						}
+						float invLen = 1.0f / std::sqrt(lenSq); // or Vector3::RSqrt(lenSq)
+						n *= invLen;
 					}
-				});
+					else                                        // defensive fallback
+						n = Vector3{ 0.0f, 1.0f, 0.0f };
+
+					dst.Normal = { (float)n.x, (float)n.y, (float)n.z };
+					/* ---------------------------------------------------------------- */
+
+					sBuildVertices.emplace_back(dst);           // write once
+				}
+
+				remap[l] = (uint32_t)it->second;                // local → global
+			}
+
+			for (uint32_t idx : T.localIndices)                 // fix indices
+				sBuildIndices.push_back(remap[idx]);
 		}
 	}
 

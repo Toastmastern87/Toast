@@ -40,6 +40,7 @@ project "Toast"
 		"%{IncludeDir.msdf_atlas_gen}",
 		"%{IncludeDir.msdfgen}",
 		"%{IncludeDir.filewatch}",
+		"%{IncludeDir.robin_hood}",
 		"%{IncludeDir.perlin_noise}"
 	}
 

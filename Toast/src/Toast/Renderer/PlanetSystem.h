@@ -7,6 +7,7 @@
 
 #include <../vendor/directxtex/include/DirectXTex.h>
 #include "../vendor/perlin-noise/include/PerlinNoise.hpp"
+#include "../vendor/robinhood/include/robin_hood.h"
 
 #include "Toast/Core/Timestep.h"
 
@@ -87,6 +88,24 @@ namespace Toast {
 			return std::abs(a.Position.x - b.Position.x) < kQuant &&
 				std::abs(a.Position.y - b.Position.y) < kQuant &&
 				std::abs(a.Position.z - b.Position.z) < kQuant;
+		}
+	};
+
+	struct PosKey {
+		DirectX::XMFLOAT3 p;
+		bool operator==(const PosKey& o) const noexcept
+		{
+			constexpr float eps = 1e-6f;
+			return std::abs(p.x - o.p.x) < eps &&
+				std::abs(p.y - o.p.y) < eps &&
+				std::abs(p.z - o.p.z) < eps;
+		}
+	};
+	struct PosHash {
+		size_t operator()(const PosKey& k) const noexcept
+		{
+			auto q = [](float f) { return uint32_t(std::llround(f * 1e6)); };
+			return (q(k.p.x) * 73856093u) ^ (q(k.p.y) * 19349663u) ^ (q(k.p.z) * 83492791u);
 		}
 	};
 
@@ -280,8 +299,8 @@ namespace Toast {
 		static std::vector<Vector3> sBaseVertices;
 		static std::vector<uint32_t> sBaseIndices;
 
-		static std::unordered_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> sVertexMap;
-		static std::unordered_map<CPUVertex, size_t, CPUVertexHasher, CPUVertexEqual>  sCPUVertexMap;
+		static robin_hood::unordered_flat_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> sVertexMap;
+		static robin_hood::unordered_flat_map<CPUVertex, size_t, CPUVertexHasher, CPUVertexEqual>  sCPUVertexMap;
 		static std::vector<Vertex> sBuildVertices;
 		static std::vector<uint32_t> sBuildIndices;
 		static std::vector<CPUVertex> sCPUVertices;
