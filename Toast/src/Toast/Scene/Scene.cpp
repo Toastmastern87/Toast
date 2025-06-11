@@ -549,9 +549,9 @@ namespace Toast {
 
 				DirectX::XMVECTOR cameraPosWorldMovementNeg = DirectX::XMVectorScale(cameraPosWorldMovement, 1.0f);
 
-				PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPosWorldMovementNeg, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc->BuildColliders, tcc->BuildColliderPositions, tdc, toc);
+				PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPosWorldMovementNeg, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc, tdc, toc);
 
-				PlanetSystem::UpdatePlanet(pc.RenderMesh, *tcc, *toc);
+				PlanetSystem::UpdatePlanet(pc.RenderMesh, *tcc, *toc, pc.PhysicsNodesWorldSpace);
 			}
 
 			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
@@ -1168,10 +1168,10 @@ namespace Toast {
 						* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
 
 					// Starting new thread to create a new planet if one isn't already being created
-					PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPos, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc->BuildColliders, tcc->BuildColliderPositions, tdc, toc);
+					PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPos, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc, tdc, toc);
 
 					// Check if planet build is ready and if that is the case move it to the render mesh
-					PlanetSystem::UpdatePlanet(pc.RenderMesh, *tcc, *toc);
+					PlanetSystem::UpdatePlanet(pc.RenderMesh, *tcc, *toc, pc.PhysicsNodesWorldSpace);
 				}
 				else
 					TOAST_CORE_ERROR("No primary camera present, unable to render the planet");

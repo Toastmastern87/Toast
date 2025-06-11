@@ -14,6 +14,8 @@ namespace Toast {
 		const Bounds& operator- (const Vector3& rhs);
 		const Bounds& operator* (Matrix& transform);
 		Bounds& operator+=(const Vector3& rhs);
+		Bounds& operator+=(const Bounds& rhs);
+
 		~Bounds() = default;
 
 		void Clear() {

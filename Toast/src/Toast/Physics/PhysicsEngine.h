@@ -773,7 +773,7 @@ namespace Toast {
 			double closestT = DBL_MAX;
 			Vector3 bestHit;
 			bool hitFound = false;
-			for (auto& rootNode : planet.PlanetNodesWorldSpace) {
+			for (auto& rootNode : planet.PhysicsNodesWorldSpace) {
 
 				if (rootNode == NULL)
 					continue;
@@ -876,7 +876,7 @@ namespace Toast {
 			if (!reqAltitude)
 			{
 				int i = 0;
-				for (auto& rootNode : planet.PlanetNodesWorldSpace)
+				for (auto& rootNode : planet.PhysicsNodesWorldSpace)
 					CheckTerrainBroadPhase(rootNode, &planetEntity, &objectEntity, dt_sub, objectBounds);
 			}
 			else 

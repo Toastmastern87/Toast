@@ -37,6 +37,13 @@ namespace Toast {
 		return *this;
 	}
 
+	Bounds& Bounds::operator+=(const Bounds& rhs)
+	{
+		/* widen this box so that it encloses rhs as well */
+		Expand(rhs);     
+		return *this;
+	}
+
 	bool Bounds::Intersects(const Bounds& rhs) const
 	{
 		if (maxs.x < rhs.mins.x || maxs.y < rhs.mins.y || maxs.z < rhs.mins.z)

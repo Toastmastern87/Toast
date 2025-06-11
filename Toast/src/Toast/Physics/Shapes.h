@@ -73,6 +73,10 @@ namespace Toast {
 	public:
 		ShapeBox() = default;
 		ShapeBox(Vector3 size) : mSize(size) {};
+		ShapeBox(const Bounds& bounds)
+		{
+			mBounds = bounds;      
+		}
 		explicit ShapeBox(const Vector3* pts, const int num) {}
 
 		ShapeType GetType() const override { return ShapeType::BOX; }
@@ -81,11 +85,14 @@ namespace Toast {
 
 		void CalculateInertiaTensor(double mass = 100.0) override;
 
-		void SetBounds(Bounds bounds) { mBounds = bounds; }
+		void SetBounds(Bounds bounds);
+		void ExpandToFit(const Bounds& b);
+
 		void CalculateBounds() override;
 
 		float FastestLinearSpeed(const Vector3& angularVelocity, const Vector3& dir) const override;
-
+	private:
+		void BuildCornerPoints();
 	public:
 		Vector3 mSize = { 1.0f, 1.0f, 1.0f };
 

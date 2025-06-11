@@ -29,6 +29,7 @@ namespace Toast {
 	std::vector<uint32_t> PlanetSystem::sBaseIndices;
 	std::vector<Vertex> PlanetSystem::sBuildVertices;
 	std::vector<uint32_t> PlanetSystem::sBuildIndices;
+	std::vector<Ref<PlanetNode>> PlanetSystem::sBuildPhysicsNodes;
 	robin_hood::unordered_flat_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> PlanetSystem::sVertexMap;
 	robin_hood::unordered_flat_map<CPUVertex, size_t, CPUVertexHasher, CPUVertexEqual> PlanetSystem::sCPUVertexMap;
 	std::vector<CPUVertex> PlanetSystem::sCPUVertices;
@@ -46,6 +47,23 @@ namespace Toast {
 	{
 		double t = std::clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
 		return t * t * (3.0 - 2.0 * t);
+	}
+
+	static Ref<PlanetNode> makeWorldCopy(const PlanetNode* src, const Matrix& tf)
+	{
+		CPUVertex A = src->A, B = src->B, C = src->C;
+		A.Position = tf * A.Position;
+		B.Position = tf * B.Position;
+		C.Position = tf * C.Position;
+
+		Ref<PlanetNode> dst = CreateRef<PlanetNode>(A, B, C, src->SubdivisionLevel);
+
+		Bounds b;
+		b.mins = b.maxs = A.Position;
+		b += B.Position;   // you already have operator+= in Bounds
+		b += C.Position;
+		dst->NodeBounds = b;
+		return dst;
 	}
 
 	static Vector2 GetUVFromPosition(const Vector3 pos, double width, double height)
@@ -308,6 +326,19 @@ namespace Toast {
 		return { p0.get(), p1.get() };
 	}
 
+	static std::pair<int, int> GetChunkKey(const Vector3& psCenter,	const Vector3& planetCenter)
+	{
+		Vector3 dir = Vector3::Normalize((psCenter *  /*no-scale matrix not needed*/
+			1.0) - planetCenter);
+		double lat = std::asin(dir.y) * 57.295779513;         // 180/pi
+		double lon = std::atan2(dir.z, dir.x) * 57.295779513;
+		if (lon < 0) lon += 360.0;
+		constexpr int LAT_BINS = 720, LON_BINS = 1440;
+		int latIdx = int((lat + 90.0) * 0.5);   // 180/720 = 0.25°
+		int lonIdx = int(lon * 4.0);            // 360/1440 = 0.25°
+		return { std::min(latIdx,LAT_BINS - 1), std::min(lonIdx,LON_BINS - 1) };
+	}
+
 	static Ref<PlanetNode> AddOrGetNode(const CPUVertex& A,	const CPUVertex& B,	const CPUVertex& C,	int level)
 	{
 		PlanetNode proto(A, B, C, level);     // temporary value just for comparison
@@ -521,6 +552,13 @@ namespace Toast {
 		}
 	}
 
+	void PlanetSystem::BuildPhysicsNodes(PlanetComponent& planet, Matrix& planetNoScaleTransform)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		
+	}
+
 	void PlanetSystem::ComputeVisibleNodes(const PlanetComponent& planet, const TerrainDetailComponent* terrainDetails, const Vector3& camPlanetSpace, const Vector3& planetCenter, bool backfaceCull, bool frustumCull, const Frustum* frustum)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -669,7 +707,7 @@ namespace Toast {
 		}
 	}
 
-	void PlanetSystem::RebuildPlanetMesh(PlanetComponent& planet, Matrix& planetNoScaleTf)
+	void PlanetSystem::RebuildPlanetMesh(PlanetComponent& planet, TerrainColliderComponent& terrainCollider, Matrix& planetNoScaleTf, const Vector3& planetCenter)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -686,7 +724,9 @@ namespace Toast {
 		{
 			std::vector<Vertex>   localVerts;     // deduplicated per worker
 			std::vector<uint32_t> localIndices;
-			std::unordered_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> map;
+			robin_hood::unordered_flat_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> map;
+
+			std::vector<Ref<PlanetNode>> tlsWorldNodes;
 		};
 		std::vector<ThreadScratch> tls(numTasks);
 
@@ -697,6 +737,7 @@ namespace Toast {
 				T.localVerts.reserve(CHUNK * 6);    // heuristic
 				T.localIndices.reserve(CHUNK * 3);
 				T.map.reserve(CHUNK * 3);
+				T.tlsWorldNodes.reserve(CHUNK);
 
 				const size_t begin = task * CHUNK;
 				const size_t end = std::min(begin + CHUNK, gVisibleNodes.size());
@@ -977,7 +1018,7 @@ namespace Toast {
 		sCPUVertices.clear();
 	}
 
-	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCull, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail, TerrainObjectComponent* terrainObject)
+	void PlanetSystem::RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCull, PlanetComponent& planet, TerrainColliderComponent* terrainColliders, TerrainDetailComponent* terrainDetail, TerrainObjectComponent* terrainObject)
 	{
 		if (generationFuture.valid() && generationFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
 			return;
@@ -993,6 +1034,7 @@ namespace Toast {
 		{
 			// **POD copies** of only the data we actually need on the worker thread:
 			PlanetComponent* pPtr = &planet;
+			TerrainColliderComponent* tcPtr = terrainColliders;
 			TerrainDetailComponent* tdPtr = terrainDetail;
 			TerrainObjectComponent* toPtr = terrainObject;
 			Vector3 planetCenterCopy = planetCenter;
@@ -1014,6 +1056,7 @@ namespace Toast {
 				[pPtr,
 				tdPtr,
 				toPtr,
+				tcPtr,
 				matCopy,
 				vecCopy,
 				planetCenterCopy,
@@ -1028,9 +1071,11 @@ namespace Toast {
 
 					UpdateActiveNodes(*pPtr, tdPtr, camPS, planetCenterCopy, planetNoScaleTransform);
 
+					BuildPhysicsNodes(*pPtr, planetNoScaleTransform);
+
 					ComputeVisibleNodes(*pPtr, tdPtr, camPS, planetCenterCopy, backfaceCullCopy, frustumCullCopy, frustumPtr);
 
-					RebuildPlanetMesh(*pPtr, planetNoScaleTransform);
+					RebuildPlanetMesh(*pPtr, *tcPtr, planetNoScaleTransform, planetCenterCopy);
 
 					if(toPtr)
 						DetailObjectPlacement(*pPtr, toPtr, planetNoScaleTransform);
@@ -1045,16 +1090,13 @@ namespace Toast {
 		return;
 	}
 
-	void PlanetSystem::UpdatePlanet(Ref<Mesh>& renderPlanet, TerrainColliderComponent& terrainCollider, TerrainObjectComponent& terrainObject)
+	void PlanetSystem::UpdatePlanet(Ref<Mesh>& renderPlanet, TerrainColliderComponent& terrainCollider, TerrainObjectComponent& terrainObject, std::vector<Ref<PlanetNode>>& physicsNodes)
 	{
 		std::lock_guard<std::mutex> lock(planetDataMutex);
 		if (newPlanetReady.load())
 		{
-			{
-				std::lock_guard<std::mutex> lock(terrainCollidersMutex);
-				terrainCollider.Colliders = terrainCollider.BuildColliders;
-				terrainCollider.ColliderPositions = terrainCollider.BuildColliderPositions;
-			}
+
+			physicsNodes.swap(sBuildPhysicsNodes);
 
 			renderPlanet->mLODGroups[0]->Vertices = sBuildVertices;
 			renderPlanet->mLODGroups[0]->Indices = sBuildIndices;

@@ -303,6 +303,7 @@ namespace Toast {
 		static robin_hood::unordered_flat_map<CPUVertex, size_t, CPUVertexHasher, CPUVertexEqual>  sCPUVertexMap;
 		static std::vector<Vertex> sBuildVertices;
 		static std::vector<uint32_t> sBuildIndices;
+		static std::vector<Ref<PlanetNode>> sBuildPhysicsNodes;
 		static std::vector<CPUVertex> sCPUVertices;
 
 		// Remove?
@@ -341,14 +342,15 @@ namespace Toast {
 
 		// These functions are used to update the active leaves during runtime.
 		static void UpdateActiveNodes(PlanetComponent& planet, const TerrainDetailComponent* terrainDetails, const Vector3& camPlanetSpace, const Vector3& planetCenter, Matrix& planetNoScaleTransform);
+		static void BuildPhysicsNodes(PlanetComponent& planet, Matrix& planetNoScaleTransform);
 		static void ComputeVisibleNodes(const PlanetComponent& planet, const TerrainDetailComponent* terrainDetails, const Vector3& camPlanetSpace, const Vector3& planetCenter, bool backfaceCull, bool frustumCull, const Frustum* frustum);
-		static void RebuildPlanetMesh(PlanetComponent& planet, Matrix& planetNoScaleTransform);
+		static void RebuildPlanetMesh(PlanetComponent& planet, TerrainColliderComponent& terrainCollider, Matrix& planetNoScaleTransform, const Vector3& planetCenter);
 		static void DetailObjectPlacement(PlanetComponent& planet, TerrainObjectComponent* objects, Matrix& planetNoScaleTransform);
 
-		static void UpdatePlanet(Ref<Mesh>& renderPlanet, TerrainColliderComponent& terrainCollider, TerrainObjectComponent& terrainObject);
+		static void UpdatePlanet(Ref<Mesh>& renderPlanet, TerrainColliderComponent& terrainCollider, TerrainObjectComponent& terrainObject, std::vector<Ref<PlanetNode>>& physicsNodes);
 
 		static void InvalidateAllNodes();
-		static void RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCull, PlanetComponent& planet, std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash>& terrainColliders, std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& terrainColliderPositions, TerrainDetailComponent* terrainDetail = nullptr, TerrainObjectComponent* terrainObject = nullptr);
+		static void RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCull, PlanetComponent& planet, TerrainColliderComponent* terrainColliders, TerrainDetailComponent* terrainDetail = nullptr, TerrainObjectComponent* terrainObject = nullptr);
 
 		static void Shutdown();
 

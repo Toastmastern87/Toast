@@ -122,6 +122,34 @@ namespace Toast {
 		mInvInertiaTensor = Matrix::Inverse(mInertiaTensor);
 	}
 
+	void ShapeBox::SetBounds(Bounds bounds)
+	{
+		mBounds = bounds;
+
+		Vector3 half = (bounds.maxs - bounds.mins) * 0.5;
+		mSize = half * 2.0;          
+		mCenterOfMass = (bounds.mins + bounds.maxs) * 0.5;
+
+		BuildCornerPoints();
+	}
+
+	void ShapeBox::ExpandToFit(const Bounds& b)
+	{
+		mBounds.mins.x = (std::min)(mBounds.mins.x, b.mins.x);
+		mBounds.mins.y = (std::min)(mBounds.mins.y, b.mins.y);
+		mBounds.mins.z = (std::min)(mBounds.mins.z, b.mins.z);
+
+		mBounds.maxs.x = (std::max)(mBounds.maxs.x, b.maxs.x);
+		mBounds.maxs.y = (std::max)(mBounds.maxs.y, b.maxs.y);
+		mBounds.maxs.z = (std::max)(mBounds.maxs.z, b.maxs.z);
+
+		Vector3 half = (mBounds.maxs - mBounds.mins) * 0.5;
+		mSize = half * 2.0;
+		mCenterOfMass = (mBounds.mins + mBounds.maxs) * 0.5;
+
+		BuildCornerPoints();
+	}
+
 	void ShapeBox::CalculateBounds()
 	{
 		Vector3 halfSize = mSize * 0.5;
@@ -144,6 +172,22 @@ namespace Toast {
 		}
 
 		return maxSpeed;
+	}
+
+	void ShapeBox::BuildCornerPoints()
+	{
+		Vector3 h = mSize * 0.5;
+
+		mPoints.clear();
+		mPoints.reserve(8);
+		mPoints.emplace_back(-h.x, -h.y, -h.z);
+		mPoints.emplace_back(h.x, -h.y, -h.z);
+		mPoints.emplace_back(h.x, h.y, -h.z);
+		mPoints.emplace_back(-h.x, h.y, -h.z);
+		mPoints.emplace_back(-h.x, -h.y, h.z);
+		mPoints.emplace_back(h.x, -h.y, h.z);
+		mPoints.emplace_back(h.x, h.y, h.z);
+		mPoints.emplace_back(-h.x, h.y, h.z);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  

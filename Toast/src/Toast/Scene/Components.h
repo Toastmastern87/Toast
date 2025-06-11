@@ -18,6 +18,8 @@
 #include <../vendor/directxtex/include/DirectXTex.h>
 #include <mutex>
 
+#include "../vendor/robinhood/include/robin_hood.h"
+
 namespace Toast {
 
 	// Forward deceleration, PlanetNode is found in PlanetSystem.cpp
@@ -145,8 +147,6 @@ namespace Toast {
 		bool IsDirty;
 
 		Ref<Mesh> RenderMesh;
-		//std::vector<Vertex> BuildVertices;
-		//std::vector<uint32_t> BuildIndices;
 
 		std::vector<double> DistanceLUT;
 		std::vector<double> FaceLevelDotLUT;
@@ -157,8 +157,7 @@ namespace Toast {
 
 		uint32_t BuiltDetailGeneration = UINT32_MAX;
 
-		// Remove
-		std::vector<Ref<PlanetNode>> PlanetNodesWorldSpace;
+		std::vector<Ref<PlanetNode>> PhysicsNodesWorldSpace;
 
 		// Remove
 		std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash> TerrainChunks;
@@ -286,10 +285,10 @@ namespace Toast {
 	struct TerrainColliderComponent 
 	{
 		Ref<ShapeTerrain> Collider;
-		std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash> BuildColliders;
-		std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash> BuildColliderPositions;
-		std::unordered_map<std::pair<int, int>, Ref<ShapeBox>, PairHash> Colliders;
-		std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash> ColliderPositions;
+		robin_hood::unordered_flat_map<std::pair<int, int>, Ref<ShapeBox>, PairHash> BuildColliders;
+		robin_hood::unordered_flat_map<std::pair<int, int>, std::vector<Vector3>, PairHash> BuildColliderPositions;
+		robin_hood::unordered_flat_map<std::pair<int, int>, Ref<ShapeBox>, PairHash> Colliders;
+		robin_hood::unordered_flat_map<std::pair<int, int>, std::vector<Vector3>, PairHash> ColliderPositions;
 
 		TerrainColliderComponent() = default;
 		TerrainColliderComponent(const Ref<ShapeTerrain>& collider)

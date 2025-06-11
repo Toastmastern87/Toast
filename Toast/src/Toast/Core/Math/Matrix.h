@@ -73,6 +73,37 @@ namespace Toast {
 			return Vector3(xResult, yResult, zResult, wResult);
 		}
 
+		// Row major!
+		Vector3 operator*(const Vector3& vec) const
+		{
+			double xResult, yResult, zResult, wResult;
+
+			if (vec.w == 0.0)
+			{
+				xResult = vec.x * m_00 + vec.y * m_01 + vec.z * m_02 + m_03;
+				yResult = vec.x * m_10 + vec.y * m_11 + vec.z * m_12 + m_13;
+				zResult = vec.x * m_20 + vec.y * m_21 + vec.z * m_22 + m_23;
+				wResult = 0.0;
+			}
+			else
+			{
+				// For column-major multiplication, the vector appears on the left.
+				xResult = vec.x * m_00 + vec.y * m_10 + vec.z * m_20 + vec.w * m_30;
+				yResult = vec.x * m_01 + vec.y * m_11 + vec.z * m_21 + vec.w * m_31;
+				zResult = vec.x * m_02 + vec.y * m_12 + vec.z * m_22 + vec.w * m_32;
+				wResult = vec.x * m_03 + vec.y * m_13 + vec.z * m_23 + vec.w * m_33;
+
+				//// Perform the homogeneous divide (divide by the w component)
+				//if (wResult != 0.0) {
+				//	xResult /= wResult;
+				//	yResult /= wResult;
+				//	zResult /= wResult;
+				//}
+			}
+
+			return Vector3(xResult, yResult, zResult, wResult);
+		}
+
 		Matrix operator*(const Matrix& other) const {
 			Matrix result;
 
