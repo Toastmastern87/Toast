@@ -49,20 +49,50 @@ namespace Toast {
 		return t * t * (3.0 - 2.0 * t);
 	}
 
-	static Ref<PlanetNode> makeWorldCopy(const PlanetNode* src, const Matrix& tf)
+	static Ref<PlanetNode> makeWorldCopyCached(const PlanetNode* src,
+		const Matrix& tf)
 	{
-		CPUVertex A = src->A, B = src->B, C = src->C;
-		A.Position = tf * A.Position;
-		B.Position = tf * B.Position;
-		C.Position = tf * C.Position;
+		// shallow value-copy of the entire node (keeps ChildNodes intact)
+		Ref<PlanetNode> dst = CreateRef<PlanetNode>(*src);
 
-		Ref<PlanetNode> dst = CreateRef<PlanetNode>(A, B, C, src->SubdivisionLevel);
+		// transform the three face vertices
+		dst->A.Position = tf * dst->A.Position;
+		dst->B.Position = tf * dst->B.Position;
+		dst->C.Position = tf * dst->C.Position;
 
-		Bounds b;
-		b.mins = b.maxs = A.Position;
-		b += B.Position;   // you already have operator+= in Bounds
-		b += C.Position;
-		dst->NodeBounds = b;
+		/* ----- transform the two extrema of the already-computed AABB ------ */
+		Vector3 vMin = tf * src->NodeBounds.mins;
+		Vector3 vMax = tf * src->NodeBounds.maxs;
+		dst->NodeBounds.mins = Vector3::Min(vMin, vMax);
+		dst->NodeBounds.maxs = Vector3::Max(vMin, vMax);
+
+		/* ----- sphere radius is just half the diagonal --------------------- */
+		dst->SphereRadius = 0.5 * (dst->NodeBounds.maxs - dst->NodeBounds.mins).Length();
+
+		return dst;
+	}
+
+	static Ref<PlanetNode> makeWorldCopyRecursive(const PlanetNode* src,
+		const Matrix& tf)
+	{
+		// 1. transform the current node (vertices, AABB, sphere-rad)
+		Ref<PlanetNode> dst = makeWorldCopyCached(src, tf);
+
+		// 2. recurse into the children
+		dst->ChildNodes.clear();
+		dst->ChildNodes.reserve(src->ChildNodes.size());
+
+		for (const auto& cSrc : src->ChildNodes)
+		{
+			Ref<PlanetNode> cDst = makeWorldCopyRecursive(cSrc.get(), tf);
+			cDst->Parent = dst.get();
+			dst->ChildNodes.emplace_back(std::move(cDst));
+		}
+
+		// 3. fix our own bounds now that kids are ready
+		if (!dst->ChildNodes.empty())
+			dst->UpdateBoundsFromChildren();
+
 		return dst;
 	}
 
@@ -394,7 +424,12 @@ namespace Toast {
 		n->ChildNodes[3] = AddOrGetNode(mAB, mBC, mCA, nextL);
 
 		for (auto& c : n->ChildNodes)
+		{
 			c->Parent = n;
+			c->UpdateBoundsFromChildren();
+		}
+
+		n->UpdateBoundsFromChildren();
 	}
 
 	std::array<PlanetNode*, 4> CollapseNode(PlanetNode* n)
@@ -556,7 +591,17 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		
+		std::vector<Ref<PlanetNode>> roots;
+		{
+			std::scoped_lock lk(gActiveMutex);
+			roots = gBaseNodes;      // still the 20 roots (they *own* the tree)
+		}
+
+		sBuildPhysicsNodes.clear();
+		sBuildPhysicsNodes.reserve(roots.size());
+
+		for (auto& r : roots)
+			sBuildPhysicsNodes.emplace_back(makeWorldCopyRecursive(r.get(), planetNoScaleTransform));
 	}
 
 	void PlanetSystem::ComputeVisibleNodes(const PlanetComponent& planet, const TerrainDetailComponent* terrainDetails, const Vector3& camPlanetSpace, const Vector3& planetCenter, bool backfaceCull, bool frustumCull, const Frustum* frustum)
@@ -945,6 +990,9 @@ namespace Toast {
 
 			// Here we keep a raw pointer to the node so that it can be cheaply be split, collapsed and shuffled around
 			gActiveNodes.push_back(root.get());
+
+			// Here we have the 20 base nodes
+			gBaseNodes.push_back(root);
 		}
 	}
 

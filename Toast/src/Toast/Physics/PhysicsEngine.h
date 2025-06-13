@@ -821,6 +821,8 @@ namespace Toast {
 
 		static void CheckTerrainBroadPhase(Ref<PlanetNode>& node, Entity* planetEntity, Entity* objectEntity, double dt_sub, const Bounds& objectBounds)
 		{
+			TOAST_PROFILE_FUNCTION();
+
 			// Broad phase intersection test
 			if (!node->NodeBounds.Intersects(objectBounds))
 				return;

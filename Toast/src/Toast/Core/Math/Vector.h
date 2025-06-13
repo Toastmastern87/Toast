@@ -81,6 +81,20 @@ namespace Toast {
 			return (x < rhs.x) || (x == rhs.x && y < rhs.y) || (x == rhs.x && y == rhs.y && z < rhs.z);
 		}
 
+		static Vector3 Min(const Vector3& a, const Vector3& b) noexcept
+		{
+			return { (std::min)(a.x, b.x),
+					 (std::min)(a.y, b.y),
+					 (std::min)(a.z, b.z) };
+		}
+
+		static Vector3 Max(const Vector3& a, const Vector3& b) noexcept
+		{
+			return { (std::max)(a.x, b.x),
+					 (std::max)(a.y, b.y),
+					 (std::max)(a.z, b.z) };
+		}
+
 		double Length() const;
 		static double Length(Vector3 vec);
 		double LengthSquared() const;
