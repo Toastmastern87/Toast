@@ -1015,6 +1015,9 @@ namespace Toast {
 		{
 			for (PlanetNode* node : visible)
 			{
+				if (gTerrainObjectsPosition.size() >= static_cast<size_t>(objects->MaxNrOfObjects))
+					break;
+
 				if (node->SubdivisionLevel < objects->SubdivisionActivation)
 					continue;
 
@@ -1050,7 +1053,17 @@ namespace Toast {
 					}
 				}
 
-				gTerrainObjectsPosition.insert(gTerrainObjectsPosition.end(), node->CachedDetailObjectPosition.begin(), node->CachedDetailObjectPosition.end());
+				size_t remaining = objects->MaxNrOfObjects - gTerrainObjectsPosition.size();
+				if (remaining == 0)
+					break;
+
+				if (node->CachedDetailObjectPosition.size() > remaining)
+					gTerrainObjectsPosition.insert(gTerrainObjectsPosition.end(), node->CachedDetailObjectPosition.begin(), node->CachedDetailObjectPosition.begin() + remaining);
+				else
+					gTerrainObjectsPosition.insert(gTerrainObjectsPosition.end(), node->CachedDetailObjectPosition.begin(), node->CachedDetailObjectPosition.end());
+
+				if (gTerrainObjectsPosition.size() >= static_cast<size_t>(objects->MaxNrOfObjects))
+					break;
 			}
 		}
 	}
@@ -1151,9 +1164,9 @@ namespace Toast {
 			renderPlanet->InvalidatePlanet();
 
 			if (!gTerrainObjectsPosition.empty())
-			{
 				terrainObject.MeshObject->SetInstanceData(&gTerrainObjectsPosition[0], gTerrainObjectsPosition.size() * sizeof(DirectX::XMFLOAT3), gTerrainObjectsPosition.size());
-			}
+			else
+				terrainObject.MeshObject->SetInstanceData(nullptr, 0, 0);
 
 			newPlanetReady.store(false);
 		}

@@ -135,6 +135,15 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		if (size == 0 || data == nullptr)
+			return;
+
+		if (size > mSize)
+		{
+			TOAST_CORE_WARN("VertexBuffer::SetData size %u exceeds buffer size %u, truncating", size, mSize);
+			size = mSize;
+		}
+
 		D3D11_MAPPED_SUBRESOURCE ms;
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
