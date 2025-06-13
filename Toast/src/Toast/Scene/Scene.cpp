@@ -547,7 +547,7 @@ namespace Toast {
 				// Starting new thread to create a new planet if one isn't already being created
 				DirectX::XMVECTOR cameraPosWorldMovement = DirectX::XMLoadFloat3(&mainCamera->GetWorldTranslation());
 
-				DirectX::XMVECTOR cameraPosWorldMovementNeg = DirectX::XMVectorScale(cameraPosWorldMovement, 1.0f);
+				DirectX::XMVECTOR cameraPosWorldMovementNeg = DirectX::XMVectorNegate(cameraPosWorldMovement);
 
 				PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPosWorldMovementNeg, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc, tdc, toc);
 
