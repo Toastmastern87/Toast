@@ -366,7 +366,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [0, -3384285.25, 0]
+      Translation: [0, -3384512.2, 0]
       Rotation: [75, -30, 55]
       Scale: [3389500, 3389500, 3389500]
     PlanetComponent:

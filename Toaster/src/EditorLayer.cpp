@@ -268,6 +268,14 @@ namespace Toast {
 			mConsolePanel.OnImGuiRender();
 			mPropertiesPanel.OnImGuiRender(mActiveDragArea);
 
+			if (mShowPlanetPopup)
+			{
+				ImGui::OpenPopup("Planet");
+				mShowPlanetPopup = false; // Reset the flag so it only triggers once
+			}
+
+			mPlanetPanel.OnImGuiRender();
+
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 			ImGui::Begin(ICON_TOASTER_GAMEPAD" Viewport");
 
@@ -514,10 +522,11 @@ namespace Toast {
 			// Compute the widths of the two menus (adding a bit of padding)
 			float fileWidth = ImGui::CalcTextSize("File").x + 10.0f;
 			float scriptWidth = ImGui::CalcTextSize("Script").x + 10.0f;
+			float worldWidth = ImGui::CalcTextSize("World").x + 10.0f;
 			// Define a small gap between them (e.g. 5px)
 			float gapBetweenMenus = 15.0f;
 			// The total width of the menus container
-			float menusAreaWidth = fileWidth + scriptWidth + gapBetweenMenus;
+			float menusAreaWidth = fileWidth + scriptWidth + worldWidth + gapBetweenMenus;
 
 			// Create a child container for the menu buttons. We add the MenuBar flag so that
 			// the popups open below rather than to the side.
@@ -562,6 +571,15 @@ namespace Toast {
 				{
 					if (ImGui::MenuItem("Reload Assembly", "Ctrl+R"))
 						ScriptEngine::ReloadAssembly();
+					ImGui::EndMenu();
+				}
+
+				ImGui::SameLine(0, gapBetweenMenus);
+				if (ImGui::BeginMenu("World"))
+				{
+					if (ImGui::MenuItem("Planet", ""))
+						mShowPlanetPopup = true;
+						
 					ImGui::EndMenu();
 				}
 

@@ -127,6 +127,8 @@ namespace Toast {
 		int32_t SubdivisionLevel = 0;
 		Bounds NodeBounds;
 
+		PlanetNode* Neighbours[3]{ nullptr, nullptr, nullptr };
+
 		std::vector<DirectX::XMFLOAT3> CachedDetailObjectPosition;
 
 		double SphereRadius = 0.0;

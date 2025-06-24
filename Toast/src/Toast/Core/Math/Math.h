@@ -8,6 +8,8 @@
 #include "Toast/Core/Math/Quaternion.h"
 #include "Toast/Core/Math/Matrix.h"
 
+#include "Toast/Core/Log.h"
+
 #include <DirectXMath.h>
 
 #ifdef min

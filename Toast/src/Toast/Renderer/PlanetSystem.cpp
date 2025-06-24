@@ -313,10 +313,9 @@ namespace Toast {
 
 		double thresh = planet.DistanceLUT[L]; // Check if 2 of the vertices are in the lower level, that means that this is a edge node and crack is needed.
 
-		/* how many of the three are inside the threshold? */
 		int inside = int(dA < thresh) + int(dB < thresh) + int(dC < thresh);
 
-		return inside == 2;                                  // your old rule
+		return inside == 2;                                 
 	}
 
 	static std::array<PlanetNode*, 2> MakeCrackPatches(const PlanetNode* n,	const PlanetComponent& planet, const TerrainDetailComponent* terrainDetail, const Vector3& camPS, std::vector<Ref<PlanetNode>>& patchKeepAlive)

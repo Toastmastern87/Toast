@@ -47,6 +47,8 @@ namespace Toast
 		config.MergeMode = true;
 		static const ImWchar iconRanges[] = { 0xf000, 0xf307, 0 };
 		io.Fonts->AddFontFromFileTTF("assets/fonts/FontAwesome/fontawesome-webfont.ttf", 13.0f, &config, iconRanges);
+
+		io.Fonts->AddFontFromFileTTF("assets/fonts/1_Roboto Mono/RobotoMono-Bold.ttf", 24.0f);
 		ImGui::StyleColorsDark();
 
 		ImGuiStyle& style = ImGui::GetStyle();

@@ -18,6 +18,7 @@
 #include "Panels/ConsolePanel.h"
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/PropertiesPanel.h"
+#include "Panels/PlanetPanel.h"
 
 namespace Toast {
 
@@ -95,6 +96,7 @@ namespace Toast {
 		int mGizmoType = -1;
 
 		bool mShowNewProjectPopup = false;
+		bool mShowPlanetPopup = false;
 
 		// Panels
 		SceneHierarchyPanel mSceneHierarchyPanel;
@@ -104,5 +106,6 @@ namespace Toast {
 		ConsolePanel mConsolePanel;
 		ContentBrowserPanel mContentBrowserPanel;
 		PropertiesPanel mPropertiesPanel;
+		PlanetPanel mPlanetPanel;
 	};
 }
