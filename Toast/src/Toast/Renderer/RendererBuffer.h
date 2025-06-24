@@ -14,14 +14,15 @@ namespace Toast {
 		Model = 1, 
 		Material = 2,  
 		DirectionalLight = 3,
-		Atmosphere = 4,
+		PlanetFrame = 4,
 		SpecularLightEnvironmental = 5,
 		Environment = 6,
+		PlanetLevel = 7,
 		RenderSettings = 9,
 		SSAO = 10,
 		Bloom = 11,
 		Blur = 12,
-		GodRays = 13
+		GodRays = 13,
 	};
 
 	struct CBufferBindInfo

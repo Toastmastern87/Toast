@@ -914,6 +914,19 @@ namespace Toast {
 		}
 	}
 
+	void PlanetSystem::Initialize()
+	{
+		sPlanetFrameCBuffer = ConstantBufferLibrary::Load("PlanetFrame", 64, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetFrame) });
+		sPlanetFrameCBuffer->Bind();
+		sPlanetFrameBuffer.Allocate(sPlanetFrameCBuffer->GetSize());
+		sPlanetFrameBuffer.ZeroInitialize();
+
+		sPlanetLevelCBuffer = ConstantBufferLibrary::Load("PlanetLevel", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetLevel) });
+		sPlanetLevelCBuffer->Bind();
+		sPlanetLevelBuffer.Allocate(sPlanetLevelCBuffer->GetSize());
+		sPlanetLevelBuffer.ZeroInitialize();
+	}
+
 	void PlanetSystem::RebuildGrid()
 	{
 		TOAST_PROFILE_FUNCTION();

@@ -68,6 +68,9 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Rendering/Particles.hlsl");
 		ShaderLibrary::Load("assets/shaders/Debug/ObjectMask.hlsl");
 
+		// Planet
+		ShaderLibrary::Load("assets/shaders/Planet/PlanetGeometryPass.hlsl");
+
 		// Post Processes
 		ShaderLibrary::Load("assets/shaders/Post Process/Skybox.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/Atmosphere.hlsl");

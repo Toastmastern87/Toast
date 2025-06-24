@@ -75,7 +75,7 @@ namespace Toast {
 		sRendererData->RenderSettingsBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer for atmosphere rendering
-		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 96, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Atmosphere) });
+		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 96, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::PlanetFrame) });
 		sRendererData->AtmosphereCBuffer->Bind();
 		sRendererData->AtmosphereBuffer.Allocate(sRendererData->AtmosphereCBuffer->GetSize());
 		sRendererData->AtmosphereBuffer.ZeroInitialize();

@@ -333,9 +333,14 @@ namespace Toast {
 		static inline double sRadius = 0.0;
 		static inline std::vector<double> sDistanceLUT;
 
+		// GPU Data
+		static inline Ref<ConstantBuffer> sPlanetFrameCBuffer, sPlanetLevelCBuffer;
+		static inline Buffer sPlanetFrameBuffer, sPlanetLevelBuffer;
+
 		friend class PlanetPanel;
 	public:
 		// NEW PLANET SYSTEM
+		static void Initialize();
 		static void RebuildGrid();
 		static uint32_t DetermineActiveLODLevels(const Vector3& camPosPlanet);
 		static void UpdateLevelOrigins(const Vector3& camPosPlanet);
