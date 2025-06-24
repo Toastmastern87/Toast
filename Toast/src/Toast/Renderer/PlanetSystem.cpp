@@ -914,6 +914,87 @@ namespace Toast {
 		}
 	}
 
+	void PlanetSystem::RebuildGrid()
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		std::vector<uint16_t> vertices;                 // gx,gy packed as uint16
+		std::vector<uint32_t> indices;
+
+		const uint32_t N = sGridSize;                   // 257, 513, …
+
+		vertices.reserve(N * N * 2);
+		indices.reserve((N - 1) * (N - 1) * 6);
+
+		for (uint32_t y = 0; y < N; ++y)
+			for (uint32_t x = 0; x < N; ++x)
+			{
+				vertices.push_back((uint16_t)x);
+				vertices.push_back((uint16_t)y);
+			}
+
+		for (uint32_t y = 0; y < N - 1; ++y)
+			for (uint32_t x = 0; x < N - 1; ++x)
+			{
+				uint32_t i0 = y * N + x;
+				uint32_t i1 = y * N + x + 1;
+				uint32_t i2 = (y + 1) * N + x;
+				uint32_t i3 = (y + 1) * N + x + 1;
+
+				//  (i0,i2,i1)  (i1,i2,i3)
+				indices.insert(indices.end(), { i0,i2,i1,  i1,i2,i3 });
+			}
+
+
+		sGridIndexCount = (uint32_t)indices.size();
+		sGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), (uint32_t)vertices.size() * sizeof(uint16_t),	(uint32_t)vertices.size(), 0, D3D11_USAGE_IMMUTABLE);
+		sGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), sGridIndexCount);
+	}
+
+	uint32_t PlanetSystem::DetermineActiveLODLevels(const Vector3& camPosPS)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		const double cameraDist = camPosPS.Length();            // centre-to-cam
+		const double height = (std::max)(0.0, cameraDist - sRadius);
+		const double height2 = height * height;                          // squared (cheap)
+
+		const uint32_t kMax = static_cast<uint32_t>(sDistanceLUT.size()); // usually 22-ish
+		uint32_t levelsToDrop = 0;
+
+		while (levelsToDrop < kMax - 1 && height2 > sDistanceLUT[levelsToDrop])
+			++levelsToDrop;                        // too far → skip the current finest
+
+		const uint32_t active = (std::min<uint32_t>)(kMax - levelsToDrop, sNumLevels);
+
+		sActiveLevels = active;              // remember for the rest of the frame
+		return active;
+	}
+
+	void PlanetSystem::UpdateLevelOrigins(const Vector3& camPosPS)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		const int halfGrid = static_cast<int>(sGridSize) / 2;
+
+		for (uint32_t L = 0; L < sNumLevels; ++L)
+		{
+			const int cellSize = 1 << L;
+
+			std::pair<uint32_t, uint32_t> newOrigin;
+			newOrigin.first = static_cast<int>(std::floor(camPosPS.x / double(cellSize))) - halfGrid;
+			newOrigin.second = static_cast<int>(std::floor(camPosPS.z / double(cellSize))) - halfGrid;
+
+			if (newOrigin != sLevels[L].Origin)
+			{
+				sLevels[L].Origin = newOrigin;
+				sLevels[L].Dirty = true;
+			}
+			else
+				sLevels[L].Dirty = false;
+		}
+	}
+
 	void PlanetSystem::CalculateBasePlanet(PlanetComponent& planet, TerrainDetailComponent* terrainDetail, double scale)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -1222,6 +1303,7 @@ namespace Toast {
 			else if (ℓ <= L_anchor1) d = A * std::exp(B * ℓ); // exponential between
 			else                      d = d_lin[ℓ];           // keep fine scaled
 			distanceLUT[ℓ] = d * d;
+			sDistanceLUT[ℓ] = d * d;
 		}
 
 		//int i = 0;

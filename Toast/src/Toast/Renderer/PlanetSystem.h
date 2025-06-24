@@ -31,6 +31,13 @@
 
 namespace Toast {
 
+	struct ClipLevel
+	{
+		std::pair<uint32_t, uint32_t> Origin = { 0, 0 };
+		bool Dirty = true;
+		bool InFrustum = true;
+	};
+
 	constexpr double kQuant = 0.1;     // 1 cm grid
 	constexpr double kInvQ = 1.0 / kQuant;
 
@@ -310,7 +317,29 @@ namespace Toast {
 
 		// Remove?
 		static std::unordered_map<Vector3, uint32_t, Vector3::Hasher, Vector3::Equal> sBaseVertexMap;
+
+	// NEW PLANET SYSTEM
+	private:
+		static inline uint32_t sGridSize;
+		static inline int32_t sNumLevels;
+		static inline int32_t sActiveLevels;
+		static inline std::vector<ClipLevel> sLevels;
+
+		static inline Ref<VertexBuffer> sGridVertexBuffer;
+		static inline Ref<IndexBuffer> sGridIndexBuffer;
+		static inline uint32_t sGridIndexCount = 0;
+
+		// Terrain Data
+		static inline double sRadius = 0.0;
+		static inline std::vector<double> sDistanceLUT;
+
+		friend class PlanetPanel;
 	public:
+		// NEW PLANET SYSTEM
+		static void RebuildGrid();
+		static uint32_t DetermineActiveLODLevels(const Vector3& camPosPlanet);
+		static void UpdateLevelOrigins(const Vector3& camPosPlanet);
+
 		// Helper functions to be used during runtime updates of the planet
 		static inline bool NeedSplit(PlanetNode* node, const PlanetComponent& p, const Vector3& camPlanetSpace)
 		{

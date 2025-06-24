@@ -84,7 +84,12 @@ namespace Toast {
 		vbd.Usage = mUsage;
 		vbd.ByteWidth = mSize;
 		vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		vbd.CPUAccessFlags = (mUsage == D3D11_USAGE_DEFAULT) ? 0 : D3D11_CPU_ACCESS_WRITE;
+		switch (mUsage)
+		{
+		case D3D11_USAGE_DYNAMIC:   vbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; break;
+		case D3D11_USAGE_STAGING:   vbd.CPUAccessFlags = D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE; break;
+		default:                    vbd.CPUAccessFlags = 0; break;      // DEFAULT or IMMUTABLE
+		}
 		vbd.MiscFlags = 0;
 		vbd.StructureByteStride = 0;
 
