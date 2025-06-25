@@ -33,17 +33,29 @@ namespace Toast {
 
 	struct ClipLevel
 	{
-		std::pair<uint32_t, uint32_t> Origin = { 0, 0 };
+		std::pair<int32_t, int32_t> Origin = { 0, 0 };
 		bool Dirty = true;
 		bool InFrustum = true;
 	};
 
 	struct PlanetLevelCB
 	{
-		uint32_t OriginX;
-		uint32_t OriginY;
+		int32_t OriginX;
+		int32_t OriginY;
 		uint32_t CellSize;
 		uint32_t GridSize;
+	};
+
+	struct PlanetFrameCB
+	{
+		DirectX::XMFLOAT3 Center;
+		float Radius;
+		DirectX::XMFLOAT3 BasisEast;
+		float Pad0;
+		DirectX::XMFLOAT3 BasisNorth;
+		float Pad1;
+		DirectX::XMFLOAT3 BasisUp;
+		float Pad2;
 	};
 
 	constexpr double kQuant = 0.1;     // 1 cm grid
@@ -352,6 +364,7 @@ namespace Toast {
 	public:
 		// NEW PLANET SYSTEM
 		static void Initialize();
+		static void InitializeLevels();
 		static void RebuildGrid();
 		static uint32_t DetermineActiveLODLevels(const Vector3& camPosPlanet);
 		static void UpdateLevelOrigins(const Vector3& camPosPlanet);

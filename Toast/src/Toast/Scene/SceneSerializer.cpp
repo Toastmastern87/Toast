@@ -848,6 +848,9 @@ namespace Toast {
 
 					cc.Primary = cameraComponent["Primary"].as<bool>();
 					cc.FixedAspectRatio = cameraComponent["FixedAspectRatio"].as<bool>();
+
+					if (cc.Primary)
+						mScene->SetMainCamera(&cc.Camera);
 				}
 
 				auto meshComponent = entity["MeshComponent"];
@@ -1136,6 +1139,8 @@ namespace Toast {
 		if (PlanetSystem::sNumLevels != 0 && PlanetSystem::sGridSize != 0)
 		{
 			PlanetSystem::RebuildGrid();
+
+			PlanetSystem::InitializeLevels();
 
 			SceneCamera* camera = mScene->GetMainCamera();
 			if (camera)

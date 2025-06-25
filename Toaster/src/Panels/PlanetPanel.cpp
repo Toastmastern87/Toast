@@ -132,6 +132,8 @@ namespace Toast {
 					{
 						PlanetSystem::RebuildGrid();
 
+						PlanetSystem::InitializeLevels();
+
 						SceneCamera* camera = mContext->GetMainCamera();
 						if (camera)
 							PlanetSystem::GenerateDistanceLUT(PlanetSystem::sNumLevels, PlanetSystem::sRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mContext->GetViewportSize()));
@@ -172,7 +174,9 @@ namespace Toast {
 				float fullW = colW - padX * 2.0f;                  // leave padding on both sides
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::InputDouble("##Radius", &PlanetSystem::sRadius, 0.0, 0.0, "%.1f");
+				float temp = PlanetSystem::sRadius;
+				if (ImGui::DragFloat("##Radius", &temp, 1.0f, 1.0f, FLT_MAX, "%.1f"))
+					PlanetSystem::sRadius = temp;
 
 				ImGui::EndTable();
 			}

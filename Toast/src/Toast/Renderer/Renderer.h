@@ -40,6 +40,8 @@ namespace Toast {
 
 			std::vector<DirectX::XMFLOAT4> SSAOKernel;
 
+			int Wireframe = 0;
+
 			struct SceneInfo
 			{
 				Environment SceneEnvironment;
@@ -139,7 +141,7 @@ namespace Toast {
 		static void OnWindowResize(uint32_t width, uint32_t height);
 		static void OnViewportResize(uint32_t width, uint32_t height);
 
-		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos);
+		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos, int wireFrame);
 		static void EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, const bool bloom, float bloomThreshold, float bloomIntensity, float godRayExposure, float godRayDecay, float godRayDensity, float godRayWeight);
 
 		static void CreateDepthBuffer(uint32_t width, uint32_t height);

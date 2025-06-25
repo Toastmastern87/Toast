@@ -940,9 +940,20 @@ namespace Toast {
 		sPlanetLevelBuffer.ZeroInitialize();
 	}
 
+	void PlanetSystem::InitializeLevels()
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		TOAST_CORE_CRITICAL("Initializing levels Levels!");
+
+		sLevels.assign(sNumLevels, {}); 
+	}
+
 	void PlanetSystem::RebuildGrid()
 	{
 		TOAST_PROFILE_FUNCTION();
+
+		TOAST_CORE_CRITICAL("Rebuilding grid!");
 
 		std::vector<uint16_t> vertices;                 // gx,gy packed as uint16
 		std::vector<uint32_t> indices;
@@ -1024,6 +1035,8 @@ namespace Toast {
 
 	Buffer& PlanetSystem::BuildLevelCB(uint32_t L)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		static PlanetLevelCB cb;                // lives between calls
 		const ClipLevel& lvl = sLevels[L];
 
@@ -1041,7 +1054,27 @@ namespace Toast {
 
 	void PlanetSystem::OnUpdate(const Vector3& camPosWS)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		const Vector3 camPosPS = camPosWS;// -sPlanetCentreWS;   // world → planet space
+
+		PlanetFrameCB cb{};
+		cb.Center = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+		cb.Radius = sRadius;
+
+		Vector3 worldUp = { 0, 1, 0 };             // the planet’s spin axis
+
+		Vector3 basisUp = Vector3::Normalize(camPosWS - cb.Center);             // radial (outward)
+		Vector3 basisEast = Vector3::Normalize(Vector3::Cross(worldUp, basisUp));        // points “east”
+		Vector3 basisNorth = Vector3::Cross(basisUp, basisEast);
+
+		cb.BasisEast = DirectX::XMFLOAT3((float)basisEast.x, (float)basisEast.y, (float)basisEast.z);
+		cb.BasisNorth = DirectX::XMFLOAT3((float)basisNorth.x, (float)basisNorth.y, (float)basisNorth.z);
+		cb.BasisUp = DirectX::XMFLOAT3((float)basisUp.x, (float)basisUp.y, (float)basisUp.z);
+
+		sPlanetFrameBuffer.Write(reinterpret_cast<uint8_t*>(&cb), sizeof(cb), 0);
+
+		sPlanetFrameCBuffer->Map(sPlanetFrameBuffer);
 
 		/* decide how many levels are visible this frame                */
 		sActiveLevels = DetermineActiveLODLevels(camPosPS);
@@ -1322,6 +1355,9 @@ namespace Toast {
 		sDistanceLUT.clear();
 		sDistanceLUT.reserve(maxLevels);
 
+		TOAST_CORE_CRITICAL("Generating Distance Look Up Table!");
+		TOAST_CORE_CRITICAL("maxLevels: %d, Planet Radius: %lf, FoVY: %f, Viewport Width: %d", maxLevels, planetRadius, FoVY, viewportWidth);
+
 		const double focalLenPx = double(viewportWidth) / (2.0 * std::tan(FoVY * 0.5f));
 
 		double cellSize = metersPerFirstCell;          //   S · 2^L
@@ -1338,6 +1374,9 @@ namespace Toast {
 
 		// optional: make sure the last element is “infinite”
 		sDistanceLUT.back() = std::numeric_limits<double>::max();
+
+		for (auto level : sDistanceLUT)
+			TOAST_CORE_INFO("sDistanceLUT: %lf", level);
 	}
 
 	void PlanetSystem::GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight)

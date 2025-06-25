@@ -125,6 +125,7 @@ namespace Toast {
 		const Environment& GetEnvironment() const { return mEnvironment; }
 		
 		SceneCamera* GetMainCamera() { return mMainCamera; }
+		void SetMainCamera(SceneCamera* camera) { mMainCamera = camera; }
 
 		int GetFPS() const { return (int)mStats.FPS; }
 		float GetFrameTime() const { return mStats.FrameTime; }

@@ -34,10 +34,10 @@ cbuffer PlanetFrame : register(b4)
 
 cbuffer PlanetLevel : register(b7) 
 {
-    uint OriginX;
-    uint OriginY;
-    uint CellSize;
-    uint GridSize;
+    int OriginX;
+    int OriginY;
+    int CellSize;
+    int GridSize;
 };
 
 struct PixelInputType
@@ -142,10 +142,7 @@ PixelOutputType main(PixelInputType input)
     /*--------------------------------------------------------------*/
     output.roughnessAO = float4(Roughness, 0.0f, 0.0, 1.0);
 
-    /*--------------------------------------------------------------*/
-    /* 5) entity / picking ID                                       */
-    /*--------------------------------------------------------------*/
-    output.entityID = -1; // 0 == “no hit”
+    output.entityID = 0;
 
     return output;
 }

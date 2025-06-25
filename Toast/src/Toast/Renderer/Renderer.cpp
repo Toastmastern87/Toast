@@ -235,9 +235,11 @@ namespace Toast {
 		RendererDebug::OnWindowResize(width, height);
 	}
 
-	void Renderer::BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos)
+	void Renderer::BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos, int wireFrame)
 	{
 		TOAST_PROFILE_FUNCTION();
+
+		sRendererData->Wireframe = wireFrame;
 
 		// Updating the camera data in the buffer and mapping it to the GPU
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetWorldTranslationMatrix(), 64, 0);
@@ -798,6 +800,11 @@ namespace Toast {
 
 		if (PlanetSystem::IsValid())
 		{
+			if (sRendererData->Wireframe == 1)
+				RenderCommand::SetRasterizerState(sRendererData->WireframeRasterizerState);
+			else
+				RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
+
 			ShaderLibrary::Get("assets/shaders/Planet/PlanetGeometryPass.hlsl")->Bind();
 			PlanetSystem::GetShaderLayout()->Bind();
 			PlanetSystem::GetGridVertexBuffer()->Bind();
@@ -806,6 +813,8 @@ namespace Toast {
 			PlanetSystem::GetPlanetFrameCBuffer()->Bind();
 
 			auto& levels = PlanetSystem::GetLevels();
+
+			TOAST_CORE_CRITICAL("Planet is valid and number of active levels are: %d", PlanetSystem::ActiveLevels());
 
 			for (uint32_t L = 0; L < PlanetSystem::ActiveLevels(); ++L)
 			{

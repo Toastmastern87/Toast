@@ -2,7 +2,7 @@ Scene: Untitled Scene
 Planet:
   GridSize: 257
   MaxLevels: 1
-  Radius: 10
+  Radius: 5
 Entities:
   - Entity: 3888910141822256182
     TagComponent:

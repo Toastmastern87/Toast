@@ -567,7 +567,7 @@ namespace Toast {
 			mainCamera->SetInvViewMatrix(fInvView);
 
 			// 3D Rendering
-			Renderer::BeginScene(this, *mainCamera, cameraPosFloat);
+			Renderer::BeginScene(this, *mainCamera, cameraPosFloat, static_cast<int>(mSettings.WireframeRendering));
 			{
 				{
 					auto view = mRegistry.view<TransformComponent, CameraComponent>();
@@ -1127,6 +1127,18 @@ namespace Toast {
 
 		// Start a rebuild of the planet if needed
 		{
+			if (mainCamera)
+			{
+				DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
+
+				DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, mainCameraTransform->GetTransform());
+
+				DirectX::XMFLOAT3 cameraPosF3;
+				DirectX::XMStoreFloat3(&cameraPosF3, cameraPos);
+
+				PlanetSystem::OnUpdate({ cameraPosF3 });
+			}
+
 			auto view = mRegistry.view<PlanetComponent, TransformComponent>();
 			for (auto entity : view)
 			{
@@ -1164,11 +1176,6 @@ namespace Toast {
 					DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, mainCameraTransform->GetTransform());
 					cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRot);
 
-					DirectX::XMFLOAT3 cameraPosF3;
-					DirectX::XMStoreFloat3(&cameraPosF3, cameraPos);
-
-					PlanetSystem::OnUpdate({ cameraPosF3 });
-
 					InvalidateFrustum();
 
 					DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion))
@@ -1189,7 +1196,7 @@ namespace Toast {
 		DirectX::XMStoreFloat4(&cameraPosFloat, editorCamera->GetPosition());
 
 		// 3D Rendering
-		Renderer::BeginScene(this, *editorCamera, cameraPosFloat);
+		Renderer::BeginScene(this, *editorCamera, cameraPosFloat, static_cast<int>(mSettings.WireframeRendering));
 		{
 			// Skybox!
 			{
@@ -2057,6 +2064,9 @@ namespace Toast {
 
 		mFrustum = CreateRef<Frustum>();
 		mFrustum->Invalidate(component.Camera.GetAspecRatio(), component.Camera.GetPerspectiveVerticalFOV(), component.Camera.GetNearClip(), component.Camera.GetFarClip());
+
+		if (component.Primary)
+			mMainCamera = &component.Camera;
 	}
 
 	template<>
