@@ -4,21 +4,24 @@
 
 #include "Toast/Core/Log.h"
 
+#include "Toast/ImGui/ImGuiHelpers.h"
+
 #include "imgui/imgui.h"
 
 namespace Toast {
 
-	void PlanetPanel::SetContext(Scene* context)
+	void PlanetPanel::SetContext(Scene* context, WindowsWindow* window)
 	{
 		mContext = context;
+		mWindow = window;
 	}
 
-	void PlanetPanel::OnImGuiRender()
+	void PlanetPanel::OnImGuiRender(std::string& activeDragArea)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 
 		const float popupWidth = io.DisplaySize.x * 0.15f;
-		const float popupHeight = 300.0f;
+		const float popupHeight = 400.0f;
 		ImVec2 popupSize(popupWidth, popupHeight);
 		ImVec2 center(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.25f); 
 
@@ -76,17 +79,16 @@ namespace Toast {
 			static int currentLOD = 5;
 
 			// Create a 2-column table for label + control layout
-			if (ImGui::BeginTable("PlanetTable", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_PadOuterX))
+			if (ImGui::BeginTable("PlanetTable", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX))
 			{
 				ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, popupWidth * 0.4);
-				ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, popupWidth * 0.6);
+				ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthStretch);
 
-				// === Grid Size Row ===
 				ImGui::TableNextRow();
 
 				ImGui::TableSetColumnIndex(0);
 				ImGui::AlignTextToFramePadding();
-				ImGui::Text("Grid Size");
+				ImGui::Text("Translation");
 
 				ImGui::TableSetColumnIndex(1);
 
@@ -95,14 +97,39 @@ namespace Toast {
 				float fullW = colW - padX * 2.0f;
 
 				ImGui::SetNextItemWidth(fullW);
-				std::string gridLabel = std::to_string(PlanetSystem::sGridSize);          // keep it alive
+
+				ImGuiHelpers::ManualDragFloat3("##translation", PlanetSystem::sTranslation, 1.0f, 0.0f, mWindow, activeDragArea);
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Rotation");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGuiHelpers::ManualDragFloat3("##rotation", PlanetSystem::sRotationEulerAngles, 1.0f, 0.0f, mWindow, activeDragArea);
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Grid Size");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				std::string gridLabel = std::to_string(PlanetSystem::sTempGridSize);          // keep it alive
 				if (ImGui::BeginCombo("##GridSize", gridLabel.c_str()))
 				{
 					for (int i = 0; i < IM_ARRAYSIZE(gridSizes); ++i)
 					{
 						bool selected = (currentGridSize == gridSizes[i]);
 						if (ImGui::Selectable(std::to_string(gridSizes[i]).c_str(), selected))
-							PlanetSystem::sGridSize = gridSizes[i];
+							PlanetSystem::sTempGridSize = gridSizes[i];
 						if (selected)
 							ImGui::SetItemDefaultFocus();
 					}
@@ -117,7 +144,7 @@ namespace Toast {
 
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(fullW);
-				ImGui::SliderInt("##LOD", &PlanetSystem::sNumLevels, 1, 30);
+				ImGui::SliderInt("##LOD", &PlanetSystem::sTempNumLevels, 1, 30);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(1);
@@ -128,8 +155,11 @@ namespace Toast {
 
 				if (ImGui::Button("Apply", ImVec2(btnW, 0)))
 				{
-					if (PlanetSystem::sNumLevels != 0 && PlanetSystem::sGridSize != 0)
+					if (PlanetSystem::sTempNumLevels != 0 && PlanetSystem::sTempGridSize != 0)
 					{
+						PlanetSystem::sGridSize = PlanetSystem::sTempGridSize;
+						PlanetSystem::sNumLevels = PlanetSystem::sTempNumLevels;
+
 						PlanetSystem::RebuildGrid();
 
 						PlanetSystem::InitializeLevels();

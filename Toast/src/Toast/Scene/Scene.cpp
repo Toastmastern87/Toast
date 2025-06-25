@@ -1133,10 +1133,7 @@ namespace Toast {
 
 				DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, mainCameraTransform->GetTransform());
 
-				DirectX::XMFLOAT3 cameraPosF3;
-				DirectX::XMStoreFloat3(&cameraPosF3, cameraPos);
-
-				PlanetSystem::OnUpdate({ cameraPosF3 });
+				PlanetSystem::OnUpdate({ cameraPos });
 			}
 
 			auto view = mRegistry.view<PlanetComponent, TransformComponent>();

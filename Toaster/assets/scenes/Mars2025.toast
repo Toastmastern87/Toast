@@ -1,5 +1,7 @@
 Scene: Untitled Scene
 Planet:
+  Translation: [0, -10, 0]
+  Rotation: [0, 0, 0]
   GridSize: 257
   MaxLevels: 1
   Radius: 5
@@ -13,7 +15,7 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [0, 0, -10]
+      Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
     CameraComponent:

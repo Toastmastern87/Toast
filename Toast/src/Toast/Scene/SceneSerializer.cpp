@@ -662,6 +662,8 @@ namespace Toast {
 
 		out << YAML::Key << "Planet";
 		out << YAML::BeginMap;
+		out << YAML::Key << "Translation" << YAML::Value << PlanetSystem::sTranslation;
+		out << YAML::Key << "Rotation" << YAML::Value << PlanetSystem::sRotationEulerAngles;
 		out << YAML::Key << "GridSize" << YAML::Value << PlanetSystem::sGridSize;
 		out << YAML::Key << "MaxLevels" << YAML::Value << PlanetSystem::sNumLevels;
 		out << YAML::Key << "Radius" << YAML::Value << PlanetSystem::sRadius;
@@ -764,6 +766,8 @@ namespace Toast {
 		TOAST_CORE_TRACE("Deserializing scene '%s'", sceneName.c_str());
 
 		auto planet = data["Planet"];
+		PlanetSystem::sTranslation = planet["Translation"].as<DirectX::XMFLOAT3>();
+		PlanetSystem::sRotationEulerAngles = planet["Rotation"].as<DirectX::XMFLOAT3>();
 		PlanetSystem::sGridSize = planet["GridSize"].as<uint32_t>();
 		PlanetSystem::sNumLevels = planet["MaxLevels"].as<uint32_t>();
 		PlanetSystem::sRadius = planet["Radius"].as<uint32_t>();
@@ -1143,6 +1147,9 @@ namespace Toast {
 			PlanetSystem::RebuildGrid();
 
 			PlanetSystem::InitializeLevels();
+
+			PlanetSystem::sTempGridSize = PlanetSystem::sGridSize;
+			PlanetSystem::sTempNumLevels = PlanetSystem::sNumLevels;
 
 			SceneCamera* camera = mScene->GetMainCamera();
 			if (camera)

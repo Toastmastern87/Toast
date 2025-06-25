@@ -102,7 +102,7 @@ namespace Toast {
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mSceneSettingsPanel.SetContext(mEditorScene, mWindow);
 		mEnvironmentPanel.SetContext(mEditorScene);
-		mPlanetPanel.SetContext(mEditorScene);
+		mPlanetPanel.SetContext(mEditorScene, mWindow);
 		mPropertiesPanel.SetContext(mSceneHierarchyPanel.GetSelectedEntity(), &mSceneHierarchyPanel, mWindow);
 	}
 
@@ -278,7 +278,7 @@ namespace Toast {
 				mShowPlanetPopup = false; // Reset the flag so it only triggers once
 			}
 
-			mPlanetPanel.OnImGuiRender();
+			mPlanetPanel.OnImGuiRender(mActiveDragArea);
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 			ImGui::Begin(ICON_TOASTER_GAMEPAD" Viewport");

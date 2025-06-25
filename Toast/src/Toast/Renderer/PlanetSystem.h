@@ -340,24 +340,31 @@ namespace Toast {
 
 	// NEW PLANET SYSTEM
 	private:
+		// Base Data
 		static inline bool sValidPlanet = false;
 		static inline uint32_t sGridSize;
+		static inline uint32_t sTempGridSize;
 		static inline int32_t sNumLevels;
+		static inline int32_t sTempNumLevels;
 		static inline int32_t sActiveLevels;
 		static inline std::vector<ClipLevel> sLevels;
 
+		static inline DirectX::XMFLOAT3 sTranslation = { 0.0f, 0.0f, 0.0f };
+		static inline DirectX::XMFLOAT3 sRotationEulerAngles = { 0.0f, 0.0f, 0.0f };
+		static inline DirectX::XMFLOAT4 sRotationQuaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+		// GPU Data
 		static inline Ref<VertexBuffer> sGridVertexBuffer;
 		static inline Ref<IndexBuffer> sGridIndexBuffer;
 		static inline uint32_t sGridIndexCount = 0;
 
-		// Terrain Data
-		static inline double sRadius = 0.0;
-		static inline std::vector<double> sDistanceLUT;
-
-		// Planet Base Data
 		static inline Ref<ConstantBuffer> sPlanetFrameCBuffer, sPlanetLevelCBuffer;
 		static inline Buffer sPlanetFrameBuffer, sPlanetLevelBuffer;
 		static inline ShaderLayout sShaderInputLayout;
+
+		// Terrain Data
+		static inline double sRadius = 0.0;
+		static inline std::vector<double> sDistanceLUT;
 
 		// PBR Data
 		static inline DirectX::XMFLOAT3 sAlbedoColor;

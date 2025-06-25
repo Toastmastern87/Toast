@@ -1059,18 +1059,25 @@ namespace Toast {
 		const Vector3 camPosPS = camPosWS;// -sPlanetCentreWS;   // world → planet space
 
 		PlanetFrameCB cb{};
-		cb.Center = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+		Vector3 centreCVd = Vector3(sTranslation) - camPosWS;
+		cb.Center = DirectX::XMFLOAT3((float)centreCVd.x, (float)centreCVd.y, (float)centreCVd.z);
 		cb.Radius = sRadius;
 
 		Vector3 worldUp = { 0, 1, 0 };             // the planet’s spin axis
 
-		Vector3 basisUp = Vector3::Normalize(camPosWS - cb.Center);             // radial (outward)
-		Vector3 basisEast = Vector3::Normalize(Vector3::Cross(worldUp, basisUp));        // points “east”
-		Vector3 basisNorth = Vector3::Cross(basisUp, basisEast);
+		Vector3 upCV = Vector3::Normalize(-centreCVd);          // radial, outward
+		Vector3 eastCV = Vector3::Cross(worldUp, upCV);
+		if (eastCV.LengthSquared() < 1e-6f)                      // degenerate at pole
+		{
+			eastCV = Vector3::Cross({ 0,0,1 }, upCV);            // fallback axis
+		}
+		eastCV = Vector3::Normalize(eastCV);
 
-		cb.BasisEast = DirectX::XMFLOAT3((float)basisEast.x, (float)basisEast.y, (float)basisEast.z);
-		cb.BasisNorth = DirectX::XMFLOAT3((float)basisNorth.x, (float)basisNorth.y, (float)basisNorth.z);
-		cb.BasisUp = DirectX::XMFLOAT3((float)basisUp.x, (float)basisUp.y, (float)basisUp.z);
+		Vector3 northCV = Vector3::Normalize(Vector3::Cross(upCV, eastCV));
+
+		cb.BasisEast = DirectX::XMFLOAT3((float)eastCV.x, (float)eastCV.y, (float)eastCV.z);
+		cb.BasisNorth = DirectX::XMFLOAT3((float)northCV.x, (float)northCV.y, (float)northCV.z);
+		cb.BasisUp = DirectX::XMFLOAT3((float)upCV.x, (float)upCV.y, (float)upCV.z);
 
 		sPlanetFrameBuffer.Write(reinterpret_cast<uint8_t*>(&cb), sizeof(cb), 0);
 

@@ -344,19 +344,35 @@ namespace Toast
 			ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
+			size_t hashes = label.find("##");
+			bool hasVisibleLabel = (hashes != 0);
+
 			// layout example: we do columns or a simple horizontal layout
 			ImGui::PushID(label.c_str());
 
-			// layout example: we do columns or a simple horizontal layout
-			ImGui::BeginTable("", 2, flags);
-			ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.30f);
-			ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.65f);
+			if (hasVisibleLabel)
+			{
+				// layout example: we do columns or a simple horizontal layout
+				ImGui::BeginTable("", 2, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.30f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.65f);
 
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			ImGui::TextWrapped(label.c_str());
-			ImGui::TableSetColumnIndex(1);
-			ImGui::PushItemWidth(-1);
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextWrapped(label.c_str());
+
+				ImGui::TableSetColumnIndex(1);
+			}
+			else
+			{
+				ImGui::BeginTable("", 1, ImGuiTableFlags_SizingStretchProp);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthStretch);
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+			}
 
 			float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
 			ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
@@ -381,7 +397,7 @@ namespace Toast
 				ImGui::SameLine();
 
 				std::string dragArea1 = "##" + label + "dragarea1";
-
+				ImGui::SetNextItemWidth(-FLT_MIN);
 				changed |= ManualDragFloat(dragArea1.c_str(), values.x, window, activeDragArea, speed, dragAreaSize);
 
 				ImGui::SameLine();
@@ -403,7 +419,7 @@ namespace Toast
 				ImGui::SameLine();
 
 				std::string dragArea2 = "##" + label + "dragarea2";
-
+				ImGui::SetNextItemWidth(-FLT_MIN);
 				changed |= ManualDragFloat(dragArea2.c_str(), values.y, window, activeDragArea, speed, dragAreaSize);
 
 				ImGui::SameLine();
@@ -425,7 +441,7 @@ namespace Toast
 				ImGui::SameLine();
 
 				std::string dragArea3 = "##" + label + "dragarea3";
-
+				ImGui::SetNextItemWidth(-FLT_MIN);
 				changed |= ManualDragFloat(dragArea3.c_str(), values.z, window, activeDragArea, speed, dragAreaSize);
 			}
 

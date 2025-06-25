@@ -25,7 +25,7 @@ cbuffer Camera : register(b0)
 
 cbuffer PlanetFrame : register(b4)
 {
-    float3 PlanetCentreWS;
+    float3 PlanetCentreVS;
     float PlanetRadius;
     float3 BasisEast;
     float3 BasisNorth;
@@ -56,19 +56,17 @@ PixelInputType main(VertexInputType input)
     int2 world = int2(OriginX, OriginY) + g; // scrolled grid coords
     float2 off = (float2) world * float(CellSize);
 
-    // build the 3-D position in world space (tangent space -> world space)
-    float3 Pws = PlanetCentreWS + BasisUp * PlanetRadius + BasisEast * off.x + BasisNorth * off.y;
+    /*--- position in camera-relative space ---------------------------*/
+    float3 Pws = PlanetCentreVS + BasisUp * PlanetRadius + BasisEast * off.x + BasisNorth * off.y;
 
     // push down onto the sphere surface
-    float3 nrm = normalize(Pws - PlanetCentreWS);
-    Pws = PlanetCentreWS + nrm * PlanetRadius;
-    
-    float4 Pwst = mul(float4(Pws, 1.0f), worldTranslationMatrix);
+    float3 nrm = normalize(Pws - PlanetCentreVS);
+    Pws = PlanetCentreVS + nrm * PlanetRadius;
 
-    float4 Pv = mul(Pwst, viewMatrix);
+    float4 Pv = mul(float4(Pws, 1), viewMatrix);
     output.pixelPosition = mul(Pv, projectionMatrix);
     output.viewPosition = Pv.xyz;
-    output.viewNormal = mul(float4(nrm, 1.0f), viewMatrix);
+    output.viewNormal = mul(float4(nrm, 1.0), viewMatrix).xyz;
     return output;
 }
 

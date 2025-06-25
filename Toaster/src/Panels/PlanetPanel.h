@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Platform/Windows/WindowsWindow.h"
+
 #include "Toast/Renderer/PlanetSystem.h"
 #include "Toast/Scene/Scene.h"
 
@@ -11,11 +13,13 @@ namespace Toast {
 		PlanetPanel() = default;
 		~PlanetPanel() = default;
 
-		void OnImGuiRender();
+		void OnImGuiRender(std::string& activeDragArea);
 
-		void SetContext(Scene* context);
+		void SetContext(Scene* context, WindowsWindow* window);
 	private:
 		Scene* mContext;
+
+		WindowsWindow* mWindow;
 	};
 
 }
