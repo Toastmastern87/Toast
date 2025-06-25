@@ -45,6 +45,8 @@ namespace Toast {
 	class ShaderLayout
 	{
 	public:
+		ShaderLayout() = default;
+
 		struct ShaderInputElement
 		{
 			std::string mName;
@@ -142,7 +144,7 @@ namespace Toast {
 		const std::string GetName() const { return mName; }
 		const std::string GetFullPathName() const { return mFullPathName; }
 
-		const ID3D10Blob* GetVSRaw() const { return mRawBlobs.at(D3D11_VERTEX_SHADER); }
+		ID3D10Blob* GetVSRaw() const { return mRawBlobs.at(D3D11_VERTEX_SHADER); }
 
 		const std::vector<ResourceBindingDesc> GetResourceBindings() const { return mResourceBindings; }
 		const std::vector<CBufferElementBindingDesc> GetCBufferElementBindings(const std::string& cbufferName) const;

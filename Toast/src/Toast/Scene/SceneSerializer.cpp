@@ -659,6 +659,14 @@ namespace Toast {
 		out << YAML::BeginMap;
 		// TODO, should be scene name instead of just untitled scene
 		out << YAML::Key << "Scene" << YAML::Value << "Untitled Scene";
+
+		out << YAML::Key << "Planet";
+		out << YAML::BeginMap;
+		out << YAML::Key << "GridSize" << YAML::Value << PlanetSystem::sGridSize;
+		out << YAML::Key << "MaxLevels" << YAML::Value << PlanetSystem::sNumLevels;
+		out << YAML::Key << "Radius" << YAML::Value << PlanetSystem::sRadius;
+		out << YAML::EndMap;
+
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 
 		// Making sure the main camera is serialized first
@@ -753,6 +761,11 @@ namespace Toast {
 
 		std::string sceneName = data["Scene"].as<std::string>();
 		TOAST_CORE_TRACE("Deserializing scene '%s'", sceneName.c_str());
+
+		auto planet = data["Planet"];
+		PlanetSystem::sGridSize = planet["GridSize"].as<uint32_t>();
+		PlanetSystem::sNumLevels = planet["MaxLevels"].as<uint32_t>();
+		PlanetSystem::sRadius = planet["Radius"].as<uint32_t>();
 
 		auto entities = data["Entities"];
 		if (entities) 
@@ -1118,6 +1131,15 @@ namespace Toast {
 					pc.MaskTexture = TextureLibrary::LoadTexture2D(particlesComponent["AssetPath"].as<std::string>());
 				}
 			}
+		}
+
+		if (PlanetSystem::sNumLevels != 0 && PlanetSystem::sGridSize != 0)
+		{
+			PlanetSystem::RebuildGrid();
+
+			SceneCamera* camera = mScene->GetMainCamera();
+			if (camera)
+				PlanetSystem::GenerateDistanceLUT(PlanetSystem::sNumLevels, PlanetSystem::sRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mScene->GetViewportSize()));
 		}
 
 		return true;

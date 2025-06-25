@@ -123,6 +123,8 @@ namespace Toast {
 		float& GetEnvironmentIntensity() { return mEnvironmentIntensity; }
 
 		const Environment& GetEnvironment() const { return mEnvironment; }
+		
+		SceneCamera* GetMainCamera() { return mMainCamera; }
 
 		int GetFPS() const { return (int)mStats.FPS; }
 		float GetFrameTime() const { return mStats.FrameTime; }
@@ -189,6 +191,8 @@ namespace Toast {
 
 		entt::entity mSelectedEntity;
 		entt::entity mHoveredEntity;
+
+		SceneCamera* mMainCamera = nullptr;
 
 		Ref<Frustum> mFrustum;
 		bool mInvalidatePlanet = false;

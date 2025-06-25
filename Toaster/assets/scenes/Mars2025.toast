@@ -1,0 +1,27 @@
+Scene: Untitled Scene
+Planet:
+  GridSize: 257
+  MaxLevels: 1
+  Radius: 10
+Entities:
+  - Entity: 3888910141822256182
+    TagComponent:
+      Tag: Camera
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, -10]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    CameraComponent:
+      Camera:
+        ProjectionType: 0
+        PerspectiveFOV: 45
+        NearClip: 0.100000001
+        FarClip: 1000
+        OrthographicWidth: 2604
+        OrthographicHeight: 1120
+      Primary: true
+      FixedAspectRatio: false

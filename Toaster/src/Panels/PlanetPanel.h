@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Toast/Renderer/PlanetSystem.h"
+#include "Toast/Scene/Scene.h"
 
 namespace Toast {
 
@@ -11,6 +12,10 @@ namespace Toast {
 		~PlanetPanel() = default;
 
 		void OnImGuiRender();
+
+		void SetContext(Scene* context);
+	private:
+		Scene* mContext;
 	};
 
 }

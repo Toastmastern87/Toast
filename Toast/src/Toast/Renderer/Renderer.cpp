@@ -4,6 +4,8 @@
 #include "Toast/Renderer/Renderer2D.h"
 #include "Toast/Renderer/RendererDebug.h"
 
+#include "Toast/Renderer/PlanetSystem.h"
+
 namespace Toast {
 
 	struct RendererStat
@@ -793,6 +795,30 @@ namespace Toast {
 		RenderCommand::ClearDepthStencilView(sRendererData->DepthStencilView);
 		RenderCommand::ClearRenderTargets({ sRendererData->GPassPositionRT->GetRTV().Get(), sRendererData->GPassNormalRT->GetRTV().Get(), sRendererData->GPassAlbedoMetallicRT->GetRTV().Get(), sRendererData->GPassRoughnessAORT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
+
+		if (PlanetSystem::IsValid())
+		{
+			ShaderLibrary::Get("assets/shaders/Planet/PlanetGeometryPass.hlsl")->Bind();
+			PlanetSystem::GetShaderLayout()->Bind();
+			PlanetSystem::GetGridVertexBuffer()->Bind();
+			PlanetSystem::GetGridIndexBuffer()->Bind();
+
+			PlanetSystem::GetPlanetFrameCBuffer()->Bind();
+
+			auto& levels = PlanetSystem::GetLevels();
+
+			for (uint32_t L = 0; L < PlanetSystem::ActiveLevels(); ++L)
+			{
+				const auto& level = levels[L];
+
+				if (!level.Dirty && !level.InFrustum)     // quick out
+					continue;
+
+				PlanetSystem::GetPlanetLevelCBuffer()->Map(PlanetSystem::BuildLevelCB(L)); // fills OriginX/Y, CellSize …
+
+				RenderCommand::DrawIndexed(0, 0, PlanetSystem::GetGridIndexCount());
+			}
+		}
 
 		ShaderLibrary::Get("assets/shaders/Rendering/GeometryPass.hlsl")->Bind();
 

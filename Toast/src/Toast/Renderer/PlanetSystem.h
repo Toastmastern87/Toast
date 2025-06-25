@@ -38,6 +38,14 @@ namespace Toast {
 		bool InFrustum = true;
 	};
 
+	struct PlanetLevelCB
+	{
+		uint32_t OriginX;
+		uint32_t OriginY;
+		uint32_t CellSize;
+		uint32_t GridSize;
+	};
+
 	constexpr double kQuant = 0.1;     // 1 cm grid
 	constexpr double kInvQ = 1.0 / kQuant;
 
@@ -320,6 +328,7 @@ namespace Toast {
 
 	// NEW PLANET SYSTEM
 	private:
+		static inline bool sValidPlanet = false;
 		static inline uint32_t sGridSize;
 		static inline int32_t sNumLevels;
 		static inline int32_t sActiveLevels;
@@ -336,14 +345,32 @@ namespace Toast {
 		// GPU Data
 		static inline Ref<ConstantBuffer> sPlanetFrameCBuffer, sPlanetLevelCBuffer;
 		static inline Buffer sPlanetFrameBuffer, sPlanetLevelBuffer;
+		static inline ShaderLayout sShaderInputLayout;
 
 		friend class PlanetPanel;
+		friend class SceneSerializer;
 	public:
 		// NEW PLANET SYSTEM
 		static void Initialize();
 		static void RebuildGrid();
 		static uint32_t DetermineActiveLODLevels(const Vector3& camPosPlanet);
 		static void UpdateLevelOrigins(const Vector3& camPosPlanet);
+		static Buffer& PlanetSystem::BuildLevelCB(uint32_t L);
+
+		static void OnUpdate(const Vector3& camPosWS);
+
+		static bool IsValid() { return sValidPlanet; }
+		static int32_t ActiveLevels() { return sActiveLevels; }
+		static std::vector<ClipLevel>& GetLevels() { return sLevels; }
+
+		static Ref<VertexBuffer> GetGridVertexBuffer() { return sGridVertexBuffer; }
+		static Ref<IndexBuffer> GetGridIndexBuffer() { return sGridIndexBuffer; }
+		static uint32_t GetGridIndexCount() { return sGridIndexCount; }
+
+		static Ref<ConstantBuffer> GetPlanetFrameCBuffer() { return sPlanetFrameCBuffer; }
+		static Buffer* GetPlanetFrameBuffer() { return &sPlanetFrameBuffer; }
+		static Ref<ConstantBuffer> GetPlanetLevelCBuffer() { return sPlanetLevelCBuffer; }
+		static ShaderLayout* GetShaderLayout() { return &sShaderInputLayout; }
 
 		// Helper functions to be used during runtime updates of the planet
 		static inline bool NeedSplit(PlanetNode* node, const PlanetComponent& p, const Vector3& camPlanetSpace)
@@ -390,7 +417,7 @@ namespace Toast {
 
 		static void Shutdown();
 
-		static void GenerateDistanceLUT(std::vector<double>& distanceLUT, float radius, float FoV, float screenWdth, float screenHeight, double maxPixelError);
+		static void GenerateDistanceLUT(uint32_t maxLevels, double planetRadius, float FoVY, uint32_t viewportWidth, double metersPerFirstCell = 1.0, float screenErrorPx = 4.0f, double spacingBias = 1.2);
 		static void GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight);
 		static void GenerateHeightMultLUT(std::vector<double>& heightMultLUT, double planetRadius, double maxHeight);
 	private:

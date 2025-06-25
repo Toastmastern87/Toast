@@ -916,6 +916,19 @@ namespace Toast {
 
 	void PlanetSystem::Initialize()
 	{
+		// Setting up Shader Layout
+		std::vector<ShaderLayout::ShaderInputElement> planetElements;
+		ShaderLayout::ShaderInputElement pos(DXGI_FORMAT_R16G16_UINT, "POSITION", 0);
+		pos.mInputClassification = D3D11_INPUT_PER_VERTEX_DATA; 
+		planetElements.emplace_back(pos);
+
+		Shader* planetGPassShader = ShaderLibrary::Get("assets/shaders/Planet/PlanetGeometryPass.hlsl");
+
+		ID3D10Blob* vsBlob = planetGPassShader->GetVSRaw();
+
+		sShaderInputLayout = ShaderLayout(planetElements, vsBlob);
+
+		// Setting up Constant Buffers
 		sPlanetFrameCBuffer = ConstantBufferLibrary::Load("PlanetFrame", 64, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetFrame) });
 		sPlanetFrameCBuffer->Bind();
 		sPlanetFrameBuffer.Allocate(sPlanetFrameCBuffer->GetSize());
@@ -958,10 +971,11 @@ namespace Toast {
 				indices.insert(indices.end(), { i0,i2,i1,  i1,i2,i3 });
 			}
 
-
 		sGridIndexCount = (uint32_t)indices.size();
-		sGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), (uint32_t)vertices.size() * sizeof(uint16_t),	(uint32_t)vertices.size(), 0, D3D11_USAGE_IMMUTABLE);
+		sGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), (uint32_t)vertices.size() * sizeof(uint16_t), (uint32_t)vertices.size() / 2, 0, D3D11_USAGE_IMMUTABLE);
 		sGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), sGridIndexCount);
+
+		sValidPlanet = true;
 	}
 
 	uint32_t PlanetSystem::DetermineActiveLODLevels(const Vector3& camPosPS)
@@ -1006,6 +1020,37 @@ namespace Toast {
 			else
 				sLevels[L].Dirty = false;
 		}
+	}
+
+	Buffer& PlanetSystem::BuildLevelCB(uint32_t L)
+	{
+		static PlanetLevelCB cb;                // lives between calls
+		const ClipLevel& lvl = sLevels[L];
+
+		cb.OriginX = lvl.Origin.first;
+		cb.OriginY = lvl.Origin.second;
+		cb.CellSize = 1u << L;                  // 2^L metres
+		cb.GridSize = sGridSize;                // e.g. 257
+
+		/* copy to the generic scratch buffer you created
+		   when you built  sPlanetLevelCBuffer  */
+		sPlanetLevelBuffer.Write(reinterpret_cast<uint8_t*>(&cb), sizeof(cb), 0);
+
+		return sPlanetLevelBuffer;
+	}
+
+	void PlanetSystem::OnUpdate(const Vector3& camPosWS)
+	{
+		const Vector3 camPosPS = camPosWS;// -sPlanetCentreWS;   // world → planet space
+
+		/* decide how many levels are visible this frame                */
+		sActiveLevels = DetermineActiveLODLevels(camPosPS);
+
+		/* scroll the grid & mark dirty ones                             */
+		UpdateLevelOrigins(camPosPS);
+
+		for (uint32_t L = 0; L < sNumLevels; ++L)
+			sLevels[L].InFrustum = (L < sActiveLevels);
 	}
 
 	void PlanetSystem::CalculateBasePlanet(PlanetComponent& planet, TerrainDetailComponent* terrainDetail, double scale)
@@ -1272,59 +1317,27 @@ namespace Toast {
 		}
 	}
 
-	void PlanetSystem::GenerateDistanceLUT(std::vector<double>& distanceLUT, float radius, float FoV, float screenWdth, float screenHeight, double maxPixelError)
+	void PlanetSystem::GenerateDistanceLUT(uint32_t maxLevels, double planetRadius, float FoVY, uint32_t viewportWidth, double metersPerFirstCell, float screenErrorPx, double spacingBias)
 	{
-		const int MAX_LEVEL = 25;
-		// our two anchors:
-		const int L_anchor0 = 7;      // we want level 7 at exactly 100 000 m
-		const int L_anchor1 = 20;      // we want level 20 at its existing “good” value
+		sDistanceLUT.clear();
+		sDistanceLUT.reserve(maxLevels);
 
-		// 1) Compute raw chord‐based LOD distances (before squaring)
-		std::vector<double> raw_sq(MAX_LEVEL + 1);
-		double f = screenHeight * 0.5 / std::tan(FoV * 0.5);
-		for (int ℓ = 0; ℓ <= MAX_LEVEL; ++ℓ) {
-			double φ = M_PI / (4.0 * std::pow(2.0, ℓ));
-			double edge = 2.0 * radius * std::sin(φ);
-			double d = (edge * f) / maxPixelError;
-			raw_sq[ℓ] = d * d;
+		const double focalLenPx = double(viewportWidth) / (2.0 * std::tan(FoVY * 0.5f));
+
+		double cellSize = metersPerFirstCell;          //   S · 2^L
+		for (uint32_t L = 0; L < maxLevels; ++L)
+		{
+			// how far can we be before this patch is ≤ E pixels ?
+			double d = (cellSize / double(screenErrorPx)) * focalLenPx;
+			double dist2 = d * d;                   // store squared distance
+			sDistanceLUT.emplace_back(dist2);
+
+			// next level is twice the cell edge - but also stretched by γ
+			cellSize *= 2.0 * spacingBias;
 		}
 
-		// 2) Uniformly scale so that raw_sq[MAX_LEVEL] → 25.0 (i.e. √25 = 5 m)
-		double scale = 25.0 / raw_sq[MAX_LEVEL];
-		std::vector<double> scaled_sq(MAX_LEVEL + 1);
-		for (int ℓ = 0; ℓ <= MAX_LEVEL; ++ℓ)
-			scaled_sq[ℓ] = raw_sq[ℓ] * scale;
-
-		// 3) Convert to linear distances
-		std::vector<double> d_lin(MAX_LEVEL + 1);
-		for (int ℓ = 0; ℓ <= MAX_LEVEL; ++ℓ)
-			d_lin[ℓ] = std::sqrt(scaled_sq[ℓ]);
-
-		// 4) Define our anchor distances in linear space
-		double D0 = 100000.0;    // level 7 → exactly 100 000 m
-		double D1 = d_lin[L_anchor1];  // level 20 → keep whatever scaled gave us
-
-		// 5) Solve for A,B in d(ℓ) = A·exp(B·ℓ) passing through (ℓ=D0) and (ℓ=L_anchor1,D1)
-		double B = (std::log(D1) - std::log(D0)) / double(L_anchor1 - L_anchor0);
-		double A = D0 * std::exp(-B * L_anchor0);
-
-		// 6) Build final squared‐distance LUT, piecewise:
-		distanceLUT.resize(MAX_LEVEL + 1);
-		for (int ℓ = 0; ℓ <= MAX_LEVEL; ++ℓ) {
-			double d;
-			if (ℓ < L_anchor0) d = d_lin[ℓ];            // keep coarse scaled
-			else if (ℓ <= L_anchor1) d = A * std::exp(B * ℓ); // exponential between
-			else                      d = d_lin[ℓ];           // keep fine scaled
-			distanceLUT[ℓ] = d * d;
-			sDistanceLUT[ℓ] = d * d;
-		}
-
-		//int i = 0;
-		//for (auto level : distanceLUT)
-		//{
-		//	i++;
-		//	TOAST_CORE_INFO("distanceLUT[%d]: %lf", i, level);
-		//}
+		// optional: make sure the last element is “infinite”
+		sDistanceLUT.back() = std::numeric_limits<double>::max();
 	}
 
 	void PlanetSystem::GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight)

@@ -30,6 +30,8 @@ namespace Toast {
 		mParticleSystem = CreateRef<ParticleSystem>();
 
 		mParticleSystem->Initialize();
+
+		PlanetSystem::Initialize();
 	}
 
 	Scene::~Scene()
@@ -1149,7 +1151,7 @@ namespace Toast {
 				{
 					if (pc.IsDirty)
 					{
-						PlanetSystem::GenerateDistanceLUT(pc.DistanceLUT, pc.PlanetData.radius, mainCameraComponent->Camera.GetPerspectiveVerticalFOV(), mViewportWidth, mViewportHeight, 2.0);
+						//PlanetSystem::GenerateDistanceLUT(pc.DistanceLUT, pc.PlanetData.radius, mainCameraComponent->Camera.GetPerspectiveVerticalFOV(), mViewportWidth, mViewportHeight, 2.0);
 						PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, tc.Scale.x, pc.PlanetData.maxAltitude);
 						PlanetSystem::GenerateHeightMultLUT(pc.HeightMultLUT, tc.Scale.x, pc.PlanetData.maxAltitude);
 
@@ -1161,6 +1163,11 @@ namespace Toast {
 
 					DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, mainCameraTransform->GetTransform());
 					cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRot);
+
+					DirectX::XMFLOAT3 cameraPosF3;
+					DirectX::XMStoreFloat3(&cameraPosF3, cameraPos);
+
+					PlanetSystem::OnUpdate({ cameraPosF3 });
 
 					InvalidateFrustum();
 
@@ -2009,6 +2016,7 @@ namespace Toast {
 			if (camera.Primary)
 			{
 				mainCamera = &camera.Camera;
+				mMainCamera = &camera.Camera;
 				cameraTransform = transform.GetTransform();
 				break;
 			}
@@ -2031,7 +2039,7 @@ namespace Toast {
 
 		InvalidateFrustum();
 
-		PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, component.PlanetData.radius, mainCamera->GetPerspectiveVerticalFOV(), mViewportWidth, mViewportHeight, 2.0);
+		//PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, component.PlanetData.radius, mainCamera->GetPerspectiveVerticalFOV(), mViewportWidth, mViewportHeight, 2.0);
 		PlanetSystem::GenerateHeightMultLUT(component.HeightMultLUT, component.PlanetData.radius, component.PlanetData.maxAltitude);
 		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, component.PlanetData.maxAltitude);
 

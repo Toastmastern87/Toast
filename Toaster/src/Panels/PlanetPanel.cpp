@@ -8,6 +8,11 @@
 
 namespace Toast {
 
+	void PlanetPanel::SetContext(Scene* context)
+	{
+		mContext = context;
+	}
+
 	void PlanetPanel::OnImGuiRender()
 	{
 		ImGuiIO& io = ImGui::GetIO();
@@ -123,8 +128,14 @@ namespace Toast {
 
 				if (ImGui::Button("Apply", ImVec2(btnW, 0)))
 				{
-					if(PlanetSystem::sNumLevels != 0 && PlanetSystem::sGridSize != 0)
+					if (PlanetSystem::sNumLevels != 0 && PlanetSystem::sGridSize != 0)
+					{
 						PlanetSystem::RebuildGrid();
+
+						SceneCamera* camera = mContext->GetMainCamera();
+						if (camera)
+							PlanetSystem::GenerateDistanceLUT(PlanetSystem::sNumLevels, PlanetSystem::sRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mContext->GetViewportSize()));
+					}
 				}
 
 				ImGui::EndTable();

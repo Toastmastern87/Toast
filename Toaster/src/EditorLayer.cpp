@@ -102,6 +102,7 @@ namespace Toast {
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mSceneSettingsPanel.SetContext(mEditorScene, mWindow);
 		mEnvironmentPanel.SetContext(mEditorScene);
+		mPlanetPanel.SetContext(mEditorScene);
 		mPropertiesPanel.SetContext(mSceneHierarchyPanel.GetSelectedEntity(), &mSceneHierarchyPanel, mWindow);
 	}
 
