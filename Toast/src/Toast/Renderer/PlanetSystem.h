@@ -354,10 +354,15 @@ namespace Toast {
 		static inline double sRadius = 0.0;
 		static inline std::vector<double> sDistanceLUT;
 
-		// GPU Data
+		// Planet Base Data
 		static inline Ref<ConstantBuffer> sPlanetFrameCBuffer, sPlanetLevelCBuffer;
 		static inline Buffer sPlanetFrameBuffer, sPlanetLevelBuffer;
 		static inline ShaderLayout sShaderInputLayout;
+
+		// PBR Data
+		static inline DirectX::XMFLOAT3 sAlbedoColor;
+		static inline Ref<ConstantBuffer> sPlanetMaterialCBuffer;
+		static inline Buffer sPlanetMaterialBuffer;
 
 		friend class PlanetPanel;
 		friend class SceneSerializer;
@@ -384,6 +389,8 @@ namespace Toast {
 		static Buffer* GetPlanetFrameBuffer() { return &sPlanetFrameBuffer; }
 		static Ref<ConstantBuffer> GetPlanetLevelCBuffer() { return sPlanetLevelCBuffer; }
 		static ShaderLayout* GetShaderLayout() { return &sShaderInputLayout; }
+
+		static DirectX::XMFLOAT3& GetAlbedoColor() { return sAlbedoColor; }
 
 		// Helper functions to be used during runtime updates of the planet
 		static inline bool NeedSplit(PlanetNode* node, const PlanetComponent& p, const Vector3& camPlanetSpace)

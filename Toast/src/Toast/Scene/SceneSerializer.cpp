@@ -665,6 +665,7 @@ namespace Toast {
 		out << YAML::Key << "GridSize" << YAML::Value << PlanetSystem::sGridSize;
 		out << YAML::Key << "MaxLevels" << YAML::Value << PlanetSystem::sNumLevels;
 		out << YAML::Key << "Radius" << YAML::Value << PlanetSystem::sRadius;
+		out << YAML::Key << "AlbedoColor" << YAML::Value << PlanetSystem::sAlbedoColor;
 		out << YAML::EndMap;
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
@@ -766,6 +767,7 @@ namespace Toast {
 		PlanetSystem::sGridSize = planet["GridSize"].as<uint32_t>();
 		PlanetSystem::sNumLevels = planet["MaxLevels"].as<uint32_t>();
 		PlanetSystem::sRadius = planet["Radius"].as<uint32_t>();
+		PlanetSystem::sAlbedoColor = planet["AlbedoColor"].as<DirectX::XMFLOAT3>();
 
 		auto entities = data["Entities"];
 		if (entities) 

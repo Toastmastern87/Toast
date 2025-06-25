@@ -65,7 +65,7 @@ namespace Toast {
 
 			// section header
 			ImGui::PushFont(io.Fonts->Fonts[4]);     
-			ImGui::TextUnformatted("Planet Clip Data");
+			ImGui::TextUnformatted("Planet Base Data");
 			ImGui::PopFont();
 
 			ImGui::PushID("PlanetPopupControls");
@@ -144,6 +144,38 @@ namespace Toast {
 			}
 
 			ImGui::EndGroup();
+
+			ImGui::Spacing();            // one line
+			ImGui::Spacing();            // another (≈ 10-12 px total)
+
+			// section header
+			ImGui::PushFont(io.Fonts->Fonts[4]);
+			ImGui::TextUnformatted("PBR Settings");
+			ImGui::PopFont();
+
+			ImGui::Spacing();
+
+			if (ImGui::BeginTable("MaterialTable", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_PadOuterX))
+			{
+				ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, popupWidth * 0.4f);
+				ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, popupWidth * 0.6f);
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Albedo Color");
+
+				ImGui::TableSetColumnIndex(1);
+
+				float padX = ImGui::GetStyle().CellPadding.x;
+				float colW = ImGui::GetColumnWidth();             // total width of column 1
+				float fullW = colW - padX * 2.0f;                  // leave padding on both sides
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::ColorEdit3("##albedocolor", &PlanetSystem::sAlbedoColor.x);
+				ImGui::EndTable();
+			}
 
 			ImGui::Spacing();            // one line
 			ImGui::Spacing();            // another (≈ 10-12 px total)

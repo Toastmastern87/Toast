@@ -132,9 +132,9 @@ PixelOutputType main(PixelInputType input)
     /*--------------------------------------------------------------*/
     /* 3) albedo + metallic                                         */
     /*--------------------------------------------------------------*/
-    float3 albedo = Albedo.rgb; /* later:   if(AlbedoTexToggle) … */
+    params.Albedo = Albedo.rgb; /* later:   if(AlbedoTexToggle) … */
 
-    output.albedoMetallic.rgb = float3(0.0f, 0.0f, 0.0f);
+    output.albedoMetallic.rgb = params.Albedo;
     output.albedoMetallic.a = 0.0f;
 
     /*--------------------------------------------------------------*/

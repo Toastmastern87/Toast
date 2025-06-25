@@ -3,6 +3,7 @@ Planet:
   GridSize: 257
   MaxLevels: 1
   Radius: 5
+  AlbedoColor: [0.578059077, 0.00243906979, 0.00243906979]
 Entities:
   - Entity: 3888910141822256182
     TagComponent:
@@ -25,3 +26,19 @@ Entities:
         OrthographicHeight: 1120
       Primary: true
       FixedAspectRatio: false
+  - Entity: 7969327153423302118
+    TagComponent:
+      Tag: Sunlight
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [-18, 0, 0]
+      Scale: [0.999434412, 0.999894023, 0.999519885]
+    DirectionalLightComponent:
+      Radiance: [0.886075974, 0.82748425, 0.575762451]
+      Intensity: 1.75999999
+      SunDesiredCoverage: 10000
+      SunLightDistance: 961

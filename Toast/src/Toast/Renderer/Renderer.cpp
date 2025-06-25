@@ -812,6 +812,9 @@ namespace Toast {
 
 			PlanetSystem::GetPlanetFrameCBuffer()->Bind();
 
+			sRendererData->MaterialBuffer.Write((uint8_t*)&PlanetSystem::GetAlbedoColor(), 16, 0);
+			sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
+
 			auto& levels = PlanetSystem::GetLevels();
 
 			TOAST_CORE_CRITICAL("Planet is valid and number of active levels are: %d", PlanetSystem::ActiveLevels());
