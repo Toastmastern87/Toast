@@ -56,12 +56,18 @@ namespace Toast {
 	{
 		DirectX::XMFLOAT3 Center;
 		float Radius;
-		DirectX::XMFLOAT3 BasisEast;
+		DirectX::XMFLOAT3 BasisTanEast;
 		float Pad0;
-		DirectX::XMFLOAT3 BasisNorth;
+		DirectX::XMFLOAT3 BasisTanNorth;
 		float Pad1;
-		DirectX::XMFLOAT3 BasisUp;
+		DirectX::XMFLOAT3 BasisRadUp;
 		float Pad2;
+		DirectX::XMFLOAT3 BasisLonEast;
+		float Pad4;
+		DirectX::XMFLOAT3 BasisLonNorth;
+		float Pad3;
+		DirectX::XMFLOAT3 BasisSpinUp;
+		float Pad5;
 	};
 
 	constexpr double kQuant = 0.1;     // 1 cm grid
@@ -392,7 +398,7 @@ namespace Toast {
 		static void UpdateLevelOrigins(const Vector3& camPosPlanet);
 		static Buffer& PlanetSystem::BuildLevelCB(uint32_t L);
 
-		static void OnUpdate(const Vector3& camPosWS);
+		static void OnUpdate(const Vector3& camPosWS, DirectX::XMMATRIX viewMatrix);
 
 		static bool AtmosphereActivated() { return sAtmosphereActivated; }
 		static bool IsValid() { return sValidPlanet; }

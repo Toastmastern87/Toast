@@ -1,4 +1,4 @@
-#inputlayout        // packed 16-bit grid coordinates: uint16 gx, uint16 gy
+﻿#inputlayout        // packed 16-bit grid coordinates: uint16 gx, uint16 gy
 vertex
 
 #type vertex
@@ -6,7 +6,7 @@ vertex
 
 struct VertexInputType
 {
-    uint2 grid : POSITION0; // gx,gy 0 � N-1
+    uint2 grid : POSITION0; // gx,gy 0 … N-1
 };
 
 cbuffer Camera : register(b0)
@@ -27,9 +27,13 @@ cbuffer PlanetFrame : register(b4)
 {
     float3 PlanetCentreVS;
     float PlanetRadius;
-    float3 BasisEast;
-    float3 BasisNorth;
-    float3 BasisUp;
+
+    float3 BasisTanEast;
+    float3 BasisTanNorth;
+    float3 BasisRadUp;
+    float3 BasisLonEast;
+    float3 BasisLonNorth;
+    float3 BasisSpinUp;
 };
 
 cbuffer PlanetLevel : register(b7) 
@@ -42,9 +46,11 @@ cbuffer PlanetLevel : register(b7)
 
 struct PixelInputType
 {
-    float4 pixelPosition : SV_POSITION;
-    float3 viewPosition : VIEWPOS;
-    float3 viewNormal : NORMAL;
+    float4 pixelPosition    : SV_POSITION;
+    float3 viewPosition     : VIEWPOS;
+    float3 viewNormal       : NORMAL0;
+    float3 planetNormal     : NORMAL1;
+    float2 texCoord         : TEXCOORD0;
 };
 
 PixelInputType main(VertexInputType input)
@@ -52,32 +58,45 @@ PixelInputType main(VertexInputType input)
     PixelInputType output;
     
     // unpack & scroll to **planet metres** on the tangent plane
-    int2 g = int2(input.grid); // 0 � 256 etc.
+    int2 g = int2(input.grid); // 0 … 256 etc.
     int2 world = int2(OriginX, OriginY) + g; // scrolled grid coords
     float2 off = (float2) world * float(CellSize);
 
     /*--- position in camera-relative space ---------------------------*/
-    float3 Pws = PlanetCentreVS + BasisUp * PlanetRadius + BasisEast * off.x + BasisNorth * off.y;
+    float3 Pws = PlanetCentreVS + BasisRadUp * PlanetRadius + BasisTanEast * off.x + BasisTanNorth * off.y;
 
     // push down onto the sphere surface
     float3 nrm = normalize(Pws - PlanetCentreVS);
+    
+    float3 nPlanet;
+    nPlanet.x = dot(nrm, BasisLonEast); // component along +East
+    nPlanet.y = dot(nrm, BasisSpinUp); //         …     +Up
+    nPlanet.z = dot(nrm, BasisLonNorth);
+    
     Pws = PlanetCentreVS + nrm * PlanetRadius;
 
     float4 Pv = mul(float4(Pws, 1), viewMatrix);
     output.pixelPosition = mul(Pv, projectionMatrix);
     output.viewPosition = Pv.xyz;
     output.viewNormal = mul(float4(nrm, 1.0), viewMatrix).xyz;
+    output.planetNormal = nPlanet;
     return output;
 }
 
 #type pixel
 #pragma pack_matrix( row_major )
 
+static const float PI = 3.14159265359f;
+static const float INV_TWO_PI = 1.0f / (2.0f * PI);
+static const float INV_PI = 1.0f / PI;
+
 struct PixelInputType
 {
     float4 pixelPosition    : SV_POSITION;
     float3 viewPosition     : VIEWPOS;
-    float3 viewNormal       : NORMAL;
+    float3 viewNormal       : NORMAL0;
+    float3 planetNormal     : NORMAL1;
+    float2 texCoord         : TEXCOORD0;
 };
 
 struct PixelOutputType
@@ -114,25 +133,34 @@ PixelOutputType main(PixelInputType input)
     PBRParameters params;
 
     /*--------------------------------------------------------------*/
-    /* 1) position � just forward the view-space position           */
+    /* 1) position – just forward the view-space position           */
     /*--------------------------------------------------------------*/
     output.position = float4(input.viewPosition, 1.0f);
 
     /*--------------------------------------------------------------*/
-    /* 2) normal � encode from -1..1 to 0..1 so it fits RGBA8       */
+    /* 2) normal – encode from -1..1 to 0..1 so it fits RGBA8       */
     /*--------------------------------------------------------------*/
     float3 N = normalize(input.viewNormal);
     float3 encN = N * 0.5 + 0.5; // map to [0,1]
 
-    // like your mesh shader: pack encoded normal; spare channel carries �no-ID flag�
+    // like your mesh shader: pack encoded normal; spare channel carries “no-ID flag”
     output.normal = float4(encN, -1);
 
     /*--------------------------------------------------------------*/
     /* 3) albedo + metallic                                         */
     /*--------------------------------------------------------------*/
-    params.Albedo = Albedo.rgb; /* later:   if(AlbedoTexToggle) � */
+    
+    //params.Albedo = Albedo.rgb; /* later:   if(AlbedoTexToggle) … */
 
-    output.albedoMetallic.rgb = params.Albedo;
+    float3 p = normalize(input.planetNormal); // already unit length, but cheap
+    float lon = atan2(p.z, p.x); // −π … +π
+    float lat = asin(p.y); // −π/2 … +π/2
+
+    float2 uv;
+    uv.x = lon * INV_TWO_PI + 0.5; // 0 … 1   (wraps cleanly)
+    uv.y = lat * INV_PI + 0.5;
+    
+    output.albedoMetallic.rgb = float4(uv, 0.0f, 0.0f);
     output.albedoMetallic.a = 0.0f;
 
     /*--------------------------------------------------------------*/

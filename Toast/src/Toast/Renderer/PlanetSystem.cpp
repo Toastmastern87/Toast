@@ -929,7 +929,7 @@ namespace Toast {
 		sShaderInputLayout = ShaderLayout(planetElements, vsBlob);
 
 		// Setting up Constant Buffers
-		sPlanetFrameCBuffer = ConstantBufferLibrary::Load("PlanetFrame", 64, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetFrame) });
+		sPlanetFrameCBuffer = ConstantBufferLibrary::Load("PlanetFrame", 112, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetFrame) });
 		sPlanetFrameCBuffer->Bind();
 		sPlanetFrameBuffer.Allocate(sPlanetFrameCBuffer->GetSize());
 		sPlanetFrameBuffer.ZeroInitialize();
@@ -1070,7 +1070,7 @@ namespace Toast {
 		return sPlanetLevelBuffer;
 	}
 
-	void PlanetSystem::OnUpdate(const Vector3& camPosWS)
+	void PlanetSystem::OnUpdate(const Vector3& camPosWS, DirectX::XMMATRIX viewMatrix)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -1085,26 +1085,41 @@ namespace Toast {
 		cb.Center = DirectX::XMFLOAT3((float)centreCVd.x, (float)centreCVd.y, (float)centreCVd.z);
 		cb.Radius = sRadius;
 
-		Vector3 worldUp = { 0, 1, 0 };             // the planet’s spin axis
+		// planet-fixed triad – ONLY the quaternion is involved
+		Vector3 lonEastWS = Vector3::Normalize(Vector3::Rotate({ 1,0,0 }, rotation)); // +longitude
+		Vector3 spinUpWS = Vector3::Normalize(Vector3::Rotate({ 0,1,0 }, rotation)); // spin axis
+		Vector3 lonNorthWS = Vector3::Normalize(Vector3::Rotate({ 0,0,1 }, rotation));
 
-		Vector3 upCV = Vector3::Normalize(-centreCVd);          // radial, outward
+		// camera-dependent radial, kept for lifting the grid
+		Vector3 radUpWS = Vector3::Normalize(camPosWS - Vector3(sTranslation));
 
-		// Rotate reference axes by planet rotation
-		Vector3 rotatedUpAxis = Vector3::Rotate(worldUp, rotation);
-		Vector3 rotatedForward = Vector3::Rotate({ 0, 0, 1 }, rotation);
+		// 1.3   project planet-east into the tangent plane → tangent east
+		Vector3 tanEastWS = lonEastWS - radUpWS * Vector3::Dot(lonEastWS, radUpWS);
+		if (tanEastWS.LengthSquared() < 1e-6f)                      // at planet pole
+			tanEastWS = Vector3::Normalize(Vector3::Cross(spinUpWS, radUpWS));
+		else
+			tanEastWS = Vector3::Normalize(tanEastWS);
 
-		Vector3 eastCV = Vector3::Cross(rotatedUpAxis, upCV);
-		if (eastCV.LengthSquared() < 1e-6f)                      // degenerate at pole
-		{
-			eastCV = Vector3::Cross(rotatedForward, upCV);      // fallback axis
-		}
-		eastCV = Vector3::Normalize(eastCV);
+		// 1.4   tangent north = radial × tangent-east
+		Vector3 tanNorthWS = Vector3::Normalize(Vector3::Cross(radUpWS, tanEastWS));
 
-		Vector3 northCV = Vector3::Normalize(Vector3::Cross(upCV, eastCV));
+		// to VIEW space (for the shader math)
+		auto ToView = [&](const DirectX::XMFLOAT3& vWS)
+			{
+				DirectX::XMVECTOR v = DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&vWS), viewMatrix);
 
-		cb.BasisEast = DirectX::XMFLOAT3((float)eastCV.x, (float)eastCV.y, (float)eastCV.z);
-		cb.BasisNorth = DirectX::XMFLOAT3((float)northCV.x, (float)northCV.y, (float)northCV.z);
-		cb.BasisUp = DirectX::XMFLOAT3((float)upCV.x, (float)upCV.y, (float)upCV.z);
+				DirectX::XMFLOAT3 ret;
+				DirectX::XMStoreFloat3(&ret, v);
+				return ret;
+			};
+
+		cb.BasisTanEast = ToView(DirectX::XMFLOAT3({ (float)tanEastWS.x, (float)tanEastWS.y, (float)tanEastWS.z }));
+		cb.BasisTanNorth = ToView(DirectX::XMFLOAT3({ (float)tanNorthWS.x, (float)tanNorthWS.y, (float)tanNorthWS.z }));
+		cb.BasisRadUp =  ToView(DirectX::XMFLOAT3({ (float)radUpWS.x, (float)radUpWS.y, (float)radUpWS.z }));
+
+		cb.BasisLonEast = ToView(DirectX::XMFLOAT3({ (float)lonEastWS.x, (float)lonEastWS.y, (float)lonEastWS.z }));
+		cb.BasisLonNorth = ToView(DirectX::XMFLOAT3({ (float)lonNorthWS.x, (float)lonNorthWS.y, (float)lonNorthWS.z }));
+		cb.BasisSpinUp = ToView(DirectX::XMFLOAT3({ (float)spinUpWS.x, (float)spinUpWS.y, (float)spinUpWS.z }));
 
 		sPlanetFrameBuffer.Write(reinterpret_cast<uint8_t*>(&cb), sizeof(cb), 0);
 
@@ -1116,7 +1131,7 @@ namespace Toast {
 		const uint32_t L0 = sActiveLevels.first;
 		const uint32_t Ln = L0 + sActiveLevels.count;
 
-		Vector3 camTangent = { Vector3::Dot(camRel, eastCV),	0.0, Vector3::Dot(camRel, northCV) };
+		Vector3 camTangent = { Vector3::Dot(camRel, tanEastWS), 0.0, Vector3::Dot(camRel, tanNorthWS) };
 		UpdateLevelOrigins(camTangent);
 
 		for (uint32_t L = 0; L < sNumLevels; ++L)
