@@ -272,13 +272,7 @@ namespace Toast {
 			mConsolePanel.OnImGuiRender();
 			mPropertiesPanel.OnImGuiRender(mActiveDragArea);
 
-			if (mShowPlanetPopup)
-			{
-				ImGui::OpenPopup("Planet");
-				mShowPlanetPopup = false; // Reset the flag so it only triggers once
-			}
-
-			mPlanetPanel.OnImGuiRender(mActiveDragArea);
+			mPlanetPanel.OnImGuiRender(&mShowPlanetPopup, mActiveDragArea);
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 			ImGui::Begin(ICON_TOASTER_GAMEPAD" Viewport");

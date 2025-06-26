@@ -315,7 +315,8 @@ namespace Toast {
 		if (sRendererData->ParticleIndexBuffer.Get())
 			ParticlesPass(camera, cameraPos);
 
-		GodRayPass(godRayExposure, godRayDecay, godRayDensity, godRayWeight);
+		if(PlanetSystem::AtmosphereActivated())
+			GodRayPass(godRayExposure, godRayDecay, godRayDensity, godRayWeight);
 
 		if(bloom)
 			BloomPass(bloomThreshold, bloomIntensity);

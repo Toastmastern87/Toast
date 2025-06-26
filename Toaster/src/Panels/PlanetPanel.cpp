@@ -16,8 +16,11 @@ namespace Toast {
 		mWindow = window;
 	}
 
-	void PlanetPanel::OnImGuiRender(std::string& activeDragArea)
+	void PlanetPanel::OnImGuiRender(bool* showPanel, std::string& activeDragArea)
 	{
+		if (!showPanel || !*showPanel)
+			return;
+
 		ImGuiIO& io = ImGui::GetIO();
 
 		const float popupWidth = io.DisplaySize.x * 0.15f;
@@ -35,7 +38,7 @@ namespace Toast {
 
 		const ImGuiWindowFlags popupFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
 
-		if (ImGui::BeginPopupModal("Planet", nullptr, popupFlags))
+		if (ImGui::Begin("Planet", nullptr, popupFlags))
 		{
 			const float titleBarHeight = 36.0f;
 			const float buttonSize = 24.0f;
@@ -57,7 +60,7 @@ namespace Toast {
 			// Close button
 			ImGui::SetCursorScreenPos(ImVec2(windowPos.x + windowSize.x - buttonSize - 6.0f, windowPos.y + 6.0f));
 			if (ImGui::Button("X##PlanetClose", ImVec2(buttonSize, buttonSize)))
-				ImGui::CloseCurrentPopup();
+				*showPanel = false;
 
 			// Push content below title bar
 			ImGui::SetCursorScreenPos(ImVec2(windowPos.x + 10.0f, windowPos.y + titleBarHeight + 6.0f));
@@ -110,7 +113,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGuiHelpers::ManualDragFloat3("##rotation", PlanetSystem::sRotationEulerAngles, 1.0f, 0.0f, mWindow, activeDragArea);
+				ImGuiHelpers::ManualDragFloat3("##rotation", PlanetSystem::sRotationEulerAngles, 0.1f, 0.0f, mWindow, activeDragArea);
 
 				ImGui::TableNextRow();
 
@@ -251,7 +254,7 @@ namespace Toast {
 
 			ImGui::PopID();
 
-			ImGui::EndPopup();
+			ImGui::End();
 		}
 
 		ImGui::PopStyleVar();

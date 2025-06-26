@@ -13,7 +13,7 @@ namespace Toast {
 		PlanetPanel() = default;
 		~PlanetPanel() = default;
 
-		void OnImGuiRender(std::string& activeDragArea);
+		void OnImGuiRender(bool* showPanel, std::string& activeDragArea);
 
 		void SetContext(Scene* context, WindowsWindow* window);
 	private:

@@ -378,6 +378,9 @@ namespace Toast {
 		static inline Ref<ConstantBuffer> sPlanetMaterialCBuffer;
 		static inline Buffer sPlanetMaterialBuffer;
 
+		// Atmosphere Data
+		static inline bool sAtmosphereActivated = false;
+
 		friend class PlanetPanel;
 		friend class SceneSerializer;
 	public:
@@ -391,6 +394,7 @@ namespace Toast {
 
 		static void OnUpdate(const Vector3& camPosWS);
 
+		static bool AtmosphereActivated() { return sAtmosphereActivated; }
 		static bool IsValid() { return sValidPlanet; }
 		static LODDrawInfo GetLODDrawInfo() { return sActiveLevels; }
 		static std::vector<ClipLevel>& GetLevels() { return sLevels; }

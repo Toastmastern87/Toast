@@ -1074,7 +1074,11 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		const Vector3 camPosPS = camPosWS - sTranslation;   // world → planet space
+		Quaternion rotation = Quaternion::FromRollPitchYaw(Math::DegreesToRadians(sRotationEulerAngles.x), Math::DegreesToRadians(sRotationEulerAngles.y), Math::DegreesToRadians(sRotationEulerAngles.z));
+		Quaternion invRotation = rotation.Conjugate();
+
+		Vector3 camRel = camPosWS - Vector3(sTranslation);
+		Vector3 camPosPS = Vector3::Rotate(camRel, invRotation);
 
 		PlanetFrameCB cb{};
 		Vector3 centreCVd = Vector3(sTranslation) - camPosWS;
@@ -1084,10 +1088,15 @@ namespace Toast {
 		Vector3 worldUp = { 0, 1, 0 };             // the planet’s spin axis
 
 		Vector3 upCV = Vector3::Normalize(-centreCVd);          // radial, outward
-		Vector3 eastCV = Vector3::Cross(worldUp, upCV);
+
+		// Rotate reference axes by planet rotation
+		Vector3 rotatedUpAxis = Vector3::Rotate(worldUp, rotation);
+		Vector3 rotatedForward = Vector3::Rotate({ 0, 0, 1 }, rotation);
+
+		Vector3 eastCV = Vector3::Cross(rotatedUpAxis, upCV);
 		if (eastCV.LengthSquared() < 1e-6f)                      // degenerate at pole
 		{
-			eastCV = Vector3::Cross({ 0,0,1 }, upCV);            // fallback axis
+			eastCV = Vector3::Cross(rotatedForward, upCV);      // fallback axis
 		}
 		eastCV = Vector3::Normalize(eastCV);
 
@@ -1107,8 +1116,8 @@ namespace Toast {
 		const uint32_t L0 = sActiveLevels.first;
 		const uint32_t Ln = L0 + sActiveLevels.count;
 
-		/* scroll the grid & mark dirty ones                             */
-		UpdateLevelOrigins(camPosPS);
+		Vector3 camTangent = { Vector3::Dot(camRel, eastCV),	0.0, Vector3::Dot(camRel, northCV) };
+		UpdateLevelOrigins(camTangent);
 
 		for (uint32_t L = 0; L < sNumLevels; ++L)
 			sLevels[L].InFrustum = (L >= L0 && L < Ln);;
