@@ -238,7 +238,13 @@ namespace Toast {
 
 				float temp = PlanetSystem::sRadius;
 				if (ImGui::DragFloat("##Radius", &temp, 1.0f, 1.0f, FLT_MAX, "%.1f"))
+				{
 					PlanetSystem::sRadius = temp;
+
+					SceneCamera* camera = mContext->GetMainCamera();
+					if (camera)
+						PlanetSystem::GenerateDistanceLUT(PlanetSystem::sNumLevels, PlanetSystem::sRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mContext->GetViewportSize()));
+				}
 
 				ImGui::EndTable();
 			}

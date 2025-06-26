@@ -816,17 +816,19 @@ namespace Toast {
 			sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
 
 			auto& levels = PlanetSystem::GetLevels();
+			auto& LODInfo = PlanetSystem::GetLODDrawInfo();
 
-			TOAST_CORE_CRITICAL("Planet is valid and number of active levels are: %d", PlanetSystem::ActiveLevels());
+			const uint32_t L0 = LODInfo.first;
+			const uint32_t Ln = L0 + LODInfo.count;          // one-past-last
 
-			for (uint32_t L = 0; L < PlanetSystem::ActiveLevels(); ++L)
+			for (uint32_t L = L0; L < Ln; ++L)
 			{
 				const auto& level = levels[L];
-
-				if (!level.Dirty && !level.InFrustum)     // quick out
+				if (!level.Dirty && !level.InFrustum)
 					continue;
 
-				PlanetSystem::GetPlanetLevelCBuffer()->Map(PlanetSystem::BuildLevelCB(L)); // fills OriginX/Y, CellSize …
+				PlanetSystem::GetPlanetLevelCBuffer()->Map(
+					PlanetSystem::BuildLevelCB(L));
 
 				RenderCommand::DrawIndexed(0, 0, PlanetSystem::GetGridIndexCount());
 			}

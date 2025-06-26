@@ -989,24 +989,42 @@ namespace Toast {
 		sValidPlanet = true;
 	}
 
-	uint32_t PlanetSystem::DetermineActiveLODLevels(const Vector3& camPosPS)
+	LODDrawInfo PlanetSystem::DetermineActiveLODLevels(const Vector3& camPosPS)
 	{
-		TOAST_PROFILE_FUNCTION();
+		/* --------------------------------------------------------- */
+		/* 1)    camera height and screen-error based *inner* limit  */
+		/* --------------------------------------------------------- */
+		double height = std::max(0.0, camPosPS.Length() - sRadius);
+		double height2 = height * height;
 
-		const double cameraDist = camPosPS.Length();            // centre-to-cam
-		const double height = (std::max)(0.0, cameraDist - sRadius);
-		const double height2 = height * height;                          // squared (cheap)
+		uint32_t first = 0;                                  // start with L0
+		while (first + 1 < sNumLevels                     // leave room
+			&& height2 > sDistanceLUT[first])             // too much error?
+			++first;                                         // skip finer ring
 
-		const uint32_t kMax = static_cast<uint32_t>(sDistanceLUT.size()); // usually 22-ish
-		uint32_t levelsToDrop = 0;
+		/* --------------------------------------------------------- */
+		/* 2)    horizon based *outer* limit                        */
+		/* --------------------------------------------------------- */
+		double horizon = std::sqrt(height * (2.0 * sRadius + height));
 
-		while (levelsToDrop < kMax - 1 && height2 > sDistanceLUT[levelsToDrop])
-			++levelsToDrop;                        // too far → skip the current finest
+		uint32_t last = first;                              // we already keep it
+		double   cell = double(1u << first);                // metres / texel
+		double   half = 0.5 * (sGridSize - 1) * cell;       // half-width
 
-		const uint32_t active = (std::min<uint32_t>)(kMax - levelsToDrop, sNumLevels);
+		while (half < horizon                             // not wide enough
+			&& last + 1 < sNumLevels)                     // still have rings
+		{
+			++last;                                          // add next ring
+			cell *= 2.0;
+			half *= 2.0;
+		}
 
-		sActiveLevels = active;              // remember for the rest of the frame
-		return active;
+		/* --------------------------------------------------------- */
+		/* 3)    remember the range for the rest of the frame        */
+		/* --------------------------------------------------------- */
+		sActiveLevels.first = first;               // finest level to draw
+		sActiveLevels.count = last - first + 1;    // how many in total
+		return sActiveLevels;
 	}
 
 	void PlanetSystem::UpdateLevelOrigins(const Vector3& camPosPS)
@@ -1056,7 +1074,7 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		const Vector3 camPosPS = camPosWS;// -sPlanetCentreWS;   // world → planet space
+		const Vector3 camPosPS = camPosWS - sTranslation;   // world → planet space
 
 		PlanetFrameCB cb{};
 		Vector3 centreCVd = Vector3(sTranslation) - camPosWS;
@@ -1086,11 +1104,14 @@ namespace Toast {
 		/* decide how many levels are visible this frame                */
 		sActiveLevels = DetermineActiveLODLevels(camPosPS);
 
+		const uint32_t L0 = sActiveLevels.first;
+		const uint32_t Ln = L0 + sActiveLevels.count;
+
 		/* scroll the grid & mark dirty ones                             */
 		UpdateLevelOrigins(camPosPS);
 
 		for (uint32_t L = 0; L < sNumLevels; ++L)
-			sLevels[L].InFrustum = (L < sActiveLevels);
+			sLevels[L].InFrustum = (L >= L0 && L < Ln);;
 	}
 
 	void PlanetSystem::CalculateBasePlanet(PlanetComponent& planet, TerrainDetailComponent* terrainDetail, double scale)
@@ -1357,29 +1378,42 @@ namespace Toast {
 		}
 	}
 
+	double PlanetSystem::ComputeCurvatureBias(double desiredSwitchHeight, double radius, double patchWidth, double focalLenPx, double screenErrorPx)
+	{
+		return desiredSwitchHeight *(8.0 * radius * screenErrorPx) / (patchWidth * patchWidth * focalLenPx);
+	}
+
 	void PlanetSystem::GenerateDistanceLUT(uint32_t maxLevels, double planetRadius, float FoVY, uint32_t viewportWidth, double metersPerFirstCell, float screenErrorPx, double spacingBias)
 	{
 		sDistanceLUT.clear();
 		sDistanceLUT.reserve(maxLevels);
 
-		TOAST_CORE_CRITICAL("Generating Distance Look Up Table!");
-		TOAST_CORE_CRITICAL("maxLevels: %d, Planet Radius: %lf, FoVY: %f, Viewport Width: %d", maxLevels, planetRadius, FoVY, viewportWidth);
+		double cell = metersPerFirstCell;                 // texel edge (m)
+		double patchWidth = cell * (sGridSize - 1);
 
-		const double focalLenPx = double(viewportWidth) / (2.0 * std::tan(FoVY * 0.5f));
+		double curvatureBias = ComputeCurvatureBias(10.0, planetRadius, patchWidth, (double(viewportWidth) /	(2.0 * std::tan(FoVY * 0.5f))), screenErrorPx);
 
-		double cellSize = metersPerFirstCell;          //   S · 2^L
+		const double focalLenPx = double(viewportWidth) /
+			(2.0 * std::tan(FoVY * 0.5f));
+
+		uint32_t fineLevels = 7;
+		float    fineError = 8.0f;       // instead of 2 px
+
 		for (uint32_t L = 0; L < maxLevels; ++L)
 		{
-			// how far can we be before this patch is ≤ E pixels ?
-			double d = (cellSize / double(screenErrorPx)) * focalLenPx;
-			double dist2 = d * d;                   // store squared distance
-			sDistanceLUT.emplace_back(dist2);
+			float errorPx = (L < fineLevels) ? fineError : screenErrorPx;
 
-			// next level is twice the cell edge - but also stretched by γ
-			cellSize *= 2.0 * spacingBias;
+			double sagitta = curvatureBias *
+				(patchWidth * patchWidth) / (8.0 * planetRadius);
+
+			double d = (sagitta / double(errorPx)) * focalLenPx;
+			sDistanceLUT.emplace_back(d * d);
+
+			cell *= 2.0;
+			if (L >= 5) cell *= spacingBias;
+			patchWidth = cell * (sGridSize - 1);
 		}
 
-		// optional: make sure the last element is “infinite”
 		sDistanceLUT.back() = std::numeric_limits<double>::max();
 
 		for (auto level : sDistanceLUT)

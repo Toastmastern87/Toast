@@ -38,6 +38,12 @@ namespace Toast {
 		bool InFrustum = true;
 	};
 
+	struct LODDrawInfo
+	{
+		uint32_t first;   // finest level that is *kept*  (≥ 0)
+		uint32_t count;   // how many consecutive levels are drawn
+	};
+
 	struct PlanetLevelCB
 	{
 		int32_t OriginX;
@@ -346,8 +352,9 @@ namespace Toast {
 		static inline uint32_t sTempGridSize;
 		static inline int32_t sNumLevels;
 		static inline int32_t sTempNumLevels;
-		static inline int32_t sActiveLevels;
+		//static inline int32_t sActiveLevels;
 		static inline std::vector<ClipLevel> sLevels;
+		static inline LODDrawInfo sActiveLevels;
 
 		static inline DirectX::XMFLOAT3 sTranslation = { 0.0f, 0.0f, 0.0f };
 		static inline DirectX::XMFLOAT3 sRotationEulerAngles = { 0.0f, 0.0f, 0.0f };
@@ -378,14 +385,14 @@ namespace Toast {
 		static void Initialize();
 		static void InitializeLevels();
 		static void RebuildGrid();
-		static uint32_t DetermineActiveLODLevels(const Vector3& camPosPlanet);
+		static LODDrawInfo DetermineActiveLODLevels(const Vector3& camPosPlanet);
 		static void UpdateLevelOrigins(const Vector3& camPosPlanet);
 		static Buffer& PlanetSystem::BuildLevelCB(uint32_t L);
 
 		static void OnUpdate(const Vector3& camPosWS);
 
 		static bool IsValid() { return sValidPlanet; }
-		static int32_t ActiveLevels() { return sActiveLevels; }
+		static LODDrawInfo GetLODDrawInfo() { return sActiveLevels; }
 		static std::vector<ClipLevel>& GetLevels() { return sLevels; }
 
 		static Ref<VertexBuffer> GetGridVertexBuffer() { return sGridVertexBuffer; }
@@ -444,7 +451,8 @@ namespace Toast {
 
 		static void Shutdown();
 
-		static void GenerateDistanceLUT(uint32_t maxLevels, double planetRadius, float FoVY, uint32_t viewportWidth, double metersPerFirstCell = 1.0, float screenErrorPx = 4.0f, double spacingBias = 1.2);
+		static double ComputeCurvatureBias(double desiredSwitchHeight, double radius, double patchWidth, double focalLenPx, double screenErrorPx);
+		static void GenerateDistanceLUT(uint32_t maxLevels, double planetRadius, float FoVY, uint32_t viewportWidth, double metersPerFirstCell = 1.0, float screenErrorPx = 2.0f, double spacingBias = 1.2);
 		static void GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight);
 		static void GenerateHeightMultLUT(std::vector<double>& heightMultLUT, double planetRadius, double maxHeight);
 	private:

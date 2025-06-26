@@ -1,10 +1,10 @@
 Scene: Untitled Scene
 Planet:
-  Translation: [0, -10, 0]
+  Translation: [0, -3389600, 0]
   Rotation: [0, 0, 0]
   GridSize: 257
-  MaxLevels: 1
-  Radius: 5
+  MaxLevels: 22
+  Radius: 3389500
   AlbedoColor: [0.578059077, 0.00243906979, 0.00243906979]
 Entities:
   - Entity: 3888910141822256182
@@ -23,7 +23,7 @@ Entities:
         ProjectionType: 0
         PerspectiveFOV: 45
         NearClip: 0.100000001
-        FarClip: 1000
+        FarClip: 2500000
         OrthographicWidth: 2604
         OrthographicHeight: 1120
       Primary: true
