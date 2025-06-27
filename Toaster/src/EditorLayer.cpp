@@ -98,7 +98,7 @@ namespace Toast {
 
 		NewScene();
 
-		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 1000000.0f);
+		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 3000000.0f);
 
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mSceneSettingsPanel.SetContext(mEditorScene, mWindow);

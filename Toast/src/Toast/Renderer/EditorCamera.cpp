@@ -172,7 +172,7 @@ namespace Toast {
 		float speed = std::pow(base, 1.5f);
 
 		speed = std::max(speed, 0.1f);
-		speed = std::min(speed, 1000.0f); // max speed = 1000
+		speed = std::min(speed, 1500.0f); // max speed = 1000
 		return speed;
 	}
 

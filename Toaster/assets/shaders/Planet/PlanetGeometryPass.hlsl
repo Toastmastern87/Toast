@@ -63,6 +63,24 @@ Texture2D HeightMapTexture      : register(t0);
 
 SamplerState HeightMapSampler   : register(s5);
 
+float SampleHeight(float2 uv)     // uv in [0,1]
+{
+    float h = HeightMapTexture.SampleLevel(HeightMapSampler, uv, 0).r;
+    return lerp(MinHeight, MaxHeight, h);
+}
+
+float2 SphereUV(float3 nSphere)
+{
+    float3 v;
+    v.x = dot(nSphere, BasisLonEast);
+    v.y = dot(nSphere, BasisSpinUp);
+    v.z = dot(nSphere, BasisLonNorth);
+
+    float lon = atan2(v.z, v.x); // −π … +π
+    float lat = asin(v.y); // −π/2 … +π/2
+    return float2(lon * INV_TWO_PI + 0.5, lat * INV_PI + 0.5);
+}
+
 PixelInputType main(VertexInputType input)
 {
     PixelInputType output;
@@ -71,33 +89,46 @@ PixelInputType main(VertexInputType input)
     int2 g = int2(input.grid); // 0 … 256 etc.
     int2 world = int2(OriginX, OriginY) + g; // scrolled grid coords
     float2 off = (float2) world * float(CellSize);
-
+    
     /*--- position in camera-relative space ---------------------------*/
     float3 Pws = PlanetCentreVS + BasisRadUp * PlanetRadius + BasisTanEast * off.x + BasisTanNorth * off.y;
 
     // push down onto the sphere surface
-    float3 nrm = normalize(Pws - PlanetCentreVS);
+    float3 normalSphere = normalize(Pws - PlanetCentreVS);
     
-    float3 nPlanet;
-    nPlanet.x = dot(nrm, BasisLonEast); // component along +East
-    nPlanet.y = dot(nrm, BasisSpinUp); //         …     +Up
-    nPlanet.z = dot(nrm, BasisLonNorth);
+    output.planetNormal = float3(dot(normalSphere, BasisLonEast), dot(normalSphere, BasisSpinUp), dot(normalSphere, BasisLonNorth));
     
-    float lon = atan2(nPlanet.z, nPlanet.x); // −π … +π
-    float lat = asin(nPlanet.y); // −π/2 … +π/2
+    float2 uv = SphereUV(normalSphere);
+    
+    float rawHeightCenter  = SampleHeight(uv);
+    
+    Pws = PlanetCentreVS + normalSphere * (PlanetRadius + rawHeightCenter);
+    
+    // Eastern neighbour height
+    float2 offE = off + float2(CellSize, 0);
+    float3 PE_sph = PlanetCentreVS + BasisRadUp * PlanetRadius + BasisTanEast * offE.x + BasisTanNorth * offE.y;
 
-    float2 uv = float2(lon * INV_TWO_PI + 0.5, lat * INV_PI + 0.5);
-    
-    float rawHeight = HeightMapTexture.SampleLevel(HeightMapSampler, uv, 0).r;
-    float height = lerp(MinHeight, MaxHeight, rawHeight);
-    
-    Pws = PlanetCentreVS + nrm * (PlanetRadius + height);
+    float3 nSphereE = normalize(PE_sph - PlanetCentreVS);
+    float2 uvE = SphereUV(nSphereE);
+    float hE = SampleHeight(uvE);
+    float3 P_e_ws = PlanetCentreVS + nSphereE * (PlanetRadius + hE);
 
+    // Northern neighbour height
+    float2 offN = off + float2(0, CellSize);
+    float3 PN_sph = PlanetCentreVS + BasisRadUp * PlanetRadius + BasisTanEast * offN.x + BasisTanNorth * offN.y;
+
+    float3 nSphereN = normalize(PN_sph - PlanetCentreVS);
+    float2 uvN = SphereUV(nSphereN);
+    float hN = SampleHeight(uvN);
+    float3 P_n_ws = PlanetCentreVS + nSphereN * (PlanetRadius + hN);
+
+    // Geometric normal
+    float3 normalGeometric_ws = normalize(cross(P_n_ws - Pws, P_e_ws - Pws));
+    
     float4 Pv = mul(float4(Pws, 1), viewMatrix);
     output.pixelPosition = mul(Pv, projectionMatrix);
     output.viewPosition = Pv.xyz;
-    output.viewNormal = mul(float4(nrm, 1.0), viewMatrix).xyz;
-    output.planetNormal = nPlanet;
+    output.viewNormal = mul(float4(normalGeometric_ws, 0.0), viewMatrix).xyz;
     return output;
 }
 
