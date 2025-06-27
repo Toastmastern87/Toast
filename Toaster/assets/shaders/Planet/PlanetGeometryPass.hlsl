@@ -4,6 +4,10 @@ vertex
 #type vertex
 #pragma pack_matrix( row_major )
 
+static const float PI = 3.14159265359f;
+static const float INV_TWO_PI = 1.0f / (2.0f * PI);
+static const float INV_PI = 1.0f / PI;
+
 struct VertexInputType
 {
     uint2 grid : POSITION0; // gx,gy 0 … N-1
@@ -29,7 +33,9 @@ cbuffer PlanetFrame : register(b4)
     float PlanetRadius;
 
     float3 BasisTanEast;
+    float MaxHeight;
     float3 BasisTanNorth;
+    float MinHeight;
     float3 BasisRadUp;
     float3 BasisLonEast;
     float3 BasisLonNorth;
@@ -46,12 +52,16 @@ cbuffer PlanetLevel : register(b7)
 
 struct PixelInputType
 {
-    float4 pixelPosition    : SV_POSITION;
-    float3 viewPosition     : VIEWPOS;
-    float3 viewNormal       : NORMAL0;
-    float3 planetNormal     : NORMAL1;
-    float2 texCoord         : TEXCOORD0;
+    float4 pixelPosition        : SV_POSITION;
+    float3 viewPosition         : VIEWPOS;
+    float3 viewNormal           : NORMAL0;
+    float3 planetNormal         : NORMAL1;
+    float2 texCoord             : TEXCOORD0;
 };
+
+Texture2D HeightMapTexture      : register(t0);
+
+SamplerState HeightMapSampler   : register(s5);
 
 PixelInputType main(VertexInputType input)
 {
@@ -73,7 +83,15 @@ PixelInputType main(VertexInputType input)
     nPlanet.y = dot(nrm, BasisSpinUp); //         …     +Up
     nPlanet.z = dot(nrm, BasisLonNorth);
     
-    Pws = PlanetCentreVS + nrm * PlanetRadius;
+    float lon = atan2(nPlanet.z, nPlanet.x); // −π … +π
+    float lat = asin(nPlanet.y); // −π/2 … +π/2
+
+    float2 uv = float2(lon * INV_TWO_PI + 0.5, lat * INV_PI + 0.5);
+    
+    float rawHeight = HeightMapTexture.SampleLevel(HeightMapSampler, uv, 0).r;
+    float height = lerp(MinHeight, MaxHeight, rawHeight);
+    
+    Pws = PlanetCentreVS + nrm * (PlanetRadius + height);
 
     float4 Pv = mul(float4(Pws, 1), viewMatrix);
     output.pixelPosition = mul(Pv, projectionMatrix);
@@ -150,17 +168,14 @@ PixelOutputType main(PixelInputType input)
     /* 3) albedo + metallic                                         */
     /*--------------------------------------------------------------*/
     
-    //params.Albedo = Albedo.rgb; /* later:   if(AlbedoTexToggle) … */
-
-    float3 p = normalize(input.planetNormal); // already unit length, but cheap
-    float lon = atan2(p.z, p.x); // −π … +π
-    float lat = asin(p.y); // −π/2 … +π/2
-
-    float2 uv;
-    uv.x = lon * INV_TWO_PI + 0.5; // 0 … 1   (wraps cleanly)
-    uv.y = lat * INV_PI + 0.5;
+    params.Albedo = Albedo.rgb; /* later:   if(AlbedoTexToggle) … */
     
-    output.albedoMetallic.rgb = float4(uv, 0.0f, 0.0f);
+    float lon = atan2(input.planetNormal.z, input.planetNormal.x); // −π … +π
+    float lat = asin(input.planetNormal.y); // −π/2 … +π/2
+
+    float2 uv = float2(lon * INV_TWO_PI + 0.5, lat * INV_PI + 0.5);
+    
+    output.albedoMetallic.rgb = float4(params.Albedo, 0.0f);
     output.albedoMetallic.a = 0.0f;
 
     /*--------------------------------------------------------------*/

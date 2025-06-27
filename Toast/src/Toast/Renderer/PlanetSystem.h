@@ -57,9 +57,9 @@ namespace Toast {
 		DirectX::XMFLOAT3 Center;
 		float Radius;
 		DirectX::XMFLOAT3 BasisTanEast;
-		float Pad0;
+		float MaxHeight;
 		DirectX::XMFLOAT3 BasisTanNorth;
-		float Pad1;
+		float MinHeight;
 		DirectX::XMFLOAT3 BasisRadUp;
 		float Pad2;
 		DirectX::XMFLOAT3 BasisLonEast;
@@ -358,7 +358,6 @@ namespace Toast {
 		static inline uint32_t sTempGridSize;
 		static inline int32_t sNumLevels;
 		static inline int32_t sTempNumLevels;
-		//static inline int32_t sActiveLevels;
 		static inline std::vector<ClipLevel> sLevels;
 		static inline LODDrawInfo sActiveLevels;
 
@@ -369,7 +368,9 @@ namespace Toast {
 		// GPU Data
 		static inline Ref<VertexBuffer> sGridVertexBuffer;
 		static inline Ref<IndexBuffer> sGridIndexBuffer;
+		static inline Ref<IndexBuffer> sRingGridIndexBuffer;
 		static inline uint32_t sGridIndexCount = 0;
+		static inline uint32_t sRingGridIndexCount = 0;
 
 		static inline Ref<ConstantBuffer> sPlanetFrameCBuffer, sPlanetLevelCBuffer;
 		static inline Buffer sPlanetFrameBuffer, sPlanetLevelBuffer;
@@ -377,10 +378,15 @@ namespace Toast {
 
 		// Terrain Data
 		static inline double sRadius = 0.0;
+		static inline double sMaxHeight = 0.0;
+		static inline double sMinHeight = 0.0;
 		static inline std::vector<double> sDistanceLUT;
+		static inline Texture2D* sHeightMapTexture;
 
 		// PBR Data
 		static inline DirectX::XMFLOAT3 sAlbedoColor;
+		static inline float sRoughness;
+		static inline float sMetallic;
 		static inline Ref<ConstantBuffer> sPlanetMaterialCBuffer;
 		static inline Buffer sPlanetMaterialBuffer;
 
@@ -394,6 +400,7 @@ namespace Toast {
 		static void Initialize();
 		static void InitializeLevels();
 		static void RebuildGrid();
+		static void ReuildRingGridIndices();
 		static LODDrawInfo DetermineActiveLODLevels(const Vector3& camPosPlanet);
 		static void UpdateLevelOrigins(const Vector3& camPosPlanet);
 		static Buffer& PlanetSystem::BuildLevelCB(uint32_t L);
@@ -407,7 +414,9 @@ namespace Toast {
 
 		static Ref<VertexBuffer> GetGridVertexBuffer() { return sGridVertexBuffer; }
 		static Ref<IndexBuffer> GetGridIndexBuffer() { return sGridIndexBuffer; }
+		static Ref<IndexBuffer> GetRingGridIndexBuffer() { return sRingGridIndexBuffer; }
 		static uint32_t GetGridIndexCount() { return sGridIndexCount; }
+		static uint32_t GetRingGridIndexCount() { return sRingGridIndexCount; }
 
 		static Ref<ConstantBuffer> GetPlanetFrameCBuffer() { return sPlanetFrameCBuffer; }
 		static Buffer* GetPlanetFrameBuffer() { return &sPlanetFrameBuffer; }
@@ -415,6 +424,7 @@ namespace Toast {
 		static ShaderLayout* GetShaderLayout() { return &sShaderInputLayout; }
 
 		static DirectX::XMFLOAT3& GetAlbedoColor() { return sAlbedoColor; }
+		static Texture2D* GetHeightMapTexture() { return sHeightMapTexture; }
 
 		// Helper functions to be used during runtime updates of the planet
 		static inline bool NeedSplit(PlanetNode* node, const PlanetComponent& p, const Vector3& camPlanetSpace)

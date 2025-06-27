@@ -57,6 +57,7 @@ namespace Toast {
 		TextureLibrary::LoadTextureSampler("LinearSampler", D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP);
 		TextureLibrary::LoadTextureSampler("PointSampler", D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_CLAMP);
 		TextureLibrary::LoadTextureSampler("BRDFSampler", D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
+		TextureLibrary::LoadTextureSampler("HeightMapSampler", D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_CLAMP);
 
 		// Load all shaders
 		// Deffered Rendering
@@ -520,11 +521,11 @@ namespace Toast {
 			// Compute the widths of the two menus (adding a bit of padding)
 			float fileWidth = ImGui::CalcTextSize("File").x + 10.0f;
 			float scriptWidth = ImGui::CalcTextSize("Script").x + 10.0f;
-			float worldWidth = ImGui::CalcTextSize("World").x + 10.0f;
+			float planetWidth = ImGui::CalcTextSize("Planet").x + 10.0f;
 			// Define a small gap between them (e.g. 5px)
 			float gapBetweenMenus = 15.0f;
 			// The total width of the menus container
-			float menusAreaWidth = fileWidth + scriptWidth + worldWidth + gapBetweenMenus;
+			float menusAreaWidth = fileWidth + scriptWidth + planetWidth + gapBetweenMenus;
 
 			// Create a child container for the menu buttons. We add the MenuBar flag so that
 			// the popups open below rather than to the side.
@@ -573,10 +574,9 @@ namespace Toast {
 				}
 
 				ImGui::SameLine(0, gapBetweenMenus);
-				if (ImGui::BeginMenu("World"))
+				if (ImGui::BeginMenu("Planet"))
 				{
-					if (ImGui::MenuItem("Planet", ""))
-						mShowPlanetPopup = true;
+					mShowPlanetPopup = true;
 						
 					ImGui::EndMenu();
 				}

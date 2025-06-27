@@ -49,7 +49,15 @@ namespace Toast
 		io.Fonts->AddFontFromFileTTF("assets/fonts/FontAwesome/fontawesome-webfont.ttf", 13.0f, &config, iconRanges);
 
 		io.Fonts->AddFontFromFileTTF("assets/fonts/1_Roboto Mono/RobotoMono-Bold.ttf", 24.0f);
+		config.MergeMode = true;
+		config.GlyphMinAdvanceX = 24.0f;
+		io.Fonts->AddFontFromFileTTF("assets/fonts/FontAwesome/fontawesome-webfont.ttf", 24.0f,&config, iconRanges);
+
 		io.Fonts->AddFontFromFileTTF("assets/fonts/1_Roboto Mono/RobotoMono-Bold.ttf", 18.0f);
+		config.MergeMode = true;
+		config.GlyphMinAdvanceX = 18.0f;
+		io.Fonts->AddFontFromFileTTF("assets/fonts/FontAwesome/fontawesome-webfont.ttf", 18.0f, &config, iconRanges);
+
 		ImGui::StyleColorsDark();
 
 		ImGuiStyle& style = ImGui::GetStyle();

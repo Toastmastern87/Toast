@@ -667,7 +667,12 @@ namespace Toast {
 		out << YAML::Key << "GridSize" << YAML::Value << PlanetSystem::sGridSize;
 		out << YAML::Key << "MaxLevels" << YAML::Value << PlanetSystem::sNumLevels;
 		out << YAML::Key << "Radius" << YAML::Value << PlanetSystem::sRadius;
+		out << YAML::Key << "MaxHeight" << YAML::Value << PlanetSystem::sMaxHeight;
+		out << YAML::Key << "MinHeight" << YAML::Value << PlanetSystem::sMinHeight;
 		out << YAML::Key << "AlbedoColor" << YAML::Value << PlanetSystem::sAlbedoColor;
+		out << YAML::Key << "Roughness" << YAML::Value << PlanetSystem::sRoughness;
+		out << YAML::Key << "Metallic" << YAML::Value << PlanetSystem::sMetallic;
+		out << YAML::Key << "HeightMapAssetPath" << YAML::Value << PlanetSystem::sHeightMapTexture->GetFilePath();
 		out << YAML::EndMap;
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
@@ -770,8 +775,13 @@ namespace Toast {
 		PlanetSystem::sRotationEulerAngles = planet["Rotation"].as<DirectX::XMFLOAT3>();
 		PlanetSystem::sGridSize = planet["GridSize"].as<uint32_t>();
 		PlanetSystem::sNumLevels = planet["MaxLevels"].as<uint32_t>();
-		PlanetSystem::sRadius = planet["Radius"].as<uint32_t>();
+		PlanetSystem::sRadius = planet["Radius"].as<double>();
+		PlanetSystem::sMaxHeight = planet["MaxHeight"].as<double>();
+		PlanetSystem::sMinHeight = planet["MinHeight"].as<double>();
 		PlanetSystem::sAlbedoColor = planet["AlbedoColor"].as<DirectX::XMFLOAT3>();
+		PlanetSystem::sRoughness = planet["Roughness"].as<float>();
+		PlanetSystem::sMetallic = planet["Metallic"].as<float>();
+		PlanetSystem::sHeightMapTexture = TextureLibrary::LoadTexture2D(planet["HeightMapAssetPath"].as<std::string>());
 
 		auto entities = data["Entities"];
 		if (entities) 
@@ -1145,6 +1155,7 @@ namespace Toast {
 		if (PlanetSystem::sNumLevels != 0 && PlanetSystem::sGridSize != 0)
 		{
 			PlanetSystem::RebuildGrid();
+			PlanetSystem::ReuildRingGridIndices();
 
 			PlanetSystem::InitializeLevels();
 

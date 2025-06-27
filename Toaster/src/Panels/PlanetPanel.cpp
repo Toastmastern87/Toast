@@ -6,9 +6,17 @@
 
 #include "Toast/ImGui/ImGuiHelpers.h"
 
+#include "Toast/Utils/PlatformUtils.h"
+
+#include "../FontAwesome.h"
+
 #include "imgui/imgui.h"
 
+#include <filesystem>
+
 namespace Toast {
+
+	extern const std::filesystem::path gAssetPath;
 
 	void PlanetPanel::SetContext(Scene* context, WindowsWindow* window)
 	{
@@ -23,24 +31,20 @@ namespace Toast {
 
 		ImGuiIO& io = ImGui::GetIO();
 
-		const float popupWidth = io.DisplaySize.x * 0.15f;
-		const float popupHeight = 400.0f;
-		ImVec2 popupSize(popupWidth, popupHeight);
 		ImVec2 center(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.25f); 
 
 		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-		ImGui::SetNextWindowSize(popupSize, ImGuiCond_Always);
 
 		ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetColorU32(ImGuiCol_WindowBg));
 		ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, ImVec4(0, 0, 0, 0));
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
-		const ImGuiWindowFlags popupFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
+		const ImGuiWindowFlags popupFlags = ImGuiWindowFlags_NoTitleBar;
 
 		if (ImGui::Begin("Planet", nullptr, popupFlags))
 		{
-			const float titleBarHeight = 36.0f;
+			const float titleBarHeight = 38.0f;
 			const float buttonSize = 24.0f;
 
 			ImVec2 windowPos = ImGui::GetWindowPos();
@@ -54,7 +58,7 @@ namespace Toast {
 
 			ImGui::SetCursorScreenPos(ImVec2(windowPos.x + 12.0f, windowPos.y + 8.0f));
 			ImGui::PushFont(io.Fonts->Fonts[3]);
-			ImGui::TextUnformatted("Planet");
+			ImGui::Text(ICON_TOASTER_GLOBE" Planet");
 			ImGui::PopFont();
 
 			// Close button
@@ -84,7 +88,7 @@ namespace Toast {
 			// Create a 2-column table for label + control layout
 			if (ImGui::BeginTable("PlanetTable", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX))
 			{
-				ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, popupWidth * 0.4);
+				ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.4);
 				ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthStretch);
 
 				ImGui::TableNextRow();
@@ -164,6 +168,7 @@ namespace Toast {
 						PlanetSystem::sNumLevels = PlanetSystem::sTempNumLevels;
 
 						PlanetSystem::RebuildGrid();
+						PlanetSystem::ReuildRingGridIndices();
 
 						PlanetSystem::InitializeLevels();
 
@@ -190,8 +195,9 @@ namespace Toast {
 
 			if (ImGui::BeginTable("MaterialTable", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_PadOuterX))
 			{
-				ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, popupWidth * 0.4f);
-				ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, popupWidth * 0.6f);
+
+				ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.4f);
+				ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.6f);
 
 				ImGui::TableNextRow();
 
@@ -207,6 +213,31 @@ namespace Toast {
 				ImGui::SetNextItemWidth(fullW);
 
 				ImGui::ColorEdit3("##albedocolor", &PlanetSystem::sAlbedoColor.x);
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Roughness");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##roughness", &PlanetSystem::sRoughness, 0.01f, 0.0f, 1.0f, "%.2f");
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("sMetallic");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##metallic", &PlanetSystem::sMetallic, 0.01f, 0.0f, 1.0f, "%.2f");
+
 				ImGui::EndTable();
 			}
 
@@ -222,8 +253,8 @@ namespace Toast {
 
 			if (ImGui::BeginTable("TerrainTable", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_PadOuterX))
 			{
-				ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, popupWidth * 0.4f);
-				ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, popupWidth * 0.6f);
+				ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.4f);
+				ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.6f);
 
 				// -------- Radius row ----------
 				ImGui::TableNextRow();
@@ -240,7 +271,7 @@ namespace Toast {
 				ImGui::SetNextItemWidth(fullW);
 
 				float temp = PlanetSystem::sRadius;
-				if (ImGui::DragFloat("##Radius", &temp, 1.0f, 1.0f, FLT_MAX, "%.1f"))
+				if (ImGui::DragFloat("##Radius", &temp, 1.0f, 1.0f, FLT_MAX, "%.0f"))
 				{
 					PlanetSystem::sRadius = temp;
 
@@ -248,6 +279,82 @@ namespace Toast {
 					if (camera)
 						PlanetSystem::GenerateDistanceLUT(PlanetSystem::sNumLevels, PlanetSystem::sRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mContext->GetViewportSize()));
 				}
+
+				ImGui::TableNextRow();
+
+				// -------- Max Height row ----------
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Max Height");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				temp = PlanetSystem::sMaxHeight;
+				if (ImGui::DragFloat("##maxheight", &temp, 1.0f, -FLT_MAX, FLT_MAX, "%.0f"))
+					PlanetSystem::sMaxHeight = temp;
+
+				ImGui::TableNextRow();
+
+				// -------- Min Height row ----------
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Min Height");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				temp = PlanetSystem::sMinHeight;
+				if (ImGui::DragFloat("##minheight", &temp, 1.0f, -FLT_MAX, FLT_MAX, "%.0f"))
+					PlanetSystem::sMinHeight = temp;
+
+				ImGui::TableNextRow();
+
+				// -------- Height Map Texture row ----------
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Height Map Texture");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::GetStyle().CellPadding.x * 2 - 128.0f);
+				ImGui::Image(PlanetSystem::sHeightMapTexture->GetID(), { 128.0f, 64.0f });
+
+				std::optional<std::string> filename;
+
+				if (ImGui::BeginDragDropTarget())
+				{
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+					{
+						const wchar_t* path = (const wchar_t*)payload->Data;
+						auto completePath = std::filesystem::path(gAssetPath) / path;
+						filename = completePath.string();
+
+						if (filename)
+							PlanetSystem::sHeightMapTexture = TextureLibrary::LoadTexture2D(*filename);
+					}
+
+					ImGui::EndDragDropTarget();
+				}
+
+				if (ImGui::IsItemClicked())
+				{
+					filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+
+					if (filename)
+						PlanetSystem::sHeightMapTexture = TextureLibrary::LoadTexture2D(*filename);
+				}
+
+				ImGui::TableSetColumnIndex(1);
 
 				ImGui::EndTable();
 			}

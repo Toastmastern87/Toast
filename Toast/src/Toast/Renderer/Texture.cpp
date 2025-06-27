@@ -820,6 +820,25 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the sampler!");
 	}
 
+	TextureSampler::TextureSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE uAddressMode, D3D11_TEXTURE_ADDRESS_MODE vAddressMode)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_SAMPLER_DESC desc = {};
+		desc.Filter = filter;
+		desc.AddressU = uAddressMode;
+		desc.AddressV = vAddressMode;
+		desc.AddressW = uAddressMode;
+		desc.MaxAnisotropy = (filter == D3D11_FILTER_ANISOTROPIC) ? D3D11_REQ_MAXANISOTROPY : 1;
+		desc.MipLODBias = 0.0f;
+		desc.MinLOD = 0;
+		desc.MaxLOD = D3D11_FLOAT32_MAX;
+
+		HRESULT result = device->CreateSamplerState(&desc, &mSamplerState);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the sampler!");
+	}
+
 	void TextureSampler::Bind(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -867,6 +886,12 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 	TextureSampler* TextureLibrary::LoadTextureSampler(const std::string& name, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode)
 	{
 		mTextureSamplers[name] = CreateScope<TextureSampler>(filter, addressMode);
+		return mTextureSamplers[name].get();
+	}
+
+	TextureSampler* TextureLibrary::LoadTextureSampler(const std::string& name, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE uAddressMode, D3D11_TEXTURE_ADDRESS_MODE vAddressMode)
+	{
+		mTextureSamplers[name] = CreateScope<TextureSampler>(filter, uAddressMode, vAddressMode);
 		return mTextureSamplers[name].get();
 	}
 

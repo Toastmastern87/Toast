@@ -938,6 +938,8 @@ namespace Toast {
 		sPlanetLevelCBuffer->Bind();
 		sPlanetLevelBuffer.Allocate(sPlanetLevelCBuffer->GetSize());
 		sPlanetLevelBuffer.ZeroInitialize();
+
+		sHeightMapTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 	}
 
 	void PlanetSystem::InitializeLevels()
@@ -987,6 +989,37 @@ namespace Toast {
 		sGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), sGridIndexCount);
 
 		sValidPlanet = true;
+	}
+
+	void PlanetSystem::ReuildRingGridIndices()
+	{
+		const uint32_t N = sGridSize;          // 257
+		const uint32_t cells = N - 1;              // 256
+		const uint32_t w = cells / 4;          // (N-1)/4  → 64
+
+		std::vector<uint32_t> indices;
+		indices.reserve((cells * cells - (cells - 2 * w) * (cells - 2 * w)) * 6);
+
+		auto emit = [&](uint32_t x, uint32_t y)
+			{
+				uint32_t i0 = y * N + x;
+				uint32_t i1 = i0 + 1;
+				uint32_t i2 = (y + 1) * N + x;
+				uint32_t i3 = i2 + 1;
+				indices.insert(indices.end(), { i0,i2,i1,  i1,i2,i3 });
+			};
+
+		for (uint32_t y = 0; y < cells; ++y)
+			for (uint32_t x = 0; x < cells; ++x)
+			{
+				bool inside = (x >= w && x < cells - w &&
+					y >= w && y < cells - w);
+				if (!inside)              // keep border band 'w' cells wide
+					emit(x, y);
+			}
+
+		sRingGridIndexCount = (uint32_t)indices.size();
+		sRingGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), sRingGridIndexCount);
 	}
 
 	LODDrawInfo PlanetSystem::DetermineActiveLODLevels(const Vector3& camPosPS)
@@ -1083,7 +1116,9 @@ namespace Toast {
 		PlanetFrameCB cb{};
 		Vector3 centreCVd = Vector3(sTranslation) - camPosWS;
 		cb.Center = DirectX::XMFLOAT3((float)centreCVd.x, (float)centreCVd.y, (float)centreCVd.z);
-		cb.Radius = sRadius;
+		cb.Radius = (float)sRadius;
+		cb.MaxHeight = (float)sMaxHeight;
+		cb.MinHeight = (float)sMinHeight;
 
 		// planet-fixed triad – ONLY the quaternion is involved
 		Vector3 lonEastWS = Vector3::Normalize(Vector3::Rotate({ 1,0,0 }, rotation)); // +longitude

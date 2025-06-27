@@ -813,6 +813,9 @@ namespace Toast {
 
 			PlanetSystem::GetPlanetFrameCBuffer()->Bind();
 
+			TextureLibrary::GetSampler("HeightMapSampler")->Bind(5, D3D11_VERTEX_SHADER);
+			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, PlanetSystem::GetHeightMapTexture()->GetSRV());
+
 			sRendererData->MaterialBuffer.Write((uint8_t*)&PlanetSystem::GetAlbedoColor(), 16, 0);
 			sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
 
@@ -828,10 +831,18 @@ namespace Toast {
 				if (!level.Dirty && !level.InFrustum)
 					continue;
 
-				PlanetSystem::GetPlanetLevelCBuffer()->Map(
-					PlanetSystem::BuildLevelCB(L));
+				PlanetSystem::GetPlanetLevelCBuffer()->Map(PlanetSystem::BuildLevelCB(L));
 
-				RenderCommand::DrawIndexed(0, 0, PlanetSystem::GetGridIndexCount());
+				if (L == L0)                            // center patch
+				{
+					PlanetSystem::GetGridIndexBuffer()->Bind();
+					RenderCommand::DrawIndexed(0, 0, PlanetSystem::GetGridIndexCount());
+				}
+				else                                    // ring patch
+				{
+					PlanetSystem::GetRingGridIndexBuffer()->Bind();
+					RenderCommand::DrawIndexed(0, 0, PlanetSystem::GetRingGridIndexCount());
+				}
 			}
 		}
 
