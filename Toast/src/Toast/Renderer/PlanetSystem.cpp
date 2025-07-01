@@ -929,17 +929,17 @@ namespace Toast {
 		sShaderInputLayout = ShaderLayout(planetElements, vsBlob);
 
 		// Setting up Constant Buffers
-		sPlanetFrameCBuffer = ConstantBufferLibrary::Load("PlanetFrame", 112, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetFrame) });
+		sPlanetFrameCBuffer = ConstantBufferLibrary::Load("PlanetFrame", 112, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetFrame), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::PlanetFrame) });
 		sPlanetFrameCBuffer->Bind();
 		sPlanetFrameBuffer.Allocate(sPlanetFrameCBuffer->GetSize());
 		sPlanetFrameBuffer.ZeroInitialize();
 
-		sPlanetLevelCBuffer = ConstantBufferLibrary::Load("PlanetLevel", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetLevel) });
+		sPlanetLevelCBuffer = ConstantBufferLibrary::Load("PlanetLevel", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetLevel), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::PlanetLevel) });
 		sPlanetLevelCBuffer->Bind();
 		sPlanetLevelBuffer.Allocate(sPlanetLevelCBuffer->GetSize());
 		sPlanetLevelBuffer.ZeroInitialize();
 
-		sHeightMapTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
+		sBaseHeightMapTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 	}
 
 	void PlanetSystem::InitializeLevels()

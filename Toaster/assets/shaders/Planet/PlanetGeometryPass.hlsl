@@ -54,10 +54,15 @@ struct PixelInputType
 {
     float4 pixelPosition        : SV_POSITION;
     float3 viewPosition         : VIEWPOS;
-    float3 viewNormal           : NORMAL0;
-    float3 planetNormal         : NORMAL1;
-    float2 texCoord             : TEXCOORD0;
+    float3 normal               : NORMAL0;
 };
+
+struct PlanetPointVS      
+{
+    float3 posVS; // for SV_POSITION
+    float3 nWS; // unit sphere normal in world-space
+};
+
 
 Texture2D HeightMapTexture      : register(t0);
 
@@ -67,7 +72,7 @@ float SampleHeight(float2 uv)     // uv in [0,1]
 {
     float h = HeightMapTexture.SampleLevel(HeightMapSampler, uv, 0).r;
     return lerp(MinHeight, MaxHeight, h);
-}
+} 
 
 float2 SphereUV(float3 nSphere)
 {
@@ -81,54 +86,81 @@ float2 SphereUV(float3 nSphere)
     return float2(lon * INV_TWO_PI + 0.5, lat * INV_PI + 0.5);
 }
 
+PlanetPointVS CalulatePlanetPosVS(int2 gWorld, float heightScale)
+{
+    // metres on local tangent plane
+    float2 off = (float2)gWorld * (float)CellSize;
+
+    // reference‐sphere point in view space
+    float3 pSphereWS = PlanetCentreVS + BasisRadUp * PlanetRadius + BasisTanEast * off.x + BasisTanNorth * off.y;
+
+    // radial direction (compute **once**)
+    float3 nWS = normalize(pSphereWS - PlanetCentreVS);
+
+    // height sample and displacement
+    float h = SampleHeight(SphereUV(nWS));
+    float3 pWS = PlanetCentreVS + nWS * (PlanetRadius + h * heightScale);
+
+    PlanetPointVS p;
+    p.posVS = mul(float4(pWS, 1.0f), viewMatrix).xyz;
+    p.nWS = nWS;
+    return p;
+}
+
+// Call this *instead* of face‐averaging
+float3 AnalyticalNormal(float2 uv)
+{
+    uint texWidth, texHeight;
+    HeightMapTexture.GetDimensions(texWidth, texHeight);
+    
+    float u = 1.0f / texWidth;
+    float v = 1.0f / texHeight;
+    
+    // 1) base + neighbor heights
+    float h0 = SampleHeight(uv);
+    float hU = SampleHeight(uv + float2(u, 0));
+    float hV = SampleHeight(uv + float2(0, v));
+
+    // 2) parameterize sphere direction from uv
+    float lon = (uv.x - 0.5) * 2 * PI;
+    float lat = (uv.y - 0.5) * PI;
+    float3 S = float3(cos(lat) * sin(lon), sin(lat), cos(lat) * cos(lon));
+
+    // 3) partials ∂S/∂lon, ∂S/∂lat
+    float3 dSdlon = float3(cos(lat) * cos(lon), 0, -cos(lat) * sin(lon));
+    float3 dSdlat = float3(-sin(lat) * sin(lon), cos(lat), -sin(lat) * cos(lon));
+
+    // 4) chain‐rule for P(u,v)=(R+h)·S
+    float dlon = u * 2 * PI;
+    float dlat = v * PI;
+    float dhdlon = (hU - h0) / dlon;
+    float dhdlat = (hV - h0) / dlat;
+
+    float R = PlanetRadius;
+    float3 Pu = (R + h0) * dSdlon + dhdlon * S;
+    float3 Pv = (R + h0) * dSdlat + dhdlat * S;
+
+    // 5) exact normal
+    return normalize(cross(Pv, Pu));
+}
+
 PixelInputType main(VertexInputType input)
 {
     PixelInputType output;
     
     // unpack & scroll to **planet metres** on the tangent plane
-    int2 g = int2(input.grid); // 0 … 256 etc.
-    int2 world = int2(OriginX, OriginY) + g; // scrolled grid coords
-    float2 off = (float2) world * float(CellSize);
+    int2 gWorld = int2(OriginX, OriginY) + int2(input.grid);
     
-    /*--- position in camera-relative space ---------------------------*/
-    float3 Pws = PlanetCentreVS + BasisRadUp * PlanetRadius + BasisTanEast * off.x + BasisTanNorth * off.y;
-
-    // push down onto the sphere surface
-    float3 normalSphere = normalize(Pws - PlanetCentreVS);
+    PlanetPointVS C = CalulatePlanetPosVS(gWorld, 1.0f);
     
-    output.planetNormal = float3(dot(normalSphere, BasisLonEast), dot(normalSphere, BasisSpinUp), dot(normalSphere, BasisLonNorth));
+    float2 uv = SphereUV(C.nWS);
+   
+    float3 smoothNOS = AnalyticalNormal(uv);
+    float3 smoothNVS = normalize(mul(smoothNOS,(float3x3)viewMatrix));
     
-    float2 uv = SphereUV(normalSphere);
-    
-    float rawHeightCenter  = SampleHeight(uv);
-    
-    Pws = PlanetCentreVS + normalSphere * (PlanetRadius + rawHeightCenter);
-    
-    // Eastern neighbour height
-    float2 offE = off + float2(CellSize, 0);
-    float3 PE_sph = PlanetCentreVS + BasisRadUp * PlanetRadius + BasisTanEast * offE.x + BasisTanNorth * offE.y;
-
-    float3 nSphereE = normalize(PE_sph - PlanetCentreVS);
-    float2 uvE = SphereUV(nSphereE);
-    float hE = SampleHeight(uvE);
-    float3 P_e_ws = PlanetCentreVS + nSphereE * (PlanetRadius + hE);
-
-    // Northern neighbour height
-    float2 offN = off + float2(0, CellSize);
-    float3 PN_sph = PlanetCentreVS + BasisRadUp * PlanetRadius + BasisTanEast * offN.x + BasisTanNorth * offN.y;
-
-    float3 nSphereN = normalize(PN_sph - PlanetCentreVS);
-    float2 uvN = SphereUV(nSphereN);
-    float hN = SampleHeight(uvN);
-    float3 P_n_ws = PlanetCentreVS + nSphereN * (PlanetRadius + hN);
-
-    // Geometric normal
-    float3 normalGeometric_ws = normalize(cross(P_n_ws - Pws, P_e_ws - Pws));
-    
-    float4 Pv = mul(float4(Pws, 1), viewMatrix);
-    output.pixelPosition = mul(Pv, projectionMatrix);
-    output.viewPosition = Pv.xyz;
-    output.viewNormal = mul(float4(normalGeometric_ws, 0.0), viewMatrix).xyz;
+    output.pixelPosition = mul(float4(C.posVS, 1.0f), projectionMatrix);
+    output.viewPosition = C.posVS;
+    output.normal = smoothNVS;
     return output;
 }
 
@@ -143,9 +175,7 @@ struct PixelInputType
 {
     float4 pixelPosition    : SV_POSITION;
     float3 viewPosition     : VIEWPOS;
-    float3 viewNormal       : NORMAL0;
-    float3 planetNormal     : NORMAL1;
-    float2 texCoord         : TEXCOORD0;
+    float3 normal           : NORMAL0;
 };
 
 struct PixelOutputType
@@ -155,6 +185,20 @@ struct PixelOutputType
     float4 albedoMetallic   : SV_Target2;
     float4 roughnessAO      : SV_Target3;
     int entityID            : SV_Target4;
+};
+
+cbuffer Camera : register(b0)
+{
+    matrix worldTranslationMatrix;
+    matrix viewMatrix;
+    matrix projectionMatrix;
+    matrix inverseViewMatrix;
+    matrix inverseProjectionMatrix;
+    float4 cameraPosition;
+    float far;
+    float near;
+    float viewportWidth;
+    float viewportHeight;
 };
 
 cbuffer Material : register(b2)
@@ -168,6 +212,29 @@ cbuffer Material : register(b2)
     int MetalRoughTexToggle;
 };
 
+cbuffer PlanetFrame : register(b4)
+{
+    float3 PlanetCentreVS;
+    float PlanetRadius;
+
+    float3 BasisTanEast;
+    float MaxHeight;
+    float3 BasisTanNorth;
+    float MinHeight;
+    float3 BasisRadUp;
+    float3 BasisLonEast;
+    float3 BasisLonNorth;
+    float3 BasisSpinUp;
+};
+
+cbuffer PlanetLevel : register(b7)
+{
+    int OriginX;
+    int OriginY;
+    int CellSize;
+    int GridSize;
+};
+
 struct PBRParameters
 {
     float3 Albedo;
@@ -176,41 +243,33 @@ struct PBRParameters
     float AO;
 };
 
+Texture2D HeightMapTexture : register(t0);
+
+SamplerState HeightMapSampler : register(s5);
+
 PixelOutputType main(PixelInputType input)
 {
     PixelOutputType output;
     PBRParameters params;
+    
+    /*--------------------------------------------------------------*/
+    /* 1) position + normal                                         */
+    /*--------------------------------------------------------------*/
+    
+    output.position = float4(input.viewPosition, 1.0);
+    output.normal = float4(input.normal * 0.5f + 0.5f, -1);
 
     /*--------------------------------------------------------------*/
-    /* 1) position – just forward the view-space position           */
-    /*--------------------------------------------------------------*/
-    output.position = float4(input.viewPosition, 1.0f);
-
-    /*--------------------------------------------------------------*/
-    /* 2) normal – encode from -1..1 to 0..1 so it fits RGBA8       */
-    /*--------------------------------------------------------------*/
-    float3 N = normalize(input.viewNormal);
-    float3 encN = N * 0.5 + 0.5; // map to [0,1]
-
-    // like your mesh shader: pack encoded normal; spare channel carries “no-ID flag”
-    output.normal = float4(encN, -1);
-
-    /*--------------------------------------------------------------*/
-    /* 3) albedo + metallic                                         */
+    /* 2) albedo + metallic                                         */
     /*--------------------------------------------------------------*/
     
     params.Albedo = Albedo.rgb; /* later:   if(AlbedoTexToggle) … */
     
-    float lon = atan2(input.planetNormal.z, input.planetNormal.x); // −π … +π
-    float lat = asin(input.planetNormal.y); // −π/2 … +π/2
-
-    float2 uv = float2(lon * INV_TWO_PI + 0.5, lat * INV_PI + 0.5);
-    
-    output.albedoMetallic.rgb = float4(params.Albedo, 0.0f);
+    output.albedoMetallic.rgb = params.Albedo;
     output.albedoMetallic.a = 0.0f;
 
     /*--------------------------------------------------------------*/
-    /* 4) roughness + ambient occlusion                             */
+    /* 3) roughness + ambient occlusion                             */
     /*--------------------------------------------------------------*/
     output.roughnessAO = float4(Roughness, 0.0f, 0.0, 1.0);
 

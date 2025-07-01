@@ -381,7 +381,7 @@ namespace Toast {
 		static inline double sMaxHeight = 0.0;
 		static inline double sMinHeight = 0.0;
 		static inline std::vector<double> sDistanceLUT;
-		static inline Texture2D* sHeightMapTexture;
+		static inline Texture2D* sBaseHeightMapTexture;
 
 		// PBR Data
 		static inline DirectX::XMFLOAT3 sAlbedoColor;
@@ -424,7 +424,7 @@ namespace Toast {
 		static ShaderLayout* GetShaderLayout() { return &sShaderInputLayout; }
 
 		static DirectX::XMFLOAT3& GetAlbedoColor() { return sAlbedoColor; }
-		static Texture2D* GetHeightMapTexture() { return sHeightMapTexture; }
+		static Texture2D* GetBaseHeightMapTexture() { return sBaseHeightMapTexture; }
 
 		// Helper functions to be used during runtime updates of the planet
 		static inline bool NeedSplit(PlanetNode* node, const PlanetComponent& p, const Vector3& camPlanetSpace)

@@ -322,12 +322,12 @@ namespace Toast {
 
 				ImGui::TableSetColumnIndex(0);
 				ImGui::AlignTextToFramePadding();
-				ImGui::Text("Height Map Texture");
+				ImGui::Text("Base Height Map Texture");
 
 				ImGui::TableSetColumnIndex(1);
 
 				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::GetStyle().CellPadding.x * 2 - 128.0f);
-				ImGui::Image(PlanetSystem::sHeightMapTexture->GetID(), { 128.0f, 64.0f });
+				ImGui::Image(PlanetSystem::sBaseHeightMapTexture->GetID(), { 128.0f, 64.0f });
 
 				std::optional<std::string> filename;
 
@@ -340,7 +340,7 @@ namespace Toast {
 						filename = completePath.string();
 
 						if (filename)
-							PlanetSystem::sHeightMapTexture = TextureLibrary::LoadTexture2D(*filename);
+							PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename);
 					}
 
 					ImGui::EndDragDropTarget();
@@ -351,7 +351,7 @@ namespace Toast {
 					filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
 
 					if (filename)
-						PlanetSystem::sHeightMapTexture = TextureLibrary::LoadTexture2D(*filename);
+						PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename);
 				}
 
 				ImGui::TableSetColumnIndex(1);
