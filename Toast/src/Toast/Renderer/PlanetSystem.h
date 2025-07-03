@@ -367,10 +367,13 @@ namespace Toast {
 
 		// GPU Data
 		static inline Ref<VertexBuffer> sGridVertexBuffer;
-		static inline Ref<IndexBuffer> sGridIndexBuffer;
+		static inline Ref<VertexBuffer>  sLODGridVertexBuffer;
+		static inline Ref<IndexBuffer> sCenterGridIndexBuffer;
 		static inline Ref<IndexBuffer> sRingGridIndexBuffer;
+		static inline Ref<IndexBuffer >  sLODGridIndexBuffer;
 		static inline uint32_t sGridIndexCount = 0;
 		static inline uint32_t sRingGridIndexCount = 0;
+		static inline uint32_t sLODGridIndexCount = 0;
 
 		static inline Ref<ConstantBuffer> sPlanetFrameCBuffer, sPlanetLevelCBuffer;
 		static inline Buffer sPlanetFrameBuffer, sPlanetLevelBuffer;
@@ -400,7 +403,8 @@ namespace Toast {
 		static void Initialize();
 		static void InitializeLevels();
 		static void RebuildGrid();
-		static void ReuildRingGridIndices();
+		static void RebuildRingGridIndices();
+		static void RebuildLODEdgeGrid();
 		static LODDrawInfo DetermineActiveLODLevels(const Vector3& camPosPlanet);
 		static void UpdateLevelOrigins(const Vector3& camPosPlanet);
 		static Buffer& PlanetSystem::BuildLevelCB(uint32_t L);
@@ -412,11 +416,14 @@ namespace Toast {
 		static LODDrawInfo GetLODDrawInfo() { return sActiveLevels; }
 		static std::vector<ClipLevel>& GetLevels() { return sLevels; }
 
-		static Ref<VertexBuffer> GetGridVertexBuffer() { return sGridVertexBuffer; }
-		static Ref<IndexBuffer> GetGridIndexBuffer() { return sGridIndexBuffer; }
-		static Ref<IndexBuffer> GetRingGridIndexBuffer() { return sRingGridIndexBuffer; }
+		static Ref<VertexBuffer>& GetGridVertexBuffer() { return sGridVertexBuffer; }
+		static Ref<VertexBuffer>& GetLODGridVertexBuffer() { return sLODGridVertexBuffer; }
+		static Ref<IndexBuffer>& GetCenterGridIndexBuffer() { return sCenterGridIndexBuffer; }
+		static Ref<IndexBuffer>& GetRingGridIndexBuffer() { return sRingGridIndexBuffer; }
+		static Ref<IndexBuffer>& GetLODGridIndexBuffer() { return sLODGridIndexBuffer; }
 		static uint32_t GetGridIndexCount() { return sGridIndexCount; }
 		static uint32_t GetRingGridIndexCount() { return sRingGridIndexCount; }
+		static uint32_t GetLODGridIndexCount() { return sLODGridIndexCount; }
 
 		static Ref<ConstantBuffer> GetPlanetFrameCBuffer() { return sPlanetFrameCBuffer; }
 		static Buffer* GetPlanetFrameBuffer() { return &sPlanetFrameBuffer; }

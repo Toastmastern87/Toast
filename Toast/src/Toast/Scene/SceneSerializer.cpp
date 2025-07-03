@@ -1155,7 +1155,8 @@ namespace Toast {
 		if (PlanetSystem::sNumLevels != 0 && PlanetSystem::sGridSize != 0)
 		{
 			PlanetSystem::RebuildGrid();
-			PlanetSystem::ReuildRingGridIndices();
+			PlanetSystem::RebuildRingGridIndices();
+			PlanetSystem::RebuildLODEdgeGrid();
 
 			PlanetSystem::InitializeLevels();
 

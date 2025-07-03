@@ -808,8 +808,6 @@ namespace Toast {
 
 			ShaderLibrary::Get("assets/shaders/Planet/PlanetGeometryPass.hlsl")->Bind();
 			PlanetSystem::GetShaderLayout()->Bind();
-			PlanetSystem::GetGridVertexBuffer()->Bind();
-			PlanetSystem::GetGridIndexBuffer()->Bind();
 
 			PlanetSystem::GetPlanetFrameCBuffer()->Bind();
 
@@ -834,16 +832,23 @@ namespace Toast {
 
 				PlanetSystem::GetPlanetLevelCBuffer()->Map(PlanetSystem::BuildLevelCB(L));
 
+				PlanetSystem::GetLODGridVertexBuffer()->Bind();
+				PlanetSystem::GetLODGridIndexBuffer()->Bind();
+				RenderCommand::DrawIndexed(0, 0, PlanetSystem::GetLODGridIndexCount());
+
+				PlanetSystem::GetGridVertexBuffer()->Bind();
+
 				if (L == L0)                            // center patch
 				{
-					PlanetSystem::GetGridIndexBuffer()->Bind();
+					PlanetSystem::GetCenterGridIndexBuffer()->Bind();
 					RenderCommand::DrawIndexed(0, 0, PlanetSystem::GetGridIndexCount());
+
+					continue;
 				}
-				else                                    // ring patch
-				{
-					PlanetSystem::GetRingGridIndexBuffer()->Bind();
-					RenderCommand::DrawIndexed(0, 0, PlanetSystem::GetRingGridIndexCount());
-				}
+
+				// inside the ring-drawing branch
+				PlanetSystem::GetRingGridIndexBuffer()->Bind();
+				RenderCommand::DrawIndexed(0, 0, PlanetSystem::GetRingGridIndexCount());
 			}
 		}
 

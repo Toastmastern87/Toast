@@ -914,6 +914,11 @@ namespace Toast {
 		}
 	}
 
+	static inline uint32_t V(uint32_t x, uint32_t y, uint32_t N)
+	{
+		return y * N + x;       
+	}
+
 	void PlanetSystem::Initialize()
 	{
 		// Setting up Shader Layout
@@ -960,7 +965,9 @@ namespace Toast {
 		std::vector<uint16_t> vertices;                 // gx,gy packed as uint16
 		std::vector<uint32_t> indices;
 
-		const uint32_t N = sGridSize;                   // 257, 513, …
+		const uint32_t N = sGridSize;     // 257, 513 …
+		const uint32_t cells = N - 1;
+		const uint32_t w = cells / 4;     // 64, 128 …
 
 		vertices.reserve(N * N * 2);
 		indices.reserve((N - 1) * (N - 1) * 6);
@@ -972,34 +979,6 @@ namespace Toast {
 				vertices.push_back((uint16_t)y);
 			}
 
-		for (uint32_t y = 0; y < N - 1; ++y)
-			for (uint32_t x = 0; x < N - 1; ++x)
-			{
-				uint32_t i0 = y * N + x;
-				uint32_t i1 = y * N + x + 1;
-				uint32_t i2 = (y + 1) * N + x;
-				uint32_t i3 = (y + 1) * N + x + 1;
-
-				//  (i0,i2,i1)  (i1,i2,i3)
-				indices.insert(indices.end(), { i0,i2,i1,  i1,i2,i3 });
-			}
-
-		sGridIndexCount = (uint32_t)indices.size();
-		sGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), (uint32_t)vertices.size() * sizeof(uint16_t), (uint32_t)vertices.size() / 2, 0, D3D11_USAGE_IMMUTABLE);
-		sGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), sGridIndexCount);
-
-		sValidPlanet = true;
-	}
-
-	void PlanetSystem::ReuildRingGridIndices()
-	{
-		const uint32_t N = sGridSize;          // 257
-		const uint32_t cells = N - 1;              // 256
-		const uint32_t w = cells / 4;          // (N-1)/4  → 64
-
-		std::vector<uint32_t> indices;
-		indices.reserve((cells * cells - (cells - 2 * w) * (cells - 2 * w)) * 6);
-
 		auto emit = [&](uint32_t x, uint32_t y)
 			{
 				uint32_t i0 = y * N + x;
@@ -1009,17 +988,133 @@ namespace Toast {
 				indices.insert(indices.end(), { i0,i2,i1,  i1,i2,i3 });
 			};
 
+		const uint32_t border = 1;          // ← only one cell
+
+		for (uint32_t y = border; y < cells - border; ++y)
+			for (uint32_t x = border; x < cells - border; ++x)
+				emit(x, y);
+
+		sGridIndexCount = (uint32_t)indices.size();
+		sGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), (uint32_t)vertices.size() * sizeof(uint16_t), (uint32_t)vertices.size() / 2, 0, D3D11_USAGE_IMMUTABLE);
+		sCenterGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), sGridIndexCount);
+
+		sValidPlanet = true;
+	}
+
+	void PlanetSystem::RebuildRingGridIndices()
+	{
+		const uint32_t N = sGridSize;          // 257
+		const uint32_t cells = N - 1;              // 256
+		const uint32_t w = cells / 4;          // 64  (kept for clarity)
+
+		std::vector<uint32_t> idx;
+		idx.reserve((cells * cells - (cells - 2 * w) * (cells - 2 * w)) * 6);
+
+		auto emit = [&](uint32_t x, uint32_t y)
+			{
+				uint32_t i0 = y * N + x;
+				uint32_t i1 = i0 + 1;
+				uint32_t i2 = (y + 1) * N + x;
+				uint32_t i3 = i2 + 1;
+				idx.insert(idx.end(), { i0, i2, i1,  i1, i2, i3 });
+			};
+
+		const uint32_t outer = 1;                  // strip **one** cell on the outside
+
 		for (uint32_t y = 0; y < cells; ++y)
 			for (uint32_t x = 0; x < cells; ++x)
 			{
-				bool inside = (x >= w && x < cells - w &&
-					y >= w && y < cells - w);
-				if (!inside)              // keep border band 'w' cells wide
+				/* Is this cell in the (old) w-wide ring? */
+				bool inRing = (x < w || x >= cells - w ||
+					y < w || y >= cells - w);
+
+				/* Is it in the outer-most 1-cell band we now want to skip? */
+				bool inOuterEdge = (x < outer || x >= cells - outer ||
+					y < outer || y >= cells - outer);
+
+				if (inRing && !inOuterEdge)        // keep all ring cells except the outer rim
 					emit(x, y);
 			}
 
-		sRingGridIndexCount = (uint32_t)indices.size();
-		sRingGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), sRingGridIndexCount);
+		sRingGridIndexCount = static_cast<uint32_t>(idx.size());
+		sRingGridIndexBuffer = CreateRef<IndexBuffer>(idx.data(), sRingGridIndexCount);
+	}
+
+	void PlanetSystem::RebuildLODEdgeGrid()
+	{
+		std::vector<uint16_t> vertices;  
+		std::vector<uint32_t> indices;
+
+		const uint32_t cells = sGridSize - 1;  
+		const uint32_t lenFine = cells;           
+		const uint32_t lenCoarse = lenFine / 2 + 1; 
+
+		auto map = [&](uint32_t edge, uint16_t u, uint16_t v) -> std::pair<uint16_t, uint16_t>
+			{
+				switch (edge)
+				{
+				case 0: 
+					return { u,  v };               
+				case 1: 
+					return { static_cast<uint16_t>(cells - v), u };
+				case 2: 
+					return { static_cast<uint16_t>(cells - u), static_cast<uint16_t>(cells - v) };   
+				default:
+					return { v, static_cast<uint16_t>(cells - u) }; 
+				}
+			};
+
+		for (uint32_t edge = 0; edge < 4; ++edge)
+		{
+			const bool flip = (edge == 2 || edge == 3);   // bottom & left need CW→CCW
+
+			const uint32_t vOffset = static_cast<uint32_t>(vertices.size() / 2);
+
+			/* coarse row (outer) : local v = 0  ,  u = 0,2,4,… */
+			for (uint32_t k = 0; k < lenCoarse; ++k)
+			{
+				auto [gx, gy] = map(edge, static_cast<uint16_t>(2 * k), 0);
+				vertices.push_back(gx); vertices.push_back(gy);
+			}
+
+			for (uint32_t u = 0; u < lenFine; ++u)
+			{
+				auto [gx, gy] = map(edge, static_cast<uint16_t>(u), 1);
+				vertices.push_back(gx); vertices.push_back(gy);
+			}
+
+			const uint32_t cBase = vOffset;               // first coarse of this edge
+			const uint32_t fBase = vOffset + lenCoarse;   // first fine   of this edge
+
+			for (uint32_t k = 0; k + 1 < lenCoarse; ++k) 
+			{
+				uint32_t c0 = cBase + k;
+				uint32_t c1 = c0 + 1;
+
+				uint32_t f0 = fBase + 2 * k;
+				uint32_t f1 = f0 + 1;
+				uint32_t f2 = f0 + 2;                     // exists except at last span
+
+				auto pushTri = [&](uint32_t a, uint32_t b, uint32_t c)
+					{
+						if (flip)  
+							indices.insert(indices.end(), { a, c, b }); // flip winding
+						else       
+							indices.insert(indices.end(), { a, b, c });
+					};
+
+				pushTri(f0, f1, c0);         
+				pushTri(f1, c0, c1);          
+				if (f2 < fBase + lenFine)     
+					pushTri(f1, f2, c1);
+			}
+		}
+
+		const uint32_t vbSize = static_cast<uint32_t>(vertices.size()) * sizeof(uint16_t);
+		sLODGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), vbSize, static_cast<uint32_t>(vertices.size() / 2), 0, D3D11_USAGE_IMMUTABLE);
+
+		sLODGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), static_cast<uint32_t>(indices.size()));
+		sLODGridIndexCount = static_cast<uint32_t>(indices.size());
 	}
 
 	LODDrawInfo PlanetSystem::DetermineActiveLODLevels(const Vector3& camPosPS)

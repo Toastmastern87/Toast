@@ -168,7 +168,8 @@ namespace Toast {
 						PlanetSystem::sNumLevels = PlanetSystem::sTempNumLevels;
 
 						PlanetSystem::RebuildGrid();
-						PlanetSystem::ReuildRingGridIndices();
+						PlanetSystem::RebuildRingGridIndices();
+						PlanetSystem::RebuildLODEdgeGrid();
 
 						PlanetSystem::InitializeLevels();
 
