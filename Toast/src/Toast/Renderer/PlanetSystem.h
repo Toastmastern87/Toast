@@ -389,7 +389,7 @@ namespace Toast {
 		// PBR Data
 		static inline DirectX::XMFLOAT3 sAlbedoColor;
 		static inline float sRoughness;
-		static inline float sMetallic;
+		static inline float sMetalness;
 		static inline Ref<ConstantBuffer> sPlanetMaterialCBuffer;
 		static inline Buffer sPlanetMaterialBuffer;
 
@@ -431,6 +431,8 @@ namespace Toast {
 		static ShaderLayout* GetShaderLayout() { return &sShaderInputLayout; }
 
 		static DirectX::XMFLOAT3& GetAlbedoColor() { return sAlbedoColor; }
+		static float& GetMetalness() { return sMetalness; }
+		static float& GetRoughness() { return sRoughness; }
 		static Texture2D* GetBaseHeightMapTexture() { return sBaseHeightMapTexture; }
 
 		// Helper functions to be used during runtime updates of the planet

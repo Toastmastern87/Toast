@@ -327,7 +327,7 @@ PixelOutputType main(PixelInputType input)
     params.Albedo = Albedo.rgb; /* later:   if(AlbedoTexToggle) … */
     
     output.albedoMetallic.rgb = params.Albedo;
-    output.albedoMetallic.a = 0.0f;
+    output.albedoMetallic.a = Metalness;
 
     /*--------------------------------------------------------------*/
     /* 3) roughness + ambient occlusion                             */

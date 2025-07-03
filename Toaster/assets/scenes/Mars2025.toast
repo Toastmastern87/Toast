@@ -1,6 +1,6 @@
 Scene: Untitled Scene
 Planet:
-  Translation: [0, -3393218, 0]
+  Translation: [0, -3593218, 0]
   Rotation: [26.6000271, 43.5999947, -270.700195]
   GridSize: 257
   MaxLevels: 28
@@ -8,8 +8,8 @@ Planet:
   MaxHeight: 21200
   MinHeight: -8200
   AlbedoColor: [0.498039216, 0.286274523, 0.215686277]
-  Roughness: 0.779999971
-  Metallic: 0
+  Roughness: 1
+  Metalness: 0
   HeightMapAssetPath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
 Entities:
   - Entity: 3888910141822256182
@@ -42,7 +42,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [21.2017002, 0, 0]
+      Rotation: [-93.6981659, 0, 0]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [0.886075974, 0.82748425, 0.575762451]

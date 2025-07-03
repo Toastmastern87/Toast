@@ -31,9 +31,9 @@ namespace Toast {
 
 		ImGuiIO& io = ImGui::GetIO();
 
-		ImVec2 center(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.25f); 
+		//ImVec2 center(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.25f); 
 
-		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+		//ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
 		ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetColorU32(ImGuiCol_WindowBg));
 		ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, ImVec4(0, 0, 0, 0));
@@ -231,13 +231,13 @@ namespace Toast {
 
 				ImGui::TableSetColumnIndex(0);
 				ImGui::AlignTextToFramePadding();
-				ImGui::Text("sMetallic");
+				ImGui::Text("Metalness");
 
 				ImGui::TableSetColumnIndex(1);
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##metallic", &PlanetSystem::sMetallic, 0.01f, 0.0f, 1.0f, "%.2f");
+				ImGui::DragFloat("##metallic", &PlanetSystem::sMetalness, 0.01f, 0.0f, 1.0f, "%.2f");
 
 				ImGui::EndTable();
 			}

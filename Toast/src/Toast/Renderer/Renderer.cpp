@@ -816,6 +816,8 @@ namespace Toast {
 			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, PlanetSystem::GetBaseHeightMapTexture()->GetSRV());
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, PlanetSystem::GetBaseHeightMapTexture()->GetSRV());
 			sRendererData->MaterialBuffer.Write((uint8_t*)&PlanetSystem::GetAlbedoColor(), 16, 0);
+			sRendererData->MaterialBuffer.Write((uint8_t*)&PlanetSystem::GetMetalness(), 4, 20);
+			sRendererData->MaterialBuffer.Write((uint8_t*)&PlanetSystem::GetRoughness(), 4, 24);
 			sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
 
 			auto& levels = PlanetSystem::GetLevels();

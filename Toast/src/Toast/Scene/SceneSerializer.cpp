@@ -671,7 +671,7 @@ namespace Toast {
 		out << YAML::Key << "MinHeight" << YAML::Value << PlanetSystem::sMinHeight;
 		out << YAML::Key << "AlbedoColor" << YAML::Value << PlanetSystem::sAlbedoColor;
 		out << YAML::Key << "Roughness" << YAML::Value << PlanetSystem::sRoughness;
-		out << YAML::Key << "Metallic" << YAML::Value << PlanetSystem::sMetallic;
+		out << YAML::Key << "Metalness" << YAML::Value << PlanetSystem::sMetalness;
 		out << YAML::Key << "HeightMapAssetPath" << YAML::Value << PlanetSystem::sBaseHeightMapTexture->GetFilePath();
 		out << YAML::EndMap;
 
@@ -780,7 +780,7 @@ namespace Toast {
 		PlanetSystem::sMinHeight = planet["MinHeight"].as<double>();
 		PlanetSystem::sAlbedoColor = planet["AlbedoColor"].as<DirectX::XMFLOAT3>();
 		PlanetSystem::sRoughness = planet["Roughness"].as<float>();
-		PlanetSystem::sMetallic = planet["Metallic"].as<float>();
+		PlanetSystem::sMetalness = planet["Metalness"].as<float>();
 		PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(planet["HeightMapAssetPath"].as<std::string>());
 
 		auto entities = data["Entities"];
