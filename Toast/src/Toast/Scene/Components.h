@@ -8,7 +8,6 @@
 #include "Toast/Scene/SceneCamera.h"
 
 #include "Toast/Renderer/Mesh.h"
-#include "Toast/Renderer/SceneEnvironment.h"
 
 #include "Toast/Renderer/UI/UIElement.h"
 
@@ -230,12 +229,6 @@ namespace Toast {
 		float Intensity = 1.0f;
 		float SunDesiredCoverage = 0.0f;
 		float SunLightDistance = 0.0f;
-	};
-
-	struct SkyLightComponent
-	{
-		Environment SceneEnvironment;
-		float Intensity = 1.0f;
 	};
 
 	struct RigidBodyComponent

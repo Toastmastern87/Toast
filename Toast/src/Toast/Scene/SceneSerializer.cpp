@@ -344,18 +344,6 @@ namespace Toast {
 			out << YAML::EndMap; // PlanetComponent
 		}
 
-		if (entity.HasComponent<SkyLightComponent>())
-		{
-			out << YAML::Key << "SkyLightComponent";
-			out << YAML::BeginMap; // SkyLightComponent
-
-			auto& skc = entity.GetComponent<SkyLightComponent>();
-			out << YAML::Key << "AssetPath" << YAML::Value << skc.SceneEnvironment.FilePath;
-			out << YAML::Key << "Intensity" << YAML::Value << skc.Intensity;
-
-			out << YAML::EndMap; // SkyLightComponent
-		}
-
 		if (entity.HasComponent<DirectionalLightComponent>())
 		{
 			out << YAML::Key << "DirectionalLightComponent";
@@ -605,7 +593,6 @@ namespace Toast {
 		CopyComponentIfExists<CameraComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<SpriteRendererComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<DirectionalLightComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
-		CopyComponentIfExists<SkyLightComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<ScriptComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<RigidBodyComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<SphereColliderComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
@@ -673,6 +660,13 @@ namespace Toast {
 		out << YAML::Key << "Roughness" << YAML::Value << PlanetSystem::sRoughness;
 		out << YAML::Key << "Metalness" << YAML::Value << PlanetSystem::sMetalness;
 		out << YAML::Key << "HeightMapAssetPath" << YAML::Value << PlanetSystem::sBaseHeightMapTexture->GetFilePath();
+		out << YAML::Key << "Metalness" << YAML::Value << PlanetSystem::sMetalness;
+		out << YAML::Key << "StarsCount" << YAML::Value << PlanetSystem::sStarsCount;
+		out << YAML::Key << "StarsBrightnessMin" << YAML::Value << PlanetSystem::sStarsBrightnessMin;
+		out << YAML::Key << "StarsBrightnessMax" << YAML::Value << PlanetSystem::sStarsBrightnessMax;
+		out << YAML::Key << "StarsTemperatureMin" << YAML::Value << PlanetSystem::sStarsTemperatureMin;
+		out << YAML::Key << "StarsTemperatureMax" << YAML::Value << PlanetSystem::sStarsTemperatureMax;
+		out << YAML::Key << "StarsSeed" << YAML::Value << PlanetSystem::sStarsSeed;
 		out << YAML::EndMap;
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
@@ -901,15 +895,6 @@ namespace Toast {
 				if (planetComponent) 
 				{
 					auto& pc = deserializedEntity.AddComponent<PlanetComponent>(planetComponent["Subdivisions"].as<int16_t>(), planetComponent["MaxAltitude"].as<float>(), planetComponent["MinAltitude"].as<float>(), planetComponent["Radius"].as<float>(), planetComponent["GravitationalAcceleration"].as<float>(), planetComponent["SmoothShading"].as<bool>(), planetComponent["AtmosphereHeight"].as<float>(), planetComponent["AtmosphereToggle"].as<bool>(), planetComponent["InScatteringPoints"].as<int>(), planetComponent["OpticalDepthPoints"].as<int>(), planetComponent["MieAnisotropy"].as<float>(), planetComponent["RayScaleHeight"].as<float>(), planetComponent["MieScaleHeight"].as<float>(), planetComponent["RayBaseScatteringCoefficient"].as<DirectX::XMFLOAT3>(), planetComponent["MieBaseScatteringCoefficient"].as<float>(), planetComponent["SunDisc"].as<bool>(), planetComponent["SunDiscRadius"].as<float>(), planetComponent["SunGlowIntensity"].as<float>(), planetComponent["SunEdgeSoftness"].as<float>(), planetComponent["SunGlowSize"].as<float>());
-				}
-
-				auto skylightComponent = entity["SkyLightComponent"];
-				if (skylightComponent)
-				{
-					auto& skc = deserializedEntity.AddComponent<SkyLightComponent>();
-					
-					skc.SceneEnvironment = Environment::Load(skylightComponent["AssetPath"].as<std::string>());
-					skc.Intensity = skylightComponent["Intensity"].as<float>();
 				}
 
 				auto directionalLightComponent = entity["DirectionalLightComponent"];

@@ -227,15 +227,6 @@ namespace Toast {
 			auto& pc = deserializedEntity.AddComponent<PlanetComponent>(planetComponent["Subdivisions"].as<int16_t>(), planetComponent["MaxAltitude"].as<float>(), planetComponent["MinAltitude"].as<float>(), planetComponent["Radius"].as<float>(), planetComponent["GravitationalAcceleration"].as<float>(), planetComponent["SmoothShading"].as<bool>(), planetComponent["AtmosphereHeight"].as<float>(), planetComponent["AtmosphereToggle"].as<bool>(), planetComponent["InScatteringPoints"].as<int>(), planetComponent["OpticalDepthPoints"].as<int>(), planetComponent["MieAnisotropy"].as<float>(), planetComponent["RayScaleHeight"].as<float>(), planetComponent["MieScaleHeight"].as<float>(), planetComponent["RayBaseScatteringCoefficient"].as<DirectX::XMFLOAT3>(), planetComponent["MieBaseScatteringCoefficient"].as<float>(), planetComponent["SunDisc"].as<bool>(), planetComponent["SunDiscRadius"].as<float>(), planetComponent["SunGlowIntensity"].as<float>(), planetComponent["SunEdgeSoftness"].as<float>(), planetComponent["SunGlowSize"].as<float>());
 		}
 
-		auto skylightComponent = entityData["SkyLightComponent"];
-		if (skylightComponent)
-		{
-			auto& skc = deserializedEntity.AddComponent<SkyLightComponent>();
-
-			skc.SceneEnvironment = Environment::Load(skylightComponent["AssetPath"].as<std::string>());
-			skc.Intensity = skylightComponent["Intensity"].as<float>();
-		}
-
 		auto directionalLightComponent = entityData["DirectionalLightComponent"];
 		if (directionalLightComponent)
 		{
@@ -613,18 +604,6 @@ namespace Toast {
 			out << YAML::Key << "SunGlowSize" << YAML::Value << pc.PlanetData.SunGlowSize;
 
 			out << YAML::EndMap; // PlanetComponent
-		}
-
-		if (entity.HasComponent<SkyLightComponent>())
-		{
-			out << YAML::Key << "SkyLightComponent";
-			out << YAML::BeginMap; // SkyLightComponent
-
-			auto& skc = entity.GetComponent<SkyLightComponent>();
-			out << YAML::Key << "AssetPath" << YAML::Value << skc.SceneEnvironment.FilePath;
-			out << YAML::Key << "Intensity" << YAML::Value << skc.Intensity;
-
-			out << YAML::EndMap; // SkyLightComponent
 		}
 
 		if (entity.HasComponent<DirectionalLightComponent>())
@@ -1053,7 +1032,6 @@ namespace Toast {
 		CopyComponentIfExists<CameraComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<SpriteRendererComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<DirectionalLightComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
-		CopyComponentIfExists<SkyLightComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<ScriptComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<RigidBodyComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<SphereColliderComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);

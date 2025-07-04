@@ -8,7 +8,6 @@
 #include "Toast/Renderer/Material.h"
 #include "Toast/Renderer/Mesh.h"
 #include "Toast/Renderer/ParticleSystem.h"
-#include "Toast/Renderer/SceneEnvironment.h"
 
 #include <memory>
 
@@ -121,8 +120,6 @@ namespace Toast {
 
 		float& GetSkyboxLod() { return mSkyboxLod; }
 		float& GetEnvironmentIntensity() { return mEnvironmentIntensity; }
-
-		const Environment& GetEnvironment() const { return mEnvironment; }
 		
 		SceneCamera* GetMainCamera() { return mMainCamera; }
 		void SetMainCamera(SceneCamera* camera) { mMainCamera = camera; }
@@ -174,7 +171,6 @@ namespace Toast {
 
 		EntityMap mEntityIDMap;
 
-		Environment mEnvironment;
 		Ref<TextureCube> mSkyboxTexture = nullptr;
 		float mEnvironmentIntensity = 1.0f, mSkyboxLod = 0.0f;
 

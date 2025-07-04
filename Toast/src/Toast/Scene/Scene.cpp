@@ -361,18 +361,6 @@ namespace Toast {
 			}
 		}
 
-		// Process Skylight
-		{
-			mEnvironment = Environment();
-			auto skylights = mRegistry.group<SkyLightComponent>(entt::get<TransformComponent>);
-			for (auto entity : skylights)
-			{
-				auto [transformComponent, skylightComponent] = skylights.get<TransformComponent, SkyLightComponent>(entity);
-				mEnvironment = skylightComponent.SceneEnvironment;
-				mEnvironmentIntensity = skylightComponent.Intensity;
-			}
-		}
-
 		// Process Animations
 		auto view = mRegistry.view<TransformComponent, MeshComponent>();
 		for (auto entity : view)
@@ -578,10 +566,10 @@ namespace Toast {
 				}
 
 				// Skybox!
-				{
-					if (mEnvironment.RadianceMap)
-						Renderer::SubmitSkybox(cameraPosFloat, mainCamera->GetViewMatrix(), mainCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
-				}
+				//{
+				//	if (mEnvironment.RadianceMap)
+				//		Renderer::SubmitSkybox(cameraPosFloat, mainCamera->GetViewMatrix(), mainCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
+				//}
 
 				// Meshes!
 				auto viewMeshes = mRegistry.view<TransformComponent, MeshComponent>();
@@ -1021,18 +1009,6 @@ namespace Toast {
 			}
 		}
 
-		// Process Skylight
-		{
-			mEnvironment = Environment();
-			auto skylights = mRegistry.group<SkyLightComponent>(entt::get<TransformComponent>);
-			for (auto entity : skylights)
-			{
-				auto [transformComponent, skylightComponent] = skylights.get<TransformComponent, SkyLightComponent>(entity);
-				mEnvironment = skylightComponent.SceneEnvironment;
-				mEnvironmentIntensity = skylightComponent.Intensity;
-			}
-		}
-
 		// Process Particles
 		{
 			size_t maxParticleCount = 0;
@@ -1196,10 +1172,10 @@ namespace Toast {
 		Renderer::BeginScene(this, *editorCamera, cameraPosFloat, static_cast<int>(mSettings.WireframeRendering));
 		{
 			// Skybox!
-			{
-				if (mEnvironment.RadianceMap)
-					Renderer::SubmitSkybox(DirectX::XMFLOAT4(DirectX::XMVectorGetX(editorCamera->GetPosition()), DirectX::XMVectorGetY(editorCamera->GetPosition()), DirectX::XMVectorGetZ(editorCamera->GetPosition()), 0.0f), editorCamera->GetViewMatrix(), editorCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
-			}
+			//{
+			//	if (mEnvironment.RadianceMap)
+			//		Renderer::SubmitSkybox(DirectX::XMFLOAT4(DirectX::XMVectorGetX(editorCamera->GetPosition()), DirectX::XMVectorGetY(editorCamera->GetPosition()), DirectX::XMVectorGetZ(editorCamera->GetPosition()), 0.0f), editorCamera->GetViewMatrix(), editorCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
+			//}
 
 			// Meshes!
 			auto viewMeshes = mRegistry.view<TransformComponent, MeshComponent>();
@@ -1790,7 +1766,6 @@ namespace Toast {
 		CopyComponentIfExists<CameraComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<SpriteRendererComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<DirectionalLightComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
-		CopyComponentIfExists<SkyLightComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<ScriptComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<RigidBodyComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<SphereColliderComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
@@ -1829,7 +1804,6 @@ namespace Toast {
 			CopyComponentIfExists<CameraComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<SpriteRendererComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<DirectionalLightComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
-			CopyComponentIfExists<SkyLightComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<ScriptComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<RigidBodyComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<SphereColliderComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
@@ -1921,7 +1895,6 @@ namespace Toast {
 		// Environment
 		target->mLightEnvironment = mLightEnvironment;
 
-		target->mEnvironment = mEnvironment;
 		target->mSkyboxTexture = mSkyboxTexture;
 		target->mSkyboxLod = mSkyboxLod;
 
@@ -1954,7 +1927,6 @@ namespace Toast {
 		CopyComponent<CameraComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<SpriteRendererComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<DirectionalLightComponent>(target->mRegistry, mRegistry, enttMap);
-		CopyComponent<SkyLightComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<ScriptComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<RigidBodyComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<SphereColliderComponent>(target->mRegistry, mRegistry, enttMap);
@@ -2073,11 +2045,6 @@ namespace Toast {
 
 	template<>
 	void Scene::OnComponentAdded<DirectionalLightComponent>(Entity entity, DirectionalLightComponent& component)
-	{
-	}
-
-	template<>
-	void Scene::OnComponentAdded<SkyLightComponent>(Entity entity, SkyLightComponent& component)
 	{
 	}
 

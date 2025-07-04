@@ -173,6 +173,8 @@ namespace Toast {
 		GenerateNoiseTexture();
 
 		GenerateParticleBuffers();
+
+		GenerateSpecularBRDF();
 	}
 
 	void Renderer::Shutdown()
@@ -261,18 +263,9 @@ namespace Toast {
 		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Multiplier, 4, 96);
 		sRendererData->LightningCBuffer->Map(sRendererData->LightningBuffer);
 
-		sRendererData->SceneData.SceneEnvironment = scene->mEnvironment;
 		sRendererData->SceneData.SceneEnvironmentIntensity = scene->mEnvironmentIntensity;
 
-		// TODO: These one could most likely be removed 
-		if (sRendererData->SceneData.SceneEnvironment.IrradianceMap)
-			sRendererData->SceneData.SceneEnvironment.IrradianceMap->Bind(0, D3D11_PIXEL_SHADER);
-
-		if (sRendererData->SceneData.SceneEnvironment.RadianceMap)
-			sRendererData->SceneData.SceneEnvironment.RadianceMap->Bind(1, D3D11_PIXEL_SHADER);
-
-		if (sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT)
-			sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT->Bind(2, D3D11_PIXEL_SHADER);
+		sRendererData->SpecularBRDFLUT->Bind(2, D3D11_PIXEL_SHADER);
 
 		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
 		if (TextureLibrary::ExistsSampler("BRDFSampler"))
@@ -701,85 +694,85 @@ namespace Toast {
 
 	static Scope<Shader> equirectangularConversionShader, envFilteringShader, envIrradianceShader;
 
-	Ref<TextureCube> Renderer::CreateEnvironmentMap(const std::string& filepath)
-	{
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+	//Ref<TextureCube> Renderer::CreateEnvironmentMap(const std::string& filepath)
+	//{
+	//	//RendererAPI* API = RenderCommand::sRendererAPI.get();
+	//	//ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		const uint32_t cubemapSize = 2048;
-		const uint32_t irradianceMapSize = 64;
+	//	//const uint32_t cubemapSize = 2048;
+	//	//const uint32_t irradianceMapSize = 64;
 
-		Ref<ConstantBuffer> specularMapFilterSettingsCB = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SpecularLightEnvironmental) }, D3D11_USAGE_DEFAULT);
+	//	//Ref<ConstantBuffer> specularMapFilterSettingsCB = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SpecularLightEnvironmental) }, D3D11_USAGE_DEFAULT);
 
-		Ref<Texture2D> starMap = CreateRef<Texture2D>(filepath);
-		TextureSampler* defaultSampler = TextureLibrary::GetSampler("Default");
-		Ref<TextureCube> envMapUnfiltered = CreateRef<TextureCube>("EnvMapUnfiltered", cubemapSize, cubemapSize);
-		//Ref<TextureCube> envMapFiltered = CreateRef<TextureCube>("EnvMapFiltered", cubemapSize, cubemapSize);
+	//	//Ref<Texture2D> starMap = CreateRef<Texture2D>(filepath);
+	//	//TextureSampler* defaultSampler = TextureLibrary::GetSampler("Default");
+	//	//Ref<TextureCube> envMapUnfiltered = CreateRef<TextureCube>("EnvMapUnfiltered", cubemapSize, cubemapSize);
+	//	////Ref<TextureCube> envMapFiltered = CreateRef<TextureCube>("EnvMapFiltered", cubemapSize, cubemapSize);
 
-		envMapUnfiltered->CreateUAV(0);
+	//	//envMapUnfiltered->CreateUAV(0);
 
-		if (!equirectangularConversionShader)
-			equirectangularConversionShader = CreateScope<Shader>("assets/shaders/Environment/EquirectangularToCubeMap.hlsl");
+	//	//if (!equirectangularConversionShader)
+	//	//	equirectangularConversionShader = CreateScope<Shader>("assets/shaders/Environment/EquirectangularToCubeMap.hlsl");
 
-		equirectangularConversionShader->Bind();
-		starMap->Bind();
-		defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
-		envMapUnfiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-		RenderCommand::DispatchCompute(cubemapSize / 32, cubemapSize / 32, 6);
-		envMapUnfiltered->UnbindUAV();
+	//	//equirectangularConversionShader->Bind();
+	//	//starMap->Bind();
+	//	//defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+	//	//envMapUnfiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+	//	//RenderCommand::DispatchCompute(cubemapSize / 32, cubemapSize / 32, 6);
+	//	//envMapUnfiltered->UnbindUAV();
 
-		//envMapUnfiltered->GenerateMips();
+	//	//envMapUnfiltered->GenerateMips();
 
-		//for (int arraySlice = 0; arraySlice < 6; ++arraySlice) {
-		//	const uint32_t subresourceIndex = D3D11CalcSubresource(0, arraySlice, envMapFiltered->GetMipLevelCount());
-		//	deviceContext->CopySubresourceRegion(envMapFiltered->GetResource(), subresourceIndex, 0, 0, 0, envMapUnfiltered->GetResource(), subresourceIndex, nullptr);
-		//}
+	//	//for (int arraySlice = 0; arraySlice < 6; ++arraySlice) {
+	//	//	const uint32_t subresourceIndex = D3D11CalcSubresource(0, arraySlice, envMapFiltered->GetMipLevelCount());
+	//	//	deviceContext->CopySubresourceRegion(envMapFiltered->GetResource(), subresourceIndex, 0, 0, 0, envMapUnfiltered->GetResource(), subresourceIndex, nullptr);
+	//	//}
 
-		//struct SpecularMapFilterSettingsCB
-		//{
-		//	float roughness;
-		//	float padding[3];
-		//};
+	//	//struct SpecularMapFilterSettingsCB
+	//	//{
+	//	//	float roughness;
+	//	//	float padding[3];
+	//	//};
 
-		//if (!envFilteringShader)
-		//	envFilteringShader = CreateScope<Shader>("assets/shaders/Environment/EnvironmentMipFilter.hlsl");
+	//	//if (!envFilteringShader)
+	//	//	envFilteringShader = CreateScope<Shader>("assets/shaders/Environment/EnvironmentMipFilter.hlsl");
 
-		//envFilteringShader->Bind();
-		//envMapUnfiltered->Bind(0, D3D11_COMPUTE_SHADER);
-		//defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+	//	//envFilteringShader->Bind();
+	//	//envMapUnfiltered->Bind(0, D3D11_COMPUTE_SHADER);
+	//	//defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
 
-		//// Pre-filter rest of the mip chain.
-		//const float deltaRoughness = 1.0f / std::max(float(envMapFiltered->GetMipLevelCount() - 1.0f), 1.0f);
-		//for (int level = 1, size = cubemapSize / 2; level < envMapFiltered->GetMipLevelCount(); ++level, size /= 2) {
-		//	const int numGroups = std::max(1, size / 32);
+	//	//// Pre-filter rest of the mip chain.
+	//	//const float deltaRoughness = 1.0f / std::max(float(envMapFiltered->GetMipLevelCount() - 1.0f), 1.0f);
+	//	//for (int level = 1, size = cubemapSize / 2; level < envMapFiltered->GetMipLevelCount(); ++level, size /= 2) {
+	//	//	const int numGroups = std::max(1, size / 32);
 
-		//	envMapFiltered->CreateUAV(level);
-		//	
-		//	const SpecularMapFilterSettingsCB spmapConstants = { level * deltaRoughness };
-		//	deviceContext->UpdateSubresource(specularMapFilterSettingsCB->GetBuffer(), 0, nullptr, &spmapConstants, 0, 0);
+	//	//	envMapFiltered->CreateUAV(level);
+	//	//	
+	//	//	const SpecularMapFilterSettingsCB spmapConstants = { level * deltaRoughness };
+	//	//	deviceContext->UpdateSubresource(specularMapFilterSettingsCB->GetBuffer(), 0, nullptr, &spmapConstants, 0, 0);
 
-		//	specularMapFilterSettingsCB->Bind();
-		//	envMapFiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-		//	RenderCommand::DispatchCompute(numGroups, numGroups, 6);
-		//}
-		//envMapFiltered->UnbindUAV();
+	//	//	specularMapFilterSettingsCB->Bind();
+	//	//	envMapFiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+	//	//	RenderCommand::DispatchCompute(numGroups, numGroups, 6);
+	//	//}
+	//	//envMapFiltered->UnbindUAV();
 
-		//Ref<TextureCube> irradianceMap = CreateRef<TextureCube>("IrradianceMap", irradianceMapSize, irradianceMapSize, 1);
+	//	//Ref<TextureCube> irradianceMap = CreateRef<TextureCube>("IrradianceMap", irradianceMapSize, irradianceMapSize, 1);
 
-		//if (!envIrradianceShader)
-		//	envIrradianceShader = CreateScope<Shader>("assets/shaders/Environment/EnvironmentIrradiance.hlsl");
+	//	//if (!envIrradianceShader)
+	//	//	envIrradianceShader = CreateScope<Shader>("assets/shaders/Environment/EnvironmentIrradiance.hlsl");
 
-		//irradianceMap->CreateUAV(0);
+	//	//irradianceMap->CreateUAV(0);
 
-		//envMapFiltered->Bind(0, D3D11_COMPUTE_SHADER);
-		//irradianceMap->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-		//defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
-		//envIrradianceShader->Bind();
-		//RenderCommand::DispatchCompute(irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6);
-		//irradianceMap->UnbindUAV();
+	//	//envMapFiltered->Bind(0, D3D11_COMPUTE_SHADER);
+	//	//irradianceMap->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+	//	//defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+	//	//envIrradianceShader->Bind();
+	//	//RenderCommand::DispatchCompute(irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6);
+	//	//irradianceMap->UnbindUAV();
 
-		return envMapUnfiltered;
-	}
+	//	//return envMapUnfiltered;
+	//}
 
 	void Renderer::GeometryPass()
 	{
@@ -1066,10 +1059,7 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->IrradianceCubeMap->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->EnvMapFiltered->GetSRV());
 
-		if (sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT)
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRendererData->SceneData.SceneEnvironment.SpecularBRDFLUT->GetSRV());
-		else
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, defaultWhite2DSRV);
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRendererData->SpecularBRDFLUT->GetSRV());
 
 		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("BRDFSampler")->Bind(1, D3D11_PIXEL_SHADER);
@@ -1097,22 +1087,19 @@ namespace Toast {
 			annotation->BeginEvent(L"Skybox Pass");
 #endif
 
-		if (sRendererData->SceneData.SceneEnvironment.RadianceMap)
-		{
-			RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
-			RenderCommand::SetDepthStencilState(sRendererData->DepthSkyboxPassStencilState);
-			RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+		RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthSkyboxPassStencilState);
+		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->SceneData.SceneEnvironment.RadianceMap->GetSRV());
+		//RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->SceneData.SceneEnvironment.RadianceMap->GetSRV());
 
-			ShaderLibrary::Get("assets/shaders/Post Process/Skybox.hlsl")->Bind();
+		ShaderLibrary::Get("assets/shaders/Post Process/Skybox.hlsl")->Bind();
 
-			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.Intensity, 4, 0);
-			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
-			sRendererData->EnvironmentCBuffer->Map(sRendererData->EnvironmentBuffer);
+		sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.Intensity, 4, 0);
+		sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
+		sRendererData->EnvironmentCBuffer->Map(sRendererData->EnvironmentBuffer);
 
-			DrawFullscreenQuad();
-		}
+		DrawFullscreenQuad();
 
 		ID3D11RenderTargetView* nullRTV = nullptr;
 		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
@@ -1178,41 +1165,41 @@ namespace Toast {
 
 		static int currentFace = 0;// Tracks which face of the cube to render
 
-		if (sRendererData->SceneData.SceneEnvironment.RadianceMap && dynamicIBL)
-		{
-			const DirectX::XMMATRIX& viewMatrix = sRendererData->AtmosphericScatteringViewMatrices[currentFace];
-			const DirectX::XMMATRIX& invViewMatrix = sRendererData->AtmosphericScatteringInvViewMatrices[currentFace];
-			DirectX::XMFLOAT4 cameraPos = { 0.0f, 0.0f, 0.0f, 0.0f };
+		//if (sRendererData->SceneData.SceneEnvironment.RadianceMap && dynamicIBL)
+		//{
+		//	const DirectX::XMMATRIX& viewMatrix = sRendererData->AtmosphericScatteringViewMatrices[currentFace];
+		//	const DirectX::XMMATRIX& invViewMatrix = sRendererData->AtmosphericScatteringInvViewMatrices[currentFace];
+		//	DirectX::XMFLOAT4 cameraPos = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-			sRendererData->CameraBuffer.Write((uint8_t*)&viewMatrix, sizeof(viewMatrix), 64);
-			sRendererData->CameraBuffer.Write((uint8_t*)&invViewMatrix, sizeof(invViewMatrix), 192);
-			sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos, sizeof(cameraPos), 320);
-			sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
+		//	sRendererData->CameraBuffer.Write((uint8_t*)&viewMatrix, sizeof(viewMatrix), 64);
+		//	sRendererData->CameraBuffer.Write((uint8_t*)&invViewMatrix, sizeof(invViewMatrix), 192);
+		//	sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos, sizeof(cameraPos), 320);
+		//	sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
-			useDepth = 0;
+		//	useDepth = 0;
 
-			sRendererData->AtmosphereBuffer.Write((uint8_t*)&useDepth, 4, 92);
-			sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
+		//	sRendererData->AtmosphereBuffer.Write((uint8_t*)&useDepth, 4, 92);
+		//	sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 
-			RenderCommand::SetRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(currentFace).Get() }, nullptr);
+		//	RenderCommand::SetRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(currentFace).Get() }, nullptr);
 
-			DrawFullscreenQuad();
+		//	DrawFullscreenQuad();
 
-			RenderCommand::SetRenderTargets({ nullptr }, nullptr);
-			RenderCommand::ClearShaderResources();
+		//	RenderCommand::SetRenderTargets({ nullptr }, nullptr);
+		//	RenderCommand::ClearShaderResources();
 
-			GeneratePrefilteredEnvMap(currentFace);
+		//	GeneratePrefilteredEnvMap(currentFace);
 
-			GenerateIrradianceCubemap(currentFace);
-		}
-		else 
-		{
-			RenderCommand::ClearRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(currentFace).Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+		//	GenerateIrradianceCubemap(currentFace);
+		//}
+		//else 
+		//{
+		//	RenderCommand::ClearRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(currentFace).Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-			GeneratePrefilteredEnvMap(currentFace);
+		//	GeneratePrefilteredEnvMap(currentFace);
 
-			GenerateIrradianceCubemap(currentFace);
-		}
+		//	GenerateIrradianceCubemap(currentFace);
+		//}
 
 		currentFace = (currentFace + 1) % 6;
 
@@ -1453,6 +1440,18 @@ namespace Toast {
 	void Renderer::ResetStats()
 	{
 		memset(&sData.Stats, 0, sizeof(Statistics));
+	}
+
+	void Renderer::GenerateSpecularBRDF()
+	{
+		sRendererData->SpecularBRDFLUT = CreateRef<Texture2D>(DXGI_FORMAT_R16G16_FLOAT, DXGI_FORMAT_R16G16_FLOAT, 256, 256);
+
+		sRendererData->SpecularBRDFLUT->CreateUAV(0);
+
+		sRendererData->SpecularBRDFLUT->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+		ShaderLibrary::Load("assets/shaders/Environment/SPBRDF.hlsl")->Bind();
+		RenderCommand::DispatchCompute(sRendererData->SpecularBRDFLUT->GetWidth() / 32, sRendererData->SpecularBRDFLUT->GetHeight() / 32, 1);
+		sRendererData->SpecularBRDFLUT->UnbindUAV();
 	}
 
 	Renderer::Statistics Renderer::GetStats()

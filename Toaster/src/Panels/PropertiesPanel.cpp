@@ -251,15 +251,6 @@ namespace Toast {
 				}
 			}
 
-			if (!mContext.HasComponent<SkyLightComponent>())
-			{
-				if (ImGui::MenuItem("Sky Light"))
-				{
-					mContext.AddComponent<SkyLightComponent>();
-					ImGui::CloseCurrentPopup();
-				}
-			}
-
 			if (!mContext.HasComponent<ScriptComponent>())
 			{
 				if (ImGui::MenuItem("Script"))
@@ -872,38 +863,6 @@ namespace Toast {
 				DrawFloatControl("Sun Desired Coverage Area", component.SunDesiredCoverage, window, activeDragArea, 90.0f, 0.0f, 20000.0f, 1.0f);
 
 				DrawFloatControl("Sun Light Distance", component.SunLightDistance, window, activeDragArea, 90.0f, 0.0f, 10000, 1.0f);
-			});
-
-		DrawComponent<SkyLightComponent>(ICON_TOASTER_CLOUD" Sky Light", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
-			{
-				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
-				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-
-				ImGui::BeginTable("SkyLightTable", 3, flags);
-
-				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
-				ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("File Path");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (!component.SceneEnvironment.FilePath.empty())
-					ImGui::InputText("##envfilepath", (char*)component.SceneEnvironment.FilePath.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
-				else
-					ImGui::InputText("##envfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
-				ImGui::TableSetColumnIndex(2);
-				if (ImGui::Button("...##openenv"))
-				{
-					std::optional<std::string> filepath = FileDialogs::OpenFile("*.png", "..\\Toaster\\assets\\textures\\");
-					if (filepath)
-						component.SceneEnvironment = Environment::Load(*filepath);
-				}
-
-				ImGui::EndTable();
-
-				DrawFloatControl("Intensity", component.Intensity, window, activeDragArea, 90.0f, 0.0f, 5.0f, 0.01f, "%.2f");
 			});
 
 		DrawComponent<ScriptComponent>(ICON_TOASTER_CODE" Script", entity, mScene, activeDragArea, mWindow, [=](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)

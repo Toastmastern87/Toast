@@ -31,10 +31,6 @@ namespace Toast {
 
 		ImGuiIO& io = ImGui::GetIO();
 
-		//ImVec2 center(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.25f); 
-
-		//ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-
 		ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetColorU32(ImGuiCol_WindowBg));
 		ImGui::PushStyleColor(ImGuiCol_ModalWindowDimBg, ImVec4(0, 0, 0, 0));
 
@@ -189,7 +185,7 @@ namespace Toast {
 
 			// section header
 			ImGui::PushFont(io.Fonts->Fonts[4]);
-			ImGui::TextUnformatted("PBR Settings");
+			ImGui::TextUnformatted("Physically Based Rendering");
 			ImGui::PopFont();
 
 			ImGui::Spacing();
@@ -356,6 +352,112 @@ namespace Toast {
 				}
 
 				ImGui::TableSetColumnIndex(1);
+
+				ImGui::EndTable();
+			}
+
+			ImGui::Spacing();            // one line
+			ImGui::Spacing();            // another (≈ 10-12 px total)
+
+			// section header
+			ImGui::PushFont(io.Fonts->Fonts[4]);
+			ImGui::TextUnformatted("Star Field");
+			ImGui::PopFont();
+
+			ImGui::Spacing();
+
+			if (ImGui::BeginTable("StarMapTable", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_PadOuterX))
+			{
+
+				ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.4f);
+				ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.6f);
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Density");
+
+				ImGui::TableSetColumnIndex(1);
+
+				float padX = ImGui::GetStyle().CellPadding.x;
+				float colW = ImGui::GetColumnWidth();             // total width of column 1
+				float fullW = colW - padX * 2.0f;
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragInt("##stardenisty", &PlanetSystem::sStarsCount, 100, 0, 3000000, "%.20f");
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Brightness Min");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##starbrightnessmin", &PlanetSystem::sStarsBrightnessMin, 0.01f, 0.0f, 5.0f, "%.2f");
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Brightness Max");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##starbrightnessmax", &PlanetSystem::sStarsBrightnessMax, 0.01f, 0.0f, 5.0f, "%.2f");
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Temperature Min");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##startemperaturemin", &PlanetSystem::sStarsTemperatureMin, 1.0f, 0.0f, 10000.0f, "%.0f");
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Temperature Max");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##startemperaturemax", &PlanetSystem::sStarsTemperatureMax, 1.0f, 0.0f, 10000.0f, "%.0f");
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Seed");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##starseeds", &PlanetSystem::sStarsSeed, 0.01f, 0.0f, 10000.0f, "%.2f");
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(1);
+
+				const float btnW = 80.0f;
+				float indent = fullW - btnW;
+				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + indent);
+
+				if (ImGui::Button("Apply", ImVec2(btnW, 0)))
+				{
+
+				}
 
 				ImGui::EndTable();
 			}

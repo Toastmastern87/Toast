@@ -52,6 +52,16 @@ namespace Toast {
 		uint32_t GridSize;
 	};
 
+	struct StarFieldSettingsCB
+	{
+		uint32_t StarCount;
+		float BrightnessMin;      
+		float BrightnessMax;
+		float TemperatureMin;      
+		float TemperatureMax;      
+		float Seed;
+	};
+
 	struct PlanetFrameCB
 	{
 		DirectX::XMFLOAT3 Center;
@@ -395,6 +405,19 @@ namespace Toast {
 
 		// Atmosphere Data
 		static inline bool sAtmosphereActivated = false;
+
+		// Star Field Data
+		static inline int sStarsCount;
+		static inline float sStarsBrightnessMin;
+		static inline float sStarsBrightnessMax;
+		static inline float sStarsTemperatureMin;
+		static inline float sStarsTemperatureMax;
+		static inline float sStarsSeed;
+
+		// Environment Textures
+		static inline Ref<TextureCube> sRadianceMap;
+		static inline Ref<TextureCube> sIrradianceMap;
+		static inline Ref<Texture2D> sSpecularBRDFLUT;
 
 		friend class PlanetPanel;
 		friend class SceneSerializer;
