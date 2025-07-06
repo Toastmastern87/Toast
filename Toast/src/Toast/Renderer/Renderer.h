@@ -220,6 +220,8 @@ namespace Toast {
 		static void ResetStats();
 
 		static void GenerateSpecularBRDF();
+		static void GenerateStarField(Ref<StructuredBuffer>& starFieldCubeMap, Ref<ConstantBuffer>& starFieldCB, uint32_t starCount);
+
 		static void GeneratePrefilteredEnvMap(int faceIndex);
 		static void GenerateIrradianceCubemap(int faceIndex);
 

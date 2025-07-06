@@ -290,7 +290,7 @@ namespace Toast {
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  
-	// CONSTANTBUFFERLIBRARY  //////////////////////////////////////////////////////////////  
+	// CONSTANT BUFFER LIBRARY /////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
 	std::unordered_map<std::string, Ref<ConstantBuffer>> ConstantBufferLibrary::mConstantBuffers;
@@ -342,4 +342,55 @@ namespace Toast {
 	{
 		return mConstantBuffers.find(name) != mConstantBuffers.end();
 	}
+
+	////////////////////////////////////////////////////////////////////////////////////////  
+	//   STRUCTURED BUFFER    //////////////////////////////////////////////////////////////  
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	StructuredBuffer::StructuredBuffer(const uint32_t stride, const uint32_t count, D3D11_USAGE usage)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_BUFFER_DESC bd{};
+		bd.ByteWidth = stride * count;
+		bd.Usage = usage;
+		bd.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+		bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		bd.StructureByteStride = stride;
+
+		device->CreateBuffer(&bd, nullptr, &mBuffer);
+
+		// UAV
+		D3D11_UNORDERED_ACCESS_VIEW_DESC uavd{};
+		uavd.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+		uavd.Buffer.NumElements = count;
+		uavd.Format = DXGI_FORMAT_UNKNOWN;            // structured
+		device->CreateUnorderedAccessView(mBuffer.Get(), &uavd, &mUAV);
+
+		// SRV
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvd{};
+		srvd.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+		srvd.Buffer.NumElements = count;
+		srvd.Format = DXGI_FORMAT_UNKNOWN;
+		device->CreateShaderResourceView(mBuffer.Get(), &srvd, &mSRV);
+	}
+
+	void StructuredBuffer::BindUAV(const int bindSlot)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->CSSetUnorderedAccessViews(bindSlot, 1, mUAV.GetAddressOf(), nullptr);
+	}
+
+	void StructuredBuffer::UnbindUAV(const int bindSlot)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		ID3D11UnorderedAccessView* nullUAV = nullptr;
+		deviceContext->CSSetUnorderedAccessViews(bindSlot, 1, &nullUAV, nullptr);
+	}
+
 }

@@ -6,6 +6,8 @@
 
 #include "Toast/ImGui/ImGuiHelpers.h"
 
+#include "Toast/Renderer/Renderer.h"
+
 #include "Toast/Utils/PlatformUtils.h"
 
 #include "../FontAwesome.h"
@@ -376,7 +378,7 @@ namespace Toast {
 
 				ImGui::TableSetColumnIndex(0);
 				ImGui::AlignTextToFramePadding();
-				ImGui::Text("Density");
+				ImGui::Text("Brightness Min");
 
 				ImGui::TableSetColumnIndex(1);
 
@@ -385,19 +387,7 @@ namespace Toast {
 				float fullW = colW - padX * 2.0f;
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragInt("##stardenisty", &PlanetSystem::sStarsCount, 100, 0, 3000000, "%.20f");
-
-				ImGui::TableNextRow();
-
-				ImGui::TableSetColumnIndex(0);
-				ImGui::AlignTextToFramePadding();
-				ImGui::Text("Brightness Min");
-
-				ImGui::TableSetColumnIndex(1);
-
-				ImGui::SetNextItemWidth(fullW);
-
-				ImGui::DragFloat("##starbrightnessmin", &PlanetSystem::sStarsBrightnessMin, 0.01f, 0.0f, 5.0f, "%.2f");
+				ImGui::DragFloat("##starbrightnessmin", &PlanetSystem::sStarFieldSettings.BrightnessMin, 0.01f, 0.0f, 5.0f, "%.2f");
 
 				ImGui::TableNextRow();
 
@@ -409,7 +399,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##starbrightnessmax", &PlanetSystem::sStarsBrightnessMax, 0.01f, 0.0f, 5.0f, "%.2f");
+				ImGui::DragFloat("##starbrightnessmax", &PlanetSystem::sStarFieldSettings.BrightnessMax, 0.01f, 0.0f, 5.0f, "%.2f");
 
 				ImGui::TableNextRow();
 
@@ -421,7 +411,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##startemperaturemin", &PlanetSystem::sStarsTemperatureMin, 1.0f, 0.0f, 10000.0f, "%.0f");
+				ImGui::DragFloat("##startemperaturemin", &PlanetSystem::sStarFieldSettings.TemperatureMin, 1.0f, 0.0f, 10000.0f, "%.0f");
 
 				ImGui::TableNextRow();
 
@@ -433,7 +423,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##startemperaturemax", &PlanetSystem::sStarsTemperatureMax, 1.0f, 0.0f, 10000.0f, "%.0f");
+				ImGui::DragFloat("##startemperaturemax", &PlanetSystem::sStarFieldSettings.TemperatureMax, 1.0f, 0.0f, 10000.0f, "%.0f");
 
 				ImGui::TableNextRow();
 
@@ -445,7 +435,19 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##starseeds", &PlanetSystem::sStarsSeed, 0.01f, 0.0f, 10000.0f, "%.2f");
+				ImGui::DragFloat("##starseeds", &PlanetSystem::sStarFieldSettings.Seed, 0.01f, 0.0f, 10000.0f, "%.2f");
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Star count");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragInt("##starcount", &PlanetSystem::sStarFieldSettings.StarCount, 1, 0, 300000, "%.0f");
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(1);
@@ -456,7 +458,19 @@ namespace Toast {
 
 				if (ImGui::Button("Apply", ImVec2(btnW, 0)))
 				{
+					PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.StarCount, 4, 0);
+					PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.BrightnessMin, 4, 4);
+					PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.BrightnessMax, 4, 8);
+					PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.TemperatureMin, 4, 12);
+					PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.TemperatureMax, 4, 16);
+					PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.Seed, 4, 20);
+					PlanetSystem::sStarFieldCBuffer->Map(PlanetSystem::sStarFieldBuffer);
 
+					Renderer::GenerateStarField(PlanetSystem::sStarFieldStructuredBuffer, PlanetSystem::sStarFieldCBuffer, PlanetSystem::sStarFieldSettings.StarCount);
+
+					PlanetSystem::sStarFieldTextureCube->GenerateMips();
+
+					TOAST_CORE_INFO("Star field update with the new values");
 				}
 
 				ImGui::EndTable();

@@ -145,6 +145,11 @@ namespace Toast {
 			mDeviceContext->ClearRenderTargetView(colorTarget, reinterpret_cast<const float*>(&clearColor));
 	}
 
+	void RendererAPI::ClearUAV(ID3D11UnorderedAccessView* uavTarget, const DirectX::XMFLOAT4& clearColor)
+	{
+		mDeviceContext->ClearUnorderedAccessViewFloat(uavTarget, &clearColor.x);
+	}
+
 	void RendererAPI::ClearDepthStencilView(Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView)
 	{
 		mDeviceContext->ClearDepthStencilView(depthView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 0.0f, 0);

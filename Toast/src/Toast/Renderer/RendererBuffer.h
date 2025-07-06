@@ -127,4 +127,24 @@ namespace Toast {
 		static std::unordered_map<std::string, Ref<ConstantBuffer>> mConstantBuffers;
 	};
 
+	class StructuredBuffer
+	{
+	public:
+		StructuredBuffer(const uint32_t stride, const uint32_t count, D3D11_USAGE usage = D3D11_USAGE_DYNAMIC);
+		virtual ~StructuredBuffer() = default;
+
+		void BindUAV(const int bindSlot);
+		void UnbindUAV(const int bindSlot);
+
+		ID3D11Buffer* GetBuffer() { return mBuffer.Get(); }
+		ID3D11UnorderedAccessView* GetUAV() { return mUAV.Get(); }
+		ID3D11ShaderResourceView* GetSRV() { return mSRV.Get(); }
+	private:
+		std::vector<CBufferBindInfo> mBindInfo;
+
+		Microsoft::WRL::ComPtr<ID3D11Buffer> mBuffer;
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mUAV;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mSRV;
+	};
+
 }

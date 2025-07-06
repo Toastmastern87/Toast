@@ -661,12 +661,12 @@ namespace Toast {
 		out << YAML::Key << "Metalness" << YAML::Value << PlanetSystem::sMetalness;
 		out << YAML::Key << "HeightMapAssetPath" << YAML::Value << PlanetSystem::sBaseHeightMapTexture->GetFilePath();
 		out << YAML::Key << "Metalness" << YAML::Value << PlanetSystem::sMetalness;
-		out << YAML::Key << "StarsCount" << YAML::Value << PlanetSystem::sStarsCount;
-		out << YAML::Key << "StarsBrightnessMin" << YAML::Value << PlanetSystem::sStarsBrightnessMin;
-		out << YAML::Key << "StarsBrightnessMax" << YAML::Value << PlanetSystem::sStarsBrightnessMax;
-		out << YAML::Key << "StarsTemperatureMin" << YAML::Value << PlanetSystem::sStarsTemperatureMin;
-		out << YAML::Key << "StarsTemperatureMax" << YAML::Value << PlanetSystem::sStarsTemperatureMax;
-		out << YAML::Key << "StarsSeed" << YAML::Value << PlanetSystem::sStarsSeed;
+		out << YAML::Key << "StarsCount" << YAML::Value << PlanetSystem::sStarFieldSettings.StarCount;
+		out << YAML::Key << "StarsBrightnessMin" << YAML::Value << PlanetSystem::sStarFieldSettings.BrightnessMin;
+		out << YAML::Key << "StarsBrightnessMax" << YAML::Value << PlanetSystem::sStarFieldSettings.BrightnessMax;
+		out << YAML::Key << "StarsTemperatureMin" << YAML::Value << PlanetSystem::sStarFieldSettings.TemperatureMin;
+		out << YAML::Key << "StarsTemperatureMax" << YAML::Value << PlanetSystem::sStarFieldSettings.TemperatureMax;
+		out << YAML::Key << "StarsSeed" << YAML::Value << PlanetSystem::sStarFieldSettings.Seed;
 		out << YAML::EndMap;
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
@@ -776,6 +776,12 @@ namespace Toast {
 		PlanetSystem::sRoughness = planet["Roughness"].as<float>();
 		PlanetSystem::sMetalness = planet["Metalness"].as<float>();
 		PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(planet["HeightMapAssetPath"].as<std::string>());
+		PlanetSystem::sStarFieldSettings.BrightnessMax = planet["StarsBrightnessMax"].as<float>();
+		PlanetSystem::sStarFieldSettings.BrightnessMin = planet["StarsBrightnessMin"].as<float>();
+		PlanetSystem::sStarFieldSettings.TemperatureMax = planet["StarsTemperatureMax"].as<float>();
+		PlanetSystem::sStarFieldSettings.TemperatureMin = planet["StarsTemperatureMin"].as<float>();
+		PlanetSystem::sStarFieldSettings.Seed = planet["StarsSeed"].as<float>();
+		PlanetSystem::sStarFieldSettings.StarCount = planet["StarsCount"].as<float>();
 
 		auto entities = data["Entities"];
 		if (entities) 
@@ -1144,6 +1150,18 @@ namespace Toast {
 			PlanetSystem::RebuildLODEdgeGrid();
 
 			PlanetSystem::InitializeLevels();
+
+			PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.StarCount, 4, 0);
+			PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.BrightnessMin, 4, 4);
+			PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.BrightnessMax, 4, 8);
+			PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.TemperatureMin, 4, 12);
+			PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.TemperatureMax, 4, 16);
+			PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.Seed, 4, 20);
+			PlanetSystem::sStarFieldCBuffer->Map(PlanetSystem::sStarFieldBuffer);
+
+			Renderer::GenerateStarField(PlanetSystem::sStarFieldStructuredBuffer, PlanetSystem::sStarFieldCBuffer, PlanetSystem::sStarFieldSettings.StarCount);
+
+			PlanetSystem::sStarFieldTextureCube->GenerateMips();
 
 			PlanetSystem::sTempGridSize = PlanetSystem::sGridSize;
 			PlanetSystem::sTempNumLevels = PlanetSystem::sNumLevels;

@@ -11,6 +11,13 @@ Planet:
   Roughness: 1
   Metalness: 0
   HeightMapAssetPath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
+  Metalness: 0
+  StarsCount: 2560
+  StarsBrightnessMin: 0.300000012
+  StarsBrightnessMax: 3
+  StarsTemperatureMin: 2500
+  StarsTemperatureMax: 6793
+  StarsSeed: 11.5500002
 Entities:
   - Entity: 3888910141822256182
     TagComponent:

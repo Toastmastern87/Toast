@@ -140,7 +140,7 @@ float4 main(PixelInputType input) : SV_Target
     float adjustedEnvironmentStrength = environmentStrength * combinedVisibility;
     
     // Sample the cubemap texture
-    float3 skyColor = radianceTexture.SampleLevel(defaultSampler, worldDir, textureLOD).rgb * adjustedEnvironmentStrength;
+    float3 skyColor = radianceTexture.SampleLevel(defaultSampler, worldDir, textureLOD).rgb;// * adjustedEnvironmentStrength;
     
     return float4(skyColor, 1.0f);
 }

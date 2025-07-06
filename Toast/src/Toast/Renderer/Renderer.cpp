@@ -1091,7 +1091,7 @@ namespace Toast {
 		RenderCommand::SetDepthStencilState(sRendererData->DepthSkyboxPassStencilState);
 		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
-		//RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->SceneData.SceneEnvironment.RadianceMap->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, PlanetSystem::GetStarFieldTexture()->GetSRV());
 
 		ShaderLibrary::Get("assets/shaders/Post Process/Skybox.hlsl")->Bind();
 
@@ -1452,6 +1452,33 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Environment/SPBRDF.hlsl")->Bind();
 		RenderCommand::DispatchCompute(sRendererData->SpecularBRDFLUT->GetWidth() / 32, sRendererData->SpecularBRDFLUT->GetHeight() / 32, 1);
 		sRendererData->SpecularBRDFLUT->UnbindUAV();
+	}
+
+	void Renderer::GenerateStarField(Ref<StructuredBuffer>& starFieldStructuredBuffer, Ref<ConstantBuffer>& starFieldCB, uint32_t starCount)
+	{
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"Generate Star Field Compute Shader");
+#endif
+
+		const uint32_t groupSize = 256;
+		const uint32_t numGroups = (starCount + groupSize - 1) / groupSize;
+
+		RenderCommand::ClearUAV(starFieldStructuredBuffer->GetUAV(), {0.0f, 0.0f, 0.0f, 0.0f});
+
+		ShaderLibrary::Get("assets/shaders/Planet/GenerateStarField.hlsl")->Bind();
+
+		starFieldCB->Bind();
+		starFieldStructuredBuffer->BindUAV(0);
+		RenderCommand::DispatchCompute(numGroups, 1, 1);
+		starFieldStructuredBuffer->UnbindUAV(0);
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
 	}
 
 	Renderer::Statistics Renderer::GetStats()

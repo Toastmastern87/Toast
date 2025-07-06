@@ -124,6 +124,7 @@ namespace Toast {
 		void UnbindUAVUpdated(uint32_t bindSlot, D3D11_SHADER_TYPE shaderType) const;
 		void CreateUAV(uint32_t mipLevel);
 		void CreateUAVUpdated(uint32_t mipLevel, uint32_t faceIndex);
+		ID3D11UnorderedAccessView* GetUAV() { return mUAV.Get();  }
 
 		virtual void GenerateMips() const override;
 

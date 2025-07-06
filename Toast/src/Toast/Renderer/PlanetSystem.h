@@ -54,7 +54,7 @@ namespace Toast {
 
 	struct StarFieldSettingsCB
 	{
-		uint32_t StarCount;
+		int StarCount;
 		float BrightnessMin;      
 		float BrightnessMax;
 		float TemperatureMin;      
@@ -82,6 +82,14 @@ namespace Toast {
 
 	constexpr double kQuant = 0.1;     // 1 cm grid
 	constexpr double kInvQ = 1.0 / kQuant;
+
+	struct StarVertex        
+	{
+		DirectX::XMFLOAT3 dir; 
+		float  lum;  
+		DirectX::XMFLOAT3 rgb; 
+		float  pad;
+	};
 
 	struct CPUVertex
 	{
@@ -407,17 +415,16 @@ namespace Toast {
 		static inline bool sAtmosphereActivated = false;
 
 		// Star Field Data
-		static inline int sStarsCount;
-		static inline float sStarsBrightnessMin;
-		static inline float sStarsBrightnessMax;
-		static inline float sStarsTemperatureMin;
-		static inline float sStarsTemperatureMax;
-		static inline float sStarsSeed;
+		static inline StarFieldSettingsCB sStarFieldSettings;
+		static inline Ref<ConstantBuffer> sStarFieldCBuffer;
+		static inline Buffer sStarFieldBuffer;
 
 		// Environment Textures
 		static inline Ref<TextureCube> sRadianceMap;
 		static inline Ref<TextureCube> sIrradianceMap;
 		static inline Ref<Texture2D> sSpecularBRDFLUT;
+		static inline Ref<TextureCube> sStarFieldTextureCube;
+		static inline Ref<StructuredBuffer> sStarFieldStructuredBuffer;
 
 		friend class PlanetPanel;
 		friend class SceneSerializer;
@@ -457,6 +464,8 @@ namespace Toast {
 		static float& GetMetalness() { return sMetalness; }
 		static float& GetRoughness() { return sRoughness; }
 		static Texture2D* GetBaseHeightMapTexture() { return sBaseHeightMapTexture; }
+
+		static Ref<TextureCube>& GetStarFieldTexture() { return sStarFieldTextureCube; }
 
 		// Helper functions to be used during runtime updates of the planet
 		static inline bool NeedSplit(PlanetNode* node, const PlanetComponent& p, const Vector3& camPlanetSpace)
