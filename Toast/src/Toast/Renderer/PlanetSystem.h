@@ -465,7 +465,8 @@ namespace Toast {
 		static float& GetRoughness() { return sRoughness; }
 		static Texture2D* GetBaseHeightMapTexture() { return sBaseHeightMapTexture; }
 
-		static Ref<TextureCube>& GetStarFieldTexture() { return sStarFieldTextureCube; }
+		static int GetNumberOfStars() { return sStarFieldSettings.StarCount; }
+		static Ref<StructuredBuffer>& GetStarFieldStructuredBuffer() { return sStarFieldStructuredBuffer; }
 
 		// Helper functions to be used during runtime updates of the planet
 		static inline bool NeedSplit(PlanetNode* node, const PlanetComponent& p, const Vector3& camPlanetSpace)

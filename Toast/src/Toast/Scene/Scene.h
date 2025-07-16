@@ -65,8 +65,8 @@ namespace Toast {
 			float SSAORadius = 0.5f;
 			float SSAObias = 0.025f;
 			bool Bloom = true;
-			float BloomIntensity = 1.0f;
-			float BloomThreshold = 0.0f;
+			float BloomIntensity = 0.05f;
+			float BloomThreshold = 0.66f;
 			bool DynamicIBL = true;
 
 			int PhysicSlowmotion = 1;

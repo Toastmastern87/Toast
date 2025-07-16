@@ -18,6 +18,8 @@ namespace Toast {
 			return D3D11_VERTEX_SHADER;
 		if (type == "pixel" || type == "fragment")
 			return D3D11_PIXEL_SHADER;
+		if (type == "geometry")
+			return D3D11_GEOMETRY_SHADER;
 		if (type == "compute")
 			return D3D11_COMPUTE_SHADER;
 
@@ -31,12 +33,15 @@ namespace Toast {
 		static std::string returnStr = "";
 		static std::string vertexVersion = "vs_5_0";
 		static std::string pixelVersion = "ps_5_0";
+		static std::string geometryVersion = "gs_5_0";
 		static std::string computeVersion = "cs_5_0";
 
 		if (type == D3D11_VERTEX_SHADER)
 			return vertexVersion;
 		if (type == D3D11_PIXEL_SHADER)
 			return pixelVersion;
+		if (type == D3D11_GEOMETRY_SHADER)
+			return geometryVersion;
 		if (type == D3D11_COMPUTE_SHADER)
 			return computeVersion;
 
@@ -213,6 +218,10 @@ namespace Toast {
 				result = device->CreatePixelShader(kv.second->GetBufferPointer(), kv.second->GetBufferSize(), NULL, &mPixelShader);
 				TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create pixel shader: %s", filepath);
 				break;
+			case D3D11_GEOMETRY_SHADER:
+				result = device->CreateGeometryShader(kv.second->GetBufferPointer(), kv.second->GetBufferSize(), NULL, &mGeometryShader);
+				TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create geometry shader: %s", filepath);
+				break;
 			case D3D11_COMPUTE_SHADER:
 				result = device->CreateComputeShader(kv.second->GetBufferPointer(), kv.second->GetBufferSize(), NULL, &mComputeShader);
 				TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create compute shader: %s", filepath);
@@ -329,7 +338,7 @@ namespace Toast {
 			}
 			//else 
 			//{
-			//	char* warningText = (char*)errorRaw->GetBufferPointer();
+			//	char* warningT ext = (char*)errorRaw->GetBufferPointer();
 
 			//	warningText[strlen(warningText) - 1] = '\0';
 
@@ -480,6 +489,9 @@ namespace Toast {
 			case D3D11_PIXEL_SHADER:
 				deviceContext->PSSetShader(mPixelShader.Get(), nullptr, 0);
 				break;
+			case D3D11_GEOMETRY_SHADER:
+				deviceContext->GSSetShader(mGeometryShader.Get(), nullptr, 0);
+				break;
 			case D3D11_COMPUTE_SHADER:
 				deviceContext->CSSetShader(mComputeShader.Get(), nullptr, 0);
 				break;
@@ -506,6 +518,9 @@ namespace Toast {
 				break;
 			case D3D11_PIXEL_SHADER:
 				deviceContext->PSSetShader(nullptr, 0, 0);
+				break;
+			case D3D11_GEOMETRY_SHADER:
+				deviceContext->GSSetShader(nullptr, 0, 0);
 				break;
 			case D3D11_COMPUTE_SHADER:
 				deviceContext->CSSetShader(nullptr, 0, 0);

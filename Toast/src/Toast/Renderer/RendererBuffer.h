@@ -138,7 +138,7 @@ namespace Toast {
 
 		ID3D11Buffer* GetBuffer() { return mBuffer.Get(); }
 		ID3D11UnorderedAccessView* GetUAV() { return mUAV.Get(); }
-		ID3D11ShaderResourceView* GetSRV() { return mSRV.Get(); }
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() { return mSRV; }
 	private:
 		std::vector<CBufferBindInfo> mBindInfo;
 

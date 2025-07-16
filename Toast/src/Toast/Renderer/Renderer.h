@@ -98,11 +98,11 @@ namespace Toast {
 
 			// Depth data
 			Scope<Texture2D> DepthBuffer, ShadowPassDepth;
-			Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthEnabledStencilState, DepthDisabledStencilState, DepthSkyboxPassStencilState, ShadowPassDepthStencilState;
+			Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthEnabledStencilState, DepthDisabledStencilState, DepthStarFieldStencilState, ShadowPassDepthStencilState;
 			Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencilView, ShadowPassStencilView;
 
 			// Blend data
-			Microsoft::WRL::ComPtr<ID3D11BlendState> GPassBlendState, LPassBlendState, AtmospherePassBlendState, PostProcessBlendState, UIBlendState;
+			Microsoft::WRL::ComPtr<ID3D11BlendState> GPassBlendState, LPassBlendState, AtmospherePassBlendState, PostProcessBlendState, UIBlendState, StarFieldBlend;
 
 			// SSAO data
 			Ref<RenderTarget> SSAORT, SSAOBlurRT;
@@ -174,7 +174,7 @@ namespace Toast {
 		static void SSAOPass(float radius, float bias);
 
 		// Post Processes
-		static void SkyboxPass();
+		static void StarFieldPass();
 		static void AtmospherePass(const bool dynamicIBL);
 		static void BloomPass(float threshold, float intensity);
 		static void GodRayPass(float exposure, float decay, float density, float weight);

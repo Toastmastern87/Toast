@@ -42,7 +42,8 @@ float4 main(PixelInputType input) : SV_TARGET
 {
     float4 color = sceneBaseTexture.Sample(clampSampler, input.texCoord);
     
-    float brightness = dot(color.rgb, float3(0.2126f, 0.7152f, 0.0722f));
-    
-    return brightness > threshold ? color : float4(0.0f, 0.0f, 0.0f, 1.0f);
+    float knee = threshold * 0.5f;
+    float bright = max(dot(color.rgb, float3(0.2126, 0.7152, 0.0722)) - knee, 0.0) / (threshold - knee);
+    float mask = saturate(bright * bright);
+    return float4(color.rgb * mask, 1.0f);
 }

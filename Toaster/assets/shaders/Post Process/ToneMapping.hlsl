@@ -1,4 +1,4 @@
-#inputlayout
+﻿#inputlayout
 #type vertex
 #pragma pack_matrix( row_major )
 
@@ -48,6 +48,20 @@ static const float3x3 ACESOutputMat =
 	{-0.00327, -0.07276,  1.07602}
 };
 
+static const float3x3 D65_to_D60 =
+{ // D65 → D60
+    { 0.987224, 0.007648, -0.014872 },
+    { -0.006113, 1.001864, 0.004249 },
+    { 0.015953, -0.019591, 1.003640 }
+};
+
+static const float3x3 D60_to_D65 =
+{ // D60 → D65  (inverse)
+    { 1.012780, -0.007597, 0.016690 },
+    { 0.006019, 0.998132, -0.004117 },
+    { -0.016787, 0.019661, 0.996995 }
+};
+
 float3 RRTAndODTFit(float3 v)
 {
 	float3 a = v * (v + 0.0245786f) - 0.000090537f;
@@ -91,16 +105,13 @@ float3 SRGBToLinear(float3 color)
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-    float4 color = BaseTexture.Sample(DefaultSampler, input.texCoord);
+    float3 colorHDR = BaseTexture.Sample(DefaultSampler, input.texCoord).rgb;
 
-    // Apply ACES tone mapping
-    float3 colorToned = mul(ACESInputMat, color.rgb);
+    float3 colorToned = mul(ACESInputMat, colorHDR);
+	
     colorToned = RRTAndODTFit(colorToned);
     colorToned = mul(ACESOutputMat, colorToned);
-    colorToned = saturate(colorToned);
+    colorToned = max(colorToned, 0.0f);
 
-    // Convert to sRGB
-    colorToned = LinearTosRGB(colorToned);
-
-	return float4(colorToned, 1.0f);
+    return float4(saturate(colorToned), 1.0f);
 }

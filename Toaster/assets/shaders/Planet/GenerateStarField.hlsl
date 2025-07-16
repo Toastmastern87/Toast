@@ -75,13 +75,19 @@ float3 KelvinToRGB(float K)
     else
         c.b = 0.543206789f * log(t / 100.0f - 10.0f) - 1.196254089f;
 
-    return saturate(c); // keep values in 0-1
+    return c; // keep values in 0-1
 }
 
 float TemperatureSample(float xi)
 {
     float k = pow(xi, 1.8f); // 0.35-0.4 ≈ Salpeter IMF slope 
     return lerp(TemperatureMin, TemperatureMax, k);
+}
+
+float3 ExaggerateSat(float3 rgb, float factor)
+{
+    float luma = dot(rgb, 1.0 / 3.0);
+    return lerp(float3(luma, luma, luma), rgb, factor); // factor ≈1.5–2
 }
 
 [numthreads(256, 1, 1)]
@@ -104,7 +110,7 @@ void main(uint id : SV_DispatchThreadID)
 
     // --- Temperature -----------------------------------------
     float T = TemperatureSample(rand(state)); // 2 500–9 500 K
-    float3 rgb = KelvinToRGB(T) * L;
+    float3 rgb = ExaggerateSat(KelvinToRGB(T), 1.8) * L;
     
     Star v;
     v.Dir = dir;

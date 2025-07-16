@@ -12,11 +12,11 @@ Planet:
   Metalness: 0
   HeightMapAssetPath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
   Metalness: 0
-  StarsCount: 2560
-  StarsBrightnessMin: 0.300000012
-  StarsBrightnessMax: 3
-  StarsTemperatureMin: 2500
-  StarsTemperatureMax: 6793
+  StarsCount: 30000
+  StarsBrightnessMin: 0.600000024
+  StarsBrightnessMax: 3.5999999
+  StarsTemperatureMin: 4789
+  StarsTemperatureMax: 6545
   StarsSeed: 11.5500002
 Entities:
   - Entity: 3888910141822256182
@@ -49,7 +49,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-93.6981659, 0, 0]
+      Rotation: [-310.397156, 0, 0]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [0.886075974, 0.82748425, 0.575762451]

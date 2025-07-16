@@ -300,7 +300,7 @@ namespace Toast {
 		LightningPass();
 
 		// Post Processes
-		SkyboxPass();
+		StarFieldPass();
 		AtmospherePass(dynamicIBL);
 
 		// Particles only for now, but will most likely be renamed and handle more things in the future.
@@ -408,7 +408,7 @@ namespace Toast {
 		depthStencilDesc.StencilReadMask = 0x00;
 		depthStencilDesc.StencilWriteMask = 0x00;
 
-		result = device->CreateDepthStencilState(&depthStencilDesc, &sRendererData->DepthSkyboxPassStencilState);
+		result = device->CreateDepthStencilState(&depthStencilDesc, &sRendererData->DepthStarFieldStencilState);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Skybox pass depth stencil state");
 	}
 
@@ -466,12 +466,6 @@ namespace Toast {
 			blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
 			blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
 			blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-			//blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
-			//blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
-			//blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-			//blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-			//blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-			//blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 			blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
 			HRESULT hr = device->CreateBlendState(&blendDesc, &sRendererData->ParticleBlendState);
@@ -516,6 +510,25 @@ namespace Toast {
 			blendDesc.RenderTarget[1].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
 			result = device->CreateBlendState(&blendDesc, &sRendererData->UIBlendState);
+			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Atmosphere Pass blend state");
+		}
+
+		// Additive Blend State ONE + ONE
+		{
+			D3D11_BLEND_DESC blendDesc = {};
+			blendDesc.AlphaToCoverageEnable = FALSE;
+			blendDesc.IndependentBlendEnable = FALSE;
+
+			blendDesc.RenderTarget[0].BlendEnable = TRUE;
+			blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+			blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+			blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+			blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+			blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+			blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+			blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+			result = device->CreateBlendState(&blendDesc, &sRendererData->StarFieldBlend);
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Atmosphere Pass blend state");
 		}
 	}
@@ -1078,28 +1091,32 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer::SkyboxPass()
+	void Renderer::StarFieldPass()
 	{
 #ifdef TOAST_DEBUG
 		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
 		RenderCommand::GetAnnotation(annotation);
 		if (annotation)
-			annotation->BeginEvent(L"Skybox Pass");
+			annotation->BeginEvent(L"Star Field Pass");
 #endif
 
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
 		RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
-		RenderCommand::SetDepthStencilState(sRendererData->DepthSkyboxPassStencilState);
-		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+		RenderCommand::SetDepthStencilState(sRendererData->DepthStarFieldStencilState);
+		RenderCommand::SetBlendState(sRendererData->StarFieldBlend, { 0.0f, 0.0f, 0.0f, 0.0f });
 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, PlanetSystem::GetStarFieldTexture()->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, PlanetSystem::GetStarFieldStructuredBuffer()->GetSRV());
 
-		ShaderLibrary::Get("assets/shaders/Post Process/Skybox.hlsl")->Bind();
+		deviceContext->IASetIndexBuffer(sRendererData->ParticleIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 
-		sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.Intensity, 4, 0);
-		sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
-		sRendererData->EnvironmentCBuffer->Map(sRendererData->EnvironmentBuffer);
+		ShaderLibrary::Get("assets/shaders/Post Process/StarField.hlsl")->Bind();
 
-		DrawFullscreenQuad();
+		UINT starCount = PlanetSystem::GetNumberOfStars();
+		RenderCommand::DrawIndexedInstanced(6, starCount, 0, 0, 0);
+
+		ShaderLibrary::Get("assets/shaders/Post Process/StarField.hlsl")->Unbind();
 
 		ID3D11RenderTargetView* nullRTV = nullptr;
 		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
@@ -1118,6 +1135,8 @@ namespace Toast {
 		if (annotation)
 			annotation->BeginEvent(L"Atmosphere Pass");
 #endif
+
+		RenderCommand::SetPrimitiveTopology(PrimitiveTopology::TRIANGLELIST);
 
 		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, nullptr);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);

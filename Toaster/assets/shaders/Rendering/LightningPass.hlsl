@@ -233,9 +233,9 @@ float3 DirectionalLightning(float3 F0, float3 NormalWorldSpace, float3 View, flo
     float D = ndfGGX(cosLh, roughness);
     float G = gaSchlickGGX(cosLi, NdotV, roughness);
 
-    float3 kd = lerp(float3(1.0f, 1.0f, 1.0f) - F, albedo, metalness);
-    float3 diffuseBRDF = (kd * albedo) / PI;
-
+    float3 kd = (1.0f - F) * (1.0f - metalness);
+    float3 diffuseBRDF = kd * albedo / PI;
+    
 	// Cook-Torrance
     float3 specularBRDF = (F * D * G) / max(Epsilon, 4.0f * cosLi * NdotV);
 
@@ -319,7 +319,7 @@ PixelOutputType main(PixelInputType input)
     // **1. Normal Offset Biasing**
     // Offset the world position along the normal to reduce self-shadowing artifacts
     float normalOffsetScale = 5.0f; // Adjust based on your scene's scale
-    float3 offsetPosition = worldPos + normal * normalOffsetScale;
+    float3 offsetPosition = worldPos + normalWorld * normalOffsetScale;
 
     // Transform the offset position to Light's Clip Space
     float4 pixelPosLightSpace = mul(float4(offsetPosition, 1.0f), lightViewProj);
