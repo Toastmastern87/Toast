@@ -944,20 +944,15 @@ namespace Toast {
 		sPlanetLevelBuffer.Allocate(sPlanetLevelCBuffer->GetSize());
 		sPlanetLevelBuffer.ZeroInitialize();
 
-		sStarFieldCBuffer = ConstantBufferLibrary::Load("StarFieldSettingsCB", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)0) });
-		sStarFieldCBuffer->Bind();
-		sStarFieldBuffer.Allocate(sStarFieldCBuffer->GetSize());
-		sStarFieldBuffer.ZeroInitialize();
-
 		sBaseHeightMapTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
+
+		sStarFieldTexture2D = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 
 		sStarFieldTextureCube = CreateRef<TextureCube>(DXGI_FORMAT_R16G16B16A16_UNORM, DXGI_FORMAT_UNKNOWN, 2048, 2048, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE |
 			D3D11_BIND_UNORDERED_ACCESS |  
 			D3D11_BIND_RENDER_TARGET), 1, 0, 0);
 
 		sStarFieldTextureCube->CreateUAV(0);
-
-		sStarFieldStructuredBuffer = CreateRef<StructuredBuffer>(sizeof(StarVertex), 300000, D3D11_USAGE_DEFAULT);
 	}
 
 	void PlanetSystem::InitializeLevels()

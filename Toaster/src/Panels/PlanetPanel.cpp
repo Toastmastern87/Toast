@@ -370,108 +370,56 @@ namespace Toast {
 
 			if (ImGui::BeginTable("StarMapTable", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_PadOuterX))
 			{
-
 				ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.4f);
 				ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.6f);
 
 				ImGui::TableNextRow();
 
-				ImGui::TableSetColumnIndex(0);
-				ImGui::AlignTextToFramePadding();
-				ImGui::Text("Brightness Min");
-
-				ImGui::TableSetColumnIndex(1);
-
-				float padX = ImGui::GetStyle().CellPadding.x;
-				float colW = ImGui::GetColumnWidth();             // total width of column 1
-				float fullW = colW - padX * 2.0f;
-				ImGui::SetNextItemWidth(fullW);
-
-				ImGui::DragFloat("##starbrightnessmin", &PlanetSystem::sStarFieldSettings.BrightnessMin, 0.01f, 0.0f, 5.0f, "%.2f");
-
-				ImGui::TableNextRow();
+				// -------- Star Field Texture row ----------
 
 				ImGui::TableSetColumnIndex(0);
 				ImGui::AlignTextToFramePadding();
-				ImGui::Text("Brightness Max");
+				ImGui::Text("Star Field Texture");
 
 				ImGui::TableSetColumnIndex(1);
 
-				ImGui::SetNextItemWidth(fullW);
+				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::GetStyle().CellPadding.x * 2 - 128.0f);
+				ImGui::Image(PlanetSystem::sStarFieldTexture2D->GetID(), { 128.0f, 64.0f });
 
-				ImGui::DragFloat("##starbrightnessmax", &PlanetSystem::sStarFieldSettings.BrightnessMax, 0.01f, 0.0f, 5.0f, "%.2f");
+				std::optional<std::string> filename;
 
-				ImGui::TableNextRow();
-
-				ImGui::TableSetColumnIndex(0);
-				ImGui::AlignTextToFramePadding();
-				ImGui::Text("Temperature Min");
-
-				ImGui::TableSetColumnIndex(1);
-
-				ImGui::SetNextItemWidth(fullW);
-
-				ImGui::DragFloat("##startemperaturemin", &PlanetSystem::sStarFieldSettings.TemperatureMin, 1.0f, 0.0f, 10000.0f, "%.0f");
-
-				ImGui::TableNextRow();
-
-				ImGui::TableSetColumnIndex(0);
-				ImGui::AlignTextToFramePadding();
-				ImGui::Text("Temperature Max");
-
-				ImGui::TableSetColumnIndex(1);
-
-				ImGui::SetNextItemWidth(fullW);
-
-				ImGui::DragFloat("##startemperaturemax", &PlanetSystem::sStarFieldSettings.TemperatureMax, 1.0f, 0.0f, 10000.0f, "%.0f");
-
-				ImGui::TableNextRow();
-
-				ImGui::TableSetColumnIndex(0);
-				ImGui::AlignTextToFramePadding();
-				ImGui::Text("Seed");
-
-				ImGui::TableSetColumnIndex(1);
-
-				ImGui::SetNextItemWidth(fullW);
-
-				ImGui::DragFloat("##starseeds", &PlanetSystem::sStarFieldSettings.Seed, 0.01f, 0.0f, 10000.0f, "%.2f");
-
-				ImGui::TableNextRow();
-
-				ImGui::TableSetColumnIndex(0);
-				ImGui::AlignTextToFramePadding();
-				ImGui::Text("Star count");
-
-				ImGui::TableSetColumnIndex(1);
-
-				ImGui::SetNextItemWidth(fullW);
-
-				ImGui::DragInt("##starcount", &PlanetSystem::sStarFieldSettings.StarCount, 1, 0, 300000, "%.0f");
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(1);
-
-				const float btnW = 80.0f;
-				float indent = fullW - btnW;
-				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + indent);
-
-				if (ImGui::Button("Apply", ImVec2(btnW, 0)))
+				if (ImGui::BeginDragDropTarget())
 				{
-					PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.StarCount, 4, 0);
-					PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.BrightnessMin, 4, 4);
-					PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.BrightnessMax, 4, 8);
-					PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.TemperatureMin, 4, 12);
-					PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.TemperatureMax, 4, 16);
-					PlanetSystem::sStarFieldBuffer.Write((uint8_t*)&PlanetSystem::sStarFieldSettings.Seed, 4, 20);
-					PlanetSystem::sStarFieldCBuffer->Map(PlanetSystem::sStarFieldBuffer);
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+					{
+						const wchar_t* path = (const wchar_t*)payload->Data;
+						auto completePath = std::filesystem::path(gAssetPath) / path;
+						filename = completePath.string();
 
-					Renderer::GenerateStarField(PlanetSystem::sStarFieldStructuredBuffer, PlanetSystem::sStarFieldCBuffer, PlanetSystem::sStarFieldSettings.StarCount);
+						if (filename)
+						{
+							PlanetSystem::sStarFieldTexture2D = TextureLibrary::LoadTexture2D(*filename);
 
-					PlanetSystem::sStarFieldTextureCube->GenerateMips();
+							PlanetSystem::sStarFieldTextureCube = Renderer::CreateStarFieldTexture(PlanetSystem::sStarFieldTexture2D);
+						}
+					}
 
-					TOAST_CORE_INFO("Star field update with the new values");
+					ImGui::EndDragDropTarget();
 				}
+
+				if (ImGui::IsItemClicked())
+				{
+					filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+
+					if (filename)
+					{
+						PlanetSystem::sStarFieldTexture2D = TextureLibrary::LoadTexture2D(*filename);
+
+						PlanetSystem::sStarFieldTextureCube = Renderer::CreateStarFieldTexture(PlanetSystem::sStarFieldTexture2D);
+					}
+				}
+
+				ImGui::TableSetColumnIndex(1);
 
 				ImGui::EndTable();
 			}

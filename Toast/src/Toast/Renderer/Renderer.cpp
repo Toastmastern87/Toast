@@ -512,25 +512,6 @@ namespace Toast {
 			result = device->CreateBlendState(&blendDesc, &sRendererData->UIBlendState);
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Atmosphere Pass blend state");
 		}
-
-		// Additive Blend State ONE + ONE
-		{
-			D3D11_BLEND_DESC blendDesc = {};
-			blendDesc.AlphaToCoverageEnable = FALSE;
-			blendDesc.IndependentBlendEnable = FALSE;
-
-			blendDesc.RenderTarget[0].BlendEnable = TRUE;
-			blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-			blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
-			blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-			blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-			blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-			blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-			blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
-			result = device->CreateBlendState(&blendDesc, &sRendererData->StarFieldBlend);
-			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Atmosphere Pass blend state");
-		}
 	}
 
 	void Renderer::CreateRasterizerStates()
@@ -707,85 +688,33 @@ namespace Toast {
 
 	static Scope<Shader> equirectangularConversionShader, envFilteringShader, envIrradianceShader;
 
-	//Ref<TextureCube> Renderer::CreateEnvironmentMap(const std::string& filepath)
-	//{
-	//	//RendererAPI* API = RenderCommand::sRendererAPI.get();
-	//	//ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+	Ref<TextureCube> Renderer::CreateStarFieldTexture(const Texture2D* starFieldTexture)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-	//	//const uint32_t cubemapSize = 2048;
-	//	//const uint32_t irradianceMapSize = 64;
+		const uint32_t cubemapSize = 4096;
 
-	//	//Ref<ConstantBuffer> specularMapFilterSettingsCB = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SpecularLightEnvironmental) }, D3D11_USAGE_DEFAULT);
+		TextureSampler* defaultSampler = TextureLibrary::GetSampler("Default");
+		Ref<TextureCube> envMapUnfiltered = CreateRef<TextureCube>("EnvMapUnfiltered", cubemapSize, cubemapSize);
+		Ref<TextureCube> envMapFiltered = CreateRef<TextureCube>("EnvMapFiltered", cubemapSize, cubemapSize);
 
-	//	//Ref<Texture2D> starMap = CreateRef<Texture2D>(filepath);
-	//	//TextureSampler* defaultSampler = TextureLibrary::GetSampler("Default");
-	//	//Ref<TextureCube> envMapUnfiltered = CreateRef<TextureCube>("EnvMapUnfiltered", cubemapSize, cubemapSize);
-	//	////Ref<TextureCube> envMapFiltered = CreateRef<TextureCube>("EnvMapFiltered", cubemapSize, cubemapSize);
+		envMapUnfiltered->CreateUAV(0);
 
-	//	//envMapUnfiltered->CreateUAV(0);
+		if (!equirectangularConversionShader)
+			equirectangularConversionShader = CreateScope<Shader>("assets/shaders/Environment/EquirectangularToCubeMap.hlsl");
 
-	//	//if (!equirectangularConversionShader)
-	//	//	equirectangularConversionShader = CreateScope<Shader>("assets/shaders/Environment/EquirectangularToCubeMap.hlsl");
+		equirectangularConversionShader->Bind();
+		starFieldTexture->Bind(0, D3D11_COMPUTE_SHADER);
+		defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+		envMapUnfiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+		RenderCommand::DispatchCompute(cubemapSize / 32, cubemapSize / 32, 6);
+		envMapUnfiltered->UnbindUAV();
 
-	//	//equirectangularConversionShader->Bind();
-	//	//starMap->Bind();
-	//	//defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
-	//	//envMapUnfiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-	//	//RenderCommand::DispatchCompute(cubemapSize / 32, cubemapSize / 32, 6);
-	//	//envMapUnfiltered->UnbindUAV();
+		TOAST_CORE_INFO("New Star Field texture created!");
 
-	//	//envMapUnfiltered->GenerateMips();
-
-	//	//for (int arraySlice = 0; arraySlice < 6; ++arraySlice) {
-	//	//	const uint32_t subresourceIndex = D3D11CalcSubresource(0, arraySlice, envMapFiltered->GetMipLevelCount());
-	//	//	deviceContext->CopySubresourceRegion(envMapFiltered->GetResource(), subresourceIndex, 0, 0, 0, envMapUnfiltered->GetResource(), subresourceIndex, nullptr);
-	//	//}
-
-	//	//struct SpecularMapFilterSettingsCB
-	//	//{
-	//	//	float roughness;
-	//	//	float padding[3];
-	//	//};
-
-	//	//if (!envFilteringShader)
-	//	//	envFilteringShader = CreateScope<Shader>("assets/shaders/Environment/EnvironmentMipFilter.hlsl");
-
-	//	//envFilteringShader->Bind();
-	//	//envMapUnfiltered->Bind(0, D3D11_COMPUTE_SHADER);
-	//	//defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
-
-	//	//// Pre-filter rest of the mip chain.
-	//	//const float deltaRoughness = 1.0f / std::max(float(envMapFiltered->GetMipLevelCount() - 1.0f), 1.0f);
-	//	//for (int level = 1, size = cubemapSize / 2; level < envMapFiltered->GetMipLevelCount(); ++level, size /= 2) {
-	//	//	const int numGroups = std::max(1, size / 32);
-
-	//	//	envMapFiltered->CreateUAV(level);
-	//	//	
-	//	//	const SpecularMapFilterSettingsCB spmapConstants = { level * deltaRoughness };
-	//	//	deviceContext->UpdateSubresource(specularMapFilterSettingsCB->GetBuffer(), 0, nullptr, &spmapConstants, 0, 0);
-
-	//	//	specularMapFilterSettingsCB->Bind();
-	//	//	envMapFiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-	//	//	RenderCommand::DispatchCompute(numGroups, numGroups, 6);
-	//	//}
-	//	//envMapFiltered->UnbindUAV();
-
-	//	//Ref<TextureCube> irradianceMap = CreateRef<TextureCube>("IrradianceMap", irradianceMapSize, irradianceMapSize, 1);
-
-	//	//if (!envIrradianceShader)
-	//	//	envIrradianceShader = CreateScope<Shader>("assets/shaders/Environment/EnvironmentIrradiance.hlsl");
-
-	//	//irradianceMap->CreateUAV(0);
-
-	//	//envMapFiltered->Bind(0, D3D11_COMPUTE_SHADER);
-	//	//irradianceMap->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-	//	//defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
-	//	//envIrradianceShader->Bind();
-	//	//RenderCommand::DispatchCompute(irradianceMap->GetWidth() / 32, irradianceMap->GetHeight() / 32, 6);
-	//	//irradianceMap->UnbindUAV();
-
-	//	//return envMapUnfiltered;
-	//}
+		return envMapUnfiltered;
+	}
 
 	void Renderer::GeometryPass()
 	{
@@ -1100,23 +1029,22 @@ namespace Toast {
 			annotation->BeginEvent(L"Star Field Pass");
 #endif
 
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+		if (PlanetSystem::GetStarFieldTextureCube())
+		{
+			RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+			RenderCommand::SetDepthStencilState(sRendererData->DepthStarFieldStencilState);
+			RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
-		RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
-		RenderCommand::SetDepthStencilState(sRendererData->DepthStarFieldStencilState);
-		RenderCommand::SetBlendState(sRendererData->StarFieldBlend, { 0.0f, 0.0f, 0.0f, 0.0f });
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, PlanetSystem::GetStarFieldTextureCube()->GetSRV());
 
-		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, PlanetSystem::GetStarFieldStructuredBuffer()->GetSRV());
+			ShaderLibrary::Get("assets/shaders/Post Process/StarField.hlsl")->Bind();
 
-		deviceContext->IASetIndexBuffer(sRendererData->ParticleIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
+			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.Intensity, 4, 0);
+			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
+			sRendererData->EnvironmentCBuffer->Map(sRendererData->EnvironmentBuffer);
 
-		ShaderLibrary::Get("assets/shaders/Post Process/StarField.hlsl")->Bind();
-
-		UINT starCount = PlanetSystem::GetNumberOfStars();
-		RenderCommand::DrawIndexedInstanced(6, starCount, 0, 0, 0);
-
-		ShaderLibrary::Get("assets/shaders/Post Process/StarField.hlsl")->Unbind();
+			DrawFullscreenQuad();
+		}
 
 		ID3D11RenderTargetView* nullRTV = nullptr;
 		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
@@ -1471,33 +1399,6 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Environment/SPBRDF.hlsl")->Bind();
 		RenderCommand::DispatchCompute(sRendererData->SpecularBRDFLUT->GetWidth() / 32, sRendererData->SpecularBRDFLUT->GetHeight() / 32, 1);
 		sRendererData->SpecularBRDFLUT->UnbindUAV();
-	}
-
-	void Renderer::GenerateStarField(Ref<StructuredBuffer>& starFieldStructuredBuffer, Ref<ConstantBuffer>& starFieldCB, uint32_t starCount)
-	{
-#ifdef TOAST_DEBUG
-		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
-		RenderCommand::GetAnnotation(annotation);
-		if (annotation)
-			annotation->BeginEvent(L"Generate Star Field Compute Shader");
-#endif
-
-		const uint32_t groupSize = 256;
-		const uint32_t numGroups = (starCount + groupSize - 1) / groupSize;
-
-		RenderCommand::ClearUAV(starFieldStructuredBuffer->GetUAV(), {0.0f, 0.0f, 0.0f, 0.0f});
-
-		ShaderLibrary::Get("assets/shaders/Planet/GenerateStarField.hlsl")->Bind();
-
-		starFieldCB->Bind();
-		starFieldStructuredBuffer->BindUAV(0);
-		RenderCommand::DispatchCompute(numGroups, 1, 1);
-		starFieldStructuredBuffer->UnbindUAV(0);
-
-#ifdef TOAST_DEBUG
-		if (annotation)
-			annotation->EndEvent();
-#endif
 	}
 
 	Renderer::Statistics Renderer::GetStats()

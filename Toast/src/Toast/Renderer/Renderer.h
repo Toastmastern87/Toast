@@ -102,7 +102,7 @@ namespace Toast {
 			Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencilView, ShadowPassStencilView;
 
 			// Blend data
-			Microsoft::WRL::ComPtr<ID3D11BlendState> GPassBlendState, LPassBlendState, AtmospherePassBlendState, PostProcessBlendState, UIBlendState, StarFieldBlend;
+			Microsoft::WRL::ComPtr<ID3D11BlendState> GPassBlendState, LPassBlendState, AtmospherePassBlendState, PostProcessBlendState, UIBlendState;
 
 			// SSAO data
 			Ref<RenderTarget> SSAORT, SSAOBlurRT;
@@ -153,6 +153,8 @@ namespace Toast {
 		static void GenerateSampleKernel();
 		static void GenerateNoiseTexture();
 
+		static Ref<TextureCube> CreateStarFieldTexture(const Texture2D* starFieldTexture);
+
 		static void SetUpAtmosphericScatteringMatrices();
 
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
@@ -163,8 +165,6 @@ namespace Toast {
 		static void DrawFullscreenQuad();
 
 		static void ClearDrawList();
-
-		//static Ref<TextureCube> CreateEnvironmentMap(const std::string& filepath);
 
 		// Deffered Rendering
 		static void GeometryPass();
@@ -220,7 +220,6 @@ namespace Toast {
 		static void ResetStats();
 
 		static void GenerateSpecularBRDF();
-		static void GenerateStarField(Ref<StructuredBuffer>& starFieldCubeMap, Ref<ConstantBuffer>& starFieldCB, uint32_t starCount);
 
 		static void GeneratePrefilteredEnvMap(int faceIndex);
 		static void GenerateIrradianceCubemap(int faceIndex);

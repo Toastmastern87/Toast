@@ -71,7 +71,6 @@ namespace Toast {
 
 		// Planet
 		ShaderLibrary::Load("assets/shaders/Planet/PlanetGeometryPass.hlsl");
-		ShaderLibrary::Load("assets/shaders/Planet/GenerateStarField.hlsl");
 
 		// Post Processes
 		ShaderLibrary::Load("assets/shaders/Post Process/StarField.hlsl");
