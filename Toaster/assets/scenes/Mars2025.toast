@@ -1,7 +1,7 @@
 Scene: Untitled Scene
 Planet:
   Translation: [0, -3483070, 0]
-  Rotation: [29.9000206, 5.60001183, -272.602295]
+  Rotation: [28.8000164, 42.6000633, -271.902191]
   GridSize: 257
   MaxLevels: 28
   Radius: 3389500
@@ -44,7 +44,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-407.098053, 0, 0]
+      Rotation: [-205.802612, 0, 0]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [0.886075974, 0.82748425, 0.575762451]

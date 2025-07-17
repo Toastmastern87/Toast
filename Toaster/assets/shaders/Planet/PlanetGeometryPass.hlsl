@@ -265,6 +265,14 @@ float2 SphereUV(float3 nSphere)
     return float2(lon * INV_TWO_PI + 0.5, lat * INV_PI + 0.5);
 }
 
+float3 ToWorld(float3 v)        // v is expressed in {east, up, north}
+{
+    // columns (or rows — whichever convention you use) are the basis
+    return v.x * BasisLonEast +
+           v.y * BasisSpinUp +
+           v.z * BasisLonNorth;
+}
+
 // Call this *instead* of face‐averaging
 float3 AnalyticalNormal(float2 uv)
 {
@@ -288,6 +296,10 @@ float3 AnalyticalNormal(float2 uv)
     float3 dSdlon = float3(cos(lat) * cos(lon), 0, -cos(lat) * sin(lon));
     float3 dSdlat = float3(-sin(lat) * sin(lon), cos(lat), -sin(lat) * cos(lon));
 
+    float3 SWS = ToWorld(S);
+    float3 dSdlonWS = ToWorld(dSdlon);
+    float3 dSdlatWS = ToWorld(dSdlat);
+    
     // 4) chain‐rule for P(u,v)=(R+h)·S
     float dlon = u * 2 * PI;
     float dlat = v * PI;
@@ -295,8 +307,8 @@ float3 AnalyticalNormal(float2 uv)
     float dhdlat = (hV - h0) / dlat;
 
     float R = PlanetRadius;
-    float3 Pu = (R + h0) * dSdlon + dhdlon * S;
-    float3 Pv = (R + h0) * dSdlat + dhdlat * S;
+    float3 Pu = (R + h0) * dSdlonWS + dhdlon * SWS;
+    float3 Pv = (R + h0) * dSdlatWS + dhdlat * SWS;
 
     // 5) exact normal
     return normalize(cross(Pv, Pu));
