@@ -1109,6 +1109,8 @@ namespace Toast {
 
 				DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, mainCameraTransform->GetTransform());
 
+				InvalidateFrustum();
+
 				PlanetSystem::OnUpdate({ cameraPos }, mainCameraTransform->GetTransform());
 			}
 

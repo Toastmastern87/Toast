@@ -165,13 +165,9 @@ namespace Toast {
 
 	Matrix Matrix::Inverse(const Matrix& mat) {
 		double det = mat.Determinant();
-		if (std::abs(det) < 1e-6) {  // considering very small values as zero
-			// Matrix is singular, cannot compute the inverse.
-			// You might want to handle this better, perhaps by returning an identity matrix 
-			// or throwing an exception.
-			TOAST_CORE_ERROR("Determinant to small!");
+
+		if (std::abs(det) < 1e-6) 
 			return Matrix();  // Return identity or another default value for now.
-		}
 
 		Matrix adj = mat.Adjugate();
 		Matrix inv;
