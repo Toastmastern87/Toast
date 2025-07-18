@@ -221,12 +221,6 @@ namespace Toast {
 			src.Color = spriteRendererComponent["Color"].as<DirectX::XMFLOAT4>();
 		}
 
-		auto planetComponent = entityData["PlanetComponent"];
-		if (planetComponent)
-		{
-			auto& pc = deserializedEntity.AddComponent<PlanetComponent>(planetComponent["Subdivisions"].as<int16_t>(), planetComponent["MaxAltitude"].as<float>(), planetComponent["MinAltitude"].as<float>(), planetComponent["Radius"].as<float>(), planetComponent["GravitationalAcceleration"].as<float>(), planetComponent["SmoothShading"].as<bool>(), planetComponent["AtmosphereHeight"].as<float>(), planetComponent["AtmosphereToggle"].as<bool>(), planetComponent["InScatteringPoints"].as<int>(), planetComponent["OpticalDepthPoints"].as<int>(), planetComponent["MieAnisotropy"].as<float>(), planetComponent["RayScaleHeight"].as<float>(), planetComponent["MieScaleHeight"].as<float>(), planetComponent["RayBaseScatteringCoefficient"].as<DirectX::XMFLOAT3>(), planetComponent["MieBaseScatteringCoefficient"].as<float>(), planetComponent["SunDisc"].as<bool>(), planetComponent["SunDiscRadius"].as<float>(), planetComponent["SunGlowIntensity"].as<float>(), planetComponent["SunEdgeSoftness"].as<float>(), planetComponent["SunGlowSize"].as<float>());
-		}
-
 		auto directionalLightComponent = entityData["DirectionalLightComponent"];
 		if (directionalLightComponent)
 		{
@@ -328,25 +322,25 @@ namespace Toast {
 			bcc.Collider->CalculateBounds();
 		}
 
-		auto terrainColliderComponent = entityData["TerrainColliderComponent"];
-		if (terrainColliderComponent)
-		{
-			auto& tcc = deserializedEntity.AddComponent<TerrainColliderComponent>();
+		//auto terrainColliderComponent = entityData["TerrainColliderComponent"];
+		//if (terrainColliderComponent)
+		//{
+		//	auto& tcc = deserializedEntity.AddComponent<TerrainColliderComponent>();
 
-			if (planetComponent)
-			{
-				PlanetComponent& pc = deserializedEntity.GetComponent<PlanetComponent>();
+		//	if (planetComponent)
+		//	{
+		//		PlanetComponent& pc = deserializedEntity.GetComponent<PlanetComponent>();
 
-				tcc.Collider->mFilePath = terrainColliderComponent["AssetPath"].as<std::string>();
-				if (!tcc.Collider->mFilePath.empty())
-					pc.TerrainData = PhysicsEngine::LoadTerrainData(tcc.Collider->mFilePath.c_str(), pc.PlanetData.maxAltitude, pc.PlanetData.minAltitude);
+		//		tcc.Collider->mFilePath = terrainColliderComponent["AssetPath"].as<std::string>();
+		//		if (!tcc.Collider->mFilePath.empty())
+		//			pc.TerrainData = PhysicsEngine::LoadTerrainData(tcc.Collider->mFilePath.c_str(), pc.PlanetData.maxAltitude, pc.PlanetData.minAltitude);
 
-				PlanetSystem::CalculateBasePlanet(pc, nullptr, pc.PlanetData.radius);
+		//		PlanetSystem::CalculateBasePlanet(pc, nullptr, pc.PlanetData.radius);
 
-				tcc.Collider->mMaxAltitude = planetComponent["MaxAltitude"].as<float>() + planetComponent["Radius"].as<float>();
-				tcc.Collider->CalculateBounds();
-			}
-		}
+		//		tcc.Collider->mMaxAltitude = planetComponent["MaxAltitude"].as<float>() + planetComponent["Radius"].as<float>();
+		//		tcc.Collider->CalculateBounds();
+		//	}
+		//}
 
 		auto uiPanelComponent = entityData["UIPanelComponent"];
 		if (uiPanelComponent)
@@ -574,36 +568,6 @@ namespace Toast {
 			out << YAML::Key << "Color" << YAML::Value << src.Color;
 
 			out << YAML::EndMap; // SpriteRendererComponent
-		}
-
-		if (entity.HasComponent<PlanetComponent>())
-		{
-			out << YAML::Key << "PlanetComponent";
-			out << YAML::BeginMap; // PlanetComponent
-
-			auto& pc = entity.GetComponent<PlanetComponent>();
-			out << YAML::Key << "Subdivisions" << YAML::Value << pc.Subdivisions;
-			out << YAML::Key << "MaxAltitude" << YAML::Value << pc.PlanetData.maxAltitude;
-			out << YAML::Key << "MinAltitude" << YAML::Value << pc.PlanetData.minAltitude;
-			out << YAML::Key << "Radius" << YAML::Value << pc.PlanetData.radius;
-			out << YAML::Key << "GravitationalAcceleration" << YAML::Value << pc.PlanetData.gravAcc;
-			out << YAML::Key << "SmoothShading" << YAML::Value << pc.PlanetData.smoothShading;
-			out << YAML::Key << "AtmosphereHeight" << YAML::Value << pc.PlanetData.atmosphereHeight;
-			out << YAML::Key << "AtmosphereToggle" << YAML::Value << pc.PlanetData.atmosphereToggle;
-			out << YAML::Key << "InScatteringPoints" << YAML::Value << pc.PlanetData.inScatteringPoints;
-			out << YAML::Key << "OpticalDepthPoints" << YAML::Value << pc.PlanetData.opticalDepthPoints;
-			out << YAML::Key << "MieAnisotropy" << YAML::Value << pc.PlanetData.mieAnisotropy;
-			out << YAML::Key << "RayScaleHeight" << YAML::Value << pc.PlanetData.rayScaleHeight;
-			out << YAML::Key << "MieScaleHeight" << YAML::Value << pc.PlanetData.mieScaleHeight;
-			out << YAML::Key << "RayBaseScatteringCoefficient" << YAML::Value << pc.PlanetData.rayBaseScatteringCoefficient;
-			out << YAML::Key << "MieBaseScatteringCoefficient" << YAML::Value << pc.PlanetData.mieBaseScatteringCoefficient;
-			out << YAML::Key << "SunDisc" << YAML::Value << pc.PlanetData.SunDisc;
-			out << YAML::Key << "SunDiscRadius" << YAML::Value << pc.PlanetData.SunDiscRadius;
-			out << YAML::Key << "SunGlowIntensity" << YAML::Value << pc.PlanetData.SunGlowIntensity;
-			out << YAML::Key << "SunEdgeSoftness" << YAML::Value << pc.PlanetData.SunEdgeSoftness;
-			out << YAML::Key << "SunGlowSize" << YAML::Value << pc.PlanetData.SunGlowSize;
-
-			out << YAML::EndMap; // PlanetComponent
 		}
 
 		if (entity.HasComponent<DirectionalLightComponent>())
@@ -1028,7 +992,6 @@ namespace Toast {
 		CopyComponentIfExists<PrefabComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<TransformComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<MeshComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
-		CopyComponentIfExists<PlanetComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<CameraComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<SpriteRendererComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<DirectionalLightComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);

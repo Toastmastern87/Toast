@@ -63,7 +63,6 @@ struct PlanetPointVS
     float3 nWS; // unit sphere normal in world-space
 };
 
-
 Texture2D HeightMapTexture      : register(t0);
 
 SamplerState HeightMapSampler   : register(s5);

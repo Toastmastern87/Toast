@@ -31,18 +31,16 @@ namespace Toast {
 
 		mParticleSystem->Initialize();
 
-		PlanetSystem::Initialize();
+		// Planet system is only initialized once. This might need to change so that the Scene owns the Planet System in the future due to multiple scenes in a project
+		static std::once_flag initOnce;
+		std::call_once(initOnce, []()
+			{
+				PlanetSystem::Initialize();
+			});
 	}
 
 	Scene::~Scene()
 	{
-		auto view = mRegistry.view<PlanetComponent, TransformComponent>();
-		for (auto entity : view)
-		{
-			auto [planet, planetTransform] = view.get<PlanetComponent, TransformComponent>(entity);
-
-			PlanetSystem::Shutdown();
-		}
 	}
 
 	Entity Scene::CreateEntity(const std::string& name, UUID parent)
@@ -502,46 +500,18 @@ namespace Toast {
 				Renderer::FillParticleBuffer(aggregatedParticles);
 			}
 
-			// Rebuild planet if needed
-			auto view = mRegistry.view<PlanetComponent, TransformComponent>();
-			for (auto entity : view)
+			// Start a rebuild of the planet if needed
 			{
-				Entity e = { entity, this };
+				if (mainCamera)
+				{
+					DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
 
-				TerrainDetailComponent* tdc = nullptr;
-				TerrainColliderComponent* tcc = nullptr;
-				TerrainObjectComponent* toc = nullptr;
-				PlanetComponent& pc = e.GetComponent<PlanetComponent>();
-				TransformComponent& tc = e.GetComponent<TransformComponent>();
+					DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
 
-				if(e.HasComponent<TerrainDetailComponent>())
-					tdc = &e.GetComponent<TerrainDetailComponent>();
+					InvalidateFrustum();
 
-				if (e.HasComponent<TerrainColliderComponent>())
-					tcc = &e.GetComponent<TerrainColliderComponent>();
-
-				if (e.HasComponent<TerrainObjectComponent>())
-					toc = &e.GetComponent<TerrainObjectComponent>();
-
-				DirectX::XMVECTOR cameraForward = { 0.0f, 0.0f, 1.0f };
-				DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
-
-				DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
-				cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRot);
-
-				InvalidateFrustum();
-
-				DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion))
-					* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
-
-				// Starting new thread to create a new planet if one isn't already being created
-				DirectX::XMVECTOR cameraPosWorldMovement = DirectX::XMLoadFloat3(&mainCamera->GetWorldTranslation());
-
-				DirectX::XMVECTOR cameraPosWorldMovementNeg = DirectX::XMVectorNegate(cameraPosWorldMovement);
-
-				PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPosWorldMovementNeg, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc, tdc, toc);
-
-				PlanetSystem::UpdatePlanet(pc.RenderMesh, *tcc, *toc, pc.PhysicsNodesWorldSpace);
+					PlanetSystem::OnUpdate({ cameraPos }, cameraTransform);
+				}
 			}
 
 			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
@@ -557,20 +527,6 @@ namespace Toast {
 			// 3D Rendering
 			Renderer::BeginScene(this, *mainCamera, cameraPosFloat, static_cast<int>(mSettings.WireframeRendering));
 			{
-				{
-					auto view = mRegistry.view<TransformComponent, CameraComponent>();
-					for (auto entity : view)
-					{
-						auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
-					}
-				}
-
-				// Skybox!
-				//{
-				//	if (mEnvironment.RadianceMap)
-				//		Renderer::SubmitSkybox(cameraPosFloat, mainCamera->GetViewMatrix(), mainCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
-				//}
-
 				// Meshes!
 				auto viewMeshes = mRegistry.view<TransformComponent, MeshComponent>();
 				for (auto entity : viewMeshes)
@@ -628,41 +584,6 @@ namespace Toast {
 
 					// TODO fix the count number for vertices
 					//mStats.VerticesCount += static_cast<uint32_t>(terrainObject.MeshObject->GetVertices().size() * terrainObject.);
-				}
-
-				// Planets!
-				auto viewPlanets = mRegistry.view<TransformComponent, PlanetComponent>();
-				for (auto entity : viewPlanets)
-				{
-					auto [transform, planet] = viewPlanets.get<TransformComponent, PlanetComponent>(entity);
-
-					planet.PlanetData.planetCenter = transform.Translation;
-
-					switch (mSettings.WireframeRendering)
-					{
-					case Settings::Wireframe::NO:
-					{
-						if (planet.RenderMesh->mLODGroups[0]->Submeshes.size() > 0)
-							Renderer::SubmitMesh(planet.RenderMesh, DirectX::XMMatrixIdentity(), (int)entity, false, 1, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
-
-						break;
-					}
-					case Settings::Wireframe::YES:
-					{
-						if (planet.RenderMesh->mLODGroups[0]->Submeshes.size() > 0)
-							Renderer::SubmitMesh(planet.RenderMesh, DirectX::XMMatrixIdentity(), (int)entity, false, 1, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
-
-						break;
-					}
-					case Settings::Wireframe::ONTOP:
-					{
-						// TODO
-
-						break;
-					}
-					}
-
-					mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices().size());
 				}
 
 				Renderer::EndScene(true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.Bloom, mSettings.BloomThreshold, mSettings.BloomIntensity, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight);
@@ -1113,58 +1034,6 @@ namespace Toast {
 
 				PlanetSystem::OnUpdate({ cameraPos }, mainCameraTransform->GetTransform());
 			}
-
-			auto view = mRegistry.view<PlanetComponent, TransformComponent>();
-			for (auto entity : view)
-			{
-				Entity e = { entity, this };
-
-				TerrainDetailComponent* tdc = nullptr;
-				TerrainColliderComponent* tcc = nullptr;
-				TerrainObjectComponent* toc = nullptr;
-				PlanetComponent& pc = e.GetComponent<PlanetComponent>();
-				TransformComponent& tc = e.GetComponent<TransformComponent>();
-
-				if(e.HasComponent<TerrainDetailComponent>())
-					tdc = &e.GetComponent<TerrainDetailComponent>();
-
-				if (e.HasComponent<TerrainColliderComponent>())
-					tcc = &e.GetComponent<TerrainColliderComponent>();
-
-				if (e.HasComponent<TerrainObjectComponent>())
-					toc = &e.GetComponent<TerrainObjectComponent>();
-
-				if (mainCamera)
-				{
-					if (pc.IsDirty)
-					{
-						//PlanetSystem::GenerateDistanceLUT(pc.DistanceLUT, pc.PlanetData.radius, mainCameraComponent->Camera.GetPerspectiveVerticalFOV(), mViewportWidth, mViewportHeight, 2.0);
-						PlanetSystem::GenerateFaceDotLevelLUT(pc.FaceLevelDotLUT, tc.Scale.x, pc.PlanetData.maxAltitude);
-						PlanetSystem::GenerateHeightMultLUT(pc.HeightMultLUT, tc.Scale.x, pc.PlanetData.maxAltitude);
-
-						pc.IsDirty = false;
-					}
-
-					DirectX::XMVECTOR cameraForward = { 0.0f, 0.0f, 1.0f };
-					DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
-
-					DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, mainCameraTransform->GetTransform());
-					cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRot);
-
-					InvalidateFrustum();
-
-					DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion))
-						* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
-
-					// Starting new thread to create a new planet if one isn't already being created
-					PlanetSystem::RegeneratePlanet(mFrustum, tc.Scale, tc.Translation, noScaleModelMatrix, cameraPos, mSettings.BackfaceCulling, mSettings.FrustumCulling, pc, tcc, tdc, toc);
-
-					// Check if planet build is ready and if that is the case move it to the render mesh
-					PlanetSystem::UpdatePlanet(pc.RenderMesh, *tcc, *toc, pc.PhysicsNodesWorldSpace);
-				}
-				else
-					TOAST_CORE_ERROR("No primary camera present, unable to render the planet");
-			}
 		}
 
 		DirectX::XMFLOAT4 cameraPosFloat;
@@ -1173,12 +1042,6 @@ namespace Toast {
 		// 3D Rendering
 		Renderer::BeginScene(this, *editorCamera, cameraPosFloat, static_cast<int>(mSettings.WireframeRendering));
 		{
-			// Skybox!
-			//{
-			//	if (mEnvironment.RadianceMap)
-			//		Renderer::SubmitSkybox(DirectX::XMFLOAT4(DirectX::XMVectorGetX(editorCamera->GetPosition()), DirectX::XMVectorGetY(editorCamera->GetPosition()), DirectX::XMVectorGetZ(editorCamera->GetPosition()), 0.0f), editorCamera->GetViewMatrix(), editorCamera->GetProjection(), mEnvironmentIntensity, mSkyboxLod);
-			//}
-
 			// Meshes!
 			auto viewMeshes = mRegistry.view<TransformComponent, MeshComponent>();
 			for (auto entity : viewMeshes)
@@ -1247,44 +1110,6 @@ namespace Toast {
 						}
 					}
 				}
-			}
-
-			// Planets!
-			auto viewPlanets = mRegistry.view<TransformComponent, PlanetComponent>();
-			for (auto entity : viewPlanets)
-			{
-				auto [transform, planet] = viewPlanets.get<TransformComponent, PlanetComponent>(entity);
-				
-				planet.PlanetData.planetCenter = transform.Translation;
-
-				switch (mSettings.WireframeRendering)
-				{
-				case Settings::Wireframe::NO:
-				{
-					if (planet.RenderMesh->mLODGroups[0]->Submeshes.size() > 0)
-						Renderer::SubmitMesh(planet.RenderMesh, DirectX::XMMatrixIdentity(), (int)entity, false, 1, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
-
-					break;
-				}
-				case Settings::Wireframe::YES:
-				{
-					if (planet.RenderMesh->mLODGroups[0]->Submeshes.size() > 0)
-						Renderer::SubmitMesh(planet.RenderMesh, DirectX::XMMatrixIdentity(), (int)entity, true, 1, &planet.PlanetData, planet.PlanetData.atmosphereToggle);
-
-					break;
-				}
-				case Settings::Wireframe::ONTOP:
-				{
-					// TODO
-
-					break;
-				}
-				}
-
-				if (mSelectedEntity == entity)
-					Renderer::SubmitSelecetedMesh(planet.RenderMesh, transform.GetTransform());
-
-				mStats.VerticesCount += static_cast<uint32_t>(planet.RenderMesh->GetVertices().size());
 			}
 
 			Renderer::EndScene(true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.Bloom, mSettings.BloomThreshold, mSettings.BloomIntensity, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight);
@@ -1632,19 +1457,6 @@ namespace Toast {
 
 			if (camera.Primary)
 			{
-				auto planetView = mRegistry.view<TransformComponent, PlanetComponent>();
-				for (auto pEntity : planetView)
-				{
-					auto [pTransform, planet] = planetView.get<TransformComponent, PlanetComponent>(pEntity);
-
-					DirectX::XMMATRIX noScalePlanetMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(pTransform.RotationEulerAngles.x), DirectX::XMConvertToRadians(pTransform.RotationEulerAngles.y), DirectX::XMConvertToRadians(pTransform.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&pTransform.RotationQuaternion))
-						* DirectX::XMMatrixTranslation(pTransform.Translation.x, pTransform.Translation.y, pTransform.Translation.z);
-
-					planetTransform = { noScalePlanetMatrix };
-
-					mInvalidatePlanet = true;
-				}
-
 				Vector3 worldMovement = camera.Camera.GetWorldTranslation();
 				Vector3 effectiveTranslation = -worldMovement;
 
@@ -1764,7 +1576,6 @@ namespace Toast {
 		// Copy the remaining components from the prefab root.
 		CopyComponentIfExists<TransformComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<MeshComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
-		CopyComponentIfExists<PlanetComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<CameraComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<SpriteRendererComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<DirectionalLightComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
@@ -1802,7 +1613,6 @@ namespace Toast {
 			// Copy the remaining components.
 			CopyComponentIfExists<TransformComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<MeshComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
-			CopyComponentIfExists<PlanetComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<CameraComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<SpriteRendererComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<DirectionalLightComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
@@ -1925,7 +1735,6 @@ namespace Toast {
 		CopyComponent<PrefabComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TransformComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<MeshComponent>(target->mRegistry, mRegistry, enttMap);
-		CopyComponent<PlanetComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<CameraComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<SpriteRendererComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<DirectionalLightComponent>(target->mRegistry, mRegistry, enttMap);
@@ -1971,58 +1780,6 @@ namespace Toast {
 	template<>
 	void Scene::OnComponentAdded<MeshComponent>(Entity entity, MeshComponent& component)
 	{
-	}
-
-	template<>
-	void Scene::OnComponentAdded<PlanetComponent>(Entity entity, PlanetComponent& component)
-	{
-		TransformComponent tc;
-		TerrainDetailComponent* tdc = nullptr;
-
-		Ref<Material> planetMaterial = MaterialLibrary::Get("Planet");
-
-		component.RenderMesh = CreateRef<Mesh>(planetMaterial);
-		component.RenderMesh->mTopology = PrimitiveTopology::TRIANGLELIST;
-
-		SceneCamera* mainCamera = nullptr;
-		DirectX::XMMATRIX cameraTransform;
-		auto view = mRegistry.view<TransformComponent, CameraComponent>();
-		for (auto cameraEntity : view)
-		{
-			auto [transform, camera] = view.get<TransformComponent, CameraComponent>(cameraEntity);
-
-			if (camera.Primary)
-			{
-				mainCamera = &camera.Camera;
-				mMainCamera = &camera.Camera;
-				cameraTransform = transform.GetTransform();
-				break;
-			}
-			else
-			{
-				TOAST_CORE_INFO("To add a planet a camera must be present");
-				return;
-			}
-		}
-
-		tc = entity.GetComponent<TransformComponent>();
-		if(entity.HasComponent<TerrainDetailComponent>())
-			tdc = &entity.GetComponent<TerrainDetailComponent>();
-
-		DirectX::XMVECTOR cameraPos, cameraRot, cameraScale, cameraForward;
-
-		cameraForward = { 0.0f, 0.0f, 1.0f };
-		DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
-		cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRot);
-
-		InvalidateFrustum();
-
-		//PlanetSystem::GenerateDistanceLUT(component.DistanceLUT, component.PlanetData.radius, mainCamera->GetPerspectiveVerticalFOV(), mViewportWidth, mViewportHeight, 2.0);
-		PlanetSystem::GenerateHeightMultLUT(component.HeightMultLUT, component.PlanetData.radius, component.PlanetData.maxAltitude);
-		PlanetSystem::GenerateFaceDotLevelLUT(component.FaceLevelDotLUT, tc.Scale.x, component.PlanetData.maxAltitude);
-
-		DirectX::XMMATRIX noScaleModelMatrix = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion))
-			* DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
 	}
 
 	template<>

@@ -224,15 +224,6 @@ namespace Toast {
 				}
 			}
 
-			if (!mContext.HasComponent<PlanetComponent>())
-			{
-				if (ImGui::MenuItem("Planet"))
-				{
-					mContext.AddComponent<PlanetComponent>();
-					ImGui::CloseCurrentPopup();
-				}
-			}
-
 			if (!mContext.HasComponent<SpriteRendererComponent>())
 			{
 				if (ImGui::MenuItem("Sprite Renderer"))
@@ -325,43 +316,40 @@ namespace Toast {
 				}
 			}
 
-			bool noPlanetSpecific = mContext.HasComponent<TerrainColliderComponent>() && mContext.HasComponent<TerrainDetailComponent>() && mContext.HasComponent<TerrainObjectComponent>();
+			bool noPlanetSpecific = mContext.HasComponent<TerrainColliderComponent>() && mContext.HasComponent<TerrainDetailComponent>() &&  mContext.HasComponent<TerrainObjectComponent>();
 
-			if (mContext.HasComponent<PlanetComponent>() && !noPlanetSpecific)
+			ImGui::Separator();
+
+			if (ImGui::BeginMenu("Planet Specific"))
 			{
-				ImGui::Separator();
-
-				if (ImGui::BeginMenu("Planet Specific"))
+				if (!mContext.HasComponent<TerrainColliderComponent>())
 				{
-					if (!mContext.HasComponent<TerrainColliderComponent>())
+					if (ImGui::MenuItem("Terrain Collider"))
 					{
-						if (ImGui::MenuItem("Terrain Collider"))
-						{
-							mContext.AddComponent<TerrainColliderComponent>();
-							ImGui::CloseCurrentPopup();
-						}
+						mContext.AddComponent<TerrainColliderComponent>();
+						ImGui::CloseCurrentPopup();
 					}
-
-					if (!mContext.HasComponent<TerrainDetailComponent>())
-					{
-						if (ImGui::MenuItem("Terrain Details")) 
-						{
-							mContext.AddComponent<TerrainDetailComponent>();
-							ImGui::CloseCurrentPopup();
-						}
-					}
-
-					if (!mContext.HasComponent<TerrainObjectComponent>())
-					{
-						if (ImGui::MenuItem("Terrain Objects"))
-						{
-							mContext.AddComponent<TerrainObjectComponent>();
-							ImGui::CloseCurrentPopup();
-						}
-					}	
-
-					ImGui::EndMenu();
 				}
+
+				if (!mContext.HasComponent<TerrainDetailComponent>())
+				{
+					if (ImGui::MenuItem("Terrain Details")) 
+					{
+						mContext.AddComponent<TerrainDetailComponent>();
+						ImGui::CloseCurrentPopup();
+					}
+				}
+
+				if (!mContext.HasComponent<TerrainObjectComponent>())
+				{
+					if (ImGui::MenuItem("Terrain Objects"))
+					{
+						mContext.AddComponent<TerrainObjectComponent>();
+						ImGui::CloseCurrentPopup();
+					}
+				}	
+
+				ImGui::EndMenu();
 			}
 
 			ImGui::EndPopup();
@@ -691,7 +679,7 @@ namespace Toast {
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-				ImGui::BeginTable("PlanetComponentTable", 2, flags);
+				ImGui::BeginTable("SpriteRendererTable", 2, flags);
 				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
 				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
 
@@ -703,142 +691,6 @@ namespace Toast {
 				ImGui::ColorEdit4("##color", &component.Color.x);
 
 				ImGui::EndTable();
-			});
-
-		DrawComponent<PlanetComponent>(ICON_TOASTER_GLOBE" Planet", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
-			{
-				DirectX::XMVECTOR cameraPos = { 0.0f, 0.0f, 0.0f }, cameraRot = { 0.0f, 0.0f, 0.0f }, cameraScale = { 0.0f, 0.0f, 0.0f };
-				int subdivions = component.Subdivisions;
-				float fov = 45.0f;
-				bool modified = false;
-
-				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
-				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-
-				ImGui::BeginTable("PlanetComponentTable", 2, flags);
-				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Subdivisions");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (ImGui::SliderInt("##Subdivisions", &subdivions, 0, 25))
-					component.Subdivisions = subdivions;
-
-				ImGui::EndTable();
-
-				if (DrawFloatControl("Max Alt(km)", component.PlanetData.maxAltitude, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.1f, "%.2f"))
-				{
-					if (entity.HasComponent<TerrainColliderComponent>()) 
-					{
-						entity.GetComponent<TerrainColliderComponent>().Collider->mMaxAltitude = component.PlanetData.maxAltitude + component.PlanetData.radius;
-						entity.GetComponent<TerrainColliderComponent>().Collider->CalculateBounds();
-					}
-
-					modified = true;
-				}
-
-				if (DrawFloatControl("Min Alt(km)", component.PlanetData.minAltitude, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.1f, "%.2f"))
-					modified = true;
-
-				if (DrawFloatControl("Radius(km)", component.PlanetData.radius, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.1f, "%.2f"))
-				{
-					PlanetSystem::CalculateBasePlanet(component, nullptr, component.PlanetData.radius);
-
-					if (entity.HasComponent<TerrainColliderComponent>())
-					{
-						entity.GetComponent<TerrainColliderComponent>().Collider->mMaxAltitude = component.PlanetData.maxAltitude + component.PlanetData.radius;
-						entity.GetComponent<TerrainColliderComponent>().Collider->CalculateBounds();
-					}
-
-					modified = true;
-				}
-
-				if (DrawFloatControl("Gravitational acceleration(m/s^2)", component.PlanetData.gravAcc, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.1f, "%.2f"))
-					modified = true;
-
-				ImGui::BeginTable("PlanetComponentTable2", 2, flags);
-				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Smooth Shading)");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				ImGui::Checkbox("##smoothShading", &component.PlanetData.smoothShading);
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Atmosphere)");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				ImGui::Checkbox("##Atmosphere", &component.PlanetData.atmosphereToggle);
-
-				ImGui::EndTable();
-
-				if (component.PlanetData.atmosphereToggle)
-				{
-					DrawFloatControl("Atmosphere Height", component.PlanetData.atmosphereHeight, window, activeDragArea, 90.0f, 0.0f, 1000.0f, 0.1f, "%.1f");
-
-					ImGui::BeginTable("PlanetComponentTable3", 2, flags);
-					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
-
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("In Scattering\nPoints");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::DragInt("##InScatteringPoints", &component.PlanetData.inScatteringPoints, 1.0f, 1, 40);
-
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Optical\nDepth Points");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::PushItemWidth(-1);
-					ImGui::DragInt("##OpticalDepthPoints", &component.PlanetData.opticalDepthPoints, 1.0f, 1, 40);
-
-					ImGui::EndTable();
-
-					DrawFloatControl("Mie Anisotropy", component.PlanetData.mieAnisotropy, window, activeDragArea, 90.0f, -1.0f, 1.0f, 0.001f, "%.3f");
-
-					DrawFloatControl("Ray Scale Height", component.PlanetData.rayScaleHeight, window, activeDragArea, 90.0f, 0.0f, 15000.0f, 10.0f, "%.0f");
-
-					DrawFloatControl("Mie Scale Height", component.PlanetData.mieScaleHeight, window, activeDragArea, 90.0f, 0.0f, 5000.0f, 10.0f, "%.0f");
-
-					DrawFloatControl("Ray Scattering Coefficient Red", component.PlanetData.rayBaseScatteringCoefficient.x, window, activeDragArea, 90.0f, 0.0f, 1.0f, 0.000001f, "%.7f");
-
-					DrawFloatControl("Ray Scattering Coefficient Green", component.PlanetData.rayBaseScatteringCoefficient.y, window, activeDragArea, 90.0f, 0.0f, 1.0f, 0.000001f, "%.7f");
-
-					DrawFloatControl("Ray Scattering Coefficient Blue", component.PlanetData.rayBaseScatteringCoefficient.z, window, activeDragArea, 90.0f, 0.0f, 1.0f, 0.000001f, "%.7f");
-
-					DrawFloatControl("Mie Scattering", component.PlanetData.mieBaseScatteringCoefficient, window, activeDragArea, 90.0f, 0.0f, 1.0f, 0.0001f, "%.4f");
-
-					ImGui::BeginTable("PlanetComponentTable3", 2, flags);
-					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
-
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Sun Disc");
-					ImGui::TableSetColumnIndex(1);
-					ImGui::Checkbox("##checkbox", &component.PlanetData.SunDisc);
-
-					ImGui::EndTable();
-
-					DrawFloatControl("Sun Disc Radius", component.PlanetData.SunDiscRadius, window, activeDragArea, 90.0f, 0.0f, 2 * M_PI, 0.00001f, "%.5f");
-
-					DrawFloatControl("Sun Glow Intensity", component.PlanetData.SunGlowIntensity, window, activeDragArea, 90.0f, 0.0f, 210.0f, 0.01f, "%.2f");
-
-					DrawFloatControl("Sun Edge Softness", component.PlanetData.SunEdgeSoftness, window, activeDragArea, 90.0f, 0.0f, 2 * M_PI, 0.0001f, "%.4f");
-
-					DrawFloatControl("Sun Glow Sizes", component.PlanetData.SunGlowSize, window, activeDragArea, 90.0f, 0.0f, 2 * M_PI, 0.001f, "%.3f");
-				}
-
-				if(modified)
-					component.IsDirty = true;
 			});
 
 		DrawComponent<DirectionalLightComponent>(ICON_TOASTER_SUN_O" Directional Light", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
@@ -1055,10 +907,10 @@ namespace Toast {
 
 					if (filepath) 
 					{
-						PlanetComponent& pc = entity.GetComponent<PlanetComponent>();
+						//PlanetComponent& pc = entity.GetComponent<PlanetComponent>();
 
-						component.Collider->mFilePath = *filepath;
-						PhysicsEngine::LoadTerrainData(component.Collider->mFilePath.c_str(), pc.PlanetData.maxAltitude, pc.PlanetData.minAltitude);
+						//component.Collider->mFilePath = *filepath;
+						//PhysicsEngine::LoadTerrainData(component.Collider->mFilePath.c_str(), pc.PlanetData.maxAltitude, pc.PlanetData.minAltitude);
 					}
 				}
 

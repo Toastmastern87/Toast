@@ -49,24 +49,6 @@ namespace Sandbox
             mMarsTransform = FindEntityByName("Mars").GetComponent<TransformComponent>();
             mMarsPlanet = FindEntityByName("Mars").GetComponent<PlanetComponent>();
 
-            //Entity starshipSN2 = FindEntityByName("Starship SN2");
-            //if (starshipSN2 != null)
-            //    mStarshipSN2Transform = starshipSN2.GetComponent<TransformComponent>();
-            //else 
-            //{
-            //    mStarshipSN2Transform = null;
-            //    Toast.Console.LogError("Starship SN2 entity not found.");
-            //}
-
-            //Entity starshipSN3 = FindEntityByName("Starship SN3");
-            //if (starshipSN3 != null)
-            //    mStarshipSN3Transform = starshipSN2.GetComponent<TransformComponent>();
-            //else
-            //{
-            //    mStarshipSN3Transform = null;
-            //    Toast.Console.LogError("'Starship SN3' entity not found.");
-            //}
-
             tCamera = (altitude - minAltitudeForCamera) / (maxAltitudeForCamera - minAltitudeForCamera);
             tCamera = Clamp(tCamera, 0.0f, 1.0f);
 

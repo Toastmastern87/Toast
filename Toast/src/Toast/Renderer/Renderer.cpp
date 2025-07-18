@@ -663,10 +663,10 @@ namespace Toast {
 		sRendererData->SceneData.SkyboxData.LOD = LOD;
 	}
 
-	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe, int noWorldTransform, PlanetComponent::GPUData* planetData, bool atmosphere)
+	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe, int noWorldTransform, bool atmosphere)
 	{
 		sRendererData->PlanetData.Atmosphere = atmosphere;
-;		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, planetData);
+;		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID);
 	}
 
 	void Renderer::SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
@@ -710,8 +710,6 @@ namespace Toast {
 		envMapUnfiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 		RenderCommand::DispatchCompute(cubemapSize / 32, cubemapSize / 32, 6);
 		envMapUnfiltered->UnbindUAV();
-
-		TOAST_CORE_INFO("New Star Field texture created!");
 
 		return envMapUnfiltered;
 	}
@@ -802,7 +800,7 @@ namespace Toast {
 
 			int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
 
-			float clickable = meshCommand.PlanetData ? 0 : 1;
+			float clickable = 1.0f;
 
 			// Model data
 			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
@@ -891,7 +889,7 @@ namespace Toast {
 
 			int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
 
-			float clickable = meshCommand.PlanetData ? 0 : 1;
+			float clickable = 1.0f;
 
 			// Model data
 			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
@@ -1075,36 +1073,36 @@ namespace Toast {
 
 		int useDepth = 1;
 
-		for (const auto& meshCommand : sRendererData->MeshDrawList)
-		{
-			if (meshCommand.PlanetData)
-			{
-				int atmosphereToggle = meshCommand.PlanetData->atmosphereToggle ? 1 : 0;
-				int sunDiscToggle = meshCommand.PlanetData->SunDisc ? 1 : 0;
+		//for (const auto& meshCommand : sRendererData->MeshDrawList)
+		//{
+		//	if (meshCommand.PlanetData)
+		//	{
+		//		int atmosphereToggle = meshCommand.PlanetData->atmosphereToggle ? 1 : 0;
+		//		int sunDiscToggle = meshCommand.PlanetData->SunDisc ? 1 : 0;
 
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->radius, 4, 0);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->minAltitude, 4, 4);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->maxAltitude, 4, 8);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->atmosphereHeight, 4, 12);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieAnisotropy, 4, 16);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->rayScaleHeight, 4, 20);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieScaleHeight, 4, 24);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->rayBaseScatteringCoefficient, 12, 32);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieBaseScatteringCoefficient, 4, 44);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->planetCenter, 16, 48);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphereToggle, 4, 60);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->inScatteringPoints, 4, 64);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->opticalDepthPoints, 4, 68);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&sunDiscToggle, 4, 72);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunDiscRadius, 4, 76);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunGlowIntensity, 4, 80);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunEdgeSoftness, 4, 84);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunGlowSize, 4, 88);
-				sRendererData->AtmosphereBuffer.Write((uint8_t*)&useDepth, 4, 92);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->radius, 4, 0);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->minAltitude, 4, 4);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->maxAltitude, 4, 8);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->atmosphereHeight, 4, 12);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieAnisotropy, 4, 16);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->rayScaleHeight, 4, 20);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieScaleHeight, 4, 24);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->rayBaseScatteringCoefficient, 12, 32);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieBaseScatteringCoefficient, 4, 44);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->planetCenter, 16, 48);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphereToggle, 4, 60);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->inScatteringPoints, 4, 64);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->opticalDepthPoints, 4, 68);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&sunDiscToggle, 4, 72);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunDiscRadius, 4, 76);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunGlowIntensity, 4, 80);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunEdgeSoftness, 4, 84);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunGlowSize, 4, 88);
+		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&useDepth, 4, 92);
 
-				sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
-			}
-		}	
+		//		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
+		//	}
+		//}	
 
 		ShaderLibrary::Get("assets/shaders/Post Process/Atmosphere.hlsl")->Bind();
 

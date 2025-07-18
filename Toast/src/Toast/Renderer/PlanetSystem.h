@@ -327,13 +327,6 @@ namespace Toast {
 	class PlanetSystem
 	{
 	public:
-		static std::mutex planetDataMutex;
-		static std::mutex terrainCollidersMutex;
-		static std::future<void> generationFuture;
-		static std::atomic<bool> newPlanetReady;
-		static std::atomic<bool> planetGenerationOngoing;
-
-		static const int16_t MAX_SUBDIVISION = 20;
 
 		enum class NextPlanetFace
 		{
@@ -344,19 +337,6 @@ namespace Toast {
 			double minHeight;
 			double maxHeight;
 		};
-
-		static std::vector<Vector3> sBaseVertices;
-		static std::vector<uint32_t> sBaseIndices;
-
-		static robin_hood::unordered_flat_map<Vertex, size_t, Vertex::Hasher, Vertex::Equal> sVertexMap;
-		static robin_hood::unordered_flat_map<CPUVertex, size_t, CPUVertexHasher, CPUVertexEqual>  sCPUVertexMap;
-		static std::vector<Vertex> sBuildVertices;
-		static std::vector<uint32_t> sBuildIndices;
-		static std::vector<Ref<PlanetNode>> sBuildPhysicsNodes;
-		static std::vector<CPUVertex> sCPUVertices;
-
-		// Remove?
-		static std::unordered_map<Vector3, uint32_t, Vector3::Hasher, Vector3::Equal> sBaseVertexMap;
 
 	// NEW PLANET SYSTEM
 	private:
@@ -405,11 +385,11 @@ namespace Toast {
 		static inline bool sAtmosphereActivated = false;
 
 		// Environment Textures
-		static inline Texture2D* sStarFieldTexture2D = nullptr;
+		static inline Texture2D* sStarFieldTexture2D;
 		static inline Ref<TextureCube> sStarFieldTextureCube;
 		static inline Ref<TextureCube> sRadianceMap;
 		static inline Ref<TextureCube> sIrradianceMap;
-		static inline Ref<Texture2D> sSpecularBRDFLUT;
+		static inline Texture2D* sSpecularBRDFLUT;
 
 		friend class PlanetPanel;
 		friend class SceneSerializer;
@@ -453,48 +433,11 @@ namespace Toast {
 		static Texture2D* GetStarFieldTexture2D() { return sStarFieldTexture2D; }
 		static Ref<TextureCube> GetStarFieldTextureCube() { return sStarFieldTextureCube; }
 
-		// Helper functions to be used during runtime updates of the planet
-		static inline bool NeedSplit(PlanetNode* node, const PlanetComponent& p, const Vector3& camPlanetSpace)
-		{
-			int level = node->SubdivisionLevel;
 
-			if (level >= p.Subdivisions)
-				return false;
-
-			double d1 = (node->A.Position - camPlanetSpace).LengthSquared();
-			double d2 = (node->B.Position - camPlanetSpace).LengthSquared();
-			double d3 = (node->C.Position - camPlanetSpace).LengthSquared();
-
-			return d1 < p.DistanceLUT[level] && d2 < p.DistanceLUT[level] && d3 < p.DistanceLUT[level];
-		}
-		static inline bool NeedCollapse(PlanetNode* node, const PlanetComponent& p, const Vector3& camPlanetSpace)
-		{
-			int level = node->SubdivisionLevel;
-
-			if (level == 0)
-				return false;
-
-			double d1 = (node->A.Position - camPlanetSpace).LengthSquared();
-			double d2 = (node->B.Position - camPlanetSpace).LengthSquared();
-			double d3 = (node->C.Position - camPlanetSpace).LengthSquared();
-
-			return d1 > p.DistanceLUT[level - 1] && d2 > p.DistanceLUT[level - 1] && d3 > p.DistanceLUT[level - 1];
-		}
-
-		// These functions are used to create the base planet when a scene with a planet is loaded.
-		static void CalculateBasePlanet(PlanetComponent& planet, TerrainDetailComponent* terrainDetail, double scale);
 
 		// These functions are used to update the active leaves during runtime.
-		static void UpdateActiveNodes(PlanetComponent& planet, const TerrainDetailComponent* terrainDetails, const Vector3& camPlanetSpace, const Vector3& planetCenter, Matrix& planetNoScaleTransform);
-		static void BuildPhysicsNodes(PlanetComponent& planet, Matrix& planetNoScaleTransform);
-		static void ComputeVisibleNodes(const PlanetComponent& planet, const TerrainDetailComponent* terrainDetails, const Vector3& camPlanetSpace, const Vector3& planetCenter, bool backfaceCull, bool frustumCull, const Frustum* frustum);
-		static void RebuildPlanetMesh(PlanetComponent& planet, TerrainColliderComponent& terrainCollider, Matrix& planetNoScaleTransform, const Vector3& planetCenter);
-		static void DetailObjectPlacement(PlanetComponent& planet, TerrainObjectComponent* objects, Matrix& planetNoScaleTransform);
-
-		static void UpdatePlanet(Ref<Mesh>& renderPlanet, TerrainColliderComponent& terrainCollider, TerrainObjectComponent& terrainObject, std::vector<Ref<PlanetNode>>& physicsNodes);
-
-		static void InvalidateAllNodes();
-		static void RegeneratePlanet(Ref<Frustum>& frustum, DirectX::XMFLOAT3& scale, const Vector3& planetCenter, DirectX::XMMATRIX noScaleTransform, DirectX::XMVECTOR camPos, bool backfaceCull, bool frustumCull, PlanetComponent& planet, TerrainColliderComponent* terrainColliders, TerrainDetailComponent* terrainDetail = nullptr, TerrainObjectComponent* terrainObject = nullptr);
+		static void BuildPhysicsNodes(Matrix& planetNoScaleTransform);
+		static void DetailObjectPlacement(TerrainObjectComponent* objects, Matrix& planetNoScaleTransform);
 
 		static void Shutdown();
 

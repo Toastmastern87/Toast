@@ -545,40 +545,40 @@ namespace Toast {
 			return td;
 		}
 
-		static double GetObjectDistanceToPlanet(Entity* planet, Vector3& worldSpaceObjectPos, Vector3& triangleNormal, Vector3& A, Vector3& B, Vector3& C)
-		{	
-			PlanetComponent& pc = planet->GetComponent<PlanetComponent>();
-			Vector3 worldSpacePlanetPos = planet->GetComponent<TransformComponent>().Translation;
+		//static double GetObjectDistanceToPlanet(Entity* planet, Vector3& worldSpaceObjectPos, Vector3& triangleNormal, Vector3& A, Vector3& B, Vector3& C)
+		//{	
+		//	PlanetComponent& pc = planet->GetComponent<PlanetComponent>();
+		//	Vector3 worldSpacePlanetPos = planet->GetComponent<TransformComponent>().Translation;
 
-			std::vector<uint32_t> indices = pc.RenderMesh->GetIndices();
-			std::vector<Vertex> vertices = pc.RenderMesh->GetVertices();
+		//	std::vector<uint32_t> indices = pc.RenderMesh->GetIndices();
+		//	std::vector<Vertex> vertices = pc.RenderMesh->GetVertices();
 
-			double distance;
+		//	double distance;
 
-			if (indices.size() > 0)
-			{
-				for (int i = 0; i < indices.size() - 2; i += 3)
-				{
-					distance = Math::PointToPlaneDistance(worldSpaceObjectPos, worldSpacePlanetPos, vertices[indices[i]].Position, vertices[indices[i + 1]].Position, vertices[indices[i + 2]].Position);
+		//	if (indices.size() > 0)
+		//	{
+		//		for (int i = 0; i < indices.size() - 2; i += 3)
+		//		{
+		//			distance = Math::PointToPlaneDistance(worldSpaceObjectPos, worldSpacePlanetPos, vertices[indices[i]].Position, vertices[indices[i + 1]].Position, vertices[indices[i + 2]].Position);
 
-					if (distance != -100.0f) 
-					{
-						Vector3 v1(vertices[indices[i + 1]].Position);
-						Vector3 v2(vertices[indices[i]].Position);
-						Vector3 v3(vertices[indices[i + 2]].Position);
+		//			if (distance != -100.0f) 
+		//			{
+		//				Vector3 v1(vertices[indices[i + 1]].Position);
+		//				Vector3 v2(vertices[indices[i]].Position);
+		//				Vector3 v3(vertices[indices[i + 2]].Position);
 
-						A = v1;
-						B = v2;
-						C = v3;
+		//				A = v1;
+		//				B = v2;
+		//				C = v3;
 
-						triangleNormal = Vector3::Normalize(Vector3::Cross(v1 - v2, v3 - v1));
-						return distance;
-					}
-				}
-			}
+		//				triangleNormal = Vector3::Normalize(Vector3::Cross(v1 - v2, v3 - v1));
+		//				return distance;
+		//			}
+		//		}
+		//	}
 
-			return distance;
-		}
+		//	return distance;
+		//}
 
 		static void UpdateBody(Entity& body, float dt)
 		{
@@ -719,104 +719,103 @@ namespace Toast {
 
 		static Vector3 Gravity(Entity& planet, Entity object, double ts)
 		{
-			Vector3 impulseGravity = { 0.0, 0.0, 0.0 };
+			//Vector3 impulseGravity = { 0.0, 0.0, 0.0 };
 
-			Vector3 planetPos = { planet.GetComponent<TransformComponent>().Translation };
-			Vector3 objectPos = { object.GetComponent<TransformComponent>().Translation };
+			//Vector3 planetPos = { planet.GetComponent<TransformComponent>().Translation };
+			//Vector3 objectPos = { object.GetComponent<TransformComponent>().Translation };
 
-			auto& pc = planet.GetComponent<PlanetComponent>();
+			//auto& pc = planet.GetComponent<PlanetComponent>();
 
-			// Calculate linear velocity due to gravity
-			double mass = 1.0 / object.GetComponent<RigidBodyComponent>().InvMass;
-			impulseGravity = Vector3::Normalize(planetPos - objectPos) * (double)pc.PlanetData.gravAcc * mass * ts;
+			//// Calculate linear velocity due to gravity
+			//double mass = 1.0 / object.GetComponent<RigidBodyComponent>().InvMass;
+			//impulseGravity = Vector3::Normalize(planetPos - objectPos) * (double)pc.PlanetData.gravAcc * mass * ts;
 
-			return impulseGravity;
+			//return impulseGravity;
 		}
 
 		static void UpdateSphereAltitudeAndCollision(Entity* planetEntity, Entity* objectEntity, Vector3& worldTranslation, bool isCamera, double dt)
 		{
-			TerrainCollision terrainCollision;
+			//TerrainCollision terrainCollision;
 
-			terrainCollision.Planet = planetEntity;
-			terrainCollision.Object = objectEntity;
+			//terrainCollision.Planet = planetEntity;
+			//terrainCollision.Object = objectEntity;
 
-			auto& planet = planetEntity->GetComponent<PlanetComponent>();
-			auto& rigidBody = objectEntity->GetComponent<RigidBodyComponent>();
+			//auto& rigidBody = objectEntity->GetComponent<RigidBodyComponent>();
 
-			double sphereRadius = 0.0;
-			if (objectEntity->HasComponent<SphereColliderComponent>()) 
-				sphereRadius = objectEntity->GetComponent<SphereColliderComponent>().Collider->mRadius;
+			//double sphereRadius = 0.0;
+			//if (objectEntity->HasComponent<SphereColliderComponent>()) 
+			//	sphereRadius = objectEntity->GetComponent<SphereColliderComponent>().Collider->mRadius;
 
-			Vector3 objectPos = objectEntity->GetComponent<TransformComponent>().Translation;
+			//Vector3 objectPos = objectEntity->GetComponent<TransformComponent>().Translation;
 
-			Vector3 planetCenter = Vector3(planet.PlanetData.planetCenter.x,
-				planet.PlanetData.planetCenter.y,
-				planet.PlanetData.planetCenter.z);
-			
-			if(isCamera)
-				planetCenter += worldTranslation;
+			////Vector3 planetCenter = Vector3(planet.PlanetData.planetCenter.x,
+			////	planet.PlanetData.planetCenter.y,
+			////	planet.PlanetData.planetCenter.z);
+			//
+			//if(isCamera)
+			//	planetCenter += worldTranslation;
 
-			Vector3 toCenter = planetCenter - objectPos;
-			double distToCenter = toCenter.Length();
-			if (distToCenter < 1e-8) {
-				// Object is basically at the planet center
-				rigidBody.Altitude = -(planet.PlanetData.radius);
-				return;
-			}
+			//Vector3 toCenter = planetCenter - objectPos;
+			//double distToCenter = toCenter.Length();
+			//if (distToCenter < 1e-8) {
+			//	// Object is basically at the planet center
+			//	rigidBody.Altitude = -(planet.PlanetData.radius);
+			//	return;
+			//}
 
-			// Create a ray from object to planet center
-			Ray ray;
-			ray.Origin = objectPos;
-			ray.Direction = toCenter / distToCenter; // normalize direction
+			//// Create a ray from object to planet center
+			//Ray ray;
+			//ray.Origin = objectPos;
+			//ray.Direction = toCenter / distToCenter; // normalize direction
 
-			// Ray cast against the planet nodes
-			double closestT = DBL_MAX;
-			Vector3 bestHit;
-			bool hitFound = false;
-			for (auto& rootNode : planet.PhysicsNodesWorldSpace) {
+			//// Ray cast against the planet nodes
+			//double closestT = DBL_MAX;
+			//Vector3 bestHit;
+			//bool hitFound = false;
+			//for (auto& rootNode : planet.PhysicsNodesWorldSpace) {
 
-				if (rootNode == NULL)
-					continue;
+			//	if (rootNode == NULL)
+			//		continue;
 
-				double t;
-				Vector3 hp;
-				if (RaycastPlanetNode(ray, rootNode, worldTranslation, isCamera, t, hp)) {
-					if (!hitFound || t < closestT) {
-						hitFound = true;
-						closestT = t;
-						bestHit = hp;
-					}
-				}
-			}
+			//	double t;
+			//	Vector3 hp;
+			//	if (RaycastPlanetNode(ray, rootNode, worldTranslation, isCamera, t, hp)) {
+			//		if (!hitFound || t < closestT) {
+			//			hitFound = true;
+			//			closestT = t;
+			//			bestHit = hp;
+			//		}
+			//	}
+			//}
 
-			if (!hitFound)
-			{
-				// No intersection found, object is above no actual mesh intersection
-				// Approximate altitude by planet radius (no local terrain detail)
-				return;
-			}
+			//if (!hitFound)
+			//{
+			//	// No intersection found, object is above no actual mesh intersection
+			//	// Approximate altitude by planet radius (no local terrain detail)
+			//	return;
+			//}
 
-			// We have a hit point on the planet surface mesh
-			double surfaceDistFromCenter = (bestHit - planetCenter).Length();
+			//// We have a hit point on the planet surface mesh
+			//double surfaceDistFromCenter = (bestHit - planetCenter).Length();
 
-			// Check if the sphere is penetrating the terrain
-			double penetration = sphereRadius - (distToCenter - surfaceDistFromCenter);
-			terrainCollision.Depth = penetration;
-			rigidBody.Altitude = -terrainCollision.Depth;
+			//// Check if the sphere is penetrating the terrain
+			//double penetration = sphereRadius - (distToCenter - surfaceDistFromCenter);
+			//terrainCollision.Depth = penetration;
+			//rigidBody.Altitude = -terrainCollision.Depth;
 
-			//TOAST_CORE_CRITICAL("Altitude: %lf, number of nodes: %d ", rigidBody.Altitude, planet.PlanetNodesWorldSpace.size());
+			////TOAST_CORE_CRITICAL("Altitude: %lf, number of nodes: %d ", rigidBody.Altitude, planet.PlanetNodesWorldSpace.size());
 
-			terrainCollision.Normal = Vector3::Normalize(bestHit - planetCenter);
+			//terrainCollision.Normal = Vector3::Normalize(bestHit - planetCenter);
 
-			Vector3 sphereContactPoint = objectPos - terrainCollision.Normal * (sphereRadius - penetration);
+			//Vector3 sphereContactPoint = objectPos - terrainCollision.Normal * (sphereRadius - penetration);
 
-			terrainCollision.ContactPoints.clear();
-			terrainCollision.ContactPoints.emplace_back();
-			terrainCollision.ContactPoints.back().PtOnPlanetWorldSpace = bestHit;
-			terrainCollision.ContactPoints.back().PtOnObjectWorldSpace = sphereContactPoint;
+			//terrainCollision.ContactPoints.clear();
+			//terrainCollision.ContactPoints.emplace_back();
+			//terrainCollision.ContactPoints.back().PtOnPlanetWorldSpace = bestHit;
+			//terrainCollision.ContactPoints.back().PtOnObjectWorldSpace = sphereContactPoint;
 
-			if (penetration > 0.0) 
-				ResolveTerrainCollision(terrainCollision);
+			//if (penetration > 0.0) 
+			//	ResolveTerrainCollision(terrainCollision);
 		}
 
 		static void CheckTerrainBroadPhase(Ref<PlanetNode>& node, Entity* planetEntity, Entity* objectEntity, double dt_sub, const Bounds& objectBounds)
@@ -843,135 +842,133 @@ namespace Toast {
 			}
 		}
 
-		static void CheckPlanetCollisions(Entity planetEntity, Entity objectEntity, Vector3& worldTranslation, bool isCamera, double dt_sub) {
-			auto& planet = planetEntity.GetComponent<PlanetComponent>();
-
+		static void CheckPlanetCollisions(Entity planetEntity, Entity objectEntity, Vector3& worldTranslation, bool isCamera, double dt_sub)
+		{
 			//TOAST_CORE_CRITICAL("NEW PLANET CHECK");
 
-			Ref<Shape> collider;
-			bool reqAltitude = false;
-			if (objectEntity.HasComponent<SphereColliderComponent>())
-			{
-				collider = objectEntity.GetComponent<SphereColliderComponent>().Collider;
-				reqAltitude = objectEntity.GetComponent<SphereColliderComponent>().ReqAltitude;
-			}
-			else if (objectEntity.HasComponent<BoxColliderComponent>())
-			{
-				collider = objectEntity.GetComponent<BoxColliderComponent>().Collider;
-				reqAltitude = objectEntity.GetComponent<BoxColliderComponent>().ReqAltitude;
-			}
+			//Ref<Shape> collider;
+			//bool reqAltitude = false;
+			//if (objectEntity.HasComponent<SphereColliderComponent>())
+			//{
+			//	collider = objectEntity.GetComponent<SphereColliderComponent>().Collider;
+			//	reqAltitude = objectEntity.GetComponent<SphereColliderComponent>().ReqAltitude;
+			//}
+			//else if (objectEntity.HasComponent<BoxColliderComponent>())
+			//{
+			//	collider = objectEntity.GetComponent<BoxColliderComponent>().Collider;
+			//	reqAltitude = objectEntity.GetComponent<BoxColliderComponent>().ReqAltitude;
+			//}
 
-			if (!collider)
-				return;
+			//if (!collider)
+			//	return;
 
-			Vector3 objectPos = objectEntity.GetComponent<TransformComponent>().Translation;
+			//Vector3 objectPos = objectEntity.GetComponent<TransformComponent>().Translation;
 
-			Vector3 objectLinearVel = objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity;
+			//Vector3 objectLinearVel = objectEntity.GetComponent<RigidBodyComponent>().LinearVelocity;
 
-			// Get object bounds
-			Bounds objectBounds;
-			objectBounds = collider->GetBounds();
-			objectBounds = objectBounds + objectPos;
-			objectBounds.Expand(objectPos + objectLinearVel * dt_sub);
+			//// Get object bounds
+			//Bounds objectBounds;
+			//objectBounds = collider->GetBounds();
+			//objectBounds = objectBounds + objectPos;
+			//objectBounds.Expand(objectPos + objectLinearVel * dt_sub);
 
-			// Traverse the planets root nodes
-			if (!reqAltitude)
-			{
-				int i = 0;
-				for (auto& rootNode : planet.PhysicsNodesWorldSpace)
-					CheckTerrainBroadPhase(rootNode, &planetEntity, &objectEntity, dt_sub, objectBounds);
-			}
-			else 
-				UpdateSphereAltitudeAndCollision(&planetEntity, &objectEntity, worldTranslation, isCamera, dt_sub);
+			//// Traverse the planets root nodes
+			//if (!reqAltitude)
+			//{
+			//	int i = 0;
+			//	for (auto& rootNode : planet.PhysicsNodesWorldSpace)
+			//		CheckTerrainBroadPhase(rootNode, &planetEntity, &objectEntity, dt_sub, objectBounds);
+			//}
+			//else 
+			//	UpdateSphereAltitudeAndCollision(&planetEntity, &objectEntity, worldTranslation, isCamera, dt_sub);
 		}
 
 		static void Update(entt::registry* registry, Scene* scene, double dt, double slowmotion, uint32_t numSubSteps)
 		{
 			TOAST_PROFILE_FUNCTION();
 
-			dt = dt / slowmotion;
+			//dt = dt / slowmotion;
 
-			double dt_sub = dt / static_cast<double>(numSubSteps);
+			//double dt_sub = dt / static_cast<double>(numSubSteps);
 
-			//RendererDebug::SubmitLine(Vector3(-10.0, 10.0, 10.0), Vector3(10.0, 10.0, 10.0), DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f));
+			////RendererDebug::SubmitLine(Vector3(-10.0, 10.0, 10.0), Vector3(10.0, 10.0, 10.0), DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f));
 
-			auto view = registry->view<TransformComponent, RigidBodyComponent>();
+			//auto view = registry->view<TransformComponent, RigidBodyComponent>();
 
-			Vector3 worldTranslation;
-			bool isCamera = false;
+			//Vector3 worldTranslation;
+			//bool isCamera = false;
 
-			auto planetView = registry->view<PlanetComponent>();
-			if (planetView.size() > 0)
-			{
-				Entity planetEntity = { planetView[0], scene };
-				TerrainColliderComponent& tcc = planetEntity.GetComponent<TerrainColliderComponent>();
+			////auto planetView = registry->view<PlanetComponent>();
+			//if (true)
+			//{
+			//	Entity planetEntity = { planetView[0], scene };
+			//	TerrainColliderComponent& tcc = planetEntity.GetComponent<TerrainColliderComponent>();
 
-				// Find Camera to get worldTranslation
-				for (auto entity : view)
-				{
-					Entity objectEntity = { entity, scene };
-					if (objectEntity.HasComponent<CameraComponent>())
-					{
-						auto& camera = objectEntity.GetComponent<CameraComponent>();
+			//	// Find Camera to get worldTranslation
+			//	for (auto entity : view)
+			//	{
+			//		Entity objectEntity = { entity, scene };
+			//		if (objectEntity.HasComponent<CameraComponent>())
+			//		{
+			//			auto& camera = objectEntity.GetComponent<CameraComponent>();
 
-						if (camera.Primary)
-							worldTranslation = camera.Camera.GetWorldTranslation();
-					}
-				}
+			//			if (camera.Primary)
+			//				worldTranslation = camera.Camera.GetWorldTranslation();
+			//		}
+			//	}
 
-				for (auto entity : view)
-				{
-					Entity objectEntity = { entity, scene };
-					auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
+			//	for (auto entity : view)
+			//	{
+			//		Entity objectEntity = { entity, scene };
+			//		auto [tc, rbc] = view.get<TransformComponent, RigidBodyComponent>(entity);
 
-					Ref<Shape> collider;
-					if(objectEntity.HasComponent<SphereColliderComponent>())
-						collider = objectEntity.GetComponent<SphereColliderComponent>().Collider;
-					if (objectEntity.HasComponent<BoxColliderComponent>())
-						collider = objectEntity.GetComponent<BoxColliderComponent>().Collider;
+			//		Ref<Shape> collider;
+			//		if(objectEntity.HasComponent<SphereColliderComponent>())
+			//			collider = objectEntity.GetComponent<SphereColliderComponent>().Collider;
+			//		if (objectEntity.HasComponent<BoxColliderComponent>())
+			//			collider = objectEntity.GetComponent<BoxColliderComponent>().Collider;
 
-					if (objectEntity.HasComponent<CameraComponent>())
-						isCamera = true;
-					else
-						isCamera = false;
+			//		if (objectEntity.HasComponent<CameraComponent>())
+			//			isCamera = true;
+			//		else
+			//			isCamera = false;
 
-					if (collider != nullptr && !rbc.IsStatic)
-					{
-						// Update inertia tensor if needed.
-						if (collider->GetIsDirty()) 
-						{
-							Vector3 objectPos = tc.Translation;
-							Matrix transform = tc.GetTransform();
+			//		if (collider != nullptr && !rbc.IsStatic)
+			//		{
+			//			// Update inertia tensor if needed.
+			//			if (collider->GetIsDirty()) 
+			//			{
+			//				Vector3 objectPos = tc.Translation;
+			//				Matrix transform = tc.GetTransform();
 
-							collider->CalculateInertiaTensor(1.0 / rbc.InvMass);
+			//				collider->CalculateInertiaTensor(1.0 / rbc.InvMass);
 
-							collider->SetIsDirty(false);
-						}
+			//				collider->SetIsDirty(false);
+			//			}
 
-						for (int i = 0; i < numSubSteps; ++i)
-						{
-							// Gravity
-							if (!rbc.IsStatic)
-							{
-								Vector3 impulseGravity = Gravity(planetEntity, objectEntity, dt_sub);
-								ApplyLinearImpulse(rbc, impulseGravity);
-							}
+			//			for (int i = 0; i < numSubSteps; ++i)
+			//			{
+			//				// Gravity
+			//				if (!rbc.IsStatic)
+			//				{
+			//					Vector3 impulseGravity = Gravity(planetEntity, objectEntity, dt_sub);
+			//					ApplyLinearImpulse(rbc, impulseGravity);
+			//				}
 
-							// Terrain collision check
-							CheckPlanetCollisions(planetEntity, objectEntity, worldTranslation, isCamera, dt_sub);
+			//				// Terrain collision check
+			//				CheckPlanetCollisions(planetEntity, objectEntity, worldTranslation, isCamera, dt_sub);
 
-							// Do not let the camera be effected by gravity for example
-							UpdateBody(objectEntity, dt);
-						}
-					}
-				}
+			//				// Do not let the camera be effected by gravity for example
+			//				UpdateBody(objectEntity, dt);
+			//			}
+			//		}
+			//	}
 
-				// This will be used later for when collision is added between entities. Right now Toast Physics only work with
-				// Collision with terrain.
-				int numContacts = 0;
-				const int maxContacts = view.size() * view.size();
-			}
-
+			//	// This will be used later for when collision is added between entities. Right now Toast Physics only work with
+			//	// Collision with terrain.
+			//	int numContacts = 0;
+			//	const int maxContacts = view.size() * view.size();
+			//}
 		}
 	}
 }

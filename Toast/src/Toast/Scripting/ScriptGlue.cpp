@@ -417,23 +417,23 @@ namespace Toast {
 
 	static void MeshComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform)
 	{
-		Scene* scene = ScriptEngine::GetSceneContext();
-		auto sceneSettings = scene->GetSettings();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
-		auto& pc = entity.GetComponent<PlanetComponent>();
-		auto& tc = entity.GetComponent<TransformComponent>();
+		//Scene* scene = ScriptEngine::GetSceneContext();
+		//auto sceneSettings = scene->GetSettings();
+		//TOAST_CORE_ASSERT(scene, "No active scene!");
+		//const auto& entityMap = scene->GetEntityMap();
+		//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		//Entity entity = entityMap.at(entityID);
+		//auto& pc = entity.GetComponent<PlanetComponent>();
+		//auto& tc = entity.GetComponent<TransformComponent>();
 
-		DirectX::XMVECTOR cameraPosVector = { cameraPos->x, cameraPos->y, cameraPos->z };
-		DirectX::XMVECTOR cameraPosVector2, cameraRotVector, cameraScaleVector, cameraForward;
-		cameraForward = { 0.0f, 0.0f, 1.0f };
-		DirectX::XMMatrixDecompose(&cameraScaleVector, &cameraRotVector, &cameraPosVector2, *cameraTransform);
-		cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
-		//PlanetSystem::GeneratePlanet(scene->GetFrustum(), tc.GetTransform(), pc.Mesh->mVertices, pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPosVector, cameraForward, pc.Subdivisions, pc.PlanetData.radius, sceneSettings.BackfaceCulling, sceneSettings.FrustumCulling);
+		//DirectX::XMVECTOR cameraPosVector = { cameraPos->x, cameraPos->y, cameraPos->z };
+		//DirectX::XMVECTOR cameraPosVector2, cameraRotVector, cameraScaleVector, cameraForward;
+		//cameraForward = { 0.0f, 0.0f, 1.0f };
+		//DirectX::XMMatrixDecompose(&cameraScaleVector, &cameraRotVector, &cameraPosVector2, *cameraTransform);
+		//cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
+		////PlanetSystem::GeneratePlanet(scene->GetFrustum(), tc.GetTransform(), pc.Mesh->mVertices, pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPosVector, cameraForward, pc.Subdivisions, pc.PlanetData.radius, sceneSettings.BackfaceCulling, sceneSettings.FrustumCulling);
 
-		pc.RenderMesh->InvalidatePlanet();
+		//pc.RenderMesh->InvalidatePlanet();
 	}
 
 	static void MeshComponent_PlayAnimation(uint64_t entityID, MonoString* name, float startTime)
@@ -592,45 +592,45 @@ namespace Toast {
 
 	void PlanetComponent_GetRadius(uint64_t entityID, float* outRadius)
 	{
-		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
-		auto& component = entity.GetComponent<PlanetComponent>();
+		//Scene* scene = ScriptEngine::GetSceneContext();
+		//TOAST_CORE_ASSERT(scene, "No active scene!");
+		//const auto& entityMap = scene->GetEntityMap();
+		//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		//Entity entity = entityMap.at(entityID);
+		//auto& component = entity.GetComponent<PlanetComponent>();
 
-		*outRadius = component.PlanetData.radius;
+		*outRadius = 0.0f;
 	}
 
 	void PlanetComponent_GetSubdivisions(uint64_t entityID, int* outSubDivisions)
 	{
-		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
-		auto& component = entity.GetComponent<PlanetComponent>();
+		//Scene* scene = ScriptEngine::GetSceneContext();
+		//TOAST_CORE_ASSERT(scene, "No active scene!");
+		//const auto& entityMap = scene->GetEntityMap();
+		//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		//Entity entity = entityMap.at(entityID);
+		//auto& component = entity.GetComponent<PlanetComponent>();
 
-		*outSubDivisions = component.Subdivisions;
+		*outSubDivisions = 0;
 	}
 
 	MonoArray* PlanetComponent_GetDistanceLUT(uint64_t entityID)
 	{
-		MonoArray* outDistanceLUT;
+		//MonoArray* outDistanceLUT;
 
-		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
-		auto& component = entity.GetComponent<PlanetComponent>();
+		//Scene* scene = ScriptEngine::GetSceneContext();
+		//TOAST_CORE_ASSERT(scene, "No active scene!");
+		//const auto& entityMap = scene->GetEntityMap();
+		//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		//Entity entity = entityMap.at(entityID);
+		//auto& component = entity.GetComponent<PlanetComponent>();
 
-		outDistanceLUT = mono_array_new(mono_domain_get(), mono_get_double_class(), component.DistanceLUT.size());
+		//outDistanceLUT = mono_array_new(mono_domain_get(), mono_get_double_class(), component.DistanceLUT.size());
 
-		for (int i = 0; i < component.DistanceLUT.size(); i++)
-			mono_array_set(outDistanceLUT, double, i, component.DistanceLUT[i]);
+		//for (int i = 0; i < component.DistanceLUT.size(); i++)
+		//	mono_array_set(outDistanceLUT, double, i, component.DistanceLUT[i]);
 
-		return outDistanceLUT;
+		return nullptr;
 	}
 
 	void PlanetComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform)
@@ -883,7 +883,6 @@ namespace Toast {
 		sEntityHasComponentFuncs.clear();
 		RegisterComponent<TagComponent>();
 		RegisterComponent<TransformComponent>();
-		RegisterComponent<PlanetComponent>();
 		RegisterComponent<MeshComponent>();
 		RegisterComponent<CameraComponent>();
 		RegisterComponent<UIPanelComponent>();
