@@ -31,7 +31,6 @@ cbuffer PlanetFrame : register(b4)
 {
     float3 PlanetCentreVS;
     float PlanetRadius;
-
     float3 BasisTanEast;
     float MaxHeight;
     float3 BasisTanNorth;
@@ -175,7 +174,6 @@ cbuffer PlanetFrame : register(b4)
 {
     float3 PlanetCentreVS;
     float PlanetRadius;
-
     float3 BasisTanEast;
     float MaxHeight;
     float3 BasisTanNorth;

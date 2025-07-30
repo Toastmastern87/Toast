@@ -35,6 +35,22 @@ Entities:
         OrthographicHeight: 1120
       Primary: true
       FixedAspectRatio: false
+    ScriptComponent:
+      ClassName: Sandbox.CameraController
+      ScriptFields:
+        - Name: MouseSpeedFactor
+          Type: Float
+          Data: 15
+    RigidBodyComponent:
+      InvMass: 0
+      Elasticity: 0
+      Friction: 0
+      CenterOfMass: [0, 0, 0]
+      LinearDamping: 0
+      AngularDamping: 0
+    SphereColliderComponent:
+      RenderCollider: false
+      Radius: 1
   - Entity: 7969327153423302118
     TagComponent:
       Tag: Sunlight

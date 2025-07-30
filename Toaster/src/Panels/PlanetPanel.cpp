@@ -8,6 +8,8 @@
 
 #include "Toast/Renderer/Renderer.h"
 
+#include "Toast/Physics/PhysicsEngine.h"
+
 #include "Toast/Utils/PlatformUtils.h"
 
 #include "../FontAwesome.h"
@@ -339,7 +341,11 @@ namespace Toast {
 						filename = completePath.string();
 
 						if (filename)
+						{
 							PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename);
+
+							PlanetSystem::sTerrainData = PhysicsEngine::LoadTerrainData(*filename, PlanetSystem::sMaxHeight, PlanetSystem::sMinHeight);
+						}
 					}
 
 					ImGui::EndDragDropTarget();
@@ -350,7 +356,11 @@ namespace Toast {
 					filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
 
 					if (filename)
+					{
 						PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename);
+
+						PlanetSystem::sTerrainData = PhysicsEngine::LoadTerrainData(*filename, PlanetSystem::sMaxHeight, PlanetSystem::sMinHeight);
+					}
 				}
 
 				ImGui::TableSetColumnIndex(1);

@@ -742,7 +742,6 @@ namespace Toast {
 		PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(planet["HeightMapAssetPath"].as<std::string>());
 		PlanetSystem::sStarFieldTexture2D = TextureLibrary::LoadTexture2D(planet["StarFieldAssetPath"].as<std::string>());
 
-
 		auto entities = data["Entities"];
 		if (entities) 
 		{
@@ -958,26 +957,6 @@ namespace Toast {
 					bcc.Collider->CalculateBounds();
 				}
 
-				//auto terrainColliderComponent = entity["TerrainColliderComponent"];
-				//if (terrainColliderComponent)
-				//{
-				//	auto& tcc = deserializedEntity.AddComponent<TerrainColliderComponent>();
-
-				//	if (planetComponent)
-				//	{
-				//		PlanetComponent& pc = deserializedEntity.GetComponent<PlanetComponent>();
-
-				//		tcc.Collider->mFilePath = terrainColliderComponent["AssetPath"].as<std::string>();
-				//		if (!tcc.Collider->mFilePath.empty())
-				//			pc.TerrainData = PhysicsEngine::LoadTerrainData(tcc.Collider->mFilePath.c_str(), pc.PlanetData.maxAltitude, pc.PlanetData.minAltitude);
-
-				//		PlanetSystem::CalculateBasePlanet(pc, nullptr, pc.PlanetData.radius);
-
-				//		tcc.Collider->mMaxAltitude = planetComponent["MaxAltitude"].as<float>() + planetComponent["Radius"].as<float>();
-				//		tcc.Collider->CalculateBounds();
-				//	}
-				//}
-
 				auto uiPanelComponent = entity["UIPanelComponent"];
 				if (uiPanelComponent)
 				{
@@ -1114,6 +1093,8 @@ namespace Toast {
 
 			PlanetSystem::sTempGridSize = PlanetSystem::sGridSize;
 			PlanetSystem::sTempNumLevels = PlanetSystem::sNumLevels;
+
+			PlanetSystem::sTerrainData = PhysicsEngine::LoadTerrainData(PlanetSystem::sBaseHeightMapTexture->GetFilePath(), PlanetSystem::sMaxHeight, PlanetSystem::sMinHeight);
 
 			SceneCamera* camera = mScene->GetMainCamera();
 			if (camera)

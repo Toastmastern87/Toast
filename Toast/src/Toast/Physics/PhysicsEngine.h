@@ -510,12 +510,12 @@ namespace Toast {
 				rbc.AngularVelocity = Vector3::Normalize(rbc.AngularVelocity) * maxAngularSpeed;
 		}
 		
-		static TerrainData LoadTerrainData(const char* path, const double maxAltitude, const double minAltitude)
+		static TerrainData LoadTerrainData(const std::string& path, const double maxHeight, const double minHeight)
 		{
 			HRESULT result;
 
 			std::wstring w;
-			std::copy(path, path + strlen(path), back_inserter(w));
+			std::copy(path.c_str(), path.c_str() + strlen(path.c_str()), back_inserter(w));
 			const WCHAR* pathWChar = w.c_str();
 
 			DirectX::TexMetadata heightMapMetadata;
@@ -538,7 +538,7 @@ namespace Toast {
 
 			td.HeightData.resize(total);
 			for (size_t i = 0; i < total; ++i)
-				td.HeightData[i] =	((static_cast<double>(src[i]) / MAX_INT_VALUE) * (maxAltitude - minAltitude)) + minAltitude;
+				td.HeightData[i] =	((static_cast<double>(src[i]) / MAX_INT_VALUE) * (maxHeight - minHeight)) + minHeight;
 
 			td.Stride = td.Width;
 

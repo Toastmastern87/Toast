@@ -533,31 +533,27 @@ namespace Toast {
 				{
 					auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
 
-					//Do not submit mesh if it's a planet
-					//if (!mesh.MeshObject->GetIsPlanet())
-					//{
-						switch (mSettings.WireframeRendering)
-						{
-						case Settings::Wireframe::NO:
-						{
-							Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, false, 0);
+					switch (mSettings.WireframeRendering)
+					{
+					case Settings::Wireframe::NO:
+					{
+						Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, false, 0);
 
-							break;
-						}
-						case Settings::Wireframe::YES:
-						{
-							Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, true, 0);
+						break;
+					}
+					case Settings::Wireframe::YES:
+					{
+						Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, true, 0);
 
-							break;
-						}
-						case Settings::Wireframe::ONTOP:
-						{
-							// TODO
+						break;
+					}
+					case Settings::Wireframe::ONTOP:
+					{
+						// TODO
 
-							break;
-						}
-						}
-				//	}
+						break;
+					}
+					}
 
 					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 				}
@@ -1047,37 +1043,28 @@ namespace Toast {
 			for (auto entity : viewMeshes)
 			{
 				auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
-				//Do not submit mesh if it's a planet
-				//if (!mesh.MeshObject->GetIsPlanet())
-				//{
-					//Entity e = { entity, this };
-					//auto& tc = e.GetComponent<TagComponent>();
 
-					//if (mesh.MeshObject->GetSubmeshes().at(0).IndexCount == 234)
-					//	TOAST_CORE_CRITICAL("MESH WITH 234 indices FOUND!!: %s, instanced: %d", tc.Tag.c_str(), mesh.MeshObject->IsInstanced());
+				switch (mSettings.WireframeRendering)
+				{
+				case Settings::Wireframe::NO:
+				{
+					Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, false, 0);
 
-					switch (mSettings.WireframeRendering)
-					{
-					case Settings::Wireframe::NO:
-					{
-						Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, false, 0);
+					break;
+				}
+				case Settings::Wireframe::YES:
+				{
+					Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, true, 0);
 
-						break;
-					}
-					case Settings::Wireframe::YES:
-					{
-						Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, true, 0);
+					break;
+				}
+				case Settings::Wireframe::ONTOP:
+				{
+					// TODO
 
-						break;
-					}
-					case Settings::Wireframe::ONTOP:
-					{
-						// TODO
-
-						break;
-					}
-					}
-				//}
+					break;
+				}
+				}
 
 				if (mSelectedEntity == entity)
 					Renderer::SubmitSelecetedMesh(mesh.MeshObject, transform.GetTransform());

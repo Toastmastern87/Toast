@@ -46,9 +46,6 @@ namespace Sandbox
             mCollider = GetComponent<SphereColliderComponent>();
             mRigidbody = GetComponent<RigidBodyComponent>();
 
-            mMarsTransform = FindEntityByName("Mars").GetComponent<TransformComponent>();
-            mMarsPlanet = FindEntityByName("Mars").GetComponent<PlanetComponent>();
-
             tCamera = (altitude - minAltitudeForCamera) / (maxAltitudeForCamera - minAltitudeForCamera);
             tCamera = Clamp(tCamera, 0.0f, 1.0f);
 
@@ -65,7 +62,7 @@ namespace Sandbox
         void OnUpdate(float ts)
         {
             float newCameraFar = minCameraFar + (maxCameraFar - minCameraFar) * tCamera;
-            mCameraComponent.FarClip = newCameraFar;
+            mCameraComponent.FarClip = 2000000.0f;// newCameraFar;
 
             if (altitude > 1000.0f)
                 mCollider.ReqAltitude = false;

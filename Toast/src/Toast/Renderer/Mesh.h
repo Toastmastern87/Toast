@@ -23,15 +23,6 @@
 
 namespace Toast {
 
-	struct TerrainData
-	{
-		uint32_t Width;
-		uint32_t Height;
-		uint32_t RowPitch;
-		uint32_t Stride;
-		std::vector<double> HeightData;
-	};
-
 	struct Face
 	{
 		std::tuple<uint32_t, uint32_t, uint32_t> Indices;

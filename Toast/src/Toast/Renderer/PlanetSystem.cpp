@@ -315,7 +315,7 @@ namespace Toast {
 		Vector3 camPosPS = Vector3::Rotate(camRel, invRotation);
 
 		PlanetFrameCB cb{};
-		Vector3 centreCVd = Vector3(sTranslation) - camPosWS;
+		Vector3 centreCVd = Vector3(sTranslation);
 		cb.Center = DirectX::XMFLOAT3((float)centreCVd.x, (float)centreCVd.y, (float)centreCVd.z);
 		cb.Radius = (float)sRadius;
 		cb.MaxHeight = (float)sMaxHeight;
@@ -349,13 +349,13 @@ namespace Toast {
 				return ret;
 			};
 
-		cb.BasisTanEast = ToView(DirectX::XMFLOAT3({ (float)tanEastWS.x, (float)tanEastWS.y, (float)tanEastWS.z }));
-		cb.BasisTanNorth = ToView(DirectX::XMFLOAT3({ (float)tanNorthWS.x, (float)tanNorthWS.y, (float)tanNorthWS.z }));
-		cb.BasisRadUp =  ToView(DirectX::XMFLOAT3({ (float)radUpWS.x, (float)radUpWS.y, (float)radUpWS.z }));
+		cb.BasisTanEast = DirectX::XMFLOAT3({ (float)tanEastWS.x, (float)tanEastWS.y, (float)tanEastWS.z });
+		cb.BasisTanNorth = DirectX::XMFLOAT3({ (float)tanNorthWS.x, (float)tanNorthWS.y, (float)tanNorthWS.z });
+		cb.BasisRadUp =  DirectX::XMFLOAT3({ (float)radUpWS.x, (float)radUpWS.y, (float)radUpWS.z });
 
-		cb.BasisLonEast = ToView(DirectX::XMFLOAT3({ (float)lonEastWS.x, (float)lonEastWS.y, (float)lonEastWS.z }));
-		cb.BasisLonNorth = ToView(DirectX::XMFLOAT3({ (float)lonNorthWS.x, (float)lonNorthWS.y, (float)lonNorthWS.z }));
-		cb.BasisSpinUp = ToView(DirectX::XMFLOAT3({ (float)spinUpWS.x, (float)spinUpWS.y, (float)spinUpWS.z }));
+		cb.BasisLonEast = DirectX::XMFLOAT3({ (float)lonEastWS.x, (float)lonEastWS.y, (float)lonEastWS.z });
+		cb.BasisLonNorth = DirectX::XMFLOAT3({ (float)lonNorthWS.x, (float)lonNorthWS.y, (float)lonNorthWS.z });
+		cb.BasisSpinUp = DirectX::XMFLOAT3({ (float)spinUpWS.x, (float)spinUpWS.y, (float)spinUpWS.z });
 
 		sPlanetFrameBuffer.Write(reinterpret_cast<uint8_t*>(&cb), sizeof(cb), 0);
 

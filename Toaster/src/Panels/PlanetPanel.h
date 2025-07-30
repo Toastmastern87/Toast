@@ -3,6 +3,7 @@
 #include "Platform/Windows/WindowsWindow.h"
 
 #include "Toast/Renderer/PlanetSystem.h"
+
 #include "Toast/Scene/Scene.h"
 
 namespace Toast {

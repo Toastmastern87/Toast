@@ -73,12 +73,13 @@ namespace Toast {
 	constexpr double kQuant = 0.1;     // 1 cm grid
 	constexpr double kInvQ = 1.0 / kQuant;
 
-	struct StarVertex        
+	struct TerrainData
 	{
-		DirectX::XMFLOAT3 dir; 
-		float  lum;  
-		DirectX::XMFLOAT3 rgb; 
-		float  pad;
+		uint32_t Width;
+		uint32_t Height;
+		uint32_t RowPitch;
+		uint32_t Stride;
+		std::vector<double> HeightData;
 	};
 
 	struct CPUVertex
@@ -355,10 +356,10 @@ namespace Toast {
 
 		// GPU Data
 		static inline Ref<VertexBuffer> sGridVertexBuffer;
-		static inline Ref<VertexBuffer>  sLODGridVertexBuffer;
+		static inline Ref<VertexBuffer> sLODGridVertexBuffer;
 		static inline Ref<IndexBuffer> sCenterGridIndexBuffer;
 		static inline Ref<IndexBuffer> sRingGridIndexBuffer;
-		static inline Ref<IndexBuffer >  sLODGridIndexBuffer;
+		static inline Ref<IndexBuffer> sLODGridIndexBuffer;
 		static inline uint32_t sGridIndexCount = 0;
 		static inline uint32_t sRingGridIndexCount = 0;
 		static inline uint32_t sLODGridIndexCount = 0;
@@ -373,6 +374,7 @@ namespace Toast {
 		static inline double sMinHeight = 0.0;
 		static inline std::vector<double> sDistanceLUT;
 		static inline Texture2D* sBaseHeightMapTexture;
+		static inline TerrainData sTerrainData;
 
 		// PBR Data
 		static inline DirectX::XMFLOAT3 sAlbedoColor;
@@ -432,8 +434,6 @@ namespace Toast {
 
 		static Texture2D* GetStarFieldTexture2D() { return sStarFieldTexture2D; }
 		static Ref<TextureCube> GetStarFieldTextureCube() { return sStarFieldTextureCube; }
-
-
 
 		// These functions are used to update the active leaves during runtime.
 		static void BuildPhysicsNodes(Matrix& planetNoScaleTransform);
