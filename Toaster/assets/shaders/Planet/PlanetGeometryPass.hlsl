@@ -81,7 +81,8 @@ float2 SphereUV(float3 nSphere)
 
     float lon = atan2(v.z, v.x); // −π … +π
     float lat = asin(v.y); // −π/2 … +π/2
-    return float2(lon * INV_TWO_PI + 0.5, lat * INV_PI + 0.5);
+    float V = 0.5 - lat * INV_PI;
+    return float2(lon * INV_TWO_PI + 0.5, V);
 }
 
 PlanetPointVS CalulatePlanetPosVS(int2 gWorld, float heightScale)
@@ -219,7 +220,8 @@ float2 SphereUV(float3 nSphere)
 
     float lon = atan2(v.z, v.x); // −π … +π
     float lat = asin(v.y); // −π/2 … +π/2
-    return float2(lon * INV_TWO_PI + 0.5, lat * INV_PI + 0.5);
+    float V = 0.5 - lat * INV_PI;
+    return float2(lon * INV_TWO_PI + 0.5, V);
 }
 
 float3 ToWorld(float3 v)        // v is expressed in {east, up, north}

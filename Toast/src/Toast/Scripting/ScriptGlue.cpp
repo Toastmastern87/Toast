@@ -2,6 +2,10 @@
 #include "ScriptGlue.h"
 #include "ScriptEngine.h"
 
+#include "Toast/Renderer/PlanetSystem.h"
+
+#include "Toast/Physics/PhysicsEngine.h"
+
 #include "Toast/Scene/Scene.h"
 #include "Toast/Scene/Entity.h"
 
@@ -188,11 +192,39 @@ namespace Toast {
 
 #pragma endregion
 
+#pragma region Physics Engine
+
+	static float PhysicsEngine_GetAltitude(UUID entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity entity = scene->FindEntityByUUID(entityID);
+		TOAST_CORE_ASSERT(entity, "");
+
+		return (float)PhysicsEngine::GetAltitude(scene, entity);
+	}
+
+#pragma endregion
+
 #pragma region Script
 
 	static MonoObject* Script_GetInstance(UUID entityID)
 	{
 		return ScriptEngine::GetManagedInstance(entityID);
+	}
+
+#pragma endregion
+
+#pragma region Planet
+
+	static void Planet_GetTranslation(DirectX::XMFLOAT3* outTranslation)
+	{
+		*outTranslation = PlanetSystem::GetTranslation();
+	}
+
+	static void Planet_SetTranslation(DirectX::XMFLOAT3* translation)
+	{
+		; // TODO IMPLEMENT THIS
 	}
 
 #pragma endregion
@@ -588,78 +620,6 @@ namespace Toast {
 
 #pragma endregion
 
-#pragma region Planet Component
-
-	void PlanetComponent_GetRadius(uint64_t entityID, float* outRadius)
-	{
-		//Scene* scene = ScriptEngine::GetSceneContext();
-		//TOAST_CORE_ASSERT(scene, "No active scene!");
-		//const auto& entityMap = scene->GetEntityMap();
-		//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		//Entity entity = entityMap.at(entityID);
-		//auto& component = entity.GetComponent<PlanetComponent>();
-
-		*outRadius = 0.0f;
-	}
-
-	void PlanetComponent_GetSubdivisions(uint64_t entityID, int* outSubDivisions)
-	{
-		//Scene* scene = ScriptEngine::GetSceneContext();
-		//TOAST_CORE_ASSERT(scene, "No active scene!");
-		//const auto& entityMap = scene->GetEntityMap();
-		//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		//Entity entity = entityMap.at(entityID);
-		//auto& component = entity.GetComponent<PlanetComponent>();
-
-		*outSubDivisions = 0;
-	}
-
-	MonoArray* PlanetComponent_GetDistanceLUT(uint64_t entityID)
-	{
-		//MonoArray* outDistanceLUT;
-
-		//Scene* scene = ScriptEngine::GetSceneContext();
-		//TOAST_CORE_ASSERT(scene, "No active scene!");
-		//const auto& entityMap = scene->GetEntityMap();
-		//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		//Entity entity = entityMap.at(entityID);
-		//auto& component = entity.GetComponent<PlanetComponent>();
-
-		//outDistanceLUT = mono_array_new(mono_domain_get(), mono_get_double_class(), component.DistanceLUT.size());
-
-		//for (int i = 0; i < component.DistanceLUT.size(); i++)
-		//	mono_array_set(outDistanceLUT, double, i, component.DistanceLUT[i]);
-
-		return nullptr;
-	}
-
-	void PlanetComponent_GeneratePlanet(uint64_t entityID, DirectX::XMFLOAT3* cameraPos, DirectX::XMMATRIX* cameraTransform)
-	{
-		//Scene* scene = ScriptEngine::GetSceneContext();
-		//auto sceneSettings = scene->GetSettings();
-		//TOAST_CORE_ASSERT(scene, "No active scene!");
-		//const auto& entityMap = scene->GetEntityMap();
-		//TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		//Entity entity = entityMap.at(entityID);
-		//auto& pc = entity.GetComponent<PlanetComponent>();
-		//auto& tc = entity.GetComponent<TransformComponent>();
-
-		//DirectX::XMVECTOR cameraPosVector = { cameraPos->x, cameraPos->y, cameraPos->z };
-		//DirectX::XMVECTOR cameraPosVector2, cameraRotVector, cameraScaleVector, cameraForward;
-		//cameraForward = { 0.0f, 0.0f, 1.0f };
-		//DirectX::XMMatrixDecompose(&cameraScaleVector, &cameraRotVector, &cameraPosVector2, *cameraTransform);
-		//cameraForward = DirectX::XMVector3Rotate(cameraForward, cameraRotVector);
-		//scene->InvalidateFrustum();
-
-		//DirectX::XMMATRIX planetTransformNoScale = DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)) * DirectX::XMMatrixTranslation(tc.Translation.x, tc.Translation.y, tc.Translation.z);
-
-		////PlanetSystem::GeneratePlanet(scene->GetFrustum(), planetTransformNoScale, pc.Mesh->GetPlanetFaces(), pc.Mesh->GetPlanetPatches(), pc.DistanceLUT, pc.FaceLevelDotLUT, pc.HeightMultLUT, cameraPosVector, cameraForward, pc.Subdivisions, pc.PlanetData.radius, sceneSettings.BackfaceCulling, sceneSettings.FrustumCulling);
-
-		//pc.RenderMesh->InvalidatePlanet();
-	}
-
-#pragma endregion
-
 #pragma region UI Panel Component
 
 	bool UIPanelComponent_GetVisible(uint64_t entityID)
@@ -910,12 +870,17 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Input_GetMouseWheelDelta);
 		TOAST_ADD_INTERNAL_CALL(Input_SetMouseWheelDelta);
 
+		TOAST_ADD_INTERNAL_CALL(PhysicsEngine_GetAltitude);
+
 		TOAST_ADD_INTERNAL_CALL(Scene_GetRenderColliders);
 		TOAST_ADD_INTERNAL_CALL(Scene_SetRenderColliders);
 		TOAST_ADD_INTERNAL_CALL(Scene_GetTimeScale);
 		TOAST_ADD_INTERNAL_CALL(Scene_SetTimeScale);
 		TOAST_ADD_INTERNAL_CALL(Scene_AddPrefab);
 		TOAST_ADD_INTERNAL_CALL(Scene_GetEntitiesWithPrefab);
+
+		TOAST_ADD_INTERNAL_CALL(Planet_GetTranslation);
+		TOAST_ADD_INTERNAL_CALL(Planet_SetTranslation);
 
 		TOAST_ADD_INTERNAL_CALL(Script_GetInstance);
 
@@ -953,11 +918,6 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(CameraComponent_SetNearClip);
 		TOAST_ADD_INTERNAL_CALL(CameraComponent_GetWorldTranslation);
 		TOAST_ADD_INTERNAL_CALL(CameraComponent_AddWorldTranslation);
-
-		TOAST_ADD_INTERNAL_CALL(PlanetComponent_GetRadius);
-		TOAST_ADD_INTERNAL_CALL(PlanetComponent_GetSubdivisions);
-		TOAST_ADD_INTERNAL_CALL(PlanetComponent_GetDistanceLUT);
-		TOAST_ADD_INTERNAL_CALL(PlanetComponent_GeneratePlanet);
 
 		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_GetVisible);
 		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_SetVisible);

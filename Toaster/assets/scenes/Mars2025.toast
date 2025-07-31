@@ -1,7 +1,7 @@
 Scene: Untitled Scene
 Planet:
-  Translation: [0, -3483070, 0]
-  Rotation: [28.8000164, 42.6000633, -271.902191]
+  Translation: [0, -3387498, 0]
+  Rotation: [74.899826, -9.69995975, -229.702606]
   GridSize: 257
   MaxLevels: 28
   Radius: 3389500
@@ -38,19 +38,24 @@ Entities:
     ScriptComponent:
       ClassName: Sandbox.CameraController
       ScriptFields:
+        - Name: MinAltitude
+          Type: Float
+          Data: 10
+        - Name: MaxAltitude
+          Type: Float
+          Data: 500000
+        - Name: ReferenceAltitude
+          Type: Float
+          Data: 1000
         - Name: MouseSpeedFactor
           Type: Float
           Data: 15
-    RigidBodyComponent:
-      InvMass: 0
-      Elasticity: 0
-      Friction: 0
-      CenterOfMass: [0, 0, 0]
-      LinearDamping: 0
-      AngularDamping: 0
-    SphereColliderComponent:
-      RenderCollider: false
-      Radius: 1
+        - Name: BaseZoomSpeed
+          Type: Float
+          Data: 1500
+        - Name: ZoomFactor
+          Type: Float
+          Data: 1.29999995
   - Entity: 7969327153423302118
     TagComponent:
       Tag: Sunlight
@@ -60,7 +65,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-205.802612, 0, 0]
+      Rotation: [-285.602692, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [0.886075974, 0.82748425, 0.575762451]

@@ -342,7 +342,7 @@ namespace Toast {
 
 						if (filename)
 						{
-							PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename);
+							PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename, false);
 
 							PlanetSystem::sTerrainData = PhysicsEngine::LoadTerrainData(*filename, PlanetSystem::sMaxHeight, PlanetSystem::sMinHeight);
 						}
@@ -357,7 +357,7 @@ namespace Toast {
 
 					if (filename)
 					{
-						PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename);
+						PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename, false);
 
 						PlanetSystem::sTerrainData = PhysicsEngine::LoadTerrainData(*filename, PlanetSystem::sMaxHeight, PlanetSystem::sMinHeight);
 					}

@@ -1,11 +1,14 @@
-#pragma once
+﻿#pragma once
 
 #include "Toast/Scene/Components.h"
+#include "Toast/Scene/Entity.h"
 
 #include "Toast/Renderer/RendererDebug.h"
 #include "Toast/Renderer/PlanetSystem.h"
 
 #include <../vendor/directxtex/include/DirectXTex.h>
+
+#include <cmath>
 
 #define NOMINMAX
 #include <algorithm>
@@ -316,6 +319,66 @@ namespace Toast {
 			}
 		}
 
+		static void WorldPosToHeightMapUV(const Vector3& worldPos, const Vector3& worldTranslation, int mapWidth, int mapHeight, float& outU, float& outV, double& outRadialDist)
+		{
+			Vector3 planetTranslation = PlanetSystem::GetTranslation();
+
+			// 1) Move into planet local coordinates
+			Vector3 p = worldPos - planetTranslation - worldTranslation;
+			//Vector3 local = Vector3::Rotate(p, PlanetSystem::GetInvRotation());
+			// 3) world-space unit normal (matches nWS in the VS)
+			outRadialDist = p.Length();
+
+			Vector3 nWS = p / outRadialDist;
+
+			// 4) fetch the same basis vectors you put in the cbuffer
+			const DirectX::XMFLOAT3 east = PlanetSystem::GetBasisLonEast();   // == BasisLonEast
+			const DirectX::XMFLOAT3 north = PlanetSystem::GetBasisLonNorth();  // == BasisLonNorth
+			const DirectX::XMFLOAT3 spinUp = PlanetSystem::GetBasisSpinUp();    // == BasisSpinUp
+
+			// 5) identical math to SphereUV()
+			double vx = Vector3::Dot(nWS, east);
+			double vy = Vector3::Dot(nWS, spinUp);
+			double vz = Vector3::Dot(nWS, north);
+
+			double lon = std::atan2(vz, vx);          // −π … +π
+			double lat = std::asin(vy);              // −π/2 … +π/2
+
+			outU = static_cast<float>(lon * (1.0 / (2.0 * M_PI)) + 0.5);
+			outV = 0.5f - static_cast<float>(lat * (1.0 / M_PI));
+
+			// 4) Wrap U (in case of small floating drift)
+			if (outU < 0.f)       outU += 1.f;
+			else if (outU > 1.f)  outU -= 1.f;
+		}
+
+		static double SampleHeightBilinear(const std::vector<double>& heightData, int textureWidth, int textureHeight, float u, float v)
+		{
+			// Texel coordinates (floating)
+			double fx = u * textureWidth - 0.5; 
+			double fy = v * textureHeight - 0.5;
+
+			int x0 = (int)std::floor(fx);
+			int y0 = (int)std::floor(fy);
+			int x1 = (std::min)(x0 + 1, textureWidth - 1);
+			int y1 = (std::min)(y0 + 1, textureHeight - 1);
+
+			double sx = fx - x0;          // 0 … 1
+			double sy = fy - y0;
+
+			// Fetch four corners
+			double h00 = heightData[y0 * textureWidth + x0];
+			double h10 = heightData[y0 * textureWidth + x1];
+			double h01 = heightData[y1 * textureWidth + x0];
+			double h11 = heightData[y1 * textureWidth + x1];
+
+			// Bilinear interpolation
+			double h0 = h00 + (h10 - h00) * sx;
+			double h1 = h01 + (h11 - h01) * sx;
+
+			return h0 + (h1 - h0) * sy;
+		}
+
 		static bool BoxPlanetCollisionCheck(TerrainCollision& collision, const std::vector<Vector3>& terrainColliderVertices)
 		{
 			TOAST_PROFILE_FUNCTION();
@@ -545,40 +608,37 @@ namespace Toast {
 			return td;
 		}
 
-		//static double GetObjectDistanceToPlanet(Entity* planet, Vector3& worldSpaceObjectPos, Vector3& triangleNormal, Vector3& A, Vector3& B, Vector3& C)
-		//{	
-		//	PlanetComponent& pc = planet->GetComponent<PlanetComponent>();
-		//	Vector3 worldSpacePlanetPos = planet->GetComponent<TransformComponent>().Translation;
+		static double GetAltitude(Scene* scene, Entity& entity)
+		{
+			auto& registry = scene->GetRegistry();
+			auto cameraView = registry.view<CameraComponent>();
 
-		//	std::vector<uint32_t> indices = pc.RenderMesh->GetIndices();
-		//	std::vector<Vertex> vertices = pc.RenderMesh->GetVertices();
+			DirectX::XMFLOAT3 worldTranslation = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 
-		//	double distance;
+			for (auto cameraEntity : cameraView)
+			{
+				Entity e = { entity, scene };
 
-		//	if (indices.size() > 0)
-		//	{
-		//		for (int i = 0; i < indices.size() - 2; i += 3)
-		//		{
-		//			distance = Math::PointToPlaneDistance(worldSpaceObjectPos, worldSpacePlanetPos, vertices[indices[i]].Position, vertices[indices[i + 1]].Position, vertices[indices[i + 2]].Position);
+				worldTranslation = e.GetComponent<CameraComponent>().Camera.GetWorldTranslation();
+			}
 
-		//			if (distance != -100.0f) 
-		//			{
-		//				Vector3 v1(vertices[indices[i + 1]].Position);
-		//				Vector3 v2(vertices[indices[i]].Position);
-		//				Vector3 v3(vertices[indices[i + 2]].Position);
+			TransformComponent& tc = entity.GetComponent<TransformComponent>();
 
-		//				A = v1;
-		//				B = v2;
-		//				C = v3;
+			float u, v;
+			double radialDist;
 
-		//				triangleNormal = Vector3::Normalize(Vector3::Cross(v1 - v2, v3 - v1));
-		//				return distance;
-		//			}
-		//		}
-		//	}
+			TerrainData& terrainData = PlanetSystem::GetTerrainData();
 
-		//	return distance;
-		//}
+			WorldPosToHeightMapUV(tc.Translation, worldTranslation, terrainData.Width, terrainData.Height, u, v, radialDist);
+
+			// 2) Sample true surface radius at that UV
+			//    (heightData already encodes [minAlt..maxAlt], so
+			//     that value is the surface radius from center)
+			double height = SampleHeightBilinear(terrainData.HeightData, terrainData.Width, terrainData.Height, u, v);
+
+			// 3) Altitude = how far you are above that surface radius
+			return radialDist - (PlanetSystem::GetRadius() + height);
+		}
 
 		static void UpdateBody(Entity& body, float dt)
 		{

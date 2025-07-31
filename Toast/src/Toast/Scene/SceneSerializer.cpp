@@ -739,7 +739,7 @@ namespace Toast {
 		PlanetSystem::sAlbedoColor = planet["AlbedoColor"].as<DirectX::XMFLOAT3>();
 		PlanetSystem::sRoughness = planet["Roughness"].as<float>();
 		PlanetSystem::sMetalness = planet["Metalness"].as<float>();
-		PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(planet["HeightMapAssetPath"].as<std::string>());
+		PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(planet["HeightMapAssetPath"].as<std::string>(), false);
 		PlanetSystem::sStarFieldTexture2D = TextureLibrary::LoadTexture2D(planet["StarFieldAssetPath"].as<std::string>());
 
 		auto entities = data["Entities"];

@@ -510,7 +510,7 @@ namespace Toast {
 
 					InvalidateFrustum();
 
-					PlanetSystem::OnUpdate({ cameraPos }, cameraTransform);
+					PlanetSystem::OnUpdate({ cameraPos }, mainCamera->GetWorldTranslation(), cameraTransform);
 				}
 			}
 
@@ -1028,7 +1028,7 @@ namespace Toast {
 
 				InvalidateFrustum();
 
-				PlanetSystem::OnUpdate({ cameraPos }, mainCameraTransform->GetTransform());
+				PlanetSystem::OnUpdate({ cameraPos }, mainCameraComponent->Camera.GetWorldTranslation(), mainCameraTransform->GetTransform());
 			}
 		}
 

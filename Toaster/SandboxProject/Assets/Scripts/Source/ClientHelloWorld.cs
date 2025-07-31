@@ -6,13 +6,11 @@ class ClientHelloWorld : Entity
 
     private TagComponent mTag;
     private TransformComponent mTransform;
-    private PlanetComponent mPlanet;
 
     void OnCreate()
     {
         mTag = GetComponent<TagComponent>();
         mTransform = GetComponent<TransformComponent>();
-        mPlanet = GetComponent<PlanetComponent>();
 
         Toast.Console.LogInfo("Creating Entity: " + mTag.Tag);
     }
@@ -30,8 +28,6 @@ class ClientHelloWorld : Entity
         if(Input.GetMouseWheelDelta() != 0.0f)
             Toast.Console.LogInfo("Mouse wheel delta: " + Input.GetMouseWheelDelta());
         Input.SetMouseWheelDelta(0.0f);
-
-        Toast.Console.LogWarning("Planet Radius: " + mPlanet.Radius);
 
     }
 }

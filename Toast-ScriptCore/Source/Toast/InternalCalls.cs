@@ -43,6 +43,13 @@ namespace Toast
 
         #endregion
 
+        #region PhysicsEngine
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float PhysicsEngine_GetAltitude(ulong entityID);
+
+        #endregion
+
         #region Scene
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -62,6 +69,16 @@ namespace Toast
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern ulong[] Scene_GetEntitiesWithPrefab(string prefabName);
+
+        #endregion
+
+        #region Planet
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Planet_GetTranslation(out Vector3 outTranslation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Planet_SetTranslation(ref Vector3 inTranslation);
 
         #endregion
 
@@ -184,25 +201,6 @@ namespace Toast
         internal static extern IntPtr CameraComponent_GetWorldTranslation(ulong entityID, out Vector3 result);
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void CameraComponent_AddWorldTranslation(ulong entityID, ref Vector3 translationChange);
-
-        #endregion
-
-        #region Planet Component
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern IntPtr PlanetComponent_GetMesh(ulong entityID);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void PlanetComponent_SetMesh(ulong entityID, IntPtr unmanagedInstance);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void PlanetComponent_GeneratePlanet(ulong entityID, Vector3 cameraPos, Matrix4 cameraForward);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void PlanetComponent_GetRadius(ulong entityID, out float inScale);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void PlanetComponent_GetSubdivisions(ulong entityID, out int inScale);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern double[] PlanetComponent_GetDistanceLUT(ulong entityID);
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern double[] PlanetComponent_GetFaceLevelDotLUT(ulong entityID);
 
         #endregion
 

@@ -12,12 +12,14 @@ namespace Toast {
 		Quaternion(DirectX::XMFLOAT4 quat) : x(quat.x), y(quat.y), z(quat.z), w(quat.w) {}
 		Quaternion(DirectX::XMVECTOR quat);
 
-		Quaternion operator+(const Quaternion& rhs) const {
+		Quaternion operator+(const Quaternion& rhs) const
+		{
 			return Quaternion(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
 		}
 
 		// Multiplication of two quaternions
-		Quaternion operator*(const Quaternion& rhs) const {
+		Quaternion operator*(const Quaternion& rhs) const 
+		{
 			Quaternion q;
 			q.w = w * rhs.w - x * rhs.x - y * rhs.y - z * rhs.z;
 			q.x = w * rhs.x + x * rhs.w + y * rhs.z - z * rhs.y;

@@ -11,7 +11,6 @@ namespace Sandbox
         private TransformComponent mCameraTransform, mMarsTransform;
         private Vector3 mCameraOldRotation, mCameraOldTranslation, mMarsOldRotation, mMarsOldTranslation;
 
-        private PlanetComponent mPlanetComponent;
 
         void OnCreate()
         {
@@ -23,8 +22,6 @@ namespace Sandbox
 
             mMarsOldRotation = mMarsTransform.Rotation;
             mMarsOldTranslation = mMarsTransform.Translation;
-
-            mPlanetComponent = GetComponent<PlanetComponent>();
         }
 
         void OnClick()
@@ -35,7 +32,6 @@ namespace Sandbox
         {
             if (mCameraTransform.Rotation != mCameraOldRotation || mCameraTransform.Translation != mCameraOldTranslation || mMarsTransform.Rotation != mMarsOldRotation || mMarsTransform.Translation != mMarsTransform.Translation)
             {
-                mPlanetComponent.RegeneratePlanet(mCameraTransform.Translation, mCameraTransform.GetTransform());
             }
 
             mCameraOldRotation = mCameraTransform.Rotation; 

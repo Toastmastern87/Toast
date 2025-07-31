@@ -882,41 +882,6 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<TerrainColliderComponent>(ICON_TOASTER_GLOBE" Terrain Collider", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
-			{
-				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
-				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-
-				ImGui::BeginTable("##TerrainColliderTable", 3, flags);
-				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.6156f);
-				ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Height Map ");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (!component.Collider->mFilePath.empty())
-					ImGui::InputText("##heightmapfilepath", (char*)component.Collider->mFilePath.c_str(), 256, ImGuiInputTextFlags_ReadOnly);
-				else
-					ImGui::InputText("##heightmapfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
-				ImGui::TableSetColumnIndex(2);
-				if (ImGui::Button("...##openheightmapfilepath")) 
-				{
-					std::optional<std::string> filepath = FileDialogs::OpenFile("*.png", "..\\Toaster\\assets\\textures\\");
-
-					if (filepath) 
-					{
-						//PlanetComponent& pc = entity.GetComponent<PlanetComponent>();
-
-						//component.Collider->mFilePath = *filepath;
-						//PhysicsEngine::LoadTerrainData(component.Collider->mFilePath.c_str(), pc.PlanetData.maxAltitude, pc.PlanetData.minAltitude);
-					}
-				}
-
-				ImGui::EndTable();
-			});
-
 		DrawComponent<UIPanelComponent>(ICON_TOASTER_SQUARE_O" UI Panel", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;

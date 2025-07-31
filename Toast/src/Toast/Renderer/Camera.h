@@ -2,6 +2,8 @@
 
 #include <DirectXMath.h>
 
+#include "Toast/Core/Log.h"
+
 namespace Toast {
 
 	class Camera
@@ -16,7 +18,10 @@ namespace Toast {
 		void SetViewMatrix(DirectX::XMFLOAT4X4 viewMatrix) { mViewMatrix = viewMatrix; }
 		void SetInvViewMatrix(DirectX::XMFLOAT4X4 invViewMatrix) { mInvViewMatrix = invViewMatrix; }
 
-		void AddWorldTranslation(DirectX::XMFLOAT3 worldTranslation) { mWorldTranslation = { mWorldTranslation.x + worldTranslation.x, mWorldTranslation.y + worldTranslation.y , mWorldTranslation.z + worldTranslation.z }; }
+		void AddWorldTranslation(DirectX::XMFLOAT3 worldTranslation) 
+		{
+			mWorldTranslation = { mWorldTranslation.x + worldTranslation.x, mWorldTranslation.y + worldTranslation.y , mWorldTranslation.z + worldTranslation.z };
+		}
 		const DirectX::XMMATRIX& GetWorldTranslationMatrix() const { return DirectX::XMMatrixIdentity() * DirectX::XMMatrixTranslation(mWorldTranslation.x, mWorldTranslation.y, mWorldTranslation.z); }
 		DirectX::XMFLOAT3& GetWorldTranslation() { return mWorldTranslation; }
 

@@ -1,4 +1,4 @@
-#include "tpch.h"
+﻿#include "tpch.h"
 #include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/Texture.h"
 
@@ -46,10 +46,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
     }
 }
 
-	HRESULT LoadImageDataFromFile(const std::wstring& filename,
-		std::vector<uint8_t>& imageData,
-		UINT& width, UINT& height,
-		DXGI_FORMAT& format, UINT& rowPitch)
+	HRESULT LoadImageDataFromFile(const std::wstring& filename,	std::vector<uint8_t>& imageData, UINT& width, UINT& height,	DXGI_FORMAT& format, UINT& rowPitch)
 	{
 		using namespace Microsoft::WRL;
 
@@ -91,13 +88,32 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		if (FAILED(hr))
 			return hr;
 
+		ComPtr<IWICComponentInfo> ci;
+		factory->CreateComponentInfo(pixelFormat, &ci);
+
+		ComPtr<IWICPixelFormatInfo> pfi;
+		ci.As(&pfi);
+
+		UINT bpp = 0, channelCount = 0;
+		pfi->GetBitsPerPixel(&bpp);  
+		pfi->GetChannelCount(&channelCount);
+
 		// Decide on the desired format based on bit depth.
 		GUID desiredGUID;
 		if (bitsPerPixel == 32)
 		{
-			desiredGUID = GUID_WICPixelFormat32bppRGBA;
-			format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			rowPitch = width * 4; // 4 bytes per pixel.
+			if (channelCount == 1)
+			{
+				desiredGUID = GUID_WICPixelFormat16bppGray;
+				format = DXGI_FORMAT_R16_UNORM;   
+				rowPitch = width * 2;        
+			}
+			else 
+			{
+				desiredGUID = GUID_WICPixelFormat32bppRGBA;
+				format = DXGI_FORMAT_R8G8B8A8_UNORM;
+				rowPitch = width * 4; // 4 bytes per pixel.
+			}
 		}
 		else if (bitsPerPixel == 64)
 		{
@@ -121,8 +137,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 			if (FAILED(hr))
 				return hr;
 
-			hr = converter->Initialize(frame.Get(), desiredGUID,
-				WICBitmapDitherTypeNone, nullptr, 0.f, WICBitmapPaletteTypeCustom);
+			hr = converter->Initialize(frame.Get(), desiredGUID, WICBitmapDitherTypeNone, nullptr, 0.f, WICBitmapPaletteTypeCustom);
 			if (FAILED(hr))
 				return hr;
 

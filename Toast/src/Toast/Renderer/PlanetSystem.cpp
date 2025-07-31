@@ -228,7 +228,8 @@ namespace Toast {
 		/* --------------------------------------------------------- */
 		/* 1)    camera height and screen-error based *inner* limit  */
 		/* --------------------------------------------------------- */
-		double height = std::max(0.0, camPosPS.Length() - sRadius);
+		double lowestSurface = sRadius + sMinHeight;
+		double height = std::max(0.0, camPosPS.Length() - lowestSurface);
 		double height2 = height * height;
 
 		uint32_t first = 0;                                  // start with L0
@@ -304,15 +305,16 @@ namespace Toast {
 		return sPlanetLevelBuffer;
 	}
 
-	void PlanetSystem::OnUpdate(const Vector3& camPosWS, DirectX::XMMATRIX viewMatrix)
+	void PlanetSystem::OnUpdate(const Vector3& camPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		Quaternion rotation = Quaternion::FromRollPitchYaw(Math::DegreesToRadians(sRotationEulerAngles.x), Math::DegreesToRadians(sRotationEulerAngles.y), Math::DegreesToRadians(sRotationEulerAngles.z));
-		Quaternion invRotation = rotation.Conjugate();
+		mRotationQuat = Quaternion::FromRollPitchYaw(Math::DegreesToRadians(sRotationEulerAngles.x), Math::DegreesToRadians(sRotationEulerAngles.y), Math::DegreesToRadians(sRotationEulerAngles.z));
+		mRotationQuat = Quaternion::Normalize(mRotationQuat);
+		mInvRotationQuat = mRotationQuat.Conjugate();
 
-		Vector3 camRel = camPosWS - Vector3(sTranslation);
-		Vector3 camPosPS = Vector3::Rotate(camRel, invRotation);
+		Vector3 camRel = camPosWS - Vector3(sTranslation) - worldTranslation;
+		Vector3 camPosPS = Vector3::Rotate(camRel, mInvRotationQuat);
 
 		PlanetFrameCB cb{};
 		Vector3 centreCVd = Vector3(sTranslation);
@@ -322,9 +324,9 @@ namespace Toast {
 		cb.MinHeight = (float)sMinHeight;
 
 		// planet-fixed triad – ONLY the quaternion is involved
-		Vector3 lonEastWS = Vector3::Normalize(Vector3::Rotate({ 1,0,0 }, rotation)); // +longitude
-		Vector3 spinUpWS = Vector3::Normalize(Vector3::Rotate({ 0,1,0 }, rotation)); // spin axis
-		Vector3 lonNorthWS = Vector3::Normalize(Vector3::Rotate({ 0,0,1 }, rotation));
+		Vector3 lonEastWS = Vector3::Normalize(Vector3::Rotate({ 1,0,0 }, mRotationQuat)); // +longitude
+		Vector3 spinUpWS = Vector3::Normalize(Vector3::Rotate({ 0,1,0 }, mRotationQuat)); // spin axis
+		Vector3 lonNorthWS = Vector3::Normalize(Vector3::Rotate({ 0,0,1 }, mRotationQuat));
 
 		// camera-dependent radial, kept for lifting the grid
 		Vector3 radUpWS = Vector3::Normalize(camPosWS - Vector3(sTranslation));
@@ -340,14 +342,14 @@ namespace Toast {
 		Vector3 tanNorthWS = Vector3::Normalize(Vector3::Cross(radUpWS, tanEastWS));
 
 		// to VIEW space (for the shader math)
-		auto ToView = [&](const DirectX::XMFLOAT3& vWS)
-			{
-				DirectX::XMVECTOR v = DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&vWS), viewMatrix);
+		//auto ToView = [&](const DirectX::XMFLOAT3& vWS)
+		//	{
+		//		DirectX::XMVECTOR v = DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&vWS), viewMatrix);
 
-				DirectX::XMFLOAT3 ret;
-				DirectX::XMStoreFloat3(&ret, v);
-				return ret;
-			};
+		//		DirectX::XMFLOAT3 ret;
+		//		DirectX::XMStoreFloat3(&ret, v);
+		//		return ret;
+		//	};
 
 		cb.BasisTanEast = DirectX::XMFLOAT3({ (float)tanEastWS.x, (float)tanEastWS.y, (float)tanEastWS.z });
 		cb.BasisTanNorth = DirectX::XMFLOAT3({ (float)tanNorthWS.x, (float)tanNorthWS.y, (float)tanNorthWS.z });
@@ -356,6 +358,10 @@ namespace Toast {
 		cb.BasisLonEast = DirectX::XMFLOAT3({ (float)lonEastWS.x, (float)lonEastWS.y, (float)lonEastWS.z });
 		cb.BasisLonNorth = DirectX::XMFLOAT3({ (float)lonNorthWS.x, (float)lonNorthWS.y, (float)lonNorthWS.z });
 		cb.BasisSpinUp = DirectX::XMFLOAT3({ (float)spinUpWS.x, (float)spinUpWS.y, (float)spinUpWS.z });
+
+		sBasisLonEast = cb.BasisLonEast;
+		sBasisLonNorth = cb.BasisLonNorth;
+		sBasisSpinUp = cb.BasisSpinUp;
 
 		sPlanetFrameBuffer.Write(reinterpret_cast<uint8_t*>(&cb), sizeof(cb), 0);
 

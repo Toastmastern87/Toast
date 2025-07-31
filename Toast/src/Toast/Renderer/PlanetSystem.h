@@ -353,6 +353,8 @@ namespace Toast {
 		static inline DirectX::XMFLOAT3 sTranslation = { 0.0f, 0.0f, 0.0f };
 		static inline DirectX::XMFLOAT3 sRotationEulerAngles = { 0.0f, 0.0f, 0.0f };
 		static inline DirectX::XMFLOAT4 sRotationQuaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
+		static inline Quaternion mRotationQuat;
+		static inline Quaternion mInvRotationQuat;
 
 		// GPU Data
 		static inline Ref<VertexBuffer> sGridVertexBuffer;
@@ -372,6 +374,9 @@ namespace Toast {
 		static inline double sRadius = 0.0;
 		static inline double sMaxHeight = 0.0;
 		static inline double sMinHeight = 0.0;
+		static inline DirectX::XMFLOAT3 sBasisLonEast;
+		static inline DirectX::XMFLOAT3 sBasisLonNorth;
+		static inline DirectX::XMFLOAT3 sBasisSpinUp;
 		static inline std::vector<double> sDistanceLUT;
 		static inline Texture2D* sBaseHeightMapTexture;
 		static inline TerrainData sTerrainData;
@@ -406,7 +411,18 @@ namespace Toast {
 		static void UpdateLevelOrigins(const Vector3& camPosPlanet);
 		static Buffer& PlanetSystem::BuildLevelCB(uint32_t L);
 
-		static void OnUpdate(const Vector3& camPosWS, DirectX::XMMATRIX viewMatrix);
+		static void OnUpdate(const Vector3& camPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix);
+
+		static DirectX::XMFLOAT3& GetTranslation() { return sTranslation; }
+		static Quaternion GetRotation() { return mRotationQuat; }
+		static Quaternion GetInvRotation() { return mInvRotationQuat; }
+
+		static double GetRadius() { return sRadius; }
+		static double GetMaxHeight() { return sMaxHeight; }
+		static double GetMinHeight() { return sMinHeight; }
+		static DirectX::XMFLOAT3& GetBasisLonEast() { return sBasisLonEast; }
+		static DirectX::XMFLOAT3& GetBasisLonNorth() { return sBasisLonNorth; }
+		static DirectX::XMFLOAT3& GetBasisSpinUp() { return sBasisSpinUp; }
 
 		static bool AtmosphereActivated() { return sAtmosphereActivated; }
 		static bool IsValid() { return sValidPlanet; }
@@ -434,6 +450,8 @@ namespace Toast {
 
 		static Texture2D* GetStarFieldTexture2D() { return sStarFieldTexture2D; }
 		static Ref<TextureCube> GetStarFieldTextureCube() { return sStarFieldTextureCube; }
+
+		static TerrainData& GetTerrainData() { return sTerrainData; }
 
 		// These functions are used to update the active leaves during runtime.
 		static void BuildPhysicsNodes(Matrix& planetNoScaleTransform);
