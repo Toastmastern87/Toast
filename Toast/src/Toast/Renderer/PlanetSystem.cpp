@@ -225,33 +225,29 @@ namespace Toast {
 
 	LODDrawInfo PlanetSystem::DetermineActiveLODLevels(const Vector3& camPosPS)
 	{
-		double lowestSurface = sRadius + sMinHeight;
-		double highestSurface = sRadius + sMaxHeight;
-		double height = std::max(0.0, camPosPS.Length() - lowestSurface);
-		double height2 = height * height;
+		double camHeight = std::max(0.0, camPosPS.Length() - sRadius); 
+		double heightSq = camHeight * camHeight;
 
 		uint32_t first = 0;                               
-		while (first + 1 < sNumLevels && height2 > sDistanceLUT[first])             
+		while (first + 1 < sNumLevels && heightSq > sDistanceLUT[first])
 			++first;                                         
 
-		double horizonHeight = std::max(0.0, camPosPS.Length() - highestSurface);
-		double horizon = std::sqrt(horizonHeight * (2.0 * highestSurface + horizonHeight));
+		// How far can the player see
+		const double dObserver = std::sqrt(camHeight * (2.0 * sRadius + camHeight));         // camera’s horizon
+		const double dPeak = std::sqrt(sMaxHeight * (2.0 * sRadius + sMaxHeight));           // extra for peaks
+		double horizon = dObserver + dPeak;
 
 		uint32_t last = first;                              // we already keep it
 		double   cell = double(1u << first);                // metres / texel
 		double   half = 0.5 * (sGridSize - 1) * cell;       // half-width
 
-		while (half < horizon                             // not wide enough
-			&& last + 1 < sNumLevels)                     // still have rings
+		while (half < horizon && last + 1 < sNumLevels)                     // still have rings
 		{
 			++last;                                          // add next ring
 			cell *= 2.0;
 			half *= 2.0;
 		}
 
-		/* --------------------------------------------------------- */
-		/* 3)    remember the range for the rest of the frame        */
-		/* --------------------------------------------------------- */
 		sActiveLevels.first = first;               // finest level to draw
 		sActiveLevels.count = last - first + 1;    // how many in total
 		return sActiveLevels;
