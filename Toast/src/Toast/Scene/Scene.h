@@ -60,7 +60,7 @@ namespace Toast {
 			bool RenderColliders = false;
 			bool RenderUI = true;
 			bool Shadows = true;
-			bool SSAO = true;
+			bool SSAO = false;
 			bool SSAODebugging = false;
 			float SSAORadius = 0.5f;
 			float SSAObias = 0.025f;

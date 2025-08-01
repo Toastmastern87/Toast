@@ -61,7 +61,6 @@ namespace Sandbox
             float newCameraFar = minCameraFar + (maxCameraFar - minCameraFar) * tCamera;
             mCameraComponent.FarClip = 2000000.0f;// newCameraFar;
 
-            // Toast.Console.LogTrace("Altitude at start of Update: " + altitude + ", mCollider.ReqAltitude: " + mCollider.ReqAltitude);
             mCameraTransform = GetComponent<TransformComponent>().GetTransform();
             mCameraRightVector = new Vector3(mCameraTransform.D00, mCameraTransform.D10, mCameraTransform.D20);
             mCameraForwardVector = new Vector3(mCameraTransform.D02, mCameraTransform.D12, mCameraTransform.D22);
@@ -98,20 +97,11 @@ namespace Sandbox
                 newAltitude = Clamp(altitude + deltaAltitude, MinAltitude, MaxAltitude);
                 deltaAltitude = altitude - newAltitude;
 
-                //altitude = newAltitude;
-
                 if (Math.Abs(deltaAltitude) > 0.0001f || scrollDelta > 0.0f)
                 {
                     Vector3 normalizedDirection = Vector3.Normalize(Planet.Translation);
 
-                    Toast.Console.LogCritical("altitude: " + altitude);
-                    //Toast.Console.LogCritical("zoomSpeed: " + zoomSpeed + ", scroll delta: " + scrollDelta + ", (ts / Scene.TimeScale): " + (ts / Scene.TimeScale));
-                    //Toast.Console.LogCritical("deltaAltitude: " + deltaAltitude + ", MinAltitude: " + MinAltitude + ", MaxAltitude: " + MaxAltitude);
-
-                    //Toast.Console.LogCritical((normalizedDirection * -deltaAltitude).ToString());
                     mCameraComponent.AddWorldMovement(normalizedDirection * -deltaAltitude);
-
-                    //Toast.Console.LogTrace(mCameraComponent.WorldTranslation.ToString());
                 }
             }
 

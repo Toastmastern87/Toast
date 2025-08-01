@@ -225,22 +225,17 @@ namespace Toast {
 
 	LODDrawInfo PlanetSystem::DetermineActiveLODLevels(const Vector3& camPosPS)
 	{
-		/* --------------------------------------------------------- */
-		/* 1)    camera height and screen-error based *inner* limit  */
-		/* --------------------------------------------------------- */
 		double lowestSurface = sRadius + sMinHeight;
+		double highestSurface = sRadius + sMaxHeight;
 		double height = std::max(0.0, camPosPS.Length() - lowestSurface);
 		double height2 = height * height;
 
-		uint32_t first = 0;                                  // start with L0
-		while (first + 1 < sNumLevels                     // leave room
-			&& height2 > sDistanceLUT[first])             // too much error?
-			++first;                                         // skip finer ring
+		uint32_t first = 0;                               
+		while (first + 1 < sNumLevels && height2 > sDistanceLUT[first])             
+			++first;                                         
 
-		/* --------------------------------------------------------- */
-		/* 2)    horizon based *outer* limit                        */
-		/* --------------------------------------------------------- */
-		double horizon = std::sqrt(height * (2.0 * sRadius + height));
+		double horizonHeight = std::max(0.0, camPosPS.Length() - highestSurface);
+		double horizon = std::sqrt(horizonHeight * (2.0 * highestSurface + horizonHeight));
 
 		uint32_t last = first;                              // we already keep it
 		double   cell = double(1u << first);                // metres / texel
