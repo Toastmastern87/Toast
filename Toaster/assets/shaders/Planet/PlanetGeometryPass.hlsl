@@ -232,34 +232,45 @@ float3 ToWorld(float3 v)        // v is expressed in {east, up, north}
            v.z * BasisLonNorth;
 }
 
-// Call this *instead* of face‐averaging
 float3 AnalyticalNormal(float2 uv)
 {
     uint texWidth, texHeight;
     HeightMapTexture.GetDimensions(texWidth, texHeight);
-    
+
     float u = 1.0f / texWidth;
     float v = 1.0f / texHeight;
-    
-    // 1) base + neighbor heights
+
+    // base + neighbour heights
     float h0 = SampleHeight(uv);
     float hU = SampleHeight(uv + float2(u, 0));
     float hV = SampleHeight(uv + float2(0, v));
 
-    // 2) parameterize sphere direction from uv
+    // 2) recover longitude / latitude
     float lon = (uv.x - 0.5) * 2 * PI;
-    float lat = (uv.y - 0.5) * PI;
-    float3 S = float3(cos(lat) * sin(lon), sin(lat), cos(lat) * cos(lon));
+    float lat = (0.5 - uv.y) * PI;
 
-    // 3) partials ∂S/∂lon, ∂S/∂lat
-    float3 dSdlon = float3(cos(lat) * cos(lon), 0, -cos(lat) * sin(lon));
-    float3 dSdlat = float3(-sin(lat) * sin(lon), cos(lat), -sin(lat) * cos(lon));
+    // ───── ①  correct inverse mapping  ─────
+    float cosLat = cos(lat);
+    float sinLat = sin(lat);
+    float cosLon = cos(lon);
+    float sinLon = sin(lon);
 
+    // east (+X), up (+Y spin-axis), north (+Z)     (matches SphereUV)
+    float3 S = float3(cosLat * cosLon, // x
+                       sinLat, // y
+                       cosLat * sinLon); // z
+
+    // ───── ②  correct partial derivatives  ─────
+    float3 dSdlon = float3(-cosLat * sinLon, 0.0, cosLat * cosLon);
+
+    float3 dSdlat = float3(-sinLat * cosLon, cosLat, -sinLat * sinLon);
+
+    // bring everything to WORLD space
     float3 SWS = ToWorld(S);
     float3 dSdlonWS = ToWorld(dSdlon);
     float3 dSdlatWS = ToWorld(dSdlat);
-    
-    // 4) chain‐rule for P(u,v)=(R+h)·S
+
+    // 4) chain rule for   P(u,v) = (R+h)·S
     float dlon = u * 2 * PI;
     float dlat = v * PI;
     float dhdlon = (hU - h0) / dlon;
@@ -269,7 +280,6 @@ float3 AnalyticalNormal(float2 uv)
     float3 Pu = (R + h0) * dSdlonWS + dhdlon * SWS;
     float3 Pv = (R + h0) * dSdlatWS + dhdlat * SWS;
 
-    // 5) exact normal
     return normalize(cross(Pv, Pu));
 }
 
@@ -285,11 +295,11 @@ PixelOutputType main(PixelInputType input)
     float3 nSphereWS = normalize(input.normalSphereWS);
 
     float2 uv = SphereUV(nSphereWS); // same helper you already have
-    float3 nWS = AnalyticalNormal(uv); // 2 extra height samples
+    float3 nWS = AnalyticalNormal(uv); // 2 extra height samples    
     float3 nVS = normalize(mul(nWS, (float3x3) viewMatrix));
     
     output.position = float4(input.viewPosition, 1.0);
-    output.normal = float4(nVS * 0.5f + 0.5f, -1);
+    output.normal = float4(nVS * 0.5f + 0.5f, 1.0f);
 
     /*--------------------------------------------------------------*/
     /* 2) albedo + metallic                                         */

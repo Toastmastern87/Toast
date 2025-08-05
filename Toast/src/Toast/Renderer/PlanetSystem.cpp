@@ -307,6 +307,14 @@ namespace Toast {
 		Vector3 camRel = camPosWS - Vector3(sTranslation) - worldTranslation;
 		Vector3 camPosPS = Vector3::Rotate(camRel, mInvRotationQuat);
 
+		DirectX::XMVECTOR qInv = DirectX::XMVectorSet(
+			mInvRotationQuat.x,
+			mInvRotationQuat.y,
+			mInvRotationQuat.z,
+			mInvRotationQuat.w);
+
+		DirectX::XMMATRIX rotM = DirectX::XMMatrixRotationQuaternion(qInv);
+
 		PlanetFrameCB cb{};
 		Vector3 centreCVd = Vector3(sTranslation);
 		cb.Center = DirectX::XMFLOAT3((float)centreCVd.x, (float)centreCVd.y, (float)centreCVd.z);
@@ -331,16 +339,6 @@ namespace Toast {
 
 		// 1.4   tangent north = radial × tangent-east
 		Vector3 tanNorthWS = Vector3::Normalize(Vector3::Cross(radUpWS, tanEastWS));
-
-		// to VIEW space (for the shader math)
-		//auto ToView = [&](const DirectX::XMFLOAT3& vWS)
-		//	{
-		//		DirectX::XMVECTOR v = DirectX::XMVector3TransformNormal(DirectX::XMLoadFloat3(&vWS), viewMatrix);
-
-		//		DirectX::XMFLOAT3 ret;
-		//		DirectX::XMStoreFloat3(&ret, v);
-		//		return ret;
-		//	};
 
 		cb.BasisTanEast = DirectX::XMFLOAT3({ (float)tanEastWS.x, (float)tanEastWS.y, (float)tanEastWS.z });
 		cb.BasisTanNorth = DirectX::XMFLOAT3({ (float)tanNorthWS.x, (float)tanNorthWS.y, (float)tanNorthWS.z });
