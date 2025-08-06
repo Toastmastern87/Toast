@@ -21,7 +21,7 @@ namespace Toast {
 
 		void SetContext(Scene* context, WindowsWindow* window);
 
-		void OnImGuiRender(std::string& activeDragArea);
+		void OnImGuiRender(bool* showPanel, std::string& activeDragArea);
 
 		SelectionMode GetSelectionMode() { return mSelectionMode; }
 	private:

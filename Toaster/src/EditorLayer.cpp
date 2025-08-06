@@ -194,13 +194,13 @@ namespace Toast {
 				ImGui::SetNextWindowViewport(viewport->ID);
 				ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 				ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-				window_flags |= ImGuiWindowFlags_NoTitleBar 
-					| ImGuiWindowFlags_NoCollapse 
-					| ImGuiWindowFlags_NoResize 
-					| ImGuiWindowFlags_NoMove 
-					| ImGuiWindowFlags_NoBringToFrontOnFocus 
-					| ImGuiWindowFlags_NoNavFocus 
-					| ImGuiWindowFlags_NoScrollbar 
+				window_flags |= ImGuiWindowFlags_NoTitleBar
+					| ImGuiWindowFlags_NoCollapse
+					| ImGuiWindowFlags_NoResize
+					| ImGuiWindowFlags_NoMove
+					| ImGuiWindowFlags_NoBringToFrontOnFocus
+					| ImGuiWindowFlags_NoNavFocus
+					| ImGuiWindowFlags_NoScrollbar
 					| ImGuiWindowFlags_NoScrollWithMouse;
 			}
 
@@ -246,8 +246,8 @@ namespace Toast {
 			style.WindowMinSize.x = 370.0f;
 
 			ImGui::BeginChild("DockSpaceRegion", ImVec2(0, 0), false,
-				ImGuiWindowFlags_NoScrollbar 
-				| ImGuiWindowFlags_NoScrollWithMouse 
+				ImGuiWindowFlags_NoScrollbar
+				| ImGuiWindowFlags_NoScrollWithMouse
 				| ImGuiWindowFlags_NoDecoration);
 
 			if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
@@ -265,7 +265,7 @@ namespace Toast {
 
 			ImGui::SetNextWindowClass(&windowClass);
 
-			mSceneSettingsPanel.OnImGuiRender(mActiveDragArea);
+			mSceneSettingsPanel.OnImGuiRender(&mShowSceneSettingsPopup, mActiveDragArea);
 			mSceneHierarchyPanel.OnImGuiRender();
 			mMaterialPanel.OnImGuiRender();
 			mEnvironmentPanel.OnImGuiRender();
@@ -299,7 +299,7 @@ namespace Toast {
 
 			SceneManager::GetActiveScene()->SetViewportBounds(mViewportBounds);
 
-			if(mViewportSize.x != mPreviousViewportSize.x || mViewportSize.y != mPreviousViewportSize.y)
+			if (mViewportSize.x != mPreviousViewportSize.x || mViewportSize.y != mPreviousViewportSize.y)
 				Renderer::OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
 			void* textureID = nullptr;
@@ -347,7 +347,7 @@ namespace Toast {
 			Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRT();
 			ImGui::Image(textureID, ImVec2{ mViewportSize.x, mViewportSize.y });
 
-			if (ImGui::BeginDragDropTarget()) 
+			if (ImGui::BeginDragDropTarget())
 			{
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 				{
@@ -371,6 +371,31 @@ namespace Toast {
 				}
 
 				ImGui::EndDragDropTarget();
+			}
+
+			if (mSceneState == SceneState::Edit)
+			{
+				// Overlay icons for quick settings access
+				ImVec2 viewportImageMin = ImGui::GetItemRectMin();
+				ImVec2 viewportImageMax = ImGui::GetItemRectMax();
+				float overlayPadding = 10.0f;
+				float iconSize = 30.0f;
+
+				ImGui::PushFont(io.Fonts->Fonts[3]);
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1, 1, 1, 0.25f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1, 1, 1, 0.5f));
+
+				ImGui::SetCursorScreenPos(ImVec2(viewportImageMin.x + overlayPadding, viewportImageMin.y + overlayPadding));
+				if (ImGui::Button(ICON_TOASTER_GLOBE, ImVec2(iconSize, iconSize)))
+					mShowPlanetPopup = true;
+
+				ImGui::SetCursorScreenPos(ImVec2(viewportImageMax.x - iconSize - overlayPadding, viewportImageMin.y + overlayPadding));
+				if (ImGui::Button(ICON_TOASTER_COG, ImVec2(iconSize, iconSize)))
+					mShowSceneSettingsPopup = true;
+
+				ImGui::PopStyleColor(3);
+				ImGui::PopFont();
 			}
 
 			// Gizmos
@@ -570,14 +595,6 @@ namespace Toast {
 				{
 					if (ImGui::MenuItem("Reload Assembly", "Ctrl+R"))
 						ScriptEngine::ReloadAssembly();
-					ImGui::EndMenu();
-				}
-
-				ImGui::SameLine(0, gapBetweenMenus);
-				if (ImGui::BeginMenu("Planet"))
-				{
-					mShowPlanetPopup = true;
-						
 					ImGui::EndMenu();
 				}
 

@@ -307,14 +307,6 @@ namespace Toast {
 		Vector3 camRel = camPosWS - Vector3(sTranslation) - worldTranslation;
 		Vector3 camPosPS = Vector3::Rotate(camRel, mInvRotationQuat);
 
-		DirectX::XMVECTOR qInv = DirectX::XMVectorSet(
-			mInvRotationQuat.x,
-			mInvRotationQuat.y,
-			mInvRotationQuat.z,
-			mInvRotationQuat.w);
-
-		DirectX::XMMATRIX rotM = DirectX::XMMatrixRotationQuaternion(qInv);
-
 		PlanetFrameCB cb{};
 		Vector3 centreCVd = Vector3(sTranslation);
 		cb.Center = DirectX::XMFLOAT3((float)centreCVd.x, (float)centreCVd.y, (float)centreCVd.z);
@@ -328,7 +320,7 @@ namespace Toast {
 		Vector3 lonNorthWS = Vector3::Normalize(Vector3::Rotate({ 0,0,1 }, mRotationQuat));
 
 		// camera-dependent radial, kept for lifting the grid
-		Vector3 radUpWS = Vector3::Normalize(camPosWS - Vector3(sTranslation));
+		Vector3 radUpWS = Vector3::Normalize(camRel);// Vector3::Normalize(camPosWS - Vector3(sTranslation));
 
 		// 1.3   project planet-east into the tangent plane → tangent east
 		Vector3 tanEastWS = lonEastWS - radUpWS * Vector3::Dot(lonEastWS, radUpWS);

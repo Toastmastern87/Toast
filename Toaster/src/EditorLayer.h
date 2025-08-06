@@ -96,6 +96,7 @@ namespace Toast {
 		int mGizmoType = -1;
 
 		bool mShowNewProjectPopup = false;
+		bool mShowSceneSettingsPopup = false;
 		bool mShowPlanetPopup = false;
 
 		// Panels

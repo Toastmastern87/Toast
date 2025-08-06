@@ -14,6 +14,8 @@ namespace Sandbox
         public float ZoomFactor = 1.5f;
         public float ReferenceAltitude = 1000.0f;
 
+        public float BaseMovementSpeed = 500.0f;
+
         private TransformComponent mCameraTransformComponent;
         private CameraComponent mCameraComponent;
         private Vector3 mCameraRightVector;
@@ -131,10 +133,8 @@ namespace Sandbox
                 // Normalize to have consistent movement speed when moving diagonally.
                 keyboardDirection = Vector3.Normalize(keyboardDirection);
 
-                float baseMovementSpeed = 500.0f;
-
                 // Increase the speed with altitude so that at higher altitudes the camera travels faster.
-                float keyboardSpeed = baseMovementSpeed * (1.0f + altitude / (ReferenceAltitude * 0.2f));
+                float keyboardSpeed = BaseMovementSpeed * (1.0f + altitude / (ReferenceAltitude * 0.2f));
 
                 // Calculate the movement vector scaled by time
                 Vector3 keyboardMovement = keyboardDirection * keyboardSpeed * (ts / Scene.TimeScale);
