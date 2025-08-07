@@ -349,6 +349,7 @@ namespace Toast {
 		static inline int32_t sTempNumLevels;
 		static inline std::vector<ClipLevel> sLevels;
 		static inline LODDrawInfo sActiveLevels;
+		static inline bool sRunOnce = false;
 
 		static inline DirectX::XMFLOAT3 sTranslation = { 0.0f, 0.0f, 0.0f };
 		static inline DirectX::XMFLOAT3 sRotationEulerAngles = { 0.0f, 0.0f, 0.0f };

@@ -355,7 +355,12 @@ namespace Toast {
 		const uint32_t Ln = L0 + sActiveLevels.count;
 
 		Vector3 camTangent = { Vector3::Dot(camRel, tanEastWS), 0.0, Vector3::Dot(camRel, tanNorthWS) };
-		UpdateLevelOrigins(camTangent);
+
+		if (!sRunOnce)
+		{
+			UpdateLevelOrigins(camTangent);
+			sRunOnce = true;
+		}
 
 		for (uint32_t L = 0; L < sNumLevels; ++L)
 			sLevels[L].InFrustum = (L >= L0 && L < Ln);;
