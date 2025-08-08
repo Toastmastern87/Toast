@@ -27,6 +27,17 @@ namespace Toast {
 			const int EntityID;
 		};
 
+		struct DrawCommandPlanet 
+		{
+		public:
+			DrawCommandPlanet() = default;
+			DrawCommandPlanet(const Ref<Planet> planet, const bool wireframe)
+				: Planet(planet), Wireframe(wireframe) {}
+		public:
+			Ref<Planet> Planet{};
+			bool Wireframe = false;
+		};
+
 		struct RendererData
 		{
 			DirectX::XMFLOAT4 CameraPos;
@@ -59,6 +70,7 @@ namespace Toast {
 			} PlanetData;
 
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshWireframeDrawList, MeshNoWireframeDrawList;
+			DrawCommandPlanet PlanetDraw;
 
 			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, EnvironmentCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer, SpecularMapFilterSettingsCBuffer, SSAOCBuffer, GodRaysCBuffer;
 			Buffer CameraBuffer, LightningBuffer, EnvironmentBuffer, RenderSettingsBuffer, AtmosphereBuffer, ModelBuffer, MaterialBuffer, SpecularMapFilterSettingsBuffer, SSAOBuffer, GodRaysBuffer;
@@ -160,6 +172,7 @@ namespace Toast {
 		static void SubmitSkybox(const DirectX::XMFLOAT4& cameraPos, const DirectX::XMFLOAT4X4& viewMatrix, const DirectX::XMFLOAT4X4& projectionMatrix, float intensity, float LOD);
 		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe = false, int noWorldTransform = 0, bool atmosphere = false);
 		static void SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false);
+		static void SubmitPlanet(const Ref<Planet> planet, bool wireframe = false);
 
 		static void DrawFullscreenQuad();
 

@@ -10,6 +10,8 @@
 
 #include <chrono>
 
+#pragma message("PlanetSystem.cpp is being compiled!")
+
 namespace Toast {
 
 	static inline uint32_t V(uint32_t x, uint32_t y, uint32_t N)
@@ -17,7 +19,12 @@ namespace Toast {
 		return y * N + x;       
 	}
 
-	void PlanetSystem::Initialize()
+	Planet::Planet()
+	{
+
+	}
+
+	void Planet::Initialize()
 	{
 		// Setting up Shader Layout
 		std::vector<ShaderLayout::ShaderInputElement> planetElements;
@@ -29,40 +36,40 @@ namespace Toast {
 
 		ID3D10Blob* vsBlob = planetGPassShader->GetVSRaw();
 
-		sShaderInputLayout = ShaderLayout(planetElements, vsBlob);
+		mShaderInputLayout = ShaderLayout(planetElements, vsBlob);
 
 		// Setting up Constant Buffers
-		sPlanetFrameCBuffer = ConstantBufferLibrary::Load("PlanetFrame", 112, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetFrame), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::PlanetFrame) });
-		sPlanetFrameCBuffer->Bind();
-		sPlanetFrameBuffer.Allocate(sPlanetFrameCBuffer->GetSize());
-		sPlanetFrameBuffer.ZeroInitialize();
+		mPlanetFrameCBuffer = ConstantBufferLibrary::Load("PlanetFrame", 112, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetFrame), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::PlanetFrame) });
+		mPlanetFrameCBuffer->Bind();
+		mPlanetFrameBuffer.Allocate(mPlanetFrameCBuffer->GetSize());
+		mPlanetFrameBuffer.ZeroInitialize();
 
-		sPlanetLevelCBuffer = ConstantBufferLibrary::Load("PlanetLevel", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetLevel), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::PlanetLevel) });
-		sPlanetLevelCBuffer->Bind();
-		sPlanetLevelBuffer.Allocate(sPlanetLevelCBuffer->GetSize());
-		sPlanetLevelBuffer.ZeroInitialize();
+		mPlanetLevelCBuffer = ConstantBufferLibrary::Load("PlanetLevel", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetLevel), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::PlanetLevel) });
+		mPlanetLevelCBuffer->Bind();
+		mPlanetLevelBuffer.Allocate(mPlanetLevelCBuffer->GetSize());
+		mPlanetLevelBuffer.ZeroInitialize();
 
-		sBaseHeightMapTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
+		mBaseHeightMapTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 
-		sStarFieldTexture2D = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
+		mStarFieldTexture2D = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 
-		sStarFieldTextureCube = CreateRef<TextureCube>(DXGI_FORMAT_R16G16B16A16_UNORM, DXGI_FORMAT_UNKNOWN, 2048, 2048, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE |
+		mStarFieldTextureCube = CreateRef<TextureCube>(DXGI_FORMAT_R16G16B16A16_UNORM, DXGI_FORMAT_UNKNOWN, 2048, 2048, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE |
 			D3D11_BIND_UNORDERED_ACCESS |
 			D3D11_BIND_RENDER_TARGET), 1, 0, 0);
 
-		sStarFieldTextureCube->CreateUAV(0);
+		mStarFieldTextureCube->CreateUAV(0);
 	}
 
-	void PlanetSystem::InitializeLevels()
+	void Planet::InitializeLevels()
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		TOAST_CORE_CRITICAL("Initializing levels Levels!");
 
-		sLevels.assign(sNumLevels, {}); 
+		mLevels.assign(mNumLevels, {}); 
 	}
 
-	void PlanetSystem::RebuildGrid()
+	void Planet::RebuildGrid()
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -71,7 +78,7 @@ namespace Toast {
 		std::vector<uint16_t> vertices;                 // gx,gy packed as uint16
 		std::vector<uint32_t> indices;
 
-		const uint32_t N = sGridSize;     // 257, 513 …
+		const uint32_t N = mGridSize;     // 257, 513 …
 		const uint32_t cells = N - 1;
 		const uint32_t w = cells / 4;     // 64, 128 …
 
@@ -100,16 +107,16 @@ namespace Toast {
 			for (uint32_t x = border; x < cells - border; ++x)
 				emit(x, y);
 
-		sGridIndexCount = (uint32_t)indices.size();
-		sGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), (uint32_t)vertices.size() * sizeof(uint16_t), (uint32_t)vertices.size() / 2, 0, D3D11_USAGE_IMMUTABLE);
-		sCenterGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), sGridIndexCount);
+		mGridIndexCount = (uint32_t)indices.size();
+		mGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), (uint32_t)vertices.size() * sizeof(uint16_t), (uint32_t)vertices.size() / 2, 0, D3D11_USAGE_IMMUTABLE);
+		mCenterGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), mGridIndexCount);
 
-		sValidPlanet = true;
+		mValidPlanet = true;
 	}
 
-	void PlanetSystem::RebuildRingGridIndices()
+	void Planet::RebuildRingGridIndices()
 	{
-		const uint32_t N = sGridSize;          // 257
+		const uint32_t N = mGridSize;          // 257
 		const uint32_t cells = N - 1;              // 256
 		const uint32_t w = cells / 4;          // 64  (kept for clarity)
 
@@ -142,16 +149,16 @@ namespace Toast {
 					emit(x, y);
 			}
 
-		sRingGridIndexCount = static_cast<uint32_t>(idx.size());
-		sRingGridIndexBuffer = CreateRef<IndexBuffer>(idx.data(), sRingGridIndexCount);
+		mRingGridIndexCount = static_cast<uint32_t>(idx.size());
+		mRingGridIndexBuffer = CreateRef<IndexBuffer>(idx.data(), mRingGridIndexCount);
 	}
 
-	void PlanetSystem::RebuildLODEdgeGrid()
+	void Planet::RebuildLODEdgeGrid()
 	{
 		std::vector<uint16_t> vertices;  
 		std::vector<uint32_t> indices;
 
-		const uint32_t cells = sGridSize - 1;  
+		const uint32_t cells = mGridSize - 1;  
 		const uint32_t lenFine = cells;           
 		const uint32_t lenCoarse = lenFine / 2 + 1; 
 
@@ -217,49 +224,49 @@ namespace Toast {
 		}
 
 		const uint32_t vbSize = static_cast<uint32_t>(vertices.size()) * sizeof(uint16_t);
-		sLODGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), vbSize, static_cast<uint32_t>(vertices.size() / 2), 0, D3D11_USAGE_IMMUTABLE);
+		mLODGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), vbSize, static_cast<uint32_t>(vertices.size() / 2), 0, D3D11_USAGE_IMMUTABLE);
 
-		sLODGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), static_cast<uint32_t>(indices.size()));
-		sLODGridIndexCount = static_cast<uint32_t>(indices.size());
+		mLODGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), static_cast<uint32_t>(indices.size()));
+		mLODGridIndexCount = static_cast<uint32_t>(indices.size());
 	}
 
-	LODDrawInfo PlanetSystem::DetermineActiveLODLevels(const Vector3& camPosPS)
+	LODDrawInfo Planet::DetermineActiveLODLevels(const Vector3& camPosPS)
 	{
-		double camHeight = std::max(0.0, camPosPS.Length() - sRadius); 
+		double camHeight = std::max(0.0, camPosPS.Length() - mRadius); 
 		double heightSq = camHeight * camHeight;
 
 		uint32_t first = 0;                               
-		while (first + 1 < sNumLevels && heightSq > sDistanceLUT[first])
+		while (first + 1 < mNumLevels && heightSq > mDistanceLUT[first])
 			++first;                                         
 
 		// How far can the player see
-		const double dObserver = std::sqrt(camHeight * (2.0 * sRadius + camHeight));         // camera’s horizon
-		const double dPeak = std::sqrt(sMaxHeight * (2.0 * sRadius + sMaxHeight));           // extra for peaks
+		const double dObserver = std::sqrt(camHeight * (2.0 * mRadius + camHeight));         // camera's horizon
+		const double dPeak = std::sqrt(mMaxHeight * (2.0 * mRadius + mMaxHeight));           // extra for peaks
 		double horizon = dObserver + dPeak;
 
 		uint32_t last = first;                              // we already keep it
-		double   cell = double(1u << first);                // metres / texel
-		double   half = 0.5 * (sGridSize - 1) * cell;       // half-width
+		double   cell = double(1u << first);                // meters / texel
+		double   half = 0.5 * (mGridSize - 1) * cell;       // half-width
 
-		while (half < horizon && last + 1 < sNumLevels)                     // still have rings
+		while (half < horizon && last + 1 < mNumLevels)                     // still have rings
 		{
 			++last;                                          // add next ring
 			cell *= 2.0;
 			half *= 2.0;
 		}
 
-		sActiveLevels.first = first;               // finest level to draw
-		sActiveLevels.count = last - first + 1;    // how many in total
-		return sActiveLevels;
+		mActiveLevels.first = first;               // finest level to draw
+		mActiveLevels.count = last - first + 1;    // how many in total
+		return mActiveLevels;
 	}
 
-	void PlanetSystem::UpdateLevelOrigins(const Vector3& camPosPS)
+	void Planet::UpdateLevelOrigins(const Vector3& camPosPS)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		const int halfGrid = static_cast<int>(sGridSize) / 2;
+		const int halfGrid = static_cast<int>(mGridSize) / 2;
 
-		for (uint32_t L = 0; L < sNumLevels; ++L)
+		for (uint32_t L = 0; L < mNumLevels; ++L)
 		{
 			const int cellSize = 1 << L;
 
@@ -267,52 +274,52 @@ namespace Toast {
 			newOrigin.first = static_cast<int>(std::floor(camPosPS.x / double(cellSize))) - halfGrid;
 			newOrigin.second = static_cast<int>(std::floor(camPosPS.z / double(cellSize))) - halfGrid;
 
-			if (newOrigin != sLevels[L].Origin)
+			if (newOrigin != mLevels[L].Origin)
 			{
-				sLevels[L].Origin = newOrigin;
-				sLevels[L].Dirty = true;
+				mLevels[L].Origin = newOrigin;
+				mLevels[L].Dirty = true;
 			}
 			else
-				sLevels[L].Dirty = false;
+				mLevels[L].Dirty = false;
 		}
 	}
 
-	Buffer& PlanetSystem::BuildLevelCB(uint32_t L)
+	Buffer& Planet::BuildLevelCB(uint32_t L)
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		static PlanetLevelCB cb;                // lives between calls
-		const ClipLevel& lvl = sLevels[L];
+		const ClipLevel& lvl = mLevels[L];
 
 		cb.OriginX = lvl.Origin.first;
 		cb.OriginY = lvl.Origin.second;
-		cb.CellSize = 1u << L;                  // 2^L metres
-		cb.GridSize = sGridSize;                // e.g. 257
+		cb.CellSize = 1u << L;                  // 2^L meters
+		cb.GridSize = mGridSize;                // e.g. 257
 
 		/* copy to the generic scratch buffer you created
 		   when you built  sPlanetLevelCBuffer  */
-		sPlanetLevelBuffer.Write(reinterpret_cast<uint8_t*>(&cb), sizeof(cb), 0);
+		mPlanetLevelBuffer.Write(reinterpret_cast<uint8_t*>(&cb), sizeof(cb), 0);
 
-		return sPlanetLevelBuffer;
+		return mPlanetLevelBuffer;
 	}
 
-	void PlanetSystem::OnUpdate(const Vector3& camPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix)
+	void Planet::OnUpdate(const Vector3& camPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mRotationQuat = Quaternion::FromRollPitchYaw(Math::DegreesToRadians(sRotationEulerAngles.x), Math::DegreesToRadians(sRotationEulerAngles.y), Math::DegreesToRadians(sRotationEulerAngles.z));
+		mRotationQuat = Quaternion::FromRollPitchYaw(Math::DegreesToRadians(mRotationEulerAngles.x), Math::DegreesToRadians(mRotationEulerAngles.y), Math::DegreesToRadians(mRotationEulerAngles.z));
 		mRotationQuat = Quaternion::Normalize(mRotationQuat);
 		mInvRotationQuat = mRotationQuat.Conjugate();
 
-		Vector3 camRel = camPosWS - Vector3(sTranslation) - worldTranslation;
+		Vector3 camRel = camPosWS - Vector3(mTranslation) - worldTranslation;
 		Vector3 camPosPS = Vector3::Rotate(camRel, mInvRotationQuat);
 
 		PlanetFrameCB cb{};
-		Vector3 centreCVd = Vector3(sTranslation);
+		Vector3 centreCVd = Vector3(mTranslation);
 		cb.Center = DirectX::XMFLOAT3((float)centreCVd.x, (float)centreCVd.y, (float)centreCVd.z);
-		cb.Radius = (float)sRadius;
-		cb.MaxHeight = (float)sMaxHeight;
-		cb.MinHeight = (float)sMinHeight;
+		cb.Radius = (float)mRadius;
+		cb.MaxHeight = (float)mMaxHeight;
+		cb.MinHeight = (float)mMinHeight;
 
 		// planet-fixed triad – ONLY the quaternion is involved
 		Vector3 lonEastWS = Vector3::Normalize(Vector3::Rotate({ 1,0,0 }, mRotationQuat)); // +longitude
@@ -340,33 +347,33 @@ namespace Toast {
 		cb.BasisLonNorth = DirectX::XMFLOAT3({ (float)lonNorthWS.x, (float)lonNorthWS.y, (float)lonNorthWS.z });
 		cb.BasisSpinUp = DirectX::XMFLOAT3({ (float)spinUpWS.x, (float)spinUpWS.y, (float)spinUpWS.z });
 
-		sBasisLonEast = cb.BasisLonEast;
-		sBasisLonNorth = cb.BasisLonNorth;
-		sBasisSpinUp = cb.BasisSpinUp;
+		mBasisLonEast = cb.BasisLonEast;
+		mBasisLonNorth = cb.BasisLonNorth;
+		mBasisSpinUp = cb.BasisSpinUp;
 
-		sPlanetFrameBuffer.Write(reinterpret_cast<uint8_t*>(&cb), sizeof(cb), 0);
+		mPlanetFrameBuffer.Write(reinterpret_cast<uint8_t*>(&cb), sizeof(cb), 0);
 
-		sPlanetFrameCBuffer->Map(sPlanetFrameBuffer);
+		mPlanetFrameCBuffer->Map(mPlanetFrameBuffer);
 
 		/* decide how many levels are visible this frame                */
-		sActiveLevels = DetermineActiveLODLevels(camPosPS);
+		mActiveLevels = DetermineActiveLODLevels(camPosPS);
 
-		const uint32_t L0 = sActiveLevels.first;
-		const uint32_t Ln = L0 + sActiveLevels.count;
+		const uint32_t L0 = mActiveLevels.first;
+		const uint32_t Ln = L0 + mActiveLevels.count;
 
 		Vector3 camTangent = { Vector3::Dot(camRel, tanEastWS), 0.0, Vector3::Dot(camRel, tanNorthWS) };
 
-		if (!sRunOnce)
+		if (!mRunOnce)
 		{
 			UpdateLevelOrigins(camTangent);
-			sRunOnce = true;
+			mRunOnce = true;
 		}
 
-		for (uint32_t L = 0; L < sNumLevels; ++L)
-			sLevels[L].InFrustum = (L >= L0 && L < Ln);;
+		for (uint32_t L = 0; L < mNumLevels; ++L)
+			mLevels[L].InFrustum = (L >= L0 && L < Ln);;
 	}
 
-	void PlanetSystem::DetailObjectPlacement(TerrainObjectComponent* objects, Matrix& planetNoScaleTransform)
+	void Planet::DetailObjectPlacement(TerrainObjectComponent* objects, Matrix& planetNoScaleTransform)
 	{
 		//TOAST_PROFILE_FUNCTION();
 
@@ -438,22 +445,22 @@ namespace Toast {
 		//}
 	}
 
-	void PlanetSystem::Shutdown()
+	void Planet::Shutdown()
 	{
 	}
 
-	double PlanetSystem::ComputeCurvatureBias(double desiredSwitchHeight, double radius, double patchWidth, double focalLenPx, double screenErrorPx)
+	double Planet::ComputeCurvatureBias(double desiredSwitchHeight, double radius, double patchWidth, double focalLenPx, double screenErrorPx)
 	{
 		return desiredSwitchHeight *(8.0 * radius * screenErrorPx) / (patchWidth * patchWidth * focalLenPx);
 	}
 
-	void PlanetSystem::GenerateDistanceLUT(uint32_t maxLevels, double planetRadius, float FoVY, uint32_t viewportWidth, double metersPerFirstCell, float screenErrorPx, double spacingBias)
+	void Planet::GenerateDistanceLUT(uint32_t maxLevels, double planetRadius, float FoVY, uint32_t viewportWidth, double metersPerFirstCell, float screenErrorPx, double spacingBias)
 	{
-		sDistanceLUT.clear();
-		sDistanceLUT.reserve(maxLevels);
+		mDistanceLUT.clear();
+		mDistanceLUT.reserve(maxLevels);
 
 		double cell = metersPerFirstCell;                 // texel edge (m)
-		double patchWidth = cell * (sGridSize - 1);
+		double patchWidth = cell * (mGridSize - 1);
 
 		double curvatureBias = ComputeCurvatureBias(10.0, planetRadius, patchWidth, (double(viewportWidth) /	(2.0 * std::tan(FoVY * 0.5f))), screenErrorPx);
 
@@ -471,20 +478,20 @@ namespace Toast {
 				(patchWidth * patchWidth) / (8.0 * planetRadius);
 
 			double d = (sagitta / double(errorPx)) * focalLenPx;
-			sDistanceLUT.emplace_back(d * d);
+			mDistanceLUT.emplace_back(d * d);
 
 			cell *= 2.0;
 			if (L >= 5) cell *= spacingBias;
-			patchWidth = cell * (sGridSize - 1);
+			patchWidth = cell * (mGridSize - 1);
 		}
 
-		sDistanceLUT.back() = std::numeric_limits<double>::max();
+		mDistanceLUT.back() = std::numeric_limits<double>::max();
 
-		for (auto level : sDistanceLUT)
+		for (auto level : mDistanceLUT)
 			TOAST_CORE_INFO("sDistanceLUT: %lf", level);
 	}
 
-	void PlanetSystem::GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight)
+	void Planet::GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight)
 	{
 		//const int MAX_SUBDIVISION = 25;
 
@@ -512,7 +519,7 @@ namespace Toast {
 		//	TOAST_CORE_INFO("FacelevelDotLUT: %f", level);
 	}
 
-	void PlanetSystem::GenerateHeightMultLUT(std::vector<double>& heightMultLUT, double planetRadius, double maxHeight)
+	void Planet::GenerateHeightMultLUT(std::vector<double>& heightMultLUT, double planetRadius, double maxHeight)
 	{
 		const int MAX_SUBDIVISION = 25;
 
@@ -549,86 +556,6 @@ namespace Toast {
 
 		//for (auto level : heightMultLUT)
 		//	TOAST_CORE_INFO("heightMultLUT: %lf", level);
-	}
-
-	uint32_t PlanetSystem::GetOrAddVector3(std::unordered_map<Vector3, uint32_t, Vector3::Hasher, Vector3::Equal>& vertexMap, const Vector3& vertex, std::vector<Vector3>& vertices)
-	{
-		TOAST_PROFILE_FUNCTION();
-
-		auto it = vertexMap.find(vertex);
-		if (it != vertexMap.end()) {
-			return it->second;
-		}
-		else {
-			vertices.emplace_back(vertex);
-			uint32_t newIndex = vertices.size() - 1;
-			vertexMap[vertex] = newIndex;
-			return newIndex;
-		}
-	}
-
-	void PlanetSystem::AssignFaceToChunk(const Vector3& vecA, const Vector3& vecB, const Vector3& vecC,
-		std::unordered_map<std::pair<int, int>, std::vector<Vector3>, PairHash>& chunks,
-		const Vector3& planetCenter)
-	{
-		Vector3 centerPoint = (vecA + vecB + vecC) / 3.0;
-
-		// Compute the direction vector from the planet's center to the vertex
-		Vector3 direction = centerPoint - planetCenter;
-		Vector3 normalizedDirection = Vector3::Normalize(direction);
-
-		// Convert to spherical coordinates
-		double latitude = std::asin(normalizedDirection.y) * (180.0 / M_PI); // Degrees
-		double longitude = std::atan2(normalizedDirection.z, normalizedDirection.x) * (180.0 / M_PI);
-		if (longitude < 0.0)
-			longitude += 360.0;
-
-		// Determine bin indices
-		const int NUM_LATITUDE_BINS = 720;   // Adjust as needed
-		const int NUM_LONGITUDE_BINS = 1440;  // Adjust as needed
-
-		int latIndex = static_cast<int>((latitude + 90.0) / (180.0 / NUM_LATITUDE_BINS));
-		int lonIndex = static_cast<int>(longitude / (360.0 / NUM_LONGITUDE_BINS)); 
-
-		// Clamp indices to valid ranges
-		latIndex = (std::min)(latIndex, NUM_LATITUDE_BINS - 1);
-		lonIndex = (std::min)(lonIndex, NUM_LONGITUDE_BINS - 1);
-
-		// Create the chunk key
-		std::pair<int, int> chunkKey = { latIndex, lonIndex };
-
-		// Add the vertex to the chunk
-		chunks[chunkKey].emplace_back(vecA);
-		chunks[chunkKey].emplace_back(vecB);
-		chunks[chunkKey].emplace_back(vecC);
-	}
-
-	void PlanetSystem::GetVerticesBounds(const std::vector<Vector3>& vertices, Bounds& bounds)
-	{
-		if (vertices.empty())
-		{
-			bounds = Bounds();
-			return;
-		}
-
-		// Initialize min and max with the first vertex
-		Vector3 min = vertices[0];
-		Vector3 max = vertices[0];
-
-		// Iterate over all vertices
-		for (const auto& vertex : vertices)
-		{
-			min.x = (std::min)(min.x, vertex.x);
-			min.y = (std::min)(min.y, vertex.y);
-			min.z = (std::min)(min.z, vertex.z);
-
-			max.x = (std::max)(max.x, vertex.x);
-			max.y = (std::max)(max.y, vertex.y);
-			max.z = (std::max)(max.z, vertex.z);
-		}
-
-		bounds.mins = min;
-		bounds.maxs = max;
 	}
 
 }

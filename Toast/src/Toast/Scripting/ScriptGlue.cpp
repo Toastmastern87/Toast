@@ -219,7 +219,9 @@ namespace Toast {
 
 	static void Planet_GetTranslation(DirectX::XMFLOAT3* outTranslation)
 	{
-		*outTranslation = PlanetSystem::GetTranslation();
+		Scene* scene = ScriptEngine::GetSceneContext();
+
+		*outTranslation = scene->GetPlanet()->GetTranslation();
 	}
 
 	static void Planet_SetTranslation(DirectX::XMFLOAT3* translation)

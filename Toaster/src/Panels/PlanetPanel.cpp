@@ -22,9 +22,10 @@ namespace Toast {
 
 	extern const std::filesystem::path gAssetPath;
 
-	void PlanetPanel::SetContext(Scene* context, WindowsWindow* window)
+	void PlanetPanel::SetContext(Scene* sceneContext, WindowsWindow* window)
 	{
-		mContext = context;
+		mSceneContext = sceneContext;
+		mContext = sceneContext->GetPlanet().get();
 		mWindow = window;
 	}
 
@@ -105,7 +106,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGuiHelpers::ManualDragFloat3("##translation", PlanetSystem::sTranslation, 1.0f, 0.0f, mWindow, activeDragArea);
+				ImGuiHelpers::ManualDragFloat3("##translation", mContext->mTranslation, 1.0f, 0.0f, mWindow, activeDragArea);
 
 				ImGui::TableNextRow();
 
@@ -117,7 +118,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGuiHelpers::ManualDragFloat3("##rotation", PlanetSystem::sRotationEulerAngles, 0.1f, 0.0f, mWindow, activeDragArea);
+				ImGuiHelpers::ManualDragFloat3("##rotation", mContext->mRotationEulerAngles, 0.1f, 0.0f, mWindow, activeDragArea);
 
 				ImGui::TableNextRow();
 
@@ -129,14 +130,14 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				std::string gridLabel = std::to_string(PlanetSystem::sTempGridSize);          // keep it alive
+				std::string gridLabel = std::to_string(mContext->mTempGridSize);          // keep it alive
 				if (ImGui::BeginCombo("##GridSize", gridLabel.c_str()))
 				{
 					for (int i = 0; i < IM_ARRAYSIZE(gridSizes); ++i)
 					{
 						bool selected = (currentGridSize == gridSizes[i]);
 						if (ImGui::Selectable(std::to_string(gridSizes[i]).c_str(), selected))
-							PlanetSystem::sTempGridSize = gridSizes[i];
+							mContext->mTempGridSize = gridSizes[i];
 						if (selected)
 							ImGui::SetItemDefaultFocus();
 					}
@@ -151,7 +152,7 @@ namespace Toast {
 
 				ImGui::TableSetColumnIndex(1);
 				ImGui::SetNextItemWidth(fullW);
-				ImGui::SliderInt("##LOD", &PlanetSystem::sTempNumLevels, 1, 30);
+				ImGui::SliderInt("##LOD", &mContext->mTempNumLevels, 1, 30);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(1);
@@ -162,20 +163,20 @@ namespace Toast {
 
 				if (ImGui::Button("Apply", ImVec2(btnW, 0)))
 				{
-					if (PlanetSystem::sTempNumLevels != 0 && PlanetSystem::sTempGridSize != 0)
+					if (mContext->mTempNumLevels != 0 && mContext->mTempGridSize != 0)
 					{
-						PlanetSystem::sGridSize = PlanetSystem::sTempGridSize;
-						PlanetSystem::sNumLevels = PlanetSystem::sTempNumLevels;
+						mContext->mGridSize = mContext->mTempGridSize;
+						mContext->mNumLevels = mContext->mTempNumLevels;
 
-						PlanetSystem::RebuildGrid();
-						PlanetSystem::RebuildRingGridIndices();
-						PlanetSystem::RebuildLODEdgeGrid();
+						mContext->RebuildGrid();
+						mContext->RebuildRingGridIndices();
+						mContext->RebuildLODEdgeGrid();
 
-						PlanetSystem::InitializeLevels();
+						mContext->InitializeLevels();
 
-						SceneCamera* camera = mContext->GetMainCamera();
+						SceneCamera* camera = mSceneContext->GetMainCamera();
 						if (camera)
-							PlanetSystem::GenerateDistanceLUT(PlanetSystem::sNumLevels, PlanetSystem::sRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mContext->GetViewportSize()));
+							mContext->GenerateDistanceLUT(mContext->mNumLevels, mContext->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mSceneContext->GetViewportSize()));
 					}
 				}
 
@@ -213,7 +214,7 @@ namespace Toast {
 				float fullW = colW - padX * 2.0f;                  // leave padding on both sides
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::ColorEdit3("##albedocolor", &PlanetSystem::sAlbedoColor.x);
+				ImGui::ColorEdit3("##albedocolor", &mContext->mAlbedoColor.x);
 
 				ImGui::TableNextRow();
 
@@ -225,7 +226,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##roughness", &PlanetSystem::sRoughness, 0.01f, 0.0f, 1.0f, "%.2f");
+				ImGui::DragFloat("##roughness", &mContext->mRoughness, 0.01f, 0.0f, 1.0f, "%.2f");
 
 				ImGui::TableNextRow();
 
@@ -237,7 +238,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##metallic", &PlanetSystem::sMetalness, 0.01f, 0.0f, 1.0f, "%.2f");
+				ImGui::DragFloat("##metallic", &mContext->mMetalness, 0.01f, 0.0f, 1.0f, "%.2f");
 
 				ImGui::EndTable();
 			}
@@ -271,14 +272,14 @@ namespace Toast {
 				float fullW = colW - padX * 2.0f;                  // leave padding on both sides
 				ImGui::SetNextItemWidth(fullW);
 
-				float temp = PlanetSystem::sRadius;
+				float temp = mContext->mRadius;
 				if (ImGui::DragFloat("##Radius", &temp, 1.0f, 1.0f, FLT_MAX, "%.0f"))
 				{
-					PlanetSystem::sRadius = temp;
+					mContext->mRadius = temp;
 
-					SceneCamera* camera = mContext->GetMainCamera();
+					SceneCamera* camera = mSceneContext->GetMainCamera();
 					if (camera)
-						PlanetSystem::GenerateDistanceLUT(PlanetSystem::sNumLevels, PlanetSystem::sRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mContext->GetViewportSize()));
+						mContext->GenerateDistanceLUT(mContext->mNumLevels, mContext->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mSceneContext->GetViewportSize()));
 				}
 
 				ImGui::TableNextRow();
@@ -295,9 +296,9 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				temp = PlanetSystem::sMaxHeight;
+				temp = mContext->mMaxHeight;
 				if (ImGui::DragFloat("##maxheight", &temp, 1.0f, -FLT_MAX, FLT_MAX, "%.0f"))
-					PlanetSystem::sMaxHeight = temp;
+					mContext->mMaxHeight = temp;
 
 				ImGui::TableNextRow();
 
@@ -313,9 +314,9 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				temp = PlanetSystem::sMinHeight;
+				temp = mContext->mMinHeight;
 				if (ImGui::DragFloat("##minheight", &temp, 1.0f, -FLT_MAX, FLT_MAX, "%.0f"))
-					PlanetSystem::sMinHeight = temp;
+					mContext->mMinHeight = temp;
 
 				ImGui::TableNextRow();
 
@@ -328,7 +329,7 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(1);
 
 				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::GetStyle().CellPadding.x * 2 - 128.0f);
-				ImGui::Image(PlanetSystem::sBaseHeightMapTexture->GetID(), { 128.0f, 64.0f });
+				ImGui::Image(mContext->mBaseHeightMapTexture->GetID(), { 128.0f, 64.0f });
 
 				std::optional<std::string> filename;
 
@@ -342,9 +343,9 @@ namespace Toast {
 
 						if (filename)
 						{
-							PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename, false);
+							mContext->mBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename, false);
 
-							PlanetSystem::sTerrainData = PhysicsEngine::LoadTerrainData(*filename, PlanetSystem::sMaxHeight, PlanetSystem::sMinHeight);
+							mContext->mTerrainData = PhysicsEngine::LoadTerrainData(*filename, mContext->mMaxHeight, mContext->mMinHeight);
 						}
 					}
 
@@ -357,9 +358,9 @@ namespace Toast {
 
 					if (filename)
 					{
-						PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename, false);
+						mContext->mBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename, false);
 
-						PlanetSystem::sTerrainData = PhysicsEngine::LoadTerrainData(*filename, PlanetSystem::sMaxHeight, PlanetSystem::sMinHeight);
+						mContext->mTerrainData = PhysicsEngine::LoadTerrainData(*filename, mContext->mMaxHeight, mContext->mMinHeight);
 					}
 				}
 
@@ -394,7 +395,7 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(1);
 
 				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::GetStyle().CellPadding.x * 2 - 128.0f);
-				ImGui::Image(PlanetSystem::sStarFieldTexture2D->GetID(), { 128.0f, 64.0f });
+				ImGui::Image(mContext->mStarFieldTexture2D->GetID(), { 128.0f, 64.0f });
 
 				std::optional<std::string> filename;
 
@@ -408,9 +409,9 @@ namespace Toast {
 
 						if (filename)
 						{
-							PlanetSystem::sStarFieldTexture2D = TextureLibrary::LoadTexture2D(*filename);
+							mContext->mStarFieldTexture2D = TextureLibrary::LoadTexture2D(*filename);
 
-							PlanetSystem::sStarFieldTextureCube = Renderer::CreateStarFieldTexture(PlanetSystem::sStarFieldTexture2D);
+							mContext->mStarFieldTextureCube = Renderer::CreateStarFieldTexture(mContext->mStarFieldTexture2D);
 						}
 					}
 
@@ -423,9 +424,9 @@ namespace Toast {
 
 					if (filename)
 					{
-						PlanetSystem::sStarFieldTexture2D = TextureLibrary::LoadTexture2D(*filename);
+						mContext->mStarFieldTexture2D = TextureLibrary::LoadTexture2D(*filename);
 
-						PlanetSystem::sStarFieldTextureCube = Renderer::CreateStarFieldTexture(PlanetSystem::sStarFieldTexture2D);
+						mContext->mStarFieldTextureCube = Renderer::CreateStarFieldTexture(mContext->mStarFieldTexture2D);
 					}
 				}
 

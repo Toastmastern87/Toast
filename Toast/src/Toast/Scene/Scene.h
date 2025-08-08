@@ -3,6 +3,8 @@
 #include "Toast/Core/UUID.h"
 #include "Toast/Core/Timestep.h"
 
+#include "Toast/Renderer/PlanetSystem.h"
+
 #include "Toast/Renderer/EditorCamera.h"
 #include "Toast/Renderer/Frustum.h"
 #include "Toast/Renderer/Material.h"
@@ -143,6 +145,8 @@ namespace Toast {
 
 		UUID GetUUID() const { return mSceneID; }
 
+		Ref<Planet> GetPlanet() { return mPlanet; }
+
 		void SetSelectedEntity(entt::entity entity) { mSelectedEntity = entity; }
 		entt::entity GetHoveredEntity() { return mHoveredEntity; }
 		void SetHoveredEntity(entt::entity entity) { mHoveredEntity = entity; }
@@ -188,6 +192,8 @@ namespace Toast {
 
 		entt::entity mSelectedEntity;
 		entt::entity mHoveredEntity;
+
+		Ref<Planet> mPlanet;
 
 		SceneCamera* mMainCamera = nullptr;
 

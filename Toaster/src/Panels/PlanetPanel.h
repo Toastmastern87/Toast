@@ -16,9 +16,10 @@ namespace Toast {
 
 		void OnImGuiRender(bool* showPanel, std::string& activeDragArea);
 
-		void SetContext(Scene* context, WindowsWindow* window);
+		void SetContext(Scene* sceneContext, WindowsWindow* window);
 	private:
-		Scene* mContext;
+		Scene* mSceneContext;
+		Planet* mContext;
 
 		WindowsWindow* mWindow;
 	};

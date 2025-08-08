@@ -129,56 +129,56 @@ namespace Toast {
 		}
 
 		// Recursively ray cast through the node hierarchy
-		static bool RaycastPlanetNode(const Ray& ray, Ref<PlanetNode>& node, Vector3& worldTranslation, bool isCamera, double& closestT, Vector3& hitPoint) {
-			// Broad phase: check bounding box intersection
-			Bounds nodeBounds = node->NodeBounds;
-			if (isCamera)
-				nodeBounds += worldTranslation;
+		//static bool RaycastPlanetNode(const Ray& ray, Ref<PlanetNode>& node, Vector3& worldTranslation, bool isCamera, double& closestT, Vector3& hitPoint) {
+		//	// Broad phase: check bounding box intersection
+		//	Bounds nodeBounds = node->NodeBounds;
+		//	if (isCamera)
+		//		nodeBounds += worldTranslation;
 
-			if (!RayIntersectsBounds(ray, nodeBounds))
-				return false;
+		//	if (!RayIntersectsBounds(ray, nodeBounds))
+		//		return false;
 
-			bool hitFound = false;
+		//	bool hitFound = false;
 
-			if (!node->ChildNodes.empty()) {
-				// Not a leaf, go deeper
-				for (auto& child : node->ChildNodes) {
-					double tChild;
-					Vector3 hpChild;
-					if (RaycastPlanetNode(ray, child, worldTranslation, isCamera, tChild, hpChild)) {
-						if (!hitFound || tChild < closestT) {
-							hitFound = true;
-							closestT = tChild;
-							hitPoint = hpChild;
-						}
-					}
-				}
-			}
-			else {
-				// Leaf node: test ray against node's triangle
-				Vector3 Apos = node->A.Position;
-				Vector3 Bpos = node->B.Position;
-				Vector3 Cpos = node->C.Position;
+		//	if (!node->ChildNodes.empty()) {
+		//		// Not a leaf, go deeper
+		//		for (auto& child : node->ChildNodes) {
+		//			double tChild;
+		//			Vector3 hpChild;
+		//			if (RaycastPlanetNode(ray, child, worldTranslation, isCamera, tChild, hpChild)) {
+		//				if (!hitFound || tChild < closestT) {
+		//					hitFound = true;
+		//					closestT = tChild;
+		//					hitPoint = hpChild;
+		//				}
+		//			}
+		//		}
+		//	}
+		//	else {
+		//		// Leaf node: test ray against node's triangle
+		//		Vector3 Apos = node->A.Position;
+		//		Vector3 Bpos = node->B.Position;
+		//		Vector3 Cpos = node->C.Position;
 
-				if (isCamera) {
-					Apos += worldTranslation;
-					Bpos += worldTranslation;
-					Cpos += worldTranslation;
-				}
+		//		if (isCamera) {
+		//			Apos += worldTranslation;
+		//			Bpos += worldTranslation;
+		//			Cpos += worldTranslation;
+		//		}
 
-				double t;
-				if (RayIntersectsTriangle(ray.Origin, ray.Direction, Apos, Bpos, Cpos, t)) {
-					Vector3 currentHit = ray.Origin + ray.Direction * t;
-					if (!hitFound || t < closestT) {
-						hitFound = true;
-						closestT = t;
-						hitPoint = currentHit;
-					}
-				}
-			}
+		//		double t;
+		//		if (RayIntersectsTriangle(ray.Origin, ray.Direction, Apos, Bpos, Cpos, t)) {
+		//			Vector3 currentHit = ray.Origin + ray.Direction * t;
+		//			if (!hitFound || t < closestT) {
+		//				hitFound = true;
+		//				closestT = t;
+		//				hitPoint = currentHit;
+		//			}
+		//		}
+		//	}
 
-			return hitFound;
-		}
+		//	return hitFound;
+		//}
 
 		static Vector3 ClosestPointOnTriangle(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& p) {
 			// Compute vectors
@@ -319,22 +319,22 @@ namespace Toast {
 			}
 		}
 
-		static void WorldPosToHeightMapUV(const Vector3& worldPos, const Vector3& worldTranslation, int mapWidth, int mapHeight, float& outU, float& outV, double& outRadialDist)
+		static void WorldPosToHeightMapUV(Planet& p, const Vector3& worldPos, const Vector3& worldTranslation, int mapWidth, int mapHeight, float& outU, float& outV, double& outRadialDist)
 		{
-			Vector3 planetTranslation = PlanetSystem::GetTranslation();
+			Vector3 planetTranslation = p.GetTranslation();
 
 			// 1) Move into planet local coordinates
-			Vector3 p = worldPos - planetTranslation - worldTranslation;
+			Vector3 pLocal = worldPos - planetTranslation - worldTranslation;
 			//Vector3 local = Vector3::Rotate(p, PlanetSystem::GetInvRotation());
 			// 3) world-space unit normal (matches nWS in the VS)
-			outRadialDist = p.Length();
+			outRadialDist = pLocal.Length();
 
-			Vector3 nWS = p / outRadialDist;
+			Vector3 nWS = pLocal / outRadialDist;
 
 			// 4) fetch the same basis vectors you put in the cbuffer
-			const DirectX::XMFLOAT3 east = PlanetSystem::GetBasisLonEast();   // == BasisLonEast
-			const DirectX::XMFLOAT3 north = PlanetSystem::GetBasisLonNorth();  // == BasisLonNorth
-			const DirectX::XMFLOAT3 spinUp = PlanetSystem::GetBasisSpinUp();    // == BasisSpinUp
+			const DirectX::XMFLOAT3 east = p.GetBasisLonEast();   // == BasisLonEast
+			const DirectX::XMFLOAT3 north = p.GetBasisLonNorth();  // == BasisLonNorth
+			const DirectX::XMFLOAT3 spinUp = p.GetBasisSpinUp();    // == BasisSpinUp
 
 			// 5) identical math to SphereUV()
 			double vx = Vector3::Dot(nWS, east);
@@ -617,9 +617,11 @@ namespace Toast {
 
 			for (auto cameraEntity : cameraView)
 			{
-				Entity e = { entity, scene };
+				Entity e = { cameraEntity, scene };
 
 				worldTranslation = e.GetComponent<CameraComponent>().Camera.GetWorldTranslation();
+
+				break;
 			}
 
 			TransformComponent& tc = entity.GetComponent<TransformComponent>();
@@ -627,9 +629,11 @@ namespace Toast {
 			float u, v;
 			double radialDist;
 
-			TerrainData& terrainData = PlanetSystem::GetTerrainData();
+			Planet& planet = *scene->GetPlanet();
 
-			WorldPosToHeightMapUV(tc.Translation, worldTranslation, terrainData.Width, terrainData.Height, u, v, radialDist);
+			TerrainData& terrainData = planet.GetTerrainData();
+
+			WorldPosToHeightMapUV(planet, tc.Translation, worldTranslation, terrainData.Width, terrainData.Height, u, v, radialDist);
 
 			// 2) Sample true surface radius at that UV
 			//    (heightData already encodes [minAlt..maxAlt], so
@@ -637,7 +641,7 @@ namespace Toast {
 			double height = SampleHeightBilinear(terrainData.HeightData, terrainData.Width, terrainData.Height, u, v);
 
 			// 3) Altitude = how far you are above that surface radius
-			return radialDist - (PlanetSystem::GetRadius() + height);
+			return radialDist - (planet.GetRadius() + height);
 		}
 
 		static void UpdateBody(Entity& body, float dt)
@@ -663,37 +667,37 @@ namespace Toast {
 		{
 			TOAST_PROFILE_FUNCTION();
 
-			collision.Object = object;
-			collision.Planet = planet;
+			//collision.Object = object;
+			//collision.Planet = planet;
 
-			RigidBodyComponent& rbcObject = object->GetComponent<RigidBodyComponent>();
-			TransformComponent objectTC = object->GetComponent<TransformComponent>();
+			//RigidBodyComponent& rbcObject = object->GetComponent<RigidBodyComponent>();
+			//TransformComponent objectTC = object->GetComponent<TransformComponent>();
 
-			Vector3 posObject = { object->GetComponent<TransformComponent>().Translation };
+			//Vector3 posObject = { object->GetComponent<TransformComponent>().Translation };
 
-			Vector3 Apos = leafNode->A.Position;
-			Vector3 Bpos = leafNode->B.Position;
-			Vector3 Cpos = leafNode->C.Position;
+			//Vector3 Apos = leafNode->A.Position;
+			//Vector3 Bpos = leafNode->B.Position;
+			//Vector3 Cpos = leafNode->C.Position;
 
-			if (object->HasComponent<SphereColliderComponent>())
-			{
-				bool collisionDetected = false;
-				double sphereRadius = object->GetComponent<SphereColliderComponent>().Collider->mRadius;
+			//if (object->HasComponent<SphereColliderComponent>())
+			//{
+			//	bool collisionDetected = false;
+			//	double sphereRadius = object->GetComponent<SphereColliderComponent>().Collider->mRadius;
 
-				collisionDetected = SphereTerrainCollisionCheck(posObject, sphereRadius, dt, collision, { Apos, Bpos, Cpos });
+			//	collisionDetected = SphereTerrainCollisionCheck(posObject, sphereRadius, dt, collision, { Apos, Bpos, Cpos });
 
-				if (collisionDetected)
-					return true;
-			}
-			else if (object->HasComponent<BoxColliderComponent>())
-			{
-				bool collisionDetected = false;
+			//	if (collisionDetected)
+			//		return true;
+			//}
+			//else if (object->HasComponent<BoxColliderComponent>())
+			//{
+			//	bool collisionDetected = false;
 
-				collisionDetected = BoxPlanetCollisionCheck(collision, { Apos, Bpos, Cpos });
+			//	collisionDetected = BoxPlanetCollisionCheck(collision, { Apos, Bpos, Cpos });
 
-				if (collisionDetected)
-					return true;
-			}
+			//	if (collisionDetected)
+			//		return true;
+			//}
 
 			return false;
 		}
@@ -883,23 +887,23 @@ namespace Toast {
 			TOAST_PROFILE_FUNCTION();
 
 			// Broad phase intersection test
-			if (!node->NodeBounds.Intersects(objectBounds))
-				return;
+			//if (!node->NodeBounds.Intersects(objectBounds))
+			//	return;
 
-			// If not a leaf, go deeper
-			//TOAST_CORE_CRITICAL("Subdivision Level: %d, Number of children: %d", node->SubdivisionLevel, node->ChildNodes.size());
-			if (!node->ChildNodes.empty()) 
-			{
-				for (auto& child : node->ChildNodes) 
-					CheckTerrainBroadPhase(child, planetEntity, objectEntity, dt_sub, objectBounds);
-			}
-			else 
-			{
-				// Leaf node: Perform narrow-phase on its triangle(s)
-				TerrainCollision terrainCollision;
-				if (TerrainCollisionCheck(node, planetEntity, objectEntity, terrainCollision, dt_sub))
-					ResolveTerrainCollision(terrainCollision);
-			}
+			//// If not a leaf, go deeper
+			////TOAST_CORE_CRITICAL("Subdivision Level: %d, Number of children: %d", node->SubdivisionLevel, node->ChildNodes.size());
+			//if (!node->ChildNodes.empty()) 
+			//{
+			//	for (auto& child : node->ChildNodes) 
+			//		CheckTerrainBroadPhase(child, planetEntity, objectEntity, dt_sub, objectBounds);
+			//}
+			//else 
+			//{
+			//	// Leaf node: Perform narrow-phase on its triangle(s)
+			//	TerrainCollision terrainCollision;
+			//	if (TerrainCollisionCheck(node, planetEntity, objectEntity, terrainCollision, dt_sub))
+			//		ResolveTerrainCollision(terrainCollision);
+			//}
 		}
 
 		static void CheckPlanetCollisions(Entity planetEntity, Entity objectEntity, Vector3& worldTranslation, bool isCamera, double dt_sub)

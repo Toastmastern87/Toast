@@ -28,15 +28,10 @@ namespace Toast {
 		mRegistry.emplace<SceneComponent>(mSceneEntity, mSceneID);
 
 		mParticleSystem = CreateRef<ParticleSystem>();
-
 		mParticleSystem->Initialize();
 
-		// Planet system is only initialized once. This might need to change so that the Scene owns the Planet System in the future due to multiple scenes in a project
-		static std::once_flag initOnce;
-		std::call_once(initOnce, []()
-			{
-				PlanetSystem::Initialize();
-			});
+		mPlanet = CreateRef<Planet>();
+		mPlanet->Initialize();
 	}
 
 	Scene::~Scene()
@@ -510,7 +505,7 @@ namespace Toast {
 
 					InvalidateFrustum();
 
-					PlanetSystem::OnUpdate({ cameraPos }, mainCamera->GetWorldTranslation(), cameraTransform);
+					mPlanet->OnUpdate({ cameraPos }, mainCamera->GetWorldTranslation(), cameraTransform);
 				}
 			}
 
@@ -527,6 +522,9 @@ namespace Toast {
 			// 3D Rendering
 			Renderer::BeginScene(this, *mainCamera, cameraPosFloat, static_cast<int>(mSettings.WireframeRendering));
 			{
+				// Planet
+				Renderer::SubmitPlanet(mPlanet, static_cast<int>(mSettings.WireframeRendering));
+
 				// Meshes!
 				auto viewMeshes = mRegistry.view<TransformComponent, MeshComponent>();
 				for (auto entity : viewMeshes)
@@ -1028,7 +1026,7 @@ namespace Toast {
 
 				InvalidateFrustum();
 
-				PlanetSystem::OnUpdate({ cameraPos }, mainCameraComponent->Camera.GetWorldTranslation(), mainCameraTransform->GetTransform());
+				mPlanet->OnUpdate({ cameraPos }, mainCameraComponent->Camera.GetWorldTranslation(), mainCameraTransform->GetTransform());
 			}
 		}
 
@@ -1038,6 +1036,9 @@ namespace Toast {
 		// 3D Rendering
 		Renderer::BeginScene(this, *editorCamera, cameraPosFloat, static_cast<int>(mSettings.WireframeRendering));
 		{
+			// Planet
+			Renderer::SubmitPlanet(mPlanet, static_cast<int>(mSettings.WireframeRendering));
+
 			// Meshes!
 			auto viewMeshes = mRegistry.view<TransformComponent, MeshComponent>();
 			for (auto entity : viewMeshes)
@@ -1697,7 +1698,10 @@ namespace Toast {
 		target->mSkyboxTexture = mSkyboxTexture;
 		target->mSkyboxLod = mSkyboxLod;
 
-		//Collider
+		// Planet
+		target->mPlanet = mPlanet;
+
+		// Collider
 		target->mCubeColliderMaterial = mCubeColliderMaterial;
 		target->mSphereColliderMaterial = mSphereColliderMaterial;
 

@@ -308,8 +308,11 @@ namespace Toast {
 		if (sRendererData->ParticleIndexBuffer.Get())
 			ParticlesPass(camera, cameraPos);
 
-		if(PlanetSystem::AtmosphereActivated())
-			GodRayPass(godRayExposure, godRayDecay, godRayDensity, godRayWeight);
+		if (sRendererData->PlanetDraw.Planet)
+		{
+			if (sRendererData->PlanetDraw.Planet->AtmosphereActivated())
+				GodRayPass(godRayExposure, godRayDecay, godRayDensity, godRayWeight);
+		}
 
 		if(bloom)
 			BloomPass(bloomThreshold, bloomIntensity);
@@ -674,6 +677,11 @@ namespace Toast {
 		sRendererData->MeshSelectedDrawList.emplace_back(mesh, transform, wireframe);
 	}
 
+	void Renderer::SubmitPlanet(const Ref<Planet> planet, bool wireframe)
+	{
+		sRendererData->PlanetDraw = { planet, wireframe };
+	}
+
 	void Renderer::DrawFullscreenQuad()
 	{
 		RenderCommand::Draw(3);
@@ -732,58 +740,61 @@ namespace Toast {
 		RenderCommand::ClearRenderTargets({ sRendererData->GPassPositionRT->GetRTV().Get(), sRendererData->GPassNormalRT->GetRTV().Get(), sRendererData->GPassAlbedoMetallicRT->GetRTV().Get(), sRendererData->GPassRoughnessAORT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
-		if (PlanetSystem::IsValid())
+		if (sRendererData->PlanetDraw.Planet)
 		{
-			if (sRendererData->Wireframe == 1)
-				RenderCommand::SetRasterizerState(sRendererData->WireframeRasterizerState);
-			else
-				RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
-
-			ShaderLibrary::Get("assets/shaders/Planet/PlanetGeometryPass.hlsl")->Bind();
-			PlanetSystem::GetShaderLayout()->Bind();
-
-			PlanetSystem::GetPlanetFrameCBuffer()->Bind();
-
-			TextureLibrary::GetSampler("HeightMapSampler")->Bind(5, D3D11_VERTEX_SHADER);
-			TextureLibrary::GetSampler("HeightMapSampler")->Bind(5, D3D11_PIXEL_SHADER);
-			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, PlanetSystem::GetBaseHeightMapTexture()->GetSRV());
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, PlanetSystem::GetBaseHeightMapTexture()->GetSRV());
-			sRendererData->MaterialBuffer.Write((uint8_t*)&PlanetSystem::GetAlbedoColor(), 16, 0);
-			sRendererData->MaterialBuffer.Write((uint8_t*)&PlanetSystem::GetMetalness(), 4, 20);
-			sRendererData->MaterialBuffer.Write((uint8_t*)&PlanetSystem::GetRoughness(), 4, 24);
-			sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
-
-			auto& levels = PlanetSystem::GetLevels();
-			auto& LODInfo = PlanetSystem::GetLODDrawInfo();
-
-			const uint32_t L0 = LODInfo.first;
-			const uint32_t Ln = L0 + LODInfo.count;          // one-past-last
-
-			for (uint32_t L = L0; L < Ln; ++L)
+			if (sRendererData->PlanetDraw.Planet->IsValid())
 			{
-				const auto& level = levels[L];
-				if (!level.Dirty && !level.InFrustum)
-					continue;
+				if (sRendererData->Wireframe == 1)
+					RenderCommand::SetRasterizerState(sRendererData->WireframeRasterizerState);
+				else
+					RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
 
-				PlanetSystem::GetPlanetLevelCBuffer()->Map(PlanetSystem::BuildLevelCB(L));
+				ShaderLibrary::Get("assets/shaders/Planet/PlanetGeometryPass.hlsl")->Bind();
+				sRendererData->PlanetDraw.Planet->GetShaderLayout()->Bind();
 
-				PlanetSystem::GetLODGridVertexBuffer()->Bind();
-				PlanetSystem::GetLODGridIndexBuffer()->Bind();
-				RenderCommand::DrawIndexed(0, 0, PlanetSystem::GetLODGridIndexCount());
+				sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
 
-				PlanetSystem::GetGridVertexBuffer()->Bind();
+				TextureLibrary::GetSampler("HeightMapSampler")->Bind(5, D3D11_VERTEX_SHADER);
+				TextureLibrary::GetSampler("HeightMapSampler")->Bind(5, D3D11_PIXEL_SHADER);
+				RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetBaseHeightMapTexture()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->PlanetDraw.Planet->GetBaseHeightMapTexture()->GetSRV());
+				sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetAlbedoColor(), 16, 0);
+				sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetMetalness(), 4, 20);
+				sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetRoughness(), 4, 24);
+				sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
 
-				if (L == L0)                            // center patch
+				auto& levels = sRendererData->PlanetDraw.Planet->GetLevels();
+				auto& LODInfo = sRendererData->PlanetDraw.Planet->GetLODDrawInfo();
+
+				const uint32_t L0 = LODInfo.first;
+				const uint32_t Ln = L0 + LODInfo.count;          // one-past-last
+
+				for (uint32_t L = L0; L < Ln; ++L)
 				{
-					PlanetSystem::GetCenterGridIndexBuffer()->Bind();
-					RenderCommand::DrawIndexed(0, 0, PlanetSystem::GetGridIndexCount());
+					const auto& level = levels[L];
+					if (!level.Dirty && !level.InFrustum)
+						continue;
 
-					continue;
+					sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Map(sRendererData->PlanetDraw.Planet->BuildLevelCB(L));
+
+					sRendererData->PlanetDraw.Planet->GetLODGridVertexBuffer()->Bind();
+					sRendererData->PlanetDraw.Planet->GetLODGridIndexBuffer()->Bind();
+					RenderCommand::DrawIndexed(0, 0, sRendererData->PlanetDraw.Planet->GetLODGridIndexCount());
+
+					sRendererData->PlanetDraw.Planet->GetGridVertexBuffer()->Bind();
+
+					if (L == L0)                            // center patch
+					{
+						sRendererData->PlanetDraw.Planet->GetCenterGridIndexBuffer()->Bind();
+						RenderCommand::DrawIndexed(0, 0, sRendererData->PlanetDraw.Planet->GetGridIndexCount());
+
+						continue;
+					}
+
+					// inside the ring-drawing branch
+					sRendererData->PlanetDraw.Planet->GetRingGridIndexBuffer()->Bind();
+					RenderCommand::DrawIndexed(0, 0, sRendererData->PlanetDraw.Planet->GetRingGridIndexCount());
 				}
-
-				// inside the ring-drawing branch
-				PlanetSystem::GetRingGridIndexBuffer()->Bind();
-				RenderCommand::DrawIndexed(0, 0, PlanetSystem::GetRingGridIndexCount());
 			}
 		}
 
@@ -1027,21 +1038,24 @@ namespace Toast {
 			annotation->BeginEvent(L"Star Field Pass");
 #endif
 
-		if (PlanetSystem::GetStarFieldTextureCube())
+		if (sRendererData->PlanetDraw.Planet)
 		{
-			RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
-			RenderCommand::SetDepthStencilState(sRendererData->DepthStarFieldStencilState);
-			RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+			if (sRendererData->PlanetDraw.Planet->GetStarFieldTextureCube())
+			{
+				RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+				RenderCommand::SetDepthStencilState(sRendererData->DepthStarFieldStencilState);
+				RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, PlanetSystem::GetStarFieldTextureCube()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->PlanetDraw.Planet->GetStarFieldTextureCube()->GetSRV());
 
-			ShaderLibrary::Get("assets/shaders/Post Process/StarField.hlsl")->Bind();
+				ShaderLibrary::Get("assets/shaders/Post Process/StarField.hlsl")->Bind();
 
-			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.Intensity, 4, 0);
-			sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
-			sRendererData->EnvironmentCBuffer->Map(sRendererData->EnvironmentBuffer);
+				sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.Intensity, 4, 0);
+				sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
+				sRendererData->EnvironmentCBuffer->Map(sRendererData->EnvironmentBuffer);
 
-			DrawFullscreenQuad();
+				DrawFullscreenQuad();
+			}
 		}
 
 		ID3D11RenderTargetView* nullRTV = nullptr;

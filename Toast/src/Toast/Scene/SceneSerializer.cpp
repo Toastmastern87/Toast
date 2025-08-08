@@ -616,21 +616,23 @@ namespace Toast {
 		// TODO, should be scene name instead of just untitled scene
 		out << YAML::Key << "Scene" << YAML::Value << "Untitled Scene";
 
+		Planet scenePlanet = *mScene->GetPlanet();
+
 		out << YAML::Key << "Planet";
 		out << YAML::BeginMap;
-		out << YAML::Key << "Translation" << YAML::Value << PlanetSystem::sTranslation;
-		out << YAML::Key << "Rotation" << YAML::Value << PlanetSystem::sRotationEulerAngles;
-		out << YAML::Key << "GridSize" << YAML::Value << PlanetSystem::sGridSize;
-		out << YAML::Key << "MaxLevels" << YAML::Value << PlanetSystem::sNumLevels;
-		out << YAML::Key << "Radius" << YAML::Value << PlanetSystem::sRadius;
-		out << YAML::Key << "MaxHeight" << YAML::Value << PlanetSystem::sMaxHeight;
-		out << YAML::Key << "MinHeight" << YAML::Value << PlanetSystem::sMinHeight;
-		out << YAML::Key << "AlbedoColor" << YAML::Value << PlanetSystem::sAlbedoColor;
-		out << YAML::Key << "Roughness" << YAML::Value << PlanetSystem::sRoughness;
-		out << YAML::Key << "Metalness" << YAML::Value << PlanetSystem::sMetalness;
-		out << YAML::Key << "HeightMapAssetPath" << YAML::Value << PlanetSystem::sBaseHeightMapTexture->GetFilePath();
-		out << YAML::Key << "Metalness" << YAML::Value << PlanetSystem::sMetalness;
-		out << YAML::Key << "StarFieldAssetPath" << YAML::Value << PlanetSystem::sStarFieldTexture2D->GetFilePath();
+		out << YAML::Key << "Translation" << YAML::Value << scenePlanet.mTranslation;
+		out << YAML::Key << "Rotation" << YAML::Value << scenePlanet.mRotationEulerAngles;
+		out << YAML::Key << "GridSize" << YAML::Value << scenePlanet.mGridSize;
+		out << YAML::Key << "MaxLevels" << YAML::Value << scenePlanet.mNumLevels;
+		out << YAML::Key << "Radius" << YAML::Value << scenePlanet.mRadius;
+		out << YAML::Key << "MaxHeight" << YAML::Value << scenePlanet.mMaxHeight;
+		out << YAML::Key << "MinHeight" << YAML::Value << scenePlanet.mMinHeight;
+		out << YAML::Key << "AlbedoColor" << YAML::Value << scenePlanet.mAlbedoColor;
+		out << YAML::Key << "Roughness" << YAML::Value << scenePlanet.mRoughness;
+		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet.mMetalness;
+		out << YAML::Key << "HeightMapAssetPath" << YAML::Value << scenePlanet.mBaseHeightMapTexture->GetFilePath();
+		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet.mMetalness;
+		out << YAML::Key << "StarFieldAssetPath" << YAML::Value << scenePlanet.mStarFieldTexture2D->GetFilePath();
 		out << YAML::EndMap;
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
@@ -728,19 +730,21 @@ namespace Toast {
 		std::string sceneName = data["Scene"].as<std::string>();
 		TOAST_CORE_TRACE("Deserializing scene '%s'", sceneName.c_str());
 
+		Ref<Planet>& scenePlanet = mScene->GetPlanet();
+
 		auto planet = data["Planet"];
-		PlanetSystem::sTranslation = planet["Translation"].as<DirectX::XMFLOAT3>();
-		PlanetSystem::sRotationEulerAngles = planet["Rotation"].as<DirectX::XMFLOAT3>();
-		PlanetSystem::sGridSize = planet["GridSize"].as<uint32_t>();
-		PlanetSystem::sNumLevels = planet["MaxLevels"].as<uint32_t>();
-		PlanetSystem::sRadius = planet["Radius"].as<double>();
-		PlanetSystem::sMaxHeight = planet["MaxHeight"].as<double>();
-		PlanetSystem::sMinHeight = planet["MinHeight"].as<double>();
-		PlanetSystem::sAlbedoColor = planet["AlbedoColor"].as<DirectX::XMFLOAT3>();
-		PlanetSystem::sRoughness = planet["Roughness"].as<float>();
-		PlanetSystem::sMetalness = planet["Metalness"].as<float>();
-		PlanetSystem::sBaseHeightMapTexture = TextureLibrary::LoadTexture2D(planet["HeightMapAssetPath"].as<std::string>(), false);
-		PlanetSystem::sStarFieldTexture2D = TextureLibrary::LoadTexture2D(planet["StarFieldAssetPath"].as<std::string>());
+		scenePlanet->mTranslation = planet["Translation"].as<DirectX::XMFLOAT3>();
+		scenePlanet->mRotationEulerAngles = planet["Rotation"].as<DirectX::XMFLOAT3>();
+		scenePlanet->mGridSize = planet["GridSize"].as<uint32_t>();
+		scenePlanet->mNumLevels = planet["MaxLevels"].as<uint32_t>();
+		scenePlanet->mRadius = planet["Radius"].as<double>();
+		scenePlanet->mMaxHeight = planet["MaxHeight"].as<double>();
+		scenePlanet->mMinHeight = planet["MinHeight"].as<double>();
+		scenePlanet->mAlbedoColor = planet["AlbedoColor"].as<DirectX::XMFLOAT3>();
+		scenePlanet->mRoughness = planet["Roughness"].as<float>();
+		scenePlanet->mMetalness = planet["Metalness"].as<float>();
+		scenePlanet->mBaseHeightMapTexture = TextureLibrary::LoadTexture2D(planet["HeightMapAssetPath"].as<std::string>(), false);
+		scenePlanet->mStarFieldTexture2D = TextureLibrary::LoadTexture2D(planet["StarFieldAssetPath"].as<std::string>());
 
 		auto entities = data["Entities"];
 		if (entities) 
@@ -1076,29 +1080,29 @@ namespace Toast {
 			}
 		}
 
-		if (PlanetSystem::sNumLevels != 0 && PlanetSystem::sGridSize != 0)
+		if (scenePlanet->mNumLevels != 0 && scenePlanet->mGridSize != 0)
 		{
-			PlanetSystem::RebuildGrid();
-			PlanetSystem::RebuildRingGridIndices();
-			PlanetSystem::RebuildLODEdgeGrid();
+			scenePlanet->RebuildGrid();
+			scenePlanet->RebuildRingGridIndices();
+			scenePlanet->RebuildLODEdgeGrid();
 
-			PlanetSystem::InitializeLevels();
+			scenePlanet->InitializeLevels();
 
-			if (PlanetSystem::sStarFieldTexture2D)
+			if (scenePlanet->mStarFieldTexture2D)
 			{
-				PlanetSystem::sStarFieldTextureCube = Renderer::CreateStarFieldTexture(PlanetSystem::sStarFieldTexture2D);
+				scenePlanet->mStarFieldTextureCube = Renderer::CreateStarFieldTexture(scenePlanet->mStarFieldTexture2D);
 
-				PlanetSystem::sStarFieldTextureCube->GenerateMips();
+				scenePlanet->mStarFieldTextureCube->GenerateMips();
 			}
 
-			PlanetSystem::sTempGridSize = PlanetSystem::sGridSize;
-			PlanetSystem::sTempNumLevels = PlanetSystem::sNumLevels;
+			scenePlanet->mTempGridSize = scenePlanet->mGridSize;
+			scenePlanet->mTempNumLevels = scenePlanet->mNumLevels;
 
-			PlanetSystem::sTerrainData = PhysicsEngine::LoadTerrainData(PlanetSystem::sBaseHeightMapTexture->GetFilePath(), PlanetSystem::sMaxHeight, PlanetSystem::sMinHeight);
+			scenePlanet->mTerrainData = PhysicsEngine::LoadTerrainData(scenePlanet->mBaseHeightMapTexture->GetFilePath(), scenePlanet->mMaxHeight, scenePlanet->mMinHeight);
 
 			SceneCamera* camera = mScene->GetMainCamera();
 			if (camera)
-				PlanetSystem::GenerateDistanceLUT(PlanetSystem::sNumLevels, PlanetSystem::sRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mScene->GetViewportSize()));
+				scenePlanet->GenerateDistanceLUT(scenePlanet->mNumLevels, scenePlanet->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mScene->GetViewportSize()));
 		}
 
 		return true;
