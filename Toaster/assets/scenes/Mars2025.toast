@@ -30,7 +30,7 @@ Entities:
         ProjectionType: 0
         PerspectiveFOV: 45
         NearClip: 0.100000001
-        FarClip: 2500000
+        FarClip: 2000000
         OrthographicWidth: 2604
         OrthographicHeight: 1120
       Primary: true
@@ -49,13 +49,13 @@ Entities:
           Data: 1000
         - Name: MouseSpeedFactor
           Type: Float
-          Data: 15
+          Data: 0.5
         - Name: BaseZoomSpeed
           Type: Float
-          Data: 1500
+          Data: 2000
         - Name: ZoomFactor
           Type: Float
-          Data: 1.29999995
+          Data: 2.29999995
   - Entity: 7969327153423302118
     TagComponent:
       Tag: Sunlight

@@ -419,12 +419,18 @@ namespace Toast {
 		*outTransform = entity.GetComponent<TransformComponent>().GetTransform();
 	}
 
-	static void TransformComponent_Rotate(UUID entityID, DirectX::XMFLOAT3* rotationAxis, float angle)
+	static void TransformComponent_Rotate(UUID entityID, DirectX::XMFLOAT3* rotationAxis, float angleDeg)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		Entity entity = scene->FindEntityByUUID(entityID);
-		DirectX::XMVECTOR rotQuaternion = DirectX::XMQuaternionRotationAxis(DirectX::XMLoadFloat3(rotationAxis), DirectX::XMConvertToRadians(angle));
-		DirectX::XMStoreFloat4(&entity.GetComponent<TransformComponent>().RotationQuaternion, DirectX::XMQuaternionNormalize(DirectX::XMQuaternionMultiply(DirectX::XMLoadFloat4(&entity.GetComponent<TransformComponent>().RotationQuaternion), rotQuaternion)));
+
+		auto& tc = scene->FindEntityByUUID(entityID).GetComponent<TransformComponent>();
+		DirectX::XMVECTOR qCur = DirectX::XMLoadFloat4(&tc.RotationQuaternion);
+
+		DirectX::XMVECTOR axis = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(rotationAxis));
+		DirectX::XMVECTOR qInc = DirectX::XMQuaternionRotationAxis(axis, DirectX::XMConvertToRadians(angleDeg));
+		qCur = DirectX::XMQuaternionNormalize(DirectX::XMQuaternionMultiply(qCur, qInc));
+
+		DirectX::XMStoreFloat4(&tc.RotationQuaternion, qCur);
 	}
 
 	static void TransformComponent_RotateAroundPoint(UUID entityID, DirectX::XMFLOAT3* point, DirectX::XMFLOAT3* rotationAxis, float angle)

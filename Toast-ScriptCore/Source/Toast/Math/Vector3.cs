@@ -32,6 +32,11 @@ namespace Toast
             return (float)Math.Sqrt((vec.X * vec.X) + (vec.Y * vec.Y) + (vec.Z * vec.Z));
         }
 
+        public static float LengthSquared(Vector3 vec)
+        {
+            return (float)(vec.X * vec.X) + (vec.Y * vec.Y) + (vec.Z * vec.Z);
+        }
+
         public static Vector3 Normalize(Vector3 vec)
         {
             return new Vector3(vec.X / Length(vec), vec.Y / Length(vec), vec.Z / Length(vec));

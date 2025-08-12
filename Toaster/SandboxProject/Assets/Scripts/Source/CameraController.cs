@@ -18,19 +18,13 @@ namespace Sandbox
 
         private TransformComponent mCameraTransformComponent;
         private CameraComponent mCameraComponent;
-        private Vector3 mCameraRightVector;
-        private Vector3 mCameraForwardVector;
 
-        private Matrix4 mCameraTransform;
+        private Vector3 mCameraWorldRightVector;
+        private Vector3 mCameraWorldForwardVector;
 
         private Vector2 mCursorPos;
 
-        private float minAltitudeForCamera = 10.0f;
-        private float maxAltitudeForCamera = 60000.0f;
-        private float minCameraFar = 250000.0f;
-        private float maxCameraFar = 800000.0f;
         private float altitude = 0.0f;
-        private float tCamera = 0.0f;
 
         private float Clamp(float value, float min, float max)
         {
@@ -41,15 +35,6 @@ namespace Sandbox
         {
             mCameraTransformComponent = GetComponent<TransformComponent>();
             mCameraComponent = GetComponent<CameraComponent>();
-
-            tCamera = (PhysicsEngine.GetAltitude(this.ID) - minAltitudeForCamera) / (maxAltitudeForCamera - minAltitudeForCamera);
-            tCamera = Clamp(tCamera, 0.0f, 1.0f);
-
-            Toast.Console.LogTrace(mCameraComponent.WorldTranslation.ToString());
-
-            Toast.Console.LogTrace("Camera Altitude: " + PhysicsEngine.GetAltitude(this.ID));
-            if (MaxAltitude < MinAltitude)
-                MaxAltitude = MinAltitude;
         }
 
         void OnEvent()
@@ -58,14 +43,13 @@ namespace Sandbox
 
         void OnUpdate(float ts)
         {
+            Vector3 upWorld = Vector3.Normalize(-1.0f * (Planet.Translation + mCameraComponent.WorldTranslation));
+
             altitude = PhysicsEngine.GetAltitude(this.ID);
 
-            float newCameraFar = minCameraFar + (maxCameraFar - minCameraFar) * tCamera;
-            mCameraComponent.FarClip = 2000000.0f;// newCameraFar;
-
-            mCameraTransform = GetComponent<TransformComponent>().GetTransform();
-            mCameraRightVector = new Vector3(mCameraTransform.D00, mCameraTransform.D10, mCameraTransform.D20);
-            mCameraForwardVector = new Vector3(mCameraTransform.D02, mCameraTransform.D12, mCameraTransform.D22);
+            Matrix4 cameraTransform = GetComponent<TransformComponent>().GetTransform();
+            mCameraWorldRightVector = Vector3.Normalize(new Vector3(cameraTransform.D00, cameraTransform.D10, cameraTransform.D20));
+            mCameraWorldForwardVector = Vector3.Normalize(new Vector3(cameraTransform.D02, cameraTransform.D12, cameraTransform.D22));
 
             ////////// CAMERA ROTATION ////////////////
 
@@ -73,11 +57,65 @@ namespace Sandbox
 
             if (Input.IsMouseButtonPressed(MouseCode.ButtonRight))
             {
-                if (mCursorPos.X != newCursorPos.X)
-                    mCameraTransformComponent.Yaw += (newCursorPos.X - mCursorPos.X) * (ts / Scene.TimeScale) * MouseSpeedFactor;
+                Vector2 delta = newCursorPos - mCursorPos;
 
-                if (mCursorPos.Y != newCursorPos.Y)
-                    mCameraTransformComponent.Pitch -= (newCursorPos.Y - mCursorPos.Y) * (ts / Scene.TimeScale) * MouseSpeedFactor;
+                if (Vector3.LengthSquared(upWorld) < 1e-6f) 
+                    upWorld = new Vector3(0.0f, 1.0f, 0.0f);
+
+                float yawDeg = delta.X * MouseSpeedFactor;   // ← no dt
+                float pitchDeg = -delta.Y * MouseSpeedFactor;
+
+                if (Math.Abs(yawDeg) > 0.0001f)
+                    mCameraTransformComponent.TransformComponent_Rotate(upWorld, yawDeg);
+
+                Matrix4 M = mCameraTransformComponent.GetTransform();
+                Vector3 fwdWorld = Vector3.Normalize(new Vector3(M.D02, M.D12, M.D22));
+                Vector3 rightWorld = Vector3.Normalize(new Vector3(M.D00, M.D10, M.D20));
+
+                // 4) Build leveled forward (project onto horizon plane ⟂ upWorld)
+                float fwdDotUp = Vector3.Dot(fwdWorld, upWorld);
+                Vector3 fwdT = fwdWorld - upWorld * fwdDotUp;
+                float fwdTLen2 = Vector3.LengthSquared(fwdT);
+
+                // Robust pole fallback: if forward ≈ up, project RIGHT instead
+                if (fwdTLen2 < 1e-6f)
+                {
+                    Vector3 rightT = rightWorld - upWorld * Vector3.Dot(rightWorld, upWorld);
+                    if (Vector3.LengthSquared(rightT) >= 1e-6f)
+                    {
+                        rightWorld = Vector3.Normalize(rightT);
+                        fwdT = Vector3.Normalize(Vector3.Cross(rightWorld, upWorld)); // LH: fwd = right × up
+                    }
+                    else
+                    {
+                        pitchDeg = 0.0f; // completely degenerate this frame
+                        fwdT = new Vector3(0, 0, 1);
+                    }
+                }
+                else
+                {
+                    fwdT = Vector3.Normalize(fwdT);
+                    rightWorld = Vector3.Normalize(Vector3.Cross(upWorld, fwdT));     // LH: right = up × fwd
+                }
+
+                // 5) Pitch around horizon right (world axis)
+                if (Math.Abs(pitchDeg) > 0.0001f)
+                    mCameraTransformComponent.TransformComponent_Rotate(rightWorld, pitchDeg);
+
+                M = mCameraTransformComponent.GetTransform();
+                Vector3 upCam = Vector3.Normalize(new Vector3(M.D01, M.D11, M.D21));
+                fwdWorld = Vector3.Normalize(new Vector3(M.D02, M.D12, M.D22));
+
+                // Project ups onto plane ⟂ forward
+                Vector3 upCamProj = Vector3.Normalize(upCam - fwdWorld * Vector3.Dot(upCam, fwdWorld));
+                Vector3 upWorldProj = Vector3.Normalize(upWorld - fwdWorld * Vector3.Dot(upWorld, fwdWorld));
+
+                float sinRoll = Vector3.Dot(Vector3.Cross(upCamProj, upWorldProj), fwdWorld);
+                float cosRoll = Vector3.Dot(upCamProj, upWorldProj);
+                float rollDeg = (float)Math.Atan2((double)sinRoll, (double)cosRoll) * (180.0f / (float)Math.PI);
+
+                if (Math.Abs(rollDeg) > 0.01f)
+                    mCameraTransformComponent.TransformComponent_Rotate(fwdWorld, rollDeg);
             }
 
             mCursorPos = newCursorPos;
@@ -100,11 +138,7 @@ namespace Sandbox
                 deltaAltitude = altitude - newAltitude;
 
                 if (Math.Abs(deltaAltitude) > 0.0001f || scrollDelta > 0.0f)
-                {
-                    Vector3 normalizedDirection = Vector3.Normalize(Planet.Translation);
-
-                    mCameraComponent.AddWorldMovement(normalizedDirection * -deltaAltitude);
-                }
+                    mCameraComponent.AddWorldMovement(upWorld * deltaAltitude);
             }
 
             Input.SetMouseWheelDelta(0.0f);
@@ -113,19 +147,19 @@ namespace Sandbox
             Vector3 keyboardDirection = Vector3.Zero;
             if (Input.IsKeyPressed(KeyCode.W))
             {
-                keyboardDirection += mCameraForwardVector;
+                keyboardDirection += mCameraWorldForwardVector;
             }
             if (Input.IsKeyPressed(KeyCode.S))
             {
-                keyboardDirection -= mCameraForwardVector;
+                keyboardDirection -= mCameraWorldForwardVector;
             }
             if (Input.IsKeyPressed(KeyCode.D))
             {
-                keyboardDirection += mCameraRightVector;
+                keyboardDirection += mCameraWorldRightVector;
             }
             if (Input.IsKeyPressed(KeyCode.A))
             {
-                keyboardDirection -= mCameraRightVector;
+                keyboardDirection -= mCameraWorldRightVector;
             }
 
             if (Vector3.Length(keyboardDirection) > 0.0f)
