@@ -53,11 +53,19 @@ namespace Toast {
 
 		mStarFieldTexture2D = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 
+		// Create texture for Starfield skybox
 		mStarFieldTextureCube = CreateRef<TextureCube>(DXGI_FORMAT_R16G16B16A16_UNORM, DXGI_FORMAT_UNKNOWN, 2048, 2048, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE |
 			D3D11_BIND_UNORDERED_ACCESS |
 			D3D11_BIND_RENDER_TARGET), 1, 0, 0);
 
 		mStarFieldTextureCube->CreateUAV(0);
+
+		// Create textures for Atmospheric Scattering
+		mTransmittanceLUT = CreateRef<Texture2D>(DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT, 256, 64, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
+		mTransmittanceLUT->CreateUAV(0);
+
+		mMultiScatteringLUT = CreateRef<Texture2D>(DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT, 64, 32, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
+		mMultiScatteringLUT->CreateUAV(0);
 	}
 
 	void Planet::InitializeLevels()

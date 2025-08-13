@@ -88,10 +88,10 @@ namespace Toast {
 	private:
 		// General Data
 		bool mValidPlanet = false;
-		uint32_t mGridSize;
-		uint32_t mTempGridSize;
-		int32_t mNumLevels;
-		int32_t mTempNumLevels;
+		uint32_t mGridSize = 0;
+		uint32_t mTempGridSize = 0;
+		int32_t mNumLevels = 0;
+		int32_t mTempNumLevels = 0;
 		std::vector<ClipLevel> mLevels;
 		LODDrawInfo mActiveLevels;
 		bool mRunOnce = false;
@@ -128,14 +128,25 @@ namespace Toast {
 		TerrainData mTerrainData;
 
 		// PBR Data
-		DirectX::XMFLOAT3 mAlbedoColor;
-		float mRoughness;
-		float mMetalness;
+		DirectX::XMFLOAT3 mAlbedoColor = { 0.0f, 0.0f, 0.0f };
+		float mRoughness = 0.0f;
+		float mMetalness = 0.0f;
 		Ref<ConstantBuffer> mPlanetMaterialCBuffer;
 		Buffer mPlanetMaterialBuffer;
 
-		// Atmosphere Data
+		// Atmosphere Scattering Data
 		bool mAtmosphereActivated = false;
+		float mAtmosphereHeight = 0.0;
+		float mRayleighScaleHeight = 0.0;
+		DirectX::XMFLOAT3 mRayleighScattering = { 0.0f, 0.0f, 0.0f };
+		float mMieScaleHeight = 0.0;
+		float mMieScattering = 0.0f;
+		float mMieAbsorption = 0.0f;
+		float mMieAnisotropy = 0.0;
+		float mOzoneStrength = 0.0;
+		DirectX::XMFLOAT3 mGroundAlbedo = { 0.0f, 0.0f, 0.0f };
+		Ref<Texture2D> mTransmittanceLUT;
+		Ref<Texture2D> mMultiScatteringLUT;
 
 		// Environment Textures
 		Texture2D* mStarFieldTexture2D;

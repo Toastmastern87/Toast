@@ -435,6 +435,178 @@ namespace Toast {
 				ImGui::EndTable();
 			}
 
+			ImGui::PushFont(io.Fonts->Fonts[4]);
+			ImGui::TextUnformatted("Atmospheric Scattering");
+			ImGui::PopFont();
+
+			ImGui::Spacing();
+
+			if (ImGui::BeginTable("AtmosphericScatteringTable", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_PadOuterX))
+			{
+				ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.4f);
+				ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.6f);
+
+				// -------- Atmosphere Height Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Atmosphere Height");
+
+				ImGui::TableSetColumnIndex(1);
+
+				float padX = ImGui::GetStyle().CellPadding.x;
+				float colW = ImGui::GetColumnWidth();             // total width of column 1
+				float fullW = colW - padX * 2.0f;                  // leave padding on both sides
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##AtmosphereHeight", &mContext->mAtmosphereHeight, 1.0f, 0.0f, FLT_MAX, "%.0f");
+
+				// -------- Rayleigh Scale Height Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Rayleigh Scale Height");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##RayleighScaleHeight", &mContext->mRayleighScaleHeight, 1.0f, 0.0f, FLT_MAX, "%.0f");
+
+				// -------- Rayleigh Scattering Red Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Rayleigh Scattering Red");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##RayleighScatteringRed", &mContext->mRayleighScattering.x, 0.000001f, 0.0f, FLT_MAX, "%.6f");
+
+				// -------- Rayleigh Scattering Green Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Rayleigh Scattering Green");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##RayleighScatteringGreen", &mContext->mRayleighScattering.y, 0.000001f, 0.0f, FLT_MAX, "%.6f");
+
+				// -------- Rayleigh Scattering Blue Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Rayleigh Scattering Blue");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##RayleighScatteringBlue", &mContext->mRayleighScattering.z, 0.000001f, 0.0f, FLT_MAX, "%.6f");
+
+				// -------- Mie Scale Height Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Mie Scale Height");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##MieScaleHeight", &mContext->mMieScaleHeight, 1.0f, 0.0f, FLT_MAX, "%.0f");
+
+				// -------- Mie Scattering Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Mie Scattering");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##MieScattering", &mContext->mMieScattering, 1.0f, 0.0f, FLT_MAX, "%.2f");
+
+				// -------- Mie Absorption Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Mie Absorption");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##MieAbsorptiony", &mContext->mMieAbsorption, 1.0f, 0.0f, FLT_MAX, "%.2f");
+
+				// -------- Mie Anisotropy Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Mie Anisotropy");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##MieAnisotropy", &mContext->mMieAnisotropy, 1.0f, 0.0f, FLT_MAX, "%.2f");
+
+				// -------- Ozone Strength Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Ozone Strength");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##OzoneStrength", &mContext->mOzoneStrength, 1.0f, 0.0f, FLT_MAX, "%.0f");
+
+				// -------- Ground Albedo Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Ground Albedo");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::ColorEdit3("##GroundAlbedo", &mContext->mGroundAlbedo.x);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(1);
+
+				const float btnW = 80.0f;
+				float indent = fullW - btnW;
+				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + indent);
+
+				ImGui::Button("Apply", ImVec2(btnW, 0));
+
+				ImGui::EndTable();
+			}
+
+			ImGui::Spacing();
+			ImGui::Spacing();
+
 			ImGui::PopID();
 
 			ImGui::End();
