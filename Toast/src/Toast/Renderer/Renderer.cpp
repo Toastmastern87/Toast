@@ -59,7 +59,7 @@ namespace Toast {
 		sRendererData->MaterialBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for lightning rendering
-		sRendererData->LightningCBuffer = ConstantBufferLibrary::Load("DirectionalLight", 112, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::DirectionalLight), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::DirectionalLight) });
+		sRendererData->LightningCBuffer = ConstantBufferLibrary::Load("DirectionalLight", 112, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::DirectionalLight), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::DirectionalLight), CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::DirectionalLight) });
 		sRendererData->LightningCBuffer->Bind();
 		sRendererData->LightningBuffer.Allocate(sRendererData->LightningCBuffer->GetSize());
 		sRendererData->LightningBuffer.ZeroInitialize();
@@ -77,7 +77,7 @@ namespace Toast {
 		sRendererData->RenderSettingsBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer for atmosphere rendering
-		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 96, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::PlanetFrame) });
+		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 96, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)5) });
 		sRendererData->AtmosphereCBuffer->Bind();
 		sRendererData->AtmosphereBuffer.Allocate(sRendererData->AtmosphereCBuffer->GetSize());
 		sRendererData->AtmosphereBuffer.ZeroInitialize();
@@ -1046,6 +1046,8 @@ namespace Toast {
 				RenderCommand::SetDepthStencilState(sRendererData->DepthStarFieldStencilState);
 				RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
+				sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
+
 				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->PlanetDraw.Planet->GetStarFieldTextureCube()->GetSRV());
 
 				ShaderLibrary::Get("assets/shaders/Post Process/StarField.hlsl")->Bind();
@@ -1076,16 +1078,16 @@ namespace Toast {
 			annotation->BeginEvent(L"Atmosphere Pass");
 #endif
 
-		RenderCommand::SetPrimitiveTopology(PrimitiveTopology::TRIANGLELIST);
+		//RenderCommand::SetPrimitiveTopology(PrimitiveTopology::TRIANGLELIST);
 
-		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, nullptr);
-		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
-		RenderCommand::SetBlendState(sRendererData->AtmospherePassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+		//RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, nullptr);
+		//RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
+		//RenderCommand::SetBlendState(sRendererData->AtmospherePassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
+		//RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
+		//RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
 
-		int useDepth = 1;
+		//int useDepth = 1;
 
 		//for (const auto& meshCommand : sRendererData->MeshDrawList)
 		//{
@@ -1118,9 +1120,9 @@ namespace Toast {
 		//	}
 		//}	
 
-		ShaderLibrary::Get("assets/shaders/Post Process/Atmosphere.hlsl")->Bind();
+		//ShaderLibrary::Get("assets/shaders/Post Process/Atmosphere.hlsl")->Bind();
 
-		DrawFullscreenQuad();
+		//DrawFullscreenQuad();
 
 		static int currentFace = 0;// Tracks which face of the cube to render
 
@@ -1201,7 +1203,7 @@ namespace Toast {
 
 		RenderCommand::SetViewport(sRendererData->Viewport);
 		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
-		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->ParticleDepthStencilState);
 		RenderCommand::SetBlendState(sRendererData->ParticleBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->ParticlesSRV);
@@ -1256,7 +1258,7 @@ namespace Toast {
 
 		RenderCommand::ClearShaderResources();
 
-		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, nullptr);
+		RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, nullptr);
 
 		ShaderLibrary::Get("assets/shaders/Post Process/GodRays.hlsl")->Bind();
 
@@ -1343,7 +1345,7 @@ namespace Toast {
 		RenderCommand::SetRenderTargets({ sRendererData->FinalBloomRT->GetRTV().Get() }, nullptr);
 		RenderCommand::ClearRenderTargets({ sRendererData->FinalBloomRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->AtmospherePassRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->LPassRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->VerticalBlurRT->GetSRV());
 
 		ShaderLibrary::Get("assets/shaders/Post Process/BloomComposition.hlsl")->Bind();
@@ -1409,6 +1411,9 @@ namespace Toast {
 
 		sRendererData->SpecularBRDFLUT->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 		ShaderLibrary::Load("assets/shaders/Environment/SPBRDF.hlsl")->Bind();
+
+		sRendererData->SpecularMapFilterSettingsCBuffer->Bind();
+
 		RenderCommand::DispatchCompute(sRendererData->SpecularBRDFLUT->GetWidth() / 32, sRendererData->SpecularBRDFLUT->GetHeight() / 32, 1);
 		sRendererData->SpecularBRDFLUT->UnbindUAV();
 	}
@@ -1424,6 +1429,8 @@ namespace Toast {
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
 		ShaderLibrary::Get("assets/shaders/Environment/EnvironmentMipFilter.hlsl")->Bind();
+
+		sRendererData->SpecularMapFilterSettingsCBuffer->Bind();
 
 		// Bind the atmospheric scattering cube map as input (unfiltered environment map)
 		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 14, sRendererData->AtmosphereCubeRT->GetSRV());
@@ -1483,6 +1490,8 @@ namespace Toast {
 	{
 		ShaderLibrary::Get("assets/shaders/Environment/EnvironmentIrradiance.hlsl")->Bind();
 
+		sRendererData->SpecularMapFilterSettingsCBuffer->Bind();
+
 		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 15, sRendererData->EnvMapFiltered->GetSRV());
 
 		sRendererData->IrradianceCubeMap->CreateUAVUpdated(0, faceIndex);
@@ -1502,6 +1511,167 @@ namespace Toast {
 		RenderCommand::ClearShaderResources();
 
 		sRendererData->IrradianceCubeMap->UnbindUAVUpdated(0, D3D11_COMPUTE_SHADER);
+	}
+
+	void Renderer::GenerateTransmittanceLUT(Planet* planet)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+#ifdef TOAST_DEBUG
+		RENDERDOC_API_1_4_1* rdoc = nullptr;
+		if (auto mod = GetModuleHandleA("renderdoc.dll"))
+		{
+			pRENDERDOC_GetAPI getApi = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+			if (getApi)
+				getApi(eRENDERDOC_API_Version_1_4_1, (void**)&rdoc);
+		}
+
+		if (rdoc)
+			rdoc->StartFrameCapture((void*)device, nullptr);
+
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"GenerateTransmittanceLUT");
+#endif
+
+		// Updating the planet data in the buffer and mapping it to the GPU
+		auto& planetFrameBuffer = planet->GetPlanetFrameBuffer();
+		auto& planetFrameCBuffer = planet->GetPlanetFrameCBuffer();
+		DirectX::XMFLOAT3 planetCenter = DirectX::XMFLOAT3((float)planet->GetTranslation().x, (float)planet->GetTranslation().y, (float)planet->GetTranslation().z);
+		float planetRadius = (float)planet->GetRadius();
+		float MaxHeight = (float)planet->GetMaxHeight();
+		float MinHeight = (float)planet->GetMinHeight();
+		planetFrameBuffer.Write((uint8_t*)&planetCenter, 12, 0);
+		planetFrameBuffer.Write((uint8_t*)&planetRadius, 4, 12);
+		planetFrameBuffer.Write((uint8_t*)&MaxHeight, 4, 28);
+		planetFrameBuffer.Write((uint8_t*)&MinHeight, 4, 44);
+		planetFrameCBuffer->Map(planetFrameBuffer);
+		planetFrameCBuffer->Bind();
+
+		// Updating the atmospheric data in the buffer and mapping it to the GPU
+		auto& atmosphere = planet->GetAtmosphere();
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.AtmosphereHeight, 4, 0);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScaleHeight, 4, 4);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScaleHeight, 4, 8);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAnisotropy, 4, 12);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScattering, 12, 16);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScattering, 12, 32);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAbsorption, 12, 48);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.GroundAlbedo, 12, 64);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.OzoneStrength, 4, 80);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 84);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 88);
+		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
+		sRendererData->AtmosphereCBuffer->Bind();
+
+		planet->GetTransmittanceLUT()->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+
+		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/TransmittanceCS.hlsl")->Bind();
+
+		const UINT width = planet->GetTransmittanceLUT()->GetWidth();
+		const UINT height = planet->GetTransmittanceLUT()->GetHeight();
+		const UINT gx = (width + 7) / 8;
+		const UINT gy = (height + 7) / 8;
+		RenderCommand::DispatchCompute(gx, gy, 1);
+
+		planet->GetTransmittanceLUT()->UnbindUAV(0, D3D11_COMPUTE_SHADER);
+
+		ID3D11RenderTargetView* nullRTV = nullptr;
+		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
+		RenderCommand::SetDepthStencilState(nullptr);
+		RenderCommand::SetBlendState(nullptr);
+		RenderCommand::ClearShaderResources();
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+
+		if (rdoc)
+			rdoc->EndFrameCapture((void*)device, nullptr);
+#endif
+	}
+
+	void Renderer::GenerateMultiScatteringLUT(Planet* planet)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+#ifdef TOAST_DEBUG
+		RENDERDOC_API_1_4_1* rdoc = nullptr;
+		if (auto mod = GetModuleHandleA("renderdoc.dll"))
+		{
+			pRENDERDOC_GetAPI getApi = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
+			if (getApi)
+				getApi(eRENDERDOC_API_Version_1_4_1, (void**)&rdoc);
+		}
+
+		if (rdoc)
+			rdoc->StartFrameCapture((void*)device, nullptr);
+
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"GenerateMultiScatteringLUT");
+#endif
+
+		// Updating the planet data in the buffer and mapping it to the GPU
+		auto& planetFrameBuffer = planet->GetPlanetFrameBuffer();
+		auto& planetFrameCBuffer = planet->GetPlanetFrameCBuffer();
+		DirectX::XMFLOAT3 planetCenter = DirectX::XMFLOAT3((float)planet->GetTranslation().x, (float)planet->GetTranslation().y, (float)planet->GetTranslation().z);
+		float planetRadius = (float)planet->GetRadius();
+		float MaxHeight = (float)planet->GetMaxHeight();
+		float MinHeight = (float)planet->GetMinHeight();
+		planetFrameBuffer.Write((uint8_t*)&planetCenter, 12, 0);
+		planetFrameBuffer.Write((uint8_t*)&planetRadius, 4, 12);
+		planetFrameBuffer.Write((uint8_t*)&MaxHeight, 4, 28);
+		planetFrameBuffer.Write((uint8_t*)&MinHeight, 4, 44);
+		planetFrameCBuffer->Map(planetFrameBuffer);
+		planetFrameCBuffer->Bind();
+
+		// Updating the atmospheric data in the buffer and mapping it to the GPU
+		auto& atmosphere = planet->GetAtmosphere();
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.AtmosphereHeight, 4, 0);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScaleHeight, 4, 4);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScaleHeight, 4, 8);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAnisotropy, 4, 12);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScattering, 12, 16);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScattering, 4, 28);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.GroundAlbedo, 12, 32);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAbsorption, 4, 44);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.OzoneStrength, 4, 48);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 52);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 56);
+		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
+		sRendererData->AtmosphereCBuffer->Bind();
+
+		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
+		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_COMPUTE_SHADER);
+
+		planet->GetMultiScatteringLUT()->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+
+		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/MultiScatteringCS.hlsl")->Bind();
+
+		const UINT width = planet->GetMultiScatteringLUT()->GetWidth();
+		const UINT height = planet->GetMultiScatteringLUT()->GetHeight();
+		const UINT gx = (width + 7) / 8;
+		const UINT gy = (height + 7) / 8;
+		RenderCommand::DispatchCompute(gx, gy, 1);
+
+		planet->GetMultiScatteringLUT()->UnbindUAV(0, D3D11_COMPUTE_SHADER);
+
+		ID3D11RenderTargetView* nullRTV = nullptr;
+		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
+		RenderCommand::SetDepthStencilState(nullptr);
+		RenderCommand::SetBlendState(nullptr);
+		RenderCommand::ClearShaderResources();
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+
+		if (rdoc)
+			rdoc->EndFrameCapture((void*)device, nullptr);
+#endif
 	}
 
 	DirectX::XMFLOAT3 Renderer::SampleSSAONoiseTexture(uint32_t x, uint32_t y)

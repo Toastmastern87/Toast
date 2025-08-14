@@ -460,7 +460,7 @@ namespace Toast {
 				float fullW = colW - padX * 2.0f;                  // leave padding on both sides
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##AtmosphereHeight", &mContext->mAtmosphereHeight, 1.0f, 0.0f, FLT_MAX, "%.0f");
+				ImGui::DragFloat("##AtmosphereHeight", &mContext->mAtmosphere.AtmosphereHeight, 1.0f, 0.0f, FLT_MAX, "%.0f");
 
 				// -------- Rayleigh Scale Height Row ----------
 				ImGui::TableNextRow();
@@ -473,7 +473,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##RayleighScaleHeight", &mContext->mRayleighScaleHeight, 1.0f, 0.0f, FLT_MAX, "%.0f");
+				ImGui::DragFloat("##RayleighScaleHeight", &mContext->mAtmosphere.RayleighScaleHeight, 1.0f, 0.0f, FLT_MAX, "%.0f");
 
 				// -------- Rayleigh Scattering Red Row ----------
 				ImGui::TableNextRow();
@@ -486,7 +486,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##RayleighScatteringRed", &mContext->mRayleighScattering.x, 0.000001f, 0.0f, FLT_MAX, "%.6f");
+				ImGui::DragFloat("##RayleighScatteringRed", &mContext->mAtmosphere.RayleighScattering.x, 0.000000001f, 0.0f, FLT_MAX, "%.10f");
 
 				// -------- Rayleigh Scattering Green Row ----------
 				ImGui::TableNextRow();
@@ -499,7 +499,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##RayleighScatteringGreen", &mContext->mRayleighScattering.y, 0.000001f, 0.0f, FLT_MAX, "%.6f");
+				ImGui::DragFloat("##RayleighScatteringGreen", &mContext->mAtmosphere.RayleighScattering.y, 0.000000001f, 0.0f, FLT_MAX, "%.10f");
 
 				// -------- Rayleigh Scattering Blue Row ----------
 				ImGui::TableNextRow();
@@ -512,7 +512,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##RayleighScatteringBlue", &mContext->mRayleighScattering.z, 0.000001f, 0.0f, FLT_MAX, "%.6f");
+				ImGui::DragFloat("##RayleighScatteringBlue", &mContext->mAtmosphere.RayleighScattering.z, 0.000000001f, 0.0f, FLT_MAX, "%.10f");
 
 				// -------- Mie Scale Height Row ----------
 				ImGui::TableNextRow();
@@ -525,33 +525,85 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##MieScaleHeight", &mContext->mMieScaleHeight, 1.0f, 0.0f, FLT_MAX, "%.0f");
+				ImGui::DragFloat("##MieScaleHeight", &mContext->mAtmosphere.MieScaleHeight, 1.0f, 0.0f, FLT_MAX, "%.0f");
 
-				// -------- Mie Scattering Row ----------
+				// -------- Mie Scattering Red Row ----------
 				ImGui::TableNextRow();
 
 				ImGui::TableSetColumnIndex(0);
 				ImGui::AlignTextToFramePadding();
-				ImGui::Text("Mie Scattering");
+				ImGui::Text("Mie Scattering Red");
 
 				ImGui::TableSetColumnIndex(1);
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##MieScattering", &mContext->mMieScattering, 1.0f, 0.0f, FLT_MAX, "%.2f");
+				ImGui::DragFloat("##MieScatteringRed", &mContext->mAtmosphere.MieScattering.x, 0.000000001f, 0.0f, FLT_MAX, "%.10f");
 
-				// -------- Mie Absorption Row ----------
+				// -------- Mie Scattering Green Row ----------
 				ImGui::TableNextRow();
 
 				ImGui::TableSetColumnIndex(0);
 				ImGui::AlignTextToFramePadding();
-				ImGui::Text("Mie Absorption");
+				ImGui::Text("Mie Scattering Green");
 
 				ImGui::TableSetColumnIndex(1);
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##MieAbsorptiony", &mContext->mMieAbsorption, 1.0f, 0.0f, FLT_MAX, "%.2f");
+				ImGui::DragFloat("##MieScatteringGreen", &mContext->mAtmosphere.MieScattering.y, 0.000000001f, 0.0f, FLT_MAX, "%.10f");
+
+				// -------- Mie Scattering Blue Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Mie Scattering Blue");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##MieScatteringBlue", &mContext->mAtmosphere.MieScattering.z, 0.000000001f, 0.0f, FLT_MAX, "%.10f");
+
+				// -------- Mie Absorption Red Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Mie Absorption Red");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##MieAbsorptionRed", &mContext->mAtmosphere.MieAbsorption.x, 0.000000001f, 0.0f, FLT_MAX, "%.10f");
+
+				// -------- Mie Absorption Green Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Mie Absorption Green");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##MieAbsorptionGreen", &mContext->mAtmosphere.MieAbsorption.y, 0.000000001f, 0.0f, FLT_MAX, "%.10f");
+
+				// -------- Mie Absorption Blue Row ----------
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Mie Absorption Blue");
+
+				ImGui::TableSetColumnIndex(1);
+
+				ImGui::SetNextItemWidth(fullW);
+
+				ImGui::DragFloat("##MieAbsorptionBlue", &mContext->mAtmosphere.MieAbsorption.z, 0.000000001f, 0.0f, FLT_MAX, "%.10f");
 
 				// -------- Mie Anisotropy Row ----------
 				ImGui::TableNextRow();
@@ -564,7 +616,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##MieAnisotropy", &mContext->mMieAnisotropy, 1.0f, 0.0f, FLT_MAX, "%.2f");
+				ImGui::DragFloat("##MieAnisotropy", &mContext->mAtmosphere.MieAnisotropy, 1.0f, 0.0f, FLT_MAX, "%.2f");
 
 				// -------- Ozone Strength Row ----------
 				ImGui::TableNextRow();
@@ -577,7 +629,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::DragFloat("##OzoneStrength", &mContext->mOzoneStrength, 1.0f, 0.0f, FLT_MAX, "%.0f");
+				ImGui::DragFloat("##OzoneStrength", &mContext->mAtmosphere.OzoneStrength, 1.0f, 0.0f, FLT_MAX, "%.0f");
 
 				// -------- Ground Albedo Row ----------
 				ImGui::TableNextRow();
@@ -590,7 +642,7 @@ namespace Toast {
 
 				ImGui::SetNextItemWidth(fullW);
 
-				ImGui::ColorEdit3("##GroundAlbedo", &mContext->mGroundAlbedo.x);
+				ImGui::ColorEdit3("##GroundAlbedo", &mContext->mAtmosphere.GroundAlbedo.x);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(1);
@@ -599,7 +651,11 @@ namespace Toast {
 				float indent = fullW - btnW;
 				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + indent);
 
-				ImGui::Button("Apply", ImVec2(btnW, 0));
+				if(ImGui::Button("Apply", ImVec2(btnW, 0))) 
+				{
+					Renderer::GenerateTransmittanceLUT(mContext);
+					Renderer::GenerateMultiScatteringLUT(mContext);
+				}
 
 				ImGui::EndTable();
 			}

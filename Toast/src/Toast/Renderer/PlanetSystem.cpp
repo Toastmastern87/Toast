@@ -39,7 +39,7 @@ namespace Toast {
 		mShaderInputLayout = ShaderLayout(planetElements, vsBlob);
 
 		// Setting up Constant Buffers
-		mPlanetFrameCBuffer = ConstantBufferLibrary::Load("PlanetFrame", 112, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetFrame), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::PlanetFrame) });
+		mPlanetFrameCBuffer = ConstantBufferLibrary::Load("PlanetFrame", 112, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetFrame), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::PlanetFrame), CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::PlanetFrame) });
 		mPlanetFrameCBuffer->Bind();
 		mPlanetFrameBuffer.Allocate(mPlanetFrameCBuffer->GetSize());
 		mPlanetFrameBuffer.ZeroInitialize();

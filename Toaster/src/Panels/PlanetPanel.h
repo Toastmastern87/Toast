@@ -18,8 +18,8 @@ namespace Toast {
 
 		void SetContext(Scene* sceneContext, WindowsWindow* window);
 	private:
-		Scene* mSceneContext;
-		Planet* mContext;
+		Scene* mSceneContext = nullptr;
+		Planet* mContext = nullptr;
 
 		WindowsWindow* mWindow;
 	};

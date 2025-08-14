@@ -71,10 +71,12 @@ namespace Toast {
 
 		// Planet
 		ShaderLibrary::Load("assets/shaders/Planet/PlanetGeometryPass.hlsl");
+		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/TransmittanceCS.hlsl");
+		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/MultiScatteringCS.hlsl");
 
 		// Post Processes
 		ShaderLibrary::Load("assets/shaders/Post Process/StarField.hlsl");
-		ShaderLibrary::Load("assets/shaders/Post Process/Atmosphere.hlsl");
+		//ShaderLibrary::Load("assets/shaders/Post Process/Atmosphere.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/GodRays.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/Bloom.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/BloomComposition.hlsl");

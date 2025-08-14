@@ -236,6 +236,11 @@ namespace Toast {
 		static void GeneratePrefilteredEnvMap(int faceIndex);
 		static void GenerateIrradianceCubemap(int faceIndex);
 
+		// Atmospheric Scattering helpers
+		static void GenerateTransmittanceLUT(Planet* planet);
+		static void GenerateMultiScatteringLUT(Planet* planet);
+
+		// SSAO Stuff
 		static DirectX::XMFLOAT3 SampleSSAONoiseTexture(uint32_t x, uint32_t y);
 		static std::vector<DirectX::XMFLOAT4> GetSSAOKernel() { return sRendererData->SSAOKernel; }
 

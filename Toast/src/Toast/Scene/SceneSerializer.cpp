@@ -616,23 +616,32 @@ namespace Toast {
 		// TODO, should be scene name instead of just untitled scene
 		out << YAML::Key << "Scene" << YAML::Value << "Untitled Scene";
 
-		Planet scenePlanet = *mScene->GetPlanet();
+		Planet* scenePlanet = mScene->GetPlanet().get();
 
 		out << YAML::Key << "Planet";
 		out << YAML::BeginMap;
-		out << YAML::Key << "Translation" << YAML::Value << scenePlanet.mTranslation;
-		out << YAML::Key << "Rotation" << YAML::Value << scenePlanet.mRotationEulerAngles;
-		out << YAML::Key << "GridSize" << YAML::Value << scenePlanet.mGridSize;
-		out << YAML::Key << "MaxLevels" << YAML::Value << scenePlanet.mNumLevels;
-		out << YAML::Key << "Radius" << YAML::Value << scenePlanet.mRadius;
-		out << YAML::Key << "MaxHeight" << YAML::Value << scenePlanet.mMaxHeight;
-		out << YAML::Key << "MinHeight" << YAML::Value << scenePlanet.mMinHeight;
-		out << YAML::Key << "AlbedoColor" << YAML::Value << scenePlanet.mAlbedoColor;
-		out << YAML::Key << "Roughness" << YAML::Value << scenePlanet.mRoughness;
-		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet.mMetalness;
-		out << YAML::Key << "HeightMapAssetPath" << YAML::Value << scenePlanet.mBaseHeightMapTexture->GetFilePath();
-		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet.mMetalness;
-		out << YAML::Key << "StarFieldAssetPath" << YAML::Value << scenePlanet.mStarFieldTexture2D->GetFilePath();
+		out << YAML::Key << "Translation" << YAML::Value << scenePlanet->mTranslation;
+		out << YAML::Key << "Rotation" << YAML::Value << scenePlanet->mRotationEulerAngles;
+		out << YAML::Key << "GridSize" << YAML::Value << scenePlanet->mGridSize;
+		out << YAML::Key << "MaxLevels" << YAML::Value << scenePlanet->mNumLevels;
+		out << YAML::Key << "Radius" << YAML::Value << scenePlanet->mRadius;
+		out << YAML::Key << "MaxHeight" << YAML::Value << scenePlanet->mMaxHeight;
+		out << YAML::Key << "MinHeight" << YAML::Value << scenePlanet->mMinHeight;
+		out << YAML::Key << "AlbedoColor" << YAML::Value << scenePlanet->mAlbedoColor;
+		out << YAML::Key << "Roughness" << YAML::Value << scenePlanet->mRoughness;
+		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet->mMetalness;
+		out << YAML::Key << "HeightMapAssetPath" << YAML::Value << scenePlanet->mBaseHeightMapTexture->GetFilePath();
+		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet->mMetalness;
+		out << YAML::Key << "StarFieldAssetPath" << YAML::Value << scenePlanet->mStarFieldTexture2D->GetFilePath();
+		out << YAML::Key << "AtmosphereHeight" << YAML::Value << scenePlanet->mAtmosphere.AtmosphereHeight;
+		out << YAML::Key << "RayleighScaleHeight" << YAML::Value << scenePlanet->mAtmosphere.RayleighScaleHeight;
+		out << YAML::Key << "RayleighScattering" << YAML::Value << scenePlanet->mAtmosphere.RayleighScattering;
+		out << YAML::Key << "MieScaleHeight" << YAML::Value << scenePlanet->mAtmosphere.MieScaleHeight;
+		out << YAML::Key << "MieScattering" << YAML::Value << scenePlanet->mAtmosphere.MieScattering;
+		out << YAML::Key << "MieAbsorption" << YAML::Value << scenePlanet->mAtmosphere.MieAbsorption;
+		out << YAML::Key << "MieAnisotropy" << YAML::Value << scenePlanet->mAtmosphere.MieAnisotropy;
+		out << YAML::Key << "OzoneStrength" << YAML::Value << scenePlanet->mAtmosphere.OzoneStrength;
+		out << YAML::Key << "GroundAlbedo" << YAML::Value << scenePlanet->mAtmosphere.GroundAlbedo;
 		out << YAML::EndMap;
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
@@ -730,7 +739,7 @@ namespace Toast {
 		std::string sceneName = data["Scene"].as<std::string>();
 		TOAST_CORE_TRACE("Deserializing scene '%s'", sceneName.c_str());
 
-		Ref<Planet>& scenePlanet = mScene->GetPlanet();
+		Planet* scenePlanet = mScene->GetPlanet().get();
 
 		auto planet = data["Planet"];
 		scenePlanet->mTranslation = planet["Translation"].as<DirectX::XMFLOAT3>();
@@ -745,6 +754,15 @@ namespace Toast {
 		scenePlanet->mMetalness = planet["Metalness"].as<float>();
 		scenePlanet->mBaseHeightMapTexture = TextureLibrary::LoadTexture2D(planet["HeightMapAssetPath"].as<std::string>(), false);
 		scenePlanet->mStarFieldTexture2D = TextureLibrary::LoadTexture2D(planet["StarFieldAssetPath"].as<std::string>());
+		scenePlanet->mAtmosphere.AtmosphereHeight = planet["AtmosphereHeight"].as<float>();
+		scenePlanet->mAtmosphere.RayleighScaleHeight = planet["RayleighScaleHeight"].as<float>();
+		scenePlanet->mAtmosphere.RayleighScattering = planet["RayleighScattering"].as<DirectX::XMFLOAT3>();
+		scenePlanet->mAtmosphere.MieScaleHeight = planet["MieScaleHeight"].as<float>();
+		scenePlanet->mAtmosphere.MieScattering = planet["MieScattering"].as<DirectX::XMFLOAT3>();
+		scenePlanet->mAtmosphere.MieAbsorption = planet["MieAbsorption"].as<DirectX::XMFLOAT3>();
+		scenePlanet->mAtmosphere.MieAnisotropy = planet["MieAnisotropy"].as<float>();
+		scenePlanet->mAtmosphere.OzoneStrength = planet["OzoneStrength"].as<float>();
+		scenePlanet->mAtmosphere.GroundAlbedo = planet["GroundAlbedo"].as<DirectX::XMFLOAT3>();
 
 		auto entities = data["Entities"];
 		if (entities) 
@@ -1103,6 +1121,9 @@ namespace Toast {
 			SceneCamera* camera = mScene->GetMainCamera();
 			if (camera)
 				scenePlanet->GenerateDistanceLUT(scenePlanet->mNumLevels, scenePlanet->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mScene->GetViewportSize()));
+
+				Renderer::GenerateTransmittanceLUT(scenePlanet);
+				Renderer::GenerateMultiScatteringLUT(scenePlanet);
 		}
 
 		return true;

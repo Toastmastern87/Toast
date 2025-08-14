@@ -82,6 +82,21 @@ namespace Toast {
 		std::vector<double> HeightData;
 	};
 
+	struct AtmosphericData 
+	{
+		float AtmosphereHeight = 0.0f;
+		float RayleighScaleHeight = 0.0f;
+		float MieScaleHeight = 0.0f;
+		float MieAnisotropy = 0.0f;
+		DirectX::XMFLOAT3 RayleighScattering = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 MieScattering = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 MieAbsorption = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 GroundAlbedo = { 0.0f, 0.0f, 0.0f };
+		float OzoneStrength = 0.0f;
+		uint32_t StepsTransmittance = 40;
+		uint32_t StepsMultiScattering = 24;
+	};
+
 	class Planet
 	{
 	// NEW PLANET SYSTEM
@@ -136,15 +151,7 @@ namespace Toast {
 
 		// Atmosphere Scattering Data
 		bool mAtmosphereActivated = false;
-		float mAtmosphereHeight = 0.0;
-		float mRayleighScaleHeight = 0.0;
-		DirectX::XMFLOAT3 mRayleighScattering = { 0.0f, 0.0f, 0.0f };
-		float mMieScaleHeight = 0.0;
-		float mMieScattering = 0.0f;
-		float mMieAbsorption = 0.0f;
-		float mMieAnisotropy = 0.0;
-		float mOzoneStrength = 0.0;
-		DirectX::XMFLOAT3 mGroundAlbedo = { 0.0f, 0.0f, 0.0f };
+		AtmosphericData mAtmosphere;
 		Ref<Texture2D> mTransmittanceLUT;
 		Ref<Texture2D> mMultiScatteringLUT;
 
@@ -201,7 +208,7 @@ namespace Toast {
 		uint32_t GetLODGridIndexCount() { return mLODGridIndexCount; }
 
 		Ref<ConstantBuffer> GetPlanetFrameCBuffer() { return mPlanetFrameCBuffer; }
-		Buffer* GetPlanetFrameBuffer() { return &mPlanetFrameBuffer; }
+		Buffer& GetPlanetFrameBuffer() { return mPlanetFrameBuffer; }
 		Ref<ConstantBuffer> GetPlanetLevelCBuffer() { return mPlanetLevelCBuffer; }
 		ShaderLayout* GetShaderLayout() { return &mShaderInputLayout; }
 
@@ -214,6 +221,10 @@ namespace Toast {
 		Ref<TextureCube> GetStarFieldTextureCube() { return mStarFieldTextureCube; }
 
 		TerrainData& GetTerrainData() { return mTerrainData; }
+
+		AtmosphericData& GetAtmosphere() { return mAtmosphere; }
+		Ref<Texture2D>& GetTransmittanceLUT() { return mTransmittanceLUT; }
+		Ref<Texture2D>& GetMultiScatteringLUT() { return mMultiScatteringLUT; }
 
 		void DetailObjectPlacement(TerrainObjectComponent* objects, Matrix& planetNoScaleTransform);
 

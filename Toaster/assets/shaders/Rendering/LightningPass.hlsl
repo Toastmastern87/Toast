@@ -48,29 +48,6 @@ cbuffer DirectionalLight : register(b3)
     float multiplier;
 };
 
-cbuffer Atmosphere : register(b4)
-{
-    float radius;
-    float minAltitude;
-    float maxAltitude;
-    float atmosphereHeight;
-    float mieAnisotropy;
-    float rayScaleHeight;
-    float mieScaleHeight;
-    float3 rayBaseScatteringCoefficient;
-    float mieBaseScatteringCoefficient;
-    float3 planetCenter;
-    int atmosphereToggle;
-    int numInScatteringPoints;
-    int numOpticalDepthPoints;
-    int sunDiscToggle;
-    float sunDiscRadius;
-    float sunGlowIntensity;
-    float sunEdgeSoftness;
-    float sunGlowSize;
-    int useDepth;
-};
-
 // G-buffer Textures
 Texture2D positionTexture           : register(t0); // View-space position
 Texture2D normalTexture             : register(t1); // Encoded normals

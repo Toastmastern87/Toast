@@ -13,6 +13,15 @@ Planet:
   HeightMapAssetPath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
   Metalness: 0
   StarFieldAssetPath: C:\dev\Toast\Toaster\assets\textures\StarField16k.tif
+  AtmosphereHeight: 70000
+  RayleighScaleHeight: 11100
+  RayleighScattering: [3.83000014e-08, 8.90999985e-08, 2.17999997e-07]
+  MieScaleHeight: 11000
+  MieScattering: [4.66800011e-05, 4.90899984e-05, 5.065e-05]
+  MieAbsorption: [3.51299991e-06, 5.45500006e-06, 8.24800009e-06]
+  MieAnisotropy: 0.850000024
+  OzoneStrength: 0
+  GroundAlbedo: [0.200000003, 0.200000003, 0.180392161]
 Entities:
   - Entity: 3888910141822256182
     TagComponent:

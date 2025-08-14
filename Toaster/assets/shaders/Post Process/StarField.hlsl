@@ -50,27 +50,18 @@ cbuffer DirectionalLight : register(b3)
     float multiplier;
 };
 
-cbuffer Atmosphere : register(b4)
+cbuffer PlanetFrame : register(b4)
 {
-    float radius;
-    float minAltitude;
-    float maxAltitude;
-    float atmosphereHeight;
-    float mieAnisotropy;
-    float rayScaleHeight;
-    float mieScaleHeight;
-    float3 rayBaseScatteringCoefficient;
-    float mieBaseScatteringCoefficient;
-    float3 planetCenter;
-    int atmosphereToggle;
-    int numInScatteringPoints;
-    int numOpticalDepthPoints;
-    int sunDiscToggle;
-    float sunDiscRadius;
-    float sunGlowIntensity;
-    float sunEdgeSoftness;
-    float sunGlowSize;
-    int useDepth;
+    float3 PlanetCentreVS;
+    float PlanetRadius;
+    float3 BasisTanEast;
+    float MaxHeight;
+    float3 BasisTanNorth;
+    float MinHeight;
+    float3 BasisRadUp;
+    float3 BasisLonEast;
+    float3 BasisLonNorth;
+    float3 BasisSpinUp;
 };
 
 cbuffer Environment : register(b6)
@@ -122,13 +113,13 @@ float4 main(PixelInputType input) : SV_Target
     // Star visibility transitions from 0 to 1 as sunElevation goes from 0.0 to -0.1
     float starVisibility = smoothstep(0.2f, -0.4f, sunElevation);
 
-    float3 planetCenterTranslated = mul(float4(planetCenter, 1.0f), worldTranslationMatrix).xyz;
+    float3 planetCenterTranslated = mul(float4(PlanetCentreVS, 1.0f), worldTranslationMatrix).xyz;
     
     // Compute camera altitude
     float cameraAltitude = length(cameraPosition.xyz - planetCenterTranslated);
 
     // Altitude factor ranges from 0 (surface) to 1 (space)
-    float altitudeFactor = saturate((cameraAltitude - (radius + minAltitude)) / (maxAltitude - minAltitude));
+    float altitudeFactor = saturate((cameraAltitude - (PlanetRadius + MinHeight)) / (MaxHeight - MinHeight));
 
     // Altitude visibility transitions from 0 to 1 as altitudeFactor goes from 0.9 to 1.0
     float altitudeVisibility = smoothstep(0.9f, 1.0f, altitudeFactor);
