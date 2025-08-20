@@ -73,17 +73,7 @@ namespace Toast {
 			rowPitches.push_back(rowPitch);
 		}
 
-		sRenderer2DData->UITextureArray = CreateRef<Texture2DArray>(
-			format,
-			width, height,
-			arraySize,
-			D3D11_USAGE_DEFAULT,
-			D3D11_BIND_SHADER_RESOURCE,
-			1, // samples
-			0, // cpuAccessFlags
-			initialData,
-			rowPitches
-		);
+		sRenderer2DData->UITextureArray = CreateRef<Texture2DArray>(format,	width, height, arraySize, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 1, 0, initialData, rowPitches);
 
 		sRenderer2DData->UITextureArray->SetSliceMapping(texturePaths);
 

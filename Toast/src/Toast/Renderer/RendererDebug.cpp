@@ -25,7 +25,7 @@ namespace Toast {
 		mDebugData->OutlineShader = CreateRef<Shader>("assets/shaders/Debug/Outline.hlsl");
 
 		// Setting up the constant buffer and data buffer for the debug rendering data
-		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 352, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Camera) });
+		mDebugData->mDebugCBuffer = ConstantBufferLibrary::Load("Camera", 352, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::Camera) });
 		mDebugData->mDebugCBuffer->Bind();
 		mDebugData->mDebugBuffer.Allocate(mDebugData->mDebugCBuffer->GetSize());
 		mDebugData->mDebugBuffer.ZeroInitialize();

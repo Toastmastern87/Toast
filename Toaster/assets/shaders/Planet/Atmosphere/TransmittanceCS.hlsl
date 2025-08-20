@@ -1,4 +1,4 @@
-#inputlayout
+﻿#inputlayout
 #type compute
 #pragma pack_matrix( row_major )
 
@@ -29,6 +29,7 @@ cbuffer Atmosphere : register(b5)
     float OzoneStrength;
     uint StepsTransmittance;
     uint StepsMultiScattering;
+    float APFarDynamic;
 };
 
 RWTexture2D<float4> OutTransmittance : register(u0);
@@ -133,7 +134,7 @@ void main(uint3 id : SV_DispatchThreadID)
     float t = 0.0;
 
     // (Optional) ozone spectrum term (rgb); 0 for Mars
-    const float3 betaO3 = float3(0.0, 0.0, 0.0);
+    const float3 betaO3 = float3(0.650e-6, 1.881e-6, 0.085e-6);
 
     [loop]
     for (uint i = 0; i < N; ++i)

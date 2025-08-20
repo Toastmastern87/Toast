@@ -66,6 +66,13 @@ namespace Toast {
 
 		mMultiScatteringLUT = CreateRef<Texture2D>(DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT, 64, 32, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
 		mMultiScatteringLUT->CreateUAV(0);
+
+		mSkyViewLUT = CreateRef<Texture2D>(DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT, 256, 128, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
+		mSkyViewLUT->CreateUAV(0);
+
+		mAerielPerspectiveLUT = CreateRef<Texture3D>(DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT, 192, 108, 256, D3D11_USAGE_DEFAULT,
+			(D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 0);
+		mAerielPerspectiveLUT->CreateUAV(0);
 	}
 
 	void Planet::InitializeLevels()
@@ -495,8 +502,8 @@ namespace Toast {
 
 		mDistanceLUT.back() = std::numeric_limits<double>::max();
 
-		for (auto level : mDistanceLUT)
-			TOAST_CORE_INFO("sDistanceLUT: %lf", level);
+		//for (auto level : mDistanceLUT)
+		//	TOAST_CORE_INFO("sDistanceLUT: %lf", level);
 	}
 
 	void Planet::GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight)

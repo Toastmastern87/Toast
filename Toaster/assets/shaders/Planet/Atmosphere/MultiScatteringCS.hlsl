@@ -29,8 +29,8 @@ cbuffer Atmosphere : register(b5)
     float OzoneStrength;
     uint StepsTransmittance;
     uint StepsMultiScattering;
+    float APFarDynamic;
 };
-
 
 Texture2D<float4> TransmittanceLUT : register(t0);
 SamplerState ClampLinear : register(s0);
@@ -89,7 +89,7 @@ float DensityMie(float h)
 // Short single-scatter integral used to estimate higher orders
 float3 SingleScatterShort(float3 x, float3 wi, float3 sdir, float segLen)
 {
-    float Rt = PlanetRadius + AtmosphereHeight;  
+    float Rt = PlanetRadius + AtmosphereHeight;
     
     // clamp segment to within atmosphere shell
     float3 roCenter = x; // planet-centered coords not needed for short segment
@@ -185,5 +185,6 @@ void main(uint3 id : SV_DispatchThreadID)
     const float groundBoost = 0.25;
     Lms += groundBoost * GroundAlbedo * (L1 + L2) * (1.0 / 3.0);
 
-    OutMultiScatter[id.xy] = float4(Lms, 1.0);
+    const float MS_GAIN = 4.0;
+    OutMultiScatter[id.xy] = float4(MS_GAIN * Lms, 1.0);
 }

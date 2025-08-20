@@ -261,7 +261,7 @@ namespace Toast {
 		//TOAST_CORE_CRITICAL("Binding buffer named: %s", mName.c_str());
 		for(auto& bindInfo : mBindInfo)
 		{
-			//TOAST_CORE_CRITICAL("Binding buffer with bind point: %d", bindInfo.BindPoint);
+			//TOAST_CORE_CRITICAL("Binding buffer with bind point: %d, %d", bindInfo.BindPoint, bindInfo.ShaderType);
 			switch (bindInfo.ShaderType)
 			{
 			case D3D11_VERTEX_SHADER:

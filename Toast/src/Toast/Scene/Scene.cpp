@@ -580,7 +580,7 @@ namespace Toast {
 					//mStats.VerticesCount += static_cast<uint32_t>(terrainObject.MeshObject->GetVertices().size() * terrainObject.);
 				}
 
-				Renderer::EndScene(true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.Bloom, mSettings.BloomThreshold, mSettings.BloomIntensity, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight);
+				Renderer::EndScene(mPlanet, mEnvironment, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.Bloom, mSettings.BloomThreshold, mSettings.BloomIntensity, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight);
 			}
 
 			// Debug Rendering
@@ -1100,7 +1100,7 @@ namespace Toast {
 				}
 			}
 
-			Renderer::EndScene(true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.Bloom, mSettings.BloomThreshold, mSettings.BloomIntensity, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight);
+			Renderer::EndScene(mPlanet, mEnvironment, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.Bloom, mSettings.BloomThreshold, mSettings.BloomIntensity, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight);
 		}
 
 		// Debug Rendering

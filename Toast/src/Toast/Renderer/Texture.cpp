@@ -404,6 +404,93 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  
+	//     TEXTURE3D     ///////////////////////////////////////////////////////////////////  
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	Texture3D::Texture3D(DXGI_FORMAT format, DXGI_FORMAT srvFormat, uint32_t width, uint32_t height, uint32_t depth, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlags, UINT cpuAccessFlags)
+		: mWidth(width), mHeight(height), mDepth(depth), mFormat(format), mSRVFormat(srvFormat)
+	{
+		auto* device = RenderCommand::sRendererAPI->GetDevice();
+
+		D3D11_TEXTURE3D_DESC td = {};
+		td.Width = mWidth;
+		td.Height = mHeight;
+		td.Depth = mDepth;
+		td.MipLevels = 1;
+		td.Format = mFormat;
+		td.Usage = usage;
+		td.BindFlags = bindFlags;
+		td.CPUAccessFlags = cpuAccessFlags;
+
+		HRESULT hr = device->CreateTexture3D(&td, nullptr, &mTexture3D);
+		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Unable to create Texture3D!");
+
+		mResource = mTexture3D; // for GetResource()
+		CreateSRV();
+	}
+
+	void Texture3D::CreateSRV()
+	{
+		auto* device = RenderCommand::sRendererAPI->GetDevice();
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC sd = {};
+		sd.Format = (mSRVFormat == DXGI_FORMAT_UNKNOWN) ? mFormat : mSRVFormat;
+		sd.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE3D;
+		sd.Texture3D.MostDetailedMip = 0;
+		sd.Texture3D.MipLevels = 1;
+
+		HRESULT hr = device->CreateShaderResourceView(mTexture3D.Get(), &sd, &mSRV);
+		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Unable to create SRV for Texture3D!");
+	}
+
+	void Texture3D::CreateUAV(uint32_t firstWSlice, uint32_t wSize)
+	{
+		auto* device = RenderCommand::sRendererAPI->GetDevice();
+
+		D3D11_UNORDERED_ACCESS_VIEW_DESC ud = {};
+		ud.Format = mFormat;
+		ud.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE3D;
+		ud.Texture3D.FirstWSlice = firstWSlice;
+		ud.Texture3D.WSize = (wSize == 0) ? mDepth : wSize;
+
+		HRESULT hr = device->CreateUnorderedAccessView(mTexture3D.Get(), &ud, &mUAV);
+		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Unable to create UAV for Texture3D!");
+	}
+
+	void Texture3D::Bind(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		switch (shaderType)
+		{
+		case D3D11_VERTEX_SHADER:
+			deviceContext->VSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
+		case D3D11_PIXEL_SHADER:
+			deviceContext->PSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
+		case D3D11_COMPUTE_SHADER:
+			deviceContext->CSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
+		}
+	}
+
+	void Texture3D::BindForReadWrite(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
+	{
+		auto* ctx = RenderCommand::sRendererAPI->GetDeviceContext();
+		ID3D11UnorderedAccessView* uav = mUAV.Get();
+		ctx->CSSetUnorderedAccessViews(bindslot, 1, &uav, nullptr);
+	}
+
+	void Texture3D::UnbindUAV(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
+	{
+		auto* ctx = RenderCommand::sRendererAPI->GetDeviceContext();
+		ID3D11UnorderedAccessView* nullUAV = nullptr;
+		ctx->CSSetUnorderedAccessViews(bindslot, 1, &nullUAV, nullptr);
+	}
+
+
+	////////////////////////////////////////////////////////////////////////////////////////  
 	//     TEXTURECUBE   ///////////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 

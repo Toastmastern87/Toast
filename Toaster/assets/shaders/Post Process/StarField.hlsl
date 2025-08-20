@@ -64,13 +64,6 @@ cbuffer PlanetFrame : register(b4)
     float3 BasisSpinUp;
 };
 
-cbuffer Environment : register(b6)
-{
-    float environmentStrength;
-    float textureLOD;
-    float2 padding;
-}
-
 struct PixelInputType
 {
     float4 position : SV_POSITION;
@@ -126,12 +119,9 @@ float4 main(PixelInputType input) : SV_Target
 
     // Combine star visibility based on sun position and altitude
     float combinedVisibility = saturate(max(starVisibility, altitudeVisibility));
-
-    // Adjust the environment strength based on combined visibility
-    float adjustedEnvironmentStrength = environmentStrength * combinedVisibility;
     
     // Sample the cubemap texture
-    float3 skyColor = radianceTexture.SampleLevel(defaultSampler, worldDir, textureLOD).rgb;// * adjustedEnvironmentStrength;
+    float3 skyColor = radianceTexture.SampleLevel(defaultSampler, worldDir, 0.0f).rgb;
     
     return float4(skyColor, 1.0f);
 }

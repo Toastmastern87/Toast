@@ -644,6 +644,17 @@ namespace Toast {
 		out << YAML::Key << "GroundAlbedo" << YAML::Value << scenePlanet->mAtmosphere.GroundAlbedo;
 		out << YAML::EndMap;
 
+		Scene::Environment& environment = mScene->GetEnvirontment();
+
+		out << YAML::Key << "Environment";
+		out << YAML::BeginMap;
+		out << YAML::Key << "SunDiscToggle" << YAML::Value << environment.SunDiscToggle;
+		out << YAML::Key << "SunDiscRadius" << YAML::Value << environment.SunDiscRadius;
+		out << YAML::Key << "SunEdgeSoftness" << YAML::Value << environment.SunEdgeSoftness;
+		out << YAML::Key << "SunGlowIntensity" << YAML::Value << environment.SunGlowIntensity;
+		out << YAML::Key << "SunGlowSize" << YAML::Value << environment.SunGlowSize;
+		out << YAML::EndMap;
+
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 
 		// Making sure the main camera is serialized first
@@ -763,6 +774,15 @@ namespace Toast {
 		scenePlanet->mAtmosphere.MieAnisotropy = planet["MieAnisotropy"].as<float>();
 		scenePlanet->mAtmosphere.OzoneStrength = planet["OzoneStrength"].as<float>();
 		scenePlanet->mAtmosphere.GroundAlbedo = planet["GroundAlbedo"].as<DirectX::XMFLOAT3>();
+
+		Scene::Environment& environment = mScene->GetEnvirontment();
+
+		auto env = data["Environment"];
+		environment.SunDiscToggle = env["SunDiscToggle"].as<bool>();
+		environment.SunDiscRadius = env["SunDiscRadius"].as<float>();
+		environment.SunEdgeSoftness = env["SunEdgeSoftness"].as<float>();
+		environment.SunGlowIntensity = env["SunGlowIntensity"].as<float>();
+		environment.SunGlowSize = env["SunGlowSize"].as<float>();
 
 		auto entities = data["Entities"];
 		if (entities) 

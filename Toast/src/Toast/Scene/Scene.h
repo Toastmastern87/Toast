@@ -81,12 +81,22 @@ namespace Toast {
 			float GodRaysDensity = 3.0f;
 			float GodRaysWeight = 0.02f;
 		};
+
 		struct Stats
 		{
 			float TimeSteps = 0.0f;
 			float FrameTime = 0.0f;
 			float FPS = 0.0f;
 			uint32_t VerticesCount = 0;
+		};
+
+		struct Environment 
+		{
+			bool SunDiscToggle = false;
+			float SunDiscRadius = 0.0f;
+			float SunEdgeSoftness = 0.0f;
+			float SunGlowSize = 0.0f;
+			float SunGlowIntensity = 0.0f;
 		};
 
 		Scene();
@@ -152,6 +162,7 @@ namespace Toast {
 		void SetHoveredEntity(entt::entity entity) { mHoveredEntity = entity; }
 
 		Settings GetSettings() { return mSettings; }
+		Environment& GetEnvirontment() { return mEnvironment; }
 
 		Ref<Frustum> GetFrustum() { return mFrustum; }
 		void InvalidateFrustum();
@@ -180,6 +191,7 @@ namespace Toast {
 
 		LightEnvironment mLightEnvironment;
 
+		Environment mEnvironment;
 		Settings mSettings;
 		Stats mStats;
 

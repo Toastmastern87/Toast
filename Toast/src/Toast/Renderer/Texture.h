@@ -95,6 +95,52 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mNullUAV = { nullptr };
 	};
 
+	class Texture3D : public Texture
+	{
+	public:
+		Texture3D(DXGI_FORMAT format, DXGI_FORMAT srvFormat, uint32_t width, uint32_t height, uint32_t depth, D3D11_USAGE usage = D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG bindFlags = (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), UINT cpuAccessFlags = 0);
+
+		~Texture3D() = default;
+
+		// --- Texture base overrides ---
+		virtual void CreateSRV() override;
+		virtual void Bind(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_VERTEX_SHADER) const override;
+
+		virtual const uint32_t GetWidth()  const override { return mWidth; }
+		virtual const uint32_t GetHeight() const override { return mHeight; }
+		uint32_t               GetDepth()  const { return mDepth; }
+
+		virtual const std::string GetFilePath() const override { return ""; }
+		virtual const DXGI_FORMAT GetFormat()   const override { return mFormat; }
+		virtual void* GetID() const override { return (void*)mSRV.Get(); }
+
+		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const override { return mSRV; }
+		// NOTE: 3D texture has no ID3D11Texture2D; return nullptr to satisfy interface.
+		virtual Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() const override { return nullptr; }
+
+		virtual const uint32_t GetMipLevelCount() const override { return 1; }
+		virtual void GenerateMips() const override {} // not used for AP (no mips)
+
+		virtual ID3D11Resource* GetResource() const override { return mResource.Get(); }
+
+		virtual bool operator==(const Texture& other) const override { return mSRV == ((Texture3D&)other).mSRV; };
+
+		// --- 3D-specific helpers ---
+		void BindForReadWrite(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_COMPUTE_SHADER) const;
+		void UnbindUAV(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_COMPUTE_SHADER) const;
+		void CreateUAV(uint32_t firstWSlice = 0, uint32_t wSize = 0);
+
+	private:
+		uint32_t   mWidth = 1, mHeight = 1, mDepth = 1;
+		DXGI_FORMAT mFormat, mSRVFormat;
+
+		Microsoft::WRL::ComPtr<ID3D11Texture3D> mTexture3D;
+		Microsoft::WRL::ComPtr<ID3D11Resource>  mResource;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mSRV;
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mUAV;
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mNullUAV = { nullptr };
+	};
+
 	class TextureCube : public Texture
 	{
 	public:

@@ -41,7 +41,7 @@ namespace Toast {
 		sRendererData->ShadowMapViewport.MaxDepth = 1.0f;
 
 		// Setting up the constant buffer and data buffer for the camera rendering
-		sRendererData->CameraCBuffer = ConstantBufferLibrary::Load("Camera", 352, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Camera) });
+		sRendererData->CameraCBuffer = ConstantBufferLibrary::Load("Camera", 352, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Camera), CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::Camera) });
 		sRendererData->CameraCBuffer->Bind();
 		sRendererData->CameraBuffer.Allocate(sRendererData->CameraCBuffer->GetSize());
 		sRendererData->CameraBuffer.ZeroInitialize();
@@ -65,10 +65,10 @@ namespace Toast {
 		sRendererData->LightningBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for environmental rendering
-		sRendererData->EnvironmentCBuffer = ConstantBufferLibrary::Load("Environment", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Environment) });
-		sRendererData->EnvironmentCBuffer->Bind();
-		sRendererData->EnvironmentBuffer.Allocate(sRendererData->EnvironmentCBuffer->GetSize());
-		sRendererData->EnvironmentBuffer.ZeroInitialize();
+		sRendererData->SunDiscSettingsCBuffer = ConstantBufferLibrary::Load("SunDiscSettings", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::SunDiscSettings) });
+		sRendererData->SunDiscSettingsCBuffer->Bind();
+		sRendererData->SunDiscSettingsBuffer.Allocate(sRendererData->SunDiscSettingsCBuffer->GetSize());
+		sRendererData->SunDiscSettingsBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for the render settings
 		sRendererData->RenderSettingsCBuffer = ConstantBufferLibrary::Load("RenderSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::RenderSettings) });
@@ -77,7 +77,7 @@ namespace Toast {
 		sRendererData->RenderSettingsBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer for atmosphere rendering
-		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 96, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)5) });
+		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 96, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)5), CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)5) });
 		sRendererData->AtmosphereCBuffer->Bind();
 		sRendererData->AtmosphereBuffer.Allocate(sRendererData->AtmosphereCBuffer->GetSize());
 		sRendererData->AtmosphereBuffer.ZeroInitialize();
@@ -277,7 +277,7 @@ namespace Toast {
 		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
 
-	void Renderer::EndScene(const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, const bool bloom, float bloomThreshold, float bloomIntensity, float godRayExposure, float godRayDecay, float godRayDensity, float godRayWeight)
+	void Renderer::EndScene(Ref<Planet>& planet, Scene::Environment& environment, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, const bool bloom, float bloomThreshold, float bloomIntensity, float godRayExposure, float godRayDecay, float godRayDensity, float godRayWeight)
 	{
 		RenderCommand::SetViewport(sRendererData->Viewport);
 
@@ -301,7 +301,7 @@ namespace Toast {
 
 		// Post Processes
 		StarFieldPass();
-		AtmospherePass(dynamicIBL);
+		AtmospherePass(planet, environment, cameraPos, camera.GetWorldTranslation(), dynamicIBL);
 
 		// Particles only for now, but will most likely be renamed and handle more things in the future.
 		// If there are no particles that needs to be rendered, this pass will be skipped.
@@ -1031,6 +1031,8 @@ namespace Toast {
 
 	void Renderer::StarFieldPass()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 #ifdef TOAST_DEBUG
 		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
 		RenderCommand::GetAnnotation(annotation);
@@ -1052,10 +1054,6 @@ namespace Toast {
 
 				ShaderLibrary::Get("assets/shaders/Post Process/StarField.hlsl")->Bind();
 
-				sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.Intensity, 4, 0);
-				sRendererData->EnvironmentBuffer.Write((uint8_t*)&sRendererData->SceneData.SkyboxData.LOD, 4, 4);
-				sRendererData->EnvironmentCBuffer->Map(sRendererData->EnvironmentBuffer);
-
 				DrawFullscreenQuad();
 			}
 		}
@@ -1069,8 +1067,10 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer::AtmospherePass(const bool dynamicIBL)
+	void Renderer::AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldTranslation, const bool dynamicIBL)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 #ifdef TOAST_DEBUG
 		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
 		RenderCommand::GetAnnotation(annotation);
@@ -1078,51 +1078,84 @@ namespace Toast {
 			annotation->BeginEvent(L"Atmosphere Pass");
 #endif
 
-		//RenderCommand::SetPrimitiveTopology(PrimitiveTopology::TRIANGLELIST);
+		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 1, planet->GetMultiScatteringLUT()->GetSRV());
+		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_COMPUTE_SHADER);
+		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_PIXEL_SHADER);
+		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);
 
-		//RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, nullptr);
-		//RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
-		//RenderCommand::SetBlendState(sRendererData->AtmospherePassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+		float planetRadius = planet->GetRadius();
 
-		//RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
-		//RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
+		// constants
+		const float Rt = planetRadius + planet->GetAtmosphere().AtmosphereHeight;
 
-		//int useDepth = 1;
+		// camera altitude
+		DirectX::XMFLOAT3 cam2ctr = DirectX::XMFLOAT3(camPosWS.x - planet->GetTranslation().x + worldTranslation.x, camPosWS.y - planet->GetTranslation().y + worldTranslation.y
+				, camPosWS.z - planet->GetTranslation().z + worldTranslation.z);
+		float  r = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMLoadFloat3(&cam2ctr)));
+		float  h = std::max(0.0f, r - planetRadius);
 
-		//for (const auto& meshCommand : sRendererData->MeshDrawList)
-		//{
-		//	if (meshCommand.PlanetData)
-		//	{
-		//		int atmosphereToggle = meshCommand.PlanetData->atmosphereToggle ? 1 : 0;
-		//		int sunDiscToggle = meshCommand.PlanetData->SunDisc ? 1 : 0;
+		// worst-case in-atmosphere distance for near-horizon rays
+		// (inside atm):  d ≈ sqrt(Rt*Rt - r*r)
+		// (near ground): ≈ sqrt(2*PlanetRadius*AtmosphereHeight)  ~ 1,000 km (Earth)
+		// (outside atm): use a generous cap
+		float d_inatm = (r <= Rt) ? sqrt(max(Rt * Rt - r * r, 0.0f)) : 2.0f * sqrt(max(Rt * Rt - planetRadius * planetRadius, 0.0f)); // ~2,000 km Earth
 
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->radius, 4, 0);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->minAltitude, 4, 4);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->maxAltitude, 4, 8);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->atmosphereHeight, 4, 12);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieAnisotropy, 4, 16);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->rayScaleHeight, 4, 20);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieScaleHeight, 4, 24);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->rayBaseScatteringCoefficient, 12, 32);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->mieBaseScatteringCoefficient, 4, 44);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->planetCenter, 16, 48);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphereToggle, 4, 60);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->inScatteringPoints, 4, 64);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->opticalDepthPoints, 4, 68);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&sunDiscToggle, 4, 72);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunDiscRadius, 4, 76);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunGlowIntensity, 4, 80);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunEdgeSoftness, 4, 84);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&meshCommand.PlanetData->SunGlowSize, 4, 88);
-		//		sRendererData->AtmosphereBuffer.Write((uint8_t*)&useDepth, 4, 92);
+		// also account for far geometry pixels / oblique FOV
+		float safety = 1.15f;                  // margin
+		float APFarDyn = std::clamp(d_inatm * safety, 2.0e5f, 2.0e6f);
+		
+		// Updating the atmospheric data in the buffer and mapping it to the GPU
+		auto& atmosphere = planet->GetAtmosphere();
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.AtmosphereHeight, 4, 0);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScaleHeight, 4, 4);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScaleHeight, 4, 8);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAnisotropy, 4, 12);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScattering, 12, 16);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScattering, 12, 32);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAbsorption, 12, 48);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.GroundAlbedo, 12, 64);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.OzoneStrength, 4, 76);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 80);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 84);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&APFarDyn, 4, 88);
+		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
+		sRendererData->AtmosphereCBuffer->Bind();
 
-		//		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
-		//	}
-		//}	
+		sRendererData->SunDiscSettingsBuffer.Write((uint8_t*)&environment.SunDiscRadius, 4, 0);
+		sRendererData->SunDiscSettingsBuffer.Write((uint8_t*)&environment.SunEdgeSoftness, 4, 4);
+		sRendererData->SunDiscSettingsBuffer.Write((uint8_t*)&environment.SunGlowSize, 4, 8);
+		sRendererData->SunDiscSettingsBuffer.Write((uint8_t*)&environment.SunGlowIntensity, 4, 12);
+		sRendererData->SunDiscSettingsBuffer.Write((uint8_t*)&environment.SunDiscToggle, 4, 16);
+		sRendererData->SunDiscSettingsCBuffer->Map(sRendererData->SunDiscSettingsBuffer);
+		sRendererData->SunDiscSettingsCBuffer->Bind();
 
-		//ShaderLibrary::Get("assets/shaders/Post Process/Atmosphere.hlsl")->Bind();
+		auto& skyview = planet->GetSkyViewLUT();
+		skyview->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/SkyViewCS.hlsl")->Bind();
+		RenderCommand::DispatchCompute((skyview->GetWidth() + 7) / 8, (skyview->GetHeight() + 7) / 8, 1);
+		skyview->UnbindUAV(0, D3D11_COMPUTE_SHADER);
 
-		//DrawFullscreenQuad();
+		auto& aerialPerspective = planet->GetAerialPerspectiveLUT();
+		aerialPerspective->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/AerialPerspectiveCS.hlsl")->Bind();
+		RenderCommand::DispatchCompute((aerialPerspective->GetWidth() + 7) / 8, (aerialPerspective->GetHeight() + 7) / 8, aerialPerspective->GetDepth());
+		aerialPerspective->UnbindUAV(0, D3D11_COMPUTE_SHADER);
+
+		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, nullptr);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
+		RenderCommand::SetBlendState(nullptr, { 1.0f, 1.0f, 1.0f, 1.0f });
+
+		ShaderLibrary::Get("assets/shaders/Post Process/Atmosphere.hlsl")->Bind();
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, planet->GetMultiScatteringLUT()->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, skyview->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, aerialPerspective->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
+
+		DrawFullscreenQuad();
 
 		static int currentFace = 0;// Tracks which face of the cube to render
 
@@ -1203,7 +1236,7 @@ namespace Toast {
 
 		RenderCommand::SetViewport(sRendererData->Viewport);
 		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
-		RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->ParticleDepthStencilState);
 		RenderCommand::SetBlendState(sRendererData->ParticleBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->ParticlesSRV);
@@ -1258,7 +1291,7 @@ namespace Toast {
 
 		RenderCommand::ClearShaderResources();
 
-		RenderCommand::SetRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, nullptr);
+		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, nullptr);
 
 		ShaderLibrary::Get("assets/shaders/Post Process/GodRays.hlsl")->Bind();
 
@@ -1345,7 +1378,7 @@ namespace Toast {
 		RenderCommand::SetRenderTargets({ sRendererData->FinalBloomRT->GetRTV().Get() }, nullptr);
 		RenderCommand::ClearRenderTargets({ sRendererData->FinalBloomRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->LPassRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->AtmospherePassRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->VerticalBlurRT->GetSRV());
 
 		ShaderLibrary::Get("assets/shaders/Post Process/BloomComposition.hlsl")->Bind();
@@ -1560,9 +1593,9 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScattering, 12, 32);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAbsorption, 12, 48);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.GroundAlbedo, 12, 64);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.OzoneStrength, 4, 80);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 84);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 88);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.OzoneStrength, 4, 76);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 80);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 84);
 		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 		sRendererData->AtmosphereCBuffer->Bind();
 
@@ -1636,12 +1669,12 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScaleHeight, 4, 8);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAnisotropy, 4, 12);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScattering, 12, 16);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScattering, 4, 28);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.GroundAlbedo, 12, 32);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAbsorption, 4, 44);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.OzoneStrength, 4, 48);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 52);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 56);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScattering, 12, 32);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAbsorption, 12, 48);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.GroundAlbedo, 12, 64);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.OzoneStrength, 4, 76);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 80);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 84);
 		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 		sRendererData->AtmosphereCBuffer->Bind();
 
