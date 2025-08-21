@@ -161,22 +161,29 @@ void main(uint3 id : SV_DispatchThreadID)
     float3 up = normalize(-PlanetCentreVS); // center -> camera
     float r = length(PlanetCentreVS); // distance to center
 
-    float3 east = normalize(BasisTanEast);
-    float3 north = normalize(BasisTanNorth);
-
-    float3 sdir = GetSunDirVS();
-    float3 SunE = GetSunIlluminance();
+    // --- make an orthonormal horizon frame ---
+    float3 east = normalize(BasisTanEast - up * dot(BasisTanEast, up));
+    float3 north = normalize(cross(up, east)); // ⟂ to both
+    east = normalize(cross(north, up)); // re-orthogonalize east
 
     float azim, muV;
     DecodeSkyCoords(id.xy, W, H, azim, muV);
-    if (muV <= 0.0)
-    {
-        OutSkyView[id.xy] = 0;
-        return;
-    }
+    muV = max(muV, 0.0);
+    
+    // --- decode sky pixel -> direction (zenith-stable) ---
+    float muV_clamped = max(muV, 0.0);
+    float sin2 = saturate(1.0 - muV_clamped * muV_clamped);
 
-    float sinTh = sqrt(saturate(1.0 - muV * muV));
-    float3 w = cos(azim) * east * sinTh + sin(azim) * north * sinTh + up * muV;
+    float3 w;
+    if (sin2 < 1e-8)
+        w = up; // exactly zenith
+    else
+    {
+        float sinTh = sqrt(sin2);
+        float ca = cos(azim), sa = sin(azim);
+        float3 h = ca * east + sa * north; // unit in horizon frame
+        w = normalize(up * muV_clamped + h * sinTh);
+    }
 
     float Rt = PlanetRadius + AtmosphereHeight;
     RayHit hitToa = RaySphereIntersect(up * r, w, Rt);
@@ -193,6 +200,9 @@ void main(uint3 id : SV_DispatchThreadID)
     float3 tau = 0.0;
     float3 L = 0.0;
     const float3 betaExtM = MieScattering + MieAbsorption;
+    
+    float3 sdir = GetSunDirVS();
+    float3 SunE = GetSunIlluminance();
     
     const float3 betaO3 = float3(0.650e-6, 1.881e-6, 0.085e-6);
 

@@ -28,6 +28,7 @@ Texture2D<float4> BaseColor                 : register(t10);
 
 SamplerState ClampLinear                    : register(s0);
 SamplerState ClampPoint                     : register(s1);
+SamplerState UWrapVClampLinear              : register(s2);
 
 #define BYPASS_SKYVIEW      0
 #define BYPASS_AP           0
@@ -187,24 +188,54 @@ float3 LookupTransSafe(float r, float mu)
     return T;
 }
 
-// build azimuth (0..1) and muV from a world-space view dir
+//// build azimuth (0..1) and muV from a world-space view dir
+//void SkyParamsFromDir(float3 dirWS, out float azim01, out float muV)
+//{
+//    float3 camWS = cameraPosition.xyz;
+//    float3 upWS = normalize(camWS - PlanetCenterWS);
+
+//    // ensure orthonormal horizon frame
+//    float3 eastWS = normalize(BasisTanEast - upWS * dot(BasisTanEast, upWS));
+//    float3 northWS = normalize(BasisTanNorth - upWS * dot(BasisTanNorth, upWS));
+
+//    muV = saturate(dot(dirWS, upWS)); // cos(view zenith)
+//    float3 hdir = normalize(dirWS - upWS * muV); // projected to horizon
+//    float cosP = dot(hdir, eastWS);
+//    float sinP = dot(hdir, northWS);
+//    float phi = atan2(sinP, cosP); // [-pi..pi]
+//    if (phi < 0.0)
+//        phi += 2.0 * PI;
+//    // SkyView LUT was written with V flipped (DecodeSkyCoords used v=1-v)
+//    azim01 = phi * (1.0 / (2.0 * PI));
+//}
 void SkyParamsFromDir(float3 dirWS, out float azim01, out float muV)
 {
     float3 camWS = cameraPosition.xyz;
     float3 upWS = normalize(camWS - PlanetCenterWS);
 
-    // ensure orthonormal horizon frame
+    // Orthonormal horizon frame
     float3 eastWS = normalize(BasisTanEast - upWS * dot(BasisTanEast, upWS));
     float3 northWS = normalize(BasisTanNorth - upWS * dot(BasisTanNorth, upWS));
 
     muV = saturate(dot(dirWS, upWS)); // cos(view zenith)
-    float3 hdir = normalize(dirWS - upWS * muV); // projected to horizon
-    float cosP = dot(hdir, eastWS);
-    float sinP = dot(hdir, northWS);
+    float sin2 = max(0.0, 1.0 - muV * muV); // sin^2(theta)
+
+    if (sin2 < 1e-8)
+    { // azimuth undefined at the pole
+        azim01 = 0.0; // any constant is fine
+        return;
+    }
+
+    // Normalize horizon component without a fragile normalize()
+    float invSin = rsqrt(sin2);
+    float3 h = (dirWS - upWS * muV) * invSin;
+
+    float cosP = dot(h, eastWS);
+    float sinP = dot(h, northWS);
     float phi = atan2(sinP, cosP); // [-pi..pi]
     if (phi < 0.0)
         phi += 2.0 * PI;
-    // SkyView LUT was written with V flipped (DecodeSkyCoords used v=1-v)
+
     azim01 = phi * (1.0 / (2.0 * PI));
 }
 
@@ -250,8 +281,38 @@ float4 main(float4 svpos : SV_POSITION, float2 uv : TEXCOORD) : SV_Target
         float azim01, muV;
         SkyParamsFromDir(dirWS, azim01, muV);
 
-        float3 skyL = SkyViewLUT.Sample(ClampLinear, float2(azim01, 1.0 - muV)).rgb;
+        // ---- zenith-safe sampling of SkyViewLUT ----
+        uint lutW, lutH;
+        SkyViewLUT.GetDimensions(lutW, lutH);
 
+        float u = azim01; // [0,1) wraps in U
+        float v = 1.0 - muV; // 0 at zenith
+        float texelU = 1.0 / max(1.0, (float) lutW);
+        
+        // 1) derive grads and suppress U near the pole (or when U gradient is huge)
+        float2 dx_uv = float2(ddx(u), ddx(v));
+        float2 dy_uv = float2(ddy(u), ddy(v));
+        
+        // “how dangerous” the U gradient is (large at the pole due to azimuth squeeze)
+        float uDanger = (abs(dx_uv.x) + abs(dy_uv.x)) * lutW; // unitless
+        float poleFix = saturate(uDanger); // 0..1
+        
+        float2 dx_fix = lerp(dx_uv, float2(0.0, dx_uv.y), poleFix);
+        float2 dy_fix = lerp(dy_uv, float2(0.0, dy_uv.y), poleFix);
+
+        // single stable sample (no mip seams; your texture has 1 mip)
+        float3 skyMain = SkyViewLUT.SampleGrad(UWrapVClampLinear, float2(u, v), dx_fix, dy_fix).rgb;
+
+        // 2) OPTIONAL: same-v azimuth prefilter (no V shift → no ring)
+        float3 skyAvg = 0;
+        [unroll]
+        for (int i = 0; i < 4; ++i)
+            skyAvg += SkyViewLUT.Sample(UWrapVClampLinear, float2(u + 0.25f * i, v)).rgb;
+        skyAvg *= 0.25f;
+
+        // blend based on how much we suppressed U (not on v)
+        float3 skyL = lerp(skyMain, skyAvg, poleFix);
+        
         // --- Sun disc with crisp AA edge ---
         float3 sunDir = GetSunDirWS();
         float mu = saturate(dot(dirWS, sunDir)); // cos(angle to sun)
@@ -281,9 +342,9 @@ float4 main(float4 svpos : SV_POSITION, float2 uv : TEXCOORD) : SV_Target
             float3 TcamSun = LookupTransSafe(rCam, muS);
 
             // ---- NEW: horizon visibility lift ----
-            // k = 0.55 at horizon → 1.0 by muS≈0.25; brightens only low sun
-            float k = lerp(0.55, 1.0, smoothstep(0.0, 0.25, muS));
-            float3 Tvis = pow(TcamSun, k);
+            // kHorizon  = 0.55 at horizon → 1.0 by muS≈0.25; brightens only low sun
+            float kHorizon = lerp(0.55, 1.0, smoothstep(0.0, 0.25, muS));
+            float3 Tvis = pow(TcamSun, kHorizon);
             Tvis = max(Tvis, 0.002.xxx); // tiny floor (0.2%) so it never disappears
 
             float3 SunRadiance = GetSunIlluminance(); // keep in radiance units (no Ω division)

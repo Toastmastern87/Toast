@@ -754,8 +754,8 @@ namespace Toast {
 
 				sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
 
-				TextureLibrary::GetSampler("HeightMapSampler")->Bind(5, D3D11_VERTEX_SHADER);
-				TextureLibrary::GetSampler("HeightMapSampler")->Bind(5, D3D11_PIXEL_SHADER);
+				TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(5, D3D11_VERTEX_SHADER);
+				TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(5, D3D11_PIXEL_SHADER);
 				RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetBaseHeightMapTexture()->GetSRV());
 				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->PlanetDraw.Planet->GetBaseHeightMapTexture()->GetSRV());
 				sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetAlbedoColor(), 16, 0);
@@ -1083,6 +1083,7 @@ namespace Toast {
 		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_COMPUTE_SHADER);
 		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);
+		TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(2, D3D11_PIXEL_SHADER);		
 
 		float planetRadius = planet->GetRadius();
 
