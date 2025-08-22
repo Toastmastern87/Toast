@@ -2,26 +2,40 @@
 #type compute
 #pragma pack_matrix(row_major)
 
+cbuffer Camera : register(b0)
+{
+    matrix worldTranslationMatrix;
+    matrix viewMatrix;
+    matrix projectionMatrix;
+    matrix inverseViewMatrix;
+    matrix inverseProjectionMatrix;
+    float4 cameraPosition;
+    float farZ;
+    float nearZ;
+    float viewportWidth;
+    float viewportHeight;
+};
+
 cbuffer DirectionalLight : register(b3)
 {
     matrix lightViewProj;
-    float4 direction; // xyz: light dir (see SUN_DIR_NEGATE)
-    float4 radiance; // rgb radiance/color
-    float multiplier; // intensity scale
+    float4 direction;
+    float4 radiance;
+    float multiplier;
 };
 
 cbuffer PlanetFrame : register(b4)
 {
-    float3 PlanetCentreVS;
-    float PlanetRadius;
-    float3 BasisTanEast;
-    float MaxHeight;
-    float3 BasisTanNorth;
-    float MinHeight; // can be negative in valleys
-    float3 BasisRadUp;
-    float3 BasisLonEast;
-    float3 BasisLonNorth;
-    float3 BasisSpinUp;
+    float3 PlanetCenterWS; // unused here
+    float PlanetRadius; // Rg
+    float3 BasisTanEast; // unused here
+    float MaxHeight; // unused here
+    float3 BasisTanNorth; // unused here
+    float MinHeight; // unused here
+    float3 BasisRadUp; // unused here
+    float3 BasisLonEast; // unused here
+    float3 BasisLonNorth; // unused here
+    float3 BasisSpinUp; // unused here
 };
 
 cbuffer Atmosphere : register(b5)
@@ -47,12 +61,15 @@ RWTexture2D<float4> OutSkyView : register(u0);
 
 static const float PI = 3.14159265359;
 
-// ---------- config ----------
 #ifndef SUN_DIR_NEGATE
-#define SUN_DIR_NEGATE 1   // set to 0 if 'direction' already points from point -> sun
+#define SUN_DIR_NEGATE 1
 #endif
 
-float3 GetSunDirVS()
+#ifndef VISUAL_H_MULT
+#define VISUAL_H_MULT 6.0f   // 5–7 works well; increase -> earlier sunset, decrease -> later
+#endif
+
+float3 GetSunDirWS()
 {
     float3 d = normalize(direction.xyz);
     return SUN_DIR_NEGATE ? -d : d;
@@ -62,7 +79,6 @@ float3 GetSunIlluminance()
     return radiance.rgb * multiplier;
 }
 
-// ---------- helpers ----------
 struct RayHit
 {
     bool hit;
@@ -87,7 +103,7 @@ RayHit RaySphereIntersect(float3 ro, float3 rd, float radius)
     return r;
 }
 
-float2 TransUV(float r, float mu) // DX11 V flipped
+float2 TransUV(float r, float mu)
 {
     float Rg2 = PlanetRadius * PlanetRadius;
     float Rt = PlanetRadius + AtmosphereHeight;
@@ -96,12 +112,10 @@ float2 TransUV(float r, float mu) // DX11 V flipped
     float u = saturate(0.5 * (mu + 1.0));
     return float2(u, v);
 }
-
 float3 LookupTransSafe(float r, float mu)
 {
     float rc = max(r, PlanetRadius);
     float3 T = TransmittanceLUT.SampleLevel(ClampLinear, TransUV(rc, mu), 0).rgb;
-
     if (r < PlanetRadius)
     {
         float h0 = (PlanetRadius - r);
@@ -112,7 +126,6 @@ float3 LookupTransSafe(float r, float mu)
     }
     return T;
 }
-
 float3 LookupMS(float r, float muS)
 {
     float Rg2 = PlanetRadius * PlanetRadius;
@@ -136,17 +149,25 @@ float PhaseMie(float c, float g)
 float DensityOzone(float hMeters)
 {
     float km = hMeters * 1e-3;
-    // triangular 10..40 km, peak at ~25 km
     return saturate(1.0 - abs((km - 25.0) / 15.0)) * OzoneStrength;
 }
 
-void DecodeSkyCoords(uint2 px, uint W, uint H, out float azim, out float muV)
+// -------- horizon-aware μ mapping --------
+// Surface horizon μ (negative = below +Z/up) for rCam > Rg
+float MuSurfaceHorizon(float rCam, float Rg)
 {
-    float u = (px.x + 0.5) / W; // [0,1] -> azimuth
-    float v = (px.y + 0.5) / H; // [0,1] -> muV
-    v = 1.0 - v; // DX11 flip to match paper orientation
-    azim = u * (2.0 * PI);
-    muV = saturate(v); // 0..1 (horizon..zenith)
+    if (rCam <= Rg + 1.0f)
+        return 0.0f;
+    float ratio = Rg / rCam; // (0,1)
+    return -sqrt(saturate(1.0f - ratio * ratio)); // μ = -sin(depression)
+}
+
+// v∈[0,1] (top=zenith after DX flip) -> μ using horizon as the centerline (v=0.5)
+float MuFromV_H(float v, float muH)
+{
+    return (v >= 0.5f)
+        ? lerp(muH, 1.0, (v - 0.5f) * 2.0f)
+        : lerp(-1.0, muH, v * 2.0f);
 }
 
 [numthreads(8, 8, 1)]
@@ -157,69 +178,68 @@ void main(uint3 id : SV_DispatchThreadID)
     if (id.x >= W || id.y >= H)
         return;
 
-    // camera at origin in VS
-    float3 up = normalize(-PlanetCentreVS); // center -> camera
-    float r = length(PlanetCentreVS); // distance to center
+    float3 ro = cameraPosition.xyz - PlanetCenterWS;
+    float3 up = normalize(ro);
+    float rCam = length(ro);
 
-    // --- make an orthonormal horizon frame ---
     float3 east = normalize(BasisTanEast - up * dot(BasisTanEast, up));
-    float3 north = normalize(cross(up, east)); // ⟂ to both
-    east = normalize(cross(north, up)); // re-orthogonalize east
+    float3 north = normalize(cross(up, east));
+    east = normalize(cross(north, up));
 
-    float azim, muV;
-    DecodeSkyCoords(id.xy, W, H, azim, muV);
-    muV = max(muV, 0.0);
-    
-    // --- decode sky pixel -> direction (zenith-stable) ---
-    float muV_clamped = max(muV, 0.0);
-    float sin2 = saturate(1.0 - muV_clamped * muV_clamped);
+    // decode azimuth + horizon-relative v
+    float u = (id.x + 0.5) / W;
+    float v = 1.0 - (id.y + 0.5) / H; // DX flip (top = zenith)
+    float azim = u * (2.0 * PI);
 
-    float3 w;
-    if (sin2 < 1e-8)
-        w = up; // exactly zenith
-    else
-    {
-        float sinTh = sqrt(sin2);
-        float ca = cos(azim), sa = sin(azim);
-        float3 h = ca * east + sa * north; // unit in horizon frame
-        w = normalize(up * muV_clamped + h * sinTh);
-    }
+    float muH = MuSurfaceHorizon(rCam, PlanetRadius); // << use surface horizon
+    float muV = (v >= 0.5f) ? lerp(muH, 1.0, (v - 0.5f) * 2.0) // MuFromV_H with muH
+                        : lerp(-1.0, muH, v * 2.0f);
+
+    float sin2 = saturate(1.0 - muV * muV);
+    float3 w = (sin2 < 1e-8)
+             ? ((muV >= 0.0) ? up : -up)
+             : normalize(up * muV + (cos(azim) * east + sin(azim) * north) * sqrt(sin2));
 
     float Rt = PlanetRadius + AtmosphereHeight;
-    RayHit hitToa = RaySphereIntersect(up * r, w, Rt);
+    RayHit hitToa = RaySphereIntersect(ro, w, Rt);
     if (!hitToa.hit)
     {
         OutSkyView[id.xy] = 0;
         return;
     }
-    float tEnd = max(0.0, hitToa.t1);
+
+    float tEnter = max(0.0, hitToa.t0);
+    float tExit = max(0.0, hitToa.t1);
+    float segLen = tExit - tEnter;
+    if (segLen <= 0.0)
+    {
+        OutSkyView[id.xy] = 0;
+        return;
+    }
 
     uint N = max(8u, StepsMultiScattering);
-    float dt = tEnd / N;
+    float dt = segLen / N;
 
-    float3 tau = 0.0;
-    float3 L = 0.0;
+    float3 tau = 0.0, L = 0.0;
     const float3 betaExtM = MieScattering + MieAbsorption;
-    
-    float3 sdir = GetSunDirVS();
+    float3 sdir = GetSunDirWS();
     float3 SunE = GetSunIlluminance();
-    
     const float3 betaO3 = float3(0.650e-6, 1.881e-6, 0.085e-6);
 
     [loop]
     for (uint i = 0; i < N; ++i)
     {
-        float t = (i + 0.5) * dt;
-        float3 p = up * r + w * t;
+        float t = tEnter + (i + 0.5) * dt;
+        float3 p = ro + w * t;
         float rp = length(p);
-        float h = rp - PlanetRadius; // can be negative in valleys
+        float h = rp - PlanetRadius;
 
         float hN = max(0.0, h);
         float dR = exp(-hN / RayScaleHeight);
         float dM = exp(-hN / MieScaleHeight);
-        float dO = DensityOzone(hN);        
-        
-        float3 sigmaExt = RayleighScattering * dR + betaExtM * dM + betaO3 * dO;;
+        float dO = DensityOzone(hN);
+
+        float3 sigmaExt = RayleighScattering * dR + betaExtM * dM + betaO3 * dO;
         float3 T_view = exp(-tau);
 
         float muS = dot(normalize(p), sdir);
@@ -241,5 +261,5 @@ void main(uint3 id : SV_DispatchThreadID)
         tau += sigmaExt * dt;
     }
 
-    OutSkyView[id.xy] = float4(L,1);
+    OutSkyView[id.xy] = float4(L, 1);
 }
