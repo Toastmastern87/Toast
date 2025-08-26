@@ -15,12 +15,12 @@ Planet:
   StarFieldAssetPath: C:\dev\Toast\Toaster\assets\textures\StarField16k.tif
   AtmosphereHeight: 70000
   RayleighScaleHeight: 8000
-  RayleighScattering: [5.802e-06, 1.35580003e-05, 3.3100001e-05]
+  RayleighScattering: [5.80200003e-06, 1.35580003e-05, 3.3100001e-05]
   MieScaleHeight: 1200
-  MieScattering: [3.996e-06, 3.996e-06, 3.996e-06]
-  MieAbsorption: [4.40e-06, 4.40e-06, 4.40e-06]
-  MieAnisotropy: 0.800000012
-  OzoneStrength: 1
+  MieScattering: [3.996e-6, 3.996e-6, 3.996e-6]
+  MieAbsorption: [4.40000008e-07, 4.40000008e-07, 4.40000008e-07]
+  MieAnisotropy: 0.8
+  OzoneStrength: 0.00300000003
   GroundAlbedo: [0.100000001, 0.100000001, 0.100000001]
 Environment:
   SunDiscToggle: true
@@ -80,7 +80,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-394.899048, 20.8000145, -63.5000076]
+      Rotation: [-445.399078, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]
