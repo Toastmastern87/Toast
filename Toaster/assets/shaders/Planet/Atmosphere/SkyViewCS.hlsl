@@ -917,7 +917,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     north = normalize(north);
     east = normalize(cross(north, up));
 
-    float3 camWS = cameraPosition.xyz;
+    float3 camWS = cameraPosition.xyz - 8200;
     float3 camRel = camWS - PlanetCenterWS;
     float rCam = max(Rg, length(camRel));
 
