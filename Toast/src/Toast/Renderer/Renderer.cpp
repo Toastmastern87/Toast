@@ -1085,26 +1085,52 @@ namespace Toast {
 		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(2, D3D11_PIXEL_SHADER);		
 
-		float planetRadius = planet->GetRadius();
+		// Compute APFarDynamic (meters) for the Atmosphere cbuffer (b5).
+		float APFarDyn = 0.0f;
+		{
+			const float Rg = (float)planet->GetRadius();
+			const float Rt = Rg + planet->GetAtmosphere().AtmosphereHeight;
 
-		// constants
-		const float Rt = planetRadius + planet->GetAtmosphere().AtmosphereHeight;
+			// Camera position relative to planet center (meters)
+			DirectX::XMFLOAT3 cam2ctrWS = { camPosWS.x - planet->GetTranslation().x + worldTranslation.x, camPosWS.y - planet->GetTranslation().y + worldTranslation.y, camPosWS.z - planet->GetTranslation().z + worldTranslation.z };
+			float r = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMLoadFloat3(&cam2ctrWS)));
+			float h = std::max(0.0f, r - Rg); // altitude above ground
 
-		// camera altitude
-		DirectX::XMFLOAT3 cam2ctr = DirectX::XMFLOAT3(camPosWS.x - planet->GetTranslation().x + worldTranslation.x, camPosWS.y - planet->GetTranslation().y + worldTranslation.y
-				, camPosWS.z - planet->GetTranslation().z + worldTranslation.z);
-		float  r = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMLoadFloat3(&cam2ctr)));
-		float  h = std::max(0.0f, r - planetRadius);
+			// Near-ground target range (good default per paper ~32 km)
+			const float baseRange = 70e3f;
+			const float maxInside = 160e3f;    // cap while inside atmosphere
+			const float maxOutside = 2.0e6f;   // ~2000 km cap when in space
+			const float safety = 1.15f;
 
-		// worst-case in-atmosphere distance for near-horizon rays
-		// (inside atm):  d ≈ sqrt(Rt*Rt - r*r)
-		// (near ground): ≈ sqrt(2*PlanetRadius*AtmosphereHeight)  ~ 1,000 km (Earth)
-		// (outside atm): use a generous cap
-		float d_inatm = (r <= Rt) ? sqrt(max(Rt * Rt - r * r, 0.0f)) : 2.0f * sqrt(max(Rt * Rt - planetRadius * planetRadius, 0.0f)); // ~2,000 km Earth
+			APFarDyn = baseRange;
 
-		// also account for far geometry pixels / oblique FOV
-		float safety = 1.15f;                  // margin
-		float APFarDyn = std::clamp(d_inatm * safety, 2.0e5f, 2.0e6f);
+			if (r <= Rt)
+			{
+				// Inside atmosphere: ramp range with altitude for aircraft views.
+				const float alt0 = 2e3f;   // start ramp ~2 km
+				const float alt1 = 20e3f;  // fully ramped by ~20 km
+				float t = std::clamp((h - alt0) / std::max(alt1 - alt0, 1.0f), 0.0f, 1.0f);
+
+				// Optionally consider theoretical horizon path length, but keep capped small for quality.
+				float rangeTarget = lerp(baseRange, maxInside, t);
+				APFarDyn = std::clamp(rangeTarget * safety, 16e3f, maxInside);
+			}
+			else
+			{
+				// Outside atmosphere (space view).
+				// Conservative screen-wide distance to the first atmosphere hit for tangent (limb) rays:
+				// tEnter_tangent = sqrt(r^2 - Rt^2). Add small margin.
+				double tEnterTan = std::sqrt(std::max(0.0, double(r) * r - double(Rt) * Rt));
+
+				// Also ensure we at least cover the center-looking ray: tEnter_center = r - Rt.
+				double tEnterCenter = std::max(0.0, double(r) - double(Rt));
+
+				double need = std::max(tEnterTan, tEnterCenter); // conservative bound across the screen
+				float rangeTarget = (float)need;
+
+				APFarDyn = std::clamp(std::max(baseRange, rangeTarget * safety), 160e3f, maxOutside);
+			}
+		}
 		
 		// Updating the atmospheric data in the buffer and mapping it to the GPU
 		auto& atmosphere = planet->GetAtmosphere();
