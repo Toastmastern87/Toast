@@ -4,10 +4,10 @@ Planet:
   Rotation: [74.899826, -18.0999756, -227.303177]
   GridSize: 257
   MaxLevels: 28
-  Radius: 3389500
-  MaxHeight: 21200
-  MinHeight: -8200
-  AlbedoColor: [0.498039216, 0.286274523, 0.215686277]
+  Radius: 3381300
+  MaxHeight: 29400
+  MinHeight: 0
+  AlbedoColor: [0.113924026, 0.0432988033, 0.00865245797]
   Roughness: 1
   Metalness: 0
   HeightMapAssetPath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
@@ -17,10 +17,10 @@ Planet:
   RayleighScaleHeight: 8000
   RayleighScattering: [5.80200003e-06, 1.35580003e-05, 3.3100001e-05]
   MieScaleHeight: 1200
-  MieScattering: [3.996e-6, 3.996e-6, 3.996e-6]
+  MieScattering: [3.99600003e-06, 3.99600003e-06, 3.99600003e-06]
   MieAbsorption: [4.40000008e-07, 4.40000008e-07, 4.40000008e-07]
-  MieAnisotropy: 0.8
-  OzoneStrength: 0.00300000003
+  MieAnisotropy: 0.800000012
+  OzoneStrength: 1
   GroundAlbedo: [0.100000001, 0.100000001, 0.100000001]
 Environment:
   SunDiscToggle: true
@@ -80,7 +80,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-445.399078, 20.8000145, -63.5000076]
+      Rotation: [-453.998932, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]

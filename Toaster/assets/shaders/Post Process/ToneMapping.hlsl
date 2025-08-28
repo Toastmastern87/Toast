@@ -1,62 +1,40 @@
-﻿#inputlayout
-#type vertex
-#pragma pack_matrix( row_major )
-
-struct PixelInputType
-{
-	float4 position			: SV_POSITION;
-	float2 texCoord			: TEXCOORD;
-};
-
-PixelInputType main(uint vID : SV_VertexID)
-{
-	PixelInputType output;
-
-	//https://wallisc.github.io/rendering/2021/04/18/Fullscreen-Pass.html
-	output.texCoord = float2((vID << 1) & 2, vID & 2);
-	output.position = float4(output.texCoord * float2(2, -2) + float2(-1, 1), 1, 1);
-
-	return output;
-}
-
-#type pixel
-Texture2D BaseTexture				: register(t10);
-
-SamplerState DefaultSampler			: register(s1);
+﻿#type pixel
+Texture2D BaseTexture : register(t10);
+SamplerState DefaultSampler : register(s1);
 
 #define PI 3.141592653589793
-
-#pragma pack_matrix( row_major )
+#pragma pack_matrix(row_major)
 
 struct PixelInputType
 {
-	float4 position			: SV_POSITION;
-	float2 texCoord			: TEXCOORD;
+    float4 position : SV_POSITION;
+    float2 texCoord : TEXCOORD;
 };
 
+// === ACES helpers (unchanged) ==============================================
 static const float3x3 ACESInputMat =
 {
-	{0.59719, 0.35458, 0.04823},
-	{0.07600, 0.90834, 0.01566},
-	{0.02840, 0.13383, 0.83777}
+    { 0.59719, 0.35458, 0.04823 },
+    { 0.07600, 0.90834, 0.01566 },
+    { 0.02840, 0.13383, 0.83777 }
 };
 
 static const float3x3 ACESOutputMat =
 {
-	{ 1.60475, -0.53108, -0.07367},
-	{-0.10208,  1.10813, -0.00605},
-	{-0.00327, -0.07276,  1.07602}
+    { 1.60475, -0.53108, -0.07367 },
+    { -0.10208, 1.10813, -0.00605 },
+    { -0.00327, -0.07276, 1.07602 }
 };
 
 static const float3x3 D65_to_D60 =
-{ // D65 → D60
+{
     { 0.987224, 0.007648, -0.014872 },
     { -0.006113, 1.001864, 0.004249 },
     { 0.015953, -0.019591, 1.003640 }
 };
 
 static const float3x3 D60_to_D65 =
-{ // D60 → D65  (inverse)
+{
     { 1.012780, -0.007597, 0.016690 },
     { 0.006019, 0.998132, -0.004117 },
     { -0.016787, 0.019661, 0.996995 }
@@ -64,54 +42,31 @@ static const float3x3 D60_to_D65 =
 
 float3 RRTAndODTFit(float3 v)
 {
-	float3 a = v * (v + 0.0245786f) - 0.000090537f;
-	float3 b = v * (0.983729f * v + 0.4329510f) + 0.238081f;
-	return a / b;
+    float3 a = v * (v + 0.0245786f) - 0.000090537f;
+    float3 b = v * (0.983729f * v + 0.4329510f) + 0.238081f;
+    return a / b;
 }
 
-//float3 AcesTonemap(float3 color) {
-//
-//	float3 v = mul(ACESInputMat, color);
-//	float3 a = v * (v + 0.0245786f) - 0.000090537f;
-//	float3 b = v * (0.983729f * v + 0.4329510f) + 0.238081f;
-//	return pow(clamp(mul(ACESOutputMat, (a / b)), 0.0f, 1.0f), float3(1.0f / 2.2f, 1.0f / 2.2f, 1.0f / 2.2f));
-//}
-
-float3 LinearTosRGB(float3 color)
-{
-	float3 x = color * 12.92f;
-	float3 y = 1.055f * pow(saturate(color), 1.0f / 2.4f) - 0.055f;
-
-	float3 clr = color;
-	clr.r = color.r < 0.0031308f ? x.r : y.r;
-	clr.g = color.g < 0.0031308f ? x.g : y.g;
-	clr.b = color.b < 0.0031308f ? x.b : y.b;
-
-	return clr;
-}
-
-float3 SRGBToLinear(float3 color)
-{
-	float3 x = color / 12.92f;
-	float3 y = pow(max((color + 0.055f) / 1.055f, 0.0f), 2.4f);
-
-	float3 clr = color;
-	clr.r = color.r <= 0.04045f ? x.r : y.r;
-	clr.g = color.g <= 0.04045f ? x.g : y.g;
-	clr.b = color.b <= 0.04045f ? x.b : y.b;
-
-	return clr;
-}
-
+// === Pixel shader ===========================================================
 float4 main(PixelInputType input) : SV_TARGET
 {
+    // HDR scene color (linear)
     float3 colorHDR = BaseTexture.Sample(DefaultSampler, input.texCoord).rgb;
 
-    float3 colorToned = mul(ACESInputMat, colorHDR);
-	
-    colorToned = RRTAndODTFit(colorToned);
-    colorToned = mul(ACESOutputMat, colorToned);
-    colorToned = max(colorToned, 0.0f);
+    // Constant exposure in EV (stops). 2.5 EV -> ~5.657x
+    const float ExposureEV = 2.5f;
+    const float exposureMul = exp2(ExposureEV);
+    float3 color = colorHDR * exposureMul;
 
-    return float4(saturate(colorToned), 1.0f);
+    // Chromatic adapt sRGB (D65) -> ACES (D60), apply ACES filmic, then adapt back.
+    color = mul(D65_to_D60, color);
+    color = mul(ACESInputMat, color);
+    color = RRTAndODTFit(color);
+    color = mul(ACESOutputMat, color);
+    color = mul(D60_to_D65, color);
+
+    // Clamp to [0,1] (still linear). No manual sRGB — backbuffer is sRGB.
+    color = saturate(max(color, 0.0f));
+
+    return float4(color, 1.0f);
 }
