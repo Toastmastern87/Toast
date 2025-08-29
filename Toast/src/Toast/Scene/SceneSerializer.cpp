@@ -649,6 +649,7 @@ namespace Toast {
 		out << YAML::Key << "Environment";
 		out << YAML::BeginMap;
 		out << YAML::Key << "SunDiscToggle" << YAML::Value << environment.SunDiscToggle;
+		out << YAML::Key << "SunIntensity" << YAML::Value << environment.SunIntensity;
 		out << YAML::Key << "SunDiscRadius" << YAML::Value << environment.SunDiscRadius;
 		out << YAML::Key << "SunEdgeSoftness" << YAML::Value << environment.SunEdgeSoftness;
 		out << YAML::Key << "SunGlowIntensity" << YAML::Value << environment.SunGlowIntensity;
@@ -779,6 +780,7 @@ namespace Toast {
 
 		auto env = data["Environment"];
 		environment.SunDiscToggle = env["SunDiscToggle"].as<bool>();
+		environment.SunIntensity = env["SunIntensity"].as<float>();
 		environment.SunDiscRadius = env["SunDiscRadius"].as<float>();
 		environment.SunEdgeSoftness = env["SunEdgeSoftness"].as<float>();
 		environment.SunGlowIntensity = env["SunGlowIntensity"].as<float>();

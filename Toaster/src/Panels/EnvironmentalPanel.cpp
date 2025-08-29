@@ -30,6 +30,9 @@ namespace Toast {
 		ImGui::Text("Sun Disc Toggle");
 		ImGui::Checkbox("##SunDiscToggle", &environment.SunDiscToggle);
 
+		ImGui::Text("Sun Intensity");
+		ImGui::DragFloat("##SunIntensity", &environment.SunIntensity, 1.0f, 0.0f, FLT_MAX, "%.0f");
+
 		ImGui::Text("Sun Disc Radius");
 		ImGui::DragFloat("##SunDiscRadius", &environment.SunDiscRadius, 0.000001f, 0.0f, FLT_MAX, "%.6f");
 

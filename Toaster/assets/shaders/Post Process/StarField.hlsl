@@ -47,8 +47,9 @@ cbuffer DirectionalLight : register(b3)
     matrix lightViewProj;
     float4 direction;
     float4 radiance;
-    float multiplier;
+    float SunIntensity;
 };
+
 
 cbuffer PlanetFrame : register(b4)
 {

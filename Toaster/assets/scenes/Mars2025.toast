@@ -5,7 +5,7 @@ Planet:
   GridSize: 257
   MaxLevels: 28
   Radius: 3381300
-  MaxHeight: 29400
+  MaxHeight: 29200
   MinHeight: 0
   AlbedoColor: [0.113924026, 0.0432988033, 0.00865245797]
   Roughness: 1
@@ -24,6 +24,7 @@ Planet:
   GroundAlbedo: [0.100000001, 0.100000001, 0.100000001]
 Environment:
   SunDiscToggle: true
+  SunIntensity: 1000
   SunDiscRadius: 0.0167500004
   SunEdgeSoftness: 0.00410000002
   SunGlowIntensity: 0.300000012
@@ -80,7 +81,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-453.998932, 20.8000145, -63.5000076]
+      Rotation: [-433.297821, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]

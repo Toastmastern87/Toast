@@ -743,7 +743,7 @@ cbuffer DirectionalLight : register(b3)
     float4x4 lightViewProj;
     float4 direction; // FROM light -> scene
     float4 radiance; // RGB
-    float multiplier;
+    float SunIntensity;
 };
 
 cbuffer PlanetFrame : register(b4)
@@ -917,9 +917,9 @@ void main(uint3 tid : SV_DispatchThreadID)
     north = normalize(north);
     east = normalize(cross(north, up));
 
-    float3 camWS = cameraPosition.xyz - 8200;
+    float3 camWS = cameraPosition.xyz;
     float3 camRel = camWS - PlanetCenterWS;
-    float rCam = max(Rg, length(camRel));
+    float rCam = max(Rg, length(camRel) + 8200);
 
     float3 wSun = -normalize(direction.xyz);
 
@@ -1042,13 +1042,13 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 ImsG = (RayleighScattering + MieScattering) * pMSg * msIrrG;
 
         float3 Lg = Tcg * (Lo + ImsG);
-        float3 L = (Ls + Lms + Lg) * radiance.rgb * multiplier;
+        float3 L = (Ls + Lms + Lg) * radiance.rgb * SunIntensity;
         OutSkyView[tid.xy] = float4(max(L, 0.0f), 1.0f);
         return;
     }
 #endif
 
-    float3 L = (Ls + Lms) * radiance.rgb * multiplier;
+    float3 L = (Ls + Lms) * radiance.rgb * SunIntensity;
 
 #if   SKY_DEBUG_MODE == 0
     OutSkyView[tid.xy] = float4(max(L, 0.0f), 1.0f);

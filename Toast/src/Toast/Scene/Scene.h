@@ -93,6 +93,7 @@ namespace Toast {
 		struct Environment 
 		{
 			bool SunDiscToggle = false;
+			float SunIntensity = 0.0f;
 			float SunDiscRadius = 0.0f;
 			float SunEdgeSoftness = 0.0f;
 			float SunGlowSize = 0.0f;
@@ -131,8 +132,7 @@ namespace Toast {
 		float GetTimeScale() { return mTimeScale; }
 
 		float& GetSkyboxLod() { return mSkyboxLod; }
-		float& GetEnvironmentIntensity() { return mEnvironmentIntensity; }
-		
+
 		SceneCamera* GetMainCamera() { return mMainCamera; }
 		void SetMainCamera(SceneCamera* camera) { mMainCamera = camera; }
 
@@ -187,7 +187,7 @@ namespace Toast {
 		EntityMap mEntityIDMap;
 
 		Ref<TextureCube> mSkyboxTexture = nullptr;
-		float mEnvironmentIntensity = 1.0f, mSkyboxLod = 0.0f;
+		float mSkyboxLod = 0.0f;
 
 		LightEnvironment mLightEnvironment;
 

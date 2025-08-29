@@ -53,7 +53,6 @@ namespace Toast {
 
 			struct SceneInfo
 			{
-				float SceneEnvironmentIntensity;
 				LightEnvironment SceneLightEnvironment;
 
 				struct SkyboxInfo
@@ -151,7 +150,7 @@ namespace Toast {
 		static void OnWindowResize(uint32_t width, uint32_t height);
 		static void OnViewportResize(uint32_t width, uint32_t height);
 
-		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos, int wireFrame);
+		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos, Scene::Environment& environment, int wireFrame);
 		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, const bool bloom, float bloomThreshold, float bloomIntensity, float godRayExposure, float godRayDecay, float godRayDensity, float godRayWeight);
 
 		static void CreateDepthBuffer(uint32_t width, uint32_t height);

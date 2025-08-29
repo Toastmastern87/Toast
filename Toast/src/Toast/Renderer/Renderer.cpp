@@ -237,7 +237,7 @@ namespace Toast {
 		RendererDebug::OnWindowResize(width, height);
 	}
 
-	void Renderer::BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos, int wireFrame)
+	void Renderer::BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos, Scene::Environment& environment, int wireFrame)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -260,10 +260,8 @@ namespace Toast {
 		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].ViewProjectionMatrix, 64, 0);
 		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Direction, 16, 64);
 		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Radiance, 16, 80);
-		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Multiplier, 4, 96);
+		sRendererData->LightningBuffer.Write((uint8_t*)&environment.SunIntensity, 4, 96);
 		sRendererData->LightningCBuffer->Map(sRendererData->LightningBuffer);
-
-		sRendererData->SceneData.SceneEnvironmentIntensity = scene->mEnvironmentIntensity;
 
 		sRendererData->SpecularBRDFLUT->Bind(2, D3D11_PIXEL_SHADER);
 
@@ -1014,6 +1012,7 @@ namespace Toast {
 
 		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("BRDFSampler")->Bind(1, D3D11_PIXEL_SHADER);
+		TextureLibrary::GetSampler("PointSampler")->Bind(2, D3D11_PIXEL_SHADER);
 
 		DrawFullscreenQuad();
 
@@ -1085,50 +1084,51 @@ namespace Toast {
 		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(2, D3D11_PIXEL_SHADER);		
 
-		// Compute APFarDynamic (meters) for the Atmosphere cbuffer (b5).
 		float APFarDyn = 0.0f;
 		{
 			const float Rg = (float)planet->GetRadius();
 			const float Rt = Rg + planet->GetAtmosphere().AtmosphereHeight;
 
 			// Camera position relative to planet center (meters)
-			DirectX::XMFLOAT3 cam2ctrWS = { camPosWS.x - planet->GetTranslation().x + worldTranslation.x, camPosWS.y - planet->GetTranslation().y + worldTranslation.y, camPosWS.z - planet->GetTranslation().z + worldTranslation.z };
-			float r = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMLoadFloat3(&cam2ctrWS)));
-			float h = std::max(0.0f, r - Rg); // altitude above ground
+			DirectX::XMFLOAT3 cam2ctrWS = {
+				camPosWS.x - planet->GetTranslation().x + worldTranslation.x,
+				camPosWS.y - planet->GetTranslation().y + worldTranslation.y,
+				camPosWS.z - planet->GetTranslation().z + worldTranslation.z
+			};
+			const float r = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMLoadFloat3(&cam2ctrWS)));
+			const float h = std::max(0.0f, r - Rg); // viewer altitude above ground
 
-			// Near-ground target range (good default per paper ~32 km)
-			const float baseRange = 70e3f;
-			const float maxInside = 160e3f;    // cap while inside atmosphere
-			const float maxOutside = 2.0e6f;   // ~2000 km cap when in space
-			const float safety = 1.15f;
-
-			APFarDyn = baseRange;
+			// Tunables (pick once; Mars-friendly defaults)
+			const float BASE_RANGE = 70e3f;    // minimum coverage near ground
+			const float RELIEF_CAP_M = 6000.0f;  // assume up to ~6 km visible relief
+			const float SAFETY = 1.15f;    // headroom for FOV/screen corners
+			const float MIN_INSIDE = 32e3f;    // never go below this when inside
+			const float MAX_INSIDE = 320e3f;   // cap inside atmosphere (quality)
+			const float MIN_OUTSIDE = 160e3f;   // cap lower bound in space views
+			const float MAX_OUTSIDE = 2.0e6f;   // hard cap for space views (~2000 km)
 
 			if (r <= Rt)
 			{
-				// Inside atmosphere: ramp range with altitude for aircraft views.
-				const float alt0 = 2e3f;   // start ramp ~2 km
-				const float alt1 = 20e3f;  // fully ramped by ~20 km
-				float t = std::clamp((h - alt0) / std::max(alt1 - alt0, 1.0f), 0.0f, 1.0f);
+				// Inside atmosphere: cover viewer horizon + some terrain relief.
+				// Exact spherical horizon distance: d = sqrt(2*R*h + h^2)
+				const float dViewer = std::sqrt(std::max(0.0f, 2.0f * Rg * h + h * h));
 
-				// Optionally consider theoretical horizon path length, but keep capped small for quality.
-				float rangeTarget = lerp(baseRange, maxInside, t);
-				APFarDyn = std::clamp(rangeTarget * safety, 16e3f, maxInside);
+				// Relief term (mountain top also “over the horizon”)
+				const float dRelief = std::sqrt(std::max(0.0f, 2.0f * Rg * RELIEF_CAP_M + RELIEF_CAP_M * RELIEF_CAP_M));
+
+				const float target = std::max(BASE_RANGE, (dViewer + dRelief) * SAFETY);
+
+				APFarDyn = std::clamp(target, MIN_INSIDE, MAX_INSIDE);
 			}
 			else
 			{
-				// Outside atmosphere (space view).
-				// Conservative screen-wide distance to the first atmosphere hit for tangent (limb) rays:
-				// tEnter_tangent = sqrt(r^2 - Rt^2). Add small margin.
-				double tEnterTan = std::sqrt(std::max(0.0, double(r) * r - double(Rt) * Rt));
+				// Outside atmosphere (space): cover first atmo hit across screen.
+				const double rr = double(r), RRt = double(Rt);
+				const double tEnterTan = std::sqrt(std::max(0.0, rr * rr - RRt * RRt)); // tangent/limb
+				const double tEnterCenter = std::max(0.0, rr - RRt);                   // looking at center
+				const float  target = (float)std::max(tEnterTan, tEnterCenter) * SAFETY;
 
-				// Also ensure we at least cover the center-looking ray: tEnter_center = r - Rt.
-				double tEnterCenter = std::max(0.0, double(r) - double(Rt));
-
-				double need = std::max(tEnterTan, tEnterCenter); // conservative bound across the screen
-				float rangeTarget = (float)need;
-
-				APFarDyn = std::clamp(std::max(baseRange, rangeTarget * safety), 160e3f, maxOutside);
+				APFarDyn = std::clamp(std::max(BASE_RANGE, target), MIN_OUTSIDE, MAX_OUTSIDE);
 			}
 		}
 		
@@ -1179,6 +1179,7 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, planet->GetMultiScatteringLUT()->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, skyview->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, aerialPerspective->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->GPassPositionRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
 

@@ -40,7 +40,7 @@ cbuffer DirectionalLight : register(b3)
     float4x4 lightViewProj;
     float4 direction; // FROM light -> scene
     float4 radiance; // RGB
-    float multiplier;
+    float SunIntensity;
 };
 
 cbuffer PlanetFrame : register(b4)
@@ -111,12 +111,11 @@ float DensityMie(float h)
 }
 float DensityOzone(float hMeters)
 {
-#if AP_USE_OZONE
+    // Triangle 10–40 km peaking at 25 km.
+    // Normalize so that the column integral equals OzoneStrength (area = 15000 m).
     float km = hMeters * 1e-3f;
-    return saturate(1.0f - abs((km - 25.0f) / 15.0f)) * OzoneStrength;
-#else
-    return 0.0f;
-#endif
+    float tri = saturate(1.0f - abs((km - 25.0f) / 15.0f));
+    return tri * (OzoneStrength / 15000.0f);
 }
 
 float PhaseRayleigh(float mu)
@@ -221,8 +220,9 @@ void main(uint3 tid : SV_DispatchThreadID)
     // Planet-centered camera and radii
     const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
-    const float3 SunE = radiance.rgb * multiplier;
+    float3 SunE = radiance.rgb * SunIntensity;
     const float3 wSun = -normalize(direction.xyz);
+    SunE *= 1000.0f;
 
     float3 roWS = cameraPosition.xyz;
     float3 ro = roWS - PlanetCenterWS;

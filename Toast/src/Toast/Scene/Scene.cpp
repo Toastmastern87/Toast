@@ -520,7 +520,7 @@ namespace Toast {
 			mainCamera->SetInvViewMatrix(fInvView);
 
 			// 3D Rendering
-			Renderer::BeginScene(this, *mainCamera, cameraPosFloat, static_cast<int>(mSettings.WireframeRendering));
+			Renderer::BeginScene(this, *mainCamera, cameraPosFloat, mEnvironment, static_cast<int>(mSettings.WireframeRendering));
 			{
 				// Planet
 				Renderer::SubmitPlanet(mPlanet, static_cast<int>(mSettings.WireframeRendering));
@@ -1034,7 +1034,7 @@ namespace Toast {
 		DirectX::XMStoreFloat4(&cameraPosFloat, editorCamera->GetPosition());
 
 		// 3D Rendering
-		Renderer::BeginScene(this, *editorCamera, cameraPosFloat, static_cast<int>(mSettings.WireframeRendering));
+		Renderer::BeginScene(this, *editorCamera, cameraPosFloat, mEnvironment, static_cast<int>(mSettings.WireframeRendering));
 		{
 			// Planet
 			Renderer::SubmitPlanet(mPlanet, static_cast<int>(mSettings.WireframeRendering));

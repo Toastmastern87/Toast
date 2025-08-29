@@ -535,7 +535,7 @@ void main(uint3 dtid : SV_DispatchThreadID)
     uv.y = 1.0f - uv.y;
 #endif
 
-    const float Rg = PlanetRadius;
+    const float Rg = PlanetRadius ;
     const float Rt = PlanetRadius + AtmosphereHeight;
 
     float thetaS = uv.x * PI;

@@ -11,6 +11,15 @@ struct PixelInputType
     float2 texCoord : TEXCOORD;
 };
 
+cbuffer DirectionalLight : register(b3)
+{
+    matrix lightViewProj;
+    float4 direction;
+    float4 radiance;
+    float SunIntensity;
+};
+
+
 // === ACES helpers (unchanged) ==============================================
 static const float3x3 ACESInputMat =
 {
@@ -51,12 +60,12 @@ float3 RRTAndODTFit(float3 v)
 float4 main(PixelInputType input) : SV_TARGET
 {
     // HDR scene color (linear)
-    float3 colorHDR = BaseTexture.Sample(DefaultSampler, input.texCoord).rgb;
+    float4 colorHDR = BaseTexture.Sample(DefaultSampler, input.texCoord);
 
     // Constant exposure in EV (stops). 2.5 EV -> ~5.657x
-    const float ExposureEV = 2.5f;
+    const float ExposureEV = 2.5f - log2(SunIntensity);
     const float exposureMul = exp2(ExposureEV);
-    float3 color = colorHDR * exposureMul;
+    float3 color = colorHDR.rgb * exposureMul;
 
     // Chromatic adapt sRGB (D65) -> ACES (D60), apply ACES filmic, then adapt back.
     color = mul(D65_to_D60, color);
@@ -68,5 +77,5 @@ float4 main(PixelInputType input) : SV_TARGET
     // Clamp to [0,1] (still linear). No manual sRGB — backbuffer is sRGB.
     color = saturate(max(color, 0.0f));
 
-    return float4(color, 1.0f);
+    return float4(color, colorHDR.a);
 }

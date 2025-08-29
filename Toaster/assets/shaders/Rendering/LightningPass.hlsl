@@ -45,7 +45,7 @@ cbuffer DirectionalLight : register(b3)
     matrix lightViewProj;
     float4 direction;
     float4 radiance;
-    float multiplier;
+    float SunIntensity;
 };
 
 // G-buffer Textures
@@ -69,6 +69,7 @@ Texture2D ObjectMaskTexture         : register(t13);
 // Sampler state
 SamplerState defaultSampler         : register(s0);
 SamplerState spBRDFSampler          : register(s1);
+SamplerState pointSampler           : register(s2);
 
 // GGX/Towbridge-Reitz normal distribution function.
 // Uses Disney's reparametrization of alpha = roughness^2
@@ -199,7 +200,7 @@ float3 DirectionalLightning(float3 F0, float3 NormalWorldSpace, float3 View, flo
     float3 result = float3(0.0f, 0.0f, 0.0f);
 
     float3 Li = normalize(-sunDir);
-    float3 Lradiance = radiance * multiplier;
+    float3 Lradiance = radiance * SunIntensity;
     float3 Lh = normalize(Li + View);
 
 	// Calculate angles between surface normal and various light vectors.
@@ -262,10 +263,10 @@ PixelOutputType main(PixelInputType input)
 
     // **1. Sample G-buffer Textures**
     float2 uv = input.texCoord;
-    float3 albedo = albedoMetallicTexture.Sample(defaultSampler, uv).rgb;
-    float3 normal = normalTexture.Sample(defaultSampler, uv).rgb;
+    float3 albedo = albedoMetallicTexture.Sample(pointSampler, uv).rgb;
+    float3 normal = normalTexture.Sample(pointSampler, uv).rgb;
     normal = normalize(normal * 2.0f - 1.0f); // Convert to [-1, 1]
-    float3 position = positionTexture.Sample(defaultSampler, uv).rgb;
+    float3 position = positionTexture.Sample(pointSampler, uv).rgb;
     
     // Reconstruct World Position from View Space
     float4 positionWorld = mul(float4(position, 1.0f), inverseViewMatrix);
