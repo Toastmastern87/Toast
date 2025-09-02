@@ -1,4 +1,4 @@
-#inputlayout
+﻿#inputlayout
 #type vertex
 #pragma pack_matrix( row_major )
 
@@ -24,7 +24,7 @@ PixelInputType main(uint vID : SV_VertexID)
 
 static const float3 Fdielectric = float3(0.04f, 0.04f, 0.04f);
 static const float Epsilon = 0.00001f;
-static const float PI = 3.141592f;
+static const float PI = 3.14159265359f;
 
 cbuffer Camera : register(b0)
 {
@@ -48,28 +48,60 @@ cbuffer DirectionalLight : register(b3)
     float SunIntensity;
 };
 
+cbuffer PlanetFrame : register(b4)
+{
+    float3 PlanetCenterWS;
+    float PlanetRadius; // Rg
+    float3 BasisTanEast;
+    float MaxHeight;
+    float3 BasisTanNorth;
+    float MinHeight;
+    float3 BasisRadUp;
+};
+
+cbuffer Atmosphere : register(b5)
+{
+    float AtmosphereHeight; // Rt - Rg
+    float RayScaleHeight; // Hr
+    float MieScaleHeight; // Hm
+    float MieAnisotropy; // g
+    float3 RayleighScattering; // beta_R (1/m) RGB
+    float3 MieScattering; // beta_Ms (1/m) RGB
+    float3 MieAbsorption; // beta_Ma (1/m) RGB
+    float3 GroundAlbedo;
+    float OzoneStrength;
+    uint StepsTransmittance; // (unused here)
+    uint StepsMultiScattering; // (unused here)
+    float APFarDynamic; // camera->max distance for AP (meters)
+};
+
 // G-buffer Textures
-Texture2D positionTexture           : register(t0); // View-space position
-Texture2D normalTexture             : register(t1); // Encoded normals
-Texture2D albedoMetallicTexture     : register(t2); // Albedo RGB and Metallic A
-Texture2D roughnessAOTexture        : register(t3); // Roughness R and AO A
+Texture2D positionTexture               : register(t0); // View-space position
+Texture2D normalTexture                 : register(t1); // Encoded normals
+Texture2D albedoMetallicTexture         : register(t2); // Albedo RGB and Metallic A
+Texture2D roughnessAOTexture            : register(t3); // Roughness R and AO A
 
 // IBL Textures
-TextureCube IrradianceTexture       : register(t4);
-TextureCube RadianceTexture         : register(t5);
-Texture2D SpecularBRDFLUT           : register(t6);
+TextureCube IrradianceTexture           : register(t4);
+TextureCube RadianceTexture             : register(t5);
+Texture2D SpecularBRDFLUT               : register(t6);
+
+// Atmospheric Scattering Textures
+Texture2D<float4> TransmittanceLUT      : register(t7);
+Texture2D<float4> MultiScatterLUT       : register(t8);
 
 // SSAO Textures
-Texture2D SSAOTexture               : register(t10);
+Texture2D SSAOTexture                   : register(t10);
 
 // Shadow Pass Texture
-Texture2D ShadowDepthTexture        : register(t12);
-Texture2D ObjectMaskTexture         : register(t13);
+Texture2D ShadowDepthTexture            : register(t12);
+Texture2D ObjectMaskTexture             : register(t13);
 
 // Sampler state
-SamplerState defaultSampler         : register(s0);
-SamplerState spBRDFSampler          : register(s1);
-SamplerState pointSampler           : register(s2);
+SamplerState DefaultSampler             : register(s0);
+SamplerState SPBRDFSampler              : register(s1);
+SamplerState PointSampler               : register(s2);
+SamplerState LinearSampler              : register(s3);
 
 // GGX/Towbridge-Reitz normal distribution function.
 // Uses Disney's reparametrization of alpha = roughness^2
@@ -180,7 +212,7 @@ float3 PrefilterEnvMap(float roughness, float3 R)
         float NoL = clamp(dot(N, L), 0.0f, 1.0f);
         if (NoL > 0)
         {
-            PrefilteredColor += IrradianceTexture.Sample(defaultSampler, L).rgb * NoL;
+            PrefilteredColor += IrradianceTexture.Sample(DefaultSampler, L).rgb * NoL;
             TotalWeight += NoL;
         }
     }
@@ -195,36 +227,73 @@ uint queryRadianceTextureLevels()
     return levels;
 }
 
-float3 DirectionalLightning(float3 F0, float3 NormalWorldSpace, float3 View, float NdotV, float3 albedo, float roughness, float metalness, float3 sunDir)
+float2 TransUV(float r, float mu, float Rg, float Rt)
+{
+    float rNorm = (r - Rg) / max(Rt - Rg, 1e-6f);
+    float muMin = -sqrt(saturate(1.0f - (Rg * Rg) / (r * r)));
+    mu = clamp(mu, muMin + 1e-5f, 1.0f - 1e-5f);
+    float uMu = (mu - muMin) / (1.0f - muMin);
+    return float2(uMu, saturate(rNorm));
+}
+
+float SunVisibilityAtR(float r, float muS, float Rg)
+{
+    const float SunAngularRadius = 0.004675f;
+    float sinThetaH = Rg / r;
+    float cosThetaH = -sqrt(saturate(1.0f - sinThetaH * sinThetaH));
+    return smoothstep(-sinThetaH * SunAngularRadius, sinThetaH * SunAngularRadius, muS - cosThetaH);
+}
+
+float3 T_to_TOA(float r, float mu, float Rg, float Rt)
+{
+    return TransmittanceLUT.SampleLevel(LinearSampler, TransUV(r, mu, Rg, Rt), 0).rgb;
+}
+
+
+float4 SamplePsiMS4(float r, float muS, float Rg, float Rt)
+{
+    float thetaS = acos(clamp(muS, -1.0f, 1.0f));
+    float u = thetaS / PI;
+    float v = 1.0f - saturate((r - Rg) / max(Rt - Rg, 1e-6f)); // MS_FLIP_Y=1
+    return MultiScatterLUT.SampleLevel(LinearSampler, float2(u, v), 0);
+}
+
+float3 DirectionalLightning(float3 F0, float3 NormalWorldSpace, float3 View, float NdotV, float3 albedo, float roughness, float metalness, float3 worldPos, float3 sunDir, float r, float muS)
 {   
-    float3 result = float3(0.0f, 0.0f, 0.0f);
+    float3 L = normalize(-sunDir);
+    float3 H = normalize(L + View);
+    float NoL = max(0.0f, dot(NormalWorldSpace, L));
+    if (NoL <= 0.0f)
+        return 0;
+    float NoH = max(0.0f, dot(NormalWorldSpace, H)); 
 
-    float3 Li = normalize(-sunDir);
-    float3 Lradiance = radiance * SunIntensity;
-    float3 Lh = normalize(Li + View);
+    float Rg = PlanetRadius;
+    float Rt = PlanetRadius + AtmosphereHeight;
+    
+    float3 Tsun = T_to_TOA(r, muS, Rg, Rt) * SunVisibilityAtR(r, muS, Rg);
 
-	// Calculate angles between surface normal and various light vectors.
-    float cosLi = max(0.0f, dot(NormalWorldSpace, Li));
-    float cosLh = max(0.0f, dot(NormalWorldSpace, Lh));
-
-    float3 F = fresnelSchlick(F0, max(0.0f, dot(Lh, View)));
-    float D = ndfGGX(cosLh, roughness);
-    float G = gaSchlickGGX(cosLi, NdotV, roughness);
+    // Sun radiance (same scalar you use in AP/Sky)
+    float3 SunE = radiance * SunIntensity;
+    float3 Lradiance = SunE * Tsun; // attenuated, spectrally reddened
+    
+    float3 F = fresnelSchlick(F0, max(0.0f, dot(H, View)));
+    float D = ndfGGX(NoH, roughness);
+    float G = gaSchlickGGX(NoL, NdotV, roughness);
 
     float3 kd = (1.0f - F) * (1.0f - metalness);
     float3 diffuseBRDF = kd * albedo / PI;
     
 	// Cook-Torrance
-    float3 specularBRDF = (F * D * G) / max(Epsilon, 4.0f * cosLi * NdotV);
+    float3 specularBRDF = (F * D * G) / max(Epsilon, 4.0f * NoL * NdotV);
 
-    result += (diffuseBRDF + specularBRDF) * Lradiance * cosLi;
+    float3 result = (diffuseBRDF + specularBRDF) * Lradiance * NoL;
 
     return result;
 }
 
 float3 IBL(float3 F0, float3 Lr, float3 NormalWorldSpace, float3 albedo, float roughness, float metalness, float NdotV)
 {
-    float3 irradiance = IrradianceTexture.Sample(spBRDFSampler, NormalWorldSpace).rgb;
+    float3 irradiance = IrradianceTexture.Sample(SPBRDFSampler, NormalWorldSpace).rgb;
 
     // Correct Fresnel term using NdotV
     float3 F = fresnelSchlickRoughness(F0, NdotV, roughness);
@@ -235,10 +304,10 @@ float3 IBL(float3 F0, float3 Lr, float3 NormalWorldSpace, float3 albedo, float r
 
     uint specularTextureLevels = queryRadianceTextureLevels();
     float mipLevel = roughness * (float) (specularTextureLevels - 1);
-    float3 specularIrradiance = RadianceTexture.SampleLevel(spBRDFSampler, Lr, mipLevel).rgb;
+    float3 specularIrradiance = RadianceTexture.SampleLevel(SPBRDFSampler, Lr, mipLevel).rgb;
 
     // Use NdotV in BRDF LUT sampling
-    float2 specularBRDF = SpecularBRDFLUT.Sample(spBRDFSampler, float2(NdotV, roughness)).rg;
+    float2 specularBRDF = SpecularBRDFLUT.Sample(SPBRDFSampler, float2(NdotV, roughness)).rg;
     float3 specularIBL = specularIrradiance * (F * specularBRDF.x + specularBRDF.y);
 
     return specularIBL + diffuseIBL;
@@ -263,33 +332,57 @@ PixelOutputType main(PixelInputType input)
 
     // **1. Sample G-buffer Textures**
     float2 uv = input.texCoord;
-    float3 albedo = albedoMetallicTexture.Sample(pointSampler, uv).rgb;
-    float3 normal = normalTexture.Sample(pointSampler, uv).rgb;
+    float3 albedo = albedoMetallicTexture.Sample(PointSampler, uv).rgb;
+    float3 normal = normalTexture.Sample(PointSampler, uv).rgb;
     normal = normalize(normal * 2.0f - 1.0f); // Convert to [-1, 1]
-    float3 position = positionTexture.Sample(pointSampler, uv).rgb;
+    float3 posVS = positionTexture.Sample(PointSampler, uv).rgb;
     
     // Reconstruct World Position from View Space
-    float4 positionWorld = mul(float4(position, 1.0f), inverseViewMatrix);
-    float3 worldPos = positionWorld.xyz / positionWorld.w;
+    float4 posWS = mul(float4(posVS, 1.0f), inverseViewMatrix);
     
     // Reconstruct World Normal from View Space
     float3 normalWorld = normalize(mul(normal, (float3x3) inverseViewMatrix));
     
     // Metalness and Roughness
-    float metalness = albedoMetallicTexture.Sample(defaultSampler, uv).a;
-    float roughness = roughnessAOTexture.Sample(defaultSampler, uv).r;
+    float metalness = albedoMetallicTexture.Sample(DefaultSampler, uv).a;
+    float roughness = roughnessAOTexture.Sample(DefaultSampler, uv).r;
     roughness = max(roughness, 0.05f); // Avoid zero roughness
     
     // Ambient Occlusion from the SSAO texture
-    float ao = SSAOTexture.Sample(defaultSampler, uv).r;
+    float ao = SSAOTexture.Sample(DefaultSampler, uv).r;
     
     // In View Space, the camera is at the origin (0, 0, 0)
-    float3 V = normalize(-position); 
-    float3 VWorld = normalize(cameraPosition.xyz - worldPos);
+    float3 V = normalize(-posWS.xyz);
+    float3 VWorld = normalize(cameraPosition.xyz - posWS.xyz);
     float NdotV = max(dot(normalWorld, VWorld), 0.05f);
+    
+    float Rg = PlanetRadius;
+    float Rt = PlanetRadius + AtmosphereHeight;
+    float3 pRel = posWS.xyz - PlanetCenterWS;
+    float r = max(Rg, length(pRel));
+    float3 upG = pRel / r;
+
+    // Treat SunDiscRadius as the HALF-ANGLE in radians (if yours is diameter, divide by 2).
+    // For a real sun at 1 AU, half-angle ≈ 0.004675 rad.
+    static const float sunHalfAngle = 0.004675f;
+    float omegaSun = 2.0f * PI * (1.0f - cos(sunHalfAngle));
+
+    float3 sunRadiance = radiance.rgb * SunIntensity; // radiance
+    float3 sunIrradiance = sunRadiance * omegaSun; // irradiance
+    
+    float3 wSun = normalize(-direction.xyz); // point -> sun
+    float muS = dot(upG, wSun);
+    
+    float4 Psi4 = SamplePsiMS4(r, muS, Rg, Rt);
+    float3 msIrr = Psi4.rgb * sunIrradiance;
     
     // Fresnel reflectance at normal incidence (for metals use albedo color).
     float3 F0 = lerp(Fdielectric, albedo, metalness);
+    float3 Fv = fresnelSchlick(F0, NdotV);
+    float3 kd = (1.0f - Fv) * (1.0f - metalness);
+    
+    float3 Lo_sky = kd * (albedo / PI) * msIrr;
+    Lo_sky *= ao;
     
     // Recalculate sun direction to view space
     float3 directionVS = normalize(mul(direction.xyz, (float3x3)viewMatrix));
@@ -297,7 +390,7 @@ PixelOutputType main(PixelInputType input)
     // **1. Normal Offset Biasing**
     // Offset the world position along the normal to reduce self-shadowing artifacts
     float normalOffsetScale = 5.0f; // Adjust based on your scene's scale
-    float3 offsetPosition = worldPos + normalWorld * normalOffsetScale;
+    float3 offsetPosition = posWS.xyz + normalWorld * normalOffsetScale;
 
     // Transform the offset position to Light's Clip Space
     float4 pixelPosLightSpace = mul(float4(offsetPosition, 1.0f), lightViewProj);
@@ -341,7 +434,7 @@ PixelOutputType main(PixelInputType input)
             // Check if 'sampleUV' is within [0,1]
                 if (sampleUV.x >= 0.0f && sampleUV.x <= 1.0f && sampleUV.y >= 0.0f && sampleUV.y <= 1.0f)
                 {
-                    float sampledDepth = ShadowDepthTexture.Sample(defaultSampler, sampleUV).r;
+                    float sampledDepth = ShadowDepthTexture.Sample(DefaultSampler, sampleUV).r;
 
                 // Adjusted depth comparison with bias
                     if (currentDepth <= sampledDepth + bias || sampledDepth == 0.0f)
@@ -359,15 +452,16 @@ PixelOutputType main(PixelInputType input)
     }
     
     // Directional Light Contribution
-    float3 lightContribution = DirectionalLightning(F0, normalWorld, VWorld, NdotV, albedo, roughness, metalness, direction.xyz) * shadow;
+    float3 lightContribution = DirectionalLightning(F0, normalWorld, VWorld, NdotV, albedo, roughness, metalness, posWS.xyz, direction.xyz, r, muS) * shadow;
     
     // IBL Contribution
     float3 Lr = reflect(-VWorld, normalWorld);
     float3 iblContribution = IBL(F0, Lr, normalWorld, albedo, roughness, metalness, NdotV);
     
-    float3 ambient = float3(0.009f, 0.009f, 0.009f);
+    float3 ambient = float3(0.0f, 0.0f, 0.0f);
+    ambient *= ao;
 
-    float3 finalShading = float4((ambient + lightContribution + iblContribution) * ao, 1.0f);
+    float3 finalShading = (ambient + lightContribution + iblContribution + Lo_sky);
 
     // Output the final color
     output.color = float4(finalShading, 1.0f);

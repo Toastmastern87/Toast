@@ -4,9 +4,9 @@ Planet:
   Rotation: [74.899826, -18.0999756, -227.303177]
   GridSize: 257
   MaxLevels: 28
-  Radius: 3381300
-  MaxHeight: 29200
-  MinHeight: 0
+  Radius: 3389500
+  MaxHeight: 21900
+  MinHeight: -8200
   AlbedoColor: [0.113924026, 0.0432988033, 0.00865245797]
   Roughness: 1
   Metalness: 0
@@ -24,7 +24,7 @@ Planet:
   GroundAlbedo: [0.100000001, 0.100000001, 0.100000001]
 Environment:
   SunDiscToggle: true
-  SunIntensity: 1000
+  SunIntensity: 2.5
   SunDiscRadius: 0.0167500004
   SunEdgeSoftness: 0.00410000002
   SunGlowIntensity: 0.300000012
@@ -47,7 +47,7 @@ Entities:
         PerspectiveFOV: 45
         NearClip: 0.100000001
         FarClip: 2000000
-        OrthographicWidth: 2603
+        OrthographicWidth: 2602
         OrthographicHeight: 1120
       Primary: true
       FixedAspectRatio: false

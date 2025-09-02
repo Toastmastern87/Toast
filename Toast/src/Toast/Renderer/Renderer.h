@@ -180,7 +180,7 @@ namespace Toast {
 		// Deffered Rendering
 		static void GeometryPass();
 		static void ShadowPass();
-		static void LightningPass();
+		static void LightningPass(Ref<Planet>& planet);
 		static void ParticlesPass(Camera& camera, const DirectX::XMFLOAT4 cameraPos);
 		static void SSAOPass(float radius, float bias);
 

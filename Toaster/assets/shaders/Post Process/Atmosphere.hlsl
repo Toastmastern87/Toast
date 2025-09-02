@@ -172,6 +172,29 @@ float2 SkyUVFromViewDir(float3 wView)
     return float2(u, v);
 }
 
+struct Hit
+{
+    bool ok;
+    float t0, t1;
+};
+Hit IntersectSphere(float3 ro, float3 rd, float R)
+{
+    float b = dot(ro, rd);
+    float c = dot(ro, ro) - R * R;
+    float h = b * b - c;
+    Hit H;
+    H.ok = (h >= 0.0f);
+    if (!H.ok)
+    {
+        H.t0 = H.t1 = 0;
+        return H;
+    }
+    float s = sqrt(h);
+    H.t0 = -b - s;
+    H.t1 = -b + s;
+    return H;
+}
+
 // AP 3D volume uses quadratic packing: d(z) = APFarDynamic * (z/D)^2  ->  z/D = sqrt(d/APFarDynamic).
 // So normalized W coordinate for sampling is:
 float APWFromDistance(float distance)
@@ -207,16 +230,39 @@ float4 main(PSIn i) : SV_Target
         return float4(max(sky, 0.0f), 1.0f);
     }
     else
-    {
+    {               
+        float3 camWS = cameraPosition.xyz;
+        float3 ro = camWS - PlanetCenterWS;
+        float3 wView = ViewDirWS_fromUV(uv); // unit
+        
+        float Rg = PlanetRadius;
+        float Rt = PlanetRadius + AtmosphereHeight;
+        
+        // TOA segment
+        Hit hitAtm = IntersectSphere(ro, wView, Rt);
+        float tEnter = hitAtm.ok ? max(0.0f, hitAtm.t0) : 1e30f;
+        float tExitA = hitAtm.ok ? max(0.0f, hitAtm.t1) : 0.0f;
+        
         // Reconstruct World Position from the G-buffer position texture
         float3 posVS = positionTexture.Sample(ClampPoint, uv).rgb; 
-        float4 posWS = mul(float4(posVS, 1.0f), inverseViewMatrix);
+        float4 posWS4 = mul(float4(posVS, 1.0f), inverseViewMatrix);
+        float3 posWS = posWS4.xyz;
         
-        float distance = length(posWS.xyz - cameraPosition.xyz);
+        float tSurf = max(0.0f, dot(posWS - camWS, wView));
         
-        float wAP = APWFromDistance(distance);
+        float tSample = min(tSurf, tExitA);
+        
+        float wAP = APWFromDistance(tSample);
+
         float4 ap = AerialPerspective3D.SampleLevel(ClampLinear, float3(uv, wAP), 0);
         
+        float3 betaExt = RayleighScattering + MieScattering + MieAbsorption; // 1/m
+        float betaAvg = (betaExt.r + betaExt.g + betaExt.b) * (1.0 / 3.0);
+        float3 k = betaExt / max(betaAvg, 1e-9);
+
+        // Trgb ≈ A^(betaExt / betaAvg)
+        float3 Trgb = pow(ap.a.xxx, k);
+
         float3 outRGB = colorPreAtmos * ap.a + ap.rgb;
         return float4(outRGB, ap.a);
     }

@@ -62,8 +62,9 @@ float4 main(PixelInputType input) : SV_TARGET
     // HDR scene color (linear)
     float4 colorHDR = BaseTexture.Sample(DefaultSampler, input.texCoord);
 
-    // Constant exposure in EV (stops). 2.5 EV -> ~5.657x
-    const float ExposureEV = 2.5f - log2(SunIntensity);
+
+    // Constant exposure in EV (stops).
+    const float ExposureEV = 2.5f; // neutral exposure
     const float exposureMul = exp2(ExposureEV);
     float3 color = colorHDR.rgb * exposureMul;
 

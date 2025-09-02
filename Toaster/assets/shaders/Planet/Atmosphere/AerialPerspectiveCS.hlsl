@@ -190,7 +190,7 @@ Hit IntersectSphere(float3 ro, float3 rd, float R)
 // Small horizon softening (matches SkyView)
 float SunVisibilityAtR(float r, float muS, float Rg)
 {
-    const float SunAngularRadius = 0.00935f; // ~0.535°
+    const float SunAngularRadius = 0.004675f; // ~0.266° CURRENTLY HARDCODED TO EARTH VALUES
     float sinThetaH = Rg / r;
     float cosThetaH = -sqrt(saturate(1.0f - sinThetaH * sinThetaH));
     return smoothstep(-sinThetaH * SunAngularRadius, sinThetaH * SunAngularRadius, muS - cosThetaH);
@@ -222,10 +222,16 @@ void main(uint3 tid : SV_DispatchThreadID)
     const float Rt = PlanetRadius + AtmosphereHeight;
     float3 SunE = radiance.rgb * SunIntensity;
     const float3 wSun = -normalize(direction.xyz);
-    SunE *= 1000.0f;
 
     float3 roWS = cameraPosition.xyz;
     float3 ro = roWS - PlanetCenterWS;
+    
+    const float SunAngRadius = 0.004675f; // radians (half-angle ~0.266°)
+    const float OmegaSun = PI * SunAngRadius * SunAngRadius;
+
+    // Treat your directional-light input as SUN RADIANCE (same you use in BRDF)
+    float3 Lsun = radiance.rgb * SunIntensity; // radiance  [W·m⁻2·sr⁻1 in your units]
+    float3 Esun = Lsun * OmegaSun; // irradiance [W·m⁻2]
 
     // Intersections with atmosphere shell and ground
     Hit hitAtm = IntersectSphere(ro, wView, Rt);
@@ -240,7 +246,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     float tEnter = max(0.0f, hitAtm.t0);
     float tExit = max(0.0f, hitAtm.t1);
-
+    
     Hit hitG = IntersectSphere(ro, wView, Rg);
     if (hitG.ok && hitG.t0 > 0.0f)
         tExit = min(tExit, hitG.t0);
@@ -299,34 +305,31 @@ void main(uint3 tid : SV_DispatchThreadID)
             float3 upS = (rMid > 0.0f) ? (p / rMid) : BasisRadUp;
             float muS = dot(upS, wSun);
             float Vsun = SunVisibilityAtR(rMid, muS, Rg);
+
             float3 Tsun = T_to_TOA(rMid, muS, Rg, Rt) * Vsun;
 
             // Phase with incoming wSun and outgoing -wView
-            float muPhase = clamp(dot(wSun, -wView), -0.9995f, 0.9995f);
+            float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
             float PR = PhaseRayleigh(muPhase);
             float PM = PhaseMieHG(muPhase, saturate(MieAnisotropy));
-
+            
             // Single-scatter source (per color): σ_s * phase * Tsun
             float3 S1 = sigR_s * PR * Tsun + sigM_s * PM * Tsun;
 
             // Multi-scatter source from LUT
             float4 Psi4 = SamplePsiMS4(rMid, muS, Rg, Rt);
             float pMS = MSPhase(muPhase, Psi4.a);
-            float3 msIrr = Psi4.rgb;
-#if !AP_MS_BAKED_SUNVIS
-            msIrr *= Vsun;
-#endif
-            float3 S_MS = (sigR_s + sigM_s) * pMS * msIrr;
+            float3 S_MS = (sigR_s + sigM_s) * pMS * Psi4.rgb;
 
             // Within-slice attenuation factor: (1 - e^{-Δτ}) / Δτ
             float3 dTau = sigmaExt * len;
-            float3 wI = (1.0.xxx - fexp3(-dTau)) / max(dTau, 1e-6.xxx);
+            float3 wInt = (1.0.xxx - fexp3(-dTau)) / max(sigmaExt, 1e-8.xxx);
 
             // Camera->sample transmittance from cumulative tau
             float3 Tcam = fexp3(-tauCum);
 
             // Add slice contribution (apply sun radiance once here)
-            Lcum += Tcam * (S1 + S_MS) * wI * SunE;
+            Lcum += Tcam * (S1 + S_MS) * wInt * SunE;
 
             // March cumulative tau
             tauCum += dTau;

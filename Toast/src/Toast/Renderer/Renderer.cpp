@@ -295,7 +295,7 @@ namespace Toast {
 			RenderCommand::ClearRenderTargets(sRendererData->SSAOBlurRT->GetRTV().Get(), { 1.0f, 1.0f, 1.0f, 1.0f });
 		}
 
-		LightningPass();
+		LightningPass(planet);
 
 		// Post Processes
 		StarFieldPass();
@@ -976,7 +976,7 @@ namespace Toast {
 #endif
 	}
 	
-	void Renderer::LightningPass()
+	void Renderer::LightningPass(Ref<Planet>& planet)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -996,11 +996,19 @@ namespace Toast {
 		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::ClearRenderTargets({ sRendererData->LPassRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
+		// Updating the atmospheric data in the buffer and mapping it to the GPU
+		auto& atmosphere = planet->GetAtmosphere();
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.AtmosphereHeight, 4, 0);
+		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
+		sRendererData->AtmosphereCBuffer->Bind();
+		sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
+
 		ShaderLibrary::Get("assets/shaders/Rendering/LightningPass.hlsl")->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->GPassPositionRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassNormalRT->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->GPassAlbedoMetallicRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->GPassAlbedoMetallicRT->GetSRV())
+			;
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->GPassRoughnessAORT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->SSAOBlurRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 12, sRendererData->ShadowPassDepth->GetSRV());
@@ -1010,9 +1018,13 @@ namespace Toast {
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRendererData->SpecularBRDFLUT->GetSRV());
 
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 7, planet->GetTransmittanceLUT()->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, planet->GetMultiScatteringLUT()->GetSRV());
+
 		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("BRDFSampler")->Bind(1, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("PointSampler")->Bind(2, D3D11_PIXEL_SHADER);
+		TextureLibrary::GetSampler("LinearSampler")->Bind(3, D3D11_PIXEL_SHADER);
 
 		DrawFullscreenQuad();
 
@@ -1156,6 +1168,8 @@ namespace Toast {
 		sRendererData->SunDiscSettingsBuffer.Write((uint8_t*)&environment.SunDiscToggle, 4, 16);
 		sRendererData->SunDiscSettingsCBuffer->Map(sRendererData->SunDiscSettingsBuffer);
 		sRendererData->SunDiscSettingsCBuffer->Bind();
+
+		sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
 
 		auto& skyview = planet->GetSkyViewLUT();
 		skyview->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
