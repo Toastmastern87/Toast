@@ -42,6 +42,11 @@ namespace Toast {
 			sRendererAPI->ClearUAV(uavTarget, clearColor);
 		}
 
+		static void ClearUAV(ID3D11UnorderedAccessView* uavTarget, const UINT(&clearColor)[4])
+		{
+			sRendererAPI->ClearUAV(uavTarget, clearColor);
+		}
+
 		static void ClearDepthStencilView(Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView)
 		{
 			sRendererAPI->ClearDepthStencilView(depthView);

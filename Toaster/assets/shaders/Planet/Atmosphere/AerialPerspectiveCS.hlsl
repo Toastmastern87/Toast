@@ -7,7 +7,7 @@
 #define AP_MAX_Z_SLICES       128u   // clamp work if OutAP has deeper Z
 #endif
 #ifndef AP_A_EPS
-#define AP_A_EPS              0.003f // early stop when trans becomes tiny
+#define AP_A_EPS 1e-4f   // was 0.003 — too high, creates a visible ring
 #endif
 #ifndef AP_USE_FAST_EXP
 #define AP_USE_FAST_EXP       1      // exp2-based fast exp
@@ -18,6 +18,10 @@
 // Must match MultiScatteringCS/SkyViewCS
 #ifndef AP_MS_BAKED_SUNVIS
 #define AP_MS_BAKED_SUNVIS    1
+#endif
+
+#ifndef AP_Z_GAMMA
+#define AP_Z_GAMMA 1.6f   // try 1.5–1.8; 1.6 is a good start
 #endif
 
 // ===== CBuffers =============================================================
@@ -73,6 +77,8 @@ cbuffer Atmosphere : register(b5)
 // ===== LUTs =================================================================
 Texture2D<float4> TransmittanceLUT : register(t0);
 Texture2D<float4> MultiScatterLUT : register(t1);
+Texture2D<uint> APFarU32 : register(t2);
+
 SamplerState ClampLinear : register(s0);
 
 // 3D AP output: [x,y]=screen tile, [z]=non-linear distance
@@ -196,6 +202,57 @@ float SunVisibilityAtR(float r, float muS, float Rg)
     return smoothstep(-sinThetaH * SunAngularRadius, sinThetaH * SunAngularRadius, muS - cosThetaH);
 }
 
+float3 ViewDirWS_fromUV(float2 uv)
+{
+    float2 ndc = float2(uv.x * 2.0f - 1.0f, 1.0f - uv.y * 2.0f);
+    float4 clip = float4(ndc, 1.0f, 1.0f);
+
+    // View-space direction towards far plane
+    float4 vpos = mul(clip, inverseProjectionMatrix);
+    float3 dirVS = normalize(vpos.xyz / max(vpos.w, 1e-6f));
+
+    // Rotate into world space (remove translation)
+    float3 dirWS = normalize(mul(dirVS, (float3x3) inverseViewMatrix));
+    return dirWS;
+}
+
+// Average Rayleigh phase over a small symmetric box in μ of half-width dmu.
+// ⟨μ²⟩ = μ0² + dmu²/3  → exact for (1 + μ²) under a box filter in μ.
+float PhaseRayleigh_Band(float mu0, float dmu)
+{
+    dmu = saturate(dmu); // keep sane
+    float mu2_avg = mu0 * mu0 + (dmu * dmu) * (1.0f / 3.0f);
+    return (3.0f * INV4PI) * 0.25f * (1.0f + mu2_avg);
+}
+
+// Safer HG (avoid spike near μ→1 for large g)
+float PhaseMieHG_Safe(float mu, float g)
+{
+    g = clamp(g, -0.999f, 0.999f);
+    mu = clamp(mu, -0.999f, 0.999f);
+    float g2 = g * g;
+    float d = 1.0f + g2 - 2.0f * g * mu;
+    d = max(d, 1e-2f);
+    return INV4PI * (1.0f - g2) / (d * sqrt(d));
+}
+
+// Box-filter HG by sampling at μ±dmu (cheap and stable)
+float PhaseMieHG_Band(float mu0, float g, float dmu)
+{
+    dmu = saturate(dmu);
+    float muA = clamp(mu0 - dmu, -0.999f, 0.999f);
+    float muB = clamp(mu0 + dmu, -0.999f, 0.999f);
+    return 0.5f * (PhaseMieHG_Safe(muA, g) + PhaseMieHG_Safe(muB, g));
+}
+
+// Spatial interleaved gradient noise in [0,1)
+float IGN(uint2 p)
+{
+    // simple, stable hash – no uniforms needed
+    float n = dot(float2(p), float2(12.9898, 78.233));
+    return frac(sin(n) * 43758.5453);
+}
+
 // ===== Main =================================================================
 [numthreads(8, 8, 1)]
 void main(uint3 tid : SV_DispatchThreadID)
@@ -204,10 +261,11 @@ void main(uint3 tid : SV_DispatchThreadID)
     OutAP.GetDimensions(W, H, Dfull);
     if (tid.x >= W || tid.y >= H)
         return;
-
-    // Clamp Z work if requested
+    
     uint D = min(Dfull, AP_MAX_Z_SLICES);
 
+    float APFarDynamicNewWay = max(32000.0, asfloat(APFarU32.Load(int3(0, 0, 0))));
+    
     // ---- Build view ray (low-res screen aligned) ---------------------------
     float2 uv = (float2(tid.xy) + 0.5f) / float2(W, H);
     float2 ndc = float2(uv.x * 2.0f - 1.0f, 1.0f - uv.y * 2.0f); // D3D NDC
@@ -235,11 +293,11 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     // Intersections with atmosphere shell and ground
     Hit hitAtm = IntersectSphere(ro, wView, Rt);
-    if (!hitAtm.ok || APFarDynamic <= 1e-3f)
+    if (!hitAtm.ok || APFarDynamicNewWay <= 1e-3f)
     {
-        float4 zero = float4(0, 0, 0, 1); // no in-scatter, fully transmissive
+        float4 zero = float4(0, 0, 0, 0); // no in-scatter, fully transmissive
         [loop]
-        for (uint z = 0; z < Dfull; ++z)
+        for (uint z = 0; z < D; ++z)
             OutAP[uint3(tid.x, tid.y, z)] = zero;
         return;
     }
@@ -253,13 +311,28 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     if (tExit <= tEnter)
     {
-        float4 zero = float4(0, 0, 0, 1);
+        float4 zero = float4(0, 0, 0, 0);
         [loop]
-        for (uint z = 0; z < Dfull; ++z)
+        for (uint z = 0; z < D; ++z)
             OutAP[uint3(tid.x, tid.y, z)] = zero;
         return;
     }
 
+    // Segment to integrate INSIDE the atmosphere, capped by APFarDynamic from the camera
+    float t0Seg = max(tEnter, 0.0f);
+    float t1Seg = min(tExit, t0Seg + APFarDynamicNewWay);
+    float Lseg = max(0.0f, t1Seg - t0Seg);
+    
+    if (Lseg <= 1e-6f)
+    {
+    // Nothing to integrate (either no hit, or APFarDynamic stops before TOA)
+        float4 zero = float4(0, 0, 0, 0);
+        [loop]
+        for (uint z = 0; z < D; ++z)
+            OutAP[uint3(tid.x, tid.y, z)] = zero;
+        return;
+    }
+     
     // Accumulators to current slice end
     float3 Lcum = 0.0f; // in-scattered radiance
     float3 tauCum = 0.0f; // camera->current extinction
@@ -268,30 +341,31 @@ void main(uint3 tid : SV_DispatchThreadID)
     float invD = 1.0f / max(1.0f, (float) D);
     float invD2 = invD * invD;
     float dStart = 0.0f;
-    float dDelta = APFarDynamic * (1.0f * invD2); // z=0 -> (2*0+1)/D^2
+    float dDelta = APFarDynamicNewWay * (1.0f * invD2); // z=0 -> (2*0+1)/D^2
 
-    [loop]
+[loop]
     for (uint z = 0; z < D; ++z)
-    {
-        float d0 = dStart;
-        float d1 = dStart + dDelta;
-        dStart += dDelta;
-        dDelta += APFarDynamic * (2.0f * invD2); // next slice increment
+    {      
+        float u0 = (float) z / (float) D;
+        float u1 = (float) (z + 1u) / (float) D;
+        float s0 = pow(u0, AP_Z_GAMMA); // writer maps u→s
+        float s1 = pow(u1, AP_Z_GAMMA);
+        float tA = t0Seg + Lseg * s0;
+        float tB = t0Seg + Lseg * s1;
 
-        // Clip to shell segment
-        float segA = max(d0, tEnter);
-        float segB = min(d1, tExit);
+        // Clamp to valid segment so we never step under ground
+        float segA = max(tA, tEnter);
+        float segB = min(tB, tExit);
 
         if (segB > segA)
         {
             float len = segB - segA;
             float tMid = 0.5f * (segA + segB);
-            float3 p = ro + wView * tMid;
 
+            float3 p = ro + wView * tMid;
             float rMid = length(p);
             float hMid = max(0.0f, rMid - Rg);
 
-            // Local densities/coefs
             float dR = DensityRayleigh(hMid);
             float dM = DensityMie(hMid);
             float dO = DensityOzone(hMid);
@@ -301,52 +375,42 @@ void main(uint3 tid : SV_DispatchThreadID)
             float3 sigR_s = RayleighScattering * dR;
             float3 sigM_s = MieScattering * dM;
 
-            // Sun at sample
             float3 upS = (rMid > 0.0f) ? (p / rMid) : BasisRadUp;
             float muS = dot(upS, wSun);
             float Vsun = SunVisibilityAtR(rMid, muS, Rg);
-
             float3 Tsun = T_to_TOA(rMid, muS, Rg, Rt) * Vsun;
 
-            // Phase with incoming wSun and outgoing -wView
             float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
             float PR = PhaseRayleigh(muPhase);
             float PM = PhaseMieHG(muPhase, saturate(MieAnisotropy));
-            
-            // Single-scatter source (per color): σ_s * phase * Tsun
+
             float3 S1 = sigR_s * PR * Tsun + sigM_s * PM * Tsun;
 
-            // Multi-scatter source from LUT
             float4 Psi4 = SamplePsiMS4(rMid, muS, Rg, Rt);
             float pMS = MSPhase(muPhase, Psi4.a);
             float3 S_MS = (sigR_s + sigM_s) * pMS * Psi4.rgb;
 
-            // Within-slice attenuation factor: (1 - e^{-Δτ}) / Δτ
+            // Midpoint slice integral
             float3 dTau = sigmaExt * len;
             float3 wInt = (1.0.xxx - fexp3(-dTau)) / max(sigmaExt, 1e-8.xxx);
 
-            // Camera->sample transmittance from cumulative tau
             float3 Tcam = fexp3(-tauCum);
+            Lcum += Tcam * (S1 + S_MS) * wInt * Lsun;
 
-            // Add slice contribution (apply sun radiance once here)
-            Lcum += Tcam * (S1 + S_MS) * wInt * SunE;
-
-            // March cumulative tau
             tauCum += dTau;
         }
 
-        // Write cumulative result at this slice end
+        // Store cumulative (alpha = tauMean)
         float3 Tcum = fexp3(-tauCum);
-        // Paper: store scalar transmittance as the mean of RGB channels
-        float A = (Tcum.r + Tcum.g + Tcum.b) * (1.0f / 3.0f);
-        OutAP[uint3(tid.x, tid.y, z)] = float4(Lcum, saturate(A));
+        float Tmean = max((Tcum.r + Tcum.g + Tcum.b) * (1.0 / 3.0), 1e-6f);
+        float tauMean = -log(Tmean);
+        OutAP[uint3(tid.x, tid.y, z)] = float4(Lcum, tauMean);
 
-        // Early-out: opaque or past exit
-        if (A <= AP_A_EPS || dStart >= tExit)
+        if (Tmean <= AP_A_EPS || tB >= tExit)
         {
-            [loop]
+        [loop]
             for (uint zz = z + 1; zz < Dfull; ++zz)
-                OutAP[uint3(tid.x, tid.y, zz)] = float4(Lcum, saturate(A));
+                OutAP[uint3(tid.x, tid.y, zz)] = float4(Lcum, tauMean);
             return;
         }
     }
@@ -355,7 +419,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     if (D < Dfull)
     {
         float4 last = OutAP[uint3(tid.x, tid.y, D - 1)];
-        [loop]
+    [loop]
         for (uint zz = D; zz < Dfull; ++zz)
             OutAP[uint3(tid.x, tid.y, zz)] = last;
     }

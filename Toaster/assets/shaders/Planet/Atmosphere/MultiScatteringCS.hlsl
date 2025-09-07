@@ -513,7 +513,7 @@ float3 SampleSphere(uint i, uint n)
 
 float SunVisibilityAtSample(float r, float muS, float Rg)
 {
-    const float SunAngularRadius = 0.00935f;
+    const float SunAngularRadius = 0.004675f;
     float sinThetaH = Rg / r;
     float cosThetaH = -sqrt(saturate(1.0f - sinThetaH * sinThetaH));
     return smoothstep(-sinThetaH * SunAngularRadius,

@@ -297,6 +297,16 @@ namespace Toast {
 
 		LightningPass(planet);
 
+		// Screen-adaptive APFar update (uses camera frustum)
+		if (sRendererData->PlanetDraw.Planet)
+		{
+			const Vector3 camPosWS{ cameraPos.x, cameraPos.y, cameraPos.z };
+			const DirectX::XMFLOAT3 wtF = camera.GetWorldTranslation();
+			const Vector3 worldTranslation{ wtF.x, wtF.y, wtF.z };
+
+			sRendererData->PlanetDraw.Planet->UpdateAPFarFromFrustum(camPosWS, worldTranslation, 1.05f);
+		}
+
 		// Post Processes
 		StarFieldPass();
 		AtmospherePass(planet, environment, cameraPos, camera.GetWorldTranslation(), dynamicIBL);
@@ -1092,58 +1102,11 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 1, planet->GetMultiScatteringLUT()->GetSRV());
 		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_COMPUTE_SHADER);
+		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_COMPUTE_SHADER);
 		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(2, D3D11_PIXEL_SHADER);		
 
-		float APFarDyn = 0.0f;
-		{
-			const float Rg = (float)planet->GetRadius();
-			const float Rt = Rg + planet->GetAtmosphere().AtmosphereHeight;
-
-			// Camera position relative to planet center (meters)
-			DirectX::XMFLOAT3 cam2ctrWS = {
-				camPosWS.x - planet->GetTranslation().x + worldTranslation.x,
-				camPosWS.y - planet->GetTranslation().y + worldTranslation.y,
-				camPosWS.z - planet->GetTranslation().z + worldTranslation.z
-			};
-			const float r = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMLoadFloat3(&cam2ctrWS)));
-			const float h = std::max(0.0f, r - Rg); // viewer altitude above ground
-
-			// Tunables (pick once; Mars-friendly defaults)
-			const float BASE_RANGE = 70e3f;    // minimum coverage near ground
-			const float RELIEF_CAP_M = 6000.0f;  // assume up to ~6 km visible relief
-			const float SAFETY = 1.15f;    // headroom for FOV/screen corners
-			const float MIN_INSIDE = 32e3f;    // never go below this when inside
-			const float MAX_INSIDE = 320e3f;   // cap inside atmosphere (quality)
-			const float MIN_OUTSIDE = 160e3f;   // cap lower bound in space views
-			const float MAX_OUTSIDE = 2.0e6f;   // hard cap for space views (~2000 km)
-
-			if (r <= Rt)
-			{
-				// Inside atmosphere: cover viewer horizon + some terrain relief.
-				// Exact spherical horizon distance: d = sqrt(2*R*h + h^2)
-				const float dViewer = std::sqrt(std::max(0.0f, 2.0f * Rg * h + h * h));
-
-				// Relief term (mountain top also “over the horizon”)
-				const float dRelief = std::sqrt(std::max(0.0f, 2.0f * Rg * RELIEF_CAP_M + RELIEF_CAP_M * RELIEF_CAP_M));
-
-				const float target = std::max(BASE_RANGE, (dViewer + dRelief) * SAFETY);
-
-				APFarDyn = std::clamp(target, MIN_INSIDE, MAX_INSIDE);
-			}
-			else
-			{
-				// Outside atmosphere (space): cover first atmo hit across screen.
-				const double rr = double(r), RRt = double(Rt);
-				const double tEnterTan = std::sqrt(std::max(0.0, rr * rr - RRt * RRt)); // tangent/limb
-				const double tEnterCenter = std::max(0.0, rr - RRt);                   // looking at center
-				const float  target = (float)std::max(tEnterTan, tEnterCenter) * SAFETY;
-
-				APFarDyn = std::clamp(std::max(BASE_RANGE, target), MIN_OUTSIDE, MAX_OUTSIDE);
-			}
-		}
-		
 		// Updating the atmospheric data in the buffer and mapping it to the GPU
 		auto& atmosphere = planet->GetAtmosphere();
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.AtmosphereHeight, 4, 0);
@@ -1157,7 +1120,7 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.OzoneStrength, 4, 76);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 80);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 84);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&APFarDyn, 4, 88);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.APFarDynamic, 4, 88);
 		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 		sRendererData->AtmosphereCBuffer->Bind();
 
@@ -1171,14 +1134,25 @@ namespace Toast {
 
 		sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
 
+		auto& aerialPerspective = planet->GetAerialPerspectiveLUT();
+
+		auto& APFarDynamic = planet->GetAPFarDynamic();
+		UINT zero[4] = { 0,0,0,0 };
+		RenderCommand::ClearUAV(APFarDynamic->GetUAV().Get(), zero);
+		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, sRendererData->DepthBuffer->GetSRV());
+		APFarDynamic->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/APFarDynamic.hlsl")->Bind();
+		RenderCommand::DispatchCompute((aerialPerspective->GetWidth() + 7) / 8, (aerialPerspective->GetHeight() + 7) / 8, 1);
+		APFarDynamic->UnbindUAV(0, D3D11_COMPUTE_SHADER);
+
 		auto& skyview = planet->GetSkyViewLUT();
 		skyview->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/SkyViewCS.hlsl")->Bind();
 		RenderCommand::DispatchCompute((skyview->GetWidth() + 7) / 8, (skyview->GetHeight() + 7) / 8, 1);
 		skyview->UnbindUAV(0, D3D11_COMPUTE_SHADER);
-
-		auto& aerialPerspective = planet->GetAerialPerspectiveLUT();
+		
 		aerialPerspective->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 2, APFarDynamic->GetSRV());
 		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/AerialPerspectiveCS.hlsl")->Bind();
 		RenderCommand::DispatchCompute((aerialPerspective->GetWidth() + 7) / 8, (aerialPerspective->GetHeight() + 7) / 8, aerialPerspective->GetDepth());
 		aerialPerspective->UnbindUAV(0, D3D11_COMPUTE_SHADER);

@@ -41,6 +41,7 @@ namespace Toast {
 		void UpdateView();
 
 		void UpdateFocalPoint(DirectX::XMVECTOR& newFocalPoint);
+		DirectX::XMVECTOR& GetFocalPoint() { return mFocalPoint; }
 	private:
 		bool OnMouseScroll(MouseScrolledEvent& e);
 
@@ -53,7 +54,8 @@ namespace Toast {
 		float ZoomSpeed() const;
 	private:
 		DirectX::XMVECTOR mFocalPoint = { 0.0f, 1.0f, 7.0f };
-		DirectX::XMVECTOR mPosition = { 0.0f, 1.0f, -3.0f };
+		//DirectX::XMVECTOR mPosition = { 0.0f, 1.0f, -3.0f };
+		DirectX::XMVECTOR mPosition = { -24761.4f, 269119.18f, -319789.15f }; 
 		// For planet testing
 		//DirectX::XMVECTOR mFocalPoint = { 0.0f, 0.0f, 1.0f };
 		//DirectX::XMVECTOR mPosition = { 0.0f, 0.0f, -15000.0f };

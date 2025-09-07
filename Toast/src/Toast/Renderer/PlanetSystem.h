@@ -95,6 +95,7 @@ namespace Toast {
 		float OzoneStrength = 0.0f;
 		uint32_t StepsTransmittance = 192;
 		uint32_t StepsMultiScattering = 128;
+		float APFarDynamic = 150000.0f;
 	};
 
 	class Planet
@@ -156,6 +157,7 @@ namespace Toast {
 		Ref<Texture2D> mMultiScatteringLUT;
 		Ref<Texture2D> mSkyViewLUT;
 		Ref<Texture3D> mAerielPerspectiveLUT;
+		Ref<Texture2D> mAPFarDynamic;
 
 		// Environment Textures
 		Texture2D* mStarFieldTexture2D;
@@ -229,6 +231,9 @@ namespace Toast {
 		Ref<Texture2D>& GetMultiScatteringLUT() { return mMultiScatteringLUT; }
 		Ref<Texture2D>& GetSkyViewLUT() { return mSkyViewLUT; }
 		Ref<Texture3D>& GetAerialPerspectiveLUT() { return mAerielPerspectiveLUT; }
+		Ref<Texture2D>& GetAPFarDynamic() { return mAPFarDynamic; }
+
+		void UpdateAPFarFromFrustum(const Vector3& camPosWS, const Vector3& worldTranslation, float safety = 1.05f);
 
 		void DetailObjectPlacement(TerrainObjectComponent* objects, Matrix& planetNoScaleTransform);
 

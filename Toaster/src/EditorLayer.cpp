@@ -75,6 +75,7 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/MultiScatteringCS.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/SkyViewCS.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/AerialPerspectiveCS.hlsl");
+		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/APFarDynamic.hlsl");
 
 		// Post Processes
 		ShaderLibrary::Load("assets/shaders/Post Process/StarField.hlsl");
