@@ -49,7 +49,7 @@ cbuffer PlanetFrame : register(b4)
     float MaxHeight;
     float3 BasisTanNorth;
     float MinHeight;
-    float3 BasisRadUp;
+    float3 BasisSpinUp;
 };
 
 cbuffer Atmosphere : register(b5)
@@ -91,17 +91,17 @@ SamplerState ClampPoint : register(s1);
 
 // ===== Math helpers =========================================================
 static const float PI = 3.14159265358979323846f;
+static const float3 LUMA = float3(0.2126, 0.7152, 0.0722);
 
-float3 OrthonormalizeUpEastNorth(float3 upIn, float3 eastIn, float3 northIn,
-                                 out float3 up, out float3 east, out float3 north)
+void BuildSkyBasis(float3 camWS, float3 planetCenter, float3 spinUpWS, out float3 up, out float3 east, out float3 north)
 {
-    up = normalize(upIn);
-    east = normalize(eastIn - up * dot(eastIn, up));
-    north = normalize(northIn - up * dot(northIn, up));
-    // Rebuild exact orthonormal right-handed basis
-    east = normalize(cross(north, up));
-    north = normalize(cross(up, east));
-    return up; // (returning up just to avoid warnings)
+    up = normalize(camWS - planetCenter); // true radial up at camera
+    float3 spinT = spinUpWS - up * dot(spinUpWS, up); // remove vertical
+    float len2 = max(dot(spinT, spinT), 1e-20f);
+    float3 northHint = spinT * rsqrt(len2); // tangent north hint
+
+    east = normalize(cross(northHint, up)); // exact orthonormal
+    north = normalize(cross(up, east)); // re-derive north
 }
 
 // Unproject: view ray direction in WORLD space (unit length)
@@ -159,9 +159,11 @@ float UFromLongitude(float lon)
 // Convert world-space view direction to (u,v) for SkyViewLUT
 float2 SkyUVFromViewDir(float3 wView)
 {
+    float3 camWS = cameraPosition.xyz;
+    
     // Build the same basis SkyViewCS used
     float3 up, east, north;
-    OrthonormalizeUpEastNorth(BasisRadUp, BasisTanEast, BasisTanNorth, up, east, north);
+    BuildSkyBasis(camWS, PlanetCenterWS, BasisSpinUp, up, east, north);
 
     // True spherical angles relative to that local frame
     float xE = dot(wView, east);
@@ -174,6 +176,20 @@ float2 SkyUVFromViewDir(float3 wView)
     float u = UFromLongitude(lon);
     float v = VFromLatitude(lat);
     return float2(u, v);
+}
+
+// ---- TLUT helpers (same mapping as your other passes)
+float2 TransUV(float r, float mu, float Rg, float Rt)
+{
+    float rNorm = (r - Rg) / max(Rt - Rg, 1e-6f);
+    float muMin = -sqrt(saturate(1.0f - (Rg * Rg) / (r * r)));
+    mu = clamp(mu, muMin + 1e-5f, 1.0f - 1.0e-5f);
+    float uMu = (mu - muMin) / (1.0f - muMin);
+    return float2(uMu, saturate(rNorm));
+}
+float3 T_to_TOA(float r, float mu, float Rg, float Rt)
+{
+    return TransmittanceLUT.SampleLevel(ClampLinear, TransUV(r, mu, Rg, Rt), 0).rgb;
 }
 
 struct Hit
@@ -250,7 +266,24 @@ float4 main(PSIn i) : SV_Target
 
         // SkyView already contains radiance * multiplier per your SkyViewCS
         float3 sky = SkyViewLUT.SampleLevel(ClampLinear, skyUV, 0).rgb;
-        return float4(max(sky, 0.0f), 1.0f);
+        
+        float3 camRel = cameraPosition.xyz - PlanetCenterWS;
+        float rCam = max(PlanetRadius, length(camRel));
+        float3 upCam = camRel / rCam;
+        float muV = dot(wView, upCam);
+
+        float Rt = PlanetRadius + AtmosphereHeight;
+        float3 Tcam = T_to_TOA(rCam, muV, PlanetRadius, Rt); // RGB transmittance to space
+
+        float3 stars = SceneColor.Sample(ClampPoint, uv).rgb * Tcam;
+        
+        float ySky = dot(sky, LUMA);
+        float StarLumaGate = 0.02f; // adjust to taste
+        float wStar = saturate(1.0f - ySky / StarLumaGate); 
+        stars *= wStar;
+        
+        float3 outSky = sky + stars;
+        return float4(max(outSky, 0.0f), 1.0f);
     }
     else
     {

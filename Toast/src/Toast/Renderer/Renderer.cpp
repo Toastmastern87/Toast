@@ -1099,8 +1099,6 @@ namespace Toast {
 			annotation->BeginEvent(L"Atmosphere Pass");
 #endif
 
-		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 1, planet->GetMultiScatteringLUT()->GetSRV());
 		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_COMPUTE_SHADER);
 		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_COMPUTE_SHADER);
 		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_PIXEL_SHADER);
@@ -1144,6 +1142,9 @@ namespace Toast {
 		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/APFarDynamic.hlsl")->Bind();
 		RenderCommand::DispatchCompute((aerialPerspective->GetWidth() + 7) / 8, (aerialPerspective->GetHeight() + 7) / 8, 1);
 		APFarDynamic->UnbindUAV(0, D3D11_COMPUTE_SHADER);
+
+		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 1, planet->GetMultiScatteringLUT()->GetSRV());
 
 		auto& skyview = planet->GetSkyViewLUT();
 		skyview->BindForReadWrite(0, D3D11_COMPUTE_SHADER);

@@ -63,7 +63,7 @@ cbuffer PlanetFrame : register(b4)
     float MaxHeight;
     float3 BasisTanNorth;
     float MinHeight;
-    float3 BasisRadUp;
+    float3 BasisSpinUp;
 };
 
 cbuffer Atmosphere : register(b5)
@@ -208,6 +208,17 @@ float MSPhase(float mu, float gBar)
     return lerp(pIso, pHG, g);
 }
 
+void BuildSkyBasis(float3 camWS, float3 planetCenter, float3 spinUpWS, out float3 up, out float3 east, out float3 north)
+{
+    up = normalize(camWS - planetCenter); // true radial up at camera
+    float3 spinT = spinUpWS - up * dot(spinUpWS, up); // remove vertical
+    float len2 = max(dot(spinT, spinT), 1e-20f);
+    float3 northHint = spinT * rsqrt(len2); // tangent north hint
+
+    east = normalize(cross(northHint, up)); // exact orthonormal
+    north = normalize(cross(up, east)); // re-derive north
+}
+
 // ===== Main =================================================================
 [numthreads(8, 8, 1)]
 void main(uint3 tid : SV_DispatchThreadID)
@@ -220,17 +231,15 @@ void main(uint3 tid : SV_DispatchThreadID)
     const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
 
-    float3 up = normalize(BasisRadUp);
-    float3 east = normalize(BasisTanEast - up * dot(BasisTanEast, up));
-    float3 north = normalize(BasisTanNorth - up * dot(BasisTanNorth, up));
-    north = normalize(north);
-    east = normalize(cross(north, up));
-
     float3 camWS = cameraPosition.xyz;
     float3 camRel = camWS - PlanetCenterWS;
     float rCam = max(Rg, length(camRel));
+    
+    float3 up, east, north;
+    BuildSkyBasis(camWS, PlanetCenterWS, BasisSpinUp, up, east, north);
 
     float3 wSun = -normalize(direction.xyz);
+    float3 Esun = radiance.rgb * SunIntensity;
 
     float u = (tid.x + 0.5f) / float(W);
     float v = (tid.y + 0.5f) / float(H);
@@ -242,7 +251,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     bool groundHit = HitsGround(rCam, muV, Rg);
     float dExit = groundHit ? DistToBottom(rCam, muV, Rg) : DistToTop(rCam, muV, Rt);
-
+    
     float tEnd = dExit;
     float3 Ls = 0.0f;
     float3 Lms = 0.0f;
@@ -298,9 +307,6 @@ void main(uint3 tid : SV_DispatchThreadID)
         float pMS = MSPhase(muPhase, Psi4.a);
 
         float3 msIrr = Psi4.rgb;
-#if !SKY_MS_BAKED_SUNVIS
-        msIrr *= Vsun;
-#endif
 
         if (SKY_USE_MS)
         {
@@ -323,7 +329,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     }
     
 #if SKY_ENABLE_GROUND
-    if (groundHit && lat < 0.0f)
+    if (groundHit)
     {
         float3 Tcg = T_along_ray(rCam, muV, dExit, Rg, Rt);
 
@@ -351,13 +357,13 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 ImsG = (RayleighScattering + MieScattering) * pMSg * msIrrG;
 
         float3 Lg = Tcg * (Lo + ImsG);
-        float3 L = (Ls + Lms + Lg) * radiance.rgb * SunIntensity;
+        float3 L = (Ls + Lms + Lg) * Esun;
         OutSkyView[tid.xy] = float4(max(L, 0.0f), 1.0f);
         return;
     }
 #endif
 
-    float3 L = (Ls + Lms) * radiance.rgb * SunIntensity;
+    float3 L = (Ls + Lms) * Esun;
 
 #if   SKY_DEBUG_MODE == 0
     OutSkyView[tid.xy] = float4(max(L, 0.0f), 1.0f);
