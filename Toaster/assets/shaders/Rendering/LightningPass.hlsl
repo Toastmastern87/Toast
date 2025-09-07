@@ -273,8 +273,8 @@ float3 DirectionalLightning(float3 F0, float3 NormalWorldSpace, float3 View, flo
     float3 Tsun = T_to_TOA(r, muS, Rg, Rt) * SunVisibilityAtR(r, muS, Rg);
 
     // Sun radiance (same scalar you use in AP/Sky)
-    float3 SunE = radiance * SunIntensity;
-    float3 Lradiance = SunE * Tsun; // attenuated, spectrally reddened
+    float3 ESun = radiance * SunIntensity;
+    float3 Lradiance = ESun * Tsun; // attenuated, spectrally reddened
     
     float3 F = fresnelSchlick(F0, max(0.0f, dot(H, View)));
     float D = ndfGGX(NoH, roughness);
@@ -362,19 +362,13 @@ PixelOutputType main(PixelInputType input)
     float r = max(Rg, length(pRel));
     float3 upG = pRel / r;
 
-    // Treat SunDiscRadius as the HALF-ANGLE in radians (if yours is diameter, divide by 2).
-    // For a real sun at 1 AU, half-angle ≈ 0.004675 rad.
-    static const float sunHalfAngle = 0.004675f;
-    float omegaSun = 2.0f * PI * (1.0f - cos(sunHalfAngle));
-
-    float3 sunRadiance = radiance.rgb * SunIntensity; // radiance
-    float3 sunIrradiance = sunRadiance * omegaSun; // irradiance
+    float3 Esun = radiance.rgb * SunIntensity; // radiance
     
     float3 wSun = normalize(-direction.xyz); // point -> sun
     float muS = dot(upG, wSun);
     
     float4 Psi4 = SamplePsiMS4(r, muS, Rg, Rt);
-    float3 msIrr = Psi4.rgb * sunIrradiance;
+    float3 msIrr = Psi4.rgb * Esun;
     
     // Fresnel reflectance at normal incidence (for metals use albedo color).
     float3 F0 = lerp(Fdielectric, albedo, metalness);

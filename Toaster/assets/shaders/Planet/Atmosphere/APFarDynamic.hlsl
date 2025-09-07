@@ -158,10 +158,6 @@ void main(uint3 tid : SV_DispatchThreadID)
         }
     }
 
-    // horizon safety at (h + relief)
-    float h = max(0.0, length(cameraPosition.xyz - PlanetCenterWS) - PlanetRadius);
-    float dH = HorizonDistance(PlanetRadius, h + ReliefMeters);
-
     float target = Safety * maxCand;
     target = min(target, MaxAP);
 

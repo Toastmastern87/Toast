@@ -289,7 +289,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     // Treat your directional-light input as SUN RADIANCE (same you use in BRDF)
     float3 Lsun = radiance.rgb * SunIntensity; // radiance  [W·m⁻2·sr⁻1 in your units]
-    float3 Esun = Lsun * OmegaSun; // irradiance [W·m⁻2]
+    float3 Esun = Lsun;
 
     // Intersections with atmosphere shell and ground
     Hit hitAtm = IntersectSphere(ro, wView, Rt);
@@ -380,22 +380,22 @@ void main(uint3 tid : SV_DispatchThreadID)
             float Vsun = SunVisibilityAtR(rMid, muS, Rg);
             float3 Tsun = T_to_TOA(rMid, muS, Rg, Rt) * Vsun;
 
-            float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
+            float muPhase = clamp(dot(wSun, -wView), -0.9995f, 0.9995f);
             float PR = PhaseRayleigh(muPhase);
             float PM = PhaseMieHG(muPhase, saturate(MieAnisotropy));
 
-            float3 S1 = sigR_s * PR * Tsun + sigM_s * PM * Tsun;
+            float3 S1 = (sigR_s * PR + sigM_s * PM) * Tsun * Esun;
 
             float4 Psi4 = SamplePsiMS4(rMid, muS, Rg, Rt);
             float pMS = MSPhase(muPhase, Psi4.a);
-            float3 S_MS = (sigR_s + sigM_s) * pMS * Psi4.rgb;
+            float3 S_MS = (sigR_s + sigM_s) * MSPhase(muPhase, Psi4.a) * Psi4.rgb * Esun;
 
             // Midpoint slice integral
             float3 dTau = sigmaExt * len;
             float3 wInt = (1.0.xxx - fexp3(-dTau)) / max(sigmaExt, 1e-8.xxx);
 
             float3 Tcam = fexp3(-tauCum);
-            Lcum += Tcam * (S1 + S_MS) * wInt * Lsun;
+            Lcum += Tcam * (S1 + S_MS) * wInt;
 
             tauCum += dTau;
         }
