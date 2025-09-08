@@ -292,7 +292,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 Tsun = Tsun_NoVis * Vsun;
 
         // FIX: phase angle is between incoming (sun) and outgoing (-view)
-        float muPhase = clamp(dot(wSun, -wView), -0.9995f, 0.9995f);
+        float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
         float PR = PhaseRayleigh(muPhase);
         float PM = PhaseMieHG(muPhase, saturate(MieAnisotropy));
 
@@ -346,7 +346,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 Lo = (GroundAlbedo / PI) * Tsg * cosNL;
 
         float4 PsiG4 = SamplePsiMS4(rG, muSg, Rg, Rt);
-        float muPhaseG = clamp(dot(wSun, -wView), -0.9995f, 0.9995f);
+        float muPhaseG = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
         float pMSg = MSPhase(muPhaseG, PsiG4.a);
 
         float3 msIrrG = PsiG4.rgb;

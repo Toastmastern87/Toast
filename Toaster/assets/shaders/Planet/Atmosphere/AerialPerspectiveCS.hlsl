@@ -380,7 +380,7 @@ void main(uint3 tid : SV_DispatchThreadID)
             float Vsun = SunVisibilityAtR(rMid, muS, Rg);
             float3 Tsun = T_to_TOA(rMid, muS, Rg, Rt) * Vsun;
 
-            float muPhase = clamp(dot(wSun, -wView), -0.9995f, 0.9995f);
+            float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
             float PR = PhaseRayleigh(muPhase);
             float PM = PhaseMieHG(muPhase, saturate(MieAnisotropy));
 

@@ -278,7 +278,7 @@ float4 main(PSIn i) : SV_Target
         float3 stars = SceneColor.Sample(ClampPoint, uv).rgb * Tcam;
         
         float ySky = dot(sky, LUMA);
-        float StarLumaGate = 0.02f; // adjust to taste
+        float StarLumaGate = 0.015f; // adjust to taste
         float wStar = saturate(1.0f - ySky / StarLumaGate); 
         stars *= wStar;
         
