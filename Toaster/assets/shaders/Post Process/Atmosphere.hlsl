@@ -68,6 +68,15 @@ cbuffer Atmosphere : register(b5)
     float APFarDynamic; // camera->max distance for AP (meters)
 };
 
+cbuffer SunDiscSettings : register(b6)
+{
+    float SunDiscRadius;
+    float SunEdgeSoftness;
+    float SunGlowSize;
+    float SunGlowIntensity;
+    int SunDiscToggle; // 1=on, 0=off
+};
+
 // ===== Textures / Samplers ==================================================
 Texture2D<float4> TransmittanceLUT : register(t0); // (not used in composite)
 Texture2D<float4> MultiScatterLUT : register(t1); // (not used in composite)
@@ -215,6 +224,22 @@ Hit IntersectSphere(float3 ro, float3 rd, float R)
     return H;
 }
 
+float SunVisibilityAtR_Config(float r, float muS, float Rg, float sunRadius)
+{
+    float sinThetaH = Rg / r;
+    float cosThetaH = -sqrt(saturate(1.0f - sinThetaH * sinThetaH));
+    return smoothstep(-sinThetaH * sunRadius, sinThetaH * sunRadius, muS - cosThetaH);
+}
+
+// Optional: subtle limb darkening so the disc isn't a flat sticker.
+// Tweak the constant or lift it into your cbuffer later if you want.
+float LimbDarken(float rNorm) // rNorm = theta / SunDiscRadius, [0..∞)
+{
+    const float u = 0.55f; // 0 = none, ~0.5–0.7 looks nice
+    float mu = sqrt(saturate(1.0f - saturate(rNorm) * saturate(rNorm)));
+    return 1.0f - u * (1.0f - mu);
+}
+
 // AP 3D volume uses quadratic packing: d(z) = APFarDynamic * (z/D)^2  ->  z/D = sqrt(d/APFarDynamic).
 // So normalized W coordinate for sampling is:
 float APWFromDistance(float tSample, float t0Seg, float Lseg)
@@ -281,6 +306,51 @@ float4 main(PSIn i) : SV_Target
         float StarLumaGate = 0.015f; // adjust to taste
         float wStar = saturate(1.0f - ySky / StarLumaGate); 
         stars *= wStar;
+        
+        if (SunDiscToggle != 0)
+        {
+            // Direction to sun (your light is FROM light -> scene)
+            float3 wSun = -normalize(direction.xyz);
+
+            // Angular distance of current pixel's ray to sun center
+            float muViewSun = dot(wView, wSun);
+            float theta = acos(clamp(muViewSun, -1.0f, 1.0f));
+            float rNorm = theta / max(SunDiscRadius, 1e-6f); // 1.0 at disc edge
+            
+            // Soft-edged disc mask (feather across the outer rim)
+            float edge0 = max(0.0f, 1.0f - SunEdgeSoftness); // inner edge of feather band
+            float edge1 = 1.0f; // outer edge (disc radius)
+            float discSoft = 1.0f - smoothstep(edge0, edge1, rNorm);
+
+            // Limb darkening (optional but makes it prettier)
+            float limb = LimbDarken(rNorm);
+
+            // Horizon visibility at the camera height (lets the disc graze cleanly)
+            float3 camRel = cameraPosition.xyz - PlanetCenterWS;
+            float rCam = max(PlanetRadius, length(camRel));
+            float3 upCam = camRel / rCam;
+            float muS_up = dot(upCam, wSun);
+            float VsunH = SunVisibilityAtR_Config(rCam, muS_up, PlanetRadius, SunDiscRadius);
+    
+            // Final disc mask
+            float discMask = discSoft * limb * VsunH;
+
+            // Additive glow outside the disc, falling to zero at radius*(1+SunGlowSize)
+            // Starts at the rim (rNorm=1) and extends to rNorm=1+SunGlowSize
+            float glowOuter = 1.0f + max(SunGlowSize, 0.0f);
+            float glowRing = 1.0f - smoothstep(1.0f, glowOuter, rNorm);
+            // Mostly keep glow outside the core so the core stays crisp
+            float glowMask = glowRing * (1.0f - discSoft) * VsunH;
+
+            // Sun radiance (same units as SkyView) tinted by atmospheric T along the view ray
+            float3 Esun = radiance.rgb * SunIntensity; // radiance
+            float3 sunDisc = Esun * Tcam * discMask;
+            float3 sunGlow = Esun * Tcam * (SunGlowIntensity * glowMask);
+
+            // Accumulate
+            sky += sunDisc + sunGlow;
+        }
+
         
         float3 outSky = sky + stars;
         return float4(max(outSky, 0.0f), 1.0f);

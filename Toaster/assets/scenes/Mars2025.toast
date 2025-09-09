@@ -25,10 +25,10 @@ Planet:
 Environment:
   SunDiscToggle: true
   SunIntensity: 2.5
-  SunDiscRadius: 0.0167500004
-  SunEdgeSoftness: 0.00410000002
-  SunGlowIntensity: 0.300000012
-  SunGlowSize: 1.30031598
+  SunDiscRadius: 0.00467499997
+  SunEdgeSoftness: 0.119999997
+  SunGlowIntensity: 0.5
+  SunGlowSize: 0.600000024
 Entities:
   - Entity: 3888910141822256182
     TagComponent:
@@ -81,7 +81,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-433.297821, 20.8000145, -63.5000076]
+      Rotation: [-392.99408, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]
