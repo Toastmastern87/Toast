@@ -88,7 +88,7 @@ Hit RaySphere(float3 ro, float3 rd, float R)
     H.t1 = -b + s;
     return H;
 }
-float3 ViewDirWS_fromUV(float2 uv)
+float3 ViewDirWSFromUV(float2 uv)
 {
     float2 ndc = float2(uv.x * 2 - 1, 1 - uv.y * 2);
     float4 clip = float4(ndc, 1, 1);
@@ -104,10 +104,6 @@ float ViewDistanceFromDepth(float2 uv, float depth)
     float4 clip = float4(ndc, depth, 1);
     float4 vpos = mul(clip, inverseProjectionMatrix);
     return length(vpos.xyz / max(vpos.w, 1e-12));
-}
-float HorizonDistance(float Rg, float h)
-{
-    return sqrt(max(0.0, h * h + 2.0 * Rg * h));
 }
 
 [numthreads(8, 8, 1)]
@@ -135,9 +131,10 @@ void main(uint3 tid : SV_DispatchThreadID)
         float2 uv = (base + OFFS[k]) / float2(W, H);
 
         float3 ro = cameraPosition.xyz - PlanetCenterWS;
-        float3 rd = ViewDirWS_fromUV(uv);
+        float3 rd = ViewDirWSFromUV(uv);
         float Rg = PlanetRadius;
         float Rt = PlanetRadius + AtmosphereHeight;
+        float Rb = PlanetRadius + MinHeight;
 
         Hit hatm = RaySphere(ro, rd, Rt);
         if (!hatm.ok)
@@ -145,7 +142,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         float tEnter = max(0.0, hatm.t0);
         float tExitA = max(0.0, hatm.t1);
-        Hit hg = RaySphere(ro, rd, Rg);
+        Hit hg = RaySphere(ro, rd, Rb);
         if (hg.ok && hg.t0 > 0.0)
             tExitA = min(tExitA, hg.t0);
 

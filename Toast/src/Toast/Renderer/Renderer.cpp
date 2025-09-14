@@ -162,6 +162,7 @@ namespace Toast {
 
 		CreateRasterizerStates();
 		CreateDepthBuffer(width, height);
+		TOAST_CORE_CRITICAL("Width: %d", width);
 		CreateDepthStencilView();
 		CreateDepthStencilStates();
 
@@ -296,16 +297,6 @@ namespace Toast {
 		}
 
 		LightningPass(planet);
-
-		// Screen-adaptive APFar update (uses camera frustum)
-		if (sRendererData->PlanetDraw.Planet)
-		{
-			const Vector3 camPosWS{ cameraPos.x, cameraPos.y, cameraPos.z };
-			const DirectX::XMFLOAT3 wtF = camera.GetWorldTranslation();
-			const Vector3 worldTranslation{ wtF.x, wtF.y, wtF.z };
-
-			sRendererData->PlanetDraw.Planet->UpdateAPFarFromFrustum(camPosWS, worldTranslation, 1.05f);
-		}
 
 		// Post Processes
 		StarFieldPass();
@@ -1132,10 +1123,10 @@ namespace Toast {
 
 		sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
 
-		auto& aerialPerspective = planet->GetAerialPerspectiveLUT();
-
-		auto& APFarDynamic = planet->GetAPFarDynamic();
 		UINT zero[4] = { 0,0,0,0 };
+
+		auto& aerialPerspective = planet->GetAerialPerspectiveLUT();
+		auto& APFarDynamic = planet->GetAPFarDynamic();
 		RenderCommand::ClearUAV(APFarDynamic->GetUAV().Get(), zero);
 		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, sRendererData->DepthBuffer->GetSRV());
 		APFarDynamic->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
@@ -1169,6 +1160,7 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, skyview->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, aerialPerspective->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->GPassPositionRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, APFarDynamic->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
 

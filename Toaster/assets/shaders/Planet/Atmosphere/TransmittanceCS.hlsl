@@ -74,15 +74,15 @@ float DensityOzone(float hMeters)
 }
 
 // ---------- TLUT domain mapping ----------
-float RadiusFromV(float v, float Rg, float Rt)
+float RadiusFromV(float v, float Rb, float Rt)
 {
-    return lerp(Rg, Rt, saturate(v));
+    return lerp(Rb, Rt, saturate(v));
 }
 
 // Exact inverse of the runtime mapping: u = (μ - μmin)/(1 - μmin)
-float MuFromU(float u, float r, float Rg)
+float MuFromU(float u, float r, float Rb)
 {
-    float muMin = -sqrt(saturate(1.0f - (Rg * Rg) / (r * r)));
+    float muMin = -sqrt(saturate(1.0f - (Rb * Rb) / (r * r)));
     float mu = muMin + saturate(u) * (1.0f - muMin);
     // keep strictly inside valid range to avoid degenerate tangent/ground cases
     return clamp(mu, muMin + TLUT_SAFE_EPS, 1.0f - TLUT_SAFE_EPS);
@@ -99,12 +99,13 @@ void main(uint3 id : SV_DispatchThreadID)
 
     const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
+    const float Rb = PlanetRadius + MinHeight;
 
     float u = (id.x + 0.5f) / float(W); // maps to μ in [μmin(r),1]
     float v = (id.y + 0.5f) / float(H); // maps to r in [Rg,Rt]
 
-    float r = RadiusFromV(v, Rg, Rt);
-    float mu = MuFromU(u, r, Rg);
+    float r = RadiusFromV(v, Rb, Rt);
+    float mu = MuFromU(u, r, Rb);
 
     // Ray (planet-centered), Up = +Z
     float3 x = float3(0.0, 0.0, r);
@@ -132,34 +133,19 @@ void main(uint3 id : SV_DispatchThreadID)
 
         float3 p = x + w * ti;
         float rp = length(p);
-        float alt = max(0.0f, rp - Rg);
+        float h = max(0.0f, rp - Rb);
 
-        float dR = DensityRayleigh(alt);
-        float dM = DensityMie(alt);
-        float dO = DensityOzone(alt);
+        float dR = DensityRayleigh(h);
+        float dM = DensityMie(h);
+        float dO = DensityOzone(h);
 
         // extinction coefficients (1/m)
-        float3 sigmaExt =
-              RayleighScattering * dR
-            + (MieScattering + MieAbsorption) * dM
-            + O3_COEFF * dO;
+        float3 sigmaExt = RayleighScattering * dR + (MieScattering + MieAbsorption) * dM + O3_COEFF * dO;
 
         tau += sigmaExt * dt;
     }
 
     float3 T = exp(-tau);
-
-#if   TLUT_DEBUG_MODE == 1
-    OutTransmittance[id.xy] = float4(tau, 1.0);
-#elif TLUT_DEBUG_MODE == 2
-    float muMin = -sqrt(saturate(1.0f - (Rg*Rg)/(r*r)));
-    float g = 0.5f * (muMin + 1.0f);
-    OutTransmittance[id.xy] = float4(g,g,g,1.0);
-#elif TLUT_DEBUG_MODE == 3
-    float g = (r - Rg) / max(Rt - Rg, 1e-6f);
-    OutTransmittance[id.xy] = float4(g,g,g,1.0);
-#else
     OutTransmittance[id.xy] = float4(T, 1.0);
-#endif
 }
 

@@ -39,6 +39,71 @@ namespace Toast {
 		virtual bool operator==(const Texture& other) const = 0;
 	};
 
+	class Texture1D : public Texture
+	{
+	public:
+		// Create an empty 1D (or 1D array) texture
+		Texture1D(DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT srvFormat = DXGI_FORMAT_UNKNOWN, uint32_t width = 1, uint32_t mipLevels = 1, uint32_t arraySize = 1, D3D11_USAGE usage = D3D11_USAGE_DEFAULT, UINT bindFlags = D3D11_BIND_SHADER_RESOURCE, UINT cpuAccessFlags = 0);
+
+		// Create with initial data (for mip 0, slice 0)
+		Texture1D(DXGI_FORMAT format, DXGI_FORMAT srvFormat, uint32_t width, const void* initialData, size_t initialDataSizeBytes, uint32_t mipLevels = 1, uint32_t arraySize = 1, D3D11_USAGE usage = D3D11_USAGE_DEFAULT, UINT bindFlags = D3D11_BIND_SHADER_RESOURCE, UINT cpuAccessFlags = 0);
+
+		~Texture1D() = default;
+
+		virtual void CreateSRV() override;
+
+		virtual void Bind(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_VERTEX_SHADER) const override;
+
+		virtual const uint32_t GetWidth()  const override { return mWidth; }
+		virtual const uint32_t GetHeight() const override { return 1; } // 1D texture -> height = 1
+		virtual const std::string GetFilePath() const override { return ""; }
+		virtual const DXGI_FORMAT GetFormat() const override { return mFormat; }
+		virtual void* GetID() const override { return (void*)mSRV.Get(); }
+		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const override { return mSRV; }
+		// No ID3D11Texture2D for 1D textures; return nullptr to satisfy interface
+		virtual Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() const override { return nullptr; }
+
+		virtual const uint32_t GetMipLevelCount() const override { return mMipLevels; }
+		virtual void GenerateMips() const override;
+
+		virtual ID3D11Resource* GetResource() const override { return mResource.Get(); }
+
+		virtual bool operator==(const Texture& other) const override
+		{
+			return mSRV == ((Texture1D&)other).mSRV;
+		};
+
+		// --- 1D-specific helpers ---
+
+		void SetData(const void* data, size_t sizeBytes, uint32_t mipLevel = 0, uint32_t arraySlice = 0);
+
+		// UAV helpers (for compute write)
+		void CreateUAV(uint32_t mipSlice = 0, uint32_t firstArraySlice = 0, uint32_t arraySize = 1);
+		void BindForReadWrite(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_COMPUTE_SHADER) const;
+		void UnbindUAV(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_COMPUTE_SHADER) const;
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> GetUAV() const { return mUAV; }
+
+		// Accessors
+		inline uint32_t GetArraySize() const { return mArraySize; }
+	private:
+		void CreateTexture1D(const void* initData = nullptr, size_t initSizeBytes = 0);
+	private:
+		uint32_t    mWidth = 1;
+		uint32_t    mMipLevels = 1;
+		uint32_t    mArraySize = 1;
+		DXGI_FORMAT mFormat = DXGI_FORMAT_UNKNOWN;
+		DXGI_FORMAT mSRVFormat = DXGI_FORMAT_UNKNOWN;
+		D3D11_USAGE mUsage = D3D11_USAGE_DEFAULT;
+		UINT        mBindFlags = 0;
+		UINT        mCPUAccessFlags = 0;
+
+		Microsoft::WRL::ComPtr<ID3D11Texture1D>           mTexture1D;
+		Microsoft::WRL::ComPtr<ID3D11Resource>            mResource;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>  mSRV;
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mUAV;
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mNullUAV = { nullptr };
+	};
+
 	class Texture2D : public Texture
 	{
 	public:

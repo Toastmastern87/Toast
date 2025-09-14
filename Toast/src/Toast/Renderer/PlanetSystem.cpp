@@ -54,29 +54,18 @@ namespace Toast {
 		mStarFieldTexture2D = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 
 		// Create texture for Starfield skybox
-		mStarFieldTextureCube = CreateRef<TextureCube>(DXGI_FORMAT_R16G16B16A16_UNORM, DXGI_FORMAT_UNKNOWN, 2048, 2048, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE |
-			D3D11_BIND_UNORDERED_ACCESS |
-			D3D11_BIND_RENDER_TARGET), 1, 0, 0);
-
-		mStarFieldTextureCube->CreateUAV(0);
+		mStarFieldTextureCube = CreateRef<TextureCube>(DXGI_FORMAT_R16G16B16A16_UNORM, DXGI_FORMAT_UNKNOWN, 2048, 2048, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_RENDER_TARGET), 1, 0, 0);
 
 		// Create textures for Atmospheric Scattering
 		mTransmittanceLUT = CreateRef<Texture2D>(DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT, 512, 256, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
-		mTransmittanceLUT->CreateUAV(0);
 
 		mMultiScatteringLUT = CreateRef<Texture2D>(DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT, 384, 128, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
-		mMultiScatteringLUT->CreateUAV(0);
 
 		mSkyViewLUT = CreateRef<Texture2D>(DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT, 512, 256, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
-		mSkyViewLUT->CreateUAV(0);
 
-		mAerielPerspectiveLUT = CreateRef<Texture3D>(DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT, 192, 108, 128, D3D11_USAGE_DEFAULT,
-			(D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 0);
-		mAerielPerspectiveLUT->CreateUAV(0);
+		mAerielPerspectiveLUT = CreateRef<Texture3D>(DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT, 192, 108, 128, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 0);
 
-		mAPFarDynamic = CreateRef<Texture2D>(DXGI_FORMAT_R32_UINT, DXGI_FORMAT_R32_UINT, 1, 1, D3D11_USAGE_DEFAULT,
-			(D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
-		mAPFarDynamic->CreateUAV(0);
+		mAPFarDynamic = CreateRef<Texture2D>(DXGI_FORMAT_R32_UINT, DXGI_FORMAT_R32_UINT, 1, 1, D3D11_USAGE_DEFAULT,	(D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
 	}
 
 	void Planet::InitializeLevels()
@@ -395,42 +384,6 @@ namespace Toast {
 	inline float HorizonDistance(float Rg, float h) {
 		// d = sqrt( (Rg+h)^2 - Rg^2 ) = sqrt(h*h + 2*Rg*h )
 		return std::sqrt(std::max(0.0f, h * h + 2.0f * Rg * h));
-	}
-
-	void Planet::UpdateAPFarFromFrustum(const Vector3& camPosWS, const Vector3& worldTranslation, float safety)
-	{
-		if (mRadius <= 0.0f) 
-		{ 
-			mAtmosphere.APFarDynamic = 150000.0f; 
-			return; 
-		}
-
-		// IMPORTANT: camPosWS and planetCenterWS must be in the SAME world frame (post-rebase).
-		const Vector3 cam2ctr = camPosWS - mTranslation - worldTranslation;
-		const float r = cam2ctr.Length();
-		const float h = (std::max)(0.0f, (float)(r - mRadius));       // altitude above sea level
-
-		// Viewer horizon + relief cushion (e.g., ~6 km mountains)
-		static constexpr float RELIEF_CAP_M = 6000.0f;
-		const float dViewer = HorizonDistance(mRadius, h);
-		const float dRelief = HorizonDistance(mRadius, RELIEF_CAP_M);
-
-		// Tiny headroom for FOV/screen corners
-		const float horizonTarget = 1.10f * (dViewer + dRelief);
-
-		// Planet-friendly clamps (tune if you like)
-		static constexpr float MIN_AP = 32000.0f;
-		static constexpr float MAX_AP = 2000000.0f;
-
-		float target = std::clamp(safety * horizonTarget, MIN_AP, MAX_AP);
-
-		// Smooth (fast grow, slower shrink)
-		const float prev = mAtmosphere.APFarDynamic;
-		const float aGrow = 0.55f;
-		const float aShrink = 0.20f;
-		const float blended = (target > prev) ? prev + aGrow * (target - prev) : prev + aShrink * (target - prev);
-
-		mAtmosphere.APFarDynamic = 0.75f * blended;
 	}
 
 	void Planet::DetailObjectPlacement(TerrainObjectComponent* objects, Matrix& planetNoScaleTransform)

@@ -96,17 +96,17 @@ void OpticalPropsAtHeight(float h, out float3 sigma_s, out float3 sigma_a, out f
     sigma_t = sigma_s + sigma_a;
 }
 
-float2 TransUV(float r, float mu, float Rg, float Rt)
+float2 TransUV(float r, float mu, float Rb, float Rt)
 {
-    float rNorm = (r - Rg) / max(Rt - Rg, 1e-6f);
-    float muMin = -sqrt(saturate(1.0f - (Rg * Rg) / (r * r)));
+    float rNorm = (r - Rb) / max(Rt - Rb, 1e-6f);
+    float muMin = -sqrt(saturate(1.0f - (Rb * Rb) / (r * r)));
     mu = clamp(mu, muMin + 1e-5f, 1.0f - 1e-5f); // <- important
     float uMu = (mu - muMin) / (1.0f - muMin);
     return float2(uMu, saturate(rNorm));
 }
-float3 T_to_TOA(float r, float mu, float Rg, float Rt)
+float3 T_to_TOA(float r, float mu, float Rb, float Rt)
 {
-    return TransmittanceLUT.SampleLevel(ClampLinear, TransUV(r, mu, Rg, Rt), 0).rgb;
+    return TransmittanceLUT.SampleLevel(ClampLinear, TransUV(r, mu, Rb, Rt), 0).rgb;
 }
 
 float DistToTop(float r, float mu, float Rt)
@@ -114,37 +114,37 @@ float DistToTop(float r, float mu, float Rt)
     float d = r * r * (mu * mu - 1.0f) + Rt * Rt;
     return max(-r * mu + sqrt(max(d, 0.0f)), 0.0f);
 }
-float DistToBottom(float r, float mu, float Rg)
+float DistToBottom(float r, float mu, float Rb)
 {
-    float d = r * r * (mu * mu - 1.0f) + Rg * Rg;
+    float d = r * r * (mu * mu - 1.0f) + Rb * Rb;
     return max(-r * mu - sqrt(max(d, 0.0f)), 0.0f);
 }
-bool HitsGround(float r, float mu, float Rg)
+bool HitsGround(float r, float mu, float Rb)
 {
-    return (mu < 0.0f) && (r * r * (mu * mu - 1.0f) + Rg * Rg >= 0.0f);
+    return (mu < 0.0f) && (r * r * (mu * mu - 1.0f) + Rb * Rb >= 0.0f);
 }
 
-float3 T_along_ray(float r, float mu, float t, float Rg, float Rt)
+float3 T_along_ray(float r, float mu, float t, float Rb, float Rt)
 {
     float rd = sqrt(t * t + 2.0f * r * mu * t + r * r);
-    rd = clamp(rd, Rg, Rt);
+    rd = clamp(rd, Rb, Rt);
     float muD = clamp((r * mu + t) / rd, -1.0f, 1.0f);
-    float3 num = T_to_TOA(r, mu, Rg, Rt);
-    float3 den = T_to_TOA(rd, muD, Rg, Rt);
+    float3 num = T_to_TOA(r, mu, Rb, Rt);
+    float3 den = T_to_TOA(rd, muD, Rb, Rt);
     return saturate(num / max(den, 1e-6.xxx));
 }
-float3 T_to_boundary(float r, float mu, float d, bool toGround, float Rg, float Rt)
+float3 T_to_boundary(float r, float mu, float d, bool toGround, float Rb, float Rt)
 {
     if (toGround)
     {
         float rd = sqrt(d * d + 2.0f * r * mu * d + r * r);
-        rd = clamp(rd, Rg, Rt);
+        rd = clamp(rd, Rb, Rt);
         float muD = clamp((r * mu + d) / rd, -1.0f, 1.0f);
-        float3 num = T_to_TOA(rd, -muD, Rg, Rt);
-        float3 den = T_to_TOA(r, -mu, Rg, Rt);
+        float3 num = T_to_TOA(rd, -muD, Rb, Rt);
+        float3 den = T_to_TOA(r, -mu, Rb, Rt);
         return saturate(num / max(den, 1e-6.xxx));
     }
-    return T_along_ray(r, mu, d, Rg, Rt);
+    return T_along_ray(r, mu, d, Rb, Rt);
 }
 
 uint ReverseBits32(uint x)
@@ -170,10 +170,10 @@ float3 SampleSphere(uint i, uint n)
     return float3(r * cos(phi), z, r * sin(phi)); // y is Up
 }
 
-float SunVisibilityAtSample(float r, float muS, float Rg)
+float SunVisibilityAtSample(float r, float muS, float Rb)
 {
     const float SunAngularRadius = 0.004675f;
-    float sinThetaH = Rg / r;
+    float sinThetaH = Rb / r;
     float cosThetaH = -sqrt(saturate(1.0f - sinThetaH * sinThetaH));
     return smoothstep(-sinThetaH * SunAngularRadius,
                        sinThetaH * SunAngularRadius,
@@ -194,13 +194,14 @@ void main(uint3 dtid : SV_DispatchThreadID)
     uv.y = 1.0f - uv.y;
 #endif
 
-    const float Rg = PlanetRadius ;
+    const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
+    const float Rb = PlanetRadius + MinHeight;
 
     float thetaS = uv.x * PI;
     float muS = cos(thetaS);
-    float r = lerp(Rg, Rt, uv.y);
-    float h = max(0.0f, r - Rg);
+    float r = lerp(Rb, Rt, uv.y);
+    float h = max(0.0f, r - Rb);
 
     // local medium props at LUT cell (used for rho and gBar)
     float3 sigma_s0, sigma_a0, sigma_t0;
@@ -209,14 +210,9 @@ void main(uint3 dtid : SV_DispatchThreadID)
     // single-scattering albedo ρ in luminance
     float rho_lum = dot(sigma_s0, LUMA) / max(dot(sigma_t0, LUMA), 1e-6f);
 
-    float sunVis = SunVisibilityAtSample(r, muS, Rg);
+    float sunVis = SunVisibilityAtSample(r, muS, Rb);
 
-    // if we keep LUT “light-agnostic”, do not bake sunVis
-#if MS_BAKE_SUNVIS
     float sunGate = max(sunVis, MS_VIS_FLOOR); // soften the horizon gate
-#else
-    float sunGate = 1.0f;
-#endif
 
     const float3 LoGround = GroundAlbedo / PI;
 
@@ -233,10 +229,10 @@ void main(uint3 dtid : SV_DispatchThreadID)
         float3 wi = SampleSphere(i, Ndirs);
         float mu = MU_FROM_DIR(wi);
 
-        bool g = HitsGround(r, mu, Rg);
-        float d = g ? DistToBottom(r, mu, Rg) : DistToTop(r, mu, Rt);
+        bool isGround = HitsGround(r, mu, Rb);
+        float d = isGround ? DistToBottom(r, mu, Rb) : DistToTop(r, mu, Rt);
 
-        float3 T_out_rgb = T_to_boundary(r, mu, d, g, Rg, Rt);
+        float3 T_out_rgb = T_to_boundary(r, mu, d, isGround, Rb, Rt);
         float T_out = dot(T_out_rgb, LUMA);
 
 #if MS_FMS_WEIGHT_RHO
@@ -245,20 +241,18 @@ void main(uint3 dtid : SV_DispatchThreadID)
         fms += (1.0f - T_out);
 #endif
 
-#if MS_ENABLE_GROUND
-        if (g)
+        if (isGround)
             L2_gnd += LoGround * T_out_rgb * sunGate;
-#endif
 
         float dt = d / float(Nsteps);
         float t = 0.5f * dt;
         [loop]
         for (uint s = 0; s < Nsteps; ++s, t += dt)
         {
-            float3 Tseg = T_along_ray(r, mu, t, Rg, Rt);
+            float3 Tseg = T_along_ray(r, mu, t, Rb, Rt);
 
             float rd = sqrt(t * t + 2.0f * r * mu * t + r * r);
-            float hh = max(0.0f, rd - Rg);
+            float hh = max(0.0f, rd - Rb);
             float3 sigma_s_step = RayleighScattering * DensityRayleigh(hh) + MieScattering * DensityMie(hh);
 
             L2_vol += sigma_s_step * Tseg * sunGate * dt;
@@ -276,20 +270,9 @@ void main(uint3 dtid : SV_DispatchThreadID)
     float Fms = 1.0f / (1.0f - fms);
     float3 PsiMS = (L2_vol + L2_gnd) * Fms;
 
-    float mieShare = dot(MieScattering * DensityMie(h), LUMA) /
-                     max(dot(sigma_s0, LUMA), 1e-6f);
+    float mieShare = dot(MieScattering * DensityMie(h), LUMA) / max(dot(sigma_s0, LUMA), 1e-6f);
     float gBar = saturate(mieShare) * saturate(MieAnisotropy);
 
-#if   MS_DEBUG_MODE == 1
-    OutMultiScatter[dtid.xy] = float4(max(L2_vol + L2_gnd,0.0f),1.0f);
-#elif MS_DEBUG_MODE == 2
-    OutMultiScatter[dtid.xy] = float4(fms.xxx,1.0f);
-#elif MS_DEBUG_MODE == 3
-    OutMultiScatter[dtid.xy] = float4(max(L2_vol,0.0f),1.0f);
-#elif MS_DEBUG_MODE == 4
-    OutMultiScatter[dtid.xy] = float4(max(L2_gnd,0.0f),1.0f);
-#else
     OutMultiScatter[dtid.xy] = float4(max(PsiMS, 0.0f), gBar);
-#endif
 }
 

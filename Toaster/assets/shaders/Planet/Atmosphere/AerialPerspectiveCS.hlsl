@@ -144,17 +144,17 @@ float2 TransUV(float r, float mu, float Rg, float Rt)
     float uMu = (mu - muMin) / (1.0f - muMin);
     return float2(uMu, saturate(rNorm));
 }
-float3 T_to_TOA(float r, float mu, float Rg, float Rt)
+float3 T_to_TOA(float r, float mu, float Rb, float Rt)
 {
-    return TransmittanceLUT.SampleLevel(ClampLinear, TransUV(r, mu, Rg, Rt), 0).rgb;
+    return TransmittanceLUT.SampleLevel(ClampLinear, TransUV(r, mu, Rb, Rt), 0).rgb;
 }
 
 // MultiScatter LUT sampling: x=theta_s/π, y = 1 - linear altitude (top=TOA)
-float4 SamplePsiMS4(float r, float muS, float Rg, float Rt)
+float4 SamplePsiMS4(float r, float muS, float Rb, float Rt)
 {
     float thetaS = acos(clamp(muS, -1.0f, 1.0f));
     float u = thetaS / PI;
-    float v = saturate((r - Rg) / max(Rt - Rg, 1e-6f));
+    float v = saturate((r - Rb) / max(Rt - Rb, 1e-6f));
     v = 1.0f - v; // 0=TOA, 1=ground (MS_FLIP_Y=1 when baked)
     return MultiScatterLUT.SampleLevel(ClampLinear, float2(u, v), 0);
 }
@@ -194,10 +194,10 @@ Hit IntersectSphere(float3 ro, float3 rd, float R)
 }
 
 // Small horizon softening (matches SkyView)
-float SunVisibilityAtR(float r, float muS, float Rg)
+float SunVisibilityAtR(float r, float muS, float Rb)
 {
     const float SunAngularRadius = 0.004675f; // ~0.266° CURRENTLY HARDCODED TO EARTH VALUES
-    float sinThetaH = Rg / r;
+    float sinThetaH = Rb / r;
     float cosThetaH = -sqrt(saturate(1.0f - sinThetaH * sinThetaH));
     return smoothstep(-sinThetaH * SunAngularRadius, sinThetaH * SunAngularRadius, muS - cosThetaH);
 }
@@ -264,7 +264,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     
     uint D = min(Dfull, AP_MAX_Z_SLICES);
 
-    float APFarDynamicNewWay = max(32000.0, asfloat(APFarU32.Load(int3(0, 0, 0))));
+    float APFar = max(32000.0, asfloat(APFarU32.Load(int3(0, 0, 0))));
     
     // ---- Build view ray (low-res screen aligned) ---------------------------
     float2 uv = (float2(tid.xy) + 0.5f) / float2(W, H);
@@ -278,6 +278,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     // Planet-centered camera and radii
     const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
+    const float Rb = PlanetRadius + min(0.0f, MinHeight);
     float3 SunE = radiance.rgb * SunIntensity;
     const float3 wSun = -normalize(direction.xyz);
 
@@ -293,7 +294,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     // Intersections with atmosphere shell and ground
     Hit hitAtm = IntersectSphere(ro, wView, Rt);
-    if (!hitAtm.ok || APFarDynamicNewWay <= 1e-3f)
+    if (!hitAtm.ok || APFar <= 1e-3f)
     {
         float4 zero = float4(0, 0, 0, 0); // no in-scatter, fully transmissive
         [loop]
@@ -305,7 +306,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     float tEnter = max(0.0f, hitAtm.t0);
     float tExit = max(0.0f, hitAtm.t1);
     
-    Hit hitG = IntersectSphere(ro, wView, Rg);
+    Hit hitG = IntersectSphere(ro, wView, Rb);
     if (hitG.ok && hitG.t0 > 0.0f)
         tExit = min(tExit, hitG.t0);
 
@@ -320,7 +321,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     // Segment to integrate INSIDE the atmosphere, capped by APFarDynamic from the camera
     float t0Seg = max(tEnter, 0.0f);
-    float t1Seg = min(tExit, t0Seg + APFarDynamicNewWay);
+    float t1Seg = min(tExit, t0Seg + APFar);
     float Lseg = max(0.0f, t1Seg - t0Seg);
     
     if (Lseg <= 1e-6f)
@@ -341,7 +342,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     float invD = 1.0f / max(1.0f, (float) D);
     float invD2 = invD * invD;
     float dStart = 0.0f;
-    float dDelta = APFarDynamicNewWay * (1.0f * invD2); // z=0 -> (2*0+1)/D^2
+    float dDelta = APFar * (1.0f * invD2); // z=0 -> (2*0+1)/D^2
 
 [loop]
     for (uint z = 0; z < D; ++z)
@@ -364,7 +365,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
             float3 p = ro + wView * tMid;
             float rMid = length(p);
-            float hMid = max(0.0f, rMid - Rg);
+            float hMid = max(0.0f, rMid - Rb);
 
             float dR = DensityRayleigh(hMid);
             float dM = DensityMie(hMid);
@@ -377,8 +378,8 @@ void main(uint3 tid : SV_DispatchThreadID)
 
             float3 upS = (rMid > 0.0f) ? (p / rMid) : BasisRadUp;
             float muS = dot(upS, wSun);
-            float Vsun = SunVisibilityAtR(rMid, muS, Rg);
-            float3 Tsun = T_to_TOA(rMid, muS, Rg, Rt) * Vsun;
+            float Vsun = SunVisibilityAtR(rMid, muS, Rb);
+            float3 Tsun = T_to_TOA(rMid, muS, Rb, Rt) * Vsun;
 
             float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
             float PR = PhaseRayleigh(muPhase);
@@ -386,7 +387,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
             float3 S1 = (sigR_s * PR + sigM_s * PM) * Tsun * Esun;
 
-            float4 Psi4 = SamplePsiMS4(rMid, muS, Rg, Rt);
+            float4 Psi4 = SamplePsiMS4(rMid, muS, Rb, Rt);
             float pMS = MSPhase(muPhase, Psi4.a);
             float3 S_MS = (sigR_s + sigM_s) * MSPhase(muPhase, Psi4.a) * Psi4.rgb * Esun;
 

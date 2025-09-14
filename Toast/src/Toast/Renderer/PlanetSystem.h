@@ -233,8 +233,6 @@ namespace Toast {
 		Ref<Texture3D>& GetAerialPerspectiveLUT() { return mAerielPerspectiveLUT; }
 		Ref<Texture2D>& GetAPFarDynamic() { return mAPFarDynamic; }
 
-		void UpdateAPFarFromFrustum(const Vector3& camPosWS, const Vector3& worldTranslation, float safety = 1.05f);
-
 		void DetailObjectPlacement(TerrainObjectComponent* objects, Matrix& planetNoScaleTransform);
 
 		double ComputeCurvatureBias(double desiredSwitchHeight, double radius, double patchWidth, double focalLenPx, double screenErrorPx);

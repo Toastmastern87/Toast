@@ -168,6 +168,191 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  
+	//     TEXTURE1D     ///////////////////////////////////////////////////////////////////  
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	Texture1D::Texture1D(DXGI_FORMAT format, DXGI_FORMAT srvFormat, uint32_t width,	uint32_t mipLevels,	uint32_t arraySize,	D3D11_USAGE usage, UINT bindFlags, UINT cpuAccessFlags)
+		: mFormat(format), mSRVFormat(srvFormat), mWidth(width), mMipLevels(std::max(1u, mipLevels)), mArraySize(std::max(1u, arraySize)), mUsage(usage), mBindFlags(bindFlags), mCPUAccessFlags(cpuAccessFlags)
+	{
+		CreateTexture1D(nullptr, 0);
+		CreateSRV();
+
+		if (mBindFlags & D3D11_BIND_UNORDERED_ACCESS)
+			CreateUAV(0, 0, mArraySize);
+
+		mResource = mTexture1D;
+	}
+
+	Texture1D::Texture1D(DXGI_FORMAT format, DXGI_FORMAT srvFormat, uint32_t width, const void* initialData, size_t initialDataSizeBytes, uint32_t mipLevels, uint32_t arraySize, D3D11_USAGE usage, UINT bindFlags, UINT cpuAccessFlags)
+		: mFormat(format), mSRVFormat(srvFormat), mWidth(width), mMipLevels(std::max(1u, mipLevels)), mArraySize(std::max(1u, arraySize)), mUsage(usage), mBindFlags(bindFlags), mCPUAccessFlags(cpuAccessFlags)
+	{
+		CreateTexture1D(initialData, initialDataSizeBytes);
+		CreateSRV();
+
+		if (mBindFlags & D3D11_BIND_UNORDERED_ACCESS)
+			CreateUAV(0, 0, mArraySize);
+
+		mResource = mTexture1D;
+	}
+
+	void Texture1D::CreateTexture1D(const void* initData, size_t initSizeBytes)
+	{
+		auto* device = RenderCommand::sRendererAPI->GetDevice();
+
+		D3D11_TEXTURE1D_DESC td = {};
+		td.Width = mWidth;
+		td.MipLevels = mMipLevels;
+		td.ArraySize = mArraySize;
+		td.Format = mFormat;
+		td.Usage = mUsage;
+		td.BindFlags = mBindFlags;
+		td.CPUAccessFlags = mCPUAccessFlags;
+		td.MiscFlags = 0;
+
+		const bool hasInit = (initData != nullptr && initSizeBytes > 0);
+
+		D3D11_SUBRESOURCE_DATA sd = {};
+		const D3D11_SUBRESOURCE_DATA* pSD = nullptr;
+
+		if (hasInit && mMipLevels == 1 && mArraySize == 1)
+		{
+			sd.pSysMem = initData;
+			sd.SysMemPitch = 0;
+			sd.SysMemSlicePitch = 0;
+			pSD = &sd;
+		}
+
+		HRESULT hr = device->CreateTexture1D(&td, pSD, &mTexture1D);
+		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Unable to create Texture1D!");
+	}
+
+	void Texture1D::CreateSRV()
+	{
+		auto* device = RenderCommand::sRendererAPI->GetDevice();
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC sd = {};
+		sd.Format = (mSRVFormat == DXGI_FORMAT_UNKNOWN) ? mFormat : mSRVFormat;
+
+		if (mArraySize > 1)
+		{
+			sd.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE1DARRAY;
+			sd.Texture1DArray.MostDetailedMip = 0;
+			sd.Texture1DArray.MipLevels = (mMipLevels == 0 ? -1 : mMipLevels);
+			sd.Texture1DArray.FirstArraySlice = 0;
+			sd.Texture1DArray.ArraySize = mArraySize;
+		}
+		else
+		{
+			sd.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE1D;
+			sd.Texture1D.MostDetailedMip = 0;
+			sd.Texture1D.MipLevels = (mMipLevels == 0 ? -1 : mMipLevels);
+		}
+
+		HRESULT hr = device->CreateShaderResourceView(mTexture1D.Get(), &sd, &mSRV);
+		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Unable to create SRV for Texture1D!");
+	}
+
+	void Texture1D::CreateUAV(uint32_t mipSlice, uint32_t firstArraySlice, uint32_t arraySize)
+	{
+		auto* device = RenderCommand::sRendererAPI->GetDevice();
+
+		D3D11_UNORDERED_ACCESS_VIEW_DESC ud = {};
+		ud.Format = mFormat;
+
+		if (mArraySize > 1)
+		{
+			ud.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE1DARRAY;
+			ud.Texture1DArray.MipSlice = mipSlice;
+			ud.Texture1DArray.FirstArraySlice = firstArraySlice;
+			ud.Texture1DArray.ArraySize = arraySize;
+		}
+		else
+		{
+			ud.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE1D;
+			ud.Texture1D.MipSlice = mipSlice;
+		}
+
+		HRESULT hr = device->CreateUnorderedAccessView(mTexture1D.Get(), &ud, &mUAV);
+		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Unable to create UAV for Texture1D!");
+	}
+
+	void Texture1D::Bind(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
+	{
+		auto* ctx = RenderCommand::sRendererAPI->GetDeviceContext();
+
+		switch (shaderType)
+		{
+		case D3D11_VERTEX_SHADER:
+			ctx->VSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
+			// no break; (matches your existing pattern)
+		case D3D11_PIXEL_SHADER:
+			ctx->PSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
+			// no break;
+		case D3D11_COMPUTE_SHADER:
+			ctx->CSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
+			break;
+		default: break;
+		}
+	}
+
+	void Texture1D::BindForReadWrite(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
+	{
+		auto* ctx = RenderCommand::sRendererAPI->GetDeviceContext();
+		switch (shaderType)
+		{
+		case D3D11_COMPUTE_SHADER:
+			ctx->CSSetUnorderedAccessViews(bindslot, 1, mUAV.GetAddressOf(), nullptr);
+			break;
+		default: break;
+		}
+	}
+
+	void Texture1D::UnbindUAV(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
+	{
+		auto* ctx = RenderCommand::sRendererAPI->GetDeviceContext();
+		ID3D11UnorderedAccessView* nullUAV = nullptr;
+
+		switch (shaderType)
+		{
+		case D3D11_COMPUTE_SHADER:
+			ctx->CSSetUnorderedAccessViews(bindslot, 1, &nullUAV, nullptr);
+			break;
+		default: break;
+		}
+	}
+
+	void Texture1D::SetData(const void* data, size_t sizeBytes, uint32_t mipLevel, uint32_t arraySlice)
+	{
+		// For DEFAULT usage, UpdateSubresource is simplest:
+		auto* ctx = RenderCommand::sRendererAPI->GetDeviceContext();
+
+		const UINT subresource = D3D11CalcSubresource(
+			mipLevel,
+			arraySlice,
+			mMipLevels
+		);
+
+		D3D11_BOX box = {};
+		// For 1D textures, only X dimension matters; Y,Z are ignored.
+		box.left = 0;
+		box.right = mWidth >> mipLevel ? (mWidth >> mipLevel) : 1;
+		box.top = 0;
+		box.bottom = 1;
+		box.front = 0;
+		box.back = 1;
+
+		ctx->UpdateSubresource(mTexture1D.Get(), subresource, &box, data, 0, 0);
+	}
+
+	void Texture1D::GenerateMips() const
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		deviceContext->GenerateMips(mSRV.Get());
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////  
 	//     TEXTURE2D     ///////////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
@@ -198,6 +383,9 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
 
 		CreateSRV();
+
+		if (bindFlag & D3D11_BIND_UNORDERED_ACCESS)
+			CreateUAV(0);
 
 		mSRV->GetResource(&mResource);
 	}
@@ -426,6 +614,10 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Unable to create Texture3D!");
 
 		mResource = mTexture3D; // for GetResource()
+
+		if (bindFlags & D3D11_BIND_UNORDERED_ACCESS)
+			CreateUAV(0);
+
 		CreateSRV();
 	}
 
@@ -612,6 +804,9 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
 
 		CreateSRV();
+
+		if (bindFlag & D3D11_BIND_UNORDERED_ACCESS)
+			CreateUAV(0);
 
 		mSRV->GetResource(&mResource);
 	}
