@@ -1,6 +1,6 @@
 Scene: Untitled Scene
 Planet:
-  Translation: [0, -3387498, 0]
+  Translation: [0, -3393454, 0]
   Rotation: [74.899826, -18.0999756, -227.303177]
   GridSize: 257
   MaxLevels: 28
@@ -47,7 +47,7 @@ Entities:
         PerspectiveFOV: 45
         NearClip: 0.100000001
         FarClip: 2000000
-        OrthographicWidth: 2602
+        OrthographicWidth: 2673
         OrthographicHeight: 1120
       Primary: true
       FixedAspectRatio: false
@@ -81,7 +81,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-392.99408, 20.8000145, -63.5000076]
+      Rotation: [-391.889954, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]

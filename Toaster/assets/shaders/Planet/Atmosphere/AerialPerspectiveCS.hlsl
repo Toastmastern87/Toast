@@ -192,6 +192,89 @@ Hit IntersectSphere(float3 ro, float3 rd, float R)
     h0.t1 = -b + s;
     return h0;
 }
+Hit IntersectSphereRobust(float3 ro, float3 rd, float R)
+{
+    // normalize by radius => sphere becomes unit radius
+    float invR = rcp(R);
+    float3 roN = ro * invR; // O(1)
+    float3 rdN = rd; // assume |rd|=1
+    
+    Hit H;
+
+    // closest approach to center
+    float tca = -dot(roN, rdN);
+    float d2 = dot(roN, roN) - tca * tca; // O(1)
+
+    // treat tiny overshoot above 1.0 as grazing hit (fp noise)
+    if (d2 > 1.0f + 1e-5f)
+    {
+        H.ok = false;
+        H.t0 = H.t1 = 0.0f;
+        return H;
+    }
+
+    float m = max(1.0f - d2, 0.0f);
+    float thc = sqrt(m);
+
+    float t0N = tca - thc; // in "radius units"
+    float t1N = tca + thc;
+
+    float Rscale = R; // back to meters
+    H.ok = true;
+    H.t0 = t0N * Rscale;
+    H.t1 = t1N * Rscale;
+    return H;
+}
+
+float GroundBiasMeters(float Rg)
+{
+    return max(1.0f, 2e-6f * Rg);
+}
+
+Hit IntersectSphere_GrazingSafe(float3 ro, float3 rd, float R)
+{
+    Hit H;
+    H.ok = false;
+    H.t0 = H.t1 = 0.0f;
+    float Rabs = abs(R);
+    if (Rabs <= 0.0f)
+        return H;
+
+    // Normalize direction for stable geometry form
+    float a = dot(rd, rd);
+    if (a <= 0.0f)
+        return H;
+    float invDirLen = rsqrt(max(a, 1e-30));
+    float3 nrd = rd * invDirLen; // |nrd| = 1
+
+    // Use cross-product form in unit-sphere space
+    float3 roU = ro / Rabs; // O(1)
+    float d2 = dot(cross(nrd, roU), cross(nrd, roU)); // <= ~1 when intersecting
+
+    // Robust tangency handling: allow a tiny overshoot
+    // NOTE: keep this the *same value everywhere you use this function*
+    const float grazeTol = 5e-5; // ~1e-6..2e-4 are reasonable
+    if (d2 > 1.0f + grazeTol)
+        return H;
+
+    float tca = -dot(roU, nrd); // along-ray to closest approach (radius units)
+    float thc = sqrt(max(1.0f - d2, 0.0f)); // 0 at tangency
+
+    // Convert back to world meters and original rd scale
+    float t0 = (tca - thc) * Rabs * invDirLen;
+    float t1 = (tca + thc) * Rabs * invDirLen;
+
+    if (t0 > t1)
+    {
+        float tmp = t0;
+        t0 = t1;
+        t1 = tmp;
+    }
+    H.ok = true;
+    H.t0 = t0;
+    H.t1 = t1;
+    return H;
+}
 
 // Small horizon softening (matches SkyView)
 float SunVisibilityAtR(float r, float muS, float Rb)
@@ -253,6 +336,12 @@ float IGN(uint2 p)
     return frac(sin(n) * 43758.5453);
 }
 
+static const float2 OFFS[4] =
+{
+    float2(0.25, 0.25), float2(0.75, 0.25),
+    float2(0.25, 0.75), float2(0.75, 0.75)
+};
+
 // ===== Main =================================================================
 [numthreads(8, 8, 1)]
 void main(uint3 tid : SV_DispatchThreadID)
@@ -261,102 +350,86 @@ void main(uint3 tid : SV_DispatchThreadID)
     OutAP.GetDimensions(W, H, Dfull);
     if (tid.x >= W || tid.y >= H)
         return;
-    
     uint D = min(Dfull, AP_MAX_Z_SLICES);
 
-    float APFar = max(32000.0, asfloat(APFarU32.Load(int3(0, 0, 0))));
-    
-    // ---- Build view ray (low-res screen aligned) ---------------------------
-    float2 uv = (float2(tid.xy) + 0.5f) / float2(W, H);
-    float2 ndc = float2(uv.x * 2.0f - 1.0f, 1.0f - uv.y * 2.0f); // D3D NDC
+    float APFar = asfloat(APFarU32.Load(int3(0, 0, 0)));
 
-    float4 clip = float4(ndc, 1.0f, 1.0f);
-    float4 vpos = mul(clip, inverseProjectionMatrix);
-    float3 dirVS = normalize(vpos.xyz / max(vpos.w, 1e-6f));
-    float3 wView = normalize(mul(dirVS, (float3x3) inverseViewMatrix));
-
-    // Planet-centered camera and radii
+    // Planet & radii
     const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
-    const float Rb = PlanetRadius + min(0.0f, MinHeight);
-    float3 SunE = radiance.rgb * SunIntensity;
-    const float3 wSun = -normalize(direction.xyz);
+    const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
+    const float RbHit = RbPhys + GroundBiasMeters(Rg);
 
-    float3 roWS = cameraPosition.xyz;
-    float3 ro = roWS - PlanetCenterWS;
-    
-    const float SunAngRadius = 0.004675f; // radians (half-angle ~0.266°)
-    const float OmegaSun = PI * SunAngRadius * SunAngRadius;
+    float3 ro = cameraPosition.xyz - PlanetCenterWS;
 
-    // Treat your directional-light input as SUN RADIANCE (same you use in BRDF)
-    float3 Lsun = radiance.rgb * SunIntensity; // radiance  [W·m⁻2·sr⁻1 in your units]
-    float3 Esun = Lsun;
+    // --- NEW: 2x2 per-tile rays to build a conservative segment ---
+    float tNearTile = 1e30f;
+    float tClampTile = 0.0f;
+    bool any = false;
 
-    // Intersections with atmosphere shell and ground
-    Hit hitAtm = IntersectSphere(ro, wView, Rt);
-    if (!hitAtm.ok || APFar <= 1e-3f)
+    [unroll]
+    for (int k = 0; k < 4; ++k)
     {
-        float4 zero = float4(0, 0, 0, 0); // no in-scatter, fully transmissive
-        [loop]
-        for (uint z = 0; z < D; ++z)
-            OutAP[uint3(tid.x, tid.y, z)] = zero;
-        return;
+        float2 uv = (float2(tid.xy) + OFFS[k]) / float2(W, H);
+    // build wView for uv (same as you already do)
+        float2 ndc = float2(uv.x * 2 - 1, 1 - uv.y * 2);
+        float4 clip = float4(ndc, 1, 1);
+        float4 vpos = mul(clip, inverseProjectionMatrix);
+        float3 dirVS = normalize(vpos.xyz / max(vpos.w, 1e-6));
+        float3 wView = normalize(mul(dirVS, (float3x3) inverseViewMatrix));
+
+        Hit ha = IntersectSphere_GrazingSafe(ro, wView, Rt);
+        if (!ha.ok)
+            continue;
+
+        float tNear = max(0.0f, ha.t0);
+
+        Hit hg = IntersectSphere_GrazingSafe(ro, wView, RbHit);
+        float tGnd = (hg.ok && hg.t0 > 0.0f) ? hg.t0 : 1e30f;
+
+        float tFar_k = min(tNear + APFar, tGnd); // ground-clamped far for this sub-ray
+
+        any = true;
+        tNearTile = min(tNearTile, tNear);
+        tClampTile = max(tClampTile, tFar_k);
     }
 
-    float tEnter = max(0.0f, hitAtm.t0);
-    float tExit = max(0.0f, hitAtm.t1);
-    
-    Hit hitG = IntersectSphere(ro, wView, Rb);
-    if (hitG.ok && hitG.t0 > 0.0f)
-        tExit = min(tExit, hitG.t0);
-
-    if (tExit <= tEnter)
+    if (!any)
     {
+    // write zeros and return (same as your early-out)
         float4 zero = float4(0, 0, 0, 0);
         [loop]
         for (uint z = 0; z < D; ++z)
             OutAP[uint3(tid.x, tid.y, z)] = zero;
         return;
     }
-
-    // Segment to integrate INSIDE the atmosphere, capped by APFarDynamic from the camera
-    float t0Seg = max(tEnter, 0.0f);
-    float t1Seg = min(tExit, t0Seg + APFar);
-    float Lseg = max(0.0f, t1Seg - t0Seg);
     
-    if (Lseg <= 1e-6f)
-    {
-    // Nothing to integrate (either no hit, or APFarDynamic stops before TOA)
-        float4 zero = float4(0, 0, 0, 0);
-        [loop]
-        for (uint z = 0; z < D; ++z)
-            OutAP[uint3(tid.x, tid.y, z)] = zero;
-        return;
-    }
+    // (optional) tiny writer-only safety to avoid under-coverage after filtering
+    tClampTile += 1.0f; // meters
      
     // Accumulators to current slice end
     float3 Lcum = 0.0f; // in-scattered radiance
     float3 tauCum = 0.0f; // camera->current extinction
 
-    // Quadratic distance distribution along z: d(z) = APFarDynamic * (z/D)^2
-    float invD = 1.0f / max(1.0f, (float) D);
-    float invD2 = invD * invD;
-    float dStart = 0.0f;
-    float dDelta = APFar * (1.0f * invD2); // z=0 -> (2*0+1)/D^2
-
-[loop]
+    float2 uvC = (float2(tid.xy) + 0.5f) / float2(W, H);
+    float3 wView = ViewDirWS_fromUV(uvC);
+    const float3 wSun = -normalize(direction.xyz);
+    float3 Lsun = radiance.rgb * SunIntensity; // radiance [W·m⁻2·sr⁻1 in your units] 
+    float3 Esun = Lsun;
+    
+    [loop]
     for (uint z = 0; z < D; ++z)
-    {      
+    {
         float u0 = (float) z / (float) D;
         float u1 = (float) (z + 1u) / (float) D;
-        float s0 = pow(u0, AP_Z_GAMMA); // writer maps u→s
-        float s1 = pow(u1, AP_Z_GAMMA);
-        float tA = t0Seg + Lseg * s0;
-        float tB = t0Seg + Lseg * s1;
+        
+        // place slices at fixed distance from entry only
+        float tA = tNearTile + APFar * pow(u0, AP_Z_GAMMA);
+        float tB = tNearTile + APFar * pow(u1, AP_Z_GAMMA);
 
-        // Clamp to valid segment so we never step under ground
-        float segA = max(tA, tEnter);
-        float segB = min(tB, tExit);
+        // clamp each slice’s contribution to valid air segment
+        float segA = clamp(tA, tNearTile, tClampTile);
+        float segB = clamp(tB, tNearTile, tClampTile);
 
         if (segB > segA)
         {
@@ -365,7 +438,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
             float3 p = ro + wView * tMid;
             float rMid = length(p);
-            float hMid = max(0.0f, rMid - Rb);
+            float hMid = max(0.0f, rMid - RbPhys);
 
             float dR = DensityRayleigh(hMid);
             float dM = DensityMie(hMid);
@@ -378,8 +451,8 @@ void main(uint3 tid : SV_DispatchThreadID)
 
             float3 upS = (rMid > 0.0f) ? (p / rMid) : BasisRadUp;
             float muS = dot(upS, wSun);
-            float Vsun = SunVisibilityAtR(rMid, muS, Rb);
-            float3 Tsun = T_to_TOA(rMid, muS, Rb, Rt) * Vsun;
+            float Vsun = SunVisibilityAtR(rMid, muS, RbHit);
+            float3 Tsun = T_to_TOA(rMid, muS, RbHit, Rt) * Vsun;
 
             float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
             float PR = PhaseRayleigh(muPhase);
@@ -387,7 +460,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
             float3 S1 = (sigR_s * PR + sigM_s * PM) * Tsun * Esun;
 
-            float4 Psi4 = SamplePsiMS4(rMid, muS, Rb, Rt);
+            float4 Psi4 = SamplePsiMS4(rMid, muS, RbHit, Rt);
             float pMS = MSPhase(muPhase, Psi4.a);
             float3 S_MS = (sigR_s + sigM_s) * MSPhase(muPhase, Psi4.a) * Psi4.rgb * Esun;
 
@@ -407,7 +480,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         float tauMean = -log(Tmean);
         OutAP[uint3(tid.x, tid.y, z)] = float4(Lcum, tauMean);
 
-        if (Tmean <= AP_A_EPS || tB >= tExit)
+        if (Tmean <= AP_A_EPS || tB >= tClampTile)
         {
         [loop]
             for (uint zz = z + 1; zz < Dfull; ++zz)

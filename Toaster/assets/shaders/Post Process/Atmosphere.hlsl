@@ -281,6 +281,90 @@ Hit IntersectSphere(float3 ro, float3 rd, float R)
     return H;
 }
 
+Hit IntersectSphereRobust(float3 ro, float3 rd, float R)
+{
+    // normalize by radius => sphere becomes unit radius
+    float invR = rcp(R);
+    float3 roN = ro * invR;        // O(1)
+    float3 rdN = rd;               // assume |rd|=1
+    
+    Hit H;
+
+    // closest approach to center
+    float tca = -dot(roN, rdN);
+    float d2  = dot(roN, roN) - tca * tca;   // O(1)
+
+    // treat tiny overshoot above 1.0 as grazing hit (fp noise)
+    if (d2 > 1.0f + 1e-5f)
+    {
+        H.ok = false;
+        H.t0 = H.t1 = 0.0f;
+        return H;
+    }
+
+    float m = max(1.0f - d2, 0.0f);
+    float thc = sqrt(m);
+
+    float t0N = tca - thc;         // in "radius units"
+    float t1N = tca + thc;
+
+    float Rscale = R;              // back to meters
+    H.ok = true;
+    H.t0 = t0N * Rscale;
+    H.t1 = t1N * Rscale;
+    return H;
+}
+
+float GroundBiasMeters(float Rg)
+{
+    return max(1.0f, 2e-6f * Rg);
+}
+
+Hit IntersectSphere_GrazingSafe(float3 ro, float3 rd, float R)
+{
+    Hit H;
+    H.ok = false;
+    H.t0 = H.t1 = 0.0f;
+    float Rabs = abs(R);
+    if (Rabs <= 0.0f)
+        return H;
+
+    // Normalize direction for stable geometry form
+    float a = dot(rd, rd);
+    if (a <= 0.0f)
+        return H;
+    float invDirLen = rsqrt(max(a, 1e-30));
+    float3 nrd = rd * invDirLen; // |nrd| = 1
+
+    // Use cross-product form in unit-sphere space
+    float3 roU = ro / Rabs; // O(1)
+    float d2 = dot(cross(nrd, roU), cross(nrd, roU)); // <= ~1 when intersecting
+
+    // Robust tangency handling: allow a tiny overshoot
+    // NOTE: keep this the *same value everywhere you use this function*
+    const float grazeTol = 5e-5; // ~1e-6..2e-4 are reasonable
+    if (d2 > 1.0f + grazeTol)
+        return H;
+
+    float tca = -dot(roU, nrd); // along-ray to closest approach (radius units)
+    float thc = sqrt(max(1.0f - d2, 0.0f)); // 0 at tangency
+
+    // Convert back to world meters and original rd scale
+    float t0 = (tca - thc) * Rabs * invDirLen;
+    float t1 = (tca + thc) * Rabs * invDirLen;
+
+    if (t0 > t1)
+    {
+        float tmp = t0;
+        t0 = t1;
+        t1 = tmp;
+    }
+    H.ok = true;
+    H.t0 = t0;
+    H.t1 = t1;
+    return H;
+}
+
 float SunVisibilityAtR_Config(float r, float muS, float Rb, float sunRadius)
 {
     float sinThetaH = Rb / r;
@@ -340,6 +424,11 @@ float4 main(PSIn i) : SV_Target
     float3 colorPreAtmos = SceneColor.Sample(ClampPoint, uv);
     float depth = SceneDepth.Sample(ClampPoint, uv); // hardware depth, reversed-Z (sky -> 0)
 
+    const float Rg = PlanetRadius;
+    const float Rt = PlanetRadius + AtmosphereHeight;
+    const float RbPhys = PlanetRadius + min(0.0f, MinHeight); // physical floor used for densities
+    const float RbHit = RbPhys + GroundBiasMeters(Rg); // use ONLY for intersections
+    
     // If no geometry wrote to depth, draw SKY using the precomputed SkyView LUT
     if (depth <= 1e-12f)
     {
@@ -353,10 +442,6 @@ float4 main(PSIn i) : SV_Target
         float lon = atan2(dot(wView, north), dot(wView, east));
         float lat = asin(clamp(dot(wView, up), -1.0f, 1.0f));
         float2 skyUV = float2(UFromLongitude(lon), VFromLatitude(lat));
-
-        const float Rg = PlanetRadius;
-        const float Rt = PlanetRadius + AtmosphereHeight;
-        const float Rb = PlanetRadius + min(0.0f, MinHeight);;
         
         // Sample sky LUT
         float3 sky = SkyViewLUT.SampleLevel(ClampLinear, skyUV, 0).rgb;
@@ -364,7 +449,7 @@ float4 main(PSIn i) : SV_Target
         float3 camRel = cameraPosition.xyz - PlanetCenterWS;
         float rCam = max(PlanetRadius, length(camRel));
         float muV = dot(wView, normalize(camRel));
-        float3 Tcam = T_to_TOA(rCam, muV, Rb, Rt);
+        float3 Tcam = T_to_TOA(rCam, muV, RbHit, Rt);
 
         float3 stars = SceneColor.Sample(ClampPoint, uv).rgb * Tcam;
         float ySky = dot(sky, LUMA);
@@ -395,7 +480,7 @@ float4 main(PSIn i) : SV_Target
             float rCam = max(PlanetRadius, length(camRel));
             float3 upCam = camRel / rCam;
             float muS_up = dot(upCam, wSun);
-            float VsunH = SunVisibilityAtR_Config(rCam, muS_up, Rb, SunDiscRadius);
+            float VsunH = SunVisibilityAtR_Config(rCam, muS_up, RbHit, SunDiscRadius);
     
             // Final disc mask
             float discMask = discSoft * limb * VsunH;
@@ -426,46 +511,29 @@ float4 main(PSIn i) : SV_Target
         float3 ro = camWS - PlanetCenterWS;
         float3 wView = ViewDirWS_fromUV(uv); // unit
         
-        const float Rg = PlanetRadius;
-        const float Rt = PlanetRadius + AtmosphereHeight;
-        const float Rb = PlanetRadius + MinHeight;
-        
         // TOA segment
-        Hit hitAtm = IntersectSphere(ro, wView, Rt);
-        float tEnter = hitAtm.ok ? max(0.0f, hitAtm.t0) : 1e30f;
-        float tExitA = hitAtm.ok ? max(0.0f, hitAtm.t1) : 0.0f;
-        
-        Hit hitG = IntersectSphere(ro, wView, Rb);
-        if (hitG.ok && hitG.t0 > 0.0f)
-            tExitA = min(tExitA, hitG.t0);
+        Hit hitAtm = IntersectSphere_GrazingSafe(ro, wView, Rt);
+
+        float tEnter = max(0.0f, hitAtm.t0);         
+        float APFar = asfloat(APFarU32.Load(int3(0, 0, 0)));
               
         float tSurf = ViewDistanceFromDepth(uv, depth);
         
-        float tSample = clamp(tSurf, tEnter, tExitA);
-        
-        float APFar = max(32000.0, asfloat(APFarU32.Load(int3(0, 0, 0))));
-        
-        float t0Seg = max(tEnter, 0.0f);
-        float t1Seg = min(tExitA, t0Seg + APFar);
-        float Lseg = max(t1Seg - t0Seg, 1e-6f);  
-        
-        // fraction along real distance
-        float s = saturate((tSample - t0Seg) / Lseg);
-
-        // invert gamma packing: s → u
-        float u = pow(s, 1.0f / AP_Z_GAMMA);
+        // distance-from-entry only
+        float d = saturate((tSurf - tEnter) / max(APFar, 1e-6f));
+        float u = pow(d, 1.0f / AP_Z_GAMMA);
 
         // address slice **centers** then (optionally) jitter
         uint Wd, Hd, Dd;
-        AerialPerspective3D.GetDimensions(Wd, Hd, Dd);
+        AerialPerspective3D.GetDimensions(Wd, Hd, Dd);       
         float wAP = u * ((Dd - 1.0f) / Dd) + (0.5f / Dd);
-
+        
         // W dither (±½ slice)
         float nW = hash21(uint2(i.pos.xy), 0);
         float wJitter = (nW - 0.5f) / float(Dd);
         float wAPj = clamp(wAP + wJitter, 0.5f / float(Dd), 1.0f - 0.5f / float(Dd));
-
-        // XY dither (±½ texel in AP XY)
+        
+         // XY dither (±½ texel in AP XY)
         float2 texelAP = 1.0 / float2(Wd, Hd);
         float2 n2 = Rand2(uint2(i.pos.xy), 0);
         float2 uvJ = clamp(uv + (n2 - 0.5) * texelAP, 0.5 * texelAP, 1.0 - 0.5 * texelAP);

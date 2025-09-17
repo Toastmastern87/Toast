@@ -97,78 +97,6 @@ static const float TWO_PI = 6.283185307179586f;
 static const float INV4PI = 0.25f / PI;
 static const float3 LUMA = float3(0.2126, 0.7152, 0.0722);
 
-// row_major
-// row_major; inverseView rows are world-space basis vectors
-//inline void GetCamBasisWS(out float3 r, out float3 u, out float3 f)
-//{
-//    r = normalize(inverseViewMatrix[0].xyz);
-//    u = normalize(inverseViewMatrix[1].xyz);
-//    f = normalize(inverseViewMatrix[2].xyz);
-//    // If you *observe* the gradient reversed, uncomment:
-//    r = -r;
-//}
-
-//// 0..1 in-FOV, -1 outside
-//inline float ScreenX01_fromBasis(float3 wWorld)
-//{
-//    float3 r, u, f;
-//    GetCamBasisWS(r, u, f);
-
-//    // LH: +Z forward → _33 >= 0 ;  RH: -Z forward → _33 < 0
-//    float fwdSign = (projectionMatrix._33 >= 0.0f) ? +1.0f : -1.0f;
-
-//    float z = dot(wWorld, f);
-//    if (fwdSign * z <= 1e-6f)
-//        return -1.0f; // behind camera
-
-//    float ndcX = (dot(wWorld, r) / (fwdSign * z)) * projectionMatrix._11;
-//    if (abs(ndcX) > 1.0f)
-//        return -1.0f; // outside frustum
-//    return 0.5f * (ndcX + 1.0f); // 0 left, 1 right
-//}
-
-//bool InFullFov(float3 w)
-//{
-//    float3 r, u, f;
-//    GetCamBasisWS(r, u, f);
-
-//    // detect forward sign from projection
-//    float fwdSign = (projectionMatrix._33 >= 0.0f) ? +1.0f : -1.0f;
-
-//    float z = dot(w, f);
-//    if (fwdSign * z <= 1e-6f)
-//        return false; // behind
-
-//    float x = dot(w, r);
-//    float y = dot(w, u);
-
-//    // ndc = (component / z) / tan(fov/2); and proj._11 = 1/tan(fovx/2), proj._22 = 1/tan(fovy/2)
-//    float ndcX = (x / (fwdSign * z)) * projectionMatrix._11;
-//    float ndcY = (y / (fwdSign * z)) * projectionMatrix._22;
-
-//    return (abs(ndcX) <= 1.0f) && (abs(ndcY) <= 1.0f);
-//}
-
-//float ScreenX01_fromBasis_full(float3 w)  // returns -1 if outside full frustum
-//{
-//    float3 r, u, f;
-//    GetCamBasisWS(r, u, f);
-//    float fwdSign = (projectionMatrix._33 >= 0.0f) ? +1.0f : -1.0f;
-
-//    float z = dot(w, f);
-//    if (fwdSign * z <= 1e-6f)
-//        return -1.0f;
-
-//    float x = dot(w, r);
-//    float y = dot(w, u);
-//    float ndcX = (x / (fwdSign * z)) * projectionMatrix._11;
-//    float ndcY = (y / (fwdSign * z)) * projectionMatrix._22;
-//    if (abs(ndcX) > 1.0f || abs(ndcY) > 1.0f)
-//        return -1.0f;
-
-//    return 0.5f * (ndcX + 1.0f);
-//}
-
 float DecodeMu(uint ox, out bool ok)
 {
     if (ox == 0u)
@@ -636,7 +564,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         float4 PsiG4 = SamplePsiMS4(rG, muSg, Rb, Rt); // << Rb
         float pMSg = MSPhase(clamp(dot(wSun, wView), -0.9995f, 0.9995f), PsiG4.a);
         float3 ImsG = (RayleighScattering + MieScattering) * pMSg * PsiG4.rgb;
-
+         
         float3 L = Tcg * (Lo + ImsG) * Esun;
         OutSkyView[tid.xy] = float4(max(L, 0.0f), 1.0f);
         return;
