@@ -175,63 +175,13 @@ struct Hit
     bool ok;
     float t0, t1;
 };
-Hit IntersectSphere(float3 ro, float3 rd, float R)
-{
-    float b = dot(ro, rd);
-    float c = dot(ro, ro) - R * R;
-    float h = b * b - c;
-    Hit h0;
-    h0.ok = (h >= 0.0f);
-    if (!h0.ok)
-    {
-        h0.t0 = h0.t1 = 0;
-        return h0;
-    }
-    float s = sqrt(h);
-    h0.t0 = -b - s;
-    h0.t1 = -b + s;
-    return h0;
-}
-Hit IntersectSphereRobust(float3 ro, float3 rd, float R)
-{
-    // normalize by radius => sphere becomes unit radius
-    float invR = rcp(R);
-    float3 roN = ro * invR; // O(1)
-    float3 rdN = rd; // assume |rd|=1
-    
-    Hit H;
-
-    // closest approach to center
-    float tca = -dot(roN, rdN);
-    float d2 = dot(roN, roN) - tca * tca; // O(1)
-
-    // treat tiny overshoot above 1.0 as grazing hit (fp noise)
-    if (d2 > 1.0f + 1e-5f)
-    {
-        H.ok = false;
-        H.t0 = H.t1 = 0.0f;
-        return H;
-    }
-
-    float m = max(1.0f - d2, 0.0f);
-    float thc = sqrt(m);
-
-    float t0N = tca - thc; // in "radius units"
-    float t1N = tca + thc;
-
-    float Rscale = R; // back to meters
-    H.ok = true;
-    H.t0 = t0N * Rscale;
-    H.t1 = t1N * Rscale;
-    return H;
-}
 
 float GroundBiasMeters(float Rg)
 {
     return max(1.0f, 2e-6f * Rg);
 }
 
-Hit IntersectSphere_GrazingSafe(float3 ro, float3 rd, float R)
+Hit IntersectSphereGrazingSafe(float3 ro, float3 rd, float R)
 {
     Hit H;
     H.ok = false;
@@ -378,13 +328,13 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 dirVS = normalize(vpos.xyz / max(vpos.w, 1e-6));
         float3 wView = normalize(mul(dirVS, (float3x3) inverseViewMatrix));
 
-        Hit ha = IntersectSphere_GrazingSafe(ro, wView, Rt);
+        Hit ha = IntersectSphereGrazingSafe(ro, wView, Rt);
         if (!ha.ok)
             continue;
 
         float tNear = max(0.0f, ha.t0);
 
-        Hit hg = IntersectSphere_GrazingSafe(ro, wView, RbHit);
+        Hit hg = IntersectSphereGrazingSafe(ro, wView, RbHit);
         float tGnd = (hg.ok && hg.t0 > 0.0f) ? hg.t0 : 1e30f;
 
         float tFar_k = min(tNear + APFar, tGnd); // ground-clamped far for this sub-ray

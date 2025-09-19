@@ -87,8 +87,9 @@ Texture2D<uint> APFarU32 : register(t5);
 Texture2D<float> SceneDepth : register(t9);
 Texture2D<float4> SceneColor : register(t10);
 
-SamplerState ClampLinear : register(s0);
-SamplerState ClampPoint : register(s1);
+SamplerState ClampLinear    : register(s0);
+SamplerState ClampPoint     : register(s1);
+SamplerState SkyAniso       : register(s3);
 
 // ===== Options to match your LUT packing ===================================
 #ifndef SKY_FLIP_Y
@@ -145,105 +146,6 @@ float ViewDistanceFromDepth(float2 uv, float depth)
     return length(posVS); // meters
 }
 
-// Inverse of SkyViewCS's LatitudeFromV() packing.
-// Given true latitude in [-pi/2, pi/2], return v in [0,1] with optional flip.
-float VFromLatitude(float lat)
-{
-    float s = (lat >= 0.0f) ? 1.0f : -1.0f;
-    float a = sqrt(saturate((2.0f * abs(lat)) / PI)); // a in [0,1]
-    float v = 0.5f + 0.5f * s * a;
-#if SKY_FLIP_Y
-    v = 1.0f - v;
-#endif
-    return saturate(v);
-}
-
-// Inverse of SkyViewCS's LongitudeFromU(): u in [0,1] from lon in [-pi, pi].
-float UFromLongitude(float lon)
-{
-    float u = (lon + PI) / (2.0f * PI);
-    // Wrap safely to [0,1)
-    return frac(u);
-}
-
-// Convert world-space view direction to (u,v) for SkyViewLUT
-float2 SkyUVFromViewDir(float3 wView)
-{
-    float3 camWS = cameraPosition.xyz;
-    
-    // Build the same basis SkyViewCS used
-    float3 up, east, north;
-    BuildSkyBasis(camWS, PlanetCenterWS, BasisSpinUp, up, east, north);
-
-    // True spherical angles relative to that local frame
-    float xE = dot(wView, east);
-    float xN = dot(wView, north);
-    float xU = dot(wView, up);
-
-    float lon = atan2(xN, xE); // [-pi, pi]
-    float lat = asin(clamp(xU, -1.0f, 1.0f)); // [-pi/2, pi/2]
-
-    float u = UFromLongitude(lon);
-    float v = VFromLatitude(lat);
-    return float2(u, v);
-}
-
-struct FovSlice
-{
-    float uL, uR;
-    bool wraps;
-};
-bool InSlice(float u, FovSlice s)
-{
-    return s.wraps ? (u >= s.uL || u <= s.uR) : (u >= s.uL && u <= s.uR);
-}
-float SliceU(float u, FovSlice s)
-{
-    if (!s.wraps)
-        return (u - s.uL) / max(1e-6, (s.uR - s.uL));
-    float len = (1 - s.uL) + s.uR;
-    float t = (u >= s.uL) ? (u - s.uL) : ((1 - s.uL) + u);
-    return t / max(1e-6, len);
-}
-FovSlice MakeSlice(float uL, float uR)
-{
-    uL = frac(uL + 1);
-    uR = frac(uR + 1);
-    float f = uR - uL;
-    if (f < 0)
-        f += 1;
-    FovSlice s;
-    if (f <= 0.5)
-    {
-        s.uL = uL;
-        s.uR = uR;
-        s.wraps = false;
-    }
-    else
-    {
-        s.uL = uR;
-        s.uR = uL;
-        s.wraps = true;
-    }
-    return s;
-}
-
-FovSlice GetSkyViewFOVSlice(float3 east, float3 north, float4x4 invView, float4x4 proj)
-{
-    float tanHalfFovX = 1.0f / proj._11;
-    float halfFovX = atan(tanHalfFovX);
-    float3 fwd = normalize(invView[2].xyz);
-    float3 right = normalize(invView[0].xyz);
-
-    float3 L = normalize(fwd * cos(halfFovX) - right * sin(halfFovX));
-    float3 R = normalize(fwd * cos(halfFovX) + right * sin(halfFovX));
-
-    float lonL = atan2(dot(L, north), dot(L, east));
-    float lonR = atan2(dot(R, north), dot(R, east));
-
-    return MakeSlice(UFromLongitude(lonL), UFromLongitude(lonR));
-}
-
 // ---- TLUT helpers (same mapping as your other passes)
 float2 TransUV(float r, float mu, float Rb, float Rt)
 {
@@ -263,57 +165,6 @@ struct Hit
     bool ok;
     float t0, t1;
 };
-Hit IntersectSphere(float3 ro, float3 rd, float R)
-{
-    float b = dot(ro, rd);
-    float c = dot(ro, ro) - R * R;
-    float h = b * b - c;
-    Hit H;
-    H.ok = (h >= 0.0f);
-    if (!H.ok)
-    {
-        H.t0 = H.t1 = 0;
-        return H;
-    }
-    float s = sqrt(h);
-    H.t0 = -b - s;
-    H.t1 = -b + s;
-    return H;
-}
-
-Hit IntersectSphereRobust(float3 ro, float3 rd, float R)
-{
-    // normalize by radius => sphere becomes unit radius
-    float invR = rcp(R);
-    float3 roN = ro * invR;        // O(1)
-    float3 rdN = rd;               // assume |rd|=1
-    
-    Hit H;
-
-    // closest approach to center
-    float tca = -dot(roN, rdN);
-    float d2  = dot(roN, roN) - tca * tca;   // O(1)
-
-    // treat tiny overshoot above 1.0 as grazing hit (fp noise)
-    if (d2 > 1.0f + 1e-5f)
-    {
-        H.ok = false;
-        H.t0 = H.t1 = 0.0f;
-        return H;
-    }
-
-    float m = max(1.0f - d2, 0.0f);
-    float thc = sqrt(m);
-
-    float t0N = tca - thc;         // in "radius units"
-    float t1N = tca + thc;
-
-    float Rscale = R;              // back to meters
-    H.ok = true;
-    H.t0 = t0N * Rscale;
-    H.t1 = t1N * Rscale;
-    return H;
-}
 
 float GroundBiasMeters(float Rg)
 {
@@ -363,6 +214,31 @@ Hit IntersectSphere_GrazingSafe(float3 ro, float3 rd, float R)
     H.t0 = t0;
     H.t1 = t1;
     return H;
+}
+
+// μ at horizon for a sphere of radius R as seen from r
+float MuHorizon(float r, float R)
+{
+    float s = saturate(R / r);
+    return -sqrt(max(1.0f - s * s, 0.0f));
+}
+
+// Per-frame μ window that actually produces sky
+// mu0 = lower bound (planet/ground horizon), mu1 = upper bound (TOA edge).
+// If camera is inside the atmosphere (r <= Rt), every upward μ intersects;
+// in that case, set mu1 = 1.
+void GetMuWindow(float r, float RbVis, float Rt, out float mu0, out float mu1)
+{
+    float muG = MuHorizon(r, RbVis); // lower bound (sky starts above ground)
+    float muT = (r <= Rt) ? 1.0f : MuHorizon(r, Rt); // upper bound where rays stop hitting TOA
+    mu0 = muG;
+    mu1 = max(muG + 1e-5f, muT); // keep a tiny span at least
+}
+
+// Map μ → v in [0,1] using this window (clamped)
+float VFromMuWindowed(float mu, float mu0, float mu1)
+{
+    return saturate((mu - mu0) / max(mu1 - mu0, 1e-6f));
 }
 
 float SunVisibilityAtR_Config(float r, float muS, float Rb, float sunRadius)
@@ -428,32 +304,44 @@ float4 main(PSIn i) : SV_Target
     const float Rt = PlanetRadius + AtmosphereHeight;
     const float RbPhys = PlanetRadius + min(0.0f, MinHeight); // physical floor used for densities
     const float RbHit = RbPhys + GroundBiasMeters(Rg); // use ONLY for intersections
+    const float RbVis = (PlanetRadius + min(0.0f, MinHeight)) + max(1.0f, 2e-6f * PlanetRadius);
     
     // If no geometry wrote to depth, draw SKY using the precomputed SkyView LUT
     if (depth <= 1e-12f)
     {
+        uint Wsv, Hsv;
+        SkyViewLUT.GetDimensions(Wsv, Hsv);
+        float dv = 1.0f / Hsv;
+        
         float3 wView = ViewDirWS_fromUV(uv);
+        float3 camRel = cameraPosition.xyz - PlanetCenterWS;
+        float rCam = max(PlanetRadius, length(camRel));
 
+        // pick the window 
+        float mu0, mu1;
+        GetMuWindow(rCam, RbVis, Rt, mu0, mu1);
+        
         // Basis consistent with SkyViewCS
         float3 up, east, north;
         BuildSkyBasis(cameraPosition.xyz, PlanetCenterWS, BasisSpinUp, up, east, north);
-
-        // Map this direction to SkyView (MUST match CS mapping)
-        float lon = atan2(dot(wView, north), dot(wView, east));
-        float lat = asin(clamp(dot(wView, up), -1.0f, 1.0f));
-        float2 skyUV = float2(UFromLongitude(lon), VFromLatitude(lat));
         
-        // Sample sky LUT
-        float3 sky = SkyViewLUT.SampleLevel(ClampLinear, skyUV, 0).rgb;
+        float xE = dot(wView, east);
+        float xN = dot(wView, north);
+        float mu = dot(wView, up);
+        
+        float uSky = frac((atan2(xN, xE) + PI) / (2.0f * PI));
+        float vSky = VFromMuWindowed(mu, mu0, mu1);
+        vSky = 1.0f - vSky;
 
-        float3 camRel = cameraPosition.xyz - PlanetCenterWS;
-        float rCam = max(PlanetRadius, length(camRel));
+        // sample with aniso
+        float3 sky = SkyViewLUT.Sample(SkyAniso, float2(uSky, vSky)).rgb;
+
         float muV = dot(wView, normalize(camRel));
-        float3 Tcam = T_to_TOA(rCam, muV, RbHit, Rt);
+        float3 Tcam = T_to_TOA(rCam, muV, RbVis, Rt);
 
         float3 stars = SceneColor.Sample(ClampPoint, uv).rgb * Tcam;
         float ySky = dot(sky, LUMA);
-        float StarLumaGate = 0.015f; // adjust to taste
+        float StarLumaGate = 0.005f; // adjust to taste
         float wStar = saturate(1.0f - ySky / StarLumaGate); 
         stars *= wStar;
         
@@ -480,7 +368,7 @@ float4 main(PSIn i) : SV_Target
             float rCam = max(PlanetRadius, length(camRel));
             float3 upCam = camRel / rCam;
             float muS_up = dot(upCam, wSun);
-            float VsunH = SunVisibilityAtR_Config(rCam, muS_up, RbHit, SunDiscRadius);
+            float VsunH = SunVisibilityAtR_Config(rCam, muS_up, RbVis, SunDiscRadius);
     
             // Final disc mask
             float discMask = discSoft * limb * VsunH;
@@ -506,7 +394,7 @@ float4 main(PSIn i) : SV_Target
         return float4(max(outSky, 0.0f), 1.0f);
     }
     else
-    {
+    {       
         float3 camWS = cameraPosition.xyz;
         float3 ro = camWS - PlanetCenterWS;
         float3 wView = ViewDirWS_fromUV(uv); // unit
@@ -514,7 +402,7 @@ float4 main(PSIn i) : SV_Target
         // TOA segment
         Hit hitAtm = IntersectSphere_GrazingSafe(ro, wView, Rt);
 
-        float tEnter = max(0.0f, hitAtm.t0);         
+        float tEnter = max(0.0f, hitAtm.t0);
         float APFar = asfloat(APFarU32.Load(int3(0, 0, 0)));
               
         float tSurf = ViewDistanceFromDepth(uv, depth);
@@ -525,7 +413,7 @@ float4 main(PSIn i) : SV_Target
 
         // address slice **centers** then (optionally) jitter
         uint Wd, Hd, Dd;
-        AerialPerspective3D.GetDimensions(Wd, Hd, Dd);       
+        AerialPerspective3D.GetDimensions(Wd, Hd, Dd);
         float wAP = u * ((Dd - 1.0f) / Dd) + (0.5f / Dd);
         
         // W dither (±½ slice)
