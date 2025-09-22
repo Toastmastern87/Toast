@@ -452,7 +452,7 @@ PixelOutputType main(PixelInputType input)
     float3 Lr = reflect(-VWorld, normalWorld);
     float3 iblContribution = IBL(F0, Lr, normalWorld, albedo, roughness, metalness, NdotV);
     
-    float3 ambient = float3(0.0f, 0.0f, 0.0f);
+    float3 ambient = float3(0.001f, 0.001f, 0.001f);
     ambient *= ao;
 
     float3 finalShading = (ambient + lightContribution + iblContribution + Lo_sky);

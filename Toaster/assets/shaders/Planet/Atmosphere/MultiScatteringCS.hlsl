@@ -190,9 +190,8 @@ void main(uint3 dtid : SV_DispatchThreadID)
         return;
 
     float2 uv = (float2(dtid.xy) + 0.5f) / float2(W, H);
-#if MS_FLIP_Y
     uv.y = 1.0f - uv.y;
-#endif
+
 
     const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
@@ -212,7 +211,7 @@ void main(uint3 dtid : SV_DispatchThreadID)
 
     float sunVis = SunVisibilityAtSample(r, muS, Rb);
 
-    float sunGate = max(sunVis, MS_VIS_FLOOR); // soften the horizon gate
+    float sunGate = 1.0f;//    max(sunVis, MS_VIS_FLOOR); // soften the horizon gate
 
     const float3 LoGround = GroundAlbedo / PI;
 

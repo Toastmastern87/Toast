@@ -44,7 +44,7 @@
 
 // Match MultiScatteringCS::MS_BAKE_SUNVIS (1 = already gated in LUT, 0 = gate with Vsun at runtime)
 #ifndef SKY_MS_BAKED_SUNVIS
-#define SKY_MS_BAKED_SUNVIS   1
+#define SKY_MS_BAKED_SUNVIS   0
 #endif
 
 // ===== CBuffers =============================================================
@@ -317,6 +317,10 @@ void main(uint3 tid : SV_DispatchThreadID)
     
     float u = (tid.x + 0.5f) / float(W);
     
+    // keep the MS halo thin: ~2x–3x solar radius (tweak)
+    const float SUN_RAD = 0.004675f;
+    const float HALO_WIDTH = 6.0f * SUN_RAD;
+    
     float3 wSun = -normalize(direction.xyz);
     float3 Esun = radiance.rgb * SunIntensity;
     
@@ -410,7 +414,22 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         float3 upS = (rp > 0.0f) ? (pRel / rp) : up;
         float muS = dot(upS, wSun);
-        float Vsun = max(SunVisibilityAtR(rp, muS, RbVis), SKY_VIS_FLOOR);
+        float VsunHard = SunVisibilityAtR(rp, muS, RbVis);
+        
+        // horizon cosine at this sample
+        float sH = RbVis / rp;
+        float cH = -sqrt(saturate(1.0f - sH * sH)); // muS at limb
+        
+        // how far above horizon the sun is, in cosine-space
+        float dMu = muS - cH;
+        
+        // make the floor fade out away from the limb
+        const float NIGHT_FLOOR_MAX = 0.01f; // smaller than 0.03
+        float limbBlend = smoothstep(0.0f, HALO_WIDTH, dMu); // 0 below, 1 above band
+        float VsunFloor = NIGHT_FLOOR_MAX * limbBlend; // 0 in deep night
+        
+        float Vsun = max(VsunHard, VsunFloor);
+        
         float3 Tsun = T_to_TOA(rp, muS, RbVis, Rt) * Vsun; // << Rb
 
         float PR = PhaseRayleigh(muPh);
@@ -425,39 +444,17 @@ void main(uint3 tid : SV_DispatchThreadID)
         // multiple scattering: use Rb in the LUT sampling too
         float4 Psi4 = SamplePsiMS4(rp, muS, RbVis, Rt); // << Rb
         float pMS = MSPhase(muPh, Psi4.a);
+        
+        // smooth step from 0 (below horizon) to 1 over a small band
+        float VsunMS = smoothstep(0.0f, HALO_WIDTH, dMu);
+        
+        float3 PsiMS_rgb = Psi4.rgb * VsunMS;
+        
         if (SKY_USE_MS)
-            Lms += Tvp * ((sigS * Psi4.rgb) * pMS) * dt;
+            Lms += Tvp * ((sigS * PsiMS_rgb) * pMS) * dt;
     }
 
-#if SKY_DEBUG_MODE == 0
     OutSkyView[tid.xy] = float4(max((Ls + Lms) * Esun, 0.0f), 1.0f);
     return;  
-#elif SKY_DEBUG_MODE == 1
-// Visualize the window & where this pixel sits inside it.
-float w = saturate((mu - mu0) / max(mu1 - mu0, 1e-6f)); // 0 at lower bound, 1 at upper
-float nearLower = 1.0 - smoothstep(0.0, SKY_MU_BAND, mu - mu0);
-float nearUpper = 1.0 - smoothstep(0.0, SKY_MU_BAND, mu1 - mu);
-OutSkyView[tid.xy] = float4(nearLower, w, nearUpper, 1); // R:lower edge, G:position, B:upper edge
-return;
-#elif SKY_DEBUG_MODE == 2
-float3 T_cam = T_to_TOA(rCam, mu, RbVis, Rt);
-float y = 1.0f - dot(T_cam, LUMA);
-OutSkyView[tid.xy] = float4(y, y, y, 1);
-return;
-#elif SKY_DEBUG_MODE == 3
-float yS = dot(Ls,  LUMA);
-float yM = dot(Lms, LUMA);
-float sum = max(yS + yM, 1e-8);
-OutSkyView[tid.xy] = float4(yS / sum, yM / sum, 0, 1); // R=single, G=multi
-return;
-#elif SKY_DEBUG_MODE == 4
-float vH = V_fromMu(muH);
-float yH = vH * float(H);
-float dy = (float(tid.y) + 0.5f) - yH;   // +: above, -: below horizon
-// Map to visible range: center = horizon row
-float m = 0.5f + 0.25f * saturate(dy * 0.5f); // tweak scales for readability
-OutSkyView[tid.xy] = float4(m, m, m, 1);
-return;
-#endif
 }
 

@@ -410,7 +410,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
             float3 S1 = (sigR_s * PR + sigM_s * PM) * Tsun * Esun;
 
-            float4 Psi4 = SamplePsiMS4(rMid, muS, RbHit, Rt);
+            float4 Psi4 = SamplePsiMS4(rMid, muS, RbHit, Rt) * Vsun;
             float pMS = MSPhase(muPhase, Psi4.a);
             float3 S_MS = (sigR_s + sigM_s) * MSPhase(muPhase, Psi4.a) * Psi4.rgb * Esun;
 
