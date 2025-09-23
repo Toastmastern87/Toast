@@ -519,7 +519,6 @@ namespace Toast {
 		float  width = ImGui::GetContentRegionAvail().x;
 		ImVec2 barEnd(barPos.x + width, barPos.y + barHeight);
 
-		// For example, use the same color as TitleBgActive:
 		ImU32 barColor = ImGui::ColorConvertFloat4ToU32(
 			ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive]);
 		ImGui::GetWindowDrawList()->AddRectFilled(barPos, barEnd, barColor);

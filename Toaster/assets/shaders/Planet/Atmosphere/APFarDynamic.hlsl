@@ -1,17 +1,6 @@
 ﻿#type compute
 #pragma pack_matrix(row_major)
 
-// ---------- toggles ----------
-#ifndef TLUT_USE_OZONE
-#define TLUT_USE_OZONE    1      // set 0 to prove ozone is the warm source
-#endif
-#ifndef TLUT_SAFE_EPS
-#define TLUT_SAFE_EPS     1e-5f  // keep μ strictly inside its domain
-#endif
-#ifndef TLUT_DEBUG_MODE
-#define TLUT_DEBUG_MODE   0      // 0=T rgb, 1=tau rgb, 2=vis: μ_min, 3=vis: r
-#endif
-
 // ---------- cbuffers ----------
 cbuffer Camera : register(b0)
 {
@@ -62,72 +51,27 @@ SamplerState ClampPoint : register(s1);
 
 RWTexture2D<uint> APFarU32 : register(u0); // 1x1 UAV
 
-static const float ReliefMeters = 3000.0f; // e.g. 3000.0
-static const float Safety = 1.15f; // e.g. 1.08
-static const float MinAP = 32000.0f; // 32000
-static const float MaxAP = 2000000.0f; // 2000000
+static const float Safety = 1.05f; // e.g. 1.08
+
+// 2×2 taps inside the tile (centers of four quadrants)
+static const float2 OFFS[4] =
+{
+    float2(0.25, 0.25), float2(0.75, 0.25),
+    float2(0.25, 0.75), float2(0.75, 0.75)
+};
 
 struct Hit
 {
     bool ok;
     float t0, t1;
 };
-Hit RaySphere(float3 ro, float3 rd, float R)
-{
-    float b = dot(ro, rd), c = dot(ro, ro) - R * R;
-    float h = b * b - c;
-    Hit H;
-    H.ok = (h >= 0);
-    if (!H.ok)
-    {
-        H.t0 = H.t1 = 0;
-        return H;
-    }
-    float s = sqrt(h);
-    H.t0 = -b - s;
-    H.t1 = -b + s;
-    return H;
-}
-Hit IntersectSphereRobust(float3 ro, float3 rd, float R)
-{
-    // normalize by radius => sphere becomes unit radius
-    float invR = rcp(R);
-    float3 roN = ro * invR; // O(1)
-    float3 rdN = rd; // assume |rd|=1
-    
-    Hit H;
-
-    // closest approach to center
-    float tca = -dot(roN, rdN);
-    float d2 = dot(roN, roN) - tca * tca; // O(1)
-
-    // treat tiny overshoot above 1.0 as grazing hit (fp noise)
-    if (d2 > 1.0f + 1e-5f)
-    {
-        H.ok = false;
-        H.t0 = H.t1 = 0.0f;
-        return H;
-    }
-
-    float m = max(1.0f - d2, 0.0f);
-    float thc = sqrt(m);
-
-    float t0N = tca - thc; // in "radius units"
-    float t1N = tca + thc;
-
-    float Rscale = R; // back to meters
-    H.ok = true;
-    H.t0 = t0N * Rscale;
-    H.t1 = t1N * Rscale;
-    return H;
-}
 
 float GroundBiasMeters(float Rg)
 {
     return max(1.0f, 2e-6f * Rg);
 }
 
-Hit IntersectSphere_GrazingSafe(float3 ro, float3 rd, float R)
+Hit IntersectSphereGrazingSafe(float3 ro, float3 rd, float R)
 {
     Hit H;
     H.ok = false;
@@ -200,47 +144,39 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     float2 base = float2(tid.xy);
 
-    // 2×2 taps inside the tile (centers of four quadrants)
-    static const float2 OFFS[4] =
-    {
-        float2(0.25, 0.25), float2(0.75, 0.25),
-        float2(0.25, 0.75), float2(0.75, 0.75)
-    };
-
-    float maxCand = 0.0;
+    float3 ro = cameraPosition.xyz - PlanetCenterWS;
+    float rCam = length(ro);
+    float Rt = PlanetRadius + AtmosphereHeight;
+    
+    bool cameraInsideAtmosphere = (rCam <= Rt);
+    
+    float maxFarInsideAtmosphere = 0.0f;
 
     [unroll]
     for (int k = 0; k < 4; ++k)
     {
         float2 uv = (base + OFFS[k]) / float2(W, H);
+        
+        float depth = SceneDepth.SampleLevel(ClampPoint, uv, 0);
+        if (depth < 1e-12)
+            continue;
 
-        float3 ro = cameraPosition.xyz - PlanetCenterWS;
+        float tSurf = ViewDistanceFromDepth(uv, depth);
+        
         float3 rd = ViewDirWSFromUV(uv);
-        float Rg = PlanetRadius;
-        float Rt = PlanetRadius + AtmosphereHeight;
-        const float RbPhys = PlanetRadius + min(0.0f, MinHeight); // physical floor used for densities
-        const float RbHit = RbPhys + GroundBiasMeters(Rg); // use ONLY for intersections
-
-        Hit hatm = IntersectSphere_GrazingSafe(ro, rd, Rt);
+        
+        Hit hatm = IntersectSphereGrazingSafe(ro, rd, Rt);
         if (!hatm.ok)
             continue;
 
         float tEnter = max(0.0, hatm.t0);
-        float tExitA = max(0.0, hatm.t1);
-        Hit hg = IntersectSphere_GrazingSafe(ro, rd, RbHit);
-        if (hg.ok && hg.t0 > 0.0)
-            tExitA = min(tExitA, hg.t0);
 
-        float depth = SceneDepth.SampleLevel(ClampPoint, uv, 0);
-        if (depth > 1e-12)
-        {
-            float tSurf = ViewDistanceFromDepth(uv, depth);
-            maxCand = max(maxCand, tSurf);
-        }
+        float lengthInAtmosphere = cameraInsideAtmosphere ? tSurf : max(0.0f, tSurf - tEnter);
+        
+        maxFarInsideAtmosphere = max(maxFarInsideAtmosphere, lengthInAtmosphere);
     }
 
-    float target = Safety * maxCand;
-    target = min(target, MaxAP);
+    float target = Safety * maxFarInsideAtmosphere;
 
     // atomic max into 1×1 R32_UINT UAV cleared to 0 at frame start
     InterlockedMax(APFarU32[uint2(0, 0)], asuint(target));

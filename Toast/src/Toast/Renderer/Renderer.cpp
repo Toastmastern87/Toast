@@ -1127,13 +1127,13 @@ namespace Toast {
 		UINT zero[4] = { 0,0,0,0 };
 
 		auto& aerialPerspective = planet->GetAerialPerspectiveLUT();
-		auto& APFarDynamic = planet->GetAPFarDynamic();
-		RenderCommand::ClearUAV(APFarDynamic->GetUAV().Get(), zero);
+		auto& APFar = planet->GetAPFar();
+		RenderCommand::ClearUAV(APFar->GetUAV().Get(), zero);
 		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, sRendererData->DepthBuffer->GetSRV());
-		APFarDynamic->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+		APFar->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/APFarDynamic.hlsl")->Bind();
 		RenderCommand::DispatchCompute((aerialPerspective->GetWidth() + 7) / 8, (aerialPerspective->GetHeight() + 7) / 8, 1);
-		APFarDynamic->UnbindUAV(0, D3D11_COMPUTE_SHADER);
+		APFar->UnbindUAV(0, D3D11_COMPUTE_SHADER);
 
 		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 1, planet->GetMultiScatteringLUT()->GetSRV());
@@ -1145,7 +1145,7 @@ namespace Toast {
 		skyview->UnbindUAV(0, D3D11_COMPUTE_SHADER);
 		
 		aerialPerspective->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 2, APFarDynamic->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 2, APFar->GetSRV());
 		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/AerialPerspectiveCS.hlsl")->Bind();
 		RenderCommand::DispatchCompute((aerialPerspective->GetWidth() + 7) / 8, (aerialPerspective->GetHeight() + 7) / 8, aerialPerspective->GetDepth());
 		aerialPerspective->UnbindUAV(0, D3D11_COMPUTE_SHADER);
@@ -1161,7 +1161,7 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, skyview->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, aerialPerspective->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->GPassPositionRT->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, APFarDynamic->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, APFar->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
 

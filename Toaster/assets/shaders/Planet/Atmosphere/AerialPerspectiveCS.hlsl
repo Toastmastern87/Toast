@@ -83,7 +83,7 @@ SamplerState ClampLinear : register(s0);
 
 // 3D AP output: [x,y]=screen tile, [z]=non-linear distance
 // rgb = accumulated in-scatter, a = camera->slice scalar transmittance
-RWTexture3D<float4> OutAP : register(u0);
+RWTexture3D<float4> OutAP       : register(u0);
 
 // ===== Constants / helpers ==================================================
 static const float PI = 3.14159265358979323846f;
@@ -303,7 +303,8 @@ void main(uint3 tid : SV_DispatchThreadID)
     uint D = min(Dfull, AP_MAX_Z_SLICES);
 
     float APFar = asfloat(APFarU32.Load(int3(0, 0, 0)));
-
+    float APNear = 0.0f;
+    
     // Planet & radii
     const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
@@ -311,42 +312,12 @@ void main(uint3 tid : SV_DispatchThreadID)
     const float RbHit = RbPhys + GroundBiasMeters(Rg);
 
     float3 ro = cameraPosition.xyz - PlanetCenterWS;
-
-    // --- NEW: 2x2 per-tile rays to build a conservative segment ---
-    float tNearTile = 1e30f;
-    float tClampTile = 0.0f;
-    bool any = false;
-
-    [unroll]
-    for (int k = 0; k < 4; ++k)
-    {
-        float2 uv = (float2(tid.xy) + OFFS[k]) / float2(W, H);
-    // build wView for uv (same as you already do)
-        float2 ndc = float2(uv.x * 2 - 1, 1 - uv.y * 2);
-        float4 clip = float4(ndc, 1, 1);
-        float4 vpos = mul(clip, inverseProjectionMatrix);
-        float3 dirVS = normalize(vpos.xyz / max(vpos.w, 1e-6));
-        float3 wView = normalize(mul(dirVS, (float3x3) inverseViewMatrix));
-
-        Hit ha = IntersectSphereGrazingSafe(ro, wView, Rt);
-        if (!ha.ok)
-            continue;
-
-        float tNear = max(0.0f, ha.t0);
-
-        Hit hg = IntersectSphereGrazingSafe(ro, wView, RbHit);
-        float tGnd = (hg.ok && hg.t0 > 0.0f) ? hg.t0 : 1e30f;
-
-        float tFar_k = min(tNear + APFar, tGnd); // ground-clamped far for this sub-ray
-
-        any = true;
-        tNearTile = min(tNearTile, tNear);
-        tClampTile = max(tClampTile, tFar_k);
-    }
-
-    if (!any)
-    {
-    // write zeros and return (same as your early-out)
+    float2 uvC = (float2(tid.xy) + 0.5f) / float2(W, H);
+    float3 wView = ViewDirWS_fromUV(uvC);
+    
+    Hit ha = IntersectSphereGrazingSafe(ro, wView, Rt);
+    if (!ha.ok)
+    { // nothing to accumulate for this texel
         float4 zero = float4(0, 0, 0, 0);
         [loop]
         for (uint z = 0; z < D; ++z)
@@ -354,96 +325,114 @@ void main(uint3 tid : SV_DispatchThreadID)
         return;
     }
     
-    // (optional) tiny writer-only safety to avoid under-coverage after filtering
-    tClampTile += 1.0f; // meters
+    // Entry/exit in absolute meters
+    float tEnter = max(0.0f, ha.t0); // if camera inside, this becomes 0
+    float tExitA = max(0.0f, ha.t1);
+    
+    Hit hg = IntersectSphereGrazingSafe(ro, wView, RbHit);
+    if (hg.ok && hg.t0 > 0.0f)
+        tExitA = min(tExitA, hg.t0);
+    
+    float Lray = max(0.0f, tExitA - tEnter);
+    
+    float Lcap = min(APFar, Lray);
+    
+    // Early out: if this ray has no air in front, write zeros
+    if (Lcap <= 1e-6f)
+    {
+        float4 zero = float4(0, 0, 0, 0);
+        [loop]
+        for (uint z = 0; z < D; ++z)
+            OutAP[uint3(tid.x, tid.y, z)] = zero;
+        return;
+    }
      
     // Accumulators to current slice end
     float3 Lcum = 0.0f; // in-scattered radiance
     float3 tauCum = 0.0f; // camera->current extinction
 
-    float2 uvC = (float2(tid.xy) + 0.5f) / float2(W, H);
-    float3 wView = ViewDirWS_fromUV(uvC);
     const float3 wSun = -normalize(direction.xyz);
-    float3 Lsun = radiance.rgb * SunIntensity; // radiance [W·m⁻2·sr⁻1 in your units] 
-    float3 Esun = Lsun;
+    float3 Esun = radiance.rgb * SunIntensity;
     
     [loop]
     for (uint z = 0; z < D; ++z)
     {
         float u0 = (float) z / (float) D;
-        float u1 = (float) (z + 1u) / (float) D;
+        float u1 = (float) (z + 1) / (float) D;
         
         // place slices at fixed distance from entry only
-        float tA = tNearTile + APFar * pow(u0, AP_Z_GAMMA);
-        float tB = tNearTile + APFar * pow(u1, AP_Z_GAMMA);
+        float sA = APFar * pow(u0, AP_Z_GAMMA);
+        float sB = APFar * pow(u1, AP_Z_GAMMA);
 
-        // clamp each slice’s contribution to valid air segment
-        float segA = clamp(tA, tNearTile, tClampTile);
-        float segB = clamp(tB, tNearTile, tClampTile);
-
-        if (segB > segA)
+        // Clamp this slice to the actual ray length Lcap
+        float segA = clamp(sA, 0.0f, Lcap);
+        float segB = clamp(sB, 0.0f, Lcap);
+        if (segB <= segA)
         {
-            float len = segB - segA;
-            float tMid = 0.5f * (segA + segB);
-
-            float3 p = ro + wView * tMid;
-            float rMid = length(p);
-            float hMid = max(0.0f, rMid - RbPhys);
-
-            float dR = DensityRayleigh(hMid);
-            float dM = DensityMie(hMid);
-            float dO = DensityOzone(hMid);
-
-            float3 sigmaExt = RayleighScattering * dR + (MieScattering + MieAbsorption) * dM + O3_COEFF * dO;
-
-            float3 sigR_s = RayleighScattering * dR;
-            float3 sigM_s = MieScattering * dM;
-
-            float3 upS = (rMid > 0.0f) ? (p / rMid) : BasisRadUp;
-            float muS = dot(upS, wSun);
-            float Vsun = SunVisibilityAtR(rMid, muS, RbHit);
-            float3 Tsun = T_to_TOA(rMid, muS, RbHit, Rt) * Vsun;
-
-            float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
-            float PR = PhaseRayleigh(muPhase);
-            float PM = PhaseMieHG(muPhase, saturate(MieAnisotropy));
-
-            float3 S1 = (sigR_s * PR + sigM_s * PM) * Tsun * Esun;
-
-            float4 Psi4 = SamplePsiMS4(rMid, muS, RbHit, Rt) * Vsun;
-            float pMS = MSPhase(muPhase, Psi4.a);
-            float3 S_MS = (sigR_s + sigM_s) * MSPhase(muPhase, Psi4.a) * Psi4.rgb * Esun;
-
-            // Midpoint slice integral
-            float3 dTau = sigmaExt * len;
-            float3 wInt = (1.0.xxx - fexp3(-dTau)) / max(sigmaExt, 1e-8.xxx);
-
-            float3 Tcam = fexp3(-tauCum);
-            Lcum += Tcam * (S1 + S_MS) * wInt;
-
-            tauCum += dTau;
+            // store current cumulative so Z filtering has defined values
+            float3 Tcum = exp(-tauCum);
+            float Tmean = max((Tcum.r + Tcum.g + Tcum.b) * (1.0 / 3.0), 1e-6f);
+            float tauMean = -log(Tmean);
+            OutAP[uint3(tid.x, tid.y, z)] = float4(Lcum, tauMean);
+            continue;
         }
 
-        // Store cumulative (alpha = tauMean)
+        float len = segB - segA;
+        float sMid = 0.5f * (segA + segB);
+
+        // Convert S (from entry) to absolute t
+        float tMid = tEnter + sMid;
+
+        // Sample medium at midpoint
+        float3 p = ro + wView * tMid;
+        float rMid = length(p);
+        float hMid = max(0.0f, rMid - RbPhys);
+
+        float dR = DensityRayleigh(hMid);
+        float dM = DensityMie(hMid);
+        float dO = DensityOzone(hMid);
+
+        float3 sigmaExt = RayleighScattering * dR
+                        + (MieScattering + MieAbsorption) * dM
+                        + O3_COEFF * dO;
+
+        float3 sigR_s = RayleighScattering * dR;
+        float3 sigM_s = MieScattering * dM;
+
+        float3 upS = (rMid > 0.0f) ? (p / rMid) : BasisRadUp;
+        float muS = dot(upS, wSun);
+        float Vsun = SunVisibilityAtR(rMid, muS, Rg);
+        float3 Tsun = T_to_TOA(rMid, muS, Rg, Rt) * Vsun;
+
+        float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
+        float PR = PhaseRayleigh(muPhase);
+        float PM = PhaseMieHG(muPhase, saturate(MieAnisotropy));
+
+        float3 S1 = (sigR_s * PR + sigM_s * PM) * Tsun * Esun;
+
+        float4 Psi4 = SamplePsiMS4(rMid, muS, Rg, Rt) * Vsun;
+        float3 S_MS = (sigR_s + sigM_s) * MSPhase(muPhase, Psi4.a) * Psi4.rgb * Esun;
+
+        // Midpoint integral over this slice
+        float3 dTau = sigmaExt * len;
+        float3 wInt = (1.0.xxx - fexp3(-dTau)) / max(sigmaExt, 1e-8.xxx);
+
+        float3 Tcam = fexp3(-tauCum);
+        Lcum += Tcam * (S1 + S_MS) * wInt;
+        tauCum += dTau;
+
+        // write cumulative for this z
         float3 Tcum = fexp3(-tauCum);
         float Tmean = max((Tcum.r + Tcum.g + Tcum.b) * (1.0 / 3.0), 1e-6f);
         float tauMean = -log(Tmean);
         OutAP[uint3(tid.x, tid.y, z)] = float4(Lcum, tauMean);
-
-        if (Tmean <= AP_A_EPS || tB >= tClampTile)
-        {
-        [loop]
-            for (uint zz = z + 1; zz < Dfull; ++zz)
-                OutAP[uint3(tid.x, tid.y, zz)] = float4(Lcum, tauMean);
-            return;
-        }
     }
 
-    // If D < Dfull, replicate last slice
+    // replicate last to the tail if D < Dfull
     if (D < Dfull)
     {
         float4 last = OutAP[uint3(tid.x, tid.y, D - 1)];
-    [loop]
+        [loop]
         for (uint zz = D; zz < Dfull; ++zz)
             OutAP[uint3(tid.x, tid.y, zz)] = last;
     }

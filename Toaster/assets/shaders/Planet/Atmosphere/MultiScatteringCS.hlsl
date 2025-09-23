@@ -209,10 +209,6 @@ void main(uint3 dtid : SV_DispatchThreadID)
     // single-scattering albedo ρ in luminance
     float rho_lum = dot(sigma_s0, LUMA) / max(dot(sigma_t0, LUMA), 1e-6f);
 
-    float sunVis = SunVisibilityAtSample(r, muS, Rb);
-
-    float sunGate = 1.0f;//    max(sunVis, MS_VIS_FLOOR); // soften the horizon gate
-
     const float3 LoGround = GroundAlbedo / PI;
 
     const uint Ndirs = max(StepsMultiScattering, 2u);
@@ -241,7 +237,7 @@ void main(uint3 dtid : SV_DispatchThreadID)
 #endif
 
         if (isGround)
-            L2_gnd += LoGround * T_out_rgb * sunGate;
+            L2_gnd += LoGround * T_out_rgb;
 
         float dt = d / float(Nsteps);
         float t = 0.5f * dt;
@@ -254,7 +250,7 @@ void main(uint3 dtid : SV_DispatchThreadID)
             float hh = max(0.0f, rd - Rb);
             float3 sigma_s_step = RayleighScattering * DensityRayleigh(hh) + MieScattering * DensityMie(hh);
 
-            L2_vol += sigma_s_step * Tseg * sunGate * dt;
+            L2_vol += sigma_s_step * Tseg * dt;
         }
     }
 

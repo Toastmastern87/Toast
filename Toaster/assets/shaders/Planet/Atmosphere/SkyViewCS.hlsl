@@ -2,20 +2,11 @@
 #pragma pack_matrix(row_major)
 
 // ===== Debug / toggles ======================================================
-#ifndef SKY_FLIP_Y
-#define SKY_FLIP_Y            1
-#endif
 #ifndef SKY_ENABLE_GROUND
 #define SKY_ENABLE_GROUND     1
 #endif
 #ifndef SKY_STEPS
 #define SKY_STEPS             96
-#endif
-#ifndef SKY_DEBUG_MODE
-#define SKY_DEBUG_MODE        0
-#endif
-#ifndef SKY_DBG_SCALE
-#define SKY_DBG_SCALE         1.0f
 #endif
 #ifndef SKY_USE_MS
 #define SKY_USE_MS            1
@@ -31,20 +22,6 @@
 #endif
 #ifndef SKY_MU_SOFT_EPS
 #define SKY_MU_SOFT_EPS 0.0015f // ~0.086°, tiny lift above horizon
-#endif
-#ifndef SKY_MU_BAND
-// width of the horizon feather in mu (try 0.002–0.006)
-#define SKY_MU_BAND 0.003f
-#endif
-
-#ifndef SKY_VIS_FLOOR
-// tiny floor so single-scattering doesn’t “blink” at the horizon
-#define SKY_VIS_FLOOR 0.03f
-#endif
-
-// Match MultiScatteringCS::MS_BAKE_SUNVIS (1 = already gated in LUT, 0 = gate with Vsun at runtime)
-#ifndef SKY_MS_BAKED_SUNVIS
-#define SKY_MS_BAKED_SUNVIS   0
 #endif
 
 // ===== CBuffers =============================================================
@@ -414,23 +391,9 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         float3 upS = (rp > 0.0f) ? (pRel / rp) : up;
         float muS = dot(upS, wSun);
-        float VsunHard = SunVisibilityAtR(rp, muS, RbVis);
-        
-        // horizon cosine at this sample
-        float sH = RbVis / rp;
-        float cH = -sqrt(saturate(1.0f - sH * sH)); // muS at limb
-        
-        // how far above horizon the sun is, in cosine-space
-        float dMu = muS - cH;
-        
-        // make the floor fade out away from the limb
-        const float NIGHT_FLOOR_MAX = 0.01f; // smaller than 0.03
-        float limbBlend = smoothstep(0.0f, HALO_WIDTH, dMu); // 0 below, 1 above band
-        float VsunFloor = NIGHT_FLOOR_MAX * limbBlend; // 0 in deep night
-        
-        float Vsun = max(VsunHard, VsunFloor);
-        
-        float3 Tsun = T_to_TOA(rp, muS, RbVis, Rt) * Vsun; // << Rb
+        float Vsun = SunVisibilityAtR(rp, muS, RbVis);      
+           
+        float3 Tsun = T_to_TOA(rp, muS, RbVis, Rt) * Vsun;
 
         float PR = PhaseRayleigh(muPh);
         float PM = PhaseMieHG(muPh, saturate(MieAnisotropy));
@@ -442,19 +405,25 @@ void main(uint3 tid : SV_DispatchThreadID)
             Ls += Tvp * (sigM_s * PM * Tsun) * dt;
 
         // multiple scattering: use Rb in the LUT sampling too
-        float4 Psi4 = SamplePsiMS4(rp, muS, RbVis, Rt); // << Rb
+        float4 Psi4 = SamplePsiMS4(rp, muS, RbPhys, Rt); // << Rb
         float pMS = MSPhase(muPh, Psi4.a);
-        
-        // smooth step from 0 (below horizon) to 1 over a small band
-        float VsunMS = smoothstep(0.0f, HALO_WIDTH, dMu);
-        
-        float3 PsiMS_rgb = Psi4.rgb * VsunMS;
+               
+        float3 PsiMS_rgb = Psi4.rgb;
         
         if (SKY_USE_MS)
             Lms += Tvp * ((sigS * PsiMS_rgb) * pMS) * dt;
     }
+    float fadeStart = cos(radians(85.0)); // ~+0.087 : a few degrees above horizon
+    float fadeEnd = cos(radians(100.0)); // ~-0.174 : ~10° below horizon
+    float3 upCam = (rCam > 0) ? camRel / rCam : float3(0, 1, 0);
+    float muSunAtCam = dot(upCam, -normalize(direction.xyz));
+    float fNight = smoothstep(fadeEnd, fadeStart, muSunAtCam);
 
-    OutSkyView[tid.xy] = float4(max((Ls + Lms) * Esun, 0.0f), 1.0f);
+    float nightEVBias = lerp(-3.5f, 0.0f, fNight); // -3 EV in deep night → 0 EV near horizon
+    float nightMul = exp2(nightEVBias);
+    float3 skyRGB = (Ls + Lms) * Esun * nightMul;
+
+    OutSkyView[tid.xy] = float4(skyRGB, 1.0f);
     return;  
 }
 

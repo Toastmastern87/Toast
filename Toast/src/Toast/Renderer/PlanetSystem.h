@@ -157,7 +157,8 @@ namespace Toast {
 		Ref<Texture2D> mMultiScatteringLUT;
 		Ref<Texture2D> mSkyViewLUT;
 		Ref<Texture3D> mAerielPerspectiveLUT;
-		Ref<Texture2D> mAPFarDynamic;
+		Ref<Texture2D> mAPFar;
+		Ref<Texture2D> mAPNear;
 
 		// Environment Textures
 		Texture2D* mStarFieldTexture2D;
@@ -231,7 +232,8 @@ namespace Toast {
 		Ref<Texture2D>& GetMultiScatteringLUT() { return mMultiScatteringLUT; }
 		Ref<Texture2D>& GetSkyViewLUT() { return mSkyViewLUT; }
 		Ref<Texture3D>& GetAerialPerspectiveLUT() { return mAerielPerspectiveLUT; }
-		Ref<Texture2D>& GetAPFarDynamic() { return mAPFarDynamic; }
+		Ref<Texture2D>& GetAPFar() { return mAPFar; }
+		Ref<Texture2D>& GetAPNear() { return mAPNear; }
 
 		void DetailObjectPlacement(TerrainObjectComponent* objects, Matrix& planetNoScaleTransform);
 

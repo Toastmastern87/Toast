@@ -78,14 +78,14 @@ cbuffer SunDiscSettings : register(b6)
 };
 
 // ===== Textures / Samplers ==================================================
-Texture2D<float4> TransmittanceLUT : register(t0); // (not used in composite)
-Texture2D<float4> MultiScatterLUT : register(t1); // (not used in composite)
-Texture2D<float4> SkyViewLUT : register(t2);
-Texture3D<float4> AerialPerspective3D : register(t3);
-Texture2D<float4> positionTexture : register(t4);
-Texture2D<uint> APFarU32 : register(t5);
-Texture2D<float> SceneDepth : register(t9);
-Texture2D<float4> SceneColor : register(t10);
+Texture2D<float4> TransmittanceLUT      : register(t0); // (not used in composite)
+Texture2D<float4> MultiScatterLUT       : register(t1); // (not used in composite)
+Texture2D<float4> SkyViewLUT            : register(t2);
+Texture3D<float4> AerialPerspective3D   : register(t3);
+Texture2D<float4> positionTexture       : register(t4);
+Texture2D<uint> APFarU32                : register(t5);
+Texture2D<float> SceneDepth             : register(t9);
+Texture2D<float4> SceneColor            : register(t10);
 
 SamplerState ClampLinear    : register(s0);
 SamplerState ClampPoint     : register(s1);
@@ -171,7 +171,7 @@ float GroundBiasMeters(float Rg)
     return max(1.0f, 2e-6f * Rg);
 }
 
-Hit IntersectSphere_GrazingSafe(float3 ro, float3 rd, float R)
+Hit IntersectSphereGrazingSafe(float3 ro, float3 rd, float R)
 {
     Hit H;
     H.ok = false;
@@ -397,37 +397,28 @@ float4 main(PSIn i) : SV_Target
     {       
         float3 camWS = cameraPosition.xyz;
         float3 ro = camWS - PlanetCenterWS;
+        float rCam = length(ro);              
         float3 wView = ViewDirWS_fromUV(uv); // unit
         
         // TOA segment
-        Hit hitAtm = IntersectSphere_GrazingSafe(ro, wView, Rt);
+        Hit hitAtm = IntersectSphereGrazingSafe(ro, wView, Rt);
 
         float tEnter = max(0.0f, hitAtm.t0);
-        float APFar = asfloat(APFarU32.Load(int3(0, 0, 0)));
-              
         float tSurf = ViewDistanceFromDepth(uv, depth);
         
-        // distance-from-entry only
-        float d = saturate((tSurf - tEnter) / max(APFar, 1e-6f));
+        float lengthInAtmosphere = (rCam <= Rt) ? tSurf : max(0.0f, tSurf - tEnter);
+        
+        float APFar = asfloat(APFarU32.Load(int3(0, 0, 0)));
+        float d = (APFar > 1e-6f) ? saturate(lengthInAtmosphere / APFar) : 0.0f;
         float u = pow(d, 1.0f / AP_Z_GAMMA);
-
+             
         // address slice **centers** then (optionally) jitter
         uint Wd, Hd, Dd;
         AerialPerspective3D.GetDimensions(Wd, Hd, Dd);
         float wAP = u * ((Dd - 1.0f) / Dd) + (0.5f / Dd);
-        
-        // W dither (±½ slice)
-        float nW = hash21(uint2(i.pos.xy), 0);
-        float wJitter = (nW - 0.5f) / float(Dd);
-        float wAPj = clamp(wAP + wJitter, 0.5f / float(Dd), 1.0f - 0.5f / float(Dd));
-        
-         // XY dither (±½ texel in AP XY)
-        float2 texelAP = 1.0 / float2(Wd, Hd);
-        float2 n2 = Rand2(uint2(i.pos.xy), 0);
-        float2 uvJ = clamp(uv + (n2 - 0.5) * texelAP, 0.5 * texelAP, 1.0 - 0.5 * texelAP);
 
         // final sample: TRILINEAR
-        float4 ap = AerialPerspective3D.SampleLevel(ClampLinear, float3(uvJ, wAPj), 0);
+        float4 ap = AerialPerspective3D.SampleLevel(ClampLinear, float3(uv, wAP), 0);
         float tau = max(ap.a, 0.0f);
         
         float3 betaExt = RayleighScattering + MieScattering + MieAbsorption; // 1/m
