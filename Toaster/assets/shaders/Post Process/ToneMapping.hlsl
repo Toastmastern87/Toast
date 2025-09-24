@@ -78,5 +78,5 @@ float4 main(PixelInputType input) : SV_TARGET
     // Clamp to [0,1] (still linear). No manual sRGB — backbuffer is sRGB.
     color = saturate(max(color, 0.0f));
 
-    return float4(color, colorHDR.a);
+    return float4(color, 1.0f);
 }

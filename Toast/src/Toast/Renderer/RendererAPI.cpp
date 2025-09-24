@@ -24,37 +24,72 @@ namespace Toast {
 		mWidth = clientRect.right - clientRect.left;
 		mHeight = clientRect.bottom - clientRect.top;
 
-		TOAST_CORE_ASSERT(mWindowHandle, "Window handle is null!");
-
-		// Setup swap chain
-		DXGI_SWAP_CHAIN_DESC sd = {};
-		sd.BufferCount = 1;
-		sd.BufferDesc.Width = mWidth;
-		sd.BufferDesc.Height = mHeight;
-		sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-		sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-		sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-		sd.BufferDesc.RefreshRate.Numerator = 0;
-		sd.BufferDesc.RefreshRate.Denominator = 0;
-		sd.Flags = 0;
-		sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		sd.OutputWindow = mWindowHandle;
-		sd.SampleDesc.Count = 4;
-		sd.SampleDesc.Quality = 0;
-		sd.Windowed = TRUE;
-		sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-
-		D3D_FEATURE_LEVEL featureLevels = { D3D_FEATURE_LEVEL_11_1 };
-
 		UINT createDeviceFlags = 0;
-
 #ifdef TOAST_DEBUG
 		createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-		HRESULT result = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, &featureLevels, 1, D3D11_SDK_VERSION, &sd, &mSwapChain, &mDevice, nullptr, &mDeviceContext);
+		D3D_FEATURE_LEVEL fl = D3D_FEATURE_LEVEL_11_1;
+		HRESULT result = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, &fl, 1, D3D11_SDK_VERSION, &mDevice, nullptr, &mDeviceContext);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create D3D11 device");
 
-		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create DirectX device and swapchain");
+		TOAST_CORE_ASSERT(mWindowHandle, "Window handle is null!");
+
+		// --- Get factory (DXGI 1.2+) ---
+		Microsoft::WRL::ComPtr<IDXGIDevice> dxgiDevice;
+		result = mDevice->QueryInterface(IID_PPV_ARGS(&dxgiDevice));
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "No IDXGIDevice");
+
+		Microsoft::WRL::ComPtr<IDXGIAdapter> adapter;
+		result = dxgiDevice->GetAdapter(&adapter);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "No IDXGIAdapter");
+
+		Microsoft::WRL::ComPtr<IDXGIFactory2> factory2;
+		result = adapter->GetParent(IID_PPV_ARGS(&factory2));
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "No IDXGIFactory2");
+
+		// Setup swap chain
+		DXGI_SWAP_CHAIN_DESC1 swapDesc = {};
+		swapDesc.Width = mWidth;
+		swapDesc.Height = mHeight;
+		swapDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+		swapDesc.Stereo = FALSE;
+		swapDesc.SampleDesc = { 1, 0 };
+		swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		swapDesc.BufferCount = 3;
+		swapDesc.Scaling = DXGI_SCALING_STRETCH;
+		swapDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		swapDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+		swapDesc.Flags = 0;
+
+		Microsoft::WRL::ComPtr<IDXGISwapChain1> swapchain1;
+		result = factory2->CreateSwapChainForHwnd(mDevice.Get(), mWindowHandle, &swapDesc, nullptr, nullptr, &swapchain1);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "CreateSwapChainForHwnd failed");
+
+		// Disable Alt+Enter (optional, recommended for tools)
+		factory2->MakeWindowAssociation(mWindowHandle, DXGI_MWA_NO_ALT_ENTER);
+
+		Microsoft::WRL::ComPtr<IDXGISwapChain3> swapchain3;
+		result = swapchain1.As(&swapchain3);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "SwapChain v3 query failed");
+
+		UINT support = 0;
+		result = swapchain3->CheckColorSpaceSupport(DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709, &support);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "CheckColorSpaceSupport failed");
+
+		if (support & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT)
+		{
+			result = swapchain3->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709); // scRGB
+			TOAST_CORE_ASSERT(SUCCEEDED(result), "SetColorSpace1(scRGB) failed");
+		}
+		else
+		{
+			// Fallback to SDR if OS/monitor doesn't support scRGB
+			result = swapchain3->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709);
+			TOAST_CORE_ASSERT(SUCCEEDED(result), "SetColorSpace1(SDR) failed");
+		}
+
+		mSwapChain = swapchain3.Get();
 
 		LogAdapterInfo();
 

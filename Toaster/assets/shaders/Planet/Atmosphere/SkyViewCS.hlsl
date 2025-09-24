@@ -419,7 +419,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     float muSunAtCam = dot(upCam, -normalize(direction.xyz));
     float fNight = smoothstep(fadeEnd, fadeStart, muSunAtCam);
 
-    float nightEVBias = lerp(-3.5f, 0.0f, fNight); // -3 EV in deep night → 0 EV near horizon
+    float nightEVBias = lerp(-1.0f, 0.0f, fNight); // -3 EV in deep night → 0 EV near horizon
     float nightMul = exp2(nightEVBias);
     float3 skyRGB = (Ls + Lms) * Esun * nightMul;
 

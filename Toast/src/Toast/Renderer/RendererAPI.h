@@ -7,6 +7,7 @@
 #include <DirectXMath.h>
 #include <d3d11.h>
 #include <d3d11_1.h>
+#include <dxgi1_6.h> 
 #include <wrl.h>
 
 namespace Toast {

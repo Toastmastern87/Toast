@@ -17,6 +17,9 @@
 
 namespace Toast 
 {
+
+#define RGB8(u) ImVec4((( (u)>>16)&0xFF)/255.0f,(((u)>>8)&0xFF)/255.0f,((u)&0xFF)/255.0f,1.0f)
+
 	ImGuiLayer::ImGuiLayer(WindowsWindow* window)
 		: Layer("ImGuiLayer")
 	{
@@ -126,34 +129,40 @@ namespace Toast
 	{
 		auto& colors = ImGui::GetStyle().Colors;
 
-		colors[ImGuiCol_WindowBg] = ImVec4{ 0.12f, 0.12f, 0.12f, 1.0f };
+		colors[ImGuiCol_WindowBg]			= RGB8(0x0C0C0C);
+
+		// Text
+		colors[ImGuiCol_Text]				= RGB8(0xFFFFFF); // bright white
+		colors[ImGuiCol_TextDisabled]		= RGB8(0xB0B0B0); // softer grey
 
 		// Headers
-		colors[ImGuiCol_Header] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
-		colors[ImGuiCol_HeaderHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
-		colors[ImGuiCol_HeaderActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+		colors[ImGuiCol_Header]				= RGB8(0x151616); // ~0.083,0.085,0.088
+		colors[ImGuiCol_HeaderHovered]		= RGB8(0x202021); // ~0.126,0.127,0.129
+		colors[ImGuiCol_HeaderActive]		= RGB8(0x101010); // ~0.063
 
 		// Buttons
-		colors[ImGuiCol_Button] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
-		colors[ImGuiCol_ButtonHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
-		colors[ImGuiCol_ButtonActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+		colors[ImGuiCol_Button]				= RGB8(0x151616);
+		colors[ImGuiCol_ButtonHovered]		= RGB8(0x202021);
+		colors[ImGuiCol_ButtonActive]		= RGB8(0x101010);
 
 		// Frame BG
-		colors[ImGuiCol_FrameBg] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
-		colors[ImGuiCol_FrameBgHovered] = ImVec4{ 0.3f, 0.305f, 0.31f, 1.0f };
-		colors[ImGuiCol_FrameBgActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+		colors[ImGuiCol_FrameBg]			= RGB8(0x151616);
+		colors[ImGuiCol_FrameBgHovered]		= RGB8(0x202021);
+		colors[ImGuiCol_FrameBgActive]		= RGB8(0x101010);
 
 		// Tabs
-		colors[ImGuiCol_Tab] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
-		colors[ImGuiCol_TabHovered] = ImVec4{ 0.38f, 0.3805f, 0.381f, 1.0f };
-		colors[ImGuiCol_TabActive] = ImVec4{ 0.28f, 0.2805f, 0.281f, 1.0f };
-		colors[ImGuiCol_TabUnfocused] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
-		colors[ImGuiCol_TabUnfocusedActive] = ImVec4{ 0.2f, 0.205f, 0.21f, 1.0f };
+		colors[ImGuiCol_Tab]				= RGB8(0x101010);
+		colors[ImGuiCol_TabHovered]			= RGB8(0x282828); // ~0.158
+		colors[ImGuiCol_TabActive]			= RGB8(0x1E1E1E); // ~0.117
+		colors[ImGuiCol_TabUnfocused]		= RGB8(0x101010);
+		colors[ImGuiCol_TabUnfocusedActive] = RGB8(0x151616);
 
-		// Title
-		colors[ImGuiCol_TitleBg] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
-		colors[ImGuiCol_TitleBgActive] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
-		colors[ImGuiCol_TitleBgCollapsed] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
+		// Title bars
+		colors[ImGuiCol_TitleBg]			= RGB8(0x101010);
+		colors[ImGuiCol_TitleBgActive]		= RGB8(0x101010);
+		colors[ImGuiCol_TitleBgCollapsed]	= RGB8(0x101010);
+
+		colors[ImGuiCol_MenuBarBg] = colors[ImGuiCol_TitleBgActive];
 	}
 
 }
