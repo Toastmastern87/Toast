@@ -71,8 +71,8 @@ namespace Toast {
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshWireframeDrawList, MeshNoWireframeDrawList;
 			DrawCommandPlanet PlanetDraw;
 
-			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, SunDiscSettingsCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer, SpecularMapFilterSettingsCBuffer, SSAOCBuffer, GodRaysCBuffer;
-			Buffer CameraBuffer, LightningBuffer, SunDiscSettingsBuffer, RenderSettingsBuffer, AtmosphereBuffer, ModelBuffer, MaterialBuffer, SpecularMapFilterSettingsBuffer, SSAOBuffer, GodRaysBuffer;
+			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, SunDiscSettingsCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer, SpecularMapFilterSettingsCBuffer, SSAOCBuffer, GodRaysCBuffer, ExposureCBuffer;
+			Buffer CameraBuffer, LightningBuffer, SunDiscSettingsBuffer, RenderSettingsBuffer, AtmosphereBuffer, ModelBuffer, MaterialBuffer, SpecularMapFilterSettingsBuffer, SSAOBuffer, GodRaysBuffer, ExposureBuffer;
 
 			// Back buffer
 			Ref<RenderTarget> BackbufferRT;
@@ -90,8 +90,13 @@ namespace Toast {
 			Microsoft::WRL::ComPtr<ID3D11BlendState> ParticleBlendState;
 			Microsoft::WRL::ComPtr<ID3D11DepthStencilState> ParticleDepthStencilState;
 
+			// Stars pass
+			Ref<RenderTarget> StarsRT;
+			Ref<ConstantBuffer> StarsCBuffer;
+			Buffer StarsBuffer;
+
 			// Atmosphere pass
-			Ref<RenderTarget> AtmospherePassRT;
+			Ref<RenderTarget> AtmospherePassRT;			
 			Ref<RenderTarget> AtmosphereCubeRT;
 
 			// Environmental Textures
@@ -101,7 +106,7 @@ namespace Toast {
 			Ref<RenderTarget> FinalRT;
 
 			// Viewports
-			D3D11_VIEWPORT Viewport, ShadowMapViewport, EditorViewport;
+			D3D11_VIEWPORT Viewport, ShadowMapViewport, EditorViewport, AtmosphereCubeViewport;
 
 			// Rasterization states
 			Microsoft::WRL::ComPtr<ID3D11RasterizerState> NormalRasterizerState, WireframeRasterizerState, ShadowMapRasterizerState;
@@ -122,10 +127,20 @@ namespace Toast {
 			// Good Ray data
 			Ref<RenderTarget> GodRaySunMaskRT;
 
+			// Auto Exposure data
+			uint32_t ExposureGroupWidth;
+			uint32_t ExposureGroupHeight;
+			Ref<Texture2D> AutoExposureGroupBuffer;
+			Ref<Texture2D> AutoExposureGroupStaging;
+
 			// Bloom data
 			Ref<RenderTarget> BloomRT, HorizontalBlurRT, VerticalBlurRT, FinalBloomRT;
 			Ref<ConstantBuffer> BloomCBuffer;
 			Buffer BloomBuffer;
+
+			// Tonemapping data
+			Ref<ConstantBuffer> TonemappingCBuffer;
+			Buffer TonemappingBuffer;
 
 			// Utils
 			Ref<Texture2D> SpecularBRDFLUT;
@@ -151,7 +166,7 @@ namespace Toast {
 		static void OnViewportResize(uint32_t width, uint32_t height);
 
 		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos, Scene::Environment& environment, int wireFrame);
-		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, const bool bloom, float bloomThreshold, float bloomIntensity, float godRayExposure, float godRayDecay, float godRayDensity, float godRayWeight);
+		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, const bool bloom, float bloomThreshold, float bloomIntensity, float godRayExposure, float godRayDecay, float godRayDensity, float godRayWeight, float dt);
 
 		static void CreateDepthBuffer(uint32_t width, uint32_t height);
 		static void CreateDepthStencilView();
@@ -180,16 +195,17 @@ namespace Toast {
 		// Deffered Rendering
 		static void GeometryPass();
 		static void ShadowPass();
-		static void LightningPass(Ref<Planet>& planet);
+		static void LightningPass(Ref<Planet>& planet, Scene::Environment& environment);
 		static void ParticlesPass(Camera& camera, const DirectX::XMFLOAT4 cameraPos);
 		static void SSAOPass(float radius, float bias);
 
 		// Post Processes
-		static void StarFieldPass();
+		static void StarFieldPass(Scene::Environment& environment, const float atmosphereHeight );
 		static void AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldTranslation, const bool dynamicIBL);
 		static void BloomPass(float threshold, float intensity);
 		static void GodRayPass(float exposure, float decay, float density, float weight);
-		static void PostProcessPass(const bool bloom);
+		static void PostProcessPass(const bool bloom, Scene::Environment& environment);
+		static void AutoExposurePass(Scene::ExposureParams& exposureParams, float dt);
 
 		static Ref<RenderTarget>& GetGPassPositionRT() { return sRendererData->GPassPositionRT; }
 		static Ref<RenderTarget>& GetGPassNormalRT() { return sRendererData->GPassNormalRT; }
@@ -198,6 +214,7 @@ namespace Toast {
 		static Ref<RenderTarget>& GetGPassPickingRT() { return sRendererData->GPassPickingRT; }
 
 		static Ref<RenderTarget>& GetAtmosphericScatteringRT() { return sRendererData->AtmospherePassRT; }
+		static Ref<RenderTarget>& GetStarsRT() { return sRendererData->StarsRT; }
 
 		static Ref<RenderTarget>& GetSSAORT() { return sRendererData->SSAORT; }
 		static Ref<RenderTarget>& GetSSAOBlurRT() { return sRendererData->SSAOBlurRT; }
@@ -209,6 +226,8 @@ namespace Toast {
 		static Ref<RenderTarget>& GetLPassRT() { return sRendererData->LPassRT; }
 
 		static Ref<RenderTarget>& GetFinalRT() { return sRendererData->FinalRT; }
+
+		static Ref<Texture2D>& GetAutoExposureGrouping() { return sRendererData->AutoExposureGroupBuffer; }
 
 		static void EnableAtmosphere(bool atmosphere) { sRendererData->PlanetData.Atmosphere = atmosphere; }
 

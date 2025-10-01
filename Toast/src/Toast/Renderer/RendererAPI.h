@@ -27,6 +27,7 @@ namespace Toast {
 		void SwapBuffers(bool vSync);
 		void SetShaderResource(D3D11_SHADER_TYPE shaderType, uint32_t bindSlot, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
 		void ClearShaderResources();
+		void CopyResource(ID3D11Resource* dest, ID3D11Resource* src);
 		void ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 		void SetPrimitiveTopology(PrimitiveTopology topology);
 		void CleanUp();

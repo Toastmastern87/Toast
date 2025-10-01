@@ -104,6 +104,45 @@ SamplerState SkyAniso       : register(s3);
 static const float PI = 3.14159265358979323846f;
 static const float3 LUMA = float3(0.2126, 0.7152, 0.0722);
 
+// ----- constants (keep local; no new uniforms) -----
+static const float PaperWhiteNits = 200.0f; // must match your tonemapper
+static const float DiscNitsPerIntensity = 3200.0f; // 1.0 intensity -> ~3200 nits
+static const float3 SunTint = float3(1.00, 0.985, 0.960);
+
+// ---------- HELPERS ----------
+float2 SunScreenUV()
+{
+    float3 wSun = -normalize(direction.xyz); // TO sun
+    float3 pWS = cameraPosition.xyz + wSun * 1e6;
+    float4 pVS = mul(float4(pWS, 1), viewMatrix);
+    float4 pCS = mul(pVS, projectionMatrix);
+    float2 ndc = pCS.xy / max(pCS.w, 1e-6);
+    return 0.5 * (ndc * float2(1, -1) + float2(1, 1));
+}
+
+float Starburst(float2 dirNorm, float sharp, float aspect)
+{
+    float2 dn = (all(dirNorm == 0)) ? float2(1, 0) : normalize(float2(dirNorm.x * (1.0 + aspect), dirNorm.y));
+    float2 a0 = float2(1, 0), a1 = float2(0, 1);
+    float2 a2 = normalize(float2(1, 1));
+    float2 a3 = normalize(float2(1, -1));
+    float s = max(max(abs(dot(dn, a0)), abs(dot(dn, a1))),
+                   max(abs(dot(dn, a2)), abs(dot(dn, a3))));
+    return pow(s, sharp);
+}
+
+// Rayleigh and Henyey–Greenstein phase functions (normalized)
+float PhaseRayleigh(float cosTheta)
+{
+    return (3.0f / (16.0f * PI)) * (1.0f + cosTheta * cosTheta);
+}
+float PhaseMie(float cosTheta, float g)
+{
+    float g2 = g * g;
+    float denom = pow(max(1.0f + g2 - 2.0f * g * cosTheta, 1e-4f), 1.5f);
+    return (1.0f / (4.0f * PI)) * ((1.0f - g2) / denom);
+}
+
 void BuildSkyBasis(float3 camWS, float3 planetCenter, float3 spinUpWS, out float3 up, out float3 east, out float3 north)
 {
     up = normalize(camWS - planetCenter); // true radial up at camera
@@ -241,7 +280,7 @@ float VFromMuWindowed(float mu, float mu0, float mu1)
     return saturate((mu - mu0) / max(mu1 - mu0, 1e-6f));
 }
 
-float SunVisibilityAtR_Config(float r, float muS, float Rb, float sunRadius)
+float SunVisibilityAtR(float r, float muS, float Rb, float sunRadius)
 {
     float sinThetaH = Rb / r;
     float cosThetaH = -sqrt(saturate(1.0f - sinThetaH * sinThetaH));
@@ -285,6 +324,39 @@ float2 Rand2(uint2 p, uint s)
     return float2(hash21(p, s), hash21(p.yx ^ uint2(0x4b1d2fu, 0xa7c5d1u), s));
 }
 
+// Transmittance of the *atmospheric segment* intersected by ray (ro,rd).
+// Uses your TLUT T_to_TOA(r, mu, Rb, Rt):
+// If the LUT encodes T(p->TOA) = exp(-tau), then T_segment(p->q) = T(p->TOA) / T(q->TOA)
+float3 TLUT_SegmentTransmittance(float3 ro, float3 rd, float RbVis, float Rt)
+{
+    Hit hit = IntersectSphereGrazingSafe(ro, rd, Rt);
+    if (!hit.ok || hit.t1 <= max(0.0, hit.t0))
+        return 1.0.xxx; // no atmosphere on ray
+
+    float tEnter = max(0.0, hit.t0);
+    float tExit = hit.t1;
+
+    float3 pEnter = ro + rd * tEnter;
+    float3 pExit = ro + rd * tExit;
+
+    float rEnter = length(pEnter);
+    float rExit = length(pExit);
+
+    float3 upEnter = pEnter / rEnter;
+    float3 upExit = pExit / rExit;
+
+    float muEnter = dot(rd, upEnter); // cos zenith at entry
+    float muExit = dot(rd, upExit); // ...at exit (same rd)
+
+    float3 Tenter = T_to_TOA(rEnter, muEnter, RbVis, Rt);
+    float3 Texit = T_to_TOA(rExit, muExit, RbVis, Rt);
+
+    // Avoid divide-by-near-zero (if Texit extremely small, clamp)
+    Texit = max(Texit, 1e-5.xxx);
+
+    return saturate(Tenter / Texit);
+}
+
 // ===== PS ===================================================================
 struct PSIn
 {
@@ -309,13 +381,21 @@ float4 main(PSIn i) : SV_Target
     // If no geometry wrote to depth, draw SKY using the precomputed SkyView LUT
     if (depth <= 1e-12f)
     {
+        float3 camWS = cameraPosition.xyz;
+        float3 camRel = cameraPosition.xyz - PlanetCenterWS;
+        float rCam = max(PlanetRadius, length(camRel));
+        float3 wView = ViewDirWS_fromUV(uv); // unit
+        
+        Hit h = IntersectSphereGrazingSafe(camRel, wView, RbHit);
+        
+        if (h.ok && h.t1 > 0.0f)
+            return float4(0.0f, 0.0f, 0.0f, 0.0f);
+        
         uint Wsv, Hsv;
         SkyViewLUT.GetDimensions(Wsv, Hsv);
         float dv = 1.0f / Hsv;
-        
-        float3 wView = ViewDirWS_fromUV(uv);
-        float3 camRel = cameraPosition.xyz - PlanetCenterWS;
-        float rCam = max(PlanetRadius, length(camRel));
+       
+        float3 upCam = camRel / rCam;
 
         // pick the window 
         float mu0, mu1;
@@ -338,59 +418,159 @@ float4 main(PSIn i) : SV_Target
 
         float muV = dot(wView, normalize(camRel));
         float3 Tcam = T_to_TOA(rCam, muV, RbVis, Rt);
-
-        float3 stars = SceneColor.Sample(ClampPoint, uv).rgb * Tcam;
-        float ySky = dot(sky, LUMA);
-        float StarLumaGate = 0.005f; // adjust to taste
-        float wStar = saturate(1.0f - ySky / StarLumaGate); 
-        stars *= wStar;
         
         if (SunDiscToggle != 0)
         {
-            // Direction to sun (your light is FROM light -> scene)
-            float3 wSun = -normalize(direction.xyz);
+    // ----- directions & angles -----
+            float3 wSun = -normalize(direction.xyz); // TO sun
+            float muViewSun = dot(wView, wSun); // cos(theta)
+            float theta = acos(clamp(muViewSun, -1.0f, 1.0f)); // radians
+            float rNorm = theta / max(SunDiscRadius, 1e-6f);
 
-            // Angular distance of current pixel's ray to sun center
-            float muViewSun = dot(wView, wSun);
-            float theta = acos(clamp(muViewSun, -1.0f, 1.0f));
-            float rNorm = theta / max(SunDiscRadius, 1e-6f); // 1.0 at disc edge
-            
-            // Soft-edged disc mask (feather across the outer rim)
-            float edge0 = max(0.0f, 1.0f - SunEdgeSoftness); // inner edge of feather band
-            float edge1 = 1.0f; // outer edge (disc radius)
-            float discSoft = 1.0f - smoothstep(edge0, edge1, rNorm);
-
-            // Limb darkening (optional but makes it prettier)
-            float limb = LimbDarken(rNorm);
-
-            // Horizon visibility at the camera height (lets the disc graze cleanly)
             float3 camRel = cameraPosition.xyz - PlanetCenterWS;
             float rCam = max(PlanetRadius, length(camRel));
             float3 upCam = camRel / rCam;
             float muS_up = dot(upCam, wSun);
-            float VsunH = SunVisibilityAtR_Config(rCam, muS_up, RbVis, SunDiscRadius);
-    
-            // Final disc mask
-            float discMask = discSoft * limb * VsunH;
 
-            // Additive glow outside the disc, falling to zero at radius*(1+SunGlowSize)
-            // Starts at the rim (rNorm=1) and extends to rNorm=1+SunGlowSize
-            float glowOuter = 1.0f + max(SunGlowSize, 0.0f);
-            float glowRing = 1.0f - smoothstep(1.0f, glowOuter, rNorm);
-            // Mostly keep glow outside the core so the core stays crisp
-            float glowMask = glowRing * (1.0f - discSoft) * VsunH;
+    // ===== HORIZON / TWILIGHT GATING =====
+            const float RefracCenterDeg = 0.83f; // apparent sunset lift
+            float VdiscH = SunVisibilityAtR(
+        rCam, muS_up, RbVis, SunDiscRadius + radians(RefracCenterDeg));
 
-            // Sun radiance (same units as SkyView) tinted by atmospheric T along the view ray
-            float3 Esun = radiance.rgb * SunIntensity; // radiance
-            float3 sunDisc = Esun * Tcam * discMask;
-            float3 sunGlow = Esun * Tcam * (SunGlowIntensity * glowMask);
+            float sunAlt = asin(clamp(muS_up, -1.0f, 1.0f)); // radians
+            float twilight = smoothstep(radians(-6.0f), radians(0.0f), sunAlt);
+            float haloGate = max(VdiscH, twilight * twilight); // halo lingers into civil twilight
 
-            // Accumulate
-            sky += sunDisc + sunGlow;
+    // ---------- brightness scaling ----------
+            const float PaperWhiteNits = 200.0f;
+            const float DiscNitsPerIntensity = 3200.0f; // 1.0 -> 3200 nits
+            const float3 SunTint = float3(1.00, 0.985, 0.960);
+            float discLinear = (SunIntensity * DiscNitsPerIntensity) / PaperWhiteNits;
+
+    // ===== View-ray transmittance (consistent basis for disc & halo) =====
+            float muV = dot(wView, normalize(camRel)); // view vs upCam
+            float3 Tview = saturate(T_to_TOA(rCam, muV, RbVis, Rt));
+
+    // Air-mass proxy from Tview (0 at zenith → larger near horizon)
+            float TvY = dot(Tview, 0.3333.xxx);
+            float airmass = saturate(-log(max(TvY, 1e-6)));
+            float zenith = saturate(1.0 - 0.6 * airmass); // ~1 at noon, ~0 near horizon
+
+    // ---------- disc shape ----------
+            float featherFracBase = clamp(SunEdgeSoftness * 0.25f, 0.02f, 0.06f);
+            float featherFrac = saturate(featherFracBase + (1.0 - zenith) * 0.02); // slightly softer near horizon
+            float discSoft = 1.0f - smoothstep(1.0f - featherFrac, 1.0f, rNorm);
+            float limb = LimbDarken(rNorm);
+            float discMask = discSoft * limb * VdiscH; // disc uses visibility only
+
+    // ===== DISC COLOR: achromatic extinction + warm shift (prevents blue disc) =====
+            float TviewY = dot(Tview, float3(0.2126, 0.7152, 0.0722)); // luminance
+            float TdiscSc = max(pow(saturate(TviewY), 0.80), 0.005); // soften & floor (no black hole)
+            float warmAmt = saturate(1.0 - zenith); // 0 noon → 1 horizon
+            float3 warmTint = normalize(lerp(float3(1, 1, 1), float3(1.06, 0.96, 0.84), 0.85 * warmAmt));
+
+    // Subtle disc EV bias (dim a bit toward horizon)
+            float discEVBias = lerp(-0.5, 0.0, zenith);
+            float discGain = exp2(discEVBias);
+
+            float3 discTintFinal = normalize(SunTint * warmTint); // slightly warm, never blue
+            float3 sunDisc = discTintFinal * (discLinear * discGain) * TdiscSc * discMask;
+
+    // ===== HALO (sky-tinted, path-length & altitude gated) =====
+
+    // Basis for sky tints
+            float3 up, east, north;
+            BuildSkyBasis(cameraPosition.xyz, PlanetCenterWS, BasisSpinUp, up, east, north);
+
+    // Sunward sky sample (for tint near disc)
+            float xEs = dot(wSun, east);
+            float xNs = dot(wSun, north);
+            float muS = dot(wSun, up);
+
+    // Recompute μ-window for current camera height
+            float mu0, mu1;
+            GetMuWindow(rCam, RbVis, Rt, mu0, mu1);
+
+            float uSun = frac((atan2(xNs, xEs) + PI) / (2.0f * PI));
+            float vSun = 1.0f - VFromMuWindowed(muS, mu0, mu1);
+
+            float3 skyTowardSun = SkyViewLUT.Sample(SkyAniso, float2(uSun, vSun)).rgb;
+            float3 sunSkyTint = skyTowardSun / max(dot(skyTowardSun, LUMA), 1e-3);
+            float3 skyTintLocal = sky / max(dot(sky, LUMA), 1e-3);
+
+    // Tint evolves from sun-side sky near the disc to local sky farther out;
+    // also nudge toward a near-white Mie color at high sun (avoid icy cyan at noon)
+            float tAngle = smoothstep(0.0f, radians(6.0f), theta);
+            float3 haloTint = normalize(lerp(sunSkyTint, skyTintLocal, tAngle));
+            float3 mieWhite = float3(1.00, 0.98, 0.95);
+            haloTint = normalize(lerp(haloTint, mieWhite, 0.45 * zenith));
+
+    // If sun is below horizon, bias back toward local sky to avoid over-red halo
+            float below = saturate(-sunAlt / radians(6.0f));
+            haloTint = normalize(lerp(haloTint, skyTintLocal, 0.6f * below));
+
+    // ---- Path-length: how much of the view ray is inside atmosphere?
+            Hit hitAtm = IntersectSphereGrazingSafe(camRel, wView, Rt);
+            float L_atmo = (hitAtm.ok && hitAtm.t1 > max(0.0, hitAtm.t0))
+                 ? (max(0.0, hitAtm.t1) - max(0.0, hitAtm.t0)) : 0.0;
+
+    // Convert to [0..1] gate (0 if no intersection, →1 for long paths)
+            const float L0 = 12000.0; // ~12 km; tweak 8–20 km to taste
+            float mPath = 1.0 - exp(-L_atmo / L0);
+
+    // Altitude gate: fade halo as camera climbs to space
+            float hCam = max(0.0f, rCam - RbVis);
+            float densR = exp(-hCam / max(RayScaleHeight, 1.0f));
+            float densM = exp(-hCam / max(MieScaleHeight, 1.0f));
+            float mAlt = saturate(0.35 * densR + 0.65 * densM);
+
+    // Angular shaping: tight core + soft outer fade (no hard cutoff)
+            float haloHalfDegBase = lerp(2.0, 6.0, saturate(SunGlowSize));
+            float haloHalfDeg = lerp(max(1.2, haloHalfDegBase * 0.7), haloHalfDegBase, 1.0 - 0.85 * zenith);
+            float theta50 = radians(haloHalfDeg);
+            float haloCore = exp(-(theta * theta) / (2.0f * theta50 * theta50)); // inner Gaussian
+
+            float thetaOuterOn = radians(8.0); // start fading after ~8°
+            float thetaOuterOff = radians(18.0); // fully gone by ~18°
+            float outerGate = smoothstep(thetaOuterOff, thetaOuterOn, theta);
+
+            float haloAngular = haloCore * outerGate;
+
+    // Keep mild chroma for atmospheric halo; slightly brighter at zenith to avoid over-dimming
+            float3 Thalo = pow(Tview, 0.35);
+            float3 ThaloZenith = lerp(Thalo, max(Thalo, pow(Thalo, 0.25)), 0.5 * zenith);
+
+    // Final halo intensity with air-mass scaling + gates
+            float haloGain = SunGlowIntensity * lerp(0.35, 1.2, 1.0 - 0.85 * zenith);
+
+            float3 halo = haloTint * (discLinear * haloGain) * haloAngular * haloGate * ThaloZenith;
+            halo *= (mPath * mAlt); // kill in space / very short paths
+
+    // ---------- compact dazzle veil (optional glare cone) ----------
+            float coneDeg = lerp(10.0f, 16.0f, saturate(SunGlowSize));
+            coneDeg = lerp(coneDeg * 0.6, coneDeg, 1.0 - 0.8 * zenith); // smaller at noon
+            float cone = radians(coneDeg);
+            if (SunGlowIntensity > 0.0f && theta <= cone)
+            {
+                float theta0 = 3.0f * SunDiscRadius;
+                float veil = (discLinear / (1.0 + (theta / theta0) * (theta / theta0))) * (0.6f * SunGlowIntensity);
+                veil = min(veil, 0.30f * discLinear);
+                float edge = smoothstep(cone, 0.0f, theta);
+
+                float3 veilColor = lerp(1.0.xxx, haloTint, 0.20 * (1.0 - zenith)); // whiter at noon
+                float3 veilTerm = (veil * edge) * veilColor * haloGate * ThaloZenith;
+                halo += veilTerm * (mPath * mAlt); // same atmosphere gates
+            }
+
+    // Accumulate (pre-tonemap)
+            sky += sunDisc + halo;
+
+    // // DEBUG: visualize true disc edge (uncomment to verify apparent size)
+    // float ring = smoothstep(0.985, 0.995, rNorm) - smoothstep(1.005, 1.015, rNorm);
+    // sky += ring.xxx;
         }
-
-        
-        float3 outSky = sky + stars;
+               
+        float3 outSky = sky;
         return float4(max(outSky, 0.0f), 1.0f);
     }
     else

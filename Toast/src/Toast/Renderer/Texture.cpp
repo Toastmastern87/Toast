@@ -382,12 +382,16 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		result = device->CreateTexture2D(&textureDesc, nullptr, &mTexture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
 
-		CreateSRV();
+		if (bindFlag & D3D11_BIND_SHADER_RESOURCE)
+			CreateSRV();
 
 		if (bindFlag & D3D11_BIND_UNORDERED_ACCESS)
 			CreateUAV(0);
 
-		mSRV->GetResource(&mResource);
+		if (mSRV)
+			mSRV->GetResource(&mResource);
+		else      
+			mResource = mTexture;
 	}
 
 	Texture2D::Texture2D(DXGI_FORMAT format, DXGI_FORMAT srvFormat, uint32_t width, uint32_t height, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags, void* initialData, UINT rowPitch)
@@ -649,6 +653,25 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Unable to create UAV for Texture3D!");
 	}
 
+	void Texture3D::SetData(const void* data, uint32_t rowPitch, uint32_t depthPitch)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		ID3D11DeviceContext* deviceContext = RenderCommand::sRendererAPI->GetDeviceContext();
+
+		// Describe the source data
+		D3D11_BOX box = {};
+		box.left = 0;
+		box.top = 0;
+		box.front = 0;
+		box.right = mWidth;
+		box.bottom = mHeight;
+		box.back = mDepth;
+
+		// Update entire resource
+		deviceContext->UpdateSubresource(mTexture3D.Get(), 0,	&box, data,	rowPitch, depthPitch);
+	}
+
 	void Texture3D::Bind(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -660,10 +683,13 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		{
 		case D3D11_VERTEX_SHADER:
 			deviceContext->VSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
+			break;
 		case D3D11_PIXEL_SHADER:
 			deviceContext->PSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
+			break;
 		case D3D11_COMPUTE_SHADER:
 			deviceContext->CSSetShaderResources(bindslot, 1, mSRV.GetAddressOf());
+			break;
 		}
 	}
 
@@ -680,7 +706,6 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		ID3D11UnorderedAccessView* nullUAV = nullptr;
 		ctx->CSSetUnorderedAccessViews(bindslot, 1, &nullUAV, nullptr);
 	}
-
 
 	////////////////////////////////////////////////////////////////////////////////////////  
 	//     TEXTURECUBE   ///////////////////////////////////////////////////////////////////  

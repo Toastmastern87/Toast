@@ -654,6 +654,16 @@ namespace Toast {
 		out << YAML::Key << "SunEdgeSoftness" << YAML::Value << environment.SunEdgeSoftness;
 		out << YAML::Key << "SunGlowIntensity" << YAML::Value << environment.SunGlowIntensity;
 		out << YAML::Key << "SunGlowSize" << YAML::Value << environment.SunGlowSize;
+		out << YAML::Key << "GlareInnerDeg" << YAML::Value << environment.GlareInnerDeg;
+		out << YAML::Key << "GlareOuterDeg" << YAML::Value << environment.GlareOuterDeg;
+		out << YAML::Key << "StarNits" << YAML::Value << environment.StarNits;
+		out << YAML::Key << "DayFadeStartDeg" << YAML::Value << environment.DayFadeStartDeg;
+		out << YAML::Key << "DayFadeEndDeg" << YAML::Value << environment.DayFadeEndDeg;
+		out << YAML::Key << "TwilightStartDeg" << YAML::Value << environment.TwilightStartDeg;
+		out << YAML::Key << "TwilightEndDeg" << YAML::Value << environment.TwilightEndDeg;
+		out << YAML::Key << "SpaceFadeStart" << YAML::Value << environment.SpaceFadeStart;
+		out << YAML::Key << "SpaceFadeEnd" << YAML::Value << environment.SpaceFadeEnd;
+		out << YAML::Key << "NightAmbient" << YAML::Value << environment.NightAmbient;
 		out << YAML::EndMap;
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
@@ -785,6 +795,16 @@ namespace Toast {
 		environment.SunEdgeSoftness = env["SunEdgeSoftness"].as<float>();
 		environment.SunGlowIntensity = env["SunGlowIntensity"].as<float>();
 		environment.SunGlowSize = env["SunGlowSize"].as<float>();
+		environment.GlareInnerDeg = env["GlareInnerDeg"].as<float>();
+		environment.GlareOuterDeg = env["GlareOuterDeg"].as<float>();
+		environment.StarNits = env["StarNits"].as<float>();
+		environment.DayFadeStartDeg = env["DayFadeStartDeg"].as<float>();
+		environment.DayFadeEndDeg = env["DayFadeEndDeg"].as<float>();
+		environment.TwilightStartDeg = env["TwilightStartDeg"].as<float>();
+		environment.TwilightEndDeg = env["TwilightEndDeg"].as<float>();
+		environment.SpaceFadeStart = env["SpaceFadeStart"].as<float>();
+		environment.SpaceFadeEnd = env["SpaceFadeEnd"].as<float>();
+		environment.NightAmbient = env["NightAmbient"].as<DirectX::XMFLOAT3>();
 
 		auto entities = data["Entities"];
 		if (entities) 

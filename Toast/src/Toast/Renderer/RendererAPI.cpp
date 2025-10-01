@@ -144,6 +144,11 @@ namespace Toast {
 		mDeviceContext->CSSetShaderResources(0, 16, nullSRVs);
 	}
 
+	void RendererAPI::CopyResource(ID3D11Resource* dest, ID3D11Resource* src)
+	{
+		mDeviceContext->CopyResource(dest, src);
+	}
+
 	void RendererAPI::ResizeViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
 	{
 		mSwapChain->ResizeBuffers(1, width, height, DXGI_FORMAT_UNKNOWN, 0);

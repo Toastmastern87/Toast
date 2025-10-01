@@ -20,7 +20,19 @@
 namespace Toast {
 
 	enum class RenderOverlay {
-		NONE = 0, POSITIONS = 1, NORMALS = 2, ALBEDOMETALLIC = 3, ROUGHNESS = 4, LPASS = 5, ATMOSPHERICSCATTERING = 6, SSAO = 7, SSAOBLUR = 8, BLOOM = 9, BLOOMBLUR = 10, BLOOMFINAL = 11
+		NONE = 0, 
+		POSITIONS = 1,
+		NORMALS = 2, 
+		ALBEDOMETALLIC = 3, 
+		ROUGHNESS = 4, 
+		LPASS = 5, 
+		ATMOSPHERICSCATTERING = 6, 
+		SSAO = 7, 
+		SSAOBLUR = 8, 
+		BLOOM = 9, 
+		BLOOMBLUR = 10, 
+		BLOOMFINAL = 11, 
+		AUTOEXPOSUREGROUP = 12
 	};
 
 	struct DirectionalLight
@@ -44,6 +56,22 @@ namespace Toast {
 	class Scene : public std::enable_shared_from_this<Scene>
 	{
 	public:
+		struct ExposureParams
+		{
+			float LogLumMin = -16.0f;
+			float LogLumMax = 8.0f;
+			float RejectBrightNits = 4.0f;
+			float RejectBrightSoftNits = 2.0f;
+			float RejectDark = 0.002f;
+			float CenterWeight = 0.85f;
+			float LastEV = 0.0f;
+			float KeyValue = 0.25f;
+			float SpeedUp = 1.5f;
+			float SpeedDown = 2.5f;
+			float MinEV = -10.0f;
+			float MaxEV = 12.0f;
+		};
+
 		//Settings
 		struct Settings
 		{
@@ -80,6 +108,8 @@ namespace Toast {
 			float GodRaysDecay = 0.94f;
 			float GodRaysDensity = 3.0f;
 			float GodRaysWeight = 0.02f;
+
+			ExposureParams AutoExposure;
 		};
 
 		struct Stats
@@ -92,12 +122,26 @@ namespace Toast {
 
 		struct Environment 
 		{
+			DirectX::XMFLOAT3 NightAmbient = { 0.0f, 0.0f, 0.0f };
+
+			// Sun
 			bool SunDiscToggle = false;
 			float SunIntensity = 0.0f;
 			float SunDiscRadius = 0.0f;
 			float SunEdgeSoftness = 0.0f;
 			float SunGlowSize = 0.0f;
 			float SunGlowIntensity = 0.0f;
+			float GlareInnerDeg = 5.0f; // sun glare inner angle (e.g. 5.0)
+			float GlareOuterDeg = 12.0f; // sun glare outer angle (e.g. 12.0)
+
+			// Stars
+			float StarNits = 600.0f; // brightness of 1 sun-like star in nits
+			float DayFadeStartDeg = 2.0f; // start hiding stars above horizon (e.g. +2.0)
+			float DayFadeEndDeg = -2.0f; // fully hidden by (e.g. 0.0 or -2.0)
+			float TwilightStartDeg = 0.0f; // start appearing (e.g. 0.0)
+			float TwilightEndDeg = -6.0f; // fully visible by (e.g. -6.0)
+			float SpaceFadeStart = 0.85f; // altitude norm where space visibility starts (0..1), e.g. 0.85
+			float SpaceFadeEnd = 0.98f; // fully visible by (0..1), e.g. 0.98
 		};
 
 		Scene();

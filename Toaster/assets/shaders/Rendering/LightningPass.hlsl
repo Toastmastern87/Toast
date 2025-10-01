@@ -75,6 +75,22 @@ cbuffer Atmosphere : register(b5)
     float APFarDynamic; // camera->max distance for AP (meters)
 };
 
+cbuffer StarsParams : register(b7)
+{
+    float StarNits; // e.g. 600.0 (display-space peak for brightest texel)
+    float DayFadeStartDeg; // start hiding stars above horizon (e.g. +2.0)
+    float DayFadeEndDeg; // fully hidden by (e.g. 0.0 or -2.0)
+    float TwilightStartDeg; // start appearing (e.g. 0.0)
+    
+    float TwilightEndDeg; // fully visible by (e.g. -6.0)
+    float SpaceFadeStart; // altitude norm where space visibility starts (0..1), e.g. 0.85
+    float SpaceFadeEnd; // fully visible by (0..1), e.g. 0.98
+    float GlareInnerDeg; // sun glare inner angle (e.g. 5.0)
+    
+    float GlareOuterDeg; // sun glare outer angle (e.g. 12.0)
+    float3 NightAmbient;
+}
+
 // G-buffer Textures
 Texture2D positionTexture               : register(t0); // View-space position
 Texture2D normalTexture                 : register(t1); // Encoded normals
@@ -249,6 +265,20 @@ float3 T_to_TOA(float r, float mu, float Rg, float Rt)
     return TransmittanceLUT.SampleLevel(LinearSampler, TransUV(r, mu, Rg, Rt), 0).rgb;
 }
 
+float sstep(float a, float b, float x)
+{
+    float t = saturate((x - a) / (b - a));
+    return t * t * (3.0 - 2.0 * t);
+}
+
+// Compute sun altitude in degrees
+float SunAltitudeDeg(float3 camPosWS, float3 planetCenterWS, float3 lightDirFromLight)
+{
+    float3 wSun = -normalize(lightDirFromLight); // TO sun
+    float3 up = normalize(camPosWS - planetCenterWS); // camera "up"
+    float mu = clamp(dot(up, wSun), -1.0, 1.0);
+    return degrees(asin(mu)); // +90 zenith, 0 horizon, negative at night
+}
 
 float4 SamplePsiMS4(float r, float muS, float Rg, float Rt)
 {
@@ -451,11 +481,8 @@ PixelOutputType main(PixelInputType input)
     // IBL Contribution
     float3 Lr = reflect(-VWorld, normalWorld);
     float3 iblContribution = IBL(F0, Lr, normalWorld, albedo, roughness, metalness, NdotV);
-    
-    float3 ambient = float3(0.0f, 0.0f, 0.0f);
-    ambient *= ao;
 
-    float3 finalShading = (ambient + lightContribution + iblContribution + Lo_sky);
+    float3 finalShading = (lightContribution + iblContribution + Lo_sky);
 
     // Output the final color
     output.color = float4(finalShading, 1.0f);

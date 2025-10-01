@@ -136,10 +136,19 @@ namespace Toast {
 		void BindUAV(const int bindSlot);
 		void UnbindUAV(const int bindSlot);
 
+		// Update the whole buffer from CPU
+		void Update(const void* data, size_t bytes);
+
+		// Typed convenience (updates exactly one element)
+		template<typename T>
+		void Update(const T& value) { Update(&value, sizeof(T)); }
+
 		ID3D11Buffer* GetBuffer() { return mBuffer.Get(); }
 		ID3D11UnorderedAccessView* GetUAV() { return mUAV.Get(); }
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() { return mSRV; }
 	private:
+		uint32_t mByteWidth = 0;
+
 		std::vector<CBufferBindInfo> mBindInfo;
 
 		Microsoft::WRL::ComPtr<ID3D11Buffer> mBuffer;

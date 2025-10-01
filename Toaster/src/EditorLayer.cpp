@@ -85,6 +85,7 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Post Process/Bloom.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/BloomComposition.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/ToneMapping.hlsl");
+		ShaderLibrary::Load("assets/shaders/Post Process/BasicAutoExposure.hlsl");
 
 		// Environment
 		ShaderLibrary::Load("assets/shaders/Environment/EnvironmentMipFilter.hlsl");
@@ -347,6 +348,9 @@ namespace Toast {
 				break;
 			case RenderOverlay::BLOOMFINAL:
 				textureID = (void*)Renderer::GetFinalBloomRT()->GetSRV().Get();
+				break;
+			case RenderOverlay::AUTOEXPOSUREGROUP:
+				textureID = (void*)Renderer::GetAutoExposureGrouping()->GetSRV().Get();
 				break;
 			}
 

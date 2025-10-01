@@ -174,7 +174,7 @@ namespace Toast {
 
 		virtual const uint32_t GetWidth()  const override { return mWidth; }
 		virtual const uint32_t GetHeight() const override { return mHeight; }
-		uint32_t               GetDepth()  const { return mDepth; }
+		uint32_t GetDepth()  const { return mDepth; }
 
 		virtual const std::string GetFilePath() const override { return ""; }
 		virtual const DXGI_FORMAT GetFormat()   const override { return mFormat; }
@@ -196,6 +196,7 @@ namespace Toast {
 		void UnbindUAV(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_COMPUTE_SHADER) const;
 		void CreateUAV(uint32_t firstWSlice = 0, uint32_t wSize = 0);
 
+		void SetData(const void* data, uint32_t rowPitch, uint32_t depthPitch);
 	private:
 		uint32_t   mWidth = 1, mHeight = 1, mDepth = 1;
 		DXGI_FORMAT mFormat, mSRVFormat;

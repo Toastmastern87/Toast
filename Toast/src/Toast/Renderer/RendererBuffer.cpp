@@ -359,6 +359,8 @@ namespace Toast {
 		bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 		bd.StructureByteStride = stride;
 
+		mByteWidth = bd.ByteWidth;
+
 		device->CreateBuffer(&bd, nullptr, &mBuffer);
 
 		// UAV
@@ -393,4 +395,11 @@ namespace Toast {
 		deviceContext->CSSetUnorderedAccessViews(bindSlot, 1, &nullUAV, nullptr);
 	}
 
+	void StructuredBuffer::Update(const void* data, size_t bytes)
+	{
+		TOAST_CORE_ASSERT(bytes <= mByteWidth, "StructuredBuffer::Update overflow");
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* ctx = API->GetDeviceContext();
+		ctx->UpdateSubresource(mBuffer.Get(), 0, nullptr, data, 0, 0);
+	}
 }

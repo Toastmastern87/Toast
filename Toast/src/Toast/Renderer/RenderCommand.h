@@ -102,6 +102,11 @@ namespace Toast {
 			sRendererAPI->ClearShaderResources();
 		}
 
+		static void CopyResource(ID3D11Resource* dest, ID3D11Resource* src)
+		{
+			sRendererAPI->CopyResource(dest, src);
+		}
+
 		static void SetPrimitiveTopology(PrimitiveTopology topology)
 		{
 			sRendererAPI->SetPrimitiveTopology(topology);

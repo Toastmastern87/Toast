@@ -1,32 +1,5 @@
-﻿#inputlayout
-vertex
-vertex
-vertex
-vertex
-vertex
-
-#type vertex
-#pragma pack_matrix( row_major )
-
-struct PixelInputType
-{
-    float4 position : SV_POSITION;
-    float2 texCoord : TEXCOORD;
-};
-
-PixelInputType main(uint vID : SV_VertexID)
-{
-    PixelInputType output;
-
-	//https://wallisc.github.io/rendering/2021/04/18/Fullscreen-Pass.html
-    output.texCoord = float2((vID << 1) & 2, vID & 2);
-    output.position = float4(output.texCoord * float2(2, -2) + float2(-1, 1), 0.0f, 1);
-
-    return output;
-}
-
-#type pixel
-#pragma pack_matrix( row_major )
+﻿#type pixel
+#pragma pack_matrix(row_major)
 
 cbuffer Camera : register(b0)
 {
@@ -45,11 +18,10 @@ cbuffer Camera : register(b0)
 cbuffer DirectionalLight : register(b3)
 {
     matrix lightViewProj;
-    float4 direction;
+    float4 direction; // FROM light -> scene
     float4 radiance;
     float SunIntensity;
 };
-
 
 cbuffer PlanetFrame : register(b4)
 {
@@ -65,64 +37,112 @@ cbuffer PlanetFrame : register(b4)
     float3 BasisSpinUp;
 };
 
+cbuffer Atmosphere : register(b5)
+{
+    float AtmosphereHeight; // Rt - Rg
+    float RayScaleHeight; // Hr
+    float MieScaleHeight; // Hm
+    float MieAnisotropy; // g
+    float3 RayleighScattering; // beta_R (1/m) RGB
+    float3 MieScattering; // beta_Ms (1/m) RGB
+    float3 MieAbsorption; // beta_Ma (1/m) RGB
+    float3 GroundAlbedo;
+    float OzoneStrength;
+    uint StepsTransmittance; // (unused here)
+    uint StepsMultiScattering; // (unused here)
+    float APFarDynamic; // camera->max distance for AP (meters)
+};
+
+cbuffer StarsParams : register(b7)
+{
+    float StarNits; // keep if you premultiply here (we'll leave it as 1.0 in RT)
+    float DayFadeStartDeg; // unused now
+    float DayFadeEndDeg; // unused now
+    float TwilightStartDeg; // e.g. 0.0
+    float TwilightEndDeg; // e.g. -6.0
+    float SpaceFadeStart; // 0.85
+    float SpaceFadeEnd; // 0.98
+    float GlareInnerDeg; // 5.0
+    float GlareOuterDeg; // 12.0
+    float3 NightAmbient;
+}
+
 struct PixelInputType
 {
     float4 position : SV_POSITION;
     float2 texCoord : TEXCOORD;
 };
 
-TextureCube radianceTexture : register(t5);
+TextureCube radianceTexture : register(t5); // starfield cubemap
+Texture2D<float> SceneDepth : register(t9); // reversed-Z depth
 
-// Sampler state
-SamplerState defaultSampler : register(s0);
+SamplerState LinearSampler : register(s0);
+SamplerState PointSampler : register(s1);
+
+static const float PI = 3.14159265359f;
+
+float sstep(float a, float b, float x)
+{
+    float t = saturate((x - a) / (b - a));
+    return t * t * (3.0 - 2.0 * t);
+}
+
+float SunAltitudeDeg(float3 camPosWS, float3 planetCenterWS, float3 lightDirFromLight)
+{
+    float3 wSun = -normalize(lightDirFromLight); // TO sun
+    float3 up = normalize(camPosWS - planetCenterWS);
+    float mu = clamp(dot(up, wSun), -1.0, 1.0);
+    return degrees(asin(mu)); // +90 zenith, 0 horizon, negative at night
+}
 
 float4 main(PixelInputType input) : SV_Target
 {
-    // Reconstruct NDC coordinates from texture coordinates
+    // Discard where geometry exists (reversed-Z: sky depth ~ 0)
+    float depth = SceneDepth.Sample(PointSampler, input.texCoord);
+    if (depth > 1e-12f)
+        discard;
+
+    // Reconstruct world ray
     float2 ndc = input.texCoord * 2.0f - 1.0f;
-    ndc.y = -ndc.y; // Flip Y since texture coordinates are top-left origin
-
-    // Assume a forward direction in clip space
+    ndc.y = -ndc.y;
     float4 clipPos = float4(ndc, 0.0f, 1.0f);
-    
-    // Transform from clip space to view space
     float4 viewPos = mul(clipPos, inverseProjectionMatrix);
-    viewPos /= viewPos.w; // Perspective divide
-
-    // Calculate the view direction
+    viewPos /= max(viewPos.w, 1e-6);
     float3 viewDir = normalize(viewPos.xyz);
+    float3 worldDir = normalize(mul(viewDir, (float3x3) inverseViewMatrix));
 
-    // Transform from view space to world space
-    float3 worldDir = mul(viewDir, (float3x3) inverseViewMatrix);
+    // Camera & planet
+    float3 planetCenterWS = mul(float4(PlanetCentreVS, 1.0f), worldTranslationMatrix).xyz;
+    float3 camWS = cameraPosition.xyz;
+    float3 upCam = normalize(camWS - planetCenterWS);
+    float rCam = length(camWS - planetCenterWS);
+    float h = max(0.0, rCam - PlanetRadius);
 
-    // Sun direction (assuming it points from the sun to the scene)
-    float3 sunDirection = normalize(-direction.xyz);
+    // Sun geometry
+    float3 wSun = -normalize(direction.xyz); // TO sun
+    float sunAlt = SunAltitudeDeg(camWS, planetCenterWS, direction.xyz);
 
-    // Calculate sun elevation (dot product with up vector)
-    float sunElevation = dot(sunDirection, float3(0.0f, 1.0f, 0.0f));
+    // ---------- VISIBILITY FACTORS ----------
+    // Surface night factor: 0 at/above TwilightStartDeg, 1 by TwilightEndDeg (e.g. 0 → -6°)
+    float surfaceNight = sstep(TwilightStartDeg, TwilightEndDeg, sunAlt);
 
-    // Sun factor ranges from 0 (sun below horizon) to 1 (sun overhead)
-    float sunFactor = saturate(sunElevation);
+    // Space visibility from altitude
+    float spaceFadeStartAlt = PlanetRadius + SpaceFadeStart * AtmosphereHeight;
+    float spaceFadeEndAlt = PlanetRadius + SpaceFadeEnd * AtmosphereHeight;
+    float spaceVis = sstep(spaceFadeStartAlt, spaceFadeEndAlt, rCam);
 
-    // Star visibility transitions from 0 to 1 as sunElevation goes from 0.0 to -0.1
-    float starVisibility = smoothstep(0.2f, -0.4f, sunElevation);
+    // Sun glare: reduce near sun
+    float thetaSun = degrees(acos(clamp(dot(worldDir, wSun), -1.0, 1.0)));
+    float glareCut = sstep(GlareInnerDeg, GlareOuterDeg, thetaSun);
 
-    float3 planetCenterTranslated = mul(float4(PlanetCentreVS, 1.0f), worldTranslationMatrix).xyz;
-    
-    // Compute camera altitude
-    float cameraAltitude = length(cameraPosition.xyz - planetCenterTranslated);
+    // Final visibility: surface night OR space, then apply horizon & glare
+    float visibility = saturate(max(surfaceNight, spaceVis) * glareCut);
 
-    // Altitude factor ranges from 0 (surface) to 1 (space)
-    float altitudeFactor = saturate((cameraAltitude - (PlanetRadius + MinHeight)) / (MaxHeight - MinHeight));
+    // Sample stars (normalized 0..1)
+    float3 starTex = radianceTexture.SampleLevel(LinearSampler, worldDir, 0.0f).rgb;
 
-    // Altitude visibility transitions from 0 to 1 as altitudeFactor goes from 0.9 to 1.0
-    float altitudeVisibility = smoothstep(0.9f, 1.0f, altitudeFactor);
+    // Output normalized stars; scale to nits later in tonemapper
+    float3 outStars = starTex * visibility;
 
-    // Combine star visibility based on sun position and altitude
-    float combinedVisibility = saturate(max(starVisibility, altitudeVisibility));
-    
-    // Sample the cubemap texture
-    float3 skyColor = radianceTexture.SampleLevel(defaultSampler, worldDir, 0.0f).rgb;
-    
-    return float4(skyColor, 1.0f);
+    return float4(outStars, 1.0);
 }
