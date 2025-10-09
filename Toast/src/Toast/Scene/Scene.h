@@ -32,8 +32,7 @@ namespace Toast {
 		BLOOM = 9, 
 		BLOOMHALF = 10,
 		BLOOMQUARTER = 11,
-		BLOOMFINAL = 12, 
-		AUTOEXPOSUREGROUP = 13
+		BLOOMFINAL = 12
 	};
 
 	struct DirectionalLight
@@ -71,15 +70,15 @@ namespace Toast {
 			float SpeedDown = 2.5f;
 			float MinEV = -10.0f;
 			float MaxEV = 12.0f;
-			float EVOffset = -1.62f;
+			float EVOffset = -2.18f;
 		};
 
 		struct BloomParams
 		{
 			bool Enabled = true;
-			float AtmosphereIntensity = 0.55f;
+			float AtmosphereIntensity = 1.14f;
 			float SpaceIntensity = 0.25f;
-			float AtmosphereThreshold = 1.0f;
+			float AtmosphereThreshold = 8.57f;
 			float SpaceThreshold = 4.18f;
 			float GlarePW;
 		};

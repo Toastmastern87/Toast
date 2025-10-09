@@ -71,8 +71,8 @@ namespace Toast {
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshWireframeDrawList, MeshNoWireframeDrawList;
 			DrawCommandPlanet PlanetDraw;
 
-			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, SunDiscSettingsCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer, SpecularMapFilterSettingsCBuffer, SSAOCBuffer, GodRaysCBuffer, ExposureCBuffer;
-			Buffer CameraBuffer, LightningBuffer, SunDiscSettingsBuffer, RenderSettingsBuffer, AtmosphereBuffer, ModelBuffer, MaterialBuffer, SpecularMapFilterSettingsBuffer, SSAOBuffer, GodRaysBuffer, ExposureBuffer;
+			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, SunDiscSettingsCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer, SpecularMapFilterSettingsCBuffer, SSAOCBuffer, GodRaysCBuffer;
+			Buffer CameraBuffer, LightningBuffer, SunDiscSettingsBuffer, RenderSettingsBuffer, AtmosphereBuffer, ModelBuffer, MaterialBuffer, SpecularMapFilterSettingsBuffer, SSAOBuffer, GodRaysBuffer;
 
 			// Back buffer
 			Ref<RenderTarget> BackbufferRT;
@@ -126,12 +126,6 @@ namespace Toast {
 
 			// Good Ray data
 			Ref<RenderTarget> GodRaySunMaskRT;
-
-			// Auto Exposure data
-			uint32_t ExposureGroupWidth;
-			uint32_t ExposureGroupHeight;
-			Ref<Texture2D> AutoExposureGroupBuffer;
-			Ref<Texture2D> AutoExposureGroupStaging;
 
 			// Bloom data
 			Ref<RenderTarget> BloomRT, BloomHalfRT, BloomQuarterRT, BloomQuarterBlurRT, BloomUpSampleRT, FinalBloomRT;
@@ -228,8 +222,6 @@ namespace Toast {
 		static Ref<RenderTarget>& GetLPassRT() { return sRendererData->LPassRT; }
 
 		static Ref<RenderTarget>& GetFinalRT() { return sRendererData->FinalRT; }
-
-		static Ref<Texture2D>& GetAutoExposureGrouping() { return sRendererData->AutoExposureGroupBuffer; }
 
 		static void EnableAtmosphere(bool atmosphere) { sRendererData->PlanetData.Atmosphere = atmosphere; }
 

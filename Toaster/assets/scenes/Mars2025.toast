@@ -25,29 +25,29 @@ Planet:
   GroundAlbedo: [0.100000001, 0.100000001, 0.100000001]
 Environment:
   SunDiscToggle: true
-  SunIntensity: 25
+  SunIntensity: 25.2000008
   SunDiscRadius: 0.00467499997
-  SunEdgeSoftness: 0.00523598775
+  SunEdgeSoftness: 0.0416000001
   SunWhite: [1, 0.988235295, 0.968627453]
   WarmTint: [1, 0.921568632, 0.78039217]
-  SpaceDiscBrightnessScale: 1.29999995
-  AirHaloIntensity: 0.280000001
-  AirHaloStartFrac: 0.150000006
-  AirHaloFalloffPow: 1.10000002
+  SpaceDiscBrightnessScale: 2.55999994
+  AirHaloIntensity: 0.0900000036
+  AirHaloStartFrac: 0.439999998
+  AirHaloFalloffPow: 0.889999986
   HorizonRefractionDeg: 0.829999983
   TwilightBlendDeg: 1.5
   HorizonSoftEdgeDeg: 0.400000006
-  SpaceHaloWidthDeg: 0.800000012
-  SpaceHaloIntensity: 0.0399999991
+  SpaceHaloWidthDeg: 0.529999971
+  SpaceHaloIntensity: 0.0199999996
   SpaceHaloCutoffDeg: 6
-  StarNits: 600
+  StarNits: 160
   DayFadeStartDeg: 2
   DayFadeEndDeg: -2
   TwilightStartDeg: 0
-  TwilightEndDeg: -76.9000015
+  TwilightEndDeg: -45
   SpaceFadeStart: 0.850000024
   SpaceFadeEnd: 0.980000019
-  NightAmbient: [0.6, 0.64, 0.72]
+  NightAmbient: [0.600000024, 0.639999986, 0.720000029]
 Entities:
   - Entity: 3888910141822256182
     TagComponent:
@@ -100,7 +100,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-367.382446, 20.8000145, -63.5000076]
+      Rotation: [-375.778778, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]

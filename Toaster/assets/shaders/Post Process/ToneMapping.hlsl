@@ -108,25 +108,29 @@ cbuffer StarsParams : register(b7)
 cbuffer Tonemapping : register(b10)
 {
     float EV;
-    float EVSceneOffset;
 }
 
 static const float3 LUMA = float3(0.2126f, 0.7152f, 0.0722f);
 
-float SoftKnee(float x, float x0, float k)
+static const float3x3 ACESInputMat =
 {
-    float t = saturate((x - x0) / max(k, 1e-6));
-    return lerp(x, x0 + k * (1.0 - t) * (1.0 - t) * (1.0 - t), t);
-}
+    { 0.59719, 0.35458, 0.04823 },
+    { 0.07600, 0.90834, 0.01566 },
+    { 0.02840, 0.13383, 0.83777 }
+};
 
-float3 ToneMap_HDR_scRGB_Soft(float3 c, float peakLin, float kneeStart, float kneeWidth)
+static const float3x3 ACESOutputMat =
 {
-    float Y = max(dot(c, LUMA), 1e-6);
-    float Yk = SoftKnee(Y, kneeStart, kneeWidth);
-    float over = max(Yk - 1.0, 0.0);
-    float k = max(peakLin - 1.0, 1e-6);
-    float Yt = min(Yk, 1.0) + over / (1.0 + over / k);
-    return c * (Yt / Y);
+    { 1.60475, -0.53108, -0.07367 },
+    { -0.10208, 1.10813, -0.00605 },
+    { -0.00327, -0.07276, 1.07602 }
+};
+
+float3 RRTAndODTFit(float3 v)
+{
+    float3 a = v * (v + 0.0245786f) - 0.000090537f;
+    float3 b = v * (0.983729f * v + 0.4329510f) + 0.238081f;
+    return a / b;
 }
 
 float sstep(float a, float b, float x)
@@ -161,15 +165,15 @@ float SunAltDegEffectiveCamera(float3 camWS, float3 planetCenterWS, float planet
     return alt + dip + 0.83;
 }
 
-// Night EV bias vs sun altitude (gentle curve that ends at -1.53 at deep night)
+// Night EV bias vs sun altitude (gentle curve that ends at -1.07 at deep night)
 float EVBiasFromSunAltitude(float sunAltDeg)
 {
-    // Targets at key twilight bands (tune to taste)
-    const float EV_atDay = 0.0f; // ≥ +2°
-    const float EV_atHorizon = -0.60f; //   0°
-    const float EV_atCivil = -1.40f; //  −6°
-    const float EV_atNautical = -2.10f; // −12°
-    const float EV_atAstro = -2.83f; // ≤ −18°
+    // Targets at key twilight bands (tuned to keep smooth progression to -1.07)
+    const float EV_atDay = 0.00f; // ≥ +2°
+    const float EV_atHorizon = -1.26f; //   0°
+    const float EV_atCivil = -2.02f; //  −6°
+    const float EV_atNautical = -2.69f; // −12°
+    const float EV_atAstro = -3.37f; // ≤ −18°
 
     if (sunAltDeg >= 0.0f)
         return lerp(EV_atDay, EV_atHorizon, sstep(+2.0f, 0.0f, sunAltDeg));
@@ -212,108 +216,32 @@ bool RayHitsSphereBetween(float3 ro, float3 rd, float R, out float t0, out float
     return true;
 }
 
-// Is the sun occluded from the *pixel* by the planet? (night-side terrain mask)
-bool SunOccludedAtPoint(float3 pWS, float3 planetCenterWS, float planetRadius, float3 lightDirFromLight)
+float SoftKnee(float x, float x0, float k)
 {
-    float3 wSun = -normalize(lightDirFromLight); // TO sun
-    float3 ro = pWS - planetCenterWS;
-    float t0, t1;
-    bool hit = RayHitsSphereBetween(ro, wSun, planetRadius, t0, t1);
-    // If the forward intersection is in front of the point, the planet blocks the sun.
-    return hit && (t1 > 0.0);
+    float t = saturate((x - x0) / max(k, 1e-6));
+    return lerp(x, x0 + k * (1.0 - t) * (1.0 - t) * (1.0 - t), t);
 }
 
-// Night ambient (per sun altitude) with a small horizon shoulder
-float3 NightAmbientForAlt(float sunAltDeg, float3 nightAmbientBase)
+float3 ToneMap_HDR_scRGB_Soft(float3 c, float peakLin, float kneeStart, float kneeWidth)
 {
-    // Base fade: 0 at start → 1 by end (e.g. +2° → −6°) from your params
-    float f = sstep(DayFadeStartDeg, DayFadeEndDeg, sunAltDeg);
-
-    // Keep some ambient exactly at the horizon so you don't dip to black
-    const float MinAtHorizon = 0.15;
-    float nearH = 1.0 - sstep(-2.0, +2.0, abs(sunAltDeg));
-    f = saturate(lerp(f, max(f, MinAtHorizon), nearH));
-
-    float soft = pow(f, 0.90);
-    return nightAmbientBase * soft;
+    float Y = max(dot(c, LUMA), 1e-6);
+    float Yk = SoftKnee(Y, kneeStart, kneeWidth);
+    float over = max(Yk - 1.0, 0.0);
+    float k = max(peakLin - 1.0, 1e-6);
+    float Yt = min(Yk, 1.0) + over / (1.0 + over / k);
+    return c * (Yt / Y);
 }
 
-// ----- SPACE OPTICAL VEIL (angle-based) -------------------------------------
-float TanHalfFovY_FromProj(matrix P)
+float ArcDistanceOnGround(float3 pWS, float3 camWS, float3 planetCenter, float Rg)
 {
-    return 1.0f / max(P._22, 1e-6);
-}
-float TanHalfFovX_FromProj(matrix P)
-{
-    return 1.0f / max(P._11, 1e-6);
-}
-
-float2 SunScreenUV(float3 camWS, float3 wSun, matrix V, matrix P)
-{
-    float3 pW = camWS + wSun * 1e7;
-    float4 pV = mul(float4(pW, 1), V);
-    float4 pC = mul(pV, P);
-    float2 ndc = pC.xy / max(pC.w, 1e-6);
-    ndc = ndc * 0.5f + 0.5f;
-    ndc.y = 1.0f - ndc.y;
-    return ndc;
-}
-
-float AngleDegToSun(float2 uv, float2 sunUV, float thfX, float thfY)
-{
-    float2 dNDC = (uv - sunUV) * 2.0;
-    float2 t = float2(dNDC.x * thfX, dNDC.y * thfY);
-    return degrees(atan(length(t)));
-}
-
-float VeilPSF(float angDeg, float innerDeg, float outerDeg)
-{
-    float lor = 1.0 / (1.0 + (angDeg / 18.0) * (angDeg / 18.0)); // long tail
-    
-    float ga = exp(-(angDeg * angDeg) / (2.0 * 6.0 * 6.0)); // mid halo
-    float notch = saturate(angDeg / max(1e-3, innerDeg * 0.7)); // avoid white coin
-    float gate = 1.0 - smoothstep(innerDeg * 0.35, outerDeg, angDeg);
-    return (0.65 * lor + 0.45 * ga) * notch * gate;
-}
-
-float Streaks4(float2 uv, float2 sunUV) // optional, tiny cue
-{
-    float2 d = normalize(uv - sunUV + 1e-6);
-    float s0 = pow(abs(d.x), 64.0); // 0/180
-    float s1 = pow(abs(d.y), 64.0); // 90/270
-    return s0 + 0.7 * s1;
-}
-
-float3 ViewDirWS_fromUV(float2 uv)
-{
-    float2 ndcXY = float2(uv.x * 2.0f - 1.0f, 1.0f - uv.y * 2.0f);
-
-    // Reconstruct two points along the view ray in *view* space
-    float4 p0v = mul(float4(ndcXY, 0.0f, 1.0f), inverseProjectionMatrix);
-    p0v /= max(p0v.w, 1e-6f);
-    float4 p1v = mul(float4(ndcXY, 1.0, 1.0f), inverseProjectionMatrix);
-    p1v /= max(p1v.w, 1e-6f);
-
-    // To world space
-    float3 P0 = mul(float4(p0v.xyz, 1.0f), inverseViewMatrix).xyz;
-    float3 P1 = mul(float4(p1v.xyz, 1.0f), inverseViewMatrix).xyz;
-    return normalize(P1 - P0);
-}
-
-float LimbWeightFromMu(float3 wView, float3 camRel)
-{
-    float3 upCam = normalize(camRel);
-    float mu = dot(wView, upCam); // 0 near horizon, +1 zenith, -1 nadir
-
-    // band around horizon: |mu| in [a,b] -> weight 1..0
-    const float a = 0.02f; // ~= 1.1°
-    const float b = 0.20f; // ~= 11°
-    float t = saturate((b - abs(mu)) / max(b - a, 1e-4f));
-    return smoothstep(0.0f, 1.0f, t);
+    float3 upP = normalize(pWS - planetCenter);
+    float3 upC = normalize(camWS - planetCenter);
+    float cosA = saturate(dot(upP, upC));
+    float ang = acos(cosA); // radians
+    return Rg * ang; // meters along the surface
 }
 
 // ===== Pixel shader ==========================================================
-
 struct PSIn
 {
     float4 pos : SV_POSITION;
@@ -331,12 +259,8 @@ float4 main(PSIn input) : SV_Target
 
     // ---------- CAMERA-DRIVEN EXPOSURE ---------------------------------------
     float sunAltCamEff = SunAltDegEffectiveCamera(cameraPosition.xyz, PlanetCenterWS, PlanetRadius, direction.xyz);
-    float EVBias = EVBiasFromSunAltitude(sunAltCamEff);
     // This is the exposure we would use everywhere if we ignored per-pixel night:
-    float EV_cam = EV + EVBias + EVSceneOffset;
-
-    // Default to camera EV; override on night-side terrain
-    float EV_final = EV_cam;
+    float targetEV = EVBiasFromSunAltitude(sunAltCamEff) + EV;
     
     float m_disc = pow(saturate(SunDiscMask.Sample(LinearClamp, input.uv)), 1.0f);
     float m_halo = saturate(SunHaloMask.Sample(LinearClamp, input.uv));
@@ -358,7 +282,8 @@ float4 main(PSIn input) : SV_Target
 
         // Soften around horizon to avoid hard silhouettes
         float mu = dot(up_px, wSun); // <0 = night hemisphere
-        float horizonSoft = 1.0 - sstep(-0.02, +0.02, mu); // ~±1.1°
+        float eps = 0.002; // ~0.1°
+        float horizonSoft = 1.0 - smoothstep(-0.03 - eps, +0.03 + eps, mu);
         float nightMask = max(nightAtPx ? 1.0 : 0.0, horizonSoft * step(mu, 0.0));
 
         // AO (assume 1=open, 0=occluded; invert if yours is opposite)
@@ -379,15 +304,28 @@ float4 main(PSIn input) : SV_Target
         // Night weight vs pixel sun altitude (0 by day → ~1 by nautical)
         float wNight_px = sstep(+0.5f, -6.0f, sunAlt_px);
 
-        const float3 NightAmbientRGB = float3(0.30f, 0.32f, 0.36f);
         float3 amb_px = NightAmbient * hemi * ao * wNight_px * nightMask;
+        
+        // --- Night "eye adaptation" bubble (simple distance fade) ---
+        const float EyeRadiusMeters = 10000.0; // full effect inside 1 km
+        const float EyeFadeMeters = 120000.0; // fade over next 12 km (make this big)
+        float d = distance(pWS, cameraPosition.xyz);
 
+        // 0..1 fade after the inner radius
+        float t = saturate((d - EyeRadiusMeters) / EyeFadeMeters);
+
+        // softer, longer tail than smoothstep
+        float wEye = (1.0 - t) * (1.0 - t); // == pow(1 - t, 2)
+
+        // apply
+        amb_px *= wEye;
+        
         // Add to your accumulator that you later add to hdr
         hdr += amb_px;
     }
     
     // ---------- Apply exposure + tonemap -------------------------------------
-    float3 color = max(hdr * exp2(EV_final), 0.0.xxx);
+    float3 color = max(hdr * exp2(targetEV), 0.0.xxx);
 
     // Tone map to scRGB paper-white space
     const float peakLinear = 2000.0f / 200.0f; // assuming PW=200 nits
@@ -405,7 +343,7 @@ float4 main(PSIn input) : SV_Target
     float starGain = StarNits / max(200.0f, 1e-3);
     float starDamp = saturate(1.0f * 0.9f); // reuse 'veil' (angle-based)
     float3 starsColor = starsPW * starGain * (1.0 - occ);
-
+    
     // ---------- Compose ambient for terrain only -----------------------------
     color += starsColor;
 

@@ -129,38 +129,35 @@ namespace Toast
 	{
 		auto& colors = ImGui::GetStyle().Colors;
 
-		colors[ImGuiCol_WindowBg]			= RGB8(0x0C0C0C);
-
-		// Text
-		colors[ImGuiCol_Text]				= RGB8(0xFFFFFF); // bright white
-		colors[ImGuiCol_TextDisabled]		= RGB8(0xB0B0B0); // softer grey
+		// Base
+		colors[ImGuiCol_WindowBg] = RGB8(0x1F1F1F);
 
 		// Headers
-		colors[ImGuiCol_Header]				= RGB8(0x151616); // ~0.083,0.085,0.088
-		colors[ImGuiCol_HeaderHovered]		= RGB8(0x202021); // ~0.126,0.127,0.129
-		colors[ImGuiCol_HeaderActive]		= RGB8(0x101010); // ~0.063
+		colors[ImGuiCol_Header] = RGB8(0x333436);
+		colors[ImGuiCol_HeaderHovered] = RGB8(0x4C4E4F);
+		colors[ImGuiCol_HeaderActive] = RGB8(0x262627);
 
 		// Buttons
-		colors[ImGuiCol_Button]				= RGB8(0x151616);
-		colors[ImGuiCol_ButtonHovered]		= RGB8(0x202021);
-		colors[ImGuiCol_ButtonActive]		= RGB8(0x101010);
+		colors[ImGuiCol_Button] = RGB8(0x333436);
+		colors[ImGuiCol_ButtonHovered] = RGB8(0x4C4E4F);
+		colors[ImGuiCol_ButtonActive] = RGB8(0x262627);
 
 		// Frame BG
-		colors[ImGuiCol_FrameBg]			= RGB8(0x151616);
-		colors[ImGuiCol_FrameBgHovered]		= RGB8(0x202021);
-		colors[ImGuiCol_FrameBgActive]		= RGB8(0x101010);
+		colors[ImGuiCol_FrameBg] = RGB8(0x333436);
+		colors[ImGuiCol_FrameBgHovered] = RGB8(0x4C4E4F);
+		colors[ImGuiCol_FrameBgActive] = RGB8(0x262627);
 
 		// Tabs
-		colors[ImGuiCol_Tab]				= RGB8(0x101010);
-		colors[ImGuiCol_TabHovered]			= RGB8(0x282828); // ~0.158
-		colors[ImGuiCol_TabActive]			= RGB8(0x1E1E1E); // ~0.117
-		colors[ImGuiCol_TabUnfocused]		= RGB8(0x101010);
-		colors[ImGuiCol_TabUnfocusedActive] = RGB8(0x151616);
+		colors[ImGuiCol_Tab] = RGB8(0x262627);
+		colors[ImGuiCol_TabHovered] = RGB8(0x616161);
+		colors[ImGuiCol_TabActive] = RGB8(0x474848);
+		colors[ImGuiCol_TabUnfocused] = RGB8(0x262627);
+		colors[ImGuiCol_TabUnfocusedActive] = RGB8(0x333436);
 
-		// Title bars
-		colors[ImGuiCol_TitleBg]			= RGB8(0x101010);
-		colors[ImGuiCol_TitleBgActive]		= RGB8(0x101010);
-		colors[ImGuiCol_TitleBgCollapsed]	= RGB8(0x101010);
+		// Title
+		colors[ImGuiCol_TitleBg] = RGB8(0x262627);
+		colors[ImGuiCol_TitleBgActive] = RGB8(0x262627);
+		colors[ImGuiCol_TitleBgCollapsed] = RGB8(0x262627);
 
 		colors[ImGuiCol_MenuBarBg] = colors[ImGuiCol_TitleBgActive];
 	}

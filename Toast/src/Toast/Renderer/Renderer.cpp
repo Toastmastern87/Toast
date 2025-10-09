@@ -138,12 +138,6 @@ namespace Toast {
 		sRendererData->UpSampleBuffer.Allocate(sRendererData->UpSampleCBuffer->GetSize());
 		sRendererData->UpSampleBuffer.ZeroInitialize();
 
-		// Setting up the constant buffer for auto exposure
-		sRendererData->ExposureCBuffer = ConstantBufferLibrary::Load("AutoExposureParams", 32, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)8) });
-		sRendererData->ExposureCBuffer->Bind();
-		sRendererData->ExposureBuffer.Allocate(sRendererData->ExposureCBuffer->GetSize());
-		sRendererData->ExposureBuffer.ZeroInitialize();
-
 		// Setting up the constant buffer for Tonemapping
 		sRendererData->TonemappingCBuffer = ConstantBufferLibrary::Load("Tonemapping", 16, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)10) });
 		sRendererData->TonemappingCBuffer->Bind();
@@ -192,12 +186,6 @@ namespace Toast {
 		sRendererData->SunHaloMaskRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
 		sRendererData->Dummy1RT = CreateRef<RenderTarget>(RenderTargetType::ColorCube, 256, 256, 1, TextureFormat::R8G8B8A8_UNORM);
 		sRendererData->Dummy2RT = CreateRef<RenderTarget>(RenderTargetType::ColorCube, 256, 256, 1, TextureFormat::R8G8B8A8_UNORM);
-
-		// Setting up the textures for the Auto Exposure Pass
-		sRendererData->ExposureGroupWidth = (width + 16 - 1) / 16;
-		sRendererData->ExposureGroupHeight = (height + 16 - 1) / 16;
-		sRendererData->AutoExposureGroupBuffer = CreateRef<Texture2D>(DXGI_FORMAT_R32G32_FLOAT, DXGI_FORMAT_R32G32_FLOAT, sRendererData->ExposureGroupWidth, sRendererData->ExposureGroupHeight, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE), 1, 0);
-		sRendererData->AutoExposureGroupStaging = CreateRef<Texture2D>(DXGI_FORMAT_R32G32_FLOAT, DXGI_FORMAT_R32G32_FLOAT, sRendererData->ExposureGroupWidth, sRendererData->ExposureGroupHeight, D3D11_USAGE_STAGING, (D3D11_BIND_FLAG)0, 1, D3D11_CPU_ACCESS_READ);
 
 		// Setting -Y led to the black since nothing should reflect. 
 		// TODO this should most likely be dynamic in the future depending on which color the surface is. It is gray during the night but orange during the day.
@@ -403,8 +391,6 @@ namespace Toast {
 		//	if (sRendererData->PlanetDraw.Planet->AtmosphereActivated())
 		//		GodRayPass(godRayExposure, godRayDecay, godRayDensity, godRayWeight);
 		//}
-
-		AutoExposurePass(exposureParams, dt);
 
 		if(bloomParams.Enabled)
 			BloomPass(bloomParams, planet, cameraPos, camera.GetVerticalFOV());
@@ -1631,7 +1617,7 @@ namespace Toast {
 		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);
 
-		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.EVOffset, 4, 4);
+		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.EVOffset, 4, 0);
 		sRendererData->TonemappingCBuffer->Map(sRendererData->TonemappingBuffer);
 
 		ShaderLibrary::Get("assets/shaders/Post Process/ToneMapping.hlsl")->Bind();
@@ -1649,100 +1635,6 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 15, sRendererData->SunHaloMaskRT->GetSRV());
 
 		DrawFullscreenQuad();
-
-		ID3D11RenderTargetView* nullRTV = nullptr;
-		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
-		RenderCommand::SetDepthStencilState(nullptr);
-		RenderCommand::SetBlendState(nullptr);
-		RenderCommand::ClearShaderResources();
-
-#ifdef TOAST_DEBUG
-		if (annotation)
-			annotation->EndEvent();
-#endif
-	}
-
-	void Renderer::AutoExposurePass(Scene::ExposureParams& exposureParams, float dt)
-	{
-#ifdef TOAST_DEBUG
-		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
-		RenderCommand::GetAnnotation(annotation);
-		if (annotation) annotation->BeginEvent(L"Auto Exposure");
-#endif
-
-		sRendererData->ExposureBuffer.Write((uint8_t*)&exposureParams.LogLumMin, 4, 0);
-		sRendererData->ExposureBuffer.Write((uint8_t*)&exposureParams.LogLumMax, 4, 4);
-		sRendererData->ExposureBuffer.Write((uint8_t*)&exposureParams.RejectBrightNits, 4, 8);
-		sRendererData->ExposureBuffer.Write((uint8_t*)&exposureParams.RejectBrightSoftNits, 4, 12);
-		sRendererData->ExposureBuffer.Write((uint8_t*)&exposureParams.RejectDark, 4, 16);
-		sRendererData->ExposureBuffer.Write((uint8_t*)&exposureParams.CenterWeight, 4, 20);
-		sRendererData->ExposureCBuffer->Map(sRendererData->ExposureBuffer);
-
-		auto& HDRScene = sRendererData->AtmospherePassRT->GetSRV();
-
-		ShaderLibrary::Get("assets/shaders/Post Process/BasicAutoExposure.hlsl")->Bind();
-
-		RenderCommand::SetViewport(sRendererData->Viewport);
-		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, HDRScene);
-		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_COMPUTE_SHADER);
-		sRendererData->AutoExposureGroupBuffer->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-
-		const UINT groupsX = sRendererData->ExposureGroupWidth;
-		const UINT groupsY = sRendererData->ExposureGroupHeight;
-		RenderCommand::DispatchCompute(groupsX, groupsY, 1);
-
-		sRendererData->AutoExposureGroupBuffer->UnbindUAV(0, D3D11_COMPUTE_SHADER);
-
-		RenderCommand::CopyResource(sRendererData->AutoExposureGroupStaging->GetResource(), sRendererData->AutoExposureGroupBuffer->GetResource());
-
-		D3D11_MAPPED_SUBRESOURCE m{};
-		auto mappedResource = sRendererData->AutoExposureGroupStaging->GetResource();
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
-		
-		HRESULT hr = deviceContext->Map(mappedResource, 0, D3D11_MAP_READ, 0, &m);
-		TOAST_CORE_ASSERT(SUCCEEDED(hr), "AE staging Map failed");
-
-		double sumLog = 0.0;
-		double sumW = 0.0;
-
-		for (UINT y = 0; y < groupsY; ++y)
-		{
-			const float* row = reinterpret_cast<const float*>((const uint8_t*)m.pData + y * m.RowPitch);
-			for (UINT x = 0; x < groupsX; ++x)
-			{
-				// texel = float2(sumLogLum, sumW) for that tile
-				float sLog = row[x * 2 + 0];
-				float sWt = row[x * 2 + 1];
-				sumLog += (double)sLog;
-				sumW += (double)sWt;
-			}
-		}
-
-		deviceContext->Unmap(mappedResource, 0);
-
-		// --- Robust average (guard no-samples) ---
-		const bool noSamples = (sumW <= 1e-6);
-		float avgLogLum = noSamples
-			? exposureParams.LogLumMin // conservative fallback, or use last valid value if you want
-			: (float)(sumLog / sumW);
-
-		// --- Convert to EV (stops) using a key value ---
-		// EV = log2(Key / avgLum) = log2(Key) - log2(avgLum)
-		const float logKey = log2f((std::max)(exposureParams.KeyValue, 1e-6f));
-		float targetEV = logKey - avgLogLum;
-
-		// --- Temporal smoothing on EV (asymmetric speeds) ---
-		float lastEV = exposureParams.LastEV; // initialize to 0 at startup
-		float maxStep = (targetEV > lastEV ? exposureParams.SpeedUp : exposureParams.SpeedDown)	* std::max(dt, 0.0f);
-		float newEV = lastEV + std::clamp(targetEV - lastEV, -maxStep, maxStep);
-
-		//float maxEV = (SunAltitudeDegrees < -2.0f) ? 0.0f : exposureParams.MaxEV; /
-
-		// Clamp
-		newEV = std::clamp(newEV, exposureParams.MinEV, exposureParams.MaxEV);
-
-		sRendererData->TonemappingBuffer.Write((uint8_t*)&newEV, 4, 0);
 
 		ID3D11RenderTargetView* nullRTV = nullptr;
 		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
