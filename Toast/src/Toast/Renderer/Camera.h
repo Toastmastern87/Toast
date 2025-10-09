@@ -33,12 +33,17 @@ namespace Toast {
 
 		virtual float& GetNearClip() { return mNearClip; }
 		virtual float& GetFarClip() { return mFarClip; }
+
+		const float GetVerticalFOV() const { return DirectX::XMConvertToDegrees(mFOV); }
 		
 		virtual DirectX::XMFLOAT4& GetForwardDirection() = 0;
 	protected:
 		DirectX::XMFLOAT4X4 mViewMatrix, mInvViewMatrix, mProjection, mInvProjection, mOrthoProjection, mInvOrthoProjection;
 
 		DirectX::XMFLOAT3 mWorldTranslation = { 0.0f, 0.0f, 0.0f };
+
+		float mFOV = DirectX::XMConvertToRadians(45.0f);
+		float mAspectRatio = 1.778f;
 
 		float mFarClip = 1000.0f, mNearClip = 0.1f;
 	};

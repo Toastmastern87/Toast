@@ -633,6 +633,7 @@ namespace Toast {
 		out << YAML::Key << "HeightMapAssetPath" << YAML::Value << scenePlanet->mBaseHeightMapTexture->GetFilePath();
 		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet->mMetalness;
 		out << YAML::Key << "StarFieldAssetPath" << YAML::Value << scenePlanet->mStarFieldTexture2D->GetFilePath();
+		out << YAML::Key << "AtmosphereActivated" << YAML::Value << scenePlanet->mAtmosphereActivated;
 		out << YAML::Key << "AtmosphereHeight" << YAML::Value << scenePlanet->mAtmosphere.AtmosphereHeight;
 		out << YAML::Key << "RayleighScaleHeight" << YAML::Value << scenePlanet->mAtmosphere.RayleighScaleHeight;
 		out << YAML::Key << "RayleighScattering" << YAML::Value << scenePlanet->mAtmosphere.RayleighScattering;
@@ -648,14 +649,30 @@ namespace Toast {
 
 		out << YAML::Key << "Environment";
 		out << YAML::BeginMap;
+
+		// -------- Sun --------
 		out << YAML::Key << "SunDiscToggle" << YAML::Value << environment.SunDiscToggle;
 		out << YAML::Key << "SunIntensity" << YAML::Value << environment.SunIntensity;
-		out << YAML::Key << "SunDiscRadius" << YAML::Value << environment.SunDiscRadius;
-		out << YAML::Key << "SunEdgeSoftness" << YAML::Value << environment.SunEdgeSoftness;
-		out << YAML::Key << "SunGlowIntensity" << YAML::Value << environment.SunGlowIntensity;
-		out << YAML::Key << "SunGlowSize" << YAML::Value << environment.SunGlowSize;
-		out << YAML::Key << "GlareInnerDeg" << YAML::Value << environment.GlareInnerDeg;
-		out << YAML::Key << "GlareOuterDeg" << YAML::Value << environment.GlareOuterDeg;
+		out << YAML::Key << "SunDiscRadius" << YAML::Value << environment.SunDiscRadius;      // radians
+		out << YAML::Key << "SunEdgeSoftness" << YAML::Value << environment.SunEdgeSoftness;    // radians
+		out << YAML::Key << "SunWhite" << YAML::Value << environment.SunWhite;
+		out << YAML::Key << "WarmTint" << YAML::Value << environment.WarmTint;
+		out << YAML::Key << "SpaceDiscBrightnessScale" << YAML::Value << environment.SpaceDiscBrightnessScale;
+
+		// ---- Atmospheric Halo (in-air) ----
+		out << YAML::Key << "AirHaloIntensity" << YAML::Value << environment.AirHaloIntensity;
+		out << YAML::Key << "AirHaloStartFrac" << YAML::Value << environment.AirHaloStartFrac;
+		out << YAML::Key << "AirHaloFalloffPow" << YAML::Value << environment.AirHaloFalloffPow;
+		out << YAML::Key << "HorizonRefractionDeg" << YAML::Value << environment.HorizonRefractionDeg;
+		out << YAML::Key << "TwilightBlendDeg" << YAML::Value << environment.TwilightBlendDeg;
+		out << YAML::Key << "HorizonSoftEdgeDeg" << YAML::Value << environment.HorizonSoftEdgeDeg;
+
+		// -------- Space Halo --------
+		out << YAML::Key << "SpaceHaloWidthDeg" << YAML::Value << environment.SpaceHaloWidthDeg;
+		out << YAML::Key << "SpaceHaloIntensity" << YAML::Value << environment.SpaceHaloIntensity;
+		out << YAML::Key << "SpaceHaloCutoffDeg" << YAML::Value << environment.SpaceHaloCutoffDeg;
+
+		// -------- Stars --------
 		out << YAML::Key << "StarNits" << YAML::Value << environment.StarNits;
 		out << YAML::Key << "DayFadeStartDeg" << YAML::Value << environment.DayFadeStartDeg;
 		out << YAML::Key << "DayFadeEndDeg" << YAML::Value << environment.DayFadeEndDeg;
@@ -663,7 +680,10 @@ namespace Toast {
 		out << YAML::Key << "TwilightEndDeg" << YAML::Value << environment.TwilightEndDeg;
 		out << YAML::Key << "SpaceFadeStart" << YAML::Value << environment.SpaceFadeStart;
 		out << YAML::Key << "SpaceFadeEnd" << YAML::Value << environment.SpaceFadeEnd;
+
+		// -------- Night Ambient --------
 		out << YAML::Key << "NightAmbient" << YAML::Value << environment.NightAmbient;
+
 		out << YAML::EndMap;
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
@@ -776,6 +796,7 @@ namespace Toast {
 		scenePlanet->mMetalness = planet["Metalness"].as<float>();
 		scenePlanet->mBaseHeightMapTexture = TextureLibrary::LoadTexture2D(planet["HeightMapAssetPath"].as<std::string>(), false);
 		scenePlanet->mStarFieldTexture2D = TextureLibrary::LoadTexture2D(planet["StarFieldAssetPath"].as<std::string>());
+		scenePlanet->mAtmosphereActivated = planet["AtmosphereActivated"].as<bool>();
 		scenePlanet->mAtmosphere.AtmosphereHeight = planet["AtmosphereHeight"].as<float>();
 		scenePlanet->mAtmosphere.RayleighScaleHeight = planet["RayleighScaleHeight"].as<float>();
 		scenePlanet->mAtmosphere.RayleighScattering = planet["RayleighScattering"].as<DirectX::XMFLOAT3>();
@@ -793,10 +814,6 @@ namespace Toast {
 		environment.SunIntensity = env["SunIntensity"].as<float>();
 		environment.SunDiscRadius = env["SunDiscRadius"].as<float>();
 		environment.SunEdgeSoftness = env["SunEdgeSoftness"].as<float>();
-		environment.SunGlowIntensity = env["SunGlowIntensity"].as<float>();
-		environment.SunGlowSize = env["SunGlowSize"].as<float>();
-		environment.GlareInnerDeg = env["GlareInnerDeg"].as<float>();
-		environment.GlareOuterDeg = env["GlareOuterDeg"].as<float>();
 		environment.StarNits = env["StarNits"].as<float>();
 		environment.DayFadeStartDeg = env["DayFadeStartDeg"].as<float>();
 		environment.DayFadeEndDeg = env["DayFadeEndDeg"].as<float>();
@@ -805,6 +822,21 @@ namespace Toast {
 		environment.SpaceFadeStart = env["SpaceFadeStart"].as<float>();
 		environment.SpaceFadeEnd = env["SpaceFadeEnd"].as<float>();
 		environment.NightAmbient = env["NightAmbient"].as<DirectX::XMFLOAT3>();
+
+		environment.SunWhite = env["SunWhite"].as<DirectX::XMFLOAT3>();
+		environment.SpaceDiscBrightnessScale = env["SpaceDiscBrightnessScale"].as<float>();
+		environment.WarmTint = env["WarmTint"].as<DirectX::XMFLOAT3>();
+		environment.AirHaloIntensity = env["AirHaloIntensity"].as<float>();
+
+		environment.AirHaloStartFrac = env["AirHaloStartFrac"].as<float>();
+		environment.AirHaloFalloffPow = env["AirHaloFalloffPow"].as<float>();
+		environment.HorizonRefractionDeg = env["HorizonRefractionDeg"].as<float>();
+		environment.TwilightBlendDeg = env["TwilightBlendDeg"].as<float>();
+
+		environment.HorizonSoftEdgeDeg = env["HorizonSoftEdgeDeg"].as<float>();
+		environment.SpaceHaloWidthDeg = env["SpaceHaloWidthDeg"].as<float>();
+		environment.SpaceHaloIntensity = env["SpaceHaloIntensity"].as<float>();
+		environment.SpaceHaloCutoffDeg = env["SpaceHaloCutoffDeg"].as<float>();
 
 		auto entities = data["Entities"];
 		if (entities) 

@@ -64,7 +64,7 @@ namespace Toast {
 
 				if (mContext)
 				{
-					const char* items[] = { "None", "G-Buffer Positions", "G-Buffer Normals", "G-Buffer Albedo/Metallic", "Roughness", "Lighting Pass Output", "Atmospheric Scattering Output", "SSAO", "SSAO Blur", "Bloom", "Bloom Blur", "Bloom Final", "Auto Exposure Group"};
+					const char* items[] = { "None", "G-Buffer Positions", "G-Buffer Normals", "G-Buffer Albedo/Metallic", "Roughness", "Lighting Pass Output", "Atmospheric Scattering Output", "SSAO", "SSAO Blur", "Bloom", "Bloom Half", "Bloom Quarter", "Bloom Final", "Auto Exposure Group"};
 					int currentOverlay = static_cast<int>(mContext->mSettings.RenderOverlaySetting);
 
 					ImGui::Text("Render Overlay");
@@ -101,11 +101,18 @@ namespace Toast {
 					ImGuiHelpers::ManualDragFloat("##ssaoradius", mContext->mSettings.SSAORadius, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 50.0f);
 					ImGui::Text("SSAO bias");
 					ImGuiHelpers::ManualDragFloat("##ssaobias", mContext->mSettings.SSAObias, mWindow, activeDragArea, 0.001f, ImVec2{ 255.0f, 20.0f }, "%.4f", -1.0f, 1.0f);
-					ImGui::Checkbox("Bloom", &mContext->mSettings.Bloom);
-					ImGui::Text("Bloom Intensity");
-					ImGuiHelpers::ManualDragFloat("##bloomintensity", mContext->mSettings.BloomIntensity, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 10.0f);
-					ImGui::Text("Bloom Threshold");
-					ImGuiHelpers::ManualDragFloat("##bloomtreshold", mContext->mSettings.BloomThreshold, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
+					ImGui::Checkbox("Bloom", &mContext->mSettings.Bloom.Enabled);
+					if (mContext->mSettings.Bloom.Enabled)
+					{
+						ImGui::Text("Bloom Atmosphere Intensity");
+						ImGuiHelpers::ManualDragFloat("##bloomatmosphereintensity", mContext->mSettings.Bloom.AtmosphereIntensity, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 10.0f);
+						ImGui::Text("Bloom Space Intensity");
+						ImGuiHelpers::ManualDragFloat("##bloomspaceintensity", mContext->mSettings.Bloom.SpaceIntensity, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 10.0f);
+						ImGui::Text("Bloom Atmosphere Threshold");
+						ImGuiHelpers::ManualDragFloat("##bloomatmospheretreshold", mContext->mSettings.Bloom.AtmosphereThreshold, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 25.0f);
+						ImGui::Text("Bloom Space Threshold");
+						ImGuiHelpers::ManualDragFloat("##bloomspacetreshold", mContext->mSettings.Bloom.SpaceThreshold, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 25.0f);
+					}
 					ImGui::Checkbox("Dynamic IBL", &mContext->mSettings.DynamicIBL);
 					if (ImGui::Checkbox("Planet backface culling", &mContext->mSettings.BackfaceCulling))
 						mContext->mSettings.IsDirty = true;
@@ -130,6 +137,8 @@ namespace Toast {
 					ImGuiHelpers::ManualDragFloat("##godraysweight", mContext->mSettings.GodRaysWeight, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
 
 					ImGui::Text("Exposure Settings");
+					ImGui::Text("Exposure Scene");
+					ImGuiHelpers::ManualDragFloat("##keyvalue", mContext->mSettings.AutoExposure.EVOffset, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", -10.0f, 10.0f);
 					ImGui::Text("Luminance Min(Log)");
 					ImGuiHelpers::ManualDragFloat("##loglummin", mContext->mSettings.AutoExposure.LogLumMin, mWindow, activeDragArea, 0.1f, ImVec2{ 255.0f, 20.0f }, "%.1f", -32.0f, 32.0f);
 					ImGui::Text("Luminance Max(Log)");

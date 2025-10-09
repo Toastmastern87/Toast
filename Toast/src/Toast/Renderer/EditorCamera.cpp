@@ -6,8 +6,10 @@
 namespace Toast {
 
 	EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
-		: mFOV(DirectX::XMConvertToRadians(fov)), mAspectRatio(aspectRatio)
 	{
+		mFOV = DirectX::XMConvertToRadians(fov);
+		mAspectRatio = aspectRatio;
+
 		//Near and far switched due to Toast Engine running inverted-z depth
 		DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, farClip, nearClip);
 		//DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, nearClip, farClip);

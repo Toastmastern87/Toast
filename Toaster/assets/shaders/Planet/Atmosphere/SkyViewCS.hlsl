@@ -294,10 +294,6 @@ void main(uint3 tid : SV_DispatchThreadID)
     
     float u = (tid.x + 0.5f) / float(W);
     
-    // keep the MS halo thin: ~2x–3x solar radius (tweak)
-    const float SUN_RAD = 0.004675f;
-    const float HALO_WIDTH = 6.0f * SUN_RAD;
-    
     float3 wSun = -normalize(direction.xyz);
     float3 Esun = radiance.rgb * SunIntensity;
     
@@ -314,7 +310,9 @@ void main(uint3 tid : SV_DispatchThreadID)
     
     // pick the window 
     float mu0, mu1;
-    GetMuWindow(rCam, RbVis, Rt, mu0, mu1);
+    float rWin = min(rCam, Rt - 1.0f);
+    float3 camRelWin = normalize(camRel) * rWin;
+    GetMuWindow(rWin, RbVis, Rt, mu0, mu1);
     
     // v→μ with optional horizon focus
     float v = (tid.y + 0.5f) / float(H);
@@ -327,13 +325,13 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     // reconstruct direction at this μ and azimuth
     float3 up, east, north;
-    BuildSkyBasis(cameraPosition.xyz, PlanetCenterWS, BasisSpinUp, up, east, north);
+    BuildSkyBasis(camWS, PlanetCenterWS, BasisSpinUp, up, east, north);
     float sphi = sin(phi), cphi = cos(phi);
     float sinTh = sqrt(saturate(1.0f - mu * mu));
     float3 wView = normalize(mu * up + sinTh * (cphi * east + sphi * north));
     float muV = dot(wView, up);
     
-    Hit hatm = IntersectSphereGrazingSafe(camRel, wView, Rt);
+    Hit hatm = IntersectSphereGrazingSafe(camRelWin, wView, Rt);
     if (!hatm.ok)
     {
         OutSkyView[tid.xy] = float4(0, 0, 0, 1);
@@ -343,7 +341,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     float tEnter = max(0.0f, hatm.t0);
     float tExit = max(0.0f, hatm.t1);
 
-    Hit hg = IntersectSphereGrazingSafe(camRel, wView, RbHit);
+    Hit hg = IntersectSphereGrazingSafe(camRelWin, wView, RbHit);
     if (hg.ok && hg.t0 > 0.0f)
         tExit = min(tExit, hg.t0);
 
@@ -354,11 +352,9 @@ void main(uint3 tid : SV_DispatchThreadID)
     float L = max(tExit - tEnter, 1e-6f);
 
     float3 Ls = 0, Lms = 0;
-    
-    // entry point on the ray where we hit the atmosphere
-    float3 pEntry = camRel + wView * tEnter;
 
     // keep rEntry strictly inside [RbVis, Rt] for stable TLUT lookups
+    float3 pEntry = camRelWin + wView * tEnter;
     float rEntry = clamp(length(pEntry), RbVis + 1e-3f, Rt - 1e-3f);
     float3 upEntry = pEntry / rEntry;
     float muEntry = dot(wView, upEntry);
@@ -379,7 +375,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 Tvp = T_along_ray(rEntry, muEntry, tLocal, RbVis, Rt);
         float muPh = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
         
-        float3 pRel = camRel + wView * ti;
+        float3 pRel = camRelWin + wView * ti;
         float rp = length(pRel);
         float h = max(0.0f, rp - RbPhys); // << height above blocking radius
             
@@ -391,7 +387,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         float3 upS = (rp > 0.0f) ? (pRel / rp) : up;
         float muS = dot(upS, wSun);
-        float Vsun = SunVisibilityAtR(rp, muS, RbVis);      
+        float Vsun = SunVisibilityAtR(rp, muS, RbPhys);
            
         float3 Tsun = T_to_TOA(rp, muS, RbVis, Rt) * Vsun;
 
@@ -411,7 +407,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 PsiMS_rgb = Psi4.rgb;
         
         if (SKY_USE_MS)
-            Lms += Tvp * ((sigS * PsiMS_rgb) * pMS) * dt;
+            Lms += Tvp * (sigS * PsiMS_rgb) * pMS * dt;
     }
     float fadeStart = cos(radians(85.0)); // ~+0.087 : a few degrees above horizon
     float fadeEnd = cos(radians(100.0)); // ~-0.174 : ~10° below horizon
@@ -421,7 +417,8 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     float nightEVBias = lerp(-1.0f, 0.0f, fNight); // -3 EV in deep night → 0 EV near horizon
     float nightMul = exp2(nightEVBias);
-    float3 skyRGB = (Ls + Lms) * Esun * nightMul;
+    
+    float3 skyRGB = (Ls + Lms) * Esun;
 
     OutSkyView[tid.xy] = float4(skyRGB, 1.0f);
     return;  

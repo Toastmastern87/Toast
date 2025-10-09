@@ -62,8 +62,6 @@ cbuffer StarsParams : register(b7)
     float TwilightEndDeg; // e.g. -6.0
     float SpaceFadeStart; // 0.85
     float SpaceFadeEnd; // 0.98
-    float GlareInnerDeg; // 5.0
-    float GlareOuterDeg; // 12.0
     float3 NightAmbient;
 }
 
@@ -95,6 +93,68 @@ float SunAltitudeDeg(float3 camPosWS, float3 planetCenterWS, float3 lightDirFrom
     return degrees(asin(mu)); // +90 zenith, 0 horizon, negative at night
 }
 
+// Intersect a ray with a sphere of radius R centered at origin (planet space).
+// Returns true if there is an intersection; t0 <= t1 on return.
+bool RaySphere(float3 ro, float3 rd, float R, out float t0, out float t1)
+{
+    float b = dot(ro, rd);
+    float c = dot(ro, ro) - R * R;
+    float h = b * b - c;
+    if (h < 0.0)
+    {
+        t0 = 0.0;
+        t1 = 0.0;
+        return false;
+    }
+    float s = sqrt(h);
+    t0 = -b - s;
+    t1 = -b + s;
+    return true;
+}
+
+// Returns whether the forward ray crosses the atmosphere shell [Rg, Rt],
+// along with the tangent altitude h_tan (meters) and forward segment length L_shell (meters).
+bool AtmosRayInfo(float3 camRel, float3 rd, float Rg, float Rt, out float h_tan, out float L_shell)
+{
+    // Closest approach to center (|rd| = 1): distance minus ground radius -> tangent altitude
+    float d_closest = length(cross(camRel, rd));
+    h_tan = d_closest - Rg;
+
+    // Intersections
+    float t0o, t1o;
+    bool hitOut = RaySphere(camRel, rd, Rt, t0o, t1o);
+    if (!hitOut || t1o <= 0.0)
+    {
+        L_shell = 0.0;
+        return false;
+    }
+
+    float t0i, t1i;
+    bool hitIn = RaySphere(camRel, rd, Rg, t0i, t1i);
+
+    // Forward segment length inside the shell
+    float r0 = length(camRel);
+    float tEnter, tExit;
+    if (r0 >= Rt - 1e-3)
+    {
+        tEnter = max(t0o, 0.0);
+        tExit = t1o;
+        if (hitIn && t1i > 0.0)
+            tExit = min(tExit, t0i);
+    }
+    else
+    {
+        tEnter = 0.0;
+        tExit = t1o;
+        if (hitIn && t1i > 0.0)
+            tExit = min(tExit, t0i);
+    }
+
+    L_shell = max(tExit - tEnter, 0.0);
+    return (L_shell > 0.0);
+}
+
+// ---------- main: star occlusion that respects atmosphere shell -------------
 float4 main(PixelInputType input) : SV_Target
 {
     // Discard where geometry exists (reversed-Z: sky depth ~ 0)
@@ -102,7 +162,7 @@ float4 main(PixelInputType input) : SV_Target
     if (depth > 1e-12f)
         discard;
 
-    // Reconstruct world ray
+    // Reconstruct world ray (row_major: mul(vector, matrix))
     float2 ndc = input.texCoord * 2.0f - 1.0f;
     ndc.y = -ndc.y;
     float4 clipPos = float4(ndc, 0.0f, 1.0f);
@@ -114,16 +174,17 @@ float4 main(PixelInputType input) : SV_Target
     // Camera & planet
     float3 planetCenterWS = mul(float4(PlanetCentreVS, 1.0f), worldTranslationMatrix).xyz;
     float3 camWS = cameraPosition.xyz;
-    float3 upCam = normalize(camWS - planetCenterWS);
-    float rCam = length(camWS - planetCenterWS);
-    float h = max(0.0, rCam - PlanetRadius);
+    float3 camRel = camWS - planetCenterWS;
+    float rCam = length(camRel);
+    float Rg = PlanetRadius;
+    float Rt = PlanetRadius + AtmosphereHeight;
 
-    // Sun geometry
+    // Sun
     float3 wSun = -normalize(direction.xyz); // TO sun
     float sunAlt = SunAltitudeDeg(camWS, planetCenterWS, direction.xyz);
 
-    // ---------- VISIBILITY FACTORS ----------
-    // Surface night factor: 0 at/above TwilightStartDeg, 1 by TwilightEndDeg (e.g. 0 → -6°)
+    // ---------- base visibility ----------
+    // Ground night factor (0 at/above TwilightStartDeg → 1 by TwilightEndDeg)
     float surfaceNight = sstep(TwilightStartDeg, TwilightEndDeg, sunAlt);
 
     // Space visibility from altitude
@@ -131,12 +192,27 @@ float4 main(PixelInputType input) : SV_Target
     float spaceFadeEndAlt = PlanetRadius + SpaceFadeEnd * AtmosphereHeight;
     float spaceVis = sstep(spaceFadeStartAlt, spaceFadeEndAlt, rCam);
 
-    // Sun glare: reduce near sun
-    float thetaSun = degrees(acos(clamp(dot(worldDir, wSun), -1.0, 1.0)));
-    float glareCut = sstep(GlareInnerDeg, GlareOuterDeg, thetaSun);
+    // Start from night OR space
+    float visibility = saturate(max(surfaceNight, spaceVis));
 
-    // Final visibility: surface night OR space, then apply horizon & glare
-    float visibility = saturate(max(surfaceNight, spaceVis) * glareCut);
+    // ---------- shell occlusion (SPACE ONLY) ----------
+    if (rCam >= Rt - 1e-3)  // <-- key fix: do not occlude when inside atmo
+    {
+        float h_tan, L_shell;
+        bool crossesShell = AtmosRayInfo(camRel, worldDir, Rg, Rt, h_tan, L_shell);
+        if (crossesShell)
+        {
+            // If tangent altitude is above the top of the air, don't occlude
+            // Otherwise attenuate proportionally to depth and path length.
+            float depthWeight = saturate((AtmosphereHeight - max(h_tan, 0.0)) / AtmosphereHeight); // 0 at top, 1 near ground
+            const float Ls = 80000.0; // 80 km scale for chord length → weight
+            float lenWeight = 1.0 - exp(-L_shell / Ls);
+            float atmoOcc = pow(saturate(depthWeight * lenWeight), 0.8); // gentle curve
+
+            // Leave a tiny residual in very thin upper-atmo; stronger near limb
+            visibility *= (1.0 - 0.95 * atmoOcc);
+        }
+    }
 
     // Sample stars (normalized 0..1)
     float3 starTex = radianceTexture.SampleLevel(LinearSampler, worldDir, 0.0f).rgb;

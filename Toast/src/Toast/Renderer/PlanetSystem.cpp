@@ -388,6 +388,18 @@ namespace Toast {
 		return std::sqrt(std::max(0.0f, h * h + 2.0f * Rg * h));
 	}
 
+	float Planet::GetSpaceFactor(Vector3 cameraPosition)
+	{
+		double RbPhys = mRadius + std::min(0.0, mMinHeight);
+		double Rt = mRadius + mAtmosphere.AtmosphereHeight;
+		double rCam = Vector3::Length(cameraPosition - mTranslation);
+
+		double airFrac = std::clamp((Rt - std::clamp(rCam, RbPhys, Rt)) / std::max(Rt - RbPhys, 1e-6), 0.0, 1.0);
+		double spaceFactor = 1.0f - smoothstep(0.02f, 0.22f, airFrac);
+
+		return (float)spaceFactor;
+	}
+
 	void Planet::DetailObjectPlacement(TerrainObjectComponent* objects, Matrix& planetNoScaleTransform)
 	{
 		//TOAST_PROFILE_FUNCTION();

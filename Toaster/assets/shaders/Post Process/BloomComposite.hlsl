@@ -24,8 +24,11 @@ PixelInputType main(uint vID : SV_VertexID)
 
 cbuffer BloomParams : register(b11)
 {
-    float intensity;
-    float threshold; // Brightness threshold
+    float intensityAtmosphere;
+    float intensitySpace;
+    float spaceFactor;
+    float thresholdAtmosphere;
+    float thresholdSpace;
 };
 
 Texture2D sceneBaseTexture : register(t0);
@@ -41,8 +44,10 @@ struct PixelInputType
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-    float4 sceneColor = sceneBaseTexture.Sample(defaultSampler, input.texCoord);
-    float4 bloomColor = blurredBloomTexture.Sample(defaultSampler, input.texCoord);
+    float3 sceneColor = sceneBaseTexture.Sample(defaultSampler, input.texCoord).rgb;
+    float3 bloomColor = blurredBloomTexture.Sample(defaultSampler, input.texCoord).rgb;
+    
+    float intensity = lerp(intensityAtmosphere, intensitySpace, spaceFactor);
     // Combine the scene with the bloom contribution
-    return sceneColor + bloomColor * intensity;
+    return float4(sceneColor + bloomColor * intensity, 1.0f);
 }

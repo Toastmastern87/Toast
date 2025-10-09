@@ -12,11 +12,6 @@
 #define MS_ENABLE_GROUND     1         // include ground term in L2
 #endif
 
-// *** NEW: keep sun-visibility OUT of the LUT (recommended = 0) ***
-#ifndef MS_BAKE_SUNVIS
-#define MS_BAKE_SUNVIS       1
-#endif
-
 // *** NEW: make f_ms proportional to single-scattering albedo (recommended = 1) ***
 #ifndef MS_FMS_WEIGHT_RHO
 #define MS_FMS_WEIGHT_RHO    0

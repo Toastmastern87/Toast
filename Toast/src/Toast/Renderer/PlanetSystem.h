@@ -98,6 +98,13 @@ namespace Toast {
 		float APFarDynamic = 150000.0f;
 	};
 
+	inline float smoothstep(float a, float b, float x)
+	{
+		if (a == b) return 0.0f; // avoid divide-by-zero
+		float t = std::clamp((x - a) / (b - a), 0.0f, 1.0f);
+		return t * t * (3.0f - 2.0f * t);
+	}
+
 	class Planet
 	{
 	// NEW PLANET SYSTEM
@@ -234,6 +241,8 @@ namespace Toast {
 		Ref<Texture3D>& GetAerialPerspectiveLUT() { return mAerielPerspectiveLUT; }
 		Ref<Texture2D>& GetAPFar() { return mAPFar; }
 		Ref<Texture2D>& GetAPNear() { return mAPNear; }
+
+		float GetSpaceFactor(Vector3 cameraPosition);
 
 		void DetailObjectPlacement(TerrainObjectComponent* objects, Matrix& planetNoScaleTransform);
 

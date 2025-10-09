@@ -83,7 +83,10 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Post Process/Atmosphere.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/GodRays.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/Bloom.hlsl");
-		ShaderLibrary::Load("assets/shaders/Post Process/BloomComposition.hlsl");
+		ShaderLibrary::Load("assets/shaders/Post Process/BloomDownSample.hlsl");
+		ShaderLibrary::Load("assets/shaders/Post Process/BloomWideBlur.hlsl");
+		ShaderLibrary::Load("assets/shaders/Post Process/BloomUpSample.hlsl");
+		ShaderLibrary::Load("assets/shaders/Post Process/BloomComposite.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/ToneMapping.hlsl");
 		ShaderLibrary::Load("assets/shaders/Post Process/BasicAutoExposure.hlsl");
 
@@ -92,8 +95,6 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Environment/EnvironmentIrradiance.hlsl");
 
 		// Others
-		ShaderLibrary::Load("assets/shaders/Utilities/HorizontalBlur.hlsl");
-		ShaderLibrary::Load("assets/shaders/Utilities/VerticalBlur.hlsl");
 		ShaderLibrary::Load("assets/shaders/Utilities/SunDiscMask.hlsl");
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
 		ShaderLibrary::Load("assets/shaders/UI.hlsl");
@@ -343,8 +344,11 @@ namespace Toast {
 			case RenderOverlay::BLOOM:
 				textureID = (void*)Renderer::GetBloomRT()->GetSRV().Get();
 				break;
-			case RenderOverlay::BLOOMBLUR:
-				textureID = (void*)Renderer::GetBloomBlurRT()->GetSRV().Get();
+			case RenderOverlay::BLOOMHALF:
+				textureID = (void*)Renderer::GetBloomHalfRT()->GetSRV().Get();
+				break;
+			case RenderOverlay::BLOOMQUARTER:
+				textureID = (void*)Renderer::GetBloomQuarterRT()->GetSRV().Get();
 				break;
 			case RenderOverlay::BLOOMFINAL:
 				textureID = (void*)Renderer::GetFinalBloomRT()->GetSRV().Get();

@@ -13,6 +13,7 @@ Planet:
   HeightMapAssetPath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
   Metalness: 0
   StarFieldAssetPath: C:\dev\Toast\Toaster\assets\textures\StarField16k.tif
+  AtmosphereActivated: true
   AtmosphereHeight: 70000
   RayleighScaleHeight: 8000
   RayleighScattering: [5.80200003e-06, 1.35580003e-05, 3.3100001e-05]
@@ -26,19 +27,27 @@ Environment:
   SunDiscToggle: true
   SunIntensity: 25
   SunDiscRadius: 0.00467499997
-  SunEdgeSoftness: 0.200000003
-  SunGlowIntensity: 0.200000003
-  SunGlowSize: 0.300000012
-  GlareInnerDeg: 5
-  GlareOuterDeg: 12
+  SunEdgeSoftness: 0.00523598775
+  SunWhite: [1, 0.988235295, 0.968627453]
+  WarmTint: [1, 0.921568632, 0.78039217]
+  SpaceDiscBrightnessScale: 1.29999995
+  AirHaloIntensity: 0.280000001
+  AirHaloStartFrac: 0.150000006
+  AirHaloFalloffPow: 1.10000002
+  HorizonRefractionDeg: 0.829999983
+  TwilightBlendDeg: 1.5
+  HorizonSoftEdgeDeg: 0.400000006
+  SpaceHaloWidthDeg: 0.800000012
+  SpaceHaloIntensity: 0.0399999991
+  SpaceHaloCutoffDeg: 6
   StarNits: 600
   DayFadeStartDeg: 2
   DayFadeEndDeg: -2
   TwilightStartDeg: 0
-  TwilightEndDeg: -6
+  TwilightEndDeg: -76.9000015
   SpaceFadeStart: 0.850000024
   SpaceFadeEnd: 0.980000019
-  NightAmbient: [0.0549019612, 0.0549019612, 0.0549019612]
+  NightAmbient: [0.6, 0.64, 0.72]
 Entities:
   - Entity: 3888910141822256182
     TagComponent:
@@ -57,7 +66,7 @@ Entities:
         PerspectiveFOV: 45
         NearClip: 0.100000001
         FarClip: 2000000
-        OrthographicWidth: 2668
+        OrthographicWidth: 2660
         OrthographicHeight: 1120
       Primary: true
       FixedAspectRatio: false
@@ -91,7 +100,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-367.584473, 20.8000145, -63.5000076]
+      Rotation: [-367.382446, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]

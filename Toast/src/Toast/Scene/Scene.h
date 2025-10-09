@@ -30,9 +30,10 @@ namespace Toast {
 		SSAO = 7, 
 		SSAOBLUR = 8, 
 		BLOOM = 9, 
-		BLOOMBLUR = 10, 
-		BLOOMFINAL = 11, 
-		AUTOEXPOSUREGROUP = 12
+		BLOOMHALF = 10,
+		BLOOMQUARTER = 11,
+		BLOOMFINAL = 12, 
+		AUTOEXPOSUREGROUP = 13
 	};
 
 	struct DirectionalLight
@@ -70,6 +71,17 @@ namespace Toast {
 			float SpeedDown = 2.5f;
 			float MinEV = -10.0f;
 			float MaxEV = 12.0f;
+			float EVOffset = -1.62f;
+		};
+
+		struct BloomParams
+		{
+			bool Enabled = true;
+			float AtmosphereIntensity = 0.55f;
+			float SpaceIntensity = 0.25f;
+			float AtmosphereThreshold = 1.0f;
+			float SpaceThreshold = 4.18f;
+			float GlarePW;
 		};
 
 		//Settings
@@ -94,9 +106,7 @@ namespace Toast {
 			bool SSAODebugging = false;
 			float SSAORadius = 0.5f;
 			float SSAObias = 0.025f;
-			bool Bloom = true;
-			float BloomIntensity = 0.43f;
-			float BloomThreshold = 0.41f;
+			BloomParams Bloom;
 			bool DynamicIBL = true;
 
 			int PhysicSlowmotion = 1;
@@ -129,10 +139,20 @@ namespace Toast {
 			float SunIntensity = 0.0f;
 			float SunDiscRadius = 0.0f;
 			float SunEdgeSoftness = 0.0f;
-			float SunGlowSize = 0.0f;
-			float SunGlowIntensity = 0.0f;
-			float GlareInnerDeg = 5.0f; // sun glare inner angle (e.g. 5.0)
-			float GlareOuterDeg = 12.0f; // sun glare outer angle (e.g. 12.0)
+			DirectX::XMFLOAT3 SunWhite = { 1.0f, 1.0f, 1.0f };
+			float SpaceDiscBrightnessScale = 1.3f;
+			DirectX::XMFLOAT3 WarmTint = { 1.0f, 1.0f, 1.0f };
+			float AirHaloIntensity = 0.28f;
+
+			float AirHaloStartFrac = 0.15f;
+			float AirHaloFalloffPow = 1.10f; 
+			float HorizonRefractionDeg = 0.83f;
+			float TwilightBlendDeg = 1.5f;
+
+			float HorizonSoftEdgeDeg = 0.4f; 
+			float SpaceHaloWidthDeg = 0.8f; 
+			float SpaceHaloIntensity = 0.04f; 
+			float SpaceHaloCutoffDeg = 6.0f; 
 
 			// Stars
 			float StarNits = 600.0f; // brightness of 1 sun-like star in nits

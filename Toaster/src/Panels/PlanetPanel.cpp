@@ -451,6 +451,13 @@ namespace Toast {
 
 				ImGui::TableSetColumnIndex(0);
 				ImGui::AlignTextToFramePadding();
+				ImGui::Text("Activate Atmosphere");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Checkbox("##activateatmosphere", &mContext->mAtmosphereActivated);
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::AlignTextToFramePadding();
 				ImGui::Text("Atmosphere Height");
 
 				ImGui::TableSetColumnIndex(1);

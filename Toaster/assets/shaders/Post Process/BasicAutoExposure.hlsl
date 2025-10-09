@@ -2,7 +2,7 @@
 #type compute
 #pragma pack_matrix(row_major)
 
-cbuffer AautoExposureParams : register(b8)
+cbuffer AutoExposureParams : register(b8)
 {
     float LogLumMin; // log2 of min metered luminance (e.g. log2(1e-4))
     float LogLumMax; // log2 of max metered luminance (e.g. log2(16.0))

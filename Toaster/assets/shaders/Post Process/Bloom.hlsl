@@ -24,8 +24,11 @@ PixelInputType main(uint vID : SV_VertexID)
 
 cbuffer BloomParams : register(b11)
 {
-    float intensity;
-    float threshold; // Brightness threshold
+    float intensityAtmosphere;
+    float intensitySpace;
+    float spaceFactor;
+    float thresholdAtmosphere;
+    float thresholdSpace; 
 };
 
 Texture2D sceneBaseTexture : register(t0);
@@ -40,10 +43,20 @@ struct PixelInputType
 
 float4 main(PixelInputType input) : SV_TARGET
 {
-    float4 color = sceneBaseTexture.Sample(clampSampler, input.texCoord);
-    
-    float knee = threshold * 0.5f;
-    float bright = max(dot(color.rgb, float3(0.2126, 0.7152, 0.0722)) - knee, 0.0) / (threshold - knee);
-    float mask = saturate(bright * bright);
-    return float4(color.rgb * mask, 1.0f);
+    // HDR color (post-exposure, pre-tonemap)
+    float3 colorHDR = sceneBaseTexture.Sample(clampSampler, input.texCoord).rgb;
+
+    // Space/atmo thresholds
+    float t = lerp(thresholdAtmosphere, thresholdSpace, spaceFactor);
+    float k = 0.5 * t; // knee width ~ half the threshold (good starting point)
+
+    // Unreal-style soft-knee bright pass, PER CHANNEL (keeps sun’s color)
+    float3 over = max(colorHDR - t, 0.0.xxx);
+    float3 soft = max(colorHDR - (t - k), 0.0.xxx);
+    float invDen = 1.0 / max(4.0 * k, 1e-6);
+    float3 knee = soft * soft * invDen;
+    float3 bright = max(over, knee);
+
+    // Output the BRIGHT COLOR, not a luma mask
+    return float4(bright, 1.0);
 }

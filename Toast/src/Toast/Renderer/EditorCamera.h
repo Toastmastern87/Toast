@@ -22,7 +22,7 @@ namespace Toast {
 		void SetViewportSize(float width, float height) { mViewportWidth = width; mViewportHeight = height; UpdateProjection(); };
 
 		void SetVerticalFOV(float verticalFOV) { mFOV = DirectX::XMConvertToRadians(verticalFOV); UpdateProjection(); }
-		const float GetVerticalFOV() const { return DirectX::XMConvertToDegrees(mFOV); }
+
 		void SetNearClip(float nearClip) { mNearClip = (std::max)(nearClip, 0.001f); UpdateProjection(); }
 		float& GetNearClip() { return mNearClip; }
 		void SetFarClip(float farClip) { mFarClip = farClip; UpdateProjection(); }
@@ -61,8 +61,6 @@ namespace Toast {
 
 		/*float mPitch = 0.28f, mYaw = 0.0f;*/
 		float mPitch = 0.0f, mYaw = 0.0f;
-
-		float mFOV = DirectX::XMConvertToRadians(45.0f), mAspectRatio = 1.778f;
 
 		float mViewportWidth = 1280, mViewportHeight = 720;
 
