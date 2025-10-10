@@ -212,20 +212,23 @@ float4 main(PSIn input) : SV_Target
     // ---------- CAMERA-DRIVEN EXPOSURE ---------------------------------------
     float sunAltCamEff = SunAltDegEffectiveCamera(cameraPosition.xyz, PlanetCenterWS, PlanetRadius, direction.xyz);
     // This is the exposure we would use everywhere if we ignored per-pixel night:
-    float targetEV = EVBiasFromSunAltitude(sunAltCamEff) + EV;
+    float EVCamera = EVBiasFromSunAltitude(sunAltCamEff) + EV;
     
     float m_disc = pow(saturate(SunDiscMask.Sample(LinearClamp, input.uv)), 1.0f);
     float m_halo = saturate(SunHaloMask.Sample(LinearClamp, input.uv));
+    
+    float EVTarget = EVCamera; // default for sky; may be overridden per-pixel
     
     if (depth > 1e-12f)
     {
         // ---------- Reconstruct per-pixel data ----------
         float3 pWS = ReconstructWorldPos(input.uv, depth); // world pos
         float3 up_px = normalize(pWS - PlanetCenterWS); // radial up
-        float3 wSun = -normalize(direction.xyz); // TO sun
 
         // Per-pixel sun altitude (deg)
         float sunAlt_px = SunAltitudeDeg_at(pWS, PlanetCenterWS, direction.xyz);
+        
+        float EVTerrain = EVBiasFromSunAltitude(sunAlt_px) + EV;
 
         // Night test: is planet between pixel and sun? (nightside terrain mask)
         float t0, t1;
@@ -234,9 +237,17 @@ float4 main(PSIn input) : SV_Target
 
         // Soften around horizon to avoid hard silhouettes
         float mu = dot(up_px, wSun); // <0 = night hemisphere
-        float eps = 0.002; // ~0.1°
+        float eps = 0.002f; // ~0.1°
         float horizonSoft = 1.0 - smoothstep(-0.03 - eps, +0.03 + eps, mu);
         float nightMask = max(nightAtPx ? 1.0 : 0.0, horizonSoft * step(mu, 0.0));
+        
+        // --- add a twilight ramp based on *pixel* sun altitude ---
+        float nightnessAlt = sstep(+0.5f, -6.0f, sunAlt_px); // 0 at day → ~1 by nautical night
+        
+        // Final weight to use for per-pixel EV blend:
+        float nightness = saturate(max(nightMask, nightnessAlt));
+        
+        EVTarget = lerp(EVCamera, EVTerrain, nightness);
 
         // AO (assume 1=open, 0=occluded; invert if yours is opposite)
         float ao = SSAO.Sample(LinearClamp, input.uv).r;
@@ -277,7 +288,7 @@ float4 main(PSIn input) : SV_Target
     }
     
     // ---------- Apply exposure + tonemap -------------------------------------
-    float3 color = max(hdr * exp2(targetEV), 0.0.xxx);
+    float3 color = max(hdr * exp2(EVTarget), 0.0.xxx);
 
     // Tone map to scRGB paper-white space
     const float peakLinear = 2000.0f / 200.0f; // assuming PW=200 nits
