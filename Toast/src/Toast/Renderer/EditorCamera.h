@@ -34,7 +34,6 @@ namespace Toast {
 		DirectX::XMFLOAT4& GetForwardDirection() override;
 		DirectX::XMVECTOR GetUpDirection() const;
 		DirectX::XMVECTOR GetRightDirection() const;
-		DirectX::XMVECTOR GetPosition() const { return mPosition; }
 		DirectX::XMVECTOR GetOrientation() const;
 
 		void UpdateProjection();
@@ -54,12 +53,9 @@ namespace Toast {
 		float ZoomSpeed() const;
 	private:
 		DirectX::XMVECTOR mFocalPoint = { 0.0f, 1.0f, 7.0f };
-		DirectX::XMVECTOR mPosition = { 0.0f, 1.0f, -3.0f };
-		//DirectX::XMVECTOR mPosition = { -24761.4f, 269119.18f, -319789.15f }; 
 		
 		DirectX::XMVECTOR mInitialCursorPosition = { 0.0f, 0.0f };
 
-		/*float mPitch = 0.28f, mYaw = 0.0f;*/
 		float mPitch = 0.0f, mYaw = 0.0f;
 
 		float mViewportWidth = 1280, mViewportHeight = 720;

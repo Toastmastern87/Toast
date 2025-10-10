@@ -797,6 +797,8 @@ namespace Toast {
 
 	void Scene::OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera)
 	{
+		mActiveCamera = editorCamera;
+
 		entt::entity* mainCamera = nullptr;
 		TransformComponent* mainCameraTransform;
 		CameraComponent* mainCameraComponent;
@@ -1030,8 +1032,7 @@ namespace Toast {
 			}
 		}
 
-		DirectX::XMFLOAT4 cameraPosFloat;
-		DirectX::XMStoreFloat4(&cameraPosFloat, editorCamera->GetPosition());
+		DirectX::XMFLOAT4 cameraPosFloat = DirectX::XMFLOAT4(editorCamera->GetTranslation().x, editorCamera->GetTranslation().y, editorCamera->GetTranslation().z, 1.0f);
 
 		// 3D Rendering
 		Renderer::BeginScene(this, *editorCamera, cameraPosFloat, mEnvironment, static_cast<int>(mSettings.WireframeRendering));

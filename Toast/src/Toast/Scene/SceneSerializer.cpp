@@ -616,6 +616,47 @@ namespace Toast {
 		// TODO, should be scene name instead of just untitled scene
 		out << YAML::Key << "Scene" << YAML::Value << "Untitled Scene";
 
+		Camera* activeCamera = mScene->GetActiveCamera().get();
+
+		out << YAML::Key << "EditorCamera";
+		out << YAML::BeginMap;
+		if (activeCamera)
+			out << YAML::Key << "Position" << YAML::Value << activeCamera->GetTranslation();
+		else
+			out << YAML::Key << "Position" << YAML::Value << 0;
+		out << YAML::EndMap;
+
+		Scene::Settings& settings = mScene->GetSettings();
+
+		out << YAML::Key << "Settings";
+		out << YAML::BeginMap;
+		out << YAML::Key << "Grid" << YAML::Value << settings.Grid;
+		out << YAML::Key << "CameraFrustum" << YAML::Value << settings.CameraFrustum;
+		out << YAML::Key << "SunLightFrustum" << YAML::Value << settings.SunLightFrustum;
+		out << YAML::Key << "BackfaceCulling" << YAML::Value << settings.BackfaceCulling;
+		out << YAML::Key << "FrustumCulling" << YAML::Value << settings.FrustumCulling;
+		out << YAML::Key << "RenderColliders" << YAML::Value << settings.RenderColliders;
+		out << YAML::Key << "RenderUI" << YAML::Value << settings.RenderUI;
+		out << YAML::Key << "Shadows" << YAML::Value << settings.Shadows;
+		out << YAML::Key << "SSAO" << YAML::Value << settings.SSAO;
+		out << YAML::Key << "SSAODebugging" << YAML::Value << settings.SSAODebugging;
+		out << YAML::Key << "SSAORadius" << YAML::Value << settings.SSAORadius;
+		out << YAML::Key << "SSAObias" << YAML::Value << settings.SSAObias;
+		out << YAML::Key << "BloomAtmosphereThreshold" << YAML::Value << settings.Bloom.AtmosphereThreshold;
+		out << YAML::Key << "BloomAtmosphereIntensity" << YAML::Value << settings.Bloom.AtmosphereIntensity;
+		out << YAML::Key << "BloomSpaceThreshold" << YAML::Value << settings.Bloom.SpaceThreshold;
+		out << YAML::Key << "BloomSpaceIntensity" << YAML::Value << settings.Bloom.SpaceIntensity;
+		out << YAML::Key << "DynamicIBL" << YAML::Value << settings.DynamicIBL;
+		out << YAML::Key << "PhysicSlowmotion" << YAML::Value << settings.PhysicSlowmotion;
+		out << YAML::Key << "PhysicsFPS" << YAML::Value << settings.PhysicsFPS;
+		out << YAML::Key << "PhysicsElapsedTime" << YAML::Value << settings.physicsElapsedTime;
+		out << YAML::Key << "SunFrustumOrthoSize" << YAML::Value << settings.SunFrustumOrthoSize;
+		out << YAML::Key << "GodRaysExposure" << YAML::Value << settings.GodRaysExposure;
+		out << YAML::Key << "GodRaysDecay" << YAML::Value << settings.GodRaysDecay;
+		out << YAML::Key << "GodRaysDensity" << YAML::Value << settings.GodRaysDensity;
+		out << YAML::Key << "GodRaysWeight" << YAML::Value << settings.GodRaysWeight;
+		out << YAML::EndMap;
+
 		Planet* scenePlanet = mScene->GetPlanet().get();
 
 		out << YAML::Key << "Planet";
@@ -777,6 +818,38 @@ namespace Toast {
 
 		std::string sceneName = data["Scene"].as<std::string>();
 		TOAST_CORE_TRACE("Deserializing scene '%s'", sceneName.c_str());
+
+		Camera* activeCamera = mScene->GetActiveCamera().get();
+
+		activeCamera->SetTranslation(data["EditorCamera"]["Position"].as<DirectX::XMFLOAT3>());
+
+		Scene::Settings& settings = mScene->GetSettings();
+		
+		settings.Grid = data["Settings"]["Grid"].as<bool>();
+		settings.CameraFrustum = data["Settings"]["CameraFrustum"].as<bool>();
+		settings.SunLightFrustum = data["Settings"]["SunLightFrustum"].as<bool>();
+		settings.BackfaceCulling = data["Settings"]["BackfaceCulling"].as<bool>();
+		settings.FrustumCulling = data["Settings"]["FrustumCulling"].as<bool>();
+		settings.RenderColliders = data["Settings"]["RenderColliders"].as<bool>();
+		settings.RenderUI = data["Settings"]["RenderUI"].as<bool>();
+		settings.Shadows = data["Settings"]["Shadows"].as<bool>();
+		settings.SSAO = data["Settings"]["SSAO"].as<bool>();
+		settings.SSAODebugging = data["Settings"]["SSAODebugging"].as<bool>();
+		settings.SSAORadius = data["Settings"]["SSAORadius"].as<float>();
+		settings.SSAObias = data["Settings"]["SSAObias"].as<float>();
+		settings.Bloom.AtmosphereThreshold = data["Settings"]["BloomAtmosphereThreshold"].as<float>();
+		settings.Bloom.AtmosphereIntensity = data["Settings"]["BloomAtmosphereIntensity"].as<float>();
+		settings.Bloom.SpaceThreshold = data["Settings"]["BloomSpaceThreshold"].as<float>();
+		settings.Bloom.SpaceIntensity = data["Settings"]["BloomSpaceIntensity"].as<float>();
+		settings.DynamicIBL = data["Settings"]["DynamicIBL"].as<bool>();
+		settings.PhysicSlowmotion = data["Settings"]["PhysicSlowmotion"].as<int>();
+		settings.PhysicsFPS = data["Settings"]["PhysicsFPS"].as<int>();
+		settings.physicsElapsedTime = data["Settings"]["PhysicsElapsedTime"].as<float>();
+		settings.SunFrustumOrthoSize = data["Settings"]["SunFrustumOrthoSize"].as<float>();
+		settings.GodRaysExposure = data["Settings"]["GodRaysExposure"].as<float>();
+		settings.GodRaysDecay = data["Settings"]["GodRaysDecay"].as<float>();
+		settings.GodRaysDensity = data["Settings"]["GodRaysDensity"].as<float>();
+		settings.GodRaysWeight = data["Settings"]["GodRaysWeight"].as<float>();
 
 		Planet* scenePlanet = mScene->GetPlanet().get();
 

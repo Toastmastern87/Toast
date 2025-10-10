@@ -18,6 +18,9 @@ namespace Toast {
 		void SetViewMatrix(DirectX::XMFLOAT4X4 viewMatrix) { mViewMatrix = viewMatrix; }
 		void SetInvViewMatrix(DirectX::XMFLOAT4X4 invViewMatrix) { mInvViewMatrix = invViewMatrix; }
 
+		DirectX::XMFLOAT3& GetTranslation() { return mTranslation; }
+		void SetTranslation(DirectX::XMFLOAT3 translation) { mTranslation = translation; }
+
 		void AddWorldTranslation(DirectX::XMFLOAT3 worldTranslation) 
 		{
 			mWorldTranslation = { mWorldTranslation.x + worldTranslation.x, mWorldTranslation.y + worldTranslation.y , mWorldTranslation.z + worldTranslation.z };
@@ -40,6 +43,7 @@ namespace Toast {
 	protected:
 		DirectX::XMFLOAT4X4 mViewMatrix, mInvViewMatrix, mProjection, mInvProjection, mOrthoProjection, mInvOrthoProjection;
 
+		DirectX::XMFLOAT3 mTranslation = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 mWorldTranslation = { 0.0f, 0.0f, 0.0f };
 
 		float mFOV = DirectX::XMConvertToRadians(45.0f);

@@ -204,11 +204,13 @@ namespace Toast {
 
 		Ref<Planet> GetPlanet() { return mPlanet; }
 
+		Ref<Camera> GetActiveCamera() { return mActiveCamera; }
+
 		void SetSelectedEntity(entt::entity entity) { mSelectedEntity = entity; }
 		entt::entity GetHoveredEntity() { return mHoveredEntity; }
 		void SetHoveredEntity(entt::entity entity) { mHoveredEntity = entity; }
 
-		Settings GetSettings() { return mSettings; }
+		Settings& GetSettings() { return mSettings; }
 		Environment& GetEnvirontment() { return mEnvironment; }
 
 		Ref<Frustum> GetFrustum() { return mFrustum; }
@@ -255,6 +257,8 @@ namespace Toast {
 		Ref<Planet> mPlanet;
 
 		SceneCamera* mMainCamera = nullptr;
+
+		Ref<Camera> mActiveCamera = nullptr;
 
 		Ref<Frustum> mFrustum;
 		bool mInvalidatePlanet = false;

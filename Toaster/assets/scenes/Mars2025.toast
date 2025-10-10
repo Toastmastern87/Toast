@@ -1,4 +1,32 @@
 Scene: Untitled Scene
+EditorCamera:
+  Position: [277.953003, 155139.844, -235204.906]
+Settings:
+  Grid: false
+  CameraFrustum: true
+  SunLightFrustum: true
+  BackfaceCulling: true
+  FrustumCulling: true
+  RenderColliders: false
+  RenderUI: true
+  Shadows: true
+  SSAO: false
+  SSAODebugging: false
+  SSAORadius: 0.5
+  SSAObias: 0.0250000004
+  BloomAtmosphereThreshold: 8.56999969
+  BloomAtmosphereIntensity: 1.13999999
+  BloomSpaceThreshold: 4.17999983
+  BloomSpaceIntensity: 0.25
+  DynamicIBL: true
+  PhysicSlowmotion: 1
+  PhysicsFPS: 60
+  PhysicsElapsedTime: 0
+  SunFrustumOrthoSize: 500
+  GodRaysExposure: 0.209999993
+  GodRaysDecay: 0.939999998
+  GodRaysDensity: 3
+  GodRaysWeight: 0.0199999996
 Planet:
   Translation: [0, -3393454, 0]
   Rotation: [74.899826, -18.0999756, -227.303177]
@@ -36,13 +64,10 @@ Environment:
   AirHaloFalloffPow: 0.889999986
   HorizonRefractionDeg: 0.829999983
   TwilightBlendDeg: 1.5
-  HorizonSoftEdgeDeg: 0.400000006
   SpaceHaloWidthDeg: 0.529999971
   SpaceHaloIntensity: 0.0199999996
   SpaceHaloCutoffDeg: 6
   StarNits: 160
-  DayFadeStartDeg: 2
-  DayFadeEndDeg: -2
   TwilightStartDeg: 0
   TwilightEndDeg: -45
   SpaceFadeStart: 0.850000024

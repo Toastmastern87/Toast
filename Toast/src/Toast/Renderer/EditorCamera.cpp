@@ -7,6 +7,8 @@ namespace Toast {
 
 	EditorCamera::EditorCamera(float fov, float aspectRatio, float nearClip, float farClip)
 	{
+		DirectX::XMVECTOR translation = DirectX::XMLoadFloat3(&mTranslation);
+
 		mFOV = DirectX::XMConvertToRadians(fov);
 		mAspectRatio = aspectRatio;
 
@@ -14,7 +16,7 @@ namespace Toast {
 		DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, farClip, nearClip);
 		//DirectX::XMMATRIX projection = DirectX::XMMatrixPerspectiveFovLH(mFOV, mAspectRatio, nearClip, farClip);
 		DirectX::XMMATRIX invProjection = DirectX::XMMatrixInverse(nullptr, projection);
-		DirectX::XMMATRIX view = DirectX::XMMatrixLookToLH(mPosition, DirectX::XMLoadFloat4(&GetForwardDirection()), GetUpDirection());
+		DirectX::XMMATRIX view = DirectX::XMMatrixLookToLH(translation, DirectX::XMLoadFloat4(&GetForwardDirection()), GetUpDirection());
 		DirectX::XMMATRIX invView = DirectX::XMMatrixInverse(nullptr, view);
 
 		DirectX::XMMATRIX  orthoProjection = DirectX::XMMatrixOrthographicLH(mViewportWidth, mViewportHeight, mNearClip, mFarClip);
@@ -58,7 +60,8 @@ namespace Toast {
 
 	void EditorCamera::UpdateView()
 	{
-		DirectX::XMMATRIX view = DirectX::XMMatrixLookToLH(mPosition, DirectX::XMLoadFloat4(&GetForwardDirection()), GetUpDirection());
+		DirectX::XMVECTOR translation = DirectX::XMLoadFloat3(&mTranslation);
+		DirectX::XMMATRIX view = DirectX::XMMatrixLookToLH(translation, DirectX::XMLoadFloat4(&GetForwardDirection()), GetUpDirection());
 		DirectX::XMStoreFloat4x4(&mViewMatrix, view);
 		DirectX::XMStoreFloat4x4(&mInvViewMatrix, DirectX::XMMatrixInverse(nullptr, view));
 	}
@@ -122,11 +125,15 @@ namespace Toast {
 
 	void EditorCamera::MousePan(const DirectX::XMVECTOR& delta)
 	{
+		DirectX::XMVECTOR translation = DirectX::XMLoadFloat3(&mTranslation);
+
 		auto [xSpeed, ySpeed] = PanSpeed();
 		mFocalPoint = DirectX::XMVectorAdd(mFocalPoint, DirectX::XMVectorScale(GetRightDirection(), (DirectX::XMVectorGetX(delta) * -xSpeed * 5.0f)));
-		mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(GetRightDirection(), (DirectX::XMVectorGetX(delta) * -xSpeed * 5.0f)));
+		translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(GetRightDirection(), (DirectX::XMVectorGetX(delta) * -xSpeed * 5.0f)));
 		mFocalPoint = DirectX::XMVectorAdd(mFocalPoint, DirectX::XMVectorScale(GetUpDirection(), (DirectX::XMVectorGetY(delta) * ySpeed * 5.0f)));
-		mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(GetUpDirection(), (DirectX::XMVectorGetY(delta) * ySpeed * 5.0f)));
+		translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(GetUpDirection(), (DirectX::XMVectorGetY(delta) * ySpeed * 5.0f)));
+
+		DirectX::XMStoreFloat3(&mTranslation, translation);
 	}
 
 	void EditorCamera::MouseRotate(const DirectX::XMVECTOR& delta)
@@ -140,18 +147,24 @@ namespace Toast {
 
 	void EditorCamera::MouseZoom(float delta)
 	{
-		mPosition = DirectX::XMVectorAdd(mPosition, DirectX::XMVectorScale(DirectX::XMLoadFloat4(&GetForwardDirection()), delta * ZoomSpeed()));
-		float distanceToFocalPoint = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(mPosition, mFocalPoint)));
+		DirectX::XMVECTOR translation = DirectX::XMLoadFloat3(&mTranslation);
+
+		translation = DirectX::XMVectorAdd(translation, DirectX::XMVectorScale(DirectX::XMLoadFloat4(&GetForwardDirection()), delta * ZoomSpeed()));
+		float distanceToFocalPoint = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(translation, mFocalPoint)));
 		if (distanceToFocalPoint < 10.0f) 
 		{
-			mPosition = DirectX::XMVectorSubtract(mPosition, DirectX::XMVectorScale(DirectX::XMLoadFloat4(&GetForwardDirection()), delta * ZoomSpeed()));
-			distanceToFocalPoint = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(mPosition, mFocalPoint)));
+			translation = DirectX::XMVectorSubtract(translation, DirectX::XMVectorScale(DirectX::XMLoadFloat4(&GetForwardDirection()), delta * ZoomSpeed()));
+			distanceToFocalPoint = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(translation, mFocalPoint)));
 		}
+
+		DirectX::XMStoreFloat3(&mTranslation, translation);
 	}
 
 	std::pair<float, float> EditorCamera::PanSpeed() const
 	{
-		float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(mPosition, mFocalPoint)));
+		DirectX::XMVECTOR translation = DirectX::XMLoadFloat3(&mTranslation);
+
+		float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(translation, mFocalPoint)));
 
 		const float baseSpeed = 2.4f;
 		
@@ -169,7 +182,9 @@ namespace Toast {
 
 	float EditorCamera::ZoomSpeed() const
 	{
-		float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(mPosition, mFocalPoint))) * 0.2f;
+		DirectX::XMVECTOR translation = DirectX::XMLoadFloat3(&mTranslation);
+
+		float distance = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(translation, mFocalPoint))) * 0.2f;
 		float base = distance * 0.1f; // Adjust this constant to tune the sensitivity
 		float speed = std::pow(base, 1.5f);
 

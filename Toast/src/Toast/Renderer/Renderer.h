@@ -200,7 +200,6 @@ namespace Toast {
 		static void BloomPass(Scene::BloomParams& bloomParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, const float verticalFovDeg);
 		static void GodRayPass(float exposure, float decay, float density, float weight);
 		static void PostProcessPass(const bool bloom, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos);
-		static void AutoExposurePass(Scene::ExposureParams& exposureParams, float dt);
 
 		static Ref<RenderTarget>& GetGPassPositionRT() { return sRendererData->GPassPositionRT; }
 		static Ref<RenderTarget>& GetGPassNormalRT() { return sRendererData->GPassNormalRT; }
