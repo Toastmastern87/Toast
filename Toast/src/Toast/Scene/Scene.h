@@ -58,29 +58,16 @@ namespace Toast {
 	public:
 		struct ExposureParams
 		{
-			float LogLumMin = -16.0f;
-			float LogLumMax = 8.0f;
-			float RejectBrightNits = 4.0f;
-			float RejectBrightSoftNits = 2.0f;
-			float RejectDark = 0.002f;
-			float CenterWeight = 0.85f;
-			float LastEV = 0.0f;
-			float KeyValue = 0.25f;
-			float SpeedUp = 1.5f;
-			float SpeedDown = 2.5f;
-			float MinEV = -10.0f;
-			float MaxEV = 12.0f;
 			float EVOffset = -2.18f;
 		};
 
 		struct BloomParams
 		{
 			bool Enabled = true;
-			float AtmosphereIntensity = 1.14f;
-			float SpaceIntensity = 0.25f;
 			float AtmosphereThreshold = 8.57f;
+			float AtmosphereIntensity = 1.14f;
 			float SpaceThreshold = 4.18f;
-			float GlarePW;
+			float SpaceIntensity = 0.25f;
 		};
 
 		//Settings
@@ -148,15 +135,12 @@ namespace Toast {
 			float HorizonRefractionDeg = 0.83f;
 			float TwilightBlendDeg = 1.5f;
 
-			float HorizonSoftEdgeDeg = 0.4f; 
 			float SpaceHaloWidthDeg = 0.8f; 
 			float SpaceHaloIntensity = 0.04f; 
 			float SpaceHaloCutoffDeg = 6.0f; 
 
 			// Stars
 			float StarNits = 600.0f; // brightness of 1 sun-like star in nits
-			float DayFadeStartDeg = 2.0f; // start hiding stars above horizon (e.g. +2.0)
-			float DayFadeEndDeg = -2.0f; // fully hidden by (e.g. 0.0 or -2.0)
 			float TwilightStartDeg = 0.0f; // start appearing (e.g. 0.0)
 			float TwilightEndDeg = -6.0f; // fully visible by (e.g. -6.0)
 			float SpaceFadeStart = 0.85f; // altitude norm where space visibility starts (0..1), e.g. 0.85

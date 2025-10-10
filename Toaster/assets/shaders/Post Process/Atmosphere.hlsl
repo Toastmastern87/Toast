@@ -74,21 +74,19 @@ cbuffer SunDiscSettings : register(b6)
     float SunDiscRadius; // rad  (e.g. radians(0.2666))
     float SunEdgeSoftness; // rad  (soft rim width)
     int SunDiscToggle; // 0=off, 1=on
-    float SpaceFactor; // 0=inside atmosphere, 1=space
-    
-    float3 SunDiscWhite;
     float SpaceDiscBrightnessScale; // unitless scale, e.g. 1.30
     
-    float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)
+    float3 SunDiscWhite;
     float AirHaloIntensity; // 0..~0.6 (was HaloStrength_Ground, e.g. 0.28)
     
+    float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)    
     float AirHaloStartFrac; // 0..1   (was InAirStart, e.g. 0.15)
+    
     float AirHaloFalloffPow; // curve (was InAirPow, e.g. 1.10)
     float HorizonRefractionDeg; // deg (was RefracCenterDeg, e.g. 0.83)
     float TwilightBlendDeg; // deg (was TwilightExtraDeg, e.g. 1.5)
-    
-    float HorizonSoftEdgeDeg; // deg (was LimbSoftDeg, e.g. 0.40)
     float SpaceHaloWidthDeg; // deg (was SpaceHaloSigmaDeg, e.g. 0.8)
+    
     float SpaceHaloIntensity; // 0.01..0.10 (was SpaceHaloGain, e.g. 0.04)
     float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
 };

@@ -665,7 +665,6 @@ namespace Toast {
 		out << YAML::Key << "AirHaloFalloffPow" << YAML::Value << environment.AirHaloFalloffPow;
 		out << YAML::Key << "HorizonRefractionDeg" << YAML::Value << environment.HorizonRefractionDeg;
 		out << YAML::Key << "TwilightBlendDeg" << YAML::Value << environment.TwilightBlendDeg;
-		out << YAML::Key << "HorizonSoftEdgeDeg" << YAML::Value << environment.HorizonSoftEdgeDeg;
 
 		// -------- Space Halo --------
 		out << YAML::Key << "SpaceHaloWidthDeg" << YAML::Value << environment.SpaceHaloWidthDeg;
@@ -674,8 +673,6 @@ namespace Toast {
 
 		// -------- Stars --------
 		out << YAML::Key << "StarNits" << YAML::Value << environment.StarNits;
-		out << YAML::Key << "DayFadeStartDeg" << YAML::Value << environment.DayFadeStartDeg;
-		out << YAML::Key << "DayFadeEndDeg" << YAML::Value << environment.DayFadeEndDeg;
 		out << YAML::Key << "TwilightStartDeg" << YAML::Value << environment.TwilightStartDeg;
 		out << YAML::Key << "TwilightEndDeg" << YAML::Value << environment.TwilightEndDeg;
 		out << YAML::Key << "SpaceFadeStart" << YAML::Value << environment.SpaceFadeStart;
@@ -815,8 +812,6 @@ namespace Toast {
 		environment.SunDiscRadius = env["SunDiscRadius"].as<float>();
 		environment.SunEdgeSoftness = env["SunEdgeSoftness"].as<float>();
 		environment.StarNits = env["StarNits"].as<float>();
-		environment.DayFadeStartDeg = env["DayFadeStartDeg"].as<float>();
-		environment.DayFadeEndDeg = env["DayFadeEndDeg"].as<float>();
 		environment.TwilightStartDeg = env["TwilightStartDeg"].as<float>();
 		environment.TwilightEndDeg = env["TwilightEndDeg"].as<float>();
 		environment.SpaceFadeStart = env["SpaceFadeStart"].as<float>();
@@ -833,7 +828,6 @@ namespace Toast {
 		environment.HorizonRefractionDeg = env["HorizonRefractionDeg"].as<float>();
 		environment.TwilightBlendDeg = env["TwilightBlendDeg"].as<float>();
 
-		environment.HorizonSoftEdgeDeg = env["HorizonSoftEdgeDeg"].as<float>();
 		environment.SpaceHaloWidthDeg = env["SpaceHaloWidthDeg"].as<float>();
 		environment.SpaceHaloIntensity = env["SpaceHaloIntensity"].as<float>();
 		environment.SpaceHaloCutoffDeg = env["SpaceHaloCutoffDeg"].as<float>();

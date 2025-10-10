@@ -139,20 +139,6 @@ namespace Toast {
 					ImGui::Text("Exposure Settings");
 					ImGui::Text("Exposure Scene");
 					ImGuiHelpers::ManualDragFloat("##keyvalue", mContext->mSettings.AutoExposure.EVOffset, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", -10.0f, 10.0f);
-					ImGui::Text("Luminance Min(Log)");
-					ImGuiHelpers::ManualDragFloat("##loglummin", mContext->mSettings.AutoExposure.LogLumMin, mWindow, activeDragArea, 0.1f, ImVec2{ 255.0f, 20.0f }, "%.1f", -32.0f, 32.0f);
-					ImGui::Text("Luminance Max(Log)");
-					ImGuiHelpers::ManualDragFloat("##loglummax", mContext->mSettings.AutoExposure.LogLumMax, mWindow, activeDragArea, 0.1f, ImVec2{ 255.0f, 20.0f }, "%.1f", -32.0f, 32.0f);
-					ImGui::Text("Bright Nits Reject Threshold");
-					ImGuiHelpers::ManualDragFloat("##brightnitsreject", mContext->mSettings.AutoExposure.RejectBrightNits, mWindow, activeDragArea, 0.1f, ImVec2{ 255.0f, 20.0f }, "%.1f", 0.0f, 32.0f);
-					ImGui::Text("Soft Bright Nits Reject Threshold");
-					ImGuiHelpers::ManualDragFloat("##softbrightnitsreject", mContext->mSettings.AutoExposure.RejectBrightSoftNits, mWindow, activeDragArea, 0.1f, ImVec2{ 255.0f, 20.0f }, "%.1f", 0.0f, 32.0f);
-					ImGui::Text("Reject Dark");
-					ImGuiHelpers::ManualDragFloat("##rejectdark", mContext->mSettings.AutoExposure.RejectDark, mWindow, activeDragArea, 0.0001f, ImVec2{ 255.0f, 20.0f }, "%.4f", 0.0f, 1.0f);
-					ImGui::Text("Center Weight");
-					ImGuiHelpers::ManualDragFloat("##centerWeight", mContext->mSettings.AutoExposure.CenterWeight, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 1.0f);
-					ImGui::Text("Key Value");
-					ImGuiHelpers::ManualDragFloat("##keyvalue", mContext->mSettings.AutoExposure.KeyValue, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 1.0f);
 				}
 
 				ImGui::Spacing();

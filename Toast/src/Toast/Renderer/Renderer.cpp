@@ -1144,12 +1144,10 @@ namespace Toast {
 				sRendererData->AtmosphereCBuffer->Bind();
 
 				sRendererData->StarsBuffer.Write((uint8_t*)&environment.StarNits, 4, 0);
-				sRendererData->StarsBuffer.Write((uint8_t*)&environment.DayFadeStartDeg, 4, 4);
-				sRendererData->StarsBuffer.Write((uint8_t*)&environment.DayFadeEndDeg, 4, 8);
-				sRendererData->StarsBuffer.Write((uint8_t*)&environment.TwilightStartDeg, 4, 12);
-				sRendererData->StarsBuffer.Write((uint8_t*)&environment.TwilightEndDeg, 4, 16);
-				sRendererData->StarsBuffer.Write((uint8_t*)&environment.SpaceFadeStart, 4, 20);
-				sRendererData->StarsBuffer.Write((uint8_t*)&environment.SpaceFadeEnd, 4, 24);
+				sRendererData->StarsBuffer.Write((uint8_t*)&environment.TwilightStartDeg, 4, 4);
+				sRendererData->StarsBuffer.Write((uint8_t*)&environment.TwilightEndDeg, 4, 8);
+				sRendererData->StarsBuffer.Write((uint8_t*)&environment.SpaceFadeStart, 4, 12);
+				sRendererData->StarsBuffer.Write((uint8_t*)&environment.SpaceFadeEnd, 4, 16);
 				sRendererData->StarsCBuffer->Map(sRendererData->StarsBuffer);
 				sRendererData->StarsCBuffer->Bind();
 
@@ -1222,22 +1220,21 @@ namespace Toast {
 			buf.Write((uint8_t*)&environment.SunDiscRadius, 4, 0);
 			buf.Write((uint8_t*)&environment.SunEdgeSoftness, 4, 4);
 			buf.Write((uint8_t*)&environment.SunDiscToggle, 4, 8);   // int32
+			buf.Write((uint8_t*)&environment.SpaceDiscBrightnessScale, 4, 12);
 
 			buf.Write((uint8_t*)&environment.SunWhite, 12, 16);   // float3
-			buf.Write((uint8_t*)&environment.SpaceDiscBrightnessScale, 4, 28);
+			buf.Write((uint8_t*)&environment.AirHaloIntensity, 4, 28);
 
 			buf.Write((uint8_t*)&environment.WarmTint, 12, 32);   // float3
-			buf.Write((uint8_t*)&environment.AirHaloIntensity, 4, 44);
+			buf.Write((uint8_t*)&environment.AirHaloStartFrac, 4, 44);
 
-			buf.Write((uint8_t*)&environment.AirHaloStartFrac, 4, 48);
-			buf.Write((uint8_t*)&environment.AirHaloFalloffPow, 4, 52);
-			buf.Write((uint8_t*)&environment.HorizonRefractionDeg, 4, 56);
-			buf.Write((uint8_t*)&environment.TwilightBlendDeg, 4, 60);
+			buf.Write((uint8_t*)&environment.AirHaloFalloffPow, 4, 48);
+			buf.Write((uint8_t*)&environment.HorizonRefractionDeg, 4, 52);
+			buf.Write((uint8_t*)&environment.TwilightBlendDeg, 4, 56);
+			buf.Write((uint8_t*)&environment.SpaceHaloWidthDeg, 4, 60);
 
-			buf.Write((uint8_t*)&environment.HorizonSoftEdgeDeg, 4, 64);
-			buf.Write((uint8_t*)&environment.SpaceHaloWidthDeg, 4, 68);
-			buf.Write((uint8_t*)&environment.SpaceHaloIntensity, 4, 72);
-			buf.Write((uint8_t*)&environment.SpaceHaloCutoffDeg, 4, 76);
+			buf.Write((uint8_t*)&environment.SpaceHaloIntensity, 4, 64);
+			buf.Write((uint8_t*)&environment.SpaceHaloCutoffDeg, 4, 68);
 
 			sRendererData->SunDiscSettingsCBuffer->Map(sRendererData->SunDiscSettingsBuffer);
 			sRendererData->SunDiscSettingsCBuffer->Bind();
@@ -1605,12 +1602,8 @@ namespace Toast {
 		RenderCommand::ClearRenderTargets(sRendererData->FinalRT->GetRTV().Get(), {0.0f, 0.0f, 0.0f, 1.0f});
 		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
-		sRendererData->SunDiscSettingsBuffer.Write((uint8_t*)&spaceFactor, 4, 20);
-		sRendererData->SunDiscSettingsCBuffer->Map(sRendererData->SunDiscSettingsBuffer);
-		sRendererData->SunDiscSettingsCBuffer->Bind();
-
 		sRendererData->StarsBuffer.Write((uint8_t*)&environment.StarNits, 4, 0);
-		sRendererData->StarsBuffer.Write((uint8_t*)&environment.NightAmbient, 12, 32);
+		sRendererData->StarsBuffer.Write((uint8_t*)&environment.NightAmbient, 12, 20);
 		sRendererData->StarsCBuffer->Map(sRendererData->StarsBuffer);
 		sRendererData->StarsCBuffer->Bind();
 

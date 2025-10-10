@@ -56,8 +56,6 @@ cbuffer Atmosphere : register(b5)
 cbuffer StarsParams : register(b7)
 {
     float StarNits; // keep if you premultiply here (we'll leave it as 1.0 in RT)
-    float DayFadeStartDeg; // unused now
-    float DayFadeEndDeg; // unused now
     float TwilightStartDeg; // e.g. 0.0
     float TwilightEndDeg; // e.g. -6.0
     float SpaceFadeStart; // 0.85

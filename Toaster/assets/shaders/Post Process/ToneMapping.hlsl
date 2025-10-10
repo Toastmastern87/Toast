@@ -67,41 +67,14 @@ cbuffer PlanetFrame : register(b4)
     float3 BasisSpinUp;
 };
 
-cbuffer SunDiscSettings : register(b6)
-{
-    float SunDiscRadius; // rad  (e.g. radians(0.2666))
-    float SunEdgeSoftness; // rad  (soft rim width)
-    int SunDiscToggle; // 0=off, 1=on
-    float SpaceFactor; // 0=inside atmosphere, 1=space
-    
-    float3 SunDiscWhite;
-    float SpaceDiscBrightnessScale; // unitless scale, e.g. 1.30
-    
-    float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)
-    float AirHaloIntensity; // 0..~0.6 (was HaloStrength_Ground, e.g. 0.28)
-    
-    float AirHaloStartFrac; // 0..1   (was InAirStart, e.g. 0.15)
-    float AirHaloFalloffPow; // curve (was InAirPow, e.g. 1.10)
-    float HorizonRefractionDeg; // deg (was RefracCenterDeg, e.g. 0.83)
-    float TwilightBlendDeg; // deg (was TwilightExtraDeg, e.g. 1.5)
-    
-    float HorizonSoftEdgeDeg; // deg (was LimbSoftDeg, e.g. 0.40)
-    float SpaceHaloWidthDeg; // deg (was SpaceHaloSigmaDeg, e.g. 0.8)
-    float SpaceHaloIntensity; // 0.01..0.10 (was SpaceHaloGain, e.g. 0.04)
-    float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
-};
-
 cbuffer StarsParams : register(b7)
 {
     float StarNits; // e.g. 600.0 (display-space peak for brightest texel)
-    float DayFadeStartDeg; // start hiding stars above horizon (e.g. +2.0)
-    float DayFadeEndDeg; // fully hidden by (e.g. 0.0 or -2.0)
-    float TwilightStartDeg; // start appearing (e.g. 0.0)
-    
+    float TwilightStartDeg; // start appearing (e.g. 0.0)    
     float TwilightEndDeg; // fully visible by (e.g. -6.0)
     float SpaceFadeStart; // altitude norm where space visibility starts (0..1), e.g. 0.85
-    float SpaceFadeEnd; // fully visible by (0..1), e.g. 0.98
-      
+    
+    float SpaceFadeEnd; // fully visible by (0..1), e.g. 0.98      
     float3 NightAmbient;
 }
 
@@ -111,27 +84,6 @@ cbuffer Tonemapping : register(b10)
 }
 
 static const float3 LUMA = float3(0.2126f, 0.7152f, 0.0722f);
-
-static const float3x3 ACESInputMat =
-{
-    { 0.59719, 0.35458, 0.04823 },
-    { 0.07600, 0.90834, 0.01566 },
-    { 0.02840, 0.13383, 0.83777 }
-};
-
-static const float3x3 ACESOutputMat =
-{
-    { 1.60475, -0.53108, -0.07367 },
-    { -0.10208, 1.10813, -0.00605 },
-    { -0.00327, -0.07276, 1.07602 }
-};
-
-float3 RRTAndODTFit(float3 v)
-{
-    float3 a = v * (v + 0.0245786f) - 0.000090537f;
-    float3 b = v * (0.983729f * v + 0.4329510f) + 0.238081f;
-    return a / b;
-}
 
 float sstep(float a, float b, float x)
 {

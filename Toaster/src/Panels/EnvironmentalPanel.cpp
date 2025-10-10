@@ -71,9 +71,6 @@ namespace Toast {
 		ImGui::Text("Twilight Blend (deg)");
 		ImGui::DragFloat("##TwilightBlendDeg", &environment.TwilightBlendDeg, 0.01f, 0.0f, 5.0f, "%.2f");
 
-		ImGui::Text("Horizon Soft Edge (deg)");
-		ImGui::DragFloat("##HorizonSoftEdgeDeg", &environment.HorizonSoftEdgeDeg, 0.01f, 0.0f, 2.0f, "%.2f");
-
 		// ---------------- Space Halo ----------------
 		ImGui::Separator(); 
 		ImGui::Text("Space Halo");
@@ -93,12 +90,6 @@ namespace Toast {
 
 		ImGui::Text("Star Nits");
 		ImGui::DragFloat("##StarNits", &environment.StarNits, 10.0f, 0.0f, FLT_MAX, "%.0f");
-
-		ImGui::Text("Day Fade Start (deg)");
-		ImGui::DragFloat("##DayFadeStartDeg", &environment.DayFadeStartDeg, 0.1f, -60.0f, 60.0f, "%.1f");
-
-		ImGui::Text("Day Fade End (deg)");
-		ImGui::DragFloat("##DayFadeEndDeg", &environment.DayFadeEndDeg, 0.1f, -60.0f, 60.0f, "%.1f");
 
 		ImGui::Text("Twilight Start (deg)");
 		ImGui::DragFloat("##TwilightStartDeg", &environment.TwilightStartDeg, 0.1f, -60.0f, 60.0f, "%.1f");
