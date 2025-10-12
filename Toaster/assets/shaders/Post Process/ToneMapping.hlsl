@@ -205,34 +205,34 @@ float4 main(PSIn input) : SV_Target
     // Sample inputs
     float3 hdr = sceneHDR.Sample(LinearClamp, input.uv).rgb;
     float depth = SceneDepth.Sample(ClampPoint, input.uv);
+    
+    // Planet center in world space
+    float3 planetCenterTrueWS = mul(float4(PlanetCenterWS, 1.0f), worldTranslationMatrix).xyz;
 
     // Directions / constants
     const float3 wSun = -normalize(direction.xyz); // TO sun
 
     // ---------- CAMERA-DRIVEN EXPOSURE ---------------------------------------
-    float sunAltCamEff = SunAltDegEffectiveCamera(cameraPosition.xyz, PlanetCenterWS, PlanetRadius, direction.xyz);
+    float sunAltCamEff = SunAltDegEffectiveCamera(cameraPosition.xyz, mul(float4(planetCenterTrueWS, 1.0f), worldTranslationMatrix).xyz, PlanetRadius, direction.xyz);
     // This is the exposure we would use everywhere if we ignored per-pixel night:
     float EVCamera = EVBiasFromSunAltitude(sunAltCamEff) + EV;
-    
-    float m_disc = pow(saturate(SunDiscMask.Sample(LinearClamp, input.uv)), 1.0f);
-    float m_halo = saturate(SunHaloMask.Sample(LinearClamp, input.uv));
     
     float EVTarget = EVCamera; // default for sky; may be overridden per-pixel
     
     if (depth > 1e-12f)
-    {
+    {        
         // ---------- Reconstruct per-pixel data ----------
         float3 pWS = ReconstructWorldPos(input.uv, depth); // world pos
-        float3 up_px = normalize(pWS - PlanetCenterWS); // radial up
+        float3 up_px = normalize(pWS - planetCenterTrueWS); // radial up
 
         // Per-pixel sun altitude (deg)
-        float sunAlt_px = SunAltitudeDeg_at(pWS, PlanetCenterWS, direction.xyz);
+        float sunAlt_px = SunAltitudeDeg_at(pWS, planetCenterTrueWS, direction.xyz);
         
         float EVTerrain = EVBiasFromSunAltitude(sunAlt_px) + EV;
 
         // Night test: is planet between pixel and sun? (nightside terrain mask)
         float t0, t1;
-        bool hit = RayHitsSphereBetween(pWS - PlanetCenterWS, wSun, PlanetRadius, t0, t1);
+        bool hit = RayHitsSphereBetween(pWS - planetCenterTrueWS, wSun, PlanetRadius, t0, t1);
         bool nightAtPx = hit && (t1 > 0.0);
 
         // Soften around horizon to avoid hard silhouettes
@@ -294,12 +294,15 @@ float4 main(PSIn input) : SV_Target
     const float peakLinear = 2000.0f / 200.0f; // assuming PW=200 nits
     color = ToneMap_HDR_scRGB_Soft(color, peakLinear, 0.85f, 0.35f);
     
+    float discMask = pow(saturate(SunDiscMask.Sample(LinearClamp, input.uv)), 1.0f);
+    float haloMask = saturate(SunHaloMask.Sample(LinearClamp, input.uv));
+    
     // Hardcoded for now (tune live, move to cbuffer later):
     const float DiscBoostNits = 350.0; // 200–500 feels good
     const float DiscOccStrength = 1.0; // disc fully blocks stars
     const float HaloOccStrength = 0.85; // halo strongly dims stars
     
-    float occ = saturate(m_disc * DiscOccStrength + m_halo * HaloOccStrength);
+    float occ = saturate(discMask * DiscOccStrength + haloMask * HaloOccStrength);
     
     // ---------- Stars (added in display space), fade by camera twilight ------
     float3 starsPW = stars.Sample(LinearClamp, input.uv).rgb;

@@ -25,7 +25,7 @@ cbuffer DirectionalLight : register(b3)
 
 cbuffer PlanetFrame : register(b4)
 {
-    float3 PlanetCentreVS;
+    float3 PlanetCenterWS;
     float PlanetRadius;
     float3 BasisTanEast;
     float MaxHeight;
@@ -170,16 +170,16 @@ float4 main(PixelInputType input) : SV_Target
     float3 worldDir = normalize(mul(viewDir, (float3x3) inverseViewMatrix));
 
     // Camera & planet
-    float3 planetCenterWS = mul(float4(PlanetCentreVS, 1.0f), worldTranslationMatrix).xyz;
+    float3 planetCenterTrueWS = mul(float4(PlanetCenterWS, 1.0f), worldTranslationMatrix).xyz;
     float3 camWS = cameraPosition.xyz;
-    float3 camRel = camWS - planetCenterWS;
+    float3 camRel = camWS - planetCenterTrueWS;
     float rCam = length(camRel);
     float Rg = PlanetRadius;
     float Rt = PlanetRadius + AtmosphereHeight;
 
     // Sun
     float3 wSun = -normalize(direction.xyz); // TO sun
-    float sunAlt = SunAltitudeDeg(camWS, planetCenterWS, direction.xyz);
+    float sunAlt = SunAltitudeDeg(camWS, planetCenterTrueWS, direction.xyz);
 
     // ---------- base visibility ----------
     // Ground night factor (0 at/above TwilightStartDeg → 1 by TwilightEndDeg)

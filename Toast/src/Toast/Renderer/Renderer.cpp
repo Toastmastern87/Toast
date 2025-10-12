@@ -101,6 +101,11 @@ namespace Toast {
 		sRendererData->AtmosphereCBuffer->Bind();
 		sRendererData->AtmosphereBuffer.Allocate(sRendererData->AtmosphereCBuffer->GetSize());
 		sRendererData->AtmosphereBuffer.ZeroInitialize();
+		// Setting up the constant buffer for atmosphere rendering
+		sRendererData->FloatingOriginCBuffer = ConstantBufferLibrary::Load("FloatingOrigin", 16, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)7), CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)7) });
+		sRendererData->FloatingOriginCBuffer->Bind();
+		sRendererData->FloatingOriginBuffer.Allocate(sRendererData->FloatingOriginCBuffer->GetSize());
+		sRendererData->FloatingOriginBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer for dynamic environmental mapping
 		sRendererData->SpecularMapFilterSettingsCBuffer = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SpecularLightEnvironmental) } );
@@ -1179,7 +1184,7 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer::AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldTranslation, const bool dynamicIBL)
+	void Renderer::AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldOffsetWS, const bool dynamicIBL)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -1213,6 +1218,10 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.APFarDynamic, 4, 88);
 		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 		sRendererData->AtmosphereCBuffer->Bind();
+
+		sRendererData->FloatingOriginBuffer.Write((uint8_t*)&worldOffsetWS, 12, 0);
+		sRendererData->FloatingOriginCBuffer->Map(sRendererData->FloatingOriginBuffer);
+		sRendererData->FloatingOriginCBuffer->Bind();
 
 		{
 			auto& buf = sRendererData->SunDiscSettingsBuffer;

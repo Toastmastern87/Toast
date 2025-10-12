@@ -2,24 +2,13 @@
 #type compute
 #pragma pack_matrix(row_major)
 
-// ===== Debug / toggles ======================================================
+// ===== toggles ======================================================
 #ifndef AP_MAX_Z_SLICES
 #define AP_MAX_Z_SLICES       128u   // clamp work if OutAP has deeper Z
-#endif
-#ifndef AP_A_EPS
-#define AP_A_EPS 1e-4f   // was 0.003 — too high, creates a visible ring
 #endif
 #ifndef AP_USE_FAST_EXP
 #define AP_USE_FAST_EXP       1      // exp2-based fast exp
 #endif
-#ifndef AP_USE_OZONE
-#define AP_USE_OZONE          1
-#endif
-// Must match MultiScatteringCS/SkyViewCS
-#ifndef AP_MS_BAKED_SUNVIS
-#define AP_MS_BAKED_SUNVIS    1
-#endif
-
 #ifndef AP_Z_GAMMA
 #define AP_Z_GAMMA 1.6f   // try 1.5–1.8; 1.6 is a good start
 #endif
@@ -73,6 +62,11 @@ cbuffer Atmosphere : register(b5)
     uint StepsMultiScattering; // (unused here)
     float APFarDynamic; // camera->max distance for AP (meters)
 };
+
+cbuffer FloatingOrigin : register(b7)
+{
+    float3 WorldOffsetWS;
+}
 
 // ===== LUTs =================================================================
 Texture2D<float4> TransmittanceLUT : register(t0);
@@ -169,60 +163,66 @@ float MSPhase(float mu, float gBar)
     return lerp(pIso, pHG, g);
 }
 
-// Ray-sphere
+float GroundBiasMeters(float Rg)
+{
+    return max(1.0f, 2e-6f * Rg);
+}
+
+// Ray-sphere intersection in a numerically stable way.
+// ro: ray origin (translated-space, meters, relative to planet center)
+// rd: ray direction (any length; normalized internally)
+// R : sphere radius in meters (e.g., Rt or RbHit; sign ignored)
 struct Hit
 {
     bool ok;
     float t0, t1;
 };
 
-float GroundBiasMeters(float Rg)
-{
-    return max(1.0f, 2e-6f * Rg);
-}
-
 Hit IntersectSphereGrazingSafe(float3 ro, float3 rd, float R)
 {
-    Hit H;
-    H.ok = false;
-    H.t0 = H.t1 = 0.0f;
+    Hit H = (Hit) 0;
+
     float Rabs = abs(R);
     if (Rabs <= 0.0f)
         return H;
 
-    // Normalize direction for stable geometry form
+    // Normalize direction for stable quadratic
     float a = dot(rd, rd);
     if (a <= 0.0f)
         return H;
     float invDirLen = rsqrt(max(a, 1e-30));
     float3 nrd = rd * invDirLen; // |nrd| = 1
 
-    // Use cross-product form in unit-sphere space
-    float3 roU = ro / Rabs; // O(1)
-    float d2 = dot(cross(nrd, roU), cross(nrd, roU)); // <= ~1 when intersecting
+    // Scale origin into unit-sphere space: |roU + t*nrd|^2 = 1
+    float3 roU = ro / Rabs;
 
-    // Robust tangency handling: allow a tiny overshoot
-    // NOTE: keep this the *same value everywhere you use this function*
-    const float grazeTol = 5e-5; // ~1e-6..2e-4 are reasonable
-    if (d2 > 1.0f + grazeTol)
+    // Solve t^2 + 2 b t + c = 0, where:
+    float b = dot(roU, nrd);
+    float c = dot(roU, roU) - 1.0f;
+
+    // Discriminant (with tiny negative allowed for grazing)
+    float disc = b * b - c;
+    const float grazeTol = 2e-4; // allow slight negatives from FP error
+    if (disc < -grazeTol)
         return H;
+    disc = max(disc, 0.0f);
 
-    float tca = -dot(roU, nrd); // along-ray to closest approach (radius units)
-    float thc = sqrt(max(1.0f - d2, 0.0f)); // 0 at tangency
+    float s = sqrt(disc);
+    float t0u = -b - s; // unit-sphere param
+    float t1u = -b + s;
 
-    // Convert back to world meters and original rd scale
-    float t0 = (tca - thc) * Rabs * invDirLen;
-    float t1 = (tca + thc) * Rabs * invDirLen;
-
-    if (t0 > t1)
+    if (t0u > t1u)
     {
-        float tmp = t0;
-        t0 = t1;
-        t1 = tmp;
+        float tmp = t0u;
+        t0u = t1u;
+        t1u = tmp;
     }
+
+    // Convert back to meters and original rd scale
     H.ok = true;
-    H.t0 = t0;
-    H.t1 = t1;
+    H.t0 = t0u * Rabs * invDirLen;
+    H.t1 = t1u * Rabs * invDirLen;
+
     return H;
 }
 
@@ -235,7 +235,7 @@ float SunVisibilityAtR(float r, float muS, float Rb)
     return smoothstep(-sinThetaH * SunAngularRadius, sinThetaH * SunAngularRadius, muS - cosThetaH);
 }
 
-float3 ViewDirWS_fromUV(float2 uv)
+float3 ViewDirWSFromUV(float2 uv)
 {
     float2 ndc = float2(uv.x * 2.0f - 1.0f, 1.0f - uv.y * 2.0f);
     float4 clip = float4(ndc, 1.0f, 1.0f);
@@ -310,10 +310,10 @@ void main(uint3 tid : SV_DispatchThreadID)
     const float Rt = PlanetRadius + AtmosphereHeight;
     const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
     const float RbHit = RbPhys + GroundBiasMeters(Rg);
-
-    float3 ro = cameraPosition.xyz - PlanetCenterWS;
+    
+    float3 ro = (cameraPosition.xyz - WorldOffsetWS) - PlanetCenterWS;
     float2 uvC = (float2(tid.xy) + 0.5f) / float2(W, H);
-    float3 wView = ViewDirWS_fromUV(uvC);
+    float3 wView = ViewDirWSFromUV(uvC);
     
     Hit ha = IntersectSphereGrazingSafe(ro, wView, Rt);
     if (!ha.ok)

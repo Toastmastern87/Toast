@@ -71,8 +71,8 @@ namespace Toast {
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshWireframeDrawList, MeshNoWireframeDrawList;
 			DrawCommandPlanet PlanetDraw;
 
-			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, SunDiscSettingsCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer, SpecularMapFilterSettingsCBuffer, SSAOCBuffer, GodRaysCBuffer;
-			Buffer CameraBuffer, LightningBuffer, SunDiscSettingsBuffer, RenderSettingsBuffer, AtmosphereBuffer, ModelBuffer, MaterialBuffer, SpecularMapFilterSettingsBuffer, SSAOBuffer, GodRaysBuffer;
+			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, SunDiscSettingsCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer, SpecularMapFilterSettingsCBuffer, SSAOCBuffer, GodRaysCBuffer, FloatingOriginCBuffer;
+			Buffer CameraBuffer, LightningBuffer, SunDiscSettingsBuffer, RenderSettingsBuffer, AtmosphereBuffer, ModelBuffer, MaterialBuffer, SpecularMapFilterSettingsBuffer, SSAOBuffer, GodRaysBuffer, FloatingOriginBuffer;
 
 			// Back buffer
 			Ref<RenderTarget> BackbufferRT;
@@ -196,7 +196,7 @@ namespace Toast {
 
 		// Post Processes
 		static void StarFieldPass(Scene::Environment& environment, const float atmosphereHeight );
-		static void AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldTranslation, const bool dynamicIBL);
+		static void AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldOffsetWS, const bool dynamicIBL);
 		static void BloomPass(Scene::BloomParams& bloomParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, const float verticalFovDeg);
 		static void GodRayPass(float exposure, float decay, float density, float weight);
 		static void PostProcessPass(const bool bloom, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos);

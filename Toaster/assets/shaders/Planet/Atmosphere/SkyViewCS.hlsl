@@ -2,26 +2,8 @@
 #pragma pack_matrix(row_major)
 
 // ===== Debug / toggles ======================================================
-#ifndef SKY_ENABLE_GROUND
-#define SKY_ENABLE_GROUND     1
-#endif
 #ifndef SKY_STEPS
 #define SKY_STEPS             96
-#endif
-#ifndef SKY_USE_MS
-#define SKY_USE_MS            1
-#endif
-#ifndef SKY_USE_MIE
-#define SKY_USE_MIE           1
-#endif
-#ifndef SKY_USE_RAY
-#define SKY_USE_RAY           1
-#endif
-#ifndef SKY_FEATHER_ROWS
-#define SKY_FEATHER_ROWS 4.0f   // rows to blend across (try 4–6)
-#endif
-#ifndef SKY_MU_SOFT_EPS
-#define SKY_MU_SOFT_EPS 0.0015f // ~0.086°, tiny lift above horizon
 #endif
 
 // ===== CBuffers =============================================================
@@ -72,6 +54,11 @@ cbuffer Atmosphere : register(b5)
     uint StepsTransmittance;
     uint StepsMultiScattering;
     float APFarDynamic;
+};
+
+cbuffer FloatingOrigin : register(b7)
+{
+    float3 WorldOffsetWS;
 };
 
 // ===== LUTs =================================================================
@@ -177,18 +164,6 @@ float FocusT(float t, float k)
     return pow(saturate(t), k);
 }
 
-//float VFromMu(float mu)
-//{
-//    mu = clamp(mu, -1.0f, 1.0f);
-//    float lat = asin(mu);
-//    float a = sqrt(2.0f * abs(lat) / PI);
-//    float v = 0.5f + 0.5f * (lat >= 0 ? +a : -a);
-//#if SKY_FLIP_Y
-//    v = 1.0f - v;
-//#endif
-//    return saturate(v);
-//}
-
 float DensityRayleigh(float h)
 {
     return exp(-max(h, 0.0f) / max(RayScaleHeight, 1e-3f));
@@ -283,6 +258,46 @@ void BuildSkyBasis(float3 camWS, float3 planetCenter, float3 spinUpWS, out float
     north = normalize(cross(up, east)); // re-derive north
 }
 
+void BuildSkyBasisAnchored(float3 camWS, float3 planetCenterWS, float3 basisEastWS, float3 basisNorthWS, float3 spinUpWS, out float3 up, out float3 east, out float3 north)
+{
+    // 1) Radial up (center → camera)
+    float3 rel = camWS - planetCenterWS;
+    float len2 = max(dot(rel, rel), 1e-20f);
+    up = rel * rsqrt(len2);
+
+    // 2) Project planet-frame east onto the tangent plane
+    float3 eProj = basisEastWS - up * dot(basisEastWS, up);
+    float e2 = dot(eProj, eProj);
+
+    // If degenerate (near poles or bad input), derive east from spinUp×up
+    if (e2 < 1e-10f)
+    {
+        float3 sProj = spinUpWS - up * dot(spinUpWS, up);
+        float s2 = dot(sProj, sProj);
+        if (s2 < 1e-10f)
+        {
+            // Final fallback: pick any axis not colinear with up
+            float3 a = (abs(up.y) < 0.99f) ? float3(0, 1, 0) : float3(1, 0, 0);
+            eProj = a - up * dot(a, up);
+        }
+        else
+        {
+            eProj = sProj;
+        }
+    }
+
+    east = eProj * rsqrt(max(dot(eProj, eProj), 1e-20f));
+    north = normalize(cross(up, east)); // ensure RHS
+
+    // 3) Enforce orientation to be consistent with basisNorthWS
+    // If our computed 'north' points opposite the provided north, flip (east,north).
+    if (dot(north, basisNorthWS) < 0.0f)
+    {
+        east = -east;
+        north = -north;
+    }
+}
+
 // ===== Main =================================================================
 [numthreads(8, 8, 1)]
 void main(uint3 tid : SV_DispatchThreadID)
@@ -304,7 +319,8 @@ void main(uint3 tid : SV_DispatchThreadID)
     const float RbHit = RbPhys + GroundBiasMeters(RbPhys);
     
     // μ at the analytic horizon, then row index of horizon
-    float3 camWS = cameraPosition.xyz;
+    // Camera-centric coordinates
+    float3 camWS = cameraPosition.xyz - WorldOffsetWS;
     float3 camRel = camWS - PlanetCenterWS;
     float rCam = max(Rg, length(camRel));
     
@@ -324,8 +340,12 @@ void main(uint3 tid : SV_DispatchThreadID)
     float phi = lerp(-PI, PI, saturate(u));
 
     // reconstruct direction at this μ and azimuth
+    float3 spinUp = normalize(BasisSpinUp);
+    float3 east0 = normalize(BasisTanEast);
+    float3 north0 = normalize(BasisTanNorth);
+
     float3 up, east, north;
-    BuildSkyBasis(camWS, PlanetCenterWS, BasisSpinUp, up, east, north);
+    BuildSkyBasisAnchored(camWS, PlanetCenterWS, east0, north0, spinUp, up, east, north);
     float sphi = sin(phi), cphi = cos(phi);
     float sinTh = sqrt(saturate(1.0f - mu * mu));
     float3 wView = normalize(mu * up + sinTh * (cphi * east + sphi * north));
@@ -395,10 +415,8 @@ void main(uint3 tid : SV_DispatchThreadID)
         float PM = PhaseMieHG(muPh, saturate(MieAnisotropy));
 
         // single scattering
-        if (SKY_USE_RAY)
-            Ls += Tvp * (sigR_s * PR * Tsun) * dt;
-        if (SKY_USE_MIE)
-            Ls += Tvp * (sigM_s * PM * Tsun) * dt;
+        Ls += Tvp * (sigR_s * PR * Tsun) * dt;
+        Ls += Tvp * (sigM_s * PM * Tsun) * dt;
 
         // multiple scattering: use Rb in the LUT sampling too
         float4 Psi4 = SamplePsiMS4(rp, muS, RbPhys, Rt); // << Rb
@@ -406,8 +424,7 @@ void main(uint3 tid : SV_DispatchThreadID)
                
         float3 PsiMS_rgb = Psi4.rgb;
         
-        if (SKY_USE_MS)
-            Lms += Tvp * (sigS * PsiMS_rgb) * pMS * dt;
+        Lms += Tvp * (sigS * PsiMS_rgb) * pMS * dt;
     }
     float fadeStart = cos(radians(85.0)); // ~+0.087 : a few degrees above horizon
     float fadeEnd = cos(radians(100.0)); // ~-0.174 : ~10° below horizon
@@ -423,4 +440,3 @@ void main(uint3 tid : SV_DispatchThreadID)
     OutSkyView[tid.xy] = float4(skyRGB, 1.0f);
     return;  
 }
-

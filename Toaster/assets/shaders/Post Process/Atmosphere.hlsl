@@ -91,6 +91,11 @@ cbuffer SunDiscSettings : register(b6)
     float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
 };
 
+cbuffer FloatingOrigin : register(b7)
+{
+    float3 WorldOffsetWS;
+}
+
 // ===== Textures / Samplers ==================================================
 Texture2D<float4> TransmittanceLUT      : register(t0); // (not used in composite)
 Texture2D<float4> MultiScatterLUT       : register(t1); // (not used in composite)
@@ -147,15 +152,44 @@ float PhaseMie(float cosTheta, float g)
     return (1.0f / (4.0f * PI)) * ((1.0f - g2) / denom);
 }
 
-void BuildSkyBasis(float3 camWS, float3 planetCenter, float3 spinUpWS, out float3 up, out float3 east, out float3 north)
+void BuildSkyBasisAnchored(float3 camWS, float3 planetCenterWS, float3 basisEastWS, float3 basisNorthWS, float3 spinUpWS, out float3 up, out float3 east, out float3 north)
 {
-    up = normalize(camWS - planetCenter); // true radial up at camera
-    float3 spinT = spinUpWS - up * dot(spinUpWS, up); // remove vertical
-    float len2 = max(dot(spinT, spinT), 1e-20f);
-    float3 northHint = spinT * rsqrt(len2); // tangent north hint
+    // 1) Radial up (center → camera)
+    float3 rel = camWS - planetCenterWS;
+    float len2 = max(dot(rel, rel), 1e-20f);
+    up = rel * rsqrt(len2);
 
-    east = normalize(cross(northHint, up)); // exact orthonormal
-    north = normalize(cross(up, east)); // re-derive north
+    // 2) Project planet-frame east onto the tangent plane
+    float3 eProj = basisEastWS - up * dot(basisEastWS, up);
+    float e2 = dot(eProj, eProj);
+
+    // If degenerate (near poles or bad input), derive east from spinUp×up
+    if (e2 < 1e-10f)
+    {
+        float3 sProj = spinUpWS - up * dot(spinUpWS, up);
+        float s2 = dot(sProj, sProj);
+        if (s2 < 1e-10f)
+        {
+            // Final fallback: pick any axis not colinear with up
+            float3 a = (abs(up.y) < 0.99f) ? float3(0, 1, 0) : float3(1, 0, 0);
+            eProj = a - up * dot(a, up);
+        }
+        else
+        {
+            eProj = sProj;
+        }
+    }
+
+    east = eProj * rsqrt(max(dot(eProj, eProj), 1e-20f));
+    north = normalize(cross(up, east)); // ensure RHS
+
+    // 3) Enforce orientation to be consistent with basisNorthWS
+    // If our computed 'north' points opposite the provided north, flip (east,north).
+    if (dot(north, basisNorthWS) < 0.0f)
+    {
+        east = -east;
+        north = -north;
+    }
 }
 
 // Unproject: view ray direction in WORLD space (unit length)
@@ -203,59 +237,66 @@ float3 T_to_TOA(float r, float mu, float Rb, float Rt)
     return TransmittanceLUT.SampleLevel(ClampLinear, TransUV(r, mu, Rb, Rt), 0).rgb;
 }
 
+float GroundBiasMeters(float Rg)
+{
+    return max(1.0f, 2e-6f * Rg);
+}
+
+// Ray-sphere intersection in a numerically stable way.
+// ro: ray origin (translated-space, meters, relative to planet center)
+// rd: ray direction (any length; normalized internally)
+// R : sphere radius in meters (e.g., Rt or RbHit; sign ignored)
 struct Hit
 {
     bool ok;
     float t0, t1;
 };
 
-float GroundBiasMeters(float Rg)
-{
-    return max(1.0f, 2e-6f * Rg);
-}
-
 Hit IntersectSphereGrazingSafe(float3 ro, float3 rd, float R)
 {
-    Hit H;
-    H.ok = false;
-    H.t0 = H.t1 = 0.0f;
+    Hit H = (Hit) 0;
+
     float Rabs = abs(R);
     if (Rabs <= 0.0f)
         return H;
 
-    // Normalize direction for stable geometry form
+    // Normalize direction for stable quadratic
     float a = dot(rd, rd);
     if (a <= 0.0f)
         return H;
     float invDirLen = rsqrt(max(a, 1e-30));
     float3 nrd = rd * invDirLen; // |nrd| = 1
 
-    // Use cross-product form in unit-sphere space
-    float3 roU = ro / Rabs; // O(1)
-    float d2 = dot(cross(nrd, roU), cross(nrd, roU)); // <= ~1 when intersecting
+    // Scale origin into unit-sphere space: |roU + t*nrd|^2 = 1
+    float3 roU = ro / Rabs;
 
-    // Robust tangency handling: allow a tiny overshoot
-    // NOTE: keep this the *same value everywhere you use this function*
-    const float grazeTol = 5e-5; // ~1e-6..2e-4 are reasonable
-    if (d2 > 1.0f + grazeTol)
+    // Solve t^2 + 2 b t + c = 0, where:
+    float b = dot(roU, nrd);
+    float c = dot(roU, roU) - 1.0f;
+
+    // Discriminant (with tiny negative allowed for grazing)
+    float disc = b * b - c;
+    const float grazeTol = 2e-4; // allow slight negatives from FP error
+    if (disc < -grazeTol)
         return H;
+    disc = max(disc, 0.0f);
 
-    float tca = -dot(roU, nrd); // along-ray to closest approach (radius units)
-    float thc = sqrt(max(1.0f - d2, 0.0f)); // 0 at tangency
+    float s = sqrt(disc);
+    float t0u = -b - s; // unit-sphere param
+    float t1u = -b + s;
 
-    // Convert back to world meters and original rd scale
-    float t0 = (tca - thc) * Rabs * invDirLen;
-    float t1 = (tca + thc) * Rabs * invDirLen;
-
-    if (t0 > t1)
+    if (t0u > t1u)
     {
-        float tmp = t0;
-        t0 = t1;
-        t1 = tmp;
+        float tmp = t0u;
+        t0u = t1u;
+        t1u = tmp;
     }
+
+    // Convert back to meters and original rd scale
     H.ok = true;
-    H.t0 = t0;
-    H.t1 = t1;
+    H.t0 = t0u * Rabs * invDirLen;
+    H.t1 = t1u * Rabs * invDirLen;
+
     return H;
 }
 
@@ -441,9 +482,9 @@ PSOut main(PSIn i)
     
     // If no geometry wrote to depth, draw SKY using the precomputed SkyView LUT
     if (depth <= 1e-12f)
-    {
-        float3 camWS = cameraPosition.xyz;
-        float3 camRel = cameraPosition.xyz - PlanetCenterWS;
+    {        
+        float3 camWS = cameraPosition.xyz - WorldOffsetWS;
+        float3 camRel = camWS - PlanetCenterWS;
         float rCam = max(PlanetRadius, length(camRel));
         float3 wView = ViewDirWS_fromUV(uv); // unit
         
@@ -464,10 +505,13 @@ PSOut main(PSIn i)
        
         float3 upCam = camRel / rCam;
         float rWin = min(rCam, Rt - 1.0f);
-       
-        // Basis consistent with SkyViewCS
+        
+        float3 spinUp = normalize(BasisSpinUp);
+        float3 east0 = normalize(BasisTanEast);
+        float3 north0 = normalize(BasisTanNorth);
+
         float3 up, east, north;
-        BuildSkyBasis(cameraPosition.xyz, PlanetCenterWS, BasisSpinUp, up, east, north);
+        BuildSkyBasisAnchored(camWS, PlanetCenterWS, east0, north0, spinUp, up, east, north);
         
         float xE = dot(wView, east);
         float xN = dot(wView, north);
@@ -522,8 +566,6 @@ PSOut main(PSIn i)
 
             float discMask = 1.0f - smoothstep(rDiscRad, rDiscRad + wEdge, theta);
 
-            float3 camRel = cameraPosition.xyz - PlanetCenterWS;
-            float rCam = max(1e-6, length(camRel));
             float3 upCam = camRel / rCam;
 
             float altUpDeg = degrees(asin(clamp(dot(upCam, wSun), -1.0, 1.0)));
@@ -541,7 +583,6 @@ PSOut main(PSIn i)
             float3 T_eye_sun = SampleTransmittance_EyeToSun(camRel, vDir, wSun, RbPhys, Rt);
             float3 discRGB = SunIntensity * SunDiscWhite * T_eye_sun;
             
-
             // Ground occlusion           
             float3 oc = camRel;
             float3 rd = normalize(wSun);
@@ -556,25 +597,6 @@ PSOut main(PSIn i)
 
             // Keep your robust hit test (frontHit / hitGround)
             float discVis = frontHit ? visSoft : 1.0f;
-
-            //// ===============================
-            //// Sky color from LUT
-            //// ===============================
-            //uint Wsv, Hsv;
-            //SkyViewLUT.GetDimensions(Wsv, Hsv);
-            //float mu0, mu1;
-            ////GetMuWindow(rCam, RbPhys, Rt, mu0, mu1);
-
-            //float3 up, east, north;
-            //BuildSkyBasis(cameraPosition.xyz, PlanetCenterWS, BasisSpinUp, up, east, north);
-
-            //float xE = dot(vDir, east);
-            //float xN = dot(vDir, north);
-            //float muV = dot(vDir, up);
-
-            //float uSky = frac((atan2(xN, xE) + PI) / (2.0f * PI));
-            //float vSky = 1.0f - VFromMuWindowed(muV, mu0, mu1);
-            ////float3 sky = SkyViewLUT.Sample(SkyAniso, float2(uSky, vSky)).rgb;
             
             // --- rim color match to sky near sunset ---
             float sunAltDeg = altUpDeg;
@@ -715,7 +737,7 @@ PSOut main(PSIn i)
     }
     else
     {       
-        float3 camWS = cameraPosition.xyz;
+        float3 camWS = cameraPosition.xyz - WorldOffsetWS;
         float3 ro = camWS - PlanetCenterWS;
         float rCam = length(ro);              
         float3 wView = ViewDirWS_fromUV(uv); // unit

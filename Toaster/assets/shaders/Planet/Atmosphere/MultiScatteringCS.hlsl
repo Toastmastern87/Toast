@@ -2,30 +2,14 @@
 #pragma pack_matrix(row_major)
 
 // --- toggles ---------------------------------------------------------------
-#ifndef MS_DEBUG_MODE
-#define MS_DEBUG_MODE        0         // 0=Ψms, 1=L2_total, 2=f_ms, 3=L2_vol, 4=L2_gnd
-#endif
-#ifndef MS_FLIP_Y
-#define MS_FLIP_Y            1
-#endif
-#ifndef MS_ENABLE_GROUND
-#define MS_ENABLE_GROUND     1         // include ground term in L2
-#endif
-
 // *** NEW: make f_ms proportional to single-scattering albedo (recommended = 1) ***
 #ifndef MS_FMS_WEIGHT_RHO
 #define MS_FMS_WEIGHT_RHO    0
 #endif
-
 // *** NEW: upper bound for f_ms to keep F_ms numerically tame ***
 #ifndef MS_FMS_MAX
 #define MS_FMS_MAX           0.7f 
 #endif
-
-#ifndef MS_VIS_FLOOR
-#define MS_VIS_FLOOR   0.00f   // try 0.02–0.05
-#endif
-
 #ifndef MS_MIN_STEPS_DIR
 #define MS_MIN_STEPS_DIR     6
 #endif
