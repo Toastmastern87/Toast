@@ -108,6 +108,9 @@ namespace Toast {
 		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 3000000.0f);
 		mEditorCamera->SetTranslation({ 0.0f, 1.0f, -3.0f });
 
+		mEditorScene->SetActiveCamera(mEditorCamera);
+		mEditorCamera->UpdateView();
+
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mSceneSettingsPanel.SetContext(mEditorScene, mWindow);
 		mEnvironmentPanel.SetContext(mEditorScene);
@@ -904,6 +907,9 @@ namespace Toast {
 			mSceneFilePath = *filepath;
 			OpenScene(path);
 		}
+
+		mEditorScene->SetActiveCamera(mEditorCamera);
+		mEditorCamera->UpdateView();
 	}
 
 	void EditorLayer::OpenScene(const std::filesystem::path& path)

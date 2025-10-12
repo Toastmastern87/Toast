@@ -204,6 +204,7 @@ namespace Toast {
 
 		Ref<Planet> GetPlanet() { return mPlanet; }
 
+		void SetActiveCamera(Ref<Camera> camera) { mActiveCamera = camera; }
 		Ref<Camera> GetActiveCamera() { return mActiveCamera; }
 
 		void SetSelectedEntity(entt::entity entity) { mSelectedEntity = entity; }
