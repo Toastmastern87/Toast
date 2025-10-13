@@ -4,7 +4,7 @@
 // --- toggles ---------------------------------------------------------------
 // *** NEW: make f_ms proportional to single-scattering albedo (recommended = 1) ***
 #ifndef MS_FMS_WEIGHT_RHO
-#define MS_FMS_WEIGHT_RHO    0
+#define MS_FMS_WEIGHT_RHO    1
 #endif
 // *** NEW: upper bound for f_ms to keep F_ms numerically tame ***
 #ifndef MS_FMS_MAX
@@ -42,6 +42,28 @@ cbuffer Atmosphere : register(b5)
     uint StepsTransmittance;
     uint StepsMultiScattering;
     float APFarDynamic;
+};
+
+cbuffer SunDiscSettings : register(b6)
+{
+    float SunDiscRadius; // rad  (e.g. radians(0.2666))
+    float SunEdgeSoftness; // rad  (soft rim width)
+    int SunDiscToggle; // 0=off, 1=on
+    float SpaceDiscBrightnessScale; // unitless scale, e.g. 1.30
+    
+    float3 SunDiscWhite;
+    float AirHaloIntensity; // 0..~0.6 (was HaloStrength_Ground, e.g. 0.28)
+    
+    float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)    
+    float AirHaloStartFrac; // 0..1   (was InAirStart, e.g. 0.15)
+    
+    float AirHaloFalloffPow; // curve (was InAirPow, e.g. 1.10)
+    float HorizonRefractionDeg; // deg (was RefracCenterDeg, e.g. 0.83)
+    float TwilightBlendDeg; // deg (was TwilightExtraDeg, e.g. 1.5)
+    float SpaceHaloWidthDeg; // deg (was SpaceHaloSigmaDeg, e.g. 0.8)
+    
+    float SpaceHaloIntensity; // 0.01..0.10 (was SpaceHaloGain, e.g. 0.04)
+    float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
 };
 
 Texture2D<float4> TransmittanceLUT : register(t0);
@@ -151,11 +173,10 @@ float3 SampleSphere(uint i, uint n)
 
 float SunVisibilityAtSample(float r, float muS, float Rb)
 {
-    const float SunAngularRadius = 0.004675f;
     float sinThetaH = Rb / r;
     float cosThetaH = -sqrt(saturate(1.0f - sinThetaH * sinThetaH));
-    return smoothstep(-sinThetaH * SunAngularRadius,
-                       sinThetaH * SunAngularRadius,
+    return smoothstep(-sinThetaH * SunDiscRadius,
+                       sinThetaH * SunDiscRadius,
                        muS - cosThetaH);
 }
 

@@ -67,6 +67,22 @@ cbuffer PlanetFrame : register(b4)
     float3 BasisSpinUp;
 };
 
+cbuffer Atmosphere : register(b5)
+{
+    float AtmosphereHeight; // Rt - Rg
+    float RayScaleHeight; // Hr
+    float MieScaleHeight; // Hm
+    float MieAnisotropy; // g
+    float3 RayleighScattering; // beta_R (1/m) RGB
+    float3 MieScattering; // beta_Ms (1/m) RGB
+    float3 MieAbsorption; // beta_Ma (1/m) RGB
+    float3 GroundAlbedo;
+    float OzoneStrength;
+    uint StepsTransmittance; // (unused here)
+    uint StepsMultiScattering; // (unused here)
+    float APFarDynamic; // camera->max distance for AP (meters)
+};
+
 cbuffer StarsParams : register(b7)
 {
     float StarNits; // e.g. 600.0 (display-space peak for brightest texel)
@@ -234,12 +250,21 @@ float4 main(PSIn input) : SV_Target
         float t0, t1;
         bool hit = RayHitsSphereBetween(pWS - planetCenterTrueWS, wSun, PlanetRadius, t0, t1);
         bool nightAtPx = hit && (t1 > 0.0);
+        
+        float mu = dot(up_px, wSun);
+        float theta = acos(saturate(mu)); // 0..π (radians)
 
-        // Soften around horizon to avoid hard silhouettes
-        float mu = dot(up_px, wSun); // <0 = night hemisphere
-        float eps = 0.002f; // ~0.1°
-        float horizonSoft = 1.0 - smoothstep(-0.03 - eps, +0.03 + eps, mu);
-        float nightMask = max(nightAtPx ? 1.0 : 0.0, horizonSoft * step(mu, 0.0));
+        const float Rt = PlanetRadius + AtmosphereHeight;
+        const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
+        
+        // Blend width: wide near ground, narrow above the air
+        float alt01 = saturate((length(planetCenterTrueWS) - RbPhys) / AtmosphereHeight); // 0=surface,1=TOA+
+        float softDeg = lerp(6.0f, 0.8f, alt01); // tune: 6° band at ground → 0.8° in space
+
+        // Build a smooth 0→1 mask centered on the horizon
+        float start = radians(90.0f - 0.5f * softDeg);
+        float end = radians(90.0f + 0.5f * softDeg);
+        float nightMask = smoothstep(start, end, theta);
         
         // --- add a twilight ramp based on *pixel* sun altitude ---
         float nightnessAlt = sstep(+0.5f, -6.0f, sunAlt_px); // 0 at day → ~1 by nautical night
