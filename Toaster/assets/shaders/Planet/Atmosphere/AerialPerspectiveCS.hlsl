@@ -44,7 +44,7 @@ cbuffer PlanetFrame : register(b4)
     float MaxHeight;
     float3 BasisTanNorth;
     float MinHeight;
-    float3 BasisRadUp;
+    float3 BasisSpinUp;
 };
 
 cbuffer Atmosphere : register(b5)
@@ -146,10 +146,13 @@ float3 T_to_TOA(float r, float mu, float Rb, float Rt)
 // MultiScatter LUT sampling: x=theta_s/π, y = 1 - linear altitude (top=TOA)
 float4 SamplePsiMS4(float r, float muS, float Rb, float Rt)
 {
-    float thetaS = acos(clamp(muS, -1.0f, 1.0f));
+    float mu = clamp(muS, -1.0f + 1.0e-3f, 1.0f - 1.0e-3f);
+    float thetaS = acos(mu);
     float u = thetaS / PI;
-    float v = saturate((r - Rb) / max(Rt - Rb, 1e-6f));
-    v = 1.0f - v; // 0=TOA, 1=ground (MS_FLIP_Y=1 when baked)
+
+    float v = saturate((r - Rb) / max(Rt - Rb, 1.0e-6f));
+    v = 1.0f - v;
+    v = clamp(v, 1.0e-3f, 1.0f - 1.0e-3f); // <- avoid top/bottom rows
     return MultiScatterLUT.SampleLevel(ClampLinear, float2(u, v), 0);
 }
 // MS anisotropy blend using LUT alpha as effective ḡ
@@ -309,12 +312,13 @@ void main(uint3 tid : SV_DispatchThreadID)
     const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
     const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
-    const float RbHit = RbPhys + GroundBiasMeters(Rg);
+    const float RbVis = RbPhys + max(1.0f, 2e-6f * PlanetRadius);
+    const float RbHit = RbPhys + GroundBiasMeters(RbPhys);
     
     float3 ro = (cameraPosition.xyz - WorldOffsetWS) - PlanetCenterWS;
     float2 uvC = (float2(tid.xy) + 0.5f) / float2(W, H);
     float3 wView = ViewDirWSFromUV(uvC);
-    
+ 
     Hit ha = IntersectSphereGrazingSafe(ro, wView, Rt);
     if (!ha.ok)
     { // nothing to accumulate for this texel
@@ -392,17 +396,15 @@ void main(uint3 tid : SV_DispatchThreadID)
         float dM = DensityMie(hMid);
         float dO = DensityOzone(hMid);
 
-        float3 sigmaExt = RayleighScattering * dR
-                        + (MieScattering + MieAbsorption) * dM
-                        + O3_COEFF * dO;
+        float3 sigmaExt = RayleighScattering * dR + (MieScattering + MieAbsorption) * dM + O3_COEFF * dO;
 
         float3 sigR_s = RayleighScattering * dR;
         float3 sigM_s = MieScattering * dM;
 
-        float3 upS = (rMid > 0.0f) ? (p / rMid) : BasisRadUp;
+        float3 upS = (rMid > 0.0f) ? (p / rMid) : BasisSpinUp;
         float muS = dot(upS, wSun);
-        float Vsun = SunVisibilityAtR(rMid, muS, Rg);
-        float3 Tsun = T_to_TOA(rMid, muS, Rg, Rt) * Vsun;
+        float Vsun = SunVisibilityAtR(rMid, muS, RbVis);
+        float3 Tsun = T_to_TOA(rMid, muS, RbVis, Rt) * Vsun;
 
         float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
         float PR = PhaseRayleigh(muPhase);
@@ -410,7 +412,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         float3 S1 = (sigR_s * PR + sigM_s * PM) * Tsun * Esun;
 
-        float4 Psi4 = SamplePsiMS4(rMid, muS, Rg, Rt) * Vsun;
+        float4 Psi4 = SamplePsiMS4(rMid, muS, RbVis, Rt);
         float3 S_MS = (sigR_s + sigM_s) * MSPhase(muPhase, Psi4.a) * Psi4.rgb * Esun;
 
         // Midpoint integral over this slice
@@ -423,7 +425,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         // write cumulative for this z
         float3 Tcum = fexp3(-tauCum);
-        float Tmean = max((Tcum.r + Tcum.g + Tcum.b) * (1.0 / 3.0), 1e-6f);
+        float Tmean = max((Tcum.r + Tcum.g + Tcum.b) * (1.0f / 3.0f), 1e-6f);
         float tauMean = -log(Tmean);
         OutAP[uint3(tid.x, tid.y, z)] = float4(Lcum, tauMean);
     }

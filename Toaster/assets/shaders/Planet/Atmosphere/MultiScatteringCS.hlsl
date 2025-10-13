@@ -8,7 +8,7 @@
 #endif
 // *** NEW: upper bound for f_ms to keep F_ms numerically tame ***
 #ifndef MS_FMS_MAX
-#define MS_FMS_MAX           0.7f 
+#define MS_FMS_MAX           0.55f 
 #endif
 #ifndef MS_MIN_STEPS_DIR
 #define MS_MIN_STEPS_DIR     6
@@ -79,10 +79,10 @@ float2 TransUV(float r, float mu, float Rb, float Rt)
 {
     float rNorm = (r - Rb) / max(Rt - Rb, 1e-6f);
     float muMin = -sqrt(saturate(1.0f - (Rb * Rb) / (r * r)));
-    mu = clamp(mu, muMin + 1e-5f, 1.0f - 1e-5f); // <- important
-    float uMu = (mu - muMin) / (1.0f - muMin);
-    return float2(uMu, saturate(rNorm));
+    mu = clamp(mu, muMin + 1.0e-3f, 1.0f - 1.0e-3f); // larger guard than 1e-5
+    return float2((mu - muMin) / (1.0f - muMin), saturate(rNorm));
 }
+
 float3 T_to_TOA(float r, float mu, float Rb, float Rt)
 {
     return TransmittanceLUT.SampleLevel(ClampLinear, TransUV(r, mu, Rb, Rt), 0).rgb;
@@ -171,15 +171,17 @@ void main(uint3 dtid : SV_DispatchThreadID)
     float2 uv = (float2(dtid.xy) + 0.5f) / float2(W, H);
     uv.y = 1.0f - uv.y;
 
-
     const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
-    const float Rb = PlanetRadius + MinHeight;
+    const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
+    const float RbVis = RbPhys + max(1.0f, 2e-6f * PlanetRadius);
 
     float thetaS = uv.x * PI;
     float muS = cos(thetaS);
-    float r = lerp(Rb, Rt, uv.y);
-    float h = max(0.0f, r - Rb);
+    muS = clamp(muS, -1.0f + 1e-3f, 1.0f - 1e-3f);
+    float r = lerp(RbVis, Rt, uv.y);
+    float v = saturate((r - RbVis) / max(Rt - RbVis, 1e-6f));
+    float h = max(0.0f, r - RbVis); // meters  <-- add this
 
     // local medium props at LUT cell (used for rho and gBar)
     float3 sigma_s0, sigma_a0, sigma_t0;
@@ -191,7 +193,10 @@ void main(uint3 dtid : SV_DispatchThreadID)
     const float3 LoGround = GroundAlbedo / PI;
 
     const uint Ndirs = max(StepsMultiScattering, 2u);
-    const uint Nsteps = max(MS_MIN_STEPS_DIR, StepsTransmittance / 2u);
+    
+    float dMax = HitsGround(r, 0.0f, RbVis) ? DistToBottom(r, 0.0f, RbVis) : DistToTop(r, 0.0f, Rt);
+    float stepMeters = 2000.0f; // ~2 km works well
+    uint Nsteps = max(MS_MIN_STEPS_DIR, (uint) ceil(dMax / stepMeters));
 
     float3 L2_vol = 0.0f;
     float3 L2_gnd = 0.0f;
@@ -203,10 +208,10 @@ void main(uint3 dtid : SV_DispatchThreadID)
         float3 wi = SampleSphere(i, Ndirs);
         float mu = MU_FROM_DIR(wi);
 
-        bool isGround = HitsGround(r, mu, Rb);
-        float d = isGround ? DistToBottom(r, mu, Rb) : DistToTop(r, mu, Rt);
+        bool isGround = HitsGround(r, mu, RbVis);
+        float d = isGround ? DistToBottom(r, mu, RbVis) : DistToTop(r, mu, Rt);
 
-        float3 T_out_rgb = T_to_boundary(r, mu, d, isGround, Rb, Rt);
+        float3 T_out_rgb = T_to_boundary(r, mu, d, isGround, RbVis, Rt);
         float T_out = dot(T_out_rgb, LUMA);
 
 #if MS_FMS_WEIGHT_RHO
@@ -223,10 +228,10 @@ void main(uint3 dtid : SV_DispatchThreadID)
         [loop]
         for (uint s = 0; s < Nsteps; ++s, t += dt)
         {
-            float3 Tseg = T_along_ray(r, mu, t, Rb, Rt);
+            float3 Tseg = T_along_ray(r, mu, t, RbVis, Rt);
 
             float rd = sqrt(t * t + 2.0f * r * mu * t + r * r);
-            float hh = max(0.0f, rd - Rb);
+            float hh = max(0.0f, rd - RbVis);
             float3 sigma_s_step = RayleighScattering * DensityRayleigh(hh) + MieScattering * DensityMie(hh);
 
             L2_vol += sigma_s_step * Tseg * dt;
@@ -239,8 +244,11 @@ void main(uint3 dtid : SV_DispatchThreadID)
     fms *= invN;
 
     // keep within a safe range
+// Soft-knee instead of hard cap (optional)
+    float soft = 0.5f; // knee position
+    fms = soft + (1 - soft) * (1 - exp(-(fms - soft) / max(1e-3f, (MS_FMS_MAX - soft))));
     fms = clamp(fms, 0.0f, MS_FMS_MAX);
-
+  
     float Fms = 1.0f / (1.0f - fms);
     float3 PsiMS = (L2_vol + L2_gnd) * Fms;
 

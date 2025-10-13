@@ -476,9 +476,9 @@ PSOut main(PSIn i)
 
     const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
-    const float RbPhys = PlanetRadius + min(0.0f, MinHeight); // physical floor used for densities
-    const float RbHit = RbPhys + GroundBiasMeters(Rg); // use ONLY for intersections
-    const float RbVis = (PlanetRadius + min(0.0f, MinHeight)) + max(1.0f, 2e-6f * PlanetRadius);
+    const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
+    const float RbVis = RbPhys + max(1.0f, 2e-6f * PlanetRadius);
+    const float RbHit = RbPhys + GroundBiasMeters(RbPhys);
     
     // If no geometry wrote to depth, draw SKY using the precomputed SkyView LUT
     if (depth <= 1e-12f)
@@ -765,11 +765,11 @@ PSOut main(PSIn i)
         
         float3 betaExt = RayleighScattering + MieScattering + MieAbsorption; // 1/m
         float betaAvg = (betaExt.r + betaExt.g + betaExt.b) * (1.0f / 3.0f);
-        float3 k = betaExt / max(betaAvg, 1e-9);
-
+        float3 k = betaExt / max(betaAvg, 1e-9);   
+        
         // Trgb ≈ A^(betaExt / betaAvg)
         float3 Trgb = exp(-tau * k);
-
+        
         float3 outRGB = colorPreAtmos * Trgb + ap.rgb;
         output.color = float4(outRGB, max(Trgb.r, max(Trgb.g, Trgb.b)));
         output.disc = 0.0f; // no sun over geometry pass here
