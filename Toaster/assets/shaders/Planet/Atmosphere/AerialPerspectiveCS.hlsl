@@ -50,17 +50,39 @@ cbuffer PlanetFrame : register(b4)
 cbuffer Atmosphere : register(b5)
 {
     float AtmosphereHeight; // Rt - Rg
-    float RayScaleHeight; // Hr
-    float MieScaleHeight; // Hm
-    float MieAnisotropy; // g
-    float3 RayleighScattering; // beta_R (1/m) RGB
-    float3 MieScattering; // beta_Ms (1/m) RGB
-    float3 MieAbsorption; // beta_Ma (1/m) RGB
+    float RayScaleHeight;
+    float MieScaleHeight;
+    float3 RayleighScattering;
+    float3 MieScattering;
+    float3 MieAbsorption;
     float3 GroundAlbedo;
+    float3 MieAnisotropy;
     float OzoneStrength;
-    uint StepsTransmittance; // (unused here)
-    uint StepsMultiScattering; // (unused here)
-    float APFarDynamic; // camera->max distance for AP (meters)
+    uint StepsTransmittance;
+    uint StepsMultiScattering;
+    float APFarDynamic;
+};
+
+cbuffer SunDiscSettings : register(b6)
+{
+    float SunDiscRadius; // rad  (e.g. radians(0.2666))
+    float SunEdgeSoftness; // rad  (soft rim width)
+    int SunDiscToggle; // 0=off, 1=on
+    float SpaceDiscBrightnessScale; // unitless scale, e.g. 1.30
+    
+    float3 SunDiscWhite;
+    float AirHaloIntensity; // 0..~0.6 (was HaloStrength_Ground, e.g. 0.28)
+    
+    float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)    
+    float AirHaloStartFrac; // 0..1   (was InAirStart, e.g. 0.15)
+    
+    float AirHaloFalloffPow; // curve (was InAirPow, e.g. 1.10)
+    float HorizonRefractionDeg; // deg (was RefracCenterDeg, e.g. 0.83)
+    float TwilightBlendDeg; // deg (was TwilightExtraDeg, e.g. 1.5)
+    float SpaceHaloWidthDeg; // deg (was SpaceHaloSigmaDeg, e.g. 0.8)
+    
+    float SpaceHaloIntensity; // 0.01..0.10 (was SpaceHaloGain, e.g. 0.04)
+    float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
 };
 
 cbuffer FloatingOrigin : register(b7)
@@ -232,10 +254,9 @@ Hit IntersectSphereGrazingSafe(float3 ro, float3 rd, float R)
 // Small horizon softening (matches SkyView)
 float SunVisibilityAtR(float r, float muS, float Rb)
 {
-    const float SunAngularRadius = 0.004675f; // ~0.266° CURRENTLY HARDCODED TO EARTH VALUES
     float sinThetaH = Rb / r;
     float cosThetaH = -sqrt(saturate(1.0f - sinThetaH * sinThetaH));
-    return smoothstep(-sinThetaH * SunAngularRadius, sinThetaH * SunAngularRadius, muS - cosThetaH);
+    return smoothstep(-sinThetaH * SunDiscRadius, sinThetaH * SunDiscRadius, muS - cosThetaH);
 }
 
 float3 ViewDirWSFromUV(float2 uv)
@@ -287,6 +308,24 @@ float IGN(uint2 p)
     // simple, stable hash – no uniforms needed
     float n = dot(float2(p), float2(12.9898, 78.233));
     return frac(sin(n) * 43758.5453);
+}
+
+float PhaseMieHG_CS(float mu, float g) // Cornette–Shanks
+{
+    g = saturate(g);
+    float g2 = g * g;
+    float denom = pow(1.0 + g2 - 2.0 * g * mu, 1.5);
+    float cs = (3.0 * (1.0 + mu * mu)) / (2.0 * (2.0 + g2)) * ((1.0 - g2) / max(denom, 1e-5));
+    return INV4PI * cs;
+}
+
+// Small-angle disc average by inflating the scattering angle.
+float PhaseMie_DiscAvg(float mu, float g, float sunRad)
+{
+    float theta = acos(clamp(mu, -0.9995, 0.9995));
+    float thetaEff = sqrt(theta * theta + sunRad * sunRad); // θ_eff ≈ √(θ² + θ_sun²)
+    float muEff = cos(thetaEff);
+    return PhaseMieHG_CS(muEff, g);
 }
 
 static const float2 OFFS[4] =
@@ -403,17 +442,43 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         float3 upS = (rMid > 0.0f) ? (p / rMid) : BasisSpinUp;
         float muS = dot(upS, wSun);
-        float Vsun = SunVisibilityAtR(rMid, muS, RbVis);
-        float3 Tsun = T_to_TOA(rMid, muS, RbVis, Rt) * Vsun;
+        float Vsun = SunVisibilityAtR(rMid, muS, RbPhys);
+        float3 Tsun = T_to_TOA(rMid, muS, RbPhys, Rt) * Vsun;
 
         float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
         float PR = PhaseRayleigh(muPhase);
-        float PM = PhaseMieHG(muPhase, saturate(MieAnisotropy));
 
-        float3 S1 = (sigR_s * PR + sigM_s * PM) * Tsun * Esun;
+// --- per-channel anisotropy for SINGLE Mie (match SkyView) ---
+        float3 fRGB = MieAnisotropy * MieAnisotropy; // delta peak removal (δ-Eddington)
 
-        float4 Psi4 = SamplePsiMS4(rMid, muS, RbVis, Rt);
-        float3 S_MS = (sigR_s + sigM_s) * MSPhase(muPhase, Psi4.a) * Psi4.rgb * Esun;
+        float3 sig_t = sigM_s + MieAbsorption * dM; // σ_t = σ_s + σ_a  (per RGB)
+        float3 sig_t_p = (1.0.xxx - fRGB) * sig_t;
+
+        float3 w0 = sigM_s / max(sig_t, 1e-6.xxx); // single-scatter albedo
+        float3 w0_p = ((1.0.xxx - fRGB) * w0) / max(1.0.xxx - fRGB * w0, 1e-6.xxx);
+        float3 g_single = (MieAnisotropy - fRGB) / max(1.0.xxx - fRGB, 1e-6.xxx);
+
+        float3 sigM_s_single = w0_p * sig_t_p; // σ'_s for SINGLE Mie (RGB)
+
+// Disc-averaged Cornette–Shanks per-channel
+        float3 PMrgb = float3(
+    PhaseMie_DiscAvg(muPhase, g_single.r, SunDiscRadius),
+    PhaseMie_DiscAvg(muPhase, g_single.g, SunDiscRadius),
+    PhaseMie_DiscAvg(muPhase, g_single.b, SunDiscRadius)
+);
+
+// --- SINGLE scattering (Rayleigh + Mie) ---
+        float3 S1 = (sigR_s * PR + sigM_s_single * PMrgb) * Tsun * Esun;
+
+// --- MULTI scattering stays reduced by (1 - g) per-channel ---
+        float3 oneMinusG = 1.0.xxx - MieAnisotropy;
+        float3 sigS_ms = sigR_s + sigM_s * oneMinusG; // σ'_s for MS
+
+        float4 Psi4 = SamplePsiMS4(rMid, muS, RbPhys, Rt);
+        float gBar = saturate(Psi4.a);
+        float pMS = MSPhase(muPhase, gBar);
+
+        float3 S_MS = sigS_ms * pMS * Psi4.rgb * Esun;
 
         // Midpoint integral over this slice
         float3 dTau = sigmaExt * len;

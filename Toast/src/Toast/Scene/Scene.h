@@ -32,7 +32,8 @@ namespace Toast {
 		BLOOM = 9, 
 		BLOOMHALF = 10,
 		BLOOMQUARTER = 11,
-		BLOOMFINAL = 12
+		BLOOMFINAL = 12,
+		SKYVIEWLUT = 13
 	};
 
 	struct DirectionalLight
@@ -122,6 +123,7 @@ namespace Toast {
 
 			// Sun
 			bool SunDiscToggle = false;
+			float SunIntensity = 20.0f;
 			float SunDiscRadius = 0.0f;
 			float SunEdgeSoftness = 0.0f;
 			DirectX::XMFLOAT3 SunWhite = { 1.0f, 1.0f, 1.0f };

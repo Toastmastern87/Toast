@@ -1,17 +1,6 @@
 ﻿#type compute
 #pragma pack_matrix(row_major)
 
-// ---------- toggles ----------
-#ifndef TLUT_USE_OZONE
-#define TLUT_USE_OZONE    1      // set 0 to prove ozone is the warm source
-#endif
-#ifndef TLUT_SAFE_EPS
-#define TLUT_SAFE_EPS     1e-5f  // keep μ strictly inside its domain
-#endif
-#ifndef TLUT_DEBUG_MODE
-#define TLUT_DEBUG_MODE   0      // 0=T rgb, 1=tau rgb, 2=vis: μ_min, 3=vis: r
-#endif
-
 // ---------- cbuffers ----------
 cbuffer PlanetFrame : register(b4)
 {
@@ -32,14 +21,14 @@ cbuffer Atmosphere : register(b5)
     float AtmosphereHeight; // Rt - Rg
     float RayScaleHeight;
     float MieScaleHeight;
-    float MieAnisotropy;
-    float3 RayleighScattering; // beta_R (1/m) at sea level (RGB)
-    float3 MieScattering; // beta_Ms (1/m) at sea level
-    float3 MieAbsorption; // beta_Ma (1/m) at sea level
+    float3 RayleighScattering;
+    float3 MieScattering;
+    float3 MieAbsorption;
     float3 GroundAlbedo;
-    float OzoneStrength; // dimensionless scalar you tune
+    float3 MieAnisotropy;
+    float OzoneStrength;
     uint StepsTransmittance;
-    uint StepsMultiScattering; // unused here
+    uint StepsMultiScattering;
     float APFarDynamic;
 };
 
@@ -48,6 +37,7 @@ RWTexture2D<float4> OutTransmittance : register(u0);
 // ---------- constants ----------
 static const float3 O3_COEFF = float3(0.650e-6, 1.881e-6, 0.085e-6); // Bruneton
 static const float PI = 3.14159265358979323846f;
+static const float MU_EPS = 8e-4;
 
 // ---------- densities ----------
 float DensityRayleigh(float h)
@@ -62,30 +52,24 @@ float DensityMie(float h)
 // Ozone: triangle 10–40 km peaking at 25 km. Normalized so that ∫density dh = OzoneStrength.
 float DensityOzone(float hMeters)
 {
-#if TLUT_USE_OZONE
     float km = hMeters * 1e-3;
     float tri = saturate(1.0f - abs((km - 25.0f) / 15.0f)); // base 30 km, peak 1
     // triangle area = 0.5 * base * height = 0.5 * 30000 * 1 = 15000 m
     // multiply by (OzoneStrength / 15000) so the column integral equals OzoneStrength
     return tri * (OzoneStrength / 15000.0f);
-#else
-    return 0.0f;
-#endif
 }
 
 // ---------- TLUT domain mapping ----------
-float RadiusFromV(float v, float Rb, float Rt)
+float RadiusFromV(float v, float RbPhys, float Rt)
 {
-    return lerp(Rb, Rt, saturate(v));
+    return lerp(RbPhys, Rt, saturate(v));
 }
 
-// Exact inverse of the runtime mapping: u = (μ - μmin)/(1 - μmin)
-float MuFromU(float u, float r, float Rb)
+float MuFromU(float u, float r, float RbPhys)
 {
-    float muMin = -sqrt(saturate(1.0f - (Rb * Rb) / (r * r)));
+    float muMin = -sqrt(saturate(1.0f - (RbPhys * RbPhys) / (r * r)));
     float mu = muMin + saturate(u) * (1.0f - muMin);
-    // keep strictly inside valid range to avoid degenerate tangent/ground cases
-    return clamp(mu, muMin + TLUT_SAFE_EPS, 1.0f - TLUT_SAFE_EPS);
+    return clamp(mu, muMin + MU_EPS, 1.0f - MU_EPS);
 }
 
 // ---------- main ----------
@@ -97,20 +81,23 @@ void main(uint3 id : SV_DispatchThreadID)
     if (id.x >= W || id.y >= H)
         return;
 
+    const float R_BIAS = max(1.0f, 2e-6f * PlanetRadius);
     const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
-    const float Rb = PlanetRadius + MinHeight;
+    const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
+    const float RbVis = RbPhys + R_BIAS;
+    const float RbHit = RbPhys + R_BIAS;
 
     float u = (id.x + 0.5f) / float(W); // maps to μ in [μmin(r),1]
     float v = (id.y + 0.5f) / float(H); // maps to r in [Rg,Rt]
 
-    float r = RadiusFromV(v, Rb, Rt);
-    float mu = MuFromU(u, r, Rb);
+    float r = RadiusFromV(v, RbPhys, Rt);
+    float mu = MuFromU(u, r, RbPhys);
 
     // Ray (planet-centered), Up = +Z
-    float3 x = float3(0.0, 0.0, r);
+    float3 x = float3(0.0f, 0.0f, r);
     float s = sqrt(saturate(1.0f - mu * mu));
-    float3 w = float3(s, 0.0, mu);
+    float3 w = float3(s, 0.0f, mu);
 
     // Exit to TOA
     float b = dot(x, w);
@@ -133,7 +120,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
         float3 p = x + w * ti;
         float rp = length(p);
-        float h = max(0.0f, rp - Rb);
+        float h = max(0.0f, rp - RbPhys);
 
         float dR = DensityRayleigh(h);
         float dM = DensityMie(h);

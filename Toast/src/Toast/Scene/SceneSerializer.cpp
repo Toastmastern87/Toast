@@ -873,7 +873,7 @@ namespace Toast {
 		scenePlanet->mAtmosphere.MieScaleHeight = planet["MieScaleHeight"].as<float>();
 		scenePlanet->mAtmosphere.MieScattering = planet["MieScattering"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mAtmosphere.MieAbsorption = planet["MieAbsorption"].as<DirectX::XMFLOAT3>();
-		scenePlanet->mAtmosphere.MieAnisotropy = planet["MieAnisotropy"].as<float>();
+		scenePlanet->mAtmosphere.MieAnisotropy = planet["MieAnisotropy"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mAtmosphere.OzoneStrength = planet["OzoneStrength"].as<float>();
 		scenePlanet->mAtmosphere.GroundAlbedo = planet["GroundAlbedo"].as<DirectX::XMFLOAT3>();
 

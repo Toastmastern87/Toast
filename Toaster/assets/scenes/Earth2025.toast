@@ -1,10 +1,10 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [-14615.9932, -3879.6311, -89069.7969]
+  Position: [6982.75977, 11616.6221, -41940.0781]
 Settings:
   Grid: false
-  CameraFrustum: false
-  SunLightFrustum: false
+  CameraFrustum: true
+  SunLightFrustum: true
   BackfaceCulling: true
   FrustumCulling: true
   RenderColliders: false
@@ -29,7 +29,7 @@ Settings:
   GodRaysWeight: 0.0199999996
 Planet:
   Translation: [0, -3393454, 0]
-  Rotation: [74.899826, -17.3999748, -227.303177]
+  Rotation: [74.899826, -18.0999756, -227.303177]
   GridSize: 257
   MaxLevels: 28
   Radius: 3389500
@@ -42,19 +42,19 @@ Planet:
   Metalness: 0
   StarFieldAssetPath: C:\dev\Toast\Toaster\assets\textures\StarField16k.tif
   AtmosphereActivated: true
-  AtmosphereHeight: 50000
-  RayleighScaleHeight: 11000
-  RayleighScattering: [9.99999994e-09, 2.30000001e-08, 4.80000004e-08]
-  MieScaleHeight: 9000
-  MieScattering: [3.50000009e-05, 3.79999983e-05, 3.50000009e-05]
-  MieAbsorption: [3.79999983e-05, 3.19999999e-05, 1.99999995e-05]
-  MieAnisotropy: [0.779999971, 0.790000021, 0.800000012]
-  OzoneStrength: 0
-  GroundAlbedo: [0.100000001, 0.0900000036, 0.0900000036]
+  AtmosphereHeight: 70000
+  RayleighScaleHeight: 8000
+  RayleighScattering: [5.80200003e-06, 1.35580003e-05, 3.3100001e-05]
+  MieScaleHeight: 1200
+  MieScattering: [3.99600003e-06, 3.99600003e-06, 3.99600003e-06]
+  MieAbsorption: [4.40000008e-07, 4.40000008e-07, 4.40000008e-07]
+  MieAnisotropy: [0, 0, 0]
+  OzoneStrength: 1
+  GroundAlbedo: [0.100000001, 0.100000001, 0.100000001]
 Environment:
   SunDiscToggle: true
-  SunIntensity: 10.3000002
-  SunDiscRadius: 0.00304999994
+  SunIntensity: 25.2000008
+  SunDiscRadius: 0.00467499997
   SunEdgeSoftness: 0.0416000001
   SunWhite: [1, 0.988235295, 0.968627453]
   WarmTint: [1, 0.921568632, 0.78039217]
@@ -125,7 +125,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-447.758698, 20.8000145, -63.5000076]
+      Rotation: [-360.675171, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]

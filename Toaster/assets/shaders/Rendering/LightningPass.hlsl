@@ -62,17 +62,40 @@ cbuffer PlanetFrame : register(b4)
 cbuffer Atmosphere : register(b5)
 {
     float AtmosphereHeight; // Rt - Rg
-    float RayScaleHeight; // Hr
-    float MieScaleHeight; // Hm
-    float MieAnisotropy; // g
-    float3 RayleighScattering; // beta_R (1/m) RGB
-    float3 MieScattering; // beta_Ms (1/m) RGB
-    float3 MieAbsorption; // beta_Ma (1/m) RGB
+    float RayScaleHeight;
+    float MieScaleHeight;
+    float3 RayleighScattering;
+    float3 MieScattering;
+    float3 MieAbsorption;
     float3 GroundAlbedo;
+    float3 MieAnisotropy;
     float OzoneStrength;
-    uint StepsTransmittance; // (unused here)
-    uint StepsMultiScattering; // (unused here)
-    float APFarDynamic; // camera->max distance for AP (meters)
+    uint StepsTransmittance;
+    uint StepsMultiScattering;
+    float APFarDynamic;
+};
+
+cbuffer SunDiscSettings : register(b6)
+{
+    float SunDiscRadius;
+    float SunEdgeSoftness; // rad  (soft rim width)
+    int SunDiscToggle; // 0=off, 1=on
+    float SpaceDiscBrightnessScale; // unitless scale, e.g. 1.30
+    
+    float3 SunDiscWhite;
+    float AirHaloIntensity; // 0..~0.6 (was HaloStrength_Ground, e.g. 0.28)
+    
+    float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)    
+    float AirHaloStartFrac; // 0..1   (was InAirStart, e.g. 0.15)
+    
+    float AirHaloFalloffPow; // curve (was InAirPow, e.g. 1.10)
+    float HorizonRefractionDeg; // deg (was RefracCenterDeg, e.g. 0.83)
+    float TwilightBlendDeg; // deg (was TwilightExtraDeg, e.g. 1.5)
+    float SpaceHaloWidthDeg; // deg (was SpaceHaloSigmaDeg, e.g. 0.8)
+    
+    float SpaceHaloIntensity; // 0.01..0.10 (was SpaceHaloGain, e.g. 0.04)
+    float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
+    float SunIrradiance;
 };
 
 cbuffer StarsParams : register(b7)
@@ -298,10 +321,11 @@ float3 DirectionalLightning(float3 F0, float3 NormalWorldSpace, float3 View, flo
     float NoH = max(0.0f, dot(NormalWorldSpace, H)); 
 
     float Rg = PlanetRadius;
+    const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
     float Rt = PlanetRadius + AtmosphereHeight;
     
-    float3 Tsun = T_to_TOA(r, muS, Rg, Rt) * SunVisibilityAtR(r, muS, Rg);
-
+    float3 Tsun = T_to_TOA(r, muS, RbPhys, Rt) * SunVisibilityAtR(r, muS, RbPhys);
+    
     // Sun radiance (same scalar you use in AP/Sky)
     float3 ESun = radiance * SunIntensity;
     float3 Lradiance = ESun * Tsun; // attenuated, spectrally reddened

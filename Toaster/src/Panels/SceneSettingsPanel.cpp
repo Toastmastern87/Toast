@@ -64,7 +64,7 @@ namespace Toast {
 
 				if (mContext)
 				{
-					const char* items[] = { "None", "G-Buffer Positions", "G-Buffer Normals", "G-Buffer Albedo/Metallic", "Roughness", "Lighting Pass Output", "Atmospheric Scattering Output", "SSAO", "SSAO Blur", "Bloom", "Bloom Half", "Bloom Quarter", "Bloom Final"};
+					const char* items[] = { "None", "G-Buffer Positions", "G-Buffer Normals", "G-Buffer Albedo/Metallic", "Roughness", "Lighting Pass Output", "Atmospheric Scattering Output", "SSAO", "SSAO Blur", "Bloom", "Bloom Half", "Bloom Quarter", "Bloom Final", "SkyViewLUT" };
 					int currentOverlay = static_cast<int>(mContext->mSettings.RenderOverlaySetting);
 
 					ImGui::Text("Render Overlay");

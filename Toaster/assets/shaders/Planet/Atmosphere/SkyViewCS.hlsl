@@ -45,15 +45,37 @@ cbuffer Atmosphere : register(b5)
     float AtmosphereHeight; // Rt - Rg
     float RayScaleHeight;
     float MieScaleHeight;
-    float MieAnisotropy;
     float3 RayleighScattering;
     float3 MieScattering;
     float3 MieAbsorption;
     float3 GroundAlbedo;
+    float3 MieAnisotropy;
     float OzoneStrength;
     uint StepsTransmittance;
     uint StepsMultiScattering;
     float APFarDynamic;
+};
+
+cbuffer SunDiscSettings : register(b6)
+{
+    float SunDiscRadius;
+    float SunEdgeSoftness; // rad  (soft rim width)
+    int SunDiscToggle; // 0=off, 1=on
+    float SpaceDiscBrightnessScale; // unitless scale, e.g. 1.30
+    
+    float3 SunDiscWhite;
+    float AirHaloIntensity; // 0..~0.6 (was HaloStrength_Ground, e.g. 0.28)
+    
+    float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)    
+    float AirHaloStartFrac; // 0..1   (was InAirStart, e.g. 0.15)
+    
+    float AirHaloFalloffPow; // curve (was InAirPow, e.g. 1.10)
+    float HorizonRefractionDeg; // deg (was RefracCenterDeg, e.g. 0.83)
+    float TwilightBlendDeg; // deg (was TwilightExtraDeg, e.g. 1.5)
+    float SpaceHaloWidthDeg; // deg (was SpaceHaloSigmaDeg, e.g. 0.8)
+    
+    float SpaceHaloIntensity; // 0.01..0.10 (was SpaceHaloGain, e.g. 0.04)
+    float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
 };
 
 cbuffer FloatingOrigin : register(b7)
@@ -75,6 +97,7 @@ static const float PI = 3.14159265358979323846f;
 static const float TWO_PI = 6.283185307179586f;
 static const float INV4PI = 0.25f / PI;
 static const float3 LUMA = float3(0.2126, 0.7152, 0.0722);
+static const float MU_EPS = 8e-4;
 
 struct Hit
 {
@@ -145,10 +168,10 @@ float MuHorizon(float r, float R)
 // in that case, set mu1 = 1.
 void GetMuWindow(float r, float RbVis, float Rt, out float mu0, out float mu1)
 {
-    float muG = MuHorizon(r, RbVis); // lower bound (sky starts above ground)
-    float muT = (r <= Rt) ? 1.0f : MuHorizon(r, Rt); // upper bound where rays stop hitting TOA
-    mu0 = muG;
-    mu1 = max(muG + 1e-5f, muT); // keep a tiny span at least
+    float muG = MuHorizon(r, RbVis);
+    float muT = (r <= Rt) ? 1.0f : MuHorizon(r, Rt);
+    mu0 = muG + MU_EPS; // lift off horizon
+    mu1 = max(mu0 + 1e-5f, muT); // keep span > 0
 }
 
 // Map μ → v in [0,1] using this window (clamped)
@@ -184,28 +207,27 @@ float PhaseMieHG(float mu, float g)
     return INV4PI * (1.0f - g2) / max(pow(d, 1.5f), 1e-5f);
 }
 
-float2 TransUV(float r, float mu, float Rb, float Rt)
+float2 TransUV(float r, float mu, float RbPhys, float Rt)
 {
-    float rNorm = (r - Rb) / max(Rt - Rb, 1e-6f);
-    float muMin = -sqrt(saturate(1.0f - (Rb * Rb) / (r * r)));
-    mu = clamp(mu, muMin + 1.0e-5f, 1.0f - 1.0e-5f);
-    float uMu = (mu - muMin) / (1.0f - muMin);
-    return float2(uMu, saturate(rNorm));
+    float rNorm = (r - RbPhys) / max(Rt - RbPhys, 1e-6f);
+    float muMin = -sqrt(saturate(1.0f - (RbPhys * RbPhys) / (r * r)));
+    mu = clamp(mu, muMin + MU_EPS, 1.0f - MU_EPS); 
+    return float2((mu - muMin) / (1.0f - muMin), saturate(rNorm));
 }
 
-float3 T_to_TOA(float r, float mu, float Rb, float Rt)
+float3 T_to_TOA(float r, float mu, float RbPhys, float Rt)
 {
-    return TransmittanceLUT.SampleLevel(ClampLinear, TransUV(r, mu, Rb, Rt), 0).rgb;
+    return TransmittanceLUT.SampleLevel(ClampLinear, TransUV(r, mu, RbPhys, Rt), 0).rgb;
 }
 
-float3 T_along_ray(float r, float mu, float t, float Rb, float Rt)
+float3 T_along_ray(float r, float mu, float t, float RbVis, float RbPhys, float Rt)
 {
     float rd = sqrt(t * t + 2.0f * r * mu * t + r * r);
-    rd = clamp(rd, Rb, Rt);
-    float muD = clamp((r * mu + t) / rd, -1.0f, 1.0f);
-    float3 num = T_to_TOA(r, mu, Rb, Rt);
-    float3 den = T_to_TOA(rd, muD, Rb, Rt);
-    return saturate(num / max(den, 1e-6.xxx));
+    rd = clamp(rd, RbVis + 5e-4f, Rt - 5e-4f);
+    float muD = clamp((r * mu + t) / rd, -1.0f + MU_EPS, 1.0f - MU_EPS);
+    float3 num = T_to_TOA(r, mu, RbPhys, Rt);
+    float3 den = T_to_TOA(rd, muD, RbPhys, Rt);
+    return saturate(num / max(den, float3(1e-6f, 1e-6f, 1e-6f))); // fix 1e-6.xxx
 }
 
 // MultiScatter LUT sampling: x=theta_s/π, y = 1 - linear altitude (top=TOA)
@@ -221,12 +243,11 @@ float3 SamplePsiMS(float r, float muS, float Rg, float Rt)
     return SamplePsiMS4(r, muS, Rg, Rt).rgb;
 }
 
-float SunVisibilityAtR(float r, float muS, float Rb)
+float SunVisibilityAtR(float r, float muS, float RbVis)
 {
-    const float SunAngularRadius = 0.004675f;
-    float sH = Rb / r;
+    float sH = RbVis / r;
     float cH = -sqrt(saturate(1.0f - sH * sH));
-    return smoothstep(-sH * SunAngularRadius, sH * SunAngularRadius, muS - cH);
+    return smoothstep(-sH * SunDiscRadius, sH * SunDiscRadius, muS - cH);
 }
 
 float3 DirFromLonLat(float lon, float lat, float3 east, float3 north, float3 up)
@@ -245,17 +266,6 @@ float MSPhase(float mu, float gBar)
     float d = 1.0f + g2 - 2.0f * g * mu;
     float pHG = INV4PI * (1.0f - g2) / max(pow(d, 1.5f), 1e-5f);
     return lerp(pIso, pHG, g);
-}
-
-void BuildSkyBasis(float3 camWS, float3 planetCenter, float3 spinUpWS, out float3 up, out float3 east, out float3 north)
-{
-    up = normalize(camWS - planetCenter); // true radial up at camera
-    float3 spinT = spinUpWS - up * dot(spinUpWS, up); // remove vertical
-    float len2 = max(dot(spinT, spinT), 1e-20f);
-    float3 northHint = spinT * rsqrt(len2); // tangent north hint
-
-    east = normalize(cross(northHint, up)); // exact orthonormal
-    north = normalize(cross(up, east)); // re-derive north
 }
 
 void BuildSkyBasisAnchored(float3 camWS, float3 planetCenterWS, float3 basisEastWS, float3 basisNorthWS, float3 spinUpWS, out float3 up, out float3 east, out float3 north)
@@ -298,6 +308,49 @@ void BuildSkyBasisAnchored(float3 camWS, float3 planetCenterWS, float3 basisEast
     }
 }
 
+float DiscAvgMiePhase(float3 wView, float3 wSun, float sunRad, float g)
+{
+    // 4 taps inside the sun disc (stratified; cheap and stable)
+    static const float2 Xi[4] =
+    {
+        float2(0.2113, 0.1589), float2(0.7113, 0.6589),
+        float2(0.4613, 0.9089), float2(0.9613, 0.4089)
+    };
+    float3 sx = normalize(abs(wSun.y) < 0.99 ? cross(wSun, float3(0, 1, 0)) : float3(1, 0, 0));
+    float3 sy = normalize(cross(sx, wSun));
+
+    float sum = 0.0f;
+    [unroll]
+    for (int i = 0; i < 4; ++i)
+    {
+        float r = sqrt(Xi[i].x), a = TWO_PI * Xi[i].y;
+        float cr = cos(sunRad), sr = sin(sunRad);
+        float3 k = normalize(cr * wSun + sr * (r * cos(a) * sx + r * sin(a) * sy));
+        float mu = clamp(dot(k, wView), -0.9995f, 0.9995f);
+        sum += PhaseMieHG(mu, g);
+    }
+    return 0.25 * sum;
+}
+
+float PhaseMieHG_CS(float mu, float g) // Cornette–Shanks
+{
+    g = saturate(g);
+    float g2 = g * g;
+    float denom = pow(1.0 + g2 - 2.0 * g * mu, 1.5);
+    float cs = (3.0 * (1.0 + mu * mu)) / (2.0 * (2.0 + g2)) * ((1.0 - g2) / max(denom, 1e-5));
+    return INV4PI * cs;
+}
+
+// Small-angle disc average by inflating the scattering angle.
+float PhaseMie_DiscAvg(float mu, float g, float sunRad)
+{
+    // theta_eff ≈ sqrt(theta^2 + sunRad^2)
+    float theta = acos(clamp(mu, -0.9995, 0.9995));
+    float thetaEff = sqrt(theta * theta + sunRad * sunRad);
+    float muEff = cos(thetaEff);
+    return PhaseMieHG_CS(muEff, g);
+}
+
 // ===== Main =================================================================
 [numthreads(8, 8, 1)]
 void main(uint3 tid : SV_DispatchThreadID)
@@ -305,24 +358,25 @@ void main(uint3 tid : SV_DispatchThreadID)
     uint W, H;
     OutSkyView.GetDimensions(W, H);
     if (tid.x >= W || tid.y >= H)
-        return;  
+        return;
     
     float u = (tid.x + 0.5f) / float(W);
     
     float3 wSun = -normalize(direction.xyz);
     float3 Esun = radiance.rgb * SunIntensity;
     
+    const float R_BIAS = max(1.0f, 2e-6f * PlanetRadius);
     const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
     const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
-    const float RbVis = RbPhys + max(1.0f, 2e-6f * PlanetRadius);
-    const float RbHit = RbPhys + GroundBiasMeters(RbPhys);
+    const float RbVis = RbPhys + R_BIAS;
+    const float RbHit = RbPhys + R_BIAS;
     
     // μ at the analytic horizon, then row index of horizon
     // Camera-centric coordinates
     float3 camWS = cameraPosition.xyz - WorldOffsetWS;
     float3 camRel = camWS - PlanetCenterWS;
-    float rCam = max(Rg, length(camRel));
+    float rCam = max(RbPhys, length(camRel));
     
     // pick the window 
     float mu0, mu1;
@@ -331,9 +385,11 @@ void main(uint3 tid : SV_DispatchThreadID)
     GetMuWindow(rWin, RbVis, Rt, mu0, mu1);
     
     // v→μ with optional horizon focus
-    float v = (tid.y + 0.5f) / float(H);
-    v = 1.0f - v;
-    float t = FocusT(v, 0.85f); // tweak 0.8–0.9 if you like
+    float v = 1.0f - (tid.y + 0.5f) / float(H);
+    const float kRows = 4.5f; // ~2–3 rows
+    float vmin = kRows / float(H);
+    v = lerp(vmin, 1.0f, v); // pushes only the lowest rows up
+    float t = FocusT(v, 0.94f);
     float mu = lerp(mu0, mu1, t);
     
     // azimuth from u
@@ -365,9 +421,6 @@ void main(uint3 tid : SV_DispatchThreadID)
     if (hg.ok && hg.t0 > 0.0f)
         tExit = min(tExit, hg.t0);
 
-    // tiny writer pad to be conservative after filtering
-    tExit += 2.0f;
-
     // Length to integrate
     float L = max(tExit - tEnter, 1e-6f);
 
@@ -375,10 +428,14 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     // keep rEntry strictly inside [RbVis, Rt] for stable TLUT lookups
     float3 pEntry = camRelWin + wView * tEnter;
-    float rEntry = clamp(length(pEntry), RbVis + 1e-3f, Rt - 1e-3f);
+    float rEntry = clamp(length(pEntry), RbVis + 5e-4f, Rt - 5e-4f);
     float3 upEntry = pEntry / rEntry;
     float muEntry = dot(wView, upEntry);
 
+    float3 g = saturate(MieAnisotropy);
+    float3 f = g * g; // remove delta peak
+    float3 g_p = (g - f) / max(1.0.xxx - f, 1e-6.xxx);
+    
     [loop]
     for (uint i = 0; i < SKY_STEPS; ++i)
     {
@@ -392,8 +449,8 @@ void main(uint3 tid : SV_DispatchThreadID)
         float dt = (t1 - t0);
     
         float tLocal = max(0.0f, ti - tEnter);
-        float3 Tvp = T_along_ray(rEntry, muEntry, tLocal, RbVis, Rt);
-        float muPh = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
+        float3 Tvp = T_along_ray(rEntry, muEntry, tLocal, RbVis, RbPhys, Rt);
+        float muPh = clamp(dot(wSun, -wView), -0.9995f, 0.9995f);
         
         float3 pRel = camRelWin + wView * ti;
         float rp = length(pRel);
@@ -401,42 +458,54 @@ void main(uint3 tid : SV_DispatchThreadID)
             
         float dR = DensityRayleigh(h);
         float dM = DensityMie(h);
-        float3 sigR_s = RayleighScattering * dR;
-        float3 sigM_s = MieScattering * dM;
-        float3 sigS = sigR_s + sigM_s;
+        
+        // at height h:
+        float3 sigR_s = RayleighScattering * dR; // Rayleigh σ_s
+        float3 sigM_s = MieScattering * dM; // Mie σ_s
+        float3 sigM_a = MieAbsorption * dM; // Mie σ_a
+        
+        float3 sig_t = sigM_s + sigM_a;
+
+        float3 sig_t_p = (1.0.xxx - f) * sig_t;
+        float3 w0 = sigM_s / max(sig_t, 1e-6.xxx);
+        float3 w0_p = ((1.0.xxx - f) * w0) / max(1.0.xxx - f * w0, 1e-6.xxx);
+        
+        float3 sigM_s_single = w0_p * sig_t_p;
+        float g_single = g_p;
+
+        // single-scattering albedos
+        float3 w0R = 1.0.xxx; // Rayleigh has no absorption
+        float3 w0M = sigM_s / max(sigM_s + sigM_a, 1e-6.xxx);
+        
+        float3 oneMinusG = max(1e-3.xxx, 1.0.xxx - g);
+        float3 sigS_ms = sigR_s * w0R + sigM_s * w0M * oneMinusG;
 
         float3 upS = (rp > 0.0f) ? (pRel / rp) : up;
         float muS = dot(upS, wSun);
-        float Vsun = SunVisibilityAtR(rp, muS, RbPhys);
+        float Vsun = SunVisibilityAtR(rp, muS, RbVis);
            
-        float3 Tsun = T_to_TOA(rp, muS, RbVis, Rt) * Vsun;
+        float3 Tsun = T_to_TOA(rp, muS, RbPhys, Rt) * Vsun;
 
         float PR = PhaseRayleigh(muPh);
-        float PM = PhaseMieHG(muPh, saturate(MieAnisotropy));
+        float3 PMrgb = float3(PhaseMie_DiscAvg(muPh, g_p.r, SunDiscRadius), PhaseMie_DiscAvg(muPh, g_p.g, SunDiscRadius), PhaseMie_DiscAvg(muPh, g_p.b, SunDiscRadius));
 
         // single scattering
         Ls += Tvp * (sigR_s * PR * Tsun) * dt;
-        Ls += Tvp * (sigM_s * PM * Tsun) * dt;
+        Ls += Tvp * (sigM_s_single * PMrgb * Tsun) * dt;
 
         // multiple scattering: use Rb in the LUT sampling too
-        float4 Psi4 = SamplePsiMS4(rp, muS, RbPhys, Rt); // << Rb
-        float pMS = MSPhase(muPh, Psi4.a);
+        float4 Psi4 = SamplePsiMS4(rp, muS, RbPhys, Rt);
                
         float3 PsiMS_rgb = Psi4.rgb;
         
-        Lms += Tvp * (sigS * PsiMS_rgb) * pMS * dt;
+        float gEff = saturate(Psi4.a);
+        float pMS = MSPhase(muPh, gEff);
+        
+        Lms += Tvp * (sigS_ms * PsiMS_rgb) * pMS * dt;
     }
-    float fadeStart = cos(radians(85.0)); // ~+0.087 : a few degrees above horizon
-    float fadeEnd = cos(radians(100.0)); // ~-0.174 : ~10° below horizon
-    float3 upCam = (rCam > 0) ? camRel / rCam : float3(0, 1, 0);
-    float muSunAtCam = dot(upCam, -normalize(direction.xyz));
-    float fNight = smoothstep(fadeEnd, fadeStart, muSunAtCam);
-
-    float nightEVBias = lerp(-1.0f, 0.0f, fNight); // -3 EV in deep night → 0 EV near horizon
-    float nightMul = exp2(nightEVBias);
     
     float3 skyRGB = (Ls + Lms) * Esun;
-
+    
     OutSkyView[tid.xy] = float4(skyRGB, 1.0f);
-    return;  
+    return;
 }

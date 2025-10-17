@@ -56,17 +56,17 @@ cbuffer PlanetFrame : register(b4)
 cbuffer Atmosphere : register(b5)
 {
     float AtmosphereHeight; // Rt - Rg
-    float RayScaleHeight; // Hr
-    float MieScaleHeight; // Hm
-    float MieAnisotropy; // g
-    float3 RayleighScattering; // beta_R (1/m) RGB
-    float3 MieScattering; // beta_Ms (1/m) RGB
-    float3 MieAbsorption; // beta_Ma (1/m) RGB
+    float RayScaleHeight;
+    float MieScaleHeight;
+    float3 RayleighScattering;
+    float3 MieScattering;
+    float3 MieAbsorption;
     float3 GroundAlbedo;
+    float3 MieAnisotropy;
     float OzoneStrength;
-    uint StepsTransmittance; // (unused here)
-    uint StepsMultiScattering; // (unused here)
-    float APFarDynamic; // camera->max distance for AP (meters)
+    uint StepsTransmittance;
+    uint StepsMultiScattering;
+    float APFarDynamic;
 };
 
 cbuffer SunDiscSettings : register(b6)

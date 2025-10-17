@@ -356,6 +356,9 @@ namespace Toast {
 			case RenderOverlay::BLOOMFINAL:
 				textureID = (void*)Renderer::GetFinalBloomRT()->GetSRV().Get();
 				break;
+			case RenderOverlay::SKYVIEWLUT:
+				textureID = (void*)mEditorScene->GetPlanet()->GetSkyViewLUT()->GetSRV().Get();
+				break;
 			}
 
 			Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRT();

@@ -79,7 +79,7 @@ namespace Toast {
 		sRendererData->LightningBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for environmental rendering
-		sRendererData->SunDiscSettingsCBuffer = ConstantBufferLibrary::Load("SunDiscSettings", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::SunDiscSettings) });
+		sRendererData->SunDiscSettingsCBuffer = ConstantBufferLibrary::Load("SunDiscSettings", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::SunDiscSettings), CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SunDiscSettings)  });
 		sRendererData->SunDiscSettingsCBuffer->Bind();
 		sRendererData->SunDiscSettingsBuffer.Allocate(sRendererData->SunDiscSettingsCBuffer->GetSize());
 		sRendererData->SunDiscSettingsBuffer.ZeroInitialize();
@@ -97,7 +97,7 @@ namespace Toast {
 		sRendererData->StarsBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer for atmosphere rendering
-		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 96, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)5), CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)5) });
+		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 112, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)5), CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)5) });
 		sRendererData->AtmosphereCBuffer->Bind();
 		sRendererData->AtmosphereBuffer.Allocate(sRendererData->AtmosphereCBuffer->GetSize());
 		sRendererData->AtmosphereBuffer.ZeroInitialize();
@@ -1207,15 +1207,15 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.AtmosphereHeight, 4, 0);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScaleHeight, 4, 4);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScaleHeight, 4, 8);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAnisotropy, 4, 12);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScattering, 12, 16);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScattering, 12, 32);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAbsorption, 12, 48);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.GroundAlbedo, 12, 64);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.OzoneStrength, 4, 76);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 80);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 84);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.APFarDynamic, 4, 88);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAnisotropy, 12, 80);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.OzoneStrength, 4, 96);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 100);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 104);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.APFarDynamic, 4, 108);
 		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 		sRendererData->AtmosphereCBuffer->Bind();
 
@@ -1226,9 +1226,11 @@ namespace Toast {
 		{
 			auto& buf = sRendererData->SunDiscSettingsBuffer;
 
+			int sunDiscToggle = environment.SunDiscToggle ? 1 : 0;
+
 			buf.Write((uint8_t*)&environment.SunDiscRadius, 4, 0);
 			buf.Write((uint8_t*)&environment.SunEdgeSoftness, 4, 4);
-			buf.Write((uint8_t*)&environment.SunDiscToggle, 4, 8);   // int32
+			buf.Write((uint8_t*)&sunDiscToggle, 4, 8);   // int32
 			buf.Write((uint8_t*)&environment.SpaceDiscBrightnessScale, 4, 12);
 
 			buf.Write((uint8_t*)&environment.SunWhite, 12, 16);   // float3
@@ -1305,6 +1307,10 @@ namespace Toast {
 		sRendererData->CameraBuffer.Write((uint8_t*)&invViewMatrix, sizeof(invViewMatrix), 192);
 		sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos, sizeof(cameraPos), 320);
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
+
+		int enableSun = 0;
+		sRendererData->SunDiscSettingsBuffer.Write((uint8_t*)&enableSun, 4, 8);
+		sRendererData->SunDiscSettingsCBuffer->Map(sRendererData->SunDiscSettingsBuffer);
 
 		RenderCommand::SetViewport(sRendererData->AtmosphereCubeViewport);
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> nullSRV = nullptr;
@@ -1807,14 +1813,14 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.AtmosphereHeight, 4, 0);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScaleHeight, 4, 4);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScaleHeight, 4, 8);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAnisotropy, 4, 12);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScattering, 12, 16);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScattering, 12, 32);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAbsorption, 12, 48);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.GroundAlbedo, 12, 64);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.OzoneStrength, 4, 76);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 80);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 84);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAnisotropy, 12, 80);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 96);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 100);
 		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 		sRendererData->AtmosphereCBuffer->Bind();
 
