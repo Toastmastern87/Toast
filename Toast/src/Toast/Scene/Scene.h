@@ -122,7 +122,6 @@ namespace Toast {
 
 			// Sun
 			bool SunDiscToggle = false;
-			float SunIntensity = 0.0f;
 			float SunDiscRadius = 0.0f;
 			float SunEdgeSoftness = 0.0f;
 			DirectX::XMFLOAT3 SunWhite = { 1.0f, 1.0f, 1.0f };
