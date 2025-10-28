@@ -126,7 +126,7 @@ namespace Toast {
 		sRendererData->GodRaysBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer for bloom rendering
-		sRendererData->BloomCBuffer = ConstantBufferLibrary::Load("Bloom", 32, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Bloom) });
+		sRendererData->BloomCBuffer = ConstantBufferLibrary::Load("Bloom", 64, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Bloom) });
 		sRendererData->BloomCBuffer->Bind();
 		sRendererData->BloomBuffer.Allocate(sRendererData->BloomCBuffer->GetSize());
 		sRendererData->BloomBuffer.ZeroInitialize();
@@ -144,7 +144,7 @@ namespace Toast {
 		sRendererData->UpSampleBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer for Tonemapping
-		sRendererData->TonemappingCBuffer = ConstantBufferLibrary::Load("Tonemapping", 16, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)10) });
+		sRendererData->TonemappingCBuffer = ConstantBufferLibrary::Load("Tonemapping", 48, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)10) });
 		sRendererData->TonemappingCBuffer->Bind();
 		sRendererData->TonemappingBuffer.Allocate(sRendererData->TonemappingCBuffer->GetSize());
 		sRendererData->TonemappingBuffer.ZeroInitialize();
@@ -170,11 +170,21 @@ namespace Toast {
 		sRendererData->GodRaySunMaskRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, width, 1, TextureFormat::R16G16B16A16_FLOAT);
 
 		// Setting up the render target for Bloom Pass
-		sRendererData->BloomRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
-		sRendererData->BloomHalfRT = CreateRef<RenderTarget>(RenderTargetType::Color, width / 2.0f, height / 2.0f, 1, TextureFormat::R16G16B16A16_FLOAT);
-		sRendererData->BloomQuarterRT = CreateRef<RenderTarget>(RenderTargetType::Color, width / 4.0f, height / 4.0f, 1, TextureFormat::R16G16B16A16_FLOAT);
-		sRendererData->BloomQuarterBlurRT = CreateRef<RenderTarget>(RenderTargetType::Color, width / 4.0f, height / 4.0f, 1, TextureFormat::R16G16B16A16_FLOAT);
-		sRendererData->BloomUpSampleRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->SunBloomRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->SkyBloomRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->GeometryBloomRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->SunBloomHalfRT = CreateRef<RenderTarget>(RenderTargetType::Color, width / 2.0f, height / 2.0f, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->SunBloomQuarterRT = CreateRef<RenderTarget>(RenderTargetType::Color, width / 4.0f, height / 4.0f, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->SunBloomQuarterBlurRT = CreateRef<RenderTarget>(RenderTargetType::Color, width / 4.0f, height / 4.0f, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->SunBloomUpSampleRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->SkyBloomHalfRT = CreateRef<RenderTarget>(RenderTargetType::Color, width / 2.0f, height / 2.0f, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->SkyBloomQuarterRT = CreateRef<RenderTarget>(RenderTargetType::Color, width / 4.0f, height / 4.0f, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->SkyBloomQuarterBlurRT = CreateRef<RenderTarget>(RenderTargetType::Color, width / 4.0f, height / 4.0f, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->SkyBloomUpSampleRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->GeometryBloomHalfRT = CreateRef<RenderTarget>(RenderTargetType::Color, width / 2.0f, height / 2.0f, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->GeometryBloomQuarterRT = CreateRef<RenderTarget>(RenderTargetType::Color, width / 4.0f, height / 4.0f, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->GeometryBloomQuarterBlurRT = CreateRef<RenderTarget>(RenderTargetType::Color, width / 4.0f, height / 4.0f, 1, TextureFormat::R16G16B16A16_FLOAT);
+		sRendererData->GeometryBloomUpSampleRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
 		sRendererData->FinalBloomRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
 
 		// Setting up the render targets for the Post Process pass
@@ -284,11 +294,21 @@ namespace Toast {
 
 		sRendererData->GodRaySunMaskRT->Resize(width, height);
 
-		sRendererData->BloomRT->Resize(width, height);
-		sRendererData->BloomHalfRT->Resize(width / 2.0f, height / 2.0f);
-		sRendererData->BloomQuarterRT->Resize(width / 4.0f, height / 4.0f);
-		sRendererData->BloomQuarterBlurRT->Resize(width / 4.0f, height / 4.0f);
-		sRendererData->BloomUpSampleRT->Resize(width, height);
+		sRendererData->SunBloomRT->Resize(width, height);
+		sRendererData->SkyBloomRT->Resize(width, height);
+		sRendererData->GeometryBloomRT->Resize(width, height);
+		sRendererData->SunBloomHalfRT->Resize(width / 2.0f, height / 2.0f);
+		sRendererData->SunBloomQuarterRT->Resize(width / 4.0f, height / 4.0f);
+		sRendererData->SunBloomQuarterBlurRT->Resize(width / 4.0f, height / 4.0f);
+		sRendererData->SunBloomUpSampleRT->Resize(width, height);
+		sRendererData->SkyBloomHalfRT->Resize(width / 2.0f, height / 2.0f);
+		sRendererData->SkyBloomQuarterRT->Resize(width / 4.0f, height / 4.0f);
+		sRendererData->SkyBloomQuarterBlurRT->Resize(width / 4.0f, height / 4.0f);
+		sRendererData->SkyBloomUpSampleRT->Resize(width, height);
+		sRendererData->GeometryBloomHalfRT->Resize(width / 2.0f, height / 2.0f);
+		sRendererData->GeometryBloomQuarterRT->Resize(width / 4.0f, height / 4.0f);
+		sRendererData->GeometryBloomQuarterBlurRT->Resize(width / 4.0f, height / 4.0f);
+		sRendererData->GeometryBloomUpSampleRT->Resize(width, height);
 		sRendererData->FinalBloomRT->Resize(width, height);
 
 		sRendererData->LPassRT->Resize(width, height);
@@ -378,7 +398,7 @@ namespace Toast {
 		// Post Processes
 		if (hasPlanet && atmoActive && hasSkyView && hasAP3D) 
 		{
-			StarFieldPass(environment, planet->GetAtmosphere().AtmosphereHeight);
+			StarFieldPass(environment, planet, planet->GetAtmosphere().AtmosphereHeight);
 			AtmospherePass(planet, environment, cameraPos, camera.GetWorldTranslation(), dynamicIBL);
 		}
 		else 
@@ -1127,7 +1147,7 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer::StarFieldPass(Scene::Environment& environment, const float atmosphereHeight)
+	void Renderer::StarFieldPass(Scene::Environment& environment, Ref<Planet>& planet, const float atmosphereHeight)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -1166,6 +1186,7 @@ namespace Toast {
 				TextureLibrary::GetSampler("LinearSampler")->Bind(0, D3D11_PIXEL_SHADER);
 				TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);
 
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
 				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->PlanetDraw.Planet->GetStarFieldTextureCube()->GetSRV());
 				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
 
@@ -1469,58 +1490,122 @@ namespace Toast {
 
 		RenderCommand::SetViewport(sRendererData->Viewport);
 		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
-		RenderCommand::SetRenderTargets({ sRendererData->BloomRT->GetRTV().Get() }, nullptr);
+		RenderCommand::SetRenderTargets({ sRendererData->SunBloomRT->GetRTV().Get(), sRendererData->SkyBloomRT->GetRTV().Get(), sRendererData->GeometryBloomRT->GetRTV().Get() }, nullptr);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
-		RenderCommand::SetBlendState(sRendererData->LPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
-		RenderCommand::ClearRenderTargets({ sRendererData->BloomRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+		RenderCommand::SetBlendState(sRendererData->ParticleBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+		RenderCommand::ClearRenderTargets({ sRendererData->SunBloomRT->GetRTV().Get(), sRendererData->SkyBloomRT->GetRTV().Get(), sRendererData->GeometryBloomRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.AtmosphereIntensity, sizeof(float), 0);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SpaceIntensity, sizeof(float), 4);
-		sRendererData->BloomBuffer.Write((uint8_t*)&spaceFactor, sizeof(float), 8);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.AtmosphereThreshold, sizeof(float), 12);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SpaceThreshold, sizeof(float), 16);
+		TextureLibrary::GetSampler("PointSampler")->Bind(2, D3D11_PIXEL_SHADER);
+
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunSurfaceThreshold, sizeof(float), 0);
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunSurfaceIntensity, sizeof(float), 4);
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunSpaceThreshold, sizeof(float), 8);
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunSpaceIntensity, sizeof(float), 12);
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySurfaceThreshold, sizeof(float), 16);
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySurfaceIntensity, sizeof(float), 20);
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySpaceThreshold, sizeof(float), 24);
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySpaceIntensity, sizeof(float), 28);
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.GeometryThreshold, sizeof(float), 32);
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.GeometryIntensity, sizeof(float), 36);
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunRadius, sizeof(float), 40);
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySurfaceRadius, sizeof(float), 44);
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySpaceRadius, sizeof(float), 48);
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SoftKnee, sizeof(float), 52);
+		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SaturationClamp, sizeof(float), 56);
+		sRendererData->BloomBuffer.Write((uint8_t*)&spaceFactor, sizeof(float), 60);
 		sRendererData->BloomCBuffer->Map(sRendererData->BloomBuffer);
 
 		ShaderLibrary::Get("assets/shaders/Post Process/Bloom.hlsl")->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->AtmospherePassRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->DepthBuffer->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SunDiscMaskRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->SunHaloMaskRT->GetSRV());
 
 		TextureLibrary::GetSampler("ClampSampler")->Bind(3, D3D11_PIXEL_SHADER);
 
 		DrawFullscreenQuad();
 
-		// --- Down sample: BloomRT (full) -> BloomHalfRT (1/2) ---
-		{
-			auto [W, H] = sRendererData->BloomRT->GetSize();
-			DirectX::XMFLOAT2 srcTexelSize(1.0f / float(W), 1.0f / float(H));
-			sRendererData->DownSampleBuffer.Write((uint8_t*)&srcTexelSize.x, 8, 0);
-			sRendererData->DownSampleCBuffer->Map(sRendererData->DownSampleBuffer);
-			sRendererData->DownSampleCBuffer->Bind();
+		auto RunBloomChain = [&](RenderTarget* srcFullRT,
+			RenderTarget* outHalfRT,
+			RenderTarget* outQuarterRT,
+			RenderTarget* outQuarterBlurRT,
+			RenderTarget* outUpSampleRT,
+			float sigmaQuarter)
+			{
+				// --- Downsample: Full -> Half ---
+				{
+					auto [W, H] = srcFullRT->GetSize();
+					DirectX::XMFLOAT2 srcTexelSize(1.0f / float(W), 1.0f / float(H));
+					sRendererData->DownSampleBuffer.Write((uint8_t*)&srcTexelSize.x, 8, 0);
+					sRendererData->DownSampleCBuffer->Map(sRendererData->DownSampleBuffer);
+					sRendererData->DownSampleCBuffer->Bind();
 
-			RenderCommand::SetViewport(sRendererData->ViewportHalf);
-			RenderCommand::SetRenderTargets({ sRendererData->BloomHalfRT->GetRTV().Get() }, nullptr);
-			RenderCommand::ClearRenderTargets({ sRendererData->BloomHalfRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->BloomRT->GetSRV());
-			ShaderLibrary::Get("assets/shaders/Post Process/BloomDownSample.hlsl")->Bind();
-			DrawFullscreenQuad();
-			RenderCommand::ClearShaderResources(); // unbind SRV when its RT is used later
-		}
+					RenderCommand::SetViewport(sRendererData->ViewportHalf);
+					RenderCommand::SetRenderTargets({ outHalfRT->GetRTV().Get() }, nullptr);
+					RenderCommand::ClearRenderTargets({ outHalfRT->GetRTV().Get() }, { 0,0,0,1 });
+					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, srcFullRT->GetSRV());
+					ShaderLibrary::Get("assets/shaders/Post Process/BloomDownSample.hlsl")->Bind();
+					DrawFullscreenQuad();
+					RenderCommand::ClearShaderResources();
+				}
 
-		// --- Down sample: BloomHalfRT (1/2) -> BloomQuarterRT (1/4) ---
-		{
-			auto [W2, H2] = sRendererData->BloomHalfRT->GetSize(); // half size
-			DirectX::XMFLOAT2 srcTexelSize(1.0f / float(W2), 1.0f / float(H2));
-			sRendererData->DownSampleBuffer.Write((uint8_t*)&srcTexelSize.x, 8, 0);
-			sRendererData->DownSampleCBuffer->Map(sRendererData->DownSampleBuffer);
+				// --- Downsample: Half -> Quarter ---
+				{
+					auto [W2, H2] = outHalfRT->GetSize();
+					DirectX::XMFLOAT2 srcTexelSize(1.0f / float(W2), 1.0f / float(H2));
+					sRendererData->DownSampleBuffer.Write((uint8_t*)&srcTexelSize.x, 8, 0);
+					sRendererData->DownSampleCBuffer->Map(sRendererData->DownSampleBuffer);
+					sRendererData->DownSampleCBuffer->Bind();
 
-			RenderCommand::SetViewport(sRendererData->ViewportQuarter);
-			RenderCommand::SetRenderTargets({ sRendererData->BloomQuarterRT->GetRTV().Get() }, nullptr);
-			RenderCommand::ClearRenderTargets({ sRendererData->BloomQuarterRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->BloomHalfRT->GetSRV());
-			ShaderLibrary::Get("assets/shaders/Post Process/BloomDownSample.hlsl")->Bind();
-			DrawFullscreenQuad();
-			RenderCommand::ClearShaderResources();
-		}
+					RenderCommand::SetViewport(sRendererData->ViewportQuarter);
+					RenderCommand::SetRenderTargets({ outQuarterRT->GetRTV().Get() }, nullptr);
+					RenderCommand::ClearRenderTargets({ outQuarterRT->GetRTV().Get() }, { 0,0,0,1 });
+					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, outHalfRT->GetSRV());
+					ShaderLibrary::Get("assets/shaders/Post Process/BloomDownSample.hlsl")->Bind();
+					DrawFullscreenQuad();
+					RenderCommand::ClearShaderResources();
+				}
+
+				// --- Wide blur @ 1/4 res ---
+				{
+					auto [QW, QH] = outQuarterRT->GetSize();
+					DirectX::XMFLOAT2 qTexel(1.0f / float(QW), 1.0f / float(QH));
+
+					sRendererData->WideBlurBuffer.Write((uint8_t*)&qTexel.x, 8, 0);
+					sRendererData->WideBlurBuffer.Write((uint8_t*)&sigmaQuarter, 4, 8);
+					sRendererData->WideBlurCBuffer->Map(sRendererData->WideBlurBuffer);
+					sRendererData->WideBlurCBuffer->Bind();
+
+					RenderCommand::SetRenderTargets({ outQuarterBlurRT->GetRTV().Get() }, nullptr);
+					RenderCommand::ClearRenderTargets({ outQuarterBlurRT->GetRTV().Get() }, { 0,0,0,1 });
+					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, outQuarterRT->GetSRV());
+					ShaderLibrary::Get("assets/shaders/Post Process/BloomWideBlur.hlsl")->Bind();
+					DrawFullscreenQuad();
+					RenderCommand::ClearShaderResources();
+				}
+
+				// --- Upsample 1/4 → full ---
+				{
+					auto [QW, QH] = outQuarterBlurRT->GetSize();
+					DirectX::XMFLOAT2 quarterTexelSize(1.0f / float(QW), 1.0f / float(QH));
+					float weightQuarter = 0.85f; // same as before
+
+					sRendererData->UpSampleBuffer.Write((uint8_t*)&quarterTexelSize.x, 8, 0);
+					sRendererData->UpSampleBuffer.Write((uint8_t*)&weightQuarter, 4, 8);
+					sRendererData->UpSampleCBuffer->Map(sRendererData->UpSampleBuffer);
+					sRendererData->UpSampleCBuffer->Bind();
+
+					RenderCommand::SetViewport(sRendererData->Viewport);
+					RenderCommand::SetRenderTargets({ outUpSampleRT->GetRTV().Get() }, nullptr);
+					RenderCommand::ClearRenderTargets({ outUpSampleRT->GetRTV().Get() }, { 0,0,0,1 });
+
+					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, outQuarterBlurRT->GetSRV());
+					ShaderLibrary::Get("assets/shaders/Post Process/BloomUpSample.hlsl")->Bind();
+					DrawFullscreenQuad();
+					RenderCommand::ClearShaderResources();
+				}
+			};
 
 		auto degToPx = [&](float degHalf, float verticalFovDeg, float viewportH)->float
 			{
@@ -1529,56 +1614,52 @@ namespace Toast {
 				return f * (viewportH * 0.5f);
 			};
 
-		auto [QW, QH] = sRendererData->BloomQuarterRT->GetSize();
 		float halfRadiusPxAtmos = degToPx(1.2f, verticalFovDeg, sRendererData->EditorViewport.Height);
 		float halfRadiusPxSpace = degToPx(0.6f, verticalFovDeg, sRendererData->EditorViewport.Height);
-		DirectX::XMFLOAT2 qTexel(1.0f / float(QW), 1.0f / float(QH));
 		float fullHalfPx = lerp(halfRadiusPxAtmos, halfRadiusPxSpace, spaceFactor);
-		float sigmaQuarter = fullHalfPx / 4.0f;                          // key
-		sigmaQuarter = std::max(sigmaQuarter, 8.0f);                     // clamp low
-		float anamorphicX = 1.0f;// lerp(1.0f, 2.0f, spaceFactor);               // sheen in space
 
-		// ---  BloomQuarterRT -> BloomQuarterBlurRT ---
-		{
-			DirectX::XMFLOAT2 dir(1.0f, 0.0f);
-			sRendererData->WideBlurBuffer.Write((uint8_t*)&qTexel.x, 8, 0);
-			sRendererData->WideBlurBuffer.Write((uint8_t*)&sigmaQuarter, 4, 8);
-			sRendererData->WideBlurCBuffer->Map(sRendererData->WideBlurBuffer);
+		// SUN: from SunRadius
+		float sigmaSunQuarter = std::max(bloomParams.SunRadius * fullHalfPx / 4.0f, 8.0f);
 
-			RenderCommand::SetRenderTargets({ sRendererData->BloomQuarterBlurRT->GetRTV().Get() }, nullptr);
-			RenderCommand::ClearRenderTargets({ sRendererData->BloomQuarterBlurRT->GetRTV().Get() }, { 0,0,0,1 });
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->BloomQuarterRT->GetSRV());
-			ShaderLibrary::Get("assets/shaders/Post Process/BloomWideBlur.hlsl")->Bind();
-			DrawFullscreenQuad();
-			RenderCommand::ClearShaderResources();
-		}
+		// SKY: blend surface/space
+		float skyRadiusBlend = lerp(bloomParams.SkySurfaceRadius, bloomParams.SkySpaceRadius, spaceFactor);
+		float sigmaSkyQuarter = std::max(skyRadiusBlend * fullHalfPx / 4.0f, 8.0f);
 
-		// scale from 1/4 to full
-		auto [FW, FH] = sRendererData->BloomQuarterBlurRT->GetSize();
-		DirectX::XMFLOAT2 quarterTexelSize(1.0f / float(QW), 1.0f / float(QH));
-		float weightQuarter = 0.85f;   // wide soft glow
+		// GEOMETRY: reuse sky or tighten slightly
+		float sigmaGeomQuarter = std::max(0.8f * sigmaSkyQuarter, 8.0f);
 
-		sRendererData->UpSampleBuffer.Write((uint8_t*)&quarterTexelSize.x, 8, 0);
-		sRendererData->UpSampleBuffer.Write((uint8_t*)&weightQuarter, 4, 8);
-		sRendererData->UpSampleCBuffer->Map(sRendererData->UpSampleBuffer);
-		sRendererData->UpSampleCBuffer->Bind();
+		// SUN
+		RunBloomChain(sRendererData->SunBloomRT.get(),
+			sRendererData->SunBloomHalfRT.get(),
+			sRendererData->SunBloomQuarterRT.get(),
+			sRendererData->SunBloomQuarterBlurRT.get(),
+			sRendererData->SunBloomUpSampleRT.get(),
+			sigmaSunQuarter);
 
-		RenderCommand::SetViewport(sRendererData->Viewport);
-		RenderCommand::SetRenderTargets({ sRendererData->BloomUpSampleRT->GetRTV().Get() }, nullptr);
-		RenderCommand::ClearRenderTargets({ sRendererData->BloomUpSampleRT->GetRTV().Get() }, { 0,0,0,1 });
+		// SKY
+		RunBloomChain(sRendererData->SkyBloomRT.get(),
+			sRendererData->SkyBloomHalfRT.get(),
+			sRendererData->SkyBloomQuarterRT.get(),
+			sRendererData->SkyBloomQuarterBlurRT.get(),
+			sRendererData->SkyBloomUpSampleRT.get(),
+			sigmaSkyQuarter);
 
-		// t0 = 1/4 blurred; t1 = (optional) your old full-res small blur (or null with weightTight=0)
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->BloomQuarterBlurRT->GetSRV());
-
-		ShaderLibrary::Get("assets/shaders/Post Process/BloomUpSample.hlsl")->Bind();
-		DrawFullscreenQuad();
-		RenderCommand::ClearShaderResources();
+		// GEOMETRY
+		RunBloomChain(sRendererData->GeometryBloomRT.get(),
+			sRendererData->GeometryBloomHalfRT.get(),
+			sRendererData->GeometryBloomQuarterRT.get(),
+			sRendererData->GeometryBloomQuarterBlurRT.get(),
+			sRendererData->GeometryBloomUpSampleRT.get(),
+			sigmaGeomQuarter);
 
 		RenderCommand::SetRenderTargets({ sRendererData->FinalBloomRT->GetRTV().Get() }, nullptr);
 		RenderCommand::ClearRenderTargets({ sRendererData->FinalBloomRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->AtmospherePassRT->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->BloomUpSampleRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->AtmospherePassRT->GetSRV());      // scene HDR
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->SunBloomUpSampleRT->GetSRV());    // t1
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SkyBloomUpSampleRT->GetSRV());    // t2
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->GeometryBloomUpSampleRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, planet->GetTransmittanceLUT()->GetSRV());
 
 		ShaderLibrary::Get("assets/shaders/Post Process/BloomComposite.hlsl")->Bind();
 
@@ -1625,7 +1706,17 @@ namespace Toast {
 		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);
 
-		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.EVOffset, 4, 0);
+		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.EVGeometrySurface, 4, 0);
+		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.EVGeometrySpace, 4, 4);
+		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.EVGeometryNight, 4, 8);
+		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.EVSkySurface, 4, 12);
+		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.EVSkySpace, 4, 16);
+		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.EVSkySurfaceNight, 4, 20);
+		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.EVSkySpaceNight, 4, 24);
+		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.AltFadeStartFrac, 4, 28);
+		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.AltFadeEndFrac, 4, 32);
+		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.SunFadeStartDeg, 4, 36);
+		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.SunFadeEndDeg, 4, 40);
 		sRendererData->TonemappingCBuffer->Map(sRendererData->TonemappingBuffer);
 
 		ShaderLibrary::Get("assets/shaders/Post Process/ToneMapping.hlsl")->Bind();

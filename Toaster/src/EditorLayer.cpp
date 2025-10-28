@@ -345,13 +345,13 @@ namespace Toast {
 				textureID = (void*)Renderer::GetSSAOBlurRT()->GetSRV().Get();
 				break;
 			case RenderOverlay::BLOOM:
-				textureID = (void*)Renderer::GetBloomRT()->GetSRV().Get();
+				textureID = (void*)Renderer::GetSunBloomRT()->GetSRV().Get();
 				break;
 			case RenderOverlay::BLOOMHALF:
-				textureID = (void*)Renderer::GetBloomHalfRT()->GetSRV().Get();
+				textureID = (void*)Renderer::GetSunBloomHalfRT()->GetSRV().Get();
 				break;
 			case RenderOverlay::BLOOMQUARTER:
-				textureID = (void*)Renderer::GetBloomQuarterRT()->GetSRV().Get();
+				textureID = (void*)Renderer::GetSunBloomQuarterRT()->GetSRV().Get();
 				break;
 			case RenderOverlay::BLOOMFINAL:
 				textureID = (void*)Renderer::GetFinalBloomRT()->GetSRV().Get();

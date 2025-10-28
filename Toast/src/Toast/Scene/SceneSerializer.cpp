@@ -642,10 +642,21 @@ namespace Toast {
 		out << YAML::Key << "SSAODebugging" << YAML::Value << settings.SSAODebugging;
 		out << YAML::Key << "SSAORadius" << YAML::Value << settings.SSAORadius;
 		out << YAML::Key << "SSAObias" << YAML::Value << settings.SSAObias;
-		out << YAML::Key << "BloomAtmosphereThreshold" << YAML::Value << settings.Bloom.AtmosphereThreshold;
-		out << YAML::Key << "BloomAtmosphereIntensity" << YAML::Value << settings.Bloom.AtmosphereIntensity;
-		out << YAML::Key << "BloomSpaceThreshold" << YAML::Value << settings.Bloom.SpaceThreshold;
-		out << YAML::Key << "BloomSpaceIntensity" << YAML::Value << settings.Bloom.SpaceIntensity;
+		out << YAML::Key << "SunSurfaceThreshold" << YAML::Value << settings.Bloom.SunSurfaceThreshold;
+		out << YAML::Key << "SunSurfaceIntensity" << YAML::Value << settings.Bloom.SunSurfaceIntensity;
+		out << YAML::Key << "SunSpaceThreshold" << YAML::Value << settings.Bloom.SunSpaceThreshold;
+		out << YAML::Key << "SunSpaceIntensity" << YAML::Value << settings.Bloom.SunSpaceIntensity;
+		out << YAML::Key << "SkySurfaceThreshold" << YAML::Value << settings.Bloom.SkySurfaceThreshold;
+		out << YAML::Key << "SkySurfaceIntensity" << YAML::Value << settings.Bloom.SkySurfaceIntensity;
+		out << YAML::Key << "SkySpaceThreshold" << YAML::Value << settings.Bloom.SkySpaceThreshold;
+		out << YAML::Key << "SkySpaceIntensity" << YAML::Value << settings.Bloom.SkySpaceIntensity;
+		out << YAML::Key << "GeometryThreshold" << YAML::Value << settings.Bloom.GeometryThreshold;
+		out << YAML::Key << "GeometryIntensity" << YAML::Value << settings.Bloom.GeometryIntensity;
+		out << YAML::Key << "SunRadius" << YAML::Value << settings.Bloom.SunRadius;
+		out << YAML::Key << "SkySurfaceRadius" << YAML::Value << settings.Bloom.SkySurfaceRadius;
+		out << YAML::Key << "SkySpaceRadius" << YAML::Value << settings.Bloom.SkySpaceRadius;
+		out << YAML::Key << "SoftKnee" << YAML::Value << settings.Bloom.SoftKnee;
+		out << YAML::Key << "SaturationClamp" << YAML::Value << settings.Bloom.SaturationClamp;
 		out << YAML::Key << "DynamicIBL" << YAML::Value << settings.DynamicIBL;
 		out << YAML::Key << "PhysicSlowmotion" << YAML::Value << settings.PhysicSlowmotion;
 		out << YAML::Key << "PhysicsFPS" << YAML::Value << settings.PhysicsFPS;
@@ -655,6 +666,18 @@ namespace Toast {
 		out << YAML::Key << "GodRaysDecay" << YAML::Value << settings.GodRaysDecay;
 		out << YAML::Key << "GodRaysDensity" << YAML::Value << settings.GodRaysDensity;
 		out << YAML::Key << "GodRaysWeight" << YAML::Value << settings.GodRaysWeight;
+
+		out << YAML::Key << "EVGeometrySurface" << YAML::Value << settings.Exposure.EVGeometrySurface;
+		out << YAML::Key << "EVGeometrySpace" << YAML::Value << settings.Exposure.EVGeometrySpace;
+		out << YAML::Key << "EVGeometryNight" << YAML::Value << settings.Exposure.EVGeometryNight;
+		out << YAML::Key << "EVSkySurface" << YAML::Value << settings.Exposure.EVSkySurface;
+		out << YAML::Key << "EVSkySpace" << YAML::Value << settings.Exposure.EVSkySpace;
+		out << YAML::Key << "EVSkySurfaceNight" << YAML::Value << settings.Exposure.EVSkySurfaceNight;
+		out << YAML::Key << "EVSkySpaceNight" << YAML::Value << settings.Exposure.EVSkySpaceNight;
+		out << YAML::Key << "AltFadeStartFrac" << YAML::Value << settings.Exposure.AltFadeStartFrac;
+		out << YAML::Key << "AltFadeEndFrac" << YAML::Value << settings.Exposure.AltFadeEndFrac;
+		out << YAML::Key << "SunFadeStartDeg" << YAML::Value << settings.Exposure.SunFadeStartDeg;
+		out << YAML::Key << "SunFadeEndDeg" << YAML::Value << settings.Exposure.SunFadeEndDeg;
 		out << YAML::EndMap;
 
 		Planet* scenePlanet = mScene->GetPlanet().get();
@@ -824,7 +847,7 @@ namespace Toast {
 		activeCamera->SetTranslation(data["EditorCamera"]["Position"].as<DirectX::XMFLOAT3>());
 
 		Scene::Settings& settings = mScene->GetSettings();
-		
+
 		settings.Grid = data["Settings"]["Grid"].as<bool>();
 		settings.CameraFrustum = data["Settings"]["CameraFrustum"].as<bool>();
 		settings.SunLightFrustum = data["Settings"]["SunLightFrustum"].as<bool>();
@@ -837,10 +860,21 @@ namespace Toast {
 		settings.SSAODebugging = data["Settings"]["SSAODebugging"].as<bool>();
 		settings.SSAORadius = data["Settings"]["SSAORadius"].as<float>();
 		settings.SSAObias = data["Settings"]["SSAObias"].as<float>();
-		settings.Bloom.AtmosphereThreshold = data["Settings"]["BloomAtmosphereThreshold"].as<float>();
-		settings.Bloom.AtmosphereIntensity = data["Settings"]["BloomAtmosphereIntensity"].as<float>();
-		settings.Bloom.SpaceThreshold = data["Settings"]["BloomSpaceThreshold"].as<float>();
-		settings.Bloom.SpaceIntensity = data["Settings"]["BloomSpaceIntensity"].as<float>();
+		settings.Bloom.SunSurfaceThreshold = data["Settings"]["SunSurfaceThreshold"].as<float>();
+		settings.Bloom.SunSurfaceIntensity = data["Settings"]["SunSurfaceIntensity"].as<float>();
+		settings.Bloom.SunSpaceThreshold = data["Settings"]["SunSpaceThreshold"].as<float>();
+		settings.Bloom.SunSpaceIntensity = data["Settings"]["SunSpaceIntensity"].as<float>();
+		settings.Bloom.SkySurfaceThreshold = data["Settings"]["SkySurfaceThreshold"].as<float>();
+		settings.Bloom.SkySurfaceIntensity = data["Settings"]["SkySurfaceIntensity"].as<float>();
+		settings.Bloom.SkySpaceThreshold = data["Settings"]["SkySpaceThreshold"].as<float>();
+		settings.Bloom.SkySpaceIntensity = data["Settings"]["SkySpaceIntensity"].as<float>();
+		settings.Bloom.GeometryThreshold = data["Settings"]["GeometryThreshold"].as<float>();
+		settings.Bloom.GeometryIntensity = data["Settings"]["GeometryIntensity"].as<float>();
+		settings.Bloom.SunRadius = data["Settings"]["SunRadius"].as<float>();
+		settings.Bloom.SkySurfaceRadius = data["Settings"]["SkySurfaceRadius"].as<float>();
+		settings.Bloom.SkySpaceRadius = data["Settings"]["SkySpaceRadius"].as<float>();
+		settings.Bloom.SoftKnee = data["Settings"]["SoftKnee"].as<float>();
+		settings.Bloom.SaturationClamp = data["Settings"]["SaturationClamp"].as<float>();
 		settings.DynamicIBL = data["Settings"]["DynamicIBL"].as<bool>();
 		settings.PhysicSlowmotion = data["Settings"]["PhysicSlowmotion"].as<int>();
 		settings.PhysicsFPS = data["Settings"]["PhysicsFPS"].as<int>();
@@ -850,6 +884,17 @@ namespace Toast {
 		settings.GodRaysDecay = data["Settings"]["GodRaysDecay"].as<float>();
 		settings.GodRaysDensity = data["Settings"]["GodRaysDensity"].as<float>();
 		settings.GodRaysWeight = data["Settings"]["GodRaysWeight"].as<float>();
+		settings.Exposure.EVGeometrySurface = data["Settings"]["EVGeometrySurface"].as<float>();
+		settings.Exposure.EVGeometrySpace = data["Settings"]["EVGeometrySpace"].as<float>();
+		settings.Exposure.EVGeometryNight = data["Settings"]["EVGeometryNight"].as<float>();
+		settings.Exposure.EVSkySurface = data["Settings"]["EVSkySurface"].as<float>();
+		settings.Exposure.EVSkySpace = data["Settings"]["EVSkySpace"].as<float>();
+		settings.Exposure.EVSkySurfaceNight = data["Settings"]["EVSkySurfaceNight"].as<float>();
+		settings.Exposure.EVSkySpaceNight = data["Settings"]["EVSkySpaceNight"].as<float>();
+		settings.Exposure.AltFadeStartFrac = data["Settings"]["AltFadeStartFrac"].as<float>();
+		settings.Exposure.AltFadeEndFrac = data["Settings"]["AltFadeEndFrac"].as<float>();
+		settings.Exposure.SunFadeStartDeg = data["Settings"]["SunFadeStartDeg"].as<float>();
+		settings.Exposure.SunFadeEndDeg = data["Settings"]["SunFadeEndDeg"].as<float>();
 
 		Planet* scenePlanet = mScene->GetPlanet().get();
 

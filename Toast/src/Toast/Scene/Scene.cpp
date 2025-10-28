@@ -580,7 +580,7 @@ namespace Toast {
 					//mStats.VerticesCount += static_cast<uint32_t>(terrainObject.MeshObject->GetVertices().size() * terrainObject.);
 				}
 
-				Renderer::EndScene(mPlanet, mEnvironment, mSettings.AutoExposure, mSettings.Bloom, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight, ts);
+				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight, ts);
 			}
 
 			// Debug Rendering
@@ -1101,7 +1101,7 @@ namespace Toast {
 				}
 			}
 
-			Renderer::EndScene(mPlanet, mEnvironment, mSettings.AutoExposure, mSettings.Bloom, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight, ts);
+			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight, ts);
 		}
 
 		// Debug Rendering
@@ -1690,10 +1690,7 @@ namespace Toast {
 		target->mSettings.SSAObias = mSettings.SSAObias;
 		target->mSettings.SSAORadius = mSettings.SSAORadius;
 		target->mSettings.Bloom = mSettings.Bloom;
-		target->mSettings.Bloom.AtmosphereThreshold = mSettings.Bloom.AtmosphereThreshold;
-		target->mSettings.Bloom.SpaceThreshold = mSettings.Bloom.SpaceThreshold;
-		target->mSettings.Bloom.AtmosphereIntensity = mSettings.Bloom.AtmosphereIntensity;
-		target->mSettings.Bloom.SpaceIntensity = mSettings.Bloom.SpaceIntensity;
+		target->mSettings.Exposure = mSettings.Exposure;
 
 		// Environment
 		target->mEnvironment = mEnvironment;

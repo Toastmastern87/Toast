@@ -88,7 +88,8 @@ Texture2D<float4> TransmittanceLUT : register(t0);
 Texture2D<float4> MultiScatterLUT : register(t1);
 Texture1D<uint> HorizonMu : register(t2);
 
-SamplerState ClampLinear : register(s0);
+SamplerState ClampLinear    : register(s0);
+SamplerState ClampPoint     : register(s1);
 
 RWTexture2D<float4> OutSkyView : register(u0);
 
@@ -169,15 +170,9 @@ float MuHorizon(float r, float R)
 void GetMuWindow(float r, float RbVis, float Rt, out float mu0, out float mu1)
 {
     float muG = MuHorizon(r, RbVis);
-    float muT = (r <= Rt) ? 1.0f : MuHorizon(r, Rt);
+    float muT = MuHorizon(r, Rt); //(r <= Rt) ? 1.0f : 
     mu0 = muG + MU_EPS; // lift off horizon
     mu1 = max(mu0 + 1e-5f, muT); // keep span > 0
-}
-
-// Map μ → v in [0,1] using this window (clamped)
-float VFromMuWindowed(float mu, float mu0, float mu1)
-{
-    return saturate((mu - mu0) / max(mu1 - mu0, 1e-6f));
 }
 
 // Optional focus near the horizon (gives extra rows right where it matters).
@@ -250,13 +245,6 @@ float SunVisibilityAtR(float r, float muS, float RbVis)
     return smoothstep(-sH * SunDiscRadius, sH * SunDiscRadius, muS - cH);
 }
 
-float3 DirFromLonLat(float lon, float lat, float3 east, float3 north, float3 up)
-{
-    float cl = cos(lat), sl = sin(lat);
-    float ce = cos(lon), se = sin(lon);
-    return normalize(cl * (ce * east + se * north) + sl * up);
-}
-
 // MS anisotropy blend using LUT alpha as gBar
 float MSPhase(float mu, float gBar)
 {
@@ -308,30 +296,6 @@ void BuildSkyBasisAnchored(float3 camWS, float3 planetCenterWS, float3 basisEast
     }
 }
 
-float DiscAvgMiePhase(float3 wView, float3 wSun, float sunRad, float g)
-{
-    // 4 taps inside the sun disc (stratified; cheap and stable)
-    static const float2 Xi[4] =
-    {
-        float2(0.2113, 0.1589), float2(0.7113, 0.6589),
-        float2(0.4613, 0.9089), float2(0.9613, 0.4089)
-    };
-    float3 sx = normalize(abs(wSun.y) < 0.99 ? cross(wSun, float3(0, 1, 0)) : float3(1, 0, 0));
-    float3 sy = normalize(cross(sx, wSun));
-
-    float sum = 0.0f;
-    [unroll]
-    for (int i = 0; i < 4; ++i)
-    {
-        float r = sqrt(Xi[i].x), a = TWO_PI * Xi[i].y;
-        float cr = cos(sunRad), sr = sin(sunRad);
-        float3 k = normalize(cr * wSun + sr * (r * cos(a) * sx + r * sin(a) * sy));
-        float mu = clamp(dot(k, wView), -0.9995f, 0.9995f);
-        sum += PhaseMieHG(mu, g);
-    }
-    return 0.25 * sum;
-}
-
 float PhaseMieHG_CS(float mu, float g) // Cornette–Shanks
 {
     g = saturate(g);
@@ -342,16 +306,15 @@ float PhaseMieHG_CS(float mu, float g) // Cornette–Shanks
 }
 
 // Small-angle disc average by inflating the scattering angle.
-float PhaseMie_DiscAvg(float mu, float g, float sunRad)
+float PhaseMie_DiscAvg(float mu, float g)
 {
     // theta_eff ≈ sqrt(theta^2 + sunRad^2)
     float theta = acos(clamp(mu, -0.9995, 0.9995));
-    float thetaEff = sqrt(theta * theta + sunRad * sunRad);
+    float thetaEff = sqrt(theta * theta + SunDiscRadius * SunDiscRadius);
     float muEff = cos(thetaEff);
     return PhaseMieHG_CS(muEff, g);
 }
 
-// ===== Main =================================================================
 [numthreads(8, 8, 1)]
 void main(uint3 tid : SV_DispatchThreadID)
 {
@@ -359,43 +322,37 @@ void main(uint3 tid : SV_DispatchThreadID)
     OutSkyView.GetDimensions(W, H);
     if (tid.x >= W || tid.y >= H)
         return;
-    
+
     float u = (tid.x + 0.5f) / float(W);
-    
+
     float3 wSun = -normalize(direction.xyz);
     float3 Esun = radiance.rgb * SunIntensity;
-    
+
     const float R_BIAS = max(1.0f, 2e-6f * PlanetRadius);
     const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
     const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
     const float RbVis = RbPhys + R_BIAS;
     const float RbHit = RbPhys + R_BIAS;
-    
-    // μ at the analytic horizon, then row index of horizon
-    // Camera-centric coordinates
+
     float3 camWS = cameraPosition.xyz - WorldOffsetWS;
     float3 camRel = camWS - PlanetCenterWS;
     float rCam = max(RbPhys, length(camRel));
-    
-    // pick the window 
+
+    float rWin = rCam;
+    float3 camRelWin = camRel;
     float mu0, mu1;
-    float rWin = min(rCam, Rt - 1.0f);
-    float3 camRelWin = normalize(camRel) * rWin;
     GetMuWindow(rWin, RbVis, Rt, mu0, mu1);
-    
-    // v→μ with optional horizon focus
+
     float v = 1.0f - (tid.y + 0.5f) / float(H);
-    const float kRows = 4.5f; // ~2–3 rows
+    const float kRows = 4.5f;
     float vmin = kRows / float(H);
-    v = lerp(vmin, 1.0f, v); // pushes only the lowest rows up
+    v = lerp(vmin, 1.0f, v);
     float t = FocusT(v, 0.94f);
     float mu = lerp(mu0, mu1, t);
-    
-    // azimuth from u
+
     float phi = lerp(-PI, PI, saturate(u));
 
-    // reconstruct direction at this μ and azimuth
     float3 spinUp = normalize(BasisSpinUp);
     float3 east0 = normalize(BasisTanEast);
     float3 north0 = normalize(BasisTanNorth);
@@ -406,7 +363,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     float sinTh = sqrt(saturate(1.0f - mu * mu));
     float3 wView = normalize(mu * up + sinTh * (cphi * east + sphi * north));
     float muV = dot(wView, up);
-    
+
     Hit hatm = IntersectSphereGrazingSafe(camRelWin, wView, Rt);
     if (!hatm.ok)
     {
@@ -421,21 +378,22 @@ void main(uint3 tid : SV_DispatchThreadID)
     if (hg.ok && hg.t0 > 0.0f)
         tExit = min(tExit, hg.t0);
 
-    // Length to integrate
     float L = max(tExit - tEnter, 1e-6f);
 
-    float3 Ls = 0, Lms = 0;
+    float3 Ls = 0.0.xxx, Lms = 0.0.xxx;
 
-    // keep rEntry strictly inside [RbVis, Rt] for stable TLUT lookups
+    // Keep rEntry strictly inside [RbVis, Rt] for stable TLUT lookups (still used for Tsun)
     float3 pEntry = camRelWin + wView * tEnter;
     float rEntry = clamp(length(pEntry), RbVis + 5e-4f, Rt - 5e-4f);
     float3 upEntry = pEntry / rEntry;
     float muEntry = dot(wView, upEntry);
 
     float3 g = saturate(MieAnisotropy);
-    float3 f = g * g; // remove delta peak
+    float3 f = g * g;
     float3 g_p = (g - f) / max(1.0.xxx - f, 1e-6.xxx);
-    
+
+    float3 Tacc = 1.0.xxx;
+
     [loop]
     for (uint i = 0; i < SKY_STEPS; ++i)
     {
@@ -445,67 +403,62 @@ void main(uint3 tid : SV_DispatchThreadID)
         float s1 = a1 * a1;
         float t0 = tEnter + L * s0;
         float t1 = tEnter + L * s1;
-        float ti = 0.5f * (t0 + t1); // ABSOLUTE distance from camera
+        float ti = 0.5f * (t0 + t1);
         float dt = (t1 - t0);
-    
-        float tLocal = max(0.0f, ti - tEnter);
-        float3 Tvp = T_along_ray(rEntry, muEntry, tLocal, RbVis, RbPhys, Rt);
-        float muPh = clamp(dot(wSun, -wView), -0.9995f, 0.9995f);
-        
+
+        // Geometry at segment center
         float3 pRel = camRelWin + wView * ti;
         float rp = length(pRel);
-        float h = max(0.0f, rp - RbPhys); // << height above blocking radius
-            
+        float h = max(0.0f, rp - RbPhys);
+
         float dR = DensityRayleigh(h);
         float dM = DensityMie(h);
-        
-        // at height h:
-        float3 sigR_s = RayleighScattering * dR; // Rayleigh σ_s
-        float3 sigM_s = MieScattering * dM; // Mie σ_s
-        float3 sigM_a = MieAbsorption * dM; // Mie σ_a
-        
-        float3 sig_t = sigM_s + sigM_a;
 
-        float3 sig_t_p = (1.0.xxx - f) * sig_t;
-        float3 w0 = sigM_s / max(sig_t, 1e-6.xxx);
-        float3 w0_p = ((1.0.xxx - f) * w0) / max(1.0.xxx - f * w0, 1e-6.xxx);
-        
-        float3 sigM_s_single = w0_p * sig_t_p;
-        float g_single = g_p;
+        float3 sigR_s = RayleighScattering * dR;
+        float3 sigM_s = MieScattering * dM;
+        float3 sigM_a = MieAbsorption * dM;
 
-        // single-scattering albedos
-        float3 w0R = 1.0.xxx; // Rayleigh has no absorption
-        float3 w0M = sigM_s / max(sigM_s + sigM_a, 1e-6.xxx);
-        
-        float3 oneMinusG = max(1e-3.xxx, 1.0.xxx - g);
-        float3 sigS_ms = sigR_s * w0R + sigM_s * w0M * oneMinusG;
+        // Total extinction at this height (Rayleigh scatter + Mie scatter + Mie absorption)
+        float3 sigmaExt = sigR_s + sigM_s + sigM_a;
+
+        // Transmittance from camera to segment center (use symmetric half-step)
+        float3 Tmid = Tacc * exp(-sigmaExt * (0.5.xxx * dt));
+
+        // Prepare phase/lighting
+        float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
 
         float3 upS = (rp > 0.0f) ? (pRel / rp) : up;
         float muS = dot(upS, wSun);
         float Vsun = SunVisibilityAtR(rp, muS, RbVis);
-           
         float3 Tsun = T_to_TOA(rp, muS, RbPhys, Rt) * Vsun;
 
-        float PR = PhaseRayleigh(muPh);
-        float3 PMrgb = float3(PhaseMie_DiscAvg(muPh, g_p.r, SunDiscRadius), PhaseMie_DiscAvg(muPh, g_p.g, SunDiscRadius), PhaseMie_DiscAvg(muPh, g_p.b, SunDiscRadius));
+        float PR = PhaseRayleigh(muPhase);
+        float3 PMrgb = float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));
+
+        // Remove delta peak for single scattering
+        float3 sigM_s_single = sigM_s * (1.0.xxx - f);
 
         // single scattering
-        Ls += Tvp * (sigR_s * PR * Tsun) * dt;
-        Ls += Tvp * (sigM_s_single * PMrgb * Tsun) * dt;
+        Ls += Tmid * (sigR_s * PR * Tsun) * dt;
+        Ls += Tmid * (sigM_s_single * PMrgb * Tsun) * dt;
 
-        // multiple scattering: use Rb in the LUT sampling too
+        // multiple scattering
         float4 Psi4 = SamplePsiMS4(rp, muS, RbPhys, Rt);
-               
         float3 PsiMS_rgb = Psi4.rgb;
-        
         float gEff = saturate(Psi4.a);
-        float pMS = MSPhase(muPh, gEff);
-        
-        Lms += Tvp * (sigS_ms * PsiMS_rgb) * pMS * dt;
+        float pMS = MSPhase(muPhase, gEff);
+
+        float3 w0R = 1.0.xxx;
+        float3 w0M = sigM_s / max(sigM_s + sigM_a, 1e-6.xxx);
+        float3 oneMinusG = max(1e-3.xxx, 1.0.xxx - g);
+        float3 sigS_ms = sigR_s * w0R + sigM_s * w0M * oneMinusG;
+
+        Lms += Tmid * (sigS_ms * PsiMS_rgb) * pMS * dt;
+
+        // Advance cumulative transmittance to next segment
+        Tacc *= exp(-sigmaExt * dt);
     }
-    
+
     float3 skyRGB = (Ls + Lms) * Esun;
-    
     OutSkyView[tid.xy] = float4(skyRGB, 1.0f);
-    return;
 }

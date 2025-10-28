@@ -255,7 +255,15 @@ void main(uint3 dtid : SV_DispatchThreadID)
             float rd = sqrt(t * t + 2.0f * r * mu * t + r * r);
             float hh = max(0.0f, rd - RbPhys);
             
-            float3 sigma_s_step = RayleighScattering * DensityRayleigh(hh) + MieScattering * DensityMie(hh) * (1.0.xxx - MieAnisotropy);
+            float dR_step = DensityRayleigh(hh);
+            float dM_step = DensityMie(hh);
+            float3 sigR_s_step = RayleighScattering * dR_step;
+            float3 sigM_s_step = MieScattering * dM_step;
+            float3 sigM_a_step = MieAbsorption * dM_step;
+            
+            float3 w0M_step = sigM_s_step / max(sigM_s_step + sigM_a_step, 1e-6.xxx);
+            
+            float3 sigma_s_step = sigR_s_step + sigM_s_step * w0M_step * (1.0.xxx - MieAnisotropy);
 
             L2_vol += sigma_s_step * Tseg * dt;
         }

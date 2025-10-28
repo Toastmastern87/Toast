@@ -25,6 +25,7 @@ PixelInputType main(uint vID : SV_VertexID)
 static const float3 Fdielectric = float3(0.04f, 0.04f, 0.04f);
 static const float Epsilon = 0.00001f;
 static const float PI = 3.14159265359f;
+static const float MU_EPS = 8e-4;
 
 cbuffer Camera : register(b0)
 {
@@ -266,26 +267,24 @@ uint queryRadianceTextureLevels()
     return levels;
 }
 
-float2 TransUV(float r, float mu, float Rg, float Rt)
+float2 TransUV(float r, float mu, float RbPhys, float Rt)
 {
-    float rNorm = (r - Rg) / max(Rt - Rg, 1e-6f);
-    float muMin = -sqrt(saturate(1.0f - (Rg * Rg) / (r * r)));
-    mu = clamp(mu, muMin + 1e-5f, 1.0f - 1e-5f);
-    float uMu = (mu - muMin) / (1.0f - muMin);
-    return float2(uMu, saturate(rNorm));
+    float rNorm = (r - RbPhys) / max(Rt - RbPhys, 1e-6f);
+    float muMin = -sqrt(saturate(1.0f - (RbPhys * RbPhys) / (r * r)));
+    mu = clamp(mu, muMin + MU_EPS, 1.0f - MU_EPS);
+    return float2((mu - muMin) / (1.0f - muMin), saturate(rNorm));
 }
 
-float SunVisibilityAtR(float r, float muS, float Rg)
+float SunVisibilityAtR(float r, float muS, float Rb)
 {
-    const float SunAngularRadius = 0.004675f;
-    float sinThetaH = Rg / r;
+    float sinThetaH = Rb / r;
     float cosThetaH = -sqrt(saturate(1.0f - sinThetaH * sinThetaH));
-    return smoothstep(-sinThetaH * SunAngularRadius, sinThetaH * SunAngularRadius, muS - cosThetaH);
+    return smoothstep(-sinThetaH * SunDiscRadius, sinThetaH * SunDiscRadius, muS - cosThetaH);
 }
 
-float3 T_to_TOA(float r, float mu, float Rg, float Rt)
+float3 T_to_TOA(float r, float mu, float Rb, float Rt)
 {
-    return TransmittanceLUT.SampleLevel(LinearSampler, TransUV(r, mu, Rg, Rt), 0).rgb;
+    return TransmittanceLUT.SampleLevel(PointSampler, TransUV(r, mu, Rb, Rt), 0).rgb;
 }
 
 float sstep(float a, float b, float x)
@@ -320,14 +319,16 @@ float3 DirectionalLightning(float3 F0, float3 NormalWorldSpace, float3 View, flo
         return 0;
     float NoH = max(0.0f, dot(NormalWorldSpace, H)); 
 
-    float Rg = PlanetRadius;
+    const float Rg = PlanetRadius;
+    const float Rt = PlanetRadius + AtmosphereHeight;
     const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
-    float Rt = PlanetRadius + AtmosphereHeight;
+    const float RbVis = RbPhys + max(1.0f, 2e-6f * PlanetRadius);
     
-    float3 Tsun = T_to_TOA(r, muS, RbPhys, Rt) * SunVisibilityAtR(r, muS, RbPhys);
+    float3 Tsun = T_to_TOA(r, muS, RbPhys, Rt) * SunVisibilityAtR(r, muS, RbVis);
     
     // Sun radiance (same scalar you use in AP/Sky)
     float3 ESun = radiance * SunIntensity;
+
     float3 Lradiance = ESun * Tsun; // attenuated, spectrally reddened
     
     float3 F = fresnelSchlick(F0, max(0.0f, dot(H, View)));
@@ -410,18 +411,20 @@ PixelOutputType main(PixelInputType input)
     float3 VWorld = normalize(cameraPosition.xyz - posWS.xyz);
     float NdotV = max(dot(normalWorld, VWorld), 0.05f);
     
-    float Rg = PlanetRadius;
-    float Rt = PlanetRadius + AtmosphereHeight;
+    const float Rg = PlanetRadius;
+    const float Rt = PlanetRadius + AtmosphereHeight;
+    const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
     float3 pRel = posWS.xyz - PlanetCenterWS;
-    float r = max(Rg, length(pRel));
-    float3 upG = pRel / r;
+      
+    float r_true = length(pRel);
+    float3 up = (r_true > 0.0f) ? (pRel / r_true) : BasisRadUp;
 
     float3 Esun = radiance.rgb * SunIntensity; // radiance
     
     float3 wSun = normalize(-direction.xyz); // point -> sun
-    float muS = dot(upG, wSun);
+    float muS = dot(up, wSun);
     
-    float4 Psi4 = SamplePsiMS4(r, muS, Rg, Rt);
+    float4 Psi4 = SamplePsiMS4(r_true, muS, RbPhys, Rt);
     float3 msIrr = Psi4.rgb * Esun;
     
     // Fresnel reflectance at normal incidence (for metals use albedo color).
@@ -500,7 +503,7 @@ PixelOutputType main(PixelInputType input)
     }
     
     // Directional Light Contribution
-    float3 lightContribution = DirectionalLightning(F0, normalWorld, VWorld, NdotV, albedo, roughness, metalness, posWS.xyz, direction.xyz, r, muS) * shadow;
+    float3 lightContribution = DirectionalLightning(F0, normalWorld, VWorld, NdotV, albedo, roughness, metalness, posWS.xyz, direction.xyz, r_true, muS) * shadow;
     
     // IBL Contribution
     float3 Lr = reflect(-VWorld, normalWorld);

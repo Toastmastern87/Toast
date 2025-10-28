@@ -96,6 +96,7 @@ Texture2D<float4> MultiScatterLUT : register(t1);
 Texture2D<uint> APFarU32 : register(t2);
 
 SamplerState ClampLinear : register(s0);
+SamplerState ClampPoint : register(s1);
 
 // 3D AP output: [x,y]=screen tile, [z]=non-linear distance
 // rgb = accumulated in-scatter, a = camera->slice scalar transmittance
@@ -104,6 +105,7 @@ RWTexture3D<float4> OutAP       : register(u0);
 // ===== Constants / helpers ==================================================
 static const float PI = 3.14159265358979323846f;
 static const float INV4PI = 0.25f / PI;
+static const float MU_EPS = 2e-3;
 
 // Ozone (Bruneton)
 static const float3 O3_COEFF = float3(0.650e-6, 1.881e-6, 0.085e-6);
@@ -152,17 +154,17 @@ float PhaseMieHG(float mu, float g)
 }
 
 // TLUT mapping (Bruneton/UE), identical to SkyView
-float2 TransUV(float r, float mu, float Rg, float Rt)
+float2 TransUV(float r, float mu, float RbPhys, float Rt)
 {
-    float rNorm = (r - Rg) / max(Rt - Rg, 1e-6f);
-    float muMin = -sqrt(saturate(1.0f - (Rg * Rg) / (r * r)));
-    mu = clamp(mu, muMin + 1e-5f, 1.0f - 1e-5f);
-    float uMu = (mu - muMin) / (1.0f - muMin);
-    return float2(uMu, saturate(rNorm));
+    float rNorm = (r - RbPhys) / max(Rt - RbPhys, 1e-6f);
+    float muMin = -sqrt(saturate(1.0f - (RbPhys * RbPhys) / (r * r)));
+    mu = clamp(mu, muMin + MU_EPS, 1.0f - MU_EPS);
+    return float2((mu - muMin) / (1.0f - muMin), saturate(rNorm));
 }
+
 float3 T_to_TOA(float r, float mu, float Rb, float Rt)
 {
-    return TransmittanceLUT.SampleLevel(ClampLinear, TransUV(r, mu, Rb, Rt), 0).rgb;
+    return TransmittanceLUT.SampleLevel(ClampPoint, TransUV(r, mu, Rb, Rt), 0).rgb;
 }
 
 // MultiScatter LUT sampling: x=theta_s/π, y = 1 - linear altitude (top=TOA)
@@ -227,7 +229,7 @@ Hit IntersectSphereGrazingSafe(float3 ro, float3 rd, float R)
 
     // Discriminant (with tiny negative allowed for grazing)
     float disc = b * b - c;
-    const float grazeTol = 2e-4; // allow slight negatives from FP error
+    const float grazeTol = 5e-5; // allow slight negatives from FP error
     if (disc < -grazeTol)
         return H;
     disc = max(disc, 0.0f);
@@ -320,10 +322,10 @@ float PhaseMieHG_CS(float mu, float g) // Cornette–Shanks
 }
 
 // Small-angle disc average by inflating the scattering angle.
-float PhaseMie_DiscAvg(float mu, float g, float sunRad)
+float PhaseMie_DiscAvg(float mu, float g)
 {
     float theta = acos(clamp(mu, -0.9995, 0.9995));
-    float thetaEff = sqrt(theta * theta + sunRad * sunRad); // θ_eff ≈ √(θ² + θ_sun²)
+    float thetaEff = sqrt(theta * theta + SunDiscRadius * SunDiscRadius); // θ_eff ≈ √(θ² + θ_sun²)
     float muEff = cos(thetaEff);
     return PhaseMieHG_CS(muEff, g);
 }
@@ -397,6 +399,10 @@ void main(uint3 tid : SV_DispatchThreadID)
     const float3 wSun = -normalize(direction.xyz);
     float3 Esun = radiance.rgb * SunIntensity;
     
+    float3 g = saturate(MieAnisotropy);
+    float3 f = g * g; // remove delta peak
+    float3 g_p = (g - f) / max(1.0.xxx - f, 1e-6.xxx);
+    
     [loop]
     for (uint z = 0; z < D; ++z)
     {
@@ -437,42 +443,38 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         float3 sigmaExt = RayleighScattering * dR + (MieScattering + MieAbsorption) * dM + O3_COEFF * dO;
 
-        float3 sigR_s = RayleighScattering * dR;
-        float3 sigM_s = MieScattering * dM;
+        float3 sigR_s = RayleighScattering * dR; // Rayleigh σ_s
+        float3 sigM_s = MieScattering * dM; // Mie σ_s
+        float3 sigM_a = MieAbsorption * dM; // Mie σ_a
+        
+        float3 sig_t = sigM_s + sigM_a;
 
+        float3 sig_t_p = (1.0.xxx - f) * sig_t;
+        float3 w0 = sigM_s / max(sig_t, 1e-6.xxx);
+        float3 w0_p = ((1.0.xxx - f) * w0) / max(1.0.xxx - f * w0, 1e-6.xxx);
+        
+        float3 sigM_s_single = w0_p * sig_t_p;
+        
         float3 upS = (rMid > 0.0f) ? (p / rMid) : BasisSpinUp;
         float muS = dot(upS, wSun);
-        float Vsun = SunVisibilityAtR(rMid, muS, RbPhys);
+        float Vsun = SunVisibilityAtR(rMid, muS, RbVis);
         float3 Tsun = T_to_TOA(rMid, muS, RbPhys, Rt) * Vsun;
 
         float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
         float PR = PhaseRayleigh(muPhase);
 
-// --- per-channel anisotropy for SINGLE Mie (match SkyView) ---
-        float3 fRGB = MieAnisotropy * MieAnisotropy; // delta peak removal (δ-Eddington)
+        // Disc-averaged Cornette–Shanks per-channel
+        float3 PMrgb = float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));
 
-        float3 sig_t = sigM_s + MieAbsorption * dM; // σ_t = σ_s + σ_a  (per RGB)
-        float3 sig_t_p = (1.0.xxx - fRGB) * sig_t;
-
-        float3 w0 = sigM_s / max(sig_t, 1e-6.xxx); // single-scatter albedo
-        float3 w0_p = ((1.0.xxx - fRGB) * w0) / max(1.0.xxx - fRGB * w0, 1e-6.xxx);
-        float3 g_single = (MieAnisotropy - fRGB) / max(1.0.xxx - fRGB, 1e-6.xxx);
-
-        float3 sigM_s_single = w0_p * sig_t_p; // σ'_s for SINGLE Mie (RGB)
-
-// Disc-averaged Cornette–Shanks per-channel
-        float3 PMrgb = float3(
-    PhaseMie_DiscAvg(muPhase, g_single.r, SunDiscRadius),
-    PhaseMie_DiscAvg(muPhase, g_single.g, SunDiscRadius),
-    PhaseMie_DiscAvg(muPhase, g_single.b, SunDiscRadius)
-);
-
-// --- SINGLE scattering (Rayleigh + Mie) ---
+        // --- SINGLE scattering (Rayleigh + Mie) ---
         float3 S1 = (sigR_s * PR + sigM_s_single * PMrgb) * Tsun * Esun;
 
-// --- MULTI scattering stays reduced by (1 - g) per-channel ---
-        float3 oneMinusG = 1.0.xxx - MieAnisotropy;
-        float3 sigS_ms = sigR_s + sigM_s * oneMinusG; // σ'_s for MS
+        // --- MULTI scattering stays reduced by (1 - g) per-channel ---
+        float3 w0R = 1.0.xxx;
+        float3 w0M = sigM_s / max(sigM_s + MieAbsorption * dM, 1e-6.xxx);
+        
+        float3 oneMinusG = max(1e-3.xxx, 1.0.xxx - MieAnisotropy);
+        float3 sigS_ms = sigR_s + sigM_s * w0M * oneMinusG; // σ'_s for MS
 
         float4 Psi4 = SamplePsiMS4(rMid, muS, RbPhys, Rt);
         float gBar = saturate(Psi4.a);

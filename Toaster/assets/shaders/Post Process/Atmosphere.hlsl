@@ -117,28 +117,7 @@ SamplerState SkyAniso       : register(s3);
 // ===== Math helpers =========================================================
 static const float PI = 3.14159265358979323846f;
 static const float3 LUMA = float3(0.2126f, 0.7152f, 0.0722f);
-
-// ---------- HELPERS ----------
-float2 SunScreenUV()
-{
-    float3 wSun = -normalize(direction.xyz); // TO sun
-    float3 pWS = cameraPosition.xyz + wSun * 1e6;
-    float4 pVS = mul(float4(pWS, 1), viewMatrix);
-    float4 pCS = mul(pVS, projectionMatrix);
-    float2 ndc = pCS.xy / max(pCS.w, 1e-6);
-    return 0.5 * (ndc * float2(1, -1) + float2(1, 1));
-}
-
-float Starburst(float2 dirNorm, float sharp, float aspect)
-{
-    float2 dn = (all(dirNorm == 0)) ? float2(1, 0) : normalize(float2(dirNorm.x * (1.0 + aspect), dirNorm.y));
-    float2 a0 = float2(1, 0), a1 = float2(0, 1);
-    float2 a2 = normalize(float2(1, 1));
-    float2 a3 = normalize(float2(1, -1));
-    float s = max(max(abs(dot(dn, a0)), abs(dot(dn, a1))),
-                   max(abs(dot(dn, a2)), abs(dot(dn, a3))));
-    return pow(s, sharp);
-}
+static const float MU_EPS = 8e-4;
 
 // Rayleigh and Henyey–Greenstein phase functions (normalized)
 float PhaseRayleigh(float cosTheta)
@@ -313,10 +292,10 @@ float MuHorizon(float r, float R)
 // in that case, set mu1 = 1.
 void GetMuWindow(float r, float RbVis, float Rt, out float mu0, out float mu1)
 {
-    float muG = MuHorizon(r, RbVis); // lower bound (sky starts above ground)
-    float muT = (r <= Rt) ? 1.0f : MuHorizon(r, Rt); // upper bound where rays stop hitting TOA
-    mu0 = muG;
-    mu1 = max(muG + 1e-5f, muT); // keep a tiny span at least
+    float muG = MuHorizon(r, RbVis);
+    float muT = MuHorizon(r, Rt); //(r <= Rt) ? 1.0f : 
+    mu0 = muG + MU_EPS; // lift off horizon
+    mu1 = max(mu0 + 1e-5f, muT); // keep span > 0
 }
 
 // Map μ → v in [0,1] using this window (clamped)
@@ -504,7 +483,7 @@ PSOut main(PSIn i)
         float dv = 1.0f / Hsv;
        
         float3 upCam = camRel / rCam;
-        float rWin = min(rCam, Rt - 1.0f);
+        float rWin = rCam;
         
         float3 spinUp = normalize(BasisSpinUp);
         float3 east0 = normalize(BasisTanEast);
@@ -520,20 +499,24 @@ PSOut main(PSIn i)
         // same stable window as writer (from rWin)
         float mu0_ref, mu1_ref;
         GetMuWindow(rWin, RbVis, Rt, mu0_ref, mu1_ref); // mu1_ref==1.0, constant
-        float S_ref = max(mu1_ref - mu0_ref, 1.0e-6f);
-
-        // actual ground horizon at the real camera radius rCam
+        float S_ref = max(mu1_ref - mu0_ref, 1e-6f);
+        
         float mu0_cam = MuHorizon(rCam, RbVis);
-
-        // map μ using the actual horizon as the offset, but the stable span S_ref
-        float vPhys = (mu - mu0_cam) / S_ref; // <-- anchor to real horizon
-        vPhys = saturate(vPhys);
+        float mu0_writer = mu0_cam + MU_EPS;
+        float s = saturate((mu - mu0_writer) / S_ref);
+        
+        // 1) inverse focus (k must match writer)
+        const float k = 0.94f;
+        float vFocusedInv = pow(s, 1.0f / k);
+        
+        const float kRows = 4.5f;
+        float vmin = kRows / float(Hsv);
+        float denom = max(1.0f - vmin, 1e-6f);
+        float vRaw = (vFocusedInv - vmin) / denom;
 
         // inverse focus to get row
         float uSky = frac((atan2(xN, xE) + PI) / (2.0f * PI));
-        const float k = 0.85f; // must match writer
-        float vRow = pow(vPhys, 1.0f / k);
-        float vSky = 1.0f - vRow;
+        float vSky = 1.0f - saturate(vRaw);
 
         // sample with aniso
         float3 sky = SkyViewLUT.Sample(SkyAniso, float2(uSky, vSky)).rgb;
@@ -565,8 +548,6 @@ PSOut main(PSIn i)
             float rNorm = sqrt(max((1.0 - mu) / denom, 0.0)); // 0 center, 1 edge, >1 outside
 
             float discMask = 1.0f - smoothstep(rDiscRad, rDiscRad + wEdge, theta);
-
-            float3 upCam = camRel / rCam;
 
             float altUpDeg = degrees(asin(clamp(dot(upCam, wSun), -1.0, 1.0)));
             float dipGroundDeg = degrees(acos(saturate(RbPhys / rCam)));
@@ -768,7 +749,7 @@ PSOut main(PSIn i)
         float3 k = betaExt / max(betaAvg, 1e-9);   
         
         // Trgb ≈ A^(betaExt / betaAvg)
-        float3 Trgb = exp(-tau * k);
+        float3 Trgb = exp(-tau.xxx);
         
         float3 outRGB = colorPreAtmos * Trgb + ap.rgb;
         output.color = float4(outRGB, max(Trgb.r, max(Trgb.g, Trgb.b)));

@@ -59,16 +59,38 @@ namespace Toast {
 	public:
 		struct ExposureParams
 		{
-			float EVOffset = -2.18f;
+			float EVGeometrySurface = 0.0f;
+			float EVGeometrySpace = 0.0f;
+			float EVGeometryNight = 0.0f;
+			float EVSkySurface = 0.0f;	
+			float EVSkySpace = 0.0f;
+			float EVSkySurfaceNight = 0.0f;
+			float EVSkySpaceNight = 0.0f;
+			float SunFadeStartDeg = 0.0f;
+			float SunFadeEndDeg = 0.0f;
+			float AltFadeStartFrac = 0.0f;
+			float AltFadeEndFrac = 0.0f;
 		};
 
 		struct BloomParams
 		{
 			bool Enabled = true;
-			float AtmosphereThreshold = 8.57f;
-			float AtmosphereIntensity = 1.14f;
-			float SpaceThreshold = 4.18f;
-			float SpaceIntensity = 0.25f;
+			float SunSurfaceThreshold = 0.0f;
+			float SunSurfaceIntensity = 0.0f;
+			float SunSpaceThreshold = 0.0f;
+			float SunSpaceIntensity = 0.0f;
+			float SkySurfaceThreshold = 0.0f;
+			float SkySurfaceIntensity = 0.0f;
+			float SkySpaceThreshold = 0.0f;
+			float SkySpaceIntensity = 0.0f;
+			float GeometryThreshold = 0.0f;
+			float GeometryIntensity = 0.0f;
+
+			float SunRadius = 0.0f;            // kernel size scale for SUN layer
+			float SkySurfaceRadius = 0.0f;     // kernel size scale for sky near ground (wider haze)
+			float SkySpaceRadius = 0.0f;      // kernel size scale for sky in space (tighter limb)
+			float SoftKnee = 0.0f;           // 0..1 knee around threshold
+			float SaturationClamp = 0.0f;      // 0..1 desat of bloom to prevent color smear (e.g. 0.85)
 		};
 
 		//Settings
@@ -106,7 +128,7 @@ namespace Toast {
 			float GodRaysDensity = 3.0f;
 			float GodRaysWeight = 0.02f;
 
-			ExposureParams AutoExposure;
+			ExposureParams Exposure;
 		};
 
 		struct Stats

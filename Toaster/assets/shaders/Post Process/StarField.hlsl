@@ -69,6 +69,7 @@ struct PixelInputType
     float2 texCoord : TEXCOORD;
 };
 
+Texture2D<float4> TransmittanceLUT : register(t0);
 TextureCube radianceTexture : register(t5); // starfield cubemap
 Texture2D<float> SceneDepth : register(t9); // reversed-Z depth
 
@@ -76,6 +77,8 @@ SamplerState LinearSampler : register(s0);
 SamplerState PointSampler : register(s1);
 
 static const float PI = 3.14159265359f;
+static const float3 LUMA = float3(0.2126, 0.7152, 0.0722);
+static const float MU_EPS = 8e-4;
 
 float sstep(float a, float b, float x)
 {
@@ -152,6 +155,67 @@ bool AtmosRayInfo(float3 camRel, float3 rd, float Rg, float Rt, out float h_tan,
     return (L_shell > 0.0);
 }
 
+float2 TransUV(float r, float mu, float RbPhys, float Rt)
+{
+    float rNorm = (r - RbPhys) / max(Rt - RbPhys, 1e-6f);
+    float muMin = -sqrt(saturate(1.0f - (RbPhys * RbPhys) / (r * r)));
+    mu = clamp(mu, muMin + MU_EPS, 1.0f - MU_EPS);
+    return float2((mu - muMin) / (1.0f - muMin), saturate(rNorm));
+}
+
+float3 T_to_TOA(float r, float mu, float RbPhys, float Rt)
+{
+    return TransmittanceLUT.SampleLevel(LinearSampler, TransUV(r, mu, RbPhys, Rt), 0).rgb;
+}
+
+// Transmittance through the atmosphere along 'rd' from the camera.
+// Returns scalar attenuation for stars (use luminance of RGB T).
+float StarTransmittance(float3 camRel, float3 rd, float rCam, float RbPhys, float RbVis, float Rt)
+{
+    // Inside atmosphere: straight TLUT to TOA
+    if (rCam <= Rt)
+    {
+        float mu = dot(normalize(camRel), rd);
+        float3 T = T_to_TOA(rCam, mu, RbPhys, Rt);
+        return dot(T, LUMA); // or min(T) if you want stricter dimming
+    }
+
+    // Outside: only attenuate if the view ray crosses the shell
+    float t0o, t1o;
+    if (!RaySphere(camRel, rd, Rt, t0o, t1o) || t1o <= 0.0)
+        return 1.0;
+
+    float tEnter = max(0.0, t0o);
+    float tExit = t1o;
+
+    // Stop at ground if hit
+    float t0g, t1g;
+    if (RaySphere(camRel, rd, RbVis, t0g, t1g) && t1g > 0.0)
+        tExit = min(tExit, t0g);
+
+    float Lshell = max(tExit - tEnter, 0.0);
+    if (Lshell <= 1e-5)
+        return 1.0;
+
+    // Use TLUT ratio along the in-atmosphere segment (same trick as your sky shader)
+    float3 pEntry = camRel + rd * (tEnter + 1e-3);
+    float rEntry = length(pEntry);
+    float3 upEntry = pEntry / rEntry;
+    float muEntry = dot(rd, upEntry);
+
+    // End a hair before exit to avoid border artifacts
+    float3 pExit = camRel + rd * (tExit - 1e-3);
+    float rExit = length(pExit);
+    float3 upExit = pExit / rExit;
+    float muExit = dot(rd, upExit);
+
+    float3 T_in = T_to_TOA(rEntry, muEntry, RbPhys, Rt);
+    float3 T_out = T_to_TOA(rExit, muExit, RbPhys, Rt);
+    float3 Tseg = saturate(T_in / max(T_out, 1e-6.xxx));
+
+    return dot(Tseg, LUMA); // scalar attenuation
+}
+
 // ---------- main: star occlusion that respects atmosphere shell -------------
 float4 main(PixelInputType input) : SV_Target
 {
@@ -190,33 +254,19 @@ float4 main(PixelInputType input) : SV_Target
     float spaceFadeEndAlt = PlanetRadius + SpaceFadeEnd * AtmosphereHeight;
     float spaceVis = sstep(spaceFadeStartAlt, spaceFadeEndAlt, rCam);
 
-    // Start from night OR space
+    // Base visibility from sun altitude / altitude fades (your code)
     float visibility = saturate(max(surfaceNight, spaceVis));
 
-    // ---------- shell occlusion (SPACE ONLY) ----------
-    if (rCam >= Rt - 1e-3)  // <-- key fix: do not occlude when inside atmo
-    {
-        float h_tan, L_shell;
-        bool crossesShell = AtmosRayInfo(camRel, worldDir, Rg, Rt, h_tan, L_shell);
-        if (crossesShell)
-        {
-            // If tangent altitude is above the top of the air, don't occlude
-            // Otherwise attenuate proportionally to depth and path length.
-            float depthWeight = saturate((AtmosphereHeight - max(h_tan, 0.0)) / AtmosphereHeight); // 0 at top, 1 near ground
-            const float Ls = 80000.0; // 80 km scale for chord length → weight
-            float lenWeight = 1.0 - exp(-L_shell / Ls);
-            float atmoOcc = pow(saturate(depthWeight * lenWeight), 0.8); // gentle curve
+    // Atmospheric attenuation that is continuous across Rt
+    float RbPhys = PlanetRadius + min(0.0f, MinHeight); // if you have it in this shader
+    float RbVis = RbPhys + max(1.0f, 2e-6f * PlanetRadius); // same bias as elsewhere
+    float att = StarTransmittance(camRel, worldDir, rCam, RbPhys, RbVis, Rt);
 
-            // Leave a tiny residual in very thin upper-atmo; stronger near limb
-            visibility *= (1.0 - 0.95 * atmoOcc);
-        }
-    }
+    // Final star visibility
+    visibility *= att;
 
-    // Sample stars (normalized 0..1)
+    // Sample stars and output
     float3 starTex = radianceTexture.SampleLevel(LinearSampler, worldDir, 0.0f).rgb;
-
-    // Output normalized stars; scale to nits later in tonemapper
     float3 outStars = starTex * visibility;
-
     return float4(outStars, 1.0);
 }

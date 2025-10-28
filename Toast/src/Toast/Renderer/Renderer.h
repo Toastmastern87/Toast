@@ -128,7 +128,11 @@ namespace Toast {
 			Ref<RenderTarget> GodRaySunMaskRT;
 
 			// Bloom data
-			Ref<RenderTarget> BloomRT, BloomHalfRT, BloomQuarterRT, BloomQuarterBlurRT, BloomUpSampleRT, FinalBloomRT;
+			Ref<RenderTarget> SunBloomRT, SkyBloomRT, GeometryBloomRT;
+			Ref<RenderTarget> SunBloomHalfRT, SunBloomQuarterRT, SunBloomQuarterBlurRT, SunBloomUpSampleRT;
+			Ref<RenderTarget> SkyBloomHalfRT, SkyBloomQuarterRT, SkyBloomQuarterBlurRT, SkyBloomUpSampleRT;
+			Ref<RenderTarget> GeometryBloomHalfRT, GeometryBloomQuarterRT, GeometryBloomQuarterBlurRT, GeometryBloomUpSampleRT;
+			Ref<RenderTarget> FinalBloomRT;
 			Ref<ConstantBuffer> BloomCBuffer, DownSampleCBuffer, WideBlurCBuffer, UpSampleCBuffer;
 			Buffer BloomBuffer, DownSampleBuffer, WideBlurBuffer, UpSampleBuffer;
 
@@ -195,7 +199,7 @@ namespace Toast {
 		static void SSAOPass(float radius, float bias);
 
 		// Post Processes
-		static void StarFieldPass(Scene::Environment& environment, const float atmosphereHeight );
+		static void StarFieldPass(Scene::Environment& environment, Ref<Planet>& planet, const float atmosphereHeight );
 		static void AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldOffsetWS, const bool dynamicIBL);
 		static void BloomPass(Scene::BloomParams& bloomParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, const float verticalFovDeg);
 		static void GodRayPass(float exposure, float decay, float density, float weight);
@@ -213,9 +217,15 @@ namespace Toast {
 		static Ref<RenderTarget>& GetSSAORT() { return sRendererData->SSAORT; }
 		static Ref<RenderTarget>& GetSSAOBlurRT() { return sRendererData->SSAOBlurRT; }
 
-		static Ref<RenderTarget>& GetBloomRT() { return sRendererData->BloomRT; }
-		static Ref<RenderTarget>& GetBloomHalfRT() { return sRendererData->BloomHalfRT; }
-		static Ref<RenderTarget>& GetBloomQuarterRT() { return sRendererData->BloomQuarterRT; }
+		static Ref<RenderTarget>& GetSunBloomRT() { return sRendererData->SunBloomRT; }
+		static Ref<RenderTarget>& GetSkyBloomRT() { return sRendererData->SkyBloomRT; }
+		static Ref<RenderTarget>& GetGeometryBloomRT() { return sRendererData->GeometryBloomRT; }
+		static Ref<RenderTarget>& GetSunBloomHalfRT() { return sRendererData->SunBloomHalfRT; }
+		static Ref<RenderTarget>& GetSunBloomQuarterRT() { return sRendererData->SunBloomQuarterRT; }
+		static Ref<RenderTarget>& GetSkyBloomHalfRT() { return sRendererData->SkyBloomHalfRT; }
+		static Ref<RenderTarget>& GetSkyBloomQuarterRT() { return sRendererData->SkyBloomQuarterRT; }
+		static Ref<RenderTarget>& GetGeometryBloomHalfRT() { return sRendererData->GeometryBloomHalfRT; }
+		static Ref<RenderTarget>& GetGeometryBloomQuarterRT() { return sRendererData->GeometryBloomQuarterRT; }
 		static Ref<RenderTarget>& GetFinalBloomRT() { return sRendererData->FinalBloomRT; }
 
 		static Ref<RenderTarget>& GetLPassRT() { return sRendererData->LPassRT; }
