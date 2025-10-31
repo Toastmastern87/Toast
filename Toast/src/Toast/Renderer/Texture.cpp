@@ -356,7 +356,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 	//     TEXTURE2D     ///////////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	Texture2D::Texture2D(DXGI_FORMAT format, DXGI_FORMAT srvFormat, uint32_t width, uint32_t height, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags)
+	Texture2D::Texture2D(DXGI_FORMAT format, DXGI_FORMAT srvFormat, uint32_t width, uint32_t height, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags, UINT mipLevels)
 		: mWidth(width), mHeight(height), mFormat(format), mSRVFormat(srvFormat)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -374,7 +374,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		textureDesc.Format = format;
 		textureDesc.Height = mHeight;
 		textureDesc.Width = mWidth;
-		textureDesc.MipLevels = 1;
+		textureDesc.MipLevels = mipLevels;
 		textureDesc.MiscFlags = 0;
 		textureDesc.SampleDesc.Count = samples;
 		textureDesc.SampleDesc.Quality = 0;
@@ -392,6 +392,8 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 			mSRV->GetResource(&mResource);
 		else      
 			mResource = mTexture;
+
+		GenerateMips();
 	}
 
 	Texture2D::Texture2D(DXGI_FORMAT format, DXGI_FORMAT srvFormat, uint32_t width, uint32_t height, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags, void* initialData, UINT rowPitch)
@@ -1123,7 +1125,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 	//     TEXTURE SAMPLER   ///////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	TextureSampler::TextureSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode)
+	TextureSampler::TextureSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode, float mipLODBias)
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
@@ -1134,7 +1136,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		desc.AddressV = addressMode;
 		desc.AddressW = addressMode;
 		desc.MaxAnisotropy = (filter == D3D11_FILTER_ANISOTROPIC) ? D3D11_REQ_MAXANISOTROPY : 1;
-		desc.MipLODBias = 0.0f;
+		desc.MipLODBias = mipLODBias;
 		desc.MinLOD = 0;
 		desc.MaxLOD = D3D11_FLOAT32_MAX;
 
@@ -1142,7 +1144,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the sampler!");
 	}
 
-	TextureSampler::TextureSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE uAddressMode, D3D11_TEXTURE_ADDRESS_MODE vAddressMode)
+	TextureSampler::TextureSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE uAddressMode, D3D11_TEXTURE_ADDRESS_MODE vAddressMode, float mipLODBias)
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
@@ -1205,15 +1207,15 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		return (TextureCube*)mTextures[filePath].get();
 	}
 
-	TextureSampler* TextureLibrary::LoadTextureSampler(const std::string& name, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode)
+	TextureSampler* TextureLibrary::LoadTextureSampler(const std::string& name, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode, float mipLODBias)
 	{
-		mTextureSamplers[name] = CreateScope<TextureSampler>(filter, addressMode);
+		mTextureSamplers[name] = CreateScope<TextureSampler>(filter, addressMode, mipLODBias);
 		return mTextureSamplers[name].get();
 	}
 
-	TextureSampler* TextureLibrary::LoadTextureSampler(const std::string& name, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE uAddressMode, D3D11_TEXTURE_ADDRESS_MODE vAddressMode)
+	TextureSampler* TextureLibrary::LoadTextureSampler(const std::string& name, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE uAddressMode, D3D11_TEXTURE_ADDRESS_MODE vAddressMode, float mipLODBias)
 	{
-		mTextureSamplers[name] = CreateScope<TextureSampler>(filter, uAddressMode, vAddressMode);
+		mTextureSamplers[name] = CreateScope<TextureSampler>(filter, uAddressMode, vAddressMode, mipLODBias);
 		return mTextureSamplers[name].get();
 	}
 

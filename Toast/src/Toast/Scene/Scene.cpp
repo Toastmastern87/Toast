@@ -115,6 +115,8 @@ namespace Toast {
 
 	void Scene::OnEvent(Event& e)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		EventDispatcher dispatcher(e);
 
 		if (mIsRunning)
@@ -173,6 +175,8 @@ namespace Toast {
 
 	bool Scene::OnMouseMoved(MouseMovedEvent& e)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
 
 		// Get raw mouse coordinates from the event.

@@ -315,6 +315,11 @@ float PhaseMie_DiscAvg(float mu, float g)
     return PhaseMieHG_CS(muEff, g);
 }
 
+bool HitsGround(float r, float mu, float Rb)
+{
+    return (mu < 0.0f) && (r * r * (mu * mu - 1.0f) + Rb * Rb >= 0.0f);
+}
+
 [numthreads(8, 8, 1)]
 void main(uint3 tid : SV_DispatchThreadID)
 {
@@ -429,8 +434,8 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         float3 upS = (rp > 0.0f) ? (pRel / rp) : up;
         float muS = dot(upS, wSun);
-        float Vsun = SunVisibilityAtR(rp, muS, RbVis);
-        float3 Tsun = T_to_TOA(rp, muS, RbPhys, Rt) * Vsun;
+        bool occluded = HitsGround(rp, muS, RbHit);
+        float3 Tsun = occluded ? 0.0.xxx : T_to_TOA(rp, muS, RbPhys, Rt);
 
         float PR = PhaseRayleigh(muPhase);
         float3 PMrgb = float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));

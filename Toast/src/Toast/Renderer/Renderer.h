@@ -209,7 +209,7 @@ namespace Toast {
 		static Ref<RenderTarget>& GetGPassNormalRT() { return sRendererData->GPassNormalRT; }
 		static Ref<RenderTarget>& GetGPassAlbedoMetallicRT() { return sRendererData->GPassAlbedoMetallicRT; }
 		static Ref<RenderTarget>& GetGPassRoughnessAORT() { return sRendererData->GPassRoughnessAORT; }
-		static Ref<RenderTarget>& GetGPassPickingRT() { return sRendererData->GPassPickingRT; }
+		static Ref<RenderTarget>& GetGPassPickingRT() { TOAST_PROFILE_FUNCTION(); return sRendererData->GPassPickingRT; }
 
 		static Ref<RenderTarget>& GetAtmosphericScatteringRT() { return sRendererData->AtmospherePassRT; }
 		static Ref<RenderTarget>& GetStarsRT() { return sRendererData->StarsRT; }

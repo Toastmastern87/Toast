@@ -1219,8 +1219,7 @@ namespace Toast {
 		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_COMPUTE_SHADER);
 		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_COMPUTE_SHADER);
 		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_PIXEL_SHADER);
-		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);
-		TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(2, D3D11_PIXEL_SHADER);		
+		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);		
 		TextureLibrary::GetSampler("SkyTest")->Bind(3, D3D11_PIXEL_SHADER);
 
 		// Updating the atmospheric data in the buffer and mapping it to the GPU

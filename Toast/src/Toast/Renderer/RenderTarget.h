@@ -30,7 +30,7 @@ namespace Toast {
 		void Clean();
 		void Resize(uint32_t width, uint32_t height);
 
-		std::tuple<uint32_t, uint32_t> GetSize() { return { mWitdh, mHeight }; }
+		std::tuple<uint32_t, uint32_t> GetSize() { TOAST_PROFILE_FUNCTION(); return { mWitdh, mHeight }; }
 
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> GetRTV();
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> GetRTVFace(uint32_t faceIndex);
@@ -49,6 +49,8 @@ namespace Toast {
 		template<typename T>
 		T ReadPixel(uint32_t x, uint32_t y) 
 		{
+			TOAST_PROFILE_FUNCTION();
+
 			HRESULT result;
 			D3D11_TEXTURE2D_DESC textureDesc = {};
 			D3D11_TEXTURE2D_DESC sourceDesc;

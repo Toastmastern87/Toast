@@ -1,6 +1,6 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [28044.6738, -6265.86572, 124681.805]
+  Position: [43517.793, -5511.25488, 91113.6094]
 Settings:
   Grid: false
   CameraFrustum: false
@@ -41,10 +41,10 @@ Settings:
   EVGeometrySurface: -1.30999839
   EVGeometrySpace: -0.430000931
   EVGeometryNight: -1.33000433
-  EVSkySurface: -1.4899987
-  EVSkySpace: -1.80000341
+  EVSkySurface: 0
+  EVSkySpace: -2.39000297
   EVSkySurfaceNight: -3.64999652
-  EVSkySpaceNight: -0.159996897
+  EVSkySpaceNight: 0.73000282
   AltFadeStartFrac: 0.25
   AltFadeEndFrac: 0.850000024
   SunFadeStartDeg: 3
@@ -75,7 +75,7 @@ Planet:
   GroundAlbedo: [0.0042194128, 0.0040057716, 0.0040057716]
 Environment:
   SunDiscToggle: true
-  SunIntensity: 12.8000002
+  SunIntensity: 7.4000001
   SunDiscRadius: 0.00307999994
   SunEdgeSoftness: 0.000899999985
   SunWhite: [1, 0.988235295, 0.968627453]
@@ -147,7 +147,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-24.5998688, 20.8000145, -63.5000076]
+      Rotation: [-47.7999496, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]

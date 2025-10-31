@@ -92,6 +92,8 @@ namespace Toast
 
 	void ImGuiLayer::OnEvent(Event& e)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		if (mBlockEvents) 
 		{
 			ImGuiIO& io = ImGui::GetIO();
