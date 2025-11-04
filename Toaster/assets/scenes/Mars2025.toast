@@ -1,10 +1,10 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [43517.793, -5511.25488, 91113.6094]
+  Position: [-10187.9629, 1812.71021, -5494.05078]
 Settings:
   Grid: false
-  CameraFrustum: false
-  SunLightFrustum: false
+  CameraFrustum: true
+  SunLightFrustum: true
   BackfaceCulling: true
   FrustumCulling: true
   RenderColliders: false
@@ -14,18 +14,18 @@ Settings:
   SSAODebugging: false
   SSAORadius: 0.5
   SSAObias: 0.0250000004
-  SunSurfaceThreshold: 9.05000114
-  SunSurfaceIntensity: 0.71999979
-  SunSpaceThreshold: 4.99999809
+  SunSurfaceThreshold: 5
+  SunSurfaceIntensity: 0.599999905
+  SunSpaceThreshold: 5
   SunSpaceIntensity: 0.600000024
   SkySurfaceThreshold: 0
-  SkySurfaceIntensity: 0
+  SkySurfaceIntensity: 0.499999821
   SkySpaceThreshold: 0
-  SkySpaceIntensity: 4.54999352
+  SkySpaceIntensity: 0.499999881
   GeometryThreshold: 0
   GeometryIntensity: 0
   SunRadius: 1
-  SkySurfaceRadius: 1.20000005
+  SkySurfaceRadius: 0.57000047
   SkySpaceRadius: 0.600000024
   SoftKnee: 0.800000012
   SaturationClamp: 4
@@ -39,12 +39,12 @@ Settings:
   GodRaysDensity: 3
   GodRaysWeight: 0.0199999996
   EVGeometrySurface: -1.30999839
-  EVGeometrySpace: -0.430000931
-  EVGeometryNight: -1.33000433
-  EVSkySurface: 0
-  EVSkySpace: -2.39000297
-  EVSkySurfaceNight: -3.64999652
-  EVSkySpaceNight: 0.73000282
+  EVGeometrySpace: -0.700000763
+  EVGeometryNight: -1.33000004
+  EVSkySurface: 0.25
+  EVSkySpace: -1.82999921
+  EVSkySurfaceNight: -6.21999311
+  EVSkySpaceNight: -2.71000075
   AltFadeStartFrac: 0.25
   AltFadeEndFrac: 0.850000024
   SunFadeStartDeg: 3
@@ -64,27 +64,29 @@ Planet:
   Metalness: 0
   StarFieldAssetPath: C:\dev\Toast\Toaster\assets\textures\StarField16k.tif
   AtmosphereActivated: true
-  AtmosphereHeight: 55000
+  AtmosphereHeight: 30000
   RayleighScaleHeight: 11000
-  RayleighScattering: [9.00000019e-10, 1.89999994e-09, 4.99999997e-09]
-  MieScaleHeight: 4500
-  MieScattering: [3.45000008e-05, 2.25000003e-05, 1.75000005e-05]
-  MieAbsorption: [3.99999999e-06, 3.99999999e-06, 1.99999999e-06]
-  MieAnisotropy: [0.879999995, 0.879999995, 0.870000005]
+  RayleighScattering: [8.50000015e-10, 1.70000003e-09, 4.1999999e-09]
+  MieScaleHeight: 8500
+  MieScattering: [1.40000002e-05, 9.00000032e-06, 6.49999993e-06]
+  MieAbsorption: [3.29999989e-06, 3.69999998e-06, 1.99999999e-06]
+  MieAnisotropy: [0.889999986, 0.889999986, 0.889999986]
   OzoneStrength: 0
-  GroundAlbedo: [0.0042194128, 0.0040057716, 0.0040057716]
+  GroundAlbedo: [0.0042194128, 0.00384554081, 0.00384554081]
+  MSGain: 0.100000001
+  SGain: 0.899999976
 Environment:
   SunDiscToggle: true
-  SunIntensity: 7.4000001
+  SunIntensity: 12.1000004
   SunDiscRadius: 0.00307999994
   SunEdgeSoftness: 0.000899999985
   SunWhite: [1, 0.988235295, 0.968627453]
   WarmTint: [1, 0.921568632, 0.78039217]
   SpaceDiscBrightnessScale: 1.25
   AirHaloIntensity: 0.0199999996
-  AirHaloStartFrac: 0.150000006
-  AirHaloFalloffPow: 0.550000012
-  HorizonRefractionDeg: 0.560000002
+  AirHaloStartFrac: 0.230000004
+  AirHaloFalloffPow: 0.419999987
+  HorizonRefractionDeg: 0.409999996
   TwilightBlendDeg: 1.5
   SpaceHaloWidthDeg: 0.529999971
   SpaceHaloIntensity: 0.0199999996
@@ -113,7 +115,7 @@ Entities:
         PerspectiveFOV: 45
         NearClip: 0.100000001
         FarClip: 2000000
-        OrthographicWidth: 2660
+        OrthographicWidth: 2658
         OrthographicHeight: 1120
       Primary: true
       FixedAspectRatio: false
@@ -147,7 +149,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-47.7999496, 20.8000145, -63.5000076]
+      Rotation: [-45.2002525, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]

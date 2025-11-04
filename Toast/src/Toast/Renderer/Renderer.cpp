@@ -1227,7 +1227,9 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.AtmosphereHeight, 4, 0);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScaleHeight, 4, 4);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScaleHeight, 4, 8);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MSGain, 4, 12);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScattering, 12, 16);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.SGain, 4, 28);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScattering, 12, 32);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAbsorption, 12, 48);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.GroundAlbedo, 12, 64);
@@ -1982,14 +1984,14 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.AtmosphereHeight, 4, 0);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScaleHeight, 4, 4);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScaleHeight, 4, 8);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAnisotropy, 4, 12);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScattering, 12, 16);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScattering, 12, 32);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAbsorption, 12, 48);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.GroundAlbedo, 12, 64);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.OzoneStrength, 4, 76);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 80);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 84);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAnisotropy, 12, 80);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 96);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 100);
 		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 		sRendererData->AtmosphereCBuffer->Bind();
 

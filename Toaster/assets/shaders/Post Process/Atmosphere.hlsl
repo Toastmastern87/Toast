@@ -58,7 +58,9 @@ cbuffer Atmosphere : register(b5)
     float AtmosphereHeight; // Rt - Rg
     float RayScaleHeight;
     float MieScaleHeight;
+    float MSGain;
     float3 RayleighScattering;
+    float SGain;
     float3 MieScattering;
     float3 MieAbsorption;
     float3 GroundAlbedo;
@@ -290,12 +292,23 @@ float MuHorizon(float r, float R)
 // mu0 = lower bound (planet/ground horizon), mu1 = upper bound (TOA edge).
 // If camera is inside the atmosphere (r <= Rt), every upward μ intersects;
 // in that case, set mu1 = 1.
+//void GetMuWindow(float r, float RbVis, float Rt, out float mu0, out float mu1)
+//{
+//    float muG = MuHorizon(r, RbVis);
+//    float muT = MuHorizon(r, Rt); //(r <= Rt) ? 1.0f : 
+//    mu0 = muG + MU_EPS; // lift off horizon
+//    mu1 = max(mu0 + 1e-5f, muT); // keep span > 0
+//}
 void GetMuWindow(float r, float RbVis, float Rt, out float mu0, out float mu1)
 {
     float muG = MuHorizon(r, RbVis);
-    float muT = MuHorizon(r, Rt); //(r <= Rt) ? 1.0f : 
-    mu0 = muG + MU_EPS; // lift off horizon
-    mu1 = max(mu0 + 1e-5f, muT); // keep span > 0
+    mu0 = muG + MU_EPS;
+
+    // Critical bit: inside => mu1 = 1, outside => mu1 = MuHorizon(r, Rt)
+    mu1 = (r <= Rt) ? 1.0f : MuHorizon(r, Rt);
+
+    // keep span > 0
+    mu1 = max(mu0 + 1e-5f, mu1);
 }
 
 // Map μ → v in [0,1] using this window (clamped)
@@ -406,28 +419,38 @@ float3 SampleTransmittance_EyeToSun(float3 camRel, float3 vDir, float3 wSun, flo
     return TLUT_SegmentTransmittance(camRel, wSun, RbPhys, Rt);
 }
 
-// Impact parameter for a ray from radius r with view cosine mu
-float ImpactParameter(float r, float mu)
+float2 OctEncodeHemi(float3 n)
 {
-    return r * sqrt(saturate(1.0f - mu * mu));
+    n = normalize(n);
+    n.z = max(n.z, 0.0);
+    n /= (abs(n.x) + abs(n.y) + n.z + 1e-8);
+    return n.xy * 0.5 + 0.5;
+}
+float3 OctDecodeHemi(float2 uv)
+{
+    float2 f = uv * 2.0 - 1.0;
+    float3 n = float3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
+    if (n.z < 0.0)
+    { // unfold fold onto the rim
+        float2 s = (f >= 0.0) ? 1.0.xx : -1.0.xx;
+        n.x = (1.0 - abs(n.y)) * s.x;
+        n.y = (1.0 - abs(n.x)) * s.y;
+        n.z = 0.0;
+    }
+    return normalize(n);
 }
 
-// v in [0,1]  <->  p in [RbPhys, Rt]  (GROUND ↔ TOA)
-float VFromP(float p, float RbPhys, float Rt)
+// Fold UV back into the octa diamond (hemi, z>=0)
+float2 OctFoldHemiUV(float2 uv) // uv in [0,1]^2
 {
-    float t = (p - RbPhys) / max(Rt - RbPhys, 1.0e-6f);
-    return saturate(t);
-}
-float PFromV(float v, float RbPhys, float Rt)
-{
-    return lerp(RbPhys, Rt, saturate(v));
-}
-
-// Reader: μ -> v using rEval and **RbPhys**
-float VFromMu_AirArc(float mu, float rEval, float RbPhys, float Rt)
-{
-    float p = ImpactParameter(rEval, mu);
-    return VFromP(p, RbPhys, Rt);
+    float2 f = uv * 2.0 - 1.0; // [-1,1]
+    float2 a = abs(f);
+    if (a.x + a.y > 1.0)
+    {
+        // reflect across the diagonal
+        f = (1.0 - float2(a.y, a.x)) * sign(f);
+    }
+    return f * 0.5 + 0.5; // back to [0,1]
 }
 
 // ===== PS ===================================================================
@@ -489,37 +512,51 @@ PSOut main(PSIn i)
         float3 east0 = normalize(BasisTanEast);
         float3 north0 = normalize(BasisTanNorth);
 
+        // Build local basis (as you already do)
         float3 up, east, north;
         BuildSkyBasisAnchored(camWS, PlanetCenterWS, east0, north0, spinUp, up, east, north);
-        
+
+
+        // Local components & physical mu
         float xE = dot(wView, east);
         float xN = dot(wView, north);
         float mu = dot(wView, up);
-       
-        // same stable window as writer (from rWin)
-        float mu0_ref, mu1_ref;
-        GetMuWindow(rWin, RbVis, Rt, mu0_ref, mu1_ref); // mu1_ref==1.0, constant
-        float S_ref = max(mu1_ref - mu0_ref, 1e-6f);
-        
-        float mu0_cam = MuHorizon(rCam, RbVis);
-        float mu0_writer = mu0_cam + MU_EPS;
-        float s = saturate((mu - mu0_writer) / S_ref);
-        
-        // 1) inverse focus (k must match writer)
-        const float k = 0.94f;
-        float vFocusedInv = pow(s, 1.0f / k);
-        
-        const float kRows = 4.5f;
-        float vmin = kRows / float(Hsv);
-        float denom = max(1.0f - vmin, 1e-6f);
-        float vRaw = (vFocusedInv - vmin) / denom;
 
-        // inverse focus to get row
-        float uSky = frac((atan2(xN, xE) + PI) / (2.0f * PI));
-        float vSky = 1.0f - saturate(vRaw);
+        // Same μ window as writer (with the corrected GetMuWindow):
+        float mu0, mu1;
+        GetMuWindow(rCam, RbVis, Rt, mu0, mu1);
+        float S = max(mu1 - mu0, 1e-6);
 
-        // sample with aniso
-        float3 sky = SkyViewLUT.Sample(SkyAniso, float2(uSky, vSky)).rgb;
+        // Early reject: if mu < mu0 the ground occludes (you already do a ground ray test;
+        // this is a cheap extra guard that also helps at grazing angles).
+        if (mu <= mu0)
+        {
+            // fully occluded by ground
+            output.color = 0;
+            output.disc = 0;
+            output.halo = 0;
+            return output;
+        }
+
+        // Warped cosine used by the LUT
+        float mu_p = saturate((mu - mu0) / S);
+
+        // Azimuth in local tangent frame
+        float phi = atan2(xN, xE);
+
+        // Recreate the *hemi-oct* sample direction used by the LUT writer:
+        float s = sqrt(saturate(1.0 - mu_p * mu_p));
+        float3 nPrime = float3(s * cos(phi), s * sin(phi), mu_p);
+
+        // Encode exactly like the writer:
+        float2 uvSky = OctEncodeHemi(nPrime);
+
+        // Optional: fold + clamp away from borders to reduce seams
+        uvSky = OctFoldHemiUV(uvSky);
+        uvSky = clamp(uvSky, 1.0e-3.xx, 1.0 - 1.0e-3.xx);
+
+        // Sample
+        float3 sky = SkyViewLUT.Sample(SkyAniso, uvSky).rgb;
         
         float3 sunColor = float3(0.0f, 0.0f, 0.0f);
         float discMask_out = 0.0f; // <- will go to SV_Target1

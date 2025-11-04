@@ -52,7 +52,9 @@ cbuffer Atmosphere : register(b5)
     float AtmosphereHeight; // Rt - Rg
     float RayScaleHeight;
     float MieScaleHeight;
+    float MSGain;
     float3 RayleighScattering;
+    float SGain;
     float3 MieScattering;
     float3 MieAbsorption;
     float3 GroundAlbedo;
@@ -164,7 +166,7 @@ float2 TransUV(float r, float mu, float RbPhys, float Rt)
 
 float3 T_to_TOA(float r, float mu, float Rb, float Rt)
 {
-    return TransmittanceLUT.SampleLevel(ClampPoint, TransUV(r, mu, Rb, Rt), 0).rgb;
+    return TransmittanceLUT.SampleLevel(ClampLinear, TransUV(r, mu, Rb, Rt), 0).rgb;
 }
 
 // MultiScatter LUT sampling: x=theta_s/π, y = 1 - linear altitude (top=TOA)
@@ -205,51 +207,49 @@ struct Hit
     float t0, t1;
 };
 
+
 Hit IntersectSphereGrazingSafe(float3 ro, float3 rd, float R)
 {
-    Hit H = (Hit) 0;
-
+    Hit H;
+    H.ok = false;
+    H.t0 = H.t1 = 0.0f;
     float Rabs = abs(R);
     if (Rabs <= 0.0f)
         return H;
 
-    // Normalize direction for stable quadratic
+    // Normalize direction for stable geometry form
     float a = dot(rd, rd);
     if (a <= 0.0f)
         return H;
     float invDirLen = rsqrt(max(a, 1e-30));
     float3 nrd = rd * invDirLen; // |nrd| = 1
 
-    // Scale origin into unit-sphere space: |roU + t*nrd|^2 = 1
-    float3 roU = ro / Rabs;
+    // Use cross-product form in unit-sphere space
+    float3 roU = ro / Rabs; // O(1)
+    float d2 = dot(cross(nrd, roU), cross(nrd, roU)); // <= ~1 when intersecting
 
-    // Solve t^2 + 2 b t + c = 0, where:
-    float b = dot(roU, nrd);
-    float c = dot(roU, roU) - 1.0f;
-
-    // Discriminant (with tiny negative allowed for grazing)
-    float disc = b * b - c;
-    const float grazeTol = 5e-5; // allow slight negatives from FP error
-    if (disc < -grazeTol)
+    // Robust tangency handling: allow a tiny overshoot
+    // NOTE: keep this the *same value everywhere you use this function*
+    const float grazeTol = 5e-5; // ~1e-6..2e-4 are reasonable
+    if (d2 > 1.0f + grazeTol)
         return H;
-    disc = max(disc, 0.0f);
 
-    float s = sqrt(disc);
-    float t0u = -b - s; // unit-sphere param
-    float t1u = -b + s;
+    float tca = -dot(roU, nrd); // along-ray to closest approach (radius units)
+    float thc = sqrt(max(1.0f - d2, 0.0f)); // 0 at tangency
 
-    if (t0u > t1u)
+    // Convert back to world meters and original rd scale
+    float t0 = (tca - thc) * Rabs * invDirLen;
+    float t1 = (tca + thc) * Rabs * invDirLen;
+
+    if (t0 > t1)
     {
-        float tmp = t0u;
-        t0u = t1u;
-        t1u = tmp;
+        float tmp = t0;
+        t0 = t1;
+        t1 = tmp;
     }
-
-    // Convert back to meters and original rd scale
     H.ok = true;
-    H.t0 = t0u * Rabs * invDirLen;
-    H.t1 = t1u * Rabs * invDirLen;
-
+    H.t0 = t0;
+    H.t1 = t1;
     return H;
 }
 
@@ -273,43 +273,6 @@ float3 ViewDirWSFromUV(float2 uv)
     // Rotate into world space (remove translation)
     float3 dirWS = normalize(mul(dirVS, (float3x3) inverseViewMatrix));
     return dirWS;
-}
-
-// Average Rayleigh phase over a small symmetric box in μ of half-width dmu.
-// ⟨μ²⟩ = μ0² + dmu²/3  → exact for (1 + μ²) under a box filter in μ.
-float PhaseRayleigh_Band(float mu0, float dmu)
-{
-    dmu = saturate(dmu); // keep sane
-    float mu2_avg = mu0 * mu0 + (dmu * dmu) * (1.0f / 3.0f);
-    return (3.0f * INV4PI) * 0.25f * (1.0f + mu2_avg);
-}
-
-// Safer HG (avoid spike near μ→1 for large g)
-float PhaseMieHG_Safe(float mu, float g)
-{
-    g = clamp(g, -0.999f, 0.999f);
-    mu = clamp(mu, -0.999f, 0.999f);
-    float g2 = g * g;
-    float d = 1.0f + g2 - 2.0f * g * mu;
-    d = max(d, 1e-2f);
-    return INV4PI * (1.0f - g2) / (d * sqrt(d));
-}
-
-// Box-filter HG by sampling at μ±dmu (cheap and stable)
-float PhaseMieHG_Band(float mu0, float g, float dmu)
-{
-    dmu = saturate(dmu);
-    float muA = clamp(mu0 - dmu, -0.999f, 0.999f);
-    float muB = clamp(mu0 + dmu, -0.999f, 0.999f);
-    return 0.5f * (PhaseMieHG_Safe(muA, g) + PhaseMieHG_Safe(muB, g));
-}
-
-// Spatial interleaved gradient noise in [0,1)
-float IGN(uint2 p)
-{
-    // simple, stable hash – no uniforms needed
-    float n = dot(float2(p), float2(12.9898, 78.233));
-    return frac(sin(n) * 43758.5453);
 }
 
 float PhaseMieHG_CS(float mu, float g) // Cornette–Shanks
@@ -441,19 +404,13 @@ void main(uint3 tid : SV_DispatchThreadID)
         float dM = DensityMie(hMid);
         float dO = DensityOzone(hMid);
 
+        float3 sigR_s = RayleighScattering * dR;
+        float3 sigM_s = MieScattering * dM;
+        float3 sigM_a = MieAbsorption * dM;
+        
         float3 sigmaExt = RayleighScattering * dR + (MieScattering + MieAbsorption) * dM + O3_COEFF * dO;
-
-        float3 sigR_s = RayleighScattering * dR; // Rayleigh σ_s
-        float3 sigM_s = MieScattering * dM; // Mie σ_s
-        float3 sigM_a = MieAbsorption * dM; // Mie σ_a
         
-        float3 sig_t = sigM_s + sigM_a;
-
-        float3 sig_t_p = (1.0.xxx - f) * sig_t;
-        float3 w0 = sigM_s / max(sig_t, 1e-6.xxx);
-        float3 w0_p = ((1.0.xxx - f) * w0) / max(1.0.xxx - f * w0, 1e-6.xxx);
-        
-        float3 sigM_s_single = w0_p * sig_t_p;
+        float3 sigM_s_single = sigM_s * (1.0.xxx - f);
         
         float3 upS = (rMid > 0.0f) ? (p / rMid) : BasisSpinUp;
         float muS = dot(upS, wSun);
@@ -461,26 +418,23 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 Tsun = T_to_TOA(rMid, muS, RbPhys, Rt) * Vsun;
 
         float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
-        float PR = PhaseRayleigh(muPhase);
+        float PR = SGain * PhaseRayleigh(muPhase);
 
         // Disc-averaged Cornette–Shanks per-channel
-        float3 PMrgb = float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));
+        float3 PMrgb = SGain * float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));
 
         // --- SINGLE scattering (Rayleigh + Mie) ---
         float3 S1 = (sigR_s * PR + sigM_s_single * PMrgb) * Tsun * Esun;
 
         // --- MULTI scattering stays reduced by (1 - g) per-channel ---
-        float3 w0R = 1.0.xxx;
         float3 w0M = sigM_s / max(sigM_s + MieAbsorption * dM, 1e-6.xxx);
         
-        float3 oneMinusG = max(1e-3.xxx, 1.0.xxx - MieAnisotropy);
-        float3 sigS_ms = sigR_s + sigM_s * w0M * oneMinusG; // σ'_s for MS
+        float3 sigS_ms = sigR_s + sigM_s * w0M; // σ'_s for MS
 
         float4 Psi4 = SamplePsiMS4(rMid, muS, RbPhys, Rt);
-        float gBar = saturate(Psi4.a);
-        float pMS = MSPhase(muPhase, gBar);
+        float3 PsiMS_rgb = MSGain * Psi4.rgb;
 
-        float3 S_MS = sigS_ms * pMS * Psi4.rgb * Esun;
+        float3 S_MS = sigS_ms * PsiMS_rgb * Esun;
 
         // Midpoint integral over this slice
         float3 dTau = sigmaExt * len;

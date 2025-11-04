@@ -65,7 +65,9 @@ cbuffer Atmosphere : register(b5)
     float AtmosphereHeight; // Rt - Rg
     float RayScaleHeight;
     float MieScaleHeight;
+    float MSGain;
     float3 RayleighScattering;
+    float SGain;
     float3 MieScattering;
     float3 MieAbsorption;
     float3 GroundAlbedo;
@@ -75,7 +77,6 @@ cbuffer Atmosphere : register(b5)
     uint StepsMultiScattering;
     float APFarDynamic;
 };
-
 cbuffer SunDiscSettings : register(b6)
 {
     float SunDiscRadius;

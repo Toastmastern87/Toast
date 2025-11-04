@@ -4,7 +4,7 @@
 // --- toggles ---------------------------------------------------------------
 // *** NEW: upper bound for f_ms to keep F_ms numerically tame ***
 #ifndef MS_FMS_MAX
-#define MS_FMS_MAX           0.65f 
+#define MS_FMS_MAX           0.8f 
 #endif
 #ifndef MS_MIN_STEPS_DIR
 #define MS_MIN_STEPS_DIR     6
@@ -30,7 +30,9 @@ cbuffer Atmosphere : register(b5)
     float AtmosphereHeight; // Rt - Rg
     float RayScaleHeight;
     float MieScaleHeight;
+    float MSGain;
     float3 RayleighScattering;
+    float SGain;
     float3 MieScattering;
     float3 MieAbsorption;
     float3 GroundAlbedo;
@@ -40,7 +42,6 @@ cbuffer Atmosphere : register(b5)
     uint StepsMultiScattering;
     float APFarDynamic;
 };
-
 cbuffer SunDiscSettings : register(b6)
 {
     float SunDiscRadius; // rad  (e.g. radians(0.2666))
@@ -263,7 +264,7 @@ void main(uint3 dtid : SV_DispatchThreadID)
             
             float3 w0M_step = sigM_s_step / max(sigM_s_step + sigM_a_step, 1e-6.xxx);
             
-            float3 sigma_s_step = sigR_s_step + sigM_s_step * w0M_step * (1.0.xxx - MieAnisotropy);
+            float3 sigma_s_step = sigR_s_step + sigM_s_step * w0M_step;
 
             L2_vol += sigma_s_step * Tseg * dt;
         }

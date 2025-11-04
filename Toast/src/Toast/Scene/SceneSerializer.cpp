@@ -707,6 +707,8 @@ namespace Toast {
 		out << YAML::Key << "MieAnisotropy" << YAML::Value << scenePlanet->mAtmosphere.MieAnisotropy;
 		out << YAML::Key << "OzoneStrength" << YAML::Value << scenePlanet->mAtmosphere.OzoneStrength;
 		out << YAML::Key << "GroundAlbedo" << YAML::Value << scenePlanet->mAtmosphere.GroundAlbedo;
+		out << YAML::Key << "MSGain" << YAML::Value << scenePlanet->mAtmosphere.MSGain;
+		out << YAML::Key << "SGain" << YAML::Value << scenePlanet->mAtmosphere.SGain;
 		out << YAML::EndMap;
 
 		Scene::Environment& environment = mScene->GetEnvirontment();
@@ -921,6 +923,8 @@ namespace Toast {
 		scenePlanet->mAtmosphere.MieAnisotropy = planet["MieAnisotropy"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mAtmosphere.OzoneStrength = planet["OzoneStrength"].as<float>();
 		scenePlanet->mAtmosphere.GroundAlbedo = planet["GroundAlbedo"].as<DirectX::XMFLOAT3>();
+		scenePlanet->mAtmosphere.MSGain = planet["MSGain"].as<float>();
+		scenePlanet->mAtmosphere.SGain = planet["SGain"].as<float>();
 
 		Scene::Environment& environment = mScene->GetEnvirontment();
 

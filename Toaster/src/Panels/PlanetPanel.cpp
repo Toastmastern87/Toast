@@ -677,6 +677,32 @@ namespace Toast {
 
 					ImGui::ColorEdit3("##GroundAlbedo", &mContext->mAtmosphere.GroundAlbedo.x);
 
+					// -------- MS Gain ----------
+					ImGui::TableNextRow();
+
+					ImGui::TableSetColumnIndex(0);
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Multi Scattering Gain");
+
+					ImGui::TableSetColumnIndex(1);
+
+					ImGui::SetNextItemWidth(fullW);
+
+					ImGui::DragFloat("##multiscatteringgain", &mContext->mAtmosphere.MSGain, 0.1f, 0.0f, FLT_MAX, "%.1f");
+
+					// -------- SS Gain ----------
+					ImGui::TableNextRow();
+
+					ImGui::TableSetColumnIndex(0);
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Single Scattering Gain");
+
+					ImGui::TableSetColumnIndex(1);
+
+					ImGui::SetNextItemWidth(fullW);
+
+					ImGui::DragFloat("##singelscatteringgain", &mContext->mAtmosphere.SGain, 0.1f, 0.0f, FLT_MAX, "%.1f");
+
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(1);
 

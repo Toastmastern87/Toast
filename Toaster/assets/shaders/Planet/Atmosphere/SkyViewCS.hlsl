@@ -45,7 +45,9 @@ cbuffer Atmosphere : register(b5)
     float AtmosphereHeight; // Rt - Rg
     float RayScaleHeight;
     float MieScaleHeight;
+    float MSGain;
     float3 RayleighScattering;
+    float SGain;
     float3 MieScattering;
     float3 MieAbsorption;
     float3 GroundAlbedo;
@@ -99,6 +101,9 @@ static const float TWO_PI = 6.283185307179586f;
 static const float INV4PI = 0.25f / PI;
 static const float3 LUMA = float3(0.2126, 0.7152, 0.0722);
 static const float MU_EPS = 8e-4;
+
+// Ozone (Bruneton)
+static const float3 O3_COEFF = float3(0.650e-6, 1.881e-6, 0.085e-6);
 
 struct Hit
 {
@@ -167,12 +172,24 @@ float MuHorizon(float r, float R)
 // mu0 = lower bound (planet/ground horizon), mu1 = upper bound (TOA edge).
 // If camera is inside the atmosphere (r <= Rt), every upward μ intersects;
 // in that case, set mu1 = 1.
+//void GetMuWindow(float r, float RbVis, float Rt, out float mu0, out float mu1)
+//{
+//    float muG = MuHorizon(r, RbVis);
+//    float muT = MuHorizon(r, Rt); //(r <= Rt) ? 1.0f : 
+//    mu0 = muG + MU_EPS; // lift off horizon
+//    mu1 = max(mu0 + 1e-5f, muT); // keep span > 0
+//}
+
 void GetMuWindow(float r, float RbVis, float Rt, out float mu0, out float mu1)
 {
     float muG = MuHorizon(r, RbVis);
-    float muT = MuHorizon(r, Rt); //(r <= Rt) ? 1.0f : 
-    mu0 = muG + MU_EPS; // lift off horizon
-    mu1 = max(mu0 + 1e-5f, muT); // keep span > 0
+    mu0 = muG + MU_EPS;
+
+    // Critical bit: inside => mu1 = 1, outside => mu1 = MuHorizon(r, Rt)
+    mu1 = (r <= Rt) ? 1.0f : MuHorizon(r, Rt);
+
+    // keep span > 0
+    mu1 = max(mu0 + 1e-5f, mu1);
 }
 
 // Optional focus near the horizon (gives extra rows right where it matters).
@@ -189,6 +206,14 @@ float DensityRayleigh(float h)
 float DensityMie(float h)
 {
     return exp(-max(h, 0.0f) / max(MieScaleHeight, 1e-3f));
+}
+float DensityOzone(float hMeters)
+{
+    // Triangle 10–40 km peaking at 25 km.
+    // Normalize so that the column integral equals OzoneStrength (area = 15000 m).
+    float km = hMeters * 1e-3f;
+    float tri = saturate(1.0f - abs((km - 25.0f) / 15.0f));
+    return tri * (OzoneStrength / 15000.0f);
 }
 
 float PhaseRayleigh(float mu)
@@ -230,7 +255,11 @@ float4 SamplePsiMS4(float r, float muS, float Rb, float Rt)
 {
     float thetaS = acos(clamp(muS, -1.0f, 1.0f));
     float u = thetaS / PI;
-    float v = 1.0f - saturate((r - Rb) / max(Rt - Rb, 1e-6f)); // MS_FLIP_Y=1
+    float v = 1.0f - saturate((r - Rb) / max(Rt - Rb, 1e-6f));
+
+    // NEW: keep away from the very first/last row to prevent seams
+    v = clamp(v, 1.0e-3f, 1.0f - 1.0e-3f);
+
     return MultiScatterLUT.SampleLevel(ClampLinear, float2(u, v), 0);
 }
 float3 SamplePsiMS(float r, float muS, float Rg, float Rt)
@@ -315,9 +344,25 @@ float PhaseMie_DiscAvg(float mu, float g)
     return PhaseMieHG_CS(muEff, g);
 }
 
-bool HitsGround(float r, float mu, float Rb)
+float2 OctEncodeHemi(float3 n)
 {
-    return (mu < 0.0f) && (r * r * (mu * mu - 1.0f) + Rb * Rb >= 0.0f);
+    n = normalize(n);
+    n.z = max(n.z, 0.0);
+    n /= (abs(n.x) + abs(n.y) + n.z + 1e-8);
+    return n.xy * 0.5 + 0.5;
+}
+float3 OctDecodeHemi(float2 uv)
+{
+    float2 f = uv * 2.0 - 1.0;
+    float3 n = float3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
+    if (n.z < 0.0)
+    { // unfold fold onto the rim
+        float2 s = (f >= 0.0) ? 1.0.xx : -1.0.xx;
+        n.x = (1.0 - abs(n.y)) * s.x;
+        n.y = (1.0 - abs(n.x)) * s.y;
+        n.z = 0.0;
+    }
+    return normalize(n);
 }
 
 [numthreads(8, 8, 1)]
@@ -346,28 +391,31 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     float rWin = rCam;
     float3 camRelWin = camRel;
-    float mu0, mu1;
+    
+    // Pixel in the LUT
+    float2 uvSky = (float2(tid.xy) + 0.5f) / float2(W, H);
+
+    // Stable per-frame μ window
+    float mu0, mu1; // mu1==1
     GetMuWindow(rWin, RbVis, Rt, mu0, mu1);
 
-    float v = 1.0f - (tid.y + 0.5f) / float(H);
-    const float kRows = 4.5f;
-    float vmin = kRows / float(H);
-    v = lerp(vmin, 1.0f, v);
-    float t = FocusT(v, 0.94f);
-    float mu = lerp(mu0, mu1, t);
-
-    float phi = lerp(-PI, PI, saturate(u));
-
-    float3 spinUp = normalize(BasisSpinUp);
-    float3 east0 = normalize(BasisTanEast);
-    float3 north0 = normalize(BasisTanNorth);
-
+    // local basis (unchanged)
     float3 up, east, north;
-    BuildSkyBasisAnchored(camWS, PlanetCenterWS, east0, north0, spinUp, up, east, north);
-    float sphi = sin(phi), cphi = cos(phi);
+    BuildSkyBasisAnchored(camWS, PlanetCenterWS, normalize(BasisTanEast), normalize(BasisTanNorth), normalize(BasisSpinUp), up, east, north);
+
+    // 1) decode hemi-oct to temporary local vector m (z' in [0,1])
+    float3 m = OctDecodeHemi(uvSky);
+
+    // 2) recover azimuth and the *warped* cosine
+    float phi = atan2(m.y, m.x); // [-π, π]
+    float mu_p = saturate(m.z); // z'  in [0,1]
+
+    // 3) UN-warp μ: map z' back to physical cosine in [mu0, 1]
+    float mu = lerp(mu0, mu1, mu_p);
+
+    // 4) rebuild the true local direction from (mu, phi)
     float sinTh = sqrt(saturate(1.0f - mu * mu));
-    float3 wView = normalize(mu * up + sinTh * (cphi * east + sphi * north));
-    float muV = dot(wView, up);
+    float3 wView = normalize(mu * up + sinTh * (cos(phi) * east + sin(phi) * north));
 
     Hit hatm = IntersectSphereGrazingSafe(camRelWin, wView, Rt);
     if (!hatm.ok)
@@ -384,7 +432,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         tExit = min(tExit, hg.t0);
 
     float L = max(tExit - tEnter, 1e-6f);
-
+    
     float3 Ls = 0.0.xxx, Lms = 0.0.xxx;
 
     // Keep rEntry strictly inside [RbVis, Rt] for stable TLUT lookups (still used for Tsun)
@@ -418,13 +466,14 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         float dR = DensityRayleigh(h);
         float dM = DensityMie(h);
+        float dO = DensityOzone(h);
 
         float3 sigR_s = RayleighScattering * dR;
         float3 sigM_s = MieScattering * dM;
         float3 sigM_a = MieAbsorption * dM;
 
         // Total extinction at this height (Rayleigh scatter + Mie scatter + Mie absorption)
-        float3 sigmaExt = sigR_s + sigM_s + sigM_a;
+        float3 sigmaExt = sigR_s + sigM_s + sigM_a + O3_COEFF * dO;
 
         // Transmittance from camera to segment center (use symmetric half-step)
         float3 Tmid = Tacc * exp(-sigmaExt * (0.5.xxx * dt));
@@ -434,11 +483,11 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         float3 upS = (rp > 0.0f) ? (pRel / rp) : up;
         float muS = dot(upS, wSun);
-        bool occluded = HitsGround(rp, muS, RbHit);
-        float3 Tsun = occluded ? 0.0.xxx : T_to_TOA(rp, muS, RbPhys, Rt);
+        float Vsun = SunVisibilityAtR(rp, muS, RbVis); // smooth visibility
+        float3 Tsun = T_to_TOA(rp, muS, RbPhys, Rt) * Vsun; // keep using TLUT, just gate it smoothly
 
-        float PR = PhaseRayleigh(muPhase);
-        float3 PMrgb = float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));
+        float PR = SGain * PhaseRayleigh(muPhase);
+        float3 PMrgb = SGain * float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));
 
         // Remove delta peak for single scattering
         float3 sigM_s_single = sigM_s * (1.0.xxx - f);
@@ -449,16 +498,12 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         // multiple scattering
         float4 Psi4 = SamplePsiMS4(rp, muS, RbPhys, Rt);
-        float3 PsiMS_rgb = Psi4.rgb;
-        float gEff = saturate(Psi4.a);
-        float pMS = MSPhase(muPhase, gEff);
+        float3 PsiMS_rgb = MSGain * Psi4.rgb;
 
-        float3 w0R = 1.0.xxx;
-        float3 w0M = sigM_s / max(sigM_s + sigM_a, 1e-6.xxx);
-        float3 oneMinusG = max(1e-3.xxx, 1.0.xxx - g);
-        float3 sigS_ms = sigR_s * w0R + sigM_s * w0M * oneMinusG;
+        float3 w0M = sigM_s / max(sigM_s + sigM_a, 1e-6.xxx); // single-scattering albedo of Mie
+        float3 sigS_ms = sigR_s + sigM_s * w0M;
 
-        Lms += Tmid * (sigS_ms * PsiMS_rgb) * pMS * dt;
+        Lms += Tmid * (sigS_ms * PsiMS_rgb) * dt;
 
         // Advance cumulative transmittance to next segment
         Tacc *= exp(-sigmaExt * dt);
