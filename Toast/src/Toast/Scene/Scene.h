@@ -113,6 +113,7 @@ namespace Toast {
 			bool Shadows = true;
 			bool SSAO = false;
 			bool SSAODebugging = false;
+			float DirectionalLightningGain = 1.0f;
 			float SSAORadius = 0.5f;
 			float SSAObias = 0.025f;
 			BloomParams Bloom;

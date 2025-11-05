@@ -84,7 +84,6 @@ void main(uint3 id : SV_DispatchThreadID)
         return;
 
     const float R_BIAS = max(1.0f, 2e-6f * PlanetRadius);
-    const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
     const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
     const float RbVis = RbPhys + R_BIAS;

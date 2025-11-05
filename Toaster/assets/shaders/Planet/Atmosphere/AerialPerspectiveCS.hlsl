@@ -293,6 +293,13 @@ float PhaseMie_DiscAvg(float mu, float g)
     return PhaseMieHG_CS(muEff, g);
 }
 
+// μ at horizon for a sphere of radius R as seen from r
+float MuHorizon(float r, float R)
+{
+    float s = saturate(R / r);
+    return -sqrt(max(1.0f - s * s, 0.0f));
+}
+
 static const float2 OFFS[4] =
 {
     float2(0.25, 0.25), float2(0.75, 0.25),
@@ -417,24 +424,86 @@ void main(uint3 tid : SV_DispatchThreadID)
         float Vsun = SunVisibilityAtR(rMid, muS, RbVis);
         float3 Tsun = T_to_TOA(rMid, muS, RbPhys, Rt) * Vsun;
 
-        float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
-        float PR = SGain * PhaseRayleigh(muPhase);
+        //float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
+        //float PR = SGain * PhaseRayleigh(muPhase);
 
-        // Disc-averaged Cornette–Shanks per-channel
-        float3 PMrgb = SGain * float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));
+        //// Disc-averaged Cornette–Shanks per-channel
+        //float3 PMrgb = SGain * float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));
 
-        // --- SINGLE scattering (Rayleigh + Mie) ---
-        float3 S1 = (sigR_s * PR + sigM_s_single * PMrgb) * Tsun * Esun;
+        //// --- SINGLE scattering (Rayleigh + Mie) ---
+        //float3 S1 = (sigR_s * PR + sigM_s_single * PMrgb) * Tsun * Esun;
 
-        // --- MULTI scattering stays reduced by (1 - g) per-channel ---
-        float3 w0M = sigM_s / max(sigM_s + MieAbsorption * dM, 1e-6.xxx);
+        //// --- MULTI scattering stays reduced by (1 - g) per-channel ---
+        //float3 w0M = sigM_s / max(sigM_s + MieAbsorption * dM, 1e-6.xxx);
         
-        float3 sigS_ms = sigR_s + sigM_s * w0M; // σ'_s for MS
+        //float3 sigS_ms = sigR_s + sigM_s * w0M; // σ'_s for MS
 
+        //float4 Psi4 = SamplePsiMS4(rMid, muS, RbPhys, Rt);
+        //float3 PsiMS_rgb = MSGain * Psi4.rgb;
+
+        //float3 S_MS = sigS_ms * PsiMS_rgb * Esun;
+        
+        
+        // Phase & disc-averaged Mie (per-channel), same as SkyView
+        float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
+        float PR = PhaseRayleigh(muPhase);
+        float3 PMrgb = float3(
+    PhaseMie_DiscAvg(muPhase, g_p.r),
+    PhaseMie_DiscAvg(muPhase, g_p.g),
+    PhaseMie_DiscAvg(muPhase, g_p.b)
+);
+
+// --- Horizon-aware tint/gain (same as SkyView) ------------------------------
+// Physical horizon at current altitude
+        float cH_phys = MuHorizon(rMid, RbPhys);
+
+// Sun/view elevations in [0..1] above *physical* horizon
+        float elevS = saturate((muS - cH_phys) / (1.0 - cH_phys));
+        float muV = clamp(dot(wView, upS), -0.9995f, 0.9995f);
+        float elevV = saturate((muV - cH_phys) / (1.0 - cH_phys));
+
+// Low-sun ramp and above-rim viewing band (peaks ~6–25° up)
+        float fLowSun = 1.0 - smoothstep(0.35, 0.75, elevS);
+        float fBandUp = (1.0 - smoothstep(0.10, 0.40, elevV));
+        float fSunward = smoothstep(0.20, 0.80, muPhase);
+        float fBlue = saturate(fLowSun * fBandUp * fSunward);
+
+// Warm tint & mild gain toward the horizon
+        float3 Tint = lerp(1.0.xxx, float3(0.78, 0.88, 1.35), fBlue);
+        float LsGain = lerp(1.0, SGain, fBlue);
+
+// --- SINGLE scattering (Rayleigh + Mie without delta-peak) ------------------
+        float3 S1 = ((sigR_s * PR) + (sigM_s_single * PMrgb)) * (Tsun * Esun);
+        S1 *= Tint * LsGain;
+
+// --- MULTI scattering (energy-preserving, mild anisotropy, altitude EQ) ----
+// “Albedo” for Mie part (used to reduce MS by absorption)
+        float3 w0M = sigM_s / max(sigM_s + MieAbsorption * dM, 1e-6.xxx);
+        float3 sigS_ms = sigR_s + sigM_s * w0M;
+
+// MS LUT (rgb = strength, a = effective ḡ)
         float4 Psi4 = SamplePsiMS4(rMid, muS, RbPhys, Rt);
-        float3 PsiMS_rgb = MSGain * Psi4.rgb;
+        float gBar = saturate(Psi4.a);
+
+// very low effective g for MS that relaxes with altitude
+        float alt01 = saturate((rMid - RbPhys) / max(Rt - RbPhys, 1e-6));
+        float gEff = min(gBar, lerp(0.35, 0.45, alt01));
+        float pHG_e1 = 4.0f * PI * MSPhase(muPhase, gEff); // avg = 1
+        float wAniso = 0.20; // 20% bias
+        float pMS_e1 = 1.0 + wAniso * (pHG_e1 - 1.0);
+
+// altitude equalizer (flattens vertical contrast)
+        float baseBoost = 1.0 + 0.18 * saturate(1.0 - (MSGain - 1.0) / 0.3);
+        float gainAlt = lerp(baseBoost, 1.0, alt01 * alt01);
+
+// directional + slight isotropic pull to avoid dark anti-sun
+        float3 PsiMS_dir = (MSGain * gainAlt) * Psi4.rgb * pMS_e1;
+        float3 PsiMS_iso = (MSGain * gainAlt) * SamplePsiMS4(rMid, 0.0, RbPhys, Rt).rgb;
+        const float MSEven = 0.30;
+        float3 PsiMS_rgb = lerp(PsiMS_dir, PsiMS_iso, MSEven);
 
         float3 S_MS = sigS_ms * PsiMS_rgb * Esun;
+        
 
         // Midpoint integral over this slice
         float3 dTau = sigmaExt * len;

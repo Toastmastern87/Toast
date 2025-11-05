@@ -476,7 +476,6 @@ PSOut main(PSIn i)
     float3 colorPreAtmos = SceneColor.Sample(ClampPoint, uv);
     float depth = SceneDepth.Sample(ClampPoint, uv); // hardware depth, reversed-Z (sky -> 0)
 
-    const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
     const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
     const float RbVis = RbPhys + max(1.0f, 2e-6f * PlanetRadius);
@@ -487,7 +486,7 @@ PSOut main(PSIn i)
     {        
         float3 camWS = cameraPosition.xyz - WorldOffsetWS;
         float3 camRel = camWS - PlanetCenterWS;
-        float rCam = max(PlanetRadius, length(camRel));
+        float rCam = max(RbPhys, length(camRel));
         float3 wView = ViewDirWS_fromUV(uv); // unit
         
         Hit h = IntersectSphereGrazingSafe(camRel, wView, RbHit);
@@ -496,8 +495,8 @@ PSOut main(PSIn i)
         {
             // fully occluded by ground: no sky, no sun, no halo
             output.color = float4(0.0f, 0.0f, 0.0f, 0.0f);
-            output.disc = float4(0.0f, 0.0f, 0.0f, 0.0f);
-            output.halo = float4(0.0f, 0.0f, 0.0f, 0.0f);
+            output.disc = 0.0f;
+            output.halo = 0.0f;
             return output;
         }
         
@@ -642,7 +641,7 @@ PSOut main(PSIn i)
             {
                 // tangent altitude of ray to sun
                 float dMin = length(cross(camRel, vDir)) / length(vDir); // closest approach
-                h_tan = dMin - PlanetRadius;
+                h_tan = dMin - RbPhys;
 
                 // ray ∩ outer sphere?
                 float bRt = dot(camRel, vDir);

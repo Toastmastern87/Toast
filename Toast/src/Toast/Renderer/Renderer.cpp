@@ -1719,6 +1719,7 @@ namespace Toast {
 		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.SunFadeStartDeg, 4, 36);
 		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.SunFadeEndDeg, 4, 40);
 		sRendererData->TonemappingCBuffer->Map(sRendererData->TonemappingBuffer);
+		sRendererData->TonemappingCBuffer->Bind();
 
 		ShaderLibrary::Get("assets/shaders/Post Process/ToneMapping.hlsl")->Bind();
 

@@ -411,30 +411,19 @@ PixelOutputType main(PixelInputType input)
     float3 V = normalize(-posWS.xyz);
     float3 VWorld = normalize(cameraPosition.xyz - posWS.xyz);
     float NdotV = max(dot(normalWorld, VWorld), 0.05f);
-    
-    const float Rg = PlanetRadius;
-    const float Rt = PlanetRadius + AtmosphereHeight;
-    const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
+
     float3 pRel = posWS.xyz - PlanetCenterWS;
       
     float r_true = length(pRel);
     float3 up = (r_true > 0.0f) ? (pRel / r_true) : BasisRadUp;
-
-    float3 Esun = radiance.rgb * SunIntensity; // radiance
     
     float3 wSun = normalize(-direction.xyz); // point -> sun
     float muS = dot(up, wSun);
-    
-    float4 Psi4 = SamplePsiMS4(r_true, muS, RbPhys, Rt);
-    float3 msIrr = Psi4.rgb * Esun;
-    
+
     // Fresnel reflectance at normal incidence (for metals use albedo color).
     float3 F0 = lerp(Fdielectric, albedo, metalness);
     float3 Fv = fresnelSchlick(F0, NdotV);
     float3 kd = (1.0f - Fv) * (1.0f - metalness);
-    
-    float3 Lo_sky = kd * (albedo / PI) * msIrr;
-    Lo_sky *= ao;
     
     // Recalculate sun direction to view space
     float3 directionVS = normalize(mul(direction.xyz, (float3x3)viewMatrix));
@@ -510,7 +499,7 @@ PixelOutputType main(PixelInputType input)
     float3 Lr = reflect(-VWorld, normalWorld);
     float3 iblContribution = IBL(F0, Lr, normalWorld, albedo, roughness, metalness, NdotV);
 
-    float3 finalShading = (lightContribution + iblContribution + Lo_sky);
+    float3 finalShading = float4((NightAmbient + lightContribution + iblContribution) * ao, 1.0f);
 
     // Output the final color
     output.color = float4(finalShading, 1.0f);

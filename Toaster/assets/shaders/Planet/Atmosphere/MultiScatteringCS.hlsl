@@ -192,7 +192,6 @@ void main(uint3 dtid : SV_DispatchThreadID)
     uv.y = 1.0f - uv.y;
 
     const float R_BIAS = max(1.0f, 2e-6f * PlanetRadius);
-    const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
     const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
     const float RbVis = RbPhys + R_BIAS;
@@ -242,31 +241,57 @@ void main(uint3 dtid : SV_DispatchThreadID)
 
         if (isGround)
             L2_gnd += (GroundAlbedo / PI) * T_out_rgb;
-
-        // Per-ray stepping – better than using dMax for all directions
-        uint steps = max(MS_MIN_STEPS_DIR, (uint) ceil(d / 2000.0f)); // ~2 km
-        float dt = d / float(steps);
-        float t = 0.5f * dt;
         
-        [loop]
-        for (uint s = 0; s < steps; ++s, t += dt)
-        {
-            float3 Tseg = T_along_ray(r, mu, t, RbVis, RbPhys, Rt);
+        uint stepsMin = MS_MIN_STEPS_DIR; // keep your floor (e.g. 6)
+        uint stepsGeo = (uint) ceil(d / 2000.0f); // your geometric heuristic
+        uint stepsMax = max(stepsMin, stepsGeo);
 
-            float rd = sqrt(t * t + 2.0f * r * mu * t + r * r);
+        float t = 0.0f;
+        for (uint s = 0; s < stepsMax && t < d - 1e-6f; ++s)
+        {
+            // center of segment estimated after sizing dt
+            // compute local extinction to size step by Δτ
+            float rd_c = sqrt(t * t + 2.0f * r * mu * t + r * r);
+            float hh_c = max(0.0f, rd_c - RbPhys);
+
+            float dR_c = DensityRayleigh(hh_c);
+            float dM_c = DensityMie(hh_c);
+            float3 sigR_s_c = RayleighScattering * dR_c;
+            float3 sigM_s_c = MieScattering * dM_c;
+            float3 sigM_a_c = MieAbsorption * dM_c;
+            float3 sigma_t_c = sigR_s_c + sigM_s_c + sigM_a_c;
+
+            // luma-weighted magnitude to get a scalar σ
+            float sigmaY = max(dot(sigma_t_c, LUMA), 1e-6);
+
+            // target optical-depth per step
+            const float tauStep = 0.03; // try 0.02..0.04
+            float dt_tau = tauStep / sigmaY;
+
+            // also respect the geometric partition (don’t jump too far)
+            float dt_geo = (d - t) / float(stepsMax - s);
+            float dt = max(1e-4, min(dt_geo, dt_tau));
+
+            // now evaluate at the segment center
+            float ti = t + 0.5f * dt;
+
+            float3 Tseg = T_along_ray(r, mu, ti, RbVis, RbPhys, Rt);
+
+            float rd = sqrt(ti * ti + 2.0f * r * mu * ti + r * r);
             float hh = max(0.0f, rd - RbPhys);
-            
+
             float dR_step = DensityRayleigh(hh);
             float dM_step = DensityMie(hh);
             float3 sigR_s_step = RayleighScattering * dR_step;
             float3 sigM_s_step = MieScattering * dM_step;
             float3 sigM_a_step = MieAbsorption * dM_step;
-            
+
             float3 w0M_step = sigM_s_step / max(sigM_s_step + sigM_a_step, 1e-6.xxx);
-            
             float3 sigma_s_step = sigR_s_step + sigM_s_step * w0M_step;
 
             L2_vol += sigma_s_step * Tseg * dt;
+
+            t += dt;
         }
     }
 

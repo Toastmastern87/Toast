@@ -379,7 +379,6 @@ void main(uint3 tid : SV_DispatchThreadID)
     float3 Esun = radiance.rgb * SunIntensity;
 
     const float R_BIAS = max(1.0f, 2e-6f * PlanetRadius);
-    const float Rg = PlanetRadius;
     const float Rt = PlanetRadius + AtmosphereHeight;
     const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
     const float RbVis = RbPhys + R_BIAS;
@@ -432,8 +431,6 @@ void main(uint3 tid : SV_DispatchThreadID)
         tExit = min(tExit, hg.t0);
 
     float L = max(tExit - tEnter, 1e-6f);
-    
-    float3 Ls = 0.0.xxx, Lms = 0.0.xxx;
 
     // Keep rEntry strictly inside [RbVis, Rt] for stable TLUT lookups (still used for Tsun)
     float3 pEntry = camRelWin + wView * tEnter;
@@ -445,23 +442,45 @@ void main(uint3 tid : SV_DispatchThreadID)
     float3 f = g * g;
     float3 g_p = (g - f) / max(1.0.xxx - f, 1e-6.xxx);
 
+    float3 Ls = 0.0.xxx;
+    float3 Lms = 0.0.xxx;
     float3 Tacc = 1.0.xxx;
+    
+    // Δτ controls
+    const float tauStep = 0.03f; // target optical depth per step (0.025..0.035 good)
+    const float dtMin = 1e-4f; // clamp against tiny steps
+    const uint Ncap = SKY_STEPS; // soft cap on number of steps (same as before)
+
+    float t = tEnter;
+    uint iter = 0;
 
     [loop]
-    for (uint i = 0; i < SKY_STEPS; ++i)
+    while (t < tExit - 1e-7f && iter++ < 4u * Ncap)   // safety cap
     {
-        float a0 = float(i) / float(SKY_STEPS);
-        float a1 = float(i + 1) / float(SKY_STEPS);
-        float s0 = a0 * a0;
-        float s1 = a1 * a1;
-        float t0 = tEnter + L * s0;
-        float t1 = tEnter + L * s1;
-        float ti = 0.5f * (t0 + t1);
-        float dt = (t1 - t0);
+        // Estimate step size from local extinction (energy in thin air)
+        // Use current edge to pick a *candidate* dt, then evaluate at mid
+        float3 pEdge = camRelWin + wView * t;
+        float rEdge = length(pEdge);
+        float hEdge = max(0.0f, rEdge - RbPhys);
 
-        // Geometry at segment center
+        float dR_e = DensityRayleigh(hEdge);
+        float dM_e = DensityMie(hEdge);
+
+        float3 sigR_e = RayleighScattering * dR_e;
+        float3 sigM_s_e = MieScattering * dM_e;
+        float3 sigM_a_e = MieAbsorption * dM_e;
+
+        float3 sigma_t_e = sigR_e + sigM_s_e + sigM_a_e; // (no ozone on Mars)
+        float sigmaY = max(dot(sigma_t_e, LUMA), 1e-6);
+
+        float dt_tau = tauStep / sigmaY; // Δτ → Δs
+        float dt_geo = (tExit - t) / max(1u, (Ncap - min(iter, Ncap - 1))); // soft geom cap
+        float dt = clamp(min(dt_geo, dt_tau), dtMin, tExit - t); // final dt
+
+        // Midpoint sample
+        float ti = t + 0.5f * dt;
         float3 pRel = camRelWin + wView * ti;
-        float rp = length(pRel);
+        float rp = clamp(length(pRel), RbVis + 5e-4f, Rt - 5e-4f);
         float h = max(0.0f, rp - RbPhys);
 
         float dR = DensityRayleigh(h);
@@ -471,8 +490,6 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 sigR_s = RayleighScattering * dR;
         float3 sigM_s = MieScattering * dM;
         float3 sigM_a = MieAbsorption * dM;
-
-        // Total extinction at this height (Rayleigh scatter + Mie scatter + Mie absorption)
         float3 sigmaExt = sigR_s + sigM_s + sigM_a + O3_COEFF * dO;
 
         // Transmittance from camera to segment center (use symmetric half-step)
@@ -483,30 +500,78 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         float3 upS = (rp > 0.0f) ? (pRel / rp) : up;
         float muS = dot(upS, wSun);
+        
         float Vsun = SunVisibilityAtR(rp, muS, RbVis); // smooth visibility
         float3 Tsun = T_to_TOA(rp, muS, RbPhys, Rt) * Vsun; // keep using TLUT, just gate it smoothly
 
-        float PR = SGain * PhaseRayleigh(muPhase);
-        float3 PMrgb = SGain * float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));
+        float PR = PhaseRayleigh(muPhase);
+        float3 PMrgb = float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));
 
         // Remove delta peak for single scattering
         float3 sigM_s_single = sigM_s * (1.0.xxx - f);
+        
+        
+        // --- use the *physical* horizon for all horizon/elevation logic -------------
+        float cH_phys = MuHorizon(rp, RbPhys); // real horizon (PlanetRadius + MinHeight)
+
+        // Sun elevation above the *physical* horizon: 0 at horizon, 1 at zenith
+        float elevS = saturate((muS - cH_phys) / (1.0 - cH_phys));
+
+        // Low-sun factor (broad ramp that peaks near the horizon)
+        float fLowSun = 1.0 - smoothstep(0.35, 0.75, elevS);
+
+        // View elevation above the *physical* horizon: 0 at horizon, 1 at zenith
+        float muView = dot(wView, upS);
+        muView = clamp(muView, -0.9995f, 0.9995f);
+        float elevV = saturate((muView - cH_phys) / (1.0 - cH_phys));
+
+        // Horizon band that *peaks above the rim* (≈6–25° up)
+        // Strong near elevV≈0.10..0.40, fades out as you look higher
+        float fBandUp = (1.0 - smoothstep(0.10, 0.40, elevV)); // tune 0.10..0.40
+
+        // Gentle sunward bias so the far anti-sun horizon doesn’t turn blue
+        float fSunward = smoothstep(0.20, 0.80, muPhase);
+
+        // Final weight: low sun × above-horizon band × mild sunward bias
+        float fBlue = saturate(fLowSun * fBandUp * fSunward);
+
+        // --- single-scatter tint/gain (unchanged otherwise) -------------------------
+        float3 Tint = lerp(1.0.xxx, float3(0.78, 0.88, 1.35), fBlue);
+        float LsGain = lerp(1.0, SGain, fBlue);
 
         // single scattering
-        Ls += Tmid * (sigR_s * PR * Tsun) * dt;
-        Ls += Tmid * (sigM_s_single * PMrgb * Tsun) * dt;
+        Ls += Tmid * ((sigR_s * PR * Tsun) + (sigM_s_single * PMrgb * Tsun)) * dt * Tint * LsGain;
 
-        // multiple scattering
+        // --- multiple scattering (near-isotropic w/ tiny bias, energy-preserving) ---
         float4 Psi4 = SamplePsiMS4(rp, muS, RbPhys, Rt);
-        float3 PsiMS_rgb = MSGain * Psi4.rgb;
+        float gBar = saturate(Psi4.a);
+        float alt01 = saturate((rp - RbPhys) / max(Rt - RbPhys, 1e-6));
+        
+        // very low effective g for multi-scatter
+        float gEff = min(gBar, lerp(0.35, 0.45, alt01));
+        float pHG_e1 = 4.0f * PI * MSPhase(muPhase, gEff); // avg = 1
+        float wAniso = 0.20; // 20% of the lobe
+        float pMS_e1 = 1.0 + wAniso * (pHG_e1 - 1.0);
+        
+        // altitude equalizer (flatten vertical contrast; keep MSGain ≈ 1.0)
+        float baseBoost = 1.0 + 0.18 * saturate(1.0 - (MSGain - 1.0) / 0.3);
+        float gainAlt = lerp(baseBoost, 1.0, alt01 * alt01);
+        
+        float3 PsiMS_dir = (MSGain * gainAlt) * Psi4.rgb * pMS_e1;
+        
+        // optional: 20–30% pull toward per-altitude mean to avoid dark anti-sun
+        float3 PsiMS_iso = (MSGain * gainAlt) * SamplePsiMS4(rp, 0.0, RbPhys, Rt).rgb;
+        const float MSEven = 0.30;
+        float3 PsiMS_rgb = lerp(PsiMS_dir, PsiMS_iso, MSEven);
 
-        float3 w0M = sigM_s / max(sigM_s + sigM_a, 1e-6.xxx); // single-scattering albedo of Mie
+        float3 w0M = sigM_s / max(sigM_s + sigM_a, 1e-6.xxx);
         float3 sigS_ms = sigR_s + sigM_s * w0M;
 
         Lms += Tmid * (sigS_ms * PsiMS_rgb) * dt;
 
-        // Advance cumulative transmittance to next segment
+        // advance cumulative transmittance to next edge
         Tacc *= exp(-sigmaExt * dt);
+        t += dt;
     }
 
     float3 skyRGB = (Ls + Lms) * Esun;
