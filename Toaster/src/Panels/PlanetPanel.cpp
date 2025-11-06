@@ -677,6 +677,19 @@ namespace Toast {
 
 					ImGui::ColorEdit3("##GroundAlbedo", &mContext->mAtmosphere.GroundAlbedo.x);
 
+					// -------- Sunset Tint Color ----------
+					ImGui::TableNextRow();
+
+					ImGui::TableSetColumnIndex(0);
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Sunset Tint");
+
+					ImGui::TableSetColumnIndex(1);
+
+					ImGui::SetNextItemWidth(fullW);
+
+					ImGuiHelpers::ManualDragFloat3("##SunsetTint", mContext->mAtmosphere.SunsetTint, 0.01f, 0.0f, mWindow, activeDragArea, "%.2f", true);
+
 					// -------- MS Gain ----------
 					ImGui::TableNextRow();
 

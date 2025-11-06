@@ -67,10 +67,14 @@ PixelInputType main(VertexInputType input)
 #type pixel
 cbuffer DirectionalLight : register(b3)
 {
-	float4 direction;
-	float4 radiance;
-	float multiplier;
-	float sunDiscToggle;
+    float4x4 lightViewProj;
+    
+    float4 direction; // FROM light -> scene
+    
+    float4 radiance; // RGB
+    
+    float SunIntensity;
+    float DirectionalLightGain;
 };
 
 cbuffer Material			: register(b2)

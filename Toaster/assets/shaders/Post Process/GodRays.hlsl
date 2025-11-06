@@ -38,12 +38,15 @@ cbuffer Camera : register(b0)
 
 cbuffer DirectionalLight : register(b3)
 {
-    matrix lightViewProj;
-    float4 direction;
-    float4 radiance;
+    float4x4 lightViewProj;
+    
+    float4 direction; // FROM light -> scene
+    
+    float4 radiance; // RGB
+    
     float SunIntensity;
+    float DirectionalLightGain;
 };
-
 
 cbuffer GodRaySettings : register(b13)
 {

@@ -94,6 +94,7 @@ namespace Toast {
 		DirectX::XMFLOAT3 MieAbsorption = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 MieAnisotropy = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 GroundAlbedo = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 SunsetTint = { 0.0f, 0.0f, 0.0f };
 		float OzoneStrength = 0.0f;
 		uint32_t StepsTransmittance = 192;
 		uint32_t StepsMultiScattering = 128;

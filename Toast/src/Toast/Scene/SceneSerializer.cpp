@@ -633,6 +633,7 @@ namespace Toast {
 		out << YAML::Key << "Grid" << YAML::Value << settings.Grid;
 		out << YAML::Key << "CameraFrustum" << YAML::Value << settings.CameraFrustum;
 		out << YAML::Key << "SunLightFrustum" << YAML::Value << settings.SunLightFrustum;
+		out << YAML::Key << "DirectionalLightningGain" << YAML::Value << settings.DirectionalLightningGain;
 		out << YAML::Key << "BackfaceCulling" << YAML::Value << settings.BackfaceCulling;
 		out << YAML::Key << "FrustumCulling" << YAML::Value << settings.FrustumCulling;
 		out << YAML::Key << "RenderColliders" << YAML::Value << settings.RenderColliders;
@@ -707,6 +708,7 @@ namespace Toast {
 		out << YAML::Key << "MieAnisotropy" << YAML::Value << scenePlanet->mAtmosphere.MieAnisotropy;
 		out << YAML::Key << "OzoneStrength" << YAML::Value << scenePlanet->mAtmosphere.OzoneStrength;
 		out << YAML::Key << "GroundAlbedo" << YAML::Value << scenePlanet->mAtmosphere.GroundAlbedo;
+		out << YAML::Key << "SunsetTint" << YAML::Value << scenePlanet->mAtmosphere.SunsetTint;
 		out << YAML::Key << "MSGain" << YAML::Value << scenePlanet->mAtmosphere.MSGain;
 		out << YAML::Key << "SGain" << YAML::Value << scenePlanet->mAtmosphere.SGain;
 		out << YAML::EndMap;
@@ -853,6 +855,7 @@ namespace Toast {
 		settings.Grid = data["Settings"]["Grid"].as<bool>();
 		settings.CameraFrustum = data["Settings"]["CameraFrustum"].as<bool>();
 		settings.SunLightFrustum = data["Settings"]["SunLightFrustum"].as<bool>();
+		settings.DirectionalLightningGain = data["Settings"]["DirectionalLightningGain"].as<float>();
 		settings.BackfaceCulling = data["Settings"]["BackfaceCulling"].as<bool>();
 		settings.FrustumCulling = data["Settings"]["FrustumCulling"].as<bool>();
 		settings.RenderColliders = data["Settings"]["RenderColliders"].as<bool>();
@@ -923,6 +926,7 @@ namespace Toast {
 		scenePlanet->mAtmosphere.MieAnisotropy = planet["MieAnisotropy"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mAtmosphere.OzoneStrength = planet["OzoneStrength"].as<float>();
 		scenePlanet->mAtmosphere.GroundAlbedo = planet["GroundAlbedo"].as<DirectX::XMFLOAT3>();
+		scenePlanet->mAtmosphere.SunsetTint = planet["SunsetTint"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mAtmosphere.MSGain = planet["MSGain"].as<float>();
 		scenePlanet->mAtmosphere.SGain = planet["SGain"].as<float>();
 

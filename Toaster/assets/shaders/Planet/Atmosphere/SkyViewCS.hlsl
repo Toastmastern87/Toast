@@ -24,9 +24,13 @@ cbuffer Camera : register(b0)
 cbuffer DirectionalLight : register(b3)
 {
     float4x4 lightViewProj;
+    
     float4 direction; // FROM light -> scene
+    
     float4 radiance; // RGB
+    
     float SunIntensity;
+    float DirectionalLightGain;
 };
 
 cbuffer PlanetFrame : register(b4)
@@ -46,16 +50,24 @@ cbuffer Atmosphere : register(b5)
     float RayScaleHeight;
     float MieScaleHeight;
     float MSGain;
+    
     float3 RayleighScattering;
     float SGain;
+    
     float3 MieScattering;
+    
     float3 MieAbsorption;
+    
     float3 GroundAlbedo;
+    
     float3 MieAnisotropy;
     float OzoneStrength;
+    
     uint StepsTransmittance;
     uint StepsMultiScattering;
     float APFarDynamic;
+    
+    float3 SunsetTint;
 };
 
 cbuffer SunDiscSettings : register(b6)
@@ -518,7 +530,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         float elevS = saturate((muS - cH_phys) / (1.0 - cH_phys));
 
         // Low-sun factor (broad ramp that peaks near the horizon)
-        float fLowSun = 1.0 - smoothstep(0.35, 0.75, elevS);
+        float fLowSun = 1.0 - smoothstep(0.35, 0.85, elevS);
 
         // View elevation above the *physical* horizon: 0 at horizon, 1 at zenith
         float muView = dot(wView, upS);
@@ -536,7 +548,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         float fBlue = saturate(fLowSun * fBandUp * fSunward);
 
         // --- single-scatter tint/gain (unchanged otherwise) -------------------------
-        float3 Tint = lerp(1.0.xxx, float3(0.78, 0.88, 1.35), fBlue);
+        float3 Tint = lerp(1.0.xxx, SunsetTint, fBlue);
         float LsGain = lerp(1.0, SGain, fBlue);
 
         // single scattering

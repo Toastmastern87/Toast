@@ -261,7 +261,7 @@ PixelOutputType main(PixelInputType input)
     float3 encodedNormal = N * 0.5 + 0.5;
 
     if (input.entityID > -1)
-       output.normal = float4(encodedNormal, 0.0);
+       output.normal = float4(encodedNormal, 1.0);
     else
         output.normal = float4(encodedNormal, (float)input.entityID);
     

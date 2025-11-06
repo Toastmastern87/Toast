@@ -97,11 +97,12 @@ namespace Toast {
 		sRendererData->StarsBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer for atmosphere rendering
-		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 112, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)5), CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)5) });
+		sRendererData->AtmosphereCBuffer = ConstantBufferLibrary::Load("Atmosphere", 128, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)5), CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)5) });
 		sRendererData->AtmosphereCBuffer->Bind();
 		sRendererData->AtmosphereBuffer.Allocate(sRendererData->AtmosphereCBuffer->GetSize());
 		sRendererData->AtmosphereBuffer.ZeroInitialize();
-		// Setting up the constant buffer for atmosphere rendering
+
+		// Setting up the constant buffer for floating origin
 		sRendererData->FloatingOriginCBuffer = ConstantBufferLibrary::Load("FloatingOrigin", 16, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)7), CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)7) });
 		sRendererData->FloatingOriginCBuffer->Bind();
 		sRendererData->FloatingOriginBuffer.Allocate(sRendererData->FloatingOriginCBuffer->GetSize());
@@ -353,6 +354,7 @@ namespace Toast {
 		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Direction, 16, 64);
 		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Radiance, 16, 80);
 		sRendererData->LightningBuffer.Write((uint8_t*)&environment.SunIntensity, 4, 96);
+		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mSettings.DirectionalLightningGain, 4, 100);
 		sRendererData->LightningCBuffer->Map(sRendererData->LightningBuffer);
 
 		sRendererData->SpecularBRDFLUT->Bind(2, D3D11_PIXEL_SHADER);
@@ -1238,6 +1240,7 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 100);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 104);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.APFarDynamic, 4, 108);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.SunsetTint, 12, 112);
 		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 		sRendererData->AtmosphereCBuffer->Bind();
 

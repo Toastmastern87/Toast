@@ -36,16 +36,24 @@ cbuffer Atmosphere : register(b5)
     float RayScaleHeight;
     float MieScaleHeight;
     float MSGain;
+    
     float3 RayleighScattering;
     float SGain;
+    
     float3 MieScattering;
+    
     float3 MieAbsorption;
+    
     float3 GroundAlbedo;
+    
     float3 MieAnisotropy;
     float OzoneStrength;
+    
     uint StepsTransmittance;
     uint StepsMultiScattering;
     float APFarDynamic;
+    
+    float3 SunsetTint;
 };
 
 cbuffer FloatingOrigin : register(b7)

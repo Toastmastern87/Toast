@@ -334,7 +334,7 @@ namespace Toast
 			return changed;
 		}
 
-		bool ManualDragFloat3(const std::string& label, DirectX::XMFLOAT3& values, float speed, float resetValue, WindowsWindow* window, std::string& activeDragArea)
+		bool ManualDragFloat3(const std::string& label, DirectX::XMFLOAT3& values, float speed, float resetValue, WindowsWindow* window, std::string& activeDragArea, const char* displayFormat, bool colorValues)
 		{
 			bool changed = false;
 
@@ -380,6 +380,20 @@ namespace Toast
 
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 4.0f));
 
+			char* labelCharX, * labelCharY, * labelCharZ;
+			if (!colorValues)
+			{
+				labelCharX = "X";
+				labelCharY = "Y";
+				labelCharZ = "Z";
+			}
+			else
+			{
+				labelCharX = "R";
+				labelCharY = "G";
+				labelCharZ = "B";
+			}
+
 			// We'll do X
 			{
 				// colored button for "X"
@@ -387,18 +401,20 @@ namespace Toast
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.2f, 0.2f, 1.0f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.8f, 0.1f, 0.15f, 1.0f));
 				ImGui::PushFont(boldFont);
-				if (ImGui::Button("X", buttonSize))
+
+				if (ImGui::Button(labelCharX, buttonSize))
 				{
 					values.x = resetValue;
 					changed = true;
 				}
+
 				ImGui::PopStyleColor(3);
 				ImGui::PopFont();
 				ImGui::SameLine();
 
 				std::string dragArea1 = "##" + label + "dragarea1";
 				ImGui::SetNextItemWidth(-FLT_MIN);
-				changed |= ManualDragFloat(dragArea1.c_str(), values.x, window, activeDragArea, speed, dragAreaSize);
+				changed |= ManualDragFloat(dragArea1.c_str(), values.x, window, activeDragArea, speed, dragAreaSize, displayFormat);
 
 				ImGui::SameLine();
 			}
@@ -409,18 +425,19 @@ namespace Toast
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.8f, 0.3f, 1.0f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.7f, 0.2f, 1.0f));
 				ImGui::PushFont(boldFont);
-				if (ImGui::Button("Y", buttonSize))
+
+				if (ImGui::Button(labelCharY, buttonSize))
 				{
 					values.y = resetValue;
 					changed = true;
-				}
+					}
 				ImGui::PopStyleColor(3);
 				ImGui::PopFont();
 				ImGui::SameLine();
 
 				std::string dragArea2 = "##" + label + "dragarea2";
 				ImGui::SetNextItemWidth(-FLT_MIN);
-				changed |= ManualDragFloat(dragArea2.c_str(), values.y, window, activeDragArea, speed, dragAreaSize);
+				changed |= ManualDragFloat(dragArea2.c_str(), values.y, window, activeDragArea, speed, dragAreaSize, displayFormat);
 
 				ImGui::SameLine();
 			}
@@ -431,7 +448,7 @@ namespace Toast
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.35f, 0.9f, 1.0f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.25f, 0.8f, 1.0f));
 				ImGui::PushFont(boldFont);
-				if (ImGui::Button("Z", buttonSize ))
+				if (ImGui::Button(labelCharZ, buttonSize ))
 				{
 					values.z = resetValue;
 					changed = true;
@@ -442,7 +459,7 @@ namespace Toast
 
 				std::string dragArea3 = "##" + label + "dragarea3";
 				ImGui::SetNextItemWidth(-FLT_MIN);
-				changed |= ManualDragFloat(dragArea3.c_str(), values.z, window, activeDragArea, speed, dragAreaSize);
+				changed |= ManualDragFloat(dragArea3.c_str(), values.z, window, activeDragArea, speed, dragAreaSize, displayFormat);
 			}
 
 			ImGui::PopStyleVar();
@@ -453,7 +470,7 @@ namespace Toast
 			return changed;
 		}
 
-		bool ManualDragFloat3(const std::string& label, Vector3& values, float speed, float resetValue, WindowsWindow* window, std::string& activeDragArea)
+		bool ManualDragFloat3(const std::string& label, Vector3& values, float speed, float resetValue, WindowsWindow* window, std::string& activeDragArea, const char* displayFormat, bool colorValues)
 		{
 			bool changed = false;
 
@@ -473,6 +490,20 @@ namespace Toast
 
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 4.0f));
 
+			char* labelCharX, * labelCharY, * labelCharZ;
+			if (!colorValues)
+			{
+				labelCharX = "X";
+				labelCharY = "Y";
+				labelCharZ = "Z";
+			}
+			else
+			{
+				labelCharX = "R";
+				labelCharY = "G";
+				labelCharZ = "B";
+			}
+
 			// We'll do X
 			{
 				// colored button for "X"
@@ -480,7 +511,7 @@ namespace Toast
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.2f, 0.2f, 1.0f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.8f, 0.1f, 0.15f, 1.0f));
 				ImGui::PushFont(boldFont);
-				if (ImGui::Button("X", buttonSize))
+				if (ImGui::Button(labelCharX, buttonSize))
 				{
 					values.x = resetValue;
 					changed = true;
@@ -491,7 +522,7 @@ namespace Toast
 
 				std::string dragArea1 = "##" + label + "dragarea1";
 
-				changed |= ManualDragDouble(dragArea1.c_str(), values.x, window, activeDragArea, speed, dragAreaSize);
+				changed |= ManualDragDouble(dragArea1.c_str(), values.x, window, activeDragArea, speed, dragAreaSize, displayFormat);
 
 				ImGui::SameLine();
 			}
@@ -502,7 +533,7 @@ namespace Toast
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.8f, 0.3f, 1.0f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.7f, 0.2f, 1.0f));
 				ImGui::PushFont(boldFont);
-				if (ImGui::Button("Y", buttonSize))
+				if (ImGui::Button(labelCharY, buttonSize))
 				{
 					values.y = resetValue;
 					changed = true;
@@ -513,7 +544,7 @@ namespace Toast
 
 				std::string dragArea2 = "##" + label + "dragarea2";
 
-				changed |= ManualDragDouble(dragArea2.c_str(), values.y, window, activeDragArea, speed, dragAreaSize);
+				changed |= ManualDragDouble(dragArea2.c_str(), values.y, window, activeDragArea, speed, dragAreaSize, displayFormat);
 
 				ImGui::SameLine();
 			}
@@ -524,7 +555,7 @@ namespace Toast
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.35f, 0.9f, 1.0f));
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.1f, 0.25f, 0.8f, 1.0f));
 				ImGui::PushFont(boldFont);
-				if (ImGui::Button("Z", buttonSize))
+				if (ImGui::Button(labelCharZ, buttonSize))
 				{
 					values.z = resetValue;
 					changed = true;
@@ -535,7 +566,7 @@ namespace Toast
 
 				std::string dragArea3 = "##" + label + "dragarea3";
 
-				changed |= ManualDragDouble(dragArea3.c_str(), values.z, window, activeDragArea, speed, dragAreaSize);
+				changed |= ManualDragDouble(dragArea3.c_str(), values.z, window, activeDragArea, speed, dragAreaSize, displayFormat);
 			}
 
 			ImGui::PopStyleVar();

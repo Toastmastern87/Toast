@@ -1,10 +1,11 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [-240.455154, 211.519424, 1853.69153]
+  Position: [-264.687408, 33.7451477, 2391.92749]
 Settings:
   Grid: false
   CameraFrustum: true
   SunLightFrustum: true
+  DirectionalLightningGain: 30
   BackfaceCulling: true
   FrustumCulling: true
   RenderColliders: false
@@ -40,10 +41,10 @@ Settings:
   GodRaysWeight: 0.0199999996
   EVGeometrySurface: 0
   EVGeometrySpace: 0
-  EVGeometryNight: -1.49999905
-  EVSkySurface: 0.280000031
+  EVGeometryNight: -2.19999838
+  EVSkySurface: 0.0600003824
   EVSkySpace: 0
-  EVSkySurfaceNight: -5.47999907
+  EVSkySurfaceNight: -6.11000919
   EVSkySpaceNight: -3.7799983
   AltFadeStartFrac: 0.25
   AltFadeEndFrac: 0.850000024
@@ -57,7 +58,7 @@ Planet:
   Radius: 3389500
   MaxHeight: 21900
   MinHeight: -8200
-  AlbedoColor: [0.0379746556, 0.00176253601, 0.00176253601]
+  AlbedoColor: [0.0421940684, 0.0129469056, 0.00551905483]
   Roughness: 1
   Metalness: 0
   HeightMapAssetPath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
@@ -67,14 +68,15 @@ Planet:
   AtmosphereHeight: 60000
   RayleighScaleHeight: 11000
   RayleighScattering: [9.00000019e-10, 1.80000004e-09, 4.59999994e-09]
-  MieScaleHeight: 10000
+  MieScaleHeight: 11000
   MieScattering: [1.94999993e-05, 1.65000001e-05, 1.49999996e-05]
   MieAbsorption: [2.49999994e-06, 3.50000005e-06, 5.50000004e-06]
-  MieAnisotropy: [0.930000007, 0.930000007, 0.920000017]
+  MieAnisotropy: [0.889999986, 0.889999986, 0.879999995]
   OzoneStrength: 0
   GroundAlbedo: [0.0042194128, 0.00384554081, 0.00384554081]
-  MSGain: 1
-  SGain: 9.80000019
+  SunsetTint: [0.500000238, 0.899999976, 2.57999825]
+  MSGain: 2.5
+  SGain: 10.8000002
 Environment:
   SunDiscToggle: true
   SunIntensity: 1
@@ -140,6 +142,22 @@ Entities:
         - Name: ZoomFactor
           Type: Float
           Data: 2.29999995
+  - Entity: 7969327153423302118
+    TagComponent:
+      Tag: Sunlight
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [-63.8999138, 20.8000145, -63.5000076]
+      Scale: [0.999434412, 0.999894023, 0.999519885]
+    DirectionalLightComponent:
+      Radiance: [1, 0.980000019, 0.949999988]
+      Intensity: 1
+      SunDesiredCoverage: 10000
+      SunLightDistance: 961
   - Entity: 13338274011544193136
     TagComponent:
       Tag: Starship
@@ -156,19 +174,3 @@ Entities:
       LODThresholds:
         - 0.300000012
         - 0.600000024
-  - Entity: 7969327153423302118
-    TagComponent:
-      Tag: Sunlight
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [-44.6999054, 20.8000145, -63.5000076]
-      Scale: [0.999434412, 0.999894023, 0.999519885]
-    DirectionalLightComponent:
-      Radiance: [1, 0.980000019, 0.949999988]
-      Intensity: 1
-      SunDesiredCoverage: 10000
-      SunLightDistance: 961

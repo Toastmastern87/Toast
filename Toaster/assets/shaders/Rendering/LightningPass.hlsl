@@ -43,10 +43,14 @@ cbuffer Camera : register(b0)
 
 cbuffer DirectionalLight : register(b3)
 {
-    matrix lightViewProj;
-    float4 direction;
-    float4 radiance;
+    float4x4 lightViewProj;
+    
+    float4 direction; // FROM light -> scene
+    
+    float4 radiance; // RGB
+    
     float SunIntensity;
+    float DirectionalLightGain;
 };
 
 cbuffer PlanetFrame : register(b4)
@@ -66,17 +70,26 @@ cbuffer Atmosphere : register(b5)
     float RayScaleHeight;
     float MieScaleHeight;
     float MSGain;
+    
     float3 RayleighScattering;
     float SGain;
+    
     float3 MieScattering;
+    
     float3 MieAbsorption;
+    
     float3 GroundAlbedo;
+    
     float3 MieAnisotropy;
     float OzoneStrength;
+    
     uint StepsTransmittance;
     uint StepsMultiScattering;
     float APFarDynamic;
+    
+    float3 SunsetTint;
 };
+
 cbuffer SunDiscSettings : register(b6)
 {
     float SunDiscRadius;
@@ -493,13 +506,13 @@ PixelOutputType main(PixelInputType input)
     }
     
     // Directional Light Contribution
-    float3 lightContribution = DirectionalLightning(F0, normalWorld, VWorld, NdotV, albedo, roughness, metalness, posWS.xyz, direction.xyz, r_true, muS) * shadow;
+    float3 directLight = DirectionalLightning(F0, normalWorld, VWorld, NdotV, albedo, roughness, metalness, posWS.xyz, direction.xyz, r_true, muS) * shadow;
     
     // IBL Contribution
     float3 Lr = reflect(-VWorld, normalWorld);
     float3 iblContribution = IBL(F0, Lr, normalWorld, albedo, roughness, metalness, NdotV);
 
-    float3 finalShading = float4((NightAmbient + lightContribution + iblContribution) * ao, 1.0f);
+    float3 finalShading = float4((NightAmbient + DirectionalLightGain * directLight + iblContribution) * ao, 1.0f);
 
     // Output the final color
     output.color = float4(finalShading, 1.0f);

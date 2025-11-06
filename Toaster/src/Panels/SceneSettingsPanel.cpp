@@ -93,9 +93,9 @@ namespace Toast {
 
 					ImGui::Checkbox("Show grid", &mContext->mSettings.Grid);
 					ImGui::Checkbox("Show camera frustum", &mContext->mSettings.CameraFrustum);
-					ImGui::Text("Directional Lightning Gain");
-					ImGuiHelpers::ManualDragFloat("##dirlightgain", mContext->mSettings.DirectionalLightningGain, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 50.0f);
 					ImGui::Checkbox("Show sun light frustum", &mContext->mSettings.SunLightFrustum);
+					ImGui::Text("Directional Lightning Gain");
+					ImGuiHelpers::ManualDragFloat("##dirlightgain", mContext->mSettings.DirectionalLightningGain, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, FLT_MAX);
 					ImGui::Checkbox("Shadows", &mContext->mSettings.Shadows);
 					ImGui::Checkbox("SSAO", &mContext->mSettings.SSAO);
 					ImGui::Checkbox("SSAODebugging", &mContext->mSettings.SSAODebugging);
