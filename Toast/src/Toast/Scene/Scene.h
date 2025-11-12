@@ -144,6 +144,10 @@ namespace Toast {
 		{
 			DirectX::XMFLOAT3 NightAmbient = { 0.0f, 0.0f, 0.0f };
 
+			// Lightning Gains
+			float DiffuseIBLGain = 1.0f;
+			float SpecularIBLGain = 1.0f;
+
 			// Sun
 			bool SunDiscToggle = false;
 			float SunIntensity = 20.0f;

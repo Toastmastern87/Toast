@@ -29,6 +29,16 @@ namespace Toast {
 
 		// ---------------- Sun ----------------
 		ImGui::Separator();
+		ImGui::Text("Lightning Gains");
+
+		ImGui::Text("Diffuse IBL Gain");
+		ImGui::DragFloat("##DiffuseIBLGain", &environment.DiffuseIBLGain, 0.1f, 0.0f, FLT_MAX, "%.1f");
+
+		ImGui::Text("Specular IBL Gain");
+		ImGui::DragFloat("##SpecularIBLGain", &environment.SpecularIBLGain, 0.1f, 0.0f, FLT_MAX, "%.1f");
+
+		// ---------------- Sun ----------------
+		ImGui::Separator();
 		ImGui::Text("Sun");
 
 		ImGui::Text("Sun Disc Toggle");

@@ -129,6 +129,12 @@ cbuffer StarsParams : register(b7)
     float3 NightAmbient;
 }
 
+cbuffer LightningBufferSettings : register(b8)
+{
+    float DiffuseIBLGain;
+    float SpecularIBLGain;
+}
+
 // G-buffer Textures
 Texture2D positionTexture               : register(t0); // View-space position
 Texture2D normalTexture                 : register(t1); // Encoded normals
@@ -379,7 +385,7 @@ float3 IBL(float3 F0, float3 Lr, float3 NormalWorldSpace, float3 albedo, float r
     float2 specularBRDF = SpecularBRDFLUT.Sample(SPBRDFSampler, float2(NdotV, roughness)).rg;
     float3 specularIBL = specularIrradiance * (F * specularBRDF.x + specularBRDF.y);
 
-    return specularIBL + diffuseIBL;
+    return (specularIBL * SpecularIBLGain) + (diffuseIBL * DiffuseIBLGain);
 }
 
 struct PixelOutputType
@@ -509,7 +515,7 @@ PixelOutputType main(PixelInputType input)
     float3 directLight = DirectionalLightning(F0, normalWorld, VWorld, NdotV, albedo, roughness, metalness, posWS.xyz, direction.xyz, r_true, muS) * shadow;
     
     // IBL Contribution
-    float3 Lr = reflect(-VWorld, normalWorld);
+    float3 Lr = normalize(reflect(-VWorld, normalWorld));
     float3 iblContribution = IBL(F0, Lr, normalWorld, albedo, roughness, metalness, NdotV);
 
     float3 finalShading = float4((NightAmbient + DirectionalLightGain * directLight + iblContribution) * ao, 1.0f);

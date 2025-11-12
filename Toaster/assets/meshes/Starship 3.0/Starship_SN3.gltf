@@ -283,12 +283,13 @@
 			"name":"StainlessSteelSN3",
 			"pbrMetallicRoughness":{
 				"baseColorFactor":[
-					0.3419121503829956,
-					0.34191471338272095,
-					0.37123793363571167,
+					0.1254899948835373,
+					0.1254899948835373,
+					0.1254899948835373,
 					1
 				],
-				"roughnessFactor":0.8808380961418152
+				"metallicFactor":0.9195803999900818,
+				"roughnessFactor":0.7360000014305115
 			}
 		},
 		{

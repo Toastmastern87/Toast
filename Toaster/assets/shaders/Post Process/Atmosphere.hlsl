@@ -81,6 +81,7 @@ cbuffer Atmosphere : register(b5)
     float APFarDynamic;
     
     float3 SunsetTint;
+    float BakeIBL;
 };
 
 cbuffer SunDiscSettings : register(b6)
@@ -610,7 +611,7 @@ PSOut main(PSIn i)
             // Base disc tint (rim warming, luminance preserved)
             // ===============================
             float3 T_eye_sun = SampleTransmittance_EyeToSun(camRel, vDir, wSun, RbPhys, Rt);
-            float3 discRGB = SunIntensity * SunDiscWhite * T_eye_sun;
+            float3 discRGB = SunIntensity * 10.0f * SunDiscWhite * T_eye_sun;
             
             // Ground occlusion           
             float3 oc = camRel;
@@ -713,7 +714,7 @@ PSOut main(PSIn i)
             float3 haloTint = lerp(baseHalo, sky, 0.75 * bleedAmt);
 
             float haloVisAir = smoothstep(-HorizonRefractionDeg - TwilightBlendDeg, +HorizonRefractionDeg, altRelGroundDeg);
-            float3 haloRadianceAir = SunIntensity * (AirHaloIntensity * inAirHalo) * haloTint * haloMaskAirShape * haloVisAir;
+            float3 haloRadianceAir = SunIntensity * 15.0f * (AirHaloIntensity * inAirHalo) * haloTint * haloMaskAirShape * haloVisAir;
 
             // ===============================
             // Halo (SPACE) — tiny, always-on shoulder
@@ -727,7 +728,8 @@ PSOut main(PSIn i)
             float haloVisSpace = discVis;
             float3 spaceHaloTint = SunDiscWhite;
 
-            float3 haloRadianceSpace = SunIntensity * (SpaceHaloIntensity) * spaceHaloTint * spaceGauss.xxx * haloVisSpace;
+            float3 haloRadianceSpace = SunIntensity * 15.0f
+            * (SpaceHaloIntensity) * spaceHaloTint * spaceGauss.xxx * haloVisSpace;
 
             // ===============================
             // Core boost (existing)
@@ -765,42 +767,52 @@ PSOut main(PSIn i)
         return output;
     }
     else
-    {       
-        float3 camWS = cameraPosition.xyz - WorldOffsetWS;
-        float3 ro = camWS - PlanetCenterWS;
-        float rCam = length(ro);              
-        float3 wView = ViewDirWS_fromUV(uv); // unit
+    {    
+        // No IBL baking: apply aerial perspective over the terrain color
+        if (BakeIBL < 1.0f)
+        {
+            float3 camWS = cameraPosition.xyz - WorldOffsetWS;
+            float3 ro = camWS - PlanetCenterWS;
+            float rCam = length(ro);
+            float3 wView = ViewDirWS_fromUV(uv); // unit
         
-        // TOA segment
-        Hit hitAtm = IntersectSphereGrazingSafe(ro, wView, Rt);
+            // TOA segment
+            Hit hitAtm = IntersectSphereGrazingSafe(ro, wView, Rt);
 
-        float tEnter = max(0.0f, hitAtm.t0);
-        float tSurf = ViewDistanceFromDepth(uv, depth);
+            float tEnter = max(0.0f, hitAtm.t0);
+            float tSurf = ViewDistanceFromDepth(uv, depth);
         
-        float lengthInAtmosphere = (rCam <= Rt) ? tSurf : max(0.0f, tSurf - tEnter);
+            float lengthInAtmosphere = (rCam <= Rt) ? tSurf : max(0.0f, tSurf - tEnter);
         
-        float APFar = asfloat(APFarU32.Load(int3(0, 0, 0)));
-        float d = (APFar > 1e-6f) ? saturate(lengthInAtmosphere / APFar) : 0.0f;
-        float u = pow(d, 1.0f / AP_Z_GAMMA);
+            float APFar = asfloat(APFarU32.Load(int3(0, 0, 0)));
+            float d = (APFar > 1e-6f) ? saturate(lengthInAtmosphere / APFar) : 0.0f;
+            float u = pow(d, 1.0f / AP_Z_GAMMA);
              
-        // address slice **centers** then (optionally) jitter
-        uint Wd, Hd, Dd;
-        AerialPerspective3D.GetDimensions(Wd, Hd, Dd);
-        float wAP = u * ((Dd - 1.0f) / Dd) + (0.5f / Dd);
+            // address slice **centers** then (optionally) jitter
+            uint Wd, Hd, Dd;
+            AerialPerspective3D.GetDimensions(Wd, Hd, Dd);
+            float wAP = u * ((Dd - 1.0f) / Dd) + (0.5f / Dd);
 
-        // final sample: TRILINEAR
-        float4 ap = AerialPerspective3D.SampleLevel(ClampLinear, float3(uv, wAP), 0);
-        float tau = max(ap.a, 0.0f);
+            // final sample: TRILINEAR
+            float4 ap = AerialPerspective3D.SampleLevel(ClampLinear, float3(uv, wAP), 0);
+            float tau = max(ap.a, 0.0f);
         
-        float3 betaExt = RayleighScattering + MieScattering + MieAbsorption; // 1/m
-        float betaAvg = (betaExt.r + betaExt.g + betaExt.b) * (1.0f / 3.0f);
-        float3 k = betaExt / max(betaAvg, 1e-9);   
+            float3 betaExt = RayleighScattering + MieScattering + MieAbsorption; // 1/m
+            float betaAvg = (betaExt.r + betaExt.g + betaExt.b) * (1.0f / 3.0f);
+            float3 k = betaExt / max(betaAvg, 1e-9);
         
-        // Trgb ≈ A^(betaExt / betaAvg)
-        float3 Trgb = exp(-tau.xxx);
+            // Trgb ≈ A^(betaExt / betaAvg)
+            float3 Trgb = exp(-tau.xxx);
         
-        float3 outRGB = colorPreAtmos * Trgb + ap.rgb;
-        output.color = float4(outRGB, max(Trgb.r, max(Trgb.g, Trgb.b)));
+            float3 outRGB = colorPreAtmos * Trgb + ap.rgb;
+            output.color = float4(outRGB, max(Trgb.r, max(Trgb.g, Trgb.b)));
+        }
+        else
+        {
+            // Just output terrain color directly for IBL baking
+            output.color = float4(GroundAlbedo, 1.0f);
+        }
+
         output.disc = 0.0f; // no sun over geometry pass here
         output.halo = 0.0f; // no halo mask over geometry pixels
         return output;

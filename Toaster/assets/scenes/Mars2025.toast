@@ -1,6 +1,6 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [-264.687408, 33.7451477, 2391.92749]
+  Position: [-5.08854771, -16.511549, 2368.62598]
 Settings:
   Grid: false
   CameraFrustum: true
@@ -17,8 +17,8 @@ Settings:
   SSAObias: 0.0250000004
   SunSurfaceThreshold: 5
   SunSurfaceIntensity: 0.599999905
-  SunSpaceThreshold: 2.67999458
-  SunSpaceIntensity: 1.18999946
+  SunSpaceThreshold: 5.89999104
+  SunSpaceIntensity: 1.24999964
   SkySurfaceThreshold: 0
   SkySurfaceIntensity: 0.499999821
   SkySpaceThreshold: 0
@@ -39,11 +39,11 @@ Settings:
   GodRaysDecay: 0.939999998
   GodRaysDensity: 3
   GodRaysWeight: 0.0199999996
-  EVGeometrySurface: 0
-  EVGeometrySpace: 0
+  EVGeometrySurface: -0.419999897
+  EVGeometrySpace: -0.789999723
   EVGeometryNight: -2.19999838
   EVSkySurface: 0.0600003824
-  EVSkySpace: 0
+  EVSkySpace: 0.01999861
   EVSkySurfaceNight: -6.11000919
   EVSkySpaceNight: -3.7799983
   AltFadeStartFrac: 0.25
@@ -52,13 +52,13 @@ Settings:
   SunFadeEndDeg: -10
 Planet:
   Translation: [0, -3393454, 0]
-  Rotation: [74.899826, -17.3999748, -227.303177]
+  Rotation: [74.899826, 5.10003328, -289.803223]
   GridSize: 257
   MaxLevels: 28
   Radius: 3389500
   MaxHeight: 21900
   MinHeight: -8200
-  AlbedoColor: [0.0421940684, 0.0129469056, 0.00551905483]
+  AlbedoColor: [0.0295358896, 0.00796962623, 0.00249248045]
   Roughness: 1
   Metalness: 0
   HeightMapAssetPath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
@@ -69,15 +69,17 @@ Planet:
   RayleighScaleHeight: 11000
   RayleighScattering: [9.00000019e-10, 1.80000004e-09, 4.59999994e-09]
   MieScaleHeight: 11000
-  MieScattering: [1.94999993e-05, 1.65000001e-05, 1.49999996e-05]
-  MieAbsorption: [2.49999994e-06, 3.50000005e-06, 5.50000004e-06]
+  MieScattering: [1.94999993e-05, 1.54999998e-05, 1.49999996e-05]
+  MieAbsorption: [4.50000016e-06, 4.50000016e-06, 5.50000004e-06]
   MieAnisotropy: [0.889999986, 0.889999986, 0.879999995]
   OzoneStrength: 0
   GroundAlbedo: [0.0042194128, 0.00384554081, 0.00384554081]
-  SunsetTint: [0.500000238, 0.899999976, 2.57999825]
-  MSGain: 2.5
-  SGain: 10.8000002
+  SunsetTint: [0.540000319, 0.750000119, 2.5099988]
+  MSGain: 1
+  SGain: 1
 Environment:
+  DiffuseIBLGain: 17
+  SpecularIBLGain: 1.20000005
   SunDiscToggle: true
   SunIntensity: 1
   SunDiscRadius: 0.00307999994
@@ -85,14 +87,14 @@ Environment:
   SunWhite: [1, 0.988235295, 0.968627453]
   WarmTint: [1, 0.921568632, 0.78039217]
   SpaceDiscBrightnessScale: 1.25
-  AirHaloIntensity: 0.0199999996
-  AirHaloStartFrac: 0.230000004
-  AirHaloFalloffPow: 0.419999987
+  AirHaloIntensity: 0.00999999978
+  AirHaloStartFrac: 1
+  AirHaloFalloffPow: 3
   HorizonRefractionDeg: 0.409999996
   TwilightBlendDeg: 1.5
-  SpaceHaloWidthDeg: 0.529999971
+  SpaceHaloWidthDeg: 0.769999981
   SpaceHaloIntensity: 0.0199999996
-  SpaceHaloCutoffDeg: 6
+  SpaceHaloCutoffDeg: 21.8999996
   StarNits: 160
   TwilightStartDeg: 0
   TwilightEndDeg: -45
@@ -151,7 +153,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-63.8999138, 20.8000145, -63.5000076]
+      Rotation: [-46.2997208, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]
@@ -167,7 +169,7 @@ Entities:
         []
     TransformComponent:
       Translation: [-12, -24, 2479]
-      Rotation: [0, -639.199158, 0]
+      Rotation: [0, 104.500015, 0]
       Scale: [1, 1, 1]
     MeshComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_SN3.gltf

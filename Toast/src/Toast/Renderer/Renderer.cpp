@@ -150,6 +150,12 @@ namespace Toast {
 		sRendererData->TonemappingBuffer.Allocate(sRendererData->TonemappingCBuffer->GetSize());
 		sRendererData->TonemappingBuffer.ZeroInitialize();
 
+		// Setting up the constant buffer and data buffer for the lightning pass settings
+		sRendererData->LightningPassCBuffer = ConstantBufferLibrary::Load("LightningPassSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)8) });
+		sRendererData->LightningPassCBuffer->Bind();
+		sRendererData->LightningPassBuffer.Allocate(sRendererData->LightningPassCBuffer->GetSize());
+		sRendererData->LightningPassBuffer.ZeroInitialize();
+
 		// Setting up the render targets for the Geometry Pass
 		sRendererData->GPassPositionRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R32G32B32A32_FLOAT);
 		sRendererData->GPassNormalRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
@@ -1110,6 +1116,12 @@ namespace Toast {
 		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 		sRendererData->AtmosphereCBuffer->Bind();
 
+		// Updating the lighting data in the buffer and mapping it to the GPU
+		sRendererData->LightningPassBuffer.Write((uint8_t*)&environment.DiffuseIBLGain, 4, 0);
+		sRendererData->LightningPassBuffer.Write((uint8_t*)&environment.SpecularIBLGain, 4, 4);
+		sRendererData->LightningPassCBuffer->Map(sRendererData->LightningPassBuffer);
+		sRendererData->LightningPassCBuffer->Bind();
+
 		sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
 
 		ShaderLibrary::Get("assets/shaders/Rendering/LightningPass.hlsl")->Bind();
@@ -1224,6 +1236,8 @@ namespace Toast {
 		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);		
 		TextureLibrary::GetSampler("SkyTest")->Bind(3, D3D11_PIXEL_SHADER);
 
+		float bakeIBL = 0.0f;
+
 		// Updating the atmospheric data in the buffer and mapping it to the GPU
 		auto& atmosphere = planet->GetAtmosphere();
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.AtmosphereHeight, 4, 0);
@@ -1241,6 +1255,7 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 104);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.APFarDynamic, 4, 108);
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.SunsetTint, 12, 112);
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&bakeIBL, 4, 124);
 		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 		sRendererData->AtmosphereCBuffer->Bind();
 
@@ -1336,6 +1351,11 @@ namespace Toast {
 		int enableSun = 0;
 		sRendererData->SunDiscSettingsBuffer.Write((uint8_t*)&enableSun, 4, 8);
 		sRendererData->SunDiscSettingsCBuffer->Map(sRendererData->SunDiscSettingsBuffer);
+
+		bakeIBL = 1.0f;
+
+		sRendererData->AtmosphereBuffer.Write((uint8_t*)&bakeIBL, 4, 124);
+		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 
 		RenderCommand::SetViewport(sRendererData->AtmosphereCubeViewport);
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> nullSRV = nullptr;

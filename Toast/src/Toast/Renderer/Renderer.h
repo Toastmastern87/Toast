@@ -85,6 +85,8 @@ namespace Toast {
 			
 			// Lightning Pass
 			Ref<RenderTarget> LPassRT;
+			Ref<ConstantBuffer> LightningPassCBuffer;
+			Buffer LightningPassBuffer;
 
 			// Particle Pass
 			Microsoft::WRL::ComPtr<ID3D11BlendState> ParticleBlendState;

@@ -718,6 +718,10 @@ namespace Toast {
 		out << YAML::Key << "Environment";
 		out << YAML::BeginMap;
 
+		// Lightning Pass Gains
+		out << YAML::Key << "DiffuseIBLGain" << YAML::Value << environment.DiffuseIBLGain;
+		out << YAML::Key << "SpecularIBLGain" << YAML::Value << environment.SpecularIBLGain;
+
 		// -------- Sun --------
 		out << YAML::Key << "SunDiscToggle" << YAML::Value << environment.SunDiscToggle;
 		out << YAML::Key << "SunIntensity" << YAML::Value << environment.SunIntensity;
@@ -933,6 +937,8 @@ namespace Toast {
 		Scene::Environment& environment = mScene->GetEnvirontment();
 
 		auto env = data["Environment"];
+		environment.DiffuseIBLGain = env["DiffuseIBLGain"].as<float>();
+		environment.SpecularIBLGain = env["SpecularIBLGain"].as<float>();
 		environment.SunDiscToggle = env["SunDiscToggle"].as<bool>();
 		environment.SunIntensity = env["SunIntensity"].as<float>();
 		environment.SunDiscRadius = env["SunDiscRadius"].as<float>();
