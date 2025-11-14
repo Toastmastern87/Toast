@@ -255,6 +255,8 @@ namespace Toast {
 
 		const std::string& GetFilePath() const { return mFilePath; }
 
+		std::unordered_map<std::string, UUID>& GetParts() { return mParts; }
+
 		std::vector<Vertex>& GetVertices() { return mLODGroups[mActiveLODGroup]->Vertices; }
 		std::vector<uint32_t>& GetIndices() { return mLODGroups[mActiveLODGroup]->Indices; }
 
@@ -290,6 +292,7 @@ namespace Toast {
 		bool mInstanced = false;
 
 		std::unordered_map<std::string, Ref<Material>> mMaterials;
+		std::unordered_map<std::string, UUID> mParts;
 
 		DirectX::XMMATRIX mTransform = DirectX::XMMatrixIdentity();
 

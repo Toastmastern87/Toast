@@ -443,6 +443,7 @@ namespace Toast {
 						}
 
 						component.MeshObject = CreateRef<Mesh>(*filepath);
+						scene->AddMeshPartEntities(component.MeshObject->GetParts(), entity);
 					}
 				}
 

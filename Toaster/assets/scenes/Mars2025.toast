@@ -1,6 +1,6 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [-5.08854771, -16.511549, 2368.62598]
+  Position: [-15.6655722, 4.17800808, 2319.55322]
 Settings:
   Grid: false
   CameraFrustum: true
@@ -78,8 +78,8 @@ Planet:
   MSGain: 1
   SGain: 1
 Environment:
-  DiffuseIBLGain: 17
-  SpecularIBLGain: 1.20000005
+  DiffuseIBLGain: 50.2999992
+  SpecularIBLGain: 1.29999995
   SunDiscToggle: true
   SunIntensity: 1
   SunDiscRadius: 0.00307999994
@@ -153,26 +153,10 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-46.2997208, 20.8000145, -63.5000076]
+      Rotation: [-40.8997879, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]
       Intensity: 1
       SunDesiredCoverage: 10000
       SunLightDistance: 961
-  - Entity: 13338274011544193136
-    TagComponent:
-      Tag: Starship
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [-12, -24, 2479]
-      Rotation: [0, 104.500015, 0]
-      Scale: [1, 1, 1]
-    MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_SN3.gltf
-      LODThresholds:
-        - 0.300000012
-        - 0.600000024

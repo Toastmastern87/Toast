@@ -394,7 +394,23 @@ namespace Toast {
 							}
 						}
 
-						TOAST_CORE_INFO("Mesh '%s' loaded with material '%s', number of indices: %d", submesh.MeshName.c_str(), submesh.MaterialName.c_str(), submesh.IndexCount);
+						auto GetPartBaseName = [](const std::string& name) -> std::string
+							{
+								if (name.empty()) return {};
+
+								size_t end = name.size();
+								while (end > 0 && std::isdigit(static_cast<unsigned char>(name[end - 1])))
+									--end;
+
+								return name.substr(0, end); // "Hull0" -> "Hull"
+							};
+
+						std::string basePartName = GetPartBaseName(submesh.MeshName);
+
+						if(mParts.find(basePartName) == mParts.end())
+							mParts[basePartName] = UUID();
+						 
+						TOAST_CORE_INFO("Mesh '%s' loaded with material '%s', number of indices: %d, Part Name '%s'", submesh.MeshName.c_str(), submesh.MaterialName.c_str(), submesh.IndexCount, basePartName.c_str());
 					}
 				}
 

@@ -117,6 +117,17 @@ namespace Toast {
 		operator Ref<Mesh>() { return MeshObject; }
 	};
 
+	struct MeshPartComponent
+	{
+		bool TempValue;
+
+		MeshPartComponent() = default;
+		MeshPartComponent(const MeshPartComponent& other) = default;
+		MeshPartComponent(const bool& value)
+			: TempValue(value) {
+		}
+	};
+
 	struct SpriteRendererComponent
 	{
 		DirectX::XMFLOAT4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };

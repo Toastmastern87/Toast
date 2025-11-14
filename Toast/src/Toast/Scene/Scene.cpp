@@ -1529,6 +1529,20 @@ namespace Toast {
 		parent.Children().push_back(entity.GetUUID());
 	}
 
+	void Scene::AddMeshPartEntities(std::unordered_map<std::string, UUID>& parts, Entity& meshParent)
+	{
+		for ( auto& [key, value] : parts)
+		{
+			Entity partEntity = CreateEntity(key);
+			value = partEntity.GetUUID();
+
+			partEntity.AddComponent<MeshPartComponent>();
+
+			partEntity.SetParentUUID(meshParent.GetUUID());
+			meshParent.Children().push_back(partEntity.GetUUID());
+		}
+	}
+
 	template<typename T>
 	static void CopyComponentIfExists(entt::entity dst, entt::registry& dstRegistry, entt::entity src, entt::registry& srcRegistry)
 	{
@@ -1569,6 +1583,7 @@ namespace Toast {
 		// Copy the remaining components from the prefab root.
 		CopyComponentIfExists<TransformComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<MeshComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<MeshPartComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<CameraComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<SpriteRendererComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<DirectionalLightComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
@@ -1606,6 +1621,7 @@ namespace Toast {
 			// Copy the remaining components.
 			CopyComponentIfExists<TransformComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<MeshComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<MeshPartComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<CameraComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<SpriteRendererComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<DirectionalLightComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
@@ -1731,6 +1747,7 @@ namespace Toast {
 		CopyComponent<PrefabComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TransformComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<MeshComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<MeshPartComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<CameraComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<SpriteRendererComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<DirectionalLightComponent>(target->mRegistry, mRegistry, enttMap);
@@ -1775,6 +1792,11 @@ namespace Toast {
 
 	template<>
 	void Scene::OnComponentAdded<MeshComponent>(Entity entity, MeshComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<MeshPartComponent>(Entity entity, MeshPartComponent& component)
 	{
 	}
 
