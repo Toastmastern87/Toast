@@ -442,7 +442,24 @@ namespace Toast {
 							tag = newTag.substr(0, found);
 						}
 
+						// Parts exists, erase them first
+						if (component.MeshObject)
+						{
+							if (!component.MeshObject->GetParts().empty())
+							{
+								auto& parts = component.MeshObject->GetParts();
+
+								for (auto& [name, uuid] : parts)
+								{
+									auto& child = scene->FindEntityByUUID(uuid);
+									entity.RemoveChild(child);
+									scene->DestroyEntity(child);
+								}
+							}
+						}
+
 						component.MeshObject = CreateRef<Mesh>(*filepath);
+
 						scene->AddMeshPartEntities(component.MeshObject->GetParts(), entity);
 					}
 				}

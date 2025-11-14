@@ -300,6 +300,19 @@ namespace Toast {
 			}
 			out << YAML::EndSeq;
 
+			out << YAML::Key << "Parts";
+			out << YAML::Value << YAML::BeginSeq;
+			auto& parts = mc.MeshObject->GetParts();
+
+			for (auto& [name, uuid] : parts)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Name" << YAML::Value << name;
+				out << YAML::Key << "Handle" << YAML::Value << uuid;
+				out << YAML::EndMap;
+			}
+			out << YAML::EndSeq;
+
 			out << YAML::EndMap; // MeshComponent
 		}
 
@@ -1067,6 +1080,20 @@ namespace Toast {
 						for (std::size_t i = 0; i < thresholdsNode.size(); ++i)
 						{
 							thresholds.emplace_back(thresholdsNode[i].as<float>());
+						}
+					}
+
+					if (meshComponent["Parts"])
+					{
+						const YAML::Node& partsNode = meshComponent["Parts"];
+						auto& parts = mc.MeshObject->GetParts();
+						for (std::size_t i = 0; i < partsNode.size(); ++i)
+						{
+							const auto& partNode = partsNode[i];
+							std::string name = partNode["Name"].as<std::string>();  
+							UUID handle = partNode["Handle"].as<UUID>();  
+
+							parts[name] = handle;
 						}
 					}
 				}

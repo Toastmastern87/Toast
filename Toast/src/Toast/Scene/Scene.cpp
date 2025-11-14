@@ -1533,7 +1533,7 @@ namespace Toast {
 	{
 		for ( auto& [key, value] : parts)
 		{
-			Entity partEntity = CreateEntity(key);
+			Entity partEntity = CreateEntity(key, meshParent.GetUUID());
 			value = partEntity.GetUUID();
 
 			partEntity.AddComponent<MeshPartComponent>();
