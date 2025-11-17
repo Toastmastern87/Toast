@@ -1471,6 +1471,16 @@ namespace Toast {
 		}
 	}
 
+	TerrainData Scene::LoadTerrainData(const std::string& path, const double maxHeight, const double minHeight)
+	{
+		return mPhysicsEngine->LoadTerrainData(path, maxHeight, minHeight);
+	}
+
+	float Scene::GetAltitude(Entity& entity)
+	{
+		return mPhysicsEngine->GetAltitude(entity);
+	}
+
 	Ref<Scene> Scene::CreateEmpty()
 	{
 		return CreateRef<Scene>();

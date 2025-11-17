@@ -1343,7 +1343,7 @@ namespace Toast {
 			scenePlanet->mTempGridSize = scenePlanet->mGridSize;
 			scenePlanet->mTempNumLevels = scenePlanet->mNumLevels;
 
-			scenePlanet->mTerrainData = PhysicsEngine::LoadTerrainData(scenePlanet->mBaseHeightMapTexture->GetFilePath(), scenePlanet->mMaxHeight, scenePlanet->mMinHeight);
+			scenePlanet->mTerrainData = mScene->LoadTerrainData(scenePlanet->mBaseHeightMapTexture->GetFilePath(), scenePlanet->mMaxHeight, scenePlanet->mMinHeight);
 
 			SceneCamera* camera = mScene->GetMainCamera();
 			if (camera)
