@@ -19,6 +19,8 @@
 
 namespace Toast {
 
+	class PhysicsEngineUpdated;
+
 	enum class RenderOverlay {
 		NONE = 0, 
 		POSITIONS = 1,
@@ -296,6 +298,8 @@ namespace Toast {
 		DirectX::XMFLOAT2 mViewportBounds[2];
 
 		Ref<ParticleSystem> mParticleSystem;
+
+		Ref<PhysicsEngineUpdated> mPhysicsEngine;
 
 		friend class Entity;
 		friend class Renderer;

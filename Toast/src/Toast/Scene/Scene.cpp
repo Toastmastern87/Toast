@@ -14,6 +14,7 @@
 #include "Toast/Scripting/ScriptEngine.h"
 
 #include "Toast/Physics/PhysicsEngine.h"
+#include "Toast/Physics/PhysicsEngineUpdated.h"
 
 namespace Toast {
 
@@ -32,6 +33,9 @@ namespace Toast {
 
 		mPlanet = CreateRef<Planet>();
 		mPlanet->Initialize();
+
+		mPhysicsEngine = CreateRef<PhysicsEngineUpdated>();
+		mPhysicsEngine->Initialize(this);
 	}
 
 	Scene::~Scene()

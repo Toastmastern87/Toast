@@ -144,72 +144,22 @@ Entities:
         - Name: ZoomFactor
           Type: Float
           Data: 2.29999995
-  - Entity: 697842924302282008
+  - Entity: 7969327153423302118
     TagComponent:
-      Tag: MainBody
+      Tag: Sunlight
     RelationshipComponent:
-      ParentHandle: 11637652594119463601
+      ParentHandle: 0
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 17200548796977600084
-    TagComponent:
-      Tag: LandingLegs
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 5350470097573753918
-    TagComponent:
-      Tag: Flap Backward Right
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 15688673418873795630
-    TagComponent:
-      Tag: Flap Forward Right
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 4757161398082090575
-    TagComponent:
-      Tag: Flap Backward Left
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 7625412182059970898
-    TagComponent:
-      Tag: Flap Forward Left
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
+      Rotation: [-40.8997879, 20.8000145, -63.5000076]
+      Scale: [0.999434412, 0.999894023, 0.999519885]
+    DirectionalLightComponent:
+      Radiance: [1, 0.980000019, 0.949999988]
+      Intensity: 1
+      SunDesiredCoverage: 10000
+      SunLightDistance: 961
   - Entity: 11637652594119463601
     TagComponent:
       Tag: Starship
@@ -244,19 +194,76 @@ Entities:
           Handle: 17200548796977600084
         - Name: MainBody
           Handle: 697842924302282008
-  - Entity: 7969327153423302118
+    RigidBodyComponent:
+      InvMass: 0.00019999999494757503
+      Elasticity: 0
+      Friction: 0
+      CenterOfMass: [0, 0, 0]
+      LinearDamping: 0
+      AngularDamping: 0
+  - Entity: 7625412182059970898
     TagComponent:
-      Tag: Sunlight
+      Tag: Flap Forward Left
     RelationshipComponent:
-      ParentHandle: 0
+      ParentHandle: 11637652594119463601
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-40.8997879, 20.8000145, -63.5000076]
-      Scale: [0.999434412, 0.999894023, 0.999519885]
-    DirectionalLightComponent:
-      Radiance: [1, 0.980000019, 0.949999988]
-      Intensity: 1
-      SunDesiredCoverage: 10000
-      SunLightDistance: 961
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 4757161398082090575
+    TagComponent:
+      Tag: Flap Backward Left
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 15688673418873795630
+    TagComponent:
+      Tag: Flap Forward Right
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 5350470097573753918
+    TagComponent:
+      Tag: Flap Backward Right
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 17200548796977600084
+    TagComponent:
+      Tag: LandingLegs
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 697842924302282008
+    TagComponent:
+      Tag: MainBody
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
