@@ -724,6 +724,7 @@ namespace Toast {
 		out << YAML::Key << "SunsetTint" << YAML::Value << scenePlanet->mAtmosphere.SunsetTint;
 		out << YAML::Key << "MSGain" << YAML::Value << scenePlanet->mAtmosphere.MSGain;
 		out << YAML::Key << "SGain" << YAML::Value << scenePlanet->mAtmosphere.SGain;
+		out << YAML::Key << "GravityConstant" << YAML::Value << scenePlanet->mGravityConstant;
 		out << YAML::EndMap;
 
 		Scene::Environment& environment = mScene->GetEnvirontment();
@@ -946,6 +947,7 @@ namespace Toast {
 		scenePlanet->mAtmosphere.SunsetTint = planet["SunsetTint"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mAtmosphere.MSGain = planet["MSGain"].as<float>();
 		scenePlanet->mAtmosphere.SGain = planet["SGain"].as<float>();
+		scenePlanet->mGravityConstant = planet["GravityConstant"].as<float>();
 
 		Scene::Environment& environment = mScene->GetEnvirontment();
 

@@ -90,9 +90,23 @@ namespace Toast {
 		return td;
 	}
 
+	void PhysicsEngineUpdated::ApplyLinearImpulse(RigidBodyComponent& rbc, Vector3 impulse)
+	{
+		if (rbc.InvMass == 0.0)
+			return;
+
+		rbc.LinearVelocity += (impulse * rbc.InvMass);
+	}
+
 	void PhysicsEngineUpdated::ApplyGravity(double ts)
 	{
+		auto view = mScene->mRegistry.view<RigidBodyComponent>();
+		for (auto entity : view)
+		{
+			RigidBodyComponent& rbc = view.get<RigidBodyComponent>(entity);
 
+			//ApplyLinearImpulse(rbc, Vector3(0.0, -9.81 * rbc.Mass * ts, 0.0));
+		}
 	}
 
 	void PhysicsEngineUpdated::WorldPosToHeightMapUV(Planet& p, const Vector3& worldPos, const Vector3& worldTranslation, int mapWidth, int mapHeight, float& outU, float& outV, double& outRadialDist)
@@ -102,7 +116,7 @@ namespace Toast {
 		// 1) Move into planet local coordinates
 		Vector3 pLocal = worldPos - planetTranslation - worldTranslation;
 		//Vector3 local = Vector3::Rotate(p, PlanetSystem::GetInvRotation());
-		// 3) world-space unit normal (matches nWS in the VS)
+		// 3) world-space unit normal (matches nWS in the VS) 
 		outRadialDist = pLocal.Length();
 
 		Vector3 nWS = pLocal / outRadialDist;

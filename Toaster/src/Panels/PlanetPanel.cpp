@@ -190,6 +190,40 @@ namespace Toast {
 
 				// section header
 				ImGui::PushFont(io.Fonts->Fonts[4]);
+				ImGui::TextUnformatted("Physics");
+				ImGui::PopFont();
+
+
+				if (ImGui::BeginTable("PhysicsTable", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_PadOuterX))
+				{
+					ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.4f);
+					ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.6f);
+
+					ImGui::TableNextRow();
+
+					ImGui::TableSetColumnIndex(0);
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Gravity Constant");
+
+					ImGui::TableSetColumnIndex(1);
+
+					float padX = ImGui::GetStyle().CellPadding.x;
+					float colW = ImGui::GetColumnWidth();             // total width of column 1
+					float fullW = colW - padX * 2.0f;                  // leave padding on both sides
+					ImGui::SetNextItemWidth(fullW);
+
+					ImGui::SetNextItemWidth(fullW);
+
+					ImGui::DragFloat("##GravityConstant", &mContext->mGravityConstant, 0.01f, 0.0f, 100.0f, "%.2f");
+
+					ImGui::EndTable();
+				}
+
+				ImGui::Spacing();            // one line
+				ImGui::Spacing();            // another (≈ 10-12 px total)
+
+				// section header
+				ImGui::PushFont(io.Fonts->Fonts[4]);
 				ImGui::TextUnformatted("Physically Based Rendering");
 				ImGui::PopFont();
 

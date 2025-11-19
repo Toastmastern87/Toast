@@ -246,6 +246,7 @@ namespace Toast {
 
 		if (!mIsPaused) 
 		{
+
 			// Updating box colliders
 			{
 				auto view = mRegistry.view<BoxColliderComponent, TransformComponent>();
@@ -258,29 +259,31 @@ namespace Toast {
 				}
 			}
 
-			double deltaTime = ts.GetSeconds() * mTimeScale;
-			double targetFrameTime = 1.0 / mSettings.PhysicsFPS; // Fixed time step in seconds
+			mPhysicsEngine->Update(ts.GetSeconds() * mTimeScale);
 
-			mSettings.physicsElapsedTime += deltaTime;
+			//double deltaTime = ts.GetSeconds() * mTimeScale;
+			//double targetFrameTime = 1.0 / mSettings.PhysicsFPS; // Fixed time step in seconds
 
-			int maxPhysicsUpdatesPerFrame = 1; // Prevents spiral of death
-			int physicsUpdateCount = 0;
+			//mSettings.physicsElapsedTime += deltaTime;
 
-			while (mSettings.physicsElapsedTime >= targetFrameTime && physicsUpdateCount < maxPhysicsUpdatesPerFrame)
-			{
-				//TOAST_CORE_CRITICAL("Elapsed time: %lf", mSettings.physicsElapsedTime);
+			//int maxPhysicsUpdatesPerFrame = 1; // Prevents spiral of death
+			//int physicsUpdateCount = 0;
 
-				// Call PhysicsEngine::Update with the fixed time step
-				PhysicsEngine::Update(&mRegistry, this, targetFrameTime, mSettings.PhysicSlowmotion, 1);
+			//while (mSettings.physicsElapsedTime >= targetFrameTime && physicsUpdateCount < maxPhysicsUpdatesPerFrame)
+			//{
+			//	//TOAST_CORE_CRITICAL("Elapsed time: %lf", mSettings.physicsElapsedTime);
 
-				mSettings.physicsElapsedTime -= targetFrameTime;
-				physicsUpdateCount++;
-			}
+			//	// Call PhysicsEngine::Update with the fixed time step
+			//	PhysicsEngine::Update(&mRegistry, this, targetFrameTime, mSettings.PhysicSlowmotion, 1);
 
-			if (physicsUpdateCount == maxPhysicsUpdatesPerFrame)
-			{
-				mSettings.physicsElapsedTime = 0.0;
-			}
+			//	mSettings.physicsElapsedTime -= targetFrameTime;
+			//	physicsUpdateCount++;
+			//}
+
+			//if (physicsUpdateCount == maxPhysicsUpdatesPerFrame)
+			//{
+			//	mSettings.physicsElapsedTime = 0.0;
+			//}
 
 			// Scripting
 			{
@@ -1725,6 +1728,7 @@ namespace Toast {
 		target->mSettings.SSAORadius = mSettings.SSAORadius;
 		target->mSettings.Bloom = mSettings.Bloom;
 		target->mSettings.Exposure = mSettings.Exposure;
+		target->mSettings.DirectionalLightningGain = mSettings.DirectionalLightningGain;
 
 		// Environment
 		target->mEnvironment = mEnvironment;

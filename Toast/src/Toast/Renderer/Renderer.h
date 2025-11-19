@@ -197,7 +197,7 @@ namespace Toast {
 		static void GeometryPass();
 		static void ShadowPass();
 		static void LightningPass(Ref<Planet>& planet, Scene::Environment& environment);
-		static void ParticlesPass(Camera& camera, const DirectX::XMFLOAT4 cameraPos);
+		static void ParticlesPass();
 		static void SSAOPass(float radius, float bias);
 
 		// Post Processes
@@ -271,5 +271,7 @@ namespace Toast {
 		static void GenerateParticleBuffers();
 		static void InvalidateParticleBuffers(size_t nrOfParticles, size_t maxNrOfParticles);
 		static void FillParticleBuffer(std::vector<Particle>& particles);
+	private:
+		static void UploadCameraCBuffer(Camera& camera, const DirectX::XMFLOAT4 cameraPos);
 	};
 }

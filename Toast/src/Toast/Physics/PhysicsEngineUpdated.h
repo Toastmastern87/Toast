@@ -20,6 +20,8 @@ namespace Toast {
 
 		double GetAltitude(Entity& entity);
 	private:
+		void ApplyLinearImpulse(RigidBodyComponent& rbc, Vector3 impulse);
+
 		void ApplyGravity(double ts);
 
 		void WorldPosToHeightMapUV(Planet& p, const Vector3& worldPos, const Vector3& worldTranslation, int mapWidth, int mapHeight, float& outU, float& outV, double& outRadialDist);

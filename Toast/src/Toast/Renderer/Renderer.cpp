@@ -343,17 +343,7 @@ namespace Toast {
 		sRendererData->Wireframe = wireFrame;
 
 		// Updating the camera data in the buffer and mapping it to the GPU
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetWorldTranslationMatrix(), 64, 0);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 64);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 128);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 192);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 256);
-		sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos.x, 16, 320);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 336);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 340);
-		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Width, 4, 344);
-		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Height, 4, 348);
-		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
+		UploadCameraCBuffer(camera, cameraPos);
 
 		// Updating the lightning data in the buffer and mapping it to the GPU
 		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].ViewProjectionMatrix, 64, 0);
@@ -408,6 +398,7 @@ namespace Toast {
 		{
 			StarFieldPass(environment, planet, planet->GetAtmosphere().AtmosphereHeight);
 			AtmospherePass(planet, environment, cameraPos, camera.GetWorldTranslation(), dynamicIBL);
+			UploadCameraCBuffer(camera, cameraPos);
 		}
 		else 
 		{
@@ -417,7 +408,7 @@ namespace Toast {
 		// Particles only for now, but will most likely be renamed and handle more things in the future.
 		// If there are no particles that needs to be rendered, this pass will be skipped.
 		if (sRendererData->ParticleIndexBuffer.Get())
-			ParticlesPass(camera, cameraPos);
+			ParticlesPass();
 
 		//if (sRendererData->PlanetDraw.Planet)
 		//{
@@ -1388,7 +1379,7 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer::ParticlesPass(Camera& camera, const DirectX::XMFLOAT4 cameraPos)
+	void Renderer::ParticlesPass()
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -1398,19 +1389,6 @@ namespace Toast {
 		if (annotation)
 			annotation->BeginEvent(L"Particle Pass");
 #endif
-
-		// Camera needs rebinding at this stage
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetWorldTranslationMatrix(), 64, 0); 
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 64);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 128);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 192);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 256);
-		sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos.x, 16, 320);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 336);
-		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 340);
-		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Width, 4, 344);
-		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Height, 4, 348);
-		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
 		RenderCommand::SetViewport(sRendererData->Viewport);
 		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
@@ -2137,6 +2115,21 @@ namespace Toast {
 		deviceContext->Unmap(sRendererData->ParticleBuffer.Get(), 0);
 
 		sRendererData->NrOfParticlesToRender = particles.size();
+	}
+
+	void Renderer::UploadCameraCBuffer(Camera& camera, const DirectX::XMFLOAT4 cameraPos)
+	{
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetWorldTranslationMatrix(), 64, 0);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetViewMatrix(), 64, 64);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetProjection(), 64, 128);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvViewMatrix(), 64, 192);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetInvProjection(), 64, 256);
+		sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos.x, 16, 320);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetFarClip(), 4, 336);
+		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetNearClip(), 4, 340);
+		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Width, 4, 344);
+		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Height, 4, 348);
+		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 	}
 
 }

@@ -313,6 +313,7 @@ namespace Toast {
 		friend class PropertiesPanel;
 		friend class SceneSettingsPanel;
 		friend class Prefab;
+		friend class PhysicsEngineUpdated;
 	};
 }
 	

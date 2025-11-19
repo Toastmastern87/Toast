@@ -520,8 +520,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 PMrgb = float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));
 
         // Remove delta peak for single scattering
-        float3 sigM_s_single = sigM_s * (1.0.xxx - f);
-        
+        float3 sigM_s_single = sigM_s * (1.0.xxx - f);       
         
         // --- use the *physical* horizon for all horizon/elevation logic -------------
         float cH_phys = MuHorizon(rp, RbPhys); // real horizon (PlanetRadius + MinHeight)

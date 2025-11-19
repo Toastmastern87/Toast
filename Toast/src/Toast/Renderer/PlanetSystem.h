@@ -177,6 +177,9 @@ namespace Toast {
 		Ref<TextureCube> mIrradianceMap;
 		Texture2D* mSpecularBRDFLUT;
 
+		// Physics
+		float mGravityConstant = 0.0f;
+
 		friend class SceneSerializer;
 		friend class PlanetPanel;
 	public:
@@ -254,6 +257,8 @@ namespace Toast {
 
 		void GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight);
 		void GenerateHeightMultLUT(std::vector<double>& heightMultLUT, double planetRadius, double maxHeight);
+
+		float GetGravityConstant() { return mGravityConstant; }
 	};
 
 }

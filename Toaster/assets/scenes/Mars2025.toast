@@ -16,7 +16,7 @@ Settings:
   SSAORadius: 0.5
   SSAObias: 0.0250000004
   SunSurfaceThreshold: 5
-  SunSurfaceIntensity: 0.599999905
+  SunSurfaceIntensity: 0.250000238
   SunSpaceThreshold: 5.89999104
   SunSpaceIntensity: 1.24999964
   SkySurfaceThreshold: 0
@@ -77,6 +77,7 @@ Planet:
   SunsetTint: [0.540000319, 0.750000119, 2.5099988]
   MSGain: 1
   SGain: 1
+  GravityConstant: 3.73000002
 Environment:
   DiffuseIBLGain: 50.2999992
   SpecularIBLGain: 1.29999995

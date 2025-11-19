@@ -500,6 +500,7 @@ PSOut main(PSIn i)
         float3 camWS = cameraPosition.xyz - WorldOffsetWS;
         float3 camRel = camWS - PlanetCenterWS;
         float rCam = max(RbPhys, length(camRel));
+        float heightCam = rCam - RbPhys;
         float3 wView = ViewDirWS_fromUV(uv); // unit
         
         Hit h = IntersectSphereGrazingSafe(camRel, wView, RbHit);
@@ -694,6 +695,39 @@ PSOut main(PSIn i)
                 discAttn *= spaceGain;
             }
 
+            
+            // ===============================
+            // Halo (AIR)
+            // ===============================
+            float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
+            
+            // Up vector at camera            
+            float3 upS = camRel / rCam;
+
+            // Cosine to physical horizon at camera
+            float cH_phys = MuHorizon(rCam, RbPhys); // or MuHorizon(rCam, RbPhys) depending on your overload
+
+            // Sun elevation above physical horizon
+            float muS = dot(wSun, upS);
+            float elevS = saturate((muS - cH_phys) / (1.0f - cH_phys));
+
+            // Low-sun factor (broad ramp that peaks near the horizon)
+            float fLowSun = 1.0f - smoothstep(0.35f, 0.85f, elevS);
+
+            // View elevation above physical horizon
+            float muView = dot(wView, upS);
+            muView = clamp(muView, -0.9995f, 0.9995f);
+            float elevV = saturate((muView - cH_phys) / (1.0f - cH_phys));
+
+            // Horizon band that peaks a bit above the rim
+            float fBandUp = 1.0f - smoothstep(0.10f, 0.40f, elevV);
+
+            // Gentle sunward bias (you already have muPhase = dot(wView, wSun))
+            float fSunward = smoothstep(0.20f, 0.80f, muPhase);
+
+            // Final sunset weight
+            float fBlue = saturate(fLowSun * fBandUp * fSunward);
+            
             // ===============================
             // Halo (AIR)
             // ===============================
@@ -709,9 +743,16 @@ PSOut main(PSIn i)
             float haloOuter = (0.28 * tailMain + 0.06 * tailUltra) * 0.85;
             float haloMaskAirShape = haloCore + haloOuter;
 
-            float bleedAmt = saturate((deg - 0.35) / 2.6) * inAirHalo;
-            float3 baseHalo = lerp(SunDiscWhite, WarmTint, 0.32);
-            float3 haloTint = lerp(baseHalo, sky, 0.75 * bleedAmt);
+            float bleedAmt = saturate((deg - 0.35f) / 2.6f) * inAirHalo;
+
+            // Base “day” halo (white → warm)
+            float3 baseHalo = lerp(SunDiscWhite, WarmTint, 0.32f);
+
+            // Inject sunset behavior: as fBlue → 1, we move towards SunsetTint
+            float3 sunsetHalo = lerp(baseHalo, SunsetTint, fBlue);
+
+            // Then bleed into the local sky color near the sun as you already did
+            float3 haloTint = lerp(sunsetHalo, sky, 0.75f * bleedAmt);
 
             float haloVisAir = smoothstep(-HorizonRefractionDeg - TwilightBlendDeg, +HorizonRefractionDeg, altRelGroundDeg);
             float3 haloRadianceAir = SunIntensity * 15.0f * (AirHaloIntensity * inAirHalo) * haloTint * haloMaskAirShape * haloVisAir;
@@ -728,9 +769,14 @@ PSOut main(PSIn i)
             float haloVisSpace = discVis;
             float3 spaceHaloTint = SunDiscWhite;
 
-            float3 haloRadianceSpace = SunIntensity * 15.0f
-            * (SpaceHaloIntensity) * spaceHaloTint * spaceGauss.xxx * haloVisSpace;
+            float3 haloRadianceSpace = SunIntensity * 15.0f * (SpaceHaloIntensity) * spaceHaloTint * spaceGauss.xxx * haloVisSpace;
 
+            // Combine the halos depending on space or air camera
+            float fSpaceView = saturate((heightCam - 0.75f * AtmosphereHeight) / (0.25f * AtmosphereHeight));
+            float fAirView = 1.0f - fSpaceView;
+            
+            float3 haloRadianceCombined = haloRadianceAir * fAirView + haloRadianceSpace * fSpaceView;
+            
             // ===============================
             // Core boost (existing)
             // ===============================           
@@ -750,7 +796,7 @@ PSOut main(PSIn i)
             // ===============================
             // Compose
             // ===============================
-            sunColor += discRadiance + haloRadianceAir + haloRadianceSpace;
+            sunColor += discRadiance + haloRadianceCombined;
 
             // ====== WRITE MASKS ======
             discMask_out = saturate(discMask * discVis);
