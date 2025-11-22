@@ -331,6 +331,10 @@ namespace Toast {
 		cb.MaxHeight = (float)mMaxHeight;
 		cb.MinHeight = (float)mMinHeight;
 
+		double dist = camRel.Length();
+		double alt = dist - mRadius;
+		cb.Altitude = (float)alt;
+
 		// planet-fixed triad – ONLY the quaternion is involved
 		Vector3 lonEastWS = Vector3::Normalize(Vector3::Rotate({ 1,0,0 }, mRotationQuat)); // +longitude
 		Vector3 spinUpWS = Vector3::Normalize(Vector3::Rotate({ 0,1,0 }, mRotationQuat)); // spin axis

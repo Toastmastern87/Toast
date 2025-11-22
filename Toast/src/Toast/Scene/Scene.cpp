@@ -255,7 +255,7 @@ namespace Toast {
 					auto [bcc, tc] = view.get<BoxColliderComponent, TransformComponent>(entity);
 					DirectX::XMVECTOR totalRotVec = DirectX::XMQuaternionMultiply(DirectX::XMLoadFloat4(&tc.RotationQuaternion), DirectX::XMQuaternionRotationRollPitchYawFromVector(DirectX::XMLoadFloat3(&tc.RotationEulerAngles)));
 					DirectX::XMFLOAT4 totalRot;
-					DirectX::XMStoreFloat4(&totalRot, totalRotVec);;
+					DirectX::XMStoreFloat4(&totalRot, totalRotVec);
 				}
 			}
 
@@ -1721,6 +1721,9 @@ namespace Toast {
 
 	void Scene::CopyTo(Scene* target)
 	{
+		// Camera
+		target->mMainCamera = mMainCamera;
+
 		// Settings
 		target->mSettings.PhysicSlowmotion = mSettings.PhysicSlowmotion;
 		target->mSettings.SSAO = mSettings.SSAO;

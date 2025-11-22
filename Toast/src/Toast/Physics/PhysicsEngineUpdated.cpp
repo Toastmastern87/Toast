@@ -16,7 +16,9 @@ namespace Toast {
 
 	void PhysicsEngineUpdated::Update(double ts)
 	{
+		ApplyGravity(ts);
 
+		IntegrateLinear(ts);
 	}
 
 	double PhysicsEngineUpdated::GetAltitude(Entity& entity)
@@ -100,12 +102,39 @@ namespace Toast {
 
 	void PhysicsEngineUpdated::ApplyGravity(double ts)
 	{
-		auto view = mScene->mRegistry.view<RigidBodyComponent>();
+		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
+		double gravityConstant = (double)mScene->GetPlanet()->GetGravityConstant();
+		Vector3 planetPos = Vector3(mScene->GetPlanet()->GetTranslation()) - worldTranslation;
+
+		auto view = mScene->mRegistry.view<RigidBodyComponent, TransformComponent>();
 		for (auto entity : view)
 		{
 			RigidBodyComponent& rbc = view.get<RigidBodyComponent>(entity);
+			TransformComponent& tc = view.get<TransformComponent>(entity);
 
-			//ApplyLinearImpulse(rbc, Vector3(0.0, -9.81 * rbc.Mass * ts, 0.0));
+			Vector3 objectPos = Vector3(tc.Translation) - worldTranslation;
+
+			Vector3 gravityImpulse = Vector3::Normalize(planetPos  - objectPos) * gravityConstant * (1.0 / rbc.InvMass) * ts;
+
+			ApplyLinearImpulse(rbc, gravityImpulse);
+		}
+	}
+
+	void PhysicsEngineUpdated::IntegrateLinear(double ts)
+	{
+		auto view = mScene->mRegistry.view<RigidBodyComponent, TransformComponent>();
+		for (auto entity : view)
+		{
+			RigidBodyComponent& rbc = view.get<RigidBodyComponent>(entity);
+			TransformComponent& tc = view.get<TransformComponent>(entity);
+
+			// Skip static entities
+			if (rbc.InvMass == 0.0) 
+				continue;
+
+			Vector3 deltaPos = rbc.LinearVelocity * (float)ts;
+
+			tc.Translation = { tc.Translation.x + (float)deltaPos.x, tc.Translation.y + (float)deltaPos.y, tc.Translation.z + (float)deltaPos.z };
 		}
 	}
 
