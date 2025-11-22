@@ -1031,6 +1031,7 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+
 #ifdef TOAST_DEBUG
 		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
 		RenderCommand::GetAnnotation(annotation);
@@ -1049,7 +1050,9 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->GPassPositionRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassNormalRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SSAONoiseTexture->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->GPassPickingRT->GetSRV());
 
+		TextureLibrary::GetSampler("PointSampler")->Bind(3, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("LinearSampler")->Bind(4, D3D11_PIXEL_SHADER);
 
 		sRendererData->SSAOBuffer.Write((uint8_t*)&sRendererData->SSAOKernel[0], 1024, 0);

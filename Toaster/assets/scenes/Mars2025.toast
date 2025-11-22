@@ -1,6 +1,6 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [-2.64413261, 5.43297958, 2323.52466]
+  Position: [-10.3575916, -1.21950567, -45.5969887]
 Settings:
   Grid: false
   CameraFrustum: true
@@ -51,7 +51,7 @@ Settings:
   SunFadeStartDeg: 3
   SunFadeEndDeg: -10
 Planet:
-  Translation: [0, -3393454, 0]
+  Translation: [0, -3383682, 0]
   Rotation: [74.899826, 5.10003328, -289.803223]
   GridSize: 257
   MaxLevels: 28
@@ -174,7 +174,7 @@ Entities:
         - Handle: 17200548796977600084
         - Handle: 697842924302282008
     TransformComponent:
-      Translation: [-26, 0, 2447]
+      Translation: [18, 18, 134]
       Rotation: [0, 115.5, 0]
       Scale: [1, 1, 1]
     MeshComponent:

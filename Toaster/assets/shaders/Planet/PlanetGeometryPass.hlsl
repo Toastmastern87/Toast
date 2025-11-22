@@ -29,13 +29,14 @@ cbuffer Camera : register(b0)
 
 cbuffer PlanetFrame : register(b4)
 {
-    float3 PlanetCentreVS;
+    float3 PlanetCenterWS;
     float PlanetRadius;
     float3 BasisTanEast;
     float MaxHeight;
     float3 BasisTanNorth;
     float MinHeight;
     float3 BasisRadUp;
+    float Altitude;
     float3 BasisLonEast;
     float3 BasisLonNorth;
     float3 BasisSpinUp;
@@ -85,25 +86,77 @@ float2 SphereUV(float3 nSphere)
     return float2(lon * INV_TWO_PI + 0.5, V);
 }
 
-PlanetPointVS CalulatePlanetPosVS(int2 gWorld, float heightScale)
-{
-    // metres on local tangent plane
-    float2 off = (float2)gWorld * (float)CellSize;
+//PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
+//{
+//    // metres on local tangent plane
+//    float2 off = (float2) gWorld * (float) CellSize;
 
-    // reference‐sphere point in view space
-    float3 pSphereWS = PlanetCentreVS + BasisRadUp * PlanetRadius + BasisTanEast * off.x + BasisTanNorth * off.y;
-
-    // radial direction (compute **once**)
-    float3 nWS = normalize(pSphereWS - PlanetCentreVS);
-
-    // height sample and displacement
-    float h = SampleHeight(SphereUV(nWS));
-    float3 pWS = PlanetCentreVS + nWS * (PlanetRadius + h * heightScale);
-
-    float4 pLocal = mul(float4(pWS, 1.0f), worldTranslationMatrix);
+//    float3 pSphereLocal = BasisRadUp * PlanetRadius + BasisTanEast * off.x + BasisTanNorth * off.y;
     
+//    float3 nWS = normalize(pSphereLocal);
+    
+//    // height sample
+//    float h = SampleHeight(SphereUV(nWS));
+    
+//    // -------- NEW: camera-relative position without big-center cancellation --------
+//    // dN is small (difference between two unit vectors)
+//    float3 dN = nWS - BasisRadUp;
+
+//    // camera-relative world space position (camera is at 0,0,0 in your floating origin)
+//    float3 pRelWS = dN * PlanetRadius + nWS * h - BasisRadUp * Altitude; // subtract camera altitude
+
+//    PlanetPointVS p;
+//    // viewMatrix is rotation-only or identity in your setup
+//    p.posVS = mul(float4(pRelWS, 1.0f), viewMatrix).xyz;
+//    p.nWS = nWS;
+//    return p;
+//}
+
+PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
+{
+    // 1. Local tangent-plane coordinates (meters)
+    float2 off = (float2) gWorld * (float) CellSize;
+
+    // 2. Direction on the reference sphere (scale-free, no big numbers)
+    //    This encodes the same direction as:
+    //       BasisRadUp*R + BasisTanEast*off.x + BasisTanNorth*off.y
+    //    but divided by R so the magnitude stays ~1.
+    float3 dirApprox =
+          BasisRadUp
+        + BasisTanEast * (off.x / PlanetRadius)
+        + BasisTanNorth * (off.y / PlanetRadius);
+
+    float3 nWS = normalize(dirApprox); // world-space normal on sphere
+
+    // 3. UV from that normal
+    float2 uv = SphereUV(nWS);
+
+    // 4. Sample height WITHOUT mip LOD variation
+    float hNorm = HeightMapTexture.SampleLevel(HeightMapSampler, uv, 0.0f).r;
+    float h = lerp(MinHeight, MaxHeight, hNorm); // height in meters
+
+    // 5. Camera-relative world-space position
+    //
+    // Camera is at:   camWS  = BasisRadUp * (PlanetRadius + Altitude) + planetCenter
+    // Surface point:  pWS    = BasisTanEast*off.x + BasisTanNorth*off.y
+    //                           + BasisRadUp*(PlanetRadius + h) + planetCenter
+    //
+    // Difference (pWS - camWS) cancels the big PlanetRadius term analytically:
+    //
+    //   pRel = BasisTanEast*off.x + BasisTanNorth*off.y + BasisRadUp*(h - Altitude)
+    //
+    // We just build that directly in the local frame – no PlanetRadius here at all.
+    //
+    float3 pRelWS =
+          BasisTanEast * off.x
+        + BasisTanNorth * off.y
+        + BasisRadUp * (h - Altitude);
+
+    // 6. To view space (viewMatrix is rotation-only / identity in your floating-origin setup)
+    float3 posVS = mul(float4(pRelWS, 1.0f), viewMatrix).xyz;
+
     PlanetPointVS p;
-    p.posVS = mul(pLocal, viewMatrix).xyz;
+    p.posVS = posVS;
     p.nWS = nWS;
     return p;
 }
@@ -115,7 +168,7 @@ PixelInputType main(VertexInputType input)
     // unpack & scroll to **planet metres** on the tangent plane
     int2 gWorld = int2(OriginX, OriginY) + int2(input.grid);
     
-    PlanetPointVS C = CalulatePlanetPosVS(gWorld, 1.0f);
+    PlanetPointVS C = CalulatePlanetPosVS(gWorld);
     
     output.pixelPosition = mul(float4(C.posVS, 1.0f), projectionMatrix);
     output.viewPosition = C.posVS;
@@ -173,7 +226,7 @@ cbuffer Material : register(b2)
 
 cbuffer PlanetFrame : register(b4)
 {
-    float3 PlanetCentreVS;
+    float3 PlanetCenterWS;
     float PlanetRadius;
     float3 BasisTanEast;
     float MaxHeight;
@@ -294,11 +347,12 @@ PixelOutputType main(PixelInputType input)
     
     float3 nSphereWS = normalize(input.normalSphereWS);
 
-    float2 uv = SphereUV(nSphereWS); // same helper you already have
+    float2 uv = SphereUV(nSphereWS); // same helper you already have   
     float3 nWS = AnalyticalNormal(uv); // 2 extra height samples    
     float3 nVS = normalize(mul(nWS, (float3x3) viewMatrix));
     
-    output.position = float4(input.viewPosition, 1.0);
+    
+    output.position = float4(input.viewPosition, 1.0f);
     output.normal = float4(nVS * 0.5f + 0.5f, 1.0f);
 
     /*--------------------------------------------------------------*/
@@ -316,6 +370,6 @@ PixelOutputType main(PixelInputType input)
     output.roughnessAO = float4(Roughness, 0.0f, 0.0, 1.0);
 
     output.entityID = 0;
-
+   
     return output;
 }

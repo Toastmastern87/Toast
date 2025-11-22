@@ -61,7 +61,7 @@ namespace Toast {
 		DirectX::XMFLOAT3 BasisTanNorth;
 		float MinHeight;
 		DirectX::XMFLOAT3 BasisRadUp;
-		float Pad2;
+		float Altitude;
 		DirectX::XMFLOAT3 BasisLonEast;
 		float Pad4;
 		DirectX::XMFLOAT3 BasisLonNorth;
