@@ -244,7 +244,7 @@ namespace Toast {
 			mStats.VerticesCount = 0;
 		}
 
-		if (!mIsPaused) 
+		if (!mIsPaused)
 		{
 
 			// Updating box colliders
@@ -259,31 +259,19 @@ namespace Toast {
 				}
 			}
 
-			mPhysicsEngine->Update(ts.GetSeconds() * mTimeScale);
+			float deltaTime = ts.GetSeconds() * mTimeScale;
+			float physicsTargetFrameTime = 1.0 / mSettings.PhysicsFPS;
+			float subStepDeltaTime = physicsTargetFrameTime / 30.0f;
 
-			//double deltaTime = ts.GetSeconds() * mTimeScale;
-			//double targetFrameTime = 1.0 / mSettings.PhysicsFPS; // Fixed time step in seconds
+			mSettings.physicsElapsedTime += deltaTime;
 
-			//mSettings.physicsElapsedTime += deltaTime;
+			while (mSettings.physicsElapsedTime >= physicsTargetFrameTime)
+			{
+				for (int i = 0; i < 30; ++i)
+					mPhysicsEngine->Update(subStepDeltaTime);
 
-			//int maxPhysicsUpdatesPerFrame = 1; // Prevents spiral of death
-			//int physicsUpdateCount = 0;
-
-			//while (mSettings.physicsElapsedTime >= targetFrameTime && physicsUpdateCount < maxPhysicsUpdatesPerFrame)
-			//{
-			//	//TOAST_CORE_CRITICAL("Elapsed time: %lf", mSettings.physicsElapsedTime);
-
-			//	// Call PhysicsEngine::Update with the fixed time step
-			//	PhysicsEngine::Update(&mRegistry, this, targetFrameTime, mSettings.PhysicSlowmotion, 1);
-
-			//	mSettings.physicsElapsedTime -= targetFrameTime;
-			//	physicsUpdateCount++;
-			//}
-
-			//if (physicsUpdateCount == maxPhysicsUpdatesPerFrame)
-			//{
-			//	mSettings.physicsElapsedTime = 0.0;
-			//}
+				mSettings.physicsElapsedTime -= physicsTargetFrameTime;
+			}
 
 			// Scripting
 			{

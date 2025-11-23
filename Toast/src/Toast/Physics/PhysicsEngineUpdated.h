@@ -22,9 +22,9 @@ namespace Toast {
 	private:
 		void ApplyLinearImpulse(RigidBodyComponent& rbc, Vector3 impulse);
 
-		void ApplyGravity(double ts);
+		void ApplyGravity(Entity& entity, double ts);
 
-		void IntegrateLinear(double ts);
+		void IntegrateLinear(Entity& entity, double ts);
 
 		void WorldPosToHeightMapUV(Planet& p, const Vector3& worldPos, const Vector3& worldTranslation, int mapWidth, int mapHeight, float& outU, float& outV, double& outRadialDist);
 		double SampleHeightBilinear(const std::vector<double>& heightData, int textureWidth, int textureHeight, float u, float v);

@@ -1,6 +1,6 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [-10.3575916, -1.21950567, -45.5969887]
+  Position: [11.781436, 48.4650879, 20.9094181]
 Settings:
   Grid: false
   CameraFrustum: true
@@ -8,7 +8,7 @@ Settings:
   DirectionalLightningGain: 30
   BackfaceCulling: true
   FrustumCulling: true
-  RenderColliders: false
+  RenderColliders: true
   RenderUI: true
   Shadows: true
   SSAO: true
@@ -145,6 +145,116 @@ Entities:
         - Name: ZoomFactor
           Type: Float
           Data: 2.29999995
+  - Entity: 454669151441921778
+    TagComponent:
+      Tag: MainBody
+    RelationshipComponent:
+      ParentHandle: 14796545384475566267
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 2941478050912602356
+    TagComponent:
+      Tag: LandingLegs
+    RelationshipComponent:
+      ParentHandle: 14796545384475566267
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 6527692647073640125
+    TagComponent:
+      Tag: Flap Backward Right
+    RelationshipComponent:
+      ParentHandle: 14796545384475566267
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 1849001290532137626
+    TagComponent:
+      Tag: Flap Forward Right
+    RelationshipComponent:
+      ParentHandle: 14796545384475566267
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 3758790226852764911
+    TagComponent:
+      Tag: Flap Backward Left
+    RelationshipComponent:
+      ParentHandle: 14796545384475566267
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 11260157089930105167
+    TagComponent:
+      Tag: Flap Forward Left
+    RelationshipComponent:
+      ParentHandle: 14796545384475566267
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 14796545384475566267
+    TagComponent:
+      Tag: Starship2
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        - Handle: 11260157089930105167
+        - Handle: 3758790226852764911
+        - Handle: 1849001290532137626
+        - Handle: 6527692647073640125
+        - Handle: 2941478050912602356
+        - Handle: 454669151441921778
+    TransformComponent:
+      Translation: [29, 29, 221]
+      Rotation: [0, 129, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_SN3.gltf
+      LODThresholds:
+        - 0.300000012
+        - 0.600000024
+      Parts:
+        - Name: Flap Forward Left
+          Handle: 11260157089930105167
+        - Name: Flap Backward Left
+          Handle: 3758790226852764911
+        - Name: Flap Forward Right
+          Handle: 1849001290532137626
+        - Name: Flap Backward Right
+          Handle: 6527692647073640125
+        - Name: LandingLegs
+          Handle: 2941478050912602356
+        - Name: MainBody
+          Handle: 454669151441921778
+    RigidBodyComponent:
+      InvMass: 0.00019999999494757503
+      Elasticity: 0
+      Friction: 0
+      CenterOfMass: [0, 0, 0]
+      LinearDamping: 0
+      AngularDamping: 0
+    BoxColliderComponent:
+      RenderCollider: true
+      Size: [5.2999999999999998, 25, 8]
   - Entity: 697842924302282008
     TagComponent:
       Tag: MainBody
@@ -224,7 +334,7 @@ Entities:
         - Handle: 17200548796977600084
         - Handle: 697842924302282008
     TransformComponent:
-      Translation: [18, 29, 221]
+      Translation: [-29, 29, 221]
       Rotation: [0, 129.000046, 0]
       Scale: [1, 1, 1]
     MeshComponent:
@@ -252,6 +362,9 @@ Entities:
       CenterOfMass: [0, 0, 0]
       LinearDamping: 0
       AngularDamping: 0
+    SphereColliderComponent:
+      RenderCollider: true
+      Radius: 25.200000762939453
   - Entity: 7969327153423302118
     TagComponent:
       Tag: Sunlight
