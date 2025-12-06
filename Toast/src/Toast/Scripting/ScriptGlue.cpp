@@ -201,7 +201,7 @@ namespace Toast {
 		Entity entity = scene->FindEntityByUUID(entityID);
 		TOAST_CORE_ASSERT(entity, "");
 
-		return scene->GetAltitude(entity);
+		return 10.0f;// scene->GetAltitude(entity);
 	}
 
 #pragma endregion

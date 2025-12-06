@@ -4,7 +4,7 @@ vertex
 #type vertex
 #pragma pack_matrix( row_major )
 
-static const float PI = 3.14159265359f;
+static const float PI = 3.14159265358979323846f;
 static const float INV_TWO_PI = 1.0f / (2.0f * PI);
 static const float INV_PI = 1.0f / PI;
 
@@ -63,104 +63,201 @@ struct PlanetPointVS
     float3 nWS; // unit sphere normal in world-space
 };
 
-Texture2D HeightMapTexture      : register(t0);
+Texture2DArray<float> HeightCubeArray   : register(t0);
 
-SamplerState HeightMapSampler   : register(s5);
+SamplerState HeightMapSampler           : register(s5);
 
-float SampleHeight(float2 uv)     // uv in [0,1]
+struct CubeSample
 {
-    float h = HeightMapTexture.SampleLevel(HeightMapSampler, uv, 0).r;
-    return lerp(MinHeight, MaxHeight, h);
+    uint face;
+    float2 uv; // [0,1]
+};
+
+float3 CubeFaceUVToDir(uint face, float2 uv)
+{
+    // Match the bake: flip Y
+    float2 p = 2.0 * float2(uv.x, 1.0 - uv.y) - 1.0;
+    float px = p.x;
+    float py = p.y;
+
+    switch (face)
+    {
+        case 0:
+            return normalize(float3(1.0, py, -px)); // +X
+        case 1:
+            return normalize(float3(-1.0, py, px)); // -X
+        case 2:
+            return normalize(float3(px, 1.0, -py)); // +Y
+        case 3:
+            return normalize(float3(px, -1.0, py)); // -Y
+        case 4:
+            return normalize(float3(px, py, 1.0)); // +Z
+        default:
+            return normalize(float3(-px, py, -1.0)); // -Z
+    }
 }
 
-float2 SphereUV(float3 nSphere)
+CubeSample DirectionToCube(float3 v)
 {
-    float3 v;
-    v.x = dot(nSphere, BasisLonEast);
-    v.y = dot(nSphere, BasisSpinUp);
-    v.z = dot(nSphere, BasisLonNorth);
+    v = normalize(v);
 
-    float lon = atan2(v.z, v.x); // −π … +π
-    float lat = asin(v.y); // −π/2 … +π/2
-    float V = 0.5 - lat * INV_PI;
-    return float2(lon * INV_TWO_PI + 0.5, V);
+    float ax = abs(v.x);
+    float ay = abs(v.y);
+    float az = abs(v.z);
+
+    uint face;
+    float2 uvFace;
+
+    if (ax >= ay && ax >= az)
+    {
+        if (v.x > 0)
+        {
+            face = 0;
+            uvFace = float2(-v.z, v.y) / ax;
+        }
+        else
+        {
+            face = 1;
+            uvFace = float2(v.z, v.y) / ax;
+        }
+    }
+    else if (ay >= ax && ay >= az)
+    {
+        if (v.y > 0)
+        {
+            face = 2;
+            uvFace = float2(v.x, -v.z) / ay;
+        }
+        else
+        {
+            face = 3;
+            uvFace = float2(v.x, v.z) / ay;
+        }
+    }
+    else
+    {
+        if (v.z > 0)
+        {
+            face = 4;
+            uvFace = float2(v.x, v.y) / az;
+        }
+        else
+        {
+            face = 5;
+            uvFace = float2(-v.x, v.y) / az;
+        }
+    }
+
+    CubeSample cs;
+    cs.face = face;
+    cs.uv = uvFace * 0.5 + 0.5;
+    return cs;
 }
 
-//PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
-//{
-//    // metres on local tangent plane
-//    float2 off = (float2) gWorld * (float) CellSize;
+// If uv is outside [0,1], wrap to the correct neighbor face via direction space.
+CubeSample RemapFaceUV(uint face, float2 uv)
+{
+    if (all(uv >= 0.0f) && all(uv <= 1.0f))
+    {
+        CubeSample cs;
+        cs.face = face;
+        cs.uv = uv;
+        return cs;
+    }
+    float3 dir = CubeFaceUVToDir(face, uv);
+    return DirectionToCube(dir);
+}
 
-//    float3 pSphereLocal = BasisRadUp * PlanetRadius + BasisTanEast * off.x + BasisTanNorth * off.y;
-    
-//    float3 nWS = normalize(pSphereLocal);
-    
-//    // height sample
-//    float h = SampleHeight(SphereUV(nWS));
-    
-//    // -------- NEW: camera-relative position without big-center cancellation --------
-//    // dN is small (difference between two unit vectors)
-//    float3 dN = nWS - BasisRadUp;
+// Manual bilinear sampler that crosses cube-face edges using Load().
+float SampleCubeBilinearLoad(float3 dir, uint2 dims, uint mip)
+{
+    CubeSample cs = DirectionToCube(dir);
+    uint face = cs.face;
+    float2 uv = cs.uv;
 
-//    // camera-relative world space position (camera is at 0,0,0 in your floating origin)
-//    float3 pRelWS = dN * PlanetRadius + nWS * h - BasisRadUp * Altitude; // subtract camera altitude
+    float2 p = uv * dims - 0.5f;
+    float2 fxy = frac(p);
+    int2 i0 = int2(floor(p));
+    int2 i1 = i0 + 1;
 
-//    PlanetPointVS p;
-//    // viewMatrix is rotation-only or identity in your setup
-//    p.posVS = mul(float4(pRelWS, 1.0f), viewMatrix).xyz;
-//    p.nWS = nWS;
-//    return p;
-//}
+    float2 uv00 = (float2(i0) + 0.5f) / dims;
+    float2 uv10 = (float2(i1.x, i0.y) + 0.5f) / dims;
+    float2 uv01 = (float2(i0.x, i1.y) + 0.5f) / dims;
+    float2 uv11 = (float2(i1) + 0.5f) / dims;
+
+    CubeSample c00 = RemapFaceUV(face, uv00);
+    CubeSample c10 = RemapFaceUV(face, uv10);
+    CubeSample c01 = RemapFaceUV(face, uv01);
+    CubeSample c11 = RemapFaceUV(face, uv11);
+
+    int2 wh = int2(dims);
+    int2 ij00 = clamp(int2(c00.uv * wh), int2(0, 0), wh - 1);
+    int2 ij10 = clamp(int2(c10.uv * wh), int2(0, 0), wh - 1);
+    int2 ij01 = clamp(int2(c01.uv * wh), int2(0, 0), wh - 1);
+    int2 ij11 = clamp(int2(c11.uv * wh), int2(0, 0), wh - 1);
+
+    float v00 = HeightCubeArray.Load(int4(ij00, c00.face, mip));
+    float v10 = HeightCubeArray.Load(int4(ij10, c10.face, mip));
+    float v01 = HeightCubeArray.Load(int4(ij01, c01.face, mip));
+    float v11 = HeightCubeArray.Load(int4(ij11, c11.face, mip));
+
+    float vx0 = lerp(v00, v10, fxy.x);
+    float vx1 = lerp(v01, v11, fxy.x);
+    return lerp(vx0, vx1, fxy.y);
+}
+
+/*──────────────────────── Use it in vertex sampling ───────────────────────────────*/
+
+float SampleHeightFromDir(float3 dirPlanet)
+{
+    // Mip 0; if you use mips, compute dims for that mip.
+    uint W, H, L;
+    HeightCubeArray.GetDimensions(W, H, L);
+    return SampleCubeBilinearLoad(normalize(dirPlanet), uint2(W, H), /*mip*/0);
+}
 
 PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
 {
-    // 1. Local tangent-plane coordinates (meters)
+    // 1. Local tangent-plane coordinates in meters
     float2 off = (float2) gWorld * (float) CellSize;
 
-    // 2. Direction on the reference sphere (scale-free, no big numbers)
-    //    This encodes the same direction as:
-    //       BasisRadUp*R + BasisTanEast*off.x + BasisTanNorth*off.y
-    //    but divided by R so the magnitude stays ~1.
-    float3 dirApprox =
+    // 2. Reference-sphere position in world basis
+    //float3 pSphereLocal = BasisRadUp * PlanetRadius + BasisTanEast * off.x + BasisTanNorth * off.y;
+    float3 pSphereLocal =
           BasisRadUp
         + BasisTanEast * (off.x / PlanetRadius)
         + BasisTanNorth * (off.y / PlanetRadius);
 
-    float3 nWS = normalize(dirApprox); // world-space normal on sphere
+    // Direction from planet center
+    float3 nWS = normalize(pSphereLocal);
 
-    // 3. UV from that normal
-    float2 uv = SphereUV(nWS);
+    // Convert world-space normal to planet-local coordinates
+    float3 vPlanet;
+    vPlanet.x = dot(nWS, BasisLonEast); // "east" axis of planet
+    vPlanet.y = dot(nWS, BasisSpinUp); // spin axis
+    vPlanet.z = dot(nWS, BasisLonNorth); // "north" axis
 
-    // 4. Sample height WITHOUT mip LOD variation
-    float hNorm = HeightMapTexture.SampleLevel(HeightMapSampler, uv, 0.0f).r;
-    float h = lerp(MinHeight, MaxHeight, hNorm); // height in meters
+    float h = SampleHeightFromDir(normalize(vPlanet));
 
-    // 5. Camera-relative world-space position
+    // 5. Camera-relative world space position
     //
-    // Camera is at:   camWS  = BasisRadUp * (PlanetRadius + Altitude) + planetCenter
-    // Surface point:  pWS    = BasisTanEast*off.x + BasisTanNorth*off.y
-    //                           + BasisRadUp*(PlanetRadius + h) + planetCenter
+    // Surface point: pWS   = nWS * (PlanetRadius + h)
+    // Camera:        camWS = BasisRadUp * (PlanetRadius + Altitude)
     //
-    // Difference (pWS - camWS) cancels the big PlanetRadius term analytically:
+    // pRel = pWS - camWS
+    //      = (nWS - BasisRadUp) * PlanetRadius + nWS*h - BasisRadUp*Altitude
     //
-    //   pRel = BasisTanEast*off.x + BasisTanNorth*off.y + BasisRadUp*(h - Altitude)
-    //
-    // We just build that directly in the local frame – no PlanetRadius here at all.
-    //
-    float3 pRelWS =
-          BasisTanEast * off.x
-        + BasisTanNorth * off.y
-        + BasisRadUp * (h - Altitude);
+    float3 dN = nWS - BasisRadUp;
+    float3 pRelWS = dN * PlanetRadius + nWS * h - BasisRadUp * Altitude;
 
-    // 6. To view space (viewMatrix is rotation-only / identity in your floating-origin setup)
     float3 posVS = mul(float4(pRelWS, 1.0f), viewMatrix).xyz;
 
     PlanetPointVS p;
     p.posVS = posVS;
-    p.nWS = nWS;
+    p.nWS = nWS; // true spherical normal from center
     return p;
 }
-
+  
 PixelInputType main(VertexInputType input)
 {
     PixelInputType output;
@@ -173,13 +270,14 @@ PixelInputType main(VertexInputType input)
     output.pixelPosition = mul(float4(C.posVS, 1.0f), projectionMatrix);
     output.viewPosition = C.posVS;
     output.normalSphereWS = C.nWS;
+
     return output;
 }
 
 #type pixel
 #pragma pack_matrix( row_major )
 
-static const float PI = 3.14159265359f;
+static const float PI = 3.14159265358979323846f;
 static const float INV_TWO_PI = 1.0f / (2.0f * PI);
 static const float INV_PI = 1.0f / PI;
 
@@ -233,6 +331,7 @@ cbuffer PlanetFrame : register(b4)
     float3 BasisTanNorth;
     float MinHeight;
     float3 BasisRadUp;
+    float Altitude;
     float3 BasisLonEast;
     float3 BasisLonNorth;
     float3 BasisSpinUp;
@@ -254,80 +353,205 @@ struct PBRParameters
     float AO;
 };
 
-Texture2D HeightMapTexture : register(t0);
+Texture2DArray<float> HeightCubeArray   : register(t0);
 
-SamplerState HeightMapSampler : register(s5);
+SamplerState HeightMapSampler           : register(s5);
 
-float SampleHeight(float2 uv)     // uv in [0,1]
+struct CubeSample
 {
-    float h = HeightMapTexture.SampleLevel(HeightMapSampler, uv, 0).r;
-    return lerp(MinHeight, MaxHeight, h);
+    uint face;
+    float2 uv; // [0,1]
+};
+
+float3 CubeFaceUVToDir(uint face, float2 uv)
+{
+    // Match the bake: flip Y
+    float2 p = 2.0 * float2(uv.x, 1.0 - uv.y) - 1.0;
+    float px = p.x;
+    float py = p.y;
+
+    switch (face)
+    {
+        case 0:
+            return normalize(float3(1.0, py, -px)); // +X
+        case 1:
+            return normalize(float3(-1.0, py, px)); // -X
+        case 2:
+            return normalize(float3(px, 1.0, -py)); // +Y
+        case 3:
+            return normalize(float3(px, -1.0, py)); // -Y
+        case 4:
+            return normalize(float3(px, py, 1.0)); // +Z
+        default:
+            return normalize(float3(-px, py, -1.0)); // -Z
+    }
 }
 
-float2 SphereUV(float3 nSphere)
+CubeSample DirectionToCube(float3 v)
 {
-    float3 v;
-    v.x = dot(nSphere, BasisLonEast);
-    v.y = dot(nSphere, BasisSpinUp);
-    v.z = dot(nSphere, BasisLonNorth);
+    v = normalize(v);
 
-    float lon = atan2(v.z, v.x); // −π … +π
-    float lat = asin(v.y); // −π/2 … +π/2
-    float V = 0.5 - lat * INV_PI;
-    return float2(lon * INV_TWO_PI + 0.5, V);
+    float ax = abs(v.x);
+    float ay = abs(v.y);
+    float az = abs(v.z);
+
+    uint face;
+    float2 uvFace;
+
+    if (ax >= ay && ax >= az)
+    {
+        if (v.x > 0)
+        {
+            face = 0;
+            uvFace = float2(-v.z, v.y) / ax;
+        }
+        else
+        {
+            face = 1;
+            uvFace = float2(v.z, v.y) / ax;
+        }
+    }
+    else if (ay >= ax && ay >= az)
+    {
+        if (v.y > 0)
+        {
+            face = 2;
+            uvFace = float2(v.x, -v.z) / ay;
+        }
+        else
+        {
+            face = 3;
+            uvFace = float2(v.x, v.z) / ay;
+        }
+    }
+    else
+    {
+        if (v.z > 0)
+        {
+            face = 4;
+            uvFace = float2(v.x, v.y) / az;
+        }
+        else
+        {
+            face = 5;
+            uvFace = float2(-v.x, v.y) / az;
+        }
+    }
+
+    CubeSample cs;
+    cs.face = face;
+    cs.uv = uvFace * 0.5 + 0.5;
+    return cs;
 }
 
-float3 ToWorld(float3 v)        // v is expressed in {east, up, north}
+// If uv is outside [0,1], wrap to the correct neighbor face via direction space.
+CubeSample RemapFaceUV(uint face, float2 uv)
 {
-    // columns (or rows — whichever convention you use) are the basis
-    return v.x * BasisLonEast +
-           v.y * BasisSpinUp +
-           v.z * BasisLonNorth;
+    if (all(uv >= 0.0f) && all(uv <= 1.0f))
+    {
+        CubeSample cs;
+        cs.face = face;
+        cs.uv = uv;
+        return cs;
+    }
+    float3 dir = CubeFaceUVToDir(face, uv);
+    return DirectionToCube(dir);
 }
 
-float3 AnalyticalNormal(float2 uv)
+// Manual bilinear sampler that crosses cube-face edges using Load().
+float SampleCubeBilinearLoad(float3 dir, uint2 dims, uint mip)
 {
-    uint texWidth, texHeight;
-    HeightMapTexture.GetDimensions(texWidth, texHeight);
+    CubeSample cs = DirectionToCube(dir);
+    uint face = cs.face;
+    float2 uv = cs.uv;
 
-    float u = 1.0f / texWidth;
-    float v = 1.0f / texHeight;
+    float2 p = uv * dims - 0.5f;
+    float2 fxy = frac(p);
+    int2 i0 = int2(floor(p));
+    int2 i1 = i0 + 1;
 
-    // base + neighbour heights
-    float h0 = SampleHeight(uv);
-    float hU = SampleHeight(uv + float2(u, 0));
-    float hV = SampleHeight(uv + float2(0, v));
+    float2 uv00 = (float2(i0) + 0.5f) / dims;
+    float2 uv10 = (float2(i1.x, i0.y) + 0.5f) / dims;
+    float2 uv01 = (float2(i0.x, i1.y) + 0.5f) / dims;
+    float2 uv11 = (float2(i1) + 0.5f) / dims;
 
-    // 2) recover longitude / latitude
-    float lon = (uv.x - 0.5) * 2 * PI;
-    float lat = (0.5 - uv.y) * PI;
+    CubeSample c00 = RemapFaceUV(face, uv00);
+    CubeSample c10 = RemapFaceUV(face, uv10);
+    CubeSample c01 = RemapFaceUV(face, uv01);
+    CubeSample c11 = RemapFaceUV(face, uv11);
 
-    // ───── ①  correct inverse mapping  ─────
+    int2 wh = int2(dims);
+    int2 ij00 = clamp(int2(c00.uv * wh), int2(0, 0), wh - 1);
+    int2 ij10 = clamp(int2(c10.uv * wh), int2(0, 0), wh - 1);
+    int2 ij01 = clamp(int2(c01.uv * wh), int2(0, 0), wh - 1);
+    int2 ij11 = clamp(int2(c11.uv * wh), int2(0, 0), wh - 1);
+
+    float v00 = HeightCubeArray.Load(int4(ij00, c00.face, mip));
+    float v10 = HeightCubeArray.Load(int4(ij10, c10.face, mip));
+    float v01 = HeightCubeArray.Load(int4(ij01, c01.face, mip));
+    float v11 = HeightCubeArray.Load(int4(ij11, c11.face, mip));
+
+    float vx0 = lerp(v00, v10, fxy.x);
+    float vx1 = lerp(v01, v11, fxy.x);
+    return lerp(vx0, vx1, fxy.y);
+}
+
+// Sample height from direction using seamless bilinear Load across faces (mip 0).
+float SampleHeightDir(float3 dirPlanet)
+{
+    uint W, H, L;
+    HeightCubeArray.GetDimensions(W, H, L);
+    return SampleCubeBilinearLoad(normalize(dirPlanet), uint2(W, H), 0);
+}
+
+// Compute analytical normal using longitude/latitude finite differences in planet-local axes,
+// with height coming from the cubemap via SampleHeightDir.
+float3 AnalyticalNormalFromCube(float3 nSphereWS)
+{
+    float3 S;
+    S.x = dot(nSphereWS, BasisLonEast);
+    S.y = dot(nSphereWS, BasisSpinUp);
+    S.z = dot(nSphereWS, BasisLonNorth);
+    S = normalize(S);
+
+    uint W, H, L;
+    HeightCubeArray.GetDimensions(W, H, L);
+    float dlon = 2.0f * PI / max(64.0f, (float) W);
+    float dlat = PI / max(64.0f, (float) H);
+
+    float lon = atan2(S.z, S.x);
+    // BUGFIX: use symmetric clamp, not saturate (which clamps to [0,1])
+    float lat = asin(clamp(S.y, -1.0f, 1.0f));
+
     float cosLat = cos(lat);
     float sinLat = sin(lat);
     float cosLon = cos(lon);
     float sinLon = sin(lon);
 
-    // east (+X), up (+Y spin-axis), north (+Z)     (matches SphereUV)
-    float3 S = float3(cosLat * cosLon, // x
-                       sinLat, // y
-                       cosLat * sinLon); // z
-
-    // ───── ②  correct partial derivatives  ─────
-    float3 dSdlon = float3(-cosLat * sinLon, 0.0, cosLat * cosLon);
-
+    float3 dSdlon = float3(-cosLat * sinLon, 0.0f, cosLat * cosLon);
     float3 dSdlat = float3(-sinLat * cosLon, cosLat, -sinLat * sinLon);
 
-    // bring everything to WORLD space
-    float3 SWS = ToWorld(S);
-    float3 dSdlonWS = ToWorld(dSdlon);
-    float3 dSdlatWS = ToWorld(dSdlat);
+    float3 SWS = S.x * BasisLonEast + S.y * BasisSpinUp + S.z * BasisLonNorth;
+    float3 dSdlonWS = dSdlon.x * BasisLonEast + dSdlon.y * BasisSpinUp + dSdlon.z * BasisLonNorth;
+    float3 dSdlatWS = dSdlat.x * BasisLonEast + dSdlat.y * BasisSpinUp + dSdlat.z * BasisLonNorth;
 
-    // 4) chain rule for   P(u,v) = (R+h)·S
-    float dlon = u * 2 * PI;
-    float dlat = v * PI;
-    float dhdlon = (hU - h0) / dlon;
-    float dhdlat = (hV - h0) / dlat;
+    float3 S_lonP = normalize(float3(
+        cosLat * cos(lon + dlon),
+        sinLat,
+        cosLat * sin(lon + dlon)
+    ));
+    float3 S_latP = normalize(float3(
+        cos(lat + dlat) * cosLon,
+        sin(lat + dlat),
+        cos(lat + dlat) * sinLon
+    ));
+
+    float h0 = SampleHeightDir(S);
+    float hLonP = SampleHeightDir(S_lonP);
+    float hLatP = SampleHeightDir(S_latP);
+
+    float dhdlon = (hLonP - h0) / dlon;
+    float dhdlat = (hLatP - h0) / dlat;
 
     float R = PlanetRadius;
     float3 Pu = (R + h0) * dSdlonWS + dhdlon * SWS;
@@ -346,11 +570,24 @@ PixelOutputType main(PixelInputType input)
     /*--------------------------------------------------------------*/
     
     float3 nSphereWS = normalize(input.normalSphereWS);
-
-    float2 uv = SphereUV(nSphereWS); // same helper you already have   
-    float3 nWS = AnalyticalNormal(uv); // 2 extra height samples    
-    float3 nVS = normalize(mul(nWS, (float3x3) viewMatrix));
     
+    //uint texWidth, texHeight;
+    //HeightMapTexture.GetDimensions(texWidth, texHeight);
+    //float2 uvTEST = SphereUV(nSphereWS);
+    //float2 uvTest2 = SphereUV(float3(-0.000009f, 1.000000f, 0.000048f));
+    //float h = SampleHeightManual(uvTEST, uint2(texWidth, texHeight));
+    ////float2 uvCPU = float2(0.7998577369, 0.5547288883);
+    //float2 uvCPU = float2(0.799859, 0.5547115);
+
+    //// Compare to CPU logged UV
+    //if (abs(uvCPU.x - uvTEST.x) < 1e-7 && abs(uvCPU.y - uvTEST.y) < 1e-7)
+    //{
+    //    output.entityID = (int) h;
+    //    return output;
+    //}
+ 
+    float3 nWS = AnalyticalNormalFromCube(nSphereWS);
+    float3 nVS = normalize(mul(nWS, (float3x3) viewMatrix));
     
     output.position = float4(input.viewPosition, 1.0f);
     output.normal = float4(nVS * 0.5f + 0.5f, 1.0f);
@@ -362,7 +599,7 @@ PixelOutputType main(PixelInputType input)
     params.Albedo = Albedo.rgb; /* later:   if(AlbedoTexToggle) … */
     
     output.albedoMetallic.rgb = params.Albedo;
-    output.albedoMetallic.a = Metalness;
+    output.albedoMetallic.a = 1.0f;//    Metalness;
 
     /*--------------------------------------------------------------*/
     /* 3) roughness + ambient occlusion                             */

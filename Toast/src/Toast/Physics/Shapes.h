@@ -89,15 +89,13 @@ namespace Toast {
 		void ExpandToFit(const Bounds& b);
 
 		void CalculateBounds() override;
+		void BuildCornerPoints();
 
 		float FastestLinearSpeed(const Vector3& angularVelocity, const Vector3& dir) const override;
-	private:
-		void BuildCornerPoints();
 	public:
 		Vector3 mSize = { 1.0f, 1.0f, 1.0f };
 
-		std::vector<Vector3> mPoints;
-		
+		std::vector<Vector3> mPoints;		
 	};
 
 	class ShapeTerrain : public Shape

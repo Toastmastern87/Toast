@@ -32,6 +32,7 @@ namespace Toast {
 
 
 			std::vector<uint32_t> indices;
+			 
 			indices.resize(36);
 			indices = {
 					// Front face

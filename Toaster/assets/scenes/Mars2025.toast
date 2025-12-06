@@ -1,6 +1,6 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [11.781436, 48.4650879, 20.9094181]
+  Position: [-31.8913689, 23.8318958, -142.778595]
 Settings:
   Grid: false
   CameraFrustum: true
@@ -10,7 +10,7 @@ Settings:
   FrustumCulling: true
   RenderColliders: true
   RenderUI: true
-  Shadows: true
+  Shadows: false
   SSAO: true
   SSAODebugging: false
   SSAORadius: 0.5
@@ -51,17 +51,17 @@ Settings:
   SunFadeStartDeg: 3
   SunFadeEndDeg: -10
 Planet:
-  Translation: [0, -3383682, 0]
-  Rotation: [74.899826, 5.10003328, -289.803223]
+  Translation: [0, -3385962, 0]
+  Rotation: [566.398804, 198.200241, 811.199402]
   GridSize: 257
   MaxLevels: 28
   Radius: 3389500
   MaxHeight: 21900
   MinHeight: -8200
-  AlbedoColor: [0.0295358896, 0.00796962623, 0.00249248045]
+  AlbedoColor: [0.050632894, 0.0238845125, 0.0170912705]
   Roughness: 1
   Metalness: 0
-  HeightMapAssetPath: C:\dev\Toast\Toaster\assets\textures\MarsHeightMap8K.tif
+  HeightMapAssetPath: C:\dev\Toast\Toaster\assets\textures\Mars_MOLA_8k_raw.tif
   Metalness: 0
   StarFieldAssetPath: C:\dev\Toast\Toaster\assets\textures\StarField16k.tif
   AtmosphereActivated: true
@@ -145,66 +145,126 @@ Entities:
         - Name: ZoomFactor
           Type: Float
           Data: 2.29999995
-  - Entity: 454669151441921778
+  - Entity: 7969327153423302118
     TagComponent:
-      Tag: MainBody
+      Tag: Sunlight
     RelationshipComponent:
-      ParentHandle: 14796545384475566267
+      ParentHandle: 0
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 2941478050912602356
+      Rotation: [-133.199921, 20.8000145, -63.5000076]
+      Scale: [0.999434412, 0.999894023, 0.999519885]
+    DirectionalLightComponent:
+      Radiance: [1, 0.980000019, 0.949999988]
+      Intensity: 1
+      SunDesiredCoverage: 10000
+      SunLightDistance: 961
+  - Entity: 11637652594119463601
     TagComponent:
-      Tag: LandingLegs
+      Tag: Starship
     RelationshipComponent:
-      ParentHandle: 14796545384475566267
+      ParentHandle: 0
       Children:
-        []
+        - Handle: 7625412182059970898
+        - Handle: 4757161398082090575
+        - Handle: 15688673418873795630
+        - Handle: 5350470097573753918
+        - Handle: 17200548796977600084
+        - Handle: 697842924302282008
     TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 6527692647073640125
-    TagComponent:
-      Tag: Flap Backward Right
-    RelationshipComponent:
-      ParentHandle: 14796545384475566267
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 1849001290532137626
-    TagComponent:
-      Tag: Flap Forward Right
-    RelationshipComponent:
-      ParentHandle: 14796545384475566267
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 3758790226852764911
-    TagComponent:
-      Tag: Flap Backward Left
-    RelationshipComponent:
-      ParentHandle: 14796545384475566267
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 11260157089930105167
+      Translation: [-30.6328373, 24, 161.445099]
+      Rotation: [-179.999893, 80.7999344, -179.999893]
+      Scale: [0.999999523, 1, 0.999999523]
+    MeshComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_SN3.gltf
+      LODThresholds:
+        - 0.300000012
+        - 0.600000024
+      Parts:
+        - Name: Flap Forward Left
+          Handle: 7625412182059970898
+        - Name: Flap Backward Left
+          Handle: 4757161398082090575
+        - Name: Flap Forward Right
+          Handle: 15688673418873795630
+        - Name: Flap Backward Right
+          Handle: 5350470097573753918
+        - Name: LandingLegs
+          Handle: 17200548796977600084
+        - Name: MainBody
+          Handle: 697842924302282008
+    RigidBodyComponent:
+      InvMass: 0.00019999999494757503
+      Elasticity: 0
+      Friction: 0
+      CenterOfMass: [0, 0, 0]
+      LinearDamping: 0
+      AngularDamping: 0
+    SphereColliderComponent:
+      RenderCollider: true
+      Radius: 30.200000762939453
+  - Entity: 7625412182059970898
     TagComponent:
       Tag: Flap Forward Left
     RelationshipComponent:
-      ParentHandle: 14796545384475566267
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 4757161398082090575
+    TagComponent:
+      Tag: Flap Backward Left
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 15688673418873795630
+    TagComponent:
+      Tag: Flap Forward Right
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 5350470097573753918
+    TagComponent:
+      Tag: Flap Backward Right
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 17200548796977600084
+    TagComponent:
+      Tag: LandingLegs
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 697842924302282008
+    TagComponent:
+      Tag: MainBody
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
       Children:
         []
     TransformComponent:
@@ -225,7 +285,7 @@ Entities:
         - Handle: 454669151441921778
     TransformComponent:
       Translation: [29, 29, 221]
-      Rotation: [0, 129, 0]
+      Rotation: [0, 50.1999512, 40.4000015]
       Scale: [1, 1, 1]
     MeshComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_SN3.gltf
@@ -254,130 +314,70 @@ Entities:
       AngularDamping: 0
     BoxColliderComponent:
       RenderCollider: true
-      Size: [5.2999999999999998, 25, 8]
-  - Entity: 697842924302282008
-    TagComponent:
-      Tag: MainBody
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 17200548796977600084
-    TagComponent:
-      Tag: LandingLegs
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 5350470097573753918
-    TagComponent:
-      Tag: Flap Backward Right
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 15688673418873795630
-    TagComponent:
-      Tag: Flap Forward Right
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 4757161398082090575
-    TagComponent:
-      Tag: Flap Backward Left
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 7625412182059970898
+      Size: [5.3000001907348633, 25, 8]
+  - Entity: 11260157089930105167
     TagComponent:
       Tag: Flap Forward Left
     RelationshipComponent:
-      ParentHandle: 11637652594119463601
+      ParentHandle: 14796545384475566267
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-  - Entity: 11637652594119463601
+  - Entity: 3758790226852764911
     TagComponent:
-      Tag: Starship
+      Tag: Flap Backward Left
     RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        - Handle: 7625412182059970898
-        - Handle: 4757161398082090575
-        - Handle: 15688673418873795630
-        - Handle: 5350470097573753918
-        - Handle: 17200548796977600084
-        - Handle: 697842924302282008
-    TransformComponent:
-      Translation: [-29, 29, 221]
-      Rotation: [0, 129.000046, 0]
-      Scale: [1, 1, 1]
-    MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_SN3.gltf
-      LODThresholds:
-        - 0.300000012
-        - 0.600000024
-      Parts:
-        - Name: Flap Forward Left
-          Handle: 7625412182059970898
-        - Name: Flap Backward Left
-          Handle: 4757161398082090575
-        - Name: Flap Forward Right
-          Handle: 15688673418873795630
-        - Name: Flap Backward Right
-          Handle: 5350470097573753918
-        - Name: LandingLegs
-          Handle: 17200548796977600084
-        - Name: MainBody
-          Handle: 697842924302282008
-    RigidBodyComponent:
-      InvMass: 0.00019999999494757503
-      Elasticity: 0
-      Friction: 0
-      CenterOfMass: [0, 0, 0]
-      LinearDamping: 0
-      AngularDamping: 0
-    SphereColliderComponent:
-      RenderCollider: true
-      Radius: 25.200000762939453
-  - Entity: 7969327153423302118
-    TagComponent:
-      Tag: Sunlight
-    RelationshipComponent:
-      ParentHandle: 0
+      ParentHandle: 14796545384475566267
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-40.8997879, 20.8000145, -63.5000076]
-      Scale: [0.999434412, 0.999894023, 0.999519885]
-    DirectionalLightComponent:
-      Radiance: [1, 0.980000019, 0.949999988]
-      Intensity: 1
-      SunDesiredCoverage: 10000
-      SunLightDistance: 961
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 1849001290532137626
+    TagComponent:
+      Tag: Flap Forward Right
+    RelationshipComponent:
+      ParentHandle: 14796545384475566267
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 6527692647073640125
+    TagComponent:
+      Tag: Flap Backward Right
+    RelationshipComponent:
+      ParentHandle: 14796545384475566267
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 2941478050912602356
+    TagComponent:
+      Tag: LandingLegs
+    RelationshipComponent:
+      ParentHandle: 14796545384475566267
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 454669151441921778
+    TagComponent:
+      Tag: MainBody
+    RelationshipComponent:
+      ParentHandle: 14796545384475566267
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]

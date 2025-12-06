@@ -379,7 +379,7 @@ namespace Toast {
 							{
 								mContext->mBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename, false);
 
-								mContext->mTerrainData = mSceneContext->LoadTerrainData(*filename, mContext->mMaxHeight, mContext->mMinHeight);
+								mContext->mTerrainCubeData = mContext->LoadTerrainDataFromTextureCube();
 							}
 						}
 
@@ -394,7 +394,9 @@ namespace Toast {
 						{
 							mContext->mBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename, false);
 
-							mContext->mTerrainData = mSceneContext->LoadTerrainData(*filename, mContext->mMaxHeight, mContext->mMinHeight);
+							mContext->mBaseHeightMapTextureCube = mContext->CreateHeightMapCube(mContext->mBaseHeightMapTexture);
+
+							mContext->mTerrainCubeData = mContext->LoadTerrainDataFromTextureCube();
 						}
 					}
 

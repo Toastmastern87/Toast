@@ -1,8 +1,190 @@
 ﻿#include "tpch.h"
 #include "PhysicsEngineUpdated.h"
 
+#include "Toast/Renderer/MeshFactory.h"
+#include "Toast/Renderer/RendererDebug.h"
 
 namespace Toast {
+
+	struct CubeSampleCPU
+	{
+		uint32_t face;
+		double u; // [0,1]
+		double v;
+	};
+
+	CubeSampleCPU DirectionToCubeCPU(const Vector3& vIn)
+	{
+		using namespace DirectX;
+
+		Vector3 v = Vector3::Normalize(vIn);
+
+		double ax = fabs(v.x);
+		double ay = fabs(v.y);
+		double az = fabs(v.z);
+
+		uint32_t face;
+		Vector2 uvFace;
+
+		if (ax >= ay && ax >= az)
+		{
+			if (v.x > 0.0f)
+			{
+				face = 0;
+				uvFace = { -v.z / ax,  v.y / ax };
+			}
+			else
+			{
+				face = 1;
+				uvFace = { v.z / ax,  v.y / ax };
+			}
+		}
+		else if (ay >= ax && ay >= az)
+		{
+			if (v.y > 0.0f)
+			{
+				face = 2;
+				uvFace = { v.x / ay, -v.z / ay };
+			}
+			else
+			{
+				face = 3;
+				uvFace = { v.x / ay,  v.z / ay };
+			}
+		}
+		else
+		{
+			if (v.z > 0.0f)
+			{
+				face = 4;
+				uvFace = { v.x / az,  v.y / az };
+			}
+			else
+			{
+				face = 5;
+				uvFace = { -v.x / az,  v.y / az };
+			}
+		}
+
+		CubeSampleCPU cs;
+		cs.face = face;
+		cs.u = 0.5 * uvFace.x + 0.5;
+		cs.v = 0.5 * uvFace.y + 0.5;
+		return cs;
+	}
+
+	Vector3 CubeFaceUVToDirCPU(uint32_t face, double u, double v)
+	{
+		// Match HLSL: float2 p = 2.0 * float2(uv.x, 1.0 - uv.y) - 1.0;
+		double px = 2.0 * u - 1.0;
+		double py = 2.0 * (1.0 - v) - 1.0;
+
+		double dx, dy, dz;
+
+		switch (face)
+		{
+		case 0: // +X
+			dx = 1.0; dy = py;  dz = -px; break;
+		case 1: // -X
+			dx = -1.0; dy = py;  dz = px; break;
+		case 2: // +Y
+			dx = px;  dy = 1.0; dz = -py; break;
+		case 3: // -Y
+			dx = px;  dy = -1.0; dz = py; break;
+		case 4: // +Z
+			dx = px;  dy = py;  dz = 1.0; break;
+		default: // 5: -Z
+			dx = -px; dy = py;  dz = -1.0; break;
+		}
+
+		return Vector3::Normalize(Vector3(dx, dy, dz));
+	}
+
+	CubeSampleCPU RemapFaceUVCPU(uint32_t face, double u, double v)
+	{
+		if (u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 1.0)
+			return CubeSampleCPU{ face, u, v };
+
+		auto dir = CubeFaceUVToDirCPU(face, u, v);
+		return DirectionToCubeCPU(dir);
+	}
+
+	 float SampleCubeBilinearCPU(const TerrainCubeData& td, const Vector3& dirIn)
+	{
+		CubeSampleCPU cs = DirectionToCubeCPU(dirIn);
+		uint32_t face = cs.face;
+		double u = cs.u;
+		double v = cs.v;
+
+		uint32_t W = td.Width;
+		uint32_t H = td.Height;
+
+		// p = uv * dims - 0.5
+		double px = u * W - 0.5;
+		double py = v * H - 0.5;
+
+		int ix0 = (int)std::floor(px);
+		int iy0 = (int)std::floor(py);
+		int ix1 = ix0 + 1;
+		int iy1 = iy0 + 1;
+
+		double fx = px - std::floor(px);
+		double fy = py - std::floor(py);
+
+		auto uvFromIJ = [&](int ix, int iy)
+			{
+				double uu = (static_cast<double>(ix) + 0.5) / static_cast<double>(W);
+				double vv = (static_cast<double>(iy) + 0.5) / static_cast<double>(H);
+				return std::pair<double, double>(uu, vv);
+			};
+
+		auto [u00, v00_uv] = uvFromIJ(ix0, iy0);
+		auto [u10, v10_uv] = uvFromIJ(ix1, iy0);
+		auto [u01, v01_uv] = uvFromIJ(ix0, iy1);
+		auto [u11, v11_uv] = uvFromIJ(ix1, iy1);
+
+		CubeSampleCPU c00 = RemapFaceUVCPU(face, u00, v00_uv);
+		CubeSampleCPU c10 = RemapFaceUVCPU(face, u10, v10_uv);
+		CubeSampleCPU c01 = RemapFaceUVCPU(face, u01, v01_uv);
+		CubeSampleCPU c11 = RemapFaceUVCPU(face, u11, v11_uv);
+
+		auto clampIJ = [&](const CubeSampleCPU& c) -> std::pair<uint32_t, uint32_t>
+			{
+				double x = c.u * W;
+				double y = c.v * H;
+				int ix = std::clamp((int)x, 0, (int)W - 1);
+				int iy = std::clamp((int)y, 0, (int)H - 1);
+				return { (uint32_t)ix, (uint32_t)iy };
+			};
+
+		auto [i00x, i00y] = clampIJ(c00);
+		auto [i10x, i10y] = clampIJ(c10);
+		auto [i01x, i01y] = clampIJ(c01);
+		auto [i11x, i11y] = clampIJ(c11);
+
+		const auto& f00 = td.FaceHeight[c00.face];
+		const auto& f10 = td.FaceHeight[c10.face];
+		const auto& f01 = td.FaceHeight[c01.face];
+		const auto& f11 = td.FaceHeight[c11.face];
+
+		double h00 = f00[Index2D(i00x, i00y, W)];
+		double h10 = f10[Index2D(i10x, i10y, W)];
+		double h01 = f01[Index2D(i01x, i01y, W)];
+		double h11 = f11[Index2D(i11x, i11y, W)];
+
+		double vx0 = h00 + (h10 - h00) * fx;
+		double vx1 = h01 + (h11 - h01) * fx;
+		double vFinal = vx0 + (vx1 - vx0) * fy;
+
+		return (float)vFinal;
+	}
+
+	inline float SampleHeightFromDirCPU(
+		const TerrainCubeData& td,
+		const Vector3& dirPlanet)
+	{
+		return SampleCubeBilinearCPU(td, dirPlanet);
+	}
 
 	PhysicsEngineUpdated::PhysicsEngineUpdated()
 	{
@@ -12,6 +194,8 @@ namespace Toast {
 	void PhysicsEngineUpdated::Initialize(Scene* scene)
 	{
 		mScene = scene;
+
+		mGuideMesh = MeshFactory::CreateCube(1.0f, { 1.0, 0.0, 0.0 });
 	}
 
 	void PhysicsEngineUpdated::Update(double ts)
@@ -24,78 +208,52 @@ namespace Toast {
 			ApplyGravity(e, ts);
 
 			IntegrateLinear(e, ts);
+
+			TerrainContactManifold manifold;
+			if (CheckTerrainCollision(e, manifold))
+				ResolveTerrainCollision(manifold, ts);
 		}
 	}
 
 	double PhysicsEngineUpdated::GetAltitude(Entity& entity)
 	{
-		auto& registry = mScene->GetRegistry();
-		auto cameraView = registry.view<CameraComponent>();
-
-		DirectX::XMFLOAT3 worldTranslation = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-
-		for (auto cameraEntity : cameraView)
-		{
-			Entity e = { cameraEntity, mScene };
-
-			worldTranslation = e.GetComponent<CameraComponent>().Camera.GetWorldTranslation();
-
-			break;
-		}
+		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 
 		TransformComponent& tc = entity.GetComponent<TransformComponent>();
 
-		float u, v;
 		double radialDist;
-
-		Planet& planet = *mScene->GetPlanet();
-
-		TerrainData& terrainData = planet.GetTerrainData();
-
-		WorldPosToHeightMapUV(planet, tc.Translation, worldTranslation, terrainData.Width, terrainData.Height, u, v, radialDist);
-
-		// 2) Sample true surface radius at that UV
-		//    (heightData already encodes [minAlt..maxAlt], so
-		//     that value is the surface radius from center)
-		double height = SampleHeightBilinear(terrainData.HeightData, terrainData.Width, terrainData.Height, u, v);
-
-		// 3) Altitude = how far you are above that surface radius
-		return radialDist - (planet.GetRadius() + height);
+		Vector3 normal;
+		return GetAltitudeAtWorldPos(Vector3(tc.Translation) - worldTranslation, radialDist, normal);
 	}
 
-	TerrainData PhysicsEngineUpdated::LoadTerrainData(const std::string& path, const double maxHeight, const double minHeight)
+	double PhysicsEngineUpdated::GetAltitudeAtWorldPos(const Vector3& worldPos,	double& outRadialDist, Vector3& outGroundNormal)
 	{
-		HRESULT result;
+		Planet& planet = *mScene->GetPlanet();
+		TerrainData& terrain = planet.GetTerrainData();
+		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 
-		std::wstring w;
-		std::copy(path.c_str(), path.c_str() + strlen(path.c_str()), back_inserter(w));
-		const WCHAR* pathWChar = w.c_str();
+		// Planet center and true radial distance
+		Vector3 planetCenterWS = Vector3(planet.GetTranslation()) - worldTranslation;
 
-		DirectX::TexMetadata heightMapMetadata;
-		DirectX::ScratchImage* heightMap = new DirectX::ScratchImage();
+		Vector3 pLocal = worldPos - planetCenterWS;
+		
+		Vector3 nWS = Vector3::Normalize(pLocal);
 
-		result = DirectX::LoadFromWICFile(pathWChar, DirectX::WIC_FLAGS_NONE, &heightMapMetadata, *heightMap);
+		Vector3 basisLonEast = planet.GetBasisLonEast();   // same as BasisLonEast in PlanetFrame
+		Vector3 basisSpinUp = planet.GetBasisSpinUp();    // same as BasisSpinUp
+		Vector3 basisLonNorth = planet.GetBasisLonNorth();  // same as BasisLonNorth
 
-		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load height map!");
+		double vx = Vector3::Dot(nWS, basisLonEast);
+		double vy = Vector3::Dot(nWS, basisSpinUp);
+		double vz = Vector3::Dot(nWS, basisLonNorth);
 
-		TOAST_CORE_INFO("Terrain data loaded width: %d, height: %d, format: %d", heightMapMetadata.width, heightMapMetadata.height, heightMapMetadata.format);
+		Vector3 vPlanet = Vector3(vx, vy, vz);
 
-		TerrainData td;
-		td.Width = heightMapMetadata.width;
-		td.Height = heightMapMetadata.height;
-		td.RowPitch = heightMap->GetImage(0, 0, 0)->rowPitch;
+		double height = SampleHeightFromDirCPU(planet.GetTerrainCubeData(), vPlanet);
 
-		const uint16_t* src = reinterpret_cast<const uint16_t*>(heightMap->GetPixels());
+		double altitude = pLocal.Length() - (planet.GetRadius() + height);
 
-		size_t total = td.Width * td.Height;
-
-		td.HeightData.resize(total);
-		for (size_t i = 0; i < total; ++i)
-			td.HeightData[i] = ((static_cast<double>(src[i]) / MAX_INT_VALUE) * (maxHeight - minHeight)) + minHeight;
-
-		td.Stride = td.Width;
-
-		return td;
+		return altitude;
 	}
 
 	void PhysicsEngineUpdated::ApplyLinearImpulse(RigidBodyComponent& rbc, Vector3 impulse)
@@ -136,64 +294,190 @@ namespace Toast {
 		tc.Translation = { tc.Translation.x + (float)deltaPos.x, tc.Translation.y + (float)deltaPos.y, tc.Translation.z + (float)deltaPos.z };
 	}
 
-	void PhysicsEngineUpdated::WorldPosToHeightMapUV(Planet& p, const Vector3& worldPos, const Vector3& worldTranslation, int mapWidth, int mapHeight, float& outU, float& outV, double& outRadialDist)
+	bool PhysicsEngineUpdated::CheckTerrainCollision(Entity& entity, TerrainContactManifold& manifold)
 	{
-		Vector3 planetTranslation = p.GetTranslation();
+		SphereColliderComponent* scc = nullptr;
+		BoxColliderComponent* bcc = nullptr;
 
-		// 1) Move into planet local coordinates
-		Vector3 pLocal = worldPos - planetTranslation - worldTranslation;
-		//Vector3 local = Vector3::Rotate(p, PlanetSystem::GetInvRotation());
-		// 3) world-space unit normal (matches nWS in the VS) 
-		outRadialDist = pLocal.Length();
+		auto& rbc = entity.GetComponent<RigidBodyComponent>();
 
-		Vector3 nWS = pLocal / outRadialDist;
+		if(entity.HasComponent<SphereColliderComponent>())
+			scc = &entity.GetComponent<SphereColliderComponent>();
+		else if (entity.HasComponent<BoxColliderComponent>())
+			bcc = &entity.GetComponent<BoxColliderComponent>();
+		else
+			return false;
 
-		// 4) fetch the same basis vectors you put in the cbuffer
-		const DirectX::XMFLOAT3 east = p.GetBasisLonEast();   // == BasisLonEast
-		const DirectX::XMFLOAT3 north = p.GetBasisLonNorth();  // == BasisLonNorth
-		const DirectX::XMFLOAT3 spinUp = p.GetBasisSpinUp();    // == BasisSpinUp
+		if (rbc.InvMass == 0.0)
+			return false;
 
-		// 5) identical math to SphereUV()
-		double vx = Vector3::Dot(nWS, east);
-		double vy = Vector3::Dot(nWS, spinUp);
-		double vz = Vector3::Dot(nWS, north);
+		auto& tc = entity.GetComponent<TransformComponent>();
+		Vector3 centerWS = tc.Translation;
 
-		double lon = std::atan2(vz, vx);          // −π … +π
-		double lat = std::asin(vy);              // −π/2 … +π/2
+		Vector3 groundNormal;
+		double radialDist;
+		double centerAlt = GetAltitudeAtWorldPos(centerWS, radialDist, groundNormal);
 
-		outU = static_cast<float>(lon * (1.0 / (2.0 * M_PI)) + 0.5);
-		outV = 0.5f - static_cast<float>(lat * (1.0 / M_PI));
+		double bottomAlt = 0.0;
+		if(scc)
+		{
+			double radius = scc->Collider->mRadius;
+			bottomAlt = centerAlt - radius;
+		}
+		else if(bcc)
+		{
+			// Simple, robust: approximate box by bounding sphere for the quick check
+			// radius = half-diagonal of the box in local space
+			const Bounds& b = bcc->Collider->GetBounds(); // add a getter if you don’t have one
+			Vector3 half = (b.maxs - b.mins) * 0.5;
+			double radius = std::sqrt(half.x * half.x + half.y * half.y + half.z * half.z);
+			bottomAlt = centerAlt - radius;
+		}
 
-		// 4) Wrap U (in case of small floating drift)
-		if (outU < 0.f)       outU += 1.f;
-		else if (outU > 1.f)  outU -= 1.f;
+		if (bottomAlt > 0.0)
+			return false;
+
+		manifold.Entity = entity;
+		manifold.Points.clear();
+
+		return FindTerrainContactPoints(entity, manifold);
 	}
 
-	double PhysicsEngineUpdated::SampleHeightBilinear(const std::vector<double>& heightData, int textureWidth, int textureHeight, float u, float v)
+	bool PhysicsEngineUpdated::FindTerrainContactPoints(Entity& entity, TerrainContactManifold& manifold)
 	{
-		// Texel coordinates (floating)
-		double fx = u * textureWidth - 0.5;
-		double fy = v * textureHeight - 0.5;
+		if (entity.HasComponent<SphereColliderComponent>())
+			return FindTerrainContactPointsSphere(entity, manifold);
+		else if (entity.HasComponent<BoxColliderComponent>())
+			return FindTerrainContactPointsBox(entity, manifold);
+	}
 
-		int x0 = (int)std::floor(fx);
-		int y0 = (int)std::floor(fy);
-		int x1 = (std::min)(x0 + 1, textureWidth - 1);
-		int y1 = (std::min)(y0 + 1, textureHeight - 1);
+	bool PhysicsEngineUpdated::FindTerrainContactPointsBox(Entity& entity, TerrainContactManifold& manifold)
+	{
+		TOAST_CORE_CRITICAL("Box Narrow Phase Terrain Collision Check");
 
-		double sx = fx - x0;          // 0 … 1
-		double sy = fy - y0;
+		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 
-		// Fetch four corners
-		double h00 = heightData[y0 * textureWidth + x0];
-		double h10 = heightData[y0 * textureWidth + x1];
-		double h01 = heightData[y1 * textureWidth + x0];
-		double h11 = heightData[y1 * textureWidth + x1];
+		auto& tc = entity.GetComponent<TransformComponent>();
+		auto& bcc = entity.GetComponent<BoxColliderComponent>();
+		Planet& planet = *mScene->GetPlanet();
 
-		// Bilinear interpolation
-		double h0 = h00 + (h10 - h00) * sx;
-		double h1 = h01 + (h11 - h01) * sx;
+		ShapeBox* box = bcc.Collider.get();
 
-		return h0 + (h1 - h0) * sy;
+		Vector3 planetCenter = Vector3(planet.GetTranslation()) - worldTranslation;
+
+		bool hasContact = false;
+		std::vector<TerrainContactPoint> contacts;
+
+		for (const Vector3& cornerLocal : box->mPoints)
+		{
+			double radialDist;
+			Vector3 groundNormal;
+
+			Vector3 cornerWorld = Matrix(tc.GetTransformWithoutScale()) * cornerLocal;
+			cornerWorld = cornerWorld - worldTranslation;
+
+			DirectX::XMMATRIX transform = DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)) * DirectX::XMMatrixTranslation(cornerWorld.x, cornerWorld.y, cornerWorld.z);
+
+			RendererDebug::SubmitDebugMesh(mGuideMesh, transform);
+
+			double alt = GetAltitudeAtWorldPos(cornerWorld, radialDist, groundNormal);
+
+			if (alt <= 0.0)
+			{
+				TerrainContactPoint collisionPoint;
+				collisionPoint.Normal = groundNormal;
+				collisionPoint.Penetration = -alt; // corner altitude below terrain
+
+				// terrain surface radius at this corner
+				double surfaceRadius = radialDist - alt;
+
+				collisionPoint.Position = planetCenter + groundNormal * surfaceRadius;
+
+				contacts.push_back(collisionPoint);
+				hasContact = true;
+			}
+		}
+
+		if (!hasContact)
+			return false;
+
+		// For now, keep all corner contacts
+		manifold.Points.insert(manifold.Points.end(), contacts.begin(), contacts.end());
+		return true;
+	}
+
+	bool PhysicsEngineUpdated::FindTerrainContactPointsSphere(Entity& entity, TerrainContactManifold& manifold)
+	{
+		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
+
+		auto& tc = entity.GetComponent<TransformComponent>();
+		auto& scc = entity.GetComponent<SphereColliderComponent>();
+		Planet& planet = *mScene->GetPlanet();
+
+		double radius = scc.Collider->mRadius;
+
+		double radialDist;
+		Vector3 groundNormal;
+
+		double centerAlt = GetAltitudeAtWorldPos(Vector3(tc.Translation) - worldTranslation, radialDist, groundNormal);
+
+		double bottomAlt = centerAlt - radius;
+
+		//If above terrain, no collision
+		if (bottomAlt > 0.0)
+			return false;
+
+		TerrainContactPoint collisionPoint;
+		collisionPoint.Normal = groundNormal;
+
+		collisionPoint.Penetration = -bottomAlt;
+
+		Vector3 planetCenter = Vector3(planet.GetTranslation()) - worldTranslation;
+
+		double surfaceRadius = radialDist - centerAlt;
+
+		collisionPoint.Position = planetCenter + groundNormal * surfaceRadius;
+
+		manifold.Points.push_back(collisionPoint);
+		return true;
+	}
+
+	void PhysicsEngineUpdated::ResolveTerrainCollision(const TerrainContactManifold& manifold, double dt)
+	{
+		Entity entity = manifold.Entity;
+		auto& rbc = entity.GetComponent<RigidBodyComponent>();
+		auto& tc = entity.GetComponent<TransformComponent>();
+
+		if (rbc.InvMass == 0.0 || manifold.Points.empty())
+			return;
+
+		// 1) Find deepest contact point
+		const TerrainContactPoint* deepest = nullptr;
+		double maxPen = 0.0;
+
+		for (const auto& cp : manifold.Points)
+		{
+			if (cp.Penetration > maxPen || !deepest)
+			{
+				maxPen = cp.Penetration;
+				deepest = &cp;
+			}
+		}
+
+		if (!deepest || maxPen <= 0.0)
+			return;
+
+		Vector3 n = deepest->Normal;
+
+		const double slop = 0.01;
+
+		double correctionMag = std::max(maxPen - slop, 0.0);
+
+		Vector3 pos = Vector3(tc.Translation);
+		pos += n * correctionMag;
+		tc.Translation = { (float)pos.x, (float)pos.y, (float)pos.z };
+
+		rbc.LinearVelocity = Vector3(0.0f, 0.0f, 0.0f);
 	}
 
 }

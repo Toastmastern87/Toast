@@ -72,6 +72,7 @@ namespace Toast {
 
 		// Planet
 		ShaderLibrary::Load("assets/shaders/Planet/PlanetGeometryPass.hlsl");
+		ShaderLibrary::Load("assets/shaders/Planet/HeightMapToCubeMap.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/TransmittanceCS.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/MultiScatteringCS.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/SkyViewCS.hlsl");

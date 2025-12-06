@@ -213,6 +213,7 @@ namespace Toast {
 	public:
 		TextureCube(DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT srvFormat = DXGI_FORMAT_UNKNOWN, uint32_t width = 1, uint32_t height = 1, D3D11_USAGE usage = D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG bindFlag = (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), uint32_t samples = 1, UINT cpuAccessFlags = 0, uint32_t mipLevels = 1);
 		TextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t mipLevels = 0);
+		TextureCube(const std::string& filePath, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM, uint32_t width = 256, uint32_t height = 256, uint32_t mipLevels = 0);
 		TextureCube();
 		~TextureCube() = default;
 

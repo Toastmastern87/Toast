@@ -896,6 +896,7 @@ namespace Toast {
 				{
 					component.Collider->CalculateBounds();
 					component.Collider->CalculateInertiaTensor();
+					component.Collider->BuildCornerPoints();
 				}
 				ImGui::EndTable();
 			});

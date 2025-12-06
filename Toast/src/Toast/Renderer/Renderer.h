@@ -19,6 +19,8 @@ namespace Toast {
 		public:
 			DrawCommand(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const bool wireframe, int noWorldTransform = 1, const int entityID = 0)
 				: Mesh(mesh), Transform(transform), Wireframe(wireframe), NoWorldTransform(noWorldTransform), EntityID(entityID) {}
+			DrawCommand(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform)
+				: Mesh(mesh), Transform(transform), EntityID(0) {}
 		public:
 			Ref<Mesh> Mesh;
 			DirectX::XMMATRIX Transform;
@@ -69,6 +71,7 @@ namespace Toast {
 			} PlanetData;
 
 			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshWireframeDrawList, MeshNoWireframeDrawList;
+			std::vector<DrawCommand> DebugMeshDrawList;
 			DrawCommandPlanet PlanetDraw;
 
 			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, SunDiscSettingsCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer, SpecularMapFilterSettingsCBuffer, SSAOCBuffer, GodRaysCBuffer, FloatingOriginCBuffer;

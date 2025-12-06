@@ -321,15 +321,16 @@ namespace Toast {
 		mRotationQuat = Quaternion::Normalize(mRotationQuat);
 		mInvRotationQuat = mRotationQuat.Conjugate();
 
-		Vector3 camRel = camPosWS - Vector3(mTranslation) - worldTranslation;
-		Vector3 camPosPS = Vector3::Rotate(camRel, mInvRotationQuat);
-
 		PlanetFrameCB cb{};
-		Vector3 centreCVd = Vector3(mTranslation);
-		cb.Center = DirectX::XMFLOAT3((float)centreCVd.x, (float)centreCVd.y, (float)centreCVd.z);
+		Vector3 planetCenterWS = Vector3(mTranslation) - worldTranslation;
+		cb.Center = DirectX::XMFLOAT3((float)planetCenterWS.x, (float)planetCenterWS.y, (float)planetCenterWS.z);
 		cb.Radius = (float)mRadius;
 		cb.MaxHeight = (float)mMaxHeight;
 		cb.MinHeight = (float)mMinHeight;
+
+		Vector3 camRel = camPosWS - planetCenterWS;
+
+		Vector3 camPosPS = Vector3::Rotate(camRel, mInvRotationQuat);
 
 		double dist = camRel.Length();
 		double alt = dist - mRadius;
@@ -364,12 +365,15 @@ namespace Toast {
 		mBasisLonEast = cb.BasisLonEast;
 		mBasisLonNorth = cb.BasisLonNorth;
 		mBasisSpinUp = cb.BasisSpinUp;
+		mBasisRadUp = cb.BasisRadUp;
+		mBasisTanEast = cb.BasisTanEast;
+		mBasisTanNorth = cb.BasisTanNorth;
 
 		mPlanetFrameBuffer.Write(reinterpret_cast<uint8_t*>(&cb), sizeof(cb), 0);
 
 		mPlanetFrameCBuffer->Map(mPlanetFrameBuffer);
 
-		/* decide how many levels are visible this frame                */
+		/* decide how many levels are visible this frame */
 		mActiveLevels = DetermineActiveLODLevels(camPosPS);
 
 		const uint32_t L0 = mActiveLevels.first;
@@ -386,6 +390,37 @@ namespace Toast {
 		for (uint32_t L = 0; L < mNumLevels; ++L)
 			mLevels[L].InFrustum = (L >= L0 && L < Ln);;
 	}
+
+	Ref<TextureCube> Planet::CreateHeightMapCube(const Texture2D* heightMapTexture)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		const uint32_t cubemapSize = 2048;
+
+		TextureSampler* defaultSampler = TextureLibrary::GetSampler("UWrapVClampLinearSampler");
+
+		Ref<TextureCube> heightMapCube = CreateRef<TextureCube>("HeightMapCube", DXGI_FORMAT_R32_FLOAT, cubemapSize, cubemapSize);
+
+		heightMapCube->CreateUAV(0);
+
+		ShaderLibrary::Get("assets/shaders/Planet/HeightMapToCubeMap.hlsl")->Bind();
+
+		heightMapTexture->Bind(0, D3D11_COMPUTE_SHADER);
+		defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+
+		heightMapCube->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+
+		const uint32_t groupsX = (cubemapSize + 31) / 32;
+		const uint32_t groupsY = (cubemapSize + 31) / 32;
+		RenderCommand::DispatchCompute(groupsX, groupsY, 6);
+
+		heightMapCube->UnbindUAV();
+
+		return heightMapCube;
+	}
+
+
 
 	inline float HorizonDistance(float Rg, float h) {
 		// d = sqrt( (Rg+h)^2 - Rg^2 ) = sqrt(h*h + 2*Rg*h )
@@ -587,6 +622,200 @@ namespace Toast {
 
 		//for (auto level : heightMultLUT)
 		//	TOAST_CORE_INFO("heightMultLUT: %lf", level);
+	}
+
+	TerrainCubeData Planet::LoadTerrainDataFromTextureCube()
+	{
+		TerrainCubeData td{};
+
+		ID3D11Device* device = RenderCommand::sRendererAPI->GetDevice();
+		ID3D11DeviceContext* context = RenderCommand::sRendererAPI->GetDeviceContext();
+
+		// Get underlying D3D texture
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> tex = mBaseHeightMapTextureCube->GetTexture();
+		TOAST_CORE_ASSERT(tex, "TextureCube has no underlying texture!");
+
+		D3D11_TEXTURE2D_DESC desc{};
+		tex->GetDesc(&desc);
+
+		// We only care about mip 0 for physics
+		const UINT mipLevel = 0;
+		const UINT faceCount = desc.ArraySize; // should be 6
+		TOAST_CORE_ASSERT(faceCount == 6, "Height cube should have 6 faces.");
+		TOAST_CORE_ASSERT(desc.Format == DXGI_FORMAT_R32_FLOAT, "Expected R32_FLOAT height cube.");
+
+		td.Width = desc.Width;
+		td.Height = desc.Height;
+
+		// Create a staging texture to read back from GPU
+		D3D11_TEXTURE2D_DESC stagingDesc = desc;
+		stagingDesc.Usage = D3D11_USAGE_STAGING;
+		stagingDesc.BindFlags = 0;
+		stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		stagingDesc.MiscFlags = 0; 
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> stagingTex;
+		HRESULT hr = device->CreateTexture2D(&stagingDesc, nullptr, &stagingTex);
+		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Failed to create staging texture for height cube readback.");
+
+		for (UINT face = 0; face < faceCount; ++face)
+		{
+			// Copy face, mip 0 into staging
+			UINT subresource = D3D11CalcSubresource(mipLevel, face, desc.MipLevels);
+			context->CopySubresourceRegion(
+				stagingTex.Get(),
+				subresource,
+				0, 0, 0,
+				tex.Get(),
+				subresource,
+				nullptr
+			);
+
+			// Map and copy into CPU array
+			D3D11_MAPPED_SUBRESOURCE mapped{};
+			hr = context->Map(stagingTex.Get(), subresource, D3D11_MAP_READ, 0, &mapped);
+			TOAST_CORE_ASSERT(SUCCEEDED(hr), "Failed to map staging height cube.");
+
+			const uint8_t* srcBytes = static_cast<const uint8_t*>(mapped.pData);
+			const size_t rowPitchBytes = mapped.RowPitch;
+
+			td.FaceHeight[face].resize(static_cast<size_t>(td.Width) * td.Height);
+
+			for (uint32_t y = 0; y < td.Height; ++y)
+			{
+				const float* srcRow = reinterpret_cast<const float*>(srcBytes + y * rowPitchBytes);
+				for (uint32_t x = 0; x < td.Width; ++x)
+				{
+					float h = srcRow[x]; // R32_FLOAT
+					td.FaceHeight[face][Index2D(x, y, td.Width)] = h;
+				}
+			}
+
+			context->Unmap(stagingTex.Get(), subresource);
+		}
+
+		return td;
+	}
+
+	bool Planet::ProjectWorldPosToLevelGrid(
+		const Vector3& worldPos,
+		const Vector3& worldTranslation,
+		PlanetProjectionResult& out)
+	{
+		// 0) Planet center in camera-relative world space
+		Vector3 planetCenterWS = Vector3(mTranslation) - worldTranslation;
+
+		// 1) Vector from planet center to object
+		Vector3 pLocal = worldPos - planetCenterWS;
+		double  r = pLocal.Length();
+		if (r <= 1e-6)
+			return false;
+
+		// 2) Project object down to the reference sphere
+		Vector3 nObj = pLocal / r;                         // direction center -> object
+		double  R = mRadius;
+		Vector3 groundWS = planetCenterWS + nObj * R;      // point on sphere under object
+
+		// 3) Tangent basis at the camera (same as used in the VS)
+		Vector3 radUp = Vector3(mBasisRadUp);
+		Vector3 tanEast = Vector3(mBasisTanEast);
+		Vector3 tanNorth = Vector3(mBasisTanNorth);
+
+		// Camera is at (0,0,0) in your floating-origin world, so
+		// "camera -> ground" is just groundWS in this space.
+		Vector3 camToGroundWS = groundWS;
+
+		// Tangent-plane offsets in metres (same meaning as 'off' in the VS)
+		double offX = Vector3::Dot(camToGroundWS, tanEast);
+		double offY = Vector3::Dot(camToGroundWS, tanNorth);
+
+		// 4) LOD ring for this position (already correct with ground-projection)
+		uint32_t L = GetLODForWorldPos(worldPos, worldTranslation);
+		double   cell = double(1u << L);                   // metres / cell
+
+		// 5) Continuous global grid coordinates in this level's grid
+		double gxCont = offX / cell;
+		double gyCont = offY / cell;
+
+		// Snap to nearest vertex
+		int gWorldX = (int)std::floor(gxCont + 0.5);
+		int gWorldY = (int)std::floor(gyCont + 0.5);
+
+		// 6) Rebuild "off" exactly like VS: off = gWorld * CellSize
+		double offXSnapped = double(gWorldX) * cell;
+		double offYSnapped = double(gWorldY) * cell;
+
+		// 7) Rebuild pSphereLocal and approximate normal exactly like the VS
+		Vector3 pSphereLocal =
+			radUp * R +
+			tanEast * offXSnapped +
+			tanNorth * offYSnapped;
+
+		Vector3 nWSApprox = Vector3::Normalize(pSphereLocal);
+
+		// 8) Fill result
+		out.Level = L;
+		out.GWorldX = gWorldX;
+		out.GWorldY = gWorldY;
+		out.NWSApprox = nWSApprox;
+		out.TangentDist = std::sqrt(offX * offX + offY * offY); // for debug
+
+		//TOAST_CORE_CRITICAL("ProjectWorldPosToLevelGrid: L=%u g=(%d,%d) off=(%.3lf,%.3lf) tanDist=%.3lf", L, gWorldX, gWorldY, offXSnapped, offYSnapped, out.TangentDist);
+
+		return true;
+	}
+
+	uint32_t Planet::GetLODForWorldPos(const Vector3& worldPosWS, const Vector3& worldTranslation)
+	{
+		// 1) Planet center in camera-relative world space
+		Vector3 planetCenterWS = Vector3(mTranslation) - worldTranslation;
+
+		// 2) Vector from planet center to object
+		Vector3 pLocal = worldPosWS - planetCenterWS;
+		double  r = pLocal.Length();
+		if (r <= 1e-6)
+			return mActiveLevels.first;   // degenerate, just clamp to finest active
+
+		// 3) Radial direction and ground point on the reference sphere
+		Vector3 n = pLocal / r;                         // unit vector planetCenter -> object
+		Vector3 groundWS = planetCenterWS + n * mRadius; // point "under" the object on sphere
+
+		// 4) Tangent-plane coordinates relative to camera
+		//    Camera is at (0,0,0) in your floating-origin world space.
+		Vector3 tanEast = Vector3(mBasisTanEast);
+		Vector3 tanNorth = Vector3(mBasisTanNorth);
+
+		// Vector from camera to ground point (camera is at origin)
+		Vector3 camToGroundWS = groundWS;
+
+		double offX = Vector3::Dot(camToGroundWS, tanEast);
+		double offY = Vector3::Dot(camToGroundWS, tanNorth);
+
+		// Use square metric because LOD regions are squares in this plane
+		double squareDist = std::max(std::abs(offX), std::abs(offY));
+
+		// 5) Active LOD range (same as rendering)
+		uint32_t first = mActiveLevels.first;
+		uint32_t last = first + mActiveLevels.count - 1;
+		if (last >= mNumLevels)
+			last = mNumLevels - 1;
+
+		auto halfExtent = [&](uint32_t L) -> double
+			{
+				double cell = double(1u << L);                         // metres per cell
+				double half = 0.5 * double(mGridSize - 1) * cell;      // half side length of that level
+				return half;
+			};
+
+		// 6) Smallest L whose square covers this ground point
+		for (uint32_t L = first; L <= last; ++L)
+		{
+			if (squareDist <= halfExtent(L))
+				return L;
+		}
+
+		// Outside all rings -> clamp to outermost active
+		return last;
 	}
 
 }

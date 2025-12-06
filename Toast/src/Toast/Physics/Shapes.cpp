@@ -143,16 +143,16 @@ namespace Toast {
 		mBounds.maxs.y = (std::max)(mBounds.maxs.y, b.maxs.y);
 		mBounds.maxs.z = (std::max)(mBounds.maxs.z, b.maxs.z);
 
-		Vector3 half = (mBounds.maxs - mBounds.mins) * 0.5;
-		mSize = half * 2.0;
-		mCenterOfMass = (mBounds.mins + mBounds.maxs) * 0.5;
+		Vector3 half = (mBounds.maxs - mBounds.mins);
+		mSize = half;
+		mCenterOfMass = (mBounds.mins + mBounds.maxs);
 
 		BuildCornerPoints();
 	}
 
 	void ShapeBox::CalculateBounds()
 	{
-		Vector3 halfSize = mSize * 0.5;
+		Vector3 halfSize = mSize;
 
 		mBounds.mins = -halfSize;
 		mBounds.maxs = halfSize;
@@ -176,7 +176,7 @@ namespace Toast {
 
 	void ShapeBox::BuildCornerPoints()
 	{
-		Vector3 h = mSize * 0.5;
+		Vector3 h = mSize;
 
 		mPoints.clear();
 		mPoints.reserve(8);

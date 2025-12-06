@@ -933,6 +933,7 @@ namespace Toast {
 		scenePlanet->mRoughness = planet["Roughness"].as<float>();
 		scenePlanet->mMetalness = planet["Metalness"].as<float>();
 		scenePlanet->mBaseHeightMapTexture = TextureLibrary::LoadTexture2D(planet["HeightMapAssetPath"].as<std::string>(), false);
+		scenePlanet->mBaseHeightMapTextureCube = scenePlanet->CreateHeightMapCube(scenePlanet->mBaseHeightMapTexture);
 		scenePlanet->mStarFieldTexture2D = TextureLibrary::LoadTexture2D(planet["StarFieldAssetPath"].as<std::string>());
 		scenePlanet->mAtmosphereActivated = planet["AtmosphereActivated"].as<bool>();
 		scenePlanet->mAtmosphere.AtmosphereHeight = planet["AtmosphereHeight"].as<float>();
@@ -1206,6 +1207,7 @@ namespace Toast {
 					bcc.RenderCollider = boxColliderComponent["RenderCollider"].as<bool>();
 
 					bcc.Collider->CalculateBounds();
+					bcc.Collider->BuildCornerPoints();
 				}
 
 				auto uiPanelComponent = entity["UIPanelComponent"];
@@ -1345,7 +1347,7 @@ namespace Toast {
 			scenePlanet->mTempGridSize = scenePlanet->mGridSize;
 			scenePlanet->mTempNumLevels = scenePlanet->mNumLevels;
 
-			scenePlanet->mTerrainData = mScene->LoadTerrainData(scenePlanet->mBaseHeightMapTexture->GetFilePath(), scenePlanet->mMaxHeight, scenePlanet->mMinHeight);
+			scenePlanet->mTerrainCubeData = scenePlanet->LoadTerrainDataFromTextureCube();
 
 			SceneCamera* camera = mScene->GetMainCamera();
 			if (camera)

@@ -86,7 +86,14 @@ namespace Toast {
 		sRendererData->MeshWireframeDrawList.clear();
 		sRendererData->MeshNoWireframeDrawList.clear();
 
+		ClearDrawList();
+
 		//TOAST_CORE_CRITICAL("DEBUG END SCENE!");
+	}
+
+	void RendererDebug::ClearDrawList()
+	{
+		sRendererData->DebugMeshDrawList.clear();
 	}
 
 	void RendererDebug::SubmitCameraFrustum(Ref<Frustum> frustum)
@@ -154,6 +161,11 @@ namespace Toast {
 			sRendererData->MeshNoWireframeDrawList.emplace_back(mesh, transform, wireframe);
 	}
 
+	void RendererDebug::SubmitDebugMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform)
+	{
+		sRendererData->DebugMeshDrawList.emplace_back(mesh, transform);
+	}
+
 	void RendererDebug::DebugRenderPass(const bool runtime, const bool renderGrid)
 	{
 #ifdef TOAST_DEBUG
@@ -208,6 +220,24 @@ namespace Toast {
 		}	
 
 		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
+
+		// New physics debugging, In the future all meshes will use this draw list
+		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
+		for (const auto& meshCommand : sRendererData->DebugMeshDrawList)
+		{
+			for (Submesh& submesh : meshCommand.Mesh->mLODGroups[0]->Submeshes)
+			{
+				noWorldTransform = 0;
+
+				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+				sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 72);
+				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+
+				meshCommand.Mesh->Bind();
+
+				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
+			}
+		}
 
 		// Particle Guides, for now only but in the future more non wireframe debugging objects will be added here.
 		if (!runtime) 

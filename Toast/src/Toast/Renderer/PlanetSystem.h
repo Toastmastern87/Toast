@@ -73,6 +73,7 @@ namespace Toast {
 	constexpr double kQuant = 0.1;     // 1 cm grid
 	constexpr double kInvQ = 1.0 / kQuant;
 
+	//OLD
 	struct TerrainData
 	{
 		uint32_t Width;
@@ -81,6 +82,20 @@ namespace Toast {
 		uint32_t Stride;
 		std::vector<double> HeightData;
 	};
+
+	//NEW
+	struct TerrainCubeData
+	{
+		uint32_t Width = 0;  
+		uint32_t Height = 0; 
+
+		std::array<std::vector<float>, 6> FaceHeight;
+	};
+
+	inline size_t Index2D(uint32_t x, uint32_t y, uint32_t width)
+	{
+		return static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x);
+	}
 
 	struct AtmosphericData 
 	{
@@ -99,6 +114,15 @@ namespace Toast {
 		uint32_t StepsTransmittance = 192;
 		uint32_t StepsMultiScattering = 128;
 		float APFarDynamic = 150000.0f;
+	};
+
+	struct PlanetProjectionResult
+	{
+		uint32_t Level;      // LOD level
+		int GWorldX;         // global grid x (gWorld.x)
+		int GWorldY;         // global grid y (gWorld.y)
+		Vector3 NWSApprox;   // approx normal used by GPU for this grid sample
+		double TangentDist;  // tangent-plane distance from camera (meters)
 	};
 
 	inline float smoothstep(float a, float b, float x)
@@ -146,12 +170,18 @@ namespace Toast {
 		double mRadius = 0.0;
 		double mMaxHeight = 0.0;
 		double mMinHeight = 0.0;
+		double mAltitude = 0.0;
 		DirectX::XMFLOAT3 mBasisLonEast;
 		DirectX::XMFLOAT3 mBasisLonNorth;
 		DirectX::XMFLOAT3 mBasisSpinUp;
+		DirectX::XMFLOAT3 mBasisRadUp;
+		DirectX::XMFLOAT3 mBasisTanEast;
+		DirectX::XMFLOAT3 mBasisTanNorth;
 		std::vector<double> mDistanceLUT;
 		Texture2D* mBaseHeightMapTexture;
+		Ref<TextureCube> mBaseHeightMapTextureCube;
 		TerrainData mTerrainData;
+		TerrainCubeData mTerrainCubeData;
 
 		// PBR Data
 		DirectX::XMFLOAT3 mAlbedoColor = { 0.0f, 0.0f, 0.0f };
@@ -204,12 +234,18 @@ namespace Toast {
 		Quaternion GetRotation() { return mRotationQuat; }
 		Quaternion GetInvRotation() { return mInvRotationQuat; }
 
+		Ref<TextureCube> CreateHeightMapCube(const Texture2D* heightMapTexture);
+
 		double GetRadius() { return mRadius; }
 		double GetMaxHeight() { return mMaxHeight; }
 		double GetMinHeight() { return mMinHeight; }
+		double GetAltitude() const { return mAltitude; }
 		DirectX::XMFLOAT3& GetBasisLonEast() { return mBasisLonEast; }
 		DirectX::XMFLOAT3& GetBasisLonNorth() { return mBasisLonNorth; }
 		DirectX::XMFLOAT3& GetBasisSpinUp() { return mBasisSpinUp; }
+		DirectX::XMFLOAT3& GetBasisRadUp() { return mBasisRadUp; }
+		DirectX::XMFLOAT3& GetBasisTanEast() { return mBasisTanEast; }
+		DirectX::XMFLOAT3& GetBasisTanNorth() { return mBasisTanNorth; }
 
 		bool AtmosphereActivated() { return mAtmosphereActivated; }
 		bool IsValid() { return mValidPlanet; }
@@ -234,11 +270,13 @@ namespace Toast {
 		float& GetMetalness() { return mMetalness; }
 		float& GetRoughness() { return mRoughness; }
 		Texture2D* GetBaseHeightMapTexture() { return mBaseHeightMapTexture; }
+		Ref<TextureCube> GetHeightMapCubeTexture() { return mBaseHeightMapTextureCube; }
 
 		Texture2D* GetStarFieldTexture2D() { return mStarFieldTexture2D; }
 		Ref<TextureCube> GetStarFieldTextureCube() { return mStarFieldTextureCube; }
 
 		TerrainData& GetTerrainData() { return mTerrainData; }
+		TerrainCubeData& GetTerrainCubeData() { return mTerrainCubeData; }
 
 		AtmosphericData& GetAtmosphere() { return mAtmosphere; }
 		Ref<Texture2D>& GetTransmittanceLUT() { return mTransmittanceLUT; }
@@ -258,7 +296,11 @@ namespace Toast {
 		void GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight);
 		void GenerateHeightMultLUT(std::vector<double>& heightMultLUT, double planetRadius, double maxHeight);
 
+		TerrainCubeData LoadTerrainDataFromTextureCube();
 		float GetGravityConstant() { return mGravityConstant; }
+
+		bool ProjectWorldPosToLevelGrid(const Vector3& worldPos, const Vector3& worldTranslation, PlanetProjectionResult& out);
+		uint32_t GetLODForWorldPos(const Vector3& worldPosWS, const Vector3& worldTranslation);
 	};
 
 }

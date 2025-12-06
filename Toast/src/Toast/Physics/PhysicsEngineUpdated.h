@@ -10,15 +10,27 @@ namespace Toast {
 
 	class PhysicsEngineUpdated
 	{
+		struct TerrainContactPoint
+		{
+			Vector3 Position;    // world space
+			Vector3 Normal;      // world space
+			double Penetration; // > 0 inside terrain
+		};
+
+		struct TerrainContactManifold
+		{
+			Entity Entity;
+			std::vector<TerrainContactPoint> Points;
+		};
+
 	public:
 		PhysicsEngineUpdated();
 
 		void Initialize(Scene* scene);
 		void Update(double ts);
 
-		TerrainData LoadTerrainData(const std::string& path, const double maxHeight, const double minHeight);
-
 		double GetAltitude(Entity& entity);
+		double GetAltitudeAtWorldPos(const Vector3& worldPos, double& outRadialDist, Vector3& outGroundNormal);
 	private:
 		void ApplyLinearImpulse(RigidBodyComponent& rbc, Vector3 impulse);
 
@@ -26,9 +38,14 @@ namespace Toast {
 
 		void IntegrateLinear(Entity& entity, double ts);
 
-		void WorldPosToHeightMapUV(Planet& p, const Vector3& worldPos, const Vector3& worldTranslation, int mapWidth, int mapHeight, float& outU, float& outV, double& outRadialDist);
-		double SampleHeightBilinear(const std::vector<double>& heightData, int textureWidth, int textureHeight, float u, float v);
+		bool CheckTerrainCollision(Entity& entity, TerrainContactManifold& manifold);
+		bool FindTerrainContactPoints(Entity& entity, TerrainContactManifold& manifold);
+		bool FindTerrainContactPointsSphere(Entity& entity, TerrainContactManifold& manifold);
+		bool FindTerrainContactPointsBox(Entity& entity, TerrainContactManifold& manifold);
+		void ResolveTerrainCollision(const TerrainContactManifold& manifold, double dt);
 	private:
 		Scene* mScene;
+
+		Ref<Mesh> mGuideMesh;
 	};
 }

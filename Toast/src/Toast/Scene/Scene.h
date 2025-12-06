@@ -252,8 +252,6 @@ namespace Toast {
 		void SetRenderColliders(bool renderColliders) { mSettings.RenderColliders = renderColliders; }
 		bool GetRenderColliders() { return mSettings.RenderColliders; }
 
-		//Physics
-		TerrainData LoadTerrainData(const std::string& path, const double maxHeight, const double minHeight);
 		float GetAltitude(Entity& entity);
 
 		entt::registry& GetRegistry() { return mRegistry; }

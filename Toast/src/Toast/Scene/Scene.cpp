@@ -261,13 +261,13 @@ namespace Toast {
 
 			float deltaTime = ts.GetSeconds() * mTimeScale;
 			float physicsTargetFrameTime = 1.0 / mSettings.PhysicsFPS;
-			float subStepDeltaTime = physicsTargetFrameTime / 30.0f;
+			float subStepDeltaTime = physicsTargetFrameTime / 1.0f;
 
 			mSettings.physicsElapsedTime += deltaTime;
 
 			while (mSettings.physicsElapsedTime >= physicsTargetFrameTime)
 			{
-				for (int i = 0; i < 30; ++i)
+				for (int i = 0; i < 1; ++i)
 					mPhysicsEngine->Update(subStepDeltaTime);
 
 				mSettings.physicsElapsedTime -= physicsTargetFrameTime;
@@ -1462,11 +1462,6 @@ namespace Toast {
 		}
 	}
 
-	TerrainData Scene::LoadTerrainData(const std::string& path, const double maxHeight, const double minHeight)
-	{
-		return mPhysicsEngine->LoadTerrainData(path, maxHeight, minHeight);
-	}
-
 	float Scene::GetAltitude(Entity& entity)
 	{
 		return mPhysicsEngine->GetAltitude(entity);
@@ -1732,6 +1727,7 @@ namespace Toast {
 		target->mPlanet = mPlanet;
 
 		// Collider
+		target->mSettings.RenderColliders = mSettings.RenderColliders;
 		target->mCubeColliderMaterial = mCubeColliderMaterial;
 		target->mSphereColliderMaterial = mSphereColliderMaterial;
 
