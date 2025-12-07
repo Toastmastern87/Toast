@@ -211,19 +211,6 @@ namespace Toast {
 			: Collider(collider) {}
 	};
 
-	struct TerrainColliderComponent 
-	{
-		Ref<ShapeTerrain> Collider;
-		robin_hood::unordered_flat_map<std::pair<int, int>, Ref<ShapeBox>, PairHash> BuildColliders;
-		robin_hood::unordered_flat_map<std::pair<int, int>, std::vector<Vector3>, PairHash> BuildColliderPositions;
-		robin_hood::unordered_flat_map<std::pair<int, int>, Ref<ShapeBox>, PairHash> Colliders;
-		robin_hood::unordered_flat_map<std::pair<int, int>, std::vector<Vector3>, PairHash> ColliderPositions;
-
-		TerrainColliderComponent() = default;
-		TerrainColliderComponent(const Ref<ShapeTerrain>& collider)
-			: Collider(collider) {}
-	};
-
 	struct UIPanelComponent
 	{
 		Ref<UIPanel> Panel;

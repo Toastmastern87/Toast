@@ -316,20 +316,12 @@ namespace Toast {
 				}
 			}
 
-			bool noPlanetSpecific = mContext.HasComponent<TerrainColliderComponent>() && mContext.HasComponent<TerrainDetailComponent>() &&  mContext.HasComponent<TerrainObjectComponent>();
+			bool noPlanetSpecific = mContext.HasComponent<TerrainDetailComponent>() &&  mContext.HasComponent<TerrainObjectComponent>();
 
 			ImGui::Separator();
 
 			if (ImGui::BeginMenu("Planet Specific"))
 			{
-				if (!mContext.HasComponent<TerrainColliderComponent>())
-				{
-					if (ImGui::MenuItem("Terrain Collider"))
-					{
-						mContext.AddComponent<TerrainColliderComponent>();
-						ImGui::CloseCurrentPopup();
-					}
-				}
 
 				if (!mContext.HasComponent<TerrainDetailComponent>())
 				{

@@ -200,18 +200,32 @@ namespace Toast {
 
 	void PhysicsEngineUpdated::Update(double ts)
 	{
-		auto view = mScene->mRegistry.view<RigidBodyComponent, TransformComponent>();
-		for (auto entity : view)
+		float targetFrameTime = 1.0f / (float)mSettings.FPSTarget;
+		float subStepDeltaTime = targetFrameTime / mSettings.StepsPerUpdate;
+
+		mSettings.ElapsedTime += ts;
+
+		while (mSettings.ElapsedTime >= targetFrameTime)
 		{
-			Entity e = { entity, mScene };
+			auto view = mScene->mRegistry.view<RigidBodyComponent, TransformComponent>();
 
-			ApplyGravity(e, ts);
+			for (auto entity : view)
+			{
+				Entity e = { entity, mScene };
 
-			IntegrateLinear(e, ts);
+				for (int i = 0; i < mSettings.StepsPerUpdate; ++i)
+				{
+					ApplyGravity(e, subStepDeltaTime);
 
-			TerrainContactManifold manifold;
-			if (CheckTerrainCollision(e, manifold))
-				ResolveTerrainCollision(manifold, ts);
+					IntegrateLinear(e, subStepDeltaTime);
+
+					TerrainContactManifold manifold;
+					if (CheckTerrainCollision(e, manifold))
+						ResolveTerrainCollision(manifold, subStepDeltaTime);
+				}
+			}
+
+			mSettings.ElapsedTime -= targetFrameTime;
 		}
 	}
 
@@ -353,8 +367,6 @@ namespace Toast {
 
 	bool PhysicsEngineUpdated::FindTerrainContactPointsBox(Entity& entity, TerrainContactManifold& manifold)
 	{
-		TOAST_CORE_CRITICAL("Box Narrow Phase Terrain Collision Check");
-
 		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 
 		auto& tc = entity.GetComponent<TransformComponent>();
@@ -376,9 +388,9 @@ namespace Toast {
 			Vector3 cornerWorld = Matrix(tc.GetTransformWithoutScale()) * cornerLocal;
 			cornerWorld = cornerWorld - worldTranslation;
 
-			DirectX::XMMATRIX transform = DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)) * DirectX::XMMatrixTranslation(cornerWorld.x, cornerWorld.y, cornerWorld.z);
+			//DirectX::XMMATRIX transform = DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)) * DirectX::XMMatrixTranslation(cornerWorld.x, cornerWorld.y, cornerWorld.z);
 
-			RendererDebug::SubmitDebugMesh(mGuideMesh, transform);
+			//RendererDebug::SubmitDebugMesh(mGuideMesh, transform);
 
 			double alt = GetAltitudeAtWorldPos(cornerWorld, radialDist, groundNormal);
 

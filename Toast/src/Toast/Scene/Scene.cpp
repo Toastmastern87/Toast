@@ -260,18 +260,8 @@ namespace Toast {
 			}
 
 			float deltaTime = ts.GetSeconds() * mTimeScale;
-			float physicsTargetFrameTime = 1.0 / mSettings.PhysicsFPS;
-			float subStepDeltaTime = physicsTargetFrameTime / 1.0f;
 
-			mSettings.physicsElapsedTime += deltaTime;
-
-			while (mSettings.physicsElapsedTime >= physicsTargetFrameTime)
-			{
-				for (int i = 0; i < 1; ++i)
-					mPhysicsEngine->Update(subStepDeltaTime);
-
-				mSettings.physicsElapsedTime -= physicsTargetFrameTime;
-			}
+			mPhysicsEngine->Update(deltaTime);
 
 			// Scripting
 			{
@@ -1591,7 +1581,6 @@ namespace Toast {
 		CopyComponentIfExists<RigidBodyComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<SphereColliderComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<BoxColliderComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
-		CopyComponentIfExists<TerrainColliderComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<UIPanelComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<UITextComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<UIButtonComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
@@ -1629,7 +1618,6 @@ namespace Toast {
 			CopyComponentIfExists<RigidBodyComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<SphereColliderComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<BoxColliderComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
-			CopyComponentIfExists<TerrainColliderComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<UIPanelComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<UITextComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<UIButtonComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
@@ -1708,13 +1696,19 @@ namespace Toast {
 		target->mMainCamera = mMainCamera;
 
 		// Settings
-		target->mSettings.PhysicSlowmotion = mSettings.PhysicSlowmotion;
+		//target->mSettings.PhysicSlowmotion = mSettings.PhysicSlowmotion;
 		target->mSettings.SSAO = mSettings.SSAO;
 		target->mSettings.SSAObias = mSettings.SSAObias;
 		target->mSettings.SSAORadius = mSettings.SSAORadius;
 		target->mSettings.Bloom = mSettings.Bloom;
 		target->mSettings.Exposure = mSettings.Exposure;
 		target->mSettings.DirectionalLightningGain = mSettings.DirectionalLightningGain;
+
+		// Physics Settings
+		auto& targetPhysics = target->GetPhysicsEngine();
+		targetPhysics->mSettings.SlowDown = mPhysicsEngine->mSettings.SlowDown;
+		targetPhysics->mSettings.FPSTarget = mPhysicsEngine->mSettings.FPSTarget;
+		targetPhysics->mSettings.StepsPerUpdate = mPhysicsEngine->mSettings.StepsPerUpdate;
 
 		// Environment
 		target->mEnvironment = mEnvironment;
@@ -1760,7 +1754,6 @@ namespace Toast {
 		CopyComponent<RigidBodyComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<SphereColliderComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<BoxColliderComponent>(target->mRegistry, mRegistry, enttMap);
-		CopyComponent<TerrainColliderComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIPanelComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UITextComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIButtonComponent>(target->mRegistry, mRegistry, enttMap);
@@ -1854,12 +1847,6 @@ namespace Toast {
 		component.Collider = CreateRef<ShapeBox>(DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f));
 
 		component.ColliderMesh = MeshFactory::CreateCube(1.0f, { 0.0, 0.0, 1.0 });
-	}
-
-	template<>
-	void Scene::OnComponentAdded<TerrainColliderComponent>(Entity entity, TerrainColliderComponent& component)
-	{
-		component.Collider = CreateRef<ShapeTerrain>();
 	}
 
 	template<>

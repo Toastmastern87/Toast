@@ -3,6 +3,7 @@
 #include "../FontAwesome.h"
 
 #include "Toast/ImGui/ImGuiHelpers.h"
+#include "Toast/Physics/PhysicsEngineUpdated.h"
 
 #include "imgui/imgui.h"
 
@@ -103,6 +104,23 @@ namespace Toast {
 					ImGuiHelpers::ManualDragFloat("##ssaoradius", mContext->mSettings.SSAORadius, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 50.0f);
 					ImGui::Text("SSAO bias");
 					ImGuiHelpers::ManualDragFloat("##ssaobias", mContext->mSettings.SSAObias, mWindow, activeDragArea, 0.001f, ImVec2{ 255.0f, 20.0f }, "%.4f", -1.0f, 1.0f);
+
+					if (ImGui::CollapsingHeader("Physics", ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						auto& physicsSettings = mContext->GetPhysicsEngine()->GetSettings();
+
+						ImGui::Indent();
+
+						ImGui::Text("Sub steps");
+						ImGui::SliderInt("##Substeps", &physicsSettings.StepsPerUpdate, 1, 10);
+						ImGui::Text("FPS Target");
+						ImGui::SliderInt("##FPSTarget", &physicsSettings.FPSTarget, 1, 120);
+						ImGui::Text("Slow motion factor");
+						ImGui::SliderInt("##physicsslowmotion", &physicsSettings.SlowDown, 1, 30);
+
+						ImGui::Unindent();
+					}
+
 					ImGui::Checkbox("Bloom", &mContext->mSettings.Bloom.Enabled);
 					if (ImGui::CollapsingHeader("Bloom Settings", ImGuiTreeNodeFlags_DefaultOpen) && mContext->mSettings.Bloom.Enabled)
 					{
@@ -156,8 +174,6 @@ namespace Toast {
 					ImGui::Checkbox("Render Colliders", &mContext->mSettings.RenderColliders);
 					ImGui::Checkbox("Render UI", &mContext->mSettings.RenderUI);
 
-					ImGui::Text("Physics slow motion");
-					ImGui::SliderInt("##physicsslowmotion", &mContext->mSettings.PhysicSlowmotion, 1, 30);
 
 					ImGui::Text("Sun Frustum Ortho Size");
 					ImGuiHelpers::ManualDragFloat("##sunlightdistance", mContext->mSettings.SunFrustumOrthoSize, mWindow, activeDragArea, 10.0f, ImVec2{ 255.0f, 20.0f }, "%.1f", 50.0f, 10000.0f);

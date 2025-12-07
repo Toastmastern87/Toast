@@ -46,7 +46,6 @@ cbuffer SSAO : register(b10)
 Texture2D positionTexture               : register(t0);
 Texture2D normalTexture                 : register(t1);
 Texture2D noiseTexture                  : register(t2);
-Texture2D<int> terrainMaskTexture       : register(t3);
 
 SamplerState PointSampler               : register(s3);
 SamplerState linearSampler              : register(s4);
@@ -66,11 +65,8 @@ float4 main(PixelInputType input) : SV_TARGET
     float3 normalView = normalTexture.Sample(PointSampler, input.texCoord).xyz;
     normalView = normalize(normalView * 2.0f - 1.0f); // Convert to [-1, 1]     
     
-    int2 uvPixelCoord = int2(input.texCoord * float2(viewportWidth, viewportHeight));
-    int terrainMask = terrainMaskTexture.Load(int3(uvPixelCoord, 0));
-    
     // If no geometry at this pixel (z=0?), early out also ignore pixels more then 1000m away 
-    if (positionView.z == 0.0f || terrainMask < 1)
+    if (positionView.z == 0.0f)
         return float4(1, 1, 1, 1);
     
     float2 noiseScale = float2(viewportWidth / 16.0, viewportHeight / 16.0);

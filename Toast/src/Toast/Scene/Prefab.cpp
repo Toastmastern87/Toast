@@ -680,17 +680,6 @@ namespace Toast {
 			out << YAML::EndMap; // BoxColliderComponent
 		}
 
-		if (entity.HasComponent<TerrainColliderComponent>())
-		{
-			out << YAML::Key << "TerrainColliderComponent";
-			out << YAML::BeginMap; // TerrainColliderComponent
-
-			auto& tcc = entity.GetComponent<TerrainColliderComponent>();
-			out << YAML::Key << "AssetPath" << YAML::Value << tcc.Collider->mFilePath;
-
-			out << YAML::EndMap; // TerrainColliderComponent
-		}
-
 		if (entity.HasComponent<UIPanelComponent>())
 		{
 			out << YAML::Key << "UIPanelComponent";
@@ -999,7 +988,6 @@ namespace Toast {
 		CopyComponentIfExists<RigidBodyComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<SphereColliderComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<BoxColliderComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
-		CopyComponentIfExists<TerrainColliderComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<UIPanelComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<UITextComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<UIButtonComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);

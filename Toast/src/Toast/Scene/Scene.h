@@ -21,7 +21,6 @@ namespace Toast {
 
 	class PhysicsEngineUpdated;
 
-
 	enum class RenderOverlay {
 		NONE = 0, 
 		POSITIONS = 1,
@@ -122,9 +121,6 @@ namespace Toast {
 			BloomParams Bloom;
 			bool DynamicIBL = true;
 
-			int PhysicSlowmotion = 1;
-			int PhysicsFPS = 60;
-			float physicsElapsedTime = 0.0;
 			float SunFrustumOrthoSize = 500.0f;
 
 			float GodRaysExposure = 0.21f;
@@ -253,6 +249,8 @@ namespace Toast {
 		bool GetRenderColliders() { return mSettings.RenderColliders; }
 
 		float GetAltitude(Entity& entity);
+
+		Ref<PhysicsEngineUpdated> GetPhysicsEngine() { return mPhysicsEngine; }
 
 		entt::registry& GetRegistry() { return mRegistry; }
 	public:

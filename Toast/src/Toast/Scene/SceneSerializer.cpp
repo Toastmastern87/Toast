@@ -10,7 +10,9 @@
 
 #include "Toast/Scripting/ScriptEngine.h"
 
-#include "Toast/Physics/PhysicsEngine.h"
+#include "Toast/Physics/PhysicsEngineUpdated.h"
+
+#include "Toast/Renderer/Renderer.h"
 
 namespace YAML 
 {
@@ -172,6 +174,8 @@ namespace YAML
 }
 
 namespace Toast {
+
+	class PhysicsEngineUpdated;
 
 	SceneSerializer::SceneSerializer(Scene* scene)
 		: mScene(scene)
@@ -437,17 +441,6 @@ namespace Toast {
 			out << YAML::EndMap; // BoxColliderComponent
 		}
 
-		if (entity.HasComponent<TerrainColliderComponent>())
-		{
-			out << YAML::Key << "TerrainColliderComponent";
-			out << YAML::BeginMap; // TerrainColliderComponent
-
-			auto& tcc = entity.GetComponent<TerrainColliderComponent>();
-			out << YAML::Key << "AssetPath" << YAML::Value << tcc.Collider->mFilePath;
-
-			out << YAML::EndMap; // TerrainColliderComponent
-		}
-
 		if (entity.HasComponent<UIPanelComponent>())
 		{
 			out << YAML::Key << "UIPanelComponent";
@@ -579,7 +572,6 @@ namespace Toast {
 		CopyComponentIfExists<RigidBodyComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<SphereColliderComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<BoxColliderComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
-		CopyComponentIfExists<TerrainColliderComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<UIPanelComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<UITextComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<UIButtonComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
@@ -672,9 +664,6 @@ namespace Toast {
 		out << YAML::Key << "SoftKnee" << YAML::Value << settings.Bloom.SoftKnee;
 		out << YAML::Key << "SaturationClamp" << YAML::Value << settings.Bloom.SaturationClamp;
 		out << YAML::Key << "DynamicIBL" << YAML::Value << settings.DynamicIBL;
-		out << YAML::Key << "PhysicSlowmotion" << YAML::Value << settings.PhysicSlowmotion;
-		out << YAML::Key << "PhysicsFPS" << YAML::Value << settings.PhysicsFPS;
-		out << YAML::Key << "PhysicsElapsedTime" << YAML::Value << settings.physicsElapsedTime;
 		out << YAML::Key << "SunFrustumOrthoSize" << YAML::Value << settings.SunFrustumOrthoSize;
 		out << YAML::Key << "GodRaysExposure" << YAML::Value << settings.GodRaysExposure;
 		out << YAML::Key << "GodRaysDecay" << YAML::Value << settings.GodRaysDecay;
@@ -692,6 +681,15 @@ namespace Toast {
 		out << YAML::Key << "AltFadeEndFrac" << YAML::Value << settings.Exposure.AltFadeEndFrac;
 		out << YAML::Key << "SunFadeStartDeg" << YAML::Value << settings.Exposure.SunFadeStartDeg;
 		out << YAML::Key << "SunFadeEndDeg" << YAML::Value << settings.Exposure.SunFadeEndDeg;
+
+		out << YAML::Key << "Physics";
+		out << YAML::BeginMap;
+		PhysicsEngineUpdated::PhysicsSettings& physicsSettings = mScene->GetPhysicsEngine()->GetSettings();
+		out << YAML::Key << "SlowDown" << YAML::Value << physicsSettings.SlowDown;
+		out << YAML::Key << "FPSTarget" << YAML::Value << physicsSettings.FPSTarget;
+		out << YAML::Key << "StepsPerUpdate" << YAML::Value << physicsSettings.StepsPerUpdate;
+		out << YAML::EndMap;
+
 		out << YAML::EndMap;
 
 		Planet* scenePlanet = mScene->GetPlanet().get();
@@ -899,9 +897,6 @@ namespace Toast {
 		settings.Bloom.SoftKnee = data["Settings"]["SoftKnee"].as<float>();
 		settings.Bloom.SaturationClamp = data["Settings"]["SaturationClamp"].as<float>();
 		settings.DynamicIBL = data["Settings"]["DynamicIBL"].as<bool>();
-		settings.PhysicSlowmotion = data["Settings"]["PhysicSlowmotion"].as<int>();
-		settings.PhysicsFPS = data["Settings"]["PhysicsFPS"].as<int>();
-		settings.physicsElapsedTime = data["Settings"]["PhysicsElapsedTime"].as<float>();
 		settings.SunFrustumOrthoSize = data["Settings"]["SunFrustumOrthoSize"].as<float>();
 		settings.GodRaysExposure = data["Settings"]["GodRaysExposure"].as<float>();
 		settings.GodRaysDecay = data["Settings"]["GodRaysDecay"].as<float>();
@@ -918,6 +913,12 @@ namespace Toast {
 		settings.Exposure.AltFadeEndFrac = data["Settings"]["AltFadeEndFrac"].as<float>();
 		settings.Exposure.SunFadeStartDeg = data["Settings"]["SunFadeStartDeg"].as<float>();
 		settings.Exposure.SunFadeEndDeg = data["Settings"]["SunFadeEndDeg"].as<float>();
+
+		PhysicsEngineUpdated::PhysicsSettings& physicsSettings = mScene->GetPhysicsEngine()->GetSettings();
+
+		physicsSettings.SlowDown = data["Settings"]["Physics"]["SlowDown"].as<int>();
+		physicsSettings.FPSTarget = data["Settings"]["Physics"]["FPSTarget"].as<int>();
+		physicsSettings.StepsPerUpdate = data["Settings"]["Physics"]["StepsPerUpdate"].as<int>();
 
 		Planet* scenePlanet = mScene->GetPlanet().get();
 
