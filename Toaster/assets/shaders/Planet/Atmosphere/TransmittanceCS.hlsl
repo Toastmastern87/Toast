@@ -4,17 +4,18 @@
 // ---------- cbuffers ----------
 cbuffer PlanetFrame : register(b4)
 {
-    float3 PlanetCenterWS;
-    float PlanetRadius; // Rg
+    float3 PlanetCenterCR;
+    float PlanetRadius;
     float3 BasisTanEast;
     float MaxHeight;
     float3 BasisTanNorth;
     float MinHeight;
     float3 BasisRadUp;
+    float Altitude;
     float3 BasisLonEast;
     float3 BasisLonNorth;
     float3 BasisSpinUp;
-};
+}
 
 cbuffer Atmosphere : register(b5)
 {

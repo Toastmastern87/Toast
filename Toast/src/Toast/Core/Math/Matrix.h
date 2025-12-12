@@ -156,9 +156,16 @@ namespace Toast {
 			return result;
 		}
 
+		static Vector3 MulMat3(const Matrix& M, const Vector3& v)
+		{
+			return {
+				M.m_00 * v.x + M.m_01 * v.y + M.m_02 * v.z,
+				M.m_10 * v.x + M.m_11 * v.y + M.m_12 * v.z,
+				M.m_20 * v.x + M.m_21 * v.y + M.m_22 * v.z
+			};
+		}
+
 	public:
-
-
 		double m_00, m_01, m_02, m_03;
 		double m_10, m_11, m_12, m_13;
 		double m_20, m_21, m_22, m_23;

@@ -19,12 +19,12 @@ namespace Sandbox
 
         void OnCreate()
         {
-            mStarship = FindEntityByName("Starship SN3"); 
-            mRB1 = FindChildEntityByName("Starship SN3", "Rocket Exhaust RB1");
-            mRB2 = FindChildEntityByName("Starship SN3", "Rocket Exhaust RB2");
-            mRB3 = FindChildEntityByName("Starship SN3", "Rocket Exhaust RB3");
+            mStarship = FindEntityByName("Starship 2"); 
+            mRB1 = FindChildEntityByName("Starship 2", "Rocket Exhaust RB1");
+            mRB2 = FindChildEntityByName("Starship 2", "Rocket Exhaust RB2");
+            mRB3 = FindChildEntityByName("Starship 2", "Rocket Exhaust RB3");
             mRigidBody = mStarship.GetComponent<RigidBodyComponent>();
-            mSphereCollider = mStarship.GetComponent<SphereColliderComponent>();
+            mBoxCollider = mStarship.GetComponent<BoxColliderComponent>();
 
             mRB1Particles = mRB1.GetComponent<ParticlesComponent>();
             mRB2Particles = mRB2.GetComponent<ParticlesComponent>();
@@ -39,7 +39,7 @@ namespace Sandbox
 
         void OnUpdate(float ts)
         {
-            if (mRigidBody.Altitude <= 130.0f && mRigidBody.Altitude > 1.0) 
+            if (mRigidBody.Altitude <= 030.0f && mRigidBody.Altitude > 1.0) 
             {
                 mRB1Particles.Emitting = true;
                 mRB2Particles.Emitting = true;

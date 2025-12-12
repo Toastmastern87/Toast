@@ -117,6 +117,8 @@ namespace Toast {
 						ImGui::SliderInt("##FPSTarget", &physicsSettings.FPSTarget, 1, 120);
 						ImGui::Text("Slow motion factor");
 						ImGui::SliderInt("##physicsslowmotion", &physicsSettings.SlowDown, 1, 30);
+						ImGui::Text("Max Angular Velocity");
+						ImGuiHelpers::ManualDragFloat("##MaxAngularVelocity", physicsSettings.MaxAngularVelocity, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.1f", 0.0f, 50.0f);
 
 						ImGui::Unindent();
 					}

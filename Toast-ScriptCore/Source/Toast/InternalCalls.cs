@@ -46,7 +46,10 @@ namespace Toast
         #region PhysicsEngine
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float PhysicsEngine_GetAltitude(ulong entityID);
+        internal static extern float PhysicsEngine_GetAltitude(ulong entityID, bool ignoreWorldTranslation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float PhysicsEngine_GetAltitudeAtWorldPos(Vector3 worldPos);
 
         #endregion
 

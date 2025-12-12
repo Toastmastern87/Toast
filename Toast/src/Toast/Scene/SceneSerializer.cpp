@@ -688,6 +688,7 @@ namespace Toast {
 		out << YAML::Key << "SlowDown" << YAML::Value << physicsSettings.SlowDown;
 		out << YAML::Key << "FPSTarget" << YAML::Value << physicsSettings.FPSTarget;
 		out << YAML::Key << "StepsPerUpdate" << YAML::Value << physicsSettings.StepsPerUpdate;
+		out << YAML::Key << "MaxAngularVelocity" << YAML::Value << physicsSettings.MaxAngularVelocity;
 		out << YAML::EndMap;
 
 		out << YAML::EndMap;
@@ -919,6 +920,7 @@ namespace Toast {
 		physicsSettings.SlowDown = data["Settings"]["Physics"]["SlowDown"].as<int>();
 		physicsSettings.FPSTarget = data["Settings"]["Physics"]["FPSTarget"].as<int>();
 		physicsSettings.StepsPerUpdate = data["Settings"]["Physics"]["StepsPerUpdate"].as<int>();
+		physicsSettings.MaxAngularVelocity = data["Settings"]["Physics"]["MaxAngularVelocity"].as<float>();
 
 		Planet* scenePlanet = mScene->GetPlanet().get();
 
@@ -1197,6 +1199,12 @@ namespace Toast {
 					scc.RenderCollider = sphereColliderComponent["RenderCollider"].as<bool>();
 
 					scc.Collider->CalculateBounds();
+
+					if (deserializedEntity.HasComponent<RigidBodyComponent>())
+					{
+						auto& rbc = deserializedEntity.GetComponent<RigidBodyComponent>();
+						scc.Collider->CalculateInertiaTensor(1.0f / rbc.InvMass);
+					}
 				}
 
 				auto boxColliderComponent = entity["BoxColliderComponent"];
@@ -1209,6 +1217,12 @@ namespace Toast {
 
 					bcc.Collider->CalculateBounds();
 					bcc.Collider->BuildCornerPoints();
+
+					if (deserializedEntity.HasComponent<RigidBodyComponent>())
+					{
+						auto& rbc = deserializedEntity.GetComponent<RigidBodyComponent>();
+						bcc.Collider->CalculateInertiaTensor(1.0f / rbc.InvMass);
+					}
 				}
 
 				auto uiPanelComponent = entity["UIPanelComponent"];

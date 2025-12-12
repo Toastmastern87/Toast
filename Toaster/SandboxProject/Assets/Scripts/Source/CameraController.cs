@@ -44,8 +44,9 @@ namespace Sandbox
         void OnUpdate(float ts)
         {
             Vector3 upWorld = Vector3.Normalize(-1.0f * (Planet.Translation + mCameraComponent.WorldTranslation));
+            //Vector3 upWorld = Vector3.Normalize(mCameraComponent.WorldTranslation - Planet.Translation);
 
-            altitude = PhysicsEngine.GetAltitude(this.ID);
+            altitude = PhysicsEngine.GetAltitude(this.ID, true);
 
             Matrix4 cameraTransform = GetComponent<TransformComponent>().GetTransform();
             mCameraWorldRightVector = Vector3.Normalize(new Vector3(cameraTransform.D00, cameraTransform.D10, cameraTransform.D20));
@@ -143,39 +144,100 @@ namespace Sandbox
 
             Input.SetMouseWheelDelta(0.0f);
 
+            //////////// WASD MOVEMENT ////////////////
+            //Vector3 keyboardDirection = Vector3.Zero;
+
+            //if (Input.IsKeyPressed(KeyCode.W))
+            //    keyboardDirection += mCameraWorldForwardVector;
+            //if (Input.IsKeyPressed(KeyCode.S))
+            //    keyboardDirection -= mCameraWorldForwardVector;
+            //if (Input.IsKeyPressed(KeyCode.D))
+            //    keyboardDirection += mCameraWorldRightVector;
+            //if (Input.IsKeyPressed(KeyCode.A))
+            //    keyboardDirection -= mCameraWorldRightVector;
+
+            //if (Vector3.Length(keyboardDirection) > 0.0f)
+            //{
+            //    keyboardDirection = Vector3.Normalize(keyboardDirection);
+
+            //    float keyboardSpeed = BaseMovementSpeed * (1.0f + altitude / (ReferenceAltitude * 0.2f));
+
+            //    // This is the real world-space movement
+            //    Vector3 cameraMoveWS = keyboardDirection * keyboardSpeed * (ts / Scene.TimeScale);
+
+            //    // Current camera world position
+            //    Vector3 camWS = -mCameraComponent.WorldTranslation;
+
+            //    // Predicted world position
+            //    Vector3 newCamWS = camWS + cameraMoveWS;
+
+            //    // Predict new altitude
+            //    float predictedAltitude = PhysicsEngine.GetAltitudeAtWorldPos(newCamWS);
+
+            //    // Clamp based on min/max altitudes
+            //    if (predictedAltitude < MinAltitude || predictedAltitude > MaxAltitude)
+            //    {
+            //        // Stop movement (or clamp it to edge if you prefer)
+            //        return;
+            //    }
+
+            //    // Apply movement normally (invert so world shifts opposite)
+            //    mCameraComponent.AddWorldMovement(-cameraMoveWS);
+            //}
+
             ////////// WASD MOVEMENT ////////////////
             Vector3 keyboardDirection = Vector3.Zero;
+
             if (Input.IsKeyPressed(KeyCode.W))
-            {
                 keyboardDirection += mCameraWorldForwardVector;
-            }
             if (Input.IsKeyPressed(KeyCode.S))
-            {
                 keyboardDirection -= mCameraWorldForwardVector;
-            }
             if (Input.IsKeyPressed(KeyCode.D))
-            {
                 keyboardDirection += mCameraWorldRightVector;
-            }
             if (Input.IsKeyPressed(KeyCode.A))
-            {
                 keyboardDirection -= mCameraWorldRightVector;
-            }
 
             if (Vector3.Length(keyboardDirection) > 0.0f)
             {
-                // Normalize to have consistent movement speed when moving diagonally.
                 keyboardDirection = Vector3.Normalize(keyboardDirection);
 
-                // Increase the speed with altitude so that at higher altitudes the camera travels faster.
                 float keyboardSpeed = BaseMovementSpeed * (1.0f + altitude / (ReferenceAltitude * 0.2f));
 
-                // Calculate the movement vector scaled by time
-                Vector3 keyboardMovement = keyboardDirection * keyboardSpeed * (ts / Scene.TimeScale);
-                keyboardDirection = -1.0f * keyboardMovement;
+                // This is the real world-space movement
+                Vector3 cameraMoveWS = keyboardDirection * keyboardSpeed * (ts / Scene.TimeScale);
 
-                // Call AddWorldMovement with the negative vector so the world moves opposite to the intended camera motion.
-                mCameraComponent.AddWorldMovement(keyboardDirection);
+                // Current camera world position
+                Vector3 camWS = -mCameraComponent.WorldTranslation;
+
+                // First, do the move
+                Vector3 newCamWS = camWS + cameraMoveWS;
+
+                // Query altitude at the new position
+                float newAltitude = PhysicsEngine.GetAltitudeAtWorldPos(newCamWS);
+
+                // ----- CLAMP MIN ALTITUDE BY PUSHING UP -----
+                if (newAltitude < MinAltitude)
+                {
+                    // How much we need to move *up* to get back to MinAltitude
+                    float delta = MinAltitude - newAltitude;
+
+                    // upWorld should be your radial/tangent "up" at the camera
+                    // (normalized, pointing away from planet)
+                    newCamWS += upWorld * delta;
+                }
+
+                // ----- CLAMP MAX ALTITUDE (optional, same idea) -----
+                if (newAltitude > MaxAltitude)
+                {
+                    float delta = MaxAltitude - newAltitude; // negative
+                    newCamWS += upWorld * delta;
+                }
+
+                // Recompute the final movement from original position
+                cameraMoveWS = newCamWS - camWS;
+
+                // Apply movement (invert so world shifts opposite)
+                mCameraComponent.AddWorldMovement(-cameraMoveWS);
             }
         }
     }

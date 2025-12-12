@@ -24,9 +24,9 @@ namespace Toast {
 	{
 		Matrix tensor = Matrix::Zero();
 
-		tensor.m_00 = 0.4 * mRadius * mRadius;
-		tensor.m_11 = 0.4 * mRadius * mRadius;
-		tensor.m_22 = 0.4 * mRadius * mRadius;
+		tensor.m_00 = 0.4 * mass * mRadius * mRadius;
+		tensor.m_11 = 0.4 * mass * mRadius * mRadius;
+		tensor.m_22 = 0.4 * mass * mRadius * mRadius;
 		tensor.m_33 = 1.0;
 		
 		mInertiaTensor = tensor;
@@ -71,9 +71,9 @@ namespace Toast {
 	void ShapeBox::CalculateInertiaTensor(double mass)
 	{	
 		// Inertia Tensor for a box centered around zero
-		const double width = mBounds.maxs.x - mBounds.mins.x;
-		const double height = mBounds.maxs.y - mBounds.mins.y;
-		const double depth = mBounds.maxs.z - mBounds.mins.z;
+		const double width = mSize.x * 2.0f;
+		const double height = mSize.y * 2.0f;
+		const double depth = mSize.z * 2.0f;
 
 		Matrix tensor = Matrix::Zero();
 

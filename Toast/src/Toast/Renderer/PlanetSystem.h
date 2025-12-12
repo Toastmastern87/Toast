@@ -151,6 +151,7 @@ namespace Toast {
 		DirectX::XMFLOAT4 mRotationQuaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
 		Quaternion mRotationQuat;
 		Quaternion mInvRotationQuat;
+		Vector3 mPlanetCenterCR;
 
 		// GPU Data
 		Ref<VertexBuffer> mGridVertexBuffer;

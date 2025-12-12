@@ -830,8 +830,20 @@ namespace Toast {
 				ImGui::EndTable();
 
 				float mass = 1.0f / (float)component.InvMass;
-				DrawFloatControl("Mass (kg)", mass, window, activeDragArea, 90.0f, 0.0f, 60000.0f, 0.1f);
-				component.InvMass = 1.0f / mass;
+				if (DrawFloatControl("Mass (kg)", mass, window, activeDragArea, 90.0f, 0.0f, 60000.0f, 0.1f))
+				{
+					component.InvMass = 1.0f / mass;
+					if (entity.HasComponent<BoxColliderComponent>())
+					{
+						auto& boxCollider = entity.GetComponent<BoxColliderComponent>();
+						 boxCollider.Collider->CalculateInertiaTensor(mass);
+					}
+					else if (entity.HasComponent<SphereColliderComponent>())
+					{
+						auto& sphereCollider = entity.GetComponent<SphereColliderComponent>();
+						sphereCollider.Collider->CalculateInertiaTensor(mass);
+					}
+				}
 
 				temp = static_cast<float>(component.Elasticity);
 				if(DrawFloatControl("Elasticity (0-1)", temp, window, activeDragArea, 90.0f, 0.0f, 1.0f, 0.01f, "%.2f"))

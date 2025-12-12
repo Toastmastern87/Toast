@@ -44,7 +44,7 @@ namespace Toast {
 		mPlanetFrameBuffer.Allocate(mPlanetFrameCBuffer->GetSize());
 		mPlanetFrameBuffer.ZeroInitialize();
 
-		mPlanetLevelCBuffer = ConstantBufferLibrary::Load("PlanetLevel", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetLevel), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::PlanetLevel) });
+		mPlanetLevelCBuffer = ConstantBufferLibrary::Load("PlanetLevel", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetLevel) });
 		mPlanetLevelCBuffer->Bind();
 		mPlanetLevelBuffer.Allocate(mPlanetLevelCBuffer->GetSize());
 		mPlanetLevelBuffer.ZeroInitialize();
@@ -322,7 +322,7 @@ namespace Toast {
 		mInvRotationQuat = mRotationQuat.Conjugate();
 
 		PlanetFrameCB cb{};
-		Vector3 planetCenterWS = Vector3(mTranslation) - worldTranslation;
+		Vector3 planetCenterWS = Vector3(mTranslation) + worldTranslation;
 		cb.Center = DirectX::XMFLOAT3((float)planetCenterWS.x, (float)planetCenterWS.y, (float)planetCenterWS.z);
 		cb.Radius = (float)mRadius;
 		cb.MaxHeight = (float)mMaxHeight;
@@ -419,8 +419,6 @@ namespace Toast {
 
 		return heightMapCube;
 	}
-
-
 
 	inline float HorizonDistance(float Rg, float h) {
 		// d = sqrt( (Rg+h)^2 - Rg^2 ) = sqrt(h*h + 2*Rg*h )
@@ -697,13 +695,10 @@ namespace Toast {
 		return td;
 	}
 
-	bool Planet::ProjectWorldPosToLevelGrid(
-		const Vector3& worldPos,
-		const Vector3& worldTranslation,
-		PlanetProjectionResult& out)
+	bool Planet::ProjectWorldPosToLevelGrid(const Vector3& worldPos, const Vector3& worldTranslation, PlanetProjectionResult& out)
 	{
 		// 0) Planet center in camera-relative world space
-		Vector3 planetCenterWS = Vector3(mTranslation) - worldTranslation;
+		Vector3 planetCenterWS = Vector3(mTranslation) + worldTranslation;
 
 		// 1) Vector from planet center to object
 		Vector3 pLocal = worldPos - planetCenterWS;
@@ -768,7 +763,7 @@ namespace Toast {
 	uint32_t Planet::GetLODForWorldPos(const Vector3& worldPosWS, const Vector3& worldTranslation)
 	{
 		// 1) Planet center in camera-relative world space
-		Vector3 planetCenterWS = Vector3(mTranslation) - worldTranslation;
+		Vector3 planetCenterWS = Vector3(mTranslation) + worldTranslation;
 
 		// 2) Vector from planet center to object
 		Vector3 pLocal = worldPosWS - planetCenterWS;

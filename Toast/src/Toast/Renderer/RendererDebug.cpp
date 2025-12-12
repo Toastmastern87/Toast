@@ -242,6 +242,8 @@ namespace Toast {
 		// Particle Guides, for now only but in the future more non wireframe debugging objects will be added here.
 		if (!runtime) 
 		{
+			RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
+
 			for (const auto& meshCommand : sRendererData->MeshNoWireframeDrawList)
 			{
 				for (Submesh& submesh : meshCommand.Mesh->mLODGroups[0]->Submeshes)

@@ -102,12 +102,6 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Allocate(sRendererData->AtmosphereCBuffer->GetSize());
 		sRendererData->AtmosphereBuffer.ZeroInitialize();
 
-		// Setting up the constant buffer for floating origin
-		sRendererData->FloatingOriginCBuffer = ConstantBufferLibrary::Load("FloatingOrigin", 16, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)7), CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)7) });
-		sRendererData->FloatingOriginCBuffer->Bind();
-		sRendererData->FloatingOriginBuffer.Allocate(sRendererData->FloatingOriginCBuffer->GetSize());
-		sRendererData->FloatingOriginBuffer.ZeroInitialize();
-
 		// Setting up the constant buffer for dynamic environmental mapping
 		sRendererData->SpecularMapFilterSettingsCBuffer = CreateRef<ConstantBuffer>("SpecularMapFilterSettings", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SpecularLightEnvironmental) } );
 		sRendererData->SpecularMapFilterSettingsCBuffer->Bind();
@@ -878,6 +872,7 @@ namespace Toast {
 						continue;
 
 					sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Map(sRendererData->PlanetDraw.Planet->BuildLevelCB(L));
+					sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Bind();
 
 					sRendererData->PlanetDraw.Planet->GetLODGridVertexBuffer()->Bind();
 					sRendererData->PlanetDraw.Planet->GetLODGridIndexBuffer()->Bind();
@@ -1251,10 +1246,6 @@ namespace Toast {
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&bakeIBL, 4, 124);
 		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 		sRendererData->AtmosphereCBuffer->Bind();
-
-		sRendererData->FloatingOriginBuffer.Write((uint8_t*)&worldOffsetWS, 12, 0);
-		sRendererData->FloatingOriginCBuffer->Map(sRendererData->FloatingOriginBuffer);
-		sRendererData->FloatingOriginCBuffer->Bind();
 
 		{
 			auto& buf = sRendererData->SunDiscSettingsBuffer;

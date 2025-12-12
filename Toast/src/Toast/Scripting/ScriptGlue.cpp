@@ -194,14 +194,22 @@ namespace Toast {
 
 #pragma region Physics Engine
 
-	static float PhysicsEngine_GetAltitude(UUID entityID)
+	static float PhysicsEngine_GetAltitude(UUID entityID, bool ignoreWorldTranslation)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		TOAST_CORE_ASSERT(scene, "");
 		Entity entity = scene->FindEntityByUUID(entityID);
 		TOAST_CORE_ASSERT(entity, "");
+		return scene->GetAltitude(entity, ignoreWorldTranslation);
+	}
 
-		return 10.0f;// scene->GetAltitude(entity);
+	static float PhysicsEngine_GetAltitudeAtWorldPos(DirectX::XMFLOAT3 worldPos)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		double radialDist;
+		Vector3 groundNormal;
+		return scene->GetAltitudeAtWorldPos(worldPos, radialDist, groundNormal);
 	}
 
 #pragma endregion
@@ -879,6 +887,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Input_SetMouseWheelDelta);
 
 		TOAST_ADD_INTERNAL_CALL(PhysicsEngine_GetAltitude);
+		TOAST_ADD_INTERNAL_CALL(PhysicsEngine_GetAltitudeAtWorldPos);
 
 		TOAST_ADD_INTERNAL_CALL(Scene_GetRenderColliders);
 		TOAST_ADD_INTERNAL_CALL(Scene_SetRenderColliders);

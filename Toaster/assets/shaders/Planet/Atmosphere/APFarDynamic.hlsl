@@ -18,18 +18,18 @@ cbuffer Camera : register(b0)
 
 cbuffer PlanetFrame : register(b4)
 {
-    float3 PlanetCenterWS;
-    float PlanetRadius; // Rg
+    float3 PlanetCenterCR;
+    float PlanetRadius;
     float3 BasisTanEast;
     float MaxHeight;
     float3 BasisTanNorth;
     float MinHeight;
     float3 BasisRadUp;
+    float Altitude;
     float3 BasisLonEast;
     float3 BasisLonNorth;
     float3 BasisSpinUp;
 };
-
 cbuffer Atmosphere : register(b5)
 {
     float AtmosphereHeight; // Rt - Rg
@@ -55,11 +55,6 @@ cbuffer Atmosphere : register(b5)
     
     float3 SunsetTint;
 };
-
-cbuffer FloatingOrigin : register(b7)
-{
-    float3 WorldOffsetWS;
-}
 
 Texture2D<float> SceneDepth : register(t0);
 SamplerState ClampPoint : register(s1);
@@ -166,7 +161,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     float2 base = float2(tid.xy);
     
-    float3 ro = (cameraPosition.xyz - WorldOffsetWS) - PlanetCenterWS;
+    float3 ro = cameraPosition.xyz - PlanetCenterCR;
     float rCam = length(ro);
     float Rt = PlanetRadius + AtmosphereHeight;
     

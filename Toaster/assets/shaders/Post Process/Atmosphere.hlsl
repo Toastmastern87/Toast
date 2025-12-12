@@ -106,11 +106,6 @@ cbuffer SunDiscSettings : register(b6)
     float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
 };
 
-cbuffer FloatingOrigin : register(b7)
-{
-    float3 WorldOffsetWS;
-}
-
 // ===== Textures / Samplers ==================================================
 Texture2D<float4> TransmittanceLUT      : register(t0); // (not used in composite)
 Texture2D<float4> MultiScatterLUT       : register(t1); // (not used in composite)
@@ -497,7 +492,7 @@ PSOut main(PSIn i)
     // If no geometry wrote to depth, draw SKY using the precomputed SkyView LUT
     if (depth <= 1e-12f)
     {        
-        float3 camWS = cameraPosition.xyz - WorldOffsetWS;
+        float3 camWS = cameraPosition.xyz;
         float3 camRel = camWS - PlanetCenterWS;
         float rCam = max(RbPhys, length(camRel));
         float heightCam = rCam - RbPhys;
@@ -817,7 +812,7 @@ PSOut main(PSIn i)
         // No IBL baking: apply aerial perspective over the terrain color
         if (BakeIBL < 1.0f)
         {
-            float3 camWS = cameraPosition.xyz - WorldOffsetWS;
+            float3 camWS = cameraPosition.xyz;
             float3 ro = camWS - PlanetCenterWS;
             float rCam = length(ro);
             float3 wView = ViewDirWS_fromUV(uv); // unit

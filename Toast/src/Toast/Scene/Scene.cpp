@@ -244,6 +244,33 @@ namespace Toast {
 			mStats.VerticesCount = 0;
 		}
 
+		DirectX::XMMATRIX cameraTransform;
+		{
+			auto view = mRegistry.view<TransformComponent, CameraComponent>();
+			for (auto entity : view)
+			{
+				auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
+
+				if (camera.Primary)
+				{
+					mMainCamera = &camera.Camera;
+
+					if (Renderer::GetFinalRT()->GetSize() != std::make_tuple(mMainCamera->GetOrthographicWidth(), mMainCamera->GetOrthographicHeight()))
+					{
+						auto [width, height] = Renderer::GetFinalRT()->GetSize();
+						mMainCamera->SetOrthographicSize(width, height);
+					}
+
+					cameraTransform = transform.GetTransform();
+
+					break;
+				}
+				// if no camera is present nothing is rendered
+				else
+					return;
+			}
+		}
+
 		if (!mIsPaused)
 		{
 
@@ -353,35 +380,7 @@ namespace Toast {
 				mesh.MeshObject->OnUpdate(ts * mTimeScale);
 		}
 
-		SceneCamera* mainCamera = nullptr;
-		DirectX::XMMATRIX cameraTransform;
-		{
-			auto view = mRegistry.view<TransformComponent, CameraComponent>();
-			for (auto entity : view)
-			{
-				auto [transform, camera] = view.get<TransformComponent, CameraComponent>(entity);
-
-				if (camera.Primary)
-				{
-					mainCamera = &camera.Camera;
-
-					if (Renderer::GetFinalRT()->GetSize() != std::make_tuple(mainCamera->GetOrthographicWidth(), mainCamera->GetOrthographicHeight()))
-					{
-						auto [width, height] = Renderer::GetFinalRT()->GetSize();
-						mainCamera->SetOrthographicSize(width, height);
-					}
-
-					cameraTransform = transform.GetTransform();
-
-					break;
-				}
-				// if no camera is present nothing is rendered
-				else
-					return;
-			}
-		}
-
-		if (mainCamera)
+		if (mMainCamera)
 		{
 			// Updated Meshes to check which LOD Group it should use during the rendering.
 			{
@@ -396,7 +395,7 @@ namespace Toast {
 					if (mc.MeshObject->HasLODGroups())
 					{
 						double maxDistance = 10000.0;
-						double distance = Vector3::Length(Vector3(tc.Translation) + Vector3(mainCamera->GetWorldTranslation()));
+						double distance = Vector3::Length(Vector3(tc.Translation) + Vector3(mMainCamera->GetWorldTranslation()));
 						double remappedDistance = std::clamp(distance / maxDistance, 0.0, 1.0);
 						mc.MeshObject->UpdateLODDistance(remappedDistance);
 
@@ -426,7 +425,8 @@ namespace Toast {
 
 					ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
 
-					maxParticleCount += (pc.MaxLifeTime / pc.SpawnDelay) + 1;
+					const float x = pc.MaxLifeTime / pc.SpawnDelay;
+					maxParticleCount += static_cast<size_t>(std::ceil(x)) + 2;
 					nrOfParticles += pc.Particles.size();
 				}
 
@@ -486,7 +486,7 @@ namespace Toast {
 
 			// Start a rebuild of the planet if needed
 			{
-				if (mainCamera)
+				if (mMainCamera)
 				{
 					DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
 
@@ -494,7 +494,7 @@ namespace Toast {
 
 					InvalidateFrustum();
 
-					mPlanet->OnUpdate({ cameraPos }, mainCamera->GetWorldTranslation(), cameraTransform);
+					mPlanet->OnUpdate({ cameraPos }, mMainCamera->GetWorldTranslation(), cameraTransform);
 				}
 			}
 
@@ -505,11 +505,11 @@ namespace Toast {
 			DirectX::XMFLOAT4X4 fView, fInvView;
 			DirectX::XMStoreFloat4x4(&fView, DirectX::XMMatrixInverse(nullptr, cameraTransform));
 			DirectX::XMStoreFloat4x4(&fInvView, cameraTransform);
-			mainCamera->SetViewMatrix(fView);
-			mainCamera->SetInvViewMatrix(fInvView);
+			mMainCamera->SetViewMatrix(fView);
+			mMainCamera->SetInvViewMatrix(fInvView);
 
 			// 3D Rendering
-			Renderer::BeginScene(this, *mainCamera, cameraPosFloat, mEnvironment, static_cast<int>(mSettings.WireframeRendering));
+			Renderer::BeginScene(this, *mMainCamera, cameraPosFloat, mEnvironment, static_cast<int>(mSettings.WireframeRendering));
 			{
 				// Planet
 				Renderer::SubmitPlanet(mPlanet, static_cast<int>(mSettings.WireframeRendering));
@@ -569,11 +569,11 @@ namespace Toast {
 					//mStats.VerticesCount += static_cast<uint32_t>(terrainObject.MeshObject->GetVertices().size() * terrainObject.);
 				}
 
-				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight, ts);
+				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight, ts);
 			}
 
 			// Debug Rendering
-			RendererDebug::BeginScene(*mainCamera);
+			RendererDebug::BeginScene(*mMainCamera);
 			{
 				// Colliders
 				auto entities = mRegistry.view<TransformComponent>();
@@ -620,7 +620,7 @@ namespace Toast {
 			RendererDebug::EndScene(true, true, true, false);
 
 			// 2D UI Rendering
-			Renderer2D::BeginScene(*mainCamera);
+			Renderer2D::BeginScene(*mMainCamera);
 			{
 				DirectX::XMFLOAT3 finalPosition;
 
@@ -646,11 +646,11 @@ namespace Toast {
 
 							DirectX::XMFLOAT3 parentWorldPos = parentTC.Translation;
 							if (!is2DParent)
-								parentWorldPos = { parentWorldPos.x + mainCamera->GetWorldTranslation().x, parentWorldPos.y + mainCamera->GetWorldTranslation().y, parentWorldPos.z + mainCamera->GetWorldTranslation().z };
+								parentWorldPos = { parentWorldPos.x + mMainCamera->GetWorldTranslation().x, parentWorldPos.y + mMainCamera->GetWorldTranslation().y, parentWorldPos.z + mMainCamera->GetWorldTranslation().z };
 
 							DirectX::XMVECTOR parentWorldPosVec = XMLoadFloat3(&parentWorldPos);
-							DirectX::XMMATRIX viewMatrix = DirectX::XMLoadFloat4x4(&mainCamera->GetViewMatrix());
-							DirectX::XMMATRIX projectionMatrix = DirectX::XMLoadFloat4x4(&mainCamera->GetProjection());
+							DirectX::XMMATRIX viewMatrix = DirectX::XMLoadFloat4x4(&mMainCamera->GetViewMatrix());
+							DirectX::XMMATRIX projectionMatrix = DirectX::XMLoadFloat4x4(&mMainCamera->GetProjection());
 
 							DirectX::XMFLOAT3 parentScreenPos;
 
@@ -927,7 +927,8 @@ namespace Toast {
 
 				ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
 
-				maxParticleCount += (pc.MaxLifeTime / pc.SpawnDelay) + 1;
+				const float x = pc.MaxLifeTime / pc.SpawnDelay;
+				maxParticleCount += static_cast<size_t>(std::ceil(x)) + 2;
 				nrOfParticles += pc.Particles.size();
 			}
 
@@ -1452,9 +1453,14 @@ namespace Toast {
 		}
 	}
 
-	float Scene::GetAltitude(Entity& entity)
+	float Scene::GetAltitude(Entity& entity, bool ignoreWorldTranslation)
 	{
-		return mPhysicsEngine->GetAltitude(entity);
+		return mPhysicsEngine->GetAltitude(entity, ignoreWorldTranslation);
+	}
+
+	float Scene::GetAltitudeAtWorldPos(const Vector3& worldPos, double& outRadialDist, Vector3& outGroundNormal)
+	{
+		return mPhysicsEngine->GetAltitudeAtWorldPos(worldPos, outRadialDist, outGroundNormal);
 	}
 
 	Ref<Scene> Scene::CreateEmpty()
@@ -1692,9 +1698,6 @@ namespace Toast {
 
 	void Scene::CopyTo(Scene* target)
 	{
-		// Camera
-		target->mMainCamera = mMainCamera;
-
 		// Settings
 		//target->mSettings.PhysicSlowmotion = mSettings.PhysicSlowmotion;
 		target->mSettings.SSAO = mSettings.SSAO;

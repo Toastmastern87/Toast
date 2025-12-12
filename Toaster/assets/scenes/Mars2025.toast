@@ -1,6 +1,6 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [-31.8913689, 23.8318958, -142.778595]
+  Position: [89.0250473, 85.5098572, -6.79970074]
 Settings:
   Grid: false
   CameraFrustum: true
@@ -51,6 +51,7 @@ Settings:
     SlowDown: 1
     FPSTarget: 60
     StepsPerUpdate: 1
+    MaxAngularVelocity: 30
 Planet:
   Translation: [0, -3385962, 0]
   Rotation: [566.398804, 198.200241, 811.199402]
@@ -71,11 +72,11 @@ Planet:
   RayleighScattering: [9.00000019e-10, 1.80000004e-09, 4.59999994e-09]
   MieScaleHeight: 11000
   MieScattering: [1.94999993e-05, 1.54999998e-05, 1.49999996e-05]
-  MieAbsorption: [4.50000016e-06, 4.50000016e-06, 5.50000004e-06]
+  MieAbsorption: [3.99999999e-06, 4.50000016e-06, 6.49999993e-06]
   MieAnisotropy: [0.889999986, 0.889999986, 0.879999995]
   OzoneStrength: 0
   GroundAlbedo: [0.0042194128, 0.00384554081, 0.00384554081]
-  SunsetTint: [0.540000319, 0.750000119, 2.5099988]
+  SunsetTint: [0.540000319, 0.750000119, 1.81999898]
   MSGain: 1
   SGain: 1
   GravityConstant: 3.73000002
@@ -134,6 +135,9 @@ Entities:
         - Name: MaxAltitude
           Type: Float
           Data: 500000
+        - Name: BaseMovementSpeed
+          Type: Float
+          Data: 300
         - Name: ReferenceAltitude
           Type: Float
           Data: 1000
@@ -224,9 +228,12 @@ Entities:
         - Handle: 6527692647073640125
         - Handle: 2941478050912602356
         - Handle: 454669151441921778
+        - Handle: 11816705958940416165
+        - Handle: 3990550076865413105
+        - Handle: 12216800177746514460
     TransformComponent:
-      Translation: [29, 29, 221]
-      Rotation: [0, 50.1999512, 40.4000015]
+      Translation: [29, 126, 221]
+      Rotation: [0, 50.1999512, 0]
       Scale: [1, 1, 1]
     MeshComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_SN3.gltf
@@ -248,14 +255,14 @@ Entities:
           Handle: 454669151441921778
     RigidBodyComponent:
       InvMass: 0.00019999999494757503
-      Elasticity: 0
+      Elasticity: 0.05000000074505806
       Friction: 0
       CenterOfMass: [0, 0, 0]
       LinearDamping: 0
       AngularDamping: 0
     BoxColliderComponent:
       RenderCollider: true
-      Size: [5.3000001907348633, 25, 8]
+      Size: [5.3000001907348633, 25.600000381469727, 8]
   - Entity: 697842924302282008
     TagComponent:
       Tag: MainBody
@@ -335,7 +342,7 @@ Entities:
         - Handle: 17200548796977600084
         - Handle: 697842924302282008
     TransformComponent:
-      Translation: [-30.6328373, 24, 161.445099]
+      Translation: [-30.6328373, 43, 161.445099]
       Rotation: [-179.999893, 80.7999344, -179.999893]
       Scale: [0.999999523, 1, 0.999999523]
     MeshComponent:
@@ -358,14 +365,14 @@ Entities:
           Handle: 697842924302282008
     RigidBodyComponent:
       InvMass: 0.00019999999494757503
-      Elasticity: 0
+      Elasticity: 0.6600000262260437
       Friction: 0
       CenterOfMass: [0, 0, 0]
       LinearDamping: 0
       AngularDamping: 0
     SphereColliderComponent:
       RenderCollider: true
-      Radius: 30.200000762939453
+      Radius: 26.899988174438477
   - Entity: 7969327153423302118
     TagComponent:
       Tag: Sunlight
@@ -375,10 +382,91 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-133.199921, 20.8000145, -63.5000076]
+      Rotation: [-82.6999588, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]
       Intensity: 1
       SunDesiredCoverage: 10000
       SunLightDistance: 961
+  - Entity: 11816705958940416165
+    TagComponent:
+      Tag: Rocket Exhaust RB1
+    RelationshipComponent:
+      ParentHandle: 14796545384475566267
+      Children:
+        []
+    TransformComponent:
+      Translation: [-1.30000019, -23, 0.100000001]
+      Rotation: [0, 0, 0]
+      Scale: [0.300000012, 0.200000003, 0.300000012]
+    ParticlesComponent:
+      Emitting: false
+      MaxLifeTime: 0.600000024
+      SpawnDelay: 0.00079999998
+      Velocity: [0, -32, 0]
+      StartColor: [0.784313738, 0.517647088, 0]
+      EndColor: [0.407843143, 0.203921571, 0.827450991]
+      ColorBlendFactor: 0.150000006
+      ConeAngleDegrees: 0
+      BiasExponent: 1
+      GrowRate: 1.50000012
+      BurstInitial: 1.10000002
+      BurstDecay: 4.5
+      Size: 1.09000003
+      SpawnFunction: 2
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
+  - Entity: 3990550076865413105
+    TagComponent:
+      Tag: Rocket Exhaust RB2
+    RelationshipComponent:
+      ParentHandle: 14796545384475566267
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.649999976, -23, 0.800000012]
+      Rotation: [0, 0, 0]
+      Scale: [0.300000012, 0.200000003, 0.300000012]
+    ParticlesComponent:
+      Emitting: false
+      MaxLifeTime: 0.600000024
+      SpawnDelay: 0.00079999998
+      Velocity: [0, -32, 0]
+      StartColor: [0.784313738, 0.517647088, 0]
+      EndColor: [0.407843143, 0.203921571, 0.827450991]
+      ColorBlendFactor: 0.150000006
+      ConeAngleDegrees: 0
+      BiasExponent: 1
+      GrowRate: 1.49999833
+      BurstInitial: 1.10000002
+      BurstDecay: 4.5
+      Size: 1.09000003
+      SpawnFunction: 2
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
+  - Entity: 12216800177746514460
+    TagComponent:
+      Tag: Rocket Exhaust RB3
+    RelationshipComponent:
+      ParentHandle: 14796545384475566267
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.300000012, -23, -1.07000005]
+      Rotation: [0, 0, 0]
+      Scale: [0.300000012, 0.200000003, 0.300000012]
+    ParticlesComponent:
+      Emitting: false
+      MaxLifeTime: 0.600000024
+      SpawnDelay: 0.00079999998
+      Velocity: [0, -32, 0]
+      StartColor: [0.784313738, 0.517647088, 0]
+      EndColor: [0.407843143, 0.203921571, 0.827450991]
+      ColorBlendFactor: 0.150000006
+      ConeAngleDegrees: 0
+      BiasExponent: 1
+      GrowRate: 1
+      BurstInitial: 1.10000002
+      BurstDecay: 4.5
+      Size: 1.09000003
+      SpawnFunction: 2
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png

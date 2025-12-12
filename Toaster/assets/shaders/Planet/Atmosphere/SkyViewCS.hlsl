@@ -35,12 +35,16 @@ cbuffer DirectionalLight : register(b3)
 
 cbuffer PlanetFrame : register(b4)
 {
-    float3 PlanetCenterWS;
-    float PlanetRadius; // Rg
+    float3 PlanetCenterCR;
+    float PlanetRadius;
     float3 BasisTanEast;
     float MaxHeight;
     float3 BasisTanNorth;
     float MinHeight;
+    float3 BasisRadUp;
+    float Altitude;
+    float3 BasisLonEast;
+    float3 BasisLonNorth;
     float3 BasisSpinUp;
 };
 
@@ -90,11 +94,6 @@ cbuffer SunDiscSettings : register(b6)
     
     float SpaceHaloIntensity; // 0.01..0.10 (was SpaceHaloGain, e.g. 0.04)
     float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
-};
-
-cbuffer FloatingOrigin : register(b7)
-{
-    float3 WorldOffsetWS;
 };
 
 // ===== LUTs =================================================================
@@ -297,10 +296,10 @@ float MSPhase(float mu, float gBar)
     return lerp(pIso, pHG, g);
 }
 
-void BuildSkyBasisAnchored(float3 camWS, float3 planetCenterWS, float3 basisEastWS, float3 basisNorthWS, float3 spinUpWS, out float3 up, out float3 east, out float3 north)
+void BuildSkyBasisAnchored(float3 camWS, float3 basisEastWS, float3 basisNorthWS, float3 spinUpWS, out float3 up, out float3 east, out float3 north)
 {
     // 1) Radial up (center → camera)
-    float3 rel = camWS - planetCenterWS;
+    float3 rel = camWS - PlanetCenterCR;
     float len2 = max(dot(rel, rel), 1e-20f);
     up = rel * rsqrt(len2);
 
@@ -396,8 +395,8 @@ void main(uint3 tid : SV_DispatchThreadID)
     const float RbVis = RbPhys + R_BIAS;
     const float RbHit = RbPhys + R_BIAS;
 
-    float3 camWS = cameraPosition.xyz - WorldOffsetWS;
-    float3 camRel = camWS - PlanetCenterWS;
+    float3 camWS = cameraPosition.xyz;
+    float3 camRel = camWS - PlanetCenterCR;
     float rCam = max(RbPhys, length(camRel));
 
     float rWin = rCam;
@@ -412,7 +411,7 @@ void main(uint3 tid : SV_DispatchThreadID)
 
     // local basis (unchanged)
     float3 up, east, north;
-    BuildSkyBasisAnchored(camWS, PlanetCenterWS, normalize(BasisTanEast), normalize(BasisTanNorth), normalize(BasisSpinUp), up, east, north);
+    BuildSkyBasisAnchored(camWS, normalize(BasisTanEast), normalize(BasisTanNorth), normalize(BasisSpinUp), up, east, north);
 
     // 1) decode hemi-oct to temporary local vector m (z' in [0,1])
     float3 m = OctDecodeHemi(uvSky);

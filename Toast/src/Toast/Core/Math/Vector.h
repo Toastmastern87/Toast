@@ -60,8 +60,17 @@ namespace Toast {
 			return Vector3(x - rhs.x, y - rhs.y, z - rhs.z);
 		}
 
+		Vector3 operator-=(const Vector3& rhs) {
+			x -= rhs.x; y -= rhs.y; z -= rhs.z;
+			return *this;
+		}
+
 		Vector3 operator*(double scalar) const {
 			return Vector3(x * scalar, y * scalar, z * scalar, w);
+		}
+
+		friend Vector3 operator*(double scalar, const Vector3& v) {
+			return Vector3(v.x * scalar, v.y * scalar, v.z * scalar, v.w);
 		}
 
 		Vector3 operator*=(double scalar) const {

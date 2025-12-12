@@ -42,15 +42,18 @@ cbuffer DirectionalLight : register(b3)
 
 cbuffer PlanetFrame : register(b4)
 {
-    float3 PlanetCenterWS;
-    float PlanetRadius; // Rg
+    float3 PlanetCenterCR;
+    float PlanetRadius;
     float3 BasisTanEast;
     float MaxHeight;
     float3 BasisTanNorth;
     float MinHeight;
+    float3 BasisRadUp;
+    float Altitude;
+    float3 BasisLonEast;
+    float3 BasisLonNorth;
     float3 BasisSpinUp;
 };
-
 cbuffer Atmosphere : register(b5)
 {
     float AtmosphereHeight; // Rt - Rg
@@ -98,11 +101,6 @@ cbuffer SunDiscSettings : register(b6)
     float SpaceHaloIntensity; // 0.01..0.10 (was SpaceHaloGain, e.g. 0.04)
     float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
 };
-
-cbuffer FloatingOrigin : register(b7)
-{
-    float3 WorldOffsetWS;
-}
 
 // ===== LUTs =================================================================
 Texture2D<float4> TransmittanceLUT : register(t0);
@@ -337,7 +335,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     const float RbVis = RbPhys + max(1.0f, 2e-6f * PlanetRadius);
     const float RbHit = RbPhys + GroundBiasMeters(RbPhys);
     
-    float3 ro = (cameraPosition.xyz - WorldOffsetWS) - PlanetCenterWS;
+    float3 ro = cameraPosition.xyz - PlanetCenterCR;
     float2 uvC = (float2(tid.xy) + 0.5f) / float2(W, H);
     float3 wView = ViewDirWSFromUV(uvC);
  

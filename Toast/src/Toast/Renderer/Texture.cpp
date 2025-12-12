@@ -214,6 +214,8 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		td.BindFlags = mBindFlags;
 		td.CPUAccessFlags = mCPUAccessFlags;
 		td.MiscFlags = 0;
+		if (mMipLevels == 0)
+			td.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
 
 		const bool hasInit = (initData != nullptr && initSizeBytes > 0);
 
@@ -384,6 +386,8 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		textureDesc.MiscFlags = 0;
 		textureDesc.SampleDesc.Count = samples;
 		textureDesc.SampleDesc.Quality = 0;
+		if (mipLevels == 0) 
+			textureDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
 
 		result = device->CreateTexture2D(&textureDesc, nullptr, &mTexture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
@@ -399,7 +403,8 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		else      
 			mResource = mTexture;
 
-		GenerateMips();
+		if (mipLevels == 0)
+			GenerateMips();
 	}
 
 	Texture2D::Texture2D(DXGI_FORMAT format, DXGI_FORMAT srvFormat, uint32_t width, uint32_t height, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags, void* initialData, UINT rowPitch)
@@ -832,6 +837,10 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		textureDesc.BindFlags = bindFlag;
 		textureDesc.CPUAccessFlags = cpuAccessFlags;
 		textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+		if (mipLevels == 0) {
+			textureDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+			textureDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+		}
 
 		HRESULT result = device->CreateTexture2D(&textureDesc, nullptr, &mTexture);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture!");
@@ -1091,7 +1100,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		textureDesc.Height = mHeight;
 		textureDesc.Width = mWidth;
 		textureDesc.MipLevels = 1;
-		textureDesc.MiscFlags = 0;
+		textureDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;;
 		textureDesc.SampleDesc.Count = samples;
 		textureDesc.SampleDesc.Quality = 0;
 

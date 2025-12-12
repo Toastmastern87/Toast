@@ -132,6 +132,8 @@ PixelInputType main(VertexInputType input)
             worldPosition = float4(input.position, 1.0f);
         else
             worldPosition = mul(float4(input.position, 1.0f), worldMatrix);
+        
+        worldPosition = mul(worldPosition, worldTranslationMatrix);
     }
 
     output.position = mul(worldPosition, lightViewProj);

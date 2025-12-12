@@ -109,7 +109,7 @@ namespace Toast {
 		return DirectionToCubeCPU(dir);
 	}
 
-	 float SampleCubeBilinearCPU(const TerrainCubeData& td, const Vector3& dirIn)
+	float SampleCubeBilinearCPU(const TerrainCubeData& td, const Vector3& dirIn)
 	{
 		CubeSampleCPU cs = DirectionToCubeCPU(dirIn);
 		uint32_t face = cs.face;
@@ -218,6 +218,7 @@ namespace Toast {
 					ApplyGravity(e, subStepDeltaTime);
 
 					IntegrateLinear(e, subStepDeltaTime);
+					IntegrateAngular(e, subStepDeltaTime);
 
 					TerrainContactManifold manifold;
 					if (CheckTerrainCollision(e, manifold))
@@ -229,7 +230,7 @@ namespace Toast {
 		}
 	}
 
-	double PhysicsEngineUpdated::GetAltitude(Entity& entity)
+	double PhysicsEngineUpdated::GetAltitude(Entity& entity, bool ignoreWorldTranslation)
 	{
 		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 
@@ -237,7 +238,11 @@ namespace Toast {
 
 		double radialDist;
 		Vector3 normal;
-		return GetAltitudeAtWorldPos(Vector3(tc.Translation) - worldTranslation, radialDist, normal);
+
+		if (ignoreWorldTranslation)
+			return GetAltitudeAtWorldPos(Vector3(tc.Translation), radialDist, normal);
+		else
+			return GetAltitudeAtWorldPos(Vector3(tc.Translation) + worldTranslation, radialDist, normal);
 	}
 
 	double PhysicsEngineUpdated::GetAltitudeAtWorldPos(const Vector3& worldPos,	double& outRadialDist, Vector3& outGroundNormal)
@@ -247,9 +252,17 @@ namespace Toast {
 		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 
 		// Planet center and true radial distance
-		Vector3 planetCenterWS = Vector3(planet.GetTranslation()) - worldTranslation;
+		Vector3 planetCenterCR = Vector3(planet.GetTranslation()) + worldTranslation;
 
-		Vector3 pLocal = worldPos - planetCenterWS;
+		Vector3 pLocal = worldPos - planetCenterCR;
+
+		double r = pLocal.Length();
+		if (r > 0.0)
+			outGroundNormal = pLocal / r;   // normalized radial normal
+		else
+			outGroundNormal = Vector3(0.0, 1.0, 0.0); // fallback, shouldn't really happen
+
+		outRadialDist = r;
 		
 		Vector3 nWS = Vector3::Normalize(pLocal);
 
@@ -278,16 +291,27 @@ namespace Toast {
 		rbc.LinearVelocity += (impulse * rbc.InvMass);
 	}
 
+	void PhysicsEngineUpdated::ApplyImpulseAngular(RigidBodyComponent& rbc, Matrix invInertiaWorld, Vector3 impulse)
+	{
+		if (rbc.InvMass == 0.0)
+			return;
+
+		rbc.AngularVelocity += Matrix::MulMat3(invInertiaWorld, impulse);
+
+		if (rbc.AngularVelocity.Length() > mSettings.MaxAngularVelocity)
+			rbc.AngularVelocity = Vector3::Normalize(rbc.AngularVelocity) * mSettings.MaxAngularVelocity;
+	}
+
 	void PhysicsEngineUpdated::ApplyGravity(Entity& entity, double ts)
 	{
 		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 		double gravityConstant = (double)mScene->GetPlanet()->GetGravityConstant();
-		Vector3 planetPos = Vector3(mScene->GetPlanet()->GetTranslation()) - worldTranslation;
+		Vector3 planetPos = Vector3(mScene->GetPlanet()->GetTranslation()) + worldTranslation;
 
 		RigidBodyComponent& rbc = entity.GetComponent<RigidBodyComponent>();
 		TransformComponent& tc = entity.GetComponent<TransformComponent>();
 
-		Vector3 objectPos = Vector3(tc.Translation) - worldTranslation;
+		Vector3 objectPos = Vector3(tc.Translation) + worldTranslation;
 
 		Vector3 gravityImpulse = Vector3::Normalize(planetPos - objectPos) * gravityConstant * (1.0 / rbc.InvMass) * ts;
 
@@ -308,8 +332,51 @@ namespace Toast {
 		tc.Translation = { tc.Translation.x + (float)deltaPos.x, tc.Translation.y + (float)deltaPos.y, tc.Translation.z + (float)deltaPos.z };
 	}
 
+	void PhysicsEngineUpdated::IntegrateAngular(Entity& entity, double ts)
+	{
+		auto& rbc = entity.GetComponent<RigidBodyComponent>();
+		auto& tc = entity.GetComponent<TransformComponent>();
+
+		// Static bodies don’t rotate
+		if (rbc.InvMass == 0.0)
+			return;
+
+		Vector3 omega = rbc.AngularVelocity; // rad/s, world space
+		double wLen = omega.Length();
+
+		if (wLen < 1e-6)
+			return;
+
+		double maxW = mSettings.MaxAngularVelocity;
+		if (wLen > maxW)
+		{
+			omega = omega * (maxW / wLen);
+			wLen = maxW;
+			rbc.AngularVelocity = omega;
+		}
+
+		double angle = wLen * ts;      // radians
+		if (angle < 1e-6)
+			return;
+
+		Vector3 axis = omega / wLen;
+
+		// Δq representing this small rotation (w, x, y, z)
+		Quaternion deltaQ = Quaternion::FromAxisAngle(axis, angle);
+
+		// Current orientation
+		Quaternion q = tc.RotationQuaternion;
+
+		// If angular velocity is in WORLD space, we left-multiply: new = Δq * q
+		q = Quaternion::Normalize(deltaQ * q);
+
+		tc.RotationQuaternion = { (float)q.x, (float)q.y, (float)q.z, (float)q.w };
+	}
+
 	bool PhysicsEngineUpdated::CheckTerrainCollision(Entity& entity, TerrainContactManifold& manifold)
 	{
+		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
+
 		SphereColliderComponent* scc = nullptr;
 		BoxColliderComponent* bcc = nullptr;
 
@@ -326,7 +393,7 @@ namespace Toast {
 			return false;
 
 		auto& tc = entity.GetComponent<TransformComponent>();
-		Vector3 centerWS = tc.Translation;
+		Vector3 centerWS = Vector3(tc.Translation) + worldTranslation;
 
 		Vector3 groundNormal;
 		double radialDist;
@@ -375,7 +442,7 @@ namespace Toast {
 
 		ShapeBox* box = bcc.Collider.get();
 
-		Vector3 planetCenter = Vector3(planet.GetTranslation()) - worldTranslation;
+		Vector3 planetCenter = Vector3(planet.GetTranslation()) + worldTranslation;
 
 		bool hasContact = false;
 		std::vector<TerrainContactPoint> contacts;
@@ -386,7 +453,7 @@ namespace Toast {
 			Vector3 groundNormal;
 
 			Vector3 cornerWorld = Matrix(tc.GetTransformWithoutScale()) * cornerLocal;
-			cornerWorld = cornerWorld - worldTranslation;
+			cornerWorld = cornerWorld + worldTranslation;
 
 			//DirectX::XMMATRIX transform = DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)) * DirectX::XMMatrixTranslation(cornerWorld.x, cornerWorld.y, cornerWorld.z);
 
@@ -431,7 +498,7 @@ namespace Toast {
 		double radialDist;
 		Vector3 groundNormal;
 
-		double centerAlt = GetAltitudeAtWorldPos(Vector3(tc.Translation) - worldTranslation, radialDist, groundNormal);
+		double centerAlt = GetAltitudeAtWorldPos(Vector3(tc.Translation) + worldTranslation, radialDist, groundNormal);
 
 		double bottomAlt = centerAlt - radius;
 
@@ -444,7 +511,7 @@ namespace Toast {
 
 		collisionPoint.Penetration = -bottomAlt;
 
-		Vector3 planetCenter = Vector3(planet.GetTranslation()) - worldTranslation;
+		Vector3 planetCenter = Vector3(planet.GetTranslation()) + worldTranslation;
 
 		double surfaceRadius = radialDist - centerAlt;
 
@@ -454,42 +521,99 @@ namespace Toast {
 		return true;
 	}
 
-	void PhysicsEngineUpdated::ResolveTerrainCollision(const TerrainContactManifold& manifold, double dt)
+	void PhysicsEngineUpdated::ResolveTerrainCollision(TerrainContactManifold& manifold, double dt)
 	{
-		Entity entity = manifold.Entity;
+		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
+
+		Entity& entity = manifold.Entity;
 		auto& rbc = entity.GetComponent<RigidBodyComponent>();
 		auto& tc = entity.GetComponent<TransformComponent>();
 
 		if (rbc.InvMass == 0.0 || manifold.Points.empty())
 			return;
 
-		// 1) Find deepest contact point
 		const TerrainContactPoint* deepest = nullptr;
 		double maxPen = 0.0;
 
+		Vector3 normal(0.0, 0.0, 0.0);
+
 		for (const auto& cp : manifold.Points)
 		{
-			if (cp.Penetration > maxPen || !deepest)
+			// Weighted by penetration so more "important" contacts dominate
+			normal += cp.Normal * cp.Penetration;
+
+			if (!deepest || cp.Penetration > maxPen)
 			{
 				maxPen = cp.Penetration;
 				deepest = &cp;
 			}
 		}
 
-		if (!deepest || maxPen <= 0.0)
+		if (maxPen <= 0.0 || !deepest)
 			return;
 
-		Vector3 n = deepest->Normal;
+		normal = Vector3::Normalize(normal);
 
-		const double slop = 0.01;
+		const double slop = 0.0001;  // very small tolerance
+		const double percent = 0.8;     // solve 80% this frame
 
-		double correctionMag = std::max(maxPen - slop, 0.0);
+		double correctionMag = std::max(maxPen - slop, 0.0) * percent;
 
 		Vector3 pos = Vector3(tc.Translation);
-		pos += n * correctionMag;
+		pos += normal * correctionMag;
 		tc.Translation = { (float)pos.x, (float)pos.y, (float)pos.z };
 
-		rbc.LinearVelocity = Vector3(0.0f, 0.0f, 0.0f);
+		Vector3 linearVelocity = rbc.LinearVelocity;
+		Vector3 angularVelocity = rbc.AngularVelocity;
+
+		Vector3 contactPos = deepest->Position;
+
+		Matrix worldNoScale = tc.GetTransformWithoutScale();
+		Vector3 CoMWorld = worldNoScale * rbc.CenterOfMass;
+		Vector3 CoMPS = CoMWorld + worldTranslation;
+
+		Vector3 r = contactPos - CoMPS;
+
+		Vector3 vRel = linearVelocity + Vector3::Cross(angularVelocity, r);
+
+		double vRelN = Vector3::Dot(vRel, normal);
+
+		double elasticity = rbc.Elasticity;
+
+		const double bounceThreshold = 0.1; // in your velocity units
+		if (std::abs(vRelN) < bounceThreshold)
+			elasticity = 0.0;
+
+		double invMass = rbc.InvMass;
+
+		Vector3 rn = Vector3::Cross(r, normal);
+
+		Ref<Shape> collider; 
+		if (entity.HasComponent<SphereColliderComponent>())
+			collider = entity.GetComponent<SphereColliderComponent>().Collider;
+		else if (entity.HasComponent<BoxColliderComponent>())
+			collider = entity.GetComponent<BoxColliderComponent>().Collider;
+
+		Matrix rotationMatrix = Matrix(entity.GetComponent<TransformComponent>().GetRotation());
+		Matrix invInertiaWorld = rotationMatrix * collider->GetInvInertiaTensor() * rotationMatrix.Transpose();
+
+		Vector3 invIrn = Matrix::MulMat3(invInertiaWorld, rn);
+		double angularTerm = Vector3::Dot(Vector3::Cross(invIrn, r), normal);
+
+		double denom = invMass + angularTerm;
+
+		if (denom < 1e-8)
+			return; // avoid divide by zero / super heavy body
+
+		double j = -(1.0 + elasticity) * vRelN / denom;
+
+		Vector3 impulse = j * normal;
+
+		ApplyLinearImpulse(rbc, impulse);
+
+		Vector3 torqueImpulse = Vector3::Cross(r, impulse);
+
+		ApplyImpulseAngular(rbc, invInertiaWorld, torqueImpulse);
 	}
 
 }

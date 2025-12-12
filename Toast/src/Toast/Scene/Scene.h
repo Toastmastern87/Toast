@@ -248,7 +248,8 @@ namespace Toast {
 		void SetRenderColliders(bool renderColliders) { mSettings.RenderColliders = renderColliders; }
 		bool GetRenderColliders() { return mSettings.RenderColliders; }
 
-		float GetAltitude(Entity& entity);
+		float GetAltitude(Entity& entity, bool ignoreWorldTranslation = false);
+		float GetAltitudeAtWorldPos(const Vector3& worldPos, double& outRadialDist, Vector3& outGroundNormal);
 
 		Ref<PhysicsEngineUpdated> GetPhysicsEngine() { return mPhysicsEngine; }
 

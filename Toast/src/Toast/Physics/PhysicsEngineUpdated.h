@@ -30,6 +30,7 @@ namespace Toast {
 			int FPSTarget = 60;
 			int StepsPerUpdate = 1;
 			float ElapsedTime = 0.0f;
+			float MaxAngularVelocity = 30.0f; // radians per second
 		};
 
 	public:
@@ -38,22 +39,24 @@ namespace Toast {
 		void Initialize(Scene* scene);
 		void Update(double ts);
 
-		double GetAltitude(Entity& entity);
+		double GetAltitude(Entity& entity, bool ignoreWorldTranslation = false);
 		double GetAltitudeAtWorldPos(const Vector3& worldPos, double& outRadialDist, Vector3& outGroundNormal);
 
 		PhysicsSettings& GetSettings() { return mSettings; }
 	private:
 		void ApplyLinearImpulse(RigidBodyComponent& rbc, Vector3 impulse);
+		void ApplyImpulseAngular(RigidBodyComponent& rbc, Matrix objectInvInertiaWorld, Vector3 impulse);
 
 		void ApplyGravity(Entity& entity, double ts);
 
 		void IntegrateLinear(Entity& entity, double ts);
+		void IntegrateAngular(Entity& entity, double ts);
 
 		bool CheckTerrainCollision(Entity& entity, TerrainContactManifold& manifold);
 		bool FindTerrainContactPoints(Entity& entity, TerrainContactManifold& manifold);
 		bool FindTerrainContactPointsSphere(Entity& entity, TerrainContactManifold& manifold);
 		bool FindTerrainContactPointsBox(Entity& entity, TerrainContactManifold& manifold);
-		void ResolveTerrainCollision(const TerrainContactManifold& manifold, double dt);
+		void ResolveTerrainCollision(TerrainContactManifold& manifold, double dt);
 	private:
 		Scene* mScene;
 

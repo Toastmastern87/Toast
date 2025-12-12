@@ -121,6 +121,11 @@ namespace Toast
             return new Vector3(vectorOne.X - value, vectorOne.Y - value, vectorOne.Z - value);
         }
 
+        public static Vector3 operator -(Vector3 v)
+        {
+            return new Vector3(-v.X, -v.Y, -v.Z);
+        }
+
         public static Vector3 operator -(Vector3 vectorOne, Vector3 vectorTwo)
         {
             return new Vector3(vectorOne.X - vectorTwo.X, vectorOne.Y - vectorTwo.Y, vectorOne.Z - vectorTwo.Z);
