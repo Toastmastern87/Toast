@@ -14,5 +14,9 @@ namespace Toast
             return InternalCalls.PhysicsEngine_GetAltitudeAtWorldPos(worldPos);
         }
 
+        public static void ApplyLinearImpulse(ulong entityID, Vector3 impulse)
+        {
+            InternalCalls.PhysicsEngine_ApplyLinearImpulse(entityID, impulse);
+        }
     }
 }

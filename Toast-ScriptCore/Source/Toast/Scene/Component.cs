@@ -284,30 +284,28 @@ namespace Toast
 
     public class SphereColliderComponent : Component
     {
-        public bool ReqAltitude
+        public float Altitude
         {
             get
             {
-                return InternalCalls.SphereColliderComponent_GetRequestAltitude(Entity.ID);
+                return InternalCalls.SphereColliderComponent_GetAltitude(Entity.ID);
             }
             set
             {
-                InternalCalls.SphereColliderComponent_RequestAltitude(Entity.ID, value);
             }
         }
     }
 
     public class BoxColliderComponent : Component
     {
-        public bool ReqAltitude
+        public float Altitude
         {
             get
             {
-                return false;
+                return InternalCalls.BoxColliderComponent_GetAltitude(Entity.ID);
             }
             set
             {
-                InternalCalls.BoxColliderComponent_RequestAltitude(Entity.ID, value);
             }
         }
     }

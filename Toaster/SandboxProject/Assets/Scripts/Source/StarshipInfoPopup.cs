@@ -53,8 +53,6 @@ namespace Sandbox
             {
                 Vector2 mousePos = Input.GetMousePosition();
 
-                mCollider.ReqAltitude = true;
-
                 if (Input.IsMouseButtonPressed(MouseCode.ButtonLeft))
                 {
 

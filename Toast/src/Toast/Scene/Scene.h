@@ -19,7 +19,7 @@
 
 namespace Toast {
 
-	class PhysicsEngineUpdated;
+	class PhysicsEngine;
 
 	enum class RenderOverlay {
 		NONE = 0, 
@@ -251,7 +251,7 @@ namespace Toast {
 		float GetAltitude(Entity& entity, bool ignoreWorldTranslation = false);
 		float GetAltitudeAtWorldPos(const Vector3& worldPos, double& outRadialDist, Vector3& outGroundNormal);
 
-		Ref<PhysicsEngineUpdated> GetPhysicsEngine() { return mPhysicsEngine; }
+		Ref<PhysicsEngine> GetPhysicsEngine() { return mPhysicsEngine; }
 
 		entt::registry& GetRegistry() { return mRegistry; }
 	public:
@@ -301,7 +301,7 @@ namespace Toast {
 
 		Ref<ParticleSystem> mParticleSystem;
 
-		Ref<PhysicsEngineUpdated> mPhysicsEngine;
+		Ref<PhysicsEngine> mPhysicsEngine;
 
 		friend class Entity;
 		friend class Renderer;
@@ -310,7 +310,7 @@ namespace Toast {
 		friend class PropertiesPanel;
 		friend class SceneSettingsPanel;
 		friend class Prefab;
-		friend class PhysicsEngineUpdated;
+		friend class PhysicsEngine;
 	};
 }
 	

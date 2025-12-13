@@ -1,5 +1,5 @@
 ﻿#include "tpch.h"
-#include "PhysicsEngineUpdated.h"
+#include "PhysicsEngine.h"
 
 #include "Toast/Renderer/MeshFactory.h"
 #include "Toast/Renderer/RendererDebug.h"
@@ -179,26 +179,24 @@ namespace Toast {
 		return (float)vFinal;
 	}
 
-	inline float SampleHeightFromDirCPU(
-		const TerrainCubeData& td,
-		const Vector3& dirPlanet)
+	float SampleHeightFromDirCPU(const TerrainCubeData& td, const Vector3& dirPlanet)
 	{
 		return SampleCubeBilinearCPU(td, dirPlanet);
 	}
 
-	PhysicsEngineUpdated::PhysicsEngineUpdated()
+	PhysicsEngine::PhysicsEngine()
 	{
 		mScene = nullptr;
 	}
 
-	void PhysicsEngineUpdated::Initialize(Scene* scene)
+	void PhysicsEngine::Initialize(Scene* scene)
 	{
 		mScene = scene;
 
 		mGuideMesh = MeshFactory::CreateCube(1.0f, { 1.0, 0.0, 0.0 });
 	}
 
-	void PhysicsEngineUpdated::Update(double ts)
+	void PhysicsEngine::Update(double ts)
 	{
 		float targetFrameTime = 1.0f / (float)mSettings.FPSTarget;
 		float subStepDeltaTime = targetFrameTime / mSettings.StepsPerUpdate;
@@ -230,7 +228,7 @@ namespace Toast {
 		}
 	}
 
-	double PhysicsEngineUpdated::GetAltitude(Entity& entity, bool ignoreWorldTranslation)
+	double PhysicsEngine::GetAltitude(Entity& entity, bool ignoreWorldTranslation)
 	{
 		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 
@@ -245,7 +243,7 @@ namespace Toast {
 			return GetAltitudeAtWorldPos(Vector3(tc.Translation) + worldTranslation, radialDist, normal);
 	}
 
-	double PhysicsEngineUpdated::GetAltitudeAtWorldPos(const Vector3& worldPos,	double& outRadialDist, Vector3& outGroundNormal)
+	double PhysicsEngine::GetAltitudeAtWorldPos(const Vector3& worldPos,	double& outRadialDist, Vector3& outGroundNormal)
 	{
 		Planet& planet = *mScene->GetPlanet();
 		TerrainData& terrain = planet.GetTerrainData();
@@ -283,7 +281,46 @@ namespace Toast {
 		return altitude;
 	}
 
-	void PhysicsEngineUpdated::ApplyLinearImpulse(RigidBodyComponent& rbc, Vector3 impulse)
+	double PhysicsEngine::GetAltitudeBoxCollider(Entity& entity)
+	{
+		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
+
+		BoxColliderComponent bcc;
+		TransformComponent tc;
+
+		tc = entity.GetComponent<TransformComponent>();
+		bcc = entity.GetComponent<BoxColliderComponent>();
+		ShapeBox* box = bcc.Collider.get();
+
+		Planet& planet = *mScene->GetPlanet();
+		Vector3 planetCenterCR = Vector3(planet.GetTranslation()) + worldTranslation;
+
+		Vector3 lowestPointWorld = Vector3(DBL_MAX, DBL_MAX, DBL_MAX);
+		for (const Vector3& cornerLocal : box->mPoints)
+		{
+			Vector3 cornerWorld = Matrix(tc.GetTransformWithoutScale()) * cornerLocal;
+			cornerWorld = cornerWorld + worldTranslation;
+
+			Vector3 d = cornerWorld - planetCenterCR;
+			if(d.LengthSquared() < (lowestPointWorld - planetCenterCR).LengthSquared())
+				lowestPointWorld = cornerWorld;
+		}
+
+		double radialDist;
+		Vector3 groundNormal;
+		return GetAltitudeAtWorldPos(lowestPointWorld, radialDist, groundNormal);
+	}
+
+	double PhysicsEngine::GetAltitudeSphereCollider(Entity& entity)
+	{
+		SphereColliderComponent scc;
+
+		scc = entity.GetComponent<SphereColliderComponent>();
+
+		return 0.0; // TODO
+	}
+
+	void PhysicsEngine::ApplyLinearImpulse(RigidBodyComponent& rbc, Vector3 impulse)
 	{
 		if (rbc.InvMass == 0.0)
 			return;
@@ -291,7 +328,7 @@ namespace Toast {
 		rbc.LinearVelocity += (impulse * rbc.InvMass);
 	}
 
-	void PhysicsEngineUpdated::ApplyImpulseAngular(RigidBodyComponent& rbc, Matrix invInertiaWorld, Vector3 impulse)
+	void PhysicsEngine::ApplyImpulseAngular(RigidBodyComponent& rbc, Matrix invInertiaWorld, Vector3 impulse)
 	{
 		if (rbc.InvMass == 0.0)
 			return;
@@ -302,7 +339,7 @@ namespace Toast {
 			rbc.AngularVelocity = Vector3::Normalize(rbc.AngularVelocity) * mSettings.MaxAngularVelocity;
 	}
 
-	void PhysicsEngineUpdated::ApplyGravity(Entity& entity, double ts)
+	void PhysicsEngine::ApplyGravity(Entity& entity, double ts)
 	{
 		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 		double gravityConstant = (double)mScene->GetPlanet()->GetGravityConstant();
@@ -318,7 +355,7 @@ namespace Toast {
 		ApplyLinearImpulse(rbc, gravityImpulse);
 	}
 
-	void PhysicsEngineUpdated::IntegrateLinear(Entity& entity, double ts)
+	void PhysicsEngine::IntegrateLinear(Entity& entity, double ts)
 	{
 		RigidBodyComponent& rbc = entity.GetComponent<RigidBodyComponent>();
 		TransformComponent& tc = entity.GetComponent<TransformComponent>();
@@ -332,7 +369,7 @@ namespace Toast {
 		tc.Translation = { tc.Translation.x + (float)deltaPos.x, tc.Translation.y + (float)deltaPos.y, tc.Translation.z + (float)deltaPos.z };
 	}
 
-	void PhysicsEngineUpdated::IntegrateAngular(Entity& entity, double ts)
+	void PhysicsEngine::IntegrateAngular(Entity& entity, double ts)
 	{
 		auto& rbc = entity.GetComponent<RigidBodyComponent>();
 		auto& tc = entity.GetComponent<TransformComponent>();
@@ -373,7 +410,7 @@ namespace Toast {
 		tc.RotationQuaternion = { (float)q.x, (float)q.y, (float)q.z, (float)q.w };
 	}
 
-	bool PhysicsEngineUpdated::CheckTerrainCollision(Entity& entity, TerrainContactManifold& manifold)
+	bool PhysicsEngine::CheckTerrainCollision(Entity& entity, TerrainContactManifold& manifold)
 	{
 		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 
@@ -424,7 +461,7 @@ namespace Toast {
 		return FindTerrainContactPoints(entity, manifold);
 	}
 
-	bool PhysicsEngineUpdated::FindTerrainContactPoints(Entity& entity, TerrainContactManifold& manifold)
+	bool PhysicsEngine::FindTerrainContactPoints(Entity& entity, TerrainContactManifold& manifold)
 	{
 		if (entity.HasComponent<SphereColliderComponent>())
 			return FindTerrainContactPointsSphere(entity, manifold);
@@ -432,7 +469,7 @@ namespace Toast {
 			return FindTerrainContactPointsBox(entity, manifold);
 	}
 
-	bool PhysicsEngineUpdated::FindTerrainContactPointsBox(Entity& entity, TerrainContactManifold& manifold)
+	bool PhysicsEngine::FindTerrainContactPointsBox(Entity& entity, TerrainContactManifold& manifold)
 	{
 		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 
@@ -485,7 +522,7 @@ namespace Toast {
 		return true;
 	}
 
-	bool PhysicsEngineUpdated::FindTerrainContactPointsSphere(Entity& entity, TerrainContactManifold& manifold)
+	bool PhysicsEngine::FindTerrainContactPointsSphere(Entity& entity, TerrainContactManifold& manifold)
 	{
 		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 
@@ -521,7 +558,7 @@ namespace Toast {
 		return true;
 	}
 
-	void PhysicsEngineUpdated::ResolveTerrainCollision(TerrainContactManifold& manifold, double dt)
+	void PhysicsEngine::ResolveTerrainCollision(TerrainContactManifold& manifold, double dt)
 	{
 		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 

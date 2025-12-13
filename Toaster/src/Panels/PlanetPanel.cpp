@@ -224,7 +224,7 @@ namespace Toast {
 
 				// section header
 				ImGui::PushFont(io.Fonts->Fonts[4]);
-				ImGui::TextUnformatted("Physically Based Rendering");
+				ImGui::TextUnformatted("Rendering");
 				ImGui::PopFont();
 
 				ImGui::Spacing();

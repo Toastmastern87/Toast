@@ -59,6 +59,11 @@ namespace Toast {
 		return x * x + y * y + z * z;
 	}
 
+	double Vector3::LengthSquared(Vector3 vec)
+	{
+		return vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
+	}
+
 	Vector3 Vector3::Normalize(const Vector3& vec) {
 		Vector3 result = vec;
 		double magnitude = vec.Length();

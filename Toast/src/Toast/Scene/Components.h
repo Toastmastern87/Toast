@@ -191,7 +191,6 @@ namespace Toast {
 
 		Ref<Mesh> ColliderMesh;
 		bool RenderCollider = false;
-		bool ReqAltitude = false;
 
 		SphereColliderComponent() = default;
 		SphereColliderComponent(Ref<ShapeSphere>& collider, const Ref<Mesh>& mesh)
@@ -204,7 +203,6 @@ namespace Toast {
 
 		Ref<Mesh> ColliderMesh;
 		bool RenderCollider = false;
-		bool ReqAltitude = false;
 
 		BoxColliderComponent() = default;
 		BoxColliderComponent(Ref<ShapeBox>& collider)

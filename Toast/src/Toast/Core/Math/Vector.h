@@ -107,6 +107,7 @@ namespace Toast {
 		double Length() const;
 		static double Length(Vector3 vec);
 		double LengthSquared() const;
+		static double LengthSquared(Vector3 vec);
 
 		static Vector3 Normalize(std::initializer_list<double> list);
 		static Vector3 Normalize(const Vector3& vec);

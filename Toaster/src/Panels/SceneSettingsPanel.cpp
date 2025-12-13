@@ -3,7 +3,7 @@
 #include "../FontAwesome.h"
 
 #include "Toast/ImGui/ImGuiHelpers.h"
-#include "Toast/Physics/PhysicsEngineUpdated.h"
+#include "Toast/Physics/PhysicsEngine.h"
 
 #include "imgui/imgui.h"
 
@@ -16,13 +16,15 @@ namespace Toast {
 
 	void SceneSettingsPanel::SetContext(Scene* context, WindowsWindow* window)
 	{
+
+
 		mContext = context;
 
 		mWindow = window;
 	}
 
 	void SceneSettingsPanel::OnImGuiRender(bool* showPanel, std::string& activeDragArea)
-	{
+	{ 
 		if (!showPanel || !*showPanel)
 			return;
 

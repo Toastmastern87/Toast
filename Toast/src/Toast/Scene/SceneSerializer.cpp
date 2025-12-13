@@ -10,7 +10,7 @@
 
 #include "Toast/Scripting/ScriptEngine.h"
 
-#include "Toast/Physics/PhysicsEngineUpdated.h"
+#include "Toast/Physics/PhysicsEngine.h"
 
 #include "Toast/Renderer/Renderer.h"
 
@@ -175,7 +175,7 @@ namespace YAML
 
 namespace Toast {
 
-	class PhysicsEngineUpdated;
+	class PhysicsEngine;
 
 	SceneSerializer::SceneSerializer(Scene* scene)
 		: mScene(scene)
@@ -684,7 +684,7 @@ namespace Toast {
 
 		out << YAML::Key << "Physics";
 		out << YAML::BeginMap;
-		PhysicsEngineUpdated::PhysicsSettings& physicsSettings = mScene->GetPhysicsEngine()->GetSettings();
+		PhysicsEngine::PhysicsSettings& physicsSettings = mScene->GetPhysicsEngine()->GetSettings();
 		out << YAML::Key << "SlowDown" << YAML::Value << physicsSettings.SlowDown;
 		out << YAML::Key << "FPSTarget" << YAML::Value << physicsSettings.FPSTarget;
 		out << YAML::Key << "StepsPerUpdate" << YAML::Value << physicsSettings.StepsPerUpdate;
@@ -915,7 +915,7 @@ namespace Toast {
 		settings.Exposure.SunFadeStartDeg = data["Settings"]["SunFadeStartDeg"].as<float>();
 		settings.Exposure.SunFadeEndDeg = data["Settings"]["SunFadeEndDeg"].as<float>();
 
-		PhysicsEngineUpdated::PhysicsSettings& physicsSettings = mScene->GetPhysicsEngine()->GetSettings();
+		PhysicsEngine::PhysicsSettings& physicsSettings = mScene->GetPhysicsEngine()->GetSettings();
 
 		physicsSettings.SlowDown = data["Settings"]["Physics"]["SlowDown"].as<int>();
 		physicsSettings.FPSTarget = data["Settings"]["Physics"]["FPSTarget"].as<int>();

@@ -212,6 +212,19 @@ namespace Toast {
 		return scene->GetAltitudeAtWorldPos(worldPos, radialDist, groundNormal);
 	}
 
+	static void PhysicsEngine_ApplyLinearImpulse(UUID entityID, DirectX::XMFLOAT3 impulse)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity entity = scene->FindEntityByUUID(entityID);
+		TOAST_CORE_ASSERT(entity, "");
+		auto& physicsEngine = scene->GetPhysicsEngine();
+
+		auto& rbc = entity.GetComponent<RigidBodyComponent>();
+
+		physicsEngine->ApplyLinearImpulse(rbc, impulse);
+	}
+
 #pragma endregion
 
 #pragma region Script
@@ -750,7 +763,7 @@ namespace Toast {
 
 #pragma region Sphere Collider Component
 
-	bool SphereColliderComponent_GetRequestAltitude(uint64_t entityID)
+	float SphereColliderComponent_GetAltitude(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		TOAST_CORE_ASSERT(scene, "No active scene!");
@@ -759,27 +772,14 @@ namespace Toast {
 		Entity entity = entityMap.at(entityID);
 		auto& component = entity.GetComponent<SphereColliderComponent>();
 
-		return component.ReqAltitude;
-	}
-
-
-	void SphereColliderComponent_RequestAltitude(uint64_t entityID, bool value)
-	{
-		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
-		auto& component = entity.GetComponent<SphereColliderComponent>();
-
-		component.ReqAltitude = value;
+		return 0.0f;
 	}
 
 #pragma endregion
 
 #pragma region Box Collider Component
 
-	void BoxColliderComponent_RequestAltitude(uint64_t entityID, bool value)
+	float BoxColliderComponent_GetAltitude(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		TOAST_CORE_ASSERT(scene, "No active scene!");
@@ -788,7 +788,9 @@ namespace Toast {
 		Entity entity = entityMap.at(entityID);
 		auto& component = entity.GetComponent<BoxColliderComponent>();
 
-		component.ReqAltitude = value;
+		double altitude = scene->GetPhysicsEngine()->GetAltitudeBoxCollider(entity);
+
+		return static_cast<float>(altitude);
 	}
 
 #pragma endregion
@@ -888,6 +890,7 @@ namespace Toast {
 
 		TOAST_ADD_INTERNAL_CALL(PhysicsEngine_GetAltitude);
 		TOAST_ADD_INTERNAL_CALL(PhysicsEngine_GetAltitudeAtWorldPos);
+		TOAST_ADD_INTERNAL_CALL(PhysicsEngine_ApplyLinearImpulse);
 
 		TOAST_ADD_INTERNAL_CALL(Scene_GetRenderColliders);
 		TOAST_ADD_INTERNAL_CALL(Scene_SetRenderColliders);
@@ -948,10 +951,9 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetAltitude);
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetLinearVelocity);
 
-		TOAST_ADD_INTERNAL_CALL(SphereColliderComponent_GetRequestAltitude);
-		TOAST_ADD_INTERNAL_CALL(SphereColliderComponent_RequestAltitude);
+		TOAST_ADD_INTERNAL_CALL(SphereColliderComponent_GetAltitude);
 
-		TOAST_ADD_INTERNAL_CALL(BoxColliderComponent_RequestAltitude);
+		TOAST_ADD_INTERNAL_CALL(BoxColliderComponent_GetAltitude);
 
 		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_GetEmitting);
 		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_SetEmitting);

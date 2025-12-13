@@ -51,6 +51,9 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float PhysicsEngine_GetAltitudeAtWorldPos(Vector3 worldPos);
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float PhysicsEngine_ApplyLinearImpulse(ulong entityID, Vector3 impulse);
+
         #endregion
 
         #region Scene
@@ -247,17 +250,14 @@ namespace Toast
         #region Sphere Collider Component
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void SphereColliderComponent_RequestAltitude(ulong entityID, bool value);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool SphereColliderComponent_GetRequestAltitude(ulong entityID);
+        internal static extern float SphereColliderComponent_GetAltitude(ulong entityID);
 
         #endregion
 
         #region Box Collider Component
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern float BoxColliderComponent_RequestAltitude(ulong entityID, bool value);
+        internal static extern float BoxColliderComponent_GetAltitude(ulong entityID);
 
         #endregion
 
