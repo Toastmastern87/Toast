@@ -713,9 +713,12 @@ namespace Toast {
 		out << YAML::Key << "AtmosphereActivated" << YAML::Value << scenePlanet->mAtmosphereActivated;
 		out << YAML::Key << "AtmosphereHeight" << YAML::Value << scenePlanet->mAtmosphere.AtmosphereHeight;
 		out << YAML::Key << "RayleighScaleHeight" << YAML::Value << scenePlanet->mAtmosphere.RayleighScaleHeight;
+		out << YAML::Key << "RayleighExp10" << YAML::Value << scenePlanet->mAtmosphere.RayleighExp10;
 		out << YAML::Key << "RayleighScattering" << YAML::Value << scenePlanet->mAtmosphere.RayleighScattering;
 		out << YAML::Key << "MieScaleHeight" << YAML::Value << scenePlanet->mAtmosphere.MieScaleHeight;
+		out << YAML::Key << "MieScatteringExp10" << YAML::Value << scenePlanet->mAtmosphere.MieScatteringExp10;
 		out << YAML::Key << "MieScattering" << YAML::Value << scenePlanet->mAtmosphere.MieScattering;
+		out << YAML::Key << "MieAbsorptionExp10" << YAML::Value << scenePlanet->mAtmosphere.MieAbsorptionExp10;
 		out << YAML::Key << "MieAbsorption" << YAML::Value << scenePlanet->mAtmosphere.MieAbsorption;
 		out << YAML::Key << "MieAnisotropy" << YAML::Value << scenePlanet->mAtmosphere.MieAnisotropy;
 		out << YAML::Key << "OzoneStrength" << YAML::Value << scenePlanet->mAtmosphere.OzoneStrength;
@@ -941,9 +944,12 @@ namespace Toast {
 		scenePlanet->mAtmosphereActivated = planet["AtmosphereActivated"].as<bool>();
 		scenePlanet->mAtmosphere.AtmosphereHeight = planet["AtmosphereHeight"].as<float>();
 		scenePlanet->mAtmosphere.RayleighScaleHeight = planet["RayleighScaleHeight"].as<float>();
+		scenePlanet->mAtmosphere.RayleighExp10 = planet["RayleighExp10"].as<int>();
 		scenePlanet->mAtmosphere.RayleighScattering = planet["RayleighScattering"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mAtmosphere.MieScaleHeight = planet["MieScaleHeight"].as<float>();
+		scenePlanet->mAtmosphere.MieScatteringExp10 = planet["MieScatteringExp10"].as<int>();
 		scenePlanet->mAtmosphere.MieScattering = planet["MieScattering"].as<DirectX::XMFLOAT3>();
+		scenePlanet->mAtmosphere.MieAbsorptionExp10 = planet["MieAbsorptionExp10"].as<int>();
 		scenePlanet->mAtmosphere.MieAbsorption = planet["MieAbsorption"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mAtmosphere.MieAnisotropy = planet["MieAnisotropy"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mAtmosphere.OzoneStrength = planet["OzoneStrength"].as<float>();

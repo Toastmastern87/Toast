@@ -1,275 +1,187 @@
 Prefab Name: Starship
 Entities:
-  - Entity: 14480642747740570444
+  - Entity: 12803095548740378448
     TagComponent:
-      Tag: Control Script
+      Tag: Rocket Exhaust RB3
     RelationshipComponent:
-      ParentHandle: 17240194511942591510
+      ParentHandle: 13305736866859072884
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.300000012, -23, -1.07000005]
+      Rotation: [0, 0, 0]
+      Scale: [0.300000012, 0.200000003, 0.300000012]
+    ParticlesComponent:
+      Emitting: false
+      MaxLifeTime: 0.600000024
+      SpawnDelay: 0.00079999998
+      Velocity: [0, -32, 0]
+      StartColor: [0.784313738, 0.517647088, 0]
+      EndColor: [0.407843143, 0.203921571, 0.827450991]
+      ColorBlendFactor: 0.150000006
+      ConeAngleDegrees: 0
+      BiasExponent: 1
+      GrowRate: 1
+      BurstInitial: 1.10000002
+      BurstDecay: 4.5
+      Size: 1.09000003
+      SpawnFunction: 2
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
+  - Entity: 9926185893189737979
+    TagComponent:
+      Tag: Rocket Exhaust RB2
+    RelationshipComponent:
+      ParentHandle: 13305736866859072884
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.649999976, -23, 0.800000012]
+      Rotation: [0, 0, 0]
+      Scale: [0.300000012, 0.200000003, 0.300000012]
+    ParticlesComponent:
+      Emitting: false
+      MaxLifeTime: 0.600000024
+      SpawnDelay: 0.00079999998
+      Velocity: [0, -32, 0]
+      StartColor: [0.784313738, 0.517647088, 0]
+      EndColor: [0.407843143, 0.203921571, 0.827450991]
+      ColorBlendFactor: 0.150000006
+      ConeAngleDegrees: 0
+      BiasExponent: 1
+      GrowRate: 1.49999833
+      BurstInitial: 1.10000002
+      BurstDecay: 4.5
+      Size: 1.09000003
+      SpawnFunction: 2
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
+  - Entity: 3655759835163119236
+    TagComponent:
+      Tag: Rocket Exhaust RB1
+    RelationshipComponent:
+      ParentHandle: 13305736866859072884
+      Children:
+        []
+    TransformComponent:
+      Translation: [-1.30000019, -23, 0.100000001]
+      Rotation: [0, 0, 0]
+      Scale: [0.300000012, 0.200000003, 0.300000012]
+    ParticlesComponent:
+      Emitting: false
+      MaxLifeTime: 0.600000024
+      SpawnDelay: 0.00079999998
+      Velocity: [0, -32, 0]
+      StartColor: [0.784313738, 0.517647088, 0]
+      EndColor: [0.407843143, 0.203921571, 0.827450991]
+      ColorBlendFactor: 0.150000006
+      ConeAngleDegrees: 0
+      BiasExponent: 1
+      GrowRate: 1.50000012
+      BurstInitial: 1.10000002
+      BurstDecay: 4.5
+      Size: 1.09000003
+      SpawnFunction: 2
+      AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
+  - Entity: 14550805543812034804
+    TagComponent:
+      Tag: MainBody
+    RelationshipComponent:
+      ParentHandle: 13305736866859072884
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-    ScriptComponent:
-      ClassName: Sandbox.StarshipController
-  - Entity: 3932228389713043609
+  - Entity: 9138074364551069076
     TagComponent:
-      Tag: Rocket Exhaust RB3
+      Tag: LandingLegs
     RelationshipComponent:
-      ParentHandle: 17240194511942591510
+      ParentHandle: 13305736866859072884
       Children:
         []
     TransformComponent:
-      Translation: [0.699999988, -24, 0.800000012]
+      Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
-      Scale: [0.300000012, 0.200000003, 0.300000012]
-    ParticlesComponent:
-      Emitting: false
-      MaxLifeTime: 0.600000024
-      SpawnDelay: 0.00079999998
-      Velocity: [0, -32, 0]
-      StartColor: [0.784313738, 0.517647088, 0]
-      EndColor: [0.407843143, 0.203921571, 0.827450991]
-      ColorBlendFactor: 0.150000006
-      ConeAngleDegrees: 0
-      BiasExponent: 1
-      GrowRate: 1
-      BurstInitial: 1.10000002
-      BurstDecay: 4.5
-      Size: 1.09000003
-      SpawnFunction: 2
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
-  - Entity: 9401802913703667013
+      Scale: [1, 1, 1]
+  - Entity: 6733144521693712458
     TagComponent:
-      Tag: Rocket Exhaust RB2
+      Tag: Flap Backward Right
     RelationshipComponent:
-      ParentHandle: 17240194511942591510
+      ParentHandle: 13305736866859072884
       Children:
         []
     TransformComponent:
-      Translation: [-1.29999995, -24, 0.100000001]
+      Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
-      Scale: [0.300000012, 0.200000003, 0.300000012]
-    ParticlesComponent:
-      Emitting: false
-      MaxLifeTime: 0.600000024
-      SpawnDelay: 0.00079999998
-      Velocity: [0, -32, 0]
-      StartColor: [0.784313738, 0.517647088, 0]
-      EndColor: [0.407843143, 0.203921571, 0.827450991]
-      ColorBlendFactor: 0.150000006
-      ConeAngleDegrees: 0
-      BiasExponent: 1
-      GrowRate: 1
-      BurstInitial: 1.10000002
-      BurstDecay: 4.5
-      Size: 1.09000003
-      SpawnFunction: 2
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
-  - Entity: 12749785074532460312
+      Scale: [1, 1, 1]
+  - Entity: 12699850426776264061
     TagComponent:
-      Tag: Rocket Exhaust RB1
+      Tag: Flap Forward Right
     RelationshipComponent:
-      ParentHandle: 17240194511942591510
+      ParentHandle: 13305736866859072884
       Children:
         []
     TransformComponent:
-      Translation: [0.300000012, -24, -1.09000003]
+      Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
-      Scale: [0.349999994, 0.200000003, 0.349999994]
-    ParticlesComponent:
-      Emitting: false
-      MaxLifeTime: 0.599978328
-      SpawnDelay: 0.000800004229
-      Velocity: [0, -32, 0]
-      StartColor: [0.784810126, 0.516583741, 0]
-      EndColor: [0.407843143, 0.203921571, 0.827450991]
-      ColorBlendFactor: 0.149999991
-      ConeAngleDegrees: 1.29999447
-      BiasExponent: 1
-      GrowRate: 1
-      BurstInitial: 1.0999999
-      BurstDecay: 4.49999952
-      Size: 1.07999933
-      SpawnFunction: 2
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
-  - Entity: 13052394115492820334
+      Scale: [1, 1, 1]
+  - Entity: 3918343461300235490
     TagComponent:
-      Tag: FollowButtonText
+      Tag: Flap Backward Left
     RelationshipComponent:
-      ParentHandle: 16831836020285290792
+      ParentHandle: 13305736866859072884
       Children:
         []
     TransformComponent:
-      Translation: [45, -31, 30]
+      Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
-      Scale: [11, 20, 1]
-    UITextComponent:
-      AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
-      Text: Follow Camera
-      TextureIndex: 0
-  - Entity: 16831836020285290792
+      Scale: [1, 1, 1]
+  - Entity: 11582175664751812677
     TagComponent:
-      Tag: FollowButton
+      Tag: Flap Forward Left
     RelationshipComponent:
-      ParentHandle: 8045082292591532740
+      ParentHandle: 13305736866859072884
       Children:
-        - Handle: 13052394115492820334
+        []
     TransformComponent:
-      Translation: [28, 662, 0]
+      Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
-      Scale: [240, -51, 1]
-    UIButtonComponent:
-      CornerRadius: 0
-      UseColor: false
-      Color: [1, 1, 1, 1]
-      ClickColor: [1, 1, 1, 1]
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\7_WideButton.png
-      TextureIndex: 6
-      ClickAssetPath: ""
-      ClickTextureIndex: 0
-  - Entity: 5483065141339646194
-    TagComponent:
-      Tag: LandButtonText
-    RelationshipComponent:
-      ParentHandle: 12177724399372705469
-      Children:
-        []
-    TransformComponent:
-      Translation: [31, -32, 30]
-      Rotation: [0, 0, 0]
-      Scale: [21, 20, 1]
-    UITextComponent:
-      AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
-      Text: Initiate Landing
-      TextureIndex: 0
-  - Entity: 12177724399372705469
-    TagComponent:
-      Tag: LandButton
-    RelationshipComponent:
-      ParentHandle: 8045082292591532740
-      Children:
-        - Handle: 5483065141339646194
-    TransformComponent:
-      Translation: [28, 713, 0]
-      Rotation: [0, 0, 0]
-      Scale: [240, -51, 1]
-    UIButtonComponent:
-      CornerRadius: 0
-      UseColor: false
-      Color: [1, 1, 1, 1]
-      ClickColor: [1, 1, 1, 1]
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\7_WideButton.png
-      TextureIndex: 6
-      ClickAssetPath: ""
-      ClickTextureIndex: 0
-  - Entity: 16002150813376401156
-    TagComponent:
-      Tag: AltitudeText
-    RelationshipComponent:
-      ParentHandle: 8045082292591532740
-      Children:
-        []
-    TransformComponent:
-      Translation: [30, 932.967041, 0]
-      Rotation: [0, -0, 0]
-      Scale: [1, 18, 1]
-    UITextComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
-      Text: "Altitude: 160,3 m"
-      TextureIndex: 0
-  - Entity: 1936935554583742396
-    TagComponent:
-      Tag: VelocityText
-    RelationshipComponent:
-      ParentHandle: 8045082292591532740
-      Children:
-        []
-    TransformComponent:
-      Translation: [28.0002441, 958.009033, 0]
-      Rotation: [0, -0, 0]
-      Scale: [14, 18, 1]
-    UITextComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
-      Text: "Velocity: 6,6 m/s"
-      TextureIndex: 0
-  - Entity: 15505921001649230640
-    TagComponent:
-      Tag: CloseButton
-    RelationshipComponent:
-      ParentHandle: 8045082292591532740
-      Children:
-        []
-    TransformComponent:
-      Translation: [210.999512, 972.592285, 0]
-      Rotation: [0, -0, 0]
-      Scale: [20, -20, 1]
-    ScriptComponent:
-      ClassName: Sandbox.CloseButton
-    UIButtonComponent:
-      CornerRadius: 0
-      UseColor: false
-      Color: [0.949367106, 0.0200288594, 0.0200288594, 1]
-      ClickColor: [0.949367106, 0.0200288594, 0.0200288594, 1]
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\4_CloseButton.png
-      TextureIndex: 3
-      ClickAssetPath: C:\dev\Toast\Toaster\assets\textures\UI\8_ClickCloseButton.png
-      ClickTextureIndex: 7
-  - Entity: 8045082292591532740
-    TagComponent:
-      Tag: InfoPopup
-    RelationshipComponent:
-      ParentHandle: 17240194511942591510
-      Children:
-        - Handle: 15505921001649230640
-        - Handle: 1936935554583742396
-        - Handle: 16002150813376401156
-        - Handle: 12177724399372705469
-        - Handle: 16831836020285290792
-    TransformComponent:
-      Translation: [109.003418, -612.349854, 20]
-      Rotation: [0, -0, 0]
-      Scale: [523, 1004, 1]
-    UIPanelComponent:
-      Color: [1, 1, 1, 1]
-      CornerRadius: 0
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\3_UIStarshipPopupPanel.png
-      UseColor: false
-      Visible: false
-      ConnectToParent: true
-      TextureIndex: 2
-  - Entity: 17240194511942591510
+      Scale: [1, 1, 1]
+  - Entity: 13305736866859072884
     TagComponent:
       Tag: Entity
     RelationshipComponent:
       ParentHandle: 0
       Children:
-        - Handle: 8045082292591532740
-        - Handle: 12749785074532460312
-        - Handle: 9401802913703667013
-        - Handle: 3932228389713043609
-        - Handle: 14480642747740570444
+        - Handle: 11582175664751812677
+        - Handle: 3918343461300235490
+        - Handle: 12699850426776264061
+        - Handle: 6733144521693712458
+        - Handle: 9138074364551069076
+        - Handle: 14550805543812034804
+        - Handle: 3655759835163119236
+        - Handle: 9926185893189737979
+        - Handle: 12803095548740378448
     PrefabComponent:
       PrefabHandle: Starship
     TransformComponent:
-      Translation: [-9, 50, 291]
-      Rotation: [0, 0, 0]
+      Translation: [29, 201, 221]
+      Rotation: [0, 50.1999512, 0]
       Scale: [1, 1, 1]
     MeshComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_SN3.gltf
       LODThresholds:
-        - 0.212500006
-        - 0.441666663
+        - 0.300000012
+        - 0.600000024
     ScriptComponent:
-      ClassName: Sandbox.StarshipInfoPopup
+      ClassName: Sandbox.StarshipController
     RigidBodyComponent:
       InvMass: 0.00019999999494757503
-      Elasticity: 0
+      Elasticity: 0.05000000074505806
       Friction: 0
       CenterOfMass: [0, 0, 0]
       LinearDamping: 0
       AngularDamping: 0
-    SphereColliderComponent:
+    BoxColliderComponent:
       RenderCollider: true
-      Radius: 25.510000228881836
+      Size: [5.3000001907348633, 25.600000381469727, 8]

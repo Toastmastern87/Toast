@@ -103,9 +103,12 @@ namespace Toast {
 		float RayleighScaleHeight = 0.0f;
 		float MieScaleHeight = 0.0f;
 		float MSGain = 0.0f;
+		int RayleighExp10 = -10;
 		DirectX::XMFLOAT3 RayleighScattering = { 0.0f, 0.0f, 0.0f };
 		float SGain = 0.0f;
+		int MieScatteringExp10 = -5;
 		DirectX::XMFLOAT3 MieScattering = { 0.0f, 0.0f, 0.0f };
+		int MieAbsorptionExp10 = -6;
 		DirectX::XMFLOAT3 MieAbsorption = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 MieAnisotropy = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 GroundAlbedo = { 0.0f, 0.0f, 0.0f };

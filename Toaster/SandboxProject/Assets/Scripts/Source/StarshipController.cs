@@ -22,10 +22,10 @@ namespace Sandbox
 
         void OnCreate()
         {
-            mStarship = FindEntityByName("Starship2"); 
-            mRB1 = FindChildEntityByName("Starship2", "Rocket Exhaust RB1");
-            mRB2 = FindChildEntityByName("Starship2", "Rocket Exhaust RB2");
-            mRB3 = FindChildEntityByName("Starship2", "Rocket Exhaust RB3");
+            mStarship = this; 
+            mRB1 = FindChildEntityByName(this.Name, "Rocket Exhaust RB1");
+            mRB2 = FindChildEntityByName(this.Name, "Rocket Exhaust RB2");
+            mRB3 = FindChildEntityByName(this.Name, "Rocket Exhaust RB3");
             mRigidBody = mStarship.GetComponent<RigidBodyComponent>();
             mBoxCollider = mStarship.GetComponent<BoxColliderComponent>();
 
@@ -41,7 +41,7 @@ namespace Sandbox
         void OnUpdate(float ts)
         {
             float altitude = mBoxCollider.Altitude;
-
+ 
             if (altitude <= 90.0f && altitude > 0.5f && !mShutdownEngines) 
             {
                 mRB1Particles.Emitting = true;

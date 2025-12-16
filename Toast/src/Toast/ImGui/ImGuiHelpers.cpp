@@ -334,7 +334,7 @@ namespace Toast
 			return changed;
 		}
 
-		bool ManualDragFloat3(const std::string& label, DirectX::XMFLOAT3& values, float speed, float resetValue, WindowsWindow* window, std::string& activeDragArea, const char* displayFormat, bool colorValues)
+		bool ManualDragFloat3(const std::string& label, DirectX::XMFLOAT3& values, float speed, float resetValue, WindowsWindow* window, std::string& activeDragArea, const char* displayFormat, bool colorValues, float overrideTotalWidth)
 		{
 			bool changed = false;
 
@@ -342,20 +342,28 @@ namespace Toast
 			auto boldFont = io.Fonts->Fonts[0];
 
 			ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
-			ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+			float availW = (overrideTotalWidth > 0.0f) ? overrideTotalWidth : ImGui::GetContentRegionAvail().x;
 
 			size_t hashes = label.find("##");
 			bool hasVisibleLabel = (hashes != 0);
+
+			float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+			ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+
+			ImVec2 dragAreaSize;
 
 			// layout example: we do columns or a simple horizontal layout
 			ImGui::PushID(label.c_str());
 
 			if (hasVisibleLabel)
 			{
+				dragAreaSize = { 54.0f, lineHeight };
+
 				// layout example: we do columns or a simple horizontal layout
 				ImGui::BeginTable("", 2, flags);
-				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.30f);
-				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.65f);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, availW * 0.30f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, availW * 0.65f);
 
 				ImGui::TableNextRow();
 
@@ -366,6 +374,13 @@ namespace Toast
 			}
 			else
 			{
+				float totalButtons = 3.0f * buttonSize.x;
+
+				float dragW = (availW - totalButtons) / 3.0f;
+				if (dragW < 20.0f) dragW = 20.0f;
+
+				dragAreaSize = { dragW, lineHeight };
+
 				ImGui::BeginTable("", 1, ImGuiTableFlags_SizingStretchProp);
 				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthStretch);
 
@@ -373,10 +388,6 @@ namespace Toast
 
 				ImGui::TableSetColumnIndex(0);
 			}
-
-			float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-			ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
-			ImVec2 dragAreaSize = { 54.0f, lineHeight };
 
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 4.0f));
 
@@ -668,6 +679,66 @@ namespace Toast
 
 			ImGui::Columns(1);
 			ImGui::PopID();
+
+			return changed;
+		}
+
+		bool TinyExponentCombo(const char* id, int& exp10)
+		{
+			bool changed = false;
+
+			// Smallest practical widths; tweak as needed
+			ImGui::PushItemWidth(54.0f);
+
+			const char* preview = nullptr;
+			// Build preview like "e-10"
+			char previewBuf[8];
+			snprintf(previewBuf, sizeof(previewBuf), "e%d", exp10);
+			preview = previewBuf;
+
+			if (ImGui::BeginCombo(id, preview))
+			{
+				for (int e = -3; e >= -10; --e)
+				{
+					char buf[8];
+					snprintf(buf, sizeof(buf), "e%d", e);
+
+					bool isSelected = (exp10 == e);
+					if (ImGui::Selectable(buf, isSelected))
+					{
+						exp10 = e;
+						changed = true;
+					}
+					if (isSelected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+
+			ImGui::PopItemWidth();
+			return changed;
+		}
+
+		bool ManualDragFloat3Scaled(const std::string& label, DirectX::XMFLOAT3& stored,	int exp10, float speedMantissa, float resetStored, WindowsWindow* window,	std::string& activeDragArea, const char* displayFormat,	bool colorValues, float overrideTotalWidth)
+		{
+			bool changed = false;
+
+			const float scale = powf(10.0f, (float)exp10);
+
+			// Mantissas shown to the user
+			DirectX::XMFLOAT3 mantissa{ stored.x / scale, stored.y / scale,	stored.z / scale };
+
+			// Use your existing widget, but operating on mantissa
+			// IMPORTANT: resetValue here should reset mantissa, not stored.
+			// If you want reset to zero mantissa, pass 0.0f.
+			changed |= ManualDragFloat3(label, mantissa, speedMantissa,	0.0f,	window, activeDragArea, displayFormat, colorValues, overrideTotalWidth);
+
+			if (changed)
+			{
+				stored.x = mantissa.x * scale;
+				stored.y = mantissa.y * scale;
+				stored.z = mantissa.z * scale;
+			}
 
 			return changed;
 		}

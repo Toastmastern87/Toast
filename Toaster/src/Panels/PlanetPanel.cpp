@@ -518,44 +518,28 @@ namespace Toast {
 
 					ImGui::DragFloat("##RayleighScaleHeight", &mContext->mAtmosphere.RayleighScaleHeight, 1.0f, 0.0f, FLT_MAX, "%.0f");
 
-					// -------- Rayleigh Scattering Red Row ----------
+					// -------- Rayleigh Scattering Row ----------
 					ImGui::TableNextRow();
-
 					ImGui::TableSetColumnIndex(0);
 					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Rayleigh Scattering Red");
+					ImGui::Text("Rayleigh Scattering");
 
 					ImGui::TableSetColumnIndex(1);
 
-					ImGui::SetNextItemWidth(fullW);
+					// Right-align small dropdown above the float3
+					float comboW = 62.0f;
+					float rightEdge = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
+					ImGui::SetCursorPosX(rightEdge - comboW);
 
-					ImGui::DragFloat("##RayleighScatteringRed", &mContext->mAtmosphere.RayleighScattering.x, 0.00000001f, 0.0f, FLT_MAX, "%.9f");
-
-					// -------- Rayleigh Scattering Green Row ----------
-					ImGui::TableNextRow();
-
-					ImGui::TableSetColumnIndex(0);
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Rayleigh Scattering Green");
-
-					ImGui::TableSetColumnIndex(1);
+					ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+					ImGuiHelpers::TinyExponentCombo("##RayleighExp10", mContext->mAtmosphere.RayleighExp10);
+					ImGui::PopStyleVar(1);
+					 
+					ImGui::Dummy(ImVec2(0.0f, 2.0f)); // tiny spacing before the drag control
 
 					ImGui::SetNextItemWidth(fullW);
 
-					ImGui::DragFloat("##RayleighScatteringGreen", &mContext->mAtmosphere.RayleighScattering.y, 0.00000001f, 0.0f, FLT_MAX, "%.9f");
-				
-					// -------- Rayleigh Scattering Blue Row ----------
-					ImGui::TableNextRow();
-
-					ImGui::TableSetColumnIndex(0);
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Rayleigh Scattering Blue");
-
-					ImGui::TableSetColumnIndex(1);
-
-					ImGui::SetNextItemWidth(fullW);
-
-					ImGui::DragFloat("##RayleighScatteringBlue", &mContext->mAtmosphere.RayleighScattering.z, 0.00000001f, 0.0f, FLT_MAX, "%.9f");
+					ImGuiHelpers::ManualDragFloat3Scaled("##Rayleigh", mContext->mAtmosphere.RayleighScattering, mContext->mAtmosphere.RayleighExp10, 1.0f, 0.0f, mWindow, activeDragArea,	"%.2f",	true, fullW);
 
 					// -------- Mie Scale Height Row ----------
 					ImGui::TableNextRow();
@@ -570,85 +554,51 @@ namespace Toast {
 
 					ImGui::DragFloat("##MieScaleHeight", &mContext->mAtmosphere.MieScaleHeight, 1.0f, 0.0f, FLT_MAX, "%.0f");
 
-					// -------- Mie Scattering Red Row ----------
+					// -------- Mie Scattering Row ----------
 					ImGui::TableNextRow();
-
 					ImGui::TableSetColumnIndex(0);
 					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Mie Scattering Red");
+					ImGui::Text("Mie Scattering");
 
 					ImGui::TableSetColumnIndex(1);
 
+					// Right-align small dropdown above the float3
+					rightEdge = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
+					ImGui::SetCursorPosX(rightEdge - comboW);
+
+					ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+					ImGuiHelpers::TinyExponentCombo("##MieScatteringExp10", mContext->mAtmosphere.MieScatteringExp10); 
+					ImGui::PopStyleVar(1);
+
+					ImGui::Dummy(ImVec2(0.0f, 2.0f)); // tiny spacing before the drag control
+
 					ImGui::SetNextItemWidth(fullW);
 
-					ImGui::DragFloat("##MieScatteringRed", &mContext->mAtmosphere.MieScattering.x, 0.000001f, 0.0f, FLT_MAX, "%.7f");
+					ImGuiHelpers::ManualDragFloat3Scaled("##MieScattering", mContext->mAtmosphere.MieScattering, mContext->mAtmosphere.MieScatteringExp10, 1.0f, 0.0f, mWindow, activeDragArea, "%.2f", true, fullW);
 
-					// -------- Mie Scattering Green Row ----------
+					// -------- Mie Absorption Row ----------
 					ImGui::TableNextRow();
-
 					ImGui::TableSetColumnIndex(0);
 					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Mie Scattering Green");
+					ImGui::Text("Mie Absorption");
 
 					ImGui::TableSetColumnIndex(1);
 
-					ImGui::SetNextItemWidth(fullW);
+					// Right-align small dropdown above the float3
+					rightEdge = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x;
+					ImGui::SetCursorPosX(rightEdge - comboW);
 
-					ImGui::DragFloat("##MieScatteringGreen", &mContext->mAtmosphere.MieScattering.y, 0.000001f, 0.0f, FLT_MAX, "%.7f");
+					ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+					ImGuiHelpers::TinyExponentCombo("##MieAbsorptionExp10", mContext->mAtmosphere.MieAbsorptionExp10);
+					ImGui::PopStyleVar(1);
 
-					// -------- Mie Scattering Blue Row ----------
-					ImGui::TableNextRow();
-
-					ImGui::TableSetColumnIndex(0);
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Mie Scattering Blue");
-
-					ImGui::TableSetColumnIndex(1);
+					ImGui::Dummy(ImVec2(0.0f, 2.0f)); // tiny spacing before the drag control
 
 					ImGui::SetNextItemWidth(fullW);
 
-					ImGui::DragFloat("##MieScatteringBlue", &mContext->mAtmosphere.MieScattering.z, 0.000001f, 0.0f, FLT_MAX, "%.7f");
+					ImGuiHelpers::ManualDragFloat3Scaled("##MieAbsorption", mContext->mAtmosphere.MieAbsorption, mContext->mAtmosphere.MieAbsorptionExp10, 1.0f, 0.0f, mWindow, activeDragArea, "%.2f", true, fullW);
 
-					// -------- Mie Absorption Red Row ----------
-					ImGui::TableNextRow();
-
-					ImGui::TableSetColumnIndex(0);
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Mie Absorption Red");
-
-					ImGui::TableSetColumnIndex(1);
-
-					ImGui::SetNextItemWidth(fullW);
-
-					ImGui::DragFloat("##MieAbsorptionRed", &mContext->mAtmosphere.MieAbsorption.x, 0.000001f, 0.0f, FLT_MAX, "%.7f");
-
-					// -------- Mie Absorption Green Row ----------
-					ImGui::TableNextRow();
-
-					ImGui::TableSetColumnIndex(0);
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Mie Absorption Green");
-
-					ImGui::TableSetColumnIndex(1);
-
-					ImGui::SetNextItemWidth(fullW);
-
-					ImGui::DragFloat("##MieAbsorptionGreen", &mContext->mAtmosphere.MieAbsorption.y, 0.000001f, 0.0f, FLT_MAX, "%.7f");
-
-					// -------- Mie Absorption Blue Row ----------
-					ImGui::TableNextRow();
-
-					ImGui::TableSetColumnIndex(0);
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Mie Absorption Blue");
-
-					ImGui::TableSetColumnIndex(1);
-
-					ImGui::SetNextItemWidth(fullW);
-
-					ImGui::DragFloat("##MieAbsorptionBlue", &mContext->mAtmosphere.MieAbsorption.z, 0.000001f, 0.0f, FLT_MAX, "%.7f");
-
-					// -------- Mie Anisotropy Red Row ----------
+					// -------- Mie Anisotropy Row ----------
 					ImGui::TableNextRow();
 
 					ImGui::TableSetColumnIndex(0);
@@ -659,33 +609,7 @@ namespace Toast {
 
 					ImGui::SetNextItemWidth(fullW);
 
-					ImGui::DragFloat("##MieAnisotropyRed", &mContext->mAtmosphere.MieAnisotropy.x, 0.01f, 0.0f, FLT_MAX, "%.2f");
-
-					// -------- Mie Anisotropy Green Row ----------
-					ImGui::TableNextRow();
-
-					ImGui::TableSetColumnIndex(0);
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Mie Anisotropy Green");
-
-					ImGui::TableSetColumnIndex(1);
-
-					ImGui::SetNextItemWidth(fullW);
-
-					ImGui::DragFloat("##MieAnisotropyGreen", &mContext->mAtmosphere.MieAnisotropy.y, 0.01f, 0.0f, FLT_MAX, "%.2f");
-
-					// -------- Mie Anisotropy Blue Row ----------
-					ImGui::TableNextRow();
-
-					ImGui::TableSetColumnIndex(0);
-					ImGui::AlignTextToFramePadding();
-					ImGui::Text("Mie Anisotropy Blue");
-
-					ImGui::TableSetColumnIndex(1);
-
-					ImGui::SetNextItemWidth(fullW);
-
-					ImGui::DragFloat("##MieAnisotropyBlue", &mContext->mAtmosphere.MieAnisotropy.z, 0.01f, 0.0f, FLT_MAX, "%.2f");
+					ImGuiHelpers::ManualDragFloat3("##MieAnisotropy", mContext->mAtmosphere.MieAnisotropy, 0.01f, 0.0f, mWindow, activeDragArea, "%.2f", true);
 
 					// -------- Ozone Strength Row ----------
 					ImGui::TableNextRow();
@@ -783,4 +707,4 @@ namespace Toast {
 
 		ImGui::PopStyleColor(2);
 	}
-}
+} 

@@ -1,6 +1,6 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [83.6325607, 82.1351013, -40.0333328]
+  Position: [83.6148376, 82.187233, -40.0434113]
 Settings:
   Grid: false
   CameraFrustum: true
@@ -69,9 +69,12 @@ Planet:
   AtmosphereActivated: true
   AtmosphereHeight: 60000
   RayleighScaleHeight: 11000
+  RayleighExp10: -10
   RayleighScattering: [9.00000019e-10, 1.80000004e-09, 4.59999994e-09]
   MieScaleHeight: 11000
+  MieScatteringExp10: -5
   MieScattering: [1.94999993e-05, 1.54999998e-05, 1.49999996e-05]
+  MieAbsorptionExp10: -6
   MieAbsorption: [3.99999999e-06, 4.50000016e-06, 6.49999993e-06]
   MieAnisotropy: [0.889999986, 0.889999986, 0.879999995]
   OzoneStrength: 0
@@ -150,87 +153,6 @@ Entities:
         - Name: ZoomFactor
           Type: Float
           Data: 2.29999995
-  - Entity: 12216800177746514460
-    TagComponent:
-      Tag: Rocket Exhaust RB3
-    RelationshipComponent:
-      ParentHandle: 14796545384475566267
-      Children:
-        []
-    TransformComponent:
-      Translation: [0.300000012, -23, -1.07000005]
-      Rotation: [0, 0, 0]
-      Scale: [0.300000012, 0.200000003, 0.300000012]
-    ParticlesComponent:
-      Emitting: false
-      MaxLifeTime: 0.600000024
-      SpawnDelay: 0.00079999998
-      Velocity: [0, -32, 0]
-      StartColor: [0.784313738, 0.517647088, 0]
-      EndColor: [0.407843143, 0.203921571, 0.827450991]
-      ColorBlendFactor: 0.150000006
-      ConeAngleDegrees: 0
-      BiasExponent: 1
-      GrowRate: 1
-      BurstInitial: 1.10000002
-      BurstDecay: 4.5
-      Size: 1.09000003
-      SpawnFunction: 2
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
-  - Entity: 3990550076865413105
-    TagComponent:
-      Tag: Rocket Exhaust RB2
-    RelationshipComponent:
-      ParentHandle: 14796545384475566267
-      Children:
-        []
-    TransformComponent:
-      Translation: [0.649999976, -23, 0.800000012]
-      Rotation: [0, 0, 0]
-      Scale: [0.300000012, 0.200000003, 0.300000012]
-    ParticlesComponent:
-      Emitting: false
-      MaxLifeTime: 0.600000024
-      SpawnDelay: 0.00079999998
-      Velocity: [0, -32, 0]
-      StartColor: [0.784313738, 0.517647088, 0]
-      EndColor: [0.407843143, 0.203921571, 0.827450991]
-      ColorBlendFactor: 0.150000006
-      ConeAngleDegrees: 0
-      BiasExponent: 1
-      GrowRate: 1.49999833
-      BurstInitial: 1.10000002
-      BurstDecay: 4.5
-      Size: 1.09000003
-      SpawnFunction: 2
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
-  - Entity: 11816705958940416165
-    TagComponent:
-      Tag: Rocket Exhaust RB1
-    RelationshipComponent:
-      ParentHandle: 14796545384475566267
-      Children:
-        []
-    TransformComponent:
-      Translation: [-1.30000019, -23, 0.100000001]
-      Rotation: [0, 0, 0]
-      Scale: [0.300000012, 0.200000003, 0.300000012]
-    ParticlesComponent:
-      Emitting: false
-      MaxLifeTime: 0.600000024
-      SpawnDelay: 0.00079999998
-      Velocity: [0, -32, 0]
-      StartColor: [0.784313738, 0.517647088, 0]
-      EndColor: [0.407843143, 0.203921571, 0.827450991]
-      ColorBlendFactor: 0.150000006
-      ConeAngleDegrees: 0
-      BiasExponent: 1
-      GrowRate: 1.50000012
-      BurstInitial: 1.10000002
-      BurstDecay: 4.5
-      Size: 1.09000003
-      SpawnFunction: 2
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
   - Entity: 7969327153423302118
     TagComponent:
       Tag: Sunlight
@@ -240,7 +162,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-12.9999552, 20.8000145, -63.5000076]
+      Rotation: [-78.9999313, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]
@@ -249,7 +171,7 @@ Entities:
       SunLightDistance: 961
   - Entity: 11637652594119463601
     TagComponent:
-      Tag: Starship
+      Tag: StarshipSphereTest
     RelationshipComponent:
       ParentHandle: 0
       Children:
@@ -359,116 +281,6 @@ Entities:
       Scale: [1, 1, 1]
   - Entity: 14796545384475566267
     TagComponent:
-      Tag: Starship2
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        - Handle: 11260157089930105167
-        - Handle: 3758790226852764911
-        - Handle: 1849001290532137626
-        - Handle: 6527692647073640125
-        - Handle: 2941478050912602356
-        - Handle: 454669151441921778
-        - Handle: 11816705958940416165
-        - Handle: 3990550076865413105
-        - Handle: 12216800177746514460
-    TransformComponent:
-      Translation: [29, 201, 221]
-      Rotation: [0, 50.1999512, 0]
-      Scale: [1, 1, 1]
-    MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_SN3.gltf
-      LODThresholds:
-        - 0.300000012
-        - 0.600000024
-      Parts:
-        - Name: Flap Forward Left
-          Handle: 11260157089930105167
-        - Name: Flap Backward Left
-          Handle: 3758790226852764911
-        - Name: Flap Forward Right
-          Handle: 1849001290532137626
-        - Name: Flap Backward Right
-          Handle: 6527692647073640125
-        - Name: LandingLegs
-          Handle: 2941478050912602356
-        - Name: MainBody
-          Handle: 454669151441921778
-    ScriptComponent:
-      ClassName: Sandbox.StarshipController
-    RigidBodyComponent:
-      InvMass: 0.00019999999494757503
-      Elasticity: 0.05000000074505806
-      Friction: 0
-      CenterOfMass: [0, 0, 0]
-      LinearDamping: 0
-      AngularDamping: 0
-    BoxColliderComponent:
-      RenderCollider: true
-      Size: [5.3000001907348633, 25.600000381469727, 8]
-  - Entity: 11260157089930105167
-    TagComponent:
-      Tag: Flap Forward Left
-    RelationshipComponent:
-      ParentHandle: 14796545384475566267
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 3758790226852764911
-    TagComponent:
-      Tag: Flap Backward Left
-    RelationshipComponent:
-      ParentHandle: 14796545384475566267
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 1849001290532137626
-    TagComponent:
-      Tag: Flap Forward Right
-    RelationshipComponent:
-      ParentHandle: 14796545384475566267
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 6527692647073640125
-    TagComponent:
-      Tag: Flap Backward Right
-    RelationshipComponent:
-      ParentHandle: 14796545384475566267
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 2941478050912602356
-    TagComponent:
-      Tag: LandingLegs
-    RelationshipComponent:
-      ParentHandle: 14796545384475566267
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 454669151441921778
-    TagComponent:
-      Tag: MainBody
-    RelationshipComponent:
-      ParentHandle: 14796545384475566267
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
+      Tag: Starship
+    PrefabComponent:
+      PrefabHandle: Starship
