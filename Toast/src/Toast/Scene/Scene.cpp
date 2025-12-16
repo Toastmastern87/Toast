@@ -1589,7 +1589,6 @@ namespace Toast {
 		CopyComponentIfExists<UIPanelComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<UITextComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<UIButtonComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
-		CopyComponentIfExists<TerrainDetailComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<TerrainObjectComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<ParticlesComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 
@@ -1626,7 +1625,6 @@ namespace Toast {
 			CopyComponentIfExists<UIPanelComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<UITextComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<UIButtonComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
-			CopyComponentIfExists<TerrainDetailComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<TerrainObjectComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<ParticlesComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 		}
@@ -1759,7 +1757,6 @@ namespace Toast {
 		CopyComponent<UIPanelComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UITextComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIButtonComponent>(target->mRegistry, mRegistry, enttMap);
-		CopyComponent<TerrainDetailComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TerrainObjectComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<ParticlesComponent>(target->mRegistry, mRegistry, enttMap);
 	}
@@ -1869,13 +1866,6 @@ namespace Toast {
 	template<>
 	void Scene::OnComponentAdded<RelationshipComponent>(Entity entity, RelationshipComponent& component)
 	{
-	}
-
-	template<>
-	void Scene::OnComponentAdded<TerrainDetailComponent>(Entity entity, TerrainDetailComponent& component)
-	{
-		if(component.Seed == 0)
-			component.Seed = Math::GenerateRandomSeed();
 	}
 
 	template<>

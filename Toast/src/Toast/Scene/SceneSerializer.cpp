@@ -489,26 +489,6 @@ namespace Toast {
 			out << YAML::EndMap; // UITextComponent
 		}
 
-		if (entity.HasComponent<TerrainDetailComponent>())
-		{
-			out << YAML::Key << "TerrainDetailComponent";
-			out << YAML::BeginMap; // TerrainDetailComponent
-
-			auto& tdc = entity.GetComponent<TerrainDetailComponent>();
-			out << YAML::Key << "Seed" << YAML::Value << tdc.Seed;
-			out << YAML::Key << "SubdivisionActivation" << YAML::Value << tdc.SubdivisionActivation;
-			out << YAML::Key << "Octaves" << YAML::Value << tdc.Octaves;
-			out << YAML::Key << "Frequency" << YAML::Value << tdc.Frequency;
-			out << YAML::Key << "Amplitude" << YAML::Value << tdc.Amplitude;
-			out << YAML::Key << "GravelOctaves" << YAML::Value << tdc.GravelOctaves;
-			out << YAML::Key << "GravelFrequency" << YAML::Value << tdc.GravelFrequency;
-			out << YAML::Key << "GravelAmplitude" << YAML::Value << tdc.GravelAmplitude;
-			out << YAML::Key << "GravelLowThreshold" << YAML::Value << tdc.GravelLowThreshold;
-			out << YAML::Key << "GravelHighThreshold" << YAML::Value << tdc.GravelHighThreshold;
-
-			out << YAML::EndMap; // TerrainDetailComponent
-		}
-
 		if (entity.HasComponent<TerrainObjectComponent>())
 		{
 			out << YAML::Key << "TerrainObjectComponent";
@@ -575,7 +555,6 @@ namespace Toast {
 		CopyComponentIfExists<UIPanelComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<UITextComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<UIButtonComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
-		CopyComponentIfExists<TerrainDetailComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<TerrainObjectComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<ParticlesComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 	}
@@ -1290,25 +1269,6 @@ namespace Toast {
 
 					if (uiTextComponent["TextureIndex"])
 						uitc.Text->SetTextureIndex(uiTextComponent["TextureIndex"].as<int>());
-				}
-
-				auto terrainDetailComponent = entity["TerrainDetailComponent"];
-				if (terrainDetailComponent)
-				{
-					auto& tdc = deserializedEntity.AddComponent<TerrainDetailComponent>();
-
-					if(terrainDetailComponent["Seed"].as<uint32_t>() != 0)
-						tdc.Seed = terrainDetailComponent["Seed"].as<uint32_t>();
-					tdc.SubdivisionActivation = terrainDetailComponent["SubdivisionActivation"].as<int>();
-					tdc.Octaves = terrainDetailComponent["Octaves"].as<int>();
-					tdc.Frequency = terrainDetailComponent["Frequency"].as<float>();
-					tdc.Amplitude = terrainDetailComponent["Amplitude"].as<float>();
-
-					tdc.GravelOctaves = terrainDetailComponent["GravelOctaves"].as<int>();
-					tdc.GravelFrequency = terrainDetailComponent["GravelFrequency"].as<float>();
-					tdc.GravelAmplitude = terrainDetailComponent["GravelAmplitude"].as<float>();
-					tdc.GravelLowThreshold = terrainDetailComponent["GravelLowThreshold"].as<float>();
-					tdc.GravelHighThreshold = terrainDetailComponent["GravelHighThreshold"].as<float>();
 				}
 
 				auto terrainObjectComponent = entity["TerrainObjectComponent"];

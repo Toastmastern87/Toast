@@ -51,6 +51,51 @@ namespace Toast {
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  
+	//   INCLUDE HANDLER    //////////////////////////////////////////////////////////////// 
+	//////////////////////////////////////////////////////////////////////////////////////// 
+
+	HRESULT STDMETHODCALLTYPE IncludeHandler::Open(D3D_INCLUDE_TYPE includeType, LPCSTR fileName, LPCVOID parentData, LPCVOID* data, UINT* bytes)
+	{
+		if (!data || !bytes || !fileName)
+			return E_INVALIDARG;
+
+		std::string fullPath = mDirectory;
+		if (!fullPath.empty() && fullPath.back() != '/' && fullPath.back() != '\\')
+			fullPath += '/';
+		fullPath += fileName;
+
+		std::ifstream file(fullPath, std::ios::binary | std::ios::ate);
+		if (!file)
+			return E_FAIL;
+
+		const std::streamsize size = file.tellg();
+		if (size <= 0)
+			return E_FAIL;
+
+		file.seekg(0, std::ios::beg);
+
+		char* buffer = new (std::nothrow) char[(size_t)size];
+		if (!buffer)
+			return E_OUTOFMEMORY;
+
+		if (!file.read(buffer, size))
+		{
+			delete[] buffer;
+			return E_FAIL;
+		}
+
+		*data = buffer;
+		*bytes = (UINT)size;
+		return S_OK;
+	}
+
+	HRESULT STDMETHODCALLTYPE IncludeHandler::Close(LPCVOID data)
+	{
+		delete[] reinterpret_cast<const char*>(data);
+		return S_OK;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////  
 	// SHADERCBUFFERELEMENT //////////////////////////////////////////////////////////////// 
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
@@ -308,6 +353,8 @@ namespace Toast {
 		HRESULT result;
 		Microsoft::WRL::ComPtr<ID3D10Blob> errorRaw = nullptr;
 
+		IncludeHandler includeHandler("..\\Toaster\\assets\\shaders\\utilities\\");
+
 		for (auto& kv : shaderSources)
 		{
 			D3D11_SHADER_TYPE type = kv.first;
@@ -317,7 +364,7 @@ namespace Toast {
 				source.size(),
 				NULL,
 				NULL,
-				NULL,
+				&includeHandler,
 				"main",
 				ShaderVersionFromType(type).c_str(),
 				D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG,

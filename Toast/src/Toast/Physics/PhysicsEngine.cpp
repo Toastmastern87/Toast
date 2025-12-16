@@ -243,7 +243,7 @@ namespace Toast {
 			return GetAltitudeAtWorldPos(Vector3(tc.Translation) + worldTranslation, radialDist, normal);
 	}
 
-	double PhysicsEngine::GetAltitudeAtWorldPos(const Vector3& worldPos,	double& outRadialDist, Vector3& outGroundNormal)
+	double PhysicsEngine::GetAltitudeAtWorldPos(const Vector3& worldPos, double& outRadialDist, Vector3& outGroundNormal)
 	{
 		Planet& planet = *mScene->GetPlanet();
 		TerrainData& terrain = planet.GetTerrainData();

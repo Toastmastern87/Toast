@@ -49,6 +49,11 @@ namespace Toast {
 		mPlanetLevelBuffer.Allocate(mPlanetLevelCBuffer->GetSize());
 		mPlanetLevelBuffer.ZeroInitialize();
 
+		mHeightDetailCBuffer = ConstantBufferLibrary::Load("HeightDetail", 1040, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, (CBufferBindSlot)8), CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)8) });
+		mHeightDetailCBuffer->Bind();
+		mHeightDetailBuffer.Allocate(mHeightDetailCBuffer->GetSize());
+		mHeightDetailBuffer.ZeroInitialize();
+
 		mBaseHeightMapTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 
 		mStarFieldTexture2D = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
@@ -811,6 +816,51 @@ namespace Toast {
 
 		// Outside all rings -> clamp to outermost active
 		return last;
+	}
+
+	void Planet::MapHeightDetailBuffer(uint32_t level)
+	{
+		HeightDetail* found = nullptr;
+		for (auto& d : mHeightDetails)
+		{
+			if (d.PerlinNoiseSettings.LODActivation == level)
+			{
+				found = &d;
+				break;
+			}
+		}
+
+		if (!found)
+			return;
+
+		mHeightDetailBuffer.Write((uint8_t*)found->Perm, 256 * sizeof(int), 0);
+
+		// Write scalars (match HLSL 'int' = 32-bit)
+		const int32_t lodActivation = (int32_t)found->PerlinNoiseSettings.LODActivation;
+		const int32_t octaves = (int32_t)found->PerlinNoiseSettings.Octaves;
+		const float   frequency = found->PerlinNoiseSettings.Frequency;
+		const float   amplitude = found->PerlinNoiseSettings.Amplitude;
+
+		mHeightDetailBuffer.Write((uint8_t*)&lodActivation, sizeof(lodActivation), 1024);
+		mHeightDetailBuffer.Write((uint8_t*)&octaves, sizeof(octaves), 1028);
+		mHeightDetailBuffer.Write((uint8_t*)&frequency, sizeof(frequency), 1032);
+		mHeightDetailBuffer.Write((uint8_t*)&amplitude, sizeof(amplitude), 1036);
+
+		// Upload to GPU
+		mHeightDetailCBuffer->Map(mHeightDetailBuffer);
+	}
+
+	void Planet::BuildPermutationTable(uint32_t seed, int outPerm[256])
+	{
+		std::vector<int> values(256);
+		for (int i = 0; i < 256; ++i)
+			values[i] = i;
+
+		std::mt19937 rng(seed);
+		std::shuffle(values.begin(), values.end(), rng);
+
+		for (int i = 0; i < 256; ++i)
+			outPerm[i] = values[i];
 	}
 
 }

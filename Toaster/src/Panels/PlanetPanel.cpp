@@ -20,6 +20,18 @@
 
 namespace Toast {
 
+	static void CopyToNameBuf(char* dst, size_t dstSize, const std::string& src)
+	{
+		if (!dst || dstSize == 0) return;
+		std::snprintf(dst, dstSize, "%s", src.c_str());
+		dst[dstSize - 1] = '\0';
+	}
+
+	static void CopyFromNameBuf(std::string& dst, const char* src)
+	{
+		dst = (src && src[0]) ? std::string(src) : std::string("New Terrain Detail");
+	}
+
 	extern const std::filesystem::path gAssetPath;
 
 	void PlanetPanel::SetContext(Scene* sceneContext, WindowsWindow* window)
@@ -401,6 +413,207 @@ namespace Toast {
 					}
 
 					ImGui::TableSetColumnIndex(1);
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Height Details");
+
+					ImGui::TableSetColumnIndex(1);
+
+					// Use the same width logic you already have (fullW)
+					ImGui::SetNextItemWidth(fullW);
+
+					// --- Visual sizing: show up to 3 items without scrolling ---
+					const float lineH = ImGui::GetTextLineHeightWithSpacing();
+					const float itemH = ImGui::GetFrameHeight();                 // approx height for a button/selectable
+					const float itemPadY = ImGui::GetStyle().ItemSpacing.y;
+					const float childPadY = ImGui::GetStyle().WindowPadding.y;
+
+					// Height for 3 entries + some padding
+					const float visibleItems = 3.0f;
+
+					// Button height is driven mostly by FramePadding.y + font height.
+					// A good approximation:
+					const float rowH = ImGui::GetFrameHeight(); // respects current style
+					const float rowGap = 1.0f;                  // match your Dummy() spacing
+					const float innerPadY = 8.0f * 2.0f;        // should match WindowPadding.y * 2
+
+					float minBoxH = innerPadY + visibleItems * rowH + (visibleItems - 1.0f) * rowGap;
+
+					// If you want the box to grow with items beyond 3 until scrolling kicks in,
+					// keep it fixed at minBoxH. (Scrolling will handle overflow.)
+					float boxH = minBoxH;
+
+					ImGuiWindowFlags childFlags = ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_NoMove;
+
+					// Draw list box
+					ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 0.0f));
+					ImGui::BeginChild("##PlanetHeightDetailsBox", ImVec2(fullW, boxH), true, childFlags);
+					ImGui::Dummy(ImVec2(0.0f, 0.5f));
+
+					// Render each detail as a “box” row (clickable)
+					for (int i = 0; i < (int)mContext->mHeightDetails.size(); ++i)
+					{
+						HeightDetail& d = mContext->mHeightDetails[i];
+
+						ImGui::PushID(i);
+
+						// Make it look like a boxed item
+						// Selectable with full width; gives good click behavior
+						ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+						ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+						ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 4.0f));
+
+						float w = ImGui::GetContentRegionAvail().x;
+						bool clicked = ImGui::Button(d.Name.c_str(), ImVec2(w, 0.0f));
+
+						ImGui::PopStyleVar(3);
+
+						// Extra spacing between entries
+						ImGui::Dummy(ImVec2(0.0f, 0.5f));
+
+						if (clicked)
+						{
+							mEditingDetail = true;
+							mEditingDetailIndex = i;
+							mDetailDraft = d;
+							CopyToNameBuf(mDetailNameBuf, sizeof(mDetailNameBuf), mDetailDraft.Name);
+
+							mRequestOpenTerrainDetailPopup = true;
+						}
+
+						ImGui::PopID();
+					}
+
+					ImGui::EndChild();
+					ImGui::PopStyleVar();
+
+					// --- Add button aligned bottom-right of the column ---
+					{
+						const float btnSize = ImGui::GetFrameHeight(); // square button
+						float cursorX = ImGui::GetCursorPosX();
+						float availX = ImGui::GetContentRegionAvail().x;
+
+						// Move cursor to the right for the button
+						ImGui::SetCursorPosX(cursorX + (availX - btnSize - 7.0f));
+						if (ImGui::Button("+", ImVec2(btnSize, btnSize)))
+						{
+							// Add new
+							mEditingDetail = false;
+							mEditingDetailIndex = -1;
+
+							mDetailDraft = HeightDetail{};
+							static std::mt19937 rng{ std::random_device{}() };
+							mDetailDraft.PerlinNoiseSettings.Seed = rng();
+							mContext->BuildPermutationTable(mDetailDraft.PerlinNoiseSettings.Seed, mDetailDraft.Perm);
+							CopyToNameBuf(mDetailNameBuf, sizeof(mDetailNameBuf), mDetailDraft.Name);
+
+							mRequestOpenTerrainDetailPopup = true;
+						}
+					}
+
+					ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 12.0f));
+					ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 6.0f));
+					ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
+
+					if (mRequestOpenTerrainDetailPopup)
+					{
+						ImGui::OpenPopup("##HeightDetailPopup");
+						mRequestOpenTerrainDetailPopup = false;
+					}
+
+					if (ImGui::BeginPopupModal("##HeightDetailPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+					{
+						const char* popupHeader = mEditingDetail ? "Edit Height Detail" : "Add Height Detail";
+						ImGui::TextUnformatted(popupHeader);
+						ImGui::Separator();
+
+						// Name
+						ImGui::Text("Name");
+						ImGui::SetNextItemWidth(360.0f);
+						ImGui::InputText("##HeightDetailName", mDetailNameBuf, sizeof(mDetailNameBuf));
+
+						// LODActivation (uint32_t)
+						{
+							int v = (int)mDetailDraft.PerlinNoiseSettings.LODActivation;
+							ImGui::Text("LOD Activation");
+							ImGui::SetNextItemWidth(180.0f);
+							if (ImGui::DragInt("##LODActivation", &v, 1.0f, 0, INT_MAX))
+								mDetailDraft.PerlinNoiseSettings.LODActivation = (uint32_t)std::max(0, v);
+						}
+
+						// Seed (uint32_t)
+						{
+							ImGui::Text("Seed");
+
+							ImGui::SetNextItemWidth(180.0f);
+
+							ImGui::BeginDisabled(); // ⬅ disables editing
+							uint32_t seed = mDetailDraft.PerlinNoiseSettings.Seed;
+							ImGui::InputScalar("##Seed", ImGuiDataType_U32, &seed);
+							ImGui::EndDisabled();
+						}
+
+						// Octaves (int, >= 1)
+						ImGui::Text("Octaves");
+						ImGui::SetNextItemWidth(180.0f);
+						if (ImGui::DragInt("##Octaves", &mDetailDraft.PerlinNoiseSettings.Octaves, 1.0f, 1, 64))
+							mDetailDraft.PerlinNoiseSettings.Octaves = std::max(1, mDetailDraft.PerlinNoiseSettings.Octaves);
+
+						// Frequency (float)
+						ImGui::Text("Frequency");
+						ImGui::SetNextItemWidth(180.0f);
+						ImGui::DragFloat("##Frequency", &mDetailDraft.PerlinNoiseSettings.Frequency, 0.01f, 0.0f, FLT_MAX, "%.3f");
+
+						// Amplitude (float)
+						ImGui::Text("Amplitude");
+						ImGui::SetNextItemWidth(180.0f);
+						ImGui::DragFloat("##Amplitude", &mDetailDraft.PerlinNoiseSettings.Amplitude, 0.01f, 0.0f, FLT_MAX, "%.3f");
+
+						ImGui::Separator();
+
+						// Buttons row
+						const float btnW = 120.0f;
+
+						// Cancel
+						if (ImGui::Button("Cancel", ImVec2(btnW, 0.0f)))
+						{
+							mEditingDetail = false;
+							mEditingDetailIndex = -1;
+							ImGui::CloseCurrentPopup();
+						}
+						ImGui::SameLine();
+
+						// Add/Save
+						const char* okLabel = mEditingDetail ? "Save" : "Add";
+						if (ImGui::Button(okLabel, ImVec2(btnW, 0.0f)))
+						{
+							CopyFromNameBuf(mDetailDraft.Name, mDetailNameBuf);
+
+							if (mEditingDetail)
+							{
+								// Hard guard: if this fails, your edit index is invalid and you should NOT push_back.
+								if (mEditingDetailIndex >= 0 && mEditingDetailIndex < (int)mContext->mHeightDetails.size())
+									mContext->mHeightDetails[mEditingDetailIndex] = mDetailDraft;
+								else
+									TOAST_CORE_ERROR("Edit failed: invalid mEditingDetailIndex=%d (size=%d)", mEditingDetailIndex, (int)mContext->mHeightDetails.size());
+							}
+							else
+							{
+								mContext->mHeightDetails.push_back(mDetailDraft);
+							}
+
+							mEditingDetail = false;
+							mEditingDetailIndex = -1;
+
+							ImGui::CloseCurrentPopup();
+						}
+
+						ImGui::EndPopup();
+					}
+
+					ImGui::PopStyleVar(3);
 
 					ImGui::EndTable();
 				}

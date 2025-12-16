@@ -11,6 +11,21 @@
 
 namespace Toast {
 
+	class IncludeHandler final : public ID3DInclude
+	{
+	public:
+		explicit IncludeHandler(std::string directory)
+			: mDirectory(std::move(directory)) {
+		}
+
+		HRESULT STDMETHODCALLTYPE Open(D3D_INCLUDE_TYPE includeType, LPCSTR fileName, LPCVOID parentData, LPCVOID* data, UINT* bytes) override;
+
+		HRESULT STDMETHODCALLTYPE Close(LPCVOID data) override;
+
+	private:
+		std::string mDirectory;
+	};
+
 	enum class ShaderCBufferElementType
 	{
 		None = 0, Bool, Int, Float, Float2, Float3, Float4, Mat4

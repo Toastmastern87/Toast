@@ -24,6 +24,7 @@
 #include <thread>
 #include <mutex>
 #include <future>
+#include <random>
 
 #define MAX_INT_VALUE	65535.0
 #define M_PI			3.14159265358979323846
@@ -73,7 +74,6 @@ namespace Toast {
 	constexpr double kQuant = 0.1;     // 1 cm grid
 	constexpr double kInvQ = 1.0 / kQuant;
 
-	//OLD
 	struct TerrainData
 	{
 		uint32_t Width;
@@ -81,6 +81,24 @@ namespace Toast {
 		uint32_t RowPitch;
 		uint32_t Stride;
 		std::vector<double> HeightData;
+	};
+
+	struct HeightDetail
+	{
+		HeightDetail() = default;
+
+		struct GPUData 
+		{
+			uint32_t LODActivation = 0;
+			uint32_t Seed = 0;
+			int Octaves = 1;
+			float Frequency = 1.0f;
+			float Amplitude = 1.0f;
+		};
+
+		std::string Name = "New Height Detail";
+		int Perm[256];
+		GPUData PerlinNoiseSettings;
 	};
 
 	//NEW
@@ -186,6 +204,9 @@ namespace Toast {
 		Ref<TextureCube> mBaseHeightMapTextureCube;
 		TerrainData mTerrainData;
 		TerrainCubeData mTerrainCubeData;
+		std::vector<HeightDetail> mHeightDetails;
+		Ref<ConstantBuffer> mHeightDetailCBuffer;
+		Buffer mHeightDetailBuffer;
 
 		// PBR Data
 		DirectX::XMFLOAT3 mAlbedoColor = { 0.0f, 0.0f, 0.0f };
@@ -269,6 +290,7 @@ namespace Toast {
 		Buffer& GetPlanetFrameBuffer() { return mPlanetFrameBuffer; }
 		Ref<ConstantBuffer> GetPlanetLevelCBuffer() { return mPlanetLevelCBuffer; }
 		ShaderLayout* GetShaderLayout() { return &mShaderInputLayout; }
+		Ref<ConstantBuffer> GetHeightDetailCBuffer() { return mHeightDetailCBuffer; }
 
 		DirectX::XMFLOAT3& GetAlbedoColor() { return mAlbedoColor; }
 		float& GetMetalness() { return mMetalness; }
@@ -305,6 +327,9 @@ namespace Toast {
 
 		bool ProjectWorldPosToLevelGrid(const Vector3& worldPos, const Vector3& worldTranslation, PlanetProjectionResult& out);
 		uint32_t GetLODForWorldPos(const Vector3& worldPosWS, const Vector3& worldTranslation);
+
+		void MapHeightDetailBuffer(uint32_t level);
+		void BuildPermutationTable(uint32_t seed, int outPerm[256]);
 	};
 
 }

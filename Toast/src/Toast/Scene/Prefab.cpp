@@ -379,19 +379,6 @@ namespace Toast {
 				uitc.Text->SetTextureIndex(uiTextComponent["TextureIndex"].as<int>());
 		}
 
-		auto terrainDetailComponent = entityData["TerrainDetailComponent"];
-		if (terrainDetailComponent)
-		{
-			auto& tdc = deserializedEntity.AddComponent<TerrainDetailComponent>();
-
-			if (terrainDetailComponent["Seed"].as<uint32_t>() != 0)
-				tdc.Seed = terrainDetailComponent["Seed"].as<uint32_t>();
-			tdc.SubdivisionActivation = terrainDetailComponent["SubdivisionActivation"].as<int>();
-			tdc.Octaves = terrainDetailComponent["Octaves"].as<int>();
-			tdc.Frequency = terrainDetailComponent["Frequency"].as<float>();
-			tdc.Amplitude = terrainDetailComponent["Amplitude"].as<float>();
-		}
-
 		auto terrainObjectComponent = entityData["TerrainObjectComponent"];
 		if (terrainObjectComponent)
 		{
@@ -709,21 +696,6 @@ namespace Toast {
 			out << YAML::EndMap; // UITextComponent
 		}
 
-		if (entity.HasComponent<TerrainDetailComponent>())
-		{
-			out << YAML::Key << "TerrainDetailComponent";
-			out << YAML::BeginMap; // TerrainDetailComponent
-
-			auto& tdc = entity.GetComponent<TerrainDetailComponent>();
-			out << YAML::Key << "Seed" << YAML::Value << tdc.Seed;
-			out << YAML::Key << "SubdivisionActivation" << YAML::Value << tdc.SubdivisionActivation;
-			out << YAML::Key << "Octaves" << YAML::Value << tdc.Octaves;
-			out << YAML::Key << "Frequency" << YAML::Value << tdc.Frequency;
-			out << YAML::Key << "Amplitude" << YAML::Value << tdc.Amplitude;
-
-			out << YAML::EndMap; // TerrainDetailComponent
-		}
-
 		if (entity.HasComponent<TerrainObjectComponent>())
 		{
 			out << YAML::Key << "TerrainObjectComponent";
@@ -972,7 +944,6 @@ namespace Toast {
 		CopyComponentIfExists<UIPanelComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<UITextComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<UIButtonComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
-		CopyComponentIfExists<TerrainDetailComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<TerrainObjectComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<ParticlesComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 

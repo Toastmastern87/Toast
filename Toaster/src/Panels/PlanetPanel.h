@@ -22,6 +22,16 @@ namespace Toast {
 		Planet* mContext = nullptr;
 
 		WindowsWindow* mWindow;
+
+		// --- Planet Details UI state ---
+		bool mDetailPopupOpen = false;
+		bool mEditingDetail = false;
+		int mEditingDetailIndex = -1;
+		bool mRequestOpenTerrainDetailPopup = false;
+
+		// temp edit buffer
+		HeightDetail mDetailDraft{};
+		char mDetailNameBuf[128] = "New Terrain Detail";
 	};
 
 }

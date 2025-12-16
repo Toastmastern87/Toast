@@ -316,22 +316,12 @@ namespace Toast {
 				}
 			}
 
-			bool noPlanetSpecific = mContext.HasComponent<TerrainDetailComponent>() &&  mContext.HasComponent<TerrainObjectComponent>();
+			bool noPlanetSpecific = mContext.HasComponent<TerrainObjectComponent>();
 
 			ImGui::Separator();
 
 			if (ImGui::BeginMenu("Planet Specific"))
 			{
-
-				if (!mContext.HasComponent<TerrainDetailComponent>())
-				{
-					if (ImGui::MenuItem("Terrain Details")) 
-					{
-						mContext.AddComponent<TerrainDetailComponent>();
-						ImGui::CloseCurrentPopup();
-					}
-				}
-
 				if (!mContext.HasComponent<TerrainObjectComponent>())
 				{
 					if (ImGui::MenuItem("Terrain Objects"))
@@ -1218,90 +1208,6 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
 				ImGui::SliderFloat("##cornerradius", component.Button->GetCornerRadius(), 0.0f, 50.0f, "%.1f");
-
-				ImGui::EndTable();
-			});
-
-		DrawComponent<TerrainDetailComponent>(ICON_TOASTER_GLOBE" Terrain Detail", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
-			{
-				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
-				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-
-				ImGui::BeginTable("##TerrainDetailComponent", 2, flags);
-				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Seed");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-				ImGui::InputText("##seed", (char*)std::to_string(component.Seed).c_str(), 256, ImGuiInputTextFlags_ReadOnly);
-				ImGui::PopStyleColor();
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Subdivision");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if(ImGui::SliderInt("##subdivisionactivation", &component.SubdivisionActivation, 0, 25))
-					component.Generation++;
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Octaves");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (ImGui::SliderInt("##octaves", &component.Octaves, 0, 10))
-					component.Generation++;
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Frequency");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if(ImGui::SliderFloat("##frequency", &component.Frequency, 0.1, 512.0f, "%.1f"))
-					component.Generation++;
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Amplitude");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if(ImGui::SliderFloat("##amplitude", &component.Amplitude, 0.1, 256.0f, "%.1f"))
-					component.Generation++;
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Gravel Octaves");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (ImGui::SliderInt("##graveloctaves", &component.GravelOctaves, 0, 10))
-					component.Generation++;
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Gravel Frequency");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (ImGui::SliderFloat("##gravelfrequency", &component.GravelFrequency, 0.1, 100000.0f, "%.0f"))
-					component.Generation++;
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Gravel Amplitude");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (ImGui::DragFloat("##gravelamplitude", &component.GravelAmplitude, 0.01, 0.01, 256.0f, "%.2f"))
-					component.Generation++;
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Gravel Low Threshold");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (ImGui::SliderFloat("##gravellowthreshold", &component.GravelLowThreshold, 0.1, 100.0f, "%.1f"))
-					component.Generation++;
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Gravel High Threshold");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-				if (ImGui::SliderFloat("##gravelhighthreshold", &component.GravelHighThreshold, 0.1, 100.0f, "%.1f"))
-					component.Generation++;
 
 				ImGui::EndTable();
 			});

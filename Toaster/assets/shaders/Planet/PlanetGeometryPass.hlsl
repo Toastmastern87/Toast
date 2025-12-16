@@ -50,6 +50,16 @@ cbuffer PlanetLevel : register(b7)
     int GridSize;
 };
 
+cbuffer HeightDetail : register(b8)
+{
+    int4 Perm[64]; // 1024 bytes
+    
+    int LODActivation;
+    int Octaves;
+    float Frequency;
+    float Amplitude; 
+};
+
 struct PixelInputType
 {
     float4 pixelPosition        : SV_POSITION;
@@ -63,9 +73,12 @@ struct PlanetPointVS
     float3 nWS; // unit sphere normal in world-space
 };
 
-Texture2DArray<float> HeightCubeArray   : register(t0);
 
-SamplerState HeightMapSampler           : register(s5);
+#include "PerlinNoise.hlsli"
+
+Texture2DArray<float> HeightCubeArray           : register(t0);
+
+SamplerState HeightMapSampler                   : register(s5);
 
 struct CubeSample
 {
@@ -216,6 +229,19 @@ float SampleHeightFromDir(float3 dirPlanet)
     return SampleCubeBilinearLoad(normalize(dirPlanet), uint2(W, H), /*mip*/0);
 }
 
+int LodFromCellSize(int cellSize)
+{
+    // cellSize: 1,2,4,8,... (must be power of two)
+    int lod = 0;
+    int v = cellSize;
+    while (v > 1)
+    {
+        v >>= 1;
+        lod++;
+    }
+    return lod;
+}
+
 PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
 {
     // 1. Local tangent-plane coordinates in meters
@@ -241,16 +267,28 @@ PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
     float h = SampleHeightFromDir(normalize(vPlanet)); // height in meters
 
     // 3. Choose geometry model:
-    //    - For L0–L2 (CellSize <= 4): use tangent-plane around the camera.
+    //    - For L0–L3 (CellSize <= 8): use tangent-plane around the camera.
     //    - For L3+          : use the exact spherical expression.
     float3 pRelWS;
-
-    if (CellSize <= 8)   // L0=1, L1=2, L2=4  → tangent-plane
+    
+    int patchLod = LodFromCellSize((int) CellSize);
+    
+    if (CellSize <= 8)   // L0=1, L1=2, L2=4, L3=8  → tangent-plane
     {
         // Tangent-plane offset in world space (meters)
-        float3 pPlaneWS =
-              BasisTanEast * off.x
-            + BasisTanNorth * off.y;
+        float3 pPlaneWS = BasisTanEast * off.x + BasisTanNorth * off.y;
+        
+        if (patchLod >= LODActivation)// L1=2 (and L0=1)
+        {
+            // Use tangent-plane coordinates in meters (off is meters)
+            // Frequency should be in 1/meters (e.g. 0.01 -> ~100m features)
+            float2 pNoise = off; // meters
+
+            float noiseMeters = FractalPerlin2D(pNoise, Octaves, Frequency, Amplitude);
+
+            // Add to base height
+            h += noiseMeters;
+        }
 
         // Camera is at radius + Altitude along BasisRadUp.
         // So the vertical difference between surface and camera is:
@@ -371,6 +409,16 @@ cbuffer PlanetLevel : register(b7)
     int GridSize;
 };
 
+cbuffer HeightDetail : register(b8)
+{
+    int Perm[256]; // 1024 bytes
+    
+    int LODActivation;
+    int Octaves;
+    float Frequency;
+    float Amplitude;
+};
+
 struct PBRParameters
 {
     float3 Albedo;
@@ -379,7 +427,7 @@ struct PBRParameters
     float AO;
 };
 
-Texture2DArray<float> HeightCubeArray   : register(t0);
+Texture2DArray<float> HeightCubeArray           : register(t0);
 
 SamplerState HeightMapSampler           : register(s5);
 

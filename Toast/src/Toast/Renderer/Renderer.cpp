@@ -874,6 +874,9 @@ namespace Toast {
 					sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Map(sRendererData->PlanetDraw.Planet->BuildLevelCB(L));
 					sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Bind();
 
+					sRendererData->PlanetDraw.Planet->MapHeightDetailBuffer(L);
+					sRendererData->PlanetDraw.Planet->GetHeightDetailCBuffer()->Bind();
+
 					sRendererData->PlanetDraw.Planet->GetLODGridVertexBuffer()->Bind();
 					sRendererData->PlanetDraw.Planet->GetLODGridIndexBuffer()->Bind();
 					RenderCommand::DrawIndexed(0, 0, sRendererData->PlanetDraw.Planet->GetLODGridIndexCount());

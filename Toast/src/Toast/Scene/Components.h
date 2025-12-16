@@ -239,26 +239,6 @@ namespace Toast {
 			: Button(button) {}
 	};
 
-	struct TerrainDetailComponent
-	{
-		uint32_t Seed = 0;
-		int SubdivisionActivation = 0;
-		int Octaves = 1;
-		float Frequency = 1.0f;
-		float Amplitude = 1.0f;
-
-		int GravelOctaves = 1;
-		float GravelFrequency = 1.0f;
-		float GravelAmplitude = 1.0f;
-		float GravelLowThreshold = 1.0f;
-		float GravelHighThreshold = 1.0f;
-
-		uint32_t Generation = 0;
-
-		TerrainDetailComponent() = default;
-		TerrainDetailComponent(const TerrainDetailComponent& other) = default;
-	};
-
 	struct TerrainObjectComponent
 	{
 		int SubdivisionActivation = 0;
