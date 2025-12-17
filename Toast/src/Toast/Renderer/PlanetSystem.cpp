@@ -44,15 +44,10 @@ namespace Toast {
 		mPlanetFrameBuffer.Allocate(mPlanetFrameCBuffer->GetSize());
 		mPlanetFrameBuffer.ZeroInitialize();
 
-		mPlanetLevelCBuffer = ConstantBufferLibrary::Load("PlanetLevel", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetLevel) });
+		mPlanetLevelCBuffer = ConstantBufferLibrary::Load("PlanetLevel", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetLevel) });
 		mPlanetLevelCBuffer->Bind();
 		mPlanetLevelBuffer.Allocate(mPlanetLevelCBuffer->GetSize());
 		mPlanetLevelBuffer.ZeroInitialize();
-
-		mHeightDetailCBuffer = ConstantBufferLibrary::Load("HeightDetail", 1040, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, (CBufferBindSlot)8), CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)8) });
-		mHeightDetailCBuffer->Bind();
-		mHeightDetailBuffer.Allocate(mHeightDetailCBuffer->GetSize());
-		mHeightDetailBuffer.ZeroInitialize();
 
 		mBaseHeightMapTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 
@@ -304,11 +299,14 @@ namespace Toast {
 		TOAST_PROFILE_FUNCTION();
 
 		static PlanetLevelCB cb;                // lives between calls
+		const int halfGrid = int(mGridSize) / 2;
+		const int cellSize = 1 << L;
+
 		const ClipLevel& lvl = mLevels[L];
 
 		cb.OriginX = lvl.Origin.first;
 		cb.OriginY = lvl.Origin.second;
-		cb.CellSize = 1u << L;                  // 2^L meters
+		cb.CellSize = cellSize;                  // 2^L meters
 		cb.GridSize = mGridSize;                // e.g. 257
 
 		/* copy to the generic scratch buffer you created
@@ -367,6 +365,9 @@ namespace Toast {
 		cb.BasisLonNorth = DirectX::XMFLOAT3({ (float)lonNorthWS.x, (float)lonNorthWS.y, (float)lonNorthWS.z });
 		cb.BasisSpinUp = DirectX::XMFLOAT3({ (float)spinUpWS.x, (float)spinUpWS.y, (float)spinUpWS.z });
 
+		int num = (int)mHeightDetails.size();
+		cb.NumHeightDetails = num;
+
 		mBasisLonEast = cb.BasisLonEast;
 		mBasisLonNorth = cb.BasisLonNorth;
 		mBasisSpinUp = cb.BasisSpinUp;
@@ -393,7 +394,10 @@ namespace Toast {
 		}
 
 		for (uint32_t L = 0; L < mNumLevels; ++L)
-			mLevels[L].InFrustum = (L >= L0 && L < Ln);;
+			mLevels[L].InFrustum = (L >= L0 && L < Ln);
+
+		if (mHeightDetailsDirty)
+			UploadHeightDetailsToGPU();
 	}
 
 	Ref<TextureCube> Planet::CreateHeightMapCube(const Texture2D* heightMapTexture)
@@ -818,36 +822,64 @@ namespace Toast {
 		return last;
 	}
 
-	void Planet::MapHeightDetailBuffer(uint32_t level)
+	void Planet::UploadHeightDetailsToGPU()
 	{
-		HeightDetail* found = nullptr;
-		for (auto& d : mHeightDetails)
+		const uint32_t count = (uint32_t)mHeightDetails.size();
+
+		if (count == 0)
 		{
-			if (d.PerlinNoiseSettings.LODActivation == level)
-			{
-				found = &d;
-				break;
-			}
+			mHeightDetailSettingsSB.reset();
+			mHeightDetailPermSB.reset();
+			mHeightDetailsDirty = false;
+			return;
 		}
 
-		if (!found)
-			return;
+		// --- Pack GPU arrays ---
+		std::vector<HeightDetail::GPUData> settings(count);
+		std::vector<Int4> permTables(count * 64);
 
-		mHeightDetailBuffer.Write((uint8_t*)found->Perm, 256 * sizeof(int), 0);
+		for (uint32_t i = 0; i < count; ++i)
+		{
+			HeightDetail& d = mHeightDetails[i];
 
-		// Write scalars (match HLSL 'int' = 32-bit)
-		const int32_t lodActivation = (int32_t)found->PerlinNoiseSettings.LODActivation;
-		const int32_t octaves = (int32_t)found->PerlinNoiseSettings.Octaves;
-		const float   frequency = found->PerlinNoiseSettings.Frequency;
-		const float   amplitude = found->PerlinNoiseSettings.Amplitude;
+			// Keep CPU perm valid for height queries
+			BuildPermutationTable(d.Seed, d.Perm);
 
-		mHeightDetailBuffer.Write((uint8_t*)&lodActivation, sizeof(lodActivation), 1024);
-		mHeightDetailBuffer.Write((uint8_t*)&octaves, sizeof(octaves), 1028);
-		mHeightDetailBuffer.Write((uint8_t*)&frequency, sizeof(frequency), 1032);
-		mHeightDetailBuffer.Write((uint8_t*)&amplitude, sizeof(amplitude), 1036);
+			// Each detail owns 64 int4 entries (256 ints)
+			const int32_t permBase = (int32_t)(i * 64);
 
-		// Upload to GPU
-		mHeightDetailCBuffer->Map(mHeightDetailBuffer);
+			// Pack perm[256] -> int4[64]
+			for (int k = 0; k < 64; ++k)
+			{
+				const int idx = k * 4;
+				permTables[permBase + k] = Int4(
+					(int32_t)d.Perm[idx + 0],
+					(int32_t)d.Perm[idx + 1],
+					(int32_t)d.Perm[idx + 2],
+					(int32_t)d.Perm[idx + 3]
+				);
+			}
+
+			// Copy user-authored GPU settings, but inject the computed PermBase
+			HeightDetail::GPUData s = d.GPUSettings;
+			s.PermBase = permBase;
+			settings[i] = s;
+		}
+
+		// If you expect count to change, I recommend recreating when it does:
+		if (count != mLastHeightDetailCount) 
+		{ 
+			mHeightDetailSettingsSB = CreateRef<StructuredBuffer>((uint32_t)sizeof(HeightDetail::GPUData), count, D3D11_USAGE_DYNAMIC);
+			mHeightDetailPermSB = CreateRef<StructuredBuffer>((uint32_t)sizeof(Int4), count * 64, D3D11_USAGE_DYNAMIC);
+
+			mLastHeightDetailCount = count; 
+		}
+
+		// --- Update GPU ---
+		mHeightDetailSettingsSB->Update(settings.data(), settings.size() * sizeof(HeightDetail::GPUData));
+		mHeightDetailPermSB->Update(permTables.data(), permTables.size() * sizeof(Int4));
+
+		mHeightDetailsDirty = false;
 	}
 
 	void Planet::BuildPermutationTable(uint32_t seed, int outPerm[256])

@@ -848,6 +848,12 @@ namespace Toast {
 				ShaderLibrary::Get("assets/shaders/Planet/PlanetGeometryPass.hlsl")->Bind();
 				sRendererData->PlanetDraw.Planet->GetShaderLayout()->Bind();
 
+				if (sRendererData->PlanetDraw.Planet->GetNumHeightDetails() > 0)
+				{
+					RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
+					RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
+				}
+
 				sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
 
 				TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(5, D3D11_VERTEX_SHADER);
@@ -871,15 +877,21 @@ namespace Toast {
 					if (!level.Dirty && !level.InFrustum)
 						continue;
 
-					sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Map(sRendererData->PlanetDraw.Planet->BuildLevelCB(L));
-					sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Bind();
+					auto cb = sRendererData->PlanetDraw.Planet->BuildLevelCB(L);
 
-					sRendererData->PlanetDraw.Planet->MapHeightDetailBuffer(L);
-					sRendererData->PlanetDraw.Planet->GetHeightDetailCBuffer()->Bind();
+					uint32_t drawMode = 1;
+					cb.Write(reinterpret_cast<uint8_t*>(&drawMode), sizeof(uint32_t), 16);
+					sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Map(cb);
+					sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Bind();
 
 					sRendererData->PlanetDraw.Planet->GetLODGridVertexBuffer()->Bind();
 					sRendererData->PlanetDraw.Planet->GetLODGridIndexBuffer()->Bind();
 					RenderCommand::DrawIndexed(0, 0, sRendererData->PlanetDraw.Planet->GetLODGridIndexCount());
+
+					drawMode = 0;
+					cb.Write(reinterpret_cast<uint8_t*>(&drawMode), sizeof(uint32_t), 16);
+					sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Map(cb);
+					sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Bind();
 
 					sRendererData->PlanetDraw.Planet->GetGridVertexBuffer()->Bind();
 

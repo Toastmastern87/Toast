@@ -706,6 +706,24 @@ namespace Toast {
 		out << YAML::Key << "MSGain" << YAML::Value << scenePlanet->mAtmosphere.MSGain;
 		out << YAML::Key << "SGain" << YAML::Value << scenePlanet->mAtmosphere.SGain;
 		out << YAML::Key << "GravityConstant" << YAML::Value << scenePlanet->mGravityConstant;
+
+		out << YAML::Key << "HeightDetails";
+		out << YAML::BeginSeq;
+
+		for (const HeightDetail& detail : scenePlanet->mHeightDetails)
+		{
+			out << YAML::BeginMap;
+			out << YAML::Key << "Name" << YAML::Value << detail.Name;
+			out << YAML::Key << "Seed" << YAML::Value << detail.Seed;
+			out << YAML::Key << "LODActivation" << YAML::Value << detail.GPUSettings.LODActivation;
+			out << YAML::Key << "Octaves" << YAML::Value << detail.GPUSettings.Octaves;
+			out << YAML::Key << "Frequency" << YAML::Value << detail.GPUSettings.Frequency;
+			out << YAML::Key << "Amplitude" << YAML::Value << detail.GPUSettings.Amplitude;
+			out << YAML::EndMap;
+		}
+
+		out << YAML::EndSeq;
+
 		out << YAML::EndMap;
 
 		Scene::Environment& environment = mScene->GetEnvirontment();
@@ -937,6 +955,29 @@ namespace Toast {
 		scenePlanet->mAtmosphere.MSGain = planet["MSGain"].as<float>();
 		scenePlanet->mAtmosphere.SGain = planet["SGain"].as<float>();
 		scenePlanet->mGravityConstant = planet["GravityConstant"].as<float>();
+
+		scenePlanet->mHeightDetails.clear();
+
+		YAML::Node heightDetailsNode = planet["HeightDetails"];
+		if (heightDetailsNode && heightDetailsNode.IsSequence())
+		{
+			for (const YAML::Node& node : heightDetailsNode)
+			{
+				HeightDetail detail;
+
+				detail.Name = node["Name"].as<std::string>();
+				detail.Seed = node["Seed"].as<uint32_t>();
+
+				detail.GPUSettings.LODActivation = node["LODActivation"].as<int>();
+				detail.GPUSettings.Octaves = node["Octaves"].as<int>();
+				detail.GPUSettings.Frequency = node["Frequency"].as<float>();
+				detail.GPUSettings.Amplitude = node["Amplitude"].as<float>();
+
+				scenePlanet->mHeightDetails.emplace_back(std::move(detail));
+			}
+		}
+
+		scenePlanet->UploadHeightDetailsToGPU();
 
 		Scene::Environment& environment = mScene->GetEnvirontment();
 

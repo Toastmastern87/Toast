@@ -12,7 +12,6 @@ IncludeDir["directxtex"] = "%{wks.location}/Toast/vendor/directxtex/include"
 IncludeDir["msdf_atlas_gen"] = "%{wks.location}/Toast/vendor/msdf-atlas-gen/msdf-atlas-gen"
 IncludeDir["msdfgen"] = "%{wks.location}/Toast/vendor/msdf-atlas-gen/msdfgen"
 IncludeDir["filewatch"] = "%{wks.location}/Toast/vendor/filewatch"
-IncludeDir["perlin_noise"] = "%{wks.location}/Toast/vendor/perlin-noise/include" 
 IncludeDir["robin_hood"] = "%{wks.location}/Toast/vendor/robinhood/include" 
 
 LibraryDir = {}

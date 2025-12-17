@@ -464,11 +464,13 @@ namespace Toast {
 						ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
 						ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
 						ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 4.0f));
+						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
 
 						float w = ImGui::GetContentRegionAvail().x;
 						bool clicked = ImGui::Button(d.Name.c_str(), ImVec2(w, 0.0f));
 
 						ImGui::PopStyleVar(3);
+						ImGui::PopStyleColor(1);
 
 						// Extra spacing between entries
 						ImGui::Dummy(ImVec2(0.0f, 0.5f));
@@ -491,12 +493,16 @@ namespace Toast {
 
 					// --- Add button aligned bottom-right of the column ---
 					{
+						const bool disableAdd = (mContext->mHeightDetails.size() >= 8);
+
 						const float btnSize = ImGui::GetFrameHeight(); // square button
 						float cursorX = ImGui::GetCursorPosX();
 						float availX = ImGui::GetContentRegionAvail().x;
 
 						// Move cursor to the right for the button
 						ImGui::SetCursorPosX(cursorX + (availX - btnSize - 7.0f));
+
+						ImGui::BeginDisabled(disableAdd);
 						if (ImGui::Button("+", ImVec2(btnSize, btnSize)))
 						{
 							// Add new
@@ -505,12 +511,13 @@ namespace Toast {
 
 							mDetailDraft = HeightDetail{};
 							static std::mt19937 rng{ std::random_device{}() };
-							mDetailDraft.PerlinNoiseSettings.Seed = rng();
-							mContext->BuildPermutationTable(mDetailDraft.PerlinNoiseSettings.Seed, mDetailDraft.Perm);
+							mDetailDraft.Seed = rng();
+							mContext->BuildPermutationTable(mDetailDraft.Seed, mDetailDraft.Perm);
 							CopyToNameBuf(mDetailNameBuf, sizeof(mDetailNameBuf), mDetailDraft.Name);
 
 							mRequestOpenTerrainDetailPopup = true;
 						}
+						ImGui::EndDisabled();
 					}
 
 					ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 12.0f));
@@ -525,6 +532,13 @@ namespace Toast {
 
 					if (ImGui::BeginPopupModal("##HeightDetailPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
 					{
+						HeightDetail* liveDetail = nullptr;
+
+						if (mEditingDetail && mEditingDetailIndex >= 0 && mEditingDetailIndex < (int)mContext->mHeightDetails.size())
+							liveDetail = &mContext->mHeightDetails[mEditingDetailIndex];
+
+						HeightDetail& target =	(liveDetail != nullptr) ? *liveDetail : mDetailDraft;
+
 						const char* popupHeader = mEditingDetail ? "Edit Height Detail" : "Add Height Detail";
 						ImGui::TextUnformatted(popupHeader);
 						ImGui::Separator();
@@ -532,16 +546,15 @@ namespace Toast {
 						// Name
 						ImGui::Text("Name");
 						ImGui::SetNextItemWidth(360.0f);
-						ImGui::InputText("##HeightDetailName", mDetailNameBuf, sizeof(mDetailNameBuf));
+
+						if (ImGui::InputText("##HeightDetailName", mDetailNameBuf, sizeof(mDetailNameBuf)))
+							CopyFromNameBuf(target.Name, mDetailNameBuf);
 
 						// LODActivation (uint32_t)
-						{
-							int v = (int)mDetailDraft.PerlinNoiseSettings.LODActivation;
-							ImGui::Text("LOD Activation");
-							ImGui::SetNextItemWidth(180.0f);
-							if (ImGui::DragInt("##LODActivation", &v, 1.0f, 0, INT_MAX))
-								mDetailDraft.PerlinNoiseSettings.LODActivation = (uint32_t)std::max(0, v);
-						}
+						ImGui::Text("LOD Activation");
+						ImGui::SetNextItemWidth(180.0f);
+						if (ImGui::DragInt("##LODActivation", &target.GPUSettings.LODActivation, 1.0f, 0, 25) && mEditingDetail)
+							mContext->mHeightDetailsDirty = true;
 
 						// Seed (uint32_t)
 						{
@@ -550,7 +563,7 @@ namespace Toast {
 							ImGui::SetNextItemWidth(180.0f);
 
 							ImGui::BeginDisabled(); // ⬅ disables editing
-							uint32_t seed = mDetailDraft.PerlinNoiseSettings.Seed;
+							uint32_t seed = target.Seed;
 							ImGui::InputScalar("##Seed", ImGuiDataType_U32, &seed);
 							ImGui::EndDisabled();
 						}
@@ -558,56 +571,44 @@ namespace Toast {
 						// Octaves (int, >= 1)
 						ImGui::Text("Octaves");
 						ImGui::SetNextItemWidth(180.0f);
-						if (ImGui::DragInt("##Octaves", &mDetailDraft.PerlinNoiseSettings.Octaves, 1.0f, 1, 64))
-							mDetailDraft.PerlinNoiseSettings.Octaves = std::max(1, mDetailDraft.PerlinNoiseSettings.Octaves);
+						if(ImGui::DragInt("##Octaves", &target.GPUSettings.Octaves, 1.0f, 1, 9) && mEditingDetail)
+							mContext->mHeightDetailsDirty = true;
 
 						// Frequency (float)
 						ImGui::Text("Frequency");
 						ImGui::SetNextItemWidth(180.0f);
-						ImGui::DragFloat("##Frequency", &mDetailDraft.PerlinNoiseSettings.Frequency, 0.01f, 0.0f, FLT_MAX, "%.3f");
+						if(ImGui::DragFloat("##Frequency", &target.GPUSettings.Frequency, 0.001f, 0.0f) && mEditingDetail)
+							mContext->mHeightDetailsDirty = true;
 
 						// Amplitude (float)
 						ImGui::Text("Amplitude");
 						ImGui::SetNextItemWidth(180.0f);
-						ImGui::DragFloat("##Amplitude", &mDetailDraft.PerlinNoiseSettings.Amplitude, 0.01f, 0.0f, FLT_MAX, "%.3f");
+						if(ImGui::DragFloat("##Amplitude", &target.GPUSettings.Amplitude, 0.01f, 0.0f, FLT_MAX, "%.2f") && mEditingDetail)
+							mContext->mHeightDetailsDirty = true;
 
 						ImGui::Separator();
-
-						// Buttons row
 						const float btnW = 120.0f;
 
-						// Cancel
-						if (ImGui::Button("Cancel", ImVec2(btnW, 0.0f)))
+						// Cancel always closes
+						if (ImGui::Button("Close", ImVec2(btnW, 0.0f)))
 						{
 							mEditingDetail = false;
 							mEditingDetailIndex = -1;
 							ImGui::CloseCurrentPopup();
 						}
-						ImGui::SameLine();
 
-						// Add/Save
-						const char* okLabel = mEditingDetail ? "Save" : "Add";
-						if (ImGui::Button(okLabel, ImVec2(btnW, 0.0f)))
+						if (!mEditingDetail)
 						{
-							CopyFromNameBuf(mDetailDraft.Name, mDetailNameBuf);
+							ImGui::SameLine();
 
-							if (mEditingDetail)
-							{
-								// Hard guard: if this fails, your edit index is invalid and you should NOT push_back.
-								if (mEditingDetailIndex >= 0 && mEditingDetailIndex < (int)mContext->mHeightDetails.size())
-									mContext->mHeightDetails[mEditingDetailIndex] = mDetailDraft;
-								else
-									TOAST_CORE_ERROR("Edit failed: invalid mEditingDetailIndex=%d (size=%d)", mEditingDetailIndex, (int)mContext->mHeightDetails.size());
-							}
-							else
+							if (ImGui::Button("Add", ImVec2(btnW, 0.0f)))
 							{
 								mContext->mHeightDetails.push_back(mDetailDraft);
+								mEditingDetail = false;
+								mEditingDetailIndex = -1;
+								mContext->mHeightDetailsDirty = true;
+								ImGui::CloseCurrentPopup();
 							}
-
-							mEditingDetail = false;
-							mEditingDetailIndex = -1;
-
-							ImGui::CloseCurrentPopup();
 						}
 
 						ImGui::EndPopup();

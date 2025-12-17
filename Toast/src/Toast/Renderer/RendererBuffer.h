@@ -130,7 +130,7 @@ namespace Toast {
 	class StructuredBuffer
 	{
 	public:
-		StructuredBuffer(const uint32_t stride, const uint32_t count, D3D11_USAGE usage = D3D11_USAGE_DYNAMIC);
+		StructuredBuffer(const uint32_t stride, const uint32_t count, D3D11_USAGE usage = D3D11_USAGE_DYNAMIC, bool createUAV = false);
 		virtual ~StructuredBuffer() = default;
 
 		void BindUAV(const int bindSlot);
@@ -148,6 +148,7 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() { return mSRV; }
 	private:
 		uint32_t mByteWidth = 0;
+		D3D11_USAGE mUsage = D3D11_USAGE_DEFAULT;
 
 		std::vector<CBufferBindInfo> mBindInfo;
 

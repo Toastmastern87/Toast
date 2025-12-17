@@ -6,7 +6,6 @@
 #include <atomic>
 
 #include <../vendor/directxtex/include/DirectXTex.h>
-#include "../vendor/perlin-noise/include/PerlinNoise.hpp"
 #include "../vendor/robinhood/include/robin_hood.h"
 
 #include "Toast/Core/Timestep.h"
@@ -25,12 +24,21 @@
 #include <mutex>
 #include <future>
 #include <random>
+#include <array>
 
 #define MAX_INT_VALUE	65535.0
 #define M_PI			3.14159265358979323846
 #define M_PIDIV2		(3.14159265358979323846 / 2.0)
 
 namespace Toast {
+
+	struct Int4
+	{
+		int32_t x, y, z, w;
+		Int4() = default;
+		Int4(int32_t _x, int32_t _y, int32_t _z, int32_t _w) : x(_x), y(_y), z(_z), w(_w) {}
+	};
+	static_assert(sizeof(Int4) == 16, "Int4 must be 16 bytes to match HLSL int4.");
 
 	struct ClipLevel
 	{
@@ -51,6 +59,7 @@ namespace Toast {
 		int32_t OriginY;
 		uint32_t CellSize;
 		uint32_t GridSize;
+		uint32_t DrawMode;
 	};
 
 	struct PlanetFrameCB
@@ -64,7 +73,7 @@ namespace Toast {
 		DirectX::XMFLOAT3 BasisRadUp;
 		float Altitude;
 		DirectX::XMFLOAT3 BasisLonEast;
-		float Pad4;
+		int NumHeightDetails;
 		DirectX::XMFLOAT3 BasisLonNorth;
 		float Pad3;
 		DirectX::XMFLOAT3 BasisSpinUp;
@@ -87,18 +96,20 @@ namespace Toast {
 	{
 		HeightDetail() = default;
 
-		struct GPUData 
+		struct GPUData
 		{
-			uint32_t LODActivation = 0;
-			uint32_t Seed = 0;
+			int LODActivation = 0;
 			int Octaves = 1;
 			float Frequency = 1.0f;
 			float Amplitude = 1.0f;
+			int32_t PermBase;   // int4 index into perm table buffer
+			float pad0, pad1, pad2; // pad to 32 bytes
 		};
 
 		std::string Name = "New Height Detail";
+		uint32_t Seed = 0;
 		int Perm[256];
-		GPUData PerlinNoiseSettings;
+		GPUData GPUSettings;
 	};
 
 	//NEW
@@ -173,6 +184,7 @@ namespace Toast {
 		Quaternion mRotationQuat;
 		Quaternion mInvRotationQuat;
 		Vector3 mPlanetCenterCR;
+		Vector2 mCamSurfaceMeters;
 
 		// GPU Data
 		Ref<VertexBuffer> mGridVertexBuffer;
@@ -205,8 +217,10 @@ namespace Toast {
 		TerrainData mTerrainData;
 		TerrainCubeData mTerrainCubeData;
 		std::vector<HeightDetail> mHeightDetails;
-		Ref<ConstantBuffer> mHeightDetailCBuffer;
-		Buffer mHeightDetailBuffer;
+		Ref<StructuredBuffer> mHeightDetailSettingsSB;
+		Ref<StructuredBuffer> mHeightDetailPermSB;
+		bool mHeightDetailsDirty = true;
+		uint32_t mLastHeightDetailCount = 0;
 
 		// PBR Data
 		DirectX::XMFLOAT3 mAlbedoColor = { 0.0f, 0.0f, 0.0f };
@@ -290,7 +304,6 @@ namespace Toast {
 		Buffer& GetPlanetFrameBuffer() { return mPlanetFrameBuffer; }
 		Ref<ConstantBuffer> GetPlanetLevelCBuffer() { return mPlanetLevelCBuffer; }
 		ShaderLayout* GetShaderLayout() { return &mShaderInputLayout; }
-		Ref<ConstantBuffer> GetHeightDetailCBuffer() { return mHeightDetailCBuffer; }
 
 		DirectX::XMFLOAT3& GetAlbedoColor() { return mAlbedoColor; }
 		float& GetMetalness() { return mMetalness; }
@@ -328,7 +341,10 @@ namespace Toast {
 		bool ProjectWorldPosToLevelGrid(const Vector3& worldPos, const Vector3& worldTranslation, PlanetProjectionResult& out);
 		uint32_t GetLODForWorldPos(const Vector3& worldPosWS, const Vector3& worldTranslation);
 
-		void MapHeightDetailBuffer(uint32_t level);
+		size_t GetNumHeightDetails() { return mHeightDetails.size(); }
+		Ref<StructuredBuffer> GetHeightDetailSettingsSB() { return mHeightDetailSettingsSB; }
+		Ref<StructuredBuffer> GetHeightDetailPermSB() { return mHeightDetailPermSB; }
+		void UploadHeightDetailsToGPU();
 		void BuildPermutationTable(uint32_t seed, int outPerm[256]);
 	};
 

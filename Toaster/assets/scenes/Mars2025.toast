@@ -1,6 +1,6 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [83.6148376, 82.187233, -40.0434113]
+  Position: [-203.626953, 112.442398, -482.310669]
 Settings:
   Grid: false
   CameraFrustum: true
@@ -83,6 +83,19 @@ Planet:
   MSGain: 1
   SGain: 1
   GravityConstant: 3.73000002
+  HeightDetails:
+    - Name: LOD0 Details
+      Seed: 237962123
+      LODActivation: 0
+      Octaves: 5
+      Frequency: 0.0850000009
+      Amplitude: 0.5
+    - Name: LOD1 Details
+      Seed: 4154196045
+      LODActivation: 1
+      Octaves: 8
+      Frequency: 0.00400000019
+      Amplitude: 9.26000023
 Environment:
   DiffuseIBLGain: 50.2999992
   SpecularIBLGain: 1.29999995
@@ -182,7 +195,7 @@ Entities:
         - Handle: 17200548796977600084
         - Handle: 697842924302282008
     TransformComponent:
-      Translation: [-30.6328373, 43, 161.445099]
+      Translation: [-30.6328373, 91, 161.445099]
       Rotation: [-179.999893, 80.7999344, -179.999893]
       Scale: [0.999999523, 1, 0.999999523]
     MeshComponent:

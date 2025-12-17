@@ -347,7 +347,8 @@ namespace Toast {
 	//   STRUCTURED BUFFER    //////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	StructuredBuffer::StructuredBuffer(const uint32_t stride, const uint32_t count, D3D11_USAGE usage)
+	StructuredBuffer::StructuredBuffer(const uint32_t stride, const uint32_t count, D3D11_USAGE usage, bool createUAV)
+		: mUsage(usage)
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
@@ -355,27 +356,50 @@ namespace Toast {
 		D3D11_BUFFER_DESC bd{};
 		bd.ByteWidth = stride * count;
 		bd.Usage = usage;
-		bd.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
-		bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 		bd.StructureByteStride = stride;
+		bd.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+
+		// Bind flags / CPU access based on usage and UAV need
+		if (usage == D3D11_USAGE_DYNAMIC)
+		{
+			// Dynamic: CPU writes, GPU reads (SRV). No UAV.
+			bd.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			createUAV = false; // force off
+		}
+		else
+		{
+			// Default: can support UAV + SRV
+			bd.BindFlags = D3D11_BIND_SHADER_RESOURCE | (createUAV ? D3D11_BIND_UNORDERED_ACCESS : 0);
+			bd.CPUAccessFlags = 0;
+		}
 
 		mByteWidth = bd.ByteWidth;
 
-		device->CreateBuffer(&bd, nullptr, &mBuffer);
-
-		// UAV
-		D3D11_UNORDERED_ACCESS_VIEW_DESC uavd{};
-		uavd.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-		uavd.Buffer.NumElements = count;
-		uavd.Format = DXGI_FORMAT_UNKNOWN;            // structured
-		device->CreateUnorderedAccessView(mBuffer.Get(), &uavd, &mUAV);
+		HRESULT hr = device->CreateBuffer(&bd, nullptr, &mBuffer);
+		TOAST_CORE_ASSERT(SUCCEEDED(hr) && mBuffer, "Failed to create StructuredBuffer");
 
 		// SRV
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvd{};
 		srvd.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+		srvd.Buffer.FirstElement = 0;
 		srvd.Buffer.NumElements = count;
 		srvd.Format = DXGI_FORMAT_UNKNOWN;
-		device->CreateShaderResourceView(mBuffer.Get(), &srvd, &mSRV);
+		hr = device->CreateShaderResourceView(mBuffer.Get(), &srvd, &mSRV);
+		TOAST_CORE_ASSERT(SUCCEEDED(hr) && mSRV, "Failed to create StructuredBuffer SRV");
+
+		// UAV
+		if (createUAV)
+		{
+			D3D11_UNORDERED_ACCESS_VIEW_DESC uavd{};
+			uavd.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+			uavd.Format = DXGI_FORMAT_UNKNOWN;
+			uavd.Buffer.FirstElement = 0;
+			uavd.Buffer.NumElements = count;
+
+			hr = device->CreateUnorderedAccessView(mBuffer.Get(), &uavd, &mUAV);
+			TOAST_CORE_ASSERT(SUCCEEDED(hr) && mUAV, "Failed to create StructuredBuffer UAV");
+		}
 	}
 
 	void StructuredBuffer::BindUAV(const int bindSlot)
@@ -397,9 +421,25 @@ namespace Toast {
 
 	void StructuredBuffer::Update(const void* data, size_t bytes)
 	{
+		TOAST_CORE_ASSERT(mBuffer, "StructuredBuffer::Update called with null buffer");
 		TOAST_CORE_ASSERT(bytes <= mByteWidth, "StructuredBuffer::Update overflow");
+
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* ctx = API->GetDeviceContext();
-		ctx->UpdateSubresource(mBuffer.Get(), 0, nullptr, data, 0, 0);
+
+		if (mUsage == D3D11_USAGE_DYNAMIC)
+		{
+			D3D11_MAPPED_SUBRESOURCE mapped{};
+			HRESULT hr = ctx->Map(mBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+			TOAST_CORE_ASSERT(SUCCEEDED(hr), "StructuredBuffer::Update Map failed");
+
+			memcpy(mapped.pData, data, bytes);
+			ctx->Unmap(mBuffer.Get(), 0);
+		}
+		else
+		{
+			// D3D11_USAGE_DEFAULT path
+			ctx->UpdateSubresource(mBuffer.Get(), 0, nullptr, data, 0, 0);
+		}
 	}
 }

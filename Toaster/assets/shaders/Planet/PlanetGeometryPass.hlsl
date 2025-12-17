@@ -38,6 +38,7 @@ cbuffer PlanetFrame : register(b4)
     float3 BasisRadUp;
     float Altitude;
     float3 BasisLonEast;
+    int NumHeightDetails;
     float3 BasisLonNorth;
     float3 BasisSpinUp;
 };
@@ -48,16 +49,7 @@ cbuffer PlanetLevel : register(b7)
     int OriginY;
     int CellSize;
     int GridSize;
-};
-
-cbuffer HeightDetail : register(b8)
-{
-    int4 Perm[64]; // 1024 bytes
-    
-    int LODActivation;
-    int Octaves;
-    float Frequency;
-    float Amplitude; 
+    int DrawMode;
 };
 
 struct PixelInputType
@@ -73,13 +65,25 @@ struct PlanetPointVS
     float3 nWS; // unit sphere normal in world-space
 };
 
-
-#include "PerlinNoise.hlsli"
+struct DetailSettings
+{
+    int LODActivation;
+    int Octaves;
+    float Frequency;
+    float Amplitude;
+    int PermBase; // index into gPermTables (int4 units)
+    float pad0, pad1, pad2;
+};
 
 Texture2DArray<float> HeightCubeArray           : register(t0);
+    
+StructuredBuffer<DetailSettings> Details       : register(t8);
+StructuredBuffer<int4> PermTables              : register(t9);
 
 SamplerState HeightMapSampler                   : register(s5);
 
+#include "PerlinNoise.hlsli"    
+    
 struct CubeSample
 {
     uint face;
@@ -229,6 +233,31 @@ float SampleHeightFromDir(float3 dirPlanet)
     return SampleCubeBilinearLoad(normalize(dirPlanet), uint2(W, H), /*mip*/0);
 }
 
+bool IsOuterRow(uint2 g, uint cells)
+{
+    // For your strip VB, the outer row is literally on the border.
+    return (g.x == 0 || g.x == cells || g.y == 0 || g.y == cells);
+}
+
+bool IsOuterRowLocal(uint2 g, uint cells)
+{
+    return (g.x == 0 || g.x == cells || g.y == 0 || g.y == cells);
+}
+
+int SelectLODForVertex(uint2 gWorld, uint cells, int lodFine)
+{
+    if (DrawMode == 0)
+        return lodFine; // regular patch/ring draw
+
+    int2 gLocalI = int2(gWorld) - int2(OriginX, OriginY); // now should be ~[0..cells]
+    uint2 gLocal = (uint2) gLocalI;
+    
+    // edge strip draw
+    //bool outer = IsOuterRow(gWorld, cells);
+    bool outer = IsOuterRowLocal(gLocal, cells);
+    return outer ? (lodFine + 1) : lodFine;
+}
+
 int LodFromCellSize(int cellSize)
 {
     // cellSize: 1,2,4,8,... (must be power of two)
@@ -239,7 +268,24 @@ int LodFromCellSize(int cellSize)
         v >>= 1;
         lod++;
     }
+    
     return lod;
+}        
+    
+float AccumulateHeightDetails(float3 offMeters, int lod)
+{
+    float sum = 0.0f;
+
+    [loop]
+    for (int i = 0; i < NumHeightDetails; ++i)
+    {
+        DetailSettings d = Details[i];
+        if (lod <= d.LODActivation)
+        {
+            sum += FractalPerlin3D(d.PermBase, offMeters, d.Octaves, d.Frequency, d.Amplitude);
+        }
+    }
+    return sum;
 }
 
 PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
@@ -250,10 +296,7 @@ PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
 
     // 2. Build a direction on the reference sphere (still using your old logic)
     //    We keep this so height sampling behaves identically.
-    float3 pSphereLocal =
-          BasisRadUp
-        + BasisTanEast * (off.x / PlanetRadius)
-        + BasisTanNorth * (off.y / PlanetRadius);
+    float3 pSphereLocal = BasisRadUp + BasisTanEast * (off.x / PlanetRadius) + BasisTanNorth * (off.y / PlanetRadius);
 
     // Direction from planet center in world space
     float3 nWS = normalize(pSphereLocal);
@@ -263,32 +306,26 @@ PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
     vPlanet.x = dot(nWS, BasisLonEast); // "east" axis of planet
     vPlanet.y = dot(nWS, BasisSpinUp); // spin axis
     vPlanet.z = dot(nWS, BasisLonNorth); // "north" axis
+    
+    float3 pNoise = vPlanet * PlanetRadius;
 
     float h = SampleHeightFromDir(normalize(vPlanet)); // height in meters
+    
+    int lodFine = LodFromCellSize(CellSize);
+    int lod = SelectLODForVertex(gWorld, GridSize - 1, lodFine);
+    float detail = AccumulateHeightDetails(pNoise, lod);
+    
+    h += detail;
 
     // 3. Choose geometry model:
     //    - For L0–L3 (CellSize <= 8): use tangent-plane around the camera.
     //    - For L3+          : use the exact spherical expression.
     float3 pRelWS;
     
-    int patchLod = LodFromCellSize((int) CellSize);
-    
     if (CellSize <= 8)   // L0=1, L1=2, L2=4, L3=8  → tangent-plane
     {
         // Tangent-plane offset in world space (meters)
         float3 pPlaneWS = BasisTanEast * off.x + BasisTanNorth * off.y;
-        
-        if (patchLod >= LODActivation)// L1=2 (and L0=1)
-        {
-            // Use tangent-plane coordinates in meters (off is meters)
-            // Frequency should be in 1/meters (e.g. 0.01 -> ~100m features)
-            float2 pNoise = off; // meters
-
-            float noiseMeters = FractalPerlin2D(pNoise, Octaves, Frequency, Amplitude);
-
-            // Add to base height
-            h += noiseMeters;
-        }
 
         // Camera is at radius + Altitude along BasisRadUp.
         // So the vertical difference between surface and camera is:
@@ -407,6 +444,7 @@ cbuffer PlanetLevel : register(b7)
     int OriginY;
     int CellSize;
     int GridSize;
+    int DrawMode;
 };
 
 cbuffer HeightDetail : register(b8)
