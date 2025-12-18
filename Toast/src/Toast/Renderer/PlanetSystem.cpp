@@ -14,6 +14,8 @@
 
 namespace Toast {
 
+	static const uint32_t LODBORDERSIZE = 12;
+
 	static inline uint32_t V(uint32_t x, uint32_t y, uint32_t N)
 	{
 		return y * N + x;       
@@ -111,10 +113,9 @@ namespace Toast {
 				indices.insert(indices.end(), { i0,i2,i1,  i1,i2,i3 });
 			};
 
-		const uint32_t border = 1;          // ← only one cell
 
-		for (uint32_t y = border; y < cells - border; ++y)
-			for (uint32_t x = border; x < cells - border; ++x)
+		for (uint32_t y = LODBORDERSIZE; y < cells - LODBORDERSIZE; ++y)
+			for (uint32_t x = LODBORDERSIZE; x < cells - LODBORDERSIZE; ++x)
 				emit(x, y);
 
 		mGridIndexCount = (uint32_t)indices.size();
@@ -142,8 +143,6 @@ namespace Toast {
 				idx.insert(idx.end(), { i0, i2, i1,  i1, i2, i3 });
 			};
 
-		const uint32_t outer = 1;                  // strip **one** cell on the outside
-
 		for (uint32_t y = 0; y < cells; ++y)
 			for (uint32_t x = 0; x < cells; ++x)
 			{
@@ -152,8 +151,8 @@ namespace Toast {
 					y < w || y >= cells - w);
 
 				/* Is it in the outer-most 1-cell band we now want to skip? */
-				bool inOuterEdge = (x < outer || x >= cells - outer ||
-					y < outer || y >= cells - outer);
+				bool inOuterEdge = (x < LODBORDERSIZE || x >= cells - LODBORDERSIZE ||
+					y < LODBORDERSIZE || y >= cells - LODBORDERSIZE);
 
 				if (inRing && !inOuterEdge)        // keep all ring cells except the outer rim
 					emit(x, y);
@@ -165,80 +164,197 @@ namespace Toast {
 
 	void Planet::RebuildLODEdgeGrid()
 	{
-		std::vector<uint16_t> vertices;  
+		std::vector<uint16_t> vertices;
 		std::vector<uint32_t> indices;
 
-		const uint32_t cells = mGridSize - 1;  
-		const uint32_t lenFine = cells;           
-		const uint32_t lenCoarse = lenFine / 2 + 1; 
+		const uint32_t cells = mGridSize - 1;
+		const uint32_t lenFine = cells;              // matches your existing code
+		const uint32_t lenCoarse = lenFine / 2 + 1;
 
 		auto map = [&](uint32_t edge, uint16_t u, uint16_t v) -> std::pair<uint16_t, uint16_t>
 			{
 				switch (edge)
 				{
-				case 0: 
-					return { u,  v };               
-				case 1: 
-					return { static_cast<uint16_t>(cells - v), u };
-				case 2: 
-					return { static_cast<uint16_t>(cells - u), static_cast<uint16_t>(cells - v) };   
-				default:
-					return { v, static_cast<uint16_t>(cells - u) }; 
+				case 0:  return { u,  v };
+				case 1:  return { static_cast<uint16_t>(cells - v), u };
+				case 2:  return { static_cast<uint16_t>(cells - u), static_cast<uint16_t>(cells - v) };
+				default: return { v, static_cast<uint16_t>(cells - u) };
 				}
+			};
+
+		auto emitCell = [&](uint32_t a0, uint32_t a1, uint32_t b0, uint32_t b1, bool flip)
+			{
+				// (a0,a1) = row A u,u+1 ; (b0,b1) = row B u,u+1
+				if (flip)
+					indices.insert(indices.end(), { a0, b0, a1,  a1, b0, b1 });
+				else
+					indices.insert(indices.end(), { a0, a1, b0,  a1, b1, b0 });
 			};
 
 		for (uint32_t edge = 0; edge < 4; ++edge)
 		{
-			const bool flip = (edge == 2 || edge == 3);   // bottom & left need CW→CCW
+			const bool flip = (edge == 2 || edge == 3);
 
 			const uint32_t vOffset = static_cast<uint32_t>(vertices.size() / 2);
 
-			/* coarse row (outer) : local v = 0  ,  u = 0,2,4,… */
+			// --- Coarse row (outer), v = 0 : u = 0,2,4,...
 			for (uint32_t k = 0; k < lenCoarse; ++k)
 			{
 				auto [gx, gy] = map(edge, static_cast<uint16_t>(2 * k), 0);
 				vertices.push_back(gx); vertices.push_back(gy);
 			}
 
-			for (uint32_t u = 0; u < lenFine; ++u)
+			// --- Fine rows v = 1..EDGE_CELLS (each has lenFine verts)
+			for (uint32_t r = 1; r <= LODBORDERSIZE; ++r)
 			{
-				auto [gx, gy] = map(edge, static_cast<uint16_t>(u), 1);
-				vertices.push_back(gx); vertices.push_back(gy);
+				for (uint32_t u = 0; u < lenFine; ++u)
+				{
+					auto [gx, gy] = map(edge, static_cast<uint16_t>(u), static_cast<uint16_t>(r));
+					vertices.push_back(gx); vertices.push_back(gy);
+				}
 			}
 
-			const uint32_t cBase = vOffset;               // first coarse of this edge
-			const uint32_t fBase = vOffset + lenCoarse;   // first fine   of this edge
+			const uint32_t cBase = vOffset;
+			const uint32_t fBase1 = vOffset + lenCoarse;      // first fine row (v=1)
+			auto fineRowBase = [&](uint32_t r /*1..EDGE_CELLS*/) -> uint32_t
+				{
+					return fBase1 + (r - 1) * lenFine;
+				};
 
-			for (uint32_t k = 0; k + 1 < lenCoarse; ++k) 
+			// 1) Stitch coarse (v=0) -> fine row v=1 (same as your current logic)
+			for (uint32_t k = 0; k + 1 < lenCoarse; ++k)
 			{
 				uint32_t c0 = cBase + k;
 				uint32_t c1 = c0 + 1;
 
-				uint32_t f0 = fBase + 2 * k;
+				uint32_t f0 = fBase1 + 2 * k;
 				uint32_t f1 = f0 + 1;
-				uint32_t f2 = f0 + 2;                     // exists except at last span
+				uint32_t f2 = f0 + 2;
 
 				auto pushTri = [&](uint32_t a, uint32_t b, uint32_t c)
 					{
-						if (flip)  
-							indices.insert(indices.end(), { a, c, b }); // flip winding
-						else       
-							indices.insert(indices.end(), { a, b, c });
+						if (flip) indices.insert(indices.end(), { a, c, b });
+						else      indices.insert(indices.end(), { a, b, c });
 					};
 
-				pushTri(f0, f1, c0);         
-				pushTri(f1, c0, c1);          
-				if (f2 < fBase + lenFine)     
+				pushTri(f0, f1, c0);
+				pushTri(f1, c0, c1);
+				if (f2 < fBase1 + lenFine)
 					pushTri(f1, f2, c1);
+			}
+
+			// 2) Fill the remaining band with regular fine quads: (v=1->2), (v=2->3)
+			for (uint32_t r = 1; r < LODBORDERSIZE; ++r)
+			{
+				const uint32_t rowA = fineRowBase(r);
+				const uint32_t rowB = fineRowBase(r + 1);
+
+				for (uint32_t u = 0; u + 1 < lenFine; ++u)
+				{
+					uint32_t a0 = rowA + u;
+					uint32_t a1 = a0 + 1;
+					uint32_t b0 = rowB + u;
+					uint32_t b1 = b0 + 1;
+
+					// same winding convention used elsewhere
+					indices.insert(indices.end(), { a0, b0, a1,  a1, b0, b1 });
+					if (flip)
+					{
+						// If you need flip consistency for these quads too, use emitCell() instead
+						// and remove the insert above. Keeping explicit here for clarity.
+						indices.resize(indices.size() - 6);
+						emitCell(a0, a1, b0, b1, true);
+					}
+				}
 			}
 		}
 
 		const uint32_t vbSize = static_cast<uint32_t>(vertices.size()) * sizeof(uint16_t);
-		mLODGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), vbSize, static_cast<uint32_t>(vertices.size() / 2), 0, D3D11_USAGE_IMMUTABLE);
+		mLODGridVertexBuffer = CreateRef<VertexBuffer>(
+			vertices.data(), vbSize,
+			static_cast<uint32_t>(vertices.size() / 2),
+			0, D3D11_USAGE_IMMUTABLE);
 
 		mLODGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), static_cast<uint32_t>(indices.size()));
 		mLODGridIndexCount = static_cast<uint32_t>(indices.size());
 	}
+
+	//void Planet::RebuildLODEdgeGrid()
+	//{
+	//	std::vector<uint16_t> vertices;  
+	//	std::vector<uint32_t> indices;
+
+	//	const uint32_t cells = mGridSize - 1;  
+	//	const uint32_t lenFine = cells;           
+	//	const uint32_t lenCoarse = lenFine / 2 + 1; 
+
+	//	auto map = [&](uint32_t edge, uint16_t u, uint16_t v) -> std::pair<uint16_t, uint16_t>
+	//		{
+	//			switch (edge)
+	//			{
+	//			case 0: 
+	//				return { u,  v };               
+	//			case 1: 
+	//				return { static_cast<uint16_t>(cells - v), u };
+	//			case 2: 
+	//				return { static_cast<uint16_t>(cells - u), static_cast<uint16_t>(cells - v) };   
+	//			default:
+	//				return { v, static_cast<uint16_t>(cells - u) }; 
+	//			}
+	//		};
+
+	//	for (uint32_t edge = 0; edge < 4; ++edge)
+	//	{
+	//		const bool flip = (edge == 2 || edge == 3);   // bottom & left need CW→CCW
+
+	//		const uint32_t vOffset = static_cast<uint32_t>(vertices.size() / 2);
+
+	//		/* coarse row (outer) : local v = 0  ,  u = 0,2,4,… */
+	//		for (uint32_t k = 0; k < lenCoarse; ++k)
+	//		{
+	//			auto [gx, gy] = map(edge, static_cast<uint16_t>(2 * k), 0);
+	//			vertices.push_back(gx); vertices.push_back(gy);
+	//		}
+
+	//		for (uint32_t u = 0; u < lenFine; ++u)
+	//		{
+	//			auto [gx, gy] = map(edge, static_cast<uint16_t>(u), 1);
+	//			vertices.push_back(gx); vertices.push_back(gy);
+	//		}
+
+	//		const uint32_t cBase = vOffset;               // first coarse of this edge
+	//		const uint32_t fBase = vOffset + lenCoarse;   // first fine   of this edge
+
+	//		for (uint32_t k = 0; k + 1 < lenCoarse; ++k) 
+	//		{
+	//			uint32_t c0 = cBase + k;
+	//			uint32_t c1 = c0 + 1;
+
+	//			uint32_t f0 = fBase + 2 * k;
+	//			uint32_t f1 = f0 + 1;
+	//			uint32_t f2 = f0 + 2;                     // exists except at last span
+
+	//			auto pushTri = [&](uint32_t a, uint32_t b, uint32_t c)
+	//				{
+	//					if (flip)  
+	//						indices.insert(indices.end(), { a, c, b }); // flip winding
+	//					else       
+	//						indices.insert(indices.end(), { a, b, c });
+	//				};
+
+	//			pushTri(f0, f1, c0);         
+	//			pushTri(f1, c0, c1);          
+	//			if (f2 < fBase + lenFine)     
+	//				pushTri(f1, f2, c1);
+	//		}
+	//	}
+
+	//	const uint32_t vbSize = static_cast<uint32_t>(vertices.size()) * sizeof(uint16_t);
+	//	mLODGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), vbSize, static_cast<uint32_t>(vertices.size() / 2), 0, D3D11_USAGE_IMMUTABLE);
+
+	//	mLODGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), static_cast<uint32_t>(indices.size()));
+	//	mLODGridIndexCount = static_cast<uint32_t>(indices.size());
+	//}
 
 	LODDrawInfo Planet::DetermineActiveLODLevels(const Vector3& camPosPS)
 	{

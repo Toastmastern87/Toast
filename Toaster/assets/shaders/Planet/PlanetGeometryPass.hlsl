@@ -7,6 +7,7 @@ vertex
 static const float PI = 3.14159265358979323846f;
 static const float INV_TWO_PI = 1.0f / (2.0f * PI);
 static const float INV_PI = 1.0f / PI;
+static const uint EDGE_CELLS = 12; // number of cells in edge blending strip
 
 struct VertexInputType
 {
@@ -233,30 +234,44 @@ float SampleHeightFromDir(float3 dirPlanet)
     return SampleCubeBilinearLoad(normalize(dirPlanet), uint2(W, H), /*mip*/0);
 }
 
-bool IsOuterRow(uint2 g, uint cells)
+
+uint EdgeDistanceToBorder(uint2 gLocal, uint cells)
 {
-    // For your strip VB, the outer row is literally on the border.
-    return (g.x == 0 || g.x == cells || g.y == 0 || g.y == cells);
+    uint dx = min(gLocal.x, cells - gLocal.x);
+    uint dy = min(gLocal.y, cells - gLocal.y);
+    return min(dx, dy); // 0 on outer border, 1..EDGE_CELLS inward
 }
 
-bool IsOuterRowLocal(uint2 g, uint cells)
+float EdgeBlendWeight(uint2 gLocal, uint cells)
 {
-    return (g.x == 0 || g.x == cells || g.y == 0 || g.y == cells);
+    // 0 -> coarse, 1 -> fine
+    uint d = EdgeDistanceToBorder(gLocal, cells);
+
+    // We only care inside the band [0..EDGE_CELLS]
+    float t = saturate((float) d / (float) EDGE_CELLS);
+
+    // smoother transition (optional but recommended)
+    return t * t * (3.0f - 2.0f * t); // smoothstep(0,1,t)
 }
 
-int SelectLODForVertex(uint2 gWorld, uint cells, int lodFine)
-{
-    if (DrawMode == 0)
-        return lodFine; // regular patch/ring draw
+//bool IsOuterRow(uint2 g, uint cells)
+//{
+//    return (g.x == 0 || g.x == cells || g.y == 0 || g.y == cells);
+//}
 
-    int2 gLocalI = int2(gWorld) - int2(OriginX, OriginY); // now should be ~[0..cells]
-    uint2 gLocal = (uint2) gLocalI;
+//int SelectLODForVertex(uint2 gWorld, uint cells, int lodFine)
+//{
+//    if (DrawMode == 0)
+//        return lodFine; // regular patch/ring draw
+
+//    int2 gLocalI = int2(gWorld) - int2(OriginX, OriginY); // now should be ~[0..cells]
+//    uint2 gLocal = (uint2) gLocalI;
     
-    // edge strip draw
-    //bool outer = IsOuterRow(gWorld, cells);
-    bool outer = IsOuterRowLocal(gLocal, cells);
-    return outer ? (lodFine + 1) : lodFine;
-}
+//    // edge strip draw
+//    //bool outer = IsOuterRow(gWorld, cells);
+//    bool outer = IsOuterRow(gLocal, cells);
+//    return outer ? (lodFine + 1) : lodFine;
+//}
 
 int LodFromCellSize(int cellSize)
 {
@@ -312,8 +327,28 @@ PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
     float h = SampleHeightFromDir(normalize(vPlanet)); // height in meters
     
     int lodFine = LodFromCellSize(CellSize);
-    int lod = SelectLODForVertex(gWorld, GridSize - 1, lodFine);
-    float detail = AccumulateHeightDetails(pNoise, lod);
+    int lodCoarse = lodFine + 1;
+    
+    float detailFine = AccumulateHeightDetails(pNoise, lodFine);
+    float detailCoarse = AccumulateHeightDetails(pNoise, lodCoarse);
+    
+    float detail = detailFine;
+    
+    if (DrawMode == 1)
+    {
+        int2 gLocalI = int2(gWorld) - int2(OriginX, OriginY);
+        uint2 gLocal = (uint2) gLocalI;
+
+        float w = EdgeBlendWeight(gLocal, GridSize - 1);
+
+        // Outer edge (w=0): coarse. Inner edge (w=1): fine.
+        detail = lerp(detailCoarse, detailFine, w);
+
+        // Optional: force the very outer border to be exactly coarse
+        // (helps if any numerical jitter exists)
+        if (EdgeDistanceToBorder(gLocal, GridSize - 1) == 0) 
+            detail = detailCoarse;
+    }
     
     h += detail;
 
