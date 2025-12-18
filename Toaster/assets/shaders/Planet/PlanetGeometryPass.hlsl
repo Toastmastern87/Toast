@@ -234,7 +234,6 @@ float SampleHeightFromDir(float3 dirPlanet)
     return SampleCubeBilinearLoad(normalize(dirPlanet), uint2(W, H), /*mip*/0);
 }
 
-
 uint EdgeDistanceToBorder(uint2 gLocal, uint cells)
 {
     uint dx = min(gLocal.x, cells - gLocal.x);
@@ -253,25 +252,6 @@ float EdgeBlendWeight(uint2 gLocal, uint cells)
     // smoother transition (optional but recommended)
     return t * t * (3.0f - 2.0f * t); // smoothstep(0,1,t)
 }
-
-//bool IsOuterRow(uint2 g, uint cells)
-//{
-//    return (g.x == 0 || g.x == cells || g.y == 0 || g.y == cells);
-//}
-
-//int SelectLODForVertex(uint2 gWorld, uint cells, int lodFine)
-//{
-//    if (DrawMode == 0)
-//        return lodFine; // regular patch/ring draw
-
-//    int2 gLocalI = int2(gWorld) - int2(OriginX, OriginY); // now should be ~[0..cells]
-//    uint2 gLocal = (uint2) gLocalI;
-    
-//    // edge strip draw
-//    //bool outer = IsOuterRow(gWorld, cells);
-//    bool outer = IsOuterRow(gLocal, cells);
-//    return outer ? (lodFine + 1) : lodFine;
-//}
 
 int LodFromCellSize(int cellSize)
 {
@@ -303,8 +283,92 @@ float AccumulateHeightDetails(float3 offMeters, int lod)
     return sum;
 }
 
+struct RelSample
+{
+    float3 pRelWS; // camera-relative world space position (what you render)
+    float3 nSphereWS; // radial direction used in the spherical branch (and for outward check)
+    float h; // height (optional, for debugging)
+};
+
+RelSample SampleRelSurface(float2 offMeters, float edgeW)
+{
+    RelSample s;
+
+    // Build reference-sphere direction (same as your current VS)
+    float3 pSphereLocal = BasisRadUp
+                        + BasisTanEast * (offMeters.x / PlanetRadius)
+                        + BasisTanNorth * (offMeters.y / PlanetRadius);
+
+    float3 nWS = normalize(pSphereLocal);
+    s.nSphereWS = nWS;
+
+    // Height sampling domain (same as your VS)
+    float3 vPlanet = float3(dot(nWS, BasisLonEast),
+                            dot(nWS, BasisSpinUp),
+                            dot(nWS, BasisLonNorth));
+
+    float3 pNoise = vPlanet * PlanetRadius;
+
+    float h = SampleHeightFromDir(normalize(vPlanet));
+
+    int lodFine = LodFromCellSize(CellSize);
+    float detailFine = AccumulateHeightDetails(pNoise, lodFine);
+    float detail = detailFine;
+
+    if (DrawMode == 1)
+    {
+        int lodCoarse = lodFine + 1;
+        float detailCoarse = AccumulateHeightDetails(pNoise, lodCoarse);
+        detail = lerp(detailCoarse, detailFine, edgeW);
+    }
+
+    h += detail;
+    s.h = h;
+
+    // MATCH YOUR ACTUAL POSITION MODEL
+    float3 pRelWS;
+
+    if (CellSize <= 8)
+    {
+        float3 pPlaneWS = BasisTanEast * offMeters.x + BasisTanNorth * offMeters.y;
+        float heightAboveCamera = h - Altitude;
+        pRelWS = pPlaneWS + BasisRadUp * heightAboveCamera;
+    }
+    else
+    {
+        float3 dN = nWS - BasisRadUp;
+        pRelWS = dN * PlanetRadius + nWS * h - BasisRadUp * Altitude;
+    }
+
+    s.pRelWS = pRelWS;
+    return s;
+}
+
+float3 ComputeVertexNormalWS(float2 offMeters, float edgeW)
+{
+    float step = (float) CellSize;
+
+    RelSample c = SampleRelSurface(offMeters, edgeW);
+    RelSample xp = SampleRelSurface(offMeters + float2(step, 0), edgeW);
+    RelSample xm = SampleRelSurface(offMeters - float2(step, 0), edgeW);
+    RelSample yp = SampleRelSurface(offMeters + float2(0, step), edgeW);
+    RelSample ym = SampleRelSurface(offMeters - float2(0, step), edgeW);
+
+    float3 dPx = xp.pRelWS - xm.pRelWS;
+    float3 dPy = yp.pRelWS - ym.pRelWS;
+
+    float3 N = normalize(cross(dPy, dPx));
+
+    // Outward consistency check using the radial direction at center
+    if (dot(N, c.nSphereWS) < 0.0f)
+        N = -N;
+
+    return N;
+}
 PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
 {
+    PlanetPointVS p;
+    
     // 1. Local tangent-plane coordinates in meters
     //    (gWorld is already small: around [-128,128] in your setup)
     float2 off = (float2) gWorld * (float) CellSize;
@@ -334,15 +398,16 @@ PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
     
     float detail = detailFine;
     
+    float edgeW = 1.0f;
     if (DrawMode == 1)
     {
         int2 gLocalI = int2(gWorld) - int2(OriginX, OriginY);
         uint2 gLocal = (uint2) gLocalI;
 
-        float w = EdgeBlendWeight(gLocal, GridSize - 1);
-
+        edgeW = EdgeBlendWeight(gLocal, GridSize - 1);
+        
         // Outer edge (w=0): coarse. Inner edge (w=1): fine.
-        detail = lerp(detailCoarse, detailFine, w);
+        detail = lerp(detailCoarse, detailFine, edgeW);
 
         // Optional: force the very outer border to be exactly coarse
         // (helps if any numerical jitter exists)
@@ -388,12 +453,11 @@ PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
     // 4. View-space position
     float3 posVS = mul(float4(pRelWS, 1.0f), viewMatrix).xyz;
 
-    PlanetPointVS p;
     p.posVS = posVS;
-    p.nWS = nWS; // still the true spherical normal from planet center
+    p.nWS = ComputeVertexNormalWS(off, edgeW);
     return p;
 }
-  
+
 PixelInputType main(VertexInputType input)
 {
     PixelInputType output;
@@ -422,6 +486,7 @@ struct PixelInputType
     float4 pixelPosition    : SV_POSITION;
     float3 viewPosition     : VIEWPOS;
     float3 normalSphereWS   : NORMAL0;
+    float edgeW             : TEXCOORD0;
 };
 
 struct PixelOutputType
@@ -469,6 +534,7 @@ cbuffer PlanetFrame : register(b4)
     float3 BasisRadUp;
     float Altitude;
     float3 BasisLonEast;
+    int NumHeightDetails;
     float3 BasisLonNorth;
     float3 BasisSpinUp;
 };
@@ -500,213 +566,6 @@ struct PBRParameters
     float AO;
 };
 
-Texture2DArray<float> HeightCubeArray           : register(t0);
-
-SamplerState HeightMapSampler           : register(s5);
-
-struct CubeSample
-{
-    uint face;
-    float2 uv; // [0,1]
-};
-
-float3 CubeFaceUVToDir(uint face, float2 uv)
-{
-    // Match the bake: flip Y
-    float2 p = 2.0 * float2(uv.x, 1.0 - uv.y) - 1.0;
-    float px = p.x;
-    float py = p.y;
-
-    switch (face)
-    {
-        case 0:
-            return normalize(float3(1.0, py, -px)); // +X
-        case 1:
-            return normalize(float3(-1.0, py, px)); // -X
-        case 2:
-            return normalize(float3(px, 1.0, -py)); // +Y
-        case 3:
-            return normalize(float3(px, -1.0, py)); // -Y
-        case 4:
-            return normalize(float3(px, py, 1.0)); // +Z
-        default:
-            return normalize(float3(-px, py, -1.0)); // -Z
-    }
-}
-
-CubeSample DirectionToCube(float3 v)
-{
-    v = normalize(v);
-
-    float ax = abs(v.x);
-    float ay = abs(v.y);
-    float az = abs(v.z);
-
-    uint face;
-    float2 uvFace;
-
-    if (ax >= ay && ax >= az)
-    {
-        if (v.x > 0)
-        {
-            face = 0;
-            uvFace = float2(-v.z, v.y) / ax;
-        }
-        else
-        {
-            face = 1;
-            uvFace = float2(v.z, v.y) / ax;
-        }
-    }
-    else if (ay >= ax && ay >= az)
-    {
-        if (v.y > 0)
-        {
-            face = 2;
-            uvFace = float2(v.x, -v.z) / ay;
-        }
-        else
-        {
-            face = 3;
-            uvFace = float2(v.x, v.z) / ay;
-        }
-    }
-    else
-    {
-        if (v.z > 0)
-        {
-            face = 4;
-            uvFace = float2(v.x, v.y) / az;
-        }
-        else
-        {
-            face = 5;
-            uvFace = float2(-v.x, v.y) / az;
-        }
-    }
-
-    CubeSample cs;
-    cs.face = face;
-    cs.uv = uvFace * 0.5 + 0.5;
-    return cs;
-}
-
-// If uv is outside [0,1], wrap to the correct neighbor face via direction space.
-CubeSample RemapFaceUV(uint face, float2 uv)
-{
-    if (all(uv >= 0.0f) && all(uv <= 1.0f))
-    {
-        CubeSample cs;
-        cs.face = face;
-        cs.uv = uv;
-        return cs;
-    }
-    float3 dir = CubeFaceUVToDir(face, uv);
-    return DirectionToCube(dir);
-}
-
-// Manual bilinear sampler that crosses cube-face edges using Load().
-float SampleCubeBilinearLoad(float3 dir, uint2 dims, uint mip)
-{
-    CubeSample cs = DirectionToCube(dir);
-    uint face = cs.face;
-    float2 uv = cs.uv;
-
-    float2 p = uv * dims - 0.5f;
-    float2 fxy = frac(p);
-    int2 i0 = int2(floor(p));
-    int2 i1 = i0 + 1;
-
-    float2 uv00 = (float2(i0) + 0.5f) / dims;
-    float2 uv10 = (float2(i1.x, i0.y) + 0.5f) / dims;
-    float2 uv01 = (float2(i0.x, i1.y) + 0.5f) / dims;
-    float2 uv11 = (float2(i1) + 0.5f) / dims;
-
-    CubeSample c00 = RemapFaceUV(face, uv00);
-    CubeSample c10 = RemapFaceUV(face, uv10);
-    CubeSample c01 = RemapFaceUV(face, uv01);
-    CubeSample c11 = RemapFaceUV(face, uv11);
-
-    int2 wh = int2(dims);
-    int2 ij00 = clamp(int2(c00.uv * wh), int2(0, 0), wh - 1);
-    int2 ij10 = clamp(int2(c10.uv * wh), int2(0, 0), wh - 1);
-    int2 ij01 = clamp(int2(c01.uv * wh), int2(0, 0), wh - 1);
-    int2 ij11 = clamp(int2(c11.uv * wh), int2(0, 0), wh - 1);
-
-    float v00 = HeightCubeArray.Load(int4(ij00, c00.face, mip));
-    float v10 = HeightCubeArray.Load(int4(ij10, c10.face, mip));
-    float v01 = HeightCubeArray.Load(int4(ij01, c01.face, mip));
-    float v11 = HeightCubeArray.Load(int4(ij11, c11.face, mip));
-
-    float vx0 = lerp(v00, v10, fxy.x);
-    float vx1 = lerp(v01, v11, fxy.x);
-    return lerp(vx0, vx1, fxy.y);
-}
-
-// Sample height from direction using seamless bilinear Load across faces (mip 0).
-float SampleHeightDir(float3 dirPlanet)
-{
-    uint W, H, L;
-    HeightCubeArray.GetDimensions(W, H, L);
-    return SampleCubeBilinearLoad(normalize(dirPlanet), uint2(W, H), 0);
-}
-
-// Compute analytical normal using longitude/latitude finite differences in planet-local axes,
-// with height coming from the cubemap via SampleHeightDir.
-float3 AnalyticalNormalFromCube(float3 nSphereWS)
-{
-    float3 S;
-    S.x = dot(nSphereWS, BasisLonEast);
-    S.y = dot(nSphereWS, BasisSpinUp);
-    S.z = dot(nSphereWS, BasisLonNorth);
-    S = normalize(S);
-
-    uint W, H, L;
-    HeightCubeArray.GetDimensions(W, H, L);
-    float dlon = 2.0f * PI / max(64.0f, (float) W);
-    float dlat = PI / max(64.0f, (float) H);
-
-    float lon = atan2(S.z, S.x);
-    // BUGFIX: use symmetric clamp, not saturate (which clamps to [0,1])
-    float lat = asin(clamp(S.y, -1.0f, 1.0f));
-
-    float cosLat = cos(lat);
-    float sinLat = sin(lat);
-    float cosLon = cos(lon);
-    float sinLon = sin(lon);
-
-    float3 dSdlon = float3(-cosLat * sinLon, 0.0f, cosLat * cosLon);
-    float3 dSdlat = float3(-sinLat * cosLon, cosLat, -sinLat * sinLon);
-
-    float3 SWS = S.x * BasisLonEast + S.y * BasisSpinUp + S.z * BasisLonNorth;
-    float3 dSdlonWS = dSdlon.x * BasisLonEast + dSdlon.y * BasisSpinUp + dSdlon.z * BasisLonNorth;
-    float3 dSdlatWS = dSdlat.x * BasisLonEast + dSdlat.y * BasisSpinUp + dSdlat.z * BasisLonNorth;
-
-    float3 S_lonP = normalize(float3(
-        cosLat * cos(lon + dlon),
-        sinLat,
-        cosLat * sin(lon + dlon)
-    ));
-    float3 S_latP = normalize(float3(
-        cos(lat + dlat) * cosLon,
-        sin(lat + dlat),
-        cos(lat + dlat) * sinLon
-    ));
-
-    float h0 = SampleHeightDir(S);
-    float hLonP = SampleHeightDir(S_lonP);
-    float hLatP = SampleHeightDir(S_latP);
-
-    float dhdlon = (hLonP - h0) / dlon;
-    float dhdlat = (hLatP - h0) / dlat;
-
-    float R = PlanetRadius;
-    float3 Pu = (R + h0) * dSdlonWS + dhdlon * SWS;
-    float3 Pv = (R + h0) * dSdlatWS + dhdlat * SWS;
-
-    return normalize(cross(Pv, Pu));
-}
-
 PixelOutputType main(PixelInputType input)
 {
     PixelOutputType output;
@@ -715,11 +574,7 @@ PixelOutputType main(PixelInputType input)
     /*--------------------------------------------------------------*/
     /* 1) position + normal                                         */
     /*--------------------------------------------------------------*/
-    
-    float3 nSphereWS = normalize(input.normalSphereWS);
- 
-    float3 nWS = AnalyticalNormalFromCube(nSphereWS);
-    float3 nVS = normalize(mul(nWS, (float3x3) viewMatrix));
+    float3 nVS = normalize(mul(input.normalSphereWS, (float3x3) viewMatrix));
     
     output.position = float4(input.viewPosition, 1.0f);
     output.normal = float4(nVS * 0.5f + 0.5f, 1.0f);

@@ -1,6 +1,6 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [-203.626953, 112.442398, -482.310669]
+  Position: [-36.4957581, 3.68892741, -57.506916]
 Settings:
   Grid: false
   CameraFrustum: true
@@ -88,14 +88,20 @@ Planet:
       Seed: 237962123
       LODActivation: 0
       Octaves: 5
-      Frequency: 0.0850000009
-      Amplitude: 0.5
+      Frequency: 0.108999997
+      Amplitude: 0.100000001
     - Name: LOD1 Details
       Seed: 4154196045
       LODActivation: 1
       Octaves: 8
       Frequency: 0.00400000019
-      Amplitude: 9.26000023
+      Amplitude: 1.92999995
+    - Name: LOD2 Details
+      Seed: 827194578
+      LODActivation: 2
+      Octaves: 7
+      Frequency: 0.00200000009
+      Amplitude: 2.80999994
 Environment:
   DiffuseIBLGain: 50.2999992
   SpecularIBLGain: 1.29999995
@@ -138,7 +144,7 @@ Entities:
         PerspectiveFOV: 45
         NearClip: 0.100000001
         FarClip: 2000000
-        OrthographicWidth: 2658
+        OrthographicWidth: 2655
         OrthographicHeight: 1120
       Primary: true
       FixedAspectRatio: false
@@ -166,22 +172,77 @@ Entities:
         - Name: ZoomFactor
           Type: Float
           Data: 2.29999995
-  - Entity: 7969327153423302118
+  - Entity: 14796545384475566267
     TagComponent:
-      Tag: Sunlight
+      Tag: Starship
+    PrefabComponent:
+      PrefabHandle: Starship
+  - Entity: 697842924302282008
+    TagComponent:
+      Tag: MainBody
     RelationshipComponent:
-      ParentHandle: 0
+      ParentHandle: 11637652594119463601
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-78.9999313, 20.8000145, -63.5000076]
-      Scale: [0.999434412, 0.999894023, 0.999519885]
-    DirectionalLightComponent:
-      Radiance: [1, 0.980000019, 0.949999988]
-      Intensity: 1
-      SunDesiredCoverage: 10000
-      SunLightDistance: 961
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 17200548796977600084
+    TagComponent:
+      Tag: LandingLegs
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 5350470097573753918
+    TagComponent:
+      Tag: Flap Backward Right
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 15688673418873795630
+    TagComponent:
+      Tag: Flap Forward Right
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 4757161398082090575
+    TagComponent:
+      Tag: Flap Backward Left
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 7625412182059970898
+    TagComponent:
+      Tag: Flap Forward Left
+    RelationshipComponent:
+      ParentHandle: 11637652594119463601
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
   - Entity: 11637652594119463601
     TagComponent:
       Tag: StarshipSphereTest
@@ -226,74 +287,19 @@ Entities:
     SphereColliderComponent:
       RenderCollider: true
       Radius: 26.899988174438477
-  - Entity: 7625412182059970898
+  - Entity: 7969327153423302118
     TagComponent:
-      Tag: Flap Forward Left
+      Tag: Sunlight
     RelationshipComponent:
-      ParentHandle: 11637652594119463601
+      ParentHandle: 0
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 4757161398082090575
-    TagComponent:
-      Tag: Flap Backward Left
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 15688673418873795630
-    TagComponent:
-      Tag: Flap Forward Right
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 5350470097573753918
-    TagComponent:
-      Tag: Flap Backward Right
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 17200548796977600084
-    TagComponent:
-      Tag: LandingLegs
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 697842924302282008
-    TagComponent:
-      Tag: MainBody
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-  - Entity: 14796545384475566267
-    TagComponent:
-      Tag: Starship
-    PrefabComponent:
-      PrefabHandle: Starship
+      Rotation: [-78.9999313, 20.8000145, -63.5000076]
+      Scale: [0.999434412, 0.999894023, 0.999519885]
+    DirectionalLightComponent:
+      Radiance: [1, 0.980000019, 0.949999988]
+      Intensity: 1
+      SunDesiredCoverage: 10000
+      SunLightDistance: 961
