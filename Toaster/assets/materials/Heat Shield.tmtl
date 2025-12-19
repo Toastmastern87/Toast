@@ -1,5 +1,5 @@
 Material: Heat Shield
-Albedo: [0.0215108413, 0.0209355038, 0.0219794344, 1]
+Albedo: [0.210970461, 0.210970461, 0.210970461, 1]
 Metalness: 0
 Roughness: 0.438596487
 UseAlbedoMap: false

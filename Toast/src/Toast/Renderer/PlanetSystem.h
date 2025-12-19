@@ -339,9 +339,10 @@ namespace Toast {
 		float GetGravityConstant() { return mGravityConstant; }
 
 		bool ProjectWorldPosToLevelGrid(const Vector3& worldPos, const Vector3& worldTranslation, PlanetProjectionResult& out);
-		uint32_t GetLODForWorldPos(const Vector3& worldPosWS, const Vector3& worldTranslation);
+		uint32_t GetLODForWorldPos(const Vector3& worldPosWS);
 
 		size_t GetNumHeightDetails() { return mHeightDetails.size(); }
+		const std::vector<HeightDetail>& GetHeightDetails() { return mHeightDetails; }
 		Ref<StructuredBuffer> GetHeightDetailSettingsSB() { return mHeightDetailSettingsSB; }
 		Ref<StructuredBuffer> GetHeightDetailPermSB() { return mHeightDetailPermSB; }
 		void UploadHeightDetailsToGPU();

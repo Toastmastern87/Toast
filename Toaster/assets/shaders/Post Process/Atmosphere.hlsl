@@ -489,16 +489,95 @@ PSOut main(PSIn i)
     const float RbVis = RbPhys + max(1.0f, 2e-6f * PlanetRadius);
     const float RbHit = RbPhys + GroundBiasMeters(RbPhys);
     
+    float3 camWS = cameraPosition.xyz;
+    float3 camRel = camWS - PlanetCenterWS;
+    float rCam = max(RbPhys, length(camRel));
+    float heightCam = rCam - RbPhys;
+    float3 wView = ViewDirWS_fromUV(uv); // unit
+    
+    bool bake = (BakeIBL > 0.5f);
+
+    // If baking, do NOT sample SceneDepth/SceneColor and do NOT do ground-occlusion early-outs.
+    if (bake)
+    {
+        // Same μ window as writer (with the corrected GetMuWindow):
+        float mu0, mu1;
+        
+        float3 spinUp = normalize(BasisSpinUp);
+        float3 east0 = normalize(BasisTanEast);
+        float3 north0 = normalize(BasisTanNorth);
+
+        // Build local basis (as you already do)
+        float3 up, east, north;
+        BuildSkyBasisAnchored(camWS, PlanetCenterWS, east0, north0, spinUp, up, east, north);
+
+        // Local components & physical mu
+        float xE = dot(wView, east);
+        float xN = dot(wView, north);
+        float mu = dot(wView, up);
+        
+        GetMuWindow(rCam, RbVis, Rt, mu0, mu1);
+
+        // IMPORTANT: clamp mu instead of rejecting
+        if (mu <= mu0 + MU_EPS)
+        {
+        // Very simple: constant ground radiance
+        // (Better: modulate by sun altitude and atmospheric transmittance)
+            float3 groundRad = GroundAlbedo; // HDR radiance, not albedo
+            output.color = float4(groundRad, 1);
+            output.disc = 0;
+            output.halo = 0;
+            return output;
+        }
+            
+        float S = max(mu1 - mu0, 1e-6);
+        float mu_p = saturate((mu - mu0) / S);
+
+            // Azimuth in local tangent frame
+        float phi = atan2(xN, xE);
+
+            // Recreate the *hemi-oct* sample direction used by the LUT writer:
+        float s = sqrt(saturate(1.0 - mu_p * mu_p));
+        float3 nPrime = float3(s * cos(phi), s * sin(phi), mu_p);
+
+            // Encode exactly like the writer:
+        float2 uvSky = OctEncodeHemi(nPrime);
+            
+            // Continue to build uvSky and sample SkyViewLUT
+        float3 sky = SkyViewLUT.Sample(SkyAniso, uvSky).rgb;
+
+            // Optional: for IBL you usually exclude sun disc (keep analytic sun in lighting),
+            // or include it only in radiance, not in irradiance.
+        float3 outSky = sky; // + maybe sunColor
+
+        output.color = float4(max(outSky, 0.0f), 1.0f);
+        output.disc = 0.0f;
+        output.halo = 0.0f;
+        return output;
+    }
+    
     // If no geometry wrote to depth, draw SKY using the precomputed SkyView LUT
     if (depth <= 1e-12f)
     {        
-        float3 camWS = cameraPosition.xyz;
-        float3 camRel = camWS - PlanetCenterWS;
-        float rCam = max(RbPhys, length(camRel));
-        float heightCam = rCam - RbPhys;
-        float3 wView = ViewDirWS_fromUV(uv); // unit
-        
         Hit h = IntersectSphereGrazingSafe(camRel, wView, RbHit);
+        
+       // Same μ window as writer (with the corrected GetMuWindow):
+        float mu0, mu1;
+        
+        float3 spinUp = normalize(BasisSpinUp);
+        float3 east0 = normalize(BasisTanEast);
+        float3 north0 = normalize(BasisTanNorth);
+
+        // Build local basis (as you already do)
+        float3 up, east, north;
+        BuildSkyBasisAnchored(camWS, PlanetCenterWS, east0, north0, spinUp, up, east, north);
+
+        // Local components & physical mu
+        float xE = dot(wView, east);
+        float xN = dot(wView, north);
+        float mu = dot(wView, up);
+        
+
         
         if (h.ok && h.t1 > 0.0f)
         {
@@ -514,27 +593,11 @@ PSOut main(PSIn i)
         float dv = 1.0f / Hsv;
        
         float3 upCam = camRel / rCam;
-        float rWin = rCam;
-        
-        float3 spinUp = normalize(BasisSpinUp);
-        float3 east0 = normalize(BasisTanEast);
-        float3 north0 = normalize(BasisTanNorth);
+        float rWin = rCam;     
 
-        // Build local basis (as you already do)
-        float3 up, east, north;
-        BuildSkyBasisAnchored(camWS, PlanetCenterWS, east0, north0, spinUp, up, east, north);
-
-
-        // Local components & physical mu
-        float xE = dot(wView, east);
-        float xN = dot(wView, north);
-        float mu = dot(wView, up);
-
-        // Same μ window as writer (with the corrected GetMuWindow):
-        float mu0, mu1;
         GetMuWindow(rCam, RbVis, Rt, mu0, mu1);
         float S = max(mu1 - mu0, 1e-6);
-
+        
         // Early reject: if mu < mu0 the ground occludes (you already do a ground ray test;
         // this is a cheap extra guard that also helps at grazing angles).
         if (mu <= mu0)
@@ -808,51 +871,37 @@ PSOut main(PSIn i)
         return output;
     }
     else
-    {    
-        // No IBL baking: apply aerial perspective over the terrain color
-        if (BakeIBL < 1.0f)
-        {
-            float3 camWS = cameraPosition.xyz;
-            float3 ro = camWS - PlanetCenterWS;
-            float rCam = length(ro);
-            float3 wView = ViewDirWS_fromUV(uv); // unit
-        
-            // TOA segment
-            Hit hitAtm = IntersectSphereGrazingSafe(ro, wView, Rt);
+    {        
+        // TOA segment
+        Hit hitAtm = IntersectSphereGrazingSafe(camRel, wView, Rt);
 
-            float tEnter = max(0.0f, hitAtm.t0);
-            float tSurf = ViewDistanceFromDepth(uv, depth);
+        float tEnter = max(0.0f, hitAtm.t0);
+        float tSurf = ViewDistanceFromDepth(uv, depth);
         
-            float lengthInAtmosphere = (rCam <= Rt) ? tSurf : max(0.0f, tSurf - tEnter);
+        float lengthInAtmosphere = (rCam <= Rt) ? tSurf : max(0.0f, tSurf - tEnter);
         
-            float APFar = asfloat(APFarU32.Load(int3(0, 0, 0)));
-            float d = (APFar > 1e-6f) ? saturate(lengthInAtmosphere / APFar) : 0.0f;
-            float u = pow(d, 1.0f / AP_Z_GAMMA);
+        float APFar = asfloat(APFarU32.Load(int3(0, 0, 0)));
+        float d = (APFar > 1e-6f) ? saturate(lengthInAtmosphere / APFar) : 0.0f;
+        float u = pow(d, 1.0f / AP_Z_GAMMA);
              
-            // address slice **centers** then (optionally) jitter
-            uint Wd, Hd, Dd;
-            AerialPerspective3D.GetDimensions(Wd, Hd, Dd);
-            float wAP = u * ((Dd - 1.0f) / Dd) + (0.5f / Dd);
+        // address slice **centers** then (optionally) jitter
+        uint Wd, Hd, Dd;
+        AerialPerspective3D.GetDimensions(Wd, Hd, Dd);
+        float wAP = u * ((Dd - 1.0f) / Dd) + (0.5f / Dd);
 
-            // final sample: TRILINEAR
-            float4 ap = AerialPerspective3D.SampleLevel(ClampLinear, float3(uv, wAP), 0);
-            float tau = max(ap.a, 0.0f);
+        // final sample: TRILINEAR
+        float4 ap = AerialPerspective3D.SampleLevel(ClampLinear, float3(uv, wAP), 0);
+        float tau = max(ap.a, 0.0f);
         
-            float3 betaExt = RayleighScattering + MieScattering + MieAbsorption; // 1/m
-            float betaAvg = (betaExt.r + betaExt.g + betaExt.b) * (1.0f / 3.0f);
-            float3 k = betaExt / max(betaAvg, 1e-9);
+        float3 betaExt = RayleighScattering + MieScattering + MieAbsorption; // 1/m
+        float betaAvg = (betaExt.r + betaExt.g + betaExt.b) * (1.0f / 3.0f);
+        float3 k = betaExt / max(betaAvg, 1e-9);
         
-            // Trgb ≈ A^(betaExt / betaAvg)
-            float3 Trgb = exp(-tau.xxx);
+        // Trgb ≈ A^(betaExt / betaAvg)
+        float3 Trgb = exp(-tau.xxx);
         
-            float3 outRGB = colorPreAtmos * Trgb + ap.rgb;
-            output.color = float4(outRGB, max(Trgb.r, max(Trgb.g, Trgb.b)));
-        }
-        else
-        {
-            // Just output terrain color directly for IBL baking
-            output.color = float4(GroundAlbedo, 1.0f);
-        }
+        float3 outRGB = colorPreAtmos * Trgb + ap.rgb;
+        output.color = float4(outRGB, max(Trgb.r, max(Trgb.g, Trgb.b)));
 
         output.disc = 0.0f; // no sun over geometry pass here
         output.halo = 0.0f; // no halo mask over geometry pixels

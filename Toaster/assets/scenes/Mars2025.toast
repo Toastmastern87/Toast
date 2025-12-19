@@ -1,11 +1,11 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [-36.4957581, 3.68892741, -57.506916]
+  Position: [-63.1543846, 52.4140091, -103.19429]
 Settings:
   Grid: false
   CameraFrustum: true
   SunLightFrustum: true
-  DirectionalLightningGain: 30
+  DirectionalLightningGain: 1
   BackfaceCulling: true
   FrustumCulling: true
   RenderColliders: true
@@ -36,8 +36,8 @@ Settings:
   GodRaysDecay: 0.939999998
   GodRaysDensity: 3
   GodRaysWeight: 0.0199999996
-  EVGeometrySurface: -0.419999897
-  EVGeometrySpace: -0.789999723
+  EVGeometrySurface: 0.220000774
+  EVGeometrySpace: 0.199999839
   EVGeometryNight: -2.19999838
   EVSkySurface: 0.0600003824
   EVSkySpace: 0.01999861
@@ -53,14 +53,14 @@ Settings:
     StepsPerUpdate: 1
     MaxAngularVelocity: 30
 Planet:
-  Translation: [0, -3385962, 0]
+  Translation: [0, -3385957, 0]
   Rotation: [566.398804, 198.200241, 811.199402]
   GridSize: 257
   MaxLevels: 28
   Radius: 3389500
   MaxHeight: 21900
   MinHeight: -8200
-  AlbedoColor: [0.050632894, 0.0238845125, 0.0170912705]
+  AlbedoColor: [0.510548532, 0.244271398, 0.176645473]
   Roughness: 1
   Metalness: 0
   HeightMapAssetPath: C:\dev\Toast\Toaster\assets\textures\Mars_MOLA_8k_raw.tif
@@ -78,7 +78,7 @@ Planet:
   MieAbsorption: [3.99999999e-06, 4.50000016e-06, 6.49999993e-06]
   MieAnisotropy: [0.889999986, 0.889999986, 0.879999995]
   OzoneStrength: 0
-  GroundAlbedo: [0.0042194128, 0.00384554081, 0.00384554081]
+  GroundAlbedo: [0.767932475, 0.767932475, 0.767932475]
   SunsetTint: [2.5899992, 2.71000147, 6.8999958]
   MSGain: 1
   SGain: 1
@@ -103,8 +103,8 @@ Planet:
       Frequency: 0.00200000009
       Amplitude: 2.80999994
 Environment:
-  DiffuseIBLGain: 50.2999992
-  SpecularIBLGain: 1.29999995
+  DiffuseIBLGain: 1
+  SpecularIBLGain: 1
   SunDiscToggle: true
   SunIntensity: 1
   SunDiscRadius: 0.00307999994
@@ -144,7 +144,7 @@ Entities:
         PerspectiveFOV: 45
         NearClip: 0.100000001
         FarClip: 2000000
-        OrthographicWidth: 2655
+        OrthographicWidth: 2652
         OrthographicHeight: 1120
       Primary: true
       FixedAspectRatio: false
@@ -257,7 +257,7 @@ Entities:
         - Handle: 697842924302282008
     TransformComponent:
       Translation: [-30.6328373, 91, 161.445099]
-      Rotation: [-179.999893, 80.7999344, -179.999893]
+      Rotation: [0, -161.100037, 0]
       Scale: [0.999999523, 1, 0.999999523]
     MeshComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_SN3.gltf
@@ -296,7 +296,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-78.9999313, 20.8000145, -63.5000076]
+      Rotation: [-100.799934, 20.8000145, -63.5000076]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]

@@ -41,32 +41,31 @@ namespace Sandbox
         void OnUpdate(float ts)
         {
             float altitude = mBoxCollider.Altitude;
- 
-            if (altitude <= 90.0f && altitude > 0.5f && !mShutdownEngines) 
-            {
-                mRB1Particles.Emitting = true;
-                mRB2Particles.Emitting = true;
-                mRB3Particles.Emitting = true;
 
+            Vector3 v = mRigidBody.LinearVelocity;
+
+            const float groundAltEps = 0.5f;          
+            const float stopSpeedEps = 0.25f;
+
+            if (altitude <= 90.0f && altitude > groundAltEps && !mShutdownEngines)
                 mEnginesRunning = true;
-            }
-            else if(altitude <= 0.5)
-            {
-                mRB1Particles.Emitting = false;
-                mRB2Particles.Emitting = false;
-                mRB3Particles.Emitting = false;
 
-                mShutdownEngines = true;
+            if (mEnginesRunning && altitude <= groundAltEps && Vector3.Length(v) <= stopSpeedEps)
+            {
                 mEnginesRunning = false;
+                mShutdownEngines = true;
             }
 
-            if (mEnginesRunning) 
+            mRB1Particles.Emitting = mEnginesRunning;
+            mRB2Particles.Emitting = mEnginesRunning;
+            mRB3Particles.Emitting = mEnginesRunning;
+
+            if (mEnginesRunning)
             {
-                Vector3 thrustForce = new Vector3(0.0f, 39272.0f, 0.0f); // Newtons
-                Vector3 impulse = thrustForce * ts;       // kg·m/s
+                Vector3 thrustForce = new Vector3(0.0f, 38413.0f, 0.0f); // N (updated for your new start altitude)
+                Vector3 impulse = thrustForce * ts;             // kg·m/s
                 PhysicsEngine.ApplyLinearImpulse(this.ID, impulse);
             }
-
         }
     }
 }

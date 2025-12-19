@@ -850,7 +850,7 @@ namespace Toast {
 		double offY = Vector3::Dot(camToGroundWS, tanNorth);
 
 		// 4) LOD ring for this position (already correct with ground-projection)
-		uint32_t L = GetLODForWorldPos(worldPos, worldTranslation);
+		uint32_t L = GetLODForWorldPos(worldPos);
 		double   cell = double(1u << L);                   // metres / cell
 
 		// 5) Continuous global grid coordinates in this level's grid
@@ -885,10 +885,10 @@ namespace Toast {
 		return true;
 	}
 
-	uint32_t Planet::GetLODForWorldPos(const Vector3& worldPosWS, const Vector3& worldTranslation)
+	uint32_t Planet::GetLODForWorldPos(const Vector3& worldPosWS)
 	{
 		// 1) Planet center in camera-relative world space
-		Vector3 planetCenterWS = Vector3(mTranslation) + worldTranslation;
+		Vector3 planetCenterWS = Vector3(mTranslation);
 
 		// 2) Vector from planet center to object
 		Vector3 pLocal = worldPosWS - planetCenterWS;

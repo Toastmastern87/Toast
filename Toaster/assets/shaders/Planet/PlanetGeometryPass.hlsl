@@ -295,17 +295,13 @@ RelSample SampleRelSurface(float2 offMeters, float edgeW)
     RelSample s;
 
     // Build reference-sphere direction (same as your current VS)
-    float3 pSphereLocal = BasisRadUp
-                        + BasisTanEast * (offMeters.x / PlanetRadius)
-                        + BasisTanNorth * (offMeters.y / PlanetRadius);
+    float3 pSphereLocal = BasisRadUp + BasisTanEast * (offMeters.x / PlanetRadius) + BasisTanNorth * (offMeters.y / PlanetRadius);
 
     float3 nWS = normalize(pSphereLocal);
     s.nSphereWS = nWS;
 
     // Height sampling domain (same as your VS)
-    float3 vPlanet = float3(dot(nWS, BasisLonEast),
-                            dot(nWS, BasisSpinUp),
-                            dot(nWS, BasisLonNorth));
+    float3 vPlanet = float3(dot(nWS, BasisLonEast), dot(nWS, BasisSpinUp), dot(nWS, BasisLonNorth));
 
     float3 pNoise = vPlanet * PlanetRadius;
 
@@ -486,7 +482,6 @@ struct PixelInputType
     float4 pixelPosition    : SV_POSITION;
     float3 viewPosition     : VIEWPOS;
     float3 normalSphereWS   : NORMAL0;
-    float edgeW             : TEXCOORD0;
 };
 
 struct PixelOutputType
