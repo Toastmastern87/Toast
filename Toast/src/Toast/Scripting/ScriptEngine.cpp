@@ -440,6 +440,7 @@ namespace Toast {
 		MonoObject* monoObject = mono_gchandle_get_target(instance);
 		MonoObject* exception = nullptr;
 		return mono_runtime_invoke(method, monoObject, params, &exception);
+
 	}
 
 	ScriptInstance::ScriptInstance(Ref<ScriptClass> scriptClass, Entity entity)
@@ -463,7 +464,7 @@ namespace Toast {
 	{
 		if (mOnCreateMethod)
 			mScriptClass->InvokeMethod(mInstance, mOnCreateMethod);
-	}
+	}  
 
 	void ScriptInstance::InvokeOnUpdate(float ts)
 	{

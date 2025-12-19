@@ -103,6 +103,19 @@ namespace Toast {
 		{
 			return DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(RotationEulerAngles.x), DirectX::XMConvertToRadians(RotationEulerAngles.y), DirectX::XMConvertToRadians(RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&RotationQuaternion));
 		}
+
+
+		DirectX::XMVECTOR GetTotalRotationQuaternion() const
+		{
+			DirectX::XMVECTOR qEuler = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(RotationEulerAngles.x), DirectX::XMConvertToRadians(RotationEulerAngles.y), DirectX::XMConvertToRadians(RotationEulerAngles.z));
+
+			DirectX::XMVECTOR qExtra = DirectX::XMLoadFloat4(&RotationQuaternion);
+
+			// Must match GetRotation() matrix order
+			DirectX::XMVECTOR qTotal = DirectX::XMQuaternionMultiply(qEuler, qExtra);
+
+			return DirectX::XMQuaternionNormalize(qTotal);
+		}
 	};
 
 	struct MeshComponent

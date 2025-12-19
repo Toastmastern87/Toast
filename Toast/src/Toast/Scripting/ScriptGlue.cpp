@@ -377,6 +377,33 @@ namespace Toast {
 		entity.GetComponent<TransformComponent>().RotationEulerAngles = *rotation;
 	}
 
+	static void TransformComponent_GetRotationQuaternion(UUID entityID, DirectX::XMFLOAT4* outQuat)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		*outQuat = entity.GetComponent<TransformComponent>().RotationQuaternion;
+	}
+
+	static void TransformComponent_SetRotationQuaternion(UUID entityID, DirectX::XMFLOAT4* quat)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& tc = entity.GetComponent<TransformComponent>();
+		tc.RotationQuaternion = *quat;
+		tc.IsDirty = true;
+	}
+
+	static void TransformComponent_GetTotalRotationQuaternion(UUID entityID, DirectX::XMFLOAT4* outQuat)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& tc = entity.GetComponent<TransformComponent>();
+		DirectX::XMVECTOR q = tc.GetTotalRotationQuaternion();
+
+		DirectX::XMStoreFloat4(outQuat, q);
+	}
+
 	static void TransformComponent_GetPitch(UUID entityID, float* outPitch)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
@@ -915,6 +942,10 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetTranslation);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetRotation);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetRotation);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetRotationQuaternion);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetRotationQuaternion);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetTotalRotationQuaternion);
+
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetPitch);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetPitch);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetYaw);

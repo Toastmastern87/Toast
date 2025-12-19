@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Source.Toast.Math;
+using System;
 using System.Runtime.CompilerServices;
 
 namespace Toast
@@ -131,6 +132,15 @@ namespace Toast
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void TransformComponent_SetRotation(ulong entityID, ref Vector3 inRotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_GetRotationQuaternion(ulong entityID, out Quaternion Quaternion);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_SetRotationQuaternion(ulong entityID, ref Quaternion inRotation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_GetTotalRotationQuaternion(ulong entityID, out Quaternion Quaternion);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void TransformComponent_GetPitch(ulong entityID, out float outPitch);

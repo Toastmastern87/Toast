@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Source.Toast.Math;
+using System;
 using System.Runtime.InteropServices;
 
 namespace Toast
@@ -32,6 +33,7 @@ namespace Toast
                 InternalCalls.TransformComponent_SetTranslation(Entity.ID, ref value);
             }
         }
+
         public Vector3 Rotation
         {
             get
@@ -45,6 +47,33 @@ namespace Toast
                 InternalCalls.TransformComponent_SetRotation(Entity.ID, ref value);
             }
         }
+
+        public Quaternion RotationQuat
+        {
+            get 
+            { 
+                InternalCalls.TransformComponent_GetRotationQuaternion(Entity.ID, out Quaternion q); 
+                return q; 
+            }
+            set 
+            { 
+                InternalCalls.TransformComponent_SetRotationQuaternion(Entity.ID, ref value); 
+            }
+        }
+
+        public Quaternion TotalRotation
+        {
+            get
+            {
+                InternalCalls.TransformComponent_GetTotalRotationQuaternion(Entity.ID, out Quaternion q);
+                return q;
+            }
+            set
+            {
+                ;
+            }
+        }
+
         public float Pitch
         {
             get

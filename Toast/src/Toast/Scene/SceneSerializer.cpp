@@ -557,6 +557,22 @@ namespace Toast {
 		CopyComponentIfExists<UIButtonComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<TerrainObjectComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<ParticlesComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
+
+		if (target.HasComponent<RigidBodyComponent>() && (target.HasComponent<BoxColliderComponent>()))
+		{
+			auto& rbc = target.GetComponent<RigidBodyComponent>();
+			auto& bcc = target.GetComponent<BoxColliderComponent>();
+
+			bcc.Collider->CalculateInertiaTensor(1.0f / rbc.InvMass);
+		}
+
+		if (target.HasComponent<RigidBodyComponent>() && target.HasComponent<SphereColliderComponent>())
+		{
+			auto& rbc = target.GetComponent<RigidBodyComponent>();
+			auto& scc = target.GetComponent<BoxColliderComponent>();
+
+			scc.Collider->CalculateInertiaTensor(1.0f / rbc.InvMass);
+		}
 	}
 
 	void SceneSerializer::InstantiatePrefabChildren(Scene* currentScene, Entity& sceneParent, Entity prefabParent)

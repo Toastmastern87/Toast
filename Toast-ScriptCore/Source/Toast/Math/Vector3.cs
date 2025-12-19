@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Source.Toast.Math;
+using System;
 using System.Runtime.InteropServices;
 
 namespace Toast
@@ -89,6 +90,20 @@ namespace Toast
             Vector3 ret = v3 + v1;
 
             return ret;
+        }
+
+        public static Vector3 Rotate(Quaternion q, Vector3 v)
+        {
+            // assumes q is normalized
+            // v' = q * (v,0) * conj(q)
+            float x = q.X, y = q.Y, z = q.Z, w = q.W;
+
+            // t = 2 * cross(q.xyz, v)
+            Vector3 qv = new Vector3(x, y, z);
+            Vector3 t = 2.0f * Vector3.Cross(qv, v);
+
+            // v' = v + w*t + cross(q.xyz, t)
+            return v + w * t + Vector3.Cross(qv, t);
         }
 
         public static Vector3 RotateNew(Vector3 point, Vector3 axis, float angle)

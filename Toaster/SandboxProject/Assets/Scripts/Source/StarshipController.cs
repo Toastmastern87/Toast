@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Source.Toast.Math;
+using System;
 using System.IO;
 using Toast;
 
@@ -10,6 +11,7 @@ namespace Sandbox
         private Entity mRB1;
         private Entity mRB2;
         private Entity mRB3;
+        private TransformComponent mTransform;
         private RigidBodyComponent mRigidBody;
         private BoxColliderComponent mBoxCollider;
 
@@ -26,6 +28,7 @@ namespace Sandbox
             mRB1 = FindChildEntityByName(this.Name, "Rocket Exhaust RB1");
             mRB2 = FindChildEntityByName(this.Name, "Rocket Exhaust RB2");
             mRB3 = FindChildEntityByName(this.Name, "Rocket Exhaust RB3");
+            mTransform = mStarship.GetComponent<TransformComponent>();
             mRigidBody = mStarship.GetComponent<RigidBodyComponent>();
             mBoxCollider = mStarship.GetComponent<BoxColliderComponent>();
 
@@ -62,8 +65,13 @@ namespace Sandbox
 
             if (mEnginesRunning)
             {
-                Vector3 thrustForce = new Vector3(0.0f, 38413.0f, 0.0f); // N (updated for your new start altitude)
-                Vector3 impulse = thrustForce * ts;             // kg·m/s
+                Quaternion totalRot = mTransform.TotalRotation; // or compose Euler+Quat if you expose both
+                Vector3 thrustDirWS = Vector3.Normalize(Vector3.Rotate(totalRot, new Vector3(0.0f, 1.0f, 0.0f)));
+
+                float thrustForceMagnitude = 38413.0f; // example from your current scenario
+                Vector3 thrustForce = thrustDirWS * thrustForceMagnitude; // N
+
+                Vector3 impulse = thrustForce * ts; // kg·m/s
                 PhysicsEngine.ApplyLinearImpulse(this.ID, impulse);
             }
         }
