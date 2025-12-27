@@ -112,6 +112,25 @@ namespace Toast {
 		GPUData GPUSettings;
 	};
 
+	struct TerrainObject
+	{
+		std::string Name;
+		Ref<Mesh> MeshObject;
+
+		uint32_t Seed;
+
+		int LODActivation = 0;
+
+		// Spawning control
+		float DensityPerKm2;  // main dial
+		int   MaxPerPatch;       // hard cap 
+		int   MaxTotal;   // safety cap layer-wide
+
+		// Variation
+		float MinScale = 0.1f;
+		float MaxScale = 0.3f;
+	};
+
 	//NEW
 	struct TerrainCubeData
 	{
@@ -221,6 +240,11 @@ namespace Toast {
 		Ref<StructuredBuffer> mHeightDetailPermSB;
 		bool mHeightDetailsDirty = true;
 		uint32_t mLastHeightDetailCount = 0;
+		std::vector<TerrainObject> mTerrainObjects;
+		Ref<ConstantBuffer> mTerrainObjectCBuffer;
+		Buffer mTerrainObjectBuffer;
+		//bool mTerrainObjectsDirty = false; // any parameter that requires rebuild of instances
+		//bool mTerrainObjectBuffersDirty = false; // buffer allocation must be (re)done (MaxTotal change, new object, etc.)
 
 		// PBR Data
 		DirectX::XMFLOAT3 mAlbedoColor = { 0.0f, 0.0f, 0.0f };
@@ -266,6 +290,7 @@ namespace Toast {
 		LODDrawInfo DetermineActiveLODLevels(const Vector3& camPosPlanet);
 		void UpdateLevelOrigins(const Vector3& camPosPlanet);
 		Buffer& BuildLevelCB(uint32_t L);
+		uint32_t GetGridSize() { return mGridSize; }
 
 		void OnUpdate(const Vector3& camPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix);
 
@@ -327,8 +352,6 @@ namespace Toast {
 
 		float GetSpaceFactor(Vector3 cameraPosition);
 
-		void DetailObjectPlacement(TerrainObjectComponent* objects, Matrix& planetNoScaleTransform);
-
 		double ComputeCurvatureBias(double desiredSwitchHeight, double radius, double patchWidth, double focalLenPx, double screenErrorPx);
 		void GenerateDistanceLUT(uint32_t maxLevels, double planetRadius, float FoVY, uint32_t viewportWidth, double metersPerFirstCell = 1.0, float screenErrorPx = 2.0f, double spacingBias = 1.2);
 
@@ -347,6 +370,12 @@ namespace Toast {
 		Ref<StructuredBuffer> GetHeightDetailPermSB() { return mHeightDetailPermSB; }
 		void UploadHeightDetailsToGPU();
 		void BuildPermutationTable(uint32_t seed, int outPerm[256]);
+
+		const std::vector<TerrainObject>& GetTerrainObjects() { return mTerrainObjects; }
+		Ref<ConstantBuffer> GetTerrainObjectCBuffer() { return mTerrainObjectCBuffer; }
+		Buffer& GetTerrainObjectBuffer() { return mTerrainObjectBuffer; }
+
+		uint32_t ObjectInstancesForLevelFromDensity(const TerrainObject& o, uint32_t cellSize, uint32_t gridSize);
 	};
 
 }

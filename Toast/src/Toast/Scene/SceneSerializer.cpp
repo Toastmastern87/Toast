@@ -489,20 +489,6 @@ namespace Toast {
 			out << YAML::EndMap; // UITextComponent
 		}
 
-		if (entity.HasComponent<TerrainObjectComponent>())
-		{
-			out << YAML::Key << "TerrainObjectComponent";
-			out << YAML::BeginMap; // TerrainObjectComponent
-
-			auto& toc = entity.GetComponent<TerrainObjectComponent>();
-			if(toc.MeshObject)
-				out << YAML::Key << "AssetPath" << YAML::Value << toc.MeshObject->GetFilePath();
-			out << YAML::Key << "SubdivisionActivation" << YAML::Value << toc.SubdivisionActivation;
-			out << YAML::Key << "MaxNumberOfObjectsPerFace" << YAML::Value << toc.MaxNrOfObjectPerFace;
-			out << YAML::Key << "MaxNumberOfObjects" << YAML::Value << toc.MaxNrOfObjects;
-			out << YAML::EndMap; // TerrainObjectComponent
-		}
-
 		if (entity.HasComponent<ParticlesComponent>())
 		{
 			out << YAML::Key << "ParticlesComponent";
@@ -555,7 +541,6 @@ namespace Toast {
 		CopyComponentIfExists<UIPanelComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<UITextComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<UIButtonComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
-		CopyComponentIfExists<TerrainObjectComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 		CopyComponentIfExists<ParticlesComponent>(target, target.GetScene()->mRegistry, source, source.GetScene()->mRegistry);
 
 		if (target.HasComponent<RigidBodyComponent>() && (target.HasComponent<BoxColliderComponent>()))
@@ -735,6 +720,39 @@ namespace Toast {
 			out << YAML::Key << "Octaves" << YAML::Value << detail.GPUSettings.Octaves;
 			out << YAML::Key << "Frequency" << YAML::Value << detail.GPUSettings.Frequency;
 			out << YAML::Key << "Amplitude" << YAML::Value << detail.GPUSettings.Amplitude;
+			out << YAML::EndMap;
+		}
+
+		out << YAML::EndSeq;
+
+		out << YAML::Key << "TerrainObjects";
+		out << YAML::BeginSeq;
+
+		for (const TerrainObject& obj : scenePlanet->mTerrainObjects)
+		{
+			out << YAML::BeginMap;
+
+			out << YAML::Key << "Name" << YAML::Value << obj.Name;
+			out << YAML::Key << "Seed" << YAML::Value << obj.Seed;
+
+			out << YAML::Key << "LODActivation" << YAML::Value << obj.LODActivation;
+
+			out << YAML::Key << "DensityPerKm2" << YAML::Value << obj.DensityPerKm2;
+			out << YAML::Key << "MaxPerPatch" << YAML::Value << obj.MaxPerPatch;
+			out << YAML::Key << "MaxTotal" << YAML::Value << obj.MaxTotal;
+
+			out << YAML::Key << "MinScale" << YAML::Value << obj.MinScale;
+			out << YAML::Key << "MaxScale" << YAML::Value << obj.MaxScale;
+
+			// Persist mesh asset path (or empty)
+			std::string meshPath;
+			if (obj.MeshObject && !obj.MeshObject->GetFilePath().empty())
+				meshPath = obj.MeshObject->GetFilePath();
+			else
+				meshPath = ""; // or "Empty" if you prefer
+
+			out << YAML::Key << "AssetPath" << YAML::Value << meshPath;
+
 			out << YAML::EndMap;
 		}
 
@@ -994,6 +1012,39 @@ namespace Toast {
 		}
 
 		scenePlanet->UploadHeightDetailsToGPU();
+
+		scenePlanet->mTerrainObjects.clear();
+
+		YAML::Node terrainObjectsNode = planet["TerrainObjects"];
+		if (terrainObjectsNode && terrainObjectsNode.IsSequence())
+		{
+			for (const YAML::Node& node : terrainObjectsNode)
+			{
+				TerrainObject obj;
+
+				obj.Name = node["Name"].as<std::string>();
+				obj.Seed = node["Seed"].as<uint32_t>();
+
+				obj.LODActivation = node["LODActivation"].as<int>();
+
+				obj.DensityPerKm2 = node["DensityPerKm2"].as<float>();
+				obj.MaxPerPatch = node["MaxPerPatch"].as<int>();
+				obj.MaxTotal = node["MaxTotal"].as<int>();
+
+				obj.MinScale = node["MinScale"].as<float>();
+				obj.MaxScale = node["MaxScale"].as<float>();
+
+				// Mesh (optional / nullable)
+				if (YAML::Node meshPathNode = node["AssetPath"])
+				{
+					std::string assetPath = meshPathNode.as<std::string>();
+					if (!assetPath.empty() && assetPath != "Empty")
+						obj.MeshObject = CreateRef<Mesh>(assetPath);
+				}
+
+				scenePlanet->mTerrainObjects.emplace_back(std::move(obj));
+			}
+		}
 
 		Scene::Environment& environment = mScene->GetEnvirontment();
 
@@ -1326,19 +1377,6 @@ namespace Toast {
 
 					if (uiTextComponent["TextureIndex"])
 						uitc.Text->SetTextureIndex(uiTextComponent["TextureIndex"].as<int>());
-				}
-
-				auto terrainObjectComponent = entity["TerrainObjectComponent"];
-				if (terrainObjectComponent)
-				{
-					auto& toc = deserializedEntity.AddComponent<TerrainObjectComponent>();
-
-					toc.MaxNrOfObjects = terrainObjectComponent["MaxNumberOfObjects"].as<int>();
-
-					toc.MeshObject = CreateRef<Mesh>(terrainObjectComponent["AssetPath"].as<std::string>(), DirectX::XMFLOAT3(0.0, 0.0, 0.0), true, toc.MaxNrOfObjects);
-
-					toc.SubdivisionActivation = terrainObjectComponent["SubdivisionActivation"].as<int>();
-					toc.MaxNrOfObjectPerFace = terrainObjectComponent["MaxNumberOfObjectsPerFace"].as<int>();
 				}
 
 				auto particlesComponent = entity["ParticlesComponent"];

@@ -130,10 +130,10 @@ namespace Toast {
 	class StructuredBuffer
 	{
 	public:
-		StructuredBuffer(const uint32_t stride, const uint32_t count, D3D11_USAGE usage = D3D11_USAGE_DYNAMIC, bool createUAV = false);
+		StructuredBuffer(const uint32_t stride, const uint32_t count, D3D11_USAGE usage = D3D11_USAGE_DYNAMIC, bool createUAV = false, bool append = false);
 		virtual ~StructuredBuffer() = default;
 
-		void BindUAV(const int bindSlot);
+		void BindUAV(const int bindSlot, const UINT* initialCount = nullptr);
 		void UnbindUAV(const int bindSlot);
 
 		// Update the whole buffer from CPU

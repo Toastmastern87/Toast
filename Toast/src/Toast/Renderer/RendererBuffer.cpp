@@ -347,7 +347,7 @@ namespace Toast {
 	//   STRUCTURED BUFFER    //////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	StructuredBuffer::StructuredBuffer(const uint32_t stride, const uint32_t count, D3D11_USAGE usage, bool createUAV)
+	StructuredBuffer::StructuredBuffer(const uint32_t stride, const uint32_t count, D3D11_USAGE usage, bool createUAV, bool append)
 		: mUsage(usage)
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
@@ -394,6 +394,7 @@ namespace Toast {
 			D3D11_UNORDERED_ACCESS_VIEW_DESC uavd{};
 			uavd.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
 			uavd.Format = DXGI_FORMAT_UNKNOWN;
+			uavd.Buffer.Flags = append ? D3D11_BUFFER_UAV_FLAG_APPEND : 0;
 			uavd.Buffer.FirstElement = 0;
 			uavd.Buffer.NumElements = count;
 
@@ -402,12 +403,12 @@ namespace Toast {
 		}
 	}
 
-	void StructuredBuffer::BindUAV(const int bindSlot)
+	void StructuredBuffer::BindUAV(const int bindSlot, const UINT* initialCount)
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		deviceContext->CSSetUnorderedAccessViews(bindSlot, 1, mUAV.GetAddressOf(), nullptr);
+		deviceContext->CSSetUnorderedAccessViews(bindSlot, 1, mUAV.GetAddressOf(), initialCount);
 	}
 
 	void StructuredBuffer::UnbindUAV(const int bindSlot)

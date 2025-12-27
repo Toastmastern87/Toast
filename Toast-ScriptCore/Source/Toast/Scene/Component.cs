@@ -34,11 +34,11 @@ namespace Toast
             }
         }
 
-        public Vector3 Rotation
+        public Quaternion Rotation
         {
             get
             {
-                InternalCalls.TransformComponent_GetRotation(Entity.ID, out Vector3 result);
+                InternalCalls.TransformComponent_GetRotation(Entity.ID, out Quaternion result);
                 return result;
             }
 
@@ -58,19 +58,6 @@ namespace Toast
             set 
             { 
                 InternalCalls.TransformComponent_SetRotationQuaternion(Entity.ID, ref value); 
-            }
-        }
-
-        public Quaternion TotalRotation
-        {
-            get
-            {
-                InternalCalls.TransformComponent_GetTotalRotationQuaternion(Entity.ID, out Quaternion q);
-                return q;
-            }
-            set
-            {
-                ;
             }
         }
 

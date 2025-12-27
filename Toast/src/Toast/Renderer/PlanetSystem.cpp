@@ -51,6 +51,12 @@ namespace Toast {
 		mPlanetLevelBuffer.Allocate(mPlanetLevelCBuffer->GetSize());
 		mPlanetLevelBuffer.ZeroInitialize();
 
+
+		mTerrainObjectCBuffer = ConstantBufferLibrary::Load("TerrainObject", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, (CBufferBindSlot)13) });
+		mTerrainObjectCBuffer->Bind();
+		mTerrainObjectBuffer.Allocate(mTerrainObjectCBuffer->GetSize());
+		mTerrainObjectBuffer.ZeroInitialize();
+
 		mBaseHeightMapTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 
 		mStarFieldTexture2D = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
@@ -562,78 +568,6 @@ namespace Toast {
 		return (float)spaceFactor;
 	}
 
-	void Planet::DetailObjectPlacement(TerrainObjectComponent* objects, Matrix& planetNoScaleTransform)
-	{
-		//TOAST_PROFILE_FUNCTION();
-
-		//gTerrainObjectsPosition.clear();
-		//gTerrainObjectsPosition.reserve(objects->MaxNrOfObjects);
-
-		//const siv::PerlinNoise& perlin = siv::PerlinNoise(static_cast<uint32_t>(19871102));
-
-		//std::vector<PlanetNode*> visible;   // local snapshot
-		//{
-		//	std::scoped_lock lk(gActiveMutex);   // lock writer side
-		//	visible = gVisibleNodes;             // cheap pointer copy
-		//}
-
-		//if (!visible.empty())
-		//{
-		//	for (PlanetNode* node : visible)
-		//	{
-		//		if (gTerrainObjectsPosition.size() >= static_cast<size_t>(objects->MaxNrOfObjects))
-		//			break;
-
-		//		if (node->SubdivisionLevel < objects->SubdivisionActivation)
-		//			continue;
-
-		//		if (node->CachedDetailObjectPosition.empty())
-		//		{
-		//			Vector2 centerUV = (node->A.UV + node->B.UV + node->C.UV) / 3.0;
-
-		//			double noiseValue = perlin.octave2D_01(centerUV.x, centerUV.y, 4);
-		//			int stonesInThisTriangle = static_cast<int>(std::round(static_cast<double>(objects->MaxNrOfObjectPerFace) * noiseValue));
-
-		//			if (!(stonesInThisTriangle > 0))
-		//				continue;
-
-		//			std::mt19937 rng(PlanetNode::Hasher{}(*node));
-		//			std::uniform_real_distribution<double> dist(0.0f, 1.0f);
-
-		//			for (int j = 0; j < stonesInThisTriangle; ++j)
-		//			{
-		//				// Generate barycentric coordinates deterministically
-		//				double u = dist(rng);
-		//				double v = dist(rng);
-		//				if (u + v > 1.0f) {
-		//					u = 1.0f - u;
-		//					v = 1.0f - v;
-		//				}
-		//				float w = 1.0f - u - v;
-
-		//				// Calculate the object's local position
-		//				Vector3 objectPosition = node->A.Position * u + node->B.Position * v + node->C.Position * w;
-		//				Vector3 objectPositionworldPos = planetNoScaleTransform * objectPosition;
-
-		//				node->CachedDetailObjectPosition.emplace_back(DirectX::XMFLOAT3((float)objectPositionworldPos.x, (float)objectPositionworldPos.y, (float)objectPositionworldPos.z));
-		//			}
-		//		}
-
-		//		size_t remaining = objects->MaxNrOfObjects - gTerrainObjectsPosition.size();
-		//		if (remaining == 0)
-		//			break;
-
-		//		if (node->CachedDetailObjectPosition.size() > remaining)
-		//			gTerrainObjectsPosition.insert(gTerrainObjectsPosition.end(), node->CachedDetailObjectPosition.begin(), node->CachedDetailObjectPosition.begin() + remaining);
-		//		else
-		//			gTerrainObjectsPosition.insert(gTerrainObjectsPosition.end(), node->CachedDetailObjectPosition.begin(), node->CachedDetailObjectPosition.end());
-
-		//		if (gTerrainObjectsPosition.size() >= static_cast<size_t>(objects->MaxNrOfObjects))
-		//			break;
-		//	}
-		//}
-	}
-
 	void Planet::Shutdown()
 	{
 	}
@@ -1009,6 +943,22 @@ namespace Toast {
 
 		for (int i = 0; i < 256; ++i)
 			outPerm[i] = values[i];
+	}
+
+	uint32_t Planet::ObjectInstancesForLevelFromDensity(const TerrainObject& o, uint32_t cellSize, uint32_t gridSize)
+	{
+		const double cells = double(gridSize - 1);
+		const double widthM = cells * double(cellSize);
+		const double areaM2 = widthM * widthM;
+		const double areaKm2 = areaM2 / 1e6;
+
+		double inst = o.DensityPerKm2 * areaKm2;
+		uint32_t u = (uint32_t)std::llround(inst);
+
+		u = std::min<uint32_t>(u, (uint32_t)o.MaxTotal);
+		u = std::min<uint32_t>(u, (uint32_t)o.MaxPerPatch); // if you mean per-level cap
+
+		return u;
 	}
 
 }

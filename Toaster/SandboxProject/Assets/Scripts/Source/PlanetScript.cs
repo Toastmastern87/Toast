@@ -2,6 +2,7 @@
 using System;
 
 using Toast;
+using Source.Toast.Math;
 
 namespace Sandbox
 {
@@ -9,19 +10,18 @@ namespace Sandbox
     {
         private Entity mCameraEntity;
         private TransformComponent mCameraTransform, mMarsTransform;
-        private Vector3 mCameraOldRotation, mCameraOldTranslation, mMarsOldRotation, mMarsOldTranslation;
-
+        private Quaternion mCameraOldRotation, mCameraOldTranslation, mMarsOldRotation, mMarsOldTranslation;
 
         void OnCreate()
         {
-            mCameraEntity = FindEntityByName("Camera");
-            mCameraTransform = mCameraEntity.GetComponent<TransformComponent>();
-            mMarsTransform = GetComponent<TransformComponent>();
-            mCameraOldRotation = mCameraTransform.Rotation;
-            mCameraOldTranslation = mCameraTransform.Translation;
+            //mCameraEntity = FindEntityByName("Camera");
+            //mCameraTransform = mCameraEntity.GetComponent<TransformComponent>();
+            //mMarsTransform = GetComponent<TransformComponent>();
+            //mCameraOldRotation = mCameraTransform.Rotation;
+            //mCameraOldTranslation = mCameraTransform.Translation;
 
-            mMarsOldRotation = mMarsTransform.Rotation;
-            mMarsOldTranslation = mMarsTransform.Translation;
+            //mMarsOldRotation = mMarsTransform.Rotation;
+            //mMarsOldTranslation = mMarsTransform.Translation;
         }
 
         void OnClick()
@@ -30,15 +30,15 @@ namespace Sandbox
 
         void OnUpdate(float ts)
         {
-            if (mCameraTransform.Rotation != mCameraOldRotation || mCameraTransform.Translation != mCameraOldTranslation || mMarsTransform.Rotation != mMarsOldRotation || mMarsTransform.Translation != mMarsTransform.Translation)
-            {
-            }
+            //if (mCameraTransform.Rotation != mCameraOldRotation || mCameraTransform.Translation != mCameraOldTranslation || mMarsTransform.Rotation != mMarsOldRotation || mMarsTransform.Translation != mMarsTransform.Translation)
+            //{
+            //}
 
-            mCameraOldRotation = mCameraTransform.Rotation; 
-            mCameraOldTranslation = mCameraTransform.Translation;
+            //mCameraOldRotation = mCameraTransform.Rotation; 
+            //mCameraOldTranslation = mCameraTransform.Translation;
 
-            mMarsOldRotation = mMarsTransform.Rotation;
-            mMarsOldTranslation = mMarsTransform.Translation;
+            //mMarsOldRotation = mMarsTransform.Rotation;
+            //mMarsOldTranslation = mMarsTransform.Translation;
         }
     }
 }

@@ -18,20 +18,30 @@ namespace Toast {
 
 		void SetContext(Scene* sceneContext, WindowsWindow* window);
 	private:
+		void DrawTerrainObjectsListUI();
+		void DrawTerrainObjectPopup();
+		void DrawTerrainObjectMeshRow(TerrainObject& target);
+	private:
 		Scene* mSceneContext = nullptr;
 		Planet* mContext = nullptr;
 
 		WindowsWindow* mWindow;
 
-		// --- Planet Details UI state ---
+		// Terrain Height Details UI state 
 		bool mDetailPopupOpen = false;
 		bool mEditingDetail = false;
 		int mEditingDetailIndex = -1;
 		bool mRequestOpenTerrainDetailPopup = false;
-
-		// temp edit buffer
 		HeightDetail mDetailDraft{};
 		char mDetailNameBuf[128] = "New Terrain Detail";
+
+		// Terrain Object UI state
+		bool mEditingTerrainObj = false;
+		int  mEditingTerrainObjIndex = -1;
+		TerrainObject mTerrainObjDraft{};
+		bool mRequestOpenTerrainObjPopup = false;
+		char mTerrainObjNameBuf[128]{};
+		char mTerrainObjMeshPathBuf[256]{};
 	};
 
 }

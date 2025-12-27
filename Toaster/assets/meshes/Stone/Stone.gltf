@@ -29,9 +29,9 @@
 			"name":"Stone",
 			"pbrMetallicRoughness":{
 				"baseColorFactor":[
-					0.4286876916885376,
-					0.4286908209323883,
-					0.42869067192077637,
+					0.14764952659606934,
+					0.14765538275241852,
+					0.14765538275241852,
 					1
 				],
 				"metallicFactor":0,
@@ -47,9 +47,10 @@
 					"attributes":{
 						"POSITION":0,
 						"NORMAL":1,
-						"TEXCOORD_0":2
+						"TEXCOORD_0":2,
+						"TANGENT":3
 					},
-					"indices":3,
+					"indices":4,
 					"material":0
 				}
 			]
@@ -59,7 +60,7 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":134,
+			"count":169,
 			"max":[
 				0.8495917916297913,
 				0.820446252822876,
@@ -75,17 +76,23 @@
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":134,
+			"count":169,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":134,
+			"count":169,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
+			"componentType":5126,
+			"count":169,
+			"type":"VEC4"
+		},
+		{
+			"bufferView":4,
 			"componentType":5123,
 			"count":234,
 			"type":"SCALAR"
@@ -94,32 +101,38 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":1608,
+			"byteLength":2028,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1608,
-			"byteOffset":1608,
+			"byteLength":2028,
+			"byteOffset":2028,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1072,
-			"byteOffset":3216,
+			"byteLength":1352,
+			"byteOffset":4056,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":2704,
+			"byteOffset":5408,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":468,
-			"byteOffset":4288,
+			"byteOffset":8112,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":4756,
+			"byteLength":8580,
 			"uri":"Stone.bin"
 		}
 	]

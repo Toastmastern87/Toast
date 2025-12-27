@@ -379,19 +379,6 @@ namespace Toast {
 				uitc.Text->SetTextureIndex(uiTextComponent["TextureIndex"].as<int>());
 		}
 
-		auto terrainObjectComponent = entityData["TerrainObjectComponent"];
-		if (terrainObjectComponent)
-		{
-			auto& toc = deserializedEntity.AddComponent<TerrainObjectComponent>();
-
-			toc.MaxNrOfObjects = terrainObjectComponent["MaxNumberOfObjects"].as<int>();
-
-			toc.MeshObject = CreateRef<Mesh>(terrainObjectComponent["AssetPath"].as<std::string>(), DirectX::XMFLOAT3(0.0, 0.0, 0.0), true, toc.MaxNrOfObjects);
-
-			toc.SubdivisionActivation = terrainObjectComponent["SubdivisionActivation"].as<int>();
-			toc.MaxNrOfObjectPerFace = terrainObjectComponent["MaxNumberOfObjectsPerFace"].as<int>();
-		}
-
 		auto particlesComponent = entityData["ParticlesComponent"];
 		if (particlesComponent)
 		{
@@ -696,20 +683,6 @@ namespace Toast {
 			out << YAML::EndMap; // UITextComponent
 		}
 
-		if (entity.HasComponent<TerrainObjectComponent>())
-		{
-			out << YAML::Key << "TerrainObjectComponent";
-			out << YAML::BeginMap; // TerrainObjectComponent
-
-			auto& toc = entity.GetComponent<TerrainObjectComponent>();
-			if (toc.MeshObject)
-				out << YAML::Key << "AssetPath" << YAML::Value << toc.MeshObject->GetFilePath();
-			out << YAML::Key << "SubdivisionActivation" << YAML::Value << toc.SubdivisionActivation;
-			out << YAML::Key << "MaxNumberOfObjectsPerFace" << YAML::Value << toc.MaxNrOfObjectPerFace;
-			out << YAML::Key << "MaxNumberOfObjects" << YAML::Value << toc.MaxNrOfObjects;
-			out << YAML::EndMap; // TerrainObjectComponent
-		}
-
 		if (entity.HasComponent<ParticlesComponent>())
 		{
 			out << YAML::Key << "ParticlesComponent";
@@ -944,7 +917,6 @@ namespace Toast {
 		CopyComponentIfExists<UIPanelComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<UITextComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<UIButtonComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
-		CopyComponentIfExists<TerrainObjectComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 		CopyComponentIfExists<ParticlesComponent>(newEntity, mScene->mRegistry, entity, entity.mScene->mRegistry);
 
 		// Make a local copy of the original children from the source entity.

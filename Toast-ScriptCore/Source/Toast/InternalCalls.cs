@@ -128,19 +128,16 @@ namespace Toast
         internal static extern void TransformComponent_SetTranslation(ulong entityID, ref Vector3 inTranslation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void TransformComponent_GetRotation(ulong entityID, out Vector3 outRotation);
+        internal static extern void TransformComponent_GetRotation(ulong entityID, out Quaternion outRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void TransformComponent_SetRotation(ulong entityID, ref Vector3 inRotation);
+        internal static extern void TransformComponent_SetRotation(ulong entityID, ref Quaternion inRotation);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void TransformComponent_GetRotationQuaternion(ulong entityID, out Quaternion Quaternion);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void TransformComponent_SetRotationQuaternion(ulong entityID, ref Quaternion inRotation);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void TransformComponent_GetTotalRotationQuaternion(ulong entityID, out Quaternion Quaternion);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void TransformComponent_GetPitch(ulong entityID, out float outPitch);

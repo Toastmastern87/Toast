@@ -363,18 +363,22 @@ namespace Toast {
 		entity.GetComponent<TransformComponent>().Translation = *translation;
 	}
 
-	static void TransformComponent_GetRotation(UUID entityID, DirectX::XMFLOAT3* outRotation)
+	static void TransformComponent_GetRotation(UUID entityID, DirectX::XMFLOAT4* outRotation)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		Entity entity = scene->FindEntityByUUID(entityID);
-		*outRotation = entity.GetComponent<TransformComponent>().RotationEulerAngles;
+
+		auto& tc = entity.GetComponent<TransformComponent>();
+		DirectX::XMVECTOR q = tc.GetTotalRotationQuaternion();
+
+		DirectX::XMStoreFloat4(outRotation, q);
 	}
 
-	static void TransformComponent_SetRotation(UUID entityID, DirectX::XMFLOAT3* rotation)
+	static void TransformComponent_SetRotation(UUID entityID, DirectX::XMFLOAT4* rotation)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		Entity entity = scene->FindEntityByUUID(entityID);
-		entity.GetComponent<TransformComponent>().RotationEulerAngles = *rotation;
+		entity.GetComponent<TransformComponent>().RotationQuaternion = *rotation;
 	}
 
 	static void TransformComponent_GetRotationQuaternion(UUID entityID, DirectX::XMFLOAT4* outQuat)
@@ -391,17 +395,6 @@ namespace Toast {
 		auto& tc = entity.GetComponent<TransformComponent>();
 		tc.RotationQuaternion = *quat;
 		tc.IsDirty = true;
-	}
-
-	static void TransformComponent_GetTotalRotationQuaternion(UUID entityID, DirectX::XMFLOAT4* outQuat)
-	{
-		Scene* scene = ScriptEngine::GetSceneContext();
-		Entity entity = scene->FindEntityByUUID(entityID);
-
-		auto& tc = entity.GetComponent<TransformComponent>();
-		DirectX::XMVECTOR q = tc.GetTotalRotationQuaternion();
-
-		DirectX::XMStoreFloat4(outQuat, q);
 	}
 
 	static void TransformComponent_GetPitch(UUID entityID, float* outPitch)
@@ -944,7 +937,6 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetRotation);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetRotationQuaternion);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetRotationQuaternion);
-		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetTotalRotationQuaternion);
 
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetPitch);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetPitch);

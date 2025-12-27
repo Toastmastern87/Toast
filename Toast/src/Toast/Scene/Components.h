@@ -252,19 +252,6 @@ namespace Toast {
 			: Button(button) {}
 	};
 
-	struct TerrainObjectComponent
-	{
-		int SubdivisionActivation = 0;
-		int MaxNrOfObjectPerFace = 0;
-		int MaxNrOfObjects = 0;
-		Ref<Mesh> MeshObject;
-
-		TerrainObjectComponent() = default;
-		TerrainObjectComponent(const TerrainObjectComponent& other) = default;
-		TerrainObjectComponent(const Ref<Mesh>& mesh)
-			: MeshObject(mesh) {}
-	};
-
 	struct ParticlesComponent
 	{
 		bool Emitting;

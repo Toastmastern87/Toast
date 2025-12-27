@@ -544,30 +544,6 @@ namespace Toast {
 					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 				}
 
-				auto terrainObjectMeshes = mRegistry.view<TransformComponent, TerrainObjectComponent>();
-				for (auto entity : terrainObjectMeshes)
-				{
-					auto [transform, terrainObject] = terrainObjectMeshes.get<TransformComponent, TerrainObjectComponent>(entity);
-					switch (mSettings.WireframeRendering)
-					{
-					case Settings::Wireframe::NO:
-					{
-						Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, false, 0);
-
-						break;
-					}
-					case Settings::Wireframe::YES:
-					{
-						Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, true, 0);
-
-						break;
-					}
-					}
-
-					// TODO fix the count number for vertices
-					//mStats.VerticesCount += static_cast<uint32_t>(terrainObject.MeshObject->GetVertices().size() * terrainObject.);
-				}
-
 				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight, ts);
 			}
 
@@ -1061,33 +1037,6 @@ namespace Toast {
 					Renderer::SubmitSelecetedMesh(mesh.MeshObject, transform.GetTransform());
 
 				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
-			}
-
-			auto terrainObjectMeshes = mRegistry.view<TransformComponent, TerrainObjectComponent>();
-			for (auto entity : terrainObjectMeshes)
-			{
-				auto [transform, terrainObject] = terrainObjectMeshes.get<TransformComponent, TerrainObjectComponent>(entity);
-				if (terrainObject.MeshObject)
-				{
-					if (terrainObject.MeshObject->GetNumberOfInstances(0) > 0)
-					{
-						switch (mSettings.WireframeRendering)
-						{
-						case Settings::Wireframe::NO:
-						{
-							Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, false, 0);
-
-							break;
-						}
-						case Settings::Wireframe::YES:
-						{
-							Renderer::SubmitMesh(terrainObject.MeshObject, transform.GetTransform(), (int)entity, true, 0);
-
-							break;
-						}
-						}
-					}
-				}
 			}
 
 			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight, ts);
@@ -1589,7 +1538,6 @@ namespace Toast {
 		CopyComponentIfExists<UIPanelComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<UITextComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<UIButtonComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
-		CopyComponentIfExists<TerrainObjectComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<ParticlesComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 
 		// Process the rest of the prefab entities.
@@ -1625,7 +1573,6 @@ namespace Toast {
 			CopyComponentIfExists<UIPanelComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<UITextComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<UIButtonComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
-			CopyComponentIfExists<TerrainObjectComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<ParticlesComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 		}
 
@@ -1757,7 +1704,6 @@ namespace Toast {
 		CopyComponent<UIPanelComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UITextComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIButtonComponent>(target->mRegistry, mRegistry, enttMap);
-		CopyComponent<TerrainObjectComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<ParticlesComponent>(target->mRegistry, mRegistry, enttMap);
 	}
 
@@ -1865,11 +1811,6 @@ namespace Toast {
 
 	template<>
 	void Scene::OnComponentAdded<RelationshipComponent>(Entity entity, RelationshipComponent& component)
-	{
-	}
-
-	template<>
-	void Scene::OnComponentAdded<TerrainObjectComponent>(Entity entity, TerrainObjectComponent& component)
 	{
 	}
 

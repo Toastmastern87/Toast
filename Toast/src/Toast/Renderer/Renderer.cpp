@@ -915,6 +915,51 @@ namespace Toast {
 
 		ShaderLibrary::Get("assets/shaders/Rendering/GeometryPass.hlsl")->Bind();
 
+		if (sRendererData->PlanetDraw.Planet)
+		{
+			if (sRendererData->PlanetDraw.Planet->IsValid())
+			{
+				Planet* planet = sRendererData->PlanetDraw.Planet.get();
+				const auto& LODInfo = planet->GetLODDrawInfo();
+				const uint32_t L0 = LODInfo.first;
+				const uint32_t Ln = L0 + LODInfo.count;
+
+				if (!sRendererData->PlanetDraw.Planet->GetTerrainObjects().empty())
+				{
+					if (sRendererData->PlanetDraw.Planet->GetNumHeightDetails() > 0)
+					{
+						RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
+						RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
+					}
+
+					for (uint32_t L = L0; L < Ln; ++L)
+					{
+						// --- Edge strip (DrawMode=1) ---
+						{
+							auto cb = planet->BuildLevelCB(L);
+							uint32_t drawMode = 1;
+							cb.Write(reinterpret_cast<uint8_t*>(&drawMode), sizeof(uint32_t), 16);
+							planet->GetPlanetLevelCBuffer()->Map(cb);
+							planet->GetPlanetLevelCBuffer()->Bind(); // b7
+
+							DrawTerrainObjectsForLevel(planet, L, L0);
+						}
+
+						// --- Interior (DrawMode=0) ---
+						{
+							auto cb = planet->BuildLevelCB(L);
+							uint32_t drawMode = 0;
+							cb.Write(reinterpret_cast<uint8_t*>(&drawMode), sizeof(uint32_t), 16);
+							planet->GetPlanetLevelCBuffer()->Map(cb);
+							planet->GetPlanetLevelCBuffer()->Bind(); // b7
+
+							DrawTerrainObjectsForLevel(planet, L, L0);
+						}
+					}
+				}
+			}
+		}
+
 		for (const auto& meshCommand : sRendererData->MeshDrawList)
 		{
 			if (meshCommand.Wireframe)
@@ -961,16 +1006,7 @@ namespace Toast {
 
 				meshCommand.Mesh->Bind();
 
-				if (isInstanced == 0) 
-				{
-					//TOAST_CORE_CRITICAL("Drawing Submesh '%s'", submesh.MeshName.c_str());
-					RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
-				}
-				else 
-				{
-					uint32_t bufferElements = meshCommand.Mesh->mLODGroups[0]->InstancedVBuffer->GetBufferSize() / sizeof(DirectX::XMFLOAT3);
-					RenderCommand::DrawIndexedInstanced(meshCommand.Mesh->mLODGroups[0]->Submeshes[0].IndexCount, meshCommand.Mesh->GetNumberOfInstances(0), 0, 0, 0);
-				}
+				RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
 			}
 		}
 
@@ -2141,6 +2177,80 @@ namespace Toast {
 		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Width, 4, 344);
 		sRendererData->CameraBuffer.Write((uint8_t*)&sRendererData->Viewport.Height, 4, 348);
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
+	}
+
+	void Renderer::DrawTerrainObjectsForLevel(Planet* planet, uint32_t L, uint32_t L0)
+	{
+		const auto& objects = planet->GetTerrainObjects();
+		if (objects.empty())
+			return;
+
+		// ModelCB: force instanced branch in your generic GPass VS
+		{
+			DirectX::XMMATRIX I = DirectX::XMMatrixIdentity();
+			float clickable = 0.0f;
+			int entityID = -1;
+			int noWorldTransform = 1; // important: instanced path outputs camera-relative directly
+			int isInstanced = 1;
+
+			sRendererData->ModelBuffer.Write((uint8_t*)&I, 64, 0);
+			sRendererData->ModelBuffer.Write((uint8_t*)&clickable, 4, 64);
+			sRendererData->ModelBuffer.Write((uint8_t*)&entityID, 4, 68);
+			sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 72);
+			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 76);
+			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+		}
+
+		for (const TerrainObject& object : objects)
+		{
+			if (!object.MeshObject)
+				continue;
+
+			// Activation: o.LODActivation=1 => draw on L0 and L0+1
+			uint32_t delta = (L >= L0) ? (L - L0) : 0;
+			if ((int)delta > object.LODActivation)
+				continue;
+
+			uint32_t cellSize = 1u << L; 
+			uint32_t gridSize = planet->GetGridSize();
+
+			// Decide instance count for this level
+			uint32_t instCount = planet->ObjectInstancesForLevelFromDensity(object, cellSize, gridSize);
+			if (instCount == 0)
+				continue;
+
+			// Fill per-layer CB (b13)
+			auto& buffer = planet->GetTerrainObjectBuffer();
+			buffer.Write((uint8_t*)&object.Seed, 4, 0);
+			buffer.Write((uint8_t*)&object.LODActivation, 4, 4);
+			buffer.Write((uint8_t*)&instCount, 4, 8);
+			buffer.Write((uint8_t*)&object.MinScale, 4, 12);
+			buffer.Write((uint8_t*)&object.MaxScale, 4, 16);
+
+			planet->GetTerrainObjectCBuffer()->Map(buffer);
+			planet->GetTerrainObjectCBuffer()->Bind(); // b13
+
+			auto& material = object.MeshObject->GetMaterial(object.MeshObject->GetSubmeshes()[0].MaterialName);
+			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetAlbedo(), 16, 0);
+			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetEmission(), 4, 16);
+			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetMetalness(), 4, 20);
+			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetRoughness(), 4, 24);
+			int useAlbedo = static_cast<int>(material->GetUseAlbedo());
+			sRendererData->MaterialBuffer.Write((uint8_t*)&useAlbedo, 4, 28);
+			int useNormal = static_cast<int>(material->GetUseNormal());
+			sRendererData->MaterialBuffer.Write((uint8_t*)&useNormal, 4, 32);
+			int useMetalRough = static_cast<int>(material->GetUseMetalRough());
+			sRendererData->MaterialBuffer.Write((uint8_t*)&useMetalRough, 4, 36);
+			sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
+
+			// Bind mesh + material like your normal path (important!)
+			// If your Mesh::Bind() does not bind material SRVs, do it here.
+			object.MeshObject->Bind();
+
+			// Start with LOD0 group submesh 0 (same assumption you used previously)
+			const auto& sub = object.MeshObject->mLODGroups[0]->Submeshes[0];
+			RenderCommand::DrawIndexedInstanced(sub.IndexCount, instCount, sub.BaseIndex, 0, 0);
+		}
 	}
 
 }

@@ -41,6 +41,333 @@ namespace Toast {
 		mWindow = window;
 	}
 
+	void PlanetPanel::DrawTerrainObjectsListUI()
+	{
+		// --- Visual sizing: show up to 3 items without scrolling ---
+		const float visibleItems = 3.0f;
+		const float rowH = ImGui::GetFrameHeight();
+		const float rowGap = 1.0f;
+		const float innerPadY = 8.0f * 2.0f;
+
+		auto  padX = ImGui::GetStyle().CellPadding.x;
+		float colW = ImGui::GetColumnWidth();               // full width of this column
+		float fullW = colW - padX * 2.0f;
+
+		float minBoxH = innerPadY + visibleItems * rowH + (visibleItems - 1.0f) * rowGap;
+		float boxH = minBoxH;
+
+		ImGuiWindowFlags childFlags = ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_NoMove;
+
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(0);
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Terrain Objects");
+
+		ImGui::TableSetColumnIndex(1);
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 0.0f));
+		ImGui::BeginChild("##PlanetTerrainObjectsBox", ImVec2(fullW, boxH), true, childFlags);
+		ImGui::Dummy(ImVec2(0.0f, 0.5f));
+
+		int deleteIndex = -1;
+		// Render each object as a “box” row (clickable)
+		for (int i = 0; i < (int)mContext->mTerrainObjects.size(); ++i)
+		{
+			TerrainObject& o = mContext->mTerrainObjects[i];
+			ImGui::PushID(i);
+
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 4.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
+
+			float w = ImGui::GetContentRegionAvail().x;
+			bool clicked = ImGui::Button(o.Name.c_str(), ImVec2(w, 0.0f));
+
+			ImGui::PopStyleVar(3);
+			ImGui::PopStyleColor(1);
+
+			if (ImGui::BeginPopupContextItem("##DetailContext", ImGuiPopupFlags_MouseButtonRight))
+			{
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 8.0f));
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 6.0f));
+
+				if (ImGui::MenuItem("Delete"))
+					deleteIndex = i;
+
+				ImGui::PopStyleVar(2);
+				ImGui::EndPopup();
+			}
+
+			ImGui::Dummy(ImVec2(0.0f, 0.5f));
+
+			if (clicked)
+			{
+				mEditingTerrainObj = true;
+				mEditingTerrainObjIndex = i;
+
+				mTerrainObjDraft = o; // optional; if you want direct edit, you can skip draft for edit mode
+				CopyToNameBuf(mTerrainObjNameBuf, sizeof(mTerrainObjNameBuf), o.Name);
+
+				// Mesh path buffer
+				const std::string path = (o.MeshObject && !o.MeshObject->GetFilePath().empty())
+					? o.MeshObject->GetFilePath()
+					: std::string("Empty");
+				memset(mTerrainObjMeshPathBuf, 0, sizeof(mTerrainObjMeshPathBuf));
+				strncpy_s(mTerrainObjMeshPathBuf, path.c_str(), sizeof(mTerrainObjMeshPathBuf) - 1);
+
+				mRequestOpenTerrainObjPopup = true;
+			}
+
+			ImGui::PopID();
+		}
+
+		if (deleteIndex != -1)
+		{
+			// If you are editing this one (or indices after it), fix state.
+			if (mEditingTerrainObj)
+			{
+				if (mEditingTerrainObjIndex == deleteIndex)
+				{
+					mEditingTerrainObj = false;
+					mEditingTerrainObjIndex = -1;
+				}
+				else if (mEditingTerrainObjIndex > deleteIndex)
+				{
+					// Vector elements shift left
+					mEditingTerrainObjIndex--;
+				}
+			}
+
+			mContext->mTerrainObjects.erase(mContext->mTerrainObjects.begin() + deleteIndex);
+		}
+
+		ImGui::EndChild();
+		ImGui::PopStyleVar();
+
+		// --- Add button aligned bottom-right of the column ---
+		{
+			const bool disableAdd = (mContext->mTerrainObjects.size() >= 8); // pick your cap
+
+			const float btnSize = ImGui::GetFrameHeight();
+			float cursorX = ImGui::GetCursorPosX();
+			float availX = ImGui::GetContentRegionAvail().x;
+
+			ImGui::SetCursorPosX(cursorX + (availX - btnSize - 7.0f));
+
+			ImGui::BeginDisabled(disableAdd);
+			if (ImGui::Button("+##AddTerrainObject", ImVec2(btnSize, btnSize)))
+			{
+				mEditingTerrainObj = false;
+				mEditingTerrainObjIndex = -1;
+
+				mTerrainObjDraft = TerrainObject{};
+				mTerrainObjDraft.Name = "New Terrain Object";
+
+				// seed like you do for height details
+				static std::mt19937 rng{ std::random_device{}() };
+				mTerrainObjDraft.Seed = (uint32_t)rng(); // add a Seed member if you want it shown like height details
+
+				// sensible defaults
+				mTerrainObjDraft.LODActivation = 1;
+				mTerrainObjDraft.DensityPerKm2 = 2000.0f;
+				mTerrainObjDraft.MaxPerPatch = 16;
+				mTerrainObjDraft.MaxTotal = 200000;
+				mTerrainObjDraft.MinScale = 0.1f;
+				mTerrainObjDraft.MaxScale = 0.3f;
+
+				CopyToNameBuf(mTerrainObjNameBuf, sizeof(mTerrainObjNameBuf), mTerrainObjDraft.Name);
+
+				memset(mTerrainObjMeshPathBuf, 0, sizeof(mTerrainObjMeshPathBuf));
+				strncpy_s(mTerrainObjMeshPathBuf, "Empty", sizeof(mTerrainObjMeshPathBuf) - 1);
+
+				mRequestOpenTerrainObjPopup = true;
+			}
+			ImGui::EndDisabled();
+		}
+
+		if (mRequestOpenTerrainObjPopup)
+		{
+			ImGui::OpenPopup("##TerrainObjectPopup");
+			mRequestOpenTerrainObjPopup = false;
+		}
+	}
+
+	void PlanetPanel::DrawTerrainObjectMeshRow(TerrainObject& target)
+	{
+		ImGuiTableFlags flags = ImGuiTableFlags_SizingFixedFit;
+		ImVec2 avail = ImGui::GetContentRegionAvail();
+
+		if (ImGui::BeginTable("##TerrainObjMeshTable", 3, flags))
+		{
+			ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+			ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, avail.x * 0.6156f);
+			ImGui::TableSetupColumn("##col3", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableNextRow();
+
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text("Mesh");
+
+			ImGui::TableSetColumnIndex(1);
+			ImGui::PushItemWidth(-1);
+
+			const std::string path =
+				(target.MeshObject && !target.MeshObject->GetFilePath().empty())
+				? target.MeshObject->GetFilePath()
+				: std::string("Empty");
+
+			// Keep buffer synced
+			memset(mTerrainObjMeshPathBuf, 0, sizeof(mTerrainObjMeshPathBuf));
+			strncpy_s(mTerrainObjMeshPathBuf, path.c_str(), sizeof(mTerrainObjMeshPathBuf) - 1);
+
+			ImGui::InputText("##terrainobj_meshfilepath", mTerrainObjMeshPathBuf, sizeof(mTerrainObjMeshPathBuf),
+				ImGuiInputTextFlags_ReadOnly);
+
+			ImGui::PopItemWidth();
+
+			ImGui::TableSetColumnIndex(2);
+			if (ImGui::Button("...##open_terrainobj_mesh"))
+			{
+				std::optional<std::string> filepath =
+					FileDialogs::OpenFile("*.gltf", "..\\Toaster\\assets\\meshes\\");
+
+				if (filepath)
+				{
+					target.MeshObject = CreateRef<Mesh>(*filepath);
+
+					// If you're adding a new object, auto-name it from file
+					if (!mEditingTerrainObj && target.Name == "New Terrain Object")
+					{
+						std::string newName = *filepath;
+						std::size_t found = newName.find_last_of("/\\");
+						newName = newName.substr(found + 1);
+						found = newName.find_last_of('.');
+						if (found != std::string::npos)
+							newName = newName.substr(0, found);
+
+						target.Name = newName;
+						CopyToNameBuf(mTerrainObjNameBuf, sizeof(mTerrainObjNameBuf), target.Name);
+					}
+				}
+			}
+
+			ImGui::EndTable();
+		}
+	}
+
+	void PlanetPanel::DrawTerrainObjectPopup()
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 12.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 6.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
+
+		if (ImGui::BeginPopupModal("##TerrainObjectPopup", nullptr,	ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+		{
+			TerrainObject* live = nullptr;
+
+			if (mEditingTerrainObj &&
+				mEditingTerrainObjIndex >= 0 &&
+				mEditingTerrainObjIndex < (int)mContext->mTerrainObjects.size())
+			{
+				live = &mContext->mTerrainObjects[mEditingTerrainObjIndex];
+			}
+
+			// Edit live when editing; otherwise edit draft
+			TerrainObject& target = (live != nullptr) ? *live : mTerrainObjDraft;
+
+			const char* popupHeader = mEditingTerrainObj ? "Edit Terrain Object" : "Add Terrain Object";
+			ImGui::TextUnformatted(popupHeader);
+			ImGui::Separator();
+
+			// Name
+			ImGui::Text("Name");
+			ImGui::SetNextItemWidth(360.0f);
+			if (ImGui::InputText("##TerrainObjName", mTerrainObjNameBuf, sizeof(mTerrainObjNameBuf)))
+				CopyFromNameBuf(target.Name, mTerrainObjNameBuf);
+
+			// LODActivation
+			ImGui::Text("LOD Activation");
+			ImGui::SetNextItemWidth(180.0f);
+			ImGui::DragInt("##TerrainObjLOD", &target.LODActivation, 1.0f, 0, 25);
+
+			// Seed (read-only)
+			ImGui::Text("Seed");
+			ImGui::SetNextItemWidth(180.0f);
+			ImGui::BeginDisabled();
+			uint32_t seed = target.Seed;
+			ImGui::InputScalar("##TerrainObjSeed", ImGuiDataType_U32, &seed);
+			ImGui::EndDisabled();
+
+			ImGui::Separator();
+
+			// --- Mesh row (table) ---
+			DrawTerrainObjectMeshRow(target); // implement below
+
+			ImGui::Separator();
+
+			// Density / caps
+			ImGui::Text("Density (per km^2)");
+			ImGui::SetNextItemWidth(180.0f);
+			ImGui::DragFloat("##TerrainObjDensity", &target.DensityPerKm2, 10.0f, 0.0f, 1e8f, "%.0f");
+
+			ImGui::Text("Max per patch");
+			ImGui::SetNextItemWidth(180.0f);
+			ImGui::DragInt("##TerrainObjMaxPerPatch", &target.MaxPerPatch, 1.0f, 0, 4096);
+
+			ImGui::Text("Max total");
+			ImGui::SetNextItemWidth(180.0f);
+			ImGui::DragInt("##TerrainObjMaxTotal", &target.MaxTotal, 256.0f, 0, 5000000);
+
+			ImGui::Separator();
+
+			// Scale
+			ImGui::Text("Min scale");
+			ImGui::SetNextItemWidth(180.0f);
+			ImGui::DragFloat("##TerrainObjMinScale", &target.MinScale, 0.01f, 0.0f, 100.0f, "%.2f");
+
+			ImGui::Text("Max scale");
+			ImGui::SetNextItemWidth(180.0f);
+			ImGui::DragFloat("##TerrainObjMaxScale", &target.MaxScale, 0.01f, 0.0f, 100.0f, "%.2f");
+
+			if (target.MaxScale < target.MinScale)
+				target.MaxScale = target.MinScale;
+
+			ImGui::Separator();
+
+			const float btnW = 120.0f;
+
+			if (ImGui::Button("Close", ImVec2(btnW, 0.0f)))
+			{
+				mEditingTerrainObj = false;
+				mEditingTerrainObjIndex = -1;
+				ImGui::CloseCurrentPopup();
+			}
+
+			if (!mEditingTerrainObj)
+			{
+				ImGui::SameLine();
+
+				// Optional: do not allow Add unless mesh is selected
+				const bool canAdd = (mTerrainObjDraft.MeshObject != nullptr);
+				ImGui::BeginDisabled(!canAdd);
+
+				if (ImGui::Button("Add", ImVec2(btnW, 0.0f)))
+				{
+					mContext->mTerrainObjects.push_back(mTerrainObjDraft);
+					mEditingTerrainObj = false;
+					mEditingTerrainObjIndex = -1;
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndDisabled();
+			}
+
+			ImGui::EndPopup();
+		}
+
+		ImGui::PopStyleVar(3);
+	}
+
 	void PlanetPanel::OnImGuiRender(bool* showPanel, std::string& activeDragArea)
 	{
 		if (!showPanel || !*showPanel)
@@ -452,6 +779,8 @@ namespace Toast {
 					ImGui::BeginChild("##PlanetHeightDetailsBox", ImVec2(fullW, boxH), true, childFlags);
 					ImGui::Dummy(ImVec2(0.0f, 0.5f));
 
+					int deleteIndex = -1;
+
 					// Render each detail as a “box” row (clickable)
 					for (int i = 0; i < (int)mContext->mHeightDetails.size(); ++i)
 					{
@@ -472,6 +801,18 @@ namespace Toast {
 						ImGui::PopStyleVar(3);
 						ImGui::PopStyleColor(1);
 
+						if (ImGui::BeginPopupContextItem("##DetailContext", ImGuiPopupFlags_MouseButtonRight))
+						{
+							ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 8.0f));
+							ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 6.0f));
+
+							if (ImGui::MenuItem("Delete"))
+								deleteIndex = i;
+
+							ImGui::PopStyleVar(2);
+							ImGui::EndPopup();
+						}
+
 						// Extra spacing between entries
 						ImGui::Dummy(ImVec2(0.0f, 0.5f));
 
@@ -486,6 +827,31 @@ namespace Toast {
 						}
 
 						ImGui::PopID();
+
+						if (deleteIndex != -1)
+							break;
+					}
+
+					if (deleteIndex != -1)
+					{
+						// If you are editing this one (or indices after it), fix state.
+						if (mEditingDetail)
+						{
+							if (mEditingDetailIndex == deleteIndex)
+							{
+								mEditingDetail = false;
+								mEditingDetailIndex = -1;
+							}
+							else if (mEditingDetailIndex > deleteIndex)
+							{
+								// Vector elements shift left
+								mEditingDetailIndex--;
+							}
+						}
+
+						mContext->mHeightDetails.erase(mContext->mHeightDetails.begin() + deleteIndex);
+
+						mContext->mHeightDetailsDirty = true;
 					}
 
 					ImGui::EndChild();
@@ -615,6 +981,9 @@ namespace Toast {
 					}
 
 					ImGui::PopStyleVar(3);
+
+					DrawTerrainObjectsListUI();
+					DrawTerrainObjectPopup();
 
 					ImGui::EndTable();
 				}

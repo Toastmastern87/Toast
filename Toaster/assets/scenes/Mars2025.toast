@@ -1,6 +1,6 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [-62.9616432, 52.7376671, -102.381378]
+  Position: [-117.642944, 5.98344564, -91.6099625]
 Settings:
   Grid: false
   CameraFrustum: true
@@ -102,6 +102,16 @@ Planet:
       Octaves: 7
       Frequency: 0.00200000009
       Amplitude: 2.80999994
+  TerrainObjects:
+    - Name: Stones
+      Seed: 1091646983
+      LODActivation: 7
+      DensityPerKm2: 15560
+      MaxPerPatch: 731
+      MaxTotal: 200000
+      MinScale: 0.0399999991
+      MaxScale: 0.810000002
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Stone\Stone.gltf
 Environment:
   DiffuseIBLGain: 1
   SpecularIBLGain: 1

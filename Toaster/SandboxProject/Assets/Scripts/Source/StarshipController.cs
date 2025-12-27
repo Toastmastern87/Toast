@@ -65,7 +65,7 @@ namespace Sandbox
 
             if (mEnginesRunning)
             {
-                Quaternion totalRot = mTransform.TotalRotation; // or compose Euler+Quat if you expose both
+                Quaternion totalRot = mTransform.Rotation; // or compose Euler+Quat if you expose both
                 Vector3 thrustDirWS = Vector3.Normalize(Vector3.Rotate(totalRot, new Vector3(0.0f, 1.0f, 0.0f)));
 
                 float thrustForceMagnitude = 38413.0f; // example from your current scenario
