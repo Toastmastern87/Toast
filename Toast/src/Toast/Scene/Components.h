@@ -201,6 +201,7 @@ namespace Toast {
 	struct SphereColliderComponent
 	{
 		Ref<ShapeSphere> Collider;
+		bool InertiaTensorIsDirty = false;
 
 		Ref<Mesh> ColliderMesh;
 		bool RenderCollider = false;
@@ -213,6 +214,7 @@ namespace Toast {
 	struct BoxColliderComponent
 	{
 		Ref<ShapeBox> Collider;
+		bool InertiaTensorIsDirty = false;
 
 		Ref<Mesh> ColliderMesh;
 		bool RenderCollider = false;

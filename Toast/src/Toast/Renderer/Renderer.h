@@ -129,9 +129,6 @@ namespace Toast {
 			std::vector<DirectX::XMFLOAT4> SSAONoiseCPU;
 			Scope<Texture2D> SSAONoiseTexture;
 
-			// Good Ray data
-			Ref<RenderTarget> GodRaySunMaskRT;
-
 			// Bloom data
 			Ref<RenderTarget> SunBloomRT, SkyBloomRT, GeometryBloomRT;
 			Ref<RenderTarget> SunBloomHalfRT, SunBloomQuarterRT, SunBloomQuarterBlurRT, SunBloomUpSampleRT;

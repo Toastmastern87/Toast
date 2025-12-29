@@ -167,9 +167,6 @@ namespace Toast {
 		// Setting up the render target for the Lightning Pass
 		sRendererData->LPassRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
 
-		// Setting up the render target for the God Ray pass
-		sRendererData->GodRaySunMaskRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, width, 1, TextureFormat::R16G16B16A16_FLOAT);
-
 		// Setting up the render target for Bloom Pass
 		sRendererData->SunBloomRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
 		sRendererData->SkyBloomRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
@@ -292,8 +289,6 @@ namespace Toast {
 
 		sRendererData->SSAORT->Resize(width, height);
 		sRendererData->SSAOBlurRT->Resize(width, height);
-
-		sRendererData->GodRaySunMaskRT->Resize(width, height);
 
 		sRendererData->SunBloomRT->Resize(width, height);
 		sRendererData->SkyBloomRT->Resize(width, height);
@@ -852,9 +847,6 @@ namespace Toast {
 				{
 					RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
 					RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
-
-					//RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
-					//RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
 				}
 
 				sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
@@ -1478,28 +1470,12 @@ namespace Toast {
 			annotation->BeginEvent(L"God Ray Pass");
 #endif
 
-		// Disable depth test for screen-space passes
-		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
-
-		// Set render target for the sun mask (this needs to be created in RendererData)
-		RenderCommand::SetRenderTargets({ sRendererData->GodRaySunMaskRT->GetRTV().Get() }, nullptr);
-		RenderCommand::ClearRenderTargets(sRendererData->GodRaySunMaskRT->GetRTV().Get(), { 0,0,0,0 });
-
-		// Bind shader for rendering the sun mask (assumed to be created at assets/shaders/Post Process/SunDiscMask.hlsl)
-		ShaderLibrary::Get("assets/shaders/Utilities/SunDiscMask.hlsl")->Bind();
-
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
-
-		DrawFullscreenQuad();
-
-		RenderCommand::ClearShaderResources();
-
 		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, nullptr);
 
 		ShaderLibrary::Get("assets/shaders/Post Process/GodRays.hlsl")->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->DepthBuffer->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GodRaySunMaskRT->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->SunDiscMaskRT->GetSRV());
 
 		RenderCommand::SetBlendState(sRendererData->ParticleBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
@@ -1508,6 +1484,7 @@ namespace Toast {
 		sRendererData->GodRaysBuffer.Write((uint8_t*)&density, 4, 8);
 		sRendererData->GodRaysBuffer.Write((uint8_t*)&weight, 4, 12);
 		sRendererData->GodRaysCBuffer->Map(sRendererData->GodRaysBuffer);
+		sRendererData->GodRaysCBuffer->Bind();
 
 		DrawFullscreenQuad();
 
@@ -2219,6 +2196,16 @@ namespace Toast {
 			if (instCount == 0)
 				continue;
 
+			const double cells = double(gridSize - 1);
+			const double widthM = cells * double(cellSize);
+			const double areaM2 = widthM * widthM;
+			double scatterCellSize = std::sqrt(areaM2 / std::max<double>(1.0, double(instCount)));
+			scatterCellSize = std::clamp(scatterCellSize, 0.25 * double(cellSize), 8.0 * double(cellSize));
+			float scatterCellSizeF = static_cast<float>(scatterCellSize);
+
+			uint32_t scatterCells = (uint32_t)std::ceil(widthM / scatterCellSize);
+			scatterCells = std::clamp<uint32_t>(scatterCells, 16u, 1024u);
+
 			// Fill per-layer CB (b13)
 			auto& buffer = planet->GetTerrainObjectBuffer();
 			buffer.Write((uint8_t*)&object.Seed, 4, 0);
@@ -2226,6 +2213,8 @@ namespace Toast {
 			buffer.Write((uint8_t*)&instCount, 4, 8);
 			buffer.Write((uint8_t*)&object.MinScale, 4, 12);
 			buffer.Write((uint8_t*)&object.MaxScale, 4, 16);
+			buffer.Write((uint8_t*)&scatterCellSizeF, 4, 20);
+			buffer.Write((uint8_t*)&scatterCells, 4, 24);
 
 			planet->GetTerrainObjectCBuffer()->Map(buffer);
 			planet->GetTerrainObjectCBuffer()->Bind(); // b13
@@ -2247,9 +2236,11 @@ namespace Toast {
 			// If your Mesh::Bind() does not bind material SRVs, do it here.
 			object.MeshObject->Bind();
 
+			uint32_t candidateCount = scatterCells * scatterCells;
+
 			// Start with LOD0 group submesh 0 (same assumption you used previously)
 			const auto& sub = object.MeshObject->mLODGroups[0]->Submeshes[0];
-			RenderCommand::DrawIndexedInstanced(sub.IndexCount, instCount, sub.BaseIndex, 0, 0);
+			RenderCommand::DrawIndexedInstanced(sub.IndexCount, candidateCount, sub.BaseIndex, 0, 0);
 		}
 	}
 

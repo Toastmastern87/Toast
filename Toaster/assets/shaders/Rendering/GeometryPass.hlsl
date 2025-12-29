@@ -55,7 +55,10 @@ cbuffer PlanetLevel : register(b7)
     int OriginY;
     int CellSize;
     int GridSize;
+    
     int DrawMode;
+    float ScatterOriginMetersX;
+    float ScatterOriginMetersY;
 };
 
 // Per-terrain-object-layer settings (bind once per layer)
@@ -67,6 +70,8 @@ cbuffer TerrainObject : register(b13)
     float TOMinScale;
     
     float TOMaxScale;
+    float TOScatterCellSize;
+    uint TOScatterCells;
 };
 
 struct VertexInputType
@@ -108,12 +113,8 @@ SamplerState UWrapVClampLinearSampler       : register(s5);
 static const uint EDGE_CELLS = 12;
 
 #include "PerlinNoise.hlsli"
+#include "TerrainHeightCalculations.hlsli"
 
-struct CubeSample
-{
-    uint face;
-    float2 uv; // [0,1]
-};
 
 struct InstSurfaceSample
 {
@@ -122,218 +123,35 @@ struct InstSurfaceSample
     float h; // height for debug / later
 };
 
-float3 CubeFaceUVToDir(uint face, float2 uv)
+uint2 ComputeLocalGridCoordFromOff(float2 offMeters)
 {
-    // Match the bake: flip Y
-    float2 p = 2.0 * float2(uv.x, 1.0 - uv.y) - 1.0;
-    float px = p.x;
-    float py = p.y;
+    float cells = (float) (GridSize - 1);
+    float halfExtent = 0.5f * cells * (float) CellSize;
 
-    switch (face)
-    {
-        case 0:
-            return normalize(float3(1.0, py, -px)); // +X
-        case 1:
-            return normalize(float3(-1.0, py, px)); // -X
-        case 2:
-            return normalize(float3(px, 1.0, -py)); // +Y
-        case 3:
-            return normalize(float3(px, -1.0, py)); // -Y
-        case 4:
-            return normalize(float3(px, py, 1.0)); // +Z
-        default:
-            return normalize(float3(-px, py, -1.0)); // -Z
-    }
+    // Map meters -> [0..cells] in float
+    float2 g = (offMeters + halfExtent) / (float) CellSize;
+
+    // Clamp and convert
+    g = clamp(g, 0.0f, cells);
+    return (uint2) g;
 }
 
-CubeSample DirectionToCube(float3 v)
+float2 OffMetersFromDirTangentApprox(float3 nWS)
 {
-    v = normalize(v);
+    // Project direction onto the tangent basis
+    float e = dot(nWS, BasisTanEast);
+    float n = dot(nWS, BasisTanNorth);
+    float u = dot(nWS, BasisRadUp);
 
-    float ax = abs(v.x);
-    float ay = abs(v.y);
-    float az = abs(v.z);
-
-    uint face;
-    float2 uvFace;
-
-    if (ax >= ay && ax >= az)
-    {
-        if (v.x > 0)
-        {
-            face = 0;
-            uvFace = float2(-v.z, v.y) / ax;
-        }
-        else
-        {
-            face = 1;
-            uvFace = float2(v.z, v.y) / ax;
-        }
-    }
-    else if (ay >= ax && ay >= az)
-    {
-        if (v.y > 0)
-        {
-            face = 2;
-            uvFace = float2(v.x, -v.z) / ay;
-        }
-        else
-        {
-            face = 3;
-            uvFace = float2(v.x, v.z) / ay;
-        }
-    }
-    else
-    {
-        if (v.z > 0)
-        {
-            face = 4;
-            uvFace = float2(v.x, v.y) / az;
-        }
-        else
-        {
-            face = 5;
-            uvFace = float2(-v.x, v.y) / az;
-        }
-    }
-
-    CubeSample cs;
-    cs.face = face;
-    cs.uv = uvFace * 0.5 + 0.5;
-    return cs;
+    // Small-angle tangent-plane approximation
+    float invU = rcp(max(u, 1e-4f));
+    return PlanetRadius * float2(e, n) * invU;
 }
 
-// If uv is outside [0,1], wrap to the correct neighbor face via direction space.
-CubeSample RemapFaceUV(uint face, float2 uv)
-{
-    if (all(uv >= 0.0f) && all(uv <= 1.0f))
-    {
-        CubeSample cs;
-        cs.face = face;
-        cs.uv = uv;
-        return cs;
-    }
-    float3 dir = CubeFaceUVToDir(face, uv);
-    return DirectionToCube(dir);
-}
-
-// Manual bilinear sampler that crosses cube-face edges using Load().
-float SampleCubeBilinearLoad(float3 dir, uint2 dims, uint mip)
-{
-    CubeSample cs = DirectionToCube(dir);
-    uint face = cs.face;
-    float2 uv = cs.uv;
-
-    float2 p = uv * dims - 0.5f;
-    float2 fxy = frac(p);
-    int2 i0 = int2(floor(p));
-    int2 i1 = i0 + 1;
-
-    float2 uv00 = (float2(i0) + 0.5f) / dims;
-    float2 uv10 = (float2(i1.x, i0.y) + 0.5f) / dims;
-    float2 uv01 = (float2(i0.x, i1.y) + 0.5f) / dims;
-    float2 uv11 = (float2(i1) + 0.5f) / dims;
-
-    CubeSample c00 = RemapFaceUV(face, uv00);
-    CubeSample c10 = RemapFaceUV(face, uv10);
-    CubeSample c01 = RemapFaceUV(face, uv01);
-    CubeSample c11 = RemapFaceUV(face, uv11);
-
-    int2 wh = int2(dims);
-    int2 ij00 = clamp(int2(c00.uv * wh), int2(0, 0), wh - 1);
-    int2 ij10 = clamp(int2(c10.uv * wh), int2(0, 0), wh - 1);
-    int2 ij01 = clamp(int2(c01.uv * wh), int2(0, 0), wh - 1);
-    int2 ij11 = clamp(int2(c11.uv * wh), int2(0, 0), wh - 1);
-
-    float v00 = HeightCubeArray.Load(int4(ij00, c00.face, mip));
-    float v10 = HeightCubeArray.Load(int4(ij10, c10.face, mip));
-    float v01 = HeightCubeArray.Load(int4(ij01, c01.face, mip));
-    float v11 = HeightCubeArray.Load(int4(ij11, c11.face, mip));
-
-    float vx0 = lerp(v00, v10, fxy.x);
-    float vx1 = lerp(v01, v11, fxy.x);
-    return lerp(vx0, vx1, fxy.y);
-}
-
-uint2 ComputeLocalGridCoord(float2 offMeters)
-{
-    // offMeters = gWorld * CellSize  => gWorld ≈ offMeters / CellSize
-    // Use round so we land on the nearest grid line for stable banding
-    int2 gWorld = (int2) round(offMeters / (float) CellSize);
-
-    int2 gLocalI = gWorld - int2(OriginX, OriginY);
-
-    uint cells = (uint) (GridSize - 1);
-    int2 clamped = clamp(gLocalI, int2(0, 0), int2((int) cells, (int) cells));
-    return (uint2) clamped;
-}
-
-/*──────────────────────── Use it in vertex sampling ───────────────────────────────*/
-
-float SampleHeightFromDir(float3 dirPlanet)
-{
-    // Mip 0; if you use mips, compute dims for that mip.
-    uint W, H, L;
-    HeightCubeArray.GetDimensions(W, H, L);
-    return SampleCubeBilinearLoad(normalize(dirPlanet), uint2(W, H), /*mip*/0);
-}
-
-uint EdgeDistanceToBorder(uint2 gLocal, uint cells)
-{
-    uint dx = min(gLocal.x, cells - gLocal.x);
-    uint dy = min(gLocal.y, cells - gLocal.y);
-    return min(dx, dy); // 0 on outer border, 1..EDGE_CELLS inward
-}
-
-float EdgeBlendWeight(uint2 gLocal, uint cells)
-{
-    // 0 -> coarse, 1 -> fine
-    uint d = EdgeDistanceToBorder(gLocal, cells);
-
-    // We only care inside the band [0..EDGE_CELLS]
-    float t = saturate((float) d / (float) EDGE_CELLS);
-
-    // smoother transition (optional but recommended)
-    return t * t * (3.0f - 2.0f * t); // smoothstep(0,1,t)
-}
-
-int LodFromCellSize(int cellSize)
-{
-    // cellSize: 1,2,4,8,... (must be power of two)
-    int lod = 0;
-    int v = cellSize;
-    while (v > 1)
-    {
-        v >>= 1;
-        lod++;
-    }
-    
-    return lod;
-}
-
-float AccumulateHeightDetails(float3 offMeters, int lod)
-{
-    float sum = 0.0f;
-
-    [loop]
-    for (int i = 0; i < NumHeightDetails; ++i)
-    {
-        DetailSettings d = Details[i];
-        if (lod <= d.LODActivation)
-        {
-            sum += FractalPerlin3D(d.PermBase, offMeters, d.Octaves, d.Frequency, d.Amplitude);
-        }
-    }
-    return sum;
-}
-
-float EvaluateTerrainHeightMeters(float2 offMeters, int lod /*unused but keep signature*/)
+float EvaluateTerrainHeightMeters(float2 offMeters)
 {
     // 1) Reference-sphere direction (same as planet VS)
-    float3 pSphereLocal =
-        BasisRadUp +
-        BasisTanEast * (offMeters.x / PlanetRadius) +
-        BasisTanNorth * (offMeters.y / PlanetRadius);
+    float3 pSphereLocal = BasisRadUp + BasisTanEast * (offMeters.x / PlanetRadius) + BasisTanNorth * (offMeters.y / PlanetRadius);
 
     float3 nWS = normalize(pSphereLocal);
 
@@ -402,6 +220,29 @@ float3 Hash03(uint x)
     return float3(Hash01(x), Hash01(x ^ 0x9e3779b9u), Hash01(x ^ 0x85ebca6bu));
 }
 
+void BuildONB(float3 n, out float3 b1, out float3 b2)
+{
+    // Orthonormal basis around n
+    float3 up = (abs(n.y) < 0.999f) ? float3(0, 1, 0) : float3(1, 0, 0);
+    b1 = normalize(cross(up, n));
+    b2 = cross(n, b1);
+}
+
+float3 SampleDirInCap(float3 centerDir, float alphaMax, float2 u)
+{
+    // u in [0,1]^2, uniform on spherical cap
+    // cos(theta) in [cos(alphaMax), 1]
+    float cosMin = cos(alphaMax);
+    float cosT = lerp(cosMin, 1.0f, u.x);
+    float sinT = sqrt(saturate(1.0f - cosT * cosT));
+    float phi = u.y * 6.2831853f;
+
+    float3 b1, b2;
+    BuildONB(centerDir, b1, b2);
+
+    return normalize(centerDir * cosT + (b1 * cos(phi) + b2 * sin(phi)) * sinT);
+}
+
 float4x4 CreateRotationMatrix(float3 rotationAngles)
 {
     // Rotation matrix around the X axis
@@ -448,50 +289,90 @@ PixelInputType main(VertexInputType input, uint instanceID : SV_InstanceID)
     
     // CURRENTLY THIS WILL ONLY RENDER TERRAIN OBJECTS!
     if (isInstanced)
-    {        
-        // Decide which LOD we are currently drawing for this instanced pass.
-        // You are dispatching draws per level on the CPU, so use that level’s CellSize/GridSize.
-        // If you need the numeric lod index, derive it from CellSize:
+    {       
+  // ----- Candidate grid for this draw -----
+        uint scells = max(1u, TOScatterCells);
+        uint candidateCount = scells * scells;
+
+        // If your DrawIndexedInstanced uses candidateCount, this is always true; still keep as guard.
+        if (instanceID >= candidateCount)
+        {
+            output.pixelPosition = float4(2, 2, 2, 1);
+            return output;
+        }
+
+        uint ix = instanceID % scells;
+        uint iy = instanceID / scells;
+
+        // LOD window size in meters (same region you use for terrain for this level)
+        float cells = (float) (GridSize - 1);
+        float widthM = cells * (float) CellSize;
+        float halfExtent = 0.5f * widthM;
+
+        // Candidate cell size in the window (meters)
+        // This is NOT TOScatterCellSize; this is just how we sample the window uniformly.
+        float candidateCellSize = widthM / (float) scells;
+
+        // Local candidate center in offMeters convention centered at (0,0)
+        float2 offMeters = (float2((float) ix + 0.5f, (float) iy + 0.5f) * candidateCellSize)
+                         - float2(halfExtent, halfExtent);
+
+        // Convert to world-stable tangent-plane meters
+        float2 globalMeters = float2(ScatterOriginMetersX, ScatterOriginMetersY) + offMeters;
+
+        // Quantize to a WORLD scatter cell id (this anchors identity in world space)
+        float scatterSize = max(1e-3f, TOScatterCellSize);
+        int worldCX = (int) floor(globalMeters.x / scatterSize);
+        int worldCY = (int) floor(globalMeters.y / scatterSize);
+
+        // LOD index (same as your code)
         int lod = 0;
         int cs = CellSize;
         while (cs > 1)
         {
             cs >>= 1;
             lod++;
-        } // CellSize = 2^lod
+        }
 
-        // Deterministic RNG per instance & level
-        uint base = Hash_u32(TOSeed ^ instanceID ^ (uint) (lod * 0x9e3779b9u));
-        float2 r2 = Hash02(base);
-        float3 r3 = Hash03(base ^ 0x68bc21ebu);
+        // Stable world key: DO NOT include camera/window origin
+        uint key = Hash_u32(TOSeed
+                  ^ Hash_u32((uint) worldCX)
+                  ^ (Hash_u32((uint) worldCY) * 0x85ebca6bu)
+                  ^ (uint) (lod * 0x9e3779b9u));
 
-        // Patch half-extent in meters for this level’s grid
-        float cells = (float) (GridSize - 1);
-        float halfExtent = 0.5f * cells * (float) CellSize;
+        // Density: expected keep fraction ~= desiredCount / candidateCount
+        float keepProb = saturate((float) TOInstancesPerLevel / (float) candidateCount);
 
-        // Random point in tangent plane
-        float2 offMeters = (r2 * 2.0f - 1.0f) * halfExtent;
+        // Cull most candidates
+        if (Hash01(key) > keepProb)
+        {
+            output.pixelPosition = float4(2, 2, 2, 1);
+            return output;
+        }
 
-        // Evaluate terrain height at this point (meters above reference radius)
-        float h = EvaluateTerrainHeightMeters(offMeters, lod);
+        // Stable randoms for this world cell
+        float2 r2 = Hash02(key);
+        float3 r3 = Hash03(key ^ 0x68bc21ebu);
 
-        // Build base position in camera-relative space (same as your terrain tangent-plane path)
+        // Jitter within the WORLD scatter cell (stable)
+        float2 jitter = (r2 - 0.5f) * 0.9f * scatterSize;
+
+        // Place at jittered world position, then convert back to local offMeters for your height eval
+        float2 jitteredGlobalMeters = (float2((float) worldCX, (float) worldCY) + r2) * scatterSize;
+        offMeters = jitteredGlobalMeters - float2(ScatterOriginMetersX, ScatterOriginMetersY);
+
+        // ----- Terrain height + camera-relative base position (your existing path) -----
+        float h = EvaluateTerrainHeightMeters(offMeters);
+
         float3 pPlaneCR = BasisTanEast * offMeters.x + BasisTanNorth * offMeters.y;
-        float heightAboveCamera = h - Altitude;
-        float3 baseCR = pPlaneCR + BasisRadUp * heightAboveCamera;
+        float3 baseCR = pPlaneCR + BasisRadUp * (h - Altitude);
 
-        // Optional slope alignment normal
-        // TODO
-       // float3 surfNCR = ComputeSurfaceNormalCR(offMeters, lod);
-
-        // Random uniform scale
+        // ----- Per-instance scale/rotation (your existing path) -----
         float scale = lerp(TOMinScale, TOMaxScale, r3.x);
 
-        // Random rotation (use trig here; acceptable)
-        float3 rotationAngles = float3(r3.x, r3.y, r3.z) * 6.2831853f;
+        float3 rotationAngles = r3 * 6.2831853f;
         float4x4 rotM = CreateRotationMatrix(rotationAngles);
 
-        // Apply local mesh transform (scale + rotation)
         float3 localPos = input.position * scale;
         float3 localN = input.normal;
         float3 localT = input.tangent.xyz;
@@ -500,33 +381,36 @@ PixelInputType main(VertexInputType input, uint instanceID : SV_InstanceID)
         float3 rotatedN = mul(localN, (float3x3) rotM);
         float3 rotatedT = mul(localT, (float3x3) rotM);
 
-        // Align to slope: rotate from +Z (or +Y) to surf normal.
-        // Choose your mesh “up axis” here. If your stone meshes are authored with +Y as up:
-        float3 meshUp = float3(0, 1, 0);
+        // (Optional) slope alignment: only do this if you compute a real surface normal at offMeters.
+        // Otherwise you will introduce artifacts. For now, skip.
 
-        // Build an orthonormal basis from surf normal for alignment
-        // This creates a frame where 'up' = surfNCR. We then express rotatedPos in that frame.
-        float3 up = float3(0, 1, 0);
-        float3 east = normalize(cross(BasisSpinUp, up));
-        if (all(abs(east) < 1e-6))
-            east = normalize(cross(float3(1, 0, 0), up));
-        float3 north = normalize(cross(up, east));
+        float3 pCR = baseCR + rotatedPos;
 
-        float3x3 alignM = float3x3(east, up, north); // columns
+        // ----- Output -----
+        float4 worldPosition = float4(pCR, 1.0f);
 
-        // If mesh up is +Y, this works when we treat rotatedPos.y as "up".
-        // So interpret rotatedPos in mesh local axes (x,right; y,up; z,forward) and map to world:
-        float3 alignedPos = alignM[0] * rotatedPos.x + alignM[1] * rotatedPos.y + alignM[2] * rotatedPos.z;
-        float3 alignedN = normalize(alignM[0] * rotatedN.x + alignM[1] * rotatedN.y + alignM[2] * rotatedN.z);
-        float3 alignedT = normalize(alignM[0] * rotatedT.x + alignM[1] * rotatedT.y + alignM[2] * rotatedT.z);
+        float4 viewPosition = mul(worldPosition, viewMatrix);
+        output.pixelPosition = mul(viewPosition, projectionMatrix);
+        output.viewPosition = viewPosition.xyz;
+        
+        worldNormal = rotatedN;
+        worldTangent = float4(rotatedT, input.tangent.w);
 
-        // Final camera-relative position
-        float3 pCR = baseCR + alignedPos;
+        float3 viewNormal = normalize(mul(worldNormal, (float3x3) viewMatrix));
+        float3 viewTangent = normalize(mul(worldTangent, (float3x3) viewMatrix));
+    
+        float3 viewBitangent = cross(viewNormal, viewTangent) * input.tangent.w;
+    
+        float3x3 TBN = float3x3(viewTangent, viewBitangent, viewNormal);
+    
+        output.TBN = TBN;
+        output.viewNormal = viewNormal;
 
-        // IMPORTANT: pCR is already camera-relative. Do NOT apply worldTranslationMatrix here.
-        worldPosition = float4(pCR, 1.0f);
-        worldNormal = alignedN;
-        worldTangent = alignedT;
+        output.texCoord = input.texCoord;
+        output.entityID = -1;
+
+        // Fill any remaining outputs (uv, material ids, etc.) as your shader requires.
+        return output;
     }
     else
     {
@@ -621,7 +505,7 @@ PixelOutputType main(PixelInputType input)
 {
     PixelOutputType output;
     PBRParameters params;
-	
+    
     // Sample input textures to get shading model params.
     params.Albedo = AlbedoTexToggle > 0 ? AlbedoTexture.Sample(defaultSampler, input.texCoord).rgb : Albedo.rgb;
     params.Metalness = MetalRoughTexToggle > 0 ? MetalRoughTexture.Sample(defaultSampler, input.texCoord).b : Metalness;

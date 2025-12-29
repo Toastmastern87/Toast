@@ -1293,11 +1293,7 @@ namespace Toast {
 
 					scc.Collider->CalculateBounds();
 
-					if (deserializedEntity.HasComponent<RigidBodyComponent>())
-					{
-						auto& rbc = deserializedEntity.GetComponent<RigidBodyComponent>();
-						scc.Collider->CalculateInertiaTensor(1.0f / rbc.InvMass);
-					}
+					scc.InertiaTensorIsDirty = true;
 				}
 
 				auto boxColliderComponent = entity["BoxColliderComponent"];
@@ -1311,11 +1307,8 @@ namespace Toast {
 					bcc.Collider->CalculateBounds();
 					bcc.Collider->BuildCornerPoints();
 
-					if (deserializedEntity.HasComponent<RigidBodyComponent>())
-					{
-						auto& rbc = deserializedEntity.GetComponent<RigidBodyComponent>();
-						bcc.Collider->CalculateInertiaTensor(1.0f / rbc.InvMass);
-					}
+					bcc.InertiaTensorIsDirty = true;
+
 				}
 
 				auto uiPanelComponent = entity["UIPanelComponent"];

@@ -430,6 +430,8 @@ namespace Toast {
 		cb.OriginY = lvl.Origin.second;
 		cb.CellSize = cellSize;                  // 2^L meters
 		cb.GridSize = mGridSize;                // e.g. 257
+		cb.ScatterOriginMetersX = -mShiftEastM;
+		cb.ScatterOriginMetersY = -mShiftNorthM;
 
 		/* copy to the generic scratch buffer you created
 		   when you built  sPlanetLevelCBuffer  */
@@ -496,6 +498,9 @@ namespace Toast {
 		mBasisRadUp = cb.BasisRadUp;
 		mBasisTanEast = cb.BasisTanEast;
 		mBasisTanNorth = cb.BasisTanNorth;
+
+		mShiftEastM = Vector3::Dot(worldTranslation, mBasisTanEast);
+		mShiftNorthM = Vector3::Dot(worldTranslation, mBasisTanNorth);
 
 		mPlanetFrameBuffer.Write(reinterpret_cast<uint8_t*>(&cb), sizeof(cb), 0);
 

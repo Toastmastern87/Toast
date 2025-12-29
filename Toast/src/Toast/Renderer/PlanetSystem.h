@@ -60,6 +60,8 @@ namespace Toast {
 		uint32_t CellSize;
 		uint32_t GridSize;
 		uint32_t DrawMode;
+		float ScatterOriginMetersX;
+		float ScatterOriginMetersY;
 	};
 
 	struct PlanetFrameCB
@@ -204,6 +206,8 @@ namespace Toast {
 		Quaternion mInvRotationQuat;
 		Vector3 mPlanetCenterCR;
 		Vector2 mCamSurfaceMeters;
+		double mShiftEastM;
+		double mShiftNorthM;
 
 		// GPU Data
 		Ref<VertexBuffer> mGridVertexBuffer;

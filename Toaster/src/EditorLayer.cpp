@@ -95,7 +95,6 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Environment/EnvironmentIrradiance.hlsl");
 
 		// Others
-		ShaderLibrary::Load("assets/shaders/Utilities/SunDiscMask.hlsl");
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
 		ShaderLibrary::Load("assets/shaders/UI.hlsl");
 		ShaderLibrary::Load("assets/shaders/Utilities/Copy.hlsl");
