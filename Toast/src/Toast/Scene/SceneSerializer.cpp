@@ -619,8 +619,6 @@ namespace Toast {
 		out << YAML::Key << "CameraFrustum" << YAML::Value << settings.CameraFrustum;
 		out << YAML::Key << "SunLightFrustum" << YAML::Value << settings.SunLightFrustum;
 		out << YAML::Key << "DirectionalLightningGain" << YAML::Value << settings.DirectionalLightningGain;
-		out << YAML::Key << "BackfaceCulling" << YAML::Value << settings.BackfaceCulling;
-		out << YAML::Key << "FrustumCulling" << YAML::Value << settings.FrustumCulling;
 		out << YAML::Key << "RenderColliders" << YAML::Value << settings.RenderColliders;
 		out << YAML::Key << "RenderUI" << YAML::Value << settings.RenderUI;
 		out << YAML::Key << "Shadows" << YAML::Value << settings.Shadows;
@@ -645,22 +643,20 @@ namespace Toast {
 		out << YAML::Key << "SaturationClamp" << YAML::Value << settings.Bloom.SaturationClamp;
 		out << YAML::Key << "DynamicIBL" << YAML::Value << settings.DynamicIBL;
 		out << YAML::Key << "SunFrustumOrthoSize" << YAML::Value << settings.SunFrustumOrthoSize;
-		out << YAML::Key << "GodRaysExposure" << YAML::Value << settings.GodRaysExposure;
-		out << YAML::Key << "GodRaysDecay" << YAML::Value << settings.GodRaysDecay;
-		out << YAML::Key << "GodRaysDensity" << YAML::Value << settings.GodRaysDensity;
-		out << YAML::Key << "GodRaysWeight" << YAML::Value << settings.GodRaysWeight;
+		out << YAML::Key << "GodRaysExposure" << YAML::Value << settings.GodRays.Exposure;
+		out << YAML::Key << "GodRaysDecay" << YAML::Value << settings.GodRays.Decay;
+		out << YAML::Key << "GodRaysDensity" << YAML::Value << settings.GodRays.Density;
+		out << YAML::Key << "GodRaysWeight" << YAML::Value << settings.GodRays.Weight;
+		out << YAML::Key << "GodRaysKHalo" << YAML::Value << settings.GodRays.KHalo;
+		out << YAML::Key << "GodRaysHaloPower" << YAML::Value << settings.GodRays.HaloPower;
+		out << YAML::Key << "GodRaysFogRangeMeters" << YAML::Value << settings.GodRays.FogRangeMeters;
 
-		out << YAML::Key << "EVGeometrySurface" << YAML::Value << settings.Exposure.EVGeometrySurface;
-		out << YAML::Key << "EVGeometrySpace" << YAML::Value << settings.Exposure.EVGeometrySpace;
-		out << YAML::Key << "EVGeometryNight" << YAML::Value << settings.Exposure.EVGeometryNight;
-		out << YAML::Key << "EVSkySurface" << YAML::Value << settings.Exposure.EVSkySurface;
-		out << YAML::Key << "EVSkySpace" << YAML::Value << settings.Exposure.EVSkySpace;
-		out << YAML::Key << "EVSkySurfaceNight" << YAML::Value << settings.Exposure.EVSkySurfaceNight;
-		out << YAML::Key << "EVSkySpaceNight" << YAML::Value << settings.Exposure.EVSkySpaceNight;
-		out << YAML::Key << "AltFadeStartFrac" << YAML::Value << settings.Exposure.AltFadeStartFrac;
-		out << YAML::Key << "AltFadeEndFrac" << YAML::Value << settings.Exposure.AltFadeEndFrac;
-		out << YAML::Key << "SunFadeStartDeg" << YAML::Value << settings.Exposure.SunFadeStartDeg;
-		out << YAML::Key << "SunFadeEndDeg" << YAML::Value << settings.Exposure.SunFadeEndDeg;
+		out << YAML::Key << "EVSurfaceDay" << YAML::Value << settings.Exposure.EVSurfaceDay;
+		out << YAML::Key << "EVSpaceDay" << YAML::Value << settings.Exposure.EVSpaceDay;
+		out << YAML::Key << "EVSurfaceNight" << YAML::Value << settings.Exposure.EVSurfaceNight;
+		out << YAML::Key << "EVSpaceNight" << YAML::Value << settings.Exposure.EVSpaceNight;
+		out << YAML::Key << "AltFadeFrac" << YAML::Value << settings.Exposure.AltFadeFrac;
+		out << YAML::Key << "SunFadeDeg" << YAML::Value << settings.Exposure.SunFadeDeg;
 
 		out << YAML::Key << "Physics";
 		out << YAML::BeginMap;
@@ -684,6 +680,7 @@ namespace Toast {
 		out << YAML::Key << "Radius" << YAML::Value << scenePlanet->mRadius;
 		out << YAML::Key << "MaxHeight" << YAML::Value << scenePlanet->mMaxHeight;
 		out << YAML::Key << "MinHeight" << YAML::Value << scenePlanet->mMinHeight;
+		out << YAML::Key << "mMeshMode" << YAML::Value << static_cast<uint32_t>(scenePlanet->mMeshMode);
 		out << YAML::Key << "AlbedoColor" << YAML::Value << scenePlanet->mAlbedoColor;
 		out << YAML::Key << "Roughness" << YAML::Value << scenePlanet->mRoughness;
 		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet->mMetalness;
@@ -789,6 +786,31 @@ namespace Toast {
 		out << YAML::Key << "SpaceHaloWidthDeg" << YAML::Value << environment.SpaceHaloWidthDeg;
 		out << YAML::Key << "SpaceHaloIntensity" << YAML::Value << environment.SpaceHaloIntensity;
 		out << YAML::Key << "SpaceHaloCutoffDeg" << YAML::Value << environment.SpaceHaloCutoffDeg;
+
+		// -------- Diffraction Spikes --------
+		out << YAML::Key << "SunSpikes" << YAML::Value << environment.SunSpikes;
+		out << YAML::Key << "SunSpikeSharpness" << YAML::Value << environment.SunSpikeSharpness;
+		out << YAML::Key << "SunSpikeRadiusSurface" << YAML::Value << environment.SunSpikeRadiusSurface;
+		out << YAML::Key << "SunSpikeRadiusSpace" << YAML::Value << environment.SunSpikeRadiusSpace;
+		out << YAML::Key << "SunSpikeFallOff" << YAML::Value << environment.SunSpikeFallOff;
+		out << YAML::Key << "SunSpikeStrengthSurface" << YAML::Value << environment.SunSpikeStrengthSurface;
+		out << YAML::Key << "SunSpikeStrengthSpace" << YAML::Value << environment.SunSpikeStrengthSpace;
+
+		// -------- Sun Glare Veil --------
+		out << YAML::Key << "SunGlareStrengthSurface" << YAML::Value << environment.SunGlareStrengthSurface;
+		out << YAML::Key << "SunGlareStrengthSpace" << YAML::Value << environment.SunGlareStrengthSpace;
+		out << YAML::Key << "SunGlareRadiusSurface" << YAML::Value << environment.SunGlareRadiusSurface;
+		out << YAML::Key << "SunGlareRadiusSpace" << YAML::Value << environment.SunGlareRadiusSpace;
+
+		// -------- General Lens and Ghost data --------
+		out << YAML::Key << "LensAltStart" << YAML::Value << environment.LensAltStart;
+		out << YAML::Key << "LensAltEnd" << YAML::Value << environment.LensAltEnd;
+		out << YAML::Key << "GhostStrength" << YAML::Value << environment.GhostStrength;
+		out << YAML::Key << "GhostSpacing" << YAML::Value << environment.GhostSpacing;
+		out << YAML::Key << "GhostFalloff" << YAML::Value << environment.GhostFalloff;
+		out << YAML::Key << "GhostSizeSurface" << YAML::Value << environment.GhostSizeSurface;
+		out << YAML::Key << "GhostSizeSpace" << YAML::Value << environment.GhostSizeSpace;
+		out << YAML::Key << "GhostAirSuppression" << YAML::Value << environment.GhostAirSuppression;
 
 		// -------- Stars --------
 		out << YAML::Key << "StarNits" << YAML::Value << environment.StarNits;
@@ -907,8 +929,6 @@ namespace Toast {
 		settings.CameraFrustum = data["Settings"]["CameraFrustum"].as<bool>();
 		settings.SunLightFrustum = data["Settings"]["SunLightFrustum"].as<bool>();
 		settings.DirectionalLightningGain = data["Settings"]["DirectionalLightningGain"].as<float>();
-		settings.BackfaceCulling = data["Settings"]["BackfaceCulling"].as<bool>();
-		settings.FrustumCulling = data["Settings"]["FrustumCulling"].as<bool>();
 		settings.RenderColliders = data["Settings"]["RenderColliders"].as<bool>();
 		settings.RenderUI = data["Settings"]["RenderUI"].as<bool>();
 		settings.Shadows = data["Settings"]["Shadows"].as<bool>();
@@ -933,21 +953,19 @@ namespace Toast {
 		settings.Bloom.SaturationClamp = data["Settings"]["SaturationClamp"].as<float>();
 		settings.DynamicIBL = data["Settings"]["DynamicIBL"].as<bool>();
 		settings.SunFrustumOrthoSize = data["Settings"]["SunFrustumOrthoSize"].as<float>();
-		settings.GodRaysExposure = data["Settings"]["GodRaysExposure"].as<float>();
-		settings.GodRaysDecay = data["Settings"]["GodRaysDecay"].as<float>();
-		settings.GodRaysDensity = data["Settings"]["GodRaysDensity"].as<float>();
-		settings.GodRaysWeight = data["Settings"]["GodRaysWeight"].as<float>();
-		settings.Exposure.EVGeometrySurface = data["Settings"]["EVGeometrySurface"].as<float>();
-		settings.Exposure.EVGeometrySpace = data["Settings"]["EVGeometrySpace"].as<float>();
-		settings.Exposure.EVGeometryNight = data["Settings"]["EVGeometryNight"].as<float>();
-		settings.Exposure.EVSkySurface = data["Settings"]["EVSkySurface"].as<float>();
-		settings.Exposure.EVSkySpace = data["Settings"]["EVSkySpace"].as<float>();
-		settings.Exposure.EVSkySurfaceNight = data["Settings"]["EVSkySurfaceNight"].as<float>();
-		settings.Exposure.EVSkySpaceNight = data["Settings"]["EVSkySpaceNight"].as<float>();
-		settings.Exposure.AltFadeStartFrac = data["Settings"]["AltFadeStartFrac"].as<float>();
-		settings.Exposure.AltFadeEndFrac = data["Settings"]["AltFadeEndFrac"].as<float>();
-		settings.Exposure.SunFadeStartDeg = data["Settings"]["SunFadeStartDeg"].as<float>();
-		settings.Exposure.SunFadeEndDeg = data["Settings"]["SunFadeEndDeg"].as<float>();
+		settings.GodRays.Exposure = data["Settings"]["GodRaysExposure"].as<float>();
+		settings.GodRays.Decay = data["Settings"]["GodRaysDecay"].as<float>();
+		settings.GodRays.Density = data["Settings"]["GodRaysDensity"].as<float>();
+		settings.GodRays.Weight = data["Settings"]["GodRaysWeight"].as<float>();
+		settings.GodRays.KHalo = data["Settings"]["GodRaysKHalo"].as<float>();
+		settings.GodRays.HaloPower = data["Settings"]["GodRaysHaloPower"].as<float>();
+		settings.GodRays.FogRangeMeters = data["Settings"]["GodRaysFogRangeMeters"].as<float>();
+		settings.Exposure.EVSurfaceDay = data["Settings"]["EVSurfaceDay"].as<float>();
+		settings.Exposure.EVSpaceDay = data["Settings"]["EVSpaceDay"].as<float>();
+		settings.Exposure.EVSurfaceNight = data["Settings"]["EVSurfaceNight"].as<float>();
+		settings.Exposure.EVSpaceNight = data["Settings"]["EVSpaceNight"].as<float>();
+		settings.Exposure.AltFadeFrac = data["Settings"]["AltFadeFrac"].as<DirectX::XMFLOAT2>();
+		settings.Exposure.SunFadeDeg = data["Settings"]["SunFadeDeg"].as<DirectX::XMFLOAT2>();
 
 		PhysicsEngine::PhysicsSettings& physicsSettings = mScene->GetPhysicsEngine()->GetSettings();
 
@@ -1013,6 +1031,8 @@ namespace Toast {
 
 		scenePlanet->UploadHeightDetailsToGPU();
 
+		Renderer::ResetEnvMapsIBLDone();
+
 		scenePlanet->mTerrainObjects.clear();
 
 		YAML::Node terrainObjectsNode = planet["TerrainObjects"];
@@ -1075,6 +1095,31 @@ namespace Toast {
 		environment.SpaceHaloWidthDeg = env["SpaceHaloWidthDeg"].as<float>();
 		environment.SpaceHaloIntensity = env["SpaceHaloIntensity"].as<float>();
 		environment.SpaceHaloCutoffDeg = env["SpaceHaloCutoffDeg"].as<float>();
+
+		// -------- Diffraction Spikes --------
+		environment.SunSpikes = env["SunSpikes"].as<int>(); 
+		environment.SunSpikeSharpness = env["SunSpikeSharpness"].as<float>();
+		environment.SunSpikeRadiusSurface = env["SunSpikeRadiusSurface"].as<float>();
+		environment.SunSpikeRadiusSpace = env["SunSpikeRadiusSpace"].as<float>();
+		environment.SunSpikeFallOff = env["SunSpikeFallOff"].as<float>();
+		environment.SunSpikeStrengthSurface = env["SunSpikeStrengthSurface"].as<float>();
+		environment.SunSpikeStrengthSpace = env["SunSpikeStrengthSpace"].as<float>();
+
+		// -------- Sun Glare Veil --------
+		environment.SunGlareStrengthSurface = env["SunGlareStrengthSurface"].as<float>();
+		environment.SunGlareStrengthSpace = env["SunGlareStrengthSpace"].as<float>();
+		environment.SunGlareRadiusSurface = env["SunGlareRadiusSurface"].as<float>();
+		environment.SunGlareRadiusSpace = env["SunGlareRadiusSpace"].as<float>();
+
+		// -------- General Lens and Ghost data --------
+		environment.LensAltStart = env["LensAltStart"].as<float>();
+		environment.LensAltEnd = env["LensAltEnd"].as<float>();
+		environment.GhostStrength = env["GhostStrength"].as<float>();
+		environment.GhostSpacing = env["GhostSpacing"].as<float>();
+		environment.GhostFalloff = env["GhostFalloff"].as<float>();
+		environment.GhostSizeSurface = env["GhostSizeSurface"].as<float>();
+		environment.GhostSizeSpace = env["GhostSizeSpace"].as<float>();
+		environment.GhostAirSuppression = env["GhostAirSuppression"].as<float>();
 
 		auto entities = data["Entities"];
 		if (entities) 

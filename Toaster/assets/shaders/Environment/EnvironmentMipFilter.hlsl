@@ -172,5 +172,5 @@ void main(uint3 ThreadID : SV_DispatchThreadID)
 	}
 	color /= weight;
 
-    outputTexture[uint3(coord.x, coord.y, face)] = float4(color, 1.0);
+    outputTexture[uint3(coord.x, coord.y, 0)] = float4(color, 1.0f);
 }

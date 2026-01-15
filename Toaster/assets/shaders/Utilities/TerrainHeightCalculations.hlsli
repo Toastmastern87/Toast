@@ -99,6 +99,12 @@ CubeSample RemapFaceUV(uint face, float2 uv)
     return DirectionToCube(dir);
 }
 
+float3 CubeFaceUVToDirRemap(uint face, float2 uv)
+{
+    CubeSample cs = RemapFaceUV(face, uv);
+    return CubeFaceUVToDir(cs.face, cs.uv);
+}
+
 // Manual bilinear sampler that crosses cube-face edges using Load().
 float SampleCubeBilinearLoad(float3 dir, uint2 dims, uint mip)
 {

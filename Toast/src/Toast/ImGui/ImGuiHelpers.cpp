@@ -176,7 +176,132 @@ namespace Toast
 			return changed;
 		}
 
-		bool ManualDragDouble(const char* label, double& value,	WindowsWindow* window, std::string& activeDragArea,	float speed, ImVec2 dragAreaSize, const char* displayFormat, double minVal, double maxVal)
+		bool ManualDragFloat2(const std::string& label, DirectX::XMFLOAT2& values, float speed, float resetValue, WindowsWindow* window, std::string& activeDragArea, const char* displayFormat /*= "%.1f"*/, bool colorValues /*= false*/, float overrideTotalWidth /*= 0.0f*/)
+		{
+			bool changed = false;
+
+			ImGuiIO& io = ImGui::GetIO();
+			auto boldFont = io.Fonts->Fonts[0];
+
+			ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+
+			float availW = (overrideTotalWidth > 0.0f) ? overrideTotalWidth : ImGui::GetContentRegionAvail().x;
+
+			size_t hashes = label.find("##");
+			bool hasVisibleLabel = (hashes != 0);
+
+			float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+			ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+
+			ImVec2 dragAreaSize;
+
+			// layout example: we do columns or a simple horizontal layout
+			ImGui::PushID(label.c_str());
+
+			if (hasVisibleLabel)
+			{
+				dragAreaSize = { 54.0f, lineHeight };
+
+				// layout example: we do columns or a simple horizontal layout
+				ImGui::BeginTable("", 2, flags);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, availW * 0.30f);
+				ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, availW * 0.65f);
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextWrapped(label.c_str());
+
+				ImGui::TableSetColumnIndex(1);
+			}
+			else
+			{
+				float totalButtons = 3.0f * buttonSize.x;
+
+				float dragW = (availW - totalButtons) / 3.0f;
+				if (dragW < 20.0f) dragW = 20.0f;
+
+				dragAreaSize = { dragW, lineHeight };
+
+				ImGui::BeginTable("", 1, ImGuiTableFlags_SizingStretchProp);
+				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthStretch);
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+			}
+
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 4.0f));
+
+			char* labelCharX, *labelCharY;
+			if (!colorValues)
+			{
+				labelCharX = "X";
+				labelCharY = "Y";
+			}
+			else
+			{
+				labelCharX = "R";
+				labelCharY = "G";
+			}
+
+			// We'll do X
+			{
+				// colored button for "X"
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.1f, 0.15f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.2f, 0.2f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.8f, 0.1f, 0.15f, 1.0f));
+				ImGui::PushFont(boldFont);
+
+				if (ImGui::Button(labelCharX, buttonSize))
+				{
+					values.x = resetValue;
+					changed = true;
+				}
+
+				ImGui::PopStyleColor(3);
+				ImGui::PopFont();
+				ImGui::SameLine();
+
+				std::string dragArea1 = "##" + label + "dragarea1";
+				ImGui::SetNextItemWidth(-FLT_MIN);
+				changed |= ManualDragFloat(dragArea1.c_str(), values.x, window, activeDragArea, speed, dragAreaSize, displayFormat);
+
+				ImGui::SameLine();
+			}
+
+			// Y
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.7f, 0.2f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.8f, 0.3f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.7f, 0.2f, 1.0f));
+				ImGui::PushFont(boldFont);
+
+				if (ImGui::Button(labelCharY, buttonSize))
+				{
+					values.y = resetValue;
+					changed = true;
+				}
+				ImGui::PopStyleColor(3);
+				ImGui::PopFont();
+				ImGui::SameLine();
+
+				std::string dragArea2 = "##" + label + "dragarea2";
+				ImGui::SetNextItemWidth(-FLT_MIN);
+				changed |= ManualDragFloat(dragArea2.c_str(), values.y, window, activeDragArea, speed, dragAreaSize, displayFormat);
+
+				ImGui::SameLine();
+			}
+
+			ImGui::PopStyleVar();
+
+			ImGui::EndTable();
+			ImGui::PopID();
+
+			return changed;
+		}
+
+		bool ManualDragDouble(const char* label, double& value, WindowsWindow* window, std::string& activeDragArea, float speed, ImVec2 dragAreaSize, const char* displayFormat, double minVal, double maxVal)
 		{
 			ImGuiID id = ImGui::GetID(label);
 			DragState& st = g_DragStates[id];

@@ -102,6 +102,20 @@ float DensityMie(float h)
     return exp(-max(h, 0.0f) / max(MieScaleHeight, 1e-3f));
 }
 
+// Physical horizon mu for a sphere of radius R seen from radius r
+float MuHorizon(float r, float R)
+{
+    float s = saturate(R / r);
+    return -sqrt(max(1.0f - s * s, 0.0f));
+}
+
+// Hard visibility (recommended for LUT stability)
+float SunVisibleHard(float r, float muSun, float Rb)
+{
+    float muH = MuHorizon(r, Rb);
+    return (muSun > muH) ? 1.0f : 0.0f;
+}
+
 void OpticalPropsAtHeight(float h, out float3 sigma_s, out float3 sigma_a, out float3 sigma_t)
 {
     float dR = DensityRayleigh(h);
@@ -230,6 +244,11 @@ void main(uint3 dtid : SV_DispatchThreadID)
     float rho_lum = dot(sigma_s_true, LUMA) / max(dot(sigma_t_true, LUMA), 1e-6f);
 
     const uint Ndirs = max(StepsMultiScattering, 2u);
+    
+    // In this MS LUT, +Y is Up (because MU_FROM_DIR(wi) uses wi.y)
+    float sinThetaS = sqrt(saturate(1.0f - muS * muS));
+// Put the sun in the X–Y plane (Z=0). Any azimuth works due to symmetry.
+    float3 wSun = float3(sinThetaS, muS, 0.0f);
 
     float3 L2_vol = 0.0f;
     float3 L2_gnd = 0.0f;
@@ -249,8 +268,22 @@ void main(uint3 dtid : SV_DispatchThreadID)
 
         fms += rho_lum * (1.0f - T_out);
 
+        //if (isGround)
+        //    L2_gnd += (GroundAlbedo / PI) * T_out_rgb;
         if (isGround)
-            L2_gnd += (GroundAlbedo / PI) * T_out_rgb;
+        {
+    // Point on the ground boundary along wi
+            float3 x0 = float3(0.0f, r, 0.0f);
+            float3 pG = x0 + wi * d;
+            float rG = length(pG);
+            float3 upG = pG / max(rG, 1e-6f);
+
+            float muSunG = dot(upG, wSun);
+            float VsunG = SunVisibleHard(rG, muSunG, RbVis);
+            float3 TsunG = T_to_TOA(rG, muSunG, RbPhys, Rt) * VsunG;
+
+            L2_gnd += (GroundAlbedo / PI) * T_out_rgb * TsunG;
+        }
         
         uint stepsMin = MS_MIN_STEPS_DIR; // keep your floor (e.g. 6)
         uint stepsGeo = (uint) ceil(d / 2000.0f); // your geometric heuristic
@@ -284,6 +317,21 @@ void main(uint3 dtid : SV_DispatchThreadID)
 
             // now evaluate at the segment center
             float ti = t + 0.5f * dt;
+            
+            // --- NEW: sun lighting at this sample point --------------------------------
+            float3 x0 = float3(0.0f, r, 0.0f); // start point at radius r along +Y (Up)
+            float3 p = x0 + wi * ti; // sample point in the LUT frame
+            float rP = length(p);
+            float3 upP = p / max(rP, 1e-6f);
+            
+            float muSunP = dot(upP, wSun);
+
+// Visibility of the sun from this point (use RbVis so tangency is stable)
+            float VsunP = SunVisibleHard(rP, muSunP, RbVis);
+// If you prefer softened: float VsunP = SunVisibleSoft(rP, muSunP, RbVis, SunDiscRadius);
+
+// Sun transmittance from point to TOA along sun direction
+            float3 TsunP = T_to_TOA(rP, muSunP, RbPhys, Rt) * VsunP;
 
             float3 Tseg = T_along_ray(r, mu, ti, RbVis, RbPhys, Rt);
 
@@ -299,7 +347,7 @@ void main(uint3 dtid : SV_DispatchThreadID)
             float3 w0M_step = sigM_s_step / max(sigM_s_step + sigM_a_step, 1e-6.xxx);
             float3 sigma_s_step = sigR_s_step + sigM_s_step * w0M_step;
 
-            L2_vol += sigma_s_step * Tseg * dt;
+            L2_vol += sigma_s_step * (Tseg * TsunP) * dt;
 
             t += dt;
         }

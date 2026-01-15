@@ -72,6 +72,7 @@ cbuffer Atmosphere : register(b5)
     float3 MieAbsorption;
     
     float3 GroundAlbedo;
+    uint FaceIndex;
     
     float3 MieAnisotropy;
     float OzoneStrength;
@@ -195,6 +196,30 @@ float3 ViewDirWS_fromUV(float2 uv)
     // To world space (rotation only)
     float3 dirWS = normalize(mul(dirVS, (float3x3) inverseViewMatrix));
     return dirWS;
+}
+
+float3 CubemapDirFromFaceUV(int face, float2 uv)
+{
+    float2 a = uv * 2.0f - 1.0f; // [-1,1]
+    // Note: depending on your RT UV origin, you may need a.y = -a.y
+    float x = a.x;
+    float y = a.y;
+
+    switch (face)
+    {
+        case 0:
+            return normalize(float3(1, y, -x)); // +X
+        case 1:
+            return normalize(float3(-1, y, x)); // -X
+        case 2:
+            return normalize(float3(x, 1, -y)); // +Y
+        case 3:
+            return normalize(float3(x, -1, y)); // -Y
+        case 4:
+            return normalize(float3(x, y, 1)); // +Z
+        default:
+            return normalize(float3(-x, y, -1)); // -Z
+    }
 }
 
 // Reconstruct metric distance along the camera ray from hardware depth.
@@ -493,13 +518,16 @@ PSOut main(PSIn i)
     float3 camRel = camWS - PlanetCenterWS;
     float rCam = max(RbPhys, length(camRel));
     float heightCam = rCam - RbPhys;
-    float3 wView = ViewDirWS_fromUV(uv); // unit
-    
+
     bool bake = (BakeIBL > 0.5f);
 
+    float3 wView;
+    
     // If baking, do NOT sample SceneDepth/SceneColor and do NOT do ground-occlusion early-outs.
     if (bake)
     {
+        wView = CubemapDirFromFaceUV(FaceIndex, uv); // unit
+        
         // Same μ window as writer (with the corrected GetMuWindow):
         float mu0, mu1;
         
@@ -517,18 +545,8 @@ PSOut main(PSIn i)
         float mu = dot(wView, up);
         
         GetMuWindow(rCam, RbVis, Rt, mu0, mu1);
-
-        // IMPORTANT: clamp mu instead of rejecting
-        if (mu <= mu0 + MU_EPS)
-        {
-        // Very simple: constant ground radiance
-        // (Better: modulate by sun altitude and atmospheric transmittance)
-            float3 groundRad = GroundAlbedo; // HDR radiance, not albedo
-            output.color = float4(groundRad, 1);
-            output.disc = 0;
-            output.halo = 0;
-            return output;
-        }
+        
+        mu = max(mu, mu0 + MU_EPS);
             
         float S = max(mu1 - mu0, 1e-6);
         float mu_p = saturate((mu - mu0) / S);
@@ -556,9 +574,13 @@ PSOut main(PSIn i)
         return output;
     }
     
+    wView = ViewDirWS_fromUV(uv);
+    
     // If no geometry wrote to depth, draw SKY using the precomputed SkyView LUT
     if (depth <= 1e-12f)
     {        
+         // unit
+        
         Hit h = IntersectSphereGrazingSafe(camRel, wView, RbHit);
         
        // Same μ window as writer (with the corrected GetMuWindow):
@@ -576,9 +598,7 @@ PSOut main(PSIn i)
         float xE = dot(wView, east);
         float xN = dot(wView, north);
         float mu = dot(wView, up);
-        
-
-        
+              
         if (h.ok && h.t1 > 0.0f)
         {
             // fully occluded by ground: no sky, no sun, no halo
@@ -630,8 +650,9 @@ PSOut main(PSIn i)
         float3 sky = SkyViewLUT.Sample(SkyAniso, uvSky).rgb;
         
         float3 sunColor = float3(0.0f, 0.0f, 0.0f);
-        float discMask_out = 0.0f; // <- will go to SV_Target1
-        float haloMask_out = 0.0f; // <- will go to SV_Target2
+        float discMask_out = 0.0f; // SV_Target1
+        float haloMask_out = 0.0f; // SV_Target2
+
         if (SunDiscToggle != 0)
         {
             // ===============================
@@ -639,24 +660,32 @@ PSOut main(PSIn i)
             // ===============================
             float3 vDir = normalize(wView); // cam → pixel
             float3 wSun = -normalize(direction.xyz); // TO sun
+
             float mu = clamp(dot(vDir, wSun), -1.0, 1.0);
-            
-            float theta = acos(mu);
+            float theta = acos(mu); // radians, center→pixel angular distance
+
             float edgePxR = 1.5f;
             float dmu = length(float2(ddx(mu), ddy(mu))) + 1e-7f;
             float dtheta = dmu / max(sin(theta), 1e-4f);
-            float wEdge = edgePxR * dtheta;
+            float wEdge = edgePxR * dtheta; // radians
 
-            float rDiscRad = SunDiscRadius; // from cbuffer (radians)
-            float rSoftRad = SunEdgeSoftness; // from cbuffer (radians)
-            float sunDiscRadiusDeg = degrees(SunDiscRadius);
-            float sunEdgeSoftDeg = degrees(SunEdgeSoftness);
+            float rDiscRad = SunDiscRadius; // radians
+            float rSoftRad = SunEdgeSoftness; // radians (currently unused below)
+
+            float sunDiscRadiusDeg = degrees(rDiscRad);
+            float sunEdgeSoftDeg = degrees(rSoftRad);
+
+            // Disc mask (AA in theta-space)
+            float discMask = 1.0f - smoothstep(rDiscRad, rDiscRad + wEdge, theta);
+
+            // --- "rNorm" mapping kept for your AIR halo shaping (do not use for SPACE halo) ---
             float muDisc = cos(rDiscRad);
             float denom = max(1.0 - muDisc, 1e-12);
             float rNorm = sqrt(max((1.0 - mu) / denom, 0.0)); // 0 center, 1 edge, >1 outside
 
-            float discMask = 1.0f - smoothstep(rDiscRad, rDiscRad + wEdge, theta);
-
+            // ===============================
+            // Horizon / visibility
+            // ===============================
             float altUpDeg = degrees(asin(clamp(dot(upCam, wSun), -1.0, 1.0)));
             float dipGroundDeg = degrees(acos(saturate(RbPhys / rCam)));
             float altRelGroundDeg = altUpDeg + dipGroundDeg;
@@ -671,36 +700,32 @@ PSOut main(PSIn i)
             // ===============================
             float3 T_eye_sun = SampleTransmittance_EyeToSun(camRel, vDir, wSun, RbPhys, Rt);
             float3 discRGB = SunIntensity * 10.0f * SunDiscWhite * T_eye_sun;
-            
-            // Ground occlusion           
+
+            // Ground occlusion (frontHit)
             float3 oc = camRel;
             float3 rd = normalize(wSun);
             float b = dot(oc, rd);
             float c = dot(oc, oc) - (RbPhys * RbPhys);
             float h = b * b - c;
             bool frontHit = (h >= 0.0f) && ((-b - sqrt(max(h, 0.0f))) >= 0.0f);
-            
-            // --- refraction-aware visibility (inflate only the *test*, not the drawn radius) ---
-            float altEffDeg = altRelGroundDeg + HorizonRefractionDeg; // your variables
-            float visSoft = smoothstep(-sunDiscRadiusDeg, +sunDiscRadiusDeg, altEffDeg);
 
-            // Keep your robust hit test (frontHit / hitGround)
+            // Refraction-aware visibility for disc/halo
+            float altEffDeg = altRelGroundDeg + HorizonRefractionDeg;
+            float visSoft = smoothstep(-sunDiscRadiusDeg, +sunDiscRadiusDeg, altEffDeg);
             float discVis = frontHit ? visSoft : 1.0f;
-            
-            // --- rim color match to sky near sunset ---
+
+            // Rim color match near sunset (your logic)
             float sunAltDeg = altUpDeg;
-            float sunset = saturate(1.0f - saturate((sunAltDeg - 2.0f) / 6.0f)); // 1 near horizon → 0 by ~+8°
+            float sunset = saturate(1.0f - saturate((sunAltDeg - 2.0f) / 6.0f));
             float rim01 = smoothstep(0.7f, 1.0f, saturate(theta / rDiscRad));
-            
-            // Luma-preserving blend toward sky chroma at the rim when low
+
             float Yd = max(dot(discRGB, LUMA), 1e-6);
             float Ys = max(dot(sky, LUMA), 1e-6);
             float3 edgeRGB = lerp(discRGB, (sky / Ys) * Yd, 0.30 * sunset * rim01);
-
             discRGB = lerp(discRGB, edgeRGB, rim01);
-            
+
             // ===============================
-            // SPACE-ONLY tint logic with tangent altitude
+            // SPACE-only tint logic with tangent altitude (your logic preserved)
             // ===============================
             float3 discTint = discRGB;
             float3 discAttn = 1.0.xxx;
@@ -711,11 +736,9 @@ PSOut main(PSIn i)
 
             if (cameraAboveAtmo)
             {
-                // tangent altitude of ray to sun
-                float dMin = length(cross(camRel, vDir)) / length(vDir); // closest approach
+                float dMin = length(cross(camRel, vDir)) / length(vDir);
                 h_tan = dMin - RbPhys;
 
-                // ray ∩ outer sphere?
                 float bRt = dot(camRel, vDir);
                 float cRt = dot(camRel, camRel) - Rt * Rt;
                 float hRt = bRt * bRt - cRt;
@@ -723,8 +746,7 @@ PSOut main(PSIn i)
                 float t1Rt = -bRt + sRt;
                 bool hitsRt = (hRt >= 0.0) && (t1Rt > 0.0);
 
-                // only consider tint if tangent altitude low enough
-                const float HtintMax = 35000.0; // 35 km
+                const float HtintMax = 35000.0;
                 throughAtmo_SPACE = hitsRt && (h_tan <= HtintMax);
             }
 
@@ -753,99 +775,112 @@ PSOut main(PSIn i)
                 discAttn *= spaceGain;
             }
 
-            
             // ===============================
-            // Halo (AIR)
+            // Halo (AIR) — your existing shaping
             // ===============================
             float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
-            
-            // Up vector at camera            
+
             float3 upS = camRel / rCam;
+            float cH_phys = MuHorizon(rCam, RbPhys);
 
-            // Cosine to physical horizon at camera
-            float cH_phys = MuHorizon(rCam, RbPhys); // or MuHorizon(rCam, RbPhys) depending on your overload
-
-            // Sun elevation above physical horizon
             float muS = dot(wSun, upS);
             float elevS = saturate((muS - cH_phys) / (1.0f - cH_phys));
-
-            // Low-sun factor (broad ramp that peaks near the horizon)
             float fLowSun = 1.0f - smoothstep(0.35f, 0.85f, elevS);
 
-            // View elevation above physical horizon
             float muView = dot(wView, upS);
             muView = clamp(muView, -0.9995f, 0.9995f);
             float elevV = saturate((muView - cH_phys) / (1.0f - cH_phys));
-
-            // Horizon band that peaks a bit above the rim
             float fBandUp = 1.0f - smoothstep(0.10f, 0.40f, elevV);
 
-            // Gentle sunward bias (you already have muPhase = dot(wView, wSun))
             float fSunward = smoothstep(0.20f, 0.80f, muPhase);
-
-            // Final sunset weight
             float fBlue = saturate(fLowSun * fBandUp * fSunward);
-            
-            // ===============================
-            // Halo (AIR)
-            // ===============================
-            float x = rNorm;
-            float deg = x * sunDiscRadiusDeg; // angular distance from center (deg)
 
-            float tight = exp(-pow(deg / 1.8, 2.0));
-            float shoulder = 1.0 / (1.0 + pow(deg / 4.5, 2.2));
-            float tailMain = 1.0 / pow(1.0 + (deg / 10.0), 1.25);
-            float tailUltra = 1.0 / pow(1.0 + (deg / 25.0), 1.35);
+            // AIR halo angle (deg) based on your rNorm mapping
+            float xAir = rNorm;
+            float degAir = xAir * sunDiscRadiusDeg;
+
+            float tight = exp(-pow(degAir / 1.8, 2.0));
+            float shoulder = 1.0 / (1.0 + pow(degAir / 4.5, 2.2));
+            float tailMain = 1.0 / pow(1.0 + (degAir / 10.0), 1.25);
+            float tailUltra = 1.0 / pow(1.0 + (degAir / 25.0), 1.35);
 
             float haloCore = 0.70 * tight + 0.55 * shoulder;
             float haloOuter = (0.28 * tailMain + 0.06 * tailUltra) * 0.85;
             float haloMaskAirShape = haloCore + haloOuter;
 
-            float bleedAmt = saturate((deg - 0.35f) / 2.6f) * inAirHalo;
+            float bleedAmt = saturate((degAir - 0.35f) / 2.6f) * inAirHalo;
 
-            // Base “day” halo (white → warm)
             float3 baseHalo = lerp(SunDiscWhite, WarmTint, 0.32f);
-
-            // Inject sunset behavior: as fBlue → 1, we move towards SunsetTint
             float3 sunsetHalo = lerp(baseHalo, SunsetTint, fBlue);
-
-            // Then bleed into the local sky color near the sun as you already did
             float3 haloTint = lerp(sunsetHalo, sky, 0.75f * bleedAmt);
 
             float haloVisAir = smoothstep(-HorizonRefractionDeg - TwilightBlendDeg, +HorizonRefractionDeg, altRelGroundDeg);
             float3 haloRadianceAir = SunIntensity * 15.0f * (AirHaloIntensity * inAirHalo) * haloTint * haloMaskAirShape * haloVisAir;
 
             // ===============================
-            // Halo (SPACE) — tiny, always-on shoulder
+            // Halo (SPACE) — FIXED: use theta (true angle), not rNorm
             // ===============================
-            float edgeFromCenterDeg = max(deg - sunDiscRadiusDeg, 0.0);
-            float sigma = max(SpaceHaloWidthDeg, 1e-3);
+            float degTheta = degrees(theta); // true angular distance from sun center in degrees
+            float aaDeg = max(fwidth(degTheta), 1e-5f); // degrees-per-pixel (stable outside atmosphere too)
 
-            float spaceGauss = exp(-0.5 * (edgeFromCenterDeg / sigma) * (edgeFromCenterDeg / sigma));
-            spaceGauss *= step(edgeFromCenterDeg, SpaceHaloCutoffDeg);
+            // Two-lobe halo parameters
+            float SpaceHaloInnerSigmaDeg = 0.14f;
+            float SpaceHaloOuterSigmaDeg = 1.80f;
+            float SpaceHaloInnerIntensity = 1.00f;
+            float SpaceHaloOuterIntensity = 0.35f;
+            float SpaceHaloCutoffDeg = 7.00f;
+            float SpaceHaloCutoffFeather = 1.25f;
+            
+            //float SpaceHaloInnerSigmaDeg = 0.18f;
+            //float SpaceHaloOuterSigmaDeg = 3.50f;
+            //float SpaceHaloInnerIntensity = 1.00f;
+            //float SpaceHaloOuterIntensity = 0.60f;
+            //float SpaceHaloCutoffDeg = 14.0f;
+            //float SpaceHaloCutoffFeather = 3.0f;
 
+            // Distance outside disc (deg)
+            float xSpace = max(degTheta - sunDiscRadiusDeg, 0.0f);
+
+            // Gaussian shoulder: exp(-0.5*(x/s)^2) == exp2(-0.7213475*(x/s)^2)
+            float sInner = max(SpaceHaloInnerSigmaDeg, 1e-4f);
+            float tInner = xSpace / sInner;
+            float gInner = exp2(-0.7213475f * tInner * tInner);
+
+            // Exponential tail: exp(-x/s) == exp2(-1.442695*(x/s))
+            float sOuter = max(SpaceHaloOuterSigmaDeg, 1e-4f);
+            float eOuter = exp2(-1.442695f * (xSpace / sOuter));
+
+            // Smooth cutoff (no hard step)
+            float cutoffFade = 1.0f - smoothstep(SpaceHaloCutoffDeg - SpaceHaloCutoffFeather, SpaceHaloCutoffDeg, xSpace);
+
+            // Space halo shape (this replaces your old spaceGauss)
+            float spaceHaloShape = cutoffFade * (SpaceHaloInnerIntensity * gInner + SpaceHaloOuterIntensity * eOuter);
+
+            // Space visibility (use same discVis logic; replace with mask/RT later if you have it)
             float haloVisSpace = discVis;
-            float3 spaceHaloTint = SunDiscWhite;
 
-            float3 haloRadianceSpace = SunIntensity * 15.0f * (SpaceHaloIntensity) * spaceHaloTint * spaceGauss.xxx * haloVisSpace;
+            float3 haloRadianceSpace = SunIntensity * 15.0f * (SpaceHaloIntensity) * SunDiscWhite * spaceHaloShape * haloVisSpace;
 
-            // Combine the halos depending on space or air camera
-            float fSpaceView = saturate((heightCam - 0.75f * AtmosphereHeight) / (0.25f * AtmosphereHeight));
+            // ===============================
+            // Blend AIR vs SPACE by altitude
+            // ===============================
+            float heightCam = rCam - RbPhys;
+            float tSpace = saturate((heightCam - 0.75f * AtmosphereHeight) / (0.25f * AtmosphereHeight));
+            float fSpaceView = smoothstep(0.0f, 1.0f, tSpace);
             float fAirView = 1.0f - fSpaceView;
-            
+
             float3 haloRadianceCombined = haloRadianceAir * fAirView + haloRadianceSpace * fSpaceView;
-            
+
             // ===============================
             // Core boost (existing)
-            // ===============================           
-            float thetaInner = 0.60 * rDiscRad; // inner 60% of radius
+            // ===============================
+            float thetaInner = 0.60 * rDiscRad;
             float m_inner = 1.0 - smoothstep(thetaInner, thetaInner + wEdge, theta);
 
             const float PW = 200.0;
-            const float SunHDRBoostNits = 6000.0; // 3000–8000
+            const float SunHDRBoostNits = 6000.0;
             float boostLin = SunHDRBoostNits / PW;
 
-            // Boost center without fattening the rim
             float3 discRGB_boosted = discRGB + (boostLin * m_inner).xxx;
 
             // Final disc (mask + visibility)
@@ -860,10 +895,10 @@ PSOut main(PSIn i)
             discMask_out = saturate(discMask * discVis);
 
             float haloMaskAir = saturate(haloMaskAirShape * haloVisAir);
-            float haloMaskSpace = saturate(spaceGauss * haloVisSpace);
+            float haloMaskSpace = saturate(spaceHaloShape * haloVisSpace); // FIXED (no missing spaceGauss)
             haloMask_out = saturate(haloMaskAir + haloMaskSpace);
         }
-               
+
         float3 outSky = sky + sunColor;
         output.color = float4(max(outSky, 0.0f), 1.0f);
         output.disc = discMask_out;
@@ -897,8 +932,8 @@ PSOut main(PSIn i)
         float betaAvg = (betaExt.r + betaExt.g + betaExt.b) * (1.0f / 3.0f);
         float3 k = betaExt / max(betaAvg, 1e-9);
         
-        // Trgb ≈ A^(betaExt / betaAvg)
-        float3 Trgb = exp(-tau.xxx);
+        float Tmean = exp(-tau);
+        float3 Trgb = pow(Tmean.xxx, k);
         
         float3 outRGB = colorPreAtmos * Trgb + ap.rgb;
         output.color = float4(outRGB, max(Trgb.r, max(Trgb.g, Trgb.b)));

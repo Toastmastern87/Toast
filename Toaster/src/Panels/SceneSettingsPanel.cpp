@@ -107,7 +107,7 @@ namespace Toast {
 					ImGui::Text("SSAO bias");
 					ImGuiHelpers::ManualDragFloat("##ssaobias", mContext->mSettings.SSAObias, mWindow, activeDragArea, 0.001f, ImVec2{ 255.0f, 20.0f }, "%.4f", -1.0f, 1.0f);
 
-					if (ImGui::CollapsingHeader("Physics", ImGuiTreeNodeFlags_DefaultOpen))
+					if (ImGui::CollapsingHeader("Physics"))
 					{
 						auto& physicsSettings = mContext->GetPhysicsEngine()->GetSettings();
 
@@ -126,7 +126,7 @@ namespace Toast {
 					}
 
 					ImGui::Checkbox("Bloom", &mContext->mSettings.Bloom.Enabled);
-					if (ImGui::CollapsingHeader("Bloom Settings", ImGuiTreeNodeFlags_DefaultOpen) && mContext->mSettings.Bloom.Enabled)
+					if (ImGui::CollapsingHeader("Bloom Settings") && mContext->mSettings.Bloom.Enabled)
 					{
 						ImGui::Indent();
 
@@ -171,84 +171,64 @@ namespace Toast {
 					ImGui::Spacing();
 					
 					ImGui::Checkbox("Dynamic IBL", &mContext->mSettings.DynamicIBL);
-					if (ImGui::Checkbox("Planet backface culling", &mContext->mSettings.BackfaceCulling))
-						mContext->mSettings.IsDirty = true;
-					if (ImGui::Checkbox("Planet frustum culling", &mContext->mSettings.FrustumCulling))
-						mContext->mSettings.IsDirty = true;
 					ImGui::Checkbox("Render Colliders", &mContext->mSettings.RenderColliders);
 					ImGui::Checkbox("Render UI", &mContext->mSettings.RenderUI);
-
 
 					ImGui::Text("Sun Frustum Ortho Size");
 					ImGuiHelpers::ManualDragFloat("##sunlightdistance", mContext->mSettings.SunFrustumOrthoSize, mWindow, activeDragArea, 10.0f, ImVec2{ 255.0f, 20.0f }, "%.1f", 50.0f, 10000.0f);
 
-					ImGui::Text("God Rays Exposure");
-					ImGuiHelpers::ManualDragFloat("##godraysexposure", mContext->mSettings.GodRaysExposure, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
-					ImGui::Text("God Rays Decay");
-					ImGuiHelpers::ManualDragFloat("##godraysdecay", mContext->mSettings.GodRaysDecay, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
-					ImGui::Text("God Rays Density");
-					ImGuiHelpers::ManualDragFloat("##godraysdensity", mContext->mSettings.GodRaysDensity, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 5.0f);
-					ImGui::Text("God Rays Weight");
-					ImGuiHelpers::ManualDragFloat("##godraysweight", mContext->mSettings.GodRaysWeight, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
+					if (ImGui::CollapsingHeader("God Rays"))
+					{
+						ImGui::Indent();
 
-					if (ImGui::CollapsingHeader("Exposure Settings", ImGuiTreeNodeFlags_DefaultOpen))
+						ImGui::Text("Exposure");
+						ImGuiHelpers::ManualDragFloat("##godraysexposure", mContext->mSettings.GodRays.Exposure, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
+
+						ImGui::Text("Decay");
+						ImGuiHelpers::ManualDragFloat("##godraysdecay", mContext->mSettings.GodRays.Decay, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
+
+						ImGui::Text("Density");
+						ImGuiHelpers::ManualDragFloat("##godraysdensity", mContext->mSettings.GodRays.Density, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 50.0f);
+
+						ImGui::Text("Weight");
+						ImGuiHelpers::ManualDragFloat("##godraysweight", mContext->mSettings.GodRays.Weight, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
+
+						ImGui::Text("kHalo");
+						ImGuiHelpers::ManualDragFloat("##godraysKHalo", mContext->mSettings.GodRays.KHalo, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 1.0f);
+
+						ImGui::Text("Halo Power");
+						ImGuiHelpers::ManualDragFloat("##godrayshalopower", mContext->mSettings.GodRays.HaloPower, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 5.0f);
+
+						ImGui::Text("Fog Range Meters");
+						ImGuiHelpers::ManualDragFloat("##godraysFogRangeMeters", mContext->mSettings.GodRays.FogRangeMeters, mWindow, activeDragArea, 100.0f, ImVec2{ 255.0f, 20.0f }, "%.0f", 0.0f, 200000.0f);
+
+						ImGui::Unindent();
+					}
+
+					if (ImGui::CollapsingHeader("Exposure"))
 					{
 						ImGui::Indent();
 
 						// Daytime EVs (clear labels above each control)
-						ImGui::TextUnformatted("Geometry — Surface");
-						ImGuiHelpers::ManualDragFloat("##EVGeometrySurface",
-							mContext->mSettings.Exposure.EVGeometrySurface,
-							mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
+						ImGui::TextUnformatted("Surface Day");
+						ImGuiHelpers::ManualDragFloat("##EVSurfaceDay", mContext->mSettings.Exposure.EVSurfaceDay, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
 
-						ImGui::TextUnformatted("Geometry — Space (Orbit)");
-						ImGuiHelpers::ManualDragFloat("##EVGeometrySpace",
-							mContext->mSettings.Exposure.EVGeometrySpace,
-							mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
+						ImGui::TextUnformatted("Space Day");
+						ImGuiHelpers::ManualDragFloat("##EVSpaceDay", mContext->mSettings.Exposure.EVSpaceDay, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
 
-						ImGui::TextUnformatted("Sky — Surface");
-						ImGuiHelpers::ManualDragFloat("##EVSkySurface",
-							mContext->mSettings.Exposure.EVSkySurface,
-							mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
+						ImGui::TextUnformatted("Surface Night");
+						ImGuiHelpers::ManualDragFloat("##EVSurfaceNight", mContext->mSettings.Exposure.EVSurfaceNight, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
 
-						ImGui::TextUnformatted("Sky — Space (Orbit)");
-						ImGuiHelpers::ManualDragFloat("##EVSkySpace", mContext->mSettings.Exposure.EVSkySpace,
-							mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
+						ImGui::TextUnformatted("Space Night");
+						ImGuiHelpers::ManualDragFloat("##EVSpaceNight", mContext->mSettings.Exposure.EVSpaceNight, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
 
 						ImGui::Separator();
 
-						// Night EV (single)
-						ImGui::TextUnformatted("Night (Geometry)");
-						ImGuiHelpers::ManualDragFloat("##EVGeometryNight",mContext->mSettings.Exposure.EVGeometryNight,	mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
+						ImGui::TextUnformatted("Altitude Blend (0..1)");
+						ImGuiHelpers::ManualDragFloat2("##AltFadeFrac", mContext->mSettings.Exposure.AltFadeFrac, 0.02f, 0.0f, mWindow, activeDragArea, "%.3f");
 
-						// Night EV (single)
-						ImGui::TextUnformatted("Night Sky (From Surface)");
-						ImGuiHelpers::ManualDragFloat("##EVSkySurfaceNight", mContext->mSettings.Exposure.EVSkySurfaceNight, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
-
-						ImGui::TextUnformatted("Night Sky (From Space)");
-						ImGuiHelpers::ManualDragFloat("##EVSkySpaceNight", mContext->mSettings.Exposure.EVSkySpaceNight, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
-
-						ImGui::Separator();
-
-						ImGui::TextUnformatted("Altitude Blend Start (0..1)");
-						ImGuiHelpers::ManualDragFloat("##AltFadeStartFrac",
-							mContext->mSettings.Exposure.AltFadeStartFrac,
-							mWindow, activeDragArea, 0.005f, ImVec2{ 255,20 }, "%.3f", 0.0f, 1.0f);
-
-						ImGui::TextUnformatted("Altitude Blend End (0..1)");
-						ImGuiHelpers::ManualDragFloat("##AltFadeEndFrac",
-							mContext->mSettings.Exposure.AltFadeEndFrac,
-							mWindow, activeDragArea, 0.005f, ImVec2{ 255,20 }, "%.3f", 0.0f, 1.0f);
-
-						ImGui::TextUnformatted("Sun Fade Start (deg)");
-						ImGuiHelpers::ManualDragFloat("##SunFadeStartDeg",
-							mContext->mSettings.Exposure.SunFadeStartDeg,
-							mWindow, activeDragArea, 0.1f, ImVec2{ 255,20 }, "%.1f", -30.0f, 30.0f);
-
-						ImGui::TextUnformatted("Sun Fade End (deg)");
-						ImGuiHelpers::ManualDragFloat("##SunFadeEndDeg",
-							mContext->mSettings.Exposure.SunFadeEndDeg,
-							mWindow, activeDragArea, 0.1f, ImVec2{ 255,20 }, "%.1f", -30.0f, 30.0f);
+						ImGui::TextUnformatted("Sun Fade (0..1)");
+						ImGuiHelpers::ManualDragFloat2("##SunFadeDeg", mContext->mSettings.Exposure.SunFadeDeg, 0.02f, 0.0f, mWindow, activeDragArea, "%.3f");
 
 						ImGui::Unindent();
 					}

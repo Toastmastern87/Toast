@@ -32,6 +32,8 @@
 
 namespace Toast {
 
+	class PhysicsEngine;
+
 	struct Int4
 	{
 		int32_t x, y, z, w;
@@ -39,6 +41,12 @@ namespace Toast {
 		Int4(int32_t _x, int32_t _y, int32_t _z, int32_t _w) : x(_x), y(_y), z(_z), w(_w) {}
 	};
 	static_assert(sizeof(Int4) == 16, "Int4 must be 16 bytes to match HLSL int4.");
+
+	enum class PlanetMeshMode
+	{
+		GeometricClipmapping = 0,
+		Icosphere = 1
+	};
 
 	struct ClipLevel
 	{
@@ -62,6 +70,7 @@ namespace Toast {
 		uint32_t DrawMode;
 		float ScatterOriginMetersX;
 		float ScatterOriginMetersY;
+		float FinestCellSize;
 	};
 
 	struct PlanetFrameCB
@@ -185,6 +194,158 @@ namespace Toast {
 		return t * t * (3.0f - 2.0f * t);
 	}
 
+	class PlanetMeshIcosphere
+	{
+	public:
+		enum class NextPlanetFace
+		{
+			CULL, LEAF, SPLIT, SPLITCULL
+		};
+
+		struct PlanetPatchCPU
+		{
+			int level = 0;
+			Vector3 a = { 0.0, 0.0, 0.0 };
+			Vector3 r = { 0.0, 0.0, 0.0 };
+			Vector3 s = { 0.0, 0.0, 0.0 };
+
+			PlanetPatchCPU(int Level, Vector3 A, Vector3 R, Vector3 S)
+			{
+				level = Level;
+				a = A;
+				r = R;
+				s = S;
+			}
+		};
+
+		struct PlanetFaceCPU
+		{
+			Vector3 A = { 0.0, 0.0, 0.0 }, B = { 0.0, 0.0, 0.0 }, C = { 0.0, 0.0, 0.0 };
+			PlanetFaceCPU* Parent = nullptr;
+			short Level = 0;
+
+			PlanetFaceCPU()
+			{
+			}
+
+			PlanetFaceCPU(Vector3 a, Vector3 b, Vector3 c, PlanetFaceCPU* parent, short level)
+			{
+				A = a;
+				B = b;
+				C = c;
+
+				Parent = parent;
+
+				Level = level;
+			}
+		};
+
+		struct PlanetVertexCPU
+		{
+			Vector2 Position = { 0.0, 0.0 };
+
+			PlanetVertexCPU(Vector2 pos)
+			{
+				Position = pos;
+			}
+		};
+
+		struct PlanetPatchGPU
+		{
+			int level = 0;
+			DirectX::XMFLOAT3 a = { 0.0f, 0.0f, 0.0f };
+			DirectX::XMFLOAT3 r = { 0.0f, 0.0f, 0.0f };
+			DirectX::XMFLOAT3 s = { 0.0f, 0.0f, 0.0f };
+
+			PlanetPatchGPU(int Level, DirectX::XMFLOAT3 A, DirectX::XMFLOAT3 R, DirectX::XMFLOAT3 S)
+			{
+				level = Level;
+				a = A;
+				r = R;
+				s = S;
+			}
+		};
+
+		struct PlanetFaceGPU
+		{
+			DirectX::XMFLOAT3 A = { 0.0f, 0.0f, 0.0f }, B = { 0.0f, 0.0f, 0.0f }, C = { 0.0f, 0.0f, 0.0f };
+			PlanetFaceGPU* Parent = nullptr;
+			short Level = 0;
+
+			PlanetFaceGPU()
+			{
+			}
+
+			PlanetFaceGPU(DirectX::XMFLOAT3 a, DirectX::XMFLOAT3 b, DirectX::XMFLOAT3 c, PlanetFaceGPU* parent, short level)
+			{
+				A = a;
+				B = b;
+				C = c;
+
+				Parent = parent;
+
+				Level = level;
+			}
+		};
+
+		struct PlanetVertexGPU
+		{
+			DirectX::XMFLOAT2 Position = { 0.0f, 0.0f };
+
+			PlanetVertexGPU(DirectX::XMFLOAT2 pos)
+			{
+				Position = pos;
+			}
+		};
+
+	public:
+		PlanetMeshIcosphere() = default;
+
+		void Init();
+		void GeneratePatchGeometry();
+
+		void OnUpdate(Frustum* frustum, Vector3& cameraPosPS, int16_t subdivisions);
+		void RecursiveFace(Frustum* frustum, Vector3& a, Vector3& b, Vector3& c, int16_t subdivision, Vector3& cameraPosPS, bool splitCull);
+		NextPlanetFace CheckFaceSplit(Frustum* frustum, Vector3 a, Vector3 b, Vector3 c, int16_t subdivision, Vector3& cameraPosPS, bool frustumCull);
+
+		void GenerateDistanceLUT();
+		void GenerateFaceDotLevelLUT();
+		void GenerateHeightMultLUT();
+
+		bool& GetBackfaceCulling() { return mBackfaceCulling; }
+		bool& GetFrustumCulling() { return mFrustumCulling; }
+
+		friend class SceneSerializer;
+		friend class PlanetPanel;
+	private:
+		DirectX::XMFLOAT3 mTranslation = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 mRotationEulerAngles = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT4 mRotationQuaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
+		double mRadius = 0.0;
+		double mMaxHeight = 0.0;
+		Matrix mTransform;
+
+		int16_t mMaxSubdivisions;
+		int16_t mPatchLevels;
+
+		std::vector<PlanetFaceCPU> mFaces;
+		std::vector<PlanetFaceGPU> mFacesGPU;
+		std::vector<PlanetPatchCPU> mPatches;
+		std::vector<PlanetPatchGPU> mPatchesGPU;
+
+		std::vector<PlanetVertexCPU> mVertices;
+		std::vector<PlanetVertexGPU> mVerticesGPU;
+		std::vector<uint32_t> mIndices;
+
+		std::vector<double> mDistanceLUT;
+		std::vector<double> mFaceLevelDotLUT;
+		std::vector<double> mHeightMultLUT;
+
+		// Settings
+		bool mBackfaceCulling;
+		bool mFrustumCulling;
+	};
+
 	class Planet
 	{
 	// NEW PLANET SYSTEM
@@ -208,6 +369,10 @@ namespace Toast {
 		Vector2 mCamSurfaceMeters;
 		double mShiftEastM;
 		double mShiftNorthM;
+
+		// Mesh Data
+		Ref<PlanetMeshIcosphere> mIcosphereMesh;
+		PlanetMeshMode mMeshMode = PlanetMeshMode::GeometricClipmapping;
 
 		// GPU Data
 		Ref<VertexBuffer> mGridVertexBuffer;
@@ -247,8 +412,6 @@ namespace Toast {
 		std::vector<TerrainObject> mTerrainObjects;
 		Ref<ConstantBuffer> mTerrainObjectCBuffer;
 		Buffer mTerrainObjectBuffer;
-		//bool mTerrainObjectsDirty = false; // any parameter that requires rebuild of instances
-		//bool mTerrainObjectBuffersDirty = false; // buffer allocation must be (re)done (MaxTotal change, new object, etc.)
 
 		// PBR Data
 		DirectX::XMFLOAT3 mAlbedoColor = { 0.0f, 0.0f, 0.0f };
@@ -270,8 +433,6 @@ namespace Toast {
 		// Environment Textures
 		Texture2D* mStarFieldTexture2D;
 		Ref<TextureCube> mStarFieldTextureCube;
-		Ref<TextureCube> mRadianceMap;
-		Ref<TextureCube> mIrradianceMap;
 		Texture2D* mSpecularBRDFLUT;
 
 		// Physics
@@ -280,7 +441,6 @@ namespace Toast {
 		friend class SceneSerializer;
 		friend class PlanetPanel;
 	public:
-		// NEW PLANET SYSTEM
 		Planet();
 
 		void Initialize();
@@ -291,12 +451,12 @@ namespace Toast {
 		void RebuildGrid();
 		void RebuildRingGridIndices();
 		void RebuildLODEdgeGrid();
-		LODDrawInfo DetermineActiveLODLevels(const Vector3& camPosPlanet);
+		LODDrawInfo DetermineActiveLODLevels(const Vector3& camPosPlanet, PhysicsEngine* physicsEngine);
 		void UpdateLevelOrigins(const Vector3& camPosPlanet);
 		Buffer& BuildLevelCB(uint32_t L);
 		uint32_t GetGridSize() { return mGridSize; }
 
-		void OnUpdate(const Vector3& camPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix);
+		void OnUpdate(const Vector3& camPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix, PhysicsEngine* physicsEngine);
 
 		DirectX::XMFLOAT3& GetTranslation() { return mTranslation; }
 		Quaternion GetRotation() { return mRotationQuat; }
@@ -354,7 +514,7 @@ namespace Toast {
 		Ref<Texture2D>& GetAPFar() { return mAPFar; }
 		Ref<Texture2D>& GetAPNear() { return mAPNear; }
 
-		float GetSpaceFactor(Vector3 cameraPosition);
+		float GetSpaceFactor(Vector3 cameraPosition, const Vector3& worldTranslation);
 
 		double ComputeCurvatureBias(double desiredSwitchHeight, double radius, double patchWidth, double focalLenPx, double screenErrorPx);
 		void GenerateDistanceLUT(uint32_t maxLevels, double planetRadius, float FoVY, uint32_t viewportWidth, double metersPerFirstCell = 1.0, float screenErrorPx = 2.0f, double spacingBias = 1.2);
@@ -380,6 +540,11 @@ namespace Toast {
 		Buffer& GetTerrainObjectBuffer() { return mTerrainObjectBuffer; }
 
 		uint32_t ObjectInstancesForLevelFromDensity(const TerrainObject& o, uint32_t cellSize, uint32_t gridSize);
+
+		void SetMeshMode(PlanetMeshMode mode) { mMeshMode = mode; }
+		PlanetMeshMode GetMeshMode() const { return mMeshMode; }
+
+		Ref<PlanetMeshIcosphere>& GetIcosphereMesh() { return mIcosphereMesh; }
 	};
 
 }

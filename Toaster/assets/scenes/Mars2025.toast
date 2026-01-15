@@ -1,14 +1,12 @@
 Scene: Untitled Scene
 EditorCamera:
-  Position: [-242.516174, 122.85862, -467.275574]
+  Position: [182.094833, 128.476776, -453.304535]
 Settings:
   Grid: false
   CameraFrustum: true
-  SunLightFrustum: true
+  SunLightFrustum: false
   DirectionalLightningGain: 1
-  BackfaceCulling: true
-  FrustumCulling: true
-  RenderColliders: true
+  RenderColliders: false
   RenderUI: true
   Shadows: false
   SSAO: true
@@ -16,51 +14,50 @@ Settings:
   SSAORadius: 0.5
   SSAObias: 0.0250000004
   SunSurfaceThreshold: 5
-  SunSurfaceIntensity: 0.250000238
-  SunSpaceThreshold: 5.89999104
-  SunSpaceIntensity: 1.24999964
-  SkySurfaceThreshold: 0
-  SkySurfaceIntensity: 0.499999821
-  SkySpaceThreshold: 0
-  SkySpaceIntensity: 0.499999881
+  SunSurfaceIntensity: 0.300000012
+  SunSpaceThreshold: 6.5
+  SunSpaceIntensity: 0.200000003
+  SkySurfaceThreshold: 1
+  SkySurfaceIntensity: 0.300000012
+  SkySpaceThreshold: 2
+  SkySpaceIntensity: 0.150000006
   GeometryThreshold: 0
   GeometryIntensity: 0
   SunRadius: 1
-  SkySurfaceRadius: 0.57000047
-  SkySpaceRadius: 0.600000024
+  SkySurfaceRadius: 0.600000024
+  SkySpaceRadius: 0.400000006
   SoftKnee: 0.800000012
-  SaturationClamp: 4
+  SaturationClamp: 1
   DynamicIBL: true
   SunFrustumOrthoSize: 500
-  GodRaysExposure: 0.209999993
-  GodRaysDecay: 0.939999998
-  GodRaysDensity: 3
-  GodRaysWeight: 0.0199999996
-  EVGeometrySurface: 0.220000774
-  EVGeometrySpace: 0.199999839
-  EVGeometryNight: -2.19999838
-  EVSkySurface: 0.0600003824
-  EVSkySpace: 0.01999861
-  EVSkySurfaceNight: -6.11000919
-  EVSkySpaceNight: -3.7799983
-  AltFadeStartFrac: 0.25
-  AltFadeEndFrac: 0.850000024
-  SunFadeStartDeg: 3
-  SunFadeEndDeg: -10
+  GodRaysExposure: 0.300000042
+  GodRaysDecay: 0.975000024
+  GodRaysDensity: 0.99999994
+  GodRaysWeight: 0.0399999991
+  GodRaysKHalo: 0.449999988
+  GodRaysHaloPower: 3
+  GodRaysFogRangeMeters: 116500
+  EVSurfaceDay: -0.100000627
+  EVSpaceDay: -0.520000875
+  EVSurfaceNight: 1.72000337
+  EVSpaceNight: 3.89000154
+  AltFadeFrac: [0.119999997, 0.920000017]
+  SunFadeDeg: [-6, 6.35998201]
   Physics:
     SlowDown: 1
     FPSTarget: 60
     StepsPerUpdate: 1
     MaxAngularVelocity: 30
 Planet:
-  Translation: [0, -3385957, 0]
+  Translation: [0, -3385951, 0]
   Rotation: [566.398804, 198.200241, 811.199402]
   GridSize: 257
   MaxLevels: 28
   Radius: 3389500
   MaxHeight: 21900
   MinHeight: -8200
-  AlbedoColor: [0.510548532, 0.244271398, 0.176645473]
+  mMeshMode: 0
+  AlbedoColor: [0.468354404, 0.26033029, 0.207498789]
   Roughness: 1
   Metalness: 0
   HeightMapAssetPath: C:\dev\Toast\Toaster\assets\textures\Mars_MOLA_8k_raw.tif
@@ -69,13 +66,13 @@ Planet:
   AtmosphereActivated: true
   AtmosphereHeight: 60000
   RayleighScaleHeight: 11000
-  RayleighExp10: -10
-  RayleighScattering: [9.00000019e-10, 1.80000004e-09, 4.59999994e-09]
+  RayleighExp10: -7
+  RayleighScattering: [3.49999993e-08, 8.10000031e-08, 2.00000002e-07]
   MieScaleHeight: 11000
   MieScatteringExp10: -5
-  MieScattering: [1.94999993e-05, 1.54999998e-05, 1.49999996e-05]
+  MieScattering: [2.40000008e-05, 2.0999998e-05, 1.89999992e-05]
   MieAbsorptionExp10: -6
-  MieAbsorption: [3.99999999e-06, 4.50000016e-06, 6.49999993e-06]
+  MieAbsorption: [1.99999999e-06, 2.20000015e-06, 2.59999979e-06]
   MieAnisotropy: [0.889999986, 0.889999986, 0.879999995]
   OzoneStrength: 0
   GroundAlbedo: [0.767932475, 0.767932475, 0.767932475]
@@ -84,28 +81,28 @@ Planet:
   SGain: 1
   GravityConstant: 3.73000002
   HeightDetails:
-    - Name: LOD0 Details
-      Seed: 237962123
-      LODActivation: 0
-      Octaves: 5
-      Frequency: 0.108999997
-      Amplitude: 0.100000001
     - Name: LOD1 Details
-      Seed: 4154196045
+      Seed: 237962123
       LODActivation: 1
+      Octaves: 5
+      Frequency: 0.063000001
+      Amplitude: 0.330000013
+    - Name: LOD2 Details
+      Seed: 4154196045
+      LODActivation: 2
       Octaves: 8
       Frequency: 0.00400000019
       Amplitude: 1.92999995
-    - Name: LOD2 Details
+    - Name: LOD3 Details
       Seed: 827194578
-      LODActivation: 2
+      LODActivation: 3
       Octaves: 7
       Frequency: 0.00200000009
       Amplitude: 2.80999994
   TerrainObjects:
     - Name: Stones
       Seed: 1091646983
-      LODActivation: 1
+      LODActivation: 3
       DensityPerKm2: 3800
       MaxPerPatch: 2016
       MaxTotal: 200000
@@ -119,8 +116,8 @@ Environment:
   SunIntensity: 1
   SunDiscRadius: 0.00307999994
   SunEdgeSoftness: 0.000899999985
-  SunWhite: [1, 0.988235295, 0.968627453]
-  WarmTint: [1, 0.921568632, 0.78039217]
+  SunWhite: [0.74683547, 0.584942281, 0.315120459]
+  WarmTint: [1, 1, 1]
   SpaceDiscBrightnessScale: 1.25
   AirHaloIntensity: 0.00999999978
   AirHaloStartFrac: 1
@@ -130,12 +127,31 @@ Environment:
   SpaceHaloWidthDeg: 0.769999981
   SpaceHaloIntensity: 0.0199999996
   SpaceHaloCutoffDeg: 21.8999996
+  SunSpikes: 8
+  SunSpikeSharpness: 19
+  SunSpikeRadiusSurface: 0.100000001
+  SunSpikeRadiusSpace: 0.112999998
+  SunSpikeFallOff: 2.4000001
+  SunSpikeStrengthSurface: 0.00200000009
+  SunSpikeStrengthSpace: 0.00700000022
+  SunGlareStrengthSurface: 0.00499999989
+  SunGlareStrengthSpace: 0.00899999961
+  SunGlareRadiusSurface: 0.0399999991
+  SunGlareRadiusSpace: 0.0399999991
+  LensAltStart: 0
+  LensAltEnd: 1
+  GhostStrength: 0.0700000003
+  GhostSpacing: 1
+  GhostFalloff: 0.610000014
+  GhostSizeSurface: 0.00179999997
+  GhostSizeSpace: 0.000190000006
+  GhostAirSuppression: 1
   StarNits: 160
   TwilightStartDeg: 0
   TwilightEndDeg: -45
   SpaceFadeStart: 0.129999995
-  SpaceFadeEnd: 0.980000019
-  NightAmbient: [0.600000024, 0.639999986, 0.720000029]
+  SpaceFadeEnd: 1
+  NightAmbient: [0.136302933, 0.137282133, 0.139240503]
 Entities:
   - Entity: 3888910141822256182
     TagComponent:
@@ -154,7 +170,7 @@ Entities:
         PerspectiveFOV: 45
         NearClip: 0.100000001
         FarClip: 2000000
-        OrthographicWidth: 2652
+        OrthographicWidth: 2651
         OrthographicHeight: 1120
       Primary: true
       FixedAspectRatio: false
@@ -163,25 +179,49 @@ Entities:
       ScriptFields:
         - Name: MinAltitude
           Type: Float
-          Data: 10
+          Data: 5
         - Name: MaxAltitude
           Type: Float
           Data: 500000
         - Name: BaseMovementSpeed
           Type: Float
           Data: 300
-        - Name: ReferenceAltitude
+        - Name: MinZoomStepMeters
           Type: Float
-          Data: 1000
+          Data: 0.25
         - Name: MouseSpeedFactor
           Type: Float
           Data: 0.5
         - Name: BaseZoomSpeed
           Type: Float
           Data: 2000
+        - Name: ZoomSmoothTime
+          Type: Float
+          Data: 0.180000007
         - Name: ZoomFactor
           Type: Float
-          Data: 2.29999995
+          Data: 1.12
+        - Name: MaxZoomStepMeters
+          Type: Float
+          Data: 250000
+        - Name: ZoomPercentNear
+          Type: Float
+          Data: 0.0799999982
+        - Name: ReferenceAltitude
+          Type: Float
+          Data: 1000
+        - Name: ZoomPercentFar
+          Type: Float
+          Data: 0.00800000038
+        - Name: ZoomRampPower
+          Type: Float
+          Data: 0.75
+        - Name: ZoomRampRefAlt
+          Type: Float
+          Data: 20000
+        - Name: WheelSensitivity
+          Type: Float
+          Data: 1
   - Entity: 14796545384475566267
     TagComponent:
       Tag: Starship
@@ -306,7 +346,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [-100.799934, 20.8000145, -63.5000076]
+      Rotation: [-29.8996639, 0, 0]
       Scale: [0.999434412, 0.999894023, 0.999519885]
     DirectionalLightComponent:
       Radiance: [1, 0.980000019, 0.949999988]

@@ -142,8 +142,10 @@ Texture2D albedoMetallicTexture         : register(t2); // Albedo RGB and Metall
 Texture2D roughnessAOTexture            : register(t3); // Roughness R and AO A
 
 // IBL Textures
-TextureCube IrradianceTexture           : register(t4);
-TextureCube RadianceTexture             : register(t5);
+TextureCube IrradianceTextureDay        : register(t4);
+TextureCube RadianceTextureDay          : register(t5);
+TextureCube IrradianceTextureNight      : register(t14);
+TextureCube RadianceTextureNight        : register(t15);
 Texture2D SpecularBRDFLUT               : register(t6);
 
 // Atmospheric Scattering Textures
@@ -155,13 +157,80 @@ Texture2D SSAOTexture                   : register(t10);
 
 // Shadow Pass Texture
 Texture2D ShadowDepthTexture            : register(t12);
-Texture2D ObjectMaskTexture             : register(t13);
+
+Texture2D<int> ObjectMaskTexture        : register(t13);
+
+Texture2DArray<float> HeightCube        : register(t16);
+Texture2D SceneDepth                    : register(t17);
 
 // Sampler state
 SamplerState DefaultSampler             : register(s0);
 SamplerState SPBRDFSampler              : register(s1);
 SamplerState PointSampler               : register(s2);
 SamplerState LinearSampler              : register(s3);
+
+struct CubeSample
+{
+    uint face;
+    float2 uv; // [0,1]
+};
+
+CubeSample DirectionToCube(float3 v)
+{
+    v = normalize(v);
+
+    float ax = abs(v.x);
+    float ay = abs(v.y);
+    float az = abs(v.z);
+
+    uint face;
+    float2 uvFace;
+
+    if (ax >= ay && ax >= az)
+    {
+        if (v.x > 0)
+        {
+            face = 0;
+            uvFace = float2(-v.z, v.y) / ax;
+        }
+        else
+        {
+            face = 1;
+            uvFace = float2(v.z, v.y) / ax;
+        }
+    }
+    else if (ay >= ax && ay >= az)
+    {
+        if (v.y > 0)
+        {
+            face = 2;
+            uvFace = float2(v.x, -v.z) / ay;
+        }
+        else
+        {
+            face = 3;
+            uvFace = float2(v.x, v.z) / ay;
+        }
+    }
+    else
+    {
+        if (v.z > 0)
+        {
+            face = 4;
+            uvFace = float2(v.x, v.y) / az;
+        }
+        else
+        {
+            face = 5;
+            uvFace = float2(-v.x, v.y) / az;
+        }
+    }
+
+    CubeSample cs;
+    cs.face = face;
+    cs.uv = uvFace * 0.5 + 0.5;
+    return cs;
+}
 
 // GGX/Towbridge-Reitz normal distribution function.
 // Uses Disney's reparametrization of alpha = roughness^2
@@ -272,7 +341,7 @@ float3 PrefilterEnvMap(float roughness, float3 R)
         float NoL = clamp(dot(N, L), 0.0f, 1.0f);
         if (NoL > 0)
         {
-            PrefilteredColor += IrradianceTexture.Sample(DefaultSampler, L).rgb * NoL;
+            PrefilteredColor += IrradianceTextureDay.Sample(DefaultSampler, L).rgb * NoL;
             TotalWeight += NoL;
         }
     }
@@ -283,7 +352,7 @@ float3 PrefilterEnvMap(float roughness, float3 R)
 uint queryRadianceTextureLevels()
 {
     uint width, height, levels;
-    RadianceTexture.GetDimensions(0, width, height, levels);
+    RadianceTextureDay.GetDimensions(0, width, height, levels);
     return levels;
 }
 
@@ -330,6 +399,66 @@ float4 SamplePsiMS4(float r, float muS, float Rg, float Rt)
     return MultiScatterLUT.SampleLevel(LinearSampler, float2(u, v), 0);
 }
 
+float TerrainHardShadowHorizonTrace(float3 posWS, float3 planetCenterWS, float3 wSun, float RbPhys, float r_true, uint heightRes, float dMin, float dMax)              // e.g. 20000.0..100000.0 depending on your scale
+{
+    float3 pRel = posWS - planetCenterWS;
+    float3 up = pRel / max(1e-6f, r_true);
+
+    // Receiver height above RbPhys
+    float h0 = r_true - RbPhys;
+
+    // Sun elevation above local horizon
+    float mu = dot(up, wSun); // cos(zenith)
+    float sinZen = sqrt(saturate(1.0f - mu * mu));
+    float sunAngle = atan2(mu, max(1e-6f, sinZen)); // [-pi/2..pi/2], 0 at horizon
+
+    // Tangent direction toward sun (azimuth direction)
+    float3 t = wSun - up * mu;
+    float tLen = length(t);
+    if (tLen < 1e-5f)
+        return 1.0f; // sun almost at zenith; terrain horizon shadow negligible
+
+    float3 tSun = t / tLen;
+
+    // Estimate meters per texel at the receiver.
+    // For cubemap, angular texel size ~ (pi/2)/heightRes on each face.
+    // Arc length at radius r_true: metersPerTexel ~ r_true * angularStep.
+    float metersPerTexel0 = r_true * (0.5f * PI / (float) heightRes);
+
+    float horizon = -1e9f;
+
+    // Geometric progression steps: good coverage with few iterations
+    float d = dMin;
+
+    [loop]
+    for (int i = 0; i < 24; ++i) // tune: 16..32
+    {
+        if (d > dMax)
+            break;
+
+        float theta = d / max(1e-6f, r_true); // radians
+
+        float3 dirSample = normalize(up * cos(theta) + tSun * sin(theta));
+
+        // Mip selection: footprint grows with distance
+        float mip = clamp(log2(d / max(1e-6f, metersPerTexel0)), 0.0f, 12.0f);
+        
+        CubeSample cs = DirectionToCube(dirSample);
+        float2 uv = saturate(cs.uv);
+        float slice = (float) cs.face;
+        
+        float hS = HeightCube.SampleLevel(PointSampler, float3(uv, slice), mip);
+
+        // Blocking angle of the highest terrain at distance d
+        float ang = atan2(hS - h0, d);
+        horizon = max(horizon, ang);
+
+        d *= 1.35f; // tune
+    }
+
+    return (sunAngle > horizon) ? 1.0f : 0.0f;
+}
+
 float3 DirectionalLightning(float3 F0, float3 NormalWorldSpace, float3 View, float NdotV, float3 albedo, float roughness, float metalness, float3 worldPos, float3 sunDir, float r, float muS)
 {   
     float3 L = normalize(-sunDir);
@@ -366,9 +495,9 @@ float3 DirectionalLightning(float3 F0, float3 NormalWorldSpace, float3 View, flo
     return result;
 }
 
-float3 IBL(float3 F0, float3 Lr, float3 NormalWorldSpace, float3 albedo, float roughness, float metalness, float NdotV)
+float3 IBL(float3 F0, float3 Lr, float3 NormalWorldSpace, float3 albedo, float roughness, float metalness, float NdotV, float day)
 {
-    float3 irradiance = IrradianceTexture.Sample(SPBRDFSampler, NormalWorldSpace).rgb;
+    float3 irradiance = lerp(IrradianceTextureNight.Sample(SPBRDFSampler, NormalWorldSpace), IrradianceTextureDay.Sample(SPBRDFSampler, NormalWorldSpace), day).rgb;
 
     // Correct Fresnel term using NdotV
     float3 F = fresnelSchlickRoughness(F0, NdotV, roughness);
@@ -379,7 +508,7 @@ float3 IBL(float3 F0, float3 Lr, float3 NormalWorldSpace, float3 albedo, float r
 
     uint specularTextureLevels = queryRadianceTextureLevels();
     float mipLevel = roughness * (float) (specularTextureLevels - 1);
-    float3 specularIrradiance = RadianceTexture.SampleLevel(SPBRDFSampler, Lr, mipLevel).rgb;
+    float3 specularIrradiance = lerp(RadianceTextureNight.SampleLevel(SPBRDFSampler, Lr, mipLevel), RadianceTextureDay.SampleLevel(SPBRDFSampler, Lr, mipLevel), day);
 
     // Use NdotV in BRDF LUT sampling
     float2 specularBRDF = SpecularBRDFLUT.Sample(SPBRDFSampler, float2(NdotV, roughness)).rg;
@@ -427,16 +556,16 @@ PixelOutputType main(PixelInputType input)
     float ao = SSAOTexture.Sample(DefaultSampler, uv).r;
     
     // In View Space, the camera is at the origin (0, 0, 0)
-    float3 V = normalize(-posWS.xyz);
     float3 VWorld = normalize(cameraPosition.xyz - posWS.xyz);
     float NdotV = max(dot(normalWorld, VWorld), 0.05f);
 
-    float3 pRel = posWS.xyz - PlanetCenterWS;
+    float3 planetCenterTrueWS = mul(float4(PlanetCenterWS, 1.0f), worldTranslationMatrix).xyz;
+    float3 pRel = posWS.xyz - planetCenterTrueWS;
       
     float r_true = length(pRel);
     float3 up = (r_true > 0.0f) ? (pRel / r_true) : BasisRadUp;
     
-    float3 wSun = normalize(-direction.xyz); // point -> sun
+    float3 wSun = -normalize(direction.xyz); // point -> sun
     float muS = dot(up, wSun);
 
     // Fresnel reflectance at normal incidence (for metals use albedo color).
@@ -466,6 +595,23 @@ PixelOutputType main(PixelInputType input)
 
     // Initialize shadow factor
     float shadow = 1.0f;
+    
+    int2 pix = int2(uv * float2(viewportWidth, viewportHeight));
+    int isObject = ObjectMaskTexture.Load(int3(pix, 0));
+    float depth = SceneDepth.Sample(PointSampler, uv);
+    float terrainShadow = 1.0f;
+
+    if (isObject < 0.5f && depth > 1e-12f)
+    {
+        uint width, height, layers, mipLevels;
+        HeightCube.GetDimensions(0, width, height, layers, mipLevels);
+        
+        const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
+        float h = r_true - RbPhys;
+        float dMax = clamp(8.0f * sqrt(max(2.0f * RbPhys * h, 0.0f)), 50000.0f, 2000000.0f);
+        
+        terrainShadow = TerrainHardShadowHorizonTrace(posWS.xyz, planetCenterTrueWS, wSun, RbPhys, r_true, width, 30.0f, dMax);
+    }
 
     if (!outsideShadowMap)
     {
@@ -493,7 +639,8 @@ PixelOutputType main(PixelInputType input)
 
             // Check if 'sampleUV' is within [0,1]
                 if (sampleUV.x >= 0.0f && sampleUV.x <= 1.0f && sampleUV.y >= 0.0f && sampleUV.y <= 1.0f)
-                {
+                { 
+                     
                     float sampledDepth = ShadowDepthTexture.Sample(DefaultSampler, sampleUV).r;
 
                 // Adjusted depth comparison with bias
@@ -510,18 +657,22 @@ PixelOutputType main(PixelInputType input)
         // Average the shadow factor
         shadow = shadowSum / sampleCount;
     }
+    float shadowFinal = terrainShadow * shadow;
     
     // Directional Light Contribution
-    float3 directLight = DirectionalLightning(F0, normalWorld, VWorld, NdotV, albedo, roughness, metalness, posWS.xyz, direction.xyz, r_true, muS) * shadow;
+    float3 directLight = DirectionalLightning(F0, normalWorld, VWorld, NdotV, albedo, roughness, metalness, posWS.xyz, direction.xyz, r_true, muS);
     
     // IBL Contribution
     float3 Lr = normalize(reflect(-VWorld, normalWorld));
-    float3 iblContribution = IBL(F0, Lr, normalWorld, albedo, roughness, metalness, NdotV);
+    float day = smoothstep(-0.10, 0.035, muS);
+    float3 iblContribution = IBL(F0, Lr, normalWorld, albedo, roughness, metalness, NdotV, day);
+    
+    float3 direct = DirectionalLightGain * directLight * shadowFinal; // no AO
 
-    float3 finalShading = float4((NightAmbient + DirectionalLightGain * directLight + iblContribution) * ao, 1.0f);
+    float3 color = direct + (iblContribution * ao);
 
     // Output the final color
-    output.color = float4(finalShading, 1.0f);
+    output.color = float4(color, 1.0f);
     
     return output;
 }

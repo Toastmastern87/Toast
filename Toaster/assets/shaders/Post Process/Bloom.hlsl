@@ -63,6 +63,16 @@ float3 softKneeBright(float3 color, float threshold, float kneeFrac)
     return max(over, knee);
 }
 
+float3 ClampSaturation(float3 c, float satMax)
+{
+    float Y = dot(c, float3(0.2126, 0.7152, 0.0722));
+    float3 chroma = c - Y.xxx;
+    float chromaLen = length(chroma);
+    float maxLen = max(0.0f, satMax) * max(Y, 1e-6f);
+    if (chromaLen > maxLen)
+        chroma *= (maxLen / chromaLen);
+    return Y.xxx + chroma;
+}
 
 struct PixelInputType
 {
@@ -87,7 +97,9 @@ PixelOutputType main(PixelInputType input)
     // Masks
     float disc = SunDiscMaskRT.Sample(clampSampler, uv).r;
     float halo = SunHaloMaskRT.Sample(clampSampler, uv).r;
-    float sunMask = saturate(disc + halo);
+    float haloTame = saturate(halo * 0.35f); // gain down
+    haloTame *= smoothstep(0.10f, 0.60f, haloTame); // kill faint wide halo
+    float sunMask = saturate(disc + haloTame);
     
     // Depth partition
     float depth = SceneDepth.Sample(ClampPoint, uv);
@@ -95,17 +107,25 @@ PixelOutputType main(PixelInputType input)
     float isGeom = 1.0f - isSky;
     
     // Remove sun from sky
-    float skyOnlyMask = isSky * (1.0f - disc);
+    float skyOnlyMask = isSky * (1.0f - sunMask);
     
     // Surface↔Space thresholds
     float sunThreshold = lerp(SunSurfaceThreshold, SunSpaceThreshold, spaceFactor);
     float skyThreshold = lerp(SkySurfaceThreshold, SkySpaceThreshold, spaceFactor);
     float geoThreshold = (GeometryThreshold > 0.0) ? GeometryThreshold : skyThreshold;
 
+    float sunIntensity = lerp(SunSurfaceIntensity, SunSpaceIntensity, spaceFactor);
+    float skyIntensity = lerp(SkySurfaceIntensity, SkySpaceIntensity, spaceFactor);
+    float geoIntensity = GeometryIntensity;
+    
     // Bright contributions
-    float3 sunBright = softKneeBright(hdr, sunThreshold, SoftKnee) * sunMask;
-    float3 skyBright = softKneeBright(hdr, skyThreshold, SoftKnee) * skyOnlyMask;
-    float3 geomBright = softKneeBright(hdr, geoThreshold, SoftKnee) * isGeom;
+    float3 sunBright = softKneeBright(hdr, sunThreshold, SoftKnee) * sunMask * sunIntensity;
+    float3 skyBright = softKneeBright(hdr, skyThreshold, SoftKnee) * skyOnlyMask * skyIntensity;
+    float3 geomBright = softKneeBright(hdr, geoThreshold, SoftKnee) * isGeom * geoIntensity;
+    
+    sunBright = ClampSaturation(sunBright, SaturationClamp);
+    skyBright = ClampSaturation(skyBright, SaturationClamp);
+    geomBright = ClampSaturation(geomBright, SaturationClamp);
 
     output.sun = float4(sunBright, 1.0f);
     output.sky = float4(skyBright, 1.0f);

@@ -318,7 +318,7 @@ namespace Toast {
 			switch (mEditorScene->GetSettings().RenderOverlaySetting)
 			{
 			case RenderOverlay::NONE:
-				textureID = (void*)Renderer::GetFinalRT()->GetSRV().Get();
+				textureID = (void*)Renderer::GetFinalEditorRT()->GetSRV().Get();
 				break;
 			case RenderOverlay::POSITIONS:
 				textureID = (void*)Renderer::GetGPassPositionRT()->GetSRV().Get();
@@ -361,7 +361,6 @@ namespace Toast {
 				break;
 			}
 
-			Ref<RenderTarget>& finalRenderTarget = Renderer::GetFinalRT();
 			ImGui::Image(textureID, ImVec2{ mViewportSize.x, mViewportSize.y });
 
 			if (ImGui::BeginDragDropTarget())

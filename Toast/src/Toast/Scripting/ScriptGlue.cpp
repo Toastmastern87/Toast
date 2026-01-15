@@ -378,7 +378,9 @@ namespace Toast {
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		Entity entity = scene->FindEntityByUUID(entityID);
-		entity.GetComponent<TransformComponent>().RotationQuaternion = *rotation;
+		auto& tc = entity.GetComponent<TransformComponent>();
+		tc.RotationQuaternion = *rotation;
+		tc.IsDirty = true;
 	}
 
 	static void TransformComponent_GetRotationQuaternion(UUID entityID, DirectX::XMFLOAT4* outQuat)

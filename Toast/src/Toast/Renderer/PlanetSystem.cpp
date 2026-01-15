@@ -6,6 +6,8 @@
 
 #include "Toast/Core/Math/Math.h"
 
+#include "Toast/Physics/PhysicsEngine.h"
+
 #include "Toast/Utils/FixedThreadPool.h"
 
 #include <chrono>
@@ -33,6 +35,8 @@ namespace Toast {
 		ShaderLayout::ShaderInputElement pos(DXGI_FORMAT_R16G16_UINT, "POSITION", 0);
 		pos.mInputClassification = D3D11_INPUT_PER_VERTEX_DATA; 
 		planetElements.emplace_back(pos);
+
+		mIcosphereMesh = CreateRef<PlanetMeshIcosphere>();
 
 		Shader* planetGPassShader = ShaderLibrary::Get("assets/shaders/Planet/PlanetGeometryPass.hlsl");
 
@@ -285,99 +289,26 @@ namespace Toast {
 		mLODGridIndexCount = static_cast<uint32_t>(indices.size());
 	}
 
-	//void Planet::RebuildLODEdgeGrid()
-	//{
-	//	std::vector<uint16_t> vertices;  
-	//	std::vector<uint32_t> indices;
-
-	//	const uint32_t cells = mGridSize - 1;  
-	//	const uint32_t lenFine = cells;           
-	//	const uint32_t lenCoarse = lenFine / 2 + 1; 
-
-	//	auto map = [&](uint32_t edge, uint16_t u, uint16_t v) -> std::pair<uint16_t, uint16_t>
-	//		{
-	//			switch (edge)
-	//			{
-	//			case 0: 
-	//				return { u,  v };               
-	//			case 1: 
-	//				return { static_cast<uint16_t>(cells - v), u };
-	//			case 2: 
-	//				return { static_cast<uint16_t>(cells - u), static_cast<uint16_t>(cells - v) };   
-	//			default:
-	//				return { v, static_cast<uint16_t>(cells - u) }; 
-	//			}
-	//		};
-
-	//	for (uint32_t edge = 0; edge < 4; ++edge)
-	//	{
-	//		const bool flip = (edge == 2 || edge == 3);   // bottom & left need CW→CCW
-
-	//		const uint32_t vOffset = static_cast<uint32_t>(vertices.size() / 2);
-
-	//		/* coarse row (outer) : local v = 0  ,  u = 0,2,4,… */
-	//		for (uint32_t k = 0; k < lenCoarse; ++k)
-	//		{
-	//			auto [gx, gy] = map(edge, static_cast<uint16_t>(2 * k), 0);
-	//			vertices.push_back(gx); vertices.push_back(gy);
-	//		}
-
-	//		for (uint32_t u = 0; u < lenFine; ++u)
-	//		{
-	//			auto [gx, gy] = map(edge, static_cast<uint16_t>(u), 1);
-	//			vertices.push_back(gx); vertices.push_back(gy);
-	//		}
-
-	//		const uint32_t cBase = vOffset;               // first coarse of this edge
-	//		const uint32_t fBase = vOffset + lenCoarse;   // first fine   of this edge
-
-	//		for (uint32_t k = 0; k + 1 < lenCoarse; ++k) 
-	//		{
-	//			uint32_t c0 = cBase + k;
-	//			uint32_t c1 = c0 + 1;
-
-	//			uint32_t f0 = fBase + 2 * k;
-	//			uint32_t f1 = f0 + 1;
-	//			uint32_t f2 = f0 + 2;                     // exists except at last span
-
-	//			auto pushTri = [&](uint32_t a, uint32_t b, uint32_t c)
-	//				{
-	//					if (flip)  
-	//						indices.insert(indices.end(), { a, c, b }); // flip winding
-	//					else       
-	//						indices.insert(indices.end(), { a, b, c });
-	//				};
-
-	//			pushTri(f0, f1, c0);         
-	//			pushTri(f1, c0, c1);          
-	//			if (f2 < fBase + lenFine)     
-	//				pushTri(f1, f2, c1);
-	//		}
-	//	}
-
-	//	const uint32_t vbSize = static_cast<uint32_t>(vertices.size()) * sizeof(uint16_t);
-	//	mLODGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), vbSize, static_cast<uint32_t>(vertices.size() / 2), 0, D3D11_USAGE_IMMUTABLE);
-
-	//	mLODGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), static_cast<uint32_t>(indices.size()));
-	//	mLODGridIndexCount = static_cast<uint32_t>(indices.size());
-	//}
-
-	LODDrawInfo Planet::DetermineActiveLODLevels(const Vector3& camPosPS)
+	LODDrawInfo Planet::DetermineActiveLODLevels(const Vector3& camPosPS, PhysicsEngine* physicsEngine)
 	{
-		double camHeight = std::max(0.0, camPosPS.Length() - mRadius); 
-		double heightSq = camHeight * camHeight;
+		double rCam;
+		Vector3 groundN;
+		double altitude = physicsEngine->GetAltitudeAtWorldPos(Vector3(0.0, 0.0, 0.0), rCam, groundN);
+
+		double altitudeSq = altitude * altitude;
 
 		uint32_t first = 0;                               
-		while (first + 1 < mNumLevels && heightSq > mDistanceLUT[first])
+		while (first + 1 < mNumLevels && altitudeSq > mDistanceLUT[first])
 			++first;                                         
 
 		// How far can the player see
-		const double dObserver = std::sqrt(camHeight * (2.0 * mRadius + camHeight));         // camera's horizon
+		const double dObserver = std::sqrt(altitude * (2.0 * mRadius + altitude));         // camera's horizon
 		const double dPeak = std::sqrt(mMaxHeight * (2.0 * mRadius + mMaxHeight));           // extra for peaks
 		double horizon = dObserver + dPeak;
 
 		uint32_t last = first;                              // we already keep it
-		double   cell = double(1u << first);                // meters / texel
+		double   cell = double(1u << first);         
+		// meters / texel
 		double   half = 0.5 * (mGridSize - 1) * cell;       // half-width
 
 		while (half < horizon && last + 1 < mNumLevels)                     // still have rings
@@ -432,6 +363,7 @@ namespace Toast {
 		cb.GridSize = mGridSize;                // e.g. 257
 		cb.ScatterOriginMetersX = -mShiftEastM;
 		cb.ScatterOriginMetersY = -mShiftNorthM;
+		cb.FinestCellSize = float(1u << mActiveLevels.first);
 
 		/* copy to the generic scratch buffer you created
 		   when you built  sPlanetLevelCBuffer  */
@@ -440,7 +372,7 @@ namespace Toast {
 		return mPlanetLevelBuffer;
 	}
 
-	void Planet::OnUpdate(const Vector3& camPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix)
+	void Planet::OnUpdate(const Vector3& camPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix, PhysicsEngine* physicsEngine)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -507,7 +439,7 @@ namespace Toast {
 		mPlanetFrameCBuffer->Map(mPlanetFrameBuffer);
 
 		/* decide how many levels are visible this frame */
-		mActiveLevels = DetermineActiveLODLevels(camPosPS);
+		mActiveLevels = DetermineActiveLODLevels(camPosPS, physicsEngine);
 
 		const uint32_t L0 = mActiveLevels.first;
 		const uint32_t Ln = L0 + mActiveLevels.count;
@@ -561,16 +493,33 @@ namespace Toast {
 		return std::sqrt(std::max(0.0f, h * h + 2.0f * Rg * h));
 	}
 
-	float Planet::GetSpaceFactor(Vector3 cameraPosition)
+	static float Smoothstep(float a, float b, float x)
 	{
-		double RbPhys = mRadius + std::min(0.0, mMinHeight);
-		double Rt = mRadius + mAtmosphere.AtmosphereHeight;
-		double rCam = Vector3::Length(cameraPosition - mTranslation);
+		float t = std::clamp((x - a) / (b - a), 0.0f, 1.0f);
+		return t * t * (3.0f - 2.0f * t);
+	}
 
-		double airFrac = std::clamp((Rt - std::clamp(rCam, RbPhys, Rt)) / std::max(Rt - RbPhys, 1e-6), 0.0, 1.0);
-		double spaceFactor = 1.0f - smoothstep(0.02f, 0.22f, airFrac);
+	float Planet::GetSpaceFactor(Vector3 cameraPosition, const Vector3& worldTranslation)
+	{
+		const double RbPhys = mRadius + std::min(0.0, mMinHeight);
+		const double Rt = mRadius + mAtmosphere.AtmosphereHeight;
+		const double rCam = Vector3::Length(cameraPosition - (Vector3(mTranslation) + worldTranslation));
 
-		return (float)spaceFactor;
+		// clamp within [RbPhys..Rt] for the "within atmosphere shell" evaluation
+		const double rClamped = std::clamp(rCam, RbPhys, Rt);
+
+		// airFrac = 1 at ground, 0 at TOA
+		const double airFrac = std::clamp((Rt - rClamped) / std::max(Rt - RbPhys, 1e-6), 0.0, 1.0);
+
+		// spaceFactor = 0 at ground, 1 at TOA
+		// Make this transition WIDE to avoid popping:
+		// - start when only ~50% air remains above you
+		// - end when ~5% air remains
+		const float startAir = 0.50f; // start "space look" when airFrac falls below this
+		const float endAir = 0.05f; // full "space look" near TOA
+
+		const float spaceFactor = 1.0f - Smoothstep(endAir, startAir, (float)airFrac);
+		return spaceFactor;
 	}
 
 	void Planet::Shutdown()
@@ -805,10 +754,7 @@ namespace Toast {
 		double offYSnapped = double(gWorldY) * cell;
 
 		// 7) Rebuild pSphereLocal and approximate normal exactly like the VS
-		Vector3 pSphereLocal =
-			radUp * R +
-			tanEast * offXSnapped +
-			tanNorth * offYSnapped;
+		Vector3 pSphereLocal = radUp * R + tanEast * offXSnapped + tanNorth * offYSnapped;
 
 		Vector3 nWSApprox = Vector3::Normalize(pSphereLocal);
 
@@ -964,6 +910,245 @@ namespace Toast {
 		u = std::min<uint32_t>(u, (uint32_t)o.MaxPerPatch); // if you mean per-level cap
 
 		return u;
+	}
+
+	// OLD PLANET SYSTEM BUT MAYBE BETTER
+
+	void PlanetMeshIcosphere::Init()
+	{
+		double ratio = ((1.0 + sqrt(5.0)) / 2.0);
+
+		std::vector<Vector3> startVertices = std::vector<Vector3>{
+			Vector3::Normalize({ ratio, 0.0, -1.0 }) * mRadius,
+			Vector3::Normalize({ -ratio, 0.0, -1.0 }) * mRadius,
+			Vector3::Normalize({ ratio, 0.0, 1.0 }) * mRadius,
+			Vector3::Normalize({ -ratio, 0.0, 1.0 }) * mRadius,
+			Vector3::Normalize({ 0.0, -1.0, ratio }) * mRadius,
+			Vector3::Normalize({ 0.0, -1.0, -ratio }) * mRadius,
+			Vector3::Normalize({ 0.0, 1.0, ratio }) * mRadius,
+			Vector3::Normalize({ 0.0, 1.0, -ratio }) * mRadius,
+			Vector3::Normalize({ -1.0, ratio, 0.0 }) * mRadius,
+			Vector3::Normalize({ -1.0, -ratio, 0.0 }) * mRadius,
+			Vector3::Normalize({ 1.0 , ratio, 0.0 }) * mRadius,
+			Vector3::Normalize({ 1.0 , -ratio, 0.0 }) * mRadius
+		};
+
+		std::vector<uint32_t> startIndices = std::vector<uint32_t>{
+						1, 3, 8,
+						3, 1, 9,
+						2, 0, 10,
+						0, 2, 11,
+
+						5, 7, 0,
+						7, 5, 1,
+						6, 4, 2,
+						4, 6, 3,
+
+						9, 11, 4,
+						11, 9, 5,
+						10, 8, 6,
+						8, 10, 7,
+
+						7, 1, 8,
+						1, 5, 9,
+						0, 7, 10,
+						5, 0, 11,
+
+						3, 6, 8,
+						4, 3, 9,
+						6, 2, 10,
+						2, 4, 11
+		};
+
+		for (uint32_t i = 0; i < startIndices.size(); i += 3)
+			mFaces.emplace_back(PlanetFaceCPU(startVertices[startIndices[i]], startVertices[startIndices[i + (size_t)1]], startVertices[startIndices[i + (size_t)2]], nullptr, (short)0));
+	}
+
+	void PlanetMeshIcosphere::GeneratePatchGeometry()
+	{
+		mVertices.clear();
+		mIndices.clear();
+
+		uint32_t mRC = 1 + (uint32_t)pow(2, mPatchLevels);
+
+		double delta = 1.0f / ((double)mRC - 1.0);
+
+		uint32_t rowIndex = 0;
+		uint32_t nextIndex = 0;
+
+		for (uint32_t row = 0; row < mRC; row++)
+		{
+			uint32_t numCols = mRC - row;
+
+			nextIndex += numCols;
+
+			for (uint32_t column = 0; column < numCols; column++)
+			{
+				// calculate position
+				Vector2 pos = { column / ((double)mRC - 1.0), row / ((double)mRC - 1.0) };
+
+				//create vertex
+				mVertices.emplace_back(PlanetVertexCPU(pos));
+
+				//calculate index
+				if (row < mRC - 1 && column < numCols - 1)
+				{
+					mIndices.emplace_back(rowIndex + column);
+					mIndices.emplace_back(nextIndex + column);
+					mIndices.emplace_back(1 + rowIndex + column);
+
+					if (column < numCols - 2)
+					{
+						mIndices.emplace_back(nextIndex + column);
+						mIndices.emplace_back(1 + nextIndex + column);
+						mIndices.emplace_back(1 + rowIndex + column);
+					}
+				}
+			}
+
+			rowIndex = nextIndex;
+		}
+	}
+
+	void PlanetMeshIcosphere::OnUpdate(Frustum* frustum, Vector3& cameraPosPS, int16_t subdivisions)
+	{
+		mTransform = Matrix::Identity() * Matrix::ScalingFromVector({ mRadius, mRadius, mRadius }) * Matrix::RotationFromEauler(mRotationEulerAngles) * Matrix::RotationFromQuaternion(mRotationQuaternion) * Matrix::TranslationFromVector(mTranslation);
+
+		mPatches.clear();
+
+		for (auto& face : mFaces)
+			RecursiveFace(frustum, face.A, face.B, face.C, face.Level, cameraPosPS, true);
+	}
+
+	void PlanetMeshIcosphere::RecursiveFace(Frustum* frustum, Vector3& a, Vector3& b, Vector3& c, int16_t subdivision, Vector3& cameraPosPS, bool splitCull)
+	{
+		Vector3 A, B, C;
+
+		NextPlanetFace nextPlanetFace = CheckFaceSplit(frustum, a, b, c, subdivision, cameraPosPS, splitCull);
+
+		if (nextPlanetFace == NextPlanetFace::CULL)
+			return;
+
+		if (subdivision < mMaxSubdivisions && (nextPlanetFace == NextPlanetFace::SPLIT || nextPlanetFace == NextPlanetFace::SPLITCULL)) 
+		{
+			A = b + ((c - b) * 0.5f);
+			B = c + ((a - c) * 0.5f);
+			C = a + ((b - a) * 0.5f);
+
+			A = Vector3::Normalize(A) * mRadius;
+			B = Vector3::Normalize(B) * mRadius;
+			C = Vector3::Normalize(C) * mRadius;
+
+			int16_t nextSubdivision = subdivision + 1;
+
+			RecursiveFace(frustum, C, B, a, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
+			RecursiveFace(frustum, b, A, C, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
+			RecursiveFace(frustum, B, A, c, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
+			RecursiveFace(frustum, A, B, C, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
+		}
+		else
+			mPatches.emplace_back(PlanetPatchCPU(subdivision, a, c - a, b - a));
+	}
+
+	PlanetMeshIcosphere::NextPlanetFace PlanetMeshIcosphere::CheckFaceSplit(Frustum* frustum, Vector3 a, Vector3 b, Vector3 c, int16_t subdivision, Vector3& cameraPosPS, bool frustumCull)
+	{
+		float aDistance, bDistance, cDistance;
+		a = mTransform * a;
+		b = mTransform * b;
+		c = mTransform * c;
+
+		Vector3 center = (a + b + c) / 3.0;
+
+		double dotProduct = Vector3::Dot(Vector3::Normalize(center), Vector3::Normalize(center - cameraPosPS));
+
+		if (mBackfaceCulling && dotProduct >= mFaceLevelDotLUT[(uint32_t)subdivision])
+			return NextPlanetFace::CULL;
+
+		if (mFrustumCulling && frustumCull)
+		{
+			auto intersect = frustum->ContainsTriangleVolume(a, b, c, mHeightMultLUT[(uint32_t)subdivision]);
+
+			if (intersect == VolumeTri::OUTSIDE)
+				return NextPlanetFace::CULL;
+
+			if (intersect == VolumeTri::CONTAINS)//stop frustum culling -> all children are also inside the frustum
+			{
+				//check if new splits are allowed
+				if (subdivision >= mMaxSubdivisions)
+					return NextPlanetFace::LEAF;
+
+				//split according to distance
+				aDistance = Vector3::Length(a - cameraPosPS);
+				bDistance = Vector3::Length(b - cameraPosPS);
+				cDistance = Vector3::Length(c - cameraPosPS);
+
+				if (std::fminf(aDistance, std::fminf(bDistance, cDistance)) < mDistanceLUT[(uint32_t)subdivision])
+					return NextPlanetFace::SPLIT;
+
+				return NextPlanetFace::LEAF;
+			}
+		}
+
+		if (subdivision >= mMaxSubdivisions)
+			return NextPlanetFace::LEAF;
+
+		aDistance = Vector3::Length(a - cameraPosPS);
+		bDistance = Vector3::Length(b - cameraPosPS);
+		cDistance = Vector3::Length(c - cameraPosPS);
+
+		if (fminf(aDistance, fminf(bDistance, cDistance)) < mDistanceLUT[(uint32_t)subdivision])
+			return NextPlanetFace::SPLITCULL;
+
+		return NextPlanetFace::LEAF;
+	}
+
+	void PlanetMeshIcosphere::GenerateDistanceLUT()
+	{
+		mDistanceLUT.clear();
+
+		for (int subdivision = 0; subdivision < mMaxSubdivisions; subdivision++)
+			mDistanceLUT.emplace_back(25123.8186 * exp(-0.9725 * (subdivision + 1)));
+	}
+
+	void PlanetMeshIcosphere::GenerateFaceDotLevelLUT()
+	{
+		double cullingAngle = acos((mRadius) / ((mRadius) + mMaxHeight));
+
+		mFaceLevelDotLUT.clear();
+		mFaceLevelDotLUT.emplace_back(0.5f + sinf(cullingAngle));
+		float angle = acosf(0.5f);
+		for (int i = 1; i <= mMaxSubdivisions; i++)
+		{
+			angle *= 0.5f;
+			mFaceLevelDotLUT.emplace_back(sin(angle + cullingAngle));
+		}
+	}
+
+	void PlanetMeshIcosphere::GenerateHeightMultLUT()
+	{
+		mHeightMultLUT.clear();
+		Vector3 a = mFaces[0].A;
+		Vector3 b = mFaces[0].B;
+		Vector3 c = mFaces[0].C;
+
+		a = mTransform * a;
+		b = mTransform * b;
+		c = mTransform * c;
+
+		Vector3 center = (a + b + c) / 3.0;
+		center *= mRadius / Vector3::Length(center);//+maxHeight
+		mHeightMultLUT.push_back(1.0 / Vector3::Dot(a, Vector3::Normalize(center)));
+		double normMaxHeight = mMaxHeight / mRadius;
+		for (int i = 1; i <= mMaxSubdivisions; i++)
+		{
+			Vector3 A = b + ((c - b) * 0.5);
+			Vector3 B = c + ((a - c) * 0.5);
+			c = a + ((b - a) * 0.5f);
+			a = A * mRadius / Vector3::Length(A);
+			b = B * mRadius / Vector3::Length(B);
+			c *= mRadius / Vector3::Length(c);
+			mHeightMultLUT.push_back(1.0f / Vector3::Dot(Vector3::Normalize(a), Vector3::Normalize(center)) + normMaxHeight);
+		}
 	}
 
 }

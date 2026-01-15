@@ -59,6 +59,7 @@ cbuffer PlanetLevel : register(b7)
     int DrawMode;
     float ScatterOriginMetersX;
     float ScatterOriginMetersY;
+    float FinestCellSize;
 };
 
 // Per-terrain-object-layer settings (bind once per layer)
@@ -114,7 +115,6 @@ static const uint EDGE_CELLS = 12;
 
 #include "PerlinNoise.hlsli"
 #include "TerrainHeightCalculations.hlsli"
-
 
 struct InstSurfaceSample
 {
@@ -290,7 +290,7 @@ PixelInputType main(VertexInputType input, uint instanceID : SV_InstanceID)
     // CURRENTLY THIS WILL ONLY RENDER TERRAIN OBJECTS!
     if (isInstanced)
     {       
-  // ----- Candidate grid for this draw -----
+        // ----- Candidate grid for this draw -----
         uint scells = max(1u, TOScatterCells);
         uint candidateCount = scells * scells;
 
@@ -314,8 +314,25 @@ PixelInputType main(VertexInputType input, uint instanceID : SV_InstanceID)
         float candidateCellSize = widthM / (float) scells;
 
         // Local candidate center in offMeters convention centered at (0,0)
-        float2 offMeters = (float2((float) ix + 0.5f, (float) iy + 0.5f) * candidateCellSize)
-                         - float2(halfExtent, halfExtent);
+        float2 offMeters = (float2((float) ix + 0.5f, (float) iy + 0.5f) * candidateCellSize) - float2(halfExtent, halfExtent);
+        
+        float r = max(abs(offMeters.x), abs(offMeters.y));
+
+        if (r > halfExtent)
+        {
+            output.pixelPosition = float4(2, 2, 2, 1);
+            return output;
+        }
+
+        float halfWFiner = 0.0f;
+        if (CellSize > FinestCellSize) // i.e., L > L0
+            halfWFiner = 0.5f * (cells * (0.5f * (float) CellSize));
+        
+        if (halfWFiner > 0.0f && r < halfWFiner)
+        {
+            output.pixelPosition = float4(2, 2, 2, 1);
+            return output;
+        }
 
         // Convert to world-stable tangent-plane meters
         float2 globalMeters = float2(ScatterOriginMetersX, ScatterOriginMetersY) + offMeters;

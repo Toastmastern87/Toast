@@ -334,10 +334,12 @@ namespace Toast {
 		}
 
 		// Process Lights
+		DirectX::XMFLOAT4 direction;
 		{
 			mLightEnvironment = LightEnvironment();
 			auto lights = mRegistry.group<DirectionalLightComponent>(entt::get<TransformComponent>);
 			uint32_t directionalLightIndex = 0;
+
 			for (auto entity : lights)
 			{
 				auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
@@ -354,7 +356,6 @@ namespace Toast {
 					// Extract the forward vector (Z-axis)
 					DirectX::XMVECTOR lightDir = DirectX::XMVectorNegate(DirectX::XMVector3Normalize(transform.r[2]));
 
-					DirectX::XMFLOAT4 direction;
 					DirectX::XMStoreFloat4(&direction, lightDir);
 					direction.w = 0.0f;
 					DirectX::XMFLOAT4 radiance = DirectX::XMFLOAT4(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
@@ -525,7 +526,7 @@ namespace Toast {
 
 					InvalidateFrustum();
 
-					mPlanet->OnUpdate({ cameraPos }, mMainCamera->GetWorldTranslation(), cameraTransform);
+					mPlanet->OnUpdate({ cameraPos }, mMainCamera->GetWorldTranslation(), cameraTransform, mPhysicsEngine.get());
 				}
 			}
 
@@ -538,6 +539,8 @@ namespace Toast {
 			DirectX::XMStoreFloat4x4(&fInvView, cameraTransform);
 			mMainCamera->SetViewMatrix(fView);
 			mMainCamera->SetInvViewMatrix(fInvView);
+
+			mEnvironment.SunUV = ComputeSunUVFromDirection(DirectX::XMFLOAT3(direction.x, direction.y, direction.z), DirectX::XMLoadFloat4x4(&mMainCamera->GetViewMatrix()), DirectX::XMLoadFloat4x4(&mMainCamera->GetProjection()));
 
 			// 3D Rendering
 			Renderer::BeginScene(this, *mMainCamera, cameraPosFloat, mEnvironment, static_cast<int>(mSettings.WireframeRendering));
@@ -576,7 +579,7 @@ namespace Toast {
 					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 				}
 
-				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight, ts);
+				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, ts);
 			}
 
 			// Debug Rendering
@@ -838,6 +841,8 @@ namespace Toast {
 
 		// Process lights
 		{
+			DirectX::XMFLOAT4 direction = { 0.0f, 0.0f, 0.0f, 0.0f };
+
 			mLightEnvironment = LightEnvironment();
 			auto lights = mRegistry.group<DirectionalLightComponent>(entt::get<TransformComponent>);
 			uint32_t directionalLightIndex = 0;
@@ -850,7 +855,6 @@ namespace Toast {
 				// Extract the forward vector (Z-axis)
 				DirectX::XMVECTOR lightDir = DirectX::XMVectorNegate(DirectX::XMVector3Normalize(transform.r[2]));
 
-				DirectX::XMFLOAT4 direction;
 				DirectX::XMStoreFloat4(&direction, lightDir);
 				direction.w = 0.0f;
 				DirectX::XMFLOAT4 radiance = DirectX::XMFLOAT4(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
@@ -920,6 +924,8 @@ namespace Toast {
 					lightComponent.Intensity
 				};
 			}
+
+			mEnvironment.SunUV = ComputeSunUVFromDirection(DirectX::XMFLOAT3(direction.x, direction.y, direction.z), DirectX::XMLoadFloat4x4(&editorCamera->GetViewMatrix()), DirectX::XMLoadFloat4x4(&editorCamera->GetProjection()));
 		}
 
 		// Process Particles
@@ -1025,7 +1031,7 @@ namespace Toast {
 
 				InvalidateFrustum();
 
-				mPlanet->OnUpdate({ cameraPos }, mainCameraComponent->Camera.GetWorldTranslation(), mainCameraTransform->GetTransform());
+				mPlanet->OnUpdate({ cameraPos }, mainCameraComponent->Camera.GetWorldTranslation(), mainCameraTransform->GetTransform(), mPhysicsEngine.get());
 			}
 		}
 
@@ -1071,7 +1077,7 @@ namespace Toast {
 				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 			}
 
-			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRaysExposure, mSettings.GodRaysDecay, mSettings.GodRaysDensity, mSettings.GodRaysWeight, ts);
+			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, ts);
 		}
 
 		// Debug Rendering
@@ -1716,9 +1722,8 @@ namespace Toast {
 		// Frustum
 		target->mFrustum = mFrustum;
 
-		// Culling
-		target->mSettings.BackfaceCulling = mSettings.BackfaceCulling;
-		target->mSettings.FrustumCulling = mSettings.FrustumCulling;
+		// Camera
+		target->mMainCamera = mMainCamera;
 
 		CopyComponent<RelationshipComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<TagComponent>(target->mRegistry, mRegistry, enttMap);

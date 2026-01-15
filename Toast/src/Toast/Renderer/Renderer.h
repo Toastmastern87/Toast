@@ -104,11 +104,16 @@ namespace Toast {
 			Ref<RenderTarget> AtmospherePassRT;			
 			Ref<RenderTarget> AtmosphereCubeRT, Dummy1RT, Dummy2RT;
 
+			// God Rays Pass
+			Microsoft::WRL::ComPtr<ID3D11BlendState> GodRayPassBlendState;
+
 			// Environmental Textures
-			Ref<TextureCube> EnvMapFiltered, IrradianceCubeMap;
+			Ref<TextureCube> EnvMapFilteredDay, IrradianceCubeMapDay;
+			Ref<TextureCube> EnvMapFilteredNight, IrradianceCubeMapNight;
+			bool NightTimeIBLDone = false;
 
 			// Post Process
-			Ref<RenderTarget> FinalRT;
+			Ref<RenderTarget> FinalRT, FinalEditorRT;
 
 			// Viewports
 			D3D11_VIEWPORT Viewport, ShadowMapViewport, EditorViewport, AtmosphereCubeViewport, ViewportHalf, ViewportQuarter;
@@ -167,7 +172,7 @@ namespace Toast {
 		static void OnViewportResize(uint32_t width, uint32_t height);
 
 		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos, Scene::Environment& environment, int wireFrame);
-		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, float godRayExposure, float godRayDecay, float godRayDensity, float godRayWeight, float dt);
+		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, float dt);
 
 		static void CreateDepthBuffer(uint32_t width, uint32_t height);
 		static void CreateDepthStencilView();
@@ -203,9 +208,9 @@ namespace Toast {
 		// Post Processes
 		static void StarFieldPass(Scene::Environment& environment, Ref<Planet>& planet, const float atmosphereHeight );
 		static void AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldOffsetWS, const bool dynamicIBL);
-		static void BloomPass(Scene::BloomParams& bloomParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, const float verticalFovDeg);
-		static void GodRayPass(float exposure, float decay, float density, float weight);
-		static void PostProcessPass(const bool bloom, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos);
+		static void BloomPass(Scene::BloomParams& bloomParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, const float verticalFovDeg, DirectX::XMFLOAT3 worldOffsetWS);
+		static void GodRayPass(Scene::GodRayParams params);
+		static void PostProcessPass(const bool bloom, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, DirectX::XMFLOAT3 worldOffsetWS);
 
 		static Ref<RenderTarget>& GetGPassPositionRT() { return sRendererData->GPassPositionRT; }
 		static Ref<RenderTarget>& GetGPassNormalRT() { return sRendererData->GPassNormalRT; }
@@ -233,6 +238,7 @@ namespace Toast {
 		static Ref<RenderTarget>& GetLPassRT() { return sRendererData->LPassRT; }
 
 		static Ref<RenderTarget>& GetFinalRT() { return sRendererData->FinalRT; }
+		static Ref<RenderTarget>& GetFinalEditorRT() { return sRendererData->FinalEditorRT; }
 
 		static void EnableAtmosphere(bool atmosphere) { sRendererData->PlanetData.Atmosphere = atmosphere; }
 
@@ -240,6 +246,8 @@ namespace Toast {
 		static void SetParticlesSRV(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv) { sRendererData->ParticlesSRV = srv; }
 		static void SetNrOfParticles(size_t particles) { sRendererData->NrOfParticlesToRender = particles; }
 		static void SetParticleMaskTexture(Texture2D* maskTexture) { sRendererData->ParticleMaskTexture = maskTexture; }
+
+		static void ResetEnvMapsIBLDone() { sRendererData->NightTimeIBLDone = false; }
 
 		//Stats
 		struct Statistics
@@ -256,8 +264,8 @@ namespace Toast {
 
 		static void GenerateSpecularBRDF();
 
-		static void GeneratePrefilteredEnvMap(int faceIndex);
-		static void GenerateIrradianceCubemap(int faceIndex);
+		static void GeneratePrefilteredEnvMap(Texture* sourceTexture, Ref<TextureCube> targetTexture, int faceIndex);
+		static void GenerateIrradianceCubemap(Ref<TextureCube> sourceTexture, Ref<TextureCube> targetTexture, int faceIndex);
 
 		// Atmospheric Scattering helpers
 		static void GenerateTransmittanceLUT(Planet* planet);

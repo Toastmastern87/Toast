@@ -94,6 +94,69 @@ namespace Toast {
 		ImGui::Text("Space Halo Cutoff (deg)");
 		ImGui::DragFloat("##SpaceHaloCutoffDeg", &environment.SpaceHaloCutoffDeg, 0.1f, 0.0f, 30.0f, "%.1f");
 
+		// ------------- Diffraction Spikes -------------
+		ImGui::Separator();
+		ImGui::Text("Diffraction Spikes");
+
+		ImGui::Text("Number");
+		ImGui::SliderInt("##SunSpikes", &environment.SunSpikes, 1, 24);
+
+		ImGui::Text("Sharpness");
+		ImGui::DragFloat("##SunSpikeSharpness", &environment.SunSpikeSharpness, 0.1f, 0.0f, 50.0f, "%.1f");
+
+		ImGui::Text("Radius Surface");
+		ImGui::DragFloat("##SunSpikeRadiusSurface", &environment.SunSpikeRadiusSurface, 0.001f, 0.0f, 5.0f, "%.3f");
+		ImGui::Text("Radius Space");
+		ImGui::DragFloat("##SunSpikeRadiusSpace", &environment.SunSpikeRadiusSpace, 0.001f, 0.0f, 5.0f, "%.3f");
+
+		ImGui::Text("Strength Surface");
+		ImGui::DragFloat("##SunSpikeStrengthSurface", &environment.SunSpikeStrengthSurface, 0.001f, 0.0f, 5.0f, "%.3f");
+		ImGui::Text("Strength Space");
+		ImGui::DragFloat("##SunSpikeStrengthSpace", &environment.SunSpikeStrengthSpace, 0.001f, 0.0f, 5.0f, "%.3f");
+
+		ImGui::Text("Fall off");
+		ImGui::DragFloat("##SunSpikeFallOff", &environment.SunSpikeFallOff, 0.1f, 0.0f, 10.0f, "%.1f");
+
+		// ------------- Glare Veil -------------
+		ImGui::Separator();
+		ImGui::Text("Glare Veil");
+
+		ImGui::Text("Strength Surface");
+		ImGui::DragFloat("##SunGlareStrengthSurface", &environment.SunGlareStrengthSurface, 0.001f, 0.0f, 5.0f, "%.3f");
+		ImGui::Text("Strength Space");
+		ImGui::DragFloat("##SunGlareStrengthSpace", &environment.SunGlareStrengthSpace, 0.001f, 0.0f, 5.0f, "%.3f");
+
+		ImGui::Text("Radius Surface");
+		ImGui::DragFloat("##SunGlareRadiusSurface", &environment.SunGlareRadiusSurface, 0.01f, 0.0f, 5.0f, "%.2f");
+		ImGui::Text("Radius Space");
+		ImGui::DragFloat("##SunGlareRadiusSpace", &environment.SunGlareRadiusSpace, 0.01f, 0.0f, 5.0f, "%.2f");
+
+		// ------------- Lens Glare and Ghost -------------
+		ImGui::Separator();
+		ImGui::Text("Lens Glare and Ghost");
+
+		ImGui::Text("Lens Artifact Altitude Start");
+		ImGui::DragFloat("##LensAltStart", &environment.LensAltStart, 0.01f, 0.0f, 1.0f, "%.2f");
+		ImGui::Text("Lens Artifact Altitude End");
+		ImGui::DragFloat("##LensAltEnd", &environment.LensAltEnd, 0.01f, 0.0f, 1.0f, "%.2f");
+
+		ImGui::Text("Ghost Strength");
+		ImGui::DragFloat("##GhostStrength", &environment.GhostStrength, 0.01f, 0.0f, 10.0f, "%.2f");
+
+		ImGui::Text("Ghost Spacing");
+		ImGui::DragFloat("##GhostSpacing", &environment.GhostSpacing, 0.1f, 0.0f, 10.0f, "%.1f");
+
+		ImGui::Text("Ghost Falloff");
+		ImGui::DragFloat("##GhostFalloff", &environment.GhostFalloff, 0.01f, 0.0f, 1.0f, "%.2f");
+
+		ImGui::Text("Ghost Size Surface");
+		ImGui::DragFloat("##GhostSizeSurface", &environment.GhostSizeSurface, 0.0001f, 0.0f, 5.0f, "%.5f");
+		ImGui::Text("Ghost Size Space");
+		ImGui::DragFloat("##GhostSizeSpace", &environment.GhostSizeSpace, 0.00001f, 0.0f, 5.0f, "%.5f");
+
+		ImGui::Text("Ghost Air Suppression");
+		ImGui::DragFloat("##GhostAirSuppression", &environment.GhostAirSuppression, 0.01f, 0.0f, 1.0f, "%.2f");
+
 		// ---------------- Stars ----------------
 		ImGui::Separator();
 		ImGui::Text("Stars");

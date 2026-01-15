@@ -176,7 +176,7 @@ namespace Toast {
 #endif
 		int noWorldTransform;
 
-		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetRenderTargets({ sRendererData->FinalEditorRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
 
 		mDebugData->DebugShader->Bind();
@@ -319,7 +319,7 @@ namespace Toast {
 
 		// Draw the outline
 		mDebugData->OutlineShader->Bind();
-		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetRenderTargets({ sRendererData->FinalEditorRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, mDebugData->SelectedMeshMaskRT->GetSRV());

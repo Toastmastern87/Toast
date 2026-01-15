@@ -17,6 +17,7 @@ namespace Toast
 	{
 
 		bool ManualDragFloat(const char* label, float& value, WindowsWindow* window, std::string& activeDragArea, float speed = 0.1f, ImVec2 dragAreaSize = { 10.0f, 10.0f }, const char* displayFormat = "%.1f", float minVal = -DBL_MAX, float maxVal = FLT_MAX);
+		bool ManualDragFloat2(const std::string& label, DirectX::XMFLOAT2& values, float speed, float resetValue, WindowsWindow* window, std::string& activeDragArea, const char* displayFormat = "%.1f", bool colorValues = false, float overrideTotalWidth = 0.0f);
 		bool ManualDragFloat3(const std::string& label, DirectX::XMFLOAT3& values, float speed, float resetValue, WindowsWindow* window, std::string& activeDragArea, const char* displayFormat = "%.1f", bool colorValues = false, float overrideTotalWidth = 0.0f);
 		bool ManualDragFloat3(const std::string& label, Vector3& values, float speed, float resetValue, WindowsWindow* window, std::string& activeDragArea, const char* displayFormat = "%.1f", bool colorValues = false);
 

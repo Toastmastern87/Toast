@@ -156,6 +156,11 @@ namespace Toast
             return new Vector3(vectorOne.X * scalar, vectorOne.Y * scalar, vectorOne.Z * scalar);
         }
 
+        public static Vector3 operator /(Vector3 vector, float scalar)
+        {
+            return new Vector3(vector.X / scalar, vector.Y / scalar, vector.Z / scalar);
+        }
+
         public static bool operator ==(Vector3 vecOne, Vector3 vecTwo)
         {
             if (vecOne.X == vecTwo.X && vecOne.Y == vecTwo.Y && vecOne.Z == vecTwo.Z)

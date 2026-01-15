@@ -48,6 +48,59 @@ namespace Toast {
 		float SunDisc = 0.0f;
 	};
 
+	struct SunUVResult
+	{
+		DirectX::XMFLOAT2 uv;     // [0..1] ideally (may go outside if off-screen)
+		bool valid;  // false if sun is behind camera / cannot project
+	};
+
+	inline SunUVResult ComputeSunUVFromDirection(const DirectX::XMFLOAT3& directionFromLight, const DirectX::XMMATRIX& view, const DirectX::XMMATRIX& proj)
+	{
+		SunUVResult out{};
+		out.uv = DirectX::XMFLOAT2(0.5f, 0.5f);
+		out.valid = false;
+
+		// TO sun (matches your shader: wSun = -normalize(direction.xyz))
+		DirectX::XMVECTOR wSun = DirectX::XMVectorSet(-directionFromLight.x,
+			-directionFromLight.y,
+			-directionFromLight.z,
+			0.0f);
+		wSun = DirectX::XMVector3Normalize(wSun);
+
+		// Transform direction to view space (w=0 for direction)
+		DirectX::XMVECTOR sunVS = DirectX::XMVector3TransformNormal(wSun, view);
+
+		// Extract components
+		DirectX::XMFLOAT3 sVS;
+		DirectX::XMStoreFloat3(&sVS, sunVS);
+
+		// In a conventional left-handed D3D view space, camera looks down +Z.
+		// The sun is "in front" if z > 0.
+		const float z = sVS.z;
+		if (z <= 1e-6f)
+		{
+			// Behind camera (or too close to perpendicular to project safely)
+			return out;
+		}
+
+		// We only need P00 and P11 from projection matrix.
+		// In DirectXMath, XMMATRIX is row-major in memory; indices m.r[row].m128_f32[col].
+		const float P00 = proj.r[0].m128_f32[0];
+		const float P11 = proj.r[1].m128_f32[1];
+
+		// NDC from direction (equivalent to projecting a point on the ray)
+		const float ndcX = (sVS.x / z) * P00;
+		const float ndcY = (sVS.y / z) * P11;
+
+		// NDC -> UV. Your shaders use ndcY = 1 - 2*uv.y, so invert here.
+		const float u = 0.5f * ndcX + 0.5f;
+		const float v = 0.5f - 0.5f * ndcY;
+
+		out.uv = DirectX::XMFLOAT2(u, v);
+		out.valid = true;
+		return out;
+	}
+
 	struct LightEnvironment
 	{
 		DirectionalLight DirectionalLights[1];
@@ -61,17 +114,12 @@ namespace Toast {
 	public:
 		struct ExposureParams
 		{
-			float EVGeometrySurface = 0.0f;
-			float EVGeometrySpace = 0.0f;
-			float EVGeometryNight = 0.0f;
-			float EVSkySurface = 0.0f;	
-			float EVSkySpace = 0.0f;
-			float EVSkySurfaceNight = 0.0f;
-			float EVSkySpaceNight = 0.0f;
-			float SunFadeStartDeg = 0.0f;
-			float SunFadeEndDeg = 0.0f;
-			float AltFadeStartFrac = 0.0f;
-			float AltFadeEndFrac = 0.0f;
+			float EVSurfaceDay = 0.0f;
+			float EVSpaceDay = 0.0f;
+			float EVSurfaceNight = 0.0f;
+			float EVSpaceNight = 0.0f;
+			DirectX::XMFLOAT2 AltFadeFrac = { 0.0f, 0.0f };
+			DirectX::XMFLOAT2 SunFadeDeg = { 0.0f, 0.0f };
 		};
 
 		struct BloomParams
@@ -95,6 +143,17 @@ namespace Toast {
 			float SaturationClamp = 0.0f;      // 0..1 desat of bloom to prevent color smear (e.g. 0.85)
 		};
 
+		struct GodRayParams 
+		{
+			float Exposure = 0.21f;
+			float Decay = 0.94f;
+			float Density = 3.0f;
+			float Weight = 0.02f;
+			float KHalo = 0.6f;
+			float HaloPower = 2.0f;
+			float FogRangeMeters = 120000.0f;
+		};
+
 		//Settings
 		struct Settings
 		{
@@ -108,8 +167,6 @@ namespace Toast {
 			bool Grid = true;
 			bool CameraFrustum = true;
 			bool SunLightFrustum = true;
-			bool BackfaceCulling = true;
-			bool FrustumCulling = true;
 			bool RenderColliders = false;
 			bool RenderUI = true;
 			bool Shadows = true;
@@ -123,10 +180,7 @@ namespace Toast {
 
 			float SunFrustumOrthoSize = 500.0f;
 
-			float GodRaysExposure = 0.21f;
-			float GodRaysDecay = 0.94f;
-			float GodRaysDensity = 3.0f;
-			float GodRaysWeight = 0.02f;
+			GodRayParams GodRays;
 
 			ExposureParams Exposure;
 		};
@@ -142,6 +196,8 @@ namespace Toast {
 		struct Environment 
 		{
 			DirectX::XMFLOAT3 NightAmbient = { 0.0f, 0.0f, 0.0f };
+
+			SunUVResult SunUV;
 
 			// Lightning Gains
 			float DiffuseIBLGain = 1.0f;
@@ -165,6 +221,30 @@ namespace Toast {
 			float SpaceHaloWidthDeg = 0.8f; 
 			float SpaceHaloIntensity = 0.04f; 
 			float SpaceHaloCutoffDeg = 6.0f; 
+
+			int SunSpikes = 6; // number of diffraction spikes (4,6,8)
+			float SunSpikeSharpness = 24.0f; // higher=thinner (e.g. 24.0)
+			float SunSpikeRadiusSurface = 0.1f;
+			float SunSpikeRadiusSpace = 0.2f;
+
+			float SunSpikeFallOff = 2.0f; // how quickly spikes fade with altitude
+			float SunSpikeStrengthSurface = 0.0f;
+			float SunSpikeStrengthSpace = 0.08f;
+			float SunGlareStrengthSurface = 0.005f;
+
+			float SunGlareStrengthSpace = 0.015f;
+			float SunGlareRadiusSurface = 0.10f;
+			float SunGlareRadiusSpace = 0.06f;
+			float LensAltStart = 0.60f; // altitude norm where lens effects start (0..1), e.g. 0.5
+
+			float LensAltEnd = 1.0f; // fully on by (0..1), e.g. 0.8
+			float GhostStrength = 0.10f;
+			float GhostSpacing = 1.0f;
+			float GhostFalloff = 0.85f;
+
+			float GhostSizeSurface = 0.0012f;
+			float GhostSizeSpace = 0.00045f;
+			float GhostAirSuppression = 0.1f;
 
 			// Stars
 			float StarNits = 600.0f; // brightness of 1 sun-like star in nits

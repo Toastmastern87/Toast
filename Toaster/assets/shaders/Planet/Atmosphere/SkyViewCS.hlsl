@@ -285,6 +285,22 @@ float SunVisibilityAtR(float r, float muS, float RbVis)
     return smoothstep(-sH * SunDiscRadius, sH * SunDiscRadius, muS - cH);
 }
 
+float SunVisibleRayTest(float3 p, float3 sToSun, float Rb)
+{
+    // p is relative to planet center
+    // sToSun is normalized direction toward sun
+    float b = dot(p, sToSun);
+    float c = dot(p, p) - Rb * Rb;
+
+    // If closest approach is behind origin, ray points away from planet => visible
+    if (b < 0.0f)
+        return 1.0f;
+
+    float disc = b * b - c;
+    // If ray intersects planet (disc > 0), sun is occluded
+    return (disc > 1e-6f) ? 0.0f : 1.0f;
+}
+
 // MS anisotropy blend using LUT alpha as gBar
 float MSPhase(float mu, float gBar)
 {
@@ -490,9 +506,16 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         // Midpoint sample
         float ti = t + 0.5f * dt;
+        //float3 pRel = camRelWin + wView * ti;
+        //float rp = clamp(length(pRel), RbVis + 5e-4f, Rt - 5e-4f);
+        //float h = max(0.0f, rp - RbPhys);
+        
         float3 pRel = camRelWin + wView * ti;
-        float rp = clamp(length(pRel), RbVis + 5e-4f, Rt - 5e-4f);
-        float h = max(0.0f, rp - RbPhys);
+        float rpTrue = length(pRel);
+        float3 upS = (rpTrue > 0.0f) ? (pRel / rpTrue) : up;
+        // Keep clamped version ONLY for LUT sampling
+        float rpLUT = clamp(rpTrue, RbVis + 5e-4f, Rt - 5e-4f);
+        float h = max(0.0f, rpLUT - RbPhys);
 
         float dR = DensityRayleigh(h);
         float dM = DensityMie(h);
@@ -509,11 +532,12 @@ void main(uint3 tid : SV_DispatchThreadID)
         // Prepare phase/lighting
         float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
 
-        float3 upS = (rp > 0.0f) ? (pRel / rp) : up;
+        //float3 upS = (rp > 0.0f) ? (pRel / rp) : up;
         float muS = dot(upS, wSun);
         
-        float Vsun = SunVisibilityAtR(rp, muS, RbVis); // smooth visibility
-        float3 Tsun = T_to_TOA(rp, muS, RbPhys, Rt) * Vsun; // keep using TLUT, just gate it smoothly
+        //float Vsun = SunVisibilityAtR(rp, muS, RbVis); // smooth visibility
+        float Vsun = SunVisibleRayTest(pRel, wSun, RbPhys);
+        float3 Tsun = T_to_TOA(rpLUT, muS, RbPhys, Rt) * Vsun; // keep using TLUT, just gate it smoothly
 
         float PR = PhaseRayleigh(muPhase);
         float3 PMrgb = float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));
@@ -522,7 +546,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 sigM_s_single = sigM_s * (1.0.xxx - f);       
         
         // --- use the *physical* horizon for all horizon/elevation logic -------------
-        float cH_phys = MuHorizon(rp, RbPhys); // real horizon (PlanetRadius + MinHeight)
+        float cH_phys = MuHorizon(rpTrue, RbPhys); // real horizon (PlanetRadius + MinHeight)
 
         // Sun elevation above the *physical* horizon: 0 at horizon, 1 at zenith
         float elevS = saturate((muS - cH_phys) / (1.0 - cH_phys));
@@ -546,16 +570,16 @@ void main(uint3 tid : SV_DispatchThreadID)
         float fBlue = saturate(fLowSun * fBandUp * fSunward);
 
         // --- single-scatter tint/gain (unchanged otherwise) -------------------------
-        float3 Tint = lerp(1.0.xxx, SunsetTint, fBlue);
+        float3 Tint = float3(0.0f, 0.0f, 0.0f); //       lerp(1.0.xxx, SunsetTint, fBlue);
         float LsGain = lerp(1.0, SGain, fBlue);
 
         // single scattering
         Ls += Tmid * ((sigR_s * PR * Tsun) + (sigM_s_single * PMrgb * Tsun)) * dt * Tint * LsGain;
 
         // --- multiple scattering (near-isotropic w/ tiny bias, energy-preserving) ---
-        float4 Psi4 = SamplePsiMS4(rp, muS, RbPhys, Rt);
+        float4 Psi4 = SamplePsiMS4(rpLUT, muS, RbPhys, Rt);
         float gBar = saturate(Psi4.a);
-        float alt01 = saturate((rp - RbPhys) / max(Rt - RbPhys, 1e-6));
+        float alt01 = saturate((rpLUT - RbPhys) / max(Rt - RbPhys, 1e-6));
         
         // very low effective g for multi-scatter
         float gEff = min(gBar, lerp(0.35, 0.45, alt01));
@@ -570,9 +594,10 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 PsiMS_dir = (MSGain * gainAlt) * Psi4.rgb * pMS_e1;
         
         // optional: 20–30% pull toward per-altitude mean to avoid dark anti-sun
-        float3 PsiMS_iso = (MSGain * gainAlt) * SamplePsiMS4(rp, 0.0, RbPhys, Rt).rgb;
-        const float MSEven = 0.30;
-        float3 PsiMS_rgb = lerp(PsiMS_dir, PsiMS_iso, MSEven);
+       // float3 PsiMS_iso = (MSGain * gainAlt) * SamplePsiMS4(rp, 0.0, RbPhys, Rt).rgb;
+        float3 PsiMS_iso = (MSGain * gainAlt) * SamplePsiMS4(rpLUT, muS, RbPhys, Rt).rgb;
+        float even = 0.30f * Vsun; // no iso pull when sun is occluded
+        float3 PsiMS_rgb = lerp(PsiMS_dir, PsiMS_iso, even);
 
         float3 w0M = sigM_s / max(sigM_s + sigM_a, 1e-6.xxx);
         float3 sigS_ms = sigR_s + sigM_s * w0M;

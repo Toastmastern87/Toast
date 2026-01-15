@@ -50,17 +50,20 @@ cbuffer PlanetLevel : register(b7)
     int OriginY;
     int CellSize;
     int GridSize;
+    
     int DrawMode;
+    float ScatterOriginMetersX;
+    float ScatterOriginMetersY;
 };
 
 struct PixelInputType
 {
     float4 pixelPosition        : SV_POSITION;
     float3 viewPosition         : VIEWPOS;
-    float3 normalSphereWS       : NORMAL0;
+    float3 viewNormal           : NORMAL0;
 };
 
-struct PlanetPointVS      
+struct PlanetPointVS
 {
     float3 posVS; // for SV_POSITION
     float3 nWS; // unit sphere normal in world-space
@@ -123,29 +126,46 @@ RelSample SampleRelSurface(float2 offMeters, float edgeW)
     h += detail;
     s.h = h;
 
-    // MATCH YOUR ACTUAL POSITION MODEL
-    float3 pRelWS;
+    // 3. Geometry model: compute both, then select/blend
+    float3 pPlaneWS = BasisTanEast * offMeters.x + BasisTanNorth * offMeters.y;
+    float3 pRelWS_plane = pPlaneWS + BasisRadUp * (h - Altitude);
 
-    if (CellSize <= 8)
-    {
-        float3 pPlaneWS = BasisTanEast * offMeters.x + BasisTanNorth * offMeters.y;
-        float heightAboveCamera = h - Altitude;
-        pRelWS = pPlaneWS + BasisRadUp * heightAboveCamera;
-    }
-    else
-    {
-        float3 dN = nWS - BasisRadUp;
-        pRelWS = dN * PlanetRadius + nWS * h - BasisRadUp * Altitude;
-    }
+    float3 dN = nWS - BasisRadUp;
+    float3 pRelWS_sphere = dN * PlanetRadius + nWS * h - BasisRadUp * Altitude;
+
+    // Choose which model to use
+    float modelW = (CellSize <= 8) ? 1.0f : 0.0f;
+
+    // If last LOD with planar model blend towards spherical to avoid popping
+    if (DrawMode == 1 && CellSize == 8)
+        modelW = edgeW;
+
+    float3 pRelWS = lerp(pRelWS_sphere, pRelWS_plane, modelW);
 
     s.pRelWS = pRelWS;
     return s;
 }
 
+float GetCubemapTexelStepMeters()
+{
+    uint width, height, layers;
+    HeightCubeArray.GetDimensions(width, height, layers);
+
+    // One texel in face UV space [-1,1]
+    float du = 2.0f / (float) width;
+
+    // Convert small angular change to arc length
+    return du * PlanetRadius;
+}
+
 float3 ComputeVertexNormalWS(float2 offMeters, float edgeW)
 {
-    float step = (float) CellSize;
-
+    float step;
+    if (CellSize > 8)
+        step = GetCubemapTexelStepMeters();
+    else
+        step = (float) CellSize;
+    
     RelSample c = SampleRelSurface(offMeters, edgeW);
     RelSample xp = SampleRelSurface(offMeters + float2(step, 0), edgeW);
     RelSample xm = SampleRelSurface(offMeters - float2(step, 0), edgeW);
@@ -163,6 +183,7 @@ float3 ComputeVertexNormalWS(float2 offMeters, float edgeW)
 
     return N;
 }
+
 PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
 {
     PlanetPointVS p;
@@ -215,38 +236,21 @@ PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
     
     h += detail;
 
-    // 3. Choose geometry model:
-    //    - For L0–L3 (CellSize <= 8): use tangent-plane around the camera.
-    //    - For L3+          : use the exact spherical expression.
-    float3 pRelWS;
-    
-    if (CellSize <= 8)   // L0=1, L1=2, L2=4, L3=8  → tangent-plane
-    {
-        // Tangent-plane offset in world space (meters)
-        float3 pPlaneWS = BasisTanEast * off.x + BasisTanNorth * off.y;
+    // 3. Geometry model: compute both, then select/blend
+    float3 pPlaneWS = BasisTanEast * off.x + BasisTanNorth * off.y;
+    float3 pRelWS_plane = pPlaneWS + BasisRadUp * (h - Altitude);
 
-        // Camera is at radius + Altitude along BasisRadUp.
-        // So the vertical difference between surface and camera is:
-        float heightAboveCamera = h - Altitude;
+    float3 dN = nWS - BasisRadUp;
+    float3 pRelWS_sphere = dN * PlanetRadius + nWS * h - BasisRadUp * Altitude;
 
-        // Final camera-relative position:
-        //   pRelWS = (horizontal offset on tangent plane)
-        //          + (vertical offset along radial up)
-        pRelWS = pPlaneWS + BasisRadUp * heightAboveCamera;
-    }
-    else
-    {
-        // Original exact spherical expression you had:
-        //
-        // Surface point: pWS   = nWS * (PlanetRadius + h)
-        // Camera:        camWS = BasisRadUp * (PlanetRadius + Altitude)
-        //
-        // pRel = pWS - camWS
-        //      = (nWS - BasisRadUp) * PlanetRadius + nWS*h - BasisRadUp*Altitude
+    // Choose which model to use
+    float modelW = (CellSize <= 8) ? 1.0f : 0.0f;
 
-        float3 dN = nWS - BasisRadUp;
-        pRelWS = dN * PlanetRadius + nWS * h - BasisRadUp * Altitude;
-    }
+    // If last LOD with planar model blend towards spherical to avoid popping
+    if (DrawMode == 1 && CellSize == 8)
+        modelW = edgeW;
+
+    float3 pRelWS = lerp(pRelWS_sphere, pRelWS_plane, modelW);
 
     // 4. View-space position
     float3 posVS = mul(float4(pRelWS, 1.0f), viewMatrix).xyz;
@@ -267,7 +271,7 @@ PixelInputType main(VertexInputType input)
     
     output.pixelPosition = mul(float4(C.posVS, 1.0f), projectionMatrix);
     output.viewPosition = C.posVS;
-    output.normalSphereWS = C.nWS;
+    output.viewNormal = normalize(mul(C.nWS, (float3x3) viewMatrix));
 
     return output;
 }
@@ -283,7 +287,7 @@ struct PixelInputType
 {
     float4 pixelPosition    : SV_POSITION;
     float3 viewPosition     : VIEWPOS;
-    float3 normalSphereWS   : NORMAL0;
+    float3 viewNormal       : NORMAL0;
 };
 
 struct PixelOutputType
@@ -344,8 +348,8 @@ cbuffer PlanetLevel : register(b7)
     int GridSize;
     
     int DrawMode;
-    int ScatterOriginX;
-    int ScatterOriginY;
+    float ScatterOriginMetersX;
+    float ScatterOriginMetersY;
 };
 
 cbuffer HeightDetail : register(b8)
@@ -373,11 +377,11 @@ PixelOutputType main(PixelInputType input)
     
     /*--------------------------------------------------------------*/
     /* 1) position + normal                                         */
-    /*--------------------------------------------------------------*/
-    float3 nVS = normalize(mul(input.normalSphereWS, (float3x3) viewMatrix));
+    /*--------------------------------------------------------------*/   
+    //float3 nVS = normalize(mul(input.normalSphereWS, (float3x3) viewMatrix));
     
     output.position = float4(input.viewPosition, 1.0f);
-    output.normal = float4(nVS * 0.5f + 0.5f, 1.0f);
+    output.normal = float4(input.viewNormal * 0.5f + 0.5f, 1.0f);
 
     /*--------------------------------------------------------------*/
     /* 2) albedo + metallic                                         */

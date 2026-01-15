@@ -447,19 +447,9 @@ void main(uint3 tid : SV_DispatchThreadID)
         float muV = clamp(dot(wView, upS), -0.9995f, 0.9995f);
         float elevV = saturate((muV - cH_phys) / (1.0 - cH_phys));
 
-        // Low-sun ramp and above-rim viewing band (peaks ~6–25° up)
-        float fLowSun = 1.0 - smoothstep(0.35, 0.75, elevS);
-        float fBandUp = (1.0 - smoothstep(0.10, 0.40, elevV));
-        float fSunward = smoothstep(0.20, 0.80, muPhase);
-        float fBlue = saturate(fLowSun * fBandUp * fSunward);
-
-        // Warm tint & mild gain toward the horizon
-        float3 Tint = lerp(1.0.xxx, float3(0.78, 0.88, 1.35), fBlue);
-        float LsGain = lerp(1.0, SGain, fBlue);
-
         // --- SINGLE scattering (Rayleigh + Mie without delta-peak) ------------------
         float3 S1 = ((sigR_s * PR) + (sigM_s_single * PMrgb)) * (Tsun * Esun);
-        S1 *= Tint * LsGain;
+        S1 *= SGain;
 
         // --- MULTI scattering (energy-preserving, mild anisotropy, altitude EQ) ----
         // “Albedo” for Mie part (used to reduce MS by absorption)
@@ -478,21 +468,31 @@ void main(uint3 tid : SV_DispatchThreadID)
         float pMS_e1 = 1.0 + wAniso * (pHG_e1 - 1.0);
 
         // altitude equalizer (flattens vertical contrast)
-        float baseBoost = 1.0 + 0.18 * saturate(1.0 - (MSGain - 1.0) / 0.3);
+        float baseBoost = 1.0f;//        1.0 + 0.18 * saturate(1.0 - (MSGain - 1.0) / 0.3);
         float gainAlt = lerp(baseBoost, 1.0, alt01 * alt01);
 
         // directional + slight isotropic pull to avoid dark anti-sun
         float3 PsiMS_dir = (MSGain * gainAlt) * Psi4.rgb * pMS_e1;
         float3 PsiMS_iso = (MSGain * gainAlt) * SamplePsiMS4(rMid, 0.0, RbPhys, Rt).rgb;
-        const float MSEven = 0.30;
+
+        // sunUp = 0 at horizon, 1 at zenith
+        float sunUp = smoothstep(0.05f, 0.60f, elevS);
+
+        // High isotropic near horizon, low isotropic at zenith
+        float MSEven = lerp(0.50f, 0.85f, sunUp);
         float3 PsiMS_rgb = lerp(PsiMS_dir, PsiMS_iso, MSEven);
 
+        float muH = MuHorizon(rMid, RbPhys);
+        float Vterrain = smoothstep(muH, muH + 0.01, muS);
+        
         float3 S_MS = sigS_ms * PsiMS_rgb * Esun;
+        S_MS *= Vterrain;
+        //float3 S_MS = sigS_ms * PsiMS_rgb * Esun;
         
         // Midpoint integral over this slice
         float3 dTau = sigmaExt * len;
         float3 wInt = (1.0.xxx - fexp3(-dTau)) / max(sigmaExt, 1e-8.xxx);
-
+        
         float3 Tcam = fexp3(-tauCum);
         Lcum += Tcam * (S1 + S_MS) * wInt;
         tauCum += dTau;

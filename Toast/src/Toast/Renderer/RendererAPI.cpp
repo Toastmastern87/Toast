@@ -138,10 +138,10 @@ namespace Toast {
 
 	void RendererAPI::ClearShaderResources()
 	{
-		ID3D11ShaderResourceView* nullSRVs[16] = { nullptr };
-		mDeviceContext->VSSetShaderResources(0, 16, nullSRVs);
-		mDeviceContext->PSSetShaderResources(0, 16, nullSRVs);
-		mDeviceContext->CSSetShaderResources(0, 16, nullSRVs);
+		ID3D11ShaderResourceView* nullSRVs[18] = { nullptr };
+		mDeviceContext->VSSetShaderResources(0, 18, nullSRVs);
+		mDeviceContext->PSSetShaderResources(0, 18, nullSRVs);
+		mDeviceContext->CSSetShaderResources(0, 18, nullSRVs);
 	}
 
 	void RendererAPI::CopyResource(ID3D11Resource* dest, ID3D11Resource* src)

@@ -27,7 +27,7 @@ namespace Toast {
 
 		static Matrix ScalingFromVector(const Vector3& scaleVector);
 
-		static Matrix FromQuaternion(const Quaternion& q);
+		static Matrix RotationFromQuaternion(const Quaternion& q);
 		static Matrix RotationFromEauler(const Vector3& rot);
 
 		void ToString();

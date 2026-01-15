@@ -260,7 +260,7 @@ namespace Toast {
 		return m;
 	}
 
-	Matrix Matrix::FromQuaternion(const Quaternion& q) {
+	Matrix Matrix::RotationFromQuaternion(const Quaternion& q) {
 		Matrix m;
 		Quaternion qNorm = q;
 		qNorm = Quaternion::Normalize(qNorm);

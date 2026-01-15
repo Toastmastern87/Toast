@@ -104,10 +104,15 @@ void main(uint3 id : SV_DispatchThreadID)
     float r = RadiusFromV(v, RbPhys, Rt);
     float mu = MuFromU(u, r, RbPhys);
 
-    // Ray (planet-centered), Up = +Z
-    float3 x = float3(0.0f, 0.0f, r);
+    //// Ray (planet-centered), Up = +Z
+    //float3 x = float3(0.0f, 0.0f, r);
+    //float s = sqrt(saturate(1.0f - mu * mu));
+    //float3 w = float3(s, 0.0f, mu);
+    // Ray (planet-centered), Up = +Y (engine convention)
+    float3 x = float3(0.0f, r, 0.0f);
     float s = sqrt(saturate(1.0f - mu * mu));
-    float3 w = float3(s, 0.0f, mu);
+    // Put ray in X–Y plane; y is "up"
+    float3 w = float3(s, mu, 0.0f);
 
     // Exit to TOA
     float b = dot(x, w);

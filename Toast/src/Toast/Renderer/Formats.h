@@ -31,6 +31,7 @@ namespace Toast {
 		R32G32B32A32_FLOAT = 2,
 		R16G16B16A16_FLOAT = 10,
 		R8G8B8A8_UNORM = 28,
+		R8G8B8A8_UNORM_SRGB = 29,
 		R32_TYPELESS = 39,
 		D32_FLOAT = 40,
 		R32_FLOAT = 41,
@@ -38,6 +39,8 @@ namespace Toast {
 
 		// Depth/stencil
 		D24_UNORM_S8_UINT = 45,
+
+		R8_UNORM = 61,
 
 		// Default
 		Depth = D24_UNORM_S8_UINT
