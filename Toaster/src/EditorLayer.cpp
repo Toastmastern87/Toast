@@ -231,14 +231,29 @@ namespace Toast {
 
 			RenderCustomTitleBar();
 
-			if (mShowNewProjectPopup)
+			const bool wantPopup = mForceProjectPopup || mShowProjectPopup;
+
+			if (wantPopup && !ImGui::IsPopupOpen("ProjectPopup"))
 			{
-				// Call OpenPopup *after* the menu has been closed.
-				ImGui::OpenPopup("NewProjectPopup");
-				mShowNewProjectPopup = false;
+				mNewProjectName[0] = '\0';
+				mNewProjectLocation[0] = '\0';
+				mOpenProjectPath[0] = '\0';
+
+				ImGui::OpenPopup("ProjectPopup");
 			}
 
-			ShowCreateNewProject();
+			ShowProjectPopup(!mForceProjectPopup);
+
+			if (mShowProjectPopup && ImGui::IsPopupOpen("ProjectPopup"))
+				mShowProjectPopup = false;
+
+			if (mForceProjectPopup)
+			{
+				// Optional: block the rest of the editor UI so user cannot interact with anything else
+				ImGui::End(); // end "DockSpace Demo"
+				if (opt_fullscreen) ImGui::PopStyleVar(2);
+				return;
+			}
 
 			if (opt_fullscreen)
 				ImGui::PopStyleVar(2);
@@ -256,10 +271,7 @@ namespace Toast {
 			float minWinSize = style.WindowMinSize.x;
 			style.WindowMinSize.x = 370.0f;
 
-			ImGui::BeginChild("DockSpaceRegion", ImVec2(0, 0), false,
-				ImGuiWindowFlags_NoScrollbar
-				| ImGuiWindowFlags_NoScrollWithMouse
-				| ImGuiWindowFlags_NoDecoration);
+			ImGui::BeginChild("DockSpaceRegion", ImVec2(0, 0), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse	| ImGuiWindowFlags_NoDecoration);
 
 			if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
 			{
@@ -581,23 +593,20 @@ namespace Toast {
 				if (ImGui::BeginMenu("File"))
 				{
 					ImGui::SetNextWindowSizeConstraints(ImVec2(200, 0), ImVec2(FLT_MAX, FLT_MAX));
-					if (ImGui::BeginMenu("New"))
+					if (ImGui::MenuItem("New Project", "Ctrl+Shift+N"))
 					{
-						if (ImGui::MenuItem("Project", "Ctrl+Shift+N"))
-							mShowNewProjectPopup = true;
-
-						if (ImGui::MenuItem("Scene", "Ctrl+N"))
-							NewScene();
-
-						ImGui::EndMenu();
+						mShowProjectPopup = true;
+						mProjectPopupMode = ProjectPopupMode::NewProject;
 					}
-
-					if (ImGui::MenuItem("Open...", "Ctrl+O"))
-						OpenScene();
+					if (ImGui::MenuItem("Open Project", "Ctrl+O"))
+					{
+						mShowProjectPopup = true;
+						mProjectPopupMode = ProjectPopupMode::OpenProject;
+					}
 					ImGui::Separator();
-					if (ImGui::MenuItem("Save", "Ctrl+S"))
+					if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
 						SaveScene();
-					if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S"))
+					if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S"))
 						SaveSceneAs();
 					ImGui::Separator();
 					if (ImGui::MenuItem("Exit"))
@@ -708,7 +717,7 @@ namespace Toast {
 		ImGui::PopStyleVar(2);
 	}
 
-	void EditorLayer::ShowCreateNewProject()
+	void EditorLayer::ShowProjectPopup(bool nonForcedPopup)
 	{
 		ImVec4 titleBarColor = ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive];
 		ImVec4 titleBarHoveredColor = ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered];
@@ -720,110 +729,213 @@ namespace Toast {
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, titleBarColor);
 
 		ImGui::SetNextWindowBgAlpha(1.0f);
+		ImGui::SetNextWindowSize(ImVec2(720, 360), ImGuiCond_FirstUseEver);
 
-		ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
-		if (ImGui::BeginPopupModal("NewProjectPopup", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove ))
+		if (ImGui::BeginPopupModal("ProjectPopup", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove))
 		{
-			// Calculate positioning for the close button
-			float contentWidth = ImGui::GetWindowContentRegionMax().x;
-			float closeButtonSize = 16.0f;  // Adjust as needed
-			float padding = 10.0f;  // Padding from the right edge
+			// ---- Header row (title + close) ----
+			const float contentWidth = ImGui::GetWindowContentRegionMax().x;
+			const float closeButtonSize = 16.0f;
+			const float padding = 10.0f;
 
-			// Display header text
-			ImGui::Text("Create New Project");
-			// Position the close button on the same line at the right
-			ImGui::SameLine(contentWidth - closeButtonSize - padding);
+			ImGui::Text("Project");
 
+			if (nonForcedPopup)
 			{
-				// Push a style override for the close button.
-				ImGui::PushStyleColor(ImGuiCol_Button, titleBarColor);
-				if (ImGui::ImageButton((ImTextureID)(mCloseButtonTex->GetID()), ImVec2(closeButtonSize, closeButtonSize)))
+				float contentWidth = ImGui::GetWindowContentRegionMax().x;
+				float closeButtonSize = 16.0f;
+				float padding = 10.0f;
+
+				ImGui::SameLine(contentWidth - closeButtonSize - padding);
+
+				ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive]);
+				if (ImGui::ImageButton((ImTextureID)(mCloseButtonTex->GetID()),	ImVec2(closeButtonSize, closeButtonSize)))
 					ImGui::CloseCurrentPopup();
 
 				ImGui::PopStyleColor();
 			}
 
+			ImGui::Separator();
+
+			// ---- Layout constants ----
+			const float leftPaneWidth = 160.0f;
+			const float outerPadding = 12.0f;
+
+			ImGui::Dummy(ImVec2(0.0f, 6.0f));
+			ImGui::Indent(outerPadding);
+
+			// ---- Split: left pane / right pane ----
+			ImGui::BeginGroup();
+
+			// Left pane
+			ImGui::BeginChild("##ProjectPopupLeft", ImVec2(leftPaneWidth, 0), true);
+
 			ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
 
-			ImGui::Separator();
-			
-			ImGui::Spacing();  // A few pixels vertical margin.
-			ImGui::Text("Project Name");
-			ImGui::PushItemWidth(250);
-			static char projectName[256] = "";
-			ImGui::InputText("##projectName", projectName, sizeof(projectName));
-			ImGui::PopItemWidth();
-
-			ImGui::Spacing();  // A few pixels vertical margin.
-			ImGui::Text("Location");
-			ImGui::PushItemWidth(250);
-			static char location[256] = "";
-			ImGui::InputText("##Location", location, sizeof(location));
-			ImGui::PopItemWidth();
-			ImGui::SameLine();
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2)); // Small padding for the button.
-			if (ImGui::Button("...", ImVec2(30, 0)))
-			{
-				std::optional<std::string> folderPath = FileDialogs::OpenFolder("C:\\");
-				if (folderPath.has_value())
+			auto ModeButton = [&](const char* label, ProjectPopupMode mode)
 				{
-					// Copy the folder path into the 'location' buffer.
-					strncpy(location, folderPath->c_str(), sizeof(location));
-					location[sizeof(location) - 1] = '\0';
-				}
-			}
-			ImGui::PopStyleVar();
+					const bool selected = (mProjectPopupMode == mode);
 
-			// --- Push "Create" button to the bottom right ---
+					// Give selected mode a subtle visual emphasis
+					if (selected)
+						ImGui::PushStyleColor(ImGuiCol_Button, titleBarHoveredColor);
+
+					const float w = ImGui::GetContentRegionAvail().x;
+					if (ImGui::Button(label, ImVec2(w, 0)))
+						mProjectPopupMode = mode;
+
+					if (selected)
+						ImGui::PopStyleColor();
+				};
+
+			ModeButton("New Project", ProjectPopupMode::NewProject);
+			ImGui::Spacing();
+			ModeButton("Open Project", ProjectPopupMode::OpenProject);
+
+			ImGui::PopStyleColor();
+			ImGui::EndChild();
+
+			ImGui::SameLine();
+
+			// Right pane
+			ImGui::BeginChild("##ProjectPopupRight", ImVec2(0, 0), true);
+
+			// Right-pane content switches based on mode
+			if (mProjectPopupMode == ProjectPopupMode::NewProject)
 			{
-				// Get the available vertical space.
-				float winHeight = ImGui::GetWindowSize().y;
-				float currentY = ImGui::GetCursorPosY();
-				float buttonHeight = ImGui::GetFrameHeight();
-				float marginBottom = 20.0f;
+				ImGui::Text("Create a new project");
+				ImGui::Dummy(ImVec2(0.0f, 6.0f));
+
+				ImGui::Text("Project Name");
+				ImGui::PushItemWidth(320);
+				ImGui::InputText("##projectName", mNewProjectName, sizeof(mNewProjectName));
+				ImGui::PopItemWidth();
+
+				ImGui::Dummy(ImVec2(0.0f, 8.0f));
+
+				ImGui::Text("Location");
+				ImGui::PushItemWidth(320);
+				ImGui::InputText("##newLocation", mNewProjectLocation, sizeof(mNewProjectLocation));
+				ImGui::PopItemWidth();
+
+				ImGui::SameLine();
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+				if (ImGui::Button("...", ImVec2(30, 0)))
+				{
+					std::optional<std::string> folderPath = FileDialogs::OpenFolder("C:\\");
+					if (folderPath.has_value())
+					{
+						strncpy(mNewProjectLocation, folderPath->c_str(), sizeof(mNewProjectLocation));
+						mNewProjectLocation[sizeof(mNewProjectLocation) - 1] = '\0';
+					}
+				}
+				ImGui::PopStyleVar();
+
+				ImGui::Dummy(ImVec2(0.0f, 8.0f));
+				ImGui::TextDisabled("This will create: <Location>/<Project Name>/");
+			}
+			else // OpenProject
+			{
+				ImGui::Text("Open an existing project");
+				ImGui::Dummy(ImVec2(0.0f, 6.0f));
+
+				ImGui::Text("Project Folder");
+				ImGui::PushItemWidth(320);
+				ImGui::InputText("##openProjectPath", mOpenProjectPath, sizeof(mOpenProjectPath));
+				ImGui::PopItemWidth();
+
+				ImGui::SameLine();
+				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+				if (ImGui::Button("...", ImVec2(30, 0)))
+				{
+					std::optional<std::string> folderPath = FileDialogs::OpenFolder("C:\\");
+					if (folderPath.has_value())
+					{
+						strncpy(mOpenProjectPath, folderPath->c_str(), sizeof(mOpenProjectPath));
+						mOpenProjectPath[sizeof(mOpenProjectPath) - 1] = '\0';
+					}
+				}
+				ImGui::PopStyleVar();
+
+				ImGui::Dummy(ImVec2(0.0f, 8.0f));
+				ImGui::TextDisabled("Select the folder that contains your project file.");
+			}
+
+			// ---- Bottom-right action row inside right pane ----
+			{
+				// Push cursor down
+				const float winHeight = ImGui::GetWindowSize().y;
+				const float currentY = ImGui::GetCursorPosY();
+				const float buttonHeight = ImGui::GetFrameHeight();
+				const float marginBottom = 14.0f;
 				float dummyHeight = winHeight - currentY - (buttonHeight + marginBottom);
 				if (dummyHeight > 0)
 					ImGui::Dummy(ImVec2(0, dummyHeight));
 
-				// Align the button to the right.
-				float availWidth = ImGui::GetWindowContentRegionMax().x;
-				float buttonWidth = 80.0f;
-				float marginRight = 10.0f;
-				ImGui::SetCursorPosX(availWidth - buttonWidth - marginRight);
-				if (ImGui::Button("Create", ImVec2(buttonWidth, 0)))
+				// Right-align action button
+				const float availWidth = ImGui::GetContentRegionAvail().x;
+				const float buttonWidth = 90.0f;
+				ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (availWidth - buttonWidth));
+
+				const char* actionLabel = (mProjectPopupMode == ProjectPopupMode::NewProject) ? "Create" : "Open";
+
+				ImGui::PushStyleColor(ImGuiCol_Button, buttonColor);
+
+				const bool clicked = ImGui::Button(actionLabel, ImVec2(buttonWidth, 0));
+
+				ImGui::PopStyleColor();
+
+				if (clicked)
 				{
 					try
 					{
-						std::filesystem::path basePath(location);
+						if (mProjectPopupMode == ProjectPopupMode::NewProject)
+						{
+							std::filesystem::path basePath(mNewProjectLocation);
+							std::filesystem::path projectPath = basePath / mNewProjectName;
 
-						std::filesystem::path projectPath = basePath / projectName;
-						std::filesystem::create_directories(projectPath);
+							std::string projectNameStr(mNewProjectName);
+							mProject = CreateRef<Project>(projectNameStr, projectPath);
 
-						std::string projectNameStr(projectName);
-						mProject = CreateRef<Project>(projectNameStr, projectPath);
+							mEditorScene = mProject->GetActiveScene();  
 
-						std::filesystem::path assetsPath = projectPath / "Assets";
-						std::filesystem::create_directories(assetsPath);
+							mForceProjectPopup = false;
 
-						// Create sub folders inside the "Assets" folder.
-						std::filesystem::create_directories(assetsPath / "Scenes");
-						std::filesystem::create_directories(assetsPath / "Textures");
-						std::filesystem::create_directories(assetsPath / "Fonts");
-						std::filesystem::create_directories(assetsPath / "Meshes");
-						std::filesystem::create_directories(assetsPath / "Scripts");
-						std::filesystem::create_directories(assetsPath / "Materials");
-						std::filesystem::create_directories(assetsPath / "Prefabs");
-
-						ImGui::CloseCurrentPopup();
+							ImGui::CloseCurrentPopup();
+						}
+						else 
+						{
+							// Open existing project
+							// This assumes you have Project::Load(...) or similar.
+							// If your project file is in the folder, build the full path here.
+							// Example:
+							// std::filesystem::path folder(openProjectPath);
+							// mProject = ProjectSerializer::Deserialize(folder / "MyProject.toastproj");
+							//
+							// For now, just validate the folder exists:
+							std::filesystem::path folder(mOpenProjectPath);
+							if (!std::filesystem::exists(folder))
+							{
+								TOAST_CORE_WARN("Project folder does not exist.");
+							}
+							else
+							{
+								// TODO: deserialized project here
+								ImGui::CloseCurrentPopup();
+							}
+						}
 					}
-					catch (const std::filesystem::filesystem_error& e)
+					catch (const std::filesystem::filesystem_error&)
 					{
-						TOAST_CORE_CRITICAL("Something went wrong with creating the projet");
+						TOAST_CORE_CRITICAL("Something went wrong with creating/opening the project");
 					}
 				}
 			}
 
-			ImGui::PopStyleColor();
+			ImGui::EndChild(); // right
+			ImGui::EndGroup(); // split group
+
+			ImGui::Unindent(outerPadding);
 
 			ImGui::EndPopup();
 		}
@@ -1002,14 +1114,11 @@ namespace Toast {
 		case Key::R:
 		{
 			if (control)
-			{
 				ScriptEngine::ReloadAssembly();
-			}
 			else 
 			{
 				if (!ImGuizmo::IsUsing())
 					mGizmoType = ImGuizmo::OPERATION::SCALE;
-
 			}
 			break;
 		}

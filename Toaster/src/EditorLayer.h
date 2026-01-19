@@ -22,6 +22,12 @@
 
 namespace Toast {
 
+	enum class ProjectPopupMode
+	{
+		NewProject = 0,
+		OpenProject = 1
+	};
+
 	class EditorLayer : public Layer
 	{
 	public:
@@ -55,7 +61,7 @@ namespace Toast {
 
 		void RenderCustomTitleBar();
 
-		void ShowCreateNewProject();
+		void ShowProjectPopup(bool nonForcedPopup);
 	private:
 		std::optional<std::string> mSceneFilePath;
 
@@ -95,9 +101,16 @@ namespace Toast {
 
 		int mGizmoType = -1;
 
-		bool mShowNewProjectPopup = false;
+		bool mForceProjectPopup = true; 
+		bool mShowProjectPopup = false;
 		bool mShowSceneSettingsPopup = false;
 		bool mShowPlanetPopup = false;
+
+		char mNewProjectName[256] = "";
+		char mNewProjectLocation[256] = "";
+		char mOpenProjectPath[256] = "";
+
+		ProjectPopupMode mProjectPopupMode = ProjectPopupMode::NewProject;
 
 		// Panels
 		SceneHierarchyPanel mSceneHierarchyPanel;

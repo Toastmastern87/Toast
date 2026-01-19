@@ -17,10 +17,6 @@ namespace Toast {
 			Scene* ActiveScene = nullptr;
 		};
 
-		struct SceneComponent
-		{
-			UUID SceneID;
-		};
 	protected:
 		static Scope<SceneManagerData> sSceneManagerData;
 	public:

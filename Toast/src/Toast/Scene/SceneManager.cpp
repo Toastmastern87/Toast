@@ -5,8 +5,6 @@ namespace Toast {
 
 	Scope<SceneManager::SceneManagerData> SceneManager::sSceneManagerData;
 
-
-
 	void SceneManager::Init()
 	{
 		sSceneManagerData = CreateScope<SceneManagerData>();

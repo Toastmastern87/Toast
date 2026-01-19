@@ -22,7 +22,8 @@ namespace Toast {
 		UUID SceneID;
 	};
 
-	Scene::Scene()
+	Scene::Scene(std::string name)
+		: mName(name)
 	{
 		mSceneEntity = mRegistry.create();
 		mRegistry.emplace<SceneComponent>(mSceneEntity, mSceneID);

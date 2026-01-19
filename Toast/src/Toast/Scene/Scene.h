@@ -254,7 +254,7 @@ namespace Toast {
 			float SpaceFadeEnd = 0.98f; // fully visible by (0..1), e.g. 0.98
 		};
 
-		Scene();
+		Scene(std::string name = "Default Scene");
 		~Scene();
 
 		Entity CreateEntity(const std::string& name = std::string(), UUID parent = 0);
@@ -341,6 +341,8 @@ namespace Toast {
 		void OnComponentAdded(Entity entity, T& component);
 	private:
 		UUID mSceneID;
+		std::string mName;
+
 		entt::entity mSceneEntity;
 		entt::registry mRegistry;
 
@@ -365,8 +367,8 @@ namespace Toast {
 
 		float mTimeScale = 1.0f;
 
-		entt::entity mSelectedEntity;
-		entt::entity mHoveredEntity;
+		entt::entity mSelectedEntity = entt::null;
+		entt::entity mHoveredEntity = entt::null;
 
 		Ref<Planet> mPlanet;
 
