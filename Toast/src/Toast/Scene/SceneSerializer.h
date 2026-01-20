@@ -59,10 +59,10 @@ namespace Toast {
 	public:
 		SceneSerializer(Scene* scene);
 
-		void Serialize(const std::string& filepath);
+		void Serialize(const std::string& filepath, const std::string& name = "Untitled Scene", Camera* editorCamera = nullptr);
 		void SerializeRuntime(const std::string& filepath);
 
-		bool Deserialize(const std::string& filepath);
+		bool Deserialize(const std::string& filepath, Camera* editorCamera = nullptr);
 		bool DeserializeRuntime(const std::string& filepath);
 
 		void CopyComponents(Entity& target, Entity& source);

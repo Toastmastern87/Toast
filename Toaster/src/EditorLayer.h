@@ -11,6 +11,8 @@
 
 #include "Toast/Project/Project.h"
 
+#include "Toast/Scene/ISceneProvider.h"
+
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/SceneSettingsPanel.h"
 #include "Panels/MaterialPanel.h"
@@ -19,6 +21,7 @@
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/PropertiesPanel.h"
 #include "Panels/PlanetPanel.h"
+#include "Panels/ProjectPanel.h"
 
 namespace Toast {
 
@@ -28,7 +31,7 @@ namespace Toast {
 		OpenProject = 1
 	};
 
-	class EditorLayer : public Layer
+	class EditorLayer : public Layer, public ISceneProvider
 	{
 	public:
 		EditorLayer(WindowsWindow* window = nullptr);
@@ -51,6 +54,9 @@ namespace Toast {
 		void SaveScene();
 		void SaveSceneAs();
 		void NewScene();
+
+		void OpenProjectScene(UUID sceneID);
+		Scene* GetActiveScene() override { return mEditorScene; }
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);
 		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
@@ -62,12 +68,15 @@ namespace Toast {
 		void RenderCustomTitleBar();
 
 		void ShowProjectPopup(bool nonForcedPopup);
+
+		void SetContexts();
 	private:
 		std::optional<std::string> mSceneFilePath;
 
 		Ref<Project> mProject;
 
-		Scene *mRuntimeScene, *mEditorScene;
+		Scope<Scene> mPlaceholderScene;
+		Scene *mRuntimeScene, *mEditorScene = nullptr;
 
 		Ref<EditorCamera> mEditorCamera;
 
@@ -121,5 +130,6 @@ namespace Toast {
 		ContentBrowserPanel mContentBrowserPanel;
 		PropertiesPanel mPropertiesPanel;
 		PlanetPanel mPlanetPanel;
+		ProjectPanel mProjectPanel;
 	};
 }

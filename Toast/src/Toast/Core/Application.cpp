@@ -53,7 +53,7 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		SceneManager::Shutdown();
+		mIsShuttingDown = true;
 
 		ScriptEngine::Shutdown();
 
@@ -120,8 +120,11 @@ namespace Toast {
 		dispatcher.Dispatch<WindowCloseEvent>(TOAST_BIND_EVENT_FN(Application::OnWindowClose));
 		dispatcher.Dispatch<WindowResizeEvent>(TOAST_BIND_EVENT_FN(Application::OnWindowResize));
 
-		if (!SceneManager::IsShuttingDown())
-			SceneManager::GetActiveScene()->OnEvent(e);
+		if (mSceneProvider && !mIsShuttingDown)
+		{
+			if (Scene* scene = mSceneProvider->GetActiveScene())
+				scene->OnEvent(e);
+		}
 
 		for (auto it = mLayerStack.rbegin(); it != mLayerStack.rend(); ++it) 
 		{

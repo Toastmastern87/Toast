@@ -11,6 +11,8 @@
 
 #include "Toast/ImGui/ImGuiLayer.h"
 
+#include "Toast/Scene/ISceneProvider.h"
+
 #define NOMINMAX
 #include <windows.h>
 
@@ -49,6 +51,13 @@ namespace Toast {
 
 		const ApplicationSpecification& GetSpecification() { return mSpecification; }
 
+		void SetSceneProvider(ISceneProvider* provider) { mSceneProvider = provider; }
+		void ClearSceneProvider(ISceneProvider* provider)
+		{
+			if (mSceneProvider == provider)
+				mSceneProvider = nullptr;
+		}
+
 		void SubmitToMainThread(const std::function<void()>& function);
 	private:
 		void Run();
@@ -61,6 +70,7 @@ namespace Toast {
 		std::unique_ptr<Window> mWindow;
 		ImGuiLayer* mImGuiLayer;
 		bool mRunning = true;
+		bool mIsShuttingDown = false;
 		bool mMinimized = false;
 		LayerStack mLayerStack;
 		float mLastFrameTime = 0.0f;
@@ -69,6 +79,8 @@ namespace Toast {
 
 		std::vector<std::function<void()>> mMainThreadQueue;
 		std::mutex mMainThreadQueueMutex;
+
+		ISceneProvider* mSceneProvider = nullptr;
 	private:
 		static Application* sInstance;
 		friend int ::main(int argc, char** argv);

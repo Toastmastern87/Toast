@@ -594,21 +594,25 @@ namespace Toast {
 		}
 	}
 
-	void SceneSerializer::Serialize(const std::string& filepath)
+	void SceneSerializer::Serialize(const std::string& filepath, const std::string& name, Camera* editorCamera)
 	{
 		YAML::Emitter out;
 		out << YAML::BeginMap;
-		// TODO, should be scene name instead of just untitled scene
-		out << YAML::Key << "Scene" << YAML::Value << "Untitled Scene";
 
-		Camera* activeCamera = mScene->GetActiveCamera().get();
+		out << YAML::Key << "Scene" << YAML::Value << name;
 
 		out << YAML::Key << "EditorCamera";
 		out << YAML::BeginMap;
-		if (activeCamera)
-			out << YAML::Key << "Position" << YAML::Value << activeCamera->GetTranslation();
+		DirectX::XMFLOAT3 pos{ 0,0,0 };
+
+		if (editorCamera)
+			pos = editorCamera->GetTranslation();
+		else if (auto* activeCamera = mScene->GetActiveCamera().get())
+			pos = activeCamera->GetTranslation();
 		else
-			out << YAML::Key << "Position" << YAML::Value << 0;
+			pos = DirectX::XMFLOAT3 { 0.0f, 1.0f, -3.0f };
+
+		out << YAML::Key << "Position" << YAML::Value << pos;
 		out << YAML::EndMap;
 
 		Scene::Settings& settings = mScene->GetSettings();
@@ -899,7 +903,7 @@ namespace Toast {
 		TOAST_CORE_ASSERT(false, "Not implemented yet!");
 	}
 
-	bool SceneSerializer::Deserialize(const std::string& filepath)
+	bool SceneSerializer::Deserialize(const std::string& filepath, Camera* editorCamera)
 	{
 		YAML::Node data;
 		try 
@@ -919,9 +923,8 @@ namespace Toast {
 		std::string sceneName = data["Scene"].as<std::string>();
 		TOAST_CORE_TRACE("Deserializing scene '%s'", sceneName.c_str());
 
-		Camera* activeCamera = mScene->GetActiveCamera().get();
-
-		activeCamera->SetTranslation(data["EditorCamera"]["Position"].as<DirectX::XMFLOAT3>());
+		if (editorCamera && data["EditorCamera"]["Position"])
+			editorCamera->SetTranslation(data["EditorCamera"]["Position"].as<DirectX::XMFLOAT3>());
 
 		Scene::Settings& settings = mScene->GetSettings();
 

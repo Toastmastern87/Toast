@@ -1,9 +1,58 @@
 #include "tpch.h"
 #include "Project.h"
 
-#include "Toast/Scene/SceneManager.h"
+#include "Toast/Scene/SceneSerializer.h"
+
+#include <unordered_set>
+#include <cctype>
 
 namespace Toast {
+
+	static std::string SanitizeFileStem(const std::string& s)
+	{
+		// Keep it simple: letters, digits, space, underscore, dash. Convert other chars to underscore.
+		std::string out;
+		out.reserve(s.size());
+
+		for (unsigned char c : s)
+		{
+			if (std::isalnum(c) || c == ' ' || c == '_' || c == '-')
+				out.push_back((char)c);
+			else
+				out.push_back('_');
+		}
+
+		// Trim leading/trailing spaces/dots (avoid weird filenames on some FS)
+		while (!out.empty() && (out.front() == ' ' || out.front() == '.'))
+			out.erase(out.begin());
+		while (!out.empty() && (out.back() == ' ' || out.back() == '.'))
+			out.pop_back();
+
+		if (out.empty())
+			out = "Untitled Scene";
+
+		return out;
+	}
+
+	static std::filesystem::path MakeUniquePath(const std::filesystem::path& desiredAbsPath)
+	{
+		if (!std::filesystem::exists(desiredAbsPath))
+			return desiredAbsPath;
+
+		const std::filesystem::path dir = desiredAbsPath.parent_path();
+		const std::string stem = desiredAbsPath.stem().string();
+		const std::string ext = desiredAbsPath.extension().string();
+
+		for (int i = 1; i < 10000; i++)
+		{
+			std::filesystem::path candidate = dir / (stem + "_" + std::to_string(i) + ext);
+			if (!std::filesystem::exists(candidate))
+				return candidate;
+		}
+
+		// Fallback (extremely unlikely)
+		return dir / (stem + "_X" + ext);
+	}
 
 	Project::Project(std::string& name, std::filesystem::path& path)
 		: mName(name), mPath(path)
@@ -30,16 +79,90 @@ namespace Toast {
 	{
 	}
 
+	bool Project::RenameScene(UUID id, const std::string& newName)
+	{
+		auto it = mScenes.find(id);
+		if (it == mScenes.end())
+			return false;
+
+		// Old absolute path
+		const std::filesystem::path oldRel = it->second.Path;
+		const std::filesystem::path oldAbs = mPath / oldRel;
+
+		if (!std::filesystem::exists(oldAbs))
+			return false;
+
+		// New absolute path (keep it in Assets/Scenes)
+		const std::filesystem::path scenesDirAbs = mPath / "Assets" / "Scenes";
+
+		std::string safeStem = SanitizeFileStem(newName);
+		std::filesystem::path desiredAbs = scenesDirAbs / (safeStem + ".tscene");
+		std::filesystem::path newAbs = MakeUniquePath(desiredAbs);
+
+		// New relative path stored in project
+		std::filesystem::path newRel = std::filesystem::relative(newAbs, mPath);
+
+		// 1) Rename/move the file on disk (so we keep any external references sane)
+		//    If rename fails (e.g. cross-device), you can fallback to copy+remove.
+		std::error_code ec;
+		std::filesystem::rename(oldAbs, newAbs, ec);
+		if (ec)
+		{
+			// Fallback: copy + remove
+			ec.clear();
+			std::filesystem::copy_file(oldAbs, newAbs, std::filesystem::copy_options::overwrite_existing, ec);
+			if (ec)
+				return false;
+
+			ec.clear();
+			std::filesystem::remove(oldAbs, ec);
+			if (ec)
+				return false;
+		}
+
+		// 2) Load the scene, update the internal scene name, and re-serialize to the new file
+		//    NOTE: adjust SetName(...) if your Scene uses a different API.
+		Ref<Scene> scene = CreateRef<Scene>();
+		{
+			SceneSerializer des(scene.get());
+			if (!des.Deserialize(newAbs.string()))
+			{
+				// If deserialize fails, we still have the renamed file; treat as failure so caller can handle.
+				return false;
+			}
+		}
+
+		// Update scene display/name (adjust this line to your engine)
+		scene->SetName(newName);
+
+		{
+			SceneSerializer ser(scene.get());
+			ser.Serialize(newAbs.string(), newName);
+		}
+
+		// 3) Update project registry
+		it->second.Path = newRel;
+
+		return true;
+	}
+
 	void Project::CreateDefaultScene()
 	{
 		if (!mScenes.empty())
 			return;
 
-		Ref<Scene> scene = CreateRef<Scene>(); 
-		UUID id = scene->GetUUID();
+		std::filesystem::path scenesDir = mPath / "Assets" / "Scenes";
 
-		mScenes.emplace(id, scene);
-		mActiveScene = scene;
+		std::filesystem::path scenePath = scenesDir / "DefaultScene.tscene";
+
+		Ref<Scene> scene = CreateRef<Scene>("Default Scene");
+		UUID ID = scene->GetUUID();
+
+		SceneSerializer serializer(scene.get());
+		serializer.Serialize(scenePath.string(), "DefaultScene");
+
+		mScenes.emplace(ID, ProjectSceneEntry{ ID, std::filesystem::relative(scenePath, mPath) });
+		mActiveSceneID = ID;
 	}
 
 }

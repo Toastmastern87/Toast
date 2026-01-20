@@ -38,6 +38,8 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		Application::Get().SetSceneProvider(this);
+
 		// Standard Textures
 		mCheckerboardTexture = TextureLibrary::LoadTexture2D("assets/textures/Checkerboard.png");
 		mPlayButtonTex = TextureLibrary::LoadTexture2D("..\\Toaster/Resources/Icons/PlayButton.png");
@@ -103,7 +105,8 @@ namespace Toast {
 		std::vector<std::string> materialStrings = FileDialogs::GetAllFiles("\\assets\\materials");
 		MaterialSerializer::Deserialize(materialStrings);
 
-		NewScene();
+		mPlaceholderScene = CreateScope<Scene>();
+		mEditorScene = mPlaceholderScene.get();
 
 		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 3000000.0f);
 		mEditorCamera->SetTranslation({ 0.0f, 1.0f, -3.0f });
@@ -111,38 +114,60 @@ namespace Toast {
 		mEditorScene->SetActiveCamera(mEditorCamera);
 		mEditorCamera->UpdateView();
 
-		mSceneHierarchyPanel.SetContext(mEditorScene);
-		mSceneSettingsPanel.SetContext(mEditorScene, mWindow);
-		mEnvironmentPanel.SetContext(mEditorScene);
-		mPlanetPanel.SetContext(mEditorScene, mWindow);
-		mPropertiesPanel.SetContext(mSceneHierarchyPanel.GetSelectedEntity(), &mSceneHierarchyPanel, mWindow);
+		mProjectPanel.OnOpenSceneRequested = [this](UUID id) { OpenProjectScene(id); };
 	}
 
 	void EditorLayer::OnDetach()
 	{
 		TOAST_PROFILE_FUNCTION();
+
+		Application::Get().ClearSceneProvider(this);
 	}
 
 	void EditorLayer::OnUpdate(Timestep ts)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f) 
+		if (mEditorScene)
 		{
-			mEditorCamera->SetViewportSize(mViewportSize.x, mViewportSize.y);
-			mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-		}
+			if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f)
+			{
+				mEditorCamera->SetViewportSize(mViewportSize.x, mViewportSize.y);
+				mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+			}
 
-		Ref<RenderTarget>& positionRT = Renderer::GetGPassPositionRT();
+			Ref<RenderTarget>& positionRT = Renderer::GetGPassPositionRT();
 
-		auto [width, height] = positionRT->GetSize();
-		if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (width != mViewportSize.x || height != mViewportSize.y))
-		{ 	 
+			auto [width, height] = positionRT->GetSize();
+			if (mViewportSize.x > 0.0f && mViewportSize.y > 0.0f && (width != mViewportSize.x || height != mViewportSize.y))
+			{
+				switch (mSceneState)
+				{
+				case SceneState::Edit:
+				{
+					mEditorCamera->SetViewportSize(mViewportSize.x, mViewportSize.y);
+					mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+
+					break;
+				}
+				case SceneState::Play:
+				{
+					mRuntimeScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+					break;
+				}
+				}
+			}
+
+			// Update scene
 			switch (mSceneState)
 			{
 			case SceneState::Edit:
 			{
-				mEditorCamera->SetViewportSize(mViewportSize.x, mViewportSize.y);
+				// Update
+				if (mViewportHovered)
+					mEditorCamera->OnUpdate(ts);
+
+				mEditorScene->OnUpdateEditor(ts, mEditorCamera);
 				mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
 				break;
@@ -150,33 +175,12 @@ namespace Toast {
 			case SceneState::Play:
 			{
 				mRuntimeScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+				mRuntimeScene->SetViewportPos(mAbsoluteViewportPos);
+				mRuntimeScene->OnUpdateRuntime(ts);
+
 				break;
 			}
 			}
-		}
-
-		// Update scene
-		switch (mSceneState)
-		{
-		case SceneState::Edit:
-		{
-			// Update
-			if(mViewportHovered)
-				mEditorCamera->OnUpdate(ts);
-
-			mEditorScene->OnUpdateEditor(ts, mEditorCamera);
-			mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-
-			break;
-		}
-		case SceneState::Play:
-		{
-			mRuntimeScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-			mRuntimeScene->SetViewportPos(mAbsoluteViewportPos);
-			mRuntimeScene->OnUpdateRuntime(ts);
-
-			break;
-		}
 		}
 	}
 
@@ -226,7 +230,7 @@ namespace Toast {
 			// any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-			ImGui::Begin("DockSpace Demo", &dockspaceOpen, window_flags);
+			ImGui::Begin("DockSpace Demo", nullptr, window_flags);
 			ImGui::PopStyleVar();
 
 			RenderCustomTitleBar();
@@ -288,15 +292,18 @@ namespace Toast {
 
 			ImGui::SetNextWindowClass(&windowClass);
 
-			mSceneSettingsPanel.OnImGuiRender(&mShowSceneSettingsPopup, mActiveDragArea);
-			mSceneHierarchyPanel.OnImGuiRender();
-			mMaterialPanel.OnImGuiRender();
-			mEnvironmentPanel.OnImGuiRender();
-			mContentBrowserPanel.OnImGuiRender();
-			mConsolePanel.OnImGuiRender();
-			mPropertiesPanel.OnImGuiRender(mActiveDragArea);
-
-			mPlanetPanel.OnImGuiRender(&mShowPlanetPopup, mActiveDragArea);
+			if (mEditorScene)
+			{
+				mSceneSettingsPanel.OnImGuiRender(&mShowSceneSettingsPopup, mActiveDragArea);
+				mSceneHierarchyPanel.OnImGuiRender();
+				mMaterialPanel.OnImGuiRender();
+				mEnvironmentPanel.OnImGuiRender();
+				mContentBrowserPanel.OnImGuiRender();
+				mConsolePanel.OnImGuiRender();
+				mPropertiesPanel.OnImGuiRender(mActiveDragArea);
+				mPlanetPanel.OnImGuiRender(&mShowPlanetPopup, mActiveDragArea);
+				mProjectPanel.OnImGuiRender();
+			}
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 			ImGui::Begin(ICON_TOASTER_GAMEPAD" Viewport");
@@ -320,60 +327,70 @@ namespace Toast {
 			mViewportBounds[0] = { viewportMinRegion.x + windowPos.x, viewportMinRegion.y + windowPos.y };
 			mViewportBounds[1] = { viewportMaxRegion.x + windowPos.x, viewportMaxRegion.y + windowPos.y };
 
-			SceneManager::GetActiveScene()->SetViewportBounds(mViewportBounds);
+			if(mProject && mEditorScene)
+				mEditorScene->SetViewportBounds(mViewportBounds);
 
 			if (mViewportSize.x != mPreviousViewportSize.x || mViewportSize.y != mPreviousViewportSize.y)
 				Renderer::OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
 			void* textureID = nullptr;
 
-			switch (mEditorScene->GetSettings().RenderOverlaySetting)
+			if (mEditorScene)
 			{
-			case RenderOverlay::NONE:
-				textureID = (void*)Renderer::GetFinalEditorRT()->GetSRV().Get();
-				break;
-			case RenderOverlay::POSITIONS:
-				textureID = (void*)Renderer::GetGPassPositionRT()->GetSRV().Get();
-				break;
-			case RenderOverlay::NORMALS:
-				textureID = (void*)Renderer::GetGPassNormalRT()->GetSRV().Get();
-				break;
-			case RenderOverlay::ALBEDOMETALLIC:
-				textureID = (void*)Renderer::GetGPassAlbedoMetallicRT()->GetSRV().Get();
-				break;
-			case RenderOverlay::ROUGHNESS:
-				textureID = (void*)Renderer::GetGPassRoughnessAORT()->GetSRV().Get();
-				break;
-			case RenderOverlay::LPASS:
-				textureID = (void*)Renderer::GetLPassRT()->GetSRV().Get();
-				break;
-			case RenderOverlay::ATMOSPHERICSCATTERING:
-				textureID = (void*)Renderer::GetAtmosphericScatteringRT()->GetSRV().Get();
-				break;
-			case RenderOverlay::SSAO:
-				textureID = (void*)Renderer::GetSSAORT()->GetSRV().Get();
-				break;
-			case RenderOverlay::SSAOBLUR:
-				textureID = (void*)Renderer::GetSSAOBlurRT()->GetSRV().Get();
-				break;
-			case RenderOverlay::BLOOM:
-				textureID = (void*)Renderer::GetSunBloomRT()->GetSRV().Get();
-				break;
-			case RenderOverlay::BLOOMHALF:
-				textureID = (void*)Renderer::GetSunBloomHalfRT()->GetSRV().Get();
-				break;
-			case RenderOverlay::BLOOMQUARTER:
-				textureID = (void*)Renderer::GetSunBloomQuarterRT()->GetSRV().Get();
-				break;
-			case RenderOverlay::BLOOMFINAL:
-				textureID = (void*)Renderer::GetFinalBloomRT()->GetSRV().Get();
-				break;
-			case RenderOverlay::SKYVIEWLUT:
-				textureID = (void*)mEditorScene->GetPlanet()->GetSkyViewLUT()->GetSRV().Get();
-				break;
+				switch (mEditorScene->GetSettings().RenderOverlaySetting)
+				{
+				case RenderOverlay::NONE:
+					textureID = (void*)Renderer::GetFinalEditorRT()->GetSRV().Get();
+					break;
+				case RenderOverlay::POSITIONS:
+					textureID = (void*)Renderer::GetGPassPositionRT()->GetSRV().Get();
+					break;
+				case RenderOverlay::NORMALS:
+					textureID = (void*)Renderer::GetGPassNormalRT()->GetSRV().Get();
+					break;
+				case RenderOverlay::ALBEDOMETALLIC:
+					textureID = (void*)Renderer::GetGPassAlbedoMetallicRT()->GetSRV().Get();
+					break;
+				case RenderOverlay::ROUGHNESS:
+					textureID = (void*)Renderer::GetGPassRoughnessAORT()->GetSRV().Get();
+					break;
+				case RenderOverlay::LPASS:
+					textureID = (void*)Renderer::GetLPassRT()->GetSRV().Get();
+					break;
+				case RenderOverlay::ATMOSPHERICSCATTERING:
+					textureID = (void*)Renderer::GetAtmosphericScatteringRT()->GetSRV().Get();
+					break;
+				case RenderOverlay::SSAO:
+					textureID = (void*)Renderer::GetSSAORT()->GetSRV().Get();
+					break;
+				case RenderOverlay::SSAOBLUR:
+					textureID = (void*)Renderer::GetSSAOBlurRT()->GetSRV().Get();
+					break;
+				case RenderOverlay::BLOOM:
+					textureID = (void*)Renderer::GetSunBloomRT()->GetSRV().Get();
+					break;
+				case RenderOverlay::BLOOMHALF:
+					textureID = (void*)Renderer::GetSunBloomHalfRT()->GetSRV().Get();
+					break;
+				case RenderOverlay::BLOOMQUARTER:
+					textureID = (void*)Renderer::GetSunBloomQuarterRT()->GetSRV().Get();
+					break;
+				case RenderOverlay::BLOOMFINAL:
+					textureID = (void*)Renderer::GetFinalBloomRT()->GetSRV().Get();
+					break;
+				case RenderOverlay::SKYVIEWLUT:
+					textureID = (void*)mEditorScene->GetPlanet()->GetSkyViewLUT()->GetSRV().Get();
+					break;
+				}
+			}
+			else
+			{
+				// Show some placeholder RT or nothing
+				textureID = (void*)mCheckerboardTexture->GetSRV().Get(); // or a checkerboard
 			}
 
-			ImGui::Image(textureID, ImVec2{ mViewportSize.x, mViewportSize.y });
+			if(mEditorScene)
+				ImGui::Image(textureID, ImVec2{ mViewportSize.x, mViewportSize.y });
 
 			if (ImGui::BeginDragDropTarget())
 			{
@@ -507,16 +524,19 @@ namespace Toast {
 
 			ImGui::Begin(ICON_TOASTER_CALCULATOR" Statistics");
 
-			std::string name = "none";
-			if (mHoveredEntity)
-				name = mHoveredEntity.GetComponent<TagComponent>().Tag;
-			ImGui::Text("Hovered Entity: %s", name.c_str());
+			if (mEditorScene)
+			{
+				std::string name = "none";
+				if (mHoveredEntity)
+					name = mHoveredEntity.GetComponent<TagComponent>().Tag;
+				ImGui::Text("Hovered Entity: %s", name.c_str());
 
-			ImGui::Text("FPS: %d", mEditorScene->GetFPS());
-			ImGui::Text("Frame time: %fms", mEditorScene->GetFrameTime());
-			ImGui::Text("Vertex count: %d", mEditorScene->GetVertices());
+				ImGui::Text("FPS: %d", mEditorScene->GetFPS());
+				ImGui::Text("Frame time: %fms", mEditorScene->GetFrameTime());
+				ImGui::Text("Vertex count: %d", mEditorScene->GetVertices());
 
-			ImGui::End();
+				ImGui::End();
+			}
 
 			ImGui::End();
 
@@ -897,7 +917,11 @@ namespace Toast {
 							std::string projectNameStr(mNewProjectName);
 							mProject = CreateRef<Project>(projectNameStr, projectPath);
 
-							mEditorScene = mProject->GetActiveScene();  
+							const std::filesystem::path scenePath =	mProject->GetPath() / mProject->GetActiveScenePath();
+
+							OpenScene(scenePath);
+
+							SetContexts();
 
 							mForceProjectPopup = false;
 
@@ -943,16 +967,32 @@ namespace Toast {
 		ImGui::PopStyleColor(4);
 	}
 
+	void EditorLayer::SetContexts()
+	{
+		mEditorScene->SetActiveCamera(mEditorCamera);
+		mEditorCamera->UpdateView();
+
+		mSceneHierarchyPanel.SetContext(mEditorScene);
+		mSceneSettingsPanel.SetContext(mEditorScene, mWindow);
+		mEnvironmentPanel.SetContext(mEditorScene);
+		mPlanetPanel.SetContext(mEditorScene, mWindow);
+		mPropertiesPanel.SetContext(mSceneHierarchyPanel.GetSelectedEntity(), &mSceneHierarchyPanel, mWindow);
+		mProjectPanel.SetContext(mProject.get());
+	}
+
 	void EditorLayer::OnEvent(Event& e)
 	{
-		if (mSceneState == SceneState::Edit)
-			mEditorCamera->OnEvent(e);
+		if (mEditorScene)
+		{
+			if (mSceneState == SceneState::Edit)
+				mEditorCamera->OnEvent(e);
 
-		EventDispatcher dispatcher(e);
-		dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
-		dispatcher.Dispatch<MouseButtonPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseButtonPressed));
-		dispatcher.Dispatch<MouseButtonReleasedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseButtonReleased));
-		dispatcher.Dispatch<MouseMovedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseMoved));
+			EventDispatcher dispatcher(e);
+			dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnKeyPressed));
+			dispatcher.Dispatch<MouseButtonPressedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseButtonPressed));
+			dispatcher.Dispatch<MouseButtonReleasedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseButtonReleased));
+			dispatcher.Dispatch<MouseMovedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseMoved));
+		}
 	}
 
 	void EditorLayer::OnScenePlay()
@@ -1002,13 +1042,30 @@ namespace Toast {
 
 	void EditorLayer::NewScene()
 	{
-		if (mSceneState != SceneState::Edit)
+		//if (mSceneState != SceneState::Edit)
+		//	return;
+
+		//mEditorScene = SceneManager::AddScene(CreateScope<Scene>());
+
+		//mSceneHierarchyPanel.SetContext(mEditorScene);
+		//mEnvironmentPanel.SetContext(mEditorScene);
+	}
+
+	void EditorLayer::OpenProjectScene(UUID id)
+	{
+		if (!mProject)
 			return;
 
-		mEditorScene = SceneManager::AddScene(CreateScope<Scene>());
+		const auto relPath = mProject->GetScenePath(id);
+		if (relPath.empty())
+			return;
 
-		mSceneHierarchyPanel.SetContext(mEditorScene);
-		mEnvironmentPanel.SetContext(mEditorScene);
+		const std::filesystem::path absPath = mProject->GetPath() / relPath;
+
+		OpenScene(absPath); 
+		mProject->SetActiveScene(id);
+
+		SetContexts();
 	}
 
 	void EditorLayer::OpenScene()
@@ -1034,14 +1091,15 @@ namespace Toast {
 		mEnvironmentPanel.SetContext(mEditorScene);
 
 		SceneSerializer serializer(mEditorScene);
-		serializer.Deserialize(path.string());
+		serializer.Deserialize(path.string(), mEditorCamera.get());
 	}
 
 	void EditorLayer::SaveScene()
 	{
-		if (mSceneFilePath) {
+		if (mSceneFilePath) 
+		{
 			SceneSerializer serializer(mEditorScene);
-			serializer.Serialize(*mSceneFilePath);
+			serializer.Serialize(*mSceneFilePath, "Untitled Scene", mEditorCamera.get());
 		}
 		else {
 			SaveSceneAs();
@@ -1054,7 +1112,7 @@ namespace Toast {
 		if (mSceneFilePath)
 		{
 			SceneSerializer serializer(mEditorScene);
-			serializer.Serialize(*mSceneFilePath);
+			serializer.Serialize(*mSceneFilePath, "Untitled Scene", mEditorCamera.get());
 
 			std::filesystem::path path = *mSceneFilePath;
 			UpdateWindowTitle(path.filename().string());

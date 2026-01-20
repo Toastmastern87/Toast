@@ -309,6 +309,8 @@ namespace Toast {
 		void CopyTo(Scene* target);
 
 		UUID GetUUID() const { return mSceneID; }
+		void SetName(const std::string& name) { mName = name; }
+		const std::string& GetName() const { return mName; }
 
 		Ref<Planet> GetPlanet() { return mPlanet; }
 
