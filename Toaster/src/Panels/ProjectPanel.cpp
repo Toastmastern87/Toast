@@ -1,4 +1,4 @@
-#include "ProjectPanel.h"
+﻿#include "ProjectPanel.h"
 
 #include "../FontAwesome.h"
 #include "imgui/imgui.h"
@@ -61,7 +61,18 @@ namespace Toast {
 				{
 					if (ImGui::MenuItem("New Scene..."))
 					{
-						// TODO (later)
+						UUID newId = mContext->CreateNewScene("NewScene", false);
+
+						// Select it in the list
+						mSelectedScene = newId;
+
+						// Optional: start renaming immediately (recommended UX)
+						mRenamingScene = newId;
+						mRenameWantsFocus = true;
+						memset(mRenameBuffer, 0, sizeof(mRenameBuffer));
+						strncpy(mRenameBuffer, "NewScene", sizeof(mRenameBuffer) - 1);
+
+						ImGui::CloseCurrentPopup();
 					}
 					if (ImGui::MenuItem("Import Scene..."))
 					{
@@ -90,50 +101,54 @@ namespace Toast {
 				int i = 0;
 				for (const auto& [id, entry] : scenes)
 				{
-					std::string name = entry.Path.stem().string(); // "Default Scene"
+					const std::string name = entry.Path.stem().string();
 
 					ImGui::PushID(i++);
-
-					const char* label = name.c_str();
 
 					const bool isActive = (id == activeId);
 					const bool isSelected = (mSelectedScene == id);
 					const bool isRenamingThis = (mRenamingScene == id);
 
-					// Boxed button styling (your established pattern)
+					// Boxed button styling
 					ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
 					ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
 					ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 4.0f));
 
-					// ----- Color logic -----
-					// Priority: Active > Selected > Normal
+					// Full row width
+					const float w = ImGui::GetContentRegionAvail().x;
+
+					// ASCII-safe label (no special glyphs)
+					std::string itemLabel = isActive ? ("> " + name) : name;
+
+					// ---- Colors: Active > Selected > Normal (BUTTON COLORS because we draw a Button) ----
+					int pushedColors = 0;
+
 					if (isActive)
 					{
-						// Active scene tint (subtle but unmistakable)
+						// Use theme color, just increase opacity. Avoid RGB scaling (looks bad across themes).
 						ImVec4 base = ImGui::GetStyle().Colors[ImGuiCol_ButtonActive];
+						base.w = 0.95f;
 
-						// Slightly lift brightness for "loaded" feeling
-						base.x *= 1.20f;
-						base.y *= 1.20f;
-						base.z *= 1.20f;
-
-						ImGui::PushStyleColor(ImGuiCol_Button, base);
-						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
-						ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);
+						ImGui::PushStyleColor(ImGuiCol_Button, base);        ++pushedColors;
+						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, base); ++pushedColors;
+						ImGui::PushStyleColor(ImGuiCol_ButtonActive, base);  ++pushedColors;
 					}
 					else if (isSelected)
 					{
-						ImGui::PushStyleColor(
-							ImGuiCol_Button,
-							ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]
-						);
+						ImVec4 base = ImGui::GetStyle().Colors[ImGuiCol_ButtonActive];
+						base.w = 0.70f;
+
+						ImGui::PushStyleColor(ImGuiCol_Button, base);                                     ++pushedColors;
+						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]); ++pushedColors;
+						ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyle().Colors[ImGuiCol_ButtonActive]);   ++pushedColors;
 					}
 
-					float w = ImGui::GetContentRegionAvail().x;
+					// ---- Draw the item ----
 					bool clicked = false;
 
 					if (isRenamingThis)
 					{
+						// Inline rename uses full width
 						ImGui::PushItemWidth(w);
 
 						if (mRenameWantsFocus)
@@ -142,11 +157,13 @@ namespace Toast {
 							mRenameWantsFocus = false;
 						}
 
-						bool commit = ImGui::InputText("##RenameSceneInline", mRenameBuffer, sizeof(mRenameBuffer),	ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
+						const bool commit = ImGui::InputText("##RenameSceneInline",	mRenameBuffer, sizeof(mRenameBuffer), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
 
 						// Cancel on Escape
 						if (ImGui::IsItemFocused() && ImGui::IsKeyPressed(ImGuiKey_Escape))
+						{
 							mRenamingScene = UUID{};
+						}
 						else if (commit)
 						{
 							std::string newName(mRenameBuffer);
@@ -173,11 +190,55 @@ namespace Toast {
 					}
 					else
 					{
-						clicked = ImGui::Button(label, ImVec2(w, 0.0f));
-						if (clicked)
-							mSelectedScene = id;
+						// Compute the button rect so the active accent bar aligns perfectly.
+						const ImVec2 textSize = ImGui::CalcTextSize(itemLabel.c_str(), nullptr, false);
+						const float  buttonH = textSize.y + ImGui::GetStyle().FramePadding.y * 2.0f;
+
+						// Current button rect (screen-space)
+						const ImVec2 buttonMin = ImGui::GetCursorScreenPos();
+						const ImVec2 buttonMax = ImVec2(buttonMin.x + w, buttonMin.y + buttonH);
+
+						// Draw accent bar INSIDE the button rect (looks clean with rounding/padding)
+						if (isActive)
+						{
+							const float barW = 3.0f;
+							const float insetY = 2.0f;
+							ImU32 accent = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
+						}
+
+						// Add a bit of left padding so the text doesn't collide with the accent bar
+						ImGui::SetCursorPosX(ImGui::GetCursorPosX());
+
+						// Keep your behavior: active scene cannot be selected
+						if (isActive)
+						{
+							ImGui::BeginDisabled(true);
+							ImGui::Button(itemLabel.c_str(), ImVec2(w, 0.0f)); // subtract our cursor shift
+							ImGui::EndDisabled();
+						}
+						else
+						{
+							clicked = ImGui::Button(itemLabel.c_str(), ImVec2(w, 0.0f));
+							if (clicked)
+								mSelectedScene = id;
+
+							if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+							{
+								// Optional: keep selection consistent
+								mSelectedScene = id;
+
+								// Avoid opening while some inline rename is active (paranoia)
+								if (!isRenamingThis && OnOpenSceneRequested)
+									OnOpenSceneRequested(id);
+							}
+						}
 					}
 
+					// Pop colors AFTER the widget is drawn
+					if (pushedColors > 0)
+						ImGui::PopStyleColor(pushedColors);
+
+					// Context menu (disable while renaming)
 					if (!isRenamingThis && ImGui::BeginPopupContextItem("##SceneContext", ImGuiPopupFlags_MouseButtonRight))
 					{
 						if (ImGui::MenuItem("Rename"))
@@ -186,12 +247,13 @@ namespace Toast {
 							mRenameWantsFocus = true;
 							memset(mRenameBuffer, 0, sizeof(mRenameBuffer));
 
-							std::string currentName = entry.Path.stem().string();
+							const std::string currentName = entry.Path.stem().string();
 							strncpy(mRenameBuffer, currentName.c_str(), sizeof(mRenameBuffer) - 1);
 
 							ImGui::CloseCurrentPopup();
 						}
-						if (ImGui::MenuItem("Remove from Project"))
+
+						if (ImGui::MenuItem("Delete"))
 						{
 							// TODO (later)
 						}
@@ -199,18 +261,11 @@ namespace Toast {
 						ImGui::EndPopup();
 					}
 
-					ImGui::Dummy(ImVec2(0.0f, 0.5f));
-
-					if (isActive)
-						ImGui::PopStyleColor(3);
-					else if (isSelected)
-						ImGui::PopStyleColor(1);
-
 					ImGui::PopStyleVar(3);
-
 					ImGui::PopID();
 				}
 			}
+
 
 			ImGui::EndChild();
 			ImGui::PopStyleVar();
@@ -218,6 +273,5 @@ namespace Toast {
 
 		ImGui::End();
 	}
-
 
 }

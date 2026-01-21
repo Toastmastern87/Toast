@@ -44,6 +44,8 @@ namespace Toast {
 		virtual void OnImGuiRender() override;
 		void OnEvent(Event& e) override;
 
+		void SaveProject();
+
 		void OnScenePlay();
 		void OnScenePause();
 		void OnSceneUnpause();
@@ -53,7 +55,6 @@ namespace Toast {
 		void OpenScene(const std::filesystem::path& path);
 		void SaveScene();
 		void SaveSceneAs();
-		void NewScene();
 
 		void OpenProjectScene(UUID sceneID);
 		Scene* GetActiveScene() override { return mEditorScene; }
@@ -70,6 +71,8 @@ namespace Toast {
 		void ShowProjectPopup(bool nonForcedPopup);
 
 		void SetContexts();
+
+		void ResetEditorScene();
 	private:
 		std::optional<std::string> mSceneFilePath;
 

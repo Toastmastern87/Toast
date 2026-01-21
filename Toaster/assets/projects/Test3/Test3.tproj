@@ -1,0 +1,8 @@
+Project: Test3
+Version: 1
+ActiveScene: 4441410425287345186
+Scenes:
+  - ID: 4441410425287345186
+    Path: Assets/Scenes/DefaultScene.tscene
+  - ID: 9916947088168991398
+    Path: Assets/Scenes/Test.tscene

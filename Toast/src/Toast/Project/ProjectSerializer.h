@@ -2,14 +2,21 @@
 
 #include "Project.h"
 
+#include <yaml-cpp/yaml.h>
+
 namespace Toast {
 
 	class ProjectSerializer
 	{
 	public:
-		static void Serialize(const std::string& filepath);
+		ProjectSerializer(Project* project)
+			: mProject(project) {}
 
-		static void Deserialize(const std::string& filepath);
+		void Serialize(const std::string& filepath);
+		bool Deserialize(const std::string& filepath);
+
+	private:
+		Project* mProject = nullptr;
 	};
 
 }

@@ -79,11 +79,48 @@ namespace Toast {
 	{
 	}
 
+	UUID Project::CreateNewScene(const std::string& baseName, bool setActive)
+	{
+		TOAST_CORE_INFO("Adding new scene");
+
+		// Ensure scene directory exists
+		const std::filesystem::path scenesDirAbs = mPath / "Assets" / "Scenes";
+		std::filesystem::create_directories(scenesDirAbs);
+
+		// Sanitize + build a unique path on disk
+		std::string safeStem = SanitizeFileStem(baseName);
+		std::filesystem::path desiredAbs = scenesDirAbs / (safeStem + ".tscene");
+		std::filesystem::path newAbs = MakeUniquePath(desiredAbs);
+
+		// Scene display name should match the file stem we ended up with (unique suffix, etc.)
+		const std::string finalStem = newAbs.stem().string();
+
+		// Create + serialize the scene
+		Ref<Scene> scene = CreateRef<Scene>(finalStem);
+		UUID id = scene->GetUUID();
+
+		SceneSerializer serializer(scene.get());
+		serializer.Serialize(newAbs.string(), finalStem);
+
+		// Register in project (store relative path)
+		std::filesystem::path newRel = std::filesystem::relative(newAbs, mPath);
+		mScenes.emplace(id, ProjectSceneEntry{ id, newRel });
+
+		if (setActive)
+			mActiveSceneID = id;
+
+		return id;
+	}
+
 	bool Project::RenameScene(UUID id, const std::string& newName)
 	{
 		auto it = mScenes.find(id);
 		if (it == mScenes.end())
 			return false;
+
+		const std::string oldName = it->second.Path.stem().string();
+
+		TOAST_CORE_TRACE("Renaming scene from %s to %s", oldName.c_str(), newName.c_str());
 
 		// Old absolute path
 		const std::filesystem::path oldRel = it->second.Path;
@@ -124,8 +161,8 @@ namespace Toast {
 		//    NOTE: adjust SetName(...) if your Scene uses a different API.
 		Ref<Scene> scene = CreateRef<Scene>();
 		{
-			SceneSerializer des(scene.get());
-			if (!des.Deserialize(newAbs.string()))
+			SceneSerializer deserializer(scene.get());
+			if (!deserializer.Deserialize(newAbs.string()))
 			{
 				// If deserialize fails, we still have the renamed file; treat as failure so caller can handle.
 				return false;
@@ -136,8 +173,8 @@ namespace Toast {
 		scene->SetName(newName);
 
 		{
-			SceneSerializer ser(scene.get());
-			ser.Serialize(newAbs.string(), newName);
+			SceneSerializer serializer(scene.get());
+			serializer.Serialize(newAbs.string(), newName);
 		}
 
 		// 3) Update project registry

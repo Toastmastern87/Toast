@@ -348,7 +348,6 @@ namespace Toast {
 
 	class Planet
 	{
-	// NEW PLANET SYSTEM
 	private:
 		// General Data
 		bool mValidPlanet = false;
@@ -545,6 +544,8 @@ namespace Toast {
 		PlanetMeshMode GetMeshMode() const { return mMeshMode; }
 
 		Ref<PlanetMeshIcosphere>& GetIcosphereMesh() { return mIcosphereMesh; }
+
+		bool IsTerrainReady() const;
 	};
 
 }

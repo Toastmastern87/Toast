@@ -1682,7 +1682,6 @@ namespace Toast {
 	void Scene::CopyTo(Scene* target)
 	{
 		// Settings
-		//target->mSettings.PhysicSlowmotion = mSettings.PhysicSlowmotion;
 		target->mSettings.SSAO = mSettings.SSAO;
 		target->mSettings.SSAObias = mSettings.SSAObias;
 		target->mSettings.SSAORadius = mSettings.SSAORadius;
@@ -1787,7 +1786,8 @@ namespace Toast {
 		auto tc = entity.GetComponent<TransformComponent>();
 		Vector3 cameraTranslation = { tc.Translation };
 
-		component.Camera.SetViewportSize(mViewportWidth, mViewportHeight);
+		if(mViewportWidth > 0 && mViewportHeight > 0)
+			component.Camera.SetViewportSize(mViewportWidth, mViewportHeight);
 
 		mFrustum = CreateRef<Frustum>();
 		mFrustum->Invalidate(component.Camera.GetAspecRatio(), component.Camera.GetPerspectiveVerticalFOV(), component.Camera.GetNearClip(), component.Camera.GetFarClip());

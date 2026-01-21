@@ -293,7 +293,22 @@ namespace Toast {
 	{
 		double rCam;
 		Vector3 groundN;
-		double altitude = physicsEngine->GetAltitudeAtWorldPos(Vector3(0.0, 0.0, 0.0), rCam, groundN);
+		double altitude = 0.0;
+
+		if (!IsTerrainReady() || physicsEngine == nullptr)
+		{
+			altitude = 0.0;
+		}
+		else
+		{
+			altitude = physicsEngine->GetAltitudeAtWorldPos(camPosPS, rCam, groundN);
+
+			// Hard safety net: never allow NaN/inf to propagate.
+			if (!std::isfinite(altitude))
+				altitude = 0.0;
+			if (altitude < 0.0)
+				altitude = 0.0; // optional: depends on whether you allow below-surface camera
+		}
 
 		double altitudeSq = altitude * altitude;
 
@@ -438,7 +453,6 @@ namespace Toast {
 
 		mPlanetFrameCBuffer->Map(mPlanetFrameBuffer);
 
-		/* decide how many levels are visible this frame */
 		mActiveLevels = DetermineActiveLODLevels(camPosPS, physicsEngine);
 
 		const uint32_t L0 = mActiveLevels.first;
@@ -910,6 +924,26 @@ namespace Toast {
 		u = std::min<uint32_t>(u, (uint32_t)o.MaxPerPatch); // if you mean per-level cap
 
 		return u;
+	}
+
+	bool Planet::IsTerrainReady() const
+	{
+		// Whatever “ready” means in your engine. This is a common minimum.
+		if (mTerrainCubeData.Width == 0 || mTerrainCubeData.Height == 0)
+			return false;
+
+		// Ensure all 6 faces exist and have the expected size.
+		const uint32_t W = mTerrainCubeData.Width;
+		const uint32_t H = mTerrainCubeData.Height;
+		const size_t expected = size_t(W) * size_t(H);
+
+		for (int f = 0; f < 6; ++f)
+		{
+			if (mTerrainCubeData.FaceHeight[f].size() != expected)
+				return false;
+		}
+
+		return true;
 	}
 
 	// OLD PLANET SYSTEM BUT MAYBE BETTER

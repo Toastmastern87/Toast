@@ -596,6 +596,8 @@ namespace Toast {
 
 	void SceneSerializer::Serialize(const std::string& filepath, const std::string& name, Camera* editorCamera)
 	{
+		TOAST_CORE_TRACE("Serializing scene '%s'", name.c_str());
+
 		YAML::Emitter out;
 		out << YAML::BeginMap;
 

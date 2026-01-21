@@ -8,7 +8,8 @@
 #include "Toast/Core/Application.h"
 #include "Toast/Core/Input.h"
 
-#include "Toast/Scene/SceneManager.h"
+#include "Toast/Project/ProjectSerializer.h"
+
 #include "Toast/Scene/SceneSerializer.h"
 
 #include "Toast/Scripting/ScriptEngine.h"
@@ -27,6 +28,24 @@
 namespace Toast {
 	
 	extern const std::filesystem::path gAssetPath;
+
+	static std::optional<std::filesystem::path> FindProjectFileInFolder(const std::filesystem::path& folder)
+	{
+		if (!std::filesystem::exists(folder) || !std::filesystem::is_directory(folder))
+			return std::nullopt;
+
+		for (const auto& entry : std::filesystem::directory_iterator(folder))
+		{
+			if (!entry.is_regular_file())
+				continue;
+
+			const auto& p = entry.path();
+			if (p.extension() == ".tproj") // <- your extension
+				return p;
+		}
+
+		return std::nullopt;
+	}
 
 	EditorLayer::EditorLayer(WindowsWindow* window)
 		: Layer("TheNextFrontier2D", window)
@@ -624,6 +643,8 @@ namespace Toast {
 						mProjectPopupMode = ProjectPopupMode::OpenProject;
 					}
 					ImGui::Separator();
+					if (ImGui::MenuItem("Save Project", "Ctrl+S"))
+						SaveProject();
 					if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
 						SaveScene();
 					if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S"))
@@ -918,6 +939,7 @@ namespace Toast {
 							mProject = CreateRef<Project>(projectNameStr, projectPath);
 
 							const std::filesystem::path scenePath =	mProject->GetPath() / mProject->GetActiveScenePath();
+							mSceneFilePath = scenePath.string();
 
 							OpenScene(scenePath);
 
@@ -929,14 +951,6 @@ namespace Toast {
 						}
 						else 
 						{
-							// Open existing project
-							// This assumes you have Project::Load(...) or similar.
-							// If your project file is in the folder, build the full path here.
-							// Example:
-							// std::filesystem::path folder(openProjectPath);
-							// mProject = ProjectSerializer::Deserialize(folder / "MyProject.toastproj");
-							//
-							// For now, just validate the folder exists:
 							std::filesystem::path folder(mOpenProjectPath);
 							if (!std::filesystem::exists(folder))
 							{
@@ -944,8 +958,37 @@ namespace Toast {
 							}
 							else
 							{
-								// TODO: deserialized project here
-								ImGui::CloseCurrentPopup();
+								auto projectFileOpt = FindProjectFileInFolder(folder);
+								if (!projectFileOpt)
+								{
+									TOAST_CORE_WARN("No .tproj file found in folder: %s", folder.string().c_str());
+								}
+								else
+								{
+									// Create a new empty project instance, then deserialize into it
+									auto loadedProject = std::make_shared<Project>();
+
+									ProjectSerializer serializer(loadedProject.get());
+									if (!serializer.Deserialize(projectFileOpt->string()))
+									{
+										TOAST_CORE_ERROR("Failed to load project: %s", projectFileOpt->string().c_str());
+									}
+									else
+									{
+										mProject = loadedProject;
+
+										const std::filesystem::path scenePath = mProject->GetPath() / mProject->GetActiveScenePath();
+										mSceneFilePath = scenePath.string();
+
+										OpenScene(scenePath);
+
+										SetContexts();
+
+										mForceProjectPopup = false;
+
+										ImGui::CloseCurrentPopup();
+									}
+								}
 							}
 						}
 					}
@@ -995,17 +1038,26 @@ namespace Toast {
 		}
 	}
 
+	void EditorLayer::SaveProject()
+	{
+		if (!mProject)
+			return;
+
+		SaveScene();
+
+		std::filesystem::path projectFilePath =	mProject->GetPath() / (mProject->GetName() + ".tproj");
+
+		ProjectSerializer serializer(mProject.get());
+		serializer.Serialize(projectFilePath.string());
+	}
+
 	void EditorLayer::OnScenePlay()
 	{
 		mSceneState = SceneState::Play;
 
-		mRuntimeScene = SceneManager::AddScene();
-
 		mEditorScene->CopyTo(mRuntimeScene);
 
 		mRuntimeScene->SetHoveredEntity(entt::null);
-
-		SceneManager::SetActiveScene(mRuntimeScene);
 
 		mRuntimeScene->OnRuntimeStart();
 		mSceneHierarchyPanel.SetContext(mRuntimeScene);
@@ -1032,23 +1084,8 @@ namespace Toast {
 		mRuntimeScene->OnRuntimeStop();
 		mSceneState = SceneState::Edit;
 
-		SceneManager::SetActiveScene(mEditorScene);
-
-		SceneManager::RemoveScene(mRuntimeScene->GetUUID());
-
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mEditorScene->InvalidateFrustum();
-	}
-
-	void EditorLayer::NewScene()
-	{
-		//if (mSceneState != SceneState::Edit)
-		//	return;
-
-		//mEditorScene = SceneManager::AddScene(CreateScope<Scene>());
-
-		//mSceneHierarchyPanel.SetContext(mEditorScene);
-		//mEnvironmentPanel.SetContext(mEditorScene);
 	}
 
 	void EditorLayer::OpenProjectScene(UUID id)
@@ -1062,8 +1099,12 @@ namespace Toast {
 
 		const std::filesystem::path absPath = mProject->GetPath() / relPath;
 
-		OpenScene(absPath); 
 		mProject->SetActiveScene(id);
+
+		mSceneFilePath = absPath.string();
+		UpdateWindowTitle(absPath.filename().string());
+
+		OpenScene(absPath); 
 
 		SetContexts();
 	}
@@ -1085,30 +1126,63 @@ namespace Toast {
 
 	void EditorLayer::OpenScene(const std::filesystem::path& path)
 	{
-		mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
-		mSceneHierarchyPanel.SetContext(mEditorScene);
-		mSceneSettingsPanel.SetContext(mEditorScene, mWindow);
-		mEnvironmentPanel.SetContext(mEditorScene);
+		ResetEditorScene();
 
 		SceneSerializer serializer(mEditorScene);
-		serializer.Deserialize(path.string(), mEditorCamera.get());
+		if (!serializer.Deserialize(path.string(), mEditorCamera.get()))
+		{
+			TOAST_CORE_ERROR("Failed to open scene: %s", path.string().c_str());
+			return;
+		}
+	}
+
+	void EditorLayer::ResetEditorScene()
+	{
+		// If you’re currently playing, stop first (runtime scene may be referencing old data)
+		if (mSceneState != SceneState::Edit)
+			OnSceneStop();
+
+		// Create a fresh scene instance
+		mPlaceholderScene = CreateScope<Scene>();
+		mEditorScene = mPlaceholderScene.get();
+
+		// Re-bind camera
+		mEditorScene->SetActiveCamera(mEditorCamera);
+		mEditorCamera->UpdateView();
 	}
 
 	void EditorLayer::SaveScene()
 	{
-		if (mSceneFilePath) 
+		if (!mProject)
+			return;
+
+		const UUID activeID = mProject->GetActiveSceneID();
+
+		// Resolve the scene path from the project
+		const std::filesystem::path rel = mProject->GetScenePath(activeID);
+		if (rel.empty())
 		{
-			SceneSerializer serializer(mEditorScene);
-			serializer.Serialize(*mSceneFilePath, "Untitled Scene", mEditorCamera.get());
-		}
-		else {
+			// Project doesn't know where this scene should be saved yet
 			SaveSceneAs();
+			return;
 		}
+
+		const std::filesystem::path abs = mProject->GetPath() / rel;
+
+		// Ensure destination directory exists
+		std::filesystem::create_directories(abs.parent_path());
+
+		// Use the project's display name (filename stem) as the scene name in YAML
+		const std::string sceneName = mProject->GetSceneDisplayName(activeID);
+
+		// Serialize the editor scene (or whichever scene instance you are editing)
+		SceneSerializer serializer(mEditorScene);
+		serializer.Serialize(abs.string(), sceneName, mEditorCamera.get());
 	}
 
 	void EditorLayer::SaveSceneAs()
 	{
-		mSceneFilePath = FileDialogs::SaveFile("Toast Scene(*.toast)\0*toast\0");
+		mSceneFilePath = FileDialogs::SaveFile("Toast Scene(*.tscene)\0*tscene\0");
 		if (mSceneFilePath)
 		{
 			SceneSerializer serializer(mEditorScene);
@@ -1126,12 +1200,6 @@ namespace Toast {
 
 		switch (e.GetKeyCode())
 		{
-		case Key::N:
-		{
-			if (control)
-				NewScene();
-			break;
-		}
 		case Key::O:
 		{
 			if (control)

@@ -1,0 +1,148 @@
+Scene: Test
+EditorCamera:
+  Position: [-0.0859212801, 0.61601764, -2.51424718]
+Settings:
+  Grid: true
+  CameraFrustum: true
+  SunLightFrustum: true
+  DirectionalLightningGain: 1
+  RenderColliders: false
+  RenderUI: true
+  Shadows: true
+  SSAO: false
+  SSAODebugging: false
+  SSAORadius: 0.5
+  SSAObias: 0.0250000004
+  SunSurfaceThreshold: 0
+  SunSurfaceIntensity: 0
+  SunSpaceThreshold: 0
+  SunSpaceIntensity: 0
+  SkySurfaceThreshold: 0
+  SkySurfaceIntensity: 0
+  SkySpaceThreshold: 0
+  SkySpaceIntensity: 0
+  GeometryThreshold: 0
+  GeometryIntensity: 0
+  SunRadius: 0
+  SkySurfaceRadius: 0
+  SkySpaceRadius: 0
+  SoftKnee: 0
+  SaturationClamp: 0
+  DynamicIBL: true
+  SunFrustumOrthoSize: 500
+  GodRaysExposure: 0.209999993
+  GodRaysDecay: 0.939999998
+  GodRaysDensity: 3
+  GodRaysWeight: 0.0199999996
+  GodRaysKHalo: 0.600000024
+  GodRaysHaloPower: 2
+  GodRaysFogRangeMeters: 120000
+  EVSurfaceDay: 0
+  EVSpaceDay: 0
+  EVSurfaceNight: 0
+  EVSpaceNight: 0
+  AltFadeFrac: [0, 0]
+  SunFadeDeg: [0, 0]
+  Physics:
+    SlowDown: 1
+    FPSTarget: 60
+    StepsPerUpdate: 1
+    MaxAngularVelocity: 30
+Planet:
+  Translation: [0, 0, 0]
+  Rotation: [0, 0, 0]
+  GridSize: 0
+  MaxLevels: 0
+  Radius: 0
+  MaxHeight: 0
+  MinHeight: 0
+  mMeshMode: 0
+  AlbedoColor: [0, 0, 0]
+  Roughness: 0
+  Metalness: 0
+  HeightMapAssetPath: assets/textures/Checkerboard.png
+  Metalness: 0
+  StarFieldAssetPath: assets/textures/Checkerboard.png
+  AtmosphereActivated: false
+  AtmosphereHeight: 0
+  RayleighScaleHeight: 0
+  RayleighExp10: -10
+  RayleighScattering: [0, 0, 0]
+  MieScaleHeight: 0
+  MieScatteringExp10: -5
+  MieScattering: [0, 0, 0]
+  MieAbsorptionExp10: -6
+  MieAbsorption: [0, 0, 0]
+  MieAnisotropy: [0, 0, 0]
+  OzoneStrength: 0
+  GroundAlbedo: [0, 0, 0]
+  SunsetTint: [0, 0, 0]
+  MSGain: 0
+  SGain: 0
+  GravityConstant: 0
+  HeightDetails:
+    []
+  TerrainObjects:
+    []
+Environment:
+  DiffuseIBLGain: 1
+  SpecularIBLGain: 1
+  SunDiscToggle: false
+  SunIntensity: 20
+  SunDiscRadius: 0
+  SunEdgeSoftness: 0
+  SunWhite: [1, 1, 1]
+  WarmTint: [1, 1, 1]
+  SpaceDiscBrightnessScale: 1.29999995
+  AirHaloIntensity: 0.280000001
+  AirHaloStartFrac: 0.150000006
+  AirHaloFalloffPow: 1.10000002
+  HorizonRefractionDeg: 0.829999983
+  TwilightBlendDeg: 1.5
+  SpaceHaloWidthDeg: 0.800000012
+  SpaceHaloIntensity: 0.0399999991
+  SpaceHaloCutoffDeg: 6
+  SunSpikes: 6
+  SunSpikeSharpness: 24
+  SunSpikeRadiusSurface: 0.100000001
+  SunSpikeRadiusSpace: 0.200000003
+  SunSpikeFallOff: 2
+  SunSpikeStrengthSurface: 0
+  SunSpikeStrengthSpace: 0.0799999982
+  SunGlareStrengthSurface: 0.00499999989
+  SunGlareStrengthSpace: 0.0149999997
+  SunGlareRadiusSurface: 0.100000001
+  SunGlareRadiusSpace: 0.0599999987
+  LensAltStart: 0.600000024
+  LensAltEnd: 1
+  GhostStrength: 0.100000001
+  GhostSpacing: 1
+  GhostFalloff: 0.850000024
+  GhostSizeSurface: 0.00120000006
+  GhostSizeSpace: 0.000449999992
+  GhostAirSuppression: 0.100000001
+  StarNits: 600
+  TwilightStartDeg: 0
+  TwilightEndDeg: -6
+  SpaceFadeStart: 0.850000024
+  SpaceFadeEnd: 0.980000019
+  NightAmbient: [0, 0, 0]
+Entities:
+  - Entity: 2049901082558080314
+    TagComponent:
+      Tag: Cube
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [0.100000001, 0.100000001, 0.100000001]
+    MeshComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Cube.gltf
+      LODThresholds:
+        - 0.300000012
+        - 0.600000024
+      Parts:
+        []

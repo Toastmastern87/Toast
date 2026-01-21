@@ -25,6 +25,7 @@ namespace Toast {
 
 		const std::unordered_map<UUID, ProjectSceneEntry>& GetScenes() const { return mScenes; }
 
+		UUID CreateNewScene(const std::string& baseName = "NewScene", bool setActive = false);
 		bool RenameScene(UUID id, const std::string& newName);
 
 		UUID GetActiveSceneID() const { return mActiveSceneID; }
@@ -58,6 +59,8 @@ namespace Toast {
 
 		std::unordered_map<UUID, ProjectSceneEntry> mScenes;
 		UUID mActiveSceneID{};
+
+		friend class ProjectSerializer;
 	};
 
 }

@@ -6,8 +6,6 @@
 #include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/UI/Font.h"
 
-#include "Toast/Scene/SceneManager.h"
-
 #include "Toast/Scripting/ScriptEngine.h"
 
 namespace Toast {
@@ -36,8 +34,6 @@ namespace Toast {
 		mWindow = Window::Create(WindowProps(mSpecification.Name, mSpecification.IconStr, desktop.right, desktop.bottom));
 		mWindow->SetEventCallback(TOAST_BIND_EVENT_FN(Application::OnEvent));
 		mWindow->SetVSync(false);
-
-		SceneManager::Init();
 
 		Renderer::Init(mWindow->GetWidth(), mWindow->GetHeight());
 

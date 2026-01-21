@@ -187,7 +187,7 @@ namespace Toast {
 	}
 
 	// lodFine = LodFromCellSize(CellSize) on GPU.
-// On CPU you need to define what LOD you want to use for physics queries.
+	// On CPU you need to define what LOD you want to use for physics queries.
 	static float AccumulateHeightDetails(const std::vector<HeightDetail>& details, float px, float py, float pz, int lod)
 	{
 		float sum = 0.0f;
