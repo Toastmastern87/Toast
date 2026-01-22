@@ -221,20 +221,17 @@ namespace Toast {
 		struct PlanetFaceCPU
 		{
 			Vector3 A = { 0.0, 0.0, 0.0 }, B = { 0.0, 0.0, 0.0 }, C = { 0.0, 0.0, 0.0 };
-			PlanetFaceCPU* Parent = nullptr;
 			short Level = 0;
 
 			PlanetFaceCPU()
 			{
 			}
 
-			PlanetFaceCPU(Vector3 a, Vector3 b, Vector3 c, PlanetFaceCPU* parent, short level)
+			PlanetFaceCPU(Vector3 a, Vector3 b, Vector3 c, short level)
 			{
 				A = a;
 				B = b;
 				C = c;
-
-				Parent = parent;
 
 				Level = level;
 			}
@@ -245,6 +242,16 @@ namespace Toast {
 			Vector2 Position = { 0.0, 0.0 };
 
 			PlanetVertexCPU(Vector2 pos)
+			{
+				Position = pos;
+			}
+		};
+
+		struct PlanetVertexGPU
+		{
+			DirectX::XMFLOAT2 Position = { 0.0f, 0.0f };
+
+			PlanetVertexGPU(DirectX::XMFLOAT2 pos)
 			{
 				Position = pos;
 			}
@@ -269,32 +276,19 @@ namespace Toast {
 		struct PlanetFaceGPU
 		{
 			DirectX::XMFLOAT3 A = { 0.0f, 0.0f, 0.0f }, B = { 0.0f, 0.0f, 0.0f }, C = { 0.0f, 0.0f, 0.0f };
-			PlanetFaceGPU* Parent = nullptr;
 			short Level = 0;
 
 			PlanetFaceGPU()
 			{
 			}
 
-			PlanetFaceGPU(DirectX::XMFLOAT3 a, DirectX::XMFLOAT3 b, DirectX::XMFLOAT3 c, PlanetFaceGPU* parent, short level)
+			PlanetFaceGPU(DirectX::XMFLOAT3 a, DirectX::XMFLOAT3 b, DirectX::XMFLOAT3 c, short level)
 			{
 				A = a;
 				B = b;
 				C = c;
 
-				Parent = parent;
-
 				Level = level;
-			}
-		};
-
-		struct PlanetVertexGPU
-		{
-			DirectX::XMFLOAT2 Position = { 0.0f, 0.0f };
-
-			PlanetVertexGPU(DirectX::XMFLOAT2 pos)
-			{
-				Position = pos;
 			}
 		};
 
@@ -302,31 +296,36 @@ namespace Toast {
 		PlanetMeshIcosphere() = default;
 
 		void Init();
+		void InitShaderLayout();
 		void GeneratePatchGeometry();
 
-		void OnUpdate(Frustum* frustum, Vector3& cameraPosPS, int16_t subdivisions);
+		void OnUpdate(Frustum* frustum, Vector3& cameraPosPS, DirectX::XMFLOAT3& translation, DirectX::XMFLOAT3& rotationEulerAngles, DirectX::XMFLOAT4& rotationQuaternion, float viewportHeight, float FoVYRadians);
 		void RecursiveFace(Frustum* frustum, Vector3& a, Vector3& b, Vector3& c, int16_t subdivision, Vector3& cameraPosPS, bool splitCull);
 		NextPlanetFace CheckFaceSplit(Frustum* frustum, Vector3 a, Vector3 b, Vector3 c, int16_t subdivision, Vector3& cameraPosPS, bool frustumCull);
+   
+		void BuildGPUData();     
+		void BindGPUData();
 
-		void GenerateDistanceLUT();
+		void GenerateDistanceLUT(float viewportHeight, float FoVYRadians);
 		void GenerateFaceDotLevelLUT();
 		void GenerateHeightMultLUT();
 
 		bool& GetBackfaceCulling() { return mBackfaceCulling; }
 		bool& GetFrustumCulling() { return mFrustumCulling; }
 
+		void SetDistanceLUTDirty() { mDistanceLUTDirty = true; }
+
 		friend class SceneSerializer;
 		friend class PlanetPanel;
 	private:
-		DirectX::XMFLOAT3 mTranslation = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMFLOAT3 mRotationEulerAngles = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMFLOAT4 mRotationQuaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
 		double mRadius = 0.0;
 		double mMaxHeight = 0.0;
 		Matrix mTransform;
 
-		int16_t mMaxSubdivisions;
-		int16_t mPatchLevels;
+		const int16_t HARDCAPSUBDIVISIONS = 25;
+		int16_t mMaxSubdivisions = 1;
+		int16_t mPatchLevels = 1;
+		bool mPatchIsDirty = true;
 
 		std::vector<PlanetFaceCPU> mFaces;
 		std::vector<PlanetFaceGPU> mFacesGPU;
@@ -337,7 +336,14 @@ namespace Toast {
 		std::vector<PlanetVertexGPU> mVerticesGPU;
 		std::vector<uint32_t> mIndices;
 
+		Ref<VertexBuffer> mVertexBuffer;
+		Ref<VertexBuffer> mInstanceVertexBuffer;
+		Ref<IndexBuffer> mIndexBuffer;
+
+		Ref<ShaderLayout> mShaderInputLayout;
+
 		std::vector<double> mDistanceLUT;
+		bool mDistanceLUTDirty = true;
 		std::vector<double> mFaceLevelDotLUT;
 		std::vector<double> mHeightMultLUT;
 
@@ -455,7 +461,7 @@ namespace Toast {
 		Buffer& BuildLevelCB(uint32_t L);
 		uint32_t GetGridSize() { return mGridSize; }
 
-		void OnUpdate(const Vector3& camPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix, PhysicsEngine* physicsEngine);
+		void OnUpdate(const Vector3& camPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix, PhysicsEngine* physicsEngine, Frustum* frustum, float viewportHeight, float FoVYRadians);
 
 		DirectX::XMFLOAT3& GetTranslation() { return mTranslation; }
 		Quaternion GetRotation() { return mRotationQuat; }

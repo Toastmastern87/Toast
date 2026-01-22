@@ -22,6 +22,10 @@ namespace Toast {
 		UUID mRenamingScene{};        // scene currently being renamed (0/invalid when none)
 		bool mRenameWantsFocus = false;
 		char mRenameBuffer[256] = {};
+
+		UUID mPendingDeleteScene{};
+		bool mDeletePopupOpen = false;
+		char mDeleteSceneName[256] = {};
 	};
 
 }

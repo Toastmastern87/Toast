@@ -425,9 +425,17 @@ namespace Toast {
 			std::string inputType = source.substr(pos, eol - pos);
 
 			if (inputType == "vertex")
+			{
+				elementDesc.mInputSlot = 0;
 				elementDesc.mInputClassification = D3D11_INPUT_PER_VERTEX_DATA;
+				elementDesc.mInstanceDataStepRate = 0;
+			}
 			else if (inputType == "instance")
-				elementDesc.mInputClassification = D3D11_INPUT_PER_INSTANCE_DATA; 
+			{
+				elementDesc.mInputSlot = 1;
+				elementDesc.mInputClassification = D3D11_INPUT_PER_INSTANCE_DATA;
+				elementDesc.mInstanceDataStepRate = 1;
+			}
 
 			if (paramDesc.Mask == 1)
 			{

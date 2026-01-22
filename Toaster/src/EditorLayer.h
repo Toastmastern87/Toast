@@ -57,7 +57,9 @@ namespace Toast {
 		void SaveSceneAs();
 
 		void OpenProjectScene(UUID sceneID);
-		Scene* GetActiveScene() override { return mEditorScene; }
+		Scene* GetActiveScene() override;
+
+		void RequestSceneChange(const std::string& sceneName);
 	private:
 		bool OnKeyPressed(KeyPressedEvent& e);
 		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
@@ -73,13 +75,15 @@ namespace Toast {
 		void SetContexts();
 
 		void ResetEditorScene();
+		void SwitchRuntimeToProjectScene(UUID id);
 	private:
 		std::optional<std::string> mSceneFilePath;
 
 		Ref<Project> mProject;
 
 		Scope<Scene> mPlaceholderScene;
-		Scene *mRuntimeScene, *mEditorScene = nullptr;
+		Scene *mEditorScene = nullptr;
+		Ref<Scene> mRuntimeScene;
 
 		Ref<EditorCamera> mEditorCamera;
 
@@ -123,6 +127,9 @@ namespace Toast {
 		char mOpenProjectPath[256] = "";
 
 		ProjectPopupMode mProjectPopupMode = ProjectPopupMode::NewProject;
+
+		std::optional<std::string> mPendingSceneChangeName;
+		int mBlockRuntimeFrames = 0;
 
 		// Panels
 		SceneHierarchyPanel mSceneHierarchyPanel;

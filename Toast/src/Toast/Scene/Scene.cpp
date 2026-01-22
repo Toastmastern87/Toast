@@ -123,7 +123,7 @@ namespace Toast {
 
 		EventDispatcher dispatcher(e);
 
-		if (mIsRunning)
+		if (mIsRunning && !mRuntimeBlocked)
 		{
 			dispatcher.Dispatch<MouseButtonPressedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseButtonPressed));
 			dispatcher.Dispatch<MouseButtonReleasedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseButtonReleased));
@@ -268,10 +268,13 @@ namespace Toast {
 				// if no camera is present nothing is rendered
 				else
 					return;
+
+				if(camera.IsDirty)
+					mPlanet->GetIcosphereMesh()->SetDistanceLUTDirty();
 			}
 		}
 
-		if (!mIsPaused)
+		if (!mIsPaused && !mRuntimeBlocked)
 		{
 			// Updating Inertia Tensors if dirty
 			{
@@ -335,7 +338,7 @@ namespace Toast {
 		}
 
 		// Process Lights
-		DirectX::XMFLOAT4 direction;
+		DirectX::XMFLOAT4 direction = { 0.0f, 0.0f, 0.0f, 0.0f };
 		{
 			mLightEnvironment = LightEnvironment();
 			auto lights = mRegistry.group<DirectionalLightComponent>(entt::get<TransformComponent>);
@@ -527,7 +530,7 @@ namespace Toast {
 
 					InvalidateFrustum();
 
-					mPlanet->OnUpdate({ cameraPos }, mMainCamera->GetWorldTranslation(), cameraTransform, mPhysicsEngine.get());
+					mPlanet->OnUpdate({ cameraPos }, mMainCamera->GetWorldTranslation(), cameraTransform, mPhysicsEngine.get(), mFrustum.get(), mViewportHeight, mMainCamera->GetPerspectiveVerticalFOV());
 				}
 			}
 
@@ -737,7 +740,7 @@ namespace Toast {
 						finalPosition = { tc.Translation.x , tc.Translation.y, tc.Translation.z };
 
 					if (renderButton)
-						Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius(), 1.0f }, ubc.Button->GetColorF4(), (int)entity, !ubc.Button->GetUseColor(), ubc.Button->GetIsClicked(), ubc.Button->GetTextureIndex(), ubc.Button->GetClickTextureIndex());
+						Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius(), 1.0f }, ubc.Button->GetColorF4(), ubc.Button->GetClickColorF4(), (int)entity, !ubc.Button->GetUseColor(), ubc.Button->GetIsClicked(), ubc.Button->GetTextureIndex(), ubc.Button->GetClickTextureIndex());
 				}
 
 				//Texts
@@ -822,6 +825,9 @@ namespace Toast {
 					mInvalidatePlanet = true;
 					mainCameraTransform->IsDirty = false;
 				}
+
+				if(mainCameraComponent->IsDirty)
+					mPlanet->GetIcosphereMesh()->SetDistanceLUTDirty();
 			}
 		}
 
@@ -1032,7 +1038,7 @@ namespace Toast {
 
 				InvalidateFrustum();
 
-				mPlanet->OnUpdate({ cameraPos }, mainCameraComponent->Camera.GetWorldTranslation(), mainCameraTransform->GetTransform(), mPhysicsEngine.get());
+				mPlanet->OnUpdate({ cameraPos }, mainCameraComponent->Camera.GetWorldTranslation(), mainCameraTransform->GetTransform(), mPhysicsEngine.get(), mFrustum.get(), mViewportHeight, mainCameraComponent->Camera.GetPerspectiveVerticalFOV());
 			}
 		}
 
@@ -1334,7 +1340,7 @@ namespace Toast {
 						finalPosition = { tc.Translation.x , tc.Translation.y, tc.Translation.z };
 
 					if(renderButton)
-						Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius(), 1.0f }, ubc.Button->GetColorF4(), (int)entity, !ubc.Button->GetUseColor(), ubc.Button->GetIsClicked(), ubc.Button->GetTextureIndex(), ubc.Button->GetClickTextureIndex());
+						Renderer2D::SubmitButton(finalPosition, { tc.Scale.x, tc.Scale.y, *ubc.Button->GetCornerRadius(), 1.0f }, ubc.Button->GetColorF4(), ubc.Button->GetClickColorF4(), (int)entity, !ubc.Button->GetUseColor(), ubc.Button->GetIsClicked(), ubc.Button->GetTextureIndex(), ubc.Button->GetClickTextureIndex());
 				}
 
 				//Texts
@@ -1400,9 +1406,7 @@ namespace Toast {
 		{
 			auto& cameraComponent = view.get<CameraComponent>(entity);
 			if (!cameraComponent.FixedAspectRatio)
-			{
 				cameraComponent.Camera.SetViewportSize(width, height);
-			}
 		}
 	}
 

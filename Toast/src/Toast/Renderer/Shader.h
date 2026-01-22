@@ -70,6 +70,8 @@ namespace Toast {
 			size_t mOffset;
 			uint32_t mSemanticIndex;
 			D3D11_INPUT_CLASSIFICATION mInputClassification;
+			uint32_t mInstanceDataStepRate = 0;
+			uint32_t mInputSlot = 0;
 
 			ShaderInputElement() = default;
 

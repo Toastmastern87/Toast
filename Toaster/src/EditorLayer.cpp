@@ -93,6 +93,7 @@ namespace Toast {
 
 		// Planet
 		ShaderLibrary::Load("assets/shaders/Planet/PlanetGeometryPass.hlsl");
+		ShaderLibrary::Load("assets/shaders/Planet/PlanetIcosphereGeometryPass.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet/HeightMapToCubeMap.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/TransmittanceCS.hlsl");
 		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/MultiScatteringCS.hlsl");
@@ -134,6 +135,44 @@ namespace Toast {
 		mEditorCamera->UpdateView();
 
 		mProjectPanel.OnOpenSceneRequested = [this](UUID id) { OpenProjectScene(id); };
+
+		// TEMP WHILE I'M NOT WORKING ON THE PROJECT OPENING SYSTEM, AUTO OPENS THE NEXT FRONTIER
+#ifdef TRUE
+		mForceProjectPopup = false;
+
+		const std::filesystem::path autoFolder = R"(C:\dev\Toast\Toaster\assets\projects\The Next Frontier)";
+
+		if (!std::filesystem::exists(autoFolder))
+			TOAST_CORE_WARN("AUTO Project folder does not exist: %s", autoFolder.string().c_str());
+
+		auto projectFileOpt = FindProjectFileInFolder(autoFolder);
+		if (!projectFileOpt)
+			TOAST_CORE_WARN("No .tproj file found in folder: %s", autoFolder.string().c_str());
+
+		auto loadedProject = std::make_shared<Project>();
+
+		ProjectSerializer serializer(loadedProject.get());
+		if (!serializer.Deserialize(projectFileOpt->string()))
+			TOAST_CORE_ERROR("Failed to load project: %s", projectFileOpt->string().c_str());
+
+		// Success: swap active project
+		mProject = loadedProject;
+
+		// Open active scene from the loaded project
+		const std::filesystem::path scenePath = mProject->GetPath() / mProject->GetActiveScenePath();
+		mSceneFilePath = scenePath.string();
+
+		OpenScene(scenePath);
+
+		SetContexts();
+
+		// If you have a “force popup to choose projects behavior, disable it on success
+		mForceProjectPopup = false;
+
+		TOAST_CORE_INFO("Opened project: %s", mProject->GetName().c_str());
+		TOAST_CORE_INFO("Opened scene: %s", scenePath.string().c_str());
+#endif 
+
 	}
 
 	void EditorLayer::OnDetach()
@@ -146,6 +185,37 @@ namespace Toast {
 	void EditorLayer::OnUpdate(Timestep ts)
 	{
 		TOAST_PROFILE_FUNCTION();
+
+		if (mPendingSceneChangeName.has_value())
+		{
+			const std::string requested = *mPendingSceneChangeName;
+			mPendingSceneChangeName.reset();
+
+			if (!mProject)
+			{
+				TOAST_CORE_WARN("Scene change requested ('%s') but no project is loaded.", requested.c_str());
+			}
+			else
+			{
+				// Find scene UUID by display name (filename stem).
+				// Implement this helper in Project (shown below).
+				UUID id = mProject->FindSceneByDisplayName(requested);
+
+				if (!id)
+				{
+					TOAST_CORE_WARN("Scene '%s' not found in project.", requested.c_str());
+				}
+				else
+				{
+					// Decide behaviour depending on state:
+					// If playing, switch runtime scene; if editing, switch editor scene.
+					if (mSceneState == SceneState::Play || mSceneState == SceneState::Pause)
+						SwitchRuntimeToProjectScene(id);
+					else
+						OpenProjectScene(id); // your existing function (edit mode)
+				}
+			}
+		}
 
 		if (mEditorScene)
 		{
@@ -187,12 +257,21 @@ namespace Toast {
 					mEditorCamera->OnUpdate(ts);
 
 				mEditorScene->OnUpdateEditor(ts, mEditorCamera);
-				mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+				if(mViewportSize.x > 0 && mViewportSize.y > 0)
+					mEditorScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 
 				break;
 			}
 			case SceneState::Play:
 			{
+				if (mBlockRuntimeFrames > 0)
+				{
+					mRuntimeScene->SetRuntimeBlocked(true);
+					--mBlockRuntimeFrames;
+					if (mBlockRuntimeFrames == 0)
+						mRuntimeScene->SetRuntimeBlocked(false);
+				}
+
 				mRuntimeScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
 				mRuntimeScene->SetViewportPos(mAbsoluteViewportPos);
 				mRuntimeScene->OnUpdateRuntime(ts);
@@ -346,8 +425,12 @@ namespace Toast {
 			mViewportBounds[0] = { viewportMinRegion.x + windowPos.x, viewportMinRegion.y + windowPos.y };
 			mViewportBounds[1] = { viewportMaxRegion.x + windowPos.x, viewportMaxRegion.y + windowPos.y };
 
-			if(mProject && mEditorScene)
-				mEditorScene->SetViewportBounds(mViewportBounds);
+			if (mProject)
+			{
+				Scene* active = GetActiveScene();
+				if (active)
+					active->SetViewportBounds(mViewportBounds);
+			}
 
 			if (mViewportSize.x != mPreviousViewportSize.x || mViewportSize.y != mPreviousViewportSize.y)
 				Renderer::OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
@@ -545,9 +628,19 @@ namespace Toast {
 
 			if (mEditorScene)
 			{
+				Scene* active = GetActiveScene();
+
 				std::string name = "none";
-				if (mHoveredEntity)
-					name = mHoveredEntity.GetComponent<TagComponent>().Tag;
+				if (active)
+				{
+					entt::entity he = active->GetHoveredEntity(); // expose getter
+					if (he != entt::null && active->GetRegistry().valid(he))
+					{
+						Entity e{ he, active };
+						if (e.HasComponent<TagComponent>())
+							name = e.GetComponent<TagComponent>().Tag;
+					}
+				}
 				ImGui::Text("Hovered Entity: %s", name.c_str());
 
 				ImGui::Text("FPS: %d", mEditorScene->GetFPS());
@@ -1055,12 +1148,17 @@ namespace Toast {
 	{
 		mSceneState = SceneState::Play;
 
-		mEditorScene->CopyTo(mRuntimeScene);
+		mRuntimeScene = CreateRef<Scene>("Runtime");
+
+		mEditorScene->CopyTo(mRuntimeScene.get());
 
 		mRuntimeScene->SetHoveredEntity(entt::null);
 
+		mRuntimeScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+		mRuntimeScene->SetViewportPos(mAbsoluteViewportPos);
+
 		mRuntimeScene->OnRuntimeStart();
-		mSceneHierarchyPanel.SetContext(mRuntimeScene);
+		mSceneHierarchyPanel.SetContext(mRuntimeScene.get());
 	}
 
 	void EditorLayer::OnScenePause()
@@ -1109,6 +1207,20 @@ namespace Toast {
 		SetContexts();
 	}
 
+	Scene* EditorLayer::GetActiveScene()
+	{
+		switch (mSceneState)
+		{
+		case SceneState::Play:
+		case SceneState::Pause:
+			return mRuntimeScene ? mRuntimeScene.get() : mEditorScene;
+		case SceneState::Edit:
+			return mEditorScene;
+		default:
+			return mEditorScene;
+		}
+	}
+
 	void EditorLayer::OpenScene()
 	{
 		std::optional<std::string> filepath = FileDialogs::OpenFile("Toast Scene(*.toast)\0*toast\0", "..\\Toaster\\assets\\scenes\\");
@@ -1149,6 +1261,67 @@ namespace Toast {
 		// Re-bind camera
 		mEditorScene->SetActiveCamera(mEditorCamera);
 		mEditorCamera->UpdateView();
+	}
+
+	void EditorLayer::SwitchRuntimeToProjectScene(UUID id)
+	{
+		if (!mProject)
+			return;
+
+		const auto relPath = mProject->GetScenePath(id);
+		if (relPath.empty())
+		{
+			TOAST_CORE_WARN("SwitchRuntimeToProjectScene: scene path missing for id.");
+			return;
+		}
+
+		const std::filesystem::path absPath = mProject->GetPath() / relPath;
+
+		// Stop current runtime scene cleanly
+		if (mRuntimeScene)
+			mRuntimeScene->OnRuntimeStop();
+
+		mHoveredEntity = Entity{};
+		mSceneHierarchyPanel.SetSelectedEntity({}); // if you have this API
+		if (mRuntimeScene)
+			mRuntimeScene->SetHoveredEntity(entt::null);
+
+		// Keep play state (don’t drop back to edit)
+		mSceneState = SceneState::Play;
+
+		// Create a fresh runtime scene and deserialize into it
+		mRuntimeScene = CreateRef<Scene>();
+
+		SceneSerializer serializer(mRuntimeScene.get());
+		if (!serializer.Deserialize(absPath.string(), /*editorCamera*/ nullptr))
+		{
+			TOAST_CORE_ERROR("Failed to open runtime scene: %s", absPath.string().c_str());
+			// Fallback: go back to edit (optional)
+			mSceneState = SceneState::Edit;
+			mSceneHierarchyPanel.SetContext(mEditorScene);
+			return;
+		}
+
+		mHoveredEntity = Entity{};
+		mRuntimeScene->SetHoveredEntity(entt::null);
+
+		// Ensure runtime viewport settings continue to work
+		mRuntimeScene->OnViewportResize((uint32_t)mViewportSize.x, (uint32_t)mViewportSize.y);
+		mRuntimeScene->SetViewportPos(mAbsoluteViewportPos);
+
+		// Update project active scene
+		mProject->SetActiveScene(id);
+
+		// Update panels to point at runtime context
+		mSceneHierarchyPanel.SetContext(mRuntimeScene.get());
+		mRuntimeScene->SetHoveredEntity(entt::null);
+
+		mBlockRuntimeFrames = 20;
+
+		// Start runtime
+		mRuntimeScene->OnRuntimeStart();
+
+		TOAST_CORE_INFO("Runtime switched to scene: %s", absPath.filename().string().c_str());
 	}
 
 	void EditorLayer::SaveScene()
@@ -1299,7 +1472,7 @@ namespace Toast {
 		{
 			entt::entity sceneHovered = mRuntimeScene->GetHoveredEntity();
 
-			mHoveredEntity = (sceneHovered == entt::null) ? Entity() : Entity(sceneHovered, mRuntimeScene);
+			mHoveredEntity = (sceneHovered == entt::null) ? Entity() : Entity(sceneHovered, mRuntimeScene.get());
 		}
 
 		return true;
@@ -1314,6 +1487,12 @@ namespace Toast {
 	void EditorLayer::UpdateWindowIcon(const std::string& iconPath)
 	{
 		Application::Get().GetWindow().SetIcon(iconPath);
+	}
+
+	void EditorLayer::RequestSceneChange(const std::string& sceneName)
+	{
+		// Scene switch queued for next frame
+		mPendingSceneChangeName = sceneName;
 	}
 
 }

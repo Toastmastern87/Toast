@@ -635,8 +635,17 @@ namespace Toast {
 			blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 			blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-			blendDesc.RenderTarget[1].BlendEnable = FALSE; // Disable blending for slot 1
+			blendDesc.RenderTarget[1].BlendEnable = TRUE;
+			blendDesc.RenderTarget[1].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+			blendDesc.RenderTarget[1].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+			blendDesc.RenderTarget[1].BlendOp = D3D11_BLEND_OP_ADD;
+			blendDesc.RenderTarget[1].SrcBlendAlpha = D3D11_BLEND_INV_DEST_ALPHA;
+			blendDesc.RenderTarget[1].DestBlendAlpha = D3D11_BLEND_ONE;
+			blendDesc.RenderTarget[1].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 			blendDesc.RenderTarget[1].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+			blendDesc.RenderTarget[2].BlendEnable = FALSE; // Disable blending for slot 1
+			blendDesc.RenderTarget[2].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
 			result = device->CreateBlendState(&blendDesc, &sRendererData->UIBlendState);
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Atmosphere Pass blend state");

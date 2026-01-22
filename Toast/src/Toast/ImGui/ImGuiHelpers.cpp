@@ -867,5 +867,17 @@ namespace Toast
 
 			return changed;
 		}
+
+		bool DragInt16(const char* label, int16_t* value, float speed, int min, int max)
+		{
+			int temp = *value;
+			if (ImGui::DragInt(label, &temp, speed, min, max))
+			{
+				*value = static_cast<int16_t>(std::clamp(temp, min, max));
+				return true;
+			}
+			return false;
+		}
 	}
+
 }

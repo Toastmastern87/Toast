@@ -77,6 +77,9 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern ulong[] Scene_GetEntitiesWithPrefab(string prefabName);
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Scene_RequestSceneChange(string sceneName);
+
         #endregion
 
         #region Planet

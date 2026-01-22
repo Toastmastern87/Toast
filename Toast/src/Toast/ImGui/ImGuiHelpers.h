@@ -26,5 +26,7 @@ namespace Toast
 
 		bool TinyExponentCombo(const char* id, int& exp10);
 		bool ManualDragFloat3Scaled(const std::string& label, DirectX::XMFLOAT3& stored, int exp10, float speedMantissa, float resetStored, WindowsWindow* window, std::string& activeDragArea, const char* displayFormat, bool colorValues, float overrideTotalWidth = 0.0f);
+
+		bool DragInt16(const char* label, int16_t* value, float speed, int min, int max);
 	}
 }

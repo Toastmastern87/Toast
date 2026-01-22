@@ -640,6 +640,50 @@ namespace Toast {
 							ImGui::SetNextItemWidth(fullW);
 
 							ImGui::Checkbox("##FrustumCulling", &mesh->mFrustumCulling);
+
+							ImGui::TableNextRow();
+
+							ImGui::TableSetColumnIndex(0);
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Max Subdivision Levels");
+
+							ImGui::TableSetColumnIndex(1);
+
+							ImGui::SetNextItemWidth(fullW);
+
+							if (ImGuiHelpers::DragInt16("##MaxSubdivisionLevels", &mesh->mMaxSubdivisions, 1.0f, 0, mesh->HARDCAPSUBDIVISIONS))
+							{
+								mesh->mDistanceLUTDirty = true;
+								mesh->mPatchIsDirty = true;
+							}
+
+							ImGui::TableNextRow();
+
+							ImGui::TableSetColumnIndex(0);
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Patch Levels");
+
+							ImGui::TableSetColumnIndex(1);
+
+							ImGui::SetNextItemWidth(fullW);
+
+							if (ImGuiHelpers::DragInt16("##patchLevels", &mesh->mPatchLevels, 1.0f, 0, 12))
+								mesh->mPatchIsDirty = true;
+
+							ImGui::TableNextRow();
+
+							ImGui::TableSetColumnIndex(0);
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Radius");
+
+							ImGui::TableSetColumnIndex(1);
+
+							ImGui::SetNextItemWidth(fullW);
+
+							float temp = mesh->mRadius;
+							if(ImGui::DragFloat("##IcoSphereRadius", &temp, 1.0f, 1.0f, FLT_MAX, "%.0f"))
+								mesh->mRadius = temp;
+
 						}
 
 						ImGui::EndTable();

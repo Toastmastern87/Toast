@@ -336,6 +336,9 @@ namespace Toast {
 		Ref<PhysicsEngine> GetPhysicsEngine() { return mPhysicsEngine; }
 
 		entt::registry& GetRegistry() { return mRegistry; }
+
+		void SetRuntimeBlocked(bool blocked) { mRuntimeBlocked = blocked; }
+		bool IsRuntimeBlocked() const { return mRuntimeBlocked; }
 	public:
 		static Ref<Scene> CreateEmpty();
 	private:
@@ -386,6 +389,8 @@ namespace Toast {
 		Ref<ParticleSystem> mParticleSystem;
 
 		Ref<PhysicsEngine> mPhysicsEngine;
+
+		bool mRuntimeBlocked = false;
 
 		friend class Entity;
 		friend class Renderer;

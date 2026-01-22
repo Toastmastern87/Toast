@@ -183,6 +183,138 @@ namespace Toast {
 		return true;
 	}
 
+	bool Project::DeleteScene(UUID id)
+	{
+		auto it = mScenes.find(id);
+		if (it == mScenes.end())
+			return false;
+
+		// Absolute path to serialized scene file
+		const std::filesystem::path rel = it->second.Path;
+		const std::filesystem::path abs = mPath / rel;
+
+		TOAST_CORE_INFO("Deleting scene '%s' (%s)", rel.stem().string().c_str(), abs.string().c_str());
+
+		// Remove serialized file (best effort, but if it fails we should not keep the entry)
+		if (std::filesystem::exists(abs))
+		{
+			std::error_code ec;
+			std::filesystem::remove(abs, ec);
+			if (ec)
+				TOAST_CORE_ERROR("Failed to delete scene file: %s\n\t%s", abs.string().c_str(), ec.message().c_str());
+		}
+
+		mScenes.erase(it);
+
+		return true;
+	}
+
+	UUID Project::ImportScene(const std::filesystem::path& srcSceneFileAbs, bool moveInsteadOfCopy /*= false*/)
+	{
+		// Basic validation
+		if (srcSceneFileAbs.empty())
+			return UUID{};
+
+		std::error_code ec;
+
+		if (!std::filesystem::exists(srcSceneFileAbs, ec) || ec)
+		{
+			TOAST_CORE_WARN("ImportScene: source does not exist: %s", srcSceneFileAbs.string().c_str());
+			return UUID{};
+		}
+
+		if (srcSceneFileAbs.extension() != ".tscene")
+		{
+			TOAST_CORE_WARN("ImportScene: not a .tscene file: %s", srcSceneFileAbs.string().c_str());
+			return UUID{};
+		}
+
+		const std::filesystem::path scenesDirAbs = mPath / "Assets" / "Scenes";
+		std::filesystem::create_directories(scenesDirAbs, ec);
+		if (ec)
+		{
+			TOAST_CORE_ERROR("ImportScene: failed to create scenes directory: %s (%s)",
+				scenesDirAbs.string().c_str(), ec.message().c_str());
+			return UUID{};
+		}
+
+		// Create a safe destination filename based on the source stem
+		std::string safeStem = SanitizeFileStem(srcSceneFileAbs.stem().string());
+		if (safeStem.empty())
+			safeStem = "Scene";
+
+		std::filesystem::path desiredAbs = scenesDirAbs / (safeStem + ".tscene");
+		std::filesystem::path dstAbs = MakeUniquePath(desiredAbs);
+
+		// Copy/move into project
+		bool copiedOrMoved = false;
+
+		if (moveInsteadOfCopy)
+		{
+			std::filesystem::rename(srcSceneFileAbs, dstAbs, ec);
+			if (!ec)
+			{
+				copiedOrMoved = true;
+			}
+			else
+			{
+				// Cross-device rename commonly fails; fallback to copy.
+				ec.clear();
+			}
+		}
+
+		if (!copiedOrMoved)
+		{
+			std::filesystem::copy_file(
+				srcSceneFileAbs,
+				dstAbs,
+				std::filesystem::copy_options::none,
+				ec
+			);
+
+			if (ec)
+			{
+				TOAST_CORE_ERROR("ImportScene: failed to copy scene:\n\tFrom: %s\n\tTo:   %s\n\tErr:  %s",
+					srcSceneFileAbs.string().c_str(),
+					dstAbs.string().c_str(),
+					ec.message().c_str());
+				return UUID{};
+			}
+
+			copiedOrMoved = true;
+		}
+
+		// Register in project scenes list
+		// Store RELATIVE path in project, consistent with your other code.
+		std::filesystem::path rel = std::filesystem::relative(dstAbs, mPath, ec);
+		if (ec)
+		{
+			// Fallback: store a known relative form
+			rel = std::filesystem::path("Assets") / "Scenes" / dstAbs.filename();
+			ec.clear();
+		}
+
+		UUID id;
+		mScenes[id] = ProjectSceneEntry(id, rel);
+
+		TOAST_CORE_INFO("Imported scene '%s'\n\tFrom: %s\n\tTo:   %s", rel.stem().string().c_str(), srcSceneFileAbs.string().c_str(), dstAbs.string().c_str());
+
+		return id;
+	}
+
+	UUID Project::FindSceneByDisplayName(const std::string& displayName) const
+	{
+		// Compare with filename stem (Assets/Scenes/Foo.tscene => "Foo")
+		for (const auto& [id, entry] : mScenes)
+		{
+			const std::string stem = entry.Path.stem().string();
+			if (stem == displayName)
+				return id;
+		}
+
+		return UUID{}; // invalid
+	}
+
 	void Project::CreateDefaultScene()
 	{
 		if (!mScenes.empty())

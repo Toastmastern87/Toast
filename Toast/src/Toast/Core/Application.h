@@ -52,6 +52,7 @@ namespace Toast {
 		const ApplicationSpecification& GetSpecification() { return mSpecification; }
 
 		void SetSceneProvider(ISceneProvider* provider) { mSceneProvider = provider; }
+		ISceneProvider* GetSceneProvider() const { return mSceneProvider; }
 		void ClearSceneProvider(ISceneProvider* provider)
 		{
 			if (mSceneProvider == provider)

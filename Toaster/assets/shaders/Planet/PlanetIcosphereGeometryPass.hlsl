@@ -22,6 +22,21 @@ cbuffer Camera : register(b0)
 	float viewportHeight;
 };
 
+cbuffer Model : register(b1)
+{
+    matrix worldMatrix; // planet rotation + translation (translation should already be floating-origin safe)
+    float clickable;
+    int entityID;
+    int noWorldTransform;
+    int isInstanced;
+};
+
+cbuffer IcospherePlanet : register(b2)
+{
+    float planetRadius; 
+	float3 cameraPosPS;      // camera position in planet space
+};
+
 struct VertexInputType
 {
 	float2 localPosition	: TEXCOORD0;
@@ -40,6 +55,37 @@ struct PixelInputType
 
 PixelInputType main(VertexInputType input)
 {
+    PixelInputType o;
+
+    // 1) Planar point inside patch triangle (planet local)
+    float u = input.localPosition.x;
+    float v = input.localPosition.y;
+    float3 p = input.a + u * input.r + v * input.s;
+
+    // 2) Project to unit sphere direction
+    float lenP = length(p);
+    float3 dir = (lenP > 1e-8f) ? (p / lenP) : float3(0, 1, 0);
+
+    // 3) Camera-relative position in planet space (small near camera)
+    float3 posRelPS = dir * planetRadius - cameraPosPS;
+
+    // 4) Rotate into world-relative (ignore translation)
+    float3 worldRelVec = mul(float4(posRelPS, 0.0f), worldMatrix).xyz;
+
+    // 5) Apply floating origin translation ONLY if viewMatrix expects it.
+    // In many floating-origin setups, viewMatrix is rotation-only and worldTranslationMatrix does translation.
+    float4 worldRel = mul(float4(worldRelVec, 1.0f), worldTranslationMatrix);
+
+    // 6) View / Projection
+    float4 viewPos = mul(worldRel, viewMatrix);
+    o.viewPosition = viewPos.xyz;
+    o.pixelPosition = mul(viewPos, projectionMatrix);
+
+    // 7) Normal: rotate dir by worldMatrix (ignore translation)
+    float3 nWS = mul(float4(dir, 0.0f), worldMatrix).xyz;
+    o.normalSphereWS = normalize(nWS);
+
+    return o;
 }
 
 #type pixel

@@ -11,6 +11,11 @@ namespace Toast {
 	{
 		UUID Id;
 		std::filesystem::path Path;   
+
+		ProjectSceneEntry() = default;
+		ProjectSceneEntry(UUID id, std::filesystem::path path)
+			: Id(id), Path(std::move(path)) {
+		}
 	};
 
 	class Project 
@@ -27,9 +32,13 @@ namespace Toast {
 
 		UUID CreateNewScene(const std::string& baseName = "NewScene", bool setActive = false);
 		bool RenameScene(UUID id, const std::string& newName);
+		bool DeleteScene(UUID id);
+		UUID ImportScene(const std::filesystem::path& srcSceneFileAbs, bool moveInsteadOfCopy = false);
 
 		UUID GetActiveSceneID() const { return mActiveSceneID; }
 		void SetActiveScene(UUID id) { mActiveSceneID = id; }
+
+		UUID FindSceneByDisplayName(const std::string& displayName) const;
 
 		std::filesystem::path GetScenePath(UUID id) const
 		{

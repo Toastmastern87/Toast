@@ -485,6 +485,7 @@ namespace Toast {
 			out << YAML::Key << "AssetPath" << YAML::Value << uitc.Text->GetFont()->GetFilePath();
 			out << YAML::Key << "Text" << YAML::Value << uitc.Text->GetText();
 			out << YAML::Key << "TextureIndex" << YAML::Value << uitc.Text->GetTextureIndex();
+			out << YAML::Key << "Color" << YAML::Value << uitc.Text->GetColorF4();
 
 			out << YAML::EndMap; // UITextComponent
 		}
@@ -1417,6 +1418,7 @@ namespace Toast {
 
 					uitc.Text->SetFont(CreateRef<Font>(uiTextComponent["AssetPath"].as<std::string>()));
 					uitc.Text->SetText(uiTextComponent["Text"].as<std::string>());
+					uitc.Text->SetColor(uiTextComponent["Color"].as<DirectX::XMFLOAT4>());
 
 					if (uiTextComponent["TextureIndex"])
 						uitc.Text->SetTextureIndex(uiTextComponent["TextureIndex"].as<int>());

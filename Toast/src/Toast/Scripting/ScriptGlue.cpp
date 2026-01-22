@@ -2,12 +2,15 @@
 #include "ScriptGlue.h"
 #include "ScriptEngine.h"
 
+#include "Toast/Core/Application.h"
+
 #include "Toast/Renderer/PlanetSystem.h"
 
 #include "Toast/Physics/PhysicsEngine.h"
 
 #include "Toast/Scene/Scene.h"
 #include "Toast/Scene/Entity.h"
+#include "Toast/Scene/ISceneProvider.h" 
 
 #include "mono/metadata/appdomain.h"
 #include "mono/metadata/object.h"
@@ -188,6 +191,24 @@ namespace Toast {
 			mono_array_set(resultArray, uint64_t, i, entities[i].GetUUID());
 
 		return resultArray;
+	}
+
+	static void Scene_RequestSceneChange(MonoString* sceneNameMono)
+	{
+		std::string sceneName = Toast::Utils::ConvertMonoStringToCppString(sceneNameMono);
+
+		// Queue onto main thread (safe even if scripts run on main thread; avoids re-entrancy)
+		Toast::Application::Get().SubmitToMainThread([sceneName]()
+			{
+				auto* provider = Toast::Application::Get().GetSceneProvider();
+				if (!provider)
+				{
+					TOAST_CORE_WARN("Scene_RequestSceneChange('%s') failed: no scene provider.", sceneName.c_str());
+					return;
+				}
+
+				provider->RequestSceneChange(sceneName);
+			});
 	}
 
 #pragma endregion
@@ -920,6 +941,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Scene_SetTimeScale);
 		TOAST_ADD_INTERNAL_CALL(Scene_AddPrefab);
 		TOAST_ADD_INTERNAL_CALL(Scene_GetEntitiesWithPrefab);
+		TOAST_ADD_INTERNAL_CALL(Scene_RequestSceneChange);
 
 		TOAST_ADD_INTERNAL_CALL(Planet_GetTranslation);
 		TOAST_ADD_INTERNAL_CALL(Planet_SetTranslation);

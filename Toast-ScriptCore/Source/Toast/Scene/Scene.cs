@@ -41,5 +41,10 @@ namespace Toast
 
             return returnEntities;
         }
+
+        public static void LoadScene(string sceneName)
+        {
+            InternalCalls.Scene_RequestSceneChange(sceneName);
+        }
     }
 }

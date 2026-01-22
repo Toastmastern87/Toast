@@ -7,7 +7,7 @@ vertex
 
 cbuffer Camera : register(b0)
 {
-    matrix worldMovementMatrix;
+    matrix worldTranslationMatrix;
 	matrix viewMatrix;
 	matrix projectionMatrix;
 	matrix inverseViewMatrix;
@@ -92,7 +92,8 @@ struct PixelInputType
 struct PixelOutputType
 {
     float4 color		    : SV_Target0;
-    int entityID		    : SV_Target1;
+    float4 colorHDRRT       : SV_Target1;
+    int entityID		    : SV_Target2;
 };
 
 Texture2DArray MDSFAtlas        : register(t6);
@@ -185,7 +186,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
         output.color = finalColor;
     }
     // Buttons
-    else if (input.UIType == 3.0f)
+    else if (input.UIType > 2.5f && input.UIType < 3.5f)
     {
         float4 textureColor;  
 
@@ -203,7 +204,9 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	else
         output.color = input.color;
 	
-    if (input.entityID > 0)
+    output.colorHDRRT = output.color;
+    
+    if (input.entityID > -1)
         output.entityID = input.entityID + 1;
     else
         output.entityID = input.entityID;

@@ -1,0 +1,8 @@
+Project: The Next Frontier
+Version: 1
+ActiveScene: 11072625234471924534
+Scenes:
+  - ID: 11072625234471924534
+    Path: Assets/Scenes/MainMenu.tscene
+  - ID: 18170820853113509021
+    Path: Assets/Scenes/Mars.tscene
