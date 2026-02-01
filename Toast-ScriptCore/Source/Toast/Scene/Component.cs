@@ -181,14 +181,14 @@ namespace Toast
             }
             set
             {
-                ;
+                InternalCalls.CameraComponent_SetWorldTranslation(Entity.ID, ref value);
             }
         }
 
-        public void AddWorldMovement(Vector3 translationChange) 
-        {
-            InternalCalls.CameraComponent_AddWorldTranslation(Entity.ID, ref translationChange);
-        }
+        //public void AddWorldMovement(Vector3 translationChange) 
+        //{
+        //    InternalCalls.CameraComponent_AddWorldTranslation(Entity.ID, ref translationChange);
+        //}
     }
 
     public class MeshComponent : Component

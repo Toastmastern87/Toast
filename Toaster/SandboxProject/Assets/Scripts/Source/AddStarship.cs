@@ -12,20 +12,12 @@ namespace Sandbox
         private Entity mMoney;
         private IntPtr mMoneyScriptHandle;
         private Money mMoneyInstance;
+        private bool mMoneyResolved = false;
 
         private int mNumberOfStarships;
 
         void OnCreate()
         {
-            mMoney = FindEntityByName("Money");
-            mMoneyScriptHandle = mMoney.GetComponent<ScriptComponent>().ScriptInstance;
-
-            GCHandle gch = GCHandle.FromIntPtr(mMoneyScriptHandle);
-
-            mMoneyInstance = gch.Target as Money;
-            if (mMoneyInstance == null)
-                throw new Exception("Retrieved script instance is not of type Money");
-
             mNumberOfStarships = 0;
         }
 
@@ -39,15 +31,25 @@ namespace Sandbox
 
                 Entity newStarship = Scene.AddPrefab("Starship");
 
-                newStarship.GetComponent<TagComponent>().Tag = "Starship " + mNumberOfStarships;
                 newStarship.GetComponent<TransformComponent>().Translation = new Vector3(-9.0f + 10.0f * mNumberOfStarships, 50.0f, 291.0f);
-
             }
         }
 
         void OnUpdate(float ts)
         {
-             
+            if (!mMoneyResolved)
+            {
+                mMoney = FindEntityByName("Money");
+                mMoneyScriptHandle = mMoney.GetComponent<ScriptComponent>().ScriptInstance;
+
+                GCHandle gch = GCHandle.FromIntPtr(mMoneyScriptHandle);
+
+                mMoneyInstance = gch.Target as Money;
+                if (mMoneyInstance == null)
+                    throw new Exception("Retrieved script instance is not of type Money");
+
+                mMoneyResolved = true;
+            }
         }
 
         public void SetTargetMoney(int newMoney)

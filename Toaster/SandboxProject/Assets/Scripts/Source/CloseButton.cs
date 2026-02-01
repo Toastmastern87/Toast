@@ -3,18 +3,22 @@ using Toast;
 
 namespace Sandbox
 {
-    public class CloseButtonAllStarships : Entity
+    public class CloseButton : Entity
     {
-        private Entity mPanel;
+        private Entity mStarship;
+
+        private Entity mStarshipInfoPanel;
+        private UIPanelComponent mPanel;
 
         void OnCreate()
         {
-            mPanel = FindEntityByName("AllStarshipsPopup");
+            mStarshipInfoPanel = this.FindParentEntity(this.ID);
+            mPanel = mStarshipInfoPanel.GetComponent<UIPanelComponent>();
         }
 
         void OnEvent()
         {
-            mPanel.GetComponent<UIPanelComponent>().Visible = false;
+            mPanel.Visible = false;
         }
 
         void OnUpdate(float ts)

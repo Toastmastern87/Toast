@@ -110,7 +110,7 @@ namespace Toast {
 
 		DirectX::XMFLOAT2 outputPos;
 		outputPos.x = Input::GetMousePosition().x - (float)std::get<0>(viewportPos);
-		outputPos.y = (Input::GetMousePosition().y - (float)std::get<1>(viewportPos) - (float)std::get<1>(viewportSize)) * -1.0f;
+		outputPos.y = Input::GetMousePosition().y - (float)std::get<1>(viewportPos);
 
 		*outPos = outputPos;
 	}
@@ -128,6 +128,15 @@ namespace Toast {
 #pragma endregion
 
 #pragma region Scene
+
+	void Scene_GetRenderTargetSize(DirectX::XMFLOAT2* outSize)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		auto& size = scene->GetViewportSize();
+		outSize->x = (float)std::get<0>(size);
+		outSize->y = (float)std::get<1>(size);
+	}
 
 	void Scene_SetRenderColliders(bool renderColliders)
 	{
@@ -328,6 +337,45 @@ namespace Toast {
 		}
 
 		return entity.GetUUID();
+	}
+
+	static uint64_t Entity_FindParentEntity(UUID childID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity entity = scene->FindParentEntity(childID);
+
+		if (!entity)
+			return 0;
+
+		return entity.GetUUID();
+	}
+
+	static uint64_t Entity_FindDecententByName(uint64_t parentID, MonoString* name)
+	{
+		char* nameCStr = mono_string_to_utf8(name);
+
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity parent = scene->FindEntityByUUID(parentID);
+
+		if (!parent)
+		{
+			TOAST_CORE_CRITICAL("Entity_FindDecententByName: parent entity not found (UUID: %llu)!",
+				(unsigned long long)parentID);
+			return 0;
+		}
+
+		Entity found = scene->FindDescendantByName(parent, nameCStr);
+
+		mono_free(nameCStr);
+		if (!found)
+		{
+			std::string& childNameStr = Utils::ConvertMonoStringToCppString(name);
+			TOAST_CORE_CRITICAL("Entity_FindDecententByName: descendant '%s' not found under parent '%s' (UUID: %llu)!", childNameStr.c_str(), parent.GetComponent<TagComponent>().Tag.c_str(), parentID);
+			return 0;
+		}
+		return found.GetUUID();
 	}
 
 #pragma endregion
@@ -683,11 +731,11 @@ namespace Toast {
 		*outTranslation = entity.GetComponent<CameraComponent>().Camera.GetWorldTranslation();
 	}
 
-	static void CameraComponent_AddWorldTranslation(UUID entityID, DirectX::XMFLOAT3* translation)
+	static void CameraComponent_SetWorldTranslation(UUID entityID, DirectX::XMFLOAT3* worldTranslation)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		Entity entity = scene->FindEntityByUUID(entityID);
-		entity.GetComponent<CameraComponent>().Camera.AddWorldTranslation(*translation);
+		entity.GetComponent<CameraComponent>().Camera.GetWorldTranslation() = *worldTranslation;
 	}
 
 #pragma endregion
@@ -702,7 +750,7 @@ namespace Toast {
 		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
 		Entity entity = entityMap.at(entityID);
 		auto& component = entity.GetComponent<UIPanelComponent>();
-		return component.Panel->GetVisible();
+		return component.Visible;
 	}
 
 	void UIPanelComponent_SetVisible(uint64_t entityID, bool value)
@@ -713,7 +761,7 @@ namespace Toast {
 		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
 		Entity entity = entityMap.at(entityID);
 		auto& component = entity.GetComponent<UIPanelComponent>();
-		component.Panel->SetVisible(value);
+		component.Visible = value;
 	}
 
 #pragma endregion
@@ -728,7 +776,7 @@ namespace Toast {
 		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
 		Entity entity = entityMap.at(entityID);
 		auto& component = entity.GetComponent<UIButtonComponent>();
-		*outColor = component.Button->GetColorF4();
+		*outColor = component.Color;
 	}
 
 	void UIButtonComponent_SetColor(uint64_t entityID, DirectX::XMFLOAT4* inColor)
@@ -739,7 +787,7 @@ namespace Toast {
 		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
 		Entity entity = entityMap.at(entityID);
 		auto& component = entity.GetComponent<UIButtonComponent>();
-		component.Button->SetColor(*inColor);
+		component.Color = *inColor;
 	}
 
 #pragma endregion
@@ -755,7 +803,7 @@ namespace Toast {
 		Entity entity = entityMap.at(entityID);
 		auto& component = entity.GetComponent<UITextComponent>();
 
-		std::string text = component.Text->GetText();
+		std::string text = component.Text;
 
 		return Utils::ConvertCppStringToMonoString(mono_domain_get(), text);
 	}
@@ -770,7 +818,7 @@ namespace Toast {
 		auto& component = entity.GetComponent<UITextComponent>();
 
 		std::string& textStr = Utils::ConvertMonoStringToCppString(inText);
-		component.Text->SetText(textStr);
+		component.Text = textStr;
 	}
 
 #pragma endregion
@@ -903,7 +951,7 @@ namespace Toast {
 	{
 		sEntityHasComponentFuncs.clear();
 		RegisterComponent<TagComponent>();
-		RegisterComponent<TransformComponent>();
+		RegisterComponent<TransformComponent>();  
 		RegisterComponent<MeshComponent>();
 		RegisterComponent<CameraComponent>();
 		RegisterComponent<UIPanelComponent>();
@@ -935,6 +983,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(PhysicsEngine_GetAltitudeAtWorldPos);
 		TOAST_ADD_INTERNAL_CALL(PhysicsEngine_ApplyLinearImpulse);
 
+		TOAST_ADD_INTERNAL_CALL(Scene_GetRenderTargetSize);
 		TOAST_ADD_INTERNAL_CALL(Scene_GetRenderColliders);
 		TOAST_ADD_INTERNAL_CALL(Scene_SetRenderColliders);
 		TOAST_ADD_INTERNAL_CALL(Scene_GetTimeScale);
@@ -951,6 +1000,8 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Entity_HasComponent);
 		TOAST_ADD_INTERNAL_CALL(Entity_FindEntityByName);
 		TOAST_ADD_INTERNAL_CALL(Entity_FindChildEntityByName);
+		TOAST_ADD_INTERNAL_CALL(Entity_FindParentEntity);
+		TOAST_ADD_INTERNAL_CALL(Entity_FindDecententByName);
 
 		TOAST_ADD_INTERNAL_CALL(TagComponent_GetTag);
 		TOAST_ADD_INTERNAL_CALL(TagComponent_SetTag);
@@ -975,7 +1026,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_RotateAroundPoint);
 
 		TOAST_ADD_INTERNAL_CALL(MeshComponent_GeneratePlanet);
-		TOAST_ADD_INTERNAL_CALL(MeshComponent_PlayAnimation);
+		TOAST_ADD_INTERNAL_CALL(MeshComponent_PlayAnimation);		 
 		TOAST_ADD_INTERNAL_CALL(MeshComponent_StopAnimation);
 		TOAST_ADD_INTERNAL_CALL(MeshComponent_GetDurationAnimation);
 
@@ -984,7 +1035,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(CameraComponent_GetNearClip);
 		TOAST_ADD_INTERNAL_CALL(CameraComponent_SetNearClip);
 		TOAST_ADD_INTERNAL_CALL(CameraComponent_GetWorldTranslation);
-		TOAST_ADD_INTERNAL_CALL(CameraComponent_AddWorldTranslation);
+		TOAST_ADD_INTERNAL_CALL(CameraComponent_SetWorldTranslation);
 
 		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_GetVisible);
 		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_SetVisible);

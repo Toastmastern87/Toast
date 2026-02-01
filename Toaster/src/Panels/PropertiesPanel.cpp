@@ -293,7 +293,7 @@ namespace Toast {
 			{
 				if (ImGui::MenuItem("UI Panel"))
 				{
-					mContext.AddComponent<UIPanelComponent>(CreateRef<UIPanel>());
+					mContext.AddComponent<UIPanelComponent>();
 					ImGui::CloseCurrentPopup();
 				}
 			}
@@ -302,7 +302,7 @@ namespace Toast {
 			{
 				if (ImGui::MenuItem("UI Text"))
 				{
-					mContext.AddComponent<UITextComponent>(CreateRef<UIText>());
+					mContext.AddComponent<UITextComponent>();
 					ImGui::CloseCurrentPopup();
 				}
 			}
@@ -311,7 +311,7 @@ namespace Toast {
 			{
 				if (ImGui::MenuItem("UI Button"))
 				{
-					mContext.AddComponent<UIButtonComponent>(CreateRef<UIButton>());
+					mContext.AddComponent<UIButtonComponent>();
 					ImGui::CloseCurrentPopup();
 				}
 			}
@@ -884,10 +884,8 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
 
-				std::optional<std::string> textureFilepathOpt = component.Panel->GetTextureFilepath();
-				const std::string& textureFilepath = (textureFilepathOpt && !textureFilepathOpt->empty()) ?
-					*textureFilepathOpt :
-					"assets/textures/Checkerboard.png";
+				std::optional<std::string> textureFilepathOpt = component.TextureFilepath;
+				const std::string& textureFilepath = (textureFilepathOpt && !textureFilepathOpt->empty()) ?	*textureFilepathOpt : "assets/textures/Checkerboard.png";
 
 				void* textureID = (void*)(uintptr_t)TextureLibrary::Get(textureFilepath)->GetID();
 
@@ -905,11 +903,11 @@ namespace Toast {
 
 						if (filepath)
 						{
-							component.Panel->SetTextureFilepath(*filepath);
+							component.TextureFilepath = *filepath;
 							TextureLibrary::LoadTexture2D(*filepath);
 
 							uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
-							component.Panel->SetTextureIndex(sliceIndex);
+							component.TextureIndex = sliceIndex;
 						}
 					}
 
@@ -922,12 +920,12 @@ namespace Toast {
 
 					if (filepath)
 					{
-						component.Panel->SetTextureFilepath(*filepath);
+						component.TextureFilepath = *filepath;
 						TextureLibrary::LoadTexture2D(*filepath);
 						std::string temp = *filepath;
 						
 						uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
-						component.Panel->SetTextureIndex(sliceIndex);
+						component.TextureIndex = sliceIndex;
 					}
 				}
 				ImGui::TableSetColumnIndex(1);
@@ -936,40 +934,72 @@ namespace Toast {
 				ImGui::TableSetupColumn("##col4", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 1.1f);
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				bool useColor = component.Panel->GetUseColor();
-				if (ImGui::Checkbox("Use##Color", &useColor))
-				{
-					component.Panel->SetUseColor(useColor);
-				}
+				ImGui::Checkbox("Use##Color", &component.UseColor);
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::ColorEdit4("##color", component.Panel->GetColor());
+				ImGui::ColorEdit4("##color", &component.Color.x);
 				ImGui::EndTable();
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Corner Radius");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::SliderFloat("##cornerradius", component.Panel->GetCornerRadius(), 0.0f, 50.0f, "%.1f");
+				ImGui::SliderFloat("##cornerradius", &component.CornerRadius, 0.0f, 50.0f, "%.1f");
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Visible");
 				ImGui::TableSetColumnIndex(1);
-				bool visible = component.Panel->GetVisible();
-				if (ImGui::Checkbox("##visible", &visible))
-					component.Panel->SetVisible(visible);
+				ImGui::Checkbox("##visible", &component.Visible);
 				ImGui::TableNextRow();
 
 				if (entity.HasParent())
 				{
+					float wrapWidth = 90.0f - ImGui::GetStyle().ItemSpacing.x;
+
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("Connect to parent");
+					ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+					ImGui::TextUnformatted("Connect to parent");
 					ImGui::TableSetColumnIndex(1);
-					bool connectToParent = component.Panel->GetConnectToParent();
-					if (ImGui::Checkbox("##connecttoparent", &connectToParent))
-						component.Panel->SetConnectToParent(connectToParent);
+					ImGui::Checkbox("##connecttoparent", &component.ConnectToParent);
+				}
+
+				if(component.ConnectToParent)
+				{
+					float wrapWidth = 90.0f - ImGui::GetStyle().ItemSpacing.x;
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+					ImGui::TextUnformatted("Connector Color");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::ColorEdit4("##connectorcolor", &component.Connector.Color.x);
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+					ImGui::TextUnformatted("Connector Thickness");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::SliderFloat("##ConnectorThickness", &component.Connector.Thickness, 0.0f, 50.0f, "%.1f");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+					ImGui::TextUnformatted("Connector Child Offset");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGuiHelpers::ManualDragFloat2("##ConnectorChildOffset", component.Connector.ChildOffset, 0.1f, 0.0f, window, activeDragArea, "%.1f", false);
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+					ImGui::TextUnformatted("Connector Parent Offset");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGuiHelpers::ManualDragFloat2("##ConnectorParentOffset", component.Connector.ParentOffset, 0.1f, 0.0f, window, activeDragArea, "%.1f", false);
 				}
 
 				ImGui::EndTable();
@@ -980,7 +1010,7 @@ namespace Toast {
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-				auto& text = component.Text->GetText();
+				auto& text = component.Text;
 
 				char buffer[1024 * 5];
 				memset(buffer, 0, sizeof(buffer));
@@ -989,7 +1019,7 @@ namespace Toast {
 				if (ImGui::InputTextMultiline("##text", buffer, IM_ARRAYSIZE(buffer), ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 5), textFlags)) 
 				{
 					text = std::string(buffer);
-					component.Text->SetText(text);
+					component.Text = text;
 				}
 					
 				ImGui::BeginTable("##FontTable", 3, flags);
@@ -1001,8 +1031,8 @@ namespace Toast {
 				ImGui::Text("Font ");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (!component.Text->GetFont()->GetFilePath().empty())
-					ImGui::InputText("##fontfilepath", (char*)component.Text->GetFont()->GetFilePath().c_str(), 256, ImGuiInputTextFlags_ReadOnly);
+				if (!component.Font->GetFilePath().empty())
+					ImGui::InputText("##fontfilepath", (char*)component.Font->GetFilePath().c_str(), 256, ImGuiInputTextFlags_ReadOnly);
 				else
 					ImGui::InputText("##fontfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
 				ImGui::TableSetColumnIndex(2);
@@ -1011,10 +1041,10 @@ namespace Toast {
 					std::optional<std::string> filepath = FileDialogs::OpenFile("*.ttf", "..\\Toaster\\assets\\fonts\\");
 					if (filepath)
 					{
-						component.Text->SetFont(CreateRef<Font>(*filepath));
+						component.Font = CreateRef<Font>(*filepath);
 
 						uint32_t sliceIndex = Renderer2D::GetRendererData()->FontsTextureArray->GetSliceIndexForTexture(*filepath);
-						component.Text->SetTextureIndex(sliceIndex);
+						component.TextureIndex = sliceIndex;
 					}
 				}
 
@@ -1023,7 +1053,7 @@ namespace Toast {
 				ImGui::Text("Color");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::ColorEdit4("##color", component.Text->GetColor());
+				ImGui::ColorEdit4("##color", &component.Color.x);
 				ImGui::TableSetColumnIndex(0);
 
 				ImGui::PopItemWidth();
@@ -1047,7 +1077,7 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
 
-				std::optional<std::string> textureFilepathOpt = component.Button->GetTextureFilepath();
+				std::optional<std::string> textureFilepathOpt = component.TextureFilepath;
 				const std::string& textureFilepath = (textureFilepathOpt && !textureFilepathOpt->empty()) ?
 					*textureFilepathOpt :
 					"assets/textures/Checkerboard.png";
@@ -1068,11 +1098,11 @@ namespace Toast {
 
 						if (filepath)
 						{
-							component.Button->SetTextureFilepath(*filepath);
+							component.TextureFilepath = *filepath;
 							TextureLibrary::LoadTexture2D(*filepath);
 
 							uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
-							component.Button->SetTextureIndex(sliceIndex);
+							component.TextureIndex = sliceIndex;
 						}
 					}
 
@@ -1085,12 +1115,12 @@ namespace Toast {
 
 					if (filepath)
 					{
-						component.Button->SetTextureFilepath(*filepath);
+						component.TextureFilepath = *filepath;
 						TextureLibrary::LoadTexture2D(*filepath);
 						std::string temp = *filepath;
 
 						uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
-						component.Button->SetTextureIndex(sliceIndex);
+						component.TextureIndex = sliceIndex;
 					}
 				}
 
@@ -1100,14 +1130,10 @@ namespace Toast {
 				ImGui::TableSetupColumn("##col4", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 1.1f);
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				bool useColor = component.Button->GetUseColor();
-				if (ImGui::Checkbox("Use##Color", &useColor))
-				{
-					component.Button->SetUseColor(useColor);
-				}
+				ImGui::Checkbox("Use##Color", &component.UseColor);
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::ColorEdit4("##buttoncolor", component.Button->GetColor());
+				ImGui::ColorEdit4("##buttoncolor", &component.Color.x);
 				ImGui::EndTable();
 
 				ImGui::TableNextRow();
@@ -1118,10 +1144,8 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
 
-				textureFilepathOpt = component.Button->GetClickTextureFilepath();
-				const std::string& clickTextureFilepath = (textureFilepathOpt && !textureFilepathOpt->empty()) ?
-					*textureFilepathOpt :
-					"assets/textures/Checkerboard.png";
+				textureFilepathOpt = component.ClickTextureFilepath;
+				const std::string& clickTextureFilepath = (textureFilepathOpt && !textureFilepathOpt->empty()) ? *textureFilepathOpt : "assets/textures/Checkerboard.png";
 
 				void* clickTextureID = (void*)(uintptr_t)TextureLibrary::Get(clickTextureFilepath)->GetID();
 
@@ -1137,11 +1161,11 @@ namespace Toast {
 
 						if (filepath)
 						{
-							component.Button->SetTextureFilepath(*filepath);
+							component.TextureFilepath = *filepath;
 							TextureLibrary::LoadTexture2D(*filepath);
 
 							uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
-							component.Button->SetClickTextureIndex(sliceIndex);
+							component.ClickTextureIndex = sliceIndex;
 						}
 					}
 
@@ -1154,12 +1178,12 @@ namespace Toast {
 
 					if (filepath)
 					{
-						component.Button->SetClickTextureFilepath(*filepath);
+						component.ClickTextureFilepath = *filepath;
 						TextureLibrary::LoadTexture2D(*filepath);
 						std::string temp = *filepath;
 
 						uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
-						component.Button->SetClickTextureIndex(sliceIndex);
+						component.ClickTextureIndex = sliceIndex;
 					}
 				}
 
@@ -1169,14 +1193,10 @@ namespace Toast {
 				ImGui::TableSetupColumn("##col4", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 1.1f);
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				useColor = component.Button->GetUseColor();
-				if (ImGui::Checkbox("Use##ColorClick", &useColor))
-				{
-					component.Button->SetUseColor(useColor);
-				}
+				ImGui::Checkbox("Use##ColorClick", &component.UseColor);
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::ColorEdit4("##buttonclickcolor", component.Button->GetClickColor());
+				ImGui::ColorEdit4("##buttonclickcolor", &component.ClickColor.x);
 				ImGui::EndTable();
 
 				ImGui::TableNextRow();
@@ -1184,7 +1204,7 @@ namespace Toast {
 				ImGui::TextWrapped("Corner Radius");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				ImGui::SliderFloat("##cornerradius", component.Button->GetCornerRadius(), 0.0f, 50.0f, "%.1f");
+				ImGui::SliderFloat("##cornerradius", &component.CornerRadius, 0.0f, 50.0f, "%.1f");
 
 				ImGui::EndTable();
 			});

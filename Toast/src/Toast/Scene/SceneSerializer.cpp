@@ -447,13 +447,18 @@ namespace Toast {
 			out << YAML::BeginMap; // UIPanelComponent
 
 			auto& uipc = entity.GetComponent<UIPanelComponent>();
-			out << YAML::Key << "Color" << YAML::Value << uipc.Panel->GetColorF4();
-			out << YAML::Key << "CornerRadius" << YAML::Value << *uipc.Panel->GetCornerRadius();
-			out << YAML::Key << "AssetPath" << YAML::Value << uipc.Panel->GetTextureFilepath();
-			out << YAML::Key << "UseColor" << YAML::Value << uipc.Panel->GetUseColor();
-			out << YAML::Key << "Visible" << YAML::Value << uipc.Panel->GetVisible();
-			out << YAML::Key << "ConnectToParent" << YAML::Value << uipc.Panel->GetConnectToParent();
-			out << YAML::Key << "TextureIndex" << YAML::Value << uipc.Panel->GetTextureIndex();
+			out << YAML::Key << "Color" << YAML::Value << uipc.Color;
+			out << YAML::Key << "CornerRadius" << YAML::Value << uipc.CornerRadius;
+			out << YAML::Key << "AssetPath" << YAML::Value << uipc.TextureFilepath;
+			out << YAML::Key << "UseColor" << YAML::Value << uipc.UseColor;
+			out << YAML::Key << "Visible" << YAML::Value << uipc.Visible;
+			out << YAML::Key << "ConnectToParent" << YAML::Value << uipc.ConnectToParent;
+			out << YAML::Key << "TextureIndex" << YAML::Value << uipc.TextureIndex;
+
+			out << YAML::Key << "ConnectorColor" << YAML::Value << uipc.Connector.Color;
+			out << YAML::Key << "ConnectorThickness" << YAML::Value << uipc.Connector.Thickness;
+			out << YAML::Key << "ConnectorChildOffset" << YAML::Value << uipc.Connector.ChildOffset;
+			out << YAML::Key << "ConnectorParentOffset" << YAML::Value << uipc.Connector.ParentOffset;
 
 			out << YAML::EndMap; // UIPanelComponent
 		}
@@ -464,14 +469,14 @@ namespace Toast {
 			out << YAML::BeginMap; // UIButtonComponent
 
 			auto& ubc = entity.GetComponent<UIButtonComponent>();
-			out << YAML::Key << "CornerRadius" << YAML::Value << *ubc.Button->GetCornerRadius();
-			out << YAML::Key << "UseColor" << YAML::Value << ubc.Button->GetUseColor();
-			out << YAML::Key << "Color" << YAML::Value << ubc.Button->GetColorF4();
-			out << YAML::Key << "ClickColor" << YAML::Value << ubc.Button->GetClickColorF4();
-			out << YAML::Key << "AssetPath" << YAML::Value << ubc.Button->GetTextureFilepath();
-			out << YAML::Key << "TextureIndex" << YAML::Value << ubc.Button->GetTextureIndex();
-			out << YAML::Key << "ClickAssetPath" << YAML::Value << ubc.Button->GetClickTextureFilepath();
-			out << YAML::Key << "ClickTextureIndex" << YAML::Value << ubc.Button->GetClickTextureIndex();
+			out << YAML::Key << "CornerRadius" << YAML::Value << ubc.CornerRadius;
+			out << YAML::Key << "UseColor" << YAML::Value << ubc.UseColor;
+			out << YAML::Key << "Color" << YAML::Value << ubc.Color;
+			out << YAML::Key << "ClickColor" << YAML::Value << ubc.ClickColor;
+			out << YAML::Key << "AssetPath" << YAML::Value << ubc.TextureFilepath;
+			out << YAML::Key << "TextureIndex" << YAML::Value << ubc.TextureIndex;
+			out << YAML::Key << "ClickAssetPath" << YAML::Value << ubc.ClickTextureFilepath;
+			out << YAML::Key << "ClickTextureIndex" << YAML::Value << ubc.ClickTextureIndex;
 
 			out << YAML::EndMap; // UIButtonComponent
 		}
@@ -482,10 +487,10 @@ namespace Toast {
 			out << YAML::BeginMap; // UITextComponent
 
 			auto& uitc = entity.GetComponent<UITextComponent>();
-			out << YAML::Key << "AssetPath" << YAML::Value << uitc.Text->GetFont()->GetFilePath();
-			out << YAML::Key << "Text" << YAML::Value << uitc.Text->GetText();
-			out << YAML::Key << "TextureIndex" << YAML::Value << uitc.Text->GetTextureIndex();
-			out << YAML::Key << "Color" << YAML::Value << uitc.Text->GetColorF4();
+			out << YAML::Key << "AssetPath" << YAML::Value << uitc.Font->GetFilePath();
+			out << YAML::Key << "Text" << YAML::Value << uitc.Text;
+			out << YAML::Key << "TextureIndex" << YAML::Value << uitc.TextureIndex;
+			out << YAML::Key << "Color" << YAML::Value << uitc.Color;
 
 			out << YAML::EndMap; // UITextComponent
 		}
@@ -1366,62 +1371,67 @@ namespace Toast {
 				if (uiPanelComponent)
 				{
 					auto& tc = deserializedEntity.GetComponent<TransformComponent>();
-					auto& uipc = deserializedEntity.AddComponent<UIPanelComponent>(CreateRef<UIPanel>(tc.Translation.x, tc.Translation.y, tc.Scale.x, tc.Scale.y));
+					auto& uipc = deserializedEntity.AddComponent<UIPanelComponent>();
 					
-					uipc.Panel->SetColor(uiPanelComponent["Color"].as<DirectX::XMFLOAT4>());
-					uipc.Panel->SetCornerRadius(uiPanelComponent["CornerRadius"].as<float>());
-					uipc.Panel->SetUseColor(uiPanelComponent["UseColor"].as<bool>());
-					uipc.Panel->SetVisible(uiPanelComponent["Visible"].as<bool>());
-					uipc.Panel->SetConnectToParent(uiPanelComponent["ConnectToParent"].as<bool>());
-					uipc.Panel->SetTextureIndex(uiPanelComponent["TextureIndex"].as<int>());
+					uipc.Color = uiPanelComponent["Color"].as<DirectX::XMFLOAT4>();
+					uipc.CornerRadius = uiPanelComponent["CornerRadius"].as<float>();
+					uipc.UseColor = uiPanelComponent["UseColor"].as<bool>();
+					uipc.Visible = uiPanelComponent["Visible"].as<bool>();
+					uipc.ConnectToParent = uiPanelComponent["ConnectToParent"].as<bool>();
+					uipc.TextureIndex = uiPanelComponent["TextureIndex"].as<int>();
 
-					uipc.Panel->SetTextureFilepath(uiPanelComponent["AssetPath"].as<std::string>());
-					if (!uipc.Panel->GetTextureFilepath().empty())
-						TextureLibrary::LoadTexture2D(uipc.Panel->GetTextureFilepath());
+					uipc.Connector.Color = uiPanelComponent["ConnectorColor"].as<DirectX::XMFLOAT4>();
+					uipc.Connector.Thickness = uiPanelComponent["ConnectorThickness"].as<float>();
+					uipc.Connector.ChildOffset = uiPanelComponent["ConnectorChildOffset"].as<DirectX::XMFLOAT2>();
+					uipc.Connector.ParentOffset = uiPanelComponent["ConnectorParentOffset"].as<DirectX::XMFLOAT2>();
+
+					uipc.TextureFilepath = uiPanelComponent["AssetPath"].as<std::string>();
+					if (!uipc.TextureFilepath.empty())
+						TextureLibrary::LoadTexture2D(uipc.TextureFilepath);
 				}
 
 				auto uiButtonComponent = entity["UIButtonComponent"];
 				if (uiButtonComponent)
 				{
-					auto& ubc = deserializedEntity.AddComponent<UIButtonComponent>(CreateRef<UIButton>());
+					auto& ubc = deserializedEntity.AddComponent<UIButtonComponent>();
 
-					ubc.Button->SetColor(uiButtonComponent["Color"].as<DirectX::XMFLOAT4>());
-					ubc.Button->SetUseColor(uiButtonComponent["UseColor"].as<bool>());
-					ubc.Button->SetClickColor(uiButtonComponent["Color"].as<DirectX::XMFLOAT4>());
-					ubc.Button->SetCornerRadius(uiButtonComponent["CornerRadius"].as<float>());
+					ubc.Color = uiButtonComponent["Color"].as<DirectX::XMFLOAT4>();
+					ubc.UseColor = uiButtonComponent["UseColor"].as<bool>();
+					ubc.ClickColor = uiButtonComponent["ClickColor"].as<DirectX::XMFLOAT4>();
+					ubc.CornerRadius = uiButtonComponent["CornerRadius"].as<float>();
 
 					if (uiButtonComponent["TextureIndex"])
-						ubc.Button->SetTextureIndex(uiButtonComponent["TextureIndex"].as<int>());
+						ubc.TextureIndex = uiButtonComponent["TextureIndex"].as<int>();
 
 					if (uiButtonComponent["AssetPath"]) 
 					{
-						ubc.Button->SetTextureFilepath(uiButtonComponent["AssetPath"].as<std::string>());
-						if (!ubc.Button->GetTextureFilepath().empty())
-							TextureLibrary::LoadTexture2D(ubc.Button->GetTextureFilepath());
+						ubc.TextureFilepath = uiButtonComponent["AssetPath"].as<std::string>();
+						if (!ubc.TextureFilepath.empty())
+							TextureLibrary::LoadTexture2D(ubc.TextureFilepath);
 					}
 
 					if (uiButtonComponent["ClickTextureIndex"])
-						ubc.Button->SetClickTextureIndex(uiButtonComponent["ClickTextureIndex"].as<int>());
+						ubc.ClickTextureIndex = uiButtonComponent["ClickTextureIndex"].as<int>();
 
 					if (uiButtonComponent["ClickAssetPath"])
 					{
-						ubc.Button->SetClickTextureFilepath(uiButtonComponent["ClickAssetPath"].as<std::string>());
-						if (!ubc.Button->GetClickTextureFilepath().empty())
-							TextureLibrary::LoadTexture2D(ubc.Button->GetClickTextureFilepath());
+						ubc.ClickTextureFilepath = uiButtonComponent["ClickAssetPath"].as<std::string>();
+						if (!ubc.ClickTextureFilepath.empty())
+							TextureLibrary::LoadTexture2D(ubc.ClickTextureFilepath);
 					}
 				}
 
 				auto uiTextComponent = entity["UITextComponent"];
 				if (uiTextComponent)
 				{
-					auto& uitc = deserializedEntity.AddComponent<UITextComponent>(CreateRef<UIText>());
+					auto& uitc = deserializedEntity.AddComponent<UITextComponent>();
 
-					uitc.Text->SetFont(CreateRef<Font>(uiTextComponent["AssetPath"].as<std::string>()));
-					uitc.Text->SetText(uiTextComponent["Text"].as<std::string>());
-					uitc.Text->SetColor(uiTextComponent["Color"].as<DirectX::XMFLOAT4>());
+					uitc.Font = CreateRef<Font>(uiTextComponent["AssetPath"].as<std::string>());
+					uitc.Text = uiTextComponent["Text"].as<std::string>();
+					uitc.Color = uiTextComponent["Color"].as<DirectX::XMFLOAT4>();
 
 					if (uiTextComponent["TextureIndex"])
-						uitc.Text->SetTextureIndex(uiTextComponent["TextureIndex"].as<int>());
+						uitc.TextureIndex = uiTextComponent["TextureIndex"].as<int>();
 				}
 
 				auto particlesComponent = entity["ParticlesComponent"];

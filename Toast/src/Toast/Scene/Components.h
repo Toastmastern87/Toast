@@ -9,7 +9,7 @@
 
 #include "Toast/Renderer/Mesh.h"
 
-#include "Toast/Renderer/UI/UIElement.h"
+#include "Toast/Renderer/UI/Font.h"
 
 #include "Toast/Physics/Bounds.h"
 #include "Toast/Physics/Shapes.h"
@@ -226,32 +226,63 @@ namespace Toast {
 
 	struct UIPanelComponent
 	{
-		Ref<UIPanel> Panel;
+		struct UIConnector
+		{
+			UIConnector() = default;
+
+			DirectX::XMFLOAT2 ParentOffset = { 0.0f, 0.0f };
+			DirectX::XMFLOAT2 ChildOffset = { 0.0f, 0.0f };
+			DirectX::XMFLOAT4 Color = { 0.0f, 0.0f, 0.0f, 0.0f };
+			float Thickness = 1.0f;
+		};
+
+		bool Visible = false;
+		uint32_t TextureIndex = 0;
+
+		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+		float CornerRadius = 0.0f;
+		bool UseColor = true;
+		std::string TextureFilepath;
+		bool ConnectToParent = false;
+
+		UIConnector Connector;
 
 		UIPanelComponent() = default;
 		UIPanelComponent(const UIPanelComponent&) = default;
-		UIPanelComponent(const Ref<UIPanel>& panel)
-			: Panel(panel) {}
 	};
 
 	struct UITextComponent 
 	{
-		Ref<UIText> Text;
+		bool Visible = false;
+		uint32_t TextureIndex = 0;
+
+		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+		std::string Text = "Enter Text here";
+		Ref<Font> Font = Font::GetDefaultFont();
 
 		UITextComponent() = default;
 		UITextComponent(const UITextComponent&) = default;
-		UITextComponent(const Ref<UIText>& text)
-			: Text(text) {}
 	};
 
 	struct UIButtonComponent 
 	{
-		Ref<UIButton> Button;
+		float CornerRadius = 0.0f;
+		bool UseColor = true;
+		bool IsClicked = false;
+
+		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		DirectX::XMFLOAT4 ClickColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+		uint32_t TextureIndex = 0;
+		uint32_t ClickTextureIndex = 0;
+
+		std::string ClickTextureFilepath;
+		std::string TextureFilepath;
+
 
 		UIButtonComponent() = default;
 		UIButtonComponent(const UIButtonComponent&) = default;
-		UIButtonComponent(const Ref<UIButton>& button)
-			: Button(button) {}
 	};
 
 	struct ParticlesComponent

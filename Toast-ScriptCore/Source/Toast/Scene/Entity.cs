@@ -72,6 +72,26 @@ namespace Toast
             return new Entity(entityID);
         }
 
+        public Entity FindParentEntity(ulong entityID)
+        {
+            ulong parentEntityID = InternalCalls.Entity_FindParentEntity(entityID);
+
+            if (parentEntityID == 0)
+                return null;
+
+            return new Entity(parentEntityID);
+        }
+
+        public Entity FindDecententByName(ulong parentID, string childName)
+        {
+            ulong decententID = InternalCalls.Entity_FindDecententByName(parentID, childName);
+
+            if (decententID == 0)
+                return null;
+
+            return new Entity(decententID);
+        }
+
         public T As<T>() where T : Entity, new() 
         {
             object instance = InternalCalls.Script_GetInstance(ID);

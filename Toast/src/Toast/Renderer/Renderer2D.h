@@ -12,6 +12,27 @@ namespace Toast {
 	class Renderer2D : Renderer
 	{
 	private:
+		struct UIVertex
+		{
+			DirectX::XMFLOAT4 Position; // z component holds what type of UI Element this is, w component holds if the element is textured or not
+			DirectX::XMFLOAT4 Size; // z component holds the corner radius for a panel, w component holds the size of the border
+			DirectX::XMFLOAT4 Color;
+			DirectX::XMFLOAT3 Texcoord;
+			uint32_t EntityID;
+			uint32_t TextureIndex;
+
+			UIVertex() = default;
+
+			UIVertex(DirectX::XMFLOAT4 pos, DirectX::XMFLOAT4 size, DirectX::XMFLOAT4 color, DirectX::XMFLOAT3 uv, uint32_t id, uint32_t texIdx)
+			{
+				Position = pos;
+				Size = size;
+				Color = color;
+				Texcoord = uv;
+				TextureIndex = texIdx;
+			}
+		};
+
 		enum ElementType 
 		{
 			Panel = 0,
@@ -22,10 +43,9 @@ namespace Toast {
 		struct DrawCommand
 		{
 		public:
-			DrawCommand(const Ref<UIElement> element, const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& size, ElementType type, const int entityID = 0, const bool targetable = false)
-				: Element(element), Position(position), Size(size), Type(type), EntityID(entityID), Targetable(targetable) {}
+			DrawCommand(const DirectX::XMFLOAT2& position, const DirectX::XMFLOAT2& size, ElementType type, const int entityID = 0, const bool targetable = false)
+				: Position(position), Size(size), Type(type), EntityID(entityID), Targetable(targetable) {}
 		public:
-			Ref<UIElement> Element;
 			DirectX::XMFLOAT2 Position;
 			DirectX::XMFLOAT2 Size;
 			ElementType Type;
@@ -64,7 +84,7 @@ namespace Toast {
 		static void EndScene();
 
 		static void SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, uint32_t textureIndex);
-		static void SubmitConnector(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT3& size, const float borderRadius, const DirectX::XMFLOAT3& parentPos, const float connectorThickness);
+		static void SubmitConnector(const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b, float thicknessPx, float aaPx, const DirectX::XMFLOAT4& color, int entityID);
 		static void SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, DirectX::XMFLOAT4& clickColor, const int entityID, const bool textured, const bool clicked, uint32_t textureIndex, uint32_t clickTextureIndex);
 		static void SubmitText(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const std::string& textString, const uint32_t fontTextureIndex, const int entityID, const bool targetable);
 

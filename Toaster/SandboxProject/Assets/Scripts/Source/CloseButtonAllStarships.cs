@@ -3,13 +3,13 @@ using Toast;
 
 namespace Sandbox
 {
-    public class CloseButton : Entity
+    public class CloseButtonAllStarships : Entity
     {
         private Entity mPanel;
 
         void OnCreate()
         {
-            mPanel = FindEntityByName("InfoPopup");
+            mPanel = FindEntityByName("AllStarshipsPopup");
         }
 
         void OnEvent()

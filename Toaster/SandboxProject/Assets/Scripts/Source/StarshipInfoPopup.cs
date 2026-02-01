@@ -27,8 +27,8 @@ namespace Sandbox
         {
             mTotalTime = 0.0f;
 
-            mStarship = FindEntityByName("Starship SN3");
-            mStarshipInfoPanel = FindChildEntityByName("Starship SN3", "InfoPopup");
+            mStarship = FindEntityByName("Starship");
+            mStarshipInfoPanel = FindChildEntityByName("Starship", "InfoPopup");
             mVelocityEntity = FindChildEntityByName("InfoPopup", "VelocityText");
             mAltitudeEntity = FindChildEntityByName("InfoPopup", "AltitudeText");
             mPanel = mStarshipInfoPanel.GetComponent<UIPanelComponent>();
@@ -43,6 +43,8 @@ namespace Sandbox
 
         void OnEvent()
         {
+            Toast.Console.LogCritical("Starship clicked!");
+
             if (Input.IsMouseButtonPressed(MouseCode.ButtonLeft)) 
                 mPanel.Visible = true;
         }

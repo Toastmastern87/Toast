@@ -4,6 +4,12 @@ namespace Toast
 {
     public class Scene
     {
+        public static Vector2 RenderTargetSize()
+        {
+            InternalCalls.Scene_GetRenderTargetSize(out Vector2 outSceneSize);
+            return outSceneSize;
+        }
+
         public static bool GetRenderColliders()
         {
             return InternalCalls.Scene_GetRenderColliders();
@@ -17,7 +23,7 @@ namespace Toast
         public static float TimeScale
         {
             get => InternalCalls.Scene_GetTimeScale();
-            set => InternalCalls.Scene_SetTimeScale( value);
+            set => InternalCalls.Scene_SetTimeScale(value);
         }
 
         public static Entity AddPrefab(string name)

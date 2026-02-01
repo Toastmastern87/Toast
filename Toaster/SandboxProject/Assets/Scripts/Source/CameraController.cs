@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Source.Toast.Math;
+using System;
 using System.IO;
 using Toast;
 
@@ -30,12 +31,20 @@ namespace Sandbox
         private TransformComponent mCameraTransformComponent;
         private CameraComponent mCameraComponent;
 
+        private bool mIsFollowing = false;
+        private TransformComponent mFollowTransform;
+
         private Vector3 mCameraWorldRightVector;
         private Vector3 mCameraWorldForwardVector;
 
         private Vector2 mCursorPos;
 
         private float altitude = 0.0f;
+
+        // Following state
+        private Quaternion mStartRotation;
+        private Vector3 mStartTranslation;
+        private Vector3 mPreviousTranslation;
 
         private float Clamp(float value, float min, float max)
         {
@@ -57,6 +66,13 @@ namespace Sandbox
 
         void OnUpdate(float ts)
         {
+            if (Input.IsKeyPressed(KeyCode.Escape) && mIsFollowing)
+            {
+                mIsFollowing = false;
+                mCameraTransformComponent.Rotation = mStartRotation;
+                mCameraComponent.WorldTranslation = mStartTranslation;
+            }
+
             Vector3 upWorld = Vector3.Normalize(-1.0f * (Planet.Translation + mCameraComponent.WorldTranslation));
             //Vector3 upWorld = Vector3.Normalize(mCameraComponent.WorldTranslation - Planet.Translation);
 
@@ -73,6 +89,7 @@ namespace Sandbox
             if (Input.IsMouseButtonPressed(MouseCode.ButtonRight))
             {
                 Vector2 delta = newCursorPos - mCursorPos;
+                delta.Y = -delta.Y; // Invert Y axis
 
                 if (Vector3.LengthSquared(upWorld) < 1e-6f) 
                     upWorld = new Vector3(0.0f, 1.0f, 0.0f);
@@ -137,136 +154,167 @@ namespace Sandbox
 
             ////////// CAMERA ZOOMING ////////////////
 
-            float scrollDelta = Input.GetMouseWheelDelta();
-
-            if (mZoomTargetAltitude < 0.0f)
+            if (!mIsFollowing)
             {
-                // Safety init if OnCreate didn't run as expected
-                mZoomTargetAltitude = Clamp(altitude, MinAltitude, MaxAltitude);
+                float scrollDelta = Input.GetMouseWheelDelta();
+
+                if (mZoomTargetAltitude < 0.0f)
+                {
+                    // Safety init if OnCreate didn't run as expected
+                    mZoomTargetAltitude = Clamp(altitude, MinAltitude, MaxAltitude);
+                }
+
+                if (Math.Abs(scrollDelta) > 0.001f)
+                {
+                    // Some input systems report large deltas; apply sensitivity
+                    float wheel = scrollDelta * WheelSensitivity;
+
+                    // Convert wheel to an integer-ish number of "steps" while still supporting fractional deltas (track pads)
+                    // Positive wheel usually means scroll up; you used -scrollDelta before, keep same behavior:
+                    // wheel > 0 => zoom in (decrease altitude)
+                    // wheel < 0 => zoom out (increase altitude)
+                    float steps = wheel;
+
+                    // Altitude-dependent percentage per wheel step.
+                    // Near ground: ~ZoomPercentNear
+                    // High altitude: ~ZoomPercentFar
+                    float a = Clamp(altitude, MinAltitude, MaxAltitude);
+                    float x = a / Math.Max(1.0f, ZoomRampRefAlt);           // normalized by reference altitude
+                    float t = (float)Math.Pow(x / (1.0f + x), ZoomRampPower); // 0..1 smooth ramp
+                    float zoomPercent = ZoomPercentNear + (ZoomPercentFar - ZoomPercentNear) * t; // lerp
+
+                    // Convert percent -> multiplicative factor per step (1 + percent)
+                    float perStepFactor = 1.0f + zoomPercent;
+
+                    // Apply steps (supports fractional wheel deltas too):
+                    // wheel > 0 => zoom in => reduce altitude => multiply by perStepFactor^(-steps)
+                    float factor = (float)Math.Pow((double)perStepFactor, (double)(-steps));
+                    mZoomTargetAltitude *= factor;
+
+                    // Clamp target
+                    mZoomTargetAltitude = Clamp(mZoomTargetAltitude, MinAltitude, MaxAltitude);
+                }
+
+                // Smoothly approach target altitude (exponential smoothing)
+                float dt = ts / Scene.TimeScale;
+                if (dt > 0.0f)
+                {
+                    // alpha = 1 - exp(-dt / tau)
+                    float tau = Math.Max(0.0001f, ZoomSmoothTime);
+                    float alpha = 1.0f - (float)Math.Exp(-(double)(dt / tau));
+
+                    float prevAlt = altitude;
+
+                    // Use your measured altitude as the current state (already updated earlier in OnUpdate)
+                    float newAlt = prevAlt + (mZoomTargetAltitude - prevAlt) * alpha;
+
+                    // Convert altitude change to world movement
+                    float deltaAltitude = prevAlt - newAlt; // positive => move "down" along upWorld, matching your old sign convention
+
+                    // Small dead zone to prevent micro jitter
+                    if (Math.Abs(deltaAltitude) < MinZoomStepMeters)
+                        deltaAltitude = 0.0f;
+
+                    // Safety clamp per frame to avoid spikes
+                    deltaAltitude = Clamp(deltaAltitude, -MaxZoomStepMeters, MaxZoomStepMeters);
+
+                    if (Math.Abs(deltaAltitude) > 0.0f)
+                        mCameraComponent.WorldTranslation += upWorld * deltaAltitude;
+                }
+
+                Input.SetMouseWheelDelta(0.0f);
             }
-
-            if (Math.Abs(scrollDelta) > 0.001f)
-            {
-                // Some input systems report large deltas; apply sensitivity
-                float wheel = scrollDelta * WheelSensitivity;
-
-                // Convert wheel to an integer-ish number of "steps" while still supporting fractional deltas (track pads)
-                // Positive wheel usually means scroll up; you used -scrollDelta before, keep same behavior:
-                // wheel > 0 => zoom in (decrease altitude)
-                // wheel < 0 => zoom out (increase altitude)
-                float steps = wheel;
-
-                // Altitude-dependent percentage per wheel step.
-                // Near ground: ~ZoomPercentNear
-                // High altitude: ~ZoomPercentFar
-                float a = Clamp(altitude, MinAltitude, MaxAltitude);
-                float x = a / Math.Max(1.0f, ZoomRampRefAlt);           // normalized by reference altitude
-                float t = (float)Math.Pow(x / (1.0f + x), ZoomRampPower); // 0..1 smooth ramp
-                float zoomPercent = ZoomPercentNear + (ZoomPercentFar - ZoomPercentNear) * t; // lerp
-
-                // Convert percent -> multiplicative factor per step (1 + percent)
-                float perStepFactor = 1.0f + zoomPercent;
-
-                // Apply steps (supports fractional wheel deltas too):
-                // wheel > 0 => zoom in => reduce altitude => multiply by perStepFactor^(-steps)
-                float factor = (float)Math.Pow((double)perStepFactor, (double)(-steps));
-                mZoomTargetAltitude *= factor;
-
-                // Clamp target
-                mZoomTargetAltitude = Clamp(mZoomTargetAltitude, MinAltitude, MaxAltitude);
-            }
-
-            // Smoothly approach target altitude (exponential smoothing)
-            float dt = ts / Scene.TimeScale;
-            if (dt > 0.0f)
-            {
-                // alpha = 1 - exp(-dt / tau)
-                float tau = Math.Max(0.0001f, ZoomSmoothTime);
-                float alpha = 1.0f - (float)Math.Exp(-(double)(dt / tau));
-
-                float prevAlt = altitude;
-
-                // Use your measured altitude as the current state (already updated earlier in OnUpdate)
-                float newAlt = prevAlt + (mZoomTargetAltitude - prevAlt) * alpha;
-
-                // Convert altitude change to world movement
-                float deltaAltitude = prevAlt - newAlt; // positive => move "down" along upWorld, matching your old sign convention
-
-                // Small dead zone to prevent micro jitter
-                if (Math.Abs(deltaAltitude) < MinZoomStepMeters)
-                    deltaAltitude = 0.0f;
-
-                // Safety clamp per frame to avoid spikes
-                deltaAltitude = Clamp(deltaAltitude, -MaxZoomStepMeters, MaxZoomStepMeters);
-
-                if (Math.Abs(deltaAltitude) > 0.0f)
-                    mCameraComponent.AddWorldMovement(upWorld * deltaAltitude);
-            }
-
-            Input.SetMouseWheelDelta(0.0f);
 
             ////////// WASD MOVEMENT ////////////////
-            Vector3 keyboardDirection = Vector3.Zero;
-            Vector3 up = new Vector3(0.0f, 1.0f, 0.0f);
-
-            if (Input.IsKeyPressed(KeyCode.W))
-                keyboardDirection += mCameraWorldForwardVector;
-            if (Input.IsKeyPressed(KeyCode.S))
-                keyboardDirection -= mCameraWorldForwardVector;
-            if (Input.IsKeyPressed(KeyCode.D))
-                keyboardDirection += mCameraWorldRightVector;
-            if (Input.IsKeyPressed(KeyCode.A))
-                keyboardDirection -= mCameraWorldRightVector;
-
-            if (Vector3.LengthSquared(keyboardDirection) > 1e-6f)
+            ///
+            if (!mIsFollowing)
             {
-                keyboardDirection = Vector3.Normalize(keyboardDirection);
+                Vector3 keyboardDirection = Vector3.Zero;
+                Vector3 up = new Vector3(0.0f, 1.0f, 0.0f);
 
-                float keyboardSpeed = BaseMovementSpeed * (1.0f + altitude / (ReferenceAltitude * 0.2f));
-                Vector3 moveWS = keyboardDirection * keyboardSpeed * (ts / Scene.TimeScale);
+                if (Input.IsKeyPressed(KeyCode.W))
+                    keyboardDirection += mCameraWorldForwardVector;
+                if (Input.IsKeyPressed(KeyCode.S))
+                    keyboardDirection -= mCameraWorldForwardVector;
+                if (Input.IsKeyPressed(KeyCode.D))
+                    keyboardDirection += mCameraWorldRightVector;
+                if (Input.IsKeyPressed(KeyCode.A))
+                    keyboardDirection -= mCameraWorldRightVector;
 
-                // Sub-step to prevent tunneling at high speed
-                float maxStep = 200.0f; // meters (tune)
-                float len = Vector3.Length(moveWS);
-                int steps = Math.Max(1, (int)Math.Ceiling(len / maxStep));
-                Vector3 stepMove = moveWS / steps;
-
-                const float eps = 0.25f;   // safety margin
-                const int pushIters = 5;
-
-                for (int s = 0; s < steps; s++)
+                if (Vector3.LengthSquared(keyboardDirection) > 1e-6f)
                 {
-                    // Move the world opposite the intended camera movement
-                    mCameraComponent.AddWorldMovement(-stepMove);
+                    keyboardDirection = Vector3.Normalize(keyboardDirection);
 
-                    // Camera is at origin in floating origin space
-                    float a = PhysicsEngine.GetAltitudeAtWorldPos(Vector3.Zero);
+                    float keyboardSpeed = BaseMovementSpeed * (1.0f + altitude / (ReferenceAltitude * 0.2f));
+                    Vector3 moveWS = keyboardDirection * keyboardSpeed * (ts / Scene.TimeScale);
 
-                    // Push-out if below minimum altitude
-                    for (int i = 0; i < pushIters && a < MinAltitude; i++)
+                    // Sub-step to prevent tunneling at high speed
+                    float maxStep = 200.0f; // meters (tune)
+                    float len = Vector3.Length(moveWS);
+                    int steps = Math.Max(1, (int)Math.Ceiling(len / maxStep));
+                    Vector3 stepMove = moveWS / steps;
+
+                    const float eps = 0.25f;   // safety margin
+                    const int pushIters = 5;
+
+                    for (int s = 0; s < steps; s++)
                     {
-                        float delta = (MinAltitude - a) + eps;
+                        // Move the world opposite the intended camera movement
+                        mCameraComponent.WorldTranslation += -stepMove;
 
-                        // push world DOWN to move camera UP relative to ground
-                        mCameraComponent.AddWorldMovement(-up * delta);
+                        // Camera is at origin in floating origin space
+                        float a = PhysicsEngine.GetAltitudeAtWorldPos(Vector3.Zero);
 
-                        a = PhysicsEngine.GetAltitudeAtWorldPos(Vector3.Zero);
-                    }
-
-                    // Optional max altitude clamp
-                    if (MaxAltitude > MinAltitude)
-                    {
-                        float a2 = PhysicsEngine.GetAltitudeAtWorldPos(Vector3.Zero);
-                        if (a2 > MaxAltitude)
+                        // Push-out if below minimum altitude
+                        for (int i = 0; i < pushIters && a < MinAltitude; i++)
                         {
-                            float delta = (a2 - MaxAltitude) + eps;
+                            float delta = (MinAltitude - a) + eps;
 
-                            // pull world UP to move camera DOWN relative to ground
-                            mCameraComponent.AddWorldMovement(up * delta);
+                            // push world DOWN to move camera UP relative to ground
+                            mCameraComponent.WorldTranslation += -up * delta;
+
+                            a = PhysicsEngine.GetAltitudeAtWorldPos(Vector3.Zero);
+                        }
+
+                        // Optional max altitude clamp
+                        if (MaxAltitude > MinAltitude)
+                        {
+                            float a2 = PhysicsEngine.GetAltitudeAtWorldPos(Vector3.Zero);
+                            if (a2 > MaxAltitude)
+                            {
+                                float delta = (a2 - MaxAltitude) + eps;
+
+                                // pull world UP to move camera DOWN relative to ground
+                                mCameraComponent.WorldTranslation += up * delta;
+                            }
                         }
                     }
                 }
             }
+            else 
+            {
+                // Following logic
+                if (mFollowTransform != null)
+                {
+                    Vector3 followDelta = mFollowTransform.Translation - mPreviousTranslation;
+                    mCameraComponent.WorldTranslation += -followDelta;
+
+                    mPreviousTranslation = mFollowTransform.Translation;
+                }
+            }
+        }
+
+        public void StartFollowing(TransformComponent targetTransform)
+        {
+            mIsFollowing = true;
+            mFollowTransform = targetTransform;
+
+            mPreviousTranslation = mFollowTransform.Translation;
+            mStartRotation = mCameraTransformComponent.Rotation;
+            mStartTranslation = mCameraComponent.WorldTranslation;
+
+            mCameraComponent.WorldTranslation = -(mFollowTransform.Translation + new Vector3(0.0f, 0.0f, -100.0f));
+            mCameraTransformComponent.Rotation = Quaternion.Identity;
         }
     }
 }

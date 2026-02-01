@@ -40,7 +40,7 @@ struct PixelInputType
 {
     float4 position             : SV_POSITION;
     float4 color                : COLOR;
-    float2 size                 : POSITION;
+    float4 ab                   : POSITION;
     float2 texCoord             : TEXCOORD0;
     float cornerRadius          : PSIZE0;
     float textured              : PSIZE1;
@@ -63,7 +63,7 @@ PixelInputType main(VertexInputType input)
 
 	output.entityID = input.entityID;
 	
-    output.size = input.size.xy;
+    output.ab = input.size;
 	
     output.UIType = (int) input.texCoord.z;
     output.cornerRadius = input.size.z;
@@ -80,7 +80,7 @@ struct PixelInputType
 {
     float4 position         : SV_POSITION;
     float4 color            : COLOR;
-    float2 size             : POSITION;
+    float4 ab               : POSITION;
     float2 texCoord         : TEXCOORD0;
     float cornerRadius      : PSIZE0;
     float textured          : PSIZE1;
@@ -145,6 +145,14 @@ float CheckCornerDistance(float2 p, float2 center, float radius)
     return length(p - center) > radius;
 }
 
+float sdSegment(float2 p, float2 a, float2 b)
+{
+    float2 pa = p - a;
+    float2 ba = b - a;
+    float h = saturate(dot(pa, ba) / dot(ba, ba));
+    return length(pa - ba * h); // distance to segment
+}
+
 PixelOutputType main(PixelInputType input) : SV_TARGET
 {
     PixelOutputType output;
@@ -154,20 +162,22 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	{
         float4 textureColor;
         
-		float2 coords = input.texCoord * input.size;
-        if (ShouldDiscard(coords, input.size, input.cornerRadius))
-			discard;
+		float2 coords = input.texCoord * input.ab;
 
         if (input.textured >= 0.5f)
         {
-            float2 activeUV;
-            activeUV.x = input.texCoord.x * (input.size.x / 1000.0f);
-            activeUV.y = (1.0f - (input.size.y / 1000.0f)) + input.texCoord.y * (input.size.y / 1000.0f);
+            float2 imgSize = abs(input.ab.xy); // protect against negative sizes
+            float2 activeUV = input.texCoord * (imgSize / 1000.0f);
             textureColor = UITextures.Sample(defaultSampler, float3(activeUV, input.textureIndex));
             output.color = textureColor;
         }
         else
+        {
+            if (ShouldDiscard(coords, input.ab.xy, input.cornerRadius))
+                discard;
+            
             output.color = input.color;
+        }
     }
 	// Text
     else if (input.UIType == 2.0f)
@@ -180,11 +190,11 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 		float screenPxDistance = ScreenPxRange() * (sd - 0.5f);
 		float opacity = clamp(screenPxDistance + 0.5f, 0.0f, 1.0f);
 		float4 finalColor = lerp(bgColor, fgColor, opacity);
-		if (opacity == 0.0)
-			discard;
+        if (opacity == 0.0)
+            discard;
 
         output.color = finalColor;
-    }
+    }   
     // Buttons
     else if (input.UIType > 2.5f && input.UIType < 3.5f)
     {
@@ -192,15 +202,39 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 
         if (input.textured >= 0.5f)
         {
-            float2 activeUV;
-            activeUV.x = input.texCoord.x * (input.size.x / 1000.0f);
-            activeUV.y = (1.0f - (input.size.y / 1000.0f)) + input.texCoord.y * (input.size.y / 1000.0f);
+            float2 imgSize = abs(input.ab.xy); // protect against negative sizes
+            float2 activeUV = input.texCoord * (imgSize / 1000.0f);
             textureColor = UITextures.Sample(defaultSampler, float3(activeUV, input.textureIndex));
             output.color = textureColor;
         }
         else
             output.color = input.color;
     }
+    // Connectors
+    else if (input.UIType > 3.5f && input.UIType < 4.5f)
+    {
+        float2 A = input.ab.xy;
+        float2 B = input.ab.zw;
+
+        float thickness = input.texCoord.x; // px
+        float aa = input.texCoord.y; // px
+
+        // Current pixel position in UI space:
+        // input.position is SV_POSITION in clip space after ortho; in D3D it is in pixels for rasterized screen-space.
+        // With your off-center ortho, SV_POSITION.xy should match pixel coords in the render target.
+        float2 P = input.position.xy;
+
+        float d = sdSegment(P, A, B);
+
+        float r = thickness * 0.5f;
+        // alpha = 1 inside the line, fades out over 'aa' pixels
+        float alpha = saturate((r + aa - d) / aa);
+
+        if (alpha <= 0.0f)
+            discard;
+
+        output.color = float4(input.color.rgb, input.color.a * alpha);
+    }  
 	else
         output.color = input.color;
 	

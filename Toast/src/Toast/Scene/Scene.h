@@ -297,11 +297,14 @@ namespace Toast {
 		Entity FindEntityByName(std::string_view name);
 		Entity FindEntityByUUID(UUID uuid);
 
+		Entity FindParentEntity(UUID childID);
 		Entity FindChildEntityByName(std::string_view parentName, std::string_view childName);
+		Entity FindDescendantByName(Entity parent, std::string_view nameStr);
 
 		void AddChildEntity(Entity entity, Entity parent);
 		void AddMeshPartEntities(std::unordered_map<std::string, UUID>& parts, Entity& meshParent);
 
+		uint32_t GetNextPrefabIndex(const std::string& prefabName);
 		Entity AddPrefab(std::string& prefabName);
 		std::vector<Entity> GetEntitiesWithPrefab(std::string prefabName);
 

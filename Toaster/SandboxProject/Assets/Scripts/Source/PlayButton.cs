@@ -15,7 +15,8 @@ namespace Sandbox
 
         void OnEvent()
         {
-            Scene.LoadScene("Mars");
+            if (Input.IsMouseButtonReleased(MouseCode.ButtonLeft))
+                Scene.LoadScene("Mars");
         }
 
         void OnUpdate(float ts)

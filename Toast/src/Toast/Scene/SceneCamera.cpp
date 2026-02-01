@@ -51,7 +51,7 @@ namespace Toast {
 		DirectX::XMStoreFloat4x4(&mProjection, projection);
 		DirectX::XMStoreFloat4x4(&mInvProjection, DirectX::XMMatrixInverse(nullptr, projection));
 
-		orthoProjection = DirectX::XMMatrixOrthographicLH(mOrthographicWidth, mOrthographicHeight, mNearClip, mFarClip);
+		orthoProjection = DirectX::XMMatrixOrthographicOffCenterLH(0.0f, mOrthographicWidth, mOrthographicHeight, 0.0f, mNearClip, mFarClip);
 		DirectX::XMStoreFloat4x4(&mOrthoProjection, orthoProjection);
 		DirectX::XMStoreFloat4x4(&mInvOrthoProjection, DirectX::XMMatrixInverse(nullptr, orthoProjection));
 	}

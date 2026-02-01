@@ -34,6 +34,9 @@ namespace Toast
         internal static extern bool Input_IsMouseButtonPressed(MouseCode mouseCode);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool Input_IsMouseButtonReleased(MouseCode mouseCode);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void Input_GetMousePosition(out Vector2 position);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -58,6 +61,9 @@ namespace Toast
         #endregion
 
         #region Scene
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Scene_GetRenderTargetSize(out Vector2 outSceneSize);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool Scene_GetRenderColliders();
@@ -109,6 +115,12 @@ namespace Toast
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern ulong Entity_FindChildEntityByName(string name, string childName);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern ulong Entity_FindParentEntity(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern ulong Entity_FindDecententByName(ulong entityID, string childName);
 
         #endregion
 
@@ -216,7 +228,9 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern IntPtr CameraComponent_GetWorldTranslation(ulong entityID, out Vector3 result);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void CameraComponent_AddWorldTranslation(ulong entityID, ref Vector3 translationChange);
+        internal static extern void CameraComponent_SetWorldTranslation(ulong entityID, ref Vector3 inWorldTranslation);
+        //[MethodImpl(MethodImplOptions.InternalCall)]
+        //internal static extern void CameraComponent_AddWorldTranslation(ulong entityID, ref Vector3 translationChange);
 
         #endregion
 

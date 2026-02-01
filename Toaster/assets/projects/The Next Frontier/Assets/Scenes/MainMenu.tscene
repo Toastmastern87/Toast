@@ -149,6 +149,22 @@ Entities:
         OrthographicHeight: 1120
       Primary: true
       FixedAspectRatio: false
+  - Entity: 2501254204845139309
+    TagComponent:
+      Tag: PlayText
+    RelationshipComponent:
+      ParentHandle: 10423543755373727219
+      Children:
+        []
+    TransformComponent:
+      Translation: [-1171.5, -527, 9]
+      Rotation: [0, 0, 0]
+      Scale: [75, 55, 0]
+    UITextComponent:
+      AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
+      Text: Play
+      TextureIndex: 0
+      Color: [0, 0, 0, 1]
   - Entity: 10423543755373727219
     TagComponent:
       Tag: PlayButton
@@ -171,19 +187,3 @@ Entities:
       TextureIndex: 0
       ClickAssetPath: ""
       ClickTextureIndex: 0
-  - Entity: 2501254204845139309
-    TagComponent:
-      Tag: PlayText
-    RelationshipComponent:
-      ParentHandle: 10423543755373727219
-      Children:
-        []
-    TransformComponent:
-      Translation: [148, 6, 5]
-      Rotation: [0, 0, 0]
-      Scale: [75, 57, 1]
-    UITextComponent:
-      AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
-      Text: Play
-      TextureIndex: 0
-      Color: [0, 0, 0, 1]

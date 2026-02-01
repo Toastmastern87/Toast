@@ -66,7 +66,7 @@ namespace Toast {
 			NumLock = 144,
 			ScrollLock = 145,
 			CapsLock = 20,
-			Escape = 28,
+			Escape = 27,
 			PageUp = 33,
 			PageDown = 34,
 			End = 35,
