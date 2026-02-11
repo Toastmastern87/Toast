@@ -29,16 +29,16 @@ namespace Toast {
 		mFarBottomRight = mCenterFar - (up * (heightFar / 2.0)) + (right * (widthFar / 2.0));
 	}
 
-	void Frustum::Update(Matrix& transform, Matrix& planetTransform, double bias)
+	void Frustum::Update(Matrix& transform, Matrix& planetTransform, float bias)
 	{
-		mNearTopLeft = transform * mNearTopLeft; 
-		mNearTopRight = transform * mNearTopRight; 
-		mNearBottomLeft = transform * mNearBottomLeft; 
-		mNearBottomRight = transform * mNearBottomRight; 
-		mFarTopLeft = transform * mFarTopLeft; 
-		mFarTopRight = transform * mFarTopRight;
-		mFarBottomLeft = transform * mFarBottomLeft;
-		mFarBottomRight = transform * mFarBottomRight;
+		mNearTopLeft = Matrix::TransformPointRowVector(mNearTopLeft, transform);
+		mNearTopRight = Matrix::TransformPointRowVector(mNearTopRight, transform);
+		mNearBottomLeft = Matrix::TransformPointRowVector(mNearBottomLeft, transform);
+		mNearBottomRight = Matrix::TransformPointRowVector(mNearBottomRight, transform);
+		mFarTopLeft = Matrix::TransformPointRowVector(mFarTopLeft, transform);
+		mFarTopRight = Matrix::TransformPointRowVector(mFarTopRight, transform);
+		mFarBottomLeft = Matrix::TransformPointRowVector(mFarBottomLeft, transform);
+		mFarBottomRight = Matrix::TransformPointRowVector(mFarBottomRight, transform);
 
 		mPlanes.clear();
 		//winding in an outside perspective so the cross product creates normals pointing inward
@@ -48,39 +48,18 @@ namespace Toast {
 		mPlanes.emplace_back(Plane(mNearTopRight, mNearBottomRight, mFarTopRight));//Right
 		mPlanes.emplace_back(Plane(mFarTopLeft, mNearTopLeft, mFarTopRight));//Top
 		mPlanes.emplace_back(Plane(mNearBottomLeft, mFarBottomLeft, mNearBottomRight));//Bottom
-
-		mPlanetCheckPlanes.clear();
-
-		Matrix inversePlanetMatrix = Matrix::Inverse(planetTransform);
-
-		mPlanetSpaceNearTopLeft = inversePlanetMatrix * mNearTopLeft;
-		mPlanetSpaceNearTopRight = inversePlanetMatrix * mNearTopRight;
-		mPlanetSpaceNearBottomLeft = inversePlanetMatrix * mNearBottomLeft;
-		mPlanetSpaceNearBottomRight = inversePlanetMatrix * mNearBottomRight;
-		mPlanetSpaceFarTopLeft = inversePlanetMatrix * mFarTopLeft;
-		mPlanetSpaceFarTopRight = inversePlanetMatrix * mFarTopRight;
-		mPlanetSpaceFarBottomLeft = inversePlanetMatrix * mFarBottomLeft;
-		mPlanetSpaceFarBottomRight = inversePlanetMatrix * mFarBottomRight;
-
-		//winding in an outside perspective so the cross product creates normals pointing inward
-		mPlanetCheckPlanes.emplace_back(mPlanetSpaceNearTopLeft, mPlanetSpaceNearBottomLeft, mPlanetSpaceNearTopRight, bias);
-		mPlanetCheckPlanes.emplace_back(mPlanetSpaceFarTopRight, mPlanetSpaceFarBottomRight, mPlanetSpaceFarTopLeft, bias);
-		mPlanetCheckPlanes.emplace_back(mPlanetSpaceFarTopLeft, mPlanetSpaceFarBottomLeft, mPlanetSpaceNearTopLeft, bias);
-		mPlanetCheckPlanes.emplace_back(mPlanetSpaceNearTopRight, mPlanetSpaceNearBottomRight, mPlanetSpaceFarTopRight, bias);
-		mPlanetCheckPlanes.emplace_back(mPlanetSpaceFarTopLeft, mPlanetSpaceNearTopLeft, mPlanetSpaceFarTopRight, bias);
-		mPlanetCheckPlanes.emplace_back(mPlanetSpaceNearBottomLeft, mPlanetSpaceFarBottomLeft, mPlanetSpaceNearBottomRight, bias);
 	}
 
 	void Frustum::Update(Matrix& transform)
 	{
-		mNearTopLeft = transform * mNearTopLeft;
-		mNearTopRight = transform * mNearTopRight;
-		mNearBottomLeft = transform * mNearBottomLeft;
-		mNearBottomRight = transform * mNearBottomRight;
-		mFarTopLeft = transform * mFarTopLeft;
-		mFarTopRight = transform * mFarTopRight;
-		mFarBottomLeft = transform * mFarBottomLeft;
-		mFarBottomRight = transform * mFarBottomRight;
+		mNearTopLeft = Matrix::TransformPointRowVector(mNearTopLeft, transform);
+		mNearTopRight = Matrix::TransformPointRowVector(mNearTopRight, transform);
+		mNearBottomLeft = Matrix::TransformPointRowVector(mNearBottomLeft, transform);
+		mNearBottomRight = Matrix::TransformPointRowVector(mNearBottomRight, transform);
+		mFarTopLeft = Matrix::TransformPointRowVector(mFarTopLeft, transform);
+		mFarTopRight = Matrix::TransformPointRowVector(mFarTopRight, transform);
+		mFarBottomLeft = Matrix::TransformPointRowVector(mFarBottomLeft, transform);
+		mFarBottomRight = Matrix::TransformPointRowVector(mFarBottomRight, transform);
 
 		mPlanes.clear();
 		//winding in an outside perspective so the cross product creates normals pointing inward
@@ -90,6 +69,43 @@ namespace Toast {
 		mPlanes.emplace_back(Plane(mNearTopRight, mNearBottomRight, mFarTopRight));//Right
 		mPlanes.emplace_back(Plane(mFarTopLeft, mNearTopLeft, mFarTopRight));//Top
 		mPlanes.emplace_back(Plane(mNearBottomLeft, mFarBottomLeft, mNearBottomRight));//Bottom
+	}
+
+	void Frustum::UpdatePlanetSpace(const Vector3& camPosPS, const Vector3& playerCamRightWS, const Vector3& playerCamUpWS, const Vector3& playerCamForwardWS, Quaternion planetInvRotationQuat, const float nearClip, const float farClip, const float fov, const float aspect, float bias)
+	{
+		planetInvRotationQuat = Quaternion::Normalize(planetInvRotationQuat);
+
+		Vector3 playerCamForwardPS = Vector3::Normalize(Vector3::Rotate(playerCamForwardWS, planetInvRotationQuat));
+		Vector3 playerCamUpPS = Vector3::Normalize(Vector3::Rotate(playerCamUpWS, planetInvRotationQuat));
+		Vector3 playerCamRightPS = Vector3::Normalize(Vector3::Rotate(playerCamRightWS, planetInvRotationQuat));
+
+		double heightNear = 2.0 * tan(Math::DegreesToRadians((double)fov) / 2.0) * (double)nearClip;
+		double widthNear = heightNear * aspect;
+
+		double heightFar = 2.0 * tan(Math::DegreesToRadians((double)fov) / 2.0) * (double)farClip;
+		double widthFar = heightFar * aspect;
+
+		Vector3 centerNear = camPosPS + Vector3::Normalize(playerCamForwardPS) * nearClip;
+		Vector3 centerFar = camPosPS + Vector3::Normalize(playerCamForwardPS) * farClip;
+
+		Vector3 nearTopLeft = centerNear + (playerCamUpPS * (heightNear / 2.0)) - (playerCamRightPS * (widthNear / 2.0));
+		Vector3 nearTopRight = centerNear + (playerCamUpPS * (heightNear / 2.0)) + (playerCamRightPS * (widthNear / 2.0));
+		Vector3 nearBottomLeft = centerNear - (playerCamUpPS * (heightNear / 2.0)) - (playerCamRightPS * (widthNear / 2.0));
+		Vector3 nearBottomRight = centerNear - (playerCamUpPS * (heightNear / 2.0)) + (playerCamRightPS * (widthNear / 2.0));
+
+		Vector3 farTopLeft = centerFar + (playerCamUpPS * (heightFar / 2.0)) - (playerCamRightPS * (widthFar / 2.0));
+		Vector3 farTopRight = centerFar + (playerCamUpPS * (heightFar / 2.0)) + (playerCamRightPS * (widthFar / 2.0));
+		Vector3 farBottomLeft = centerFar - (playerCamUpPS * (heightFar / 2.0)) - (playerCamRightPS * (widthFar / 2.0));
+		Vector3 farBottomRight = centerFar - (playerCamUpPS * (heightFar / 2.0)) + (playerCamRightPS * (widthFar / 2.0));
+
+		mPlanetCheckPlanes.clear();
+		//winding in an outside perspective so the cross product creates normals pointing inward
+		mPlanetCheckPlanes.emplace_back(Plane(nearTopLeft, nearBottomLeft, nearTopRight, bias));//Near
+		mPlanetCheckPlanes.emplace_back(Plane(farTopRight, farBottomRight, farTopLeft, bias));//Far 
+		mPlanetCheckPlanes.emplace_back(Plane(farTopLeft, farBottomLeft, nearTopLeft, bias));//Left
+		mPlanetCheckPlanes.emplace_back(Plane(nearTopRight, nearBottomRight, farTopRight, bias));//Right
+		mPlanetCheckPlanes.emplace_back(Plane(farTopLeft, nearTopLeft, farTopRight, bias));//Top
+		mPlanetCheckPlanes.emplace_back(Plane(nearBottomLeft, farBottomLeft, nearBottomRight, bias));//Bottom
 	}
 
 	bool Frustum::Contains(Vector3 p)
@@ -102,17 +118,30 @@ namespace Toast {
 		return true;
 	}
 
-	VolumeTri Frustum::ContainsTriangle(Vector3 p1, Vector3 p2, Vector3 p3) const
+	VolumeTri Frustum::ContainsTriangle(const Vector3& p1, const Vector3& p2, const Vector3& p3) const
 	{
+		bool anyIntersect = false;
+
 		for (const auto& plane : mPlanetCheckPlanes)
 		{
-			// Check if all three points are outside of the plane.
-			if (Vector3::Dot(plane.Normal, p1) - plane.D < -0.01 &&	Vector3::Dot(plane.Normal, p2) - plane.D < -0.01 &&	Vector3::Dot(plane.Normal, p3) - plane.D < -0.01)
-				return VolumeTri::OUTSIDE; // Immediate early-out
+			const double d1 = Vector3::Dot(plane.Normal, p1) - plane.D;
+			const double d2 = Vector3::Dot(plane.Normal, p2) - plane.D;
+			const double d3 = Vector3::Dot(plane.Normal, p3) - plane.D;
+
+			const bool in1 = d1 >= -0.01;
+			const bool in2 = d2 >= -0.01;
+			const bool in3 = d3 >= -0.01;
+
+			// All 3 outside this plane => outside frustum
+			if (!in1 && !in2 && !in3)
+				return VolumeTri::OUTSIDE;
+
+			// Mixed => intersects at least one plane
+			if (!(in1 && in2 && in3))
+				anyIntersect = true;
 		}
 
-		// If not outside, it must be intersecting or fully contained.
-		return VolumeTri::INTERSECT;
+		return anyIntersect ? VolumeTri::INTERSECT : VolumeTri::CONTAINS;
 	}
 
 	VolumeTri Frustum::ContainsTriangleVolume(Vector3 p1, Vector3 p2, Vector3 p3, double height) const
@@ -161,6 +190,47 @@ namespace Toast {
 		}
 
 		return ret;
+	}
+
+	Sphere Frustum::ComputePatchBoundingSphere(const Vector3& a, const Vector3& b, const Vector3& c, const double radius)
+	{
+		Vector3 mn = Vector3::Min(a, Vector3::Min(b, c));
+		Vector3 mx = Vector3::Max(a, Vector3::Max(b, c));
+		Vector3 center = (mn + mx) * 0.5;
+
+		Vector3 centerTest = (a + b + c) / 3.0;
+
+		double r = std::max({ Vector3::Length(a - center), Vector3::Length(b - center), Vector3::Length(c - center) });
+		double rSquared = std::max({ Vector3::LengthSquared(a - centerTest), Vector3::LengthSquared(b - centerTest), Vector3::LengthSquared(c - centerTest) });
+
+		//Vector3 mAB = Vector3::Normalize(a + b) * radius;
+		//Vector3 mBC = Vector3::Normalize(b + c) * radius;
+		//Vector3 mCA = Vector3::Normalize(c + a) * radius;
+
+		//r = std::max({ r, Vector3::Length(mAB - center), Vector3::Length(mBC - center), Vector3::Length(mCA - center) });
+
+		return { centerTest, std::sqrt(rSquared) * 2.0 };
+		//return { center, r };
+	}
+
+	VolumeTri Frustum::ContainsPatchSphere(const Vector3& a, const Vector3& b, const Vector3& c, const double radius)
+	{
+		Sphere s = ComputePatchBoundingSphere(a, b, c, radius);
+
+		bool anyIntersect = false;
+
+		for (const auto& plane : mPlanetCheckPlanes)
+		{
+			double dc = Vector3::Dot(plane.Normal, s.center) - plane.D;
+
+			if (dc < -s.radius)
+				return VolumeTri::OUTSIDE;
+
+			if (std::abs(dc) <= s.radius)
+				anyIntersect = true;
+		}
+
+		return anyIntersect ? VolumeTri::INTERSECT : VolumeTri::CONTAINS;
 	}
 
 	void Frustum::ToString()

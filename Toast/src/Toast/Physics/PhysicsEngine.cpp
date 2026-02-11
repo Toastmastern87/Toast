@@ -326,7 +326,7 @@ namespace Toast {
 		Vector3 lowestPointWorld = Vector3(DBL_MAX, DBL_MAX, DBL_MAX);
 		for (const Vector3& cornerLocal : box->mPoints)
 		{
-			Vector3 cornerWorld = Matrix(tc.GetTransformWithoutScale()) * cornerLocal;
+			Vector3 cornerWorld = Matrix::TransformPointRowVector(cornerLocal, Matrix(tc.GetTransformWithoutScale()));
 			cornerWorld = cornerWorld + worldTranslation;
 
 			Vector3 d = cornerWorld - planetCenterCR;
@@ -517,7 +517,7 @@ namespace Toast {
 			double radialDist;
 			Vector3 groundNormal;
 
-			Vector3 cornerWorld = Matrix(tc.GetTransformWithoutScale()) * cornerLocal;
+			Vector3 cornerWorld = Matrix::TransformPointRowVector(cornerLocal, Matrix(tc.GetTransformWithoutScale())); 
 			cornerWorld = cornerWorld + worldTranslation;
 
 			//DirectX::XMMATRIX transform = DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)) * DirectX::XMMatrixTranslation(cornerWorld.x, cornerWorld.y, cornerWorld.z);
@@ -634,7 +634,7 @@ namespace Toast {
 		Vector3 contactPos = deepest->Position;
 
 		Matrix worldNoScale = tc.GetTransformWithoutScale();
-		Vector3 CoMWorld = worldNoScale * rbc.CenterOfMass;
+		Vector3 CoMWorld = Matrix::TransformPointRowVector(rbc.CenterOfMass, worldNoScale);
 		Vector3 CoMPS = CoMWorld + worldTranslation;
 
 		Vector3 r = contactPos - CoMPS;

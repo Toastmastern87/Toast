@@ -529,20 +529,6 @@ namespace Toast {
 				Renderer::FillParticleBuffer(aggregatedParticles);
 			}
 
-			// Start a rebuild of the planet if needed
-			{
-				if (mMainCamera)
-				{
-					DirectX::XMVECTOR cameraPos, cameraRot, cameraScale;
-
-					DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
-
-					InvalidateFrustum();
-
-					mPlanet->OnUpdate({ cameraPos }, mMainCamera->GetWorldTranslation(), cameraTransform, mPhysicsEngine.get(), mFrustum.get(), mViewportHeight, mMainCamera->GetPerspectiveVerticalFOV());
-				}
-			}
-
 			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
 			DirectX::XMFLOAT4 cameraPosFloat;
 			DirectX::XMStoreFloat4(&cameraPosFloat, cameraPos);
@@ -552,6 +538,16 @@ namespace Toast {
 			DirectX::XMStoreFloat4x4(&fInvView, cameraTransform);
 			mMainCamera->SetViewMatrix(fView);
 			mMainCamera->SetInvViewMatrix(fInvView);
+
+			// Start a rebuild of the planet if needed
+			{
+				if (mMainCamera)
+				{
+					InvalidateFrustum();
+
+					mPlanet->OnUpdate(mMainCamera, cameraRot, { cameraPos }, { cameraPos }, mMainCamera->GetWorldTranslation(), cameraTransform, mPhysicsEngine.get(), mFrustum.get(), mMainCamera->GetViewMatrix(), mSettings.FrustumCullingMargin);
+				}
+			}
 
 			mEnvironment.SunUV = ComputeSunUVFromDirection(DirectX::XMFLOAT3(direction.x, direction.y, direction.z), DirectX::XMLoadFloat4x4(&mMainCamera->GetViewMatrix()), DirectX::XMLoadFloat4x4(&mMainCamera->GetProjection()));
 
@@ -1069,7 +1065,7 @@ namespace Toast {
 
 				InvalidateFrustum();
 
-				mPlanet->OnUpdate({ cameraPos }, mainCameraComponent->Camera.GetWorldTranslation(), mainCameraTransform->GetTransform(), mPhysicsEngine.get(), mFrustum.get(), mViewportHeight, mainCameraComponent->Camera.GetPerspectiveVerticalFOV());
+				mPlanet->OnUpdate(&mainCameraComponent->Camera, { cameraRot }, { cameraPos }, editorCamera->GetTranslation(), mainCameraComponent->Camera.GetWorldTranslation(), mainCameraTransform->GetTransform(), mPhysicsEngine.get(), mFrustum.get(), editorCamera->GetViewMatrix(), mSettings.FrustumCullingMargin);
 			}
 		}
 
@@ -1080,6 +1076,39 @@ namespace Toast {
 		{
 			// Planet
 			Renderer::SubmitPlanet(mPlanet, static_cast<int>(mSettings.WireframeRendering));
+
+			if(mPlanet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping && mPlanet->GetLevels().size() > 0)
+			{
+				uint64_t v = 0;
+
+				auto& levels = mPlanet->GetLevels();
+				auto  info = mPlanet->GetLODDrawInfo();
+				uint32_t L0 = info.first;
+				uint32_t Ln = L0 + info.count;
+
+				for (uint32_t L = L0; L < Ln; ++L)
+				{
+					const auto& level = levels[L];
+					if (!level.Dirty && !level.InFrustum)
+						continue;
+
+					v += mPlanet->GetLODGridIndexCount(); // drawMode=1 draw
+
+					if (L == L0)  v += mPlanet->GetGridIndexCount();       // center
+					else          v += mPlanet->GetRingGridIndexCount();   // ring
+				}
+
+				mStats.VerticesCount += (uint32_t)std::min<uint64_t>(v, UINT32_MAX);
+			}
+			else if (mPlanet->GetMeshMode() == PlanetMeshMode::Icosphere)
+			{
+				auto& planetMesh = mPlanet->GetIcosphereMesh();
+
+				uint32_t N = 1u << planetMesh->GetPatchLevels(); // N = 2^L
+				uint32_t vertsPerPatch = (N + 1u) * (N + 2u) / 2u;
+
+				mStats.VerticesCount += vertsPerPatch * planetMesh->GetPatchCount();
+			}
 
 			// Meshes!
 			auto viewMeshes = mRegistry.view<TransformComponent, MeshComponent>();
@@ -1180,14 +1209,7 @@ namespace Toast {
 
 				DirectX::XMVECTOR bitangent = DirectX::XMVector3Cross(debugNormalViewSpaceVec, tangent);
 
-				DirectX::XMMATRIX TBN(tangent,     // tangent (row 1)
-									  bitangent, // row 2
-									  debugNormalViewSpaceVec, // row 3
-									  DirectX::XMVectorSet(0, 0, 0, 1) // row 4
-				);
-
-				//Matrix tempMatrix = Matrix(TBN);
-				//tempMatrix.ToString();
+				DirectX::XMMATRIX TBN(tangent, bitangent, debugNormalViewSpaceVec, DirectX::XMVectorSet(0, 0, 0, 1));
 
 				DirectX::XMVECTOR debugPointWorld = DirectX::XMVector3TransformCoord(debugPosViewSpaceVec, DirectX::XMLoadFloat4x4(&editorCamera->GetInvViewMatrix()));
 
@@ -1472,8 +1494,6 @@ namespace Toast {
 
 	void Scene::InvalidateFrustum()
 	{
-		Matrix planetTransform;
-
 		auto view = mRegistry.view<TransformComponent, CameraComponent>();
 		for (auto entity : view)
 		{
@@ -1481,19 +1501,19 @@ namespace Toast {
 
 			if (camera.Primary)
 			{
-				Vector3 worldMovement = camera.Camera.GetWorldTranslation();
-				Vector3 effectiveTranslation = -worldMovement;
+				//Vector3 worldMovement = camera.Camera.GetWorldTranslation();
+				//Vector3 effectiveTranslation = -worldMovement;
 
-				//effectiveTranslation.ToString("effectiveTranslation: ");
+				////effectiveTranslation.ToString("effectiveTranslation: ");
 
-				Matrix worldTranslationMatrix = Matrix::Identity() * Matrix::TranslationFromVector(effectiveTranslation);
-				Matrix effectiveCameraTransform = { transform.GetTransform() };
-				effectiveCameraTransform = effectiveCameraTransform * worldTranslationMatrix;
+				//Matrix worldTranslationMatrix = Matrix::Identity() * Matrix::TranslationFromVector(-worldMovement);
+				//Matrix effectiveCameraTransform = { transform.GetTransform() };
+				////effectiveCameraTransform = effectiveCameraTransform * worldTranslationMatrix;
 
-				Matrix cameraTransform = { transform.GetTransform() };
+				//Matrix cameraTransform = { transform.GetTransform() };
 
 				mFrustum->Invalidate(camera.Camera.GetAspecRatio(), camera.Camera.GetPerspectiveVerticalFOV(), camera.Camera.GetNearClip(), camera.Camera.GetFarClip());
-				mFrustum->Update(effectiveCameraTransform, planetTransform);
+				mFrustum->Update(Matrix(transform.GetTransform()), Matrix(mPlanet->GetTransformNoScale()), mSettings.FrustumCullingMargin);
 			}
 		}
 	}

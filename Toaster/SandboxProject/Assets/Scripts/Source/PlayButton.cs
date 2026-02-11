@@ -15,7 +15,7 @@ namespace Sandbox
 
         void OnEvent()
         {
-            if (Input.IsMouseButtonReleased(MouseCode.ButtonLeft))
+
                 Scene.LoadScene("Mars");
         }
 

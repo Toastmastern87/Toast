@@ -42,6 +42,22 @@ namespace Toast {
 		return fForward;
 	}
 
+
+	Vector3 SceneCamera::GetForwardVectorWS(Quaternion cameraRot)
+	{
+		return Vector3::Rotate({ 0.0f, 0.0f, 1.0f }, cameraRot);
+	}
+
+	Vector3 SceneCamera::GetUpVectorWS(Quaternion cameraRot)
+	{
+		return Vector3::Rotate({ 0.0f, 1.0f, 0.0f }, cameraRot);
+	}
+
+	Vector3 SceneCamera::GetRightVectorWS(Quaternion cameraRot)
+	{
+		return Vector3::Rotate({ 1.0f, 0.0f, 0.0f }, cameraRot);
+	}
+
 	void SceneCamera::RecalculateProjection()
 	{
 		DirectX::XMMATRIX projection, orthoProjection;

@@ -627,8 +627,10 @@ namespace Toast {
 
 		out << YAML::Key << "Settings";
 		out << YAML::BeginMap;
+		out << YAML::Key << "Wireframe" << YAML::Value << (int)settings.WireframeRendering;
 		out << YAML::Key << "Grid" << YAML::Value << settings.Grid;
 		out << YAML::Key << "CameraFrustum" << YAML::Value << settings.CameraFrustum;
+		out << YAML::Key << "FrustumCullingMargin" << YAML::Value << settings.FrustumCullingMargin;
 		out << YAML::Key << "SunLightFrustum" << YAML::Value << settings.SunLightFrustum;
 		out << YAML::Key << "DirectionalLightningGain" << YAML::Value << settings.DirectionalLightningGain;
 		out << YAML::Key << "RenderColliders" << YAML::Value << settings.RenderColliders;
@@ -692,7 +694,7 @@ namespace Toast {
 		out << YAML::Key << "Radius" << YAML::Value << scenePlanet->mRadius;
 		out << YAML::Key << "MaxHeight" << YAML::Value << scenePlanet->mMaxHeight;
 		out << YAML::Key << "MinHeight" << YAML::Value << scenePlanet->mMinHeight;
-		out << YAML::Key << "mMeshMode" << YAML::Value << static_cast<uint32_t>(scenePlanet->mMeshMode);
+		out << YAML::Key << "MeshMode" << YAML::Value << static_cast<uint32_t>(scenePlanet->mMeshMode);
 		out << YAML::Key << "AlbedoColor" << YAML::Value << scenePlanet->mAlbedoColor;
 		out << YAML::Key << "Roughness" << YAML::Value << scenePlanet->mRoughness;
 		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet->mMetalness;
@@ -716,6 +718,18 @@ namespace Toast {
 		out << YAML::Key << "MSGain" << YAML::Value << scenePlanet->mAtmosphere.MSGain;
 		out << YAML::Key << "SGain" << YAML::Value << scenePlanet->mAtmosphere.SGain;
 		out << YAML::Key << "GravityConstant" << YAML::Value << scenePlanet->mGravityConstant;
+
+		auto& planetMeshIco = scenePlanet->mIcosphereMesh;
+
+		out << YAML::Key << "PlanetMesh";
+		out << YAML::BeginMap;
+		out << YAML::Key << "MaxSubdivisions" << YAML::Value << planetMeshIco->mMaxSubdivisions;
+		out << YAML::Key << "PatchLevels" << YAML::Value << planetMeshIco->mPatchLevels;
+		out << YAML::Key << "NearDistance" << YAML::Value << planetMeshIco->mNearDistance;
+		out << YAML::Key << "FarDistance" << YAML::Value << planetMeshIco->mFarDistance;
+		out << YAML::Key << "BackfaceCulling" << YAML::Value << planetMeshIco->mBackfaceCulling;
+		out << YAML::Key << "FrustumCulling" << YAML::Value << planetMeshIco->mFrustumCulling;
+		out << YAML::EndMap;
 
 		out << YAML::Key << "HeightDetails";
 		out << YAML::BeginSeq;
@@ -936,8 +950,10 @@ namespace Toast {
 
 		Scene::Settings& settings = mScene->GetSettings();
 
+		settings.WireframeRendering = (Toast::Scene::Settings::Wireframe)data["Settings"]["Wireframe"].as<int>();
 		settings.Grid = data["Settings"]["Grid"].as<bool>();
 		settings.CameraFrustum = data["Settings"]["CameraFrustum"].as<bool>();
+		settings.FrustumCullingMargin = data["Settings"]["FrustumCullingMargin"].as<float>();
 		settings.SunLightFrustum = data["Settings"]["SunLightFrustum"].as<bool>();
 		settings.DirectionalLightningGain = data["Settings"]["DirectionalLightningGain"].as<float>();
 		settings.RenderColliders = data["Settings"]["RenderColliders"].as<bool>();
@@ -995,6 +1011,7 @@ namespace Toast {
 		scenePlanet->mRadius = planet["Radius"].as<double>();
 		scenePlanet->mMaxHeight = planet["MaxHeight"].as<double>();
 		scenePlanet->mMinHeight = planet["MinHeight"].as<double>();
+		scenePlanet->mMeshMode = static_cast<PlanetMeshMode>(planet["MeshMode"].as<uint32_t>());
 		scenePlanet->mAlbedoColor = planet["AlbedoColor"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mRoughness = planet["Roughness"].as<float>();
 		scenePlanet->mMetalness = planet["Metalness"].as<float>();
@@ -1018,6 +1035,18 @@ namespace Toast {
 		scenePlanet->mAtmosphere.MSGain = planet["MSGain"].as<float>();
 		scenePlanet->mAtmosphere.SGain = planet["SGain"].as<float>();
 		scenePlanet->mGravityConstant = planet["GravityConstant"].as<float>();
+
+		auto& planetMeshIco = scenePlanet->mIcosphereMesh;
+		planetMeshIco->mMaxSubdivisions = planet["PlanetMesh"]["MaxSubdivisions"].as<int>();
+		planetMeshIco->mPatchLevels = planet["PlanetMesh"]["PatchLevels"].as<int>();
+		planetMeshIco->mNearDistance = planet["PlanetMesh"]["NearDistance"].as<double>();
+		planetMeshIco->mFarDistance = planet["PlanetMesh"]["FarDistance"].as<double>();
+		planetMeshIco->mBackfaceCulling = planet["PlanetMesh"]["BackfaceCulling"].as<bool>();
+		planetMeshIco->mFrustumCulling = planet["PlanetMesh"]["FrustumCulling"].as<bool>();
+		planetMeshIco->mDistanceLUTIsDirty = true;
+		planetMeshIco->mFaceLevelDotLUTIsDirty = true;
+		planetMeshIco->mHeightMultLUTIsDirty = true;
+		planetMeshIco->mPatchIsDirty = true;
 
 		scenePlanet->mHeightDetails.clear();
 

@@ -4,6 +4,10 @@ instance
 instance
 instance
 instance
+instance
+instance
+instance
+instance
 
 #type vertex
 #pragma pack_matrix( row_major )
@@ -34,16 +38,30 @@ cbuffer Model : register(b1)
 cbuffer IcospherePlanet : register(b2)
 {
     float planetRadius; 
-	float3 cameraPosPS;      // camera position in planet space
+    float3 camHiPS;
+	
+    matrix viewMatrixPlanetRendering; // This includes floating origin translation for planet rendering
+	
+    int patchLevels;
+    float3 camLoPS;
+	
+    float3 planetCenterRelHiWS;
+
+    float3 planetCenterRelLoWS;
 };
 
 struct VertexInputType
 {
-	float2 localPosition	: TEXCOORD0;
-	int level				: TEXTUREID;
-	float3 a				: POSITION0;
-	float3 r				: POSITION1;
-	float3 s				: POSITION2;
+    uint2 ij        : TEXCOORD0; // per-vertex
+    int level       : TEXTUREID0; // per-instance
+
+    float3 V0       : POSITION0;
+    float3 V1       : POSITION1;
+    float3 V2       : POSITION2;
+
+    float3 P0RelHi  : TEXCOORD1;
+    float3 P1RelHi  : TEXCOORD2;
+    float3 P2RelHi  : TEXCOORD3;
 };
 
 struct PixelInputType
@@ -57,34 +75,55 @@ PixelInputType main(VertexInputType input)
 {
     PixelInputType o;
 
-    // 1) Planar point inside patch triangle (planet local)
-    float u = input.localPosition.x;
-    float v = input.localPosition.y;
-    float3 p = input.a + u * input.r + v * input.s;
+    // Triangular grid barycentrics
+    uint N = 1u << (uint) patchLevels;
 
-    // 2) Project to unit sphere direction
-    float lenP = length(p);
-    float3 dir = (lenP > 1e-8f) ? (p / lenP) : float3(0, 1, 0);
+    uint i = input.ij.x;
+    uint j = input.ij.y;
+    if (i + j > N)
+    {
+        i = min(i, N);
+        j = N - i;
+    }
+    uint k = N - i - j;
 
-    // 3) Camera-relative position in planet space (small near camera)
-    float3 posRelPS = dir * planetRadius - cameraPosPS;
+    float invN = exp2(-(float) patchLevels);
+    float wi = (float) i * invN;
+    float wj = (float) j * invN;
+    float wk = (float) k * invN;
 
-    // 4) Rotate into world-relative (ignore translation)
-    float3 worldRelVec = mul(float4(posRelPS, 0.0f), worldMatrix).xyz;
+    // IMPORTANT: map weights consistently to corners.
+    // You must ensure (i,j,k) correspond to (V1,V2,V0) or similar consistently.
+    // Pick ONE mapping and keep it everywhere.
+    float w0 = wk; // for V0
+    float w1 = wi; // for V1
+    float w2 = wj; // for V2
 
-    // 5) Apply floating origin translation ONLY if viewMatrix expects it.
-    // In many floating-origin setups, viewMatrix is rotation-only and worldTranslationMatrix does translation.
-    float4 worldRel = mul(float4(worldRelVec, 1.0f), worldTranslationMatrix);
+    float3 V0 = normalize(input.V0);
+    float3 V1 = normalize(input.V1);
+    float3 V2 = normalize(input.V2);
 
-    // 6) View / Projection
-    float4 viewPos = mul(worldRel, viewMatrix);
-    o.viewPosition = viewPos.xyz;
-    o.pixelPosition = mul(viewPos, projectionMatrix);
+    // Edge-consistent direction
+    precise float3 dir = normalize(w0 * V0 + w1 * V1 + w2 * V2);
 
-    // 7) Normal: rotate dir by worldMatrix (ignore translation)
-    float3 nWS = mul(float4(dir, 0.0f), worldMatrix).xyz;
+    // Normal in planet space (same as dir for sphere)
+    float3 nPS = dir;
+
+    // High-precision relative position in planet space meters:
+    precise float3 relPSHi = w0 * input.P0RelHi + w1 * input.P1RelHi + w2 * input.P2RelHi;
+
+    // Final view-relative = (hi-relative) - camLo
+    float3 relPS = relPSHi - camLoPS;
+
+    // World rotation only
+    float3x3 R = (float3x3) worldMatrix;
+    float3 relWS = mul(relPS, R);
+    float3 nWS = mul(nPS, R);
     o.normalSphereWS = normalize(nWS);
 
+    float4 viewPos = mul(float4(relWS, 1.0f), viewMatrixPlanetRendering);
+    o.viewPosition = viewPos.xyz;
+    o.pixelPosition = mul(viewPos, projectionMatrix);
     return o;
 }
 

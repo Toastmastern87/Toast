@@ -59,27 +59,19 @@ namespace Toast {
 	}
 
 	// Function to create a quaternion from roll, pitch, yaw
-	Quaternion Quaternion::FromRollPitchYaw(double roll, double pitch, double yaw) {
-		// Compute the half angles
-		double halfRoll = roll * 0.5;
-		double halfPitch = pitch * 0.5;
-		double halfYaw = yaw * 0.5;
+	Quaternion Quaternion::FromRollPitchYaw(double pitch, double yaw, double roll)
+	{
+		using namespace DirectX;
 
-		// Compute sin & cos values
-		double sinRoll = sin(halfRoll);
-		double cosRoll = cos(halfRoll);
-		double sinPitch = sin(halfPitch);
-		double cosPitch = cos(halfPitch);
-		double sinYaw = sin(halfYaw);
-		double cosYaw = cos(halfYaw);
+		XMVECTOR q = XMQuaternionRotationRollPitchYaw((float)pitch, (float)yaw, (float)roll);
+		q = XMQuaternionNormalize(q);
 
-		// Create individual quaternions for the three rotations
-		Quaternion qRoll(cosRoll, sinRoll, 0, 0);
-		Quaternion qPitch(cosPitch, 0, sinPitch, 0);
-		Quaternion qYaw(cosYaw, 0, 0, sinYaw);
-
-		// Combine the rotations: Yaw * Pitch * Roll
-		return qYaw * qPitch * qRoll;
+		Quaternion out;
+		out.x = (double)XMVectorGetX(q);
+		out.y = (double)XMVectorGetY(q);
+		out.z = (double)XMVectorGetZ(q);
+		out.w = (double)XMVectorGetW(q);
+		return out;
 	}
 
 	void Quaternion::ToString(const std::string& label)

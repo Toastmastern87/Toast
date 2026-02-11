@@ -56,7 +56,6 @@ namespace Toast {
 		mPlanetLevelBuffer.Allocate(mPlanetLevelCBuffer->GetSize());
 		mPlanetLevelBuffer.ZeroInitialize();
 
-
 		mTerrainObjectCBuffer = ConstantBufferLibrary::Load("TerrainObject", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, (CBufferBindSlot)13) });
 		mTerrainObjectCBuffer->Bind();
 		mTerrainObjectBuffer.Allocate(mTerrainObjectCBuffer->GetSize());
@@ -388,11 +387,19 @@ namespace Toast {
 		return mPlanetLevelBuffer;
 	}
 
-	void Planet::OnUpdate(const Vector3& camPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix, PhysicsEngine* physicsEngine, Frustum* frustum, float viewportHeight, float FoVYRadians)
+	// During runtime playerCamPosWS and RendererCamPosWS will be the same, but they can differ in the editor when the player camera is detached from the rendering camera. The worldTranslation is used to shift the planet's position in world space, allowing for large world coordinates without precision issues. The viewMatrix is used for culling and LOD calculations, while the editorCameraViewMatrix is used for rendering the planet correctly in the editor viewport.
+	void Planet::OnUpdate(Camera* camera, const Quaternion& playerCamRot, const Vector3& playerCamPosWS, const Vector3& renderingCamPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix, PhysicsEngine* physicsEngine, Frustum* frustum, const DirectX::XMFLOAT4X4& renderingCameraViewMatrix, float frustumBias)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		mRotationQuat = Quaternion::FromRollPitchYaw(Math::DegreesToRadians(mRotationEulerAngles.x), Math::DegreesToRadians(mRotationEulerAngles.y), Math::DegreesToRadians(mRotationEulerAngles.z));
+		Quaternion qCam = playerCamRot;
+		qCam = Quaternion::Normalize(qCam);
+
+		Vector3& playerCamForwardWS = camera->GetForwardVectorWS(playerCamRot);
+		Vector3& playerCamUpWS = camera->GetUpVectorWS(playerCamRot);
+		Vector3& playerCamRightWS = camera->GetRightVectorWS(playerCamRot);
+
+		mRotationQuat = Quaternion(mRotationQuaternion) * Quaternion::FromRollPitchYaw(Math::DegreesToRadians(mRotationEulerAngles.x), Math::DegreesToRadians(mRotationEulerAngles.y), Math::DegreesToRadians(mRotationEulerAngles.z));
 		mRotationQuat = Quaternion::Normalize(mRotationQuat);
 		mInvRotationQuat = mRotationQuat.Conjugate();
 
@@ -403,11 +410,19 @@ namespace Toast {
 		cb.MaxHeight = (float)mMaxHeight;
 		cb.MinHeight = (float)mMinHeight;
 
-		Vector3 camRel = camPosWS - planetCenterWS;
+		Vector3 playerCamRel = playerCamPosWS - planetCenterWS;
+		Vector3 renderingCamRel = renderingCamPosWS - planetCenterWS;
+		Vector3 playerCamPosPS = Vector3::Rotate(playerCamRel, mInvRotationQuat);
+		Vector3 renderingCamPosPS = Vector3::Rotate(renderingCamRel, mInvRotationQuat);
 
-		Vector3 camPosPS = Vector3::Rotate(camRel, mInvRotationQuat);
+		frustum->UpdatePlanetSpace(playerCamPosPS, playerCamRightWS, playerCamUpWS, playerCamForwardWS, mInvRotationQuat, camera->GetNearClip(), camera->GetFarClip(), camera->GetVerticalFOV(), camera->GetAspectRatio(), frustumBias);
 
-		double dist = camRel.Length();
+		Vector3 planetPosWS = planetCenterWS - renderingCamPosWS + worldTranslation;
+
+		DirectX::XMMATRIX viewMatrixPlanetRendering = DirectX::XMLoadFloat4x4(&renderingCameraViewMatrix);
+		viewMatrixPlanetRendering.r[3] = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+
+		double dist = playerCamRel.Length();
 		double alt = dist - mRadius;
 		cb.Altitude = (float)alt;
 
@@ -417,7 +432,7 @@ namespace Toast {
 		Vector3 lonNorthWS = Vector3::Normalize(Vector3::Rotate({ 0,0,1 }, mRotationQuat));
 
 		// camera-dependent radial, kept for lifting the grid
-		Vector3 radUpWS = Vector3::Normalize(camRel);// Vector3::Normalize(camPosWS - Vector3(sTranslation));
+		Vector3 radUpWS = Vector3::Normalize(playerCamRel);// Vector3::Normalize(camPosWS - Vector3(sTranslation));
 
 		// 1.3   project planet-east into the tangent plane → tangent east
 		Vector3 tanEastWS = lonEastWS - radUpWS * Vector3::Dot(lonEastWS, radUpWS);
@@ -454,15 +469,15 @@ namespace Toast {
 
 		mPlanetFrameCBuffer->Map(mPlanetFrameBuffer);
 
-		mActiveLevels = DetermineActiveLODLevels(camPosPS, physicsEngine);
+		mActiveLevels = DetermineActiveLODLevels(playerCamPosPS, physicsEngine);
 
 		const uint32_t L0 = mActiveLevels.first;
 		const uint32_t Ln = L0 + mActiveLevels.count;
 
-		Vector3 camTangent = { Vector3::Dot(camRel, tanEastWS), 0.0, Vector3::Dot(camRel, tanNorthWS) };
+		Vector3 camTangent = { Vector3::Dot(playerCamRel, tanEastWS), 0.0, Vector3::Dot(playerCamRel, tanNorthWS) };
 
-		if(mMeshMode == PlanetMeshMode::Icosphere)
-			mIcosphereMesh->OnUpdate(frustum, camPosPS, mTranslation, mRotationEulerAngles, mRotationQuaternion, viewportHeight, FoVYRadians);
+		if (mMeshMode == PlanetMeshMode::Icosphere)
+			mIcosphereMesh->OnUpdate(frustum, viewMatrixPlanetRendering, playerCamPosPS, renderingCamPosPS, planetPosWS, mRotationEulerAngles, mRotationQuaternion, mRadius, mMaxHeight);
 
 		if (!mRunOnce)
 		{
@@ -477,6 +492,16 @@ namespace Toast {
 			UploadHeightDetailsToGPU();
 	}
 
+	DirectX::XMMATRIX Planet::GetTransformRotation()
+	{
+		return DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(mRotationEulerAngles.x), DirectX::XMConvertToRadians(mRotationEulerAngles.y), DirectX::XMConvertToRadians(mRotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&mRotationQuaternion));
+	}
+
+	DirectX::XMMATRIX Planet::GetTransformNoScale()
+	{
+		return DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(mRotationEulerAngles.x), DirectX::XMConvertToRadians(mRotationEulerAngles.y), DirectX::XMConvertToRadians(mRotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&mRotationQuaternion)) * DirectX::XMMatrixTranslation(mTranslation.x, mTranslation.y, mTranslation.z);
+	}
+
 	Ref<TextureCube> Planet::CreateHeightMapCube(const Texture2D* heightMapTexture)
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
@@ -487,7 +512,7 @@ namespace Toast {
 		TextureSampler* defaultSampler = TextureLibrary::GetSampler("UWrapVClampLinearSampler");
 
 		Ref<TextureCube> heightMapCube = CreateRef<TextureCube>("HeightMapCube", DXGI_FORMAT_R32_FLOAT, cubemapSize, cubemapSize);
-
+		 
 		heightMapCube->CreateUAV(0);
 
 		ShaderLibrary::Get("assets/shaders/Planet/HeightMapToCubeMap.hlsl")->Bind();
@@ -952,22 +977,19 @@ namespace Toast {
 
 	// OLD PLANET SYSTEM BUT MAYBE BETTER
 
-	static double MaxEdgeLengthOfFace(const PlanetMeshIcosphere::PlanetFaceCPU& f, const double radius)
-	{
-		const double ab = Vector3::Length(f.A - f.B);
-		const double bc = Vector3::Length(f.B - f.C);
-		const double ca = Vector3::Length(f.C - f.A);
-		return std::max(ab, std::max(bc, ca));
-	}
+	static constexpr uint32_t MINGUARANTEEDSUBDIVISION = 4;
 
 	void PlanetMeshIcosphere::Init()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		double ratio = ((1.0 + sqrt(5.0)) / 2.0);
 
-		std::vector<Vector3> startVertices = std::vector<Vector3>{
+		mBaseIcosahedronVerts = std::vector<Vector3>{
 			Vector3::Normalize({ ratio, 0.0, -1.0 }),
 			Vector3::Normalize({ -ratio, 0.0, -1.0 }),
 			Vector3::Normalize({ ratio, 0.0, 1.0 }),
+
 			Vector3::Normalize({ -ratio, 0.0, 1.0 }),
 			Vector3::Normalize({ 0.0, -1.0, ratio }),
 			Vector3::Normalize({ 0.0, -1.0, -ratio }),
@@ -979,7 +1001,7 @@ namespace Toast {
 			Vector3::Normalize({ 1.0 , -ratio, 0.0 })
 		};
 
-		std::vector<uint32_t> startIndices = std::vector<uint32_t>{
+		mStartIndices = std::vector<uint32_t>{
 						1, 3, 8,
 						3, 1, 9,
 						2, 0, 10,
@@ -1006,22 +1028,27 @@ namespace Toast {
 						2, 4, 11
 		};
 
-		for (uint32_t i = 0; i < startIndices.size(); i += 3)
-			mFaces.emplace_back(PlanetFaceCPU(startVertices[startIndices[i]], startVertices[startIndices[i + (size_t)1]], startVertices[startIndices[i + (size_t)2]], (short)0));
-
 		// Setting up Shader Layout
 		InitShaderLayout();
+
+		// Setting up Constant Buffers
+		mPlanetMeshCBuffer = ConstantBufferLibrary::Load("IcospherePlanet", 128, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, (CBufferBindSlot)2) });
+		mPlanetMeshCBuffer->Bind();
+		mPlanetMeshBuffer.Allocate(mPlanetMeshCBuffer->GetSize());
+		mPlanetMeshBuffer.ZeroInitialize();
 	}
 
 	void PlanetMeshIcosphere::InitShaderLayout()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		std::vector<ShaderLayout::ShaderInputElement> elements;
-		elements.reserve(5);
+		elements.reserve(9);
 
 		// -------- Slot 0: Per-vertex --------
-		// float2 localPosition : TEXCOORD0;
+		// uint2 localPosition : TEXCOORD0;
 		{
-			ShaderLayout::ShaderInputElement e(DXGI_FORMAT_R32G32_FLOAT, "TEXCOORD", 0);
+			ShaderLayout::ShaderInputElement e(DXGI_FORMAT_R16G16_UINT, "TEXCOORD", 0);
 			e.mInputSlot = 0;
 			e.mInputClassification = D3D11_INPUT_PER_VERTEX_DATA;
 			e.mInstanceDataStepRate = 0;
@@ -1029,7 +1056,7 @@ namespace Toast {
 		}
 
 		// -------- Slot 1: Per-instance --------
-		// int level : TEXTUREID;
+		// int level : TEXTUREID0;
 		{
 			ShaderLayout::ShaderInputElement e(DXGI_FORMAT_R32_SINT, "TEXTUREID", 0);
 			e.mInputSlot = 1;
@@ -1038,7 +1065,7 @@ namespace Toast {
 			elements.emplace_back(e);
 		}
 
-		// float3 a : POSITION0;
+		// float3 V0 : POSITION0;
 		{
 			ShaderLayout::ShaderInputElement e(DXGI_FORMAT_R32G32B32_FLOAT, "POSITION", 0);
 			e.mInputSlot = 1;
@@ -1047,7 +1074,7 @@ namespace Toast {
 			elements.emplace_back(e);
 		}
 
-		// float3 r : POSITION1;
+		// float3 V1 : POSITION1;
 		{
 			ShaderLayout::ShaderInputElement e(DXGI_FORMAT_R32G32B32_FLOAT, "POSITION", 1);
 			e.mInputSlot = 1;
@@ -1056,9 +1083,36 @@ namespace Toast {
 			elements.emplace_back(e);
 		}
 
-		// float3 s : POSITION2;
+		// float3 V2 : POSITION2;
 		{
 			ShaderLayout::ShaderInputElement e(DXGI_FORMAT_R32G32B32_FLOAT, "POSITION", 2);
+			e.mInputSlot = 1;
+			e.mInputClassification = D3D11_INPUT_PER_INSTANCE_DATA;
+			e.mInstanceDataStepRate = 1;
+			elements.emplace_back(e);
+		}
+
+		// float3 P0RelHi : TEXCOORD1;
+		{
+			ShaderLayout::ShaderInputElement e(DXGI_FORMAT_R32G32B32_FLOAT, "TEXCOORD", 1);
+			e.mInputSlot = 1;
+			e.mInputClassification = D3D11_INPUT_PER_INSTANCE_DATA;
+			e.mInstanceDataStepRate = 1;
+			elements.emplace_back(e);
+		}
+
+		// float3 P1RelHi : TEXCOORD2;
+		{
+			ShaderLayout::ShaderInputElement e(DXGI_FORMAT_R32G32B32_FLOAT, "TEXCOORD", 2);
+			e.mInputSlot = 1;
+			e.mInputClassification = D3D11_INPUT_PER_INSTANCE_DATA;
+			e.mInstanceDataStepRate = 1;
+			elements.emplace_back(e);
+		}
+
+		// float3 P2RelHi : TEXCOORD3;
+		{
+			ShaderLayout::ShaderInputElement e(DXGI_FORMAT_R32G32B32_FLOAT, "TEXCOORD", 3);
 			e.mInputSlot = 1;
 			e.mInputClassification = D3D11_INPUT_PER_INSTANCE_DATA;
 			e.mInstanceDataStepRate = 1;
@@ -1073,12 +1127,14 @@ namespace Toast {
 
 	void PlanetMeshIcosphere::GeneratePatchGeometry()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		mVertices.clear();
 		mIndices.clear();
 
-		uint32_t mRC = 1 + (uint32_t)pow(2, mPatchLevels);
-
-		double delta = 1.0f / ((double)mRC - 1.0);
+		// N = 2^mPatchLevels; grid has (N+1) rows
+		const uint32_t N = 1u << mPatchLevels;
+		const uint32_t mRC = N + 1u;
 
 		uint32_t rowIndex = 0;
 		uint32_t nextIndex = 0;
@@ -1086,29 +1142,25 @@ namespace Toast {
 		for (uint32_t row = 0; row < mRC; row++)
 		{
 			uint32_t numCols = mRC - row;
-
 			nextIndex += numCols;
 
-			for (uint32_t column = 0; column < numCols; column++)
+			for (uint32_t col = 0; col < numCols; col++)
 			{
-				// calculate position
-				Vector2 pos = { column / ((double)mRC - 1.0), row / ((double)mRC - 1.0) };
+				// Store integer barycentric grid coords (i,j)
+				// i = col, j = row
+				mVertices.emplace_back(PlanetVertexCPU((uint16_t)col, (uint16_t)row));
 
-				//create vertex
-				mVertices.emplace_back(PlanetVertexCPU(pos));
-
-				//calculate index
-				if (row < mRC - 1 && column < numCols - 1)
+				if (row < mRC - 1 && col < numCols - 1)
 				{
-					mIndices.emplace_back(rowIndex + column);
-					mIndices.emplace_back(nextIndex + column);
-					mIndices.emplace_back(1 + rowIndex + column);
+					mIndices.emplace_back(rowIndex + col);
+					mIndices.emplace_back(nextIndex + col);
+					mIndices.emplace_back(1 + rowIndex + col);
 
-					if (column < numCols - 2)
+					if (col < numCols - 2)
 					{
-						mIndices.emplace_back(nextIndex + column);
-						mIndices.emplace_back(1 + nextIndex + column);
-						mIndices.emplace_back(1 + rowIndex + column);
+						mIndices.emplace_back(nextIndex + col);
+						mIndices.emplace_back(1 + nextIndex + col);
+						mIndices.emplace_back(1 + rowIndex + col);
 					}
 				}
 			}
@@ -1117,20 +1169,58 @@ namespace Toast {
 		}
 	}
 
-	void PlanetMeshIcosphere::OnUpdate(Frustum* frustum, Vector3& cameraPosPS, DirectX::XMFLOAT3& translation, DirectX::XMFLOAT3& rotationEulerAngles, DirectX::XMFLOAT4& rotationQuaternion, float viewportHeight, float FoVYRadians)
+	void PlanetMeshIcosphere::OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, DirectX::XMFLOAT3& rotationEulerAngles, DirectX::XMFLOAT4& rotationQuaternion, double radius, double maxHeight)
 	{
-		mTransform = Matrix::Identity() * Matrix::ScalingFromVector({ mRadius, mRadius, mRadius }) * Matrix::RotationFromEauler(rotationEulerAngles) * Matrix::RotationFromQuaternion(rotationQuaternion) * Matrix::TranslationFromVector(translation);
+		TOAST_PROFILE_FUNCTION();
 
-		if (mDistanceLUTDirty)
-			GenerateDistanceLUT(viewportHeight, FoVYRadians);
+		mRadius = radius;
+		mMaxHeight = maxHeight;
+
+		mMidpointCache.clear();
+		mSphereVertices.clear(); // keep a copy from Init()
+
+		mSphereVertices.reserve(200000);
+		for (const auto& v : mBaseIcosahedronVerts)
+			mSphereVertices.push_back(v);
+
+		// Updating Constant Buffer
+		DirectX::XMFLOAT3 camHi, camLo;
+
+		camHi = { (float)renderingCameraPosPS.x, (float)renderingCameraPosPS.y, (float)renderingCameraPosPS.z };
+		camLo = { (float)(renderingCameraPosPS.x - (double)camHi.x), (float)(renderingCameraPosPS.y - (double)camHi.y), (float)(renderingCameraPosPS.z - (double)camHi.z) };
+
+		mCamHiPS = Vector3(camHi.x, camHi.y, camHi.z);
+
+		DirectX::XMFLOAT3 relHi = { (float)planetCenterWS.x, (float)planetCenterWS.y, (float)planetCenterWS.z };
+		DirectX::XMFLOAT3 relLo = {	(float)(planetCenterWS.x - (double)relHi.x), (float)(planetCenterWS.y - (double)relHi.y), (float)(planetCenterWS.z - (double)relHi.z) };
+
+		float radiusF = mRadius;
+		uint32_t patchLevels = mPatchLevels;
+		mPlanetMeshBuffer.Write((uint8_t*)&radiusF, 4, 0);
+		mPlanetMeshBuffer.Write((uint8_t*)&camHi, 12, 4);
+		mPlanetMeshBuffer.Write((uint8_t*)&viewMatrixPlanetRendering, 64, 16);
+		mPlanetMeshBuffer.Write((uint8_t*)&patchLevels, 4, 80);
+		mPlanetMeshBuffer.Write((uint8_t*)&camLo, 12, 84);
+		mPlanetMeshBuffer.Write((uint8_t*)&relHi, 12, 96);
+		mPlanetMeshBuffer.Write((uint8_t*)&relLo, 12, 112);
+		mPlanetMeshCBuffer->Map(mPlanetMeshBuffer);
+
+		if (mDistanceLUTIsDirty)
+			GenerateDistanceLUT();
+
+		if (mFaceLevelDotLUTIsDirty)
+			GenerateFaceDotLevelLUT();
+
+		if(mHeightMultLUTIsDirty)
+			GenerateHeightMultLUT();
 
 		if (mPatchIsDirty)
 			GeneratePatchGeometry();
 
 		mPatches.clear();
 
-		for (auto& face : mFaces)
-			RecursiveFace(frustum, face.A, face.B, face.C, face.Level, cameraPosPS, true);
+		for (size_t i = 0; i < mStartIndices.size(); i += 3)
+			RecursiveFace(frustum, mStartIndices[i], mStartIndices[i + 1], mStartIndices[i + 2], 0, cameraPosPS, true);
 
 		BuildGPUData();
 
@@ -1159,44 +1249,106 @@ namespace Toast {
 		}
 
 		mPatchIsDirty = false;
-		mDistanceLUTDirty = false;
+		mDistanceLUTIsDirty = false;
+		mFaceLevelDotLUTIsDirty = false;
+		mHeightMultLUTIsDirty = false;
 	}
 
-	void PlanetMeshIcosphere::RecursiveFace(Frustum* frustum, Vector3& a, Vector3& b, Vector3& c, int16_t subdivision, Vector3& cameraPosPS, bool splitCull)
+	void PlanetMeshIcosphere::RecursiveFace(Frustum* frustum, uint32_t ia, uint32_t ib, uint32_t ic, int16_t subdivision, Vector3& cameraPosPS, bool splitCull)
 	{
+		//TOAST_PROFILE_FUNCTION();
+
+		Vector3 va = mSphereVertices[ia];
+		Vector3 vb = mSphereVertices[ib];
+		Vector3 vc = mSphereVertices[ic];
+
 		Vector3 A, B, C;
 
-		NextPlanetFace nextPlanetFace = CheckFaceSplit(frustum, a, b, c, subdivision, cameraPosPS, splitCull);
+		NextPlanetFace nextPlanetFace = CheckFaceSplit(frustum, va, vb, vc, subdivision, cameraPosPS, splitCull);
 
 		if (nextPlanetFace == NextPlanetFace::CULL)
 			return;
 
 		if (subdivision < HARDCAPSUBDIVISIONS && (nextPlanetFace == NextPlanetFace::SPLIT || nextPlanetFace == NextPlanetFace::SPLITCULL))
 		{
-			A = b + ((c - b) * 0.5f);
-			B = c + ((a - c) * 0.5f);
-			C = a + ((b - a) * 0.5f);
+			uint32_t iAB = GetMidpoint(ia, ib);
+			uint32_t iBC = GetMidpoint(ib, ic);
+			uint32_t iCA = GetMidpoint(ic, ia);
 
-			A = Vector3::Normalize(A);
-			B = Vector3::Normalize(B);
-			C = Vector3::Normalize(C);
+			Vector3 vAB = mSphereVertices[iAB];
+			Vector3 vBC = mSphereVertices[iBC];
+			Vector3 vCA = mSphereVertices[iCA];
 
 			int16_t nextSubdivision = subdivision + 1;
 
-			RecursiveFace(frustum, C, B, a, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
-			RecursiveFace(frustum, b, A, C, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
-			RecursiveFace(frustum, B, A, c, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
-			RecursiveFace(frustum, A, B, C, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
+			RecursiveFace(frustum, ia, iAB, iCA, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
+			RecursiveFace(frustum, iAB, ib, iBC, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
+			RecursiveFace(frustum, iCA, iBC, ic, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
+			RecursiveFace(frustum, iAB, iBC, iCA, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
 		}
 		else
-			mPatches.emplace_back(PlanetPatchCPU(subdivision, a, c - a, b - a));
+		{
+			if (nextPlanetFace == NextPlanetFace::LEAF)
+				mPatches.emplace_back(PlanetPatchCPU(subdivision, ia, ib, ic));
+
+			else if(nextPlanetFace == NextPlanetFace::LEAFPATCH)
+			{
+				// Compute distances using the SAME threshold you used to classify inside/outside
+				Vector3 aR = va * mRadius;
+				Vector3 bR = vb * mRadius;
+				Vector3 cR = vc * mRadius;
+
+				double aD2 = Vector3::LengthSquared(aR - cameraPosPS);
+				double bD2 = Vector3::LengthSquared(bR - cameraPosPS);
+				double cD2 = Vector3::LengthSquared(cR - cameraPosPS);
+
+				const double splitD2 = mDistanceLUT[(uint32_t)subdivision];
+
+				bool aIn = (aD2 < splitD2);
+				bool bIn = (bD2 < splitD2);
+				bool cIn = (cD2 < splitD2);
+
+				// Identify which edge is the "cracked" edge = between the two inside vertices
+				if (!aIn && bIn && cIn)
+				{
+					// Edge BC is cracked
+					uint32_t iBC = GetMidpoint(ib, ic);
+
+					mPatches.emplace_back(PlanetPatchCPU(subdivision, ia, ib, iBC));
+					mPatches.emplace_back(PlanetPatchCPU(subdivision, ia, iBC, ic));
+					return;
+				}
+				if (!bIn && aIn && cIn)
+				{
+					// Edge AC is cracked
+					uint32_t iCA = GetMidpoint(ic, ia);
+
+					mPatches.emplace_back(PlanetPatchCPU(subdivision, ib, ic, iCA));
+					mPatches.emplace_back(PlanetPatchCPU(subdivision, ib, iCA, ia));
+					return;
+				}
+				if (!cIn && aIn && bIn)
+				{
+					// Edge AB is cracked
+					uint32_t iAB = GetMidpoint(ia, ib);
+
+					mPatches.emplace_back(PlanetPatchCPU(subdivision, ic, ia, iAB));
+					mPatches.emplace_back(PlanetPatchCPU(subdivision, ic, iAB, ib));
+					return;
+				}
+
+				// Fallback: Should never occur
+				mPatches.emplace_back(PlanetPatchCPU(subdivision, ia, ib, ic));
+				return;
+			}	 
+		}
 	}
 
-	PlanetMeshIcosphere::NextPlanetFace PlanetMeshIcosphere::CheckFaceSplit(Frustum* frustum, Vector3 a, Vector3 b, Vector3 c, int16_t subdivision, Vector3& cameraPosPS, bool frustumCull)
+	PlanetMeshIcosphere::NextPlanetFace PlanetMeshIcosphere::CheckFaceSplit(Frustum* frustum, Vector3 a, Vector3 b, Vector3 c, int16_t subdivision, Vector3& cameraPosPS, bool frustumCheckNeeded)
 	{
-		a = mTransform * a;
-		b = mTransform * b;
-		c = mTransform * c;
+		a = a * mRadius;
+		b = b * mRadius;
+		c = c * mRadius;
 
 		Vector3 center = (a + b + c) / 3.0;
 
@@ -1205,67 +1357,90 @@ namespace Toast {
 		if (mBackfaceCulling && dotProduct >= mFaceLevelDotLUT[(uint32_t)subdivision])
 			return NextPlanetFace::CULL;
 
-		if (mFrustumCulling && frustumCull)
+		bool frustumKnown = false;
+		VolumeTri frustumResult = VolumeTri::INTERSECT;
+
+		if (mFrustumCulling && frustumCheckNeeded)
 		{
-			auto intersect = frustum->ContainsTriangleVolume(a, b, c, mHeightMultLUT[(uint32_t)subdivision]);
+			frustumKnown = true;
+			frustumResult = frustum->ContainsPatchSphere(a, b, c, mRadius);
 
-			if (intersect == VolumeTri::OUTSIDE)
+			if (frustumResult == VolumeTri::OUTSIDE)
 				return NextPlanetFace::CULL;
-
-			if (intersect == VolumeTri::CONTAINS)//stop frustum culling -> all children are also inside the frustum
-			{
-				//check if new splits are allowed
-				if (subdivision >= mMaxSubdivisions)
-					return NextPlanetFace::LEAF;
-
-				//split according to distance
-				double aD2 = Vector3::LengthSquared(a - cameraPosPS);
-				double bD2 = Vector3::LengthSquared(b - cameraPosPS);
-				double cD2 = Vector3::LengthSquared(c - cameraPosPS);
-
-				double dmin2 = std::min(aD2, std::min(bD2, cD2));
-
-				if (dmin2 < mDistanceLUT[(uint32_t)subdivision])
-					return NextPlanetFace::SPLIT;
-
-				return NextPlanetFace::LEAF;
-			}
 		}
 
 		if (subdivision >= mMaxSubdivisions)
 			return NextPlanetFace::LEAF;
 
+		if (subdivision <= MINGUARANTEEDSUBDIVISION)
+			return NextPlanetFace::SPLITCULL;
+
 		double aD2 = Vector3::LengthSquared(a - cameraPosPS);
 		double bD2 = Vector3::LengthSquared(b - cameraPosPS);
 		double cD2 = Vector3::LengthSquared(c - cameraPosPS);
 
-		double dmin2 = std::min(aD2, std::min(bD2, cD2));
+		const double splitD2 = mDistanceLUT[(uint32_t)subdivision];
 
-		if (dmin2 < mDistanceLUT[(uint32_t)subdivision])
-			return NextPlanetFace::SPLITCULL;
+		uint32_t inside = 0;
+		if (aD2 < splitD2) inside++;
+		if (bD2 < splitD2) inside++; 
+		if (cD2 < splitD2) inside++;
 
-		return NextPlanetFace::LEAF;
+		if (inside == 3)
+		{
+			if (frustumKnown && frustumResult == VolumeTri::CONTAINS)
+				return NextPlanetFace::SPLIT;       // safe to stop checking children
+			else
+				return NextPlanetFace::SPLITCULL;   // children must still be checked (or frustum not known)
+		}
+		else if (inside == 2)
+			return NextPlanetFace::LEAFPATCH;
+		else
+			return NextPlanetFace::LEAF;
 	}
 
 	void PlanetMeshIcosphere::BuildGPUData()
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		// Patch-local vertices (shared)
 		mVerticesGPU.clear();
 		mVerticesGPU.reserve(mVertices.size());
 		for (const auto& v : mVertices)
-			mVerticesGPU.emplace_back(DirectX::XMFLOAT2((float)v.Position.x, (float)v.Position.y));
+			mVerticesGPU.emplace_back(PlanetVertexGPU{ v.I, v.J });
 
 		// Patch instances (per-leaf)
 		mPatchesGPU.clear();
 		mPatchesGPU.reserve(mPatches.size());
+
 		for (const auto& p : mPatches)
 		{
-			mPatchesGPU.emplace_back(
-				p.level,
-				DirectX::XMFLOAT3((float)p.a.x, (float)p.a.y, (float)p.a.z),
-				DirectX::XMFLOAT3((float)p.r.x, (float)p.r.y, (float)p.r.z),
-				DirectX::XMFLOAT3((float)p.s.x, (float)p.s.y, (float)p.s.z)
-			);
+			Vector3 V0 = Vector3::Normalize(mSphereVertices[p.i0]);
+			Vector3 V1 = Vector3::Normalize(mSphereVertices[p.i1]);
+			Vector3 V2 = Vector3::Normalize(mSphereVertices[p.i2]);
+
+			// world meters (planet space)
+			Vector3 P0 = V0 * mRadius;
+			Vector3 P1 = V1 * mRadius;
+			Vector3 P2 = V2 * mRadius;
+
+			// relative-to-camHi (meters)
+			Vector3 P0Rel = P0 - mCamHiPS;
+			Vector3 P1Rel = P1 - mCamHiPS;
+			Vector3 P2Rel = P2 - mCamHiPS;
+
+			PlanetPatchGPU g{};
+			g.level = p.level;
+
+			g.V0 = { (float)V0.x, (float)V0.y, (float)V0.z };
+			g.V1 = { (float)V1.x, (float)V1.y, (float)V1.z };
+			g.V2 = { (float)V2.x, (float)V2.y, (float)V2.z };
+
+			g.P0_rel_hi = { (float)P0Rel.x, (float)P0Rel.y, (float)P0Rel.z };
+			g.P1_rel_hi = { (float)P1Rel.x, (float)P1Rel.y, (float)P1Rel.z };
+			g.P2_rel_hi = { (float)P2Rel.x, (float)P2Rel.y, (float)P2Rel.z };
+
+			mPatchesGPU.emplace_back(g);
 		}
 	}
 
@@ -1273,41 +1448,68 @@ namespace Toast {
 	{ 
 		TOAST_PROFILE_FUNCTION();
 
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+		if (mInstanceVertexBuffer)
+		{
+			RendererAPI* API = RenderCommand::sRendererAPI.get();
+			ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		UINT strides[2] = { sizeof(PlanetVertexGPU), sizeof(PlanetPatchGPU) };
-		UINT offsets[2] = { 0, 0 };
-		ID3D11Buffer* bufs[2] = { mVertexBuffer->GetBuffer(), mInstanceVertexBuffer->GetBuffer() };
+			UINT strides[2] = { sizeof(PlanetVertexGPU), sizeof(PlanetPatchGPU) };
+			UINT offsets[2] = { 0, 0 };
+			ID3D11Buffer* bufs[2] = { mVertexBuffer->GetBuffer(), mInstanceVertexBuffer->GetBuffer() };
 
-		deviceContext->IASetVertexBuffers(0, 2, bufs, strides, offsets);
-		deviceContext->IASetIndexBuffer(mIndexBuffer->GetBuffer(), DXGI_FORMAT_R32_UINT, 0);
+			deviceContext->IASetVertexBuffers(0, 2, bufs, strides, offsets);
+			deviceContext->IASetIndexBuffer(mIndexBuffer->GetBuffer(), DXGI_FORMAT_R32_UINT, 0);
+
+			mPlanetMeshCBuffer->Bind();
+		}
 	}
 
-	void PlanetMeshIcosphere::GenerateDistanceLUT(float viewportHeight, float FoVYRadians)
+	uint32_t PlanetMeshIcosphere::GetMidpoint(uint32_t i1, uint32_t i2)
+	{
+		// Ensure deterministic order for the key
+		uint64_t smaller = std::min(i1, i2);
+		uint64_t larger = std::max(i1, i2);
+		uint64_t key = (smaller << 32) | larger;
+
+		auto it = mMidpointCache.find(key);
+		if (it != mMidpointCache.end())
+			return it->second;
+
+		// Not in cache, calculate it
+		Vector3 v1 = mSphereVertices[i1];
+		Vector3 v2 = mSphereVertices[i2];
+		// Exact midpoint calculation
+		Vector3 mid = Vector3::Normalize((v1 + v2) * 0.5);
+
+		uint32_t idx = (uint32_t)mSphereVertices.size();
+		mSphereVertices.push_back(mid);
+
+		mMidpointCache[key] = idx;
+		return idx;
+	}
+
+	void PlanetMeshIcosphere::GenerateDistanceLUT()
 	{
 		mDistanceLUT.clear();
 		mDistanceLUT.reserve((size_t)mMaxSubdivisions);
 
-		constexpr float TargetEdgePx = 16.0f;
+		TOAST_CORE_ASSERT(mNearDistance > 0.0, "nearDist must be > 0");
+		TOAST_CORE_ASSERT(mFarDistance > mNearDistance, "farDist must be > nearDist");
 
-		// 1) Projection scale: pixels per world unit at distance=1 (for vertical measure)
-		const double pixelsPerUnitAtDist1 =
-			(double)viewportHeight * 0.5 / std::tan((double)FoVYRadians * 0.5);
+		const int N = mMaxSubdivisions;
 
-		// 2) Base edge length (L0): measure from your base icosahedron faces (chord length)
-		// Pick max edge of the first face (or average a few faces; max is conservative).
-		const double L0_unit = (mFaces.empty()) ? 1.0 : MaxEdgeLengthOfFace(mFaces[0], mRadius);
-		const double L0 = L0_unit * mRadius;
+		// Ratio for log spacing
+		const double ratio = mNearDistance / mFarDistance;
 
-		// 3) Build LUT: split distance for each subdivision so projected edge ~= targetEdgePx
-		// Store squared distance (as you requested).
-		for (int l = 0; l < mMaxSubdivisions; ++l)
+		for (int l = 0; l < N; ++l)
 		{
-			const double L = L0 / (double)(1u << l); // L(l) ≈ L0 / 2^l
-			const double splitDist = (L * pixelsPerUnitAtDist1) / (double)TargetEdgePx;
-			mDistanceLUT.emplace_back(splitDist * splitDist);
+			const double t = (double)l / (double)(N - 1); // 0..1
+			const double D = mFarDistance * std::pow(ratio, t); // far -> near
+			mDistanceLUT.push_back(D * D);
 		}
+
+		//for (auto level : mDistanceLUT)
+		//	TOAST_CORE_INFO("mDistanceLUT: %lf", level);
 	}
 
 	void PlanetMeshIcosphere::GenerateFaceDotLevelLUT()
@@ -1322,23 +1524,25 @@ namespace Toast {
 			angle *= 0.5f;
 			mFaceLevelDotLUT.emplace_back(sin(angle + cullingAngle));
 		}
+
+		//for (auto level : mFaceLevelDotLUT)
+		//	TOAST_CORE_INFO("mFaceLevelDotLUT: %lf", level);
 	}
 
 	void PlanetMeshIcosphere::GenerateHeightMultLUT()
 	{
 		mHeightMultLUT.clear();
-		Vector3 a = mFaces[0].A;
-		Vector3 b = mFaces[0].B;
-		Vector3 c = mFaces[0].C;
+		Vector3 a = mSphereVertices[1] * mRadius;
+		Vector3 b = mSphereVertices[3] * mRadius;
+		Vector3 c = mSphereVertices[8] * mRadius;
 
-		a = mTransform * a;
-		b = mTransform * b;
-		c = mTransform * c;
+		// Temporary before terrain is added!
+		double maxHeight = 0.0;
 
 		Vector3 center = (a + b + c) / 3.0;
 		center *= mRadius / Vector3::Length(center);//+maxHeight
 		mHeightMultLUT.push_back(1.0 / Vector3::Dot(a, Vector3::Normalize(center)));
-		double normMaxHeight = mMaxHeight / mRadius;
+		double normMaxHeight = maxHeight / mRadius;
 		for (int i = 1; i <= mMaxSubdivisions; i++)
 		{
 			Vector3 A = b + ((c - b) * 0.5);
@@ -1349,6 +1553,9 @@ namespace Toast {
 			c *= mRadius / Vector3::Length(c);
 			mHeightMultLUT.push_back(1.0f / Vector3::Dot(Vector3::Normalize(a), Vector3::Normalize(center)) + normMaxHeight);
 		}
+
+		//for (auto level : mHeightMultLUT)
+		//	TOAST_CORE_INFO("mHeightMultLUT: %lf", level);
 	}
 
 }

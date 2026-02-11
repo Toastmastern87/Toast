@@ -2,8 +2,10 @@ Scene: MainMenu
 EditorCamera:
   Position: [0.0789798424, 1.85071218, -5.45972872]
 Settings:
+  Wireframe: 0
   Grid: true
   CameraFrustum: true
+  FrustumCullingMargin : 1.0
   SunLightFrustum: true
   DirectionalLightningGain: 1
   RenderColliders: false
@@ -56,7 +58,7 @@ Planet:
   Radius: 0
   MaxHeight: 0
   MinHeight: 0
-  mMeshMode: 0
+  MeshMode: 0
   AlbedoColor: [0, 0, 0]
   Roughness: 0
   Metalness: 0
@@ -80,6 +82,13 @@ Planet:
   MSGain: 0
   SGain: 0
   GravityConstant: 0
+  PlanetMesh:
+    MaxSubdivisions: 0
+    PatchLevels: 0
+    NearDistance: 0
+    FarDistance: 0
+    BackfaceCulling: false
+    FrustumCulling: false
   HeightDetails:
     []
   TerrainObjects:

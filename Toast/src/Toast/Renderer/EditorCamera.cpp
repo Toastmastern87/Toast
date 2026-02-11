@@ -110,6 +110,21 @@ namespace Toast {
 		return fForward;
 	}
 
+	Vector3 EditorCamera::GetForwardVectorWS(Quaternion cameraRot)
+	{
+		return Vector3::Rotate({ 0.0f, 0.0f, 1.0f }, { GetOrientation() });
+	}
+
+	Vector3 EditorCamera::GetUpVectorWS(Quaternion cameraRot)
+	{
+		return Vector3::Rotate({ 0.0f, 1.0f, 0.0f }, { GetOrientation() });
+	}
+
+	Vector3 EditorCamera::GetRightVectorWS(Quaternion cameraRot)
+	{
+		return Vector3::Rotate({ 1.0f, 0.0f, 0.0f }, { GetOrientation() });
+	}
+
 	DirectX::XMVECTOR EditorCamera::GetUpDirection() const
 	{
 		return DirectX::XMVector3Rotate({ 0.0f, 1.0f, 0.0f }, GetOrientation());

@@ -1,10 +1,12 @@
 Scene: Mars
 EditorCamera:
-  Position: [-22.6729851, 74.6762924, -118.015526]
+  Position: [85.5495071, 62.1458893, -309.550598]
 Settings:
+  Wireframe: 0
   Grid: false
-  CameraFrustum: false
-  SunLightFrustum: false
+  CameraFrustum: true
+  FrustumCullingMargin: 1
+  SunLightFrustum: true
   DirectionalLightningGain: 1
   RenderColliders: false
   RenderUI: true
@@ -49,19 +51,19 @@ Settings:
     StepsPerUpdate: 1
     MaxAngularVelocity: 30
 Planet:
-  Translation: [0, -3385951, 0]
-  Rotation: [566.398804, 198.200241, 811.199402]
+  Translation: [0, -3385202, 0]
+  Rotation: [609.698181, 252.400513, 421.59906]
   GridSize: 257
   MaxLevels: 28
   Radius: 3389500
   MaxHeight: 21900
   MinHeight: -8200
-  mMeshMode: 0
+  MeshMode: 0
   AlbedoColor: [0.468354404, 0.26033029, 0.207498789]
   Roughness: 1
-  Metalness: 0
+  Metalness: 1
   HeightMapAssetPath: C:\dev\Toast\Toaster\assets\textures\Mars_MOLA_8k_raw.tif
-  Metalness: 0
+  Metalness: 1
   StarFieldAssetPath: C:\dev\Toast\Toaster\assets\textures\StarField16k.tif
   AtmosphereActivated: true
   AtmosphereHeight: 60000
@@ -80,6 +82,13 @@ Planet:
   MSGain: 1
   SGain: 1
   GravityConstant: 3.73000002
+  PlanetMesh:
+    MaxSubdivisions: 25
+    PatchLevels: 3
+    NearDistance: 1
+    FarDistance: 10000000
+    BackfaceCulling: false
+    FrustumCulling: false
   HeightDetails:
     - Name: LOD1 Details
       Seed: 237962123

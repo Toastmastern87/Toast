@@ -2,32 +2,38 @@
 
 #include "Toast/Core/Math/Math.h"
 
-struct Plane
-{
-	Toast::Vector3 Normal;
-	double D;
-
-	Plane()
-	{
-		Normal = { 0.0, 1.0, 0.0 };
-		D = 0.0;
-	}
-
-	Plane(Toast::Vector3 a, Toast::Vector3 b, Toast::Vector3 c, double bias = 0.0)
-	{
-		Normal = Toast::Vector3::Normalize(Toast::Vector3::Cross(b - a, c - a));
-		D = Toast::Vector3::Dot(Normal, a) - bias;
-	}
-};
-
-enum class VolumeTri
-{
-	OUTSIDE = 0,
-	INTERSECT = 1,
-	CONTAINS = 2
-};
-
 namespace Toast {
+
+	struct Plane
+	{
+		Vector3 Normal;
+		double D;
+
+		Plane()
+		{
+			Normal = { 0.0, 1.0, 0.0 };
+			D = 0.0;
+		}
+
+		Plane(Vector3 a, Vector3 b, Vector3 c, double bias = 0.0)
+		{
+			Normal = Vector3::Normalize(Vector3::Cross(b - a, c - a));
+			D = Vector3::Dot(Normal, a) - bias;
+		}
+	};
+
+	struct Sphere
+	{
+		Vector3 center;
+		double radius;
+	};
+
+	enum class VolumeTri
+	{
+		OUTSIDE = 0,
+		INTERSECT = 1,
+		CONTAINS = 2
+	};
 
 	class Frustum
 	{
@@ -36,12 +42,16 @@ namespace Toast {
 		~Frustum() = default;
 
 		void Invalidate(float aspectRatio, float FOV, float nearClip, float farClip);
-		void Update(Matrix& transform, Matrix& planetTransform, double bias = 5000.0);
+		void Update(Matrix& transform, Matrix& planetTransform, float bias);
 		void Update(Matrix& transform);
+		void UpdatePlanetSpace(const Vector3& camPosPS, const Vector3& playerCamRightWS, const Vector3& playerCamUpWS, const Vector3& playerCamForwardWS, Quaternion planetInvRotationQuat, const float nearClip, const float farClip, const float fov, const float aspect, float bias);
 
 		bool Contains(Vector3 p);
-		VolumeTri ContainsTriangle(Vector3 p1, Vector3 p2, Vector3 p3) const;
+		VolumeTri ContainsTriangle(const Vector3& p1, const Vector3& p2, const Vector3& p3) const;
 		VolumeTri ContainsTriangleVolume(Vector3 p1, Vector3 p2, Vector3 p3, double heightRange) const;
+		VolumeTri ContainsPatchSphere(const Vector3& a, const Vector3& b, const Vector3& c, const double radius);
+
+		Sphere ComputePatchBoundingSphere(const Vector3& a, const Vector3& b, const Vector3& c, const double radius);
 
 		void ToString();
 	public:

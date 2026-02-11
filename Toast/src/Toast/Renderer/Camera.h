@@ -4,6 +4,9 @@
 
 #include "Toast/Core/Log.h"
 
+#include "Toast/Core/Math/Vector.h"
+#include "Toast/Core/Math/Quaternion.h"
+
 namespace Toast {
 
 	class Camera
@@ -38,8 +41,15 @@ namespace Toast {
 		virtual float& GetFarClip() { return mFarClip; }
 
 		const float GetVerticalFOV() const { return DirectX::XMConvertToDegrees(mFOV); }
+		const float GetAspectRatio() const { return mAspectRatio; }
 		
+		// OLD
 		virtual DirectX::XMFLOAT4& GetForwardDirection() = 0;
+
+		// NEW
+		virtual Vector3 GetForwardVectorWS(Quaternion cameraRot) = 0;
+		virtual Vector3 GetUpVectorWS(Quaternion cameraRot) = 0;
+		virtual Vector3 GetRightVectorWS(Quaternion cameraRot) = 0;
 	protected:
 		DirectX::XMFLOAT4X4 mViewMatrix, mInvViewMatrix, mProjection, mInvProjection, mOrthoProjection, mInvOrthoProjection;
 

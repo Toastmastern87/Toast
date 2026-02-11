@@ -118,7 +118,7 @@ namespace Toast {
 
 		static double Dot(const Vector3& a, const Vector3& b);
 
-		static Vector3 Rotate(const Vector3 vec, const Quaternion& q);
+		static Vector3 Rotate(const Vector3 v, const Quaternion& qUnit);
 
 		void ToString();
 		void ToString(const std::string& label);

@@ -36,6 +36,10 @@ namespace Toast {
 		void SetAspectRatio(float aspectRatio) { mAspectRatio = aspectRatio; RecalculateProjection(); }
 
 		DirectX::XMFLOAT4& GetForwardDirection() override;
+
+		Vector3 GetForwardVectorWS(Quaternion cameraRot) override;
+		Vector3 GetUpVectorWS(Quaternion cameraRot) override;
+		Vector3 GetRightVectorWS(Quaternion cameraRot) override;
 	private:
 		void RecalculateProjection();
 	private:

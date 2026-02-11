@@ -26,8 +26,8 @@ namespace Toast {
 
 	const Bounds& Bounds::operator*(Matrix& transform)
 	{
-		mins = transform * mins;
-		maxs = transform * maxs;
+		mins = Matrix::TransformPointRowVector(mins, transform);
+		maxs = Matrix::TransformPointRowVector(maxs, transform);
 		return *this;
 	}
 

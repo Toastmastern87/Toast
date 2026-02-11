@@ -100,10 +100,10 @@ namespace Toast {
 		return (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
 	}
 
-	Vector3 Vector3::Rotate(const Vector3 vec, const Quaternion& q) {
+	Vector3 Vector3::Rotate(const Vector3 vec, const Quaternion& qUnit) 
+	{
 		Quaternion vecQuat(vec.x, vec.y, vec.z, 0.0);
-		Quaternion qInv = q.Conjugate();
-		Quaternion resultQuat = q * vecQuat * qInv;
+		Quaternion resultQuat = qUnit * vecQuat * qUnit.Conjugate();
 
 		return Vector3(resultQuat.x, resultQuat.y, resultQuat.z);
 	}

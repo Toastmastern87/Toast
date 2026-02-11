@@ -4,6 +4,9 @@
 
 #include "Toast/Core/Timestep.h"
 
+#include "Toast/Core/Math/Vector.h"
+#include "Toast/Core/Math/Quaternion.h"
+
 #include "Toast/Events/Event.h"
 #include "Toast/Events/MouseEvent.h"
 
@@ -31,6 +34,9 @@ namespace Toast {
 		const float GetAspecRatio() const { return mAspectRatio; }
 		void SetAspectRatio(float aspectRatio) { mAspectRatio = aspectRatio; UpdateProjection(); }
 
+		Vector3 GetForwardVectorWS(Quaternion cameraRot) override;
+		Vector3 GetUpVectorWS(Quaternion cameraRot) override;
+		Vector3 GetRightVectorWS(Quaternion cameraRot) override;
 		DirectX::XMFLOAT4& GetForwardDirection() override;
 		DirectX::XMVECTOR GetUpDirection() const;
 		DirectX::XMVECTOR GetRightDirection() const;

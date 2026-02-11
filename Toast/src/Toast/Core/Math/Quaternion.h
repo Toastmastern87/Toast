@@ -34,7 +34,7 @@ namespace Toast {
 		static Quaternion Normalize(Quaternion& quat);
 		static Quaternion FromAxisAngle(Vector3& axis, double theta);
 		// Function to create a quaternion from roll, pitch, yaw
-		static Quaternion FromRollPitchYaw(double roll, double pitch, double yaw);
+		static Quaternion FromRollPitchYaw(double pitch, double yaw, double roll);
 
 		void ToString(const std::string& label);
 	public:

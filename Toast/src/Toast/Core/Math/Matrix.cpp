@@ -312,4 +312,20 @@ namespace Toast {
 		TOAST_CORE_INFO("        %lf, %lf, %lf, %lf", m_30, m_31, m_32, m_33);
 	}
 
+	Vector3 Matrix::TransformPointRowVector(const Vector3& v, const Matrix& M)
+	{
+		const double x = v.x * M.m_00 + v.y * M.m_10 + v.z * M.m_20 + 1.0 * M.m_30;
+		const double y = v.x * M.m_01 + v.y * M.m_11 + v.z * M.m_21 + 1.0 * M.m_31;
+		const double z = v.x * M.m_02 + v.y * M.m_12 + v.z * M.m_22 + 1.0 * M.m_32;
+		return { x, y, z, 1.0 };
+	}
+
+	Vector3 Matrix::TransformDirRowVector(const Vector3& v, const Matrix& M)
+	{
+		const double x = v.x * M.m_00 + v.y * M.m_10 + v.z * M.m_20;
+		const double y = v.x * M.m_01 + v.y * M.m_11 + v.z * M.m_21;
+		const double z = v.x * M.m_02 + v.y * M.m_12 + v.z * M.m_22;
+		return { x, y, z, 0.0 };
+	}
+
 }

@@ -370,7 +370,7 @@ namespace Toast {
 
 	static const char* meshModeLabels[] =
 	{
-		"Geometric Clipmapping",
+		"Geometry Clipmapping",
 		"Icosphere"
 	};
 
@@ -653,7 +653,8 @@ namespace Toast {
 
 							if (ImGuiHelpers::DragInt16("##MaxSubdivisionLevels", &mesh->mMaxSubdivisions, 1.0f, 0, mesh->HARDCAPSUBDIVISIONS))
 							{
-								mesh->mDistanceLUTDirty = true;
+								mesh->mDistanceLUTIsDirty = true;
+								mesh->mFaceLevelDotLUTIsDirty = true;
 								mesh->mPatchIsDirty = true;
 							}
 
@@ -667,23 +668,43 @@ namespace Toast {
 
 							ImGui::SetNextItemWidth(fullW);
 
-							if (ImGuiHelpers::DragInt16("##patchLevels", &mesh->mPatchLevels, 1.0f, 0, 12))
+							if (ImGuiHelpers::DragInt16("##patchLevels", &mesh->mPatchLevels, 1.0f, 0, 8))
 								mesh->mPatchIsDirty = true;
 
 							ImGui::TableNextRow();
 
 							ImGui::TableSetColumnIndex(0);
 							ImGui::AlignTextToFramePadding();
-							ImGui::Text("Radius");
+							ImGui::TextWrapped("Near Distance(Highest LOD Distance)");
 
 							ImGui::TableSetColumnIndex(1);
 
 							ImGui::SetNextItemWidth(fullW);
 
-							float temp = mesh->mRadius;
-							if(ImGui::DragFloat("##IcoSphereRadius", &temp, 1.0f, 1.0f, FLT_MAX, "%.0f"))
-								mesh->mRadius = temp;
+							float tempNear = mesh->mNearDistance;
+							if (ImGui::DragFloat("##NearDistance", &tempNear, 1.0f, 0.1f, (mesh->mFarDistance-0.1), "%.0f"))
+							{
+								mesh->mNearDistance = tempNear;
+								 
+								mesh->mDistanceLUTIsDirty = true;
+							}
 
+							ImGui::TableNextRow();
+
+							ImGui::TableSetColumnIndex(0);
+							ImGui::AlignTextToFramePadding();
+							ImGui::TextWrapped("Far Distance(Lowest LOD Distance)");
+
+							ImGui::TableSetColumnIndex(1);
+
+							ImGui::SetNextItemWidth(fullW);
+
+							float tempFar = mesh->mFarDistance;
+							if (ImGui::DragFloat("##FarDistance", &tempFar, 10000.0f, 0.0f, 10000000.0f, "%.0f"))
+							{
+								mesh->mFarDistance = tempFar;
+								mesh->mDistanceLUTIsDirty = true;
+							}
 						}
 
 						ImGui::EndTable();
@@ -779,6 +800,13 @@ namespace Toast {
 							SceneCamera* camera = mSceneContext->GetMainCamera();
 							if (camera)
 								mContext->GenerateDistanceLUT(mContext->mNumLevels, mContext->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mSceneContext->GetViewportSize()));
+
+							if (mContext->mMeshMode == PlanetMeshMode::Icosphere)
+							{
+								auto& mesh = mContext->GetIcosphereMesh();
+								mesh->mFaceLevelDotLUTIsDirty = true;
+								mesh->mHeightMultLUTIsDirty = true;
+							}
 						}
 
 						ImGui::TableNextRow();
@@ -797,7 +825,16 @@ namespace Toast {
 
 						temp = mContext->mMaxHeight;
 						if (ImGui::DragFloat("##maxheight", &temp, 1.0f, -FLT_MAX, FLT_MAX, "%.0f"))
+						{
 							mContext->mMaxHeight = temp;
+
+							if (mContext->mMeshMode == PlanetMeshMode::Icosphere)
+							{
+								auto& mesh = mContext->GetIcosphereMesh();
+								mesh->mFaceLevelDotLUTIsDirty = true;
+								mesh->mHeightMultLUTIsDirty = true;
+							}
+						}
 
 						ImGui::TableNextRow();
 
