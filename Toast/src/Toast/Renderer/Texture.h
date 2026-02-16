@@ -267,8 +267,8 @@ namespace Toast {
 	{
 	public:
 		Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags);
-		Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize,
-			D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags,	const std::vector<const void*>& initialData, const std::vector<UINT>& rowPitches);
+		Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize,	D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags,	const std::vector<const void*>& initialData, const std::vector<UINT>& rowPitches);
+		Texture2DArray(DXGI_FORMAT textureFormat, DXGI_FORMAT srvFormat, uint32_t width, uint32_t height, uint32_t arraySize, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags);
 		~Texture2DArray() = default;
 
 		virtual const uint32_t GetWidth() const override { return mWidth; }
@@ -318,6 +318,7 @@ namespace Toast {
 	private:
 		uint32_t mWidth, mHeight, mArraySize;
 		DXGI_FORMAT mFormat;
+		DXGI_FORMAT mSRVFormat = DXGI_FORMAT_UNKNOWN;
 
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> mTexture;
 		Microsoft::WRL::ComPtr<ID3D11Resource> mResource;
@@ -331,6 +332,7 @@ namespace Toast {
 	public:
 		TextureSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode, float mipLODBias = 0.0f);
 		TextureSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE uAddressMode, D3D11_TEXTURE_ADDRESS_MODE vAddressMode, float mipLODBias = 0.0f);
+		TextureSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode, float mipLODBias, D3D11_COMPARISON_FUNC comparisonFunc);
 		~TextureSampler() = default;
 
 		void Bind(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_VERTEX_SHADER) const;
@@ -345,6 +347,7 @@ namespace Toast {
 		static TextureCube* LoadTextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels = 0);
 		static TextureSampler* LoadTextureSampler(const std::string& name, D3D11_FILTER filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_MODE addressMode = D3D11_TEXTURE_ADDRESS_WRAP, float mipLODBias = 0.0f);
 		static TextureSampler* LoadTextureSampler(const std::string& name, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE uAddressMode, D3D11_TEXTURE_ADDRESS_MODE vAddressMode, float mipLODBias = 0.0f);
+		static TextureSampler* LoadComparisonSampler(const std::string& name, D3D11_FILTER filter, D3D11_COMPARISON_FUNC cmpFunc, D3D11_TEXTURE_ADDRESS_MODE addressMode, float mipLODBias = 0.0f);
 
 		static Texture* Get(const std::string& name);
 		static TextureSampler* GetSampler(const std::string& name);

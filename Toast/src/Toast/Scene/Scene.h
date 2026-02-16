@@ -3,6 +3,7 @@
 #include "Toast/Core/UUID.h"
 #include "Toast/Core/Timestep.h"
 
+#include "Toast/Renderer/RendererConstants.h"
 #include "Toast/Renderer/PlanetSystem.h"
 
 #include "Toast/Renderer/EditorCamera.h"
@@ -40,12 +41,16 @@ namespace Toast {
 
 	struct DirectionalLight
 	{
-		DirectX::XMMATRIX ViewProjectionMatrix = DirectX::XMMatrixIdentity();
+		DirectX::XMMATRIX LightViewProj[MaxCascades];
 		DirectX::XMFLOAT4 Direction = { 0.0f, 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT4 Radiance = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 		float Multiplier = 1.0f;
-		float SunDisc = 0.0f;
+		float CascadeEnds[MaxCascades];
+		uint32_t CascadeCount;
+		float ShadowDistance;
+		float ConstantBias;
+		float SlopeBias;
 	};
 
 	struct SunUVResult
@@ -122,6 +127,17 @@ namespace Toast {
 			DirectX::XMFLOAT2 SunFadeDeg = { 0.0f, 0.0f };
 		};
 
+		struct CascadedShadowMapParams
+		{
+			bool Active = true;
+			bool IsDirty = true;
+			uint32_t CascadeCount = 4;        // runtime (<= MaxCascades)
+			float ShadowDistance = 5000.0f;   // in your world units
+			float Lambda = 0.6f;              // 0 = uniform, 1 = logarithmic
+			float ConstantBias = 0.0005;
+			float SlopeScaledBias = 0.0025;
+		};
+
 		struct BloomParams
 		{
 			bool Enabled = true;
@@ -167,10 +183,8 @@ namespace Toast {
 			bool Grid = true;
 			bool CameraFrustum = true;
 			float FrustumCullingMargin = 1.0f; // multiplier on camera near/far planes for culling (e.g. 1.1 to be slightly more lenient)
-			bool SunLightFrustum = true;
 			bool RenderColliders = false;
 			bool RenderUI = true;
-			bool Shadows = true;
 			bool SSAO = false;
 			bool SSAODebugging = false;
 			float DirectionalLightningGain = 1.0f;
@@ -184,6 +198,8 @@ namespace Toast {
 			GodRayParams GodRays;
 
 			ExposureParams Exposure;
+
+			CascadedShadowMapParams Shadows;
 		};
 
 		struct Stats

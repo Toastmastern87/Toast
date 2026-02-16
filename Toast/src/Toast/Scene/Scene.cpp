@@ -272,6 +272,8 @@ namespace Toast {
 
 					cameraTransform = transform.GetTransform();
 
+					DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
+
 					break;
 				}
 				// if no camera is present nothing is rendered
@@ -346,73 +348,85 @@ namespace Toast {
 			}
 		}
 
-		// Process Lights
-		DirectX::XMFLOAT4 direction = { 0.0f, 0.0f, 0.0f, 0.0f };
+		// Process lights
 		{
+			DirectX::XMFLOAT4 direction = { 0.0f, 0.0f, 0.0f, 0.0f };
+			DirectX::XMVECTOR sunLightDirWS = XMVectorZero();
+
 			mLightEnvironment = LightEnvironment();
 			auto lights = mRegistry.group<DirectionalLightComponent>(entt::get<TransformComponent>);
 			uint32_t directionalLightIndex = 0;
+
+			const float camNear = mMainCamera->GetNearClip();
+			const float camFar = mMainCamera->GetFarClip();
+
+			const float shadowFar = std::min(camFar, mSettings.Shadows.ShadowDistance);
+
+			const float fovY = Math::DegreesToRadians(mMainCamera->GetVerticalFOV());
+			const float aspect = mMainCamera->GetAspectRatio();
+
+			float cascadeEnds[MaxCascades] = {};
+
+			const bool shadowsEnabled = mSettings.Shadows.Active;
+
+			if (shadowsEnabled)
+			{
+				mSettings.Shadows.CascadeCount = std::clamp(mSettings.Shadows.CascadeCount, 1u, MaxCascades);
+				mSettings.Shadows.Lambda = std::clamp(mSettings.Shadows.Lambda, 0.0f, 1.0f);
+
+				const float farForShadows = std::max(shadowFar, camNear + 1.0f);
+
+				Renderer::ComputeCascadeEnds(camNear, farForShadows, mSettings.Shadows.CascadeCount, mSettings.Shadows.Lambda, cascadeEnds);
+
+				mSettings.Shadows.IsDirty = false;
+			}
 
 			for (auto entity : lights)
 			{
 				auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
 
-				mLightEnvironment = LightEnvironment();
-				auto lights = mRegistry.group<DirectionalLightComponent>(entt::get<TransformComponent>);
-				uint32_t directionalLightIndex = 0;
-				for (auto entity : lights)
+				DirectX::XMMATRIX transform = transformComponent.GetTransform();
+
+				// Extract forward (Z axis) -> lightDir (same as your code)
+				DirectX::XMVECTOR lightDir = DirectX::XMVectorNegate(DirectX::XMVector3Normalize(transform.r[2]));
+				sunLightDirWS = lightDir;
+
+				DirectX::XMStoreFloat4(&direction, lightDir);
+				direction.w = 0.0f;
+
+				DirectX::XMFLOAT4 radiance(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
+
+				// Fill light entry
+				auto& out = mLightEnvironment.DirectionalLights[directionalLightIndex++];
+
+				out.Direction = direction;
+				out.Radiance = radiance;
+				out.Multiplier = lightComponent.Intensity;
+
+				out.CascadeCount = 0;
+				out.ShadowDistance = 0.0f;
+				std::fill(std::begin(out.CascadeEnds), std::end(out.CascadeEnds), 0.0f);
+
+				if (shadowsEnabled)
 				{
-					auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
+					// Store split info on the sun light
+					out.CascadeCount = mSettings.Shadows.CascadeCount;
+					out.ShadowDistance = shadowFar;
+					out.ConstantBias = mSettings.Shadows.ConstantBias;
+					out.SlopeBias = mSettings.Shadows.SlopeScaledBias;
+					memcpy(out.CascadeEnds, cascadeEnds, sizeof(float) * MaxCascades);
 
-					DirectX::XMMATRIX transform = transformComponent.GetTransform();
-
-					// Extract the forward vector (Z-axis)
-					DirectX::XMVECTOR lightDir = DirectX::XMVectorNegate(DirectX::XMVector3Normalize(transform.r[2]));
-
-					DirectX::XMStoreFloat4(&direction, lightDir);
-					direction.w = 0.0f;
-					DirectX::XMFLOAT4 radiance = DirectX::XMFLOAT4(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
-
-					float orthoWidth = mSettings.SunFrustumOrthoSize;
-					float orthoHeight = mSettings.SunFrustumOrthoSize;
-					float orthoNear = 0.1f;
-					float orthoFar = lightComponent.SunDesiredCoverage;
-
-					// Create the orthographic projection matrix for the light
-					DirectX::XMMATRIX lightProj = XMMatrixOrthographicLH(orthoWidth, orthoHeight, orthoNear, orthoFar);
-
-					// Position the light to cover the area around the origin
-					DirectX::XMVECTOR lightPos = DirectX::XMVectorSubtract(DirectX::XMVectorZero(), DirectX::XMVectorScale(lightDir, lightComponent.SunLightDistance));
-
-					DirectX::XMVECTOR defaultUp = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-					DirectX::XMVECTOR right = DirectX::XMVector3Cross(defaultUp, lightDir);
-					// Check if the right vector is valid (not zero length)
-					float rightLengthSq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(right));
-					if (rightLengthSq < 1e-6f)
-					{
-						// If invalid, choose a different default up vector (e.g., Z-axis)
-						defaultUp = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-						right = DirectX::XMVector3Cross(defaultUp, lightDir);
-					}
-					right = DirectX::XMVector3Normalize(right);
-
-					// Recompute the up vector to be orthogonal to the light direction and right vector
-					DirectX::XMVECTOR up = DirectX::XMVector3Cross(lightDir, right);
-					up = DirectX::XMVector3Normalize(up);
-
-					DirectX::XMMATRIX lightView = DirectX::XMMatrixLookToLH(lightPos, lightDir, up);
-					DirectX::XMMATRIX invLightView = DirectX::XMMatrixInverse(nullptr, lightView);
-					DirectX::XMMATRIX lightViewProj = XMMatrixMultiply(lightView, lightProj);
-
-					mLightEnvironment.DirectionalLights[directionalLightIndex++] =
-					{
-						lightViewProj,
-						direction,
-						radiance,
-						lightComponent.Intensity
-					};
+					Renderer::ComputeCSMLightViewProj({ 0.0f, 0.0f, 0.0f}, mMainCamera, { cameraRot }, fovY, aspect, sunLightDirWS, camNear, out.CascadeEnds, out.CascadeCount, out.ShadowDistance, out.LightViewProj);
+				}
+				else
+				{
+					// Fill identity to keep shaders safe
+					for (uint32_t i = 0; i < MaxCascades; ++i)
+						out.LightViewProj[i] = DirectX::XMMatrixIdentity();
 				}
 			}
+
+			mEnvironment.SunUV = ComputeSunUVFromDirection(DirectX::XMFLOAT3(direction.x, direction.y, direction.z), DirectX::XMLoadFloat4x4(&mMainCamera->GetViewMatrix()), DirectX::XMLoadFloat4x4(&mMainCamera->GetProjection()));
 		}
 
 		// Process Animations
@@ -549,8 +563,6 @@ namespace Toast {
 				}
 			}
 
-			mEnvironment.SunUV = ComputeSunUVFromDirection(DirectX::XMFLOAT3(direction.x, direction.y, direction.z), DirectX::XMLoadFloat4x4(&mMainCamera->GetViewMatrix()), DirectX::XMLoadFloat4x4(&mMainCamera->GetProjection()));
-
 			// 3D Rendering
 			Renderer::BeginScene(this, *mMainCamera, cameraPosFloat, mEnvironment, static_cast<int>(mSettings.WireframeRendering));
 			{
@@ -588,7 +600,7 @@ namespace Toast {
 					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 				}
 
-				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, ts);
+				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, ts);
 			}
 
 			// Debug Rendering
@@ -876,87 +888,79 @@ namespace Toast {
 		// Process lights
 		{
 			DirectX::XMFLOAT4 direction = { 0.0f, 0.0f, 0.0f, 0.0f };
+			DirectX::XMVECTOR sunLightDirWS = XMVectorZero();
 
 			mLightEnvironment = LightEnvironment();
 			auto lights = mRegistry.group<DirectionalLightComponent>(entt::get<TransformComponent>);
 			uint32_t directionalLightIndex = 0;
+
+			const float camNear = editorCamera->GetNearClip();
+			const float camFar = editorCamera->GetFarClip();
+
+			const float shadowFar = std::min(camFar, mSettings.Shadows.ShadowDistance);
+
+			const float fovY = Math::DegreesToRadians(editorCamera->GetVerticalFOV());
+			const float aspect = editorCamera->GetAspectRatio();
+
+			float cascadeEnds[MaxCascades] = {};
+
+			const bool shadowsEnabled = mSettings.Shadows.Active;
+
+			if (shadowsEnabled)
+			{
+				mSettings.Shadows.CascadeCount = std::clamp(mSettings.Shadows.CascadeCount, 1u, MaxCascades);
+				mSettings.Shadows.Lambda = std::clamp(mSettings.Shadows.Lambda, 0.0f, 1.0f);
+
+				const float farForShadows = std::max(shadowFar, camNear + 1.0f);
+
+				Renderer::ComputeCascadeEnds(camNear, farForShadows, mSettings.Shadows.CascadeCount, mSettings.Shadows.Lambda, cascadeEnds);
+
+				mSettings.Shadows.IsDirty = false;
+			}
+
 			for (auto entity : lights)
 			{
 				auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
 
 				DirectX::XMMATRIX transform = transformComponent.GetTransform();
 
-				// Extract the forward vector (Z-axis)
+				// Extract forward (Z axis) -> lightDir (same as your code)
 				DirectX::XMVECTOR lightDir = DirectX::XMVectorNegate(DirectX::XMVector3Normalize(transform.r[2]));
+				sunLightDirWS = lightDir;
 
 				DirectX::XMStoreFloat4(&direction, lightDir);
 				direction.w = 0.0f;
-				DirectX::XMFLOAT4 radiance = DirectX::XMFLOAT4(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
-				
-				float orthoWidth = mSettings.SunFrustumOrthoSize;    
-				float orthoHeight = mSettings.SunFrustumOrthoSize;    
-				float orthoNear = 0.1f;
-				float orthoFar = lightComponent.SunDesiredCoverage;
 
-				if (mSettings.SunLightFrustum)
+				DirectX::XMFLOAT4 radiance(lightComponent.Radiance.x, lightComponent.Radiance.y, lightComponent.Radiance.z, 0.0f);
+
+				// Fill light entry
+				auto& out = mLightEnvironment.DirectionalLights[directionalLightIndex++];
+
+				out.Direction = direction;
+				out.Radiance = radiance;
+				out.Multiplier = lightComponent.Intensity;
+
+				out.CascadeCount = 0;
+				out.ShadowDistance = 0.0f;
+				std::fill(std::begin(out.CascadeEnds), std::end(out.CascadeEnds), 0.0f);
+
+				if (shadowsEnabled)
 				{
-					// Calculate half dimensions
-					float halfWidth = orthoWidth / 2.0f;
-					float halfHeight = orthoHeight / 2.0f;
+					// Store split info on the sun light
+					out.CascadeCount = mSettings.Shadows.CascadeCount;
+					out.ShadowDistance = shadowFar;
+					out.ConstantBias = mSettings.Shadows.ConstantBias;
+					out.SlopeBias = mSettings.Shadows.SlopeScaledBias;
+					memcpy(out.CascadeEnds, cascadeEnds, sizeof(float) * MaxCascades);
 
-					// Near plane
-					frustumCorners[0] = DirectX::XMVectorSet(-halfWidth, -halfHeight, orthoNear, 1.0f); // Near Bottom Left
-					frustumCorners[1] = DirectX::XMVectorSet(halfWidth, -halfHeight, orthoNear, 1.0f);  // Near Bottom Right
-					frustumCorners[2] = DirectX::XMVectorSet(halfWidth, halfHeight, orthoNear, 1.0f);   // Near Top Right
-					frustumCorners[3] = DirectX::XMVectorSet(-halfWidth, halfHeight, orthoNear, 1.0f);  // Near Top Left
-
-					// Far plane
-					frustumCorners[4] = DirectX::XMVectorSet(-halfWidth, -halfHeight, orthoFar, 1.0f);  // Far Bottom Left
-					frustumCorners[5] = DirectX::XMVectorSet(halfWidth, -halfHeight, orthoFar, 1.0f);   // Far Bottom Right
-					frustumCorners[6] = DirectX::XMVectorSet(halfWidth, halfHeight, orthoFar, 1.0f);    // Far Top Right
-					frustumCorners[7] = DirectX::XMVectorSet(-halfWidth, halfHeight, orthoFar, 1.0f); // Far Top Left
+					Renderer::ComputeCSMLightViewProj(editorCamera->GetTranslation(), editorCamera.get(), { editorCamera->GetOrientation() }, fovY, aspect, sunLightDirWS, camNear, out.CascadeEnds, out.CascadeCount, out.ShadowDistance, out.LightViewProj);
 				}
-
-				// Create the orthographic projection matrix for the light
-				DirectX::XMMATRIX lightProj = XMMatrixOrthographicLH(orthoWidth, orthoHeight, orthoNear, orthoFar);
-
-				// Position the light to cover the area around the origin
-				DirectX::XMVECTOR lightPos = DirectX::XMVectorSubtract(DirectX::XMVectorZero(), DirectX::XMVectorScale(lightDir, lightComponent.SunLightDistance));
-
-				DirectX::XMVECTOR defaultUp = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-				DirectX::XMVECTOR right = DirectX::XMVector3Cross(defaultUp, lightDir);
-				// Check if the right vector is valid (not zero length)
-				float rightLengthSq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(right));
-				if (rightLengthSq < 1e-6f)
+				else
 				{
-					// If invalid, choose a different default up vector (e.g., Z-axis)
-					defaultUp = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-					right = DirectX::XMVector3Cross(defaultUp, lightDir);
+					// Fill identity to keep shaders safe
+					for (uint32_t i = 0; i < MaxCascades; ++i)
+						out.LightViewProj[i] = DirectX::XMMatrixIdentity();
 				}
-				right = DirectX::XMVector3Normalize(right);
-
-				// Recompute the up vector to be orthogonal to the light direction and right vector
-				DirectX::XMVECTOR up = DirectX::XMVector3Cross(lightDir, right);
-				up = DirectX::XMVector3Normalize(up);
-
-				DirectX::XMMATRIX lightView = DirectX::XMMatrixLookToLH(lightPos, lightDir, up);
-				DirectX::XMMATRIX invLightView = DirectX::XMMatrixInverse(nullptr, lightView);
-				DirectX::XMMATRIX lightViewProj = XMMatrixMultiply(lightView, lightProj);
-
-				if (mSettings.SunLightFrustum)
-				{
-					// Transform corners to world space
-					for (int i = 0; i < 8; ++i)
-						frustumCorners[i] = DirectX::XMVector4Transform(frustumCorners[i], invLightView);
-				}
-
-				mLightEnvironment.DirectionalLights[directionalLightIndex++] =
-				{
-					lightViewProj,
-					direction,
-					radiance,
-					lightComponent.Intensity
-				};
 			}
 
 			mEnvironment.SunUV = ComputeSunUVFromDirection(DirectX::XMFLOAT3(direction.x, direction.y, direction.z), DirectX::XMLoadFloat4x4(&editorCamera->GetViewMatrix()), DirectX::XMLoadFloat4x4(&editorCamera->GetProjection()));
@@ -1144,7 +1148,7 @@ namespace Toast {
 				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 			}
 
-			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, ts);
+			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, ts);
 		}
 
 		// Debug Rendering
@@ -1153,28 +1157,6 @@ namespace Toast {
 			// Frustum
 			if (mSettings.CameraFrustum && mFrustum)
 				RendererDebug::SubmitCameraFrustum(mFrustum);
-
-			// Sun light frustum
-			if (mSettings.SunLightFrustum) 
-			{
-				DirectX::XMFLOAT3 sunLightFrustumColor = { 1.0f, 1.0f, 0.0f };
-
-				RendererDebug::SubmitLine(frustumCorners[0], frustumCorners[1], sunLightFrustumColor);
-				RendererDebug::SubmitLine(frustumCorners[1], frustumCorners[2], sunLightFrustumColor);
-				RendererDebug::SubmitLine(frustumCorners[2], frustumCorners[3], sunLightFrustumColor);
-				RendererDebug::SubmitLine(frustumCorners[3], frustumCorners[0], sunLightFrustumColor);
-
-				RendererDebug::SubmitLine(frustumCorners[4], frustumCorners[5], sunLightFrustumColor);
-				RendererDebug::SubmitLine(frustumCorners[5], frustumCorners[6], sunLightFrustumColor);
-				RendererDebug::SubmitLine(frustumCorners[6], frustumCorners[7], sunLightFrustumColor);
-				RendererDebug::SubmitLine(frustumCorners[7], frustumCorners[4], sunLightFrustumColor);
-
-				// Connecting edges between near and far planes
-				RendererDebug::SubmitLine(frustumCorners[0], frustumCorners[4], sunLightFrustumColor);
-				RendererDebug::SubmitLine(frustumCorners[1], frustumCorners[5], sunLightFrustumColor);
-				RendererDebug::SubmitLine(frustumCorners[2], frustumCorners[6], sunLightFrustumColor);
-				RendererDebug::SubmitLine(frustumCorners[3], frustumCorners[7], sunLightFrustumColor);
-			}
 
 			// SSAO Debugging
 			if(mSettings.SSAODebugging)
@@ -1501,17 +1483,6 @@ namespace Toast {
 
 			if (camera.Primary)
 			{
-				//Vector3 worldMovement = camera.Camera.GetWorldTranslation();
-				//Vector3 effectiveTranslation = -worldMovement;
-
-				////effectiveTranslation.ToString("effectiveTranslation: ");
-
-				//Matrix worldTranslationMatrix = Matrix::Identity() * Matrix::TranslationFromVector(-worldMovement);
-				//Matrix effectiveCameraTransform = { transform.GetTransform() };
-				////effectiveCameraTransform = effectiveCameraTransform * worldTranslationMatrix;
-
-				//Matrix cameraTransform = { transform.GetTransform() };
-
 				mFrustum->Invalidate(camera.Camera.GetAspecRatio(), camera.Camera.GetPerspectiveVerticalFOV(), camera.Camera.GetNearClip(), camera.Camera.GetFarClip());
 				mFrustum->Update(Matrix(transform.GetTransform()), Matrix(mPlanet->GetTransformNoScale()), mSettings.FrustumCullingMargin);
 			}

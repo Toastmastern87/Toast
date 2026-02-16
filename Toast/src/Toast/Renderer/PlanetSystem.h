@@ -260,7 +260,7 @@ namespace Toast {
 		void InitShaderLayout();
 		void GeneratePatchGeometry();
 
-		void OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, DirectX::XMFLOAT3& rotationEulerAngles, DirectX::XMFLOAT4& rotationQuaternion, double radius, double maxHeight);
+		void OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, double radius, double maxHeight);
 		void RecursiveFace(Frustum* frustum, uint32_t ia, uint32_t ib, uint32_t ic, int16_t subdivision, Vector3& cameraPosPS, bool splitCull);
 		NextPlanetFace CheckFaceSplit(Frustum* frustum, Vector3 a, Vector3 b, Vector3 c, int16_t subdivision, Vector3& cameraPosPS, bool frustumCheckNeeded);
    

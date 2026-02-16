@@ -26,6 +26,7 @@ cbuffer Camera : register(b0)
 cbuffer Model : register(b1)
 {
     matrix worldMatrix;
+    float clickable;
     int entityID;
     int noWorldTransform;
     int isInstanced;
@@ -33,7 +34,7 @@ cbuffer Model : register(b1)
 
 cbuffer DirectionalLight : register(b3)
 {
-    float4x4 lightViewProj;
+    float4x4 lightViewProj[4];
     
     float4 direction; // FROM light -> scene
     
@@ -41,6 +42,14 @@ cbuffer DirectionalLight : register(b3)
     
     float SunIntensity;
     float DirectionalLightGain;
+    uint CascadeCount;
+    float ShadowDistance;
+    
+    float4 CascadeEnds;
+    
+    uint CascadeIndex;
+    float ConstantBias;
+    float SlopeBias;
 };
 
 struct VertexInputType
@@ -136,18 +145,6 @@ PixelInputType main(VertexInputType input)
         worldPosition = mul(worldPosition, worldTranslationMatrix);
     }
 
-    output.position = mul(worldPosition, lightViewProj);
+    output.position = mul(worldPosition, lightViewProj[CascadeIndex]);
     return output;
-}
-
-#type pixel
-struct PixelInputType
-{
-    float4 position                 : SV_POSITION;
-};
-
-float4 main(PixelInputType input) : SV_TARGET
-{
-    // Depth is automatically written to the depth buffer
-    return float4(0.0f, 0.0f, 0.0f, 0.0f);
 }

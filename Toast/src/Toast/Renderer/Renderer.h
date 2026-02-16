@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Toast/Renderer/RenderCommand.h"
+#include "Toast/Renderer/RendererConstants.h"
 #include "Toast/Renderer/OrthographicCamera.h"
 #include "Toast/Renderer/Mesh.h"
 #include "Toast/Renderer/RenderTarget.h"
@@ -82,9 +83,6 @@ namespace Toast {
 
 			// Geometry Pass
 			Ref<RenderTarget> GPassPositionRT, GPassNormalRT, GPassAlbedoMetallicRT, GPassRoughnessAORT, GPassPickingRT;
-
-			// Shadow mapping Pass
-			Ref<RenderTarget> ShadowMapRT;
 			
 			// Lightning Pass
 			Ref<RenderTarget> LPassRT;
@@ -122,9 +120,11 @@ namespace Toast {
 			Microsoft::WRL::ComPtr<ID3D11RasterizerState> NormalRasterizerState, WireframeRasterizerState, ShadowMapRasterizerState;
 
 			// Depth data
-			Scope<Texture2D> DepthBuffer, ShadowPassDepth;
+			Scope<Texture2D> DepthBuffer;
 			Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthEnabledStencilState, DepthDisabledStencilState, DepthStarFieldStencilState, ShadowPassDepthStencilState;
-			Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencilView, ShadowPassStencilView;
+			Microsoft::WRL::ComPtr<ID3D11DepthStencilView> DepthStencilView;
+			Scope<Texture2DArray> ShadowMapArray;
+			Microsoft::WRL::ComPtr<ID3D11DepthStencilView> ShadowPassDepthStencilView[MaxCascades];
 
 			// Blend data
 			Microsoft::WRL::ComPtr<ID3D11BlendState> GPassBlendState, LPassBlendState, AtmospherePassBlendState, PostProcessBlendState, UIBlendState;
@@ -172,7 +172,7 @@ namespace Toast {
 		static void OnViewportResize(uint32_t width, uint32_t height);
 
 		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos, Scene::Environment& environment, int wireFrame);
-		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, float dt);
+		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, Scene::CascadedShadowMapParams& shadowParams, float dt);
 
 		static void CreateDepthBuffer(uint32_t width, uint32_t height);
 		static void CreateDepthStencilView();
@@ -200,7 +200,7 @@ namespace Toast {
 
 		// Deffered Rendering
 		static void GeometryPass();
-		static void ShadowPass();
+		static void ShadowPass(Scene::CascadedShadowMapParams& shadowParams);
 		static void LightningPass(Ref<Planet>& planet, Scene::Environment& environment);
 		static void ParticlesPass();
 		static void SSAOPass(float radius, float bias);
@@ -248,6 +248,13 @@ namespace Toast {
 		static void SetParticleMaskTexture(Texture2D* maskTexture) { sRendererData->ParticleMaskTexture = maskTexture; }
 
 		static void ResetEnvMapsIBLDone() { sRendererData->NightTimeIBLDone = false; }
+
+		static void ComputeCascadeEnds(float nearClip, float farClip, uint32_t cascadeCount, float lambda, float* outCascadeEnds);
+		static void ComputeFrustumSliceCornersWS(const Vector3& camPosWS, const Vector3& camRightWS, const Vector3& camUpWS, const Vector3& camForwardWS, float fovYRadians, float aspect, float sliceNear, float sliceFar, DirectX::XMVECTOR outCornersWS[8]);
+		static DirectX::XMMATRIX BuildLightViewForCascade(DirectX::XMVECTOR lightDirWS, DirectX::XMVECTOR cascadeCenterWS, float D);
+		//static DirectX::XMMATRIX FitOrthoToCorners(DirectX::XMMATRIX lightView, const DirectX::XMVECTOR cornersWS[8], float border = 10.0f, float zPadNear = 200.0f);
+		static DirectX::XMMATRIX FitOrthoToCornersSnapped(DirectX::XMMATRIX lightView, const DirectX::XMVECTOR cornersWS[8], float border, float zPadNear, uint32_t shadowRes);
+		static void ComputeCSMLightViewProj(const Vector3 camPosWS, Camera* camera, const Quaternion& playerCamRot, float fovYRadians, float aspect, DirectX::XMVECTOR lightDirWS, float cameraNear, const float cascadeEnds[Toast::MaxCascades], uint32_t cascadeCount, float shadowDistance, DirectX::XMMATRIX outLightViewProj[Toast::MaxCascades]);
 
 		//Stats
 		struct Statistics

@@ -49,8 +49,8 @@ namespace Toast {
 		// Setting viewport for shadow mapping
 		sRendererData->ShadowMapViewport.TopLeftX = 0.0f;
 		sRendererData->ShadowMapViewport.TopLeftY = 0.0f;
-		sRendererData->ShadowMapViewport.Width = 8192.0f;
-		sRendererData->ShadowMapViewport.Height = 8192.0f;
+		sRendererData->ShadowMapViewport.Width = 4096.0f;
+		sRendererData->ShadowMapViewport.Height = 4096.0f;
 		sRendererData->ShadowMapViewport.MinDepth = 0.0f;
 		sRendererData->ShadowMapViewport.MaxDepth = 1.0f;
 
@@ -73,7 +73,7 @@ namespace Toast {
 		sRendererData->MaterialBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for lightning rendering
-		sRendererData->LightningCBuffer = ConstantBufferLibrary::Load("DirectionalLight", 112, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::DirectionalLight), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::DirectionalLight), CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::DirectionalLight) });
+		sRendererData->LightningCBuffer = ConstantBufferLibrary::Load("DirectionalLight", 336, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::DirectionalLight), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::DirectionalLight), CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::DirectionalLight) });
 		sRendererData->LightningCBuffer->Bind();
 		sRendererData->LightningBuffer.Allocate(sRendererData->LightningCBuffer->GetSize());
 		sRendererData->LightningBuffer.ZeroInitialize();
@@ -157,8 +157,8 @@ namespace Toast {
 		sRendererData->GPassRoughnessAORT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
 		sRendererData->GPassPickingRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R32_SINT);
 
-		// Setting up the render target for Shadow Pass
-		sRendererData->ShadowMapRT = CreateRef<RenderTarget>(RenderTargetType::Color, 8192, 8192, 1, TextureFormat::R8G8B8A8_UNORM);
+		//// Setting up the render target for Shadow Pass
+		//sRendererData->ShadowMapRT = CreateRef<RenderTarget>(RenderTargetType::Color, 8192, 8192, 1, TextureFormat::R8G8B8A8_UNORM);
 
 		// Setting up the render target for SSAO Pass
 		sRendererData->SSAORT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
@@ -321,7 +321,7 @@ namespace Toast {
 		sRendererData->FinalEditorRT->Resize(width, height);
 
 		sRendererData->DepthStencilView.Reset();
-		sRendererData->ShadowPassStencilView.Reset();
+		sRendererData->ShadowPassDepthStencilView[0].Reset();
 
 		CreateDepthBuffer(width, height);
 		CreateDepthStencilView();
@@ -338,12 +338,24 @@ namespace Toast {
 		// Updating the camera data in the buffer and mapping it to the GPU
 		UploadCameraCBuffer(camera, cameraPos);
 
+		DirectX::XMFLOAT4 cascadeEnds = {
+				scene->mLightEnvironment.DirectionalLights[0].CascadeEnds[0],
+				scene->mLightEnvironment.DirectionalLights[0].CascadeEnds[1],
+				scene->mLightEnvironment.DirectionalLights[0].CascadeEnds[2],
+				scene->mLightEnvironment.DirectionalLights[0].CascadeEnds[3],
+		};
+
 		// Updating the lightning data in the buffer and mapping it to the GPU
-		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].ViewProjectionMatrix, 64, 0);
-		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Direction, 16, 64);
-		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Radiance, 16, 80);
-		sRendererData->LightningBuffer.Write((uint8_t*)&environment.SunIntensity, 4, 96);
-		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mSettings.DirectionalLightningGain, 4, 100);
+		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].LightViewProj[0], 256, 0);
+		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Direction, 16, 256);
+		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].Radiance, 16, 272);
+		sRendererData->LightningBuffer.Write((uint8_t*)&environment.SunIntensity, 4, 288);
+		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mSettings.DirectionalLightningGain, 4, 292);
+		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].CascadeCount, 4, 296);
+		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].ShadowDistance, 4, 300);
+		sRendererData->LightningBuffer.Write((uint8_t*)&cascadeEnds, sizeof(cascadeEnds), 304);
+		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].ConstantBias, 4, 324);
+		sRendererData->LightningBuffer.Write((uint8_t*)&scene->mLightEnvironment.DirectionalLights[0].SlopeBias, 4, 328);
 		sRendererData->LightningCBuffer->Map(sRendererData->LightningBuffer);
 
 		sRendererData->SpecularBRDFLUT->Bind(2, D3D11_PIXEL_SHADER);
@@ -358,7 +370,7 @@ namespace Toast {
 		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
 
-	void Renderer::EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, float dt)
+	void Renderer::EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, Scene::CascadedShadowMapParams& shadowParams, float dt)
 	{
 		RenderCommand::SetViewport(sRendererData->Viewport);
 
@@ -366,9 +378,9 @@ namespace Toast {
 		GeometryPass();
 
 		if(shadows)
-			ShadowPass();
+			ShadowPass(shadowParams);
 		else
-			RenderCommand::ClearDepthStencilView(sRendererData->ShadowPassStencilView);
+			RenderCommand::ClearDepthStencilView(sRendererData->ShadowPassDepthStencilView[0], 1.0f);
 
 		if(SSAO)
 			SSAOPass(SSAORadius, SSAObias);
@@ -427,7 +439,7 @@ namespace Toast {
 	{
 		sRendererData->DepthBuffer = CreateScope<Texture2D>((DXGI_FORMAT)TextureFormat::R32_TYPELESS, (DXGI_FORMAT)TextureFormat::R32_FLOAT, width, height, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE), 1);
 
-		sRendererData->ShadowPassDepth = CreateScope<Texture2D>((DXGI_FORMAT)TextureFormat::R32_TYPELESS, (DXGI_FORMAT)TextureFormat::R32_FLOAT, 8192, 8192, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE), 1);
+		sRendererData->ShadowMapArray = CreateScope<Texture2DArray>(DXGI_FORMAT_R32_TYPELESS, DXGI_FORMAT_R32_FLOAT, 4096, 4096, MaxCascades, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE),	1,0);
 	}
 
 	void Renderer::CreateDepthStencilView()
@@ -445,8 +457,20 @@ namespace Toast {
 		result = device->CreateDepthStencilView(sRendererData->DepthBuffer->GetTexture().Get(), &dsvDesc, &sRendererData->DepthStencilView);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create depth stencil view!");
 
-		result = device->CreateDepthStencilView(sRendererData->ShadowPassDepth->GetTexture().Get(), &dsvDesc, &sRendererData->ShadowPassStencilView);
-		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create depth stencil view!");
+		auto tex = sRendererData->ShadowMapArray->GetTexture().Get(); // you need an accessor
+
+		for (uint32_t i = 0; i < MaxCascades; ++i)
+		{
+			D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+			dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+			dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+			dsvDesc.Texture2DArray.MipSlice = 0;
+			dsvDesc.Texture2DArray.FirstArraySlice = i;
+			dsvDesc.Texture2DArray.ArraySize = 1;
+
+			HRESULT hr = device->CreateDepthStencilView(tex, &dsvDesc, sRendererData->ShadowPassDepthStencilView[i].GetAddressOf());
+			TOAST_CORE_ASSERT(SUCCEEDED(hr), "Failed to create ShadowPassDSV slice!");
+		}
 	}
 
 	void Renderer::CreateDepthStencilStates()
@@ -508,6 +532,21 @@ namespace Toast {
 
 		result = device->CreateDepthStencilState(&depthStencilDesc, &sRendererData->DepthStarFieldStencilState);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Skybox pass depth stencil state");
+
+		// --- Shadow map depth state (Normal-Z) ---
+		{
+			D3D11_DEPTH_STENCIL_DESC ds = {};
+			ds.DepthEnable = TRUE;
+			ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+			ds.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+
+			ds.StencilEnable = FALSE;
+			ds.StencilReadMask = 0;
+			ds.StencilWriteMask = 0;
+
+			HRESULT hr2 = device->CreateDepthStencilState(&ds, &sRendererData->ShadowPassDepthStencilState);
+			TOAST_CORE_ASSERT(SUCCEEDED(hr2), "Failed to create shadow depth stencil state");
+		}
 	}
 
 	void Renderer::CreateBlendStates()
@@ -675,6 +714,9 @@ namespace Toast {
 		rasterDesc.CullMode = D3D11_CULL_FRONT;
 		rasterDesc.FillMode = D3D11_FILL_SOLID;
 		rasterDesc.DepthClipEnable = true;
+		rasterDesc.DepthBias = 2000;                    // start 500..5000
+		rasterDesc.SlopeScaledDepthBias = 2.0f;         // start 1..4
+		rasterDesc.DepthBiasClamp = 0.0f;               // often 0
 
 		result = device->CreateRasterizerState(&rasterDesc, &sRendererData->ShadowMapRasterizerState);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create shadow pass rasterizer state");
@@ -1079,6 +1121,7 @@ namespace Toast {
 
 		std::vector<ID3D11RenderTargetView*> nullRTVs(6, nullptr);
 
+		ShaderLibrary::Get("assets/shaders/Rendering/GeometryPass.hlsl")->Unbind();
 		RenderCommand::SetRenderTargets(nullRTVs, nullptr);
 		RenderCommand::SetDepthStencilState(nullptr);
 		RenderCommand::SetBlendState(nullptr);
@@ -1090,7 +1133,7 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer::ShadowPass()
+	void Renderer::ShadowPass(Scene::CascadedShadowMapParams& shadowParams)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -1098,40 +1141,47 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
 		RenderCommand::GetAnnotation(annotation);
 		if (annotation)
-			annotation->BeginEvent(L"Shadow Pass");
+			annotation->BeginEvent(L"Shadow Pass (CSM)");
 #endif
 
 		RenderCommand::SetViewport(sRendererData->ShadowMapViewport);
 		RenderCommand::SetRasterizerState(sRendererData->ShadowMapRasterizerState);
-		RenderCommand::SetRenderTargets({ sRendererData->ShadowMapRT->GetRTV().Get() }, sRendererData->ShadowPassStencilView);
-		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
-		RenderCommand::SetBlendState(sRendererData->GPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
-		RenderCommand::ClearDepthStencilView(sRendererData->ShadowPassStencilView);
-		RenderCommand::ClearRenderTargets({ sRendererData->ShadowMapRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+		RenderCommand::SetDepthStencilState(sRendererData->ShadowPassDepthStencilState);
 		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
 		ShaderLibrary::Get("assets/shaders/Rendering/ShadowPass.hlsl")->Bind();
 
-		for (const auto& meshCommand : sRendererData->MeshDrawList)
+		ID3D11RenderTargetView* nullRTV = nullptr;
+
+		for (uint32_t i = 0; i < shadowParams.CascadeCount; ++i)
 		{
-			meshCommand.Mesh->Bind();
+			// Bind the slice
+			RenderCommand::SetRenderTargets({ nullRTV }, sRendererData->ShadowPassDepthStencilView[i]);
+			RenderCommand::ClearDepthStencilView(sRendererData->ShadowPassDepthStencilView[i], 1.0f);
 
-			int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
+			sRendererData->LightningBuffer.Write((uint8_t*)&i, 4, 320);
+			sRendererData->LightningCBuffer->Map(sRendererData->LightningBuffer);
 
-			float clickable = 1.0f;
+			for (const auto& meshCommand : sRendererData->MeshDrawList)
+			{
+				meshCommand.Mesh->Bind();
 
-			// Model data
-			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
-			sRendererData->ModelBuffer.Write((uint8_t*)&clickable, 4, 64);
-			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 68);
-			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 72);
-			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 76);
-			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+				int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
 
-			RenderCommand::DrawIndexed(0, 0, meshCommand.Mesh->GetIndices().size());
+				float clickable = 1.0f;
+
+				// Model data
+				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
+				sRendererData->ModelBuffer.Write((uint8_t*)&clickable, 4, 64);
+				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 68);
+				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 72);
+				sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 76);
+				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+
+				RenderCommand::DrawIndexed(0, 0, meshCommand.Mesh->GetIndices().size());
+			}
 		}
 
-		ID3D11RenderTargetView* nullRTV = nullptr;
 		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
 		RenderCommand::SetDepthStencilState(nullptr);
 		RenderCommand::SetBlendState(nullptr);
@@ -1146,7 +1196,6 @@ namespace Toast {
 	void Renderer::SSAOPass(float radius, float bias)
 	{
 		TOAST_PROFILE_FUNCTION();
-
 
 #ifdef TOAST_DEBUG
 		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
@@ -1244,7 +1293,7 @@ namespace Toast {
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->GPassRoughnessAORT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->SSAOBlurRT->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 12, sRendererData->ShadowPassDepth->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 12, sRendererData->ShadowMapArray->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 13, sRendererData->GPassPickingRT->GetSRV());
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->IrradianceCubeMapDay->GetSRV());
@@ -1265,6 +1314,7 @@ namespace Toast {
 		TextureLibrary::GetSampler("BRDFSampler")->Bind(1, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("PointSampler")->Bind(2, D3D11_PIXEL_SHADER);
 		TextureLibrary::GetSampler("LinearSampler")->Bind(3, D3D11_PIXEL_SHADER);
+		TextureLibrary::GetSampler("ShadowCmp")->Bind(4, D3D11_PIXEL_SHADER);
 
 		DrawFullscreenQuad();
 
@@ -2377,6 +2427,215 @@ namespace Toast {
 			const auto& sub = object.MeshObject->mLODGroups[0]->Submeshes[0];
 			RenderCommand::DrawIndexedInstanced(sub.IndexCount, candidateCount, sub.BaseIndex, 0, 0);
 		}
+	}
+
+	static inline float Lerp(float a, float b, float t) { return a + (b - a) * t; }
+
+	void Renderer::ComputeCascadeEnds(float nearClip, float farClip, uint32_t cascadeCount, float lambda, float* outCascadeEnds)
+	{
+		// clamp
+		cascadeCount = std::max(1u, cascadeCount);
+		lambda = std::clamp(lambda, 0.0f, 1.0f);
+
+		const float n = nearClip;
+		const float f = farClip;
+
+		const float range = f - n;
+		const float ratio = f / n;
+
+		for (uint32_t i = 1; i <= cascadeCount; ++i)
+		{
+			const float p = (float)i / (float)cascadeCount;
+
+			const float uniformSplit = n + range * p;
+			const float logSplit = n * std::pow(ratio, p);
+
+			const float split = Lerp(uniformSplit, logSplit, lambda);
+
+			outCascadeEnds[i - 1] = split;
+		}
+
+		// Guarantee last == farClip exactly (avoids precision edge cases)
+		outCascadeEnds[cascadeCount - 1] = farClip;
+	}
+
+	void Renderer::ComputeFrustumSliceCornersWS(const Vector3& camPosWS, const Vector3& camRightWS, const Vector3& camUpWS, const Vector3& camForwardWS, float fovYRadians, float aspect, float sliceNear, float sliceFar, DirectX::XMVECTOR outCornersWS[8])
+	{
+		double heightNear = 2.0 * tan((double)fovYRadians / 2.0) * (double)sliceNear;
+		double widthNear = heightNear * aspect;
+
+		double heightFar = 2.0 * tan((double)fovYRadians / 2.0) * (double)sliceFar;
+		double widthFar = heightFar * aspect;
+
+		Vector3 centerNear = camPosWS + Vector3::Normalize(camForwardWS) * sliceNear;
+		Vector3 centerFar = camPosWS + Vector3::Normalize(camForwardWS) * sliceFar;
+
+		Vector3 nearTopLeft = centerNear + (camUpWS * (heightNear / 2.0)) - (camRightWS * (widthNear / 2.0));
+		Vector3 nearTopRight = centerNear + (camUpWS * (heightNear / 2.0)) + (camRightWS * (widthNear / 2.0));
+		Vector3 nearBottomLeft = centerNear - (camUpWS * (heightNear / 2.0)) - (camRightWS * (widthNear / 2.0));
+		Vector3 nearBottomRight = centerNear - (camUpWS * (heightNear / 2.0)) + (camRightWS * (widthNear / 2.0));
+
+		Vector3 farTopLeft = centerFar + (camUpWS * (heightFar / 2.0)) - (camRightWS * (widthFar / 2.0));
+		Vector3 farTopRight = centerFar + (camUpWS * (heightFar / 2.0)) + (camRightWS * (widthFar / 2.0));
+		Vector3 farBottomLeft = centerFar - (camUpWS * (heightFar / 2.0)) - (camRightWS * (widthFar / 2.0));
+		Vector3 farBottomRight = centerFar - (camUpWS * (heightFar / 2.0)) + (camRightWS * (widthFar / 2.0));
+
+		// Near
+		outCornersWS[0] = DirectX::XMVectorSet((float)nearBottomLeft.x, (float)nearBottomLeft.y, (float)nearBottomLeft.z, 1.0f);
+		outCornersWS[1] = DirectX::XMVectorSet((float)nearBottomRight.x, (float)nearBottomRight.y, (float)nearBottomRight.z, 1.0f);
+		outCornersWS[2] = DirectX::XMVectorSet((float)nearTopRight.x, (float)nearTopRight.y, (float)nearTopRight.z, 1.0f);
+		outCornersWS[3] = DirectX::XMVectorSet((float)nearTopLeft.x, (float)nearTopLeft.y, (float)nearTopLeft.z, 1.0f);
+						 
+		// Far			  
+		outCornersWS[4] = DirectX::XMVectorSet((float)farBottomLeft.x, (float)farBottomLeft.y, (float)farBottomLeft.z, 1.0f);
+		outCornersWS[5] = DirectX::XMVectorSet((float)farBottomRight.x, (float)farBottomRight.y, (float)farBottomRight.z, 1.0f);
+		outCornersWS[6] = DirectX::XMVectorSet((float)farTopRight.x, (float)farTopRight.y, (float)farTopRight.z, 1.0f);
+		outCornersWS[7] = DirectX::XMVectorSet((float)farTopLeft.x, (float)farTopLeft.y, (float)farTopLeft.z, 1.0f);
+	}
+
+	DirectX::XMMATRIX Renderer::BuildLightViewForCascade(DirectX::XMVECTOR lightDirWS, DirectX::XMVECTOR cascadeCenterWS, float D)
+	{
+		using namespace DirectX;
+
+		// Robust up selection (same logic you already use)
+		XMVECTOR defaultUp = XMVectorSet(0, 1, 0, 0);
+		XMVECTOR right = XMVector3Cross(defaultUp, lightDirWS);
+
+		if (XMVectorGetX(XMVector3LengthSq(right)) < 1e-6f)
+		{
+			defaultUp = XMVectorSet(0, 0, 1, 0);
+			right = XMVector3Cross(defaultUp, lightDirWS);
+		}
+		right = XMVector3Normalize(right);
+
+		XMVECTOR up = XMVector3Normalize(XMVector3Cross(lightDirWS, right));
+
+		XMVECTOR lightPosWS = XMVectorSubtract(cascadeCenterWS, XMVectorScale(lightDirWS, D));
+
+		return XMMatrixLookToLH(lightPosWS, lightDirWS, up);
+	}
+
+	//DirectX::XMMATRIX Renderer::FitOrthoToCorners(DirectX::XMMATRIX lightView, const DirectX::XMVECTOR cornersWS[8], float border, float zPadNear)
+	//{
+	//	using namespace DirectX;
+
+	//	XMVECTOR minV = XMVectorSet(+FLT_MAX, +FLT_MAX, +FLT_MAX, 1.0f);
+	//	XMVECTOR maxV = XMVectorSet(-FLT_MAX, -FLT_MAX, -FLT_MAX, 1.0f);
+
+	//	for (int i = 0; i < 8; ++i)
+	//	{
+	//		XMVECTOR cLS = XMVector3TransformCoord(cornersWS[i], lightView);
+	//		minV = XMVectorMin(minV, cLS);
+	//		maxV = XMVectorMax(maxV, cLS);
+	//	}
+
+	//	XMFLOAT3 mn, mx;
+	//	XMStoreFloat3(&mn, minV);
+	//	XMStoreFloat3(&mx, maxV);
+
+	//	// Add a little padding to reduce edge clipping/popping
+	//	mn.x -= border; mn.y -= border;
+	//	mx.x += border; mx.y += border;
+
+	//	// Depth padding too (helps with precision and small movements)
+	//	mn.z -= zPadNear;
+	//	mx.z += 200.0f;
+
+	//	// OrthoOffCenterLH(left,right,bottom,top,nearZ,farZ)
+	//	// In LH light space, +Z is forward; minZ can be < 0, that's OK.
+	//	return XMMatrixOrthographicOffCenterLH(mn.x, mx.x, mn.y, mx.y, mn.z, mx.z);
+	//}
+
+	DirectX::XMMATRIX Renderer::FitOrthoToCornersSnapped(DirectX::XMMATRIX lightView, const DirectX::XMVECTOR cornersWS[8], float border, float zPadNear, uint32_t shadowRes)
+	{
+		using namespace DirectX;
+
+		XMVECTOR minV = XMVectorSet(+FLT_MAX, +FLT_MAX, +FLT_MAX, 1.0f);
+		XMVECTOR maxV = XMVectorSet(-FLT_MAX, -FLT_MAX, -FLT_MAX, 1.0f);
+
+		for (int i = 0; i < 8; ++i)
+		{
+			XMVECTOR cLS = XMVector3TransformCoord(cornersWS[i], lightView);
+			minV = XMVectorMin(minV, cLS);
+			maxV = XMVectorMax(maxV, cLS);
+		}
+
+		XMFLOAT3 mn, mx;
+		XMStoreFloat3(&mn, minV);
+		XMStoreFloat3(&mx, maxV);
+
+		// Padding
+		mn.x -= border; mn.y -= border;
+		mx.x += border; mx.y += border;
+
+		mn.z -= zPadNear;
+		mx.z += 200.0f;
+
+		// Center + extents
+		float centerX = 0.5f * (mn.x + mx.x);
+		float centerY = 0.5f * (mn.y + mx.y);
+
+		float extentX = mx.x - mn.x;
+		float extentY = mx.y - mn.y;
+
+		// Force square (reduces "breathing")
+		float half = 0.5f * std::max(extentX, extentY);
+		float extent = 2.0f * half;
+
+		// Texel size in light space for this cascade
+		// (protect against degenerate cases)
+		float texel = (shadowRes > 0) ? (extent / (float)shadowRes) : 0.0f;
+		if (texel > 0.0f)
+		{
+			// Snap center to nearest texel
+			centerX = std::floor(centerX / texel + 0.5f) * texel;
+			centerY = std::floor(centerY / texel + 0.5f) * texel;
+		}
+
+		// Rebuild bounds from snapped center + square half-size
+		mn.x = centerX - half;  mx.x = centerX + half;
+		mn.y = centerY - half;  mx.y = centerY + half;
+
+		return XMMatrixOrthographicOffCenterLH(mn.x, mx.x, mn.y, mx.y, mn.z, mx.z);
+	}
+
+	void Renderer::ComputeCSMLightViewProj(const Vector3 camPosWS, Camera* camera, const Quaternion& playerCamRot, float fovYRadians, float aspect, DirectX::XMVECTOR lightDirWS, float cameraNear, const float cascadeEnds[MaxCascades], uint32_t cascadeCount, float shadowDistance, DirectX::XMMATRIX outLightViewProj[MaxCascades])
+	{
+		using namespace DirectX;
+
+		Vector3 camForwardWS = camera->GetForwardVectorWS(playerCamRot);
+		Vector3 camUpWS = camera->GetUpVectorWS(playerCamRot);
+		Vector3 camRightWS = camera->GetRightVectorWS(playerCamRot);
+
+		for (uint32_t c = 0; c < cascadeCount; ++c)
+		{
+			const float sliceNear = (c == 0) ? cameraNear : cascadeEnds[c - 1];
+			const float sliceFar = cascadeEnds[c];
+
+			// 1) corners
+			XMVECTOR cornersWS[8];
+			ComputeFrustumSliceCornersWS(camPosWS, camRightWS, camUpWS, camForwardWS, fovYRadians, aspect, sliceNear, sliceFar, cornersWS);
+
+			// 2) center
+			XMVECTOR center = XMVectorZero();
+			for (int i = 0; i < 8; ++i) center = XMVectorAdd(center, cornersWS[i]);
+			center = XMVectorScale(center, 1.0f / 8.0f);
+
+			// 3) light view
+			const float D = shadowDistance * 2.0f; // any "large enough" distance works
+			XMMATRIX lightView = BuildLightViewForCascade(lightDirWS, center, D);
+
+			// 4) fitted ortho
+			//XMMATRIX lightProj = FitOrthoToCorners(lightView, cornersWS, 10.0f, shadowDistance);
+			XMMATRIX lightProj = FitOrthoToCornersSnapped(lightView, cornersWS, 10.0f, shadowDistance, 4096);
+
+
+			outLightViewProj[c] = XMMatrixMultiply(lightView, lightProj);
+		}
+
+		// Optionally clear unused cascades
+		for (uint32_t c = cascadeCount; c < Toast::MaxCascades; ++c)
+			outLightViewProj[c] = XMMatrixIdentity();
 	}
 
 }

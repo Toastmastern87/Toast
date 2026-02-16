@@ -43,7 +43,7 @@ cbuffer Camera : register(b0)
 
 cbuffer DirectionalLight : register(b3)
 {
-    float4x4 lightViewProj;
+    float4x4 lightViewProj[4];
     
     float4 direction; // FROM light -> scene
     
@@ -51,6 +51,14 @@ cbuffer DirectionalLight : register(b3)
     
     float SunIntensity;
     float DirectionalLightGain;
+    uint CascadeCount;
+    float ShadowDistance;
+    
+    float4 CascadeEnds;
+    
+    uint CascadeIndex;
+    float ConstantBias;
+    float SlopeBias;
 };
 
 cbuffer PlanetFrame : register(b4)
@@ -156,7 +164,7 @@ Texture2D<float4> MultiScatterLUT       : register(t8);
 Texture2D SSAOTexture                   : register(t10);
 
 // Shadow Pass Texture
-Texture2D ShadowDepthTexture            : register(t12);
+Texture2DArray ShadowDepthTexture       : register(t12);
 
 Texture2D<int> ObjectMaskTexture        : register(t13);
 
@@ -168,6 +176,7 @@ SamplerState DefaultSampler             : register(s0);
 SamplerState SPBRDFSampler              : register(s1);
 SamplerState PointSampler               : register(s2);
 SamplerState LinearSampler              : register(s3);
+SamplerComparisonState ShadowCmpSampler : register(s4);
 
 struct CubeSample
 {
@@ -399,6 +408,48 @@ float4 SamplePsiMS4(float r, float muS, float Rg, float Rt)
     return MultiScatterLUT.SampleLevel(LinearSampler, float2(u, v), 0);
 }
 
+uint SelectCascade(float viewDepth)
+{
+    // viewDepth should be positive forward distance in view space
+    // pick first i where viewDepth <= CascadeEnds[i]
+    [unroll]
+    for (uint i = 0; i < CascadeCount; ++i)
+    {
+        if (viewDepth <= CascadeEnds[i])
+            return i;
+    }
+    return CascadeCount - 1;
+}
+
+float SampleShadowPCF(uint ci, float2 uv, float depth01, float receiverBias)
+{
+    // outside = lit
+    if (any(uv < 0.0f) || any(uv > 1.0f))
+        return 1.0f;
+
+    // Bias the RECEIVER depth (recommended mental model)
+    float d = depth01 - receiverBias;
+
+    uint width, height, elements;
+    ShadowDepthTexture.GetDimensions(width, height, elements);
+    
+    float2 texel = float2(1.0f / (float) width, 1.0f / (float) height); // (1.0f/4096.0f, 1.0f/4096.0f) passed in
+
+    // 3x3 PCF
+    float sum = 0.0f;
+    [unroll]
+    for (int y = -1; y <= 1; ++y)
+    {
+        [unroll]
+        for (int x = -1; x <= 1; ++x)
+        {
+            float2 o = float2(x, y) * texel;
+            sum += ShadowDepthTexture.SampleCmpLevelZero(ShadowCmpSampler, float3(uv + o, (float) ci), d);
+        }
+    }
+    return sum * (1.0f / 9.0f);
+}
+
 float TerrainHardShadowHorizonTrace(float3 posWS, float3 planetCenterWS, float3 wSun, float RbPhys, float r_true, uint heightRes, float dMin, float dMax)              // e.g. 20000.0..100000.0 depending on your scale
 {
     float3 pRel = posWS - planetCenterWS;
@@ -573,32 +624,14 @@ PixelOutputType main(PixelInputType input)
     float3 Fv = fresnelSchlick(F0, NdotV);
     float3 kd = (1.0f - Fv) * (1.0f - metalness);
     
-    // Recalculate sun direction to view space
-    float3 directionVS = normalize(mul(direction.xyz, (float3x3)viewMatrix));
-    
-    // **1. Normal Offset Biasing**
-    // Offset the world position along the normal to reduce self-shadowing artifacts
-    float normalOffsetScale = 5.0f; // Adjust based on your scene's scale
-    float3 offsetPosition = posWS.xyz + normalWorld * normalOffsetScale;
-
-    // Transform the offset position to Light's Clip Space
-    float4 pixelPosLightSpace = mul(float4(offsetPosition, 1.0f), lightViewProj);
-    pixelPosLightSpace /= pixelPosLightSpace.w; // Perspective divide
-
-    // Convert from Clip Space [-1,1] to UV Space [0,1]
-    float2 shadowUV = pixelPosLightSpace.xy * 0.5f + 0.5f;
-    shadowUV.y = 1.0f - shadowUV.y; // Flip Y-coordinate
-    float currentDepth = pixelPosLightSpace.z * 0.5f + 0.5f;
-
-    // Check if 'shadowUV' is within [0,1]
-    bool outsideShadowMap = (shadowUV.x < 0.0f || shadowUV.x > 1.0f || shadowUV.y < 0.0f || shadowUV.y > 1.0f);
-
-    // Initialize shadow factor
-    float shadow = 1.0f;
-    
     int2 pix = int2(uv * float2(viewportWidth, viewportHeight));
     int isObject = ObjectMaskTexture.Load(int3(pix, 0));
     float depth = SceneDepth.Sample(PointSampler, uv);
+
+    uint ci = SelectCascade(posVS.z);
+
+    // Initialize shadow factor
+    float shadowFinal = 1.0f;
     float terrainShadow = 1.0f;
 
     if (isObject < 0.5f && depth > 1e-12f)
@@ -613,51 +646,32 @@ PixelOutputType main(PixelInputType input)
         terrainShadow = TerrainHardShadowHorizonTrace(posWS.xyz, planetCenterTrueWS, wSun, RbPhys, r_true, width, 30.0f, dMax);
     }
 
-    if (!outsideShadowMap)
+    float4 shadowClip = mul(float4(posWS.xyz, 1.0f), lightViewProj[ci]);
+    
+
+    float3 ndc = shadowClip.xyz / shadowClip.w; // for ortho, w ~ 1
+    float2 shadowUV = ndc.xy * 0.5f + 0.5f;
+    shadowUV.y = 1.0f - shadowUV.y;
+
+    float currentDepth = ndc.z;
+
+    bool outsideShadow = any(shadowUV < 0.0f) || any(shadowUV > 1.0f) || currentDepth < 0.0f || currentDepth > 1.0f;
+
+    float shadow = 1.0f;
+
+    if (!outsideShadow)
     {
-        // **2. Dynamic Bias Based on Surface Slope**
-        // Calculate bias based on normal and light direction to reduce self-shadowing
-        float biasMultiplier = 0.5f; // Adjust based on your scene's scale
-        float minBias = 0.1f; // Minimum bias to prevent bias from being too small
         float3 Li = normalize(-direction.xyz);
-        float bias = max(biasMultiplier * (1.0f - dot(normalWorld, Li)), minBias);
+        float NdL = saturate(dot(normalWorld, Li));
+        float bias = ConstantBias + SlopeBias * (1.0f - NdL);
 
-        // **3. Optimized Percentage Closer Filtering (PCF)**
-        int samples = 4; // 4x4 samples for a balance between quality and performance
-        float2 texelSize = 1.0f / float2(8192.0f, 8192.0f); // Shadow map resolution
-
-        float shadowSum = 0.0f;
-        int sampleCount = 0;
-
-        // PCF sampling loop
-        for (int x = -samples / 2; x <= samples / 2; x++)
-        {
-            for (int y = -samples / 2; y <= samples / 2; y++)
-            {
-                float2 offset = float2(x, y) * texelSize;
-                float2 sampleUV = shadowUV + offset;
-
-            // Check if 'sampleUV' is within [0,1]
-                if (sampleUV.x >= 0.0f && sampleUV.x <= 1.0f && sampleUV.y >= 0.0f && sampleUV.y <= 1.0f)
-                { 
-                     
-                    float sampledDepth = ShadowDepthTexture.Sample(DefaultSampler, sampleUV).r;
-
-                // Adjusted depth comparison with bias
-                    if (currentDepth <= sampledDepth + bias || sampledDepth == 0.0f)
-                    {
-                        shadowSum += 1.0f;
-                    }
-
-                    sampleCount++;
-                }
-            }
-        }
-
-        // Average the shadow factor
-        shadow = shadowSum / sampleCount;
+        shadow = SampleShadowPCF(ci, shadowUV, currentDepth, bias);
     }
-    float shadowFinal = terrainShadow * shadow;
+
+    if (CascadeCount == 0) // shadows disabled  
+        shadowFinal = 1.0f;
+    else
+        shadowFinal = terrainShadow * shadow;
     
     // Directional Light Contribution
     float3 directLight = DirectionalLightning(F0, normalWorld, VWorld, NdotV, albedo, roughness, metalness, posWS.xyz, direction.xyz, r_true, muS);

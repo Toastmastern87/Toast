@@ -38,10 +38,22 @@ cbuffer Camera : register(b0)
 
 cbuffer DirectionalLight : register(b3)
 {
-    float4x4 lightViewProj;
+    float4x4 lightViewProj[4];
+    
     float4 direction; // FROM light -> scene
+    
     float4 radiance; // RGB
+    
     float SunIntensity;
+    float DirectionalLightGain;
+    uint CascadeCount;
+    float ShadowDistance;
+    
+    float4 CascadeEnds;
+    
+    uint CascadeIndex;
+    float ConstantBias;
+    float SlopeBias;
 };
 
 cbuffer PlanetFrame : register(b4)

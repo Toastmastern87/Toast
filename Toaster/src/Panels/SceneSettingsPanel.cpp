@@ -98,10 +98,37 @@ namespace Toast {
 					ImGui::Checkbox("Show camera frustum", &mContext->mSettings.CameraFrustum);
 					ImGui::Text("Frustum Culling Margin");
 					ImGuiHelpers::ManualDragFloat("##FrustumCullingMargin", mContext->mSettings.FrustumCullingMargin, mWindow, activeDragArea, 1.0f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 5000.0f);
-					ImGui::Checkbox("Show sun light frustum", &mContext->mSettings.SunLightFrustum);
 					ImGui::Text("Directional Lightning Gain");
 					ImGuiHelpers::ManualDragFloat("##dirlightgain", mContext->mSettings.DirectionalLightningGain, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, FLT_MAX);
-					ImGui::Checkbox("Shadows", &mContext->mSettings.Shadows);
+					ImGui::Checkbox("Activate Shadows", &mContext->mSettings.Shadows.Active);
+					if (mContext->mSettings.Shadows.Active)
+					{
+						if (ImGui::CollapsingHeader("Shadows"))
+						{
+							ImGui::Indent();
+
+							ImGui::Text("Cascade Count");
+							int temp = mContext->mSettings.Shadows.CascadeCount;
+							if (ImGui::SliderInt("##CascadeCount", &temp, 1, 4))
+							{
+								mContext->mSettings.Shadows.CascadeCount = temp;
+								mContext->mSettings.Shadows.IsDirty = true;
+							}
+
+							ImGui::Text("Distance");
+							if (ImGuiHelpers::ManualDragFloat("##ShadowDistance", mContext->mSettings.Shadows.ShadowDistance, mWindow, activeDragArea, 10.0f, ImVec2{ 255.0f, 20.0f }, "%.0f", 0.0f, 25000.0f))
+								mContext->mSettings.Shadows.IsDirty = true;
+							ImGui::Text("Lambda");
+							if (ImGuiHelpers::ManualDragFloat("##ShadowLambda", mContext->mSettings.Shadows.Lambda, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 1.0f))
+								mContext->mSettings.Shadows.IsDirty = true;
+							ImGui::Text("Constant bias");
+							ImGuiHelpers::ManualDragFloat("##ConstantBias", mContext->mSettings.Shadows.ConstantBias, mWindow, activeDragArea, 0.0001f, ImVec2{ 255.0f, 20.0f }, "%.4f", 0.0f, 0.01f);
+							ImGui::Text("Slope-scaled bias");
+							ImGuiHelpers::ManualDragFloat("##SlopeScaledBias", mContext->mSettings.Shadows.SlopeScaledBias, mWindow, activeDragArea, 0.0001f, ImVec2{ 255.0f, 20.0f }, "%.4f", 0.0f, 0.02f);
+
+							ImGui::Unindent();
+						}
+					}
 					ImGui::Checkbox("SSAO", &mContext->mSettings.SSAO);
 					ImGui::Checkbox("SSAODebugging", &mContext->mSettings.SSAODebugging);
 					ImGui::Text("SSAO Radius");

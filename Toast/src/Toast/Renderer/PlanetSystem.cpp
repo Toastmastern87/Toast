@@ -477,7 +477,7 @@ namespace Toast {
 		Vector3 camTangent = { Vector3::Dot(playerCamRel, tanEastWS), 0.0, Vector3::Dot(playerCamRel, tanNorthWS) };
 
 		if (mMeshMode == PlanetMeshMode::Icosphere)
-			mIcosphereMesh->OnUpdate(frustum, viewMatrixPlanetRendering, playerCamPosPS, renderingCamPosPS, planetPosWS, mRotationEulerAngles, mRotationQuaternion, mRadius, mMaxHeight);
+			mIcosphereMesh->OnUpdate(frustum, viewMatrixPlanetRendering, playerCamPosPS, renderingCamPosPS, planetPosWS, mRadius, mMaxHeight);
 
 		if (!mRunOnce)
 		{
@@ -1169,7 +1169,7 @@ namespace Toast {
 		}
 	}
 
-	void PlanetMeshIcosphere::OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, DirectX::XMFLOAT3& rotationEulerAngles, DirectX::XMFLOAT4& rotationQuaternion, double radius, double maxHeight)
+	void PlanetMeshIcosphere::OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, double radius, double maxHeight)
 	{
 		TOAST_PROFILE_FUNCTION();
 

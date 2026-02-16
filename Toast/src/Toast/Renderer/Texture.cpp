@@ -1087,8 +1087,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 	//     TEXTURE2DARRAY    ///////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	Texture2DArray::Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize,
-		D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags)
+	Texture2DArray::Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize,	D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags)
 		: mWidth(width), mHeight(height), mArraySize(arraySize), mFormat(format)
 	{
 		D3D11_TEXTURE2D_DESC textureDesc = {};
@@ -1113,9 +1112,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		CreateSRV();
 	}
 
-	Texture2DArray::Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize,
-		D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags,	const std::vector<const void*>& initialData,
-		const std::vector<UINT>& rowPitches)
+	Texture2DArray::Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize,	D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags,	const std::vector<const void*>& initialData, const std::vector<UINT>& rowPitches)
 		: mWidth(width), mHeight(height), mArraySize(arraySize), mFormat(format)
 	{
 		TOAST_CORE_ASSERT(initialData.size() == arraySize && rowPitches.size() == arraySize, "Wrong initial data");
@@ -1150,6 +1147,33 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		CreateSRV();
 	}
 
+	Texture2DArray::Texture2DArray(DXGI_FORMAT textureFormat, DXGI_FORMAT srvFormat, uint32_t width, uint32_t height, uint32_t arraySize, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags)
+		: mWidth(width), mHeight(height), mArraySize(arraySize), mFormat(textureFormat)
+	{
+		D3D11_TEXTURE2D_DESC textureDesc = {};
+		textureDesc.ArraySize = mArraySize;
+		textureDesc.BindFlags = bindFlag;
+		textureDesc.Usage = usage;
+		textureDesc.CPUAccessFlags = cpuAccessFlags;
+		textureDesc.Format = textureFormat;
+		textureDesc.Height = mHeight;
+		textureDesc.Width = mWidth;
+		textureDesc.MipLevels = 1;
+		textureDesc.MiscFlags = 0;
+		textureDesc.SampleDesc.Count = samples;
+		textureDesc.SampleDesc.Quality = 0;
+
+		mSRVFormat = srvFormat;
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		HRESULT result = device->CreateTexture2D(&textureDesc, nullptr, &mTexture);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture array!");
+
+		CreateSRV();
+	}
+
 	void Texture2DArray::CreateSRV()
 	{
 		D3D11_TEXTURE2D_DESC desc = {};
@@ -1159,7 +1183,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		ID3D11Device* device = API->GetDevice();
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = desc.Format;
+		srvDesc.Format = (mSRVFormat != DXGI_FORMAT_UNKNOWN) ? mSRVFormat : desc.Format;
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
 		srvDesc.Texture2DArray.MostDetailedMip = 0;
 		srvDesc.Texture2DArray.MipLevels = desc.MipLevels;
@@ -1241,6 +1265,34 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the sampler!");
 	}
 
+	TextureSampler::TextureSampler(	D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode, float mipLODBias, D3D11_COMPARISON_FUNC comparisonFunc)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_SAMPLER_DESC desc = {};
+		desc.Filter = filter; // MUST be a COMPARISON filter
+		desc.AddressU = addressMode;
+		desc.AddressV = addressMode;
+		desc.AddressW = addressMode;
+
+		desc.MaxAnisotropy = 1; // comparison samplers are typically not anisotropic
+		desc.MipLODBias = mipLODBias;
+		desc.MinLOD = 0;
+		desc.MaxLOD = D3D11_FLOAT32_MAX;
+
+		desc.ComparisonFunc = comparisonFunc;
+
+		// Optional but recommended for shadow maps:
+		desc.BorderColor[0] = 0.0f;
+		desc.BorderColor[1] = 0.0f;
+		desc.BorderColor[2] = 0.0f;
+		desc.BorderColor[3] = 0.0f;
+
+		HRESULT hr = device->CreateSamplerState(&desc, &mSamplerState);
+		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Unable to create comparison sampler!");
+	}
+
 	void TextureSampler::Bind(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -1294,6 +1346,13 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 	TextureSampler* TextureLibrary::LoadTextureSampler(const std::string& name, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE uAddressMode, D3D11_TEXTURE_ADDRESS_MODE vAddressMode, float mipLODBias)
 	{
 		mTextureSamplers[name] = CreateScope<TextureSampler>(filter, uAddressMode, vAddressMode, mipLODBias);
+		return mTextureSamplers[name].get();
+	}
+
+
+	TextureSampler* TextureLibrary::LoadComparisonSampler(const std::string& name, D3D11_FILTER filter, D3D11_COMPARISON_FUNC cmpFunc, D3D11_TEXTURE_ADDRESS_MODE addressMode, float mipLODBias)
+	{
+		mTextureSamplers[name] = CreateScope<TextureSampler>(filter, addressMode, mipLODBias, cmpFunc);
 		return mTextureSamplers[name].get();
 	}
 
