@@ -699,6 +699,7 @@ namespace Toast {
 		out << YAML::Key << "MaxHeight" << YAML::Value << scenePlanet->mMaxHeight;
 		out << YAML::Key << "MinHeight" << YAML::Value << scenePlanet->mMinHeight;
 		out << YAML::Key << "MeshMode" << YAML::Value << static_cast<uint32_t>(scenePlanet->mMeshMode);
+		out << YAML::Key << "AlbedoMap" << YAML::Value << scenePlanet->mAlbedoTexture->GetFilePath();
 		out << YAML::Key << "AlbedoColor" << YAML::Value << scenePlanet->mAlbedoColor;
 		out << YAML::Key << "Roughness" << YAML::Value << scenePlanet->mRoughness;
 		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet->mMetalness;
@@ -1020,6 +1021,7 @@ namespace Toast {
 		scenePlanet->mMaxHeight = planet["MaxHeight"].as<double>();
 		scenePlanet->mMinHeight = planet["MinHeight"].as<double>();
 		scenePlanet->mMeshMode = static_cast<PlanetMeshMode>(planet["MeshMode"].as<uint32_t>());
+		scenePlanet->mAlbedoTexture = TextureLibrary::LoadTexture2D(planet["AlbedoMap"].as<std::string>(), false);
 		scenePlanet->mAlbedoColor = planet["AlbedoColor"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mRoughness = planet["Roughness"].as<float>();
 		scenePlanet->mMetalness = planet["Metalness"].as<float>();
