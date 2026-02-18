@@ -719,16 +719,74 @@ namespace Toast {
 
 						ImGui::TableSetColumnIndex(0);
 						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Albedo Color");
+						ImGui::Text("Albedo");
 
 						ImGui::TableSetColumnIndex(1);
 
 						float padX = ImGui::GetStyle().CellPadding.x;
 						float colW = ImGui::GetColumnWidth();             // total width of column 1
 						float fullW = colW - padX * 2.0f;                  // leave padding on both sides
-						ImGui::SetNextItemWidth(fullW);
 
-						ImGui::ColorEdit3("##albedocolor", &mContext->mAlbedoColor.x);
+						// Optional: keep everything aligned and sized predictably
+						ImGui::BeginGroup();
+						ImGui::PushID("PlanetAlbedo");
+
+						// Thumbnail
+						ImGui::PushItemWidth(-1);
+
+						ImTextureID texID = mContext->mAlbedoTexture ? mContext->mAlbedoTexture->GetID() : (ImTextureID)0;
+
+						// Pick a size that fits your row nicely
+						const ImVec2 thumbSize = ImVec2(64.0f, 64.0f);
+						ImGui::Image(texID, thumbSize);
+
+						if (ImGui::BeginDragDropTarget())
+						{
+							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+							{
+								const wchar_t* path = (const wchar_t*)payload->Data;
+								auto completePath = std::filesystem::path(gAssetPath) / path;
+								const std::string filename = completePath.string();
+
+								mContext->mAlbedoTexture = TextureLibrary::LoadTexture2D(filename);
+								// If you want: auto-enable use-map on assignment
+								mContext->mUseAlbedoMap = 1;
+							}
+							ImGui::EndDragDropTarget();
+						}
+
+						// Click to browse
+						if (ImGui::IsItemClicked())
+						{
+							std::optional<std::string> filename =
+								FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							if (filename)
+							{
+								mContext->mAlbedoTexture = TextureLibrary::LoadTexture2D(*filename);
+								mContext->mUseAlbedoMap = 1;
+							}
+						}
+
+						ImGui::SameLine();
+
+						// Right-side panel next to thumbnail
+						// We reserve remaining width in the column
+						ImGui::BeginGroup();
+						ImGui::SetNextItemWidth(fullW - thumbSize.x - ImGui::GetStyle().ItemSpacing.x);
+
+						// Use Map checkbox
+						bool useMap = mContext->mUseAlbedoMap != 0;
+						if (ImGui::Checkbox("Use Map##PlanetAlbedo", &useMap))
+							mContext->mUseAlbedoMap = useMap ? 1 : 0;
+
+						// Color (fallback/tint)
+						ImGui::SetNextItemWidth(-1);
+						ImGui::ColorEdit3("##ColorPlanetAlbedo", &mContext->mAlbedoColor.x);
+
+						ImGui::EndGroup();
+
+						ImGui::PopID();
+						ImGui::EndGroup();
 
 						ImGui::TableNextRow();
 

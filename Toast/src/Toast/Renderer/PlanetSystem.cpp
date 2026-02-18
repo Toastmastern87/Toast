@@ -25,7 +25,7 @@ namespace Toast {
 
 	Planet::Planet()
 	{
-
+		mAlbedoTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 	}
 
 	void Planet::Initialize()

@@ -397,6 +397,8 @@ namespace Toast {
 		Buffer mTerrainObjectBuffer;
 
 		// PBR Data
+		uint32_t mUseAlbedoMap = 0;
+		Texture2D* mAlbedoTexture;
 		DirectX::XMFLOAT3 mAlbedoColor = { 0.0f, 0.0f, 0.0f };
 		float mRoughness = 0.0f;
 		float mMetalness = 0.0f;
