@@ -1,10 +1,10 @@
 Prefab Name: Starship
 Entities:
-  - Entity: 559949455928049276
+  - Entity: 13474277331995882447
     TagComponent:
       Tag: FollowButton
     RelationshipComponent:
-      ParentHandle: 5912109944540970524
+      ParentHandle: 12681096957605279551
       Children:
         []
     TransformComponent:
@@ -22,11 +22,11 @@ Entities:
       TextureIndex: 13
       ClickAssetPath: C:\dev\Toast\Toaster\assets\textures\UI\15_FollowStarshipClicked.png
       ClickTextureIndex: 14
-  - Entity: 17977407803705018798
+  - Entity: 6932977112766424345
     TagComponent:
       Tag: AltitudeText
     RelationshipComponent:
-      ParentHandle: 5912109944540970524
+      ParentHandle: 12681096957605279551
       Children:
         []
     TransformComponent:
@@ -37,11 +37,11 @@ Entities:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
       Text: "Altitude: 38,2 m"
       TextureIndex: 0
-  - Entity: 16145715945398652909
+  - Entity: 15221928275799966647
     TagComponent:
       Tag: VelocityText
     RelationshipComponent:
-      ParentHandle: 5912109944540970524
+      ParentHandle: 12681096957605279551
       Children:
         []
     TransformComponent:
@@ -52,11 +52,11 @@ Entities:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
       Text: "Velocity: 30,9 m/s"
       TextureIndex: 0
-  - Entity: 1404100840627622376
+  - Entity: 4417647755008063138
     TagComponent:
       Tag: CloseButton
     RelationshipComponent:
-      ParentHandle: 5912109944540970524
+      ParentHandle: 12681096957605279551
       Children:
         []
     TransformComponent:
@@ -74,16 +74,16 @@ Entities:
       TextureIndex: 3
       ClickAssetPath: C:\dev\Toast\Toaster\assets\textures\UI\08_ClickCloseButton.png
       ClickTextureIndex: 7
-  - Entity: 5912109944540970524
+  - Entity: 12681096957605279551
     TagComponent:
       Tag: InfoPopup
     RelationshipComponent:
-      ParentHandle: 16015017249713274055
+      ParentHandle: 11766742451399349878
       Children:
-        - Handle: 1404100840627622376
-        - Handle: 16145715945398652909
-        - Handle: 17977407803705018798
-        - Handle: 559949455928049276
+        - Handle: 4417647755008063138
+        - Handle: 15221928275799966647
+        - Handle: 6932977112766424345
+        - Handle: 13474277331995882447
     TransformComponent:
       Translation: [307.5, -34.3498535, 4.38183594]
       Rotation: [0, -0, 0]
@@ -100,11 +100,11 @@ Entities:
       ConnectorThickness: 4.19999981
       ConnectorChildOffset: [126.899994, 6.19999361]
       ConnectorParentOffset: [0, 24.7000065]
-  - Entity: 15401011321888172960
+  - Entity: 15872338156510739787
     TagComponent:
       Tag: Rocket Exhaust RB3
     RelationshipComponent:
-      ParentHandle: 16015017249713274055
+      ParentHandle: 11766742451399349878
       Children:
         []
     TransformComponent:
@@ -127,11 +127,11 @@ Entities:
       Size: 1.09000003
       SpawnFunction: 2
       AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
-  - Entity: 5100438661222490686
+  - Entity: 2427141946083973016
     TagComponent:
       Tag: Rocket Exhaust RB2
     RelationshipComponent:
-      ParentHandle: 16015017249713274055
+      ParentHandle: 11766742451399349878
       Children:
         []
     TransformComponent:
@@ -154,11 +154,11 @@ Entities:
       Size: 1.09000003
       SpawnFunction: 2
       AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
-  - Entity: 15842497187098228321
+  - Entity: 6369616443689304713
     TagComponent:
       Tag: Rocket Exhaust RB1
     RelationshipComponent:
-      ParentHandle: 16015017249713274055
+      ParentHandle: 11766742451399349878
       Children:
         []
     TransformComponent:
@@ -181,88 +181,88 @@ Entities:
       Size: 1.09000003
       SpawnFunction: 2
       AssetPath: C:\dev\Toast\Toaster\assets\textures\SmokeParticleTexture.png
-  - Entity: 3278639173638286406
+  - Entity: 17744116505993313425
     TagComponent:
       Tag: MainBody
     RelationshipComponent:
-      ParentHandle: 16015017249713274055
+      ParentHandle: 11766742451399349878
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-  - Entity: 9429856714683859530
+  - Entity: 14516340954819350641
     TagComponent:
       Tag: LandingLegs
     RelationshipComponent:
-      ParentHandle: 16015017249713274055
+      ParentHandle: 11766742451399349878
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-  - Entity: 5318020307697276003
+  - Entity: 8925014252523724776
     TagComponent:
       Tag: Flap Backward Right
     RelationshipComponent:
-      ParentHandle: 16015017249713274055
+      ParentHandle: 11766742451399349878
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-  - Entity: 11212489854202682060
+  - Entity: 6462680735632083519
     TagComponent:
       Tag: Flap Forward Right
     RelationshipComponent:
-      ParentHandle: 16015017249713274055
+      ParentHandle: 11766742451399349878
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-  - Entity: 2332163571461108468
+  - Entity: 2140437502517683608
     TagComponent:
       Tag: Flap Backward Left
     RelationshipComponent:
-      ParentHandle: 16015017249713274055
+      ParentHandle: 11766742451399349878
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-  - Entity: 15630300100839091671
+  - Entity: 12087896001860163936
     TagComponent:
       Tag: Flap Forward Left
     RelationshipComponent:
-      ParentHandle: 16015017249713274055
+      ParentHandle: 11766742451399349878
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-  - Entity: 16015017249713274055
+  - Entity: 11766742451399349878
     TagComponent:
       Tag: Entity
     RelationshipComponent:
       ParentHandle: 0
       Children:
-        - Handle: 15630300100839091671
-        - Handle: 2332163571461108468
-        - Handle: 11212489854202682060
-        - Handle: 5318020307697276003
-        - Handle: 9429856714683859530
-        - Handle: 3278639173638286406
-        - Handle: 15842497187098228321
-        - Handle: 5100438661222490686
-        - Handle: 15401011321888172960
-        - Handle: 5912109944540970524
+        - Handle: 12087896001860163936
+        - Handle: 2140437502517683608
+        - Handle: 6462680735632083519
+        - Handle: 8925014252523724776
+        - Handle: 14516340954819350641
+        - Handle: 17744116505993313425
+        - Handle: 6369616443689304713
+        - Handle: 2427141946083973016
+        - Handle: 15872338156510739787
+        - Handle: 12681096957605279551
     PrefabComponent:
       PrefabHandle: Starship
     TransformComponent:
@@ -279,7 +279,8 @@ Entities:
     RigidBodyComponent:
       InvMass: 0.00019999999494757503
       Elasticity: 0.05000000074505806
-      Friction: 0
+      StaticFriction: 1.2000000476837158
+      DynamicFriction: 0.80000001192092896
       CenterOfMass: [0, 0, 0]
       LinearDamping: 0
       AngularDamping: 0

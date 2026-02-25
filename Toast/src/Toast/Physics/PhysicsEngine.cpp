@@ -675,10 +675,63 @@ namespace Toast {
 		Vector3 impulse = j * normal;
 
 		ApplyLinearImpulse(rbc, impulse);
-
+		 
 		Vector3 torqueImpulse = Vector3::Cross(r, impulse);
 
 		ApplyImpulseAngular(rbc, invInertiaWorld, torqueImpulse);
+
+		// Friction, Coulomb
+
+		// Recompute relative velocity AFTER normal impulse (important!)
+		Vector3 vRel2 = rbc.LinearVelocity + Vector3::Cross(rbc.AngularVelocity, r);
+
+		// Tangential component (remove normal component)
+		double vRelN2 = Vector3::Dot(vRel2, normal);
+		Vector3 vT = vRel2 - normal * vRelN2;
+
+		double vTlen = vT.Length();
+		if (vTlen > 1e-6)
+		{
+			Vector3 t = vT / vTlen; // tangent direction opposing slip will be handled by sign in jt
+
+			Vector3 rt = Vector3::Cross(r, t);
+			Vector3 invI_rt = Matrix::MulMat3(invInertiaWorld, rt);
+			double angularTermT = Vector3::Dot(Vector3::Cross(invI_rt, r), t);
+
+			double denomT = rbc.InvMass + angularTermT;
+			if (denomT > 1e-8)
+			{
+				// Desired friction impulse to cancel tangential velocity
+				// (negative sign because we want to oppose current tangential motion)
+				double jt = -Vector3::Dot(vRel2, t) / denomT;
+
+				// Coulomb limit based on normal impulse magnitude j (from your normal solve)
+				double muS = rbc.StaticFriction;
+				double muD = rbc.DynamicFriction;
+
+				// If required jt is within static cone => static friction (stick)
+				// otherwise dynamic friction (slide)
+				double jtMaxStatic = muS * j;
+
+				Vector3 frictionImpulse;
+				if (std::abs(jt) <= jtMaxStatic)
+				{
+					// static: fully cancel tangential motion (within limit)
+					frictionImpulse = jt * t;
+				}
+				else
+				{
+					// dynamic: clamp to muD * j in opposite direction of slip
+					double jtClamped = -muD * j * (Vector3::Dot(vRel2, t) > 0.0 ? 1.0 : -1.0);
+					frictionImpulse = jtClamped * t;
+				}
+
+				ApplyLinearImpulse(rbc, frictionImpulse);
+
+				Vector3 frictionTorque = Vector3::Cross(r, frictionImpulse);
+				ApplyImpulseAngular(rbc, invInertiaWorld, frictionTorque);
+			}
+		}
 	}
 
 }

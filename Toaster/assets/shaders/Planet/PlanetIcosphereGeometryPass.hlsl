@@ -171,6 +171,10 @@ cbuffer Material : register(b2)
 	int MetalRoughTexToggle;
 };
 
+Texture2D AlbedoTexture         : register(t3);
+
+SamplerState defaultSampler     : register(s0);
+
 struct PBRParameters
 {
 	float3 Albedo;

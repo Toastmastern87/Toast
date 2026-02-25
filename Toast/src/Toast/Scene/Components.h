@@ -185,7 +185,8 @@ namespace Toast {
 		bool IsStatic = false;
 		double InvMass = 0.0f;
 		double Elasticity = 0.0f;
-		double Friction = 0.0f;
+		double StaticFriction = 0.0f;
+		double DynamicFriction = 0.0f;
 		Vector3 CenterOfMass = { 0.0f, 0.0f, 0.0f };
 		Vector3 LinearVelocity = { 0.0f, 0.0f, 0.0f };
 		double LinearDamping = 0.0;

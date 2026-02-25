@@ -409,7 +409,8 @@ namespace Toast {
 			auto& rbc = entity.GetComponent<RigidBodyComponent>();
 			out << YAML::Key << "InvMass" << YAML::Value << rbc.InvMass;
 			out << YAML::Key << "Elasticity" << YAML::Value << rbc.Elasticity;
-			out << YAML::Key << "Friction" << YAML::Value << rbc.Friction;
+			out << YAML::Key << "StaticFriction" << YAML::Value << rbc.StaticFriction;
+			out << YAML::Key << "DynamicFriction" << YAML::Value << rbc.DynamicFriction;
 			out << YAML::Key << "CenterOfMass" << YAML::Value << rbc.CenterOfMass;
 			out << YAML::Key << "LinearDamping" << YAML::Value << rbc.LinearDamping;
 			out << YAML::Key << "AngularDamping" << YAML::Value << rbc.AngularDamping;
@@ -1373,7 +1374,8 @@ namespace Toast {
 					rbc.CenterOfMass = rigidBodyComponent["CenterOfMass"].as<Vector3>();
 					rbc.InvMass = rigidBodyComponent["InvMass"].as<double>();
 					rbc.Elasticity = rigidBodyComponent["Elasticity"].as<double>();
-					rbc.Friction = rigidBodyComponent["Friction"].as<double>();
+					rbc.StaticFriction = rigidBodyComponent["StaticFriction"].as<double>();
+					rbc.DynamicFriction = rigidBodyComponent["DynamicFriction"].as<double>();
 					rbc.LinearDamping = rigidBodyComponent["LinearDamping"].as<double>();
 					rbc.AngularDamping = rigidBodyComponent["AngularDamping"].as<double>();
 				}

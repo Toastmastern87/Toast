@@ -482,7 +482,9 @@ namespace Toast {
 		Ref<ConstantBuffer> GetPlanetLevelCBuffer() { return mPlanetLevelCBuffer; }
 		ShaderLayout* GetShaderLayout() { return &mShaderInputLayout; }
 
+		uint32_t& GetUseAlbedoMap() { return mUseAlbedoMap; }
 		DirectX::XMFLOAT3& GetAlbedoColor() { return mAlbedoColor; }
+		Texture2D* GetAlbedoTexture() { return mAlbedoTexture; }
 		float& GetMetalness() { return mMetalness; }
 		float& GetRoughness() { return mRoughness; }
 		Texture2D* GetBaseHeightMapTexture() { return mBaseHeightMapTexture; }

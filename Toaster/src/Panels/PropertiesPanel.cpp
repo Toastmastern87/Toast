@@ -815,9 +815,13 @@ namespace Toast {
 				if(DrawFloatControl("Elasticity (0-1)", temp, window, activeDragArea, 90.0f, 0.0f, 1.0f, 0.01f, "%.2f"))
 					component.Elasticity = static_cast<double>(temp);
 
-				temp = static_cast<float>(component.Friction);
-				if(DrawFloatControl("Friction (0-1)", temp, window, activeDragArea, 90.0f, 0.0f, 1.0f, 0.01f, "%.2f"))
-					component.Friction = static_cast<double>(temp);
+				temp = static_cast<float>(component.StaticFriction);
+				if(DrawFloatControl("Static Friction", temp, window, activeDragArea, 90.0f, 0.0f, 2.0f, 0.01f, "%.2f"))
+					component.StaticFriction = static_cast<double>(temp);
+
+				temp = static_cast<float>(component.DynamicFriction);
+				if (DrawFloatControl("Dynamic Friction", temp, window, activeDragArea, 90.0f, 0.0f, 2.0f, 0.01f, "%.2f"))
+					component.DynamicFriction = static_cast<double>(temp);
 
 				temp = static_cast<float>(component.LinearDamping);
 				if (DrawFloatControl("Linear Damping (0-1)", temp, window, activeDragArea, 90.0f, 0.0f, 25.0f, 0.01f, "%.1f"))

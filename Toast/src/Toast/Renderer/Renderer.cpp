@@ -962,7 +962,12 @@ namespace Toast {
 				sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetAlbedoColor(), 16, 0);
 				sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetMetalness(), 4, 20);
 				sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetRoughness(), 4, 24);
+				int useAlbedo = static_cast<int>(sRendererData->PlanetDraw.Planet->GetUseAlbedoMap());
+				sRendererData->MaterialBuffer.Write((uint8_t*)&useAlbedo, 4, 28);
 				sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
+
+				if (sRendererData->PlanetDraw.Planet->GetUseAlbedoMap())
+					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->PlanetDraw.Planet->GetAlbedoTexture()->GetSRV());
 
 				if(sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
 				{

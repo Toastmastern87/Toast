@@ -362,6 +362,10 @@ cbuffer HeightDetail : register(b8)
     float Amplitude;
 };
 
+Texture2D AlbedoTexture         : register(t3);
+
+SamplerState defaultSampler     : register(s0);
+
 struct PBRParameters
 {
     float3 Albedo;
