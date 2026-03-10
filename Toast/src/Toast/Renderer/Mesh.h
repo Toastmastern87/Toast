@@ -9,6 +9,8 @@
 
 #include "Toast/Core/Math/Math.h"
 
+#include "Toast/Core/UUID.h"
+
 #include <DirectXMath.h>
 
 #pragma push_macro("free")
@@ -183,6 +185,21 @@ namespace Toast {
 		}
 	};
 
+	struct MeshPart
+	{
+		MeshPart() = default;
+		MeshPart(const std::string& name)
+			: Name(name), EntityID() {}
+
+		std::string Name = "";
+		UUID EntityID;
+		DirectX::XMFLOAT3 InitialTranslation = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT4 InitialRotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+		DirectX::XMFLOAT3 InitialScale = { 1.0f, 1.0f, 1.0f };
+
+		bool InitialTransformCaptured = false;
+	};
+
 	class Submesh
 	{
 	public:
@@ -197,11 +214,14 @@ namespace Toast {
 		uint32_t IndexCount;
 		uint32_t VertexCount;
 
+		// TO BE REMOVED
 		DirectX::XMMATRIX Transform = DirectX::XMMatrixIdentity();
 		DirectX::XMFLOAT3 Translation = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 		DirectX::XMFLOAT3 StartTranslation = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
 		DirectX::XMFLOAT4 Rotation = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 		DirectX::XMFLOAT3 Scale = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
+
+		uint32_t PartIndex = UINT32_MAX;
 
 		std::string MeshName;
 
@@ -256,6 +276,7 @@ namespace Toast {
 		const std::string& GetFilePath() const { return mFilePath; }
 
 		std::unordered_map<std::string, UUID>& GetParts() { return mParts; }
+		std::vector<MeshPart>& GetPartsUpdated() { return mPartsUpdated; }
 
 		std::vector<Vertex>& GetVertices() { return mLODGroups[mActiveLODGroup]->Vertices; }
 		std::vector<uint32_t>& GetIndices() { return mLODGroups[mActiveLODGroup]->Indices; }
@@ -279,6 +300,10 @@ namespace Toast {
 		uint32_t GetNumberOfInstances(size_t LODGroupIndex) const { return mLODGroups[LODGroupIndex]->NumberOfInstances; }
 		void SetInstanceData(const void* data, uint32_t size, uint32_t numberOfInstances);
 	private:
+		void ProcessLODNode(const cgltf_node* node, Ref<LODGroup> lodGroup, const DirectX::XMMATRIX& parentTransform, uint32_t& vertexCount, uint32_t& indexCount);
+
+		uint32_t GetOrCreatePartIndex(const std::string& partName);
+	private:
 		std::string mFilePath = "";
 
 		bool mHasLODs = false;
@@ -293,6 +318,9 @@ namespace Toast {
 
 		std::unordered_map<std::string, Ref<Material>> mMaterials;
 		std::unordered_map<std::string, UUID> mParts;
+
+		std::vector<MeshPart> mPartsUpdated;
+		std::unordered_map<std::string, uint32_t> mPartNameToIndex;
 
 		DirectX::XMMATRIX mTransform = DirectX::XMMatrixIdentity();
 

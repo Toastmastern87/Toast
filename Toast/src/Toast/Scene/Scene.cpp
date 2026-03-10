@@ -18,10 +18,7 @@
 namespace Toast {
 
 	// TODO MOVE THIS TO RENDERER2D
-	inline DirectX::XMFLOAT3 UIToCenteredRenderSpace(
-		const DirectX::XMFLOAT3& uiPosTL, // top-left, y-down, in pixels
-		float viewportW,
-		float viewportH)
+	inline DirectX::XMFLOAT3 UIToCenteredRenderSpace(const DirectX::XMFLOAT3& uiPosTL, float viewportW, float viewportH)
 	{
 		DirectX::XMFLOAT3 out;
 		out.x = uiPosTL.x - viewportW * 0.5f;
@@ -1120,26 +1117,49 @@ namespace Toast {
 			{
 				auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
 
-				switch (mSettings.WireframeRendering)
-				{
-				case Settings::Wireframe::NO:
-				{
-					Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, false, 0);
+				bool validMesh = mesh.MeshObject->GetFilePath() != "";
 
-					break;
-				}
-				case Settings::Wireframe::YES:
-				{
-					Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, true, 0);
+				if (!validMesh)
+					continue;
 
-					break;
-				}
-				case Settings::Wireframe::ONTOP:
-				{
-					// TODO
+				auto& lodGroup = mesh.MeshObject->mLODGroups[mesh.MeshObject->mActiveLODGroup];
+				auto& submeshes = lodGroup->Submeshes;
 
-					break;
-				}
+				for (uint32_t submeshIndex = 0; submeshIndex < (uint32_t)submeshes.size(); ++submeshIndex)
+				{
+					const Submesh& submesh = submeshes[submeshIndex];
+
+					DirectX::XMMATRIX finalTransform = transform.GetTransform(); // fallback
+
+					if (submesh.PartIndex < mesh.MeshObject->mPartsUpdated.size())
+					{
+						const MeshPart& part = mesh.MeshObject->mPartsUpdated[submesh.PartIndex];
+
+						if (part.EntityID != 0)
+						{
+							Entity partEntity = FindEntityByUUID(part.EntityID);
+							if (partEntity)
+							{
+								auto& partTransform = partEntity.GetComponent<TransformComponent>();
+								finalTransform = DirectX::XMMatrixMultiply(partTransform.GetTransform(), transform.GetTransform());
+							}
+						}
+					}
+
+					switch (mSettings.WireframeRendering)
+					{
+					case Settings::Wireframe::NO:
+						Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, false, 0);
+						break;
+
+					case Settings::Wireframe::YES:
+						Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, true, 0);
+						break;
+
+					case Settings::Wireframe::ONTOP:
+						// TODO
+						break;
+					}
 				}
 
 				if (mSelectedEntity == entity)
@@ -1627,14 +1647,21 @@ namespace Toast {
 		parent.Children().push_back(entity.GetUUID());
 	}
 
-	void Scene::AddMeshPartEntities(std::unordered_map<std::string, UUID>& parts, Entity& meshParent)
+	void Scene::AddMeshPartEntities(std::vector<MeshPart>& parts, Entity& meshParent)
 	{
-		for ( auto& [key, value] : parts)
+		for (size_t i = 0; i < parts.size(); ++i)
 		{
-			Entity partEntity = CreateEntity(key, meshParent.GetUUID());
-			value = partEntity.GetUUID();
+			MeshPart& part = parts[i];
+
+			Entity partEntity = CreateEntity(part.Name, meshParent.GetUUID());
+			part.EntityID = partEntity.GetUUID();
 
 			partEntity.AddComponent<MeshPartComponent>();
+
+			auto& tc = partEntity.GetComponent<TransformComponent>();
+			tc.Translation = part.InitialTranslation;
+			tc.RotationQuaternion = part.InitialRotation;
+			tc.Scale = part.InitialScale;
 
 			partEntity.SetParentUUID(meshParent.GetUUID());
 			meshParent.Children().push_back(partEntity.GetUUID());

@@ -1,0 +1,7 @@
+Material: Stainless Steel Shiny
+Albedo: [0.549454331, 0.549454331, 0.549454331, 1]
+Metalness: 1
+Roughness: 0.735995114
+UseAlbedoMap: false
+UseNormalMap: false
+UseMetalRoughMap: false

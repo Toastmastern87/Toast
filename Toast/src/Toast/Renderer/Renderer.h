@@ -18,16 +18,19 @@ namespace Toast {
 		struct DrawCommand
 		{
 		public:
-			DrawCommand(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const bool wireframe, int noWorldTransform = 1, const int entityID = 0)
-				: Mesh(mesh), Transform(transform), Wireframe(wireframe), NoWorldTransform(noWorldTransform), EntityID(entityID) {}
+			DrawCommand(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const bool wireframe, int noWorldTransform = 1, const int entityID = 0, const int submeshIndex = 0)
+				: Mesh(mesh), Transform(transform), Wireframe(wireframe), NoWorldTransform(noWorldTransform), EntityID(entityID), SubmeshIndex(submeshIndex) {}
 			DrawCommand(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform)
 				: Mesh(mesh), Transform(transform), EntityID(0) {}
 		public:
 			Ref<Mesh> Mesh;
+			uint32_t SubmeshIndex = 0;
+
 			DirectX::XMMATRIX Transform;
+
+			UUID EntityID;
 			bool Wireframe;
 			int NoWorldTransform;
-			const int EntityID;
 		};
 
 		struct DrawCommandPlanet 
@@ -159,6 +162,11 @@ namespace Toast {
 			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ParticlesSRV;
 			size_t NrOfParticlesToRender;
 			Texture2D* ParticleMaskTexture;
+
+			// Remember current GPU bound data
+			ID3D11RasterizerState* CurrentRasterizerState = nullptr;
+			Topology CurrentTopology = Topology::UNDEFINED;
+			Mesh* CurrentMesh = nullptr;
 		};
 
 	protected:
@@ -190,7 +198,7 @@ namespace Toast {
 
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
 		static void SubmitSkybox(const DirectX::XMFLOAT4& cameraPos, const DirectX::XMFLOAT4X4& viewMatrix, const DirectX::XMFLOAT4X4& projectionMatrix, float intensity, float LOD);
-		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe = false, int noWorldTransform = 0, bool atmosphere = false);
+		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, uint32_t submeshIndex, bool wireframe = false, int noWorldTransform = 0, bool atmosphere = false);
 		static void SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false);
 		static void SubmitPlanet(const Ref<Planet> planet, bool wireframe = false);
 

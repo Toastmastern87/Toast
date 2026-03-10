@@ -1,6 +1,6 @@
 Scene: Mars
 EditorCamera:
-  Position: [233.790497, 251.505386, -240.595795]
+  Position: [15.086092, 89.1795654, -30.554533]
 Settings:
   Wireframe: 0
   Grid: false
@@ -236,6 +236,347 @@ Entities:
         - Name: WheelSensitivity
           Type: Float
           Data: 1
+  - Entity: 18146887494418500013
+    TagComponent:
+      Tag: FrontFlapLeft
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-3.1843307, 22.0407619, 1.24158382]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 0.135449007]
+  - Entity: 11700035810859115180
+    TagComponent:
+      Tag: FlontFlapRight
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [4.44148684, 16.9123936, 2.24836254]
+      Rotation: [0, 0, 0]
+      Scale: [0.99999994, -1.00000036, 0.135449052]
+  - Entity: 13637532354032677070
+    TagComponent:
+      Tag: PayLoadDoorRight
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [2.49865723, 8.08476448, 3.73904538]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 5785639892863351702
+    TagComponent:
+      Tag: PayLoadDoorLeft
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-2.49804688, 8.08476448, 3.73904586]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 17553192972598918456
+    TagComponent:
+      Tag: RaptorVacuum3
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [2.25920868, -22.8997345, 1.00756884]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 14808742754969420543
+    TagComponent:
+      Tag: RaptorVacuum2
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-3.17223358, -22.8997345, 1.00756884]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 1136829736214903616
+    TagComponent:
+      Tag: RaptorVacuum1
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-0.331756592, -22.8997345, -2.90701389]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 9012066156810008494
+    TagComponent:
+      Tag: RaptorSea3
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.78377533, -23.7662926, -0.393976629]
+      Rotation: [0, 0, 0]
+      Scale: [1.00000036, 1, 1.00000036]
+  - Entity: 5277279435435237547
+    TagComponent:
+      Tag: RaptorSea2
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.0152053833, -23.7662926, 0.836445153]
+      Rotation: [0, 0, 0]
+      Scale: [1.00000012, 1, 1.00000012]
+  - Entity: 182060880300195973
+    TagComponent:
+      Tag: RaptorSea1
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-0.619262695, -23.7662926, -0.386897862]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 3939852537308481504
+    TagComponent:
+      Tag: PayloadDoorRight
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [2.49747467, 8.08420944, 3.73904586]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 13991921623479549600
+    TagComponent:
+      Tag: PayloadDoorLeft
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-2.49922943, 8.08420944, 3.73904634]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 7192130476204999745
+    TagComponent:
+      Tag: MainHull
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 7108633215517834517
+    TagComponent:
+      Tag: PistonRod3
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [3.88076186, -24.3251419, 2.3164196]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 14221534963018837778
+    TagComponent:
+      Tag: Leg3
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [4.04938984, -26.0185204, 2.43212557]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 1958601323281921329
+    TagComponent:
+      Tag: PistonRod2
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-3.67812085, -24.3097038, 2.57234359]
+      Rotation: [0, 0, 0]
+      Scale: [0.99999994, 1, 1]
+  - Entity: 925893350530585282
+    TagComponent:
+      Tag: Leg2
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-3.85722733, -26.0030823, 2.67104816]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 1671042088269272683
+    TagComponent:
+      Tag: PistonRod1
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-0.0538864136, -24.3009853, -4.54432201]
+      Rotation: [0, 0, 0]
+      Scale: [1, 0.99999994, 1]
+  - Entity: 1777524385951256017
+    TagComponent:
+      Tag: Leg1
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-0.0378799438, -25.9943638, -4.748209]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 7288398472630065424
+    TagComponent:
+      Tag: Interior
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-0.00703430176, 17.99786, -0.0595300123]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 1278383217932681116
+    TagComponent:
+      Tag: ForwardFlapRight
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-0.147888184, 18.571846, -0.0783045515]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 15273104972377389672
+    TagComponent:
+      Tag: ForwardFlapLeft
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.178649902, 18.571846, -0.0783045515]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 16800867404213333324
+    TagComponent:
+      Tag: CraneWireRight
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [1.99871063, 14.8010063, 2.50606537]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 3488677278247441041
+    TagComponent:
+      Tag: CraneWireLeft
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-2.00669861, 14.8010063, 2.50606537]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 5002220705129902976
+    TagComponent:
+      Tag: CraneHinge
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [2.15153503, 8.04761505, 2.60369992]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 16471563780413074267
+    TagComponent:
+      Tag: CraneCasketRightWall
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [2.04666138, 9.0928154, 1.46879601]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 18038015769374029907
+    TagComponent:
+      Tag: CraneCasketLeftWall
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-2.0451355, 9.0928154, 1.46879601]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 2133224906257167133
+    TagComponent:
+      Tag: CraneCasketForwardWall
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [1.95568848, 9.08306885, 3.62394452]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 13254070795780040533
+    TagComponent:
+      Tag: CraneCasket
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-2.00669861, 11.6412125, 2.50606537]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 8719154827947233650
+    TagComponent:
+      Tag: AftFlapRight
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [4.72884369, -26.0241814, 0.266617775]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 10755417954112289703
+    TagComponent:
+      Tag: AftFlapLeft
+    RelationshipComponent:
+      ParentHandle: 9551978585913337237
+      Children:
+        []
+    TransformComponent:
+      Translation: [-4.67868805, -26.0241814, 0.197269678]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
   - Entity: 7417047481402635176
     TagComponent:
       Tag: MapButton
@@ -445,8 +786,8 @@ Entities:
         - Handle: 17200548796977600084
         - Handle: 697842924302282008
     TransformComponent:
-      Translation: [-30.6328373, 91, 161.445099]
-      Rotation: [0, -161.100037, 0]
+      Translation: [19.3671627, 82, 54]
+      Rotation: [0, -266.099915, 0]
       Scale: [0.999999523, 1, 0.999999523]
     MeshComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_SN3.gltf
@@ -704,3 +1045,112 @@ Entities:
       TextureIndex: 5
       ClickAssetPath: C:\dev\Toast\Toaster\assets\textures\UI\12_AllStarshipsButtonClicked.png
       ClickTextureIndex: 11
+  - Entity: 9551978585913337237
+    TagComponent:
+      Tag: StarshipUpdated
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        - Handle: 10755417954112289703
+        - Handle: 8719154827947233650
+        - Handle: 13254070795780040533
+        - Handle: 2133224906257167133
+        - Handle: 18038015769374029907
+        - Handle: 16471563780413074267
+        - Handle: 5002220705129902976
+        - Handle: 3488677278247441041
+        - Handle: 16800867404213333324
+        - Handle: 15273104972377389672
+        - Handle: 1278383217932681116
+        - Handle: 7288398472630065424
+        - Handle: 1777524385951256017
+        - Handle: 1671042088269272683
+        - Handle: 925893350530585282
+        - Handle: 1958601323281921329
+        - Handle: 14221534963018837778
+        - Handle: 7108633215517834517
+        - Handle: 7192130476204999745
+        - Handle: 13991921623479549600
+        - Handle: 3939852537308481504
+        - Handle: 182060880300195973
+        - Handle: 5277279435435237547
+        - Handle: 9012066156810008494
+        - Handle: 1136829736214903616
+        - Handle: 14808742754969420543
+        - Handle: 17553192972598918456
+        - Handle: 5785639892863351702
+        - Handle: 13637532354032677070
+        - Handle: 11700035810859115180
+        - Handle: 18146887494418500013
+    TransformComponent:
+      Translation: [0, 83, 54]
+      Rotation: [-64.0999985, -177.699966, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 4.0\Starship Version 4.gltf
+      LODThresholds:
+        - 0.37931034
+        - 0.745689631
+      Parts:
+        - Name: CraneCasketLeftWall
+          Handle: 670347271370604778
+        - Name: AftFlapLeft
+          Handle: 11467928241784948301
+        - Name: AftFlapRight
+          Handle: 9158113872675918993
+        - Name: CraneHinge
+          Handle: 805153516410374636
+        - Name: CraneCasketRightWall
+          Handle: 934237910486321314
+        - Name: PayloadDoorRight
+          Handle: 10718870529287470071
+        - Name: CraneCasket
+          Handle: 11066011448952559138
+        - Name: CraneCasketForwardWall
+          Handle: 12798815365890939341
+        - Name: CraneWireLeft
+          Handle: 2120415828235038349
+        - Name: CraneWireRight
+          Handle: 17914944484046997765
+        - Name: Leg3
+          Handle: 14025022883899302101
+        - Name: ForwardFlapLeft
+          Handle: 2422269058119200513
+        - Name: ForwardFlapRight
+          Handle: 3100140977965152202
+        - Name: PistonRod2
+          Handle: 5096987185959315048
+        - Name: Interior
+          Handle: 8209482507684210995
+        - Name: FrontFlapLeft
+          Handle: 6756342354322526889
+        - Name: Leg1
+          Handle: 7319148361229802642
+        - Name: PayLoadDoorLeft
+          Handle: 6334021590448943871
+        - Name: PistonRod1
+          Handle: 8846615289092818957
+        - Name: Leg2
+          Handle: 10462551855613878874
+        - Name: PistonRod3
+          Handle: 6001806967184281092
+        - Name: RaptorSea1
+          Handle: 15637106991996703598
+        - Name: MainHull
+          Handle: 14451432537458270359
+        - Name: PayloadDoorLeft
+          Handle: 3502099679389881430
+        - Name: RaptorSea2
+          Handle: 7999482687626643544
+        - Name: RaptorSea3
+          Handle: 13384288376160661615
+        - Name: RaptorVacuum1
+          Handle: 14473852692095667878
+        - Name: RaptorVacuum2
+          Handle: 14517040938148918848
+        - Name: RaptorVacuum3
+          Handle: 8573936478233655294
+        - Name: PayLoadDoorRight
+          Handle: 14966852265490339798
+        - Name: FlontFlapRight
+          Handle: 6461991331077973165

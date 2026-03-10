@@ -518,6 +518,13 @@ struct PBRParameters
     float AO;
 };
 
+float3 LinearToSRGB(float3 x)
+{
+    float3 lo = x * 12.92;
+    float3 hi = 1.055 * pow(abs(x), 1.0 / 2.4) - 0.055;
+    return lerp(hi, lo, step(x, 0.0031308));
+}
+
 PixelOutputType main(PixelInputType input)
 {
     PixelOutputType output;
@@ -525,12 +532,16 @@ PixelOutputType main(PixelInputType input)
     
     // Sample input textures to get shading model params.
     params.Albedo = AlbedoTexToggle > 0 ? AlbedoTexture.Sample(defaultSampler, input.texCoord).rgb : Albedo.rgb;
-    params.Metalness = MetalRoughTexToggle > 0 ? MetalRoughTexture.Sample(defaultSampler, input.texCoord).b : Metalness;
-    params.Roughness = MetalRoughTexToggle > 0 ? MetalRoughTexture.Sample(defaultSampler, input.texCoord).r : Roughness;
+    params.Metalness = MetalRoughTexToggle > 0 ? MetalRoughTexture.Sample(defaultSampler, input.texCoord).r : Metalness;
+    params.Roughness = MetalRoughTexToggle > 0 ? MetalRoughTexture.Sample(defaultSampler, input.texCoord).g : Roughness;
     params.Roughness = max(params.Roughness, 0.05f); // Minimum roughness of 0.05 to keep specular highlight
     
+    // TODO MIGHT NEED TO BE FIXED AT A LATER STAGE TO GET CORRECT ALBEDO MAPPING
+    if (AlbedoTexToggle > 0)
+        params.Albedo = LinearToSRGB(params.Albedo);
+          
     // Position
-    output.position = float4(input.viewPosition, 1.0f);
+        output.position = float4(input.viewPosition, 1.0f);
 	
     // Entity ID
     if (input.entityID > -1)

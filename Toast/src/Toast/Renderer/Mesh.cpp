@@ -39,6 +39,41 @@ namespace Toast {
 		}
 	}
 
+	static DirectX::XMMATRIX NodeMatrixLocal(const cgltf_node* n)
+	{
+		if (n->has_matrix)
+		{
+			DirectX::XMFLOAT4X4 m;
+			memcpy(&m, n->matrix, sizeof(float) * 16);
+			return DirectX::XMLoadFloat4x4(&m);
+		}
+		else
+		{
+			DirectX::XMVECTOR translation = DirectX::XMVectorSet(n->has_translation ? (float)n->translation[0] : 0.0f, n->has_translation ? (float)n->translation[1] : 0.0f, n->has_translation ? (float)n->translation[2] : 0.0f, 1.0f);
+
+			DirectX::XMVECTOR quatRot = DirectX::XMVectorSet(n->has_rotation ? (float)n->rotation[0] : 0.0f, n->has_rotation ? (float)n->rotation[1] : 0.0f, n->has_rotation ? (float)n->rotation[2] : 0.0f, n->has_rotation ? (float)n->rotation[3] : 1.0f);
+
+			DirectX::XMVECTOR scale = DirectX::XMVectorSet(n->has_scale ? (float)n->scale[0] : 1.0f, n->has_scale ? (float)n->scale[1] : 1.0f, n->has_scale ? (float)n->scale[2] : 1.0f, 0.0f);
+
+			return DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(quatRot) * DirectX::XMMatrixTranslationFromVector(translation);
+		}
+	}
+
+	static bool DecomposeTransform(const DirectX::XMMATRIX& matrix,	DirectX::XMFLOAT3& outTranslation, DirectX::XMFLOAT4& outRotation, DirectX::XMFLOAT3& outScale)
+	{
+		DirectX::XMVECTOR scale;
+		DirectX::XMVECTOR rotationQuat;
+		DirectX::XMVECTOR translation;
+
+		if (!DirectX::XMMatrixDecompose(&scale, &rotationQuat, &translation, matrix))
+			return false;
+
+		DirectX::XMStoreFloat3(&outScale, scale);
+		DirectX::XMStoreFloat4(&outRotation, rotationQuat);
+		DirectX::XMStoreFloat3(&outTranslation, translation);
+		return true;
+	}
+
 	Mesh::Mesh()
 	{
 		mLODGroups.emplace_back(CreateRef<LODGroup>());
@@ -180,8 +215,8 @@ namespace Toast {
 
 					for (size_t i = 0; i < indexAccessor->count; ++i)
 					{
-						// Convert 16-bit indices to 32-bit and add baseVertex to make them absolute
-						mLODGroups[0]->Indices[submesh.BaseIndex + i] = static_cast<uint32_t>(indices[i]) + submesh.BaseVertex;
+						cgltf_size idx = cgltf_accessor_read_index(indexAccessor, i);
+						mLODGroups[0]->Indices[submesh.BaseIndex + i] = (uint32_t)idx + submesh.BaseVertex;
 					}
 				}
 
@@ -330,89 +365,16 @@ namespace Toast {
 			
 			if (nodeName.find("LOD") != std::string::npos)
 			{
-				TOAST_CORE_INFO("LOD Group found with name: %s", nodeName.c_str());
 				mLODGroups.emplace_back(CreateRef<LODGroup>());
 				Ref<LODGroup> currentLOD = mLODGroups.back();
 
 				uint32_t vertexCount = 0;
 				uint32_t indexCount = 0;
 
-				for (size_t j = 0; j < node->children_count; ++j)
-				{
-					const cgltf_node* child = node->children[j];
+				DirectX::XMMATRIX identity = DirectX::XMMatrixIdentity();
 
-					for (unsigned int p = 0; p < child->mesh->primitives_count; p++)
-					{
-						const cgltf_primitive* primitive = &child->mesh->primitives[p];
-
-						if (primitive->type != cgltf_primitive_type_triangles)
-							continue;
-
-						Submesh& submesh = currentLOD->Submeshes.emplace_back();
-						submesh.MaterialName = std::string(primitive->material->name);
-						//TOAST_CORE_CRITICAL("Loading submesh in currentLOD[%d] with material name: %s", mLODGroups.size(), primitive->material->name);
-						submesh.MeshName = child->mesh->name;
-						submesh.Transform = DirectX::XMMatrixIdentity();
-
-						for (unsigned int a = 0; a < primitive->attributes_count; a++)
-						{
-							cgltf_accessor* attribute = primitive->attributes[a].data;
-
-							if (a == 0)
-							{
-								submesh.BaseVertex = vertexCount;
-								submesh.VertexCount = static_cast<uint32_t>(attribute->count);
-								vertexCount += submesh.VertexCount;
-								currentLOD->Vertices.resize(vertexCount);
-							}
-
-							LoadAttribute(attribute, primitive->attributes[a].type, currentLOD->Vertices, submesh.BaseVertex);
-						}
-
-						// Color override
-						if (mColorOverride.z != 0.0)
-						{
-							for (auto& vertex : currentLOD->Vertices)
-								vertex.Color = { (float)mColorOverride.x, (float)mColorOverride.y, (float)mColorOverride.z };
-						}
-
-						// INDICES
-						if (primitive->indices != NULL)
-						{
-							cgltf_accessor* indexAccessor = primitive->indices;
-							const uint16_t* indices = reinterpret_cast<const uint16_t*>(reinterpret_cast<const uint8_t*>(indexAccessor->buffer_view->buffer->data) + indexAccessor->buffer_view->offset + indexAccessor->offset);
-
-							submesh.IndexCount = static_cast<uint32_t>(indexAccessor->count);
-							submesh.BaseIndex = indexCount;
-							indexCount += submesh.IndexCount;
-							currentLOD->Indices.resize(indexCount);
-
-							for (size_t v = 0; v < indexAccessor->count; ++v)
-							{
-								// Convert 16-bit indices to 32-bit and add baseVertex to make them absolute
-								currentLOD->Indices[submesh.BaseIndex + v] = static_cast<uint32_t>(indices[v]) + submesh.BaseVertex;
-							}
-						}
-
-						auto GetPartBaseName = [](const std::string& name) -> std::string
-							{
-								if (name.empty()) return {};
-
-								size_t end = name.size();
-								while (end > 0 && std::isdigit(static_cast<unsigned char>(name[end - 1])))
-									--end;
-
-								return name.substr(0, end); // "Hull0" -> "Hull"
-							};
-
-						std::string basePartName = GetPartBaseName(submesh.MeshName);
-
-						if(mParts.find(basePartName) == mParts.end())
-							mParts[basePartName] = UUID();
-						 
-						TOAST_CORE_INFO("Mesh '%s' loaded with material '%s', number of indices: %d, Part Name '%s'", submesh.MeshName.c_str(), submesh.MaterialName.c_str(), submesh.IndexCount, basePartName.c_str());
-					}
-				}
+				for (cgltf_size j = 0; j < node->children_count; ++j)
+					ProcessLODNode(node->children[j], currentLOD, identity, vertexCount, indexCount);
 
 				currentLOD->VBuffer = CreateRef<VertexBuffer>(currentLOD->Vertices.data(), (sizeof(Vertex) * (uint32_t)currentLOD->Vertices.size()), (uint32_t)currentLOD->Vertices.size(), 0);
 
@@ -580,6 +542,115 @@ namespace Toast {
 
 		if(mLODGroups[mActiveLODGroup]->InstancedVBuffer)
 			mLODGroups[mActiveLODGroup]->InstancedVBuffer->SetData(data, size);
+	}
+
+	void Mesh::ProcessLODNode(const cgltf_node* node, Ref<LODGroup> lodGroup, const DirectX::XMMATRIX& parentTransform, uint32_t& vertexCount, uint32_t& indexCount)
+	{
+		DirectX::XMMATRIX localTransform = NodeMatrixLocal(node);
+		DirectX::XMMATRIX combinedTransform = DirectX::XMMatrixMultiply(localTransform, parentTransform);
+
+		if (node->mesh)
+		{
+			for (unsigned int p = 0; p < node->mesh->primitives_count; p++)
+			{
+				const cgltf_primitive* primitive = &node->mesh->primitives[p];
+
+				if (primitive->type != cgltf_primitive_type_triangles)
+					continue;
+
+				Submesh& submesh = lodGroup->Submeshes.emplace_back();
+				submesh.MaterialName = primitive->material ? primitive->material->name : "";
+				submesh.MeshName = node->mesh->name ? node->mesh->name : "";
+				submesh.Transform = combinedTransform;
+
+				for (unsigned int a = 0; a < primitive->attributes_count; a++)
+				{
+					cgltf_accessor* attribute = primitive->attributes[a].data;
+
+					if (a == 0)
+					{
+						submesh.BaseVertex = vertexCount;
+						submesh.VertexCount = static_cast<uint32_t>(attribute->count);
+						vertexCount += submesh.VertexCount;
+						lodGroup->Vertices.resize(vertexCount);
+					}
+
+					LoadAttribute(attribute, primitive->attributes[a].type, lodGroup->Vertices, submesh.BaseVertex);
+				}
+
+				// Color override
+				if (mColorOverride.z != 0.0)
+				{
+					for (auto& vertex : lodGroup->Vertices)
+						vertex.Color = { (float)mColorOverride.x, (float)mColorOverride.y, (float)mColorOverride.z };
+				}
+
+				// INDICES
+				if (primitive->indices != NULL)
+				{
+					cgltf_accessor* indexAccessor = primitive->indices;
+					const uint16_t* indices = reinterpret_cast<const uint16_t*>(reinterpret_cast<const uint8_t*>(indexAccessor->buffer_view->buffer->data) + indexAccessor->buffer_view->offset + indexAccessor->offset);
+
+					submesh.IndexCount = static_cast<uint32_t>(indexAccessor->count);
+					submesh.BaseIndex = indexCount;
+					indexCount += submesh.IndexCount;
+					lodGroup->Indices.resize(indexCount);
+
+					for (size_t v = 0; v < indexAccessor->count; ++v)
+					{
+						cgltf_size idx = cgltf_accessor_read_index(indexAccessor, v);
+						lodGroup->Indices[submesh.BaseIndex + v] = (uint32_t)idx + submesh.BaseVertex;
+					}
+				}
+
+				auto GetPartBaseName = [](const std::string& name) -> std::string
+					{
+						if (name.empty())
+							return {};
+
+						if (std::isdigit(static_cast<unsigned char>(name.back())))
+							return name.substr(0, name.size() - 1);
+
+						return name;
+					};
+
+
+				std::string basePartName = GetPartBaseName(submesh.MeshName);
+
+				if (mParts.find(basePartName) == mParts.end())
+					mParts[basePartName] = UUID();
+
+				uint32_t partIndex = GetOrCreatePartIndex(basePartName);
+				submesh.PartIndex = partIndex;
+
+				MeshPart& part = mPartsUpdated[partIndex];
+				if (!part.InitialTransformCaptured)
+				{
+					bool ok = DecomposeTransform(combinedTransform, part.InitialTranslation, part.InitialRotation, part.InitialScale);
+
+					TOAST_CORE_ASSERT(ok, "Failed to decompose part transform for '%s'", part.Name.c_str());
+
+					part.InitialTransformCaptured = true;
+				}
+
+				TOAST_CORE_INFO("Mesh '%s' loaded with material '%s', number of indices: %d, Part Name '%s'", submesh.MeshName.c_str(), submesh.MaterialName.c_str(), submesh.IndexCount, basePartName.c_str());
+			}
+		}
+
+		for (cgltf_size i = 0; i < node->children_count; ++i)
+			ProcessLODNode(node->children[i], lodGroup, combinedTransform, vertexCount, indexCount);
+	}
+
+	uint32_t Mesh::GetOrCreatePartIndex(const std::string& partName)
+	{
+		auto it = mPartNameToIndex.find(partName);
+		if (it != mPartNameToIndex.end())
+			return it->second;
+
+		uint32_t index = (uint32_t)mPartsUpdated.size();
+		mPartsUpdated.emplace_back(partName);
+		mPartNameToIndex[partName] = index;
+		return index;
 	}
 
 	void Mesh::AddSubmesh(uint32_t indexCount, size_t LODGroupIndex)

@@ -424,7 +424,7 @@ namespace Toast {
 
 						component.MeshObject = CreateRef<Mesh>(*filepath);
 
-						scene->AddMeshPartEntities(component.MeshObject->GetParts(), entity);
+						scene->AddMeshPartEntities(component.MeshObject->GetPartsUpdated(), entity);
 					}
 				}
 

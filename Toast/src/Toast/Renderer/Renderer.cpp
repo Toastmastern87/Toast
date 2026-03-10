@@ -157,9 +157,6 @@ namespace Toast {
 		sRendererData->GPassRoughnessAORT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
 		sRendererData->GPassPickingRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R32_SINT);
 
-		//// Setting up the render target for Shadow Pass
-		//sRendererData->ShadowMapRT = CreateRef<RenderTarget>(RenderTargetType::Color, 8192, 8192, 1, TextureFormat::R8G8B8A8_UNORM);
-
 		// Setting up the render target for SSAO Pass
 		sRendererData->SSAORT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
 		sRendererData->SSAOBlurRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
@@ -843,10 +840,10 @@ namespace Toast {
 		sRendererData->SceneData.SkyboxData.LOD = LOD;
 	}
 
-	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, bool wireframe, int noWorldTransform, bool atmosphere)
+	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, uint32_t submeshIndex, bool wireframe, int noWorldTransform, bool atmosphere)
 	{
 		sRendererData->PlanetData.Atmosphere = atmosphere;
-;		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID);
+;		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex);
 	}
 
 	void Renderer::SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
@@ -1076,16 +1073,25 @@ namespace Toast {
 
 		for (const auto& meshCommand : sRendererData->MeshDrawList)
 		{
-			if (meshCommand.Wireframe)
-				RenderCommand::SetRasterizerState(sRendererData->WireframeRasterizerState);
-			else
-				RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
+			Microsoft::WRL::ComPtr<ID3D11RasterizerState> rs = meshCommand.Wireframe ? sRendererData->WireframeRasterizerState : sRendererData->NormalRasterizerState;
 
-			RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
+			if (sRendererData->CurrentRasterizerState != rs.Get())
+			{
+				RenderCommand::SetRasterizerState(rs);
+				sRendererData->CurrentRasterizerState = rs.Get();
+			}
+
+			if (sRendererData->CurrentTopology != meshCommand.Mesh->mTopology)
+			{
+				RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
+				sRendererData->CurrentTopology = meshCommand.Mesh->mTopology;
+			}
 
 			int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
 
 			float clickable = 1.0f;
+
+			const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
 
 			// Model data
 			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
@@ -1095,33 +1101,34 @@ namespace Toast {
 			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 76);
 			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-			for (Submesh& submesh : meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes)
+			// Material data
+			auto& material = meshCommand.Mesh->GetMaterial(submesh.MaterialName);
+			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetAlbedo(), 16, 0);
+			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetEmission(), 4, 16);
+			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetMetalness(), 4, 20);
+			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetRoughness(), 4, 24);
+			int useAlbedo = static_cast<int>(material->GetUseAlbedo());
+			sRendererData->MaterialBuffer.Write((uint8_t*)&useAlbedo, 4, 28);
+			int useNormal = static_cast<int>(material->GetUseNormal());
+			sRendererData->MaterialBuffer.Write((uint8_t*)&useNormal, 4, 32);
+			int useMetalRough = static_cast<int>(material->GetUseMetalRough());
+			sRendererData->MaterialBuffer.Write((uint8_t*)&useMetalRough, 4, 36);
+			sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
+
+			if(material->GetUseAlbedo())
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, material->GetAlbedoTexture()->GetSRV());
+			if (material->GetUseNormal())
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, material->GetNormalTexture()->GetSRV());
+			if (material->GetUseMetalRough())
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, material->GetMetalRoughTexture()->GetSRV());
+
+			if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
 			{
-				// Material data
-				auto& material = meshCommand.Mesh->GetMaterial(submesh.MaterialName);
-				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetAlbedo(), 16, 0);
-				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetEmission(), 4, 16);
-				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetMetalness(), 4, 20);
-				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetRoughness(), 4, 24);
-				int useAlbedo = static_cast<int>(material->GetUseAlbedo());
-				sRendererData->MaterialBuffer.Write((uint8_t*)&useAlbedo, 4, 28);
-				int useNormal = static_cast<int>(material->GetUseNormal());
-				sRendererData->MaterialBuffer.Write((uint8_t*)&useNormal, 4, 32);
-				int useMetalRough = static_cast<int>(material->GetUseMetalRough());
-				sRendererData->MaterialBuffer.Write((uint8_t*)&useMetalRough, 4, 36);
-				sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
-
-				if(material->GetUseAlbedo())
-					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, material->GetAlbedoTexture()->GetSRV());
-				if (material->GetUseNormal())
-					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, material->GetNormalTexture()->GetSRV());
-				if (material->GetUseMetalRough())
-					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, material->GetMetalRoughTexture()->GetSRV());
-
 				meshCommand.Mesh->Bind();
-
-				RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
+				sRendererData->CurrentMesh = meshCommand.Mesh.get();
 			}
+
+			RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
 		}
 
 		std::vector<ID3D11RenderTargetView*> nullRTVs(6, nullptr);
@@ -1169,7 +1176,13 @@ namespace Toast {
 
 			for (const auto& meshCommand : sRendererData->MeshDrawList)
 			{
-				meshCommand.Mesh->Bind();
+				const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
+
+				if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
+				{
+					meshCommand.Mesh->Bind();
+					sRendererData->CurrentMesh = meshCommand.Mesh.get();
+				}
 
 				int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
 
@@ -1177,13 +1190,11 @@ namespace Toast {
 
 				// Model data
 				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
-				sRendererData->ModelBuffer.Write((uint8_t*)&clickable, 4, 64);
-				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 68);
 				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 72);
 				sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 76);
 				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-				RenderCommand::DrawIndexed(0, 0, meshCommand.Mesh->GetIndices().size());
+				RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
 			}
 		}
 

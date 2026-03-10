@@ -1,0 +1,7 @@
+Material: White Steel
+Albedo: [0.800000012, 0.800000012, 0.800000012, 1]
+Metalness: 1
+Roughness: 0.847972989
+UseAlbedoMap: false
+UseNormalMap: false
+UseMetalRoughMap: false
