@@ -2,7 +2,6 @@
 
 IncludeDir = {}
 IncludeDir["ImGui"] = "%{wks.location}/Toast/vendor/imgui"
-IncludeDir["directxtk"] = "%{wks.location}/Toast/vendor/directxtk/Inc" 
 IncludeDir["entt"] = "%{wks.location}/Toast/vendor/entt/include" 
 IncludeDir["yaml_cpp"] = "%{wks.location}/Toast/vendor/yaml-cpp/include" 
 IncludeDir["ImGuizmo"] = "%{wks.location}/Toast/vendor/ImGuizmo"
@@ -19,7 +18,6 @@ LibraryDir["mono"] = "%{wks.location}/Toast/vendor/mono/lib/%{cfg.buildcfg}"
 
 Library = {}
 Library["mono"] = "%{LibraryDir.mono}/libmono-static-sgen.lib"
-Library["directxtex"] = "%{wks.location}/Toast/vendor/directxtex/lib/DirectXTex.lib"
 
 -- Windows
 Library["WinSock"] = "Ws2_32.lib"

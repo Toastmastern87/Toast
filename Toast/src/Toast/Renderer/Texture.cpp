@@ -4,8 +4,6 @@
 
 #include "Toast/Core/Application.h"
 
-#include <WICTextureLoader.h>
-
 #include <wincodec.h>
 #include <wrl/client.h>
 
