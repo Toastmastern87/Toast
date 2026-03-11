@@ -18,6 +18,7 @@ LibraryDir["mono"] = "%{wks.location}/Toast/vendor/mono/lib/%{cfg.buildcfg}"
 
 Library = {}
 Library["mono"] = "%{LibraryDir.mono}/libmono-static-sgen.lib"
+Library["directxtex"] = "%{wks.location}/Toast/vendor/directxtex/lib/DirectXTex.lib"
 
 -- Windows
 Library["WinSock"] = "Ws2_32.lib"

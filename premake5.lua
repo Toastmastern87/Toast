@@ -20,7 +20,6 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 group "Dependencies"
 	include "Toast/vendor/imgui"
-	include "Toast/vendor/directxtk"
 	include "Toast/vendor/yaml-cpp"
 group "Dependencies/msdf"
 	include "Toast/vendor/msdf-atlas-gen"

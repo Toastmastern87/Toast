@@ -426,14 +426,54 @@ namespace Toast {
 			mEnvironment.SunUV = ComputeSunUVFromDirection(DirectX::XMFLOAT3(direction.x, direction.y, direction.z), DirectX::XMLoadFloat4x4(&mMainCamera->GetViewMatrix()), DirectX::XMLoadFloat4x4(&mMainCamera->GetProjection()));
 		}
 
-		// Process Animations
+		// Process Skeletal/Blender Animations
 		auto view = mRegistry.view<TransformComponent, MeshComponent>();
 		for (auto entity : view)
 		{
-			auto [transform, mesh] = view.get<TransformComponent, MeshComponent>(entity);
-			
+			auto [tc, mesh] = view.get<TransformComponent, MeshComponent>(entity);
+
 			if (mesh.MeshObject->GetIsAnimated())
 				mesh.MeshObject->OnUpdate(ts * mTimeScale);
+
+		}
+
+		// Process Transform Interpolation (rotation, etc.)
+		auto transformView = mRegistry.view<TransformComponent>();
+		for (auto entity : transformView)
+		{
+			auto& tc = transformView.get<TransformComponent>(entity);
+
+			Entity e = { entity, this };
+
+			if (!tc.IsRotating || tc.AngularSpeed <= 0.0f)
+				continue;
+
+			DirectX::XMVECTOR currentRot = tc.GetTotalRotationQuaternion();
+			DirectX::XMVECTOR targetRot = DirectX::XMLoadFloat4(&tc.TargetRotationQuaternion);
+
+			float dot = std::abs(DirectX::XMVectorGetX(DirectX::XMVector4Dot(currentRot, targetRot)));
+			dot = (std::min)(dot, 1.0f);
+			float remainingRad = 2.0f * std::acos(dot);
+
+			if (remainingRad < 0.001f)
+			{
+				// Snap to target and stop rotating
+				DirectX::XMStoreFloat4(&tc.RotationQuaternion, targetRot);
+				tc.RotationEulerAngles = { 0.0f, 0.0f, 0.0f };
+				tc.IsRotating = false;
+				tc.IsDirty = true;
+				continue;
+			}
+
+			float stepRad = DirectX::XMConvertToRadians(tc.AngularSpeed) * ts * mTimeScale;
+			float t = (std::min)(stepRad / remainingRad, 1.0f);
+
+			DirectX::XMVECTOR newRot = DirectX::XMQuaternionSlerp(currentRot, targetRot, t);
+			newRot = DirectX::XMQuaternionNormalize(newRot);
+
+			DirectX::XMStoreFloat4(&tc.RotationQuaternion, newRot);
+			tc.RotationEulerAngles = { 0.0f, 0.0f, 0.0f }; // Reset Euler angles to avoid confusion, we only use the quaternion for rotation when IsRotating is true
+			tc.IsDirty = true;
 		}
 
 		if (mMainCamera)

@@ -70,15 +70,20 @@ namespace Toast {
 		PrefabComponent(const PrefabComponent& other) = default;
 	};
 
+
 	struct TransformComponent
 	{
 		bool IsDirty = false;
 
 		DirectX::XMFLOAT3 Translation = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 RotationEulerAngles = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT4 RotationQuaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
 		DirectX::XMFLOAT3 Scale = { 1.0f, 1.0f, 1.0f };
 
-		DirectX::XMFLOAT4 RotationQuaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
+		// Variables used for animating rotation, not serialized
+		DirectX::XMFLOAT4 TargetRotationQuaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
+		float AngularSpeed = 0.0f;
+		bool IsRotating = false;
 
 		DirectX::XMFLOAT3 Up = { 0.0f, 1.0f, 0.0f };
 		DirectX::XMFLOAT3 Right = { 1.0f, 0.0f, 0.0f };

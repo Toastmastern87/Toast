@@ -129,6 +129,42 @@ namespace Toast
         {
             InternalCalls.TransformComponent_RotateAroundPoint(Entity.ID, ref point, ref rotationAxis, ref angle);
         }
+
+        public float AngularSpeed
+        {
+            get
+            {
+                InternalCalls.TransformComponent_GetAngularSpeed(Entity.ID, out float result);
+                return result;
+            }
+
+            set
+            {
+                InternalCalls.TransformComponent_SetAngularSpeed(Entity.ID, value);
+            }
+        }
+
+        public bool IsRotating
+        {
+            get
+            {
+                return InternalCalls.TransformComponent_GetIsRotating(Entity.ID);
+            }
+            set
+            {
+                InternalCalls.TransformComponent_SetIsRotating(Entity.ID, value);
+            }
+        }
+
+        public void SetTargetRotation(float pitchDeg, float yawDeg, float rollDeg) 
+        {
+            InternalCalls.TransformComponent_SetTargetRotation(Entity.ID, pitchDeg, yawDeg, rollDeg);
+        }
+
+        public bool HasReachedTargetRotation(float thresholdDeg)
+        {
+            return InternalCalls.TransformComponent_HasReachedTargetRotation(Entity.ID, thresholdDeg);
+        }
     }
 
     public class CameraComponent : Component

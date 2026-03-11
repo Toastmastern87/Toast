@@ -80,27 +80,12 @@ project "Toast"
 		runtime "Debug"
 		symbols "on"
 
-	--	libdirs
-	--	{
-	--		"%{LibraryDir.directxtk}/Debug-windows-x86_64/DirectXTK"
-	--	}
-
 	filter "configurations:Release"
 		defines "TOAST_RELEASE"
 		runtime "Release"
 		optimize "on"
 
-	--	libdirs
-	--	{
-	--		"%{LibraryDir.directxtk}/Release-windows-x86_64/DirectXTK"
-	--	}
-
 	filter "configurations:Dist"
 		defines "TOAST_DIST"
 		runtime "Release"
 		optimize "on"
-
-	--	libdirs
-	--	{
-	--		"%{LibraryDir.directxtk}/Release-windows-x86_64/DirectXTK"
-	--	}

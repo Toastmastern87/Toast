@@ -187,6 +187,24 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void TransformComponent_RotateAroundPoint(ulong entityID, ref Vector3 point, ref Vector3 rotationAxis, ref float angle);
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_GetAngularSpeed(ulong entityID, out float result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_SetAngularSpeed(ulong entityID, float speed);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool TransformComponent_GetIsRotating(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_SetIsRotating(ulong entityID, bool rotating);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_SetTargetRotation(ulong entityID, float pitchDeg, float yawDeg, float rollDeg);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool TransformComponent_HasReachedTargetRotation(ulong entityID, float thresholdDeg);
+
         #endregion
 
         #region Mesh Component

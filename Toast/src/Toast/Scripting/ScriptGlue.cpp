@@ -563,6 +563,65 @@ namespace Toast {
 		DirectX::XMStoreFloat3(&entity.GetComponent<TransformComponent>().Translation, translatedObject);
 	}
 
+	static void TransformComponent_SetAngularSpeed(UUID entityID, float speed)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& tc = entity.GetComponent<TransformComponent>();
+		tc.AngularSpeed = speed;
+	}
+
+	static void TransformComponent_GetAngularSpeed(UUID entityID, float* outSpeed)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& tc = entity.GetComponent<TransformComponent>();
+		*outSpeed = tc.AngularSpeed;
+	}
+
+	static void TransformComponent_SetIsRotating(UUID entityID, bool rotating)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& tc = entity.GetComponent<TransformComponent>();
+		tc.IsRotating = rotating;
+	}
+
+	static bool TransformComponent_GetIsRotating(UUID entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& tc = entity.GetComponent<TransformComponent>();
+		return tc.IsRotating;
+	}
+
+	static void TransformComponent_SetTargetRotation(UUID entityID, float pitchDeg, float yawDeg, float rollDeg)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& tc = entity.GetComponent<TransformComponent>();
+
+		DirectX::XMVECTOR qTarget = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(pitchDeg), DirectX::XMConvertToRadians(yawDeg), DirectX::XMConvertToRadians(rollDeg));
+
+		DirectX::XMStoreFloat4(&tc.TargetRotationQuaternion, DirectX::XMQuaternionNormalize(qTarget));
+		tc.IsRotating = true;
+	}
+
+	static bool TransformComponent_HasReachedTargetRotation(UUID entityID, float thresholdDeg = 0.5f)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& tc = entity.GetComponent<TransformComponent>();
+
+		DirectX::XMVECTOR qCurrent = tc.GetTotalRotationQuaternion();
+		DirectX::XMVECTOR qTarget = DirectX::XMLoadFloat4(&tc.TargetRotationQuaternion);
+
+		float dot = std::abs(DirectX::XMVectorGetX(DirectX::XMVector4Dot(qCurrent, qTarget)));
+
+		float dotThreshold = std::cos(DirectX::XMConvertToRadians(thresholdDeg) * 0.5f);
+		return dot >= dotThreshold;
+	}
+
 #pragma endregion
 
 #pragma region Mesh Component
@@ -1024,6 +1083,12 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetTransform);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_Rotate);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_RotateAroundPoint);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetAngularSpeed);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetAngularSpeed);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetIsRotating);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetIsRotating);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetTargetRotation);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_HasReachedTargetRotation);
 
 		TOAST_ADD_INTERNAL_CALL(MeshComponent_GeneratePlanet);
 		TOAST_ADD_INTERNAL_CALL(MeshComponent_PlayAnimation);		 
