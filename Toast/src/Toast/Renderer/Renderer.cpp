@@ -846,9 +846,11 @@ namespace Toast {
 ;		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex);
 	}
 
-	void Renderer::SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe)
+	void Renderer::SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe, uint32_t submeshIndex)
 	{
-		sRendererData->MeshSelectedDrawList.emplace_back(mesh, transform, wireframe);
+		bool noWorldTransform = false;
+		int entityID = 0;
+		sRendererData->MeshSelectedDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex);
 	}
 
 	void Renderer::SubmitPlanet(const Ref<Planet> planet, bool wireframe)
@@ -1071,6 +1073,8 @@ namespace Toast {
 			}
 		}
 
+		sRendererData->CurrentMesh = nullptr;
+
 		for (const auto& meshCommand : sRendererData->MeshDrawList)
 		{
 			Microsoft::WRL::ComPtr<ID3D11RasterizerState> rs = meshCommand.Wireframe ? sRendererData->WireframeRasterizerState : sRendererData->NormalRasterizerState;
@@ -1164,6 +1168,8 @@ namespace Toast {
 		ShaderLibrary::Get("assets/shaders/Rendering/ShadowPass.hlsl")->Bind();
 
 		ID3D11RenderTargetView* nullRTV = nullptr;
+
+		sRendererData->CurrentMesh = nullptr;
 
 		for (uint32_t i = 0; i < shadowParams.CascadeCount; ++i)
 		{

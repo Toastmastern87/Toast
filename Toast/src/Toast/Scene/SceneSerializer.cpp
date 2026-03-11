@@ -257,6 +257,7 @@ namespace Toast {
 
 			out << YAML::Key << "Translation" << YAML::Value << tc.Translation;
 			out << YAML::Key << "Rotation" << YAML::Value << tc.RotationEulerAngles;
+			out << YAML::Key << "RotationQuat" << YAML::Value << tc.RotationQuaternion;
 			out << YAML::Key << "Scale" << YAML::Value << tc.Scale;
 
 			out << YAML::EndMap; // TransformComponent
@@ -306,13 +307,13 @@ namespace Toast {
 
 			out << YAML::Key << "Parts";
 			out << YAML::Value << YAML::BeginSeq;
-			auto& parts = mc.MeshObject->GetParts();
+			auto& parts = mc.MeshObject->GetPartsUpdated();
 
-			for (auto& [name, uuid] : parts)
+			for (auto& part : parts)
 			{
 				out << YAML::BeginMap;
-				out << YAML::Key << "Name" << YAML::Value << name;
-				out << YAML::Key << "Handle" << YAML::Value << uuid;
+				out << YAML::Key << "Name" << YAML::Value << part.Name;
+				out << YAML::Key << "Handle" << YAML::Value << part.EntityID;
 				out << YAML::EndMap;
 			}
 			out << YAML::EndSeq;
@@ -1234,6 +1235,7 @@ namespace Toast {
 					auto& tc = deserializedEntity.GetComponent<TransformComponent>();
 					tc.Translation = transformComponent["Translation"].as<DirectX::XMFLOAT3>();
 					tc.RotationEulerAngles = transformComponent["Rotation"].as<DirectX::XMFLOAT3>();
+					tc.RotationQuaternion = transformComponent["RotationQuat"].as<DirectX::XMFLOAT4>();
 					tc.Scale = transformComponent["Scale"].as<DirectX::XMFLOAT3>();
 				}
 
@@ -1281,14 +1283,22 @@ namespace Toast {
 					if (meshComponent["Parts"])
 					{
 						const YAML::Node& partsNode = meshComponent["Parts"];
-						auto& parts = mc.MeshObject->GetParts();
+						auto& parts = mc.MeshObject->GetPartsUpdated();
+
 						for (std::size_t i = 0; i < partsNode.size(); ++i)
 						{
 							const auto& partNode = partsNode[i];
-							std::string name = partNode["Name"].as<std::string>();  
-							UUID handle = partNode["Handle"].as<UUID>();  
+							std::string name = partNode["Name"].as<std::string>();
+							UUID handle = partNode["Handle"].as<UUID>();
 
-							parts[name] = handle;
+							for (auto& part : parts)
+							{
+								if (part.Name == name)
+								{
+									part.EntityID = handle;
+									break;
+								}
+							}
 						}
 					}
 				}

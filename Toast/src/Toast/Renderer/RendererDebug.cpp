@@ -299,22 +299,27 @@ namespace Toast {
 
 		mDebugData->ObjectMaskShader->Bind();
 
+		sRendererData->CurrentMesh = nullptr;
+
 		// TODO: This should be done in a single draw call, will be fixed with the updated star ship model.
 		// Mask out the selected meshes
 		for (const auto& meshCommand : sRendererData->MeshSelectedDrawList)
 		{
-			meshCommand.Mesh->Bind();
-
 			int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
+
+			const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
 
 			// Model data
 			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
-			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 64);
-			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 68);
-			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 72);
 			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-			RenderCommand::DrawIndexed(0, 0, meshCommand.Mesh->GetIndices().size());
+			if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
+			{
+				meshCommand.Mesh->Bind();
+				sRendererData->CurrentMesh = meshCommand.Mesh.get();
+			}
+
+			RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
 		}
 
 		// Draw the outline

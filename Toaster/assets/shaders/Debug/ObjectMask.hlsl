@@ -4,7 +4,6 @@ vertex
 vertex
 vertex
 vertex
-instance
 
 #type vertex
 #pragma pack_matrix( row_major )
@@ -26,6 +25,7 @@ cbuffer Camera : register(b0)
 cbuffer Model : register(b1)
 {
     matrix worldMatrix;
+    float clickable;
     int entityID;
     int noWorldTransform;
     int isInstanced;
@@ -33,12 +33,11 @@ cbuffer Model : register(b1)
 
 struct VertexInputType
 {
-    float3 position					: POSITION0;
-    float3 normal					: NORMAL;
-    float4 tangent					: TANGENT;
-    float2 texCoord					: TEXCOORD;
-    float3 color					: COLOR0;
-    float3 worldInstancePosition	: POSITION1;
+    float3 position : POSITION0;
+    float3 normal : NORMAL;
+    float4 tangent : TANGENT;
+    float2 texCoord : TEXCOORD;
+    float3 color : COLOR0;
 };
 
 struct PixelInputType

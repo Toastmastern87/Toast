@@ -572,27 +572,53 @@ namespace Toast {
 				{
 					auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
 
-					switch (mSettings.WireframeRendering)
-					{
-					case Settings::Wireframe::NO:
-					{
-						Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, false, 0);
+					bool validMesh = mesh.MeshObject->GetFilePath() != "";
 
-						break;
-					}
-					case Settings::Wireframe::YES:
-					{
-						Renderer::SubmitMesh(mesh.MeshObject, transform.GetTransform(), (int)entity, true, 0);
+					if (!validMesh)
+						continue;
 
-						break;
-					}
-					case Settings::Wireframe::ONTOP:
-					{
-						// TODO
+					auto& lodGroup = mesh.MeshObject->mLODGroups[mesh.MeshObject->mActiveLODGroup];
+					auto& submeshes = lodGroup->Submeshes;
 
-						break;
+					for (uint32_t submeshIndex = 0; submeshIndex < (uint32_t)submeshes.size(); ++submeshIndex)
+					{
+						const Submesh& submesh = submeshes[submeshIndex];
+
+						DirectX::XMMATRIX finalTransform = transform.GetTransform(); // fallback
+
+						if (submesh.PartIndex < mesh.MeshObject->mPartsUpdated.size())
+						{
+							const MeshPart& part = mesh.MeshObject->mPartsUpdated[submesh.PartIndex];
+
+							if (part.EntityID != 0)
+							{
+								Entity partEntity = FindEntityByUUID(part.EntityID);
+								if (partEntity)
+								{
+									auto& partTransform = partEntity.GetComponent<TransformComponent>();
+									finalTransform = DirectX::XMMatrixMultiply(partTransform.GetTransform(), transform.GetTransform());
+								}
+							}
+						}
+
+						switch (mSettings.WireframeRendering)
+						{
+						case Settings::Wireframe::NO:
+							Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, false, 0);
+							break;
+
+						case Settings::Wireframe::YES:
+							Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, true, 0);
+							break;
+
+						case Settings::Wireframe::ONTOP:
+							// TODO
+							break;
+						}
 					}
-					}
+
+					if (mSelectedEntity == entity)
+						Renderer::SubmitSelecetedMesh(mesh.MeshObject, transform.GetTransform());
 
 					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 				}
@@ -1160,10 +1186,10 @@ namespace Toast {
 						// TODO
 						break;
 					}
-				}
 
-				if (mSelectedEntity == entity)
-					Renderer::SubmitSelecetedMesh(mesh.MeshObject, transform.GetTransform());
+					if (mSelectedEntity == entity)
+						Renderer::SubmitSelecetedMesh(mesh.MeshObject, finalTransform, false, submeshIndex);
+				}
 
 				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 			}
@@ -1660,7 +1686,8 @@ namespace Toast {
 
 			auto& tc = partEntity.GetComponent<TransformComponent>();
 			tc.Translation = part.InitialTranslation;
-			tc.RotationQuaternion = part.InitialRotation;
+			tc.RotationQuaternion = part.InitialRotation; 
+
 			tc.Scale = part.InitialScale;
 
 			partEntity.SetParentUUID(meshParent.GetUUID());
