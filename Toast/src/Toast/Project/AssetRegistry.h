@@ -12,20 +12,25 @@ namespace Toast {
 	{
 		AssetType					Type       = AssetType::None;
 		std::filesystem::path		FilePath;       // Relative to your asset root directory
-		bool						IsLoaded   = false;
 		bool						IsMemoryAsset = false;  // True for runtime-created assets (no file on disk)
+	};
+
+	struct AssetEntry
+	{
+		AssetMetadata  Metadata;
+		Ref<Asset>     Resource = nullptr;  // null until first GetAsset<> call
 	};
 
 	class AssetRegistry 
 	{
 	public:
-		AssetMetadata* Get(AssetHandle handle)
+		AssetEntry* Get(AssetHandle handle)
 		{
 			auto it = mRegistry.find(handle);
 			return it != mRegistry.end() ? &it->second : nullptr;
 		}
 
-		const AssetMetadata* Get(AssetHandle handle) const
+		const AssetEntry* Get(AssetHandle handle) const
 		{
 			auto it = mRegistry.find(handle);
 			return it != mRegistry.end() ? &it->second : nullptr;
@@ -35,13 +40,13 @@ namespace Toast {
 		{
 			for (auto& [handle, meta] : mRegistry)
 			{
-				if(meta.FilePath == path)
+				if(meta.Metadata.FilePath == path)
 					return handle;
 			}
 			return AssetHandle(0);
 		}
 
-		AssetMetadata& operator[](AssetHandle handle)
+		AssetEntry& operator[](AssetHandle handle)
 		{
 			return mRegistry[handle];
 		}
@@ -66,6 +71,6 @@ namespace Toast {
 		auto begin() const { return mRegistry.cbegin(); }
 		auto end() const { return mRegistry.cend(); }
 	private:
-		std::unordered_map<AssetHandle, AssetMetadata> mRegistry;
+		std::unordered_map<AssetHandle, AssetEntry> mRegistry;
 	};
 }

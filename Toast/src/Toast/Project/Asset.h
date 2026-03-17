@@ -23,7 +23,7 @@ namespace Toast {
 		}
 	}
 
-	inline AssetType StringToAssetType(const char* str)
+	inline AssetType AssetTypeFromString(const char* str)
 	{
 		if (strcmp(str, "Texture2D") == 0) return AssetType::Texture2D;
 		return AssetType::None; // Default to None for unknown types
@@ -55,8 +55,6 @@ namespace Toast {
 
 		virtual AssetType GetAssetType() const = 0;
 
-		AssetHandle mHandle;
-
 		bool IsValid() const { return !HasFlag(mFlags, AssetFlag::Missing) && !HasFlag(mFlags, AssetFlag::Invalid); }
 
 		AssetFlag GetFlags() const { return mFlags; }
@@ -64,4 +62,5 @@ namespace Toast {
 	private:
 		AssetFlag mFlags = AssetFlag::None;
 	};
+
 }

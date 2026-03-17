@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Toast/Project/AssetRegistry.h"
+
 #include "Toast/Scene/Scene.h"
 
 #include <filesystem>
@@ -40,6 +42,12 @@ namespace Toast {
 
 		UUID FindSceneByDisplayName(const std::string& displayName) const;
 
+		AssetRegistry& GetAssetRegistry() { return mAssetRegistry; }
+		const AssetRegistry& GetAssetRegistry() const { return mAssetRegistry; }
+
+		std::filesystem::path GetAssetDirectory() const { return mPath / "Assets"; }
+		std::filesystem::path GetAssetRegistryPath() const { return mPath / "assets.toastreg"; }
+
 		std::filesystem::path GetScenePath(UUID id) const
 		{
 			auto it = mScenes.find(id);
@@ -65,6 +73,8 @@ namespace Toast {
 	private:
 		std::string mName;
 		std::filesystem::path mPath;
+
+		AssetRegistry mAssetRegistry;
 
 		std::unordered_map<UUID, ProjectSceneEntry> mScenes;
 		UUID mActiveSceneID{};
