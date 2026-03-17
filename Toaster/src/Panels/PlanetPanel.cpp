@@ -751,6 +751,7 @@ namespace Toast {
 								mContext->mAlbedoTexture = TextureLibrary::LoadTexture2D(filename);
 								// If you want: auto-enable use-map on assignment
 								mContext->mUseAlbedoMap = 1;
+								mContext->mAlbedoMapTextureCube = mContext->CreateAlbedoCube(mContext->mAlbedoTexture);
 							}
 							ImGui::EndDragDropTarget();
 						}
@@ -764,6 +765,8 @@ namespace Toast {
 							{
 								mContext->mAlbedoTexture = TextureLibrary::LoadTexture2D(*filename);
 								mContext->mUseAlbedoMap = 1;
+
+								mContext->mAlbedoMapTextureCube = mContext->CreateAlbedoCube(mContext->mAlbedoTexture);
 							}
 						}
 
@@ -811,6 +814,42 @@ namespace Toast {
 						ImGui::SetNextItemWidth(fullW);
 
 						ImGui::DragFloat("##metallic", &mContext->mMetalness, 0.01f, 0.0f, 1.0f, "%.2f");
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Slope Sensitivity");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::DragFloat("##SlopeSensitivity", &mContext->mSlopeSensitivity, 0.1f, 0.0f, 100.0f, "%.1f");
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Slope Threshold ");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::DragFloat("##SlopeThreshold", &mContext->mSlopeThreshold, 0.1f, 0.0f, 5.0f, "%.1f");
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Slope Darkening ");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::DragFloat("##SlopeDarkening ", &mContext->mSlopeDarkening, 0.01f, 0.0f, 1.0f, "%.2f");
 
 						ImGui::EndTable();
 					}
@@ -955,6 +994,7 @@ namespace Toast {
 								mContext->mBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename, false);
 
 								mContext->mBaseHeightMapTextureCube = mContext->CreateHeightMapCube(mContext->mBaseHeightMapTexture);
+								mContext->mNormalMapTextureCube = mContext->CreateNormalMapCube(mContext->mBaseHeightMapTextureCube.get());
 
 								mContext->mTerrainCubeData = mContext->LoadTerrainDataFromTextureCube();
 							}
@@ -1358,7 +1398,7 @@ namespace Toast {
 
 						ImGui::SetNextItemWidth(fullW);
 
-						ImGuiHelpers::ManualDragFloat3Scaled("##Rayleigh", mContext->mAtmosphere.RayleighScattering, mContext->mAtmosphere.RayleighExp10, 1.0f, 0.0f, mWindow, activeDragArea,	"%.2f",	true, fullW);
+						ImGuiHelpers::ManualDragFloat3Scaled("##Rayleigh", mContext->mAtmosphere.RayleighScattering, mContext->mAtmosphere.RayleighExp10, 0.01f, 0.0f, mWindow, activeDragArea,	"%.2f",	true, fullW);
 
 						// -------- Mie Scale Height Row ----------
 						ImGui::TableNextRow();
@@ -1393,7 +1433,7 @@ namespace Toast {
 
 						ImGui::SetNextItemWidth(fullW);
 
-						ImGuiHelpers::ManualDragFloat3Scaled("##MieScattering", mContext->mAtmosphere.MieScattering, mContext->mAtmosphere.MieScatteringExp10, 1.0f, 0.0f, mWindow, activeDragArea, "%.2f", true, fullW);
+						ImGuiHelpers::ManualDragFloat3Scaled("##MieScattering", mContext->mAtmosphere.MieScattering, mContext->mAtmosphere.MieScatteringExp10, 0.01f, 0.0f, mWindow, activeDragArea, "%.2f", true, fullW);
 
 						// -------- Mie Absorption Row ----------
 						ImGui::TableNextRow();
@@ -1415,7 +1455,7 @@ namespace Toast {
 
 						ImGui::SetNextItemWidth(fullW);
 
-						ImGuiHelpers::ManualDragFloat3Scaled("##MieAbsorption", mContext->mAtmosphere.MieAbsorption, mContext->mAtmosphere.MieAbsorptionExp10, 1.0f, 0.0f, mWindow, activeDragArea, "%.2f", true, fullW);
+						ImGuiHelpers::ManualDragFloat3Scaled("##MieAbsorption", mContext->mAtmosphere.MieAbsorption, mContext->mAtmosphere.MieAbsorptionExp10, 0.01f, 0.0f, mWindow, activeDragArea, "%.2f", true, fullW);
 
 						// -------- Mie Anisotropy Row ----------
 						ImGui::TableNextRow();

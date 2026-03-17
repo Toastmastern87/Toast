@@ -504,9 +504,9 @@ cbuffer Material : register(b2)
     int MetalRoughTexToggle;
 };
 
-Texture2D AlbedoTexture : register(t3);
-Texture2D NormalTexture : register(t4);
-Texture2D MetalRoughTexture : register(t5);
+Texture2D AlbedoTexture         : register(t3);
+Texture2D NormalTexture         : register(t4);
+Texture2D MetalRoughTexture     : register(t5);
 
 SamplerState defaultSampler : register(s0);
 

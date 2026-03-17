@@ -367,8 +367,8 @@ namespace Toast {
 		uint32_t mRingGridIndexCount = 0;
 		uint32_t mLODGridIndexCount = 0;
 
-		Ref<ConstantBuffer> mPlanetFrameCBuffer, mPlanetLevelCBuffer;
-		Buffer mPlanetFrameBuffer, mPlanetLevelBuffer;
+		Ref<ConstantBuffer> mPlanetFrameCBuffer, mPlanetLevelCBuffer, mRenderingSettingsCBuffer;
+		Buffer mPlanetFrameBuffer, mPlanetLevelBuffer, mRenderingSettingsBuffer;
 		ShaderLayout mShaderInputLayout;
 
 		// Terrain Data
@@ -385,6 +385,8 @@ namespace Toast {
 		std::vector<double> mDistanceLUT;
 		Texture2D* mBaseHeightMapTexture;
 		Ref<TextureCube> mBaseHeightMapTextureCube;
+		Ref<TextureCube> mNormalMapTextureCube;
+		Ref<TextureCube> mAlbedoMapTextureCube;
 		TerrainData mTerrainData;
 		TerrainCubeData mTerrainCubeData;
 		std::vector<HeightDetail> mHeightDetails;
@@ -404,6 +406,9 @@ namespace Toast {
 		float mMetalness = 0.0f;
 		Ref<ConstantBuffer> mPlanetMaterialCBuffer;
 		Buffer mPlanetMaterialBuffer;
+		float mSlopeSensitivity = 30.0f;
+		float mSlopeThreshold = 0.3f;
+		float mSlopeDarkening = 0.5f;
 
 		// Atmosphere Scattering Data
 		bool mAtmosphereActivated = false;
@@ -451,6 +456,8 @@ namespace Toast {
 		Quaternion GetInvRotation() { return mInvRotationQuat; }
 
 		Ref<TextureCube> CreateHeightMapCube(const Texture2D* heightMapTexture);
+		Ref<TextureCube> CreateNormalMapCube(const TextureCube* heightCube);
+		Ref<TextureCube> CreateAlbedoCube(const Texture2D* albedoTexture);
 
 		double GetRadius() { return mRadius; }
 		double GetMaxHeight() { return mMaxHeight; }
@@ -480,6 +487,7 @@ namespace Toast {
 		Ref<ConstantBuffer> GetPlanetFrameCBuffer() { return mPlanetFrameCBuffer; }
 		Buffer& GetPlanetFrameBuffer() { return mPlanetFrameBuffer; }
 		Ref<ConstantBuffer> GetPlanetLevelCBuffer() { return mPlanetLevelCBuffer; }
+		Ref<ConstantBuffer> GetPlanetRenderingSettingsCBuffer() { return mRenderingSettingsCBuffer; }
 		ShaderLayout* GetShaderLayout() { return &mShaderInputLayout; }
 
 		uint32_t& GetUseAlbedoMap() { return mUseAlbedoMap; }
@@ -489,6 +497,9 @@ namespace Toast {
 		float& GetRoughness() { return mRoughness; }
 		Texture2D* GetBaseHeightMapTexture() { return mBaseHeightMapTexture; }
 		Ref<TextureCube> GetHeightMapCubeTexture() { return mBaseHeightMapTextureCube; }
+		Ref<TextureCube> GetNormalMapCubeTexture() { return mNormalMapTextureCube; }
+		Ref<TextureCube> GetAlbedoCubeTexture() { return mAlbedoMapTextureCube; }
+		void MapRenderingSettings();
 
 		Texture2D* GetStarFieldTexture2D() { return mStarFieldTexture2D; }
 		Ref<TextureCube> GetStarFieldTextureCube() { return mStarFieldTextureCube; }

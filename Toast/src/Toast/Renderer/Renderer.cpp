@@ -944,6 +944,9 @@ namespace Toast {
 					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
 				}
 
+				sRendererData->PlanetDraw.Planet->MapRenderingSettings();
+				sRendererData->PlanetDraw.Planet->GetPlanetRenderingSettingsCBuffer()->Bind();
+
 				if (sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
 				{
 					sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
@@ -957,7 +960,8 @@ namespace Toast {
 				TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(5, D3D11_VERTEX_SHADER);
 				TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(5, D3D11_PIXEL_SHADER);
 				RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->PlanetDraw.Planet->GetNormalMapCubeTexture()->GetSRV());
+
 				sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetAlbedoColor(), 16, 0);
 				sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetMetalness(), 4, 20);
 				sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetRoughness(), 4, 24);
@@ -966,7 +970,7 @@ namespace Toast {
 				sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
 
 				if (sRendererData->PlanetDraw.Planet->GetUseAlbedoMap())
-					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->PlanetDraw.Planet->GetAlbedoTexture()->GetSRV());
+					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->PlanetDraw.Planet->GetAlbedoCubeTexture()->GetSRV());
 
 				if(sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
 				{
@@ -1023,6 +1027,10 @@ namespace Toast {
 				
 			}
 		}
+
+		RenderCommand::ClearShaderResources();
+
+		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
 
 		ShaderLibrary::Get("assets/shaders/Rendering/GeometryPass.hlsl")->Bind();
 
@@ -2438,6 +2446,13 @@ namespace Toast {
 			int useMetalRough = static_cast<int>(material->GetUseMetalRough());
 			sRendererData->MaterialBuffer.Write((uint8_t*)&useMetalRough, 4, 36);
 			sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
+
+			if (material->GetUseAlbedo())
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, material->GetAlbedoTexture()->GetSRV());
+			if (material->GetUseNormal())
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, material->GetNormalTexture()->GetSRV());
+			if (material->GetUseMetalRough())
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, material->GetMetalRoughTexture()->GetSRV());
 
 			// Bind mesh + material like your normal path (important!)
 			// If your Mesh::Bind() does not bind material SRVs, do it here.

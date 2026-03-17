@@ -56,6 +56,11 @@ namespace Toast {
 		mPlanetLevelBuffer.Allocate(mPlanetLevelCBuffer->GetSize());
 		mPlanetLevelBuffer.ZeroInitialize();
 
+		mRenderingSettingsCBuffer = ConstantBufferLibrary::Load("PlanetRenderingSettings", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)5) });
+		mRenderingSettingsCBuffer->Bind();
+		mRenderingSettingsBuffer.Allocate(mRenderingSettingsCBuffer->GetSize());
+		mRenderingSettingsBuffer.ZeroInitialize();
+
 		mTerrainObjectCBuffer = ConstantBufferLibrary::Load("TerrainObject", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, (CBufferBindSlot)13) });
 		mTerrainObjectCBuffer->Bind();
 		mTerrainObjectBuffer.Allocate(mTerrainObjectCBuffer->GetSize());
@@ -531,6 +536,54 @@ namespace Toast {
 		return heightMapCube;
 	}
 
+	Ref<TextureCube> Planet::CreateNormalMapCube(const TextureCube* heightCube)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		const uint32_t cubemapSize = 2048;
+		TextureSampler* linearSampler = TextureLibrary::GetSampler("UWrapVClampLinearSampler");
+
+		Ref<TextureCube> normalCube = CreateRef<TextureCube>("NormalMapCube", DXGI_FORMAT_R8G8B8A8_UNORM, cubemapSize, cubemapSize);
+		normalCube->CreateUAV(0);
+
+		// Set up constant buffer with PlanetRadius and CubemapSize
+		// (however you normally do this — bind to b0 for CS)
+
+		ShaderLibrary::Get("assets/shaders/Planet/HeightCubeToNormalCube.hlsl")->Bind();
+		heightCube->Bind(0, D3D11_COMPUTE_SHADER);      // t0
+		linearSampler->Bind(0, D3D11_COMPUTE_SHADER);    // s0
+		normalCube->BindForReadWrite(0, D3D11_COMPUTE_SHADER); // u0
+
+		const uint32_t groupsX = (cubemapSize + 31) / 32;
+		const uint32_t groupsY = (cubemapSize + 31) / 32;
+		RenderCommand::DispatchCompute(groupsX, groupsY, 6);
+
+		normalCube->UnbindUAV();
+		return normalCube;
+	}
+
+	Ref<TextureCube> Planet::CreateAlbedoCube(const Texture2D* albedoTexture)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		const uint32_t cubemapSize = 4096; // higher res than height since this is what you see
+		TextureSampler* defaultSampler = TextureLibrary::GetSampler("UWrapVClampLinearSampler");
+
+		Ref<TextureCube> albedoCube = CreateRef<TextureCube>(
+			"AlbedoCube", DXGI_FORMAT_R8G8B8A8_UNORM, cubemapSize, cubemapSize);
+		albedoCube->CreateUAV(0);
+
+		ShaderLibrary::Get("assets/shaders/Planet/AlbedoMapToCube.hlsl")->Bind();
+		albedoTexture->Bind(0, D3D11_COMPUTE_SHADER);
+		defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+		albedoCube->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+
+		const uint32_t groupsX = (cubemapSize + 31) / 32;
+		const uint32_t groupsY = (cubemapSize + 31) / 32;
+		RenderCommand::DispatchCompute(groupsX, groupsY, 6);
+
+		albedoCube->UnbindUAV();
+		return albedoCube;
+	}
+
 	inline float HorizonDistance(float Rg, float h) {
 		// d = sqrt( (Rg+h)^2 - Rg^2 ) = sqrt(h*h + 2*Rg*h )
 		return std::sqrt(std::max(0.0f, h * h + 2.0f * Rg * h));
@@ -540,6 +593,15 @@ namespace Toast {
 	{
 		float t = std::clamp((x - a) / (b - a), 0.0f, 1.0f);
 		return t * t * (3.0f - 2.0f * t);
+	}
+
+	void Planet::MapRenderingSettings()
+	{
+		mRenderingSettingsBuffer.Write((uint8_t*)&mSlopeSensitivity, 4, 0);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mSlopeThreshold, 4, 4);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mSlopeDarkening, 4, 8);
+
+		mRenderingSettingsCBuffer->Map(mRenderingSettingsBuffer);
 	}
 
 	float Planet::GetSpaceFactor(Vector3 cameraPosition, const Vector3& worldTranslation)

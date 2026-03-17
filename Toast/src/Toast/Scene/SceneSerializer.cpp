@@ -702,9 +702,13 @@ namespace Toast {
 		out << YAML::Key << "MinHeight" << YAML::Value << scenePlanet->mMinHeight;
 		out << YAML::Key << "MeshMode" << YAML::Value << static_cast<uint32_t>(scenePlanet->mMeshMode);
 		out << YAML::Key << "AlbedoMap" << YAML::Value << scenePlanet->mAlbedoTexture->GetFilePath();
+		out << YAML::Key << "UseAlbedoMap" << YAML::Value << scenePlanet->mUseAlbedoMap;
 		out << YAML::Key << "AlbedoColor" << YAML::Value << scenePlanet->mAlbedoColor;
 		out << YAML::Key << "Roughness" << YAML::Value << scenePlanet->mRoughness;
 		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet->mMetalness;
+		out << YAML::Key << "SlopeSensitivity" << YAML::Value << scenePlanet->mSlopeSensitivity;
+		out << YAML::Key << "SlopeThreshold" << YAML::Value << scenePlanet->mSlopeThreshold;
+		out << YAML::Key << "SlopeDarkening" << YAML::Value << scenePlanet->mSlopeDarkening;
 		out << YAML::Key << "HeightMapAssetPath" << YAML::Value << scenePlanet->mBaseHeightMapTexture->GetFilePath();
 		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet->mMetalness;
 		out << YAML::Key << "StarFieldAssetPath" << YAML::Value << scenePlanet->mStarFieldTexture2D->GetFilePath();
@@ -1024,9 +1028,13 @@ namespace Toast {
 		scenePlanet->mMinHeight = planet["MinHeight"].as<double>();
 		scenePlanet->mMeshMode = static_cast<PlanetMeshMode>(planet["MeshMode"].as<uint32_t>());
 		scenePlanet->mAlbedoTexture = TextureLibrary::LoadTexture2D(planet["AlbedoMap"].as<std::string>(), false);
+		scenePlanet->mUseAlbedoMap = planet["UseAlbedoMap"].as<float>();
 		scenePlanet->mAlbedoColor = planet["AlbedoColor"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mRoughness = planet["Roughness"].as<float>();
 		scenePlanet->mMetalness = planet["Metalness"].as<float>();
+		scenePlanet->mSlopeSensitivity = planet["SlopeSensitivity"].as<float>();
+		scenePlanet->mSlopeThreshold = planet["SlopeThreshold"].as<float>();
+		scenePlanet->mSlopeDarkening = planet["SlopeDarkening"].as<float>();
 		scenePlanet->mBaseHeightMapTexture = TextureLibrary::LoadTexture2D(planet["HeightMapAssetPath"].as<std::string>(), false);
 		scenePlanet->mBaseHeightMapTextureCube = scenePlanet->CreateHeightMapCube(scenePlanet->mBaseHeightMapTexture);
 		scenePlanet->mStarFieldTexture2D = TextureLibrary::LoadTexture2D(planet["StarFieldAssetPath"].as<std::string>());
@@ -1034,6 +1042,7 @@ namespace Toast {
 		scenePlanet->mAtmosphere.AtmosphereHeight = planet["AtmosphereHeight"].as<float>();
 		scenePlanet->mAtmosphere.RayleighScaleHeight = planet["RayleighScaleHeight"].as<float>();
 		scenePlanet->mAtmosphere.RayleighExp10 = planet["RayleighExp10"].as<int>();
+
 		scenePlanet->mAtmosphere.RayleighScattering = planet["RayleighScattering"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mAtmosphere.MieScaleHeight = planet["MieScaleHeight"].as<float>();
 		scenePlanet->mAtmosphere.MieScatteringExp10 = planet["MieScatteringExp10"].as<int>();
@@ -1059,6 +1068,10 @@ namespace Toast {
 		planetMeshIco->mFaceLevelDotLUTIsDirty = true;
 		planetMeshIco->mHeightMultLUTIsDirty = true;
 		planetMeshIco->mPatchIsDirty = true;
+
+		scenePlanet->mNormalMapTextureCube = scenePlanet->CreateNormalMapCube(scenePlanet->mBaseHeightMapTextureCube.get());
+		if(scenePlanet->mUseAlbedoMap > 0.0f)
+			scenePlanet->mAlbedoMapTextureCube = scenePlanet->CreateAlbedoCube(scenePlanet->mAlbedoTexture);
 
 		scenePlanet->mHeightDetails.clear();
 

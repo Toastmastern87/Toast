@@ -9,6 +9,8 @@
 
 #include "Toast/Core/Base.h"
 
+#include "Toast/Project/Asset.h"
+
 #include <../vendor/directxtex/include/DirectXTex.h>
 
 namespace Toast {
@@ -104,7 +106,7 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mNullUAV = { nullptr };
 	};
 
-	class Texture2D : public Texture
+	class Texture2D : public Texture, public Asset
 	{
 	public:
 		Texture2D(DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT srvFormat = DXGI_FORMAT_UNKNOWN, uint32_t width = 1, uint32_t height = 1, D3D11_USAGE usage = D3D11_USAGE_DEFAULT, D3D11_BIND_FLAG bindFlag = (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), uint32_t samples = 1, UINT cpuAccessFlags = 0, UINT mipLevels = 1);
@@ -137,6 +139,8 @@ namespace Toast {
 		virtual void GenerateMips() const override;
 
 		virtual ID3D11Resource* GetResource() const override { return mResource.Get(); }
+
+		AssetType GetAssetType() const override { return AssetType::Texture2D; }
 
 		virtual bool operator==(const Texture& other) const override
 		{
