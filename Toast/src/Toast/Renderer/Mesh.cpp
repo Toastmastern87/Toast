@@ -2,6 +2,8 @@
 #define CGLTF_IMPLEMENTATION
 #include "Mesh.h"
 
+#include "Toast/Assets/AssetManager.h"
+
 #include <filesystem>
 #include <math.h>
 
@@ -255,7 +257,7 @@ namespace Toast {
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 					useAlbedoMap = 1;
-					mMaterials[data->materials[m].name]->SetAlbedoTexture(TextureLibrary::LoadTexture2D(completePath.c_str()));
+					mMaterials[data->materials[m].name]->SetAlbedolAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
 					//TOAST_CORE_INFO("Albedo map found: %s", completePath.c_str());	
 				}
 
@@ -273,7 +275,7 @@ namespace Toast {
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					useNormalMap = 1;
-					mMaterials[data->materials[m].name]->SetNormalTexture(TextureLibrary::LoadTexture2D(completePath.c_str(), false));
+					mMaterials[data->materials[m].name]->SetNormalAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
 					//TOAST_CORE_INFO("Normal map found: %s", completePath.c_str());
 				}
 				mMaterials[data->materials[m].name]->SetUseNormal(useNormalMap);
@@ -292,7 +294,7 @@ namespace Toast {
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					metalness = 1.0f;
 					useMetalRoughMap = 1;
-					mMaterials[data->materials[m].name]->SetMetalRoughTexture(TextureLibrary::LoadTexture2D(completePath.c_str(), false));
+					mMaterials[data->materials[m].name]->SetMetalRoughAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
 				}
 				else
 				{
@@ -416,7 +418,7 @@ namespace Toast {
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 					useAlbedoMap = 1;
-					mMaterials[data->materials[m].name]->SetAlbedoTexture(TextureLibrary::LoadTexture2D(completePath.c_str()));
+					mMaterials[data->materials[m].name]->SetAlbedolAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
 					TOAST_CORE_INFO("Albedo map found for %s: %s", materialName.c_str(), completePath.c_str());
 				}
 
@@ -434,7 +436,7 @@ namespace Toast {
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					useNormalMap = 1;
-					mMaterials[data->materials[m].name]->SetNormalTexture(TextureLibrary::LoadTexture2D(completePath.c_str(), false));
+					mMaterials[data->materials[m].name]->SetNormalAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
 					TOAST_CORE_INFO("Normal map found for %s: %s", materialName.c_str(), completePath.c_str());
 				}
 				mMaterials[data->materials[m].name]->SetUseNormal(useNormalMap);
@@ -453,7 +455,7 @@ namespace Toast {
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					metalness = 1.0f;
 					useMetalRoughMap = 1;
-					mMaterials[data->materials[m].name]->SetMetalRoughTexture(TextureLibrary::LoadTexture2D(completePath.c_str(), false));
+					mMaterials[data->materials[m].name]->SetMetalRoughAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
 					TOAST_CORE_INFO("Metalness/Roughness map found for %s: %s", materialName.c_str(), completePath.c_str());
 				}
 				else

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Toast/Project/AssetRegistry.h"
+#include "Toast/Assets/AssetRegistry.h"
 
 #include "Toast/Scene/Scene.h"
 
@@ -37,6 +37,8 @@ namespace Toast {
 		bool DeleteScene(UUID id);
 		UUID ImportScene(const std::filesystem::path& srcSceneFileAbs, bool moveInsteadOfCopy = false);
 
+		void BuildGame();
+
 		UUID GetActiveSceneID() const { return mActiveSceneID; }
 		void SetActiveScene(UUID id) { mActiveSceneID = id; }
 
@@ -46,7 +48,7 @@ namespace Toast {
 		const AssetRegistry& GetAssetRegistry() const { return mAssetRegistry; }
 
 		std::filesystem::path GetAssetDirectory() const { return mPath / "Assets"; }
-		std::filesystem::path GetAssetRegistryPath() const { return mPath / "assets.toastreg"; }
+		std::filesystem::path GetAssetRegistryPath() const { return mPath / "Assets\\assets.treg"; }
 
 		std::filesystem::path GetScenePath(UUID id) const
 		{

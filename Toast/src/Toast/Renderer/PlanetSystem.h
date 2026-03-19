@@ -12,6 +12,8 @@
 
 #include "Toast/Core/Math/Math.h"
 
+#include "Toast/Assets/Asset.h"
+
 #include "Toast/Renderer/Frustum.h"
 #include "Toast/Renderer/Mesh.h"
 #include "Toast/Renderer/RenderCommand.h"
@@ -383,7 +385,7 @@ namespace Toast {
 		DirectX::XMFLOAT3 mBasisTanEast;
 		DirectX::XMFLOAT3 mBasisTanNorth;
 		std::vector<double> mDistanceLUT;
-		Texture2D* mBaseHeightMapTexture;
+		AssetHandle mBaseHeightMapHandle;
 		Ref<TextureCube> mBaseHeightMapTextureCube;
 		Ref<TextureCube> mNormalMapTextureCube;
 		Ref<TextureCube> mAlbedoMapTextureCube;
@@ -400,7 +402,8 @@ namespace Toast {
 
 		// PBR Data
 		uint32_t mUseAlbedoMap = 0;
-		Texture2D* mAlbedoTexture;
+		//Texture2D* mAlbedoTexture;
+		AssetHandle mAlbedoTextureHandle;
 		DirectX::XMFLOAT3 mAlbedoColor = { 0.0f, 0.0f, 0.0f };
 		float mRoughness = 0.0f;
 		float mMetalness = 0.0f;
@@ -421,7 +424,7 @@ namespace Toast {
 		Ref<Texture2D> mAPNear;
 
 		// Environment Textures
-		Texture2D* mStarFieldTexture2D;
+		AssetHandle mStarFieldTexture2DHandle;
 		Ref<TextureCube> mStarFieldTextureCube;
 		Texture2D* mSpecularBRDFLUT;
 
@@ -492,16 +495,14 @@ namespace Toast {
 
 		uint32_t& GetUseAlbedoMap() { return mUseAlbedoMap; }
 		DirectX::XMFLOAT3& GetAlbedoColor() { return mAlbedoColor; }
-		Texture2D* GetAlbedoTexture() { return mAlbedoTexture; }
 		float& GetMetalness() { return mMetalness; }
 		float& GetRoughness() { return mRoughness; }
-		Texture2D* GetBaseHeightMapTexture() { return mBaseHeightMapTexture; }
+		AssetHandle GetBaseHeightMapHandle() { return mBaseHeightMapHandle; }
 		Ref<TextureCube> GetHeightMapCubeTexture() { return mBaseHeightMapTextureCube; }
 		Ref<TextureCube> GetNormalMapCubeTexture() { return mNormalMapTextureCube; }
 		Ref<TextureCube> GetAlbedoCubeTexture() { return mAlbedoMapTextureCube; }
 		void MapRenderingSettings();
 
-		Texture2D* GetStarFieldTexture2D() { return mStarFieldTexture2D; }
 		Ref<TextureCube> GetStarFieldTextureCube() { return mStarFieldTextureCube; }
 
 		TerrainData& GetTerrainData() { return mTerrainData; }

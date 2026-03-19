@@ -17,6 +17,7 @@ namespace Toast {
 		void OnImGuiRender(bool* showPanel, std::string& activeDragArea);
 
 		void SetContext(Scene* sceneContext, WindowsWindow* window);
+		void SetProjectPath(const std::filesystem::path& projectPath);
 	private:
 		void DrawTerrainObjectsListUI();
 		void DrawTerrainObjectPopup();
@@ -24,6 +25,8 @@ namespace Toast {
 	private:
 		Scene* mSceneContext = nullptr;
 		Planet* mContext = nullptr;
+
+		std::filesystem::path mAssetRoot;
 
 		WindowsWindow* mWindow;
 
@@ -42,6 +45,17 @@ namespace Toast {
 		bool mRequestOpenTerrainObjPopup = false;
 		char mTerrainObjNameBuf[128]{};
 		char mTerrainObjMeshPathBuf[256]{};
+
+		// Import popup
+		std::filesystem::path mPendingImportPath;
+		bool mPendingImportSRGB = true;
+		bool mPendingImportOpen = false;
+
+		// Callback to run after import completes — different for each texture slot
+		std::function<void(AssetHandle)> mOnImportComplete;
+
+		void DrawImportTexturePopup();
+		void RequestTextureImport(const std::filesystem::path& path, bool defaultSRGB, std::function<void(AssetHandle)> onComplete);
 	};
 
 }

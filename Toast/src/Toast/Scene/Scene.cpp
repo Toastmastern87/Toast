@@ -563,7 +563,7 @@ namespace Toast {
 						rotationMatrix = DirectX::XMMatrixMultiply(rotationMatrix, parentTC.GetRotation());
 					}
 
-					Renderer::SetParticleMaskTexture(pc.MaskTexture);
+					Renderer::SetParticleMaskTexture(AssetManager::GetAsset<Texture2D>(pc.MaskTextureHandle).get());
 
 					mParticleSystem->OnUpdate(ts, pc, spawnPosition, tc.Scale, rotationMatrix, maxParticleCount, finalVelocity);
 				}
@@ -1074,7 +1074,7 @@ namespace Toast {
 					rotationMatrix = DirectX::XMMatrixMultiply(rotationMatrix, parentTC.GetRotation());
 				}
 
-				Renderer::SetParticleMaskTexture(pc.MaskTexture);
+				Renderer::SetParticleMaskTexture(AssetManager::GetAsset<Texture2D>(pc.MaskTextureHandle).get());
 
 				mParticleSystem->OnUpdate(ts, pc, spawnPosition, tc.Scale, rotationMatrix, maxParticleCount, pc.Velocity);
 			}

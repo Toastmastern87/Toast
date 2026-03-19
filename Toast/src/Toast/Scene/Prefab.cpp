@@ -7,6 +7,8 @@
 
 #include "Toast/Physics/PhysicsEngine.h"
 
+#include "Toast/Renderer/Renderer2D.h"
+
 #include <yaml-cpp/yaml.h>
 
 namespace YAML {
@@ -335,16 +337,14 @@ namespace Toast {
 			uipc.UseColor = uiPanelComponent["UseColor"].as<bool>();
 			uipc.Visible = uiPanelComponent["Visible"].as<bool>();
 			uipc.ConnectToParent = uiPanelComponent["ConnectToParent"].as<bool>();
-			uipc.TextureIndex = uiPanelComponent["TextureIndex"].as<int>();
 
 			uipc.Connector.Color = uiPanelComponent["ConnectorColor"].as<DirectX::XMFLOAT4>();
 			uipc.Connector.Thickness = uiPanelComponent["ConnectorThickness"].as<float>();
 			uipc.Connector.ChildOffset = uiPanelComponent["ConnectorChildOffset"].as<DirectX::XMFLOAT2>();
 			uipc.Connector.ParentOffset = uiPanelComponent["ConnectorParentOffset"].as<DirectX::XMFLOAT2>();
 
-			uipc.TextureFilepath = uiPanelComponent["AssetPath"].as<std::string>();
-			if (!uipc.TextureFilepath.empty())
-				TextureLibrary::LoadTexture2D(uipc.TextureFilepath);
+			uipc.TextureHandle = uiPanelComponent["TextureAssetHandle"].as<AssetHandle>();
+			uipc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(uipc.TextureHandle);
 		}
 
 		auto uiButtonComponent = entityData["UIButtonComponent"];
@@ -356,21 +356,12 @@ namespace Toast {
 			ubc.Color = uiButtonComponent["Color"].as<DirectX::XMFLOAT4>();
 			ubc.ClickColor = uiButtonComponent["Color"].as<DirectX::XMFLOAT4>();
 			ubc.CornerRadius = uiButtonComponent["CornerRadius"].as<float>();
-			ubc.TextureIndex = uiButtonComponent["TextureIndex"].as<int>();
 
-			ubc.TextureFilepath = uiButtonComponent["AssetPath"].as<std::string>();
-			if (!ubc.TextureFilepath.empty())
-				TextureLibrary::LoadTexture2D(ubc.TextureFilepath);
+			ubc.TextureHandle = uiButtonComponent["TextureAssetHandle"].as<AssetHandle>();
+			ubc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.TextureHandle);
 
-			if (uiButtonComponent["ClickTextureIndex"])
-				ubc.ClickTextureIndex = uiButtonComponent["ClickTextureIndex"].as<int>();
-
-			if (uiButtonComponent["ClickAssetPath"])
-			{
-				ubc.ClickTextureFilepath = uiButtonComponent["ClickAssetPath"].as<std::string>();
-				if (!ubc.ClickTextureFilepath.empty())
-					TextureLibrary::LoadTexture2D(ubc.ClickTextureFilepath);
-			}
+			ubc.ClickTextureHandle = uiButtonComponent["ClickTextureAssetHandle"].as<AssetHandle>();
+			ubc.ClickTextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.ClickTextureHandle);
 		}
 
 		auto uiTextComponent = entityData["UITextComponent"];
@@ -406,7 +397,7 @@ namespace Toast {
 			pc.BurstDecay = particlesComponent["BurstDecay"].as<float>();
 			pc.Size = particlesComponent["Size"].as<float>();
 
-			pc.MaskTexture = TextureLibrary::LoadTexture2D(particlesComponent["AssetPath"].as<std::string>());
+			pc.MaskTextureHandle = particlesComponent["MaskTextureAssetHandle"].as<AssetHandle>();
 		}
 	}
 
@@ -650,11 +641,10 @@ namespace Toast {
 			auto& uipc = entity.GetComponent<UIPanelComponent>();
 			out << YAML::Key << "Color" << YAML::Value << uipc.Color;
 			out << YAML::Key << "CornerRadius" << YAML::Value << uipc.CornerRadius;
-			out << YAML::Key << "AssetPath" << YAML::Value << uipc.TextureFilepath;
+			out << YAML::Key << "TextureAssetHandle" << YAML::Value << uipc.TextureHandle;
 			out << YAML::Key << "UseColor" << YAML::Value << uipc.UseColor;
 			out << YAML::Key << "Visible" << YAML::Value << uipc.Visible;
 			out << YAML::Key << "ConnectToParent" << YAML::Value << uipc.ConnectToParent;
-			out << YAML::Key << "TextureIndex" << YAML::Value << uipc.TextureIndex;
 
 			out << YAML::Key << "ConnectorColor" << YAML::Value << uipc.Connector.Color;
 			out << YAML::Key << "ConnectorThickness" << YAML::Value << uipc.Connector.Thickness;
@@ -674,10 +664,8 @@ namespace Toast {
 			out << YAML::Key << "UseColor" << YAML::Value << ubc.UseColor;
 			out << YAML::Key << "Color" << YAML::Value << ubc.Color;
 			out << YAML::Key << "ClickColor" << YAML::Value << ubc.ClickColor;
-			out << YAML::Key << "AssetPath" << YAML::Value << ubc.TextureFilepath;
-			out << YAML::Key << "TextureIndex" << YAML::Value << ubc.TextureIndex;
-			out << YAML::Key << "ClickAssetPath" << YAML::Value << ubc.ClickTextureFilepath;
-			out << YAML::Key << "ClickTextureIndex" << YAML::Value << ubc.ClickTextureIndex;
+			out << YAML::Key << "TextureAssetHandle" << YAML::Value << ubc.TextureHandle;
+			out << YAML::Key << "ClickTextureAssetHandle" << YAML::Value << ubc.ClickTextureHandle;
 
 			out << YAML::EndMap; // UIButtonComponent
 		}
@@ -715,7 +703,7 @@ namespace Toast {
 			out << YAML::Key << "BurstDecay" << YAML::Value << pc.BurstDecay;
 			out << YAML::Key << "Size" << YAML::Value << pc.Size;
 			out << YAML::Key << "SpawnFunction" << YAML::Value << static_cast<uint16_t>(pc.SpawnFunction);
-			out << YAML::Key << "AssetPath" << YAML::Value << pc.MaskTexture->GetFilePath();
+			out << YAML::Key << "MaskTextureAssetHandle" << YAML::Value << pc.MaskTextureHandle;
 			out << YAML::EndMap; // ParticlesComponent
 		}
 

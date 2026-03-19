@@ -10,6 +10,8 @@
 
 #include "Toast/Physics/PhysicsEngine.h"
 
+#include "Toast/Assets/AssetManager.h"
+
 #include "Toast/Utils/PlatformUtils.h"
 
 #include "../FontAwesome.h"
@@ -32,13 +34,16 @@ namespace Toast {
 		dst = (src && src[0]) ? std::string(src) : std::string("New Terrain Detail");
 	}
 
-	extern const std::filesystem::path gAssetPath;
-
 	void PlanetPanel::SetContext(Scene* sceneContext, WindowsWindow* window)
 	{
 		mSceneContext = sceneContext;
 		mContext = sceneContext->GetPlanet().get();
 		mWindow = window;
+	}
+
+	void PlanetPanel::SetProjectPath(const std::filesystem::path& projectPath)
+	{
+		mAssetRoot = projectPath / "Assets";
 	}
 
 	void PlanetPanel::DrawTerrainObjectsListUI()
@@ -252,6 +257,65 @@ namespace Toast {
 			}
 
 			ImGui::EndTable();
+		}
+	}
+
+	void PlanetPanel::RequestTextureImport(const std::filesystem::path& path,  bool defaultSRGB,	std::function<void(AssetHandle)> onComplete)
+	{
+		// Check if this file is already registered — no need for the popup
+		auto assetDir = AssetManager::GetAssetDirectory();
+		auto relativePath = std::filesystem::relative(path, assetDir);
+		AssetHandle existing = AssetManager::GetHandleFromPath(relativePath);
+
+		if (existing != AssetHandle(0))
+		{
+			if (onComplete)
+				onComplete(existing);
+			return;
+		}
+
+		mPendingImportPath = path;
+		mPendingImportSRGB = defaultSRGB;
+		mOnImportComplete = onComplete;
+		mPendingImportOpen = true;
+	}
+
+	void PlanetPanel::DrawImportTexturePopup()
+	{
+		if (!mPendingImportOpen)
+			return;
+
+		ImGui::OpenPopup("Import Texture Settings");
+
+		if (ImGui::BeginPopupModal("Import Texture Settings", &mPendingImportOpen,
+			ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			ImGui::Text("Importing: %s", mPendingImportPath.filename().string().c_str());
+			ImGui::Checkbox("sRGB (color data)", &mPendingImportSRGB);
+
+			if (ImGui::Button("Import"))
+			{
+				AssetHandle handle = AssetManager::ImportExternalAsset(mPendingImportPath, "Textures");
+
+				AssetEntry* entry = AssetManager::GetEntry(handle);
+				if (entry)
+					entry->Texture2DSettings.ForceSRGB = mPendingImportSRGB;
+
+				if (mOnImportComplete)
+					mOnImportComplete(handle);
+
+				mPendingImportOpen = false;
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel"))
+			{
+				mPendingImportOpen = false;
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
 		}
 	}
 
@@ -734,24 +798,38 @@ namespace Toast {
 						// Thumbnail
 						ImGui::PushItemWidth(-1);
 
-						ImTextureID texID = mContext->mAlbedoTexture ? mContext->mAlbedoTexture->GetID() : (ImTextureID)0;
+						Texture2D* displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 
-						// Pick a size that fits your row nicely
-						const ImVec2 thumbSize = ImVec2(64.0f, 64.0f);
-						ImGui::Image(texID, thumbSize);
+						if (mContext->mBaseHeightMapHandle != AssetHandle(0))
+						{
+							auto tex = AssetManager::GetAsset<Texture2D>(mContext->mAlbedoTextureHandle);
+							if (tex)
+								displayTexture = tex.get();
+						}
+
+						ImGui::Image(displayTexture->GetID(), { 64.0f, 64.0f });
+
+						std::optional<std::string> filename;
 
 						if (ImGui::BeginDragDropTarget())
 						{
 							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 							{
 								const wchar_t* path = (const wchar_t*)payload->Data;
-								auto completePath = std::filesystem::path(gAssetPath) / path;
-								const std::string filename = completePath.string();
+								auto completePath = mAssetRoot / path;
+								filename = completePath.string();
 
-								mContext->mAlbedoTexture = TextureLibrary::LoadTexture2D(filename);
-								// If you want: auto-enable use-map on assignment
-								mContext->mUseAlbedoMap = 1;
-								mContext->mAlbedoMapTextureCube = mContext->CreateAlbedoCube(mContext->mAlbedoTexture);
+								if (filename)
+								{
+									RequestTextureImport(*filename, false, [this](AssetHandle handle)
+										{
+											mContext->mAlbedoTextureHandle = handle;
+											auto tex = AssetManager::GetAsset<Texture2D>(handle);
+											mContext->mUseAlbedoMap = 1;
+											mContext->mAlbedoMapTextureCube = mContext->CreateAlbedoCube(tex.get());
+										});
+								}
+	
 							}
 							ImGui::EndDragDropTarget();
 						}
@@ -759,14 +837,18 @@ namespace Toast {
 						// Click to browse
 						if (ImGui::IsItemClicked())
 						{
-							std::optional<std::string> filename =
-								FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							auto texturePath = mAssetRoot / "Textures";
+							filename = FileDialogs::OpenFile("", texturePath.string().c_str());
+
 							if (filename)
 							{
-								mContext->mAlbedoTexture = TextureLibrary::LoadTexture2D(*filename);
-								mContext->mUseAlbedoMap = 1;
-
-								mContext->mAlbedoMapTextureCube = mContext->CreateAlbedoCube(mContext->mAlbedoTexture);
+								RequestTextureImport(*filename, false, [this](AssetHandle handle)
+									{
+										mContext->mAlbedoTextureHandle = handle;
+										auto tex = AssetManager::GetAsset<Texture2D>(handle);
+										mContext->mUseAlbedoMap = 1;
+										mContext->mAlbedoMapTextureCube = mContext->CreateAlbedoCube(tex.get());
+									});
 							}
 						}
 
@@ -775,7 +857,7 @@ namespace Toast {
 						// Right-side panel next to thumbnail
 						// We reserve remaining width in the column
 						ImGui::BeginGroup();
-						ImGui::SetNextItemWidth(fullW - thumbSize.x - ImGui::GetStyle().ItemSpacing.x);
+						ImGui::SetNextItemWidth(fullW - 64.0f - ImGui::GetStyle().ItemSpacing.x);
 
 						// Use Map checkbox
 						bool useMap = mContext->mUseAlbedoMap != 0;
@@ -954,7 +1036,6 @@ namespace Toast {
 						ImGui::TableNextRow();
 
 						// -------- Height Map Texture row ----------
-
 						ImGui::TableSetColumnIndex(0);
 						ImGui::AlignTextToFramePadding();
 						ImGui::Text("Base Height Map Texture");
@@ -962,7 +1043,17 @@ namespace Toast {
 						ImGui::TableSetColumnIndex(1);
 
 						ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::GetStyle().CellPadding.x * 2 - 128.0f);
-						ImGui::Image(mContext->mBaseHeightMapTexture->GetID(), { 128.0f, 64.0f });
+
+						Texture2D* displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
+
+						if (mContext->mBaseHeightMapHandle != AssetHandle(0))
+						{
+							auto tex = AssetManager::GetAsset<Texture2D>(mContext->mBaseHeightMapHandle);
+							if (tex)
+								displayTexture = tex.get();
+						}
+
+						ImGui::Image(displayTexture->GetID(), {128.0f, 64.0f});
 
 						std::optional<std::string> filename;
 
@@ -971,14 +1062,19 @@ namespace Toast {
 							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 							{
 								const wchar_t* path = (const wchar_t*)payload->Data;
-								auto completePath = std::filesystem::path(gAssetPath) / path;
+								auto completePath = mAssetRoot / path;
 								filename = completePath.string();
 
 								if (filename)
 								{
-									mContext->mBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename, false);
-
-									mContext->mTerrainCubeData = mContext->LoadTerrainDataFromTextureCube();
+									RequestTextureImport(*filename, false, [this](AssetHandle handle)
+										{
+											mContext->mBaseHeightMapHandle = handle;
+											auto tex = AssetManager::GetAsset<Texture2D>(handle);
+											mContext->mBaseHeightMapTextureCube = mContext->CreateHeightMapCube(tex.get());
+											mContext->mNormalMapTextureCube = mContext->CreateNormalMapCube(mContext->mBaseHeightMapTextureCube.get());
+											mContext->mTerrainCubeData = mContext->LoadTerrainDataFromTextureCube();
+										});
 								}
 							}
 
@@ -987,16 +1083,19 @@ namespace Toast {
 
 						if (ImGui::IsItemClicked())
 						{
-							filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							auto texturePath = mAssetRoot / "Textures";
+							filename = FileDialogs::OpenFile("", texturePath.string().c_str());
 
 							if (filename)
 							{
-								mContext->mBaseHeightMapTexture = TextureLibrary::LoadTexture2D(*filename, false);
-
-								mContext->mBaseHeightMapTextureCube = mContext->CreateHeightMapCube(mContext->mBaseHeightMapTexture);
-								mContext->mNormalMapTextureCube = mContext->CreateNormalMapCube(mContext->mBaseHeightMapTextureCube.get());
-
-								mContext->mTerrainCubeData = mContext->LoadTerrainDataFromTextureCube();
+								RequestTextureImport(*filename, false, [this](AssetHandle handle)
+									{
+										mContext->mBaseHeightMapHandle = handle;
+										auto tex = AssetManager::GetAsset<Texture2D>(handle);
+										mContext->mBaseHeightMapTextureCube = mContext->CreateHeightMapCube(tex.get());
+										mContext->mNormalMapTextureCube = mContext->CreateNormalMapCube(mContext->mBaseHeightMapTextureCube.get());
+										mContext->mTerrainCubeData = mContext->LoadTerrainDataFromTextureCube();
+									});
 							}
 						}
 
@@ -1280,7 +1379,17 @@ namespace Toast {
 						ImGui::TableSetColumnIndex(1);
 
 						ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::GetStyle().CellPadding.x * 2 - 128.0f);
-						ImGui::Image(mContext->mStarFieldTexture2D->GetID(), { 128.0f, 64.0f });
+
+						Texture2D* displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
+
+						if (mContext->mStarFieldTexture2DHandle != AssetHandle(0))
+						{
+							auto tex = AssetManager::GetAsset<Texture2D>(mContext->mStarFieldTexture2DHandle);
+							if (tex)
+								displayTexture = tex.get();
+						}
+
+						ImGui::Image(displayTexture->GetID(), { 128.0f, 64.0f });
 
 						std::optional<std::string> filename;
 
@@ -1289,16 +1398,19 @@ namespace Toast {
 							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 							{
 								const wchar_t* path = (const wchar_t*)payload->Data;
-								auto completePath = std::filesystem::path(gAssetPath) / path;
+								auto completePath = mAssetRoot / path;
 								filename = completePath.string();
 
 								if (filename)
 								{
-									mContext->mStarFieldTexture2D = TextureLibrary::LoadTexture2D(*filename);
+									RequestTextureImport(*filename, false, [this](AssetHandle handle)
+										{
+											mContext->mStarFieldTexture2DHandle = handle;
+											auto tex = AssetManager::GetAsset<Texture2D>(handle);
+											mContext->mStarFieldTextureCube = Renderer::CreateStarFieldTexture(tex.get());
 
-									mContext->mStarFieldTextureCube = Renderer::CreateStarFieldTexture(mContext->mStarFieldTexture2D);
-
-									Renderer::ResetEnvMapsIBLDone();
+											Renderer::ResetEnvMapsIBLDone();
+										});
 								}
 							}
 
@@ -1307,13 +1419,19 @@ namespace Toast {
 
 						if (ImGui::IsItemClicked())
 						{
-							filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+							auto texturePath = mAssetRoot / "Textures";
+							filename = FileDialogs::OpenFile("", texturePath.string().c_str());
 
 							if (filename)
 							{
-								mContext->mStarFieldTexture2D = TextureLibrary::LoadTexture2D(*filename);
+								RequestTextureImport(*filename, false, [this](AssetHandle handle)
+									{
+										mContext->mStarFieldTexture2DHandle = handle;
+										auto tex = AssetManager::GetAsset<Texture2D>(handle);
+										mContext->mStarFieldTextureCube = Renderer::CreateStarFieldTexture(tex.get());
 
-								mContext->mStarFieldTextureCube = Renderer::CreateStarFieldTexture(mContext->mStarFieldTexture2D);
+										Renderer::ResetEnvMapsIBLDone();
+									});
 							}
 						}
 
@@ -1568,5 +1686,7 @@ namespace Toast {
 		ImGui::PopStyleVar();
 
 		ImGui::PopStyleColor(2);
+
+		DrawImportTexturePopup();
 	}
 } 

@@ -25,7 +25,7 @@ namespace Toast {
 
 	Planet::Planet()
 	{
-		mAlbedoTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
+		//mAlbedoTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 	}
 
 	void Planet::Initialize()
@@ -65,10 +65,6 @@ namespace Toast {
 		mTerrainObjectCBuffer->Bind();
 		mTerrainObjectBuffer.Allocate(mTerrainObjectCBuffer->GetSize());
 		mTerrainObjectBuffer.ZeroInitialize();
-
-		mBaseHeightMapTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
-
-		mStarFieldTexture2D = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 
 		// Create texture for Starfield skybox
 		mStarFieldTextureCube = CreateRef<TextureCube>(DXGI_FORMAT_R16G16B16A16_UNORM, DXGI_FORMAT_UNKNOWN, 2048, 2048, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_RENDER_TARGET), 1, 0, 0);

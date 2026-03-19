@@ -8,6 +8,8 @@
 #include "Toast/Core/Application.h"
 #include "Toast/Core/Input.h"
 
+#include "Toast/Assets/AssetManager.h"
+
 #include "Toast/Project/ProjectSerializer.h"
 
 #include "Toast/Scene/SceneSerializer.h"
@@ -26,8 +28,6 @@
 #include "ImGuizmo.h"
 
 namespace Toast {
-	
-	extern const std::filesystem::path gAssetPath;
 
 	static std::optional<std::filesystem::path> FindProjectFileInFolder(const std::filesystem::path& folder)
 	{
@@ -124,10 +124,6 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/UI.hlsl");
 		ShaderLibrary::Load("assets/shaders/Utilities/Copy.hlsl");
 
-		// Load all materials from the asset folder
-		std::vector<std::string> materialStrings = FileDialogs::GetAllFiles("\\assets\\materials");
-		MaterialSerializer::Deserialize(materialStrings);
-
 		mPlaceholderScene = CreateScope<Scene>();
 		mEditorScene = mPlaceholderScene.get();
 
@@ -160,6 +156,20 @@ namespace Toast {
 
 		// Success: swap active project
 		mProject = loadedProject;
+
+		AssetManager::SetActiveProject(mProject);
+		AssetManager::DeserializeRegistry();
+
+		mContentBrowserPanel.SetProjectPath(mProject->GetPath());
+		mMaterialPanel.SetProjectPath(mProject->GetPath());
+		mPlanetPanel.SetProjectPath(mProject->GetPath());
+		mPropertiesPanel.SetProjectPath(mProject->GetPath());
+
+		// Load all materials from the asset folder
+		std::vector<std::string> materialStrings = FileDialogs::GetAllFiles("\\assets\\materials");
+		MaterialSerializer::Deserialize(materialStrings);
+
+		Renderer2D::LoadUITextures();
 
 		// Open active scene from the loaded project
 		const std::filesystem::path scenePath = mProject->GetPath() / mProject->GetActiveScenePath();
@@ -502,7 +512,7 @@ namespace Toast {
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 				{
 					const wchar_t* path = (const wchar_t*)payload->Data;
-					auto completePath = std::filesystem::path(gAssetPath) / path;
+					auto completePath = std::filesystem::path(mProject->GetPath() / path);
 					std::string filename = completePath.string();
 
 					// Get the file extension in lowercase
@@ -1145,6 +1155,8 @@ namespace Toast {
 
 		ProjectSerializer serializer(mProject.get());
 		serializer.Serialize(projectFilePath.string());
+
+		AssetManager::SerializeRegistry();
 	}
 
 	void EditorLayer::OnScenePlay()

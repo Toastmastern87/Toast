@@ -1,9 +1,13 @@
 #include "tpch.h"
 #include "Toast/Renderer/Renderer2D.h"
 
+#include "Toast/Assets/AssetManager.h"
+
 #include "Toast/Renderer/Shader.h"
+
 #include "Toast/Renderer/RendererBuffer.h"
 #include "Toast/Renderer/RenderCommand.h"
+
 #include "Toast/Renderer/UI/Font.h"
 #include "Toast/Renderer/UI/MSDFData.h"
 
@@ -34,29 +38,47 @@ namespace Toast {
 		}
 
 		sRenderer2DData->UIVertexBuffer = CreateRef<VertexBuffer>(&sRenderer2DData->UIVertexBufferBase[0], (uint32_t)(sRenderer2DData->MaxUIVertices * sizeof(UIVertex)), sRenderer2DData->MaxUIVertices, 0, D3D11_USAGE_DYNAMIC);
-		sRenderer2DData->UIIndexBuffer = CreateRef<IndexBuffer>(&UIIndices[0], sRenderer2DData->MaxUIIndices);
+		sRenderer2DData->UIIndexBuffer = CreateRef<IndexBuffer>(&UIIndices[0], sRenderer2DData->MaxUIIndices);	
 
-		// TODO Fix to use Asset handler in the future
-		std::string UITextureFolder = "../Toaster/assets/textures/UI";
-		std::vector<std::string> texturePaths;
+		LoadFontTextures();
+	}
 
-		// Collect all file paths in the folder
-		for (const auto& entry : std::filesystem::directory_iterator(UITextureFolder))
+	void Renderer2D::Shutdown()
+	{
+		TOAST_PROFILE_FUNCTION();
+	}
+
+	void Renderer2D::LoadUITextures()
+	{
+		std::filesystem::path assetDir = AssetManager::GetAssetDirectory();
+		std::filesystem::path uiTextureDir = assetDir / "Textures" / "UI";
+
+		if (!std::filesystem::exists(uiTextureDir) || std::filesystem::is_empty(uiTextureDir))
 		{
-			if (entry.is_regular_file())
-				texturePaths.push_back(entry.path().string());
-		}
-
-		if (texturePaths.empty())
+			TOAST_CORE_WARN("Renderer2D::LoadUITextures: No UI textures found in '%s'", uiTextureDir.string().c_str());
 			return;
-
-		std::vector<Texture2D*> loadedTextures;
-		for (const auto& path : texturePaths)
-		{
-			Texture2D* texture = TextureLibrary::LoadTexture2D(path);
-		
-			loadedTextures.push_back(texture);
 		}
+
+		std::vector<AssetHandle> textureHandles;
+		std::vector<Ref<Texture2D>> loadedTextures;
+
+		for (const auto& entry : std::filesystem::directory_iterator(uiTextureDir))
+		{
+			if (!entry.is_regular_file())
+				continue;
+
+			auto relativePath = std::filesystem::relative(entry.path(), assetDir);
+			AssetHandle handle = AssetManager::ImportAsset(relativePath);
+			auto texture = AssetManager::GetAsset<Texture2D>(handle);
+			if (texture)
+			{
+				loadedTextures.push_back(texture);
+				textureHandles.push_back(handle);
+			}
+		}
+
+		if (textureHandles.empty())
+			return;
 
 		uint32_t width = loadedTextures[0]->GetWidth();
 		uint32_t height = loadedTextures[0]->GetHeight();
@@ -67,22 +89,12 @@ namespace Toast {
 		std::vector<UINT> rowPitches;
 		for (auto& texture : loadedTextures)
 		{
-			const void* data = texture->GetInitialData(); 
-			UINT rowPitch = texture->GetRowPitch(); 
-			initialData.push_back(data);
-			rowPitches.push_back(rowPitch);
+			initialData.push_back(texture->GetInitialData());
+			rowPitches.push_back(texture->GetRowPitch());
 		}
 
-		sRenderer2DData->UITextureArray = CreateRef<Texture2DArray>(format,	width, height, arraySize, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 1, 0, initialData, rowPitches);
-
-		sRenderer2DData->UITextureArray->SetSliceMapping(texturePaths);
-
-		LoadFontTextures();
-	}
-
-	void Renderer2D::Shutdown()
-	{
-		TOAST_PROFILE_FUNCTION();
+		sRenderer2DData->UITextureArray = CreateRef<Texture2DArray>(format, width, height, arraySize, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 1, 0, initialData, rowPitches);
+		sRenderer2DData->UITextureArray->SetSliceMapping(textureHandles);
 	}
 
 	void Renderer2D::BeginScene(Camera& camera)
@@ -123,7 +135,8 @@ namespace Toast {
 		ShaderLibrary::Get("assets/shaders/UI.hlsl")->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRenderer2DData->FontsTextureArray->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRenderer2DData->UITextureArray->GetSRV());
+		if(sRenderer2DData->UITextureArray)
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRenderer2DData->UITextureArray->GetSRV());
 
 		sRenderer2DData->UIVertexBuffer->SetData(sRenderer2DData->UIVertexBufferBase, vertexDataSize);
 		sRenderer2DData->UIVertexBuffer->Bind();
@@ -454,7 +467,7 @@ namespace Toast {
 		);
 
 		// Optionally, map each array slice back to its originating file for later reference.
-		sRenderer2DData->FontsTextureArray->SetSliceMapping(fontPaths);
+		sRenderer2DData->FontsTextureArray->SetSliceMappingOLD(fontPaths);
 
 		TOAST_CORE_CRITICAL("Loaded %d number of fonts", fontAtlases.size());
 	}

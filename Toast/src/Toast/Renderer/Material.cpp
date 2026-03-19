@@ -1,4 +1,7 @@
 #include "tpch.h"
+
+#include "Toast/Assets/AssetManager.h"
+
 #include "Toast/Renderer/Material.h"
 #include "Toast/Renderer/RendererAPI.h"
 #include "Toast/Renderer/Renderer.h"
@@ -10,8 +13,8 @@
 
 #include <yaml-cpp/yaml.h>
 
-namespace YAML
-{
+namespace YAML {
+
 	template<>
 	struct convert<DirectX::XMFLOAT3>
 	{
@@ -64,6 +67,23 @@ namespace YAML
 		}
 	};
 
+	template<>
+	struct convert<Toast::UUID>
+	{
+		static Node encode(const Toast::UUID& uuid)
+		{
+			Node node;
+			node.push_back((uint64_t)uuid);
+			return node;
+		}
+
+		static bool decode(const Node& node, Toast::UUID& uuid)
+		{
+			uuid = node.as<uint64_t>();
+			return true;
+		}
+	};
+
 	YAML::Emitter& operator<<(YAML::Emitter& out, const DirectX::XMFLOAT3& v)
 	{
 		out << YAML::Flow;
@@ -83,17 +103,11 @@ namespace Toast {
 
 	Material::Material()
 	{
-		mAlbedoTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
-		mNormalTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
-		mMetalRoughTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 	}
 
 	Material::Material(const std::string& name)
 		: mName(name)
 	{
-		mAlbedoTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
-		mNormalTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
-		mMetalRoughTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 	}
 
 	std::unordered_map<std::string, Ref<Material>> MaterialLibrary::mMaterials;
@@ -192,11 +206,11 @@ namespace Toast {
 		out << YAML::Key << "UseNormalMap" << YAML::Value << material->GetUseNormal();
 		out << YAML::Key << "UseMetalRoughMap" << YAML::Value << material->GetUseMetalRough();
 		if(material->GetUseAlbedo())
-			out << YAML::Key << "AlbedoAssetPath" << YAML::Value << material->GetAlbedoTexture()->GetFilePath();
+			out << YAML::Key << "AlbedoAssetHandle" << YAML::Value << material->GetAlbedoAssetHandle();
 		if (material->GetUseNormal())
-			out << YAML::Key << "NormalAssetPath" << YAML::Value << material->GetNormalTexture()->GetFilePath();
+			out << YAML::Key << "NormalAssetHandle" << YAML::Value << material->GetNormalAssetHandle();
 		if (material->GetUseMetalRough())
-			out << YAML::Key << "MetalRoughAssetPath" << YAML::Value << material->GetMetalRoughTexture()->GetFilePath();
+			out << YAML::Key << "MetalRoughAssetHandle" << YAML::Value << material->GetMetalRoughAssetHandle();
 
 		out << YAML::EndMap;
 
@@ -230,11 +244,11 @@ namespace Toast {
 			material->SetUseNormal(data["UseNormalMap"].as<bool>());
 			material->SetUseMetalRough(data["UseMetalRoughMap"].as<bool>());
 			if (material->GetUseAlbedo()) 
-				material->SetAlbedoTexture(TextureLibrary::LoadTexture2D(data["AlbedoAssetPath"].as<std::string>()));
+				material->SetAlbedolAssetHandle(data["AlbedoAssetHandle"].as<AssetHandle>());
 			if(material->GetUseNormal())
-				material->SetNormalTexture(TextureLibrary::LoadTexture2D(data["NormalAssetPath"].as<std::string>(), false));
+				material->SetNormalAssetHandle(data["NormalAssetHandle"].as<AssetHandle>());
 			if(material->GetUseMetalRough())
-				material->SetMetalRoughTexture(TextureLibrary::LoadTexture2D(data["MetalRoughAssetPath"].as<std::string>(), false));
+				material->SetMetalRoughAssetHandle(data["MetalRoughAssetHandle"].as<AssetHandle>());
 		}
 
 		return true;

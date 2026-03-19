@@ -66,6 +66,7 @@ namespace Toast {
 		// Create sub folders inside the "Assets" folder.
 		std::filesystem::create_directories(assetsPath / "Scenes");
 		std::filesystem::create_directories(assetsPath / "Textures");
+		std::filesystem::create_directories(assetsPath / "Textures" / "UI");
 		std::filesystem::create_directories(assetsPath / "Fonts");
 		std::filesystem::create_directories(assetsPath / "Meshes");
 		std::filesystem::create_directories(assetsPath / "Scripts");
@@ -300,6 +301,17 @@ namespace Toast {
 		TOAST_CORE_INFO("Imported scene '%s'\n\tFrom: %s\n\tTo:   %s", rel.stem().string().c_str(), srcSceneFileAbs.string().c_str(), dstAbs.string().c_str());
 
 		return id;
+	}
+
+	void Project::BuildGame()
+	{
+		std::filesystem::path buildDir = mPath / "Build";
+
+		TOAST_CORE_INFO("Building game to '%s'...", buildDir.string().c_str());
+
+		AssetManager::BakeAssets(buildDir);
+
+		TOAST_CORE_INFO("Game build complete.");
 	}
 
 	UUID Project::FindSceneByDisplayName(const std::string& displayName) const

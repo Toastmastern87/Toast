@@ -2,6 +2,8 @@
 
 #include "ContentBrowserPanel.h"
 
+#include "Toast/Assets/AssetManager.h"
+
 #include "Toast/Renderer/Shader.h"
 
 #include "../FontAwesome.h"
@@ -10,22 +12,36 @@
 
 namespace Toast {
 
-	// Once Toast Engine have "projects", change this
-	extern const std::filesystem::path gAssetPath = "assets";
-
-	ContentBrowserPanel::ContentBrowserPanel()
-		: mCurrentDirectory(gAssetPath)
+	void ContentBrowserPanel::SetProjectPath(const std::filesystem::path& projectPath)
 	{
-		mDirectoryIcon = TextureLibrary::LoadTexture2D("Resources/Icons/ContentBrowser/DirectoryIcon.png");
-		mFileIcon = TextureLibrary::LoadTexture2D("Resources/Icons/ContentBrowser/FileIcon.png");
-		mFileIconCSharp = TextureLibrary::LoadTexture2D("Resources/Icons/ContentBrowser/FileIconCSharp.png");
+		mAssetRoot = projectPath / "Assets";
+		mCurrentDirectory = mAssetRoot;
+
+		if (!mInitialized)
+		{
+			mDirectoryIcon = TextureLibrary::LoadTexture2D(
+				"Resources/Icons/ContentBrowser/DirectoryIcon.png");
+			mFileIcon = TextureLibrary::LoadTexture2D(
+				"Resources/Icons/ContentBrowser/FileIcon.png");
+			mFileIconCSharp = TextureLibrary::LoadTexture2D(
+				"Resources/Icons/ContentBrowser/FileIconCSharp.png");
+			mInitialized = true;
+		}
 	}
 
 	void Toast::ContentBrowserPanel::OnImGuiRender()
 	{
 		ImGui::Begin(ICON_TOASTER_FOLDER" Content Browser");
 
-		if (mCurrentDirectory != std::filesystem::path(gAssetPath))
+		if (!mInitialized)
+		{
+			ImGui::Text("No project loaded");
+			ImGui::End();
+			return;
+		}
+
+		// Only show back button if we're deeper than the asset root
+		if (mCurrentDirectory != mAssetRoot)
 		{
 			if (ImGui::Button("<-"))
 			{
@@ -36,7 +52,6 @@ namespace Toast {
 		static float padding = 16.0f;
 		static float thumbnailSize = 128.0f;
 		float cellSize = thumbnailSize + padding;
-
 		float panelWidth = ImGui::GetContentRegionAvail().x;
 		int columnCount = (int)(panelWidth / cellSize);
 		if (columnCount < 1)
@@ -56,7 +71,18 @@ namespace Toast {
 				icon = mDirectoryIcon;
 			else 
 			{
-				if (path.extension() == ".cs")
+				auto ext = path.extension().string();
+				for (auto& c : ext) c = (char)std::tolower(c);
+
+				if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
+					ext == ".bmp" || ext == ".tga" || ext == ".hdr" || ext == ".dds" || ext == ".tif")
+				{
+					auto relativePath = std::filesystem::relative(path, mAssetRoot);
+					AssetHandle handle = AssetManager::ImportAsset(relativePath);
+					auto tex = AssetManager::GetAsset<Texture2D>(handle);
+					icon = tex ? tex.get() : mFileIcon;
+				}
+				else if (ext == ".cs")
 					icon = mFileIconCSharp;
 				else
 					icon = mFileIcon;
@@ -82,7 +108,7 @@ namespace Toast {
 
 			if (ImGui::BeginDragDropSource())
 			{
-				auto relativePath = std::filesystem::relative(path, gAssetPath);
+				auto relativePath = std::filesystem::relative(path, mAssetRoot);
 				const wchar_t* itemPath = relativePath.c_str();
 				ImGui::SetDragDropPayload("CONTENT_BROWSER_ITEM", itemPath, (wcslen(itemPath) + 1) * sizeof(wchar_t), ImGuiCond_Once);
 				ImGui::EndDragDropSource();

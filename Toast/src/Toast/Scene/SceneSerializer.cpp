@@ -12,10 +12,13 @@
 
 #include "Toast/Physics/PhysicsEngine.h"
 
-#include "Toast/Renderer/Renderer.h"
+#include "Toast/Assets/AssetManager.h"
 
-namespace YAML 
-{
+#include "Toast/Renderer/Renderer.h"
+#include "Toast/Renderer/Renderer2D.h"
+
+namespace YAML {
+
 	template<>
 	struct convert<Toast::Vector3>
 	{
@@ -451,11 +454,10 @@ namespace Toast {
 			auto& uipc = entity.GetComponent<UIPanelComponent>();
 			out << YAML::Key << "Color" << YAML::Value << uipc.Color;
 			out << YAML::Key << "CornerRadius" << YAML::Value << uipc.CornerRadius;
-			out << YAML::Key << "AssetPath" << YAML::Value << uipc.TextureFilepath;
+			out << YAML::Key << "TextureAssetHandle" << YAML::Value << uipc.TextureHandle;
 			out << YAML::Key << "UseColor" << YAML::Value << uipc.UseColor;
 			out << YAML::Key << "Visible" << YAML::Value << uipc.Visible;
 			out << YAML::Key << "ConnectToParent" << YAML::Value << uipc.ConnectToParent;
-			out << YAML::Key << "TextureIndex" << YAML::Value << uipc.TextureIndex;
 
 			out << YAML::Key << "ConnectorColor" << YAML::Value << uipc.Connector.Color;
 			out << YAML::Key << "ConnectorThickness" << YAML::Value << uipc.Connector.Thickness;
@@ -475,10 +477,8 @@ namespace Toast {
 			out << YAML::Key << "UseColor" << YAML::Value << ubc.UseColor;
 			out << YAML::Key << "Color" << YAML::Value << ubc.Color;
 			out << YAML::Key << "ClickColor" << YAML::Value << ubc.ClickColor;
-			out << YAML::Key << "AssetPath" << YAML::Value << ubc.TextureFilepath;
-			out << YAML::Key << "TextureIndex" << YAML::Value << ubc.TextureIndex;
-			out << YAML::Key << "ClickAssetPath" << YAML::Value << ubc.ClickTextureFilepath;
-			out << YAML::Key << "ClickTextureIndex" << YAML::Value << ubc.ClickTextureIndex;
+			out << YAML::Key << "TextureAssetHandle" << YAML::Value << ubc.TextureHandle;
+			out << YAML::Key << "ClickTextureAssetHandle" << YAML::Value << ubc.ClickTextureHandle;
 
 			out << YAML::EndMap; // UIButtonComponent
 		}
@@ -517,7 +517,7 @@ namespace Toast {
 			out << YAML::Key << "BurstDecay" << YAML::Value << pc.BurstDecay;
 			out << YAML::Key << "Size" << YAML::Value << pc.Size;
 			out << YAML::Key << "SpawnFunction" << YAML::Value << static_cast<uint16_t>(pc.SpawnFunction);
-			out << YAML::Key << "AssetPath" << YAML::Value << pc.MaskTexture->GetFilePath();
+			out << YAML::Key << "MaskTextureAssetHandle" << YAML::Value << pc.MaskTextureHandle;
 			out << YAML::EndMap; // ParticlesComponent
 		}
 
@@ -701,7 +701,7 @@ namespace Toast {
 		out << YAML::Key << "MaxHeight" << YAML::Value << scenePlanet->mMaxHeight;
 		out << YAML::Key << "MinHeight" << YAML::Value << scenePlanet->mMinHeight;
 		out << YAML::Key << "MeshMode" << YAML::Value << static_cast<uint32_t>(scenePlanet->mMeshMode);
-		out << YAML::Key << "AlbedoMap" << YAML::Value << scenePlanet->mAlbedoTexture->GetFilePath();
+		out << YAML::Key << "AlbedoTextureHandle" << YAML::Value << scenePlanet->mAlbedoTextureHandle;
 		out << YAML::Key << "UseAlbedoMap" << YAML::Value << scenePlanet->mUseAlbedoMap;
 		out << YAML::Key << "AlbedoColor" << YAML::Value << scenePlanet->mAlbedoColor;
 		out << YAML::Key << "Roughness" << YAML::Value << scenePlanet->mRoughness;
@@ -709,9 +709,9 @@ namespace Toast {
 		out << YAML::Key << "SlopeSensitivity" << YAML::Value << scenePlanet->mSlopeSensitivity;
 		out << YAML::Key << "SlopeThreshold" << YAML::Value << scenePlanet->mSlopeThreshold;
 		out << YAML::Key << "SlopeDarkening" << YAML::Value << scenePlanet->mSlopeDarkening;
-		out << YAML::Key << "HeightMapAssetPath" << YAML::Value << scenePlanet->mBaseHeightMapTexture->GetFilePath();
+		out << YAML::Key << "HeightMapAssetHandle" << YAML::Value << scenePlanet->mBaseHeightMapHandle;
 		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet->mMetalness;
-		out << YAML::Key << "StarFieldAssetPath" << YAML::Value << scenePlanet->mStarFieldTexture2D->GetFilePath();
+		out << YAML::Key << "StarFieldAssetHandle" << YAML::Value << scenePlanet->mStarFieldTexture2DHandle;
 		out << YAML::Key << "AtmosphereActivated" << YAML::Value << scenePlanet->mAtmosphereActivated;
 		out << YAML::Key << "AtmosphereHeight" << YAML::Value << scenePlanet->mAtmosphere.AtmosphereHeight;
 		out << YAML::Key << "RayleighScaleHeight" << YAML::Value << scenePlanet->mAtmosphere.RayleighScaleHeight;
@@ -1018,6 +1018,11 @@ namespace Toast {
 
 		Planet* scenePlanet = mScene->GetPlanet().get();
 
+
+		//std::string absPath = planet["HeightMapAssetPath"].as<std::string>();
+		//scenePlanet->mBaseHeightMapHandle = AssetManager::ImportExternalAsset(
+		//	absPath, "textures");
+
 		auto planet = data["Planet"];
 		scenePlanet->mTranslation = planet["Translation"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mRotationEulerAngles = planet["Rotation"].as<DirectX::XMFLOAT3>();
@@ -1027,7 +1032,7 @@ namespace Toast {
 		scenePlanet->mMaxHeight = planet["MaxHeight"].as<double>();
 		scenePlanet->mMinHeight = planet["MinHeight"].as<double>();
 		scenePlanet->mMeshMode = static_cast<PlanetMeshMode>(planet["MeshMode"].as<uint32_t>());
-		scenePlanet->mAlbedoTexture = TextureLibrary::LoadTexture2D(planet["AlbedoMap"].as<std::string>(), false);
+		scenePlanet->mAlbedoTextureHandle = planet["AlbedoTextureHandle"].as<AssetHandle>();
 		scenePlanet->mUseAlbedoMap = planet["UseAlbedoMap"].as<float>();
 		scenePlanet->mAlbedoColor = planet["AlbedoColor"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mRoughness = planet["Roughness"].as<float>();
@@ -1035,14 +1040,13 @@ namespace Toast {
 		scenePlanet->mSlopeSensitivity = planet["SlopeSensitivity"].as<float>();
 		scenePlanet->mSlopeThreshold = planet["SlopeThreshold"].as<float>();
 		scenePlanet->mSlopeDarkening = planet["SlopeDarkening"].as<float>();
-		scenePlanet->mBaseHeightMapTexture = TextureLibrary::LoadTexture2D(planet["HeightMapAssetPath"].as<std::string>(), false);
-		scenePlanet->mBaseHeightMapTextureCube = scenePlanet->CreateHeightMapCube(scenePlanet->mBaseHeightMapTexture);
-		scenePlanet->mStarFieldTexture2D = TextureLibrary::LoadTexture2D(planet["StarFieldAssetPath"].as<std::string>());
+		scenePlanet->mBaseHeightMapHandle = planet["HeightMapAssetHandle"].as<AssetHandle>();
+		scenePlanet->mBaseHeightMapTextureCube = scenePlanet->CreateHeightMapCube(AssetManager::GetAsset<Texture2D>(scenePlanet->mBaseHeightMapHandle).get());
+		scenePlanet->mStarFieldTexture2DHandle = planet["StarFieldAssetHandle"].as<AssetHandle>();
 		scenePlanet->mAtmosphereActivated = planet["AtmosphereActivated"].as<bool>();
 		scenePlanet->mAtmosphere.AtmosphereHeight = planet["AtmosphereHeight"].as<float>();
 		scenePlanet->mAtmosphere.RayleighScaleHeight = planet["RayleighScaleHeight"].as<float>();
 		scenePlanet->mAtmosphere.RayleighExp10 = planet["RayleighExp10"].as<int>();
-
 		scenePlanet->mAtmosphere.RayleighScattering = planet["RayleighScattering"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mAtmosphere.MieScaleHeight = planet["MieScaleHeight"].as<float>();
 		scenePlanet->mAtmosphere.MieScatteringExp10 = planet["MieScatteringExp10"].as<int>();
@@ -1071,7 +1075,7 @@ namespace Toast {
 
 		scenePlanet->mNormalMapTextureCube = scenePlanet->CreateNormalMapCube(scenePlanet->mBaseHeightMapTextureCube.get());
 		if(scenePlanet->mUseAlbedoMap > 0.0f)
-			scenePlanet->mAlbedoMapTextureCube = scenePlanet->CreateAlbedoCube(scenePlanet->mAlbedoTexture);
+			scenePlanet->mAlbedoMapTextureCube = scenePlanet->CreateAlbedoCube(AssetManager::GetAsset<Texture2D>(scenePlanet->mAlbedoTextureHandle).get());
 
 		scenePlanet->mHeightDetails.clear();
 
@@ -1442,16 +1446,15 @@ namespace Toast {
 					uipc.UseColor = uiPanelComponent["UseColor"].as<bool>();
 					uipc.Visible = uiPanelComponent["Visible"].as<bool>();
 					uipc.ConnectToParent = uiPanelComponent["ConnectToParent"].as<bool>();
-					uipc.TextureIndex = uiPanelComponent["TextureIndex"].as<int>();
 
 					uipc.Connector.Color = uiPanelComponent["ConnectorColor"].as<DirectX::XMFLOAT4>();
 					uipc.Connector.Thickness = uiPanelComponent["ConnectorThickness"].as<float>();
 					uipc.Connector.ChildOffset = uiPanelComponent["ConnectorChildOffset"].as<DirectX::XMFLOAT2>();
 					uipc.Connector.ParentOffset = uiPanelComponent["ConnectorParentOffset"].as<DirectX::XMFLOAT2>();
 
-					uipc.TextureFilepath = uiPanelComponent["AssetPath"].as<std::string>();
-					if (!uipc.TextureFilepath.empty())
-						TextureLibrary::LoadTexture2D(uipc.TextureFilepath);
+					uipc.TextureHandle = uiPanelComponent["TextureAssetHandle"].as<AssetHandle>();
+					uipc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(uipc.TextureHandle);
+					TOAST_CORE_CRITICAL("TEXTURE INDEX FOR %llu is %d", uipc.TextureHandle, uipc.TextureIndex);
 				}
 
 				auto uiButtonComponent = entity["UIButtonComponent"];
@@ -1464,25 +1467,11 @@ namespace Toast {
 					ubc.ClickColor = uiButtonComponent["ClickColor"].as<DirectX::XMFLOAT4>();
 					ubc.CornerRadius = uiButtonComponent["CornerRadius"].as<float>();
 
-					if (uiButtonComponent["TextureIndex"])
-						ubc.TextureIndex = uiButtonComponent["TextureIndex"].as<int>();
+					ubc.TextureHandle = uiButtonComponent["TextureAssetHandle"].as<AssetHandle>();
+					ubc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.TextureHandle);
 
-					if (uiButtonComponent["AssetPath"]) 
-					{
-						ubc.TextureFilepath = uiButtonComponent["AssetPath"].as<std::string>();
-						if (!ubc.TextureFilepath.empty())
-							TextureLibrary::LoadTexture2D(ubc.TextureFilepath);
-					}
-
-					if (uiButtonComponent["ClickTextureIndex"])
-						ubc.ClickTextureIndex = uiButtonComponent["ClickTextureIndex"].as<int>();
-
-					if (uiButtonComponent["ClickAssetPath"])
-					{
-						ubc.ClickTextureFilepath = uiButtonComponent["ClickAssetPath"].as<std::string>();
-						if (!ubc.ClickTextureFilepath.empty())
-							TextureLibrary::LoadTexture2D(ubc.ClickTextureFilepath);
-					}
+					ubc.ClickTextureHandle = uiButtonComponent["ClickTextureAssetHandle"].as<AssetHandle>();
+					ubc.ClickTextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.ClickTextureHandle);
 				}
 
 				auto uiTextComponent = entity["UITextComponent"];
@@ -1519,7 +1508,7 @@ namespace Toast {
 					pc.BurstDecay = particlesComponent["BurstDecay"].as<float>();
 					pc.Size = particlesComponent["Size"].as<float>();
 
-					pc.MaskTexture = TextureLibrary::LoadTexture2D(particlesComponent["AssetPath"].as<std::string>());
+					pc.MaskTextureHandle = particlesComponent["MaskTextureAssetHandle"].as<AssetHandle>();
 				}
 			}
 		}
@@ -1532,9 +1521,9 @@ namespace Toast {
 
 			scenePlanet->InitializeLevels();
 
-			if (scenePlanet->mStarFieldTexture2D)
+			if (scenePlanet->mStarFieldTexture2DHandle != AssetHandle(0))
 			{
-				scenePlanet->mStarFieldTextureCube = Renderer::CreateStarFieldTexture(scenePlanet->mStarFieldTexture2D);
+				scenePlanet->mStarFieldTextureCube = Renderer::CreateStarFieldTexture(AssetManager::GetAsset<Texture2D>(scenePlanet->mStarFieldTexture2DHandle).get());
 
 				scenePlanet->mStarFieldTextureCube->GenerateMips();
 			}

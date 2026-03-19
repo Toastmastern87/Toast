@@ -3,6 +3,8 @@
 
 #include "Toast/Core/Input.h"
 
+#include "Toast/Assets/AssetManager.h"
+
 #include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/UI/Font.h"
 
@@ -41,6 +43,8 @@ namespace Toast {
 
 		Font::StaticInit();
 
+		AssetManager::Init();
+
 		mImGuiLayer = new ImGuiLayer();
 		PushOverlay(mImGuiLayer);
 	}
@@ -49,7 +53,11 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		AssetManager::SerializeRegistry();
+
 		mIsShuttingDown = true;
+
+		AssetManager::Shutdown();
 
 		ScriptEngine::Shutdown();
 

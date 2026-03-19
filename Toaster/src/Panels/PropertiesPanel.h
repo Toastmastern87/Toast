@@ -19,17 +19,32 @@ namespace Toast {
 		~PropertiesPanel() = default;
 
 		void SetContext(const Entity& context, SceneHierarchyPanel* sceneHierarchyPanel, WindowsWindow* window);
+		void SetProjectPath(const std::filesystem::path& projectPath);
 
 		void OnImGuiRender(std::string& activeDragArea);
 	private:
 		void DrawComponents(Entity entity, std::string& activeDragArea);
+
+		void DrawImportTexturePopup();
+		void RequestTextureImport(const std::filesystem::path& path, bool defaultSRGB, std::function<void(AssetHandle)> onComplete);
+		void RequestUITextureImport(const std::filesystem::path& path, bool defaultSRGB, std::function<void(AssetHandle)> onComplete);
 	private:
 		Entity mContext;
 		Scene* mScene;
+		std::filesystem::path mAssetRoot;
 
 		WindowsWindow* mWindow;
 
 		SceneHierarchyPanel* mSceneHierarchyPanel;
+
+		// Import popup
+		std::filesystem::path mPendingImportPath;
+		std::filesystem::path mPendingExportPath;
+		bool mPendingImportSRGB = true;
+		bool mPendingImportOpen = false;
+
+		// Callback to run after import completes — different for each texture slot
+		std::function<void(AssetHandle)> mOnImportComplete;
 	};
 
 }

@@ -27,3 +27,4 @@
 #define ICON_TOASTER_FILE_TEXT			u8"\uf15c"
 #define ICON_TOASTER_SNOWFLAKE			u8"\uf2dc"
 #define ICON_TOASTER_FOLDER_OPEN		u8"\uf07c"
+#define ICON_TOASTER_ROCKET				u8"\uF135"

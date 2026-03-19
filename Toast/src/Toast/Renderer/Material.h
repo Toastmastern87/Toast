@@ -34,18 +34,18 @@ namespace Toast {
 
 		void SetUseAlbedo(const bool useAlbedo) { mPBRParameters.AlbedoTexToggle = useAlbedo ? 1 : 0; }
 		bool GetUseAlbedo() const { return mPBRParameters.AlbedoTexToggle ? true : false; }
-		void SetAlbedoTexture(Texture2D* texture) { mAlbedoTexture = texture; }
-		Texture2D* GetAlbedoTexture() const { return mAlbedoTexture; }
+		void SetAlbedolAssetHandle(AssetHandle handle) { mAlbedoTextureHandle = handle; }
+		AssetHandle GetAlbedoAssetHandle() const { return mAlbedoTextureHandle; }
 
 		void SetUseNormal(const bool useNormal) { mPBRParameters.NormalTexToggle = useNormal ? 1 : 0;	}
 		bool GetUseNormal() const { return mPBRParameters.NormalTexToggle ? true : false;	}
-		void SetNormalTexture(Texture2D* texture) { mNormalTexture = texture; }
-		Texture2D* GetNormalTexture() const { return mNormalTexture; }
+		void SetNormalAssetHandle(AssetHandle handle) { mNormalTextureHandle = handle; }
+		AssetHandle GetNormalAssetHandle() const { return mNormalTextureHandle; }
 
 		void SetUseMetalRough(const bool useMetalRough) { mPBRParameters.MetalRoughTexToggle = useMetalRough ? 1 : 0; }
 		bool GetUseMetalRough() const { return mPBRParameters.MetalRoughTexToggle ? true : false; }
-		void SetMetalRoughTexture(Texture2D* texture) { mMetalRoughTexture = texture; }
-		Texture2D* GetMetalRoughTexture() const { return mMetalRoughTexture; }
+		void SetMetalRoughAssetHandle(AssetHandle handle) { mMetalRoughTextureHandle = handle; }
+		AssetHandle GetMetalRoughAssetHandle() const { return mMetalRoughTextureHandle; }
 
 		void SetAlbedo(const DirectX::XMFLOAT4 albedo) { mPBRParameters.Albedo = albedo; }
 		DirectX::XMFLOAT4& GetAlbedo() { return mPBRParameters.Albedo; }
@@ -63,9 +63,9 @@ namespace Toast {
 
 		PBRParameters mPBRParameters = {};
 
-		Texture2D* mAlbedoTexture;
-		Texture2D* mNormalTexture;
-		Texture2D* mMetalRoughTexture;
+		AssetHandle mAlbedoTextureHandle;
+		AssetHandle mNormalTextureHandle;
+		AssetHandle mMetalRoughTextureHandle;
 	};
 
 	class MaterialLibrary

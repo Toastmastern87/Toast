@@ -1,6 +1,6 @@
 Scene: Mars
 EditorCamera:
-  Position: [-203.468033, 189.827408, -393.047211]
+  Position: [-2.35266685, 78.745697, -96.8619537]
 Settings:
   Wireframe: 0
   Grid: false
@@ -63,7 +63,7 @@ Planet:
   MaxHeight: 21900
   MinHeight: -8200
   MeshMode: 0
-  AlbedoMap: C:\dev\Toast\Toaster\assets\textures\MarsAlbedo.png
+  AlbedoTextureHandle: 7274978667343951183
   UseAlbedoMap: 1
   AlbedoColor: [0.468354404, 0.26033029, 0.207498789]
   Roughness: 1
@@ -71,9 +71,9 @@ Planet:
   SlopeSensitivity: 19.2999992
   SlopeThreshold: 0.400000006
   SlopeDarkening: 0.600000024
-  HeightMapAssetPath: C:\dev\Toast\Toaster\assets\textures\Mars_MOLA_8k_raw.tif
+  HeightMapAssetHandle: 2502867941750724029
   Metalness: 1
-  StarFieldAssetPath: C:\dev\Toast\Toaster\assets\textures\StarField16k.tif
+  StarFieldAssetHandle: 5222783482869039021
   AtmosphereActivated: true
   AtmosphereHeight: 60000
   RayleighScaleHeight: 11000
@@ -190,7 +190,7 @@ Entities:
         NearClip: 0.100000001
         FarClip: 2000000
         OrthographicWidth: 2651
-        OrthographicHeight: 1120
+        OrthographicHeight: 1123
       Primary: true
       FixedAspectRatio: false
     ScriptComponent:
@@ -260,10 +260,8 @@ Entities:
       UseColor: false
       Color: [1, 1, 1, 1]
       ClickColor: [1, 1, 1, 1]
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\06_AllStarshipsButton.png
-      TextureIndex: 5
-      ClickAssetPath: C:\dev\Toast\Toaster\assets\textures\UI\12_AllStarshipsButtonClicked.png
-      ClickTextureIndex: 11
+      TextureAssetHandle: 12754749742457056117
+      ClickTextureAssetHandle: 15448905917135323940
   - Entity: 2584980814812506026
     TagComponent:
       Tag: AddStarshipButton
@@ -283,10 +281,8 @@ Entities:
       UseColor: false
       Color: [1, 1, 1, 1]
       ClickColor: [1, 1, 1, 1]
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\05_AddStarshipButton.png
-      TextureIndex: 4
-      ClickAssetPath: C:\dev\Toast\Toaster\assets\textures\UI\10_AddStarshipButtonClicked.png
-      ClickTextureIndex: 9
+      TextureAssetHandle: 5778959045403344017
+      ClickTextureAssetHandle: 10618831687704719499
   - Entity: 11451148643943162086
     TagComponent:
       Tag: MText
@@ -340,10 +336,8 @@ Entities:
       UseColor: true
       Color: [0, 0, 0, 1]
       ClickColor: [0, 0, 0, 1]
-      AssetPath: ""
-      TextureIndex: 0
-      ClickAssetPath: ""
-      ClickTextureIndex: 0
+      TextureAssetHandle: 0
+      ClickTextureAssetHandle: 0
   - Entity: 11806276604423328658
     TagComponent:
       Tag: TimeScale2
@@ -363,10 +357,8 @@ Entities:
       UseColor: true
       Color: [1, 1, 1, 1]
       ClickColor: [1, 1, 1, 1]
-      AssetPath: ""
-      TextureIndex: 0
-      ClickAssetPath: ""
-      ClickTextureIndex: 0
+      TextureAssetHandle: 0
+      ClickTextureAssetHandle: 0
   - Entity: 2709097365577216560
     TagComponent:
       Tag: TimeScale3
@@ -386,10 +378,8 @@ Entities:
       UseColor: true
       Color: [1, 1, 1, 1]
       ClickColor: [1, 1, 1, 1]
-      AssetPath: ""
-      TextureIndex: 0
-      ClickAssetPath: ""
-      ClickTextureIndex: 0
+      TextureAssetHandle: 0
+      ClickTextureAssetHandle: 0
   - Entity: 4566870064654448293
     TagComponent:
       Tag: TimeScale4
@@ -409,10 +399,8 @@ Entities:
       UseColor: true
       Color: [1, 1, 1, 1]
       ClickColor: [1, 1, 1, 1]
-      AssetPath: ""
-      TextureIndex: 0
-      ClickAssetPath: ""
-      ClickTextureIndex: 0
+      TextureAssetHandle: 0
+      ClickTextureAssetHandle: 0
   - Entity: 9291025796538517788
     TagComponent:
       Tag: TimeText
@@ -470,11 +458,10 @@ Entities:
     UIPanelComponent:
       Color: [0.0413039252, 0.0980315134, 0.489451468, 1]
       CornerRadius: 0
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\02_UIPanelV3.png
+      TextureAssetHandle: 4857095533691141474
       UseColor: false
       Visible: true
       ConnectToParent: false
-      TextureIndex: 1
       ConnectorColor: [0, 0, 0, 0]
       ConnectorThickness: 1
       ConnectorChildOffset: [0, 0]
@@ -638,10 +625,8 @@ Entities:
       UseColor: false
       Color: [1, 1, 1, 1]
       ClickColor: [1, 1, 1, 1]
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\04_CloseButton.png
-      TextureIndex: 3
-      ClickAssetPath: C:\dev\Toast\Toaster\assets\textures\UI\08_ClickCloseButton.png
-      ClickTextureIndex: 7
+      TextureAssetHandle: 3469351507733000060
+      ClickTextureAssetHandle: 16967429399523444614
   - Entity: 11909659177328583136
     TagComponent:
       Tag: AllStarshipText
@@ -675,11 +660,10 @@ Entities:
     UIPanelComponent:
       Color: [1, 1, 1, 1]
       CornerRadius: 0
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\09_UIAllStarshipPopupPanel.png
+      TextureAssetHandle: 2936607744665463167
       UseColor: false
       Visible: false
       ConnectToParent: false
-      TextureIndex: 8
       ConnectorColor: [0, 0, 0, 0]
       ConnectorThickness: 1
       ConnectorChildOffset: [0, 0]
@@ -703,11 +687,10 @@ Entities:
     UIPanelComponent:
       Color: [1, 1, 1, 1]
       CornerRadius: 0
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\01_UIMoneyPanel.png
+      TextureAssetHandle: 15018272637222093420
       UseColor: false
       Visible: true
       ConnectToParent: false
-      TextureIndex: 0
       ConnectorColor: [0, 0, 0, 0]
       ConnectorThickness: 1
       ConnectorChildOffset: [0, 0]
@@ -729,10 +712,8 @@ Entities:
       UseColor: false
       Color: [1, 1, 1, 1]
       ClickColor: [1, 1, 1, 1]
-      AssetPath: C:\dev\Toast\Toaster\assets\textures\UI\11_MapButton.png
-      TextureIndex: 10
-      ClickAssetPath: C:\dev\Toast\Toaster\assets\textures\UI\13_MapButtonClicked.png
-      ClickTextureIndex: 12
+      TextureAssetHandle: 14791801764285838026
+      ClickTextureAssetHandle: 13987780987327217849
   - Entity: 11328469722289647653
     TagComponent:
       Tag: Starship Version 4

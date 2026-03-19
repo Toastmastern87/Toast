@@ -5,6 +5,6 @@ Roughness: 0
 UseAlbedoMap: true
 UseNormalMap: true
 UseMetalRoughMap: true
-AlbedoAssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 4.0\Stainless_Steel_Hull_basecolor.png
-NormalAssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 4.0\StainlessSteelTest_normal.png
-MetalRoughAssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 4.0\Stainless_Steel_Hull_roughness.png
+AlbedoAssetHandle: 10378684347057509115
+NormalAssetHandle: 11157927838621306737
+MetalRoughAssetHandle: 7799747929118295767

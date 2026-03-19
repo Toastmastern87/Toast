@@ -34,9 +34,6 @@
 
 namespace Toast {
 
-	// Once Toast Engine have "projects", change this
-	extern const std::filesystem::path gAssetPath;
-
 	static uint32_t sCounter = 0;
 	static char sIDBuffer[16];
 
@@ -130,6 +127,92 @@ namespace Toast {
 		mWindow = window;
 	}
 
+	void PropertiesPanel::SetProjectPath(const std::filesystem::path& projectPath)
+	{
+		mAssetRoot = projectPath / "Assets";
+	}
+
+	void PropertiesPanel::RequestTextureImport(const std::filesystem::path& path, bool defaultSRGB, std::function<void(AssetHandle)> onComplete)
+	{
+		// Check if this file is already registered — no need for the popup
+		auto assetDir = AssetManager::GetAssetDirectory();
+		auto relativePath = std::filesystem::relative(path, assetDir);
+		AssetHandle existing = AssetManager::GetHandleFromPath(relativePath);
+
+		if (existing != AssetHandle(0))
+		{
+			if (onComplete)
+				onComplete(existing);
+			return;
+		}
+
+		mPendingImportPath = path;
+		mPendingExportPath = "Textures";
+		mPendingImportSRGB = defaultSRGB;
+		mOnImportComplete = onComplete;
+		mPendingImportOpen = true;
+	}
+
+	void PropertiesPanel::RequestUITextureImport(const std::filesystem::path& path, bool defaultSRGB, std::function<void(AssetHandle)> onComplete)
+	{
+		// Check if this file is already registered — no need for the popup
+		auto assetDir = AssetManager::GetAssetDirectory();
+		auto relativePath = std::filesystem::relative(path, assetDir);
+		AssetHandle existing = AssetManager::GetHandleFromPath(relativePath);
+
+		if (existing != AssetHandle(0))
+		{
+			if (onComplete)
+				onComplete(existing);
+			return;
+		}
+
+		mPendingImportPath = path;
+		mPendingExportPath = "Textures\\UI";
+		mPendingImportSRGB = defaultSRGB;
+		mOnImportComplete = onComplete;
+		mPendingImportOpen = true;
+	}
+
+	void PropertiesPanel::DrawImportTexturePopup()
+	{
+		if (!mPendingImportOpen)
+			return;
+
+		ImGui::OpenPopup("Import Texture Settings");
+
+		if (ImGui::BeginPopupModal("Import Texture Settings", &mPendingImportOpen,
+			ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			ImGui::Text("Importing: %s", mPendingImportPath.filename().string().c_str());
+			ImGui::Checkbox("sRGB (color data)", &mPendingImportSRGB);
+
+			if (ImGui::Button("Import"))
+			{
+				AssetHandle handle = AssetManager::ImportExternalAsset(mPendingImportPath, mPendingExportPath);
+
+				AssetEntry* entry = AssetManager::GetEntry(handle);
+				if (entry)
+					entry->Texture2DSettings.ForceSRGB = mPendingImportSRGB;
+
+				if (mOnImportComplete)
+					mOnImportComplete(handle);
+
+				mPendingImportOpen = false;
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel"))
+			{
+				mPendingImportOpen = false;
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+	}
+
 	void PropertiesPanel::OnImGuiRender(std::string& activeDragArea)
 	{
 		ImGui::Begin(ICON_TOASTER_WRENCH" Properties");
@@ -141,10 +224,12 @@ namespace Toast {
 			DrawComponents(mContext, activeDragArea);
 
 		ImGui::End();
+
+		DrawImportTexturePopup();
 	}
 
 	template<typename T, typename UIFunction>
-	static void DrawComponent(const std::string& name, Entity entity, Scene* scene, std::string& activeDragArea, WindowsWindow* window, UIFunction uiFunction)
+	static void DrawComponent(const std::string& name, Entity entity, Scene* scene, std::string& activeDragArea, WindowsWindow* window, std::filesystem::path& assetRoot, UIFunction uiFunction)
 	{
 		const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
 
@@ -176,7 +261,7 @@ namespace Toast {
 
 			if (open)
 			{
-				uiFunction(component, entity, scene, window, activeDragArea);
+				uiFunction(component, entity, scene, window, activeDragArea, assetRoot);
 				ImGui::TreePop();
 			}
 
@@ -323,7 +408,7 @@ namespace Toast {
 
 		ImGui::TextDisabled("UUID: %llu", entity.GetComponent<IDComponent>().ID);
 
-		DrawComponent<TransformComponent>(ICON_TOASTER_ARROWS_ALT" Transform", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
+		DrawComponent<TransformComponent>(ICON_TOASTER_ARROWS_ALT" Transform", entity, mScene, activeDragArea, mWindow, mAssetRoot, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -371,7 +456,7 @@ namespace Toast {
 				component.IsDirty = updateTransform || updateRotTransform;
 			});
 
-		DrawComponent<MeshComponent>(ICON_TOASTER_CUBE" Mesh", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
+		DrawComponent<MeshComponent>(ICON_TOASTER_CUBE" Mesh", entity, mScene, activeDragArea, mWindow, mAssetRoot, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -583,7 +668,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<CameraComponent>(ICON_TOASTER_CAMERA" Camera", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
+		DrawComponent<CameraComponent>(ICON_TOASTER_CAMERA" Camera", entity, mScene, activeDragArea, mWindow, mAssetRoot, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -656,7 +741,7 @@ namespace Toast {
 				ImGui::Checkbox("Fixed Aspect Ratio", &component.FixedAspectRatio);
 			});
 
-		DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
+		DrawComponent<SpriteRendererComponent>("Sprite Renderer", entity, mScene, activeDragArea, mWindow, mAssetRoot, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -675,7 +760,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<DirectionalLightComponent>(ICON_TOASTER_SUN_O" Directional Light", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
+		DrawComponent<DirectionalLightComponent>(ICON_TOASTER_SUN_O" Directional Light", entity, mScene, activeDragArea, mWindow, mAssetRoot, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -699,7 +784,7 @@ namespace Toast {
 				DrawFloatControl("Sun Light Distance", component.SunLightDistance, window, activeDragArea, 90.0f, 0.0f, 10000, 1.0f);
 			});
 
-		DrawComponent<ScriptComponent>(ICON_TOASTER_CODE" Script", entity, mScene, activeDragArea, mWindow, [=](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
+		DrawComponent<ScriptComponent>(ICON_TOASTER_CODE" Script", entity, mScene, activeDragArea, mWindow, mAssetRoot, [=](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				bool scriptClassExists = ScriptEngine::EntityClassExists(component.ClassName);
 				
@@ -782,7 +867,7 @@ namespace Toast {
 					ImGui::PopStyleColor();
 			});
 
-		DrawComponent<RigidBodyComponent>(ICON_TOASTER_HAND_ROCK_O" Rigid Body", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
+		DrawComponent<RigidBodyComponent>(ICON_TOASTER_HAND_ROCK_O" Rigid Body", entity, mScene, activeDragArea, mWindow, mAssetRoot, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				float temp;
 
@@ -832,7 +917,7 @@ namespace Toast {
 					component.AngularDamping = static_cast<double>(temp);
 			});
 
-		DrawComponent<SphereColliderComponent>(ICON_TOASTER_CIRCLE_O" Sphere Collider", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
+		DrawComponent<SphereColliderComponent>(ICON_TOASTER_CIRCLE_O" Sphere Collider", entity, mScene, activeDragArea, mWindow, mAssetRoot, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				float temp;
 
@@ -851,7 +936,7 @@ namespace Toast {
 				}
 			});
 
-		DrawComponent<BoxColliderComponent>(ICON_TOASTER_CUBE" Box Collider", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
+		DrawComponent<BoxColliderComponent>(ICON_TOASTER_CUBE" Box Collider", entity, mScene, activeDragArea, mWindow, mAssetRoot, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -876,7 +961,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<UIPanelComponent>(ICON_TOASTER_SQUARE_O" UI Panel", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
+		DrawComponent<UIPanelComponent>(ICON_TOASTER_SQUARE_O" UI Panel", entity, mScene, activeDragArea, mWindow, mAssetRoot, [this](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -888,12 +973,16 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
 
-				std::optional<std::string> textureFilepathOpt = component.TextureFilepath;
-				const std::string& textureFilepath = (textureFilepathOpt && !textureFilepathOpt->empty()) ?	*textureFilepathOpt : "assets/textures/Checkerboard.png";
+				Texture2D* displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 
-				void* textureID = (void*)(uintptr_t)TextureLibrary::Get(textureFilepath)->GetID();
+				if (component.TextureHandle != AssetHandle(0))
+				{
+					auto tex = AssetManager::GetAsset<Texture2D>(component.TextureHandle);
+					if (tex)
+						displayTexture = tex.get();
+				}
 
-				ImGui::Image(textureID, ImVec2(64.0f, 64.0f));
+				ImGui::Image(displayTexture->GetID(), { 64.0f, 64.0f });
 
 				std::optional<std::string> filepath;
 
@@ -902,16 +991,18 @@ namespace Toast {
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 					{
 						const wchar_t* path = (const wchar_t*)payload->Data;
-						auto completePath = std::filesystem::path(gAssetPath) / path;
+						auto completePath = assetRoot / path;
 						filepath = completePath.string();
 
 						if (filepath)
 						{
-							component.TextureFilepath = *filepath;
-							TextureLibrary::LoadTexture2D(*filepath);
-
-							uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
-							component.TextureIndex = sliceIndex;
+							RequestUITextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
+								{
+									auto& comp = entity.GetComponent<UIPanelComponent>();
+									uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(handle);
+									comp.TextureHandle = handle;
+									comp.TextureIndex = sliceIndex;
+								});
 						}
 					}
 
@@ -920,16 +1011,18 @@ namespace Toast {
 
 				if (ImGui::IsItemClicked())
 				{
-					filepath = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\UI\\");
+					auto texturePath = mAssetRoot / "Textures" / "UI";
+					filepath = FileDialogs::OpenFile("", texturePath.string().c_str());
 
 					if (filepath)
 					{
-						component.TextureFilepath = *filepath;
-						TextureLibrary::LoadTexture2D(*filepath);
-						std::string temp = *filepath;
-						
-						uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
-						component.TextureIndex = sliceIndex;
+						RequestUITextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
+							{
+								auto& comp = entity.GetComponent<UIPanelComponent>();
+								uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(handle);
+								comp.TextureHandle = handle;
+								comp.TextureIndex = sliceIndex;
+							});
 					}
 				}
 				ImGui::TableSetColumnIndex(1);
@@ -1009,7 +1102,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<UITextComponent>(ICON_TOASTER_FILE_TEXT" UI Text", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
+		DrawComponent<UITextComponent>(ICON_TOASTER_FILE_TEXT" UI Text", entity, mScene, activeDragArea, mWindow, mAssetRoot, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -1047,7 +1140,7 @@ namespace Toast {
 					{
 						component.Font = CreateRef<Font>(*filepath);
 
-						uint32_t sliceIndex = Renderer2D::GetRendererData()->FontsTextureArray->GetSliceIndexForTexture(*filepath);
+						uint32_t sliceIndex = Renderer2D::GetRendererData()->FontsTextureArray->GetSliceIndexForTextureOLD(*filepath);
 						component.TextureIndex = sliceIndex;
 					}
 				}
@@ -1065,7 +1158,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<UIButtonComponent>(ICON_TOASTER_SQUARE_O" UI Button", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
+		DrawComponent<UIButtonComponent>(ICON_TOASTER_SQUARE_O" UI Button", entity, mScene, activeDragArea, mWindow, mAssetRoot, [this](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -1081,14 +1174,16 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
 
-				std::optional<std::string> textureFilepathOpt = component.TextureFilepath;
-				const std::string& textureFilepath = (textureFilepathOpt && !textureFilepathOpt->empty()) ?
-					*textureFilepathOpt :
-					"assets/textures/Checkerboard.png";
+				Texture2D* displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 
-				void* textureID = (void*)(uintptr_t)TextureLibrary::Get(textureFilepath)->GetID();
+				if (component.TextureHandle != AssetHandle(0))
+				{
+					auto tex = AssetManager::GetAsset<Texture2D>(component.TextureHandle);
+					if (tex)
+						displayTexture = tex.get();
+				}
 
-				ImGui::Image(textureID, ImVec2(64.0f, 64.0f));
+				ImGui::Image(displayTexture->GetID(), { 64.0f, 64.0f });
 
 				std::optional<std::string> filepath;
 
@@ -1097,16 +1192,18 @@ namespace Toast {
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 					{
 						const wchar_t* path = (const wchar_t*)payload->Data;
-						auto completePath = std::filesystem::path(gAssetPath) / path;
+						auto completePath = assetRoot / path;
 						filepath = completePath.string();
 
 						if (filepath)
 						{
-							component.TextureFilepath = *filepath;
-							TextureLibrary::LoadTexture2D(*filepath);
-
-							uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
-							component.TextureIndex = sliceIndex;
+							RequestUITextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
+								{
+									auto& comp = entity.GetComponent<UIButtonComponent>();
+									uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(handle);
+									comp.TextureHandle = handle;
+									comp.TextureIndex = sliceIndex;
+								});
 						}
 					}
 
@@ -1115,16 +1212,18 @@ namespace Toast {
 
 				if (ImGui::IsItemClicked())
 				{
-					filepath = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\UI\\");
+					auto texturePath = mAssetRoot / "Textures" / "UI";
+					filepath = FileDialogs::OpenFile("", texturePath.string().c_str());
 
 					if (filepath)
 					{
-						component.TextureFilepath = *filepath;
-						TextureLibrary::LoadTexture2D(*filepath);
-						std::string temp = *filepath;
-
-						uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
-						component.TextureIndex = sliceIndex;
+						RequestUITextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
+							{
+								auto& comp = entity.GetComponent<UIButtonComponent>();
+								uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(handle);
+								comp.TextureHandle = handle;
+								comp.TextureIndex = sliceIndex;
+							});
 					}
 				}
 
@@ -1148,28 +1247,34 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
 
-				textureFilepathOpt = component.ClickTextureFilepath;
-				const std::string& clickTextureFilepath = (textureFilepathOpt && !textureFilepathOpt->empty()) ? *textureFilepathOpt : "assets/textures/Checkerboard.png";
+				displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 
-				void* clickTextureID = (void*)(uintptr_t)TextureLibrary::Get(clickTextureFilepath)->GetID();
+				if (component.ClickTextureHandle != AssetHandle(0))
+				{
+					auto tex = AssetManager::GetAsset<Texture2D>(component.ClickTextureHandle);
+					if (tex)
+						displayTexture = tex.get();
+				}
 
-				ImGui::Image(clickTextureID, ImVec2(64.0f, 64.0f));
+				ImGui::Image(displayTexture->GetID(), { 64.0f, 64.0f });
 
 				if (ImGui::BeginDragDropTarget())
 				{
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 					{
 						const wchar_t* path = (const wchar_t*)payload->Data;
-						auto completePath = std::filesystem::path(gAssetPath) / path;
+						auto completePath = assetRoot / path;
 						filepath = completePath.string();
 
 						if (filepath)
 						{
-							component.TextureFilepath = *filepath;
-							TextureLibrary::LoadTexture2D(*filepath);
-
-							uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
-							component.ClickTextureIndex = sliceIndex;
+							RequestUITextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
+								{
+									auto& comp = entity.GetComponent<UIButtonComponent>();
+									uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(handle);
+									comp.ClickTextureHandle = handle;
+									comp.ClickTextureIndex = sliceIndex;
+								});
 						}
 					}
 
@@ -1178,16 +1283,18 @@ namespace Toast {
 
 				if (ImGui::IsItemClicked())
 				{
-					filepath = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\UI\\");
+					auto texturePath = mAssetRoot / "Textures" / "UI";
+					filepath = FileDialogs::OpenFile("", texturePath.string().c_str());
 
 					if (filepath)
 					{
-						component.ClickTextureFilepath = *filepath;
-						TextureLibrary::LoadTexture2D(*filepath);
-						std::string temp = *filepath;
-
-						uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForTexture(*filepath);
-						component.ClickTextureIndex = sliceIndex;
+						RequestUITextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
+							{
+								auto& comp = entity.GetComponent<UIButtonComponent>();
+								uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(handle);
+								comp.ClickTextureHandle = handle;
+								comp.ClickTextureIndex = sliceIndex;
+							});
 					}
 				}
 
@@ -1213,7 +1320,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-		DrawComponent<ParticlesComponent>(ICON_TOASTER_SNOWFLAKE" Particles", entity, mScene, activeDragArea, mWindow, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea)
+		DrawComponent<ParticlesComponent>(ICON_TOASTER_SNOWFLAKE" Particles", entity, mScene, activeDragArea, mWindow, mAssetRoot, [this](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
@@ -1297,15 +1404,16 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
 
-				std::optional<std::string> textureFilepathOpt;
-				if(component.MaskTexture)
-					textureFilepathOpt = component.MaskTexture->GetFilePath();
+				Texture2D* displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 
-				const std::string& textureFilepath = (textureFilepathOpt && !textureFilepathOpt->empty()) ?	*textureFilepathOpt : "assets/textures/Checkerboard.png";
+				if (component.MaskTextureHandle != AssetHandle(0))
+				{
+					auto tex = AssetManager::GetAsset<Texture2D>(component.MaskTextureHandle);
+					if (tex)
+						displayTexture = tex.get();
+				}
 
-				void* textureID = (void*)(uintptr_t)TextureLibrary::Get(textureFilepath)->GetID();
-				
-				ImGui::Image(textureID, ImVec2(64.0f, 64.0f));
+				ImGui::Image(displayTexture->GetID(), { 64.0f, 64.0f });
 
 				std::optional<std::string> filepath;
 				if (ImGui::BeginDragDropTarget())
@@ -1313,11 +1421,17 @@ namespace Toast {
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 					{
 						const wchar_t* path = (const wchar_t*)payload->Data;
-						auto completePath = std::filesystem::path(gAssetPath) / path;
+						auto completePath = assetRoot / path;
 						filepath = completePath.string();
 
 						if (filepath)
-							component.MaskTexture = TextureLibrary::LoadTexture2D(*filepath);
+						{ 
+							RequestTextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
+								{
+									auto& comp = entity.GetComponent<ParticlesComponent>();
+									comp.MaskTextureHandle = handle;
+								});
+						}
 					}
 
 					ImGui::EndDragDropTarget();
@@ -1325,10 +1439,17 @@ namespace Toast {
 
 				if (ImGui::IsItemClicked())
 				{
-					filepath = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+					auto texturePath = mAssetRoot / "Textures";
+					filepath = FileDialogs::OpenFile("", texturePath.string().c_str());
 
 					if (filepath)
-						component.MaskTexture = TextureLibrary::LoadTexture2D(*filepath);
+					{
+						RequestTextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
+							{
+								auto& comp = entity.GetComponent<ParticlesComponent>();
+								comp.MaskTextureHandle = handle;
+							});
+					}
 				}
 
 				ImGui::EndTable();

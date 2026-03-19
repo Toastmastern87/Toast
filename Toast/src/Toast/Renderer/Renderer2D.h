@@ -80,6 +80,8 @@ namespace Toast {
 		static void Init();
 		static void Shutdown();
 
+		static void LoadUITextures();
+
 		static void BeginScene(Camera& camera);
 		static void EndScene();
 

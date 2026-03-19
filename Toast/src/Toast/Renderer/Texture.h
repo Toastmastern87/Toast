@@ -9,7 +9,7 @@
 
 #include "Toast/Core/Base.h"
 
-#include "Toast/Project/Asset.h"
+#include "Toast/Assets/Asset.h"
 
 #include <../vendor/directxtex/include/DirectXTex.h>
 
@@ -121,12 +121,17 @@ namespace Toast {
 		virtual const uint32_t GetWidth() const override { return mWidth; }
 		virtual const uint32_t GetHeight() const override { return mHeight; }
 		virtual const std::string GetFilePath() const override { return mFilePath; }
+
 		virtual const DXGI_FORMAT GetFormat() const override { return mFormat; }
+		DXGI_FORMAT GetSRVFormat() const { return mSRVFormat; }
+
 		virtual void* GetID() const override { return (void*)mSRV.Get(); }
 		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const override { return mSRV; }
 		virtual const uint32_t GetMipLevelCount() const override;
 
 		const void* GetInitialData() const { return mImageData.data(); }
+		const std::vector<uint8_t>& GetImageData() const { return mImageData; }
+
 		UINT GetRowPitch() const { return mRowPitch; }
 
 		void SetData(void* data, uint32_t size);
@@ -289,22 +294,37 @@ namespace Toast {
 			return this == &other;
 		}
 
-		void SetSliceMapping(const std::vector<std::string>& texturePaths)
+		void SetSliceMapping(const std::vector<AssetHandle>& handles)
 		{
-			mSliceMapping.clear();
+			mHandleSliceMapping.clear();
+			for (uint32_t i = 0; i < handles.size(); i++)
+				mHandleSliceMapping[handles[i]] = i;
+		}
+
+		uint32_t GetSliceIndexForHandle(AssetHandle handle) const
+		{
+			auto it = mHandleSliceMapping.find(handle);
+			if (it != mHandleSliceMapping.end())
+				return it->second;
+			return 0;
+		}
+
+		void SetSliceMappingOLD(const std::vector<std::string>& texturePaths)
+		{
+			mSliceMappingOLD.clear();
 			for (size_t i = 0; i < texturePaths.size(); i++)
 			{
 				std::string canonicalPath = std::filesystem::canonical(texturePaths[i]).string();
-				mSliceMapping[canonicalPath] = static_cast<uint32_t>(i);
+				mSliceMappingOLD[canonicalPath] = static_cast<uint32_t>(i);
 			}
 		}
 
 		// Retrieve the slice index for a given texture file path.
-		uint32_t GetSliceIndexForTexture(const std::string& texturePath) const
+		uint32_t GetSliceIndexForTextureOLD(const std::string& texturePath) const
 		{
 			std::string canonicalPath = std::filesystem::canonical(texturePath).string();
-			auto it = mSliceMapping.find(canonicalPath);
-			if (it != mSliceMapping.end())
+			auto it = mSliceMappingOLD.find(canonicalPath);
+			if (it != mSliceMappingOLD.end())
 				return it->second;
 			return 0; // or some invalid value if not found
 		}
@@ -328,7 +348,8 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11Resource> mResource;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mSRV;
 
-		std::unordered_map<std::string, uint32_t> mSliceMapping;
+		std::unordered_map<AssetHandle, uint32_t> mHandleSliceMapping;
+		std::unordered_map<std::string, uint32_t> mSliceMappingOLD;
 	};
 
 	class TextureSampler

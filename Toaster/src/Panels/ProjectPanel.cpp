@@ -27,7 +27,6 @@ namespace Toast {
 			ImGui::TextUnformatted("Project");
 			ImGui::SameLine();
 			ImGui::TextDisabled("%s", mContext->GetName().c_str());
-
 			ImGui::TextDisabled("%s", mContext->GetPath().string().c_str());
 
 			ImGui::Separator();
@@ -314,6 +313,16 @@ namespace Toast {
 			// Perform deletion (includes deleting the serialized file)
 			mContext->DeleteScene(toDelete);
 		}
+
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		if (ImGui::Button(ICON_TOASTER_ROCKET " Build Game", ImVec2(ImGui::GetContentRegionAvail().x, 0.0f)))
+		{
+			mContext->BuildGame();
+		}
+
+		ImGui::Spacing();
 
 		ImGui::End();
 	}

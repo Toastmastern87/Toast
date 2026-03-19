@@ -14,6 +14,8 @@
 #include "Toast/Physics/Bounds.h"
 #include "Toast/Physics/Shapes.h"
 
+#include "Toast/Assets/AssetManager.h"
+
 #include <../vendor/directxtex/include/DirectXTex.h>
 #include <mutex>
 
@@ -243,13 +245,13 @@ namespace Toast {
 		};
 
 		bool Visible = false;
+		AssetHandle	TextureHandle = 0;
 		uint32_t TextureIndex = 0;
 
 		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 		float CornerRadius = 0.0f;
 		bool UseColor = true;
-		std::string TextureFilepath;
 		bool ConnectToParent = false;
 
 		UIConnector Connector;
@@ -280,12 +282,10 @@ namespace Toast {
 
 		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		DirectX::XMFLOAT4 ClickColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+		AssetHandle	TextureHandle = 0;
 		uint32_t TextureIndex = 0;
+		AssetHandle	ClickTextureHandle = 0;
 		uint32_t ClickTextureIndex = 0;
-
-		std::string ClickTextureFilepath;
-		std::string TextureFilepath;
-
 
 		UIButtonComponent() = default;
 		UIButtonComponent(const UIButtonComponent&) = default;
@@ -313,7 +313,7 @@ namespace Toast {
 
 		EmitFunction SpawnFunction;
 
-		Texture2D* MaskTexture;
+		AssetHandle MaskTextureHandle;
 
 		ParticlesComponent() = default;
 		ParticlesComponent(const ParticlesComponent& other) = default;

@@ -8,18 +8,81 @@
 
 #include "../FontAwesome.h"
 
+#include "Toast/Assets/AssetManager.h"
+
 #include "Toast/Renderer/Shader.h"
 
 #include <filesystem>
 
 namespace Toast {
 
-	// Once Toast Engine have "projects", change this
-	extern const std::filesystem::path gAssetPath;
-
 	void MaterialPanel::SetContext(const Ref<Material>& context)
 	{
 		mSelectionContext = context;
+	}
+
+	void MaterialPanel::SetProjectPath(const std::filesystem::path& projectPath)
+	{
+		mAssetRoot = projectPath / "Assets";
+	}
+
+	void MaterialPanel::RequestTextureImport(const std::filesystem::path& path, bool defaultSRGB, std::function<void(AssetHandle)> onComplete)
+	{
+		// Check if this file is already registered — no need for the popup
+		auto assetDir = AssetManager::GetAssetDirectory();
+		auto relativePath = std::filesystem::relative(path, assetDir);
+		AssetHandle existing = AssetManager::GetHandleFromPath(relativePath);
+
+		if (existing != AssetHandle(0))
+		{
+			if (onComplete)
+				onComplete(existing);
+			return;
+		}
+
+		mPendingImportPath = path;
+		mPendingImportSRGB = defaultSRGB;
+		mOnImportComplete = onComplete;
+		mPendingImportOpen = true;
+	}
+
+	void MaterialPanel::DrawImportTexturePopup()
+	{
+		if (!mPendingImportOpen)
+			return;
+
+		ImGui::OpenPopup("Import Texture Settings");
+
+		if (ImGui::BeginPopupModal("Import Texture Settings", &mPendingImportOpen,
+			ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			ImGui::Text("Importing: %s", mPendingImportPath.filename().string().c_str());
+			ImGui::Checkbox("sRGB (color data)", &mPendingImportSRGB);
+
+			if (ImGui::Button("Import"))
+			{
+				AssetHandle handle = AssetManager::ImportExternalAsset(mPendingImportPath, "Textures");
+
+				AssetEntry* entry = AssetManager::GetEntry(handle);
+				if (entry)
+					entry->Texture2DSettings.ForceSRGB = mPendingImportSRGB;
+
+				if (mOnImportComplete)
+					mOnImportComplete(handle);
+
+				mPendingImportOpen = false;
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel"))
+			{
+				mPendingImportOpen = false;
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
 	}
 
 	void MaterialPanel::OnImGuiRender()
@@ -60,6 +123,8 @@ namespace Toast {
 			DrawMaterialProperties();
 
 		ImGui::End();
+
+		DrawImportTexturePopup();
 	}
 
 	void MaterialPanel::DrawMaterialProperties( )
@@ -102,7 +167,17 @@ namespace Toast {
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
-				ImGui::Image(mSelectionContext->GetAlbedoTexture()->GetID(), { 64.0f, 64.0f });
+
+				Texture2D* displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
+
+				if (mSelectionContext->GetAlbedoAssetHandle() != AssetHandle(0))
+				{
+					auto tex = AssetManager::GetAsset<Texture2D>(mSelectionContext->GetAlbedoAssetHandle());
+					if (tex)
+						displayTexture = tex.get();
+				}
+
+				ImGui::Image(displayTexture->GetID(), { 64.0f, 64.0f });
 
 				std::optional<std::string> filename;
 
@@ -111,11 +186,16 @@ namespace Toast {
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 					{
 						const wchar_t* path = (const wchar_t*)payload->Data;
-						auto completePath = std::filesystem::path(gAssetPath) / path;
+						auto completePath = mAssetRoot / path;
 						filename = completePath.string();
 
 						if (filename)
-							mSelectionContext->SetAlbedoTexture(TextureLibrary::LoadTexture2D(*filename));
+						{
+							RequestTextureImport(*filename, false, [this](AssetHandle handle)
+								{
+									mSelectionContext->SetAlbedolAssetHandle(handle);
+								});
+						}
 
 						isDirty = true;
 					}
@@ -125,10 +205,16 @@ namespace Toast {
 
 				if (ImGui::IsItemClicked())
 				{
-					filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+					auto texturePath = mAssetRoot / "Textures";
+					filename = FileDialogs::OpenFile("", texturePath.string().c_str());
 
 					if (filename)
-						mSelectionContext->SetAlbedoTexture(TextureLibrary::LoadTexture2D(*filename));
+					{
+						RequestTextureImport(*filename, false, [this](AssetHandle handle)
+							{
+								mSelectionContext->SetAlbedolAssetHandle(handle);
+							});
+					}
 
 					isDirty = true;
 				}
@@ -171,7 +257,17 @@ namespace Toast {
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
-				ImGui::Image(mSelectionContext->GetNormalTexture()->GetID(), { 64.0f, 64.0f });
+				
+				Texture2D* displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
+
+				if (mSelectionContext->GetNormalAssetHandle() != AssetHandle(0))
+				{
+					auto tex = AssetManager::GetAsset<Texture2D>(mSelectionContext->GetNormalAssetHandle());
+					if (tex)
+						displayTexture = tex.get();
+				}
+
+				ImGui::Image(displayTexture->GetID(), { 64.0f, 64.0f });
 
 				std::optional<std::string> filename;
 
@@ -180,11 +276,16 @@ namespace Toast {
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 					{
 						const wchar_t* path = (const wchar_t*)payload->Data;
-						auto completePath = std::filesystem::path(gAssetPath) / path;
+						auto completePath = mAssetRoot / path;
 						filename = completePath.string();
 
 						if (filename)
-							mSelectionContext->SetNormalTexture(TextureLibrary::LoadTexture2D(*filename));
+						{
+							RequestTextureImport(*filename, false, [this](AssetHandle handle)
+								{
+									mSelectionContext->SetNormalAssetHandle(handle);
+								});
+						}
 
 						isDirty = true;
 					}
@@ -194,9 +295,16 @@ namespace Toast {
 
 				if (ImGui::IsItemClicked())
 				{
-					filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+					auto texturePath = mAssetRoot / "Textures";
+					filename = FileDialogs::OpenFile("", texturePath.string().c_str());
+
 					if (filename)
-						mSelectionContext->SetNormalTexture(TextureLibrary::LoadTexture2D(*filename));
+					{
+						RequestTextureImport(*filename, false, [this](AssetHandle handle)
+							{
+								mSelectionContext->SetNormalAssetHandle(handle);
+							});
+					}
 
 					isDirty = true;
 				}
@@ -230,7 +338,17 @@ namespace Toast {
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
-				ImGui::Image(mSelectionContext->GetMetalRoughTexture()->GetID(), { 64.0f, 64.0f });
+				
+				Texture2D* displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
+
+				if (mSelectionContext->GetMetalRoughAssetHandle() != AssetHandle(0))
+				{
+					auto tex = AssetManager::GetAsset<Texture2D>(mSelectionContext->GetMetalRoughAssetHandle());
+					if (tex)
+						displayTexture = tex.get();
+				}
+
+				ImGui::Image(displayTexture->GetID(), { 64.0f, 64.0f });
 
 				std::optional<std::string> filename;
 
@@ -239,11 +357,16 @@ namespace Toast {
 					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 					{
 						const wchar_t* path = (const wchar_t*)payload->Data;
-						auto completePath = std::filesystem::path(gAssetPath) / path;
+						auto completePath = mAssetRoot / path;
 						filename = completePath.string();
 
 						if (filename)
-							mSelectionContext->SetMetalRoughTexture(TextureLibrary::LoadTexture2D(*filename));
+						{
+							RequestTextureImport(*filename, false, [this](AssetHandle handle)
+								{
+									mSelectionContext->SetMetalRoughAssetHandle(handle);
+								});
+						}
 
 						isDirty = true;
 					}
@@ -253,9 +376,16 @@ namespace Toast {
 
 				if (ImGui::IsItemClicked())
 				{
-					filename = FileDialogs::OpenFile("", "..\\Toaster\\assets\\textures\\");
+					auto texturePath = mAssetRoot / "Textures";
+					filename = FileDialogs::OpenFile("", texturePath.string().c_str());
+
 					if (filename)
-						mSelectionContext->SetMetalRoughTexture(TextureLibrary::LoadTexture2D(*filename));
+					{
+						RequestTextureImport(*filename, false, [this](AssetHandle handle)
+							{
+								mSelectionContext->SetMetalRoughAssetHandle(handle);
+							});
+					}
 
 					isDirty = true;
 				}

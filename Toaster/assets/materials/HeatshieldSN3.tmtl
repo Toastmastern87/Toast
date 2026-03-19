@@ -5,5 +5,5 @@ Roughness: 0
 UseAlbedoMap: false
 UseNormalMap: true
 UseMetalRoughMap: true
-NormalAssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_Heat_Shield_normal.png
-MetalRoughAssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_Heat_Shield_roughness.png
+NormalAssetHandle: 8975056036252789757
+MetalRoughAssetHandle: 17756802592510560904

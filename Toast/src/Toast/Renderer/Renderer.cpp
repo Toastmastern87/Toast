@@ -1,6 +1,8 @@
 ﻿#include "tpch.h"
 #include "Renderer.h"
 
+#include "Toast/Assets/AssetManager.h"
+
 #include "Toast/Renderer/Renderer2D.h"
 #include "Toast/Renderer/RendererDebug.h"
 
@@ -1128,11 +1130,11 @@ namespace Toast {
 			sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
 
 			if(material->GetUseAlbedo())
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, material->GetAlbedoTexture()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, AssetManager::GetAsset<Texture2D>(material->GetAlbedoAssetHandle())->GetSRV());
 			if (material->GetUseNormal())
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, material->GetNormalTexture()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, AssetManager::GetAsset<Texture2D>(material->GetNormalAssetHandle())->GetSRV());
 			if (material->GetUseMetalRough())
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, material->GetMetalRoughTexture()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, AssetManager::GetAsset<Texture2D>(material->GetMetalRoughAssetHandle())->GetSRV());
 
 			if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
 			{
@@ -2448,11 +2450,11 @@ namespace Toast {
 			sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
 
 			if (material->GetUseAlbedo())
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, material->GetAlbedoTexture()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, AssetManager::GetAsset<Texture2D>(material->GetAlbedoAssetHandle())->GetSRV());
 			if (material->GetUseNormal())
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, material->GetNormalTexture()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, AssetManager::GetAsset<Texture2D>(material->GetNormalAssetHandle())->GetSRV());
 			if (material->GetUseMetalRough())
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, material->GetMetalRoughTexture()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, AssetManager::GetAsset<Texture2D>(material->GetMetalRoughAssetHandle())->GetSRV());
 
 			// Bind mesh + material like your normal path (important!)
 			// If your Mesh::Bind() does not bind material SRVs, do it here.
