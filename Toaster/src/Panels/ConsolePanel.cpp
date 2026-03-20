@@ -16,31 +16,40 @@ namespace Toast {
 	{
 		ImGui::Begin(ICON_TOASTER_EXCLAMATION_CIRCLE" Console");
 
-		if (ImGui::Button(ICON_TOASTER_PLAY))
-			mScrollLock = true;
-		ImGui::SameLine();
-		if (ImGui::Button(ICON_TOASTER_PAUSE))
-			mScrollLock = false;
+		//if (ImGui::Button(ICON_TOASTER_PLAY))
+		//	mScrollLock = true;
+		//ImGui::SameLine();
+		//if (ImGui::Button(ICON_TOASTER_PAUSE))
+		//	mScrollLock = false;
 
 		ImGui::BeginChild("Console", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
-		for (auto itr = Log::sMessages.begin(); itr != Log::sMessages.end(); ++itr)
-		{
-			switch (itr->first)
-			{
-			case Severity::Trace:
-				ImGui::TextColored(mTraceColor, itr->second.c_str()); break;
-			case Severity::Info:
-				ImGui::TextColored(mInfoColor, itr->second.c_str()); break;
-			case Severity::Warning:
-				ImGui::TextColored(mWarnColor, itr->second.c_str()); break;
-			case Severity::Error:
-				ImGui::TextColored(mErrorColor, itr->second.c_str()); break;
-			case Severity::Critical:
-				ImGui::TextColored(mCriticalColor, itr->second.c_str()); break;
-			}
-		}	
 
-		if(mScrollLock)
+		auto& messages = Log::sMessages;
+		ImGuiListClipper clipper;
+		clipper.Begin((int)messages.size());
+
+		while (clipper.Step()) 
+		{
+			for (auto i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i)
+			{
+				auto& [severity, text] = messages[i];
+				switch (severity)
+				{
+				case Severity::Trace:
+					ImGui::TextColored(mTraceColor, text.c_str()); break;
+				case Severity::Info:
+					ImGui::TextColored(mInfoColor, text.c_str()); break;
+				case Severity::Warning:
+					ImGui::TextColored(mWarnColor, text.c_str()); break;
+				case Severity::Error:
+					ImGui::TextColored(mErrorColor, text.c_str()); break;
+				case Severity::Critical:
+					ImGui::TextColored(mCriticalColor, text.c_str()); break;
+				}
+			}
+		}
+
+		if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
 			ImGui::SetScrollHereY(1.0f);
 
 		ImGui::EndChild();

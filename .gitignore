@@ -25,3 +25,6 @@ ToastProfile-Startup.json
 
 # ImGui
 Mars/imgui.ini
+
+# Build output
+**/Build/

@@ -307,6 +307,10 @@ namespace Toast {
 	{
 		std::filesystem::path buildDir = mPath / "Build";
 
+		// Clear previous build
+		if (std::filesystem::exists(buildDir))
+			std::filesystem::remove_all(buildDir);
+
 		TOAST_CORE_INFO("Building game to '%s'...", buildDir.string().c_str());
 
 		AssetManager::BakeAssets(buildDir);
