@@ -16,8 +16,6 @@
 
 namespace Toast {
 
-	static const uint32_t LODBORDERSIZE = 12;
-
 	static inline uint32_t V(uint32_t x, uint32_t y, uint32_t N)
 	{
 		return y * N + x;       
@@ -39,6 +37,9 @@ namespace Toast {
 		mIcosphereMesh = CreateRef<PlanetMeshIcosphere>();
 		mIcosphereMesh->Init();
 
+		mGeoClipmapMesh = CreateRef<PlanetMeshGeoClipmap>();
+		mGeoClipmapMesh->Init();
+
 		Shader* planetGPassShader = ShaderLibrary::Get("assets/shaders/Planet/PlanetGeometryPass.hlsl");
 
 		ID3D10Blob* vsBlob = planetGPassShader->GetVSRaw();
@@ -50,11 +51,6 @@ namespace Toast {
 		mPlanetFrameCBuffer->Bind();
 		mPlanetFrameBuffer.Allocate(mPlanetFrameCBuffer->GetSize());
 		mPlanetFrameBuffer.ZeroInitialize();
-
-		mPlanetLevelCBuffer = ConstantBufferLibrary::Load("PlanetLevel", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetLevel) });
-		mPlanetLevelCBuffer->Bind();
-		mPlanetLevelBuffer.Allocate(mPlanetLevelCBuffer->GetSize());
-		mPlanetLevelBuffer.ZeroInitialize();
 
 		mRenderingSettingsCBuffer = ConstantBufferLibrary::Load("PlanetRenderingSettings", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)5) });
 		mRenderingSettingsCBuffer->Bind();
@@ -81,311 +77,6 @@ namespace Toast {
 		mAPFar = CreateRef<Texture2D>(DXGI_FORMAT_R32_UINT, DXGI_FORMAT_R32_UINT, 1, 1, D3D11_USAGE_DEFAULT,	(D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
 
 		mAPNear = CreateRef<Texture2D>(DXGI_FORMAT_R32_UINT, DXGI_FORMAT_R32_UINT, 1, 1, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
-	}
-
-	void Planet::InitializeLevels()
-	{
-		TOAST_PROFILE_FUNCTION();
-
-		TOAST_CORE_CRITICAL("Initializing levels Levels!");
-
-		mLevels.assign(mNumLevels, {}); 
-	}
-
-	void Planet::RebuildGrid()
-	{
-		TOAST_PROFILE_FUNCTION();
-
-		TOAST_CORE_CRITICAL("Rebuilding grid!");
-
-		std::vector<uint16_t> vertices;                 // gx,gy packed as uint16
-		std::vector<uint32_t> indices;
-
-		const uint32_t N = mGridSize;     // 257, 513 …
-		const uint32_t cells = N - 1;
-		const uint32_t w = cells / 4;     // 64, 128 …
-
-		vertices.reserve(N * N * 2);
-		indices.reserve((N - 1) * (N - 1) * 6);
-
-		for (uint32_t y = 0; y < N; ++y)
-			for (uint32_t x = 0; x < N; ++x)
-			{
-				vertices.push_back((uint16_t)x);
-				vertices.push_back((uint16_t)y);
-			}
-
-		auto emit = [&](uint32_t x, uint32_t y)
-			{
-				uint32_t i0 = y * N + x;
-				uint32_t i1 = i0 + 1;
-				uint32_t i2 = (y + 1) * N + x;
-				uint32_t i3 = i2 + 1;
-				indices.insert(indices.end(), { i0,i2,i1,  i1,i2,i3 });
-			};
-
-
-		for (uint32_t y = LODBORDERSIZE; y < cells - LODBORDERSIZE; ++y)
-			for (uint32_t x = LODBORDERSIZE; x < cells - LODBORDERSIZE; ++x)
-				emit(x, y);
-
-		mGridIndexCount = (uint32_t)indices.size();
-		mGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), (uint32_t)vertices.size() * sizeof(uint16_t), (uint32_t)vertices.size() / 2, 0, D3D11_USAGE_IMMUTABLE);
-		mCenterGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), mGridIndexCount);
-
-		mValidPlanet = true;
-	}
-
-	void Planet::RebuildRingGridIndices()
-	{
-		const uint32_t N = mGridSize;          // 257
-		const uint32_t cells = N - 1;              // 256
-		const uint32_t w = cells / 4;          // 64  (kept for clarity)
-
-		std::vector<uint32_t> idx;
-		idx.reserve((cells * cells - (cells - 2 * w) * (cells - 2 * w)) * 6);
-
-		auto emit = [&](uint32_t x, uint32_t y)
-			{
-				uint32_t i0 = y * N + x;
-				uint32_t i1 = i0 + 1;
-				uint32_t i2 = (y + 1) * N + x;
-				uint32_t i3 = i2 + 1;
-				idx.insert(idx.end(), { i0, i2, i1,  i1, i2, i3 });
-			};
-
-		for (uint32_t y = 0; y < cells; ++y)
-			for (uint32_t x = 0; x < cells; ++x)
-			{
-				/* Is this cell in the (old) w-wide ring? */
-				bool inRing = (x < w || x >= cells - w ||
-					y < w || y >= cells - w);
-
-				/* Is it in the outer-most 1-cell band we now want to skip? */
-				bool inOuterEdge = (x < LODBORDERSIZE || x >= cells - LODBORDERSIZE ||
-					y < LODBORDERSIZE || y >= cells - LODBORDERSIZE);
-
-				if (inRing && !inOuterEdge)        // keep all ring cells except the outer rim
-					emit(x, y);
-			}
-
-		mRingGridIndexCount = static_cast<uint32_t>(idx.size());
-		mRingGridIndexBuffer = CreateRef<IndexBuffer>(idx.data(), mRingGridIndexCount);
-	}
-
-	void Planet::RebuildLODEdgeGrid()
-	{
-		std::vector<uint16_t> vertices;
-		std::vector<uint32_t> indices;
-
-		const uint32_t cells = mGridSize - 1;
-		const uint32_t lenFine = cells;              // matches your existing code
-		const uint32_t lenCoarse = lenFine / 2 + 1;
-
-		auto map = [&](uint32_t edge, uint16_t u, uint16_t v) -> std::pair<uint16_t, uint16_t>
-			{
-				switch (edge)
-				{
-				case 0:  return { u,  v };
-				case 1:  return { static_cast<uint16_t>(cells - v), u };
-				case 2:  return { static_cast<uint16_t>(cells - u), static_cast<uint16_t>(cells - v) };
-				default: return { v, static_cast<uint16_t>(cells - u) };
-				}
-			};
-
-		auto emitCell = [&](uint32_t a0, uint32_t a1, uint32_t b0, uint32_t b1, bool flip)
-			{
-				// (a0,a1) = row A u,u+1 ; (b0,b1) = row B u,u+1
-				if (flip)
-					indices.insert(indices.end(), { a0, b0, a1,  a1, b0, b1 });
-				else
-					indices.insert(indices.end(), { a0, a1, b0,  a1, b1, b0 });
-			};
-
-		for (uint32_t edge = 0; edge < 4; ++edge)
-		{
-			const bool flip = (edge == 2 || edge == 3);
-
-			const uint32_t vOffset = static_cast<uint32_t>(vertices.size() / 2);
-
-			// --- Coarse row (outer), v = 0 : u = 0,2,4,...
-			for (uint32_t k = 0; k < lenCoarse; ++k)
-			{
-				auto [gx, gy] = map(edge, static_cast<uint16_t>(2 * k), 0);
-				vertices.push_back(gx); vertices.push_back(gy);
-			}
-
-			// --- Fine rows v = 1..EDGE_CELLS (each has lenFine verts)
-			for (uint32_t r = 1; r <= LODBORDERSIZE; ++r)
-			{
-				for (uint32_t u = 0; u < lenFine; ++u)
-				{
-					auto [gx, gy] = map(edge, static_cast<uint16_t>(u), static_cast<uint16_t>(r));
-					vertices.push_back(gx); vertices.push_back(gy);
-				}
-			}
-
-			const uint32_t cBase = vOffset;
-			const uint32_t fBase1 = vOffset + lenCoarse;      // first fine row (v=1)
-			auto fineRowBase = [&](uint32_t r /*1..EDGE_CELLS*/) -> uint32_t
-				{
-					return fBase1 + (r - 1) * lenFine;
-				};
-
-			// 1) Stitch coarse (v=0) -> fine row v=1 (same as your current logic)
-			for (uint32_t k = 0; k + 1 < lenCoarse; ++k)
-			{
-				uint32_t c0 = cBase + k;
-				uint32_t c1 = c0 + 1;
-
-				uint32_t f0 = fBase1 + 2 * k;
-				uint32_t f1 = f0 + 1;
-				uint32_t f2 = f0 + 2;
-
-				auto pushTri = [&](uint32_t a, uint32_t b, uint32_t c)
-					{
-						if (flip) indices.insert(indices.end(), { a, c, b });
-						else      indices.insert(indices.end(), { a, b, c });
-					};
-
-				pushTri(f0, f1, c0);
-				pushTri(f1, c0, c1);
-				if (f2 < fBase1 + lenFine)
-					pushTri(f1, f2, c1);
-			}
-
-			// 2) Fill the remaining band with regular fine quads: (v=1->2), (v=2->3)
-			for (uint32_t r = 1; r < LODBORDERSIZE; ++r)
-			{
-				const uint32_t rowA = fineRowBase(r);
-				const uint32_t rowB = fineRowBase(r + 1);
-
-				for (uint32_t u = 0; u + 1 < lenFine; ++u)
-				{
-					uint32_t a0 = rowA + u;
-					uint32_t a1 = a0 + 1;
-					uint32_t b0 = rowB + u;
-					uint32_t b1 = b0 + 1;
-
-					// same winding convention used elsewhere
-					indices.insert(indices.end(), { a0, b0, a1,  a1, b0, b1 });
-					if (flip)
-					{
-						// If you need flip consistency for these quads too, use emitCell() instead
-						// and remove the insert above. Keeping explicit here for clarity.
-						indices.resize(indices.size() - 6);
-						emitCell(a0, a1, b0, b1, true);
-					}
-				}
-			}
-		}
-
-		const uint32_t vbSize = static_cast<uint32_t>(vertices.size()) * sizeof(uint16_t);
-		mLODGridVertexBuffer = CreateRef<VertexBuffer>(
-			vertices.data(), vbSize,
-			static_cast<uint32_t>(vertices.size() / 2),
-			0, D3D11_USAGE_IMMUTABLE);
-
-		mLODGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), static_cast<uint32_t>(indices.size()));
-		mLODGridIndexCount = static_cast<uint32_t>(indices.size());
-	}
-
-	LODDrawInfo Planet::DetermineActiveLODLevels(const Vector3& camPosPS, PhysicsEngine* physicsEngine)
-	{
-		double rCam;
-		Vector3 groundN;
-		double altitude = 0.0;
-
-		if (!IsTerrainReady() || physicsEngine == nullptr)
-		{
-			altitude = 0.0;
-		}
-		else
-		{
-			altitude = physicsEngine->GetAltitudeAtWorldPos(camPosPS, rCam, groundN);
-
-			// Hard safety net: never allow NaN/inf to propagate.
-			if (!std::isfinite(altitude))
-				altitude = 0.0;
-			if (altitude < 0.0)
-				altitude = 0.0; // optional: depends on whether you allow below-surface camera
-		}
-
-		double altitudeSq = altitude * altitude;
-
-		uint32_t first = 0;                               
-		while (first + 1 < mNumLevels && altitudeSq > mDistanceLUT[first])
-			++first;                                         
-
-		// How far can the player see
-		const double dObserver = std::sqrt(altitude * (2.0 * mRadius + altitude));         // camera's horizon
-		const double dPeak = std::sqrt(mMaxHeight * (2.0 * mRadius + mMaxHeight));           // extra for peaks
-		double horizon = dObserver + dPeak;
-
-		uint32_t last = first;                              // we already keep it
-		double   cell = double(1u << first);         
-		// meters / texel
-		double   half = 0.5 * (mGridSize - 1) * cell;       // half-width
-
-		while (half < horizon && last + 1 < mNumLevels)                     // still have rings
-		{
-			++last;                                          // add next ring
-			cell *= 2.0;
-			half *= 2.0;
-		}
-
-		mActiveLevels.first = first;               // finest level to draw
-		mActiveLevels.count = last - first + 1;    // how many in total
-		return mActiveLevels;
-	}
-
-	void Planet::UpdateLevelOrigins(const Vector3& camPosPS)
-	{
-		TOAST_PROFILE_FUNCTION();
-
-		const int halfGrid = static_cast<int>(mGridSize) / 2;
-
-		for (uint32_t L = 0; L < mNumLevels; ++L)
-		{
-			const int cellSize = 1 << L;
-
-			std::pair<uint32_t, uint32_t> newOrigin;
-			newOrigin.first = static_cast<int>(std::floor(camPosPS.x / double(cellSize))) - halfGrid;
-			newOrigin.second = static_cast<int>(std::floor(camPosPS.z / double(cellSize))) - halfGrid;
-
-			if (newOrigin != mLevels[L].Origin)
-			{
-				mLevels[L].Origin = newOrigin;
-				mLevels[L].Dirty = true;
-			}
-			else
-				mLevels[L].Dirty = false;
-		}
-	}
-
-	Buffer& Planet::BuildLevelCB(uint32_t L)
-	{
-		TOAST_PROFILE_FUNCTION();
-
-		static PlanetLevelCB cb;                // lives between calls
-		const int halfGrid = int(mGridSize) / 2;
-		const int cellSize = 1 << L;
-
-		const ClipLevel& lvl = mLevels[L];
-
-		cb.OriginX = lvl.Origin.first;
-		cb.OriginY = lvl.Origin.second;
-		cb.CellSize = cellSize;                  // 2^L meters
-		cb.GridSize = mGridSize;                // e.g. 257
-		cb.ScatterOriginMetersX = -mShiftEastM;
-		cb.ScatterOriginMetersY = -mShiftNorthM;
-		cb.FinestCellSize = float(1u << mActiveLevels.first);
-
-		/* copy to the generic scratch buffer you created
-		   when you built  sPlanetLevelCBuffer  */
-		mPlanetLevelBuffer.Write(reinterpret_cast<uint8_t*>(&cb), sizeof(cb), 0);
-
-		return mPlanetLevelBuffer;
 	}
 
 	// During runtime playerCamPosWS and RendererCamPosWS will be the same, but they can differ in the editor when the player camera is detached from the rendering camera. The worldTranslation is used to shift the planet's position in world space, allowing for large world coordinates without precision issues. The viewMatrix is used for culling and LOD calculations, while the editorCameraViewMatrix is used for rendering the planet correctly in the editor viewport.
@@ -470,24 +161,31 @@ namespace Toast {
 
 		mPlanetFrameCBuffer->Map(mPlanetFrameBuffer);
 
-		mActiveLevels = DetermineActiveLODLevels(playerCamPosPS, physicsEngine);
+		//mActiveLevels = DetermineActiveLODLevels(playerCamPosPS, physicsEngine);
 
-		const uint32_t L0 = mActiveLevels.first;
-		const uint32_t Ln = L0 + mActiveLevels.count;
+		//const uint32_t L0 = mActiveLevels.first;
+		//const uint32_t Ln = L0 + mActiveLevels.count;
 
 		Vector3 camTangent = { Vector3::Dot(playerCamRel, tanEastWS), 0.0, Vector3::Dot(playerCamRel, tanNorthWS) };
 
-		if (mMeshMode == PlanetMeshMode::Icosphere)
-			mIcosphereMesh->OnUpdate(frustum, viewMatrixPlanetRendering, playerCamPosPS, renderingCamPosPS, planetPosWS, mRadius, mMaxHeight);
-
-		if (!mRunOnce)
+		switch (mMeshMode)
 		{
-			UpdateLevelOrigins(camTangent);
-			mRunOnce = true;
+		case PlanetMeshMode::Icosphere:
+			mIcosphereMesh->OnUpdate(frustum, viewMatrixPlanetRendering, playerCamPosPS, renderingCamPosPS, planetPosWS, mRadius, mMaxHeight);
+			break;
+		case PlanetMeshMode::GeometryClipmapping:
+			mGeoClipmapMesh->OnUpdate(physicsEngine, mRadius, mMaxHeight, playerCamPosPS, &mTerrainCubeData, camTangent, mShiftEastM, mShiftNorthM);
+			break;
 		}
 
-		for (uint32_t L = 0; L < mNumLevels; ++L)
-			mLevels[L].InFrustum = (L >= L0 && L < Ln);
+		//if (!mRunOnce)
+		//{
+		//	UpdateLevelOrigins(camTangent);
+		//	mRunOnce = true;
+		//}
+
+		//for (uint32_t L = 0; L < mNumLevels; ++L)
+		//	mLevels[L].InFrustum = (L >= L0 && L < Ln);
 
 		if (mHeightDetailsDirty)
 			UploadHeightDetailsToGPU();
@@ -625,48 +323,6 @@ namespace Toast {
 
 	void Planet::Shutdown()
 	{
-	}
-
-	double Planet::ComputeCurvatureBias(double desiredSwitchHeight, double radius, double patchWidth, double focalLenPx, double screenErrorPx)
-	{
-		return desiredSwitchHeight *(8.0 * radius * screenErrorPx) / (patchWidth * patchWidth * focalLenPx);
-	}
-
-	void Planet::GenerateDistanceLUT(uint32_t maxLevels, double planetRadius, float FoVY, uint32_t viewportWidth, double metersPerFirstCell, float screenErrorPx, double spacingBias)
-	{
-		mDistanceLUT.clear();
-		mDistanceLUT.reserve(maxLevels);
-
-		double cell = metersPerFirstCell;                 // texel edge (m)
-		double patchWidth = cell * (mGridSize - 1);
-
-		double curvatureBias = ComputeCurvatureBias(10.0, planetRadius, patchWidth, (double(viewportWidth) /	(2.0 * std::tan(FoVY * 0.5f))), screenErrorPx);
-
-		const double focalLenPx = double(viewportWidth) /
-			(2.0 * std::tan(FoVY * 0.5f));
-
-		uint32_t fineLevels = 7;
-		float    fineError = 8.0f;       // instead of 2 px
-
-		for (uint32_t L = 0; L < maxLevels; ++L)
-		{
-			float errorPx = (L < fineLevels) ? fineError : screenErrorPx;
-
-			double sagitta = curvatureBias *
-				(patchWidth * patchWidth) / (8.0 * planetRadius);
-
-			double d = (sagitta / double(errorPx)) * focalLenPx;
-			mDistanceLUT.emplace_back(d * d);
-
-			cell *= 2.0;
-			if (L >= 5) cell *= spacingBias;
-			patchWidth = cell * (mGridSize - 1);
-		}
-
-		mDistanceLUT.back() = std::numeric_limits<double>::max();
-
-		//for (auto level : mDistanceLUT)
-		//	TOAST_CORE_INFO("sDistanceLUT: %lf", level);
 	}
 
 	void Planet::GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight)
@@ -809,68 +465,6 @@ namespace Toast {
 		return td;
 	}
 
-	bool Planet::ProjectWorldPosToLevelGrid(const Vector3& worldPos, const Vector3& worldTranslation, PlanetProjectionResult& out)
-	{
-		// 0) Planet center in camera-relative world space
-		Vector3 planetCenterWS = Vector3(mTranslation) + worldTranslation;
-
-		// 1) Vector from planet center to object
-		Vector3 pLocal = worldPos - planetCenterWS;
-		double  r = pLocal.Length();
-		if (r <= 1e-6)
-			return false;
-
-		// 2) Project object down to the reference sphere
-		Vector3 nObj = pLocal / r;                         // direction center -> object
-		double  R = mRadius;
-		Vector3 groundWS = planetCenterWS + nObj * R;      // point on sphere under object
-
-		// 3) Tangent basis at the camera (same as used in the VS)
-		Vector3 radUp = Vector3(mBasisRadUp);
-		Vector3 tanEast = Vector3(mBasisTanEast);
-		Vector3 tanNorth = Vector3(mBasisTanNorth);
-
-		// Camera is at (0,0,0) in your floating-origin world, so
-		// "camera -> ground" is just groundWS in this space.
-		Vector3 camToGroundWS = groundWS;
-
-		// Tangent-plane offsets in metres (same meaning as 'off' in the VS)
-		double offX = Vector3::Dot(camToGroundWS, tanEast);
-		double offY = Vector3::Dot(camToGroundWS, tanNorth);
-
-		// 4) LOD ring for this position (already correct with ground-projection)
-		uint32_t L = GetLODForWorldPos(worldPos);
-		double   cell = double(1u << L);                   // metres / cell
-
-		// 5) Continuous global grid coordinates in this level's grid
-		double gxCont = offX / cell;
-		double gyCont = offY / cell;
-
-		// Snap to nearest vertex
-		int gWorldX = (int)std::floor(gxCont + 0.5);
-		int gWorldY = (int)std::floor(gyCont + 0.5);
-
-		// 6) Rebuild "off" exactly like VS: off = gWorld * CellSize
-		double offXSnapped = double(gWorldX) * cell;
-		double offYSnapped = double(gWorldY) * cell;
-
-		// 7) Rebuild pSphereLocal and approximate normal exactly like the VS
-		Vector3 pSphereLocal = radUp * R + tanEast * offXSnapped + tanNorth * offYSnapped;
-
-		Vector3 nWSApprox = Vector3::Normalize(pSphereLocal);
-
-		// 8) Fill result
-		out.Level = L;
-		out.GWorldX = gWorldX;
-		out.GWorldY = gWorldY;
-		out.NWSApprox = nWSApprox;
-		out.TangentDist = std::sqrt(offX * offX + offY * offY); // for debug
-
-		//TOAST_CORE_CRITICAL("ProjectWorldPosToLevelGrid: L=%u g=(%d,%d) off=(%.3lf,%.3lf) tanDist=%.3lf", L, gWorldX, gWorldY, offXSnapped, offYSnapped, out.TangentDist);
-
-		return true;
-	}
-
 	uint32_t Planet::GetLODForWorldPos(const Vector3& worldPosWS)
 	{
 		// 1) Planet center in camera-relative world space
@@ -880,7 +474,7 @@ namespace Toast {
 		Vector3 pLocal = worldPosWS - planetCenterWS;
 		double  r = pLocal.Length();
 		if (r <= 1e-6)
-			return mActiveLevels.first;   // degenerate, just clamp to finest active
+			return mGeoClipmapMesh->mActiveLevels.first;   // degenerate, just clamp to finest active
 
 		// 3) Radial direction and ground point on the reference sphere
 		Vector3 n = pLocal / r;                         // unit vector planetCenter -> object
@@ -901,15 +495,15 @@ namespace Toast {
 		double squareDist = std::max(std::abs(offX), std::abs(offY));
 
 		// 5) Active LOD range (same as rendering)
-		uint32_t first = mActiveLevels.first;
-		uint32_t last = first + mActiveLevels.count - 1;
-		if (last >= mNumLevels)
-			last = mNumLevels - 1;
+		uint32_t first = mGeoClipmapMesh->mActiveLevels.first;
+		uint32_t last = first + mGeoClipmapMesh->mActiveLevels.count - 1;
+		if (last >= mGeoClipmapMesh->mNumLevels)
+			last = mGeoClipmapMesh->mNumLevels - 1;
 
 		auto halfExtent = [&](uint32_t L) -> double
 			{
 				double cell = double(1u << L);                         // metres per cell
-				double half = 0.5 * double(mGridSize - 1) * cell;      // half side length of that level
+				double half = 0.5 * double(mGeoClipmapMesh->mGridSize - 1) * cell;      // half side length of that level
 				return half;
 			};
 
@@ -1013,27 +607,9 @@ namespace Toast {
 		return u;
 	}
 
-	bool Planet::IsTerrainReady() const
-	{
-		// Whatever “ready” means in your engine. This is a common minimum.
-		if (mTerrainCubeData.Width == 0 || mTerrainCubeData.Height == 0)
-			return false;
-
-		// Ensure all 6 faces exist and have the expected size.
-		const uint32_t W = mTerrainCubeData.Width;
-		const uint32_t H = mTerrainCubeData.Height;
-		const size_t expected = size_t(W) * size_t(H);
-
-		for (int f = 0; f < 6; ++f)
-		{
-			if (mTerrainCubeData.FaceHeight[f].size() != expected)
-				return false;
-		}
-
-		return true;
-	}
-
-	// OLD PLANET SYSTEM BUT MAYBE BETTER
+	///////////////////////////////////////////////////////////////////////////////////
+	/////////                      Planet Mesh Icosphere                   ////////////
+	///////////////////////////////////////////////////////////////////////////////////
 
 	static constexpr uint32_t MINGUARANTEEDSUBDIVISION = 4;
 
@@ -1614,6 +1190,420 @@ namespace Toast {
 
 		//for (auto level : mHeightMultLUT)
 		//	TOAST_CORE_INFO("mHeightMultLUT: %lf", level);
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////
+	/////////               Planet Mesh Geometry Clipmapping               ////////////
+	///////////////////////////////////////////////////////////////////////////////////
+
+	static constexpr uint32_t LODBORDERSIZE = 12;
+
+	void PlanetMeshGeoClipmap::Init()
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		TOAST_CORE_CRITICAL("Initializing Planet Mesh - Geometry Clipmapping");
+
+		mPlanetLevelCBuffer = ConstantBufferLibrary::Load("PlanetLevel", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::PlanetLevel) });
+		mPlanetLevelCBuffer->Bind();
+		mPlanetLevelBuffer.Allocate(mPlanetLevelCBuffer->GetSize());
+		mPlanetLevelBuffer.ZeroInitialize();
+
+		mLevels.assign(mNumLevels, {});
+	}
+
+	void PlanetMeshGeoClipmap::OnUpdate(PhysicsEngine* physicsEngine, double radius, double maxHeight, const Vector3& playerCamPosPS, TerrainCubeData* terrainCubeData, const Vector3& camTangent, const double& shiftEast, const double& shiftNorth)
+	{
+		mRadius = radius;
+		mMaxHeight = maxHeight;
+		mTerrainCubeData = terrainCubeData;
+		mShiftEastM = shiftEast;
+		mShiftNorthM = shiftNorth;
+
+		if (mGridIsDirty)
+			RebuildGrid();
+
+		if (mRingGridIsDirty)
+			RebuildRingGridIndices();
+
+		if(mLODGridIsDirty)
+			RebuildLODEdgeGrid();
+
+		mActiveLevels = DetermineActiveLODLevels(playerCamPosPS, physicsEngine);
+
+		const uint32_t L0 = mActiveLevels.first;
+		const uint32_t Ln = L0 + mActiveLevels.count;
+
+		if (mNumLevels > 0)
+		{
+			for (uint32_t L = 0; L < mNumLevels; ++L)
+				mLevels[L].InFrustum = (L >= L0 && L < Ln);
+		}
+
+		if (!mRunOnce)
+			UpdateLevelOrigins(camTangent);
+
+		mGridIsDirty = false;
+		mRingGridIsDirty = false;
+		mLODGridIsDirty = false;
+	}
+
+	void PlanetMeshGeoClipmap::RebuildGrid()
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		TOAST_CORE_CRITICAL("Rebuilding grid for Planet Mesh - Geometry Clipmapping");
+
+		std::vector<uint16_t> vertices;                 // gx,gy packed as uint16
+		std::vector<uint32_t> indices;
+
+		const uint32_t N = mGridSize;     // 257, 513 …
+		const uint32_t cells = N - 1;
+		const uint32_t w = cells / 4;     // 64, 128 …
+
+		vertices.reserve(N * N * 2);
+		indices.reserve((N - 1) * (N - 1) * 6);
+
+		for (uint32_t y = 0; y < N; ++y)
+			for (uint32_t x = 0; x < N; ++x)
+			{
+				vertices.push_back((uint16_t)x);
+				vertices.push_back((uint16_t)y);
+			}
+
+		auto emit = [&](uint32_t x, uint32_t y)
+			{
+				uint32_t i0 = y * N + x;
+				uint32_t i1 = i0 + 1;
+				uint32_t i2 = (y + 1) * N + x;
+				uint32_t i3 = i2 + 1;
+				indices.insert(indices.end(), { i0,i2,i1,  i1,i2,i3 });
+			};
+
+
+		for (uint32_t y = LODBORDERSIZE; y < cells - LODBORDERSIZE; ++y)
+			for (uint32_t x = LODBORDERSIZE; x < cells - LODBORDERSIZE; ++x)
+				emit(x, y);
+
+		mGridIndexCount = (uint32_t)indices.size();
+		mGridVertexBuffer = CreateRef<VertexBuffer>(vertices.data(), (uint32_t)vertices.size() * sizeof(uint16_t), (uint32_t)vertices.size() / 2, 0, D3D11_USAGE_IMMUTABLE);
+		mCenterGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), mGridIndexCount);
+
+		mValidMesh = true;
+	}
+
+	void PlanetMeshGeoClipmap::RebuildRingGridIndices()
+	{
+		const uint32_t N = mGridSize;          // 257
+		const uint32_t cells = N - 1;              // 256
+		const uint32_t w = cells / 4;          // 64  (kept for clarity)
+
+		std::vector<uint32_t> idx;
+		idx.reserve((cells * cells - (cells - 2 * w) * (cells - 2 * w)) * 6);
+
+		auto emit = [&](uint32_t x, uint32_t y)
+			{
+				uint32_t i0 = y * N + x;
+				uint32_t i1 = i0 + 1;
+				uint32_t i2 = (y + 1) * N + x;
+				uint32_t i3 = i2 + 1;
+				idx.insert(idx.end(), { i0, i2, i1,  i1, i2, i3 });
+			};
+
+		for (uint32_t y = 0; y < cells; ++y)
+			for (uint32_t x = 0; x < cells; ++x)
+			{
+				/* Is this cell in the (old) w-wide ring? */
+				bool inRing = (x < w || x >= cells - w ||
+					y < w || y >= cells - w);
+
+				/* Is it in the outer-most 1-cell band we now want to skip? */
+				bool inOuterEdge = (x < LODBORDERSIZE || x >= cells - LODBORDERSIZE ||
+					y < LODBORDERSIZE || y >= cells - LODBORDERSIZE);
+
+				if (inRing && !inOuterEdge)        // keep all ring cells except the outer rim
+					emit(x, y);
+			}
+
+		mRingGridIndexCount = static_cast<uint32_t>(idx.size());
+		mRingGridIndexBuffer = CreateRef<IndexBuffer>(idx.data(), mRingGridIndexCount);
+	}
+
+	void PlanetMeshGeoClipmap::RebuildLODEdgeGrid()
+	{
+		std::vector<uint16_t> vertices;
+		std::vector<uint32_t> indices;
+
+		const uint32_t cells = mGridSize - 1;
+		const uint32_t lenFine = cells;              // matches your existing code
+		const uint32_t lenCoarse = lenFine / 2 + 1;
+
+		auto map = [&](uint32_t edge, uint16_t u, uint16_t v) -> std::pair<uint16_t, uint16_t>
+			{
+				switch (edge)
+				{
+				case 0:  return { u,  v };
+				case 1:  return { static_cast<uint16_t>(cells - v), u };
+				case 2:  return { static_cast<uint16_t>(cells - u), static_cast<uint16_t>(cells - v) };
+				default: return { v, static_cast<uint16_t>(cells - u) };
+				}
+			};
+
+		auto emitCell = [&](uint32_t a0, uint32_t a1, uint32_t b0, uint32_t b1, bool flip)
+			{
+				// (a0,a1) = row A u,u+1 ; (b0,b1) = row B u,u+1
+				if (flip)
+					indices.insert(indices.end(), { a0, b0, a1,  a1, b0, b1 });
+				else
+					indices.insert(indices.end(), { a0, a1, b0,  a1, b1, b0 });
+			};
+
+		for (uint32_t edge = 0; edge < 4; ++edge)
+		{
+			const bool flip = (edge == 2 || edge == 3);
+
+			const uint32_t vOffset = static_cast<uint32_t>(vertices.size() / 2);
+
+			// --- Coarse row (outer), v = 0 : u = 0,2,4,...
+			for (uint32_t k = 0; k < lenCoarse; ++k)
+			{
+				auto [gx, gy] = map(edge, static_cast<uint16_t>(2 * k), 0);
+				vertices.push_back(gx); vertices.push_back(gy);
+			}
+
+			// --- Fine rows v = 1..EDGE_CELLS (each has lenFine verts)
+			for (uint32_t r = 1; r <= LODBORDERSIZE; ++r)
+			{
+				for (uint32_t u = 0; u < lenFine; ++u)
+				{
+					auto [gx, gy] = map(edge, static_cast<uint16_t>(u), static_cast<uint16_t>(r));
+					vertices.push_back(gx); vertices.push_back(gy);
+				}
+			}
+
+			const uint32_t cBase = vOffset;
+			const uint32_t fBase1 = vOffset + lenCoarse;      // first fine row (v=1)
+			auto fineRowBase = [&](uint32_t r /*1..EDGE_CELLS*/) -> uint32_t
+				{
+					return fBase1 + (r - 1) * lenFine;
+				};
+
+			// 1) Stitch coarse (v=0) -> fine row v=1 (same as your current logic)
+			for (uint32_t k = 0; k + 1 < lenCoarse; ++k)
+			{
+				uint32_t c0 = cBase + k;
+				uint32_t c1 = c0 + 1;
+
+				uint32_t f0 = fBase1 + 2 * k;
+				uint32_t f1 = f0 + 1;
+				uint32_t f2 = f0 + 2;
+
+				auto pushTri = [&](uint32_t a, uint32_t b, uint32_t c)
+					{
+						if (flip) indices.insert(indices.end(), { a, c, b });
+						else      indices.insert(indices.end(), { a, b, c });
+					};
+
+				pushTri(f0, f1, c0);
+				pushTri(f1, c0, c1);
+				if (f2 < fBase1 + lenFine)
+					pushTri(f1, f2, c1);
+			}
+
+			// 2) Fill the remaining band with regular fine quads: (v=1->2), (v=2->3)
+			for (uint32_t r = 1; r < LODBORDERSIZE; ++r)
+			{
+				const uint32_t rowA = fineRowBase(r);
+				const uint32_t rowB = fineRowBase(r + 1);
+
+				for (uint32_t u = 0; u + 1 < lenFine; ++u)
+				{
+					uint32_t a0 = rowA + u;
+					uint32_t a1 = a0 + 1;
+					uint32_t b0 = rowB + u;
+					uint32_t b1 = b0 + 1;
+
+					// same winding convention used elsewhere
+					indices.insert(indices.end(), { a0, b0, a1,  a1, b0, b1 });
+					if (flip)
+					{
+						// If you need flip consistency for these quads too, use emitCell() instead
+						// and remove the insert above. Keeping explicit here for clarity.
+						indices.resize(indices.size() - 6);
+						emitCell(a0, a1, b0, b1, true);
+					}
+				}
+			}
+		}
+
+		const uint32_t vbSize = static_cast<uint32_t>(vertices.size()) * sizeof(uint16_t);
+		mLODGridVertexBuffer = CreateRef<VertexBuffer>(
+			vertices.data(), vbSize,
+			static_cast<uint32_t>(vertices.size() / 2),
+			0, D3D11_USAGE_IMMUTABLE);
+
+		mLODGridIndexBuffer = CreateRef<IndexBuffer>(indices.data(), static_cast<uint32_t>(indices.size()));
+		mLODGridIndexCount = static_cast<uint32_t>(indices.size());
+	}
+
+	LODDrawInfo PlanetMeshGeoClipmap::DetermineActiveLODLevels(const Vector3& camPosPS, PhysicsEngine* physicsEngine)
+	{
+		double rCam;
+		Vector3 groundN;
+		double altitude = 0.0;
+
+		if (!IsTerrainReady() || physicsEngine == nullptr)
+		{
+			altitude = 0.0;
+		}
+		else
+		{
+			altitude = physicsEngine->GetAltitudeAtWorldPos(camPosPS, rCam, groundN);
+
+			// Hard safety net: never allow NaN/inf to propagate.
+			if (!std::isfinite(altitude))
+				altitude = 0.0;
+			if (altitude < 0.0)
+				altitude = 0.0; // optional: depends on whether you allow below-surface camera
+		}
+
+		double altitudeSq = altitude * altitude;
+
+		uint32_t first = 0;
+		while (first + 1 < mNumLevels && altitudeSq > mDistanceLUT[first])
+			++first;
+
+		// How far can the player see
+		const double dObserver = std::sqrt(altitude * (2.0 * mRadius + altitude));         // camera's horizon
+		const double dPeak = std::sqrt(mMaxHeight * (2.0 * mRadius + mMaxHeight));           // extra for peaks
+		double horizon = dObserver + dPeak;
+
+		uint32_t last = first;                              // we already keep it
+		double   cell = double(1u << first);
+		// meters / texel
+		double   half = 0.5 * (mGridSize - 1) * cell;       // half-width
+
+		while (half < horizon && last + 1 < mNumLevels)                     // still have rings
+		{
+			++last;                                          // add next ring
+			cell *= 2.0;
+			half *= 2.0;
+		}
+
+		mActiveLevels.first = first;               // finest level to draw
+		mActiveLevels.count = last - first + 1;    // how many in total
+		return mActiveLevels;
+	}
+
+	Buffer& PlanetMeshGeoClipmap::BuildLevelCB(uint32_t L)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		static PlanetLevelCB cb;                // lives between calls
+		const int halfGrid = int(mGridSize) / 2;
+		const int cellSize = 1 << L;
+
+		const ClipLevel& lvl = mLevels[L];
+
+		cb.OriginX = lvl.Origin.first;
+		cb.OriginY = lvl.Origin.second;
+		cb.CellSize = cellSize;                  // 2^L meters
+		cb.GridSize = mGridSize;                // e.g. 257
+		cb.ScatterOriginMetersX = -mShiftEastM;
+		cb.ScatterOriginMetersY = -mShiftNorthM;
+		cb.FinestCellSize = float(1u << mActiveLevels.first);
+
+		/* copy to the generic scratch buffer you created when you built  sPlanetLevelCBuffer  */
+		mPlanetLevelBuffer.Write(reinterpret_cast<uint8_t*>(&cb), sizeof(cb), 0);
+
+		return mPlanetLevelBuffer;
+	}
+
+	void PlanetMeshGeoClipmap::UpdateLevelOrigins(const Vector3& camTangent)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		const int halfGrid = static_cast<int>(mGridSize) / 2;
+
+		for (uint32_t L = 0; L < mNumLevels; ++L)
+		{
+			const int cellSize = 1 << L;
+
+			std::pair<uint32_t, uint32_t> newOrigin;
+			newOrigin.first = static_cast<int>(std::floor(camTangent.x / double(cellSize))) - halfGrid;
+			newOrigin.second = static_cast<int>(std::floor(camTangent.z / double(cellSize))) - halfGrid;
+
+			if (newOrigin != mLevels[L].Origin)
+			{
+				mLevels[L].Origin = newOrigin;
+				mLevels[L].Dirty = true;
+			}
+			else
+				mLevels[L].Dirty = false;
+		}
+
+		mRunOnce = true;
+	}
+
+	bool PlanetMeshGeoClipmap::IsTerrainReady() const
+	{
+		if (mTerrainCubeData->Width == 0 || mTerrainCubeData->Height == 0)
+			return false;
+
+		// Ensure all 6 faces exist and have the expected size.
+		const uint32_t W = mTerrainCubeData->Width;
+		const uint32_t H = mTerrainCubeData->Height;
+		const size_t expected = size_t(W) * size_t(H);
+
+		for (int f = 0; f < 6; ++f)
+		{
+			if (mTerrainCubeData->FaceHeight[f].size() != expected)
+				return false;
+		}
+
+		return true;
+	}
+
+	void PlanetMeshGeoClipmap::GenerateDistanceLUT(uint32_t maxLevels, double planetRadius, float FoVY, uint32_t viewportWidth, double metersPerFirstCell, float screenErrorPx, double spacingBias)
+	{
+		mDistanceLUT.clear();
+		mDistanceLUT.reserve(maxLevels);
+
+		double cell = metersPerFirstCell;                 // texel edge (m)
+		double patchWidth = cell * (mGridSize - 1);
+
+		double curvatureBias = ComputeCurvatureBias(10.0, planetRadius, patchWidth, (double(viewportWidth) / (2.0 * std::tan(FoVY * 0.5f))), screenErrorPx);
+
+		const double focalLenPx = double(viewportWidth) /
+			(2.0 * std::tan(FoVY * 0.5f));
+
+		uint32_t fineLevels = 7;
+		float    fineError = 8.0f;       // instead of 2 px
+
+		for (uint32_t L = 0; L < maxLevels; ++L)
+		{
+			float errorPx = (L < fineLevels) ? fineError : screenErrorPx;
+
+			double sagitta = curvatureBias *
+				(patchWidth * patchWidth) / (8.0 * planetRadius);
+
+			double d = (sagitta / double(errorPx)) * focalLenPx;
+			mDistanceLUT.emplace_back(d * d);
+
+			cell *= 2.0;
+			if (L >= 5) cell *= spacingBias;
+			patchWidth = cell * (mGridSize - 1);
+		}
+
+		mDistanceLUT.back() = std::numeric_limits<double>::max();
+
+		//for (auto level : mDistanceLUT)
+		//	TOAST_CORE_INFO("sDistanceLUT: %lf", level);
+	}
+
+	double PlanetMeshGeoClipmap::ComputeCurvatureBias(double desiredSwitchHeight, double radius, double patchWidth, double focalLenPx, double screenErrorPx)
+	{
+		return desiredSwitchHeight * (8.0 * radius * screenErrorPx) / (patchWidth * patchWidth * focalLenPx);
 	}
 
 }

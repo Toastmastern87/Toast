@@ -496,10 +496,6 @@ namespace Toast {
 
 					ImGui::BeginGroup();
 
-					static int gridSizes[] = { 33, 65, 129, 257, 513 };
-					static int currentGridSize = 129;
-					static int currentLOD = 5;
-
 					// Create a 2-column table for label + control layout
 					if (ImGui::BeginTable("PlanetTable", 2, ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_PadOuterX))
 					{
@@ -533,66 +529,6 @@ namespace Toast {
 						ImGui::SetNextItemWidth(fullW);
 
 						ImGuiHelpers::ManualDragFloat3("##rotation", mContext->mRotationEulerAngles, 0.1f, 0.0f, mWindow, activeDragArea);
-
-						ImGui::TableNextRow();
-
-						ImGui::TableSetColumnIndex(0);
-						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Grid Size");
-
-						ImGui::TableSetColumnIndex(1);
-
-						ImGui::SetNextItemWidth(fullW);
-
-						std::string gridLabel = std::to_string(mContext->mTempGridSize);          // keep it alive
-						if (ImGui::BeginCombo("##GridSize", gridLabel.c_str()))
-						{
-							for (int i = 0; i < IM_ARRAYSIZE(gridSizes); ++i)
-							{
-								bool selected = (currentGridSize == gridSizes[i]);
-								if (ImGui::Selectable(std::to_string(gridSizes[i]).c_str(), selected))
-									mContext->mTempGridSize = gridSizes[i];
-								if (selected)
-									ImGui::SetItemDefaultFocus();
-							}
-							ImGui::EndCombo();
-						}
-
-						// === LOD Row ===
-						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(0);
-						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Levels of Detail");
-
-						ImGui::TableSetColumnIndex(1);
-						ImGui::SetNextItemWidth(fullW);
-						ImGui::SliderInt("##LOD", &mContext->mTempNumLevels, 1, 30);
-
-						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(1);
-
-						const float btnW = 80.0f;
-						float indent = fullW - btnW;
-						ImGui::SetCursorPosX(ImGui::GetCursorPosX() + indent);
-
-						if (ImGui::Button("Apply", ImVec2(btnW, 0)))
-						{
-							if (mContext->mTempNumLevels != 0 && mContext->mTempGridSize != 0)
-							{
-								mContext->mGridSize = mContext->mTempGridSize;
-								mContext->mNumLevels = mContext->mTempNumLevels;
-
-								mContext->RebuildGrid();
-								mContext->RebuildRingGridIndices();
-								mContext->RebuildLODEdgeGrid();
-
-								mContext->InitializeLevels();
-
-								SceneCamera* camera = mSceneContext->GetMainCamera();
-								if (camera)
-									mContext->GenerateDistanceLUT(mContext->mNumLevels, mContext->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mSceneContext->GetViewportSize()));
-							}
-						}
 
 						ImGui::EndTable();
 					}
@@ -678,6 +614,75 @@ namespace Toast {
 							mContext->SetMeshMode(static_cast<PlanetMeshMode>(currentIndex));
 
 						ImGui::TableNextRow();
+
+						if (meshMode == PlanetMeshMode::GeometryClipmapping)
+						{
+							static int gridSizes[] = { 33, 65, 129, 257, 513 };
+							static int currentGridSize = 129;
+							static int currentLOD = 5;
+
+							auto& mesh = mContext->GetGeoClipmapMesh();
+
+							ImGui::TableSetColumnIndex(0);
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Grid Size");
+
+							ImGui::TableSetColumnIndex(1);
+
+							ImGui::SetNextItemWidth(fullW);
+
+							std::string gridLabel = std::to_string(mesh->mTempGridSize);          // keep it alive
+							if (ImGui::BeginCombo("##GridSize", gridLabel.c_str()))
+							{
+								for (int i = 0; i < IM_ARRAYSIZE(gridSizes); ++i)
+								{ 
+									bool selected = (currentGridSize == gridSizes[i]);
+									if (ImGui::Selectable(std::to_string(gridSizes[i]).c_str(), selected))
+										mesh->mTempGridSize = gridSizes[i];
+									if (selected)
+										ImGui::SetItemDefaultFocus();
+								}
+								ImGui::EndCombo();
+							}
+
+							// === LOD Row ===
+							ImGui::TableNextRow();
+							ImGui::TableSetColumnIndex(0);
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Levels of Detail");
+
+							ImGui::TableSetColumnIndex(1);
+							ImGui::SetNextItemWidth(fullW);
+							ImGui::SliderInt("##LOD", &mesh->mTempNumLevels, 1, 30);
+
+							ImGui::TableNextRow();
+							ImGui::TableSetColumnIndex(1);
+
+							const float btnW = 80.0f;
+							float indent = fullW - btnW;
+							ImGui::SetCursorPosX(ImGui::GetCursorPosX() + indent);
+
+							if (ImGui::Button("Apply", ImVec2(btnW, 0)))
+							{
+								if (mesh->mTempNumLevels != 0 && mesh->mTempGridSize != 0)
+								{
+									mesh->mRunOnce = false;
+
+									mesh->mGridSize = mesh->mTempGridSize;
+									mesh->mNumLevels = mesh->mTempNumLevels;
+
+									mesh->mGridIsDirty = true;
+									mesh->mLODGridIsDirty = true;
+									mesh->mRingGridIsDirty = true;
+
+									mesh->Init();
+
+									SceneCamera* camera = mSceneContext->GetMainCamera();
+									if (camera)
+										mesh->GenerateDistanceLUT(mesh->mNumLevels, mContext->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mSceneContext->GetViewportSize()));
+								}
+							}
+						}
 
 						if (meshMode == PlanetMeshMode::Icosphere)
 						{
@@ -978,7 +983,7 @@ namespace Toast {
 
 							SceneCamera* camera = mSceneContext->GetMainCamera();
 							if (camera)
-								mContext->GenerateDistanceLUT(mContext->mNumLevels, mContext->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mSceneContext->GetViewportSize()));
+								mContext->GetGeoClipmapMesh()->GenerateDistanceLUT(mContext->GetGeoClipmapMesh()->mNumLevels, mContext->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mSceneContext->GetViewportSize()));
 
 							if (mContext->mMeshMode == PlanetMeshMode::Icosphere)
 							{

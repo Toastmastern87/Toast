@@ -1144,25 +1144,30 @@ namespace Toast {
 			// Planet
 			Renderer::SubmitPlanet(mPlanet, static_cast<int>(mSettings.WireframeRendering));
 
-			if(mPlanet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping && mPlanet->GetLevels().size() > 0)
+			if(mPlanet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
 			{
+				auto& planetMesh = mPlanet->GetGeoClipmapMesh();
+
 				uint64_t v = 0;
 
-				auto& levels = mPlanet->GetLevels();
-				auto  info = mPlanet->GetLODDrawInfo();
+				auto& levels = planetMesh->GetLevels();
+				auto  info = planetMesh->GetLODDrawInfo();
 				uint32_t L0 = info.first;
 				uint32_t Ln = L0 + info.count;
 
-				for (uint32_t L = L0; L < Ln; ++L)
+				if (levels.size() > 0)
 				{
-					const auto& level = levels[L];
-					if (!level.Dirty && !level.InFrustum)
-						continue;
+					for (uint32_t L = L0; L < Ln; ++L)
+					{
+						const auto& level = levels[L];
+						if (!level.Dirty && !level.InFrustum)
+							continue;
 
-					v += mPlanet->GetLODGridIndexCount(); // drawMode=1 draw
+						v += planetMesh->GetLODGridIndexCount(); // drawMode=1 draw
 
-					if (L == L0)  v += mPlanet->GetGridIndexCount();       // center
-					else          v += mPlanet->GetRingGridIndexCount();   // ring
+						if (L == L0)  v += planetMesh->GetGridIndexCount();       // center
+						else          v += planetMesh->GetRingGridIndexCount();   // ring
+					}
 				}
 
 				mStats.VerticesCount += (uint32_t)std::min<uint64_t>(v, UINT32_MAX);

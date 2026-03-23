@@ -265,14 +265,14 @@ namespace Toast {
 		void OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, double radius, double maxHeight);
 		void RecursiveFace(Frustum* frustum, uint32_t ia, uint32_t ib, uint32_t ic, int16_t subdivision, Vector3& cameraPosPS, bool splitCull);
 		NextPlanetFace CheckFaceSplit(Frustum* frustum, Vector3 a, Vector3 b, Vector3 c, int16_t subdivision, Vector3& cameraPosPS, bool frustumCheckNeeded);
-   
+
 		Ref<ShaderLayout> GetShaderInputLayout() { return mShaderInputLayout; }
 
 		uint32_t GetIndexCount() { return static_cast<uint32_t>(mIndices.size()); }
 		uint16_t GetPatchLevels() { return mPatchLevels; }
 		uint32_t GetPatchCount() { return static_cast<uint32_t>(mPatches.size()); }
 
-		void BuildGPUData();     
+		void BuildGPUData();
 		void BindGPUData();
 
 		uint32_t GetMidpoint(uint32_t i1, uint32_t i2);
@@ -332,18 +332,102 @@ namespace Toast {
 		bool mFrustumCulling;
 	};
 
-	class Planet
+	class PlanetMeshGeoClipmap
 	{
+	public:
+		PlanetMeshGeoClipmap() = default;
+
+		void Init();
+		void InitShaderLayout();
+
+		void OnUpdate(PhysicsEngine* physicsEngine, double radius, double maxHeight, const Vector3& playerCamPosPS, TerrainCubeData* mTerrainCubeData, const Vector3& camTangent, const double& shiftEast, const double& shiftNorth);
+
+		void BuildGPUData();
+		void BindGPUData();
+
+		void RebuildGrid();
+		void RebuildRingGridIndices();
+		void RebuildLODEdgeGrid();
+		LODDrawInfo DetermineActiveLODLevels(const Vector3& camPosPS, PhysicsEngine* physicsEngine);
+		Buffer& BuildLevelCB(uint32_t L);
+		uint32_t GetGridSize() { return mGridSize; }
+
+		LODDrawInfo GetLODDrawInfo() { return mActiveLevels; }
+		std::vector<ClipLevel>& GetLevels() { return mLevels; }
+
+		Ref<VertexBuffer>& GetGridVertexBuffer() { return mGridVertexBuffer; }
+		Ref<VertexBuffer>& GetLODGridVertexBuffer() { return mLODGridVertexBuffer; }
+		Ref<IndexBuffer>& GetCenterGridIndexBuffer() { return mCenterGridIndexBuffer; }
+		Ref<IndexBuffer>& GetRingGridIndexBuffer() { return mRingGridIndexBuffer; }
+		Ref<IndexBuffer>& GetLODGridIndexBuffer() { return mLODGridIndexBuffer; }
+		uint32_t GetGridIndexCount() { return mGridIndexCount; }
+		uint32_t GetRingGridIndexCount() { return mRingGridIndexCount; }
+		uint32_t GetLODGridIndexCount() { return mLODGridIndexCount; }
+
+		Ref<ConstantBuffer> GetPlanetLevelCBuffer() { return mPlanetLevelCBuffer; }
+
+		void GenerateDistanceLUT(uint32_t maxLevels, double planetRadius, float FoVY, uint32_t viewportWidth, double metersPerFirstCell = 1.0, float screenErrorPx = 2.0f, double spacingBias = 1.2);
+
+		bool IsPlanetMeshValid() const { return mValidMesh; }
+
+		friend class SceneSerializer;
+		friend class PlanetPanel;
+		friend class Planet;
 	private:
-		// General Data
-		bool mValidPlanet = false;
+		void UpdateLevelOrigins(const Vector3& camTangent);
+
+		bool IsTerrainReady() const;
+
+		double ComputeCurvatureBias(double desiredSwitchHeight, double radius, double patchWidth, double focalLenPx, double screenErrorPx);
+	private:
+		bool mValidMesh = false;
+		bool mRunOnce = false;
+
+		double mRadius = 0.0;
+		double mMaxHeight = 0.0;
+		double mShiftEastM;
+		double mShiftNorthM;
+
+		Ref<ConstantBuffer> mPlanetLevelCBuffer;
+		Buffer mPlanetLevelBuffer;
+
 		uint32_t mGridSize = 0;
 		uint32_t mTempGridSize = 0;
 		int32_t mNumLevels = 0;
 		int32_t mTempNumLevels = 0;
 		std::vector<ClipLevel> mLevels;
 		LODDrawInfo mActiveLevels;
-		bool mRunOnce = false;
+
+		Ref<VertexBuffer> mGridVertexBuffer;
+		Ref<VertexBuffer> mLODGridVertexBuffer;
+		Ref<IndexBuffer> mCenterGridIndexBuffer;
+		Ref<IndexBuffer> mRingGridIndexBuffer;
+		Ref<IndexBuffer> mLODGridIndexBuffer;
+		uint32_t mGridIndexCount = 0;
+		uint32_t mRingGridIndexCount = 0;
+		uint32_t mLODGridIndexCount = 0;
+
+		bool mGridIsDirty = false;
+		bool mRingGridIsDirty = false;
+		bool mLODGridIsDirty = false;
+
+		std::vector<double> mDistanceLUT;
+
+		TerrainCubeData* mTerrainCubeData;
+	};
+
+	class Planet
+	{
+	private:
+		// General Data
+		//bool mValidPlanet = false;
+		//uint32_t mGridSize = 0;
+		//uint32_t mTempGridSize = 0;
+		//int32_t mNumLevels = 0;
+		//int32_t mTempNumLevels = 0;
+		//std::vector<ClipLevel> mLevels;
+		//LODDrawInfo mActiveLevels;
+		//bool mRunOnce = false;
 
 		DirectX::XMFLOAT3 mTranslation = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 mRotationEulerAngles = { 0.0f, 0.0f, 0.0f };
@@ -357,20 +441,21 @@ namespace Toast {
 
 		// Mesh Data
 		Ref<PlanetMeshIcosphere> mIcosphereMesh;
+		Ref<PlanetMeshGeoClipmap> mGeoClipmapMesh;
 		PlanetMeshMode mMeshMode = PlanetMeshMode::GeometryClipmapping;
 
 		// GPU Data
-		Ref<VertexBuffer> mGridVertexBuffer;
-		Ref<VertexBuffer> mLODGridVertexBuffer;
-		Ref<IndexBuffer> mCenterGridIndexBuffer;
-		Ref<IndexBuffer> mRingGridIndexBuffer;
-		Ref<IndexBuffer> mLODGridIndexBuffer;
-		uint32_t mGridIndexCount = 0;
-		uint32_t mRingGridIndexCount = 0;
-		uint32_t mLODGridIndexCount = 0;
+		//Ref<VertexBuffer> mGridVertexBuffer;
+		//Ref<VertexBuffer> mLODGridVertexBuffer;
+		//Ref<IndexBuffer> mCenterGridIndexBuffer;
+		//Ref<IndexBuffer> mRingGridIndexBuffer;
+		//Ref<IndexBuffer> mLODGridIndexBuffer;
+		//uint32_t mGridIndexCount = 0;
+		//uint32_t mRingGridIndexCount = 0;
+		//uint32_t mLODGridIndexCount = 0;
 
-		Ref<ConstantBuffer> mPlanetFrameCBuffer, mPlanetLevelCBuffer, mRenderingSettingsCBuffer;
-		Buffer mPlanetFrameBuffer, mPlanetLevelBuffer, mRenderingSettingsBuffer;
+		Ref<ConstantBuffer> mPlanetFrameCBuffer, mRenderingSettingsCBuffer;
+		Buffer mPlanetFrameBuffer, mRenderingSettingsBuffer;
 		ShaderLayout mShaderInputLayout;
 
 		// Terrain Data
@@ -384,7 +469,7 @@ namespace Toast {
 		DirectX::XMFLOAT3 mBasisRadUp;
 		DirectX::XMFLOAT3 mBasisTanEast;
 		DirectX::XMFLOAT3 mBasisTanNorth;
-		std::vector<double> mDistanceLUT;
+		//std::vector<double> mDistanceLUT;
 		AssetHandle mBaseHeightMapHandle;
 		Ref<TextureCube> mBaseHeightMapTextureCube;
 		Ref<TextureCube> mNormalMapTextureCube;
@@ -402,7 +487,6 @@ namespace Toast {
 
 		// PBR Data
 		uint32_t mUseAlbedoMap = 0;
-		//Texture2D* mAlbedoTexture;
 		AssetHandle mAlbedoTextureHandle;
 		DirectX::XMFLOAT3 mAlbedoColor = { 0.0f, 0.0f, 0.0f };
 		float mRoughness = 0.0f;
@@ -434,21 +518,13 @@ namespace Toast {
 		friend class SceneSerializer;
 		friend class PlanetPanel;
 		friend class PlanetMeshIcosphere;
+		friend class PlanetMeshGeoClipmap;
 	public:
 		Planet();
 
 		void Initialize();
-		void InitializeLevels();
 
 		void Shutdown();
-
-		void RebuildGrid();
-		void RebuildRingGridIndices();
-		void RebuildLODEdgeGrid();
-		LODDrawInfo DetermineActiveLODLevels(const Vector3& camPosPlanet, PhysicsEngine* physicsEngine);
-		void UpdateLevelOrigins(const Vector3& camPosPlanet);
-		Buffer& BuildLevelCB(uint32_t L);
-		uint32_t GetGridSize() { return mGridSize; }
 
 		void OnUpdate(Camera* camera, const Quaternion& playerCamRot, const Vector3& playerCamPosWS, const Vector3& renderingCamPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix, PhysicsEngine* physicsEngine, Frustum* frustum, const DirectX::XMFLOAT4X4& renderingCameraViewMatrix, float frustumBias);
 
@@ -474,22 +550,9 @@ namespace Toast {
 		DirectX::XMFLOAT3& GetBasisTanNorth() { return mBasisTanNorth; }
 
 		bool AtmosphereActivated() { return mAtmosphereActivated; }
-		bool IsValid() { return mValidPlanet; }
-		LODDrawInfo GetLODDrawInfo() { return mActiveLevels; }
-		std::vector<ClipLevel>& GetLevels() { return mLevels; }
-
-		Ref<VertexBuffer>& GetGridVertexBuffer() { return mGridVertexBuffer; }
-		Ref<VertexBuffer>& GetLODGridVertexBuffer() { return mLODGridVertexBuffer; }
-		Ref<IndexBuffer>& GetCenterGridIndexBuffer() { return mCenterGridIndexBuffer; }
-		Ref<IndexBuffer>& GetRingGridIndexBuffer() { return mRingGridIndexBuffer; }
-		Ref<IndexBuffer>& GetLODGridIndexBuffer() { return mLODGridIndexBuffer; }
-		uint32_t GetGridIndexCount() { return mGridIndexCount; }
-		uint32_t GetRingGridIndexCount() { return mRingGridIndexCount; }
-		uint32_t GetLODGridIndexCount() { return mLODGridIndexCount; }
 
 		Ref<ConstantBuffer> GetPlanetFrameCBuffer() { return mPlanetFrameCBuffer; }
 		Buffer& GetPlanetFrameBuffer() { return mPlanetFrameBuffer; }
-		Ref<ConstantBuffer> GetPlanetLevelCBuffer() { return mPlanetLevelCBuffer; }
 		Ref<ConstantBuffer> GetPlanetRenderingSettingsCBuffer() { return mRenderingSettingsCBuffer; }
 		ShaderLayout* GetShaderLayout() { return &mShaderInputLayout; }
 
@@ -519,7 +582,6 @@ namespace Toast {
 		float GetSpaceFactor(Vector3 cameraPosition, const Vector3& worldTranslation);
 
 		double ComputeCurvatureBias(double desiredSwitchHeight, double radius, double patchWidth, double focalLenPx, double screenErrorPx);
-		void GenerateDistanceLUT(uint32_t maxLevels, double planetRadius, float FoVY, uint32_t viewportWidth, double metersPerFirstCell = 1.0, float screenErrorPx = 2.0f, double spacingBias = 1.2);
 
 		void GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight);
 		void GenerateHeightMultLUT(std::vector<double>& heightMultLUT, double planetRadius, double maxHeight);
@@ -527,7 +589,6 @@ namespace Toast {
 		TerrainCubeData LoadTerrainDataFromTextureCube();
 		float GetGravityConstant() { return mGravityConstant; }
 
-		bool ProjectWorldPosToLevelGrid(const Vector3& worldPos, const Vector3& worldTranslation, PlanetProjectionResult& out);
 		uint32_t GetLODForWorldPos(const Vector3& worldPosWS);
 
 		size_t GetNumHeightDetails() { return mHeightDetails.size(); }
@@ -547,6 +608,7 @@ namespace Toast {
 		PlanetMeshMode GetMeshMode() const { return mMeshMode; }
 
 		Ref<PlanetMeshIcosphere>& GetIcosphereMesh() { return mIcosphereMesh; }
+		Ref<PlanetMeshGeoClipmap>& GetGeoClipmapMesh() { return mGeoClipmapMesh; }
 
 		bool IsTerrainReady() const;
 	};

@@ -695,8 +695,6 @@ namespace Toast {
 		out << YAML::BeginMap;
 		out << YAML::Key << "Translation" << YAML::Value << scenePlanet->mTranslation;
 		out << YAML::Key << "Rotation" << YAML::Value << scenePlanet->mRotationEulerAngles;
-		out << YAML::Key << "GridSize" << YAML::Value << scenePlanet->mGridSize;
-		out << YAML::Key << "MaxLevels" << YAML::Value << scenePlanet->mNumLevels;
 		out << YAML::Key << "Radius" << YAML::Value << scenePlanet->mRadius;
 		out << YAML::Key << "MaxHeight" << YAML::Value << scenePlanet->mMaxHeight;
 		out << YAML::Key << "MinHeight" << YAML::Value << scenePlanet->mMinHeight;
@@ -730,8 +728,8 @@ namespace Toast {
 		out << YAML::Key << "SGain" << YAML::Value << scenePlanet->mAtmosphere.SGain;
 		out << YAML::Key << "GravityConstant" << YAML::Value << scenePlanet->mGravityConstant;
 
+		auto& planetMeshGeo = scenePlanet->mGeoClipmapMesh;
 		auto& planetMeshIco = scenePlanet->mIcosphereMesh;
-
 		out << YAML::Key << "PlanetMesh";
 		out << YAML::BeginMap;
 		out << YAML::Key << "MaxSubdivisions" << YAML::Value << planetMeshIco->mMaxSubdivisions;
@@ -740,6 +738,8 @@ namespace Toast {
 		out << YAML::Key << "FarDistance" << YAML::Value << planetMeshIco->mFarDistance;
 		out << YAML::Key << "BackfaceCulling" << YAML::Value << planetMeshIco->mBackfaceCulling;
 		out << YAML::Key << "FrustumCulling" << YAML::Value << planetMeshIco->mFrustumCulling;
+		out << YAML::Key << "GridSize" << YAML::Value << planetMeshGeo->mGridSize;
+		out << YAML::Key << "MaxLevels" << YAML::Value << planetMeshGeo->mNumLevels;
 		out << YAML::EndMap;
 
 		out << YAML::Key << "HeightDetails";
@@ -1026,8 +1026,6 @@ namespace Toast {
 		auto planet = data["Planet"];
 		scenePlanet->mTranslation = planet["Translation"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mRotationEulerAngles = planet["Rotation"].as<DirectX::XMFLOAT3>();
-		scenePlanet->mGridSize = planet["GridSize"].as<uint32_t>();
-		scenePlanet->mNumLevels = planet["MaxLevels"].as<uint32_t>();
 		scenePlanet->mRadius = planet["Radius"].as<double>();
 		scenePlanet->mMaxHeight = planet["MaxHeight"].as<double>();
 		scenePlanet->mMinHeight = planet["MinHeight"].as<double>();
@@ -1060,6 +1058,13 @@ namespace Toast {
 		scenePlanet->mAtmosphere.MSGain = planet["MSGain"].as<float>();
 		scenePlanet->mAtmosphere.SGain = planet["SGain"].as<float>();
 		scenePlanet->mGravityConstant = planet["GravityConstant"].as<float>();
+
+		auto& planetMeshGeo = scenePlanet->mGeoClipmapMesh;
+		planetMeshGeo->mGridSize = planet["PlanetMesh"]["GridSize"].as<uint32_t>();
+		planetMeshGeo->mNumLevels = planet["PlanetMesh"]["MaxLevels"].as<uint32_t>();
+		planetMeshGeo->mGridIsDirty = true;
+		planetMeshGeo->mLODGridIsDirty = true;
+		planetMeshGeo->mRingGridIsDirty = true;
 
 		auto& planetMeshIco = scenePlanet->mIcosphereMesh;
 		planetMeshIco->mMaxSubdivisions = planet["PlanetMesh"]["MaxSubdivisions"].as<int>();
@@ -1513,13 +1518,8 @@ namespace Toast {
 			}
 		}
 
-		if (scenePlanet->mNumLevels != 0 && scenePlanet->mGridSize != 0)
-		{
-			scenePlanet->RebuildGrid();
-			scenePlanet->RebuildRingGridIndices();
-			scenePlanet->RebuildLODEdgeGrid();
-
-			scenePlanet->InitializeLevels();
+		if (planetMeshGeo->mNumLevels != 0 && planetMeshGeo->mGridSize != 0)
+			planetMeshGeo->Init();
 
 			if (scenePlanet->mStarFieldTexture2DHandle != AssetHandle(0))
 			{
@@ -1528,18 +1528,18 @@ namespace Toast {
 				scenePlanet->mStarFieldTextureCube->GenerateMips();
 			}
 
-			scenePlanet->mTempGridSize = scenePlanet->mGridSize;
-			scenePlanet->mTempNumLevels = scenePlanet->mNumLevels;
+			planetMeshGeo->mTempGridSize = planetMeshGeo->mGridSize;
+			planetMeshGeo->mTempNumLevels = planetMeshGeo->mNumLevels;
 
 			scenePlanet->mTerrainCubeData = scenePlanet->LoadTerrainDataFromTextureCube();
 
 			SceneCamera* camera = mScene->GetMainCamera();
 			if (camera)
-				scenePlanet->GenerateDistanceLUT(scenePlanet->mNumLevels, scenePlanet->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mScene->GetViewportSize()));
+				planetMeshGeo->GenerateDistanceLUT(planetMeshGeo->mNumLevels, scenePlanet->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mScene->GetViewportSize()));
 
 				Renderer::GenerateTransmittanceLUT(scenePlanet);
 				Renderer::GenerateMultiScatteringLUT(scenePlanet);
-		}
+		//}
 
 		return true;
 	}

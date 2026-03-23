@@ -920,64 +920,66 @@ namespace Toast {
 
 		if (sRendererData->PlanetDraw.Planet)
 		{
-			if (sRendererData->PlanetDraw.Planet->IsValid())
+			if (sRendererData->Wireframe == 1)
+				RenderCommand::SetRasterizerState(sRendererData->WireframeRasterizerState);
+			else
+				RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
+
+			if (sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
 			{
-				if (sRendererData->Wireframe == 1)
-					RenderCommand::SetRasterizerState(sRendererData->WireframeRasterizerState);
-				else
-					RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
+				ShaderLibrary::Get("assets/shaders/Planet/PlanetGeometryPass.hlsl")->Bind();
+				sRendererData->PlanetDraw.Planet->GetShaderLayout()->Bind();
+			}
+			else if(sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::Icosphere)
+			{
+				ShaderLibrary::Get("assets/shaders/Planet/PlanetIcosphereGeometryPass.hlsl")->Bind();
+				sRendererData->PlanetDraw.Planet->GetIcosphereMesh()->GetShaderInputLayout()->Bind();
+			}
 
-				if (sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
+			if (sRendererData->PlanetDraw.Planet->GetNumHeightDetails() > 0)
+			{
+				RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
+			}
+
+			sRendererData->PlanetDraw.Planet->MapRenderingSettings();
+			sRendererData->PlanetDraw.Planet->GetPlanetRenderingSettingsCBuffer()->Bind();
+
+			if (sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
+			{
+				sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
+			}
+			else if (sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::Icosphere)
+			{
+				sRendererData->ModelBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetTransformRotation(), 64, 0);
+				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+			}
+
+			TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(5, D3D11_VERTEX_SHADER);
+			TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(5, D3D11_PIXEL_SHADER);
+			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->PlanetDraw.Planet->GetNormalMapCubeTexture()->GetSRV());
+
+			sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetAlbedoColor(), 16, 0);
+			sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetMetalness(), 4, 20);
+			sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetRoughness(), 4, 24);
+			int useAlbedo = static_cast<int>(sRendererData->PlanetDraw.Planet->GetUseAlbedoMap());
+			sRendererData->MaterialBuffer.Write((uint8_t*)&useAlbedo, 4, 28);
+			sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
+
+			if (sRendererData->PlanetDraw.Planet->GetUseAlbedoMap())
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->PlanetDraw.Planet->GetAlbedoCubeTexture()->GetSRV());
+
+			if(sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
+			{
+				auto& planetMesh = sRendererData->PlanetDraw.Planet->GetGeoClipmapMesh();
+
+				if(planetMesh->IsPlanetMeshValid())
 				{
-					ShaderLibrary::Get("assets/shaders/Planet/PlanetGeometryPass.hlsl")->Bind();
-					sRendererData->PlanetDraw.Planet->GetShaderLayout()->Bind();
-				}
-				else if(sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::Icosphere)
-				{
-					ShaderLibrary::Get("assets/shaders/Planet/PlanetIcosphereGeometryPass.hlsl")->Bind();
-					sRendererData->PlanetDraw.Planet->GetIcosphereMesh()->GetShaderInputLayout()->Bind();
-				}
-
-				if (sRendererData->PlanetDraw.Planet->GetNumHeightDetails() > 0)
-				{
-					RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
-					RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
-					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
-					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
-				}
-
-				sRendererData->PlanetDraw.Planet->MapRenderingSettings();
-				sRendererData->PlanetDraw.Planet->GetPlanetRenderingSettingsCBuffer()->Bind();
-
-				if (sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
-				{
-					sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
-				}
-				else if (sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::Icosphere)
-				{
-					sRendererData->ModelBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetTransformRotation(), 64, 0);
-					sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
-				}
-
-				TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(5, D3D11_VERTEX_SHADER);
-				TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(5, D3D11_PIXEL_SHADER);
-				RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->PlanetDraw.Planet->GetNormalMapCubeTexture()->GetSRV());
-
-				sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetAlbedoColor(), 16, 0);
-				sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetMetalness(), 4, 20);
-				sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetRoughness(), 4, 24);
-				int useAlbedo = static_cast<int>(sRendererData->PlanetDraw.Planet->GetUseAlbedoMap());
-				sRendererData->MaterialBuffer.Write((uint8_t*)&useAlbedo, 4, 28);
-				sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
-
-				if (sRendererData->PlanetDraw.Planet->GetUseAlbedoMap())
-					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->PlanetDraw.Planet->GetAlbedoCubeTexture()->GetSRV());
-
-				if(sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
-				{
-					auto& levels = sRendererData->PlanetDraw.Planet->GetLevels();
-					auto& LODInfo = sRendererData->PlanetDraw.Planet->GetLODDrawInfo();
+					auto& levels = planetMesh->GetLevels();
+					auto& LODInfo = planetMesh->GetLODDrawInfo();
 
 					const uint32_t L0 = LODInfo.first;
 					const uint32_t Ln = L0 + LODInfo.count;          // one-past-last
@@ -988,45 +990,44 @@ namespace Toast {
 						if (!level.Dirty && !level.InFrustum)
 							continue;
 
-						auto cb = sRendererData->PlanetDraw.Planet->BuildLevelCB(L);
+						auto cb = planetMesh->BuildLevelCB(L);
 
 						uint32_t drawMode = 1;
 						cb.Write(reinterpret_cast<uint8_t*>(&drawMode), sizeof(uint32_t), 16);
-						sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Map(cb);
-						sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Bind();
+						planetMesh->GetPlanetLevelCBuffer()->Map(cb);
+						planetMesh->GetPlanetLevelCBuffer()->Bind();
 
-						sRendererData->PlanetDraw.Planet->GetLODGridVertexBuffer()->Bind();
-						sRendererData->PlanetDraw.Planet->GetLODGridIndexBuffer()->Bind();
-						RenderCommand::DrawIndexed(0, 0, sRendererData->PlanetDraw.Planet->GetLODGridIndexCount());
+						planetMesh->GetLODGridVertexBuffer()->Bind();
+						planetMesh->GetLODGridIndexBuffer()->Bind();
+						RenderCommand::DrawIndexed(0, 0, planetMesh->GetLODGridIndexCount());
 
 						drawMode = 0;
 						cb.Write(reinterpret_cast<uint8_t*>(&drawMode), sizeof(uint32_t), 16);
-						sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Map(cb);
-						sRendererData->PlanetDraw.Planet->GetPlanetLevelCBuffer()->Bind();
+						planetMesh->GetPlanetLevelCBuffer()->Map(cb);
+						planetMesh->GetPlanetLevelCBuffer()->Bind();
 
-						sRendererData->PlanetDraw.Planet->GetGridVertexBuffer()->Bind();
+						planetMesh->GetGridVertexBuffer()->Bind();
 
 						if (L == L0)                            // center patch
 						{
-							sRendererData->PlanetDraw.Planet->GetCenterGridIndexBuffer()->Bind();
-							RenderCommand::DrawIndexed(0, 0, sRendererData->PlanetDraw.Planet->GetGridIndexCount());
+							planetMesh->GetCenterGridIndexBuffer()->Bind();
+							RenderCommand::DrawIndexed(0, 0, planetMesh->GetGridIndexCount());
 
 							continue;
 						}
 
 						// inside the ring-drawing branch
-						sRendererData->PlanetDraw.Planet->GetRingGridIndexBuffer()->Bind();
-						RenderCommand::DrawIndexed(0, 0, sRendererData->PlanetDraw.Planet->GetRingGridIndexCount());
+						planetMesh->GetRingGridIndexBuffer()->Bind();
+						RenderCommand::DrawIndexed(0, 0, planetMesh->GetRingGridIndexCount());
 					}
 				}
-				else if(sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::Icosphere)
-				{
-					auto& icosphereMesh = sRendererData->PlanetDraw.Planet->GetIcosphereMesh();
-					icosphereMesh->BindGPUData();
+			}
+			else if(sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::Icosphere)
+			{
+				auto& icosphereMesh = sRendererData->PlanetDraw.Planet->GetIcosphereMesh();
+				icosphereMesh->BindGPUData();
 
-					RenderCommand::DrawIndexedInstanced(icosphereMesh->GetIndexCount(), icosphereMesh->GetPatchCount(), 0, 0, 0);
-				}
-				
+				RenderCommand::DrawIndexedInstanced(icosphereMesh->GetIndexCount(), icosphereMesh->GetPatchCount(), 0, 0, 0);
 			}
 		}
 
@@ -1038,10 +1039,12 @@ namespace Toast {
 
 		if (sRendererData->PlanetDraw.Planet)
 		{
-			if (sRendererData->PlanetDraw.Planet->IsValid())
+			auto& planetMesh = sRendererData->PlanetDraw.Planet->GetGeoClipmapMesh();
+
+			if (planetMesh->IsPlanetMeshValid())
 			{
 				Planet* planet = sRendererData->PlanetDraw.Planet.get();
-				const auto& LODInfo = planet->GetLODDrawInfo();
+				const auto& LODInfo = planetMesh->GetLODDrawInfo();
 				const uint32_t L0 = LODInfo.first;
 				const uint32_t Ln = L0 + LODInfo.count;
 
@@ -1059,22 +1062,22 @@ namespace Toast {
 					{
 						// --- Edge strip (DrawMode=1) ---
 						{
-							auto cb = planet->BuildLevelCB(L);
+							auto cb = planetMesh->BuildLevelCB(L);
 							uint32_t drawMode = 1;
 							cb.Write(reinterpret_cast<uint8_t*>(&drawMode), sizeof(uint32_t), 16);
-							planet->GetPlanetLevelCBuffer()->Map(cb);
-							planet->GetPlanetLevelCBuffer()->Bind(); // b7
+							planetMesh->GetPlanetLevelCBuffer()->Map(cb);
+							planetMesh->GetPlanetLevelCBuffer()->Bind(); // b7
 
 							DrawTerrainObjectsForLevel(planet, L, L0);
 						}
 
 						// --- Interior (DrawMode=0) ---
 						{
-							auto cb = planet->BuildLevelCB(L);
+							auto cb = planetMesh->BuildLevelCB(L);
 							uint32_t drawMode = 0;
 							cb.Write(reinterpret_cast<uint8_t*>(&drawMode), sizeof(uint32_t), 16);
-							planet->GetPlanetLevelCBuffer()->Map(cb);
-							planet->GetPlanetLevelCBuffer()->Bind(); // b7
+							planetMesh->GetPlanetLevelCBuffer()->Map(cb);
+							planetMesh->GetPlanetLevelCBuffer()->Bind(); // b7
 
 							DrawTerrainObjectsForLevel(planet, L, L0);
 						}
@@ -1332,7 +1335,7 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->EnvMapFilteredDay->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 14, sRendererData->IrradianceCubeMapNight->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 15, sRendererData->EnvMapFilteredNight->GetSRV());
-		if (sRendererData->PlanetDraw.Planet->IsValid())
+		if (sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture())
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 16, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 17, sRendererData->DepthBuffer->GetSRV());
@@ -2406,7 +2409,7 @@ namespace Toast {
 				continue;
 
 			uint32_t cellSize = 1u << L; 
-			uint32_t gridSize = planet->GetGridSize();
+			uint32_t gridSize = planet->GetGeoClipmapMesh()->GetGridSize();
 
 			// Decide instance count for this level
 			uint32_t instCount = planet->ObjectInstancesForLevelFromDensity(object, cellSize, gridSize);
@@ -2461,6 +2464,7 @@ namespace Toast {
 			object.MeshObject->Bind();
 
 			uint32_t candidateCount = scatterCells * scatterCells;
+
 
 			// Start with LOD0 group submesh 0 (same assumption you used previously)
 			const auto& sub = object.MeshObject->mLODGroups[0]->Submeshes[0];
