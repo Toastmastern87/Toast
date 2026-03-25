@@ -63,7 +63,7 @@ namespace Toast {
 		sRendererData->CameraBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for the Model
-		sRendererData->ModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Model) });
+		sRendererData->ModelCBuffer = ConstantBufferLibrary::Load("Model", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, CBufferBindSlot::Model), CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Model) });
 		sRendererData->ModelCBuffer->Bind();
 		sRendererData->ModelBuffer.Allocate(sRendererData->ModelCBuffer->GetSize());
 		sRendererData->ModelBuffer.ZeroInitialize();
@@ -1024,6 +1024,11 @@ namespace Toast {
 			}
 			else if(sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::Icosphere)
 			{
+				auto& transform = sRendererData->PlanetDraw.Planet->GetTransformNoScale();
+				sRendererData->ModelBuffer.Write((uint8_t*)&transform, 64, 0);
+				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+				sRendererData->ModelCBuffer->Bind();
+
 				auto& icosphereMesh = sRendererData->PlanetDraw.Planet->GetIcosphereMesh();
 				icosphereMesh->BindGPUData();
 

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Toast/Renderer/PlanetSystem.h"
-
 #include "Toast/Scene/Entity.h"
 
 namespace Toast {

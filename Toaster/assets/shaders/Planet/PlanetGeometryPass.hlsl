@@ -95,6 +95,7 @@ StructuredBuffer<int4> PermTables              : register(t9);
 
 SamplerState HeightMapSampler                   : register(s5);
 
+#include "DirectionToCube.hlsli"
 #include "PerlinNoise.hlsli"    
 #include "TerrainHeightCalculations.hlsli"
 

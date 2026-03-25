@@ -10,6 +10,8 @@
 
 #include "Toast/Utils/FixedThreadPool.h"
 
+#include "Toast/Renderer/TerrainSampler.h"
+
 #include <chrono>
 
 #pragma message("PlanetSystem.cpp is being compiled!")
@@ -171,7 +173,7 @@ namespace Toast {
 		switch (mMeshMode)
 		{
 		case PlanetMeshMode::Icosphere:
-			mIcosphereMesh->OnUpdate(frustum, viewMatrixPlanetRendering, playerCamPosPS, renderingCamPosPS, planetPosWS, mRadius, mMaxHeight);
+			mIcosphereMesh->OnUpdate(frustum, viewMatrixPlanetRendering, playerCamPosPS, renderingCamPosPS, planetPosWS, mRadius, mMaxHeight, mTerrainCubeData);
 			break;
 		case PlanetMeshMode::GeometryClipmapping:
 			mGeoClipmapMesh->OnUpdate(physicsEngine, mRadius, mMaxHeight, playerCamPosPS, &mTerrainCubeData, camTangent, mShiftEastM, mShiftNorthM);
@@ -612,6 +614,7 @@ namespace Toast {
 	///////////////////////////////////////////////////////////////////////////////////
 
 	static constexpr uint32_t MINGUARANTEEDSUBDIVISION = 4;
+	static constexpr double HEIGHT_UNSAMPLED = std::numeric_limits<double>::max();
 
 	void PlanetMeshIcosphere::Init()
 	{
@@ -803,19 +806,27 @@ namespace Toast {
 		}
 	}
 
-	void PlanetMeshIcosphere::OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, double radius, double maxHeight)
+	static uint32_t sRecurseCalls;
+	static uint32_t sHeightSamples;
+	static uint32_t sFrustumChecks;
+	static uint32_t sMidpointLookups;
+
+	void PlanetMeshIcosphere::OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, double radius, double maxHeight, const TerrainCubeData& terrainData)
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		mRadius = radius;
 		mMaxHeight = maxHeight;
+		mTerrainCubeData = &terrainData;
 
-		mMidpointCache.clear();
-		mSphereVertices.clear(); // keep a copy from Init()
+		mHeightCache.clear();
 
-		mSphereVertices.reserve(200000);
-		for (const auto& v : mBaseIcosahedronVerts)
-			mSphereVertices.push_back(v);
+		mMidpointCache.clear(4096);
+
+		if (mSphereVertices.size() < mBaseIcosahedronVerts.size())
+			mSphereVertices = mBaseIcosahedronVerts;
+		else
+			mSphereVertices.resize(mBaseIcosahedronVerts.size());
 
 		// Updating Constant Buffer
 		DirectX::XMFLOAT3 camHi, camLo;
@@ -853,18 +864,42 @@ namespace Toast {
 
 		mPatches.clear();
 
-		for (size_t i = 0; i < mStartIndices.size(); i += 3)
-			RecursiveFace(frustum, mStartIndices[i], mStartIndices[i + 1], mStartIndices[i + 2], 0, cameraPosPS, true);
+		//TOAST_CORE_INFO("Recurse: %d calls, %d height samples, %d frustum checks, %d midpoint lookups",	sRecurseCalls, sHeightSamples, sFrustumChecks, sMidpointLookups);
+		sRecurseCalls = 0; sHeightSamples = 0; sFrustumChecks = 0; sMidpointLookups = 0;
 
-		BuildGPUData();
-
-		if (!mPatchesGPU.empty())
 		{
-			const uint32_t instBytes = (uint32_t)(mPatchesGPU.size() * sizeof(PlanetPatchGPU));
-			mInstanceVertexBuffer = CreateRef<VertexBuffer>(mPatchesGPU.data(), instBytes, (uint32_t)mPatchesGPU.size(), 1);
+			TOAST_PROFILE_SCOPE("Icosphere::Recursion");
+			for (size_t i = 0; i < mStartIndices.size(); i += 3)
+				RecursiveFace(frustum, mStartIndices[i], mStartIndices[i + 1], mStartIndices[i + 2], 0, cameraPosPS, true);
 		}
-		else
-			mInstanceVertexBuffer = nullptr;
+
+		{
+			TOAST_PROFILE_SCOPE("Icosphere::BuildGPUData");
+			BuildGPUData();
+		}
+
+		{
+			TOAST_PROFILE_SCOPE("Icosphere::UploadGPU");
+			if (!mPatchesGPU.empty())
+			{
+				const uint32_t instBytes = (uint32_t)(mPatchesGPU.size() * sizeof(PlanetPatchGPU));
+
+				// First time or buffer too small — create DYNAMIC with 2x headroom
+				if (!mInstanceVertexBuffer || mPatchesGPU.size() > mInstanceBufferCapacity)
+				{
+					mInstanceBufferCapacity = (uint32_t)(mPatchesGPU.size() * 2);
+					uint32_t capacityBytes = mInstanceBufferCapacity * sizeof(PlanetPatchGPU);
+
+					mInstanceVertexBuffer = CreateRef<VertexBuffer>(capacityBytes, mInstanceBufferCapacity, 1);
+				}
+
+				// Update count for draw call
+				mInstanceVertexBuffer->SetCount((uint32_t)mPatchesGPU.size());
+				mInstanceVertexBuffer->SetData(mPatchesGPU.data(), instBytes);
+			}
+			else
+				mInstanceVertexBuffer = nullptr;
+		}
 
 		if (mPatchIsDirty)
 		{
@@ -881,6 +916,7 @@ namespace Toast {
 			else
 				mIndexBuffer = nullptr;
 		}
+		 
 
 		mPatchIsDirty = false;
 		mDistanceLUTIsDirty = false;
@@ -891,14 +927,18 @@ namespace Toast {
 	void PlanetMeshIcosphere::RecursiveFace(Frustum* frustum, uint32_t ia, uint32_t ib, uint32_t ic, int16_t subdivision, Vector3& cameraPosPS, bool splitCull)
 	{
 		//TOAST_PROFILE_FUNCTION();
+		sRecurseCalls++;
 
-		Vector3 va = mSphereVertices[ia];
-		Vector3 vb = mSphereVertices[ib];
-		Vector3 vc = mSphereVertices[ic];
+		const Vector3& va = mSphereVertices[ia];
+		const Vector3& vb = mSphereVertices[ib];
+		const Vector3& vc = mSphereVertices[ic];
 
-		Vector3 A, B, C;
+		static constexpr int16_t HEIGHT_SKIP_LEVEL = 4;
+		double hA = (subdivision >= HEIGHT_SKIP_LEVEL && mTerrainCubeData) ? GetCachedHeight(ia, subdivision) : 0.0;
+		double hB = (subdivision >= HEIGHT_SKIP_LEVEL && mTerrainCubeData) ? GetCachedHeight(ib, subdivision) : 0.0;
+		double hC = (subdivision >= HEIGHT_SKIP_LEVEL && mTerrainCubeData) ? GetCachedHeight(ic, subdivision) : 0.0;
 
-		NextPlanetFace nextPlanetFace = CheckFaceSplit(frustum, va, vb, vc, subdivision, cameraPosPS, splitCull);
+		NextPlanetFace nextPlanetFace = CheckFaceSplit(frustum, va, vb, vc, subdivision, cameraPosPS, splitCull, hA, hB, hC);
 
 		if (nextPlanetFace == NextPlanetFace::CULL)
 			return;
@@ -908,10 +948,6 @@ namespace Toast {
 			uint32_t iAB = GetMidpoint(ia, ib);
 			uint32_t iBC = GetMidpoint(ib, ic);
 			uint32_t iCA = GetMidpoint(ic, ia);
-
-			Vector3 vAB = mSphereVertices[iAB];
-			Vector3 vBC = mSphereVertices[iBC];
-			Vector3 vCA = mSphereVertices[iCA];
 
 			int16_t nextSubdivision = subdivision + 1;
 
@@ -927,10 +963,9 @@ namespace Toast {
 
 			else if(nextPlanetFace == NextPlanetFace::LEAFPATCH)
 			{
-				// Compute distances using the SAME threshold you used to classify inside/outside
-				Vector3 aR = va * mRadius;
-				Vector3 bR = vb * mRadius;
-				Vector3 cR = vc * mRadius;
+				Vector3 aR = va * (mRadius + hA);
+				Vector3 bR = vb * (mRadius + hB);
+				Vector3 cR = vc * (mRadius + hC);
 
 				double aD2 = Vector3::LengthSquared(aR - cameraPosPS);
 				double bD2 = Vector3::LengthSquared(bR - cameraPosPS);
@@ -978,26 +1013,55 @@ namespace Toast {
 		}
 	}
 
-	PlanetMeshIcosphere::NextPlanetFace PlanetMeshIcosphere::CheckFaceSplit(Frustum* frustum, Vector3 a, Vector3 b, Vector3 c, int16_t subdivision, Vector3& cameraPosPS, bool frustumCheckNeeded)
+	PlanetMeshIcosphere::NextPlanetFace PlanetMeshIcosphere::CheckFaceSplit(Frustum* frustum, const Vector3& a, const Vector3& b, const Vector3& c, int16_t subdivision, Vector3& cameraPosPS, bool frustumCheckNeeded, double hA, double hB, double hC)
 	{
-		a = a * mRadius;
-		b = b * mRadius;
-		c = c * mRadius;
+		// Actual surface positions
+		Vector3 aS = a * (mRadius + hA);
+		Vector3 bS = b * (mRadius + hB);
+		Vector3 cS = c * (mRadius + hC);
 
-		Vector3 center = (a + b + c) / 3.0;
+		Vector3 aToCam = aS - cameraPosPS;
+		Vector3 bToCam = bS - cameraPosPS;
+		Vector3 cToCam = cS - cameraPosPS;
+		double aD2 = Vector3::LengthSquared(aToCam);
+		double bD2 = Vector3::LengthSquared(bToCam);
+		double cD2 = Vector3::LengthSquared(cToCam);
 
-		double dotProduct = Vector3::Dot(Vector3::Normalize(center), Vector3::Normalize(center - cameraPosPS));
+		if (mBackfaceCulling)
+		{
+			Vector3 center = (aS + bS + cS) / 3.0;
+			double centerLenSq = Vector3::LengthSquared(center);
+			Vector3 toCamera = center - cameraPosPS;
+			double toCameraLenSq = Vector3::LengthSquared(toCamera);
+			double dot = Vector3::Dot(center, toCamera);
 
-		if (mBackfaceCulling && dotProduct >= mFaceLevelDotLUT[(uint32_t)subdivision])
-			return NextPlanetFace::CULL;
+			double threshold = mFaceLevelDotLUT[(uint32_t)subdivision];
+
+			// dot / (|center| * |toCamera|) >= threshold
+			// dot >= threshold * |center| * |toCamera|
+			// For positive threshold: dot² >= threshold² * centerLenSq * toCameraLenSq (when dot > 0)
+			if (dot > 0.0)
+			{
+				if (dot * dot >= threshold * threshold * centerLenSq * toCameraLenSq)
+					return NextPlanetFace::CULL;
+			}
+		}
 
 		bool frustumKnown = false;
 		VolumeTri frustumResult = VolumeTri::INTERSECT;
 
 		if (mFrustumCulling && frustumCheckNeeded)
 		{
+			//TOAST_PROFILE_SCOPE("Frustum");
+
 			frustumKnown = true;
-			frustumResult = frustum->ContainsPatchSphere(a, b, c, mRadius);
+
+			double minH = std::min({ hA, hB, hC });
+			double padding = mMaxHeight - minH;
+
+			sFrustumChecks++;
+
+			frustumResult = frustum->ContainsPatchSphere(aS, bS, cS, mRadius + padding, subdivision);
 
 			if (frustumResult == VolumeTri::OUTSIDE)
 				return NextPlanetFace::CULL;
@@ -1008,10 +1072,6 @@ namespace Toast {
 
 		if (subdivision <= MINGUARANTEEDSUBDIVISION)
 			return NextPlanetFace::SPLITCULL;
-
-		double aD2 = Vector3::LengthSquared(a - cameraPosPS);
-		double bD2 = Vector3::LengthSquared(b - cameraPosPS);
-		double cD2 = Vector3::LengthSquared(c - cameraPosPS);
 
 		const double splitD2 = mDistanceLUT[(uint32_t)subdivision];
 
@@ -1049,9 +1109,9 @@ namespace Toast {
 
 		for (const auto& p : mPatches)
 		{
-			Vector3 V0 = Vector3::Normalize(mSphereVertices[p.i0]);
-			Vector3 V1 = Vector3::Normalize(mSphereVertices[p.i1]);
-			Vector3 V2 = Vector3::Normalize(mSphereVertices[p.i2]);
+			const Vector3& V0 = mSphereVertices[p.i0];
+			const Vector3& V1 = mSphereVertices[p.i1];
+			const Vector3& V2 = mSphereVertices[p.i2];
 
 			// world meters (planet space)
 			Vector3 P0 = V0 * mRadius;
@@ -1100,25 +1160,23 @@ namespace Toast {
 
 	uint32_t PlanetMeshIcosphere::GetMidpoint(uint32_t i1, uint32_t i2)
 	{
-		// Ensure deterministic order for the key
+		sMidpointLookups++;
+
 		uint64_t smaller = std::min(i1, i2);
 		uint64_t larger = std::max(i1, i2);
 		uint64_t key = (smaller << 32) | larger;
 
-		auto it = mMidpointCache.find(key);
-		if (it != mMidpointCache.end())
-			return it->second;
+		uint32_t cached = mMidpointCache.find(key);
+		if (cached != MidpointHash::EMPTY)
+			return cached;
 
-		// Not in cache, calculate it
-		Vector3 v1 = mSphereVertices[i1];
-		Vector3 v2 = mSphereVertices[i2];
-		// Exact midpoint calculation
+		const Vector3& v1 = mSphereVertices[i1];
+		const Vector3& v2 = mSphereVertices[i2];
 		Vector3 mid = Vector3::Normalize((v1 + v2) * 0.5);
 
 		uint32_t idx = (uint32_t)mSphereVertices.size();
 		mSphereVertices.push_back(mid);
-
-		mMidpointCache[key] = idx;
+		mMidpointCache.insert(key, idx);
 		return idx;
 	}
 
@@ -1190,6 +1248,26 @@ namespace Toast {
 
 		//for (auto level : mHeightMultLUT)
 		//	TOAST_CORE_INFO("mHeightMultLUT: %lf", level);
+	}
+
+	double PlanetMeshIcosphere::GetCachedHeight(uint32_t idx, int16_t subdivision)
+	{
+		if (idx >= mHeightCache.size())
+			mHeightCache.resize(idx + 1, DBL_MAX);
+
+		if (mHeightCache[idx] == DBL_MAX)
+		{
+			sHeightSamples++;
+
+			static constexpr int16_t BILINEAR_LEVEL = 15;
+
+			if (subdivision >= BILINEAR_LEVEL)
+				mHeightCache[idx] = (double)SampleHeightFromDir(*mTerrainCubeData, mSphereVertices[idx]);
+			else
+				mHeightCache[idx] = (double)SampleHeightNearest(*mTerrainCubeData, mSphereVertices[idx]);
+		}
+
+		return mHeightCache[idx];
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////

@@ -113,6 +113,7 @@ SamplerState UWrapVClampLinearSampler       : register(s5);
 
 static const uint EDGE_CELLS = 12;
 
+#include "DirectionToCube.hlsli"
 #include "PerlinNoise.hlsli"
 #include "TerrainHeightCalculations.hlsli"
 

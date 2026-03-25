@@ -10,8 +10,10 @@ namespace Toast {
 	{
 	public:
 		Vector3();
-		Vector3(float xIn, float yIn, float zIn, float wIn = 1.0f);
-		Vector3(double xIn, double yIn, double zIn, double wIn = 1.0f) : x(xIn), y(yIn), z(zIn), w(wIn) {}
+		Vector3(float xIn, float yIn, float zIn, float wIn = 1.0f)
+			: x((double)xIn), y((double)yIn), z((double)zIn), w((double)wIn) {}
+		Vector3(double xIn, double yIn, double zIn, double wIn = 1.0f) 
+			: x(xIn), y(yIn), z(zIn), w(wIn) {}
 		Vector3(DirectX::XMVECTOR vec);
 		Vector3(std::initializer_list<double> list);
 		Vector3(DirectX::XMFLOAT3 vec);
@@ -73,16 +75,18 @@ namespace Toast {
 			return Vector3(v.x * scalar, v.y * scalar, v.z * scalar, v.w);
 		}
 
-		Vector3 operator*=(double scalar) const {
-			return Vector3(x * scalar, y * scalar, z * scalar, w);
+		Vector3& operator*=(double scalar) {
+			x *= scalar; y *= scalar; z *= scalar;
+			return *this;
 		}
 
 		Vector3 operator/(double scalar) const {
 			return Vector3(x / scalar, y / scalar, z / scalar, w);
 		}
 
-		Vector3 operator/=(double scalar) const {
-			return Vector3(x / scalar, y / scalar, z / scalar, w);
+		Vector3& operator/=(double scalar) {
+			x /= scalar; y /= scalar; z /= scalar;
+			return *this;
 		}
 
 		inline bool operator<(const Vector3& rhs) noexcept
@@ -105,9 +109,9 @@ namespace Toast {
 		}
 
 		double Length() const;
-		static double Length(Vector3 vec);
+		static double Length(const Vector3& vec);
 		double LengthSquared() const;
-		static double LengthSquared(Vector3 vec);
+		static double LengthSquared(const Vector3& vec);
 
 		static Vector3 Normalize(std::initializer_list<double> list);
 		static Vector3 Normalize(const Vector3& vec);

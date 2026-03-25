@@ -1,4 +1,4 @@
-#include "tpch.h"
+﻿#include "tpch.h"
 #include "Frustum.h"
 
 namespace Toast {
@@ -192,41 +192,39 @@ namespace Toast {
 		return ret;
 	}
 
-	Sphere Frustum::ComputePatchBoundingSphere(const Vector3& a, const Vector3& b, const Vector3& c, const double radius)
+	VolumeTri Frustum::ContainsPatchSphere(const Vector3& a, const Vector3& b, const Vector3& c, const double radius, int16_t subdivision)
 	{
-		Vector3 mn = Vector3::Min(a, Vector3::Min(b, c));
-		Vector3 mx = Vector3::Max(a, Vector3::Max(b, c));
-		Vector3 center = (mn + mx) * 0.5;
+		Vector3 center = (a + b + c) / 3.0;
+		//Vector3 center = Vector3::Normalize(a + b + c) * radius;
 
-		Vector3 centerTest = (a + b + c) / 3.0;
+		double rSq = std::max({
+			Vector3::LengthSquared(a - center),
+			Vector3::LengthSquared(b - center),
+			Vector3::LengthSquared(c - center)
+			});
 
-		double r = std::max({ Vector3::Length(a - center), Vector3::Length(b - center), Vector3::Length(c - center) });
-		double rSquared = std::max({ Vector3::LengthSquared(a - centerTest), Vector3::LengthSquared(b - centerTest), Vector3::LengthSquared(c - centerTest) });
+		double multiplier;
+		if (subdivision <= 2)
+			multiplier = 16.0;  // huge patches, big bulge
+		else if (subdivision <= 5)
+			multiplier = 12.0;   // medium patches
+		else
+			multiplier = 4.0;   // small patches, minimal bulge
 
-		//Vector3 mAB = Vector3::Normalize(a + b) * radius;
-		//Vector3 mBC = Vector3::Normalize(b + c) * radius;
-		//Vector3 mCA = Vector3::Normalize(c + a) * radius;
-
-		//r = std::max({ r, Vector3::Length(mAB - center), Vector3::Length(mBC - center), Vector3::Length(mCA - center) });
-
-		return { centerTest, std::sqrt(rSquared) * 2.0 };
-		//return { center, r };
-	}
-
-	VolumeTri Frustum::ContainsPatchSphere(const Vector3& a, const Vector3& b, const Vector3& c, const double radius)
-	{
-		Sphere s = ComputePatchBoundingSphere(a, b, c, radius);
+		double rSq4 = rSq * multiplier; // (r)^2 = (sqrt(rSq)*2)^2 = rSq*4
 
 		bool anyIntersect = false;
 
-		for (const auto& plane : mPlanetCheckPlanes)
+		for (size_t i = 0; i < mPlanetCheckPlanes.size(); i++)
 		{
-			double dc = Vector3::Dot(plane.Normal, s.center) - plane.D;
+			double dc = Vector3::Dot(mPlanetCheckPlanes[i].Normal, center) - mPlanetCheckPlanes[i].D;
 
-			if (dc < -s.radius)
+			// dc < -r  →  dc negative AND dc² > rSq4
+			if (dc < 0.0 && dc * dc > rSq4)
 				return VolumeTri::OUTSIDE;
 
-			if (std::abs(dc) <= s.radius)
+			// |dc| <= r  →  dc² <= rSq4
+			if (dc * dc <= rSq4)
 				anyIntersect = true;
 		}
 

@@ -49,9 +49,7 @@ namespace Toast {
 		bool Contains(Vector3 p);
 		VolumeTri ContainsTriangle(const Vector3& p1, const Vector3& p2, const Vector3& p3) const;
 		VolumeTri ContainsTriangleVolume(Vector3 p1, Vector3 p2, Vector3 p3, double heightRange) const;
-		VolumeTri ContainsPatchSphere(const Vector3& a, const Vector3& b, const Vector3& c, const double radius);
-
-		Sphere ComputePatchBoundingSphere(const Vector3& a, const Vector3& b, const Vector3& c, const double radius);
+		VolumeTri ContainsPatchSphere(const Vector3& a, const Vector3& b, const Vector3& c, const double radius, int16_t subdivision);
 
 		void ToString();
 	public:

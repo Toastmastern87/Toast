@@ -15,13 +15,6 @@ namespace Toast {
 		w = 1.0;
 	}
 
-	Vector3::Vector3(float xIn, float yIn, float zIn, float wIn) {
-		x = (double)xIn;
-		y = (double)yIn;
-		z = (double)zIn;
-		w = (double)wIn;
-	}
-
 	Vector3::Vector3(DirectX::XMVECTOR vec) {
 		x = DirectX::XMVectorGetX(vec);
 		y = DirectX::XMVectorGetY(vec);
@@ -50,7 +43,7 @@ namespace Toast {
 		return sqrt(x * x + y * y + z * z);
 	}
 
-	double Vector3::Length(Vector3 vec)
+	double Vector3::Length(const Vector3& vec)
 	{
 		return sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
 	}
@@ -59,7 +52,7 @@ namespace Toast {
 		return x * x + y * y + z * z;
 	}
 
-	double Vector3::LengthSquared(Vector3 vec)
+	double Vector3::LengthSquared(const Vector3& vec)
 	{
 		return vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
 	}

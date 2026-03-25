@@ -68,6 +68,9 @@ namespace Toast {
 		virtual void SetData(const void* data, uint32_t size);
 
 		virtual ID3D11Buffer* GetBuffer() const { return mVertexBuffer.Get(); }
+
+		void SetCount(uint32_t count) { mCount = count; }
+		uint32_t GetCount() const { return mCount; }
 	private:
 		Microsoft::WRL::ComPtr<ID3D11Buffer> mVertexBuffer = nullptr;
 		uint32_t mSize = 0, mCount, mBindSlot = 0;

@@ -17,6 +17,7 @@
 #include "Toast/Renderer/Frustum.h"
 #include "Toast/Renderer/Mesh.h"
 #include "Toast/Renderer/RenderCommand.h"
+#include "Toast/Renderer/TerrainCubeData.h"
 
 #include "Toast/Scene/Components.h"
 
@@ -144,20 +145,6 @@ namespace Toast {
 		float MaxScale = 0.3f;
 	};
 
-	//NEW
-	struct TerrainCubeData
-	{
-		uint32_t Width = 0;  
-		uint32_t Height = 0; 
-
-		std::array<std::vector<float>, 6> FaceHeight;
-	};
-
-	inline size_t Index2D(uint32_t x, uint32_t y, uint32_t width)
-	{
-		return static_cast<size_t>(y) * static_cast<size_t>(width) + static_cast<size_t>(x);
-	}
-
 	struct AtmosphericData 
 	{
 		float AtmosphereHeight = 0.0f;
@@ -199,6 +186,44 @@ namespace Toast {
 	class PlanetMeshIcosphere
 	{
 	public:
+		struct MidpointHash
+		{
+			static constexpr uint32_t EMPTY = UINT32_MAX;
+			std::vector<uint64_t> keys;
+			std::vector<uint32_t> values;
+			uint32_t mask = 0;
+
+			void clear(uint32_t capacity)
+			{
+				// capacity must be power of 2
+				uint32_t cap = 1;
+				while (cap < capacity * 2) cap <<= 1;
+				mask = cap - 1;
+				keys.assign(cap, UINT64_MAX);
+				values.assign(cap, EMPTY);
+			}
+
+			uint32_t find(uint64_t key) const
+			{
+				uint32_t slot = (uint32_t)(key * 2654435761ull) & mask;
+				while (true)
+				{
+					if (keys[slot] == key) return values[slot];
+					if (keys[slot] == UINT64_MAX) return EMPTY;
+					slot = (slot + 1) & mask;
+				}
+			}
+
+			void insert(uint64_t key, uint32_t value)
+			{
+				uint32_t slot = (uint32_t)(key * 2654435761ull) & mask;
+				while (keys[slot] != UINT64_MAX)
+					slot = (slot + 1) & mask;
+				keys[slot] = key;
+				values[slot] = value;
+			}
+		};
+
 		enum class NextPlanetFace
 		{
 			CULL, LEAF, LEAFPATCH, SPLIT, SPLITCULL
@@ -262,9 +287,9 @@ namespace Toast {
 		void InitShaderLayout();
 		void GeneratePatchGeometry();
 
-		void OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, double radius, double maxHeight);
+		void OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, double radius, double maxHeight, const TerrainCubeData& terrainData);
 		void RecursiveFace(Frustum* frustum, uint32_t ia, uint32_t ib, uint32_t ic, int16_t subdivision, Vector3& cameraPosPS, bool splitCull);
-		NextPlanetFace CheckFaceSplit(Frustum* frustum, Vector3 a, Vector3 b, Vector3 c, int16_t subdivision, Vector3& cameraPosPS, bool frustumCheckNeeded);
+		NextPlanetFace CheckFaceSplit(Frustum* frustum, const  Vector3& a, const  Vector3& b, const  Vector3& c, int16_t subdivision, Vector3& cameraPosPS, bool frustumCheckNeeded, double hA, double hB, double hC);
 
 		Ref<ShaderLayout> GetShaderInputLayout() { return mShaderInputLayout; }
 
@@ -289,6 +314,8 @@ namespace Toast {
 		friend class SceneSerializer;
 		friend class PlanetPanel;
 	private:
+		double GetCachedHeight(uint32_t idx, int16_t subdivision);
+	private:
 		double mRadius = 0.0;
 		double mMaxHeight = 0.0;
 
@@ -300,6 +327,10 @@ namespace Toast {
 		double mFarDistance = 10.0;
 		Vector3 mCamHiPS = { 0.0, 0.0, 0.0 };
 
+		const TerrainCubeData* mTerrainCubeData;
+		
+		std::vector<double> mHeightCache;
+
 		std::vector<PlanetPatchCPU> mPatches;
 		std::vector<PlanetPatchGPU> mPatchesGPU;
 
@@ -309,10 +340,11 @@ namespace Toast {
 		std::vector<PlanetVertexGPU> mVerticesGPU;
 		std::vector<uint32_t> mIndices;
 		std::vector<Vector3> mSphereVertices;
-		std::unordered_map<uint64_t, uint32_t> mMidpointCache;
+		MidpointHash mMidpointCache;
 
 		Ref<VertexBuffer> mVertexBuffer;
 		Ref<VertexBuffer> mInstanceVertexBuffer;
+		uint32_t mInstanceBufferCapacity = 0;
 		Ref<IndexBuffer> mIndexBuffer;
 
 		Ref<ShaderLayout> mShaderInputLayout;
