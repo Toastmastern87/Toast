@@ -1222,99 +1222,11 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  
-	//     TEXTURE SAMPLER   ///////////////////////////////////////////////////////////////  
-	//////////////////////////////////////////////////////////////////////////////////////// 
-
-	TextureSampler::TextureSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode, float mipLODBias)
-	{
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11Device* device = API->GetDevice();
-
-		D3D11_SAMPLER_DESC desc = {};
-		desc.Filter = filter;
-		desc.AddressU = addressMode;
-		desc.AddressV = addressMode;
-		desc.AddressW = addressMode;
-		desc.MaxAnisotropy = (filter == D3D11_FILTER_ANISOTROPIC) ? D3D11_REQ_MAXANISOTROPY : 1;
-		desc.MipLODBias = mipLODBias;
-		desc.MinLOD = 0;
-		desc.MaxLOD = D3D11_FLOAT32_MAX;
-
-		HRESULT result = device->CreateSamplerState(&desc, &mSamplerState);
-		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the sampler!");
-	}
-
-	TextureSampler::TextureSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE uAddressMode, D3D11_TEXTURE_ADDRESS_MODE vAddressMode, float mipLODBias)
-	{
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11Device* device = API->GetDevice();
-
-		D3D11_SAMPLER_DESC desc = {};
-		desc.Filter = filter;
-		desc.AddressU = uAddressMode;
-		desc.AddressV = vAddressMode;
-		desc.AddressW = uAddressMode;
-		desc.MaxAnisotropy = (filter == D3D11_FILTER_ANISOTROPIC) ? D3D11_REQ_MAXANISOTROPY : 1;
-		desc.MipLODBias = 0.0f;
-		desc.MinLOD = 0;
-		desc.MaxLOD = D3D11_FLOAT32_MAX;
-
-		HRESULT result = device->CreateSamplerState(&desc, &mSamplerState);
-		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create the sampler!");
-	}
-
-	TextureSampler::TextureSampler(	D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode, float mipLODBias, D3D11_COMPARISON_FUNC comparisonFunc)
-	{
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11Device* device = API->GetDevice();
-
-		D3D11_SAMPLER_DESC desc = {};
-		desc.Filter = filter; // MUST be a COMPARISON filter
-		desc.AddressU = addressMode;
-		desc.AddressV = addressMode;
-		desc.AddressW = addressMode;
-
-		desc.MaxAnisotropy = 1; // comparison samplers are typically not anisotropic
-		desc.MipLODBias = mipLODBias;
-		desc.MinLOD = 0;
-		desc.MaxLOD = D3D11_FLOAT32_MAX;
-
-		desc.ComparisonFunc = comparisonFunc;
-
-		// Optional but recommended for shadow maps:
-		desc.BorderColor[0] = 0.0f;
-		desc.BorderColor[1] = 0.0f;
-		desc.BorderColor[2] = 0.0f;
-		desc.BorderColor[3] = 0.0f;
-
-		HRESULT hr = device->CreateSamplerState(&desc, &mSamplerState);
-		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Unable to create comparison sampler!");
-	}
-
-	void TextureSampler::Bind(uint32_t bindslot, D3D11_SHADER_TYPE shaderType) const
-	{
-		TOAST_PROFILE_FUNCTION();
-
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
-
-		switch (shaderType)
-		{
-		case D3D11_VERTEX_SHADER:
-			deviceContext->VSSetSamplers(bindslot, 1, mSamplerState.GetAddressOf());
-		case D3D11_PIXEL_SHADER:
-			deviceContext->PSSetSamplers(bindslot, 1, mSamplerState.GetAddressOf());
-		case D3D11_COMPUTE_SHADER:
-			deviceContext->CSSetSamplers(bindslot, 1, mSamplerState.GetAddressOf());
-		}
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////  
 	//     TEXTURE LIBRARY    //////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
 	std::unordered_map<std::string, Scope<Texture>> TextureLibrary::mTextures;
-	std::unordered_map<std::string, Scope<TextureSampler>> TextureLibrary::mTextureSamplers;
+	//std::unordered_map<std::string, Scope<TextureSampler>> TextureLibrary::mTextureSamplers;
 
 	Texture2D* TextureLibrary::LoadTexture2D(const std::string& filePath, const bool sRGB)
 	{
@@ -1335,35 +1247,10 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		return (TextureCube*)mTextures[filePath].get();
 	}
 
-	TextureSampler* TextureLibrary::LoadTextureSampler(const std::string& name, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode, float mipLODBias)
-	{
-		mTextureSamplers[name] = CreateScope<TextureSampler>(filter, addressMode, mipLODBias);
-		return mTextureSamplers[name].get();
-	}
-
-	TextureSampler* TextureLibrary::LoadTextureSampler(const std::string& name, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE uAddressMode, D3D11_TEXTURE_ADDRESS_MODE vAddressMode, float mipLODBias)
-	{
-		mTextureSamplers[name] = CreateScope<TextureSampler>(filter, uAddressMode, vAddressMode, mipLODBias);
-		return mTextureSamplers[name].get();
-	}
-
-
-	TextureSampler* TextureLibrary::LoadComparisonSampler(const std::string& name, D3D11_FILTER filter, D3D11_COMPARISON_FUNC cmpFunc, D3D11_TEXTURE_ADDRESS_MODE addressMode, float mipLODBias)
-	{
-		mTextureSamplers[name] = CreateScope<TextureSampler>(filter, addressMode, mipLODBias, cmpFunc);
-		return mTextureSamplers[name].get();
-	}
-
 	Texture* TextureLibrary::Get(const std::string& filePath)
 	{
 		TOAST_CORE_ASSERT(Exists(filePath), "Texture not found!");
 		return mTextures[filePath].get();
-	}
-
-	TextureSampler* TextureLibrary::GetSampler(const std::string& name)
-	{
-		TOAST_CORE_ASSERT(ExistsSampler(name), "Texture sampler not found!");
-		return mTextureSamplers[name].get();
 	}
 
 	bool TextureLibrary::Exists(const std::string& filePath)
@@ -1371,8 +1258,4 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		return mTextures.find(filePath) != mTextures.end();
 	}
 
-	bool TextureLibrary::ExistsSampler(const std::string& name)
-	{
-		return mTextureSamplers.find(name) != mTextureSamplers.end();
-	}
 }

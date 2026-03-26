@@ -97,6 +97,11 @@ namespace Toast {
 			sRendererAPI->SetShaderResource(shaderType, bindSlot, srv);
 		}
 
+		static void BindSampler(D3D11_SHADER_TYPE shaderType, uint32_t bindSlot, ID3D11SamplerState* samplerState)
+		{
+			sRendererAPI->BindSampler(shaderType, bindSlot, samplerState);
+		}
+
 		static void ClearShaderResources()
 		{
 			sRendererAPI->ClearShaderResources();

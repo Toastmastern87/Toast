@@ -352,37 +352,18 @@ namespace Toast {
 		std::unordered_map<std::string, uint32_t> mSliceMappingOLD;
 	};
 
-	class TextureSampler
-	{
-	public:
-		TextureSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode, float mipLODBias = 0.0f);
-		TextureSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE uAddressMode, D3D11_TEXTURE_ADDRESS_MODE vAddressMode, float mipLODBias = 0.0f);
-		TextureSampler(D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE addressMode, float mipLODBias, D3D11_COMPARISON_FUNC comparisonFunc);
-		~TextureSampler() = default;
-
-		void Bind(uint32_t bindslot = 0, D3D11_SHADER_TYPE shaderType = D3D11_VERTEX_SHADER) const;
-	private:
-		Microsoft::WRL::ComPtr<ID3D11SamplerState> mSamplerState;
-	};
-
 	class TextureLibrary
 	{
 	public:
 		static Texture2D* LoadTexture2D(const std::string& filePath, const bool sRGB = true);
 		static TextureCube* LoadTextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels = 0);
-		static TextureSampler* LoadTextureSampler(const std::string& name, D3D11_FILTER filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_MODE addressMode = D3D11_TEXTURE_ADDRESS_WRAP, float mipLODBias = 0.0f);
-		static TextureSampler* LoadTextureSampler(const std::string& name, D3D11_FILTER filter, D3D11_TEXTURE_ADDRESS_MODE uAddressMode, D3D11_TEXTURE_ADDRESS_MODE vAddressMode, float mipLODBias = 0.0f);
-		static TextureSampler* LoadComparisonSampler(const std::string& name, D3D11_FILTER filter, D3D11_COMPARISON_FUNC cmpFunc, D3D11_TEXTURE_ADDRESS_MODE addressMode, float mipLODBias = 0.0f);
 
 		static Texture* Get(const std::string& name);
-		static TextureSampler* GetSampler(const std::string& name);
 		static std::unordered_map<std::string, Scope<Texture>>& GetTextures() { return mTextures; }
 
 		static bool Exists(const std::string& name);
-		static bool ExistsSampler(const std::string& name);
 	private:
 		static std::unordered_map<std::string, Scope<Texture>> mTextures;
-		static std::unordered_map<std::string, Scope<TextureSampler>> mTextureSamplers;
 	};
 
 }

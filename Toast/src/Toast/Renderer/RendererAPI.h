@@ -42,6 +42,7 @@ namespace Toast {
 		void ClearDepthStencilView(Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthView, const float clearColor = 0.0f);
 		void SetDepthStencilState(Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depthStencilState);
 		void SetBlendState(Microsoft::WRL::ComPtr<ID3D11BlendState> blendState, const DirectX::XMFLOAT4& blendFactor);
+		void BindSampler(D3D11_SHADER_TYPE shaderType, uint32_t bindSlot, ID3D11SamplerState* samplerState);
 
 		void GetAnnotation(Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>& annotation);
 

@@ -210,6 +210,19 @@ namespace Toast {
 		mDeviceContext->OMSetBlendState(blendState.Get(), &blendFactor.x, 0xffffffff);
 	}
 
+	void RendererAPI::BindSampler(D3D11_SHADER_TYPE shaderType, uint32_t bindSlot, ID3D11SamplerState* samplerState)
+	{
+		switch (shaderType)
+		{
+		case D3D11_VERTEX_SHADER:
+			mDeviceContext->VSSetSamplers(bindSlot, 1, &samplerState);
+		case D3D11_PIXEL_SHADER:
+			mDeviceContext->PSSetSamplers(bindSlot, 1, &samplerState);
+		case D3D11_COMPUTE_SHADER:
+			mDeviceContext->CSSetSamplers(bindSlot, 1, &samplerState);
+		}
+	}
+
 	void RendererAPI::CreateRasterizerStates()
 	{
 		HRESULT result;

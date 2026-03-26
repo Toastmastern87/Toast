@@ -11,6 +11,7 @@
 #include "Toast/Utils/FixedThreadPool.h"
 
 #include "Toast/Renderer/TerrainSampler.h"
+#include "Toast/Renderer/SamplerStates.h"
 
 #include <chrono>
 
@@ -210,8 +211,6 @@ namespace Toast {
 
 		const uint32_t cubemapSize = 2048;
 
-		TextureSampler* defaultSampler = TextureLibrary::GetSampler("UWrapVClampLinearSampler");
-
 		Ref<TextureCube> heightMapCube = CreateRef<TextureCube>("HeightMapCube", DXGI_FORMAT_R32_FLOAT, cubemapSize, cubemapSize);
 		 
 		heightMapCube->CreateUAV(0);
@@ -219,7 +218,7 @@ namespace Toast {
 		ShaderLibrary::Get("assets/shaders/Planet/HeightMapToCubeMap.hlsl")->Bind();
 
 		heightMapTexture->Bind(0, D3D11_COMPUTE_SHADER);
-		defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::UWrapVClamp));
 
 		heightMapCube->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 
@@ -236,7 +235,6 @@ namespace Toast {
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		const uint32_t cubemapSize = 2048;
-		TextureSampler* linearSampler = TextureLibrary::GetSampler("UWrapVClampLinearSampler");
 
 		Ref<TextureCube> normalCube = CreateRef<TextureCube>("NormalMapCube", DXGI_FORMAT_R8G8B8A8_UNORM, cubemapSize, cubemapSize);
 		normalCube->CreateUAV(0);
@@ -246,7 +244,7 @@ namespace Toast {
 
 		ShaderLibrary::Get("assets/shaders/Planet/HeightCubeToNormalCube.hlsl")->Bind();
 		heightCube->Bind(0, D3D11_COMPUTE_SHADER);      // t0
-		linearSampler->Bind(0, D3D11_COMPUTE_SHADER);    // s0
+		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::UWrapVClamp));
 		normalCube->BindForReadWrite(0, D3D11_COMPUTE_SHADER); // u0
 
 		const uint32_t groupsX = (cubemapSize + 31) / 32;
@@ -261,15 +259,13 @@ namespace Toast {
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		const uint32_t cubemapSize = 4096; // higher res than height since this is what you see
-		TextureSampler* defaultSampler = TextureLibrary::GetSampler("UWrapVClampLinearSampler");
 
-		Ref<TextureCube> albedoCube = CreateRef<TextureCube>(
-			"AlbedoCube", DXGI_FORMAT_R8G8B8A8_UNORM, cubemapSize, cubemapSize);
+		Ref<TextureCube> albedoCube = CreateRef<TextureCube>("AlbedoCube", DXGI_FORMAT_R8G8B8A8_UNORM, cubemapSize, cubemapSize);
 		albedoCube->CreateUAV(0);
 
 		ShaderLibrary::Get("assets/shaders/Planet/AlbedoMapToCube.hlsl")->Bind();
 		albedoTexture->Bind(0, D3D11_COMPUTE_SHADER);
-		defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::UWrapVClamp));
 		albedoCube->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 
 		const uint32_t groupsX = (cubemapSize + 31) / 32;

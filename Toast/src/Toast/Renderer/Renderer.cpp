@@ -8,6 +8,8 @@
 
 #include "Toast/Renderer/PlanetSystem.h"
 
+#include "Toast/Renderer/SamplerStates.h"
+
 namespace Toast {
 
 	struct RendererStat
@@ -26,6 +28,8 @@ namespace Toast {
 		RenderCommand::Init();
 		Renderer2D::Init();
 		RendererDebug::Init(width, height);
+
+		SamplerStates::Init();
 
 		sRendererData->EditorViewport.TopLeftX = 0.0f;
 		sRendererData->EditorViewport.TopLeftY = 0.0f;
@@ -242,6 +246,8 @@ namespace Toast {
 
 	void Renderer::Shutdown()
 	{
+		SamplerStates::Shutdown();
+
 		Renderer2D::Shutdown();
 		RendererDebug::Shutdown();
 	}
@@ -359,9 +365,8 @@ namespace Toast {
 
 		sRendererData->SpecularBRDFLUT->Bind(2, D3D11_PIXEL_SHADER);
 
-		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
-		if (TextureLibrary::ExistsSampler("BRDFSampler"))
-			TextureLibrary::GetSampler("BRDFSampler")->Bind(1, D3D11_PIXEL_SHADER);
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::Default));
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 1, SamplerStates::Get(SamplerType::BRDF));
 
 		// Updating the render settings data in the buffer and mapping it to the GPU
 		float renderOverlay = (float)scene->mSettings.RenderOverlaySetting;
@@ -881,7 +886,6 @@ namespace Toast {
 
 		const uint32_t cubemapSize = 4096;
 
-		TextureSampler* defaultSampler = TextureLibrary::GetSampler("Default");
 		Ref<TextureCube> envMapUnfiltered = CreateRef<TextureCube>("EnvMapUnfiltered", cubemapSize, cubemapSize);
 		Ref<TextureCube> envMapFiltered = CreateRef<TextureCube>("EnvMapFiltered", cubemapSize, cubemapSize);
 
@@ -892,7 +896,7 @@ namespace Toast {
 
 		equirectangularConversionShader->Bind();
 		starFieldTexture->Bind(0, D3D11_COMPUTE_SHADER);
-		defaultSampler->Bind(0, D3D11_COMPUTE_SHADER);
+		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::Default));
 		envMapUnfiltered->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 		RenderCommand::DispatchCompute(cubemapSize / 32, cubemapSize / 32, 6);
 		envMapUnfiltered->UnbindUAV();
@@ -957,8 +961,8 @@ namespace Toast {
 				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 			}
 
-			TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(5, D3D11_VERTEX_SHADER);
-			TextureLibrary::GetSampler("UWrapVClampLinearSampler")->Bind(5, D3D11_PIXEL_SHADER);
+			RenderCommand::BindSampler(D3D11_VERTEX_SHADER, 5, SamplerStates::Get(SamplerType::UWrapVClamp));
+			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 5, SamplerStates::Get(SamplerType::UWrapVClamp));
 			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->PlanetDraw.Planet->GetNormalMapCubeTexture()->GetSRV());
 
@@ -1256,8 +1260,8 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassNormalRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SSAONoiseTexture->GetSRV());
 
-		TextureLibrary::GetSampler("PointSampler")->Bind(3, D3D11_PIXEL_SHADER);
-		TextureLibrary::GetSampler("LinearSampler")->Bind(4, D3D11_PIXEL_SHADER);
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 3, SamplerStates::Get(SamplerType::PointClamp));
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 4, SamplerStates::Get(SamplerType::LinearClamp));
 
 		sRendererData->SSAOBuffer.Write((uint8_t*)&sRendererData->SSAOKernel[0], 1024, 0);
 		sRendererData->SSAOBuffer.Write((uint8_t*)&radius, 4, 1024);
@@ -1350,11 +1354,11 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 7, planet->GetTransmittanceLUT()->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, planet->GetMultiScatteringLUT()->GetSRV());
 
-		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_PIXEL_SHADER);
-		TextureLibrary::GetSampler("BRDFSampler")->Bind(1, D3D11_PIXEL_SHADER);
-		TextureLibrary::GetSampler("PointSampler")->Bind(2, D3D11_PIXEL_SHADER);
-		TextureLibrary::GetSampler("LinearSampler")->Bind(3, D3D11_PIXEL_SHADER);
-		TextureLibrary::GetSampler("ShadowCmp")->Bind(4, D3D11_PIXEL_SHADER);
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::Default));
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 1, SamplerStates::Get(SamplerType::BRDF));
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 2, SamplerStates::Get(SamplerType::PointClamp));
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 3, SamplerStates::Get(SamplerType::LinearClamp));
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 4, SamplerStates::Get(SamplerType::ShadowCmp));
 
 		DrawFullscreenQuad();
 
@@ -1406,8 +1410,8 @@ namespace Toast {
 
 				sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
 
-				TextureLibrary::GetSampler("LinearSampler")->Bind(0, D3D11_PIXEL_SHADER);
-				TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);
+				RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::LinearWrap));
+				RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 1, SamplerStates::Get(SamplerType::PointClamp));
 
 				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
 				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->PlanetDraw.Planet->GetStarFieldTextureCube()->GetSRV());
@@ -1439,11 +1443,11 @@ namespace Toast {
 			annotation->BeginEvent(L"Atmosphere Pass");
 #endif
 
-		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_COMPUTE_SHADER);
-		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_COMPUTE_SHADER);
-		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_PIXEL_SHADER);
-		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);		
-		TextureLibrary::GetSampler("SkyTest")->Bind(3, D3D11_PIXEL_SHADER);
+		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::LinearClamp));
+		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 1, SamplerStates::Get(SamplerType::PointClamp));
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::LinearClamp));
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 1, SamplerStates::Get(SamplerType::PointClamp));
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 3, SamplerStates::Get(SamplerType::SkyTest));
 
 		float bakeIBL = 0.0f;
 
@@ -1664,8 +1668,8 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->SunDiscMaskRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SunHaloMaskRT->GetSRV());
 
-		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_PIXEL_SHADER);
-		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::LinearClamp));
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 1, SamplerStates::Get(SamplerType::PointClamp));
 
 		RenderCommand::SetBlendState(sRendererData->GodRayPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
@@ -1714,7 +1718,7 @@ namespace Toast {
 		RenderCommand::SetBlendState(sRendererData->ParticleBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::ClearRenderTargets({ sRendererData->SunBloomRT->GetRTV().Get(), sRendererData->SkyBloomRT->GetRTV().Get(), sRendererData->GeometryBloomRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		TextureLibrary::GetSampler("PointSampler")->Bind(2, D3D11_PIXEL_SHADER);
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 2, SamplerStates::Get(SamplerType::PointClamp));
 
 		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunSurfaceThreshold, sizeof(float), 0);
 		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunSurfaceIntensity, sizeof(float), 4);
@@ -1741,7 +1745,7 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SunDiscMaskRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->SunHaloMaskRT->GetSRV());
 
-		TextureLibrary::GetSampler("ClampSampler")->Bind(3, D3D11_PIXEL_SHADER);
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 3, SamplerStates::Get(SamplerType::LinearClamp));
 
 		DrawFullscreenQuad();
 
@@ -1925,8 +1929,8 @@ namespace Toast {
 		sRendererData->StarsCBuffer->Map(sRendererData->StarsBuffer);
 		sRendererData->StarsCBuffer->Bind();
 
-		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_PIXEL_SHADER);
-		TextureLibrary::GetSampler("PointSampler")->Bind(1, D3D11_PIXEL_SHADER);
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::LinearClamp));
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 1, SamplerStates::Get(SamplerType::PointClamp));
 
 		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.EVSurfaceDay, 4, 0);
 		sRendererData->TonemappingBuffer.Write((uint8_t*)&exposureParams.EVSpaceDay, 4, 4);
@@ -2027,7 +2031,7 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 14, sourceTexture->GetSRV());
 
 		// Bind the sampler
-		TextureLibrary::GetSampler("Default")->Bind(0, D3D11_COMPUTE_SHADER);
+		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::Default));
 
 		const uint32_t srcW = sourceTexture->GetWidth();
 		const uint32_t srcH = sourceTexture->GetHeight();
@@ -2249,7 +2253,7 @@ namespace Toast {
 		sRendererData->AtmosphereCBuffer->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
-		TextureLibrary::GetSampler("ClampSampler")->Bind(0, D3D11_COMPUTE_SHADER);
+		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::LinearClamp));
 
 		planet->GetMultiScatteringLUT()->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 
