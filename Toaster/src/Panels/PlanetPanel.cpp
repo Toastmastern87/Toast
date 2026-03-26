@@ -556,21 +556,39 @@ namespace Toast {
 						ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.6f);
 
 						ImGui::TableNextRow();
-
 						ImGui::TableSetColumnIndex(0);
 						ImGui::AlignTextToFramePadding();
 						ImGui::Text("Gravity Constant");
-
 						ImGui::TableSetColumnIndex(1);
-
 						float padX = ImGui::GetStyle().CellPadding.x;
 						float colW = ImGui::GetColumnWidth();             // total width of column 1
 						float fullW = colW - padX * 2.0f;                  // leave padding on both sides
 						ImGui::SetNextItemWidth(fullW);
-
-						ImGui::SetNextItemWidth(fullW);
-
 						ImGui::DragFloat("##GravityConstant", &mContext->mGravityConstant, 0.01f, 0.0f, 100.0f, "%.2f");
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::TextWrapped("Surface Air Density (kg/m³)");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat("##SurfaceAirDensity", &mContext->mSurfaceAirDensity, 0.001f, 0.0f, 100.0f, "%.3f");
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::TextWrapped("Physics Scale Height(m)");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat("##PhysicsScaleHeight", &mContext->mPhysicsScaleHeight, 10.0f, 1.0f, 100000.0f, "%.1f");
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::TextWrapped("Atmosphere Ceiling(m)");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat("##AtmosphereCeiling", &mContext->mAtmosphereCeiling, 100.0f, 0.0f, 1000000.0f, "%.0f");
 
 						ImGui::EndTable();
 					}

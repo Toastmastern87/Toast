@@ -501,7 +501,6 @@ namespace Toast {
 		DirectX::XMFLOAT3 mBasisRadUp;
 		DirectX::XMFLOAT3 mBasisTanEast;
 		DirectX::XMFLOAT3 mBasisTanNorth;
-		//std::vector<double> mDistanceLUT;
 		AssetHandle mBaseHeightMapHandle;
 		Ref<TextureCube> mBaseHeightMapTextureCube;
 		Ref<TextureCube> mNormalMapTextureCube;
@@ -546,6 +545,9 @@ namespace Toast {
 
 		// Physics
 		float mGravityConstant = 0.0f;
+		float mSurfaceAirDensity = 0.0f;      
+		float mPhysicsScaleHeight = 0.0f;   
+		float mAtmosphereCeiling = 0.0f;  
 
 		friend class SceneSerializer;
 		friend class PlanetPanel;

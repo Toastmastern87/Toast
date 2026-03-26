@@ -727,6 +727,9 @@ namespace Toast {
 		out << YAML::Key << "MSGain" << YAML::Value << scenePlanet->mAtmosphere.MSGain;
 		out << YAML::Key << "SGain" << YAML::Value << scenePlanet->mAtmosphere.SGain;
 		out << YAML::Key << "GravityConstant" << YAML::Value << scenePlanet->mGravityConstant;
+		out << YAML::Key << "SurfaceAirDensity" << YAML::Value << scenePlanet->mSurfaceAirDensity;
+		out << YAML::Key << "PhysicsScaleHeight" << YAML::Value << scenePlanet->mPhysicsScaleHeight;
+		out << YAML::Key << "AtmosphereCeiling" << YAML::Value << scenePlanet->mAtmosphereCeiling;
 
 		auto& planetMeshGeo = scenePlanet->mGeoClipmapMesh;
 		auto& planetMeshIco = scenePlanet->mIcosphereMesh;
@@ -1058,6 +1061,9 @@ namespace Toast {
 		scenePlanet->mAtmosphere.MSGain = planet["MSGain"].as<float>();
 		scenePlanet->mAtmosphere.SGain = planet["SGain"].as<float>();
 		scenePlanet->mGravityConstant = planet["GravityConstant"].as<float>();
+		scenePlanet->mSurfaceAirDensity = planet["SurfaceAirDensity"].as<float>();
+		scenePlanet->mPhysicsScaleHeight = planet["PhysicsScaleHeight"].as<float>();
+		scenePlanet->mAtmosphereCeiling = planet["AtmosphereCeiling"].as<float>();
 
 		auto& planetMeshGeo = scenePlanet->mGeoClipmapMesh;
 		planetMeshGeo->mGridSize = planet["PlanetMesh"]["GridSize"].as<uint32_t>();
