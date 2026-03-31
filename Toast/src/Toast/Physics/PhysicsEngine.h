@@ -37,10 +37,13 @@ namespace Toast {
 		void Initialize(Scene* scene);
 		void Update(double ts);
 
+		double GetAltitudeSimple(const Vector3& worldPos);
 		double GetAltitude(Entity& entity, bool ignoreWorldTranslation = false);
 		double GetAltitudeAtWorldPos(const Vector3& worldPos, double& outRadialDist, Vector3& outGroundNormal);
 		double GetAltitudeBoxCollider(Entity& entity);
 		double GetAltitudeSphereCollider(Entity& entity);
+
+		double GetAirDensity(double altitude);
 
 		void ApplyLinearImpulse(RigidBodyComponent& rbc, Vector3 impulse);
 
@@ -49,6 +52,7 @@ namespace Toast {
 		void ApplyImpulseAngular(RigidBodyComponent& rbc, Matrix objectInvInertiaWorld, Vector3 impulse);
 
 		void ApplyGravity(Entity& entity, double ts);
+		void ApplyAeroDrag(Entity& entity, double ts);
 
 		void IntegrateLinear(Entity& entity, double ts);
 		void IntegrateAngular(Entity& entity, double ts);

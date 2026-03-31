@@ -645,6 +645,10 @@ namespace Toast {
 		Ref<PlanetMeshGeoClipmap>& GetGeoClipmapMesh() { return mGeoClipmapMesh; }
 
 		bool IsTerrainReady() const;
+
+		float GetPhysicsAtmosphereCeiling() { return mAtmosphereCeiling; }
+		float GetSurfaceAirDensity() { return mSurfaceAirDensity; }
+		float GetPhysicsScaleHeight() { return mPhysicsScaleHeight; }
 	};
 
 }

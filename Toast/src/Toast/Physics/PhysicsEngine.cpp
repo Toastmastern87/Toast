@@ -57,6 +57,7 @@ namespace Toast {
 				for (int i = 0; i < mSettings.StepsPerUpdate; ++i)
 				{
 					ApplyGravity(e, subStepDeltaTime);
+					ApplyAeroDrag(e, subStepDeltaTime);
 
 					IntegrateLinear(e, subStepDeltaTime);
 					IntegrateAngular(e, subStepDeltaTime);
@@ -69,6 +70,17 @@ namespace Toast {
 
 			mSettings.ElapsedTime -= targetFrameTime;
 		}
+	}
+
+	double PhysicsEngine::GetAltitudeSimple(const Vector3& worldPos)
+	{
+		Planet& planet = *mScene->GetPlanet();
+		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
+
+		Vector3 planetCenter = Vector3(planet.GetTranslation()) + worldTranslation;
+		double dist = (worldPos - planetCenter).Length();
+
+		return dist - (planet.GetRadius() + planet.GetMinHeight());
 	}
 
 	double PhysicsEngine::GetAltitude(Entity& entity, bool ignoreWorldTranslation)
@@ -172,6 +184,22 @@ namespace Toast {
 		return 0.0; // TODO
 	}
 
+	double PhysicsEngine::GetAirDensity(double altitude)
+	{
+		Planet& planet = *mScene->GetPlanet();
+
+		double ceiling = (double)planet.GetPhysicsAtmosphereCeiling();
+		if (altitude > ceiling)
+			return 0.0;
+
+		double surfaceDensity = (double)planet.GetSurfaceAirDensity();
+		if (altitude < 0.0)
+			return surfaceDensity;
+
+		double scaleHeight = (double)planet.GetPhysicsScaleHeight();
+		return surfaceDensity * exp(-altitude / scaleHeight);
+	}
+
 	void PhysicsEngine::ApplyLinearImpulse(RigidBodyComponent& rbc, Vector3 impulse)
 	{
 		if (rbc.InvMass == 0.0)
@@ -205,6 +233,68 @@ namespace Toast {
 		Vector3 gravityImpulse = Vector3::Normalize(planetPos - objectPos) * gravityConstant * (1.0 / rbc.InvMass) * ts;
 
 		ApplyLinearImpulse(rbc, gravityImpulse);
+	}
+
+	void PhysicsEngine::ApplyAeroDrag(Entity& entity, double ts)
+	{
+		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
+
+		auto& rbc = entity.GetComponent<RigidBodyComponent>();
+		auto& tc = entity.GetComponent<TransformComponent>();
+
+		if (rbc.InvMass == 0.0 || rbc.DragCoefficient == 0.0f)
+			return;
+
+		rbc.DebugDragForce = { 0.0, 0.0, 0.0 };
+		rbc.DebugAirDensity = 0.0;
+		rbc.DebugEffectiveCrossSection = 0.0;
+		rbc.DebugAltitude = 0.0;
+
+		Vector3 velocity = rbc.LinearVelocity;
+		double speed = velocity.Length();
+		
+		if (speed < 1e-6)
+			return;
+
+		Vector3 objectPosWorld = Vector3(tc.Translation) + worldTranslation;
+		double altitude = GetAltitudeSimple(objectPosWorld);
+		double airDensity = GetAirDensity(altitude);
+
+		if (airDensity <= 0.0)
+			return;
+
+		// Object's local up axis in world space
+		Quaternion q = tc.GetTotalRotationQuaternion();
+		Vector3 localUp = { 0.0, 1.0, 0.0 };
+
+		// TODO move into the Quaternion Class
+		Quaternion vQuat(localUp.x, localUp.y, localUp.z, 0.0);
+		Quaternion rotated = q * vQuat * q.Conjugate();
+		Vector3 worldAxis = Vector3(rotated.x, rotated.y, rotated.z);
+
+		Vector3 velocityDir = velocity / speed;
+		double cosTheta = std::abs(Vector3::Dot(worldAxis, velocityDir));
+		cosTheta = std::min(cosTheta, 1.0);  // prevent floating point overshoot
+		double sinTheta = std::sqrt(1.0 - cosTheta * cosTheta);
+
+		double effectiveArea = (double)rbc.CrossSectionMin * cosTheta + (double)rbc.CrossSectionMax * sinTheta;
+
+		// F = 0.5 * rho * v^2 * Cd * A
+		double dragForceMag = 0.5 * airDensity * speed * speed * (double)rbc.DragCoefficient * effectiveArea;
+
+		double dragImpulseMag = dragForceMag * ts;
+		double maxImpulse = speed * (1.0 / rbc.InvMass);
+		if (dragImpulseMag > maxImpulse)
+			dragImpulseMag = maxImpulse;
+
+		Vector3 dragImpulse = velocityDir * (-dragImpulseMag);
+		ApplyLinearImpulse(rbc, dragImpulse);
+
+		// Temp Debugs!
+		rbc.DebugDragForce = velocityDir * (-dragImpulseMag);
+		rbc.DebugAirDensity = airDensity;
+		rbc.DebugEffectiveCrossSection = effectiveArea;
+		rbc.DebugAltitude = altitude;
 	}
 
 	void PhysicsEngine::IntegrateLinear(Entity& entity, double ts)

@@ -196,10 +196,18 @@ namespace Toast {
 		double DynamicFriction = 0.0f;
 		Vector3 CenterOfMass = { 0.0f, 0.0f, 0.0f };
 		Vector3 LinearVelocity = { 0.0f, 0.0f, 0.0f };
-		double LinearDamping = 0.0;
 		Vector3 AngularVelocity = { 0.0f, 0.0f, 0.0f };
-		double AngularDamping = 0.0;
 		double Altitude = 0.0;
+
+		float DragCoefficient = 0.0f; // Cd, 0 means no drag
+		float CrossSectionMin = 0.0f; // m^2, smallest profile
+		float CrossSectionMax = 0.0f; // m^2, largest profile
+
+		// Temp debug values for Air Resistance
+		Vector3 DebugDragForce = Vector3(0.0, 0.0, 0.0);
+		double DebugAirDensity = 0.0;
+		double DebugEffectiveCrossSection = 0.0;
+		double DebugAltitude = 0.0;
 
 		RigidBodyComponent() = default;
 		RigidBodyComponent(Vector3& centerOfMass, double invMass)

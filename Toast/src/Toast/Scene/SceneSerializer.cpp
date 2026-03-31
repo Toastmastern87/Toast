@@ -416,8 +416,9 @@ namespace Toast {
 			out << YAML::Key << "StaticFriction" << YAML::Value << rbc.StaticFriction;
 			out << YAML::Key << "DynamicFriction" << YAML::Value << rbc.DynamicFriction;
 			out << YAML::Key << "CenterOfMass" << YAML::Value << rbc.CenterOfMass;
-			out << YAML::Key << "LinearDamping" << YAML::Value << rbc.LinearDamping;
-			out << YAML::Key << "AngularDamping" << YAML::Value << rbc.AngularDamping;
+			out << YAML::Key << "DragCoefficient" << YAML::Value << rbc.DragCoefficient;
+			out << YAML::Key << "CrossSectionMin" << YAML::Value << rbc.CrossSectionMin;
+			out << YAML::Key << "CrossSectionMax" << YAML::Value << rbc.CrossSectionMax;
 
 			out << YAML::EndMap; // RigidBodyComponent
 		}
@@ -1414,8 +1415,9 @@ namespace Toast {
 					rbc.Elasticity = rigidBodyComponent["Elasticity"].as<double>();
 					rbc.StaticFriction = rigidBodyComponent["StaticFriction"].as<double>();
 					rbc.DynamicFriction = rigidBodyComponent["DynamicFriction"].as<double>();
-					rbc.LinearDamping = rigidBodyComponent["LinearDamping"].as<double>();
-					rbc.AngularDamping = rigidBodyComponent["AngularDamping"].as<double>();
+					rbc.DragCoefficient = rigidBodyComponent["DragCoefficient"].as<float>();
+					rbc.CrossSectionMin = rigidBodyComponent["CrossSectionMin"].as<float>();
+					rbc.CrossSectionMax = rigidBodyComponent["CrossSectionMax"].as<float>();
 				}
 
 				auto sphereColliderComponent = entity["SphereColliderComponent"];

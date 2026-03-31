@@ -908,13 +908,24 @@ namespace Toast {
 				if (DrawFloatControl("Dynamic Friction", temp, window, activeDragArea, 90.0f, 0.0f, 2.0f, 0.01f, "%.2f"))
 					component.DynamicFriction = static_cast<double>(temp);
 
-				temp = static_cast<float>(component.LinearDamping);
-				if (DrawFloatControl("Linear Damping (0-1)", temp, window, activeDragArea, 90.0f, 0.0f, 25.0f, 0.01f, "%.1f"))
-					component.LinearDamping = static_cast<double>(temp);
+				DrawFloatControl("Drag Coefficient", component.DragCoefficient, window, activeDragArea, 90.0f, 0.0f, 10.0f, 0.01f, "%.2f");
+				DrawFloatControl("Cross Section Min", component.CrossSectionMin, window, activeDragArea, 90.0f, 0.0f, 1000.0f, 0.1f, "%.2f");
+				DrawFloatControl("Cross Section Max", component.CrossSectionMax, window, activeDragArea, 90.0f, 0.0f, 1000.0f, 0.1f, "%.2f");
 
-				temp = static_cast<float>(component.AngularDamping);
-				if (DrawFloatControl("Angular Damping (0-1)", temp, window, activeDragArea, 90.0f, 0.0f, 10.0f, 0.01f, "%.2f"))
-					component.AngularDamping = static_cast<double>(temp);
+				// Debug (read-only)
+				ImGui::Spacing();
+				ImGui::Separator();
+				ImGui::Spacing();
+				ImGui::Text("Aero Debug");
+				ImGui::Text("Drag Force: (%.2f, %.2f, %.2f) |%.2f|",
+					component.DebugDragForce.x, component.DebugDragForce.y, component.DebugDragForce.z,
+					component.DebugDragForce.Length());
+				ImGui::Text("Air Density: %.6f kg/m3", component.DebugAirDensity);
+				ImGui::Text("Effective Cross Section: %.2f m2", component.DebugEffectiveCrossSection);
+				ImGui::Text("Altitude: %.1f m", component.DebugAltitude);
+				ImGui::Text("Linear Velocity: (%.2f, %.2f, %.2f) |%.2f|", component.LinearVelocity.x, component.LinearVelocity.y, component.LinearVelocity.z,
+					component.LinearVelocity.Length());
+
 			});
 
 		DrawComponent<SphereColliderComponent>(ICON_TOASTER_CIRCLE_O" Sphere Collider", entity, mScene, activeDragArea, mWindow, mAssetRoot, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
