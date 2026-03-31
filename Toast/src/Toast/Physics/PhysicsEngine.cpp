@@ -131,14 +131,19 @@ namespace Toast {
 
 		double height = SampleHeightFromDir(planet.GetTerrainCubeData(), vPlanet);
 
-		float px = (float)(vPlanet.x * planet.GetRadius());
-		float py = (float)(vPlanet.y * planet.GetRadius());
-		float pz = (float)(vPlanet.z * planet.GetRadius());
+		// Height details only apply to Geometry Clipmapping, for now! TODO fix this
+		// the Icosphere shader only samples the base cube map
+		if (planet.GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
+		{
+			float px = (float)(vPlanet.x * planet.GetRadius());
+			float py = (float)(vPlanet.y * planet.GetRadius());
+			float pz = (float)(vPlanet.z * planet.GetRadius());
 
-		uint32_t lod = planet.GetLODForWorldPos(worldPos);
-		float heightDetails = AccumulateHeightDetails(planet.GetHeightDetails(), px, py, pz, lod);
+			uint32_t lod = planet.GetLODForWorldPos(worldPos);
+			float heightDetails = AccumulateHeightDetails(planet.GetHeightDetails(), px, py, pz, lod);
 
-		height += (double)heightDetails;
+			height += (double)heightDetails;
+		}
 
 		double altitude = pLocal.Length() - (planet.GetRadius() + height);
 
@@ -259,6 +264,7 @@ namespace Toast {
 		Vector3 objectPosWorld = Vector3(tc.Translation) + worldTranslation;
 		double altitude = GetAltitudeSimple(objectPosWorld);
 		double airDensity = GetAirDensity(altitude);
+
 
 		if (airDensity <= 0.0)
 			return;
