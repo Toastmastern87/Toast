@@ -891,9 +891,9 @@ namespace Toast {
 				{
 					component.InvMass = 1.0f / mass;
 					if (entity.HasComponent<BoxColliderComponent>())
-						entity.GetComponent<BoxColliderComponent>().InertiaTensorIsDirty = true;
+						entity.GetComponent<BoxColliderComponent>().IsDirty = true;
 					else if (entity.HasComponent<SphereColliderComponent>())
-						entity.GetComponent<SphereColliderComponent>().InertiaTensorIsDirty = true;
+						entity.GetComponent<SphereColliderComponent>().IsDirty = true;
 				}
 
 				temp = static_cast<float>(component.Elasticity);
@@ -943,7 +943,7 @@ namespace Toast {
 					component.Collider->mRadius = static_cast<double>(temp);
 
 					component.Collider->CalculateBounds();
-					component.InertiaTensorIsDirty = true;
+					component.IsDirty = true;
 				}
 			});
 
@@ -967,7 +967,7 @@ namespace Toast {
 					component.Collider->CalculateBounds();
 					component.Collider->BuildCornerPoints();
 
-					component.InertiaTensorIsDirty = true;
+					component.IsDirty = true;
 				}
 				ImGui::EndTable();
 			});

@@ -48,8 +48,9 @@ namespace Toast {
 
 		while (mSettings.ElapsedTime >= targetFrameTime)
 		{
-			auto view = mScene->mRegistry.view<RigidBodyComponent, TransformComponent>();
+			UpdateMassProperties();
 
+			auto view = mScene->mRegistry.view<RigidBodyComponent, TransformComponent>();
 			for (auto entity : view)
 			{
 				Entity e = { entity, mScene };
@@ -580,7 +581,7 @@ namespace Toast {
 			collider = entity.GetComponent<BoxColliderComponent>().Collider;
 
 		Matrix rotationMatrix = Matrix(entity.GetComponent<TransformComponent>().GetRotation());
-		Matrix invInertiaWorld = rotationMatrix * collider->GetInvInertiaTensor() * rotationMatrix.Transpose();
+		Matrix invInertiaWorld = rotationMatrix * rbc.InvInertiaTensor * rotationMatrix.Transpose();
 
 		Vector3 invIrn = Matrix::MulMat3(invInertiaWorld, rn);
 		double angularTerm = Vector3::Dot(Vector3::Cross(invIrn, r), normal);
@@ -652,6 +653,90 @@ namespace Toast {
 				ApplyImpulseAngular(rbc, invInertiaWorld, frictionTorque);
 			}
 		}
+	}
+
+	void PhysicsEngine::UpdateMassProperties()
+	{
+		// Check sphere colliders
+		auto sphereView = mScene->mRegistry.view<RigidBodyComponent, SphereColliderComponent>();
+		for (auto entity : sphereView)
+		{
+			auto& scc = sphereView.get<SphereColliderComponent>(entity);
+			if (!scc.IsDirty)
+				continue;
+
+			auto& rbc = sphereView.get<RigidBodyComponent>(entity);
+			rbc.InertiaTensor = ComputeSphereInertiaTensor((1.0 / rbc.InvMass), scc.Collider->mRadius);
+			rbc.InvInertiaTensor = Matrix::Inverse(rbc.InertiaTensor);
+			scc.IsDirty = false;
+		}
+
+		// Check box colliders
+		auto boxView = mScene->mRegistry.view<RigidBodyComponent, BoxColliderComponent>();
+		for (auto entity : boxView)
+		{
+			auto& bcc = boxView.get<BoxColliderComponent>(entity);
+			if (!bcc.IsDirty)
+				continue;
+
+			auto& rbc = boxView.get<RigidBodyComponent>(entity);
+			rbc.InertiaTensor = ComputeBoxInertiaTensor((1.0 / rbc.InvMass), bcc.Collider->mSize, rbc.CenterOfMass);
+			rbc.InvInertiaTensor = Matrix::Inverse(rbc.InertiaTensor);
+			bcc.IsDirty = false;
+		}
+	}
+
+	Matrix PhysicsEngine::ComputeSphereInertiaTensor(double mass, double radius)
+	{
+		Matrix tensor = Matrix::Zero();
+
+		tensor.m_00 = 0.4 * mass * radius * radius;
+		tensor.m_11 = 0.4 * mass * radius * radius;
+		tensor.m_22 = 0.4 * mass * radius * radius;
+		tensor.m_33 = 1.0;
+
+		return tensor;
+	}
+
+	Matrix PhysicsEngine::ComputeBoxInertiaTensor(double mass, const Vector3& boxSize, const Vector3& centerOfMass)
+	{
+		// Base inertia for a solid box about its own center
+		const double w = boxSize.x * 2.0;
+		const double h = boxSize.y * 2.0;
+		const double d = boxSize.z * 2.0;
+
+		Matrix tensor = Matrix::Zero();
+		tensor.m_00 = (h * h + d * d) * mass * (1.0 / 12.0);
+		tensor.m_11 = (w * w + d * d) * mass * (1.0 / 12.0);
+		tensor.m_22 = (w * w + h * h) * mass * (1.0 / 12.0);
+		tensor.m_33 = 1.0;
+
+		// Parallel axis theorem: shift from collider center to body center of mass
+		// I = I_cm + m * (|d|^2 * E - d (x) d)
+		// Only needed if the collider center is offset from the body's CoM
+		const double dx = centerOfMass.x;
+		const double dy = centerOfMass.y;
+		const double dz = centerOfMass.z;
+		const double d2 = dx * dx + dy * dy + dz * dz;
+
+		if (d2 > 0.0)
+		{
+			// Diagonal: add m * (|d|^2 - d_i^2)  which equals m * (sum of other two d components squared)
+			tensor.m_00 += mass * (dy * dy + dz * dz);
+			tensor.m_11 += mass * (dx * dx + dz * dz);
+			tensor.m_22 += mass * (dx * dx + dy * dy);
+
+			// Off-diagonal: subtract m * d_i * d_j
+			tensor.m_01 -= mass * dx * dy;
+			tensor.m_02 -= mass * dx * dz;
+			tensor.m_10 -= mass * dy * dx;
+			tensor.m_11 -= 0.0; // not needed, just for clarity
+			tensor.m_12 -= mass * dy * dz;
+			tensor.m_20 -= mass * dz * dx;
+			tensor.m_21 -= mass * dz * dy;
+		}
+
+		return tensor;
 	}
 
 }

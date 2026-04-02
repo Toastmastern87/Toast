@@ -284,39 +284,6 @@ namespace Toast {
 
 		if (!mIsPaused && !mRuntimeBlocked)
 		{
-			// Updating Inertia Tensors if dirty
-			{
-				auto sccView = mRegistry.view<SphereColliderComponent>();
-				for (auto entity : sccView)
-				{
-					Entity e = { entity, this };
-
-					auto& scc = e.GetComponent<SphereColliderComponent>();
-
-					if (scc.InertiaTensorIsDirty && e.HasComponent<RigidBodyComponent>())
-					{			
-						auto& rbc = e.GetComponent<RigidBodyComponent>();
-						scc.Collider->CalculateInertiaTensor(1.0f / rbc.InvMass);
-						scc.InertiaTensorIsDirty = false;
-					}
-				}
-
-				auto bccView = mRegistry.view<BoxColliderComponent>();
-				for (auto entity : bccView)
-				{
-					Entity e = { entity, this };
-
-					auto& bcc = e.GetComponent<BoxColliderComponent>();
-
-					if (bcc.InertiaTensorIsDirty && e.HasComponent<RigidBodyComponent>())
-					{
-						auto& rbc = e.GetComponent<RigidBodyComponent>();
-						bcc.Collider->CalculateInertiaTensor(1.0f / rbc.InvMass);
-						bcc.InertiaTensorIsDirty = false;
-					}
-				}
-			}
-
 			// Updating box colliders
 			{
 				auto view = mRegistry.view<BoxColliderComponent, TransformComponent>();

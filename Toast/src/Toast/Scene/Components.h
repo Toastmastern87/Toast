@@ -199,6 +199,9 @@ namespace Toast {
 		Vector3 AngularVelocity = { 0.0f, 0.0f, 0.0f };
 		double Altitude = 0.0;
 
+		Matrix InertiaTensor;
+		Matrix InvInertiaTensor;
+
 		float DragCoefficient = 0.0f; // Cd, 0 means no drag
 		float CrossSectionMin = 0.0f; // m^2, smallest profile
 		float CrossSectionMax = 0.0f; // m^2, largest profile
@@ -217,7 +220,7 @@ namespace Toast {
 	struct SphereColliderComponent
 	{
 		Ref<ShapeSphere> Collider;
-		bool InertiaTensorIsDirty = false;
+		bool IsDirty = false;
 
 		Ref<Mesh> ColliderMesh;
 		bool RenderCollider = false;
@@ -230,7 +233,7 @@ namespace Toast {
 	struct BoxColliderComponent
 	{
 		Ref<ShapeBox> Collider;
-		bool InertiaTensorIsDirty = false;
+		bool IsDirty = false;
 
 		Ref<Mesh> ColliderMesh;
 		bool RenderCollider = false;

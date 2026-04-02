@@ -557,15 +557,15 @@ namespace Toast {
 			auto& rbc = target.GetComponent<RigidBodyComponent>();
 			auto& bcc = target.GetComponent<BoxColliderComponent>();
 
-			bcc.Collider->CalculateInertiaTensor(1.0f / rbc.InvMass);
+			bcc.IsDirty = true;
 		}
-
+		 
 		if (target.HasComponent<RigidBodyComponent>() && target.HasComponent<SphereColliderComponent>())
 		{
 			auto& rbc = target.GetComponent<RigidBodyComponent>();
 			auto& scc = target.GetComponent<BoxColliderComponent>();
 
-			scc.Collider->CalculateInertiaTensor(1.0f / rbc.InvMass);
+			scc.IsDirty = true;
 		}
 	}
 
@@ -1430,7 +1430,7 @@ namespace Toast {
 
 					scc.Collider->CalculateBounds();
 
-					scc.InertiaTensorIsDirty = true;
+					scc.IsDirty = true;
 				}
 
 				auto boxColliderComponent = entity["BoxColliderComponent"];
@@ -1444,7 +1444,7 @@ namespace Toast {
 					bcc.Collider->CalculateBounds();
 					bcc.Collider->BuildCornerPoints();
 
-					bcc.InertiaTensorIsDirty = true;
+					bcc.IsDirty = true;
 
 				}
 

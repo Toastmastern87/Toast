@@ -25,7 +25,6 @@ namespace Toast {
 		virtual void Build(const Vector3* pts, const int num) {}
 
 		virtual ShapeType GetType() const = 0;
-		virtual void CalculateInertiaTensor(double mass) = 0;
 
 		virtual Vector3 Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const = 0;
 
@@ -38,8 +37,6 @@ namespace Toast {
 		virtual bool GetIsDirty() const { return mIsDirty; }
 
 		virtual Vector3 GetCenterOfMass() const { return mCenterOfMass; }
-		virtual Matrix GetInertiaTensor() const { return mInertiaTensor; }
-		virtual Matrix GetInvInertiaTensor() const { return mInvInertiaTensor; }
 
 	protected:
 		bool mIsDirty = true;
@@ -47,8 +44,6 @@ namespace Toast {
 		Bounds mBounds;
 
 		Vector3 mCenterOfMass;
-		Matrix mInertiaTensor;
-		Matrix mInvInertiaTensor;
 	};
 
 	class ShapeSphere : public Shape
@@ -57,8 +52,6 @@ namespace Toast {
 		ShapeSphere(double radius);
 
 		ShapeType GetType() const override { return ShapeType::SPHERE; }
-
-		void CalculateInertiaTensor(double mass = 100.0) override;
 
 		Vector3 Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const override;
 
@@ -82,8 +75,6 @@ namespace Toast {
 		ShapeType GetType() const override { return ShapeType::BOX; }
 
 		Vector3 Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const override;
-
-		void CalculateInertiaTensor(double mass = 100.0) override;
 
 		void SetBounds(Bounds bounds);
 		void ExpandToFit(const Bounds& b);

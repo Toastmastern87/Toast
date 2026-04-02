@@ -62,6 +62,10 @@ namespace Toast {
 		bool FindTerrainContactPointsSphere(Entity& entity, TerrainContactManifold& manifold);
 		bool FindTerrainContactPointsBox(Entity& entity, TerrainContactManifold& manifold);
 		void ResolveTerrainCollision(TerrainContactManifold& manifold, double dt);
+
+		void UpdateMassProperties();
+		Matrix ComputeSphereInertiaTensor(double mass, double radius);
+		Matrix ComputeBoxInertiaTensor(double mass, const Vector3& boxSize, const Vector3& centerOfMass);
 	private:
 		Scene* mScene;
 
