@@ -858,6 +858,13 @@ namespace Toast {
 		if (mPatchIsDirty)
 			GeneratePatchGeometry();
 
+		// Updating backface culling safe distance based on camera altitude, to avoid popping culling triangles closer to the camera, this was a bug when camera where below hills before
+		{
+			double camAlt = std::max(Vector3::Length(cameraPosPS) - mRadius, 1.0);
+			double safeDist = mRadius * 0.1 + camAlt * 2.0;
+			mBackfaceSafeDistSq = safeDist * safeDist;
+		}
+
 		mPatches.clear();
 
 		//TOAST_CORE_INFO("Recurse: %d calls, %d height samples, %d frustum checks, %d midpoint lookups",	sRecurseCalls, sHeightSamples, sFrustumChecks, sMidpointLookups);
@@ -1025,21 +1032,26 @@ namespace Toast {
 
 		if (mBackfaceCulling)
 		{
-			Vector3 center = (aS + bS + cS) / 3.0;
-			double centerLenSq = Vector3::LengthSquared(center);
-			Vector3 toCamera = center - cameraPosPS;
-			double toCameraLenSq = Vector3::LengthSquared(toCamera);
-			double dot = Vector3::Dot(center, toCamera);
+			double minDist2 = std::min({ aD2, bD2, cD2 });
 
-			double threshold = mFaceLevelDotLUT[(uint32_t)subdivision];
-
-			// dot / (|center| * |toCamera|) >= threshold
-			// dot >= threshold * |center| * |toCamera|
-			// For positive threshold: dot² >= threshold² * centerLenSq * toCameraLenSq (when dot > 0)
-			if (dot > 0.0)
+			if (minDist2 > mBackfaceSafeDistSq)
 			{
-				if (dot * dot >= threshold * threshold * centerLenSq * toCameraLenSq)
-					return NextPlanetFace::CULL;
+				Vector3 center = (aS + bS + cS) / 3.0;
+				double centerLenSq = Vector3::LengthSquared(center);
+				Vector3 toCamera = center - cameraPosPS;
+				double toCameraLenSq = Vector3::LengthSquared(toCamera);
+				double dot = Vector3::Dot(center, toCamera);
+
+				double threshold = mFaceLevelDotLUT[subdivision];
+
+				// dot / (|center| * |toCamera|) >= threshold
+				// dot >= threshold * |center| * |toCamera|
+				// For positive threshold: dot² >= threshold² * centerLenSq * toCameraLenSq (when dot > 0)
+				if (dot > 0.0)
+				{
+					if (dot * dot >= threshold * threshold * centerLenSq * toCameraLenSq)
+						return NextPlanetFace::CULL;
+				}
 			}
 		}
 

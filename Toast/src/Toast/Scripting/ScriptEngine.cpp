@@ -367,6 +367,11 @@ namespace Toast {
 				fullName = className;
 
 			MonoClass* monoClass = mono_class_from_name(sData->AppAssemblyImage, nameSpace, className);
+			if (!monoClass)
+			{
+				TOAST_CORE_CRITICAL("Failed to resolve type: %s.%s", nameSpace, className);
+				continue;
+			}
 
 			if (monoClass == entityClass)
 				continue;

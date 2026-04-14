@@ -46,6 +46,7 @@ namespace Toast {
 		double GetAirDensity(double altitude);
 
 		void ApplyLinearImpulse(RigidBodyComponent& rbc, Vector3 impulse);
+		void ApplyLinearImpulseAtPoint(RigidBodyComponent& rbc, Vector3 impulse, Vector3 worldPoint, Vector3 comWorld);
 
 		PhysicsSettings& GetSettings() { return mSettings; }
 	private:

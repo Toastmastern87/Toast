@@ -165,6 +165,33 @@ namespace Toast
         {
             return InternalCalls.TransformComponent_HasReachedTargetRotation(Entity.ID, thresholdDeg);
         }
+
+        public Vector3 WorldUp
+        {
+            get
+            {
+                InternalCalls.TransformComponent_GetWorldUp(Entity.ID, out Vector3 result);
+                return result;
+            }
+        }
+
+        public Vector3 WorldForward
+        {
+            get
+            {
+                InternalCalls.TransformComponent_GetWorldForward(Entity.ID, out Vector3 result);
+                return result;
+            }
+        }
+
+        public Vector3 WorldRight
+        {
+            get
+            {
+                InternalCalls.TransformComponent_GetWorldRight(Entity.ID, out Vector3 result);
+                return result;
+            }
+        }
     }
 
     public class CameraComponent : Component
@@ -330,6 +357,30 @@ namespace Toast
             }
             set
             {
+            }
+        }
+
+        public Vector3 AngularVelocity
+        {
+            get
+            {
+                InternalCalls.RigidBodyComponent_GetAngularVelocity(Entity.ID, out Vector3 result);
+                return result;
+            }
+            set
+            {
+            }
+        }
+
+        public float Mass
+        {
+            get
+            {
+                return InternalCalls.RigidBodyComponent_GetMass(Entity.ID);
+            }
+            set
+            {
+                InternalCalls.RigidBodyComponent_SetMass(Entity.ID, value);
             }
         }
     }

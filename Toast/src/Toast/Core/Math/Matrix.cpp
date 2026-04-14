@@ -55,6 +55,14 @@ namespace Toast {
 		m_33 = m33;
 	}
 
+	Matrix::Matrix()
+	{
+		m_00 = 1.0; m_01 = 0.0; m_02 = 0.0; m_03 = 0.0;
+		m_10 = 0.0; m_11 = 1.0; m_12 = 0.0; m_13 = 0.0;
+		m_20 = 0.0; m_21 = 0.0; m_22 = 1.0; m_23 = 0.0;
+		m_30 = 0.0; m_31 = 0.0; m_32 = 0.0; m_33 = 1.0;
+	}
+
 	Matrix Matrix::Identity()
 	{
 		Matrix identityMatrix;

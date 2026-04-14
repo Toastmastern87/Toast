@@ -212,6 +212,8 @@ namespace Toast {
 		double DebugEffectiveCrossSection = 0.0;
 		double DebugAltitude = 0.0;
 
+		Ref<Mesh> GuideMesh;
+
 		RigidBodyComponent() = default;
 		RigidBodyComponent(Vector3& centerOfMass, double invMass)
 			: InvMass(invMass), CenterOfMass(centerOfMass) {}

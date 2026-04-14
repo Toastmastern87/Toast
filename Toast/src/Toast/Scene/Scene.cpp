@@ -1324,6 +1324,28 @@ namespace Toast {
 
 				RendererDebug::SubmitMesh(pc.GuideMesh, transform, false);
 			}
+
+			// Center of Mass guide
+			auto viewEntitiesCoM = mRegistry.view<TransformComponent, RigidBodyComponent>();
+			for (auto entity : viewEntitiesCoM)
+			{
+				Entity e{ entity, this };
+
+				auto rbc = e.GetComponent<RigidBodyComponent>();
+
+				DirectX::XMMATRIX comOffset = DirectX::XMMatrixTranslation(rbc.CenterOfMass.x, rbc.CenterOfMass.y, rbc.CenterOfMass.z);
+				DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(comOffset, e.GetComponent<TransformComponent>().GetTransform());
+
+				if (e.HasParent())
+				{
+					Entity parent = FindEntityByUUID(e.GetParentUUID());
+
+					DirectX::XMMATRIX& parentTransform = parent.GetComponent<TransformComponent>().GetTransform();
+					transform = DirectX::XMMatrixMultiply(transform, parentTransform);
+				}
+
+				RendererDebug::SubmitMesh(rbc.GuideMesh, transform, false);
+			}
 		}
 
 		RendererDebug::EndScene(true, false, mSettings.RenderUI, mSettings.Grid);
@@ -2012,6 +2034,7 @@ namespace Toast {
 	template<>
 	void Scene::OnComponentAdded<RigidBodyComponent>(Entity entity, RigidBodyComponent& component)
 	{
+		component.GuideMesh = MeshFactory::CreateCube(1.0f, { 1.0, 0.0, 1.0 });
 	}
 
 	template<>

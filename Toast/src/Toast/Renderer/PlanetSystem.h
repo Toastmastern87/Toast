@@ -359,6 +359,8 @@ namespace Toast {
 		std::vector<double> mHeightMultLUT;
 		bool mHeightMultLUTIsDirty = true;
 
+		double mBackfaceSafeDistSq = 0.0;
+
 		// Settings
 		bool mBackfaceCulling;
 		bool mFrustumCulling;
@@ -451,16 +453,6 @@ namespace Toast {
 	class Planet
 	{
 	private:
-		// General Data
-		//bool mValidPlanet = false;
-		//uint32_t mGridSize = 0;
-		//uint32_t mTempGridSize = 0;
-		//int32_t mNumLevels = 0;
-		//int32_t mTempNumLevels = 0;
-		//std::vector<ClipLevel> mLevels;
-		//LODDrawInfo mActiveLevels;
-		//bool mRunOnce = false;
-
 		DirectX::XMFLOAT3 mTranslation = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 mRotationEulerAngles = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT4 mRotationQuaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -475,16 +467,6 @@ namespace Toast {
 		Ref<PlanetMeshIcosphere> mIcosphereMesh;
 		Ref<PlanetMeshGeoClipmap> mGeoClipmapMesh;
 		PlanetMeshMode mMeshMode = PlanetMeshMode::GeometryClipmapping;
-
-		// GPU Data
-		//Ref<VertexBuffer> mGridVertexBuffer;
-		//Ref<VertexBuffer> mLODGridVertexBuffer;
-		//Ref<IndexBuffer> mCenterGridIndexBuffer;
-		//Ref<IndexBuffer> mRingGridIndexBuffer;
-		//Ref<IndexBuffer> mLODGridIndexBuffer;
-		//uint32_t mGridIndexCount = 0;
-		//uint32_t mRingGridIndexCount = 0;
-		//uint32_t mLODGridIndexCount = 0;
 
 		Ref<ConstantBuffer> mPlanetFrameCBuffer, mRenderingSettingsCBuffer;
 		Buffer mPlanetFrameBuffer, mRenderingSettingsBuffer;

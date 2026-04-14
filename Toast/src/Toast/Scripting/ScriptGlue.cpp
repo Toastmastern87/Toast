@@ -255,6 +255,28 @@ namespace Toast {
 		physicsEngine->ApplyLinearImpulse(rbc, impulse);
 	}
 
+	static void PhysicsEngine_ApplyLinearImpulseAtPoint(UUID entityID, DirectX::XMFLOAT3 impulse, DirectX::XMFLOAT3 worldPoint)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity entity = scene->FindEntityByUUID(entityID);
+		TOAST_CORE_ASSERT(entity, "");
+		auto& physicsEngine = scene->GetPhysicsEngine();
+		auto& rbc = entity.GetComponent<RigidBodyComponent>();
+		auto& tc = entity.GetComponent<TransformComponent>();
+
+		// Compute CoM in world space
+		DirectX::XMVECTOR totalQuat = tc.GetTotalRotationQuaternion();
+		DirectX::XMFLOAT3 CoM = { (float)rbc.CenterOfMass.x, (float)rbc.CenterOfMass.y, (float)rbc.CenterOfMass.z};
+		DirectX::XMVECTOR comLocal = DirectX::XMLoadFloat3(&CoM);
+		DirectX::XMVECTOR comWorld = DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&tc.Translation),DirectX::XMVector3Rotate(comLocal, totalQuat));
+
+		DirectX::XMFLOAT3 comWorldF3;
+		DirectX::XMStoreFloat3(&comWorldF3, comWorld);
+
+		physicsEngine->ApplyLinearImpulseAtPoint(rbc, impulse, worldPoint, comWorldF3);
+	}
+
 #pragma endregion
 
 #pragma region Script
@@ -280,6 +302,13 @@ namespace Toast {
 		; // TODO IMPLEMENT THIS
 	}
 
+	static float Planet_GetGravity()
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+
+		return scene->GetPlanet()->GetGravityConstant();
+	}
+
 #pragma endregion
 
 #pragma region Entity
@@ -294,7 +323,6 @@ namespace Toast {
 		MonoType* managedType = mono_reflection_type_get_type(componentType);
 		TOAST_CORE_ASSERT(sEntityHasComponentFuncs.find(managedType) != sEntityHasComponentFuncs.end(), "");
 		return sEntityHasComponentFuncs.at(managedType)(entity);
-
 	}
 
 	static uint64_t Entity_FindEntityByName(MonoString* name)
@@ -622,6 +650,50 @@ namespace Toast {
 		return dot >= dotThreshold;
 	}
 
+	static void TransformComponent_GetWorldUp(UUID entityID, DirectX::XMFLOAT3* outUp)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& tc = entity.GetComponent<TransformComponent>();
+
+		// Get the combined rotation: euler * quaternion (matches GetRotation() order)
+		DirectX::XMVECTOR totalQuat = tc.GetTotalRotationQuaternion();
+
+		// Rotate the default up axis (0, 1, 0) by the total rotation
+		DirectX::XMVECTOR defaultUp = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+		DirectX::XMVECTOR worldUp = DirectX::XMVector3Rotate(defaultUp, totalQuat);
+
+		DirectX::XMStoreFloat3(outUp, worldUp);
+	}
+
+	static void TransformComponent_GetWorldForward(UUID entityID, DirectX::XMFLOAT3* outForward)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& tc = entity.GetComponent<TransformComponent>();
+
+		DirectX::XMVECTOR totalQuat = tc.GetTotalRotationQuaternion();
+
+		// Rotate default forward (0, 0, 1) by total rotation
+		DirectX::XMVECTOR defaultForward = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+		DirectX::XMVECTOR worldForward = DirectX::XMVector3Rotate(defaultForward, totalQuat);
+
+		DirectX::XMStoreFloat3(outForward, worldForward);
+	}
+
+	static void TransformComponent_GetWorldRight(UUID entityID, DirectX::XMFLOAT3* outRight)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& tc = entity.GetComponent<TransformComponent>();
+
+		DirectX::XMVECTOR totalQuat = tc.GetTotalRotationQuaternion();
+		DirectX::XMVECTOR defaultRight = DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+		DirectX::XMVECTOR worldRight = DirectX::XMVector3Rotate(defaultRight, totalQuat);
+
+		DirectX::XMStoreFloat3(outRight, worldRight);
+	}
+
 #pragma endregion
 
 #pragma region Mesh Component
@@ -909,6 +981,44 @@ namespace Toast {
 		*outLinearVelocity = linearVelocity;
 	}
 
+	void RigidBodyComponent_GetAngularVelocity(uint64_t entityID, DirectX::XMFLOAT3* outAngularVelocity)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<RigidBodyComponent>();
+
+		DirectX::XMFLOAT3 angularVelocity = { (float)component.AngularVelocity.x, (float)component.AngularVelocity.y, (float)component.AngularVelocity.z };
+
+		*outAngularVelocity = angularVelocity;
+	}
+
+	static void RigidBodyComponent_SetMass(uint64_t entityID, float mass)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<RigidBodyComponent>();
+
+		component.InvMass = (mass > 0.0f) ? (1.0f / mass) : 0.0f;
+	}
+
+	static float RigidBodyComponent_GetMass(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<RigidBodyComponent>();
+
+		return (component.InvMass > 0.0f) ? (1.0f / component.InvMass) : 0.0f;
+	}
+
 #pragma endregion
 
 #pragma region Sphere Collider Component
@@ -1041,6 +1151,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(PhysicsEngine_GetAltitude);
 		TOAST_ADD_INTERNAL_CALL(PhysicsEngine_GetAltitudeAtWorldPos);
 		TOAST_ADD_INTERNAL_CALL(PhysicsEngine_ApplyLinearImpulse);
+		TOAST_ADD_INTERNAL_CALL(PhysicsEngine_ApplyLinearImpulseAtPoint);
 
 		TOAST_ADD_INTERNAL_CALL(Scene_GetRenderTargetSize);
 		TOAST_ADD_INTERNAL_CALL(Scene_GetRenderColliders);
@@ -1053,6 +1164,7 @@ namespace Toast {
 
 		TOAST_ADD_INTERNAL_CALL(Planet_GetTranslation);
 		TOAST_ADD_INTERNAL_CALL(Planet_SetTranslation);
+		TOAST_ADD_INTERNAL_CALL(Planet_GetGravity);
 
 		TOAST_ADD_INTERNAL_CALL(Script_GetInstance);
 
@@ -1089,6 +1201,9 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetIsRotating);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetTargetRotation);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_HasReachedTargetRotation);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetWorldUp);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetWorldForward);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetWorldRight);	
 
 		TOAST_ADD_INTERNAL_CALL(MeshComponent_GeneratePlanet);
 		TOAST_ADD_INTERNAL_CALL(MeshComponent_PlayAnimation);		 
@@ -1113,6 +1228,9 @@ namespace Toast {
 		
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetAltitude);
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetLinearVelocity);
+		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetAngularVelocity);
+		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_SetMass);
+		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetMass);
 
 		TOAST_ADD_INTERNAL_CALL(SphereColliderComponent_GetAltitude);
 

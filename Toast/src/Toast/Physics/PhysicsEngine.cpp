@@ -36,7 +36,7 @@ namespace Toast {
 	{
 		mScene = scene;
 
-		mGuideMesh = MeshFactory::CreateCube(1.0f, { 1.0, 0.0, 0.0 });
+		mGuideMesh = MeshFactory::CreateCube(1.0f, { 1.0, 0.0, 1.0 });
 	}
 
 	void PhysicsEngine::Update(double ts)
@@ -54,6 +54,14 @@ namespace Toast {
 			for (auto entity : view)
 			{
 				Entity e = { entity, mScene };
+
+				auto& entityTransform = e.GetComponent<TransformComponent>(); // Mark dirty so that the editor transform gizmo updates, even if the entity isn't rotating
+				auto& rbc = e.GetComponent<RigidBodyComponent>();
+
+				//DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(entityTransform.Scale.x, entityTransform.Scale.y, entityTransform.Scale.z)
+				//	* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(entityTransform.RotationEulerAngles.x), DirectX::XMConvertToRadians(entityTransform.RotationEulerAngles.y), DirectX::XMConvertToRadians(entityTransform.RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&entityTransform.RotationQuaternion))
+				//	* DirectX::XMMatrixTranslation(entityTransform.Translation.x, entityTransform.Translation.y, entityTransform.Translation.z) * DirectX::XMMatrixTranslation(rbc.CenterOfMass.x, rbc.CenterOfMass.y, rbc.CenterOfMass.z);
+				//RendererDebug::SubmitDebugMesh(mGuideMesh, transform);
 
 				for (int i = 0; i < mSettings.StepsPerUpdate; ++i)
 				{
@@ -223,6 +231,27 @@ namespace Toast {
 
 		if (rbc.AngularVelocity.Length() > mSettings.MaxAngularVelocity)
 			rbc.AngularVelocity = Vector3::Normalize(rbc.AngularVelocity) * mSettings.MaxAngularVelocity;
+	}
+
+	void PhysicsEngine::ApplyLinearImpulseAtPoint(RigidBodyComponent& rbc, Vector3 impulse, Vector3 worldPoint, Vector3 comWorld)
+	{
+		if (rbc.InvMass == 0.0f)
+			return;
+
+		// Linear part — same as before
+		rbc.LinearVelocity += (impulse * rbc.InvMass);
+
+		// Angular part — torque from offset
+		// r = point of application - center of mass
+		Vector3 r = worldPoint - comWorld;
+
+		// angularImpulse = cross(r, impulse)
+		Vector3 angImpulse;
+		angImpulse.x = r.y * impulse.z - r.z * impulse.y;
+		angImpulse.y = r.z * impulse.x - r.x * impulse.z;
+		angImpulse.z = r.x * impulse.y - r.y * impulse.x;
+
+		rbc.AngularVelocity += Matrix::MulMat3(rbc.InvInertiaTensor, angImpulse);
 	}
 
 	void PhysicsEngine::ApplyGravity(Entity& entity, double ts)
@@ -440,10 +469,6 @@ namespace Toast {
 
 			Vector3 cornerWorld = Matrix::TransformPointRowVector(cornerLocal, Matrix(tc.GetTransformWithoutScale())); 
 			cornerWorld = cornerWorld + worldTranslation;
-
-			//DirectX::XMMATRIX transform = DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(tc.RotationEulerAngles.x), DirectX::XMConvertToRadians(tc.RotationEulerAngles.y), DirectX::XMConvertToRadians(tc.RotationEulerAngles.z))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&tc.RotationQuaternion)) * DirectX::XMMatrixTranslation(cornerWorld.x, cornerWorld.y, cornerWorld.z);
-
-			//RendererDebug::SubmitDebugMesh(mGuideMesh, transform);
 
 			double alt = GetAltitudeAtWorldPos(cornerWorld, radialDist, groundNormal);
 

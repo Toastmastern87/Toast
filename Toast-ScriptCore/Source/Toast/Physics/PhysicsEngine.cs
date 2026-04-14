@@ -18,5 +18,10 @@ namespace Toast
         {
             InternalCalls.PhysicsEngine_ApplyLinearImpulse(entityID, impulse);
         }
+
+        public static void ApplyLinearImpulseAtPoint(ulong entityID, Vector3 impulse, Vector3 point)
+        {
+            InternalCalls.PhysicsEngine_ApplyLinearImpulseAtPoint(entityID, impulse, point);
+        }
     }
 }

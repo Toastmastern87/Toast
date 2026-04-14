@@ -58,6 +58,9 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float PhysicsEngine_ApplyLinearImpulse(ulong entityID, Vector3 impulse);
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float PhysicsEngine_ApplyLinearImpulseAtPoint(ulong entityID, Vector3 impulse, Vector3 point);
+
         #endregion
 
         #region Scene
@@ -95,6 +98,9 @@ namespace Toast
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void Planet_SetTranslation(ref Vector3 inTranslation);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float Planet_GetGravity();
 
         #endregion
 
@@ -205,6 +211,15 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool TransformComponent_HasReachedTargetRotation(ulong entityID, float thresholdDeg);
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_GetWorldUp(ulong entityID, out Vector3 result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_GetWorldForward(ulong entityID, out Vector3 result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_GetWorldRight(ulong entityID, out Vector3 result);   
+
         #endregion
 
         #region Mesh Component
@@ -286,6 +301,15 @@ namespace Toast
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern IntPtr RigidBodyComponent_GetLinearVelocity(ulong entityID, out Vector3 result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern IntPtr RigidBodyComponent_GetAngularVelocity(ulong entityID, out Vector3 result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void RigidBodyComponent_SetMass(ulong entityID, float mass);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float RigidBodyComponent_GetMass(ulong entityID);
 
         #endregion
 
