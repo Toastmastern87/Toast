@@ -940,13 +940,13 @@ namespace Toast {
 				sRendererData->PlanetDraw.Planet->GetIcosphereMesh()->GetShaderInputLayout()->Bind();
 			}
 
-			if (sRendererData->PlanetDraw.Planet->GetNumHeightDetails() > 0)
-			{
-				RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
-				RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
-			}
+			//if (sRendererData->PlanetDraw.Planet->GetNumHeightDetails() > 0)
+			//{
+			//	RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
+			//	RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
+			//	RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
+			//	RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
+			//}
 
 			sRendererData->PlanetDraw.Planet->MapRenderingSettings();
 			sRendererData->PlanetDraw.Planet->GetPlanetRenderingSettingsCBuffer()->Bind();

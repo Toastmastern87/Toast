@@ -16,6 +16,7 @@
 
 #include "Toast/Renderer/Frustum.h"
 #include "Toast/Renderer/Mesh.h"
+#include "Toast/Renderer/PlanetMaterial.h"
 #include "Toast/Renderer/RenderCommand.h"
 #include "Toast/Renderer/TerrainCubeData.h"
 
@@ -498,6 +499,15 @@ namespace Toast {
 		Ref<ConstantBuffer> mTerrainObjectCBuffer;
 		Buffer mTerrainObjectBuffer;
 
+		// Materials
+		std::vector<PlanetMaterial> mMaterials;
+		Ref<StructuredBuffer> mMaterialSB;
+		Ref<StructuredBuffer> mMaterialNoiseSB;
+		Ref<StructuredBuffer> mMaterialNoisePermSB;
+		bool mMaterialsIsDirty = true;
+		uint32_t mLastMaterialCount = 0;
+		uint32_t mLastMaterailNoiseCount = 0;
+
 		// PBR Data
 		uint32_t mUseAlbedoMap = 0;
 		AssetHandle mAlbedoTextureHandle;
@@ -572,6 +582,14 @@ namespace Toast {
 		Ref<ConstantBuffer> GetPlanetRenderingSettingsCBuffer() { return mRenderingSettingsCBuffer; }
 		ShaderLayout* GetShaderLayout() { return &mShaderInputLayout; }
 
+		// Terrain Materials
+		const std::vector<PlanetMaterial>& GetTerrainMaterials() { return mMaterials; }
+		size_t GetNumTerrainMaterials() { return mMaterials.size(); }
+		Ref<StructuredBuffer> GetMaterialSB() { return mMaterialSB; }
+		Ref<StructuredBuffer> GetMaterialNoiseSB() { return mMaterialNoiseSB; }
+		Ref<StructuredBuffer> GetMaterialNoisePermSB() { return mMaterialNoisePermSB; }
+		void UploadMaterialsToGPU();
+
 		uint32_t& GetUseAlbedoMap() { return mUseAlbedoMap; }
 		DirectX::XMFLOAT3& GetAlbedoColor() { return mAlbedoColor; }
 		float& GetMetalness() { return mMetalness; }
@@ -611,7 +629,7 @@ namespace Toast {
 		const std::vector<HeightDetail>& GetHeightDetails() { return mHeightDetails; }
 		Ref<StructuredBuffer> GetHeightDetailSettingsSB() { return mHeightDetailSettingsSB; }
 		Ref<StructuredBuffer> GetHeightDetailPermSB() { return mHeightDetailPermSB; }
-		void UploadHeightDetailsToGPU();
+		//void UploadHeightDetailsToGPU();
 		void BuildPermutationTable(uint32_t seed, int outPerm[256]);
 
 		const std::vector<TerrainObject>& GetTerrainObjects() { return mTerrainObjects; }

@@ -1110,7 +1110,7 @@ namespace Toast {
 			}
 		}
 
-		scenePlanet->UploadHeightDetailsToGPU();
+		//scenePlanet->UploadHeightDetailsToGPU();
 
 		Renderer::ResetEnvMapsIBLDone();
 

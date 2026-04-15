@@ -1,20 +1,20 @@
 # Toast Engine Asset Registry
 # handle|type|filepath
+5222783482869039021|Texture2D|Textures\StarField16k.tif|sRGB=1
 13437167207546777021|Texture2D|Textures\UI\15_FollowStarshipClicked.png|sRGB=0
 2502867941750724029|Texture2D|Textures\Mars_MOLA_8k_raw.tif|sRGB=0
 8975056036252789757|Texture2D|Textures\Starship_Heat_Shield_normal.png|sRGB=0
-5222783482869039021|Texture2D|Textures\StarField16k.tif|sRGB=1
 2915971554223233935|Texture2D|Textures\UI\14_FollowStarship.png|sRGB=0
 7274978667343951183|Texture2D|Textures\MarsAlbedo.png|sRGB=0
 13089968595864323080|Texture2D|Textures\UI\01_UIMoneyPanel.png|sRGB=1
 17756802592510560904|Texture2D|Textures\Starship_Heat_Shield_roughness.png|sRGB=0
-11447799839312842238|Texture2D|Textures\Starship_Heat_Shield_basecolor.png|sRGB=1
 3499263334586501950|Texture2D|Textures\UI\07_WideButton.png|sRGB=1
+11447799839312842238|Texture2D|Textures\Starship_Heat_Shield_basecolor.png|sRGB=1
 10378684347057509115|Texture2D|Textures\Stainless_Steel_Hull_basecolor.png|sRGB=1
 11157927838621306737|Texture2D|Textures\StainlessSteelTest_normal.png|sRGB=0
 7799747929118295767|Texture2D|Textures\Stainless_Steel_Hull_roughness.png|sRGB=0
-14291402269564755598|Texture2D|Textures\SmokeParticleTexture.png|sRGB=1
 7770627433586345934|Texture2D|Textures\UI\03_UIStarshipPopupPanel.png|sRGB=0
+14291402269564755598|Texture2D|Textures\SmokeParticleTexture.png|sRGB=1
 4857095533691141474|Texture2D|Textures\UI\02_UIPanelV3.png|sRGB=0
 3469351507733000060|Texture2D|Textures\UI\04_CloseButton.png|sRGB=0
 5778959045403344017|Texture2D|Textures\UI\05_AddStarshipButton.png|sRGB=0

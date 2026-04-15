@@ -190,8 +190,11 @@ namespace Toast {
 		//for (uint32_t L = 0; L < mNumLevels; ++L)
 		//	mLevels[L].InFrustum = (L >= L0 && L < Ln);
 
-		if (mHeightDetailsDirty)
-			UploadHeightDetailsToGPU();
+		//if (mHeightDetailsDirty)
+		//	UploadHeightDetailsToGPU();
+
+		if (mMaterialsIsDirty)
+			UploadMaterialsToGPU();
 	}
 
 	DirectX::XMMATRIX Planet::GetTransformRotation()
@@ -285,6 +288,96 @@ namespace Toast {
 	{
 		float t = std::clamp((x - a) / (b - a), 0.0f, 1.0f);
 		return t * t * (3.0f - 2.0f * t);
+	}
+
+	void Planet::UploadMaterialsToGPU()
+	{
+		const uint32_t materialCount = (uint32_t)mMaterials.size();
+		if (materialCount == 0)
+		{
+			mMaterialSB.reset();
+			mMaterialNoiseSB.reset();
+			mMaterialNoisePermSB.reset();
+			mMaterialsIsDirty = false;
+			return;
+		}
+
+		// --- Count total noise layers across all materials ---
+		uint32_t totalNoiseLayers = 0;
+		for(const auto& material : mMaterials)
+			totalNoiseLayers += (uint32_t)material.NoiseLayers.size();
+
+		// --- Pack flat arrays ---
+		std::vector<PlanetMaterial::GPUData> materialsGPU(materialCount);
+		std::vector<NoiseLayer::GPUData> noiseGPU(totalNoiseLayers);
+		std::vector<Int4> permTables(totalNoiseLayers * 64);
+
+		uint32_t noiseOffset = 0;
+
+		for (uint32_t m = 0; m < materialCount; ++m) 
+		{
+			PlanetMaterial& material = mMaterials[m];
+			const uint32_t layerCount = (uint32_t)material.NoiseLayers.size();
+
+			// Inject indirection indices
+			PlanetMaterial::GPUData& GPUMaterial = material.GPU;
+			GPUMaterial.NoiseLayerStart = (int32_t)noiseOffset;
+			GPUMaterial.NoiseLayerCount = (int32_t)layerCount;
+
+			// Mirror PBR settings into GPU data
+			GPUMaterial.PBRLODActivation = material.PBR.LODActivation;
+			GPUMaterial.UVTilingScale = material.PBR.TilingScale;
+			GPUMaterial.PBRBlendRage = material.PBR.BlendRange;
+
+			materialsGPU[m] = GPUMaterial;
+
+			for (uint32_t n = 0; n < layerCount; ++n)
+			{
+				NoiseLayer& layer = material.NoiseLayers[n];
+
+				BuildPermutationTable(layer.Seed, layer.Perm);
+
+				const int32_t permBase = (int32_t)((noiseOffset + n) * 64);
+
+				for (int k = 0; k < 64; ++k)
+				{
+					const int idx = k * 4;
+					permTables[permBase + k] = Int4(
+						(int32_t)layer.Perm[idx + 0], 
+						(int32_t)layer.Perm[idx + 1], 
+						(int32_t)layer.Perm[idx + 2], 
+						(int32_t)layer.Perm[idx + 3]
+					);
+				}
+
+				NoiseLayer::GPUData GPUNoise = layer.GPU;
+				GPUNoise.PermBase = permBase;
+				noiseGPU[noiseOffset + n] = GPUNoise;
+			}
+
+			noiseOffset += layerCount;
+		}
+
+		// --- Recreate buffers if counts changed ---
+		if (materialCount != mLastMaterialCount)
+		{
+			mMaterialSB = CreateRef<StructuredBuffer>((uint32_t)sizeof(PlanetMaterial::GPUData), materialCount, D3D11_USAGE_DYNAMIC);
+			mLastMaterialCount = materialCount;
+		}
+
+		if (totalNoiseLayers != mLastMaterailNoiseCount)
+		{
+			mMaterialNoiseSB = CreateRef<StructuredBuffer>((uint32_t)sizeof(NoiseLayer::GPUData), totalNoiseLayers, D3D11_USAGE_DYNAMIC);
+			mMaterialNoisePermSB = CreateRef<StructuredBuffer>((uint32_t)sizeof(Int4), totalNoiseLayers * 64, D3D11_USAGE_DYNAMIC);
+			mLastMaterailNoiseCount = totalNoiseLayers;
+		}
+
+		// --- Upload to GPU ---
+		mMaterialSB->Update(materialsGPU.data(), materialsGPU.size() * sizeof(PlanetMaterial::GPUData));
+		mMaterialNoiseSB->Update(noiseGPU.data(), noiseGPU.size() * sizeof(NoiseLayer::GPUData));
+		mMaterialNoisePermSB->Update(permTables.data(), permTables.size() * sizeof(Int4));
+
+		mMaterialsIsDirty = false;
 	}
 
 	void Planet::MapRenderingSettings()
@@ -516,65 +609,65 @@ namespace Toast {
 		return last;
 	}
 
-	void Planet::UploadHeightDetailsToGPU()
-	{
-		const uint32_t count = (uint32_t)mHeightDetails.size();
+	//void Planet::UploadHeightDetailsToGPU()
+	//{
+	//	const uint32_t count = (uint32_t)mHeightDetails.size();
 
-		if (count == 0)
-		{
-			mHeightDetailSettingsSB.reset();
-			mHeightDetailPermSB.reset();
-			mHeightDetailsDirty = false;
-			return;
-		}
+	//	if (count == 0)
+	//	{
+	//		mHeightDetailSettingsSB.reset();
+	//		mHeightDetailPermSB.reset();
+	//		mHeightDetailsDirty = false;
+	//		return;
+	//	}
 
-		// --- Pack GPU arrays ---
-		std::vector<HeightDetail::GPUData> settings(count);
-		std::vector<Int4> permTables(count * 64);
+	//	// --- Pack GPU arrays ---
+	//	std::vector<HeightDetail::GPUData> settings(count);
+	//	std::vector<Int4> permTables(count * 64);
 
-		for (uint32_t i = 0; i < count; ++i)
-		{
-			HeightDetail& d = mHeightDetails[i];
+	//	for (uint32_t i = 0; i < count; ++i)
+	//	{
+	//		HeightDetail& d = mHeightDetails[i];
 
-			// Keep CPU perm valid for height queries
-			BuildPermutationTable(d.Seed, d.Perm);
+	//		// Keep CPU perm valid for height queries
+	//		BuildPermutationTable(d.Seed, d.Perm);
 
-			// Each detail owns 64 int4 entries (256 ints)
-			const int32_t permBase = (int32_t)(i * 64);
+	//		// Each detail owns 64 int4 entries (256 ints)
+	//		const int32_t permBase = (int32_t)(i * 64);
 
-			// Pack perm[256] -> int4[64]
-			for (int k = 0; k < 64; ++k)
-			{
-				const int idx = k * 4;
-				permTables[permBase + k] = Int4(
-					(int32_t)d.Perm[idx + 0],
-					(int32_t)d.Perm[idx + 1],
-					(int32_t)d.Perm[idx + 2],
-					(int32_t)d.Perm[idx + 3]
-				);
-			}
+	//		// Pack perm[256] -> int4[64]
+	//		for (int k = 0; k < 64; ++k)
+	//		{
+	//			const int idx = k * 4;
+	//			permTables[permBase + k] = Int4(
+	//				(int32_t)d.Perm[idx + 0],
+	//				(int32_t)d.Perm[idx + 1],
+	//				(int32_t)d.Perm[idx + 2],
+	//				(int32_t)d.Perm[idx + 3]
+	//			);
+	//		}
 
-			// Copy user-authored GPU settings, but inject the computed PermBase
-			HeightDetail::GPUData s = d.GPUSettings;
-			s.PermBase = permBase;
-			settings[i] = s;
-		}
+	//		// Copy user-authored GPU settings, but inject the computed PermBase
+	//		HeightDetail::GPUData s = d.GPUSettings;
+	//		s.PermBase = permBase;
+	//		settings[i] = s;
+	//	}
 
-		// If you expect count to change, I recommend recreating when it does:
-		if (count != mLastHeightDetailCount) 
-		{ 
-			mHeightDetailSettingsSB = CreateRef<StructuredBuffer>((uint32_t)sizeof(HeightDetail::GPUData), count, D3D11_USAGE_DYNAMIC);
-			mHeightDetailPermSB = CreateRef<StructuredBuffer>((uint32_t)sizeof(Int4), count * 64, D3D11_USAGE_DYNAMIC);
+	//	// If you expect count to change, I recommend recreating when it does:
+	//	if (count != mLastHeightDetailCount) 
+	//	{ 
+	//		mHeightDetailSettingsSB = CreateRef<StructuredBuffer>((uint32_t)sizeof(HeightDetail::GPUData), count, D3D11_USAGE_DYNAMIC);
+	//		mHeightDetailPermSB = CreateRef<StructuredBuffer>((uint32_t)sizeof(Int4), count * 64, D3D11_USAGE_DYNAMIC);
 
-			mLastHeightDetailCount = count; 
-		}
+	//		mLastHeightDetailCount = count; 
+	//	}
 
-		// --- Update GPU ---
-		mHeightDetailSettingsSB->Update(settings.data(), settings.size() * sizeof(HeightDetail::GPUData));
-		mHeightDetailPermSB->Update(permTables.data(), permTables.size() * sizeof(Int4));
+	//	// --- Update GPU ---
+	//	mHeightDetailSettingsSB->Update(settings.data(), settings.size() * sizeof(HeightDetail::GPUData));
+	//	mHeightDetailPermSB->Update(permTables.data(), permTables.size() * sizeof(Int4));
 
-		mHeightDetailsDirty = false;
-	}
+	//	mHeightDetailsDirty = false;
+	//}
 
 	void Planet::BuildPermutationTable(uint32_t seed, int outPerm[256])
 	{
