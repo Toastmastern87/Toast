@@ -746,21 +746,55 @@ namespace Toast {
 		out << YAML::Key << "MaxLevels" << YAML::Value << planetMeshGeo->mNumLevels;
 		out << YAML::EndMap;
 
-		out << YAML::Key << "HeightDetails";
+		out << YAML::Key << "TerrainMaterials";
 		out << YAML::BeginSeq;
-
-		for (const HeightDetail& detail : scenePlanet->mHeightDetails)
+		for (const PlanetMaterial& mat : scenePlanet->mMaterials)
 		{
 			out << YAML::BeginMap;
-			out << YAML::Key << "Name" << YAML::Value << detail.Name;
-			out << YAML::Key << "Seed" << YAML::Value << detail.Seed;
-			out << YAML::Key << "LODActivation" << YAML::Value << detail.GPUSettings.LODActivation;
-			out << YAML::Key << "Octaves" << YAML::Value << detail.GPUSettings.Octaves;
-			out << YAML::Key << "Frequency" << YAML::Value << detail.GPUSettings.Frequency;
-			out << YAML::Key << "Amplitude" << YAML::Value << detail.GPUSettings.Amplitude;
+			out << YAML::Key << "Name" << YAML::Value << mat.Name;
+
+			// Selection
+			out << YAML::Key << "SlopeMin" << YAML::Value << mat.GPU.SlopeMin;
+			out << YAML::Key << "SlopeMax" << YAML::Value << mat.GPU.SlopeMax;
+			out << YAML::Key << "ColorAvgMin" << YAML::Value << mat.GPU.ColorAvgMin;
+			out << YAML::Key << "ColorAvgMax" << YAML::Value << mat.GPU.ColorAvgMax;
+			out << YAML::Key << "UseAlbedo" << YAML::Value << mat.GPU.UseAlbedo;
+			out << YAML::Key << "BlendSharpness" << YAML::Value << mat.GPU.BlendSharpness;
+
+			// PBR
+			out << YAML::Key << "PBRLODActivation" << YAML::Value << mat.PBR.LODActivation;
+			out << YAML::Key << "PBRBlendRange" << YAML::Value << mat.PBR.BlendRange;
+			out << YAML::Key << "PBRTilingScale" << YAML::Value << mat.PBR.TilingScale;
+			out << YAML::Key << "PBRDisplacementStrength" << YAML::Value << mat.PBR.DisplacementStrength;
+			out << YAML::Key << "PBRAlbedoHandle" << YAML::Value << mat.PBR.AlbedoHandle;
+			out << YAML::Key << "PBRNormalHandle" << YAML::Value << mat.PBR.NormalHandle;
+			out << YAML::Key << "PBRRoughnessHandle" << YAML::Value << mat.PBR.RoughnessHandle;
+			out << YAML::Key << "PBRAOHandle" << YAML::Value << mat.PBR.AOHandle;
+			out << YAML::Key << "PBRDisplacementHandle" << YAML::Value << mat.PBR.DisplacementHandle;
+
+			// Noise Layers
+			out << YAML::Key << "NoiseLayers";
+			out << YAML::BeginSeq;
+			for (const NoiseLayer& layer : mat.NoiseLayers)
+			{
+				out << YAML::BeginMap;
+				out << YAML::Key << "Name" << YAML::Value << layer.Name;
+				out << YAML::Key << "Seed" << YAML::Value << layer.Seed;
+				out << YAML::Key << "Type" << YAML::Value << layer.GPU.Type;
+				out << YAML::Key << "LODActivation" << YAML::Value << layer.GPU.LODActivation;
+				out << YAML::Key << "Octaves" << YAML::Value << layer.GPU.Octaves;
+				out << YAML::Key << "Frequency" << YAML::Value << layer.GPU.Frequency;
+				out << YAML::Key << "Amplitude" << YAML::Value << layer.GPU.Amplitude;
+				out << YAML::Key << "Lacunarity" << YAML::Value << layer.GPU.Lacunarity;
+				out << YAML::Key << "Persistence" << YAML::Value << layer.GPU.Persistence;
+				out << YAML::Key << "BlendWeight" << YAML::Value << layer.GPU.BlendWeight;
+				out << YAML::Key << "RadialFreqScale" << YAML::Value << layer.GPU.RadialFreqScale;
+				out << YAML::EndMap;
+			}
+			out << YAML::EndSeq;
+
 			out << YAML::EndMap;
 		}
-
 		out << YAML::EndSeq;
 
 		out << YAML::Key << "TerrainObjects";

@@ -312,6 +312,8 @@ namespace Toast {
 
 		void SetDistanceLUTDirty() { mDistanceLUTIsDirty = true; }
 
+		int16_t GetMaxSubdivisions() const { return mMaxSubdivisions; }
+
 		friend class SceneSerializer;
 		friend class PlanetPanel;
 	private:
@@ -322,6 +324,7 @@ namespace Toast {
 
 		const int16_t HARDCAPSUBDIVISIONS = 25;
 		int16_t mMaxSubdivisions = 0;
+		int16_t mHighestSubdivision = 0;
 		int16_t mPatchLevels = 0;
 		bool mPatchIsDirty = true;
 		double mNearDistance = 1.0;

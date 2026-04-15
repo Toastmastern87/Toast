@@ -22,6 +22,11 @@ namespace Toast {
 		void DrawTerrainObjectsListUI();
 		void DrawTerrainObjectPopup();
 		void DrawTerrainObjectMeshRow(TerrainObject& target);
+
+		void DrawTerrainMaterialsListUI();
+		void DrawTerrainMaterialPopup();
+		void DrawNoiseLayerPopup(PlanetMaterial& parentMaterial);
+		void DrawPBRTextureSlot(const char* label, const char* id, AssetHandle& handle);
 	private:
 		Scene* mSceneContext = nullptr;
 		Planet* mContext = nullptr;
@@ -45,6 +50,20 @@ namespace Toast {
 		bool mRequestOpenTerrainObjPopup = false;
 		char mTerrainObjNameBuf[128]{};
 		char mTerrainObjMeshPathBuf[256]{};
+
+		// Planet Material editing state
+		PlanetMaterial mMaterialDraft;
+		bool mEditingMaterial = false;
+		int  mEditingMaterialIndex = -1;
+		char mMaterialNameBuf[256] = {};
+		bool  mRequestOpenMaterialPopup = false;
+
+		// Noise Layer editing state (nested inside material popup)
+		NoiseLayer mNoiseLayerDraft;
+		bool  mEditingNoiseLayer = false;
+		int   mEditingNoiseLayerIndex = -1;
+		char  mNoiseLayerNameBuf[256] = {};
+		bool  mRequestOpenNoiseLayerPopup = false;
 
 		// Import popup
 		std::filesystem::path mPendingImportPath;

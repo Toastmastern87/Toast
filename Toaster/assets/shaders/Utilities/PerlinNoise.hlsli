@@ -72,7 +72,7 @@ float Perlin3D(int permBase, float3 p)
     return LerpF(y0, y1, w);
 }
 
-float FractalPerlin3D(int permBase, float3 p, int octaves, float baseFreq, float baseAmp)
+float FractalPerlin3D(int permBase, float3 p, int octaves, float baseFreq, float baseAmp, float lacunarity, float persistence)
 {
     float result = 0.0f;
     float frequency = baseFreq;
@@ -82,8 +82,43 @@ float FractalPerlin3D(int permBase, float3 p, int octaves, float baseFreq, float
     for (int i = 0; i < octaves; i++)
     {
         result += Perlin3D(permBase, p * frequency) * amplitude;
-        frequency *= 2.0f;
-        amplitude *= 0.5f;
+        frequency *= lacunarity;
+        amplitude *= persistence;
+    }
+    return result;
+}
+
+float RidgedPerlin3D(int permBase, float3 p, int octaves, float baseFreq, float baseAmp, float lacunarity, float persistence)
+{
+    float result = 0.0f;
+    float frequency = baseFreq;
+    float amplitude = baseAmp;
+
+    [loop]
+    for (int i = 0; i < octaves; i++)
+    {
+        float n = Perlin3D(permBase, p * frequency);
+        n = 1.0f - abs(n);
+        n = n * n;
+        result += n * amplitude;
+        frequency *= lacunarity;
+        amplitude *= persistence;
+    }
+    return result;
+}
+
+float TurbulencePerlin3D(int permBase, float3 p, int octaves, float baseFreq, float baseAmp, float lacunarity, float persistence)
+{
+    float result = 0.0f;
+    float frequency = baseFreq;
+    float amplitude = baseAmp;
+
+    [loop]
+    for (int i = 0; i < octaves; i++)
+    {
+        result += abs(Perlin3D(permBase, p * frequency)) * amplitude;
+        frequency *= lacunarity;
+        amplitude *= persistence;
     }
     return result;
 }

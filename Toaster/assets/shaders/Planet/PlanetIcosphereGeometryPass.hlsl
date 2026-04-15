@@ -46,6 +46,7 @@ cbuffer IcospherePlanet : register(b2)
     float3 camLoPS;
 	
     float3 planetCenterRelHiWS;
+    uint materialCount;
 
     float3 planetCenterRelLoWS;
 };
@@ -72,10 +73,58 @@ struct PixelInputType
     float3 dirPS            : TEXCOORD0; // planet-space unit direction
 };
 
-Texture2DArray<float> HeightCubeArray : register(t0);
+struct MaterialData
+{
+    // 16 bytes
+    float SlopeMin;
+    float SlopeMax;
+    float BlendSharpness;
+    int NoiseLayerStart;
+
+    // 16 bytes
+    int NoiseLayerCount;
+    int PBRLODActivation;
+    float UVTilingScale;
+    int PBRBlendRange;
+
+    // 16 bytes
+    float ColorAvgMin;
+    float ColorAvgMax;
+    float UseAlbedo;
+    float pad0;
+};
+
+struct NoiseLayerData
+{
+    // 16 bytes
+    int Type; // 0=Fractal, 1=Ridged, 2=Turbulence
+    int LODActivation;
+    int Octaves;
+    int PermBase;
+
+    // 16 bytes
+    float Frequency;
+    float Amplitude;
+    float Lacunarity;
+    float Persistence;
+
+    // 16 bytes
+    float BlendWeight;
+    float RadialFreqScale; // multiplier on radial axis frequency (< 1 = horizontal banding)
+    float pad1, pad2;
+};
+
+
+Texture2DArray<float> HeightCubeArray           : register(t0);
+
+StructuredBuffer<MaterialData> Materials        : register(t1);
+StructuredBuffer<NoiseLayerData> NoiseLayers    : register(t2);
+StructuredBuffer<int4> PermTables               : register(t3);
+
 SamplerState HeightMapSampler : register(s5);
 
 #include "DirectionToCube.hlsli"
+#include "PerlinNoise.hlsli"
 
 float SampleCubeBilinear(float3 dir, uint2 dims, uint mip)
 {
@@ -121,6 +170,65 @@ float SampleHeightMetres(float3 dir)
     uint W, H, L;
     HeightCubeArray.GetDimensions(W, H, L);
     return SampleCubeBilinear(normalize(dir), uint2(W, H), 0);
+}
+
+// Called per-vertex to compute total height displacement
+// radialDir = normalize(worldPos - planetCenter), pass in to avoid recomputing
+float SampleNoiseDisplacement(float3 worldPos, float3 radialDir, int currentLOD, uint materialCount)
+{
+    float totalHeight = 0.0f;
+
+    for (uint m = 0; m < materialCount; m++)
+    {
+        MaterialData mat = Materials[m];
+        int start = mat.NoiseLayerStart;
+        int count = mat.NoiseLayerCount;
+
+        for (int n = 0; n < count; n++)
+        {
+            NoiseLayerData layer = NoiseLayers[start + n];
+
+            // Skip layers not yet active at this LOD
+            if (currentLOD < layer.LODActivation)
+                continue;
+
+            // Apply anisotropic frequency scaling along radial axis
+            // RadialFreqScale < 1 compresses noise along the radial direction,
+            // creating horizontal banding on slopes (erosion lines)
+            float3 noisePos = worldPos;
+            if (abs(layer.RadialFreqScale - 1.0) > 0.001)
+            {
+                float radialComponent = dot(worldPos, radialDir);
+                noisePos += radialDir * radialComponent * (layer.RadialFreqScale - 1.0);
+            }
+
+            float h = 0.0f;
+
+            if (layer.Type == 0) // Fractal
+            {
+                h = FractalPerlin3D(layer.PermBase, noisePos, layer.Octaves, layer.Frequency, layer.Amplitude, layer.Lacunarity, layer.Persistence);
+            }
+            else if (layer.Type == 1) // Ridged
+            {
+                h = RidgedPerlin3D(layer.PermBase, noisePos, layer.Octaves, layer.Frequency, layer.Amplitude, layer.Lacunarity, layer.Persistence);
+            }
+            else // Turbulence
+            {
+                h = TurbulencePerlin3D(layer.PermBase, noisePos, layer.Octaves, layer.Frequency, layer.Amplitude, layer.Lacunarity, layer.Persistence);
+            }
+
+            totalHeight += h * layer.BlendWeight;
+        }
+    }
+
+    return totalHeight;
+}
+
+float SampleTerrainHeight(float3 dir, float3 worldPos, int currentLOD, uint materialCount)
+{
+    float baseHeight = SampleHeightMetres(dir);
+    float noise = SampleNoiseDisplacement(worldPos, dir, currentLOD, materialCount);
+    return baseHeight + noise;
 }
 
 // ── compute terrain normal via finite differences ────────────────
@@ -192,7 +300,8 @@ PixelInputType main(VertexInputType input)
     // Edge-consistent direction
     precise float3 dir = normalize(w0 * V0 + w1 * V1 + w2 * V2);
 
-    float h = SampleHeightMetres(dir);
+    float3 worldPos = dir * planetRadius;
+    float h = SampleTerrainHeight(dir, worldPos, input.level, materialCount);
 
     // High-precision relative position in planet space meters:
     precise float3 relPSHi = w0 * input.P0RelHi + w1 * input.P1RelHi + w2 * input.P2RelHi;

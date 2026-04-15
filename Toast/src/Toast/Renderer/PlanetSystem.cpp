@@ -904,6 +904,8 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		mHighestSubdivision = 0;
+
 		mRadius = radius;
 		mMaxHeight = maxHeight;
 		mTerrainCubeData = &terrainData;
@@ -1104,6 +1106,10 @@ namespace Toast {
 
 				// Fallback: Should never occur
 				mPatches.emplace_back(PlanetPatchCPU(subdivision, ia, ib, ic));
+
+				if(subdivision > mHighestSubdivision)
+					mHighestSubdivision = subdivision;
+
 				return;
 			}	 
 		}

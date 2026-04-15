@@ -108,7 +108,7 @@ float AccumulateHeightDetails(float3 offMeters, int lod)
         DetailSettings d = Details[i];
         if (lod <= d.LODActivation)
         {
-            sum += FractalPerlin3D(d.PermBase, offMeters, d.Octaves, d.Frequency, d.Amplitude);
+            sum += FractalPerlin3D(d.PermBase, offMeters, d.Octaves, d.Frequency, d.Amplitude, 2.0f, 0.5f);
         }
     }
     return sum;

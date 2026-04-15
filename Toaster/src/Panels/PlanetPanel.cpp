@@ -432,6 +432,632 @@ namespace Toast {
 		ImGui::PopStyleVar(3);
 	}
 
+	void PlanetPanel::DrawTerrainMaterialsListUI()
+	{
+		// --- Visual sizing: show up to 3 items without scrolling ---
+		const float visibleItems = 3.0f;
+		const float rowH = ImGui::GetFrameHeight();
+		const float rowGap = 1.0f;
+		const float innerPadY = 8.0f * 2.0f;
+		auto  padX = ImGui::GetStyle().CellPadding.x;
+		float colW = ImGui::GetColumnWidth();
+		float fullW = colW - padX * 2.0f;
+		float minBoxH = innerPadY + visibleItems * rowH + (visibleItems - 1.0f) * rowGap;
+		float boxH = minBoxH;
+
+		ImGuiWindowFlags childFlags = ImGuiWindowFlags_AlwaysVerticalScrollbar
+			| ImGuiWindowFlags_NoMove;
+
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(0);
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("Terrain Materials");
+
+		ImGui::TableSetColumnIndex(1);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 0.0f));
+		ImGui::BeginChild("##PlanetTerrainMaterialsBox", ImVec2(fullW, boxH), true, childFlags);
+		ImGui::Dummy(ImVec2(0.0f, 0.5f));
+
+		int deleteIndex = -1;
+
+		for (int i = 0; i < (int)mContext->mMaterials.size(); ++i)
+		{
+			PlanetMaterial& mat = mContext->mMaterials[i];
+			ImGui::PushID(i);
+
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 4.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+				ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
+
+			float w = ImGui::GetContentRegionAvail().x;
+			bool clicked = ImGui::Button(mat.Name.c_str(), ImVec2(w, 0.0f));
+
+			ImGui::PopStyleVar(3);
+			ImGui::PopStyleColor(1);
+
+			// Right-click context menu for delete
+			if (ImGui::BeginPopupContextItem("##MaterialContext",
+				ImGuiPopupFlags_MouseButtonRight))
+			{
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 8.0f));
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 6.0f));
+				if (ImGui::MenuItem("Delete"))
+					deleteIndex = i;
+				ImGui::PopStyleVar(2);
+				ImGui::EndPopup();
+			}
+
+			ImGui::Dummy(ImVec2(0.0f, 0.5f));
+
+			if (clicked)
+			{
+				mEditingMaterial = true;
+				mEditingMaterialIndex = i;
+				mEditingNoiseLayer = false;
+				mEditingNoiseLayerIndex = -1;
+				CopyToNameBuf(mMaterialNameBuf, sizeof(mMaterialNameBuf), mat.Name);
+				mRequestOpenMaterialPopup = true;
+			}
+
+			ImGui::PopID();
+		}
+
+		// Handle deletion
+		if (deleteIndex != -1)
+		{
+			if (mEditingMaterial)
+			{
+				if (mEditingMaterialIndex == deleteIndex)
+				{
+					mEditingMaterial = false;
+					mEditingMaterialIndex = -1;
+				}
+				else if (mEditingMaterialIndex > deleteIndex)
+				{
+					mEditingMaterialIndex--;
+				}
+			}
+			mContext->mMaterials.erase(	mContext->mMaterials.begin() + deleteIndex);
+			mContext->mMaterialsIsDirty = true;
+		}
+
+		ImGui::EndChild();
+		ImGui::PopStyleVar();
+
+		// --- Add button aligned bottom-right ---
+		{
+			const bool disableAdd = (mContext->mMaterials.size() >= 8);
+			const float btnSize = ImGui::GetFrameHeight();
+			float cursorX = ImGui::GetCursorPosX();
+			float availX = ImGui::GetContentRegionAvail().x;
+			ImGui::SetCursorPosX(cursorX + (availX - btnSize - 7.0f));
+
+			ImGui::BeginDisabled(disableAdd);
+			if (ImGui::Button("+##AddTerrainMaterial", ImVec2(btnSize, btnSize)))
+			{
+				mEditingMaterial = false;
+				mEditingMaterialIndex = -1;
+				mEditingNoiseLayer = false;
+				mEditingNoiseLayerIndex = -1;
+				mMaterialDraft = PlanetMaterial{};
+				mMaterialDraft.Name = "New Material";
+				CopyToNameBuf(mMaterialNameBuf, sizeof(mMaterialNameBuf),
+					mMaterialDraft.Name);
+				mRequestOpenMaterialPopup = true;
+			}
+			ImGui::EndDisabled();
+		}
+
+		if (mRequestOpenMaterialPopup)
+		{
+			ImGui::OpenPopup("##TerrainMaterialPopup");
+			mRequestOpenMaterialPopup = false;
+		}
+	}
+
+	void PlanetPanel::DrawPBRTextureSlot(const char* label, const char* id,	AssetHandle& handle)
+	{
+		ImGui::PushID(id);
+
+		ImGui::Text("%s", label);
+
+		// Resolve display texture: assigned texture or checkerboard fallback
+		Texture2D* displayTexture = dynamic_cast<Texture2D*>(
+			TextureLibrary::Get("assets/textures/Checkerboard.png"));
+		if (handle != 0)
+		{
+			auto tex = AssetManager::GetAsset<Texture2D>(AssetHandle(handle));
+			if (tex)
+				displayTexture = tex.get();
+		}
+
+		ImGui::Image(displayTexture->GetID(), { 64.0f, 64.0f });
+
+		// Drag-drop from ContentBrowser
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* payload =
+				ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+			{
+				const wchar_t* path = (const wchar_t*)payload->Data;
+				auto completePath = mAssetRoot / path;
+				std::string filename = completePath.string();
+
+				RequestTextureImport(filename, false, [&handle, this](AssetHandle h)
+					{
+						handle = (uint64_t)h;
+						if (mEditingMaterial)
+							mContext->mMaterialsIsDirty = true;
+					});
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		// Click to browse
+		if (ImGui::IsItemClicked())
+		{
+			auto texturePath = mAssetRoot / "Textures";
+			auto filename = FileDialogs::OpenFile("", texturePath.string().c_str());
+			if (filename)
+			{
+				RequestTextureImport(*filename, false, [&handle, this](AssetHandle h)
+					{
+						handle = (uint64_t)h;
+						if (mEditingMaterial)
+							mContext->mMaterialsIsDirty = true;
+					});
+			}
+		}
+
+		ImGui::PopID();
+	}
+
+	void PlanetPanel::DrawTerrainMaterialPopup()
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 10.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 6.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f));
+
+		if (ImGui::BeginPopupModal("##TerrainMaterialPopup", nullptr,
+			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+		{
+			// Resolve target
+			PlanetMaterial* liveMat = nullptr;
+			if (mEditingMaterial && mEditingMaterialIndex >= 0
+				&& mEditingMaterialIndex < (int)mContext->mMaterials.size())
+				liveMat = &mContext->mMaterials[mEditingMaterialIndex];
+
+			PlanetMaterial& target = (liveMat != nullptr) ? *liveMat : mMaterialDraft;
+			const char* header = mEditingMaterial
+				? "Edit Terrain Material" : "Add Terrain Material";
+
+			ImGui::PushFont(io.Fonts->Fonts[3]);
+			ImGui::TextUnformatted(header);
+			ImGui::PopFont();
+			ImGui::Separator();
+
+			// ── Name ──
+			ImGui::Text("Name");
+			ImGui::SetNextItemWidth(360.0f);
+			if (ImGui::InputText("##MatName", mMaterialNameBuf, sizeof(mMaterialNameBuf)))
+				CopyFromNameBuf(target.Name, mMaterialNameBuf);
+
+			// ════════════════════════════════════════════════════════
+			//  Selection
+			// ════════════════════════════════════════════════════════
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::PushFont(io.Fonts->Fonts[4]);
+			ImGui::Text("Selection");
+			ImGui::PopFont();
+
+			ImGui::Text("Slope Min");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragFloat("##SlopeMin", &target.GPU.SlopeMin, 0.01f, 0.0f, 1.0f) && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			ImGui::Text("Slope Max");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragFloat("##SlopeMax", &target.GPU.SlopeMax, 0.01f, 0.0f, 1.0f) && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			ImGui::Text("Color Avg Min");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragFloat("##ColorAvgMin", &target.GPU.ColorAvgMin, 0.01f, 0.0f, 1.0f) && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			ImGui::Text("Color Avg Max");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragFloat("##ColorAvgMax", &target.GPU.ColorAvgMax,
+				0.01f, 0.0f, 1.0f) && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			{
+				bool useAlbedo = target.GPU.UseAlbedo > 0.5f;
+				if (ImGui::Checkbox("Use Albedo", &useAlbedo))
+				{
+					target.GPU.UseAlbedo = useAlbedo ? 1.0f : 0.0f;
+					if (mEditingMaterial) 
+						mContext->mMaterialsIsDirty = true;
+				}
+			}
+
+			ImGui::Text("Blend Sharpness");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragFloat("##BlendSharpness", &target.GPU.BlendSharpness,
+				0.1f, 1.0f, 50.0f) && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			// ════════════════════════════════════════════════════════
+			//  Noise Layers (nested list inside popup)
+			// ════════════════════════════════════════════════════════
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::PushFont(io.Fonts->Fonts[4]);
+			ImGui::Text("Noise Layers");
+			ImGui::PopFont();
+
+			// Mini scrollable list of noise layers, same style as the material list
+			{
+				const float visibleItems = 3.0f;
+				const float rowH = ImGui::GetFrameHeight();
+				const float rowGap = 1.0f;
+				const float innerPadY = 8.0f * 2.0f;
+				float boxW = 360.0f;
+				float boxH = innerPadY + visibleItems * rowH
+					+ (visibleItems - 1.0f) * rowGap;
+
+				ImGuiWindowFlags childFlags =
+					ImGuiWindowFlags_AlwaysVerticalScrollbar
+					| ImGuiWindowFlags_NoMove;
+
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 0.0f));
+				ImGui::BeginChild("##NoiseLayersBox", ImVec2(boxW, boxH),
+					true, childFlags);
+				ImGui::Dummy(ImVec2(0.0f, 0.5f));
+
+				int deleteLayerIndex = -1;
+
+				for (int n = 0; n < (int)target.NoiseLayers.size(); ++n)
+				{
+					NoiseLayer& layer = target.NoiseLayers[n];
+					ImGui::PushID(n);
+
+					ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+					ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+					ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
+						ImVec2(10.0f, 4.0f));
+					ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+						ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
+
+					float w = ImGui::GetContentRegionAvail().x;
+					bool clicked = ImGui::Button(layer.Name.c_str(),
+						ImVec2(w, 0.0f));
+
+					ImGui::PopStyleVar(3);
+					ImGui::PopStyleColor(1);
+
+					// Right-click to delete
+					if (ImGui::BeginPopupContextItem("##NoiseLayerContext",
+						ImGuiPopupFlags_MouseButtonRight))
+					{
+						ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
+							ImVec2(12.0f, 8.0f));
+						ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
+							ImVec2(10.0f, 6.0f));
+						if (ImGui::MenuItem("Delete"))
+							deleteLayerIndex = n;
+						ImGui::PopStyleVar(2);
+						ImGui::EndPopup();
+					}
+
+					ImGui::Dummy(ImVec2(0.0f, 0.5f));
+
+					if (clicked)
+					{
+						mEditingNoiseLayer = true;
+						mEditingNoiseLayerIndex = n;
+						CopyToNameBuf(mNoiseLayerNameBuf,
+							sizeof(mNoiseLayerNameBuf), layer.Name);
+						mRequestOpenNoiseLayerPopup = true;
+					}
+
+					ImGui::PopID();
+				}
+
+				// Handle noise layer deletion
+				if (deleteLayerIndex != -1)
+				{
+					if (mEditingNoiseLayer)
+					{
+						if (mEditingNoiseLayerIndex == deleteLayerIndex)
+						{
+							mEditingNoiseLayer = false;
+							mEditingNoiseLayerIndex = -1;
+						}
+						else if (mEditingNoiseLayerIndex > deleteLayerIndex)
+						{
+							mEditingNoiseLayerIndex--;
+						}
+					}
+					target.RemoveNoiseLayer(deleteLayerIndex);
+					if (mEditingMaterial) mContext->mMaterialsIsDirty = true;
+				}
+
+				ImGui::EndChild();
+				ImGui::PopStyleVar();
+
+				// Add noise layer button (bottom-right)
+				{
+					const bool disableAdd = (target.NoiseLayers.size() >= 8);
+					const float btnSize = ImGui::GetFrameHeight();
+					float cursorX = ImGui::GetCursorPosX();
+					ImGui::SetCursorPosX(cursorX + (boxW - btnSize - 7.0f));
+
+					ImGui::BeginDisabled(disableAdd);
+					if (ImGui::Button("+##AddNoiseLayer", ImVec2(btnSize, btnSize)))
+					{
+						mEditingNoiseLayer = false;
+						mEditingNoiseLayerIndex = -1;
+						mNoiseLayerDraft = NoiseLayer{};
+						mNoiseLayerDraft.Name = "New Noise Layer";
+						CopyToNameBuf(mNoiseLayerNameBuf,
+							sizeof(mNoiseLayerNameBuf),
+							mNoiseLayerDraft.Name);
+						mRequestOpenNoiseLayerPopup = true;
+					}
+					ImGui::EndDisabled();
+				}
+			}
+
+			// Open noise layer popup if requested
+			if (mRequestOpenNoiseLayerPopup)
+			{
+				ImGui::OpenPopup("##NoiseLayerPopup");
+				mRequestOpenNoiseLayerPopup = false;
+			}
+
+			// Draw the nested noise layer popup (renders on top of this one)
+			DrawNoiseLayerPopup(target);
+
+			// ════════════════════════════════════════════════════════
+			//  PBR Textures
+			// ════════════════════════════════════════════════════════
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::PushFont(io.Fonts->Fonts[4]);
+			ImGui::Text("PBR Textures");
+			ImGui::PopFont();
+
+			ImGui::Text("LOD Activation");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragInt("##PBRLOD", &target.PBR.LODActivation, 1.0f, 0, 25) && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			ImGui::Text("Blend Range");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragInt("##PBRBlendRange", &target.PBR.BlendRange, 1.0f, 1, 10) && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			ImGui::Text("Tiling Scale");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragFloat("##TilingScale", &target.PBR.TilingScale, 0.1f, 0.1f, 100.0f, "%.1f") && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			ImGui::Text("Displacement Strength");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragFloat("##DispStrength", &target.PBR.DisplacementStrength,
+				0.01f, 0.0f, 10.0f, "%.2f") && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			DrawPBRTextureSlot("Albedo", "##PBRAlbedo", target.PBR.AlbedoHandle);
+			DrawPBRTextureSlot("Normal", "##PBRNormal", target.PBR.NormalHandle);
+			DrawPBRTextureSlot("Roughness", "##PBRRough", target.PBR.RoughnessHandle);
+			DrawPBRTextureSlot("AO", "##PBRAO", target.PBR.AOHandle);
+			DrawPBRTextureSlot("Displacement", "##PBRDisp", target.PBR.DisplacementHandle);
+
+			// ════════════════════════════════════════════════════════
+			//  Close / Add buttons
+			// ════════════════════════════════════════════════════════
+			ImGui::Spacing();
+			ImGui::Separator();
+			const float btnW = 120.0f;
+
+			if (ImGui::Button("Close", ImVec2(btnW, 0.0f)))
+			{
+				mEditingMaterial = false;
+				mEditingMaterialIndex = -1;
+				mEditingNoiseLayer = false;
+				mEditingNoiseLayerIndex = -1;
+				ImGui::CloseCurrentPopup();
+			}
+
+			if (!mEditingMaterial)
+			{
+				ImGui::SameLine();
+				if (ImGui::Button("Add", ImVec2(btnW, 0.0f)))
+				{
+					mContext->mMaterials.push_back(mMaterialDraft);
+					mEditingMaterial = false;
+					mEditingMaterialIndex = -1;
+					mEditingNoiseLayer = false;
+					mEditingNoiseLayerIndex = -1;
+					mContext->mMaterialsIsDirty = true;
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
+			ImGui::EndPopup();
+		}
+
+		ImGui::PopStyleVar(3);
+	}
+
+	void PlanetPanel::DrawNoiseLayerPopup(PlanetMaterial& parentMaterial)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 10.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 6.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f));
+
+		if (ImGui::BeginPopupModal("##NoiseLayerPopup", nullptr,
+			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+		{
+			// Resolve target
+			NoiseLayer* liveLayer = nullptr;
+			if (mEditingNoiseLayer && mEditingNoiseLayerIndex >= 0
+				&& mEditingNoiseLayerIndex < (int)parentMaterial.NoiseLayers.size())
+				liveLayer = &parentMaterial.NoiseLayers[mEditingNoiseLayerIndex];
+
+			NoiseLayer& target = (liveLayer != nullptr) ? *liveLayer : mNoiseLayerDraft;
+			const char* header = mEditingNoiseLayer
+				? "Edit Noise Layer" : "Add Noise Layer";
+
+			ImGui::PushFont(io.Fonts->Fonts[3]);
+			ImGui::TextUnformatted(header);
+			ImGui::PopFont();
+			ImGui::Separator();
+
+			// Name
+			ImGui::Text("Name");
+			ImGui::SetNextItemWidth(300.0f);
+			if (ImGui::InputText("##LayerName", mNoiseLayerNameBuf,
+				sizeof(mNoiseLayerNameBuf)))
+				CopyFromNameBuf(target.Name, mNoiseLayerNameBuf);
+
+			// Noise Type dropdown
+			const char* noiseTypeNames[] = { "Fractal", "Ridged", "Turbulence" };
+			ImGui::Text("Type");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::Combo("##NoiseType", &target.GPU.Type,
+				noiseTypeNames, 3) && mEditingNoiseLayer && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::PushFont(io.Fonts->Fonts[4]);
+			ImGui::Text("Noise Settings");
+			ImGui::PopFont();
+
+			// LOD Activation
+			ImGui::Text("LOD Activation");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragInt("##NoiseLOD", &target.GPU.LODActivation,
+				1.0f, 0, 25) && mEditingNoiseLayer && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			// Seed (read-only)
+			{
+				ImGui::Text("Seed");
+				ImGui::SetNextItemWidth(180.0f);
+				ImGui::BeginDisabled();
+				uint32_t seed = target.Seed;
+				ImGui::InputScalar("##Seed", ImGuiDataType_U32, &seed);
+				ImGui::EndDisabled();
+			}
+
+			// Octaves
+			ImGui::Text("Octaves");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragInt("##Octaves", &target.GPU.Octaves,
+				1.0f, 1, 9) && mEditingNoiseLayer && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			// Frequency
+			ImGui::Text("Frequency");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragFloat("##Frequency", &target.GPU.Frequency,
+				0.0001f, 0.0f, FLT_MAX, "%.6f")
+				&& mEditingNoiseLayer && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			// Amplitude
+			ImGui::Text("Amplitude");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragFloat("##Amplitude", &target.GPU.Amplitude,
+				1.0f, 0.0f, FLT_MAX, "%.1f")
+				&& mEditingNoiseLayer && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			// Lacunarity
+			ImGui::Text("Lacunarity");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragFloat("##Lacunarity", &target.GPU.Lacunarity,
+				0.01f, 1.0f, 4.0f, "%.2f")
+				&& mEditingNoiseLayer && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			// Persistence
+			ImGui::Text("Persistence");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragFloat("##Persistence", &target.GPU.Persistence,
+				0.01f, 0.0f, 1.0f, "%.2f")
+				&& mEditingNoiseLayer && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::PushFont(io.Fonts->Fonts[4]);
+			ImGui::Text("Blending");
+			ImGui::PopFont();
+
+			// Blend Weight
+			ImGui::Text("Blend Weight");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragFloat("##BlendWeight", &target.GPU.BlendWeight,
+				0.01f, 0.0f, 2.0f, "%.2f")
+				&& mEditingNoiseLayer && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			// Radial Frequency Scale
+			ImGui::Text("Radial Freq Scale");
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::DragFloat("##RadialFreqScale", &target.GPU.RadialFreqScale,
+				0.01f, 0.05f, 5.0f, "%.2f")
+				&& mEditingNoiseLayer && mEditingMaterial)
+				mContext->mMaterialsIsDirty = true;
+
+			// ── Close / Add buttons ──
+			ImGui::Spacing();
+			ImGui::Separator();
+			const float btnW = 120.0f;
+
+			if (ImGui::Button("Close##NoiseLayer", ImVec2(btnW, 0.0f)))
+			{
+				mEditingNoiseLayer = false;
+				mEditingNoiseLayerIndex = -1;
+				ImGui::CloseCurrentPopup();
+			}
+
+			if (!mEditingNoiseLayer)
+			{
+				ImGui::SameLine();
+				if (ImGui::Button("Add##NoiseLayer", ImVec2(btnW, 0.0f)))
+				{
+					// Generate seed for the new layer
+					static std::mt19937 rng{ std::random_device{}() };
+					mNoiseLayerDraft.Seed = (uint32_t)rng();
+
+					parentMaterial.NoiseLayers.push_back(mNoiseLayerDraft);
+					mEditingNoiseLayer = false;
+					mEditingNoiseLayerIndex = -1;
+					if (mEditingMaterial)
+						mContext->mMaterialsIsDirty = true;
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
+			ImGui::EndPopup();
+		}
+
+		ImGui::PopStyleVar(3);
+	}
+
 	static const char* meshModeLabels[] =
 	{
 		"Geometry Clipmapping",
@@ -484,6 +1110,45 @@ namespace Toast {
 
 				ImGui::Spacing(); 
 				ImGui::Indent(10.0f);
+
+				// section header
+				ImGui::PushFont(io.Fonts->Fonts[4]);
+				bool openDebugData = ImGui::CollapsingHeader("Debug Info");
+				ImGui::PopFont();
+
+				if (openDebugData)
+				{
+					ImGui::Indent();
+
+					if (ImGui::BeginTable("DebugTable", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_PadOuterX))
+					{
+						ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.4f);
+						ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.6f);
+
+						auto meshMode = mContext->GetMeshMode();
+						if (meshMode == PlanetMeshMode::Icosphere)
+						{
+							auto& mesh = mContext->GetIcosphereMesh();
+
+							auto maxSubdivisions = mesh->GetMaxSubdivisions();
+
+							ImGui::TableNextRow();
+							ImGui::TableSetColumnIndex(0);
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("Max Subdivision");
+							ImGui::TableSetColumnIndex(1);
+							ImGui::AlignTextToFramePadding();
+							ImGui::Text("%d", static_cast<int>(maxSubdivisions));
+						}
+
+						ImGui::EndTable();
+					}
+
+					ImGui::Unindent();
+				}
+
+				ImGui::Spacing();            // one line
+				ImGui::Spacing();            // another (≈ 10-12 px total)
 
 				// section header
 				ImGui::PushFont(io.Fonts->Fonts[4]);
@@ -962,7 +1627,6 @@ namespace Toast {
 					ImGui::Unindent();
 				}
 
-
 				ImGui::Spacing();            // one line
 				ImGui::Spacing();            // another (≈ 10-12 px total)
 
@@ -1125,245 +1789,243 @@ namespace Toast {
 						ImGui::TableSetColumnIndex(1);
 
 						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(0);
-						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Height Details");
 
-						ImGui::TableSetColumnIndex(1);
+						DrawTerrainMaterialsListUI();
+						DrawTerrainMaterialPopup();
 
-						// Use the same width logic you already have (fullW)
-						ImGui::SetNextItemWidth(fullW);
+						//// Use the same width logic you already have (fullW)
+						//ImGui::SetNextItemWidth(fullW);
 
-						// --- Visual sizing: show up to 3 items without scrolling ---
-						const float lineH = ImGui::GetTextLineHeightWithSpacing();
-						const float itemH = ImGui::GetFrameHeight();                 // approx height for a button/selectable
-						const float itemPadY = ImGui::GetStyle().ItemSpacing.y;
-						const float childPadY = ImGui::GetStyle().WindowPadding.y;
+						//// --- Visual sizing: show up to 3 items without scrolling ---
+						//const float lineH = ImGui::GetTextLineHeightWithSpacing();
+						//const float itemH = ImGui::GetFrameHeight();                 // approx height for a button/selectable
+						//const float itemPadY = ImGui::GetStyle().ItemSpacing.y;
+						//const float childPadY = ImGui::GetStyle().WindowPadding.y;
 
-						// Height for 3 entries + some padding
-						const float visibleItems = 3.0f;
+						//// Height for 3 entries + some padding
+						//const float visibleItems = 3.0f;
 
-						// Button height is driven mostly by FramePadding.y + font height.
-						// A good approximation:
-						const float rowH = ImGui::GetFrameHeight(); // respects current style
-						const float rowGap = 1.0f;                  // match your Dummy() spacing
-						const float innerPadY = 8.0f * 2.0f;        // should match WindowPadding.y * 2
+						//// Button height is driven mostly by FramePadding.y + font height.
+						//// A good approximation:
+						//const float rowH = ImGui::GetFrameHeight(); // respects current style
+						//const float rowGap = 1.0f;                  // match your Dummy() spacing
+						//const float innerPadY = 8.0f * 2.0f;        // should match WindowPadding.y * 2
 
-						float minBoxH = innerPadY + visibleItems * rowH + (visibleItems - 1.0f) * rowGap;
+						//float minBoxH = innerPadY + visibleItems * rowH + (visibleItems - 1.0f) * rowGap;
 
-						// If you want the box to grow with items beyond 3 until scrolling kicks in,
-						// keep it fixed at minBoxH. (Scrolling will handle overflow.)
-						float boxH = minBoxH;
+						//// If you want the box to grow with items beyond 3 until scrolling kicks in,
+						//// keep it fixed at minBoxH. (Scrolling will handle overflow.)
+						//float boxH = minBoxH;
 
-						ImGuiWindowFlags childFlags = ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_NoMove;
+						//ImGuiWindowFlags childFlags = ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_NoMove;
 
-						// Draw list box
-						ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 0.0f));
-						ImGui::BeginChild("##PlanetHeightDetailsBox", ImVec2(fullW, boxH), true, childFlags);
-						ImGui::Dummy(ImVec2(0.0f, 0.5f));
+						//// Draw list box
+						//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 0.0f));
+						//ImGui::BeginChild("##PlanetHeightDetailsBox", ImVec2(fullW, boxH), true, childFlags);
+						//ImGui::Dummy(ImVec2(0.0f, 0.5f));
 
-						int deleteIndex = -1;
+						//int deleteIndex = -1;
 
-						// Render each detail as a “box” row (clickable)
-						for (int i = 0; i < (int)mContext->mHeightDetails.size(); ++i)
-						{
-							HeightDetail& d = mContext->mHeightDetails[i];
+						//// Render each detail as a “box” row (clickable)
+						//for (int i = 0; i < (int)mContext->mHeightDetails.size(); ++i)
+						//{
+						//	HeightDetail& d = mContext->mHeightDetails[i];
 
-							ImGui::PushID(i);
+						//	ImGui::PushID(i);
 
-							// Make it look like a boxed item
-							// Selectable with full width; gives good click behavior
-							ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-							ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
-							ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 4.0f));
-							ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
+						//	// Make it look like a boxed item
+						//	// Selectable with full width; gives good click behavior
+						//	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+						//	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
+						//	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 4.0f));
+						//	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
 
-							float w = ImGui::GetContentRegionAvail().x;
-							bool clicked = ImGui::Button(d.Name.c_str(), ImVec2(w, 0.0f));
+						//	float w = ImGui::GetContentRegionAvail().x;
+						//	bool clicked = ImGui::Button(d.Name.c_str(), ImVec2(w, 0.0f));
 
-							ImGui::PopStyleVar(3);
-							ImGui::PopStyleColor(1);
+						//	ImGui::PopStyleVar(3);
+						//	ImGui::PopStyleColor(1);
 
-							if (ImGui::BeginPopupContextItem("##DetailContext", ImGuiPopupFlags_MouseButtonRight))
-							{
-								ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 8.0f));
-								ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 6.0f));
+						//	if (ImGui::BeginPopupContextItem("##DetailContext", ImGuiPopupFlags_MouseButtonRight))
+						//	{
+						//		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 8.0f));
+						//		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 6.0f));
 
-								if (ImGui::MenuItem("Delete"))
-									deleteIndex = i;
+						//		if (ImGui::MenuItem("Delete"))
+						//			deleteIndex = i;
 
-								ImGui::PopStyleVar(2);
-								ImGui::EndPopup();
-							}
+						//		ImGui::PopStyleVar(2);
+						//		ImGui::EndPopup();
+						//	}
 
-							// Extra spacing between entries
-							ImGui::Dummy(ImVec2(0.0f, 0.5f));
+						//	// Extra spacing between entries
+						//	ImGui::Dummy(ImVec2(0.0f, 0.5f));
 
-							if (clicked)
-							{
-								mEditingDetail = true;
-								mEditingDetailIndex = i;
-								mDetailDraft = d;
-								CopyToNameBuf(mDetailNameBuf, sizeof(mDetailNameBuf), mDetailDraft.Name);
+						//	if (clicked)
+						//	{
+						//		mEditingDetail = true;
+						//		mEditingDetailIndex = i;
+						//		mDetailDraft = d;
+						//		CopyToNameBuf(mDetailNameBuf, sizeof(mDetailNameBuf), mDetailDraft.Name);
 
-								mRequestOpenTerrainDetailPopup = true;
-							}
+						//		mRequestOpenTerrainDetailPopup = true;
+						//	}
 
-							ImGui::PopID();
+						//	ImGui::PopID();
 
-							if (deleteIndex != -1)
-								break;
-						}
+						//	if (deleteIndex != -1)
+						//		break;
+						//}
 
-						if (deleteIndex != -1)
-						{
-							// If you are editing this one (or indices after it), fix state.
-							if (mEditingDetail)
-							{
-								if (mEditingDetailIndex == deleteIndex)
-								{
-									mEditingDetail = false;
-									mEditingDetailIndex = -1;
-								}
-								else if (mEditingDetailIndex > deleteIndex)
-								{
-									// Vector elements shift left
-									mEditingDetailIndex--;
-								}
-							}
+						//if (deleteIndex != -1)
+						//{
+						//	// If you are editing this one (or indices after it), fix state.
+						//	if (mEditingDetail)
+						//	{
+						//		if (mEditingDetailIndex == deleteIndex)
+						//		{
+						//			mEditingDetail = false;
+						//			mEditingDetailIndex = -1;
+						//		}
+						//		else if (mEditingDetailIndex > deleteIndex)
+						//		{
+						//			// Vector elements shift left
+						//			mEditingDetailIndex--;
+						//		}
+						//	}
 
-							mContext->mHeightDetails.erase(mContext->mHeightDetails.begin() + deleteIndex);
+						//	mContext->mHeightDetails.erase(mContext->mHeightDetails.begin() + deleteIndex);
 
-							mContext->mHeightDetailsDirty = true;
-						}
+						//	mContext->mHeightDetailsDirty = true;
+						//}
 
-						ImGui::EndChild();
-						ImGui::PopStyleVar();
+						//ImGui::EndChild();
+						//ImGui::PopStyleVar();
 
-						// --- Add button aligned bottom-right of the column ---
-						{
-							const bool disableAdd = (mContext->mHeightDetails.size() >= 8);
+						//// --- Add button aligned bottom-right of the column ---
+						//{
+						//	const bool disableAdd = (mContext->mHeightDetails.size() >= 8);
 
-							const float btnSize = ImGui::GetFrameHeight(); // square button
-							float cursorX = ImGui::GetCursorPosX();
-							float availX = ImGui::GetContentRegionAvail().x;
+						//	const float btnSize = ImGui::GetFrameHeight(); // square button
+						//	float cursorX = ImGui::GetCursorPosX();
+						//	float availX = ImGui::GetContentRegionAvail().x;
 
-							// Move cursor to the right for the button
-							ImGui::SetCursorPosX(cursorX + (availX - btnSize - 7.0f));
+						//	// Move cursor to the right for the button
+						//	ImGui::SetCursorPosX(cursorX + (availX - btnSize - 7.0f));
 
-							ImGui::BeginDisabled(disableAdd);
-							if (ImGui::Button("+", ImVec2(btnSize, btnSize)))
-							{
-								// Add new
-								mEditingDetail = false;
-								mEditingDetailIndex = -1;
+						//	ImGui::BeginDisabled(disableAdd);
+						//	if (ImGui::Button("+", ImVec2(btnSize, btnSize)))
+						//	{
+						//		// Add new
+						//		mEditingDetail = false;
+						//		mEditingDetailIndex = -1;
 
-								mDetailDraft = HeightDetail{};
-								static std::mt19937 rng{ std::random_device{}() };
-								mDetailDraft.Seed = rng();
-								mContext->BuildPermutationTable(mDetailDraft.Seed, mDetailDraft.Perm);
-								CopyToNameBuf(mDetailNameBuf, sizeof(mDetailNameBuf), mDetailDraft.Name);
+						//		mDetailDraft = HeightDetail{};
+						//		static std::mt19937 rng{ std::random_device{}() };
+						//		mDetailDraft.Seed = rng();
+						//		mContext->BuildPermutationTable(mDetailDraft.Seed, mDetailDraft.Perm);
+						//		CopyToNameBuf(mDetailNameBuf, sizeof(mDetailNameBuf), mDetailDraft.Name);
 
-								mRequestOpenTerrainDetailPopup = true;
-							}
-							ImGui::EndDisabled();
-						}
+						//		mRequestOpenTerrainDetailPopup = true;
+						//	}
+						//	ImGui::EndDisabled();
+						//}
 
-						ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 12.0f));
-						ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 6.0f));
-						ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
+						//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 12.0f));
+						//ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 6.0f));
+						//ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
 
-						if (mRequestOpenTerrainDetailPopup)
-						{
-							ImGui::OpenPopup("##HeightDetailPopup");
-							mRequestOpenTerrainDetailPopup = false;
-						}
+						//if (mRequestOpenTerrainDetailPopup)
+						//{
+						//	ImGui::OpenPopup("##HeightDetailPopup");
+						//	mRequestOpenTerrainDetailPopup = false;
+						//}
 
-						if (ImGui::BeginPopupModal("##HeightDetailPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
-						{
-							HeightDetail* liveDetail = nullptr;
+						//if (ImGui::BeginPopupModal("##HeightDetailPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+						//{
+						//	HeightDetail* liveDetail = nullptr;
 
-							if (mEditingDetail && mEditingDetailIndex >= 0 && mEditingDetailIndex < (int)mContext->mHeightDetails.size())
-								liveDetail = &mContext->mHeightDetails[mEditingDetailIndex];
+						//	if (mEditingDetail && mEditingDetailIndex >= 0 && mEditingDetailIndex < (int)mContext->mHeightDetails.size())
+						//		liveDetail = &mContext->mHeightDetails[mEditingDetailIndex];
 
-							HeightDetail& target =	(liveDetail != nullptr) ? *liveDetail : mDetailDraft;
+						//	HeightDetail& target =	(liveDetail != nullptr) ? *liveDetail : mDetailDraft;
 
-							const char* popupHeader = mEditingDetail ? "Edit Height Detail" : "Add Height Detail";
-							ImGui::TextUnformatted(popupHeader);
-							ImGui::Separator();
+						//	const char* popupHeader = mEditingDetail ? "Edit Height Detail" : "Add Height Detail";
+						//	ImGui::TextUnformatted(popupHeader);
+						//	ImGui::Separator();
 
-							// Name
-							ImGui::Text("Name");
-							ImGui::SetNextItemWidth(360.0f);
+						//	// Name
+						//	ImGui::Text("Name");
+						//	ImGui::SetNextItemWidth(360.0f);
 
-							if (ImGui::InputText("##HeightDetailName", mDetailNameBuf, sizeof(mDetailNameBuf)))
-								CopyFromNameBuf(target.Name, mDetailNameBuf);
+						//	if (ImGui::InputText("##HeightDetailName", mDetailNameBuf, sizeof(mDetailNameBuf)))
+						//		CopyFromNameBuf(target.Name, mDetailNameBuf);
 
-							// LODActivation (uint32_t)
-							ImGui::Text("LOD Activation");
-							ImGui::SetNextItemWidth(180.0f);
-							if (ImGui::DragInt("##LODActivation", &target.GPUSettings.LODActivation, 1.0f, 0, 25) && mEditingDetail)
-								mContext->mHeightDetailsDirty = true;
+						//	// LODActivation (uint32_t)
+						//	ImGui::Text("LOD Activation");
+						//	ImGui::SetNextItemWidth(180.0f);
+						//	if (ImGui::DragInt("##LODActivation", &target.GPUSettings.LODActivation, 1.0f, 0, 25) && mEditingDetail)
+						//		mContext->mHeightDetailsDirty = true;
 
-							// Seed (uint32_t)
-							{
-								ImGui::Text("Seed");
+						//	// Seed (uint32_t)
+						//	{
+						//		ImGui::Text("Seed");
 
-								ImGui::SetNextItemWidth(180.0f);
+						//		ImGui::SetNextItemWidth(180.0f);
 
-								ImGui::BeginDisabled(); // ⬅ disables editing
-								uint32_t seed = target.Seed;
-								ImGui::InputScalar("##Seed", ImGuiDataType_U32, &seed);
-								ImGui::EndDisabled();
-							}
+						//		ImGui::BeginDisabled(); // ⬅ disables editing
+						//		uint32_t seed = target.Seed;
+						//		ImGui::InputScalar("##Seed", ImGuiDataType_U32, &seed);
+						//		ImGui::EndDisabled();
+						//	}
 
-							// Octaves (int, >= 1)
-							ImGui::Text("Octaves");
-							ImGui::SetNextItemWidth(180.0f);
-							if(ImGui::DragInt("##Octaves", &target.GPUSettings.Octaves, 1.0f, 1, 9) && mEditingDetail)
-								mContext->mHeightDetailsDirty = true;
+						//	// Octaves (int, >= 1)
+						//	ImGui::Text("Octaves");
+						//	ImGui::SetNextItemWidth(180.0f);
+						//	if(ImGui::DragInt("##Octaves", &target.GPUSettings.Octaves, 1.0f, 1, 9) && mEditingDetail)
+						//		mContext->mHeightDetailsDirty = true;
 
-							// Frequency (float)
-							ImGui::Text("Frequency");
-							ImGui::SetNextItemWidth(180.0f);
-							if(ImGui::DragFloat("##Frequency", &target.GPUSettings.Frequency, 0.001f, 0.0f) && mEditingDetail)
-								mContext->mHeightDetailsDirty = true;
+						//	// Frequency (float)
+						//	ImGui::Text("Frequency");
+						//	ImGui::SetNextItemWidth(180.0f);
+						//	if(ImGui::DragFloat("##Frequency", &target.GPUSettings.Frequency, 0.001f, 0.0f) && mEditingDetail)
+						//		mContext->mHeightDetailsDirty = true;
 
-							// Amplitude (float)
-							ImGui::Text("Amplitude");
-							ImGui::SetNextItemWidth(180.0f);
-							if(ImGui::DragFloat("##Amplitude", &target.GPUSettings.Amplitude, 0.01f, 0.0f, FLT_MAX, "%.2f") && mEditingDetail)
-								mContext->mHeightDetailsDirty = true;
+						//	// Amplitude (float)
+						//	ImGui::Text("Amplitude");
+						//	ImGui::SetNextItemWidth(180.0f);
+						//	if(ImGui::DragFloat("##Amplitude", &target.GPUSettings.Amplitude, 0.01f, 0.0f, FLT_MAX, "%.2f") && mEditingDetail)
+						//		mContext->mHeightDetailsDirty = true;
 
-							ImGui::Separator();
-							const float btnW = 120.0f;
+						//	ImGui::Separator();
+						//	const float btnW = 120.0f;
 
-							// Cancel always closes
-							if (ImGui::Button("Close", ImVec2(btnW, 0.0f)))
-							{
-								mEditingDetail = false;
-								mEditingDetailIndex = -1;
-								ImGui::CloseCurrentPopup();
-							}
+						//	// Cancel always closes
+						//	if (ImGui::Button("Close", ImVec2(btnW, 0.0f)))
+						//	{
+						//		mEditingDetail = false;
+						//		mEditingDetailIndex = -1;
+						//		ImGui::CloseCurrentPopup();
+						//	}
 
-							if (!mEditingDetail)
-							{
-								ImGui::SameLine();
+						//	if (!mEditingDetail)
+						//	{
+						//		ImGui::SameLine();
 
-								if (ImGui::Button("Add", ImVec2(btnW, 0.0f)))
-								{
-									mContext->mHeightDetails.push_back(mDetailDraft);
-									mEditingDetail = false;
-									mEditingDetailIndex = -1;
-									mContext->mHeightDetailsDirty = true;
-									ImGui::CloseCurrentPopup();
-								}
-							}
+						//		if (ImGui::Button("Add", ImVec2(btnW, 0.0f)))
+						//		{
+						//			mContext->mHeightDetails.push_back(mDetailDraft);
+						//			mEditingDetail = false;
+						//			mEditingDetailIndex = -1;
+						//			mContext->mHeightDetailsDirty = true;
+						//			ImGui::CloseCurrentPopup();
+						//		}
+						//	}
 
-							ImGui::EndPopup();
-						}
+						//	ImGui::EndPopup();
+						//}
 
-						ImGui::PopStyleVar(3);
+						//ImGui::PopStyleVar(3);
 
 						DrawTerrainObjectsListUI();
 						DrawTerrainObjectPopup();
