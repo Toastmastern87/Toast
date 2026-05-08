@@ -18,7 +18,6 @@
 #include "Toast/Renderer/Mesh.h"
 #include "Toast/Renderer/PlanetMaterial.h"
 #include "Toast/Renderer/RenderCommand.h"
-#include "Toast/Renderer/TerrainCubeData.h"
 
 #include "Toast/Scene/Components.h"
 
@@ -133,13 +132,12 @@ namespace Toast {
 		Ref<Mesh> MeshObject;
 
 		uint32_t Seed;
-
 		int LODActivation = 0;
 
-		// Spawning control
-		float DensityPerKm2;  // main dial
-		int   MaxPerPatch;       // hard cap 
-		int   MaxTotal;   // safety cap layer-wide
+		// Scatter region around the player
+		float ScatterRadiusMeters = 1000.0f;
+		uint32_t CandidateGridSize = 256;
+		float DensityProb = 0.05f;     // [0..1] probability a candidate keeps
 
 		// Variation
 		float MinScale = 0.1f;
@@ -175,6 +173,19 @@ namespace Toast {
 		int GWorldY;         // global grid y (gWorld.y)
 		Vector3 NWSApprox;   // approx normal used by GPU for this grid sample
 		double TangentDist;  // tangent-plane distance from camera (meters)
+	};
+
+	inline size_t Index2D(uint32_t x, uint32_t y, uint32_t width)
+	{
+		return static_cast<size_t>(y) * width + x;
+	}
+
+	template<typename T>
+	struct CubeData
+	{
+		uint32_t Width = 0;
+		uint32_t Height = 0;
+		std::array<std::vector<T>, 6> FaceData;
 	};
 
 	inline float smoothstep(float a, float b, float x)
@@ -227,7 +238,7 @@ namespace Toast {
 
 		enum class NextPlanetFace
 		{
-			CULL, LEAF, LEAFPATCH, SPLIT, SPLITCULL
+			CULL, LEAF, SPLIT, SPLITCULL
 		};
 
 		struct PlanetPatchCPU
@@ -255,6 +266,8 @@ namespace Toast {
 			DirectX::XMFLOAT3 P0_rel_hi; // 12  meters: (V0*R - camHi)
 			DirectX::XMFLOAT3 P1_rel_hi; // 12
 			DirectX::XMFLOAT3 P2_rel_hi; // 12
+
+			DirectX::XMFLOAT3 PatchOriginPS;
 		};
 
 		struct PlanetVertexCPU
@@ -281,6 +294,11 @@ namespace Toast {
 			}
 		};
 
+		struct DeferredLeafPatch
+		{
+			uint32_t ia, ib, ic;
+			int16_t subdivision;
+		};
 	public:
 		PlanetMeshIcosphere() = default;
 
@@ -288,8 +306,9 @@ namespace Toast {
 		void InitShaderLayout();
 		void GeneratePatchGeometry();
 
-		void OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, double radius, double maxHeight, const TerrainCubeData& terrainData);
+		void OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, double radius, double maxHeight, const CubeData<float>* terrainData, uint32_t materialCount);
 		void RecursiveFace(Frustum* frustum, uint32_t ia, uint32_t ib, uint32_t ic, int16_t subdivision, Vector3& cameraPosPS, bool splitCull);
+		void EmitLeafPatchChecked(uint32_t ia, uint32_t ib, uint32_t ic, int16_t subdivision, Vector3& cameraPosPS);
 		NextPlanetFace CheckFaceSplit(Frustum* frustum, const  Vector3& a, const  Vector3& b, const  Vector3& c, int16_t subdivision, Vector3& cameraPosPS, bool frustumCheckNeeded, double hA, double hB, double hC);
 
 		Ref<ShaderLayout> GetShaderInputLayout() { return mShaderInputLayout; }
@@ -300,6 +319,8 @@ namespace Toast {
 
 		void BuildGPUData();
 		void BindGPUData();
+
+		Ref<ConstantBuffer>& GetPlanetMeshCBuffer() { return mPlanetMeshCBuffer; }
 
 		uint32_t GetMidpoint(uint32_t i1, uint32_t i2);
 
@@ -318,6 +339,8 @@ namespace Toast {
 		friend class PlanetPanel;
 	private:
 		double GetCachedHeight(uint32_t idx, int16_t subdivision);
+
+		bool HasMidpoint(uint32_t i1, uint32_t i2) const;
 	private:
 		double mRadius = 0.0;
 		double mMaxHeight = 0.0;
@@ -331,7 +354,8 @@ namespace Toast {
 		double mFarDistance = 10.0;
 		Vector3 mCamHiPS = { 0.0, 0.0, 0.0 };
 
-		const TerrainCubeData* mTerrainCubeData;
+		const CubeData<float>* mTerrainCubeData;
+		const CubeData<uint32_t> mAlbedoCubeData;
 		
 		std::vector<double> mHeightCache;
 
@@ -345,6 +369,7 @@ namespace Toast {
 		std::vector<uint32_t> mIndices;
 		std::vector<Vector3> mSphereVertices;
 		MidpointHash mMidpointCache;
+		std::vector<DeferredLeafPatch> mDeferredLeafPatches;
 
 		Ref<VertexBuffer> mVertexBuffer;
 		Ref<VertexBuffer> mInstanceVertexBuffer;
@@ -378,7 +403,7 @@ namespace Toast {
 		void Init();
 		void InitShaderLayout();
 
-		void OnUpdate(PhysicsEngine* physicsEngine, double radius, double maxHeight, const Vector3& playerCamPosPS, TerrainCubeData* mTerrainCubeData, const Vector3& camTangent, const double& shiftEast, const double& shiftNorth);
+		void OnUpdate(PhysicsEngine* physicsEngine, double radius, double maxHeight, const Vector3& playerCamPosPS, const CubeData<float>* terrainData, const Vector3& camTangent, const double& shiftEast, const double& shiftNorth);
 
 		void BuildGPUData();
 		void BindGPUData();
@@ -451,7 +476,7 @@ namespace Toast {
 
 		std::vector<double> mDistanceLUT;
 
-		TerrainCubeData* mTerrainCubeData;
+		const CubeData<float>* mTerrainCubeData;
 	};
 
 	class Planet
@@ -467,6 +492,8 @@ namespace Toast {
 		double mShiftEastM;
 		double mShiftNorthM;
 
+		Vector3 mCameraPlanetSpace;
+
 		// Mesh Data
 		Ref<PlanetMeshIcosphere> mIcosphereMesh;
 		Ref<PlanetMeshGeoClipmap> mGeoClipmapMesh;
@@ -481,6 +508,38 @@ namespace Toast {
 		double mMaxHeight = 0.0;
 		double mMinHeight = 0.0;
 		double mAltitude = 0.0;
+		bool mWallEnhancementEnabled = true;
+		float mWallStrength = 0.75f;
+		float mWallStepMeters = 3000.0f;
+		float mWallSlopeStart = 0.50f;
+		float mWallSlopeEnd = 1.40f;
+		float mWallSharpStart = 0.40f;
+		float mWallSharpEnd = 0.60f;
+		float mWallMaxDelta = 2000.0f;
+		bool mWallDebugEnabled = false;
+		int mWallDebugMode = 0;
+		float mTerrainNormalStepMeters = 500.0f;
+		bool mErosionEnabled = false;
+		float mErosionStrength = 20.0f;
+		float mErosionStepMeters = 3000.0f;
+		float mErosionTilingMeters = 400.0f;
+		float mErosionSlopeStart = 0.18f;     // roughly 35 degrees using 1-dot slope
+		float mErosionSlopeFull = 0.29f;      // roughly 45 degrees
+		float mErosionSlopeEnd = 0.50f;       // roughly 60 degrees
+		float mErosionSlopeFadeOut = 0.65f;
+		int mErosionOctaves = 4;
+		float mErosionLacunarity = 2.0f;
+		float mErosionPersistence = 0.5f;
+		bool mErosionDebugEnabled = false;
+		int mErosionDebugMode = 0;
+		float mErosionGullyWeight = 0.32f;
+		float mErosionDetail = 1.20f;
+		float mErosionCellScale = 0.95f;
+		float mErosionNormalization = 0.30f;
+		float mErosionAssumedSlope = 0.55f;
+		float mErosionAssumedSlopeBlend = 0.75f;
+		float mErosionMaxDistance = 50000.0f;
+		float mErosionFadeStart = 20000.0f;
 		DirectX::XMFLOAT3 mBasisLonEast;
 		DirectX::XMFLOAT3 mBasisLonNorth;
 		DirectX::XMFLOAT3 mBasisSpinUp;
@@ -492,7 +551,8 @@ namespace Toast {
 		Ref<TextureCube> mNormalMapTextureCube;
 		Ref<TextureCube> mAlbedoMapTextureCube;
 		TerrainData mTerrainData;
-		TerrainCubeData mTerrainCubeData;
+		CubeData<float> mTerrainCubeData;
+		CubeData<uint32_t> mAlbedoCubeData;
 		std::vector<HeightDetail> mHeightDetails;
 		Ref<StructuredBuffer> mHeightDetailSettingsSB;
 		Ref<StructuredBuffer> mHeightDetailPermSB;
@@ -503,6 +563,11 @@ namespace Toast {
 		Buffer mTerrainObjectBuffer;
 
 		// Materials
+		bool mMaterialsEnabled = true;
+		float mPBRColorDominance = 0.0f;
+		float mColorNoiseFrequency = 0.005f;    // default 0.005
+		float mColorNoiseStrength = 0.15f;     // default 0.15
+		int mColorNoiseOctaves = 3;      // default 3
 		std::vector<PlanetMaterial> mMaterials;
 		Ref<StructuredBuffer> mMaterialSB;
 		Ref<StructuredBuffer> mMaterialNoiseSB;
@@ -510,6 +575,15 @@ namespace Toast {
 		bool mMaterialsIsDirty = true;
 		uint32_t mLastMaterialCount = 0;
 		uint32_t mLastMaterailNoiseCount = 0;
+		// PBR texture arrays (one slice per material, 5 channels)
+		Ref<Texture2DArray> mPBRAlbedoArray;
+		Ref<Texture2DArray> mPBRNormalArray;
+		Ref<Texture2DArray> mPBRRoughnessArray;
+		Ref<Texture2DArray> mPBRAOArray;
+		Ref<Texture2DArray> mPBRDisplacementArray;
+		bool mPBRTexturesDirty = true;
+		uint32_t mLastPBRMaterialCount = 0;
+		uint32_t mLastPBRTextureSize = 0;
 
 		// PBR Data
 		uint32_t mUseAlbedoMap = 0;
@@ -519,9 +593,6 @@ namespace Toast {
 		float mMetalness = 0.0f;
 		Ref<ConstantBuffer> mPlanetMaterialCBuffer;
 		Buffer mPlanetMaterialBuffer;
-		float mSlopeSensitivity = 30.0f;
-		float mSlopeThreshold = 0.3f;
-		float mSlopeDarkening = 0.5f;
 
 		// Atmosphere Scattering Data
 		bool mAtmosphereActivated = false;
@@ -567,9 +638,10 @@ namespace Toast {
 		Ref<TextureCube> CreateNormalMapCube(const TextureCube* heightCube);
 		Ref<TextureCube> CreateAlbedoCube(const Texture2D* albedoTexture);
 
-		double GetRadius() { return mRadius; }
+		double GetRadius() const { return mRadius; }
 		double GetMaxHeight() { return mMaxHeight; }
 		double GetMinHeight() { return mMinHeight; }
+		double GetHeightDetailsAtDir(const Vector3& dirPlanet, const DirectX::XMVECTOR& cameraPlanetSpace) const;
 		double GetAltitude() const { return mAltitude; }
 		DirectX::XMFLOAT3& GetBasisLonEast() { return mBasisLonEast; }
 		DirectX::XMFLOAT3& GetBasisLonNorth() { return mBasisLonNorth; }
@@ -577,6 +649,8 @@ namespace Toast {
 		DirectX::XMFLOAT3& GetBasisRadUp() { return mBasisRadUp; }
 		DirectX::XMFLOAT3& GetBasisTanEast() { return mBasisTanEast; }
 		DirectX::XMFLOAT3& GetBasisTanNorth() { return mBasisTanNorth; }
+
+		Vector3& GetCameraPlanetSpace() { return mCameraPlanetSpace; }
 
 		bool AtmosphereActivated() { return mAtmosphereActivated; }
 
@@ -586,12 +660,19 @@ namespace Toast {
 		ShaderLayout* GetShaderLayout() { return &mShaderInputLayout; }
 
 		// Terrain Materials
-		const std::vector<PlanetMaterial>& GetTerrainMaterials() { return mMaterials; }
-		size_t GetNumTerrainMaterials() { return mMaterials.size(); }
+		const std::vector<PlanetMaterial>& GetTerrainMaterials() const { return mMaterials; }
+		size_t GetNumMaterials() { return mMaterials.size(); }
 		Ref<StructuredBuffer> GetMaterialSB() { return mMaterialSB; }
 		Ref<StructuredBuffer> GetMaterialNoiseSB() { return mMaterialNoiseSB; }
 		Ref<StructuredBuffer> GetMaterialNoisePermSB() { return mMaterialNoisePermSB; }
 		void UploadMaterialsToGPU();
+		void BuildPermutationTable(uint32_t seed, int outPerm[256]);
+		Ref<Texture2DArray> GetPBRAlbedoArray() { return mPBRAlbedoArray; }
+		Ref<Texture2DArray> GetPBRNormalArray() { return mPBRNormalArray; }
+		Ref<Texture2DArray> GetPBRRoughnessArray() { return mPBRRoughnessArray; }
+		Ref<Texture2DArray> GetPBRAOArray() { return mPBRAOArray; }
+		Ref<Texture2DArray> GetPBRDisplacementArray() { return mPBRDisplacementArray; }
+		void RebuildPBRTextureArrays();
 
 		uint32_t& GetUseAlbedoMap() { return mUseAlbedoMap; }
 		DirectX::XMFLOAT3& GetAlbedoColor() { return mAlbedoColor; }
@@ -606,7 +687,8 @@ namespace Toast {
 		Ref<TextureCube> GetStarFieldTextureCube() { return mStarFieldTextureCube; }
 
 		TerrainData& GetTerrainData() { return mTerrainData; }
-		TerrainCubeData& GetTerrainCubeData() { return mTerrainCubeData; }
+		const CubeData<float>& GetTerrainCubeData() const { return mTerrainCubeData; }
+		const CubeData<uint32_t>& GetAlbedoCubeData() const { return mAlbedoCubeData; }
 
 		AtmosphericData& GetAtmosphere() { return mAtmosphere; }
 		Ref<Texture2D>& GetTransmittanceLUT() { return mTransmittanceLUT; }
@@ -623,17 +705,15 @@ namespace Toast {
 		void GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight);
 		void GenerateHeightMultLUT(std::vector<double>& heightMultLUT, double planetRadius, double maxHeight);
 
-		TerrainCubeData LoadTerrainDataFromTextureCube();
 		float GetGravityConstant() { return mGravityConstant; }
 
 		uint32_t GetLODForWorldPos(const Vector3& worldPosWS);
 
-		size_t GetNumHeightDetails() { return mHeightDetails.size(); }
-		const std::vector<HeightDetail>& GetHeightDetails() { return mHeightDetails; }
-		Ref<StructuredBuffer> GetHeightDetailSettingsSB() { return mHeightDetailSettingsSB; }
-		Ref<StructuredBuffer> GetHeightDetailPermSB() { return mHeightDetailPermSB; }
-		//void UploadHeightDetailsToGPU();
-		void BuildPermutationTable(uint32_t seed, int outPerm[256]);
+		//size_t GetNumHeightDetails() { return mHeightDetails.size(); }
+		//const std::vector<HeightDetail>& GetHeightDetails() { return mHeightDetails; }
+		//Ref<StructuredBuffer> GetHeightDetailSettingsSB() { return mHeightDetailSettingsSB; }
+		//Ref<StructuredBuffer> GetHeightDetailPermSB() { return mHeightDetailPermSB; }
+		////void UploadHeightDetailsToGPU();
 
 		const std::vector<TerrainObject>& GetTerrainObjects() { return mTerrainObjects; }
 		Ref<ConstantBuffer> GetTerrainObjectCBuffer() { return mTerrainObjectCBuffer; }
@@ -652,6 +732,39 @@ namespace Toast {
 		float GetPhysicsAtmosphereCeiling() { return mAtmosphereCeiling; }
 		float GetSurfaceAirDensity() { return mSurfaceAirDensity; }
 		float GetPhysicsScaleHeight() { return mPhysicsScaleHeight; }
+
+		float GetWallEnhancementEnabled() const { return mWallEnhancementEnabled; }
+		float GetWallStrength() const { return mWallStrength; }
+		float GetWallStepMeters() const { return mWallStepMeters; }
+		float GetWallSlopeStart() const { return mWallSlopeStart; }
+		float GetWallSlopeEnd() const { return mWallSlopeEnd; }
+		float GetWallSharpStart() const { return mWallSharpStart; }
+		float GetWallSharpEnd() const { return mWallSharpEnd; }
+		float GetWallMaxDelta() const { return mWallMaxDelta; }
+
+		// --- Erosion ---
+		float GetErosionEnabled() const { return mErosionEnabled; }
+		float GetErosionStrength() const { return mErosionStrength; }
+		float GetErosionStepMeters() const { return mErosionStepMeters; }
+		float GetErosionTilingMeters() const { return mErosionTilingMeters; }
+		float GetErosionSlopeStart() const { return mErosionSlopeStart; }
+		float GetErosionSlopeFull() const { return mErosionSlopeFull; }
+		float GetErosionSlopeEnd() const { return mErosionSlopeEnd; }
+		float GetErosionSlopeFadeOut() const { return mErosionSlopeFadeOut; }
+		int GetErosionOctaves() const { return mErosionOctaves; }
+		float GetErosionLacunarity() const { return mErosionLacunarity; }
+		float GetErosionPersistence() const { return mErosionPersistence; }
+		float GetErosionGullyWeight() const { return mErosionGullyWeight; }
+		float GetErosionDetail() const { return mErosionDetail; }
+		float GetErosionCellScale() const { return mErosionCellScale; }
+		float GetErosionNormalization() const { return mErosionNormalization; }
+		float GetErosionAssumedSlope() const { return mErosionAssumedSlope; }
+		float GetErosionAssumedSlopeBlend() const { return mErosionAssumedSlopeBlend; }
+		float GetErosionMaxDistance() const { return mErosionMaxDistance; }
+		float GetErosionFadeStart() const { return mErosionFadeStart; }
+
+		template<typename T>
+		static CubeData<T> LoadCubeData(const Ref<TextureCube>& source);
 	};
 
 }

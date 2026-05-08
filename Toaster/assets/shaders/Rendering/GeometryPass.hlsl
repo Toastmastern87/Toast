@@ -31,6 +31,22 @@ cbuffer Model : register(b1)
     int isInstanced;
 };
 
+cbuffer IcospherePlanet : register(b2)
+{
+    float planetRadius;
+    float3 camHiPS;
+	
+    matrix viewMatrixPlanetRendering; // This includes floating origin translation for planet rendering
+	
+    int patchLevels;
+    float3 camLoPS;
+	
+    float3 planetCenterRelHiWS;
+    int materialCount;
+
+    float3 planetCenterRelLoWS;
+};
+
 cbuffer PlanetFrame : register(b4)
 {
     float3 PlanetCenterCR;
@@ -49,6 +65,58 @@ cbuffer PlanetFrame : register(b4)
     float _padPF1;
 };
 
+cbuffer PlanetRenderingSettings : register(b5)
+{
+    int MaterialCount;
+    uint MaterialsEnabled;
+    float PBRColorDominance;
+    float ColorNoiseFrequency;
+    
+    float ColorNoiseStrength;
+    int ColorNoiseOctaves;
+    float WallEnhancementEnabled;
+    float WallStrength;
+    
+    float WallStepMeters;
+    float WallSlopeStart;
+    float WallSlopeEnd;
+    float WallSharpStart;
+    
+    float WallSharpEnd;
+    float WallMaxDelta;
+    float WallDebugEnabled;
+    float WallDebugMode;
+    
+    float TerrainNormalStepMeters;
+    float ErosionEnabled;
+    float ErosionStrength;
+    float ErosionStepMeters;
+    
+    float ErosionTilingMeters;
+    float ErosionSlopeStart;
+    float ErosionSlopeFull;
+    float ErosionSlopeEnd;
+    
+    float ErosionSlopeFadeOut;
+    int ErosionOctaves;
+    float ErosionLacunarity;
+    float ErosionPersistence;
+    
+    float ErosionDebugEnabled;
+    int ErosionDebugMode;
+    float ErosionGullyWeight;
+    float ErosionDetail;
+    
+    float ErosionCellScale;
+    float ErosionNormalization;
+    float ErosionAssumedSlope;
+    float ErosionAssumedSlopeBlend;
+    
+    float ErosionMaxDistance;
+    float ErosionFadeStart;
+    float pad0, pad1;
+};
+
 cbuffer PlanetLevel : register(b7)
 {
     int OriginX;
@@ -63,16 +131,35 @@ cbuffer PlanetLevel : register(b7)
 };
 
 // Per-terrain-object-layer settings (bind once per layer)
+//cbuffer TerrainObject : register(b13)
+//{
+//    uint TOSeed;
+//    int TOLODActivation;
+//    uint TOInstancesPerLevel; // how many instances to draw for THIS level draw
+//    float TOMinScale;
+    
+//    float TOMaxScale;
+//    float TOScatterCellSize;
+//    uint TOScatterCells;
+//};
+
 cbuffer TerrainObject : register(b13)
 {
+    // 16 bytes
     uint TOSeed;
     int TOLODActivation;
-    uint TOInstancesPerLevel; // how many instances to draw for THIS level draw
     float TOMinScale;
-    
     float TOMaxScale;
-    float TOScatterCellSize;
-    uint TOScatterCells;
+
+    // 16 bytes
+    float TOScatterRadiusMeters;
+    uint TOCandidateGridSize;
+    float TODensityProb;
+    float TOPlayerTangentEast;
+
+    // 16 bytes
+    float TOPlayerTangentNorth;
+    float3 pad2;
 };
 
 struct VertexInputType
@@ -104,18 +191,65 @@ struct DetailSettings
     float pad0, pad1, pad2;
 };
 
-Texture2DArray<float> HeightCubeArray       : register(t0);
-    
-StructuredBuffer<DetailSettings> Details    : register(t8);
-StructuredBuffer<int4> PermTables           : register(t9);
+struct MaterialData
+{
+    // 16 bytes
+    float SlopeMin;
+    float SlopeMax;
+    float BlendSharpness;
+    int NoiseLayerStart;
 
-SamplerState UWrapVClampLinearSampler       : register(s5);
+    // 16 bytes
+    int NoiseLayerCount;
+    float UVTilingScale;
+    float ColorAvgMin;
+    float ColorAvgMax;
+
+    // 16 bytes
+    float UseAlbedo;
+    float3 DebugColor;
+};
+
+struct NoiseLayerData
+{
+    // 16 bytes
+    int Type; // 0=Fractal, 1=Ridged, 2=Turbulence
+    int LODActivation;
+    int Octaves;
+    int PermBase;
+
+    // 16 bytes
+    float Frequency;
+    float Amplitude;
+    float Lacunarity;
+    float Persistence;
+
+    // 16 bytes
+    float BlendWeight;
+    float RadialFrequencyScale;
+    float RidgeSharpness;
+    float pad0;
+};
+
+Texture2DArray<float> HeightCubeArray           : register(t0);
+StructuredBuffer<MaterialData> Materials        : register(t1);
+StructuredBuffer<NoiseLayerData> NoiseLayers    : register(t2);
+StructuredBuffer<int4> PermTables               : register(t3);
+Texture2DArray<float4> AlbedoCubeArray          : register(t4);
+    
+StructuredBuffer<DetailSettings> Details        : register(t8);
+StructuredBuffer<int4> PermTablesDetails        : register(t9);
+
+SamplerState HeightMapSampler                   : register(s5);
+SamplerState UWrapVClampLinearSampler           : register(s5);
 
 static const uint EDGE_CELLS = 12;
 
+#define MAX_MATERIALS 8
+
 #include "DirectionToCube.hlsli"
 #include "PerlinNoise.hlsli"
-#include "TerrainHeightCalculations.hlsli"
+#include "PlanetTerrainHelpers.hlsli"
 
 struct InstSurfaceSample
 {
@@ -137,62 +271,33 @@ uint2 ComputeLocalGridCoordFromOff(float2 offMeters)
     return (uint2) g;
 }
 
-float2 OffMetersFromDirTangentApprox(float3 nWS)
-{
-    // Project direction onto the tangent basis
-    float e = dot(nWS, BasisTanEast);
-    float n = dot(nWS, BasisTanNorth);
-    float u = dot(nWS, BasisRadUp);
-
-    // Small-angle tangent-plane approximation
-    float invU = rcp(max(u, 1e-4f));
-    return PlanetRadius * float2(e, n) * invU;
-}
-
 float EvaluateTerrainHeightMeters(float2 offMeters)
 {
-    // 1) Reference-sphere direction (same as planet VS)
+    // 1) Reference-sphere direction at the offset from player
     float3 pSphereLocal = BasisRadUp + BasisTanEast * (offMeters.x / PlanetRadius) + BasisTanNorth * (offMeters.y / PlanetRadius);
-
     float3 nWS = normalize(pSphereLocal);
 
-    // 2) Convert WS direction to planet-local axes for cubemap sampling
+    // 2) Convert WS direction to planet-local axes
     float3 vPlanet;
     vPlanet.x = dot(nWS, BasisLonEast);
     vPlanet.y = dot(nWS, BasisSpinUp);
     vPlanet.z = dot(nWS, BasisLonNorth);
 
-    float3 pNoise = vPlanet * PlanetRadius;
+    float3 dir = normalize(vPlanet);
+    float3 worldPos = dir * PlanetRadius;
 
-    // 3) Base height from baked cube
-    float h = SampleHeightFromDir(normalize(vPlanet));
+    // 3) Inputs needed by SampleTerrainHeight
+    int currentLOD = 0; // not used by terrain objects, planet uses it for noise layer LOD activation
+    uint matCount = MaterialCount; // however you pass it — likely a cbuffer field
+    float3 baseNormal = ComputeBaseNormalPS(dir);
+    float slope = 1.0 - saturate(dot(normalize(baseNormal), dir));
+    float colorAvg = SampleColorAvg(dir);
+    float3 normalPS = nWS; // not actually used inside SampleTerrainHeight per the code above
 
-    // 4) Add procedural details with LOD logic identical to planet
-    int lodFine = LodFromCellSize(CellSize);
-    float detailFine = AccumulateHeightDetails(pNoise, lodFine);
-    float detail = detailFine;
+    // 4) Out parameters we don't care about (debug-only)
+    float wallDebug, wallMaskDebug, erosionMaskDebug, erosionPatternDebug, erosionDeltaDebug;
 
-    // Edge strip draw blends coarse/fine details (same as your planet)
-    if (DrawMode == 1)
-    {
-        int lodCoarse = lodFine + 1;
-        float detailCoarse = AccumulateHeightDetails(pNoise, lodCoarse);
-
-        uint2 gLocal = ComputeLocalGridCoord(offMeters);
-        uint cells = (uint) (GridSize - 1);
-
-        float edgeW = EdgeBlendWeight(gLocal, cells);
-
-        // Outer edge: coarse. Inner edge: fine.
-        detail = lerp(detailCoarse, detailFine, edgeW);
-
-        // Force the very outer border to be exactly coarse (planet does this)
-        if (EdgeDistanceToBorder(gLocal, cells) == 0)
-            detail = detailCoarse;
-    }
-
-    h += detail;
-    return h;
+    return SampleTerrainHeight(dir, worldPos, currentLOD, matCount, slope, colorAvg, normalPS, wallDebug, wallMaskDebug, erosionMaskDebug, erosionPatternDebug, erosionDeltaDebug);
 }
 
 uint Hash_u32(uint x)
@@ -291,103 +396,70 @@ PixelInputType main(VertexInputType input, uint instanceID : SV_InstanceID)
     // CURRENTLY THIS WILL ONLY RENDER TERRAIN OBJECTS!
     if (isInstanced)
     {       
-        // ----- Candidate grid for this draw -----
-        uint scells = max(1u, TOScatterCells);
-        uint candidateCount = scells * scells;
+        uint M = TOCandidateGridSize;
+        uint candidateCount = M * M;
 
-        // If your DrawIndexedInstanced uses candidateCount, this is always true; still keep as guard.
         if (instanceID >= candidateCount)
         {
             output.pixelPosition = float4(2, 2, 2, 1);
             return output;
         }
 
-        uint ix = instanceID % scells;
-        uint iy = instanceID / scells;
+        // Candidate index → 2D position in candidate grid
+        uint ix = instanceID % M;
+        uint iy = instanceID / M;
 
-        // LOD window size in meters (same region you use for terrain for this level)
-        float cells = (float) (GridSize - 1);
-        float widthM = cells * (float) CellSize;
-        float halfExtent = 0.5f * widthM;
+        // Each cell's size in tangent meters
+        float candidateCellSize = (2.0f * TOScatterRadiusMeters) / (float) M;
 
-        // Candidate cell size in the window (meters)
-        // This is NOT TOScatterCellSize; this is just how we sample the window uniformly.
-        float candidateCellSize = widthM / (float) scells;
+        // Local offset in tangent meters (centered on player)
+        float2 offMeters = (float2((float) ix + 0.5f, (float) iy + 0.5f) * candidateCellSize)
+                     - float2(TOScatterRadiusMeters, TOScatterRadiusMeters);
 
-        // Local candidate center in offMeters convention centered at (0,0)
-        float2 offMeters = (float2((float) ix + 0.5f, (float) iy + 0.5f) * candidateCellSize) - float2(halfExtent, halfExtent);
-        
-        float r = max(abs(offMeters.x), abs(offMeters.y));
+        // Convert to world-stable position for hashing
+        float2 globalMeters = float2(TOPlayerTangentEast, TOPlayerTangentNorth) + offMeters;
 
-        if (r > halfExtent)
-        {
-            output.pixelPosition = float4(2, 2, 2, 1);
-            return output;
-        }
+        // World cell ID — stable as the player moves
+        int worldCX = (int) floor(globalMeters.x / candidateCellSize);
+        int worldCY = (int) floor(globalMeters.y / candidateCellSize);
 
-        float halfWFiner = 0.0f;
-        if (CellSize > FinestCellSize) // i.e., L > L0
-            halfWFiner = 0.5f * (cells * (0.5f * (float) CellSize));
-        
-        if (halfWFiner > 0.0f && r < halfWFiner)
-        {
-            output.pixelPosition = float4(2, 2, 2, 1);
-            return output;
-        }
-
-        // Convert to world-stable tangent-plane meters
-        float2 globalMeters = float2(ScatterOriginMetersX, ScatterOriginMetersY) + offMeters;
-
-        // Quantize to a WORLD scatter cell id (this anchors identity in world space)
-        float scatterSize = max(1e-3f, TOScatterCellSize);
-        int worldCX = (int) floor(globalMeters.x / scatterSize);
-        int worldCY = (int) floor(globalMeters.y / scatterSize);
-
-        // LOD index (same as your code)
-        int lod = 0;
-        int cs = CellSize;
-        while (cs > 1)
-        {
-            cs >>= 1;
-            lod++;
-        }
-
-        // Stable world key: DO NOT include camera/window origin
+        // Stable world-space hash key
         uint key = Hash_u32(TOSeed
-                  ^ Hash_u32((uint) worldCX)
-                  ^ (Hash_u32((uint) worldCY) * 0x85ebca6bu)
-                  ^ (uint) (lod * 0x9e3779b9u));
+              ^ Hash_u32((uint) worldCX)
+              ^ (Hash_u32((uint) worldCY) * 0x85ebca6bu));
 
-        // Density: expected keep fraction ~= desiredCount / candidateCount
-        float keepProb = saturate((float) TOInstancesPerLevel / (float) candidateCount);
-
-        // Cull most candidates
-        if (Hash01(key) > keepProb)
+        // Density-based cull
+        if (Hash01(key) > TODensityProb)
         {
             output.pixelPosition = float4(2, 2, 2, 1);
             return output;
         }
 
-        // Stable randoms for this world cell
+        // Stable randoms for this stone
         float2 r2 = Hash02(key);
         float3 r3 = Hash03(key ^ 0x68bc21ebu);
 
-        // Jitter within the WORLD scatter cell (stable)
-        float2 jitter = (r2 - 0.5f) * 0.9f * scatterSize;
+        // Jitter within the world cell (stable)
+        float2 jitteredGlobalMeters = (float2((float) worldCX, (float) worldCY) + r2) * candidateCellSize;
+        offMeters = jitteredGlobalMeters - float2(TOPlayerTangentEast, TOPlayerTangentNorth);
 
-        // Place at jittered world position, then convert back to local offMeters for your height eval
-        float2 jitteredGlobalMeters = (float2((float) worldCX, (float) worldCY) + r2) * scatterSize;
-        offMeters = jitteredGlobalMeters - float2(ScatterOriginMetersX, ScatterOriginMetersY);
+        // Cull beyond scatter radius (after jitter could push slightly out)
+        float distFromCenter = length(offMeters);
+        if (distFromCenter > TOScatterRadiusMeters)
+        {
+            output.pixelPosition = float4(2, 2, 2, 1);
+            return output;
+        }
 
-        // ----- Terrain height + camera-relative base position (your existing path) -----
+        // Sample terrain height at this offset
         float h = EvaluateTerrainHeightMeters(offMeters);
 
+        // Place on tangent plane
         float3 pPlaneCR = BasisTanEast * offMeters.x + BasisTanNorth * offMeters.y;
         float3 baseCR = pPlaneCR + BasisRadUp * (h - Altitude);
 
-        // ----- Per-instance scale/rotation (your existing path) -----
+        // Per-instance scale and rotation
         float scale = lerp(TOMinScale, TOMaxScale, r3.x);
-
         float3 rotationAngles = r3 * 6.2831853f;
         float4x4 rotM = CreateRotationMatrix(rotationAngles);
 
@@ -399,35 +471,28 @@ PixelInputType main(VertexInputType input, uint instanceID : SV_InstanceID)
         float3 rotatedN = mul(localN, (float3x3) rotM);
         float3 rotatedT = mul(localT, (float3x3) rotM);
 
-        // (Optional) slope alignment: only do this if you compute a real surface normal at offMeters.
-        // Otherwise you will introduce artifacts. For now, skip.
-
         float3 pCR = baseCR + rotatedPos;
 
-        // ----- Output -----
+        // Output
         float4 worldPosition = float4(pCR, 1.0f);
-
         float4 viewPosition = mul(worldPosition, viewMatrix);
         output.pixelPosition = mul(viewPosition, projectionMatrix);
         output.viewPosition = viewPosition.xyz;
-        
+
         worldNormal = rotatedN;
         worldTangent = float4(rotatedT, input.tangent.w);
 
         float3 viewNormal = normalize(mul(worldNormal, (float3x3) viewMatrix));
-        float3 viewTangent = normalize(mul(worldTangent, (float3x3) viewMatrix));
-    
+        float3 viewTangent = normalize(mul(worldTangent.xyz, (float3x3) viewMatrix));
         float3 viewBitangent = cross(viewNormal, viewTangent) * input.tangent.w;
-    
+
         float3x3 TBN = float3x3(viewTangent, viewBitangent, viewNormal);
-    
+
         output.TBN = TBN;
         output.viewNormal = viewNormal;
-
         output.texCoord = input.texCoord;
         output.entityID = -1;
 
-        // Fill any remaining outputs (uv, material ids, etc.) as your shader requires.
         return output;
     }
     else
@@ -477,21 +542,22 @@ PixelInputType main(VertexInputType input, uint instanceID : SV_InstanceID)
 
 struct PixelInputType
 {
-    float4 pixelPosition    : SV_POSITION;
-    float3 viewPosition     : VIEWPOS;
-    float3 viewNormal       : NORMAL;
-    float2 texCoord         : TEXCOORD;
-    float3x3 TBN            : TBASIS;
-    int entityID            : TEXTUREID;
+    float4 pixelPosition        : SV_POSITION;
+    float3 viewPosition         : VIEWPOS;
+    float3 viewNormal           : NORMAL;
+    float2 texCoord             : TEXCOORD;
+    float3x3 TBN                : TBASIS;
+    int entityID                : TEXTUREID;
 };
 
 struct PixelOutputType
 {
-    float4 position         : SV_Target0;
-    float4 normal           : SV_Target1;
-    float4 albedoMetallic   : SV_Target2;
-    float4 roughnessAO      : SV_Target3;
-    int entityID            : SV_Target4;
+    float4 position             : SV_Target0;
+    float4 normal               : SV_Target1;
+    float4 albedoMetallic       : SV_Target2;
+    float4 roughnessAO          : SV_Target3;
+    int entityID                : SV_Target4;
+    float4 planetMaterialDebug  : SV_Target5;
 };
 
 cbuffer Material : register(b2)

@@ -11,8 +11,9 @@ namespace Toast {
 	enum class NoiseType : int32_t
 	{
 		Fractal = 0,
-		Riged = 1,
-		Turbulence = 2
+		Ridged = 1,
+		Turbulence = 2,
+		Voronoi = 3
 	};
 
 	struct NoiseLayer
@@ -35,9 +36,9 @@ namespace Toast {
 
 			// 16 bytes
 			float BlendWeight = 1.0f;
-			float RadialFreqScale = 1.0f;  // multiplier on radial axis frequency (< 1 = horizontal banding)
-			float pad1 = 0.0f;
-			float pad2 = 0.0f;
+			float RadialFreqScale = 1.0f;   // 0 = no stretch, higher = more stretched
+			float RidgeSharpness = 2.0f;
+			float pad0;
 		};
 
 		std::string Name = "New Noise Layer";
@@ -57,8 +58,6 @@ namespace Toast {
 		AssetHandle AOHandle = 0;
 		AssetHandle DisplacementHandle = 0;
 
-		int32_t LODActivation = 0;
-		int32_t BlendRange = 2; // LOD levels to ramp from 0 -> 1
 		float TilingScale = 1.0f;
 		float DisplacementStrength = 0.5f; // world units (meters)
 	};
@@ -77,15 +76,13 @@ namespace Toast {
 
 			// 16 bytes - Noise count + PBR Settings
 			int32_t NoiseLayerCount = 0; // injected at upload
-			int32_t PBRLODActivation = 14;
 			float UVTilingScale = 1.0f;
-			int32_t PBRBlendRage = 2; 
-
-			// 16 bytes - Albedo color average selection: (r + g + b) / 3
 			float ColorAvgMin = 0.0f;
 			float ColorAvgMax = 1.0f;
+
+			// 16 bytes - Albedo color average selection: (r + g + b) / 3
 			float UseAlbedo = 1.0f;  // 0 = slope-only, 1 = use color avg range
-			float pad1 = 0.0f;
+			DirectX::XMFLOAT3 DebugColor;
 		};
 
 		std::string Name = "New Planet Material";

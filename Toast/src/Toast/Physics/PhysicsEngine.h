@@ -48,6 +48,8 @@ namespace Toast {
 		void ApplyLinearImpulse(RigidBodyComponent& rbc, Vector3 impulse);
 		void ApplyLinearImpulseAtPoint(RigidBodyComponent& rbc, Vector3 impulse, Vector3 worldPoint, Vector3 comWorld);
 
+		DirectX::XMVECTOR GetCameraPlanetSpace() const;
+
 		PhysicsSettings& GetSettings() { return mSettings; }
 	private:
 		void ApplyImpulseAngular(RigidBodyComponent& rbc, Matrix objectInvInertiaWorld, Vector3 impulse);

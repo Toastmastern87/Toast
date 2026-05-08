@@ -6,7 +6,6 @@ namespace Toast {
 	CubeSampleCPU DirectionToCube(const Vector3& vIn)
 	{
 		using namespace DirectX;
-
 		Vector3 v = Vector3::Normalize(vIn);
 
 		double ax = fabs(v.x);
@@ -15,45 +14,20 @@ namespace Toast {
 
 		uint32_t face;
 		Vector2 uvFace;
-
 		if (ax >= ay && ax >= az)
 		{
-			if (v.x > 0.0f)
-			{
-				face = 0;
-				uvFace = { -v.z / ax,  v.y / ax };
-			}
-			else
-			{
-				face = 1;
-				uvFace = { v.z / ax,  v.y / ax };
-			}
+			if (v.x > 0.0f) { face = 0; uvFace = { -v.z / ax,  v.y / ax }; }
+			else { face = 1; uvFace = { v.z / ax,  v.y / ax }; }
 		}
 		else if (ay >= ax && ay >= az)
 		{
-			if (v.y > 0.0f)
-			{
-				face = 2;
-				uvFace = { v.x / ay, -v.z / ay };
-			}
-			else
-			{
-				face = 3;
-				uvFace = { v.x / ay,  v.z / ay };
-			}
+			if (v.y > 0.0f) { face = 2; uvFace = { v.x / ay, -v.z / ay }; }
+			else { face = 3; uvFace = { v.x / ay,  v.z / ay }; }
 		}
 		else
 		{
-			if (v.z > 0.0f)
-			{
-				face = 4;
-				uvFace = { v.x / az,  v.y / az };
-			}
-			else
-			{
-				face = 5;
-				uvFace = { -v.x / az,  v.y / az };
-			}
+			if (v.z > 0.0f) { face = 4; uvFace = { v.x / az,  v.y / az }; }
+			else { face = 5; uvFace = { -v.x / az,  v.y / az }; }
 		}
 
 		CubeSampleCPU cs;
@@ -65,28 +39,19 @@ namespace Toast {
 
 	Vector3 CubeFaceUVToDir(uint32_t face, double u, double v)
 	{
-		// Match HLSL: float2 p = 2.0 * float2(uv.x, 1.0 - uv.y) - 1.0;
 		double px = 2.0 * u - 1.0;
 		double py = 2.0 * (1.0 - v) - 1.0;
 
 		double dx, dy, dz;
-
 		switch (face)
 		{
-		case 0: // +X
-			dx = 1.0; dy = py;  dz = -px; break;
-		case 1: // -X
-			dx = -1.0; dy = py;  dz = px; break;
-		case 2: // +Y
-			dx = px;  dy = 1.0; dz = -py; break;
-		case 3: // -Y
-			dx = px;  dy = -1.0; dz = py; break;
-		case 4: // +Z
-			dx = px;  dy = py;  dz = 1.0; break;
-		default: // 5: -Z
-			dx = -px; dy = py;  dz = -1.0; break;
+		case 0: dx = 1.0; dy = py;  dz = -px; break;
+		case 1: dx = -1.0; dy = py;  dz = px; break;
+		case 2: dx = px;  dy = 1.0; dz = -py; break;
+		case 3: dx = px;  dy = -1.0; dz = py; break;
+		case 4: dx = px;  dy = py;  dz = 1.0; break;
+		default: dx = -px; dy = py;  dz = -1.0; break;
 		}
-
 		return Vector3::Normalize(Vector3(dx, dy, dz));
 	}
 
@@ -99,9 +64,10 @@ namespace Toast {
 		return DirectionToCube(dir);
 	}
 
-	float SampleCubeBilinear(const TerrainCubeData& td, const Vector3& dirIn)
+	float SampleCubeBilinear(const CubeData<float>& td, const Vector3& dirIn)
 	{
 		CubeSampleCPU cs = DirectionToCube(dirIn);
+
 		uint32_t face = cs.face;
 		double u = cs.u;
 		double v = cs.v;
@@ -109,7 +75,6 @@ namespace Toast {
 		uint32_t W = td.Width;
 		uint32_t H = td.Height;
 
-		// p = uv * dims - 0.5
 		double px = u * W - 0.5;
 		double py = v * H - 0.5;
 
@@ -152,10 +117,10 @@ namespace Toast {
 		auto [i01x, i01y] = clampIJ(c01);
 		auto [i11x, i11y] = clampIJ(c11);
 
-		const auto& f00 = td.FaceHeight[c00.face];
-		const auto& f10 = td.FaceHeight[c10.face];
-		const auto& f01 = td.FaceHeight[c01.face];
-		const auto& f11 = td.FaceHeight[c11.face];
+		const auto& f00 = td.FaceData[c00.face];
+		const auto& f10 = td.FaceData[c10.face];
+		const auto& f01 = td.FaceData[c01.face];
+		const auto& f11 = td.FaceData[c11.face];
 
 		double h00 = f00[Index2D(i00x, i00y, W)];
 		double h10 = f10[Index2D(i10x, i10y, W)];
@@ -169,12 +134,12 @@ namespace Toast {
 		return (float)vFinal;
 	}
 
-	float SampleHeightFromDir(const TerrainCubeData& td, const Vector3& dirPlanet)
+	float SampleHeightFromDir(const CubeData<float>& td, const Vector3& dirPlanet)
 	{
 		return SampleCubeBilinear(td, dirPlanet);
 	}
 
-	float SampleHeightNearest(const TerrainCubeData& td, const Vector3& dirIn)
+	float SampleHeightNearest(const CubeData<float>& td, const Vector3& dirIn)
 	{
 		CubeSampleCPU cs = DirectionToCube(dirIn);
 		uint32_t W = td.Width;
@@ -183,7 +148,28 @@ namespace Toast {
 		uint32_t ix = std::clamp((uint32_t)(cs.u * W), 0u, W - 1);
 		uint32_t iy = std::clamp((uint32_t)(cs.v * H), 0u, H - 1);
 
-		return (float)td.FaceHeight[cs.face][iy * W + ix];
+		return (float)td.FaceData[cs.face][iy * W + ix];
+	}
+
+	float SampleColorAvgFromDir(const CubeData<uint32_t>& td, const Vector3& dirPlanet)
+	{
+		CubeSampleCPU cs = DirectionToCube(dirPlanet);
+
+		int ix = std::clamp((int)(cs.u * td.Width), 0, (int)td.Width - 1);
+		int iy = std::clamp((int)(cs.v * td.Height), 0, (int)td.Height - 1);
+
+		uint32_t texel = td.FaceData[cs.face][Index2D(ix, iy, td.Width)];
+
+		uint8_t rByte = (uint8_t)(texel & 0xFF);
+		uint8_t gByte = (uint8_t)((texel >> 8) & 0xFF);
+		uint8_t bByte = (uint8_t)((texel >> 16) & 0xFF);
+
+		// Match GPU: just divide by 255, no sRGB conversion
+		float r = rByte / 255.0f;
+		float g = gByte / 255.0f;
+		float b = bByte / 255.0f;
+
+		return (r + g + b) / 3.0f;
 	}
 
 }

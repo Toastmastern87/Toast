@@ -86,6 +86,7 @@ namespace Toast {
 
 			// Geometry Pass
 			Ref<RenderTarget> GPassPositionRT, GPassNormalRT, GPassAlbedoMetallicRT, GPassRoughnessAORT, GPassPickingRT;
+			Ref<RenderTarget> PlanetMaterialDebugRT;
 			
 			// Lightning Pass
 			Ref<RenderTarget> LPassRT;
@@ -207,7 +208,7 @@ namespace Toast {
 		static void ClearDrawList();
 
 		// Deffered Rendering
-		static void GeometryPass();
+		static void GeometryPass(Vector3 worldTranslation);
 		static void ShadowPass(Scene::CascadedShadowMapParams& shadowParams);
 		static void LightningPass(Ref<Planet>& planet, Scene::Environment& environment);
 		static void ParticlesPass();
@@ -242,6 +243,7 @@ namespace Toast {
 		static Ref<RenderTarget>& GetGeometryBloomHalfRT() { return sRendererData->GeometryBloomHalfRT; }
 		static Ref<RenderTarget>& GetGeometryBloomQuarterRT() { return sRendererData->GeometryBloomQuarterRT; }
 		static Ref<RenderTarget>& GetFinalBloomRT() { return sRendererData->FinalBloomRT; }
+		static Ref<RenderTarget>& GetPlanetMaterialDebugRT() { return sRendererData->PlanetMaterialDebugRT; }
 
 		static Ref<RenderTarget>& GetLPassRT() { return sRendererData->LPassRT; }
 
@@ -296,7 +298,8 @@ namespace Toast {
 		static void FillParticleBuffer(std::vector<Particle>& particles);
 	private:
 		static void UploadCameraCBuffer(Camera& camera, const DirectX::XMFLOAT4 cameraPos);
+		static void BindPlanetTerrainResources();
 
-		static void DrawTerrainObjectsForLevel(Planet* planet, uint32_t L, uint32_t L0);
+		static void DrawTerrainObjects(Planet* planet, Vector3 worldTranslation);
 	};
 }

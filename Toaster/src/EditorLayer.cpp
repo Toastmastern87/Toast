@@ -486,6 +486,9 @@ namespace Toast {
 				case RenderOverlay::SKYVIEWLUT:
 					textureID = (void*)mEditorScene->GetPlanet()->GetSkyViewLUT()->GetSRV().Get();
 					break;
+				case RenderOverlay::PLANETMATERIALS:
+					textureID = (void*)Renderer::GetPlanetMaterialDebugRT()->GetSRV().Get();
+					break;
 				}
 			}
 			else

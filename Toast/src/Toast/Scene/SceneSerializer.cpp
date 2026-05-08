@@ -705,9 +705,6 @@ namespace Toast {
 		out << YAML::Key << "AlbedoColor" << YAML::Value << scenePlanet->mAlbedoColor;
 		out << YAML::Key << "Roughness" << YAML::Value << scenePlanet->mRoughness;
 		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet->mMetalness;
-		out << YAML::Key << "SlopeSensitivity" << YAML::Value << scenePlanet->mSlopeSensitivity;
-		out << YAML::Key << "SlopeThreshold" << YAML::Value << scenePlanet->mSlopeThreshold;
-		out << YAML::Key << "SlopeDarkening" << YAML::Value << scenePlanet->mSlopeDarkening;
 		out << YAML::Key << "HeightMapAssetHandle" << YAML::Value << scenePlanet->mBaseHeightMapHandle;
 		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet->mMetalness;
 		out << YAML::Key << "StarFieldAssetHandle" << YAML::Value << scenePlanet->mStarFieldTexture2DHandle;
@@ -746,7 +743,44 @@ namespace Toast {
 		out << YAML::Key << "MaxLevels" << YAML::Value << planetMeshGeo->mNumLevels;
 		out << YAML::EndMap;
 
-		out << YAML::Key << "TerrainMaterials";
+		out << YAML::Key << "PBRColorDominance" << YAML::Value << scenePlanet->mPBRColorDominance;
+		out << YAML::Key << "ColorNoiseFrequency" << YAML::Value << scenePlanet->mColorNoiseFrequency;
+		out << YAML::Key << "ColorNoiseStrength" << YAML::Value << scenePlanet->mColorNoiseStrength;
+		out << YAML::Key << "ColorNoiseOctaves" << YAML::Value << scenePlanet->mColorNoiseOctaves;
+		out << YAML::Key << "WallEnhancementEnabled" << YAML::Value << scenePlanet->mWallEnhancementEnabled;
+		out << YAML::Key << "WallStrength" << YAML::Value << scenePlanet->mWallStrength;
+		out << YAML::Key << "WallStepMeters" << YAML::Value << scenePlanet->mWallStepMeters;
+		out << YAML::Key << "WallSlopeStart" << YAML::Value << scenePlanet->mWallSlopeStart;
+		out << YAML::Key << "WallSlopeEnd" << YAML::Value << scenePlanet->mWallSlopeEnd;
+		out << YAML::Key << "WallSharpStart" << YAML::Value << scenePlanet->mWallSharpStart;
+		out << YAML::Key << "WallSharpEnd" << YAML::Value << scenePlanet->mWallSharpEnd;
+		out << YAML::Key << "WallMaxDelta" << YAML::Value << scenePlanet->mWallMaxDelta;
+		out << YAML::Key << "WallDebugEnabled" << YAML::Value << scenePlanet->mWallDebugEnabled;
+		out << YAML::Key << "WallDebugMode" << YAML::Value << scenePlanet->mWallDebugMode;
+		out << YAML::Key << "TerrainNormalStepMeters" << YAML::Value << scenePlanet->mTerrainNormalStepMeters;
+		out << YAML::Key << "ErosionEnabled" << YAML::Value << scenePlanet->mErosionEnabled;
+		out << YAML::Key << "ErosionStrength" << YAML::Value << scenePlanet->mErosionStrength;
+		out << YAML::Key << "ErosionStepMeters" << YAML::Value << scenePlanet->mErosionStepMeters;
+		out << YAML::Key << "ErosionTilingMeters" << YAML::Value << scenePlanet->mErosionTilingMeters;
+		out << YAML::Key << "ErosionSlopeStart" << YAML::Value << scenePlanet->mErosionSlopeStart;
+		out << YAML::Key << "ErosionSlopeFull" << YAML::Value << scenePlanet->mErosionSlopeFull;
+		out << YAML::Key << "ErosionSlopeEnd" << YAML::Value << scenePlanet->mErosionSlopeEnd;
+		out << YAML::Key << "ErosionSlopeFadeOut" << YAML::Value << scenePlanet->mErosionSlopeFadeOut;
+		out << YAML::Key << "ErosionOctaves" << YAML::Value << scenePlanet->mErosionOctaves;
+		out << YAML::Key << "ErosionLacunarity" << YAML::Value << scenePlanet->mErosionLacunarity;
+		out << YAML::Key << "ErosionPersistence" << YAML::Value << scenePlanet->mErosionPersistence;
+		out << YAML::Key << "ErosionDebugEnabled" << YAML::Value << scenePlanet->mErosionDebugEnabled;
+		out << YAML::Key << "ErosionDebugMode" << YAML::Value << scenePlanet->mErosionDebugMode;
+		out << YAML::Key << "ErosionGullyWeight" << YAML::Value << scenePlanet->mErosionGullyWeight;
+		out << YAML::Key << "ErosionDetail" << YAML::Value << scenePlanet->mErosionDetail;
+		out << YAML::Key << "ErosionCellScale" << YAML::Value << scenePlanet->mErosionCellScale;
+		out << YAML::Key << "ErosionNormalization" << YAML::Value << scenePlanet->mErosionNormalization;
+		out << YAML::Key << "ErosionAssumedSlope" << YAML::Value << scenePlanet->mErosionAssumedSlope;
+		out << YAML::Key << "ErosionAssumedSlopeBlend" << YAML::Value << scenePlanet->mErosionAssumedSlopeBlend;
+		out << YAML::Key << "ErosionMaxDistance" << YAML::Value << scenePlanet->mErosionMaxDistance;
+		out << YAML::Key << "ErosionFadeStart" << YAML::Value << scenePlanet->mErosionFadeStart;
+
+		out << YAML::Key << "PlanetMaterials";
 		out << YAML::BeginSeq;
 		for (const PlanetMaterial& mat : scenePlanet->mMaterials)
 		{
@@ -760,10 +794,9 @@ namespace Toast {
 			out << YAML::Key << "ColorAvgMax" << YAML::Value << mat.GPU.ColorAvgMax;
 			out << YAML::Key << "UseAlbedo" << YAML::Value << mat.GPU.UseAlbedo;
 			out << YAML::Key << "BlendSharpness" << YAML::Value << mat.GPU.BlendSharpness;
+			out << YAML::Key << "DebugColor" << YAML::Value << mat.GPU.DebugColor;
 
 			// PBR
-			out << YAML::Key << "PBRLODActivation" << YAML::Value << mat.PBR.LODActivation;
-			out << YAML::Key << "PBRBlendRange" << YAML::Value << mat.PBR.BlendRange;
 			out << YAML::Key << "PBRTilingScale" << YAML::Value << mat.PBR.TilingScale;
 			out << YAML::Key << "PBRDisplacementStrength" << YAML::Value << mat.PBR.DisplacementStrength;
 			out << YAML::Key << "PBRAlbedoHandle" << YAML::Value << mat.PBR.AlbedoHandle;
@@ -789,6 +822,7 @@ namespace Toast {
 				out << YAML::Key << "Persistence" << YAML::Value << layer.GPU.Persistence;
 				out << YAML::Key << "BlendWeight" << YAML::Value << layer.GPU.BlendWeight;
 				out << YAML::Key << "RadialFreqScale" << YAML::Value << layer.GPU.RadialFreqScale;
+				out << YAML::Key << "RidgeSharpness" << YAML::Value << layer.GPU.RidgeSharpness;
 				out << YAML::EndMap;
 			}
 			out << YAML::EndSeq;
@@ -809,9 +843,9 @@ namespace Toast {
 
 			out << YAML::Key << "LODActivation" << YAML::Value << obj.LODActivation;
 
-			out << YAML::Key << "DensityPerKm2" << YAML::Value << obj.DensityPerKm2;
-			out << YAML::Key << "MaxPerPatch" << YAML::Value << obj.MaxPerPatch;
-			out << YAML::Key << "MaxTotal" << YAML::Value << obj.MaxTotal;
+			out << YAML::Key << "ScatterRadiusMeters" << YAML::Value << obj.ScatterRadiusMeters;
+			out << YAML::Key << "CandidateGridSize" << YAML::Value << obj.CandidateGridSize;
+			out << YAML::Key << "DensityProb" << YAML::Value << obj.DensityProb;
 
 			out << YAML::Key << "MinScale" << YAML::Value << obj.MinScale;
 			out << YAML::Key << "MaxScale" << YAML::Value << obj.MaxScale;
@@ -1073,9 +1107,6 @@ namespace Toast {
 		scenePlanet->mAlbedoColor = planet["AlbedoColor"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mRoughness = planet["Roughness"].as<float>();
 		scenePlanet->mMetalness = planet["Metalness"].as<float>();
-		scenePlanet->mSlopeSensitivity = planet["SlopeSensitivity"].as<float>();
-		scenePlanet->mSlopeThreshold = planet["SlopeThreshold"].as<float>();
-		scenePlanet->mSlopeDarkening = planet["SlopeDarkening"].as<float>();
 		scenePlanet->mBaseHeightMapHandle = planet["HeightMapAssetHandle"].as<AssetHandle>();
 		scenePlanet->mBaseHeightMapTextureCube = scenePlanet->CreateHeightMapCube(AssetManager::GetAsset<Texture2D>(scenePlanet->mBaseHeightMapHandle).get());
 		scenePlanet->mStarFieldTexture2DHandle = planet["StarFieldAssetHandle"].as<AssetHandle>();
@@ -1099,6 +1130,41 @@ namespace Toast {
 		scenePlanet->mSurfaceAirDensity = planet["SurfaceAirDensity"].as<float>();
 		scenePlanet->mPhysicsScaleHeight = planet["PhysicsScaleHeight"].as<float>();
 		scenePlanet->mAtmosphereCeiling = planet["AtmosphereCeiling"].as<float>();
+		scenePlanet->mColorNoiseFrequency = planet["ColorNoiseFrequency"].as<float>();
+		scenePlanet->mColorNoiseStrength = planet["ColorNoiseStrength"].as<float>();
+		scenePlanet->mColorNoiseOctaves = planet["ColorNoiseOctaves"].as<float>();
+		scenePlanet->mWallEnhancementEnabled = planet["WallEnhancementEnabled"].as<bool>();
+		scenePlanet->mWallStrength = planet["WallStrength"].as<float>();
+		scenePlanet->mWallStepMeters = planet["WallStepMeters"].as<float>();
+		scenePlanet->mWallSlopeStart = planet["WallSlopeStart"].as<float>();
+		scenePlanet->mWallSlopeEnd = planet["WallSlopeEnd"].as<float>();
+		scenePlanet->mWallSharpStart = planet["WallSharpStart"].as<float>();
+		scenePlanet->mWallSharpEnd = planet["WallSharpEnd"].as<float>();
+		scenePlanet->mWallMaxDelta = planet["WallMaxDelta"].as<float>();
+		scenePlanet->mWallDebugEnabled = planet["WallDebugEnabled"].as<bool>();
+		scenePlanet->mWallDebugMode = planet["WallDebugMode"].as<int>();
+		scenePlanet->mTerrainNormalStepMeters = planet["TerrainNormalStepMeters"].as<float>();
+		scenePlanet->mErosionEnabled = planet["ErosionEnabled"].as<bool>();
+		scenePlanet->mErosionStrength = planet["ErosionStrength"].as<float>();
+		scenePlanet->mErosionStepMeters = planet["ErosionStepMeters"].as<float>();
+		scenePlanet->mErosionTilingMeters = planet["ErosionTilingMeters"].as<float>();
+		scenePlanet->mErosionSlopeStart = planet["ErosionSlopeStart"].as<float>();
+		scenePlanet->mErosionSlopeFull = planet["ErosionSlopeFull"].as<float>();
+		scenePlanet->mErosionSlopeEnd = planet["ErosionSlopeEnd"].as<float>();
+		scenePlanet->mErosionSlopeFadeOut = planet["ErosionSlopeFadeOut"].as<float>();
+		scenePlanet->mErosionOctaves = planet["ErosionOctaves"].as<int>();
+		scenePlanet->mErosionLacunarity = planet["ErosionLacunarity"].as<float>();
+		scenePlanet->mErosionPersistence = planet["ErosionPersistence"].as<float>();
+		scenePlanet->mErosionDebugEnabled = planet["ErosionDebugEnabled"].as<bool>();
+		scenePlanet->mErosionDebugMode = planet["ErosionDebugMode"].as<int>();
+		scenePlanet->mErosionGullyWeight = planet["ErosionGullyWeight"].as<float>();
+		scenePlanet->mErosionDetail = planet["ErosionDetail"].as<float>();
+		scenePlanet->mErosionCellScale = planet["ErosionCellScale"].as<float>();
+		scenePlanet->mErosionNormalization = planet["ErosionNormalization"].as<float>();
+		scenePlanet->mErosionAssumedSlope = planet["ErosionAssumedSlope"].as<float>();
+		scenePlanet->mErosionAssumedSlopeBlend = planet["ErosionAssumedSlopeBlend"].as<float>();
+		scenePlanet->mErosionMaxDistance = planet["ErosionMaxDistance"].as<float>();
+		scenePlanet->mErosionFadeStart = planet["ErosionFadeStart"].as<float>();
 
 		auto& planetMeshGeo = scenePlanet->mGeoClipmapMesh;
 		planetMeshGeo->mGridSize = planet["PlanetMesh"]["GridSize"].as<uint32_t>();
@@ -1123,28 +1189,63 @@ namespace Toast {
 		if(scenePlanet->mUseAlbedoMap > 0.0f)
 			scenePlanet->mAlbedoMapTextureCube = scenePlanet->CreateAlbedoCube(AssetManager::GetAsset<Texture2D>(scenePlanet->mAlbedoTextureHandle).get());
 
-		scenePlanet->mHeightDetails.clear();
-
-		YAML::Node heightDetailsNode = planet["HeightDetails"];
-		if (heightDetailsNode && heightDetailsNode.IsSequence())
+		scenePlanet->mPBRColorDominance = planet["PBRColorDominance"].as<float>(0.0f);
+		if (auto materialsNode = planet["PlanetMaterials"])
 		{
-			for (const YAML::Node& node : heightDetailsNode)
+			scenePlanet->mMaterials.clear();
+
+			for (auto matNode : materialsNode)
 			{
-				HeightDetail detail;
+				PlanetMaterial mat;
+				mat.Name = matNode["Name"].as<std::string>("New Material");
 
-				detail.Name = node["Name"].as<std::string>();
-				detail.Seed = node["Seed"].as<uint32_t>();
+				// Selection
+				mat.GPU.SlopeMin = matNode["SlopeMin"].as<float>(0.0f);
+				mat.GPU.SlopeMax = matNode["SlopeMax"].as<float>(1.0f);
+				mat.GPU.ColorAvgMin = matNode["ColorAvgMin"].as<float>(0.0f);
+				mat.GPU.ColorAvgMax = matNode["ColorAvgMax"].as<float>(1.0f);
+				mat.GPU.UseAlbedo = matNode["UseAlbedo"].as<float>(1.0f);
+				mat.GPU.BlendSharpness = matNode["BlendSharpness"].as<float>(8.0f);
+				mat.GPU.DebugColor = matNode["DebugColor"].as<DirectX::XMFLOAT3>();
 
-				detail.GPUSettings.LODActivation = node["LODActivation"].as<int>();
-				detail.GPUSettings.Octaves = node["Octaves"].as<int>();
-				detail.GPUSettings.Frequency = node["Frequency"].as<float>();
-				detail.GPUSettings.Amplitude = node["Amplitude"].as<float>();
+				// PBR
+				mat.PBR.TilingScale = matNode["PBRTilingScale"].as<float>(1.0f);
+				mat.PBR.DisplacementStrength = matNode["PBRDisplacementStrength"].as<float>(0.5f);
+				mat.PBR.AlbedoHandle = matNode["PBRAlbedoHandle"].as<uint64_t>(0);
+				mat.PBR.NormalHandle = matNode["PBRNormalHandle"].as<uint64_t>(0);
+				mat.PBR.RoughnessHandle = matNode["PBRRoughnessHandle"].as<uint64_t>(0);
+				mat.PBR.AOHandle = matNode["PBRAOHandle"].as<uint64_t>(0);
+				mat.PBR.DisplacementHandle = matNode["PBRDisplacementHandle"].as<uint64_t>(0);
 
-				scenePlanet->mHeightDetails.emplace_back(std::move(detail));
+				// Noise Layers
+				if (auto layersNode = matNode["NoiseLayers"])
+				{
+					for (auto layerNode : layersNode)
+					{
+						NoiseLayer layer;
+						layer.Name = layerNode["Name"].as<std::string>("New Noise Layer");
+						layer.Seed = layerNode["Seed"].as<uint32_t>(0);
+						layer.GPU.Type = layerNode["Type"].as<int32_t>(0);
+						layer.GPU.LODActivation = layerNode["LODActivation"].as<int32_t>(0);
+						layer.GPU.Octaves = layerNode["Octaves"].as<int32_t>(1);
+						layer.GPU.Frequency = layerNode["Frequency"].as<float>(1.0f);
+						layer.GPU.Amplitude = layerNode["Amplitude"].as<float>(1.0f);
+						layer.GPU.Lacunarity = layerNode["Lacunarity"].as<float>(2.0f);
+						layer.GPU.Persistence = layerNode["Persistence"].as<float>(0.5f);
+						layer.GPU.BlendWeight = layerNode["BlendWeight"].as<float>(1.0f);
+						layer.GPU.RadialFreqScale = layerNode["RadialFreqScale"].as<float>(0.0);
+						layer.GPU.RidgeSharpness = layerNode["RidgeSharpness"].as<float>(2.0f);
+
+						mat.NoiseLayers.push_back(std::move(layer));
+					}
+				}
+
+				scenePlanet->mMaterials.push_back(std::move(mat));
 			}
-		}
 
-		//scenePlanet->UploadHeightDetailsToGPU();
+			scenePlanet->mMaterialsIsDirty = true;
+			scenePlanet->mPBRTexturesDirty = true;
+		}
 
 		Renderer::ResetEnvMapsIBLDone();
 
@@ -1162,9 +1263,9 @@ namespace Toast {
 
 				obj.LODActivation = node["LODActivation"].as<int>();
 
-				obj.DensityPerKm2 = node["DensityPerKm2"].as<float>();
-				obj.MaxPerPatch = node["MaxPerPatch"].as<int>();
-				obj.MaxTotal = node["MaxTotal"].as<int>();
+				obj.ScatterRadiusMeters = node["ScatterRadiusMeters"].as<float>();
+				obj.CandidateGridSize = node["CandidateGridSize"].as<uint32_t>();
+				obj.DensityProb = node["DensityProb"].as<float>();
 
 				obj.MinScale = node["MinScale"].as<float>();
 				obj.MaxScale = node["MaxScale"].as<float>();
@@ -1573,7 +1674,8 @@ namespace Toast {
 			planetMeshGeo->mTempGridSize = planetMeshGeo->mGridSize;
 			planetMeshGeo->mTempNumLevels = planetMeshGeo->mNumLevels;
 
-			scenePlanet->mTerrainCubeData = scenePlanet->LoadTerrainDataFromTextureCube();
+			scenePlanet->mTerrainCubeData = Planet::LoadCubeData<float>(scenePlanet->mBaseHeightMapTextureCube);
+			scenePlanet->mAlbedoCubeData = Planet::LoadCubeData<uint32_t>(scenePlanet->mAlbedoMapTextureCube);
 
 			SceneCamera* camera = mScene->GetMainCamera();
 			if (camera)

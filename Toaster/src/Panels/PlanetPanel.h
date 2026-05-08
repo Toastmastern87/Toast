@@ -23,8 +23,8 @@ namespace Toast {
 		void DrawTerrainObjectPopup();
 		void DrawTerrainObjectMeshRow(TerrainObject& target);
 
-		void DrawTerrainMaterialsListUI();
-		void DrawTerrainMaterialPopup();
+		void DrawPlanetMaterialsListUI();
+		void DrawPlanetMaterialPopup();
 		void DrawNoiseLayerPopup(PlanetMaterial& parentMaterial);
 		void DrawPBRTextureSlot(const char* label, const char* id, AssetHandle& handle);
 	private:

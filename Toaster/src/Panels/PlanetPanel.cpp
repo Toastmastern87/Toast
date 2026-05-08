@@ -175,9 +175,9 @@ namespace Toast {
 
 				// sensible defaults
 				mTerrainObjDraft.LODActivation = 1;
-				mTerrainObjDraft.DensityPerKm2 = 2000.0f;
-				mTerrainObjDraft.MaxPerPatch = 16;
-				mTerrainObjDraft.MaxTotal = 200000;
+				mTerrainObjDraft.ScatterRadiusMeters = 1000.0f;
+				mTerrainObjDraft.CandidateGridSize = 256;
+				mTerrainObjDraft.DensityProb = 0.05f;
 				mTerrainObjDraft.MinScale = 0.1f;
 				mTerrainObjDraft.MaxScale = 0.3f;
 
@@ -370,17 +370,29 @@ namespace Toast {
 			ImGui::Separator();
 
 			// Density / caps
-			ImGui::Text("Density (per km^2)");
+			ImGui::Text("Scatter Radius (m)");
 			ImGui::SetNextItemWidth(180.0f);
-			ImGui::DragFloat("##TerrainObjDensity", &target.DensityPerKm2, 10.0f, 0.0f, 1e8f, "%.0f");
+			ImGui::DragFloat("##TerrainObjScatterRadius", &target.ScatterRadiusMeters, 50.0f, 100.0f, 50000.0f, "%.0f");
 
-			ImGui::Text("Max per patch");
+			ImGui::Text("Candidate Grid Size");
 			ImGui::SetNextItemWidth(180.0f);
-			ImGui::DragInt("##TerrainObjMaxPerPatch", &target.MaxPerPatch, 1.0f, 0, 4096);
+			{
+				static const char* gridOptions[] = { "64", "128", "256", "512", "1024" };
+				static const uint32_t gridValues[] = { 64u, 128u, 256u, 512u, 1024u };
 
-			ImGui::Text("Max total");
+				int currentIndex = 2; // default to 256
+				for (int i = 0; i < IM_ARRAYSIZE(gridValues); ++i)
+				{
+					if (target.CandidateGridSize == gridValues[i]) { currentIndex = i; break; }
+				}
+
+				if (ImGui::Combo("##TerrainObjCandidateGridSize", &currentIndex, gridOptions, IM_ARRAYSIZE(gridOptions)))
+					target.CandidateGridSize = gridValues[currentIndex];
+			}
+
+			ImGui::Text("Density (probability)");
 			ImGui::SetNextItemWidth(180.0f);
-			ImGui::DragInt("##TerrainObjMaxTotal", &target.MaxTotal, 256.0f, 0, 5000000);
+			ImGui::DragFloat("##TerrainObjDensityProb", &target.DensityProb, 0.001f, 0.0f, 1.0f, "%.4f");
 
 			ImGui::Separator();
 
@@ -432,7 +444,7 @@ namespace Toast {
 		ImGui::PopStyleVar(3);
 	}
 
-	void PlanetPanel::DrawTerrainMaterialsListUI()
+	void PlanetPanel::DrawPlanetMaterialsListUI()
 	{
 		// --- Visual sizing: show up to 3 items without scrolling ---
 		const float visibleItems = 3.0f;
@@ -451,7 +463,7 @@ namespace Toast {
 		ImGui::TableNextRow();
 		ImGui::TableSetColumnIndex(0);
 		ImGui::AlignTextToFramePadding();
-		ImGui::Text("Terrain Materials");
+		ImGui::Text("Planet Materials");
 
 		ImGui::TableSetColumnIndex(1);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 0.0f));
@@ -589,7 +601,10 @@ namespace Toast {
 					{
 						handle = (uint64_t)h;
 						if (mEditingMaterial)
+						{
 							mContext->mMaterialsIsDirty = true;
+							mContext->mPBRTexturesDirty = true;
+						}
 					});
 			}
 			ImGui::EndDragDropTarget();
@@ -606,7 +621,10 @@ namespace Toast {
 					{
 						handle = (uint64_t)h;
 						if (mEditingMaterial)
+						{
 							mContext->mMaterialsIsDirty = true;
+							mContext->mPBRTexturesDirty = true;
+						}
 					});
 			}
 		}
@@ -614,7 +632,7 @@ namespace Toast {
 		ImGui::PopID();
 	}
 
-	void PlanetPanel::DrawTerrainMaterialPopup()
+	void PlanetPanel::DrawPlanetMaterialPopup()
 	{
 		ImGuiIO& io = ImGui::GetIO();
 
@@ -633,7 +651,7 @@ namespace Toast {
 
 			PlanetMaterial& target = (liveMat != nullptr) ? *liveMat : mMaterialDraft;
 			const char* header = mEditingMaterial
-				? "Edit Terrain Material" : "Add Terrain Material";
+				? "Edit Planet Material" : "Add Planet Material";
 
 			ImGui::PushFont(io.Fonts->Fonts[3]);
 			ImGui::TextUnformatted(header);
@@ -651,9 +669,6 @@ namespace Toast {
 			// ════════════════════════════════════════════════════════
 			ImGui::Spacing();
 			ImGui::Separator();
-			ImGui::PushFont(io.Fonts->Fonts[4]);
-			ImGui::Text("Selection");
-			ImGui::PopFont();
 
 			ImGui::Text("Slope Min");
 			ImGui::SetNextItemWidth(180.0f);
@@ -691,6 +706,10 @@ namespace Toast {
 			if (ImGui::DragFloat("##BlendSharpness", &target.GPU.BlendSharpness,
 				0.1f, 1.0f, 50.0f) && mEditingMaterial)
 				mContext->mMaterialsIsDirty = true;
+
+			ImGui::Text("Debug Color");
+			ImGui::SetNextItemWidth(180.0f);
+			ImGui::ColorEdit3("##PlanetMaterialDebugColor", &target.GPU.DebugColor.x);
 
 			// ════════════════════════════════════════════════════════
 			//  Noise Layers (nested list inside popup)
@@ -833,16 +852,6 @@ namespace Toast {
 			ImGui::Text("PBR Textures");
 			ImGui::PopFont();
 
-			ImGui::Text("LOD Activation");
-			ImGui::SetNextItemWidth(180.0f);
-			if (ImGui::DragInt("##PBRLOD", &target.PBR.LODActivation, 1.0f, 0, 25) && mEditingMaterial)
-				mContext->mMaterialsIsDirty = true;
-
-			ImGui::Text("Blend Range");
-			ImGui::SetNextItemWidth(180.0f);
-			if (ImGui::DragInt("##PBRBlendRange", &target.PBR.BlendRange, 1.0f, 1, 10) && mEditingMaterial)
-				mContext->mMaterialsIsDirty = true;
-
 			ImGui::Text("Tiling Scale");
 			ImGui::SetNextItemWidth(180.0f);
 			if (ImGui::DragFloat("##TilingScale", &target.PBR.TilingScale, 0.1f, 0.1f, 100.0f, "%.1f") && mEditingMaterial)
@@ -931,11 +940,10 @@ namespace Toast {
 				CopyFromNameBuf(target.Name, mNoiseLayerNameBuf);
 
 			// Noise Type dropdown
-			const char* noiseTypeNames[] = { "Fractal", "Ridged", "Turbulence" };
+			const char* noiseTypeNames[] = { "Fractal", "Ridged", "Turbulence", "Voronoi"};
 			ImGui::Text("Type");
 			ImGui::SetNextItemWidth(180.0f);
-			if (ImGui::Combo("##NoiseType", &target.GPU.Type,
-				noiseTypeNames, 3) && mEditingNoiseLayer && mEditingMaterial)
+			if (ImGui::Combo("##NoiseType", &target.GPU.Type, noiseTypeNames, 4) && mEditingNoiseLayer && mEditingMaterial)
 				mContext->mMaterialsIsDirty = true;
 
 			ImGui::Spacing();
@@ -1000,6 +1008,16 @@ namespace Toast {
 				&& mEditingNoiseLayer && mEditingMaterial)
 				mContext->mMaterialsIsDirty = true;
 
+			if (target.GPU.Type == (int)NoiseType::Ridged)
+			{
+				ImGui::Text("Ridge Sharpness");
+				ImGui::SetNextItemWidth(180.0f);
+				if (ImGui::DragFloat("##RidgeSharpness", &target.GPU.RidgeSharpness,
+					0.1f, 1.0f, 16.0f, "%.1f")
+					&& mEditingNoiseLayer && mEditingMaterial)
+					mContext->mMaterialsIsDirty = true;
+			}
+
 			ImGui::Spacing();
 			ImGui::Separator();
 			ImGui::PushFont(io.Fonts->Fonts[4]);
@@ -1009,17 +1027,13 @@ namespace Toast {
 			// Blend Weight
 			ImGui::Text("Blend Weight");
 			ImGui::SetNextItemWidth(180.0f);
-			if (ImGui::DragFloat("##BlendWeight", &target.GPU.BlendWeight,
-				0.01f, 0.0f, 2.0f, "%.2f")
-				&& mEditingNoiseLayer && mEditingMaterial)
+			if (ImGui::DragFloat("##BlendWeight", &target.GPU.BlendWeight, 0.01f, 0.0f, 2.0f, "%.2f") && mEditingNoiseLayer && mEditingMaterial)
 				mContext->mMaterialsIsDirty = true;
 
 			// Radial Frequency Scale
-			ImGui::Text("Radial Freq Scale");
+			ImGui::Text("Radial Frequency Scale");
 			ImGui::SetNextItemWidth(180.0f);
-			if (ImGui::DragFloat("##RadialFreqScale", &target.GPU.RadialFreqScale,
-				0.01f, 0.05f, 5.0f, "%.2f")
-				&& mEditingNoiseLayer && mEditingMaterial)
+			if (ImGui::DragFloat("##RadialFrequencyScale", &target.GPU.BlendWeight, 0.01f, 0.0f, 2.0f, "%.2f") && mEditingNoiseLayer && mEditingMaterial)
 				mContext->mMaterialsIsDirty = true;
 
 			// ── Close / Add buttons ──
@@ -1515,6 +1529,7 @@ namespace Toast {
 											auto tex = AssetManager::GetAsset<Texture2D>(handle);
 											mContext->mUseAlbedoMap = 1;
 											mContext->mAlbedoMapTextureCube = mContext->CreateAlbedoCube(tex.get());
+											mContext->mAlbedoCubeData = Planet::LoadCubeData<uint32_t>(mContext->mAlbedoMapTextureCube);
 										});
 								}
 	
@@ -1536,6 +1551,7 @@ namespace Toast {
 										auto tex = AssetManager::GetAsset<Texture2D>(handle);
 										mContext->mUseAlbedoMap = 1;
 										mContext->mAlbedoMapTextureCube = mContext->CreateAlbedoCube(tex.get());
+										mContext->mAlbedoCubeData = Planet::LoadCubeData<uint32_t>(mContext->mAlbedoMapTextureCube);
 									});
 							}
 						}
@@ -1589,37 +1605,37 @@ namespace Toast {
 
 						ImGui::TableSetColumnIndex(0);
 						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Slope Sensitivity");
+						ImGui::Text("Color Noise Frequency");
 
 						ImGui::TableSetColumnIndex(1);
 
 						ImGui::SetNextItemWidth(fullW);
 
-						ImGui::DragFloat("##SlopeSensitivity", &mContext->mSlopeSensitivity, 0.1f, 0.0f, 100.0f, "%.1f");
+						ImGui::DragFloat("##ColorNoiseFrequency ", &mContext->mColorNoiseFrequency, 0.00001f, 0.0f, 1.0f, "%.5f");
 
 						ImGui::TableNextRow();
 
 						ImGui::TableSetColumnIndex(0);
 						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Slope Threshold ");
+						ImGui::Text("Color Noise Strength");
 
 						ImGui::TableSetColumnIndex(1);
 
 						ImGui::SetNextItemWidth(fullW);
 
-						ImGui::DragFloat("##SlopeThreshold", &mContext->mSlopeThreshold, 0.1f, 0.0f, 5.0f, "%.1f");
+						ImGui::DragFloat("##ColorNoiseStrength ", &mContext->mColorNoiseStrength, 0.01f, 0.0f, 1.0f, "%.2f");
 
 						ImGui::TableNextRow();
 
 						ImGui::TableSetColumnIndex(0);
 						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Slope Darkening ");
+						ImGui::Text("Color Noise Octaves");
 
 						ImGui::TableSetColumnIndex(1);
 
 						ImGui::SetNextItemWidth(fullW);
 
-						ImGui::DragFloat("##SlopeDarkening ", &mContext->mSlopeDarkening, 0.01f, 0.0f, 1.0f, "%.2f");
+						ImGui::DragInt("##ColorNoiseOctaves", &mContext->mColorNoiseOctaves, 1.0f, 1, 9);
 
 						ImGui::EndTable();
 					}
@@ -1760,7 +1776,7 @@ namespace Toast {
 											auto tex = AssetManager::GetAsset<Texture2D>(handle);
 											mContext->mBaseHeightMapTextureCube = mContext->CreateHeightMapCube(tex.get());
 											mContext->mNormalMapTextureCube = mContext->CreateNormalMapCube(mContext->mBaseHeightMapTextureCube.get());
-											mContext->mTerrainCubeData = mContext->LoadTerrainDataFromTextureCube();
+											mContext->mTerrainCubeData = Planet::LoadCubeData<float>(mContext->mBaseHeightMapTextureCube);
 										});
 								}
 							}
@@ -1781,252 +1797,556 @@ namespace Toast {
 										auto tex = AssetManager::GetAsset<Texture2D>(handle);
 										mContext->mBaseHeightMapTextureCube = mContext->CreateHeightMapCube(tex.get());
 										mContext->mNormalMapTextureCube = mContext->CreateNormalMapCube(mContext->mBaseHeightMapTextureCube.get());
-										mContext->mTerrainCubeData = mContext->LoadTerrainDataFromTextureCube();
+										mContext->mTerrainCubeData = Planet::LoadCubeData<float>(mContext->mBaseHeightMapTextureCube);
 									});
 							}
 						}
+
+						// ================================================================
+						// Terrain Wall Enhancement
+						// ================================================================
+
+						// -------- Wall Debug Enabled row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Wall Debug");
+
+						ImGui::TableSetColumnIndex(1);
+
+						bool wallDebugEnabled = mContext->mWallDebugEnabled;
+						if (ImGui::Checkbox("##walldebugenabled", &wallDebugEnabled))
+							mContext->mWallDebugEnabled = wallDebugEnabled;
+
+						// -------- Wall Debug Mode row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Wall Debug Mode");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mWallDebugEnabled);
+						ImGui::DragInt("##walldebugmode", &mContext->mWallDebugMode, 1.0f, 0, 2);
+						ImGui::EndDisabled();
+
+						// Optional labels/helper text for the mode.
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Debug Mode Info");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::AlignTextToFramePadding();
+
+						const char* wallDebugModeText = "0 = Boost, 1 = Mask, 2 = Final Slope";
+
+						if (mContext->mWallDebugMode == 0)
+							wallDebugModeText = "0 = Wall Boost Magnitude";
+						else if (mContext->mWallDebugMode == 1)
+							wallDebugModeText = "1 = Wall Slope Mask";
+						else if (mContext->mWallDebugMode == 2)
+							wallDebugModeText = "2 = Final Normal Slope";
+
+						ImGui::TextUnformatted(wallDebugModeText);
+
+						// -------- Terrain Normal Step M row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Terrain Normal Step M");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::DragFloat("##terrainnormalstepmeters", &mContext->mTerrainNormalStepMeters, 10.0f, 10.0f, 10000.0f, "%.0f");
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Wall Enhancement");
+
+						ImGui::TableSetColumnIndex(1);
+						bool wallEnabled = mContext->mWallEnhancementEnabled;
+						if (ImGui::Checkbox("##wallenhancementenabled", &wallEnabled))
+							mContext->mWallEnhancementEnabled = wallEnabled;
+
+						// -------- Wall Strength row ----------
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Wall Strength");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mWallEnhancementEnabled);
+						ImGui::DragFloat("##wallstrength", &mContext->mWallStrength, 0.01f, 0.0f, 5.0f, "%.2f");
+						ImGui::EndDisabled();
+
+						// -------- Wall Step M row ----------
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Wall Step M");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mWallEnhancementEnabled);
+						ImGui::DragFloat("##wallstepmeters", &mContext->mWallStepMeters, 10.0f, 1.0f, 20000.0f, "%.0f");
+						ImGui::EndDisabled();
+
+						// -------- Wall Slope Start row ----------
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Wall Slope Start");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mWallEnhancementEnabled);
+						ImGui::DragFloat("##wallslopestart", &mContext->mWallSlopeStart, 0.01f, 0.0f, 5.0f, "%.2f");
+						ImGui::EndDisabled();
+
+						// -------- Wall Slope End row ----------
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Wall Slope End");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mWallEnhancementEnabled);
+						ImGui::DragFloat("##wallslopeend", &mContext->mWallSlopeEnd, 0.01f, 0.0f, 5.0f, "%.2f");
+						ImGui::EndDisabled();
+
+						// -------- Wall Sharp Start row ----------
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Wall Sharp Start");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mWallEnhancementEnabled);
+						ImGui::DragFloat("##wallsharpstart", &mContext->mWallSharpStart, 0.01f, 0.0f, 1.0f, "%.2f");
+						ImGui::EndDisabled();
+
+						// -------- Wall Sharp End row ----------
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Wall Sharp End");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mWallEnhancementEnabled);
+						ImGui::DragFloat("##wallsharpend", &mContext->mWallSharpEnd, 0.01f, 0.0f, 1.0f, "%.2f");
+						ImGui::EndDisabled();
+
+						// -------- Wall Max Delta row ----------
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Wall Max Delta");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mWallEnhancementEnabled);
+						ImGui::DragFloat("##wallmaxdelta", &mContext->mWallMaxDelta, 10.0f, 0.0f, 20000.0f, "%.0f");
+						ImGui::EndDisabled();
+
+						ImGui::TableNextRow();
+
+						// ================================================================
+						// Terrain Erosion Enhancement
+						// ================================================================
+
+						// -------- Erosion enabled row ----------
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Enabled");
+
+						ImGui::TableSetColumnIndex(1);
+						bool erosionEnabled = mContext->mErosionEnabled;
+						if (ImGui::Checkbox("##erosionEnabled", &erosionEnabled))
+							mContext->mErosionEnabled = erosionEnabled;
+
+						// -------- Erosion Debug Enabled row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Debug");
+
+						ImGui::TableSetColumnIndex(1);
+
+						bool erosionDebugEnabled = mContext->mErosionDebugEnabled;
+						if (ImGui::Checkbox("##erosionDebugEnabled", &erosionDebugEnabled))
+							mContext->mErosionDebugEnabled = erosionDebugEnabled;
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Debug Mode");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mErosionEnabled);
+						ImGui::DragInt("##erosionDebugMode", &mContext->mErosionDebugMode, 1.0f, 0, 3);
+						ImGui::EndDisabled();
+
+						// Optional labels/helper text for the mode.
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Debug Mode Info");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::AlignTextToFramePadding();
+
+						const char* erosionDebugModeText = "0 = Erosion Height Delta, 1 = Erosion Slope Mask, 2 = Flow Direction, Raw Pattern";
+
+						if (mContext->mErosionDebugMode == 0)
+							erosionDebugModeText = "0 = Erosion Height Delta";
+						else if (mContext->mErosionDebugMode == 1)
+							erosionDebugModeText = "1 = Erosion Slope Mask";
+						else if (mContext->mErosionDebugMode == 2)
+							erosionDebugModeText = "2 = Flow Direction";
+						else if (mContext->mErosionDebugMode == 3)
+							erosionDebugModeText = "3 = Flow Direction, Raw Pattern";
+
+						ImGui::TextUnformatted(erosionDebugModeText);
+
+						// -------- Erosion Strength row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Strength");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mErosionEnabled);
+						ImGui::DragFloat("##erosionstrength", &mContext->mErosionStrength, 0.1f, 0.0f, 200.0f, "%.2f");
+						ImGui::EndDisabled();
+
+						// -------- Erosion Cut Off Distance ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Max Distance");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat("##erosionMaxDistance", &mContext->mErosionMaxDistance, 1.0f, 0.0f, 100000.0f, "%.0f");
+
+
+						// -------- Erosion Fade Start ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Fade Start");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat("##erosionFadeStart", &mContext->mErosionFadeStart, 1.0f, 0.0f, 100000.0f, "%.0f");
+
+
+						// -------- Erosion Step M row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Step M");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mErosionEnabled);
+						ImGui::DragFloat("##erosionstepmeters", &mContext->mErosionStepMeters, 10.0f, 1.0f, 20000.0f, "%.0f");
+						ImGui::EndDisabled();
+
+
+						// -------- Erosion Tiling M row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Tiling M");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mErosionEnabled);
+						ImGui::DragFloat("##erosiontilingmeters", &mContext->mErosionTilingMeters, 10.0f, 1.0f, 10000.0f, "%.0f");
+						ImGui::EndDisabled();
+
+
+						// -------- Erosion Slope Start row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Slope Start");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mErosionEnabled);
+						ImGui::DragFloat( "##erosionslopestart", &mContext->mErosionSlopeStart, 0.01f, 0.0f, 1.0f, "%.2f");
+						ImGui::EndDisabled();
+
+
+						// -------- Erosion Slope Full row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Slope Full");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mErosionEnabled);
+						ImGui::DragFloat("##erosionslopefull", &mContext->mErosionSlopeFull, 0.01f, 0.0f, 1.0f, "%.2f" );
+						ImGui::EndDisabled();
+
+
+						// -------- Erosion Slope End row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Slope End");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mErosionEnabled);
+						ImGui::DragFloat( "##erosionslopeend", &mContext->mErosionSlopeEnd, 0.01f, 0.0f, 1.0f, "%.2f" );
+						ImGui::EndDisabled();
+
+
+						// -------- Erosion Slope Fade Out row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Slope Fade Out");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mErosionEnabled);
+						ImGui::DragFloat("##erosionslopefadeout", &mContext->mErosionSlopeFadeOut, 0.01f, 0.0f, 1.0f, "%.2f");
+						ImGui::EndDisabled();
+
+
+						// -------- Erosion Octaves row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Octaves");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mErosionEnabled);
+						ImGui::DragInt("##erosionoctaves", &mContext->mErosionOctaves, 1.0f, 1, 8);
+						ImGui::EndDisabled();
+
+
+						// -------- Erosion Lacunarity row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Lacunarity");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mErosionEnabled);
+						ImGui::DragFloat( "##erosionlacunarity", &mContext->mErosionLacunarity, 0.01f, 1.0f, 5.0f, "%.2f");
+						ImGui::EndDisabled();
+
+						// -------- Erosion Persistence row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Persistence");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::BeginDisabled(!mContext->mErosionEnabled);
+						ImGui::DragFloat("##erosionpersistence", &mContext->mErosionPersistence, 0.01f, 0.0f, 1.0f, "%.2f" );
+						ImGui::EndDisabled();
+
+						// -------- Erosion Gully Weight row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Gully Weight");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat("##erosiongullyweight", &mContext->mErosionGullyWeight, 0.01f, 0.0f, 2.0f, "%.2f");
+
+
+						// -------- Erosion Detail row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Detail");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat("##erosiondetail", &mContext->mErosionDetail, 0.01f, 0.0f, 5.0f, "%.2f");
+
+
+						// -------- Erosion Cell Scale row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Cell Scale");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat("##erosioncellscale", &mContext->mErosionCellScale, 0.01f, 0.1f, 3.0f, "%.2f");
+
+
+						// -------- Erosion Normalization row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Normalization");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat("##erosionnormalization", &mContext->mErosionNormalization, 0.01f, 0.0f, 1.0f, "%.2f");
+
+
+						// -------- Erosion Assumed Slope row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Assumed Slope");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat("##erosionassumedslope", &mContext->mErosionAssumedSlope, 0.01f, 0.0f, 2.0f, "%.2f");
+
+
+						// -------- Erosion Assumed Slope Blend row ----------
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Erosion Slope Blend");
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat("##erosionassumedslopeblend", &mContext->mErosionAssumedSlopeBlend, 0.01f, 0.0f, 1.0f, "%.2f");
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Enable Terrain Materials");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::Checkbox("##EnableTerrainMaterials", &mContext->mMaterialsEnabled);
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("PBR Color Dominance");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::DragFloat("##PBRColorDominance", &mContext->mPBRColorDominance, 0.01f, 0.0f, 1.0f, "%.2f");
 
 						ImGui::TableSetColumnIndex(1);
 
 						ImGui::TableNextRow();
 
-						DrawTerrainMaterialsListUI();
-						DrawTerrainMaterialPopup();
-
-						//// Use the same width logic you already have (fullW)
-						//ImGui::SetNextItemWidth(fullW);
-
-						//// --- Visual sizing: show up to 3 items without scrolling ---
-						//const float lineH = ImGui::GetTextLineHeightWithSpacing();
-						//const float itemH = ImGui::GetFrameHeight();                 // approx height for a button/selectable
-						//const float itemPadY = ImGui::GetStyle().ItemSpacing.y;
-						//const float childPadY = ImGui::GetStyle().WindowPadding.y;
-
-						//// Height for 3 entries + some padding
-						//const float visibleItems = 3.0f;
-
-						//// Button height is driven mostly by FramePadding.y + font height.
-						//// A good approximation:
-						//const float rowH = ImGui::GetFrameHeight(); // respects current style
-						//const float rowGap = 1.0f;                  // match your Dummy() spacing
-						//const float innerPadY = 8.0f * 2.0f;        // should match WindowPadding.y * 2
-
-						//float minBoxH = innerPadY + visibleItems * rowH + (visibleItems - 1.0f) * rowGap;
-
-						//// If you want the box to grow with items beyond 3 until scrolling kicks in,
-						//// keep it fixed at minBoxH. (Scrolling will handle overflow.)
-						//float boxH = minBoxH;
-
-						//ImGuiWindowFlags childFlags = ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_NoMove;
-
-						//// Draw list box
-						//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 0.0f));
-						//ImGui::BeginChild("##PlanetHeightDetailsBox", ImVec2(fullW, boxH), true, childFlags);
-						//ImGui::Dummy(ImVec2(0.0f, 0.5f));
-
-						//int deleteIndex = -1;
-
-						//// Render each detail as a “box” row (clickable)
-						//for (int i = 0; i < (int)mContext->mHeightDetails.size(); ++i)
-						//{
-						//	HeightDetail& d = mContext->mHeightDetails[i];
-
-						//	ImGui::PushID(i);
-
-						//	// Make it look like a boxed item
-						//	// Selectable with full width; gives good click behavior
-						//	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-						//	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2.0f);
-						//	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 4.0f));
-						//	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyle().Colors[ImGuiCol_ButtonHovered]);
-
-						//	float w = ImGui::GetContentRegionAvail().x;
-						//	bool clicked = ImGui::Button(d.Name.c_str(), ImVec2(w, 0.0f));
-
-						//	ImGui::PopStyleVar(3);
-						//	ImGui::PopStyleColor(1);
-
-						//	if (ImGui::BeginPopupContextItem("##DetailContext", ImGuiPopupFlags_MouseButtonRight))
-						//	{
-						//		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 8.0f));
-						//		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 6.0f));
-
-						//		if (ImGui::MenuItem("Delete"))
-						//			deleteIndex = i;
-
-						//		ImGui::PopStyleVar(2);
-						//		ImGui::EndPopup();
-						//	}
-
-						//	// Extra spacing between entries
-						//	ImGui::Dummy(ImVec2(0.0f, 0.5f));
-
-						//	if (clicked)
-						//	{
-						//		mEditingDetail = true;
-						//		mEditingDetailIndex = i;
-						//		mDetailDraft = d;
-						//		CopyToNameBuf(mDetailNameBuf, sizeof(mDetailNameBuf), mDetailDraft.Name);
-
-						//		mRequestOpenTerrainDetailPopup = true;
-						//	}
-
-						//	ImGui::PopID();
-
-						//	if (deleteIndex != -1)
-						//		break;
-						//}
-
-						//if (deleteIndex != -1)
-						//{
-						//	// If you are editing this one (or indices after it), fix state.
-						//	if (mEditingDetail)
-						//	{
-						//		if (mEditingDetailIndex == deleteIndex)
-						//		{
-						//			mEditingDetail = false;
-						//			mEditingDetailIndex = -1;
-						//		}
-						//		else if (mEditingDetailIndex > deleteIndex)
-						//		{
-						//			// Vector elements shift left
-						//			mEditingDetailIndex--;
-						//		}
-						//	}
-
-						//	mContext->mHeightDetails.erase(mContext->mHeightDetails.begin() + deleteIndex);
-
-						//	mContext->mHeightDetailsDirty = true;
-						//}
-
-						//ImGui::EndChild();
-						//ImGui::PopStyleVar();
-
-						//// --- Add button aligned bottom-right of the column ---
-						//{
-						//	const bool disableAdd = (mContext->mHeightDetails.size() >= 8);
-
-						//	const float btnSize = ImGui::GetFrameHeight(); // square button
-						//	float cursorX = ImGui::GetCursorPosX();
-						//	float availX = ImGui::GetContentRegionAvail().x;
-
-						//	// Move cursor to the right for the button
-						//	ImGui::SetCursorPosX(cursorX + (availX - btnSize - 7.0f));
-
-						//	ImGui::BeginDisabled(disableAdd);
-						//	if (ImGui::Button("+", ImVec2(btnSize, btnSize)))
-						//	{
-						//		// Add new
-						//		mEditingDetail = false;
-						//		mEditingDetailIndex = -1;
-
-						//		mDetailDraft = HeightDetail{};
-						//		static std::mt19937 rng{ std::random_device{}() };
-						//		mDetailDraft.Seed = rng();
-						//		mContext->BuildPermutationTable(mDetailDraft.Seed, mDetailDraft.Perm);
-						//		CopyToNameBuf(mDetailNameBuf, sizeof(mDetailNameBuf), mDetailDraft.Name);
-
-						//		mRequestOpenTerrainDetailPopup = true;
-						//	}
-						//	ImGui::EndDisabled();
-						//}
-
-						//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0f, 12.0f));
-						//ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 6.0f));
-						//ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
-
-						//if (mRequestOpenTerrainDetailPopup)
-						//{
-						//	ImGui::OpenPopup("##HeightDetailPopup");
-						//	mRequestOpenTerrainDetailPopup = false;
-						//}
-
-						//if (ImGui::BeginPopupModal("##HeightDetailPopup", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
-						//{
-						//	HeightDetail* liveDetail = nullptr;
-
-						//	if (mEditingDetail && mEditingDetailIndex >= 0 && mEditingDetailIndex < (int)mContext->mHeightDetails.size())
-						//		liveDetail = &mContext->mHeightDetails[mEditingDetailIndex];
-
-						//	HeightDetail& target =	(liveDetail != nullptr) ? *liveDetail : mDetailDraft;
-
-						//	const char* popupHeader = mEditingDetail ? "Edit Height Detail" : "Add Height Detail";
-						//	ImGui::TextUnformatted(popupHeader);
-						//	ImGui::Separator();
-
-						//	// Name
-						//	ImGui::Text("Name");
-						//	ImGui::SetNextItemWidth(360.0f);
-
-						//	if (ImGui::InputText("##HeightDetailName", mDetailNameBuf, sizeof(mDetailNameBuf)))
-						//		CopyFromNameBuf(target.Name, mDetailNameBuf);
-
-						//	// LODActivation (uint32_t)
-						//	ImGui::Text("LOD Activation");
-						//	ImGui::SetNextItemWidth(180.0f);
-						//	if (ImGui::DragInt("##LODActivation", &target.GPUSettings.LODActivation, 1.0f, 0, 25) && mEditingDetail)
-						//		mContext->mHeightDetailsDirty = true;
-
-						//	// Seed (uint32_t)
-						//	{
-						//		ImGui::Text("Seed");
-
-						//		ImGui::SetNextItemWidth(180.0f);
-
-						//		ImGui::BeginDisabled(); // ⬅ disables editing
-						//		uint32_t seed = target.Seed;
-						//		ImGui::InputScalar("##Seed", ImGuiDataType_U32, &seed);
-						//		ImGui::EndDisabled();
-						//	}
-
-						//	// Octaves (int, >= 1)
-						//	ImGui::Text("Octaves");
-						//	ImGui::SetNextItemWidth(180.0f);
-						//	if(ImGui::DragInt("##Octaves", &target.GPUSettings.Octaves, 1.0f, 1, 9) && mEditingDetail)
-						//		mContext->mHeightDetailsDirty = true;
-
-						//	// Frequency (float)
-						//	ImGui::Text("Frequency");
-						//	ImGui::SetNextItemWidth(180.0f);
-						//	if(ImGui::DragFloat("##Frequency", &target.GPUSettings.Frequency, 0.001f, 0.0f) && mEditingDetail)
-						//		mContext->mHeightDetailsDirty = true;
-
-						//	// Amplitude (float)
-						//	ImGui::Text("Amplitude");
-						//	ImGui::SetNextItemWidth(180.0f);
-						//	if(ImGui::DragFloat("##Amplitude", &target.GPUSettings.Amplitude, 0.01f, 0.0f, FLT_MAX, "%.2f") && mEditingDetail)
-						//		mContext->mHeightDetailsDirty = true;
-
-						//	ImGui::Separator();
-						//	const float btnW = 120.0f;
-
-						//	// Cancel always closes
-						//	if (ImGui::Button("Close", ImVec2(btnW, 0.0f)))
-						//	{
-						//		mEditingDetail = false;
-						//		mEditingDetailIndex = -1;
-						//		ImGui::CloseCurrentPopup();
-						//	}
-
-						//	if (!mEditingDetail)
-						//	{
-						//		ImGui::SameLine();
-
-						//		if (ImGui::Button("Add", ImVec2(btnW, 0.0f)))
-						//		{
-						//			mContext->mHeightDetails.push_back(mDetailDraft);
-						//			mEditingDetail = false;
-						//			mEditingDetailIndex = -1;
-						//			mContext->mHeightDetailsDirty = true;
-						//			ImGui::CloseCurrentPopup();
-						//		}
-						//	}
-
-						//	ImGui::EndPopup();
-						//}
-
-						//ImGui::PopStyleVar(3);
-
+						DrawPlanetMaterialsListUI();
+						DrawPlanetMaterialPopup();
+						
 						DrawTerrainObjectsListUI();
 						DrawTerrainObjectPopup();
 

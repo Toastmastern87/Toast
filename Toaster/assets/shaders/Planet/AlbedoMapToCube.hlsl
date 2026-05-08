@@ -50,11 +50,8 @@ void main(uint3 ThreadID : SV_DispatchThreadID)
 
     float3 v = GetSamplingVector(ThreadID);
 
-    // Apply the same coordinate fix as your UV mapping
-    float3 adjusted = float3(-v.x, v.y, -v.z);
-
-    float phi = atan2(adjusted.x, adjusted.z);
-    float theta = acos(clamp(adjusted.y, -1.0f, 1.0f));
+    float phi = atan2(v.z, v.x);
+    float theta = acos(clamp(v.y, -1.0f, 1.0f));
 
     float u = phi * INV_2PI + 0.5f;
     u = frac(u);

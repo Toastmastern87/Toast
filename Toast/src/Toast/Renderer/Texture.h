@@ -278,6 +278,7 @@ namespace Toast {
 		Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags);
 		Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize,	D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags,	const std::vector<const void*>& initialData, const std::vector<UINT>& rowPitches);
 		Texture2DArray(DXGI_FORMAT textureFormat, DXGI_FORMAT srvFormat, uint32_t width, uint32_t height, uint32_t arraySize, D3D11_USAGE usage, D3D11_BIND_FLAG bindFlag, uint32_t samples, UINT cpuAccessFlags);
+		Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize, bool generateMips);
 		~Texture2DArray() = default;
 
 		virtual const uint32_t GetWidth() const override { return mWidth; }
@@ -288,6 +289,9 @@ namespace Toast {
 		virtual const uint32_t GetMipLevelCount() const override { return 1; } 
 
 		virtual void GenerateMips() const override;
+
+		void CopyFromTexture(Texture2D* src, uint32_t sliceIndex);
+		void FillSliceSolid(uint32_t sliceIndex, uint32_t rgba);
 
 		virtual bool operator==(const Texture& other) const override
 		{

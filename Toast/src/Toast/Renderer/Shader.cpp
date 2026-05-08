@@ -12,6 +12,62 @@
 
 namespace Toast {
 
+	static std::string HashString(const std::string& input)
+	{
+		size_t hash = std::hash<std::string>{}(input);
+		char buffer[32];
+		snprintf(buffer, sizeof(buffer), "%016zx", hash);
+		return std::string(buffer);
+	}
+
+	// Helper: get the cache file path for a shader
+	static std::filesystem::path GetShaderCachePath(const std::string& source,
+		const std::string& shaderVersion)
+	{
+		std::filesystem::path cacheDir = "Cache/Shaders";
+		std::filesystem::create_directories(cacheDir);
+
+		// Combine source + shader version into the hash so different shader
+		// stages and source variations get different cache files
+		std::string combined = source + "|" + shaderVersion;
+		std::string hash = HashString(combined);
+
+		return cacheDir / (hash + ".cso");
+	}
+
+	// Helper: save a blob to disk
+	static bool SaveBlobToFile(ID3DBlob* blob, const std::filesystem::path& path)
+	{
+		std::ofstream file(path, std::ios::binary);
+		if (!file.is_open())
+			return false;
+
+		file.write(reinterpret_cast<const char*>(blob->GetBufferPointer()),
+			blob->GetBufferSize());
+		return file.good();
+	}
+
+	// Helper: load a blob from disk
+	static bool LoadBlobFromFile(const std::filesystem::path& path, ID3D10Blob** outBlob)
+	{
+		if (!std::filesystem::exists(path))
+			return false;
+
+		std::ifstream file(path, std::ios::binary | std::ios::ate);
+		if (!file.is_open())
+			return false;
+
+		size_t size = static_cast<size_t>(file.tellg());
+		file.seekg(0);
+
+		HRESULT hr = D3DCreateBlob(size, outBlob);
+		if (FAILED(hr))
+			return false;
+
+		file.read(reinterpret_cast<char*>((*outBlob)->GetBufferPointer()), size);
+		return file.good();
+	}
+
 	static D3D11_SHADER_TYPE ShaderTypeFromString(const std::string& type)
 	{
 		if (type == "vertex")
@@ -352,13 +408,24 @@ namespace Toast {
 
 		HRESULT result;
 		Microsoft::WRL::ComPtr<ID3D10Blob> errorRaw = nullptr;
-
 		IncludeHandler includeHandler("..\\Toaster\\assets\\shaders\\utilities\\");
 
 		for (auto& kv : shaderSources)
 		{
 			D3D11_SHADER_TYPE type = kv.first;
 			const std::string& source = kv.second;
+			const std::string shaderVersion = ShaderVersionFromType(type);
+
+			// Try loading from cache first
+			std::filesystem::path cachePath = GetShaderCachePath(source, shaderVersion);
+			if (LoadBlobFromFile(cachePath, &mRawBlobs[type]))
+			{
+				TOAST_CORE_INFO("Loaded shader from cache: %s", cachePath.string().c_str());
+				continue;
+			}
+
+			// Cache miss — compile and save
+			TOAST_CORE_INFO("Compiling shader (cache miss): %s", cachePath.string().c_str());
 
 			result = D3DCompile(source.c_str(),
 				source.size(),
@@ -366,7 +433,7 @@ namespace Toast {
 				NULL,
 				&includeHandler,
 				"main",
-				ShaderVersionFromType(type).c_str(),
+				shaderVersion.c_str(),
 				D3D10_SHADER_ENABLE_STRICTNESS | D3DCOMPILE_DEBUG,
 				0,
 				&mRawBlobs[type],
@@ -375,22 +442,18 @@ namespace Toast {
 			if (FAILED(result))
 			{
 				char* errorText = (char*)errorRaw->GetBufferPointer();
-
 				errorText[strlen(errorText) - 1] = '\0';
-
 				TOAST_CORE_ERROR("%s", errorText);
 				TOAST_CORE_ASSERT(false, "Shader compilation failure!")
-
-				return;
+					return;
 			}
-			//else 
-			//{
-			//	char* warningT ext = (char*)errorRaw->GetBufferPointer();
 
-			//	warningText[strlen(warningText) - 1] = '\0';
-
-			//	TOAST_CORE_WARN("%s", warningText);
-			//}
+			// Save to cache
+			if (!SaveBlobToFile(mRawBlobs[type], cachePath))
+			{
+				TOAST_CORE_WARN("Failed to save shader cache: %s", cachePath.string().c_str());
+				// Not fatal — shader still compiled, just won't have cache next time
+			}
 		}
 	}
 

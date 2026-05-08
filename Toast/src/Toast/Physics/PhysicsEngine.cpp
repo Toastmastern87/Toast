@@ -10,23 +10,6 @@
 
 namespace Toast {
 
-	// lodFine = LodFromCellSize(CellSize) on GPU.
-	// On CPU you need to define what LOD you want to use for physics queries.
-	static float AccumulateHeightDetails(const std::vector<HeightDetail>& details, float px, float py, float pz, int lod)
-	{
-		float sum = 0.0f;
-
-		for (const auto& d : details)
-		{
-			if (lod <= d.GPUSettings.LODActivation)
-			{
-				sum += FractalPerlin3D(d.Perm, px, py, pz, d.GPUSettings.Octaves,	d.GPUSettings.Frequency, d.GPUSettings.Amplitude);
-			}
-		}
-
-		return sum;
-	}
-
 	PhysicsEngine::PhysicsEngine()
 	{
 		mScene = nullptr;
@@ -138,21 +121,9 @@ namespace Toast {
 
 		Vector3 vPlanet = Vector3(vx, vy, vz);
 
+		DirectX::XMVECTOR camPS = GetCameraPlanetSpace();
 		double height = SampleHeightFromDir(planet.GetTerrainCubeData(), vPlanet);
-
-		// Height details only apply to Geometry Clipmapping, for now! TODO fix this
-		// the Icosphere shader only samples the base cube map
-		if (planet.GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
-		{
-			float px = (float)(vPlanet.x * planet.GetRadius());
-			float py = (float)(vPlanet.y * planet.GetRadius());
-			float pz = (float)(vPlanet.z * planet.GetRadius());
-
-			uint32_t lod = planet.GetLODForWorldPos(worldPos);
-			float heightDetails = AccumulateHeightDetails(planet.GetHeightDetails(), px, py, pz, lod);
-
-			height += (double)heightDetails;
-		}
+		height += planet.GetHeightDetailsAtDir(vPlanet, camPS);
 
 		double altitude = pLocal.Length() - (planet.GetRadius() + height);
 
@@ -252,6 +223,29 @@ namespace Toast {
 		angImpulse.z = r.x * impulse.y - r.y * impulse.x;
 
 		rbc.AngularVelocity += Matrix::MulMat3(rbc.InvInertiaTensor, angImpulse);
+	}
+
+	DirectX::XMVECTOR PhysicsEngine::GetCameraPlanetSpace() const
+	{
+		if (!mScene || !mScene->GetMainCamera())
+			return DirectX::XMVectorZero();
+
+		Planet& planet = *mScene->GetPlanet();
+
+		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
+
+		// Camera is at world origin (0,0,0) due to floating-origin scheme.
+		// Planet center in world space = planet.GetTranslation() + worldTranslation.
+		Vector3 cameraWorldPos(0.0, 0.0, 0.0);
+		Vector3 planetCenterWS = Vector3(planet.GetTranslation()) + worldTranslation;
+
+		Vector3 camFromPlanet = cameraWorldPos - planetCenterWS;
+
+		// Apply inverse planet rotation to get planet-space coordinates,
+		// matching what the renderer computes.
+		Vector3 camPlanetLocal = Vector3::Rotate(camFromPlanet, planet.GetInvRotation());
+
+		return DirectX::XMVectorSet((float)camPlanetLocal.x, (float)camPlanetLocal.y, (float)camPlanetLocal.z, 0.0f);
 	}
 
 	void PhysicsEngine::ApplyGravity(Entity& entity, double ts)
@@ -445,6 +439,7 @@ namespace Toast {
 			return FindTerrainContactPointsSphere(entity, manifold);
 		else if (entity.HasComponent<BoxColliderComponent>())
 			return FindTerrainContactPointsBox(entity, manifold);
+		 
 	}
 
 	bool PhysicsEngine::FindTerrainContactPointsBox(Entity& entity, TerrainContactManifold& manifold)

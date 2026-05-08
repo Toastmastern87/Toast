@@ -36,7 +36,8 @@ namespace Toast {
 		BLOOMHALF = 10,
 		BLOOMQUARTER = 11,
 		BLOOMFINAL = 12,
-		SKYVIEWLUT = 13
+		SKYVIEWLUT = 13,
+		PLANETMATERIALS = 14,
 	};
 
 	struct DirectionalLight

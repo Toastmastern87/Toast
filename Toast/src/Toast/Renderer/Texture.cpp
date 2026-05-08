@@ -11,38 +11,38 @@
 
 namespace Toast {
 
-HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* pBPP)
-{
-    if (!pGuid || !pBPP)
-        return E_INVALIDARG;
+	HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* pBPP)
+	{
+		if (!pGuid || !pBPP)
+			return E_INVALIDARG;
         
-    if (memcmp(pGuid, &GUID_WICPixelFormat32bppRGBA, sizeof(WICPixelFormatGUID)) == 0)
-    {
-        *pBPP = 32;
-        return S_OK;
-    }
-    else if (memcmp(pGuid, &GUID_WICPixelFormat64bppRGBA, sizeof(WICPixelFormatGUID)) == 0)
-    {
-        *pBPP = 64;
-        return S_OK;
-    }
-    else if (memcmp(pGuid, &GUID_WICPixelFormat24bppBGR, sizeof(WICPixelFormatGUID)) == 0)
-    {
-        *pBPP = 24;
-        return S_OK;
-    }
-    else if (memcmp(pGuid, &GUID_WICPixelFormat24bppRGB, sizeof(WICPixelFormatGUID)) == 0)
-    {
-        *pBPP = 24;
-        return S_OK;
-    }
-    else
-    {
-        // Fallback: assume 32 bits per pixel if unknown.
-        *pBPP = 32;
-        return S_OK;
-    }
-}
+		if (memcmp(pGuid, &GUID_WICPixelFormat32bppRGBA, sizeof(WICPixelFormatGUID)) == 0)
+		{
+			*pBPP = 32;
+			return S_OK;
+		}
+		else if (memcmp(pGuid, &GUID_WICPixelFormat64bppRGBA, sizeof(WICPixelFormatGUID)) == 0)
+		{
+			*pBPP = 64;
+			return S_OK;
+		}
+		else if (memcmp(pGuid, &GUID_WICPixelFormat24bppBGR, sizeof(WICPixelFormatGUID)) == 0)
+		{
+			*pBPP = 24;
+			return S_OK;
+		}
+		else if (memcmp(pGuid, &GUID_WICPixelFormat24bppRGB, sizeof(WICPixelFormatGUID)) == 0)
+		{
+			*pBPP = 24;
+			return S_OK;
+		}
+		else
+		{
+			// Fallback: assume 32 bits per pixel if unknown.
+			*pBPP = 32;
+			return S_OK;
+		}
+	}
 
 	HRESULT LoadImageDataFromFile(const std::wstring& filename,	std::vector<uint8_t>& imageData, UINT& width, UINT& height,	DXGI_FORMAT& format, UINT& rowPitch)
 	{
@@ -50,9 +50,7 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 
 		// Create the WIC factory.
 		ComPtr<IWICImagingFactory> factory;
-		HRESULT hr = CoCreateInstance(
-			CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
-			IID_PPV_ARGS(&factory));
+		HRESULT hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&factory));
 		if (FAILED(hr))
 			return hr;
 
@@ -125,6 +123,12 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 			format = DXGI_FORMAT_R16G16B16A16_UNORM;
 			rowPitch = width * 8; // 8 bytes per pixel (16 bits per channel).
 		}
+		else if (bitsPerPixel == 24)
+		{
+			desiredGUID = GUID_WICPixelFormat32bppRGBA;
+			format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			rowPitch = width * 4;
+		}
 		else
 		{
 			// Default to 32bpp if unexpected bit depth.
@@ -145,10 +149,18 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 			if (FAILED(hr))
 				return hr;
 
+			UINT dstBitsPerPixel = 0;
+			hr = MyWICGetPixelFormatBitsPerPixel(&desiredGUID, &dstBitsPerPixel);
+			if (FAILED(hr))
+				return hr;
+
 			imageData.resize(rowPitch * height);
 			hr = converter->CopyPixels(nullptr, rowPitch, static_cast<UINT>(imageData.size()), imageData.data());
+			if (FAILED(hr))
+				return hr;
 		}
-		else
+		else 
+
 		{
 			// If already in the desired format, just copy the pixels.
 			imageData.resize(rowPitch * height);
@@ -1172,6 +1184,30 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		CreateSRV();
 	}
 
+	Texture2DArray::Texture2DArray(DXGI_FORMAT format, uint32_t width, uint32_t height, uint32_t arraySize, bool generateMips)
+		: mWidth(width), mHeight(height), mArraySize(arraySize), mFormat(format)
+	{
+		D3D11_TEXTURE2D_DESC textureDesc = {};
+		textureDesc.ArraySize = mArraySize;
+		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | (generateMips ? D3D11_BIND_RENDER_TARGET : 0);
+		textureDesc.Usage = D3D11_USAGE_DEFAULT;
+		textureDesc.CPUAccessFlags = 0;
+		textureDesc.Format = format;
+		textureDesc.Height = mHeight;
+		textureDesc.Width = mWidth;
+		textureDesc.MipLevels = generateMips ? 0 : 1;
+		textureDesc.MiscFlags = generateMips ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Quality = 0;
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+		HRESULT result = device->CreateTexture2D(&textureDesc, nullptr, &mTexture);
+		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to create texture array!");
+
+		CreateSRV();
+	}
+
 	void Texture2DArray::CreateSRV()
 	{
 		D3D11_TEXTURE2D_DESC desc = {};
@@ -1219,6 +1255,45 @@ HRESULT MyWICGetPixelFormatBitsPerPixel(const WICPixelFormatGUID* pGuid, UINT* p
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
 		deviceContext->GenerateMips(mSRV.Get());
+	}
+
+	void Texture2DArray::CopyFromTexture(Texture2D* src, uint32_t sliceIndex)
+	{
+		if (!src) 
+			return;
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* ctx = API->GetDeviceContext();
+
+		ID3D11Resource* srcRes = src->GetResource();
+		if (!srcRes) return;
+
+		D3D11_TEXTURE2D_DESC dstDesc = {};
+		mTexture->GetDesc(&dstDesc);
+
+		// Subresource index for array slice at mip 0
+		const uint32_t dstSub = D3D11CalcSubresource(0, sliceIndex, dstDesc.MipLevels);
+
+		// Copy mip 0 of source into mip 0 of the destination slice.
+		// GenerateMips() afterwards will fill in the rest of the chain.
+		ctx->CopySubresourceRegion(mTexture.Get(), dstSub, 0, 0, 0, srcRes, 0, nullptr);
+	}
+
+	void Texture2DArray::FillSliceSolid(uint32_t sliceIndex, uint32_t rgba)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* ctx = API->GetDeviceContext();
+
+		D3D11_TEXTURE2D_DESC desc = {};
+		mTexture->GetDesc(&desc);
+
+		// Build a CPU-side buffer of solid color pixels for mip 0
+		std::vector<uint32_t> pixels(desc.Width * desc.Height, rgba);
+
+		const uint32_t dstSub = D3D11CalcSubresource(0, sliceIndex, desc.MipLevels);
+		const UINT rowPitch = desc.Width * sizeof(uint32_t);
+
+		ctx->UpdateSubresource(mTexture.Get(), dstSub, nullptr, pixels.data(), rowPitch, 0);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////  

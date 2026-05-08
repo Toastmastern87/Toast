@@ -13,11 +13,38 @@
 #include "Toast/Renderer/TerrainSampler.h"
 #include "Toast/Renderer/SamplerStates.h"
 
+#include "Toast/Renderer/PlanetHeightDetails.h"
+
 #include <chrono>
 
 #pragma message("PlanetSystem.cpp is being compiled!")
 
 namespace Toast {
+
+	template<typename T>
+	T ReadPixel(const uint8_t* srcByte);
+
+	template<>
+	float ReadPixel<float>(const uint8_t* srcByte)
+	{
+		return *reinterpret_cast<const float*>(srcByte);
+	}
+
+	template<>
+	uint32_t ReadPixel<uint32_t>(const uint8_t* srcByte)
+	{
+		// R8G8B8A8 packed: R in lowest byte, A in highest
+		return  (uint32_t)srcByte[0]
+			| ((uint32_t)srcByte[1] << 8)
+			| ((uint32_t)srcByte[2] << 16)
+			| ((uint32_t)srcByte[3] << 24);
+	}
+
+	template<typename T>
+	size_t BytesPerPixel();
+
+	template<> size_t BytesPerPixel<float>() { return 4; }
+	template<> size_t BytesPerPixel<uint32_t >() { return 4; }
 
 	static inline uint32_t V(uint32_t x, uint32_t y, uint32_t N)
 	{
@@ -55,12 +82,12 @@ namespace Toast {
 		mPlanetFrameBuffer.Allocate(mPlanetFrameCBuffer->GetSize());
 		mPlanetFrameBuffer.ZeroInitialize();
 
-		mRenderingSettingsCBuffer = ConstantBufferLibrary::Load("PlanetRenderingSettings", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)5) });
+		mRenderingSettingsCBuffer = ConstantBufferLibrary::Load("PlanetRenderingSettings", 160, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, (CBufferBindSlot)5), CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)5) });
 		mRenderingSettingsCBuffer->Bind();
 		mRenderingSettingsBuffer.Allocate(mRenderingSettingsCBuffer->GetSize());
 		mRenderingSettingsBuffer.ZeroInitialize();
 
-		mTerrainObjectCBuffer = ConstantBufferLibrary::Load("TerrainObject", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, (CBufferBindSlot)13) });
+		mTerrainObjectCBuffer = ConstantBufferLibrary::Load("TerrainObject", 48, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, (CBufferBindSlot)13) });
 		mTerrainObjectCBuffer->Bind();
 		mTerrainObjectBuffer.Allocate(mTerrainObjectCBuffer->GetSize());
 		mTerrainObjectBuffer.ZeroInitialize();
@@ -107,10 +134,11 @@ namespace Toast {
 
 		Vector3 playerCamRel = playerCamPosWS - planetCenterWS;
 		Vector3 renderingCamRel = renderingCamPosWS - planetCenterWS;
-		Vector3 playerCamPosPS = Vector3::Rotate(playerCamRel, mInvRotationQuat);
+		 
+		mCameraPlanetSpace = Vector3::Rotate(playerCamRel, mInvRotationQuat);
 		Vector3 renderingCamPosPS = Vector3::Rotate(renderingCamRel, mInvRotationQuat);
 
-		frustum->UpdatePlanetSpace(playerCamPosPS, playerCamRightWS, playerCamUpWS, playerCamForwardWS, mInvRotationQuat, camera->GetNearClip(), camera->GetFarClip(), camera->GetVerticalFOV(), camera->GetAspectRatio(), frustumBias);
+		frustum->UpdatePlanetSpace(mCameraPlanetSpace, playerCamRightWS, playerCamUpWS, playerCamForwardWS, mInvRotationQuat, camera->GetNearClip(), camera->GetFarClip(), camera->GetVerticalFOV(), camera->GetAspectRatio(), frustumBias);
 
 		Vector3 planetPosWS = planetCenterWS - renderingCamPosWS + worldTranslation;
 
@@ -174,27 +202,18 @@ namespace Toast {
 		switch (mMeshMode)
 		{
 		case PlanetMeshMode::Icosphere:
-			mIcosphereMesh->OnUpdate(frustum, viewMatrixPlanetRendering, playerCamPosPS, renderingCamPosPS, planetPosWS, mRadius, mMaxHeight, mTerrainCubeData);
+			mIcosphereMesh->OnUpdate(frustum, viewMatrixPlanetRendering, mCameraPlanetSpace, renderingCamPosPS, planetPosWS, mRadius, mMaxHeight, &mTerrainCubeData, mMaterials.size());
 			break;
 		case PlanetMeshMode::GeometryClipmapping:
-			mGeoClipmapMesh->OnUpdate(physicsEngine, mRadius, mMaxHeight, playerCamPosPS, &mTerrainCubeData, camTangent, mShiftEastM, mShiftNorthM);
+			mGeoClipmapMesh->OnUpdate(physicsEngine, mRadius, mMaxHeight, mCameraPlanetSpace, &mTerrainCubeData, camTangent, mShiftEastM, mShiftNorthM);
 			break;
 		}
 
-		//if (!mRunOnce)
-		//{
-		//	UpdateLevelOrigins(camTangent);
-		//	mRunOnce = true;
-		//}
-
-		//for (uint32_t L = 0; L < mNumLevels; ++L)
-		//	mLevels[L].InFrustum = (L >= L0 && L < Ln);
-
-		//if (mHeightDetailsDirty)
-		//	UploadHeightDetailsToGPU();
-
 		if (mMaterialsIsDirty)
 			UploadMaterialsToGPU();
+
+		if (mPBRTexturesDirty)
+			RebuildPBRTextureArrays();
 	}
 
 	DirectX::XMMATRIX Planet::GetTransformRotation()
@@ -279,7 +298,32 @@ namespace Toast {
 		return albedoCube;
 	}
 
-	inline float HorizonDistance(float Rg, float h) {
+	double Planet::GetHeightDetailsAtDir(const Vector3& dirPlanet, const DirectX::XMVECTOR& cameraPlanetSpace) const
+	{
+		DirectX::XMVECTOR dir = DirectX::XMVectorSet((float)dirPlanet.x, (float)dirPlanet.y, (float)dirPlanet.z, 0.0f);
+		dir = DirectX::XMVector3Normalize(dir);
+
+		// Base height
+		float baseHeight = SampleHeightFromDir(mTerrainCubeData, dirPlanet);
+
+		// Wall steepening
+		float wallMask;
+		float wallBoost = ComputeWallSteepenBoost(*this, dirPlanet, baseHeight, wallMask);
+		float wallEnhancedHeight = baseHeight + wallBoost;
+
+		// Erosion
+		float erosionMask, erosionPattern;
+		float erosionDelta = ComputeRuneStyleErosionCPU(*this, dir, cameraPlanetSpace, wallEnhancedHeight, erosionMask, erosionPattern);
+
+		float slope = ComputeBaseSlope(*this, dirPlanet);
+		float colorAvg = SampleColorAvgFromDir(mAlbedoCubeData, dirPlanet);
+		float materialNoise = ComputeMaterialNoiseCPU(*this, dirPlanet, slope, colorAvg, cameraPlanetSpace);
+
+		return (double)wallBoost + (double)erosionDelta + (double)materialNoise;
+	}
+
+	inline float HorizonDistance(float Rg, float h)
+	{
 		// d = sqrt( (Rg+h)^2 - Rg^2 ) = sqrt(h*h + 2*Rg*h )
 		return std::sqrt(std::max(0.0f, h * h + 2.0f * Rg * h));
 	}
@@ -324,10 +368,10 @@ namespace Toast {
 			GPUMaterial.NoiseLayerStart = (int32_t)noiseOffset;
 			GPUMaterial.NoiseLayerCount = (int32_t)layerCount;
 
+			GPUMaterial.DebugColor = material.GPU.DebugColor;
+
 			// Mirror PBR settings into GPU data
-			GPUMaterial.PBRLODActivation = material.PBR.LODActivation;
 			GPUMaterial.UVTilingScale = material.PBR.TilingScale;
-			GPUMaterial.PBRBlendRage = material.PBR.BlendRange;
 
 			materialsGPU[m] = GPUMaterial;
 
@@ -380,11 +424,182 @@ namespace Toast {
 		mMaterialsIsDirty = false;
 	}
 
+	void Planet::RebuildPBRTextureArrays()
+	{
+		const uint32_t matCount = (uint32_t)mMaterials.size();
+
+		if (matCount == 0)
+		{
+			mPBRAlbedoArray.reset();
+			mPBRNormalArray.reset();
+			mPBRRoughnessArray.reset();
+			mPBRAOArray.reset();
+			mPBRDisplacementArray.reset();
+			mPBRTexturesDirty = false;
+			mLastPBRMaterialCount = 0;
+			mLastPBRTextureSize = 0;
+			return;
+		}
+
+		//  Find reference size from the first valid albedo texture
+		uint32_t refWidth = 0;
+		uint32_t refHeight = 0;
+		DXGI_FORMAT albedoFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		DXGI_FORMAT normalFormat = DXGI_FORMAT_R16G16B16A16_UNORM;
+		DXGI_FORMAT roughnessFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		DXGI_FORMAT aoFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		DXGI_FORMAT dispFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+		for (const auto& mat : mMaterials)
+		{
+			if (mat.PBR.AlbedoHandle != 0)
+			{
+				auto tex = AssetManager::GetAsset<Texture2D>(AssetHandle(mat.PBR.AlbedoHandle));
+				if (tex && refWidth == 0)
+				{
+					refWidth = tex->GetWidth();
+					refHeight = tex->GetHeight();
+					albedoFormat = tex->GetFormat();
+				}
+			}
+			if (mat.PBR.NormalHandle != 0)
+			{
+				auto tex = AssetManager::GetAsset<Texture2D>(AssetHandle(mat.PBR.NormalHandle));
+				if (tex) 
+					normalFormat = tex->GetFormat();
+			}
+			if (mat.PBR.RoughnessHandle != 0)
+			{
+				auto tex = AssetManager::GetAsset<Texture2D>(AssetHandle(mat.PBR.RoughnessHandle));
+				if (tex) 
+					roughnessFormat = tex->GetFormat();
+			}
+			if (mat.PBR.AOHandle != 0)
+			{
+				auto tex = AssetManager::GetAsset<Texture2D>(AssetHandle(mat.PBR.AOHandle));
+				if (tex) 
+					aoFormat = tex->GetFormat();
+			}
+			if (mat.PBR.DisplacementHandle != 0)
+			{
+				auto tex = AssetManager::GetAsset<Texture2D>(AssetHandle(mat.PBR.DisplacementHandle));
+				if (tex) 
+					dispFormat = tex->GetFormat();
+			}
+		}
+
+		//  Recreate arrays when count or size changes.
+		const bool needRecreate = (matCount != mLastPBRMaterialCount) || (refWidth != mLastPBRTextureSize) || !mPBRAlbedoArray;
+
+		if (needRecreate)
+		{
+			mPBRAlbedoArray = CreateRef<Texture2DArray>(albedoFormat, refWidth, refHeight, matCount, true /*generateMips*/);
+
+			mPBRNormalArray = CreateRef<Texture2DArray>(normalFormat, refWidth, refHeight, matCount, true);
+
+			mPBRRoughnessArray = CreateRef<Texture2DArray>(roughnessFormat, refWidth, refHeight, matCount, true);
+
+			mPBRAOArray = CreateRef<Texture2DArray>(aoFormat, refWidth, refHeight, matCount, true);
+
+			mPBRDisplacementArray = CreateRef<Texture2DArray>(dispFormat, refWidth, refHeight, matCount, true);
+
+			mLastPBRMaterialCount = matCount;
+			mLastPBRTextureSize = refWidth;
+		}
+
+		// ────────────────────────────────────────────────────────────
+		//  Helper lambda: copy texture into slice, or fill with fallback
+		// ────────────────────────────────────────────────────────────
+		auto CopyOrFill = [&](uint64_t handle, Ref<Texture2DArray>& targetArray, uint32_t sliceIndex, uint32_t fallbackColor)
+			{
+				auto tex = (handle != 0) ? AssetManager::GetAsset<Texture2D>(AssetHandle(handle)) : nullptr;
+
+				if (tex && tex->GetWidth() == refWidth && tex->GetHeight() == refHeight)
+					targetArray->CopyFromTexture(tex.get(), sliceIndex);
+				else
+					targetArray->FillSliceSolid(sliceIndex, fallbackColor);
+			};
+
+		// ────────────────────────────────────────────────────────────
+		//  Fill each slice from each material's assigned texture
+		// ────────────────────────────────────────────────────────────
+		for (uint32_t m = 0; m < matCount; ++m)
+		{
+			const PBRMaterialLayer& pbr = mMaterials[m].PBR;
+
+			CopyOrFill(pbr.AlbedoHandle, mPBRAlbedoArray, m, 0xFF808080); // mid-gray
+			CopyOrFill(pbr.NormalHandle, mPBRNormalArray, m, 0xFFFF8080); // flat normal
+			CopyOrFill(pbr.RoughnessHandle, mPBRRoughnessArray, m, 0xFF808080); // mid roughness
+			CopyOrFill(pbr.AOHandle, mPBRAOArray, m, 0xFFFFFFFF); // no occlusion
+			CopyOrFill(pbr.DisplacementHandle, mPBRDisplacementArray, m, 0xFF808080); // neutral
+		}
+
+		mPBRAlbedoArray->GenerateMips();
+		mPBRNormalArray->GenerateMips();
+		mPBRRoughnessArray->GenerateMips();
+		mPBRAOArray->GenerateMips();
+		mPBRDisplacementArray->GenerateMips();
+
+		mPBRTexturesDirty = false;
+	}
+
 	void Planet::MapRenderingSettings()
 	{
-		mRenderingSettingsBuffer.Write((uint8_t*)&mSlopeSensitivity, 4, 0);
-		mRenderingSettingsBuffer.Write((uint8_t*)&mSlopeThreshold, 4, 4);
-		mRenderingSettingsBuffer.Write((uint8_t*)&mSlopeDarkening, 4, 8);
+		uint32_t materialCount = (uint32_t)mMaterials.size();
+
+		mRenderingSettingsBuffer.Write((uint8_t*)&materialCount, 4, 0);
+		uint32_t enabled = mMaterialsEnabled ? 1 : 0;
+		mRenderingSettingsBuffer.Write((uint8_t*)&enabled, 4, 4);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mPBRColorDominance, 4, 8);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mColorNoiseFrequency, 4, 12);
+
+		mRenderingSettingsBuffer.Write((uint8_t*)&mColorNoiseStrength, 4, 16);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mColorNoiseOctaves, 4, 20);
+		float wallEnhancementEnabled = mWallEnhancementEnabled ? 1.0f : 0.0f;
+		mRenderingSettingsBuffer.Write((uint8_t*)&wallEnhancementEnabled, 4, 24);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mWallStrength, 4, 28);
+
+		mRenderingSettingsBuffer.Write((uint8_t*)&mWallStepMeters, 4, 32);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mWallSlopeStart, 4, 36);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mWallSlopeEnd, 4, 40);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mWallSharpStart, 4, 44);
+
+		mRenderingSettingsBuffer.Write((uint8_t*)&mWallSharpEnd, 4, 48);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mWallMaxDelta, 4, 52);
+		float wallDebugEnabled = mWallDebugEnabled ? 1.0f : 0.0f;
+		mRenderingSettingsBuffer.Write((uint8_t*)&wallDebugEnabled, 4, 56);
+		float wallDebugMode = static_cast<float>(mWallDebugMode);
+		mRenderingSettingsBuffer.Write((uint8_t*)&wallDebugMode, 4, 60);
+
+		mRenderingSettingsBuffer.Write((uint8_t*)&mTerrainNormalStepMeters, 4, 64);
+		float erosionEnabled = mErosionEnabled ? 1.0f : 0.0f;
+		mRenderingSettingsBuffer.Write((uint8_t*)&erosionEnabled, 4, 68);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionStrength, 4, 72);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionStepMeters, 4, 76);
+
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionTilingMeters, 4, 80);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionSlopeStart, 4, 84);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionSlopeFull, 4, 88);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionSlopeEnd, 4, 92);
+
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionSlopeFadeOut, 4, 96);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionOctaves, 4, 100);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionLacunarity, 4, 104);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionPersistence, 4, 108);
+
+		float erosionDebugEnabled = mErosionDebugEnabled ? 1.0f : 0.0f;
+		mRenderingSettingsBuffer.Write((uint8_t*)&erosionDebugEnabled, 4, 112);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionDebugMode, 4, 116);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionGullyWeight, 4, 120);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionDetail, 4, 124);
+
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionCellScale, 4, 128);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionNormalization, 4, 132);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionAssumedSlope, 4, 136);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionAssumedSlopeBlend, 4, 140);
+
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionMaxDistance, 4, 144);
+		mRenderingSettingsBuffer.Write((uint8_t*)&mErosionFadeStart, 4, 148);
 
 		mRenderingSettingsCBuffer->Map(mRenderingSettingsBuffer);
 	}
@@ -483,79 +698,6 @@ namespace Toast {
 		//	TOAST_CORE_INFO("heightMultLUT: %lf", level);
 	}
 
-	TerrainCubeData Planet::LoadTerrainDataFromTextureCube()
-	{
-		TerrainCubeData td{};
-
-		ID3D11Device* device = RenderCommand::sRendererAPI->GetDevice();
-		ID3D11DeviceContext* context = RenderCommand::sRendererAPI->GetDeviceContext();
-
-		// Get underlying D3D texture
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> tex = mBaseHeightMapTextureCube->GetTexture();
-		TOAST_CORE_ASSERT(tex, "TextureCube has no underlying texture!");
-
-		D3D11_TEXTURE2D_DESC desc{};
-		tex->GetDesc(&desc);
-
-		// We only care about mip 0 for physics
-		const UINT mipLevel = 0;
-		const UINT faceCount = desc.ArraySize; // should be 6
-		TOAST_CORE_ASSERT(faceCount == 6, "Height cube should have 6 faces.");
-		TOAST_CORE_ASSERT(desc.Format == DXGI_FORMAT_R32_FLOAT, "Expected R32_FLOAT height cube.");
-
-		td.Width = desc.Width;
-		td.Height = desc.Height;
-
-		// Create a staging texture to read back from GPU
-		D3D11_TEXTURE2D_DESC stagingDesc = desc;
-		stagingDesc.Usage = D3D11_USAGE_STAGING;
-		stagingDesc.BindFlags = 0;
-		stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-		stagingDesc.MiscFlags = 0; 
-
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> stagingTex;
-		HRESULT hr = device->CreateTexture2D(&stagingDesc, nullptr, &stagingTex);
-		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Failed to create staging texture for height cube readback.");
-
-		for (UINT face = 0; face < faceCount; ++face)
-		{
-			// Copy face, mip 0 into staging
-			UINT subresource = D3D11CalcSubresource(mipLevel, face, desc.MipLevels);
-			context->CopySubresourceRegion(
-				stagingTex.Get(),
-				subresource,
-				0, 0, 0,
-				tex.Get(),
-				subresource,
-				nullptr
-			);
-
-			// Map and copy into CPU array
-			D3D11_MAPPED_SUBRESOURCE mapped{};
-			hr = context->Map(stagingTex.Get(), subresource, D3D11_MAP_READ, 0, &mapped);
-			TOAST_CORE_ASSERT(SUCCEEDED(hr), "Failed to map staging height cube.");
-
-			const uint8_t* srcBytes = static_cast<const uint8_t*>(mapped.pData);
-			const size_t rowPitchBytes = mapped.RowPitch;
-
-			td.FaceHeight[face].resize(static_cast<size_t>(td.Width) * td.Height);
-
-			for (uint32_t y = 0; y < td.Height; ++y)
-			{
-				const float* srcRow = reinterpret_cast<const float*>(srcBytes + y * rowPitchBytes);
-				for (uint32_t x = 0; x < td.Width; ++x)
-				{
-					float h = srcRow[x]; // R32_FLOAT
-					td.FaceHeight[face][Index2D(x, y, td.Width)] = h;
-				}
-			}
-
-			context->Unmap(stagingTex.Get(), subresource);
-		}
-
-		return td;
-	}
-
 	uint32_t Planet::GetLODForWorldPos(const Vector3& worldPosWS)
 	{
 		// 1) Planet center in camera-relative world space
@@ -609,66 +751,6 @@ namespace Toast {
 		return last;
 	}
 
-	//void Planet::UploadHeightDetailsToGPU()
-	//{
-	//	const uint32_t count = (uint32_t)mHeightDetails.size();
-
-	//	if (count == 0)
-	//	{
-	//		mHeightDetailSettingsSB.reset();
-	//		mHeightDetailPermSB.reset();
-	//		mHeightDetailsDirty = false;
-	//		return;
-	//	}
-
-	//	// --- Pack GPU arrays ---
-	//	std::vector<HeightDetail::GPUData> settings(count);
-	//	std::vector<Int4> permTables(count * 64);
-
-	//	for (uint32_t i = 0; i < count; ++i)
-	//	{
-	//		HeightDetail& d = mHeightDetails[i];
-
-	//		// Keep CPU perm valid for height queries
-	//		BuildPermutationTable(d.Seed, d.Perm);
-
-	//		// Each detail owns 64 int4 entries (256 ints)
-	//		const int32_t permBase = (int32_t)(i * 64);
-
-	//		// Pack perm[256] -> int4[64]
-	//		for (int k = 0; k < 64; ++k)
-	//		{
-	//			const int idx = k * 4;
-	//			permTables[permBase + k] = Int4(
-	//				(int32_t)d.Perm[idx + 0],
-	//				(int32_t)d.Perm[idx + 1],
-	//				(int32_t)d.Perm[idx + 2],
-	//				(int32_t)d.Perm[idx + 3]
-	//			);
-	//		}
-
-	//		// Copy user-authored GPU settings, but inject the computed PermBase
-	//		HeightDetail::GPUData s = d.GPUSettings;
-	//		s.PermBase = permBase;
-	//		settings[i] = s;
-	//	}
-
-	//	// If you expect count to change, I recommend recreating when it does:
-	//	if (count != mLastHeightDetailCount) 
-	//	{ 
-	//		mHeightDetailSettingsSB = CreateRef<StructuredBuffer>((uint32_t)sizeof(HeightDetail::GPUData), count, D3D11_USAGE_DYNAMIC);
-	//		mHeightDetailPermSB = CreateRef<StructuredBuffer>((uint32_t)sizeof(Int4), count * 64, D3D11_USAGE_DYNAMIC);
-
-	//		mLastHeightDetailCount = count; 
-	//	}
-
-	//	// --- Update GPU ---
-	//	mHeightDetailSettingsSB->Update(settings.data(), settings.size() * sizeof(HeightDetail::GPUData));
-	//	mHeightDetailPermSB->Update(permTables.data(), permTables.size() * sizeof(Int4));
-
-	//	mHeightDetailsDirty = false;
-	//}
-
 	void Planet::BuildPermutationTable(uint32_t seed, int outPerm[256])
 	{
 		std::vector<int> values(256);
@@ -682,21 +764,77 @@ namespace Toast {
 			outPerm[i] = values[i];
 	}
 
-	uint32_t Planet::ObjectInstancesForLevelFromDensity(const TerrainObject& o, uint32_t cellSize, uint32_t gridSize)
+
+	template<typename T>
+	CubeData<T> Planet::LoadCubeData(const Ref<TextureCube>& source)
 	{
-		const double cells = double(gridSize - 1);
-		const double widthM = cells * double(cellSize);
-		const double areaM2 = widthM * widthM;
-		const double areaKm2 = areaM2 / 1e6;
+		CubeData<T> cd{};
 
-		double inst = o.DensityPerKm2 * areaKm2;
-		uint32_t u = (uint32_t)std::llround(inst);
+		ID3D11Device* device = RenderCommand::sRendererAPI->GetDevice();
+		ID3D11DeviceContext* context = RenderCommand::sRendererAPI->GetDeviceContext();
 
-		u = std::min<uint32_t>(u, (uint32_t)o.MaxTotal);
-		u = std::min<uint32_t>(u, (uint32_t)o.MaxPerPatch); // if you mean per-level cap
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> tex = source->GetTexture();
+		TOAST_CORE_ASSERT(tex, "TextureCube has no underlying texture!");
 
-		return u;
+		D3D11_TEXTURE2D_DESC desc{};
+		tex->GetDesc(&desc);
+
+		const UINT mipLevel = 0;
+		const UINT faceCount = desc.ArraySize;
+		TOAST_CORE_ASSERT(faceCount == 6, "Cube should have 6 faces.");
+
+		cd.Width = desc.Width;
+		cd.Height = desc.Height;
+
+		// Create staging texture
+		D3D11_TEXTURE2D_DESC stagingDesc = desc;
+		stagingDesc.Usage = D3D11_USAGE_STAGING;
+		stagingDesc.BindFlags = 0;
+		stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		stagingDesc.MiscFlags = 0;
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> stagingTex;
+		HRESULT hr = device->CreateTexture2D(&stagingDesc, nullptr, &stagingTex);
+		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Failed to create staging texture for cube readback.");
+
+		const size_t bpp = BytesPerPixel<T>();
+
+		for (UINT face = 0; face < faceCount; ++face)
+		{
+			UINT subresource = D3D11CalcSubresource(mipLevel, face, desc.MipLevels);
+			context->CopySubresourceRegion(
+				stagingTex.Get(), subresource,
+				0, 0, 0,
+				tex.Get(), subresource,
+				nullptr);
+
+			D3D11_MAPPED_SUBRESOURCE mapped{};
+			hr = context->Map(stagingTex.Get(), subresource, D3D11_MAP_READ, 0, &mapped);
+			TOAST_CORE_ASSERT(SUCCEEDED(hr), "Failed to map staging cube.");
+
+			const uint8_t* srcBytes = static_cast<const uint8_t*>(mapped.pData);
+			const size_t rowPitchBytes = mapped.RowPitch;
+
+			cd.FaceData[face].resize(static_cast<size_t>(cd.Width) * cd.Height);
+
+			for (uint32_t y = 0; y < cd.Height; ++y)
+			{
+				const uint8_t* srcRow = srcBytes + y * rowPitchBytes;
+				for (uint32_t x = 0; x < cd.Width; ++x)
+				{
+					cd.FaceData[face][Index2D(x, y, cd.Width)] =
+						ReadPixel<T>(srcRow + x * bpp);
+				}
+			}
+
+			context->Unmap(stagingTex.Get(), subresource);
+		}
+
+		return cd;
 	}
+
+	template CubeData<float> Planet::LoadCubeData<float>(const Ref<TextureCube>& source);
+	template CubeData<uint32_t> Planet::LoadCubeData<uint32_t>(const Ref<TextureCube>& source);
 
 	///////////////////////////////////////////////////////////////////////////////////
 	/////////                      Planet Mesh Icosphere                   ////////////
@@ -845,6 +983,15 @@ namespace Toast {
 			elements.emplace_back(e);
 		}
 
+		// float3 PatchOriginPS : TEXCOORD3;
+		{
+			ShaderLayout::ShaderInputElement e(DXGI_FORMAT_R32G32B32_FLOAT, "TEXCOORD", 4);
+			e.mInputSlot = 1;
+			e.mInputClassification = D3D11_INPUT_PER_INSTANCE_DATA;
+			e.mInstanceDataStepRate = 1;
+			elements.emplace_back(e);
+		}
+
 		Shader* shader = ShaderLibrary::Get("assets/shaders/Planet/PlanetIcosphereGeometryPass.hlsl");
 		ID3D10Blob* vsBlob = shader->GetVSRaw();
 
@@ -900,7 +1047,7 @@ namespace Toast {
 	static uint32_t sFrustumChecks;
 	static uint32_t sMidpointLookups;
 
-	void PlanetMeshIcosphere::OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, double radius, double maxHeight, const TerrainCubeData& terrainData)
+	void PlanetMeshIcosphere::OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, double radius, double maxHeight, const CubeData<float>* terrainData, uint32_t materialCount)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -908,7 +1055,7 @@ namespace Toast {
 
 		mRadius = radius;
 		mMaxHeight = maxHeight;
-		mTerrainCubeData = &terrainData;
+		mTerrainCubeData = terrainData;
 
 		mHeightCache.clear();
 
@@ -938,6 +1085,7 @@ namespace Toast {
 		mPlanetMeshBuffer.Write((uint8_t*)&patchLevels, 4, 80);
 		mPlanetMeshBuffer.Write((uint8_t*)&camLo, 12, 84);
 		mPlanetMeshBuffer.Write((uint8_t*)&relHi, 12, 96);
+		mPlanetMeshBuffer.Write((uint8_t*)&materialCount, 4, 108);
 		mPlanetMeshBuffer.Write((uint8_t*)&relLo, 12, 112);
 		mPlanetMeshCBuffer->Map(mPlanetMeshBuffer);
 
@@ -964,11 +1112,16 @@ namespace Toast {
 
 		//TOAST_CORE_INFO("Recurse: %d calls, %d height samples, %d frustum checks, %d midpoint lookups",	sRecurseCalls, sHeightSamples, sFrustumChecks, sMidpointLookups);
 		sRecurseCalls = 0; sHeightSamples = 0; sFrustumChecks = 0; sMidpointLookups = 0;
-
 		{
 			TOAST_PROFILE_SCOPE("Icosphere::Recursion");
+			mPatches.clear();
+			mDeferredLeafPatches.clear();
+
 			for (size_t i = 0; i < mStartIndices.size(); i += 3)
 				RecursiveFace(frustum, mStartIndices[i], mStartIndices[i + 1], mStartIndices[i + 2], 0, cameraPosPS, true);
+
+			for (const auto& lp : mDeferredLeafPatches)
+				EmitLeafPatchChecked(lp.ia, lp.ib, lp.ic, lp.subdivision, cameraPosPS);
 		}
 
 		{
@@ -1048,70 +1201,66 @@ namespace Toast {
 			uint32_t iCA = GetMidpoint(ic, ia);
 
 			int16_t nextSubdivision = subdivision + 1;
+			bool nextCull = (nextPlanetFace == NextPlanetFace::SPLITCULL);
 
-			RecursiveFace(frustum, ia, iAB, iCA, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
-			RecursiveFace(frustum, iAB, ib, iBC, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
-			RecursiveFace(frustum, iCA, iBC, ic, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
-			RecursiveFace(frustum, iAB, iBC, iCA, nextSubdivision, cameraPosPS, nextPlanetFace == NextPlanetFace::SPLITCULL);
+			RecursiveFace(frustum, iAB, iBC, iCA, nextSubdivision, cameraPosPS, nextCull);
+			RecursiveFace(frustum, ia, iAB, iCA, nextSubdivision, cameraPosPS, nextCull);
+			RecursiveFace(frustum, iAB, ib, iBC, nextSubdivision, cameraPosPS, nextCull);
+			RecursiveFace(frustum, iCA, iBC, ic, nextSubdivision, cameraPosPS, nextCull);
 		}
 		else
+			mDeferredLeafPatches.emplace_back(DeferredLeafPatch{ ia, ib, ic, subdivision });
+	}
+
+	void PlanetMeshIcosphere::EmitLeafPatchChecked(uint32_t ia, uint32_t ib, uint32_t ic, int16_t subdivision, Vector3& cameraPosPS)
+	{
+		bool hasAB = HasMidpoint(ia, ib);
+		bool hasBC = HasMidpoint(ib, ic);
+		bool hasCA = HasMidpoint(ic, ia);
+
+		int crackCount = (int)hasAB + (int)hasBC + (int)hasCA;
+
+		if (crackCount == 0)
 		{
-			if (nextPlanetFace == NextPlanetFace::LEAF)
-				mPatches.emplace_back(PlanetPatchCPU(subdivision, ia, ib, ic));
+			mPatches.emplace_back(PlanetPatchCPU(subdivision, ia, ib, ic));
+			return;
+		}
 
-			else if(nextPlanetFace == NextPlanetFace::LEAFPATCH)
-			{
-				Vector3 aR = va * (mRadius + hA);
-				Vector3 bR = vb * (mRadius + hB);
-				Vector3 cR = vc * (mRadius + hC);
+		if (crackCount == 3)
+		{
+			// All 3 edges cracked — full 4-way split
+			uint32_t iAB = GetMidpoint(ia, ib);
+			uint32_t iBC = GetMidpoint(ib, ic);
+			uint32_t iCA = GetMidpoint(ic, ia);
+			mPatches.emplace_back(PlanetPatchCPU(subdivision, ia, iAB, iCA));
+			mPatches.emplace_back(PlanetPatchCPU(subdivision, iAB, ib, iBC));
+			mPatches.emplace_back(PlanetPatchCPU(subdivision, iCA, iBC, ic));
+			mPatches.emplace_back(PlanetPatchCPU(subdivision, iAB, iBC, iCA));
+			return;
+		}
 
-				double aD2 = Vector3::LengthSquared(aR - cameraPosPS);
-				double bD2 = Vector3::LengthSquared(bR - cameraPosPS);
-				double cD2 = Vector3::LengthSquared(cR - cameraPosPS);
-
-				const double splitD2 = mDistanceLUT[(uint32_t)subdivision];
-
-				bool aIn = (aD2 < splitD2);
-				bool bIn = (bD2 < splitD2);
-				bool cIn = (cD2 < splitD2);
-
-				// Identify which edge is the "cracked" edge = between the two inside vertices
-				if (!aIn && bIn && cIn)
-				{
-					// Edge BC is cracked
-					uint32_t iBC = GetMidpoint(ib, ic);
-
-					mPatches.emplace_back(PlanetPatchCPU(subdivision, ia, ib, iBC));
-					mPatches.emplace_back(PlanetPatchCPU(subdivision, ia, iBC, ic));
-					return;
-				}
-				if (!bIn && aIn && cIn)
-				{
-					// Edge AC is cracked
-					uint32_t iCA = GetMidpoint(ic, ia);
-
-					mPatches.emplace_back(PlanetPatchCPU(subdivision, ib, ic, iCA));
-					mPatches.emplace_back(PlanetPatchCPU(subdivision, ib, iCA, ia));
-					return;
-				}
-				if (!cIn && aIn && bIn)
-				{
-					// Edge AB is cracked
-					uint32_t iAB = GetMidpoint(ia, ib);
-
-					mPatches.emplace_back(PlanetPatchCPU(subdivision, ic, ia, iAB));
-					mPatches.emplace_back(PlanetPatchCPU(subdivision, ic, iAB, ib));
-					return;
-				}
-
-				// Fallback: Should never occur
-				mPatches.emplace_back(PlanetPatchCPU(subdivision, ia, ib, ic));
-
-				if(subdivision > mHighestSubdivision)
-					mHighestSubdivision = subdivision;
-
-				return;
-			}	 
+		// 1 or 2 cracks — split on the first found edge and recurse.
+		// Sub-triangles will pick up any remaining midpoints.
+		if (hasAB)
+		{
+			uint32_t iAB = GetMidpoint(ia, ib);
+			EmitLeafPatchChecked(ic, ia, iAB, subdivision, cameraPosPS);
+			EmitLeafPatchChecked(ic, iAB, ib, subdivision, cameraPosPS);
+			return;
+		}
+		if (hasBC)
+		{
+			uint32_t iBC = GetMidpoint(ib, ic);
+			EmitLeafPatchChecked(ia, ib, iBC, subdivision, cameraPosPS);
+			EmitLeafPatchChecked(ia, iBC, ic, subdivision, cameraPosPS);
+			return;
+		}
+		if (hasCA)
+		{
+			uint32_t iCA = GetMidpoint(ic, ia);
+			EmitLeafPatchChecked(ib, ic, iCA, subdivision, cameraPosPS);
+			EmitLeafPatchChecked(ib, iCA, ia, subdivision, cameraPosPS);
+			return;
 		}
 	}
 
@@ -1194,8 +1343,6 @@ namespace Toast {
 			else
 				return NextPlanetFace::SPLITCULL;   // children must still be checked (or frustum not known)
 		}
-		else if (inside == 2)
-			return NextPlanetFace::LEAFPATCH;
 		else
 			return NextPlanetFace::LEAF;
 	}
@@ -1240,6 +1387,15 @@ namespace Toast {
 			g.P0_rel_hi = { (float)P0Rel.x, (float)P0Rel.y, (float)P0Rel.z };
 			g.P1_rel_hi = { (float)P1Rel.x, (float)P1Rel.y, (float)P1Rel.z };
 			g.P2_rel_hi = { (float)P2Rel.x, (float)P2Rel.y, (float)P2Rel.z };
+
+			Vector3 patchCenter = (V0 + V1 + V2) / 3.0 * mRadius;
+			double gridStep = 100000.0; // 100km
+			Vector3 patchOrigin = Vector3(
+				floor(patchCenter.x / gridStep) * gridStep,
+				floor(patchCenter.y / gridStep) * gridStep,
+				floor(patchCenter.z / gridStep) * gridStep
+			);
+			g.PatchOriginPS = { (float)patchOrigin.x, (float)patchOrigin.y, (float)patchOrigin.z };
 
 			mPatchesGPU.emplace_back(g);
 		}
@@ -1377,6 +1533,14 @@ namespace Toast {
 		return mHeightCache[idx];
 	}
 
+	bool PlanetMeshIcosphere::HasMidpoint(uint32_t i1, uint32_t i2) const
+	{
+		uint64_t smaller = std::min(i1, i2);
+		uint64_t larger = std::max(i1, i2);
+		uint64_t key = (smaller << 32) | larger;
+		return mMidpointCache.find(key) != MidpointHash::EMPTY;
+	}
+
 	///////////////////////////////////////////////////////////////////////////////////
 	/////////               Planet Mesh Geometry Clipmapping               ////////////
 	///////////////////////////////////////////////////////////////////////////////////
@@ -1397,11 +1561,11 @@ namespace Toast {
 		mLevels.assign(mNumLevels, {});
 	}
 
-	void PlanetMeshGeoClipmap::OnUpdate(PhysicsEngine* physicsEngine, double radius, double maxHeight, const Vector3& playerCamPosPS, TerrainCubeData* terrainCubeData, const Vector3& camTangent, const double& shiftEast, const double& shiftNorth)
+	void PlanetMeshGeoClipmap::OnUpdate(PhysicsEngine* physicsEngine, double radius, double maxHeight, const Vector3& playerCamPosPS, const CubeData<float>* terrainData, const Vector3& camTangent, const double& shiftEast, const double& shiftNorth)
 	{
 		mRadius = radius;
 		mMaxHeight = maxHeight;
-		mTerrainCubeData = terrainCubeData;
+		mTerrainCubeData = terrainData;
 		mShiftEastM = shiftEast;
 		mShiftNorthM = shiftNorth;
 
@@ -1742,7 +1906,7 @@ namespace Toast {
 
 		for (int f = 0; f < 6; ++f)
 		{
-			if (mTerrainCubeData->FaceHeight[f].size() != expected)
+			//if (mTerrainCubeData->FaceHeight[f].size() != expected)
 				return false;
 		}
 

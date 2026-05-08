@@ -16,8 +16,6 @@ namespace Toast {
 
 	void SceneSettingsPanel::SetContext(Scene* context, WindowsWindow* window)
 	{
-
-
 		mContext = context;
 
 		mWindow = window;
@@ -67,7 +65,7 @@ namespace Toast {
 
 				if (mContext)
 				{
-					const char* items[] = { "None", "G-Buffer Positions", "G-Buffer Normals", "G-Buffer Albedo/Metallic", "Roughness", "Lighting Pass Output", "Atmospheric Scattering Output", "SSAO", "SSAO Blur", "Bloom", "Bloom Half", "Bloom Quarter", "Bloom Final", "SkyViewLUT" };
+					const char* items[] = { "None", "G-Buffer Positions", "G-Buffer Normals", "G-Buffer Albedo/Metallic", "Roughness", "Lighting Pass Output", "Atmospheric Scattering Output", "SSAO", "SSAO Blur", "Bloom", "Bloom Half", "Bloom Quarter", "Bloom Final", "SkyViewLUT", "Planet Materials Debug"};
 					int currentOverlay = static_cast<int>(mContext->mSettings.RenderOverlaySetting);
 
 					ImGui::Text("Render Overlay");

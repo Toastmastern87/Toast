@@ -163,6 +163,9 @@ namespace Toast {
 		sRendererData->GPassRoughnessAORT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
 		sRendererData->GPassPickingRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R32_SINT);
 
+		// Setting up the render target for Planet Material debug
+		sRendererData->PlanetMaterialDebugRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
+
 		// Setting up the render target for SSAO Pass
 		sRendererData->SSAORT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
 		sRendererData->SSAOBlurRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
@@ -295,6 +298,8 @@ namespace Toast {
 		sRendererData->GPassRoughnessAORT->Resize(width, height);
 		sRendererData->GPassPickingRT->Resize(width, height);
 
+		sRendererData->PlanetMaterialDebugRT->Resize(width, height);
+
 		sRendererData->SSAORT->Resize(width, height);
 		sRendererData->SSAOBlurRT->Resize(width, height);
 
@@ -379,7 +384,7 @@ namespace Toast {
 		RenderCommand::SetViewport(sRendererData->Viewport);
 
 		// Deffered Renderer
-		GeometryPass();
+		GeometryPass(camera.GetWorldTranslation());
 
 		if(shadows)
 			ShadowPass(shadowParams);
@@ -565,7 +570,7 @@ namespace Toast {
 			blendDesc.AlphaToCoverageEnable = FALSE;
 			blendDesc.IndependentBlendEnable = TRUE; // Allows different settings per render target
 
-			const std::vector<Ref<RenderTarget>> renderTargets = { sRendererData->GPassPositionRT, sRendererData->GPassNormalRT, sRendererData->GPassAlbedoMetallicRT, sRendererData->GPassRoughnessAORT, sRendererData->GPassPickingRT };
+			const std::vector<Ref<RenderTarget>> renderTargets = { sRendererData->GPassPositionRT, sRendererData->GPassNormalRT, sRendererData->GPassAlbedoMetallicRT, sRendererData->GPassRoughnessAORT, sRendererData->GPassPickingRT, sRendererData->PlanetMaterialDebugRT };
 			size_t numRenderTargets = renderTargets.size();
 
 			TOAST_CORE_ASSERT(numRenderTargets <= D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, "Too many render targets");
@@ -904,7 +909,7 @@ namespace Toast {
 		return envMapUnfiltered;
 	}
 
-	void Renderer::GeometryPass()
+	void Renderer::GeometryPass(Vector3 worldTranslation)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -915,11 +920,12 @@ namespace Toast {
 			annotation->BeginEvent(L"Geometry Pass");
 #endif
 		RenderCommand::SetViewport(sRendererData->Viewport);
-		RenderCommand::SetRenderTargets({ sRendererData->GPassPositionRT->GetRTV().Get(), sRendererData->GPassNormalRT->GetRTV().Get(), sRendererData->GPassAlbedoMetallicRT->GetRTV().Get(), sRendererData->GPassRoughnessAORT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetRenderTargets({ sRendererData->GPassPositionRT->GetRTV().Get(), sRendererData->GPassNormalRT->GetRTV().Get(), sRendererData->GPassAlbedoMetallicRT->GetRTV().Get(), sRendererData->GPassRoughnessAORT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get(), sRendererData->PlanetMaterialDebugRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
+
 		RenderCommand::SetBlendState(sRendererData->GPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::ClearDepthStencilView(sRendererData->DepthStencilView);
-		RenderCommand::ClearRenderTargets({ sRendererData->GPassPositionRT->GetRTV().Get(), sRendererData->GPassNormalRT->GetRTV().Get(), sRendererData->GPassAlbedoMetallicRT->GetRTV().Get(), sRendererData->GPassRoughnessAORT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+		RenderCommand::ClearRenderTargets({ sRendererData->GPassPositionRT->GetRTV().Get(), sRendererData->GPassNormalRT->GetRTV().Get(), sRendererData->GPassAlbedoMetallicRT->GetRTV().Get(), sRendererData->GPassRoughnessAORT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get(), sRendererData->PlanetMaterialDebugRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
 		if (sRendererData->PlanetDraw.Planet)
@@ -940,13 +946,7 @@ namespace Toast {
 				sRendererData->PlanetDraw.Planet->GetIcosphereMesh()->GetShaderInputLayout()->Bind();
 			}
 
-			//if (sRendererData->PlanetDraw.Planet->GetNumHeightDetails() > 0)
-			//{
-			//	RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
-			//	RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
-			//	RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
-			//	RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
-			//}
+			BindPlanetTerrainResources();
 
 			sRendererData->PlanetDraw.Planet->MapRenderingSettings();
 			sRendererData->PlanetDraw.Planet->GetPlanetRenderingSettingsCBuffer()->Bind();
@@ -962,9 +962,8 @@ namespace Toast {
 			}
 
 			RenderCommand::BindSampler(D3D11_VERTEX_SHADER, 5, SamplerStates::Get(SamplerType::UWrapVClamp));
-			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 5, SamplerStates::Get(SamplerType::UWrapVClamp));
-			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->PlanetDraw.Planet->GetNormalMapCubeTexture()->GetSRV());
+			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::UWrapVClamp)); 
+			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 1, SamplerStates::Get(SamplerType::LinearWrap));
 
 			sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetAlbedoColor(), 16, 0);
 			sRendererData->MaterialBuffer.Write((uint8_t*)&sRendererData->PlanetDraw.Planet->GetMetalness(), 4, 20);
@@ -972,9 +971,6 @@ namespace Toast {
 			int useAlbedo = static_cast<int>(sRendererData->PlanetDraw.Planet->GetUseAlbedoMap());
 			sRendererData->MaterialBuffer.Write((uint8_t*)&useAlbedo, 4, 28);
 			sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
-
-			if (sRendererData->PlanetDraw.Planet->GetUseAlbedoMap())
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->PlanetDraw.Planet->GetAlbedoCubeTexture()->GetSRV());
 
 			if(sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
 			{
@@ -1048,50 +1044,19 @@ namespace Toast {
 
 		if (sRendererData->PlanetDraw.Planet)
 		{
-			auto& planetMesh = sRendererData->PlanetDraw.Planet->GetGeoClipmapMesh();
+			Planet* planet = sRendererData->PlanetDraw.Planet.get();
 
-			if (planetMesh->IsPlanetMeshValid())
+			if (!planet->GetTerrainObjects().empty())
 			{
-				Planet* planet = sRendererData->PlanetDraw.Planet.get();
-				const auto& LODInfo = planetMesh->GetLODDrawInfo();
-				const uint32_t L0 = LODInfo.first;
-				const uint32_t Ln = L0 + LODInfo.count;
+				BindPlanetTerrainResources();
 
-				if (!sRendererData->PlanetDraw.Planet->GetTerrainObjects().empty())
-				{
-					if (sRendererData->PlanetDraw.Planet->GetNumHeightDetails() > 0)
-					{
-						RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
-						RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
-						RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRendererData->PlanetDraw.Planet->GetHeightDetailSettingsSB()->GetSRV());
-						RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->PlanetDraw.Planet->GetHeightDetailPermSB()->GetSRV());
-					}
+				auto& icosphereMesh = planet->GetIcosphereMesh();
+				icosphereMesh->GetPlanetMeshCBuffer()->Bind();
+				planet->GetPlanetFrameCBuffer()->Bind();
 
-					for (uint32_t L = L0; L < Ln; ++L)
-					{
-						// --- Edge strip (DrawMode=1) ---
-						{
-							auto cb = planetMesh->BuildLevelCB(L);
-							uint32_t drawMode = 1;
-							cb.Write(reinterpret_cast<uint8_t*>(&drawMode), sizeof(uint32_t), 16);
-							planetMesh->GetPlanetLevelCBuffer()->Map(cb);
-							planetMesh->GetPlanetLevelCBuffer()->Bind(); // b7
+				RenderCommand::BindSampler(D3D11_VERTEX_SHADER, 5, SamplerStates::Get(SamplerType::UWrapVClamp));
 
-							DrawTerrainObjectsForLevel(planet, L, L0);
-						}
-
-						// --- Interior (DrawMode=0) ---
-						{
-							auto cb = planetMesh->BuildLevelCB(L);
-							uint32_t drawMode = 0;
-							cb.Write(reinterpret_cast<uint8_t*>(&drawMode), sizeof(uint32_t), 16);
-							planetMesh->GetPlanetLevelCBuffer()->Map(cb);
-							planetMesh->GetPlanetLevelCBuffer()->Bind(); // b7
-
-							DrawTerrainObjectsForLevel(planet, L, L0);
-						}
-					}
-				}
+				DrawTerrainObjects(planet, worldTranslation);
 			}
 		}
 
@@ -2387,11 +2352,50 @@ namespace Toast {
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 	}
 
-	void Renderer::DrawTerrainObjectsForLevel(Planet* planet, uint32_t L, uint32_t L0)
+	void Renderer::BindPlanetTerrainResources()
+	{
+		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
+
+		if (sRendererData->PlanetDraw.Planet->GetNumMaterials() > 0 && sRendererData->PlanetDraw.Planet->GetMaterialSB() && sRendererData->PlanetDraw.Planet->GetMaterialNoiseSB() && sRendererData->PlanetDraw.Planet->GetMaterialNoisePermSB())
+		{
+			// t1 = Materials, t2 = NoiseLayers, t3 = PermTables, t4 = AlbedoCubeArray
+			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 1, sRendererData->PlanetDraw.Planet->GetMaterialSB()->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 2, sRendererData->PlanetDraw.Planet->GetMaterialNoiseSB()->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 3, sRendererData->PlanetDraw.Planet->GetMaterialNoisePermSB()->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 4, sRendererData->PlanetDraw.Planet->GetAlbedoCubeTexture()->GetSRV());
+
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->PlanetDraw.Planet->GetMaterialSB()->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->PlanetDraw.Planet->GetMaterialNoisePermSB()->GetSRV());
+		}
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->PlanetDraw.Planet->GetNormalMapCubeTexture()->GetSRV());
+
+		if (sRendererData->PlanetDraw.Planet->GetUseAlbedoMap())
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->PlanetDraw.Planet->GetAlbedoCubeTexture()->GetSRV());
+
+		if (sRendererData->PlanetDraw.Planet->GetPBRAlbedoArray())
+		{
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRendererData->PlanetDraw.Planet->GetPBRAlbedoArray()->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 7, sRendererData->PlanetDraw.Planet->GetPBRNormalArray()->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRendererData->PlanetDraw.Planet->GetPBRRoughnessArray()->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->PlanetDraw.Planet->GetPBRAOArray()->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->PlanetDraw.Planet->GetPBRDisplacementArray()->GetSRV());
+		}
+
+		// Cbuffers
+		sRendererData->PlanetDraw.Planet->GetPlanetRenderingSettingsCBuffer()->Bind();
+		sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
+	}
+
+	void Renderer::DrawTerrainObjects(Planet* planet, Vector3 worldTranslation)
 	{
 		const auto& objects = planet->GetTerrainObjects();
 		if (objects.empty())
 			return;
+
+		Vector3 playerOffsetWS = -worldTranslation;
+		float playerTangentEast = (float)Vector3::Dot(playerOffsetWS, planet->GetBasisTanEast());
+		float playerTangentNorth = (float)Vector3::Dot(playerOffsetWS, planet->GetBasisTanNorth());
 
 		// ModelCB: force instanced branch in your generic GPass VS
 		{
@@ -2414,36 +2418,22 @@ namespace Toast {
 			if (!object.MeshObject)
 				continue;
 
-			if (L > (uint32_t)object.LODActivation)
-				continue;
-
-			uint32_t cellSize = 1u << L; 
-			uint32_t gridSize = planet->GetGeoClipmapMesh()->GetGridSize();
-
-			// Decide instance count for this level
-			uint32_t instCount = planet->ObjectInstancesForLevelFromDensity(object, cellSize, gridSize);
-			if (instCount == 0)
-				continue;
-
-			const double cells = double(gridSize - 1);
-			const double widthM = cells * double(cellSize);
-			const double areaM2 = widthM * widthM;
-			double scatterCellSize = std::sqrt(areaM2 / std::max<double>(1.0, double(instCount)));
-			scatterCellSize = std::clamp(scatterCellSize, 0.25 * double(cellSize), 8.0 * double(cellSize));
-			float scatterCellSizeF = static_cast<float>(scatterCellSize);
-
-			uint32_t scatterCells = (uint32_t)std::ceil(widthM / scatterCellSize);
-			scatterCells = std::clamp<uint32_t>(scatterCells, 16u, 1024u);
-
 			// Fill per-layer CB (b13)
 			auto& buffer = planet->GetTerrainObjectBuffer();
 			buffer.Write((uint8_t*)&object.Seed, 4, 0);
 			buffer.Write((uint8_t*)&object.LODActivation, 4, 4);
-			buffer.Write((uint8_t*)&instCount, 4, 8);
-			buffer.Write((uint8_t*)&object.MinScale, 4, 12);
-			buffer.Write((uint8_t*)&object.MaxScale, 4, 16);
-			buffer.Write((uint8_t*)&scatterCellSizeF, 4, 20);
-			buffer.Write((uint8_t*)&scatterCells, 4, 24);
+			buffer.Write((uint8_t*)&object.MinScale, 4, 8);
+			buffer.Write((uint8_t*)&object.MaxScale, 4, 12);
+
+			// Row 1 (16 bytes)
+			buffer.Write((uint8_t*)&object.ScatterRadiusMeters, 4, 16);
+			buffer.Write((uint8_t*)&object.CandidateGridSize, 4, 20);
+			buffer.Write((uint8_t*)&object.DensityProb, 4, 24);
+			buffer.Write((uint8_t*)&playerTangentEast, 4, 28);
+			// 4 bytes padding at offset 28
+
+			// Row 2 (16 bytes)
+			buffer.Write((uint8_t*)&playerTangentNorth, 4, 32);
 
 			planet->GetTerrainObjectCBuffer()->Map(buffer);
 			planet->GetTerrainObjectCBuffer()->Bind(); // b13
@@ -2472,8 +2462,7 @@ namespace Toast {
 			// If your Mesh::Bind() does not bind material SRVs, do it here.
 			object.MeshObject->Bind();
 
-			uint32_t candidateCount = scatterCells * scatterCells;
-
+			uint32_t candidateCount = object.CandidateGridSize * object.CandidateGridSize;
 
 			// Start with LOD0 group submesh 0 (same assumption you used previously)
 			const auto& sub = object.MeshObject->mLODGroups[0]->Submeshes[0];

@@ -2,6 +2,7 @@
 /bin/
 bin-int/
 Intermediates/
+Cache/
 
 # Files
 *.user
