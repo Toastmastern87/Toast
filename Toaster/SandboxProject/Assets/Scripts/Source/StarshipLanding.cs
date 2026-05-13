@@ -43,9 +43,12 @@ namespace Sandbox
         public float MaxArrestGimbal = 15.0f;     // Max gimbal magnitude during arrest (degrees)
         public float AngVelDeadband = 2.0f;      // deg/s — "rotation stopped" threshold
 
+        public float LegDeployAltitude = 500.0f;
+
         private TransformComponent mShipTransform;
         private RigidBodyComponent mRigidBody;
         private BoxColliderComponent mBoxCollider;
+        private MeshComponent mMesh;
 
         private Entity mStarship;
         private Entity mRS1;
@@ -73,6 +76,8 @@ namespace Sandbox
         private float currentThrottle = 0f;
         private bool enginesActive = false;
 
+        private bool mLegsDeployed = false;
+
         void OnCreate()
         {
             mStarship = this;
@@ -83,6 +88,7 @@ namespace Sandbox
             mRigidBody = this.GetComponent<RigidBodyComponent>();
             mShipTransform = this.GetComponent<TransformComponent>();
             mBoxCollider = this.GetComponent<BoxColliderComponent>();
+            mMesh = this.GetComponent<MeshComponent>();
 
             mRaptorSea1TC = mRS1.GetComponent<TransformComponent>();
             mRaptorSea2TC = mRS2.GetComponent<TransformComponent>();
@@ -294,6 +300,16 @@ namespace Sandbox
                 SetThrottle(hoverThrottle * 0.95f);
             }
 
+            if (!mLegsDeployed && altitude < LegDeployAltitude)
+            {
+                mMesh.PlayAnimation("LegUnfold", 0.0f);
+                // Adjust box collider to account for extended legs
+                // BoxCollider.Size   = new Vector3(...);
+                // BoxCollider.Offset = new Vector3(...);
+                mLegsDeployed = true;
+                Toast.Console.LogInfo($"[Landing] Legs deploying at altitude={altitude:F0}m");
+            }
+
             //Toast.Console.LogInfo($"[LandingBurn] alt={altitude:F0} speed={descentSpeed:F1} pitch={pitch:F1} throttle={currentThrottle:F2}");
 
             // Detect touchdown
@@ -310,6 +326,9 @@ namespace Sandbox
         private void TransitionTo(LandingState newState)
         {
             Toast.Console.LogInfo($"[Landing] Transitioning from {landingState} to {newState}");
+
+            if (newState == LandingState.Landed)
+                mLegsDeployed = false;
 
             landingState = newState;
         }

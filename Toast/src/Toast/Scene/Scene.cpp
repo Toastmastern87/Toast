@@ -401,7 +401,6 @@ namespace Toast {
 
 			if (mesh.MeshObject->GetIsAnimated())
 				mesh.MeshObject->OnUpdate(ts * mTimeScale);
-
 		}
 
 		// Process Transform Interpolation (rotation, etc.)
@@ -589,7 +588,7 @@ namespace Toast {
 
 					for (uint32_t submeshIndex = 0; submeshIndex < (uint32_t)submeshes.size(); ++submeshIndex)
 					{
-						const Submesh& submesh = submeshes[submeshIndex];
+						Submesh& submesh = submeshes[submeshIndex];
 
 						DirectX::XMMATRIX finalTransform = transform.GetTransform(); // fallback
 
@@ -603,7 +602,8 @@ namespace Toast {
 								if (partEntity)
 								{
 									auto& partTransform = partEntity.GetComponent<TransformComponent>();
-									finalTransform = DirectX::XMMatrixMultiply(partTransform.GetTransform(), transform.GetTransform());
+									DirectX::XMMATRIX animatedTransform = DirectX::XMMatrixMultiply(submesh.Transform, partTransform.GetTransform());
+									finalTransform = DirectX::XMMatrixMultiply(animatedTransform, transform.GetTransform());
 								}
 							}
 						}

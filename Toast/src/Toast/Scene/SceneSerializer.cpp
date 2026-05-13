@@ -1602,7 +1602,6 @@ namespace Toast {
 
 					uipc.TextureHandle = uiPanelComponent["TextureAssetHandle"].as<AssetHandle>();
 					uipc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(uipc.TextureHandle);
-					TOAST_CORE_CRITICAL("TEXTURE INDEX FOR %llu is %d", uipc.TextureHandle, uipc.TextureIndex);
 				}
 
 				auto uiButtonComponent = entity["UIButtonComponent"];

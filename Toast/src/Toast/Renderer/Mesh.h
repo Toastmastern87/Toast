@@ -166,7 +166,10 @@ namespace Toast {
 		float TimeElapsed = 0.0f;
 		uint32_t SampleCount = 0;
 		cgltf_animation_channel AnimationChannel;
-		Buffer DataBuffer;
+		Buffer TranslationBuffer;	// Translation key frames (XMFLOAT3)
+		Buffer RotationBuffer;      // Rotation key frames (XMFLOAT4)
+		Buffer ScaleBuffer;			// Scale key frames (XMFLOAT3)
+		Buffer TimestampBuffer;		// Time stamps buffer
 
 		Animation() = default;
 		Animation(cgltf_animation_channel animationChannel)
@@ -207,6 +210,8 @@ namespace Toast {
 
 		uint32_t FindPosition(float animationTime, const std::string& animationName);
 		DirectX::XMVECTOR InterpolateTranslation(float animationTime, const std::string& animationName);
+		DirectX::XMVECTOR InterpolateRotation(float animationTime, const std::string& animationName);
+		DirectX::XMVECTOR InterpolateScale(float animationTime, const std::string& animationName);
 	public:
 		uint32_t BaseVertex;
 		uint32_t BaseIndex;
@@ -299,6 +304,8 @@ namespace Toast {
 		bool IsInstanced() const { return mInstanced; }
 		uint32_t GetNumberOfInstances(size_t LODGroupIndex) const { return mLODGroups[LODGroupIndex]->NumberOfInstances; }
 		void SetInstanceData(const void* data, uint32_t size, uint32_t numberOfInstances);
+
+		std::vector<Ref<LODGroup>>& GetLODGroups() { return mLODGroups; }
 	private:
 		void ProcessLODNode(const cgltf_node* node, Ref<LODGroup> lodGroup, const DirectX::XMMATRIX& parentTransform, uint32_t& vertexCount, uint32_t& indexCount);
 

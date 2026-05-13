@@ -732,16 +732,31 @@ namespace Toast {
 
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
 
-		//TOAST_CORE_INFO("Getting animation: %s", nameStr.c_str());
+		bool found = false;
+		std::unordered_set<Animation*> played; // avoid calling Play twice on the same ref
 
-		for (auto& submesh : mc.MeshObject->GetSubmeshes())
+		for (auto& lodGroup : mc.MeshObject->GetLODGroups())
 		{
-			if (submesh.IsAnimated) 
+			for (auto& submesh : lodGroup->Submeshes)
 			{
-				if (submesh.Animations.find(nameStr) != submesh.Animations.end())
-					submesh.Animations[nameStr]->Play(startTime);
+				if (!submesh.IsAnimated) continue;
+				auto it = submesh.Animations.find(nameStr);
+				if (it == submesh.Animations.end() || !it->second) continue;
+
+				// Only call Play once per unique Animation instance
+				if (played.find(it->second.get()) == played.end())
+				{
+					it->second->Play(startTime);
+					played.insert(it->second.get());
+					found = true;
+				}
 			}
 		}
+
+		if (!found)
+			TOAST_CORE_WARN("Animation '%s' not found in any LOD group for entity %llu", nameStr.c_str(), entityID);
+		else
+			TOAST_CORE_INFO("PLaying animation '%s'", nameStr.c_str());
 	}
 
 	static float MeshComponent_StopAnimation(uint64_t entityID, MonoString* name)
