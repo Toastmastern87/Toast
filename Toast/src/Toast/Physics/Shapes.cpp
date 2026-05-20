@@ -11,7 +11,7 @@ namespace Toast {
 
 	ShapeSphere::ShapeSphere(double radius) : mRadius(radius)
 	{
-		mCenterOfMass = Vector3(0.0f, 0.0f, 0.0f);
+		//mCenterOfMass = Vector3(0.0f, 0.0f, 0.0f);
 	}
 
 	void ShapeSphere::CalculateBounds()
@@ -61,8 +61,8 @@ namespace Toast {
 
 		Vector3 half = (bounds.maxs - bounds.mins) * 0.5;
 		mSize = half * 2.0;          
-		mCenterOfMass = (bounds.mins + bounds.maxs) * 0.5;
-
+		//mCenterOfMass = (bounds.mins + bounds.maxs) * 0.5;
+		mOffset = { 0.0f, 0.0f, 0.0f };
 		BuildCornerPoints();
 	}
 
@@ -78,7 +78,7 @@ namespace Toast {
 
 		Vector3 half = (mBounds.maxs - mBounds.mins);
 		mSize = half;
-		mCenterOfMass = (mBounds.mins + mBounds.maxs);
+		//mCenterOfMass = (mBounds.mins + mBounds.maxs);
 
 		BuildCornerPoints();
 	}
@@ -87,25 +87,27 @@ namespace Toast {
 	{
 		Vector3 halfSize = mSize;
 
-		mBounds.mins = -halfSize;
-		mBounds.maxs = halfSize;
+		mBounds.mins = mOffset - halfSize;
+		mBounds.maxs = mOffset + halfSize;
+
+		BuildCornerPoints();
 	}
 
-	float ShapeBox::FastestLinearSpeed(const Vector3& angularVelocity, const Vector3& dir) const
-	{
-		double maxSpeed = 0.0;
-		for (int i = 0; i < mPoints.size(); i++)
-		{
-			Vector3 r = mPoints[i] - mCenterOfMass;
-			Vector3 linearVelocity = Vector3::Cross(angularVelocity, r);
-			double speed = Vector3::Dot(dir, linearVelocity);
-
-			if (speed > maxSpeed)
-				maxSpeed = speed;
-		}
-
-		return maxSpeed;
-	}
+// 	float ShapeBox::FastestLinearSpeed(const Vector3& angularVelocity, const Vector3& dir) const
+// 	{
+// 		double maxSpeed = 0.0;
+// 		for (int i = 0; i < mPoints.size(); i++)
+// 		{
+// 			Vector3 r = mPoints[i] - mCenterOfMass;
+// 			Vector3 linearVelocity = Vector3::Cross(angularVelocity, r);
+// 			double speed = Vector3::Dot(dir, linearVelocity);
+// 
+// 			if (speed > maxSpeed)
+// 				maxSpeed = speed;
+// 		}
+// 
+// 		return maxSpeed;
+// 	}
 
 	void ShapeBox::BuildCornerPoints()
 	{
@@ -113,14 +115,14 @@ namespace Toast {
 
 		mPoints.clear();
 		mPoints.reserve(8);
-		mPoints.emplace_back(-h.x, -h.y, -h.z);
-		mPoints.emplace_back(h.x, -h.y, -h.z);
-		mPoints.emplace_back(h.x, h.y, -h.z);
-		mPoints.emplace_back(-h.x, h.y, -h.z);
-		mPoints.emplace_back(-h.x, -h.y, h.z);
-		mPoints.emplace_back(h.x, -h.y, h.z);
-		mPoints.emplace_back(h.x, h.y, h.z);
-		mPoints.emplace_back(-h.x, h.y, h.z);
+		mPoints.emplace_back(mOffset.x - h.x, mOffset.y - h.y, mOffset.z - h.z);
+		mPoints.emplace_back(mOffset.x + h.x, mOffset.y - h.y, mOffset.z - h.z);
+		mPoints.emplace_back(mOffset.x + h.x, mOffset.y + h.y, mOffset.z - h.z);
+		mPoints.emplace_back(mOffset.x - h.x, mOffset.y + h.y, mOffset.z - h.z);
+		mPoints.emplace_back(mOffset.x - h.x, mOffset.y - h.y, mOffset.z + h.z);
+		mPoints.emplace_back(mOffset.x + h.x, mOffset.y - h.y, mOffset.z + h.z);
+		mPoints.emplace_back(mOffset.x + h.x, mOffset.y + h.y, mOffset.z + h.z);
+		mPoints.emplace_back(mOffset.x - h.x, mOffset.y + h.y, mOffset.z + h.z);
 	}
 
 }

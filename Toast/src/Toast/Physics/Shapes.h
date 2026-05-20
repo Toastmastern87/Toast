@@ -28,7 +28,7 @@ namespace Toast {
 
 		virtual Vector3 Support(Vector3& dir, const Vector3& pos, const Quaternion& quat, const double bias) const = 0;
 
-		virtual float FastestLinearSpeed(const Vector3& angularVelocity, const Vector3& dir) const { return 0.0f; }
+		//virtual float FastestLinearSpeed(const Vector3& angularVelocity, const Vector3& dir) const { return 0.0f; }
 
 		virtual void CalculateBounds() = 0;
 		virtual Bounds GetBounds() { return mBounds;  }
@@ -36,14 +36,14 @@ namespace Toast {
 		virtual void SetIsDirty(bool dirty) { mIsDirty = dirty; }
 		virtual bool GetIsDirty() const { return mIsDirty; }
 
-		virtual Vector3 GetCenterOfMass() const { return mCenterOfMass; }
+		//virtual Vector3 GetCenterOfMass() const { return mCenterOfMass; }
 
 	protected:
 		bool mIsDirty = true;
 
 		Bounds mBounds;
 
-		Vector3 mCenterOfMass;
+		//Vector3 mCenterOfMass;
 	};
 
 	class ShapeSphere : public Shape
@@ -82,9 +82,10 @@ namespace Toast {
 		void CalculateBounds() override;
 		void BuildCornerPoints();
 
-		float FastestLinearSpeed(const Vector3& angularVelocity, const Vector3& dir) const override;
+		//float FastestLinearSpeed(const Vector3& angularVelocity, const Vector3& dir) const override;
 	public:
 		Vector3 mSize = { 1.0f, 1.0f, 1.0f };
+		Vector3 mOffset = { 0.0f, 0.0f, 0.0f };
 
 		std::vector<Vector3> mPoints;		
 	};

@@ -23,6 +23,7 @@
 3469351507733000060|Texture2D|Textures\UI\04_CloseButton.png|sRGB=0
 7505109320907132924|Texture2D|Textures\Sand_roughness.tif|sRGB=0
 5778959045403344017|Texture2D|Textures\UI\05_AddStarshipButton.png|sRGB=0
+8973060968401244305|Texture2D|Textures\UI\17_LoadCargo.png|sRGB=1
 12754749742457056117|Texture2D|Textures\UI\06_AllStarshipsButton.png|sRGB=0
 6127094384978684422|Texture2D|Textures\Gravel_normal.tif|sRGB=0
 16967429399523444614|Texture2D|Textures\UI\08_ClickCloseButton.png|sRGB=0
@@ -40,3 +41,4 @@
 9989732384820612931|Texture2D|Textures\Sand_height.tif|sRGB=0
 5812179804821392116|Texture2D|Textures\Rock_Cliff_basecolor.tif|sRGB=1
 11328492128099863471|Texture2D|Textures\Rock_Cliff_height.tif|sRGB=0
+124052619671075937|Texture2D|Textures\UI\16_UnloadCargo.png|sRGB=1

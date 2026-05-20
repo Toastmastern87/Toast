@@ -271,14 +271,29 @@ namespace Toast
             }
         }
 
-        public void PlayAnimation(string name, float startTime)
+        public void PlayAnimation(string name)
         {
-            InternalCalls.MeshComponent_PlayAnimation(Entity.ID, name, startTime);
+            InternalCalls.MeshComponent_PlayAnimation(Entity.ID, name);
+        }
+
+        public void PlayReverseAnimation(string name)
+        {
+            InternalCalls.MeshComponent_PlayReverseAnimation(Entity.ID, name);
         }
 
         public float StopAnimation(string name)
         {
             return InternalCalls.MeshComponent_StopAnimation(Entity.ID, name);
+        }
+
+        public float GetAnimationTimeElapsed(string name)
+        {
+            return InternalCalls.MeshComponent_GetAnimationTimeElapsed(Entity.ID, name);
+        }
+
+        public bool IsAnimationComplete(string name)
+        {
+            return InternalCalls.MeshComponent_IsAnimationComplete(Entity.ID, name);
         }
 
         public float GetDurationAnimation(string name)
@@ -321,6 +336,19 @@ namespace Toast
             set
             {
                 InternalCalls.UIButtonComponent_SetColor(Entity.ID, ref value);
+            }
+        }
+
+        public bool Visible
+        {
+            get
+            {
+                return InternalCalls.UIButtonComponent_GetVisible(Entity.ID);
+            }
+
+            set
+            {
+                InternalCalls.UIButtonComponent_SetVisible(Entity.ID, value);
             }
         }
     }
@@ -383,6 +411,18 @@ namespace Toast
                 InternalCalls.RigidBodyComponent_SetMass(Entity.ID, value);
             }
         }
+
+        public float AngularDamping
+        {
+            get
+            {
+                return InternalCalls.RigidBodyComponent_GetAngularDamping(Entity.ID);
+            }
+            set
+            {
+                InternalCalls.RigidBodyComponent_SetAngularDamping(Entity.ID, value);
+            }
+        }
     }
 
     public class SphereColliderComponent : Component
@@ -409,6 +449,32 @@ namespace Toast
             }
             set
             {
+            }
+        }
+
+        public Vector3 Size
+        {
+            get
+            {
+                InternalCalls.BoxColliderComponent_GetSize(Entity.ID, out Vector3 size);
+                return size;
+            }
+            set
+            {
+                InternalCalls.BoxColliderComponent_SetSize(Entity.ID, ref value);
+            }
+        }
+
+        public Vector3 Offset
+        {
+            get
+            {
+                InternalCalls.BoxColliderComponent_GetOffset(Entity.ID, out Vector3 offset);
+                return offset;
+            }
+            set
+            {
+                InternalCalls.BoxColliderComponent_SetOffset(Entity.ID, ref value);
             }
         }
     }

@@ -167,7 +167,7 @@ struct VertexInputType
     float3 position                 : POSITION0;
     float3 normal                   : NORMAL;
     float4 tangent                  : TANGENT;
-    float2 texCoord                 : TEXCOORD;
+    float2 texCoord                 : TEXCOORD; 
     float3 color                    : COLOR0;
 };
 
@@ -178,7 +178,7 @@ struct PixelInputType
     float3 viewNormal       : NORMAL;
     float2 texCoord         : TEXCOORD;
     float3x3 TBN            : TBASIS;
-    int entityID            : TEXTUREID;
+    int entityID            : TEXTUREID; 
 };
 
 struct DetailSettings
@@ -241,7 +241,7 @@ StructuredBuffer<DetailSettings> Details        : register(t8);
 StructuredBuffer<int4> PermTablesDetails        : register(t9);
 
 SamplerState HeightMapSampler                   : register(s5);
-SamplerState UWrapVClampLinearSampler           : register(s5);
+SamplerState UWrapVClampLinearSampler           : register(s6);
 
 static const uint EDGE_CELLS = 12;
 

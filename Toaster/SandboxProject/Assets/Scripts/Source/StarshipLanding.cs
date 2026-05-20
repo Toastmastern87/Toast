@@ -1,4 +1,5 @@
-﻿using Source.Toast.Math;
+﻿using Sandbox.Source;
+using Source.Toast.Math;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -8,6 +9,7 @@ using Toast;
 
 namespace Sandbox
 {
+
     public class StarshipLanding : Entity
     {
         private enum LandingState
@@ -63,6 +65,18 @@ namespace Sandbox
         private ParticlesComponent mRS2Particles;
         private ParticlesComponent mRS3Particles;
 
+        private Entity mStarshipInfoPanel;
+        private Entity mVelocityEntity;
+        private Entity mAltitudeEntity;
+        private Entity mUnloadCargoButton;
+        private Entity mLoadCargoButton;
+        private UIPanelComponent mPanel;
+        private UITextComponent mVelocityText;
+        private UITextComponent mAltitudeText;
+        private UIButtonComponent mUnloadCargoButtonComponent;
+        private UIButtonComponent mLoadCargoButtonComponent;
+        private TransformComponent mPanelTransform;
+
         private LandingState landingState = LandingState.BellyFlopFreeFall;
         private float flipDurationEstimate = 3.5f;     // Estimated seconds for a full 90° flip (altitude budget)
         private float flipStartTime = 0f;
@@ -78,12 +92,31 @@ namespace Sandbox
 
         private bool mLegsDeployed = false;
 
+        private Vector2 mPreviousPos;
+        private bool mIsDragging;
+        private float mTotalTime;
+
+        private CargoState mCargoState = CargoState.None;
+
         void OnCreate()
         {
             mStarship = this;
             mRS1 = FindChildEntityByName(this.Name, "RaptorSea1");
             mRS2 = FindChildEntityByName(this.Name, "RaptorSea2");
             mRS3 = FindChildEntityByName(this.Name, "RaptorSea3");
+
+            mStarshipInfoPanel = FindChildEntityByName(mStarship.GetComponent<TagComponent>().Tag, "InfoPopup");
+            mPanel = mStarshipInfoPanel.GetComponent<UIPanelComponent>();
+            mVelocityEntity = mStarshipInfoPanel.FindDecententByName(mStarshipInfoPanel.ID, "VelocityText");
+            mAltitudeEntity = mStarshipInfoPanel.FindDecententByName(mStarshipInfoPanel.ID, "AltitudeText");
+            mUnloadCargoButton = mStarshipInfoPanel.FindDecententByName(mStarshipInfoPanel.ID, "UnloadCargoButton");
+            mLoadCargoButton = mStarshipInfoPanel.FindDecententByName(mStarshipInfoPanel.ID, "LoadCargoButton");
+            mPanelTransform = mStarshipInfoPanel.GetComponent<TransformComponent>();
+            mVelocityText = mVelocityEntity.GetComponent<UITextComponent>();
+            mAltitudeText = mAltitudeEntity.GetComponent<UITextComponent>();
+            mUnloadCargoButtonComponent = mUnloadCargoButton.GetComponent<UIButtonComponent>();
+            mLoadCargoButtonComponent = mLoadCargoButton.GetComponent<UIButtonComponent>();
+            mTotalTime = 0.0f;
 
             mRigidBody = this.GetComponent<RigidBodyComponent>();
             mShipTransform = this.GetComponent<TransformComponent>();
@@ -97,11 +130,14 @@ namespace Sandbox
             mRS1Particles = mRS1.GetComponent<ParticlesComponent>();
             mRS2Particles = mRS2.GetComponent<ParticlesComponent>();
             mRS3Particles = mRS3.GetComponent<ParticlesComponent>();
+
+            mCargoState = CargoState.None;
         }
 
         void OnEvent()
         {
-
+            if (Input.IsMouseButtonPressed(MouseCode.ButtonLeft))
+                mPanel.Visible = true;
         }
 
         void OnUpdate(float ts)
@@ -132,10 +168,88 @@ namespace Sandbox
                 case LandingState.LandingBurn:
                     UpdateLandingBurn(altitude, descentSpeed, pitch, angVel, gravity);
                     break;
+                case LandingState.Landed:
+                    break;
             }
 
             // Apply thrust from all active engines every frame
             ApplyThrust(ts);
+
+            // Info Panel
+            if (mPanel.Visible)
+            {
+                Vector2 mousePos = Input.GetMousePosition();
+
+                if (Input.IsMouseButtonPressed(MouseCode.ButtonLeft))
+                {
+
+                    if (!mIsDragging)
+                    {
+                        Vector3 panelTranslation = mPanelTransform.Translation;
+                        Vector2 viewportSize = Scene.RenderTargetSize();
+
+                        panelTranslation.X += (viewportSize.X * 0.5f);
+                        panelTranslation.Y += (viewportSize.Y * 0.5f);
+
+                        Vector3 panelScale = mPanelTransform.Scale;
+                        float borderSize = 20.0f;
+
+                        // Check if the mouse is over the panel to start dragging
+                        if ((mousePos.X >= panelTranslation.X && mousePos.X <= (panelTranslation.X + panelScale.X)) && (mousePos.Y <= (panelTranslation.Y + borderSize) && mousePos.Y >= panelTranslation.Y))
+                        {
+                            mIsDragging = true;
+                            mPreviousPos = mousePos;
+                        }
+                    }
+                    else
+                    {
+                        // Calculate the delta movement
+                        Vector2 deltaMousePos = mousePos - mPreviousPos;
+
+                        // Update the panel's translation
+                        mPanelTransform.Translation += new Vector3(deltaMousePos.X, deltaMousePos.Y, 0.0f);
+
+                        // Update the previous mouse position
+                        mPreviousPos = mousePos;
+                    }
+                }
+                else
+                    mIsDragging = false;
+
+                if (landingState == LandingState.Landed && mCargoState == CargoState.None)
+                {
+                    mUnloadCargoButtonComponent.Visible = true;
+                    mLoadCargoButtonComponent.Visible = false;
+                }
+                else if (landingState == LandingState.Landed && mCargoState == CargoState.UnloadingCargo)
+                {
+                    mUnloadCargoButtonComponent.Visible = false;
+                    mLoadCargoButtonComponent.Visible = true;
+                }
+                else if (landingState == LandingState.Landed && mCargoState == CargoState.LoadingCargo)
+                {
+                    mUnloadCargoButtonComponent.Visible = true;
+                    mLoadCargoButtonComponent.Visible = false;
+                }
+
+                if (mTotalTime > 0.15f)
+                {
+                    float linearVelocity = Vector3.Length(mRigidBody.LinearVelocity);
+
+                    mVelocityText.Text = $"Velocity: {linearVelocity:F1} m/s";
+                    mAltitudeText.Text = $"Altitude: {altitude:F1} m";
+                }
+
+                if (mTotalTime > 0.2f)
+                    mTotalTime -= 0.2f;
+
+                mTotalTime += ts;
+            }
+        }
+
+        public void SetCargoState(CargoState state)
+        {
+            mCargoState = state;
         }
 
         private void UpdateBellyFreeFall(float altitude, float descentSpeed, float pitch, float gravity)
@@ -241,87 +355,236 @@ namespace Sandbox
 
         private void UpdateLandingBurn(float altitude, float descentSpeed, float pitch, float angVel, float gravity)
         {
-            // --- Attitude hold + lateral velocity correction ---
-            // Base PD controller to hold vertical
-            float gimbalCommand = ArrestKp * pitch + ArrestKd * angVel;
-
-            // Steer into lateral velocity to cancel horizontal drift
-            // Get velocity component in the flip plane (perpendicular to radial up and flip axis)
             Vector3 velocity = mRigidBody.LinearVelocity;
             Vector3 radialUp = GetRadialUp();
 
-            // Lateral direction in the flip plane: cross(flipAxis, radialUp)
+            // Decompose velocity
+            float radialComponent = velocity.X * radialUp.X + velocity.Y * radialUp.Y + velocity.Z * radialUp.Z;
+            Vector3 lateralVelocity = new Vector3(
+                velocity.X - radialUp.X * radialComponent,
+                velocity.Y - radialUp.Y * radialComponent,
+                velocity.Z - radialUp.Z * radialComponent);
+            float lateralSpeed = (float)Math.Sqrt(
+                lateralVelocity.X * lateralVelocity.X +
+                lateralVelocity.Y * lateralVelocity.Y +
+                lateralVelocity.Z * lateralVelocity.Z);
+
+            // --- Single gimbal command ---
+            float gimbalCommand = ArrestKp * pitch + ArrestKd * angVel;
             Vector3 lateralDir = new Vector3(
                 flipAxis.Y * radialUp.Z - flipAxis.Z * radialUp.Y,
                 flipAxis.Z * radialUp.X - flipAxis.X * radialUp.Z,
-                flipAxis.X * radialUp.Y - flipAxis.Y * radialUp.X
-            );
-
-            // Project velocity onto this direction
-            float lateralSpeed = velocity.X * lateralDir.X + velocity.Y * lateralDir.Y + velocity.Z * lateralDir.Z;
-
-            // Add correction: tilt into the drift to cancel it
-            float lateralKp = 0.4f;  // Tune this — degrees of gimbal per m/s of lateral speed
-            gimbalCommand += lateralKp * lateralSpeed;
-
+                flipAxis.X * radialUp.Y - flipAxis.Y * radialUp.X);
+            float lateralInPlane = velocity.X * lateralDir.X + velocity.Y * lateralDir.Y + velocity.Z * lateralDir.Z;
+            gimbalCommand += 0.4f * lateralInPlane;
             gimbalCommand = Clamp(gimbalCommand, -MaxArrestGimbal * 0.5f, MaxArrestGimbal * 0.5f);
-            SetGimbalAngle(gimbalCommand);
+            SetGimbalAngle(gimbalCommand); // single call
 
-            // --- Throttle: constant-deceleration profile ---
-            // We want to arrive at altitude=0 with TargetTouchdownSpeed
-            // Required deceleration: a = (v² - vf²) / (2 * altitude)
-            // Required thrust: F = m * (a + g)
-            // Throttle = F / F_max
+            // --- Direct lateral cancellation, scales with altitude ---
+            if (lateralSpeed > 0.05f)
+            {
+                float altitudeFactor = 1.0f - Clamp(altitude / 100.0f, 0.0f, 1.0f);
+                float cancelStrength = Lerp(0.3f, 1.0f, altitudeFactor); // full cancel near ground
+                mRigidBody.LinearVelocity = new Vector3(
+                    mRigidBody.LinearVelocity.X - lateralVelocity.X * cancelStrength,
+                    mRigidBody.LinearVelocity.Y - lateralVelocity.Y * cancelStrength,
+                    mRigidBody.LinearVelocity.Z - lateralVelocity.Z * cancelStrength);
+            }
 
+            // --- Throttle ---
             float totalThrust = MaxThrustNewtons * ActiveEngineCount;
-
             if (altitude > 0.5f && descentSpeed > TargetTouchdownSpeed)
             {
-                float desiredDecel = (descentSpeed * descentSpeed - TargetTouchdownSpeed * TargetTouchdownSpeed)
-                                      / (2.0f * altitude);
+                float desiredDecel = (descentSpeed * descentSpeed - TargetTouchdownSpeed * TargetTouchdownSpeed) / (2.0f * altitude);
                 float requiredAccel = desiredDecel + gravity;
                 float throttle = (requiredAccel * mRigidBody.Mass) / totalThrust;
-
-                // Near ground, blend to a gentle settling profile
                 if (altitude < ThrottleDownAltitude)
                 {
                     float gentleThrottle = (gravity + 0.5f) * mRigidBody.Mass / totalThrust;
                     float blend = altitude / ThrottleDownAltitude;
                     throttle = Lerp(gentleThrottle, throttle, blend);
                 }
-
                 throttle = Clamp(throttle, 0.05f, 1.0f);
                 SetThrottle(throttle);
             }
             else
             {
-                // Slow enough — gentle settle, slightly below hover thrust
                 float hoverThrottle = gravity * mRigidBody.Mass / totalThrust;
                 SetThrottle(hoverThrottle * 0.95f);
             }
 
+            // --- Leg deployment ---
             if (!mLegsDeployed && altitude < LegDeployAltitude)
             {
-                mMesh.PlayAnimation("LegUnfold", 0.0f);
-                // Adjust box collider to account for extended legs
-                // BoxCollider.Size   = new Vector3(...);
-                // BoxCollider.Offset = new Vector3(...);
+                mMesh.PlayAnimation("LegUnfold");
+                mBoxCollider.Size = new Vector3(8.0f, 25.954125f, 5.3f);
+                mBoxCollider.Offset = new Vector3(0.0f, -0.70825f, 0.0f);
                 mLegsDeployed = true;
                 Toast.Console.LogInfo($"[Landing] Legs deploying at altitude={altitude:F0}m");
             }
 
-            //Toast.Console.LogInfo($"[LandingBurn] alt={altitude:F0} speed={descentSpeed:F1} pitch={pitch:F1} throttle={currentThrottle:F2}");
+            // --- Hard lateral cap — last thing before touchdown check ---
+            if (altitude < 50.0f)
+            {
+                Vector3 vel = mRigidBody.LinearVelocity;
+                Vector3 ru = GetRadialUp();
+                float radial = vel.X * ru.X + vel.Y * ru.Y + vel.Z * ru.Z;
+                Vector3 lateral = new Vector3(
+                    vel.X - ru.X * radial,
+                    vel.Y - ru.Y * radial,
+                    vel.Z - ru.Z * radial);
+                float lateralMag = (float)Math.Sqrt(
+                    lateral.X * lateral.X + lateral.Y * lateral.Y + lateral.Z * lateral.Z);
+                float t = 1.0f - Clamp(altitude / 50.0f, 0.0f, 1.0f);
+                float maxLateral = Lerp(3.0f, 0.1f, t);
+                if (lateralMag > maxLateral)
+                {
+                    float scale = maxLateral / lateralMag;
+                    mRigidBody.LinearVelocity = new Vector3(
+                        ru.X * radial + lateral.X * scale,
+                        ru.Y * radial + lateral.Y * scale,
+                        ru.Z * radial + lateral.Z * scale);
+                }
+            }
 
-            // Detect touchdown
+            // --- Touchdown ---
             if (altitude < 0.5f && descentSpeed < TargetTouchdownSpeed + 1.0f)
             {
-                Toast.Console.LogInfo($"[Landing] touchdown at speed={descentSpeed:F2}m/s, pitch={pitch:F1}°");
+                Toast.Console.LogInfo($"[Landing] touchdown at speed={descentSpeed:F2}m/s pitch={pitch:F1}°");
+                Toast.Console.LogInfo($"[Landing] linear velocity={mRigidBody.LinearVelocity:F2}m/s at touchdown");
                 SetEngineActive(false);
                 SetThrottle(0f);
                 SetGimbalAngle(0f);
+                mRigidBody.AngularDamping = 2.0f;
                 TransitionTo(LandingState.Landed);
             }
         }
+
+        //private void UpdateLandingBurn(float altitude, float descentSpeed, float pitch, float angVel, float gravity)
+        //{
+        //    // Steer into lateral velocity to cancel horizontal drift
+        //    // Get velocity component in the flip plane (perpendicular to radial up and flip axis)
+        //    Vector3 velocity = mRigidBody.LinearVelocity;
+        //    Vector3 radialUp = GetRadialUp();
+
+        //    // Remove radial component to get pure lateral velocity
+        //    float radialComponent = velocity.X * radialUp.X + velocity.Y * radialUp.Y + velocity.Z * radialUp.Z;
+        //    Vector3 lateralVelocity = new Vector3(velocity.X - radialUp.X * radialComponent, velocity.Y - radialUp.Y * radialComponent, velocity.Z - radialUp.Z * radialComponent);
+        //    float lateralSpeed = (float)Math.Sqrt(lateralVelocity.X * lateralVelocity.X + lateralVelocity.Y * lateralVelocity.Y + lateralVelocity.Z * lateralVelocity.Z);
+
+        //    // Gimbal correction in flip plane only (existing)
+        //    float gimbalCommand = ArrestKp * pitch + ArrestKd * angVel;
+        //    float lateralKp = 0.4f;
+
+        //    Vector3 lateralDir = new Vector3(flipAxis.Y * radialUp.Z - flipAxis.Z * radialUp.Y, flipAxis.Z * radialUp.X - flipAxis.X * radialUp.Z, flipAxis.X * radialUp.Y - flipAxis.Y * radialUp.X);
+
+        //    float lateralInPlane = velocity.X * lateralDir.X + velocity.Y * lateralDir.Y + velocity.Z * lateralDir.Z;
+        //    gimbalCommand += lateralKp * lateralInPlane;
+        //    gimbalCommand = Clamp(gimbalCommand, -MaxArrestGimbal * 0.5f, MaxArrestGimbal * 0.5f);
+        //    SetGimbalAngle(gimbalCommand);
+
+        //    // Direct lateral velocity cancellation — apply opposing impulse each frame
+        //    // This handles drift in BOTH lateral axes, not just the flip plane
+        //    float altitudeFactor = 1.0f - Clamp(altitude / 100.0f, 0.0f, 1.0f);
+        //    float lateralCancelStrength = Lerp(0.3f, 0.95f, altitudeFactor);
+        //    if (lateralSpeed > 0.05f)
+        //    {
+        //        Vector3 cancelImpulse = new Vector3(-lateralVelocity.X * lateralCancelStrength, -lateralVelocity.Y * lateralCancelStrength, -lateralVelocity.Z * lateralCancelStrength);
+        //        mRigidBody.LinearVelocity = new Vector3(mRigidBody.LinearVelocity.X + cancelImpulse.X, mRigidBody.LinearVelocity.Y + cancelImpulse.Y, mRigidBody.LinearVelocity.Z + cancelImpulse.Z);
+        //    }
+
+        //    // Add correction: tilt into the drift to cancel it
+        //    //float lateralKp = 0.4f;  // Tune this — degrees of gimbal per m/s of lateral speed
+        //    gimbalCommand += lateralKp * lateralSpeed;
+
+        //    gimbalCommand = Clamp(gimbalCommand, -MaxArrestGimbal * 0.5f, MaxArrestGimbal * 0.5f);
+        //    SetGimbalAngle(gimbalCommand);
+
+        //    // --- Throttle: constant-deceleration profile ---
+        //    // We want to arrive at altitude=0 with TargetTouchdownSpeed
+        //    // Required deceleration: a = (v² - vf²) / (2 * altitude)
+        //    // Required thrust: F = m * (a + g)
+        //    // Throttle = F / F_max
+
+        //    float totalThrust = MaxThrustNewtons * ActiveEngineCount;
+
+        //    if (altitude > 0.5f && descentSpeed > TargetTouchdownSpeed)
+        //    {
+        //        float desiredDecel = (descentSpeed * descentSpeed - TargetTouchdownSpeed * TargetTouchdownSpeed)
+        //                              / (2.0f * altitude);
+        //        float requiredAccel = desiredDecel + gravity;
+        //        float throttle = (requiredAccel * mRigidBody.Mass) / totalThrust;
+
+        //        // Near ground, blend to a gentle settling profile
+        //        if (altitude < ThrottleDownAltitude)
+        //        {
+        //            float gentleThrottle = (gravity + 0.5f) * mRigidBody.Mass / totalThrust;
+        //            float blend = altitude / ThrottleDownAltitude;
+        //            throttle = Lerp(gentleThrottle, throttle, blend);
+        //        }
+
+        //        throttle = Clamp(throttle, 0.05f, 1.0f);
+        //        SetThrottle(throttle);
+        //    }
+        //    else
+        //    {
+        //        // Slow enough — gentle settle, slightly below hover thrust
+        //        float hoverThrottle = gravity * mRigidBody.Mass / totalThrust;
+        //        SetThrottle(hoverThrottle * 0.95f);
+        //    }
+
+        //    if (!mLegsDeployed && altitude < LegDeployAltitude)
+        //    {
+        //        mMesh.PlayAnimation("LegUnfold");
+        //        // Adjust box collider to account for extended legs
+        //        mBoxCollider.Size = new Vector3(8.0f, 25.954125f, 5.3f);
+        //        mBoxCollider.Offset = new Vector3(0.0f, -0.70825f, 0.0f);
+        //        mLegsDeployed = true;
+        //        Toast.Console.LogInfo($"[Landing] Legs deploying at altitude={altitude:F0}m");
+        //    }
+
+        //    //Toast.Console.LogInfo($"[LandingBurn] alt={altitude:F0} speed={descentSpeed:F1} pitch={pitch:F1} throttle={currentThrottle:F2}");
+
+        //    // Hard velocity cap near ground — enforce touchdown velocity limits
+        //    if (altitude < 20.0f)
+        //    {
+        //        Vector3 vel = mRigidBody.LinearVelocity;
+        //        Vector3 ru = GetRadialUp();
+        //        float radial = vel.X * ru.X + vel.Y * ru.Y + vel.Z * ru.Z;
+        //        Vector3 lateral = new Vector3(
+        //            vel.X - ru.X * radial,
+        //            vel.Y - ru.Y * radial,
+        //            vel.Z - ru.Z * radial
+        //        );
+        //        float lateralMag = (float)Math.Sqrt(lateral.X * lateral.X + lateral.Y * lateral.Y + lateral.Z * lateral.Z);
+
+        //        // Progressive cap — gets tighter closer to ground
+        //        float t = 1.0f - Clamp(altitude / 20.0f, 0.0f, 1.0f);
+        //        float maxLateral = Lerp(3.0f, 0.2f, t); // 3 m/s at 20m → 0.2 m/s at ground
+
+        //        if (lateralMag > maxLateral)
+        //        {
+        //            float scale = maxLateral / lateralMag;
+        //            mRigidBody.LinearVelocity = new Vector3(
+        //                ru.X * radial + lateral.X * scale,
+        //                ru.Y * radial + lateral.Y * scale,
+        //                ru.Z * radial + lateral.Z * scale
+        //            );
+        //        }
+        //    }
+
+        //    // Detect touchdown
+        //    if (altitude < 0.5f && descentSpeed < TargetTouchdownSpeed + 1.0f)
+        //    {
+        //        Toast.Console.LogInfo($"[Landing] touchdown at speed={descentSpeed:F2}m/s, pitch={pitch:F1}°");
+        //        Toast.Console.LogInfo($"[Landing] linear velocity={mRigidBody.LinearVelocity:F2}m/s at touchdown");
+        //        SetEngineActive(false);
+        //        SetThrottle(0f);
+        //        SetGimbalAngle(0f);
+        //        mRigidBody.AngularDamping = 2.0f;
+        //        TransitionTo(LandingState.Landed);
+        //    }
+        //}
 
         private void TransitionTo(LandingState newState)
         {

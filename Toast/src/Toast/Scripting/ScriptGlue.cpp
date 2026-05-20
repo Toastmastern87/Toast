@@ -719,7 +719,7 @@ namespace Toast {
 		//pc.RenderMesh->InvalidatePlanet();
 	}
 
-	static void MeshComponent_PlayAnimation(uint64_t entityID, MonoString* name, float startTime)
+	static void MeshComponent_PlayAnimation(uint64_t entityID, MonoString* name)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		auto sceneSettings = scene->GetSettings();
@@ -739,14 +739,18 @@ namespace Toast {
 		{
 			for (auto& submesh : lodGroup->Submeshes)
 			{
-				if (!submesh.IsAnimated) continue;
+				if (!submesh.IsAnimated)
+					continue;
+
 				auto it = submesh.Animations.find(nameStr);
-				if (it == submesh.Animations.end() || !it->second) continue;
+
+				if (it == submesh.Animations.end() || !it->second) 
+					continue;
 
 				// Only call Play once per unique Animation instance
 				if (played.find(it->second.get()) == played.end())
 				{
-					it->second->Play(startTime);
+					it->second->Play();
 					played.insert(it->second.get());
 					found = true;
 				}
@@ -756,7 +760,49 @@ namespace Toast {
 		if (!found)
 			TOAST_CORE_WARN("Animation '%s' not found in any LOD group for entity %llu", nameStr.c_str(), entityID);
 		else
-			TOAST_CORE_INFO("PLaying animation '%s'", nameStr.c_str());
+			TOAST_CORE_INFO("Playing animation '%s'", nameStr.c_str());
+	}
+
+	static void MeshComponent_PlayReverseAnimation(uint64_t entityID, MonoString* name)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		auto sceneSettings = scene->GetSettings();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+
+		auto& mc = entity.GetComponent<MeshComponent>();
+		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
+
+		bool found = false;
+		std::unordered_set<Animation*> played;
+
+		for (auto& lodGroup : mc.MeshObject->GetLODGroups())
+		{
+			for (auto& submesh : lodGroup->Submeshes)
+			{
+				if (!submesh.IsAnimated) 
+					continue;
+
+				auto it = submesh.Animations.find(nameStr);
+
+				if (it == submesh.Animations.end() || !it->second) 
+					continue;
+
+				if (played.find(it->second.get()) == played.end())
+				{
+					it->second->PlayReverse();
+					played.insert(it->second.get());
+					found = true;
+				}
+			}
+		}
+
+		if (!found)
+			TOAST_CORE_WARN("Animation '%s' not found in any LOD group for entity %llu", nameStr.c_str(), entityID);
+		else
+			TOAST_CORE_INFO("Playing animation '%s' reversed", nameStr.c_str());
 	}
 
 	static float MeshComponent_StopAnimation(uint64_t entityID, MonoString* name)
@@ -769,26 +815,83 @@ namespace Toast {
 		Entity entity = entityMap.at(entityID);
 
 		auto& mc = entity.GetComponent<MeshComponent>();
-
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
 
-		//TOAST_CORE_INFO("Getting animation: %s", nameStr.c_str());
-
-		for (auto& submesh : mc.MeshObject->GetSubmeshes())
+		float timeElapsed = 0.0f;
+		for (auto& lodGroup : mc.MeshObject->GetLODGroups())
 		{
-			if (submesh.IsAnimated)
+			for (auto& submesh : lodGroup->Submeshes)
 			{
-				if (submesh.Animations.find(nameStr) != submesh.Animations.end())
-				{
-					float elapsedTime = submesh.Animations[nameStr]->TimeElapsed;
-					submesh.Animations[nameStr]->Reset();
+				if (!submesh.IsAnimated) 
+					continue;
 
-					return elapsedTime;
-				}	
+				auto it = submesh.Animations.find(nameStr);
+				if (it == submesh.Animations.end() || !it->second) 
+					continue;
+
+				timeElapsed = it->second->TimeElapsed;
+				it->second->IsActive = false;
+				it->second->TimeElapsed = 0.0f;
+
+				return timeElapsed; // all LODs share the same ref so one is enough
 			}
 		}
+		return timeElapsed;
+	}
 
+	static float MeshComponent_GetAnimationTimeElapsed(uint64_t entityID, MonoString* name)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		auto sceneSettings = scene->GetSettings();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+
+		auto& mc = entity.GetComponent<MeshComponent>();
+		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
+
+		for (auto& lodGroup : mc.MeshObject->GetLODGroups())
+		{
+			for (auto& submesh : lodGroup->Submeshes)
+			{
+				if (!submesh.IsAnimated) continue;
+				auto it = submesh.Animations.find(nameStr);
+				if (it == submesh.Animations.end() || !it->second) continue;
+				return it->second->TimeElapsed;
+			}
+		}
 		return 0.0f;
+	}
+
+	static bool MeshComponent_IsAnimationComplete(uint64_t entityID, MonoString* name)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+
+		auto& mc = entity.GetComponent<MeshComponent>();
+		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
+
+		// Check all LOD groups — animation is complete when IsActive=false and TimeElapsed=0
+		// meaning it ran to completion and reset, not that it was never played
+		for (auto& lodGroup : mc.MeshObject->GetLODGroups())
+		{
+			for (auto& submesh : lodGroup->Submeshes)
+			{
+				if (!submesh.IsAnimated) continue;
+				auto it = submesh.Animations.find(nameStr);
+				if (it == submesh.Animations.end() || !it->second) continue;
+
+				// Found a submesh with this animation — check its state
+				// IsActive=false + TimeElapsed=0 means it completed (was reset)
+				// IsActive=false + TimeElapsed=0 also means never played, so we need a HasPlayed flag
+				return !it->second->IsActive && it->second->HasPlayed;
+			}
+		}
+		return false;
 	}
 
 	static float MeshComponent_GetDurationAnimation(uint64_t entityID, MonoString* name)
@@ -801,17 +904,22 @@ namespace Toast {
 		Entity entity = entityMap.at(entityID);
 
 		auto& mc = entity.GetComponent<MeshComponent>();
-
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
 
 		//TOAST_CORE_INFO("Getting animation: %s", nameStr.c_str());
 
-		for (auto& submesh : mc.MeshObject->GetSubmeshes())
+		for (auto& lodGroup : mc.MeshObject->GetLODGroups())
 		{
-			if (submesh.IsAnimated)
+			for (auto& submesh : lodGroup->Submeshes)
 			{
-				if (submesh.Animations.find(nameStr) != submesh.Animations.end())
-					return submesh.Animations[nameStr]->Duration;
+				if (!submesh.IsAnimated) 
+					continue;
+
+				auto it = submesh.Animations.find(nameStr);
+				if (it == submesh.Animations.end() || !it->second) 
+					continue;
+
+				return it->second->Duration;
 			}
 		}
 
@@ -936,6 +1044,28 @@ namespace Toast {
 		component.Color = *inColor;
 	}
 
+	bool UIButtonComponent_GetVisible(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<UIButtonComponent>();
+		return component.Visible;
+	}
+
+	void UIButtonComponent_SetVisible(uint64_t entityID, bool value)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<UIButtonComponent>();
+		component.Visible = value;
+	}
+
 #pragma endregion
 
 #pragma region UI Text Component
@@ -1034,6 +1164,30 @@ namespace Toast {
 		return (component.InvMass > 0.0f) ? (1.0f / component.InvMass) : 0.0f;
 	}
 
+	static void RigidBodyComponent_SetAngularDamping(uint64_t entityID, float damping)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<RigidBodyComponent>();
+
+		component.AngularDamping = damping;
+	}
+
+	static float RigidBodyComponent_GetAngularDamping(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<RigidBodyComponent>();
+
+		return component.AngularDamping;
+	}
+
 #pragma endregion
 
 #pragma region Sphere Collider Component
@@ -1066,6 +1220,56 @@ namespace Toast {
 		double altitude = scene->GetPhysicsEngine()->GetAltitudeBoxCollider(entity);
 
 		return static_cast<float>(altitude);
+	}
+
+	void BoxColliderComponent_GetSize(uint64_t entityID, DirectX::XMFLOAT3* outSize)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<BoxColliderComponent>();
+
+		*outSize = { (float)component.Collider->mSize.x, (float)component.Collider->mSize.y, (float)component.Collider->mSize.z };
+	}
+
+	void BoxColliderComponent_SetSize(uint64_t entityID, DirectX::XMFLOAT3* size)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<BoxColliderComponent>();
+
+		component.Collider->mSize = Vector3(*size);
+		component.IsDirty = true;
+	}
+
+	void BoxColliderComponent_GetOffset(uint64_t entityID, DirectX::XMFLOAT3* outOffset)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<BoxColliderComponent>();
+
+		*outOffset = { (float)component.Collider->mOffset.x, (float)component.Collider->mOffset.y, (float)component.Collider->mOffset.z };
+	}
+
+	void BoxColliderComponent_SetOffset(uint64_t entityID, DirectX::XMFLOAT3* offset)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& component = entity.GetComponent<BoxColliderComponent>();
+
+		component.Collider->mOffset = Vector3(*offset);
+		component.IsDirty = true;
 	}
 
 #pragma endregion
@@ -1221,8 +1425,11 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetWorldRight);	
 
 		TOAST_ADD_INTERNAL_CALL(MeshComponent_GeneratePlanet);
-		TOAST_ADD_INTERNAL_CALL(MeshComponent_PlayAnimation);		 
+		TOAST_ADD_INTERNAL_CALL(MeshComponent_PlayAnimation);		
+		TOAST_ADD_INTERNAL_CALL(MeshComponent_PlayReverseAnimation);
 		TOAST_ADD_INTERNAL_CALL(MeshComponent_StopAnimation);
+		TOAST_ADD_INTERNAL_CALL(MeshComponent_GetAnimationTimeElapsed);
+		TOAST_ADD_INTERNAL_CALL(MeshComponent_IsAnimationComplete);
 		TOAST_ADD_INTERNAL_CALL(MeshComponent_GetDurationAnimation);
 
 		TOAST_ADD_INTERNAL_CALL(CameraComponent_GetFarClip);
@@ -1237,6 +1444,8 @@ namespace Toast {
 
 		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_GetColor);
 		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_SetColor);
+		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_GetVisible);
+		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_SetVisible);
 
 		TOAST_ADD_INTERNAL_CALL(UITextComponent_GetText);
 		TOAST_ADD_INTERNAL_CALL(UITextComponent_SetText);
@@ -1246,10 +1455,16 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetAngularVelocity);
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_SetMass);
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetMass);
+		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_SetAngularDamping);
+		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetAngularDamping);
 
 		TOAST_ADD_INTERNAL_CALL(SphereColliderComponent_GetAltitude);
 
 		TOAST_ADD_INTERNAL_CALL(BoxColliderComponent_GetAltitude);
+		TOAST_ADD_INTERNAL_CALL(BoxColliderComponent_SetSize);
+		TOAST_ADD_INTERNAL_CALL(BoxColliderComponent_GetSize);
+		TOAST_ADD_INTERNAL_CALL(BoxColliderComponent_SetOffset);
+		TOAST_ADD_INTERNAL_CALL(BoxColliderComponent_GetOffset);
 
 		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_GetEmitting);
 		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_SetEmitting);

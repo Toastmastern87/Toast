@@ -246,7 +246,7 @@ namespace Toast {
 	}
 
 	void ShaderLayout::Unbind() const
-	{
+	{ 
 		TOAST_PROFILE_FUNCTION();
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
@@ -479,6 +479,9 @@ namespace Toast {
 			D3D11_SIGNATURE_PARAMETER_DESC paramDesc;
 			reflector->GetInputParameterDesc(i, &paramDesc);
 
+			if (paramDesc.SystemValueType != D3D_NAME_UNDEFINED)
+				continue;
+
 			ShaderLayout::ShaderInputElement elementDesc;
 			elementDesc.mName = paramDesc.SemanticName;
 			elementDesc.mSemanticIndex = paramDesc.SemanticIndex;
@@ -524,6 +527,8 @@ namespace Toast {
 				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.mType = DXGI_FORMAT_R32G32B32A32_SINT;
 				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.mType = DXGI_FORMAT_R32G32B32A32_FLOAT;
 			}
+
+			elementDesc.mSize = ShaderDataTypeSize(elementDesc.mType);
 
 			inputLayoutDesc.push_back(elementDesc);
 

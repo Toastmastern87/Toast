@@ -54,6 +54,10 @@ namespace Toast {
 					IntegrateLinear(e, subStepDeltaTime);
 					IntegrateAngular(e, subStepDeltaTime);
 
+					// Apply angular damping every sub step
+					if (rbc.AngularDamping > 0.0f)
+						rbc.AngularVelocity *= std::max(0.0, 1.0 - rbc.AngularDamping * subStepDeltaTime);
+
 					TerrainContactManifold manifold;
 					if (CheckTerrainCollision(e, manifold))
 						ResolveTerrainCollision(manifold, subStepDeltaTime);
@@ -685,6 +689,8 @@ namespace Toast {
 			if (!scc.IsDirty)
 				continue;
 
+			scc.Collider->CalculateBounds();
+
 			auto& rbc = sphereView.get<RigidBodyComponent>(entity);
 			rbc.InertiaTensor = ComputeSphereInertiaTensor((1.0 / rbc.InvMass), scc.Collider->mRadius);
 			rbc.InvInertiaTensor = Matrix::Inverse(rbc.InertiaTensor);
@@ -698,6 +704,8 @@ namespace Toast {
 			auto& bcc = boxView.get<BoxColliderComponent>(entity);
 			if (!bcc.IsDirty)
 				continue;
+
+			bcc.Collider->CalculateBounds();
 
 			auto& rbc = boxView.get<RigidBodyComponent>(entity);
 			rbc.InertiaTensor = ComputeBoxInertiaTensor((1.0 / rbc.InvMass), bcc.Collider->mSize, rbc.CenterOfMass);

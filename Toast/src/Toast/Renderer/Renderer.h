@@ -298,7 +298,7 @@ namespace Toast {
 		static void FillParticleBuffer(std::vector<Particle>& particles);
 	private:
 		static void UploadCameraCBuffer(Camera& camera, const DirectX::XMFLOAT4 cameraPos);
-		static void BindPlanetTerrainResources();
+		static void BindPlanetTerrainResources(bool bindVertexSRVs, bool bindPixelSRVs);
 
 		static void DrawTerrainObjects(Planet* planet, Vector3 worldTranslation);
 	};

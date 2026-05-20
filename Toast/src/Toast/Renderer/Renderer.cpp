@@ -919,6 +919,7 @@ namespace Toast {
 		if (annotation)
 			annotation->BeginEvent(L"Geometry Pass");
 #endif
+
 		RenderCommand::SetViewport(sRendererData->Viewport);
 		RenderCommand::SetRenderTargets({ sRendererData->GPassPositionRT->GetRTV().Get(), sRendererData->GPassNormalRT->GetRTV().Get(), sRendererData->GPassAlbedoMetallicRT->GetRTV().Get(), sRendererData->GPassRoughnessAORT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get(), sRendererData->PlanetMaterialDebugRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
@@ -946,7 +947,7 @@ namespace Toast {
 				sRendererData->PlanetDraw.Planet->GetIcosphereMesh()->GetShaderInputLayout()->Bind();
 			}
 
-			BindPlanetTerrainResources();
+			BindPlanetTerrainResources(true, true);
 
 			sRendererData->PlanetDraw.Planet->MapRenderingSettings();
 			sRendererData->PlanetDraw.Planet->GetPlanetRenderingSettingsCBuffer()->Bind();
@@ -1038,6 +1039,7 @@ namespace Toast {
 
 		RenderCommand::ClearShaderResources();
 
+		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::LinearWrap));
 		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
 
 		ShaderLibrary::Get("assets/shaders/Rendering/GeometryPass.hlsl")->Bind();
@@ -1048,13 +1050,13 @@ namespace Toast {
 
 			if (!planet->GetTerrainObjects().empty())
 			{
-				BindPlanetTerrainResources();
+				BindPlanetTerrainResources(true, false);
 
 				auto& icosphereMesh = planet->GetIcosphereMesh();
 				icosphereMesh->GetPlanetMeshCBuffer()->Bind();
 				planet->GetPlanetFrameCBuffer()->Bind();
 
-				RenderCommand::BindSampler(D3D11_VERTEX_SHADER, 5, SamplerStates::Get(SamplerType::UWrapVClamp));
+				RenderCommand::BindSampler(D3D11_VERTEX_SHADER, 6, SamplerStates::Get(SamplerType::UWrapVClamp));
 
 				DrawTerrainObjects(planet, worldTranslation);
 			}
@@ -2352,34 +2354,47 @@ namespace Toast {
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 	}
 
-	void Renderer::BindPlanetTerrainResources()
+	void Renderer::BindPlanetTerrainResources(bool bindVertexSRVs, bool bindPixelSRVs)
 	{
 		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
 
 		if (sRendererData->PlanetDraw.Planet->GetNumMaterials() > 0 && sRendererData->PlanetDraw.Planet->GetMaterialSB() && sRendererData->PlanetDraw.Planet->GetMaterialNoiseSB() && sRendererData->PlanetDraw.Planet->GetMaterialNoisePermSB())
 		{
 			// t1 = Materials, t2 = NoiseLayers, t3 = PermTables, t4 = AlbedoCubeArray
-			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 1, sRendererData->PlanetDraw.Planet->GetMaterialSB()->GetSRV());
-			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 2, sRendererData->PlanetDraw.Planet->GetMaterialNoiseSB()->GetSRV());
-			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 3, sRendererData->PlanetDraw.Planet->GetMaterialNoisePermSB()->GetSRV());
-			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 4, sRendererData->PlanetDraw.Planet->GetAlbedoCubeTexture()->GetSRV());
+			if (bindVertexSRVs)
+			{
+				RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 1, sRendererData->PlanetDraw.Planet->GetMaterialSB()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 2, sRendererData->PlanetDraw.Planet->GetMaterialNoiseSB()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 3, sRendererData->PlanetDraw.Planet->GetMaterialNoisePermSB()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 4, sRendererData->PlanetDraw.Planet->GetAlbedoCubeTexture()->GetSRV());
+			}
 
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->PlanetDraw.Planet->GetMaterialSB()->GetSRV());
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->PlanetDraw.Planet->GetMaterialNoisePermSB()->GetSRV());
+			if (bindPixelSRVs)
+			{
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->PlanetDraw.Planet->GetMaterialSB()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->PlanetDraw.Planet->GetMaterialNoisePermSB()->GetSRV());
+			}
 		}
 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->PlanetDraw.Planet->GetNormalMapCubeTexture()->GetSRV());
+		if (bindPixelSRVs)
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->PlanetDraw.Planet->GetNormalMapCubeTexture()->GetSRV());
 
 		if (sRendererData->PlanetDraw.Planet->GetUseAlbedoMap())
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->PlanetDraw.Planet->GetAlbedoCubeTexture()->GetSRV());
+		{
+			if (bindPixelSRVs)
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->PlanetDraw.Planet->GetAlbedoCubeTexture()->GetSRV());
+		}
 
 		if (sRendererData->PlanetDraw.Planet->GetPBRAlbedoArray())
 		{
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRendererData->PlanetDraw.Planet->GetPBRAlbedoArray()->GetSRV());
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 7, sRendererData->PlanetDraw.Planet->GetPBRNormalArray()->GetSRV());
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRendererData->PlanetDraw.Planet->GetPBRRoughnessArray()->GetSRV());
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->PlanetDraw.Planet->GetPBRAOArray()->GetSRV());
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->PlanetDraw.Planet->GetPBRDisplacementArray()->GetSRV());
+			if (bindPixelSRVs)
+			{
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRendererData->PlanetDraw.Planet->GetPBRAlbedoArray()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 7, sRendererData->PlanetDraw.Planet->GetPBRNormalArray()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, sRendererData->PlanetDraw.Planet->GetPBRRoughnessArray()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->PlanetDraw.Planet->GetPBRAOArray()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->PlanetDraw.Planet->GetPBRDisplacementArray()->GetSRV());
+			}
 		}
 
 		// Cbuffers

@@ -413,6 +413,7 @@ namespace Toast {
 			auto& rbc = entity.GetComponent<RigidBodyComponent>();
 			out << YAML::Key << "InvMass" << YAML::Value << rbc.InvMass;
 			out << YAML::Key << "Elasticity" << YAML::Value << rbc.Elasticity;
+			out << YAML::Key << "AngularDamping" << YAML::Value << rbc.AngularDamping;
 			out << YAML::Key << "StaticFriction" << YAML::Value << rbc.StaticFriction;
 			out << YAML::Key << "DynamicFriction" << YAML::Value << rbc.DynamicFriction;
 			out << YAML::Key << "CenterOfMass" << YAML::Value << rbc.CenterOfMass;
@@ -427,6 +428,7 @@ namespace Toast {
 		{
 			out << YAML::Key << "SphereColliderComponent";
 			out << YAML::BeginMap; // SphereColliderComponent
+
 
 			auto& scc = entity.GetComponent<SphereColliderComponent>();
 			out << YAML::Key << "RenderCollider" << YAML::Value << scc.RenderCollider;
@@ -480,6 +482,7 @@ namespace Toast {
 			out << YAML::Key << "ClickColor" << YAML::Value << ubc.ClickColor;
 			out << YAML::Key << "TextureAssetHandle" << YAML::Value << ubc.TextureHandle;
 			out << YAML::Key << "ClickTextureAssetHandle" << YAML::Value << ubc.ClickTextureHandle;
+			out << YAML::Key << "Visible" << YAML::Value << ubc.Visible;
 
 			out << YAML::EndMap; // UIButtonComponent
 		}
@@ -1548,6 +1551,7 @@ namespace Toast {
 					rbc.CenterOfMass = rigidBodyComponent["CenterOfMass"].as<Vector3>();
 					rbc.InvMass = rigidBodyComponent["InvMass"].as<double>();
 					rbc.Elasticity = rigidBodyComponent["Elasticity"].as<double>();
+					rbc.AngularDamping = rigidBodyComponent["AngularDamping"].as<double>();
 					rbc.StaticFriction = rigidBodyComponent["StaticFriction"].as<double>();
 					rbc.DynamicFriction = rigidBodyComponent["DynamicFriction"].as<double>();
 					rbc.DragCoefficient = rigidBodyComponent["DragCoefficient"].as<float>();
@@ -1613,6 +1617,7 @@ namespace Toast {
 					ubc.UseColor = uiButtonComponent["UseColor"].as<bool>();
 					ubc.ClickColor = uiButtonComponent["ClickColor"].as<DirectX::XMFLOAT4>();
 					ubc.CornerRadius = uiButtonComponent["CornerRadius"].as<float>();
+					ubc.Visible = uiButtonComponent["Visible"].as<bool>();
 
 					ubc.TextureHandle = uiButtonComponent["TextureAssetHandle"].as<AssetHandle>();
 					ubc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.TextureHandle);

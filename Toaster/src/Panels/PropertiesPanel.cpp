@@ -900,6 +900,10 @@ namespace Toast {
 				if(DrawFloatControl("Elasticity (0-1)", temp, window, activeDragArea, 90.0f, 0.0f, 1.0f, 0.01f, "%.2f"))
 					component.Elasticity = static_cast<double>(temp);
 
+				temp = static_cast<float>(component.AngularDamping);
+				if (DrawFloatControl("Angular Damping", temp, window, activeDragArea, 90.0f, 0.0f, 10.0f, 0.01f, "%.2f"))
+					component.AngularDamping = static_cast<double>(temp);
+
 				temp = static_cast<float>(component.StaticFriction);
 				if(DrawFloatControl("Static Friction", temp, window, activeDragArea, 90.0f, 0.0f, 2.0f, 0.01f, "%.2f"))
 					component.StaticFriction = static_cast<double>(temp);
@@ -1327,6 +1331,13 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
 				ImGui::SliderFloat("##cornerradius", &component.CornerRadius, 0.0f, 50.0f, "%.1f");
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Visible");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Checkbox("##visible", &component.Visible);
+				ImGui::TableNextRow();
 
 				ImGui::EndTable();
 			});

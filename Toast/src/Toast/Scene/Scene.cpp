@@ -340,6 +340,7 @@ namespace Toast {
 
 				const float farForShadows = std::max(shadowFar, camNear + 1.0f);
 
+
 				Renderer::ComputeCascadeEnds(camNear, farForShadows, mSettings.Shadows.CascadeCount, mSettings.Shadows.Lambda, cascadeEnds);
 
 				mSettings.Shadows.IsDirty = false;
@@ -669,6 +670,10 @@ namespace Toast {
 							scale = { (float)bcc.Collider->mSize.x, (float)bcc.Collider->mSize.y, (float)bcc.Collider->mSize.z };
 							colliderMesh = bcc.ColliderMesh;
 							renderCollider = bcc.RenderCollider;
+
+							DirectX::XMVECTOR localOffset = DirectX::XMVectorSet((float)bcc.Collider->mOffset.x, (float)bcc.Collider->mOffset.y, (float)bcc.Collider->mOffset.z, 0.0f);
+							DirectX::XMVECTOR rotatedOffset = DirectX::XMVector3Rotate(localOffset, rot);
+							pos = DirectX::XMVectorAdd(pos, rotatedOffset);
 						}
 
 						DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(rot) * DirectX::XMMatrixTranslationFromVector(pos);
@@ -758,6 +763,9 @@ namespace Toast {
 					auto [tc, ubc] = uiButtonEntites.get<TransformComponent, UIButtonComponent>(entity);
 
 					Entity e{ entity, this };
+
+					if (!ubc.Visible)
+						continue;
 
 					bool renderButton = true;
 
@@ -1297,6 +1305,10 @@ namespace Toast {
 					scale = { (float)bcc.Collider->mSize.x, (float)bcc.Collider->mSize.y, (float)bcc.Collider->mSize.z };
 					colliderMesh = bcc.ColliderMesh;
 					renderCollider = bcc.RenderCollider;
+
+					DirectX::XMVECTOR localOffset = DirectX::XMVectorSet((float)bcc.Collider->mOffset.x, (float)bcc.Collider->mOffset.y, (float)bcc.Collider->mOffset.z, 0.0f);
+					DirectX::XMVECTOR rotatedOffset = DirectX::XMVector3Rotate(localOffset, rot);
+					pos = DirectX::XMVectorAdd(pos, rotatedOffset);
 				}
 
 				DirectX::XMMATRIX transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(scale) * DirectX::XMMatrixRotationQuaternion(rot) * DirectX::XMMatrixTranslationFromVector(pos);
@@ -1426,8 +1438,10 @@ namespace Toast {
 				for (auto entity : uiButtonEntites)
 				{
 					auto [tc, ubc] = uiButtonEntites.get<TransformComponent, UIButtonComponent>(entity);
-
 					Entity e{ entity, this };
+
+					if (!ubc.Visible)
+						continue;
 
 					bool renderButton = true;
 

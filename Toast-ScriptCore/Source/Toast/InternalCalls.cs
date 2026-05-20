@@ -231,10 +231,19 @@ namespace Toast
         internal static extern void MeshComponent_SetMesh(ulong entityID, IntPtr unmanagedInstance);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void MeshComponent_PlayAnimation(ulong entityID, string name, float startTime);
+        internal static extern void MeshComponent_PlayAnimation(ulong entityID, string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static void MeshComponent_PlayReverseAnimation(ulong entityID, string name);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float MeshComponent_StopAnimation(ulong entityID, string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static float MeshComponent_GetAnimationTimeElapsed(ulong entityID, string name);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static bool MeshComponent_IsAnimationComplete(ulong entityID, string name);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float MeshComponent_GetDurationAnimation(ulong entityID, string name);
@@ -282,6 +291,10 @@ namespace Toast
         internal static extern IntPtr UIButtonComponent_GetColor(ulong entityID, out Vector4 result);
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void UIButtonComponent_SetColor(ulong entityID, ref Vector4 inColor);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool UIButtonComponent_GetVisible(ulong entityID);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void UIButtonComponent_SetVisible(ulong entityID, bool value);
 
         #endregion
 
@@ -311,6 +324,12 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float RigidBodyComponent_GetMass(ulong entityID);
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void RigidBodyComponent_SetAngularDamping(ulong entityID, float mass);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float RigidBodyComponent_GetAngularDamping(ulong entityID);
+
         #endregion
 
         #region Sphere Collider Component
@@ -324,6 +343,18 @@ namespace Toast
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern float BoxColliderComponent_GetAltitude(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static void BoxColliderComponent_GetSize(ulong entityID, out Vector3 size);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static void BoxColliderComponent_SetSize(ulong entityID, ref Vector3 size);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static void BoxColliderComponent_GetOffset(ulong entityID, out Vector3 offset);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal extern static void BoxColliderComponent_SetOffset(ulong entityID, ref Vector3 offset);
 
         #endregion
 

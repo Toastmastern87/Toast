@@ -512,19 +512,25 @@ namespace Toast {
 				// Unique key per animation+node combination
 				std::string animKey = baseAnimName + "_" + baseNodeName;
 
+				float animDuration = 0.0f;
+				for (unsigned int c = 0; c < data->animations[a].channels_count; c++)
+				{
+					auto& channel = data->animations[a].channels[c];
+					if (!channel.sampler) continue;
+					animDuration = std::max(animDuration, (float)channel.sampler->input->max[0]);
+				}
+
 				// Create the shared animation only once per base name
 				if (baseAnimations.find(animKey) == baseAnimations.end())
 				{
 					Ref<Animation> animation = CreateRef<Animation>();
 					animation->Name = baseAnimName;
 					animation->SampleCount = channel.sampler->input->count;
-					animation->Duration = channel.sampler->input->max[0];
+					animation->Duration = animDuration;
 
 					// Timestamp buffer
 					size_t timestampSize = channel.sampler->input->count * sizeof(float);
 					uint8_t* timestampData = (uint8_t*)channel.sampler->input->buffer_view->buffer->data + channel.sampler->input->buffer_view->offset + channel.sampler->input->offset;
-					animation->TimestampBuffer = Buffer(timestampSize);
-					animation->TimestampBuffer.Write(timestampData, timestampSize);
 
 					baseAnimations[animKey] = animation;
 					TOAST_CORE_INFO("Created animation '%s' for node '%s'", baseAnimName.c_str(), baseNodeName.c_str());
@@ -545,18 +551,45 @@ namespace Toast {
 
 				if (channel.target_path == cgltf_animation_path_type_translation)
 				{
+					animation->TranslationSampleCount = channel.sampler->input->count;
+					size_t tsSize = channel.sampler->input->count * sizeof(float);
+					uint8_t* tsData = (uint8_t*)channel.sampler->input->buffer_view->buffer->data
+						+ channel.sampler->input->buffer_view->offset
+						+ channel.sampler->input->offset;
+					animation->TranslationTimestampBuffer = Buffer(tsSize);
+					animation->TranslationTimestampBuffer.Write(tsData, tsSize);
+
 					animation->TranslationBuffer = Buffer(bufferSize);
 					animation->TranslationBuffer.Write(bufferData, bufferSize);
+					animation->Duration = std::max(animation->Duration, channel.sampler->input->max[0]);
 				}
 				else if (channel.target_path == cgltf_animation_path_type_rotation)
 				{
+					animation->RotationSampleCount = channel.sampler->input->count;
+					size_t tsSize = channel.sampler->input->count * sizeof(float);
+					uint8_t* tsData = (uint8_t*)channel.sampler->input->buffer_view->buffer->data
+						+ channel.sampler->input->buffer_view->offset
+						+ channel.sampler->input->offset;
+					animation->RotationTimestampBuffer = Buffer(tsSize);
+					animation->RotationTimestampBuffer.Write(tsData, tsSize);
+
 					animation->RotationBuffer = Buffer(bufferSize);
 					animation->RotationBuffer.Write(bufferData, bufferSize);
+					animation->Duration = std::max(animation->Duration, channel.sampler->input->max[0]);
 				}
 				else if (channel.target_path == cgltf_animation_path_type_scale)
 				{
+					animation->ScaleSampleCount = channel.sampler->input->count;
+					size_t tsSize = channel.sampler->input->count * sizeof(float);
+					uint8_t* tsData = (uint8_t*)channel.sampler->input->buffer_view->buffer->data
+						+ channel.sampler->input->buffer_view->offset
+						+ channel.sampler->input->offset;
+					animation->ScaleTimestampBuffer = Buffer(tsSize);
+					animation->ScaleTimestampBuffer.Write(tsData, tsSize);
+
 					animation->ScaleBuffer = Buffer(bufferSize);
 					animation->ScaleBuffer.Write(bufferData, bufferSize);
+					animation->Duration = std::max(animation->Duration, channel.sampler->input->max[0]);
 				}
 
 				for (auto& lodGroup : mLODGroups)
@@ -601,12 +634,48 @@ namespace Toast {
 	{
 		if (mHasLODs)
 		{
-			for (int i = 0; i <= 2; ++i)
+			// First pass — update all submesh transforms using current TimeElapsed
+			for (int i = 0; i < 3; ++i)
 			{
 				for (auto& submesh : mLODGroups[i]->Submeshes)
 				{
 					if (submesh.IsAnimated)
 						submesh.OnUpdate(ts);
+				}
+			}
+
+			// Second pass — advance TimeElapsed once per unique animation ref
+			std::unordered_set<Animation*> advanced;
+			for (int i = 0; i < 3; ++i)
+			{
+				for (auto& submesh : mLODGroups[i]->Submeshes)
+				{
+					for (auto& animation : submesh.Animations)
+					{
+						if (!animation.second || !animation.second->IsActive) continue;
+						if (advanced.find(animation.second.get()) != advanced.end()) continue;
+
+						if (animation.second->IsReversed)
+						{
+							animation.second->TimeElapsed -= (float)ts;
+							if (animation.second->TimeElapsed <= 0.0f)
+							{
+								animation.second->IsActive = false;
+								animation.second->TimeElapsed = 0.0f;
+								animation.second->IsReversed = false;
+							}
+						}
+						else
+						{
+							animation.second->TimeElapsed += (float)ts;
+							if (animation.second->TimeElapsed >= animation.second->Duration)
+							{
+								animation.second->IsActive = false;
+								animation.second->TimeElapsed = animation.second->Duration;
+							}
+						}
+						advanced.insert(animation.second.get());
+					}
 				}
 			}
 		}
@@ -779,134 +848,94 @@ namespace Toast {
 
 	void Submesh::OnUpdate(Timestep ts)
 	{
-		for (auto& animation : Animations) 
+		for (auto& animation : Animations)
 		{
-			if (animation.second->IsActive) 
+			if (!animation.second->IsActive)
+				continue;
+
+			DirectX::XMVECTOR animatedTranslation = DirectX::XMVectorZero();
+			if (animation.second->TranslationBuffer.Size > 0)
 			{
-				//TOAST_CORE_INFO("Submesh '%s' animation '%s' is active", MeshName.c_str(), animation.second->Name.c_str());
-
-				// --- Debug ---
-				//TOAST_CORE_CRITICAL("DataBuffer.Size=%llu | RotationBuffer.Size=%llu",
-				//	animation.second->DataBuffer.Size,
-				//	animation.second->RotationBuffer.Size);
-
-				DirectX::XMVECTOR animatedTranslation = (animation.second->TranslationBuffer.Size > 0) ? InterpolateTranslation(animation.second->TimeElapsed, animation.second->Name) : DirectX::XMLoadFloat3(&Translation);
-
-				DirectX::XMVECTOR animatedRotation = (animation.second->RotationBuffer.Size > 0) ? InterpolateRotation(animation.second->TimeElapsed, animation.second->Name) : DirectX::XMLoadFloat4(&Rotation);
-
-				DirectX::XMVECTOR animatedScale = (animation.second->ScaleBuffer.Size > 0) ? InterpolateScale(animation.second->TimeElapsed, animation.second->Name) : DirectX::XMLoadFloat3(&Scale);
-
-				//DirectX::XMFLOAT4 rotOut;
-				//DirectX::XMStoreFloat4(&rotOut, animatedRotation);
-				//TOAST_CORE_CRITICAL("animatedRotation=(%.4f, %.4f, %.4f, %.4f) | TimeElapsed=%.3f",
-				//	rotOut.x, rotOut.y, rotOut.z, rotOut.w, animation.second->TimeElapsed);
-
-				Transform = DirectX::XMMatrixIdentity() * DirectX::XMMatrixScalingFromVector(animatedScale)
-					* (DirectX::XMMatrixRotationQuaternion(animatedRotation))
-					* DirectX::XMMatrixTranslationFromVector(animatedTranslation);
-
-				animation.second->TimeElapsed += ts;
-
-				if (animation.second->TimeElapsed >= animation.second->Duration)
-				{
-					animation.second->IsActive = false;
-					animation.second->TimeElapsed = 0.0f;
-				}
+				DirectX::XMFLOAT3* dataPtr = animation.second->TranslationBuffer.As<DirectX::XMFLOAT3>();
+				DirectX::XMVECTOR restPos = DirectX::XMLoadFloat3(&dataPtr[0]);
+				DirectX::XMVECTOR animated = InterpolateTranslation(animation.second->TimeElapsed, animation.second->Name);
+				animatedTranslation = DirectX::XMVectorSubtract(animated, restPos);
 			}
+
+			DirectX::XMVECTOR animatedRotation = (animation.second->RotationBuffer.Size > 0) ? InterpolateRotation(animation.second->TimeElapsed, animation.second->Name) : DirectX::XMQuaternionIdentity();
+
+			DirectX::XMVECTOR animatedScale = (animation.second->ScaleBuffer.Size > 0) ? InterpolateScale(animation.second->TimeElapsed, animation.second->Name) : DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f);
+
+			Transform = DirectX::XMMatrixScalingFromVector(animatedScale) * DirectX::XMMatrixRotationQuaternion(animatedRotation) * DirectX::XMMatrixTranslationFromVector(animatedTranslation);
 		}
 	}
 
-	uint32_t Submesh::FindPosition(float animationTime, const std::string& animationName)
-	{	
-		auto& anim = Animations[animationName];
-		float* timestamps = anim->TimestampBuffer.As<float>();
-
-		for (uint32_t i = 0; i < anim->SampleCount - 1; i++)
+	uint32_t Submesh::FindPosition(float animationTime, float* timestamps, uint32_t sampleCount)
+	{
+		for (uint32_t i = 0; i < sampleCount - 1; i++)
 		{
 			if (animationTime < timestamps[i + 1])
 				return i;
 		}
-
-		return anim->SampleCount - 2;
+		return sampleCount - 2;
 	}
 
 	DirectX::XMVECTOR Submesh::InterpolateTranslation(float animationTime, const std::string& animationName)
 	{
 		auto& anim = Animations[animationName];
+		float* timestamps = anim->TranslationTimestampBuffer.As<float>();
+		uint32_t count = anim->TranslationSampleCount;
 
-		uint32_t positionIndex = FindPosition(animationTime, animationName);
-
-		if (positionIndex >= anim->SampleCount - 1)
+		uint32_t idx = FindPosition(animationTime, timestamps, count);
+		if (idx >= count - 1)
 		{
-			DirectX::XMFLOAT3* dataPtr = anim->TranslationBuffer.As<DirectX::XMFLOAT3>();
-			return DirectX::XMLoadFloat3(&dataPtr[anim->SampleCount - 1]);
+			DirectX::XMFLOAT3* data = anim->TranslationBuffer.As<DirectX::XMFLOAT3>();
+			return DirectX::XMLoadFloat3(&data[count - 1]);
 		}
-
-		uint32_t nextPositionIndex = (positionIndex + 1);
-
-		float* timestamps = anim->TimestampBuffer.As<float>();
-		float t0 = timestamps[positionIndex];
-		float t1 = timestamps[nextPositionIndex];
+		float t0 = timestamps[idx], t1 = timestamps[idx + 1];
 		float factor = std::clamp((animationTime - t0) / (t1 - t0), 0.0f, 1.0f);
-
-		DirectX::XMFLOAT3* dataPtr = Animations[animationName]->TranslationBuffer.As<DirectX::XMFLOAT3>();
-
-		const DirectX::XMVECTOR start = { dataPtr[positionIndex].x, dataPtr[positionIndex].y, dataPtr[positionIndex].z };
-		const DirectX::XMVECTOR end = { dataPtr[nextPositionIndex].x, dataPtr[nextPositionIndex].y, dataPtr[nextPositionIndex].z };
-
+		DirectX::XMFLOAT3* data = anim->TranslationBuffer.As<DirectX::XMFLOAT3>();
+		DirectX::XMVECTOR start = DirectX::XMLoadFloat3(&data[idx]);
+		DirectX::XMVECTOR end = DirectX::XMLoadFloat3(&data[idx + 1]);
 		return DirectX::XMVectorAdd(start, DirectX::XMVectorScale(DirectX::XMVectorSubtract(end, start), factor));
 	}
 
 	DirectX::XMVECTOR Submesh::InterpolateRotation(float animationTime, const std::string& animationName)
 	{
 		auto& anim = Animations[animationName];
+		float* timestamps = anim->RotationTimestampBuffer.As<float>();
+		uint32_t count = anim->RotationSampleCount;
 
-		uint32_t rotationIndex = FindPosition(animationTime, animationName);
-
-		if (rotationIndex >= anim->SampleCount - 1)
+		uint32_t idx = FindPosition(animationTime, timestamps, count);
+		if (idx >= count - 1)
 		{
-			DirectX::XMFLOAT4* dataPtr = anim->RotationBuffer.As<DirectX::XMFLOAT4>();
-			return DirectX::XMQuaternionNormalize(DirectX::XMLoadFloat4(&dataPtr[anim->SampleCount - 1]));
+			DirectX::XMFLOAT4* data = anim->RotationBuffer.As<DirectX::XMFLOAT4>();
+			return DirectX::XMQuaternionNormalize(DirectX::XMLoadFloat4(&data[count - 1]));
 		}
-
-		uint32_t nextRotationIndex = rotationIndex + 1;
-
-		float* timestamps = anim->TimestampBuffer.As<float>();
-		float t0 = timestamps[rotationIndex];
-		float t1 = timestamps[nextRotationIndex];
+		float t0 = timestamps[idx], t1 = timestamps[idx + 1];
 		float factor = std::clamp((animationTime - t0) / (t1 - t0), 0.0f, 1.0f);
-
-		DirectX::XMFLOAT4* dataPtr = Animations[animationName]->RotationBuffer.As<DirectX::XMFLOAT4>();
-
-		const DirectX::XMVECTOR start = DirectX::XMLoadFloat4(&dataPtr[rotationIndex]);
-		const DirectX::XMVECTOR end = DirectX::XMLoadFloat4(&dataPtr[nextRotationIndex]);
-
-		// Slerp for quaternions — never lerp rotations
-		return DirectX::XMQuaternionNormalize(DirectX::XMQuaternionSlerp(start, end, factor));
+		DirectX::XMFLOAT4* data = anim->RotationBuffer.As<DirectX::XMFLOAT4>();
+		return DirectX::XMQuaternionNormalize(DirectX::XMQuaternionSlerp(
+			DirectX::XMLoadFloat4(&data[idx]), DirectX::XMLoadFloat4(&data[idx + 1]), factor));
 	}
 
 	DirectX::XMVECTOR Submesh::InterpolateScale(float animationTime, const std::string& animationName)
 	{
 		auto& anim = Animations[animationName];
+		float* timestamps = anim->ScaleTimestampBuffer.As<float>();
+		uint32_t count = anim->ScaleSampleCount;
 
-		uint32_t scaleIndex = FindPosition(animationTime, animationName);
-
-		if (scaleIndex >= anim->SampleCount - 1)
+		uint32_t idx = FindPosition(animationTime, timestamps, count);
+		if (idx >= count - 1)
 		{
-			DirectX::XMFLOAT3* dataPtr = anim->ScaleBuffer.As<DirectX::XMFLOAT3>();
-			return DirectX::XMLoadFloat3(&dataPtr[anim->SampleCount - 1]);
+			DirectX::XMFLOAT3* data = anim->ScaleBuffer.As<DirectX::XMFLOAT3>();
+			return DirectX::XMLoadFloat3(&data[count - 1]);
 		}
-
-		uint32_t nextScaleIndex = scaleIndex + 1;
-
-		float* timestamps = anim->TimestampBuffer.As<float>();
-		float t0 = timestamps[scaleIndex];
-		float t1 = timestamps[nextScaleIndex];
+		float t0 = timestamps[idx], t1 = timestamps[idx + 1];
 		float factor = std::clamp((animationTime - t0) / (t1 - t0), 0.0f, 1.0f);
-
-		DirectX::XMFLOAT3* dataPtr = anim->ScaleBuffer.As<DirectX::XMFLOAT3>();
-		const DirectX::XMVECTOR start = DirectX::XMLoadFloat3(&dataPtr[scaleIndex]);
-		const DirectX::XMVECTOR end = DirectX::XMLoadFloat3(&dataPtr[nextScaleIndex]);
+		DirectX::XMFLOAT3* data = anim->ScaleBuffer.As<DirectX::XMFLOAT3>();
+		DirectX::XMVECTOR start = DirectX::XMLoadFloat3(&data[idx]);
+		DirectX::XMVECTOR end = DirectX::XMLoadFloat3(&data[idx + 1]);
 		return DirectX::XMVectorAdd(start, DirectX::XMVectorScale(DirectX::XMVectorSubtract(end, start), factor));
 	}
 

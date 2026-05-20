@@ -21,7 +21,7 @@ namespace Sandbox
         {
             float timeElapsed = mComponent.StopAnimation("LandingLegs_Deploy");
             float startTime = timeElapsed > 0.0f ? (mComponent.GetDurationAnimation("LandingLegs_Undeploy") - timeElapsed) : 0.0f;
-            mComponent.PlayAnimation("LandingLegs_Undeploy", startTime);
+            mComponent.PlayAnimation("LandingLegs_Undeploy");
         }
     }
 }

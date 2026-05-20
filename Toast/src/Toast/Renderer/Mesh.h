@@ -12,6 +12,7 @@
 #include "Toast/Core/UUID.h"
 
 #include <DirectXMath.h>
+#include <unordered_set>
 
 #pragma push_macro("free")
 #pragma push_macro("malloc")
@@ -162,28 +163,55 @@ namespace Toast {
 	{
 		std::string Name;
 		bool IsActive = false;
+		bool IsReversed = false;
+		bool HasPlayed = false;
 		float Duration = 0.0f;
 		float TimeElapsed = 0.0f;
 		uint32_t SampleCount = 0;
 		cgltf_animation_channel AnimationChannel;
-		Buffer TranslationBuffer;	// Translation key frames (XMFLOAT3)
-		Buffer RotationBuffer;      // Rotation key frames (XMFLOAT4)
-		Buffer ScaleBuffer;			// Scale key frames (XMFLOAT3)
-		Buffer TimestampBuffer;		// Time stamps buffer
+
+		Buffer TranslationBuffer;
+		uint32_t TranslationSampleCount = 0;
+		Buffer TranslationTimestampBuffer;
+
+		Buffer RotationBuffer;
+		uint32_t RotationSampleCount = 0;
+		Buffer RotationTimestampBuffer;
+
+		Buffer ScaleBuffer;
+		uint32_t ScaleSampleCount = 0;
+		Buffer ScaleTimestampBuffer;
 
 		Animation() = default;
 		Animation(cgltf_animation_channel animationChannel)
 			: AnimationChannel(animationChannel) {}
 
-		void Play(float startTime) 
+		void Play() 
 		{
 			IsActive = true;
-			TimeElapsed = startTime;
+			HasPlayed = true;
+			IsReversed = false;
+		}
+
+		void PlayReverse()
+		{
+			IsActive = true;
+			HasPlayed = true;
+			IsReversed = true; 
+		}
+
+		void PlayFromStart()
+		{
+			IsActive = true;
+			HasPlayed = true;
+			IsReversed = false;
+			TimeElapsed = 0.0f; // explicit reset to beginning
 		}
 
 		void Reset() 
 		{
 			IsActive = false;
+			HasPlayed = false;
 			TimeElapsed = 0.0f;
 		}
 	};
@@ -208,7 +236,7 @@ namespace Toast {
 	public:
 		void OnUpdate(Timestep ts);
 
-		uint32_t FindPosition(float animationTime, const std::string& animationName);
+		uint32_t FindPosition(float animationTime, float* timestamps, uint32_t sampleCount);
 		DirectX::XMVECTOR InterpolateTranslation(float animationTime, const std::string& animationName);
 		DirectX::XMVECTOR InterpolateRotation(float animationTime, const std::string& animationName);
 		DirectX::XMVECTOR InterpolateScale(float animationTime, const std::string& animationName);

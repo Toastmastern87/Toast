@@ -197,6 +197,7 @@ namespace Toast {
 		Vector3 CenterOfMass = { 0.0f, 0.0f, 0.0f };
 		Vector3 LinearVelocity = { 0.0f, 0.0f, 0.0f };
 		Vector3 AngularVelocity = { 0.0f, 0.0f, 0.0f };
+		double AngularDamping = 0.0f;
 		double Altitude = 0.0;
 
 		Matrix InertiaTensor;
@@ -208,7 +209,8 @@ namespace Toast {
 
 		// Temp debug values for Air Resistance
 		Vector3 DebugDragForce = Vector3(0.0, 0.0, 0.0);
-		double DebugAirDensity = 0.0;
+		double DebugAirDensity = 0.0;  
+
 		double DebugEffectiveCrossSection = 0.0;
 		double DebugAltitude = 0.0;
 
@@ -289,6 +291,7 @@ namespace Toast {
 
 	struct UIButtonComponent 
 	{
+		bool Visible = false;
 		float CornerRadius = 0.0f;
 		bool UseColor = true;
 		bool IsClicked = false;
