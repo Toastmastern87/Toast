@@ -2106,4 +2106,8 @@ namespace Toast {
 		component.GuideMesh = MeshFactory::CreateCube(1.0f, { 1.0, 0.0, 0.0 });
 	}
 
+	template<>
+	void Scene::OnComponentAdded<SelectedComponent>(Entity entity, SelectedComponent& component)
+	{
+	}
 }

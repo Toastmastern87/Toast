@@ -240,7 +240,10 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	
     output.colorHDRRT = output.color;
     
-    if (input.entityID > -1)
+    // Connector should write to the picking render target
+    if (input.UIType > 3.5f && input.UIType < 4.5f)
+        output.entityID = 0;
+    else if (input.entityID > -1)
         output.entityID = input.entityID + 1;
     else
         output.entityID = input.entityID;

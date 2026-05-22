@@ -1,0 +1,7 @@
+Material: Wheels
+Albedo: [0, 0, 0, 1]
+Metalness: 0
+Roughness: 0.821052611
+UseAlbedoMap: false
+UseNormalMap: false
+UseMetalRoughMap: false

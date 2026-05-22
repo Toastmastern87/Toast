@@ -335,4 +335,9 @@ namespace Toast {
 		ParticlesComponent(const ParticlesComponent& other) = default;
 	};
 
+	// This is only used during runtime to see which entity is selected
+	struct SelectedComponent 
+	{
+	};
+
 }

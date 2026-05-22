@@ -1,0 +1,7 @@
+Material: WhiteMetal
+Albedo: [1, 1, 1, 1]
+Metalness: 0.371929854
+Roughness: 0.550877213
+UseAlbedoMap: false
+UseNormalMap: false
+UseMetalRoughMap: false
