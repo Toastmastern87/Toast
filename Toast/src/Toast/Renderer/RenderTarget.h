@@ -22,10 +22,33 @@ namespace Toast {
 	class RenderTarget 
 	{
 	public:
+		template<typename T>
+		T MapStagingPixel()
+		{
+			RendererAPI* API = RenderCommand::sRendererAPI.get();
+			ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+			D3D11_MAPPED_SUBRESOURCE mapped = {};
+			HRESULT hr = deviceContext->Map(mPickingStaging.Get(), 0, D3D11_MAP_READ, 0, &mapped);
+			TOAST_CORE_ASSERT(SUCCEEDED(hr), "Failed to map picking staging texture");
+
+			T value = *reinterpret_cast<T*>(mapped.pData);
+			deviceContext->Unmap(mPickingStaging.Get(), 0);
+			return value;
+		}
+
+		template<typename T>
+		T ReadPixel(int x, int y)
+		{
+			CopyPixelToStaging(x, y);
+			return MapStagingPixel<T>();
+		}
+
 		RenderTarget(RenderTargetType type, uint32_t width, uint32_t height, uint32_t samples, TextureFormat format, bool swapChainTarget = false, bool blending = false);
 		~RenderTarget() = default;
 
 		void Init(RenderTargetType type, uint32_t width, uint32_t height, uint32_t samples, TextureFormat format, bool swapChainTarget = false, bool blending = false);
+		void EnsurePickingStaging();
 		void Clear(const DirectX::XMFLOAT4 clearColor);
 		void Clean();
 		void Resize(uint32_t width, uint32_t height);
@@ -45,6 +68,8 @@ namespace Toast {
 		void SetBlendDesc(const D3D11_RENDER_TARGET_BLEND_DESC& blendDesc) { mBlendDesc = blendDesc; }
 
 		void Unbind();
+
+		void CopyPixelToStaging(int x, int y);
 
 		template<typename T>
 		T ReadPixel(uint32_t x, uint32_t y) 
@@ -152,6 +177,9 @@ namespace Toast {
 
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRTV;
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> mRTVArray[6];
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> mPickingStaging;
+		bool mPickingStagingInitialized = false;
 
 		D3D11_RENDER_TARGET_BLEND_DESC mBlendDesc;
 	};

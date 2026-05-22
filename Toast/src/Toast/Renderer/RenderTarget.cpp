@@ -87,6 +87,32 @@ namespace Toast {
 		}
 	}
 
+	void RenderTarget::EnsurePickingStaging()
+	{
+		if (mPickingStagingInitialized)
+			return;
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+
+		D3D11_TEXTURE2D_DESC desc = {};
+		desc.Width = 1;
+		desc.Height = 1;
+		desc.MipLevels = 1;
+		desc.ArraySize = 1;
+		desc.Format = static_cast<DXGI_FORMAT>(mFormat);          // same format as the RT (e.g. DXGI_FORMAT_R32_SINT)
+		desc.SampleDesc.Count = 1;
+		desc.Usage = D3D11_USAGE_STAGING;
+		desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		desc.BindFlags = 0;
+		desc.MiscFlags = 0;
+
+		HRESULT hr = device->CreateTexture2D(&desc, nullptr, &mPickingStaging);
+		TOAST_CORE_ASSERT(SUCCEEDED(hr), "Failed to create picking staging texture");
+
+		mPickingStagingInitialized = true;
+	}
+
 	void RenderTarget::Clear(const DirectX::XMFLOAT4 clearColor)
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
@@ -147,6 +173,24 @@ namespace Toast {
 		deviceContext->OMSetRenderTargets(1, nullRTV, nullptr);
 	}
 
+	void RenderTarget::CopyPixelToStaging(int x, int y)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		EnsurePickingStaging();
+
+		D3D11_BOX box = {};
+		box.left = (UINT)x;
+		box.right = (UINT)(x + 1);
+		box.top = (UINT)y;
+		box.bottom = (UINT)(y + 1);
+		box.front = 0;
+		box.back = 1;
+
+		deviceContext->CopySubresourceRegion(mPickingStaging.Get(), 0, 0, 0, 0, mTexture->GetTexture().Get(), 0, &box);
+	}
+
 	bool RenderTarget::IsIntegerFormat(TextureFormat format)
 	{
 		switch (format)
@@ -156,6 +200,7 @@ namespace Toast {
 		default:
 			return false;
 		}
+		 
 	}
 
 }

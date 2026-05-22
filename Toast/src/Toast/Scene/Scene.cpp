@@ -187,46 +187,8 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
-
-		// Get raw mouse coordinates from the event.
-		float screenX = e.GetX();
-		float screenY = e.GetY();
-
-		// Use the viewport bounds (set previously via SetViewportBounds)
-		float viewportX = mViewportBounds[0].x;
-		float viewportY = mViewportBounds[0].y;
-		float viewportWidth = mViewportBounds[1].x - mViewportBounds[0].x;
-		float viewportHeight = mViewportBounds[1].y - mViewportBounds[0].y;
-
-		// Convert screen coordinates to viewport-local coordinates.
-		float adjustedX = screenX - viewportX;
-		float adjustedY = screenY - viewportY;
-
-		// Check that the mouse is within the viewport bounds.
-		if (adjustedX < 0 || adjustedY < 0 || adjustedX >= viewportWidth || adjustedY >= viewportHeight)
-		{
-			mHoveredEntity = Entity(); // explicitly clear it
-		}
-		else
-		{
-			// Scale the coordinates to match the picking render target's resolution.
-			auto [rtWidth, rtHeight] = pickingRT->GetSize();
-			int textureX = static_cast<int>((adjustedX / viewportWidth) * rtWidth);
-			int textureY = static_cast<int>((adjustedY / viewportHeight) * rtHeight);
-
-			// Read the pixel from the picking render target.
-			int pixelData = pickingRT->ReadPixel<int>(textureX, textureY);
-			mHoveredEntity = (pixelData == 0) ? entt::null : (entt::entity)(pixelData - 1);
-
-			if (pixelData > 0)
-			{
-				Entity entity = { mHoveredEntity, this };
-
-				UUID uuid = entity.GetComponent<IDComponent>().ID;
-				std::string tag = entity.GetComponent<TagComponent>().Tag;
-			}
-		}
+		mMouseX = e.GetX();
+		mMouseY = e.GetY();
 
 		return false;
 	}
@@ -873,6 +835,11 @@ namespace Toast {
 		}
 		else 
 			TOAST_CORE_ERROR("No main camera! Unable to render scene!");
+
+		// Mouse Picking
+		{
+			UpdateHoveredEntity();
+		}
 	}
 
 	void Scene::OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera)
@@ -1546,6 +1513,11 @@ namespace Toast {
 			}
 			Renderer2D::EndScene();
 		}
+
+		// Mouse Picking
+		{
+			UpdateHoveredEntity();
+		}
 	}
 
 	void Scene::OnViewportResize(uint32_t width, uint32_t height)
@@ -1982,6 +1954,47 @@ namespace Toast {
 	void Scene::OnComponentAdded(Entity entity, T& component) 
 	{
 		static_assert(false); 
+	}
+
+	void Scene::UpdateHoveredEntity()
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
+
+		float viewportX = mViewportBounds[0].x;
+		float viewportY = mViewportBounds[0].y;
+		float viewportWidth = mViewportBounds[1].x - mViewportBounds[0].x;
+		float viewportHeight = mViewportBounds[1].y - mViewportBounds[0].y;
+
+		float adjustedX = mMouseX - viewportX;
+		float adjustedY = mMouseY - viewportY;
+
+		// Outside viewport — clear hover and skip
+		if (adjustedX < 0 || adjustedY < 0 ||
+			adjustedX >= viewportWidth || adjustedY >= viewportHeight)
+		{
+			mHoveredEntity = Entity();
+			mPickingReadbackPending = false;
+			return;
+		}
+
+		// Map the staging texture from LAST frame's copy (no stall — it's long done)
+		if (mPickingReadbackPending)
+		{
+			int pixelData = pickingRT->MapStagingPixel<int>();
+			mHoveredEntity = (pixelData == 0)
+				? Entity()
+				: Entity{ (entt::entity)(pixelData - 1), this };
+		}
+
+		// Queue THIS frame's 1×1 copy — returns immediately, executes on GPU later
+		auto [rtWidth, rtHeight] = pickingRT->GetSize();
+		int textureX = static_cast<int>((adjustedX / viewportWidth) * rtWidth);
+		int textureY = static_cast<int>((adjustedY / viewportHeight) * rtHeight);
+
+		pickingRT->CopyPixelToStaging(textureX, textureY);
+		mPickingReadbackPending = true;
 	}
 
 	template<>

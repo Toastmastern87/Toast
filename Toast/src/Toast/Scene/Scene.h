@@ -365,6 +365,8 @@ namespace Toast {
 	private:
 		template<typename T>
 		void OnComponentAdded(Entity entity, T& component);
+		void UpdateHoveredEntity();
+
 	private:
 		UUID mSceneID;
 		std::string mName;
@@ -412,6 +414,11 @@ namespace Toast {
 		Ref<PhysicsEngine> mPhysicsEngine;
 
 		bool mRuntimeBlocked = false;
+
+		// Mouse Picking
+		float mMouseX = 0.0f;
+		float mMouseY = 0.0f;
+		bool mPickingReadbackPending = false;
 
 		friend class Entity;
 		friend class Renderer;
