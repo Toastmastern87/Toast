@@ -171,6 +171,15 @@ namespace Toast {
 			float FogRangeMeters = 120000.0f;
 		};
 
+		struct OutlineSettings 
+		{
+			DirectX::XMFLOAT4 Color = { 1.0f, 0.6f, 0.1f, 1.0f }; // amber default
+			float Thickness = 2.0f;  // pixels
+			float Softness = 1.0f;  // edge feathering
+			float PulseSpeed = 0.0f;  // 0 = static
+			bool XRay = false; // visible through occluders
+		};
+
 		//Settings
 		struct Settings
 		{
@@ -201,6 +210,8 @@ namespace Toast {
 			ExposureParams Exposure;
 
 			CascadedShadowMapParams Shadows;
+
+			OutlineSettings Outline;
 		};
 
 		struct Stats
@@ -360,6 +371,9 @@ namespace Toast {
 
 		void SetRuntimeBlocked(bool blocked) { mRuntimeBlocked = blocked; }
 		bool IsRuntimeBlocked() const { return mRuntimeBlocked; }
+
+		const OutlineSettings& GetOutlineSettings() const { return mSettings.Outline; }
+		OutlineSettings& GetOutlineSettings() { return mSettings.Outline; }
 	public:
 		static Ref<Scene> CreateEmpty();
 	private:
@@ -367,6 +381,7 @@ namespace Toast {
 		void OnComponentAdded(Entity entity, T& component);
 		void UpdateHoveredEntity();
 
+		OutlineSettings ResolveOutlineSettings(Entity selected);
 	private:
 		UUID mSceneID;
 		std::string mName;

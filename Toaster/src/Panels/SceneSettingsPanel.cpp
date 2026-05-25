@@ -204,6 +204,33 @@ namespace Toast {
 					ImGui::Text("Sun Frustum Ortho Size");
 					ImGuiHelpers::ManualDragFloat("##sunlightdistance", mContext->mSettings.SunFrustumOrthoSize, mWindow, activeDragArea, 10.0f, ImVec2{ 255.0f, 20.0f }, "%.1f", 50.0f, 10000.0f);
 
+					ImGui::Spacing();
+					ImGui::Separator();
+					ImGui::Spacing();
+
+					if (ImGui::CollapsingHeader("Selection Outline"))
+					{
+						ImGui::Indent();
+
+						auto& outline = mContext->mSettings.Outline;
+
+						ImGui::Text("Color");
+						ImGui::ColorEdit4("##OutlineColor", &outline.Color.x);
+
+						ImGui::Text("Thickness (px)");
+						ImGuiHelpers::ManualDragFloat("##OutlineThickness", outline.Thickness, mWindow, activeDragArea, 0.1f, ImVec2{ 255.0f, 20.0f }, "%.1f", 0.0f, 16.0f);
+
+						ImGui::Text("Softness");
+						ImGuiHelpers::ManualDragFloat("##OutlineSoftness", outline.Softness, mWindow, activeDragArea, 0.05f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 8.0f);
+
+						ImGui::Text("Pulse Speed");
+						ImGuiHelpers::ManualDragFloat("##OutlinePulseSpeed", outline.PulseSpeed, mWindow, activeDragArea, 0.05f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 10.0f);
+
+						ImGui::Checkbox("Visible through occluders (X-Ray)", &outline.XRay);
+
+						ImGui::Unindent();
+					}
+
 					if (ImGui::CollapsingHeader("God Rays"))
 					{
 						ImGui::Indent();

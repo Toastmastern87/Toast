@@ -593,7 +593,9 @@ namespace Toast {
 					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 				}
 
-				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, ts);
+				OutlineSettings outline = ResolveOutlineSettings({});
+
+				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, ts);
 			}
 
 			// Debug Rendering
@@ -1181,7 +1183,9 @@ namespace Toast {
 				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 			}
 
-			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, ts);
+			OutlineSettings outline = ResolveOutlineSettings({});
+
+			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, ts);
 		}
 
 		// Debug Rendering
@@ -1995,6 +1999,12 @@ namespace Toast {
 
 		pickingRT->CopyPixelToStaging(textureX, textureY);
 		mPickingReadbackPending = true;
+	}
+
+	Scene::OutlineSettings Scene::ResolveOutlineSettings(Entity selected)
+	{
+		// In the future this will resolve priority between entity, scene and project setting
+		return GetOutlineSettings();   // A5 pass through
 	}
 
 	template<>

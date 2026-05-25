@@ -379,7 +379,7 @@ namespace Toast {
 		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
 
-	void Renderer::EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, Scene::CascadedShadowMapParams& shadowParams, float dt)
+	void Renderer::EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, Scene::CascadedShadowMapParams& shadowParams, float dt)
 	{
 		RenderCommand::SetViewport(sRendererData->Viewport);
 
@@ -434,6 +434,10 @@ namespace Toast {
 			BloomPass(bloomParams, planet, cameraPos, camera.GetVerticalFOV(), camera.GetWorldTranslation());
 
 		PostProcessPass(bloomParams.Enabled, environment, exposureParams, planet, cameraPos, camera.GetWorldTranslation());
+
+		// Only run during runtime, otherwise the RendererDebug handles the outline
+		if (!debugActivated)
+			OutlinePass(outlineSettings);
 
 		if (!debugActivated) 
 		{
@@ -1958,6 +1962,11 @@ namespace Toast {
 		if (annotation)
 			annotation->EndEvent();
 #endif
+	}
+
+	void Renderer::OutlinePass(const Scene::OutlineSettings& outlineSettings)
+	{
+
 	}
 
 	void Renderer::ResetStats()

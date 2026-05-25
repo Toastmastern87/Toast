@@ -682,6 +682,12 @@ namespace Toast {
 		out << YAML::Key << "AltFadeFrac" << YAML::Value << settings.Exposure.AltFadeFrac;
 		out << YAML::Key << "SunFadeDeg" << YAML::Value << settings.Exposure.SunFadeDeg;
 
+		out << YAML::Key << "OutlineColor" << YAML::Value << settings.Outline.Color;
+		out << YAML::Key << "OutlineThickness" << YAML::Value << settings.Outline.Thickness;
+		out << YAML::Key << "OutlineSoftness" << YAML::Value << settings.Outline.Softness;
+		out << YAML::Key << "OutlinePulseSpeed" << YAML::Value << settings.Outline.PulseSpeed;
+		out << YAML::Key << "OutlineXRay" << YAML::Value << settings.Outline.XRay;
+
 		out << YAML::Key << "Physics";
 		out << YAML::BeginMap;
 		PhysicsEngine::PhysicsSettings& physicsSettings = mScene->GetPhysicsEngine()->GetSettings();
@@ -1084,6 +1090,13 @@ namespace Toast {
 		settings.Exposure.AltFadeFrac = data["Settings"]["AltFadeFrac"].as<DirectX::XMFLOAT2>();
 		settings.Exposure.SunFadeDeg = data["Settings"]["SunFadeDeg"].as<DirectX::XMFLOAT2>();
 
+		auto& outline = settings.Outline;
+		outline.Color = data["OutlineColor"].as<DirectX::XMFLOAT4>(outline.Color);
+		outline.Thickness = data["OutlineThickness"].as<float>(outline.Thickness);
+		outline.Softness = data["OutlineSoftness"].as<float>(outline.Softness);
+		outline.PulseSpeed = data["OutlinePulseSpeed"].as<float>(outline.PulseSpeed);
+		outline.XRay = data["OutlineXRay"].as<bool>(outline.XRay);
+
 		PhysicsEngine::PhysicsSettings& physicsSettings = mScene->GetPhysicsEngine()->GetSettings();
 
 		physicsSettings.SlowDown = data["Settings"]["Physics"]["SlowDown"].as<int>();
@@ -1092,7 +1105,6 @@ namespace Toast {
 		physicsSettings.MaxAngularVelocity = data["Settings"]["Physics"]["MaxAngularVelocity"].as<float>();
 
 		Planet* scenePlanet = mScene->GetPlanet().get();
-
 
 		//std::string absPath = planet["HeightMapAssetPath"].as<std::string>();
 		//scenePlanet->mBaseHeightMapHandle = AssetManager::ImportExternalAsset(
