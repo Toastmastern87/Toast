@@ -179,6 +179,17 @@ namespace Toast {
 			: ClassName(className) {}
 	};
 
+	struct SceneScriptComponent
+	{
+		std::string ClassName;
+
+		SceneScriptComponent() = default;
+		SceneScriptComponent(const SceneScriptComponent&) = default;
+		SceneScriptComponent(const std::string& className)
+			: ClassName(className) {
+		}
+	};
+
 	struct DirectionalLightComponent
 	{
 		DirectX::XMFLOAT3 Radiance = { 1.0f, 1.0f, 1.0f };
@@ -338,6 +349,7 @@ namespace Toast {
 	// This is only used during runtime to see which entity is selected
 	struct SelectedComponent 
 	{
+		bool _ = true;
 	};
 
 }

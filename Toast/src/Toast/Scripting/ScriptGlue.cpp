@@ -11,6 +11,7 @@
 #include "Toast/Scene/Scene.h"
 #include "Toast/Scene/Entity.h"
 #include "Toast/Scene/ISceneProvider.h" 
+#include "Toast/Scene/SelectionSystem.h"
 
 #include "mono/metadata/appdomain.h"
 #include "mono/metadata/object.h"
@@ -222,6 +223,17 @@ namespace Toast {
 
 #pragma endregion
 
+#pragma region Selection
+
+	static void Selection_Clear()
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		scene->GetSelectionSystem().ClearSelection();
+	}
+
+#pragma endregion
+
 #pragma region Physics Engine
 
 	static float PhysicsEngine_GetAltitude(UUID entityID, bool ignoreWorldTranslation)
@@ -404,6 +416,42 @@ namespace Toast {
 			return 0;
 		}
 		return found.GetUUID();
+	}
+
+	static void Entity_Select(UUID entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity entity = scene->FindEntityByUUID(entityID);
+		TOAST_CORE_ASSERT(entity, "");
+		scene->GetSelectionSystem().Select(entity);
+	}
+
+	static void Entity_Deselect(UUID entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity entity = scene->FindEntityByUUID(entityID);
+		TOAST_CORE_ASSERT(entity, "");
+		scene->GetSelectionSystem().Deselect(entity);
+	}
+
+	static void Entity_SelectExclusive(UUID entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity entity = scene->FindEntityByUUID(entityID);
+		TOAST_CORE_ASSERT(entity, "");
+		scene->GetSelectionSystem().SelectExclusive(entity);
+	}
+
+	static bool Entity_IsSelected(UUID entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity entity = scene->FindEntityByUUID(entityID);
+		TOAST_CORE_ASSERT(entity, "");
+		return scene->GetSelectionSystem().IsSelected(entity);
 	}
 
 #pragma endregion
@@ -1381,6 +1429,8 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Scene_GetEntitiesWithPrefab);
 		TOAST_ADD_INTERNAL_CALL(Scene_RequestSceneChange);
 
+		TOAST_ADD_INTERNAL_CALL(Selection_Clear);
+
 		TOAST_ADD_INTERNAL_CALL(Planet_GetTranslation);
 		TOAST_ADD_INTERNAL_CALL(Planet_SetTranslation);
 		TOAST_ADD_INTERNAL_CALL(Planet_GetGravity);
@@ -1392,6 +1442,10 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Entity_FindChildEntityByName);
 		TOAST_ADD_INTERNAL_CALL(Entity_FindParentEntity);
 		TOAST_ADD_INTERNAL_CALL(Entity_FindDecententByName);
+		TOAST_ADD_INTERNAL_CALL(Entity_Select);
+		TOAST_ADD_INTERNAL_CALL(Entity_Deselect);
+		TOAST_ADD_INTERNAL_CALL(Entity_SelectExclusive);
+		TOAST_ADD_INTERNAL_CALL(Entity_IsSelected);
 
 		TOAST_ADD_INTERNAL_CALL(TagComponent_GetTag);
 		TOAST_ADD_INTERNAL_CALL(TagComponent_SetTag);

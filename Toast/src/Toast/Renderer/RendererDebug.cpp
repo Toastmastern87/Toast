@@ -94,6 +94,7 @@ namespace Toast {
 	void RendererDebug::ClearDrawList()
 	{
 		sRendererData->DebugMeshDrawList.clear();
+		sRendererData->MeshEditorSelectedDrawList.clear();	
 	}
 
 	void RendererDebug::SubmitCameraFrustum(Ref<Frustum> frustum)
@@ -303,7 +304,7 @@ namespace Toast {
 
 		// TODO: This should be done in a single draw call, will be fixed with the updated star ship model.
 		// Mask out the selected meshes
-		for (const auto& meshCommand : sRendererData->MeshSelectedDrawList)
+		for (const auto& meshCommand : sRendererData->MeshEditorSelectedDrawList)
 		{
 			int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
 
@@ -322,9 +323,18 @@ namespace Toast {
 			RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
 		}
 
+		DirectX::XMFLOAT4 editorOutlineColor = { 1.0f, 0.0f, 0.0f, 1.0f };  // red
+		float editorThickness = 2.0f;
+		float editorsoftness = 0.0f;
+		sRendererData->OutlineBuffer.Write((uint8_t*)&editorOutlineColor, 16, 0);
+		sRendererData->OutlineBuffer.Write((uint8_t*)&editorThickness, 4, 16);
+		sRendererData->OutlineBuffer.Write((uint8_t*)&editorsoftness, 4, 20);
+		sRendererData->OutlineCBuffer->Map(sRendererData->OutlineBuffer);
+		sRendererData->OutlineCBuffer->Bind();
+
 		// Draw the outline
 		mDebugData->OutlineShader->Bind();
-		RenderCommand::SetRenderTargets({ sRendererData->FinalEditorRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get(), sRendererData->FinalEditorRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, mDebugData->SelectedMeshMaskRT->GetSRV());

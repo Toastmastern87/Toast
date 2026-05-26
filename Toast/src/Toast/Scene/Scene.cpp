@@ -4,6 +4,7 @@
 #include "Toast/Scene/Entity.h"
 #include "Toast/Scene/Components.h"
 #include "Toast/Scene/Prefab.h"
+#include "Toast/Scene/SelectionSystem.h"
 
 #include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/Renderer2D.h"
@@ -46,6 +47,8 @@ namespace Toast {
 
 		mPhysicsEngine = CreateRef<PhysicsEngine>();
 		mPhysicsEngine->Initialize(this);
+
+		mSelectionSystem = CreateScope<SelectionSystem>(this);
 	}
 
 	Scene::~Scene()
@@ -98,13 +101,23 @@ namespace Toast {
 		// Scripting
 		{
 			ScriptEngine::OnRuntimeStart(this);
-			// Instantiate all script entities
 
+			// Instantiate all script entities
 			auto view = mRegistry.view<ScriptComponent>();
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
-				ScriptEngine::OnCreateEntity(e);
+				const auto& sc = e.GetComponent<ScriptComponent>();
+				ScriptEngine::OnCreateEntityWithClass(e, sc.ClassName);
+			}
+
+			// Instantiate all scene script entities
+			auto sceneScriptView = mRegistry.view<SceneScriptComponent>();
+			for (auto entity : sceneScriptView)
+			{
+				Entity e = { entity, this };
+				const auto& ssc = e.GetComponent<SceneScriptComponent>();
+				ScriptEngine::OnCreateEntityWithClass(e, ssc.ClassName);
 			}
 		}
 
@@ -145,18 +158,24 @@ namespace Toast {
 	bool Scene::OnMouseButtonPressed(MouseButtonPressedEvent& e)
 	{	
 		// Check that a valid entity is being hovered over by the mouse
-		if (mHoveredEntity != entt::null) 
+		if (mHoveredEntity != entt::null)
 		{
 			Entity entity = { mHoveredEntity, this };
-
 			UUID uuid = entity.GetComponent<IDComponent>().ID;
 			std::string tag = entity.GetComponent<TagComponent>().Tag;
-
 			if (entity.HasComponent<ScriptComponent>() && !entity.HasComponent<UIButtonComponent>())
 				ScriptEngine::OnEventEntity(entity);
-
 			if (entity.HasComponent<UIButtonComponent>())
 				entity.GetComponent<UIButtonComponent>().IsClicked = true;
+		}
+		else
+		{
+			auto view = mRegistry.view<SceneScriptComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				ScriptEngine::OnEventEntity(e);
+			}
 		}
 
 		return true;
@@ -267,6 +286,14 @@ namespace Toast {
 				// C# Entity OnUpdate
 				auto view = mRegistry.view<ScriptComponent>();
 				for (auto entity : view)
+				{
+					Entity e = { entity, this };
+					ScriptEngine::OnUpdateEntity(e, ts * mTimeScale);
+				}
+
+				// C# Scene Script OnUpdate
+				auto sceneScriptView = mRegistry.view<SceneScriptComponent>();
+				for (auto entity : sceneScriptView)
 				{
 					Entity e = { entity, this };
 					ScriptEngine::OnUpdateEntity(e, ts * mTimeScale);
@@ -546,6 +573,8 @@ namespace Toast {
 					if (!validMesh)
 						continue;
 
+					bool entityIsSelected = mRegistry.has<SelectedComponent>(entity);
+
 					auto& lodGroup = mesh.MeshObject->mLODGroups[mesh.MeshObject->mActiveLODGroup];
 					auto& submeshes = lodGroup->Submeshes;
 
@@ -585,17 +614,17 @@ namespace Toast {
 							// TODO
 							break;
 						}
-					}
 
-					if (mSelectedEntity == entity)
-						Renderer::SubmitSelecetedMesh(mesh.MeshObject, transform.GetTransform());
+						if (entityIsSelected)
+							Renderer::SubmitSelecetedMesh(mesh.MeshObject, finalTransform, false, submeshIndex, true);
+					}
 
 					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 				}
 
 				OutlineSettings outline = ResolveOutlineSettings({});
 
-				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, ts);
+				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, ts, true);
 			}
 
 			// Debug Rendering
@@ -1177,7 +1206,7 @@ namespace Toast {
 					}
 
 					if (mSelectedEntity == entity)
-						Renderer::SubmitSelecetedMesh(mesh.MeshObject, finalTransform, false, submeshIndex);
+						Renderer::SubmitSelecetedMesh(mesh.MeshObject, finalTransform, false, submeshIndex, false);
 				}
 
 				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
@@ -1185,7 +1214,7 @@ namespace Toast {
 
 			OutlineSettings outline = ResolveOutlineSettings({});
 
-			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, ts);
+			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, ts, false);
 		}
 
 		// Debug Rendering
@@ -1780,6 +1809,7 @@ namespace Toast {
 		CopyComponentIfExists<SpriteRendererComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<DirectionalLightComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<ScriptComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<SceneScriptComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<RigidBodyComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<SphereColliderComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<BoxColliderComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
@@ -1815,6 +1845,7 @@ namespace Toast {
 			CopyComponentIfExists<SpriteRendererComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<DirectionalLightComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<ScriptComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<SceneScriptComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<RigidBodyComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<SphereColliderComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<BoxColliderComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
@@ -1898,6 +1929,7 @@ namespace Toast {
 		target->mSettings.Bloom = mSettings.Bloom;
 		target->mSettings.Exposure = mSettings.Exposure;
 		target->mSettings.DirectionalLightningGain = mSettings.DirectionalLightningGain;
+		target->mSettings.Outline = mSettings.Outline;
 
 		// Physics Settings
 		auto& targetPhysics = target->GetPhysicsEngine();
@@ -1945,6 +1977,7 @@ namespace Toast {
 		CopyComponent<SpriteRendererComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<DirectionalLightComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<ScriptComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<SceneScriptComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<RigidBodyComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<SphereColliderComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<BoxColliderComponent>(target->mRegistry, mRegistry, enttMap);
@@ -2065,6 +2098,11 @@ namespace Toast {
 
 	template<>
 	void Scene::OnComponentAdded<ScriptComponent>(Entity entity, ScriptComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<SceneScriptComponent>(Entity entity, SceneScriptComponent& component)
 	{
 	}
 

@@ -29,43 +29,62 @@ struct PixelInputType
     float2 texCoord   : TEXCOORD;
 };
 
-float SampleTexture(float2 uv, float2 pixeloffset)
+cbuffer Outline : register(b8)
 {
-    float samples[9];
+    float4 OutlineColor;
+    
+    float OutlineThickness;
+    float OutlineSoftness; // added
+    float2 pad0; // pad to 16-byte byte boundery
+};
 
+struct PSOut
+{
+    float4 hdr : SV_Target0; // -> FinalRT  (HDR / scRGB)
+    float4 sdr : SV_Target1; // -> FinalEditorRT (SDR)
+};
+
+float SampleTexture(float2 uv, float thickness)
+{
     uint width, height;
     InputTexture.GetDimensions(width, height);
     float2 pixelSize = 1.0f / float2(width, height);
 
-    float p = 2.0f; // Outline width
-    samples[0] = InputTexture.Sample(DefaultSampler, uv + (float2(-p, -p) + pixeloffset) * pixelSize).r;
-    samples[1] = InputTexture.Sample(DefaultSampler, uv + (float2(0.0f, -p) + pixeloffset) * pixelSize).r;
-    samples[2] = InputTexture.Sample(DefaultSampler, uv + (float2(p, -p) + pixeloffset) * pixelSize).r;
-    samples[3] = InputTexture.Sample(DefaultSampler, uv + (float2(-p, 0.0f) + pixeloffset) * pixelSize).r;
-    samples[4] = InputTexture.Sample(DefaultSampler, uv + (float2(0.0f, 0.0f) + pixeloffset) * pixelSize).r;
-    samples[5] = InputTexture.Sample(DefaultSampler, uv + (float2(p, 0.0f) + pixeloffset) * pixelSize).r;
-    samples[6] = InputTexture.Sample(DefaultSampler, uv + (float2(-p, p) + pixeloffset) * pixelSize).r;
-    samples[7] = InputTexture.Sample(DefaultSampler, uv + (float2(0.0f, p) + pixeloffset) * pixelSize).r;
-    samples[8] = InputTexture.Sample(DefaultSampler, uv + (float2(p, p) + pixeloffset) * pixelSize).r;
-
     float maxVal = 0.0f;
-    for (int i = 0; i < 9; i++)
-        maxVal = max(maxVal, samples[i]);
+    int p = (int) ceil(thickness);
 
+    // Sample every texel within the thickness radius (filled disc, not a ring)
+    for (int y = -p; y <= p; y++)
+    {
+        for (int x = -p; x <= p; x++)
+        {
+            // circular mask so the outline is round, not square
+            if (x * x + y * y > p * p)
+                continue;
+            float s = InputTexture.Sample(DefaultSampler, uv + float2(x, y) * pixelSize).r;
+            maxVal = max(maxVal, s);
+        }
+    }
     return maxVal;
 }
 
-float4 main(PixelInputType input) : SV_TARGET
+PSOut main(PixelInputType input) 
 {
-    static float val = 0.0f;
-    val += SampleTexture(input.texCoord, 0.0f.xx);
-
+    float val = 0.0f;
+    val += SampleTexture(input.texCoord, OutlineThickness);
     float multiplier = 1.0f - InputTexture.Sample(DefaultSampler, input.texCoord).r;
     val *= multiplier;
 
-    if (val < 0.2f)
+    float edge = 0.2f; // detection threshold (fixed)
+    float soft = OutlineSoftness * 0.1f; // 0..0.8 for slider 0..8
+    // Ramp from the threshold upward; softness widens the ramp but the floor stays at 'edge'
+    float alpha = smoothstep(edge, edge + max(soft, 1e-4f), val) * OutlineColor.a;
+
+    if (alpha <= 0.0f)
         discard;
 
-    float3 outlineColor = float3(1.0f, 0.0, 0.0f);
-    return float4(outlineColor, val);
+    PSOut output;
+    output.sdr = float4(OutlineColor.rgb, alpha);
+    output.hdr = float4(OutlineColor.rgb, alpha);
+    return output;
 }

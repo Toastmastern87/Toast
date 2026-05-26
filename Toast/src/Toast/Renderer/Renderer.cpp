@@ -156,6 +156,11 @@ namespace Toast {
 		sRendererData->LightningPassBuffer.Allocate(sRendererData->LightningPassCBuffer->GetSize());
 		sRendererData->LightningPassBuffer.ZeroInitialize();
 
+		// Setting up the constant buffer for outline selection
+		sRendererData->OutlineCBuffer = ConstantBufferLibrary::Load("Outline", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)8) });
+		sRendererData->OutlineBuffer.Allocate(sRendererData->OutlineCBuffer->GetSize());
+		sRendererData->OutlineBuffer.ZeroInitialize();
+
 		// Setting up the render targets for the Geometry Pass
 		sRendererData->GPassPositionRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R32G32B32A32_FLOAT);
 		sRendererData->GPassNormalRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R16G16B16A16_FLOAT);
@@ -206,6 +211,9 @@ namespace Toast {
 		sRendererData->SunHaloMaskRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8_UNORM);
 		sRendererData->Dummy1RT = CreateRef<RenderTarget>(RenderTargetType::ColorCube, 256, 256, 1, TextureFormat::R8G8B8A8_UNORM);
 		sRendererData->Dummy2RT = CreateRef<RenderTarget>(RenderTargetType::ColorCube, 256, 256, 1, TextureFormat::R8G8B8A8_UNORM);
+
+		// Setting up the Render Target for the Slection System
+		sRendererData->SelectedMeshMaskRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
 
 		// Setting -Y led to the black since nothing should reflect. 
 		// TODO this should most likely be dynamic in the future depending on which color the surface is. It is gray during the night but orange during the day.
@@ -327,6 +335,8 @@ namespace Toast {
 		sRendererData->SunDiscMaskRT->Resize(width, height);
 		sRendererData->SunHaloMaskRT->Resize(width, height);
 
+		sRendererData->SelectedMeshMaskRT->Resize(width, height);
+
 		sRendererData->FinalRT->Resize(width, height);
 		sRendererData->FinalEditorRT->Resize(width, height);
 
@@ -379,7 +389,7 @@ namespace Toast {
 		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
 
-	void Renderer::EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, Scene::CascadedShadowMapParams& shadowParams, float dt)
+	void Renderer::EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, Scene::CascadedShadowMapParams& shadowParams, float dt, bool runtime)
 	{
 		RenderCommand::SetViewport(sRendererData->Viewport);
 
@@ -436,7 +446,7 @@ namespace Toast {
 		PostProcessPass(bloomParams.Enabled, environment, exposureParams, planet, cameraPos, camera.GetWorldTranslation());
 
 		// Only run during runtime, otherwise the RendererDebug handles the outline
-		if (!debugActivated)
+		if (runtime)
 			OutlinePass(outlineSettings);
 
 		if (!debugActivated) 
@@ -862,11 +872,14 @@ namespace Toast {
 ;		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex);
 	}
 
-	void Renderer::SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe, uint32_t submeshIndex)
+	void Renderer::SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe, uint32_t submeshIndex, bool runtime)
 	{
 		bool noWorldTransform = false;
 		int entityID = 0;
-		sRendererData->MeshSelectedDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex);
+		if(runtime)
+			sRendererData->MeshSelectedDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex);
+		else
+			sRendererData->MeshEditorSelectedDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex);
 	}
 
 	void Renderer::SubmitPlanet(const Ref<Planet> planet, bool wireframe)
@@ -884,6 +897,7 @@ namespace Toast {
 		sRendererData->MeshDrawList.clear();
 		sRendererData->MeshWireframeDrawList.clear();
 		sRendererData->MeshNoWireframeDrawList.clear();
+		sRendererData->MeshSelectedDrawList.clear();
 	}
 
 	static Scope<Shader> equirectangularConversionShader, envFilteringShader, envIrradianceShader;
@@ -1966,7 +1980,56 @@ namespace Toast {
 
 	void Renderer::OutlinePass(const Scene::OutlineSettings& outlineSettings)
 	{
+		if (sRendererData->MeshSelectedDrawList.empty())
+			return;
 
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation)
+			annotation->BeginEvent(L"Outline Pass");
+#endif
+
+		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
+		RenderCommand::SetRenderTargets({ sRendererData->SelectedMeshMaskRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::ClearRenderTargets(sRendererData->SelectedMeshMaskRT->GetRTV().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
+
+		ShaderLibrary::Get("assets/shaders/Debug/ObjectMask.hlsl")->Bind();
+		sRendererData->CurrentMesh = nullptr;
+
+		for (const auto& meshCommand : sRendererData->MeshSelectedDrawList)
+		{
+			const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
+
+			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
+			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+
+			if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
+			{
+				meshCommand.Mesh->Bind();
+				sRendererData->CurrentMesh = meshCommand.Mesh.get();
+			}
+			RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
+		}
+
+		sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Color, 16, 0);
+		sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Thickness, 4, 16);
+		sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Softness, 4, 20);
+		sRendererData->OutlineCBuffer->Map(sRendererData->OutlineBuffer);
+		sRendererData->OutlineCBuffer->Bind();
+
+		ShaderLibrary::Get("assets/shaders/Debug/Outline.hlsl")->Bind();
+		RenderCommand::SetBlendState(sRendererData->UIBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get(), sRendererData->FinalEditorRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, sRendererData->SelectedMeshMaskRT->GetSRV());
+		Renderer::DrawFullscreenQuad();
+		RenderCommand::ClearShaderResources();
+
+#ifdef TOAST_DEBUG
+		if (annotation)
+			annotation->EndEvent();
+#endif
 	}
 
 	void Renderer::ResetStats()

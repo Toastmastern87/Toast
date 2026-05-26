@@ -74,7 +74,7 @@ namespace Toast {
 				bool Atmosphere = false;
 			} PlanetData;
 
-			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshWireframeDrawList, MeshNoWireframeDrawList;
+			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshWireframeDrawList, MeshNoWireframeDrawList, MeshEditorSelectedDrawList;
 			std::vector<DrawCommand> DebugMeshDrawList;
 			DrawCommandPlanet PlanetDraw;
 
@@ -164,6 +164,11 @@ namespace Toast {
 			size_t NrOfParticlesToRender;
 			Texture2D* ParticleMaskTexture;
 
+			// Selection System
+			Ref<RenderTarget> SelectedMeshMaskRT;
+			Buffer OutlineBuffer;
+			Ref<ConstantBuffer> OutlineCBuffer;
+
 			// Remember current GPU bound data
 			ID3D11RasterizerState* CurrentRasterizerState = nullptr;
 			Topology CurrentTopology = Topology::UNDEFINED;
@@ -181,7 +186,7 @@ namespace Toast {
 		static void OnViewportResize(uint32_t width, uint32_t height);
 
 		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos, Scene::Environment& environment, int wireFrame);
-		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, Scene::CascadedShadowMapParams& shadowParams, float dt);
+		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, Scene::CascadedShadowMapParams& shadowParams, float dt, bool runtime);
 
 		static void CreateDepthBuffer(uint32_t width, uint32_t height);
 		static void CreateDepthStencilView();
@@ -200,7 +205,7 @@ namespace Toast {
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
 		static void SubmitSkybox(const DirectX::XMFLOAT4& cameraPos, const DirectX::XMFLOAT4X4& viewMatrix, const DirectX::XMFLOAT4X4& projectionMatrix, float intensity, float LOD);
 		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, uint32_t submeshIndex, bool wireframe = false, int noWorldTransform = 0, bool atmosphere = false);
-		static void SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false, uint32_t submeshIndex = 0);
+		static void SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false, uint32_t submeshIndex = 0, bool runtime = false);
 		static void SubmitPlanet(const Ref<Planet> planet, bool wireframe = false);
 
 		static void DrawFullscreenQuad();

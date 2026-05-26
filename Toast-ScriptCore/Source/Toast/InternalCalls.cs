@@ -91,6 +91,13 @@ namespace Toast
 
         #endregion
 
+        #region Selection
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Selection_Clear();
+
+        #endregion
+
         #region Planet
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -127,6 +134,18 @@ namespace Toast
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern ulong Entity_FindDecententByName(ulong entityID, string childName);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_Select(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_Deselect(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_SelectExclusive(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool Entity_IsSelected(ulong entityID);
 
         #endregion
 

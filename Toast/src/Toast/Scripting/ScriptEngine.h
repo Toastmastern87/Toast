@@ -158,6 +158,7 @@ namespace Toast {
 
 		static bool EntityClassExists(const std::string& fullClassName);
 		static void OnCreateEntity(Entity entity);
+		static void OnCreateEntityWithClass(Entity entity, const std::string& className);
 		static void OnUpdateEntity(Entity entity, Timestep ts);
 		static void OnEventEntity(Entity entity);
 

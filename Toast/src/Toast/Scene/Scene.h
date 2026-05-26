@@ -20,7 +20,9 @@
 
 namespace Toast {
 
+	// Forward Declerations
 	class PhysicsEngine;
+	class SelectionSystem;
 
 	enum class RenderOverlay {
 		NONE = 0, 
@@ -374,7 +376,9 @@ namespace Toast {
 
 		const OutlineSettings& GetOutlineSettings() const { return mSettings.Outline; }
 		OutlineSettings& GetOutlineSettings() { return mSettings.Outline; }
-	public:
+
+		SelectionSystem& GetSelectionSystem() { return *mSelectionSystem; }
+
 		static Ref<Scene> CreateEmpty();
 	private:
 		template<typename T>
@@ -428,6 +432,8 @@ namespace Toast {
 
 		Ref<PhysicsEngine> mPhysicsEngine;
 
+		Scope<SelectionSystem> mSelectionSystem;
+
 		bool mRuntimeBlocked = false;
 
 		// Mouse Picking
@@ -443,6 +449,7 @@ namespace Toast {
 		friend class SceneSettingsPanel;
 		friend class Prefab;
 		friend class PhysicsEngine;
+		friend class SelectionSystem;
 	};
 }
 	

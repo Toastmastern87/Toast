@@ -261,14 +261,12 @@ namespace Toast {
 		return sData->EntityClasses.find(fullClassName) != sData->EntityClasses.end();
 	}
 
-	void ScriptEngine::OnCreateEntity(Entity entity)
+	void ScriptEngine::OnCreateEntityWithClass(Entity entity, const std::string& className)
 	{
-		const auto& sc = entity.GetComponent<ScriptComponent>();
-		if (ScriptEngine::EntityClassExists(sc.ClassName))
+		if (ScriptEngine::EntityClassExists(className))
 		{
 			UUID entityID = entity.GetUUID();
-
-			Ref<ScriptInstance> instance = CreateRef<ScriptInstance>(sData->EntityClasses[sc.ClassName], entity);
+			Ref<ScriptInstance> instance = CreateRef<ScriptInstance>(sData->EntityClasses[className], entity);
 			sData->EntityInstances[entityID] = instance;
 
 			// Copy field values
@@ -278,9 +276,14 @@ namespace Toast {
 				for (const auto& [name, fieldInstance] : fieldMap)
 					instance->SetFieldValueInternal(name, fieldInstance.mBuffer);
 			}
-
 			instance->InvokeOnCreate();
 		}
+	}
+
+	void ScriptEngine::OnCreateEntity(Entity entity)
+	{
+		const auto& sc = entity.GetComponent<ScriptComponent>();
+		OnCreateEntityWithClass(entity, sc.ClassName);
 	}
 
 	void ScriptEngine::OnUpdateEntity(Entity entity, Timestep ts)
@@ -301,8 +304,6 @@ namespace Toast {
 		TOAST_CORE_ASSERT(sData->EntityInstances.find(entity.GetUUID()) != sData->EntityInstances.end(), "Entity Instance does not exist!");
 
 		Ref<ScriptInstance> instance = sData->EntityInstances[entityUUID];
-
-		const auto& sc = entity.GetComponent<ScriptComponent>();
 		instance->InvokeOnEvent();
 	}
 

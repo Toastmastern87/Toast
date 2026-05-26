@@ -92,6 +92,26 @@ namespace Toast
             return new Entity(decententID);
         }
 
+        public void Select()
+        {
+            InternalCalls.Entity_Select(ID);
+        }
+
+        public void Deselect()
+        {
+            InternalCalls.Entity_Deselect(ID);
+        }
+
+        public void SelectExclusive()
+        {
+            InternalCalls.Entity_SelectExclusive(ID);
+        }
+
+        public bool IsSelected()
+        {
+            return InternalCalls.Entity_IsSelected(ID);
+        }
+
         public T As<T>() where T : Entity, new() 
         {
             object instance = InternalCalls.Script_GetInstance(ID);

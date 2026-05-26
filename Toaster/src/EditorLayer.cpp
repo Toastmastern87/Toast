@@ -113,6 +113,8 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
 		ShaderLibrary::Load("assets/shaders/UI.hlsl");
 		ShaderLibrary::Load("assets/shaders/Utilities/Copy.hlsl");
+		ShaderLibrary::Load("assets/shaders/Debug/ObjectMask.hlsl");
+		ShaderLibrary::Load("assets/shaders/Debug/Outline.hlsl");
 
 		mPlaceholderScene = CreateScope<Scene>();
 		mEditorScene = mPlaceholderScene.get();
