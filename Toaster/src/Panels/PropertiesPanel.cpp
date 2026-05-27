@@ -381,6 +381,15 @@ namespace Toast {
 				}
 			}
 
+			if (!mContext.HasComponent<MoveableComponent>())
+			{
+				if (ImGui::MenuItem("Moveable"))
+				{
+					mContext.AddComponent<MoveableComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
 			ImGui::Separator();
 
 			if (!mContext.HasComponent<UIPanelComponent>())
@@ -1568,6 +1577,100 @@ namespace Toast {
 
 				ImGui::EndTable();
 			});
+
+			DrawComponent<MoveableComponent>(ICON_TOASTER_LOCATION_ARROW" Moveable", entity, mScene, activeDragArea, mWindow, mAssetRoot, [this](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
+				{
+					// Active toggle — gates whether the entity accepts MoveTo
+					ImGui::Checkbox("Active", &component.IsActive);
+
+					ImGui::Spacing();
+					ImGui::Separator();
+					ImGui::Spacing();
+					ImGui::Text("Marker");
+
+					// Marker texture (AssetHandle drop target) — see note below, match your existing texture-drop pattern
+					{
+						ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+						ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+						ImGui::BeginTable("MoveableMarkerTexture", 2, flags);
+						ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+						ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::Text("Texture");
+						ImGui::TableSetColumnIndex(1);
+
+						Texture2D* displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
+
+						// Show current handle / a button to clear, plus a drag-drop accept target.
+						if (component.MarkerTextureHandle != AssetHandle(0))
+						{
+							auto tex = AssetManager::GetAsset<Texture2D>(component.MarkerTextureHandle);
+							if (tex)
+								displayTexture = tex.get();
+						}
+
+						ImGui::Image(displayTexture->GetID(), { 64.0f, 64.0f });
+
+						std::optional<std::string> filepath;
+						if (ImGui::BeginDragDropTarget())
+						{
+							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+							{
+								const wchar_t* path = (const wchar_t*)payload->Data;
+								auto completePath = assetRoot / path;
+								filepath = completePath.string();
+
+								if (filepath)
+								{
+									RequestTextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
+										{
+											auto& comp = entity.GetComponent<MoveableComponent>();
+											comp.MarkerTextureHandle = handle;
+										});
+								}
+							}
+
+							ImGui::EndDragDropTarget();
+						}
+
+						if (ImGui::IsItemClicked())
+						{
+							auto texturePath = mAssetRoot / "Textures";
+							filepath = FileDialogs::OpenFile("", texturePath.string().c_str());
+
+							if (filepath)
+							{
+								RequestTextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
+									{
+										auto& comp = entity.GetComponent<MoveableComponent>();
+										comp.MarkerTextureHandle = handle;
+									});
+							}
+						}
+
+						ImGui::EndTable();
+					}
+
+					DrawFloatControl("Duration (s)", component.MarkerDuration, window, activeDragArea, 90.0f, 0.1f, 5.0f, 0.05f, "%.2f");
+					DrawFloatControl("Start Scale", component.MarkerStartScale, window, activeDragArea, 90.0f, 0.0f, 10.0f, 0.05f, "%.2f");
+					DrawFloatControl("End Scale", component.MarkerEndScale, window, activeDragArea, 90.0f, 0.0f, 10.0f, 0.05f, "%.2f");
+
+					ImGui::Spacing();
+					{
+						ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+						ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+						ImGui::BeginTable("MoveableMarkerColor", 2, flags);
+						ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+						ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::Text("Color");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::ColorEdit4("##MarkerColor", &component.MarkerColor.x);
+						ImGui::EndTable();
+					}
+				});
 	}
 
 }

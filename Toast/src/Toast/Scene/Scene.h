@@ -20,9 +20,10 @@
 
 namespace Toast {
 
-	// Forward Declerations
+	// Forward Declarations
 	class PhysicsEngine;
 	class SelectionSystem;
+	class MovementSystem;
 
 	enum class RenderOverlay {
 		NONE = 0, 
@@ -378,6 +379,7 @@ namespace Toast {
 		OutlineSettings& GetOutlineSettings() { return mSettings.Outline; }
 
 		SelectionSystem& GetSelectionSystem() { return *mSelectionSystem; }
+		MovementSystem& GetMovementSystem() { return *mMovementSystem; }
 
 		static Ref<Scene> CreateEmpty();
 	private:
@@ -433,6 +435,7 @@ namespace Toast {
 		Ref<PhysicsEngine> mPhysicsEngine;
 
 		Scope<SelectionSystem> mSelectionSystem;
+		Scope<MovementSystem> mMovementSystem;
 
 		bool mRuntimeBlocked = false;
 
@@ -450,6 +453,7 @@ namespace Toast {
 		friend class Prefab;
 		friend class PhysicsEngine;
 		friend class SelectionSystem;
+		friend class MovementSystem;
 	};
 }
 	

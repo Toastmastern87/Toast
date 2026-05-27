@@ -3,6 +3,7 @@
 
 #include "Toast/Scene/Entity.h"
 #include "Toast/Scene/Components.h"
+#include "Toast/Scene/MovementSystem.h"
 #include "Toast/Scene/Prefab.h"
 #include "Toast/Scene/SelectionSystem.h"
 
@@ -49,6 +50,7 @@ namespace Toast {
 		mPhysicsEngine->Initialize(this);
 
 		mSelectionSystem = CreateScope<SelectionSystem>(this);
+		mMovementSystem = CreateScope<MovementSystem>(this);
 	}
 
 	Scene::~Scene()
@@ -533,6 +535,7 @@ namespace Toast {
 					aggregatedParticles.insert(aggregatedParticles.end(), pc.Particles.begin(), pc.Particles.end());
 				}
 
+
 				Renderer::FillParticleBuffer(aggregatedParticles);
 			}
 
@@ -545,6 +548,11 @@ namespace Toast {
 			DirectX::XMStoreFloat4x4(&fInvView, cameraTransform);
 			mMainCamera->SetViewMatrix(fView);
 			mMainCamera->SetInvViewMatrix(fInvView);
+
+			// Movement System
+			{
+				mMovementSystem->OnUpdate(ts);
+			}
 
 			// Start a rebuild of the planet if needed
 			{
@@ -1817,6 +1825,7 @@ namespace Toast {
 		CopyComponentIfExists<UITextComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<UIButtonComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 		CopyComponentIfExists<ParticlesComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
+		CopyComponentIfExists<MoveableComponent>(newRootEntity, mRegistry, prefabRoot, prefabRoot.mScene->mRegistry);
 
 		// Process the rest of the prefab entities.
 		for (size_t i = 1; i < prefabEntities.size(); ++i)
@@ -1853,6 +1862,7 @@ namespace Toast {
 			CopyComponentIfExists<UITextComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<UIButtonComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 			CopyComponentIfExists<ParticlesComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
+			CopyComponentIfExists<MoveableComponent>(newEntity, mRegistry, prefabEntity, prefabEntity.mScene->mRegistry);
 		}
 
 		// ----- Second Pass: Update parent-child relationships using the mapping -----
@@ -1985,6 +1995,7 @@ namespace Toast {
 		CopyComponent<UITextComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIButtonComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<ParticlesComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<MoveableComponent>(target->mRegistry, mRegistry, enttMap);
 	}
 
 	template<typename T>
@@ -2156,6 +2167,16 @@ namespace Toast {
 
 	template<>
 	void Scene::OnComponentAdded<SelectedComponent>(Entity entity, SelectedComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<MoveableComponent>(Entity entity, MoveableComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<MoveCommandComponent>(Entity entity, MoveCommandComponent& component)
 	{
 	}
 }

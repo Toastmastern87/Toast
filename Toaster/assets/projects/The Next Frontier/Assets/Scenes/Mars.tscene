@@ -436,23 +436,290 @@ Entities:
         - Name: WheelSensitivity
           Type: Float
           Data: 1
-  - Entity: 9695718872219527677
+  - Entity: 6463812206116168561
     TagComponent:
-      Tag: SelectionManager
+      Tag: Chass
     RelationshipComponent:
-      ParentHandle: 0
+      ParentHandle: 1289859837286577453
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 5152846305709443261
+    TagComponent:
+      Tag: Wheel6
+    RelationshipComponent:
+      ParentHandle: 1289859837286577453
+      Children:
+        []
+    TransformComponent:
+      Translation: [-0.976622045, -0.493934214, -0.959226608]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 13154853289139240737
+    TagComponent:
+      Tag: Wheel5
+    RelationshipComponent:
+      ParentHandle: 1289859837286577453
+      Children:
+        []
+    TransformComponent:
+      Translation: [-0.976622164, -0.493934214, 1.02493954]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 12397165656495995241
+    TagComponent:
+      Tag: Wheel4
+    RelationshipComponent:
+      ParentHandle: 1289859837286577453
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.167088911, -0.493934214, -0.959226608]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 95573500987251469
+    TagComponent:
+      Tag: Wheel3
+    RelationshipComponent:
+      ParentHandle: 1289859837286577453
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.167088792, -0.493934214, 1.02493954]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 9837353505188215860
+    TagComponent:
+      Tag: Wheel2
+    RelationshipComponent:
+      ParentHandle: 1289859837286577453
+      Children:
+        []
+    TransformComponent:
+      Translation: [1.10078192, -0.493934214, -0.959226608]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 8664260500864064554
+    TagComponent:
+      Tag: Wheel1
+    RelationshipComponent:
+      ParentHandle: 1289859837286577453
+      Children:
+        []
+    TransformComponent:
+      Translation: [1.1007818, -0.493934214, 1.02493954]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 12195644157395978329
+    TagComponent:
+      Tag: Chassi
+    RelationshipComponent:
+      ParentHandle: 1289859837286577453
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.591357112, 0.234443754, 0]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 5780726646307212602
+    TagComponent:
+      Tag: Chass
+    RelationshipComponent:
+      ParentHandle: 1564831577206289523
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 13451241602437401896
+    TagComponent:
+      Tag: Wheel6
+    RelationshipComponent:
+      ParentHandle: 1564831577206289523
+      Children:
+        []
+    TransformComponent:
+      Translation: [-0.976622045, -0.493934214, -0.959226608]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 8030530578285653113
+    TagComponent:
+      Tag: Wheel5
+    RelationshipComponent:
+      ParentHandle: 1564831577206289523
+      Children:
+        []
+    TransformComponent:
+      Translation: [-0.976622164, -0.493934214, 1.02493954]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 4780923770377584763
+    TagComponent:
+      Tag: Wheel4
+    RelationshipComponent:
+      ParentHandle: 1564831577206289523
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.167088911, -0.493934214, -0.959226608]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 5067816571744258435
+    TagComponent:
+      Tag: Wheel3
+    RelationshipComponent:
+      ParentHandle: 1564831577206289523
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.167088792, -0.493934214, 1.02493954]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 8843945239450167573
+    TagComponent:
+      Tag: Wheel2
+    RelationshipComponent:
+      ParentHandle: 1564831577206289523
+      Children:
+        []
+    TransformComponent:
+      Translation: [1.10078192, -0.493934214, -0.959226608]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 985782689197572822
+    TagComponent:
+      Tag: Wheel1
+    RelationshipComponent:
+      ParentHandle: 1564831577206289523
+      Children:
+        []
+    TransformComponent:
+      Translation: [1.1007818, -0.493934214, 1.02493954]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 15544050649654729779
+    TagComponent:
+      Tag: Chassi
+    RelationshipComponent:
+      ParentHandle: 1564831577206289523
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.591357112, 0.234443754, 0]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 1564831577206289523
+    TagComponent:
+      Tag: Rover2
+    RelationshipComponent:
+      ParentHandle: 18121539842362116121
+      Children:
+        - Handle: 15544050649654729779
+        - Handle: 985782689197572822
+        - Handle: 8843945239450167573
+        - Handle: 5067816571744258435
+        - Handle: 4780923770377584763
+        - Handle: 8030530578285653113
+        - Handle: 13451241602437401896
+        - Handle: 5780726646307212602
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
       RotationQuat: [0, 0, 0, 1]
       Scale: [1, 1, 1]
-    SceneScriptComponent:
-      ClassName: Sandbox.SelectionManager
-  - Entity: 13216893530266742497
+    MeshComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Rover\Rover.gltf
+      LODThresholds:
+        - 0.300000012
+        - 0.600000024
+      Parts:
+        - Name: Chassi
+          Handle: 15544050649654729779
+        - Name: Wheel1
+          Handle: 985782689197572822
+        - Name: Wheel2
+          Handle: 8843945239450167573
+        - Name: Wheel3
+          Handle: 5067816571744258435
+        - Name: Wheel4
+          Handle: 4780923770377584763
+        - Name: Wheel5
+          Handle: 8030530578285653113
+        - Name: Wheel6
+          Handle: 13451241602437401896
+        - Name: Chass
+          Handle: 5780726646307212602
+  - Entity: 1289859837286577453
     TagComponent:
-      Tag: UnloadCargoButton
+      Tag: Rover1
+    RelationshipComponent:
+      ParentHandle: 18121539842362116121
+      Children:
+        - Handle: 12195644157395978329
+        - Handle: 8664260500864064554
+        - Handle: 9837353505188215860
+        - Handle: 95573500987251469
+        - Handle: 12397165656495995241
+        - Handle: 13154853289139240737
+        - Handle: 5152846305709443261
+        - Handle: 6463812206116168561
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Rover\Rover.gltf
+      LODThresholds:
+        - 0.300000012
+        - 0.600000024
+      Parts:
+        - Name: Chassi
+          Handle: 12195644157395978329
+        - Name: Wheel1
+          Handle: 8664260500864064554
+        - Name: Wheel2
+          Handle: 9837353505188215860
+        - Name: Wheel3
+          Handle: 95573500987251469
+        - Name: Wheel4
+          Handle: 12397165656495995241
+        - Name: Wheel5
+          Handle: 13154853289139240737
+        - Name: Wheel6
+          Handle: 5152846305709443261
+        - Name: Chass
+          Handle: 6463812206116168561
+    MoveableComponent:
+      IsActive: true
+      MarkerTextureHandle: 11475697403858755245
+      MarkerDuration: 0.600000024
+      MarkerStartScale: 0.200000003
+      MarkerEndScale: 2
+      MarkerColor: [0.200000003, 1, 0.400000006, 1]
+  - Entity: 16380098558611301094
+    TagComponent:
+      Tag: LoadCargoButton
     RelationshipComponent:
       ParentHandle: 17683343706633406771
       Children:
@@ -463,600 +730,436 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [149, 409, 1]
     ScriptComponent:
-      ClassName: Sandbox.UnloadCargo
+      ClassName: Sandbox.LoadCargo
     UIButtonComponent:
       CornerRadius: 0
       UseColor: false
       Color: [1, 1, 1, 1]
       ClickColor: [1, 1, 1, 1]
-      TextureAssetHandle: 124052619671075937
-      ClickTextureAssetHandle: 124052619671075937
+      TextureAssetHandle: 8973060968401244305
+      ClickTextureAssetHandle: 8973060968401244305
       Visible: false
-  - Entity: 6749678775089839145
+  - Entity: 6571834013205168760
     TagComponent:
-      Tag: FollowButton
-    RelationshipComponent:
-      ParentHandle: 17683343706633406771
-      Children:
-        []
-    TransformComponent:
-      Translation: [-1301.5, -208, 7]
-      Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [33, 409, 1]
-    UIButtonComponent:
-      CornerRadius: 0
-      UseColor: false
-      Color: [1, 1, 1, 1]
-      ClickColor: [1, 1, 1, 1]
-      TextureAssetHandle: 2915971554223233935
-      ClickTextureAssetHandle: 13437167207546777021
-      Visible: true
-  - Entity: 8935244486945498943
-    TagComponent:
-      Tag: AltitudeText
-    RelationshipComponent:
-      ParentHandle: 17683343706633406771
-      Children:
-        []
-    TransformComponent:
-      Translation: [-1290, -459, 0]
-      Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [21, 23, 1]
-    UITextComponent:
-      AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
-      Text: "Altitude: 0 m"
-      TextureIndex: 0
-      Color: [1, 1, 1, 1]
-  - Entity: 449177564690845958
-    TagComponent:
-      Tag: VelocityText
-    RelationshipComponent:
-      ParentHandle: 17683343706633406771
-      Children:
-        []
-    TransformComponent:
-      Translation: [-1289, -488, 0]
-      Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [21, 23, 1]
-    UITextComponent:
-      AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
-      Text: "Velocity: 0.0 m/s"
-      TextureIndex: 0
-      Color: [1, 1, 1, 1]
-  - Entity: 14654054629392417776
-    TagComponent:
-      Tag: CloseButton
-    RelationshipComponent:
-      ParentHandle: 17683343706633406771
-      Children:
-        []
-    TransformComponent:
-      Translation: [-1117, -535, 14]
-      Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [20, 20, 1]
-    UIButtonComponent:
-      CornerRadius: 0
-      UseColor: false
-      Color: [1, 1, 1, 1]
-      ClickColor: [1, 1, 1, 1]
-      TextureAssetHandle: 3469351507733000060
-      ClickTextureAssetHandle: 16967429399523444614
-      Visible: true
-  - Entity: 17683343706633406771
-    TagComponent:
-      Tag: InfoPopup
+      Tag: FrontFlapLeft
     RelationshipComponent:
       ParentHandle: 11328469722289647653
       Children:
-        - Handle: 14654054629392417776
-        - Handle: 449177564690845958
-        - Handle: 8935244486945498943
-        - Handle: 6749678775089839145
-        - Handle: 13216893530266742497
-        - Handle: 16380098558611301094
+        []
     TransformComponent:
-      Translation: [307.5, -34.2999878, 4.4000001]
+      Translation: [-3.1843307, 22.0407619, 1.24158382]
       Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [256, 409, 1]
-    UIPanelComponent:
-      Color: [1, 1, 1, 1]
-      CornerRadius: 21.2999992
-      TextureAssetHandle: 7770627433586345934
-      UseColor: false
-      Visible: false
-      ConnectToParent: true
-      ConnectorColor: [0.0156862754, 0.0235294122, 0.0274509806, 1]
-      ConnectorThickness: 4.30000019
-      ConnectorChildOffset: [126.900002, 6.19999981]
-      ConnectorParentOffset: [0, 24.7000008]
-  - Entity: 13550521646691037742
+      RotationQuat: [-0, 0.173648208, -0, 0.984807789]
+      Scale: [1, 1, 0.135449007]
+  - Entity: 1958667255112413262
     TagComponent:
-      Tag: AllStarshipUI
+      Tag: FlontFlapRight
     RelationshipComponent:
-      ParentHandle: 0
+      ParentHandle: 11328469722289647653
       Children:
-        - Handle: 6399342346770279097
+        []
     TransformComponent:
-      Translation: [-1215.5, -546, 7]
+      Translation: [4.44148684, 16.9123936, 2.24836254]
       Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [64, 64, 1]
-    ScriptComponent:
-      ClassName: Sandbox.AllStarshipsPopup
-    UIButtonComponent:
-      CornerRadius: 0
-      UseColor: false
-      Color: [1, 1, 1, 1]
-      ClickColor: [1, 1, 1, 1]
-      TextureAssetHandle: 12754749742457056117
-      ClickTextureAssetHandle: 15448905917135323940
-      Visible: false
-  - Entity: 2584980814812506026
+      RotationQuat: [-0.173648179, 0, 0.984807789, -0]
+      Scale: [0.99999994, -1.00000036, 0.135449052]
+  - Entity: 13614571948022317652
     TagComponent:
-      Tag: AddStarshipButton
+      Tag: PayLoadDoorRight
     RelationshipComponent:
-      ParentHandle: 0
+      ParentHandle: 11328469722289647653
       Children:
         []
     TransformComponent:
-      Translation: [-1290.5, -546, 6]
+      Translation: [2.49865723, 8.08476448, 3.73904538]
       Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [124, 118, 1]
-    ScriptComponent:
-      ClassName: Sandbox.AddStarship
-    UIButtonComponent:
-      CornerRadius: 0
-      UseColor: false
-      Color: [1, 1, 1, 1]
-      ClickColor: [1, 1, 1, 1]
-      TextureAssetHandle: 5778959045403344017
-      ClickTextureAssetHandle: 10618831687704719499
-      Visible: false
-  - Entity: 11451148643943162086
-    TagComponent:
-      Tag: MText
-    RelationshipComponent:
-      ParentHandle: 2577963022771772615
-      Children:
-        []
-    TransformComponent:
-      Translation: [-1263.5, -407, 0]
-      Rotation: [0, -0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [20, 29, 1]
-    UITextComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
-      Text: "M: 1"
-      TextureIndex: 3
-      Color: [1, 1, 1, 1]
-  - Entity: 2812129723666465913
-    TagComponent:
-      Tag: SText
-    RelationshipComponent:
-      ParentHandle: 2577963022771772615
-      Children:
-        []
-    TransformComponent:
-      Translation: [-1263.5, -379, 0]
-      Rotation: [0, -0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [20, 28, 1]
-    UITextComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
-      Text: "Sol: 1"
-      TextureIndex: 3
-      Color: [1, 1, 1, 1]
-  - Entity: 18384185750220347789
-    TagComponent:
-      Tag: TimeScale1
-    RelationshipComponent:
-      ParentHandle: 2577963022771772615
-      Children:
-        []
-    TransformComponent:
-      Translation: [-855.5, -375, 0]
-      Rotation: [0, -0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [30, 10, 1]
-    ScriptComponent:
-      ClassName: Sandbox.GameSpeedButtons
-    UIButtonComponent:
-      CornerRadius: 4
-      UseColor: true
-      Color: [0, 0, 0, 1]
-      ClickColor: [0, 0, 0, 1]
-      TextureAssetHandle: 0
-      ClickTextureAssetHandle: 0
-      Visible: true
-  - Entity: 11806276604423328658
-    TagComponent:
-      Tag: TimeScale2
-    RelationshipComponent:
-      ParentHandle: 2577963022771772615
-      Children:
-        []
-    TransformComponent:
-      Translation: [-855.5, -390.728882, 0]
-      Rotation: [0, -0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [30, 10, 1]
-    ScriptComponent:
-      ClassName: Sandbox.GameSpeedButtons
-    UIButtonComponent:
-      CornerRadius: 4
-      UseColor: true
-      Color: [1, 1, 1, 1]
-      ClickColor: [1, 1, 1, 1]
-      TextureAssetHandle: 0
-      ClickTextureAssetHandle: 0
-      Visible: true
-  - Entity: 2709097365577216560
-    TagComponent:
-      Tag: TimeScale3
-    RelationshipComponent:
-      ParentHandle: 2577963022771772615
-      Children:
-        []
-    TransformComponent:
-      Translation: [-855.5, -407.791382, 0]
-      Rotation: [0, -0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [30, 10, 1]
-    ScriptComponent:
-      ClassName: Sandbox.GameSpeedButtons
-    UIButtonComponent:
-      CornerRadius: 4
-      UseColor: true
-      Color: [1, 1, 1, 1]
-      ClickColor: [1, 1, 1, 1]
-      TextureAssetHandle: 0
-      ClickTextureAssetHandle: 0
-      Visible: true
-  - Entity: 4566870064654448293
-    TagComponent:
-      Tag: TimeScale4
-    RelationshipComponent:
-      ParentHandle: 2577963022771772615
-      Children:
-        []
-    TransformComponent:
-      Translation: [-855.5, -422.833008, 0]
-      Rotation: [0, -0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [30, 10, 1]
-    ScriptComponent:
-      ClassName: Sandbox.GameSpeedButtons
-    UIButtonComponent:
-      CornerRadius: 4
-      UseColor: true
-      Color: [1, 1, 1, 1]
-      ClickColor: [1, 1, 1, 1]
-      TextureAssetHandle: 0
-      ClickTextureAssetHandle: 0
-      Visible: true
-  - Entity: 9291025796538517788
-    TagComponent:
-      Tag: TimeText
-    RelationshipComponent:
-      ParentHandle: 2577963022771772615
-      Children:
-        []
-    TransformComponent:
-      Translation: [-1167.5, -387, 0]
-      Rotation: [0, -0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [30, 75, 1]
-    ScriptComponent:
-      ClassName: Sandbox.TimeText
-    UITextComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
-      Text: 00:00:14
-      TextureIndex: 3
-      Color: [1, 1, 1, 1]
-  - Entity: 7969327153423302118
-    TagComponent:
-      Tag: Sunlight
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [-83.8999252, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [0.999434412, 0.999894023, 0.999519885]
-    DirectionalLightComponent:
-      Radiance: [1, 0.980000019, 0.949999988]
-      Intensity: 1
-      SunDesiredCoverage: 10000
-      SunLightDistance: 961
-  - Entity: 2577963022771772615
-    TagComponent:
-      Tag: TimeUI
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        - Handle: 11451148643943162086
-        - Handle: 2812129723666465913
-        - Handle: 9291025796538517788
-        - Handle: 4566870064654448293
-        - Handle: 2709097365577216560
-        - Handle: 11806276604423328658
-        - Handle: 18384185750220347789
-    TransformComponent:
-      Translation: [818, -681, 10]
-      Rotation: [0, -0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [536, 243, 1]
-    UIPanelComponent:
-      Color: [0.0413039252, 0.0980315134, 0.489451468, 1]
-      CornerRadius: 0
-      TextureAssetHandle: 4857095533691141474
-      UseColor: false
-      Visible: true
-      ConnectToParent: false
-      ConnectorColor: [0, 0, 0, 0]
-      ConnectorThickness: 1
-      ConnectorChildOffset: [0, 0]
-      ConnectorParentOffset: [0, 0]
-  - Entity: 11637652594119463601
-    TagComponent:
-      Tag: StarshipSphereTest
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        - Handle: 7625412182059970898
-        - Handle: 4757161398082090575
-        - Handle: 15688673418873795630
-        - Handle: 5350470097573753918
-        - Handle: 17200548796977600084
-        - Handle: 697842924302282008
-    TransformComponent:
-      Translation: [-296.632843, 107.378815, 54]
-      Rotation: [-179.999893, 86.0998535, -179.999893]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [0.999999404, 1, 0.999999404]
-    MeshComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_SN3.gltf
-      LODThresholds:
-        - 0.300000012
-        - 0.600000024
-      Parts:
-        - Name: Flap Backward Left
-          Handle: 4757161398082090575
-        - Name: Flap Backward Right
-          Handle: 5350470097573753918
-        - Name: Flap Forward Left
-          Handle: 7625412182059970898
-        - Name: Flap Forward Right
-          Handle: 15688673418873795630
-        - Name: LandingLegs
-          Handle: 17200548796977600084
-        - Name: MainBody
-          Handle: 697842924302282008
-    RigidBodyComponent:
-      InvMass: 0.00019999999494757503
-      Elasticity: 0
-      AngularDamping: 0
-      StaticFriction: 0
-      DynamicFriction: 0
-      CenterOfMass: [0, 0, 0]
-      DragCoefficient: 0
-      CrossSectionMin: 0
-      CrossSectionMax: 0
-    SphereColliderComponent:
-      RenderCollider: true
-      Radius: 26.899988174438477
-  - Entity: 7625412182059970898
-    TagComponent:
-      Tag: Flap Forward Left
-    RelationshipComponent:
-      ParentHandle: 11637652594119463601
-      Children:
-        []
-    TransformComponent:
-      Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
+      RotationQuat: [-0, 0, -0, 1]
       Scale: [1, 1, 1]
-  - Entity: 4757161398082090575
+  - Entity: 4002066781570277741
     TagComponent:
-      Tag: Flap Backward Left
+      Tag: PayLoadDoorLeft
     RelationshipComponent:
-      ParentHandle: 11637652594119463601
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [-2.49804688, 8.08476448, 3.73904586]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 1478133167880134538
+    TagComponent:
+      Tag: RaptorVacuum3
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [2.25920868, -22.8997345, 1.00756884]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 16060551591098514106
+    TagComponent:
+      Tag: RaptorVacuum2
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [-3.17223358, -22.8997345, 1.00756884]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 10631949491470918750
+    TagComponent:
+      Tag: RaptorVacuum1
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [-0.331756592, -22.8997345, -2.90701389]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 3758871099012070215
+    TagComponent:
+      Tag: RaptorSea3
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.78377533, -23.7662926, -0.393976629]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+    ParticlesComponent:
+      Emitting: false
+      MaxLifeTime: 0.600000024
+      SpawnDelay: 9.99999975e-05
+      Velocity: [0, -32, 0]
+      StartColor: [0.784313738, 0.517647088, 0]
+      EndColor: [0.407843143, 0.203921571, 0.827450991]
+      ColorBlendFactor: 0.150000006
+      ConeAngleDegrees: 0
+      BiasExponent: 1
+      GrowRate: 0
+      BurstInitial: 3.5
+      BurstDecay: 1.29999995
+      Size: 1.09000003
+      SpawnFunction: 2
+      MaskTextureAssetHandle: 14291402269564755598
+  - Entity: 8759594839769969488
+    TagComponent:
+      Tag: RaptorSea2
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [0.0152053833, -23.7662926, 0.836445153]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+    ParticlesComponent:
+      Emitting: false
+      MaxLifeTime: 0.600000024
+      SpawnDelay: 9.99999975e-05
+      Velocity: [0, -32, 0]
+      StartColor: [0.784313738, 0.517647088, 0]
+      EndColor: [0.407843143, 0.203921571, 0.827450991]
+      ColorBlendFactor: 0.150000006
+      ConeAngleDegrees: 0
+      BiasExponent: 1
+      GrowRate: 0
+      BurstInitial: 3.5
+      BurstDecay: 1.29999995
+      Size: 1.09000003
+      SpawnFunction: 2
+      MaskTextureAssetHandle: 14291402269564755598
+  - Entity: 4409898826254464335
+    TagComponent:
+      Tag: RaptorSea1
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [-0.619262695, -23.7662926, -0.386898011]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+    ParticlesComponent:
+      Emitting: false
+      MaxLifeTime: 0.600000024
+      SpawnDelay: 9.99999975e-05
+      Velocity: [0, -32, 0]
+      StartColor: [0.784313738, 0.517647088, 0]
+      EndColor: [0.407843143, 0.203921571, 0.827450991]
+      ColorBlendFactor: 0.150000006
+      ConeAngleDegrees: 0
+      BiasExponent: 1
+      GrowRate: 0
+      BurstInitial: 3.50000119
+      BurstDecay: 1.30000019
+      Size: 1.09000003
+      SpawnFunction: 2
+      MaskTextureAssetHandle: 14291402269564755598
+  - Entity: 1492285913819568750
+    TagComponent:
+      Tag: PayloadDoorRight
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [2.49747467, 8.08420944, 3.73904586]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 4665006129860208964
+    TagComponent:
+      Tag: PayloadDoorLeft
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [-2.49922943, 8.08420944, 3.73904634]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 13383756409872596126
+    TagComponent:
+      Tag: MainHull
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
+      RotationQuat: [-0, 0, -0, 1]
       Scale: [1, 1, 1]
-  - Entity: 15688673418873795630
+  - Entity: 3595114587610768815
     TagComponent:
-      Tag: Flap Forward Right
+      Tag: PistonRod3
     RelationshipComponent:
-      ParentHandle: 11637652594119463601
+      ParentHandle: 11328469722289647653
       Children:
         []
     TransformComponent:
-      Translation: [0, 0, 0]
+      Translation: [3.88076186, -24.3251419, 2.3164196]
       Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
+      RotationQuat: [0.0231929608, 0.882544756, 0.0401436985, -0.467937231]
       Scale: [1, 1, 1]
-  - Entity: 5350470097573753918
+  - Entity: 18317802095539196144
     TagComponent:
-      Tag: Flap Backward Right
+      Tag: Leg3
     RelationshipComponent:
-      ParentHandle: 11637652594119463601
+      ParentHandle: 11328469722289647653
       Children:
         []
     TransformComponent:
-      Translation: [0, 0, 0]
+      Translation: [4.04938984, -26.0185204, 2.43212557]
       Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
+      RotationQuat: [0, 0.865876079, 0, -0.500258565]
       Scale: [1, 1, 1]
-  - Entity: 17200548796977600084
+  - Entity: 1850897011728003542
     TagComponent:
-      Tag: LandingLegs
+      Tag: PistonRod2
     RelationshipComponent:
-      ParentHandle: 11637652594119463601
+      ParentHandle: 11328469722289647653
       Children:
         []
     TransformComponent:
-      Translation: [0, 0, 0]
+      Translation: [-3.67812085, -24.3097038, 2.57234359]
       Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
+      RotationQuat: [-0.0219978373, 0.861502528, 0.0408108495, 0.505632341]
+      Scale: [0.99999994, 1, 1]
+  - Entity: 7468525892180777404
+    TagComponent:
+      Tag: Leg2
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [-3.85722733, -26.0030823, 2.67104816]
+      Rotation: [0, 0, 0]
+      RotationQuat: [0, 0.88026607, 0, 0.474480391]
       Scale: [1, 1, 1]
-  - Entity: 697842924302282008
+  - Entity: 9706039805575142275
     TagComponent:
-      Tag: MainBody
+      Tag: PistonRod1
     RelationshipComponent:
-      ParentHandle: 11637652594119463601
+      ParentHandle: 11328469722289647653
       Children:
         []
     TransformComponent:
-      Translation: [0, 0, 0]
+      Translation: [-0.0538864136, -24.3009853, -4.54432201]
       Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
+      RotationQuat: [-0.0463619456, -0.0363249332, -5.83088786e-11, 0.998264015]
+      Scale: [1, 0.99999994, 1]
+  - Entity: 13198619264958606707
+    TagComponent:
+      Tag: Leg1
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [-0.0378799438, -25.9943638, -4.748209]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
       Scale: [1, 1, 1]
-  - Entity: 14796545384475566267
+  - Entity: 4639170425412331917
     TagComponent:
-      Tag: Starship
-    PrefabComponent:
-      PrefabHandle: Starship
-  - Entity: 5004313190604184181
-    TagComponent:
-      Tag: MoneyText
+      Tag: Interior
     RelationshipComponent:
-      ParentHandle: 3130812133437718439
+      ParentHandle: 11328469722289647653
       Children:
         []
     TransformComponent:
-      Translation: [-1241.5, -344.798462, 4.00051451]
-      Rotation: [0, -0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [52, 54, 16]
-    UITextComponent:
-      AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
-      Text: $400.000
-      TextureIndex: 3
-      Color: [1, 1, 1, 1]
-  - Entity: 104127274712065705
-    TagComponent:
-      Tag: AllStarshipCloseButton
-    RelationshipComponent:
-      ParentHandle: 6399342346770279097
-      Children:
-        []
-    TransformComponent:
-      Translation: [-984.5, -534, 8]
+      Translation: [-0.00703430176, 17.99786, -0.0595300123]
       Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [20, 28, 1]
-    ScriptComponent:
-      ClassName: Sandbox.CloseButtonAllStarships
-    UIButtonComponent:
-      CornerRadius: 0
-      UseColor: false
-      Color: [1, 1, 1, 1]
-      ClickColor: [1, 1, 1, 1]
-      TextureAssetHandle: 3469351507733000060
-      ClickTextureAssetHandle: 16967429399523444614
-      Visible: false
-  - Entity: 11909659177328583136
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 13355303749870588891
     TagComponent:
-      Tag: AllStarshipText
+      Tag: ForwardFlapRight
     RelationshipComponent:
-      ParentHandle: 6399342346770279097
+      ParentHandle: 11328469722289647653
       Children:
         []
     TransformComponent:
-      Translation: [-1282.5, -472, 0]
+      Translation: [-0.147888184, 18.571846, -0.0783045515]
       Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [23, 25, 1]
-    UITextComponent:
-      AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
-      Text: "Starship SN3\n"
-      TextureIndex: 0
-      Color: [1, 1, 1, 1]
-  - Entity: 6399342346770279097
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 7768687406999947805
     TagComponent:
-      Tag: AllStarshipsPopup
+      Tag: ForwardFlapLeft
     RelationshipComponent:
-      ParentHandle: 13550521646691037742
-      Children:
-        - Handle: 104127274712065705
-        - Handle: 11909659177328583136
-    TransformComponent:
-      Translation: [-1075.5, -385, 0]
-      Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [392, 1003, 1]
-    UIPanelComponent:
-      Color: [1, 1, 1, 1]
-      CornerRadius: 0
-      TextureAssetHandle: 2936607744665463167
-      UseColor: false
-      Visible: false
-      ConnectToParent: false
-      ConnectorColor: [0, 0, 0, 0]
-      ConnectorThickness: 1
-      ConnectorChildOffset: [0, 0]
-      ConnectorParentOffset: [0, 0]
-  - Entity: 3130812133437718439
-    TagComponent:
-      Tag: Money
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        - Handle: 5004313190604184181
-    TransformComponent:
-      Translation: [492.99707, -743.497559, 5]
-      Rotation: [0, -0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [406, 273, 1]
-    ScriptComponent:
-      ClassName: Sandbox.Money
-      ScriptFields:
-        []
-    UIPanelComponent:
-      Color: [1, 1, 1, 1]
-      CornerRadius: 0
-      TextureAssetHandle: 15018272637222093420
-      UseColor: false
-      Visible: true
-      ConnectToParent: false
-      ConnectorColor: [0, 0, 0, 0]
-      ConnectorThickness: 1
-      ConnectorChildOffset: [0, 0]
-      ConnectorParentOffset: [0, 0]
-  - Entity: 7417047481402635176
-    TagComponent:
-      Tag: MapButton
-    RelationshipComponent:
-      ParentHandle: 0
+      ParentHandle: 11328469722289647653
       Children:
         []
     TransformComponent:
-      Translation: [-1140.5, -546, 1]
+      Translation: [0.178649902, 18.571846, -0.0783045515]
       Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [64, 64, 1]
-    UIButtonComponent:
-      CornerRadius: 0
-      UseColor: false
-      Color: [1, 1, 1, 1]
-      ClickColor: [1, 1, 1, 1]
-      TextureAssetHandle: 14791801764285838026
-      ClickTextureAssetHandle: 13987780987327217849
-      Visible: false
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 3095761984814238558
+    TagComponent:
+      Tag: CraneWireRight
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [1.99871063, 14.8010063, 2.50606537]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 12486190555066938353
+    TagComponent:
+      Tag: CraneWireLeft
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [-2.00669861, 14.8010063, 2.50606537]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 18321756953891945058
+    TagComponent:
+      Tag: CraneHinge
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [2.15153503, 8.04761505, 2.60369992]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 7940920101674378619
+    TagComponent:
+      Tag: CraneCasketRightWall
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [2.04666138, 9.0928154, 1.46879601]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 2859368986478227641
+    TagComponent:
+      Tag: CraneCasketLeftWall
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [-2.0451355, 9.0928154, 1.46879601]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 5960396580760231975
+    TagComponent:
+      Tag: CraneCasketForwardWall
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [1.95568848, 9.08306885, 3.62394452]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 18121539842362116121
+    TagComponent:
+      Tag: CraneCasket
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        - Handle: 1289859837286577453
+        - Handle: 1564831577206289523
+    TransformComponent:
+      Translation: [-2.00669861, 11.6412125, 2.50606537]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 6428562372446318286
+    TagComponent:
+      Tag: AftFlapRight
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [4.72884369, -26.0241814, 0.266617775]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
+  - Entity: 14844676142828498399
+    TagComponent:
+      Tag: AftFlapLeft
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [-4.67868805, -26.0241814, 0.197269678]
+      Rotation: [0, 0, 0]
+      RotationQuat: [-0, 0, -0, 1]
+      Scale: [1, 1, 1]
   - Entity: 11328469722289647653
     TagComponent:
       Tag: Starship Version 4
@@ -1235,429 +1338,594 @@ Entities:
     BoxColliderComponent:
       RenderCollider: true
       Size: [8, 25.954124450683594, 5.3000001907348633]
-  - Entity: 14844676142828498399
+  - Entity: 7417047481402635176
     TagComponent:
-      Tag: AftFlapLeft
+      Tag: MapButton
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 0
       Children:
         []
     TransformComponent:
-      Translation: [-4.67868805, -26.0241814, 0.197269678]
+      Translation: [-1140.5, -546, 1]
       Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 6428562372446318286
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [64, 64, 1]
+    UIButtonComponent:
+      CornerRadius: 0
+      UseColor: false
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+      TextureAssetHandle: 14791801764285838026
+      ClickTextureAssetHandle: 13987780987327217849
+      Visible: false
+  - Entity: 3130812133437718439
     TagComponent:
-      Tag: AftFlapRight
+      Tag: Money
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 0
+      Children:
+        - Handle: 5004313190604184181
+    TransformComponent:
+      Translation: [492.99707, -743.497559, 5]
+      Rotation: [0, -0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [406, 273, 1]
+    ScriptComponent:
+      ClassName: Sandbox.Money
+      ScriptFields:
+        []
+    UIPanelComponent:
+      Color: [1, 1, 1, 1]
+      CornerRadius: 0
+      TextureAssetHandle: 15018272637222093420
+      UseColor: false
+      Visible: true
+      ConnectToParent: false
+      ConnectorColor: [0, 0, 0, 0]
+      ConnectorThickness: 1
+      ConnectorChildOffset: [0, 0]
+      ConnectorParentOffset: [0, 0]
+  - Entity: 6399342346770279097
+    TagComponent:
+      Tag: AllStarshipsPopup
+    RelationshipComponent:
+      ParentHandle: 13550521646691037742
+      Children:
+        - Handle: 104127274712065705
+        - Handle: 11909659177328583136
+    TransformComponent:
+      Translation: [-1075.5, -385, 0]
+      Rotation: [0, 0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [392, 1003, 1]
+    UIPanelComponent:
+      Color: [1, 1, 1, 1]
+      CornerRadius: 0
+      TextureAssetHandle: 2936607744665463167
+      UseColor: false
+      Visible: false
+      ConnectToParent: false
+      ConnectorColor: [0, 0, 0, 0]
+      ConnectorThickness: 1
+      ConnectorChildOffset: [0, 0]
+      ConnectorParentOffset: [0, 0]
+  - Entity: 11909659177328583136
+    TagComponent:
+      Tag: AllStarshipText
+    RelationshipComponent:
+      ParentHandle: 6399342346770279097
       Children:
         []
     TransformComponent:
-      Translation: [4.72884369, -26.0241814, 0.266617775]
+      Translation: [-1282.5, -472, 0]
       Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 18121539842362116121
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [23, 25, 1]
+    UITextComponent:
+      AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
+      Text: "Starship SN3\n"
+      TextureIndex: 0
+      Color: [1, 1, 1, 1]
+  - Entity: 104127274712065705
     TagComponent:
-      Tag: CraneCasket
+      Tag: AllStarshipCloseButton
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 6399342346770279097
       Children:
         []
     TransformComponent:
-      Translation: [-2.00669861, 11.6412125, 2.50606537]
+      Translation: [-984.5, -534, 8]
       Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 5960396580760231975
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [20, 28, 1]
+    ScriptComponent:
+      ClassName: Sandbox.CloseButtonAllStarships
+    UIButtonComponent:
+      CornerRadius: 0
+      UseColor: false
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+      TextureAssetHandle: 3469351507733000060
+      ClickTextureAssetHandle: 16967429399523444614
+      Visible: false
+  - Entity: 5004313190604184181
     TagComponent:
-      Tag: CraneCasketForwardWall
+      Tag: MoneyText
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 3130812133437718439
       Children:
         []
     TransformComponent:
-      Translation: [1.95568848, 9.08306885, 3.62394452]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 2859368986478227641
+      Translation: [-1241.5, -344.798462, 4.00051451]
+      Rotation: [0, -0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [52, 54, 16]
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
+      Text: $400.000
+      TextureIndex: 3
+      Color: [1, 1, 1, 1]
+  - Entity: 14796545384475566267
     TagComponent:
-      Tag: CraneCasketLeftWall
-    RelationshipComponent:
-      ParentHandle: 11328469722289647653
-      Children:
-        []
-    TransformComponent:
-      Translation: [-2.0451355, 9.0928154, 1.46879601]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 7940920101674378619
+      Tag: Starship
+    PrefabComponent:
+      PrefabHandle: Starship
+  - Entity: 697842924302282008
     TagComponent:
-      Tag: CraneCasketRightWall
+      Tag: MainBody
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
-      Children:
-        []
-    TransformComponent:
-      Translation: [2.04666138, 9.0928154, 1.46879601]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 18321756953891945058
-    TagComponent:
-      Tag: CraneHinge
-    RelationshipComponent:
-      ParentHandle: 11328469722289647653
-      Children:
-        []
-    TransformComponent:
-      Translation: [2.15153503, 8.04761505, 2.60369992]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 12486190555066938353
-    TagComponent:
-      Tag: CraneWireLeft
-    RelationshipComponent:
-      ParentHandle: 11328469722289647653
-      Children:
-        []
-    TransformComponent:
-      Translation: [-2.00669861, 14.8010063, 2.50606537]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 3095761984814238558
-    TagComponent:
-      Tag: CraneWireRight
-    RelationshipComponent:
-      ParentHandle: 11328469722289647653
-      Children:
-        []
-    TransformComponent:
-      Translation: [1.99871063, 14.8010063, 2.50606537]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 7768687406999947805
-    TagComponent:
-      Tag: ForwardFlapLeft
-    RelationshipComponent:
-      ParentHandle: 11328469722289647653
-      Children:
-        []
-    TransformComponent:
-      Translation: [0.178649902, 18.571846, -0.0783045515]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 13355303749870588891
-    TagComponent:
-      Tag: ForwardFlapRight
-    RelationshipComponent:
-      ParentHandle: 11328469722289647653
-      Children:
-        []
-    TransformComponent:
-      Translation: [-0.147888184, 18.571846, -0.0783045515]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 4639170425412331917
-    TagComponent:
-      Tag: Interior
-    RelationshipComponent:
-      ParentHandle: 11328469722289647653
-      Children:
-        []
-    TransformComponent:
-      Translation: [-0.00703430176, 17.99786, -0.0595300123]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 13198619264958606707
-    TagComponent:
-      Tag: Leg1
-    RelationshipComponent:
-      ParentHandle: 11328469722289647653
-      Children:
-        []
-    TransformComponent:
-      Translation: [-0.0378799438, -25.9943638, -4.748209]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 9706039805575142275
-    TagComponent:
-      Tag: PistonRod1
-    RelationshipComponent:
-      ParentHandle: 11328469722289647653
-      Children:
-        []
-    TransformComponent:
-      Translation: [-0.0538864136, -24.3009853, -4.54432201]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0.0463619456, -0.0363249332, -5.83088786e-11, 0.998264015]
-      Scale: [1, 0.99999994, 1]
-  - Entity: 7468525892180777404
-    TagComponent:
-      Tag: Leg2
-    RelationshipComponent:
-      ParentHandle: 11328469722289647653
-      Children:
-        []
-    TransformComponent:
-      Translation: [-3.85722733, -26.0030823, 2.67104816]
-      Rotation: [0, 0, 0]
-      RotationQuat: [0, 0.88026607, 0, 0.474480391]
-      Scale: [1, 1, 1]
-  - Entity: 1850897011728003542
-    TagComponent:
-      Tag: PistonRod2
-    RelationshipComponent:
-      ParentHandle: 11328469722289647653
-      Children:
-        []
-    TransformComponent:
-      Translation: [-3.67812085, -24.3097038, 2.57234359]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0.0219978373, 0.861502528, 0.0408108495, 0.505632341]
-      Scale: [0.99999994, 1, 1]
-  - Entity: 18317802095539196144
-    TagComponent:
-      Tag: Leg3
-    RelationshipComponent:
-      ParentHandle: 11328469722289647653
-      Children:
-        []
-    TransformComponent:
-      Translation: [4.04938984, -26.0185204, 2.43212557]
-      Rotation: [0, 0, 0]
-      RotationQuat: [0, 0.865876079, 0, -0.500258565]
-      Scale: [1, 1, 1]
-  - Entity: 3595114587610768815
-    TagComponent:
-      Tag: PistonRod3
-    RelationshipComponent:
-      ParentHandle: 11328469722289647653
-      Children:
-        []
-    TransformComponent:
-      Translation: [3.88076186, -24.3251419, 2.3164196]
-      Rotation: [0, 0, 0]
-      RotationQuat: [0.0231929608, 0.882544756, 0.0401436985, -0.467937231]
-      Scale: [1, 1, 1]
-  - Entity: 13383756409872596126
-    TagComponent:
-      Tag: MainHull
-    RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 11637652594119463601
       Children:
         []
     TransformComponent:
       Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
+      RotationQuat: [0, 0, 0, 1]
       Scale: [1, 1, 1]
-  - Entity: 4665006129860208964
+  - Entity: 17200548796977600084
     TagComponent:
-      Tag: PayloadDoorLeft
+      Tag: LandingLegs
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 11637652594119463601
       Children:
         []
     TransformComponent:
-      Translation: [-2.49922943, 8.08420944, 3.73904634]
+      Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
+      RotationQuat: [0, 0, 0, 1]
       Scale: [1, 1, 1]
-  - Entity: 1492285913819568750
+  - Entity: 5350470097573753918
     TagComponent:
-      Tag: PayloadDoorRight
+      Tag: Flap Backward Right
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 11637652594119463601
       Children:
         []
     TransformComponent:
-      Translation: [2.49747467, 8.08420944, 3.73904586]
+      Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
+      RotationQuat: [0, 0, 0, 1]
       Scale: [1, 1, 1]
-  - Entity: 4409898826254464335
+  - Entity: 15688673418873795630
     TagComponent:
-      Tag: RaptorSea1
+      Tag: Flap Forward Right
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 11637652594119463601
       Children:
         []
     TransformComponent:
-      Translation: [-0.619262695, -23.7662926, -0.386898011]
+      Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
+      RotationQuat: [0, 0, 0, 1]
       Scale: [1, 1, 1]
-    ParticlesComponent:
-      Emitting: false
-      MaxLifeTime: 0.600000024
-      SpawnDelay: 9.99999975e-05
-      Velocity: [0, -32, 0]
-      StartColor: [0.784313738, 0.517647088, 0]
-      EndColor: [0.407843143, 0.203921571, 0.827450991]
-      ColorBlendFactor: 0.150000006
-      ConeAngleDegrees: 0
-      BiasExponent: 1
-      GrowRate: 0
-      BurstInitial: 3.50000119
-      BurstDecay: 1.30000019
-      Size: 1.09000003
-      SpawnFunction: 2
-      MaskTextureAssetHandle: 14291402269564755598
-  - Entity: 8759594839769969488
+  - Entity: 4757161398082090575
     TagComponent:
-      Tag: RaptorSea2
+      Tag: Flap Backward Left
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 11637652594119463601
       Children:
         []
     TransformComponent:
-      Translation: [0.0152053833, -23.7662926, 0.836445153]
+      Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
+      RotationQuat: [0, 0, 0, 1]
       Scale: [1, 1, 1]
-    ParticlesComponent:
-      Emitting: false
-      MaxLifeTime: 0.600000024
-      SpawnDelay: 9.99999975e-05
-      Velocity: [0, -32, 0]
-      StartColor: [0.784313738, 0.517647088, 0]
-      EndColor: [0.407843143, 0.203921571, 0.827450991]
-      ColorBlendFactor: 0.150000006
-      ConeAngleDegrees: 0
-      BiasExponent: 1
-      GrowRate: 0
-      BurstInitial: 3.5
-      BurstDecay: 1.29999995
-      Size: 1.09000003
-      SpawnFunction: 2
-      MaskTextureAssetHandle: 14291402269564755598
-  - Entity: 3758871099012070215
+  - Entity: 7625412182059970898
     TagComponent:
-      Tag: RaptorSea3
+      Tag: Flap Forward Left
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 11637652594119463601
       Children:
         []
     TransformComponent:
-      Translation: [0.78377533, -23.7662926, -0.393976629]
+      Translation: [0, 0, 0]
       Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
+      RotationQuat: [0, 0, 0, 1]
       Scale: [1, 1, 1]
-    ParticlesComponent:
-      Emitting: false
-      MaxLifeTime: 0.600000024
-      SpawnDelay: 9.99999975e-05
-      Velocity: [0, -32, 0]
-      StartColor: [0.784313738, 0.517647088, 0]
-      EndColor: [0.407843143, 0.203921571, 0.827450991]
-      ColorBlendFactor: 0.150000006
-      ConeAngleDegrees: 0
-      BiasExponent: 1
-      GrowRate: 0
-      BurstInitial: 3.5
-      BurstDecay: 1.29999995
-      Size: 1.09000003
-      SpawnFunction: 2
-      MaskTextureAssetHandle: 14291402269564755598
-  - Entity: 10631949491470918750
+  - Entity: 11637652594119463601
     TagComponent:
-      Tag: RaptorVacuum1
+      Tag: StarshipSphereTest
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 0
+      Children:
+        - Handle: 7625412182059970898
+        - Handle: 4757161398082090575
+        - Handle: 15688673418873795630
+        - Handle: 5350470097573753918
+        - Handle: 17200548796977600084
+        - Handle: 697842924302282008
+    TransformComponent:
+      Translation: [-296.632843, 107.378815, 54]
+      Rotation: [-179.999893, 86.0998535, -179.999893]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [0.999999404, 1, 0.999999404]
+    MeshComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\meshes\Starship 3.0\Starship_SN3.gltf
+      LODThresholds:
+        - 0.300000012
+        - 0.600000024
+      Parts:
+        - Name: Flap Backward Left
+          Handle: 4757161398082090575
+        - Name: Flap Backward Right
+          Handle: 5350470097573753918
+        - Name: Flap Forward Left
+          Handle: 7625412182059970898
+        - Name: Flap Forward Right
+          Handle: 15688673418873795630
+        - Name: LandingLegs
+          Handle: 17200548796977600084
+        - Name: MainBody
+          Handle: 697842924302282008
+    RigidBodyComponent:
+      InvMass: 0.00019999999494757503
+      Elasticity: 0
+      AngularDamping: 0
+      StaticFriction: 0
+      DynamicFriction: 0
+      CenterOfMass: [0, 0, 0]
+      DragCoefficient: 0
+      CrossSectionMin: 0
+      CrossSectionMax: 0
+    SphereColliderComponent:
+      RenderCollider: true
+      Radius: 26.899988174438477
+  - Entity: 2577963022771772615
+    TagComponent:
+      Tag: TimeUI
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        - Handle: 11451148643943162086
+        - Handle: 2812129723666465913
+        - Handle: 9291025796538517788
+        - Handle: 4566870064654448293
+        - Handle: 2709097365577216560
+        - Handle: 11806276604423328658
+        - Handle: 18384185750220347789
+    TransformComponent:
+      Translation: [818, -681, 10]
+      Rotation: [0, -0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [536, 243, 1]
+    UIPanelComponent:
+      Color: [0.0413039252, 0.0980315134, 0.489451468, 1]
+      CornerRadius: 0
+      TextureAssetHandle: 4857095533691141474
+      UseColor: false
+      Visible: true
+      ConnectToParent: false
+      ConnectorColor: [0, 0, 0, 0]
+      ConnectorThickness: 1
+      ConnectorChildOffset: [0, 0]
+      ConnectorParentOffset: [0, 0]
+  - Entity: 7969327153423302118
+    TagComponent:
+      Tag: Sunlight
+    RelationshipComponent:
+      ParentHandle: 0
       Children:
         []
     TransformComponent:
-      Translation: [-0.331756592, -22.8997345, -2.90701389]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 16060551591098514106
+      Translation: [0, 0, 0]
+      Rotation: [-83.8999252, 0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [0.999434412, 0.999894023, 0.999519885]
+    DirectionalLightComponent:
+      Radiance: [1, 0.980000019, 0.949999988]
+      Intensity: 1
+      SunDesiredCoverage: 10000
+      SunLightDistance: 961
+  - Entity: 9291025796538517788
     TagComponent:
-      Tag: RaptorVacuum2
+      Tag: TimeText
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 2577963022771772615
       Children:
         []
     TransformComponent:
-      Translation: [-3.17223358, -22.8997345, 1.00756884]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 1478133167880134538
+      Translation: [-1167.5, -387, 0]
+      Rotation: [0, -0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [30, 75, 1]
+    ScriptComponent:
+      ClassName: Sandbox.TimeText
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
+      Text: 00:00:14
+      TextureIndex: 3
+      Color: [1, 1, 1, 1]
+  - Entity: 4566870064654448293
     TagComponent:
-      Tag: RaptorVacuum3
+      Tag: TimeScale4
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 2577963022771772615
       Children:
         []
     TransformComponent:
-      Translation: [2.25920868, -22.8997345, 1.00756884]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 4002066781570277741
+      Translation: [-855.5, -422.833008, 0]
+      Rotation: [0, -0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [30, 10, 1]
+    ScriptComponent:
+      ClassName: Sandbox.GameSpeedButtons
+    UIButtonComponent:
+      CornerRadius: 4
+      UseColor: true
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+      TextureAssetHandle: 0
+      ClickTextureAssetHandle: 0
+      Visible: true
+  - Entity: 2709097365577216560
     TagComponent:
-      Tag: PayLoadDoorLeft
+      Tag: TimeScale3
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 2577963022771772615
       Children:
         []
     TransformComponent:
-      Translation: [-2.49804688, 8.08476448, 3.73904586]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 13614571948022317652
+      Translation: [-855.5, -407.791382, 0]
+      Rotation: [0, -0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [30, 10, 1]
+    ScriptComponent:
+      ClassName: Sandbox.GameSpeedButtons
+    UIButtonComponent:
+      CornerRadius: 4
+      UseColor: true
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+      TextureAssetHandle: 0
+      ClickTextureAssetHandle: 0
+      Visible: true
+  - Entity: 11806276604423328658
     TagComponent:
-      Tag: PayLoadDoorRight
+      Tag: TimeScale2
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 2577963022771772615
       Children:
         []
     TransformComponent:
-      Translation: [2.49865723, 8.08476448, 3.73904538]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0, -0, 1]
-      Scale: [1, 1, 1]
-  - Entity: 1958667255112413262
+      Translation: [-855.5, -390.728882, 0]
+      Rotation: [0, -0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [30, 10, 1]
+    ScriptComponent:
+      ClassName: Sandbox.GameSpeedButtons
+    UIButtonComponent:
+      CornerRadius: 4
+      UseColor: true
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+      TextureAssetHandle: 0
+      ClickTextureAssetHandle: 0
+      Visible: true
+  - Entity: 18384185750220347789
     TagComponent:
-      Tag: FlontFlapRight
+      Tag: TimeScale1
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 2577963022771772615
       Children:
         []
     TransformComponent:
-      Translation: [4.44148684, 16.9123936, 2.24836254]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0.173648179, 0, 0.984807789, -0]
-      Scale: [0.99999994, -1.00000036, 0.135449052]
-  - Entity: 6571834013205168760
+      Translation: [-855.5, -375, 0]
+      Rotation: [0, -0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [30, 10, 1]
+    ScriptComponent:
+      ClassName: Sandbox.GameSpeedButtons
+    UIButtonComponent:
+      CornerRadius: 4
+      UseColor: true
+      Color: [0, 0, 0, 1]
+      ClickColor: [0, 0, 0, 1]
+      TextureAssetHandle: 0
+      ClickTextureAssetHandle: 0
+      Visible: true
+  - Entity: 2812129723666465913
     TagComponent:
-      Tag: FrontFlapLeft
+      Tag: SText
     RelationshipComponent:
-      ParentHandle: 11328469722289647653
+      ParentHandle: 2577963022771772615
       Children:
         []
     TransformComponent:
-      Translation: [-3.1843307, 22.0407619, 1.24158382]
-      Rotation: [0, 0, 0]
-      RotationQuat: [-0, 0.173648208, -0, 0.984807789]
-      Scale: [1, 1, 0.135449007]
-  - Entity: 16380098558611301094
+      Translation: [-1263.5, -379, 0]
+      Rotation: [0, -0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [20, 28, 1]
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
+      Text: "Sol: 1"
+      TextureIndex: 3
+      Color: [1, 1, 1, 1]
+  - Entity: 11451148643943162086
     TagComponent:
-      Tag: LoadCargoButton
+      Tag: MText
+    RelationshipComponent:
+      ParentHandle: 2577963022771772615
+      Children:
+        []
+    TransformComponent:
+      Translation: [-1263.5, -407, 0]
+      Rotation: [0, -0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [20, 29, 1]
+    UITextComponent:
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
+      Text: "M: 1"
+      TextureIndex: 3
+      Color: [1, 1, 1, 1]
+  - Entity: 2584980814812506026
+    TagComponent:
+      Tag: AddStarshipButton
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [-1290.5, -546, 6]
+      Rotation: [0, 0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [124, 118, 1]
+    ScriptComponent:
+      ClassName: Sandbox.AddStarship
+    UIButtonComponent:
+      CornerRadius: 0
+      UseColor: false
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+      TextureAssetHandle: 5778959045403344017
+      ClickTextureAssetHandle: 10618831687704719499
+      Visible: false
+  - Entity: 13550521646691037742
+    TagComponent:
+      Tag: AllStarshipUI
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        - Handle: 6399342346770279097
+    TransformComponent:
+      Translation: [-1215.5, -546, 7]
+      Rotation: [0, 0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [64, 64, 1]
+    ScriptComponent:
+      ClassName: Sandbox.AllStarshipsPopup
+    UIButtonComponent:
+      CornerRadius: 0
+      UseColor: false
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+      TextureAssetHandle: 12754749742457056117
+      ClickTextureAssetHandle: 15448905917135323940
+      Visible: false
+  - Entity: 17683343706633406771
+    TagComponent:
+      Tag: InfoPopup
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        - Handle: 14654054629392417776
+        - Handle: 449177564690845958
+        - Handle: 8935244486945498943
+        - Handle: 6749678775089839145
+        - Handle: 13216893530266742497
+        - Handle: 16380098558611301094
+    TransformComponent:
+      Translation: [307.5, -34.2999878, 4.4000001]
+      Rotation: [0, 0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [256, 409, 1]
+    UIPanelComponent:
+      Color: [1, 1, 1, 1]
+      CornerRadius: 21.2999992
+      TextureAssetHandle: 7770627433586345934
+      UseColor: false
+      Visible: false
+      ConnectToParent: true
+      ConnectorColor: [0.0156862754, 0.0235294122, 0.0274509806, 1]
+      ConnectorThickness: 4.30000019
+      ConnectorChildOffset: [126.900002, 6.19999981]
+      ConnectorParentOffset: [0, 24.7000008]
+  - Entity: 14654054629392417776
+    TagComponent:
+      Tag: CloseButton
+    RelationshipComponent:
+      ParentHandle: 17683343706633406771
+      Children:
+        []
+    TransformComponent:
+      Translation: [-1117, -535, 14]
+      Rotation: [0, 0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [20, 20, 1]
+    UIButtonComponent:
+      CornerRadius: 0
+      UseColor: false
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+      TextureAssetHandle: 3469351507733000060
+      ClickTextureAssetHandle: 16967429399523444614
+      Visible: true
+  - Entity: 449177564690845958
+    TagComponent:
+      Tag: VelocityText
+    RelationshipComponent:
+      ParentHandle: 17683343706633406771
+      Children:
+        []
+    TransformComponent:
+      Translation: [-1289, -488, 0]
+      Rotation: [0, 0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [21, 23, 1]
+    UITextComponent:
+      AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
+      Text: "Velocity: 0.0 m/s"
+      TextureIndex: 0
+      Color: [1, 1, 1, 1]
+  - Entity: 8935244486945498943
+    TagComponent:
+      Tag: AltitudeText
+    RelationshipComponent:
+      ParentHandle: 17683343706633406771
+      Children:
+        []
+    TransformComponent:
+      Translation: [-1290, -459, 0]
+      Rotation: [0, 0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [21, 23, 1]
+    UITextComponent:
+      AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
+      Text: "Altitude: 0 m"
+      TextureIndex: 0
+      Color: [1, 1, 1, 1]
+  - Entity: 6749678775089839145
+    TagComponent:
+      Tag: FollowButton
+    RelationshipComponent:
+      ParentHandle: 17683343706633406771
+      Children:
+        []
+    TransformComponent:
+      Translation: [-1301.5, -208, 7]
+      Rotation: [0, 0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [33, 409, 1]
+    UIButtonComponent:
+      CornerRadius: 0
+      UseColor: false
+      Color: [1, 1, 1, 1]
+      ClickColor: [1, 1, 1, 1]
+      TextureAssetHandle: 2915971554223233935
+      ClickTextureAssetHandle: 13437167207546777021
+      Visible: true
+  - Entity: 13216893530266742497
+    TagComponent:
+      Tag: UnloadCargoButton
     RelationshipComponent:
       ParentHandle: 17683343706633406771
       Children:
@@ -1668,12 +1936,26 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [149, 409, 1]
     ScriptComponent:
-      ClassName: Sandbox.LoadCargo
+      ClassName: Sandbox.UnloadCargo
     UIButtonComponent:
       CornerRadius: 0
       UseColor: false
       Color: [1, 1, 1, 1]
       ClickColor: [1, 1, 1, 1]
-      TextureAssetHandle: 8973060968401244305
-      ClickTextureAssetHandle: 8973060968401244305
+      TextureAssetHandle: 124052619671075937
+      ClickTextureAssetHandle: 124052619671075937
       Visible: false
+  - Entity: 9695718872219527677
+    TagComponent:
+      Tag: SelectionManager
+    RelationshipComponent:
+      ParentHandle: 0
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    SceneScriptComponent:
+      ClassName: Sandbox.SelectionManager

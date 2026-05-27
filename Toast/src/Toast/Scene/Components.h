@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <DirectXMath.h>
 
@@ -350,6 +350,25 @@ namespace Toast {
 	struct SelectedComponent 
 	{
 		bool _ = true;
+	};
+
+	struct MoveableComponent 
+	{
+		bool IsActive = true;   // false = cannot accept MoveTo, in-flight commands cancel
+		AssetHandle MarkerTextureHandle;
+		float MarkerDuration = 0.6f;
+		float MarkerStartScale = 0.2f;
+		float MarkerEndScale = 2.0f;
+		DirectX::XMFLOAT4 MarkerColor = { 0.2f, 1.0f, 0.4f, 1.0f };
+	};
+
+	// Runtime-only — created by MoveTo(), never serialized
+	struct MoveCommandComponent 
+	{
+		Vector3 TargetWorldPos;        // terrain-sampled hit point on planet
+		Vector3 TargetSurfaceNormal;   // cached at spawn for marker orientation
+		float Speed;                 // m/s
+		float MarkerElapsed = 0.0f;  // ticks 0 → MarkerDuration, then marker stops drawing
 	};
 
 }
