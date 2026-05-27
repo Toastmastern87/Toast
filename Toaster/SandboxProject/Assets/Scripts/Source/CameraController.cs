@@ -86,7 +86,7 @@ namespace Sandbox
 
             Vector2 newCursorPos = Input.GetMousePosition();
 
-            if (Input.IsMouseButtonPressed(MouseCode.ButtonRight))
+            if (Input.IsMouseButtonPressed(MouseCode.ButtonMiddle))
             {
                 Vector2 delta = newCursorPos - mCursorPos;
                 delta.Y = -delta.Y; // Invert Y axis

@@ -878,6 +878,7 @@ namespace Toast {
 		// Mouse Picking
 		{
 			UpdateHoveredEntity();
+			UpdatePickedWorldPosition();
 		}
 	}
 
@@ -2043,6 +2044,64 @@ namespace Toast {
 
 		pickingRT->CopyPixelToStaging(textureX, textureY);
 		mPickingReadbackPending = true;
+	}
+
+	void Scene::UpdatePickedWorldPosition()
+	{
+		Ref<RenderTarget>& posRT = Renderer::GetGPassPositionRT();   // add this accessor like GetGPassPickingRT
+
+		float viewportX = mViewportBounds[0].x;
+		float viewportY = mViewportBounds[0].y;
+		float viewportWidth = mViewportBounds[1].x - mViewportBounds[0].x;
+		float viewportHeight = mViewportBounds[1].y - mViewportBounds[0].y;
+		float adjustedX = mMouseX - viewportX;
+		float adjustedY = mMouseY - viewportY;
+
+		if (adjustedX < 0 || adjustedY < 0 || adjustedX >= viewportWidth || adjustedY >= viewportHeight)
+		{
+			mPositionReadbackPending = false;
+			mLastPickedValid = false;
+			return;
+		}
+
+		// Read LAST frame's copy (no stall)
+		if (mPositionReadbackPending)
+		{
+			struct Float4 { float x, y, z, w; };
+			Float4 viewPos = posRT->MapStagingPixel<Float4>();
+
+			// Cleared to (0,0,0,1) => sky / no geometry
+			if (viewPos.x == 0.0f && viewPos.y == 0.0f && viewPos.z == 0.0f)
+			{
+				mLastPickedValid = false;
+			}
+			else
+			{
+				// View space -> camera-relative world (inverse view, row-vector mul)
+				DirectX::XMVECTOR vp = DirectX::XMVectorSet(viewPos.x, viewPos.y, viewPos.z, 1.0f);
+				DirectX::XMMATRIX invView = DirectX::XMLoadFloat4x4(&mMainCamera->GetInvViewMatrix());
+				DirectX::XMVECTOR wp = DirectX::XMVector4Transform(vp, invView);
+
+				Vector3 camRelative(DirectX::XMVectorGetX(wp), DirectX::XMVectorGetY(wp), DirectX::XMVectorGetZ(wp));
+				Vector3 lastPickedWorldPos = camRelative + mMainCamera->GetWorldTranslation();
+				mLastPickedWorldPos = { (float)lastPickedWorldPos.x, (float)lastPickedWorldPos.y, (float)lastPickedWorldPos.z };   // true-world
+				mLastPickedValid = true;
+			}
+		}
+
+		// Queue THIS frame's copy
+		auto [rtWidth, rtHeight] = posRT->GetSize();
+		int textureX = static_cast<int>((adjustedX / viewportWidth) * rtWidth);
+		int textureY = static_cast<int>((adjustedY / viewportHeight) * rtHeight);
+		posRT->CopyPixelToStaging(textureX, textureY);
+		mPositionReadbackPending = true;
+	}
+
+	bool Scene::GetWorldPosFromScreenPos(DirectX::XMFLOAT3& outWorldPos)
+	{
+		if (!mLastPickedValid) return false;
+		outWorldPos = mLastPickedWorldPos;
+		return true;
 	}
 
 	Scene::OutlineSettings Scene::ResolveOutlineSettings(Entity selected)

@@ -15,7 +15,6 @@ namespace Sandbox
 
         void OnEvent()
         {
-
                 Scene.LoadScene("Mars");
         }
 

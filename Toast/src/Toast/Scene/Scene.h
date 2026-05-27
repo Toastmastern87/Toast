@@ -381,11 +381,14 @@ namespace Toast {
 		SelectionSystem& GetSelectionSystem() { return *mSelectionSystem; }
 		MovementSystem& GetMovementSystem() { return *mMovementSystem; }
 
+		bool GetWorldPosFromScreenPos(DirectX::XMFLOAT3& outWorldPos);
+
 		static Ref<Scene> CreateEmpty();
 	private:
 		template<typename T>
 		void OnComponentAdded(Entity entity, T& component);
 		void UpdateHoveredEntity();
+		void UpdatePickedWorldPosition();
 
 		OutlineSettings ResolveOutlineSettings(Entity selected);
 	private:
@@ -443,6 +446,9 @@ namespace Toast {
 		float mMouseX = 0.0f;
 		float mMouseY = 0.0f;
 		bool mPickingReadbackPending = false;
+		bool mPositionReadbackPending = false;
+		DirectX::XMFLOAT3 mLastPickedWorldPos;
+		bool mLastPickedValid = false;
 
 		friend class Entity;
 		friend class Renderer;

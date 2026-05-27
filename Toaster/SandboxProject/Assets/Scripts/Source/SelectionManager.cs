@@ -20,6 +20,19 @@ namespace Sandbox
             {
                 Selection.Clear();
             }
+
+            if (Input.IsMouseButtonPressed(MouseCode.ButtonRight))
+            {
+                Vector3 worldPos;
+                if (Scene.GetWorldPositionFromScreenPos(out worldPos))
+                {
+                    Toast.Console.LogTrace("Right-click world position: " + worldPos);
+                }
+                else
+                {
+                    Toast.Console.LogTrace("Right-click on sky / no geometry");
+                }
+            }
         }
 
         void OnUpdate(float ts)

@@ -46,7 +46,7 @@ namespace Toast {
 	}
 
 	void MovementSystem::OnUpdate(Timestep ts)
-	{
+	{ 
 		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 
 		Vector3 planetCenter = mScene->GetPlanet()->GetTranslation(); 

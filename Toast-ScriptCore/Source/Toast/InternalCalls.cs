@@ -89,6 +89,9 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void Scene_RequestSceneChange(string sceneName);
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool Scene_GetWorldPosFromScreenPos(out Vector3 worldPos);
+
         #endregion
 
         #region Selection
@@ -146,6 +149,16 @@ namespace Toast
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool Entity_IsSelected(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_MoveTo(ulong entityID, ref Vector3 target, float speed);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool Entity_GetIsMoveable(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void Entity_SetIsMoveable(ulong entityID, bool value);
+
 
         #endregion
 

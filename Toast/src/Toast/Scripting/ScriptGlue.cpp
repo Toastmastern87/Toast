@@ -221,6 +221,13 @@ namespace Toast {
 			});
 	}
 
+	static bool Scene_GetWorldPosFromScreenPos(DirectX::XMFLOAT3* outWorldPos)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		return scene->GetWorldPosFromScreenPos(*outWorldPos);
+	}
+
 #pragma endregion
 
 #pragma region Selection
@@ -452,6 +459,51 @@ namespace Toast {
 		Entity entity = scene->FindEntityByUUID(entityID);
 		TOAST_CORE_ASSERT(entity, "");
 		return scene->GetSelectionSystem().IsSelected(entity);
+	}
+
+	static void Entity_MoveTo(UUID entityID, Vector3* target, float speed)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity entity = scene->FindEntityByUUID(entityID);
+		TOAST_CORE_ASSERT(entity, "");
+		if (!entity.HasComponent<MoveableComponent>()) return;
+
+		auto& cfg = entity.GetComponent<MoveableComponent>();
+		if (!cfg.IsActive) return;   // silent no-op (cargo-load);
+
+		// target is TRUE world position. Surface normal = radial from planet center (true-world frame).
+		Vector3 camWorld = scene->GetMainCamera()->GetWorldTranslation();
+		Planet& planet = *scene->GetPlanet();
+		Vector3 planetCenter = Vector3(planet.GetTranslation()) + camWorld;
+		Vector3 normal = Vector3::Normalize(*target - planetCenter);
+
+		auto& cmd = entity.AddOrReplaceComponent<MoveCommandComponent>();
+		cmd.TargetWorldPos = *target;
+		cmd.TargetSurfaceNormal = normal;
+		cmd.Speed = speed;
+		cmd.MarkerElapsed = 0.0f;
+	}
+
+	static bool Entity_GetIsMoveable(UUID entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity entity = scene->FindEntityByUUID(entityID);
+		TOAST_CORE_ASSERT(entity, "");
+		if (!entity.HasComponent<MoveableComponent>()) return false;
+		return entity.GetComponent<MoveableComponent>().IsActive;
+	}
+
+	static void Entity_SetIsMoveable(UUID entityID, bool value)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity entity = scene->FindEntityByUUID(entityID);
+		TOAST_CORE_ASSERT(entity, "");
+		if (!entity.HasComponent<MoveableComponent>()) return;
+		entity.GetComponent<MoveableComponent>().IsActive = value;
+		// Cancellation of an in-flight command when set false is handled by MovementSystem.
 	}
 
 #pragma endregion
@@ -1428,6 +1480,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Scene_AddPrefab);
 		TOAST_ADD_INTERNAL_CALL(Scene_GetEntitiesWithPrefab);
 		TOAST_ADD_INTERNAL_CALL(Scene_RequestSceneChange);
+		TOAST_ADD_INTERNAL_CALL(Scene_GetWorldPosFromScreenPos);
 
 		TOAST_ADD_INTERNAL_CALL(Selection_Clear);
 
@@ -1446,6 +1499,9 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Entity_Deselect);
 		TOAST_ADD_INTERNAL_CALL(Entity_SelectExclusive);
 		TOAST_ADD_INTERNAL_CALL(Entity_IsSelected);
+		TOAST_ADD_INTERNAL_CALL(Entity_MoveTo);
+		TOAST_ADD_INTERNAL_CALL(Entity_GetIsMoveable);
+		TOAST_ADD_INTERNAL_CALL(Entity_SetIsMoveable);
 
 		TOAST_ADD_INTERNAL_CALL(TagComponent_GetTag);
 		TOAST_ADD_INTERNAL_CALL(TagComponent_SetTag);
