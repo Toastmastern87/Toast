@@ -137,10 +137,7 @@ namespace Sandbox
         void OnEvent()
         {
             if (Input.IsMouseButtonPressed(MouseCode.ButtonLeft))
-            {
                 mPanel.Visible = true;
-                this.SelectExclusive();
-            }
         }
 
         void OnUpdate(float ts)

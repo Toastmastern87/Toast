@@ -18,7 +18,11 @@ namespace Sandbox
         {
             if (Input.IsMouseButtonPressed(MouseCode.ButtonLeft))
             {
-                Selection.Clear();
+                Entity hovered = Scene.GetHoveredEntity();
+                if (hovered != null && hovered.IsSelectable())
+                    hovered.SelectExclusive();
+                else
+                    Selection.Clear();
             }
 
             if (Input.IsMouseButtonPressed(MouseCode.ButtonRight))

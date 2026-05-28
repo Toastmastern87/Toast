@@ -170,14 +170,12 @@ namespace Toast {
 			if (entity.HasComponent<UIButtonComponent>())
 				entity.GetComponent<UIButtonComponent>().IsClicked = true;
 		}
-		else
+
+		auto view = mRegistry.view<SceneScriptComponent>();
+		for (auto entity : view)
 		{
-			auto view = mRegistry.view<SceneScriptComponent>();
-			for (auto entity : view)
-			{
-				Entity e = { entity, this };
-				ScriptEngine::OnEventEntity(e);
-			}
+			Entity e = { entity, this };
+			ScriptEngine::OnEventEntity(e);
 		}
 
 		return true;
@@ -570,6 +568,53 @@ namespace Toast {
 				// Planet
 				Renderer::SubmitPlanet(mPlanet, static_cast<int>(mSettings.WireframeRendering));
 
+				// --- HACK (until part/submesh rework): cache animated part world-transforms so child
+				// entities (e.g. rover on the elevator) can follow the animated parent. Fill BEFORE the
+				// main loop so children read a complete map regardless of iteration order. ---
+				std::unordered_map<UUID, DirectX::XMMATRIX> animatedPartTransforms;
+				{
+					auto prepassView = mRegistry.view<TransformComponent, MeshComponent>();
+					for (auto entity : prepassView)
+					{
+						auto [transform, mesh] = prepassView.get<TransformComponent, MeshComponent>(entity);
+						if (mesh.MeshObject->GetFilePath() == "")
+							continue;
+
+						// Compose this mesh's own world transform up the relationship chain.
+						DirectX::XMMATRIX meshWorld = transform.GetTransform();
+						{
+							Entity current{ entity, this };
+							while (current.HasComponent<RelationshipComponent>())
+							{
+								UUID parentUUID = current.GetComponent<RelationshipComponent>().ParentHandle;
+								if (parentUUID == 0) break;
+								Entity parentEntity = FindEntityByUUID(parentUUID);
+								if (!parentEntity) break;
+								meshWorld = DirectX::XMMatrixMultiply(meshWorld, parentEntity.GetComponent<TransformComponent>().GetTransform());
+								current = parentEntity;
+							}
+						}
+
+						auto& submeshes = mesh.MeshObject->mLODGroups[mesh.MeshObject->mActiveLODGroup]->Submeshes;
+						for (auto& submesh : submeshes)
+						{
+							if (submesh.PartIndex >= mesh.MeshObject->mPartsUpdated.size())
+								continue;
+							const MeshPart& part = mesh.MeshObject->mPartsUpdated[submesh.PartIndex];
+							if (part.EntityID == 0)
+								continue;
+							Entity partEntity = FindEntityByUUID(part.EntityID);
+							if (!partEntity)
+								continue;
+
+							// Same composition as the render loop: submesh.Transform * partRest * meshWorld
+							auto& partTransform = partEntity.GetComponent<TransformComponent>();
+							DirectX::XMMATRIX animated = DirectX::XMMatrixMultiply(submesh.Transform, partTransform.GetTransform());
+							animatedPartTransforms[part.EntityID] = DirectX::XMMatrixMultiply(animated, meshWorld);
+						}
+					}
+				}
+
 				// Meshes!
 				auto viewMeshes = mRegistry.view<TransformComponent, MeshComponent>();
 				for (auto entity : viewMeshes)
@@ -581,6 +626,34 @@ namespace Toast {
 					if (!validMesh)
 						continue;
 
+					// Walk up the relationship tree to get parent transform included.
+					DirectX::XMMATRIX worldTransform = transform.GetTransform();
+					{
+						Entity current{ entity, this };
+						while (current.HasComponent<RelationshipComponent>())
+						{
+							UUID parentUUID = current.GetComponent<RelationshipComponent>().ParentHandle;
+							if (parentUUID == 0) 
+								break;
+
+							// If the parent is an animated part, its cached transform is already full world space.
+							auto it = animatedPartTransforms.find(parentUUID);
+							if (it != animatedPartTransforms.end())
+							{
+								worldTransform = DirectX::XMMatrixMultiply(transform.GetTransform(), it->second);
+								break;   // cached transform is world-space — stop walking
+							}
+
+							Entity parentEntity = FindEntityByUUID(parentUUID);
+							if (!parentEntity) 
+								break;
+
+							auto& parentTransform = parentEntity.GetComponent<TransformComponent>();
+							worldTransform = DirectX::XMMatrixMultiply(worldTransform, parentTransform.GetTransform());
+							current = parentEntity;
+						}
+					}
+
 					bool entityIsSelected = mRegistry.has<SelectedComponent>(entity);
 
 					auto& lodGroup = mesh.MeshObject->mLODGroups[mesh.MeshObject->mActiveLODGroup];
@@ -590,7 +663,7 @@ namespace Toast {
 					{
 						Submesh& submesh = submeshes[submeshIndex];
 
-						DirectX::XMMATRIX finalTransform = transform.GetTransform(); // fallback
+						DirectX::XMMATRIX finalTransform = worldTransform; // fallback
 
 						if (submesh.PartIndex < mesh.MeshObject->mPartsUpdated.size())
 						{
@@ -603,7 +676,7 @@ namespace Toast {
 								{
 									auto& partTransform = partEntity.GetComponent<TransformComponent>();
 									DirectX::XMMATRIX animatedTransform = DirectX::XMMatrixMultiply(submesh.Transform, partTransform.GetTransform());
-									finalTransform = DirectX::XMMatrixMultiply(animatedTransform, transform.GetTransform());
+									finalTransform = DirectX::XMMatrixMultiply(animatedTransform, worldTransform);
 								}
 							}
 						}
@@ -1175,6 +1248,22 @@ namespace Toast {
 				if (!validMesh)
 					continue;
 
+				// Walk up the relationship tree to get parent transform included.
+				DirectX::XMMATRIX worldTransform = transform.GetTransform();
+				{
+					Entity current{ entity, this };
+					while (current.HasComponent<RelationshipComponent>())
+					{
+						UUID parentUUID = current.GetComponent<RelationshipComponent>().ParentHandle;
+						if (parentUUID == 0) break;
+						Entity parentEntity = FindEntityByUUID(parentUUID);
+						if (!parentEntity) break;
+						auto& parentTransform = parentEntity.GetComponent<TransformComponent>();
+						worldTransform = DirectX::XMMatrixMultiply(worldTransform, parentTransform.GetTransform());
+						current = parentEntity;
+					}
+				}
+
 				auto& lodGroup = mesh.MeshObject->mLODGroups[mesh.MeshObject->mActiveLODGroup];
 				auto& submeshes = lodGroup->Submeshes;
 
@@ -1182,7 +1271,7 @@ namespace Toast {
 				{
 					const Submesh& submesh = submeshes[submeshIndex];
 
-					DirectX::XMMATRIX finalTransform = transform.GetTransform(); // fallback
+					DirectX::XMMATRIX finalTransform = worldTransform; // fallback
 
 					if (submesh.PartIndex < mesh.MeshObject->mPartsUpdated.size())
 					{
@@ -1194,7 +1283,7 @@ namespace Toast {
 							if (partEntity)
 							{
 								auto& partTransform = partEntity.GetComponent<TransformComponent>();
-								finalTransform = DirectX::XMMatrixMultiply(partTransform.GetTransform(), transform.GetTransform());
+								finalTransform = DirectX::XMMatrixMultiply(partTransform.GetTransform(), worldTransform);
 							}
 						}
 					}

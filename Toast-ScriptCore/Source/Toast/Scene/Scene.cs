@@ -57,5 +57,16 @@ namespace Toast
         {
             return InternalCalls.Scene_GetWorldPosFromScreenPos(out worldPos);
         }
+
+        public static Entity GetHoveredEntity()
+        {
+            ulong entityID = InternalCalls.Scene_GetHoveredEntity();
+
+            if (entityID == 0)
+                return null;
+
+            return new Entity(entityID);
+        }
+
     }
 }

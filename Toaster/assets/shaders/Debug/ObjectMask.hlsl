@@ -10,7 +10,7 @@ vertex
 
 cbuffer Camera : register(b0)
 {
-    matrix worldMovementMatrix;
+    matrix worldTranslationMatrix;
 	matrix viewMatrix;
 	matrix projectionMatrix;
 	matrix inverseViewMatrix;
@@ -50,6 +50,7 @@ PixelInputType main(VertexInputType input)
 	PixelInputType output;
 
 	output.pixelPosition = mul(float4(input.position, 1.0f), worldMatrix);
+    output.pixelPosition = mul(output.pixelPosition, worldTranslationMatrix);
 	output.pixelPosition = mul(output.pixelPosition, viewMatrix);
 	output.pixelPosition = mul(output.pixelPosition, projectionMatrix);
 

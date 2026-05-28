@@ -123,6 +123,11 @@ namespace Toast
             set => InternalCalls.Entity_SetIsMoveable(ID, value);
         }
 
+        public bool IsSelectable()
+        {
+            return InternalCalls.Entity_IsSelectable(ID);
+        }
+
         public T As<T>() where T : Entity, new() 
         {
             object instance = InternalCalls.Script_GetInstance(ID);

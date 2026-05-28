@@ -228,6 +228,19 @@ namespace Toast {
 		return scene->GetWorldPosFromScreenPos(*outWorldPos);
 	}
 
+	static uint64_t Scene_GetHoveredEntity()
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+
+		entt::entity handle = scene->GetHoveredEntity();
+		if (handle == entt::null)
+			return 0;
+
+		Entity entity{ handle, scene };
+		return entity.GetUUID();
+	}
+
 #pragma endregion
 
 #pragma region Selection
@@ -504,6 +517,15 @@ namespace Toast {
 		if (!entity.HasComponent<MoveableComponent>()) return;
 		entity.GetComponent<MoveableComponent>().IsActive = value;
 		// Cancellation of an in-flight command when set false is handled by MovementSystem.
+	}
+
+	static bool Entity_IsSelectable(UUID entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		Entity entity = scene->FindEntityByUUID(entityID);
+		if (!entity) return false;
+		return entity.HasComponent<MeshComponent>();
 	}
 
 #pragma endregion
@@ -1481,6 +1503,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Scene_GetEntitiesWithPrefab);
 		TOAST_ADD_INTERNAL_CALL(Scene_RequestSceneChange);
 		TOAST_ADD_INTERNAL_CALL(Scene_GetWorldPosFromScreenPos);
+		TOAST_ADD_INTERNAL_CALL(Scene_GetHoveredEntity);
 
 		TOAST_ADD_INTERNAL_CALL(Selection_Clear);
 
@@ -1502,6 +1525,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Entity_MoveTo);
 		TOAST_ADD_INTERNAL_CALL(Entity_GetIsMoveable);
 		TOAST_ADD_INTERNAL_CALL(Entity_SetIsMoveable);
+		TOAST_ADD_INTERNAL_CALL(Entity_IsSelectable);
 
 		TOAST_ADD_INTERNAL_CALL(TagComponent_GetTag);
 		TOAST_ADD_INTERNAL_CALL(TagComponent_SetTag);
