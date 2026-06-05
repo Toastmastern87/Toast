@@ -146,7 +146,6 @@ namespace Sandbox
                         mCargoTwo.Unparent();
                         mCargoOneMC.IsActive = true;   // now accepts MoveTo
                         mCargoTwoMC.IsActive = true;   // now accepts MoveTo
-                        Toast.Console.LogWarning("After unparent: IsTranslating=" + mCargoOneTC.IsTranslating() + " pos=" + mCargoOneTC.Translation);
                         mUnloadingSequence = UnloadingStep.Done;
                     }
                     break;
