@@ -126,6 +126,12 @@ namespace Toast {
 		sRendererData->GodRaysBuffer.Allocate(sRendererData->GodRaysCBuffer->GetSize());
 		sRendererData->GodRaysBuffer.ZeroInitialize();
 
+		// Setting up the constant buffer for hover tint
+		sRendererData->HoverTintCBuffer = CreateRef<ConstantBuffer>("Hovering", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)8) });
+		sRendererData->HoverTintCBuffer->Bind();
+		sRendererData->HoverTintBuffer.Allocate(sRendererData->HoverTintCBuffer->GetSize());
+		sRendererData->HoverTintBuffer.ZeroInitialize();
+
 		// Setting up the constant buffer for bloom rendering
 		sRendererData->BloomCBuffer = ConstantBufferLibrary::Load("Bloom", 64, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Bloom) });
 		sRendererData->BloomCBuffer->Bind();
@@ -160,6 +166,11 @@ namespace Toast {
 		sRendererData->OutlineCBuffer = ConstantBufferLibrary::Load("Outline", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)8) });
 		sRendererData->OutlineBuffer.Allocate(sRendererData->OutlineCBuffer->GetSize());
 		sRendererData->OutlineBuffer.ZeroInitialize();
+
+		// Setting up the constant buffer for Markers
+		sRendererData->MarkerCBuffer = ConstantBufferLibrary::Load("MarkerCBuffer", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)8) });
+		sRendererData->MarkerBuffer.Allocate(sRendererData->MarkerCBuffer->GetSize());
+		sRendererData->MarkerBuffer.ZeroInitialize();
 
 		// Setting up the render targets for the Geometry Pass
 		sRendererData->GPassPositionRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R32G32B32A32_FLOAT);
@@ -212,8 +223,11 @@ namespace Toast {
 		sRendererData->Dummy1RT = CreateRef<RenderTarget>(RenderTargetType::ColorCube, 256, 256, 1, TextureFormat::R8G8B8A8_UNORM);
 		sRendererData->Dummy2RT = CreateRef<RenderTarget>(RenderTargetType::ColorCube, 256, 256, 1, TextureFormat::R8G8B8A8_UNORM);
 
-		// Setting up the Render Target for the Slection System
+		// Setting up the Render Target for the Selection System
 		sRendererData->SelectedMeshMaskRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
+
+		// Setting up the Render Target for the Hover Tint
+		sRendererData->HoveredMeshMaskRT = CreateRef<RenderTarget>(RenderTargetType::Color, width, height, 1, TextureFormat::R8G8B8A8_UNORM);
 
 		// Setting -Y led to the black since nothing should reflect. 
 		// TODO this should most likely be dynamic in the future depending on which color the surface is. It is gray during the night but orange during the day.
@@ -336,6 +350,7 @@ namespace Toast {
 		sRendererData->SunHaloMaskRT->Resize(width, height);
 
 		sRendererData->SelectedMeshMaskRT->Resize(width, height);
+		sRendererData->HoveredMeshMaskRT->Resize(width, height);
 
 		sRendererData->FinalRT->Resize(width, height);
 		sRendererData->FinalEditorRT->Resize(width, height);
@@ -389,8 +404,10 @@ namespace Toast {
 		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
 
-	void Renderer::EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, Scene::CascadedShadowMapParams& shadowParams, float dt, bool runtime)
+	void Renderer::EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, Scene::CascadedShadowMapParams& shadowParams, DirectX::XMFLOAT4& hoverTintColor, float dt, bool runtime)
 	{
+		sRendererData->ElapsedTime += (float)dt;
+
 		RenderCommand::SetViewport(sRendererData->Viewport);
 
 		// Deffered Renderer
@@ -447,7 +464,10 @@ namespace Toast {
 
 		// Only run during runtime, otherwise the RendererDebug handles the outline
 		if (runtime)
-			OutlinePass(outlineSettings);
+		{
+			GuidancePass(camera.GetWorldTranslation()); // Here is where the move markers and in the future other player guidances are rendered, these are only rendered during play mode of the scene due to the fact that they are depending on play mode states.
+			OutlinePass(outlineSettings, hoverTintColor);
+		}
 
 		if (!debugActivated) 
 		{
@@ -887,9 +907,24 @@ namespace Toast {
 		sRendererData->PlanetDraw = { planet, wireframe };
 	}
 
+	void Renderer::SubmitMoveMarker(const Vector3& target, const Vector3& normal, float size, float alpha, AssetHandle texture)
+	{
+		sRendererData->MoveMarkerDrawList.push_back({ target, normal, size, alpha, texture });
+	}
+	
+	void Renderer::SubmitHoveredMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, uint32_t submeshIndex)
+	{
+		sRendererData->MeshHoveredDrawList.emplace_back(mesh, transform, false, false, 0, submeshIndex);
+	}
+
 	void Renderer::DrawFullscreenQuad()
 	{
 		RenderCommand::Draw(3);
+	}
+
+	void Renderer::DrawQuad()
+	{
+		RenderCommand::Draw(6);
 	}
 
 	void Renderer::ClearDrawList()
@@ -898,6 +933,8 @@ namespace Toast {
 		sRendererData->MeshWireframeDrawList.clear();
 		sRendererData->MeshNoWireframeDrawList.clear();
 		sRendererData->MeshSelectedDrawList.clear();
+		sRendererData->MoveMarkerDrawList.clear();
+		sRendererData->MeshHoveredDrawList.clear();
 	}
 
 	static Scope<Shader> equirectangularConversionShader, envFilteringShader, envIrradianceShader;
@@ -1978,57 +2015,159 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer::OutlinePass(const Scene::OutlineSettings& outlineSettings)
+	void Renderer::OutlinePass(const Scene::OutlineSettings& outlineSettings, const DirectX::XMFLOAT4& hoverTint)
 	{
-		if (sRendererData->MeshSelectedDrawList.empty())
+		bool hasSelected = !sRendererData->MeshSelectedDrawList.empty();
+		bool hasHovered = !sRendererData->MeshHoveredDrawList.empty() && hoverTint.w > 0.0f;  // alpha 0 = off
+
+		if (!hasSelected && !hasHovered)
 			return;
 
 #ifdef TOAST_DEBUG
 		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
 		RenderCommand::GetAnnotation(annotation);
-		if (annotation)
-			annotation->BeginEvent(L"Outline Pass");
+		if (annotation) 
+			annotation->BeginEvent(L"Outline/Highlight Pass");
 #endif
-
 		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
-		RenderCommand::SetRenderTargets({ sRendererData->SelectedMeshMaskRT->GetRTV().Get() }, sRendererData->DepthStencilView);
-		RenderCommand::ClearRenderTargets(sRendererData->SelectedMeshMaskRT->GetRTV().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		ShaderLibrary::Get("assets/shaders/Debug/ObjectMask.hlsl")->Bind();
-		sRendererData->CurrentMesh = nullptr;
-
-		for (const auto& meshCommand : sRendererData->MeshSelectedDrawList)
+		if (hasSelected)
 		{
-			const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
+			RenderCommand::SetRenderTargets({ sRendererData->SelectedMeshMaskRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+			RenderCommand::ClearRenderTargets(sRendererData->SelectedMeshMaskRT->GetRTV().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
 
-			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
-			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+			ShaderLibrary::Get("assets/shaders/Debug/ObjectMask.hlsl")->Bind();
+			sRendererData->CurrentMesh = nullptr;
 
-			if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
+			for (const auto& meshCommand : sRendererData->MeshSelectedDrawList)
 			{
-				meshCommand.Mesh->Bind();
-				sRendererData->CurrentMesh = meshCommand.Mesh.get();
+				const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
+
+				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
+				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+
+				if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
+				{
+					meshCommand.Mesh->Bind();
+					sRendererData->CurrentMesh = meshCommand.Mesh.get();
+				}
+				RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
 			}
-			RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
 		}
 
-		sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Color, 16, 0);
-		sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Thickness, 4, 16);
-		sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Softness, 4, 20);
-		sRendererData->OutlineCBuffer->Map(sRendererData->OutlineBuffer);
-		sRendererData->OutlineCBuffer->Bind();
+		if (hasHovered)
+		{
+			RenderCommand::SetRenderTargets({ sRendererData->HoveredMeshMaskRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+			RenderCommand::ClearRenderTargets(sRendererData->HoveredMeshMaskRT->GetRTV().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
+			ShaderLibrary::Get("assets/shaders/Debug/ObjectMask.hlsl")->Bind();
+			sRendererData->CurrentMesh = nullptr;
+			for (const auto& meshCommand : sRendererData->MeshHoveredDrawList)
+			{
+				const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
+				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
+				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+				if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
+				{
+					meshCommand.Mesh->Bind();
+					sRendererData->CurrentMesh = meshCommand.Mesh.get();
+				}
+				RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
+			}
+		}
 
-		ShaderLibrary::Get("assets/shaders/Debug/Outline.hlsl")->Bind();
 		RenderCommand::SetBlendState(sRendererData->UIBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get(), sRendererData->FinalEditorRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, sRendererData->SelectedMeshMaskRT->GetSRV());
-		Renderer::DrawFullscreenQuad();
+
+		if (hasSelected)
+		{
+			sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Color, 16, 0);
+			sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Thickness, 4, 16);
+			sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Softness, 4, 20);
+			sRendererData->OutlineCBuffer->Map(sRendererData->OutlineBuffer);
+			sRendererData->OutlineCBuffer->Bind();
+
+			ShaderLibrary::Get("assets/shaders/Debug/Outline.hlsl")->Bind();
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, sRendererData->SelectedMeshMaskRT->GetSRV());
+			Renderer::DrawFullscreenQuad();
+		}
+
+		if (hasHovered)
+		{
+			sRendererData->HoverTintBuffer.Write((uint8_t*)&hoverTint, 16, 0);
+			sRendererData->HoverTintCBuffer->Map(sRendererData->HoverTintBuffer);
+			sRendererData->HoverTintCBuffer->Bind();
+			ShaderLibrary::Get("assets/shaders/Rendering/HoverTint.hlsl")->Bind();
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, sRendererData->HoveredMeshMaskRT->GetSRV());
+			Renderer::DrawFullscreenQuad();
+			RenderCommand::ClearShaderResources();
+		}
+
 		RenderCommand::ClearShaderResources();
 
 #ifdef TOAST_DEBUG
 		if (annotation)
 			annotation->EndEvent();
+#endif
+	}
+
+	void Renderer::GuidancePass(Vector3 worldTranslation)
+	{
+		if (sRendererData->MoveMarkerDrawList.empty())
+		{
+			sRendererData->MoveMarkerDrawList.clear();   // safety in case of empty-but-non-cleared
+			return;
+		}
+
+#ifdef TOAST_DEBUG
+		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
+		RenderCommand::GetAnnotation(annotation);
+		if (annotation) annotation->BeginEvent(L"Guidance Pass");
+#endif
+
+		RenderCommand::SetBlendState(sRendererData->UIBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get(), sRendererData->FinalEditorRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+		RenderCommand::SetDepthStencilState(sRendererData->ParticleDepthStencilState);
+
+		ShaderLibrary::Get("assets/shaders/Rendering/GuidanceMarker.hlsl")->Bind();
+
+		for (const auto& marker : sRendererData->MoveMarkerDrawList)
+		{
+			// Position lifted slightly along the surface normal to avoid z-fighting with terrain.
+			Vector3 pos = marker.TargetWorldPos + marker.TargetSurfaceNormal * 0.05;
+			Vector3 up = Vector3::Normalize(marker.TargetSurfaceNormal);
+			Vector3 ref = (fabs(Vector3::Dot(up, Vector3(0.0, 1.0, 0.0))) > 0.99) ? Vector3(1.0, 0.0, 0.0) : Vector3(0.0, 1.0, 0.0);
+			Vector3 right = Vector3::Normalize(Vector3::Cross(ref, up));
+			Vector3 fwd = Vector3::Cross(up, right);
+
+			float scale = marker.Size;
+
+			DirectX::XMMATRIX worldMatrix = DirectX::XMMatrixSet(
+				(float)(right.x * scale), (float)(right.y * scale), (float)(right.z * scale), 0,
+				(float)(up.x * scale), (float)(up.y * scale), (float)(up.z * scale), 0,
+				(float)(fwd.x * scale), (float)(fwd.y * scale), (float)(fwd.z * scale), 0,
+				(float)pos.x, (float)pos.y, (float)pos.z, 1);
+
+			sRendererData->ModelBuffer.Write((uint8_t*)&worldMatrix, 64, 0);
+			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+
+			// Alpha-only cbuffer (color removed; texture provides RGB)
+			const float rotationSpeed = 0.5f;
+			float time = sRendererData->ElapsedTime;
+			DirectX::XMFLOAT4 markerParams = { marker.Alpha, time, rotationSpeed, 0.0f };
+			sRendererData->MarkerBuffer.Write((uint8_t*)&markerParams, 16, 0);
+			sRendererData->MarkerCBuffer->Map(sRendererData->MarkerBuffer);
+			sRendererData->MarkerCBuffer->Bind();
+
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, AssetManager::GetAsset<Texture2D>(marker.Texture)->GetSRV());
+			Renderer::DrawQuad();
+		}
+
+		RenderCommand::SetBlendState(nullptr);
+		sRendererData->MoveMarkerDrawList.clear();   // drain so next frame starts empty (the silent-bug pattern from outline pass)
+
+#ifdef TOAST_DEBUG
+		if (annotation) annotation->EndEvent();
 #endif
 	}
 

@@ -588,11 +588,10 @@ namespace Toast {
 
 			auto& mc = entity.GetComponent<MoveableComponent>();
 			out << YAML::Key << "IsActive" << YAML::Value << mc.IsActive;
+			out << YAML::Key << "GroundOffset" << YAML::Value << mc.GroundOffset;
 			out << YAML::Key << "MarkerTextureHandle" << YAML::Value << mc.MarkerTextureHandle; 
-			out << YAML::Key << "MarkerDuration" << YAML::Value << mc.MarkerDuration;
-			out << YAML::Key << "MarkerStartScale" << YAML::Value << mc.MarkerStartScale;
-			out << YAML::Key << "MarkerEndScale" << YAML::Value << mc.MarkerEndScale;
-			out << YAML::Key << "MarkerColor" << YAML::Value << mc.MarkerColor;   
+			out << YAML::Key << "MarkerSize" << YAML::Value << mc.MarkerSize;
+			out << YAML::Key << "MarkerFadeOutDuration" << YAML::Value << mc.MarkerFadeOutDuration; 
 			out << YAML::EndMap; // MoveableComponent
 		}
 
@@ -759,6 +758,8 @@ namespace Toast {
 		out << YAML::Key << "OutlineSoftness" << YAML::Value << settings.Outline.Softness;
 		out << YAML::Key << "OutlinePulseSpeed" << YAML::Value << settings.Outline.PulseSpeed;
 		out << YAML::Key << "OutlineXRay" << YAML::Value << settings.Outline.XRay;
+
+		out << YAML::Key << "HoverTintColor" << YAML::Value << settings.HoverTintColor;
 
 		out << YAML::Key << "Physics";
 		out << YAML::BeginMap;
@@ -1161,9 +1162,11 @@ namespace Toast {
 		settings.Exposure.EVSpaceNight = data["Settings"]["EVSpaceNight"].as<float>();
 		settings.Exposure.AltFadeFrac = data["Settings"]["AltFadeFrac"].as<DirectX::XMFLOAT2>();
 		settings.Exposure.SunFadeDeg = data["Settings"]["SunFadeDeg"].as<DirectX::XMFLOAT2>();
+		settings.HoverTintColor = data["Settings"]["HoverTintColor"].as<DirectX::XMFLOAT4>();
 
 		auto& outline = settings.Outline;
 		outline.Color = data["OutlineColor"].as<DirectX::XMFLOAT4>(outline.Color);
+
 		outline.Thickness = data["OutlineThickness"].as<float>(outline.Thickness);
 		outline.Softness = data["OutlineSoftness"].as<float>(outline.Softness);
 		outline.PulseSpeed = data["OutlinePulseSpeed"].as<float>(outline.PulseSpeed);
@@ -1807,11 +1810,10 @@ namespace Toast {
 				{
 					auto& mc = deserializedEntity.AddComponent<MoveableComponent>();
 					mc.IsActive = moveableComponent["IsActive"].as<bool>(mc.IsActive);
+					mc.GroundOffset = moveableComponent["GroundOffset"].as<float>(mc.GroundOffset);
 					mc.MarkerTextureHandle = moveableComponent["MarkerTextureHandle"].as<AssetHandle>(mc.MarkerTextureHandle);
-					mc.MarkerDuration = moveableComponent["MarkerDuration"].as<float>(mc.MarkerDuration);
-					mc.MarkerStartScale = moveableComponent["MarkerStartScale"].as<float>(mc.MarkerStartScale);
-					mc.MarkerEndScale = moveableComponent["MarkerEndScale"].as<float>(mc.MarkerEndScale);
-					mc.MarkerColor = moveableComponent["MarkerColor"].as<DirectX::XMFLOAT4>(mc.MarkerColor);
+					mc.MarkerSize = moveableComponent["MarkerSize"].as<float>(mc.MarkerSize);
+					mc.MarkerFadeOutDuration = moveableComponent["MarkerFadeOutDuration"].as<float>(mc.MarkerFadeOutDuration);
 				}
 			}
 		}

@@ -9,7 +9,7 @@
 namespace Toast {
 
 	// Snap a position to the terrain surface along its radial direction.
-	void MovementSystem::SnapToSurface(Vector3& pos, Vector3& outNormal)
+	void MovementSystem::SnapToSurface(Vector3& pos, Vector3& outNormal, float groundOffset)
 	{
 		PhysicsEngine* physics = mScene->GetPhysicsEngine().get();
 
@@ -17,40 +17,70 @@ namespace Toast {
 		Vector3 groundNormal;
 		double altitude = physics->GetAltitudeAtWorldPos(pos, radialDist, groundNormal);
 
+		//TOAST_CORE_INFO("Snap: in=(%.2lf,%.2lf,%.2lf) altitude=%.2f normal=(%.2lf,%.2lf,%.2lf) out=(%.2lf,%.2lf,%.2lf)",
+		//	pos.x, pos.y, pos.z, altitude,
+		//	groundNormal.x, groundNormal.y, groundNormal.z,
+		//	pos.x, pos.y, pos.z);
+
+		outNormal = groundNormal;
 		pos = pos - groundNormal * altitude;
+		pos = pos + groundNormal * (double)groundOffset;
 	}
 
-	// Orient so 'up' = surface normal, 'forward' = travel direction (gram-Schmidt).
 	void MovementSystem::OrientToSurface(TransformComponent& tc, const Vector3& up, const Vector3& forward)
 	{
+		using namespace DirectX;
+
 		Vector3 u = Vector3::Normalize(up);
 		Vector3 f = Vector3::Normalize(forward - u * Vector3::Dot(forward, u));
-		Vector3 r = Vector3::Normalize(Vector3::Cross(u, f));  
-		f = Vector3::Cross(r, u);   
-		DirectX::XMMATRIX rot = DirectX::XMMatrixSet(
-			(float)r.x, (float)r.y, (float)r.z, 0.0f,
-			(float)u.x, (float)u.y, (float)u.z, 0.0f,
-			(float)f.x, (float)f.y, (float)f.z, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
-		DirectX::XMVECTOR desired = DirectX::XMQuaternionRotationMatrix(rot);
 
-		DirectX::XMVECTOR qEuler = DirectX::XMQuaternionRotationRollPitchYaw(
-			DirectX::XMConvertToRadians(tc.RotationEulerAngles.x),
-			DirectX::XMConvertToRadians(tc.RotationEulerAngles.y),
-			DirectX::XMConvertToRadians(tc.RotationEulerAngles.z));
+		XMVECTOR localX = XMVectorSet(1, 0, 0, 0);
+		XMVECTOR target = XMVectorSet((float)f.x, (float)f.y, (float)f.z, 0);
+		float dotXF = XMVectorGetX(XMVector3Dot(localX, target));
 
-		DirectX::XMVECTOR stored = DirectX::XMQuaternionMultiply(DirectX::XMQuaternionInverse(qEuler), desired);
-		DirectX::XMStoreFloat4(&tc.RotationQuaternion, DirectX::XMQuaternionNormalize(stored));
+		XMVECTOR q1;
+		if (dotXF > 0.9999f) {
+			q1 = XMQuaternionIdentity();
+		}
+		else if (dotXF < -0.9999f) {
+			q1 = XMQuaternionRotationAxis(XMVectorSet(0, 1, 0, 0), XM_PI);
+		}
+		else {
+			XMVECTOR axis = XMVector3Normalize(XMVector3Cross(localX, target));
+			float angle = acosf(dotXF);
+			q1 = XMQuaternionRotationAxis(axis, angle);
+		}
+
+		XMVECTOR localY = XMVectorSet(0, 1, 0, 0);
+		XMVECTOR localYAfterQ1 = XMVector3Rotate(localY, q1);
+		XMVECTOR targetU = XMVectorSet((float)u.x, (float)u.y, (float)u.z, 0);
+
+		// Project both onto plane perpendicular to target (f).
+		// localYProj = localYAfterQ1 - target * dot(localYAfterQ1, target)
+		XMVECTOR dotYAfter_f = XMVector3Dot(localYAfterQ1, target);   // broadcast scalar
+		XMVECTOR localYProj = XMVector3Normalize(XMVectorSubtract(localYAfterQ1, XMVectorMultiply(target, dotYAfter_f)));
+
+		XMVECTOR dotU_f = XMVector3Dot(targetU, target);
+		XMVECTOR uProj = XMVector3Normalize(XMVectorSubtract(targetU, XMVectorMultiply(target, dotU_f)));
+
+		float dotYU = XMVectorGetX(XMVector3Dot(localYProj, uProj));
+		dotYU = fmaxf(-1.0f, fminf(1.0f, dotYU));
+		float angle2 = acosf(dotYU);
+
+		XMVECTOR crossYU = XMVector3Cross(localYProj, uProj);
+		if (XMVectorGetX(XMVector3Dot(crossYU, target)) < 0) angle2 = -angle2;
+
+		XMVECTOR q2 = XMQuaternionRotationAxis(target, angle2);
+		XMVECTOR desired = XMQuaternionMultiply(q1, q2);
+
+		XMStoreFloat4(&tc.RotationQuaternion, XMQuaternionNormalize(desired));
+		tc.RotationEulerAngles = { 0.0f, 0.0f, 0.0f };
 		tc.IsDirty = true;
 	}
 
 	void MovementSystem::OnUpdate(Timestep ts)
-	{ 
+	{
 		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
-
-		Vector3 planetCenter = mScene->GetPlanet()->GetTranslation(); 
-		double planetRadius = mScene->GetPlanet()->GetRadius(); 
 
 		auto view = mScene->GetRegistry().view<TransformComponent, MoveCommandComponent, MoveableComponent>();
 		for (auto entity : view)
@@ -59,49 +89,48 @@ namespace Toast {
 			auto& cmd = view.get<MoveCommandComponent>(entity);
 			auto& cfg = view.get<MoveableComponent>(entity);
 
-			// Deactivation cancels in-flight commands immediately
-			if (!cfg.IsActive)
-			{
+			if (!cfg.IsActive) {
 				mScene->GetRegistry().remove<MoveCommandComponent>(entity);
 				continue;
 			}
+			cmd.MarkerElapsed += (float)ts;
 
-			cmd.MarkerElapsed += (float)ts;   // marker timer; renderer reads this
-
-			Vector3 currentPos = Vector3(tc.Translation.x, tc.Translation.y, tc.Translation.z) + worldTranslation;
+			Vector3 currentPos = Vector3(tc.Translation.x, tc.Translation.y, tc.Translation.z);  // rendered-frame
 			Vector3 toTarget = cmd.TargetWorldPos - currentPos;
-			double remaining = toTarget.Length();
 			double step = (double)cmd.Speed * (double)ts;
 
-			Vector3 newWorldPos;
+			// Compute tangent-projected direction & distance — this is the actual movement axis.
+			Vector3 normalHere;
+			{
+				double rd; Vector3 gn;
+				mScene->GetPhysicsEngine()->GetAltitudeAtWorldPos(currentPos + worldTranslation, rd, gn);
+				normalHere = gn;
+			}
+			Vector3 tangentVec = toTarget - normalHere * Vector3::Dot(toTarget, normalHere);
+			double tangentRemaining = tangentVec.Length();
+			Vector3 tangentDir = (tangentRemaining > 1e-6) ? (tangentVec / tangentRemaining) : Vector3();
+
+			bool arriving = (step >= tangentRemaining);
+			Vector3 candidatePos = arriving ? cmd.TargetWorldPos : (currentPos + tangentDir * step);
+
+			// Snap the candidate (rendered-frame) onto terrain. SnapToSurface needs absolute input,
+			// operates in absolute, then we convert back to rendered-frame.
+			Vector3 candidateAbs = candidatePos + worldTranslation;
 			Vector3 surfaceNormal;
+			SnapToSurface(candidateAbs, surfaceNormal, cfg.GroundOffset);   // mutates candidateAbs to snapped
+			Vector3 snappedRendered = candidateAbs - worldTranslation;
 
-			if (step >= remaining)
-			{
-				newWorldPos = cmd.TargetWorldPos;
-				SnapToSurface(newWorldPos, surfaceNormal);
-				OrientToSurface(tc, surfaceNormal, toTarget);
-				mScene->GetRegistry().remove<MoveCommandComponent>(entity);
-				continue;
-			}
-			else
-			{
-				Vector3 normalHere;
-				{
-					double rd; Vector3 gn;
-					mScene->GetPhysicsEngine()->GetAltitudeAtWorldPos(currentPos, rd, gn);
-					normalHere = gn;
-				}
-				Vector3 tangentDir = Vector3::Normalize(toTarget - normalHere * Vector3::Dot(toTarget, normalHere));
+			// Orientation: forward = travel direction (already correct in rendered-frame; tangent for in-flight,
+			// toTarget for arrival)
+			Vector3 facingDir = arriving ? (tangentRemaining > 1e-6 ? tangentDir : Vector3(1.0, 0.0, 0.0)) : (snappedRendered - currentPos);
+			OrientToSurface(tc, surfaceNormal, facingDir);
 
-				newWorldPos = currentPos + tangentDir * step;
-				SnapToSurface(newWorldPos, surfaceNormal);
-				OrientToSurface(tc, surfaceNormal, tangentDir);
-			}
-
-			Vector3 localPos = newWorldPos - worldTranslation;
-			tc.Translation = { (float)localPos.x, (float)localPos.y, (float)localPos.z };
+			// Write back position
+			tc.Translation = { (float)snappedRendered.x, (float)snappedRendered.y, (float)snappedRendered.z };
 			tc.IsDirty = true;
+
+			if (arriving)
+				mScene->GetRegistry().remove<MoveCommandComponent>(entity);
 		}
 	}
 

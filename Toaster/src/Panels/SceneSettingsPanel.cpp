@@ -208,6 +208,12 @@ namespace Toast {
 					ImGui::Separator();
 					ImGui::Spacing();
 
+					if (ImGui::CollapsingHeader("Entity Hovering"))
+					{
+						ImGui::Text("Hover Tint");
+						ImGui::ColorEdit4("##HoverTintColor", &mContext->mSettings.HoverTintColor.x, ImGuiColorEditFlags_AlphaBar);
+					}
+
 					if (ImGui::CollapsingHeader("Selection Outline"))
 					{
 						ImGui::Indent();

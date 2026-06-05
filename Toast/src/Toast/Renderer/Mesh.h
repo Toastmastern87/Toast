@@ -328,6 +328,7 @@ namespace Toast {
 
 		void ResetAnimations();
 		bool GetIsAnimated() const { return mIsAnimated; }
+		bool IsAnimationComplete(const std::string& name);
 
 		bool IsInstanced() const { return mInstanced; }
 		uint32_t GetNumberOfInstances(size_t LODGroupIndex) const { return mLODGroups[LODGroupIndex]->NumberOfInstances; }

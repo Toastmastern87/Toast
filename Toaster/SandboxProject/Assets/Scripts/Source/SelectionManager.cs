@@ -28,14 +28,11 @@ namespace Sandbox
             if (Input.IsMouseButtonPressed(MouseCode.ButtonRight))
             {
                 Vector3 worldPos;
-                if (Scene.GetWorldPositionFromScreenPos(out worldPos))
+                if (Scene.GetWorldPositionUnderCursor(out worldPos))
                 {
-                    Toast.Console.LogTrace("Right-click world position: " + worldPos);
-                }
-                else
-                {
-                    Toast.Console.LogTrace("Right-click on sky / no geometry");
-                }
+                    foreach (Entity e in Selection.GetSelected())
+                        e.MoveTo(worldPos, 2.0f);
+                } 
             }
         }
 

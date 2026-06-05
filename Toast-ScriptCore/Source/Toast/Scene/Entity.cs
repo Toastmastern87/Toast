@@ -114,13 +114,7 @@ namespace Toast
 
         public void MoveTo(Vector3 target, float speed)
         {
-            InternalCalls.Entity_MoveTo(ID, ref target, speed);
-        }
-
-        public bool IsMoveable
-        {
-            get => InternalCalls.Entity_GetIsMoveable(ID);
-            set => InternalCalls.Entity_SetIsMoveable(ID, value);
+            InternalCalls.Entity_MoveTo(ID, (double)target.X, (double)target.Y, (double)target.Z, speed);
         }
 
         public bool IsSelectable()
@@ -132,6 +126,11 @@ namespace Toast
         {
             object instance = InternalCalls.Script_GetInstance(ID);
             return instance as T;
+        }
+
+        public void Unparent() 
+        {
+            InternalCalls.Entity_Unparent(ID);
         }
 
     }

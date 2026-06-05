@@ -208,6 +208,8 @@ namespace Toast {
 
 			float SunFrustumOrthoSize = 500.0f;
 
+			DirectX::XMFLOAT4 HoverTintColor = { 1.0f, 1.0f, 1.0f, 1.0f }; // Hover Tint
+
 			GodRayParams GodRays;
 
 			ExposureParams Exposure;
@@ -336,6 +338,10 @@ namespace Toast {
 		void AddChildEntity(Entity entity, Entity parent);
 		void AddMeshPartEntities(std::vector<MeshPart>& parts, Entity& meshParent);
 
+		DirectX::XMMATRIX GetWorldTransform(Entity entity);   // walks relationship chain
+		bool FindAnimatedPartTransform(UUID partEntityUUID, const DirectX::XMMATRIX& partRest, DirectX::XMMATRIX& out);
+		void UnparentEntity(Entity entity);                   // world-pose-preserving detach
+
 		uint32_t GetNextPrefabIndex(const std::string& prefabName);
 		Entity AddPrefab(std::string& prefabName);
 		std::vector<Entity> GetEntitiesWithPrefab(std::string prefabName);
@@ -381,7 +387,7 @@ namespace Toast {
 		SelectionSystem& GetSelectionSystem() { return *mSelectionSystem; }
 		MovementSystem& GetMovementSystem() { return *mMovementSystem; }
 
-		bool GetWorldPosFromScreenPos(DirectX::XMFLOAT3& outWorldPos);
+		bool GetWorldPositionUnderCursor(Vector3& outWorldPos);
 
 		static Ref<Scene> CreateEmpty();
 	private:

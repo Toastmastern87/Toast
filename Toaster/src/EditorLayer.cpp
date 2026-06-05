@@ -80,6 +80,8 @@ namespace Toast {
 		ShaderLibrary::Load("assets/shaders/Rendering/SSAOBlurPass.hlsl");
 		ShaderLibrary::Load("assets/shaders/Rendering/LightningPass.hlsl");
 		ShaderLibrary::Load("assets/shaders/Rendering/Particles.hlsl");
+		ShaderLibrary::Load("assets/shaders/Rendering/GuidanceMarker.hlsl");
+		ShaderLibrary::Load("assets/shaders/Rendering/HoverTint.hlsl");
 		ShaderLibrary::Load("assets/shaders/Debug/ObjectMask.hlsl");
 
 		// Planet

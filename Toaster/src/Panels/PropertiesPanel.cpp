@@ -1583,6 +1583,8 @@ namespace Toast {
 					// Active toggle — gates whether the entity accepts MoveTo
 					ImGui::Checkbox("Active", &component.IsActive);
 
+					DrawFloatControl("Ground Offset", component.GroundOffset, window, activeDragArea, 90.0f, -500.0f, 500.0f, 0.05f, "%.2f");
+
 					ImGui::Spacing();
 					ImGui::Separator();
 					ImGui::Spacing();
@@ -1652,24 +1654,8 @@ namespace Toast {
 						ImGui::EndTable();
 					}
 
-					DrawFloatControl("Duration (s)", component.MarkerDuration, window, activeDragArea, 90.0f, 0.1f, 5.0f, 0.05f, "%.2f");
-					DrawFloatControl("Start Scale", component.MarkerStartScale, window, activeDragArea, 90.0f, 0.0f, 10.0f, 0.05f, "%.2f");
-					DrawFloatControl("End Scale", component.MarkerEndScale, window, activeDragArea, 90.0f, 0.0f, 10.0f, 0.05f, "%.2f");
-
-					ImGui::Spacing();
-					{
-						ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
-						ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-						ImGui::BeginTable("MoveableMarkerColor", 2, flags);
-						ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-						ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
-						ImGui::TableNextRow();
-						ImGui::TableSetColumnIndex(0);
-						ImGui::Text("Color");
-						ImGui::TableSetColumnIndex(1);
-						ImGui::ColorEdit4("##MarkerColor", &component.MarkerColor.x);
-						ImGui::EndTable();
-					}
+					DrawFloatControl("Size", component.MarkerSize, window, activeDragArea, 90.0f, 0.1f, 50.0f, 0.05f, "%.2f");
+					DrawFloatControl("Fade Out Duration", component.MarkerFadeOutDuration, window, activeDragArea, 90.0f, 0.0f, 10.0f, 0.05f, "%.2f");
 				});
 	}
 

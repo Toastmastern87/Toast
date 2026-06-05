@@ -407,10 +407,8 @@ namespace Toast {
 			auto& mc = deserializedEntity.AddComponent<MoveableComponent>();
 			mc.IsActive = moveableComponent["IsActive"].as<bool>(mc.IsActive);
 			mc.MarkerTextureHandle = moveableComponent["MarkerTextureHandle"].as<AssetHandle>(mc.MarkerTextureHandle);
-			mc.MarkerDuration = moveableComponent["MarkerDuration"].as<float>(mc.MarkerDuration);
-			mc.MarkerStartScale = moveableComponent["MarkerStartScale"].as<float>(mc.MarkerStartScale);
-			mc.MarkerEndScale = moveableComponent["MarkerEndScale"].as<float>(mc.MarkerEndScale);
-			mc.MarkerColor = moveableComponent["MarkerColor"].as<DirectX::XMFLOAT4>(mc.MarkerColor);
+			mc.MarkerSize = moveableComponent["MarkerSize"].as<float>(mc.MarkerSize);
+			mc.MarkerFadeOutDuration = moveableComponent["MarkerFadeOutDuration"].as<float>(mc.MarkerFadeOutDuration);
 		}
 	}
 
@@ -729,10 +727,8 @@ namespace Toast {
 			auto& mc = entity.GetComponent<MoveableComponent>();
 			out << YAML::Key << "IsActive" << YAML::Value << mc.IsActive;
 			out << YAML::Key << "MarkerTexture" << YAML::Value << mc.MarkerTextureHandle;
-			out << YAML::Key << "MarkerDuration" << YAML::Value << mc.MarkerDuration;
-			out << YAML::Key << "MarkerStartScale" << YAML::Value << mc.MarkerStartScale;
-			out << YAML::Key << "MarkerEndScale" << YAML::Value << mc.MarkerEndScale;
-			out << YAML::Key << "MarkerColor" << YAML::Value << mc.MarkerColor;
+			out << YAML::Key << "MarkerSize" << YAML::Value << mc.MarkerSize;
+			out << YAML::Key << "MarkerFadeOutDuration" << YAML::Value << mc.MarkerFadeOutDuration;
 			out << YAML::EndMap; // MoveableComponent
 		}
 

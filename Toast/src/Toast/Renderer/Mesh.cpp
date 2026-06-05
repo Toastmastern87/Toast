@@ -708,6 +708,25 @@ namespace Toast {
 		}
 	}
 
+	bool Mesh::IsAnimationComplete(const std::string& name)
+	{
+		auto& lodGroup = mLODGroups[mActiveLODGroup];
+		for (auto& submesh : lodGroup->Submeshes)
+		{
+			auto it = submesh.Animations.find(name);
+			if (it != submesh.Animations.end())
+			{
+				// Complete = has played at least once AND is no longer active
+				if (it->second->HasPlayed && !it->second->IsActive)
+					return true;
+
+				// Found the animation but it's still playing (or never started)
+				return false;
+			}
+		}
+		return false;
+	}
+
 	void Mesh::SetInstanceData(const void* data, uint32_t size, uint32_t numberOfInstances)
 	{
 		mLODGroups[mActiveLODGroup]->NumberOfInstances = numberOfInstances;

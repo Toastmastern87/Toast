@@ -44,8 +44,19 @@ namespace Toast {
 			bool Wireframe = false;
 		};
 
+		struct DrawCommandMoveMarker
+		{
+			Vector3 TargetWorldPos;
+			Vector3 TargetSurfaceNormal;
+			float   Size;
+			float   Alpha;
+			AssetHandle Texture;
+		};
+
 		struct RendererData
 		{
+			float ElapsedTime = 0.0f;
+
 			DirectX::XMFLOAT4 CameraPos;
 			DirectX::XMFLOAT4X4 ViewMatrix;
 			DirectX::XMFLOAT4X4 ProjectionMatrix;
@@ -74,7 +85,7 @@ namespace Toast {
 				bool Atmosphere = false;
 			} PlanetData;
 
-			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshWireframeDrawList, MeshNoWireframeDrawList, MeshEditorSelectedDrawList;
+			std::vector<DrawCommand> MeshDrawList, MeshSelectedDrawList, MeshWireframeDrawList, MeshNoWireframeDrawList, MeshEditorSelectedDrawList, MeshHoveredDrawList;
 			std::vector<DrawCommand> DebugMeshDrawList;
 			DrawCommandPlanet PlanetDraw;
 
@@ -116,6 +127,16 @@ namespace Toast {
 
 			// Post Process
 			Ref<RenderTarget> FinalRT, FinalEditorRT;
+			
+			// Hover
+			Ref<RenderTarget> HoveredMeshMaskRT;
+			Ref<ConstantBuffer> HoverTintCBuffer;
+			Buffer HoverTintBuffer;
+
+			// Player Guidance
+			std::vector<DrawCommandMoveMarker> MoveMarkerDrawList;
+			Buffer MarkerBuffer;                
+			Ref<ConstantBuffer> MarkerCBuffer;
 
 			// Viewports
 			D3D11_VIEWPORT Viewport, ShadowMapViewport, EditorViewport, AtmosphereCubeViewport, ViewportHalf, ViewportQuarter;
@@ -186,7 +207,7 @@ namespace Toast {
 		static void OnViewportResize(uint32_t width, uint32_t height);
 
 		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos, Scene::Environment& environment, int wireFrame);
-		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, Scene::CascadedShadowMapParams& shadowParams, float dt, bool runtime);
+		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, Scene::CascadedShadowMapParams& shadowParams, DirectX::XMFLOAT4& hoverTintColor, float dt, bool runtime);
 
 		static void CreateDepthBuffer(uint32_t width, uint32_t height);
 		static void CreateDepthStencilView();
@@ -207,8 +228,11 @@ namespace Toast {
 		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, uint32_t submeshIndex, bool wireframe = false, int noWorldTransform = 0, bool atmosphere = false);
 		static void SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false, uint32_t submeshIndex = 0, bool runtime = false);
 		static void SubmitPlanet(const Ref<Planet> planet, bool wireframe = false);
+		static void SubmitMoveMarker(const Vector3& target, const Vector3& normal, float size, float alpha, AssetHandle texture);
+		static void SubmitHoveredMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, uint32_t submeshIndex);
 
 		static void DrawFullscreenQuad();
+		static void DrawQuad();
 
 		static void ClearDrawList();
 
@@ -225,7 +249,8 @@ namespace Toast {
 		static void BloomPass(Scene::BloomParams& bloomParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, const float verticalFovDeg, DirectX::XMFLOAT3 worldOffsetWS);
 		static void GodRayPass(Scene::GodRayParams params);
 		static void PostProcessPass(const bool bloom, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, DirectX::XMFLOAT3 worldOffsetWS);
-		static void OutlinePass(const Scene::OutlineSettings& outlineSettings);
+		static void OutlinePass(const Scene::OutlineSettings& outlineSettings, const DirectX::XMFLOAT4& hoverTint);
+		static void GuidancePass(Vector3 worldTranslation);
 
 		static Ref<RenderTarget>& GetGPassPositionRT() { return sRendererData->GPassPositionRT; }
 		static Ref<RenderTarget>& GetGPassNormalRT() { return sRendererData->GPassNormalRT; }

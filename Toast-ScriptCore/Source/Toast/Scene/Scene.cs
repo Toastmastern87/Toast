@@ -53,9 +53,11 @@ namespace Toast
             InternalCalls.Scene_RequestSceneChange(sceneName);
         }
 
-        public static bool GetWorldPositionFromScreenPos(out Vector3 worldPos)
+        public static bool GetWorldPositionUnderCursor(out Vector3 worldPos)
         {
-            return InternalCalls.Scene_GetWorldPosFromScreenPos(out worldPos);
+            bool ok = InternalCalls.Scene_GetWorldPositionUnderCursor(out double x, out double y, out double z);
+            worldPos = new Vector3((float)x, (float)y, (float)z);
+            return ok;
         }
 
         public static Entity GetHoveredEntity()

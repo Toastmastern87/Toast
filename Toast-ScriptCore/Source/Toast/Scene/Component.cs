@@ -50,14 +50,14 @@ namespace Toast
 
         public Quaternion RotationQuat
         {
-            get 
-            { 
-                InternalCalls.TransformComponent_GetRotationQuaternion(Entity.ID, out Quaternion q); 
-                return q; 
+            get
+            {
+                InternalCalls.TransformComponent_GetRotationQuaternion(Entity.ID, out Quaternion q);
+                return q;
             }
-            set 
-            { 
-                InternalCalls.TransformComponent_SetRotationQuaternion(Entity.ID, ref value); 
+            set
+            {
+                InternalCalls.TransformComponent_SetRotationQuaternion(Entity.ID, ref value);
             }
         }
 
@@ -156,9 +156,14 @@ namespace Toast
             }
         }
 
-        public void SetTargetRotation(float pitchDeg, float yawDeg, float rollDeg) 
+        public void SetTargetRotation(float pitchDeg, float yawDeg, float rollDeg)
         {
             InternalCalls.TransformComponent_SetTargetRotation(Entity.ID, pitchDeg, yawDeg, rollDeg);
+        }
+
+        public void SetTargetRotationDelta(float pitchDeg, float yawDeg, float rollDeg)
+        {
+            InternalCalls.TransformComponent_SetTargetRotationDelta(Entity.ID, pitchDeg, yawDeg, rollDeg);
         }
 
         public bool HasReachedTargetRotation(float thresholdDeg)
@@ -192,6 +197,27 @@ namespace Toast
                 return result;
             }
         }
+
+        public void SetTargetTranslation(Vector3 target)
+            => InternalCalls.TransformComponent_SetTargetTranslation(Entity.ID, ref target);
+
+        public float TranslationSpeed
+        {
+            get
+            {
+                return 0.0f;
+            }
+
+            set
+            {
+                InternalCalls.TransformComponent_SetTranslationSpeed(Entity.ID, value);
+            }
+        }
+
+        public bool HasReachedTargetTranslation()
+            => InternalCalls.TransformComponent_HasReachedTargetTranslation(Entity.ID, 0.05f);
+        public bool IsTranslating()
+            => InternalCalls.TransformComponent_GetIsTranslating(Entity.ID);
     }
 
     public class CameraComponent : Component
@@ -505,7 +531,22 @@ namespace Toast
             }
             set
             {
-                
+
+            }
+        }
+    }
+
+    public class MoveableComponent : Component
+    {
+        public bool IsActive
+        {
+            get
+            {
+                return InternalCalls.MoveableComponent_GetIsActive(Entity.ID);
+            }
+            set
+            {
+                InternalCalls.MoveableComponent_SetIsActive(Entity.ID, value);
             }
         }
     }

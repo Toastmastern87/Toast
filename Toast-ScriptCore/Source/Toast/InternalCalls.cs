@@ -90,7 +90,7 @@ namespace Toast
         internal static extern void Scene_RequestSceneChange(string sceneName);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool Scene_GetWorldPosFromScreenPos(out Vector3 worldPos);
+        internal static extern bool Scene_GetWorldPositionUnderCursor(out double x, out double y, out double z);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern ulong Scene_GetHoveredEntity();
@@ -101,6 +101,12 @@ namespace Toast
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void Selection_Clear();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern uint Selection_GetCount();
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern ulong Selection_GetAt(uint index);
 
         #endregion
 
@@ -154,16 +160,13 @@ namespace Toast
         internal static extern bool Entity_IsSelected(ulong entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void Entity_MoveTo(ulong entityID, ref Vector3 target, float speed);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool Entity_GetIsMoveable(ulong entityID);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void Entity_SetIsMoveable(ulong entityID, bool value);
+        internal static extern void Entity_MoveTo(ulong entityID, double targetX, double targetY, double targetZ, float speed);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool Entity_IsSelectable(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool Entity_Unparent(ulong entityID);
 
         #endregion
 
@@ -246,6 +249,9 @@ namespace Toast
         internal static extern void TransformComponent_SetTargetRotation(ulong entityID, float pitchDeg, float yawDeg, float rollDeg);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_SetTargetRotationDelta(ulong entityID, float pitchDeg, float yawDeg, float rollDeg);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool TransformComponent_HasReachedTargetRotation(ulong entityID, float thresholdDeg);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -255,7 +261,19 @@ namespace Toast
         internal static extern void TransformComponent_GetWorldForward(ulong entityID, out Vector3 result);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void TransformComponent_GetWorldRight(ulong entityID, out Vector3 result);   
+        internal static extern void TransformComponent_GetWorldRight(ulong entityID, out Vector3 result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_SetTargetTranslation(ulong entityID, ref Vector3 target);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void TransformComponent_SetTranslationSpeed(ulong entityID, float speed);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool TransformComponent_HasReachedTargetTranslation(ulong entityID, float treshhold);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool TransformComponent_GetIsTranslating(ulong entityID);
 
         #endregion
 
@@ -409,6 +427,16 @@ namespace Toast
 
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern IntPtr ScriptComponent_GetInstance(ulong entityID);
+
+        #endregion
+
+        #region Moveable Component
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool MoveableComponent_GetIsActive(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void MoveableComponent_SetIsActive(ulong entityID, bool value);
 
         #endregion
     }

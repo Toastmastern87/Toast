@@ -12,5 +12,17 @@ namespace Toast
         {
             InternalCalls.Selection_Clear();
         }
+
+        public static Entity[] GetSelected()
+        {
+            uint count = InternalCalls.Selection_GetCount();
+            Entity[] result = new Entity[count];
+            for (uint i = 0; i < count; i++)
+            {
+                ulong id = InternalCalls.Selection_GetAt(i);
+                result[i] = id == 0 ? null : new Entity(id);
+            }
+            return result;
+        }
     }
 }

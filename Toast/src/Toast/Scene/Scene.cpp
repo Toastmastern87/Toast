@@ -1,4 +1,4 @@
-#include "tpch.h"
+ï»¿#include "tpch.h"
 #include "Scene.h"
 
 #include "Toast/Scene/Entity.h"
@@ -393,43 +393,66 @@ namespace Toast {
 				mesh.MeshObject->OnUpdate(ts * mTimeScale);
 		}
 
-		// Process Transform Interpolation (rotation, etc.)
+		// Process Transform Interpolation (rotation, etc.), Engine side animation
 		auto transformView = mRegistry.view<TransformComponent>();
 		for (auto entity : transformView)
 		{
 			auto& tc = transformView.get<TransformComponent>(entity);
 
-			Entity e = { entity, this };
-
-			if (!tc.IsRotating || tc.AngularSpeed <= 0.0f)
-				continue;
-
-			DirectX::XMVECTOR currentRot = tc.GetTotalRotationQuaternion();
-			DirectX::XMVECTOR targetRot = DirectX::XMLoadFloat4(&tc.TargetRotationQuaternion);
-
-			float dot = std::abs(DirectX::XMVectorGetX(DirectX::XMVector4Dot(currentRot, targetRot)));
-			dot = (std::min)(dot, 1.0f);
-			float remainingRad = 2.0f * std::acos(dot);
-
-			if (remainingRad < 0.001f)
+			// Rotation
+			if (tc.IsRotating && tc.AngularSpeed > 0.0f)
 			{
-				// Snap to target and stop rotating
-				DirectX::XMStoreFloat4(&tc.RotationQuaternion, targetRot);
-				tc.RotationEulerAngles = { 0.0f, 0.0f, 0.0f };
-				tc.IsRotating = false;
+				DirectX::XMVECTOR currentRot = tc.GetTotalRotationQuaternion();
+				DirectX::XMVECTOR targetRot = DirectX::XMLoadFloat4(&tc.TargetRotationQuaternion);
+
+				float dot = std::abs(DirectX::XMVectorGetX(DirectX::XMVector4Dot(currentRot, targetRot)));
+				dot = (std::min)(dot, 1.0f);
+				float remainingRad = 2.0f * std::acos(dot);
+
+				if (remainingRad < 0.001f)
+				{
+					// Snap to target and stop rotating
+					DirectX::XMStoreFloat4(&tc.RotationQuaternion, targetRot);
+					tc.RotationEulerAngles = { 0.0f, 0.0f, 0.0f };
+					tc.IsRotating = false;
+					tc.IsDirty = true;
+					continue;
+				}
+
+				float stepRad = DirectX::XMConvertToRadians(tc.AngularSpeed) * ts * mTimeScale;
+				float t = (std::min)(stepRad / remainingRad, 1.0f);
+
+				DirectX::XMVECTOR newRot = DirectX::XMQuaternionSlerp(currentRot, targetRot, t);
+				newRot = DirectX::XMQuaternionNormalize(newRot);
+
+				DirectX::XMStoreFloat4(&tc.RotationQuaternion, newRot);
+				tc.RotationEulerAngles = { 0.0f, 0.0f, 0.0f }; // Reset Euler angles to avoid confusion, we only use the quaternion for rotation when IsRotating is true
 				tc.IsDirty = true;
-				continue;
 			}
 
-			float stepRad = DirectX::XMConvertToRadians(tc.AngularSpeed) * ts * mTimeScale;
-			float t = (std::min)(stepRad / remainingRad, 1.0f);
+			// Translation
+			if (tc.IsTranslating && tc.TranslationSpeed > 0.0f)
+			{
+				DirectX::XMVECTOR current = DirectX::XMLoadFloat3(&tc.Translation);
+				DirectX::XMVECTOR target = DirectX::XMLoadFloat3(&tc.TargetTranslation);
+				DirectX::XMVECTOR toTarget = DirectX::XMVectorSubtract(target, current);
+				float remaining = DirectX::XMVectorGetX(DirectX::XMVector3Length(toTarget));
 
-			DirectX::XMVECTOR newRot = DirectX::XMQuaternionSlerp(currentRot, targetRot, t);
-			newRot = DirectX::XMQuaternionNormalize(newRot);
-
-			DirectX::XMStoreFloat4(&tc.RotationQuaternion, newRot);
-			tc.RotationEulerAngles = { 0.0f, 0.0f, 0.0f }; // Reset Euler angles to avoid confusion, we only use the quaternion for rotation when IsRotating is true
-			tc.IsDirty = true;
+				float step = tc.TranslationSpeed * ts * mTimeScale;
+				if (step >= remaining || remaining < 0.0001f)
+				{
+					DirectX::XMStoreFloat3(&tc.Translation, target);
+					tc.IsTranslating = false;
+					tc.IsDirty = true;
+				}
+				else
+				{
+					DirectX::XMVECTOR dir = DirectX::XMVector3Normalize(toTarget);
+					DirectX::XMVECTOR newPos = DirectX::XMVectorAdd(current, DirectX::XMVectorScale(dir, step));
+					DirectX::XMStoreFloat3(&tc.Translation, newPos);
+					tc.IsDirty = true;
+				}
+			}
 		}
 
 		if (mMainCamera)
@@ -549,7 +572,7 @@ namespace Toast {
 
 			// Movement System
 			{
-				mMovementSystem->OnUpdate(ts);
+				mMovementSystem->OnUpdate(ts * mTimeScale);
 			}
 
 			// Start a rebuild of the planet if needed
@@ -641,7 +664,7 @@ namespace Toast {
 							if (it != animatedPartTransforms.end())
 							{
 								worldTransform = DirectX::XMMatrixMultiply(transform.GetTransform(), it->second);
-								break;   // cached transform is world-space — stop walking
+								break;   // cached transform is world-space â€” stop walking
 							}
 
 							Entity parentEntity = FindEntityByUUID(parentUUID);
@@ -654,6 +677,7 @@ namespace Toast {
 						}
 					}
 
+					bool entityIsHovered = (mHoveredEntity == entity);
 					bool entityIsSelected = mRegistry.has<SelectedComponent>(entity);
 
 					auto& lodGroup = mesh.MeshObject->mLODGroups[mesh.MeshObject->mActiveLODGroup];
@@ -696,6 +720,9 @@ namespace Toast {
 							break;
 						}
 
+						if (entityIsHovered)
+							Renderer::SubmitHoveredMesh(mesh.MeshObject, finalTransform, submeshIndex);
+
 						if (entityIsSelected)
 							Renderer::SubmitSelecetedMesh(mesh.MeshObject, finalTransform, false, submeshIndex, true);
 					}
@@ -703,9 +730,30 @@ namespace Toast {
 					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
 				}
 
+				// Move markers â€” submit active commands so GuidancePass can draw them.
+				{
+					auto markerView = mRegistry.view<MoveCommandComponent, MoveableComponent, TransformComponent>();
+					for (auto e : markerView)
+					{
+						auto& cmd = markerView.get<MoveCommandComponent>(e);
+						auto& cfg = markerView.get<MoveableComponent>(e);
+						auto& tc = markerView.get<TransformComponent>(e);
+
+						Vector3 currentPos(tc.Translation.x, tc.Translation.y, tc.Translation.z);
+						double remainingDist = (cmd.TargetWorldPos - currentPos).Length();
+						double remainingTime = remainingDist / (double)cmd.Speed;
+
+						float alpha = 1.0f;
+						if (remainingTime < cfg.MarkerFadeOutDuration)
+							alpha = (float)(remainingTime / cfg.MarkerFadeOutDuration);   // 1.0 â†’ 0.0 as we approach
+
+						Renderer::SubmitMoveMarker(cmd.TargetWorldPos, cmd.TargetSurfaceNormal, cfg.MarkerSize, alpha, cfg.MarkerTextureHandle);
+					}
+				}
+
 				OutlineSettings outline = ResolveOutlineSettings({});
 
-				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, ts, true);
+				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, mSettings.HoverTintColor, ts, true);
 			}
 
 			// Debug Rendering
@@ -1312,7 +1360,7 @@ namespace Toast {
 
 			OutlineSettings outline = ResolveOutlineSettings({});
 
-			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, ts, false);
+			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, mSettings.HoverTintColor, ts, false);
 		}
 
 		// Debug Rendering
@@ -1846,6 +1894,86 @@ namespace Toast {
 		}
 	}
 
+	DirectX::XMMATRIX Scene::GetWorldTransform(Entity entity)
+	{
+		DirectX::XMMATRIX world = entity.GetComponent<TransformComponent>().GetTransform();
+		Entity current = entity;
+
+		while (current.HasComponent<RelationshipComponent>())
+		{
+			UUID pUUID = current.GetComponent<RelationshipComponent>().ParentHandle;
+			if (pUUID == 0) break;
+
+			Entity parentEntity = FindEntityByUUID(pUUID);
+			if (!parentEntity) break;
+
+			// Default: the parent's own rest transform.
+			DirectX::XMMATRIX parentTransform = parentEntity.GetComponent<TransformComponent>().GetTransform();
+
+			// But if this parent is an ANIMATED PART of some mesh, the animation lives in
+			// the matching submesh's Transform, NOT in the part-entity's TransformComponent.
+			// Find that submesh and compose its animated transform: submesh.Transform * partRest.
+			DirectX::XMMATRIX animatedPartTransform;
+			if (FindAnimatedPartTransform(pUUID, parentTransform, animatedPartTransform))
+				parentTransform = animatedPartTransform;
+
+			world = DirectX::XMMatrixMultiply(world, parentTransform);
+			current = parentEntity;
+		}
+
+		return world;
+	}
+
+	// Returns true if pUUID is a part-entity of some mesh; outputs submesh.Transform * partRest.
+	bool Scene::FindAnimatedPartTransform(UUID partEntityUUID, const DirectX::XMMATRIX& partRest, DirectX::XMMATRIX& out)
+	{
+		auto meshView = mRegistry.view<MeshComponent>();
+		for (auto e : meshView)
+		{
+			auto& mesh = meshView.get<MeshComponent>(e);
+			if (mesh.MeshObject->GetFilePath() == "") continue;
+
+			auto& submeshes = mesh.MeshObject->mLODGroups[mesh.MeshObject->mActiveLODGroup]->Submeshes;
+			for (auto& submesh : submeshes)
+			{
+				if (submesh.PartIndex >= mesh.MeshObject->mPartsUpdated.size()) continue;
+				const MeshPart& part = mesh.MeshObject->mPartsUpdated[submesh.PartIndex];
+				if (part.EntityID == partEntityUUID)
+				{
+					// Match the render loop's composition: submesh.Transform * partRest
+					out = DirectX::XMMatrixMultiply(submesh.Transform, partRest);
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	void Scene::UnparentEntity(Entity entity)
+	{
+		if (!entity.HasComponent<RelationshipComponent>()) return;
+		auto& rc = entity.GetComponent<RelationshipComponent>();
+		UUID parentUUID = rc.ParentHandle;
+		if (parentUUID == 0) return;
+
+		// Bake world transform into local so the entity doesn't jump on detach.
+		DirectX::XMMATRIX world = GetWorldTransform(entity);
+		DirectX::XMVECTOR scale, rotQuat, trans;
+		if (DirectX::XMMatrixDecompose(&scale, &rotQuat, &trans, world))
+		{
+			auto& tc = entity.GetComponent<TransformComponent>();
+			DirectX::XMStoreFloat3(&tc.Translation, trans);
+			DirectX::XMStoreFloat4(&tc.RotationQuaternion, DirectX::XMQuaternionNormalize(rotQuat));
+			tc.RotationEulerAngles = { 0.0f, 0.0f, 0.0f };
+			DirectX::XMStoreFloat3(&tc.Scale, scale);
+			tc.IsDirty = true;
+		}
+
+		Entity parent = FindEntityByUUID(parentUUID);
+		if (parent) parent.RemoveChild(entity);
+		rc.ParentHandle = 0;
+	}
+
 	template<typename T>
 	static void CopyComponentIfExists(entt::entity dst, entt::registry& dstRegistry, entt::entity src, entt::registry& srcRegistry)
 	{
@@ -2030,6 +2158,7 @@ namespace Toast {
 		target->mSettings.Exposure = mSettings.Exposure;
 		target->mSettings.DirectionalLightningGain = mSettings.DirectionalLightningGain;
 		target->mSettings.Outline = mSettings.Outline;
+		target->mSettings.HoverTintColor = mSettings.HoverTintColor;
 
 		// Physics Settings
 		auto& targetPhysics = target->GetPhysicsEngine();
@@ -2108,7 +2237,7 @@ namespace Toast {
 		float adjustedX = mMouseX - viewportX;
 		float adjustedY = mMouseY - viewportY;
 
-		// Outside viewport — clear hover and skip
+		// Outside viewport â€” clear hover and skip
 		if (adjustedX < 0 || adjustedY < 0 ||
 			adjustedX >= viewportWidth || adjustedY >= viewportHeight)
 		{
@@ -2117,7 +2246,7 @@ namespace Toast {
 			return;
 		}
 
-		// Map the staging texture from LAST frame's copy (no stall — it's long done)
+		// Map the staging texture from LAST frame's copy (no stall â€” it's long done)
 		if (mPickingReadbackPending)
 		{
 			int pixelData = pickingRT->MapStagingPixel<int>();
@@ -2126,7 +2255,7 @@ namespace Toast {
 				: Entity{ (entt::entity)(pixelData - 1), this };
 		}
 
-		// Queue THIS frame's 1×1 copy — returns immediately, executes on GPU later
+		// Queue THIS frame's 1Ã—1 copy â€” returns immediately, executes on GPU later
 		auto [rtWidth, rtHeight] = pickingRT->GetSize();
 		int textureX = static_cast<int>((adjustedX / viewportWidth) * rtWidth);
 		int textureY = static_cast<int>((adjustedY / viewportHeight) * rtHeight);
@@ -2172,7 +2301,7 @@ namespace Toast {
 				DirectX::XMVECTOR wp = DirectX::XMVector4Transform(vp, invView);
 
 				Vector3 camRelative(DirectX::XMVectorGetX(wp), DirectX::XMVectorGetY(wp), DirectX::XMVectorGetZ(wp));
-				Vector3 lastPickedWorldPos = camRelative + mMainCamera->GetWorldTranslation();
+				Vector3 lastPickedWorldPos = camRelative;// +mMainCamera->GetWorldTranslation();
 				mLastPickedWorldPos = { (float)lastPickedWorldPos.x, (float)lastPickedWorldPos.y, (float)lastPickedWorldPos.z };   // true-world
 				mLastPickedValid = true;
 			}
@@ -2186,7 +2315,7 @@ namespace Toast {
 		mPositionReadbackPending = true;
 	}
 
-	bool Scene::GetWorldPosFromScreenPos(DirectX::XMFLOAT3& outWorldPos)
+	bool Scene::GetWorldPositionUnderCursor(Vector3& outWorldPos)
 	{
 		if (!mLastPickedValid) return false;
 		outWorldPos = mLastPickedWorldPos;

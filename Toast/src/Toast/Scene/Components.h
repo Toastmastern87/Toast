@@ -82,7 +82,10 @@ namespace Toast {
 		DirectX::XMFLOAT4 RotationQuaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
 		DirectX::XMFLOAT3 Scale = { 1.0f, 1.0f, 1.0f };
 
-		// Variables used for animating rotation, not serialized
+		// Variables used for animating, not serialized
+		DirectX::XMFLOAT3 TargetTranslation = { 0.0f, 0.0f, 0.0f };
+		float TranslationSpeed = 0.0f;
+		bool IsTranslating = false;
 		DirectX::XMFLOAT4 TargetRotationQuaternion = { 0.0f, 0.0f, 0.0f, 1.0f };
 		float AngularSpeed = 0.0f;
 		bool IsRotating = false;
@@ -355,11 +358,11 @@ namespace Toast {
 	struct MoveableComponent 
 	{
 		bool IsActive = true;   // false = cannot accept MoveTo, in-flight commands cancel
+		float GroundOffset = 0.0f;
+
 		AssetHandle MarkerTextureHandle;
-		float MarkerDuration = 0.6f;
-		float MarkerStartScale = 0.2f;
-		float MarkerEndScale = 2.0f;
-		DirectX::XMFLOAT4 MarkerColor = { 0.2f, 1.0f, 0.4f, 1.0f };
+		float MarkerSize = 1.0f;
+		float MarkerFadeOutDuration = 0.5f;
 	};
 
 	// Runtime-only — created by MoveTo(), never serialized

@@ -14,10 +14,12 @@ namespace Toast {
 
 		void OnUpdate(Timestep ts);
 	private:
-		void SnapToSurface(Vector3& pos, Vector3& outNormal);
+		void SnapToSurface(Vector3& pos, Vector3& outNormal, float groundOffset);
 		void OrientToSurface(TransformComponent& tc, const Vector3& up, const Vector3& forward);
 	private:
 		Scene* mScene;
+
+		Vector3 mLastCamWorld;
 	};
 
 }

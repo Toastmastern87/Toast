@@ -221,11 +221,13 @@ namespace Toast {
 			});
 	}
 
-	static bool Scene_GetWorldPosFromScreenPos(DirectX::XMFLOAT3* outWorldPos)
+	static bool Scene_GetWorldPositionUnderCursor(double* outX, double* outY, double* outZ)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "");
-		return scene->GetWorldPosFromScreenPos(*outWorldPos);
+		Vector3 result;
+		bool valid = scene->GetWorldPositionUnderCursor(result);
+		*outX = result.x; *outY = result.y; *outZ = result.z;
+		return valid;
 	}
 
 	static uint64_t Scene_GetHoveredEntity()
@@ -250,6 +252,23 @@ namespace Toast {
 		Scene* scene = ScriptEngine::GetSceneContext();
 		TOAST_CORE_ASSERT(scene, "");
 		scene->GetSelectionSystem().ClearSelection();
+	}
+
+	static uint32_t Selection_GetCount()
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		return (uint32_t)scene->GetSelectionSystem().GetSelected().size();
+	}
+
+	static uint64_t Selection_GetAt(uint32_t index)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "");
+		const auto& selected = scene->GetSelectionSystem().GetSelected();
+		if (index >= selected.size()) return 0;
+		Entity e = selected[index];   // copy — Entity is two pointers, trivially copyable
+		return e.GetUUID();
 	}
 
 #pragma endregion
@@ -474,49 +493,25 @@ namespace Toast {
 		return scene->GetSelectionSystem().IsSelected(entity);
 	}
 
-	static void Entity_MoveTo(UUID entityID, Vector3* target, float speed)
+	static void Entity_MoveTo(UUID entityID, double targetX, double targetY, double targetZ, float speed)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "");
 		Entity entity = scene->FindEntityByUUID(entityID);
-		TOAST_CORE_ASSERT(entity, "");
-		if (!entity.HasComponent<MoveableComponent>()) return;
-
+		if (!entity || !entity.HasComponent<MoveableComponent>()) return;
 		auto& cfg = entity.GetComponent<MoveableComponent>();
-		if (!cfg.IsActive) return;   // silent no-op (cargo-load);
+		if (!cfg.IsActive) return;
 
-		// target is TRUE world position. Surface normal = radial from planet center (true-world frame).
-		Vector3 camWorld = scene->GetMainCamera()->GetWorldTranslation();
+		Vector3 worldTranslation = scene->GetMainCamera()->GetWorldTranslation();
+
+		Vector3 target = Vector3(targetX, targetY, targetZ) - worldTranslation;
 		Planet& planet = *scene->GetPlanet();
-		Vector3 planetCenter = Vector3(planet.GetTranslation()) + camWorld;
-		Vector3 normal = Vector3::Normalize(*target - planetCenter);
+		Vector3 normal = Vector3::Normalize(target - Vector3(planet.GetTranslation()));
 
 		auto& cmd = entity.AddOrReplaceComponent<MoveCommandComponent>();
-		cmd.TargetWorldPos = *target;
+		cmd.TargetWorldPos = target;
 		cmd.TargetSurfaceNormal = normal;
 		cmd.Speed = speed;
 		cmd.MarkerElapsed = 0.0f;
-	}
-
-	static bool Entity_GetIsMoveable(UUID entityID)
-	{
-		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "");
-		Entity entity = scene->FindEntityByUUID(entityID);
-		TOAST_CORE_ASSERT(entity, "");
-		if (!entity.HasComponent<MoveableComponent>()) return false;
-		return entity.GetComponent<MoveableComponent>().IsActive;
-	}
-
-	static void Entity_SetIsMoveable(UUID entityID, bool value)
-	{
-		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "");
-		Entity entity = scene->FindEntityByUUID(entityID);
-		TOAST_CORE_ASSERT(entity, "");
-		if (!entity.HasComponent<MoveableComponent>()) return;
-		entity.GetComponent<MoveableComponent>().IsActive = value;
-		// Cancellation of an in-flight command when set false is handled by MovementSystem.
 	}
 
 	static bool Entity_IsSelectable(UUID entityID)
@@ -526,6 +521,13 @@ namespace Toast {
 		Entity entity = scene->FindEntityByUUID(entityID);
 		if (!entity) return false;
 		return entity.HasComponent<MeshComponent>();
+	}
+
+	static void Entity_Unparent(UUID entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		if (entity) scene->UnparentEntity(entity);
 	}
 
 #pragma endregion
@@ -757,6 +759,27 @@ namespace Toast {
 		tc.IsRotating = true;
 	}
 
+	static void TransformComponent_SetTargetRotationDelta(UUID entityID, float pitchDeg, float yawDeg, float rollDeg)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& tc = entity.GetComponent<TransformComponent>();
+
+		// Current absolute orientation
+		DirectX::XMVECTOR current = tc.GetTotalRotationQuaternion();
+
+		// The delta rotation to apply
+		DirectX::XMVECTOR delta = DirectX::XMQuaternionRotationRollPitchYaw(
+			DirectX::XMConvertToRadians(pitchDeg),
+			DirectX::XMConvertToRadians(yawDeg),
+			DirectX::XMConvertToRadians(rollDeg));
+
+		// Target = current composed with delta. Order matters (see note).
+		DirectX::XMVECTOR target = DirectX::XMQuaternionMultiply(delta, current);  // or (current, delta)
+		DirectX::XMStoreFloat4(&tc.TargetRotationQuaternion, DirectX::XMQuaternionNormalize(target));
+		tc.IsRotating = true;
+	}
+
 	static bool TransformComponent_HasReachedTargetRotation(UUID entityID, float thresholdDeg = 0.5f)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
@@ -794,11 +817,9 @@ namespace Toast {
 		Entity entity = scene->FindEntityByUUID(entityID);
 		auto& tc = entity.GetComponent<TransformComponent>();
 
-		DirectX::XMVECTOR totalQuat = tc.GetTotalRotationQuaternion();
-
 		// Rotate default forward (0, 0, 1) by total rotation
 		DirectX::XMVECTOR defaultForward = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-		DirectX::XMVECTOR worldForward = DirectX::XMVector3Rotate(defaultForward, totalQuat);
+		DirectX::XMVECTOR worldForward = DirectX::XMVector3Rotate(defaultForward, tc.GetTotalRotationQuaternion());
 
 		DirectX::XMStoreFloat3(outForward, worldForward);
 	}
@@ -814,6 +835,54 @@ namespace Toast {
 		DirectX::XMVECTOR worldRight = DirectX::XMVector3Rotate(defaultRight, totalQuat);
 
 		DirectX::XMStoreFloat3(outRight, worldRight);
+	}
+
+	static void TransformComponent_SetTargetTranslation(UUID entityID, DirectX::XMFLOAT3* target) 
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& tc = entity.GetComponent<TransformComponent>();
+		tc.TargetTranslation = *target;
+		tc.IsTranslating = true;
+	}
+
+	static void TransformComponent_SetTranslationSpeed(UUID entityID, float speed)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		entity.GetComponent<TransformComponent>().TranslationSpeed = speed;
+	}
+
+	static void TransformComponent_GetTranslationSpeed(UUID entityID, float* outSpeed)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		*outSpeed = entity.GetComponent<TransformComponent>().TranslationSpeed;
+	}
+
+	static void TransformComponent_SetIsTranslating(UUID entityID, bool translating)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		entity.GetComponent<TransformComponent>().IsTranslating = translating;
+	}
+
+	static bool TransformComponent_GetIsTranslating(UUID entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		return entity.GetComponent<TransformComponent>().IsTranslating;
+	}
+
+	static bool TransformComponent_HasReachedTargetTranslation(UUID entityID, float threshold = 0.05f)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& tc = entity.GetComponent<TransformComponent>();
+		DirectX::XMVECTOR cur = DirectX::XMLoadFloat3(&tc.Translation);
+		DirectX::XMVECTOR tgt = DirectX::XMLoadFloat3(&tc.TargetTranslation);
+		float d = DirectX::XMVectorGetX(DirectX::XMVector3Length(DirectX::XMVectorSubtract(tgt, cur)));
+		return d <= threshold;
 	}
 
 #pragma endregion
@@ -986,34 +1055,15 @@ namespace Toast {
 		return 0.0f;
 	}
 
-	static bool MeshComponent_IsAnimationComplete(uint64_t entityID, MonoString* name)
+	static bool MeshComponent_IsAnimationComplete(UUID entityID, MonoString* name)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
-
-		auto& mc = entity.GetComponent<MeshComponent>();
-		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
-
-		// Check all LOD groups — animation is complete when IsActive=false and TimeElapsed=0
-		// meaning it ran to completion and reset, not that it was never played
-		for (auto& lodGroup : mc.MeshObject->GetLODGroups())
-		{
-			for (auto& submesh : lodGroup->Submeshes)
-			{
-				if (!submesh.IsAnimated) continue;
-				auto it = submesh.Animations.find(nameStr);
-				if (it == submesh.Animations.end() || !it->second) continue;
-
-				// Found a submesh with this animation — check its state
-				// IsActive=false + TimeElapsed=0 means it completed (was reset)
-				// IsActive=false + TimeElapsed=0 also means never played, so we need a HasPlayed flag
-				return !it->second->IsActive && it->second->HasPlayed;
-			}
-		}
-		return false;
+		Entity entity = scene->FindEntityByUUID(entityID);
+		if (!entity.HasComponent<MeshComponent>()) return false;
+		char* cstr = mono_string_to_utf8(name);
+		std::string animName(cstr);
+		mono_free(cstr);
+		return entity.GetComponent<MeshComponent>().MeshObject->IsAnimationComplete(animName);
 	}
 
 	static float MeshComponent_GetDurationAnimation(uint64_t entityID, MonoString* name)
@@ -1443,6 +1493,34 @@ namespace Toast {
 
 #pragma endregion
 
+#pragma region Moveable Component
+
+	bool MoveableComponent_GetIsActive(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& mc = entity.GetComponent<MoveableComponent>();
+
+		return mc.IsActive;
+	}
+
+	void MoveableComponent_SetIsActive(uint64_t entityID, bool value)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		TOAST_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
+		Entity entity = entityMap.at(entityID);
+		auto& mc = entity.GetComponent<MoveableComponent>();
+
+		mc.IsActive = value;
+	}
+
+#pragma endregion
+
 	template<typename Component>
 	static void RegisterComponent()
 	{
@@ -1472,6 +1550,7 @@ namespace Toast {
 		RegisterComponent<BoxColliderComponent>();
 		RegisterComponent<ParticlesComponent>();
 		RegisterComponent<ScriptComponent>();
+		RegisterComponent<MoveableComponent>();
 	}
 
 	void ScriptGlue::RegisterFunctions()
@@ -1502,10 +1581,12 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Scene_AddPrefab);
 		TOAST_ADD_INTERNAL_CALL(Scene_GetEntitiesWithPrefab);
 		TOAST_ADD_INTERNAL_CALL(Scene_RequestSceneChange);
-		TOAST_ADD_INTERNAL_CALL(Scene_GetWorldPosFromScreenPos);
+		TOAST_ADD_INTERNAL_CALL(Scene_GetWorldPositionUnderCursor);
 		TOAST_ADD_INTERNAL_CALL(Scene_GetHoveredEntity);
 
 		TOAST_ADD_INTERNAL_CALL(Selection_Clear);
+		TOAST_ADD_INTERNAL_CALL(Selection_GetCount);
+		TOAST_ADD_INTERNAL_CALL(Selection_GetAt);
 
 		TOAST_ADD_INTERNAL_CALL(Planet_GetTranslation);
 		TOAST_ADD_INTERNAL_CALL(Planet_SetTranslation);
@@ -1523,9 +1604,8 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(Entity_SelectExclusive);
 		TOAST_ADD_INTERNAL_CALL(Entity_IsSelected);
 		TOAST_ADD_INTERNAL_CALL(Entity_MoveTo);
-		TOAST_ADD_INTERNAL_CALL(Entity_GetIsMoveable);
-		TOAST_ADD_INTERNAL_CALL(Entity_SetIsMoveable);
 		TOAST_ADD_INTERNAL_CALL(Entity_IsSelectable);
+		TOAST_ADD_INTERNAL_CALL(Entity_Unparent);
 
 		TOAST_ADD_INTERNAL_CALL(TagComponent_GetTag);
 		TOAST_ADD_INTERNAL_CALL(TagComponent_SetTag);
@@ -1536,7 +1616,12 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetRotation);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetRotationQuaternion);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetRotationQuaternion);
-
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetTargetTranslation);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetTranslationSpeed);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetTranslationSpeed);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetIsTranslating);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetIsTranslating);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_HasReachedTargetTranslation);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetPitch);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetPitch);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetYaw);
@@ -1553,6 +1638,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetIsRotating);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetIsRotating);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetTargetRotation);
+		TOAST_ADD_INTERNAL_CALL(TransformComponent_SetTargetRotationDelta);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_HasReachedTargetRotation);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetWorldUp);
 		TOAST_ADD_INTERNAL_CALL(TransformComponent_GetWorldForward);
@@ -1604,6 +1690,9 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_SetEmitting);
 
 		TOAST_ADD_INTERNAL_CALL(ScriptComponent_GetInstance);
+
+		TOAST_ADD_INTERNAL_CALL(MoveableComponent_GetIsActive);
+		TOAST_ADD_INTERNAL_CALL(MoveableComponent_SetIsActive);
 	}
 
 }
