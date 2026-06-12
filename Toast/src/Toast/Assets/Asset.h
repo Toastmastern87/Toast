@@ -10,7 +10,8 @@ namespace Toast {
 	enum class AssetType : uint16_t
 	{
 		None = 0,
-		Texture2D
+		Texture2D,
+		Shader
 	};
 
 	inline const char* AssetTypeToString(AssetType type)
@@ -19,6 +20,7 @@ namespace Toast {
 		{
 		case AssetType::None: return "None";
 		case AssetType::Texture2D: return "Texture2D";
+		case AssetType::Shader: return "Shader";
 		default: return "Unknown";
 		}
 	}
@@ -26,6 +28,7 @@ namespace Toast {
 	inline AssetType AssetTypeFromString(const char* str)
 	{
 		if (strcmp(str, "Texture2D") == 0) return AssetType::Texture2D;
+		if (strcmp(str, "Shader") == 0) return AssetType::Shader;
 		return AssetType::None; // Default to None for unknown types
 	}
 

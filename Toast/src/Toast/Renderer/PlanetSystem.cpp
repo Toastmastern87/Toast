@@ -70,9 +70,14 @@ namespace Toast {
 		mGeoClipmapMesh = CreateRef<PlanetMeshGeoClipmap>();
 		mGeoClipmapMesh->Init();
 
-		Shader* planetGPassShader = ShaderLibrary::Get("assets/shaders/Planet/PlanetGeometryPass.hlsl");
+		mGeoClipmapGPassShaderHandle = AssetManager::GetEngineShaderHandle("PlanetGeometryPass");
+		auto shader = AssetManager::GetAsset<Shader>(mGeoClipmapGPassShaderHandle);
+		TOAST_CORE_ASSERT(shader, "Icosphere shader not loaded");
+		ID3D10Blob* vsBlob = shader->GetVSRaw();
 
-		ID3D10Blob* vsBlob = planetGPassShader->GetVSRaw();
+		mHeightMapToCubeMapShaderHandle = AssetManager::GetEngineShaderHandle("HeightMapToCubeMap");
+		mHeightCubeToNormalCubeShaderHandle = AssetManager::GetEngineShaderHandle("HeightCubeToNormalCube");
+		mAlbedoMapToCubeShaderHandle = AssetManager::GetEngineShaderHandle("AlbedoMapToCube");
 
 		mShaderInputLayout = ShaderLayout(planetElements, vsBlob);
 
@@ -237,7 +242,9 @@ namespace Toast {
 		 
 		heightMapCube->CreateUAV(0);
 
-		ShaderLibrary::Get("assets/shaders/Planet/HeightMapToCubeMap.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(mHeightMapToCubeMapShaderHandle);
+		if (shader) 
+			shader->Bind();
 
 		heightMapTexture->Bind(0, D3D11_COMPUTE_SHADER);
 		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::UWrapVClamp));
@@ -261,10 +268,10 @@ namespace Toast {
 		Ref<TextureCube> normalCube = CreateRef<TextureCube>("NormalMapCube", DXGI_FORMAT_R8G8B8A8_UNORM, cubemapSize, cubemapSize);
 		normalCube->CreateUAV(0);
 
-		// Set up constant buffer with PlanetRadius and CubemapSize
-		// (however you normally do this — bind to b0 for CS)
+		auto shader = AssetManager::GetAsset<Shader>(mHeightCubeToNormalCubeShaderHandle);
+		if (shader)
+			shader->Bind();
 
-		ShaderLibrary::Get("assets/shaders/Planet/HeightCubeToNormalCube.hlsl")->Bind();
 		heightCube->Bind(0, D3D11_COMPUTE_SHADER);      // t0
 		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::UWrapVClamp));
 		normalCube->BindForReadWrite(0, D3D11_COMPUTE_SHADER); // u0
@@ -285,7 +292,10 @@ namespace Toast {
 		Ref<TextureCube> albedoCube = CreateRef<TextureCube>("AlbedoCube", DXGI_FORMAT_R8G8B8A8_UNORM, cubemapSize, cubemapSize);
 		albedoCube->CreateUAV(0);
 
-		ShaderLibrary::Get("assets/shaders/Planet/AlbedoMapToCube.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(mAlbedoMapToCubeShaderHandle);
+		if (shader)
+			shader->Bind();
+
 		albedoTexture->Bind(0, D3D11_COMPUTE_SHADER);
 		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::UWrapVClamp));
 		albedoCube->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
@@ -992,8 +1002,8 @@ namespace Toast {
 			elements.emplace_back(e);
 		}
 
-		Shader* shader = ShaderLibrary::Get("assets/shaders/Planet/PlanetIcosphereGeometryPass.hlsl");
-		ID3D10Blob* vsBlob = shader->GetVSRaw();
+		mIcosphereGPassShaderHandle = AssetManager::GetEngineShaderHandle("PlanetIcosphereGeometryPass");
+		ID3D10Blob* vsBlob = AssetManager::GetAsset<Shader>(mIcosphereGPassShaderHandle)->GetVSRaw();
 
 		mShaderInputLayout = CreateRef<ShaderLayout>(elements, vsBlob);
 	}

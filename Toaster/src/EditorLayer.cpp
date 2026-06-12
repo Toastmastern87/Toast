@@ -72,62 +72,16 @@ namespace Toast {
 		TextureLibrary::LoadTexture2D("assets/textures/White.png");
 		TextureLibrary::LoadTextureCube("assets/textures/WhiteCube.png", 1, 1);
 
-		// Load all shaders
-		// Deffered Rendering
-		ShaderLibrary::Load("assets/shaders/Rendering/GeometryPass.hlsl");
-		ShaderLibrary::Load("assets/shaders/Rendering/ShadowPass.hlsl");
-		ShaderLibrary::Load("assets/shaders/Rendering/SSAOPass.hlsl");
-		ShaderLibrary::Load("assets/shaders/Rendering/SSAOBlurPass.hlsl");
-		ShaderLibrary::Load("assets/shaders/Rendering/LightningPass.hlsl");
-		ShaderLibrary::Load("assets/shaders/Rendering/Particles.hlsl");
-		ShaderLibrary::Load("assets/shaders/Rendering/GuidanceMarker.hlsl");
-		ShaderLibrary::Load("assets/shaders/Rendering/HoverTint.hlsl");
-		ShaderLibrary::Load("assets/shaders/Debug/ObjectMask.hlsl");
+		//mPlaceholderScene = CreateScope<Scene>();
+		//mEditorScene = mPlaceholderScene.get();
 
-		// Planet
-		ShaderLibrary::Load("assets/shaders/Planet/PlanetGeometryPass.hlsl");
-		ShaderLibrary::Load("assets/shaders/Planet/PlanetIcosphereGeometryPass.hlsl");
-		ShaderLibrary::Load("assets/shaders/Planet/HeightMapToCubeMap.hlsl");
-		ShaderLibrary::Load("assets/shaders/Planet/HeightCubeToNormalCube.hlsl");
-		ShaderLibrary::Load("assets/shaders/Planet/AlbedoMapToCube.hlsl");
-		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/TransmittanceCS.hlsl");
-		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/MultiScatteringCS.hlsl");
-		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/SkyViewCS.hlsl");
-		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/AerialPerspectiveCS.hlsl");
-		ShaderLibrary::Load("assets/shaders/Planet/Atmosphere/APFarDynamic.hlsl");
+		//mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 3000000.0f);
+		//mEditorCamera->SetTranslation({ 0.0f, 1.0f, -3.0f });
 
-		// Post Processes
-		ShaderLibrary::Load("assets/shaders/Post Process/StarField.hlsl");
-		ShaderLibrary::Load("assets/shaders/Post Process/Atmosphere.hlsl");
-		ShaderLibrary::Load("assets/shaders/Post Process/GodRays.hlsl");
-		ShaderLibrary::Load("assets/shaders/Post Process/Bloom.hlsl");
-		ShaderLibrary::Load("assets/shaders/Post Process/BloomDownSample.hlsl");
-		ShaderLibrary::Load("assets/shaders/Post Process/BloomWideBlur.hlsl");
-		ShaderLibrary::Load("assets/shaders/Post Process/BloomUpSample.hlsl");
-		ShaderLibrary::Load("assets/shaders/Post Process/BloomComposite.hlsl");
-		ShaderLibrary::Load("assets/shaders/Post Process/ToneMapping.hlsl");
+		//mEditorScene->SetActiveCamera(mEditorCamera);
+		//mEditorCamera->UpdateView();
 
-		// Environment
-		ShaderLibrary::Load("assets/shaders/Environment/EnvironmentMipFilter.hlsl");
-		ShaderLibrary::Load("assets/shaders/Environment/EnvironmentIrradiance.hlsl");
-
-		// Others
-		ShaderLibrary::Load("assets/shaders/Standard.hlsl");
-		ShaderLibrary::Load("assets/shaders/UI.hlsl");
-		ShaderLibrary::Load("assets/shaders/Utilities/Copy.hlsl");
-		ShaderLibrary::Load("assets/shaders/Debug/ObjectMask.hlsl");
-		ShaderLibrary::Load("assets/shaders/Debug/Outline.hlsl");
-
-		mPlaceholderScene = CreateScope<Scene>();
-		mEditorScene = mPlaceholderScene.get();
-
-		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 3000000.0f);
-		mEditorCamera->SetTranslation({ 0.0f, 1.0f, -3.0f });
-
-		mEditorScene->SetActiveCamera(mEditorCamera);
-		mEditorCamera->UpdateView();
-
-		mProjectPanel.OnOpenSceneRequested = [this](UUID id) { OpenProjectScene(id); };
+		//mProjectPanel.OnOpenSceneRequested = [this](UUID id) { OpenProjectScene(id); };
 
 		// TEMP WHILE I'M NOT WORKING ON THE PROJECT OPENING SYSTEM, AUTO OPENS THE NEXT FRONTIER
 #ifdef TRUE
@@ -153,6 +107,20 @@ namespace Toast {
 
 		AssetManager::SetActiveProject(mProject);
 		AssetManager::DeserializeRegistry();
+
+		Renderer::LoadEngineShaders();
+		Renderer::GenerateSpecularBRDF();
+
+		mPlaceholderScene = CreateScope<Scene>();
+		mEditorScene = mPlaceholderScene.get();
+
+		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 3000000.0f);
+		mEditorCamera->SetTranslation({ 0.0f, 1.0f, -3.0f });
+
+		mEditorScene->SetActiveCamera(mEditorCamera);
+		mEditorCamera->UpdateView();
+
+		mProjectPanel.OnOpenSceneRequested = [this](UUID id) { OpenProjectScene(id); };
 
 		mContentBrowserPanel.SetProjectPath(mProject->GetPath());
 		mMaterialPanel.SetProjectPath(mProject->GetPath());

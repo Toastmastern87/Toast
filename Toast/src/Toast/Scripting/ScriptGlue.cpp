@@ -757,7 +757,7 @@ namespace Toast {
 
 		DirectX::XMStoreFloat4(&tc.TargetRotationQuaternion, DirectX::XMQuaternionNormalize(qTarget));
 		tc.IsRotating = true;
-	}
+	} 
 
 	static void TransformComponent_SetTargetRotationDelta(UUID entityID, float pitchDeg, float yawDeg, float rollDeg)
 	{
@@ -769,10 +769,7 @@ namespace Toast {
 		DirectX::XMVECTOR current = tc.GetTotalRotationQuaternion();
 
 		// The delta rotation to apply
-		DirectX::XMVECTOR delta = DirectX::XMQuaternionRotationRollPitchYaw(
-			DirectX::XMConvertToRadians(pitchDeg),
-			DirectX::XMConvertToRadians(yawDeg),
-			DirectX::XMConvertToRadians(rollDeg));
+		DirectX::XMVECTOR delta = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(pitchDeg), DirectX::XMConvertToRadians(yawDeg), DirectX::XMConvertToRadians(rollDeg));
 
 		// Target = current composed with delta. Order matters (see note).
 		DirectX::XMVECTOR target = DirectX::XMQuaternionMultiply(delta, current);  // or (current, delta)

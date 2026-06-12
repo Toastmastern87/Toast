@@ -289,6 +289,45 @@ namespace Toast {
 		Invalidate(filepath);
 	}
 
+	Shader::Shader(const std::string& name, const std::vector<ShaderStageBlob>& stages, const std::vector<ShaderLayout::ShaderInputElement>& layoutElements)
+		: mName(name)
+	{
+		TOAST_PROFILE_FUNCTION();
+		ID3D11Device* device = RenderCommand::sRendererAPI->GetDevice();
+
+		ID3D10Blob* vsBlob = nullptr;
+
+		for (const auto& s : stages)
+		{
+			ID3D10Blob* blob = nullptr;
+			D3DCreateBlob(s.Bytecode.size(), &blob);
+			memcpy(blob->GetBufferPointer(), s.Bytecode.data(), s.Bytecode.size());
+			mRawBlobs[s.Stage] = blob;
+
+			const void* bc = blob->GetBufferPointer();
+			SIZE_T      sz = blob->GetBufferSize();
+
+			switch (s.Stage)
+			{
+			case D3D11_VERTEX_SHADER:
+				device->CreateVertexShader(bc, sz, nullptr, &mVertexShader);
+				vsBlob = blob;  // needed to create the input layout object
+				break;
+			case D3D11_PIXEL_SHADER:    device->CreatePixelShader(bc, sz, nullptr, &mPixelShader);     break;
+			case D3D11_GEOMETRY_SHADER: device->CreateGeometryShader(bc, sz, nullptr, &mGeometryShader); break;
+			case D3D11_COMPUTE_SHADER:  device->CreateComputeShader(bc, sz, nullptr, &mComputeShader);  break;
+			default: TOAST_CORE_WARN("Unknown stage %u in shader '%s'", s.Stage, name.c_str()); break;
+			}
+		}
+
+		// Build the input layout straight from the baked elements — no reflection.
+		// ShaderLayout's constructor needs the VS byte code to call CreateInputLayout.
+		if (!layoutElements.empty() && vsBlob)
+			mLayout = CreateRef<ShaderLayout>(layoutElements, vsBlob->GetBufferPointer());
+
+		ProcessResources();   // existing — reflects cbuffers/SRVs from mRawBlobs (no layout work)
+	}
+
 	void Shader::Invalidate(const std::string& filepath)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -627,29 +666,29 @@ namespace Toast {
 
 	void Shader::Unbind() const
 	{
-		TOAST_PROFILE_FUNCTION();
+		//TOAST_PROFILE_FUNCTION();
 
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+		//RendererAPI* API = RenderCommand::sRendererAPI.get();
+		//ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		for (auto& kv : mRawBlobs)
-		{
-			switch (kv.first)
-			{
-			case D3D11_VERTEX_SHADER:
-				deviceContext->VSSetShader(nullptr, 0, 0);
-				break;
-			case D3D11_PIXEL_SHADER:
-				deviceContext->PSSetShader(nullptr, 0, 0);
-				break;
-			case D3D11_GEOMETRY_SHADER:
-				deviceContext->GSSetShader(nullptr, 0, 0);
-				break;
-			case D3D11_COMPUTE_SHADER:
-				deviceContext->CSSetShader(nullptr, 0, 0);
-				break;
-			}
-		}
+		//for (auto& kv : mRawBlobs)
+		//{
+		//	switch (kv.first)
+		//	{
+		//	case D3D11_VERTEX_SHADER:
+		//		deviceContext->VSSetShader(nullptr, 0, 0);
+		//		break;
+		//	case D3D11_PIXEL_SHADER:
+		//		deviceContext->PSSetShader(nullptr, 0, 0);
+		//		break;
+		//	case D3D11_GEOMETRY_SHADER:
+		//		deviceContext->GSSetShader(nullptr, 0, 0);
+		//		break;
+		//	case D3D11_COMPUTE_SHADER:
+		//		deviceContext->CSSetShader(nullptr, 0, 0);
+		//		break;
+		//	}
+		//}
 	}
 
 	const std::vector<Toast::Shader::CBufferElementBindingDesc> Shader::GetCBufferElementBindings(const std::string& cbufferName) const
@@ -676,70 +715,4 @@ namespace Toast {
 		return "";
 	}
 
-	////////////////////////////////////////////////////////////////////////////////////////  
-	//     SHADER LIBRARY     //////////////////////////////////////////////////////////////  
-	//////////////////////////////////////////////////////////////////////////////////////// 
-
-	std::unordered_map<std::string, Scope<Shader>> ShaderLibrary::mShaders;
-
-	void ShaderLibrary::Delete(const std::string name)
-	{
-		mShaders.erase(name);
-	}
-
-	Shader* ShaderLibrary::Load(const std::string& filepath)
-	{
-		mShaders[filepath] = CreateScope<Shader>(filepath);
-		return mShaders[filepath].get();
-	}
-
-	Shader* ShaderLibrary::Load(const std::string& name, const std::string& filepath)
-	{
-		mShaders[filepath] = CreateScope<Shader>(filepath);
-		return mShaders[filepath].get();
-	}
-
-	void ShaderLibrary::Reload(const std::string& filepath)
-	{
-		auto lastSlash = filepath.find_last_of("/\\");
-		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
-		auto lastDot = filepath.rfind('.');
-		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
-		std::string name = filepath.substr(lastSlash, count);
-
-		TOAST_CORE_INFO("Reloading shader %s", name.c_str());
-
-		if (Exists(name))
-			mShaders[name]->Invalidate(filepath);
-		else
-			Load(filepath);
-
-		return;
-	}
-
-	Shader* ShaderLibrary::Get(const std::string& name)
-	{
-		TOAST_CORE_ASSERT(Exists(name), "Shader not found!");
-		return mShaders[name].get();
-	}
-
-	std::vector<std::string> ShaderLibrary::GetShaderList()
-	{
-		std::vector<std::string> shaderList;
-
-		std::unordered_map<std::string, Scope<Shader>>::iterator it = mShaders.begin();
-
-		while (it != mShaders.end())
-		{
-			shaderList.emplace_back(it->first);
-			it++;
-		}
-
-		return shaderList;
-	}
-
-	bool ShaderLibrary::Exists(const std::string& name)
-	{
-		return mShaders.find(name) != mShaders.end();
-	}
 }

@@ -50,6 +50,7 @@ namespace Toast{
 		static bool sLogToFile;
 		static bool sLogToConsole;
 		static bool sLogToToasterConsole;
+		static bool sLogToVSOutput;
 
 		static const char* sPreviousFile;
 		static const char* sCurrentFile;

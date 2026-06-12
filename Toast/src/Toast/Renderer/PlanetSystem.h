@@ -393,6 +393,8 @@ namespace Toast {
 		// Settings
 		bool mBackfaceCulling;
 		bool mFrustumCulling;
+
+		AssetHandle mIcosphereGPassShaderHandle = 0;
 	};
 
 	class PlanetMeshGeoClipmap
@@ -614,6 +616,11 @@ namespace Toast {
 		float mSurfaceAirDensity = 0.0f;      
 		float mPhysicsScaleHeight = 0.0f;   
 		float mAtmosphereCeiling = 0.0f;  
+
+		AssetHandle mGeoClipmapGPassShaderHandle = 0;
+		AssetHandle mHeightMapToCubeMapShaderHandle = 0;
+		AssetHandle mHeightCubeToNormalCubeShaderHandle = 0;
+		AssetHandle mAlbedoMapToCubeShaderHandle = 0;
 
 		friend class SceneSerializer;
 		friend class PlanetPanel;

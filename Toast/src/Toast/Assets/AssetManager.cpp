@@ -69,7 +69,7 @@ namespace Toast {
 		return handle;
 	}
 
-	AssetHandle AssetManager::ImportExternalAsset(const std::filesystem::path& externalPath, const std::filesystem::path& destSubDir)
+	AssetHandle AssetManager::ImportExternalAsset(const std::filesystem::path& externalPath, const std::filesystem::path& destSubDir, bool forceOverwrite)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -107,12 +107,17 @@ namespace Toast {
 		std::filesystem::path destPath = destDir / externalPath.filename();
 
 		if (std::filesystem::exists(destPath))
-			TOAST_CORE_WARN("AssetManager: File '%s' already exists in project, using existing file.", destPath.string().c_str());
+			if (forceOverwrite)
+			{
+				std::filesystem::copy_file(externalPath, destPath, std::filesystem::copy_options::overwrite_existing);
+				TOAST_CORE_INFO("Updated project asset from source: '%s'", destPath.string().c_str());
+			}
+			else 
+				TOAST_CORE_WARN("AssetManager: File '%s' already exists in project, using existing file.", destPath.string().c_str());
 		else
 		{
 			std::filesystem::copy_file(externalPath, destPath);
-			TOAST_CORE_INFO("AssetManager: Copied '%s' -> '%s'",
-				externalPath.string().c_str(), destPath.string().c_str());
+			TOAST_CORE_INFO("AssetManager: Copied '%s' -> '%s'", externalPath.string().c_str(), destPath.string().c_str());
 		}
 
 		// Register using the path relative to the asset root.
@@ -152,6 +157,19 @@ namespace Toast {
 		return GetActiveRegistry().Get(handle);
 	}
 
+	void AssetManager::ReloadAsset(AssetHandle handle)
+	{
+		AssetEntry* entry = GetActiveRegistry().Get(handle);
+		if (!entry || !entry->Resource) return;
+
+		if (entry->Metadata.Type == AssetType::Shader)
+		{
+			auto shader = std::static_pointer_cast<Shader>(entry->Resource);
+			auto sourcePath = sActiveProject->GetAssetDirectory() / entry->Metadata.FilePath;
+			shader->Invalidate(sourcePath.string());
+		}
+	}
+
 	void AssetManager::UnloadAsset(AssetHandle handle)
 	{
 		if (AssetEntry* entry = GetActiveRegistry().Get(handle))
@@ -185,6 +203,9 @@ namespace Toast {
 		{
 		case AssetType::Texture2D:
 			asset = CreateRef<Texture2D>(fullPath.string(), entry->Texture2DSettings.ForceSRGB);
+			break;
+		case AssetType::Shader:
+			asset = CreateRef<Shader>(fullPath.string());
 			break;
 		default:
 			TOAST_CORE_ERROR("AssetManager: No loader for asset type %s", AssetTypeToString(entry->Metadata.Type));
@@ -323,6 +344,22 @@ namespace Toast {
 			fn(handle, entry.Metadata);
 	}
 
+	void AssetManager::RegisterEngineShader(const std::string& name, AssetHandle handle)
+	{
+		sEngineShaderHandles[name] = handle;
+	}
+
+	AssetHandle AssetManager::GetEngineShaderHandle(const std::string& name)
+	{
+		auto it = sEngineShaderHandles.find(name);
+		if (it == sEngineShaderHandles.end())
+		{
+			TOAST_CORE_WARN("GetEngineShaderHandle: unknown shader '%s'", name.c_str());
+			return 0;
+		}
+		return it->second;
+	}
+
 	void AssetManager::BakeAssets(const std::filesystem::path& outputDir)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -374,6 +411,12 @@ namespace Toast {
 				success = AssetSerializer::SerializeTexture2D(handle, texture, fullOutputPath);
 				break;
 			}
+			case AssetType::Shader:                                
+			{
+				auto shader = std::static_pointer_cast<Shader>(entry.Resource);
+				success = AssetSerializer::SerializeShader(handle, shader, fullOutputPath);
+				break;
+			}
 
 			default:
 				TOAST_CORE_WARN("AssetManager::Build: No baking support for asset type %s, skipping.", AssetTypeToString(entry.Metadata.Type));
@@ -402,9 +445,10 @@ namespace Toast {
 		std::string ext = extension.string();
 		for (auto& c : ext) c = (char)std::tolower(c);
 
-		if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
-			ext == ".bmp" || ext == ".tga" || ext == ".hdr" || ext == ".dds" || ext == ".tif")
+		if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||	ext == ".bmp" || ext == ".tga" || ext == ".hdr" || ext == ".dds" || ext == ".tif")
 			return AssetType::Texture2D;
+		if (ext == ".hlsl") 
+			return AssetType::Shader;
 
 		return AssetType::None;
 	}

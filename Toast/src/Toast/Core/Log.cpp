@@ -5,6 +5,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#ifdef TOAST_PLATFORM_WINDOWS
+#include <windows.h>
+#endif
+
 namespace Toast {
 
 	Ref<Log> Log::sCoreLogger;
@@ -15,6 +19,7 @@ namespace Toast {
 	bool Log::sLogToFile = true;
 	bool Log::sLogToConsole = true;
 	bool Log::sLogToToasterConsole = true;
+	bool Log::sLogToVSOutput = true;
 
 	const char* Log::sPreviousFile = "Logs/ToastPrevLog.tlog";
 	const char* Log::sCurrentFile = "Logs/ToastLog.tlog";
@@ -151,7 +156,19 @@ namespace Toast {
 				editorConsoleMsg += " " + std::string(Log::GetSeverityID(severity)) + ": " + msg;
 				sMessages.emplace_back(std::pair<Severity, std::string>(severity, editorConsoleMsg));
 			}
-			
+
+// If on windows log to visual studio console			
+#ifdef TOAST_PLATFORM_WINDOWS
+			if (Log::sLogToVSOutput)
+			{
+				// Build the same line as the file output. If logToFile is off,
+				// construct it inline so VS still gets a useful message.
+				std::string vsLine = "[" + std::string(name) + "] "
+					+ std::string(Log::GetSeverityID(severity))
+					+ ": " + msg + "\n";
+				OutputDebugStringA(vsLine.c_str());
+			}
+#endif
 		}
 
 		if (Log::sLogToFile)

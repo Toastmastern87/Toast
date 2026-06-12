@@ -30,7 +30,7 @@ namespace Toast {
 		// Copies it into the project's asset directory and registers it.
 		// Any panel can call this — content browser, material editor, inspector, etc.
 		// destSubDir is optional: "textures", "textures/materials", or empty for asset root.
-		static AssetHandle ImportExternalAsset(const std::filesystem::path& externalPath, const std::filesystem::path& destSubDir = "");
+		static AssetHandle ImportExternalAsset(const std::filesystem::path& externalPath, const std::filesystem::path& destSubDir = "",	bool forceOverwrite = false);
 
 		template<typename T>
 		static Ref<T> GetAsset(AssetHandle handle)
@@ -58,6 +58,7 @@ namespace Toast {
 		static AssetType GetAssetTypeFromPath(const std::filesystem::path& path);
 		static AssetEntry* GetEntry(AssetHandle handle);
 
+		static void ReloadAsset(AssetHandle handle);
 		static void UnloadAsset(AssetHandle handle);
 
 		static void RemoveAsset(AssetHandle handle);
@@ -71,12 +72,17 @@ namespace Toast {
 
 		static void Each(AssetType type, const std::function<void(AssetHandle, const AssetMetadata&)>& fn);
 		static void EachAll(const std::function<void(AssetHandle, const AssetMetadata&)>& fn);
+
+		static void RegisterEngineShader(const std::string& name, AssetHandle handle);
+		static AssetHandle GetEngineShaderHandle(const std::string& name);
 	private:
 		static bool LoadAsset(AssetHandle handle);
 		static AssetType DeduceAssetType(const std::filesystem::path& extension);
 		static AssetRegistry& GetActiveRegistry();
 
 		inline static Ref<Project> sActiveProject = nullptr;
+
+		inline static std::unordered_map<std::string, AssetHandle> sEngineShaderHandles;
 	};
 
 }

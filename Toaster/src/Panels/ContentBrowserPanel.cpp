@@ -98,7 +98,10 @@ namespace Toast {
 				{
 					if (ImGui::Button("Reload shader"))
 					{
-						ShaderLibrary::Reload(path.string().c_str());
+						auto relativePath = std::filesystem::relative(path, mAssetRoot);
+						AssetHandle handle = AssetManager::ImportAsset(relativePath);  // resolves to existing handle
+						if (handle)
+							AssetManager::ReloadAsset(handle);
 						ImGui::CloseCurrentPopup();
 					}
 

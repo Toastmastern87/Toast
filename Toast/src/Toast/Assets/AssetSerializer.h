@@ -7,6 +7,7 @@
 namespace Toast {
 
 	class Texture2D;
+	class Shader;
 
 	// -----------------------------------------------------------------
 	// Binary .tasset format header — shared by serialize and deserialize.
@@ -35,14 +36,39 @@ namespace Toast {
 		uint64_t DataSize = 0;     // Size of raw pixel data in bytes
 		// Followed by DataSize bytes of raw pixel data
 	};
+
+	struct TAssetShaderPayload
+	{
+		uint32_t StageCount = 0; 
+		uint32_t ElementCount = 0; 
+	};
+
+	struct TAssetShaderStageEntry
+	{
+		uint32_t StageType = 0;    // D3D11_SHADER_TYPE value
+		uint64_t BlobSize = 0;    // size in bytes of this stage's byte code
+	};
+
+	struct TAssetShaderInputElement
+	{
+		uint32_t Type = 0;  // DXGI_FORMAT
+		uint32_t Size = 0;  // mSize
+		uint64_t Offset = 0;  // mOffset (size_t on disk as u64)
+		uint32_t SemanticIndex = 0;  // mSemanticIndex
+		uint32_t InputClassification = 0;  // D3D11_INPUT_CLASSIFICATION
+		uint32_t InstanceDataStepRate = 0;  // mInstanceDataStepRate
+		uint32_t InputSlot = 0;  // mInputSlot
+	};
 #pragma pack(pop)
 
 	class AssetSerializer
 	{
 	public:
 		static bool SerializeTexture2D(AssetHandle handle, const Ref<Texture2D>& texture, const std::filesystem::path& outputPath);
+		static bool SerializeShader(AssetHandle handle, const Ref<Shader>& shader, const std::filesystem::path& outputPath);
 
 		static Ref<Texture2D> DeserializeTexture2D(const std::filesystem::path& inputPath);
+		static Ref<Shader> DeserializeShader(const std::filesystem::path& inputPath);
 
 		static bool ValidateFile(const std::filesystem::path& path, TAssetHeader& outHeader);
 	};

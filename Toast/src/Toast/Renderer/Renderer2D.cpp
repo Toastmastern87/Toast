@@ -132,7 +132,9 @@ namespace Toast {
 		uint32_t quadCount = vertexCount / 4; 
 		uint32_t indexCount = quadCount * 6;
 
-		ShaderLibrary::Get("assets/shaders/UI.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->UIShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRenderer2DData->FontsTextureArray->GetSRV());
 		if(sRenderer2DData->UITextureArray)

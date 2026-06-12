@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Toast/Assets/Asset.h"
+
 #include "Toast/Renderer/RendererBuffer.h"
 
 #include <d3d11.h>
@@ -122,7 +124,13 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11InputLayout> mInputLayout;
 	};
 
-	class Shader
+	struct ShaderStageBlob
+	{
+		D3D11_SHADER_TYPE Stage;
+		std::vector<uint8_t> Bytecode;
+	};
+
+	class Shader : public Asset
 	{
 	public:
 		enum class BindingType
@@ -149,9 +157,13 @@ namespace Toast {
 			uint32_t Size				{ 0 };
 			uint32_t Offset				{ 0 };
 		};
+
 	public:
 		Shader(const std::string& filepath);
+		Shader(const std::string& name, const std::vector<ShaderStageBlob>& stages, const std::vector<ShaderLayout::ShaderInputElement>& layoutElements);
 		~Shader();
+
+		AssetType GetAssetType() const override { return AssetType::Shader; }
 
 		void Invalidate(const std::string& filepath);
 
@@ -161,7 +173,15 @@ namespace Toast {
 		const std::string GetName() const { return mName; }
 		const std::string GetFullPathName() const { return mFullPathName; }
 
-		ID3D10Blob* GetVSRaw() const { return mRawBlobs.at(D3D11_VERTEX_SHADER); }
+		const Ref<ShaderLayout>& GetLayout() const { return mLayout; }
+
+		ID3D10Blob* GetVSRaw() const 
+		{
+			auto it = mRawBlobs.find(D3D11_VERTEX_SHADER);
+			return it != mRawBlobs.end() ? it->second : nullptr;
+		}
+
+		const std::unordered_map<D3D11_SHADER_TYPE, ID3D10Blob*>& GetRawBlobs() const { return mRawBlobs; }
 
 		const std::vector<ResourceBindingDesc> GetResourceBindings() const { return mResourceBindings; }
 		const std::vector<CBufferElementBindingDesc> GetCBufferElementBindings(const std::string& cbufferName) const;
@@ -192,19 +212,4 @@ namespace Toast {
 		std::unordered_map<std::string, ShaderCBufferBindingDesc> mCBufferBindings;
 	};
 
-	class ShaderLibrary 
-	{
-	public:
-		static void Delete(const std::string name);
-		static Shader* Load(const std::string& filepath);
-		static Shader* Load(const std::string& name, const std::string& filepath);
-		static void Reload(const std::string& filepath);
-
-		static Shader* Get(const std::string& name);
-		static std::vector<std::string> GetShaderList();
-
-		static bool Exists(const std::string& name);
-	private:
-		static std::unordered_map<std::string, Scope<Shader>> mShaders;
-	};
 }

@@ -1,0 +1,692 @@
+﻿#inputlayout
+#type vertex
+#pragma pack_matrix( row_major )
+
+struct PixelInputType
+{
+    float4 position : SV_POSITION;
+    float2 texCoord : TEXCOORD;
+};
+
+PixelInputType main(uint vID : SV_VertexID)
+{
+    PixelInputType output;
+
+	//https://wallisc.github.io/rendering/2021/04/18/Fullscreen-Pass.html
+    output.texCoord = float2((vID << 1) & 2, vID & 2);
+    output.position = float4(output.texCoord * float2(2, -2) + float2(-1, 1), 0.0f, 1);
+
+    return output;
+}
+
+#type pixel
+#pragma pack_matrix( row_major )
+
+static const float3 Fdielectric = float3(0.04f, 0.04f, 0.04f);
+static const float Epsilon = 0.00001f;
+static const float PI = 3.14159265359f;
+static const float MU_EPS = 8e-4;
+
+cbuffer Camera : register(b0)
+{
+    matrix worldTranslationMatrix;
+    matrix viewMatrix;
+    matrix projectionMatrix;
+    matrix inverseViewMatrix;
+    matrix inverseProjectionMatrix;
+    float4 cameraPosition;
+    float far;
+    float near;
+    float viewportWidth;
+    float viewportHeight;
+};
+
+cbuffer DirectionalLight : register(b3)
+{
+    float4x4 lightViewProj[4];
+    
+    float4 direction; // FROM light -> scene
+    
+    float4 radiance; // RGB
+    
+    float SunIntensity;
+    float DirectionalLightGain;
+    uint CascadeCount;
+    float ShadowDistance;
+    
+    float4 CascadeEnds;
+    
+    uint CascadeIndex;
+    float ConstantBias;
+    float SlopeBias;
+};
+
+cbuffer PlanetFrame : register(b4)
+{
+    float3 PlanetCenterWS;
+    float PlanetRadius; // Rg
+    float3 BasisTanEast;
+    float MaxHeight;
+    float3 BasisTanNorth;
+    float MinHeight;
+    float3 BasisRadUp;
+};
+
+cbuffer Atmosphere : register(b5)
+{
+    float AtmosphereHeight; // Rt - Rg
+    float RayScaleHeight;
+    float MieScaleHeight;
+    float MSGain;
+    
+    float3 RayleighScattering;
+    float SGain;
+    
+    float3 MieScattering;
+    
+    float3 MieAbsorption;
+    
+    float3 GroundAlbedo;
+    
+    float3 MieAnisotropy;
+    float OzoneStrength;
+    
+    uint StepsTransmittance;
+    uint StepsMultiScattering;
+    float APFarDynamic;
+    
+    float3 SunsetTint;
+};
+
+cbuffer SunDiscSettings : register(b6)
+{
+    float SunDiscRadius;
+    float SunEdgeSoftness; // rad  (soft rim width)
+    int SunDiscToggle; // 0=off, 1=on
+    float SpaceDiscBrightnessScale; // unitless scale, e.g. 1.30
+    
+    float3 SunDiscWhite;
+    float AirHaloIntensity; // 0..~0.6 (was HaloStrength_Ground, e.g. 0.28)
+    
+    float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)    
+    float AirHaloStartFrac; // 0..1   (was InAirStart, e.g. 0.15)
+    
+    float AirHaloFalloffPow; // curve (was InAirPow, e.g. 1.10)
+    float HorizonRefractionDeg; // deg (was RefracCenterDeg, e.g. 0.83)
+    float TwilightBlendDeg; // deg (was TwilightExtraDeg, e.g. 1.5)
+    float SpaceHaloWidthDeg; // deg (was SpaceHaloSigmaDeg, e.g. 0.8)
+    
+    float SpaceHaloIntensity; // 0.01..0.10 (was SpaceHaloGain, e.g. 0.04)
+    float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
+    float SunIrradiance;
+};
+
+cbuffer StarsParams : register(b7)
+{
+    float StarNits; // e.g. 600.0 (display-space peak for brightest texel)
+    float DayFadeStartDeg; // start hiding stars above horizon (e.g. +2.0)
+    float DayFadeEndDeg; // fully hidden by (e.g. 0.0 or -2.0)
+    float TwilightStartDeg; // start appearing (e.g. 0.0)
+    
+    float TwilightEndDeg; // fully visible by (e.g. -6.0)
+    float SpaceFadeStart; // altitude norm where space visibility starts (0..1), e.g. 0.85
+    float SpaceFadeEnd; // fully visible by (0..1), e.g. 0.98
+    float GlareInnerDeg; // sun glare inner angle (e.g. 5.0)
+    
+    float GlareOuterDeg; // sun glare outer angle (e.g. 12.0)
+    float3 NightAmbient;
+}
+
+cbuffer LightningBufferSettings : register(b8)
+{
+    float DiffuseIBLGain;
+    float SpecularIBLGain;
+}
+
+// G-buffer Textures
+Texture2D positionTexture               : register(t0); // View-space position
+Texture2D normalTexture                 : register(t1); // Encoded normals
+Texture2D albedoMetallicTexture         : register(t2); // Albedo RGB and Metallic A
+Texture2D roughnessAOTexture            : register(t3); // Roughness R and AO A
+
+// IBL Textures
+TextureCube IrradianceTextureDay        : register(t4);
+TextureCube RadianceTextureDay          : register(t5);
+TextureCube IrradianceTextureNight      : register(t14);
+TextureCube RadianceTextureNight        : register(t15);
+Texture2D SpecularBRDFLUT               : register(t6);
+
+// Atmospheric Scattering Textures
+Texture2D<float4> TransmittanceLUT      : register(t7);
+Texture2D<float4> MultiScatterLUT       : register(t8);
+
+// SSAO Textures
+Texture2D SSAOTexture                   : register(t10);
+
+// Shadow Pass Texture
+Texture2DArray ShadowDepthTexture       : register(t12);
+
+Texture2D<int> ObjectMaskTexture        : register(t13);
+
+Texture2DArray<float> HeightCube        : register(t16);
+Texture2D SceneDepth                    : register(t17);
+
+// Sampler state
+SamplerState DefaultSampler             : register(s0);
+SamplerState SPBRDFSampler              : register(s1);
+SamplerState PointSampler               : register(s2);
+SamplerState LinearSampler              : register(s3);
+SamplerComparisonState ShadowCmpSampler : register(s4);
+
+struct CubeSample
+{
+    uint face;
+    float2 uv; // [0,1]
+};
+
+CubeSample DirectionToCube(float3 v)
+{
+    v = normalize(v);
+
+    float ax = abs(v.x);
+    float ay = abs(v.y);
+    float az = abs(v.z);
+
+    uint face;
+    float2 uvFace;
+
+    if (ax >= ay && ax >= az)
+    {
+        if (v.x > 0)
+        {
+            face = 0;
+            uvFace = float2(-v.z, v.y) / ax;
+        }
+        else
+        {
+            face = 1;
+            uvFace = float2(v.z, v.y) / ax;
+        }
+    }
+    else if (ay >= ax && ay >= az)
+    {
+        if (v.y > 0)
+        {
+            face = 2;
+            uvFace = float2(v.x, -v.z) / ay;
+        }
+        else
+        {
+            face = 3;
+            uvFace = float2(v.x, v.z) / ay;
+        }
+    }
+    else
+    {
+        if (v.z > 0)
+        {
+            face = 4;
+            uvFace = float2(v.x, v.y) / az;
+        }
+        else
+        {
+            face = 5;
+            uvFace = float2(-v.x, v.y) / az;
+        }
+    }
+
+    CubeSample cs;
+    cs.face = face;
+    cs.uv = uvFace * 0.5 + 0.5;
+    return cs;
+}
+
+// GGX/Towbridge-Reitz normal distribution function.
+// Uses Disney's reparametrization of alpha = roughness^2
+float ndfGGX(float cosLh, float roughness)
+{
+    float alpha = roughness * roughness;
+    float alphaSq = alpha * alpha;
+
+    float denom = (cosLh * cosLh) * (alphaSq - 1.0f) + 1.0f;
+    return alphaSq / (PI * denom * denom);
+}
+
+// Single term for separable Schlick-GGX below.
+float gaSchlickG1(float cosTheta, float k)
+{
+    return cosTheta / (cosTheta * (1.0f - k) + k);
+}
+
+// Schlick-GGX approximation of geometric attenuation function using Smith's method.
+float gaSchlickGGX(float cosLi, float NdotV, float roughness)
+{
+    float r = roughness + 1.0f;
+    float k = (r * r) / 8.0f; // Epic suggests using this roughness remapping for analytic lights.
+    return gaSchlickG1(cosLi, k) * gaSchlickG1(NdotV, k);
+}
+
+float GeometrySchlickGGX(float NdotV, float roughness)
+
+{
+    float r = (roughness + 1.0f);
+    float k = (r * r) / 8.0f;
+
+    float nom = NdotV;
+    float denom = NdotV * (1.0f - k) + k;
+
+    return nom / denom;
+}
+
+float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
+{
+    float NdotV = max(dot(N, V), 0.0f);
+    float NdotL = max(dot(N, L), 0.0f);
+    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
+
+    return ggx1 * ggx2;
+}
+
+// Shlick's approximation of the Fresnel factor.
+float3 fresnelSchlick(float3 F0, float cosTheta)
+{
+    return F0 + (1.0f - F0) * pow(1.0f - cosTheta, 5.0f);
+}
+
+float3 fresnelSchlickRoughness(float3 F0, float cosTheta, float roughness)
+{
+    return F0 + (max(float3(1.0f - roughness, 1.0f - roughness, 1.0f - roughness), F0) - F0) * pow(1.0f - cosTheta, 5.0f);
+}
+
+// ---------------------------------------------------------------------------------------------------
+// The following code (from Unreal Engine 4's paper) shows how to filter the environment map
+// for different roughnesses. This is mean to be computed offline and stored in cube map mips,
+// so turning this on online will cause poor performance
+float RadicalInverse_VdC(uint bits)
+{
+    bits = (bits << 16u) | (bits >> 16u);
+    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+    return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+
+float2 Hammersley(uint i, uint N)
+{
+    return float2(float(i) / float(N), RadicalInverse_VdC(i));
+}
+
+float3 ImportanceSampleGGX(float2 Xi, float roughness, float3 N)
+{
+    float a = roughness * roughness;
+    float Phi = 2.0f * PI * Xi.x;
+    float CosTheta = sqrt((1.0f - Xi.y) / (1.0f + (a * a - 1.0f) * Xi.y));
+    float SinTheta = sqrt(1.0f - CosTheta * CosTheta);
+    float3 H;
+    H.x = SinTheta * cos(Phi);
+    H.y = SinTheta * sin(Phi);
+    H.z = CosTheta;
+    float3 UpVector = abs(N.z) < 0.999f ? float3(0.0f, 0.0f, 1.0f) : float3(1.0f, 0.0f, 0.0f);
+    float3 TangentX = normalize(cross(UpVector, N));
+    float3 TangentY = cross(N, TangentX);
+	// Tangent to world space
+    return TangentX * H.x + TangentY * H.y + N * H.z;
+}
+
+float3 PrefilterEnvMap(float roughness, float3 R)
+{
+    float TotalWeight = 0.0;
+    float3 N = R;
+    float3 V = R;
+    float3 PrefilteredColor = float3(0.0f, 0.0f, 0.0f);
+    int NumSamples = 1024;
+    for (int i = 0; i < NumSamples; i++)
+    {
+        float2 Xi = Hammersley(i, NumSamples);
+        float3 H = ImportanceSampleGGX(Xi, roughness, N);
+        float3 L = 2.0f * dot(V, H) * H - V;
+        float NoL = clamp(dot(N, L), 0.0f, 1.0f);
+        if (NoL > 0)
+        {
+            PrefilteredColor += IrradianceTextureDay.Sample(DefaultSampler, L).rgb * NoL;
+            TotalWeight += NoL;
+        }
+    }
+    return PrefilteredColor / TotalWeight;
+}
+
+// Returns number of mipmap levels for specular IBL environment map.
+uint queryRadianceTextureLevels()
+{
+    uint width, height, levels;
+    RadianceTextureDay.GetDimensions(0, width, height, levels);
+    return levels;
+}
+
+float2 TransUV(float r, float mu, float RbPhys, float Rt)
+{
+    float rNorm = (r - RbPhys) / max(Rt - RbPhys, 1e-6f);
+    float muMin = -sqrt(saturate(1.0f - (RbPhys * RbPhys) / (r * r)));
+    mu = clamp(mu, muMin + MU_EPS, 1.0f - MU_EPS);
+    return float2((mu - muMin) / (1.0f - muMin), saturate(rNorm));
+}
+
+float SunVisibilityAtR(float r, float muS, float Rb)
+{
+    float sinThetaH = Rb / r;
+    float cosThetaH = -sqrt(saturate(1.0f - sinThetaH * sinThetaH));
+    return smoothstep(-sinThetaH * SunDiscRadius, sinThetaH * SunDiscRadius, muS - cosThetaH);
+}
+
+float3 T_to_TOA(float r, float mu, float Rb, float Rt)
+{
+    return TransmittanceLUT.SampleLevel(PointSampler, TransUV(r, mu, Rb, Rt), 0).rgb;
+}
+
+float sstep(float a, float b, float x)
+{
+    float t = saturate((x - a) / (b - a));
+    return t * t * (3.0 - 2.0 * t);
+}
+
+// Compute sun altitude in degrees
+float SunAltitudeDeg(float3 camPosWS, float3 planetCenterWS, float3 lightDirFromLight)
+{
+    float3 wSun = -normalize(lightDirFromLight); // TO sun
+    float3 up = normalize(camPosWS - planetCenterWS); // camera "up"
+    float mu = clamp(dot(up, wSun), -1.0, 1.0);
+    return degrees(asin(mu)); // +90 zenith, 0 horizon, negative at night
+}
+
+float4 SamplePsiMS4(float r, float muS, float Rg, float Rt)
+{
+    float thetaS = acos(clamp(muS, -1.0f, 1.0f));
+    float u = thetaS / PI;
+    float v = 1.0f - saturate((r - Rg) / max(Rt - Rg, 1e-6f)); // MS_FLIP_Y=1
+    return MultiScatterLUT.SampleLevel(LinearSampler, float2(u, v), 0);
+}
+
+uint SelectCascade(float viewDepth)
+{
+    // viewDepth should be positive forward distance in view space
+    // pick first i where viewDepth <= CascadeEnds[i]
+    [unroll]
+    for (uint i = 0; i < CascadeCount; ++i)
+    {
+        if (viewDepth <= CascadeEnds[i])
+            return i;
+    }
+    return CascadeCount - 1;
+}
+
+float SampleShadowPCF(uint ci, float2 uv, float depth01, float receiverBias)
+{
+    // outside = lit
+    if (any(uv < 0.0f) || any(uv > 1.0f))
+        return 1.0f;
+
+    // Bias the RECEIVER depth (recommended mental model)
+    float d = depth01 - receiverBias;
+
+    uint width, height, elements;
+    ShadowDepthTexture.GetDimensions(width, height, elements);
+    
+    float2 texel = float2(1.0f / (float) width, 1.0f / (float) height); // (1.0f/4096.0f, 1.0f/4096.0f) passed in
+
+    // 3x3 PCF
+    float sum = 0.0f;
+    [unroll]
+    for (int y = -1; y <= 1; ++y)
+    {
+        [unroll]
+        for (int x = -1; x <= 1; ++x)
+        {
+            float2 o = float2(x, y) * texel;
+            sum += ShadowDepthTexture.SampleCmpLevelZero(ShadowCmpSampler, float3(uv + o, (float) ci), d);
+        }
+    }
+    return sum * (1.0f / 9.0f);
+}
+
+float TerrainHardShadowHorizonTrace(float3 posWS, float3 planetCenterWS, float3 wSun, float RbPhys, float r_true, uint heightRes, float dMin, float dMax)              // e.g. 20000.0..100000.0 depending on your scale
+{
+    float3 pRel = posWS - planetCenterWS;
+    float3 up = pRel / max(1e-6f, r_true);
+
+    // Receiver height above RbPhys
+    float h0 = r_true - RbPhys;
+
+    // Sun elevation above local horizon
+    float mu = dot(up, wSun); // cos(zenith)
+    float sinZen = sqrt(saturate(1.0f - mu * mu));
+    float sunAngle = atan2(mu, max(1e-6f, sinZen)); // [-pi/2..pi/2], 0 at horizon
+
+    // Tangent direction toward sun (azimuth direction)
+    float3 t = wSun - up * mu;
+    float tLen = length(t);
+    if (tLen < 1e-5f)
+        return 1.0f; // sun almost at zenith; terrain horizon shadow negligible
+
+    float3 tSun = t / tLen;
+
+    // Estimate meters per texel at the receiver.
+    // For cubemap, angular texel size ~ (pi/2)/heightRes on each face.
+    // Arc length at radius r_true: metersPerTexel ~ r_true * angularStep.
+    float metersPerTexel0 = r_true * (0.5f * PI / (float) heightRes);
+
+    float horizon = -1e9f;
+
+    // Geometric progression steps: good coverage with few iterations
+    float d = dMin;
+
+    [loop]
+    for (int i = 0; i < 24; ++i) // tune: 16..32
+    {
+        if (d > dMax)
+            break;
+
+        float theta = d / max(1e-6f, r_true); // radians
+
+        float3 dirSample = normalize(up * cos(theta) + tSun * sin(theta));
+
+        // Mip selection: footprint grows with distance
+        float mip = clamp(log2(d / max(1e-6f, metersPerTexel0)), 0.0f, 12.0f);
+        
+        CubeSample cs = DirectionToCube(dirSample);
+        float2 uv = saturate(cs.uv);
+        float slice = (float) cs.face;
+        
+        float hS = HeightCube.SampleLevel(PointSampler, float3(uv, slice), mip);
+
+        // Blocking angle of the highest terrain at distance d
+        float ang = atan2(hS - h0, d);
+        horizon = max(horizon, ang);
+
+        d *= 1.35f; // tune
+    }
+
+    return (sunAngle > horizon) ? 1.0f : 0.0f;
+}
+
+float3 DirectionalLightning(float3 F0, float3 NormalWorldSpace, float3 View, float NdotV, float3 albedo, float roughness, float metalness, float3 worldPos, float3 sunDir, float r, float muS)
+{   
+    float3 L = normalize(-sunDir);
+    float3 H = normalize(L + View);
+    float NoL = max(0.0f, dot(NormalWorldSpace, L));
+    if (NoL <= 0.0f)
+        return 0;
+    float NoH = max(0.0f, dot(NormalWorldSpace, H)); 
+
+    const float Rg = PlanetRadius;
+    const float Rt = PlanetRadius + AtmosphereHeight;
+    const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
+    const float RbVis = RbPhys + max(1.0f, 2e-6f * PlanetRadius);
+    
+    float3 Tsun = T_to_TOA(r, muS, RbPhys, Rt) * SunVisibilityAtR(r, muS, RbVis);
+    
+    // Sun radiance (same scalar you use in AP/Sky)
+    float3 ESun = radiance * SunIntensity;
+
+    float3 Lradiance = ESun * Tsun; // attenuated, spectrally reddened
+    
+    float3 F = fresnelSchlick(F0, max(0.0f, dot(H, View)));
+    float D = ndfGGX(NoH, roughness);
+    float G = gaSchlickGGX(NoL, NdotV, roughness);
+
+    float3 kd = (1.0f - F) * (1.0f - metalness);
+    float3 diffuseBRDF = kd * albedo / PI;
+    
+	// Cook-Torrance
+    float3 specularBRDF = (F * D * G) / max(Epsilon, 4.0f * NoL * NdotV);
+
+    float3 result = (diffuseBRDF + specularBRDF) * Lradiance * NoL;
+
+    return result;
+}
+
+float3 IBL(float3 F0, float3 Lr, float3 NormalWorldSpace, float3 albedo, float roughness, float metalness, float NdotV, float day)
+{
+    float3 irradiance = lerp(IrradianceTextureNight.Sample(SPBRDFSampler, NormalWorldSpace), IrradianceTextureDay.Sample(SPBRDFSampler, NormalWorldSpace), day).rgb;
+
+    // Correct Fresnel term using NdotV
+    float3 F = fresnelSchlickRoughness(F0, NdotV, roughness);
+
+    // Correct kd calculation
+    float3 kd = (1.0f - F) * (1.0f - metalness);
+    float3 diffuseIBL = kd * albedo * irradiance;
+
+    uint specularTextureLevels = queryRadianceTextureLevels();
+    float mipLevel = roughness * (float) (specularTextureLevels - 1);
+    float3 specularIrradiance = lerp(RadianceTextureNight.SampleLevel(SPBRDFSampler, Lr, mipLevel), RadianceTextureDay.SampleLevel(SPBRDFSampler, Lr, mipLevel), day);
+
+    // Use NdotV in BRDF LUT sampling
+    float2 specularBRDF = SpecularBRDFLUT.Sample(SPBRDFSampler, float2(NdotV, roughness)).rg;
+    float3 specularIBL = specularIrradiance * (F * specularBRDF.x + specularBRDF.y);
+
+    return (specularIBL * SpecularIBLGain) + (diffuseIBL * DiffuseIBLGain);
+}
+
+struct PixelOutputType
+{
+    float4 color        : SV_TARGET;
+};
+
+// Input structure from vertex shader
+struct PixelInputType
+{
+    float4 position     : SV_POSITION; // Clip-space position
+    float2 texCoord     : TEXCOORD0; // Texture coordinates
+};
+
+// Pixel shader main function
+PixelOutputType main(PixelInputType input)
+{
+    PixelOutputType output;
+
+    // **1. Sample G-buffer Textures**
+    float2 uv = input.texCoord;
+    float3 albedo = albedoMetallicTexture.Sample(PointSampler, uv).rgb;
+    float3 normal = normalTexture.Sample(PointSampler, uv).rgb;
+    normal = normalize(normal * 2.0f - 1.0f); // Convert to [-1, 1]
+    float3 posVS = positionTexture.Sample(PointSampler, uv).rgb;
+    
+    // Reconstruct World Position from View Space
+    float4 posWS = mul(float4(posVS, 1.0f), inverseViewMatrix);
+    
+    // Reconstruct World Normal from View Space
+    float3 normalWorld = normalize(mul(normal, (float3x3) inverseViewMatrix));
+    
+    // Metalness and Roughness
+    float metalness = albedoMetallicTexture.Sample(DefaultSampler, uv).a;
+    float roughness = roughnessAOTexture.Sample(DefaultSampler, uv).r;
+    roughness = max(roughness, 0.05f); // Avoid zero roughness
+    
+    // Ambient Occlusion from the SSAO texture
+    float ao = SSAOTexture.Sample(DefaultSampler, uv).r;
+    
+    // In View Space, the camera is at the origin (0, 0, 0)
+    float3 VWorld = normalize(cameraPosition.xyz - posWS.xyz);
+    float NdotV = max(dot(normalWorld, VWorld), 0.05f);
+
+    float3 planetCenterTrueWS = mul(float4(PlanetCenterWS, 1.0f), worldTranslationMatrix).xyz;
+    float3 pRel = posWS.xyz - planetCenterTrueWS;
+      
+    float r_true = length(pRel);
+    float3 up = (r_true > 0.0f) ? (pRel / r_true) : BasisRadUp;
+    
+    float3 wSun = -normalize(direction.xyz); // point -> sun
+    float muS = dot(up, wSun);
+
+    // Fresnel reflectance at normal incidence (for metals use albedo color).
+    float3 F0 = lerp(Fdielectric, albedo, metalness);
+    float3 Fv = fresnelSchlick(F0, NdotV);
+    float3 kd = (1.0f - Fv) * (1.0f - metalness);
+    
+    int2 pix = int2(uv * float2(viewportWidth, viewportHeight));
+    int isObject = ObjectMaskTexture.Load(int3(pix, 0));
+    float depth = SceneDepth.Sample(PointSampler, uv);
+
+    uint ci = SelectCascade(posVS.z);
+
+    // Initialize shadow factor
+    float shadowFinal = 1.0f;
+    float terrainShadow = 1.0f;
+
+    if (isObject < 0.5f && depth > 1e-12f)
+    {
+        uint width, height, layers, mipLevels;
+        HeightCube.GetDimensions(0, width, height, layers, mipLevels);
+        
+        const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
+        float h = r_true - RbPhys;
+        float dMax = clamp(8.0f * sqrt(max(2.0f * RbPhys * h, 0.0f)), 50000.0f, 2000000.0f);
+        
+        terrainShadow = TerrainHardShadowHorizonTrace(posWS.xyz, planetCenterTrueWS, wSun, RbPhys, r_true, width, 30.0f, dMax);
+    }
+
+    float4 shadowClip = mul(float4(posWS.xyz, 1.0f), lightViewProj[ci]);
+    
+
+    float3 ndc = shadowClip.xyz / shadowClip.w; // for ortho, w ~ 1
+    float2 shadowUV = ndc.xy * 0.5f + 0.5f;
+    shadowUV.y = 1.0f - shadowUV.y;
+
+    float currentDepth = ndc.z;
+
+    bool outsideShadow = any(shadowUV < 0.0f) || any(shadowUV > 1.0f) || currentDepth < 0.0f || currentDepth > 1.0f;
+
+    float shadow = 1.0f;
+
+    if (!outsideShadow)
+    {
+        float3 Li = normalize(-direction.xyz);
+        float NdL = saturate(dot(normalWorld, Li));
+        float bias = ConstantBias + SlopeBias * (1.0f - NdL);
+
+        shadow = SampleShadowPCF(ci, shadowUV, currentDepth, bias);
+    }
+
+    if (CascadeCount == 0) // shadows disabled  
+        shadowFinal = 1.0f;
+    else
+        shadowFinal = terrainShadow * shadow;
+    
+    // Directional Light Contribution
+    float3 directLight = DirectionalLightning(F0, normalWorld, VWorld, NdotV, albedo, roughness, metalness, posWS.xyz, direction.xyz, r_true, muS);
+    
+    // IBL Contribution
+    float3 Lr = normalize(reflect(-VWorld, normalWorld));
+    float day = smoothstep(-0.10, 0.035, muS);
+    float3 iblContribution = IBL(F0, Lr, normalWorld, albedo, roughness, metalness, NdotV, day);
+    
+    float3 direct = DirectionalLightGain * directLight * shadowFinal; // no AO
+
+    float3 color = direct + (iblContribution * ao);
+
+    // Output the final color
+    output.color = float4(color, 1.0f);
+    
+    return output;
+}

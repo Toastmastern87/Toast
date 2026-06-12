@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Toast/Assets/Asset.h"
+
 #include "Toast/Renderer/RenderCommand.h"
 #include "Toast/Renderer/RendererConstants.h"
 #include "Toast/Renderer/OrthographicCamera.h"
@@ -194,6 +196,37 @@ namespace Toast {
 			ID3D11RasterizerState* CurrentRasterizerState = nullptr;
 			Topology CurrentTopology = Topology::UNDEFINED;
 			Mesh* CurrentMesh = nullptr;
+
+			AssetHandle TransmittanceCSShaderHandle = 0;
+			AssetHandle MultiScatteringCSShaderHandle = 0;
+			AssetHandle PlanetIcosphereGeometryPassShaderHandle = 0;
+			AssetHandle PlanetGeometryPassShaderHandle = 0;
+			AssetHandle GeometryPassShaderHandle = 0;
+			AssetHandle ShadowPassShaderHandle = 0;
+			AssetHandle SSAOPassShaderHandle = 0;
+			AssetHandle SSAOBlurPassShaderHandle = 0;
+			AssetHandle LightningPassShaderHandle = 0;
+			AssetHandle StarFieldShaderHandle = 0;
+			AssetHandle APFarDynamicShaderHandle = 0;
+			AssetHandle SkyViewCSShaderHandle = 0;
+			AssetHandle AerialPerspectiveCSShaderHandle = 0;
+			AssetHandle AtmosphereShaderHandle = 0;
+			AssetHandle ParticlesShaderHandle = 0;
+			AssetHandle GodRaysShaderHandle = 0;
+			AssetHandle BloomShaderHandle = 0;
+			AssetHandle BloomDownSampleShaderHandle = 0;
+			AssetHandle BloomWideBlurShaderHandle = 0;
+			AssetHandle BloomUpSampleShaderHandle = 0;
+			AssetHandle BloomCompositeShaderHandle = 0;
+			AssetHandle ToneMappingShaderHandle = 0;
+			AssetHandle ObjectMaskShaderHandle = 0;
+			AssetHandle OutlineShaderHandle = 0;
+			AssetHandle HoverTintShaderHandle = 0;
+			AssetHandle GuidanceMarkerShaderHandle = 0;
+			AssetHandle SPBRDFShaderHandle = 0;
+			AssetHandle	EnvironmentMipFilterShaderHandle = 0;
+			AssetHandle	EnvironmentIrradianceShaderHandle = 0;
+			AssetHandle UIShaderHandle = 0;
 		};
 
 	protected:
@@ -251,6 +284,8 @@ namespace Toast {
 		static void PostProcessPass(const bool bloom, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, DirectX::XMFLOAT3 worldOffsetWS);
 		static void OutlinePass(const Scene::OutlineSettings& outlineSettings, const DirectX::XMFLOAT4& hoverTint);
 		static void GuidancePass(Vector3 worldTranslation);
+
+		static void LoadEngineShaders();
 
 		static Ref<RenderTarget>& GetGPassPositionRT() { return sRendererData->GPassPositionRT; }
 		static Ref<RenderTarget>& GetGPassNormalRT() { return sRendererData->GPassNormalRT; }

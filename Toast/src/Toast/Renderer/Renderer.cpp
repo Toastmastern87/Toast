@@ -265,8 +265,6 @@ namespace Toast {
 		GenerateNoiseTexture();
 
 		GenerateParticleBuffers();
-
-		GenerateSpecularBRDF();
 	}
 
 	void Renderer::Shutdown()
@@ -993,12 +991,18 @@ namespace Toast {
 
 			if (sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
 			{
-				ShaderLibrary::Get("assets/shaders/Planet/PlanetGeometryPass.hlsl")->Bind();
+				auto shader = AssetManager::GetAsset<Shader>(sRendererData->PlanetGeometryPassShaderHandle);
+				if (shader)
+					shader->Bind();
+
 				sRendererData->PlanetDraw.Planet->GetShaderLayout()->Bind();
 			}
 			else if(sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::Icosphere)
 			{
-				ShaderLibrary::Get("assets/shaders/Planet/PlanetIcosphereGeometryPass.hlsl")->Bind();
+				auto shader = AssetManager::GetAsset<Shader>(sRendererData->PlanetIcosphereGeometryPassShaderHandle);
+				if (shader)
+					shader->Bind();
+
 				sRendererData->PlanetDraw.Planet->GetIcosphereMesh()->GetShaderInputLayout()->Bind();
 			}
 
@@ -1097,7 +1101,9 @@ namespace Toast {
 		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::LinearWrap));
 		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
 
-		ShaderLibrary::Get("assets/shaders/Rendering/GeometryPass.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->GeometryPassShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		if (sRendererData->PlanetDraw.Planet)
 		{
@@ -1181,7 +1187,10 @@ namespace Toast {
 
 		std::vector<ID3D11RenderTargetView*> nullRTVs(6, nullptr);
 
-		ShaderLibrary::Get("assets/shaders/Rendering/GeometryPass.hlsl")->Unbind();
+		shader = AssetManager::GetAsset<Shader>(sRendererData->GeometryPassShaderHandle);
+		if (shader)
+			shader->Bind();
+
 		RenderCommand::SetRenderTargets(nullRTVs, nullptr);
 		RenderCommand::SetDepthStencilState(nullptr);
 		RenderCommand::SetBlendState(nullptr);
@@ -1209,7 +1218,12 @@ namespace Toast {
 		RenderCommand::SetDepthStencilState(sRendererData->ShadowPassDepthStencilState);
 		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
-		ShaderLibrary::Get("assets/shaders/Rendering/ShadowPass.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->ShadowPassShaderHandle);
+		if (shader)
+			shader->Bind();
+
+		// TEMPORARY FIX NEED TO FIX IN THE FUTURE; TODO
+		RenderCommand::sRendererAPI.get()->GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);
 
 		ID3D11RenderTargetView* nullRTV = nullptr;
 
@@ -1276,7 +1290,9 @@ namespace Toast {
 		RenderCommand::SetRenderTargets({ sRendererData->SSAORT->GetRTV().Get() }, nullptr);
 		RenderCommand::ClearRenderTargets({ sRendererData->SSAORT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		ShaderLibrary::Get("assets/shaders/Rendering/SSAOPass.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->SSAOPassShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->GPassPositionRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassNormalRT->GetSRV());
@@ -1298,7 +1314,9 @@ namespace Toast {
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->SSAORT->GetSRV());
 
-		ShaderLibrary::Get("assets/shaders/Rendering/SSAOBlurPass.hlsl")->Bind();
+		shader = AssetManager::GetAsset<Shader>(sRendererData->SSAOBlurPassShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		DrawFullscreenQuad();
 
@@ -1351,7 +1369,9 @@ namespace Toast {
 
 		sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
 
-		ShaderLibrary::Get("assets/shaders/Rendering/LightningPass.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->LightningPassShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->GPassPositionRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassNormalRT->GetSRV());
@@ -1439,7 +1459,9 @@ namespace Toast {
 				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, sRendererData->PlanetDraw.Planet->GetStarFieldTextureCube()->GetSRV());
 				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
 
-				ShaderLibrary::Get("assets/shaders/Post Process/StarField.hlsl")->Bind();
+				auto shader = AssetManager::GetAsset<Shader>(sRendererData->StarFieldShaderHandle);
+				if (shader)
+					shader->Bind();
 
 				DrawFullscreenQuad();
 			}
@@ -1531,7 +1553,11 @@ namespace Toast {
 		RenderCommand::ClearUAV(APFar->GetUAV().Get(), zero);
 		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, sRendererData->DepthBuffer->GetSRV());
 		APFar->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/APFarDynamic.hlsl")->Bind();
+		
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->APFarDynamicShaderHandle);
+		if (shader)
+			shader->Bind();
+
 		RenderCommand::DispatchCompute((aerialPerspective->GetWidth() + 7) / 8, (aerialPerspective->GetHeight() + 7) / 8, 1);
 		APFar->UnbindUAV(0, D3D11_COMPUTE_SHADER);
 
@@ -1540,13 +1566,21 @@ namespace Toast {
 
 		auto& skyview = planet->GetSkyViewLUT();
 		skyview->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/SkyViewCS.hlsl")->Bind();
+
+		shader = AssetManager::GetAsset<Shader>(sRendererData->SkyViewCSShaderHandle);
+		if (shader)
+			shader->Bind();
+
 		RenderCommand::DispatchCompute((skyview->GetWidth() + 7) / 8, (skyview->GetHeight() + 7) / 8, 1);
 		skyview->UnbindUAV(0, D3D11_COMPUTE_SHADER);
 		
 		aerialPerspective->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 2, APFar->GetSRV());
-		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/AerialPerspectiveCS.hlsl")->Bind();
+
+		shader = AssetManager::GetAsset<Shader>(sRendererData->AerialPerspectiveCSShaderHandle);
+		if (shader)
+			shader->Bind();
+
 		RenderCommand::DispatchCompute((aerialPerspective->GetWidth() + 7) / 8, (aerialPerspective->GetHeight() + 7) / 8, aerialPerspective->GetDepth());
 		aerialPerspective->UnbindUAV(0, D3D11_COMPUTE_SHADER);
 
@@ -1555,7 +1589,9 @@ namespace Toast {
 		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
 		RenderCommand::SetBlendState(nullptr, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-		ShaderLibrary::Get("assets/shaders/Post Process/Atmosphere.hlsl")->Bind();
+		shader = AssetManager::GetAsset<Shader>(sRendererData->AtmosphereShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, planet->GetMultiScatteringLUT()->GetSRV());
@@ -1655,7 +1691,9 @@ namespace Toast {
 
 		deviceContext->IASetIndexBuffer(sRendererData->ParticleIndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 
-		ShaderLibrary::Get("assets/shaders/Rendering/Particles.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->ParticlesShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		RenderCommand::DrawIndexedInstanced(6, sRendererData->NrOfParticlesToRender, 0, 0, 0);
 
@@ -1684,7 +1722,9 @@ namespace Toast {
 
 		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, nullptr);
 
-		ShaderLibrary::Get("assets/shaders/Post Process/GodRays.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->GodRaysShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->DepthBuffer->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->SunDiscMaskRT->GetSRV());
@@ -1760,7 +1800,9 @@ namespace Toast {
 		sRendererData->BloomBuffer.Write((uint8_t*)&spaceFactor, sizeof(float), 60);
 		sRendererData->BloomCBuffer->Map(sRendererData->BloomBuffer);
 
-		ShaderLibrary::Get("assets/shaders/Post Process/Bloom.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->BloomShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->AtmospherePassRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->DepthBuffer->GetSRV());
@@ -1778,7 +1820,7 @@ namespace Toast {
 			RenderTarget* outUpSampleRT,
 			float sigmaQuarter)
 			{
-				// --- Downsample: Full -> Half ---
+				// --- Down sample: Full -> Half ---
 				{
 					auto [W, H] = srcFullRT->GetSize();
 					DirectX::XMFLOAT2 srcTexelSize(1.0f / float(W), 1.0f / float(H));
@@ -1790,12 +1832,16 @@ namespace Toast {
 					RenderCommand::SetRenderTargets({ outHalfRT->GetRTV().Get() }, nullptr);
 					RenderCommand::ClearRenderTargets({ outHalfRT->GetRTV().Get() }, { 0,0,0,1 });
 					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, srcFullRT->GetSRV());
-					ShaderLibrary::Get("assets/shaders/Post Process/BloomDownSample.hlsl")->Bind();
+
+					auto shader = AssetManager::GetAsset<Shader>(sRendererData->BloomDownSampleShaderHandle);
+					if (shader)
+						shader->Bind();
+
 					DrawFullscreenQuad();
 					RenderCommand::ClearShaderResources();
 				}
 
-				// --- Downsample: Half -> Quarter ---
+				// --- Down sample: Half -> Quarter ---
 				{
 					auto [W2, H2] = outHalfRT->GetSize();
 					DirectX::XMFLOAT2 srcTexelSize(1.0f / float(W2), 1.0f / float(H2));
@@ -1807,7 +1853,11 @@ namespace Toast {
 					RenderCommand::SetRenderTargets({ outQuarterRT->GetRTV().Get() }, nullptr);
 					RenderCommand::ClearRenderTargets({ outQuarterRT->GetRTV().Get() }, { 0,0,0,1 });
 					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, outHalfRT->GetSRV());
-					ShaderLibrary::Get("assets/shaders/Post Process/BloomDownSample.hlsl")->Bind();
+
+					auto shader = AssetManager::GetAsset<Shader>(sRendererData->BloomDownSampleShaderHandle);
+					if (shader)
+						shader->Bind();
+
 					DrawFullscreenQuad();
 					RenderCommand::ClearShaderResources();
 				}
@@ -1825,12 +1875,16 @@ namespace Toast {
 					RenderCommand::SetRenderTargets({ outQuarterBlurRT->GetRTV().Get() }, nullptr);
 					RenderCommand::ClearRenderTargets({ outQuarterBlurRT->GetRTV().Get() }, { 0,0,0,1 });
 					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, outQuarterRT->GetSRV());
-					ShaderLibrary::Get("assets/shaders/Post Process/BloomWideBlur.hlsl")->Bind();
+
+					auto shader = AssetManager::GetAsset<Shader>(sRendererData->BloomWideBlurShaderHandle);
+					if (shader)
+						shader->Bind();
+
 					DrawFullscreenQuad();
 					RenderCommand::ClearShaderResources();
 				}
 
-				// --- Upsample 1/4 → full ---
+				// --- Up sample 1/4 → full ---
 				{
 					auto [QW, QH] = outQuarterBlurRT->GetSize();
 					DirectX::XMFLOAT2 quarterTexelSize(1.0f / float(QW), 1.0f / float(QH));
@@ -1846,7 +1900,11 @@ namespace Toast {
 					RenderCommand::ClearRenderTargets({ outUpSampleRT->GetRTV().Get() }, { 0,0,0,1 });
 
 					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, outQuarterBlurRT->GetSRV());
-					ShaderLibrary::Get("assets/shaders/Post Process/BloomUpSample.hlsl")->Bind();
+
+					auto shader = AssetManager::GetAsset<Shader>(sRendererData->BloomUpSampleShaderHandle);
+					if (shader)
+						shader->Bind();
+
 					DrawFullscreenQuad();
 					RenderCommand::ClearShaderResources();
 				}
@@ -1906,7 +1964,9 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->GeometryBloomUpSampleRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, planet->GetTransmittanceLUT()->GetSRV());
 
-		ShaderLibrary::Get("assets/shaders/Post Process/BloomComposite.hlsl")->Bind();
+		shader = AssetManager::GetAsset<Shader>(sRendererData->BloomCompositeShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		DrawFullscreenQuad();
 
@@ -1986,7 +2046,9 @@ namespace Toast {
 		sRendererData->TonemappingCBuffer->Map(sRendererData->TonemappingBuffer);
 		sRendererData->TonemappingCBuffer->Bind();
 
-		ShaderLibrary::Get("assets/shaders/Post Process/ToneMapping.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->ToneMappingShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		if(bloom)
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->FinalBloomRT->GetSRV());
@@ -2036,7 +2098,10 @@ namespace Toast {
 			RenderCommand::SetRenderTargets({ sRendererData->SelectedMeshMaskRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 			RenderCommand::ClearRenderTargets(sRendererData->SelectedMeshMaskRT->GetRTV().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
 
-			ShaderLibrary::Get("assets/shaders/Debug/ObjectMask.hlsl")->Bind();
+			auto shader = AssetManager::GetAsset<Shader>(sRendererData->ObjectMaskShaderHandle);
+			if (shader)
+				shader->Bind();
+
 			sRendererData->CurrentMesh = nullptr;
 
 			for (const auto& meshCommand : sRendererData->MeshSelectedDrawList)
@@ -2059,7 +2124,11 @@ namespace Toast {
 		{
 			RenderCommand::SetRenderTargets({ sRendererData->HoveredMeshMaskRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 			RenderCommand::ClearRenderTargets(sRendererData->HoveredMeshMaskRT->GetRTV().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
-			ShaderLibrary::Get("assets/shaders/Debug/ObjectMask.hlsl")->Bind();
+
+			auto shader = AssetManager::GetAsset<Shader>(sRendererData->ObjectMaskShaderHandle);
+			if (shader)
+				shader->Bind();
+
 			sRendererData->CurrentMesh = nullptr;
 			for (const auto& meshCommand : sRendererData->MeshHoveredDrawList)
 			{
@@ -2087,7 +2156,10 @@ namespace Toast {
 			sRendererData->OutlineCBuffer->Map(sRendererData->OutlineBuffer);
 			sRendererData->OutlineCBuffer->Bind();
 
-			ShaderLibrary::Get("assets/shaders/Debug/Outline.hlsl")->Bind();
+			auto shader = AssetManager::GetAsset<Shader>(sRendererData->OutlineShaderHandle);
+			if (shader)
+				shader->Bind();
+
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, sRendererData->SelectedMeshMaskRT->GetSRV());
 			Renderer::DrawFullscreenQuad();
 		}
@@ -2097,7 +2169,11 @@ namespace Toast {
 			sRendererData->HoverTintBuffer.Write((uint8_t*)&hoverTint, 16, 0);
 			sRendererData->HoverTintCBuffer->Map(sRendererData->HoverTintBuffer);
 			sRendererData->HoverTintCBuffer->Bind();
-			ShaderLibrary::Get("assets/shaders/Rendering/HoverTint.hlsl")->Bind();
+
+			auto shader = AssetManager::GetAsset<Shader>(sRendererData->HoverTintShaderHandle);
+			if (shader)
+				shader->Bind();
+
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, sRendererData->HoveredMeshMaskRT->GetSRV());
 			Renderer::DrawFullscreenQuad();
 			RenderCommand::ClearShaderResources();
@@ -2129,7 +2205,9 @@ namespace Toast {
 		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get(), sRendererData->FinalEditorRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->ParticleDepthStencilState);
 
-		ShaderLibrary::Get("assets/shaders/Rendering/GuidanceMarker.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->GuidanceMarkerShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		for (const auto& marker : sRendererData->MoveMarkerDrawList)
 		{
@@ -2171,6 +2249,97 @@ namespace Toast {
 #endif
 	}
 
+	void Renderer::LoadEngineShaders()
+	{
+		static const char* kShaderPaths[] = {
+			// Deferred Rendering
+			"assets/shaders/Rendering/GeometryPass.hlsl",
+			"assets/shaders/Rendering/ShadowPass.hlsl",
+			"assets/shaders/Rendering/SSAOPass.hlsl",
+			"assets/shaders/Rendering/SSAOBlurPass.hlsl",
+			"assets/shaders/Rendering/LightningPass.hlsl",
+			"assets/shaders/Rendering/Particles.hlsl",
+			"assets/shaders/Rendering/HoverTint.hlsl",
+			"assets/shaders/Rendering/GuidanceMarker.hlsl",
+			"assets/shaders/Debug/ObjectMask.hlsl",
+			"assets/shaders/Debug/Outline.hlsl",
+
+			// Planet
+			"assets/shaders/Planet/PlanetGeometryPass.hlsl",
+			"assets/shaders/Planet/PlanetIcosphereGeometryPass.hlsl",
+			"assets/shaders/Planet/HeightMapToCubeMap.hlsl",
+			"assets/shaders/Planet/HeightCubeToNormalCube.hlsl",
+			"assets/shaders/Planet/AlbedoMapToCube.hlsl",
+			"assets/shaders/Planet/Atmosphere/TransmittanceCS.hlsl",
+			"assets/shaders/Planet/Atmosphere/MultiScatteringCS.hlsl",
+			"assets/shaders/Planet/Atmosphere/SkyViewCS.hlsl",
+			"assets/shaders/Planet/Atmosphere/AerialPerspectiveCS.hlsl",
+			"assets/shaders/Planet/Atmosphere/APFarDynamic.hlsl",
+
+			// Post Processes
+			"assets/shaders/Post Process/StarField.hlsl",
+			"assets/shaders/Post Process/Atmosphere.hlsl",
+			"assets/shaders/Post Process/GodRays.hlsl",
+			"assets/shaders/Post Process/Bloom.hlsl",
+			"assets/shaders/Post Process/BloomDownSample.hlsl",
+			"assets/shaders/Post Process/BloomWideBlur.hlsl",
+			"assets/shaders/Post Process/BloomUpSample.hlsl",
+			"assets/shaders/Post Process/BloomComposite.hlsl",
+			"assets/shaders/Post Process/ToneMapping.hlsl",
+
+			// Environment
+			"assets/shaders/Environment/EnvironmentMipFilter.hlsl",
+			"assets/shaders/Environment/EnvironmentIrradiance.hlsl",
+			"assets/shaders/Environment/SPBRDF.hlsl",
+
+			// Others
+			"assets/shaders/Standard.hlsl",
+			"assets/shaders/UI.hlsl",
+			"assets/shaders/Utilities/Copy.hlsl",
+		};
+
+		for (const char* path : kShaderPaths)
+		{
+			AssetHandle handle = AssetManager::ImportExternalAsset(path, "Shaders", true);
+			TOAST_CORE_ASSERT(handle, "Engine shader import failed: %s", path);
+
+			std::string name = std::filesystem::path(path).stem().string();
+			AssetManager::RegisterEngineShader(name, handle);
+		}
+
+		// Setting up shader handles that the Renderer uses
+		sRendererData->TransmittanceCSShaderHandle = AssetManager::GetEngineShaderHandle("TransmittanceCS");
+		sRendererData->MultiScatteringCSShaderHandle = AssetManager::GetEngineShaderHandle("MultiScatteringCS");
+		sRendererData->PlanetIcosphereGeometryPassShaderHandle = AssetManager::GetEngineShaderHandle("PlanetIcosphereGeometryPass");
+		sRendererData->PlanetGeometryPassShaderHandle = AssetManager::GetEngineShaderHandle("PlanetGeometryPass");
+		sRendererData->GeometryPassShaderHandle = AssetManager::GetEngineShaderHandle("GeometryPass");
+		sRendererData->ShadowPassShaderHandle = AssetManager::GetEngineShaderHandle("ShadowPass");
+		sRendererData->SSAOPassShaderHandle = AssetManager::GetEngineShaderHandle("SSAOPass");
+		sRendererData->SSAOBlurPassShaderHandle = AssetManager::GetEngineShaderHandle("SSAOBlurPass");
+		sRendererData->LightningPassShaderHandle = AssetManager::GetEngineShaderHandle("LightningPass");
+		sRendererData->StarFieldShaderHandle = AssetManager::GetEngineShaderHandle("StarField");
+		sRendererData->APFarDynamicShaderHandle = AssetManager::GetEngineShaderHandle("APFarDynamic");
+		sRendererData->SkyViewCSShaderHandle = AssetManager::GetEngineShaderHandle("SkyViewCS");
+		sRendererData->AerialPerspectiveCSShaderHandle = AssetManager::GetEngineShaderHandle("AerialPerspectiveCS");
+		sRendererData->AtmosphereShaderHandle = AssetManager::GetEngineShaderHandle("Atmosphere");
+		sRendererData->ParticlesShaderHandle = AssetManager::GetEngineShaderHandle("Particles");
+		sRendererData->GodRaysShaderHandle = AssetManager::GetEngineShaderHandle("GodRays");
+		sRendererData->BloomShaderHandle = AssetManager::GetEngineShaderHandle("Bloom");
+		sRendererData->BloomDownSampleShaderHandle = AssetManager::GetEngineShaderHandle("BloomDownSample");
+		sRendererData->BloomWideBlurShaderHandle = AssetManager::GetEngineShaderHandle("BloomWideBlur");
+		sRendererData->BloomUpSampleShaderHandle = AssetManager::GetEngineShaderHandle("BloomUpSample");
+		sRendererData->BloomCompositeShaderHandle = AssetManager::GetEngineShaderHandle("BloomComposite");
+		sRendererData->ToneMappingShaderHandle = AssetManager::GetEngineShaderHandle("ToneMapping");
+		sRendererData->ObjectMaskShaderHandle = AssetManager::GetEngineShaderHandle("ObjectMask");
+		sRendererData->OutlineShaderHandle = AssetManager::GetEngineShaderHandle("Outline");
+		sRendererData->HoverTintShaderHandle = AssetManager::GetEngineShaderHandle("HoverTint");
+		sRendererData->GuidanceMarkerShaderHandle = AssetManager::GetEngineShaderHandle("GuidanceMarker");
+		sRendererData->SPBRDFShaderHandle = AssetManager::GetEngineShaderHandle("SPBRDF");
+		sRendererData->EnvironmentMipFilterShaderHandle = AssetManager::GetEngineShaderHandle("EnvironmentMipFilter");
+		sRendererData->EnvironmentIrradianceShaderHandle = AssetManager::GetEngineShaderHandle("EnvironmentIrradiance");
+		sRendererData->UIShaderHandle = AssetManager::GetEngineShaderHandle("UI");
+	}
+
 	void Renderer::ResetStats()
 	{
 		memset(&sData.Stats, 0, sizeof(Statistics));
@@ -2183,7 +2352,10 @@ namespace Toast {
 		sRendererData->SpecularBRDFLUT->CreateUAV(0);
 
 		sRendererData->SpecularBRDFLUT->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-		ShaderLibrary::Load("assets/shaders/Environment/SPBRDF.hlsl")->Bind();
+
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->SPBRDFShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		sRendererData->SpecularMapFilterSettingsCBuffer->Bind();
 
@@ -2201,7 +2373,9 @@ namespace Toast {
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-		ShaderLibrary::Get("assets/shaders/Environment/EnvironmentMipFilter.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->EnvironmentMipFilterShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		sRendererData->SpecularMapFilterSettingsCBuffer->Bind();
 
@@ -2273,7 +2447,9 @@ namespace Toast {
 
 	void Renderer::GenerateIrradianceCubemap(Ref<TextureCube> sourceTexture, Ref<TextureCube> targetTexture, int faceIndex)
 	{
-		ShaderLibrary::Get("assets/shaders/Environment/EnvironmentIrradiance.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->EnvironmentIrradianceShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		sRendererData->SpecularMapFilterSettingsCBuffer->Bind();
 
@@ -2353,7 +2529,9 @@ namespace Toast {
 
 		planet->GetTransmittanceLUT()->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 
-		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/TransmittanceCS.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->TransmittanceCSShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		const UINT width = planet->GetTransmittanceLUT()->GetWidth();
 		const UINT height = planet->GetTransmittanceLUT()->GetHeight();
@@ -2435,7 +2613,9 @@ namespace Toast {
 
 		planet->GetMultiScatteringLUT()->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 
-		ShaderLibrary::Get("assets/shaders/Planet/Atmosphere/MultiScatteringCS.hlsl")->Bind();
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->MultiScatteringCSShaderHandle);
+		if (shader)
+			shader->Bind();
 
 		const UINT width = planet->GetMultiScatteringLUT()->GetWidth();
 		const UINT height = planet->GetMultiScatteringLUT()->GetHeight();
