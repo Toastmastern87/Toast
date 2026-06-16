@@ -1,0 +1,8 @@
+Material: StainlessSteelSN3
+Albedo: [0.725000024, 0.725000024, 0.725000024, 1]
+Emission: 0
+Metalness: 0.9195804
+Roughness: 0.736000001
+UseAlbedoMap: false
+UseNormalMap: false
+UseMetalRoughMap: false

@@ -1,6 +1,7 @@
 #include "tpch.h"
 
 #include "Toast/Assets/AssetManager.h"
+#include "Toast/Assets/AssetSerializer.h"
 
 #include "Toast/Renderer/Material.h"
 #include "Toast/Renderer/RendererAPI.h"
@@ -110,148 +111,68 @@ namespace Toast {
 	{
 	}
 
-	std::unordered_map<std::string, Ref<Material>> MaterialLibrary::mMaterials;
-
-	void MaterialLibrary::Add(std::string name, const Ref<Material>& material)
+	Material::Material(const std::filesystem::path& tmtlPath, FromFile)
 	{
-		if (Exists(name))
-		{
-			name.append("_");
-			int i = 1;
-			while (Exists(name.append(std::to_string(i))))
-			{
-				name = name.substr(0, name.find("_")+1);
-				i++;
-			}
+		std::ifstream stream(tmtlPath);
+		TOAST_CORE_ASSERT(stream.is_open(), "Material: could not open .tmtl");
 
-			material->SetName(name);
-		}
+		std::stringstream strStream;
+		strStream << stream.rdbuf();
+		YAML::Node data = YAML::Load(strStream.str());
 
-		mMaterials[name] = material;
+		TOAST_CORE_ASSERT(data["Material"], "Material .tmtl missing 'Material' key");
+
+		mName = data["Material"].as<std::string>();
+
+		SetAlbedo(data["Albedo"].as<DirectX::XMFLOAT4>());
+		SetMetalness(data["Metalness"].as<float>());
+		SetRoughness(data["Roughness"].as<float>());
+
+		// Guard Emission so .tmtl files written before the Emission fix still load.
+		if (data["Emission"])
+			SetEmission(data["Emission"].as<float>());
+
+		SetUseAlbedo(data["UseAlbedoMap"].as<bool>());
+		SetUseNormal(data["UseNormalMap"].as<bool>());
+		SetUseMetalRough(data["UseMetalRoughMap"].as<bool>());
+
+		if (GetUseAlbedo())
+			SetAlbedolAssetHandle(data["AlbedoAssetHandle"].as<AssetHandle>());
+		if (GetUseNormal())
+			SetNormalAssetHandle(data["NormalAssetHandle"].as<AssetHandle>());
+		if (GetUseMetalRough())
+			SetMetalRoughAssetHandle(data["MetalRoughAssetHandle"].as<AssetHandle>());
 	}
 
-	void MaterialLibrary::Add(const Ref<Material>& material)
+	Material::Material(const std::string& name,
+		const DirectX::XMFLOAT4& albedo, float emission, float metalness, float roughness,
+		bool useAlbedo, bool useNormal, bool useMetalRough,
+		AssetHandle albedoTex, AssetHandle normalTex, AssetHandle metalRoughTex) 
 	{
-		auto& name = material->GetName();
-		Add(name, material);
 	}
 
-	Ref<Material>& MaterialLibrary::Load(const std::string& name, bool serialize)
+	void Material::SaveToFile(const std::filesystem::path& tmtlPath) const
 	{
-		auto it = mMaterials.find(name);
-		if (it == mMaterials.end())
-		{
-			auto material = CreateRef<Material>(name);
-			mMaterials[name] = material;
-
-			if (serialize)
-				MaterialSerializer::Serialize(material);
-
-			return mMaterials[name];
-		}
-		else
-			return it->second;
-	}
-
-	Ref<Material>& MaterialLibrary::Load()
-	{
-		auto material = CreateRef<Material>("New Material");
-		Add("New Material", material);
-		return material;
-	}
-
-	Ref<Material>& MaterialLibrary::Get(const std::string& name)
-	{
-		TOAST_CORE_ASSERT(Exists(name), "Material not found!");
-		return mMaterials[name];
-	}
-
-	bool MaterialLibrary::Exists(const std::string& name)
-	{
-		return mMaterials.find(name) != mMaterials.end();
-	}
-
-	void MaterialLibrary::ChangeName(const std::string& oldName, std::string& newName)
-	{
-		auto nh = mMaterials.extract(oldName);
-		nh.key() = newName;
-		mMaterials.insert(move(nh));
-
-		std::string basepath = "..\\Toaster\\assets\\materials\\";
-		std::string fullPath = basepath.append(oldName).append(".tmtl");
-
-		FileDialogs::DeleteFile(fullPath);
-	}
-
-	void MaterialLibrary::SerializeLibrary()
-	{
-		for (auto& material : mMaterials)
-			MaterialSerializer::Serialize(material.second);
-	}
-
-	void MaterialSerializer::Serialize(Ref<Material>& material)
-	{
-		std::string name = material->GetName();
-
-		std::string filepath = std::string("assets/materials/").append(name.append(".tmtl"));
-
 		YAML::Emitter out;
 		out << YAML::BeginMap;
-		out << YAML::Key << "Material" << YAML::Value << material->GetName();
-
-		out << YAML::Key << "Albedo" << YAML::Value << material->GetAlbedo();
-		out << YAML::Key << "Metalness" << YAML::Value << material->GetMetalness();
-		out << YAML::Key << "Roughness" << YAML::Value << material->GetRoughness();
-		out << YAML::Key << "UseAlbedoMap" << YAML::Value << material->GetUseAlbedo();
-		out << YAML::Key << "UseNormalMap" << YAML::Value << material->GetUseNormal();
-		out << YAML::Key << "UseMetalRoughMap" << YAML::Value << material->GetUseMetalRough();
-		if(material->GetUseAlbedo())
-			out << YAML::Key << "AlbedoAssetHandle" << YAML::Value << material->GetAlbedoAssetHandle();
-		if (material->GetUseNormal())
-			out << YAML::Key << "NormalAssetHandle" << YAML::Value << material->GetNormalAssetHandle();
-		if (material->GetUseMetalRough())
-			out << YAML::Key << "MetalRoughAssetHandle" << YAML::Value << material->GetMetalRoughAssetHandle();
-
+		out << YAML::Key << "Material" << YAML::Value << mName;
+		out << YAML::Key << "Albedo" << YAML::Value << mPBRParameters.Albedo;
+		out << YAML::Key << "Emission" << YAML::Value << mPBRParameters.Emission; 
+		out << YAML::Key << "Metalness" << YAML::Value << mPBRParameters.Metalness;
+		out << YAML::Key << "Roughness" << YAML::Value << mPBRParameters.Roughness;
+		out << YAML::Key << "UseAlbedoMap" << YAML::Value << GetUseAlbedo();
+		out << YAML::Key << "UseNormalMap" << YAML::Value << GetUseNormal();
+		out << YAML::Key << "UseMetalRoughMap" << YAML::Value << GetUseMetalRough();
+		if (GetUseAlbedo())
+			out << YAML::Key << "AlbedoAssetHandle" << YAML::Value << mAlbedoTextureHandle;
+		if (GetUseNormal())
+			out << YAML::Key << "NormalAssetHandle" << YAML::Value << mNormalTextureHandle;
+		if (GetUseMetalRough())
+			out << YAML::Key << "MetalRoughAssetHandle" << YAML::Value << mMetalRoughTextureHandle;
 		out << YAML::EndMap;
 
-		std::ofstream fout(filepath);
+		std::ofstream fout(tmtlPath);
 		fout << out.c_str();
-	}
-
-	bool MaterialSerializer::Deserialize(std::vector<std::string> materials)
-	{
-		for (auto& materialPath : materials)
-		{
-			std::ifstream stream(materialPath);
-			std::stringstream strStream;
-
-			strStream << stream.rdbuf();
-
-			YAML::Node data = YAML::Load(strStream.str());
-			if (!data["Material"])
-				continue;
-
-			std::string materialName = data["Material"].as<std::string>();
-
-			TOAST_CORE_TRACE("Deserializing material '%s'", materialName.c_str());
-
-			auto& material = MaterialLibrary::Load(materialName);
-
-			material->SetAlbedo(data["Albedo"].as<DirectX::XMFLOAT4>());
-			material->SetMetalness(data["Metalness"].as<float>());
-			material->SetRoughness(data["Roughness"].as<float>());
-			material->SetUseAlbedo(data["UseAlbedoMap"].as<bool>());
-			material->SetUseNormal(data["UseNormalMap"].as<bool>());
-			material->SetUseMetalRough(data["UseMetalRoughMap"].as<bool>());
-			if (material->GetUseAlbedo()) 
-				material->SetAlbedolAssetHandle(data["AlbedoAssetHandle"].as<AssetHandle>());
-			if(material->GetUseNormal())
-				material->SetNormalAssetHandle(data["NormalAssetHandle"].as<AssetHandle>());
-			if(material->GetUseMetalRough())
-				material->SetMetalRoughAssetHandle(data["MetalRoughAssetHandle"].as<AssetHandle>());
-		}
-
-		return true;
 	}
 
 }

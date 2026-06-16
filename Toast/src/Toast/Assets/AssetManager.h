@@ -61,6 +61,7 @@ namespace Toast {
 		static void ReloadAsset(AssetHandle handle);
 		static void UnloadAsset(AssetHandle handle);
 
+		static bool RenameAsset(AssetHandle handle, const std::string& newFileName);
 		static void RemoveAsset(AssetHandle handle);
 
 		static void SerializeRegistry();

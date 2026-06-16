@@ -1,0 +1,8 @@
+Material: BlackMetal
+Albedo: [0.258544892, 0.258544892, 0.258544892, 1]
+Emission: 0
+Metalness: 1
+Roughness: 0.645614028
+UseAlbedoMap: false
+UseNormalMap: false
+UseMetalRoughMap: false

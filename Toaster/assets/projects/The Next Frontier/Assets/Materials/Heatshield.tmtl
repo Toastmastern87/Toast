@@ -1,0 +1,11 @@
+Material: Heatshield
+Albedo: [1, 1, 1, 1]
+Emission: 0
+Metalness: 1
+Roughness: 0
+UseAlbedoMap: true
+UseNormalMap: true
+UseMetalRoughMap: true
+AlbedoAssetHandle: 11447799839312842238
+NormalAssetHandle: 8975056036252789757
+MetalRoughAssetHandle: 17756802592510560904

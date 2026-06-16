@@ -1,0 +1,8 @@
+Material: EngineCoating
+Albedo: [0.00788011309, 0.00788011309, 0.00788011309, 1]
+Emission: 0
+Metalness: 0
+Roughness: 0.5
+UseAlbedoMap: false
+UseNormalMap: false
+UseMetalRoughMap: false

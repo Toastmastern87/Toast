@@ -1,0 +1,8 @@
+Material: Material
+Albedo: [0.800000012, 0.800000012, 0.800000012, 1]
+Emission: 0
+Metalness: 0
+Roughness: 0.5
+UseAlbedoMap: false
+UseNormalMap: false
+UseMetalRoughMap: false

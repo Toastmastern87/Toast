@@ -3,6 +3,7 @@
 #include "Mesh.h"
 
 #include "Toast/Assets/AssetManager.h"
+#include "Toast/Assets/AssetSerializer.h"
 
 #include <filesystem>
 #include <math.h>
@@ -81,18 +82,6 @@ namespace Toast {
 		mLODGroups.emplace_back(CreateRef<LODGroup>());
 
 		TOAST_CORE_INFO("Mesh Initialized!");
-	}
-
-	Mesh::Mesh(Ref<Material>& planetMaterial)
-	{
-		mLODGroups.emplace_back(CreateRef<LODGroup>());
-
-		Submesh& submesh = mLODGroups[0]->Submeshes.emplace_back();
-		submesh.MaterialName = planetMaterial->GetName();
-
-		mMaterials.insert({ submesh.MaterialName,  MaterialLibrary::Load(submesh.MaterialName, false) });
-
-		TOAST_CORE_INFO("Planet Mesh created");
 	}
 
 	Mesh::Mesh(const std::string& filePath, Vector3 colorOverride, bool isInstanced, uint32_t maxNrOfInstanceObjects)
@@ -231,13 +220,12 @@ namespace Toast {
 		for (int m = 0; m < data->materials_count; m++) 
 		{
 			TOAST_CORE_INFO("Material name: %s", data->materials[m].name);
+
+			std::string materialName(data->materials[m].name);
 				
 			if (data->materials[m].has_pbr_metallic_roughness)
 			{
-				//TOAST_CORE_INFO("is PBR material");
-
-				std::string materialName(data->materials[m].name);
-				mMaterials.insert({ data->materials[m].name,  MaterialLibrary::Load(materialName, false) });
+				auto material = CreateRef<Material>(materialName);
 
 				// ALBEDO
 				DirectX::XMFLOAT4 albedoColor;
@@ -257,12 +245,12 @@ namespace Toast {
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 					useAlbedoMap = 1;
-					mMaterials[data->materials[m].name]->SetAlbedolAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
+					material->SetAlbedolAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
 					//TOAST_CORE_INFO("Albedo map found: %s", completePath.c_str());	
 				}
 
-				mMaterials[data->materials[m].name]->SetAlbedo(albedoColor);
-				mMaterials[data->materials[m].name]->SetUseAlbedo(useAlbedoMap);
+				material->SetAlbedo(albedoColor);
+				material->SetUseAlbedo(useAlbedoMap);
 
 				// NORMAL
 				bool hasNormalMap = data->materials[m].normal_texture.texture;
@@ -275,10 +263,10 @@ namespace Toast {
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					useNormalMap = 1;
-					mMaterials[data->materials[m].name]->SetNormalAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
+					material->SetNormalAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
 					//TOAST_CORE_INFO("Normal map found: %s", completePath.c_str());
 				}
-				mMaterials[data->materials[m].name]->SetUseNormal(useNormalMap);
+				material->SetUseNormal(useNormalMap);
 
 				// METALLNESS ROUGHNESS
 				bool hasMetalRoughMap = data->materials[m].pbr_metallic_roughness.metallic_roughness_texture.texture;
@@ -294,7 +282,7 @@ namespace Toast {
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					metalness = 1.0f;
 					useMetalRoughMap = 1;
-					mMaterials[data->materials[m].name]->SetMetalRoughAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
+					material->SetMetalRoughAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
 				}
 				else
 				{
@@ -303,11 +291,24 @@ namespace Toast {
 					metalness = data->materials[m].pbr_metallic_roughness.metallic_factor;
 					roughness = data->materials[m].pbr_metallic_roughness.roughness_factor;
 				}
-				mMaterials[data->materials[m].name]->SetMetalness(metalness);
-				mMaterials[data->materials[m].name]->SetRoughness(roughness);
-				mMaterials[data->materials[m].name]->SetUseMetalRough(useMetalRoughMap);
+				material->SetMetalness(metalness);
+				material->SetRoughness(roughness);
+				material->SetUseMetalRough(useMetalRoughMap);
 
-				MaterialSerializer::Serialize(MaterialLibrary::Get(data->materials[m].name));
+				// Write the .tmtl ourselves (no source file exists yet), then register it
+				// like any in-project asset. Mirrors the texture flow, minus the "file
+				// already exists" assumption.
+				std::filesystem::path relativePath = std::filesystem::path("Materials") / (materialName + ".tmtl");
+				std::filesystem::path fullPath = AssetManager::GetAssetDirectory() / relativePath;
+
+				material->SaveToFile(fullPath);                            // create the .tmtl from glTF data
+				AssetHandle materialHandle = AssetManager::ImportAsset(relativePath);  // register ? handle
+
+				// Make this instance the live asset for its handle.
+				if (AssetEntry* entry = AssetManager::GetEntry(materialHandle))
+					entry->Resource = material;
+
+				mMaterials.insert({ data->materials[m].name, material });
 			}
 		}
 		TOAST_CORE_INFO("Number of materials loaded: %d", mMaterials.size());
@@ -393,12 +394,10 @@ namespace Toast {
 		{
 			TOAST_CORE_INFO("Material name: %s", data->materials[m].name);
 
+			std::string materialName(data->materials[m].name);
 			if (data->materials[m].has_pbr_metallic_roughness)
 			{
-				//TOAST_CORE_INFO("is PBR material");
-
-				std::string materialName(data->materials[m].name);
-				mMaterials.insert({ data->materials[m].name,  MaterialLibrary::Load(materialName, false) });
+				auto material = CreateRef<Material>(materialName);
 
 				// ALBEDO
 				DirectX::XMFLOAT4 albedoColor;
@@ -418,12 +417,12 @@ namespace Toast {
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 					useAlbedoMap = 1;
-					mMaterials[data->materials[m].name]->SetAlbedolAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
+					material->SetAlbedolAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
 					TOAST_CORE_INFO("Albedo map found for %s: %s", materialName.c_str(), completePath.c_str());
 				}
 
-				mMaterials[data->materials[m].name]->SetAlbedo(albedoColor);
-				mMaterials[data->materials[m].name]->SetUseAlbedo(useAlbedoMap);
+				material->SetAlbedo(albedoColor);
+				material->SetUseAlbedo(useAlbedoMap);
 
 				// NORMAL
 				bool hasNormalMap = data->materials[m].normal_texture.texture;
@@ -436,10 +435,10 @@ namespace Toast {
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					useNormalMap = 1;
-					mMaterials[data->materials[m].name]->SetNormalAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
+					material->SetNormalAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
 					TOAST_CORE_INFO("Normal map found for %s: %s", materialName.c_str(), completePath.c_str());
 				}
-				mMaterials[data->materials[m].name]->SetUseNormal(useNormalMap);
+				material->SetUseNormal(useNormalMap);
 
 				// METALLNESS ROUGHNESS
 				bool hasMetalRoughMap = data->materials[m].pbr_metallic_roughness.metallic_roughness_texture.texture;
@@ -455,7 +454,7 @@ namespace Toast {
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					metalness = 1.0f;
 					useMetalRoughMap = 1;
-					mMaterials[data->materials[m].name]->SetMetalRoughAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
+					material->SetMetalRoughAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
 					TOAST_CORE_INFO("Metalness/Roughness map found for %s: %s", materialName.c_str(), completePath.c_str());
 				}
 				else
@@ -465,11 +464,24 @@ namespace Toast {
 					metalness = data->materials[m].pbr_metallic_roughness.metallic_factor;
 					roughness = data->materials[m].pbr_metallic_roughness.roughness_factor;
 				}
-				mMaterials[data->materials[m].name]->SetMetalness(metalness);
-				mMaterials[data->materials[m].name]->SetRoughness(roughness);
-				mMaterials[data->materials[m].name]->SetUseMetalRough(useMetalRoughMap);
+				material->SetMetalness(metalness);
+				material->SetRoughness(roughness);
+				material->SetUseMetalRough(useMetalRoughMap);
 
-				MaterialSerializer::Serialize(MaterialLibrary::Get(data->materials[m].name));
+				// Write the .tmtl ourselves (no source file exists yet), then register it
+				// like any in-project asset. Mirrors the texture flow, minus the "file
+				// already exists" assumption.
+				std::filesystem::path relativePath = std::filesystem::path("Materials") / (materialName + ".tmtl");
+				std::filesystem::path fullPath = AssetManager::GetAssetDirectory() / relativePath;
+
+				material->SaveToFile(fullPath);                            // create the .tmtl from glTF data
+				AssetHandle materialHandle = AssetManager::ImportAsset(relativePath);  // register ? handle
+
+				// Make this instance the live asset for its handle.
+				if (AssetEntry* entry = AssetManager::GetEntry(materialHandle))
+					entry->Resource = material;
+
+				mMaterials.insert({ data->materials[m].name, material });
 			}
 		}
 		TOAST_CORE_INFO("Number of materials loaded: %d", mMaterials.size());

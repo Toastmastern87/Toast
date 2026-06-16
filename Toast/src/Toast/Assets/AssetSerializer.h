@@ -8,6 +8,7 @@ namespace Toast {
 
 	class Texture2D;
 	class Shader;
+	class Material;
 
 	// -----------------------------------------------------------------
 	// Binary .tasset format header — shared by serialize and deserialize.
@@ -59,6 +60,22 @@ namespace Toast {
 		uint32_t InstanceDataStepRate = 0;  // mInstanceDataStepRate
 		uint32_t InputSlot = 0;  // mInputSlot
 	};
+
+	struct TAssetMaterialPayload
+	{
+		DirectX::XMFLOAT4 Albedo = { 1, 1, 1, 1 };
+		float Emission = 0.0f;
+		float Metalness = 0.0f;
+		float Roughness = 0.0f;
+
+		uint32_t UseAlbedo = 0;   // 0/1
+		uint32_t UseNormal = 0;
+		uint32_t UseMetalRough = 0;
+
+		uint64_t AlbedoHandle = 0; // 0 = unused
+		uint64_t NormalHandle = 0;
+		uint64_t MetalRoughHandle = 0;
+	};
 #pragma pack(pop)
 
 	class AssetSerializer
@@ -66,9 +83,11 @@ namespace Toast {
 	public:
 		static bool SerializeTexture2D(AssetHandle handle, const Ref<Texture2D>& texture, const std::filesystem::path& outputPath);
 		static bool SerializeShader(AssetHandle handle, const Ref<Shader>& shader, const std::filesystem::path& outputPath);
+		static bool SerializeMaterial(AssetHandle handle, const Ref<Material>& material, const std::filesystem::path& outputPath);
 
 		static Ref<Texture2D> DeserializeTexture2D(const std::filesystem::path& inputPath);
 		static Ref<Shader> DeserializeShader(const std::filesystem::path& inputPath);
+		static Ref<Material> DeserializeMaterial(const std::filesystem::path& inputPath);
 
 		static bool ValidateFile(const std::filesystem::path& path, TAssetHeader& outHeader);
 	};

@@ -22,15 +22,26 @@ namespace Toast {
 		uint32_t MetalRoughTexToggle = 0;
 	};
 
-	class Material
+	struct FromFile {};
+
+	class Material : public Asset
 	{
 	public:
 		Material();
 		Material(const std::string& name);
+		Material(const std::filesystem::path& tmtlPath, FromFile);
+		Material(const std::string& name,
+			const DirectX::XMFLOAT4& albedo, float emission, float metalness, float roughness,
+			bool useAlbedo, bool useNormal, bool useMetalRough,
+			AssetHandle albedoTex, AssetHandle normalTex, AssetHandle metalRoughTex);
 		~Material() = default;
 
 		std::string& GetName() { return mName; }
 		void SetName(std::string& name) { mName = name; }
+
+		AssetType GetAssetType() const override { return AssetType::Material; }
+
+		void SaveToFile(const std::filesystem::path& tmtlPath) const;
 
 		void SetUseAlbedo(const bool useAlbedo) { mPBRParameters.AlbedoTexToggle = useAlbedo ? 1 : 0; }
 		bool GetUseAlbedo() const { return mPBRParameters.AlbedoTexToggle ? true : false; }
@@ -68,31 +79,4 @@ namespace Toast {
 		AssetHandle mMetalRoughTextureHandle;
 	};
 
-	class MaterialLibrary
-	{
-	public:
-		static void Add(const std::string name, const Ref<Material>& material);
-		static void Add(const Ref<Material>& material);
-		static Ref<Material>& Load();
-		static Ref<Material>& Load(const std::string& name, bool serialize = false);
-
-		static Ref<Material>& Get(const std::string& name);
-		static std::unordered_map<std::string, Ref<Material>> GetMaterials() { return mMaterials; }
-
-		static bool Exists(const std::string& name);
-
-		static void ChangeName(const std::string& oldName, std::string& newName);
-
-		static void SerializeLibrary();
-	private:
-		static std::unordered_map<std::string, Ref<Material>> mMaterials;
-	};
-
-	class MaterialSerializer 
-	{
-	public:
-		static void Serialize(Ref<Material>& material);
-		static bool Deserialize(std::vector<std::string> materials);
-	private:
-	};
 }

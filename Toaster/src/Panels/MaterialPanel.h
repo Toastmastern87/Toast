@@ -21,6 +21,7 @@ namespace Toast {
 		void RequestTextureImport(const std::filesystem::path& path, bool defaultSRGB, std::function<void(AssetHandle)> onComplete);
 	private:
 		Ref<Material> mSelectionContext;
+		AssetHandle mSelectionHandle = 0;
 		std::filesystem::path mAssetRoot;
 
 		// Import popup

@@ -176,6 +176,46 @@ namespace Toast {
 			entry->Resource = nullptr;
 	}
 
+	bool AssetManager::RenameAsset(AssetHandle handle, const std::string& newFileName)
+	{
+		AssetEntry* entry = GetActiveRegistry().Get(handle);
+		if (!entry)
+			return false;
+
+		auto assetDir = GetAssetDirectory();
+		auto oldRelative = entry->Metadata.FilePath;
+		auto newRelative = oldRelative.parent_path() / newFileName;
+
+		// No-op if the name didn't actually change.
+		if (oldRelative == newRelative)
+			return true;
+
+		auto oldFull = assetDir / oldRelative;
+		auto newFull = assetDir / newRelative;
+
+		// Don't clobber an existing different file.
+		if (std::filesystem::exists(newFull))
+		{
+			TOAST_CORE_WARN("AssetManager: '%s' already exists, not renaming.", newRelative.string().c_str());
+			return false;
+		}
+
+		std::error_code ec;
+		if (std::filesystem::exists(oldFull))
+		{
+			std::filesystem::rename(oldFull, newFull, ec);
+			if (ec)
+			{
+				TOAST_CORE_ERROR("AssetManager: rename failed: %s", ec.message().c_str());
+				return false;
+			}
+		}
+		// If oldFull doesn't exist yet (e.g. file not written), just update metadata.
+
+		entry->Metadata.FilePath = newRelative;   // handle unchanged
+		return true;
+	}
+
 	void AssetManager::RemoveAsset(AssetHandle handle)
 	{
 		GetActiveRegistry().Remove(handle);
@@ -206,6 +246,9 @@ namespace Toast {
 			break;
 		case AssetType::Shader:
 			asset = CreateRef<Shader>(fullPath.string());
+			break;
+		case AssetType::Material:
+			asset = CreateRef<Material>(fullPath, FromFile{});
 			break;
 		default:
 			TOAST_CORE_ERROR("AssetManager: No loader for asset type %s", AssetTypeToString(entry->Metadata.Type));
@@ -417,6 +460,12 @@ namespace Toast {
 				success = AssetSerializer::SerializeShader(handle, shader, fullOutputPath);
 				break;
 			}
+			case AssetType::Material:                                
+			{
+				auto material = std::static_pointer_cast<Material>(entry.Resource);
+				success = AssetSerializer::SerializeMaterial(handle, material, fullOutputPath);
+				break;
+			}
 
 			default:
 				TOAST_CORE_WARN("AssetManager::Build: No baking support for asset type %s, skipping.", AssetTypeToString(entry.Metadata.Type));
@@ -449,6 +498,8 @@ namespace Toast {
 			return AssetType::Texture2D;
 		if (ext == ".hlsl") 
 			return AssetType::Shader;
+		if (ext == ".tmtl") 
+			return AssetType::Material;
 
 		return AssetType::None;
 	}

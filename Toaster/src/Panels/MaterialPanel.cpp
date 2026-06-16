@@ -91,30 +91,40 @@ namespace Toast {
 
 		const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
 
-		if (ImGui::TreeNodeEx((void*)9817240, treeNodeFlags, "Material Library")) 
+		if (ImGui::TreeNodeEx((void*)9817240, treeNodeFlags, "Material Library"))
 		{
-			std::unordered_map<std::string, Ref<Material>> materials = MaterialLibrary::GetMaterials();
-
 			static int selected = 0;
 			int index = 0;
-			for (std::pair<std::string, Ref<Material>> material : materials)
-			{
-				if (ImGui::Selectable(material.second->GetName().c_str(), selected == index))
+			AssetManager::Each(AssetType::Material, [&](AssetHandle h, const AssetMetadata&)
 				{
-					selected = index;
-
-					mSelectionContext = material.second;
-				}
-	
-				index++;
-			}
-
+					auto mat = AssetManager::GetAsset<Material>(h);
+					if (!mat) return;
+					if (ImGui::Selectable(mat->GetName().c_str(), selected == index))
+					{
+						selected = index;
+						mSelectionContext = mat;
+						mSelectionHandle = h;
+					}
+					index++;
+				});
 			ImGui::TreePop();
 		}
 
-		if (ImGui::Button("New Material")) 
+		if (ImGui::Button("New Material"))
 		{
-			MaterialLibrary::Load();
+			auto material = CreateRef<Material>("New Material");
+
+			std::filesystem::path relativePath = std::filesystem::path("Materials") / "New Material.tmtl";
+			std::filesystem::path fullPath = AssetManager::GetAssetDirectory() / relativePath;
+			// optional: append _1/_2 if fullPath already exists
+
+			material->SaveToFile(fullPath);
+			AssetHandle handle = AssetManager::ImportAsset(relativePath);
+			if (AssetEntry* entry = AssetManager::GetEntry(handle))
+				entry->Resource = material;
+
+			mSelectionContext = material;
+			mSelectionHandle = handle;
 		}
 
 		ImGui::Separator();
@@ -146,11 +156,14 @@ namespace Toast {
 			strcpy_s(buffer, sizeof(buffer), name.c_str());
 			if (ImGui::InputText("##name", buffer, sizeof(buffer), inputTextFlags))
 			{
-				MaterialLibrary::ChangeName(name, std::string(buffer));
-				TOAST_CORE_INFO("Material '%s' changing name to: '%s'", name.c_str(), std::string(buffer).c_str());
-				mSelectionContext->SetName(std::string(buffer));
+				std::string newName = std::string(buffer);
+				mSelectionContext->SetName(newName);
 
-				isDirty = true;
+				// Rename the file to match (extension preserved).
+				if (mSelectionHandle)
+					AssetManager::RenameAsset(mSelectionHandle, newName + ".tmtl");
+
+				isDirty = true;   // save-on-dirty rewrites the .tmtl (now at its new path) with the new Material: field
 			}
 
 			uint64_t imguiPtr = 54332;
@@ -424,8 +437,14 @@ namespace Toast {
 
 			ImGui::TreePop();
 
-			if (isDirty)
-				MaterialSerializer::Serialize(mSelectionContext);	
+			if (isDirty && mSelectionHandle)
+			{
+				if (AssetEntry* entry = AssetManager::GetEntry(mSelectionHandle))
+				{
+					auto fullPath = AssetManager::GetAssetDirectory() / entry->Metadata.FilePath;
+					mSelectionContext->SaveToFile(fullPath);
+				}
+			}
 		}
 	}
 

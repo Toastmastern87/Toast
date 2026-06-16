@@ -1,0 +1,191 @@
+Scene: DefaultScene
+EditorCamera:
+  Position: [0, 1, -3]
+Settings:
+  Wireframe: 0
+  Grid: true
+  CameraFrustum: true
+  FrustumCullingMargin: 1
+  DirectionalLightningGain: 1
+  RenderColliders: false
+  RenderUI: true
+  Shadows: true
+  ShadowDistance: 5000
+  CascadeCount: 4
+  Lambda: 0.600000024
+  ConstantBias: 0.000500000024
+  SlopeScaledBias: 0.00249999994
+  SSAO: false
+  SSAODebugging: false
+  SSAORadius: 0.5
+  SSAObias: 0.0250000004
+  SunSurfaceThreshold: 0
+  SunSurfaceIntensity: 0
+  SunSpaceThreshold: 0
+  SunSpaceIntensity: 0
+  SkySurfaceThreshold: 0
+  SkySurfaceIntensity: 0
+  SkySpaceThreshold: 0
+  SkySpaceIntensity: 0
+  GeometryThreshold: 0
+  GeometryIntensity: 0
+  SunRadius: 0
+  SkySurfaceRadius: 0
+  SkySpaceRadius: 0
+  SoftKnee: 0
+  SaturationClamp: 0
+  DynamicIBL: true
+  SunFrustumOrthoSize: 500
+  GodRaysExposure: 0.209999993
+  GodRaysDecay: 0.939999998
+  GodRaysDensity: 3
+  GodRaysWeight: 0.0199999996
+  GodRaysKHalo: 0.600000024
+  GodRaysHaloPower: 2
+  GodRaysFogRangeMeters: 120000
+  EVSurfaceDay: 0
+  EVSpaceDay: 0
+  EVSurfaceNight: 0
+  EVSpaceNight: 0
+  AltFadeFrac: [0, 0]
+  SunFadeDeg: [0, 0]
+  OutlineColor: [1, 0.600000024, 0.100000001, 1]
+  OutlineThickness: 2
+  OutlineSoftness: 1
+  OutlinePulseSpeed: 0
+  OutlineXRay: false
+  HoverTintColor: [1, 1, 1, 1]
+  Physics:
+    SlowDown: 1
+    FPSTarget: 60
+    StepsPerUpdate: 1
+    MaxAngularVelocity: 30
+Planet:
+  Translation: [0, 0, 0]
+  Rotation: [0, 0, 0]
+  Radius: 0
+  MaxHeight: 0
+  MinHeight: 0
+  MeshMode: 0
+  AlbedoTextureHandle: 8613038644532631491
+  UseAlbedoMap: 0
+  AlbedoColor: [0, 0, 0]
+  Roughness: 0
+  Metalness: 0
+  HeightMapAssetHandle: 722373729992193196
+  Metalness: 0
+  StarFieldAssetHandle: 384282646282622473
+  AtmosphereActivated: false
+  AtmosphereHeight: 0
+  RayleighScaleHeight: 0
+  RayleighExp10: -10
+  RayleighScattering: [0, 0, 0]
+  MieScaleHeight: 0
+  MieScatteringExp10: -5
+  MieScattering: [0, 0, 0]
+  MieAbsorptionExp10: -6
+  MieAbsorption: [0, 0, 0]
+  MieAnisotropy: [0, 0, 0]
+  OzoneStrength: 0
+  GroundAlbedo: [0, 0, 0]
+  SunsetTint: [0, 0, 0]
+  MSGain: 0
+  SGain: 0
+  GravityConstant: 0
+  SurfaceAirDensity: 0
+  PhysicsScaleHeight: 0
+  AtmosphereCeiling: 0
+  PlanetMesh:
+    MaxSubdivisions: 0
+    PatchLevels: 0
+    NearDistance: 1
+    FarDistance: 10
+    BackfaceCulling: false
+    FrustumCulling: false
+    GridSize: 0
+    MaxLevels: 0
+  PBRColorDominance: 0
+  ColorNoiseFrequency: 0.00499999989
+  ColorNoiseStrength: 0.150000006
+  ColorNoiseOctaves: 3
+  WallEnhancementEnabled: true
+  WallStrength: 0.75
+  WallStepMeters: 3000
+  WallSlopeStart: 0.5
+  WallSlopeEnd: 1.39999998
+  WallSharpStart: 0.400000006
+  WallSharpEnd: 0.600000024
+  WallMaxDelta: 2000
+  WallDebugEnabled: false
+  WallDebugMode: 0
+  TerrainNormalStepMeters: 500
+  ErosionEnabled: false
+  ErosionStrength: 20
+  ErosionStepMeters: 3000
+  ErosionTilingMeters: 400
+  ErosionSlopeStart: 0.180000007
+  ErosionSlopeFull: 0.289999992
+  ErosionSlopeEnd: 0.5
+  ErosionSlopeFadeOut: 0.649999976
+  ErosionOctaves: 4
+  ErosionLacunarity: 2
+  ErosionPersistence: 0.5
+  ErosionDebugEnabled: false
+  ErosionDebugMode: 0
+  ErosionGullyWeight: 0.319999993
+  ErosionDetail: 1.20000005
+  ErosionCellScale: 0.949999988
+  ErosionNormalization: 0.300000012
+  ErosionAssumedSlope: 0.550000012
+  ErosionAssumedSlopeBlend: 0.75
+  ErosionMaxDistance: 50000
+  ErosionFadeStart: 20000
+  PlanetMaterials:
+    []
+  TerrainObjects:
+    []
+Environment:
+  DiffuseIBLGain: 1
+  SpecularIBLGain: 1
+  SunDiscToggle: false
+  SunIntensity: 20
+  SunDiscRadius: 0
+  SunEdgeSoftness: 0
+  SunWhite: [1, 1, 1]
+  WarmTint: [1, 1, 1]
+  SpaceDiscBrightnessScale: 1.29999995
+  AirHaloIntensity: 0.280000001
+  AirHaloStartFrac: 0.150000006
+  AirHaloFalloffPow: 1.10000002
+  HorizonRefractionDeg: 0.829999983
+  TwilightBlendDeg: 1.5
+  SpaceHaloWidthDeg: 0.800000012
+  SpaceHaloIntensity: 0.0399999991
+  SpaceHaloCutoffDeg: 6
+  SunSpikes: 6
+  SunSpikeSharpness: 24
+  SunSpikeRadiusSurface: 0.100000001
+  SunSpikeRadiusSpace: 0.200000003
+  SunSpikeFallOff: 2
+  SunSpikeStrengthSurface: 0
+  SunSpikeStrengthSpace: 0.0799999982
+  SunGlareStrengthSurface: 0.00499999989
+  SunGlareStrengthSpace: 0.0149999997
+  SunGlareRadiusSurface: 0.100000001
+  SunGlareRadiusSpace: 0.0599999987
+  LensAltStart: 0.600000024
+  LensAltEnd: 1
+  GhostStrength: 0.100000001
+  GhostSpacing: 1
+  GhostFalloff: 0.850000024
+  GhostSizeSurface: 0.00120000006
+  GhostSizeSpace: 0.000449999992
+  GhostAirSuppression: 0.100000001
+  StarNits: 600
+  TwilightStartDeg: 0
+  TwilightEndDeg: -6
+  SpaceFadeStart: 0.850000024
+  SpaceFadeEnd: 0.980000019
+  NightAmbient: [0, 0, 0]
+Entities:
+  []

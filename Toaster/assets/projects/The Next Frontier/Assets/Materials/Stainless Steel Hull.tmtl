@@ -1,0 +1,11 @@
+Material: Stainless Steel Hull
+Albedo: [1, 1, 1, 1]
+Emission: 0
+Metalness: 1
+Roughness: 0
+UseAlbedoMap: true
+UseNormalMap: true
+UseMetalRoughMap: true
+AlbedoAssetHandle: 10378684347057509115
+NormalAssetHandle: 11157927838621306737
+MetalRoughAssetHandle: 7799747929118295767

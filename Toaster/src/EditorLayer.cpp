@@ -127,10 +127,6 @@ namespace Toast {
 		mPlanetPanel.SetProjectPath(mProject->GetPath());
 		mPropertiesPanel.SetProjectPath(mProject->GetPath());
 
-		// Load all materials from the asset folder
-		std::vector<std::string> materialStrings = FileDialogs::GetAllFiles("\\assets\\materials");
-		MaterialSerializer::Deserialize(materialStrings);
-
 		Renderer2D::LoadUITextures();
 
 		// Open active scene from the loaded project

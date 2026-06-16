@@ -1,0 +1,8 @@
+Material: Stone
+Albedo: [0.316353261, 0.316365063, 0.316365063, 1]
+Emission: 0
+Metalness: 0
+Roughness: 0.877358496
+UseAlbedoMap: false
+UseNormalMap: false
+UseMetalRoughMap: false

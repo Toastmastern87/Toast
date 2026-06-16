@@ -4,6 +4,11 @@
 
 #include "Toast/Renderer/Texture.h" 
 #include "Toast/Renderer/Shader.h"
+#include "Toast/Renderer/Material.h" 
+#include "Toast/Assets/AssetManager.h"   
+#include "Toast/Project/Project.h" 
+
+#include <yaml-cpp/yaml.h>   
 
 #include <fstream>
 
@@ -146,6 +151,49 @@ namespace Toast {
 		return out.good();
 	}
 
+	bool AssetSerializer::SerializeMaterial(AssetHandle handle, const Ref<Material>& material, const std::filesystem::path& outputPath)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		if (!material)
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Cannot serialize null Material");
+			return false;
+		}
+
+		std::filesystem::create_directories(outputPath.parent_path());
+		std::ofstream out(outputPath, std::ios::binary);
+		if (!out.is_open())
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Could not open '%s' for writing", outputPath.string().c_str());
+			return false;
+		}
+
+		TAssetHeader header;
+		header.Magic = TASSET_MAGIC;
+		header.AssetType = static_cast<uint16_t>(AssetType::Material);
+		header.Version = TASSET_VERSION;
+		header.Handle = static_cast<uint64_t>(handle);
+		out.write(reinterpret_cast<const char*>(&header), sizeof(header));
+
+		TAssetMaterialPayload payload;
+		payload.Albedo = material->GetAlbedo();
+		payload.Emission = material->GetEmission();
+		payload.Metalness = material->GetMetalness();
+		payload.Roughness = material->GetRoughness();
+		payload.UseAlbedo = material->GetUseAlbedo() ? 1u : 0u;
+		payload.UseNormal = material->GetUseNormal() ? 1u : 0u;
+		payload.UseMetalRough = material->GetUseMetalRough() ? 1u : 0u;
+		payload.AlbedoHandle = static_cast<uint64_t>(material->GetAlbedoAssetHandle());
+		payload.NormalHandle = static_cast<uint64_t>(material->GetNormalAssetHandle());
+		payload.MetalRoughHandle = static_cast<uint64_t>(material->GetMetalRoughAssetHandle());
+		out.write(reinterpret_cast<const char*>(&payload), sizeof(payload));
+
+		TOAST_CORE_INFO("AssetSerializer: Baked Material '%s' -> '%s'", material->GetName().c_str(), outputPath.string().c_str());
+
+		return out.good();
+	}
+
 	Ref<Texture2D> AssetSerializer::DeserializeTexture2D(const std::filesystem::path& inputPath)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -195,18 +243,7 @@ namespace Toast {
 
 		in.close();
 
-		auto texture = CreateRef<Texture2D>(
-			static_cast<DXGI_FORMAT>(payload.Format), 
-			static_cast<DXGI_FORMAT>(payload.SRVFormat), 
-			payload.Width,
-			payload.Height,
-			D3D11_USAGE_DEFAULT,
-			static_cast<D3D11_BIND_FLAG>(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET),
-			1u,                                   // samples
-			0u,                                    // cpuAccessFlags
-			pixelData.data(),                      // initialData
-			payload.RowPitch                       // rowPitch
-		);
+		auto texture = CreateRef<Texture2D>(static_cast<DXGI_FORMAT>(payload.Format), static_cast<DXGI_FORMAT>(payload.SRVFormat), payload.Width, payload.Height, D3D11_USAGE_DEFAULT, static_cast<D3D11_BIND_FLAG>(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET), 1u, 0u, pixelData.data(), payload.RowPitch);
 
 		TOAST_CORE_INFO("AssetSerializer: Loaded Texture2D from '%s' (%ux%u, %zu bytes)", inputPath.string().c_str(), payload.Width, payload.Height, payload.DataSize);
 
@@ -300,6 +337,51 @@ namespace Toast {
 		TOAST_CORE_INFO("AssetSerializer: Loaded Shader from '%s' (%u stages, %u layout elems)", inputPath.string().c_str(), payload.StageCount, payload.ElementCount);
 
 		return shader;
+	}
+
+	Ref<Material> AssetSerializer::DeserializeMaterial(const std::filesystem::path& inputPath)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		std::ifstream in(inputPath, std::ios::binary);
+		if (!in.is_open())
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Could not open '%s' for reading", inputPath.string().c_str());
+			return nullptr;
+		}
+
+		TAssetHeader header;
+		in.read(reinterpret_cast<char*>(&header), sizeof(header));
+		if (header.Magic != TASSET_MAGIC)
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Invalid magic number in '%s'", inputPath.string().c_str());
+			return nullptr;
+		}
+		if (header.AssetType != static_cast<uint16_t>(AssetType::Material))
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Expected Material but got type %u in '%s'",
+				header.AssetType, inputPath.string().c_str());
+			return nullptr;
+		}
+		if (header.Version > TASSET_VERSION)
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Unsupported version %u in '%s' (max %u)",
+				header.Version, inputPath.string().c_str(), TASSET_VERSION);
+			return nullptr;
+		}
+
+		TAssetMaterialPayload payload;
+		in.read(reinterpret_cast<char*>(&payload), sizeof(payload));
+		if (!in.good())
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Failed reading material payload from '%s'", inputPath.string().c_str());
+			return nullptr;
+		}
+		in.close();
+
+		std::string name = inputPath.stem().string();  // or read a baked name block if Step 4 added one
+
+		return CreateRef<Material>(name, payload.Albedo, payload.Emission, payload.Metalness, payload.Roughness, payload.UseAlbedo != 0, payload.UseNormal != 0, payload.UseMetalRough != 0, AssetHandle(payload.AlbedoHandle), AssetHandle(payload.NormalHandle), AssetHandle(payload.MetalRoughHandle));
 	}
 
 	bool AssetSerializer::ValidateFile(const std::filesystem::path& path, TAssetHeader& outHeader)
