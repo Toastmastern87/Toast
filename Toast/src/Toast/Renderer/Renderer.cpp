@@ -3,6 +3,8 @@
 
 #include "Toast/Assets/AssetManager.h"
 
+#include "Toast/Debug/FrameProfiler.h"
+
 #include "Toast/Renderer/Renderer2D.h"
 #include "Toast/Renderer/RendererDebug.h"
 
@@ -30,6 +32,10 @@ namespace Toast {
 		RendererDebug::Init(width, height);
 
 		SamplerStates::Init();
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		sRendererData->FrameProfiler = CreateScope<FrameProfiler>();
+		sRendererData->FrameProfiler->Init(API->GetDevice(), API->GetDeviceContext());
 
 		sRendererData->EditorViewport.TopLeftX = 0.0f;
 		sRendererData->EditorViewport.TopLeftY = 0.0f;
@@ -273,6 +279,8 @@ namespace Toast {
 
 		Renderer2D::Shutdown();
 		RendererDebug::Shutdown();
+
+		sRendererData->FrameProfiler->Shutdown();
 	}
 
 	void Renderer::OnWindowResize(uint32_t width, uint32_t height)
@@ -366,6 +374,8 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		sRendererData->FrameProfiler->BeginFrame();
+
 		sRendererData->Wireframe = wireFrame;
 
 		// Updating the camera data in the buffer and mapping it to the GPU
@@ -408,8 +418,10 @@ namespace Toast {
 
 		RenderCommand::SetViewport(sRendererData->Viewport);
 
-		// Deffered Renderer
-		GeometryPass(camera.GetWorldTranslation());
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "GPass");
+			GeometryPass(camera.GetWorldTranslation());
+		}
 
 		if(shadows)
 			ShadowPass(shadowParams);
@@ -474,6 +486,8 @@ namespace Toast {
 		}
 
 		ClearDrawList();
+
+		sRendererData->FrameProfiler->EndFrame();
 	}
 
 	void Renderer::CreateDepthBuffer(uint32_t width, uint32_t height)
@@ -973,9 +987,12 @@ namespace Toast {
 			annotation->BeginEvent(L"Geometry Pass");
 #endif
 
-		RenderCommand::SetViewport(sRendererData->Viewport);
-		RenderCommand::SetRenderTargets({ sRendererData->GPassPositionRT->GetRTV().Get(), sRendererData->GPassNormalRT->GetRTV().Get(), sRendererData->GPassAlbedoMetallicRT->GetRTV().Get(), sRendererData->GPassRoughnessAORT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get(), sRendererData->PlanetMaterialDebugRT->GetRTV().Get() }, sRendererData->DepthStencilView);
-		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
+		{	// ---- Setup ----
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Setup");
+			RenderCommand::SetViewport(sRendererData->Viewport);
+			RenderCommand::SetRenderTargets({ sRendererData->GPassPositionRT->GetRTV().Get(), sRendererData->GPassNormalRT->GetRTV().Get(), sRendererData->GPassAlbedoMetallicRT->GetRTV().Get(), sRendererData->GPassRoughnessAORT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get(), sRendererData->PlanetMaterialDebugRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+			RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
+		}
 
 		RenderCommand::SetBlendState(sRendererData->GPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 		RenderCommand::ClearDepthStencilView(sRendererData->DepthStencilView);
@@ -984,6 +1001,8 @@ namespace Toast {
 
 		if (sRendererData->PlanetDraw.Planet)
 		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Planet");
+
 			if (sRendererData->Wireframe == 1)
 				RenderCommand::SetRasterizerState(sRendererData->WireframeRasterizerState);
 			else
@@ -1006,7 +1025,7 @@ namespace Toast {
 				sRendererData->PlanetDraw.Planet->GetIcosphereMesh()->GetShaderInputLayout()->Bind();
 			}
 
-			BindPlanetTerrainResources(true, true);
+ 			BindPlanetTerrainResources(true, true);
 
 			sRendererData->PlanetDraw.Planet->MapRenderingSettings();
 			sRendererData->PlanetDraw.Planet->GetPlanetRenderingSettingsCBuffer()->Bind();
@@ -1099,7 +1118,8 @@ namespace Toast {
 		RenderCommand::ClearShaderResources();
 
 		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::LinearWrap));
-		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
+		if(sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture())
+			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
 
 		auto shader = AssetManager::GetAsset<Shader>(sRendererData->GeometryPassShaderHandle);
 		if (shader)
@@ -1111,6 +1131,8 @@ namespace Toast {
 
 			if (!planet->GetTerrainObjects().empty())
 			{
+				TOAST_PROFILE(*sRendererData->FrameProfiler, "TerrainObjects");
+
 				BindPlanetTerrainResources(true, false);
 
 				auto& icosphereMesh = planet->GetIcosphereMesh();
@@ -1125,64 +1147,68 @@ namespace Toast {
 
 		sRendererData->CurrentMesh = nullptr;
 
-		for (const auto& meshCommand : sRendererData->MeshDrawList)
-		{
-			Microsoft::WRL::ComPtr<ID3D11RasterizerState> rs = meshCommand.Wireframe ? sRendererData->WireframeRasterizerState : sRendererData->NormalRasterizerState;
+		{	// ---- Meshes (new braces around the existing loop) ----
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Meshes");
 
-			if (sRendererData->CurrentRasterizerState != rs.Get())
+			for (const auto& meshCommand : sRendererData->MeshDrawList)
 			{
-				RenderCommand::SetRasterizerState(rs);
-				sRendererData->CurrentRasterizerState = rs.Get();
+				Microsoft::WRL::ComPtr<ID3D11RasterizerState> rs = meshCommand.Wireframe ? sRendererData->WireframeRasterizerState : sRendererData->NormalRasterizerState;
+
+				if (sRendererData->CurrentRasterizerState != rs.Get())
+				{
+					RenderCommand::SetRasterizerState(rs);
+					sRendererData->CurrentRasterizerState = rs.Get();
+				}
+
+				if (sRendererData->CurrentTopology != meshCommand.Mesh->mTopology)
+				{
+					RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
+					sRendererData->CurrentTopology = meshCommand.Mesh->mTopology;
+				}
+
+				int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
+
+				float clickable = 1.0f;
+
+				const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
+
+				// Model data
+				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
+				sRendererData->ModelBuffer.Write((uint8_t*)&clickable, 4, 64);
+				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 68);
+				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 72);
+				sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 76);
+				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+
+				// Material data
+				auto& material = meshCommand.Mesh->GetMaterial(submesh.MaterialName);
+				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetAlbedo(), 16, 0);
+				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetEmission(), 4, 16);
+				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetMetalness(), 4, 20);
+				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetRoughness(), 4, 24);
+				int useAlbedo = static_cast<int>(material->GetUseAlbedo());
+				sRendererData->MaterialBuffer.Write((uint8_t*)&useAlbedo, 4, 28);
+				int useNormal = static_cast<int>(material->GetUseNormal());
+				sRendererData->MaterialBuffer.Write((uint8_t*)&useNormal, 4, 32);
+				int useMetalRough = static_cast<int>(material->GetUseMetalRough());
+				sRendererData->MaterialBuffer.Write((uint8_t*)&useMetalRough, 4, 36);
+				sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
+
+				if (material->GetUseAlbedo())
+					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, AssetManager::GetAsset<Texture2D>(material->GetAlbedoAssetHandle())->GetSRV());
+				if (material->GetUseNormal())
+					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, AssetManager::GetAsset<Texture2D>(material->GetNormalAssetHandle())->GetSRV());
+				if (material->GetUseMetalRough())
+					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, AssetManager::GetAsset<Texture2D>(material->GetMetalRoughAssetHandle())->GetSRV());
+
+				if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
+				{
+					meshCommand.Mesh->Bind();
+					sRendererData->CurrentMesh = meshCommand.Mesh.get();
+				}
+
+				RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
 			}
-
-			if (sRendererData->CurrentTopology != meshCommand.Mesh->mTopology)
-			{
-				RenderCommand::SetPrimitiveTopology(meshCommand.Mesh->mTopology);
-				sRendererData->CurrentTopology = meshCommand.Mesh->mTopology;
-			}
-
-			int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
-
-			float clickable = 1.0f;
-
-			const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
-
-			// Model data
-			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
-			sRendererData->ModelBuffer.Write((uint8_t*)&clickable, 4, 64);
-			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.EntityID, 4, 68);
-			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 72);
-			sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 76);
-			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
-
-			// Material data
-			auto& material = meshCommand.Mesh->GetMaterial(submesh.MaterialName);
-			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetAlbedo(), 16, 0);
-			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetEmission(), 4, 16);
-			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetMetalness(), 4, 20);
-			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetRoughness(), 4, 24);
-			int useAlbedo = static_cast<int>(material->GetUseAlbedo());
-			sRendererData->MaterialBuffer.Write((uint8_t*)&useAlbedo, 4, 28);
-			int useNormal = static_cast<int>(material->GetUseNormal());
-			sRendererData->MaterialBuffer.Write((uint8_t*)&useNormal, 4, 32);
-			int useMetalRough = static_cast<int>(material->GetUseMetalRough());
-			sRendererData->MaterialBuffer.Write((uint8_t*)&useMetalRough, 4, 36);
-			sRendererData->MaterialCBuffer->Map(sRendererData->MaterialBuffer);
-
-			if(material->GetUseAlbedo())
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, AssetManager::GetAsset<Texture2D>(material->GetAlbedoAssetHandle())->GetSRV());
-			if (material->GetUseNormal())
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, AssetManager::GetAsset<Texture2D>(material->GetNormalAssetHandle())->GetSRV());
-			if (material->GetUseMetalRough())
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, AssetManager::GetAsset<Texture2D>(material->GetMetalRoughAssetHandle())->GetSRV());
-
-			if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
-			{
-				meshCommand.Mesh->Bind();
-				sRendererData->CurrentMesh = meshCommand.Mesh.get();
-			}
-
-			RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
 		}
 
 		std::vector<ID3D11RenderTargetView*> nullRTVs(6, nullptr);
@@ -2730,6 +2756,11 @@ namespace Toast {
 		sRendererData->NrOfParticlesToRender = particles.size();
 	}
 
+	FrameProfiler& Renderer::GetFrameProfiler()
+	{
+		return *sRendererData->FrameProfiler;
+	}
+
 	void Renderer::UploadCameraCBuffer(Camera& camera, const DirectX::XMFLOAT4 cameraPos)
 	{
 		sRendererData->CameraBuffer.Write((uint8_t*)&camera.GetWorldTranslationMatrix(), 64, 0);
@@ -2747,7 +2778,8 @@ namespace Toast {
 
 	void Renderer::BindPlanetTerrainResources(bool bindVertexSRVs, bool bindPixelSRVs)
 	{
-		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
+		if(sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture())
+			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
 
 		if (sRendererData->PlanetDraw.Planet->GetNumMaterials() > 0 && sRendererData->PlanetDraw.Planet->GetMaterialSB() && sRendererData->PlanetDraw.Planet->GetMaterialNoiseSB() && sRendererData->PlanetDraw.Planet->GetMaterialNoisePermSB())
 		{
@@ -2767,12 +2799,12 @@ namespace Toast {
 			}
 		}
 
-		if (bindPixelSRVs)
+		if (bindPixelSRVs && sRendererData->PlanetDraw.Planet->GetNormalMapCubeTexture())
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->PlanetDraw.Planet->GetNormalMapCubeTexture()->GetSRV());
 
 		if (sRendererData->PlanetDraw.Planet->GetUseAlbedoMap())
 		{
-			if (bindPixelSRVs)
+			if (bindPixelSRVs && sRendererData->PlanetDraw.Planet->GetAlbedoCubeTexture())
 				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->PlanetDraw.Planet->GetAlbedoCubeTexture()->GetSRV());
 		}
 

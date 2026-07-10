@@ -163,8 +163,8 @@ namespace Toast {
 	};
 }
 
-#define TOAST_PROFILE 1
-#if TOAST_PROFILE
+#define TOAST_PROFILE_ENABLED 1
+#if TOAST_PROFILE_ENABLED
 	#define TOAST_PROFILE_BEGIN_SESSION(name, filepath) ::Toast::Instrumentor::Get().BeginSession(name, filepath)
 	#define TOAST_PROFILE_END_SESSION() ::Toast::Instrumentor::Get().EndSession()
 	#define TOAST_PROFILE_SCOPE(name) ::Toast::InstrumentationTimer timer##__LINE__(name);

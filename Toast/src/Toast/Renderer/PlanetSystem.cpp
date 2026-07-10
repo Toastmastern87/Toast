@@ -53,7 +53,6 @@ namespace Toast {
 
 	Planet::Planet()
 	{
-		//mAlbedoTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
 	}
 
 	void Planet::Initialize()
@@ -246,6 +245,12 @@ namespace Toast {
 		if (shader) 
 			shader->Bind();
 
+		if (!heightMapTexture)
+		{
+			TOAST_CORE_WARN("Planet heightmap handle %llu is not valid, this might be cause the project has no planet set up yet; skipping cube creation.", (uint64_t)heightMapTexture);
+			return nullptr; 
+		}
+
 		heightMapTexture->Bind(0, D3D11_COMPUTE_SHADER);
 		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::UWrapVClamp));
 
@@ -272,6 +277,12 @@ namespace Toast {
 		if (shader)
 			shader->Bind();
 
+		if (!heightCube)
+		{
+			TOAST_CORE_WARN("Planet heightmap handle %llu is not valid, this might be cause the project has no planet set up yet; skipping cube creation.", (uint64_t)heightCube);
+			return nullptr;
+		}
+
 		heightCube->Bind(0, D3D11_COMPUTE_SHADER);      // t0
 		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::UWrapVClamp));
 		normalCube->BindForReadWrite(0, D3D11_COMPUTE_SHADER); // u0
@@ -295,6 +306,12 @@ namespace Toast {
 		auto shader = AssetManager::GetAsset<Shader>(mAlbedoMapToCubeShaderHandle);
 		if (shader)
 			shader->Bind();
+
+		if (!albedoTexture)
+		{
+			TOAST_CORE_WARN("Planet heightmap handle %llu is not valid, this might be cause the project has no planet set up yet; skipping cube creation.", (uint64_t)albedoTexture);
+			return nullptr;
+		}
 
 		albedoTexture->Bind(0, D3D11_COMPUTE_SHADER);
 		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::UWrapVClamp));
@@ -782,6 +799,9 @@ namespace Toast {
 
 		ID3D11Device* device = RenderCommand::sRendererAPI->GetDevice();
 		ID3D11DeviceContext* context = RenderCommand::sRendererAPI->GetDeviceContext();
+
+		if (!source)
+			return cd;
 
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> tex = source->GetTexture();
 		TOAST_CORE_ASSERT(tex, "TextureCube has no underlying texture!");

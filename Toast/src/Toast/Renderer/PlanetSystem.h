@@ -548,7 +548,7 @@ namespace Toast {
 		DirectX::XMFLOAT3 mBasisRadUp;
 		DirectX::XMFLOAT3 mBasisTanEast;
 		DirectX::XMFLOAT3 mBasisTanNorth;
-		AssetHandle mBaseHeightMapHandle;
+		AssetHandle mBaseHeightMapHandle = 0;
 		Ref<TextureCube> mBaseHeightMapTextureCube;
 		Ref<TextureCube> mNormalMapTextureCube;
 		Ref<TextureCube> mAlbedoMapTextureCube;
@@ -589,7 +589,7 @@ namespace Toast {
 
 		// PBR Data
 		uint32_t mUseAlbedoMap = 0;
-		AssetHandle mAlbedoTextureHandle;
+		AssetHandle mAlbedoTextureHandle = 0;
 		DirectX::XMFLOAT3 mAlbedoColor = { 0.0f, 0.0f, 0.0f };
 		float mRoughness = 0.0f;
 		float mMetalness = 0.0f;
@@ -607,7 +607,7 @@ namespace Toast {
 		Ref<Texture2D> mAPNear;
 
 		// Environment Textures
-		AssetHandle mStarFieldTexture2DHandle;
+		AssetHandle mStarFieldTexture2DHandle = 0;
 		Ref<TextureCube> mStarFieldTextureCube;
 		Texture2D* mSpecularBRDFLUT;
 

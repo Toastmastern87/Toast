@@ -2,6 +2,8 @@
 
 #include "Toast/Assets/Asset.h"
 
+#include "Toast/Debug/FrameProfiler.h"
+
 #include "Toast/Renderer/RenderCommand.h"
 #include "Toast/Renderer/RendererConstants.h"
 #include "Toast/Renderer/OrthographicCamera.h"
@@ -57,6 +59,8 @@ namespace Toast {
 
 		struct RendererData
 		{
+			Scope<FrameProfiler> FrameProfiler;
+
 			float ElapsedTime = 0.0f;
 
 			DirectX::XMFLOAT4 CameraPos;
@@ -362,6 +366,8 @@ namespace Toast {
 		static void GenerateParticleBuffers();
 		static void InvalidateParticleBuffers(size_t nrOfParticles, size_t maxNrOfParticles);
 		static void FillParticleBuffer(std::vector<Particle>& particles);
+
+		static FrameProfiler& GetFrameProfiler();
 	private:
 		static void UploadCameraCBuffer(Camera& camera, const DirectX::XMFLOAT4 cameraPos);
 		static void BindPlanetTerrainResources(bool bindVertexSRVs, bool bindPixelSRVs);

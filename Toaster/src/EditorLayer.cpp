@@ -598,31 +598,24 @@ namespace Toast {
 			ImGui::End();
 			ImGui::PopStyleVar();
 
-			ImGui::Begin(ICON_TOASTER_CALCULATOR" Statistics");
-
+			FrameStats stats;
 			if (mEditorScene)
 			{
-				Scene* active = GetActiveScene();
+				stats.FPS = mEditorScene->GetFPS();
+				stats.VertexCount = mEditorScene->GetVertices();
 
-				std::string name = "none";
-				if (active)
+				if (Scene* active = GetActiveScene())
 				{
-					entt::entity he = active->GetHoveredEntity(); // expose getter
+					entt::entity he = active->GetHoveredEntity();
 					if (he != entt::null && active->GetRegistry().valid(he))
 					{
 						Entity e{ he, active };
 						if (e.HasComponent<TagComponent>())
-							name = e.GetComponent<TagComponent>().Tag;
+							stats.HoveredEntity = e.GetComponent<TagComponent>().Tag;
 					}
 				}
-				ImGui::Text("Hovered Entity: %s", name.c_str());
-
-				ImGui::Text("FPS: %d", mEditorScene->GetFPS());
-				ImGui::Text("Frame time: %fms", mEditorScene->GetFrameTime());
-				ImGui::Text("Vertex count: %d", mEditorScene->GetVertices());
-
-				ImGui::End();
 			}
+			mProfilerPanel.OnImGuiRender(Renderer::GetFrameProfiler(), stats);
 
 			ImGui::End();
 
