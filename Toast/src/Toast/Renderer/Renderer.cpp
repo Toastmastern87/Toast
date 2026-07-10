@@ -33,9 +33,11 @@ namespace Toast {
 
 		SamplerStates::Init();
 
+#if TOAST_PROFILE_ENABLED
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		sRendererData->FrameProfiler = CreateScope<FrameProfiler>();
 		sRendererData->FrameProfiler->Init(API->GetDevice(), API->GetDeviceContext());
+#endif
 
 		sRendererData->EditorViewport.TopLeftX = 0.0f;
 		sRendererData->EditorViewport.TopLeftY = 0.0f;
@@ -280,7 +282,9 @@ namespace Toast {
 		Renderer2D::Shutdown();
 		RendererDebug::Shutdown();
 
+#if TOAST_PROFILE_ENABLED
 		sRendererData->FrameProfiler->Shutdown();
+#endif
 	}
 
 	void Renderer::OnWindowResize(uint32_t width, uint32_t height)
@@ -374,7 +378,9 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+#if TOAST_PROFILE_ENABLED
 		sRendererData->FrameProfiler->BeginFrame();
+#endif
 
 		sRendererData->Wireframe = wireFrame;
 
@@ -419,24 +425,34 @@ namespace Toast {
 		RenderCommand::SetViewport(sRendererData->Viewport);
 
 		{
-			TOAST_PROFILE(*sRendererData->FrameProfiler, "GPass");
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Geometry Pass");
 			GeometryPass(camera.GetWorldTranslation());
 		}
 
-		if(shadows)
-			ShadowPass(shadowParams);
+		if (shadows)
+		{
+				TOAST_PROFILE(*sRendererData->FrameProfiler, "Shadow Pass");
+				ShadowPass(shadowParams);
+		}
+
 		else
 			RenderCommand::ClearDepthStencilView(sRendererData->ShadowPassDepthStencilView[0], 1.0f);
 
-		if(SSAO)
+		if (SSAO)
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "SSAO Pass");
 			SSAOPass(SSAORadius, SSAObias);
+		}
 		else 
 		{
 			RenderCommand::ClearRenderTargets(sRendererData->SSAORT->GetRTV().Get(), { 1.0f, 1.0f, 1.0f, 1.0f });
 			RenderCommand::ClearRenderTargets(sRendererData->SSAOBlurRT->GetRTV().Get(), { 1.0f, 1.0f, 1.0f, 1.0f });
 		}
 
-		LightningPass(planet, environment);
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Lightning Pass");
+			LightningPass(planet, environment);
+		}
 
 		const bool hasPlanet = (sRendererData->PlanetDraw.Planet != nullptr);
 		const bool atmoActive = hasPlanet && sRendererData->PlanetDraw.Planet->AtmosphereActivated();
@@ -447,8 +463,16 @@ namespace Toast {
 		// Post Processes
 		if (hasPlanet && atmoActive && hasSkyView && hasAP3D) 
 		{
-			StarFieldPass(environment, planet, planet->GetAtmosphere().AtmosphereHeight);
-			AtmospherePass(planet, environment, cameraPos, camera.GetWorldTranslation(), dynamicIBL);
+			{
+				TOAST_PROFILE(*sRendererData->FrameProfiler, "Starfield Pass");
+				StarFieldPass(environment, planet, planet->GetAtmosphere().AtmosphereHeight);
+			}
+
+			{
+				TOAST_PROFILE(*sRendererData->FrameProfiler, "Atmosphere Pass");
+				AtmospherePass(planet, environment, cameraPos, camera.GetWorldTranslation(), dynamicIBL);
+			}
+
 			UploadCameraCBuffer(camera, cameraPos);
 		}
 		else 
@@ -459,24 +483,43 @@ namespace Toast {
 		// Particles only for now, but will most likely be renamed and handle more things in the future.
 		// If there are no particles that needs to be rendered, this pass will be skipped.
 		if (sRendererData->ParticleIndexBuffer.Get())
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Particle Pass");
 			ParticlesPass();
+		}		
 
 		if (sRendererData->PlanetDraw.Planet)
 		{
 			if (sRendererData->PlanetDraw.Planet->AtmosphereActivated())
+			{
+				TOAST_PROFILE(*sRendererData->FrameProfiler, "God Ray Pass");
 				GodRayPass(godRayParams);
+			}
 		}
 
-		if(bloomParams.Enabled)
+		if (bloomParams.Enabled)
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Bloom Pass");
 			BloomPass(bloomParams, planet, cameraPos, camera.GetVerticalFOV(), camera.GetWorldTranslation());
+		}
 
-		PostProcessPass(bloomParams.Enabled, environment, exposureParams, planet, cameraPos, camera.GetWorldTranslation());
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Post Process Pass");
+			PostProcessPass(bloomParams.Enabled, environment, exposureParams, planet, cameraPos, camera.GetWorldTranslation());
+		}
 
 		// Only run during runtime, otherwise the RendererDebug handles the outline
 		if (runtime)
 		{
-			GuidancePass(camera.GetWorldTranslation()); // Here is where the move markers and in the future other player guidances are rendered, these are only rendered during play mode of the scene due to the fact that they are depending on play mode states.
-			OutlinePass(outlineSettings, hoverTintColor);
+			{
+				TOAST_PROFILE(*sRendererData->FrameProfiler, "Guidance Pass");
+				GuidancePass(camera.GetWorldTranslation()); // Here is where the move markers and in the future other player guidances are rendered, these are only rendered during play mode of the scene due to the fact that they are depending on play mode states.
+			}
+
+			{
+				TOAST_PROFILE(*sRendererData->FrameProfiler, "Outline Pass");
+				OutlinePass(outlineSettings, hoverTintColor);
+			}
 		}
 
 		if (!debugActivated) 
@@ -487,7 +530,9 @@ namespace Toast {
 
 		ClearDrawList();
 
+#if TOAST_PROFILE_ENABLED
 		sRendererData->FrameProfiler->EndFrame();
+#endif
 	}
 
 	void Renderer::CreateDepthBuffer(uint32_t width, uint32_t height)
@@ -1239,10 +1284,13 @@ namespace Toast {
 			annotation->BeginEvent(L"Shadow Pass (CSM)");
 #endif
 
-		RenderCommand::SetViewport(sRendererData->ShadowMapViewport);
-		RenderCommand::SetRasterizerState(sRendererData->ShadowMapRasterizerState);
-		RenderCommand::SetDepthStencilState(sRendererData->ShadowPassDepthStencilState);
-		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Setup");
+			RenderCommand::SetViewport(sRendererData->ShadowMapViewport);
+			RenderCommand::SetRasterizerState(sRendererData->ShadowMapRasterizerState);
+			RenderCommand::SetDepthStencilState(sRendererData->ShadowPassDepthStencilState);
+			RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
+		}
 
 		auto shader = AssetManager::GetAsset<Shader>(sRendererData->ShadowPassShaderHandle);
 		if (shader)
@@ -1255,36 +1303,40 @@ namespace Toast {
 
 		sRendererData->CurrentMesh = nullptr;
 
-		for (uint32_t i = 0; i < shadowParams.CascadeCount; ++i)
 		{
-			// Bind the slice
-			RenderCommand::SetRenderTargets({ nullRTV }, sRendererData->ShadowPassDepthStencilView[i]);
-			RenderCommand::ClearDepthStencilView(sRendererData->ShadowPassDepthStencilView[i], 1.0f);
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Cascades");
 
-			sRendererData->LightningBuffer.Write((uint8_t*)&i, 4, 320);
-			sRendererData->LightningCBuffer->Map(sRendererData->LightningBuffer);
-
-			for (const auto& meshCommand : sRendererData->MeshDrawList)
+			for (uint32_t i = 0; i < shadowParams.CascadeCount; ++i)
 			{
-				const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
+				// Bind the slice
+				RenderCommand::SetRenderTargets({ nullRTV }, sRendererData->ShadowPassDepthStencilView[i]);
+				RenderCommand::ClearDepthStencilView(sRendererData->ShadowPassDepthStencilView[i], 1.0f);
 
-				if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
+				sRendererData->LightningBuffer.Write((uint8_t*)&i, 4, 320);
+				sRendererData->LightningCBuffer->Map(sRendererData->LightningBuffer);
+
+				for (const auto& meshCommand : sRendererData->MeshDrawList)
 				{
-					meshCommand.Mesh->Bind();
-					sRendererData->CurrentMesh = meshCommand.Mesh.get();
+					const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
+
+					if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
+					{
+						meshCommand.Mesh->Bind();
+						sRendererData->CurrentMesh = meshCommand.Mesh.get();
+					}
+
+					int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
+
+					float clickable = 1.0f;
+
+					// Model data
+					sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
+					sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 72);
+					sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 76);
+					sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+
+					RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
 				}
-
-				int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
-
-				float clickable = 1.0f;
-
-				// Model data
-				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
-				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.NoWorldTransform, 4, 72);
-				sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 76);
-				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
-
-				RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
 			}
 		}
 
@@ -1310,41 +1362,51 @@ namespace Toast {
 			annotation->BeginEvent(L"SSAO Pass");
 #endif
 
-		RenderCommand::SetViewport(sRendererData->Viewport);
-		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
-		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
-		RenderCommand::SetRenderTargets({ sRendererData->SSAORT->GetRTV().Get() }, nullptr);
-		RenderCommand::ClearRenderTargets({ sRendererData->SSAORT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+		Ref<Shader> shader;
 
-		auto shader = AssetManager::GetAsset<Shader>(sRendererData->SSAOPassShaderHandle);
-		if (shader)
-			shader->Bind();
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "SSAO Compute");
 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->GPassPositionRT->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassNormalRT->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SSAONoiseTexture->GetSRV());
+			RenderCommand::SetViewport(sRendererData->Viewport);
+			RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
+			RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
+			RenderCommand::SetRenderTargets({ sRendererData->SSAORT->GetRTV().Get() }, nullptr);
+			RenderCommand::ClearRenderTargets({ sRendererData->SSAORT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 3, SamplerStates::Get(SamplerType::PointClamp));
-		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 4, SamplerStates::Get(SamplerType::LinearClamp));
+			shader = AssetManager::GetAsset<Shader>(sRendererData->SSAOPassShaderHandle);
+			if (shader)
+				shader->Bind();
 
-		sRendererData->SSAOBuffer.Write((uint8_t*)&sRendererData->SSAOKernel[0], 1024, 0);
-		sRendererData->SSAOBuffer.Write((uint8_t*)&radius, 4, 1024);
-		sRendererData->SSAOBuffer.Write((uint8_t*)&bias, 4, 1028);
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->GPassPositionRT->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassNormalRT->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SSAONoiseTexture->GetSRV());
 
-		sRendererData->SSAOCBuffer->Map(sRendererData->SSAOBuffer);
-		sRendererData->SSAOCBuffer->Bind();
+			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 3, SamplerStates::Get(SamplerType::PointClamp));
+			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 4, SamplerStates::Get(SamplerType::LinearClamp));
 
-		DrawFullscreenQuad();
+			sRendererData->SSAOBuffer.Write((uint8_t*)&sRendererData->SSAOKernel[0], 1024, 0);
+			sRendererData->SSAOBuffer.Write((uint8_t*)&radius, 4, 1024);
+			sRendererData->SSAOBuffer.Write((uint8_t*)&bias, 4, 1028);
 
-		RenderCommand::SetRenderTargets({ sRendererData->SSAOBlurRT->GetRTV().Get() }, nullptr);
+			sRendererData->SSAOCBuffer->Map(sRendererData->SSAOBuffer);
+			sRendererData->SSAOCBuffer->Bind();
 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->SSAORT->GetSRV());
+			DrawFullscreenQuad();
+		}
 
-		shader = AssetManager::GetAsset<Shader>(sRendererData->SSAOBlurPassShaderHandle);
-		if (shader)
-			shader->Bind();
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "SSAO Blur");
 
-		DrawFullscreenQuad();
+			RenderCommand::SetRenderTargets({ sRendererData->SSAOBlurRT->GetRTV().Get() }, nullptr);
+
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->SSAORT->GetSRV());
+
+			shader = AssetManager::GetAsset<Shader>(sRendererData->SSAOBlurPassShaderHandle);
+			if (shader)
+				shader->Bind();
+
+			DrawFullscreenQuad();
+		}
 
 		ID3D11RenderTargetView* nullRTV = nullptr;
 		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
@@ -1513,163 +1575,191 @@ namespace Toast {
 			annotation->BeginEvent(L"Atmosphere Pass");
 #endif
 
-		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::LinearClamp));
-		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 1, SamplerStates::Get(SamplerType::PointClamp));
-		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::LinearClamp));
-		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 1, SamplerStates::Get(SamplerType::PointClamp));
-		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 3, SamplerStates::Get(SamplerType::SkyTest));
-
+		Ref<Shader> shader;
+		Ref<Texture2D> APFar;
+		Ref<Texture2D> skyview;
+		Ref<Texture3D> aerialPerspective;
 		float bakeIBL = 0.0f;
 
-		// Updating the atmospheric data in the buffer and mapping it to the GPU
-		auto& atmosphere = planet->GetAtmosphere();
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.AtmosphereHeight, 4, 0);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScaleHeight, 4, 4);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScaleHeight, 4, 8);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MSGain, 4, 12);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScattering, 12, 16);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.SGain, 4, 28);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScattering, 12, 32);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAbsorption, 12, 48);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.GroundAlbedo, 12, 64);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAnisotropy, 12, 80);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.OzoneStrength, 4, 96);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 100);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 104);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.APFarDynamic, 4, 108);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.SunsetTint, 12, 112);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&bakeIBL, 4, 124);
-		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
-		sRendererData->AtmosphereCBuffer->Bind();
-
 		{
-			auto& buf = sRendererData->SunDiscSettingsBuffer;
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Setup");
 
-			int sunDiscToggle = environment.SunDiscToggle ? 1 : 0;
+			RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::LinearClamp));
+			RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 1, SamplerStates::Get(SamplerType::PointClamp));
+			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::LinearClamp));
+			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 1, SamplerStates::Get(SamplerType::PointClamp));
+			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 3, SamplerStates::Get(SamplerType::SkyTest));
 
-			buf.Write((uint8_t*)&environment.SunDiscRadius, 4, 0);
-			buf.Write((uint8_t*)&environment.SunEdgeSoftness, 4, 4);
-			buf.Write((uint8_t*)&sunDiscToggle, 4, 8);   // int32
-			buf.Write((uint8_t*)&environment.SpaceDiscBrightnessScale, 4, 12);
+			// Updating the atmospheric data in the buffer and mapping it to the GPU
+			auto& atmosphere = planet->GetAtmosphere();
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.AtmosphereHeight, 4, 0);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScaleHeight, 4, 4);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScaleHeight, 4, 8);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MSGain, 4, 12);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.RayleighScattering, 12, 16);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.SGain, 4, 28);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieScattering, 12, 32);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAbsorption, 12, 48);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.GroundAlbedo, 12, 64);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.MieAnisotropy, 12, 80);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.OzoneStrength, 4, 96);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsTransmittance, 4, 100);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.StepsMultiScattering, 4, 104);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.APFarDynamic, 4, 108);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&atmosphere.SunsetTint, 12, 112);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&bakeIBL, 4, 124);
+			sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
+			sRendererData->AtmosphereCBuffer->Bind();
 
-			buf.Write((uint8_t*)&environment.SunWhite, 12, 16);   // float3
-			buf.Write((uint8_t*)&environment.AirHaloIntensity, 4, 28);
+			{
+				auto& buf = sRendererData->SunDiscSettingsBuffer;
 
-			buf.Write((uint8_t*)&environment.WarmTint, 12, 32);   // float3
-			buf.Write((uint8_t*)&environment.AirHaloStartFrac, 4, 44);
+				int sunDiscToggle = environment.SunDiscToggle ? 1 : 0;
 
-			buf.Write((uint8_t*)&environment.AirHaloFalloffPow, 4, 48);
-			buf.Write((uint8_t*)&environment.HorizonRefractionDeg, 4, 52);
-			buf.Write((uint8_t*)&environment.TwilightBlendDeg, 4, 56);
-			buf.Write((uint8_t*)&environment.SpaceHaloWidthDeg, 4, 60);
+				buf.Write((uint8_t*)&environment.SunDiscRadius, 4, 0);
+				buf.Write((uint8_t*)&environment.SunEdgeSoftness, 4, 4);
+				buf.Write((uint8_t*)&sunDiscToggle, 4, 8);   // int32
+				buf.Write((uint8_t*)&environment.SpaceDiscBrightnessScale, 4, 12);
 
-			buf.Write((uint8_t*)&environment.SpaceHaloIntensity, 4, 64);
-			buf.Write((uint8_t*)&environment.SpaceHaloCutoffDeg, 4, 68);
+				buf.Write((uint8_t*)&environment.SunWhite, 12, 16);   // float3
+				buf.Write((uint8_t*)&environment.AirHaloIntensity, 4, 28);
 
-			sRendererData->SunDiscSettingsCBuffer->Map(sRendererData->SunDiscSettingsBuffer);
-			sRendererData->SunDiscSettingsCBuffer->Bind();
+				buf.Write((uint8_t*)&environment.WarmTint, 12, 32);   // float3
+				buf.Write((uint8_t*)&environment.AirHaloStartFrac, 4, 44);
+
+				buf.Write((uint8_t*)&environment.AirHaloFalloffPow, 4, 48);
+				buf.Write((uint8_t*)&environment.HorizonRefractionDeg, 4, 52);
+				buf.Write((uint8_t*)&environment.TwilightBlendDeg, 4, 56);
+				buf.Write((uint8_t*)&environment.SpaceHaloWidthDeg, 4, 60);
+
+				buf.Write((uint8_t*)&environment.SpaceHaloIntensity, 4, 64);
+				buf.Write((uint8_t*)&environment.SpaceHaloCutoffDeg, 4, 68);
+
+				sRendererData->SunDiscSettingsCBuffer->Map(sRendererData->SunDiscSettingsBuffer);
+				sRendererData->SunDiscSettingsCBuffer->Bind();
+			}
+
+			sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
 		}
 
-		sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "AP Far");
+			UINT zero[4] = { 0,0,0,0 };
 
-		UINT zero[4] = { 0,0,0,0 };
+			aerialPerspective = planet->GetAerialPerspectiveLUT();
+			APFar = planet->GetAPFar();
+			RenderCommand::ClearUAV(APFar->GetUAV().Get(), zero);
+			RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, sRendererData->DepthBuffer->GetSRV());
+			APFar->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 
-		auto& aerialPerspective = planet->GetAerialPerspectiveLUT();
-		auto& APFar = planet->GetAPFar();
-		RenderCommand::ClearUAV(APFar->GetUAV().Get(), zero);
-		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, sRendererData->DepthBuffer->GetSRV());
-		APFar->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+			shader = AssetManager::GetAsset<Shader>(sRendererData->APFarDynamicShaderHandle);
+			if (shader)
+				shader->Bind();
+
+			RenderCommand::DispatchCompute((aerialPerspective->GetWidth() + 7) / 8, (aerialPerspective->GetHeight() + 7) / 8, 1);
+			APFar->UnbindUAV(0, D3D11_COMPUTE_SHADER);
+		}
+
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "SkyView LUT");
+			RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 1, planet->GetMultiScatteringLUT()->GetSRV());
+
+			skyview = planet->GetSkyViewLUT();
+			skyview->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+
+			shader = AssetManager::GetAsset<Shader>(sRendererData->SkyViewCSShaderHandle);
+			if (shader)
+				shader->Bind();
+
+			RenderCommand::DispatchCompute((skyview->GetWidth() + 7) / 8, (skyview->GetHeight() + 7) / 8, 1);
+			skyview->UnbindUAV(0, D3D11_COMPUTE_SHADER);
+		}
 		
-		auto shader = AssetManager::GetAsset<Shader>(sRendererData->APFarDynamicShaderHandle);
-		if (shader)
-			shader->Bind();
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Aerial Perspective");
+			aerialPerspective->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+			RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 2, APFar->GetSRV());
 
-		RenderCommand::DispatchCompute((aerialPerspective->GetWidth() + 7) / 8, (aerialPerspective->GetHeight() + 7) / 8, 1);
-		APFar->UnbindUAV(0, D3D11_COMPUTE_SHADER);
+			shader = AssetManager::GetAsset<Shader>(sRendererData->AerialPerspectiveCSShaderHandle);
+			if (shader)
+				shader->Bind();
 
-		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 1, planet->GetMultiScatteringLUT()->GetSRV());
+			RenderCommand::DispatchCompute((aerialPerspective->GetWidth() + 7) / 8, (aerialPerspective->GetHeight() + 7) / 8, aerialPerspective->GetDepth());
+			aerialPerspective->UnbindUAV(0, D3D11_COMPUTE_SHADER);
+		}
 
-		auto& skyview = planet->GetSkyViewLUT();
-		skyview->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Atmosphere Raymarch");
+			RenderCommand::ClearRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get(), sRendererData->SunDiscMaskRT->GetRTV().Get(), sRendererData->SunHaloMaskRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+			RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get(), sRendererData->SunDiscMaskRT->GetRTV().Get(), sRendererData->SunHaloMaskRT->GetRTV().Get() }, nullptr);
+			RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
+			RenderCommand::SetBlendState(nullptr, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-		shader = AssetManager::GetAsset<Shader>(sRendererData->SkyViewCSShaderHandle);
-		if (shader)
-			shader->Bind();
+			shader = AssetManager::GetAsset<Shader>(sRendererData->AtmosphereShaderHandle);
+			if (shader)
+				shader->Bind();
 
-		RenderCommand::DispatchCompute((skyview->GetWidth() + 7) / 8, (skyview->GetHeight() + 7) / 8, 1);
-		skyview->UnbindUAV(0, D3D11_COMPUTE_SHADER);
-		
-		aerialPerspective->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
-		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 2, APFar->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, planet->GetMultiScatteringLUT()->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, skyview->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, aerialPerspective->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->GPassPositionRT->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, APFar->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
 
-		shader = AssetManager::GetAsset<Shader>(sRendererData->AerialPerspectiveCSShaderHandle);
-		if (shader)
-			shader->Bind();
-
-		RenderCommand::DispatchCompute((aerialPerspective->GetWidth() + 7) / 8, (aerialPerspective->GetHeight() + 7) / 8, aerialPerspective->GetDepth());
-		aerialPerspective->UnbindUAV(0, D3D11_COMPUTE_SHADER);
-
-		RenderCommand::ClearRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get(), sRendererData->SunDiscMaskRT->GetRTV().Get(), sRendererData->SunHaloMaskRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
-		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get(), sRendererData->SunDiscMaskRT->GetRTV().Get(), sRendererData->SunHaloMaskRT->GetRTV().Get() }, nullptr);
-		RenderCommand::SetDepthStencilState(sRendererData->DepthEnabledStencilState);
-		RenderCommand::SetBlendState(nullptr, { 1.0f, 1.0f, 1.0f, 1.0f });
-
-		shader = AssetManager::GetAsset<Shader>(sRendererData->AtmosphereShaderHandle);
-		if (shader)
-			shader->Bind();
-
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, planet->GetMultiScatteringLUT()->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, skyview->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, aerialPerspective->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->GPassPositionRT->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, APFar->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
-
-		DrawFullscreenQuad();
+			DrawFullscreenQuad();
+		}
 
 		static int currentFace = 0;// Tracks which face of the cube to render
 
-		const DirectX::XMMATRIX& viewMatrix = sRendererData->AtmosphericScatteringViewMatrices[currentFace];
-		const DirectX::XMMATRIX& invViewMatrix = sRendererData->AtmosphericScatteringInvViewMatrices[currentFace];
-		DirectX::XMFLOAT4 cameraPos = camPosWS;
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "IBL Cube Face");
 
-		sRendererData->CameraBuffer.Write((uint8_t*)&viewMatrix, sizeof(viewMatrix), 64);
-		sRendererData->CameraBuffer.Write((uint8_t*)&invViewMatrix, sizeof(invViewMatrix), 192);
-		sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos, sizeof(cameraPos), 320);
-		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
+			const DirectX::XMMATRIX& viewMatrix = sRendererData->AtmosphericScatteringViewMatrices[currentFace];
+			const DirectX::XMMATRIX& invViewMatrix = sRendererData->AtmosphericScatteringInvViewMatrices[currentFace];
+			DirectX::XMFLOAT4 cameraPos = camPosWS;
 
-		int enableSun = 0;
-		sRendererData->SunDiscSettingsBuffer.Write((uint8_t*)&enableSun, 4, 8);
-		sRendererData->SunDiscSettingsCBuffer->Map(sRendererData->SunDiscSettingsBuffer);
+			sRendererData->CameraBuffer.Write((uint8_t*)&viewMatrix, sizeof(viewMatrix), 64);
+			sRendererData->CameraBuffer.Write((uint8_t*)&invViewMatrix, sizeof(invViewMatrix), 192);
+			sRendererData->CameraBuffer.Write((uint8_t*)&cameraPos, sizeof(cameraPos), 320);
+			sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
-		bakeIBL = 1.0f;
+			int enableSun = 0;
+			sRendererData->SunDiscSettingsBuffer.Write((uint8_t*)&enableSun, 4, 8);
+			sRendererData->SunDiscSettingsCBuffer->Map(sRendererData->SunDiscSettingsBuffer);
 
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&currentFace, 4, 76);
-		sRendererData->AtmosphereBuffer.Write((uint8_t*)&bakeIBL, 4, 124);
-		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
+			bakeIBL = 1.0f;
 
-		RenderCommand::SetViewport(sRendererData->AtmosphereCubeViewport);
-		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> nullSRV = nullptr;
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, nullSRV);
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, nullSRV);
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, nullSRV);
-		RenderCommand::SetRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(currentFace).Get(), sRendererData->Dummy1RT->GetRTVFace(currentFace).Get(), sRendererData->Dummy2RT->GetRTVFace(currentFace).Get() }, nullptr);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&currentFace, 4, 76);
+			sRendererData->AtmosphereBuffer.Write((uint8_t*)&bakeIBL, 4, 124);
+			sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);
 
-		DrawFullscreenQuad();
+			RenderCommand::SetViewport(sRendererData->AtmosphereCubeViewport);
+			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> nullSRV = nullptr;
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, nullSRV);
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, nullSRV);
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, nullSRV);
+			RenderCommand::SetRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(currentFace).Get(), sRendererData->Dummy1RT->GetRTVFace(currentFace).Get(), sRendererData->Dummy2RT->GetRTVFace(currentFace).Get() }, nullptr);
 
-		RenderCommand::SetRenderTargets({ nullptr }, nullptr);
-		RenderCommand::ClearShaderResources();
+			DrawFullscreenQuad();
 
-		// Day time IBL generation
-		GeneratePrefilteredEnvMap(sRendererData->AtmosphereCubeRT->GetTextureOriginal(), sRendererData->EnvMapFilteredDay, currentFace);
-		GenerateIrradianceCubemap(sRendererData->EnvMapFilteredDay, sRendererData->IrradianceCubeMapDay, currentFace);
+			RenderCommand::SetRenderTargets({ nullptr }, nullptr);
+			RenderCommand::ClearShaderResources();
+		}
+
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "IBL Day");
+			// Day time IBL generation
+			GeneratePrefilteredEnvMap(sRendererData->AtmosphereCubeRT->GetTextureOriginal(), sRendererData->EnvMapFilteredDay, currentFace);
+			GenerateIrradianceCubemap(sRendererData->EnvMapFilteredDay, sRendererData->IrradianceCubeMapDay, currentFace);
+		}
 
 		// Night time IBL generation(This only need to be done 6 times)
 		if (!sRendererData->NightTimeIBLDone)
 		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "IBL Night");
 			GeneratePrefilteredEnvMap(planet->GetStarFieldTextureCube().get(), sRendererData->EnvMapFilteredNight, currentFace);
 			GenerateIrradianceCubemap(sRendererData->EnvMapFilteredNight, sRendererData->IrradianceCubeMapNight, currentFace);
 		}
@@ -1795,57 +1885,65 @@ namespace Toast {
 		if (annotation)
 			annotation->BeginEvent(L"Bloom Pass");
 #endif
+		Ref<Shader> shader;
+
 		DirectX::XMFLOAT3 camPos = DirectX::XMFLOAT3(cameraPos.x, cameraPos.y, cameraPos.z);
 
 		float spaceFactor = planet->GetSpaceFactor(camPos, worldOffsetWS);
 
-		RenderCommand::SetViewport(sRendererData->Viewport);
-		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
-		RenderCommand::SetRenderTargets({ sRendererData->SunBloomRT->GetRTV().Get(), sRendererData->SkyBloomRT->GetRTV().Get(), sRendererData->GeometryBloomRT->GetRTV().Get() }, nullptr);
-		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
-		RenderCommand::SetBlendState(sRendererData->ParticleBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
-		RenderCommand::ClearRenderTargets({ sRendererData->SunBloomRT->GetRTV().Get(), sRendererData->SkyBloomRT->GetRTV().Get(), sRendererData->GeometryBloomRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Bloom Threshold");
 
-		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 2, SamplerStates::Get(SamplerType::PointClamp));
+			RenderCommand::SetViewport(sRendererData->Viewport);
+			RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
+			RenderCommand::SetRenderTargets({ sRendererData->SunBloomRT->GetRTV().Get(), sRendererData->SkyBloomRT->GetRTV().Get(), sRendererData->GeometryBloomRT->GetRTV().Get() }, nullptr);
+			RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
+			RenderCommand::SetBlendState(sRendererData->ParticleBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+			RenderCommand::ClearRenderTargets({ sRendererData->SunBloomRT->GetRTV().Get(), sRendererData->SkyBloomRT->GetRTV().Get(), sRendererData->GeometryBloomRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunSurfaceThreshold, sizeof(float), 0);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunSurfaceIntensity, sizeof(float), 4);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunSpaceThreshold, sizeof(float), 8);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunSpaceIntensity, sizeof(float), 12);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySurfaceThreshold, sizeof(float), 16);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySurfaceIntensity, sizeof(float), 20);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySpaceThreshold, sizeof(float), 24);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySpaceIntensity, sizeof(float), 28);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.GeometryThreshold, sizeof(float), 32);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.GeometryIntensity, sizeof(float), 36);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunRadius, sizeof(float), 40);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySurfaceRadius, sizeof(float), 44);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySpaceRadius, sizeof(float), 48);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SoftKnee, sizeof(float), 52);
-		sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SaturationClamp, sizeof(float), 56);
-		sRendererData->BloomBuffer.Write((uint8_t*)&spaceFactor, sizeof(float), 60);
-		sRendererData->BloomCBuffer->Map(sRendererData->BloomBuffer);
+			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 2, SamplerStates::Get(SamplerType::PointClamp));
 
-		auto shader = AssetManager::GetAsset<Shader>(sRendererData->BloomShaderHandle);
-		if (shader)
-			shader->Bind();
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunSurfaceThreshold, sizeof(float), 0);
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunSurfaceIntensity, sizeof(float), 4);
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunSpaceThreshold, sizeof(float), 8);
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunSpaceIntensity, sizeof(float), 12);
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySurfaceThreshold, sizeof(float), 16);
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySurfaceIntensity, sizeof(float), 20);
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySpaceThreshold, sizeof(float), 24);
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySpaceIntensity, sizeof(float), 28);
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.GeometryThreshold, sizeof(float), 32);
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.GeometryIntensity, sizeof(float), 36);
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SunRadius, sizeof(float), 40);
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySurfaceRadius, sizeof(float), 44);
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SkySpaceRadius, sizeof(float), 48);
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SoftKnee, sizeof(float), 52);
+			sRendererData->BloomBuffer.Write((uint8_t*)&bloomParams.SaturationClamp, sizeof(float), 56);
+			sRendererData->BloomBuffer.Write((uint8_t*)&spaceFactor, sizeof(float), 60);
+			sRendererData->BloomCBuffer->Map(sRendererData->BloomBuffer);
 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->AtmospherePassRT->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->DepthBuffer->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SunDiscMaskRT->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->SunHaloMaskRT->GetSRV());
+			auto shader = AssetManager::GetAsset<Shader>(sRendererData->BloomShaderHandle);
+			if (shader)
+				shader->Bind();
 
-		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 3, SamplerStates::Get(SamplerType::LinearClamp));
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->AtmospherePassRT->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->DepthBuffer->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SunDiscMaskRT->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->SunHaloMaskRT->GetSRV());
 
-		DrawFullscreenQuad();
+			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 3, SamplerStates::Get(SamplerType::LinearClamp));
 
-		auto RunBloomChain = [&](RenderTarget* srcFullRT,
+			DrawFullscreenQuad();
+		}
+
+		auto RunBloomChain = [&](const char* scopeName, RenderTarget* srcFullRT,
 			RenderTarget* outHalfRT,
 			RenderTarget* outQuarterRT,
 			RenderTarget* outQuarterBlurRT,
 			RenderTarget* outUpSampleRT,
 			float sigmaQuarter)
 			{
+				TOAST_PROFILE(*sRendererData->FrameProfiler, scopeName);
+
 				// --- Down sample: Full -> Half ---
 				{
 					auto [W, H] = srcFullRT->GetSize();
@@ -1927,7 +2025,7 @@ namespace Toast {
 
 					RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, outQuarterBlurRT->GetSRV());
 
-					auto shader = AssetManager::GetAsset<Shader>(sRendererData->BloomUpSampleShaderHandle);
+					shader = AssetManager::GetAsset<Shader>(sRendererData->BloomUpSampleShaderHandle);
 					if (shader)
 						shader->Bind();
 
@@ -1958,7 +2056,7 @@ namespace Toast {
 		float sigmaGeomQuarter = std::max(0.8f * sigmaSkyQuarter, 8.0f);
 
 		// SUN
-		RunBloomChain(sRendererData->SunBloomRT.get(),
+		RunBloomChain("Bloom Sun", sRendererData->SunBloomRT.get(),
 			sRendererData->SunBloomHalfRT.get(),
 			sRendererData->SunBloomQuarterRT.get(),
 			sRendererData->SunBloomQuarterBlurRT.get(),
@@ -1966,7 +2064,7 @@ namespace Toast {
 			sigmaSunQuarter);
 
 		// SKY
-		RunBloomChain(sRendererData->SkyBloomRT.get(),
+		RunBloomChain("Bloom Sky", sRendererData->SkyBloomRT.get(),
 			sRendererData->SkyBloomHalfRT.get(),
 			sRendererData->SkyBloomQuarterRT.get(),
 			sRendererData->SkyBloomQuarterBlurRT.get(),
@@ -1974,27 +2072,30 @@ namespace Toast {
 			sigmaSkyQuarter);
 
 		// GEOMETRY
-		RunBloomChain(sRendererData->GeometryBloomRT.get(),
+		RunBloomChain("Bloom Geometry", sRendererData->GeometryBloomRT.get(),
 			sRendererData->GeometryBloomHalfRT.get(),
 			sRendererData->GeometryBloomQuarterRT.get(),
 			sRendererData->GeometryBloomQuarterBlurRT.get(),
 			sRendererData->GeometryBloomUpSampleRT.get(),
 			sigmaGeomQuarter);
 
-		RenderCommand::SetRenderTargets({ sRendererData->FinalBloomRT->GetRTV().Get() }, nullptr);
-		RenderCommand::ClearRenderTargets({ sRendererData->FinalBloomRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Bloom Composite");
+			RenderCommand::SetRenderTargets({ sRendererData->FinalBloomRT->GetRTV().Get() }, nullptr);
+			RenderCommand::ClearRenderTargets({ sRendererData->FinalBloomRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->AtmospherePassRT->GetSRV());      // scene HDR
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->SunBloomUpSampleRT->GetSRV());    // t1
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SkyBloomUpSampleRT->GetSRV());    // t2
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->GeometryBloomUpSampleRT->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, planet->GetTransmittanceLUT()->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->AtmospherePassRT->GetSRV());      // scene HDR
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->SunBloomUpSampleRT->GetSRV());    // t1
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SkyBloomUpSampleRT->GetSRV());    // t2
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, sRendererData->GeometryBloomUpSampleRT->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, planet->GetTransmittanceLUT()->GetSRV());
 
-		shader = AssetManager::GetAsset<Shader>(sRendererData->BloomCompositeShaderHandle);
-		if (shader)
-			shader->Bind();
+			shader = AssetManager::GetAsset<Shader>(sRendererData->BloomCompositeShaderHandle);
+			if (shader)
+				shader->Bind();
 
-		DrawFullscreenQuad();
+			DrawFullscreenQuad();
+		}
 
 		ID3D11RenderTargetView* nullRTV = nullptr;
 		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
@@ -2121,6 +2222,7 @@ namespace Toast {
 
 		if (hasSelected)
 		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Selected Mask");
 			RenderCommand::SetRenderTargets({ sRendererData->SelectedMeshMaskRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 			RenderCommand::ClearRenderTargets(sRendererData->SelectedMeshMaskRT->GetRTV().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
 
@@ -2148,6 +2250,7 @@ namespace Toast {
 
 		if (hasHovered)
 		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Hovered Mask");
 			RenderCommand::SetRenderTargets({ sRendererData->HoveredMeshMaskRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 			RenderCommand::ClearRenderTargets(sRendererData->HoveredMeshMaskRT->GetRTV().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
 
@@ -2170,42 +2273,45 @@ namespace Toast {
 			}
 		}
 
-		RenderCommand::SetBlendState(sRendererData->UIBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
-		RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get(), sRendererData->FinalEditorRT->GetRTV().Get() }, sRendererData->DepthStencilView);
-		RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
-
-		if (hasSelected)
 		{
-			sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Color, 16, 0);
-			sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Thickness, 4, 16);
-			sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Softness, 4, 20);
-			sRendererData->OutlineCBuffer->Map(sRendererData->OutlineBuffer);
-			sRendererData->OutlineCBuffer->Bind();
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Outline Composite");
+			RenderCommand::SetBlendState(sRendererData->UIBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+			RenderCommand::SetRenderTargets({ sRendererData->FinalRT->GetRTV().Get(), sRendererData->FinalEditorRT->GetRTV().Get() }, sRendererData->DepthStencilView);
+			RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
 
-			auto shader = AssetManager::GetAsset<Shader>(sRendererData->OutlineShaderHandle);
-			if (shader)
-				shader->Bind();
+			if (hasSelected)
+			{
+				sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Color, 16, 0);
+				sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Thickness, 4, 16);
+				sRendererData->OutlineBuffer.Write((uint8_t*)&outlineSettings.Softness, 4, 20);
+				sRendererData->OutlineCBuffer->Map(sRendererData->OutlineBuffer);
+				sRendererData->OutlineCBuffer->Bind();
 
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, sRendererData->SelectedMeshMaskRT->GetSRV());
-			Renderer::DrawFullscreenQuad();
-		}
+				auto shader = AssetManager::GetAsset<Shader>(sRendererData->OutlineShaderHandle);
+				if (shader)
+					shader->Bind();
 
-		if (hasHovered)
-		{
-			sRendererData->HoverTintBuffer.Write((uint8_t*)&hoverTint, 16, 0);
-			sRendererData->HoverTintCBuffer->Map(sRendererData->HoverTintBuffer);
-			sRendererData->HoverTintCBuffer->Bind();
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, sRendererData->SelectedMeshMaskRT->GetSRV());
+				Renderer::DrawFullscreenQuad();
+			}
 
-			auto shader = AssetManager::GetAsset<Shader>(sRendererData->HoverTintShaderHandle);
-			if (shader)
-				shader->Bind();
+			if (hasHovered)
+			{
+				sRendererData->HoverTintBuffer.Write((uint8_t*)&hoverTint, 16, 0);
+				sRendererData->HoverTintCBuffer->Map(sRendererData->HoverTintBuffer);
+				sRendererData->HoverTintCBuffer->Bind();
 
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, sRendererData->HoveredMeshMaskRT->GetSRV());
-			Renderer::DrawFullscreenQuad();
+				auto shader = AssetManager::GetAsset<Shader>(sRendererData->HoverTintShaderHandle);
+				if (shader)
+					shader->Bind();
+
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 11, sRendererData->HoveredMeshMaskRT->GetSRV());
+				Renderer::DrawFullscreenQuad();
+				RenderCommand::ClearShaderResources();
+			}
+
 			RenderCommand::ClearShaderResources();
 		}
-
-		RenderCommand::ClearShaderResources();
 
 #ifdef TOAST_DEBUG
 		if (annotation)

@@ -12,9 +12,15 @@ namespace Toast {
 #define TOAST_CONCAT_IMPL(a, b) a##b
 #define TOAST_CONCAT(a, b) TOAST_CONCAT_IMPL(a, b)
 
-#define TOAST_PROFILE(profiler, name) FrameProfileScope TOAST_CONCAT(frameScope, __LINE__)(profiler, name, ProfileMode::CPUAndGPU)
+#if TOAST_PROFILE_ENABLED
+#define TOAST_PROFILE(profiler, name)     FrameProfileScope TOAST_CONCAT(frameScope, __LINE__)(profiler, name, ProfileMode::CPUAndGPU)
 #define TOAST_PROFILE_GPU(profiler, name) FrameProfileScope TOAST_CONCAT(frameScope, __LINE__)(profiler, name, ProfileMode::GPUOnly)
-#define TOAST_PROFILE_CPU(profiler, name) FrameProfileScope TOAST_CONCAT(frameScope, __LINE__)(profiler, name, ProfileMode::CPUOnly)
+#define TOAST_PROFILE_CPU(profiler, name) FrameProfileScope TOAST_CONCAT(frameScope, __LINE__)(profiler, name, ProfileMode:
+#else
+#define TOAST_PROFILE(profiler, name)
+#define TOAST_PROFILE_GPU(profiler, name)
+#define TOAST_PROFILE_CPU(profiler, name)
+#endif
 
 	enum class ProfileMode : uint8_t
 	{
