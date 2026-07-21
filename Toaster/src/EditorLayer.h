@@ -23,6 +23,7 @@
 #include "Panels/PlanetPanel.h"
 #include "Panels/ProjectPanel.h"
 #include "Panels/FrameProfilerPanel.h"
+#include "Panels/ScriptEditorPanel.h"
 
 namespace Toast {
 
@@ -143,5 +144,6 @@ namespace Toast {
 		PlanetPanel mPlanetPanel;
 		ProjectPanel mProjectPanel;
 		FrameProfilerPanel mProfilerPanel;
+		ScriptEditorPanel mScriptEditorPanel;
 	};
 }

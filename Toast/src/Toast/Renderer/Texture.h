@@ -13,6 +13,8 @@
 
 #include <../vendor/directxtex/include/DirectXTex.h>
 
+#include <cstdint>
+
 namespace Toast {
 
 	class Texture 
@@ -28,7 +30,7 @@ namespace Toast {
 		virtual const uint32_t GetHeight() const = 0;
 		virtual const std::string GetFilePath() const = 0;
 		virtual const DXGI_FORMAT GetFormat() const = 0;
-		virtual void* GetID() const = 0;
+		virtual std::uint64_t GetID() const = 0;
 		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const = 0;
 		virtual Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() const = 0;
 		virtual const uint32_t GetMipLevelCount() const = 0;
@@ -60,7 +62,7 @@ namespace Toast {
 		virtual const uint32_t GetHeight() const override { return 1; } // 1D texture -> height = 1
 		virtual const std::string GetFilePath() const override { return ""; }
 		virtual const DXGI_FORMAT GetFormat() const override { return mFormat; }
-		virtual void* GetID() const override { return (void*)mSRV.Get(); }
+		virtual std::uint64_t GetID() const override { return (std::uint64_t)(intptr_t)mSRV.Get(); }
 		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const override { return mSRV; }
 		// No ID3D11Texture2D for 1D textures; return nullptr to satisfy interface
 		virtual Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() const override { return nullptr; }
@@ -125,7 +127,7 @@ namespace Toast {
 		virtual const DXGI_FORMAT GetFormat() const override { return mFormat; }
 		DXGI_FORMAT GetSRVFormat() const { return mSRVFormat; }
 
-		virtual void* GetID() const override { return (void*)mSRV.Get(); }
+		virtual std::uint64_t GetID() const override { return (std::uint64_t)(intptr_t)mSRV.Get(); }
 		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const override { return mSRV; }
 		virtual const uint32_t GetMipLevelCount() const override;
 
@@ -187,7 +189,7 @@ namespace Toast {
 
 		virtual const std::string GetFilePath() const override { return ""; }
 		virtual const DXGI_FORMAT GetFormat()   const override { return mFormat; }
-		virtual void* GetID() const override { return (void*)mSRV.Get(); }
+		virtual std::uint64_t GetID() const override { return (std::uint64_t)(intptr_t)mSRV.Get(); }
 
 		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const override { return mSRV; }
 		// NOTE: 3D texture has no ID3D11Texture2D; return nullptr to satisfy interface.
@@ -234,7 +236,7 @@ namespace Toast {
 		virtual const uint32_t GetHeight() const override { return mHeight; }
 		virtual const std::string GetFilePath() const override { return mFilePath; }
 		virtual const DXGI_FORMAT GetFormat() const override { return mFormat; }
-		virtual void* GetID() const override { return (void*)mSRV.Get(); }
+		virtual std::uint64_t GetID() const override { return (std::uint64_t)(intptr_t)mSRV.Get(); }
 		virtual Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSRV() const override { return mSRV; }
 		virtual const uint32_t GetMipLevelCount() const override;
 
@@ -284,7 +286,7 @@ namespace Toast {
 		virtual const uint32_t GetWidth() const override { return mWidth; }
 		virtual const uint32_t GetHeight() const override { return mHeight; }
 		virtual const std::string GetFilePath() const override { return ""; } 
-		virtual void* GetID() const override { return mSRV.Get(); } 
+		virtual std::uint64_t GetID() const override { return (std::uint64_t)(intptr_t)mSRV.Get(); }
 		virtual Microsoft::WRL::ComPtr<ID3D11Texture2D> GetTexture() const override { return mTexture; }
 		virtual const uint32_t GetMipLevelCount() const override { return 1; } 
 

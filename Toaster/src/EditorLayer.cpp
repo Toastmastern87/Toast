@@ -25,7 +25,7 @@
 
 #include "FontAwesome.h"
 
-#include "ImGuizmo.h"
+#include "../vendor/ImGuizmo/src/ImGuizmo.h"
 
 namespace Toast {
 
@@ -372,6 +372,7 @@ namespace Toast {
 				mPropertiesPanel.OnImGuiRender(mActiveDragArea);
 				mPlanetPanel.OnImGuiRender(&mShowPlanetPopup, mActiveDragArea);
 				mProjectPanel.OnImGuiRender();
+				mScriptEditorPanel.OnImGuiRender();
 			}
 
 			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
@@ -466,7 +467,7 @@ namespace Toast {
 			}
 
 			if(mEditorScene)
-				ImGui::Image(textureID, ImVec2{ mViewportSize.x, mViewportSize.y });
+				ImGui::Image((ImTextureID)textureID, ImVec2{mViewportSize.x, mViewportSize.y});
 
 			if (ImGui::BeginDragDropTarget())
 			{
@@ -655,7 +656,7 @@ namespace Toast {
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, titleBarHoveredColor);
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, titleBarColor);
 		ImGui::SetCursorScreenPos(ImVec2(barPos.x + leftMargin, barPos.y + topMargin));
-		ImGui::ImageButton((ImTextureID)(mLogoTex->GetID()), ImVec2(leftIconSize, leftIconSize), ImVec2(0, 0), ImVec2(1, 1));
+		ImGui::ImageButton("##iconButton", (ImTextureID)(mLogoTex->GetID()), ImVec2(leftIconSize, leftIconSize), ImVec2(0, 0), ImVec2(1, 1));
 
 		// --- Menu Bar (File / Script) ---
 		{
@@ -718,6 +719,9 @@ namespace Toast {
 				ImGui::SameLine(0, gapBetweenMenus);
 				if (ImGui::BeginMenu("Script"))
 				{
+					if (ImGui::MenuItem("Editor", nullptr, mScriptEditorPanel.IsOpen()))
+						mScriptEditorPanel.SetOpen(!mScriptEditorPanel.IsOpen());
+
 					if (ImGui::MenuItem("Reload Assembly", "Ctrl+R"))
 						ScriptEngine::ReloadAssembly();
 					ImGui::EndMenu();
@@ -745,43 +749,40 @@ namespace Toast {
 		// Now inline your ImageButton code (no separate ImGui::Begin/End for "Toolbar"):
 		if (mSceneState == SceneState::Edit)
 		{
-			if (ImGui::ImageButton((ImTextureID)(mPlayButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1),
-				-1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1)))
+			if (ImGui::ImageButton("##playButton", (ImTextureID)(mPlayButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1)))
 			{
 				OnScenePlay();
 			}
 			ImGui::SameLine();
-			ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()),
-				ImVec2(centerIconSize, centerIconSize));
+			ImGui::ImageButton("##pauseButton", (ImTextureID)(mPauseButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize));
 			ImGui::SameLine();
-			ImGui::ImageButton((ImTextureID)(mStopButtonTex->GetID()),
-				ImVec2(centerIconSize, centerIconSize));
+			ImGui::ImageButton("##stopButton", (ImTextureID)(mStopButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize));
 		}
 		else if (mSceneState == SceneState::Play)
 		{
-			ImGui::ImageButton((ImTextureID)(mPlayButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+			ImGui::ImageButton("##playButton", mPlayButtonTex->GetID(), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
 			ImGui::SameLine();
-			if (ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
+			if (ImGui::ImageButton("##pauseButton", (ImTextureID)(mPauseButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
 			{
 				mRuntimeScene->SetPaused(true);
 
 				OnScenePause();
 			}
 			ImGui::SameLine();
-			if (ImGui::ImageButton((ImTextureID)(mStopButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
+			if (ImGui::ImageButton("##stopButton", (ImTextureID)(mStopButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
 				OnSceneStop();
 		}
 		else if (mSceneState == SceneState::Pause)
 		{
-			if (ImGui::ImageButton((ImTextureID)(mPlayButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
+			if (ImGui::ImageButton("##playButton", (ImTextureID)(mPlayButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
 			{
 				OnSceneUnpause();
 				mRuntimeScene->SetPaused(false);
 			}
 			ImGui::SameLine();
-			if (ImGui::ImageButton((ImTextureID)(mPauseButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f)));
+			if (ImGui::ImageButton("##pauseButton", (ImTextureID)(mPauseButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(0.5f, 0.5f, 0.5f, 1.0f)));
 			ImGui::SameLine();
-			if (ImGui::ImageButton((ImTextureID)(mStopButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
+			if (ImGui::ImageButton("##stopButton", (ImTextureID)(mStopButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(1.0f, 1.0f, 1.0f, 1.0f)))
 				OnSceneStop();
 		}
 
@@ -794,21 +795,21 @@ namespace Toast {
 		// Close button (furthest right)
 		float closeButtonX = barPos.x + width - rightMargin - buttonSize;
 		ImGui::SetCursorScreenPos(ImVec2(closeButtonX, rightButtonsY));
-		if (ImGui::ImageButton((ImTextureID)(mCloseButtonTex->GetID()), ImVec2(buttonSize, buttonSize)))
+		if (ImGui::ImageButton("##closeButton", (ImTextureID)(mCloseButtonTex->GetID()), ImVec2(buttonSize, buttonSize)))
 		{
 			Application::Get().Close();
 		}
 		// Maximize button to the left of Close.
 		float maxButtonX = closeButtonX - rightButtonSpacing - buttonSize;
 		ImGui::SetCursorScreenPos(ImVec2(maxButtonX, rightButtonsY));
-		if (ImGui::ImageButton((ImTextureID)(mMaxButtonTex->GetID()), ImVec2(buttonSize, buttonSize)))
+		if (ImGui::ImageButton("##maximizeButton", (ImTextureID)(mMaxButtonTex->GetID()), ImVec2(buttonSize, buttonSize)))
 		{
 			// Maximize action.
 		}
 		// Minimize button to the left of Maximize.
 		float minButtonX = maxButtonX - rightButtonSpacing - buttonSize;
 		ImGui::SetCursorScreenPos(ImVec2(minButtonX, rightButtonsY));
-		if (ImGui::ImageButton((ImTextureID)(mMinButtonTex->GetID()), ImVec2(buttonSize, buttonSize)))
+		if (ImGui::ImageButton("##minimizeButton", (ImTextureID)(mMinButtonTex->GetID()), ImVec2(buttonSize, buttonSize)))
 		{
 			// Minimize action.
 		}
@@ -850,7 +851,7 @@ namespace Toast {
 				ImGui::SameLine(contentWidth - closeButtonSize - padding);
 
 				ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive]);
-				if (ImGui::ImageButton((ImTextureID)(mCloseButtonTex->GetID()),	ImVec2(closeButtonSize, closeButtonSize)))
+				if (ImGui::ImageButton("##closeButton", (ImTextureID)(mCloseButtonTex->GetID()),	ImVec2(closeButtonSize, closeButtonSize)))
 					ImGui::CloseCurrentPopup();
 
 				ImGui::PopStyleColor();

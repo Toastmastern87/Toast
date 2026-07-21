@@ -17,8 +17,10 @@ project "Toast"
 		"src/**.h",
 		"src/**.cpp",
 
-		"vendor/ImGuizmo/ImGuizmo.h",
-		"vendor/ImGuizmo/ImGuizmo.cpp"
+		"vendor/ImGuizmo/src/ImGuizmo.h",
+		"vendor/ImGuizmo/src/ImGuizmo.cpp",
+		"vendor/ImGuiColorTextEdit/TextEditor.h",
+    	"vendor/ImGuiColorTextEdit/TextEditor.cpp"
 	}
 
 	defines
@@ -40,7 +42,8 @@ project "Toast"
 		"%{IncludeDir.msdfgen}",
 		"%{IncludeDir.filewatch}",
 		"%{IncludeDir.robin_hood}",
-		"%{IncludeDir.perlin_noise}"
+		"%{IncludeDir.perlin_noise}",
+		"%{IncludeDir.ImGuiColorTextEdit}"
 	}
 
 	links
@@ -65,6 +68,9 @@ project "Toast"
 
 	filter "files:vendor/ImGuizmo/**.cpp"
 		flags { "NoPCH" }
+
+	filter "files:vendor/ImGuiColorTextEdit/**.cpp"
+    	flags { "NoPCH" }
 
 	filter "system:windows"
 		systemversion "latest"

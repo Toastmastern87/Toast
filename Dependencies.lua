@@ -4,7 +4,7 @@ IncludeDir = {}
 IncludeDir["ImGui"] = "%{wks.location}/Toast/vendor/imgui"
 IncludeDir["entt"] = "%{wks.location}/Toast/vendor/entt/include" 
 IncludeDir["yaml_cpp"] = "%{wks.location}/Toast/vendor/yaml-cpp/include" 
-IncludeDir["ImGuizmo"] = "%{wks.location}/Toast/vendor/ImGuizmo"
+IncludeDir["ImGuizmo"] = "%{wks.location}/Toast/vendor/ImGuizmo/src"
 IncludeDir["mono"] = "%{wks.location}/Toast/vendor/mono/include"
 IncludeDir["cgltf"] = "%{wks.location}/Toast/vendor/cgltf/include"
 IncludeDir["directxtex"] = "%{wks.location}/Toast/vendor/directxtex/include"
@@ -12,6 +12,7 @@ IncludeDir["msdf_atlas_gen"] = "%{wks.location}/Toast/vendor/msdf-atlas-gen/msdf
 IncludeDir["msdfgen"] = "%{wks.location}/Toast/vendor/msdf-atlas-gen/msdfgen"
 IncludeDir["filewatch"] = "%{wks.location}/Toast/vendor/filewatch"
 IncludeDir["robin_hood"] = "%{wks.location}/Toast/vendor/robinhood/include" 
+IncludeDir["ImGuiColorTextEdit"] = "%{wks.location}/Toast/vendor/imguicolortexteditor" 
 
 LibraryDir = {}
 LibraryDir["mono"] = "%{wks.location}/Toast/vendor/mono/lib/%{cfg.buildcfg}"
