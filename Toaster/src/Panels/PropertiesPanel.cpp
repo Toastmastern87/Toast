@@ -803,20 +803,30 @@ namespace Toast {
 			});
 
 		DrawComponent<ScriptComponent>(ICON_TOASTER_CODE" Script", entity, mScene, activeDragArea, mWindow, mAssetRoot, [=](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
-			{
-				bool scriptClassExists = ScriptEngine::EntityClassExists(component.ClassName);
-				
+			{			
 				static char buffer[64];
 				strcpy_s(buffer, sizeof(buffer), component.ClassName.c_str());
 
-				if (!scriptClassExists)
+				bool validScriptClass = ScriptEngine::EntityClassExists(component.ClassName);
+
+				if (!validScriptClass)
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.2f, 0.3f, 1.0f));
 
 				if (ImGui::InputText("Class", buffer, sizeof(buffer)))
-				{
 					component.ClassName = buffer;
-					bool validScriptClass = ScriptEngine::EntityClassExists(component.ClassName);
+
+				ImGui::SameLine();
+
+				ImGui::BeginDisabled(!validScriptClass);
+				if (ImGui::Button(ICON_TOASTER_CODE "##openScript"))
+				{
+					std::filesystem::path scriptPath = ScriptEngine::GetEntityClassSourcePath(component.ClassName);
+					if (!scriptPath.empty() && mOpenScriptCallback)
+						mOpenScriptCallback(scriptPath);
+					else
+						TOAST_CORE_WARN("No source file found for script class '{0}'", component.ClassName);
 				}
+				ImGui::EndDisabled();
 
 				// Fields
 
@@ -843,7 +853,7 @@ namespace Toast {
 				}
 				else
 				{
-					if (scriptClassExists)
+					if (validScriptClass)
 					{
 						Ref<ScriptClass> entityClass = ScriptEngine::GetEntityClass(component.ClassName);
 						const auto& fields = entityClass->GetFields();
@@ -881,7 +891,7 @@ namespace Toast {
 					}
 				}
 
-				if (!scriptClassExists)
+				if (!validScriptClass)
 					ImGui::PopStyleColor();
 			});
 

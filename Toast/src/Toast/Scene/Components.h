@@ -9,6 +9,7 @@
 
 #include "Toast/Renderer/Mesh.h"
 
+#include "Toast/Renderer/ParticleCommon.h"
 #include "Toast/Renderer/UI/Font.h"
 
 #include "Toast/Physics/Bounds.h"
@@ -25,12 +26,6 @@ namespace Toast {
 
 	// Forward deceleration, PlanetNode is found in PlanetSystem.cpp
 	struct PlanetNode;
-
-	// Forward deceleration, Particle is found in ParticleSystem.h
-	struct Particle;
-
-	// Forward deceleration, EmitFunction is found in ParticleSystem.h
-	enum class EmitFunction;
 
 	struct PairHash {
 		std::size_t operator()(const std::pair<int, int>& p) const {

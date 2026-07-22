@@ -172,6 +172,8 @@ namespace Toast {
 		static MonoImage* GetCoreAssemblyImage();
 
 		static MonoObject* GetManagedInstance(UUID uuid);
+
+		static std::filesystem::path GetEntityClassSourcePath(const std::string& fullClassName);
 	private:
 		static void InitMono();
 		static void ShutdownMono();

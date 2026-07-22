@@ -22,6 +22,11 @@ namespace Toast {
 		void SetProjectPath(const std::filesystem::path& projectPath);
 
 		void OnImGuiRender(std::string& activeDragArea);
+
+		void SetOpenScriptCallback(std::function<void(const std::filesystem::path&)> callback)
+		{
+			mOpenScriptCallback = callback;
+		}
 	private:
 		void DrawComponents(Entity entity, std::string& activeDragArea);
 
@@ -45,6 +50,8 @@ namespace Toast {
 
 		// Callback to run after import completes — different for each texture slot
 		std::function<void(AssetHandle)> mOnImportComplete;
+
+		std::function<void(const std::filesystem::path&)> mOpenScriptCallback;
 	};
 
 }

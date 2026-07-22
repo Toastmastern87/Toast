@@ -116,6 +116,9 @@ namespace Toast {
 		Scope<filewatch::FileWatch<std::string>> AppAssemblyFileWatcher;
 		bool AssemblyReloadPending = false;
 
+		std::filesystem::path ScriptSourceRoot;
+		std::unordered_map<std::string, std::filesystem::path> ClassSourcePaths;
+
 		// Runtime
 		Scene* SceneContext = nullptr;
 	};
@@ -216,6 +219,10 @@ namespace Toast {
 	{
 		sData->AppAssemblyFilepath = filepath;
 		sData->AppAssembly = Utils::LoadMonoAssembly(filepath);
+
+		// TODO: Source root for the class -> .cs lookup. Derived from the assembly path
+		// for now; switch to the asset system once .cs becomes a real asset type.
+		sData->ScriptSourceRoot = filepath.parent_path().parent_path() / "Source";
 
 		if (sData->AppAssembly == nullptr)
 			return false;
@@ -346,6 +353,19 @@ namespace Toast {
 	void ScriptEngine::LoadAssemblyClasses()
 	{
 		sData->EntityClasses.clear();
+		sData->ClassSourcePaths.clear();
+
+		if (std::filesystem::exists(sData->ScriptSourceRoot))
+		{
+			for (auto& entry : std::filesystem::recursive_directory_iterator(sData->ScriptSourceRoot))
+			{
+				if (entry.path().extension() != ".cs")
+					continue;
+
+				sData->ClassSourcePaths[entry.path().stem().string()] = entry.path();
+			}
+		}
+
 		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(sData->AppAssemblyImage, MONO_TABLE_TYPEDEF);
 		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
 		MonoClass* entityClass = mono_class_from_name(sData->CoreAssemblyImage, "Toast", "Entity");
@@ -415,6 +435,20 @@ namespace Toast {
 	{
 		TOAST_CORE_ASSERT(sData->EntityInstances.find(uuid) != sData->EntityInstances.end(uuid), "");
 		return sData->EntityInstances.at(uuid)->GetManagedObject();
+	}
+
+	std::filesystem::path ScriptEngine::GetEntityClassSourcePath(const std::string& fullClassName)
+	{
+		if (auto it = sData->ClassSourcePaths.find(fullClassName); it != sData->ClassSourcePaths.end())
+			return it->second;
+
+		size_t dot = fullClassName.find_last_of('.');
+		std::string shortName = (dot == std::string::npos) ? fullClassName : fullClassName.substr(dot + 1);
+
+		if (auto it = sData->ClassSourcePaths.find(shortName); it != sData->ClassSourcePaths.end())
+			return it->second;
+
+		return {};
 	}
 
 	uint32_t ScriptEngine::InstantiateClass(MonoClass* monoClass)

@@ -1,6 +1,11 @@
 #include "ScriptEditorPanel.h"
 
+#include "Toast/Core/Log.h"
+
 #include "imgui/imgui.h"
+
+#include <fstream>;
+#include <sstream>;
 
 namespace Toast {
 
@@ -33,6 +38,22 @@ namespace Toast {
 		mEditor.Render("##scriptEditor");
 
 		ImGui::End();
+	}
+
+	void ScriptEditorPanel::OpenFile(const std::filesystem::path& filepath)
+	{
+		std::ifstream stream(filepath, std::ios::in | std::ios::binary);
+		if (!stream)
+		{
+			TOAST_CORE_ERROR("ScriptEditorPanel: failed to open '%s'", filepath.string().c_str());
+			return;
+		}
+
+		std::stringstream ss;
+		ss << stream.rdbuf();
+
+		mEditor.SetText(ss.str());
+		mCurrentFile = filepath;
 	}
 
 }

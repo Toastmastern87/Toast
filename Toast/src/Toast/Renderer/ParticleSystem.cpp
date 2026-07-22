@@ -70,7 +70,7 @@ namespace Toast{
 				newParticle.EndColor = particles.EndColor;
 				newParticle.ColorBlendFactor = particles.ColorBlendFactor;
 				newParticle.Age = 0.0f;
-				newParticle.Lifetime = particles.MaxLifeTime;
+				newParticle.LifeTime = particles.MaxLifeTime;
 				newParticle.Size = particles.Size;
 				newParticle.GrowRate = particles.GrowRate;
 				newParticle.BurstInitial = particles.BurstInitial;
@@ -83,7 +83,7 @@ namespace Toast{
 		while (it != particles.Particles.end()) {
 			it->Age += dt;
 
-			if (it->Age >= it->Lifetime) {
+			if (it->Age >= it->LifeTime) {
 				it = particles.Particles.erase(it);  // Remove dead particle
 			}
 			else {

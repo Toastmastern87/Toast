@@ -1842,7 +1842,7 @@ namespace Toast {
 		if (shader)
 			shader->Bind();
 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->DepthBuffer->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->DepthBuffer->GetSRV()); 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->SunDiscMaskRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SunHaloMaskRT->GetSRV());
 

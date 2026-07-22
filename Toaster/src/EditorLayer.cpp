@@ -137,6 +137,12 @@ namespace Toast {
 
 		SetContexts();
 
+		mPropertiesPanel.SetOpenScriptCallback([this](const std::filesystem::path& path)
+			{
+				mScriptEditorPanel.OpenFile(path);
+				mScriptEditorPanel.SetOpen(true);   
+			});
+
 		// If you have a “force popup to choose projects behavior, disable it on success
 		mForceProjectPopup = false;
 
