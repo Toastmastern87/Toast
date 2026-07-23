@@ -439,8 +439,6 @@ namespace Toast {
 
 		DirectX::XMFLOAT2 mViewportBounds[2];
 
-		Ref<ParticleSystem> mParticleSystem;
-
 		Ref<PhysicsEngine> mPhysicsEngine;
 
 		Scope<SelectionSystem> mSelectionSystem;

@@ -33,6 +33,12 @@ namespace Toast {
 
 		SamplerStates::Init();
 
+		sRendererData->Particles = CreateRef<ParticleSystem>();
+		if (!sRendererData->Particles->Init())
+			TOAST_CORE_ASSERT(false, "Failed to initialize the GPU particle system!");
+
+		sRendererData->Particles->DebugValidatePool();
+
 #if TOAST_PROFILE_ENABLED
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		sRendererData->FrameProfiler = CreateScope<FrameProfiler>();
@@ -2865,6 +2871,11 @@ namespace Toast {
 	FrameProfiler& Renderer::GetFrameProfiler()
 	{
 		return *sRendererData->FrameProfiler;
+	}
+
+	Ref<ParticleSystem> Renderer::GetParticleSystem()
+	{
+		return sRendererData->Particles;
 	}
 
 	void Renderer::UploadCameraCBuffer(Camera& camera, const DirectX::XMFLOAT4 cameraPos)

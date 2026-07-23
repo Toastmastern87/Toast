@@ -5,9 +5,103 @@
 
 namespace Toast{
 
-	bool ParticleSystem::Initialize()
+	bool ParticleSystem::Init()
 	{
+		if (mInitialized)
+		{
+			TOAST_CORE_WARN("ParticleSystem::Initialize called twice - ignoring.");
+			return true;
+		}
+
+		const uint32_t N = MAX_PARTICLES;
+
+		// The Particle Pool
+		mParticleBuffer = CreateRef<StructuredBuffer>(
+			sizeof(GPUParticle),     // stride: 80 bytes per element
+			N,                       // count:  262,144 elements
+			D3D11_USAGE_DEFAULT,
+			true,                    // createUAV
+			false);                  // append: NO
+
+		// Alive lists that are used in a ping-pong way
+		mAliveListA = CreateRef<StructuredBuffer>(sizeof(uint32_t), N, D3D11_USAGE_DEFAULT, true, false);
+		mAliveListB = CreateRef<StructuredBuffer>(sizeof(uint32_t), N, D3D11_USAGE_DEFAULT, true, false);
+
+		// The dead list holding the free slot indices that can be used
+		mDeadList = CreateRef<StructuredBuffer>(sizeof(uint32_t), N, D3D11_USAGE_DEFAULT, true, false);
+
+		// The counters that keeps track of the number in each of the lists above
+		mCounters = CreateRef<StructuredBuffer>(sizeof(uint32_t), 4, D3D11_USAGE_DEFAULT, true, false);
+
+		// The indirect args buffer
+		{
+			RendererAPI* API = RenderCommand::sRendererAPI.get();
+			TOAST_CORE_ASSERT(API, "ParticleSystem::Initialize: no RendererAPI! Initialize() must be called AFTER the renderer API exists.");
+			if (!API) return false;
+
+			ID3D11Device* device = API->GetDevice();
+			TOAST_CORE_ASSERT(device, "ParticleSystem::Initialize: no D3D11 device!");
+			if (!device) return false;
+
+			D3D11_BUFFER_DESC bd = {};
+			bd.ByteWidth = 64;                        // multiple of 4, required for raw views
+			bd.Usage = D3D11_USAGE_DEFAULT;
+			bd.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+			bd.MiscFlags = D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS | D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+
+			HRESULT hr = device->CreateBuffer(&bd, nullptr, &mIndirectArgs);
+			TOAST_CORE_ASSERT(SUCCEEDED(hr), "ParticleSystem: indirect args buffer failed");
+			if (FAILED(hr)) return false;
+
+			D3D11_UNORDERED_ACCESS_VIEW_DESC uavd = {};
+			uavd.Format = DXGI_FORMAT_R32_TYPELESS;  // required for raw views
+			uavd.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+			uavd.Buffer.FirstElement = 0;
+			uavd.Buffer.NumElements = 64 / 4;                    // 16 addressable uints
+			uavd.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
+
+			hr = device->CreateUnorderedAccessView(mIndirectArgs.Get(), &uavd, &mIndirectArgsUAV);
+			TOAST_CORE_ASSERT(SUCCEEDED(hr), "ParticleSystem: indirect args UAV failed");
+			if (FAILED(hr)) return false;
+		}
+
+		// Making sure everything is reseted and ready to be used
+		Reset();
+
+		mInitialized = true;
+
+		TOAST_CORE_INFO("GPU particle pool initialized: %d slots, %d MB total VRAM.",	N, (N * (sizeof(GPUParticle) + 3 * sizeof(uint32_t))) / (1024 * 1024));
+
 		return true;
+	}
+
+	void ParticleSystem::Reset()
+	{
+		TOAST_CORE_ASSERT(mDeadList && mCounters, "ParticleSystem::Reset before Initialize!");
+
+		if (!mDeadList || !mCounters)
+			return;
+
+		const uint32_t N = MAX_PARTICLES;
+
+		// Reset the dead list making every slot free again.
+		{
+			std::vector<uint32_t> deadInit(N);
+			for (uint32_t i = 0; i < N; ++i)
+				deadInit[i] = i;
+
+			mDeadList->Update(deadInit.data(), deadInit.size() * sizeof(uint32_t));
+		}
+
+		// Reset the counters, everything is free
+		{
+			const uint32_t counterInit[4] = { 0u, N, 0u, 0u };
+			mCounters->Update(counterInit, sizeof(counterInit));   // full 16 bytes
+		}
+
+		mAlivePingPong = 0;
+
+		TOAST_CORE_INFO("GPU particle pool reset - %d slots free.", N);
 	}
 
 	void ParticleSystem::OnUpdate(float dt, ParticlesComponent& particles, DirectX::XMFLOAT3 spawnPos, DirectX::XMFLOAT3 spawnSize, DirectX::XMMATRIX roationQuat, size_t maxNrOfParticles, DirectX::XMFLOAT3 velocity)
@@ -154,6 +248,62 @@ namespace Toast{
 		// Apply bias: if biasExponent > 1, the distribution is peaked near zero.
 		float biasedValue = (value < 0.0f ? -1.0f : 1.0f) * pow(fabs(value), biasExponent);
 		return biasedValue * halfExtent;
+	}
+
+	// TEMP CODE!
+	void ParticleSystem::DebugValidatePool()
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11Device* device = API->GetDevice();
+		ID3D11DeviceContext* ctx = API->GetDeviceContext();
+
+		auto ReadBack = [&](ID3D11Buffer* src, uint32_t elementCount, std::vector<uint32_t>& out)
+			{
+				D3D11_BUFFER_DESC bd = {};
+				src->GetDesc(&bd);
+
+				// Staging copy: same layout, but CPU-readable and not bindable.
+				D3D11_BUFFER_DESC sd = bd;
+				sd.Usage = D3D11_USAGE_STAGING;
+				sd.BindFlags = 0;
+				sd.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+
+				Microsoft::WRL::ComPtr<ID3D11Buffer> staging;
+				if (FAILED(device->CreateBuffer(&sd, nullptr, &staging)))
+					return false;
+
+				ctx->CopyResource(staging.Get(), src);
+
+				D3D11_MAPPED_SUBRESOURCE m = {};
+				if (FAILED(ctx->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &m)))
+					return false;
+
+				out.resize(elementCount);
+				memcpy(out.data(), m.pData, elementCount * sizeof(uint32_t));
+				ctx->Unmap(staging.Get(), 0);
+				return true;
+			};
+
+		std::vector<uint32_t> counters;
+		if (ReadBack(mCounters->GetBuffer(), 4, counters))
+		{
+			TOAST_CORE_INFO("Counters: Alive=%d Dead=%d Emit=%d AliveAfter=%d",
+				counters[0], counters[1], counters[2], counters[3]);
+			TOAST_CORE_ASSERT(counters[0] == 0, "AliveCount should be 0");
+			TOAST_CORE_ASSERT(counters[1] == MAX_PARTICLES, "DeadCount should be MAX_PARTICLES");
+			TOAST_CORE_ASSERT(counters[0] + counters[1] == MAX_PARTICLES,
+				"INVARIANT BROKEN: Alive + Dead must equal MAX_PARTICLES");
+		}
+
+		std::vector<uint32_t> dead;
+		if (ReadBack(mDeadList->GetBuffer(), 8, dead))   // just the first 8
+		{
+			TOAST_CORE_INFO("DeadList[0..7]: %d %d %d %d %d %d %d %d",
+				dead[0], dead[1], dead[2], dead[3],
+				dead[4], dead[5], dead[6], dead[7]);
+			for (uint32_t i = 0; i < 8; ++i)
+				TOAST_CORE_ASSERT(dead[i] == i, "DeadList must start as 0,1,2,...");
+		}
 	}
 
 }

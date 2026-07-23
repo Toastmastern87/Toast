@@ -16,6 +16,9 @@
 
 namespace Toast {
 
+	// Forward Decleration
+	class ParticleSystem;
+
 	class Renderer 
 	{
 	private:
@@ -231,6 +234,8 @@ namespace Toast {
 			AssetHandle	EnvironmentMipFilterShaderHandle = 0;
 			AssetHandle	EnvironmentIrradianceShaderHandle = 0;
 			AssetHandle UIShaderHandle = 0;
+
+			Ref<ParticleSystem> Particles;
 		};
 
 	protected:
@@ -368,6 +373,8 @@ namespace Toast {
 		static void FillParticleBuffer(std::vector<Particle>& particles);
 
 		static FrameProfiler& GetFrameProfiler();
+
+		static Ref<ParticleSystem> GetParticleSystem();
 	private:
 		static void UploadCameraCBuffer(Camera& camera, const DirectX::XMFLOAT4 cameraPos);
 		static void BindPlanetTerrainResources(bool bindVertexSRVs, bool bindPixelSRVs);

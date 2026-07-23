@@ -40,9 +40,6 @@ namespace Toast {
 		mSceneEntity = mRegistry.create();
 		mRegistry.emplace<SceneComponent>(mSceneEntity, mSceneID);
 
-		mParticleSystem = CreateRef<ParticleSystem>();
-		mParticleSystem->Initialize();
-
 		mPlanet = CreateRef<Planet>();
 		mPlanet->Initialize();
 
@@ -123,6 +120,9 @@ namespace Toast {
 			}
 		}
 
+		// Reseting particle system to make sure nothing is carried over between play and edit state
+		Renderer::GetParticleSystem()->Reset();
+
 		mIsRunning = true;
 	}
 
@@ -140,6 +140,9 @@ namespace Toast {
 			if (mesh.MeshObject->GetIsAnimated())
 				mesh.MeshObject->ResetAnimations();
 		}
+
+		// Reseting particle system to make sure nothing is carried over between play and edit state
+		Renderer::GetParticleSystem()->Reset();
 	}
 
 	void Scene::OnEvent(Event& e)
@@ -544,7 +547,7 @@ namespace Toast {
 
 					Renderer::SetParticleMaskTexture(AssetManager::GetAsset<Texture2D>(pc.MaskTextureHandle).get());
 
-					mParticleSystem->OnUpdate(ts, pc, spawnPosition, tc.Scale, rotationMatrix, maxParticleCount, finalVelocity);
+					Renderer::GetParticleSystem()->OnUpdate(ts, pc, spawnPosition, tc.Scale, rotationMatrix, maxParticleCount, finalVelocity);
 				}
 
 				// Gather particles from all Particle Systems
@@ -1179,7 +1182,7 @@ namespace Toast {
 
 				Renderer::SetParticleMaskTexture(AssetManager::GetAsset<Texture2D>(pc.MaskTextureHandle).get());
 
-				mParticleSystem->OnUpdate(ts, pc, spawnPosition, tc.Scale, rotationMatrix, maxParticleCount, pc.Velocity);
+				Renderer::GetParticleSystem()->OnUpdate(ts, pc, spawnPosition, tc.Scale, rotationMatrix, maxParticleCount, pc.Velocity);
 			}
 
 			// Gather particles from all Particle Systems
