@@ -1182,8 +1182,6 @@ namespace Toast {
 
 				Renderer::SetParticleMaskTexture(AssetManager::GetAsset<Texture2D>(pc.MaskTextureHandle).get());
 
-				Renderer::GetParticleSystem()->OnUpdate(ts, pc, spawnPosition, tc.Scale, rotationMatrix, maxParticleCount, pc.Velocity);
-
 				// ---- TEMPORARY Step 2 GPU emit path (runs alongside the CPU path) ----
 				// Sibling of the CPU loop above, NOT nested inside it.
 				{
@@ -1253,6 +1251,8 @@ namespace Toast {
 					particleSystem->UpdateEmitterParams(emitterParams);
 					for (uint32_t i = 0; i < (uint32_t)emitCounts.size(); ++i)
 						particleSystem->Emit(i, emitCounts[i]);
+
+					particleSystem->Simulate(ts);
 
 					// TEMP CODE
 					particleSystem->DebugLogCounters(60, nrOfParticles);

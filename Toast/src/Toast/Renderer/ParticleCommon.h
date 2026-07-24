@@ -21,6 +21,10 @@ namespace Toast {
 	// thousands of particles in a single dispatch - instantly draining the pool.
 	static constexpr uint32_t MAX_EMIT_PER_EMITTER_PER_FRAME = 4096;
 
+	// Must match the values in ParticleCommon.hlsli
+	static constexpr uint32_t ARGS_OFFSET_DISPATCH = 0;
+	static constexpr uint32_t ARGS_OFFSET_DRAW = 16;
+
 	// Spawn shape
 	// Values most match the EMITFUNCTION_* defines in ParticleCommon.hlsli
 	enum class EmitFunction

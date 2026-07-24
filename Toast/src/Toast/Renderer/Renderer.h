@@ -220,6 +220,9 @@ namespace Toast {
 			AssetHandle AtmosphereShaderHandle = 0;
 			AssetHandle ParticlesShaderHandle = 0;
 			AssetHandle ParticlesEmitShaderHandle = 0;
+			AssetHandle ParticlesSimKickoffShaderHandle = 0;
+			AssetHandle ParticlesSimulateShaderHandle = 0;
+			AssetHandle ParticlesFinalizeShaderHandle = 0;
 			AssetHandle GodRaysShaderHandle = 0;
 			AssetHandle BloomShaderHandle = 0;
 			AssetHandle BloomDownSampleShaderHandle = 0;

@@ -32,7 +32,7 @@ void main( uint3 DTid : SV_DispatchThreadID )
     InterlockedAdd(Counters[PARTICLECOUNTER_DEAD], (uint) -1, deadCountBefore);
     
     // Check if the pool is exhausted, more threads tried to spawn than there were free slots.
-    if (deadCountBefore == 0)
+    if (deadCountBefore == 0 || deadCountBefore > PARTICLE_MAX_PARTICLES)
     {
         InterlockedAdd(Counters[PARTICLECOUNTER_DEAD], 1u);
         return;

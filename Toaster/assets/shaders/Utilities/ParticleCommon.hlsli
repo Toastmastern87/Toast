@@ -4,6 +4,8 @@
 //  Shared particle definitions for the GPU side. Need to match the CPU side
 #define PARTICLE_THREADGROUP_SIZE 64
 
+#define PARTICLE_MAX_PARTICLES 262144
+
 #define PARTICLE_PI 3.14159265359f
 
 // Spawn shape. MUST match enum class EmitFunction in ParticleCommon.h.
@@ -31,7 +33,7 @@ struct GPUParticle
     float3  EndColor;
     float   Size;
     float   GrowRate;
-    float   BurstInitial;
+    float    BurstInitial;
     float   BurstDecay;
     uint    EmitterIndex;
 };

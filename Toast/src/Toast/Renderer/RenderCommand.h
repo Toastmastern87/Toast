@@ -82,6 +82,11 @@ namespace Toast {
 			sRendererAPI->DispatchCompute(x, y, z);
 		}
 
+		static void DispatchComputeIndirect(ID3D11Buffer* argsBuffer, uint32_t alignedByteOffset)
+		{
+			sRendererAPI->DispatchComputeIndirect(argsBuffer, alignedByteOffset);
+		}
+
 		static void SwapBuffers(bool vSync)
 		{
 			sRendererAPI->SwapBuffers(vSync);

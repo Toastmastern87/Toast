@@ -25,7 +25,7 @@ namespace Toast {
 		// Load the shaders needed by the Particle System
 		void LoadShaders();
 
-		// Returns every slot to the free pile and zeroes the counters.
+		// Returns every slot to the free pile and zeros the counters.
 		void Reset();
 
 		// Old CPU Version, will be removed once the full transition to the new particle system is completed
@@ -56,6 +56,8 @@ namespace Toast {
 		// Dispatches the emit compute shader for one emitter.
 		void Emit(uint32_t emitterIndex, uint32_t emitCount);
 
+		void Simulate(float dt);
+
 		// Advances the per-emitter spawn accumulator and returns how many
 		// particles to spawn this frame. Mutates pc.ElapsedTime.
 		static uint32_t ComputeEmitCount(ParticlesComponent& pc, float dt);
@@ -79,7 +81,7 @@ namespace Toast {
 		Ref<StructuredBuffer> mDeadList;
 
 		// The COUNTERS. Exactly 4 uints - 16 bytes TOTAL, not per particle.
-		// This is the "whiteboard" the GPU keeps for itself:
+		// This is the "white board" the GPU keeps for itself:
 		//
 		//   [0] AliveCount          alive this frame -> sizes the simulate dispatch
 		//   [1] DeadCount           free slots left  -> emit checks this
@@ -103,6 +105,10 @@ namespace Toast {
 		Ref<ConstantBuffer> mEmitCBuffer;
 		Buffer              mEmitBuffer;
 
+		// Per-frame simulate constants (just dt, padded to 16 bytes).
+		Ref<ConstantBuffer> mSimCBuffer;
+		Buffer              mSimBuffer;
+
 		// Which alive list is "current"
 		uint32_t mAlivePingPong = 0;
 
@@ -110,6 +116,9 @@ namespace Toast {
 		uint32_t mFrameSeed = 0;
 
 		AssetHandle mEmitShaderHandle;
+		AssetHandle mSimKickoffShaderHandle;
+		AssetHandle mSimulateShaderHandle;
+		AssetHandle mFinalizeShaderHandle;
 
 		// Guards against a second initialize.
 		bool mInitialized = false;

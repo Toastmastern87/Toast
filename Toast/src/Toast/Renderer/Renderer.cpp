@@ -2396,6 +2396,9 @@ namespace Toast {
 			"assets/shaders/Rendering/LightningPass.hlsl",
 			"assets/shaders/Rendering/Particles.hlsl",
 			"assets/shaders/Rendering/ParticleEmit.hlsl",
+			"assets/shaders/Rendering/ParticleSimKickoff.hlsl",
+			"assets/shaders/Rendering/ParticleSimulate.hlsl",
+			"assets/shaders/Rendering/ParticleFinalize.hlsl",
 			"assets/shaders/Rendering/HoverTint.hlsl",
 			"assets/shaders/Rendering/GuidanceMarker.hlsl",
 			"assets/shaders/Debug/ObjectMask.hlsl",
@@ -2461,6 +2464,9 @@ namespace Toast {
 		sRendererData->AtmosphereShaderHandle = AssetManager::GetEngineShaderHandle("Atmosphere");
 		sRendererData->ParticlesShaderHandle = AssetManager::GetEngineShaderHandle("Particles");
 		sRendererData->ParticlesEmitShaderHandle = AssetManager::GetEngineShaderHandle("ParticleEmit");
+		sRendererData->ParticlesSimKickoffShaderHandle = AssetManager::GetEngineShaderHandle("ParticleSimKickoff");
+		sRendererData->ParticlesSimulateShaderHandle = AssetManager::GetEngineShaderHandle("ParticleSimulate");
+		sRendererData->ParticlesFinalizeShaderHandle = AssetManager::GetEngineShaderHandle("ParticleFinalize");
 		sRendererData->Particles->LoadShaders();
 		sRendererData->GodRaysShaderHandle = AssetManager::GetEngineShaderHandle("GodRays");
 		sRendererData->BloomShaderHandle = AssetManager::GetEngineShaderHandle("Bloom");

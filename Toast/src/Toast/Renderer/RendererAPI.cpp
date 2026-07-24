@@ -116,6 +116,11 @@ namespace Toast {
 		mDeviceContext->Dispatch(x, y, z);
 	}
 
+	void RendererAPI::DispatchComputeIndirect(ID3D11Buffer* argsBuffer, uint32_t alignedByteOffset)
+	{
+		mDeviceContext->DispatchIndirect(argsBuffer, alignedByteOffset);
+	}
+
 	void RendererAPI::SwapBuffers(bool vSync)
 	{
 		TOAST_PROFILE_FUNCTION();

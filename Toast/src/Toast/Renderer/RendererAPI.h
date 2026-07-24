@@ -24,6 +24,7 @@ namespace Toast {
 		void DrawIndexedInstanced(const uint32_t indexCountPerInstance, const uint32_t instanceCount, const uint32_t startIndexLocation, const uint32_t baseVertexLocation, const uint32_t startInstanceLocation);
 		void Draw(uint32_t count);
 		void DispatchCompute(uint32_t x, uint32_t y, uint32_t z);
+		void DispatchComputeIndirect(ID3D11Buffer* argsBuffer, uint32_t alignedByteOffset);
 		void SwapBuffers(bool vSync);
 		void SetShaderResource(D3D11_SHADER_TYPE shaderType, uint32_t bindSlot, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
 		void ClearShaderResources();

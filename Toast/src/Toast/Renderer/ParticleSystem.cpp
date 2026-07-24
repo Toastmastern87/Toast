@@ -78,6 +78,11 @@ namespace Toast{
 		mEmitBuffer.Allocate(mEmitCBuffer->GetSize());
 		mEmitBuffer.ZeroInitialize();
 
+		mSimCBuffer = ConstantBufferLibrary::Load("ParticleSim", 16,
+			std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot(2)) });
+		mSimBuffer.Allocate(mSimCBuffer->GetSize());
+		mSimBuffer.ZeroInitialize();
+
 		// Making sure everything is reseted and ready to be used
 		Reset();
 
@@ -92,6 +97,15 @@ namespace Toast{
 	{
 		mEmitShaderHandle = AssetManager::GetEngineShaderHandle("ParticleEmit");
 		TOAST_CORE_ASSERT(mEmitShaderHandle, "ParticleEmit shader not found in the asset registry!");
+
+		mSimKickoffShaderHandle = AssetManager::GetEngineShaderHandle("ParticleSimKickoff");
+		TOAST_CORE_ASSERT(mSimKickoffShaderHandle, "ParticleSimKickoff shader not found in the asset registry!");
+
+		mSimulateShaderHandle = AssetManager::GetEngineShaderHandle("ParticleSimulate");
+		TOAST_CORE_ASSERT(mSimulateShaderHandle, "ParticleSimulate shader not found in the asset registry!");
+
+		mFinalizeShaderHandle = AssetManager::GetEngineShaderHandle("ParticleFinalize");
+		TOAST_CORE_ASSERT(mFinalizeShaderHandle, "ParticleFinalize shader not found in the asset registry!");
 	}
 
 	void ParticleSystem::Reset()
@@ -321,6 +335,89 @@ namespace Toast{
 
 		// Unbind resources
 		RenderCommand::ClearShaderResources();
+	}
+
+	void ParticleSystem::Simulate(float dt)
+	{
+		// No TOAST_PROFILE here: Scene::OnUpdate runs outside the renderer's
+		// profiled frame, so opening a scope here produces query warnings.
+		// Step 5 moves this into the renderer and it gets timing for free.
+
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* ctx = API->GetDeviceContext();
+
+		// per-frame simulate constants 
+		mSimBuffer.Write((uint8_t*)&dt, 4, 0);
+		// bytes 4..15 stay zero (padding to the 16-byte minimum)
+		mSimCBuffer->Map(mSimBuffer);
+		mSimCBuffer->Bind();
+
+		// DISPATCH 1: KICKOFF (1 thread)
+		// Sizes the simulate dispatch, and resets the survivor tally.
+		{
+			mCounters->BindUAV(0);
+
+			// The indirect args buffer is a raw ComPtr, not a StructuredBuffer,
+			// so it has no BindUAV helper. Raw call.
+			ID3D11UnorderedAccessView* argsUAV = mIndirectArgsUAV.Get();
+			ctx->CSSetUnorderedAccessViews(1, 1, &argsUAV, nullptr);
+
+			auto shader = AssetManager::GetAsset<Shader>(mSimKickoffShaderHandle);
+			TOAST_CORE_ASSERT(shader, "ParticleSimKickoff shader missing!");
+			if (shader)
+				shader->Bind();
+
+			RenderCommand::DispatchCompute(1, 1, 1);
+
+			// Unbind: the counters UAV is about to be rebound at a DIFFERENT
+			// slot for the simulate dispatch, and D3D11 will not let the same
+			// resource sit at two UAV slots.
+			mCounters->UnbindUAV(0);
+			ID3D11UnorderedAccessView* nullUAV = nullptr;
+			ctx->CSSetUnorderedAccessViews(1, 1, &nullUAV, nullptr);
+		}
+
+		// DISPATCH 2: SIMULATE (indirect)
+		// Integrate, age, kill, compact survivors into the OTHER alive
+		{
+			mParticleBuffer->BindUAV(0);          // u0 pool
+			GetCurrentAliveList()->BindUAV(1);    // u1 alive IN  (read)
+			GetNextAliveList()->BindUAV(2);       // u2 alive OUT (survivors)
+			mDeadList->BindUAV(3);                // u3 dead
+			mCounters->BindUAV(4);                // u4 counters
+
+			auto shader = AssetManager::GetAsset<Shader>(mSimulateShaderHandle);
+			TOAST_CORE_ASSERT(shader, "ParticleSimulate shader missing!");
+			if (shader)
+				shader->Bind();
+
+			RenderCommand::DispatchComputeIndirect(mIndirectArgs.Get(), ARGS_OFFSET_DISPATCH);
+
+			mParticleBuffer->UnbindUAV(0);
+			GetCurrentAliveList()->UnbindUAV(1);
+			GetNextAliveList()->UnbindUAV(2);
+			mDeadList->UnbindUAV(3);
+			mCounters->UnbindUAV(4);
+		}
+
+		// DISPATCH 3: FINALIZE (1 thread)
+		// Survivors become next frame's alive count.
+		{
+			mCounters->BindUAV(0);
+
+			auto shader = AssetManager::GetAsset<Shader>(mFinalizeShaderHandle);
+			TOAST_CORE_ASSERT(shader, "ParticleFinalize shader missing!");
+			if (shader)
+				shader->Bind();
+
+			RenderCommand::DispatchCompute(1, 1, 1);
+
+			mCounters->UnbindUAV(0);
+		}
+
+		// CPU: flip the ping-pong. The list we just WROTE survivors into
+		// becomes the list we READ next frame - and the list Emit appends to.
+		mAlivePingPong ^= 1u;
 	}
 
 	uint32_t ParticleSystem::ComputeEmitCount(ParticlesComponent& pc, float dt)
