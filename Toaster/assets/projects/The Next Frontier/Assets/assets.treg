@@ -7,8 +7,8 @@
 5222783482869039021|Texture2D|Textures\StarField16k.tif|sRGB=1
 7706550061724850605|Material|Materials\Heatshield.tmtl|
 7274978667343951183|Texture2D|Textures\MarsAlbedo.png|sRGB=0
-2915971554223233935|Texture2D|Textures\UI\14_FollowStarship.png|sRGB=0
 17463281943660964239|Texture2D|Textures\Rock_Cliff_roughness.tif|sRGB=0
+2915971554223233935|Texture2D|Textures\UI\14_FollowStarship.png|sRGB=0
 17756802592510560904|Texture2D|Textures\Starship_Heat_Shield_roughness.png|sRGB=0
 13089968595864323080|Texture2D|Textures\UI\01_UIMoneyPanel.png|sRGB=1
 6551670257254948990|Texture2D|Textures\Sand_basecolor.tif|sRGB=1
@@ -92,3 +92,4 @@
 6204518153654210992|Material|Materials\StainlessSteelSN3.tmtl|
 2592661949062712934|Material|Materials\RaptorSN3.tmtl|
 14210489555676720937|Material|Materials\Material.tmtl|
+16986451805673895676|Shader|Shaders\ParticleEmit.hlsl|

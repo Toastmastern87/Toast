@@ -1,6 +1,8 @@
 #include "tpch.h"
 #include "ParticleSystem.h"
 
+#include "Toast/Debug/FrameProfiler.h"
+
 #include "Toast/Renderer/Renderer.h"
 
 namespace Toast{
@@ -65,6 +67,17 @@ namespace Toast{
 			if (FAILED(hr)) return false;
 		}
 
+		mEmitterParams = CreateRef<StructuredBuffer>(
+			sizeof(EmitterParamsGPU),   // stride: 112 bytes
+			MAX_EMITTERS,               // count:  64
+			D3D11_USAGE_DYNAMIC,
+			false,                      // createUAV: no
+			false);                     // append: no
+
+		mEmitCBuffer = ConstantBufferLibrary::Load("ParticleEmit", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot(1)) });
+		mEmitBuffer.Allocate(mEmitCBuffer->GetSize());
+		mEmitBuffer.ZeroInitialize();
+
 		// Making sure everything is reseted and ready to be used
 		Reset();
 
@@ -73,6 +86,12 @@ namespace Toast{
 		TOAST_CORE_INFO("GPU particle pool initialized: %d slots, %d MB total VRAM.",	N, (N * (sizeof(GPUParticle) + 3 * sizeof(uint32_t))) / (1024 * 1024));
 
 		return true;
+	}
+
+	void ParticleSystem::LoadShaders()
+	{
+		mEmitShaderHandle = AssetManager::GetEngineShaderHandle("ParticleEmit");
+		TOAST_CORE_ASSERT(mEmitShaderHandle, "ParticleEmit shader not found in the asset registry!");
 	}
 
 	void ParticleSystem::Reset()
@@ -250,60 +269,114 @@ namespace Toast{
 		return biasedValue * halfExtent;
 	}
 
-	// TEMP CODE!
-	void ParticleSystem::DebugValidatePool()
+	void ParticleSystem::UpdateEmitterParams(const std::vector<EmitterParamsGPU>& emitters)
 	{
+		if (emitters.empty())
+			return;
+
+		TOAST_CORE_ASSERT(emitters.size() <= MAX_EMITTERS, "More particle emitters than MAX_EMITTERS!");
+
+		// Update the structured buffer with the emitters data
+		mEmitterParams->Update(emitters.data(), emitters.size() * sizeof(EmitterParamsGPU));
+	}
+
+	void ParticleSystem::Emit(uint32_t emitterIndex, uint32_t emitCount)
+	{
+		if (emitCount == 0)
+			return;
+
+		//RendererAPI* API = RenderCommand::sRendererAPI.get();
+		//ID3D11DeviceContext* ctx = API->GetDeviceContext();
+
+		// --- per-dispatch constants ---
+		// Map it into the emit constant buffer, then Bind.
+		mEmitBuffer.Write((uint8_t*)&emitCount, 4, 0);
+		mEmitBuffer.Write((uint8_t*)&emitterIndex, 4, 4);
+		mEmitBuffer.Write((uint8_t*)&mFrameSeed, 4, 8);
+		// bytes 12..15 stay zero - padding to the 16-byte constant buffer minimum.
+		mEmitCBuffer->Map(mEmitBuffer);
+		mEmitCBuffer->Bind();
+
+		// --- bind the pool (order must match the register(uN) declarations) ---
+		mParticleBuffer->BindUAV(0);
+		mDeadList->BindUAV(1);
+		GetCurrentAliveList()->BindUAV(2);
+		mCounters->BindUAV(3);
+
+		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, mEmitterParams->GetSRV());
+		auto shader = AssetManager::GetAsset<Shader>(mEmitShaderHandle);
+		if (shader)
+			shader->Bind();
+
+		// Round UP so a partial group still runs; the shader's early-out
+        // handles the spare threads.
+        const uint32_t groups = (emitCount + PARTICLE_THREADGROUP_SIZE - 1) / PARTICLE_THREADGROUP_SIZE;
+		RenderCommand::DispatchCompute(groups, 1, 1);
+
+		// Unbind everything that we used in the emit compute shader
+		mParticleBuffer->UnbindUAV(0);
+		mDeadList->UnbindUAV(1);
+		GetCurrentAliveList()->UnbindUAV(2);
+		mCounters->UnbindUAV(3);
+
+		// Unbind resources
+		RenderCommand::ClearShaderResources();
+	}
+
+	uint32_t ParticleSystem::ComputeEmitCount(ParticlesComponent& pc, float dt)
+	{
+		if (!pc.Emitting || pc.SpawnDelay <= 0.0)
+			return 0;
+
+		pc.ElapsedTime += dt;
+
+		// How many whole spawn intervals fit in the accumulated time.
+		uint32_t count = static_cast<uint32_t>(pc.ElapsedTime / pc.SpawnDelay);
+
+		// Keep the remainder. THIS is what makes the spawn rate independent of
+		// framerate - dropping it would make emission slower at low FPS.
+		pc.ElapsedTime -= count * pc.SpawnDelay;
+
+		if (count > MAX_EMIT_PER_EMITTER_PER_FRAME)
+			count = MAX_EMIT_PER_EMITTER_PER_FRAME;
+
+		return count;
+	}
+
+	// TEMP CODE!
+	// DEBUG ONLY - stalls the GPU. Logs every `everyNFrames` calls.
+	void ParticleSystem::DebugLogCounters(uint32_t everyNFrames, int32_t OLDnrOfParticles)
+	{
+		static uint32_t counter = 0;
+		if (++counter % everyNFrames != 0)
+			return;
+
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
 		ID3D11DeviceContext* ctx = API->GetDeviceContext();
 
-		auto ReadBack = [&](ID3D11Buffer* src, uint32_t elementCount, std::vector<uint32_t>& out)
-			{
-				D3D11_BUFFER_DESC bd = {};
-				src->GetDesc(&bd);
+		D3D11_BUFFER_DESC bd = {};
+		mCounters->GetBuffer()->GetDesc(&bd);
+		bd.Usage = D3D11_USAGE_STAGING;
+		bd.BindFlags = 0;
+		bd.MiscFlags = 0;
+		bd.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
 
-				// Staging copy: same layout, but CPU-readable and not bindable.
-				D3D11_BUFFER_DESC sd = bd;
-				sd.Usage = D3D11_USAGE_STAGING;
-				sd.BindFlags = 0;
-				sd.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> staging;
+		if (FAILED(device->CreateBuffer(&bd, nullptr, &staging)))
+			return;
 
-				Microsoft::WRL::ComPtr<ID3D11Buffer> staging;
-				if (FAILED(device->CreateBuffer(&sd, nullptr, &staging)))
-					return false;
+		ctx->CopyResource(staging.Get(), mCounters->GetBuffer());
 
-				ctx->CopyResource(staging.Get(), src);
+		D3D11_MAPPED_SUBRESOURCE m = {};
+		if (FAILED(ctx->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &m)))
+			return;
 
-				D3D11_MAPPED_SUBRESOURCE m = {};
-				if (FAILED(ctx->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &m)))
-					return false;
+		uint32_t c[4];
+		memcpy(c, m.pData, sizeof(c));
+		ctx->Unmap(staging.Get(), 0);
 
-				out.resize(elementCount);
-				memcpy(out.data(), m.pData, elementCount * sizeof(uint32_t));
-				ctx->Unmap(staging.Get(), 0);
-				return true;
-			};
-
-		std::vector<uint32_t> counters;
-		if (ReadBack(mCounters->GetBuffer(), 4, counters))
-		{
-			TOAST_CORE_INFO("Counters: Alive=%d Dead=%d Emit=%d AliveAfter=%d",
-				counters[0], counters[1], counters[2], counters[3]);
-			TOAST_CORE_ASSERT(counters[0] == 0, "AliveCount should be 0");
-			TOAST_CORE_ASSERT(counters[1] == MAX_PARTICLES, "DeadCount should be MAX_PARTICLES");
-			TOAST_CORE_ASSERT(counters[0] + counters[1] == MAX_PARTICLES,
-				"INVARIANT BROKEN: Alive + Dead must equal MAX_PARTICLES");
-		}
-
-		std::vector<uint32_t> dead;
-		if (ReadBack(mDeadList->GetBuffer(), 8, dead))   // just the first 8
-		{
-			TOAST_CORE_INFO("DeadList[0..7]: %d %d %d %d %d %d %d %d",
-				dead[0], dead[1], dead[2], dead[3],
-				dead[4], dead[5], dead[6], dead[7]);
-			for (uint32_t i = 0; i < 8; ++i)
-				TOAST_CORE_ASSERT(dead[i] == i, "DeadList must start as 0,1,2,...");
-		}
+		TOAST_CORE_INFO("OLD PARTICLE SYSTEM: %d, Particles: Alive=%d Dead=%d (sum=%d, should be %d)", OLDnrOfParticles, c[0], c[1], c[0] + c[1], MAX_PARTICLES);
 	}
 
 }

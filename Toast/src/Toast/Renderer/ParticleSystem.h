@@ -22,6 +22,9 @@ namespace Toast {
 		// Creates the GPU pool. Called ONCE, from Renderer::Init()
 		bool Init();
 
+		// Load the shaders needed by the Particle System
+		void LoadShaders();
+
 		// Returns every slot to the free pile and zeroes the counters.
 		void Reset();
 
@@ -33,9 +36,32 @@ namespace Toast {
 		float BiasedRandomValue(float scale, float biasExponent);
 
 		Ref<StructuredBuffer> GetParticleBuffer() { return mParticleBuffer; }
+		Ref<StructuredBuffer> GetDeadList() { return mDeadList; }
+		Ref<StructuredBuffer> GetCounters() { return mCounters; }
+
+		// The list being READ this frame (emit appends to it, simulate reads it).
+		Ref<StructuredBuffer> GetCurrentAliveList() { return mAlivePingPong == 0 ? mAliveListA : mAliveListB; }
+		// The list being WRITTEN this frame (simulate appends survivors to it).
+		Ref<StructuredBuffer> GetNextAliveList() { return mAlivePingPong == 0 ? mAliveListB : mAliveListA; }
+
+		ID3D11Buffer* GetIndirectArgs() { return mIndirectArgs.Get(); }
+		ID3D11UnorderedAccessView* GetIndirectArgsUAV() { return mIndirectArgsUAV.Get(); }
+
+		uint32_t GetFrameSeed() const { return mFrameSeed; }
+		void AdvanceFrameSeed() { ++mFrameSeed; }
+
+		// Uploads all emitter params for this frame. Call once, before Emit().
+		void UpdateEmitterParams(const std::vector<EmitterParamsGPU>& emitters);
+
+		// Dispatches the emit compute shader for one emitter.
+		void Emit(uint32_t emitterIndex, uint32_t emitCount);
+
+		// Advances the per-emitter spawn accumulator and returns how many
+		// particles to spawn this frame. Mutates pc.ElapsedTime.
+		static uint32_t ComputeEmitCount(ParticlesComponent& pc, float dt);
 
 		// TEMP CODE!
-		void DebugValidatePool();
+		void DebugLogCounters(uint32_t everyNFrames, int32_t OLDnrOfParticles);
 	private:
 		// The pool of particles. 262,144 slots of GPUParticle data (~20 MB).
 		Ref<StructuredBuffer> mParticleBuffer;
@@ -63,7 +89,6 @@ namespace Toast {
 		// INVARIANT: AliveCount + DeadCount == MAX_PARTICLES, always. If that
 		// ever drifts, an atomic is wrong. It is the single best health check
 		// in this entire system.
-		// ---------------------------------------------------------------------
 		Ref<StructuredBuffer> mCounters;
 
 		// The INDIRECT ARGS buffer. 64 bytes. Cannot be a StructuredBuffer -
@@ -72,11 +97,19 @@ namespace Toast {
 		Microsoft::WRL::ComPtr<ID3D11Buffer>              mIndirectArgs;
 		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> mIndirectArgsUAV;
 
+		// Per-emitter parameters, rewritten by the CPU every frame.
+		Ref<StructuredBuffer> mEmitterParams;
+
+		Ref<ConstantBuffer> mEmitCBuffer;
+		Buffer              mEmitBuffer;
+
 		// Which alive list is "current"
 		uint32_t mAlivePingPong = 0;
 
 		// Advanced once per frame so that the GPU RNG differs between frames
 		uint32_t mFrameSeed = 0;
+
+		AssetHandle mEmitShaderHandle;
 
 		// Guards against a second initialize.
 		bool mInitialized = false;

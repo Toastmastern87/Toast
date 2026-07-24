@@ -37,8 +37,6 @@ namespace Toast {
 		if (!sRendererData->Particles->Init())
 			TOAST_CORE_ASSERT(false, "Failed to initialize the GPU particle system!");
 
-		sRendererData->Particles->DebugValidatePool();
-
 #if TOAST_PROFILE_ENABLED
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		sRendererData->FrameProfiler = CreateScope<FrameProfiler>();
@@ -2397,6 +2395,7 @@ namespace Toast {
 			"assets/shaders/Rendering/SSAOBlurPass.hlsl",
 			"assets/shaders/Rendering/LightningPass.hlsl",
 			"assets/shaders/Rendering/Particles.hlsl",
+			"assets/shaders/Rendering/ParticleEmit.hlsl",
 			"assets/shaders/Rendering/HoverTint.hlsl",
 			"assets/shaders/Rendering/GuidanceMarker.hlsl",
 			"assets/shaders/Debug/ObjectMask.hlsl",
@@ -2461,6 +2460,8 @@ namespace Toast {
 		sRendererData->AerialPerspectiveCSShaderHandle = AssetManager::GetEngineShaderHandle("AerialPerspectiveCS");
 		sRendererData->AtmosphereShaderHandle = AssetManager::GetEngineShaderHandle("Atmosphere");
 		sRendererData->ParticlesShaderHandle = AssetManager::GetEngineShaderHandle("Particles");
+		sRendererData->ParticlesEmitShaderHandle = AssetManager::GetEngineShaderHandle("ParticleEmit");
+		sRendererData->Particles->LoadShaders();
 		sRendererData->GodRaysShaderHandle = AssetManager::GetEngineShaderHandle("GodRays");
 		sRendererData->BloomShaderHandle = AssetManager::GetEngineShaderHandle("Bloom");
 		sRendererData->BloomDownSampleShaderHandle = AssetManager::GetEngineShaderHandle("BloomDownSample");

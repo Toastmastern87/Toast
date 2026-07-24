@@ -219,6 +219,7 @@ namespace Toast {
 			AssetHandle AerialPerspectiveCSShaderHandle = 0;
 			AssetHandle AtmosphereShaderHandle = 0;
 			AssetHandle ParticlesShaderHandle = 0;
+			AssetHandle ParticlesEmitShaderHandle = 0;
 			AssetHandle GodRaysShaderHandle = 0;
 			AssetHandle BloomShaderHandle = 0;
 			AssetHandle BloomDownSampleShaderHandle = 0;
