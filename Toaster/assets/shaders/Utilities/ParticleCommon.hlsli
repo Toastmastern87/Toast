@@ -20,6 +20,9 @@
 // 0 = the old systems existing axis-clustered look (denser core; good for plumes).
 #define CONE_UNIFORM_DISTRIBUTION 0
 
+// Indices per particle quad: 2 triangles = 6 indices.
+#define PARTICLE_QUAD_INDEX_COUNT 6
+
 // Must stay indentical to GPUParticle in ParticleCommon
 // In food terms this can be seen as a dish that uses the recipe(EmitterParams) to produce a particle.
 struct GPUParticle

@@ -9,20 +9,7 @@ instance
 #type vertex
 #pragma pack_matrix( row_major )
 
-struct ParticleInstance
-{
-    float3 position;
-    float3 velocity;
-    float3 startColor;
-    float3 endColor;
-    float colorBlendFactor;
-    float age;
-    float lifetime;
-    float size;
-    float growRate;
-    float burstInitial;
-    float burstDecay;
-};
+#include "ParticleCommon.hlsli"
 
 // Quad corner offsets
 static const float2 offsets[4] =
@@ -34,7 +21,9 @@ static const float2 offsets[4] =
 };
 
 // Structured buffer for particle data
-StructuredBuffer<ParticleInstance> particleBuffer : register(t0);
+StructuredBuffer<GPUParticle> ParticleBuffer : register(t0);
+// t1: the alive list. Packed. Maps instance index -> pool slot.
+StructuredBuffer<uint> AliveList : register(t1);
 
 cbuffer Camera : register(b0)
 {
@@ -61,24 +50,31 @@ struct PixelInputType
 PixelInputType main(uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
 {
     PixelInputType output;
-    ParticleInstance p = particleBuffer[instanceID];
     
-    float burstFactor = lerp(p.burstInitial, 1.0f, saturate(p.age / p.burstDecay));
-    float3 worldPos = p.position + p.velocity * p.age * burstFactor;
+    // Get the particle to draw
+    // SV_InstanceID is a position in the PACKED alive list, not a pool
+    uint particleIndex = AliveList[instanceID];
+    GPUParticle p = ParticleBuffer[particleIndex];
     
+    // Position is simulated on the GPU now in the new particle system, so we use it directly.
+    float3 worldPos = p.Position;
+    
+    // Floating origin: Position is origin-relative; this applies the
     worldPos = mul(float4(worldPos, 1.0f), worldTranslationMatrix).xyz;
     
-    float lifeRatio = p.age / p.lifetime;
-    float scaledSize = p.size * (1.0f + p.growRate * lifeRatio);
+    float lifeRatio = p.Age / p.Lifetime;
+    float scaledSize = p.Size * (1.0f + p.GrowRate * lifeRatio);
     float alpha = lerp(1.0f, 0.0f, lifeRatio);
     
-    float adjustedBlend = lerp(lifeRatio, 1.0, p.colorBlendFactor);
-    float3 lerpedColor = lerp(p.startColor, p.endColor, adjustedBlend);
-
+    float adjustedBlend = lerp(lifeRatio, 1.0, p.ColorBlendFactor);
+    float3 lerpedColor = lerp(p.StartColor, p.EndColor, adjustedBlend);
+    
+    // View-space billboarding: offsetting after the view transform makes the
+    // quad automatically face the camera.
     float4 viewPos = mul(float4(worldPos, 1.0f), viewMatrix);
     float3 right = float3(1.0f, 0.0f, 0.0f);
     float3 up = float3(0.0f, 1.0f, 0.0f);
-    
+
     float2 cornerOffset = offsets[vertexID] * scaledSize;
     float3 viewOffset = (cornerOffset.x * right) + (cornerOffset.y * up);
     viewPos.xyz += viewOffset;
@@ -109,9 +105,7 @@ Texture2D MaskTexture : register(t0);
 SamplerState defaultSampler : register(s0);
 
 float4 main(PixelInputType input) : SV_TARGET
-{
-    //return input.color;
-    
+{   
     // Sample the mask texture using the provided UV coordinates.
     float4 texColor = MaskTexture.Sample(defaultSampler, input.uv);
 

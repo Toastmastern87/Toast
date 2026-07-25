@@ -1796,13 +1796,19 @@ namespace Toast {
 		if (annotation)
 			annotation->BeginEvent(L"Particle Pass");
 #endif
+		auto particleSystem = sRendererData->Particles;
 
 		RenderCommand::SetViewport(sRendererData->Viewport);
 		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
 		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->ParticleDepthStencilState);
 		RenderCommand::SetBlendState(sRendererData->ParticleBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
-		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->ParticlesSRV);
+
+		// Binding the pool of particles and the current alive list, this is the ping-pong list that alternates 
+		// between frames.
+		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, particleSystem->GetParticleBuffer()->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 1, particleSystem->GetCurrentAliveList()->GetSRV());
+
 		if(sRendererData->ParticleMaskTexture)
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->ParticleMaskTexture->GetSRV());
 
@@ -1815,7 +1821,7 @@ namespace Toast {
 		if (shader)
 			shader->Bind();
 
-		RenderCommand::DrawIndexedInstanced(6, sRendererData->NrOfParticlesToRender, 0, 0, 0);
+		RenderCommand::DrawIndexedInstancedIndirect(particleSystem->GetIndirectArgs(), ARGS_OFFSET_DRAW);
 
 		ID3D11RenderTargetView* nullRTV = nullptr;
 		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);

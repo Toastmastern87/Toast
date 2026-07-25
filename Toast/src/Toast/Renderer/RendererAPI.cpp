@@ -106,6 +106,11 @@ namespace Toast {
 		mDeviceContext->DrawIndexedInstanced(indexCountPerInstance, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
 	}
 
+	void RendererAPI::DrawIndexedInstancedIndirect(ID3D11Buffer* argsBuffer, uint32_t alignedByteOffset)
+	{
+		mDeviceContext->DrawIndexedInstancedIndirect(argsBuffer, alignedByteOffset);
+	}
+
 	void RendererAPI::Draw(uint32_t count)
 	{
 		mDeviceContext->Draw(count, 0);

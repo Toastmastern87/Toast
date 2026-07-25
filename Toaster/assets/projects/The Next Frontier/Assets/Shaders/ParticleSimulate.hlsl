@@ -34,8 +34,13 @@ void main( uint3 DTid : SV_DispatchThreadID )
     uint particleIndex = AliveListIn[DTid.x];
     GPUParticle p = ParticleBuffer[particleIndex];
     
+    // Integrate and age
+    float burstFactor = 1.0f;
+    if (p.BurstDecay > 0.0f)
+        burstFactor = lerp(p.BurstInitial, 1.0f, saturate(p.Age / p.BurstDecay));
+   
     p.Age += DeltaTime;
-    p.Position += p.Velocity * DeltaTime;
+    p.Position += p.Velocity * burstFactor * DeltaTime;
     
     if (p.Age >= p.Lifetime)
     {

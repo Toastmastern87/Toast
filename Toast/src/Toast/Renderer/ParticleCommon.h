@@ -17,11 +17,11 @@ namespace Toast {
 	static constexpr uint32_t PARTICLE_THREADGROUP_SIZE = 64;
 
 	// Safety valve. After a frame hitch (level load, shader compile, breakpoint)
-	// dt can be enormous, and the spawn accumulator would ask for hundreds of
+	// delta time can be enormous, and the spawn accumulator would ask for hundreds of
 	// thousands of particles in a single dispatch - instantly draining the pool.
 	static constexpr uint32_t MAX_EMIT_PER_EMITTER_PER_FRAME = 4096;
 
-	// Must match the values in ParticleCommon.hlsli
+	// Must match the values in ParticleCommon.hlsli, used for indirect drawing
 	static constexpr uint32_t ARGS_OFFSET_DISPATCH = 0;
 	static constexpr uint32_t ARGS_OFFSET_DRAW = 16;
 

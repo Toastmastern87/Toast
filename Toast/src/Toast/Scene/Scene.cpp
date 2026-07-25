@@ -1255,7 +1255,7 @@ namespace Toast {
 					particleSystem->Simulate(ts);
 
 					// TEMP CODE
-					particleSystem->DebugLogCounters(60, nrOfParticles);
+					//particleSystem->DebugLogCounters(5, nrOfParticles);
 				}
 			}
 

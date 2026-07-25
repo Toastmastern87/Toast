@@ -22,6 +22,7 @@ namespace Toast {
 		//void Clear(const DirectX::XMFLOAT4 clearColor);
 		void DrawIndexed(const uint32_t baseVertex, const uint32_t baseIndex, const uint32_t indexCount);
 		void DrawIndexedInstanced(const uint32_t indexCountPerInstance, const uint32_t instanceCount, const uint32_t startIndexLocation, const uint32_t baseVertexLocation, const uint32_t startInstanceLocation);
+		void DrawIndexedInstancedIndirect(ID3D11Buffer* argsBuffer, uint32_t alignedByteOffset);
 		void Draw(uint32_t count);
 		void DispatchCompute(uint32_t x, uint32_t y, uint32_t z);
 		void DispatchComputeIndirect(ID3D11Buffer* argsBuffer, uint32_t alignedByteOffset);

@@ -405,6 +405,9 @@ namespace Toast{
 		{
 			mCounters->BindUAV(0);
 
+			ID3D11UnorderedAccessView* argsUAV = mIndirectArgsUAV.Get();
+			ctx->CSSetUnorderedAccessViews(1, 1, &argsUAV, nullptr);
+
 			auto shader = AssetManager::GetAsset<Shader>(mFinalizeShaderHandle);
 			TOAST_CORE_ASSERT(shader, "ParticleFinalize shader missing!");
 			if (shader)
@@ -413,6 +416,10 @@ namespace Toast{
 			RenderCommand::DispatchCompute(1, 1, 1);
 
 			mCounters->UnbindUAV(0);
+
+			// Must unbind the argument buffer to be ready to be used by DrawIndexedInstancedIndirect.
+			ID3D11UnorderedAccessView* nullUAV = nullptr;
+			ctx->CSSetUnorderedAccessViews(1, 1, &nullUAV, nullptr);
 		}
 
 		// CPU: flip the ping-pong. The list we just WROTE survivors into

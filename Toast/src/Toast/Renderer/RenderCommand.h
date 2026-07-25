@@ -4,7 +4,7 @@
 
 namespace Toast {
 
-	class RenderCommand 
+	class RenderCommand
 	{
 	public:
 		static void Init()
@@ -17,7 +17,7 @@ namespace Toast {
 			sRendererAPI->SetViewport(viewport);
 		}
 
-		static void SetRasterizerState(Microsoft::WRL::ComPtr<ID3D11RasterizerState>& rasterizerState) 
+		static void SetRasterizerState(Microsoft::WRL::ComPtr<ID3D11RasterizerState>& rasterizerState)
 		{
 			sRendererAPI->SetRasterizerState(rasterizerState);
 		}
@@ -70,6 +70,11 @@ namespace Toast {
 		static void DrawIndexedInstanced(const uint32_t indexCountPerInstance, const uint32_t instanceCount, const uint32_t startIndexLocation, const uint32_t baseVertexLocation, const uint32_t startInstanceLocation)
 		{
 			sRendererAPI->DrawIndexedInstanced(indexCountPerInstance, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
+		}
+
+		static void DrawIndexedInstancedIndirect(ID3D11Buffer* argsBuffer, uint32_t alignedByteOffset) 
+		{
+			sRendererAPI->DrawIndexedInstancedIndirect(argsBuffer, alignedByteOffset);
 		}
 
 		static void Draw(uint32_t count)
