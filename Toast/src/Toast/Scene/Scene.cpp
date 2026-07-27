@@ -493,75 +493,91 @@ namespace Toast {
 
 			// Process Particles
 			{
-				size_t maxParticleCount = 0;
+				auto particleSystem = Renderer::GetParticleSystem();
 
-				int32_t nrOfParticles = 0;
+				std::vector<EmitterParamsGPU> emitterParams;
+				std::vector<uint32_t> emitCounts;
+
 				auto view = mRegistry.view<ParticlesComponent>();
 				for (auto entity : view)
 				{
+					if (emitterParams.size() >= MAX_EMITTERS)
+					{
+						TOAST_CORE_WARN("More than %d particle emitters - ignoring the rest.", MAX_EMITTERS);
+						break;
+					}
+
 					Entity e = { entity, this };
-
-					ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
-
-					const float x = pc.MaxLifeTime / pc.SpawnDelay;
-					maxParticleCount += static_cast<size_t>(std::ceil(x)) + 2;
-					nrOfParticles += pc.Particles.size();
-				}
-
-				Renderer::InvalidateParticleBuffers(nrOfParticles, maxParticleCount);
-
-				for (auto entity : view)
-				{
-					Entity e = { entity, this };
-
 					ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
 					TransformComponent& tc = e.GetComponent<TransformComponent>();
 
 					DirectX::XMFLOAT3 spawnPosition = e.GetComponent<TransformComponent>().Translation;
-
-					DirectX::XMFLOAT3 finalVelocity = { 0.0f, 0.0f, 0.0f };
-
 					DirectX::XMMATRIX rotationMatrix = tc.GetRotation();
+
+					// Inherited world-space velocity from a parent rigid body, if any.
+					DirectX::XMFLOAT3 parentVelocity = { 0.0f, 0.0f, 0.0f };
+
 					if (e.HasParent())
 					{
 						Entity parent = FindEntityByUUID(e.GetParentUUID());
-
-						auto parentTC = parent.GetComponent<TransformComponent>();
-
-						RigidBodyComponent parentRB;
-
-						if (parent.HasComponent<RigidBodyComponent>())
-							parentRB = parent.GetComponent<RigidBodyComponent>();
+						TransformComponent& parentTC = parent.GetComponent<TransformComponent>();
 
 						DirectX::XMMATRIX parentTransform = parentTC.GetTransformWithoutScale();
-
-						finalVelocity = { pc.Velocity.x + (float)parentRB.LinearVelocity.x, pc.Velocity.y + (float)parentRB.LinearVelocity.y, pc.Velocity.z + (float)parentRB.LinearVelocity.z };
-
-						// Transform the local spawn position by the parent's transform.
 						DirectX::XMVECTOR localPos = DirectX::XMLoadFloat3(&spawnPosition);
 						DirectX::XMVECTOR worldPos = DirectX::XMVector3Transform(localPos, parentTransform);
 						DirectX::XMStoreFloat3(&spawnPosition, worldPos);
 
 						rotationMatrix = DirectX::XMMatrixMultiply(rotationMatrix, parentTC.GetRotation());
+
+						// Velocity inheritance: only if the parent has a rigid body.
+						// Restores the behavior dropped during the Step 2 test - this
+						// is what stops a fast ship overtaking its own exhaust.
+						if (parent.HasComponent<RigidBodyComponent>())
+						{
+							auto& parentRB = parent.GetComponent<RigidBodyComponent>();
+							parentVelocity = {
+								(float)parentRB.LinearVelocity.x,
+								(float)parentRB.LinearVelocity.y,
+								(float)parentRB.LinearVelocity.z
+							};
+						}
 					}
+
+					DirectX::XMFLOAT3 finalVelocity;
+					{
+						DirectX::XMVECTOR v = DirectX::XMLoadFloat3(&pc.Velocity);
+						v = DirectX::XMVector3Transform(v, rotationMatrix);
+						DirectX::XMStoreFloat3(&finalVelocity, v);
+					}
+
+					finalVelocity.x += parentVelocity.x;
+					finalVelocity.y += parentVelocity.y;
+					finalVelocity.z += parentVelocity.z;
 
 					Renderer::SetParticleMaskTexture(AssetManager::GetAsset<Texture2D>(pc.MaskTextureHandle).get());
 
-					Renderer::GetParticleSystem()->OnUpdate(ts, pc, spawnPosition, tc.Scale, rotationMatrix, maxParticleCount, finalVelocity);
+					EmitterParamsGPU p = {};
+					p.SpawnPosition = spawnPosition;
+					p.SpawnSize = tc.Scale;
+					p.Velocity = finalVelocity;
+					p.ConeAngleDegrees = pc.ConeAngleDegrees;
+					p.BiasExponent = pc.BiasExponent;
+					p.StartColor = pc.StartColor;
+					p.EndColor = pc.EndColor;
+					p.ColorBlendFactor = pc.ColorBlendFactor;
+					p.MaxLifeTime = pc.MaxLifeTime;
+					p.Size = pc.Size;
+					p.GrowRate = pc.GrowRate;
+					p.BurstInitial = pc.BurstInitial;
+					p.BurstDecay = pc.BurstDecay;
+					p.EmitFunction = static_cast<uint32_t>(pc.SpawnFunction);
+
+					emitterParams.push_back(p);
+					emitCounts.push_back(ParticleSystem::ComputeEmitCount(pc, ts));
 				}
 
-				// Gather particles from all Particle Systems
-				std::vector<Particle> aggregatedParticles;
-				for (auto entity : view)
-				{
-					Entity e = { entity, this };
-					ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
-					aggregatedParticles.insert(aggregatedParticles.end(), pc.Particles.begin(), pc.Particles.end());
-				}
-
-
-				Renderer::FillParticleBuffer(aggregatedParticles);
-			}
+				particleSystem->OnUpdate(ts, emitterParams, emitCounts);
+			} // End particle system
 
 			DirectX::XMMatrixDecompose(&cameraScale, &cameraRot, &cameraPos, cameraTransform);
 			DirectX::XMFLOAT4 cameraPosFloat;
@@ -1137,139 +1153,91 @@ namespace Toast {
 
 		// Process Particles
 		{
-			size_t maxParticleCount = 0;
+			auto particleSystem = Renderer::GetParticleSystem();
 
-			int32_t nrOfParticles = 0;
+			std::vector<EmitterParamsGPU> emitterParams;
+			std::vector<uint32_t> emitCounts;
+
 			auto view = mRegistry.view<ParticlesComponent>();
 			for (auto entity : view)
 			{
+				if (emitterParams.size() >= MAX_EMITTERS)
+				{
+					TOAST_CORE_WARN("More than %d particle emitters - ignoring the rest.", MAX_EMITTERS);
+					break;
+				}
+
 				Entity e = { entity, this };
-
-				ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
-
-				const float x = pc.MaxLifeTime / pc.SpawnDelay;
-				maxParticleCount += static_cast<size_t>(std::ceil(x)) + 2;
-				nrOfParticles += pc.Particles.size();
-			}
-
-			Renderer::InvalidateParticleBuffers(nrOfParticles, maxParticleCount);
-
-			for (auto entity : view)
-			{
-				Entity e = { entity, this };
-
 				ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
 				TransformComponent& tc = e.GetComponent<TransformComponent>();
 
 				DirectX::XMFLOAT3 spawnPosition = e.GetComponent<TransformComponent>().Translation;
-
 				DirectX::XMMATRIX rotationMatrix = tc.GetRotation();
+
+				// Inherited world-space velocity from a parent rigid body, if any.
+				DirectX::XMFLOAT3 parentVelocity = { 0.0f, 0.0f, 0.0f };
+
 				if (e.HasParent())
 				{
 					Entity parent = FindEntityByUUID(e.GetParentUUID());
-
-					auto parentTC = parent.GetComponent<TransformComponent>();
+					TransformComponent& parentTC = parent.GetComponent<TransformComponent>();
 
 					DirectX::XMMATRIX parentTransform = parentTC.GetTransformWithoutScale();
-
-					// Transform the local spawn position by the parent's transform.
 					DirectX::XMVECTOR localPos = DirectX::XMLoadFloat3(&spawnPosition);
 					DirectX::XMVECTOR worldPos = DirectX::XMVector3Transform(localPos, parentTransform);
 					DirectX::XMStoreFloat3(&spawnPosition, worldPos);
 
 					rotationMatrix = DirectX::XMMatrixMultiply(rotationMatrix, parentTC.GetRotation());
+
+					// Velocity inheritance: only if the parent has a rigid body.
+					// Restores the behavior dropped during the Step 2 test - this
+					// is what stops a fast ship overtaking its own exhaust.
+					if (parent.HasComponent<RigidBodyComponent>())
+					{
+						auto& parentRB = parent.GetComponent<RigidBodyComponent>();
+						parentVelocity = {
+							(float)parentRB.LinearVelocity.x,
+							(float)parentRB.LinearVelocity.y,
+							(float)parentRB.LinearVelocity.z
+						};
+					}
 				}
+
+				DirectX::XMFLOAT3 finalVelocity;
+				{
+					DirectX::XMVECTOR v = DirectX::XMLoadFloat3(&pc.Velocity);
+					v = DirectX::XMVector3Transform(v, rotationMatrix);
+					DirectX::XMStoreFloat3(&finalVelocity, v);
+				}
+
+				finalVelocity.x += parentVelocity.x;
+				finalVelocity.y += parentVelocity.y;
+				finalVelocity.z += parentVelocity.z;
 
 				Renderer::SetParticleMaskTexture(AssetManager::GetAsset<Texture2D>(pc.MaskTextureHandle).get());
 
-				// ---- TEMPORARY Step 2 GPU emit path (runs alongside the CPU path) ----
-				// Sibling of the CPU loop above, NOT nested inside it.
-				{
-					auto particleSystem = Renderer::GetParticleSystem();
-					particleSystem->AdvanceFrameSeed();
+				EmitterParamsGPU p = {};
+				p.SpawnPosition = spawnPosition;
+				p.SpawnSize = tc.Scale;
+				p.Velocity = finalVelocity;
+				p.ConeAngleDegrees = pc.ConeAngleDegrees;
+				p.BiasExponent = pc.BiasExponent;
+				p.StartColor = pc.StartColor;
+				p.EndColor = pc.EndColor;
+				p.ColorBlendFactor = pc.ColorBlendFactor;
+				p.MaxLifeTime = pc.MaxLifeTime;
+				p.Size = pc.Size;
+				p.GrowRate = pc.GrowRate;
+				p.BurstInitial = pc.BurstInitial;
+				p.BurstDecay = pc.BurstDecay;
+				p.EmitFunction = static_cast<uint32_t>(pc.SpawnFunction);
 
-					std::vector<EmitterParamsGPU> emitterParams;
-					std::vector<uint32_t>         emitCounts;
-
-					for (auto entity : view)
-					{
-						Entity e = { entity, this };
-						ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
-						TransformComponent& tc = e.GetComponent<TransformComponent>();
-
-						DirectX::XMFLOAT3 spawnPosition = tc.Translation;
-						DirectX::XMMATRIX rotationMatrix = tc.GetRotation();
-
-						if (e.HasParent())
-						{
-							Entity parent = FindEntityByUUID(e.GetParentUUID());
-							auto parentTC = parent.GetComponent<TransformComponent>();
-							DirectX::XMMATRIX parentTransform = parentTC.GetTransformWithoutScale();
-
-							DirectX::XMVECTOR localPos = DirectX::XMLoadFloat3(&spawnPosition);
-							DirectX::XMVECTOR worldPos = DirectX::XMVector3Transform(localPos, parentTransform);
-							DirectX::XMStoreFloat3(&spawnPosition, worldPos);
-
-							rotationMatrix = DirectX::XMMatrixMultiply(rotationMatrix, parentTC.GetRotation());
-						}
-
-						// The GPU never sees a matrix, so rotate here - this is what the CPU
-						// OnUpdate does internally before the cone spread.
-						DirectX::XMFLOAT3 rotatedVelocity;
-						{
-							DirectX::XMVECTOR v = DirectX::XMLoadFloat3(&pc.Velocity);
-							v = DirectX::XMVector3Transform(v, rotationMatrix);
-							DirectX::XMStoreFloat3(&rotatedVelocity, v);
-						}
-
-						EmitterParamsGPU p = {};
-						p.SpawnPosition = spawnPosition;
-						p.SpawnSize = tc.Scale;
-						p.Velocity = rotatedVelocity;
-						p.ConeAngleDegrees = pc.ConeAngleDegrees;
-						p.BiasExponent = pc.BiasExponent;
-						p.StartColor = pc.StartColor;
-						p.EndColor = pc.EndColor;
-						p.ColorBlendFactor = pc.ColorBlendFactor;
-						p.MaxLifeTime = pc.MaxLifeTime;
-						p.Size = pc.Size;
-						p.GrowRate = pc.GrowRate;
-						p.BurstInitial = pc.BurstInitial;
-						p.BurstDecay = pc.BurstDecay;
-						p.EmitFunction = static_cast<uint32_t>(pc.SpawnFunction);
-
-						if (emitterParams.size() >= MAX_EMITTERS)
-						{
-							TOAST_CORE_WARN("More than %d particle emitters - ignoring the rest.", MAX_EMITTERS);
-							break;
-						}
-
-						emitterParams.push_back(p);
-						emitCounts.push_back(ParticleSystem::ComputeEmitCount(pc, ts));
-					}
-
-					particleSystem->UpdateEmitterParams(emitterParams);
-					for (uint32_t i = 0; i < (uint32_t)emitCounts.size(); ++i)
-						particleSystem->Emit(i, emitCounts[i]);
-
-					particleSystem->Simulate(ts);
-
-					// TEMP CODE
-					//particleSystem->DebugLogCounters(5, nrOfParticles);
-				}
+				emitterParams.push_back(p);
+				emitCounts.push_back(ParticleSystem::ComputeEmitCount(pc, ts));
 			}
 
-			// Gather particles from all Particle Systems
-			std::vector<Particle> aggregatedParticles;
-			for (auto entity : view)
-			{
-				Entity e = { entity, this };
-				ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
-				aggregatedParticles.insert(aggregatedParticles.end(), pc.Particles.begin(), pc.Particles.end());
-			}
-
-			Renderer::FillParticleBuffer(aggregatedParticles);
-		}
+			particleSystem->OnUpdate(ts, emitterParams, emitCounts);
+		} // End particle system
 
 		// Updated Meshes to check which LOD Group it should use during the rendering.
 		{

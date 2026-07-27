@@ -276,7 +276,7 @@ namespace Toast {
 		GenerateSampleKernel();
 		GenerateNoiseTexture();
 
-		GenerateParticleBuffers();
+		CreateParticleIndexBuffer();
 	}
 
 	void Renderer::Shutdown()
@@ -2800,27 +2800,10 @@ namespace Toast {
 		return { sample.x, sample.y, sample.z };
 	}
 
-	void Renderer::GenerateParticleBuffers()
+	void Renderer::CreateParticleIndexBuffer()
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11Device* device = API->GetDevice();
-
-		D3D11_BUFFER_DESC bufferDesc = {};
-		bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-		bufferDesc.ByteWidth = sizeof(Particle) * 1000;
-		bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-		bufferDesc.StructureByteStride = sizeof(Particle);
-
-		device->CreateBuffer(&bufferDesc, nullptr, &sRendererData->ParticleBuffer);
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = DXGI_FORMAT_UNKNOWN; // Structured buffers don’t have a format
-		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-		srvDesc.Buffer.NumElements = 1000;
-
-		device->CreateShaderResourceView(sRendererData->ParticleBuffer.Get(), &srvDesc, &sRendererData->ParticlesSRV);
 
 		uint16_t indices[] = { 0, 1, 2, 2, 1, 3 };
 
@@ -2831,54 +2814,6 @@ namespace Toast {
 
 		D3D11_SUBRESOURCE_DATA indexData = { indices, 0, 0 };
 		device->CreateBuffer(&indexBufferDesc, &indexData, &sRendererData->ParticleIndexBuffer);
-	}
-
-	void Renderer::InvalidateParticleBuffers(size_t nrOfParticles, size_t maxNrOfParticles)
-	{
-		size_t newSize;
-		if (maxNrOfParticles != sRendererData->NrOfParticlesToRender && maxNrOfParticles > 0 && nrOfParticles <= maxNrOfParticles)
-			newSize = maxNrOfParticles;
-		else if (nrOfParticles > maxNrOfParticles)
-			newSize = nrOfParticles + maxNrOfParticles;
-		else
-			return;
-
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11Device* device = API->GetDevice();
-
-		D3D11_BUFFER_DESC bufferDesc = {};
-		bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-		bufferDesc.ByteWidth = sizeof(Particle) * newSize;
-		bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-		bufferDesc.StructureByteStride = sizeof(Particle);
-
-		device->CreateBuffer(&bufferDesc, nullptr, &sRendererData->ParticleBuffer);
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = DXGI_FORMAT_UNKNOWN; // Structured buffers don’t have a format
-		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-		srvDesc.Buffer.NumElements = newSize;
-
-		device->CreateShaderResourceView(sRendererData->ParticleBuffer.Get(), &srvDesc, &sRendererData->ParticlesSRV);
-	}
-
-	void Renderer::FillParticleBuffer(std::vector<Particle>& particles)
-	{
-		RendererAPI* API = RenderCommand::sRendererAPI.get();
-		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
-
-		D3D11_MAPPED_SUBRESOURCE mappedResource;
-		deviceContext->Map(sRendererData->ParticleBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-		Particle* instances = reinterpret_cast<Particle*>(mappedResource.pData);
-
-		for (size_t i = 0; i < particles.size(); ++i)
-			instances[i] = particles[i];
-
-		deviceContext->Unmap(sRendererData->ParticleBuffer.Get(), 0);
-
-		sRendererData->NrOfParticlesToRender = particles.size();
 	}
 
 	FrameProfiler& Renderer::GetFrameProfiler()

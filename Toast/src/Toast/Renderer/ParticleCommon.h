@@ -73,20 +73,4 @@ namespace Toast {
 		uint32_t			_pad3;
 	};
 
-	// The legacy CPU - simulated particle
-	// Will be removed when fully transitioned to the new Particle system
-	struct Particle 
-	{
-		DirectX::XMFLOAT3 Position;
-		DirectX::XMFLOAT3 Velocity;
-		DirectX::XMFLOAT3 StartColor;
-		DirectX::XMFLOAT3 EndColor;
-		float Age;
-		float LifeTime;
-		float ColorBlendFactor;
-		float Size;
-		float GrowRate;
-		float BurstInitial;
-		float BurstDecay;
-	};
 }

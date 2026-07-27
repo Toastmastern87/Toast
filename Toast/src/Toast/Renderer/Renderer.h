@@ -190,8 +190,6 @@ namespace Toast {
 			// Particle Data
 			Microsoft::WRL::ComPtr<ID3D11Buffer> ParticleBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> ParticleIndexBuffer;
-			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ParticlesSRV;
-			size_t NrOfParticlesToRender;
 			Texture2D* ParticleMaskTexture;
 
 			// Selection System
@@ -332,8 +330,6 @@ namespace Toast {
 		static void EnableAtmosphere(bool atmosphere) { sRendererData->PlanetData.Atmosphere = atmosphere; }
 
 		static void SetParticlesIndexBuffer(Microsoft::WRL::ComPtr<ID3D11Buffer>& indexBuffer) { sRendererData->ParticleIndexBuffer = indexBuffer; }
-		static void SetParticlesSRV(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv) { sRendererData->ParticlesSRV = srv; }
-		static void SetNrOfParticles(size_t particles) { sRendererData->NrOfParticlesToRender = particles; }
 		static void SetParticleMaskTexture(Texture2D* maskTexture) { sRendererData->ParticleMaskTexture = maskTexture; }
 
 		static void ResetEnvMapsIBLDone() { sRendererData->NightTimeIBLDone = false; }
@@ -371,10 +367,8 @@ namespace Toast {
 		static DirectX::XMFLOAT3 SampleSSAONoiseTexture(uint32_t x, uint32_t y);
 		static std::vector<DirectX::XMFLOAT4> GetSSAOKernel() { return sRendererData->SSAOKernel; }
 
-		// Particle System TODO: This needs reworking!
-		static void GenerateParticleBuffers();
-		static void InvalidateParticleBuffers(size_t nrOfParticles, size_t maxNrOfParticles);
-		static void FillParticleBuffer(std::vector<Particle>& particles);
+		// Particle System
+		static void CreateParticleIndexBuffer();
 
 		static FrameProfiler& GetFrameProfiler();
 

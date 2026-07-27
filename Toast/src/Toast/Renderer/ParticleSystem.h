@@ -4,8 +4,6 @@
 
 #include "Toast/Scene/Components.h"
 
-#include "Toast/Core/Math/Vector.h"
-
 #include <wrl.h>
 #include <d3d11.h>
 
@@ -28,12 +26,7 @@ namespace Toast {
 		// Returns every slot to the free pile and zeros the counters.
 		void Reset();
 
-		// Old CPU Version, will be removed once the full transition to the new particle system is completed
-		void OnUpdate(float dt, ParticlesComponent& particles, DirectX::XMFLOAT3 spawnPos, DirectX::XMFLOAT3 spawnSize, DirectX::XMMATRIX roationQuat, size_t maxNrOfParticles, DirectX::XMFLOAT3 velocity);
-
-		Vector3 RandomVelocityInCone(const Vector3& baseDir, double coneAngleDegrees);
-		DirectX::XMFLOAT3 RandomPointInBox(const DirectX::XMFLOAT3& boxCenter, const DirectX::XMFLOAT3& boxSize, float biasExponent);
-		float BiasedRandomValue(float scale, float biasExponent);
+		void OnUpdate(float dt,	const std::vector<EmitterParamsGPU>& emitters, const std::vector<uint32_t>& emitCounts);
 
 		Ref<StructuredBuffer> GetParticleBuffer() { return mParticleBuffer; }
 		Ref<StructuredBuffer> GetDeadList() { return mDeadList; }
@@ -50,6 +43,13 @@ namespace Toast {
 		uint32_t GetFrameSeed() const { return mFrameSeed; }
 		void AdvanceFrameSeed() { ++mFrameSeed; }
 
+		// Advances the per-emitter spawn accumulator and returns how many
+		// particles to spawn this frame. Mutates pc.ElapsedTime.
+		static uint32_t ComputeEmitCount(ParticlesComponent& pc, float dt);
+
+		// TEMP CODE!
+		void DebugLogCounters(uint32_t everyNFrames, int32_t OLDnrOfParticles);
+	private:
 		// Uploads all emitter params for this frame. Call once, before Emit().
 		void UpdateEmitterParams(const std::vector<EmitterParamsGPU>& emitters);
 
@@ -57,13 +57,6 @@ namespace Toast {
 		void Emit(uint32_t emitterIndex, uint32_t emitCount);
 
 		void Simulate(float dt);
-
-		// Advances the per-emitter spawn accumulator and returns how many
-		// particles to spawn this frame. Mutates pc.ElapsedTime.
-		static uint32_t ComputeEmitCount(ParticlesComponent& pc, float dt);
-
-		// TEMP CODE!
-		void DebugLogCounters(uint32_t everyNFrames, int32_t OLDnrOfParticles);
 	private:
 		// The pool of particles. 262,144 slots of GPUParticle data (~20 MB).
 		Ref<StructuredBuffer> mParticleBuffer;

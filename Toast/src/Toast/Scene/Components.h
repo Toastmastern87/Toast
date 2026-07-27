@@ -320,7 +320,6 @@ namespace Toast {
 	{
 		bool Emitting;
 		Ref<Mesh> GuideMesh;
-		std::vector<Particle> Particles;
 		float Size = 0.0f;
 		float MaxLifeTime; // in seconds
 		float SpawnDelay = 1.0f; // Delay between particle spawn
