@@ -166,7 +166,8 @@ namespace Toast {
 		static Ref<ScriptInstance> GetEntityScriptInstance(UUID entityID);
 
 		static Ref<ScriptClass> GetEntityClass(const std::string& name);
-		static std::unordered_map<std::string, Ref<ScriptClass>> GetEntityClasses();
+		// Returns all entity classes found in the loaded app assembly.
+		static const std::unordered_map<std::string, Ref<ScriptClass>>& GetEntityClasses();
 		static ScriptFieldMap& GetScriptFieldMap(Entity entity);
 
 		static MonoImage* GetCoreAssemblyImage();
@@ -174,6 +175,13 @@ namespace Toast {
 		static MonoObject* GetManagedInstance(UUID uuid);
 
 		static std::filesystem::path GetEntityClassSourcePath(const std::string& fullClassName);
+
+		// Root folder containing the .cs sources (.../Scripts/Source).
+		// Empty until LoadAppAssembly() has run.
+		static const std::filesystem::path& GetScriptSourceRoot();
+
+		static bool IsValidIdentifier(const std::string& name);
+		static bool WriteScriptTemplate(const std::filesystem::path& target, const std::string& nameSpace, const std::string& className);
 	private:
 		static void InitMono();
 		static void ShutdownMono();

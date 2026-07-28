@@ -336,7 +336,7 @@ namespace Toast {
 		return sData->EntityClasses.at(name);
 	}
 
-	std::unordered_map<std::string, Ref<ScriptClass>> ScriptEngine::GetEntityClasses()
+	const std::unordered_map<std::string, Ref<ScriptClass>>& ScriptEngine::GetEntityClasses()
 	{
 		return sData->EntityClasses;
 	}
@@ -451,12 +451,91 @@ namespace Toast {
 		return {};
 	}
 
+	const std::filesystem::path& ScriptEngine::GetScriptSourceRoot()
+	{
+		return sData->ScriptSourceRoot;
+	}
+
 	uint32_t ScriptEngine::InstantiateClass(MonoClass* monoClass)
 	{
 		MonoObject* instance = mono_object_new(sData->AppDomain, monoClass);
 		int32_t instanceHandle = mono_gchandle_new(instance, false);
 		mono_runtime_object_init(instance);
 		return instanceHandle;
+	}
+
+	bool ScriptEngine::IsValidIdentifier(const std::string& name)
+	{
+		if (name.empty())
+			return false;
+
+		// C# identifiers must start with a letter or underscore...
+		if (!std::isalpha((unsigned char)name[0]) && name[0] != '_')
+			return false;
+
+		// ...and contain only letters, digits, or underscores.
+		for (char c : name)
+			if (!std::isalnum((unsigned char)c) && c != '_')
+				return false;
+
+		return true;
+	}
+
+	static const char* sEntityScriptTemplate = R"(using System;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading;
+
+using Toast;
+
+namespace {NAMESPACE}
+{
+    public class {CLASSNAME} : Entity
+    {
+        void OnCreate()
+        {
+        }
+
+        void OnEvent()
+        {
+        }
+
+        void OnUpdate(float ts)
+        {
+        }
+    }
+}
+)";
+
+	bool ScriptEngine::WriteScriptTemplate(const std::filesystem::path& target, const std::string& nameSpace, const std::string& className)
+	{
+		std::string contents = sEntityScriptTemplate;
+
+		auto replaceAll = [](std::string& str, const std::string& from, const std::string& to)
+			{
+				size_t pos = 0;
+				while ((pos = str.find(from, pos)) != std::string::npos)
+				{
+					str.replace(pos, from.length(), to);
+					pos += to.length();   // skip past the inserted text
+				}
+			};
+
+		replaceAll(contents, "{NAMESPACE}", nameSpace);
+		replaceAll(contents, "{CLASSNAME}", className);
+
+		// Target may sit in a sub folder that does not exist yet.
+		std::filesystem::create_directories(target.parent_path());
+
+		std::ofstream out(target, std::ios::out | std::ios::binary);
+		if (!out)
+		{
+			TOAST_CORE_ERROR("Failed to create script: %s", target.string().c_str());
+			return false;
+		}
+
+		out << contents;
+		return true;
 	}
 
 	ScriptClass::ScriptClass(const std::string& classNamespace, const std::string& className, bool isCore)

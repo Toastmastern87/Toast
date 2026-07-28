@@ -37,6 +37,7 @@ namespace Toast {
 		Entity mContext;
 		Scene* mScene;
 		std::filesystem::path mAssetRoot;
+		std::string mProjectName;
 
 		WindowsWindow* mWindow;
 

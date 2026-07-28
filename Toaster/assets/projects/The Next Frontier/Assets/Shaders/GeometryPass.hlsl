@@ -608,7 +608,7 @@ PixelOutputType main(PixelInputType input)
         params.Albedo = LinearToSRGB(params.Albedo);
           
     // Position
-        output.position = float4(input.viewPosition, 1.0f);
+    output.position = float4(input.viewPosition, 1.0f);
 	
     // Entity ID
     if (input.entityID > -1)
