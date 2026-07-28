@@ -1,0 +1,3 @@
+#!/bin/sh
+export IRONPYTHONPATH=/System/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/
+exec "${BASH_SOURCE%/*}"/mono "$(cygpath -w "${BASH_SOURCE%/*}"/../lib/)ironpython/ipyw.exe" "$@"

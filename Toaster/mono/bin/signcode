@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "${BASH_SOURCE%/*}"/mono $MONO_OPTIONS "$(cygpath -w "${BASH_SOURCE%/*}"/../lib/mono/4.5/)"signcode.exe "$@"
