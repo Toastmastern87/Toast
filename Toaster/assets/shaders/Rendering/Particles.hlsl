@@ -45,6 +45,8 @@ struct PixelInputType
     float4 color : COLOR;
     float2 uv : TEXCOORD0;
     float lifeRatio : TEXCOORD1; // Pass particle age as a fraction of lifetime
+    float3 viewPos : TEXCOORD2; // VIEW space, matches the G-buffer
+    float softFade : TEXCOORD3; // per-particle fade distance
 };
 
 PixelInputType main(uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
@@ -79,10 +81,15 @@ PixelInputType main(uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID
     float3 viewOffset = (cornerOffset.x * right) + (cornerOffset.y * up);
     viewPos.xyz += viewOffset;
     
+    output.viewPos = viewPos.xyz;
+    output.softFade = p.SoftFadeDistance;
     output.position = mul(viewPos, projectionMatrix);
     
+    float intensityT = pow(saturate(lifeRatio), max(p.IntensityFalloff, 0.001f));
+    float intensity = lerp(p.StartIntensity, p.EndIntensity, intensityT);
+    
     // Base color and alpha computed over lifetime
-    output.color = float4(lerpedColor, alpha);
+    output.color = float4(lerpedColor * intensity, alpha);
     
     // Map quad offsets (-0.5 to 0.5) to UV space (0 to 1)
     output.uv = offsets[vertexID] + float2(0.5, 0.5);
@@ -92,15 +99,32 @@ PixelInputType main(uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID
 }
 
 #type pixel
+cbuffer Camera : register(b0)
+{
+    matrix worldTranslationMatrix;
+    matrix viewMatrix;
+    matrix projectionMatrix;
+    matrix inverseViewMatrix;
+    matrix inverseProjectionMatrix;
+    float4 cameraPosition;
+    float far;
+    float near;
+    float viewportWidth;
+    float viewportHeight;
+};
+
 struct PixelInputType
 {
     float4 position : SV_POSITION;
     float4 color : COLOR;
     float2 uv : TEXCOORD0;
     float lifeRatio : TEXCOORD1; // Pass particle age as a fraction of lifetime
+    float3 viewPos : TEXCOORD2; // VIEW space, matches the G-buffer
+    float softFade : TEXCOORD3; // per-particle fade distance
 };
 
-Texture2D MaskTexture : register(t0);
+Texture2D MaskTexture   : register(t0);
+Texture2D GPassPosition : register(t1);
 
 SamplerState defaultSampler : register(s0);
 
@@ -112,6 +136,23 @@ float4 main(PixelInputType input) : SV_TARGET
     // Multiply the particle's color by the texture sample.
     // This will tint the particle with the texture's RGB and modulate the alpha.
     float4 finalColor = input.color * texColor;
+    
+    // Soft particles: fade out as the billboard approaches whatever is behind it,
+    // so it dissolves into the surface instead of showing a hard intersection.
+    if (input.softFade > 0.0f)
+    {
+        // Screen-space UV from SV_POSITION (already in pixels).
+        float2 screenUV = input.position.xy / float2(viewportWidth, viewportHeight);
+
+        float3 scenePosVS = GPassPosition.Sample(defaultSampler, screenUV).xyz;
+
+        float sceneDepth = (abs(scenePosVS.z) < 1e-6f) ? 1e9f : scenePosVS.z;
+        float particleDepth = input.viewPos.z;
+
+        float fade = saturate((sceneDepth - particleDepth) / input.softFade);
+
+        finalColor.a *= fade;
+    }
     
     return finalColor;
 }

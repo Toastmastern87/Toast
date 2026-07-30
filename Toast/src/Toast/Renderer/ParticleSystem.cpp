@@ -148,7 +148,7 @@ namespace Toast{
 		{
 			UpdateEmitterParams(emitters);
 			for (uint32_t i = 0; i < (uint32_t)emitCounts.size(); ++i)
-				Emit(i, emitCounts[i]);
+				Emit(i, emitCounts[i], dt);
 		}
 
 		Simulate(dt);
@@ -165,20 +165,17 @@ namespace Toast{
 		mEmitterParams->Update(emitters.data(), emitters.size() * sizeof(EmitterParamsGPU));
 	}
 
-	void ParticleSystem::Emit(uint32_t emitterIndex, uint32_t emitCount)
+	void ParticleSystem::Emit(uint32_t emitterIndex, uint32_t emitCount, float dt)
 	{
 		if (emitCount == 0)
 			return;
-
-		//RendererAPI* API = RenderCommand::sRendererAPI.get();
-		//ID3D11DeviceContext* ctx = API->GetDeviceContext();
 
 		// --- per-dispatch constants ---
 		// Map it into the emit constant buffer, then Bind.
 		mEmitBuffer.Write((uint8_t*)&emitCount, 4, 0);
 		mEmitBuffer.Write((uint8_t*)&emitterIndex, 4, 4);
 		mEmitBuffer.Write((uint8_t*)&mFrameSeed, 4, 8);
-		// bytes 12..15 stay zero - padding to the 16-byte constant buffer minimum.
+		mEmitBuffer.Write((uint8_t*)&dt, 4, 12);
 		mEmitCBuffer->Map(mEmitBuffer);
 		mEmitCBuffer->Bind();
 
@@ -320,7 +317,7 @@ namespace Toast{
 
 	// TEMP CODE!
 	// DEBUG ONLY - stalls the GPU. Logs every `everyNFrames` calls.
-	void ParticleSystem::DebugLogCounters(uint32_t everyNFrames, int32_t OLDnrOfParticles)
+	void ParticleSystem::DebugLogCounters(uint32_t everyNFrames)
 	{
 		static uint32_t counter = 0;
 		if (++counter % everyNFrames != 0)
@@ -351,7 +348,7 @@ namespace Toast{
 		memcpy(c, m.pData, sizeof(c));
 		ctx->Unmap(staging.Get(), 0);
 
-		TOAST_CORE_INFO("OLD PARTICLE SYSTEM: %d, Particles: Alive=%d Dead=%d (sum=%d, should be %d)", OLDnrOfParticles, c[0], c[1], c[0] + c[1], MAX_PARTICLES);
+		TOAST_CORE_INFO("Particles: Alive=%d Dead=%d (sum=%d, should be %d)", c[0], c[1], c[0] + c[1], MAX_PARTICLES);
 	}
 
 }

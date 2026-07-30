@@ -49,6 +49,10 @@ namespace Toast {
 		float				BurstInitial;		// 68
 		float				BurstDecay;			// 72 
 		uint32_t			EmitterIndex;		// 76
+		float				StartIntensity;		// 80 
+		float				EndIntensity;		// 84
+		float				IntensityFalloff;	// 88
+		float				SoftFadeDistance;	// 92
 	};
 
 	struct EmitterParamsGPU 
@@ -68,9 +72,15 @@ namespace Toast {
 		float				BurstInitial;
 		float				BurstDecay;
 		uint32_t			EmitFunction;
-		uint32_t			_pad1;
-		uint32_t			_pad2;
-		uint32_t			_pad3;
+		float				LifeTimeJitter;
+		float				SizeJitter;
+		float				SpeedJitter;
+		DirectX::XMFLOAT3	PrevSpawnPosition;
+		float				SoftFadeDistance;
+		float				StartIntensity;		
+		float				EndIntensity;		
+		float				IntensityFalloff;	
+		float				_pad1;
 	};
 
 }

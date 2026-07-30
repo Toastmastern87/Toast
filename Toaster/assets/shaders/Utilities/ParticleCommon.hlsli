@@ -36,9 +36,13 @@ struct GPUParticle
     float3  EndColor;
     float   Size;
     float   GrowRate;
-    float    BurstInitial;
+    float   BurstInitial;
     float   BurstDecay;
     uint    EmitterIndex;
+    float   StartIntensity;
+    float   EndIntensity;
+    float   IntensityFalloff;
+    float   SoftFadeDistance;
 };
 
 // In food terms this can be seen as the recipe
@@ -59,9 +63,15 @@ struct EmitterParams
     float   BurstInitial;
     float   BurstDecay;
     uint    EmitFunction;
-    uint    _pad1;
-    uint    _pad2;
-    uint    _pad3;
+    float   LifetimeJitter;
+    float   SizeJitter;
+    float   SpeedJitter;
+    float3  PrevSpawnPosition;
+    float   SoftFadeDistance;
+    float   StartIntensity;
+    float   EndIntensity;
+    float   IntensityFalloff;
+    float   _pad1;
 };
 
 // Indices into the Counter buffer (RWStructuredBuffer<uint>, 4 elements).

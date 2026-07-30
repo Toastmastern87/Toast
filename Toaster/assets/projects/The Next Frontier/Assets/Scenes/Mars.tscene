@@ -1,10 +1,10 @@
 Scene: Mars
 EditorCamera:
-  Position: [6.62407923, 11.5735912, 11.9577293]
+  Position: [71.2508774, 34.1045494, -54.8784752]
 Settings:
   Wireframe: 0
   Grid: false
-  CameraFrustum: true
+  CameraFrustum: false
   FrustumCullingMargin: 1
   DirectionalLightningGain: 1
   RenderColliders: false
@@ -1259,7 +1259,7 @@ Entities:
         - Handle: 6571834013205168760
         - Handle: 17683343706633406771
     TransformComponent:
-      Translation: [0, 50, 142]
+      Translation: [0, 76, 142]
       Rotation: [0, 90, 0]
       RotationQuat: [0, 0, 0, 1]
       Scale: [0.99999994, 1, 1]
@@ -1668,8 +1668,8 @@ Entities:
       MaxLifeTime: 0.600000024
       SpawnDelay: 9.99999975e-05
       Velocity: [0, -32, 0]
-      StartColor: [0.784313738, 0.517647088, 0]
-      EndColor: [0.407843143, 0.203921571, 0.827450991]
+      StartColor: [0.784313738, 0.862745106, 1]
+      EndColor: [0.490196079, 0.219607845, 0.0784313753]
       ColorBlendFactor: 0.150000006
       ConeAngleDegrees: 0
       BiasExponent: 1
@@ -1677,8 +1677,16 @@ Entities:
       BurstInitial: 3.50000119
       BurstDecay: 1.30000019
       Size: 1.09000003
+      SpawnBoxSize: [0.200000003, 0.200000003, 0.200000003]
       SpawnFunction: 2
       MaskTextureAssetHandle: 14291402269564755598
+      SpeedJitter: 0.299999982
+      LifetimeJitter: 0.200000003
+      SizeJitter: 0.200000003
+      StartIntensity: 3.5
+      EndIntensity: 0.25
+      IntensityFalloff: 3.5
+      SoftFadeDistance: 10
   - Entity: 8759594839769969488
     TagComponent:
       Tag: RaptorSea2
@@ -1696,8 +1704,8 @@ Entities:
       MaxLifeTime: 0.600000024
       SpawnDelay: 9.99999975e-05
       Velocity: [0, -32, 0]
-      StartColor: [0.784313738, 0.517647088, 0]
-      EndColor: [0.407843143, 0.203921571, 0.827450991]
+      StartColor: [0.784313738, 0.862745106, 1]
+      EndColor: [0.490196079, 0.219607845, 0.0784313753]
       ColorBlendFactor: 0.150000006
       ConeAngleDegrees: 0
       BiasExponent: 1
@@ -1705,8 +1713,16 @@ Entities:
       BurstInitial: 3.5
       BurstDecay: 1.29999995
       Size: 1.09000003
+      SpawnBoxSize: [0.200000003, 0.200000003, 0.100000836]
       SpawnFunction: 2
       MaskTextureAssetHandle: 14291402269564755598
+      SpeedJitter: 0.300000012
+      LifetimeJitter: 0.200000003
+      SizeJitter: 0.200000003
+      StartIntensity: 3
+      EndIntensity: 0.25
+      IntensityFalloff: 3.5
+      SoftFadeDistance: 10
   - Entity: 3758871099012070215
     TagComponent:
       Tag: RaptorSea3
@@ -1724,8 +1740,8 @@ Entities:
       MaxLifeTime: 0.600000024
       SpawnDelay: 9.99999975e-05
       Velocity: [0, -32, 0]
-      StartColor: [0.784313738, 0.517647088, 0]
-      EndColor: [0.407843143, 0.203921571, 0.827450991]
+      StartColor: [0.784313738, 0.862745106, 1]
+      EndColor: [0.490196079, 0.219607845, 0.0784313753]
       ColorBlendFactor: 0.150000006
       ConeAngleDegrees: 0
       BiasExponent: 1
@@ -1733,8 +1749,16 @@ Entities:
       BurstInitial: 3.5
       BurstDecay: 1.29999995
       Size: 1.09000003
+      SpawnBoxSize: [0.200000003, 0.100000001, 0.200000003]
       SpawnFunction: 2
       MaskTextureAssetHandle: 14291402269564755598
+      SpeedJitter: 0.300000012
+      LifetimeJitter: 0.200000003
+      SizeJitter: 0.200000003
+      StartIntensity: 3
+      EndIntensity: 0.25
+      IntensityFalloff: 3.5
+      SoftFadeDistance: 10
   - Entity: 10631949491470918750
     TagComponent:
       Tag: RaptorVacuum1

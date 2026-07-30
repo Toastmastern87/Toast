@@ -13,12 +13,12 @@ RWStructuredBuffer<uint>            Counters        : register(u3);
 // parameters for every emitter in the scene, indexed by EmitterIndex.
 StructuredBuffer<EmitterParams> Emitters            : register(t0);
 
-cbuffer ParticleEmitCB : register(b0)
+cbuffer ParticleEmitCB : register(b1)
 {
     uint EmitCount;     // how many particles THIS dispatch should spawn
     uint EmitterIndex;  // which entry of Emitters[] to use
     uint FrameSeed;     // changes per frame so spawns differ frame to frame
-    uint _pad0;
+    float EmitDeltaTime;
 };
 
 [numthreads(PARTICLE_THREADGROUP_SIZE, 1, 1)]
@@ -46,7 +46,12 @@ void main( uint3 DTid : SV_DispatchThreadID )
     EmitterParams e = Emitters[EmitterIndex];
     RNG rng = MakeRNG(particleIndex, FrameSeed, EmitterIndex);
 
-    float3 spawnPos = e.SpawnPosition;
+    // Sub-frame emission. Without this all particles within this frame will be spawning on the same position
+    // causing "blocks" to appear at lower frame rate and overall making the particle system look less natural
+    float u = (DTid.x + 0.5f) / (float) EmitCount;
+    float3 emitterPos = lerp(e.PrevSpawnPosition, e.SpawnPosition, u);
+    
+    float3 spawnPos = emitterPos;
     float3 spawnVel = e.Velocity;
     
     // This mirrors the switch in the old Particle System OnUpdate on the CPU.
@@ -58,22 +63,28 @@ void main( uint3 DTid : SV_DispatchThreadID )
     else if (e.EmitFunction == EMITFUNCTION_BOX)
     {
         // BOX spreads the POSITION; velocity is used as-is.
-        spawnPos = RandomPointInBox(e.SpawnPosition, e.SpawnSize, e.BiasExponent, rng);
+        spawnPos = RandomPointInBox(emitterPos, e.SpawnSize, e.BiasExponent, rng);
     }
     
+    spawnVel *= lerp(1.0f - e.SpeedJitter, 1.0f + e.SpeedJitter, NextFloat(rng));
+    
     GPUParticle p;
-    p.Position = spawnPos; // origin-relative (floating-origin space)
-    p.Age = 0.0f;
+    p.Position = spawnPos - spawnVel * (u * EmitDeltaTime);
+    p.Age = -u * EmitDeltaTime;
     p.Velocity = spawnVel;
-    p.Lifetime = e.MaxLifeTime; // the emitter's setting becomes this particle's own
+    p.Lifetime = e.MaxLifeTime * lerp(1.0f - e.LifetimeJitter, 1.0f + e.LifetimeJitter, NextFloat(rng));
+    p.Size = e.Size * lerp(1.0f - e.SizeJitter, 1.0f + e.SizeJitter, NextFloat(rng));
     p.StartColor = e.StartColor;
     p.ColorBlendFactor = e.ColorBlendFactor;
     p.EndColor = e.EndColor;
-    p.Size = e.Size;
     p.GrowRate = e.GrowRate;
     p.BurstInitial = e.BurstInitial;
     p.BurstDecay = e.BurstDecay;
     p.EmitterIndex = EmitterIndex;
+    p.StartIntensity = e.StartIntensity;
+    p.EndIntensity = e.EndIntensity;
+    p.IntensityFalloff = e.IntensityFalloff;
+    p.SoftFadeDistance = e.SoftFadeDistance;
 
     // Add particle
     ParticleBuffer[particleIndex] = p;

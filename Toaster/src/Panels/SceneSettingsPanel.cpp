@@ -70,7 +70,7 @@ namespace Toast {
 
 					ImGui::Text("Render Overlay");
 					ImGui::SameLine();
-					if (ImGui::Combo("", &currentOverlay, items, IM_ARRAYSIZE(items)))
+					if (ImGui::Combo("##renderoverlayid", &currentOverlay, items, IM_ARRAYSIZE(items)))
 						mContext->mSettings.RenderOverlaySetting = static_cast<RenderOverlay>(currentOverlay);
 
 					auto& wireframeButton = [&](const char* label, Scene::Settings::Wireframe mode)

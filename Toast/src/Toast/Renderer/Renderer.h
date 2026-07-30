@@ -176,7 +176,7 @@ namespace Toast {
 			Ref<RenderTarget> FinalBloomRT;
 			Ref<ConstantBuffer> BloomCBuffer, DownSampleCBuffer, WideBlurCBuffer, UpSampleCBuffer;
 			Buffer BloomBuffer, DownSampleBuffer, WideBlurBuffer, UpSampleBuffer;
-
+	
 			// Tonemapping data
 			Ref<ConstantBuffer> TonemappingCBuffer;
 			Buffer TonemappingBuffer;
@@ -190,7 +190,7 @@ namespace Toast {
 			// Particle Data
 			Microsoft::WRL::ComPtr<ID3D11Buffer> ParticleBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> ParticleIndexBuffer;
-			Texture2D* ParticleMaskTexture;
+			AssetHandle ParticleMaskTextureHandle;
 
 			// Selection System
 			Ref<RenderTarget> SelectedMeshMaskRT;
@@ -330,7 +330,7 @@ namespace Toast {
 		static void EnableAtmosphere(bool atmosphere) { sRendererData->PlanetData.Atmosphere = atmosphere; }
 
 		static void SetParticlesIndexBuffer(Microsoft::WRL::ComPtr<ID3D11Buffer>& indexBuffer) { sRendererData->ParticleIndexBuffer = indexBuffer; }
-		static void SetParticleMaskTexture(Texture2D* maskTexture) { sRendererData->ParticleMaskTexture = maskTexture; }
+		static void SetParticleMaskTexture(AssetHandle handle) { sRendererData->ParticleMaskTextureHandle = handle; }
 
 		static void ResetEnvMapsIBLDone() { sRendererData->NightTimeIBLDone = false; }
 

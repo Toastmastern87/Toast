@@ -1623,6 +1623,13 @@ namespace Toast {
 
 				ImGui::EndTable();
 
+				// HDR intensity ramp
+				DrawFloatControl("Start Intensity", component.StartIntensity, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 50.0f, 0.1f, "%.2f");
+
+				DrawFloatControl("End Intensity", component.EndIntensity, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 10.0f, 0.05f, "%.2f");
+
+				DrawFloatControl("Intensity Falloff", component.IntensityFalloff, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.1f, 5.0f, 0.05f, "%.2f");
+
 				DrawFloatControl("Size", component.Size, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 10.0f, 0.01f, "%.2f");
 
 				DrawFloatControl("Color Blend Factor", component.ColorBlendFactor, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 1.0f, 0.01f, "%.2f");
@@ -1639,12 +1646,26 @@ namespace Toast {
 
 				DrawFloatControl("Burst Decay", component.BurstDecay, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 100.0f, 0.1f, "%.1f");
 
+				// Per-particle jitter
+				DrawFloatControl("Speed Jitter", component.SpeedJitter, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 1.0f, 0.01f, "%.2f");
+
+				// Stops the tail cutting off where an entire cohort dies at once.
+				DrawFloatControl("Lifetime Jitter", component.LifetimeJitter, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 1.0f, 0.01f, "%.2f");
+
+				// Breaks the "identical stamped shapes" read.
+				DrawFloatControl("Size Jitter", component.SizeJitter, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 1.0f, 0.01f, "%.2f");
+
+				// Soft particles
+				DrawFloatControl("Soft Fade Distance", component.SoftFadeDistance, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 100.0f, 0.05f, "%.2f");
+
 				if (component.SpawnFunction == EmitFunction::CONE)
 				{
 					DrawFloatControl("Cone Angle (deg)", component.ConeAngleDegrees, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 180.0f, 0.1f, "%.1f");
 				}
 				else if (component.SpawnFunction == EmitFunction::BOX)
 				{
+					ImGuiHelpers::ManualDragFloat3("Spawn Box Size", component.SpawnBoxSize, 0.1f, 0.0f, window, activeDragArea);
+
 					DrawFloatControl("Box Bias Exponent", component.BiasExponent, window, activeDragArea, contentRegionAvailable.x * 0.30, 1.0f, 10.0f, 0.1f, "%.1f");
 				}
 

@@ -511,6 +511,10 @@ namespace Toast {
 					ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
 					TransformComponent& tc = e.GetComponent<TransformComponent>();
 
+					// Reset previous spawn position so re-enabling it doesn't smear particles where they shouldn't be
+					if (!pc.Emitting)
+						pc.HasPrevSpawnPosition = false;
+
 					DirectX::XMFLOAT3 spawnPosition = e.GetComponent<TransformComponent>().Translation;
 					DirectX::XMMATRIX rotationMatrix = tc.GetRotation();
 
@@ -526,6 +530,13 @@ namespace Toast {
 						DirectX::XMVECTOR localPos = DirectX::XMLoadFloat3(&spawnPosition);
 						DirectX::XMVECTOR worldPos = DirectX::XMVector3Transform(localPos, parentTransform);
 						DirectX::XMStoreFloat3(&spawnPosition, worldPos);
+
+						// First frame there is no previous position so we set prev spawn position to spawn position
+						if (!pc.HasPrevSpawnPosition)
+						{
+							pc.PrevSpawnPosition = spawnPosition;
+							pc.HasPrevSpawnPosition = true;
+						}
 
 						rotationMatrix = DirectX::XMMatrixMultiply(rotationMatrix, parentTC.GetRotation());
 
@@ -554,10 +565,11 @@ namespace Toast {
 					finalVelocity.y += parentVelocity.y;
 					finalVelocity.z += parentVelocity.z;
 
-					Renderer::SetParticleMaskTexture(AssetManager::GetAsset<Texture2D>(pc.MaskTextureHandle).get());
+					Renderer::SetParticleMaskTexture(pc.MaskTextureHandle);
 
 					EmitterParamsGPU p = {};
 					p.SpawnPosition = spawnPosition;
+					p.PrevSpawnPosition = pc.PrevSpawnPosition;
 					p.SpawnSize = tc.Scale;
 					p.Velocity = finalVelocity;
 					p.ConeAngleDegrees = pc.ConeAngleDegrees;
@@ -574,6 +586,9 @@ namespace Toast {
 
 					emitterParams.push_back(p);
 					emitCounts.push_back(ParticleSystem::ComputeEmitCount(pc, ts));
+
+					// Setting up for next frame
+					pc.PrevSpawnPosition = spawnPosition;
 				}
 
 				particleSystem->OnUpdate(ts, emitterParams, emitCounts);
@@ -1171,6 +1186,10 @@ namespace Toast {
 				ParticlesComponent& pc = e.GetComponent<ParticlesComponent>();
 				TransformComponent& tc = e.GetComponent<TransformComponent>();
 
+				// Reset previous spawn position so re-enabling it doesn't smear particles where they shouldn't be
+				if (!pc.Emitting)
+					pc.HasPrevSpawnPosition = false;
+
 				DirectX::XMFLOAT3 spawnPosition = e.GetComponent<TransformComponent>().Translation;
 				DirectX::XMMATRIX rotationMatrix = tc.GetRotation();
 
@@ -1186,6 +1205,13 @@ namespace Toast {
 					DirectX::XMVECTOR localPos = DirectX::XMLoadFloat3(&spawnPosition);
 					DirectX::XMVECTOR worldPos = DirectX::XMVector3Transform(localPos, parentTransform);
 					DirectX::XMStoreFloat3(&spawnPosition, worldPos);
+
+					// First frame there is no previous position so we set prev spawn position to spawn position
+					if (!pc.HasPrevSpawnPosition)
+					{
+						pc.PrevSpawnPosition = spawnPosition;
+						pc.HasPrevSpawnPosition = true;
+					}
 
 					rotationMatrix = DirectX::XMMatrixMultiply(rotationMatrix, parentTC.GetRotation());
 
@@ -1214,11 +1240,12 @@ namespace Toast {
 				finalVelocity.y += parentVelocity.y;
 				finalVelocity.z += parentVelocity.z;
 
-				Renderer::SetParticleMaskTexture(AssetManager::GetAsset<Texture2D>(pc.MaskTextureHandle).get());
+				Renderer::SetParticleMaskTexture(pc.MaskTextureHandle);
 
 				EmitterParamsGPU p = {};
 				p.SpawnPosition = spawnPosition;
-				p.SpawnSize = tc.Scale;
+				p.PrevSpawnPosition = pc.PrevSpawnPosition;
+				p.SpawnSize = pc.SpawnBoxSize;
 				p.Velocity = finalVelocity;
 				p.ConeAngleDegrees = pc.ConeAngleDegrees;
 				p.BiasExponent = pc.BiasExponent;
@@ -1231,12 +1258,23 @@ namespace Toast {
 				p.BurstInitial = pc.BurstInitial;
 				p.BurstDecay = pc.BurstDecay;
 				p.EmitFunction = static_cast<uint32_t>(pc.SpawnFunction);
+				p.SpeedJitter = pc.SpeedJitter;
+				p.LifeTimeJitter = pc.LifetimeJitter;
+				p.SizeJitter = pc.SizeJitter;
+				p.StartIntensity = pc.StartIntensity;
+				p.EndIntensity = pc.EndIntensity;
+				p.IntensityFalloff = pc.IntensityFalloff;
+				p.SoftFadeDistance = pc.SoftFadeDistance;
 
 				emitterParams.push_back(p);
 				emitCounts.push_back(ParticleSystem::ComputeEmitCount(pc, ts));
+
+				// Setting up for next frame
+				pc.PrevSpawnPosition = spawnPosition;
 			}
 
 			particleSystem->OnUpdate(ts, emitterParams, emitCounts);
+			//particleSystem->DebugLogCounters(60);
 		} // End particle system
 
 		// Updated Meshes to check which LOD Group it should use during the rendering.

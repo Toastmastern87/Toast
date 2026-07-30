@@ -1809,8 +1809,14 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, particleSystem->GetParticleBuffer()->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 1, particleSystem->GetCurrentAliveList()->GetSRV());
 
-		if(sRendererData->ParticleMaskTexture)
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->ParticleMaskTexture->GetSRV());
+		if (sRendererData->ParticleMaskTextureHandle)
+		{
+			auto maskTexture = AssetManager::GetAsset<Texture2D>(sRendererData->ParticleMaskTextureHandle);
+			if (maskTexture)
+				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, maskTexture->GetSRV());
+		}
+
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassPositionRT->GetSRV());
 
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();

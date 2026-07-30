@@ -576,8 +576,16 @@ namespace Toast {
 			out << YAML::Key << "BurstInitial" << YAML::Value << pc.BurstInitial;
 			out << YAML::Key << "BurstDecay" << YAML::Value << pc.BurstDecay;
 			out << YAML::Key << "Size" << YAML::Value << pc.Size;
+			out << YAML::Key << "SpawnBoxSize" << YAML::Value << pc.SpawnBoxSize;
 			out << YAML::Key << "SpawnFunction" << YAML::Value << static_cast<uint16_t>(pc.SpawnFunction);
 			out << YAML::Key << "MaskTextureAssetHandle" << YAML::Value << pc.MaskTextureHandle;
+			out << YAML::Key << "SpeedJitter" << YAML::Value << pc.SpeedJitter;
+			out << YAML::Key << "LifetimeJitter" << YAML::Value << pc.LifetimeJitter;
+			out << YAML::Key << "SizeJitter" << YAML::Value << pc.SizeJitter;
+			out << YAML::Key << "StartIntensity" << YAML::Value << pc.StartIntensity;
+			out << YAML::Key << "EndIntensity" << YAML::Value << pc.EndIntensity;
+			out << YAML::Key << "IntensityFalloff" << YAML::Value << pc.IntensityFalloff;
+			out << YAML::Key << "SoftFadeDistance" << YAML::Value << pc.SoftFadeDistance;
 			out << YAML::EndMap; // ParticlesComponent
 		}
 
@@ -1802,6 +1810,23 @@ namespace Toast {
 					pc.BurstDecay = particlesComponent["BurstDecay"].as<float>();
 					pc.Size = particlesComponent["Size"].as<float>();
 
+					if (particlesComponent["SpawnBoxSize"])
+						pc.SpawnBoxSize = particlesComponent["SpawnBoxSize"].as<DirectX::XMFLOAT3>();
+					if (particlesComponent["SpeedJitter"])
+						pc.SpeedJitter = particlesComponent["SpeedJitter"].as<float>();
+					if (particlesComponent["LifetimeJitter"])
+						pc.LifetimeJitter = particlesComponent["LifetimeJitter"].as<float>();
+					if (particlesComponent["SizeJitter"])
+						pc.SizeJitter = particlesComponent["SizeJitter"].as<float>();
+					if (particlesComponent["StartIntensity"])
+						pc.StartIntensity = particlesComponent["StartIntensity"].as<float>();
+					if (particlesComponent["EndIntensity"])
+						pc.EndIntensity = particlesComponent["EndIntensity"].as<float>();
+					if (particlesComponent["IntensityFalloff"])
+						pc.IntensityFalloff = particlesComponent["IntensityFalloff"].as<float>();
+					if (particlesComponent["SoftFadeDistance"])
+						pc.SoftFadeDistance = particlesComponent["SoftFadeDistance"].as<float>();
+
 					pc.MaskTextureHandle = particlesComponent["MaskTextureAssetHandle"].as<AssetHandle>();
 				}
 
@@ -1823,6 +1848,19 @@ namespace Toast {
 
 			if (scenePlanet->mStarFieldTexture2DHandle != AssetHandle(0))
 			{
+				Ref<Texture2D> starFieldTexture =
+					AssetManager::GetAsset<Texture2D>(scenePlanet->mStarFieldTexture2DHandle);
+
+				if (!starFieldTexture)
+				{
+					TOAST_CORE_ERROR(
+						"Failed to load star field Texture2D. Handle: %llu",
+						static_cast<uint64_t>(scenePlanet->mStarFieldTexture2DHandle)
+					);
+
+					return true;
+				}
+
 				scenePlanet->mStarFieldTextureCube = Renderer::CreateStarFieldTexture(AssetManager::GetAsset<Texture2D>(scenePlanet->mStarFieldTexture2DHandle).get());
 
 				scenePlanet->mStarFieldTextureCube->GenerateMips();

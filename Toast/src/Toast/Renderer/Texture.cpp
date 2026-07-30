@@ -501,7 +501,7 @@ namespace Toast {
 
 		GenerateMips();
 
-		//TOAST_CORE_INFO("Creating texture: %s, format: %d", mFilePath.c_str(), desc.Format);
+		TOAST_CORE_INFO("Creating texture: %s, format: %d", mFilePath.c_str(), desc.Format);
 
 		mWidth = desc.Width;
 		mHeight = desc.Height;

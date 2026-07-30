@@ -321,6 +321,7 @@ namespace Toast {
 		bool Emitting;
 		Ref<Mesh> GuideMesh;
 		float Size = 0.0f;
+		DirectX::XMFLOAT3 SpawnBoxSize = { 1.0f, 1.0f, 1.0f };
 		float MaxLifeTime; // in seconds
 		float SpawnDelay = 1.0f; // Delay between particle spawn
 		DirectX::XMFLOAT3 Velocity = { 0.0f, 0.0f, 0.0f };
@@ -332,6 +333,21 @@ namespace Toast {
 		float GrowRate = 0.0f;
 		float BurstInitial = 1.0f;
 		float BurstDecay = 0.0f;
+		DirectX::XMFLOAT3 PrevSpawnPosition = { 0.0f, 0.0f, 0.0f };
+		bool HasPrevSpawnPosition = false;
+
+		// Per-particle jitter 
+		float SpeedJitter = 0.0f;      // dissolves banding on a stationary emitter
+		float LifetimeJitter = 0.0f;   // stops the tail dying in lockstep
+		float SizeJitter = 0.0f;       // breaks the "identical stamps" read
+
+		// HDR intensity ramp
+		float StartIntensity = 1.0f;
+		float EndIntensity = 1.0f;
+		float IntensityFalloff = 1.0f; // 1 = linear; >1 drops fast then lingers
+
+		// Soft particles
+		float SoftFadeDistance = 0.0f; // metres; 0 disables
 
 		float ElapsedTime;
 

@@ -48,13 +48,13 @@ namespace Toast {
 		static uint32_t ComputeEmitCount(ParticlesComponent& pc, float dt);
 
 		// TEMP CODE!
-		void DebugLogCounters(uint32_t everyNFrames, int32_t OLDnrOfParticles);
+		void DebugLogCounters(uint32_t everyNFrames);
 	private:
 		// Uploads all emitter params for this frame. Call once, before Emit().
 		void UpdateEmitterParams(const std::vector<EmitterParamsGPU>& emitters);
 
 		// Dispatches the emit compute shader for one emitter.
-		void Emit(uint32_t emitterIndex, uint32_t emitCount);
+		void Emit(uint32_t emitterIndex, uint32_t emitCount, float dt);
 
 		void Simulate(float dt);
 	private:
