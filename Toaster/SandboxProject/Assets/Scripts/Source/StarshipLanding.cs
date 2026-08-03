@@ -144,7 +144,8 @@ namespace Sandbox
         {
             elapsedTime += ts;
 
-            float altitude = mBoxCollider.Altitude;
+            float altitude = mBoxCollider.Altitude; 
+
             float radialVel = GetRadialVelocity();
             float descentSpeed = Math.Max(0.0f, -radialVel);
             float pitch = GetPitchFromVertical();

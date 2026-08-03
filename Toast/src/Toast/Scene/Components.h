@@ -67,7 +67,6 @@ namespace Toast {
 		PrefabComponent(const PrefabComponent& other) = default;
 	};
 
-
 	struct TransformComponent
 	{
 		bool IsDirty = false;

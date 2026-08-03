@@ -130,19 +130,6 @@ cbuffer PlanetLevel : register(b7)
     float FinestCellSize;
 };
 
-// Per-terrain-object-layer settings (bind once per layer)
-//cbuffer TerrainObject : register(b13)
-//{
-//    uint TOSeed;
-//    int TOLODActivation;
-//    uint TOInstancesPerLevel; // how many instances to draw for THIS level draw
-//    float TOMinScale;
-    
-//    float TOMaxScale;
-//    float TOScatterCellSize;
-//    uint TOScatterCells;
-//};
-
 cbuffer TerrainObject : register(b13)
 {
     // 16 bytes

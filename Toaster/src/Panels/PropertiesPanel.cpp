@@ -1634,9 +1634,9 @@ namespace Toast {
 
 				DrawFloatControl("Color Blend Factor", component.ColorBlendFactor, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 1.0f, 0.01f, "%.2f");
 
-				DrawFloatControl("Max life time", component.MaxLifeTime, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 100.0f, 0.1f, "%.1f");
+				DrawFloatControl("Max life time", component.MaxLifeTime, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 100.0f, 0.1f, "%.3f");
 
-				DrawFloatControl("Spawn delay", component.SpawnDelay, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0001f, 10.0f, 0.0001f, "%.4f");
+				DrawFloatControl("Spawn delay", component.SpawnDelay, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.000001f, 10.0f, 0.00001f, "%.6f");
 
 				ImGuiHelpers::ManualDragFloat3("Velocity", component.Velocity, 1.0f, 0.0f, window, activeDragArea);
 

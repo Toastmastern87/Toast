@@ -541,23 +541,31 @@ namespace Toast {
 						rotationMatrix = DirectX::XMMatrixMultiply(rotationMatrix, parentTC.GetRotation());
 
 						// Velocity inheritance: only if the parent has a rigid body.
-						// Restores the behavior dropped during the Step 2 test - this
-						// is what stops a fast ship overtaking its own exhaust.
 						if (parent.HasComponent<RigidBodyComponent>())
 						{
 							auto& parentRB = parent.GetComponent<RigidBodyComponent>();
-							parentVelocity = {
-								(float)parentRB.LinearVelocity.x,
-								(float)parentRB.LinearVelocity.y,
-								(float)parentRB.LinearVelocity.z
-							};
+
+							// --- linear: velocity of the parent's center of mass ---
+							DirectX::XMVECTOR vCom = DirectX::XMVectorSet((float)parentRB.LinearVelocity.x, (float)parentRB.LinearVelocity.y, (float)parentRB.LinearVelocity.z, 0.0f);
+
+							DirectX::XMVECTOR omega = DirectX::XMVectorSet((float)parentRB.AngularVelocity.x, (float)parentRB.AngularVelocity.y, (float)parentRB.AngularVelocity.z, 0.0f);
+
+							DirectX::XMFLOAT3 comLocal = { (float)parentRB.CenterOfMass.x, (float)parentRB.CenterOfMass.y, (float)parentRB.CenterOfMass.z };
+							DirectX::XMVECTOR comWorld = DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&comLocal), parentTransform);
+
+							DirectX::XMVECTOR emitterWorld = DirectX::XMLoadFloat3(&spawnPosition);
+							DirectX::XMVECTOR r = DirectX::XMVectorSubtract(emitterWorld, comWorld);
+
+							DirectX::XMVECTOR vTotal = DirectX::XMVectorAdd(vCom, DirectX::XMVector3Cross(omega, r));
+
+							DirectX::XMStoreFloat3(&parentVelocity, vTotal);
 						}
 					}
 
 					DirectX::XMFLOAT3 finalVelocity;
 					{
 						DirectX::XMVECTOR v = DirectX::XMLoadFloat3(&pc.Velocity);
-						v = DirectX::XMVector3Transform(v, rotationMatrix);
+						v = DirectX::XMVector3Transform(v, rotationMatrix);  
 						DirectX::XMStoreFloat3(&finalVelocity, v);
 					}
 
@@ -570,7 +578,7 @@ namespace Toast {
 					EmitterParamsGPU p = {};
 					p.SpawnPosition = spawnPosition;
 					p.PrevSpawnPosition = pc.PrevSpawnPosition;
-					p.SpawnSize = tc.Scale;
+					p.SpawnSize = pc.SpawnBoxSize;
 					p.Velocity = finalVelocity;
 					p.ConeAngleDegrees = pc.ConeAngleDegrees;
 					p.BiasExponent = pc.BiasExponent;
@@ -583,6 +591,13 @@ namespace Toast {
 					p.BurstInitial = pc.BurstInitial;
 					p.BurstDecay = pc.BurstDecay;
 					p.EmitFunction = static_cast<uint32_t>(pc.SpawnFunction);
+					p.SpeedJitter = pc.SpeedJitter;
+					p.LifeTimeJitter = pc.LifetimeJitter;
+					p.SizeJitter = pc.SizeJitter;
+					p.StartIntensity = pc.StartIntensity;
+					p.EndIntensity = pc.EndIntensity;
+					p.IntensityFalloff = pc.IntensityFalloff;
+					p.SoftFadeDistance = pc.SoftFadeDistance;
 
 					emitterParams.push_back(p);
 					emitCounts.push_back(ParticleSystem::ComputeEmitCount(pc, ts));
@@ -1216,16 +1231,24 @@ namespace Toast {
 					rotationMatrix = DirectX::XMMatrixMultiply(rotationMatrix, parentTC.GetRotation());
 
 					// Velocity inheritance: only if the parent has a rigid body.
-					// Restores the behavior dropped during the Step 2 test - this
-					// is what stops a fast ship overtaking its own exhaust.
 					if (parent.HasComponent<RigidBodyComponent>())
 					{
 						auto& parentRB = parent.GetComponent<RigidBodyComponent>();
-						parentVelocity = {
-							(float)parentRB.LinearVelocity.x,
-							(float)parentRB.LinearVelocity.y,
-							(float)parentRB.LinearVelocity.z
-						};
+
+						// --- linear: velocity of the parent's center of mass ---
+						DirectX::XMVECTOR vCom = DirectX::XMVectorSet((float)parentRB.LinearVelocity.x, (float)parentRB.LinearVelocity.y, (float)parentRB.LinearVelocity.z, 0.0f);
+
+						DirectX::XMVECTOR omega = DirectX::XMVectorSet((float)parentRB.AngularVelocity.x, (float)parentRB.AngularVelocity.y, (float)parentRB.AngularVelocity.z, 0.0f);
+
+						DirectX::XMFLOAT3 comLocal = { (float)parentRB.CenterOfMass.x, (float)parentRB.CenterOfMass.y, (float)parentRB.CenterOfMass.z };
+						DirectX::XMVECTOR comWorld = DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&comLocal), parentTransform);
+
+						DirectX::XMVECTOR emitterWorld = DirectX::XMLoadFloat3(&spawnPosition);
+						DirectX::XMVECTOR r = DirectX::XMVectorSubtract(emitterWorld, comWorld);
+
+						DirectX::XMVECTOR vTotal = DirectX::XMVectorAdd(vCom, DirectX::XMVector3Cross(omega, r));
+
+						DirectX::XMStoreFloat3(&parentVelocity, vTotal);
 					}
 				}
 
@@ -1552,8 +1575,10 @@ namespace Toast {
 			{
 				Entity e{ entity, this };
 
-				DirectX::XMMATRIX transform = e.GetComponent<TransformComponent>().GetTransform();
 				auto pc = e.GetComponent<ParticlesComponent>();
+
+				DirectX::XMMATRIX scaleM = DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&pc.SpawnBoxSize));
+				DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(scaleM, e.GetComponent<TransformComponent>().GetTransformWithoutScale());
 
 				if (e.HasParent())
 				{

@@ -278,9 +278,8 @@ namespace Toast {
 	static float PhysicsEngine_GetAltitude(UUID entityID, bool ignoreWorldTranslation)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "");
 		Entity entity = scene->FindEntityByUUID(entityID);
-		TOAST_CORE_ASSERT(entity, "");
+
 		return scene->GetAltitude(entity, ignoreWorldTranslation);
 	}
 
@@ -296,9 +295,8 @@ namespace Toast {
 	static void PhysicsEngine_ApplyLinearImpulse(UUID entityID, DirectX::XMFLOAT3 impulse)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "");
 		Entity entity = scene->FindEntityByUUID(entityID);
-		TOAST_CORE_ASSERT(entity, "");
+
 		auto& physicsEngine = scene->GetPhysicsEngine();
 
 		auto& rbc = entity.GetComponent<RigidBodyComponent>();
@@ -309,9 +307,8 @@ namespace Toast {
 	static void PhysicsEngine_ApplyLinearImpulseAtPoint(UUID entityID, DirectX::XMFLOAT3 impulse, DirectX::XMFLOAT3 worldPoint)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "");
 		Entity entity = scene->FindEntityByUUID(entityID);
-		TOAST_CORE_ASSERT(entity, "");
+
 		auto& physicsEngine = scene->GetPhysicsEngine();
 		auto& rbc = entity.GetComponent<RigidBodyComponent>();
 		auto& tc = entity.GetComponent<TransformComponent>();
@@ -367,9 +364,7 @@ namespace Toast {
 	static bool Entity_HasComponent(UUID entityID, MonoReflectionType* componentType)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "");
 		Entity entity = scene->FindEntityByUUID(entityID);
-		TOAST_CORE_ASSERT(entity, "");
 
 		MonoType* managedType = mono_reflection_type_get_type(componentType);
 		TOAST_CORE_ASSERT(sEntityHasComponentFuncs.find(managedType) != sEntityHasComponentFuncs.end(), "");
@@ -517,8 +512,8 @@ namespace Toast {
 	static bool Entity_IsSelectable(UUID entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "");
 		Entity entity = scene->FindEntityByUUID(entityID);
+
 		if (!entity) return false;
 		return entity.HasComponent<MeshComponent>();
 	}
@@ -910,11 +905,7 @@ namespace Toast {
 	static void MeshComponent_PlayAnimation(uint64_t entityID, MonoString* name)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		auto sceneSettings = scene->GetSettings();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
 
 		auto& mc = entity.GetComponent<MeshComponent>();
 
@@ -954,11 +945,7 @@ namespace Toast {
 	static void MeshComponent_PlayReverseAnimation(uint64_t entityID, MonoString* name)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		auto sceneSettings = scene->GetSettings();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
 
 		auto& mc = entity.GetComponent<MeshComponent>();
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
@@ -996,11 +983,7 @@ namespace Toast {
 	static float MeshComponent_StopAnimation(uint64_t entityID, MonoString* name)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		auto sceneSettings = scene->GetSettings();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
 
 		auto& mc = entity.GetComponent<MeshComponent>();
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
@@ -1030,11 +1013,7 @@ namespace Toast {
 	static float MeshComponent_GetAnimationTimeElapsed(uint64_t entityID, MonoString* name)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		auto sceneSettings = scene->GetSettings();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
 
 		auto& mc = entity.GetComponent<MeshComponent>();
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
@@ -1066,11 +1045,7 @@ namespace Toast {
 	static float MeshComponent_GetDurationAnimation(uint64_t entityID, MonoString* name)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		auto sceneSettings = scene->GetSettings();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
 
 		auto& mc = entity.GetComponent<MeshComponent>();
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
@@ -1102,10 +1077,7 @@ namespace Toast {
 	float CameraComponent_GetFarClip(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
 		auto& component = entity.GetComponent<CameraComponent>();
 
 		return component.Camera.GetFarClip();
@@ -1114,10 +1086,7 @@ namespace Toast {
 	void CameraComponent_SetFarClip(uint64_t entityID, float inFarClip)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
 		auto& component = entity.GetComponent<CameraComponent>();
 
 		component.Camera.SetFarClip(inFarClip);
@@ -1126,10 +1095,7 @@ namespace Toast {
 	float CameraComponent_GetNearClip(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
 		auto& component = entity.GetComponent<CameraComponent>();
 
 		return component.Camera.GetNearClip();
@@ -1138,10 +1104,7 @@ namespace Toast {
 	void CameraComponent_SetNearClip(uint64_t entityID, float inNearClip)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
 		auto& component = entity.GetComponent<CameraComponent>();
 
 		component.Camera.SetNearClip(inNearClip);
@@ -1168,10 +1131,7 @@ namespace Toast {
 	bool UIPanelComponent_GetVisible(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
 		auto& component = entity.GetComponent<UIPanelComponent>();
 		return component.Visible;
 	}
@@ -1179,10 +1139,7 @@ namespace Toast {
 	void UIPanelComponent_SetVisible(uint64_t entityID, bool value)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
 		auto& component = entity.GetComponent<UIPanelComponent>();
 		component.Visible = value;
 	}
@@ -1194,10 +1151,8 @@ namespace Toast {
 	void UIButtonComponent_GetColor(uint64_t entityID, DirectX::XMFLOAT4* outColor)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<UIButtonComponent>();
 		*outColor = component.Color;
 	}
@@ -1205,10 +1160,8 @@ namespace Toast {
 	void UIButtonComponent_SetColor(uint64_t entityID, DirectX::XMFLOAT4* inColor)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<UIButtonComponent>();
 		component.Color = *inColor;
 	}
@@ -1216,10 +1169,8 @@ namespace Toast {
 	bool UIButtonComponent_GetVisible(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<UIButtonComponent>();
 		return component.Visible;
 	}
@@ -1227,10 +1178,8 @@ namespace Toast {
 	void UIButtonComponent_SetVisible(uint64_t entityID, bool value)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<UIButtonComponent>();
 		component.Visible = value;
 	}
@@ -1242,10 +1191,8 @@ namespace Toast {
 	MonoString* UITextComponent_GetText(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<UITextComponent>();
 
 		std::string text = component.Text;
@@ -1256,10 +1203,8 @@ namespace Toast {
 	void UITextComponent_SetText(uint64_t entityID, MonoString* inText)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<UITextComponent>();
 
 		std::string& textStr = Utils::ConvertMonoStringToCppString(inText);
@@ -1273,10 +1218,8 @@ namespace Toast {
 	float RigidBodyComponent_GetAltitude(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<RigidBodyComponent>();
 		return (float)component.Altitude;
 	}
@@ -1284,10 +1227,8 @@ namespace Toast {
 	void RigidBodyComponent_GetLinearVelocity(uint64_t entityID, DirectX::XMFLOAT3* outLinearVelocity)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<RigidBodyComponent>();
 
 		DirectX::XMFLOAT3 linearVelocity = { (float)component.LinearVelocity.x, (float)component.LinearVelocity.y, (float)component.LinearVelocity.z };
@@ -1298,10 +1239,8 @@ namespace Toast {
 	void RigidBodyComponent_GetAngularVelocity(uint64_t entityID, DirectX::XMFLOAT3* outAngularVelocity)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<RigidBodyComponent>();
 
 		DirectX::XMFLOAT3 angularVelocity = { (float)component.AngularVelocity.x, (float)component.AngularVelocity.y, (float)component.AngularVelocity.z };
@@ -1312,10 +1251,8 @@ namespace Toast {
 	static void RigidBodyComponent_SetMass(uint64_t entityID, float mass)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<RigidBodyComponent>();
 
 		component.InvMass = (mass > 0.0f) ? (1.0f / mass) : 0.0f;
@@ -1324,10 +1261,8 @@ namespace Toast {
 	static float RigidBodyComponent_GetMass(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<RigidBodyComponent>();
 
 		return (component.InvMass > 0.0f) ? (1.0f / component.InvMass) : 0.0f;
@@ -1336,10 +1271,8 @@ namespace Toast {
 	static void RigidBodyComponent_SetAngularDamping(uint64_t entityID, float damping)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<RigidBodyComponent>();
 
 		component.AngularDamping = damping;
@@ -1348,10 +1281,8 @@ namespace Toast {
 	static float RigidBodyComponent_GetAngularDamping(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<RigidBodyComponent>();
 
 		return component.AngularDamping;
@@ -1364,10 +1295,8 @@ namespace Toast {
 	float SphereColliderComponent_GetAltitude(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<SphereColliderComponent>();
 
 		return 0.0f;
@@ -1380,10 +1309,8 @@ namespace Toast {
 	float BoxColliderComponent_GetAltitude(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<BoxColliderComponent>();
 
 		double altitude = scene->GetPhysicsEngine()->GetAltitudeBoxCollider(entity);
@@ -1394,10 +1321,8 @@ namespace Toast {
 	void BoxColliderComponent_GetSize(uint64_t entityID, DirectX::XMFLOAT3* outSize)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<BoxColliderComponent>();
 
 		*outSize = { (float)component.Collider->mSize.x, (float)component.Collider->mSize.y, (float)component.Collider->mSize.z };
@@ -1406,10 +1331,8 @@ namespace Toast {
 	void BoxColliderComponent_SetSize(uint64_t entityID, DirectX::XMFLOAT3* size)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<BoxColliderComponent>();
 
 		component.Collider->mSize = Vector3(*size);
@@ -1419,10 +1342,8 @@ namespace Toast {
 	void BoxColliderComponent_GetOffset(uint64_t entityID, DirectX::XMFLOAT3* outOffset)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<BoxColliderComponent>();
 
 		*outOffset = { (float)component.Collider->mOffset.x, (float)component.Collider->mOffset.y, (float)component.Collider->mOffset.z };
@@ -1431,10 +1352,8 @@ namespace Toast {
 	void BoxColliderComponent_SetOffset(uint64_t entityID, DirectX::XMFLOAT3* offset)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<BoxColliderComponent>();
 
 		component.Collider->mOffset = Vector3(*offset);
@@ -1448,10 +1367,8 @@ namespace Toast {
 	void ParticlesComponent_SetEmitting(uint64_t entityID, bool value)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<ParticlesComponent>();
 
 		component.Emitting = value;
@@ -1460,10 +1377,8 @@ namespace Toast {
 	bool ParticlesComponent_GetEmitting(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<ParticlesComponent>();
 
 		return component.Emitting;
@@ -1476,10 +1391,8 @@ namespace Toast {
 	void* ScriptComponent_GetInstance(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& component = entity.GetComponent<ScriptComponent>();
 
 		Ref<ScriptInstance> instance = ScriptEngine::GetEntityScriptInstance(entityID);
@@ -1495,10 +1408,8 @@ namespace Toast {
 	bool MoveableComponent_GetIsActive(uint64_t entityID)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& mc = entity.GetComponent<MoveableComponent>();
 
 		return mc.IsActive;
@@ -1507,10 +1418,8 @@ namespace Toast {
 	void MoveableComponent_SetIsActive(uint64_t entityID, bool value)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
-		TOAST_CORE_ASSERT(scene, "No active scene!");
-		const auto& entityMap = scene->GetEntityMap();
-		TOAST_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in the scene!");
-		Entity entity = entityMap.at(entityID);
+		Entity entity = scene->FindEntityByUUID(entityID);
+
 		auto& mc = entity.GetComponent<MoveableComponent>();
 
 		mc.IsActive = value;
