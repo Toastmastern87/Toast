@@ -2,12 +2,38 @@
 
 #include "Toast/Core/Log.h"
 
+#include "Toast/Scripting/ScriptEngine.h"
+
+#include "Toast/Utils/PlatformUtils.h"
+
+#include <filesystem>
+
+#include "../FontAwesome.h"
+
 #include "imgui/imgui.h"
 
 #include <fstream>;
 #include <sstream>;
 
 namespace Toast {
+
+	static std::string SanitizeNamespace(const std::string& name)
+	{
+		std::string result;
+		result.reserve(name.size());
+
+		for (char c : name)
+			if (std::isalnum((unsigned char)c) || c == '_')
+				result += c;
+
+		if (result.empty())
+			return "Project";                       // fallback for a name with nothing usable
+
+		if (std::isdigit((unsigned char)result[0]))
+			result.insert(result.begin(), '_');     // identifiers can't start with a digit
+
+		return result;
+	}
 
 	ScriptEditorPanel::ScriptEditorPanel() 
 	{
@@ -33,11 +59,75 @@ namespace Toast {
 		if (!mOpen)
 			return;
 
-		ImGui::Begin("Script Editor", &mOpen);
+		std::string title = "Script Editor";
+		if (!mCurrentFile.empty())
+			title += " - " + mCurrentFile.filename().string();
+		title += "###ScriptEditor";
+
+		ImGui::Begin(title.c_str(), &mOpen);
+
+		// Toolbar row
+		// Save — disabled when nothing to save.
+		ImGui::BeginDisabled(mCurrentFile.empty() || !IsDirty());
+		if (ImGui::Button(ICON_TOASTER_SAVE""))
+			Save();
+		ImGui::EndDisabled();
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Save (Ctrl+S)");
+
+		ImGui::SameLine();
+		if (ImGui::Button(ICON_TOASTER_FOLDER_OPEN))
+		{
+			std::filesystem::path scriptsDir = mProjectPath / "Assets" / "Scripts";
+			std::filesystem::create_directories(scriptsDir);
+
+			std::optional<std::string> path = FileDialogs::OpenFile("C# Script\0*.cs\0", scriptsDir.string().c_str());
+
+			if (path)
+				OpenFile(*path);
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Open script...");
+
+		ImGui::SameLine();
+
+		// Compile, always available if files has been changed outside of the editor
+		if (ImGui::Button(ICON_TOASTER_PLAY))
+			Compile();
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Compile all scripts");
+
+		// Right-aligned filename + dirty marker
+		if (!mCurrentFile.empty())
+		{
+			std::string label = mCurrentFile.filename().string();
+			if (IsDirty())
+				label += " *";
+
+			float textW = ImGui::CalcTextSize(label.c_str()).x;
+			ImGui::SameLine(ImGui::GetContentRegionAvail().x - textW);
+			ImGui::TextDisabled("%s", label.c_str());
+		}
+
+		ImGui::Separator();
+
+		// Ctrl+S while the editor panel has focus.
+		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows && ImGui::IsKeyDown(ImGuiMod_Ctrl) && ImGui::IsKeyPressed(ImGuiKey_S)))
+			Save();
 
 		mEditor.Render("##scriptEditor");
 
 		ImGui::End();
+	}
+
+	void ScriptEditorPanel::SetProjectPath(const std::filesystem::path& projectPath)
+	{
+		std::filesystem::path cleanPath = projectPath;
+		if (cleanPath.has_filename() == false)
+			cleanPath = cleanPath.parent_path();
+
+		mProjectPath = cleanPath;
+		mProjectName = cleanPath.filename().string();
 	}
 
 	void ScriptEditorPanel::OpenFile(const std::filesystem::path& filepath)
@@ -54,6 +144,52 @@ namespace Toast {
 
 		mEditor.SetText(ss.str());
 		mCurrentFile = filepath;
+	}
+
+	bool ScriptEditorPanel::Save()
+	{
+		if (mCurrentFile.empty())
+			return false;
+
+		std::ofstream out(mCurrentFile, std::ios::out | std::ios::binary);
+		if (!out)
+		{
+			TOAST_CORE_ERROR("ScriptEditorPanel: Failed to write '%s'", mCurrentFile.string().c_str());
+			return false;
+		}
+
+		out << mEditor.GetText();
+		out.close();
+
+		mSavedUndoIndex = mEditor.GetUndoIndex();
+
+		return true;
+	}
+
+	bool ScriptEditorPanel::IsDirty()
+	{
+		// GetUndoIndex() advances with every edit and rewinds on undo, so equality
+		// with the index at last save means the buffer matches the file — even if
+		// the user edited and then undid everything.
+		return !mCurrentFile.empty() && mEditor.GetUndoIndex() != mSavedUndoIndex;
+	}
+
+	void ScriptEditorPanel::Compile()
+	{
+		// Auto save first
+		if (IsDirty())
+		{
+			if (!Save())
+			{
+				TOAST_CORE_ERROR("[Compile] Aborted: could not save '%s'", mCurrentFile.string().c_str());
+				return;
+			}
+		}
+
+		std::filesystem::path sourceDir = mProjectPath / "Assets" / "Scripts";
+		std::filesystem::path outputDll = mProjectPath / "Binaries" / (SanitizeNamespace(mProjectName) + ".dll");
+
+		ScriptEngine::CompileScripts(sourceDir, outputDll);
 	}
 
 }

@@ -122,6 +122,15 @@ namespace Toast {
 			{
 				if (directoryEntry.is_directory())
 					mCurrentDirectory /= path.filename();
+				else 
+				{
+					auto ext = path.extension().string();
+					for (auto& c : ext)
+						c = (char)std::tolower(c);
+
+					if (ext == ".cs" && mOpenScriptCallback)
+						mOpenScriptCallback(path);
+				}
 			}
 			ImGui::TextWrapped(filenameStr.c_str());
 

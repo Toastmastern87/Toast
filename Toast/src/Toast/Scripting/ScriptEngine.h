@@ -182,6 +182,8 @@ namespace Toast {
 
 		static bool IsValidIdentifier(const std::string& name);
 		static bool WriteScriptTemplate(const std::filesystem::path& target, const std::string& nameSpace, const std::string& className);
+
+		static bool CompileScripts(const std::filesystem::path& sourceDir, const std::filesystem::path& outputDll);
 	private:
 		static void InitMono();
 		static void ShutdownMono();

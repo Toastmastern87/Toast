@@ -1,4 +1,4 @@
-﻿using Sandbox.Source;
+using Sandbox.Source;
 using Source.Toast.Math;
 using System;
 using System.IO;

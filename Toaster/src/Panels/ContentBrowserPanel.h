@@ -14,6 +14,11 @@ namespace Toast {
 
 		void SetProjectPath(const std::filesystem::path& projectPath);
 		void OnImGuiRender();
+
+		void SetOpenScriptCallback(std::function<void(const std::filesystem::path&)> callback)
+		{
+			mOpenScriptCallback = callback;
+		}
 	private:
 		std::filesystem::path mAssetRoot;
 		std::filesystem::path mCurrentDirectory;
@@ -22,6 +27,8 @@ namespace Toast {
 		Texture2D* mFileIcon;
 		Texture2D* mFileIconCSharp;
 		bool mInitialized = false;
+
+		std::function<void(const std::filesystem::path&)> mOpenScriptCallback;
 	};
 
 }

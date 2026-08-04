@@ -29,3 +29,4 @@
 #define ICON_TOASTER_FOLDER_OPEN		u8"\uf07c"
 #define ICON_TOASTER_ROCKET				u8"\uf135"
 #define ICON_TOASTER_LOCATION_ARROW		u8"\uf124"
+#define ICON_TOASTER_SAVE				u8"\uf0c7"

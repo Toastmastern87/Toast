@@ -126,6 +126,7 @@ namespace Toast {
 		mMaterialPanel.SetProjectPath(mProject->GetPath());
 		mPlanetPanel.SetProjectPath(mProject->GetPath());
 		mPropertiesPanel.SetProjectPath(mProject->GetPath());
+		mScriptEditorPanel.SetProjectPath(mProject->GetPath());
 
 		Renderer2D::LoadUITextures();
 
@@ -141,6 +142,12 @@ namespace Toast {
 			{
 				mScriptEditorPanel.OpenFile(path);
 				mScriptEditorPanel.SetOpen(true);   
+			});
+
+		mContentBrowserPanel.SetOpenScriptCallback([this](const std::filesystem::path& path)
+			{
+				mScriptEditorPanel.OpenFile(path);
+				mScriptEditorPanel.SetOpen(true);
 			});
 
 		// If you have a “force popup to choose projects behavior, disable it on success

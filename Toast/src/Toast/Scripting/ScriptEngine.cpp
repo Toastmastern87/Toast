@@ -538,6 +538,89 @@ namespace {NAMESPACE}
 		return true;
 	}
 
+	bool ScriptEngine::CompileScripts(const std::filesystem::path& sourceDir, const std::filesystem::path& outputDll)
+	{
+		if (!std::filesystem::exists(sourceDir))
+		{
+			TOAST_CORE_ERROR("[Coompile] Script source folder does not exists: %s", sourceDir.string().c_str());
+			return false;
+		}
+
+		// Gather all the source files
+		std::vector<std::filesystem::path> sources;
+		for (auto& entry : std::filesystem::recursive_directory_iterator(sourceDir)) 
+		{
+			if (entry.path().extension() == ".cs")
+				sources.push_back(entry.path());
+		}
+
+		if (sources.empty())
+		{
+			TOAST_CORE_WARN("[Compile] No .cs files found in %s", sourceDir.string().c_str());
+			return false;
+		}
+
+		// Build the compile command
+		std::filesystem::create_directories(outputDll.parent_path());
+
+		std::string cmd;
+		cmd += "\"\"mono\\bin\\mono.exe\"";                        // launcher
+		cmd += " \"mono\\lib\\mono\\4.5\\mcs.exe\"";               // compiler (managed)
+		cmd += " -target:library";
+		cmd += " -out:\"" + outputDll.string() + "\"";
+		cmd += " -r:\"assets\\scripts\\Toast-ScriptCore.dll\"";    // the 'using Toast;' reference
+
+		for (const auto& src : sources)
+			cmd += " \"" + src.string() + "\"";
+
+		cmd += " 2>&1\"";   // fold stderr into stdout — mcs writes diagnostics to stderr
+
+		// Run command and capture the output
+		TOAST_CORE_INFO("[Compile] Compiling %d script(s) -> %s", (int)sources.size(), outputDll.string().c_str());
+
+		FILE* pipe = _popen(cmd.c_str(), "r");
+		if (!pipe) 
+		{
+			TOAST_CORE_ERROR("[Compile] Failed to launch compiler process");
+			return false;
+		}
+
+		char buffer[512];
+		std::string output;
+		while (fgets(buffer, sizeof(buffer), pipe))
+			output += buffer;
+
+		int exitCode = _pclose(pipe);
+
+		// Report
+		if (!output.empty())
+		{
+			std::istringstream stream(output);
+			std::string line;
+			while (std::getline(stream, line))
+			{
+				if (line.empty())
+					continue;
+
+				if (line.find(": error") != std::string::npos)
+					TOAST_CORE_ERROR("[Compile] %s", line.c_str());
+				else if (line.find(": warning") != std::string::npos)
+					TOAST_CORE_WARN("[Compile] %s", line.c_str());
+				else
+					TOAST_CORE_INFO("[Compile] %s", line.c_str());
+			}
+		}
+
+		if (exitCode != 0)
+		{
+			TOAST_CORE_ERROR("[Compile] Failed (exit code %d)", exitCode);
+			return false;
+		}
+
+		TOAST_CORE_INFO("[Compile] Succeeded: %s", outputDll.string().c_str());
+		return true;
+	}
+
 	ScriptClass::ScriptClass(const std::string& classNamespace, const std::string& className, bool isCore)
 		: mClassNamespace(classNamespace), mClassName(className)
 	{
