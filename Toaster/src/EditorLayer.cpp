@@ -553,60 +553,22 @@ namespace Toast {
 				// Entity transform	
 				auto& tc = selectedEntity.GetComponent<TransformComponent>();
 
-				if (mSceneSettingsPanel.GetSelectionMode() == SceneSettingsPanel::SelectionMode::Entity)
-				{
-					DirectX::XMFLOAT4X4 transform;
-					ImGuizmo::RecomposeMatrixFromComponents(&tc.Translation.x, &tc.RotationEulerAngles.x, &tc.Scale.x, *transform.m);
+				DirectX::XMFLOAT4X4 transform;
+				ImGuizmo::RecomposeMatrixFromComponents(&tc.Translation.x, &tc.RotationEulerAngles.x, &tc.Scale.x, *transform.m);
 
-					// Snapping
-					bool snap = Input::IsKeyPressed(Key::LeftControl);
-					float snapValue = 0.5f; // Snap to 0.5m degrees for translation/scale
-					// Snap to 45 degrees for rotation
-					if (mGizmoType == ImGuizmo::OPERATION::ROTATE)
-						snapValue = 45.0f;
+				// Snapping
+				bool snap = Input::IsKeyPressed(Key::LeftControl);
+				float snapValue = 0.5f; // Snap to 0.5m degrees for translation/scale
+				// Snap to 45 degrees for rotation
+				if (mGizmoType == ImGuizmo::OPERATION::ROTATE)
+					snapValue = 45.0f;
 
-					float snapValues[3] = { snapValue, snapValue, snapValue };
+				float snapValues[3] = { snapValue, snapValue, snapValue };
 
-					ImGuizmo::Manipulate(*cameraView.m, *cameraProjection.m, (ImGuizmo::OPERATION)mGizmoType, ImGuizmo::LOCAL, *transform.m, nullptr, snap ? snapValues : nullptr);
+				ImGuizmo::Manipulate(*cameraView.m, *cameraProjection.m, (ImGuizmo::OPERATION)mGizmoType, ImGuizmo::LOCAL, *transform.m, nullptr, snap ? snapValues : nullptr);
 
-					if (ImGuizmo::IsUsing())
-						ImGuizmo::DecomposeMatrixToComponents(*transform.m, &tc.Translation.x, &tc.RotationEulerAngles.x, &tc.Scale.x);
-				}
-				else
-				{
-					if (selectedEntity.HasComponent<MeshComponent>())
-					{
-						auto& mc = selectedEntity.GetComponent<MeshComponent>();
-
-						DirectX::XMMATRIX transformBase = tc.GetTransform() * mc.MeshObject->GetLocalTransform();
-
-						DirectX::XMFLOAT4X4 transform;
-						ImGuizmo::RecomposeMatrixFromComponents(&tc.Translation.x, &tc.RotationEulerAngles.x, &tc.Scale.x, *transform.m);
-
-						// Snapping
-						bool snap = Input::IsKeyPressed(Key::LeftControl);
-						float snapValue = 0.5f; // Snap to 0.5m degrees for translation/scale
-						// Snap to 45 degrees for rotation
-						if (mGizmoType == ImGuizmo::OPERATION::ROTATE)
-							snapValue = 45.0f;
-
-						float snapValues[3] = { snapValue, snapValue, snapValue };
-
-						ImGuizmo::Manipulate(*cameraView.m, *cameraProjection.m, (ImGuizmo::OPERATION)mGizmoType, ImGuizmo::LOCAL, *transform.m, nullptr, snap ? snapValues : nullptr);
-
-						if (ImGuizmo::IsUsing())
-						{
-							float Ftranslation[3] = { 0.0f, 0.0f, 0.0f }, Frotation[3] = { 0.0f, 0.0f, 0.0f }, Fscale[3] = { 0.0f, 0.0f, 0.0f };
-							ImGuizmo::DecomposeMatrixToComponents(*transform.m, Ftranslation, Frotation, Fscale);
-
-							tc.RotationEulerAngles = { Frotation[0], Frotation[1], Frotation[2] };
-
-							mc.MeshObject->SetLocalTransform(DirectX::XMMatrixInverse(nullptr, tc.GetTransform()) * DirectX::XMMatrixIdentity() * DirectX::XMMatrixScaling(Fscale[0], Fscale[1], Fscale[2])
-								* (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(Frotation[0]), DirectX::XMConvertToRadians(Frotation[1]), DirectX::XMConvertToRadians(Frotation[2]))))
-								* DirectX::XMMatrixTranslation(Ftranslation[0], Ftranslation[1], Ftranslation[2]));
-						}
-					}
-				}
+				if (ImGuizmo::IsUsing())
+					ImGuizmo::DecomposeMatrixToComponents(*transform.m, &tc.Translation.x, &tc.RotationEulerAngles.x, &tc.Scale.x);
 			}
 
 			ImGui::End();

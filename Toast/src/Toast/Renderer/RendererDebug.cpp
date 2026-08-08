@@ -210,11 +210,11 @@ namespace Toast {
 			{
 				noWorldTransform = 0;
 
-				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
 				sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 72);
 				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-				meshCommand.Mesh->Bind();
+				meshCommand.Mesh->Bind(0);
 
 				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 			}
@@ -230,11 +230,11 @@ namespace Toast {
 			{
 				noWorldTransform = 0;
 
-				sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
 				sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 72);
 				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-				meshCommand.Mesh->Bind();
+				meshCommand.Mesh->Bind(0);
 
 				RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 			}
@@ -251,11 +251,11 @@ namespace Toast {
 				{
 					noWorldTransform = 0;
 
-					sRendererData->ModelBuffer.Write((uint8_t*)&DirectX::XMMatrixMultiply(submesh.Transform, meshCommand.Transform), 64, 0);
+					sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
 					sRendererData->ModelBuffer.Write((uint8_t*)&noWorldTransform, 4, 72);
 					sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-					meshCommand.Mesh->Bind();
+					meshCommand.Mesh->Bind(0);
 
 					RenderCommand::DrawIndexed(submesh.BaseVertex, submesh.BaseIndex, submesh.IndexCount);
 				}
@@ -308,7 +308,7 @@ namespace Toast {
 		{
 			int isInstanced = meshCommand.Mesh->IsInstanced() ? 1 : 0;
 
-			const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
+			const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.LODIndex]->Submeshes[meshCommand.SubmeshIndex];
 
 			// Model data
 			sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
@@ -316,7 +316,7 @@ namespace Toast {
 
 			if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
 			{
-				meshCommand.Mesh->Bind();
+				meshCommand.Mesh->Bind(meshCommand.LODIndex);
 				sRendererData->CurrentMesh = meshCommand.Mesh.get();
 			}
 

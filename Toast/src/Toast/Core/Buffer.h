@@ -66,10 +66,16 @@ namespace Toast
 		}
 
 		template<typename T>
+		const T& Read(uint64_t offset = 0) const { return *(const T*)((const byte*)Data + offset); }
+
+		template<typename T>
 		T* As()
 		{
 			return (T*)Data;
 		}
+
+		template<typename T>
+		const T* As() const { return (const T*)Data; }
 
 		void Write(uint8_t* data, uint64_t size, uint64_t offset = 0)
 		{

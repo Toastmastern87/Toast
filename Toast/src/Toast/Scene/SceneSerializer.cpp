@@ -310,13 +310,12 @@ namespace Toast {
 
 			out << YAML::Key << "Parts";
 			out << YAML::Value << YAML::BeginSeq;
-			auto& parts = mc.MeshObject->GetPartsUpdated();
+			auto& parts = mc.MeshObject->GetParts();
 
 			for (auto& part : parts)
 			{
 				out << YAML::BeginMap;
 				out << YAML::Key << "Name" << YAML::Value << part.Name;
-				out << YAML::Key << "Handle" << YAML::Value << part.EntityID;
 				out << YAML::EndMap;
 			}
 			out << YAML::EndSeq;
@@ -1545,7 +1544,9 @@ namespace Toast {
 					if (meshComponent["Parts"])
 					{
 						const YAML::Node& partsNode = meshComponent["Parts"];
-						auto& parts = mc.MeshObject->GetPartsUpdated();
+						auto& parts = mc.MeshObject->GetParts();
+
+						mc.PartEntities.assign(parts.size(), UUID(0));
 
 						for (std::size_t i = 0; i < partsNode.size(); ++i)
 						{
@@ -1553,14 +1554,14 @@ namespace Toast {
 							std::string name = partNode["Name"].as<std::string>();
 							UUID handle = partNode["Handle"].as<UUID>();
 
-							for (auto& part : parts)
+							int32_t partIndex = mc.MeshObject->FindPartIndex(name);
+							if (partIndex < 0)
 							{
-								if (part.Name == name)
-								{
-									part.EntityID = handle;
-									break;
-								}
+								TOAST_CORE_WARN("Scene has part '%s' with no matching part in mesh '%s' — skipping", name.c_str(), mc.MeshObject->GetFilePath().c_str());
+								continue;
 							}
+
+							mc.PartEntities[partIndex] = handle;
 						}
 					}
 				}

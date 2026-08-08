@@ -138,7 +138,7 @@ namespace Toast {
 			auto [transform, mesh] = view.get<TransformComponent, MeshComponent>(entity);
 
 			if (mesh.MeshObject->GetIsAnimated())
-				mesh.MeshObject->ResetAnimations();
+				ResetMeshAnimations(mesh);
 		}
 
 		// Reseting particle system to make sure nothing is carried over between play and edit state
@@ -390,10 +390,76 @@ namespace Toast {
 		auto view = mRegistry.view<TransformComponent, MeshComponent>();
 		for (auto entity : view)
 		{
-			auto [tc, mesh] = view.get<TransformComponent, MeshComponent>(entity);
+			auto [tc, mc] = view.get<TransformComponent, MeshComponent>(entity);
+			if (!mc.MeshObject->GetIsAnimated())
+				continue;
 
-			if (mesh.MeshObject->GetIsAnimated())
-				mesh.MeshObject->OnUpdate(ts * mTimeScale);
+			auto& parts = mc.MeshObject->GetParts();
+			uint32_t lod = (uint32_t)mc.ActiveLODGroup;
+
+			// Advance playback — once per animation, per instance
+			for (auto& [name, playback] : mc.Playbacks)
+			{
+				if (!playback.IsActive)
+					continue;
+
+				// Advance the play head 
+				float d = (float)(ts * mTimeScale);
+
+				if (playback.IsReversed)
+				{
+					playback.TimeElapsed -= d;
+					if (playback.TimeElapsed <= 0.0f)
+					{
+						playback.TimeElapsed = 0.0f;
+						playback.IsActive = false;
+						playback.IsReversed = false;
+					}
+				}
+				else
+				{
+					playback.TimeElapsed += d;
+					float duration = mc.MeshObject->GetAnimationDuration(name);
+					if (playback.TimeElapsed >= duration)
+					{
+						playback.TimeElapsed = duration;
+						playback.IsActive = false;
+					}
+				}
+
+				for (uint32_t i = 0; i < parts.size(); ++i)
+				{
+					if (!parts[i].IsAnimated) 
+						continue;
+					if (lod >= parts[i].LODAnimations.size()) 
+						continue;
+					if (parts[i].LODAnimations[lod].find(name) == parts[i].LODAnimations[lod].end()) 
+						continue;
+
+					if (i >= mc.PartEntities.size())
+						continue;
+
+					Entity partEntity = FindEntityByUUID(mc.PartEntities[i]);
+					if (!partEntity)
+						continue;
+
+					DirectX::XMMATRIX animatedMatrix;
+					if (parts[i].Sample(name, lod, playback.TimeElapsed, animatedMatrix))
+					{
+						DirectX::XMVECTOR s, r, t;
+						if (DirectX::XMMatrixDecompose(&s, &r, &t, animatedMatrix))
+						{
+							auto& tc = partEntity.GetComponent<TransformComponent>();
+							DirectX::XMStoreFloat3(&tc.Scale, s);
+							DirectX::XMStoreFloat4(&tc.RotationQuaternion, r);
+							DirectX::XMStoreFloat3(&tc.Translation, t);
+							tc.IsDirty = true;
+						}
+						else
+							TOAST_CORE_WARN("Part '%s' animation matrix could not be decomposed (shear, zero scale, or mirror) — pose not applied this frame", parts[i].Name.c_str());
+					}
+				}
+			}
 		}
 
 		// Process Transform Interpolation (rotation, etc.), Engine side animation
@@ -475,7 +541,7 @@ namespace Toast {
 						double maxDistance = 10000.0;
 						double distance = Vector3::Length(Vector3(tc.Translation) + Vector3(mMainCamera->GetWorldTranslation()));
 						double remappedDistance = std::clamp(distance / maxDistance, 0.0, 1.0);
-						mc.MeshObject->UpdateLODDistance(remappedDistance);
+						mc.LODDistance = remappedDistance;
 
 						std::vector<float> thresholds = mc.MeshObject->GetLODThresholds();
 
@@ -486,7 +552,7 @@ namespace Toast {
 						else if (remappedDistance > thresholds[0])
 							activeLOD = 1; // LOD1
 
-						mc.MeshObject->SetActiveLODGroup(activeLOD);
+						mc.ActiveLODGroup = activeLOD;
 					}
 				}
 			}
@@ -640,53 +706,6 @@ namespace Toast {
 				// Planet
 				Renderer::SubmitPlanet(mPlanet, static_cast<int>(mSettings.WireframeRendering));
 
-				// --- HACK (until part/submesh rework): cache animated part world-transforms so child
-				// entities (e.g. rover on the elevator) can follow the animated parent. Fill BEFORE the
-				// main loop so children read a complete map regardless of iteration order. ---
-				std::unordered_map<UUID, DirectX::XMMATRIX> animatedPartTransforms;
-				{
-					auto prepassView = mRegistry.view<TransformComponent, MeshComponent>();
-					for (auto entity : prepassView)
-					{
-						auto [transform, mesh] = prepassView.get<TransformComponent, MeshComponent>(entity);
-						if (mesh.MeshObject->GetFilePath() == "")
-							continue;
-
-						// Compose this mesh's own world transform up the relationship chain.
-						DirectX::XMMATRIX meshWorld = transform.GetTransform();
-						{
-							Entity current{ entity, this };
-							while (current.HasComponent<RelationshipComponent>())
-							{
-								UUID parentUUID = current.GetComponent<RelationshipComponent>().ParentHandle;
-								if (parentUUID == 0) break;
-								Entity parentEntity = FindEntityByUUID(parentUUID);
-								if (!parentEntity) break;
-								meshWorld = DirectX::XMMatrixMultiply(meshWorld, parentEntity.GetComponent<TransformComponent>().GetTransform());
-								current = parentEntity;
-							}
-						}
-
-						auto& submeshes = mesh.MeshObject->mLODGroups[mesh.MeshObject->mActiveLODGroup]->Submeshes;
-						for (auto& submesh : submeshes)
-						{
-							if (submesh.PartIndex >= mesh.MeshObject->mPartsUpdated.size())
-								continue;
-							const MeshPart& part = mesh.MeshObject->mPartsUpdated[submesh.PartIndex];
-							if (part.EntityID == 0)
-								continue;
-							Entity partEntity = FindEntityByUUID(part.EntityID);
-							if (!partEntity)
-								continue;
-
-							// Same composition as the render loop: submesh.Transform * partRest * meshWorld
-							auto& partTransform = partEntity.GetComponent<TransformComponent>();
-							DirectX::XMMATRIX animated = DirectX::XMMatrixMultiply(submesh.Transform, partTransform.GetTransform());
-							animatedPartTransforms[part.EntityID] = DirectX::XMMatrixMultiply(animated, meshWorld);
-						}
-					}
-				}
-
 				// Meshes!
 				auto viewMeshes = mRegistry.view<TransformComponent, MeshComponent>();
 				for (auto entity : viewMeshes)
@@ -699,37 +718,12 @@ namespace Toast {
 						continue;
 
 					// Walk up the relationship tree to get parent transform included.
-					DirectX::XMMATRIX worldTransform = transform.GetTransform();
-					{
-						Entity current{ entity, this };
-						while (current.HasComponent<RelationshipComponent>())
-						{
-							UUID parentUUID = current.GetComponent<RelationshipComponent>().ParentHandle;
-							if (parentUUID == 0) 
-								break;
-
-							// If the parent is an animated part, its cached transform is already full world space.
-							auto it = animatedPartTransforms.find(parentUUID);
-							if (it != animatedPartTransforms.end())
-							{
-								worldTransform = DirectX::XMMatrixMultiply(transform.GetTransform(), it->second);
-								break;   // cached transform is world-space — stop walking
-							}
-
-							Entity parentEntity = FindEntityByUUID(parentUUID);
-							if (!parentEntity) 
-								break;
-
-							auto& parentTransform = parentEntity.GetComponent<TransformComponent>();
-							worldTransform = DirectX::XMMatrixMultiply(worldTransform, parentTransform.GetTransform());
-							current = parentEntity;
-						}
-					}
+					DirectX::XMMATRIX worldTransform = ComposeWorldTransform(Entity{ entity, this });
 
 					bool entityIsHovered = (mHoveredEntity == entity);
 					bool entityIsSelected = mRegistry.has<SelectedComponent>(entity);
 
-					auto& lodGroup = mesh.MeshObject->mLODGroups[mesh.MeshObject->mActiveLODGroup];
+					auto& lodGroup = mesh.MeshObject->mLODGroups[mesh.ActiveLODGroup];
 					auto& submeshes = lodGroup->Submeshes;
 
 					for (uint32_t submeshIndex = 0; submeshIndex < (uint32_t)submeshes.size(); ++submeshIndex)
@@ -738,20 +732,11 @@ namespace Toast {
 
 						DirectX::XMMATRIX finalTransform = worldTransform; // fallback
 
-						if (submesh.PartIndex < mesh.MeshObject->mPartsUpdated.size())
+						if (submesh.PartIndex < mesh.PartEntities.size())
 						{
-							const MeshPart& part = mesh.MeshObject->mPartsUpdated[submesh.PartIndex];
-
-							if (part.EntityID != 0)
-							{
-								Entity partEntity = FindEntityByUUID(part.EntityID);
-								if (partEntity)
-								{
-									auto& partTransform = partEntity.GetComponent<TransformComponent>();
-									DirectX::XMMATRIX animatedTransform = DirectX::XMMatrixMultiply(submesh.Transform, partTransform.GetTransform());
-									finalTransform = DirectX::XMMatrixMultiply(animatedTransform, worldTransform);
-								}
-							}
+							Entity partEntity = FindEntityByUUID(mesh.PartEntities[submesh.PartIndex]);
+							if (partEntity)
+								finalTransform = ComposeWorldTransform(partEntity);
 						}
 
 						switch (mSettings.WireframeRendering)
@@ -770,13 +755,13 @@ namespace Toast {
 						}
 
 						if (entityIsHovered)
-							Renderer::SubmitHoveredMesh(mesh.MeshObject, finalTransform, submeshIndex);
+							Renderer::SubmitHoveredMesh(mesh.MeshObject, finalTransform, submeshIndex, mesh.ActiveLODGroup);
 
 						if (entityIsSelected)
 							Renderer::SubmitSelecetedMesh(mesh.MeshObject, finalTransform, false, submeshIndex, true);
 					}
 
-					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
+					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices(mesh.ActiveLODGroup).size());
 				}
 
 				// Move markers — submit active commands so GuidancePass can draw them.
@@ -1315,7 +1300,7 @@ namespace Toast {
 					double maxDistance = 10000.0;
 					double distance = Vector3::Length(tc.Translation);
 					double remappedDistance = std::clamp(distance / maxDistance, 0.0, 1.0);
-					mc.MeshObject->UpdateLODDistance(remappedDistance);
+					mc.LODDistance = remappedDistance;
 
 					std::vector<float> thresholds = mc.MeshObject->GetLODThresholds();
 
@@ -1326,7 +1311,7 @@ namespace Toast {
 					else if (remappedDistance > thresholds[0])
 						activeLOD = 1; // LOD1
 
-					mc.MeshObject->SetActiveLODGroup(activeLOD);
+					mc.ActiveLODGroup = activeLOD;
 				}
 			}
 		}
@@ -1418,7 +1403,8 @@ namespace Toast {
 					}
 				}
 
-				auto& lodGroup = mesh.MeshObject->mLODGroups[mesh.MeshObject->mActiveLODGroup];
+				uint32_t lod = (uint32_t)mesh.ActiveLODGroup;
+				auto& lodGroup = mesh.MeshObject->mLODGroups[lod];
 				auto& submeshes = lodGroup->Submeshes;
 
 				for (uint32_t submeshIndex = 0; submeshIndex < (uint32_t)submeshes.size(); ++submeshIndex)
@@ -1427,29 +1413,21 @@ namespace Toast {
 
 					DirectX::XMMATRIX finalTransform = worldTransform; // fallback
 
-					if (submesh.PartIndex < mesh.MeshObject->mPartsUpdated.size())
+					if (submesh.PartIndex < mesh.PartEntities.size())
 					{
-						const MeshPart& part = mesh.MeshObject->mPartsUpdated[submesh.PartIndex];
-
-						if (part.EntityID != 0)
-						{
-							Entity partEntity = FindEntityByUUID(part.EntityID);
-							if (partEntity)
-							{
-								auto& partTransform = partEntity.GetComponent<TransformComponent>();
-								finalTransform = DirectX::XMMatrixMultiply(partTransform.GetTransform(), worldTransform);
-							}
-						}
+						Entity partEntity = FindEntityByUUID(mesh.PartEntities[submesh.PartIndex]);
+						if (partEntity)
+							finalTransform = ComposeWorldTransform(partEntity);
 					}
 
 					switch (mSettings.WireframeRendering)
 					{
 					case Settings::Wireframe::NO:
-						Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, false, 0);
+						Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, lod, false, 0);
 						break;
 
 					case Settings::Wireframe::YES:
-						Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, true, 0);
+						Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, lod, true, 0);
 						break;
 
 					case Settings::Wireframe::ONTOP:
@@ -1458,10 +1436,10 @@ namespace Toast {
 					}
 
 					if (mSelectedEntity == entity)
-						Renderer::SubmitSelecetedMesh(mesh.MeshObject, finalTransform, false, submeshIndex, false);
+						Renderer::SubmitSelecetedMesh(mesh.MeshObject, finalTransform, false, submeshIndex, lod, false);
 				}
 
-				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices().size());
+				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices(mesh.ActiveLODGroup).size());
 			}
 
 			OutlineSettings outline = ResolveOutlineSettings({});
@@ -1980,81 +1958,44 @@ namespace Toast {
 		parent.Children().push_back(entity.GetUUID());
 	}
 
-	void Scene::AddMeshPartEntities(std::vector<MeshPart>& parts, Entity& meshParent)
+	void Scene::AddMeshPartEntities(MeshComponent& mc, Entity owner)
 	{
-		for (size_t i = 0; i < parts.size(); ++i)
+		auto& parts = mc.MeshObject->GetParts();
+		mc.PartEntities.clear();
+		mc.PartEntities.resize(parts.size());
+
+		for (uint32_t i = 0; i < parts.size(); ++i)
 		{
-			MeshPart& part = parts[i];
+			Entity e = CreateEntity(parts[i].Name);
+			auto& tc = e.GetComponent<TransformComponent>();
+			tc.Translation = parts[i].RestTranslation;
+			tc.RotationQuaternion = parts[i].RestRotation;
+			tc.Scale = parts[i].RestScale;
 
-			Entity partEntity = CreateEntity(part.Name, meshParent.GetUUID());
-			part.EntityID = partEntity.GetUUID();
-
-			partEntity.AddComponent<MeshPartComponent>();
-
-			auto& tc = partEntity.GetComponent<TransformComponent>();
-			tc.Translation = part.InitialTranslation;
-			tc.RotationQuaternion = part.InitialRotation; 
-
-			tc.Scale = part.InitialScale;
-
-			partEntity.SetParentUUID(meshParent.GetUUID());
-			meshParent.Children().push_back(partEntity.GetUUID());
+			e.SetParentUUID(owner.GetUUID());
+			owner.Children().push_back(e.GetUUID());
+			mc.PartEntities[i] = e.GetUUID();
 		}
 	}
 
-	DirectX::XMMATRIX Scene::GetWorldTransform(Entity entity)
+	DirectX::XMMATRIX Scene::ComposeWorldTransform(Entity entity)
 	{
-		DirectX::XMMATRIX world = entity.GetComponent<TransformComponent>().GetTransform();
-		Entity current = entity;
+		DirectX::XMMATRIX result = entity.GetComponent<TransformComponent>().GetTransform();
 
+		Entity current = entity;
 		while (current.HasComponent<RelationshipComponent>())
 		{
-			UUID pUUID = current.GetComponent<RelationshipComponent>().ParentHandle;
-			if (pUUID == 0) break;
+			UUID parentUUID = current.GetComponent<RelationshipComponent>().ParentHandle;
+			if (parentUUID == 0) break;
 
-			Entity parentEntity = FindEntityByUUID(pUUID);
-			if (!parentEntity) break;
+			Entity parent = FindEntityByUUID(parentUUID);
+			if (!parent) break;
 
-			// Default: the parent's own rest transform.
-			DirectX::XMMATRIX parentTransform = parentEntity.GetComponent<TransformComponent>().GetTransform();
-
-			// But if this parent is an ANIMATED PART of some mesh, the animation lives in
-			// the matching submesh's Transform, NOT in the part-entity's TransformComponent.
-			// Find that submesh and compose its animated transform: submesh.Transform * partRest.
-			DirectX::XMMATRIX animatedPartTransform;
-			if (FindAnimatedPartTransform(pUUID, parentTransform, animatedPartTransform))
-				parentTransform = animatedPartTransform;
-
-			world = DirectX::XMMatrixMultiply(world, parentTransform);
-			current = parentEntity;
+			result = DirectX::XMMatrixMultiply(result, parent.GetComponent<TransformComponent>().GetTransform());
+			current = parent;
 		}
 
-		return world;
-	}
-
-	// Returns true if pUUID is a part-entity of some mesh; outputs submesh.Transform * partRest.
-	bool Scene::FindAnimatedPartTransform(UUID partEntityUUID, const DirectX::XMMATRIX& partRest, DirectX::XMMATRIX& out)
-	{
-		auto meshView = mRegistry.view<MeshComponent>();
-		for (auto e : meshView)
-		{
-			auto& mesh = meshView.get<MeshComponent>(e);
-			if (mesh.MeshObject->GetFilePath() == "") continue;
-
-			auto& submeshes = mesh.MeshObject->mLODGroups[mesh.MeshObject->mActiveLODGroup]->Submeshes;
-			for (auto& submesh : submeshes)
-			{
-				if (submesh.PartIndex >= mesh.MeshObject->mPartsUpdated.size()) continue;
-				const MeshPart& part = mesh.MeshObject->mPartsUpdated[submesh.PartIndex];
-				if (part.EntityID == partEntityUUID)
-				{
-					// Match the render loop's composition: submesh.Transform * partRest
-					out = DirectX::XMMatrixMultiply(submesh.Transform, partRest);
-					return true;
-				}
-			}
-		}
-		return false;
+		return result;
 	}
 
 	void Scene::UnparentEntity(Entity entity)
@@ -2065,7 +2006,7 @@ namespace Toast {
 		if (parentUUID == 0) return;
 
 		// Bake world transform into local so the entity doesn't jump on detach.
-		DirectX::XMMATRIX world = GetWorldTransform(entity);
+		DirectX::XMMATRIX world = ComposeWorldTransform(entity);
 		DirectX::XMVECTOR scale, rotQuat, trans;
 		if (DirectX::XMMatrixDecompose(&scale, &rotQuat, &trans, world))
 		{
@@ -2428,6 +2369,38 @@ namespace Toast {
 		if (!mLastPickedValid) return false;
 		outWorldPos = mLastPickedWorldPos;
 		return true;
+	}
+
+	void Scene::ResetMeshAnimations(MeshComponent& mc)
+	{
+		TOAST_CORE_INFO("ResetMeshAnimations: %zu part entities", mc.PartEntities.size());
+
+		auto& parts = mc.MeshObject->GetParts();
+
+		for (uint32_t i = 0; i < mc.PartEntities.size() && i < parts.size(); ++i)
+		{
+			Entity partEntity = FindEntityByUUID(mc.PartEntities[i]); 
+			if (!partEntity) 
+				continue;
+
+			auto& tc = partEntity.GetComponent<TransformComponent>();
+			tc.Translation = parts[i].RestTranslation;
+			tc.RotationQuaternion = parts[i].RestRotation;
+			tc.Scale = parts[i].RestScale;
+			tc.IsDirty = true;
+		}
+
+		for (auto& [name, playback] : mc.Playbacks)
+			playback.Reset();
+	}
+
+	bool Scene::IsAnimationComplete(const MeshComponent& mc, const std::string& name)
+	{
+		auto it = mc.Playbacks.find(name);
+		if (it == mc.Playbacks.end())
+			return false;
+
+		return it->second.HasPlayed && !it->second.IsActive;
 	}
 
 	Scene::OutlineSettings Scene::ResolveOutlineSettings(Entity selected)

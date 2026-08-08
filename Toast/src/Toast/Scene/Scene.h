@@ -336,10 +336,9 @@ namespace Toast {
 		Entity FindDescendantByName(Entity parent, std::string_view nameStr);
 
 		void AddChildEntity(Entity entity, Entity parent);
-		void AddMeshPartEntities(std::vector<MeshPart>& parts, Entity& meshParent);
+		void AddMeshPartEntities(MeshComponent& mc, Entity owner);
 
-		DirectX::XMMATRIX GetWorldTransform(Entity entity);   // walks relationship chain
-		bool FindAnimatedPartTransform(UUID partEntityUUID, const DirectX::XMMATRIX& partRest, DirectX::XMMATRIX& out);
+		DirectX::XMMATRIX ComposeWorldTransform(Entity entity);
 		void UnparentEntity(Entity entity);                   // world-pose-preserving detach
 
 		uint32_t GetNextPrefabIndex(const std::string& prefabName);
@@ -388,6 +387,10 @@ namespace Toast {
 		MovementSystem& GetMovementSystem() { return *mMovementSystem; }
 
 		bool GetWorldPositionUnderCursor(Vector3& outWorldPos);
+
+		// Animation functions
+		void ResetMeshAnimations(MeshComponent& mc);
+		bool IsAnimationComplete(const MeshComponent& mc, const std::string& name);
 
 		static Ref<Scene> CreateEmpty();
 	private:

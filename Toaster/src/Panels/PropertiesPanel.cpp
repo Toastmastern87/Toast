@@ -533,24 +533,22 @@ namespace Toast {
 						}
 
 						// Parts exists, erase them first
-						if (component.MeshObject)
+						for (UUID partUUID : component.PartEntities)
 						{
-							if (!component.MeshObject->GetParts().empty())
-							{
-								auto& parts = component.MeshObject->GetParts();
+							if (partUUID == 0)
+								continue;
 
-								for (auto& [name, uuid] : parts)
-								{
-									auto& child = scene->FindEntityByUUID(uuid);
-									entity.RemoveChild(child);
-									scene->DestroyEntity(child);
-								}
-							}
+							Entity child = scene->FindEntityByUUID(partUUID);
+							if (!child)
+								continue;
+
+							entity.RemoveChild(child);
+							scene->DestroyEntity(child);
 						}
-
+						component.PartEntities.clear();
 						component.MeshObject = CreateRef<Mesh>(*filepath);
 
-						scene->AddMeshPartEntities(component.MeshObject->GetPartsUpdated(), entity);
+						scene->AddMeshPartEntities(component, entity);
 					}
 				}
 
@@ -672,7 +670,7 @@ namespace Toast {
 						ImGui::PopID();
 					}
 
-					float lodDistance = component.MeshObject->GetLODDistance();
+					float lodDistance = component.LODDistance;
 
 					// Calculate the x position based on normalized LOD distance
 					float x_lod = ImLerp(startPos.x, endPos.x, lodDistance);

@@ -108,7 +108,6 @@ namespace Toast {
 			return DirectX::XMMatrixIdentity() * (DirectX::XMMatrixRotationQuaternion(DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(RotationEulerAngles.x), DirectX::XMConvertToRadians(RotationEulerAngles.y), DirectX::XMConvertToRadians(RotationEulerAngles.z)))) * DirectX::XMMatrixRotationQuaternion(DirectX::XMLoadFloat4(&RotationQuaternion));
 		}
 
-
 		DirectX::XMVECTOR GetTotalRotationQuaternion() const
 		{
 			DirectX::XMVECTOR qEuler = DirectX::XMQuaternionRotationRollPitchYaw(DirectX::XMConvertToRadians(RotationEulerAngles.x), DirectX::XMConvertToRadians(RotationEulerAngles.y), DirectX::XMConvertToRadians(RotationEulerAngles.z));
@@ -125,6 +124,11 @@ namespace Toast {
 	struct MeshComponent
 	{
 		Ref<Mesh> MeshObject;
+		std::vector<UUID> PartEntities;
+		std::unordered_map<std::string, AnimationPlayback> Playbacks;
+
+		size_t ActiveLODGroup;
+		float LODDistance = 0.0f;
 
 		MeshComponent() = default;
 		MeshComponent(const MeshComponent& other) = default;
@@ -136,13 +140,11 @@ namespace Toast {
 
 	struct MeshPartComponent
 	{
-		bool TempValue;
+		UUID MeshEntity;
+		uint32_t PartIndex = 0;
 
 		MeshPartComponent() = default;
 		MeshPartComponent(const MeshPartComponent& other) = default;
-		MeshPartComponent(const bool& value)
-			: TempValue(value) {
-		}
 	};
 
 	struct SpriteRendererComponent

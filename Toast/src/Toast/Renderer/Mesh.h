@@ -162,13 +162,8 @@ namespace Toast {
 	struct Animation 
 	{
 		std::string Name;
-		bool IsActive = false;
-		bool IsReversed = false;
-		bool HasPlayed = false;
 		float Duration = 0.0f;
-		float TimeElapsed = 0.0f;
 		uint32_t SampleCount = 0;
-		cgltf_animation_channel AnimationChannel;
 
 		Buffer TranslationBuffer;
 		uint32_t TranslationSampleCount = 0;
@@ -181,12 +176,18 @@ namespace Toast {
 		Buffer ScaleBuffer;
 		uint32_t ScaleSampleCount = 0;
 		Buffer ScaleTimestampBuffer;
+	};
 
-		Animation() = default;
-		Animation(cgltf_animation_channel animationChannel)
-			: AnimationChannel(animationChannel) {}
+	struct AnimationPlayback 
+	{
+		float TimeElapsed = 0.0f;
+		bool IsActive = false;
+		bool IsReversed = false;
+		bool HasPlayed = false;
 
-		void Play() 
+		bool BaseCaptured = false;
+
+		void Play()
 		{
 			IsActive = true;
 			HasPlayed = true;
@@ -197,7 +198,7 @@ namespace Toast {
 		{
 			IsActive = true;
 			HasPlayed = true;
-			IsReversed = true; 
+			IsReversed = true;
 		}
 
 		void PlayFromStart()
@@ -208,7 +209,7 @@ namespace Toast {
 			TimeElapsed = 0.0f; // explicit reset to beginning
 		}
 
-		void Reset() 
+		void Reset()
 		{
 			IsActive = false;
 			HasPlayed = false;
@@ -216,50 +217,47 @@ namespace Toast {
 		}
 	};
 
-	struct MeshPart
+	struct PartLODTransform
 	{
-		MeshPart() = default;
-		MeshPart(const std::string& name)
-			: Name(name), EntityID() {}
+		DirectX::XMFLOAT3 LocalTranslation = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT4 LocalRotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+		DirectX::XMFLOAT3 LocalScale = { 1.0f, 1.0f, 1.0f };
+		DirectX::XMMATRIX Parent = DirectX::XMMatrixIdentity();
+		bool Captured = false;
+	};
+
+	struct Part
+	{
+		Part() = default;
+		Part(const std::string& name)
+			: Name(name) {}
 
 		std::string Name = "";
-		UUID EntityID;
-		DirectX::XMFLOAT3 InitialTranslation = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMFLOAT4 InitialRotation = { 0.0f, 0.0f, 0.0f, 1.0f };
-		DirectX::XMFLOAT3 InitialScale = { 1.0f, 1.0f, 1.0f };
 
-		bool InitialTransformCaptured = false;
+		DirectX::XMFLOAT3 RestTranslation = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT4 RestRotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+		DirectX::XMFLOAT3 RestScale = { 1.0f, 1.0f, 1.0f };
+
+		std::vector<PartLODTransform> LODTransforms;
+
+		bool RestTransformCaptured = false;
+
+		std::vector<std::unordered_map<std::string, Ref<Animation>>> LODAnimations;
+		bool IsAnimated = false;
+
+		bool Sample(const std::string& animationName, uint32_t lodIndex, float time,
+			DirectX::XMMATRIX& outMatrix) const;
 	};
 
 	class Submesh
 	{
 	public:
-		void OnUpdate(Timestep ts);
-
-		uint32_t FindPosition(float animationTime, float* timestamps, uint32_t sampleCount);
-		DirectX::XMVECTOR InterpolateTranslation(float animationTime, const std::string& animationName);
-		DirectX::XMVECTOR InterpolateRotation(float animationTime, const std::string& animationName);
-		DirectX::XMVECTOR InterpolateScale(float animationTime, const std::string& animationName);
-	public:
 		uint32_t BaseVertex;
 		uint32_t BaseIndex;
-		std::string MaterialName;
 		uint32_t IndexCount;
 		uint32_t VertexCount;
-
-		// TO BE REMOVED
-		DirectX::XMMATRIX Transform = DirectX::XMMatrixIdentity();
-		DirectX::XMFLOAT3 Translation = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-		DirectX::XMFLOAT3 StartTranslation = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
-		DirectX::XMFLOAT4 Rotation = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
-		DirectX::XMFLOAT3 Scale = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
-
+		std::string MaterialName;
 		uint32_t PartIndex = UINT32_MAX;
-
-		std::string MeshName;
-
-		bool IsAnimated = false;
-		std::unordered_map<std::string, Ref<Animation>> Animations;
 	};
 
 	struct LODGroup
@@ -294,71 +292,58 @@ namespace Toast {
 		void LoadMesh(cgltf_data* data);
 		void LoadMeshWithLODs(cgltf_data* data);
 
-		void SetActiveLODGroup(size_t LODGroupIndex) { mActiveLODGroup = LODGroupIndex; }
-		size_t GetActiveLODGroup() { return mActiveLODGroup; }
-
-		void UpdateLODDistance(float LODDistance) { mLODDistance = LODDistance; }
-		float GetLODDistance() { return mLODDistance; }
 		bool HasLODGroups() { return mHasLODs; }
 		void SetLODThresholds(std::vector<float>& updatedThreshold) { mLODThresholds = updatedThreshold; }
 		std::vector<float>& GetLODThresholds() { return mLODThresholds; }
 
-		void OnUpdate(Timestep ts);
 		void InvalidatePlanet();
 
 		const std::string& GetFilePath() const { return mFilePath; }
 
-		std::unordered_map<std::string, UUID>& GetParts() { return mParts; }
-		std::vector<MeshPart>& GetPartsUpdated() { return mPartsUpdated; }
+		std::vector<Part>& GetParts() { return mParts; }
 
-		std::vector<Vertex>& GetVertices() { return mLODGroups[mActiveLODGroup]->Vertices; }
-		std::vector<uint32_t>& GetIndices() { return mLODGroups[mActiveLODGroup]->Indices; }
+		std::vector<Vertex>& GetVertices(size_t lod) { return mLODGroups[lod]->Vertices; }
+		std::vector<uint32_t>& GetIndices(size_t lod) { return mLODGroups[lod]->Indices; }
 
-		std::vector<Submesh>& GetSubmeshes() { return mLODGroups[mActiveLODGroup]->Submeshes; }
+		std::vector<Submesh>& GetSubmeshes(size_t lod) { return mLODGroups[lod]->Submeshes; }
 		void AddSubmesh(uint32_t indexCount, size_t LODGroupIndex = 0);
-		uint32_t GetNumberOfSubmeshes() { return mLODGroups[mActiveLODGroup]->Submeshes.size(); }
+		uint32_t GetNumberOfSubmeshes(size_t lod) { return mLODGroups[lod]->Submeshes.size(); }
 
 		const Ref<Material> GetMaterial(std::string materialName) const { if (mMaterials.find(materialName) != mMaterials.end()) return mMaterials.at(materialName); else return nullptr; }
 		void SetMaterial(std::string materialName, Ref<Material> material) { mMaterials[materialName] = material; }
 
-		DirectX::XMMATRIX& GetLocalTransform() { return mLODGroups[mActiveLODGroup]->Submeshes[0].Transform; }
-		void SetLocalTransform(DirectX::XMMATRIX& transform) { mLODGroups[mActiveLODGroup]->Submeshes[0].Transform = transform; }
+		void Bind(size_t lod);
 
-		void Bind();
-
-		void ResetAnimations();
 		bool GetIsAnimated() const { return mIsAnimated; }
-		bool IsAnimationComplete(const std::string& name);
+		bool HasAnimation(const std::string& name) const;
+		float GetAnimationDuration(const std::string& name) const;
 
 		bool IsInstanced() const { return mInstanced; }
 		uint32_t GetNumberOfInstances(size_t LODGroupIndex) const { return mLODGroups[LODGroupIndex]->NumberOfInstances; }
-		void SetInstanceData(const void* data, uint32_t size, uint32_t numberOfInstances);
+		void SetInstanceData(const void* data, uint32_t size, uint32_t numberOfInstances, size_t lodIndex);
 
 		std::vector<Ref<LODGroup>>& GetLODGroups() { return mLODGroups; }
+
+		int32_t FindPartIndex(const std::string& name) const;
 	private:
-		void ProcessLODNode(const cgltf_node* node, Ref<LODGroup> lodGroup, const DirectX::XMMATRIX& parentTransform, uint32_t& vertexCount, uint32_t& indexCount);
+		void ProcessLODNode(const cgltf_node* node, Ref<LODGroup> lodGroup, uint32_t lodIndex, const DirectX::XMMATRIX& parentTransform, uint32_t& vertexCount, uint32_t& indexCount);
 
 		uint32_t GetOrCreatePartIndex(const std::string& partName);
 	private:
 		std::string mFilePath = "";
 
 		bool mHasLODs = false;
-		float mLODDistance = 0.0f;
 		std::vector<float> mLODThresholds = { 0.3f, 0.6f };
 		std::vector<Ref<LODGroup>> mLODGroups;
-		size_t mActiveLODGroup = 0;
 
 		Vector3 mColorOverride;
 		uint32_t mMaxNrOfInstanceObjects = 0;
 		bool mInstanced = false;
 
 		std::unordered_map<std::string, Ref<Material>> mMaterials;
-		std::unordered_map<std::string, UUID> mParts;
 
-		std::vector<MeshPart> mPartsUpdated;
+		std::vector<Part> mParts;
 		std::unordered_map<std::string, uint32_t> mPartNameToIndex;
-
-		DirectX::XMMATRIX mTransform = DirectX::XMMatrixIdentity();
 
 		PrimitiveTopology mTopology = PrimitiveTopology::TRIANGLELIST;
 

@@ -947,20 +947,20 @@ namespace Toast {
 		sRendererData->SceneData.SkyboxData.LOD = LOD;
 	}
 
-	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, uint32_t submeshIndex, bool wireframe, int noWorldTransform, bool atmosphere)
+	void Renderer::SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, uint32_t submeshIndex, uint32_t lodIndex, bool wireframe, int noWorldTransform, bool atmosphere)
 	{
 		sRendererData->PlanetData.Atmosphere = atmosphere;
-;		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex);
+;		sRendererData->MeshDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex, lodIndex);
 	}
 
-	void Renderer::SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe, uint32_t submeshIndex, bool runtime)
+	void Renderer::SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe, uint32_t submeshIndex, uint32_t lodIndex, bool runtime)
 	{
 		bool noWorldTransform = false;
 		int entityID = 0;
 		if(runtime)
-			sRendererData->MeshSelectedDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex);
+			sRendererData->MeshSelectedDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex, lodIndex);
 		else
-			sRendererData->MeshEditorSelectedDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex);
+			sRendererData->MeshEditorSelectedDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex, lodIndex);
 	}
 
 	void Renderer::SubmitPlanet(const Ref<Planet> planet, bool wireframe)
@@ -973,9 +973,9 @@ namespace Toast {
 		sRendererData->MoveMarkerDrawList.push_back({ target, normal, size, alpha, texture });
 	}
 	
-	void Renderer::SubmitHoveredMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, uint32_t submeshIndex)
+	void Renderer::SubmitHoveredMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, uint32_t submeshIndex, uint32_t lodIndex)
 	{
-		sRendererData->MeshHoveredDrawList.emplace_back(mesh, transform, false, false, 0, submeshIndex);
+		sRendererData->MeshHoveredDrawList.emplace_back(mesh, transform, false, false, 0, submeshIndex, lodIndex);
 	}
 
 	void Renderer::DrawFullscreenQuad()
@@ -1219,7 +1219,7 @@ namespace Toast {
 
 				float clickable = 1.0f;
 
-				const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
+				const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.LODIndex]->Submeshes[meshCommand.SubmeshIndex];
 
 				// Model data
 				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
@@ -1252,7 +1252,7 @@ namespace Toast {
 
 				if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
 				{
-					meshCommand.Mesh->Bind();
+					meshCommand.Mesh->Bind(meshCommand.LODIndex);
 					sRendererData->CurrentMesh = meshCommand.Mesh.get();
 				}
 
@@ -1321,11 +1321,11 @@ namespace Toast {
 
 				for (const auto& meshCommand : sRendererData->MeshDrawList)
 				{
-					const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
+					const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.LODIndex]->Submeshes[meshCommand.SubmeshIndex];
 
 					if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
 					{
-						meshCommand.Mesh->Bind();
+						meshCommand.Mesh->Bind(meshCommand.LODIndex);
 						sRendererData->CurrentMesh = meshCommand.Mesh.get();
 					}
 
@@ -2250,14 +2250,14 @@ namespace Toast {
 
 			for (const auto& meshCommand : sRendererData->MeshSelectedDrawList)
 			{
-				const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
+				const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.LODIndex]->Submeshes[meshCommand.SubmeshIndex];
 
 				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
 				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
 				if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
 				{
-					meshCommand.Mesh->Bind();
+					meshCommand.Mesh->Bind(meshCommand.LODIndex);
 					sRendererData->CurrentMesh = meshCommand.Mesh.get();
 				}
 				RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
@@ -2277,12 +2277,12 @@ namespace Toast {
 			sRendererData->CurrentMesh = nullptr;
 			for (const auto& meshCommand : sRendererData->MeshHoveredDrawList)
 			{
-				const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.Mesh->mActiveLODGroup]->Submeshes[meshCommand.SubmeshIndex];
+				const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.LODIndex]->Submeshes[meshCommand.SubmeshIndex];
 				sRendererData->ModelBuffer.Write((uint8_t*)&meshCommand.Transform, 64, 0);
 				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 				if (sRendererData->CurrentMesh != meshCommand.Mesh.get())
 				{
-					meshCommand.Mesh->Bind();
+					meshCommand.Mesh->Bind(meshCommand.LODIndex);
 					sRendererData->CurrentMesh = meshCommand.Mesh.get();
 				}
 				RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
@@ -2947,7 +2947,7 @@ namespace Toast {
 			planet->GetTerrainObjectCBuffer()->Map(buffer);
 			planet->GetTerrainObjectCBuffer()->Bind(); // b13
 
-			auto& material = object.MeshObject->GetMaterial(object.MeshObject->GetSubmeshes()[0].MaterialName);
+			auto& material = object.MeshObject->GetMaterial(object.MeshObject->GetSubmeshes(0)[0].MaterialName);
 			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetAlbedo(), 16, 0);
 			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetEmission(), 4, 16);
 			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetMetalness(), 4, 20);
@@ -2969,7 +2969,7 @@ namespace Toast {
 
 			// Bind mesh + material like your normal path (important!)
 			// If your Mesh::Bind() does not bind material SRVs, do it here.
-			object.MeshObject->Bind();
+			object.MeshObject->Bind(0);
 
 			uint32_t candidateCount = object.CandidateGridSize * object.CandidateGridSize;
 

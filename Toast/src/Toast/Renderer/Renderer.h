@@ -25,13 +25,14 @@ namespace Toast {
 		struct DrawCommand
 		{
 		public:
-			DrawCommand(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const bool wireframe, int noWorldTransform = 1, const int entityID = 0, const int submeshIndex = 0)
-				: Mesh(mesh), Transform(transform), Wireframe(wireframe), NoWorldTransform(noWorldTransform), EntityID(entityID), SubmeshIndex(submeshIndex) {}
+			DrawCommand(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const bool wireframe, int noWorldTransform = 1, const int entityID = 0, const int submeshIndex = 0, const uint32_t lodIndex = 0)
+				: Mesh(mesh), Transform(transform), Wireframe(wireframe), NoWorldTransform(noWorldTransform), EntityID(entityID), SubmeshIndex(submeshIndex), LODIndex(lodIndex) {}
 			DrawCommand(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform)
-				: Mesh(mesh), Transform(transform), EntityID(0) {}
+				: Mesh(mesh), Transform(transform), EntityID(0){}
 		public:
 			Ref<Mesh> Mesh;
 			uint32_t SubmeshIndex = 0;
+			uint32_t LODIndex = 0;
 
 			DirectX::XMMATRIX Transform;
 
@@ -269,11 +270,11 @@ namespace Toast {
 
 		static void Submit(const Ref<IndexBuffer>& indexBuffer, const Ref<Shader> shader, const Ref<ShaderLayout> bufferLayout, const Ref<VertexBuffer> vertexBuffer, const DirectX::XMMATRIX& transform);
 		static void SubmitSkybox(const DirectX::XMFLOAT4& cameraPos, const DirectX::XMFLOAT4X4& viewMatrix, const DirectX::XMFLOAT4X4& projectionMatrix, float intensity, float LOD);
-		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, uint32_t submeshIndex, bool wireframe = false, int noWorldTransform = 0, bool atmosphere = false);
-		static void SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false, uint32_t submeshIndex = 0, bool runtime = false);
+		static void SubmitMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, const int entityID, uint32_t submeshIndex, uint32_t lodIndex, bool wireframe = false, int noWorldTransform = 0, bool atmosphere = false);
+		static void SubmitSelecetedMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, bool wireframe = false, uint32_t submeshIndex = 0, uint32_t lodIndex = 0, bool runtime = false);
 		static void SubmitPlanet(const Ref<Planet> planet, bool wireframe = false);
 		static void SubmitMoveMarker(const Vector3& target, const Vector3& normal, float size, float alpha, AssetHandle texture);
-		static void SubmitHoveredMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, uint32_t submeshIndex);
+		static void SubmitHoveredMesh(const Ref<Mesh> mesh, const DirectX::XMMATRIX& transform, uint32_t submeshIndex, uint32_t lodIndex);
 
 		static void DrawFullscreenQuad();
 		static void DrawQuad();

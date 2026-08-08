@@ -906,107 +906,49 @@ namespace Toast {
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		Entity entity = scene->FindEntityByUUID(entityID);
-
 		auto& mc = entity.GetComponent<MeshComponent>();
-
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
 
-		bool found = false;
-		std::unordered_set<Animation*> played; // avoid calling Play twice on the same ref
-
-		for (auto& lodGroup : mc.MeshObject->GetLODGroups())
+		if (!mc.MeshObject->HasAnimation(nameStr))
 		{
-			for (auto& submesh : lodGroup->Submeshes)
-			{
-				if (!submesh.IsAnimated)
-					continue;
-
-				auto it = submesh.Animations.find(nameStr);
-
-				if (it == submesh.Animations.end() || !it->second) 
-					continue;
-
-				// Only call Play once per unique Animation instance
-				if (played.find(it->second.get()) == played.end())
-				{
-					it->second->Play();
-					played.insert(it->second.get());
-					found = true;
-				}
-			}
+			TOAST_CORE_WARN("Animation '%s' not found for entity %llu", nameStr.c_str(), entityID);
+			return;
 		}
 
-		if (!found)
-			TOAST_CORE_WARN("Animation '%s' not found in any LOD group for entity %llu", nameStr.c_str(), entityID);
-		else
-			TOAST_CORE_INFO("Playing animation '%s'", nameStr.c_str());
+		mc.Playbacks[nameStr].Play();
+		TOAST_CORE_INFO("Playing animation '%s'", nameStr.c_str());
 	}
 
 	static void MeshComponent_PlayReverseAnimation(uint64_t entityID, MonoString* name)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		Entity entity = scene->FindEntityByUUID(entityID);
-
 		auto& mc = entity.GetComponent<MeshComponent>();
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
 
-		bool found = false;
-		std::unordered_set<Animation*> played;
-
-		for (auto& lodGroup : mc.MeshObject->GetLODGroups())
+		if (!mc.MeshObject->HasAnimation(nameStr))
 		{
-			for (auto& submesh : lodGroup->Submeshes)
-			{
-				if (!submesh.IsAnimated) 
-					continue;
-
-				auto it = submesh.Animations.find(nameStr);
-
-				if (it == submesh.Animations.end() || !it->second) 
-					continue;
-
-				if (played.find(it->second.get()) == played.end())
-				{
-					it->second->PlayReverse();
-					played.insert(it->second.get());
-					found = true;
-				}
-			}
+			TOAST_CORE_WARN("Animation '%s' not found for entity %llu", nameStr.c_str(), entityID);
+			return;
 		}
 
-		if (!found)
-			TOAST_CORE_WARN("Animation '%s' not found in any LOD group for entity %llu", nameStr.c_str(), entityID);
-		else
-			TOAST_CORE_INFO("Playing animation '%s' reversed", nameStr.c_str());
+		mc.Playbacks[nameStr].PlayReverse();
+		TOAST_CORE_INFO("Playing animation reversed '%s'", nameStr.c_str());
 	}
 
 	static float MeshComponent_StopAnimation(uint64_t entityID, MonoString* name)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		Entity entity = scene->FindEntityByUUID(entityID);
-
 		auto& mc = entity.GetComponent<MeshComponent>();
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
 
-		float timeElapsed = 0.0f;
-		for (auto& lodGroup : mc.MeshObject->GetLODGroups())
-		{
-			for (auto& submesh : lodGroup->Submeshes)
-			{
-				if (!submesh.IsAnimated) 
-					continue;
+		auto it = mc.Playbacks.find(nameStr);
+		if (it == mc.Playbacks.end()) return 0.0f;
 
-				auto it = submesh.Animations.find(nameStr);
-				if (it == submesh.Animations.end() || !it->second) 
-					continue;
-
-				timeElapsed = it->second->TimeElapsed;
-				it->second->IsActive = false;
-				it->second->TimeElapsed = 0.0f;
-
-				return timeElapsed; // all LODs share the same ref so one is enough
-			}
-		}
+		float timeElapsed = it->second.TimeElapsed;
+		it->second.IsActive = false;
+		it->second.TimeElapsed = 0.0f;
 		return timeElapsed;
 	}
 
@@ -1014,21 +956,11 @@ namespace Toast {
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		Entity entity = scene->FindEntityByUUID(entityID);
-
 		auto& mc = entity.GetComponent<MeshComponent>();
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
 
-		for (auto& lodGroup : mc.MeshObject->GetLODGroups())
-		{
-			for (auto& submesh : lodGroup->Submeshes)
-			{
-				if (!submesh.IsAnimated) continue;
-				auto it = submesh.Animations.find(nameStr);
-				if (it == submesh.Animations.end() || !it->second) continue;
-				return it->second->TimeElapsed;
-			}
-		}
-		return 0.0f;
+		auto it = mc.Playbacks.find(nameStr);
+		return it == mc.Playbacks.end() ? 0.0f : it->second.TimeElapsed;
 	}
 
 	static bool MeshComponent_IsAnimationComplete(UUID entityID, MonoString* name)
@@ -1039,35 +971,23 @@ namespace Toast {
 		char* cstr = mono_string_to_utf8(name);
 		std::string animName(cstr);
 		mono_free(cstr);
-		return entity.GetComponent<MeshComponent>().MeshObject->IsAnimationComplete(animName);
+
+		auto& mc = entity.GetComponent<MeshComponent>();
+		auto it = mc.Playbacks.find(animName);
+		if (it == mc.Playbacks.end())
+			return false;
+
+		return it->second.HasPlayed && !it->second.IsActive;
 	}
 
 	static float MeshComponent_GetDurationAnimation(uint64_t entityID, MonoString* name)
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		Entity entity = scene->FindEntityByUUID(entityID);
-
 		auto& mc = entity.GetComponent<MeshComponent>();
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
 
-		//TOAST_CORE_INFO("Getting animation: %s", nameStr.c_str());
-
-		for (auto& lodGroup : mc.MeshObject->GetLODGroups())
-		{
-			for (auto& submesh : lodGroup->Submeshes)
-			{
-				if (!submesh.IsAnimated) 
-					continue;
-
-				auto it = submesh.Animations.find(nameStr);
-				if (it == submesh.Animations.end() || !it->second) 
-					continue;
-
-				return it->second->Duration;
-			}
-		}
-
-		return 0.0f;
+		return mc.MeshObject->GetAnimationDuration(nameStr);
 	}
 
 #pragma endregion
