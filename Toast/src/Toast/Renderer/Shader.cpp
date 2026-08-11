@@ -453,6 +453,7 @@ namespace Toast {
 		{
 			D3D11_SHADER_TYPE type = kv.first;
 			const std::string& source = kv.second;
+
 			const std::string shaderVersion = ShaderVersionFromType(type);
 
 			// Try loading from cache first

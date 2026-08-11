@@ -97,7 +97,6 @@ SamplerState HeightMapSampler                   : register(s5);
 
 #include "DirectionToCube.hlsli"
 #include "PerlinNoise.hlsli"    
-#include "TerrainHeightCalculations.hlsli"
 
 RelSample SampleRelSurface(float2 offMeters, float edgeW)
 {
@@ -113,16 +112,16 @@ RelSample SampleRelSurface(float2 offMeters, float edgeW)
 
     float3 pNoise = vPlanet * PlanetRadius;
 
-    float h = SampleHeightFromDir(normalize(vPlanet));
+    float h = 0.0f;//SampleHeightFromDir(normalize(vPlanet));
 
-    int lodFine = LodFromCellSize(CellSize);
-    float detailFine = AccumulateHeightDetails(pNoise, lodFine);
+    int lodFine = 0;//LodFromCellSize(CellSize);
+    float detailFine = 0.0f;//AccumulateHeightDetails(pNoise, lodFine);
     float detail = detailFine;
 
     if (DrawMode == 1)
     {
         int lodCoarse = lodFine + 1;
-        float detailCoarse = AccumulateHeightDetails(pNoise, lodCoarse);
+        float detailCoarse = 0.0f;//AccumulateHeightDetails(pNoise, lodCoarse);
         detail = lerp(detailCoarse, detailFine, edgeW);
     }
 
@@ -221,13 +220,13 @@ PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
     
     float3 pNoise = vPlanet * PlanetRadius;
 
-    float h = SampleHeightFromDir(normalize(vPlanet)); // height in meters
+    float h = 0.0f;//SampleHeightFromDir(normalize(vPlanet)); // height in meters
     
-    int lodFine = LodFromCellSize(CellSize);
+    int lodFine = 0;//LodFromCellSize(CellSize);
     int lodCoarse = lodFine + 1;
     
-    float detailFine = AccumulateHeightDetails(pNoise, lodFine);
-    float detailCoarse = AccumulateHeightDetails(pNoise, lodCoarse);
+    float detailFine = 0.0f;// AccumulateHeightDetails(pNoise, lodFine);
+    float detailCoarse = 0.0f; //AccumulateHeightDetails(pNoise, lodCoarse);
     
     float detail = detailFine;
     
@@ -237,14 +236,14 @@ PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
         int2 gLocalI = int2(gWorld) - int2(OriginX, OriginY);
         uint2 gLocal = (uint2) gLocalI;
 
-        edgeW = EdgeBlendWeight(gLocal, GridSize - 1);
+        edgeW = 1.0f;//EdgeBlendWeight(gLocal, GridSize - 1);
         
         // Outer edge (w=0): coarse. Inner edge (w=1): fine.
         detail = lerp(detailCoarse, detailFine, edgeW);
 
         // Optional: force the very outer border to be exactly coarse
         // (helps if any numerical jitter exists)
-        if (EdgeDistanceToBorder(gLocal, GridSize - 1) == 0) 
+        if (false) 
             detail = detailCoarse;
     }
     
@@ -269,7 +268,7 @@ PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
     // 4. View-space position
     float3 posVS = mul(float4(pRelWS, 1.0f), viewMatrix).xyz;
     
-    p.uv = PlanetDirToEquirectUV(float3(-vPlanet.x, vPlanet.y, -vPlanet.z));
+    p.uv = float2(0.0f, 0.0f); //PlanetDirToEquirectUV(float3(-vPlanet.x, vPlanet.y, -vPlanet.z));
     p.posVS = posVS;
     p.nWS = ComputeVertexNormalWS(off, edgeW);
     return p;
