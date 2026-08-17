@@ -310,12 +310,13 @@ namespace Toast {
 
 			out << YAML::Key << "Parts";
 			out << YAML::Value << YAML::BeginSeq;
-			auto& parts = mc.MeshObject->GetParts();
 
-			for (auto& part : parts)
+			auto& parts = mc.MeshObject->GetParts();
+			for (uint32_t i = 0; i < parts.size(); ++i)
 			{
 				out << YAML::BeginMap;
-				out << YAML::Key << "Name" << YAML::Value << part.Name;
+				out << YAML::Key << "Name" << YAML::Value << parts[i].Name;
+				out << YAML::Key << "Handle" << YAML::Value << (i < mc.PartEntities.size() ? (uint64_t)mc.PartEntities[i] : 0ull);
 				out << YAML::EndMap;
 			}
 			out << YAML::EndSeq;
@@ -581,6 +582,7 @@ namespace Toast {
 			out << YAML::Key << "SpeedJitter" << YAML::Value << pc.SpeedJitter;
 			out << YAML::Key << "LifetimeJitter" << YAML::Value << pc.LifetimeJitter;
 			out << YAML::Key << "SizeJitter" << YAML::Value << pc.SizeJitter;
+			out << YAML::Key << "DirectionalJitter" << YAML::Value << pc.DirectionalJitter;
 			out << YAML::Key << "StartIntensity" << YAML::Value << pc.StartIntensity;
 			out << YAML::Key << "EndIntensity" << YAML::Value << pc.EndIntensity;
 			out << YAML::Key << "IntensityFalloff" << YAML::Value << pc.IntensityFalloff;
@@ -1552,6 +1554,13 @@ namespace Toast {
 						{
 							const auto& partNode = partsNode[i];
 							std::string name = partNode["Name"].as<std::string>();
+							
+							if (!partNode["Handle"])
+							{
+								TOAST_CORE_WARN("Scene: part '%s' has no entity handle, skipping", name.c_str());
+								continue;
+							}
+
 							UUID handle = partNode["Handle"].as<UUID>();
 
 							int32_t partIndex = mc.MeshObject->FindPartIndex(name);
@@ -1819,6 +1828,8 @@ namespace Toast {
 						pc.LifetimeJitter = particlesComponent["LifetimeJitter"].as<float>();
 					if (particlesComponent["SizeJitter"])
 						pc.SizeJitter = particlesComponent["SizeJitter"].as<float>();
+					if (particlesComponent["DirectionalJitter"])
+						pc.DirectionalJitter = particlesComponent["DirectionalJitter"].as<float>();
 					if (particlesComponent["StartIntensity"])
 						pc.StartIntensity = particlesComponent["StartIntensity"].as<float>();
 					if (particlesComponent["EndIntensity"])

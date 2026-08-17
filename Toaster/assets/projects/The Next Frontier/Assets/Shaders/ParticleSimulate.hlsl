@@ -14,10 +14,12 @@ RWStructuredBuffer<uint>            Counters        : register(u4);
 
 cbuffer ParticleSimCB : register(b2)
 {
+    float3 PlanetCenter;
     float DeltaTime;
-    uint _pad0;
-    uint _pad1;
-    uint _pad2;
+    float GravityStrength;
+    float DragCoefficient;
+    float _pad0;
+    float _pad1;
 };
 
 [numthreads(PARTICLE_THREADGROUP_SIZE, 1, 1)]
@@ -34,10 +36,21 @@ void main( uint3 DTid : SV_DispatchThreadID )
     uint particleIndex = AliveListIn[DTid.x];
     GPUParticle p = ParticleBuffer[particleIndex];
     
-    //
+    // Gravity
+    if (GravityStrength > 0.0f)
+    {
+        float toCenter = PlanetCenter - p.Position;
+        float dist = length(toCenter);
+        if (dist > 1e-3f)
+            p.Velocity += (toCenter / dist) * GravityStrength * DeltaTime;
+    }
+    
+    // Drag, exponential decay towards the planet 
+    if (DragCoefficient > 0.0f)
+        p.Velocity *= exp(-DragCoefficient * DeltaTime);
     
     // Integrate and age
-    float burstFactor = 1.0f;
+        float burstFactor = 1.0f;
     if (p.BurstDecay > 0.0f)
         burstFactor = lerp(p.BurstInitial, 1.0f, saturate(p.Age / p.BurstDecay));
    

@@ -43,6 +43,8 @@ namespace Toast {
 		uint32_t GetFrameSeed() const { return mFrameSeed; }
 		void AdvanceFrameSeed() { ++mFrameSeed; }
 
+		void SetPlanetData(const DirectX::XMFLOAT3& planetCenter, float gravityStrength);
+
 		// Advances the per-emitter spawn accumulator and returns how many
 		// particles to spawn this frame. Mutates pc.ElapsedTime.
 		static uint32_t ComputeEmitCount(ParticlesComponent& pc, float dt);
@@ -107,6 +109,9 @@ namespace Toast {
 
 		// Advanced once per frame so that the GPU RNG differs between frames
 		uint32_t mFrameSeed = 0;
+
+		DirectX::XMFLOAT3 mPlanetCenter;
+		float mGravityStrength;
 
 		AssetHandle mEmitShaderHandle;
 		AssetHandle mSimKickoffShaderHandle;

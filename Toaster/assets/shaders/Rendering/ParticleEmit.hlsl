@@ -68,6 +68,9 @@ void main( uint3 DTid : SV_DispatchThreadID )
     
     spawnVel *= lerp(1.0f - e.SpeedJitter, 1.0f + e.SpeedJitter, NextFloat(rng));
     
+    if (e.DirectionalJitter > 0.0f)
+        spawnVel = RandomVelocityInCone(spawnVel, e.DirectionalJitter, rng);
+    
     GPUParticle p;
     p.Position = spawnPos - spawnVel * (u * EmitDeltaTime);
     p.Age = -u * EmitDeltaTime;
@@ -85,6 +88,10 @@ void main( uint3 DTid : SV_DispatchThreadID )
     p.EndIntensity = e.EndIntensity;
     p.IntensityFalloff = e.IntensityFalloff;
     p.SoftFadeDistance = e.SoftFadeDistance;
+    p.Drag = e.Drag;
+    p.TurbulenceStrength = e.TurbulenceStrength;
+    p._pad0 = 0.0f;
+    p._pad1 = 0.0f;
 
     // Add particle
     ParticleBuffer[particleIndex] = p;

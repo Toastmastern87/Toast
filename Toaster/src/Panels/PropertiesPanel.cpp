@@ -1653,8 +1653,12 @@ namespace Toast {
 				// Breaks the "identical stamped shapes" read.
 				DrawFloatControl("Size Jitter", component.SizeJitter, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 1.0f, 0.01f, "%.2f");
 
+				DrawFloatControl("Directional Jitter", component.DirectionalJitter, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 45.0f, 0.1f, "%.1f");
+
 				// Soft particles
 				DrawFloatControl("Soft Fade Distance", component.SoftFadeDistance, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 100.0f, 0.05f, "%.2f");
+
+				DrawFloatControl("Drag", component.Drag, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 5.0f, 0.01f, "%.3f");
 
 				if (component.SpawnFunction == EmitFunction::CONE)
 				{

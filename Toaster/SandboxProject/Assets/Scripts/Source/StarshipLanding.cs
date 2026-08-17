@@ -47,6 +47,18 @@ namespace Sandbox
 
         public float LegDeployAltitude = 500.0f;
 
+        // Engine ramp variables
+        public float IgnitionRampTime = 0.5f;       // seconds from ignition to full plume
+        public float IgnitionLifeTimeStart = 0.01f; // near-zero: plume starts at the nozzle
+        public float IgnitionIntensityStart = 0.5f; // dim glow before chamber pressure builds
+        public float IgnitionSpawnDelayMult = 4.0f; // 4x delay = 1/4 the particle density
+
+        // Authored "full throttle" values, captured once so the ramp has a target.
+        private float mFullLifeTime;
+        private float mFullSpawnDelay;
+        private float mFullStartIntensity;
+        private float mIgnitionTime = -1f;          // -1 = engines have never fired
+
         private TransformComponent mShipTransform;
         private RigidBodyComponent mRigidBody;
         private BoxColliderComponent mBoxCollider;
@@ -132,6 +144,10 @@ namespace Sandbox
             mRS3Particles = mRS3.GetComponent<ParticlesComponent>();
 
             mCargoState = CargoState.None;
+
+            mFullLifeTime = mRS1Particles.MaxLifeTime;
+            mFullSpawnDelay = mRS1Particles.SpawnDelay;
+            mFullStartIntensity = mRS1Particles.StartIntensity;
         }
 
         void OnEvent()
@@ -175,6 +191,7 @@ namespace Sandbox
 
             // Apply thrust from all active engines every frame
             ApplyThrust(ts);
+            UpdateEngineRamp();
 
             // Info Panel
             if (mPanel.Visible)
@@ -542,6 +559,9 @@ namespace Sandbox
 
         private void SetEngineActive(bool active)
         {
+            if (active && !enginesActive)
+                mIgnitionTime = GetTime();
+
             enginesActive = active;
             mRS1Particles.Emitting = active;
             mRS2Particles.Emitting = active;
@@ -607,6 +627,38 @@ namespace Sandbox
         private float GetTime()
         {
             return elapsedTime;
+        }
+
+        private void UpdateEngineRamp()
+        {
+            if (!enginesActive || mIgnitionTime < 0.0f)
+                return;
+
+            float t = Clamp((GetTime() - mIgnitionTime) / IgnitionRampTime, 0.0f, 1.0f);
+
+            float lifeTime = Lerp(IgnitionLifeTimeStart, mFullLifeTime, t);
+            float intensity = Lerp(IgnitionIntensityStart, mFullStartIntensity, t);
+
+            // Density: fewer particles early. Guard against ever reaching 0
+            float spawnDelay = Lerp(mFullSpawnDelay * IgnitionSpawnDelayMult, mFullSpawnDelay, t);
+            spawnDelay = Math.Max(spawnDelay, 0.00001f);
+
+            ApplyPlumeSettings(lifeTime, spawnDelay, intensity);
+        }
+
+        private void ApplyPlumeSettings(float lifeTime, float spawnDelay, float intensity)
+        {
+            mRS1Particles.MaxLifeTime = lifeTime;
+            mRS2Particles.MaxLifeTime = lifeTime;
+            mRS3Particles.MaxLifeTime = lifeTime;
+
+            mRS1Particles.SpawnDelay = spawnDelay;
+            mRS2Particles.SpawnDelay = spawnDelay;
+            mRS3Particles.SpawnDelay = spawnDelay;
+
+            mRS1Particles.StartIntensity = intensity;
+            mRS2Particles.StartIntensity = intensity;
+            mRS3Particles.StartIntensity = intensity;
         }
     }
 }

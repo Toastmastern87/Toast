@@ -519,6 +519,45 @@ namespace Toast
                 InternalCalls.ParticlesComponent_SetEmitting(Entity.ID, value);
             }
         }
+
+        public float MaxLifeTime 
+        {
+            get 
+            {
+                return InternalCalls.ParticlesComponent_GetMaxLifeTime(Entity.ID);
+            }
+
+            set 
+            {
+                InternalCalls.ParticlesComponent_SetMaxLifeTime(Entity.ID, value);
+            }
+        }
+
+        public float SpawnDelay
+        {
+            get
+            {
+                return InternalCalls.ParticlesComponent_GetSpawnDelay(Entity.ID);
+            }
+
+            set
+            {
+                InternalCalls.ParticlesComponent_SetSpawnDelay(Entity.ID, value);
+            }
+        }
+
+        public float StartIntensity
+        {
+            get
+            {
+                return InternalCalls.ParticlesComponent_GetStartIntensity(Entity.ID);
+            }
+
+            set
+            {
+                InternalCalls.ParticlesComponent_SetStartIntensity(Entity.ID, value);
+            }
+        }
     }
 
     public class ScriptComponent : Component

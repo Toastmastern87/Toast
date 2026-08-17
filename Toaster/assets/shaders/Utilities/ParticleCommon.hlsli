@@ -43,13 +43,17 @@ struct GPUParticle
     float   EndIntensity;
     float   IntensityFalloff;
     float   SoftFadeDistance;
+    float   Drag;
+    float   TurbulenceStrength;
+    float   _pad0;
+    float   _pad1;
 };
 
 // In food terms this can be seen as the recipe
 struct EmitterParams
 {
     float3  SpawnPosition;
-    float   _pad0;
+    float   Drag;
     float3  SpawnSize;
     float   BiasExponent;
     float3  Velocity;
@@ -71,7 +75,11 @@ struct EmitterParams
     float   StartIntensity;
     float   EndIntensity;
     float   IntensityFalloff;
-    float   _pad1;
+    float   TurbulenceStrength;
+    float   DirectionalJitter; 
+    float   _pad0; 
+    float   _pad1; 
+    float   _pad2; 
 };
 
 // Indices into the Counter buffer (RWStructuredBuffer<uint>, 4 elements).
@@ -148,7 +156,7 @@ float3 RandomVelocityInCone(float3 baseDir, float coneAngleDegrees, inout RNG rn
 #endif
 
     float phi = v * 2.0f * PARTICLE_PI;
-
+    
     // Local-space direction, cone aligned to +Z.
     float x = sinTheta * cos(phi);
     float y = sinTheta * sin(phi);

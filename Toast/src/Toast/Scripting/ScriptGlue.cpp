@@ -1304,6 +1304,66 @@ namespace Toast {
 		return component.Emitting;
 	}
 
+	void ParticlesComponent_SetMaxLifeTime(uint64_t entityID, float value)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& component = entity.GetComponent<ParticlesComponent>();
+
+		component.MaxLifeTime = value;
+	}
+
+	float ParticlesComponent_GetMaxLifeTime(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& component = entity.GetComponent<ParticlesComponent>();
+
+		return component.MaxLifeTime;
+	}
+
+	void ParticlesComponent_SetSpawnDelay(uint64_t entityID, float value)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& component = entity.GetComponent<ParticlesComponent>();
+
+		component.SpawnDelay = value;
+	}
+
+	float ParticlesComponent_GetSpawnDelay(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& component = entity.GetComponent<ParticlesComponent>();
+
+		return component.SpawnDelay;
+	}
+
+	void ParticlesComponent_SetStartIntensity(uint64_t entityID, float value)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& component = entity.GetComponent<ParticlesComponent>();
+
+		component.StartIntensity = value;
+	}
+
+	float ParticlesComponent_GetStartIntensity(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& component = entity.GetComponent<ParticlesComponent>();
+
+		return component.StartIntensity;
+	}
+
 #pragma endregion
 
 #pragma region Script Component
@@ -1514,6 +1574,12 @@ namespace Toast {
 
 		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_GetEmitting);
 		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_SetEmitting);
+		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_GetMaxLifeTime);
+		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_SetMaxLifeTime);
+		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_GetSpawnDelay);
+		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_SetSpawnDelay);
+		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_GetStartIntensity);
+		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_SetStartIntensity);
 
 		TOAST_ADD_INTERNAL_CALL(ScriptComponent_GetInstance);
 

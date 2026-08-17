@@ -334,6 +334,8 @@ namespace Toast {
 		float GrowRate = 0.0f;
 		float BurstInitial = 1.0f;
 		float BurstDecay = 0.0f;
+		float Drag = 0.0f;         
+		float TurbulenceStrength = 0.0f;
 		DirectX::XMFLOAT3 PrevSpawnPosition = { 0.0f, 0.0f, 0.0f };
 		bool HasPrevSpawnPosition = false;
 
@@ -341,6 +343,7 @@ namespace Toast {
 		float SpeedJitter = 0.0f;      // dissolves banding on a stationary emitter
 		float LifetimeJitter = 0.0f;   // stops the tail dying in lockstep
 		float SizeJitter = 0.0f;       // breaks the "identical stamps" read
+		float DirectionalJitter = 0.0f; // Breaks up the 
 
 		// HDR intensity ramp
 		float StartIntensity = 1.0f;

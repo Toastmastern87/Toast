@@ -76,7 +76,7 @@ PixelInputType main(uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID
     float4 viewPos = mul(float4(worldPos, 1.0f), viewMatrix);
     float3 right = float3(1.0f, 0.0f, 0.0f);
     float3 up = float3(0.0f, 1.0f, 0.0f);
-
+    //
     float2 cornerOffset = offsets[vertexID] * scaledSize;
     float3 viewOffset = (cornerOffset.x * right) + (cornerOffset.y * up);
     viewPos.xyz += viewOffset;
@@ -136,7 +136,7 @@ float4 main(PixelInputType input) : SV_TARGET
     // Multiply the particle's color by the texture sample.
     // This will tint the particle with the texture's RGB and modulate the alpha.
     float4 finalColor = input.color * texColor;
-    
+    //
     // Soft particles: fade out as the billboard approaches whatever is behind it,
     // so it dissolves into the surface instead of showing a hard intersection.
     if (input.softFade > 0.0f)

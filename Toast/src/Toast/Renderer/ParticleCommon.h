@@ -53,12 +53,16 @@ namespace Toast {
 		float				EndIntensity;		// 84
 		float				IntensityFalloff;	// 88
 		float				SoftFadeDistance;	// 92
+		float				Drag;				// 96
+		float				TurbulenceStrength;	// 100
+		float				_pad0;				// 104
+		float				_pad1;				// 108
 	};
 
 	struct EmitterParamsGPU 
 	{
 		DirectX::XMFLOAT3	SpawnPosition;
-		float				_pad0;
+		float				Drag;
 		DirectX::XMFLOAT3	SpawnSize;
 		float				BiasExponent;
 		DirectX::XMFLOAT3	Velocity;
@@ -80,7 +84,11 @@ namespace Toast {
 		float				StartIntensity;		
 		float				EndIntensity;		
 		float				IntensityFalloff;	
-		float				_pad1;
+		float				TurbulenceStrength;
+		float               DirectionalJitter;   
+		float               _padA;              
+		float               _padB;            
+		float               _padC;               
 	};
 
 }

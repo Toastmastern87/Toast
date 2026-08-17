@@ -863,7 +863,7 @@ namespace Toast {
 					lodXf.Captured = true;
 				}
 
-				// Rest* still seeds the part entity in AddMeshPartEntities — take it from LOD0
+				// Rest* still seeds the part entity in AddMeshPartEntities
 				if (!part.RestTransformCaptured)
 				{
 					DecomposeTransform(combinedTransform, part.RestTranslation, part.RestRotation, part.RestScale);

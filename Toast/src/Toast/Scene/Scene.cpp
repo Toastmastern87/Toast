@@ -664,6 +664,9 @@ namespace Toast {
 					p.EndIntensity = pc.EndIntensity;
 					p.IntensityFalloff = pc.IntensityFalloff;
 					p.SoftFadeDistance = pc.SoftFadeDistance;
+					p.Drag = pc.Drag;
+					p.TurbulenceStrength = pc.TurbulenceStrength;
+					p.DirectionalJitter = pc.DirectionalJitter;
 
 					emitterParams.push_back(p);
 					emitCounts.push_back(ParticleSystem::ComputeEmitCount(pc, ts));
@@ -723,6 +726,7 @@ namespace Toast {
 					bool entityIsHovered = (mHoveredEntity == entity);
 					bool entityIsSelected = mRegistry.has<SelectedComponent>(entity);
 
+					uint32_t lod = (uint32_t)mesh.ActiveLODGroup;
 					auto& lodGroup = mesh.MeshObject->mLODGroups[mesh.ActiveLODGroup];
 					auto& submeshes = lodGroup->Submeshes;
 
@@ -742,11 +746,11 @@ namespace Toast {
 						switch (mSettings.WireframeRendering)
 						{
 						case Settings::Wireframe::NO:
-							Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, false, 0);
+							Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, lod, false, 0);
 							break;
 
 						case Settings::Wireframe::YES:
-							Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, true, 0);
+							Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, lod, true, 0);
 							break;
 
 						case Settings::Wireframe::ONTOP:
@@ -1273,6 +1277,9 @@ namespace Toast {
 				p.EndIntensity = pc.EndIntensity;
 				p.IntensityFalloff = pc.IntensityFalloff;
 				p.SoftFadeDistance = pc.SoftFadeDistance;
+				p.Drag = pc.Drag;
+				p.TurbulenceStrength = pc.TurbulenceStrength;
+				p.DirectionalJitter = pc.DirectionalJitter;
 
 				emitterParams.push_back(p);
 				emitCounts.push_back(ParticleSystem::ComputeEmitCount(pc, ts));
@@ -1280,6 +1287,11 @@ namespace Toast {
 				// Setting up for next frame
 				pc.PrevSpawnPosition = spawnPosition;
 			}
+
+			if (mPlanet)
+				particleSystem->SetPlanetData(mPlanet->GetTranslation(), mPlanet->GetGravityConstant());
+			else
+				particleSystem->SetPlanetData({ 0.0f, 0.0f, 0.0f }, 0.0f);
 
 			particleSystem->OnUpdate(ts, emitterParams, emitCounts);
 			//particleSystem->DebugLogCounters(60);

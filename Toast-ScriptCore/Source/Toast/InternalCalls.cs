@@ -419,7 +419,25 @@ namespace Toast
         internal static extern bool ParticlesComponent_GetEmitting(ulong entityID);
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern bool ParticlesComponent_SetEmitting(ulong entityID, bool value);
+        internal static extern void ParticlesComponent_SetEmitting(ulong entityID, bool value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float ParticlesComponent_GetMaxLifeTime(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void ParticlesComponent_SetMaxLifeTime(ulong entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float ParticlesComponent_GetSpawnDelay(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void ParticlesComponent_SetSpawnDelay(ulong entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float ParticlesComponent_GetStartIntensity(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void ParticlesComponent_SetStartIntensity(ulong entityID, float value);
 
         #endregion
 

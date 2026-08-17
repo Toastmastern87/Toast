@@ -19,7 +19,7 @@ namespace Toast{
 
 		// The Particle Pool
 		mParticleBuffer = CreateRef<StructuredBuffer>(
-			sizeof(GPUParticle),     // stride: 80 bytes per element
+			sizeof(GPUParticle),     // stride: 116 bytes per element
 			N,                       // count:  262,144 elements
 			D3D11_USAGE_DEFAULT,
 			true,                    // createUAV
@@ -78,8 +78,7 @@ namespace Toast{
 		mEmitBuffer.Allocate(mEmitCBuffer->GetSize());
 		mEmitBuffer.ZeroInitialize();
 
-		mSimCBuffer = ConstantBufferLibrary::Load("ParticleSim", 16,
-			std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot(2)) });
+		mSimCBuffer = ConstantBufferLibrary::Load("ParticleSim", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot(2)) });
 		mSimBuffer.Allocate(mSimCBuffer->GetSize());
 		mSimBuffer.ZeroInitialize();
 
@@ -215,8 +214,9 @@ namespace Toast{
 		ID3D11DeviceContext* ctx = API->GetDeviceContext();
 
 		// per-frame simulate constants 
-		mSimBuffer.Write((uint8_t*)&dt, 4, 0);
-		// bytes 4..15 stay zero (padding to the 16-byte minimum)
+		mSimBuffer.Write((uint8_t*)&mPlanetCenter, 12, 0);
+		mSimBuffer.Write((uint8_t*)&dt, 4, 12);
+		mSimBuffer.Write((uint8_t*)&mGravityStrength, 4, 16);
 		mSimCBuffer->Map(mSimBuffer);
 		mSimCBuffer->Bind();
 
@@ -293,6 +293,12 @@ namespace Toast{
 		// CPU: flip the ping-pong. The list we just WROTE survivors into
 		// becomes the list we READ next frame - and the list Emit appends to.
 		mAlivePingPong ^= 1u;
+	}
+
+	void ParticleSystem::SetPlanetData(const DirectX::XMFLOAT3& planetCenter, float gravityStrength)
+	{
+		mPlanetCenter = planetCenter;
+		mGravityStrength = gravityStrength;
 	}
 
 	uint32_t ParticleSystem::ComputeEmitCount(ParticlesComponent& pc, float dt)
