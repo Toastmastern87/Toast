@@ -96,3 +96,4 @@
 16986451805673895676|Shader|Shaders\ParticleEmit.hlsl|
 7618113645877186234|Shader|Shaders\ParticleSimKickoff.hlsl|
 12005753143424441943|Shader|Shaders\ParticleSimulate.hlsl|
+6770022817839959989|Texture2D|Textures\DustKickupMask.png|sRGB=0

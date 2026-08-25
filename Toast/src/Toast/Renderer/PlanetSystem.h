@@ -615,7 +615,15 @@ namespace Toast {
 		float mGravityConstant = 0.0f;
 		float mSurfaceAirDensity = 0.0f;      
 		float mPhysicsScaleHeight = 0.0f;   
-		float mAtmosphereCeiling = 0.0f;  
+		float mAtmosphereCeiling = 0.0f; 
+		// Wind / turbulence (drives particle curl noise) 
+		float mTurbulenceScale = 0.0f;
+		// Finite-difference step for the curl
+		float mTurbulenceEpsilon = 0.0f;
+		// Wind vector in m/s. The particle system accumulates this into a scroll
+		// offset so the noise field drifts over time instead of being a static
+		// pattern particles slide through.
+		DirectX::XMFLOAT3 mWindVelocity = { 0.0f, 0.0f, 0.0f };
 
 		AssetHandle mGeoClipmapGPassShaderHandle = 0;
 		AssetHandle mHeightMapToCubeMapShaderHandle = 0;
@@ -769,6 +777,10 @@ namespace Toast {
 		float GetErosionAssumedSlopeBlend() const { return mErosionAssumedSlopeBlend; }
 		float GetErosionMaxDistance() const { return mErosionMaxDistance; }
 		float GetErosionFadeStart() const { return mErosionFadeStart; }
+
+		float GetTurbulenceScale() const { return mTurbulenceScale; }
+		float GetTurbulenceEpsilon() const { return mTurbulenceEpsilon; }
+		const DirectX::XMFLOAT3& GetWindVelocity() const { return mWindVelocity; }
 
 		template<typename T>
 		static CubeData<T> LoadCubeData(const Ref<TextureCube>& source);

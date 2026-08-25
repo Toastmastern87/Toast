@@ -53,6 +53,25 @@ namespace Sandbox
         public float IgnitionIntensityStart = 0.5f; // dim glow before chamber pressure builds
         public float IgnitionSpawnDelayMult = 4.0f; // 4x delay = 1/4 the particle density
 
+        // Dust kickup on terrain
+        public float DustPlumeReachMargin = 1.4f;
+        public float DustSpawnDelayFar = 0.0f;
+        public float DustSpawnDelayNear = 0.0f;
+        public float DustOutwardFar = 0.0f;
+        public float DustOutwardNear = 0.0f;
+        public float DustUpwardFar = 0.0f;
+        public float DustUpwardNear = 0.0f;
+
+        // Vents settings
+        public float CommonDomeVentPostLandingTime = 30.0f;   // keeps venting this long after touchdown
+        public float HeaderVentDuration = 60.0f;              // runs for this long from touchdown
+
+        private float mLandedTime = -1f;                      // -1 = hasn't landed yet
+
+        private Entity mDustKickupEntity;
+        private ParticlesComponent mDustParticles;
+        private TransformComponent mDustTransform;
+
         // Authored "full throttle" values, captured once so the ramp has a target.
         private float mFullLifeTime;
         private float mFullSpawnDelay;
@@ -76,6 +95,12 @@ namespace Sandbox
         private ParticlesComponent mRS1Particles;
         private ParticlesComponent mRS2Particles;
         private ParticlesComponent mRS3Particles;
+        private ParticlesComponent mAftVent1;
+        private ParticlesComponent mAftVent2;
+        private ParticlesComponent mCommonDomeVent1;
+        private ParticlesComponent mCommonDomeVent2;
+        private ParticlesComponent mHeaderVent1;
+        private ParticlesComponent mHeaderVent2;
 
         private Entity mStarshipInfoPanel;
         private Entity mVelocityEntity;
@@ -117,6 +142,8 @@ namespace Sandbox
             mRS2 = FindChildEntityByName(this.Name, "RaptorSea2");
             mRS3 = FindChildEntityByName(this.Name, "RaptorSea3");
 
+            mRS3 = FindChildEntityByName(this.Name, "RaptorSea3");
+
             mStarshipInfoPanel = FindChildEntityByName(mStarship.GetComponent<TagComponent>().Tag, "InfoPopup");
             mPanel = mStarshipInfoPanel.GetComponent<UIPanelComponent>();
             mVelocityEntity = mStarshipInfoPanel.FindDecententByName(mStarshipInfoPanel.ID, "VelocityText");
@@ -148,6 +175,17 @@ namespace Sandbox
             mFullLifeTime = mRS1Particles.MaxLifeTime;
             mFullSpawnDelay = mRS1Particles.SpawnDelay;
             mFullStartIntensity = mRS1Particles.StartIntensity;
+
+            mDustKickupEntity = FindChildEntityByName(this.Name, "DustKickup");
+            mDustParticles = mDustKickupEntity.GetComponent<ParticlesComponent>();
+            mDustTransform = mDustKickupEntity.GetComponent<TransformComponent>();
+
+            mAftVent1 = FindChildEntityByName(this.Name, "AftVent1").GetComponent<ParticlesComponent>();
+            mAftVent2 = FindChildEntityByName(this.Name, "AftVent2").GetComponent<ParticlesComponent>();
+            mCommonDomeVent1 = FindChildEntityByName(this.Name, "CommonDomeVent1").GetComponent<ParticlesComponent>();
+            mCommonDomeVent2 = FindChildEntityByName(this.Name, "CommonDomeVent2").GetComponent<ParticlesComponent>();
+            mHeaderVent1 = FindChildEntityByName(this.Name, "HeaderVent1").GetComponent<ParticlesComponent>();
+            mHeaderVent2 = FindChildEntityByName(this.Name, "HeaderVent2").GetComponent<ParticlesComponent>();
         }
 
         void OnEvent()
@@ -192,6 +230,8 @@ namespace Sandbox
             // Apply thrust from all active engines every frame
             ApplyThrust(ts);
             UpdateEngineRamp();
+            UpdateGroundDust(altitude);
+            UpdateVents();
 
             // Info Panel
             if (mPanel.Visible)
@@ -464,7 +504,10 @@ namespace Sandbox
             Toast.Console.LogInfo($"[Landing] Transitioning from {landingState} to {newState}");
 
             if (newState == LandingState.Landed)
+            {
                 mLegsDeployed = false;
+                mLandedTime = GetTime();
+            }
 
             landingState = newState;
         }
@@ -659,6 +702,85 @@ namespace Sandbox
             mRS1Particles.StartIntensity = intensity;
             mRS2Particles.StartIntensity = intensity;
             mRS3Particles.StartIntensity = intensity;
+        }
+
+        private void UpdateGroundDust(float altitude)
+        {
+            float exhaustSpeed = Math.Abs(mRS1Particles.Velocity.Y);
+            float plumeReach = exhaustSpeed * mFullLifeTime * DustPlumeReachMargin;
+
+            if (!enginesActive)
+            {
+                mDustParticles.Emitting = false;
+                return;
+            }
+
+            Quaternion shipRot = mShipTransform.Rotation;
+            Quaternion engineLocalRot = mRaptorSea1TC.Rotation;
+            Quaternion engineWorldRot = Quaternion.Multiply(shipRot, engineLocalRot);
+
+            Vector3 plumeDir = Vector3.Normalize(Vector3.Rotate(engineWorldRot, new Vector3(0.0f, -1.0f, 0.0f)));
+            Vector3 radialUp = GetRadialUp();
+
+            float alignment = -(plumeDir.X * radialUp.X + plumeDir.Y * radialUp.Y + plumeDir.Z * radialUp.Z);
+
+            if (alignment < 0.1f)
+            {
+                // Plume horizontal or firing upward: no ground interaction.
+                mDustParticles.Emitting = false;
+                return;
+            }
+
+            float distanceToGround = altitude / alignment;
+
+            Vector3 plumeDirShipLocal = Vector3.Rotate(engineLocalRot, new Vector3(0f, -1f, 0f));
+            Vector3 engineLocalPos = mRaptorSea1TC.Translation;
+
+            mDustTransform.Translation = engineLocalPos + plumeDirShipLocal * distanceToGround;
+
+            if (distanceToGround > plumeReach)
+            {
+                mDustParticles.Emitting = false;
+                return;
+            }
+
+            float overlap = Clamp(1.0f - (distanceToGround / plumeReach), 0f, 1f);
+            overlap = overlap * overlap;
+
+            float intensity = overlap;
+
+            mDustParticles.Emitting = true;
+
+            mDustParticles.SpawnDelay = Lerp(DustSpawnDelayFar, DustSpawnDelayNear, intensity);
+            mDustParticles.Velocity = new Vector3(Lerp(DustOutwardFar, DustOutwardNear, intensity), Lerp(DustUpwardFar, DustUpwardNear, intensity), 0f);
+            mDustParticles.SpawnDelay = Lerp(DustSpawnDelayFar, DustSpawnDelayNear, intensity);
+        }
+
+        private void UpdateVents() 
+        {
+            // Seconds since touchdown, or -1 while still airborne.
+            float sinceLanded = (mLandedTime >= 0f) ? (GetTime() - mLandedTime) : -1f;
+
+            // Aft vents: belly-flop and gimbal prep only
+            // Off the moment FlipInitiate begins, since that's engine ignition.
+            bool aftVenting = landingState == LandingState.BellyFlopFreeFall || landingState == LandingState.FlipPrepare;
+
+            mAftVent1.Emitting = aftVenting;
+            mAftVent2.Emitting = aftVenting;
+
+            // Common dome vents: whole descent, plus a tail after landing 
+            // sinceLanded is -1 while airborne, so the second half of the
+            // condition only ever engages once touchdown has happened.
+            bool commonVenting = landingState != LandingState.Landed || sinceLanded < CommonDomeVentPostLandingTime;
+
+            mCommonDomeVent1.Emitting = commonVenting;
+            mCommonDomeVent2.Emitting = commonVenting;
+
+            // Header vents: start at touchdown, run for a fixed duration
+            bool headerVenting = landingState == LandingState.Landed && sinceLanded < HeaderVentDuration;
+
+            mHeaderVent1.Emitting = headerVenting;
+            mHeaderVent2.Emitting = headerVenting;
         }
     }
 }

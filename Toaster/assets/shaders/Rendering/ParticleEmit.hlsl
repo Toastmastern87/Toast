@@ -65,6 +65,15 @@ void main( uint3 DTid : SV_DispatchThreadID )
         // BOX spreads the POSITION; velocity is used as-is.
         spawnPos = RandomPointInBox(emitterPos, e.SpawnSize, e.BiasExponent, rng);
     }
+    else if (e.EmitFunction == EMITFUNCTION_DISC)
+    {
+        float3 radialDir;
+        float3 offset = RandomPointOnDisc(e.SpawnSize.x, rng, radialDir);
+        
+        spawnPos = emitterPos + offset;
+        
+        spawnVel = radialDir * e.Velocity.x + float3(0.0f, e.Velocity.y, 0.0f);
+    }
     
     spawnVel *= lerp(1.0f - e.SpeedJitter, 1.0f + e.SpeedJitter, NextFloat(rng));
     
@@ -90,8 +99,12 @@ void main( uint3 DTid : SV_DispatchThreadID )
     p.SoftFadeDistance = e.SoftFadeDistance;
     p.Drag = e.Drag;
     p.TurbulenceStrength = e.TurbulenceStrength;
-    p._pad0 = 0.0f;
+    p.MaskSlice = e.MaskSlice;
+    p.BlendMode = e.BlendMode;
+    p.Rotation = NextFloat(rng) * 2.0f * PARTICLE_PI;
+    p.AlphaScale = e.AlphaScale;
     p._pad1 = 0.0f;
+    p._pad2 = 0.0f;
 
     // Add particle
     ParticleBuffer[particleIndex] = p;

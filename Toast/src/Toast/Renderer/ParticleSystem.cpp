@@ -78,9 +78,13 @@ namespace Toast{
 		mEmitBuffer.Allocate(mEmitCBuffer->GetSize());
 		mEmitBuffer.ZeroInitialize();
 
-		mSimCBuffer = ConstantBufferLibrary::Load("ParticleSim", 32, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot(2)) });
+		mSimCBuffer = ConstantBufferLibrary::Load("ParticleSim", 48, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot(2)) });
 		mSimBuffer.Allocate(mSimCBuffer->GetSize());
 		mSimBuffer.ZeroInitialize();
+
+		mParticleDrawCBuffer = ConstantBufferLibrary::Load("ParticleDraw", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot(1)) });
+		mParticleDrawBuffer.Allocate(mParticleDrawCBuffer->GetSize());
+		mParticleDrawBuffer.ZeroInitialize();
 
 		// Making sure everything is reseted and ready to be used
 		Reset();
@@ -133,12 +137,20 @@ namespace Toast{
 
 		mAlivePingPong = 0;
 
+		mMaskHandles.clear();
+		mMaskArrayDirty = true;
+
+		mTurbulenceScroll = { 0.0f, 0.0f, 0.0f };
+
 		TOAST_CORE_INFO("GPU particle pool reset - %d slots free.", N);
 	}
 
 	void ParticleSystem::OnUpdate(float dt, const std::vector<EmitterParamsGPU>& emitters, const std::vector<uint32_t>& emitCounts)
 	{
 		AdvanceFrameSeed();
+
+		if (mMaskArrayDirty)
+			RebuildMaskArray();
 
 		// Simulate must run every frame, even with no emitters - existing
 		// particles have to keep aging and dying, or they freeze in place the
@@ -213,10 +225,17 @@ namespace Toast{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
 		ID3D11DeviceContext* ctx = API->GetDeviceContext();
 
+		mTurbulenceScroll.x += mWindVelocity.x * dt;
+		mTurbulenceScroll.y += mWindVelocity.y * dt;
+		mTurbulenceScroll.z += mWindVelocity.z * dt;
+
 		// per-frame simulate constants 
 		mSimBuffer.Write((uint8_t*)&mPlanetCenter, 12, 0);
 		mSimBuffer.Write((uint8_t*)&dt, 4, 12);
 		mSimBuffer.Write((uint8_t*)&mGravityStrength, 4, 16);
+		mSimBuffer.Write((uint8_t*)&mTurbulenceScale, 4, 20);
+		mSimBuffer.Write((uint8_t*)&mTurbulenceEpsilon, 4, 24);
+		mSimBuffer.Write((uint8_t*)&mTurbulenceScroll, 12, 32);
 		mSimCBuffer->Map(mSimBuffer);
 		mSimCBuffer->Bind();
 
@@ -295,10 +314,55 @@ namespace Toast{
 		mAlivePingPong ^= 1u;
 	}
 
-	void ParticleSystem::SetPlanetData(const DirectX::XMFLOAT3& planetCenter, float gravityStrength)
+	uint32_t ParticleSystem::GetMaskSlice(AssetHandle handle)
+	{
+		if (!handle)
+			return 0;
+
+		for (uint32_t i = 0; i < (uint32_t)mMaskHandles.size(); ++i)
+			if (mMaskHandles[i] == handle)
+				return i;
+
+		if (mMaskHandles.size() >= MASK_ARRAY_SIZE)
+		{
+			TOAST_CORE_WARN("More then %d distinct particles mask, resusing slice 0", MASK_ARRAY_SIZE);
+			return 0;
+		}
+
+		mMaskHandles.push_back(handle);
+		mMaskArrayDirty = true; // new mask, rebuild the array!
+		return (uint32_t)mMaskHandles.size() - 1;
+	}
+
+	void ParticleSystem::RebuildMaskArray()
+	{
+		if (!mMaskArray)
+		{
+			mMaskArray = CreateScope<Texture2DArray>(DXGI_FORMAT_R8G8B8A8_UNORM, MASK_TEXTURE_DIM, MASK_TEXTURE_DIM, MASK_ARRAY_SIZE, true);
+
+			mMaskArray->FillSliceSolid(0, 0xFFFFFF);
+		}
+
+		for (uint32_t i = 0; i < (uint32_t)mMaskHandles.size(); ++i)
+		{
+			auto tex = AssetManager::GetAsset<Texture2D>(mMaskHandles[i]);
+			if (tex)
+				mMaskArray->CopyFromTexture(tex.get(), i);
+			else
+				mMaskArray->FillSliceSolid(i, 0xFFFFFF);
+		}
+
+		mMaskArray->GenerateMips();	
+		mMaskArrayDirty = false;
+	}
+
+	void ParticleSystem::SetPlanetData(const DirectX::XMFLOAT3& planetCenter, float gravity, float turbScale, float turbEpsilon, const DirectX::XMFLOAT3& windVelocity)
 	{
 		mPlanetCenter = planetCenter;
-		mGravityStrength = gravityStrength;
+		mGravityStrength = gravity;
+		mTurbulenceScale = turbScale;
+		mTurbulenceEpsilon = turbEpsilon;
+		mWindVelocity = windVelocity;
 	}
 
 	uint32_t ParticleSystem::ComputeEmitCount(ParticlesComponent& pc, float dt)

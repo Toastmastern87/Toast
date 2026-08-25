@@ -584,6 +584,15 @@ namespace Toast {
 					DirectX::XMFLOAT3 spawnPosition = e.GetComponent<TransformComponent>().Translation;
 					DirectX::XMMATRIX rotationMatrix = tc.GetRotation();
 
+					if (pc.SpawnOffset.x != 0.0f || pc.SpawnOffset.y != 0.0f || pc.SpawnOffset.z != 0.0f)
+					{
+						DirectX::XMVECTOR off = DirectX::XMLoadFloat3(&pc.SpawnOffset);
+						off = DirectX::XMVector3Transform(off, rotationMatrix);
+
+						DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&spawnPosition);
+						DirectX::XMStoreFloat3(&spawnPosition, DirectX::XMVectorAdd(pos, off));
+					}
+
 					// Inherited world-space velocity from a parent rigid body, if any.
 					DirectX::XMFLOAT3 parentVelocity = { 0.0f, 0.0f, 0.0f };
 
@@ -629,17 +638,18 @@ namespace Toast {
 					}
 
 					DirectX::XMFLOAT3 finalVelocity;
+					if (pc.SpawnFunction == EmitFunction::DISC)
+						finalVelocity = pc.Velocity;
+					else
 					{
 						DirectX::XMVECTOR v = DirectX::XMLoadFloat3(&pc.Velocity);
-						v = DirectX::XMVector3Transform(v, rotationMatrix);  
+						v = DirectX::XMVector3Transform(v, rotationMatrix);
 						DirectX::XMStoreFloat3(&finalVelocity, v);
 					}
 
-					finalVelocity.x += parentVelocity.x;
-					finalVelocity.y += parentVelocity.y;
-					finalVelocity.z += parentVelocity.z;
-
-					Renderer::SetParticleMaskTexture(pc.MaskTextureHandle);
+					finalVelocity.x += parentVelocity.x * pc.InheritVelocityScale;
+					finalVelocity.y += parentVelocity.y * pc.InheritVelocityScale;
+					finalVelocity.z += parentVelocity.z * pc.InheritVelocityScale;
 
 					EmitterParamsGPU p = {};
 					p.SpawnPosition = spawnPosition;
@@ -667,6 +677,9 @@ namespace Toast {
 					p.Drag = pc.Drag;
 					p.TurbulenceStrength = pc.TurbulenceStrength;
 					p.DirectionalJitter = pc.DirectionalJitter;
+					p.MaskSlice = particleSystem->GetMaskSlice(pc.MaskTextureHandle);
+					p.BlendMode = static_cast<uint32_t>(pc.BlendMode);
+					p.AlphaScale = pc.AlphaScale;
 
 					emitterParams.push_back(p);
 					emitCounts.push_back(ParticleSystem::ComputeEmitCount(pc, ts));
@@ -674,6 +687,11 @@ namespace Toast {
 					// Setting up for next frame
 					pc.PrevSpawnPosition = spawnPosition;
 				}
+
+				if (mPlanet)
+					particleSystem->SetPlanetData(mPlanet->GetTranslation(), mPlanet->GetGravityConstant(), mPlanet->GetTurbulenceScale(), mPlanet->GetTurbulenceEpsilon(), mPlanet->GetWindVelocity());
+				else
+					particleSystem->SetPlanetData({ 0,0,0 }, 0.0f, 0.05f, 0.2f, { 0,0,0 });
 
 				particleSystem->OnUpdate(ts, emitterParams, emitCounts);
 			} // End particle system
@@ -1197,6 +1215,15 @@ namespace Toast {
 				DirectX::XMFLOAT3 spawnPosition = e.GetComponent<TransformComponent>().Translation;
 				DirectX::XMMATRIX rotationMatrix = tc.GetRotation();
 
+				if (pc.SpawnOffset.x != 0.0f || pc.SpawnOffset.y != 0.0f || pc.SpawnOffset.z != 0.0f)
+				{
+					DirectX::XMVECTOR off = DirectX::XMLoadFloat3(&pc.SpawnOffset);
+					off = DirectX::XMVector3Transform(off, rotationMatrix);
+
+					DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&spawnPosition);
+					DirectX::XMStoreFloat3(&spawnPosition, DirectX::XMVectorAdd(pos, off));
+				}
+
 				// Inherited world-space velocity from a parent rigid body, if any.
 				DirectX::XMFLOAT3 parentVelocity = { 0.0f, 0.0f, 0.0f };
 
@@ -1242,17 +1269,24 @@ namespace Toast {
 				}
 
 				DirectX::XMFLOAT3 finalVelocity;
+				if (pc.SpawnFunction == EmitFunction::DISC)
+				{
+					// DISC reinterprets Velocity as (outward, upward, unused),
+					// which are defined RELATIVE TO THE DISC. Rotating them as a
+					// world vector would scramble both components - the disc's
+					// own orientation already comes from the parent transform.
+					finalVelocity = pc.Velocity;
+				}
+				else
 				{
 					DirectX::XMVECTOR v = DirectX::XMLoadFloat3(&pc.Velocity);
 					v = DirectX::XMVector3Transform(v, rotationMatrix);
 					DirectX::XMStoreFloat3(&finalVelocity, v);
 				}
 
-				finalVelocity.x += parentVelocity.x;
-				finalVelocity.y += parentVelocity.y;
-				finalVelocity.z += parentVelocity.z;
-
-				Renderer::SetParticleMaskTexture(pc.MaskTextureHandle);
+				finalVelocity.x += parentVelocity.x * pc.InheritVelocityScale;
+				finalVelocity.y += parentVelocity.y * pc.InheritVelocityScale;
+				finalVelocity.z += parentVelocity.z * pc.InheritVelocityScale;
 
 				EmitterParamsGPU p = {};
 				p.SpawnPosition = spawnPosition;
@@ -1280,6 +1314,9 @@ namespace Toast {
 				p.Drag = pc.Drag;
 				p.TurbulenceStrength = pc.TurbulenceStrength;
 				p.DirectionalJitter = pc.DirectionalJitter;
+				p.MaskSlice = particleSystem->GetMaskSlice(pc.MaskTextureHandle);
+				p.BlendMode = static_cast<uint32_t>(pc.BlendMode);
+				p.AlphaScale = pc.AlphaScale;
 
 				emitterParams.push_back(p);
 				emitCounts.push_back(ParticleSystem::ComputeEmitCount(pc, ts));
@@ -1289,9 +1326,9 @@ namespace Toast {
 			}
 
 			if (mPlanet)
-				particleSystem->SetPlanetData(mPlanet->GetTranslation(), mPlanet->GetGravityConstant());
+				particleSystem->SetPlanetData(mPlanet->GetTranslation(), mPlanet->GetGravityConstant(), mPlanet->GetTurbulenceScale(), mPlanet->GetTurbulenceEpsilon(), mPlanet->GetWindVelocity());
 			else
-				particleSystem->SetPlanetData({ 0.0f, 0.0f, 0.0f }, 0.0f);
+				particleSystem->SetPlanetData({ 0,0,0 }, 0.0f, 0.05f, 0.2f, { 0,0,0 });
 
 			particleSystem->OnUpdate(ts, emitterParams, emitCounts);
 			//particleSystem->DebugLogCounters(60);
@@ -1568,7 +1605,10 @@ namespace Toast {
 				auto pc = e.GetComponent<ParticlesComponent>();
 
 				DirectX::XMMATRIX scaleM = DirectX::XMMatrixScalingFromVector(DirectX::XMLoadFloat3(&pc.SpawnBoxSize));
-				DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(scaleM, e.GetComponent<TransformComponent>().GetTransformWithoutScale());
+				DirectX::XMMATRIX offsetM = DirectX::XMMatrixTranslation(pc.SpawnOffset.x, pc.SpawnOffset.y, pc.SpawnOffset.z);
+
+				DirectX::XMMATRIX transform = DirectX::XMMatrixMultiply(scaleM, offsetM);
+				transform = DirectX::XMMatrixMultiply(transform, e.GetComponent<TransformComponent>().GetTransformWithoutScale());
 
 				if (e.HasParent())
 				{

@@ -20,7 +20,7 @@ void main()
     //   [2] StartIndexLocation      0
     //   [3] BaseVertexLocation      0
     //   [4] StartInstanceLocation   0
-    
+    //
     IndirectArgs.Store4(ARGS_OFFSET_DRAW, uint4(PARTICLE_QUAD_INDEX_COUNT, aliveCount, 0, 0));
     IndirectArgs.Store(ARGS_OFFSET_DRAW + 16, 0); // StartInstanceLocation
 }

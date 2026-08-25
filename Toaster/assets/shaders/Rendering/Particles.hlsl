@@ -47,6 +47,8 @@ struct PixelInputType
     float lifeRatio : TEXCOORD1; // Pass particle age as a fraction of lifetime
     float3 viewPos : TEXCOORD2; // VIEW space, matches the G-buffer
     float softFade : TEXCOORD3; // per-particle fade distance
+    uint maskSlice : TEXCOORD4; // slice index for the mask texture array
+    uint blendMode : TEXCOORD5;
 };
 
 PixelInputType main(uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
@@ -66,18 +68,23 @@ PixelInputType main(uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID
     
     float lifeRatio = p.Age / p.Lifetime;
     float scaledSize = p.Size * (1.0f + p.GrowRate * lifeRatio);
-    float alpha = lerp(1.0f, 0.0f, lifeRatio);
     
     float adjustedBlend = lerp(lifeRatio, 1.0, p.ColorBlendFactor);
     float3 lerpedColor = lerp(p.StartColor, p.EndColor, adjustedBlend);
+    float alpha = lerp(1.0f, 0.0f, lifeRatio) * p.AlphaScale;
     
     // View-space billboarding: offsetting after the view transform makes the
     // quad automatically face the camera.
     float4 viewPos = mul(float4(worldPos, 1.0f), viewMatrix);
     float3 right = float3(1.0f, 0.0f, 0.0f);
     float3 up = float3(0.0f, 1.0f, 0.0f);
-    //
-    float2 cornerOffset = offsets[vertexID] * scaledSize;
+    
+    float2 corner = offsets[vertexID];
+    float s, c;
+    sincos(p.Rotation, s, c);
+    float2 rotatedCorner = float2(corner.x * c - corner.y * s, corner.x * s + corner.y * c);
+    
+    float2 cornerOffset = rotatedCorner * scaledSize;
     float3 viewOffset = (cornerOffset.x * right) + (cornerOffset.y * up);
     viewPos.xyz += viewOffset;
     
@@ -91,10 +98,15 @@ PixelInputType main(uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID
     // Base color and alpha computed over lifetime
     output.color = float4(lerpedColor * intensity, alpha);
     
-    // Map quad offsets (-0.5 to 0.5) to UV space (0 to 1)
-    output.uv = offsets[vertexID] + float2(0.5, 0.5);
+    // Map quad offsets (-0.5 to 0.5) to UV space (0 to 1) 
+    output.uv = offsets[vertexID] + float2(0.5f, 0.5f);
     
     output.lifeRatio = lifeRatio;
+    
+    output.maskSlice = p.MaskSlice;
+    
+    output.blendMode = p.BlendMode;
+    
     return output;
 }
 
@@ -113,6 +125,14 @@ cbuffer Camera : register(b0)
     float viewportHeight;
 };
 
+cbuffer ParticleDrawCB : register(b1)
+{
+    uint DrawBlendMode;
+    uint _Pad0;
+    uint _Pad1;
+    uint _Pad2;
+}
+
 struct PixelInputType
 {
     float4 position : SV_POSITION;
@@ -121,17 +141,22 @@ struct PixelInputType
     float lifeRatio : TEXCOORD1; // Pass particle age as a fraction of lifetime
     float3 viewPos : TEXCOORD2; // VIEW space, matches the G-buffer
     float softFade : TEXCOORD3; // per-particle fade distance
+    uint maskSlice : TEXCOORD4; // slice index for the mask texture array
+    uint blendMode : TEXCOORD5;
 };
 
-Texture2D MaskTexture   : register(t0);
-Texture2D GPassPosition : register(t1);
+Texture2DArray      MaskTextureArray    : register(t0);
+Texture2D           GPassPosition       : register(t1);
 
 SamplerState defaultSampler : register(s0);
 
 float4 main(PixelInputType input) : SV_TARGET
 {   
+    if (input.blendMode != DrawBlendMode)
+        discard;
+    //
     // Sample the mask texture using the provided UV coordinates.
-    float4 texColor = MaskTexture.Sample(defaultSampler, input.uv);
+    float4 texColor = MaskTextureArray.Sample(defaultSampler, float3(input.uv, input.maskSlice));
 
     // Multiply the particle's color by the texture sample.
     // This will tint the particle with the texture's RGB and modulate the alpha.

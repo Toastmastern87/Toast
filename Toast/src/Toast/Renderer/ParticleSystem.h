@@ -43,11 +43,17 @@ namespace Toast {
 		uint32_t GetFrameSeed() const { return mFrameSeed; }
 		void AdvanceFrameSeed() { ++mFrameSeed; }
 
-		void SetPlanetData(const DirectX::XMFLOAT3& planetCenter, float gravityStrength);
+		void SetPlanetData(const DirectX::XMFLOAT3& planetCenter, float gravity, float turbScale, float turbEpsilon, const DirectX::XMFLOAT3& windVelocity);
 
 		// Advances the per-emitter spawn accumulator and returns how many
 		// particles to spawn this frame. Mutates pc.ElapsedTime.
 		static uint32_t ComputeEmitCount(ParticlesComponent& pc, float dt);
+
+		uint32_t GetMaskSlice(AssetHandle handle);
+		Texture2DArray* GetMaskArray() { return mMaskArray.get(); }
+
+		Ref<ConstantBuffer> GetParticleDrawCBuffer() { return mParticleDrawCBuffer; }
+		Buffer* GetParticleDrawBuffer() { return &mParticleDrawBuffer; }
 
 		// TEMP CODE!
 		void DebugLogCounters(uint32_t everyNFrames);
@@ -59,6 +65,8 @@ namespace Toast {
 		void Emit(uint32_t emitterIndex, uint32_t emitCount, float dt);
 
 		void Simulate(float dt);
+
+		void RebuildMaskArray();
 	private:
 		// The pool of particles. 262,144 slots of GPUParticle data (~20 MB).
 		Ref<StructuredBuffer> mParticleBuffer;
@@ -104,19 +112,35 @@ namespace Toast {
 		Ref<ConstantBuffer> mSimCBuffer;
 		Buffer              mSimBuffer;
 
+		// Draw constants (just dt, padded to 16 bytes).
+		Ref<ConstantBuffer> mParticleDrawCBuffer;
+		Buffer              mParticleDrawBuffer;
+
 		// Which alive list is "current"
 		uint32_t mAlivePingPong = 0;
 
 		// Advanced once per frame so that the GPU RNG differs between frames
 		uint32_t mFrameSeed = 0;
 
+		// Physics settings coming from the Planet System
 		DirectX::XMFLOAT3 mPlanetCenter;
 		float mGravityStrength;
+		float mTurbulenceScale = 0.05f;
+		float mTurbulenceEpsilon = 0.2f;
+		DirectX::XMFLOAT3 mWindVelocity = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 mTurbulenceScroll = { 0.0f, 0.0f, 0.0f };
 
 		AssetHandle mEmitShaderHandle;
 		AssetHandle mSimKickoffShaderHandle;
 		AssetHandle mSimulateShaderHandle;
 		AssetHandle mFinalizeShaderHandle;
+
+		Scope<Texture2DArray> mMaskArray;
+		std::vector<AssetHandle> mMaskHandles;
+		bool mMaskArrayDirty = true;
+
+		static constexpr uint32_t MASK_ARRAY_SIZE = 16;
+		static constexpr uint32_t MASK_TEXTURE_DIM = 512;
 
 		// Guards against a second initialize.
 		bool mInitialized = false;

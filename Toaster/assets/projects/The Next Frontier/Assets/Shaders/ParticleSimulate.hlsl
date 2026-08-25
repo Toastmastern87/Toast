@@ -16,10 +16,14 @@ cbuffer ParticleSimCB : register(b2)
 {
     float3 PlanetCenter;
     float DeltaTime;
-    float GravityStrength;
-    float DragCoefficient;
-    float _pad0;
-    float _pad1;
+    
+    float GravityStrength; 
+    float TurbulenceScale; 
+    float TurbulenceEpsilon;
+    float _Pad0;
+    
+    float3 TurbulenceScroll; 
+    float _Pad1; 
 };
 
 [numthreads(PARTICLE_THREADGROUP_SIZE, 1, 1)]
@@ -35,25 +39,35 @@ void main( uint3 DTid : SV_DispatchThreadID )
     // Get the particle to simulate
     uint particleIndex = AliveListIn[DTid.x];
     GPUParticle p = ParticleBuffer[particleIndex];
-    
+    //
     // Gravity
     if (GravityStrength > 0.0f)
     {
-        float toCenter = PlanetCenter - p.Position;
+        float3 toCenter = PlanetCenter - p.Position;
         float dist = length(toCenter);
         if (dist > 1e-3f)
             p.Velocity += (toCenter / dist) * GravityStrength * DeltaTime;
     }
     
     // Drag, exponential decay towards the planet 
-    if (DragCoefficient > 0.0f)
-        p.Velocity *= exp(-DragCoefficient * DeltaTime);
+    if (p.Drag > 0.0f)
+        p.Velocity *= exp(-p.Drag * DeltaTime);
     
-    // Integrate and age
-        float burstFactor = 1.0f;
+    // Turbulence, curl noise
+    if (p.TurbulenceStrength > 0.0f)
+    {
+        float3 samplePos = p.Position * TurbulenceScale + TurbulenceScroll;
+        float3 curl = CurlNoise(samplePos, TurbulenceEpsilon);
+        float ageT = saturate(p.Age / max(p.Lifetime, 1e-4f));
+        p.Velocity += curl * p.TurbulenceStrength * ageT * DeltaTime;
+    }
+    
+    // Burst
+    float burstFactor = 1.0f;
     if (p.BurstDecay > 0.0f)
         burstFactor = lerp(p.BurstInitial, 1.0f, saturate(p.Age / p.BurstDecay));
    
+    // Integrate and age
     p.Age += DeltaTime;
     p.Position += p.Velocity * burstFactor * DeltaTime;
     

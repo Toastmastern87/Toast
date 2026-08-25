@@ -1364,6 +1364,22 @@ namespace Toast {
 		return component.StartIntensity;
 	}
 
+	void ParticlesComponent_GetVelocity(uint64_t entityID, DirectX::XMFLOAT3* outVelocity)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& component = entity.GetComponent<ParticlesComponent>();
+		*outVelocity = component.Velocity;
+	}
+
+	void ParticlesComponent_SetVelocity(uint64_t entityID, DirectX::XMFLOAT3* velocity)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& component = entity.GetComponent<ParticlesComponent>();
+		component.Velocity = *velocity;
+	}
+
 #pragma endregion
 
 #pragma region Script Component
@@ -1580,6 +1596,8 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_SetSpawnDelay);
 		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_GetStartIntensity);
 		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_SetStartIntensity);
+		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_GetVelocity);
+		TOAST_ADD_INTERNAL_CALL(ParticlesComponent_SetVelocity);
 
 		TOAST_ADD_INTERNAL_CALL(ScriptComponent_GetInstance);
 

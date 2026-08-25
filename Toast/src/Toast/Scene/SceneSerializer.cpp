@@ -570,14 +570,17 @@ namespace Toast {
 			out << YAML::Key << "StartColor" << YAML::Value << pc.StartColor;
 			out << YAML::Key << "EndColor" << YAML::Value << pc.EndColor;
 			out << YAML::Key << "ColorBlendFactor" << YAML::Value << pc.ColorBlendFactor;
+			out << YAML::Key << "AlphaScale" << YAML::Value << pc.AlphaScale;
 			out << YAML::Key << "ConeAngleDegrees" << YAML::Value << pc.ConeAngleDegrees;
 			out << YAML::Key << "BiasExponent" << YAML::Value << pc.BiasExponent;
 			out << YAML::Key << "GrowRate" << YAML::Value << pc.GrowRate;
 			out << YAML::Key << "BurstInitial" << YAML::Value << pc.BurstInitial;
 			out << YAML::Key << "BurstDecay" << YAML::Value << pc.BurstDecay;
 			out << YAML::Key << "Size" << YAML::Value << pc.Size;
+			out << YAML::Key << "SpawnOffset" << YAML::Value << pc.SpawnOffset;
 			out << YAML::Key << "SpawnBoxSize" << YAML::Value << pc.SpawnBoxSize;
 			out << YAML::Key << "SpawnFunction" << YAML::Value << static_cast<uint16_t>(pc.SpawnFunction);
+			out << YAML::Key << "BlendMode" << YAML::Value << static_cast<uint16_t>(pc.BlendMode);
 			out << YAML::Key << "MaskTextureAssetHandle" << YAML::Value << pc.MaskTextureHandle;
 			out << YAML::Key << "SpeedJitter" << YAML::Value << pc.SpeedJitter;
 			out << YAML::Key << "LifetimeJitter" << YAML::Value << pc.LifetimeJitter;
@@ -587,6 +590,9 @@ namespace Toast {
 			out << YAML::Key << "EndIntensity" << YAML::Value << pc.EndIntensity;
 			out << YAML::Key << "IntensityFalloff" << YAML::Value << pc.IntensityFalloff;
 			out << YAML::Key << "SoftFadeDistance" << YAML::Value << pc.SoftFadeDistance;
+			out << YAML::Key << "Drag" << YAML::Value << pc.Drag;
+			out << YAML::Key << "TurbulenceStrength" << YAML::Value << pc.TurbulenceStrength;
+			out << YAML::Key << "InheritVelocityScale" << YAML::Value << pc.InheritVelocityScale;
 			out << YAML::EndMap; // ParticlesComponent
 		}
 
@@ -819,6 +825,9 @@ namespace Toast {
 		out << YAML::Key << "SurfaceAirDensity" << YAML::Value << scenePlanet->mSurfaceAirDensity;
 		out << YAML::Key << "PhysicsScaleHeight" << YAML::Value << scenePlanet->mPhysicsScaleHeight;
 		out << YAML::Key << "AtmosphereCeiling" << YAML::Value << scenePlanet->mAtmosphereCeiling;
+		out << YAML::Key << "TurbulenceScale" << YAML::Value << scenePlanet->mTurbulenceScale;
+		out << YAML::Key << "TurbulenceEpsilon" << YAML::Value << scenePlanet->mTurbulenceEpsilon;
+		out << YAML::Key << "WindVelocity" << YAML::Value << scenePlanet->mWindVelocity;
 
 		auto& planetMeshGeo = scenePlanet->mGeoClipmapMesh;
 		auto& planetMeshIco = scenePlanet->mIcosphereMesh;
@@ -1229,6 +1238,12 @@ namespace Toast {
 		scenePlanet->mSurfaceAirDensity = planet["SurfaceAirDensity"].as<float>();
 		scenePlanet->mPhysicsScaleHeight = planet["PhysicsScaleHeight"].as<float>();
 		scenePlanet->mAtmosphereCeiling = planet["AtmosphereCeiling"].as<float>();
+		if (planet["TurbulenceScale"])
+			scenePlanet->mTurbulenceScale = planet["TurbulenceScale"].as<float>();
+		if (planet["TurbulenceEpsilon"])
+		scenePlanet->mTurbulenceEpsilon = planet["TurbulenceEpsilon"].as<float>();
+		if (planet["WindVelocity"])
+			scenePlanet->mWindVelocity = planet["WindVelocity"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mColorNoiseFrequency = planet["ColorNoiseFrequency"].as<float>();
 		scenePlanet->mColorNoiseStrength = planet["ColorNoiseStrength"].as<float>();
 		scenePlanet->mColorNoiseOctaves = planet["ColorNoiseOctaves"].as<float>();
@@ -1815,11 +1830,17 @@ namespace Toast {
 					pc.BiasExponent = particlesComponent["BiasExponent"].as<float>();
 					pc.ConeAngleDegrees = particlesComponent["ConeAngleDegrees"].as<float>();
 					pc.SpawnFunction = static_cast<EmitFunction>(particlesComponent["SpawnFunction"].as<uint16_t>());
+					if (particlesComponent["BlendMode"])
+						pc.BlendMode = static_cast<ParticleBlendMode>(particlesComponent["BlendMode"].as<uint16_t>());
 					pc.GrowRate = particlesComponent["GrowRate"].as<float>();
 					pc.BurstInitial = particlesComponent["BurstInitial"].as<float>();
 					pc.BurstDecay = particlesComponent["BurstDecay"].as<float>();
 					pc.Size = particlesComponent["Size"].as<float>();
 
+					if (particlesComponent["AlphaScale"])
+						pc.AlphaScale = particlesComponent["AlphaScale"].as<float>();
+					if(particlesComponent["SpawnOffset"])
+						pc.SpawnOffset = particlesComponent["SpawnOffset"].as<DirectX::XMFLOAT3>();
 					if (particlesComponent["SpawnBoxSize"])
 						pc.SpawnBoxSize = particlesComponent["SpawnBoxSize"].as<DirectX::XMFLOAT3>();
 					if (particlesComponent["SpeedJitter"])
@@ -1838,6 +1859,12 @@ namespace Toast {
 						pc.IntensityFalloff = particlesComponent["IntensityFalloff"].as<float>();
 					if (particlesComponent["SoftFadeDistance"])
 						pc.SoftFadeDistance = particlesComponent["SoftFadeDistance"].as<float>();
+					if (particlesComponent["Drag"])
+						pc.Drag = particlesComponent["Drag"].as<float>();
+					if (particlesComponent["TurbulenceStrength"])
+						pc.TurbulenceStrength = particlesComponent["TurbulenceStrength"].as<float>();
+					if (particlesComponent["InheritVelocityScale"])
+						pc.InheritVelocityScale = particlesComponent["InheritVelocityScale"].as<float>();
 
 					pc.MaskTextureHandle = particlesComponent["MaskTextureAssetHandle"].as<AssetHandle>();
 				}

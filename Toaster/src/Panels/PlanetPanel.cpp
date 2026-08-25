@@ -1269,6 +1269,30 @@ namespace Toast {
 						ImGui::SetNextItemWidth(fullW);
 						ImGui::DragFloat("##AtmosphereCeiling", &mContext->mAtmosphereCeiling, 100.0f, 0.0f, 1000000.0f, "%.0f");
 
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::TextWrapped("Turbulence Scale");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat("##TurbulenceScale", &mContext->mTurbulenceScale, 0.001f, 0.0001f, 1.0f, "%.4f");
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::TextWrapped("Turbulence Epsilon");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat("##TurbulenceEpsilon", &mContext->mTurbulenceEpsilon, 0.01f, 0.001f, 10.0f, "%.3f");
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::TextWrapped("Wind Velocity (m/s)");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat3("##WindVelocity", &mContext->mWindVelocity.x, 0.1f, -100.0f, 100.0f, "%.1f");
+
 						ImGui::EndTable();
 					}
 

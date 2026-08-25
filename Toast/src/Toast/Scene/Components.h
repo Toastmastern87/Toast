@@ -322,6 +322,7 @@ namespace Toast {
 		bool Emitting;
 		Ref<Mesh> GuideMesh;
 		float Size = 0.0f;
+		DirectX::XMFLOAT3 SpawnOffset = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 SpawnBoxSize = { 1.0f, 1.0f, 1.0f };
 		float MaxLifeTime; // in seconds
 		float SpawnDelay = 1.0f; // Delay between particle spawn
@@ -336,6 +337,7 @@ namespace Toast {
 		float BurstDecay = 0.0f;
 		float Drag = 0.0f;         
 		float TurbulenceStrength = 0.0f;
+		float InheritVelocityScale = 1.0f;
 		DirectX::XMFLOAT3 PrevSpawnPosition = { 0.0f, 0.0f, 0.0f };
 		bool HasPrevSpawnPosition = false;
 
@@ -352,10 +354,12 @@ namespace Toast {
 
 		// Soft particles
 		float SoftFadeDistance = 0.0f; // metres; 0 disables
+		float AlphaScale = 1.0f;
 
 		float ElapsedTime;
 
 		EmitFunction SpawnFunction;
+		ParticleBlendMode BlendMode = ParticleBlendMode::Additive;
 
 		AssetHandle MaskTextureHandle;
 

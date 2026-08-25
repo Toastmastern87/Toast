@@ -31,7 +31,14 @@ namespace Toast {
 	{
 		NONE = 0,
 		CONE = 1,
-		BOX = 2
+		BOX = 2,
+		DISC = 3
+	};
+
+	enum class ParticleBlendMode 
+	{
+		Additive = 0,
+		Alpha = 1
 	};
 
 	// One particle's GPU-side data.
@@ -55,8 +62,12 @@ namespace Toast {
 		float				SoftFadeDistance;	// 92
 		float				Drag;				// 96
 		float				TurbulenceStrength;	// 100
-		float				_pad0;				// 104
-		float				_pad1;				// 108
+		uint32_t			MaskSlice;			// 104
+		uint32_t			BlendMode;			// 108
+		float				Rotation;			// 112
+		float				AlphaScale;			// 116
+		float				_pad1;				// 120
+		float				_pad2;				// 124
 	};
 
 	struct EmitterParamsGPU 
@@ -86,9 +97,9 @@ namespace Toast {
 		float				IntensityFalloff;	
 		float				TurbulenceStrength;
 		float               DirectionalJitter;   
-		float               _padA;              
-		float               _padB;            
-		float               _padC;               
+		uint32_t            MaskSlice;
+		uint32_t			BlendMode;
+		float               AlphaScale;
 	};
 
 }

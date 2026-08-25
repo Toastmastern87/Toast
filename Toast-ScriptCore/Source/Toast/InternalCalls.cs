@@ -439,6 +439,12 @@ namespace Toast
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void ParticlesComponent_SetStartIntensity(ulong entityID, float value);
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void ParticlesComponent_GetVelocity(ulong entityID, out Vector3 result);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void ParticlesComponent_SetVelocity(ulong entityID, ref Vector3 value);
+
         #endregion
 
         #region Script Component

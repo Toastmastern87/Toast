@@ -694,7 +694,7 @@ namespace Toast {
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create LPass blend state");
 		}
 
-		// Particle Pass Blend State
+		// Particle Pass Additive Blend State
 		{
 			D3D11_BLEND_DESC blendDesc = {};
 			blendDesc.AlphaToCoverageEnable = FALSE;
@@ -709,7 +709,26 @@ namespace Toast {
 			blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 			blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-			HRESULT hr = device->CreateBlendState(&blendDesc, &sRendererData->ParticleBlendState);
+			HRESULT hr = device->CreateBlendState(&blendDesc, &sRendererData->ParticleAdditiveBlendState);
+			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Particle Pass blend state");
+		}
+
+		// Particle Pass Alpha Blend State
+		{
+			D3D11_BLEND_DESC blendDesc = {};
+			blendDesc.AlphaToCoverageEnable = FALSE;
+			blendDesc.IndependentBlendEnable = FALSE;
+
+			blendDesc.RenderTarget[0].BlendEnable = TRUE;
+			blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+			blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+			blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+			blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+			blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+			blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+			blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+			HRESULT hr = device->CreateBlendState(&blendDesc, &sRendererData->ParticleAlphaBlendState);
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Particle Pass blend state");
 		}
 
@@ -1802,19 +1821,14 @@ namespace Toast {
 		RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
 		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, sRendererData->DepthStencilView);
 		RenderCommand::SetDepthStencilState(sRendererData->ParticleDepthStencilState);
-		RenderCommand::SetBlendState(sRendererData->ParticleBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 		// Binding the pool of particles and the current alive list, this is the ping-pong list that alternates 
 		// between frames.
 		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, particleSystem->GetParticleBuffer()->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 1, particleSystem->GetCurrentAliveList()->GetSRV());
 
-		if (sRendererData->ParticleMaskTextureHandle)
-		{
-			auto maskTexture = AssetManager::GetAsset<Texture2D>(sRendererData->ParticleMaskTextureHandle);
-			if (maskTexture)
-				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, maskTexture->GetSRV());
-		}
+		if (particleSystem->GetMaskArray())
+			particleSystem->GetMaskArray()->Bind(0, D3D11_PIXEL_SHADER);
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->GPassPositionRT->GetSRV());
 
@@ -1827,7 +1841,22 @@ namespace Toast {
 		if (shader)
 			shader->Bind();
 
-		RenderCommand::DrawIndexedInstancedIndirect(particleSystem->GetIndirectArgs(), ARGS_OFFSET_DRAW);
+		struct { ID3D11BlendState* state; uint32_t mode; } passes[] =
+		{
+			{ sRendererData->ParticleAdditiveBlendState.Get(), 0u }, 
+			{ sRendererData->ParticleAlphaBlendState.Get(), 1u }  
+		};
+
+		for (const auto& pass : passes)
+		{
+			RenderCommand::SetBlendState(pass.state, { 0.0f, 0.0f, 0.0f, 0.0f });
+
+			particleSystem->GetParticleDrawBuffer()->Write((uint8_t*)&pass.mode, 4, 0);
+			particleSystem->GetParticleDrawCBuffer()->Map(*particleSystem->GetParticleDrawBuffer());
+			particleSystem->GetParticleDrawCBuffer()->Bind();
+
+			RenderCommand::DrawIndexedInstancedIndirect(particleSystem->GetIndirectArgs(), ARGS_OFFSET_DRAW);
+		}
 
 		ID3D11RenderTargetView* nullRTV = nullptr;
 		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
@@ -1914,7 +1943,7 @@ namespace Toast {
 			RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
 			RenderCommand::SetRenderTargets({ sRendererData->SunBloomRT->GetRTV().Get(), sRendererData->SkyBloomRT->GetRTV().Get(), sRendererData->GeometryBloomRT->GetRTV().Get() }, nullptr);
 			RenderCommand::SetDepthStencilState(sRendererData->DepthDisabledStencilState);
-			RenderCommand::SetBlendState(sRendererData->ParticleBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
+			RenderCommand::SetBlendState(sRendererData->ParticleAdditiveBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
 			RenderCommand::ClearRenderTargets({ sRendererData->SunBloomRT->GetRTV().Get(), sRendererData->SkyBloomRT->GetRTV().Get(), sRendererData->GeometryBloomRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
 			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 2, SamplerStates::Get(SamplerType::PointClamp));

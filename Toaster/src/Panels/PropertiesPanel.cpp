@@ -37,6 +37,55 @@ namespace Toast {
 	static uint32_t sCounter = 0;
 	static char sIDBuffer[16];
 
+	static const std::string& PrettifyScriptFieldName(const std::string& name)
+	{
+		static std::unordered_map<std::string, std::string> sPrettyNameCache;
+
+		auto it = sPrettyNameCache.find(name);
+		if (it != sPrettyNameCache.end())
+			return it->second;
+
+		std::string result;
+		result.reserve(name.size() + 8);
+
+		for (size_t i = 0; i < name.size(); i++)
+		{
+			const unsigned char c = (unsigned char)name[i];
+
+			if (c == '_')
+			{
+				if(!result.empty() && result.back() != ' ')
+					result += ' ';
+				continue;
+			}
+
+			// Only look for a boundary if we didn't just emit a space, otherwise
+			// "m_Speed" would end up as "m  Speed".
+			if (i > 0 && !result.empty() && result.back() != ' ')
+			{
+				const unsigned char prev = (unsigned char)name[i - 1];
+
+				// lower/digit -> upper: the normal camelCase word start
+				const bool startOfWord = std::isupper(c) && !std::isupper(prev);
+
+				// upper -> upper followed by lower: the last letter of an acronym is
+				// actually the first letter of the next word ("GPUTime" -> "GPU Time")
+				const bool endOfAcronym = std::isupper(c) && std::isupper(prev)
+					&& (i + 1) < name.size() && std::islower((unsigned char)name[i + 1]);
+
+				// letter -> digit, so "Engine2" reads as "Engine 2"
+				const bool startOfNumber = std::isdigit(c) && !std::isdigit(prev);
+
+				if (startOfWord || endOfAcronym || startOfNumber)
+					result += ' ';
+			}
+
+			result += (char)c;
+		}
+
+		return sPrettyNameCache.emplace(name, std::move(result)).first->second;
+	}
+
 	static bool DrawFloatControl(const std::string& label, float& value, WindowsWindow* window, std::string& activeDragArea, float imGuiTableWidth = 90.0f, float min = 0.0f, float max = 0.0f, float delta = 0.5f, const char* displayFormat = "%.1f"){
 		bool modified = false;
 		ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
@@ -848,44 +897,65 @@ namespace Toast {
 					};
 
 				const std::string previewStr = component.ClassName.empty() ? "(none)" : displayName(component.ClassName);
-				if (ImGui::BeginCombo("Class", previewStr.c_str()))
 				{
-					for (const auto& [fullName, scriptClass] : ScriptEngine::GetEntityClasses())
+					ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+					ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+					ImGui::BeginTable("ScriptClass", 2, flags);
+					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
+					ImGui::TableNextRow();
+
+					ImGui::TableSetColumnIndex(0);
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Class");
+
+					ImGui::TableSetColumnIndex(1);
 					{
-						bool selected = (component.ClassName == fullName);
+						// Reserve room for the open-script button so the combo doesn't
+						// stretch under it and push it out of the cell.
+						const float buttonWidth = ImGui::CalcTextSize(ICON_TOASTER_CODE).x + ImGui::GetStyle().FramePadding.x * 2.0f;
+						ImGui::SetNextItemWidth(-(buttonWidth + ImGui::GetStyle().ItemSpacing.x));
 
-						// Display stripped, but keep the full name in the ID so two classes with
-						// the same short name in different namespaces don't collide.
-						std::string label = displayName(fullName) + "##" + fullName;
+						// "##Class" instead of "Class": the visible label now lives in column 0.
+						if (ImGui::BeginCombo("##Class", previewStr.c_str()))
+						{
+							for (const auto& [fullName, scriptClass] : ScriptEngine::GetEntityClasses())
+							{
+								bool selected = (component.ClassName == fullName);
+								// Display stripped, but keep the full name in the ID so two classes with
+								// the same short name in different namespaces don't collide.
+								std::string label = displayName(fullName) + "##" + fullName;
+								if (ImGui::Selectable(label.c_str(), selected))
+									component.ClassName = fullName;               // always store qualified
+								if (selected)
+									ImGui::SetItemDefaultFocus();
+							}
 
-						if (ImGui::Selectable(label.c_str(), selected))
-							component.ClassName = fullName;               // always store qualified
+							ImGui::Separator();
+							if (ImGui::Selectable(ICON_TOASTER_CODE " New Script..."))
+								openCreatePopup = true;
 
-						if (selected)
-							ImGui::SetItemDefaultFocus();
+							ImGui::EndCombo();
+						}
+
+						ImGui::SameLine();
+						ImGui::BeginDisabled(!validScriptClass);
+						if (ImGui::Button(ICON_TOASTER_CODE "##openScript"))
+						{
+							std::filesystem::path scriptPath = ScriptEngine::GetEntityClassSourcePath(component.ClassName);
+							if (!scriptPath.empty() && mOpenScriptCallback)
+								mOpenScriptCallback(scriptPath);
+							else if (scriptPath.empty())
+								TOAST_CORE_WARN("No source file found for script class '%s'", component.ClassName.c_str());
+						}
+						ImGui::EndDisabled();
 					}
 
-					ImGui::Separator();
-					if (ImGui::Selectable(ICON_TOASTER_CODE " New Script..."))
-						openCreatePopup = true;
-
-					ImGui::EndCombo();
+					ImGui::EndTable();
 				}
 
 				if (!validScriptClass && !component.ClassName.empty())
 					ImGui::PopStyleColor();
-
-				ImGui::SameLine();
-				ImGui::BeginDisabled(!validScriptClass);
-				if (ImGui::Button(ICON_TOASTER_CODE "##openScript"))
-				{
-					std::filesystem::path scriptPath = ScriptEngine::GetEntityClassSourcePath(component.ClassName);
-					if (!scriptPath.empty() && mOpenScriptCallback)
-						mOpenScriptCallback(scriptPath);
-					else if (scriptPath.empty())
-						TOAST_CORE_WARN("No source file found for script class '%s'", component.ClassName.c_str());
-				}
-				ImGui::EndDisabled();
 
 				if (openCreatePopup)
 					ImGui::OpenPopup("Create Script##scriptCreate");
@@ -962,10 +1032,8 @@ namespace Toast {
 							if (field.Type == ScriptFieldType::Float)
 							{
 								float data = scriptInstance->GetFieldValue<float>(name);
-								if (ImGui::DragFloat(name.c_str(), &data))
-								{
+								if (DrawFloatControl(PrettifyScriptFieldName(name), data, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.01f, "%.3f"))
 									scriptInstance->SetFieldValue<float>(name, data);
-								}
 							}
 						}
 					}
@@ -978,8 +1046,20 @@ namespace Toast {
 						const auto& fields = entityClass->GetFields();
 
 						auto& entityFields = ScriptEngine::GetScriptFieldMap(entity);
+
+						std::vector<const std::string*> sortedNames;
+						sortedNames.reserve(fields.size());
 						for (const auto& [name, field] : fields)
+							sortedNames.push_back(&name);
+
+						std::sort(sortedNames.begin(), sortedNames.end(),
+							[](const std::string* a, const std::string* b) { return *a < *b; });
+
+						for (const std::string* namePtr : sortedNames)
 						{
+							const std::string& name = *namePtr;
+							const ScriptField& field = fields.at(name);
+
 							// Field has been set in the editor
 							if (entityFields.find(name) != entityFields.end())
 							{
@@ -988,7 +1068,7 @@ namespace Toast {
 								if (field.Type == ScriptFieldType::Float)
 								{
 									float data = scriptField.GetValue<float>();
-									if (ImGui::DragFloat(name.c_str(), &data))
+									if (DrawFloatControl(PrettifyScriptFieldName(name), data, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.01f, "%.3f"))
 										scriptField.SetValue(data);
 								}
 							}
@@ -998,7 +1078,7 @@ namespace Toast {
 								if (field.Type == ScriptFieldType::Float)
 								{
 									float data = 0.0f;
-									if (ImGui::DragFloat(name.c_str(), &data))
+									if (DrawFloatControl(PrettifyScriptFieldName(name), data, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.01f, "%.3f"))
 									{
 										ScriptFieldInstance& fieldInstance = entityFields[name];
 										fieldInstance.Field = field;
@@ -1024,10 +1104,21 @@ namespace Toast {
 				if (!scriptClassExists)
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.2f, 0.3f, 1.0f));
 
-				if (ImGui::InputText("Class", buffer, sizeof(buffer)))
 				{
-					component.ClassName = buffer;
-					bool validScriptClass = ScriptEngine::EntityClassExists(component.ClassName);
+					ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+					ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+					ImGui::BeginTable("ScriptClass", 2, flags);
+					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::AlignTextToFramePadding();
+					ImGui::Text("Class");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::SetNextItemWidth(-1);
+					if (ImGui::InputText("##ClassName", buffer, sizeof(buffer)))
+						component.ClassName = buffer;
+					ImGui::EndTable();
 				}
 
 				// Fields
@@ -1045,10 +1136,8 @@ namespace Toast {
 							if (field.Type == ScriptFieldType::Float)
 							{
 								float data = scriptInstance->GetFieldValue<float>(name);
-								if (ImGui::DragFloat(name.c_str(), &data))
-								{
+								if (DrawFloatControl(PrettifyScriptFieldName(name), data, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.01f, "%.3f"))
 									scriptInstance->SetFieldValue<float>(name, data);
-								}
 							}
 						}
 					}
@@ -1059,7 +1148,6 @@ namespace Toast {
 					{
 						Ref<ScriptClass> entityClass = ScriptEngine::GetEntityClass(component.ClassName);
 						const auto& fields = entityClass->GetFields();
-
 						auto& entityFields = ScriptEngine::GetScriptFieldMap(entity);
 						for (const auto& [name, field] : fields)
 						{
@@ -1071,7 +1159,7 @@ namespace Toast {
 								if (field.Type == ScriptFieldType::Float)
 								{
 									float data = scriptField.GetValue<float>();
-									if (ImGui::DragFloat(name.c_str(), &data))
+									if (DrawFloatControl(PrettifyScriptFieldName(name), data, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.01f, "%.3f"))
 										scriptField.SetValue(data);
 								}
 							}
@@ -1081,7 +1169,7 @@ namespace Toast {
 								if (field.Type == ScriptFieldType::Float)
 								{
 									float data = 0.0f;
-									if (ImGui::DragFloat(name.c_str(), &data))
+									if (DrawFloatControl(PrettifyScriptFieldName(name), data, window, activeDragArea, 90.0f, 0.0f, 0.0f, 0.01f, "%.3f"))
 									{
 										ScriptFieldInstance& fieldInstance = entityFields[name];
 										fieldInstance.Field = field;
@@ -1593,11 +1681,20 @@ namespace Toast {
 				ImGui::TextWrapped("Emit Function");
 				ImGui::TableSetColumnIndex(1);
 				int currentSpawnFunction = static_cast<int>(component.SpawnFunction);
-				const char* emitFuncs[] = { "None", "Cone", "Box" };
+				const char* emitFuncs[] = { "None", "Cone", "Box", "Disc" };
 				if (ImGui::Combo("##emitFunction", &currentSpawnFunction, emitFuncs, IM_ARRAYSIZE(emitFuncs)))
 				{
 					component.SpawnFunction = static_cast<EmitFunction>(currentSpawnFunction);
 				}
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextWrapped("Blend Mode");
+				ImGui::TableSetColumnIndex(1);
+				int currentBlendMode = static_cast<int>(component.BlendMode);
+				const char* blendModes[] = { "Additive (emissive)", "Alpha (occluding)" };
+				if (ImGui::Combo("##blendMode", &currentBlendMode, blendModes, IM_ARRAYSIZE(blendModes)))
+					component.BlendMode = static_cast<ParticleBlendMode>(currentBlendMode);
 
 				ImGui::EndTable();
 
@@ -1632,6 +1729,8 @@ namespace Toast {
 
 				DrawFloatControl("Color Blend Factor", component.ColorBlendFactor, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 1.0f, 0.01f, "%.2f");
 
+				DrawFloatControl("Alpha Scale", component.AlphaScale, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 1.0f, 0.01f, "%.2f");
+
 				DrawFloatControl("Max life time", component.MaxLifeTime, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 100.0f, 0.1f, "%.3f");
 
 				DrawFloatControl("Spawn delay", component.SpawnDelay, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.000001f, 10.0f, 0.00001f, "%.6f");
@@ -1643,6 +1742,8 @@ namespace Toast {
 				DrawFloatControl("Burst Initial", component.BurstInitial, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 50.0f, 0.1f, "%.1f");
 
 				DrawFloatControl("Burst Decay", component.BurstDecay, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 100.0f, 0.1f, "%.1f");
+
+				DrawFloatControl("Inherit Velocity", component.InheritVelocityScale, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 1.0f, 0.01f, "%.2f");
 
 				// Per-particle jitter
 				DrawFloatControl("Speed Jitter", component.SpeedJitter, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 1.0f, 0.01f, "%.2f");
@@ -1660,6 +1761,10 @@ namespace Toast {
 
 				DrawFloatControl("Drag", component.Drag, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 5.0f, 0.01f, "%.3f");
 
+				DrawFloatControl("Turbulence", component.TurbulenceStrength, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 20.0f, 0.05f, "%.2f");
+
+				ImGuiHelpers::ManualDragFloat3("Spawn Offset", component.SpawnOffset, 0.1f, 0.0f, window, activeDragArea);
+
 				if (component.SpawnFunction == EmitFunction::CONE)
 				{
 					DrawFloatControl("Cone Angle (deg)", component.ConeAngleDegrees, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 180.0f, 0.1f, "%.1f");
@@ -1669,6 +1774,12 @@ namespace Toast {
 					ImGuiHelpers::ManualDragFloat3("Spawn Box Size", component.SpawnBoxSize, 0.1f, 0.0f, window, activeDragArea);
 
 					DrawFloatControl("Box Bias Exponent", component.BiasExponent, window, activeDragArea, contentRegionAvailable.x * 0.30, 1.0f, 10.0f, 0.1f, "%.1f");
+				}
+				if (component.SpawnFunction == EmitFunction::DISC)
+				{
+					DrawFloatControl("Disc Radius", component.SpawnBoxSize.x, window, activeDragArea, contentRegionAvailable.x * 0.30, 0.0f, 200.0f, 0.5f, "%.1f");
+					// Velocity means something different here - say so.
+					ImGui::TextDisabled("Velocity: X = outward, Y = upward");
 				}
 
 				ImGui::BeginTable("##textures", 2, flags);

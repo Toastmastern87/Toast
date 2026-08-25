@@ -115,7 +115,7 @@ namespace Toast {
 			Buffer LightningPassBuffer;
 
 			// Particle Pass
-			Microsoft::WRL::ComPtr<ID3D11BlendState> ParticleBlendState;
+			Microsoft::WRL::ComPtr<ID3D11BlendState> ParticleAdditiveBlendState, ParticleAlphaBlendState;
 			Microsoft::WRL::ComPtr<ID3D11DepthStencilState> ParticleDepthStencilState;
 
 			// Stars pass
@@ -191,7 +191,6 @@ namespace Toast {
 			// Particle Data
 			Microsoft::WRL::ComPtr<ID3D11Buffer> ParticleBuffer;
 			Microsoft::WRL::ComPtr<ID3D11Buffer> ParticleIndexBuffer;
-			AssetHandle ParticleMaskTextureHandle;
 
 			// Selection System
 			Ref<RenderTarget> SelectedMeshMaskRT;
@@ -331,7 +330,6 @@ namespace Toast {
 		static void EnableAtmosphere(bool atmosphere) { sRendererData->PlanetData.Atmosphere = atmosphere; }
 
 		static void SetParticlesIndexBuffer(Microsoft::WRL::ComPtr<ID3D11Buffer>& indexBuffer) { sRendererData->ParticleIndexBuffer = indexBuffer; }
-		static void SetParticleMaskTexture(AssetHandle handle) { sRendererData->ParticleMaskTextureHandle = handle; }
 
 		static void ResetEnvMapsIBLDone() { sRendererData->NightTimeIBLDone = false; }
 

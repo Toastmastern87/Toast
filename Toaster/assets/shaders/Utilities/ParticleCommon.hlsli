@@ -12,6 +12,7 @@
 #define EMITFUNCTION_NONE 0
 #define EMITFUNCTION_CONE 1
 #define EMITFUNCTION_BOX  2
+#define EMITFUNCTION_DISC 3
 
 // Fixes a bug in the old system
 #define CONE_PRESERVE_SPEED 1
@@ -45,8 +46,12 @@ struct GPUParticle
     float   SoftFadeDistance;
     float   Drag;
     float   TurbulenceStrength;
-    float   _pad0;
+    uint    MaskSlice;
+    uint    BlendMode;
+    float   Rotation; 
+    float   AlphaScale; 
     float   _pad1;
+    float   _pad2; 
 };
 
 // In food terms this can be seen as the recipe
@@ -77,9 +82,9 @@ struct EmitterParams
     float   IntensityFalloff;
     float   TurbulenceStrength;
     float   DirectionalJitter; 
-    float   _pad0; 
-    float   _pad1; 
-    float   _pad2; 
+    uint    MaskSlice;
+    uint    BlendMode;
+    float   AlphaScale; 
 };
 
 // Indices into the Counter buffer (RWStructuredBuffer<uint>, 4 elements).
@@ -202,6 +207,73 @@ float BiasedRandomValue(float halfExtent, float biasExponent, inout RNG rng)
 float3 RandomPointInBox(float3 boxCenter, float3 boxSize, float biasExponent, inout RNG rng)
 {
     return boxCenter + float3(BiasedRandomValue(boxSize.x, biasExponent, rng), BiasedRandomValue(boxSize.y, biasExponent, rng), BiasedRandomValue(boxSize.z, biasExponent, rng));
+}
+
+float3 RandomPointOnDisc(float radius, inout RNG rng, out float3 radialDir)
+{
+    float u = NextFloat(rng);
+    float theta = NextFloat(rng) * 2.0f * PARTICLE_PI;
+    
+    float r = radius * sqrt(u);
+    
+    float s, c;
+    sincos(theta, s, c);
+
+    radialDir = float3(c, 0.0f, s);
+    return radialDir * r;
+}
+
+// Self contained 3D value noise, not put in PerlinNoise.hlsli to avoid having to include a structured buffer with perm data which is not needed
+// for particles.
+float ValueNoiseHash(int3 c)
+{
+    uint h = WangHash((uint) (c.x * 73856093) ^ (uint) (c.y * 19349663) ^ (uint) (c.z * 83492791));
+    return (float) (h & 0x00FFFFFFu) * (1.0f / 16777216.0f) * 2.0f - 1.0f;
+}
+
+float ParticleNoise3D(float3 p)
+{
+    int3 i = (int3) floor(p);
+    float3 f = p - floor(p);
+    
+    // Quintic smoothstep - same curve Perlin uses
+    float3 u = f * f * f * (f * (f * 6.0f - 15.0f) + 10.0f);
+    
+    float n000 = ValueNoiseHash(i + int3(0, 0, 0));
+    float n100 = ValueNoiseHash(i + int3(1, 0, 0));
+    float n010 = ValueNoiseHash(i + int3(0, 1, 0));
+    float n110 = ValueNoiseHash(i + int3(1, 1, 0));
+    float n001 = ValueNoiseHash(i + int3(0, 0, 1));
+    float n101 = ValueNoiseHash(i + int3(1, 0, 1));
+    float n011 = ValueNoiseHash(i + int3(0, 1, 1));
+    float n111 = ValueNoiseHash(i + int3(1, 1, 1));
+
+    float x00 = lerp(n000, n100, u.x);
+    float x10 = lerp(n010, n110, u.x);
+    float x01 = lerp(n001, n101, u.x);
+    float x11 = lerp(n011, n111, u.x);
+    
+    return lerp(lerp(x00, x10, u.y), lerp(x01, x11, u.y), u.z);
+}
+
+float3 CurlNoise(float3 p, float epsilon)
+{
+    float3 dx = float3(epsilon, 0.0f, 0.0f);
+    float3 dy = float3(0.0f, epsilon, 0.0f);
+    float3 dz = float3(0.0f, 0.0f, epsilon);
+    
+    float3 p0 = p;
+    float3 p1 = p + float3(31.416f, 47.853f, 12.793f);
+    float3 p2 = p + float3(73.156f, 11.937f, 55.201f);
+
+    float x1 = ParticleNoise3D(p2 + dy) - ParticleNoise3D(p2 - dy);
+    float x2 = ParticleNoise3D(p1 + dz) - ParticleNoise3D(p1 - dz);
+    float y1 = ParticleNoise3D(p0 + dz) - ParticleNoise3D(p0 - dz);
+    float y2 = ParticleNoise3D(p2 + dx) - ParticleNoise3D(p2 - dx);
+    float z1 = ParticleNoise3D(p1 + dx) - ParticleNoise3D(p1 - dx);
+    float z2 = ParticleNoise3D(p0 + dy) - ParticleNoise3D(p0 - dy);
+    
+    return float3(x1 - x2, y1 - y2, z1 - z2) / (2.0f * epsilon);
 }
 
 #endif // PARTICLE_COMMON_HLSLI

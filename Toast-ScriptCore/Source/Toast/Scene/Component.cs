@@ -558,6 +558,19 @@ namespace Toast
                 InternalCalls.ParticlesComponent_SetStartIntensity(Entity.ID, value);
             }
         }
+
+        public Vector3 Velocity
+        {
+            get
+            {
+                InternalCalls.ParticlesComponent_GetVelocity(Entity.ID, out Vector3 result);
+                return result;
+            }
+            set
+            {
+                InternalCalls.ParticlesComponent_SetVelocity(Entity.ID, ref value);
+            }
+        }
     }
 
     public class ScriptComponent : Component
