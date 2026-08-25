@@ -299,10 +299,14 @@ namespace Toast {
 			out << YAML::BeginMap; // MeshComponent
 
 			auto& mc = entity.GetComponent<MeshComponent>();
-			out << YAML::Key << "AssetPath" << YAML::Value << mc.MeshObject->GetFilePath();
+			out << YAML::Key << "MeshHandle" << YAML::Value << mc.MeshHandle;
+
+			Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+			if (!mesh)
+				return;
 
 			out << YAML::Key << "LODThresholds" << YAML::BeginSeq;
-			for (const float& threshold : mc.MeshObject->GetLODThresholds())
+			for (const float& threshold : mesh->GetLODThresholds())
 			{
 				out << threshold;
 			}
@@ -311,7 +315,7 @@ namespace Toast {
 			out << YAML::Key << "Parts";
 			out << YAML::Value << YAML::BeginSeq;
 
-			auto& parts = mc.MeshObject->GetParts();
+			auto& parts = mesh->GetParts();
 			for (uint32_t i = 0; i < parts.size(); ++i)
 			{
 				out << YAML::BeginMap;
@@ -1541,16 +1545,21 @@ namespace Toast {
 				auto meshComponent = entity["MeshComponent"];
 				if (meshComponent)
 				{
-					std::string assetPath = meshComponent["AssetPath"].as<std::string>();
+					AssetHandle meshHandle;
 
-					deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>(assetPath));
+					if (meshComponent["MeshHandle"])
+						meshHandle = AssetHandle(meshComponent["MeshHandle"].as<uint64_t>());
 
-					auto& mc = deserializedEntity.GetComponent<MeshComponent>();
+					auto& mc = deserializedEntity.AddComponent<MeshComponent>(meshHandle);
+
+					Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+					if (!mesh)
+						return false;
 
 					if (meshComponent["LODThresholds"])
 					{
 						const YAML::Node& thresholdsNode = meshComponent["LODThresholds"];
-						std::vector<float>& thresholds = mc.MeshObject->GetLODThresholds();
+						std::vector<float>& thresholds = mesh->GetLODThresholds();
 						thresholds.clear(); // Ensure the vector is empty before adding
 						for (std::size_t i = 0; i < thresholdsNode.size(); ++i)
 						{
@@ -1561,7 +1570,7 @@ namespace Toast {
 					if (meshComponent["Parts"])
 					{
 						const YAML::Node& partsNode = meshComponent["Parts"];
-						auto& parts = mc.MeshObject->GetParts();
+						auto& parts = mesh->GetParts();
 
 						mc.PartEntities.assign(parts.size(), UUID(0));
 
@@ -1578,10 +1587,10 @@ namespace Toast {
 
 							UUID handle = partNode["Handle"].as<UUID>();
 
-							int32_t partIndex = mc.MeshObject->FindPartIndex(name);
+							int32_t partIndex = mesh->FindPartIndex(name);
 							if (partIndex < 0)
 							{
-								TOAST_CORE_WARN("Scene has part '%s' with no matching part in mesh '%s' — skipping", name.c_str(), mc.MeshObject->GetFilePath().c_str());
+								TOAST_CORE_WARN("Scene has part '%s' with no matching part in mesh '%s' — skipping", name.c_str(), mesh->GetFilePath().c_str());
 								continue;
 							}
 

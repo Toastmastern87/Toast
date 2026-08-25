@@ -135,10 +135,14 @@ namespace Toast {
 		auto view = mRegistry.view<TransformComponent, MeshComponent>();
 		for (auto entity : view)
 		{
-			auto [transform, mesh] = view.get<TransformComponent, MeshComponent>(entity);
+			auto [transform, mc] = view.get<TransformComponent, MeshComponent>(entity);
 
-			if (mesh.MeshObject->GetIsAnimated())
-				ResetMeshAnimations(mesh);
+			Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+			if (!mesh) 
+				continue;
+
+			if (mesh->GetIsAnimated())
+				ResetMeshAnimations(mc);
 		}
 
 		// Reseting particle system to make sure nothing is carried over between play and edit state
@@ -391,10 +395,12 @@ namespace Toast {
 		for (auto entity : view)
 		{
 			auto [tc, mc] = view.get<TransformComponent, MeshComponent>(entity);
-			if (!mc.MeshObject->GetIsAnimated())
+
+			Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+			if (!mesh || !mesh->GetIsAnimated())
 				continue;
 
-			auto& parts = mc.MeshObject->GetParts();
+			auto& parts = mesh->GetParts();
 			uint32_t lod = (uint32_t)mc.ActiveLODGroup;
 
 			// Advance playback — once per animation, per instance
@@ -419,7 +425,7 @@ namespace Toast {
 				else
 				{
 					playback.TimeElapsed += d;
-					float duration = mc.MeshObject->GetAnimationDuration(name);
+					float duration = mesh->GetAnimationDuration(name);
 					if (playback.TimeElapsed >= duration)
 					{
 						playback.TimeElapsed = duration;
@@ -536,14 +542,18 @@ namespace Toast {
 					MeshComponent& mc = e.GetComponent<MeshComponent>();
 					TransformComponent& tc = e.GetComponent<TransformComponent>();
 
-					if (mc.MeshObject->HasLODGroups())
+					Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+					if (!mesh)
+						continue;
+
+					if (mesh->HasLODGroups())
 					{
 						double maxDistance = 10000.0;
 						double distance = Vector3::Length(Vector3(tc.Translation) + Vector3(mMainCamera->GetWorldTranslation()));
 						double remappedDistance = std::clamp(distance / maxDistance, 0.0, 1.0);
 						mc.LODDistance = remappedDistance;
 
-						std::vector<float> thresholds = mc.MeshObject->GetLODThresholds();
+						std::vector<float> thresholds = mesh->GetLODThresholds();
 
 						int activeLOD = 0; // Default to LOD0
 
@@ -731,9 +741,13 @@ namespace Toast {
 				auto viewMeshes = mRegistry.view<TransformComponent, MeshComponent>();
 				for (auto entity : viewMeshes)
 				{
-					auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
+					auto [transform, mc] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
 
-					bool validMesh = mesh.MeshObject->GetFilePath() != "";
+					Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+					if (!mesh)
+						continue;
+
+					bool validMesh = mesh->GetFilePath() != "";
 
 					if (!validMesh)
 						continue;
@@ -744,8 +758,8 @@ namespace Toast {
 					bool entityIsHovered = (mHoveredEntity == entity);
 					bool entityIsSelected = mRegistry.has<SelectedComponent>(entity);
 
-					uint32_t lod = (uint32_t)mesh.ActiveLODGroup;
-					auto& lodGroup = mesh.MeshObject->mLODGroups[mesh.ActiveLODGroup];
+					uint32_t lod = (uint32_t)mc.ActiveLODGroup;
+					auto& lodGroup = mesh->mLODGroups[mc.ActiveLODGroup];
 					auto& submeshes = lodGroup->Submeshes;
 
 					for (uint32_t submeshIndex = 0; submeshIndex < (uint32_t)submeshes.size(); ++submeshIndex)
@@ -754,9 +768,9 @@ namespace Toast {
 
 						DirectX::XMMATRIX finalTransform = worldTransform; // fallback
 
-						if (submesh.PartIndex < mesh.PartEntities.size())
+						if (submesh.PartIndex < mc.PartEntities.size())
 						{
-							Entity partEntity = FindEntityByUUID(mesh.PartEntities[submesh.PartIndex]);
+							Entity partEntity = FindEntityByUUID(mc.PartEntities[submesh.PartIndex]);
 							if (partEntity)
 								finalTransform = ComposeWorldTransform(partEntity);
 						}
@@ -764,11 +778,11 @@ namespace Toast {
 						switch (mSettings.WireframeRendering)
 						{
 						case Settings::Wireframe::NO:
-							Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, lod, false, 0);
+							Renderer::SubmitMesh(mesh, finalTransform, (int)entity, submeshIndex, lod, false, 0);
 							break;
 
 						case Settings::Wireframe::YES:
-							Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, lod, true, 0);
+							Renderer::SubmitMesh(mesh, finalTransform, (int)entity, submeshIndex, lod, true, 0);
 							break;
 
 						case Settings::Wireframe::ONTOP:
@@ -777,13 +791,13 @@ namespace Toast {
 						}
 
 						if (entityIsHovered)
-							Renderer::SubmitHoveredMesh(mesh.MeshObject, finalTransform, submeshIndex, mesh.ActiveLODGroup);
+							Renderer::SubmitHoveredMesh(mesh, finalTransform, submeshIndex, mc.ActiveLODGroup);
 
 						if (entityIsSelected)
-							Renderer::SubmitSelecetedMesh(mesh.MeshObject, finalTransform, false, submeshIndex, true);
+							Renderer::SubmitSelecetedMesh(mesh, finalTransform, false, submeshIndex, true);
 					}
 
-					mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices(mesh.ActiveLODGroup).size());
+					mStats.VerticesCount += static_cast<uint32_t>(mesh->GetVertices(mc.ActiveLODGroup).size());
 				}
 
 				// Move markers — submit active commands so GuidancePass can draw them.
@@ -1344,14 +1358,18 @@ namespace Toast {
 				MeshComponent& mc = e.GetComponent<MeshComponent>();
 				TransformComponent& tc = e.GetComponent<TransformComponent>();
 
-				if (mc.MeshObject->HasLODGroups())
+				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+				if (!mesh)
+					continue;
+
+				if (mesh->HasLODGroups())
 				{
 					double maxDistance = 10000.0;
 					double distance = Vector3::Length(tc.Translation);
 					double remappedDistance = std::clamp(distance / maxDistance, 0.0, 1.0);
 					mc.LODDistance = remappedDistance;
 
-					std::vector<float> thresholds = mc.MeshObject->GetLODThresholds();
+					std::vector<float> thresholds = mesh->GetLODThresholds();
 
 					int activeLOD = 0; // Default to LOD0
 
@@ -1429,9 +1447,13 @@ namespace Toast {
 			auto viewMeshes = mRegistry.view<TransformComponent, MeshComponent>();
 			for (auto entity : viewMeshes)
 			{
-				auto [transform, mesh] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
+				auto [transform, mc] = viewMeshes.get<TransformComponent, MeshComponent>(entity);
 
-				bool validMesh = mesh.MeshObject->GetFilePath() != "";
+				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+				if (!mesh)
+					continue;
+
+				bool validMesh = mesh->GetFilePath() != "";
 
 				if (!validMesh)
 					continue;
@@ -1452,8 +1474,8 @@ namespace Toast {
 					}
 				}
 
-				uint32_t lod = (uint32_t)mesh.ActiveLODGroup;
-				auto& lodGroup = mesh.MeshObject->mLODGroups[lod];
+				uint32_t lod = (uint32_t)mc.ActiveLODGroup;
+				auto& lodGroup = mesh->mLODGroups[lod];
 				auto& submeshes = lodGroup->Submeshes;
 
 				for (uint32_t submeshIndex = 0; submeshIndex < (uint32_t)submeshes.size(); ++submeshIndex)
@@ -1462,9 +1484,9 @@ namespace Toast {
 
 					DirectX::XMMATRIX finalTransform = worldTransform; // fallback
 
-					if (submesh.PartIndex < mesh.PartEntities.size())
+					if (submesh.PartIndex < mc.PartEntities.size())
 					{
-						Entity partEntity = FindEntityByUUID(mesh.PartEntities[submesh.PartIndex]);
+						Entity partEntity = FindEntityByUUID(mc.PartEntities[submesh.PartIndex]);
 						if (partEntity)
 							finalTransform = ComposeWorldTransform(partEntity);
 					}
@@ -1472,11 +1494,11 @@ namespace Toast {
 					switch (mSettings.WireframeRendering)
 					{
 					case Settings::Wireframe::NO:
-						Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, lod, false, 0);
+						Renderer::SubmitMesh(mesh, finalTransform, (int)entity, submeshIndex, lod, false, 0);
 						break;
 
 					case Settings::Wireframe::YES:
-						Renderer::SubmitMesh(mesh.MeshObject, finalTransform, (int)entity, submeshIndex, lod, true, 0);
+						Renderer::SubmitMesh(mesh, finalTransform, (int)entity, submeshIndex, lod, true, 0);
 						break;
 
 					case Settings::Wireframe::ONTOP:
@@ -1485,10 +1507,10 @@ namespace Toast {
 					}
 
 					if (mSelectedEntity == entity)
-						Renderer::SubmitSelecetedMesh(mesh.MeshObject, finalTransform, false, submeshIndex, lod, false);
+						Renderer::SubmitSelecetedMesh(mesh, finalTransform, false, submeshIndex, lod, false);
 				}
 
-				mStats.VerticesCount += static_cast<uint32_t>(mesh.MeshObject->GetVertices(mesh.ActiveLODGroup).size());
+				mStats.VerticesCount += static_cast<uint32_t>(mesh->GetVertices(mc.ActiveLODGroup).size());
 			}
 
 			OutlineSettings outline = ResolveOutlineSettings({});
@@ -2012,7 +2034,11 @@ namespace Toast {
 
 	void Scene::AddMeshPartEntities(MeshComponent& mc, Entity owner)
 	{
-		auto& parts = mc.MeshObject->GetParts();
+		Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+		if (!mesh)
+			return;
+
+		auto& parts = mesh->GetParts();
 		mc.PartEntities.clear();
 		mc.PartEntities.resize(parts.size());
 
@@ -2427,7 +2453,11 @@ namespace Toast {
 	{
 		TOAST_CORE_INFO("ResetMeshAnimations: %zu part entities", mc.PartEntities.size());
 
-		auto& parts = mc.MeshObject->GetParts();
+		Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+		if (!mesh)
+			return;
+
+		auto& parts = mesh->GetParts();
 
 		for (uint32_t i = 0; i < mc.PartEntities.size() && i < parts.size(); ++i)
 		{

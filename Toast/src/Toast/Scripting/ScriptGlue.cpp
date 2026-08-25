@@ -909,7 +909,11 @@ namespace Toast {
 		auto& mc = entity.GetComponent<MeshComponent>();
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
 
-		if (!mc.MeshObject->HasAnimation(nameStr))
+		Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+		if (!mesh)
+			return;
+
+		if (!mesh->HasAnimation(nameStr))
 		{
 			TOAST_CORE_WARN("Animation '%s' not found for entity %llu", nameStr.c_str(), entityID);
 			return;
@@ -926,7 +930,11 @@ namespace Toast {
 		auto& mc = entity.GetComponent<MeshComponent>();
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
 
-		if (!mc.MeshObject->HasAnimation(nameStr))
+		Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+		if (!mesh)
+			return;
+
+		if (!mesh->HasAnimation(nameStr))
 		{
 			TOAST_CORE_WARN("Animation '%s' not found for entity %llu", nameStr.c_str(), entityID);
 			return;
@@ -987,7 +995,11 @@ namespace Toast {
 		auto& mc = entity.GetComponent<MeshComponent>();
 		std::string& nameStr = Utils::ConvertMonoStringToCppString(name);
 
-		return mc.MeshObject->GetAnimationDuration(nameStr);
+		Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+		if (!mesh)
+			return 0.0f;
+
+		return mesh->GetAnimationDuration(nameStr);
 	}
 
 #pragma endregion

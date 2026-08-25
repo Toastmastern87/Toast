@@ -172,6 +172,28 @@ namespace Toast {
 		return name;
 	}
 
+	// Textures live in Assets/Textures/ once imported. The glTF URI is relative to
+	// wherever the .gltf originally sat, which is no longer where it loads from —
+	// so resolve by filename against the registry first.
+	static AssetHandle ResolveTexture(const std::string& uri, const std::string& meshFilePath)
+	{
+		std::filesystem::path fileName = std::filesystem::path(uri).filename();
+
+		// Already imported? Registry lookup by the path we'd have stored.
+		std::filesystem::path relativePath = std::filesystem::path("Textures") / fileName;
+		AssetHandle existing = AssetManager::GetHandleFromPath(relativePath);
+		if (existing != AssetHandle(0))
+			return existing;
+
+		// Not in the project yet — look next to the .gltf and import it.
+		std::filesystem::path beside = std::filesystem::path(meshFilePath).parent_path() / uri;
+		if (std::filesystem::exists(beside))
+			return AssetManager::ImportExternalAsset(beside, "Textures");
+
+		TOAST_CORE_WARN("Mesh: texture '%s' not in project and not beside the mesh", uri.c_str());
+		return AssetHandle(0);
+	}
+
 	Mesh::Mesh()
 	{
 		mLODGroups.emplace_back(CreateRef<LODGroup>());
@@ -214,6 +236,12 @@ namespace Toast {
 
 			cgltf_free(data);
 		}
+		else
+		{
+			SetFlags(AssetFlag::Invalid);
+			TOAST_CORE_ERROR("Mesh: Failed to parse '%s'", filePath.c_str());
+			return;
+		}
 	}
 
 	Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const DirectX::XMMATRIX& transform)
@@ -224,7 +252,7 @@ namespace Toast {
 		submesh.BaseVertex = 0;
 		submesh.BaseIndex = 0;
 		submesh.IndexCount = (uint32_t)indices.size();
-		submesh.MaterialName = "Standard";
+		submesh.MaterialHandle = 0;
 
 		mLODGroups[0]->Submeshes.push_back(submesh);
 
@@ -233,6 +261,15 @@ namespace Toast {
 
 		mLODGroups[0]->VBuffer = CreateRef<VertexBuffer>(&mLODGroups[0]->Vertices[0], (sizeof(Vertex) * (uint32_t)mLODGroups[0]->Vertices.size()), (uint32_t)mLODGroups[0]->Vertices.size(), 0);
 		mLODGroups[0]->IBuffer = CreateRef<IndexBuffer>(&mLODGroups[0]->Indices[0], (uint32_t)mLODGroups[0]->Indices.size());
+	}
+
+	Mesh::Mesh(std::vector<Ref<LODGroup>>&& lodGroups, std::vector<Part>&& parts, std::vector<float>&& lodThresholds, PrimitiveTopology topology, bool hasLODs, bool isAnimated, bool instanced, uint32_t maxNrOfInstanceObjects, const std::string& filePath)
+		: mLODGroups(std::move(lodGroups)), mParts(std::move(parts)), mLODThresholds(std::move(lodThresholds)), mTopology(topology), mHasLODs(hasLODs), mIsAnimated(isAnimated), mInstanced(instanced), mMaxNrOfInstanceObjects(maxNrOfInstanceObjects), mFilePath(filePath)
+	{
+		for (uint32_t i = 0; i < mParts.size(); ++i)
+			mPartNameToIndex[mParts[i].Name] = i;
+
+		CreateGPUBuffers();
 	}
 
 	void Mesh::LoadMesh(cgltf_data* data)
@@ -245,76 +282,16 @@ namespace Toast {
 
 		result = cgltf_load_buffers(&options, data, mFilePath.c_str());
 
-		mIsAnimated = data->animations_count > 0;
-
-		mLODGroups.emplace_back(CreateRef<LODGroup>());
-
-		DirectX::XMFLOAT3 translation;
-		DirectX::XMFLOAT4 rotation;
-		DirectX::XMFLOAT3 scale;
-		//TOAST_CORE_INFO("data->accessors_count: %d", data->accessors_count);
-		for (unsigned m = 0; m < data->meshes_count; m++)
-		{
-			for (unsigned int p = 0; p < data->meshes[m].primitives_count; p++)
-			{
-				if (data->meshes[m].primitives[p].type != cgltf_primitive_type_triangles)
-					continue;
-
-				Submesh& submesh = mLODGroups[0]->Submeshes.emplace_back();
-				submesh.MaterialName = std::string(data->meshes[m].primitives[p].material->name);
-
-				for (unsigned int a = 0; a < data->meshes[m].primitives[p].attributes_count; a++)
-				{
-					cgltf_accessor* attribute = data->meshes[m].primitives[p].attributes[a].data;
-
-					if (a == 0) 
-					{
-						submesh.BaseVertex = vertexCount;
-						submesh.VertexCount = static_cast<uint32_t>(attribute->count);
-						vertexCount += submesh.VertexCount;
-						mLODGroups[0]->Vertices.resize(vertexCount);
-					}
-
-					LoadAttribute(attribute, data->meshes[m].primitives[p].attributes[a].type, mLODGroups[0]->Vertices, submesh.BaseVertex);
-				}
-
-				// Color override
-				if (mColorOverride.z != 0.0)
-				{
-					for (auto& vertex : mLODGroups[0]->Vertices)
-						vertex.Color = { (float)mColorOverride.x, (float)mColorOverride.y, (float)mColorOverride.z };
-				}
-
-				// INDICES
-				if (data->meshes[m].primitives[p].indices != NULL)
-				{
-					cgltf_accessor* indexAccessor = data->meshes[m].primitives[p].indices;
-					const uint16_t* indices = reinterpret_cast<const uint16_t*>(reinterpret_cast<const uint8_t*>(indexAccessor->buffer_view->buffer->data) + indexAccessor->buffer_view->offset + indexAccessor->offset);
-
-					submesh.IndexCount = indexAccessor->count;
-					submesh.BaseIndex = indexCount;
-					indexCount += submesh.IndexCount;
-					mLODGroups[0]->Indices.resize(indexCount);
-
-					for (size_t i = 0; i < indexAccessor->count; ++i)
-					{
-						cgltf_size idx = cgltf_accessor_read_index(indexAccessor, i);
-						mLODGroups[0]->Indices[submesh.BaseIndex + i] = (uint32_t)idx + submesh.BaseVertex;
-					}
-				}
-
-				TOAST_CORE_INFO("Mesh  loaded with material '%s', number of indices: %d", submesh.MaterialName.c_str(), submesh.IndexCount);
-			}
-		}
-
 		// MATERIALS
 		TOAST_CORE_INFO("Number of materials: %d", data->materials_count);
-		for (int m = 0; m < data->materials_count; m++) 
+		mMaterialHandles.assign(data->materials_count, AssetHandle(0));
+
+		for (int m = 0; m < data->materials_count; m++)
 		{
 			TOAST_CORE_INFO("Material name: %s", data->materials[m].name);
 
 			std::string materialName(data->materials[m].name);
-				
+
 			if (data->materials[m].has_pbr_metallic_roughness)
 			{
 				auto material = CreateRef<Material>(materialName);
@@ -400,10 +377,74 @@ namespace Toast {
 				if (AssetEntry* entry = AssetManager::GetEntry(materialHandle))
 					entry->Resource = material;
 
-				mMaterials.insert({ data->materials[m].name, material });
+				mMaterialHandles[m] = materialHandle;
 			}
 		}
-		TOAST_CORE_INFO("Number of materials loaded: %d", mMaterials.size());
+		TOAST_CORE_INFO("Number of materials loaded: %d", mMaterialHandles.size());
+
+		mIsAnimated = data->animations_count > 0;
+
+		mLODGroups.emplace_back(CreateRef<LODGroup>());
+
+		DirectX::XMFLOAT3 translation;
+		DirectX::XMFLOAT4 rotation;
+		DirectX::XMFLOAT3 scale;
+		//TOAST_CORE_INFO("data->accessors_count: %d", data->accessors_count);
+		for (unsigned m = 0; m < data->meshes_count; m++)
+		{
+			for (unsigned int p = 0; p < data->meshes[m].primitives_count; p++)
+			{
+				if (data->meshes[m].primitives[p].type != cgltf_primitive_type_triangles)
+					continue;
+
+				Submesh& submesh = mLODGroups[0]->Submeshes.emplace_back();
+				cgltf_material* mat = data->meshes[m].primitives[p].material;
+				cgltf_size matIndex = mat ? (cgltf_size)(mat - data->materials) : (cgltf_size)-1;
+				submesh.MaterialHandle = (matIndex < mMaterialHandles.size()) ? mMaterialHandles[matIndex] : AssetHandle(0);
+
+				for (unsigned int a = 0; a < data->meshes[m].primitives[p].attributes_count; a++)
+				{
+					cgltf_accessor* attribute = data->meshes[m].primitives[p].attributes[a].data;
+
+					if (a == 0) 
+					{
+						submesh.BaseVertex = vertexCount;
+						submesh.VertexCount = static_cast<uint32_t>(attribute->count);
+						vertexCount += submesh.VertexCount;
+						mLODGroups[0]->Vertices.resize(vertexCount);
+					}
+
+					LoadAttribute(attribute, data->meshes[m].primitives[p].attributes[a].type, mLODGroups[0]->Vertices, submesh.BaseVertex);
+				}
+
+				// Color override
+				if (mColorOverride.z != 0.0)
+				{
+					for (auto& vertex : mLODGroups[0]->Vertices)
+						vertex.Color = { (float)mColorOverride.x, (float)mColorOverride.y, (float)mColorOverride.z };
+				}
+
+				// INDICES
+				if (data->meshes[m].primitives[p].indices != NULL)
+				{
+					cgltf_accessor* indexAccessor = data->meshes[m].primitives[p].indices;
+					const uint16_t* indices = reinterpret_cast<const uint16_t*>(reinterpret_cast<const uint8_t*>(indexAccessor->buffer_view->buffer->data) + indexAccessor->buffer_view->offset + indexAccessor->offset);
+
+					submesh.IndexCount = indexAccessor->count;
+					submesh.BaseIndex = indexCount;
+					indexCount += submesh.IndexCount;
+					mLODGroups[0]->Indices.resize(indexCount);
+
+					for (size_t i = 0; i < indexAccessor->count; ++i)
+					{
+						cgltf_size idx = cgltf_accessor_read_index(indexAccessor, i);
+						mLODGroups[0]->Indices[submesh.BaseIndex + i] = (uint32_t)idx + submesh.BaseVertex;
+					}
+				}
+
+				TOAST_CORE_INFO("Mesh  loaded with material %llu, number of indices: %d", submesh.MaterialHandle, submesh.IndexCount);
+			}
+		}
 
 		// ANIMATIONS
 		TOAST_CORE_INFO("Number of animations in mesh: %d", data->animations_count);
@@ -453,43 +494,10 @@ namespace Toast {
 
 		result = cgltf_load_buffers(&options, data, mFilePath.c_str());
 
-		for (size_t i = 0; i < data->nodes_count; ++i)
-		{
-			const cgltf_node* node = &data->nodes[i];
-			std::string nodeName(node->name);
-
-			if (node->name && strstr(node->name, "CraneWireLeft"))
-				TOAST_CORE_INFO("NODE '%s' has_matrix=%d has_rotation=%d rot=(%.4f,%.4f,%.4f,%.4f)",
-					node->name, node->has_matrix ? 1 : 0, node->has_rotation ? 1 : 0,
-					node->has_rotation ? (float)node->rotation[0] : 0.0f,
-					node->has_rotation ? (float)node->rotation[1] : 0.0f,
-					node->has_rotation ? (float)node->rotation[2] : 0.0f,
-					node->has_rotation ? (float)node->rotation[3] : 1.0f);
-			
-			if (nodeName.find("LOD") != std::string::npos)
-			{
-				mLODGroups.emplace_back(CreateRef<LODGroup>());
-				Ref<LODGroup> currentLOD = mLODGroups.back();
-				uint32_t lodIndex = (uint32_t)mLODGroups.size() - 1;
-				uint32_t vertexCount = 0;
-				uint32_t indexCount = 0;
-
-				DirectX::XMMATRIX identity = DirectX::XMMatrixIdentity();
-
-				for (cgltf_size j = 0; j < node->children_count; ++j)
-					ProcessLODNode(node->children[j], currentLOD, lodIndex, identity, vertexCount, indexCount);
-
-				currentLOD->VBuffer = CreateRef<VertexBuffer>(currentLOD->Vertices.data(), (sizeof(Vertex) * (uint32_t)currentLOD->Vertices.size()), (uint32_t)currentLOD->Vertices.size(), 0);
-
-				if (mInstanced && mMaxNrOfInstanceObjects > 0)
-					currentLOD->InstancedVBuffer = CreateRef<VertexBuffer>((sizeof(DirectX::XMFLOAT3) * mMaxNrOfInstanceObjects), mMaxNrOfInstanceObjects, 1);
-
-				currentLOD->IBuffer = CreateRef<IndexBuffer>(currentLOD->Indices.data(), (uint32_t)currentLOD->Indices.size());
-			}
-		}
-
 		// MATERIALS
 		TOAST_CORE_INFO("Number of materials: %d", data->materials_count);
+		mMaterialHandles.assign(data->materials_count, AssetHandle(0));
+
 		for (int m = 0; m < data->materials_count; m++)
 		{
 			TOAST_CORE_INFO("Material name: %s", data->materials[m].name);
@@ -517,7 +525,7 @@ namespace Toast {
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					albedoColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 					useAlbedoMap = 1;
-					material->SetAlbedolAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
+					material->SetAlbedolAssetHandle(ResolveTexture(texPath, mFilePath));
 					TOAST_CORE_INFO("Albedo map found for %s: %s", materialName.c_str(), completePath.c_str());
 				}
 
@@ -535,7 +543,7 @@ namespace Toast {
 					std::string texturePath = parentPath.string();
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					useNormalMap = 1;
-					material->SetNormalAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
+					material->SetNormalAssetHandle(ResolveTexture(texPath, mFilePath));
 					TOAST_CORE_INFO("Normal map found for %s: %s", materialName.c_str(), completePath.c_str());
 				}
 				material->SetUseNormal(useNormalMap);
@@ -554,16 +562,15 @@ namespace Toast {
 					std::string completePath = texturePath.append("\\").append(texPath.c_str());
 					metalness = 1.0f;
 					useMetalRoughMap = 1;
-					material->SetMetalRoughAssetHandle(AssetManager::ImportExternalAsset(completePath, "Textures"));
+					material->SetMetalRoughAssetHandle(ResolveTexture(texPath, mFilePath));
 					TOAST_CORE_INFO("Metalness/Roughness map found for %s: %s", materialName.c_str(), completePath.c_str());
 				}
 				else
 				{
-					//TOAST_CORE_INFO("data->materials[m].pbr_metallic_roughness.metallic_factor: %f", data->materials[m].pbr_metallic_roughness.metallic_factor);
-					//TOAST_CORE_INFO("data->materials[m].pbr_metallic_roughness.roughness_factor: %f", data->materials[m].pbr_metallic_roughness.roughness_factor);
 					metalness = data->materials[m].pbr_metallic_roughness.metallic_factor;
 					roughness = data->materials[m].pbr_metallic_roughness.roughness_factor;
 				}
+
 				material->SetMetalness(metalness);
 				material->SetRoughness(roughness);
 				material->SetUseMetalRough(useMetalRoughMap);
@@ -581,10 +588,37 @@ namespace Toast {
 				if (AssetEntry* entry = AssetManager::GetEntry(materialHandle))
 					entry->Resource = material;
 
-				mMaterials.insert({ data->materials[m].name, material });
+				mMaterialHandles[m] = materialHandle;
 			}
 		}
-		TOAST_CORE_INFO("Number of materials loaded: %d", mMaterials.size());
+		TOAST_CORE_INFO("Number of materials loaded: %d", mMaterialHandles.size());
+
+		for (size_t i = 0; i < data->nodes_count; ++i)
+		{
+			const cgltf_node* node = &data->nodes[i];
+			std::string nodeName(node->name);
+			
+			if (nodeName.find("LOD") != std::string::npos)
+			{
+				mLODGroups.emplace_back(CreateRef<LODGroup>());
+				Ref<LODGroup> currentLOD = mLODGroups.back();
+				uint32_t lodIndex = (uint32_t)mLODGroups.size() - 1;
+				uint32_t vertexCount = 0;
+				uint32_t indexCount = 0;
+
+				DirectX::XMMATRIX identity = DirectX::XMMatrixIdentity();
+
+				for (cgltf_size j = 0; j < node->children_count; ++j)
+					ProcessLODNode(node->children[j], currentLOD, lodIndex, data, identity, vertexCount, indexCount);
+
+				currentLOD->VBuffer = CreateRef<VertexBuffer>(currentLOD->Vertices.data(), (sizeof(Vertex) * (uint32_t)currentLOD->Vertices.size()), (uint32_t)currentLOD->Vertices.size(), 0);
+
+				if (mInstanced && mMaxNrOfInstanceObjects > 0)
+					currentLOD->InstancedVBuffer = CreateRef<VertexBuffer>((sizeof(DirectX::XMFLOAT3) * mMaxNrOfInstanceObjects), mMaxNrOfInstanceObjects, 1);
+
+				currentLOD->IBuffer = CreateRef<IndexBuffer>(currentLOD->Indices.data(), (uint32_t)currentLOD->Indices.size());
+			}
+		}
 
 		// ANIMATIONS
 		// Helper: strip trailing _1, _2, _N suffix for the different LODs animations
@@ -766,7 +800,7 @@ namespace Toast {
 			submesh.BaseVertex = 0;
 			submesh.BaseIndex = 0;
 			submesh.IndexCount = mLODGroups[0]->IndexCount;
-			submesh.MaterialName = "Planet";
+			submesh.MaterialHandle = 0;
 			mLODGroups[0]->Submeshes.emplace_back(submesh);
 		}
 	}
@@ -785,7 +819,7 @@ namespace Toast {
 		return it == mPartNameToIndex.end() ? -1 : (int32_t)it->second;
 	}
 
-	void Mesh::ProcessLODNode(const cgltf_node* node, Ref<LODGroup> lodGroup, uint32_t lodIndex, const DirectX::XMMATRIX& parentTransform, uint32_t& vertexCount, uint32_t& indexCount)
+	void Mesh::ProcessLODNode(const cgltf_node* node, Ref<LODGroup> lodGroup, uint32_t lodIndex, cgltf_data* data, const DirectX::XMMATRIX& parentTransform, uint32_t& vertexCount, uint32_t& indexCount)
 	{
 		DirectX::XMMATRIX localTransform = NodeMatrixLocal(node);
 		DirectX::XMMATRIX combinedTransform = DirectX::XMMatrixMultiply(localTransform, parentTransform);
@@ -800,7 +834,10 @@ namespace Toast {
 					continue;
 
 				Submesh& submesh = lodGroup->Submeshes.emplace_back();
-				submesh.MaterialName = primitive->material ? primitive->material->name : "";
+
+				cgltf_size matIndex = primitive->material ? (cgltf_size)(primitive->material - data->materials) : (cgltf_size)-1;
+				submesh.MaterialHandle = (matIndex < mMaterialHandles.size()) ? mMaterialHandles[matIndex] : AssetHandle(0);
+
 				const std::string meshName = node->mesh->name ? node->mesh->name : "";
 
 				for (unsigned int a = 0; a < primitive->attributes_count; a++)
@@ -870,12 +907,12 @@ namespace Toast {
 					part.RestTransformCaptured = true;
 				}
 
-				TOAST_CORE_INFO("Mesh '%s' loaded with material '%s', number of indices: %d, Part Name '%s'", meshName.c_str(), submesh.MaterialName.c_str(), submesh.IndexCount, basePartName.c_str());
+				TOAST_CORE_INFO("Mesh '%s' loaded with material '%llu', number of indices: %d, Part Name '%s'", meshName.c_str(), submesh.MaterialHandle, submesh.IndexCount, basePartName.c_str());
 			}
 		}
 
 		for (cgltf_size i = 0; i < node->children_count; ++i)
-			ProcessLODNode(node->children[i], lodGroup, lodIndex, combinedTransform, vertexCount, indexCount);
+			ProcessLODNode(node->children[i], lodGroup, lodIndex, data, combinedTransform, vertexCount, indexCount);
 	}
 
 	uint32_t Mesh::GetOrCreatePartIndex(const std::string& partName)
@@ -890,12 +927,27 @@ namespace Toast {
 		return index;
 	}
 
+	void Mesh::CreateGPUBuffers()
+	{
+		for (auto& lod : mLODGroups)
+		{
+			if (!lod->Vertices.empty())
+				lod->VBuffer = CreateRef<VertexBuffer>(lod->Vertices.data(), (uint32_t)(sizeof(Vertex) * lod->Vertices.size()), (uint32_t)lod->Vertices.size(), 0);
+
+			if (mInstanced && mMaxNrOfInstanceObjects > 0)
+				lod->InstancedVBuffer = CreateRef<VertexBuffer>((uint32_t)(sizeof(DirectX::XMFLOAT3) * mMaxNrOfInstanceObjects), mMaxNrOfInstanceObjects, 1);
+
+			if (!lod->Indices.empty())
+				lod->IBuffer = CreateRef<IndexBuffer>(lod->Indices.data(), (uint32_t)lod->Indices.size());
+		}
+	}
+
 	void Mesh::AddSubmesh(uint32_t indexCount, size_t LODGroupIndex)
 	{
 		Submesh& submesh = mLODGroups[LODGroupIndex]->Submeshes.emplace_back();
 		submesh.BaseVertex = mLODGroups[LODGroupIndex]->VertexCount;
 		submesh.BaseIndex = mLODGroups[LODGroupIndex]->IndexCount;
-		submesh.MaterialName = "Standard";
+		submesh.MaterialHandle = 0;
 		submesh.IndexCount = indexCount;
 		TOAST_CORE_INFO("Adding submesh");
 	}

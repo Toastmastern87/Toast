@@ -376,7 +376,7 @@ namespace Toast {
 			{
 				if (ImGui::MenuItem("Mesh"))
 				{
-					mContext.AddComponent<MeshComponent>(CreateRef<Mesh>());
+					mContext.AddComponent<MeshComponent>();
 					ImGui::CloseCurrentPopup();
 				}
 			}
@@ -560,10 +560,12 @@ namespace Toast {
 				ImGui::Text("Mesh ");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-1);
-				if (!component.MeshObject->GetFilePath().empty())
-					ImGui::InputText("##meshfilepath", (char*)component.MeshObject->GetFilePath().c_str(), 256, ImGuiInputTextFlags_ReadOnly);
-				else
-					ImGui::InputText("##meshfilepath", (char*)"Empty", 256, ImGuiInputTextFlags_ReadOnly);
+
+				const AssetMetadata* meta = AssetManager::GetMetadata(component.MeshHandle);
+				std::string label = meta ? meta->FilePath.filename().string() : "Empty";
+
+				ImGui::InputText("##meshfilepath", label.data(), label.size() + 1, ImGuiInputTextFlags_ReadOnly);
+
 				ImGui::TableSetColumnIndex(2);
 				if (ImGui::Button("...##openmesh"))
 				{
@@ -595,21 +597,24 @@ namespace Toast {
 							scene->DestroyEntity(child);
 						}
 						component.PartEntities.clear();
-						component.MeshObject = CreateRef<Mesh>(*filepath);
+						component.MeshHandle = AssetManager::ImportExternalAsset(*filepath, "Meshes");
 
-						scene->AddMeshPartEntities(component, entity);
+						if (AssetManager::IsHandleValid(component.MeshHandle))
+							scene->AddMeshPartEntities(component, entity);
 					}
 				}
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 
-				if (component.MeshObject->HasLODGroups())
+				Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(component.MeshHandle);
+
+				if (mesh && mesh->HasLODGroups())
 				{
 					ImGui::Text("LOD Groups ");
 					ImGui::TableSetColumnIndex(1);
 
-					std::vector<float>& thresholds = component.MeshObject->GetLODThresholds();
+					std::vector<float>& thresholds = mesh->GetLODThresholds();
 
 					if (thresholds[0] > thresholds[1]) {
 						std::swap(thresholds[0], thresholds[1]);
@@ -663,8 +668,7 @@ namespace Toast {
 
 						// Define handle dimensions
 						float handleHalfWidth = 4.0f; // Clickable area width
-						ImRect handleRect(ImVec2(handleX - handleHalfWidth, startPos.y),
-							ImVec2(handleX + handleHalfWidth, endPos.y));
+						ImRect handleRect(ImVec2(handleX - handleHalfWidth, startPos.y), ImVec2(handleX + handleHalfWidth, endPos.y));
 
 						// Create an invisible button for the handle with a unique label
 						std::string handleLabel = "handle" + std::to_string(i);
@@ -672,7 +676,8 @@ namespace Toast {
 						bool hovered = ImGui::InvisibleButton(handleLabel.c_str(), ImVec2(handleRect.GetWidth(), handleRect.GetHeight()));
 
 						// Show tooltip with current threshold value on hover
-						if (ImGui::IsItemHovered()) {
+						if (ImGui::IsItemHovered()) 
+						{
 							ImGui::BeginTooltip();
 							ImGui::Text("LOD%d Threshold: %.2f", i, thresholds[i]);
 							ImGui::EndTooltip();
@@ -713,7 +718,7 @@ namespace Toast {
 							}
 
 							// Persist the updated thresholds
-							component.MeshObject->SetLODThresholds(thresholds);
+							mesh->SetLODThresholds(thresholds);
 						}
 
 						ImGui::PopID();

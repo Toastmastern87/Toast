@@ -198,21 +198,32 @@ namespace Toast {
 		auto meshComponent = entityData["MeshComponent"];
 		if (meshComponent)
 		{
-			std::string assetPath = meshComponent["AssetPath"].as<std::string>();
+			AssetHandle meshHandle;
 
-			deserializedEntity.AddComponent<MeshComponent>(CreateRef<Mesh>(assetPath));
+			if (meshComponent["MeshHandle"])
+				meshHandle = AssetHandle(meshComponent["MeshHandle"].as<uint64_t>());
+			else if (meshComponent["AssetPath"])
+			{
+				// Old scene: absolute source path. Import to get a handle; the registry
+				// dedupes, so several scenes referencing one .gltf converge on one handle.
+				std::string path = meshComponent["AssetPath"].as<std::string>();
+				meshHandle = AssetManager::ImportExternalAsset(path, "Meshes");
+				TOAST_CORE_INFO("Scene: migrated mesh path '%s' -> handle %llu", path.c_str(), (uint64_t)meshHandle);
+			}
 
-			auto& mc = deserializedEntity.GetComponent<MeshComponent>();
+			auto& mc = deserializedEntity.AddComponent<MeshComponent>(meshHandle);
+
+			Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+			if (!mesh)
+				return;
 
 			if (meshComponent["LODThresholds"])
 			{
 				const YAML::Node& thresholdsNode = meshComponent["LODThresholds"];
-				std::vector<float>& thresholds = mc.MeshObject->GetLODThresholds();
+				std::vector<float>& thresholds = mesh->GetLODThresholds();
 				thresholds.clear(); // Ensure the vector is empty before adding
 				for (std::size_t i = 0; i < thresholdsNode.size(); ++i)
-				{
 					thresholds.emplace_back(thresholdsNode[i].as<float>());
-				}
 			}
 		}
 
@@ -510,10 +521,14 @@ namespace Toast {
 			out << YAML::BeginMap; // MeshComponent
 
 			auto& mc = entity.GetComponent<MeshComponent>();
-			out << YAML::Key << "AssetPath" << YAML::Value << mc.MeshObject->GetFilePath();
+			Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(mc.MeshHandle);
+			if (!mesh)
+				return;
+
+			out << YAML::Key << "AssetHandle" << YAML::Value << mc.MeshHandle;
 
 			out << YAML::Key << "LODThresholds" << YAML::BeginSeq;
-			for (const float& threshold : mc.MeshObject->GetLODThresholds())
+			for (const float& threshold : mesh->GetLODThresholds())
 			{
 				out << threshold;
 			}

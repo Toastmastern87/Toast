@@ -120,6 +120,22 @@ namespace Toast {
 			TOAST_CORE_INFO("AssetManager: Copied '%s' -> '%s'", externalPath.string().c_str(), destPath.string().c_str());
 		}
 
+		// If its a .gltf file look for a .bin and import it as well into the asset folder
+		if (externalPath.extension() == ".gltf")
+		{
+			auto binSrc = externalPath;  binSrc.replace_extension(".bin");
+
+			if (std::filesystem::exists(binSrc))
+			{
+				auto binDst = destPath;  binDst.replace_extension(".bin");
+				std::filesystem::copy_file(binSrc, binDst, std::filesystem::copy_options::overwrite_existing);
+				TOAST_CORE_INFO("AssetManager: Copied sidecar '%s'", binSrc.filename().string().c_str());
+			}
+			else
+				TOAST_CORE_WARN("AssetManager: No sidecar .bin next to '%s'; mesh may fail to load", externalPath.filename().string().c_str());
+		}
+
+
 		// Register using the path relative to the asset root.
 		auto relativePath = std::filesystem::relative(destPath, sActiveProject->GetAssetDirectory());
 		return ImportAsset(relativePath);
@@ -249,6 +265,9 @@ namespace Toast {
 			break;
 		case AssetType::Material:
 			asset = CreateRef<Material>(fullPath, FromFile{});
+			break;
+		case AssetType::Mesh:
+			asset = CreateRef<Mesh>(fullPath.string());
 			break;
 		default:
 			TOAST_CORE_ERROR("AssetManager: No loader for asset type %s", AssetTypeToString(entry->Metadata.Type));
@@ -466,7 +485,12 @@ namespace Toast {
 				success = AssetSerializer::SerializeMaterial(handle, material, fullOutputPath);
 				break;
 			}
-
+			case AssetType::Mesh:
+			{
+				auto mesh = std::static_pointer_cast<Mesh>(entry.Resource);
+				success = AssetSerializer::SerializeMesh(handle, mesh, fullOutputPath);
+				break;
+			}
 			default:
 				TOAST_CORE_WARN("AssetManager::Build: No baking support for asset type %s, skipping.", AssetTypeToString(entry.Metadata.Type));
 				continue;
@@ -500,6 +524,8 @@ namespace Toast {
 			return AssetType::Shader;
 		if (ext == ".tmtl") 
 			return AssetType::Material;
+		if (ext == ".gltf" || ext == ".glb")
+			return AssetType::Mesh;
 
 		return AssetType::None;
 	}

@@ -123,8 +123,12 @@ namespace Toast {
 				if (ImGui::MenuItem("Cube")) 
 				{
 					auto newEntity = mContext->CreateEntity("Cube");
+					AssetHandle handle = AssetManager::ImportExternalAsset("../Toaster/assets/meshes/Cube.gltf", "Meshes");
+
 					auto& tc = newEntity.GetComponent<TransformComponent>();
-					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("../Toaster/assets/meshes/Cube.gltf"));
+					auto& mc = newEntity.AddComponent<MeshComponent>(handle);
+					if (AssetManager::IsHandleValid(handle))
+						mContext->AddMeshPartEntities(mc, newEntity);
 
 					SetSelectedEntity(newEntity);
 				}
@@ -132,8 +136,12 @@ namespace Toast {
 				if (ImGui::MenuItem("Sphere"))
 				{
 					auto newEntity = mContext->CreateEntity("Sphere");
+					AssetHandle handle = AssetManager::ImportExternalAsset("../Toaster/assets/meshes/Sphere.gltf", "Meshes");
+
 					auto& tc = newEntity.GetComponent<TransformComponent>();
-					auto mc = newEntity.AddComponent<MeshComponent>(CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf"));
+					auto& mc = newEntity.AddComponent<MeshComponent>(handle);
+					if (AssetManager::IsHandleValid(handle))
+						mContext->AddMeshPartEntities(mc, newEntity);
 
 					SetSelectedEntity(newEntity);
 				}

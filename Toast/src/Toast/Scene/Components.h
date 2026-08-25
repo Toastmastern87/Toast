@@ -123,7 +123,7 @@ namespace Toast {
 
 	struct MeshComponent
 	{
-		Ref<Mesh> MeshObject;
+		AssetHandle MeshHandle = 0;
 		std::vector<UUID> PartEntities;
 		std::unordered_map<std::string, AnimationPlayback> Playbacks;
 
@@ -132,10 +132,7 @@ namespace Toast {
 
 		MeshComponent() = default;
 		MeshComponent(const MeshComponent& other) = default;
-		MeshComponent(const Ref<Mesh>& mesh)
-			: MeshObject(mesh) {}
-
-		operator Ref<Mesh>() { return MeshObject; }
+		MeshComponent(AssetHandle handle) : MeshHandle(handle) {}
 	};
 
 	struct MeshPartComponent

@@ -1249,7 +1249,12 @@ namespace Toast {
 				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
 				// Material data
-				auto& material = meshCommand.Mesh->GetMaterial(submesh.MaterialName);
+				Ref<Material> material = AssetManager::GetAsset<Material>(submesh.MaterialHandle);
+				if (!material)
+				{
+					TOAST_CORE_WARN("Renderer: material handle %llu failed to resolve, skipping submesh", (uint64_t)submesh.MaterialHandle);
+					continue;
+				}
 				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetAlbedo(), 16, 0);
 				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetEmission(), 4, 16);
 				sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetMetalness(), 4, 20);
@@ -2976,7 +2981,12 @@ namespace Toast {
 			planet->GetTerrainObjectCBuffer()->Map(buffer);
 			planet->GetTerrainObjectCBuffer()->Bind(); // b13
 
-			auto& material = object.MeshObject->GetMaterial(object.MeshObject->GetSubmeshes(0)[0].MaterialName);
+			Ref<Material> material = AssetManager::GetAsset<Material>(object.MeshObject->GetSubmeshes(0)[0].MaterialHandle);
+			if (!material)
+			{
+				TOAST_CORE_WARN("Renderer: material handle %llu failed to resolve, skipping submesh", (uint64_t)object.MeshObject->GetSubmeshes(0)[0].MaterialHandle);
+				continue;
+			}
 			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetAlbedo(), 16, 0);
 			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetEmission(), 4, 16);
 			sRendererData->MaterialBuffer.Write((uint8_t*)&material->GetMetalness(), 4, 20);

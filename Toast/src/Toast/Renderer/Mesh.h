@@ -256,7 +256,7 @@ namespace Toast {
 		uint32_t BaseIndex;
 		uint32_t IndexCount;
 		uint32_t VertexCount;
-		std::string MaterialName;
+		AssetHandle MaterialHandle = 0;
 		uint32_t PartIndex = UINT32_MAX;
 	};
 
@@ -278,16 +278,19 @@ namespace Toast {
 		uint32_t NumberOfInstances = 0;
 	};
 
-	class Mesh 
+	class Mesh : public Asset
 	{
 	public:
 		enum class MeshType { NONE = 0, MODEL, CUBE, SPHERE, PLANET };
 	public:
 		Mesh();
-		//Mesh(Ref<Material>& planetMaterial);
 		Mesh(const std::string& filePath, Vector3 colorOverride = { 0.0, 0.0, 0.0 }, bool isInstanced = false, uint32_t maxNrOfInstanceObjects = 0);
 		Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const DirectX::XMMATRIX& transform);
+		Mesh(std::vector<Ref<LODGroup>>&& lodGroups, std::vector<Part>&& parts, std::vector<float>&& lodThresholds, PrimitiveTopology topology, bool hasLODs, bool isAnimated, bool instanced, uint32_t maxNrOfInstanceObjects, const std::string& filePath);
 		~Mesh() = default;
+
+		static AssetType GetStaticType() { return AssetType::Mesh; }
+		virtual AssetType GetAssetType() const override { return AssetType::Mesh; }
 
 		void LoadMesh(cgltf_data* data);
 		void LoadMeshWithLODs(cgltf_data* data);
@@ -309,8 +312,7 @@ namespace Toast {
 		void AddSubmesh(uint32_t indexCount, size_t LODGroupIndex = 0);
 		uint32_t GetNumberOfSubmeshes(size_t lod) { return mLODGroups[lod]->Submeshes.size(); }
 
-		const Ref<Material> GetMaterial(std::string materialName) const { if (mMaterials.find(materialName) != mMaterials.end()) return mMaterials.at(materialName); else return nullptr; }
-		void SetMaterial(std::string materialName, Ref<Material> material) { mMaterials[materialName] = material; }
+		const std::vector<AssetHandle>& GetMaterialHandles() const { return mMaterialHandles; }
 
 		void Bind(size_t lod);
 
@@ -326,9 +328,11 @@ namespace Toast {
 
 		int32_t FindPartIndex(const std::string& name) const;
 	private:
-		void ProcessLODNode(const cgltf_node* node, Ref<LODGroup> lodGroup, uint32_t lodIndex, const DirectX::XMMATRIX& parentTransform, uint32_t& vertexCount, uint32_t& indexCount);
+		void ProcessLODNode(const cgltf_node* node, Ref<LODGroup> lodGroup, uint32_t lodIndex, cgltf_data* data, const DirectX::XMMATRIX& parentTransform, uint32_t& vertexCount, uint32_t& indexCount);
 
 		uint32_t GetOrCreatePartIndex(const std::string& partName);
+
+		void CreateGPUBuffers();
 	private:
 		std::string mFilePath = "";
 
@@ -340,7 +344,7 @@ namespace Toast {
 		uint32_t mMaxNrOfInstanceObjects = 0;
 		bool mInstanced = false;
 
-		std::unordered_map<std::string, Ref<Material>> mMaterials;
+		std::vector<AssetHandle> mMaterialHandles;
 
 		std::vector<Part> mParts;
 		std::unordered_map<std::string, uint32_t> mPartNameToIndex;
@@ -357,5 +361,6 @@ namespace Toast {
 		friend class PropertiesPanel;
 		friend class ScriptWrappers;
 		friend class PlanetSystem;
+		friend class AssetSerializer;
 	};
 }

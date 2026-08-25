@@ -9,6 +9,7 @@ namespace Toast {
 	class Texture2D;
 	class Shader;
 	class Material;
+	class Mesh;
 
 	// -----------------------------------------------------------------
 	// Binary .tasset format header — shared by serialize and deserialize.
@@ -40,8 +41,8 @@ namespace Toast {
 
 	struct TAssetShaderPayload
 	{
-		uint32_t StageCount = 0; 
-		uint32_t ElementCount = 0; 
+		uint32_t StageCount = 0;
+		uint32_t ElementCount = 0;
 	};
 
 	struct TAssetShaderStageEntry
@@ -76,6 +77,63 @@ namespace Toast {
 		uint64_t NormalHandle = 0;
 		uint64_t MetalRoughHandle = 0;
 	};
+
+	struct TAssetMeshPayload
+	{
+		uint32_t LODGroupCount = 0;
+		uint32_t PartCount = 0;
+		uint32_t LODThresholdCount = 0;
+		uint32_t Topology = 0;
+		uint32_t HasLODs = 0;
+		uint32_t IsAnimated = 0;
+		uint32_t Instanced = 0;
+		uint32_t MaxNrOfIntanceObjects = 0;
+	};
+
+	struct TAssetMeshSubmesh
+	{
+		uint32_t BaseVertex = 0;
+		uint32_t BaseIndex = 0;
+		uint32_t IndexCount = 0;
+		uint32_t VertexCount = 0;
+		uint32_t PartIndex = UINT32_MAX;
+		uint64_t MaterialHandle = 0;
+	};
+
+	struct TAssetMeshPartLODTransform 
+	{
+		DirectX::XMFLOAT3 LocalTranslation = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT4 LocalRotation = { 0.0f, 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 LocalScale = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT4X4 Parent;
+		uint32_t Captured = 0;
+	};
+
+	struct TAssetMeshPartHeader 
+	{
+		DirectX::XMFLOAT3 RestTranslation = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT4 RestRotation = { 0.0f, 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 RestScale = { 0.0f, 0.0f, 0.0f };
+		uint32_t RestTransformCaptured = 0;
+		uint32_t IsAnimated = 0;
+		uint32_t LODTransformCount = 0;
+		uint32_t LODAnimationCount = 0;
+	};
+
+	struct TAssetMeshAnimation 
+	{
+		float Duration = 0.0f;
+		uint32_t SampleCount = 0;
+		uint32_t TranslationSampleCount = 0;
+		uint32_t RotationSampleCount = 0;
+		uint32_t ScaleSampleCount = 0;
+		uint32_t TranslationSize = 0;
+		uint32_t TranslationTimestampSize = 0;
+		uint32_t RotationSize = 0;
+		uint32_t RotationTimestampSize = 0;
+		uint32_t ScaleSize = 0;
+		uint32_t ScaleTimestampSize = 0;
+	};
 #pragma pack(pop)
 
 	class AssetSerializer
@@ -84,10 +142,12 @@ namespace Toast {
 		static bool SerializeTexture2D(AssetHandle handle, const Ref<Texture2D>& texture, const std::filesystem::path& outputPath);
 		static bool SerializeShader(AssetHandle handle, const Ref<Shader>& shader, const std::filesystem::path& outputPath);
 		static bool SerializeMaterial(AssetHandle handle, const Ref<Material>& material, const std::filesystem::path& outputPath);
+		static bool SerializeMesh(AssetHandle handle, const Ref<Mesh>& mesh, const std::filesystem::path& outputPath);
 
 		static Ref<Texture2D> DeserializeTexture2D(const std::filesystem::path& inputPath);
 		static Ref<Shader> DeserializeShader(const std::filesystem::path& inputPath);
 		static Ref<Material> DeserializeMaterial(const std::filesystem::path& inputPath);
+		static Ref<Mesh> DeserializeMesh(const std::filesystem::path& inputPath);
 
 		static bool ValidateFile(const std::filesystem::path& path, TAssetHeader& outHeader);
 	};
