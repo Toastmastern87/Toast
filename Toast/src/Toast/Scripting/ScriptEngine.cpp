@@ -116,8 +116,13 @@ namespace Toast {
 		Scope<filewatch::FileWatch<std::string>> AppAssemblyFileWatcher;
 		bool AssemblyReloadPending = false;
 
-		std::filesystem::path ScriptSourceRoot;
 		std::unordered_map<std::string, std::filesystem::path> ClassSourcePaths;
+		std::unordered_map<std::string, AssetHandle> ClassSourceHandles;
+
+		std::filesystem::path ProjectRoot;
+		std::string ProjectNamespace;
+		bool GameDLLLoaded = false;
+		std::function<void()> OnAssemblyReload;
 
 		// Runtime
 		Scene* SceneContext = nullptr;
@@ -153,20 +158,10 @@ namespace Toast {
 			return;
 		}
 
-		status = LoadAppAssembly("SandboxProject/Assets/Scripts/Binaries/Sandbox.dll");
-		if (!status)
-		{
-			TOAST_CORE_ERROR("[ScriptEngine] Could not load app aseembly.");
-			return;
-		}
-
-		LoadAssemblyClasses();
-
 		ScriptGlue::RegisterComponents();
 
 		// Retrieve and instantiate entity class (with constructor)
 		sData->EntityClass = ScriptClass("Toast", "Entity", true);
-
 	}
 
 	void ScriptEngine::Shutdown()
@@ -220,10 +215,6 @@ namespace Toast {
 		sData->AppAssemblyFilepath = filepath;
 		sData->AppAssembly = Utils::LoadMonoAssembly(filepath);
 
-		// TODO: Source root for the class -> .cs lookup. Derived from the assembly path
-		// for now; switch to the asset system once .cs becomes a real asset type.
-		sData->ScriptSourceRoot = filepath.parent_path().parent_path() / "Source";
-
 		if (sData->AppAssembly == nullptr)
 			return false;
 
@@ -232,6 +223,57 @@ namespace Toast {
 		sData->AppAssemblyFileWatcher = CreateScope<filewatch::FileWatch<std::string>>(filepath.string(), OnAppAssemblyFileSystemEvent);
 		sData->AssemblyReloadPending = false;
 
+		return true;
+	}
+
+	bool ScriptEngine::LoadGameAssembly(const std::filesystem::path& projectRoot, const std::string& projectName)
+	{
+		if (sData->AppDomain)
+		{
+			mono_domain_set(mono_get_root_domain(), false);
+			mono_domain_unload(sData->AppDomain);
+			sData->AppDomain = nullptr;
+		}
+
+		sData->AppAssembly = nullptr;
+		sData->AppAssemblyImage = nullptr;
+		sData->AppAssemblyFileWatcher = nullptr;
+
+		sData->EntityClasses.clear();
+		sData->EntityInstances.clear();
+		sData->ClassSourcePaths.clear();
+		sData->ClassSourceHandles.clear();
+
+		sData->ProjectRoot = projectRoot;
+		sData->ProjectNamespace = SanitizeNamespace(projectName);
+		
+		if (!LoadAssembly(sData->CoreAssemblyFilepath))
+		{
+			TOAST_CORE_ERROR("[ScriptEngine] Failed to reload core assembly.");
+			return false;
+		}
+
+		ScriptGlue::RegisterComponents();
+		sData->EntityClass = ScriptClass("Toast", "Entity", true);
+
+		std::filesystem::path dllPath = GetGameAssemblyPath(sData->ProjectRoot, sData->ProjectNamespace);
+
+		if (!std::filesystem::exists(dllPath))
+		{
+			TOAST_CORE_WARN("[ScriptEngine] No game assembly at '%s' - scripts disabled until compiled.", dllPath.string().c_str());
+			return false;
+		}
+
+		if (!LoadAppAssembly(dllPath))
+		{
+			TOAST_CORE_ERROR("[ScriptEngine] Failed to load game assembly '%s'", dllPath.string().c_str());
+			return false;
+		}
+
+		LoadAssemblyClasses();
+		sData->GameDLLLoaded = true;
+
+		TOAST_CORE_INFO("[ScriptEngine] Game assembly loaded: '%s' (%d entity classes)", dllPath.string().c_str(), (int)sData->EntityClasses.size());
 		return true;
 	}
 
@@ -249,6 +291,9 @@ namespace Toast {
 		ScriptGlue::RegisterComponents();
 
 		sData->EntityClass = ScriptClass("Toast", "Entity", true);
+
+		if (sData->OnAssemblyReload)
+			sData->OnAssemblyReload();
 	}
 
 	void ScriptEngine::OnRuntimeStart(Scene* scene)
@@ -289,12 +334,18 @@ namespace Toast {
 
 	void ScriptEngine::OnCreateEntity(Entity entity)
 	{
+		if (!sData->GameDLLLoaded) 
+			return;
+
 		const auto& sc = entity.GetComponent<ScriptComponent>();
 		OnCreateEntityWithClass(entity, sc.ClassName);
 	}
 
 	void ScriptEngine::OnUpdateEntity(Entity entity, Timestep ts)
 	{
+		if (!sData->GameDLLLoaded) 
+			return;
+
 		UUID entityUUID = entity.GetUUID();
 		if (sData->EntityInstances.find(entity.GetUUID()) != sData->EntityInstances.end())
 		{
@@ -307,11 +358,19 @@ namespace Toast {
 
 	void ScriptEngine::OnEventEntity(Entity entity)
 	{
+		if (!sData->GameDLLLoaded) 
+			return;
+
 		UUID entityUUID = entity.GetUUID();
 		TOAST_CORE_ASSERT(sData->EntityInstances.find(entity.GetUUID()) != sData->EntityInstances.end(), "Entity Instance does not exist!");
 
 		Ref<ScriptInstance> instance = sData->EntityInstances[entityUUID];
 		instance->InvokeOnEvent();
+	}
+
+	std::filesystem::path ScriptEngine::GetGameAssemblyPath(const std::filesystem::path& projectRoot, const std::string& projectNamespace)
+	{
+		return projectRoot / "Binaries" / (projectNamespace + ".dll");
 	}
 
 	Scene* ScriptEngine::GetSceneContext()
@@ -354,17 +413,14 @@ namespace Toast {
 	{
 		sData->EntityClasses.clear();
 		sData->ClassSourcePaths.clear();
+		sData->ClassSourceHandles.clear();
 
-		if (std::filesystem::exists(sData->ScriptSourceRoot))
-		{
-			for (auto& entry : std::filesystem::recursive_directory_iterator(sData->ScriptSourceRoot))
+		AssetManager::Each(AssetType::Script, [&](AssetHandle handle, const AssetMetadata& metadata)
 			{
-				if (entry.path().extension() != ".cs")
-					continue;
-
-				sData->ClassSourcePaths[entry.path().stem().string()] = entry.path();
-			}
-		}
+				std::string stem = metadata.FilePath.stem().string();
+				sData->ClassSourcePaths[stem] = metadata.FilePath;   // relative
+				sData->ClassSourceHandles[stem] = handle;
+			});
 
 		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(sData->AppAssemblyImage, MONO_TABLE_TYPEDEF);
 		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
@@ -451,11 +507,6 @@ namespace Toast {
 		return {};
 	}
 
-	const std::filesystem::path& ScriptEngine::GetScriptSourceRoot()
-	{
-		return sData->ScriptSourceRoot;
-	}
-
 	uint32_t ScriptEngine::InstantiateClass(MonoClass* monoClass)
 	{
 		MonoObject* instance = mono_object_new(sData->AppDomain, monoClass);
@@ -479,6 +530,25 @@ namespace Toast {
 				return false;
 
 		return true;
+	}
+
+
+	std::string ScriptEngine::SanitizeNamespace(const std::string& name)
+	{
+		std::string result;
+		result.reserve(name.size());
+
+		for (char c : name)
+			if (std::isalnum((unsigned char)c) || c == '_')
+				result += c;
+
+		if (result.empty())
+			return "Project";                       // fallback for a name with nothing usable
+
+		if (std::isdigit((unsigned char)result[0]))
+			result.insert(result.begin(), '_');     // identifiers can't start with a digit
+
+		return result;
 	}
 
 	static const char* sEntityScriptTemplate = R"(using System;
@@ -538,25 +608,40 @@ namespace {NAMESPACE}
 		return true;
 	}
 
-	bool ScriptEngine::CompileScripts(const std::filesystem::path& sourceDir, const std::filesystem::path& outputDll)
+	void ScriptEngine::SetOnAssemblyReloadCallback(const std::function<void()>& cb)
 	{
-		if (!std::filesystem::exists(sourceDir))
+		sData->OnAssemblyReload = cb;
+	}
+
+	AssetHandle ScriptEngine::ResolveScriptHandleFromClass(const std::string& fullClassName)
+	{
+		// ClassSourceHandles is keyed by short name; ClassName is fully qualified.
+		size_t dot = fullClassName.find_last_of('.');
+		std::string shortName = (dot == std::string::npos) ? fullClassName : fullClassName.substr(dot + 1);
+
+		auto it = sData->ClassSourceHandles.find(shortName);
+		if (it == sData->ClassSourceHandles.end())
 		{
-			TOAST_CORE_ERROR("[Coompile] Script source folder does not exists: %s", sourceDir.string().c_str());
-			return false;
+			TOAST_CORE_WARN("[ScriptAsset] No registered .cs for class '%s'", fullClassName.c_str());
+			return AssetHandle(0);
 		}
 
+		return it->second;
+	}
+
+	bool ScriptEngine::CompileScripts(const std::filesystem::path& assetDir, const std::filesystem::path& outputDll)
+	{
 		// Gather all the source files
 		std::vector<std::filesystem::path> sources;
-		for (auto& entry : std::filesystem::recursive_directory_iterator(sourceDir)) 
-		{
-			if (entry.path().extension() == ".cs")
-				sources.push_back(entry.path());
-		}
+
+		AssetManager::Each(AssetType::Script, [&](AssetHandle handle, const AssetMetadata& metadata)
+			{
+				sources.push_back(assetDir / metadata.FilePath);   // relative -> absolute
+			});
 
 		if (sources.empty())
 		{
-			TOAST_CORE_WARN("[Compile] No .cs files found in %s", sourceDir.string().c_str());
+			TOAST_CORE_WARN("[Compile] No registered scripts to compile");
 			return false;
 		}
 
@@ -619,6 +704,36 @@ namespace {NAMESPACE}
 
 		TOAST_CORE_INFO("[Compile] Succeeded: %s", outputDll.string().c_str());
 		return true;
+	}
+
+	bool ScriptEngine::IsGameDLLLoaded()
+	{
+		return sData->GameDLLLoaded;
+	}
+
+	const std::string& ScriptEngine::GetProjectNamespace()
+	{
+		return sData->ProjectNamespace;
+	}
+
+	bool ScriptEngine::AreScriptsStale()
+	{
+		std::filesystem::path dll = GetGameAssemblyPath(sData->ProjectRoot, sData->ProjectNamespace);
+		if (!std::filesystem::exists(dll))
+			return false;
+
+		auto dllTime = std::filesystem::last_write_time(dll);
+
+		std::filesystem::path assetDir = sData->ProjectRoot / "Assets";
+
+		for (const auto& [className, relPath] : sData->ClassSourcePaths)
+		{
+			std::filesystem::path full = assetDir / relPath;
+			if (std::filesystem::exists(full) && std::filesystem::last_write_time(full) > dllTime)
+				return true;
+		}
+
+		return false;
 	}
 
 	ScriptClass::ScriptClass(const std::string& classNamespace, const std::string& className, bool isCore)

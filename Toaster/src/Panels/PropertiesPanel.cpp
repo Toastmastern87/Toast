@@ -194,14 +194,14 @@ namespace Toast {
 		mWindow = window;
 	}
 
-	void PropertiesPanel::SetProjectPath(const std::filesystem::path& projectPath)
+	void PropertiesPanel::SetProjectPath(const std::filesystem::path& projectPath, const std::string& projectName)
 	{
 		std::filesystem::path cleanPath = projectPath;
 		if (cleanPath.has_filename() == false)
 			cleanPath = cleanPath.parent_path();
 
 		mAssetRoot = cleanPath / "Assets";
-		mProjectName = cleanPath.filename().string();
+		mProjectName = projectName;
 	}
 
 	void PropertiesPanel::RequestTextureImport(const std::filesystem::path& path, bool defaultSRGB, std::function<void(AssetHandle)> onComplete)
@@ -883,16 +883,15 @@ namespace Toast {
 				strcpy_s(buffer, sizeof(buffer), component.ClassName.c_str());
 
 				std::string scriptNamespace = SanitizeNamespace(mProjectName);
-				//TEMP!
-				std::string scriptDisplayNamespace = std::string("Sandbox");
 
 				bool validScriptClass = ScriptEngine::EntityClassExists(component.ClassName);
 				bool openCreatePopup = false;
 
-				if (!validScriptClass && !component.ClassName.empty())
+				const bool pushedErrorColor = (!validScriptClass && !component.ClassName.empty());
+				if (pushedErrorColor)
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.2f, 0.3f, 1.0f));
 
-				const std::string namespacePrefix = scriptDisplayNamespace + ".";
+				const std::string namespacePrefix = ScriptEngine::GetProjectNamespace() + ".";
 
 				auto displayName = [&](const std::string& fullName) -> std::string
 					{
@@ -931,7 +930,10 @@ namespace Toast {
 								// the same short name in different namespaces don't collide.
 								std::string label = displayName(fullName) + "##" + fullName;
 								if (ImGui::Selectable(label.c_str(), selected))
+								{
 									component.ClassName = fullName;               // always store qualified
+									component.ScriptHandle = ScriptEngine::ResolveScriptHandleFromClass(fullName);
+								}
 								if (selected)
 									ImGui::SetItemDefaultFocus();
 							}
@@ -949,7 +951,7 @@ namespace Toast {
 						{
 							std::filesystem::path scriptPath = ScriptEngine::GetEntityClassSourcePath(component.ClassName);
 							if (!scriptPath.empty() && mOpenScriptCallback)
-								mOpenScriptCallback(scriptPath);
+								mOpenScriptCallback(mAssetRoot / scriptPath);
 							else if (scriptPath.empty())
 								TOAST_CORE_WARN("No source file found for script class '%s'", component.ClassName.c_str());
 						}
@@ -959,7 +961,7 @@ namespace Toast {
 					ImGui::EndTable();
 				}
 
-				if (!validScriptClass && !component.ClassName.empty())
+				if (pushedErrorColor)
 					ImGui::PopStyleColor();
 
 				if (openCreatePopup)
@@ -1002,12 +1004,16 @@ namespace Toast {
 					{
 						if (ScriptEngine::WriteScriptTemplate(target, scriptNamespace, name))
 						{
-							// TODO: ADD BACK LATER WHEN WE ARE FULLY FINISHED
-							//component.ClassName = scriptNamespace + "." + name;
+							// Register the freshly written .cs in place (no copy — it's already in the
+							// project). ImportAsset returns the handle; existing handle if already known.
+							std::filesystem::path relative = std::filesystem::relative(target, mAssetRoot);
+							AssetHandle handle = AssetManager::ImportAsset(relative);
 
-							// Open the new file directly
-							// GetEntityClassSourcePath(), which is stale until the next
-							// LoadAssemblyClasses().
+							component.ScriptHandle = handle;
+
+							// ClassName is deliberately NOT set here — the class doesn't exist in the
+							// assembly until compiled, and an unresolvable ClassName crashes the fields
+
 							if (mOpenScriptCallback)
 								mOpenScriptCallback(target);
 						}
@@ -1094,25 +1100,36 @@ namespace Toast {
 						}
 					}
 				}
-
-				if (!validScriptClass)
-					ImGui::PopStyleColor();
 			});
 
 		DrawComponent<SceneScriptComponent>(ICON_TOASTER_CODE" Scene Script", entity, mScene, activeDragArea, mWindow, mAssetRoot, [=](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				bool scriptClassExists = ScriptEngine::EntityClassExists(component.ClassName);
 
-				static char buffer[64];
-				strcpy_s(buffer, sizeof(buffer), component.ClassName.c_str());
+				std::string scriptNamespace = SanitizeNamespace(mProjectName);
+				bool validScriptClass = ScriptEngine::EntityClassExists(component.ClassName);
+				bool openCreatePopup = false;
 
-				if (!scriptClassExists)
+				// Track the push explicitly — the combo below can change ClassName mid-frame,
+				// which would make a re-evaluated condition disagree with what we pushed.
+				const bool pushedErrorColor = (!validScriptClass && !component.ClassName.empty());
+				if (pushedErrorColor)
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.2f, 0.3f, 1.0f));
+
+				const std::string namespacePrefix = ScriptEngine::GetProjectNamespace() + ".";
+				auto displayName = [&](const std::string& fullName) -> std::string
+					{
+						if (fullName.rfind(namespacePrefix, 0) == 0)
+							return fullName.substr(namespacePrefix.length());
+						return fullName;                                  // foreign namespace — show in full
+					};
+
+				const std::string previewStr = component.ClassName.empty() ? "(none)" : displayName(component.ClassName);
 
 				{
 					ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 					ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-					ImGui::BeginTable("ScriptClass", 2, flags);
+					ImGui::BeginTable("SceneScriptClass", 2, flags);      // unique table id
 					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
 					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x - 90.0f);
 					ImGui::TableNextRow();
@@ -1120,10 +1137,102 @@ namespace Toast {
 					ImGui::AlignTextToFramePadding();
 					ImGui::Text("Class");
 					ImGui::TableSetColumnIndex(1);
-					ImGui::SetNextItemWidth(-1);
-					if (ImGui::InputText("##ClassName", buffer, sizeof(buffer)))
-						component.ClassName = buffer;
+					{
+						const float buttonWidth = ImGui::CalcTextSize(ICON_TOASTER_CODE).x + ImGui::GetStyle().FramePadding.x * 2.0f;
+						ImGui::SetNextItemWidth(-(buttonWidth + ImGui::GetStyle().ItemSpacing.x));
+
+						if (ImGui::BeginCombo("##SceneClass", previewStr.c_str()))
+						{
+							for (const auto& [fullName, scriptClass] : ScriptEngine::GetEntityClasses())
+							{
+								bool selected = (component.ClassName == fullName);
+								std::string label = displayName(fullName) + "##" + fullName;
+
+								if (ImGui::Selectable(label.c_str(), selected))
+								{
+									component.ClassName = fullName;
+									component.ScriptHandle = ScriptEngine::ResolveScriptHandleFromClass(fullName);
+								}
+								if (selected)
+									ImGui::SetItemDefaultFocus();
+							}
+
+							ImGui::Separator();
+							if (ImGui::Selectable(ICON_TOASTER_CODE " New Script..."))
+								openCreatePopup = true;
+
+							ImGui::EndCombo();
+						}
+
+						ImGui::SameLine();
+						ImGui::BeginDisabled(!validScriptClass);
+						if (ImGui::Button(ICON_TOASTER_CODE "##openSceneScript"))   // unique button id
+						{
+							std::filesystem::path scriptPath = ScriptEngine::GetEntityClassSourcePath(component.ClassName);
+							if (!scriptPath.empty() && mOpenScriptCallback)
+								mOpenScriptCallback(mAssetRoot / scriptPath);       // relative -> absolute
+							else if (scriptPath.empty())
+								TOAST_CORE_WARN("No source file found for script class '%s'", component.ClassName.c_str());
+						}
+						ImGui::EndDisabled();
+					}
 					ImGui::EndTable();
+				}
+
+				if (pushedErrorColor)
+					ImGui::PopStyleColor();
+
+				if (openCreatePopup)
+					ImGui::OpenPopup("Create Scene Script##sceneScriptCreate");    // unique popup id
+
+				if (ImGui::BeginPopupModal("Create Scene Script##sceneScriptCreate", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+				{
+					static char nameBuffer[64] = "";
+
+					if (ImGui::IsWindowAppearing())
+					{
+						nameBuffer[0] = '\0';
+						ImGui::SetKeyboardFocusHere();
+					}
+
+					ImGui::InputText("Class Name", nameBuffer, sizeof(nameBuffer));
+
+					std::string name = nameBuffer;
+					std::filesystem::path target = mAssetRoot / "Scripts" / (name + ".cs");
+
+					const char* error = nullptr;
+					if (name.empty())                                error = "Class name required";
+					else if (!ScriptEngine::IsValidIdentifier(name)) error = "Not a valid C# identifier";
+					else if (std::filesystem::exists(target))        error = "A script with this name already exists";
+
+					ImGui::Separator();
+					ImGui::TextDisabled("%s.%s", scriptNamespace.c_str(), name.empty() ? "..." : name.c_str());
+					ImGui::TextDisabled("%s", target.string().c_str());
+
+					if (error)
+						ImGui::TextColored(ImVec4(0.9f, 0.2f, 0.3f, 1.0f), "%s", error);
+
+					ImGui::BeginDisabled(error != nullptr);
+					if (ImGui::Button("Create"))
+					{
+						if (ScriptEngine::WriteScriptTemplate(target, scriptNamespace, name))
+						{
+							std::filesystem::path relative = std::filesystem::relative(target, mAssetRoot);
+							component.ScriptHandle = AssetManager::ImportAsset(relative);
+
+							// ClassName deliberately not set — the class doesn't exist until compiled.
+							if (mOpenScriptCallback)
+								mOpenScriptCallback(target);
+						}
+						ImGui::CloseCurrentPopup();
+					}
+					ImGui::EndDisabled();
+
+					ImGui::SameLine();
+					if (ImGui::Button("Cancel"))
+						ImGui::CloseCurrentPopup();
+
+					ImGui::EndPopup();
 				}
 
 				// Fields
@@ -1185,9 +1294,6 @@ namespace Toast {
 						}
 					}
 				}
-
-				if (!scriptClassExists)
-					ImGui::PopStyleColor();
 			});
 
 		DrawComponent<RigidBodyComponent>(ICON_TOASTER_HAND_ROCK_O" Rigid Body", entity, mScene, activeDragArea, mWindow, mAssetRoot, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
@@ -1848,7 +1954,7 @@ namespace Toast {
 				ImGui::EndTable();
 			});
 
-			DrawComponent<MoveableComponent>(ICON_TOASTER_LOCATION_ARROW" Moveable", entity, mScene, activeDragArea, mWindow, mAssetRoot, [this](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
+			DrawComponent<MoveableComponent>(ICON_TOASTER_LOCATION_ARROW" Movable", entity, mScene, activeDragArea, mWindow, mAssetRoot, [this](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 				{
 					// Active toggle — gates whether the entity accepts MoveTo
 					ImGui::Checkbox("Active", &component.IsActive);

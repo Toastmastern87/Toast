@@ -11,8 +11,6 @@ Entities:
       Translation: [-1301.5, -208, 7]
       Rotation: [0, 0, 0]
       Scale: [32, 32, 1]
-    ScriptComponent:
-      ClassName: Sandbox.FollowButton
     UIButtonComponent:
       CornerRadius: 0
       UseColor: false
@@ -61,8 +59,6 @@ Entities:
       Translation: [-1114.5, -532, 14]
       Rotation: [0, -0, 0]
       Scale: [20, 20, 1]
-    ScriptComponent:
-      ClassName: Sandbox.CloseButton
     UIButtonComponent:
       CornerRadius: 0
       UseColor: false
@@ -269,8 +265,6 @@ Entities:
       LODThresholds:
         - 0.300000012
         - 0.600000024
-    ScriptComponent:
-      ClassName: Sandbox.StarshipController
     RigidBodyComponent:
       InvMass: 0.00019999999494757503
       Elasticity: 0.05000000074505806

@@ -150,6 +150,7 @@ namespace Toast {
 
 		static bool LoadAssembly(const std::filesystem::path& filepath);
 		static bool LoadAppAssembly(const std::filesystem::path& filepath);
+		static bool LoadGameAssembly(const std::filesystem::path& projectRoot, const std::string& projectName);
 
 		static void ReloadAssembly();
 
@@ -161,6 +162,8 @@ namespace Toast {
 		static void OnCreateEntityWithClass(Entity entity, const std::string& className);
 		static void OnUpdateEntity(Entity entity, Timestep ts);
 		static void OnEventEntity(Entity entity);
+
+		static std::filesystem::path GetGameAssemblyPath(const std::filesystem::path& projectRoot, const std::string& projectNamespace);
 
 		static Scene* GetSceneContext();
 		static Ref<ScriptInstance> GetEntityScriptInstance(UUID entityID);
@@ -176,14 +179,18 @@ namespace Toast {
 
 		static std::filesystem::path GetEntityClassSourcePath(const std::string& fullClassName);
 
-		// Root folder containing the .cs sources (.../Scripts/Source).
-		// Empty until LoadAppAssembly() has run.
-		static const std::filesystem::path& GetScriptSourceRoot();
-
 		static bool IsValidIdentifier(const std::string& name);
+		static std::string SanitizeNamespace(const std::string& name);
 		static bool WriteScriptTemplate(const std::filesystem::path& target, const std::string& nameSpace, const std::string& className);
 
-		static bool CompileScripts(const std::filesystem::path& sourceDir, const std::filesystem::path& outputDll);
+		static void SetOnAssemblyReloadCallback(const std::function<void()>& cb);
+		static AssetHandle ResolveScriptHandleFromClass(const std::string& fullClassName);
+		static bool CompileScripts(const std::filesystem::path& assetDir, const std::filesystem::path& outputDll);
+
+		static bool IsGameDLLLoaded();
+		static const std::string& GetProjectNamespace();
+
+		static bool AreScriptsStale();
 	private:
 		static void InitMono();
 		static void ShutdownMono();

@@ -185,8 +185,6 @@ Entities:
       Translation: [-202, 0, 1]
       Rotation: [0, 0, 0]
       Scale: [408, 61, 1]
-    ScriptComponent:
-      ClassName: Sandbox.PlayButton
     UIButtonComponent:
       CornerRadius: 0
       UseColor: true

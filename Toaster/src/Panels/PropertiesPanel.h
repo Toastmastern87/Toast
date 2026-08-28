@@ -19,7 +19,7 @@ namespace Toast {
 		~PropertiesPanel() = default;
 
 		void SetContext(const Entity& context, SceneHierarchyPanel* sceneHierarchyPanel, WindowsWindow* window);
-		void SetProjectPath(const std::filesystem::path& projectPath);
+		void SetProjectPath(const std::filesystem::path& projectPath, const std::string& projectName);
 
 		void OnImGuiRender(std::string& activeDragArea);
 

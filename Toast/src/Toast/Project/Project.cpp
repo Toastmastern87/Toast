@@ -3,6 +3,8 @@
 
 #include "Toast/Scene/SceneSerializer.h"
 
+#include "Toast/Scripting/ScriptEngine.h"
+
 #include <unordered_set>
 #include <cctype>
 
@@ -312,6 +314,13 @@ namespace Toast {
 			std::filesystem::remove_all(buildDir);
 
 		TOAST_CORE_INFO("Building game to '%s'...", buildDir.string().c_str());
+
+		std::filesystem::path outputDll = buildDir / (ScriptEngine::SanitizeNamespace(mName) + ".dll");
+		if (!ScriptEngine::CompileScripts(GetAssetDirectory(), outputDll))
+		{
+			TOAST_CORE_ERROR("[BuildGame] Aborted: script compilation failed");
+			return;
+		}
 
 		AssetManager::BakeAssets(buildDir);
 

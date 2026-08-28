@@ -17,29 +17,13 @@
 
 namespace Toast {
 
-	static std::string SanitizeNamespace(const std::string& name)
-	{
-		std::string result;
-		result.reserve(name.size());
-
-		for (char c : name)
-			if (std::isalnum((unsigned char)c) || c == '_')
-				result += c;
-
-		if (result.empty())
-			return "Project";                       // fallback for a name with nothing usable
-
-		if (std::isdigit((unsigned char)result[0]))
-			result.insert(result.begin(), '_');     // identifiers can't start with a digit
-
-		return result;
-	}
-
 	ScriptEditorPanel::ScriptEditorPanel() 
 	{
 		mEditor.SetLanguage(TextEditor::Language::Cs());
 	
 		mEditor.SetPalette(TextEditor::GetDarkPalette());
+
+		mEditor.SetShowWhitespacesEnabled(false);
 
 		// Just a small test script to see if the colors are correct
 		const char* sample =
@@ -92,7 +76,7 @@ namespace Toast {
 		ImGui::SameLine();
 
 		// Compile, always available if files has been changed outside of the editor
-		if (ImGui::Button(ICON_TOASTER_PLAY))
+		if (ImGui::Button(ICON_TOASTER_COG))
 			Compile();
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip("Compile all scripts");
@@ -120,14 +104,10 @@ namespace Toast {
 		ImGui::End();
 	}
 
-	void ScriptEditorPanel::SetProjectPath(const std::filesystem::path& projectPath)
+	void ScriptEditorPanel::SetProjectPath(const std::filesystem::path& projectPath, const std::string& projectName)
 	{
-		std::filesystem::path cleanPath = projectPath;
-		if (cleanPath.has_filename() == false)
-			cleanPath = cleanPath.parent_path();
-
-		mProjectPath = cleanPath;
-		mProjectName = cleanPath.filename().string();
+		mProjectPath = projectPath;
+		mProjectName = projectName;
 	}
 
 	void ScriptEditorPanel::OpenFile(const std::filesystem::path& filepath)
@@ -186,10 +166,10 @@ namespace Toast {
 			}
 		}
 
-		std::filesystem::path sourceDir = mProjectPath / "Assets" / "Scripts";
-		std::filesystem::path outputDll = mProjectPath / "Binaries" / (SanitizeNamespace(mProjectName) + ".dll");
+		std::filesystem::path assetDir = mProjectPath / "Assets";
+		std::filesystem::path outputDll = mProjectPath / "Binaries" / (ScriptEngine::SanitizeNamespace(mProjectName) + ".dll");
 
-		ScriptEngine::CompileScripts(sourceDir, outputDll);
+		ScriptEngine::CompileScripts(assetDir, outputDll);
 	}
 
 }

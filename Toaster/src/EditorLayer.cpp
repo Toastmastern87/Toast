@@ -102,41 +102,7 @@ namespace Toast {
 		if (!serializer.Deserialize(projectFileOpt->string()))
 			TOAST_CORE_ERROR("Failed to load project: %s", projectFileOpt->string().c_str());
 
-		// Success: swap active project
-		mProject = loadedProject;
-
-		AssetManager::SetActiveProject(mProject);
-		AssetManager::DeserializeRegistry();
-
-		Renderer::LoadEngineShaders();
-		Renderer::GenerateSpecularBRDF();
-
-		mPlaceholderScene = CreateScope<Scene>();
-		mEditorScene = mPlaceholderScene.get();
-
-		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 3000000.0f);
-		mEditorCamera->SetTranslation({ 0.0f, 1.0f, -3.0f });
-
-		mEditorScene->SetActiveCamera(mEditorCamera);
-		mEditorCamera->UpdateView();
-
 		mProjectPanel.OnOpenSceneRequested = [this](UUID id) { OpenProjectScene(id); };
-
-		mContentBrowserPanel.SetProjectPath(mProject->GetPath());
-		mMaterialPanel.SetProjectPath(mProject->GetPath());
-		mPlanetPanel.SetProjectPath(mProject->GetPath());
-		mPropertiesPanel.SetProjectPath(mProject->GetPath());
-		mScriptEditorPanel.SetProjectPath(mProject->GetPath());
-
-		Renderer2D::LoadUITextures();
-
-		// Open active scene from the loaded project
-		const std::filesystem::path scenePath = mProject->GetPath() / mProject->GetActiveScenePath();
-		mSceneFilePath = scenePath.string();
-
-		OpenScene(scenePath);
-
-		SetContexts();
 
 		mPropertiesPanel.SetOpenScriptCallback([this](const std::filesystem::path& path)
 			{
@@ -150,11 +116,19 @@ namespace Toast {
 				mScriptEditorPanel.SetOpen(true);
 			});
 
+		ScriptEngine::SetOnAssemblyReloadCallback([this]()
+			{
+				Scene* scene = GetActiveScene();
+				if (!scene || !mProject)
+					return;
+
+				scene->ResolveScriptClassNames(ScriptEngine::SanitizeNamespace(mProject->GetName()));
+			});
+
 		// If you have a “force popup to choose projects behavior, disable it on success
 		mForceProjectPopup = false;
 
-		TOAST_CORE_INFO("Opened project: %s", mProject->GetName().c_str());
-		TOAST_CORE_INFO("Opened scene: %s", scenePath.string().c_str());
+		OpenProject(loadedProject);
 #endif 
 
 	}
@@ -191,7 +165,7 @@ namespace Toast {
 				}
 				else
 				{
-					// Decide behaviour depending on state:
+					// Decide behavior depending on state:
 					// If playing, switch runtime scene; if editing, switch editor scene.
 					if (mSceneState == SceneState::Play || mSceneState == SceneState::Pause)
 						SwitchRuntimeToProjectScene(id);
@@ -332,6 +306,38 @@ namespace Toast {
 
 			if (mShowProjectPopup && ImGui::IsPopupOpen("ProjectPopup"))
 				mShowProjectPopup = false;
+
+			if (mShowStaleScriptsPopup && !ImGui::IsPopupOpen("Scripts Changed##staleScripts"))
+			{
+				ImGui::OpenPopup("Scripts Changed##staleScripts");
+				mShowStaleScriptsPopup = false;
+			}
+
+			if (ImGui::BeginPopupModal("Scripts Changed##staleScripts", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				ImGui::Text("Scripts have changed since the last compile.");
+				ImGui::TextDisabled("Playing now runs the previously compiled code.");
+				ImGui::Separator();
+
+				if (ImGui::Button("Compile"))
+				{
+					mScriptEditorPanel.Compile();
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::SameLine();
+				if (ImGui::Button("Play Anyway"))
+				{
+					OnScenePlay();
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel"))
+					ImGui::CloseCurrentPopup();
+
+				ImGui::EndPopup();
+			}
 
 			if (mForceProjectPopup)
 			{
@@ -726,7 +732,10 @@ namespace Toast {
 		{
 			if (ImGui::ImageButton("##playButton", (ImTextureID)(mPlayButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, 1)))
 			{
-				OnScenePlay();
+				if (ScriptEngine::IsGameDLLLoaded() && ScriptEngine::AreScriptsStale())
+					mShowStaleScriptsPopup = true;
+				else
+					OnScenePlay();
 			}
 			ImGui::SameLine();
 			ImGui::ImageButton("##pauseButton", (ImTextureID)(mPauseButtonTex->GetID()), ImVec2(centerIconSize, centerIconSize));
@@ -972,17 +981,7 @@ namespace Toast {
 							std::filesystem::path projectPath = basePath / mNewProjectName;
 
 							std::string projectNameStr(mNewProjectName);
-							mProject = CreateRef<Project>(projectNameStr, projectPath);
-
-							const std::filesystem::path scenePath =	mProject->GetPath() / mProject->GetActiveScenePath();
-							mSceneFilePath = scenePath.string();
-
-							OpenScene(scenePath);
-
-							SetContexts();
-
-							mForceProjectPopup = false;
-
+							OpenProject(CreateRef<Project>(projectNameStr, projectPath)); 
 							ImGui::CloseCurrentPopup();
 						}
 						else 
@@ -1011,17 +1010,7 @@ namespace Toast {
 									}
 									else
 									{
-										mProject = loadedProject;
-
-										const std::filesystem::path scenePath = mProject->GetPath() / mProject->GetActiveScenePath();
-										mSceneFilePath = scenePath.string();
-
-										OpenScene(scenePath);
-
-										SetContexts();
-
-										mForceProjectPopup = false;
-
+										OpenProject(loadedProject);
 										ImGui::CloseCurrentPopup();
 									}
 								}
@@ -1072,6 +1061,44 @@ namespace Toast {
 			dispatcher.Dispatch<MouseButtonReleasedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseButtonReleased));
 			dispatcher.Dispatch<MouseMovedEvent>(TOAST_BIND_EVENT_FN(EditorLayer::OnMouseMoved));
 		}
+	}
+
+	void EditorLayer::OpenProject(const Ref<Project>& project)
+	{
+		mProject = project;
+
+		AssetManager::SetActiveProject(mProject);
+		AssetManager::DeserializeRegistry();
+
+		Renderer::LoadEngineShaders();
+		Renderer::GenerateSpecularBRDF();
+
+		mPlaceholderScene = CreateScope<Scene>();
+		mEditorScene = mPlaceholderScene.get();
+
+		mEditorCamera = CreateRef<EditorCamera>(30.0f, 1.778f, 0.1f, 3000000.0f);
+		mEditorCamera->SetTranslation({ 0.0f, 1.0f, -3.0f });
+		mEditorScene->SetActiveCamera(mEditorCamera);
+		mEditorCamera->UpdateView();
+
+		mContentBrowserPanel.SetProjectPath(mProject->GetPath());
+		mMaterialPanel.SetProjectPath(mProject->GetPath());
+		mPlanetPanel.SetProjectPath(mProject->GetPath());
+		mPropertiesPanel.SetProjectPath(mProject->GetPath(), mProject->GetName());
+		mScriptEditorPanel.SetProjectPath(mProject->GetPath(), mProject->GetName());
+
+		ScriptEngine::LoadGameAssembly(mProject->GetPath(), mProject->GetName());
+
+		Renderer2D::LoadUITextures();
+
+		const std::filesystem::path scenePath = mProject->GetPath() / mProject->GetActiveScenePath();
+		mSceneFilePath = scenePath.string();
+		OpenScene(scenePath);
+		SetContexts();
+
+		mForceProjectPopup = false;
+
+		TOAST_CORE_INFO("Opened project: %s", mProject->GetName().c_str());
 	}
 
 	void EditorLayer::SaveProject()

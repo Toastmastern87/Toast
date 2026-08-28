@@ -392,6 +392,9 @@ namespace Toast {
 		void ResetMeshAnimations(MeshComponent& mc);
 		bool IsAnimationComplete(const MeshComponent& mc, const std::string& name);
 
+		// Scripting helpers
+		void ResolveScriptClassNames(const std::string& projectNamespace);
+
 		static Ref<Scene> CreateEmpty();
 	private:
 		template<typename T>

@@ -8,6 +8,8 @@
 
 #include "Toast/Renderer/Texture.h"
 
+#include "Toast/Scripting/Script.h"
+
 namespace Toast {
 
 	AssetRegistry& AssetManager::GetActiveRegistry()
@@ -269,6 +271,9 @@ namespace Toast {
 		case AssetType::Mesh:
 			asset = CreateRef<Mesh>(fullPath.string());
 			break;
+		case AssetType::Script:
+			asset = CreateRef<Script>();
+			break;
 		default:
 			TOAST_CORE_ERROR("AssetManager: No loader for asset type %s", AssetTypeToString(entry->Metadata.Type));
 			return false;
@@ -491,6 +496,8 @@ namespace Toast {
 				success = AssetSerializer::SerializeMesh(handle, mesh, fullOutputPath);
 				break;
 			}
+			case AssetType::Script:
+				continue;   // scripts ship compiled into the DLL, not as .tasset
 			default:
 				TOAST_CORE_WARN("AssetManager::Build: No baking support for asset type %s, skipping.", AssetTypeToString(entry.Metadata.Type));
 				continue;
@@ -526,6 +533,8 @@ namespace Toast {
 			return AssetType::Material;
 		if (ext == ".gltf" || ext == ".glb")
 			return AssetType::Mesh;
+		if (ext == ".cs")
+			return AssetType::Script;
 
 		return AssetType::None;
 	}

@@ -1,6 +1,6 @@
 Scene: Mars
 EditorCamera:
-  Position: [133.47728, 209.480103, 306.120636]
+  Position: [132.402664, 209.302505, 310.336212]
 Settings:
   Wireframe: 0
   Grid: false
@@ -393,7 +393,8 @@ Entities:
       Primary: true
       FixedAspectRatio: false
     ScriptComponent:
-      ClassName: Sandbox.CameraController
+      ClassName: TheNextFrontier.CameraController
+      ScriptHandle: 17593228084679697780
       ScriptFields:
         - Name: MinAltitude
           Type: Float
@@ -1040,7 +1041,8 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [149, 409, 1]
     ScriptComponent:
-      ClassName: Sandbox.LoadCargo
+      ClassName: TheNextFrontier.LoadCargo
+      ScriptHandle: 6900236357676364990
     UIButtonComponent:
       CornerRadius: 0
       UseColor: false
@@ -1634,7 +1636,8 @@ Entities:
         - Name: FlontFlapRight
           Handle: 1958667255112413262
     ScriptComponent:
-      ClassName: Sandbox.StarshipLanding
+      ClassName: TheNextFrontier.StarshipLanding
+      ScriptHandle: 14183408911462167836
       ScriptFields:
         - Name: ArrestThrottle
           Type: Float
@@ -1642,6 +1645,9 @@ Entities:
         - Name: MinTriggerSpeed
           Type: Float
           Data: 10
+        - Name: IgnitionLifeTimeStart
+          Type: Float
+          Data: 0.00999999978
         - Name: ThrottleDownAltitude
           Type: Float
           Data: 5
@@ -1666,6 +1672,9 @@ Entities:
         - Name: LandingThrottle
           Type: Float
           Data: 1
+        - Name: IgnitionSpawnDelayMult
+          Type: Float
+          Data: 4
         - Name: TargetTouchdownSpeed
           Type: Float
           Data: 1
@@ -1760,7 +1769,8 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [406, 273, 1]
     ScriptComponent:
-      ClassName: Sandbox.Money
+      ClassName: TheNextFrontier.Money
+      ScriptHandle: 15397713549331558382
       ScriptFields:
         []
     UIPanelComponent:
@@ -1828,7 +1838,8 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [20, 28, 1]
     ScriptComponent:
-      ClassName: Sandbox.CloseButtonAllStarships
+      ClassName: TheNextFrontier.CloseButtonAllStarships
+      ScriptHandle: 7091776065297775666
     UIButtonComponent:
       CornerRadius: 0
       UseColor: false
@@ -2038,7 +2049,8 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [30, 75, 1]
     ScriptComponent:
-      ClassName: Sandbox.TimeText
+      ClassName: TheNextFrontier.TimeText
+      ScriptHandle: 6730161605731363412
     UITextComponent:
       AssetPath: C:\dev\Toast\Toaster\assets\fonts\2_Ubuntu\UbuntuMono-R.ttf
       Text: 00:00:14
@@ -2057,7 +2069,8 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [30, 10, 1]
     ScriptComponent:
-      ClassName: Sandbox.GameSpeedButtons
+      ClassName: TheNextFrontier.GameSpeedButtons
+      ScriptHandle: 656474258116317958
     UIButtonComponent:
       CornerRadius: 4
       UseColor: true
@@ -2079,7 +2092,8 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [30, 10, 1]
     ScriptComponent:
-      ClassName: Sandbox.GameSpeedButtons
+      ClassName: TheNextFrontier.GameSpeedButtons
+      ScriptHandle: 656474258116317958
     UIButtonComponent:
       CornerRadius: 4
       UseColor: true
@@ -2101,7 +2115,8 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [30, 10, 1]
     ScriptComponent:
-      ClassName: Sandbox.GameSpeedButtons
+      ClassName: TheNextFrontier.GameSpeedButtons
+      ScriptHandle: 656474258116317958
     UIButtonComponent:
       CornerRadius: 4
       UseColor: true
@@ -2123,7 +2138,8 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [30, 10, 1]
     ScriptComponent:
-      ClassName: Sandbox.GameSpeedButtons
+      ClassName: TheNextFrontier.GameSpeedButtons
+      ScriptHandle: 656474258116317958
     UIButtonComponent:
       CornerRadius: 4
       UseColor: true
@@ -2178,8 +2194,6 @@ Entities:
       Rotation: [0, 0, 0]
       RotationQuat: [0, 0, 0, 1]
       Scale: [124, 118, 1]
-    ScriptComponent:
-      ClassName: Sandbox.AddStarship
     UIButtonComponent:
       CornerRadius: 0
       UseColor: false
@@ -2200,8 +2214,6 @@ Entities:
       Rotation: [0, 0, 0]
       RotationQuat: [0, 0, 0, 1]
       Scale: [64, 64, 1]
-    ScriptComponent:
-      ClassName: Sandbox.AllStarshipsPopup
     UIButtonComponent:
       CornerRadius: 0
       UseColor: false
@@ -2325,7 +2337,8 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [149, 409, 1]
     ScriptComponent:
-      ClassName: Sandbox.UnloadCargo
+      ClassName: TheNextFrontier.UnloadCargo
+      ScriptHandle: 14654075824146422813
       ScriptFields:
         - Name: RotationSpeed
           Type: Float
@@ -2366,7 +2379,8 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [1, 1, 1]
     SceneScriptComponent:
-      ClassName: Sandbox.SelectionManager
+      ClassName: TheNextFrontier.SelectionManager
+      ScriptHandle: 18122810247834729331
   - Entity: 4133715088320969031
     TagComponent:
       Tag: Rover Test

@@ -46,6 +46,7 @@ namespace Toast {
 		virtual void OnImGuiRender() override;
 		void OnEvent(Event& e) override;
 
+		void OpenProject(const Ref<Project>& project);
 		void SaveProject();
 
 		void OnScenePlay();
@@ -123,6 +124,7 @@ namespace Toast {
 		bool mShowProjectPopup = false;
 		bool mShowSceneSettingsPopup = false;
 		bool mShowPlanetPopup = false;
+		bool mShowStaleScriptsPopup = false;
 
 		char mNewProjectName[256] = "";
 		char mNewProjectLocation[256] = "";

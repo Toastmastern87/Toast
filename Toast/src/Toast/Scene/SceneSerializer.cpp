@@ -360,6 +360,7 @@ namespace Toast {
 
 			auto& sc = entity.GetComponent<ScriptComponent>();
 			out << YAML::Key << "ClassName" << YAML::Value << sc.ClassName;
+			out << YAML::Key << "ScriptHandle" << YAML::Value << sc.ScriptHandle;
 
 			// Fields
 			Ref<ScriptClass> entityClass = ScriptEngine::GetEntityClass(sc.ClassName);
@@ -416,6 +417,7 @@ namespace Toast {
 
 			auto& sc = entity.GetComponent<SceneScriptComponent>();
 			out << YAML::Key << "ClassName" << YAML::Value << sc.ClassName;
+			out << YAML::Key << "ScriptHandle" << YAML::Value << sc.ScriptHandle;
 
 			// Fields
 			Ref<ScriptClass> entityClass = ScriptEngine::GetEntityClass(sc.ClassName);
@@ -1623,6 +1625,9 @@ namespace Toast {
 					auto& sc = deserializedEntity.AddComponent<ScriptComponent>();
 					sc.ClassName = scriptComponent["ClassName"].as<std::string>();
 
+					if (scriptComponent["ScriptHandle"])
+						sc.ScriptHandle = AssetHandle(scriptComponent["ScriptHandle"].as<uint64_t>());
+
 					auto scriptFields = scriptComponent["ScriptFields"];
 					if (scriptFields)
 					{
@@ -1677,6 +1682,9 @@ namespace Toast {
 				{
 					auto& sc = deserializedEntity.AddComponent<SceneScriptComponent>();
 					sc.ClassName = sceneScriptComponent["ClassName"].as<std::string>();
+
+					if (scriptComponent["ScriptHandle"])
+						sc.ScriptHandle = AssetHandle(scriptComponent["ScriptHandle"].as<uint64_t>());
 
 					auto scriptFields = sceneScriptComponent["ScriptFields"];
 					if (scriptFields)

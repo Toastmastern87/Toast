@@ -7,8 +7,8 @@
 5222783482869039021|Texture2D|Textures\StarField16k.tif|sRGB=1
 7706550061724850605|Material|Materials\Heatshield.tmtl|
 7274978667343951183|Texture2D|Textures\MarsAlbedo.png|sRGB=0
-2915971554223233935|Texture2D|Textures\UI\14_FollowStarship.png|sRGB=0
 17463281943660964239|Texture2D|Textures\Rock_Cliff_roughness.tif|sRGB=0
+2915971554223233935|Texture2D|Textures\UI\14_FollowStarship.png|sRGB=0
 17756802592510560904|Texture2D|Textures\Starship_Heat_Shield_roughness.png|sRGB=0
 13089968595864323080|Texture2D|Textures\UI\01_UIMoneyPanel.png|sRGB=1
 6551670257254948990|Texture2D|Textures\Sand_basecolor.tif|sRGB=1
@@ -45,6 +45,7 @@
 13987780987327217849|Texture2D|Textures\UI\13_MapButtonClicked.png|sRGB=0
 17250092519101036537|Shader|Shaders\APFarDynamic.hlsl|
 7483557531245785031|Texture2D|Textures\Gravel_basecolor.tif|sRGB=1
+14183408911462167836|Script|Scripts\StarshipLanding.cs|
 17376227674454415132|Texture2D|Textures\Gravel_roughness.tif|sRGB=0
 614263980951522346|Texture2D|Textures\Gravel_ambientOcclusion.tif|sRGB=0
 4369625943761558762|Shader|Shaders\LightningPass.hlsl|
@@ -100,3 +101,12 @@
 4457589618145430005|Mesh|Meshes\Rover.gltf|
 13560050879588577175|Mesh|Meshes\Starship_SN3.gltf|
 6093856971646758788|Mesh|Meshes\Starship Version 4.gltf|
+17593228084679697780|Script|Scripts\CameraController.cs|
+11283913563491824149|Script|Scripts\AllStarshipsPopup.cs|
+7091776065297775666|Script|Scripts\CloseButtonAllStarships.cs|
+656474258116317958|Script|Scripts\GameSpeedButtons.cs|
+6900236357676364990|Script|Scripts\LoadCargo.cs|
+15397713549331558382|Script|Scripts\Money.cs|
+6730161605731363412|Script|Scripts\TimeText.cs|
+14654075824146422813|Script|Scripts\UnloadCargo.cs|
+18122810247834729331|Script|Scripts\SelectionManager.cs|

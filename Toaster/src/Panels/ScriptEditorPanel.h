@@ -13,7 +13,7 @@ namespace Toast {
 
 		void OnImGuiRender();
 
-		void SetProjectPath(const std::filesystem::path& projectPath);
+		void SetProjectPath(const std::filesystem::path& projectPath, const std::string& projectName);
 
 		void OpenFile(const std::filesystem::path& filepath);
 		bool Save();
@@ -21,7 +21,7 @@ namespace Toast {
 
 		bool IsOpen() const { return mOpen; }
 		void SetOpen(bool open) { mOpen = open; }
-	private:
+
 		void Compile();
 	private:
 		TextEditor mEditor;

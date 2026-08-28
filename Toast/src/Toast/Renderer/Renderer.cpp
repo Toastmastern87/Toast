@@ -976,7 +976,7 @@ namespace Toast {
 	{
 		bool noWorldTransform = false;
 		int entityID = 0;
-		if(runtime)
+		if (runtime)
 			sRendererData->MeshSelectedDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex, lodIndex);
 		else
 			sRendererData->MeshEditorSelectedDrawList.emplace_back(mesh, transform, wireframe, noWorldTransform, entityID, submeshIndex, lodIndex);

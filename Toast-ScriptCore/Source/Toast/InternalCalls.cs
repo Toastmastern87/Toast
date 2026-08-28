@@ -1,5 +1,4 @@
-﻿using Source.Toast.Math;
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 
 namespace Toast

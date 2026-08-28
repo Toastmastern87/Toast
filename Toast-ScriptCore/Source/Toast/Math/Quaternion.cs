@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Source.Toast.Math
+namespace Toast
 {
     public struct Quaternion
     {

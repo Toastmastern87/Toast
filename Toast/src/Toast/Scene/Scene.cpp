@@ -98,6 +98,7 @@ namespace Toast {
 	void Scene::OnRuntimeStart()
 	{
 		// Scripting
+		if(ScriptEngine::IsGameDLLLoaded())
 		{
 			ScriptEngine::OnRuntimeStart(this);
 
@@ -172,7 +173,7 @@ namespace Toast {
 			Entity entity = { mHoveredEntity, this };
 			UUID uuid = entity.GetComponent<IDComponent>().ID;
 			std::string tag = entity.GetComponent<TagComponent>().Tag;
-			if (entity.HasComponent<ScriptComponent>() && !entity.HasComponent<UIButtonComponent>())
+			if (entity.HasComponent<ScriptComponent>() && !entity.HasComponent<UIButtonComponent>() && ScriptEngine::IsGameDLLLoaded())
 				ScriptEngine::OnEventEntity(entity);
 			if (entity.HasComponent<UIButtonComponent>())
 				entity.GetComponent<UIButtonComponent>().IsClicked = true;
@@ -289,6 +290,7 @@ namespace Toast {
 			mPhysicsEngine->Update(deltaTime);
 
 			// Scripting
+			if(ScriptEngine::IsGameDLLLoaded())
 			{
 				// C# Entity OnUpdate
 				auto view = mRegistry.view<ScriptComponent>();
@@ -794,7 +796,7 @@ namespace Toast {
 							Renderer::SubmitHoveredMesh(mesh, finalTransform, submeshIndex, mc.ActiveLODGroup);
 
 						if (entityIsSelected)
-							Renderer::SubmitSelecetedMesh(mesh, finalTransform, false, submeshIndex, true);
+							Renderer::SubmitSelecetedMesh(mesh, finalTransform, false, submeshIndex, lod, true);
 					}
 
 					mStats.VerticesCount += static_cast<uint32_t>(mesh->GetVertices(mc.ActiveLODGroup).size());
@@ -2240,7 +2242,7 @@ namespace Toast {
 		// Fixing the script instances to make sure the Script Engine can run the prefab scripts
 		for (auto& [oldID, newEntity] : mapping)
 		{
-			if (newEntity.HasComponent<ScriptComponent>())
+			if (newEntity.HasComponent<ScriptComponent>() && ScriptEngine::IsGameDLLLoaded())
 				ScriptEngine::OnCreateEntity(newEntity);
 		}
 
@@ -2483,6 +2485,53 @@ namespace Toast {
 			return false;
 
 		return it->second.HasPlayed && !it->second.IsActive;
+	}
+
+	void Scene::ResolveScriptClassNames(const std::string& projectNamespace)
+	{
+		auto viewSC = mRegistry.view<ScriptComponent>();
+		for (auto e : viewSC)
+		{
+			auto& sc = viewSC.get<ScriptComponent>(e);
+
+			if (sc.ScriptHandle == 0)
+				continue;
+			if (ScriptEngine::EntityClassExists(sc.ClassName))
+				continue;
+
+			const AssetEntry* entry = AssetManager::GetEntry(sc.ScriptHandle);
+			if (!entry)
+				continue;
+
+			// Filename == class name(one class per file)
+			std::string candidate = projectNamespace + "." + entry->Metadata.FilePath.stem().string();
+
+			// Only assign if compiled without issues
+			if (ScriptEngine::EntityClassExists(candidate))
+				sc.ClassName = candidate;
+		}
+
+		auto viewSSC = mRegistry.view<SceneScriptComponent>();
+		for (auto e : viewSSC)
+		{
+			auto& ssc = viewSSC.get<SceneScriptComponent>(e);
+
+			if (ssc.ScriptHandle == 0)
+				continue;
+			if (ScriptEngine::EntityClassExists(ssc.ClassName))
+				continue;
+
+			const AssetEntry* entry = AssetManager::GetEntry(ssc.ScriptHandle);
+			if (!entry)
+				continue;
+
+			// Filename == class name(one class per file)
+			std::string candidate = projectNamespace + "." + entry->Metadata.FilePath.stem().string();
+
+			// Only assign if compiled without issues
+			if (ScriptEngine::EntityClassExists(candidate))
+				ssc.ClassName = candidate;
+		}
 	}
 
 	Scene::OutlineSettings Scene::ResolveOutlineSettings(Entity selected)

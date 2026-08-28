@@ -168,6 +168,7 @@ namespace Toast {
 	struct ScriptComponent
 	{
 		std::string ClassName;
+		AssetHandle ScriptHandle = 0;
 
 		ScriptComponent() = default;
 		ScriptComponent(const ScriptComponent&) = default;
@@ -178,6 +179,7 @@ namespace Toast {
 	struct SceneScriptComponent
 	{
 		std::string ClassName;
+		AssetHandle ScriptHandle = 0;
 
 		SceneScriptComponent() = default;
 		SceneScriptComponent(const SceneScriptComponent&) = default;
