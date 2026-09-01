@@ -35,6 +35,7 @@ namespace Toast {
 		GeneratorAttributes generatorAttributes;
 	};
 
+#define FONT_ATLAS_SIZE 512
 #define DEFAULT_ANGLE_THRESHOLD 3.0
 #define DEFAULT_MITER_LIMIT 1.0
 #define LCG_MULTIPLIER 6364136223846793005ull
@@ -50,38 +51,24 @@ namespace Toast {
 
 		msdfgen::BitmapConstRef<T, N> bitmap = (msdfgen::BitmapConstRef<T, N>) generator.atlasStorage();
 
-		uint32_t targetWidth = 512;
-		uint32_t targetHeight = 512;
+		TOAST_CORE_ASSERT(bitmap.width == FONT_ATLAS_SIZE && bitmap.height == FONT_ATLAS_SIZE, "Font atlas is not FONT_ATLAS_SIZE square - texture array slices will mismatch!");
 
-		size_t dataSize = targetWidth * targetHeight * 4 * sizeof(float);
-
-		std::vector<float> paddedData(targetWidth * targetHeight * 4, 0.0f);
-
-		uint32_t copyWidth = std::min<uint32_t>(static_cast<uint32_t>(bitmap.width), targetWidth);
-		uint32_t copyHeight = std::min<uint32_t>(static_cast<uint32_t>(bitmap.height), targetHeight);
-
-		for (uint32_t y = 0; y < copyHeight; y++)
-		{
-			// Destination pointer: offset to row y in the target buffer.
-			float* destRow = paddedData.data() + y * targetWidth * 4;
-			// Source pointer: offset to row y in the generated bitmap.
-			const float* srcRow = reinterpret_cast<const float*>(bitmap.pixels) + y * static_cast<uint32_t>(bitmap.width) * 4;
-			memcpy(destRow, srcRow, copyWidth * 4 * sizeof(float));
-		}
+		const size_t dataSize = (size_t)bitmap.width * (size_t)bitmap.height * N * sizeof(T);
 
 		// Create the Texture2D using the fixed 512x512 dimensions.
 		Ref<Texture2D> texture = CreateRef<Texture2D>(
 			DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT,
 			DXGI_FORMAT::DXGI_FORMAT_R32G32B32A32_FLOAT,
-			targetWidth, targetHeight,
+			(uint32_t)bitmap.width, (uint32_t)bitmap.height,
 			D3D11_USAGE_DYNAMIC,
 			D3D11_BIND_SHADER_RESOURCE,
 			1,
 			D3D11_CPU_ACCESS_WRITE
 		);
 
-		// Upload the padded data. This copies the 512x512 buffer into the GPU texture.
-		texture->SetData((void*)paddedData.data(), dataSize);
+		texture->SetData((void*)bitmap.pixels, dataSize);
+
+		TOAST_CORE_INFO("Font atlas generated: %dx%d, %zu bytes", (int)bitmap.width, (int)bitmap.height, dataSize);
 
 		return texture;
 	}
@@ -104,7 +91,6 @@ namespace Toast {
 		config.generatorAttributes.scanlinePass = true;
 		double minEmSize = 0.0;
 		double rangeValue = 2.0;
-		TightAtlasPacker::DimensionsConstraint atlasSizeConstraint = TightAtlasPacker::DimensionsConstraint::POWER_OF_TWO_RECTANGLE;
 		config.angleThreshold = DEFAULT_ANGLE_THRESHOLD;
 		config.miterLimit = DEFAULT_MITER_LIMIT;
 		
@@ -170,8 +156,8 @@ namespace Toast {
 				double pxRange = rangeValue;
 				TightAtlasPacker atlasPacker;
 
-				atlasPacker.setDimensionsConstraint(atlasSizeConstraint);
-				atlasPacker.setPadding(0);
+				atlasPacker.setDimensions(FONT_ATLAS_SIZE, FONT_ATLAS_SIZE);
+				atlasPacker.setPadding(2);
 				atlasPacker.setScale(config.emSize);
 				atlasPacker.setPixelRange(pxRange);
 				atlasPacker.setMiterLimit(config.miterLimit);
@@ -184,7 +170,7 @@ namespace Toast {
 					}
 					else 
 					{
-						TOAST_CORE_ERROR("Error: Could not fit %d out of %d glyphs into the atlast", remaining, (int)mMSDFData->Glyphs.size());
+						TOAST_CORE_ERROR("Font(%s): Could not fit %d out of %d glyphs into a %dx%d atlas at emSize %f, padding %d. Lower emSize, reduce the charset, or raise FONT_ATLAS_SIZE.", mFilePath.c_str(), remaining, (int)mMSDFData->Glyphs.size(), FONT_ATLAS_SIZE, FONT_ATLAS_SIZE, config.emSize, 2);
 						TOAST_CORE_ASSERT(false, "");
 					}
 				}
@@ -193,7 +179,7 @@ namespace Toast {
 				config.emSize = atlasPacker.getScale();
 				config.pxRange = atlasPacker.getPixelRange();
 				TOAST_CORE_INFO("Glyph size: %f pixels/EM", config.emSize);
-				TOAST_CORE_INFO("Atlas dimensions: %d x %d", config.width, config.height);
+				TOAST_CORE_INFO("Atlas dimensions: %d x %d, pixel range: %f", config.width, config.height, config.pxRange);
 			}
 
 			// Edge coloring

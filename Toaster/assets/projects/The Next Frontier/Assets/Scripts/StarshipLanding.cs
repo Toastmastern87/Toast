@@ -139,8 +139,6 @@ namespace TheNextFrontier
             mRS2 = FindChildEntityByName(this.Name, "RaptorSea2");
             mRS3 = FindChildEntityByName(this.Name, "RaptorSea3");
 
-            mRS3 = FindChildEntityByName(this.Name, "RaptorSea3");
-
             mStarshipInfoPanel = FindChildEntityByName(mStarship.GetComponent<TagComponent>().Tag, "InfoPopup");
             mPanel = mStarshipInfoPanel.GetComponent<UIPanelComponent>();
             mVelocityEntity = mStarshipInfoPanel.FindDecententByName(mStarshipInfoPanel.ID, "VelocityText");

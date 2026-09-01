@@ -80,6 +80,8 @@ PixelInputType main(VertexInputType input)
 }
 
 #type pixel
+#define MSDF_PX_RANGE 2.0f
+
 struct PixelInputType
 {
     float4 position         : SV_POSITION;
@@ -136,11 +138,15 @@ float median(float r, float g, float b)
 }
 
 // for 2D Text rendering only, for 3D another functions needs implementation
-float ScreenPxRange()
+float ScreenPxRange(float2 uv)
 {
-	float pixRange = 2.0f;
-	float geoSize = 72.0f;
-	return geoSize / 32.0f * pixRange;
+    float atlasWidth, atlasHeight, atlasElements;
+    MDSFAtlas.GetDimensions(atlasWidth, atlasHeight, atlasElements);
+    
+    float2 unitRange = float2(MSDF_PX_RANGE, MSDF_PX_RANGE) / float2(atlasWidth, atlasHeight);
+    float2 screenTexSize = 1.0f / fwidth(uv);
+    
+    return max(0.5f * dot(unitRange, screenTexSize), 1.0f);
 }
 
 // Function to check distance from a point to a corner center
@@ -191,7 +197,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 
         float3 msd = MDSFAtlas.Sample(defaultSampler, float3(input.texCoord, input.textureIndex)).rgb;
 		float sd = median(msd.r, msd.g, msd.b);
-		float screenPxDistance = ScreenPxRange() * (sd - 0.5f);
+        float screenPxDistance = ScreenPxRange(input.texCoord) * (sd - 0.5f);
 		float opacity = clamp(screenPxDistance + 0.5f, 0.0f, 1.0f);
 		float4 finalColor = lerp(bgColor, fgColor, opacity);
         if (opacity == 0.0)

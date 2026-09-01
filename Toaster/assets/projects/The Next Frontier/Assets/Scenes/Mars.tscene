@@ -1,6 +1,6 @@
 Scene: Mars
 EditorCamera:
-  Position: [132.402664, 209.302505, 310.336212]
+  Position: [142.654144, 43.2039566, 246.316956]
 Settings:
   Wireframe: 0
   Grid: false
@@ -456,7 +456,7 @@ Entities:
     ParticlesComponent:
       Emitting: false
       MaxLifeTime: 7.5
-      SpawnDelay: 10
+      SpawnDelay: 0.000280999957
       Velocity: [124, 21, 0]
       StartColor: [0.631372571, 0.435294122, 0.392156869]
       EndColor: [0.470588237, 0.392156869, 0.352941185]
@@ -1563,8 +1563,8 @@ Entities:
         - Handle: 9250695941923551917
         - Handle: 15758747276645440079
     TransformComponent:
-      Translation: [0, 5000, 142]
-      Rotation: [-90, 90, 0]
+      Translation: [0, 50, 142]
+      Rotation: [0, 90, 0]
       RotationQuat: [0, 0, 0, 1]
       Scale: [0.99999994, 1, 1]
     MeshComponent:
@@ -2244,7 +2244,7 @@ Entities:
       CornerRadius: 21.2999992
       TextureAssetHandle: 7770627433586345934
       UseColor: false
-      Visible: false
+      Visible: true
       ConnectToParent: true
       ConnectorColor: [0.0156862754, 0.0235294122, 0.0274509806, 1]
       ConnectorThickness: 4.30000019
@@ -2284,7 +2284,7 @@ Entities:
       Scale: [21, 23, 1]
     UITextComponent:
       AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
-      Text: "Velocity: 0.0 m/s"
+      Text: "Velocity: 20.0 m/s"
       TextureIndex: 0
       Color: [1, 1, 1, 1]
   - Entity: 8935244486945498943
@@ -2301,7 +2301,7 @@ Entities:
       Scale: [21, 23, 1]
     UITextComponent:
       AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
-      Text: "Altitude: 0 m"
+      Text: "Altitude: 5000 m"
       TextureIndex: 0
       Color: [1, 1, 1, 1]
   - Entity: 6749678775089839145
@@ -2380,7 +2380,7 @@ Entities:
       Scale: [1, 1, 1]
     SceneScriptComponent:
       ClassName: TheNextFrontier.SelectionManager
-      ScriptHandle: 18122810247834729331
+      ScriptHandle: 0
   - Entity: 4133715088320969031
     TagComponent:
       Tag: Rover Test
