@@ -107,29 +107,26 @@ Texture2DArray UITextures       : register(t8);
 
 SamplerState defaultSampler		: register(s0);
 
-bool ShouldDiscard(float2 coords, float2 dimensions, float radius)
+float RoundedBoxSDF(float2 p, float2 halfSize, float radius)
 {
-    float2 circle_center = float2(radius, radius);
+    radius = min(radius, min(halfSize.x, halfSize.y));
 
-    if (length(coords - circle_center) > radius
-        && coords.x < circle_center.x && coords.y < circle_center.y) return true; //first circle
+    float2 q = abs(p) - halfSize + radius;
+    
+    return min(max(q.x, q.y), 0.0f) + length(max(q, 0.0f)) - radius;
 
-    circle_center.x += dimensions.x - 2 * radius;
+}
 
-    if (length(coords - circle_center) > radius
-        && coords.x > circle_center.x && coords.y < circle_center.y) return true; //second circle
+float SDFCoverage(float d)
+{
+    float aa = max(fwidth(d), 1e-5f);
 
-    circle_center.y += dimensions.y - 2 * radius;
+    return 1.0f - smoothstep(-aa, aa, d);
+}
 
-    if (length(coords - circle_center) > radius
-        && coords.x > circle_center.x && coords.y > circle_center.y) return true; //third circle
-
-    circle_center.x -= dimensions.x - 2 * radius;
-
-    if (length(coords - circle_center) > radius
-        && coords.x < circle_center.x && coords.y > circle_center.y) return true; //fourth circle
-
-    return false;
+float2 ElementLocalPos(float2 texCoord, float2 size)
+{
+    return texCoord * size - size * 0.5f;
 }
 
 float median(float r, float g, float b)
@@ -149,12 +146,6 @@ float ScreenPxRange(float2 uv)
     return max(0.5f * dot(unitRange, screenTexSize), 1.0f);
 }
 
-// Function to check distance from a point to a corner center
-float CheckCornerDistance(float2 p, float2 center, float radius)
-{
-    return length(p - center) > radius;
-}
-
 float sdSegment(float2 p, float2 a, float2 b)
 {
     float2 pa = p - a;
@@ -170,24 +161,32 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
 	// Panels
 	if (input.UIType == 1.0f)
 	{
-        float4 textureColor;
+        float2 size = abs(input.ab.xy);
+        float2 halfSize = size * 0.5f;
         
-		float2 coords = input.texCoord * input.ab;
+        // Where this pixel sits inside the element, relative to its centre.
+        float2 p = ElementLocalPos(input.texCoord, size);
+        
+        // How far this pixel is from the button's rounded outline.
+        float d = RoundedBoxSDF(p, halfSize, input.cornerRadius);
+        
+        // Smooth 0..1 coverage instead of the panel branch's hard discard.
+        float coverage = SDFCoverage(d);
+        
+        if (coverage <= 0.0f)
+            discard;
 
+        float4 fill;
         if (input.textured >= 0.5f)
         {
-            float2 imgSize = abs(input.ab.xy); // protect against negative sizes
-            float2 activeUV = input.texCoord * (imgSize / 1000.0f);
-            textureColor = UITextures.Sample(defaultSampler, float3(activeUV, input.textureIndex));
-            output.color = textureColor;
+            float2 activeUV = input.texCoord * (size / 1000.0f);
+            fill = UITextures.Sample(defaultSampler, float3(activeUV, input.textureIndex));
         }
         else
-        {
-            if (ShouldDiscard(coords, input.ab.xy, input.cornerRadius))
-                discard;
-            
-            output.color = input.color;
-        }
+            fill = input.color;
+        
+        fill.a *= coverage;
+        output.color = fill;
     }
 	// Text
     else if (input.UIType == 2.0f)
@@ -208,17 +207,32 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
     // Buttons
     else if (input.UIType > 2.5f && input.UIType < 3.5f)
     {
-        float4 textureColor;  
-
+        float2 size = abs(input.ab.xy);
+        float2 halfSize = size * 0.5f;
+        
+        // Where this pixel sits inside the element, relative to its centre.
+        float2 p = ElementLocalPos(input.texCoord, size);
+        
+        // How far this pixel is from the button's rounded outline.
+        float d = RoundedBoxSDF(p, halfSize, input.cornerRadius);
+        
+        // Smooth 0..1 coverage instead of the panel branch's hard discard.
+        float coverage = SDFCoverage(d);
+        
+        if (coverage <= 0.0f)
+            discard;
+        
+        float4 fill;
         if (input.textured >= 0.5f)
         {
-            float2 imgSize = abs(input.ab.xy); // protect against negative sizes
-            float2 activeUV = input.texCoord * (imgSize / 1000.0f);
-            textureColor = UITextures.Sample(defaultSampler, float3(activeUV, input.textureIndex));
-            output.color = textureColor;
+            float2 activeUV = input.texCoord * (size / 1000.0f);
+            fill = UITextures.Sample(defaultSampler, float3(activeUV, input.textureIndex));
         }
         else
-            output.color = input.color;
+            fill = input.color;
+        
+        fill.a *= coverage;
+        output.color = fill;
     }
     // Connectors
     else if (input.UIType > 3.5f && input.UIType < 4.5f)
