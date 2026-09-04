@@ -1541,6 +1541,65 @@ namespace Toast {
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushItemWidth(-1);
 					ImGuiHelpers::ManualDragFloat2("##ConnectorParentOffset", component.Connector.ParentOffset, 0.1f, 0.0f, window, activeDragArea, "%.1f", false);
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+					ImGui::TextUnformatted("Connector Style");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					const char* connectorStyles[] = { "Straight", "Elbow H", "Elbow V" };
+					int styleIndex = (int)component.Connector.Style;
+					if (ImGui::Combo("##ConnectorStyle", &styleIndex, connectorStyles, IM_ARRAYSIZE(connectorStyles)))
+						component.Connector.Style = (ConnectorStyle)styleIndex;
+
+					if (component.Connector.Style != ConnectorStyle::Straight)
+					{
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+						ImGui::TextUnformatted("Connector Corner Radius");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::PushItemWidth(-1);
+						ImGui::SliderFloat("##ConnectorCornerRadius", &component.Connector.CornerRadius, 0.0f, 50.0f, "%.1f");
+					}
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+					ImGui::TextUnformatted("Connector Outline Width");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-1);
+					ImGui::SliderFloat("##ConnectorOutlineWidth", &component.Connector.OutlineWidth, 0.0f, 20.0f, "%.1f");
+
+					if (component.Connector.OutlineWidth > 0.0f)
+					{
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+						ImGui::TextUnformatted("Connector Outline Color");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::PushItemWidth(-1);
+						ImGui::ColorEdit3("##ConnectorOutlineColor", &component.Connector.OutlineColor.x);
+					}
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+					ImGui::TextUnformatted("Clamp To Screen Edge");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Checkbox("##ConnectorClampToEdge", &component.Connector.ClampToScreenEdge);
+
+					if (component.Connector.ClampToScreenEdge)
+					{
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+						ImGui::TextUnformatted("Screen Edge Margin");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::PushItemWidth(-1);
+						ImGui::SliderFloat("##ConnectorEdgeMargin", &component.Connector.ScreenEdgeMargin, 0.0f, 200.0f, "%.0f");
+					}
 				}
 
 				ImGui::EndTable();

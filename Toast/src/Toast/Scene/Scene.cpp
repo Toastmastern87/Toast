@@ -915,32 +915,27 @@ namespace Toast {
 						if (upc.ConnectToParent)
 						{
 							auto& connector = upc.Connector;
-
 							auto& parentTC = parent.GetComponent<TransformComponent>();
-
 							DirectX::XMMATRIX viewMatrix = DirectX::XMLoadFloat4x4(&mMainCamera->GetViewMatrix());
 							DirectX::XMMATRIX projectionMatrix = DirectX::XMLoadFloat4x4(&mMainCamera->GetProjection());
 
 							DirectX::XMMATRIX parentM = parentTC.GetTransform();        // includes rotation+translation
 							DirectX::XMVECTOR localOffset = DirectX::XMVectorSet(connector.ParentOffset.x, connector.ParentOffset.y, 0.0f, 0.0f);
-
 							DirectX::XMVECTOR worldOffset = DirectX::XMVector3TransformNormal(localOffset, parentM);
 
-							DirectX::XMVECTOR parentCompletePos = DirectX::XMVectorAdd(DirectX::XMLoadFloat3(&parentTC.Translation), DirectX::XMLoadFloat3(&mMainCamera->GetWorldTranslation()));
-							DirectX::XMVECTOR parentWorldPos = DirectX::XMVectorAdd(parentCompletePos, worldOffset);
+							DirectX::XMVECTOR parentWorldPos = DirectX::XMVectorAdd(XMLoadFloat3(&parentTC.Translation), worldOffset);
 
-							DirectX::XMFLOAT3 parentAnchorPos;
-							DirectX::XMFLOAT3 panelPosAnchor;
+							DirectX::XMFLOAT2 anchor;
+							if (ProjectConnectorAnchor(parentWorldPos, viewMatrix, projectionMatrix, connector.ClampToScreenEdge, connector.ScreenEdgeMargin, anchor))
+							{
+								DirectX::XMFLOAT3 parentAnchorPos{ anchor.x, anchor.y, 1.0f };
+								DirectX::XMFLOAT3 panelPosAnchor;
+								panelPosAnchor.x = uiPos.x + (mViewportWidth * 0.5f) + connector.ChildOffset.x;
+								panelPosAnchor.y = uiPos.y + (mViewportHeight * 0.5f) + connector.ChildOffset.y;
+								panelPosAnchor.z = 1.0f;
 
-							DirectX::XMVECTOR projected = DirectX::XMVector3Project(parentWorldPos, 0.0f, 0.0f, (float)mViewportWidth, (float)mViewportHeight, 0.0f, 1.0f, projectionMatrix, viewMatrix, DirectX::XMMatrixIdentity());
-
-							panelPosAnchor.x = uiPos.x + (mViewportWidth * 0.5f) + connector.ChildOffset.x;
-							panelPosAnchor.y = uiPos.y + (mViewportHeight * 0.5f) + connector.ChildOffset.y;
-							panelPosAnchor.z = 1.0f;
-
-							DirectX::XMStoreFloat3(&parentAnchorPos, projected);
-
-							Renderer2D::SubmitConnector(parentAnchorPos, panelPosAnchor, connector.Thickness, 1.0f, connector.Color, -1);
+								Renderer2D::SubmitConnector(parentAnchorPos, panelPosAnchor, connector.Thickness, connector.Style, connector.CornerRadius, connector.Color, connector.OutlineWidth, connector.OutlineColor, -1);
+							}
 						}
 					}
 
@@ -1708,30 +1703,28 @@ namespace Toast {
 						if (upc.ConnectToParent)
 						{
 							auto& connector = upc.Connector;
-
 							auto& parentTC = parent.GetComponent<TransformComponent>();
-
 							DirectX::XMMATRIX viewMatrix = DirectX::XMLoadFloat4x4(&editorCamera->GetViewMatrix());
 							DirectX::XMMATRIX projectionMatrix = DirectX::XMLoadFloat4x4(&editorCamera->GetProjection());
 
 							DirectX::XMMATRIX parentM = parentTC.GetTransform();        // includes rotation+translation
-							DirectX::XMVECTOR localOffset = DirectX::XMVectorSet(connector.ParentOffset.x, connector.ParentOffset.y, 0.0f, 0.0f); 
-
+							DirectX::XMVECTOR localOffset = DirectX::XMVectorSet(connector.ParentOffset.x, connector.ParentOffset.y, 0.0f, 0.0f);
 							DirectX::XMVECTOR worldOffset = DirectX::XMVector3TransformNormal(localOffset, parentM);
+
 							DirectX::XMVECTOR parentWorldPos = DirectX::XMVectorAdd(XMLoadFloat3(&parentTC.Translation), worldOffset);
 
-							DirectX::XMFLOAT3 parentAnchorPos;
-							DirectX::XMFLOAT3 panelPosAnchor;
+							DirectX::XMFLOAT2 anchor;
+							// HARDCODED IS TEMP CODE UNTIL EDITOR IS UPDATED
+							if (ProjectConnectorAnchor(parentWorldPos, viewMatrix, projectionMatrix, connector.ClampToScreenEdge, connector.ScreenEdgeMargin, anchor))
+							{
+								DirectX::XMFLOAT3 parentAnchorPos{ anchor.x, anchor.y, 1.0f };
+								DirectX::XMFLOAT3 panelPosAnchor;
+								panelPosAnchor.x = uiPos.x + (mViewportWidth * 0.5f) + connector.ChildOffset.x;
+								panelPosAnchor.y = uiPos.y + (mViewportHeight * 0.5f) + connector.ChildOffset.y;
+								panelPosAnchor.z = 1.0f;
 
-							DirectX::XMVECTOR projected = DirectX::XMVector3Project(parentWorldPos,	0.0f, 0.0f,	(float)mViewportWidth, (float)mViewportHeight, 0.0f, 1.0f, projectionMatrix, viewMatrix, DirectX::XMMatrixIdentity());
-
-							panelPosAnchor.x = uiPos.x + (mViewportWidth * 0.5f) + connector.ChildOffset.x;
-							panelPosAnchor.y = uiPos.y + (mViewportHeight * 0.5f) + connector.ChildOffset.y;
-							panelPosAnchor.z = 1.0f;
-
-							DirectX::XMStoreFloat3(&parentAnchorPos, projected);
-
-							Renderer2D::SubmitConnector(parentAnchorPos, panelPosAnchor, connector.Thickness, 1.0f, connector.Color, -1);
+								Renderer2D::SubmitConnector(parentAnchorPos, panelPosAnchor, connector.Thickness, connector.Style, connector.CornerRadius, connector.Color, connector.OutlineWidth, connector.OutlineColor, -1);
+							}
 						}
 					}
 
@@ -2537,7 +2530,67 @@ namespace Toast {
 	Scene::OutlineSettings Scene::ResolveOutlineSettings(Entity selected)
 	{
 		// In the future this will resolve priority between entity, scene and project setting
-		return GetOutlineSettings();   // A5 pass through
+		return GetOutlineSettings();   // pass through
+	}
+
+	bool Scene::ProjectConnectorAnchor(DirectX::XMVECTOR worldPos, DirectX::XMMATRIX viewMatrix, DirectX::XMMATRIX projectionMatrix, bool clampToEdge, float margin, DirectX::XMFLOAT2& outScreenPos)
+	{
+		DirectX::XMMATRIX viewProj = DirectX::XMMatrixMultiply(viewMatrix, projectionMatrix);
+		DirectX::XMVECTOR clipPos = DirectX::XMVector3Transform(worldPos, viewProj);
+
+		const float clipW = DirectX::XMVectorGetW(clipPos);
+		const bool behind = clipW < 0.0f;
+
+		if (behind && !clampToEdge)
+			return false;
+
+		// Divide by |w|, not w. A negative w flips both axes
+		const float invW = 1.0f / std::max(std::abs(clipW), 1e-6f);
+
+		float ndcX = DirectX::XMVectorGetX(clipPos) * invW;
+		float ndcY = DirectX::XMVectorGetY(clipPos) * invW;
+
+		if (behind)
+		{
+			ndcX = -ndcX;
+			ndcY = -ndcY;
+		}
+
+		float screenX = (ndcX * 0.5f + 0.5f) * (float)mViewportWidth;
+		float screenY = (1.0f - (ndcY * 0.5f + 0.5f)) * (float)mViewportHeight;
+
+		const float halfWidth = (float)mViewportWidth * 0.5f;
+		const float halfHeight = (float)mViewportHeight * 0.5f;
+
+		const bool outside = behind || screenX < margin || screenX > ((float)mViewportWidth - margin) || screenY < margin || screenY > ((float)mViewportHeight - margin);
+
+		if (!outside)
+		{
+			outScreenPos = { screenX, screenY };
+			return true;
+		}
+
+		if (!clampToEdge)
+			return false;
+
+		float dirX = screenX - halfWidth;
+		float dirY = screenY - halfHeight;
+
+		if (std::abs(dirX) < 1e-4f && std::abs(dirY) < 1e-4f)
+			dirY = 1.0f;
+
+		const float limitX = halfWidth - margin;
+		const float limitY = halfHeight - margin;
+
+		float scale = FLT_MAX;
+		if (std::abs(dirX) > 1e-4f)
+			scale = std::min(scale, limitX / std::abs(dirX));
+		if (std::abs(dirY) > 1e-4f)
+			scale = std::min(scale, limitY / std::abs(dirY));
+
+		outScreenPos = { halfWidth + dirX * scale, halfHeight + dirY * scale };
+
+		return true;
 	}
 
 	template<>

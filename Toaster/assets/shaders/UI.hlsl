@@ -38,6 +38,7 @@ struct VertexInputType
     float3 texCoord         : POSITION2;
     uint entityID           : TEXTUREID0;
     uint textureIndex       : TEXTUREID1;
+    float4 params           : POSITION3;
 };
 
 struct PixelInputType
@@ -51,6 +52,7 @@ struct PixelInputType
     int entityID                : TEXTUREID0;
     int UIType                  : TEXTUREID1;
     uint textureIndex           : TEXTUREID2;
+    float4 params               : POSITION1;
 };
 
 PixelInputType main(VertexInputType input)
@@ -76,6 +78,8 @@ PixelInputType main(VertexInputType input)
     
     output.textureIndex = input.textureIndex;
 
+    output.params = input.params;
+    
 	return output;
 }
 
@@ -93,6 +97,7 @@ struct PixelInputType
     int entityID            : TEXTUREID0;
     int UIType              : TEXTUREID1;
     uint textureIndex       : TEXTUREID2;
+    float4 params           : POSITION1;
 };
 
 struct PixelOutputType
@@ -114,7 +119,11 @@ float RoundedBoxSDF(float2 p, float2 halfSize, float radius)
     float2 q = abs(p) - halfSize + radius;
     
     return min(max(q.x, q.y), 0.0f) + length(max(q, 0.0f)) - radius;
+}
 
+float4 Premultiply(float4 col)
+{
+    return float4(col.rgb * col.a, col.a);
 }
 
 float SDFCoverage(float d)
@@ -146,12 +155,26 @@ float ScreenPxRange(float2 uv)
     return max(0.5f * dot(unitRange, screenTexSize), 1.0f);
 }
 
-float sdSegment(float2 p, float2 a, float2 b)
+float SDSegment(float2 p, float2 a, float2 b)
 {
     float2 pa = p - a;
     float2 ba = b - a;
     float h = saturate(dot(pa, ba) / dot(ba, ba));
     return length(pa - ba * h); // distance to segment
+}
+
+float SMin(float a, float b, float k)
+{
+    float h = saturate(0.5f + 0.5f * (b - a) / k);
+    return lerp(b, a, h) - k * h * (1.0f - h);
+}
+
+float SDElbow(float2 p, float2 a, float2 corner, float2 b, float k)
+{
+    float d1 = SDSegment(p, a, corner);
+    float d2 = SDSegment(p, corner, b);
+
+    return (k > 0.0f) ? SMin(d1, d2, k) : min(d1, d2);
 }
 
 PixelOutputType main(PixelInputType input) : SV_TARGET
@@ -186,23 +209,22 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
             fill = input.color;
         
         fill.a *= coverage;
-        output.color = fill;
+        output.color = Premultiply(fill);
     }
 	// Text
     else if (input.UIType == 2.0f)
 	{
-		float4 bgColor = float4(input.color.rgb, 0.0); 
-		float4 fgColor = input.color;
-
         float3 msd = MDSFAtlas.Sample(defaultSampler, float3(input.texCoord, input.textureIndex)).rgb;
-		float sd = median(msd.r, msd.g, msd.b);
+        float sd = median(msd.r, msd.g, msd.b);
         float screenPxDistance = ScreenPxRange(input.texCoord) * (sd - 0.5f);
-		float opacity = clamp(screenPxDistance + 0.5f, 0.0f, 1.0f);
-		float4 finalColor = lerp(bgColor, fgColor, opacity);
+        float opacity = clamp(screenPxDistance + 0.5f, 0.0f, 1.0f);
+
         if (opacity == 0.0)
             discard;
 
-        output.color = finalColor;
+        float4 textColor = input.color;
+        textColor.a *= opacity;
+        output.color = Premultiply(textColor);
     }   
     // Buttons
     else if (input.UIType > 2.5f && input.UIType < 3.5f)
@@ -232,7 +254,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
             fill = input.color;
         
         fill.a *= coverage;
-        output.color = fill;
+        output.color = Premultiply(fill);
     }
     // Connectors
     else if (input.UIType > 3.5f && input.UIType < 4.5f)
@@ -241,23 +263,46 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
         float2 B = input.ab.zw;
 
         float thickness = input.texCoord.x; // px
-        float aa = input.texCoord.y; // px
+        float style = input.texCoord.y;
+        float cornerK = input.textured;
 
-        // Current pixel position in UI space:
-        // input.position is SV_POSITION in clip space after ortho; in D3D it is in pixels for rasterized screen-space.
-        // With your off-center ortho, SV_POSITION.xy should match pixel coords in the render target.
+        // SV_POSITION.xy is in render-target pixels under the ortho projection,
+        // which is the same space A and B are given in
         float2 P = input.position.xy;
 
-        float d = sdSegment(P, A, B);
+        float d;
+        if (style < 0.5f)
+            d = SDSegment(P, A, B);
+        else
+        {
+            float2 corner = (style < 1.5f) ? float2(B.x, B.y) : float2(A.x, A.y);
+            d = SDElbow(P, A, corner, B, cornerK);
+        }
 
-        float r = thickness * 0.5f;
-        // alpha = 1 inside the line, fades out over 'aa' pixels
-        float alpha = saturate((r + aa - d) / aa);
+        // Inflate to the requested thickness. Round caps come free.
+        d -= thickness * 0.5f;
 
-        if (alpha <= 0.0f)
+        float coverage = SDFCoverage(d);
+
+        if (coverage <= 0.0f)
             discard;
 
-        output.color = float4(input.color.rgb, input.color.a * alpha);
+        float outlineWidth = input.params.x;
+        float outlineColor = input.params.yzw;
+        
+        float4 col = input.color;
+        
+        if (outlineWidth > 0.0f)
+        {
+            float dOutline = abs(d) - outlineWidth;
+            float aa = max(fwidth(dOutline), 1e-5f);
+            float outlineMask = 1.0f - smoothstep(-aa, aa, dOutline);
+
+            col.rgb = lerp(col.rgb, outlineColor, outlineMask);
+        }
+        
+        col.a *= coverage;
+        output.color = Premultiply(col);
     }  
 	else
         output.color = input.color;

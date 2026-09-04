@@ -1784,6 +1784,12 @@ Entities:
       ConnectorThickness: 1
       ConnectorChildOffset: [0, 0]
       ConnectorParentOffset: [0, 0]
+      ConnectorClampToScreenEdge: false
+      ConnectorScreenEdgeMargin: 24
+      ConnectorStyle: 0
+      ConnectorCornerRadius: 0
+      ConnectorOutlineWidth: 0
+      ConnectorOutlineColor: [0, 0, 0, 0]
   - Entity: 6399342346770279097
     TagComponent:
       Tag: AllStarshipsPopup
@@ -1808,6 +1814,12 @@ Entities:
       ConnectorThickness: 1
       ConnectorChildOffset: [0, 0]
       ConnectorParentOffset: [0, 0]
+      ConnectorClampToScreenEdge: false
+      ConnectorScreenEdgeMargin: 24
+      ConnectorStyle: 0
+      ConnectorCornerRadius: 0
+      ConnectorOutlineWidth: 0
+      ConnectorOutlineColor: [0, 0, 0, 0]
   - Entity: 11909659177328583136
     TagComponent:
       Tag: AllStarshipText
@@ -2019,6 +2031,12 @@ Entities:
       ConnectorThickness: 1
       ConnectorChildOffset: [0, 0]
       ConnectorParentOffset: [0, 0]
+      ConnectorClampToScreenEdge: false
+      ConnectorScreenEdgeMargin: 24
+      ConnectorStyle: 0
+      ConnectorCornerRadius: 0
+      ConnectorOutlineWidth: 0
+      ConnectorOutlineColor: [0, 0, 0, 0]
   - Entity: 7969327153423302118
     TagComponent:
       Tag: Sunlight
@@ -2250,6 +2268,12 @@ Entities:
       ConnectorThickness: 4.30000019
       ConnectorChildOffset: [126.900002, 6.19999981]
       ConnectorParentOffset: [0, 24.7000008]
+      ConnectorClampToScreenEdge: true
+      ConnectorScreenEdgeMargin: 0
+      ConnectorStyle: 0
+      ConnectorCornerRadius: 0
+      ConnectorOutlineWidth: 0
+      ConnectorOutlineColor: [0, 0, 0, 0]
   - Entity: 14654054629392417776
     TagComponent:
       Tag: CloseButton

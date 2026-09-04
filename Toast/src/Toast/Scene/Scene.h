@@ -403,6 +403,8 @@ namespace Toast {
 		void UpdatePickedWorldPosition();
 
 		OutlineSettings ResolveOutlineSettings(Entity selected);
+
+		bool ProjectConnectorAnchor(DirectX::XMVECTOR worldPos, DirectX::XMMATRIX viewMatrix, DirectX::XMMATRIX projectionMatrix, bool clampToEdge, float margin, DirectX::XMFLOAT2& outScreenPos);
 	private:
 		UUID mSceneID;
 		std::string mName;

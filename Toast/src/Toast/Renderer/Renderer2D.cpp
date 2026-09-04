@@ -21,6 +21,7 @@ namespace Toast {
 
 		sRenderer2DData->UIVertexBufferBase = new UIVertex[sRenderer2DData->MaxUIVertices];
 		sRenderer2DData->UIVertexBufferPtr = sRenderer2DData->UIVertexBufferBase;
+		sRenderer2DData->UIVertexBufferEnd = sRenderer2DData->UIVertexBufferBase + sRenderer2DData->MaxUIVertices;
 		uint32_t* UIIndices = new uint32_t[sRenderer2DData->MaxUIIndices];
 
 		uint32_t offset = 0;
@@ -38,7 +39,7 @@ namespace Toast {
 		}
 
 		sRenderer2DData->UIVertexBuffer = CreateRef<VertexBuffer>(&sRenderer2DData->UIVertexBufferBase[0], (uint32_t)(sRenderer2DData->MaxUIVertices * sizeof(UIVertex)), sRenderer2DData->MaxUIVertices, 0, D3D11_USAGE_DYNAMIC);
-		sRenderer2DData->UIIndexBuffer = CreateRef<IndexBuffer>(&UIIndices[0], sRenderer2DData->MaxUIIndices);	
+		sRenderer2DData->UIIndexBuffer = CreateRef<IndexBuffer>(&UIIndices[0], sRenderer2DData->MaxUIIndices);
 
 		LoadFontTextures();
 	}
@@ -108,6 +109,7 @@ namespace Toast {
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
 		sRenderer2DData->UIVertexBufferPtr = sRenderer2DData->UIVertexBufferBase;
+		sRenderer2DData->UIBufferOverflowed = false;
 	}
 
 	void Renderer2D::EndScene()
@@ -162,6 +164,9 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		if (!HasRoomForQuad())
+			return;
+
 		DirectX::XMFLOAT4 UIVertexPositions[4];
 
 		float texturedF = textured == true ? 1.0f : 0.0f;
@@ -185,14 +190,19 @@ namespace Toast {
 		}
 	}
 
-	void Renderer2D::SubmitConnector(const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b, float thicknessPx, float aaPx,	const DirectX::XMFLOAT4& color, int entityID)
+	void Renderer2D::SubmitConnector(const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b, float thicknessPx, ConnectorStyle style, float cornerRadiusPx, const DirectX::XMFLOAT4& color, float outlineWidthPx, const DirectX::XMFLOAT4& outlineColor, int entityID)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		thicknessPx = std::max(thicknessPx, 1.0f);
-		aaPx = std::max(aaPx, 1.0f);
+		if (!HasRoomForQuad())
+			return;
 
-		float pad = 0.5f * thicknessPx + aaPx;
+		thicknessPx = std::max(thicknessPx, 1.0f);
+		cornerRadiusPx = std::max(cornerRadiusPx, 0.0f);
+
+		// The quad must contain the stroke, the smin bulge at an elbow joint, and
+		// a pixel of anti aliasing.
+		float pad = 0.5f * thicknessPx + cornerRadiusPx + outlineWidthPx + 2.0f;
 
 		float minX = std::min(a.x, b.x) - pad;
 		float minY = std::min(a.y, b.y) - pad;
@@ -201,25 +211,29 @@ namespace Toast {
 
 		// Quad in UI pixel space (0,0 top-left)
 		// Force the depth(z) to be the same as b.z to avoid z-fighting with panels
-		DirectX::XMFLOAT4 p0{ minX, minY, b.z, 0.0f };
-		DirectX::XMFLOAT4 p1{ maxX, minY, b.z, 0.0f };
-		DirectX::XMFLOAT4 p2{ maxX, maxY, b.z, 0.0f };
-		DirectX::XMFLOAT4 p3{ minX, maxY, b.z, 0.0f };
+		// Position.w is the 'textured' channel, which connectors never use - it
+		// carries the elbow corner radius instead. Named for its original purpose
+		// in the shader, so both ends are commented.
+		DirectX::XMFLOAT4 p0{ minX, minY, b.z, cornerRadiusPx };
+		DirectX::XMFLOAT4 p1{ maxX, minY, b.z, cornerRadiusPx };
+		DirectX::XMFLOAT4 p2{ maxX, maxY, b.z, cornerRadiusPx };
+		DirectX::XMFLOAT4 p3{ minX, maxY, b.z, cornerRadiusPx };
 
 		// Pack endpoints into Size
 		DirectX::XMFLOAT4 packedAB{ a.x, a.y, b.x, b.y };
 
-		// Pack thickness/aa/UIType into Texcoord
-		DirectX::XMFLOAT3 tc{ thicknessPx, aaPx, 4.0f };
+		// Pack thickness/Style/UIType into Texcoord
+		DirectX::XMFLOAT3 tc{ thicknessPx, (float)style, 4.0f };
 
 		auto push = [&](const DirectX::XMFLOAT4& pos, const DirectX::XMFLOAT3& tex)
 			{
 				sRenderer2DData->UIVertexBufferPtr->Position = pos;
 				sRenderer2DData->UIVertexBufferPtr->Size = packedAB;     // A.xy B.zw
 				sRenderer2DData->UIVertexBufferPtr->Color = color;
-				sRenderer2DData->UIVertexBufferPtr->Texcoord = tex;          // thickness, aa, UIType
+				sRenderer2DData->UIVertexBufferPtr->Texcoord = tex;          // thickness, style, UIType
 				sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
 				sRenderer2DData->UIVertexBufferPtr->TextureIndex = 0;
+				sRenderer2DData->UIVertexBufferPtr->Params = { outlineWidthPx, outlineColor.x, outlineColor.y, outlineColor.z };
 				sRenderer2DData->UIVertexBufferPtr++;
 			};
 
@@ -232,6 +246,9 @@ namespace Toast {
 	void Renderer2D::SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, DirectX::XMFLOAT4& clickColor, const int entityID, const bool textured, const bool clicked, uint32_t textureIndex, uint32_t clickTextureIndex)
 	{
 		TOAST_PROFILE_FUNCTION();
+
+		if (!HasRoomForQuad())
+			return;
 
 		DirectX::XMFLOAT4 UIVertexPositions[4];
 
@@ -287,6 +304,9 @@ namespace Toast {
 
 		for (int i = 0; i < textString.size(); i++)
 		{
+			if (!HasRoomForQuad())
+				return;
+
 			char32_t character = textString[i];
 			// New row
 			if (character == '\n')
@@ -423,7 +443,10 @@ namespace Toast {
 		{
 			Texture2D* atlas = font->GetFontAtlas().get();
 			if (!atlas)
+			{
+				TOAST_CORE_WARN("Renderer2D::LoadFontTextures: Font '%s' produced no atlas, skipping.", font->GetFilePath().c_str());
 				continue;
+			}
 
 			// Check initial data and row pitch before adding.
 			const void* data = atlas->GetInitialData();
@@ -469,9 +492,25 @@ namespace Toast {
 		);
 
 		// Optionally, map each array slice back to its originating file for later reference.
-		sRenderer2DData->FontsTextureArray->SetSliceMappingOLD(fontPaths);
+		sRenderer2DData->FontsTextureArray->SetSliceMappingOLD(validFontPaths);
 
 		TOAST_CORE_CRITICAL("Loaded %d number of fonts", fontAtlases.size());
+	}
+
+	bool Renderer2D::HasRoomForQuad()
+	{
+		if (sRenderer2DData->UIVertexBufferPtr + 4 > sRenderer2DData->UIVertexBufferEnd)
+		{
+			if (!sRenderer2DData->UIBufferOverflowed)
+			{
+				sRenderer2DData->UIBufferOverflowed = true;
+				TOAST_CORE_WARN("Renderer2D: UI vertex buffer full at %d elements, dropping the rest of this frame. Raise MaxUIElements.", sRenderer2DData->MaxUIElements);
+			}
+
+			return false;
+		}
+
+		return true;
 	}
 
 }

@@ -9,6 +9,8 @@
 
 namespace Toast {
 
+	enum class ConnectorStyle : uint8_t;
+
 	class Renderer2D : Renderer
 	{
 	private:
@@ -20,6 +22,14 @@ namespace Toast {
 			DirectX::XMFLOAT3 Texcoord;
 			uint32_t EntityID;
 			uint32_t TextureIndex;
+
+			// Per-element-type extra parameters. Meaning depends on the UIType
+			// in Texcoord.z, because there is no room to give each feature its
+			// own channel:
+			//   Panel  / Button : 9-slice insets, in source pixels (L, T, R, B)
+			//   Connector       : outline width, unused, unused, unused
+			//   Text            : unused
+			DirectX::XMFLOAT4 Params = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 			UIVertex() = default;
 
@@ -60,11 +70,15 @@ namespace Toast {
 			bool UIBuffersBound = false;
 			bool UITextBuffersBound = false;
 
-			const uint32_t MaxUIElements = 256;
+			const uint32_t MaxUIElements = 8192;
 			const uint32_t MaxUIVertices = MaxUIElements * 4;
 			const uint32_t MaxUIIndices = MaxUIElements * 6;
+
 			UIVertex* UIVertexBufferBase = nullptr;
 			UIVertex* UIVertexBufferPtr = nullptr;
+			UIVertex* UIVertexBufferEnd = nullptr;
+			bool UIBufferOverflowed;
+
 			Ref<VertexBuffer> UIVertexBuffer;
 			Ref<IndexBuffer> UIIndexBuffer;
 
@@ -86,12 +100,14 @@ namespace Toast {
 		static void EndScene();
 
 		static void SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, uint32_t textureIndex);
-		static void SubmitConnector(const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b, float thicknessPx, float aaPx, const DirectX::XMFLOAT4& color, int entityID);
+		static void SubmitConnector(const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b, float thicknessPx, ConnectorStyle style, float cornerRadiusPx, const DirectX::XMFLOAT4& color, float outlineWidthPx, const DirectX::XMFLOAT4& outlineColor, int entityID);
 		static void SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, DirectX::XMFLOAT4& clickColor, const int entityID, const bool textured, const bool clicked, uint32_t textureIndex, uint32_t clickTextureIndex);
 		static void SubmitText(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const std::string& textString, const uint32_t fontTextureIndex, const int entityID, const bool targetable);
 
 		static Renderer2DData* GetRendererData() { return sRenderer2DData.get(); }
 	private:
 		static void LoadFontTextures();
+
+		static bool HasRoomForQuad();
 	};
 }

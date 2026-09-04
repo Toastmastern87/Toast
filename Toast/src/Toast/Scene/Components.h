@@ -256,6 +256,13 @@ namespace Toast {
 			: Collider(collider) {}
 	};
 
+	enum class ConnectorStyle : uint8_t
+	{
+		Straight = 0, // A -> B
+		ElbowH = 1, // horizontal first, then vertical
+		ElbowV = 2, // vertical first, then horizontal
+	};
+
 	struct UIPanelComponent
 	{
 		struct UIConnector
@@ -266,6 +273,15 @@ namespace Toast {
 			DirectX::XMFLOAT2 ChildOffset = { 0.0f, 0.0f };
 			DirectX::XMFLOAT4 Color = { 0.0f, 0.0f, 0.0f, 0.0f };
 			float Thickness = 1.0f;
+
+			ConnectorStyle Style = ConnectorStyle::Straight;
+			float CornerRadius = 8.0f;
+
+			float OutlineWidth = 0.0f;
+			DirectX::XMFLOAT4 OutlineColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+			bool ClampToScreenEdge = false;
+			float ScreenEdgeMargin = 24.0f;
 		};
 
 		bool Visible = false;

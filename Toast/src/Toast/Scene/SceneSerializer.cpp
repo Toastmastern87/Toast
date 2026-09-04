@@ -528,6 +528,12 @@ namespace Toast {
 			out << YAML::Key << "ConnectorThickness" << YAML::Value << uipc.Connector.Thickness;
 			out << YAML::Key << "ConnectorChildOffset" << YAML::Value << uipc.Connector.ChildOffset;
 			out << YAML::Key << "ConnectorParentOffset" << YAML::Value << uipc.Connector.ParentOffset;
+			out << YAML::Key << "ConnectorClampToScreenEdge" << YAML::Value << uipc.Connector.ClampToScreenEdge;
+			out << YAML::Key << "ConnectorScreenEdgeMargin" << YAML::Value << uipc.Connector.ScreenEdgeMargin;
+			out << YAML::Key << "ConnectorStyle" << YAML::Value << (int)uipc.Connector.Style;
+			out << YAML::Key << "ConnectorCornerRadius" << YAML::Value << uipc.Connector.CornerRadius;
+			out << YAML::Key << "ConnectorOutlineWidth" << YAML::Value << uipc.Connector.OutlineWidth;
+			out << YAML::Key << "ConnectorOutlineColor" << YAML::Value << uipc.Connector.OutlineColor;
 
 			out << YAML::EndMap; // UIPanelComponent
 		}
@@ -1795,6 +1801,12 @@ namespace Toast {
 					uipc.Connector.Thickness = uiPanelComponent["ConnectorThickness"].as<float>();
 					uipc.Connector.ChildOffset = uiPanelComponent["ConnectorChildOffset"].as<DirectX::XMFLOAT2>();
 					uipc.Connector.ParentOffset = uiPanelComponent["ConnectorParentOffset"].as<DirectX::XMFLOAT2>();
+					uipc.Connector.ClampToScreenEdge = uiPanelComponent["ConnectorClampToScreenEdge"].as<bool>(false);
+					uipc.Connector.ScreenEdgeMargin = uiPanelComponent["ConnectorScreenEdgeMargin"].as<float>(24.0f);
+					uipc.Connector.Style = (ConnectorStyle)uiPanelComponent["ConnectorStyle"].as<int>(0);
+					uipc.Connector.CornerRadius = uiPanelComponent["ConnectorCornerRadius"].as<float>(0.0f);
+					uipc.Connector.OutlineWidth = uiPanelComponent["ConnectorOutlineWidth"].as<float>(0.0f);
+					uipc.Connector.OutlineColor = uiPanelComponent["ConnectorOutlineColor"].as<DirectX::XMFLOAT4>(DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 
 					uipc.TextureHandle = uiPanelComponent["TextureAssetHandle"].as<AssetHandle>();
 					uipc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(uipc.TextureHandle);
@@ -1826,9 +1838,7 @@ namespace Toast {
 					uitc.Font = CreateRef<Font>(uiTextComponent["AssetPath"].as<std::string>());
 					uitc.Text = uiTextComponent["Text"].as<std::string>();
 					uitc.Color = uiTextComponent["Color"].as<DirectX::XMFLOAT4>();
-
-					if (uiTextComponent["TextureIndex"])
-						uitc.TextureIndex = uiTextComponent["TextureIndex"].as<int>();
+					uitc.TextureIndex = uiTextComponent["TextureIndex"].as<int>(0);
 				}
 
 				auto particlesComponent = entity["ParticlesComponent"];
