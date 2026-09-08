@@ -16,6 +16,8 @@
 
 #include "Toast/Scripting/ScriptEngine.h"
 
+#include "Toast/Renderer/UI/UIStyleSystem.h"
+
 #include "Toast/Utils/PlatformUtils.h"
 
 #include "imgui/imgui_internal.h"
@@ -102,15 +104,18 @@ namespace Toast {
 		if (!serializer.Deserialize(projectFileOpt->string()))
 			TOAST_CORE_ERROR("Failed to load project: %s", projectFileOpt->string().c_str());
 
-		mProjectPanel.OnOpenSceneRequested = [this](UUID id) { OpenProjectScene(id); };
+		mProjectPanel.OnOpenSceneRequested = [this](UUID id) 
+			{ 
+				OpenProjectScene(id); 
+			};
 
-		mPropertiesPanel.SetOpenScriptCallback([this](const std::filesystem::path& path)
+		mPropertiesPanel.SetOpenFileCallback([this](const std::filesystem::path& path)
 			{
 				mScriptEditorPanel.OpenFile(path);
 				mScriptEditorPanel.SetOpen(true);   
 			});
 
-		mContentBrowserPanel.SetOpenScriptCallback([this](const std::filesystem::path& path)
+		mContentBrowserPanel.SetOpenFileCallback([this](const std::filesystem::path& path)
 			{
 				mScriptEditorPanel.OpenFile(path);
 				mScriptEditorPanel.SetOpen(true);
@@ -1096,6 +1101,9 @@ namespace Toast {
 		OpenScene(scenePath);
 		SetContexts();
 
+		UIStyleSystem::SetActiveScene(mEditorScene);
+		UIStyleSystem::StartFileWatcher();
+
 		mForceProjectPopup = false;
 
 		TOAST_CORE_INFO("Opened project: %s", mProject->GetName().c_str());
@@ -1131,6 +1139,8 @@ namespace Toast {
 
 		mRuntimeScene->OnRuntimeStart();
 		mSceneHierarchyPanel.SetContext(mRuntimeScene.get());
+
+		UIStyleSystem::SetActiveScene(nullptr);
 	}
 
 	void EditorLayer::OnScenePause()
@@ -1156,6 +1166,8 @@ namespace Toast {
 
 		mSceneHierarchyPanel.SetContext(mEditorScene);
 		mEditorScene->InvalidateFrustum();
+
+		UIStyleSystem::SetActiveScene(mEditorScene);
 	}
 
 	void EditorLayer::OpenProjectScene(UUID id)

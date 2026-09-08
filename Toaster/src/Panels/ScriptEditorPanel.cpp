@@ -75,11 +75,14 @@ namespace Toast {
 
 		ImGui::SameLine();
 
-		// Compile, always available if files has been changed outside of the editor
-		if (ImGui::Button(ICON_TOASTER_COG))
-			Compile();
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip("Compile all scripts");
+		if (mFileType == EditorFileType::CSharp)
+		{
+			// Compile, always available if files has been changed outside of the editor
+			if (ImGui::Button(ICON_TOASTER_COG))
+				Compile();
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("Compile all scripts");
+		}
 
 		// Right-aligned filename + dirty marker
 		if (!mCurrentFile.empty())
@@ -112,6 +115,20 @@ namespace Toast {
 
 	void ScriptEditorPanel::OpenFile(const std::filesystem::path& filepath)
 	{
+		mCurrentFile = filepath;
+
+		mFileType = (filepath.extension() == ".css") ? EditorFileType::StyleSheet : EditorFileType::CSharp;
+
+		switch (mFileType)
+		{
+		case EditorFileType::CSharp:
+			mEditor.SetLanguage(TextEditor::Language::Cs());
+			break;
+		case EditorFileType::StyleSheet:
+			mEditor.SetLanguage(TextEditor::Language::C());
+			break;
+		}
+
 		std::ifstream stream(filepath, std::ios::in | std::ios::binary);
 		if (!stream)
 		{
@@ -123,7 +140,6 @@ namespace Toast {
 		ss << stream.rdbuf();
 
 		mEditor.SetText(ss.str());
-		mCurrentFile = filepath;
 	}
 
 	bool ScriptEditorPanel::Save()

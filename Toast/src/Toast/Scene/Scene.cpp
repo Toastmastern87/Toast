@@ -1009,6 +1009,9 @@ namespace Toast {
 				{
 					auto [tc, uitc] = uiTextEntites.get<TransformComponent, UITextComponent>(entity);
 
+					if (!uitc.Visible)
+						continue;
+
 					Entity e{ entity, this };
 
 					bool renderText = true;
@@ -1796,6 +1799,9 @@ namespace Toast {
 				for (auto entity : uiTextEntites)
 				{
 					auto [tc, uitc] = uiTextEntites.get<TransformComponent, UITextComponent>(entity);
+
+					if (!uitc.Visible)
+						continue;
 
 					Entity e{ entity, this };
 

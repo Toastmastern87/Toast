@@ -263,6 +263,23 @@ namespace Toast {
 		ElbowV = 2, // vertical first, then horizontal
 	};
 
+	enum UIStyleProp : uint32_t
+	{
+		UIStyleProp_Background				= 1u << 0,
+		UIStyleProp_CornerRadius			= 1u << 1,
+		UIStyleProp_Visible					= 1u << 2,
+		UIStyleProp_UseColor				= 1u << 3,
+		UIStyleProp_BackgroundImage			= 1u << 4,
+		UIStyleProp_BackgroundClick			= 1u << 5,
+		UIStyleProp_BackgroundImageClick	= 1u << 6,
+	};
+
+	struct UIStyleRef 
+	{
+		AssetHandle Sheet;
+		uint32_t Overrides = 0;
+	};
+
 	struct UIPanelComponent
 	{
 		struct UIConnector
@@ -284,6 +301,8 @@ namespace Toast {
 			float ScreenEdgeMargin = 24.0f;
 		};
 
+		UIStyleRef Style;
+
 		bool Visible = false;
 		AssetHandle	TextureHandle = 0;
 		uint32_t TextureIndex = 0;
@@ -302,6 +321,8 @@ namespace Toast {
 
 	struct UITextComponent 
 	{
+		UIStyleRef Style;
+
 		bool Visible = false;
 		uint32_t TextureIndex = 0;
 
@@ -316,6 +337,8 @@ namespace Toast {
 
 	struct UIButtonComponent 
 	{
+		UIStyleRef Style;
+		 
 		bool Visible = false;
 		float CornerRadius = 0.0f;
 		bool UseColor = true;

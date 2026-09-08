@@ -6,6 +6,12 @@
 
 namespace Toast {
 
+	enum class EditorFileType : uint8_t 
+	{
+		CSharp = 0,
+		StyleSheet = 1,
+	};
+
 	class ScriptEditorPanel
 	{
 	public:
@@ -26,6 +32,8 @@ namespace Toast {
 	private:
 		TextEditor mEditor;
 		std::filesystem::path mCurrentFile;
+		EditorFileType mFileType = EditorFileType::CSharp;
+
 		int mSavedUndoIndex = 0;
 		bool mOpen = false;
 

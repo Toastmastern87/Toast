@@ -878,6 +878,73 @@ namespace Toast
 			}
 			return false;
 		}
+
+		std::string SanitiseFileName(const std::string& input)
+		{
+			std::string result;
+			result.reserve(input.size());
+
+			for (char c : input)
+			{
+				if (c == ' ')
+				{
+					result += '_';
+					continue;
+				}
+
+				// Path separators and the Windows-reserved set. Letting any of these
+				// through means create_directories writes somewhere unexpected.
+				if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|' || c == '.')
+					continue;
+
+				if ((unsigned char)c < 32)
+					continue;
+
+				result += c;
+			}
+
+			// Trim leading and trailing underscores so " name " doesn't become "_name_".
+			while (!result.empty() && result.front() == '_') result.erase(result.begin());
+			while (!result.empty() && result.back() == '_')  result.pop_back();
+
+			return result;
+		}
+
+		bool StyleOverrideMarker(UIStyleRef& style, uint32_t propBit, bool sheetSetsIt)
+		{
+			if (style.Sheet == AssetHandle(0))
+				return false;
+
+			ImGui::PushID((int)propBit);
+
+			bool reverted = false;
+
+			if (style.Overrides & propBit)
+			{
+				ImGui::SameLine();
+				if (ImGui::SmallButton("x"))
+				{
+					style.Overrides &= ~propBit;
+					reverted = true;
+				}
+
+				if (ImGui::IsItemHovered())
+					ImGui::SetTooltip("Overridden here. Click to revert to the stylesheet.");
+			}
+			else if (sheetSetsIt)
+			{
+				ImGui::SameLine();
+				ImGui::TextDisabled("css");
+
+				if (ImGui::IsItemHovered())
+					ImGui::SetTooltip("From the attached stylesheet. Edit to override.");
+			}
+
+			ImGui::PopID();
+
+			return reverted;
+		}
+
 	}
 
 }

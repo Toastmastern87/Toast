@@ -5,7 +5,10 @@
 #include "Toast/Renderer/Texture.h" 
 #include "Toast/Renderer/Shader.h"
 #include "Toast/Renderer/Material.h" 
-#include "Toast/Assets/AssetManager.h"   
+#include "Toast/Renderer/UI/StyleSheet.h"
+
+#include "Toast/Assets/AssetManager.h"  
+
 #include "Toast/Project/Project.h" 
 
 #include <yaml-cpp/yaml.h>   
@@ -386,6 +389,41 @@ namespace Toast {
 		return out.good();
 	}
 
+	bool AssetSerializer::SerializeStyleSheet(AssetHandle handle, const Ref<StyleSheet>& sheet, const std::filesystem::path& outputPath)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		if (!sheet)
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Cannot serialize a null StyleSheet");
+			return false;
+		}
+
+		std::filesystem::create_directories(outputPath.parent_path());
+
+		std::ofstream out(outputPath, std::ios::binary);
+		if (!out.is_open())
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Could not open '%s' for writing", outputPath);
+			return false;
+		}
+
+		// --- Header ---
+		TAssetHeader header;
+		header.Magic = TASSET_MAGIC;
+		header.AssetType = static_cast<uint16_t>(AssetType::StyleSheet);
+		header.Version = TASSET_VERSION;
+		header.Handle = static_cast<uint64_t>(handle);
+		out.write(reinterpret_cast<const char*>(&header), sizeof(header));
+
+		const StyleBlock& block = sheet->GetBlock();
+		out.write(reinterpret_cast<const char*>(&block), sizeof(StyleBlock));
+
+		TOAST_CORE_INFO("AssetSerializer: Baked StyleSheet (handle: %llu) -> '%s'", (uint64_t)handle, outputPath.string().c_str());
+
+		return true;
+	}
+
 	Ref<Texture2D> AssetSerializer::DeserializeTexture2D(const std::filesystem::path& inputPath)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -740,10 +778,56 @@ namespace Toast {
 
 		auto mesh = CreateRef<Mesh>(std::move(lodGroups), std::move(parts), std::move(lodThresholds), static_cast<PrimitiveTopology>(payload.Topology), payload.HasLODs != 0, payload.IsAnimated != 0, payload.Instanced != 0, payload.MaxNrOfIntanceObjects, inputPath.string());
 
-		TOAST_CORE_INFO("AssetSerializer: Loaded Mesh from '%s' (%u LODs, %u parts)",
-			inputPath.string().c_str(), payload.LODGroupCount, payload.PartCount);
+		TOAST_CORE_INFO("AssetSerializer: Loaded Mesh from '%s' (%u LODs, %u parts)", inputPath.string().c_str(), payload.LODGroupCount, payload.PartCount);
 
 		return mesh;
+	}
+
+	Ref<StyleSheet> AssetSerializer::DeserializeStyleSheet(const std::filesystem::path& inputPath)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		std::ifstream in(inputPath, std::ios::binary);
+		if (!in.is_open())
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Could not open '%s' for reading", inputPath.string().c_str());
+			return nullptr;
+		}
+
+		TAssetHeader header;
+		in.read(reinterpret_cast<char*>(&header), sizeof(header));
+		if (header.Magic != TASSET_MAGIC)
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Invalid magic number in '%s'", inputPath.string().c_str());
+			return nullptr;
+		}
+		if (header.AssetType != static_cast<uint16_t>(AssetType::Shader))
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Expected StyleSheet but got type %u in '%s'", header.AssetType, inputPath.string().c_str());
+			return nullptr;
+		}
+		if (header.Version > TASSET_VERSION)
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Unsupported version %u in '%s' (max %u)", header.Version, inputPath.string().c_str(), TASSET_VERSION);
+			return nullptr;
+		}
+
+		StyleBlock block;
+		in.read(reinterpret_cast<char*>(&block), sizeof(StyleBlock));
+
+		if (!in.good())
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Failed to read StyleBlock from '%s'", inputPath.string().c_str());
+			return nullptr;
+		}
+		in.close();
+
+		auto sheet = CreateRef<StyleSheet>();
+		sheet->SetBlock(block);
+
+		TOAST_CORE_INFO("AssetSerializer: Loaded StyleSheet from '%s'", inputPath.string().c_str());
+
+		return sheet;
 	}
 
 	bool AssetSerializer::ValidateFile(const std::filesystem::path& path, TAssetHeader& outHeader)

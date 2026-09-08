@@ -16,6 +16,7 @@
 
 #include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/Renderer2D.h"
+#include "Toast/Renderer/UI/UIStyleSystem.h"
 
 namespace YAML {
 
@@ -517,13 +518,25 @@ namespace Toast {
 			out << YAML::BeginMap; // UIPanelComponent
 
 			auto& uipc = entity.GetComponent<UIPanelComponent>();
-			out << YAML::Key << "Color" << YAML::Value << uipc.Color;
-			out << YAML::Key << "CornerRadius" << YAML::Value << uipc.CornerRadius;
-			out << YAML::Key << "TextureAssetHandle" << YAML::Value << uipc.TextureHandle;
-			out << YAML::Key << "UseColor" << YAML::Value << uipc.UseColor;
-			out << YAML::Key << "Visible" << YAML::Value << uipc.Visible;
-			out << YAML::Key << "ConnectToParent" << YAML::Value << uipc.ConnectToParent;
+			const bool unstyled = uipc.Style.Sheet == AssetHandle(0);
+			const uint32_t overrides = uipc.Style.Overrides;
 
+			if (unstyled || (overrides & UIStyleProp_Background))
+				out << YAML::Key << "Color" << YAML::Value << uipc.Color;
+
+			if (unstyled || (overrides & UIStyleProp_CornerRadius))
+				out << YAML::Key << "CornerRadius" << YAML::Value << uipc.CornerRadius;
+
+			if (unstyled || (overrides & UIStyleProp_BackgroundImage))
+				out << YAML::Key << "TextureAssetHandle" << YAML::Value << uipc.TextureHandle;
+
+			if (unstyled || (overrides & UIStyleProp_UseColor))
+				out << YAML::Key << "UseColor" << YAML::Value << uipc.UseColor;
+
+			if (unstyled || (overrides & UIStyleProp_Visible))
+				out << YAML::Key << "Visible" << YAML::Value << uipc.Visible;
+
+			out << YAML::Key << "ConnectToParent" << YAML::Value << uipc.ConnectToParent;
 			out << YAML::Key << "ConnectorColor" << YAML::Value << uipc.Connector.Color;
 			out << YAML::Key << "ConnectorThickness" << YAML::Value << uipc.Connector.Thickness;
 			out << YAML::Key << "ConnectorChildOffset" << YAML::Value << uipc.Connector.ChildOffset;
@@ -535,6 +548,9 @@ namespace Toast {
 			out << YAML::Key << "ConnectorOutlineWidth" << YAML::Value << uipc.Connector.OutlineWidth;
 			out << YAML::Key << "ConnectorOutlineColor" << YAML::Value << uipc.Connector.OutlineColor;
 
+			out << YAML::Key << "StyleSheet" << YAML::Value << (uint64_t)uipc.Style.Sheet;
+			out << YAML::Key << "StyleOverrides" << YAML::Value << uipc.Style.Overrides;
+
 			out << YAML::EndMap; // UIPanelComponent
 		}
 
@@ -544,13 +560,32 @@ namespace Toast {
 			out << YAML::BeginMap; // UIButtonComponent
 
 			auto& ubc = entity.GetComponent<UIButtonComponent>();
-			out << YAML::Key << "CornerRadius" << YAML::Value << ubc.CornerRadius;
-			out << YAML::Key << "UseColor" << YAML::Value << ubc.UseColor;
-			out << YAML::Key << "Color" << YAML::Value << ubc.Color;
-			out << YAML::Key << "ClickColor" << YAML::Value << ubc.ClickColor;
-			out << YAML::Key << "TextureAssetHandle" << YAML::Value << ubc.TextureHandle;
-			out << YAML::Key << "ClickTextureAssetHandle" << YAML::Value << ubc.ClickTextureHandle;
-			out << YAML::Key << "Visible" << YAML::Value << ubc.Visible;
+			const bool unstyled = ubc.Style.Sheet == AssetHandle(0);
+			const uint32_t overrides = ubc.Style.Overrides;
+
+			if (unstyled || (overrides & UIStyleProp_CornerRadius))
+				out << YAML::Key << "CornerRadius" << YAML::Value << ubc.CornerRadius;
+
+			if (unstyled || (overrides & UIStyleProp_UseColor))
+				out << YAML::Key << "UseColor" << YAML::Value << ubc.UseColor;
+
+			if (unstyled || (overrides & UIStyleProp_Background))
+				out << YAML::Key << "Color" << YAML::Value << ubc.Color;
+
+			if (unstyled || (overrides & UIStyleProp_BackgroundClick))
+				out << YAML::Key << "ClickColor" << YAML::Value << ubc.ClickColor;
+			
+			if (unstyled || (overrides & UIStyleProp_BackgroundImage))
+				out << YAML::Key << "TextureAssetHandle" << YAML::Value << ubc.TextureHandle;
+
+			if (unstyled || (overrides & UIStyleProp_BackgroundImageClick))
+				out << YAML::Key << "ClickTextureAssetHandle" << YAML::Value << ubc.ClickTextureHandle;
+
+			if (unstyled || (overrides & UIStyleProp_Visible))
+				out << YAML::Key << "Visible" << YAML::Value << ubc.Visible;
+
+			out << YAML::Key << "StyleSheet" << YAML::Value << (uint64_t)ubc.Style.Sheet;
+			out << YAML::Key << "StyleOverrides" << YAML::Value << ubc.Style.Overrides;
 
 			out << YAML::EndMap; // UIButtonComponent
 		}
@@ -561,10 +596,19 @@ namespace Toast {
 			out << YAML::BeginMap; // UITextComponent
 
 			auto& uitc = entity.GetComponent<UITextComponent>();
+			const bool unstyled = uitc.Style.Sheet == AssetHandle(0);
+			const uint32_t overrides = uitc.Style.Overrides;
+
 			out << YAML::Key << "AssetPath" << YAML::Value << uitc.Font->GetFilePath();
 			out << YAML::Key << "Text" << YAML::Value << uitc.Text;
 			out << YAML::Key << "TextureIndex" << YAML::Value << uitc.TextureIndex;
-			out << YAML::Key << "Color" << YAML::Value << uitc.Color;
+			if (unstyled || (overrides & UIStyleProp_Background))
+				out << YAML::Key << "Color" << YAML::Value << uitc.Color;
+			if (unstyled || (overrides & UIStyleProp_Visible))
+				out << YAML::Key << "Visible" << YAML::Value << uitc.Visible;
+
+			out << YAML::Key << "StyleSheet" << YAML::Value << (uint64_t)uitc.Style.Sheet;
+			out << YAML::Key << "StyleOverrides" << YAML::Value << uitc.Style.Overrides;
 
 			out << YAML::EndMap; // UITextComponent
 		}
@@ -1791,10 +1835,14 @@ namespace Toast {
 					auto& tc = deserializedEntity.GetComponent<TransformComponent>();
 					auto& uipc = deserializedEntity.AddComponent<UIPanelComponent>();
 					
-					uipc.Color = uiPanelComponent["Color"].as<DirectX::XMFLOAT4>();
-					uipc.CornerRadius = uiPanelComponent["CornerRadius"].as<float>();
-					uipc.UseColor = uiPanelComponent["UseColor"].as<bool>();
-					uipc.Visible = uiPanelComponent["Visible"].as<bool>();
+					if (uiPanelComponent["Color"])
+						uipc.Color = uiPanelComponent["Color"].as<DirectX::XMFLOAT4>();
+					if (uiPanelComponent["CornerRadius"])
+						uipc.CornerRadius = uiPanelComponent["CornerRadius"].as<float>();
+					if (uiPanelComponent["UseColor"])
+						uipc.UseColor = uiPanelComponent["UseColor"].as<bool>();
+					if (uiPanelComponent["Visible"])
+						uipc.Visible = uiPanelComponent["Visible"].as<bool>();
 					uipc.ConnectToParent = uiPanelComponent["ConnectToParent"].as<bool>();
 
 					uipc.Connector.Color = uiPanelComponent["ConnectorColor"].as<DirectX::XMFLOAT4>();
@@ -1808,8 +1856,14 @@ namespace Toast {
 					uipc.Connector.OutlineWidth = uiPanelComponent["ConnectorOutlineWidth"].as<float>(0.0f);
 					uipc.Connector.OutlineColor = uiPanelComponent["ConnectorOutlineColor"].as<DirectX::XMFLOAT4>(DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 
-					uipc.TextureHandle = uiPanelComponent["TextureAssetHandle"].as<AssetHandle>();
-					uipc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(uipc.TextureHandle);
+					if (uiPanelComponent["TextureAssetHandle"])
+					{
+						uipc.TextureHandle = uiPanelComponent["TextureAssetHandle"].as<AssetHandle>();
+						uipc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(uipc.TextureHandle);
+					}
+
+					uipc.Style.Sheet = AssetHandle(uiPanelComponent["StyleSheet"].as<uint64_t>(AssetHandle(0)));
+					uipc.Style.Overrides = uiPanelComponent["StyleOverrides"].as<uint32_t>(0);
 				}
 
 				auto uiButtonComponent = entity["UIButtonComponent"];
@@ -1817,17 +1871,31 @@ namespace Toast {
 				{
 					auto& ubc = deserializedEntity.AddComponent<UIButtonComponent>();
 
-					ubc.Color = uiButtonComponent["Color"].as<DirectX::XMFLOAT4>();
-					ubc.UseColor = uiButtonComponent["UseColor"].as<bool>();
-					ubc.ClickColor = uiButtonComponent["ClickColor"].as<DirectX::XMFLOAT4>();
-					ubc.CornerRadius = uiButtonComponent["CornerRadius"].as<float>();
-					ubc.Visible = uiButtonComponent["Visible"].as<bool>();
+					if (uiButtonComponent["Color"])
+						ubc.Color = uiButtonComponent["Color"].as<DirectX::XMFLOAT4>();
+					if (uiButtonComponent["UseColor"])
+						ubc.UseColor = uiButtonComponent["UseColor"].as<bool>();
+					if (uiButtonComponent["ClickColor"])
+						ubc.ClickColor = uiButtonComponent["ClickColor"].as<DirectX::XMFLOAT4>();
+					if (uiButtonComponent["CornerRadius"])
+						ubc.CornerRadius = uiButtonComponent["CornerRadius"].as<float>();
+					if (uiButtonComponent["Visible"])
+						ubc.Visible = uiButtonComponent["Visible"].as<bool>();
 
-					ubc.TextureHandle = uiButtonComponent["TextureAssetHandle"].as<AssetHandle>();
-					ubc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.TextureHandle);
+					if (uiButtonComponent["TextureAssetHandle"])
+					{
+						ubc.TextureHandle = uiButtonComponent["TextureAssetHandle"].as<AssetHandle>();
+						ubc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.TextureHandle);
+					}
 
-					ubc.ClickTextureHandle = uiButtonComponent["ClickTextureAssetHandle"].as<AssetHandle>();
-					ubc.ClickTextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.ClickTextureHandle);
+					if (uiButtonComponent["ClickTextureAssetHandle"])
+					{
+						ubc.ClickTextureHandle = uiButtonComponent["ClickTextureAssetHandle"].as<AssetHandle>();
+						ubc.ClickTextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.ClickTextureHandle);
+					}
+
+					ubc.Style.Sheet = AssetHandle(uiButtonComponent["StyleSheet"].as<uint64_t>(AssetHandle(0)));
+					ubc.Style.Overrides = uiButtonComponent["StyleOverrides"].as<uint32_t>(0);
 				}
 
 				auto uiTextComponent = entity["UITextComponent"];
@@ -1837,8 +1905,14 @@ namespace Toast {
 
 					uitc.Font = CreateRef<Font>(uiTextComponent["AssetPath"].as<std::string>());
 					uitc.Text = uiTextComponent["Text"].as<std::string>();
-					uitc.Color = uiTextComponent["Color"].as<DirectX::XMFLOAT4>();
+					if (uiTextComponent["Color"])
+						uitc.Color = uiTextComponent["Color"].as<DirectX::XMFLOAT4>();
+					if (uiTextComponent["Visible"])
+						uitc.Visible = uiTextComponent["Visible"].as<bool>();
 					uitc.TextureIndex = uiTextComponent["TextureIndex"].as<int>(0);
+
+					uitc.Style.Sheet = AssetHandle(uiTextComponent["StyleSheet"].as<uint64_t>(AssetHandle(0)));
+					uitc.Style.Overrides = uiTextComponent["StyleOverrides"].as<uint32_t>(0);
 				}
 
 				auto particlesComponent = entity["ParticlesComponent"];
@@ -1912,39 +1986,40 @@ namespace Toast {
 		if (planetMeshGeo->mNumLevels != 0 && planetMeshGeo->mGridSize != 0)
 			planetMeshGeo->Init();
 
-			if (scenePlanet->mStarFieldTexture2DHandle != AssetHandle(0))
+		if (scenePlanet->mStarFieldTexture2DHandle != AssetHandle(0))
+		{
+			Ref<Texture2D> starFieldTexture =
+				AssetManager::GetAsset<Texture2D>(scenePlanet->mStarFieldTexture2DHandle);
+
+			if (!starFieldTexture)
 			{
-				Ref<Texture2D> starFieldTexture =
-					AssetManager::GetAsset<Texture2D>(scenePlanet->mStarFieldTexture2DHandle);
+				TOAST_CORE_ERROR(
+					"Failed to load star field Texture2D. Handle: %llu",
+					static_cast<uint64_t>(scenePlanet->mStarFieldTexture2DHandle)
+				);
 
-				if (!starFieldTexture)
-				{
-					TOAST_CORE_ERROR(
-						"Failed to load star field Texture2D. Handle: %llu",
-						static_cast<uint64_t>(scenePlanet->mStarFieldTexture2DHandle)
-					);
-
-					return true;
-				}
-
-				scenePlanet->mStarFieldTextureCube = Renderer::CreateStarFieldTexture(AssetManager::GetAsset<Texture2D>(scenePlanet->mStarFieldTexture2DHandle).get());
-
-				scenePlanet->mStarFieldTextureCube->GenerateMips();
+				return true;
 			}
 
-			planetMeshGeo->mTempGridSize = planetMeshGeo->mGridSize;
-			planetMeshGeo->mTempNumLevels = planetMeshGeo->mNumLevels;
+			scenePlanet->mStarFieldTextureCube = Renderer::CreateStarFieldTexture(AssetManager::GetAsset<Texture2D>(scenePlanet->mStarFieldTexture2DHandle).get());
 
-			scenePlanet->mTerrainCubeData = Planet::LoadCubeData<float>(scenePlanet->mBaseHeightMapTextureCube);
-			scenePlanet->mAlbedoCubeData = Planet::LoadCubeData<uint32_t>(scenePlanet->mAlbedoMapTextureCube);
+			scenePlanet->mStarFieldTextureCube->GenerateMips();
+		}
 
-			SceneCamera* camera = mScene->GetMainCamera();
-			if (camera)
-				planetMeshGeo->GenerateDistanceLUT(planetMeshGeo->mNumLevels, scenePlanet->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mScene->GetViewportSize()));
+		planetMeshGeo->mTempGridSize = planetMeshGeo->mGridSize;
+		planetMeshGeo->mTempNumLevels = planetMeshGeo->mNumLevels;
 
-				Renderer::GenerateTransmittanceLUT(scenePlanet);
-				Renderer::GenerateMultiScatteringLUT(scenePlanet);
-		//}
+		scenePlanet->mTerrainCubeData = Planet::LoadCubeData<float>(scenePlanet->mBaseHeightMapTextureCube);
+		scenePlanet->mAlbedoCubeData = Planet::LoadCubeData<uint32_t>(scenePlanet->mAlbedoMapTextureCube);
+
+		SceneCamera* camera = mScene->GetMainCamera();
+		if (camera)
+			planetMeshGeo->GenerateDistanceLUT(planetMeshGeo->mNumLevels, scenePlanet->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mScene->GetViewportSize()));
+
+		Renderer::GenerateTransmittanceLUT(scenePlanet);
+		Renderer::GenerateMultiScatteringLUT(scenePlanet);
+
+		UIStyleSystem::ResolveAll(mScene);
 
 		return true;
 	}

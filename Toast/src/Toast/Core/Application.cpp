@@ -7,6 +7,7 @@
 
 #include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/UI/Font.h"
+#include "Toast/Renderer/UI/UIStyleSystem.h"
 
 #include "Toast/Scripting/ScriptEngine.h"
 
@@ -42,7 +43,7 @@ namespace Toast {
 		Renderer::Init(mWindow->GetWidth(), mWindow->GetHeight());
 
 		ScriptEngine::Init();
-
+		UIStyleSystem::Init();
 		Font::StaticInit();
 
 		mImGuiLayer = new ImGuiLayer();
@@ -60,7 +61,7 @@ namespace Toast {
 		AssetManager::Shutdown();
 
 		ScriptEngine::Shutdown();
-
+		UIStyleSystem::Shutdown();
 		Renderer::Shutdown();
 
 		RenderCommand::CleanUp();

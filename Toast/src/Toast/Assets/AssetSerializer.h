@@ -10,6 +10,7 @@ namespace Toast {
 	class Shader;
 	class Material;
 	class Mesh;
+	class StyleSheet;
 
 	// -----------------------------------------------------------------
 	// Binary .tasset format header — shared by serialize and deserialize.
@@ -143,11 +144,13 @@ namespace Toast {
 		static bool SerializeShader(AssetHandle handle, const Ref<Shader>& shader, const std::filesystem::path& outputPath);
 		static bool SerializeMaterial(AssetHandle handle, const Ref<Material>& material, const std::filesystem::path& outputPath);
 		static bool SerializeMesh(AssetHandle handle, const Ref<Mesh>& mesh, const std::filesystem::path& outputPath);
+		static bool SerializeStyleSheet(AssetHandle handle, const Ref<StyleSheet>& sheet, const std::filesystem::path& outputPath);
 
 		static Ref<Texture2D> DeserializeTexture2D(const std::filesystem::path& inputPath);
 		static Ref<Shader> DeserializeShader(const std::filesystem::path& inputPath);
 		static Ref<Material> DeserializeMaterial(const std::filesystem::path& inputPath);
 		static Ref<Mesh> DeserializeMesh(const std::filesystem::path& inputPath);
+		static Ref<StyleSheet> DeserializeStyleSheet(const std::filesystem::path& inputPath);
 
 		static bool ValidateFile(const std::filesystem::path& path, TAssetHeader& outHeader);
 	};

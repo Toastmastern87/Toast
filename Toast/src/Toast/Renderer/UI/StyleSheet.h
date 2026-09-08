@@ -1,0 +1,65 @@
+#pragma once
+
+#include "Toast/Assets/Asset.h"
+
+#include <DirectXMath.h>
+#include <filesystem>
+
+namespace Toast {
+
+	template<typename T>
+	struct StyleValue
+	{
+		T Value{};
+		bool Set = false;
+
+		void Assign(const T& v) { Value = v; Set = true; }
+	};
+
+	struct StyleBlock
+	{
+		StyleValue<DirectX::XMFLOAT4> Color;
+		StyleValue<DirectX::XMFLOAT4> Background;
+		StyleValue<DirectX::XMFLOAT4> BackgroundClick;
+		StyleValue<float> CornerRadius;
+		StyleValue<bool> Visible;
+		StyleValue<bool> UseColor;
+
+		StyleValue<AssetHandle> BackgroundImage;
+		StyleValue<AssetHandle> BackgroundClickImage;
+	};
+
+	static_assert(std::is_trivially_copyable_v<StyleBlock>, "StyleBlock must stay POD - AssetSerializer writes it directly!");
+
+	class StyleSheet : public Asset
+	{
+	public:
+		StyleSheet() = default;
+
+		bool ParseFromFile(const std::filesystem::path& filepath);
+		bool SaveToFile(const std::filesystem::path& filepath) const;
+
+		const StyleBlock& GetBlock() const { return mBlock; }
+
+		// Only used by AssetSerializer::DeserializeStyleSheet when loading a
+		// baked .tasset. The editor always populates mBlock by parsing.
+		void SetBlock(const StyleBlock& block) { mBlock = block; }
+
+		void SetTemplateDefaults()
+		{
+			mBlock = StyleBlock{};
+
+			mBlock.Background.Assign(DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+			mBlock.CornerRadius.Assign(0.0f);
+			mBlock.UseColor.Assign(true);
+			mBlock.Visible.Assign(true);
+		}
+
+		virtual bool IsValid() const { return true; }
+
+		virtual AssetType GetAssetType() const override { return AssetType::StyleSheet; }
+	private:
+		StyleBlock mBlock;
+	};
+
+}

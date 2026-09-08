@@ -2,6 +2,8 @@
 
 #include "Platform/Windows/WindowsWindow.h"
 
+#include "Toast/Scene/Components.h"
+
 #include "Toast/Core/Math/Vector.h"
 
 #include "../vendor/imgui/imgui.h"
@@ -15,6 +17,7 @@ namespace Toast
 {
 	namespace ImGuiHelpers
 	{
+#define STYLE_MARKER_WIDTH 34.0f
 
 		bool ManualDragFloat(const char* label, float& value, WindowsWindow* window, std::string& activeDragArea, float speed = 0.1f, ImVec2 dragAreaSize = { 10.0f, 10.0f }, const char* displayFormat = "%.1f", float minVal = -DBL_MAX, float maxVal = FLT_MAX);
 		bool ManualDragFloat2(const std::string& label, DirectX::XMFLOAT2& values, float speed, float resetValue, WindowsWindow* window, std::string& activeDragArea, const char* displayFormat = "%.1f", bool colorValues = false, float overrideTotalWidth = 0.0f);
@@ -28,5 +31,9 @@ namespace Toast
 		bool ManualDragFloat3Scaled(const std::string& label, DirectX::XMFLOAT3& stored, int exp10, float speedMantissa, float resetStored, WindowsWindow* window, std::string& activeDragArea, const char* displayFormat, bool colorValues, float overrideTotalWidth = 0.0f);
 
 		bool DragInt16(const char* label, int16_t* value, float speed, int min, int max);
+
+		std::string SanitiseFileName(const std::string& input);
+
+		bool StyleOverrideMarker(UIStyleRef& style, uint32_t propBit, bool sheetSetsIt);
 	}
 }

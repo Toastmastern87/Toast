@@ -128,8 +128,8 @@ namespace Toast {
 					for (auto& c : ext)
 						c = (char)std::tolower(c);
 
-					if (ext == ".cs" && mOpenScriptCallback)
-						mOpenScriptCallback(path);
+					if ((ext == ".cs" || ext == ".css") && mOpenFileCallback)
+						mOpenFileCallback(path);
 				}
 			}
 			ImGui::TextWrapped(filenameStr.c_str());

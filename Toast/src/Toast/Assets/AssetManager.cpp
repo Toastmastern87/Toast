@@ -7,6 +7,7 @@
 #include "Toast/Project/Project.h"
 
 #include "Toast/Renderer/Texture.h"
+#include "Toast/Renderer/UI/StyleSheet.h"
 
 #include "Toast/Scripting/Script.h"
 
@@ -177,14 +178,23 @@ namespace Toast {
 
 	void AssetManager::ReloadAsset(AssetHandle handle)
 	{
+		TOAST_PROFILE_FUNCTION();
+
 		AssetEntry* entry = GetActiveRegistry().Get(handle);
-		if (!entry || !entry->Resource) return;
+		if (!entry || !entry->Resource) 
+			return;
+
+		auto sourcePath = sActiveProject->GetAssetDirectory() / entry->Metadata.FilePath;
 
 		if (entry->Metadata.Type == AssetType::Shader)
 		{
 			auto shader = std::static_pointer_cast<Shader>(entry->Resource);
-			auto sourcePath = sActiveProject->GetAssetDirectory() / entry->Metadata.FilePath;
 			shader->Invalidate(sourcePath.string());
+		}
+		else if (entry->Metadata.Type == AssetType::StyleSheet)
+		{
+			auto sheet = std::static_pointer_cast<StyleSheet>(entry->Resource);
+			sheet->ParseFromFile(sourcePath);
 		}
 	}
 
@@ -274,6 +284,15 @@ namespace Toast {
 		case AssetType::Script:
 			asset = CreateRef<Script>();
 			break;
+		case AssetType::StyleSheet:
+		{
+			auto sheet = CreateRef<StyleSheet>();
+			if (!sheet->ParseFromFile(fullPath))
+				TOAST_CORE_WARN("AssetManager: StyleSheet '%s' had parser error", fullPath.string().c_str());
+
+			asset = sheet;
+			break;
+		}
 		default:
 			TOAST_CORE_ERROR("AssetManager: No loader for asset type %s", AssetTypeToString(entry->Metadata.Type));
 			return false;
@@ -498,6 +517,12 @@ namespace Toast {
 			}
 			case AssetType::Script:
 				continue;   // scripts ship compiled into the DLL, not as .tasset
+			case AssetType::StyleSheet:
+			{
+				auto sheet = std::static_pointer_cast<StyleSheet>(entry.Resource);
+				success = AssetSerializer::SerializeStyleSheet(handle, sheet, fullOutputPath);
+				break;
+			}
 			default:
 				TOAST_CORE_WARN("AssetManager::Build: No baking support for asset type %s, skipping.", AssetTypeToString(entry.Metadata.Type));
 				continue;
@@ -535,6 +560,8 @@ namespace Toast {
 			return AssetType::Mesh;
 		if (ext == ".cs")
 			return AssetType::Script;
+		if (ext == ".css")
+			return AssetType::StyleSheet;
 
 		return AssetType::None;
 	}
