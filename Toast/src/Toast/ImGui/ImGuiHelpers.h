@@ -2,6 +2,7 @@
 
 #include "Platform/Windows/WindowsWindow.h"
 
+#include "Toast/Scene/Entity.h"
 #include "Toast/Scene/Components.h"
 
 #include "Toast/Core/Math/Vector.h"
@@ -35,5 +36,8 @@ namespace Toast
 		std::string SanitiseFileName(const std::string& input);
 
 		bool StyleOverrideMarker(UIStyleRef& style, uint32_t propBit, bool sheetSetsIt);
+		bool StyleSheetSlot(UIStyleRef& style, Entity entity, char* nameBuffer, size_t nameBufferSize, const std::function<void(const std::filesystem::path&)>& openFileCallback);
+
+		bool TextureSlotRow(const char* label, AssetHandle currentHandle, const std::filesystem::path& assetRoot, const std::filesystem::path& browseStartDirectory, std::string& outFilepath, float thumbnailSize = 64.0f);
 	}
 }

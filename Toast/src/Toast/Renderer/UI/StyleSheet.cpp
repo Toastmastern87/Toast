@@ -225,6 +225,29 @@ namespace Toast {
 		return false;
 	}
 
+	static bool ParseDuration(const std::string& text, float& outSeconds)
+	{
+		std::string number = text;
+		float scale = 1.0f;
+
+		if (number.size() > 2 && number.compare(number.size() - 2, 2, "ms") == 0)
+		{
+			number = number.substr(0, number.size() - 2);
+			scale = 0.001f;
+		}
+		else if (number.size() > 1 && number.back() == 's')
+		{
+			number.pop_back();
+		}
+
+		float value;
+		if (!ParseNumber(number, value))
+			return false;
+
+		outSeconds = value * scale;
+		return true;
+	}
+
 #define UI_TEXTURE_DIRECTORY "Texture/UI"
 	
 	static bool ResolveUITexture(const std::string& filename, AssetHandle& outHandle)
@@ -242,8 +265,51 @@ namespace Toast {
 		return true;
 	}
 
+	static bool MatchStateProperty(const std::string& property, const char* base, UIState& outState)
+	{
+		const size_t baseLength = strlen(base);
+
+		if (property.size() < baseLength || property.compare(0, baseLength, base) != 0)
+			return false;
+
+		const std::string suffix = property.substr(baseLength);
+
+		if (suffix.empty()) { outState = UIState::Normal; return true; }
+		if (suffix == "-hover") { outState = UIState::Hover;   return true; }
+		if (suffix == "-pressed") { outState = UIState::Pressed; return true; }
+		if (suffix == "-active") { outState = UIState::Active;  return true; }
+
+		// "-click" is the pre-state name for what is now "-active". Kept so
+		// stylesheets written before states keep working.
+		if (suffix == "-click") { outState = UIState::Active; return true; }
+
+		return false;
+	}
+
 	static bool ApplyDeclaration(StyleBlock& block, const std::string& property, const std::string& value)
 	{
+		UIState state;
+
+		if (MatchStateProperty(property, "background-image", state))
+		{
+			AssetHandle handle;
+			if (!ResolveUITexture(value, handle))
+				return false;
+
+			block.BackgroundImageState[(size_t)state].Assign(handle);
+			return true;
+		}
+
+		if (MatchStateProperty(property, "background", state))
+		{
+			DirectX::XMFLOAT4 c;
+			if (!ParseColor(value, c))
+				return false;
+
+			block.BackgroundState[(size_t)state].Assign(c);
+			return true;
+		}
+
 		if (property == "color")
 		{
 			DirectX::XMFLOAT4 c;
@@ -251,26 +317,6 @@ namespace Toast {
 				return false;
 
 			block.Color.Assign(c);
-			return true;
-		}
-
-		if (property == "background")
-		{
-			DirectX::XMFLOAT4 c;
-			if (!ParseColor(value, c))
-				return false;
-
-			block.Background.Assign(c);
-			return true;
-		}
-
-		if (property == "background-click")
-		{
-			DirectX::XMFLOAT4 c;
-			if (!ParseColor(value, c))
-				return false;
-
-			block.BackgroundClick.Assign(c);
 			return true;
 		}
 
@@ -300,18 +346,17 @@ namespace Toast {
 			if (!ParseBool(value, b))
 				return false;
 
-
 			block.UseColor.Assign(b);
 			return true;
 		}
 
-		if (property == "background-image")
+		if (property == "transition")
 		{
-			AssetHandle handle;
-			if (!ResolveUITexture(value, handle))
+			float seconds;
+			if (!ParseDuration(value, seconds))
 				return false;
 
-			block.BackgroundImage.Assign(handle);
+			block.TransitionSeconds.Assign(seconds);
 			return true;
 		}
 
@@ -393,7 +438,7 @@ namespace Toast {
 			return false;
 		}
 
-		auto writeColor = [&out](const char* name, const StyleValue<DirectX::XMFLOAT4>& v)
+		auto writeColor = [&out](const std::string& name, const StyleValue<DirectX::XMFLOAT4>& v)
 			{
 				if (!v.Set)
 					return;
@@ -406,9 +451,12 @@ namespace Toast {
 					<< std::dec << ";\n";
 			};
 
+		const char* stateSuffixes[] = { "", "-hover", "-pressed", "-active" };
+
+		for (uint32_t i = 0; i < (uint32_t)UIState::Count; i++)
+			writeColor(std::string("background") + stateSuffixes[i], mBlock.BackgroundState[i]);
+
 		writeColor("color", mBlock.Color);
-		writeColor("background", mBlock.Background);
-		writeColor("background-click", mBlock.BackgroundClick);
 
 		if (mBlock.CornerRadius.Set)
 			out << "corner-radius: " << mBlock.CornerRadius.Value << ";\n";
@@ -416,11 +464,16 @@ namespace Toast {
 			out << "visible: " << mBlock.Visible.Value << ";\n";
 		if (mBlock.UseColor.Set)
 			out << "use-color: " << mBlock.UseColor.Value << ";\n";
+		if (mBlock.TransitionSeconds.Set)
+			out << "transition: " << (int)(mBlock.TransitionSeconds.Value * 1000.0f) << "ms;\n";
 
-		if (mBlock.BackgroundImage.Set)
+		for (uint32_t i = 0; i < (uint32_t)UIState::Count; i++)
 		{
-			if(const AssetMetadata* metadata = AssetManager::GetMetadata(mBlock.BackgroundImage.Value))
-				out << "background-image: " << metadata->FilePath.filename().string() << ";\n";
+			if (!mBlock.BackgroundImageState[i].Set)
+				continue;
+
+			if (const AssetMetadata* metadata = AssetManager::GetMetadata(mBlock.BackgroundImageState[i].Value))
+				out << "background-image" << stateSuffixes[i] << ": " << metadata->FilePath.filename().string() << ";\n";
 		}
 
 		return true;

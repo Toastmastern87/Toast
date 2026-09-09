@@ -405,6 +405,8 @@ namespace Toast {
 		OutlineSettings ResolveOutlineSettings(Entity selected);
 
 		bool ProjectConnectorAnchor(DirectX::XMVECTOR worldPos, DirectX::XMMATRIX viewMatrix, DirectX::XMMATRIX projectionMatrix, bool clampToEdge, float margin, DirectX::XMFLOAT2& outScreenPos);
+
+		void UpdateUIButtons(float ts);
 	private:
 		UUID mSceneID;
 		std::string mName;
@@ -461,6 +463,10 @@ namespace Toast {
 		bool mPositionReadbackPending = false;
 		DirectX::XMFLOAT3 mLastPickedWorldPos;
 		bool mLastPickedValid = false;
+
+		entt::entity mUIPressedEntity = entt::null;
+		entt::entity mUIReleasedEntity = entt::null;
+		bool mUIReleaseOccurred = false;
 
 		friend class Entity;
 		friend class Renderer;

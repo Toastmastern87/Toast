@@ -243,7 +243,7 @@ namespace Toast {
 		push(p3, tc);
 	}
 
-	void Renderer2D::SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, DirectX::XMFLOAT4& clickColor, const int entityID, const bool textured, const bool clicked, uint32_t textureIndex, uint32_t clickTextureIndex)
+	void Renderer2D::SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, const DirectX::XMFLOAT4& color, const int entityID, const bool textured, uint32_t textureIndex)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -253,10 +253,6 @@ namespace Toast {
 		DirectX::XMFLOAT4 UIVertexPositions[4];
 
 		float texturedF = textured == true ? 1.0f : 0.0f;
-
-		uint32_t finalTexIndex = clicked == true ? clickTextureIndex : textureIndex;
-
-		DirectX::XMFLOAT4 finalColor = clicked == true ? clickColor : color;
 
 		DirectX::XMFLOAT3 textureCoords[] = { DirectX::XMFLOAT3(0.0f, 0.0f, 3.0f), DirectX::XMFLOAT3(1.0f, 0.0f, 3.0f), DirectX::XMFLOAT3(1.0f, 1.0f, 3.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 3.0f) };
 
@@ -269,10 +265,10 @@ namespace Toast {
 		{
 			sRenderer2DData->UIVertexBufferPtr->Position = UIVertexPositions[i];
 			sRenderer2DData->UIVertexBufferPtr->Size = size;
-			sRenderer2DData->UIVertexBufferPtr->Color = finalColor;
+			sRenderer2DData->UIVertexBufferPtr->Color = color;
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = textureCoords[i];
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
-			sRenderer2DData->UIVertexBufferPtr->TextureIndex = finalTexIndex;
+			sRenderer2DData->UIVertexBufferPtr->TextureIndex = textureIndex;
 			sRenderer2DData->UIVertexBufferPtr++;
 		}
 	}

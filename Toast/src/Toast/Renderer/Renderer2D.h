@@ -101,7 +101,7 @@ namespace Toast {
 
 		static void SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, uint32_t textureIndex);
 		static void SubmitConnector(const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b, float thicknessPx, ConnectorStyle style, float cornerRadiusPx, const DirectX::XMFLOAT4& color, float outlineWidthPx, const DirectX::XMFLOAT4& outlineColor, int entityID);
-		static void SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, DirectX::XMFLOAT4& clickColor, const int entityID, const bool textured, const bool clicked, uint32_t textureIndex, uint32_t clickTextureIndex);
+		static void SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, const DirectX::XMFLOAT4& color, const int entityID, const bool textured, uint32_t textureIndex);
 		static void SubmitText(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const std::string& textString, const uint32_t fontTextureIndex, const int entityID, const bool targetable);
 
 		static Renderer2DData* GetRendererData() { return sRenderer2DData.get(); }

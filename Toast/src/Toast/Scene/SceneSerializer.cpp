@@ -569,20 +569,26 @@ namespace Toast {
 			if (unstyled || (overrides & UIStyleProp_UseColor))
 				out << YAML::Key << "UseColor" << YAML::Value << ubc.UseColor;
 
-			if (unstyled || (overrides & UIStyleProp_Background))
-				out << YAML::Key << "Color" << YAML::Value << ubc.Color;
-
-			if (unstyled || (overrides & UIStyleProp_BackgroundClick))
-				out << YAML::Key << "ClickColor" << YAML::Value << ubc.ClickColor;
-			
-			if (unstyled || (overrides & UIStyleProp_BackgroundImage))
-				out << YAML::Key << "TextureAssetHandle" << YAML::Value << ubc.TextureHandle;
-
-			if (unstyled || (overrides & UIStyleProp_BackgroundImageClick))
-				out << YAML::Key << "ClickTextureAssetHandle" << YAML::Value << ubc.ClickTextureHandle;
-
 			if (unstyled || (overrides & UIStyleProp_Visible))
 				out << YAML::Key << "Visible" << YAML::Value << ubc.Visible;
+
+			if (unstyled || (overrides & UIStyleProp_Transition))
+				out << YAML::Key << "TransitionSeconds" << YAML::Value << ubc.TransitionSeconds;
+
+			out << YAML::Key << "LatchOnClick" << YAML::Value << ubc.LatchOnClick;
+
+			const char* stateKeys[] = { "0", "1", "2" };
+
+			for (uint32_t i = 0; i < (uint32_t)UIState::Count; i++)
+			{
+				const UIState state = (UIState)i;
+
+				if (unstyled || (overrides & StatePropBit(UIStyleProp_Background, state)))
+					out << YAML::Key << (std::string("StateColor") + stateKeys[i]) << YAML::Value << ubc.States[i].Color;
+
+				if (unstyled || (overrides & StatePropBit(UIStyleProp_BackgroundImage, state)))
+					out << YAML::Key << (std::string("StateTexture") + stateKeys[i]) << YAML::Value << ubc.States[i].TextureHandle;
+			}
 
 			out << YAML::Key << "StyleSheet" << YAML::Value << (uint64_t)ubc.Style.Sheet;
 			out << YAML::Key << "StyleOverrides" << YAML::Value << ubc.Style.Overrides;
@@ -1871,27 +1877,29 @@ namespace Toast {
 				{
 					auto& ubc = deserializedEntity.AddComponent<UIButtonComponent>();
 
-					if (uiButtonComponent["Color"])
-						ubc.Color = uiButtonComponent["Color"].as<DirectX::XMFLOAT4>();
 					if (uiButtonComponent["UseColor"])
 						ubc.UseColor = uiButtonComponent["UseColor"].as<bool>();
-					if (uiButtonComponent["ClickColor"])
-						ubc.ClickColor = uiButtonComponent["ClickColor"].as<DirectX::XMFLOAT4>();
 					if (uiButtonComponent["CornerRadius"])
 						ubc.CornerRadius = uiButtonComponent["CornerRadius"].as<float>();
 					if (uiButtonComponent["Visible"])
 						ubc.Visible = uiButtonComponent["Visible"].as<bool>();
+					if (uiButtonComponent["LatchOnClick"])
+						ubc.LatchOnClick = uiButtonComponent["LatchOnClick"].as<bool>();
+					if (uiButtonComponent["TransitionSeconds"])
+						ubc.TransitionSeconds = uiButtonComponent["TransitionSeconds"].as<float>();
 
-					if (uiButtonComponent["TextureAssetHandle"])
-					{
-						ubc.TextureHandle = uiButtonComponent["TextureAssetHandle"].as<AssetHandle>();
-						ubc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.TextureHandle);
-					}
+					const char* stateKeys[] = { "0", "1", "2", "3" };
 
-					if (uiButtonComponent["ClickTextureAssetHandle"])
+					for (uint32_t i = 0; i < (uint32_t)UIState::Count; i++)
 					{
-						ubc.ClickTextureHandle = uiButtonComponent["ClickTextureAssetHandle"].as<AssetHandle>();
-						ubc.ClickTextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.ClickTextureHandle);
+						if (auto node = uiButtonComponent[std::string("StateColor") + stateKeys[i]])
+							ubc.States[i].Color = node.as<DirectX::XMFLOAT4>();
+
+						if (auto node = uiButtonComponent[std::string("StateTexture") + stateKeys[i]])
+						{
+							ubc.States[i].TextureHandle = node.as<AssetHandle>();
+							ubc.States[i].TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.States[i].TextureHandle);
+						}
 					}
 
 					ubc.Style.Sheet = AssetHandle(uiButtonComponent["StyleSheet"].as<uint64_t>(AssetHandle(0)));

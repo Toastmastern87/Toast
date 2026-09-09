@@ -263,21 +263,41 @@ namespace Toast {
 		ElbowV = 2, // vertical first, then horizontal
 	};
 
+	enum class UIState : uint8_t
+	{
+		Normal = 0,
+		Hover = 1,
+		Pressed = 2,   
+		Active = 3,   
+
+		Count = 4
+	};
+
 	enum UIStyleProp : uint32_t
 	{
-		UIStyleProp_Background				= 1u << 0,
-		UIStyleProp_CornerRadius			= 1u << 1,
-		UIStyleProp_Visible					= 1u << 2,
-		UIStyleProp_UseColor				= 1u << 3,
-		UIStyleProp_BackgroundImage			= 1u << 4,
-		UIStyleProp_BackgroundClick			= 1u << 5,
-		UIStyleProp_BackgroundImageClick	= 1u << 6,
+		UIStyleProp_Background			= 1u << 0,   // 0..3
+		UIStyleProp_BackgroundImage		= 1u << 4,   // 4..7
+
+		UIStyleProp_CornerRadius		= 1u << 8,
+		UIStyleProp_Visible				= 1u << 9,
+		UIStyleProp_UseColor			= 1u << 10,
+		UIStyleProp_Color				= 1u << 11, 
+		UIStyleProp_Transition			= 1u << 12,
 	};
+
+	inline uint32_t StatePropBit(uint32_t baseBit, UIState state) { return baseBit << (uint32_t)state; }
 
 	struct UIStyleRef 
 	{
 		AssetHandle Sheet;
 		uint32_t Overrides = 0;
+	};
+
+	struct UIStateStyle
+	{
+		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		AssetHandle TextureHandle = 0;
+		uint32_t TextureIndex = 0;
 	};
 
 	struct UIPanelComponent
@@ -342,14 +362,16 @@ namespace Toast {
 		bool Visible = false;
 		float CornerRadius = 0.0f;
 		bool UseColor = true;
-		bool IsClicked = false;
+		bool LatchOnClick = false;
+		bool Toggled = false;
+		float TransitionSeconds = 0.0f;
 
-		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
-		DirectX::XMFLOAT4 ClickColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-		AssetHandle	TextureHandle = 0;
-		uint32_t TextureIndex = 0;
-		AssetHandle	ClickTextureHandle = 0;
-		uint32_t ClickTextureIndex = 0;
+		UIStateStyle BlendFrom;
+		UIStateStyle Blended;
+		float StateBlend = 1.0f;
+
+		UIStateStyle States[(size_t)UIState::Count];
+		UIState CurrentState = UIState::Normal;
 
 		UIButtonComponent() = default;
 		UIButtonComponent(const UIButtonComponent&) = default;

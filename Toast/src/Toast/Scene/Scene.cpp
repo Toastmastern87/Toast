@@ -171,12 +171,12 @@ namespace Toast {
 		if (mHoveredEntity != entt::null)
 		{
 			Entity entity = { mHoveredEntity, this };
-			UUID uuid = entity.GetComponent<IDComponent>().ID;
-			std::string tag = entity.GetComponent<TagComponent>().Tag;
+
 			if (entity.HasComponent<ScriptComponent>() && !entity.HasComponent<UIButtonComponent>() && ScriptEngine::IsGameDLLLoaded())
 				ScriptEngine::OnEventEntity(entity);
+
 			if (entity.HasComponent<UIButtonComponent>())
-				entity.GetComponent<UIButtonComponent>().IsClicked = true;
+				mUIPressedEntity = mHoveredEntity;
 		}
 
 		auto view = mRegistry.view<SceneScriptComponent>();
@@ -201,11 +201,8 @@ namespace Toast {
 				ScriptEngine::OnEventEntity(entity);
 		}
 
-		for (auto buttonEntity : buttonView)
-		{
-			Entity e = { buttonEntity, this };
-			e.GetComponent<UIButtonComponent>().IsClicked = false;
-		}
+		mUIReleaseOccurred = true;
+		mUIReleasedEntity = mHoveredEntity;
 
 		return true;
 	}
@@ -733,6 +730,11 @@ namespace Toast {
 				}
 			}
 
+			// UI System
+			{
+				UpdateUIButtons(ts* mTimeScale);
+			}
+
 			// 3D Rendering
 			Renderer::BeginScene(this, *mMainCamera, cameraPosFloat, mEnvironment, static_cast<int>(mSettings.WireframeRendering));
 			{
@@ -1000,7 +1002,10 @@ namespace Toast {
 					uiPos.y += (mViewportHeight * 0.5f);
 
 					if (renderButton)
-						Renderer2D::SubmitButton(uiPos, { tc.Scale.x, tc.Scale.y, ubc.CornerRadius, 1.0f }, ubc.Color, ubc.ClickColor, (int)entity, !ubc.UseColor, ubc.IsClicked, ubc.TextureIndex, ubc.ClickTextureIndex);
+					{
+						const auto& state = ubc.Blended;
+						Renderer2D::SubmitButton(uiPos, { tc.Scale.x, tc.Scale.y, ubc.CornerRadius, 1.0f }, state.Color, (int)entity, !ubc.UseColor, state.TextureIndex);
+					}
 				}
 
 				//Texts
@@ -1790,8 +1795,11 @@ namespace Toast {
 					uiPos.x += (mViewportWidth * 0.5f);
 					uiPos.y += (mViewportHeight * 0.5f);
 
-					if(renderButton)
-						Renderer2D::SubmitButton(uiPos, { tc.Scale.x, tc.Scale.y, ubc.CornerRadius, 1.0f }, ubc.Color, ubc.ClickColor, (int)entity, !ubc.UseColor, ubc.IsClicked, ubc.TextureIndex, ubc.ClickTextureIndex);
+					if (renderButton)
+					{
+						const auto& state = ubc.States[(size_t)ubc.CurrentState];
+						Renderer2D::SubmitButton(uiPos, { tc.Scale.x, tc.Scale.y, ubc.CornerRadius, 1.0f }, state.Color, (int)entity, !ubc.UseColor, state.TextureIndex);
+					}
 				}
 
 				//Texts
@@ -2597,6 +2605,72 @@ namespace Toast {
 		outScreenPos = { halfWidth + dirX * scale, halfHeight + dirY * scale };
 
 		return true;
+	}
+
+	void Scene::UpdateUIButtons(float ts)
+	{
+		if (mUIReleaseOccurred)
+		{
+			if (mUIPressedEntity != entt::null && mUIPressedEntity == mUIReleasedEntity)
+			{
+				Entity entity = { mUIPressedEntity, this };
+
+				if (entity.HasComponent<UIButtonComponent>())
+				{
+					auto& button = entity.GetComponent<UIButtonComponent>();
+
+					if (button.LatchOnClick)
+						button.Toggled = !button.Toggled;
+
+					if (entity.HasComponent<ScriptComponent>() && ScriptEngine::IsGameDLLLoaded())
+						ScriptEngine::OnEventEntity(entity);
+				}
+			}
+
+			mUIPressedEntity = entt::null;
+			mUIReleaseOccurred = false;
+			mUIReleasedEntity = entt::null;
+		}
+
+
+		auto buttonView = mRegistry.view<UIButtonComponent>();
+		for (auto entityID : buttonView)
+		{
+			auto& button = buttonView.get<UIButtonComponent>(entityID);
+
+			UIState next;
+
+			if (entityID == mUIPressedEntity)
+				next = UIState::Pressed;
+			else if (button.Toggled)
+				next = UIState::Active;
+			else if (entityID == mHoveredEntity)
+				next = UIState::Hover;
+			else
+				next = UIState::Normal;
+
+			if (next != button.CurrentState)
+			{
+				button.BlendFrom = button.Blended;
+				button.StateBlend = 0.0f;
+
+				button.CurrentState = next;
+			}
+
+			if (button.TransitionSeconds > 0.0f)
+				button.StateBlend = std::min(button.StateBlend + ts / button.TransitionSeconds, 1.0f);
+			else
+				button.StateBlend = 1.0f;
+
+			const auto& target = button.States[(size_t)button.CurrentState];
+
+			const float t = button.StateBlend * button.StateBlend * (3.0f - 2.0f * button.StateBlend);
+
+			DirectX::XMStoreFloat4(&button.Blended.Color, DirectX::XMVectorLerp(DirectX::XMLoadFloat4(&button.BlendFrom.Color), DirectX::XMLoadFloat4(&target.Color), t));
+
+			button.Blended.TextureHandle = target.TextureHandle;
+			button.Blended.TextureIndex = target.TextureIndex;
+		}
 	}
 
 	template<>

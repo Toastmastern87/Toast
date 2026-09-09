@@ -1080,23 +1080,23 @@ namespace Toast {
 
 #pragma region UI Button Component
 
-	void UIButtonComponent_GetColor(uint64_t entityID, DirectX::XMFLOAT4* outColor)
-	{
-		Scene* scene = ScriptEngine::GetSceneContext();
-		Entity entity = scene->FindEntityByUUID(entityID);
+	//void UIButtonComponent_GetColor(uint64_t entityID, DirectX::XMFLOAT4* outColor)
+	//{
+	//	Scene* scene = ScriptEngine::GetSceneContext();
+	//	Entity entity = scene->FindEntityByUUID(entityID);
 
-		auto& component = entity.GetComponent<UIButtonComponent>();
-		*outColor = component.Color;
-	}
+	//	auto& component = entity.GetComponent<UIButtonComponent>();
+	//	*outColor = component.Color;
+	//}
 
-	void UIButtonComponent_SetColor(uint64_t entityID, DirectX::XMFLOAT4* inColor)
-	{
-		Scene* scene = ScriptEngine::GetSceneContext();
-		Entity entity = scene->FindEntityByUUID(entityID);
+	//void UIButtonComponent_SetColor(uint64_t entityID, DirectX::XMFLOAT4* inColor)
+	//{
+	//	Scene* scene = ScriptEngine::GetSceneContext();
+	//	Entity entity = scene->FindEntityByUUID(entityID);
 
-		auto& component = entity.GetComponent<UIButtonComponent>();
-		component.Color = *inColor;
-	}
+	//	auto& component = entity.GetComponent<UIButtonComponent>();
+	//	component.Color = *inColor;
+	//}
 
 	bool UIButtonComponent_GetVisible(uint64_t entityID)
 	{
@@ -1576,8 +1576,8 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_GetVisible);
 		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_SetVisible);
 
-		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_GetColor);
-		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_SetColor);
+		//TOAST_ADD_INTERNAL_CALL(UIButtonComponent_GetColor);
+		//TOAST_ADD_INTERNAL_CALL(UIButtonComponent_SetColor);
 		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_GetVisible);
 		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_SetVisible);
 

@@ -2,6 +2,10 @@
 
 #include "ImGuiHelpers.h"
 
+#include "Toast/Renderer/UI/UIStyleSystem.h"
+
+#include "Toast/Utils/PlatformUtils.h"
+
 namespace Toast
 {
 	namespace ImGuiHelpers
@@ -945,6 +949,186 @@ namespace Toast
 			return reverted;
 		}
 
+		bool StyleSheetSlot(UIStyleRef& style, Entity entity, char* nameBuffer, size_t nameBufferSize, const std::function<void(const std::filesystem::path&)>& openFileCallback)
+		{
+			bool changed = false;
+
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::TextUnformatted("Style Sheet");
+			ImGui::TableSetColumnIndex(1);
+
+			std::string sheetName = "None";
+			if (style.Sheet != AssetHandle(0))
+			{
+				if (const AssetMetadata* metadata = AssetManager::GetMetadata(style.Sheet))
+					sheetName = metadata->FilePath.filename().string();
+				else
+					sheetName = "No Style attached!";
+			}
+
+			AssetHandle pickedSheet = style.Sheet;
+
+			const bool hasSheet = style.Sheet != AssetHandle(0);
+
+			ImGui::PushItemWidth(hasSheet ? -125.0f : -70.0f);
+			if (ImGui::BeginCombo("##stylesheet", sheetName.c_str()))
+			{
+				if (ImGui::Selectable("None", style.Sheet == AssetHandle(0)))
+					pickedSheet = AssetHandle(0);
+
+				AssetManager::Each(AssetType::StyleSheet, [&pickedSheet, &style](AssetHandle handle, const AssetMetadata& metadata)
+					{
+						const bool selected = handle == style.Sheet;
+
+						// Handles are unique; filenames may not be if two
+						// folders hold a Panel.css.
+						ImGui::PushID((const void*)(uint64_t)handle);
+
+						if (ImGui::Selectable(metadata.FilePath.filename().string().c_str(), selected))
+							pickedSheet = handle;
+
+						if (ImGui::IsItemHovered())
+							ImGui::SetTooltip("%s", metadata.FilePath.generic_string().c_str());
+
+						if (selected)
+							ImGui::SetItemDefaultFocus();
+
+						ImGui::PopID();
+					});
+
+				ImGui::EndCombo();
+			}
+			ImGui::PopItemWidth();
+
+			if (pickedSheet != style.Sheet)
+			{
+				style.Sheet = pickedSheet;
+				style.Overrides = 0;
+
+				changed = true;
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("New..."))
+			{
+				strncpy_s(nameBuffer, nameBufferSize, entity.GetComponent<TagComponent>().Tag.c_str(), nameBufferSize - 1);
+
+				ImGui::OpenPopup("Create Style Sheet");
+			}
+
+			if (hasSheet)
+			{
+				ImGui::SameLine();
+				if (ImGui::Button("Edit"))
+				{
+					if (const AssetMetadata* metadata = AssetManager::GetMetadata(style.Sheet))
+					{
+						if (openFileCallback)
+							openFileCallback(AssetManager::GetAssetDirectory() / metadata->FilePath);
+					}
+				}
+			}
+
+			if (ImGui::BeginPopupModal("Create Style Sheet", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				ImGui::TextUnformatted("Name");
+				ImGui::SetNextItemWidth(320.0f);
+
+				// Focus the field on the first frame so the name can be typed
+				// without clicking into it.
+				if (ImGui::IsWindowAppearing())
+					ImGui::SetKeyboardFocusHere();
+
+				const bool submitted = ImGui::InputText("##stylesheetname", nameBuffer, nameBufferSize, ImGuiInputTextFlags_EnterReturnsTrue);
+
+				std::string sanitised = ImGuiHelpers::SanitiseFileName(nameBuffer);
+
+				// Show where it will land, so the folder isn't a surprise.
+				auto relativePath = std::filesystem::path("Styles") / (sanitised + ".css");
+				ImGui::TextDisabled("Assets/%s", relativePath.generic_string().c_str());
+
+				const bool nameValid = !sanitised.empty();
+				if (!nameValid)
+					ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.3f, 1.0f), "Enter a name.");
+
+				ImGui::Separator();
+
+				ImGui::BeginDisabled(!nameValid);
+				const bool create = ImGui::Button("Create", ImVec2(120.0f, 0.0f)) || (submitted && nameValid);
+				ImGui::EndDisabled();
+
+				if (create)
+				{
+					AssetHandle handle = UIStyleSystem::CreateStyleSheetFromComponent(entity, relativePath);
+					if (handle != AssetHandle(0))
+					{
+						style.Sheet = handle;
+						style.Overrides = 0;
+
+						changed = true;
+					}
+
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel", ImVec2(120.0f, 0.0f)))
+					ImGui::CloseCurrentPopup();
+
+				ImGui::EndPopup();
+			}
+
+			return changed;
+		}
+
+		bool TextureSlotRow(const char* label, AssetHandle currentHandle, const std::filesystem::path& assetRoot, const std::filesystem::path& browseStartDirectory, std::string& outFilepath, float thumbnailSize)
+		{
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			const float wrapWidth = 85.0f - ImGui::GetStyle().ItemSpacing.x;
+			ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+			ImGui::TextUnformatted(label);
+			ImGui::PopTextWrapPos();
+
+			ImGui::TableSetColumnIndex(1);
+
+			Texture2D* displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
+
+			if (currentHandle != AssetHandle(0))
+			{
+				auto tex = AssetManager::GetAsset<Texture2D>(currentHandle);
+				if (tex)
+					displayTexture = tex.get();
+			}
+
+			ImGui::Image(displayTexture->GetID(), { thumbnailSize, thumbnailSize });
+
+			bool picked = false;
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+				{
+					const wchar_t* path = (const wchar_t*)payload->Data;
+					outFilepath = (assetRoot / path).string();
+					picked = true;
+				}
+
+				ImGui::EndDragDropTarget();
+			}
+
+			if (ImGui::IsItemClicked())
+			{
+				if (auto filepath = FileDialogs::OpenFile("", browseStartDirectory.string().c_str()))
+				{
+					outFilepath = *filepath;
+					picked = true;
+				}
+			}
+
+			return picked;
+		}
 	}
 
 }

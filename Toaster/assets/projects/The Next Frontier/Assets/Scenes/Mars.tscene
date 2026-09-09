@@ -467,15 +467,14 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [0, 0, 3]
+      Translation: [-1222, 134, 3]
       Rotation: [0, 0, 0]
       RotationQuat: [0, 0, 0, 1]
       Scale: [128, 27, 1]
     UIButtonComponent:
-      CornerRadius: 12.8999996
-      Color: [0, 1, 0, 1]
-      StyleSheet: 7906087238920879412
-      StyleOverrides: 3
+      LatchOnClick: true
+      StyleSheet: 10525460525044717147
+      StyleOverrides: 0
   - Entity: 10555075357225642405
     TagComponent:
       Tag: PanelTest2
@@ -1105,6 +1104,7 @@ Entities:
       ClassName: TheNextFrontier.LoadCargo
       ScriptHandle: 6900236357676364990
     UIButtonComponent:
+      LatchOnClick: false
       StyleSheet: 10936026810773946683
       StyleOverrides: 0
   - Entity: 6571834013205168760
@@ -1805,6 +1805,7 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [64, 64, 1]
     UIButtonComponent:
+      LatchOnClick: false
       StyleSheet: 17232253532638061034
       StyleOverrides: 0
   - Entity: 3130812133437718439
@@ -1909,6 +1910,7 @@ Entities:
       ClassName: TheNextFrontier.CloseButtonAllStarships
       ScriptHandle: 7091776065297775666
     UIButtonComponent:
+      LatchOnClick: false
       StyleSheet: 4353275716053464274
       StyleOverrides: 0
   - Entity: 5004313190604184181
@@ -2145,6 +2147,7 @@ Entities:
       ClassName: TheNextFrontier.GameSpeedButtons
       ScriptHandle: 656474258116317958
     UIButtonComponent:
+      LatchOnClick: false
       StyleSheet: 10484464811452572284
       StyleOverrides: 0
   - Entity: 2709097365577216560
@@ -2163,6 +2166,7 @@ Entities:
       ClassName: TheNextFrontier.GameSpeedButtons
       ScriptHandle: 656474258116317958
     UIButtonComponent:
+      LatchOnClick: false
       StyleSheet: 9313503411936361652
       StyleOverrides: 0
   - Entity: 11806276604423328658
@@ -2181,6 +2185,7 @@ Entities:
       ClassName: TheNextFrontier.GameSpeedButtons
       ScriptHandle: 656474258116317958
     UIButtonComponent:
+      LatchOnClick: false
       StyleSheet: 17572430284340442896
       StyleOverrides: 0
   - Entity: 18384185750220347789
@@ -2199,6 +2204,7 @@ Entities:
       ClassName: TheNextFrontier.GameSpeedButtons
       ScriptHandle: 656474258116317958
     UIButtonComponent:
+      LatchOnClick: false
       StyleSheet: 8209288499287996898
       StyleOverrides: 0
   - Entity: 2812129723666465913
@@ -2250,6 +2256,7 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [124, 118, 1]
     UIButtonComponent:
+      LatchOnClick: false
       StyleSheet: 2192245539014642861
       StyleOverrides: 0
   - Entity: 13550521646691037742
@@ -2265,6 +2272,7 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [64, 64, 1]
     UIButtonComponent:
+      LatchOnClick: false
       StyleSheet: 1398776538539369884
       StyleOverrides: 0
   - Entity: 17683343706633406771
@@ -2316,6 +2324,7 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [20, 20, 1]
     UIButtonComponent:
+      LatchOnClick: false
       StyleSheet: 12590198991144957938
       StyleOverrides: 0
   - Entity: 449177564690845958
@@ -2367,6 +2376,7 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [33, 409, 1]
     UIButtonComponent:
+      LatchOnClick: false
       StyleSheet: 8708931816069793600
       StyleOverrides: 0
   - Entity: 13216893530266742497
@@ -2404,6 +2414,7 @@ Entities:
           Type: Float
           Data: 0.100000001
     UIButtonComponent:
+      LatchOnClick: false
       StyleSheet: 10274790416831569661
       StyleOverrides: 0
   - Entity: 9695718872219527677

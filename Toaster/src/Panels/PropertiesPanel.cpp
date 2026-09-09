@@ -1420,192 +1420,26 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
 
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::TextUnformatted("Style Sheet");
-				ImGui::TableSetColumnIndex(1);
-
-				std::string sheetName = "None";
-				if (component.Style.Sheet != AssetHandle(0))
-				{
-					if (const AssetMetadata* metadata = AssetManager::GetMetadata(component.Style.Sheet))
-						sheetName = metadata->FilePath.filename().string();
-					else
-						sheetName = "No Style attached!";
-				}
-
-				AssetHandle pickedSheet = component.Style.Sheet;
-
-				ImGui::PushItemWidth(-125.0f);
-				if (ImGui::BeginCombo("##stylesheet", sheetName.c_str()))
-				{
-					if (ImGui::Selectable("None", component.Style.Sheet == AssetHandle(0)))
-						pickedSheet = AssetHandle(0);
-
-					AssetManager::Each(AssetType::StyleSheet, [&pickedSheet, &component](AssetHandle handle, const AssetMetadata& metadata)
-						{
-							const bool selected = handle == component.Style.Sheet;
-
-							// Handles are unique; filenames may not be if two
-							// folders hold a Panel.css.
-							ImGui::PushID((const void*)(uint64_t)handle);
-
-							if (ImGui::Selectable(metadata.FilePath.filename().string().c_str(), selected))
-								pickedSheet = handle;
-
-							if (ImGui::IsItemHovered())
-								ImGui::SetTooltip("%s", metadata.FilePath.generic_string().c_str());
-
-							if (selected)
-								ImGui::SetItemDefaultFocus();
-
-							ImGui::PopID();
-						});
-
-					ImGui::EndCombo();
-				}
-				ImGui::PopItemWidth();
-
-				if (pickedSheet != component.Style.Sheet)
-				{
-					component.Style.Sheet = pickedSheet;
-					component.Style.Overrides = 0;
-
+				// StyleSheet
+				if (ImGuiHelpers::StyleSheetSlot(component.Style, entity, mNewStyleSheetName, sizeof(mNewStyleSheetName), mOpenFileCallback))
 					UIStyleSystem::ResolveEntity(entity);
-				}
 
-				ImGui::SameLine();
-				if (ImGui::Button("New..."))
+				auto texturePath = mAssetRoot / "Textures" / "UI";
+
+				std::string pickedTexture;
+				if (ImGuiHelpers::TextureSlotRow("Texture", component.TextureHandle, assetRoot, texturePath, pickedTexture))
 				{
-					strncpy_s(mNewStyleSheetName, entity.GetComponent<TagComponent>().Tag.c_str(), sizeof(mNewStyleSheetName) - 1);
-
-					ImGui::OpenPopup("Create Style Sheet");
-				}
-
-				if (component.Style.Sheet != AssetHandle(0))
-				{
-					ImGui::SameLine();
-					if (ImGui::Button("Edit"))
-					{
-						if (const AssetMetadata* metadata = AssetManager::GetMetadata(component.Style.Sheet))
+					RequestUITextureImport(pickedTexture, false, [this, entity](AssetHandle handle) mutable
 						{
-							if (mOpenFileCallback)
-								mOpenFileCallback(AssetManager::GetAssetDirectory() / metadata->FilePath);
-						}
-					}
+							auto& comp = entity.GetComponent<UIPanelComponent>();
+							comp.TextureHandle = handle;
+							comp.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(handle);
+
+							comp.Style.Overrides |= UIStyleProp_BackgroundImage;
+						});
 				}
 
-				if (ImGui::BeginPopupModal("Create Style Sheet", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-				{
-					ImGui::TextUnformatted("Name");
-					ImGui::SetNextItemWidth(320.0f);
-
-					// Focus the field on the first frame so the name can be typed
-					// without clicking into it.
-					if (ImGui::IsWindowAppearing())
-						ImGui::SetKeyboardFocusHere();
-
-					const bool submitted = ImGui::InputText("##stylesheetname", mNewStyleSheetName, sizeof(mNewStyleSheetName), ImGuiInputTextFlags_EnterReturnsTrue);
-
-					std::string sanitised = ImGuiHelpers::SanitiseFileName(mNewStyleSheetName);
-
-					// Show where it will land, so the folder isn't a surprise.
-					auto relativePath = std::filesystem::path("Styles") / (sanitised + ".css");
-					ImGui::TextDisabled("Assets/%s", relativePath.generic_string().c_str());
-
-					const bool nameValid = !sanitised.empty();
-					if (!nameValid)
-						ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.3f, 1.0f), "Enter a name.");
-
-					ImGui::Separator();
-
-					ImGui::BeginDisabled(!nameValid);
-					const bool create = ImGui::Button("Create", ImVec2(120.0f, 0.0f)) || (submitted && nameValid);
-					ImGui::EndDisabled();
-
-					if (create)
-					{
-						AssetHandle handle = UIStyleSystem::CreateStyleSheetFromComponent(entity, relativePath);
-						if (handle != AssetHandle(0))
-						{
-							component.Style.Sheet = handle;
-							component.Style.Overrides = 0;
-
-							UIStyleSystem::ResolveEntity(entity);
-						}
-
-						ImGui::CloseCurrentPopup();
-					}
-
-					ImGui::SameLine();
-					if (ImGui::Button("Cancel", ImVec2(120.0f, 0.0f)))
-						ImGui::CloseCurrentPopup();
-
-					ImGui::EndPopup();
-				}
-
-				Texture2D* displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
-
-				if (component.TextureHandle != AssetHandle(0))
-				{
-					auto tex = AssetManager::GetAsset<Texture2D>(component.TextureHandle);
-					if (tex)
-						displayTexture = tex.get();
-				}
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Texture");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::Image(displayTexture->GetID(), { 64.0f, 64.0f });
-
-				std::optional<std::string> filepath;
-
-				if (ImGui::BeginDragDropTarget())
-				{
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
-					{
-						const wchar_t* path = (const wchar_t*)payload->Data;
-						auto completePath = assetRoot / path;
-						filepath = completePath.string();
-
-						if (filepath)
-						{
-							RequestUITextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
-								{
-									auto& comp = entity.GetComponent<UIPanelComponent>();
-									uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(handle);
-									comp.TextureHandle = handle;
-									comp.TextureIndex = sliceIndex;
-
-									comp.Style.Overrides |= UIStyleProp_BackgroundImage;
-								});
-						}
-					}
-
-					ImGui::EndDragDropTarget();
-				}
-
-				if (ImGui::IsItemClicked())
-				{
-					auto texturePath = mAssetRoot / "Textures" / "UI";
-					filepath = FileDialogs::OpenFile("", texturePath.string().c_str());
-
-					if (filepath)
-					{
-						RequestUITextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
-							{
-								auto& comp = entity.GetComponent<UIPanelComponent>();
-								uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(handle);
-								comp.TextureHandle = handle;
-								comp.TextureIndex = sliceIndex;
-
-								comp.Style.Overrides |= UIStyleProp_BackgroundImage;
-							});
-					}
-				}
-
-				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_BackgroundImage, styleBlock && styleBlock->BackgroundImage.Set))
+				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_BackgroundImage, styleBlock && styleBlock->BackgroundImageState[(size_t)UIState::Normal].Set))
 					UIStyleSystem::ResolveEntity(entity);
 
 				ImGui::TableNextRow();
@@ -1625,10 +1459,10 @@ namespace Toast {
 				if (ImGui::ColorEdit4("##color", &component.Color.x))
 					component.Style.Overrides |= UIStyleProp_Background;
 				ImGui::PopItemWidth();
-				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_Background, styleBlock && styleBlock->Background.Set))
+				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_Background, styleBlock && styleBlock->BackgroundState[(size_t)UIState::Normal].Set))
 					UIStyleSystem::ResolveEntity(entity);
-				ImGui::TableNextRow();
 
+				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Corner Radius");
 				ImGui::TableSetColumnIndex(1);
@@ -1787,129 +1621,10 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
 
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::TextUnformatted("Style Sheet");
-				ImGui::TableSetColumnIndex(1);
-
-				std::string sheetName = "None";
-				if (component.Style.Sheet != AssetHandle(0))
-				{
-					if (const AssetMetadata* metadata = AssetManager::GetMetadata(component.Style.Sheet))
-						sheetName = metadata->FilePath.filename().string();
-					else
-						sheetName = "No Style attached!";
-				}
-
-				AssetHandle pickedSheet = component.Style.Sheet;
-
-				ImGui::PushItemWidth(-125.0f);
-				if (ImGui::BeginCombo("##stylesheet", sheetName.c_str()))
-				{
-					if (ImGui::Selectable("None", component.Style.Sheet == AssetHandle(0)))
-						pickedSheet = AssetHandle(0);
-
-					AssetManager::Each(AssetType::StyleSheet, [&pickedSheet, &component](AssetHandle handle, const AssetMetadata& metadata)
-						{
-							const bool selected = handle == component.Style.Sheet;
-
-							// Handles are unique; filenames may not be if two
-							// folders hold a Panel.css.
-							ImGui::PushID((const void*)(uint64_t)handle);
-
-							if (ImGui::Selectable(metadata.FilePath.filename().string().c_str(), selected))
-								pickedSheet = handle;
-
-							if (ImGui::IsItemHovered())
-								ImGui::SetTooltip("%s", metadata.FilePath.generic_string().c_str());
-
-							if (selected)
-								ImGui::SetItemDefaultFocus();
-
-							ImGui::PopID();
-						});
-
-					ImGui::EndCombo();
-				}
-				ImGui::PopItemWidth();
-
-				if (pickedSheet != component.Style.Sheet)
-				{
-					component.Style.Sheet = pickedSheet;
-					component.Style.Overrides = 0;
-
+				// StyleSheet
+				if (ImGuiHelpers::StyleSheetSlot(component.Style, entity, mNewStyleSheetName, sizeof(mNewStyleSheetName), mOpenFileCallback))
 					UIStyleSystem::ResolveEntity(entity);
-				}
 
-				ImGui::SameLine();
-				if (ImGui::Button("New..."))
-				{
-					strncpy_s(mNewStyleSheetName, entity.GetComponent<TagComponent>().Tag.c_str(), sizeof(mNewStyleSheetName) - 1);
-
-					ImGui::OpenPopup("Create Style Sheet");
-				}
-
-				if (component.Style.Sheet != AssetHandle(0))
-				{
-					ImGui::SameLine();
-					if (ImGui::Button("Edit"))
-					{
-						if (const AssetMetadata* metadata = AssetManager::GetMetadata(component.Style.Sheet))
-						{
-							if (mOpenFileCallback)
-								mOpenFileCallback(AssetManager::GetAssetDirectory() / metadata->FilePath);
-						}
-					}
-				}
-
-				if (ImGui::BeginPopupModal("Create Style Sheet", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-				{
-					ImGui::TextUnformatted("Name");
-					ImGui::SetNextItemWidth(320.0f);
-
-					// Focus the field on the first frame so the name can be typed
-					// without clicking into it.
-					if (ImGui::IsWindowAppearing())
-						ImGui::SetKeyboardFocusHere();
-
-					const bool submitted = ImGui::InputText("##stylesheetname", mNewStyleSheetName, sizeof(mNewStyleSheetName), ImGuiInputTextFlags_EnterReturnsTrue);
-
-					std::string sanitised = ImGuiHelpers::SanitiseFileName(mNewStyleSheetName);
-
-					// Show where it will land, so the folder isn't a surprise.
-					auto relativePath = std::filesystem::path("Styles") / (sanitised + ".css");
-					ImGui::TextDisabled("Assets/%s", relativePath.generic_string().c_str());
-
-					const bool nameValid = !sanitised.empty();
-					if (!nameValid)
-						ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.3f, 1.0f), "Enter a name.");
-
-					ImGui::Separator();
-
-					ImGui::BeginDisabled(!nameValid);
-					const bool create = ImGui::Button("Create", ImVec2(120.0f, 0.0f)) || (submitted && nameValid);
-					ImGui::EndDisabled();
-
-					if (create)
-					{
-						AssetHandle handle = UIStyleSystem::CreateStyleSheetFromComponent(entity, relativePath);
-						if (handle != AssetHandle(0))
-						{
-							component.Style.Sheet = handle;
-							component.Style.Overrides = 0;
-
-							UIStyleSystem::ResolveEntity(entity);
-						}
-
-						ImGui::CloseCurrentPopup();
-					}
-
-					ImGui::SameLine();
-					if (ImGui::Button("Cancel", ImVec2(120.0f, 0.0f)))
-						ImGui::CloseCurrentPopup();
-
-					ImGui::EndPopup();
-				}
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Font ");
@@ -1938,9 +1653,9 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
 				if (ImGui::ColorEdit4("##color", &component.Color.x))
-					component.Style.Overrides |= UIStyleProp_Background;
+					component.Style.Overrides |= UIStyleProp_Color;
 				ImGui::PopItemWidth();
-				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_Background, styleBlock && styleBlock->Background.Set))
+				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_Color, styleBlock && styleBlock->Color.Set))
 					UIStyleSystem::ResolveEntity(entity);
 
 				ImGui::TableNextRow();
@@ -1971,193 +1686,65 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(0);
 				ImGui::PushItemWidth(-1);
 
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::TextUnformatted("Style Sheet");
-				ImGui::TableSetColumnIndex(1);
-
-				std::string sheetName = "None";
-				if (component.Style.Sheet != AssetHandle(0))
-				{
-					if (const AssetMetadata* metadata = AssetManager::GetMetadata(component.Style.Sheet))
-						sheetName = metadata->FilePath.filename().string();
-					else
-						sheetName = "No Style attached!";
-				}
-
-				AssetHandle pickedSheet = component.Style.Sheet;
-
-				ImGui::PushItemWidth(-125.0f);
-				if (ImGui::BeginCombo("##stylesheet", sheetName.c_str()))
-				{
-					if (ImGui::Selectable("None", component.Style.Sheet == AssetHandle(0)))
-						pickedSheet = AssetHandle(0); 
-
-					AssetManager::Each(AssetType::StyleSheet, [&pickedSheet, &component](AssetHandle handle, const AssetMetadata& metadata)
-						{
-							const bool selected = handle == component.Style.Sheet;
-
-							// Handles are unique; filenames may not be if two
-							// folders hold a Panel.css.
-							ImGui::PushID((const void*)(uint64_t)handle);
-
-							if (ImGui::Selectable(metadata.FilePath.filename().string().c_str(), selected))
-								pickedSheet = handle;
-
-							if (ImGui::IsItemHovered())
-								ImGui::SetTooltip("%s", metadata.FilePath.generic_string().c_str());
-
-							if (selected)
-								ImGui::SetItemDefaultFocus();
-
-							ImGui::PopID();
-						});
-
-					ImGui::EndCombo();
-				}
-				ImGui::PopItemWidth();
-
-				if (pickedSheet != component.Style.Sheet)
-				{
-					component.Style.Sheet = pickedSheet;
-					component.Style.Overrides = 0;
-
+				// StyleSheet
+				if (ImGuiHelpers::StyleSheetSlot(component.Style, entity, mNewStyleSheetName, sizeof(mNewStyleSheetName), mOpenFileCallback))
 					UIStyleSystem::ResolveEntity(entity);
-				}
 
-				ImGui::SameLine();
-				if (ImGui::Button("New..."))
+				const char* stateNames[] = { "Normal", "Hover", "Pressed", "Active" };
+				auto texturePath = mAssetRoot / "Textures" / "UI";
+
+				for (uint32_t stateIndex = 0; stateIndex < (uint32_t)UIState::Count; stateIndex++)
 				{
-					strncpy_s(mNewStyleSheetName, entity.GetComponent<TagComponent>().Tag.c_str(), sizeof(mNewStyleSheetName) - 1);
+					auto& stateStyle = component.States[stateIndex];
+					const UIState state = (UIState)stateIndex;
 
-					ImGui::OpenPopup("Create Style Sheet");
-				}
+					const uint32_t imageBit = StatePropBit(UIStyleProp_BackgroundImage, state);
+					const uint32_t colorBit = StatePropBit(UIStyleProp_Background, state);
 
-				if (component.Style.Sheet != AssetHandle(0))
-				{
-					ImGui::SameLine();
-					if (ImGui::Button("Edit"))
+					// Without this the three thumbnails and three color pickers
+					// share IDs and only the first of each responds.
+					ImGui::PushID((int)stateIndex);
+
+					// The label varies per state, so it is built rather than
+					// literal - TextureSlotRow takes it as a parameter.
+					char textureLabel[32];
+					snprintf(textureLabel, sizeof(textureLabel), "%s Texture", stateNames[stateIndex]);
+
+					std::string pickedTexture;
+					if (ImGuiHelpers::TextureSlotRow(textureLabel, stateStyle.TextureHandle, assetRoot, texturePath, pickedTexture))
 					{
-						if (const AssetMetadata* metadata = AssetManager::GetMetadata(component.Style.Sheet))
-						{
-							if (mOpenFileCallback)
-								mOpenFileCallback(AssetManager::GetAssetDirectory() / metadata->FilePath);
-						}
-					}
-				}
-
-				if (ImGui::BeginPopupModal("Create Style Sheet", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-				{
-					ImGui::TextUnformatted("Name");
-					ImGui::SetNextItemWidth(320.0f);
-
-					// Focus the field on the first frame so the name can be typed
-					// without clicking into it.
-					if (ImGui::IsWindowAppearing())
-						ImGui::SetKeyboardFocusHere();
-
-					const bool submitted = ImGui::InputText("##stylesheetname", mNewStyleSheetName, sizeof(mNewStyleSheetName), ImGuiInputTextFlags_EnterReturnsTrue);
-
-					std::string sanitised = ImGuiHelpers::SanitiseFileName(mNewStyleSheetName);
-
-					// Show where it will land, so the folder isn't a surprise.
-					auto relativePath = std::filesystem::path("Styles") / (sanitised + ".css");
-					ImGui::TextDisabled("Assets/%s", relativePath.generic_string().c_str());
-
-					const bool nameValid = !sanitised.empty();
-					if (!nameValid)
-						ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.3f, 1.0f), "Enter a name.");
-
-					ImGui::Separator();
-
-					ImGui::BeginDisabled(!nameValid);
-					const bool create = ImGui::Button("Create", ImVec2(120.0f, 0.0f)) || (submitted && nameValid);
-					ImGui::EndDisabled();
-
-					if (create)
-					{
-						AssetHandle handle = UIStyleSystem::CreateStyleSheetFromComponent(entity, relativePath);
-						if (handle != AssetHandle(0))
-						{
-							component.Style.Sheet = handle;
-							component.Style.Overrides = 0;
-
-							UIStyleSystem::ResolveEntity(entity);
-						}
-
-						ImGui::CloseCurrentPopup();
-					}
-
-					ImGui::SameLine();
-					if (ImGui::Button("Cancel", ImVec2(120.0f, 0.0f)))
-						ImGui::CloseCurrentPopup();
-
-					ImGui::EndPopup();
-				}
-
-				Texture2D* displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
-
-				if (component.TextureHandle != AssetHandle(0))
-				{
-					auto tex = AssetManager::GetAsset<Texture2D>(component.TextureHandle);
-					if (tex)
-						displayTexture = tex.get();
-				}
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Texture");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::Image(displayTexture->GetID(), { 64.0f, 64.0f });
-
-				std::optional<std::string> filepath;
-
-				if (ImGui::BeginDragDropTarget())
-				{
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
-					{
-						const wchar_t* path = (const wchar_t*)payload->Data;
-						auto completePath = assetRoot / path;
-						filepath = completePath.string();
-
-						if (filepath)
-						{
-							RequestUITextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
-								{
-									auto& comp = entity.GetComponent<UIButtonComponent>();
-									uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(handle);
-									comp.TextureHandle = handle;
-									comp.TextureIndex = sliceIndex;
-
-									comp.Style.Overrides |= UIStyleProp_BackgroundImage;
-								});
-						}
-					}
-
-					ImGui::EndDragDropTarget();
-				}
-
-				if (ImGui::IsItemClicked())
-				{
-					auto texturePath = mAssetRoot / "Textures" / "UI";
-					filepath = FileDialogs::OpenFile("", texturePath.string().c_str());
-
-					if (filepath)
-					{
-						RequestUITextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
+						// stateIndex and imageBit by value: the import is async,
+						// so the loop has long since moved on by the time this
+						// runs.
+						RequestUITextureImport(pickedTexture, false, [this, entity, stateIndex, imageBit](AssetHandle handle) mutable
 							{
 								auto& comp = entity.GetComponent<UIButtonComponent>();
-								uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(handle);
-								comp.TextureHandle = handle;
-								comp.TextureIndex = sliceIndex;
+								comp.States[stateIndex].TextureHandle = handle;
+								comp.States[stateIndex].TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(handle);
 
-								comp.Style.Overrides |= UIStyleProp_BackgroundImage;
+								comp.Style.Overrides |= imageBit;
 							});
 					}
-				}
 
-				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_BackgroundImage, styleBlock && styleBlock->BackgroundImage.Set))
-					UIStyleSystem::ResolveEntity(entity);
+					if (ImGuiHelpers::StyleOverrideMarker(component.Style, imageBit, styleBlock && styleBlock->BackgroundImageState[stateIndex].Set))
+						UIStyleSystem::ResolveEntity(entity);
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("%s Color", stateNames[stateIndex]);
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
+
+					if (ImGui::ColorEdit4("##statecolor", &stateStyle.Color.x))
+						component.Style.Overrides |= colorBit;
+
+					ImGui::PopItemWidth();
+
+					if (ImGuiHelpers::StyleOverrideMarker(component.Style, colorBit, styleBlock && styleBlock->BackgroundState[stateIndex].Set))
+						UIStyleSystem::ResolveEntity(entity);
+
+					ImGui::PopID();
+				}
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -2170,90 +1757,9 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Color");
+				ImGui::Text("Latch On Click");
 				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
-				if (ImGui::ColorEdit4("##color", &component.Color.x))
-					component.Style.Overrides |= UIStyleProp_Background;
-				ImGui::PopItemWidth();
-				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_Background, styleBlock && styleBlock->Background.Set))
-					UIStyleSystem::ResolveEntity(entity);
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::PushItemWidth(-1);
-				ImGui::TextWrapped("Click Texture");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
-
-				displayTexture = dynamic_cast<Texture2D*>(TextureLibrary::Get("assets/textures/Checkerboard.png"));
-
-				if (component.ClickTextureHandle != AssetHandle(0))
-				{
-					auto tex = AssetManager::GetAsset<Texture2D>(component.ClickTextureHandle);
-					if (tex)
-						displayTexture = tex.get();
-				}
-
-				ImGui::Image(displayTexture->GetID(), { 64.0f, 64.0f });
-
-				if (ImGui::BeginDragDropTarget())
-				{
-					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
-					{
-						const wchar_t* path = (const wchar_t*)payload->Data;
-						auto completePath = assetRoot / path;
-						filepath = completePath.string();
-
-						if (filepath)
-						{
-							RequestUITextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
-								{
-									auto& comp = entity.GetComponent<UIButtonComponent>();
-									uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(handle);
-									comp.ClickTextureHandle = handle;
-									comp.ClickTextureIndex = sliceIndex;
-
-									comp.Style.Overrides |= UIStyleProp_BackgroundImageClick;
-								});
-						}
-					}
-
-					ImGui::EndDragDropTarget();
-				}
-
-				if (ImGui::IsItemClicked())
-				{
-					auto texturePath = mAssetRoot / "Textures" / "UI";
-					filepath = FileDialogs::OpenFile("", texturePath.string().c_str());
-
-					if (filepath)
-					{
-						RequestUITextureImport(*filepath, false, [this, entity](AssetHandle handle) mutable
-							{
-								auto& comp = entity.GetComponent<UIButtonComponent>();
-								uint32_t sliceIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(handle);
-								comp.ClickTextureHandle = handle;
-								comp.ClickTextureIndex = sliceIndex;
-
-								comp.Style.Overrides |= UIStyleProp_BackgroundImageClick;
-							});
-					}
-				}
-
-				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_BackgroundImageClick, styleBlock && styleBlock->BackgroundClickImage.Set))
-					UIStyleSystem::ResolveEntity(entity);
-
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Click Color");
-				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
-				if (ImGui::ColorEdit4("##clickcolor", &component.ClickColor.x))
-					component.Style.Overrides |= UIStyleProp_BackgroundClick;
-				ImGui::PopItemWidth();
-				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_BackgroundClick, styleBlock && styleBlock->BackgroundClick.Set))
-					UIStyleSystem::ResolveEntity(entity);
+				ImGui::Checkbox("##latchonclick", &component.LatchOnClick);
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
@@ -2273,6 +1779,24 @@ namespace Toast {
 				if (ImGui::Checkbox("##Visible", &component.Visible))
 					component.Style.Overrides |= UIStyleProp_Visible;
 				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_Visible, styleBlock && styleBlock->Visible.Set))
+					UIStyleSystem::ResolveEntity(entity);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Transition");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
+
+				int transitionMs = (int)(component.TransitionSeconds * 1000.0f);
+				if (ImGui::SliderInt("##transition", &transitionMs, 0, 1000, "%d ms"))
+				{
+					component.TransitionSeconds = transitionMs / 1000.0f;
+					component.Style.Overrides |= UIStyleProp_Transition;
+				}
+
+				ImGui::PopItemWidth();
+
+				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_Transition, styleBlock && styleBlock->TransitionSeconds.Set))
 					UIStyleSystem::ResolveEntity(entity);
 
 				ImGui::EndTable();

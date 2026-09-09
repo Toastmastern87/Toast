@@ -362,18 +362,18 @@ namespace Toast {
 		auto uiButtonComponent = entityData["UIButtonComponent"];
 		if (uiButtonComponent)
 		{
-			auto& ubc = deserializedEntity.AddComponent<UIButtonComponent>();
+			//auto& ubc = deserializedEntity.AddComponent<UIButtonComponent>();
 
-			ubc.UseColor = uiButtonComponent["UseColor"].as<bool>();
-			ubc.Color = uiButtonComponent["Color"].as<DirectX::XMFLOAT4>();
-			ubc.ClickColor = uiButtonComponent["Color"].as<DirectX::XMFLOAT4>();
-			ubc.CornerRadius = uiButtonComponent["CornerRadius"].as<float>();
+			//ubc.UseColor = uiButtonComponent["UseColor"].as<bool>();
+			//ubc.Color = uiButtonComponent["Color"].as<DirectX::XMFLOAT4>();
+			//ubc.ClickColor = uiButtonComponent["Color"].as<DirectX::XMFLOAT4>();
+			//ubc.CornerRadius = uiButtonComponent["CornerRadius"].as<float>();
 
-			ubc.TextureHandle = uiButtonComponent["TextureAssetHandle"].as<AssetHandle>();
-			ubc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.TextureHandle);
+			//ubc.TextureHandle = uiButtonComponent["TextureAssetHandle"].as<AssetHandle>();
+			//ubc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.TextureHandle);
 
-			ubc.ClickTextureHandle = uiButtonComponent["ClickTextureAssetHandle"].as<AssetHandle>();
-			ubc.ClickTextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.ClickTextureHandle);
+			//ubc.ClickTextureHandle = uiButtonComponent["ClickTextureAssetHandle"].as<AssetHandle>();
+			//ubc.ClickTextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(ubc.ClickTextureHandle);
 		}
 
 		auto uiTextComponent = entityData["UITextComponent"];
@@ -687,12 +687,12 @@ namespace Toast {
 			out << YAML::BeginMap; // UIButtonComponent
 
 			auto& ubc = entity.GetComponent<UIButtonComponent>();
-			out << YAML::Key << "CornerRadius" << YAML::Value << ubc.CornerRadius;
-			out << YAML::Key << "UseColor" << YAML::Value << ubc.UseColor;
-			out << YAML::Key << "Color" << YAML::Value << ubc.Color;
-			out << YAML::Key << "ClickColor" << YAML::Value << ubc.ClickColor;
-			out << YAML::Key << "TextureAssetHandle" << YAML::Value << ubc.TextureHandle;
-			out << YAML::Key << "ClickTextureAssetHandle" << YAML::Value << ubc.ClickTextureHandle;
+			//out << YAML::Key << "CornerRadius" << YAML::Value << ubc.CornerRadius;
+			//out << YAML::Key << "UseColor" << YAML::Value << ubc.UseColor;
+			//out << YAML::Key << "Color" << YAML::Value << ubc.Color;
+			//out << YAML::Key << "ClickColor" << YAML::Value << ubc.ClickColor;
+			//out << YAML::Key << "TextureAssetHandle" << YAML::Value << ubc.TextureHandle;
+			//out << YAML::Key << "ClickTextureAssetHandle" << YAML::Value << ubc.ClickTextureHandle;
 
 			out << YAML::EndMap; // UIButtonComponent
 		}

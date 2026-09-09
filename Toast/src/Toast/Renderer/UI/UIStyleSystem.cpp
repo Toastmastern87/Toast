@@ -176,26 +176,28 @@ namespace Toast {
 		const UIButtonComponent defaults;
 		const uint32_t overrides = component.Style.Overrides;
 
-		if (!(overrides & UIStyleProp_Background))
-			component.Color = defaults.Color;
+		for (uint32_t i = 0; i < (uint32_t)UIState::Count; i++)
+		{
+			const UIState state = (UIState)i;
+
+			if (!(overrides & StatePropBit(UIStyleProp_Background, state)))
+				component.States[i].Color = defaults.States[i].Color;
+
+			if (!(overrides & StatePropBit(UIStyleProp_BackgroundImage, state)))
+			{
+				component.States[i].TextureHandle = defaults.States[i].TextureHandle;
+				component.States[i].TextureIndex = defaults.States[i].TextureIndex;
+			}
+		}
+
 		if (!(overrides & UIStyleProp_CornerRadius))
 			component.CornerRadius = defaults.CornerRadius;
 		if (!(overrides & UIStyleProp_Visible))
 			component.Visible = defaults.Visible;
 		if (!(overrides & UIStyleProp_UseColor))
 			component.UseColor = defaults.UseColor;
-
-		if (!(overrides & UIStyleProp_BackgroundImage))
-		{
-			component.TextureHandle = defaults.TextureHandle;
-			component.TextureIndex = defaults.TextureIndex;
-		}
-
-		if (!(overrides & UIStyleProp_BackgroundImageClick))
-		{
-			component.ClickTextureHandle = defaults.ClickTextureHandle;
-			component.ClickTextureIndex = defaults.ClickTextureIndex;
-		}
+		if (!(overrides & UIStyleProp_Transition))
+			component.TransitionSeconds = defaults.TransitionSeconds;
 	}
 
 	void UIStyleSystem::ResetUnoverridden(UITextComponent& component)
@@ -203,7 +205,7 @@ namespace Toast {
 		const UITextComponent defaults;
 		const uint32_t overrides = component.Style.Overrides;
 
-		if (!(overrides & UIStyleProp_Background))
+		if (!(overrides & UIStyleProp_Color))
 			component.Color = defaults.Color;
 
 		if (!(overrides & UIStyleProp_Visible))
@@ -261,8 +263,8 @@ namespace Toast {
 
 		const uint32_t overrides = component.Style.Overrides;
 
-		if(block->Background.Set && !(overrides & UIStyleProp_Background))
-			component.Color = block->Background.Value;
+		if (block->BackgroundState[(size_t)UIState::Normal].Set && !(overrides & UIStyleProp_Background))
+			component.Color = block->BackgroundState[(size_t)UIState::Normal].Value;
 
 		if (block->CornerRadius.Set && !(overrides & UIStyleProp_CornerRadius))
 			component.CornerRadius = block->CornerRadius.Value;
@@ -273,9 +275,9 @@ namespace Toast {
 		if (block->UseColor.Set && !(overrides & UIStyleProp_UseColor))
 			component.UseColor = block->UseColor.Value;
 
-		if (block->BackgroundImage.Set && !(overrides & UIStyleProp_Background))
-		{	
-			component.TextureHandle = block->BackgroundImage.Value;
+		if (block->BackgroundImageState[(size_t)UIState::Normal].Set && !(overrides & UIStyleProp_BackgroundImage))
+		{
+			component.TextureHandle = block->BackgroundImageState[(size_t)UIState::Normal].Value;
 			component.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(component.TextureHandle);
 		}
 	}
@@ -288,11 +290,13 @@ namespace Toast {
 
 		const uint32_t overrides = component.Style.Overrides;
 
-		if (block->Background.Set && !(overrides & UIStyleProp_Background))
-			component.Color = block->Background.Value;
+		for (size_t i = 0; i < (size_t)UIState::Count; i++)
+		{
+			const auto& src = block->BackgroundState[i].Set ? block->BackgroundState[i] : block->BackgroundState[0];
 
-		if (block->BackgroundClick.Set && !(overrides & UIStyleProp_BackgroundClick))
-			component.ClickColor = block->Background.Value;
+			if (src.Set && !(overrides & UIStyleProp_Background))
+				component.States[i].Color = src.Value;
+		}
 
 		if (block->CornerRadius.Set && !(overrides & UIStyleProp_CornerRadius))
 			component.CornerRadius = block->CornerRadius.Value;
@@ -303,17 +307,12 @@ namespace Toast {
 		if (block->UseColor.Set && !(overrides & UIStyleProp_UseColor))
 			component.UseColor = block->UseColor.Value;
 
-		if (block->BackgroundImage.Set && !(overrides & UIStyleProp_Background))
-		{
-			component.TextureHandle = block->BackgroundImage.Value;
-			component.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(component.TextureHandle);
-		}
+		if (block->TransitionSeconds.Set && !(overrides & UIStyleProp_Transition))
+			component.TransitionSeconds = block->TransitionSeconds.Value;
 
-		if (block->BackgroundClickImage.Set && !(overrides & UIStyleProp_BackgroundImageClick))
-		{
-			component.ClickTextureHandle = block->BackgroundClickImage.Value;
-			component.ClickTextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(component.ClickTextureHandle);
-		}
+		component.Blended = component.States[(size_t)component.CurrentState];
+		component.BlendFrom = component.Blended;
+		component.StateBlend = 1.0f;
 	}
 
 	void UIStyleSystem::ApplyStyle(UITextComponent& component)
@@ -324,8 +323,8 @@ namespace Toast {
 
 		const uint32_t overrides = component.Style.Overrides;
 
-		if (block->Background.Set && !(overrides & UIStyleProp_Background))
-			component.Color = block->Background.Value;
+		if (block->Color.Set && !(overrides & UIStyleProp_Color))
+			component.Color = block->Color.Value;
 
 		if (block->Visible.Set && !(overrides & UIStyleProp_Visible))
 			component.Visible = block->Visible.Value;
@@ -335,13 +334,14 @@ namespace Toast {
 	{
 		StyleBlock block;
 
-		block.Background.Assign(component.Color);
+		block.BackgroundState[(size_t)UIState::Normal].Assign(component.Color);
+
 		block.CornerRadius.Assign(component.CornerRadius);
 		block.Visible.Assign(component.Visible);
 		block.UseColor.Assign(component.UseColor);
 
 		if (component.TextureHandle != AssetHandle(0))
-			block.BackgroundImage.Assign(component.TextureHandle);
+			block.BackgroundImageState[(size_t)UIState::Normal].Assign(component.TextureHandle);
 
 		return block;
 	}
@@ -350,17 +350,20 @@ namespace Toast {
 	{
 		StyleBlock block;
 
-		block.Background.Assign(component.Color);
-		block.BackgroundClick.Assign(component.ClickColor);
+		for (uint32_t i = 0; i < (uint32_t)UIState::Count; i++)
+		{
+			block.BackgroundState[i].Assign(component.States[i].Color);
+
+			if (component.States[i].TextureHandle != AssetHandle(0))
+				block.BackgroundImageState[i].Assign(component.States[i].TextureHandle);
+		}
+
 		block.CornerRadius.Assign(component.CornerRadius);
 		block.Visible.Assign(component.Visible);
 		block.UseColor.Assign(component.UseColor);
 
-		if (component.TextureHandle != AssetHandle(0))
-			block.BackgroundImage.Assign(component.TextureHandle);
-
-		if (component.ClickTextureHandle != AssetHandle(0))
-			block.BackgroundClickImage.Assign(component.ClickTextureHandle);
+		if (component.TransitionSeconds > 0.0f)
+			block.TransitionSeconds.Assign(component.TransitionSeconds);
 
 		return block;
 	}
@@ -369,7 +372,7 @@ namespace Toast {
 	{
 		StyleBlock block;
 
-		block.Background.Assign(component.Color);
+		block.Color.Assign(component.Color);
 		block.Visible.Assign(component.Visible);
 
 		return block;

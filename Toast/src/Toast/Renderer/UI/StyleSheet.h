@@ -2,6 +2,8 @@
 
 #include "Toast/Assets/Asset.h"
 
+#include "Toast/Scene/Components.h"
+
 #include <DirectXMath.h>
 #include <filesystem>
 
@@ -19,14 +21,13 @@ namespace Toast {
 	struct StyleBlock
 	{
 		StyleValue<DirectX::XMFLOAT4> Color;
-		StyleValue<DirectX::XMFLOAT4> Background;
-		StyleValue<DirectX::XMFLOAT4> BackgroundClick;
 		StyleValue<float> CornerRadius;
 		StyleValue<bool> Visible;
 		StyleValue<bool> UseColor;
+		StyleValue<float> TransitionSeconds;
 
-		StyleValue<AssetHandle> BackgroundImage;
-		StyleValue<AssetHandle> BackgroundClickImage;
+		StyleValue<DirectX::XMFLOAT4> BackgroundState[(size_t)UIState::Count];
+		StyleValue<AssetHandle> BackgroundImageState[(size_t)UIState::Count];
 	};
 
 	static_assert(std::is_trivially_copyable_v<StyleBlock>, "StyleBlock must stay POD - AssetSerializer writes it directly!");
@@ -49,7 +50,7 @@ namespace Toast {
 		{
 			mBlock = StyleBlock{};
 
-			mBlock.Background.Assign(DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
+			mBlock.BackgroundState[(size_t)UIState::Normal].Assign(DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f));
 			mBlock.CornerRadius.Assign(0.0f);
 			mBlock.UseColor.Assign(true);
 			mBlock.Visible.Assign(true);
