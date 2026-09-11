@@ -536,6 +536,12 @@ namespace Toast {
 			if (unstyled || (overrides & UIStyleProp_Visible))
 				out << YAML::Key << "Visible" << YAML::Value << uipc.Visible;
 
+			if (unstyled || (overrides & UIStyleProp_BorderWidth))
+				out << YAML::Key << "BorderWidth" << YAML::Value << uipc.BorderWidth;
+
+			if (unstyled || (overrides & UIStyleProp_BorderColor))
+				out << YAML::Key << "BorderColor" << YAML::Value << uipc.BorderColor;
+
 			out << YAML::Key << "ConnectToParent" << YAML::Value << uipc.ConnectToParent;
 			out << YAML::Key << "ConnectorColor" << YAML::Value << uipc.Connector.Color;
 			out << YAML::Key << "ConnectorThickness" << YAML::Value << uipc.Connector.Thickness;
@@ -575,9 +581,15 @@ namespace Toast {
 			if (unstyled || (overrides & UIStyleProp_Transition))
 				out << YAML::Key << "TransitionSeconds" << YAML::Value << ubc.TransitionSeconds;
 
+			if (unstyled || (overrides & UIStyleProp_BorderWidth))
+				out << YAML::Key << "BorderWidth" << YAML::Value << ubc.BorderWidth;
+
+			if (unstyled || (overrides & UIStyleProp_BorderColor))
+				out << YAML::Key << "BorderColor" << YAML::Value << ubc.BorderColor;
+
 			out << YAML::Key << "LatchOnClick" << YAML::Value << ubc.LatchOnClick;
 
-			const char* stateKeys[] = { "0", "1", "2" };
+			const char* stateKeys[] = { "0", "1", "2", "3" };
 
 			for (uint32_t i = 0; i < (uint32_t)UIState::Count; i++)
 			{
@@ -612,11 +624,56 @@ namespace Toast {
 				out << YAML::Key << "Color" << YAML::Value << uitc.Color;
 			if (unstyled || (overrides & UIStyleProp_Visible))
 				out << YAML::Key << "Visible" << YAML::Value << uitc.Visible;
+			if (unstyled || (overrides & UIStyleProp_FontSize))
+				out << YAML::Key << "FontSize" << YAML::Value << uitc.FontSize;
+			if (unstyled || (overrides & UIStyleProp_WordWrap))
+				out << YAML::Key << "WordWrap" << YAML::Value << uitc.WordWrap;
+			if (unstyled || (overrides & UIStyleProp_LineHeight))
+				out << YAML::Key << "LineHeight" << YAML::Value << uitc.LineHeight;
+
+			if (unstyled || (overrides & UIStyleProp_TextAlign))
+			{
+				out << YAML::Key << "AlignH" << YAML::Value << (int)uitc.AlignH;
+				out << YAML::Key << "AlignV" << YAML::Value << (int)uitc.AlignV;
+			}
 
 			out << YAML::Key << "StyleSheet" << YAML::Value << (uint64_t)uitc.Style.Sheet;
 			out << YAML::Key << "StyleOverrides" << YAML::Value << uitc.Style.Overrides;
 
 			out << YAML::EndMap; // UITextComponent
+		}
+
+		if (entity.HasComponent<UIImageComponent>())
+		{
+			out << YAML::Key << "UIImageComponent";
+			out << YAML::BeginMap;
+
+			auto& uiic = entity.GetComponent<UIImageComponent>();
+			const bool unstyled = uiic.Style.Sheet == AssetHandle(0);
+			const uint32_t overrides = uiic.Style.Overrides;
+
+			// Not style able, so always written.
+			out << YAML::Key << "TextureAssetHandle" << YAML::Value << uiic.TextureHandle;
+			out << YAML::Key << "SourceRect" << YAML::Value << uiic.SourceRect;
+			out << YAML::Key << "FlipX" << YAML::Value << uiic.FlipX;
+			out << YAML::Key << "FlipY" << YAML::Value << uiic.FlipY;
+
+			if (unstyled || (overrides & UIStyleProp_ImageFit))
+				out << YAML::Key << "Fit" << YAML::Value << (int)uiic.Fit;
+
+			if (unstyled || (overrides & UIStyleProp_Tint))
+				out << YAML::Key << "Tint" << YAML::Value << uiic.Tint;
+
+			if (unstyled || (overrides & UIStyleProp_CornerRadius))
+				out << YAML::Key << "CornerRadius" << YAML::Value << uiic.CornerRadius;
+
+			if (unstyled || (overrides & UIStyleProp_Visible))
+				out << YAML::Key << "Visible" << YAML::Value << uiic.Visible;
+
+			out << YAML::Key << "StyleSheet" << YAML::Value << (uint64_t)uiic.Style.Sheet;
+			out << YAML::Key << "StyleOverrides" << YAML::Value << uiic.Style.Overrides;
+
+			out << YAML::EndMap;
 		}
 
 		if (entity.HasComponent<ParticlesComponent>())
@@ -784,6 +841,7 @@ namespace Toast {
 		out << YAML::Key << "Wireframe" << YAML::Value << (int)settings.WireframeRendering;
 		out << YAML::Key << "Grid" << YAML::Value << settings.Grid;
 		out << YAML::Key << "CameraFrustum" << YAML::Value << settings.CameraFrustum;
+		out << YAML::Key << "ShowUIBounds" << YAML::Value << settings.ShowUIBounds;
 		out << YAML::Key << "FrustumCullingMargin" << YAML::Value << settings.FrustumCullingMargin;
 		out << YAML::Key << "DirectionalLightningGain" << YAML::Value << settings.DirectionalLightningGain;
 		out << YAML::Key << "RenderColliders" << YAML::Value << settings.RenderColliders;
@@ -1198,6 +1256,7 @@ namespace Toast {
 		settings.WireframeRendering = (Toast::Scene::Settings::Wireframe)data["Settings"]["Wireframe"].as<int>();
 		settings.Grid = data["Settings"]["Grid"].as<bool>();
 		settings.CameraFrustum = data["Settings"]["CameraFrustum"].as<bool>();
+		settings.ShowUIBounds = data["Settings"]["ShowUIBounds"].as<bool>(false);
 		settings.FrustumCullingMargin = data["Settings"]["FrustumCullingMargin"].as<float>();
 		settings.DirectionalLightningGain = data["Settings"]["DirectionalLightningGain"].as<float>();
 		settings.RenderColliders = data["Settings"]["RenderColliders"].as<bool>();
@@ -1849,6 +1908,10 @@ namespace Toast {
 						uipc.UseColor = uiPanelComponent["UseColor"].as<bool>();
 					if (uiPanelComponent["Visible"])
 						uipc.Visible = uiPanelComponent["Visible"].as<bool>();
+					if (uiPanelComponent["BorderWidth"])
+						uipc.BorderWidth = uiPanelComponent["BorderWidth"].as<float>();
+					if (uiPanelComponent["BorderColor"])
+						uipc.BorderColor = uiPanelComponent["BorderColor"].as<DirectX::XMFLOAT4>();
 					uipc.ConnectToParent = uiPanelComponent["ConnectToParent"].as<bool>();
 
 					uipc.Connector.Color = uiPanelComponent["ConnectorColor"].as<DirectX::XMFLOAT4>();
@@ -1887,6 +1950,10 @@ namespace Toast {
 						ubc.LatchOnClick = uiButtonComponent["LatchOnClick"].as<bool>();
 					if (uiButtonComponent["TransitionSeconds"])
 						ubc.TransitionSeconds = uiButtonComponent["TransitionSeconds"].as<float>();
+					if (uiButtonComponent["BorderWidth"])
+						ubc.BorderWidth = uiButtonComponent["BorderWidth"].as<float>();
+					if (uiButtonComponent["BorderColor"])
+						ubc.BorderColor = uiButtonComponent["BorderColor"].as<DirectX::XMFLOAT4>();
 
 					const char* stateKeys[] = { "0", "1", "2", "3" };
 
@@ -1918,9 +1985,52 @@ namespace Toast {
 					if (uiTextComponent["Visible"])
 						uitc.Visible = uiTextComponent["Visible"].as<bool>();
 					uitc.TextureIndex = uiTextComponent["TextureIndex"].as<int>(0);
+					if (uiTextComponent["FontSize"])
+						uitc.FontSize = uiTextComponent["FontSize"].as<float>();
+					if (uiTextComponent["AlignH"])
+						uitc.AlignH = (TextAlignH)uiTextComponent["AlignH"].as<int>();
+					if (uiTextComponent["AlignV"])
+						uitc.AlignV = (TextAlignV)uiTextComponent["AlignV"].as<int>();
+					if (uiTextComponent["WordWrap"])
+						uitc.WordWrap = uiTextComponent["WordWrap"].as<bool>();
+					if (uiTextComponent["LineHeight"])
+						uitc.LineHeight = uiTextComponent["LineHeight"].as<float>();
 
 					uitc.Style.Sheet = AssetHandle(uiTextComponent["StyleSheet"].as<uint64_t>(AssetHandle(0)));
 					uitc.Style.Overrides = uiTextComponent["StyleOverrides"].as<uint32_t>(0);
+				}
+
+				auto uiImageComponent = entity["UIImageComponent"];
+				if (uiImageComponent)
+				{
+					auto& uiic = deserializedEntity.AddComponent<UIImageComponent>();
+
+					if (uiImageComponent["TextureAssetHandle"])
+						uiic.TextureHandle = uiImageComponent["TextureAssetHandle"].as<AssetHandle>();
+
+					if (uiImageComponent["SourceRect"])
+						uiic.SourceRect = uiImageComponent["SourceRect"].as<DirectX::XMFLOAT4>();
+
+					if (uiImageComponent["FlipX"])
+						uiic.FlipX = uiImageComponent["FlipX"].as<bool>();
+
+					if (uiImageComponent["FlipY"])
+						uiic.FlipY = uiImageComponent["FlipY"].as<bool>();
+
+					if (uiImageComponent["Fit"])
+						uiic.Fit = (ImageFit)uiImageComponent["Fit"].as<int>();
+
+					if (uiImageComponent["Tint"])
+						uiic.Tint = uiImageComponent["Tint"].as<DirectX::XMFLOAT4>();
+
+					if (uiImageComponent["CornerRadius"])
+						uiic.CornerRadius = uiImageComponent["CornerRadius"].as<float>();
+
+					if (uiImageComponent["Visible"])
+						uiic.Visible = uiImageComponent["Visible"].as<bool>();
+
+					uiic.Style.Sheet = AssetHandle(uiImageComponent["StyleSheet"].as<uint64_t>(AssetHandle(0)));
+					uiic.Style.Overrides = uiImageComponent["StyleOverrides"].as<uint32_t>(0);
 				}
 
 				auto particlesComponent = entity["ParticlesComponent"];

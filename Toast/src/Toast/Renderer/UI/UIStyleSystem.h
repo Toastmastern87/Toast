@@ -32,6 +32,7 @@ namespace Toast {
 		static void ResetUnoverridden(UIPanelComponent& component);
 		static void ResetUnoverridden(UIButtonComponent& component);
 		static void ResetUnoverridden(UITextComponent& component);
+		static void ResetUnoverridden(UIImageComponent& component);
 
 		static void StartFileWatcher();
 		static void StopFileWatcher();
@@ -53,10 +54,12 @@ namespace Toast {
 		static void ApplyStyle(UIPanelComponent& component);
 		static void ApplyStyle(UIButtonComponent& component);
 		static void ApplyStyle(UITextComponent& component);
+		static void ApplyStyle(UIImageComponent& component);
 
 		static StyleBlock CaptureFromComponent(const UIPanelComponent& component);
 		static StyleBlock CaptureFromComponent(const UIButtonComponent& component);
 		static StyleBlock CaptureFromComponent(const UITextComponent& component);
+		static StyleBlock CaptureFromComponent(const UIImageComponent& component);
 	};
 
 }

@@ -163,6 +163,10 @@ namespace Toast {
 			component.Visible = defaults.Visible;
 		if (!(overrides & UIStyleProp_UseColor))
 			component.UseColor = defaults.UseColor;
+		if (!(overrides & UIStyleProp_BorderWidth))
+			component.BorderWidth = defaults.BorderWidth;
+		if (!(overrides & UIStyleProp_BorderColor))
+			component.BorderColor = defaults.BorderColor;
 
 		if (!(overrides & UIStyleProp_BackgroundImage))
 		{	
@@ -198,6 +202,10 @@ namespace Toast {
 			component.UseColor = defaults.UseColor;
 		if (!(overrides & UIStyleProp_Transition))
 			component.TransitionSeconds = defaults.TransitionSeconds;
+		if (!(overrides & UIStyleProp_BorderWidth))
+			component.BorderWidth = defaults.BorderWidth;
+		if (!(overrides & UIStyleProp_BorderColor))
+			component.BorderColor = defaults.BorderColor;
 	}
 
 	void UIStyleSystem::ResetUnoverridden(UITextComponent& component)
@@ -207,6 +215,33 @@ namespace Toast {
 
 		if (!(overrides & UIStyleProp_Color))
 			component.Color = defaults.Color;
+
+		if (!(overrides & UIStyleProp_Visible))
+			component.Visible = defaults.Visible;
+
+		if (!(overrides & UIStyleProp_FontSize))
+			component.FontSize = defaults.FontSize;
+
+		if (!(overrides & UIStyleProp_TextAlign))
+		{
+			component.AlignH = defaults.AlignH;
+			component.AlignV = defaults.AlignV;
+		}
+	}
+
+	void UIStyleSystem::ResetUnoverridden(UIImageComponent& component)
+	{
+		const UIImageComponent defaults;
+		const uint32_t overrides = component.Style.Overrides;
+
+		if (!(overrides & UIStyleProp_Tint))
+			component.Tint = defaults.Tint;
+
+		if (!(overrides & UIStyleProp_ImageFit))
+			component.Fit = defaults.Fit;
+
+		if (!(overrides & UIStyleProp_CornerRadius))
+			component.CornerRadius = defaults.CornerRadius;
 
 		if (!(overrides & UIStyleProp_Visible))
 			component.Visible = defaults.Visible;
@@ -275,6 +310,12 @@ namespace Toast {
 		if (block->UseColor.Set && !(overrides & UIStyleProp_UseColor))
 			component.UseColor = block->UseColor.Value;
 
+		if (block->BorderWidth.Set && !(overrides & UIStyleProp_BorderWidth))
+			component.BorderWidth = block->BorderWidth.Value;
+
+		if (block->BorderColor.Set && !(overrides & UIStyleProp_BorderColor))
+			component.BorderColor = block->BorderColor.Value;
+
 		if (block->BackgroundImageState[(size_t)UIState::Normal].Set && !(overrides & UIStyleProp_BackgroundImage))
 		{
 			component.TextureHandle = block->BackgroundImageState[(size_t)UIState::Normal].Value;
@@ -310,6 +351,12 @@ namespace Toast {
 		if (block->TransitionSeconds.Set && !(overrides & UIStyleProp_Transition))
 			component.TransitionSeconds = block->TransitionSeconds.Value;
 
+		if (block->BorderWidth.Set && !(overrides & UIStyleProp_BorderWidth))
+			component.BorderWidth = block->BorderWidth.Value;
+
+		if (block->BorderColor.Set && !(overrides & UIStyleProp_BorderColor))
+			component.BorderColor = block->BorderColor.Value;
+
 		component.Blended = component.States[(size_t)component.CurrentState];
 		component.BlendFrom = component.Blended;
 		component.StateBlend = 1.0f;
@@ -328,6 +375,39 @@ namespace Toast {
 
 		if (block->Visible.Set && !(overrides & UIStyleProp_Visible))
 			component.Visible = block->Visible.Value;
+
+		if (block->FontSize.Set && !(overrides & UIStyleProp_FontSize))
+			component.FontSize = block->FontSize.Value;
+
+		if(!(overrides & UIStyleProp_TextAlign))
+		{
+			if (block->AlignH.Set)
+				component.AlignH = block->AlignH.Value;
+
+			if (block->AlignV.Set)
+				component.AlignV = block->AlignV.Value;
+		}
+	}
+
+	void UIStyleSystem::ApplyStyle(UIImageComponent& component)
+	{
+		const StyleBlock* block = GetBlock(component.Style.Sheet);
+		if (!block)
+			return;
+
+		const uint32_t overrides = component.Style.Overrides;
+
+		if (block->Tint.Set && !(overrides & UIStyleProp_Tint))
+			component.Tint = block->Tint.Value;
+
+		if (block->Fit.Set && !(overrides & UIStyleProp_ImageFit))
+			component.Fit = block->Fit.Value;
+
+		if (block->CornerRadius.Set && !(overrides & UIStyleProp_CornerRadius))
+			component.CornerRadius = block->CornerRadius.Value;
+
+		if (block->Visible.Set && !(overrides & UIStyleProp_Visible))
+			component.Visible = block->Visible.Value;
 	}
 
 	StyleBlock UIStyleSystem::CaptureFromComponent(const UIPanelComponent& component)
@@ -339,6 +419,12 @@ namespace Toast {
 		block.CornerRadius.Assign(component.CornerRadius);
 		block.Visible.Assign(component.Visible);
 		block.UseColor.Assign(component.UseColor);
+
+		if (component.BorderWidth > 0.0f)
+		{
+			block.BorderWidth.Assign(component.BorderWidth);
+			block.BorderColor.Assign(component.BorderColor);
+		}
 
 		if (component.TextureHandle != AssetHandle(0))
 			block.BackgroundImageState[(size_t)UIState::Normal].Assign(component.TextureHandle);
@@ -365,6 +451,12 @@ namespace Toast {
 		if (component.TransitionSeconds > 0.0f)
 			block.TransitionSeconds.Assign(component.TransitionSeconds);
 
+		if (component.BorderWidth > 0.0f)
+		{
+			block.BorderWidth.Assign(component.BorderWidth);
+			block.BorderColor.Assign(component.BorderColor);
+		}
+
 		return block;
 	}
 
@@ -373,6 +465,22 @@ namespace Toast {
 		StyleBlock block;
 
 		block.Color.Assign(component.Color);
+		block.Visible.Assign(component.Visible);
+
+		block.FontSize.Assign(component.FontSize);
+		block.AlignH.Assign(component.AlignH);
+		block.AlignV.Assign(component.AlignV);
+
+		return block;
+	}
+
+	StyleBlock UIStyleSystem::CaptureFromComponent(const UIImageComponent& component)
+	{
+		StyleBlock block;
+
+		block.Tint.Assign(component.Tint);
+		block.Fit.Assign(component.Fit);
+		block.CornerRadius.Assign(component.CornerRadius);
 		block.Visible.Assign(component.Visible);
 
 		return block;

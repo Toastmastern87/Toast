@@ -492,6 +492,15 @@ namespace Toast {
 				}
 			}
 
+			if (!mContext.HasComponent<UIImageComponent>())
+			{
+				if (ImGui::MenuItem("UI Image"))
+				{
+					mContext.AddComponent<UIImageComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
 			ImGui::EndPopup();
 		}
 
@@ -1444,7 +1453,7 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Use Color");
+				ImGui::TextWrapped("Use Color");
 				ImGui::TableSetColumnIndex(1);
 				if (ImGui::Checkbox("##usecolor", &component.UseColor))
 					component.Style.Overrides |= UIStyleProp_UseColor;
@@ -1464,7 +1473,7 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Corner Radius");
+				ImGui::TextWrapped("Corner Radius");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
 				if (ImGui::SliderFloat("##cornerradius", &component.CornerRadius, 0.0f, 50.0f, "%.1f"))
@@ -1475,15 +1484,46 @@ namespace Toast {
 				ImGui::TableNextRow();
 
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Visible");
+				ImGui::TextWrapped("Visible");
 				ImGui::TableSetColumnIndex(1);
 				if (ImGui::Checkbox("##Visible", &component.Visible))
 					component.Style.Overrides |= UIStyleProp_Visible;
 
 				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_Visible, styleBlock && styleBlock->Visible.Set))
 					UIStyleSystem::ResolveEntity(entity);
-				ImGui::TableNextRow();
 
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextWrapped("Border");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
+
+				if (ImGui::SliderFloat("##borderwidth", &component.BorderWidth, 0.0f, 20.0f, "%.1f"))
+					component.Style.Overrides |= UIStyleProp_BorderWidth;
+
+				ImGui::PopItemWidth();
+
+				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_BorderWidth, styleBlock && styleBlock->BorderWidth.Set))
+					UIStyleSystem::ResolveEntity(entity);
+
+				if (component.BorderWidth > 0.0f)
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::TextWrapped("Border Color");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
+
+					if (ImGui::ColorEdit3("##bordercolor", &component.BorderColor.x))
+						component.Style.Overrides |= UIStyleProp_BorderColor;
+
+					ImGui::PopItemWidth();
+
+					if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_BorderColor, styleBlock && styleBlock->BorderColor.Set))
+						UIStyleSystem::ResolveEntity(entity);
+				}
+
+				ImGui::TableNextRow();
 				if (entity.HasParent())
 				{
 					float wrapWidth = 90.0f - ImGui::GetStyle().ItemSpacing.x;
@@ -1649,6 +1689,53 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Font Size");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
+				if (ImGui::DragFloat("##fontsize", &component.FontSize, 0.25f, 1.0f, 256.0f, "%.1f"))
+					component.Style.Overrides |= UIStyleProp_FontSize;
+				ImGui::PopItemWidth();
+
+				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_FontSize, styleBlock && styleBlock->FontSize.Set))
+					UIStyleSystem::ResolveEntity(entity);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Word Wrap");
+				ImGui::TableSetColumnIndex(1);
+				if (ImGui::Checkbox("##wordwrap", &component.WordWrap))
+					component.Style.Overrides |= UIStyleProp_WordWrap;
+
+				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_WordWrap, styleBlock && styleBlock->WordWrap.Set))
+					UIStyleSystem::ResolveEntity(entity);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Line Height");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
+
+				if (ImGui::SliderFloat("##lineheight", &component.LineHeight, 0.5f, 3.0f, "%.2f"))
+					component.Style.Overrides |= UIStyleProp_LineHeight;
+
+				ImGui::PopItemWidth();
+
+				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_LineHeight, styleBlock && styleBlock->LineHeight.Set))
+					UIStyleSystem::ResolveEntity(entity);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Alignment");
+				ImGui::TableSetColumnIndex(1);
+				
+				if (ImGuiHelpers::AlignmentGrid("##align", component.AlignH, component.AlignV)) 
+					component.Style.Overrides |= UIStyleProp_TextAlign;
+
+				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_TextAlign, styleBlock && styleBlock->AlignH.Set))
+					UIStyleSystem::ResolveEntity(entity);
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Color");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
@@ -1731,7 +1818,7 @@ namespace Toast {
 
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("%s Color", stateNames[stateIndex]);
+					ImGui::TextWrapped("%s Color", stateNames[stateIndex]);
 					ImGui::TableSetColumnIndex(1);
 					ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
 
@@ -1748,7 +1835,7 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Use Color");
+				ImGui::TextWrapped("Use Color");
 				ImGui::TableSetColumnIndex(1);
 				if (ImGui::Checkbox("##usecolor", &component.UseColor))
 					component.Style.Overrides |= UIStyleProp_UseColor;
@@ -1757,7 +1844,7 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Latch On Click");
+				ImGui::TextWrapped("Latch On Click");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::Checkbox("##latchonclick", &component.LatchOnClick);
 
@@ -1774,7 +1861,7 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Visible");
+				ImGui::TextWrapped("Visible");
 				ImGui::TableSetColumnIndex(1);
 				if (ImGui::Checkbox("##Visible", &component.Visible))
 					component.Style.Overrides |= UIStyleProp_Visible;
@@ -1783,7 +1870,7 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("Transition");
+				ImGui::TextWrapped("Transition");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
 
@@ -1794,6 +1881,37 @@ namespace Toast {
 					component.Style.Overrides |= UIStyleProp_Transition;
 				}
 
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextWrapped("Border");
+				ImGui::TableSetColumnIndex(1);
+				ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
+
+				if (ImGui::SliderFloat("##borderwidth", &component.BorderWidth, 0.0f, 20.0f, "%.1f"))
+					component.Style.Overrides |= UIStyleProp_BorderWidth;
+
+				ImGui::PopItemWidth();
+
+				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_BorderWidth, styleBlock && styleBlock->BorderWidth.Set))
+					UIStyleSystem::ResolveEntity(entity);
+
+				if (component.BorderWidth > 0.0f)
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::TextWrapped("Border Color");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
+
+					if (ImGui::ColorEdit3("##bordercolor", &component.BorderColor.x))
+						component.Style.Overrides |= UIStyleProp_BorderColor;
+
+					ImGui::PopItemWidth();
+
+					if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_BorderColor, styleBlock && styleBlock->BorderColor.Set))
+						UIStyleSystem::ResolveEntity(entity);
+				}
+
 				ImGui::PopItemWidth();
 
 				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_Transition, styleBlock && styleBlock->TransitionSeconds.Set))
@@ -1801,6 +1919,92 @@ namespace Toast {
 
 				ImGui::EndTable();
 			});
+
+			DrawComponent<UIImageComponent>(ICON_TOASTER_FILE_IMAGE_O" UI Image", entity, mScene, activeDragArea, mWindow, mAssetRoot, [this](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
+				{
+					ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+					ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+					const StyleBlock* styleBlock = UIStyleSystem::GetBlock(component.Style.Sheet);
+
+					ImGui::BeginTable("UIImageComponent", 2, flags);
+					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+
+					if (ImGuiHelpers::StyleSheetSlot(component.Style, entity, mNewStyleSheetName, sizeof(mNewStyleSheetName), mOpenFileCallback))
+						UIStyleSystem::ResolveEntity(entity);
+
+					auto texturePath = mAssetRoot / "Textures" / "UI";
+
+					std::string pickedTexture;
+					if (ImGuiHelpers::TextureSlotRow("Texture", component.TextureHandle, assetRoot, texturePath, pickedTexture))
+					{
+						RequestUITextureImport(pickedTexture, false, [this, entity](AssetHandle handle) mutable
+							{
+								auto& comp = entity.GetComponent<UIImageComponent>();
+								comp.TextureHandle = handle;
+							});
+					}
+
+					// --- fit ---
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Fit");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
+
+					const char* fitNames[] = { "Stretch", "Contain", "Cover", "None" };
+					int fitIndex = (int)component.Fit;
+					if (ImGui::Combo("##imagefit", &fitIndex, fitNames, IM_ARRAYSIZE(fitNames)))
+					{
+						component.Fit = (ImageFit)fitIndex;
+						component.Style.Overrides |= UIStyleProp_ImageFit;
+					}
+
+					ImGui::PopItemWidth();
+
+					if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_ImageFit, styleBlock && styleBlock->Fit.Set))
+						UIStyleSystem::ResolveEntity(entity);
+
+					if (ImGui::IsItemHovered())
+						ImGui::SetTooltip("Stretch: fill, ignore aspect\nContain: fit inside, letterbox\nCover: fill, crop overflow\nNone: native size, centred");
+
+					// --- tint ---
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Tint");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
+
+					if (ImGui::ColorEdit4("##tint", &component.Tint.x))
+						component.Style.Overrides |= UIStyleProp_Tint;
+
+					ImGui::PopItemWidth();
+
+					if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_Tint, styleBlock && styleBlock->Tint.Set))
+						UIStyleSystem::ResolveEntity(entity);
+
+					// --- corner radius, visible: same as panel, shared bits ---
+
+					// --- flips ---
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::Text("Flip");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Checkbox("X##flipx", &component.FlipX);
+					ImGui::SameLine();
+					ImGui::Checkbox("Y##flipy", &component.FlipY);
+
+					ImGui::EndTable();
+
+					if (ImGui::CollapsingHeader("Advanced##imageadvanced"))
+					{
+						ImGui::PushItemWidth(-1);
+						ImGui::DragFloat4("##sourcerect", &component.SourceRect.x, 0.01f, 0.0f, 1.0f, "%.3f");
+						ImGui::PopItemWidth();
+						ImGui::TextDisabled("Source rect: x, y, w, h (0-1)");
+					}
+				});
 
 		DrawComponent<ParticlesComponent>(ICON_TOASTER_SNOWFLAKE" Particles", entity, mScene, activeDragArea, mWindow, mAssetRoot, [this](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{

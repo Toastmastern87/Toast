@@ -944,7 +944,7 @@ namespace Toast {
 					uiPos.x += (mViewportWidth * 0.5f);
 					uiPos.y += (mViewportHeight * 0.5f);
 
-					Renderer2D::SubmitPanel(uiPos, { tc.Scale.x, tc.Scale.y, upc.CornerRadius, 0.0f }, upc.Color, (int)entity, !upc.UseColor, false, upc.TextureIndex);
+					Renderer2D::SubmitPanel(uiPos, { tc.Scale.x, tc.Scale.y, upc.CornerRadius, 0.0f }, upc.Color, (int)entity, !upc.UseColor, false, upc.TextureIndex, upc.BorderWidth, upc.BorderColor);
 				}
 
 				//Buttons
@@ -1004,7 +1004,7 @@ namespace Toast {
 					if (renderButton)
 					{
 						const auto& state = ubc.Blended;
-						Renderer2D::SubmitButton(uiPos, { tc.Scale.x, tc.Scale.y, ubc.CornerRadius, 1.0f }, state.Color, (int)entity, !ubc.UseColor, state.TextureIndex);
+						Renderer2D::SubmitButton(uiPos, { tc.Scale.x, tc.Scale.y, ubc.CornerRadius, 1.0f }, state.Color, (int)entity, !ubc.UseColor, state.TextureIndex, ubc.BorderWidth, ubc.BorderColor);
 					}
 				}
 
@@ -1063,7 +1063,20 @@ namespace Toast {
 
 					uiPos.x += (mViewportWidth * 0.5f);
 					uiPos.y += (mViewportHeight * 0.5f);
-					Renderer2D::SubmitText(uiPos, { tc.Scale.x, tc.Scale.y, 1.0f, 1.0f }, uitc.Color, uitc.Text, uitc.TextureIndex, (int)entity, true);
+
+					Renderer2D::TextSubmitParams textParams;
+					textParams.Position = uiPos;
+					textParams.BoxSize = { tc.Scale.x, tc.Scale.y };
+					textParams.Color = uitc.Color;
+					textParams.FontTextureIndex = uitc.TextureIndex;
+					textParams.EntityID = (int)entity;
+					textParams.FontSize = uitc.FontSize;
+					textParams.AlignH = uitc.AlignH;
+					textParams.AlignV = uitc.AlignV;
+					textParams.WordWrap = uitc.WordWrap;
+					textParams.LineHeight = uitc.LineHeight;
+
+					Renderer2D::SubmitText(textParams, uitc.Text);
 				}
 			}
 			Renderer2D::EndScene();
@@ -1739,7 +1752,10 @@ namespace Toast {
 					uiPos.x += (mViewportWidth * 0.5f);
 					uiPos.y += (mViewportHeight * 0.5f);
 
-					Renderer2D::SubmitPanel(uiPos, { tc.Scale.x, tc.Scale.y, upc.CornerRadius, 0.0f }, upc.Color, (int)entity, !upc.UseColor, false, upc.TextureIndex);
+					Renderer2D::SubmitPanel(uiPos, { tc.Scale.x, tc.Scale.y, upc.CornerRadius, 0.0f }, upc.Color, (int)entity, !upc.UseColor, false, upc.TextureIndex, upc.BorderWidth, upc.BorderColor);
+
+					if (mSettings.ShowUIBounds)
+						Renderer2D::SubmitUIBounds(uiPos, { tc.Scale.x, tc.Scale.y }, { 0.0f, 1.0f, 0.4f, 0.6f });
 				}
 
 				//Buttons
@@ -1798,7 +1814,10 @@ namespace Toast {
 					if (renderButton)
 					{
 						const auto& state = ubc.States[(size_t)ubc.CurrentState];
-						Renderer2D::SubmitButton(uiPos, { tc.Scale.x, tc.Scale.y, ubc.CornerRadius, 1.0f }, state.Color, (int)entity, !ubc.UseColor, state.TextureIndex);
+						Renderer2D::SubmitButton(uiPos, { tc.Scale.x, tc.Scale.y, ubc.CornerRadius, 1.0f }, state.Color, (int)entity, !ubc.UseColor, state.TextureIndex, ubc.BorderWidth, ubc.BorderColor);
+
+						if (mSettings.ShowUIBounds)
+							Renderer2D::SubmitUIBounds(uiPos, { tc.Scale.x, tc.Scale.y }, { 0.0f, 1.0f, 0.4f, 0.6f });
 					}
 				}
 
@@ -1856,7 +1875,23 @@ namespace Toast {
 
 					uiPos.x += (mViewportWidth * 0.5f);
 					uiPos.y += (mViewportHeight * 0.5f);
-					Renderer2D::SubmitText(uiPos, { tc.Scale.x, tc.Scale.y, 1.0f, 1.0f }, uitc.Color, uitc.Text, uitc.TextureIndex, (int)entity, true);
+					
+					Renderer2D::TextSubmitParams textParams;
+					textParams.Position = uiPos;
+					textParams.BoxSize = { tc.Scale.x, tc.Scale.y };
+					textParams.Color = uitc.Color;
+					textParams.FontTextureIndex = uitc.TextureIndex;
+					textParams.EntityID = (int)entity;
+					textParams.FontSize = uitc.FontSize;
+					textParams.AlignH = uitc.AlignH;
+					textParams.AlignV = uitc.AlignV;
+					textParams.WordWrap = uitc.WordWrap;
+					textParams.LineHeight = uitc.LineHeight;
+
+					Renderer2D::SubmitText(textParams, uitc.Text);
+
+					if (mSettings.ShowUIBounds)
+						Renderer2D::SubmitUIBounds(uiPos, { tc.Scale.x, tc.Scale.y }, { 0.0f, 1.0f, 0.4f, 0.6f });
 				}
 			}
 			Renderer2D::EndScene();
@@ -2773,6 +2808,11 @@ namespace Toast {
 
 	template<>
 	void Scene::OnComponentAdded<UIButtonComponent>(Entity entity, UIButtonComponent& component)
+	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<UIImageComponent>(Entity entity, UIImageComponent& component)
 	{
 	}
 

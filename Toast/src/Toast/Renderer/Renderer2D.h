@@ -9,10 +9,29 @@
 
 namespace Toast {
 
+	// Forward declerations
 	enum class ConnectorStyle : uint8_t;
+	enum class TextAlignH : uint8_t;
+	enum class TextAlignV : uint8_t;
 
 	class Renderer2D : Renderer
 	{
+	public:
+		struct TextSubmitParams
+		{
+			DirectX::XMFLOAT3 Position = { 0.0f, 0.0f, 0.0f };
+			DirectX::XMFLOAT2 BoxSize = { 0.0f, 0.0f };
+			DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+			uint32_t FontTextureIndex = 0;
+			int EntityID = -1;
+
+			float FontSize = 24.0f;
+			TextAlignH AlignH = TextAlignH::Left;
+			TextAlignV AlignV = TextAlignV::Top;
+			bool WordWrap = false;
+			float LineHeight = 1.0f;
+		};
 	private:
 		struct UIVertex
 		{
@@ -99,10 +118,12 @@ namespace Toast {
 		static void BeginScene(Camera& camera);
 		static void EndScene();
 
-		static void SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, uint32_t textureIndex);
+		static void SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, uint32_t textureIndex, float borderWidth, const DirectX::XMFLOAT4& borderColor);
 		static void SubmitConnector(const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b, float thicknessPx, ConnectorStyle style, float cornerRadiusPx, const DirectX::XMFLOAT4& color, float outlineWidthPx, const DirectX::XMFLOAT4& outlineColor, int entityID);
-		static void SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, const DirectX::XMFLOAT4& color, const int entityID, const bool textured, uint32_t textureIndex);
-		static void SubmitText(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const std::string& textString, const uint32_t fontTextureIndex, const int entityID, const bool targetable);
+		static void SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, const DirectX::XMFLOAT4& color, const int entityID, const bool textured, uint32_t textureIndex, float borderWidth, const DirectX::XMFLOAT4& borderColor);
+		static void SubmitText(const TextSubmitParams& params, const std::string& textString);
+
+		static void SubmitUIBounds(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, const DirectX::XMFLOAT4& color);
 
 		static Renderer2DData* GetRendererData() { return sRenderer2DData.get(); }
 	private:

@@ -248,6 +248,34 @@ namespace Toast {
 		return true;
 	}
 
+	static bool ParseAlignH(const std::string& text, TextAlignH& out)
+	{
+		if (text == "left") { out = TextAlignH::Left; return true; }
+		if (text == "center") { out = TextAlignH::Center; return true; }
+		if (text == "right") { out = TextAlignH::Right; return true; }
+
+		return false;
+	}
+
+	static bool ParseAlignV(const std::string& text, TextAlignV& out)
+	{
+		if (text == "top") { out = TextAlignV::Top; return true; }
+		if (text == "middle") { out = TextAlignV::Middle; return true; }
+		if (text == "bottom") { out = TextAlignV::Bottom; return true; }
+
+		return false;
+	}
+
+	static bool ParseImageFit(const std::string& text, ImageFit& out)
+	{
+		if (text == "stretch") { out = ImageFit::Stretch; return true; }
+		if (text == "contain") { out = ImageFit::Contain; return true; }
+		if (text == "cover") { out = ImageFit::Cover; return true; }
+		if (text == "non") { out = ImageFit::None; return true; }
+
+		return false;
+	}
+
 #define UI_TEXTURE_DIRECTORY "Texture/UI"
 	
 	static bool ResolveUITexture(const std::string& filename, AssetHandle& outHandle)
@@ -360,6 +388,96 @@ namespace Toast {
 			return true;
 		}
 
+		if (property == "border")
+		{
+			float f;
+			if (!ParseNumber(value, f))
+				return false;
+
+			block.BorderWidth.Assign(f);
+			return true;
+		}
+
+		if (property == "border-color")
+		{
+			DirectX::XMFLOAT4 c;
+			if (!ParseColor(value, c))
+				return false;
+
+			block.BorderColor.Assign(c);
+			return true;
+		}
+
+		if (property == "font-size")
+		{
+			float f;
+			if (!ParseNumber(value, f))
+				return false;
+
+			block.FontSize.Assign(f);
+			return true;
+		}
+
+		if (property == "text-align")
+		{
+			TextAlignH a;
+			if (!ParseAlignH(value, a))
+				return false;
+
+			block.AlignH.Assign(a);
+			return true;
+		}
+
+		if (property == "vertical-align")
+		{
+			TextAlignV a;
+			if (!ParseAlignV(value, a))
+				return false;
+
+			block.AlignV.Assign(a);
+			return true;
+		}
+
+		if (property == "word-wrap")
+		{
+			bool b;
+			if (!ParseBool(value, b))
+				return false;
+
+			block.WordWrap.Assign(b);
+			return true;
+		}
+
+		if (property == "line-height")
+		{
+			float f;
+			if (!ParseNumber(value, f))
+				return false;
+
+			block.LineHeight.Assign(f);
+			return true;
+		}
+
+		if (property == "tint")
+		{
+			DirectX::XMFLOAT4 c;
+			if (!ParseColor(value, c))
+				return false;
+
+			block.Tint.Assign(c);
+			return true;
+		}
+
+		if (property == "image-fit")
+		{
+			ImageFit fit;
+			if (!ParseImageFit(value, fit))
+				return false;
+
+			block.Fit.Assign(fit);
+			return true;
+		}
+
 		return false;
 	}
 
@@ -466,6 +584,31 @@ namespace Toast {
 			out << "use-color: " << mBlock.UseColor.Value << ";\n";
 		if (mBlock.TransitionSeconds.Set)
 			out << "transition: " << (int)(mBlock.TransitionSeconds.Value * 1000.0f) << "ms;\n";
+		if (mBlock.BorderWidth.Set)
+			out << "border: " << mBlock.BorderWidth.Value << ";\n";
+
+		writeColor("border-color", mBlock.BorderColor);
+
+		static const char* alightHNames[] = { "left", "center", "right" };
+		static const char* alightVNames[] = { "top", "middle", "bottom" };
+
+		if (mBlock.FontSize.Set)
+			out << "font-size: " << mBlock.FontSize.Value << ";\n";
+		if (mBlock.AlignH.Set)
+			out << "text-align: " << alightHNames[(size_t)mBlock.AlignH.Value] << ";\n";
+		if (mBlock.AlignV.Set)
+			out << "vertical-align: " << alightVNames[(size_t)mBlock.AlignV.Value] << ";\n";
+		if (mBlock.WordWrap.Set)
+			out << "word-wrap: " << mBlock.WordWrap.Value << ";\n";
+		if (mBlock.LineHeight.Set)
+			out << "line-height: " << mBlock.LineHeight.Value << ";\n";
+
+		static const char* fitNames[] = { "stretch", "contain", "cover", "none" };
+
+		writeColor("tint", mBlock.Tint);
+
+		if (mBlock.Fit.Set)
+			out << "image-fit: " << fitNames[(size_t)mBlock.Fit.Value] << ";\n";
 
 		for (uint32_t i = 0; i < (uint32_t)UIState::Count; i++)
 		{

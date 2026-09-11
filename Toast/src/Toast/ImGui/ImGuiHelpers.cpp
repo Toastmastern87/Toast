@@ -1129,6 +1129,79 @@ namespace Toast
 
 			return picked;
 		}
+
+		bool AlignmentGrid(const char* id, TextAlignH& alignH, TextAlignV& alignV, float cellSize /*= 22.0f*/)
+		{
+			bool changed = false;
+
+			ImGui::PushID(id);
+
+			ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+			ImGui::BeginGroup();
+
+			for (int row = 0; row < 3; row++)
+			{
+				for (int col = 0; col < 3; col++)
+				{
+					if (col > 0)
+						ImGui::SameLine(0.0f, 2.0f);
+
+					const bool selected = ((int)alignV == row && (int)alignH == col);
+
+					ImGui::PushID(row * 3 + col);
+					ImGui::PushStyleColor(ImGuiCol_Button, selected ? ImVec4(0.26f, 0.59f, 0.98f, 1.0f) : ImVec4(0.18f, 0.18f, 0.18f, 1.0f));
+
+					if (ImGui::Button("##cell", ImVec2(cellSize, cellSize)))
+					{
+						alignH = (TextAlignH)col;
+						alignV = (TextAlignV)row;
+						changed = true;
+					}
+
+					ImGui::PopStyleColor();
+
+					const ImVec2 cellMin = ImGui::GetItemRectMin();
+					const ImVec2 cellMax = ImGui::GetItemRectMax();
+
+					const float padding = 4.0f;
+					const float lineGap = 3.0f;
+					const float usableWidth = (cellMax.x - cellMin.x) - padding * 2.0f;
+					const float blockHeight = lineGap * 2.0f;
+
+					const float lineWidths[3] = { usableWidth, usableWidth * 0.7f, usableWidth * 0.45f };
+
+					float blockTop = cellMin.y + padding;
+					if (row == 1)
+						blockTop = (cellMin.y + cellMax.y) * 0.5f - blockHeight * 0.5f;
+					else if (row == 2)
+						blockTop = cellMax.y - padding - blockHeight;
+
+					for (int line = 0; line < 3; line++)
+					{
+						const float lineWidth = lineWidths[line];
+
+						float lineLeft = cellMin.x + padding;
+						if (col == 1)
+							lineLeft = (cellMin.x + cellMax.x) * 0.5f - lineWidth * 0.5f;
+						else if (col == 2)
+							lineLeft = cellMax.x - padding - lineWidth;
+
+						const float lineY = blockTop + lineGap * line;
+
+						drawList->AddLine(ImVec2(lineLeft, lineY), ImVec2(lineLeft + lineWidth, lineY), IM_COL32(230, 230, 230, selected ? 255 : 160), 1.0f);
+					}
+
+					ImGui::PopID();
+				}
+			}
+
+			ImGui::EndGroup();
+			ImGui::PopID();
+
+			return changed;
+		}
+
 	}
 
 }

@@ -15,6 +15,110 @@ namespace Toast {
 
 	Scope<Renderer2D::Renderer2DData> Renderer2D::sRenderer2DData = CreateScope<Renderer2D::Renderer2DData>();
 
+	// Sum of advances for one line, in the same units the pen uses.
+	static double MeasureLine(const std::string& line, const msdf_atlas::FontGeometry& fontGeometry, double fsScale) 
+	{
+		double width = 0.0;
+
+		for (size_t i = 0; i < line.size(); i++)
+		{
+			char32_t character = (char32_t)line[i];
+
+			auto glyph = fontGeometry.getGlyph(character);
+			if (!glyph)
+				glyph = fontGeometry.getGlyph('?');
+			if (!glyph)
+				continue;
+
+			double advance = glyph->getAdvance();
+
+			char32_t nextChar = (i + 1 < line.size()) ? (char32_t)line[i + 1] : 0;
+			fontGeometry.getAdvance(advance, character, nextChar);
+
+			width += fsScale * advance;
+		}
+
+		return width;
+	}
+
+	static void BuildLines(const std::string& textString, const msdf_atlas::FontGeometry& fontGeometry, double fsScale, double maxWidth, std::vector<std::string>& outLines)
+	{
+		outLines.clear();
+
+		size_t paragraphStart = 0;
+
+		while (true)
+		{
+			const size_t newline = textString.find('\n', paragraphStart);
+			const std::string paragraph = textString.substr(paragraphStart, newline == std::string::npos ? std::string::npos : newline - paragraphStart);
+
+			//No wrapping
+			if (maxWidth <= 0.0)
+				outLines.push_back(paragraph);
+			else 
+			{
+				size_t lineStart = 0;
+				size_t lastSpace = std::string::npos;
+				double width = 0.0;
+
+				for (size_t i = 0; i < paragraph.size(); i++)
+				{
+					const char32_t character = (char32_t)paragraph[i];
+
+					if (character == ' ')
+						lastSpace = i;
+
+					auto glyph = fontGeometry.getGlyph(character);
+					if (!glyph)
+						glyph = fontGeometry.getGlyph('?');
+
+					double advance = 0.0;
+					if (glyph)
+					{
+						advance = glyph->getAdvance();
+
+						const char32_t nextChar = (i + 1 < paragraph.size()) ? (char32_t)paragraph[i + 1] : 0;
+						fontGeometry.getAdvance(advance, character, nextChar);
+					}
+
+					width += fsScale * advance;
+
+					if (width <= maxWidth)
+						continue;
+
+					// Over the limit. Break at the last space if there was one
+					// after the line start; otherwise force-break here, because a
+					// single word longer than the line would otherwise never fit
+					// and the loop would never advance.
+					if (lastSpace != std::string::npos && lastSpace > lineStart)
+					{
+						outLines.push_back(paragraph.substr(lineStart, lastSpace - lineStart));
+						lineStart = lastSpace + 1;
+						i = lastSpace;
+					}
+					else 
+					{
+						const size_t breakAt = (i > lineStart) ? i : lineStart + 1;
+
+						outLines.push_back(paragraph.substr(lineStart, breakAt - lineStart));
+						lineStart = breakAt;
+						i = breakAt - 1;
+					}
+
+					lastSpace = std::string::npos;
+					width = 0.0;
+				}
+
+				outLines.push_back(paragraph.substr(lineStart));
+			}
+
+			if (newline == std::string::npos)
+				break;
+
+			paragraphStart = newline + 1;
+		}
+	}
+
 	void Renderer2D::Init()
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -160,7 +264,7 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer2D::SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, uint32_t textureIndex)
+	void Renderer2D::SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, uint32_t textureIndex, float borderWidth, const DirectX::XMFLOAT4& borderColor)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -186,6 +290,7 @@ namespace Toast {
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = textureCoords[i];
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
 			sRenderer2DData->UIVertexBufferPtr->TextureIndex = textureIndex;
+			sRenderer2DData->UIVertexBufferPtr->Params = { borderWidth, borderColor.x, borderColor.y, borderColor.z };
 			sRenderer2DData->UIVertexBufferPtr++;
 		}
 	}
@@ -243,7 +348,7 @@ namespace Toast {
 		push(p3, tc);
 	}
 
-	void Renderer2D::SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, const DirectX::XMFLOAT4& color, const int entityID, const bool textured, uint32_t textureIndex)
+	void Renderer2D::SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, const DirectX::XMFLOAT4& color, const int entityID, const bool textured, uint32_t textureIndex, float borderWidth, const DirectX::XMFLOAT4& borderColor)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -269,15 +374,16 @@ namespace Toast {
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = textureCoords[i];
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
 			sRenderer2DData->UIVertexBufferPtr->TextureIndex = textureIndex;
+			sRenderer2DData->UIVertexBufferPtr->Params = { borderWidth, borderColor.x, borderColor.y, borderColor.z };
 			sRenderer2DData->UIVertexBufferPtr++;
 		}
 	}
 
-	void Renderer2D::SubmitText(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const std::string& textString, const uint32_t fontTextureIndex, const int entityID, const bool targetable)
+	void Renderer2D::SubmitText(const TextSubmitParams& params, const std::string& textString)
 	{
 		TOAST_PROFILE_FUNCTION();
 
-		auto& textFont = sRenderer2DData->TextFonts[fontTextureIndex];
+		auto& textFont = sRenderer2DData->TextFonts[params.FontTextureIndex];
 
 		if (textString.empty())
 			return;
@@ -292,104 +398,150 @@ namespace Toast {
 		double fontHeight = metrics.ascenderY - metrics.descenderY;
 		double fsScale = 1 / fontHeight;
 
-		fsScale *= size.y;
+		fsScale *= params.FontSize;
 
-		// Initialize positions
-		double x = pos.x;
-		double y = pos.y + fsScale * (-metrics.descenderY); // Adjust y to align baseline
+		const double maxWidth = params.WordWrap ? params.BoxSize.x : 0.0;
 
-		for (int i = 0; i < textString.size(); i++)
+		std::vector<std::string> lines;
+		BuildLines(textString, fontGeometry, fsScale, maxWidth, lines);
+
+		const double lineAdvance = metrics.lineHeight * params.LineHeight * fsScale;
+
+		double blockHeight = (double)lines.size() * lineAdvance;
+
+		double blockY = params.Position.y;
+		switch (params.AlignV)
 		{
-			if (!HasRoomForQuad())
-				return;
+		case TextAlignV::Middle:
+			blockY += (params.BoxSize.y - blockHeight) * 0.5;
+			break;
+		case TextAlignV::Bottom:
+			blockY += params.BoxSize.y - blockHeight;
+			break;
+		}
 
-			char32_t character = textString[i];
-			// New row
-			if (character == '\n')
+		double y = blockY + fsScale * metrics.ascenderY;
+
+		for (const auto& line : lines)
+		{
+			double x = params.Position.x;
+
+			if (params.AlignH != TextAlignH::Left)
 			{
-				x = pos.x;
-				y += fsScale * metrics.lineHeight;
-				continue;
+				double lineWidth = MeasureLine(line, fontGeometry, fsScale);
+
+				switch (params.AlignH)
+				{
+				case TextAlignH::Center:
+					x += (params.BoxSize.x - lineWidth) * 0.5;
+					break;
+				case TextAlignH::Right:
+					x += params.BoxSize.x - lineWidth;
+					break;
+				}
 			}
 
-			auto glyph = fontGeometry.getGlyph(character);
-			if (!glyph)
-				glyph = fontGeometry.getGlyph('?');
-			if (!glyph)
-				continue;
+			for (int i = 0; i < line.size(); i++)
+			{
+				if (!HasRoomForQuad())
+					return;
 
-			double l, b, r, t;
-			glyph->getQuadAtlasBounds(l, b, r, t);
+				char32_t character = line[i];
 
-			double pl, pb, pr, pt;
-			glyph->getQuadPlaneBounds(pl, pb, pr, pt);
+				auto glyph = fontGeometry.getGlyph(character);
+				if (!glyph)
+					glyph = fontGeometry.getGlyph('?');
+				if (!glyph)
+					continue;
 
-			//pl *= fsScale, pb *= fsScale, pr *= fsScale, pt *= fsScale;
-			//pl += x, pb += y, pr += x, pt += y;
+				double l, b, r, t;
+				glyph->getQuadAtlasBounds(l, b, r, t);
 
-			pl *= fsScale; pr *= fsScale;
-			pb *= fsScale; pt *= fsScale;
+				double pl, pb, pr, pt;
+				glyph->getQuadPlaneBounds(pl, pb, pr, pt);
 
-			// X is unchanged
-			pl += x;
-			pr += x;
+				//pl *= fsScale, pb *= fsScale, pr *= fsScale, pt *= fsScale;
+				//pl += x, pb += y, pr += x, pt += y;
 
-			// Y: font plane is Y-up, UI is Y-down -> subtract offsets from baseline y
-			double pbOld = pb;
-			double ptOld = pt;
+				pl *= fsScale; pr *= fsScale;
+				pb *= fsScale; pt *= fsScale;
 
-			// In Y-down space:
-			// top    = y - ptOld
-			// bottom = y - pbOld
-			pb = y - ptOld;   // becomes "top Y"
-			pt = y - pbOld;   // becomes "bottom Y"
+				// X is unchanged
+				pl += x;
+				pr += x;
 
-			double texelWidth = 1. / texAtlas->GetWidth();
-			double texelHeight = 1. / texAtlas->GetHeight();
-			l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
+				// Y: font plane is Y-up, UI is Y-down -> subtract offsets from baseline y
+				double pbOld = pb;
+				double ptOld = pt;
 
-			// Set vertex data
-			// Top-Left
-			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pl, (float)pb, pos.z, 0.0f }; 
-			sRenderer2DData->UIVertexBufferPtr->Size = size;
-			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)l,  (float)t, 2.0f };
-			sRenderer2DData->UIVertexBufferPtr->Color = color;// Assuming text has a color
-			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
-			sRenderer2DData->UIVertexBufferPtr->TextureIndex = fontTextureIndex;
-			sRenderer2DData->UIVertexBufferPtr++;
+				// In Y-down space:
+				// top    = y - ptOld
+				// bottom = y - pbOld
+				pb = y - ptOld;   // becomes "top Y"
+				pt = y - pbOld;   // becomes "bottom Y"
 
-			// Top-Right
-			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pr, (float)pb, pos.z, 0.0f };
-			sRenderer2DData->UIVertexBufferPtr->Size = size;
-			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)r,  (float)t, 2.0f };
-			sRenderer2DData->UIVertexBufferPtr->Color = color;
-			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
-			sRenderer2DData->UIVertexBufferPtr->TextureIndex = fontTextureIndex;
-			sRenderer2DData->UIVertexBufferPtr++;
+				double texelWidth = 1. / texAtlas->GetWidth();
+				double texelHeight = 1. / texAtlas->GetHeight();
+				l *= texelWidth, b *= texelHeight, r *= texelWidth, t *= texelHeight;
 
-			// Bottom-Right
-			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pr, (float)pt, pos.z, 0.0f };
-			sRenderer2DData->UIVertexBufferPtr->Size = size;
-			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)r,  (float)b, 2.0f };
-			sRenderer2DData->UIVertexBufferPtr->Color = color;
-			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
-			sRenderer2DData->UIVertexBufferPtr->TextureIndex = fontTextureIndex;
-			sRenderer2DData->UIVertexBufferPtr++;
+				// Set vertex data
+				// Top-Left
+				sRenderer2DData->UIVertexBufferPtr->Position = { (float)pl, (float)pb, params.Position.z, 0.0f };
+				sRenderer2DData->UIVertexBufferPtr->Size = { params.BoxSize.x, params.BoxSize.y, 1.0f, 1.0f };
+				sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)l,  (float)t, 2.0f };
+				sRenderer2DData->UIVertexBufferPtr->Color = params.Color;// Assuming text has a color
+				sRenderer2DData->UIVertexBufferPtr->EntityID = params.EntityID;
+				sRenderer2DData->UIVertexBufferPtr->TextureIndex = params.FontTextureIndex;
+				sRenderer2DData->UIVertexBufferPtr++;
 
-			// Bottom-Left
-			sRenderer2DData->UIVertexBufferPtr->Position = { (float)pl, (float)pt, pos.z, 0.0f };
-			sRenderer2DData->UIVertexBufferPtr->Size = size;
-			sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)l,  (float)b, 2.0f };
-			sRenderer2DData->UIVertexBufferPtr->Color = color;
-			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
-			sRenderer2DData->UIVertexBufferPtr->TextureIndex = fontTextureIndex;
-			sRenderer2DData->UIVertexBufferPtr++;
+				// Top-Right
+				sRenderer2DData->UIVertexBufferPtr->Position = { (float)pr, (float)pb, params.Position.z, 0.0f };
+				sRenderer2DData->UIVertexBufferPtr->Size = { params.BoxSize.x, params.BoxSize.y, 1.0f, 1.0f };;
+				sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)r,  (float)t, 2.0f };
+				sRenderer2DData->UIVertexBufferPtr->Color = params.Color;
+				sRenderer2DData->UIVertexBufferPtr->EntityID = params.EntityID;
+				sRenderer2DData->UIVertexBufferPtr->TextureIndex = params.FontTextureIndex;
+				sRenderer2DData->UIVertexBufferPtr++;
 
-			double advance = glyph->getAdvance();
-			char32_t nextChar = (i + 1 < (int)textString.size()) ? (char32_t)textString[i + 1] : 0;
-			fontGeometry.getAdvance(advance, character, nextChar);
-			x += fsScale * advance;
-		 }
+				// Bottom-Right
+				sRenderer2DData->UIVertexBufferPtr->Position = { (float)pr, (float)pt, params.Position.z, 0.0f };
+				sRenderer2DData->UIVertexBufferPtr->Size = { params.BoxSize.x, params.BoxSize.y, 1.0f, 1.0f };
+				sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)r,  (float)b, 2.0f };
+				sRenderer2DData->UIVertexBufferPtr->Color = params.Color;
+				sRenderer2DData->UIVertexBufferPtr->EntityID = params.EntityID;
+				sRenderer2DData->UIVertexBufferPtr->TextureIndex = params.FontTextureIndex;
+				sRenderer2DData->UIVertexBufferPtr++;
+
+				// Bottom-Left
+				sRenderer2DData->UIVertexBufferPtr->Position = { (float)pl, (float)pt, params.Position.z, 0.0f };
+				sRenderer2DData->UIVertexBufferPtr->Size = { params.BoxSize.x, params.BoxSize.y, 1.0f, 1.0f };
+				sRenderer2DData->UIVertexBufferPtr->Texcoord = { (float)l,  (float)b, 2.0f };
+				sRenderer2DData->UIVertexBufferPtr->Color = params.Color;
+				sRenderer2DData->UIVertexBufferPtr->EntityID = params.EntityID;
+				sRenderer2DData->UIVertexBufferPtr->TextureIndex = params.FontTextureIndex;
+				sRenderer2DData->UIVertexBufferPtr++;
+
+				double advance = glyph->getAdvance();
+				char32_t nextChar = (i + 1 < (int)line.size()) ? (char32_t)line[i + 1] : 0;
+				fontGeometry.getAdvance(advance, character, nextChar);
+				x += fsScale * advance;
+			}
+
+			y += lineAdvance;
+		}
+	}
+
+	void Renderer2D::SubmitUIBounds(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, const DirectX::XMFLOAT4& color)
+	{
+		const DirectX::XMFLOAT3 topLeft = { pos.x,          pos.y,          1.0f };
+		const DirectX::XMFLOAT3 topRight = { pos.x + size.x, pos.y,          1.0f };
+		const DirectX::XMFLOAT3 bottomRight = { pos.x + size.x, pos.y + size.y, 1.0f };
+		const DirectX::XMFLOAT3 bottomLeft = { pos.x,          pos.y + size.y, 1.0f };
+
+		Renderer2D::SubmitConnector(topLeft, topRight, 1.0f, ConnectorStyle::Straight, 0.0f, color, 0.0f, { 0.0f, 0.0f, 0.0f, 0.0f }, -1);
+		Renderer2D::SubmitConnector(topRight, bottomRight, 1.0f, ConnectorStyle::Straight, 0.0f, color, 0.0f, { 0.0f, 0.0f, 0.0f, 0.0f }, -1);
+		Renderer2D::SubmitConnector(bottomRight, bottomLeft, 1.0f, ConnectorStyle::Straight, 0.0f, color, 0.0f, { 0.0f, 0.0f, 0.0f, 0.0f }, -1);
+		Renderer2D::SubmitConnector(bottomLeft, topLeft, 1.0f, ConnectorStyle::Straight, 0.0f, color, 0.0f, { 0.0f, 0.0f, 0.0f, 0.0f }, -1);
 	}
 
 	void Renderer2D::LoadFontTextures()

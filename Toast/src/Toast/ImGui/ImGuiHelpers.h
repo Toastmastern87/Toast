@@ -39,5 +39,7 @@ namespace Toast
 		bool StyleSheetSlot(UIStyleRef& style, Entity entity, char* nameBuffer, size_t nameBufferSize, const std::function<void(const std::filesystem::path&)>& openFileCallback);
 
 		bool TextureSlotRow(const char* label, AssetHandle currentHandle, const std::filesystem::path& assetRoot, const std::filesystem::path& browseStartDirectory, std::string& outFilepath, float thumbnailSize = 64.0f);
+
+		bool AlignmentGrid(const char* id, TextAlignH& alignH, TextAlignV& alignV, float cellSize = 22.0f);
 	}
 }

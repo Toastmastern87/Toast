@@ -25,6 +25,15 @@ namespace Toast {
 		StyleValue<bool> Visible;
 		StyleValue<bool> UseColor;
 		StyleValue<float> TransitionSeconds;
+		StyleValue<float> BorderWidth;
+		StyleValue<DirectX::XMFLOAT4> BorderColor;
+		StyleValue<float> FontSize;
+		StyleValue<TextAlignH> AlignH;
+		StyleValue<TextAlignV> AlignV;
+		StyleValue<bool> WordWrap;
+		StyleValue<float> LineHeight;
+		StyleValue<DirectX::XMFLOAT4> Tint;
+		StyleValue<ImageFit> Fit;
 
 		StyleValue<DirectX::XMFLOAT4> BackgroundState[(size_t)UIState::Count];
 		StyleValue<AssetHandle> BackgroundImageState[(size_t)UIState::Count];

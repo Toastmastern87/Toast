@@ -283,6 +283,14 @@ namespace Toast {
 		UIStyleProp_UseColor			= 1u << 10,
 		UIStyleProp_Color				= 1u << 11, 
 		UIStyleProp_Transition			= 1u << 12,
+		UIStyleProp_BorderWidth			= 1u << 13,
+		UIStyleProp_BorderColor			= 1u << 14,
+		UIStyleProp_TextAlign			= 1u << 15,
+		UIStyleProp_FontSize			= 1u << 16,
+		UIStyleProp_WordWrap			= 1u << 17,
+		UIStyleProp_LineHeight			= 1u << 18,
+		UIStyleProp_Tint				= 1u << 19,
+		UIStyleProp_ImageFit			= 1u << 20,
 	};
 
 	inline uint32_t StatePropBit(uint32_t baseBit, UIState state) { return baseBit << (uint32_t)state; }
@@ -333,10 +341,27 @@ namespace Toast {
 		bool UseColor = true;
 		bool ConnectToParent = false;
 
+		float BorderWidth = 0.0f;
+		DirectX::XMFLOAT4 BorderColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+
 		UIConnector Connector;
 
 		UIPanelComponent() = default;
 		UIPanelComponent(const UIPanelComponent&) = default;
+	};
+
+	enum class TextAlignH : uint8_t 
+	{
+		Left = 0,
+		Center = 1, 
+		Right = 2,
+	};
+
+	enum class TextAlignV : uint8_t
+	{
+		Top = 0,
+		Middle = 1,
+		Bottom = 2,
 	};
 
 	struct UITextComponent 
@@ -344,12 +369,19 @@ namespace Toast {
 		UIStyleRef Style;
 
 		bool Visible = false;
+		float FontSize = 24.0f;
 		uint32_t TextureIndex = 0;
 
 		DirectX::XMFLOAT4 Color = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 		std::string Text = "Enter Text here";
 		Ref<Font> Font = Font::GetDefaultFont();
+
+		TextAlignH AlignH = TextAlignH::Left;
+		TextAlignV AlignV = TextAlignV::Top;
+
+		bool WordWrap = false;
+		float LineHeight = 1.0f;
 
 		UITextComponent() = default;
 		UITextComponent(const UITextComponent&) = default;
@@ -370,11 +402,45 @@ namespace Toast {
 		UIStateStyle Blended;
 		float StateBlend = 1.0f;
 
+		float BorderWidth = 0.0f;
+		DirectX::XMFLOAT4 BorderColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+
 		UIStateStyle States[(size_t)UIState::Count];
 		UIState CurrentState = UIState::Normal;
 
 		UIButtonComponent() = default;
 		UIButtonComponent(const UIButtonComponent&) = default;
+	};
+
+	enum class ImageFit : uint8_t 
+	{
+		Stretch		= 0,
+		Contain		= 1,
+		Cover		= 2,
+		None		= 3,
+	};
+
+	struct UIImageComponent
+	{
+		UIStyleRef Style;
+
+		bool Visible = false;
+
+		AssetHandle TextureHandle = 0;
+
+		ImageFit Fit = ImageFit::Contain;
+
+		// Used for zoom and pan
+		DirectX::XMFLOAT4 SourceRect = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+		DirectX::XMFLOAT4 Tint = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+		float CornerRadius = 0.0f;
+		bool FlipX = false;
+		bool FlipY = false;
+
+		UIImageComponent() = default;
+		UIImageComponent(const UIImageComponent&) = default;
 	};
 
 	struct ParticlesComponent

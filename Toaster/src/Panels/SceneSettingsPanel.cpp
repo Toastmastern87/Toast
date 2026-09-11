@@ -94,6 +94,7 @@ namespace Toast {
 
 					ImGui::Checkbox("Show grid", &mContext->mSettings.Grid);
 					ImGui::Checkbox("Show camera frustum", &mContext->mSettings.CameraFrustum);
+					ImGui::Checkbox("Show UI Bounds", &mContext->mSettings.ShowUIBounds);
 					ImGui::Text("Frustum Culling Margin");
 					ImGuiHelpers::ManualDragFloat("##FrustumCullingMargin", mContext->mSettings.FrustumCullingMargin, mWindow, activeDragArea, 1.0f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 5000.0f);
 					ImGui::Text("Directional Lightning Gain");

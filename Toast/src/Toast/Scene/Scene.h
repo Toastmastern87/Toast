@@ -195,6 +195,7 @@ namespace Toast {
 
 			bool Grid = true;
 			bool CameraFrustum = true;
+			bool ShowUIBounds = false;
 			float FrustumCullingMargin = 1.0f; // multiplier on camera near/far planes for culling (e.g. 1.1 to be slightly more lenient)
 			bool RenderColliders = false;
 			bool RenderUI = true;

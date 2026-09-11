@@ -208,6 +208,16 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
         else
             fill = input.color;
         
+        float borderWidth = input.params.x;
+        
+        if (borderWidth > 0.0f)
+        {
+            float dBorder = abs(d) - borderWidth;
+            float borderMask = SDFCoverage(dBorder);
+
+            fill.rgb = lerp(fill.rgb, input.params.yzw, borderMask);
+        }
+        
         fill.a *= coverage;
         output.color = Premultiply(fill);
     }
@@ -252,6 +262,16 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
         }
         else
             fill = input.color;
+        
+        float borderWidth = input.params.x;
+        
+        if (borderWidth > 0.0f)
+        {
+            float dBorder = abs(d) - borderWidth;
+            float borderMask = SDFCoverage(dBorder);
+
+            fill.rgb = lerp(fill.rgb, input.params.yzw, borderMask);
+        }
         
         fill.a *= coverage;
         output.color = Premultiply(fill);
