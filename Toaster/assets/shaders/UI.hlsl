@@ -39,6 +39,7 @@ struct VertexInputType
     uint entityID           : TEXTUREID0;
     uint textureIndex       : TEXTUREID1;
     float4 params           : POSITION3;
+    float4 params2          : POSITION4;
 };
 
 struct PixelInputType
@@ -53,6 +54,7 @@ struct PixelInputType
     int UIType                  : TEXTUREID1;
     uint textureIndex           : TEXTUREID2;
     float4 params               : POSITION1;
+    float4 params2              : POSITION2;
 };
 
 PixelInputType main(VertexInputType input)
@@ -79,6 +81,7 @@ PixelInputType main(VertexInputType input)
     output.textureIndex = input.textureIndex;
 
     output.params = input.params;
+    output.params2 = input.params2;
     
 	return output;
 }
@@ -98,6 +101,7 @@ struct PixelInputType
     int UIType              : TEXTUREID1;
     uint textureIndex       : TEXTUREID2;
     float4 params           : POSITION1;
+    float4 params2          : POSITION2;
 };
 
 struct PixelOutputType
@@ -109,6 +113,7 @@ struct PixelOutputType
 
 Texture2DArray MDSFAtlas        : register(t6);
 Texture2DArray UITextures       : register(t8);
+Texture2D UIImageTexture        : register(t9);
 
 SamplerState defaultSampler		: register(s0);
 
@@ -177,10 +182,44 @@ float SDElbow(float2 p, float2 a, float2 corner, float2 b, float k)
     return (k > 0.0f) ? SMin(d1, d2, k) : min(d1, d2);
 }
 
+float NineSliceAxis(float coord, float elemSize, float texSize, float b0, float b1)
+{
+    float total = b0 + b1;
+    if (total > elemSize && total > 0.0f)
+    {
+        float shrink = elemSize / total;
+        b0 *= shrink;
+        b1 *= shrink;
+    }
+    
+    if (coord < b0)
+        return coord;
+    
+    if (coord > elemSize - b1)
+        return texSize - (elemSize - coord);
+    
+    float t = (coord - b0) / max(elemSize - b0 -b1, 1e-5f);
+    
+    return b0 + t * (texSize - b0 - b1);
+}
+
+float2 NineSliceUV(float2 texCoord, float2 elemSize, float2 fullTexSize, float2 contentOrigin, float2 contentSize, float4 insets)
+{
+    float2 coord = texCoord * elemSize;
+    
+    float2 src;
+    src.x = NineSliceAxis(coord.x, elemSize.x, contentSize.x, insets.x, insets.z);
+    src.y = NineSliceAxis(coord.y, elemSize.y, contentSize.y, insets.y, insets.w);
+
+    return (contentOrigin + src) / fullTexSize;
+}
+
 PixelOutputType main(PixelInputType input) : SV_TARGET
 {
     PixelOutputType output;
 	
+    float4 fill;
+    
 	// Panels
 	if (input.UIType == 1.0f)
 	{
@@ -199,16 +238,26 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
         if (coverage <= 0.0f)
             discard;
 
-        float4 fill;
         if (input.textured >= 0.5f)
         {
-            float2 activeUV = input.texCoord * (size / 1000.0f);
+            float2 activeUV;
+            
+            if (input.ab.w > 0.5f)
+            {
+                float texW, texH, texElements;
+                UITextures.GetDimensions(texW, texH, texElements);
+                
+                activeUV = NineSliceUV(input.texCoord, size, float2(texW, texH), input.params2.xy, input.params2.zw, input.params);
+            }
+            else
+                activeUV = input.texCoord;
+            
             fill = UITextures.Sample(defaultSampler, float3(activeUV, input.textureIndex));
         }
         else
             fill = input.color;
         
-        float borderWidth = input.params.x;
+        float borderWidth = (input.ab.w > 0.5f) ? 0.0f : input.params.x;
         
         if (borderWidth > 0.0f)
         {
@@ -254,10 +303,20 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
         if (coverage <= 0.0f)
             discard;
         
-        float4 fill;
         if (input.textured >= 0.5f)
         {
-            float2 activeUV = input.texCoord * (size / 1000.0f);
+            float2 activeUV;
+            
+            if (input.ab.w > 0.5f)
+            {
+                float texW, texH, texElements;
+                UITextures.GetDimensions(texW, texH, texElements);
+                
+                activeUV = NineSliceUV(input.texCoord, size, float2(texW, texH), input.params2.xy, input.params2.zw, input.params);
+            }
+            else
+                activeUV = input.texCoord;
+            
             fill = UITextures.Sample(defaultSampler, float3(activeUV, input.textureIndex));
         }
         else
@@ -324,6 +383,26 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
         col.a *= coverage;
         output.color = Premultiply(col);
     }  
+    // Images
+    else if (input.UIType > 4.5f && input.UIType < 5.5f)
+    {       
+        float2 size = abs(input.ab.xy);
+        float2 halfSize = size * 0.5f;
+        
+        float2 p = ElementLocalPos(input.texCoord, size);
+        float d = RoundedBoxSDF(p, halfSize, input.cornerRadius);
+        float coverage = SDFCoverage(d);
+
+        if (coverage <= 0.0f)
+            discard;
+        
+        fill = UIImageTexture.Sample(defaultSampler, input.texCoord);
+        
+        fill *= input.color;
+
+        fill.a *= coverage;
+        output.color = Premultiply(fill);
+    }
 	else
         output.color = input.color;
 	

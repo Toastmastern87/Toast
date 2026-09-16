@@ -1451,6 +1451,40 @@ namespace Toast {
 				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_BackgroundImage, styleBlock && styleBlock->BackgroundImageState[(size_t)UIState::Normal].Set))
 					UIStyleSystem::ResolveEntity(entity);
 
+				if (component.TextureHandle != AssetHandle(0))
+				{
+					ImGui::SameLine();
+
+					if (ImGui::SmallButton("9-Slice.."))
+					{
+						mNineSliceHandle = component.TextureHandle;
+						ImGui::OpenPopup("Nine Slice Editor");
+					}
+
+					if (ImGui::IsItemHovered())
+						ImGui::SetTooltip("Edit the TEXTURE's 9-slice insets.\nAffects every component using this texture.");
+				}
+
+				if (mNineSliceHandle != AssetHandle(0))
+				{
+					if (AssetEntry* entry = AssetManager::GetEntry(mNineSliceHandle))
+					{
+						auto texture = AssetManager::GetAsset<Texture2D>(mNineSliceHandle);
+						if (texture)
+							ImGuiHelpers::NinceSliceEditorPopup("Nine Slice Editor", texture->GetID(), texture->GetWidth(), texture->GetHeight(), entry->Texture2DSettings.SliceLeft, entry->Texture2DSettings.SliceTop, entry->Texture2DSettings.SliceRight, entry->Texture2DSettings.SliceBottom, entry->Texture2DSettings.ContentX, entry->Texture2DSettings.ContentY, entry->Texture2DSettings.ContentWidth,  entry->Texture2DSettings.ContentHeight);
+					}
+				}
+
+				bool nineSliced = false;
+				if (component.TextureHandle != AssetHandle(0))
+				{
+					if (const AssetEntry* entry = AssetManager::GetEntry(component.TextureHandle))
+					{
+						const auto& s = entry->Texture2DSettings;
+						nineSliced = s.SliceLeft || s.SliceTop || s.SliceRight || s.SliceBottom;
+					}
+				}
+
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::TextWrapped("Use Color");
@@ -1476,13 +1510,17 @@ namespace Toast {
 				ImGui::TextWrapped("Corner Radius");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
+				ImGui::BeginDisabled(nineSliced);
 				if (ImGui::SliderFloat("##cornerradius", &component.CornerRadius, 0.0f, 50.0f, "%.1f"))
 					component.Style.Overrides |= UIStyleProp_CornerRadius;
+				ImGui::EndDisabled();
+				if (nineSliced && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+					ImGui::SetTooltip("Disabled: this texture is 9-sliced, so its corners come from the artwork.");
 				ImGui::PopItemWidth();
 				if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_CornerRadius, styleBlock && styleBlock->CornerRadius.Set))
 					UIStyleSystem::ResolveEntity(entity);
-				ImGui::TableNextRow();
 
+				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
 				ImGui::TextWrapped("Visible");
 				ImGui::TableSetColumnIndex(1);
@@ -1780,6 +1818,7 @@ namespace Toast {
 				const char* stateNames[] = { "Normal", "Hover", "Pressed", "Active" };
 				auto texturePath = mAssetRoot / "Textures" / "UI";
 
+				bool openNineSlicePopup = false;
 				for (uint32_t stateIndex = 0; stateIndex < (uint32_t)UIState::Count; stateIndex++)
 				{
 					auto& stateStyle = component.States[stateIndex];
@@ -1813,6 +1852,20 @@ namespace Toast {
 							});
 					}
 
+					if (stateStyle.TextureHandle != AssetHandle(0))
+					{
+						ImGui::SameLine();
+
+						if (ImGui::SmallButton("9-Slice.."))
+						{
+							mNineSliceHandle = stateStyle.TextureHandle;
+							openNineSlicePopup = true;
+						}
+
+						if (ImGui::IsItemHovered())
+							ImGui::SetTooltip("Edit the TEXTURE's 9-slice insets.\nAffects every component using this texture.");
+					}
+
 					if (ImGuiHelpers::StyleOverrideMarker(component.Style, imageBit, styleBlock && styleBlock->BackgroundImageState[stateIndex].Set))
 						UIStyleSystem::ResolveEntity(entity);
 
@@ -1831,6 +1884,19 @@ namespace Toast {
 						UIStyleSystem::ResolveEntity(entity);
 
 					ImGui::PopID();
+				}
+
+				if (openNineSlicePopup)
+					ImGui::OpenPopup("Nine Slice Editor");
+
+				if (mNineSliceHandle != AssetHandle(0))
+				{
+					if (AssetEntry* entry = AssetManager::GetEntry(mNineSliceHandle))
+					{
+						auto texture = AssetManager::GetAsset<Texture2D>(mNineSliceHandle);
+						if (texture)
+							ImGuiHelpers::NinceSliceEditorPopup("Nine Slice Editor", texture->GetID(), texture->GetWidth(), texture->GetHeight(), entry->Texture2DSettings.SliceLeft, entry->Texture2DSettings.SliceTop, entry->Texture2DSettings.SliceRight, entry->Texture2DSettings.SliceBottom, entry->Texture2DSettings.ContentX, entry->Texture2DSettings.ContentY, entry->Texture2DSettings.ContentWidth, entry->Texture2DSettings.ContentHeight);
+					}
 				}
 
 				ImGui::TableNextRow();
@@ -1934,7 +2000,7 @@ namespace Toast {
 					if (ImGuiHelpers::StyleSheetSlot(component.Style, entity, mNewStyleSheetName, sizeof(mNewStyleSheetName), mOpenFileCallback))
 						UIStyleSystem::ResolveEntity(entity);
 
-					auto texturePath = mAssetRoot / "Textures" / "UI";
+					auto texturePath = mAssetRoot / "Textures" ;
 
 					std::string pickedTexture;
 					if (ImGuiHelpers::TextureSlotRow("Texture", component.TextureHandle, assetRoot, texturePath, pickedTexture))
@@ -1967,7 +2033,16 @@ namespace Toast {
 						UIStyleSystem::ResolveEntity(entity);
 
 					if (ImGui::IsItemHovered())
-						ImGui::SetTooltip("Stretch: fill, ignore aspect\nContain: fit inside, letterbox\nCover: fill, crop overflow\nNone: native size, centred");
+						ImGui::SetTooltip("Stretch: fill, ignore aspect\nContain: fit inside, letterbox\nCover: fill, crop overflow\nNone: native size, centered");
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::TextWrapped("Visible");
+					ImGui::TableSetColumnIndex(1);
+					if (ImGui::Checkbox("##Visible", &component.Visible))
+						component.Style.Overrides |= UIStyleProp_Visible;
+					if (ImGuiHelpers::StyleOverrideMarker(component.Style, UIStyleProp_Visible, styleBlock && styleBlock->Visible.Set))
+						UIStyleSystem::ResolveEntity(entity);
 
 					// --- tint ---
 					ImGui::TableNextRow();

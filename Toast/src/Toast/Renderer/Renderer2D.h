@@ -50,6 +50,11 @@ namespace Toast {
 			//   Text            : unused
 			DirectX::XMFLOAT4 Params = { 0.0f, 0.0f, 0.0f, 0.0f };
 
+			// Second per-element parameter slot. Currently only 9-slice uses it:
+			//   x, y = content origin in source pixels
+			//   z, w = content size in source pixels
+			DirectX::XMFLOAT4 Params2 = { 0.0f, 0.0f, 0.0f, 0.0f };
+
 			UIVertex() = default;
 
 			UIVertex(DirectX::XMFLOAT4 pos, DirectX::XMFLOAT4 size, DirectX::XMFLOAT4 color, DirectX::XMFLOAT3 uv, uint32_t id, uint32_t texIdx)
@@ -84,11 +89,20 @@ namespace Toast {
 
 		struct Renderer2DData
 		{
+			struct UIImageDraw
+			{
+				Ref<Texture2D> Texture;
+				uint32_t FirstIndex;
+			};
+
 			std::vector<DrawCommand> ElementDrawList;
 			std::string shaderNameBound = "";
 			bool UIBuffersBound = false;
 			bool UITextBuffersBound = false;
 
+			std::vector<UIImageDraw> UIImageDraws;
+
+			uint32_t UIBatchQuadCount = 0;
 			const uint32_t MaxUIElements = 8192;
 			const uint32_t MaxUIVertices = MaxUIElements * 4;
 			const uint32_t MaxUIIndices = MaxUIElements * 6;
@@ -118,11 +132,11 @@ namespace Toast {
 		static void BeginScene(Camera& camera);
 		static void EndScene();
 
-		static void SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, uint32_t textureIndex, float borderWidth, const DirectX::XMFLOAT4& borderColor);
+		static void SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, uint32_t textureIndex, AssetHandle textureHandle, float borderWidth, const DirectX::XMFLOAT4& borderColor);
 		static void SubmitConnector(const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b, float thicknessPx, ConnectorStyle style, float cornerRadiusPx, const DirectX::XMFLOAT4& color, float outlineWidthPx, const DirectX::XMFLOAT4& outlineColor, int entityID);
-		static void SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, const DirectX::XMFLOAT4& color, const int entityID, const bool textured, uint32_t textureIndex, float borderWidth, const DirectX::XMFLOAT4& borderColor);
+		static void SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, const DirectX::XMFLOAT4& color, const int entityID, const bool textured, uint32_t textureIndex, AssetHandle textureHandle, float borderWidth, const DirectX::XMFLOAT4& borderColor);
 		static void SubmitText(const TextSubmitParams& params, const std::string& textString);
-
+		static void SubmitImage(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& boxSize, const Ref<Texture2D>& texture, const DirectX::XMFLOAT4& sourceRect, const DirectX::XMFLOAT4& tint, float cornerRadius, ImageFit fit, bool flipX, bool flipY, int entityID);
 		static void SubmitUIBounds(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& size, const DirectX::XMFLOAT4& color);
 
 		static Renderer2DData* GetRendererData() { return sRenderer2DData.get(); }

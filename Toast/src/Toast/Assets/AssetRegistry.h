@@ -18,6 +18,21 @@ namespace Toast {
 	struct Texture2DImportSettings
 	{
 		bool ForceSRGB = true;
+
+		// 9-slice insets in pixels
+		// All zero = not a 9 - slice texture
+		uint32_t SliceLeft = 0;
+		uint32_t SliceTop = 0;
+		uint32_t SliceRight = 0;
+		uint32_t SliceBottom = 0;
+
+		// The region of the texture the artwork actually occupies, in source pixels.
+		// Insets are measured from THESE edges, not the texture's.
+		// Width/height of 0 means "the whole texture"
+		uint32_t ContentX = 0;
+		uint32_t ContentY = 0;
+		uint32_t ContentWidth = 0;
+		uint32_t ContentHeight = 0;
 	};
 
 	struct AssetEntry

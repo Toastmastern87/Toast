@@ -431,7 +431,7 @@ namespace Toast {
 		ImageFit Fit = ImageFit::Contain;
 
 		// Used for zoom and pan
-		DirectX::XMFLOAT4 SourceRect = { 0.0f, 0.0f, 0.0f, 1.0f };
+		DirectX::XMFLOAT4 SourceRect = { 0.0f, 0.0f, 1.0f, 1.0f };
 
 		DirectX::XMFLOAT4 Tint = { 1.0f, 1.0f, 1.0f, 1.0f };
 

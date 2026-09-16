@@ -944,7 +944,19 @@ namespace Toast {
 					uiPos.x += (mViewportWidth * 0.5f);
 					uiPos.y += (mViewportHeight * 0.5f);
 
-					Renderer2D::SubmitPanel(uiPos, { tc.Scale.x, tc.Scale.y, upc.CornerRadius, 0.0f }, upc.Color, (int)entity, !upc.UseColor, false, upc.TextureIndex, upc.BorderWidth, upc.BorderColor);
+					bool hasNineSlice = false;
+					if (upc.TextureHandle != AssetHandle(0))
+					{
+						if (const AssetEntry* entry = AssetManager::GetEntry(upc.TextureHandle))
+						{
+							const auto& s = entry->Texture2DSettings;
+							hasNineSlice = s.SliceLeft || s.SliceTop || s.SliceRight || s.SliceBottom;
+						}
+					}
+
+					const float cornerRadius = hasNineSlice ? 0.0f : upc.CornerRadius;
+
+					Renderer2D::SubmitPanel(uiPos, { tc.Scale.x, tc.Scale.y, cornerRadius, 0.0f }, upc.Color, (int)entity, !upc.UseColor, false, upc.TextureIndex, upc.TextureHandle, upc.BorderWidth, upc.BorderColor);
 				}
 
 				//Buttons
@@ -1004,7 +1016,7 @@ namespace Toast {
 					if (renderButton)
 					{
 						const auto& state = ubc.Blended;
-						Renderer2D::SubmitButton(uiPos, { tc.Scale.x, tc.Scale.y, ubc.CornerRadius, 1.0f }, state.Color, (int)entity, !ubc.UseColor, state.TextureIndex, ubc.BorderWidth, ubc.BorderColor);
+						Renderer2D::SubmitButton(uiPos, { tc.Scale.x, tc.Scale.y, ubc.CornerRadius, 1.0f }, state.Color, (int)entity, !ubc.UseColor, state.TextureIndex, state.TextureHandle, ubc.BorderWidth, ubc.BorderColor);
 					}
 				}
 
@@ -1077,6 +1089,67 @@ namespace Toast {
 					textParams.LineHeight = uitc.LineHeight;
 
 					Renderer2D::SubmitText(textParams, uitc.Text);
+				}
+
+				// Images
+				auto uiImageEntites = mRegistry.view<TransformComponent, UIImageComponent>();
+				for (auto entity : uiImageEntites)
+				{
+					auto [tc, uiic] = uiImageEntites.get<TransformComponent, UIImageComponent>(entity);
+
+					if (!uiic.Visible || uiic.TextureHandle == AssetHandle(0))
+						continue;
+
+					auto texture = AssetManager::GetAsset<Texture2D>(uiic.TextureHandle);
+					if (!texture)
+						continue;
+
+					DirectX::XMFLOAT3 uiPos = tc.Translation;
+					bool renderImage = true;
+
+					Entity e{ entity, this };
+
+					Entity current = e;
+					while (current.HasParent())
+					{
+						Entity parent = FindEntityByUUID(current.GetParentUUID());
+
+						// Check if the parent has a UI element component.
+						bool parentHasUI = parent.HasComponent<UITextComponent>() || parent.HasComponent<UIButtonComponent>() || parent.HasComponent<UIPanelComponent>() || parent.HasComponent<UIImageComponent>();
+
+						if (parentHasUI)
+						{
+							// Add the parent's translation.
+							DirectX::XMFLOAT3 parentUI = parent.GetComponent<TransformComponent>().Translation;
+							parentUI.x += (mViewportWidth * 0.5f);
+							parentUI.y += (mViewportHeight * 0.5f);
+
+							uiPos.x += parentUI.x;
+							uiPos.y += parentUI.y;
+							uiPos.z += parentUI.z;
+
+							// If the parent has a UIPanelComponent, check its visibility.
+							if (parent.HasComponent<UIPanelComponent>())
+							{
+								UIPanelComponent parentPanel = parent.GetComponent<UIPanelComponent>();
+								if (!parentPanel.Visible)
+								{
+									renderImage = false;
+									break;
+								}
+							}
+						}
+						// Move up one level.
+						current = parent;
+					}
+
+					if (!renderImage)
+						continue;
+
+					if (mSettings.ShowUIBounds)
+						Renderer2D::SubmitUIBounds(uiPos, { tc.Scale.x, tc.Scale.y }, { 0.0f, 1.0f, 0.4f, 0.6f });
+
+					Renderer2D::SubmitImage(uiPos, { tc.Scale.x, tc.Scale.y }, texture, uiic.SourceRect, uiic.Tint, uiic.CornerRadius, uiic.Fit, uiic.FlipX, uiic.FlipY, (int)entity);
 				}
 			}
 			Renderer2D::EndScene();
@@ -1707,7 +1780,7 @@ namespace Toast {
 					if (e.HasParent())
 					{
 						Entity parent = FindEntityByUUID(e.GetParentUUID());
-						bool parentHasUI = parent.HasComponent<UITextComponent>() || parent.HasComponent<UIButtonComponent>() || parent.HasComponent<UIPanelComponent>();
+						bool parentHasUI = parent.HasComponent<UITextComponent>() || parent.HasComponent<UIButtonComponent>() || parent.HasComponent<UIPanelComponent>() || parent.HasComponent<UIImageComponent>();
 
 						if (parentHasUI)
 						{
@@ -1752,7 +1825,19 @@ namespace Toast {
 					uiPos.x += (mViewportWidth * 0.5f);
 					uiPos.y += (mViewportHeight * 0.5f);
 
-					Renderer2D::SubmitPanel(uiPos, { tc.Scale.x, tc.Scale.y, upc.CornerRadius, 0.0f }, upc.Color, (int)entity, !upc.UseColor, false, upc.TextureIndex, upc.BorderWidth, upc.BorderColor);
+					bool hasNineSlice = false;
+					if (upc.TextureHandle != AssetHandle(0))
+					{
+						if (const AssetEntry* entry = AssetManager::GetEntry(upc.TextureHandle))
+						{
+							const auto& s = entry->Texture2DSettings;
+							hasNineSlice = s.SliceLeft || s.SliceTop || s.SliceRight || s.SliceBottom;
+						}
+					}
+
+					const float cornerRadius = hasNineSlice ? 0.0f : upc.CornerRadius;
+
+					Renderer2D::SubmitPanel(uiPos, { tc.Scale.x, tc.Scale.y, cornerRadius, 0.0f }, upc.Color, (int)entity, !upc.UseColor, false, upc.TextureIndex, upc.TextureHandle, upc.BorderWidth, upc.BorderColor);
 
 					if (mSettings.ShowUIBounds)
 						Renderer2D::SubmitUIBounds(uiPos, { tc.Scale.x, tc.Scale.y }, { 0.0f, 1.0f, 0.4f, 0.6f });
@@ -1778,7 +1863,7 @@ namespace Toast {
 						Entity parent = FindEntityByUUID(current.GetParentUUID());
 
 						// Check if the parent has a UI element component.
-						bool parentHasUI = parent.HasComponent<UITextComponent>() || parent.HasComponent<UIButtonComponent>() || parent.HasComponent<UIPanelComponent>();
+						bool parentHasUI = parent.HasComponent<UITextComponent>() || parent.HasComponent<UIButtonComponent>() || parent.HasComponent<UIPanelComponent>() || parent.HasComponent<UIImageComponent>();
 
 						if (parentHasUI)
 						{
@@ -1814,7 +1899,7 @@ namespace Toast {
 					if (renderButton)
 					{
 						const auto& state = ubc.States[(size_t)ubc.CurrentState];
-						Renderer2D::SubmitButton(uiPos, { tc.Scale.x, tc.Scale.y, ubc.CornerRadius, 1.0f }, state.Color, (int)entity, !ubc.UseColor, state.TextureIndex, ubc.BorderWidth, ubc.BorderColor);
+						Renderer2D::SubmitButton(uiPos, { tc.Scale.x, tc.Scale.y, ubc.CornerRadius, 1.0f }, state.Color, (int)entity, !ubc.UseColor, state.TextureIndex, state.TextureHandle, ubc.BorderWidth, ubc.BorderColor);
 
 						if (mSettings.ShowUIBounds)
 							Renderer2D::SubmitUIBounds(uiPos, { tc.Scale.x, tc.Scale.y }, { 0.0f, 1.0f, 0.4f, 0.6f });
@@ -1842,7 +1927,7 @@ namespace Toast {
 						Entity parent = FindEntityByUUID(current.GetParentUUID());
 
 						// Check if the parent has a UI element component.
-						bool parentHasUI = parent.HasComponent<UITextComponent>() || parent.HasComponent<UIButtonComponent>() || parent.HasComponent<UIPanelComponent>();
+						bool parentHasUI = parent.HasComponent<UITextComponent>() || parent.HasComponent<UIButtonComponent>() || parent.HasComponent<UIPanelComponent>() || parent.HasComponent<UIImageComponent>();
 
 						if (parentHasUI)
 						{
@@ -1892,6 +1977,67 @@ namespace Toast {
 
 					if (mSettings.ShowUIBounds)
 						Renderer2D::SubmitUIBounds(uiPos, { tc.Scale.x, tc.Scale.y }, { 0.0f, 1.0f, 0.4f, 0.6f });
+				}
+
+				// Images
+				auto uiImageEntites = mRegistry.view<TransformComponent, UIImageComponent>();
+				for (auto entity : uiImageEntites)
+				{
+					auto [tc, uiic] = uiImageEntites.get<TransformComponent, UIImageComponent>(entity);
+
+					if (!uiic.Visible || uiic.TextureHandle == AssetHandle(0))
+						continue;
+
+					auto texture = AssetManager::GetAsset<Texture2D>(uiic.TextureHandle);
+					if (!texture)
+						continue;
+
+					DirectX::XMFLOAT3 uiPos = tc.Translation;
+					bool renderImage = true;
+
+					Entity e{ entity, this };
+
+					Entity current = e;
+					while (current.HasParent())
+					{
+						Entity parent = FindEntityByUUID(current.GetParentUUID());
+
+						// Check if the parent has a UI element component.
+						bool parentHasUI = parent.HasComponent<UITextComponent>() || parent.HasComponent<UIButtonComponent>() || parent.HasComponent<UIPanelComponent>() || parent.HasComponent<UIImageComponent>();
+
+						if (parentHasUI)
+						{
+							// Add the parent's translation.
+							DirectX::XMFLOAT3 parentUI = parent.GetComponent<TransformComponent>().Translation;
+							parentUI.x += (mViewportWidth * 0.5f);
+							parentUI.y += (mViewportHeight * 0.5f);
+
+							uiPos.x += parentUI.x;
+							uiPos.y += parentUI.y;
+							uiPos.z += parentUI.z;
+
+							// If the parent has a UIPanelComponent, check its visibility.
+							if (parent.HasComponent<UIPanelComponent>())
+							{
+								UIPanelComponent parentPanel = parent.GetComponent<UIPanelComponent>();
+								if (!parentPanel.Visible)
+								{
+									renderImage = false;
+									break;
+								}
+							}
+						}
+						// Move up one level.
+						current = parent;
+					}
+
+					if (!renderImage)
+						continue;
+
+					if (mSettings.ShowUIBounds)
+						Renderer2D::SubmitUIBounds(uiPos, { tc.Scale.x, tc.Scale.y }, { 0.0f, 1.0f, 0.4f, 0.6f });
+
+					Renderer2D::SubmitImage(uiPos, { tc.Scale.x, tc.Scale.y }, texture, uiic.SourceRect, uiic.Tint, uiic.CornerRadius, uiic.Fit, uiic.FlipX, uiic.FlipY, (int)entity);
 				}
 			}
 			Renderer2D::EndScene();
@@ -2384,6 +2530,7 @@ namespace Toast {
 		CopyComponent<UIPanelComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UITextComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<UIButtonComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<UIImageComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<ParticlesComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<MoveableComponent>(target->mRegistry, mRegistry, enttMap);
 	}

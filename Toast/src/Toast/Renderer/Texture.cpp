@@ -44,7 +44,7 @@ namespace Toast {
 		}
 	}
 
-	HRESULT LoadImageDataFromFile(const std::wstring& filename,	std::vector<uint8_t>& imageData, UINT& width, UINT& height,	DXGI_FORMAT& format, UINT& rowPitch)
+	HRESULT LoadImageDataFromFile(const std::wstring& filename,	std::vector<uint8_t>& imageData, UINT& width, UINT& height,	DXGI_FORMAT& format, UINT& rowPitch, bool forceRGBA = false)
 	{
 		using namespace Microsoft::WRL;
 
@@ -96,7 +96,13 @@ namespace Toast {
 
 		// Decide on the desired format based on bit depth.
 		GUID desiredGUID;
-		if (bitsPerPixel == 32)
+		if (forceRGBA)
+		{
+			desiredGUID = GUID_WICPixelFormat32bppRGBA;
+			format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			rowPitch = width * 4;
+		}
+		else if (bitsPerPixel == 32)
 		{
 			if (pixelFormat == GUID_WICPixelFormat32bppGrayFloat)
 			{
@@ -465,7 +471,7 @@ namespace Toast {
 
 		std::wstring wFilePath = std::wstring(mFilePath.begin(), mFilePath.end());
 
-		result = LoadImageDataFromFile(wFilePath, mImageData, mWidth, mHeight, mFormat, mRowPitch);
+		result = LoadImageDataFromFile(wFilePath, mImageData, mWidth, mHeight, mFormat, mRowPitch, forceSRGB);
 		TOAST_CORE_ASSERT(SUCCEEDED(result), "Unable to load texture!");
 
 		mSRVFormat = forceSRGB ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : mFormat;

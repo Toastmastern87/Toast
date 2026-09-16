@@ -620,7 +620,7 @@ namespace Toast {
 			out << YAML::Key << "AssetPath" << YAML::Value << uitc.Font->GetFilePath();
 			out << YAML::Key << "Text" << YAML::Value << uitc.Text;
 			out << YAML::Key << "TextureIndex" << YAML::Value << uitc.TextureIndex;
-			if (unstyled || (overrides & UIStyleProp_Background))
+			if (unstyled || (overrides & UIStyleProp_Color))
 				out << YAML::Key << "Color" << YAML::Value << uitc.Color;
 			if (unstyled || (overrides & UIStyleProp_Visible))
 				out << YAML::Key << "Visible" << YAML::Value << uitc.Visible;

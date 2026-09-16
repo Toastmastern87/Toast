@@ -13,6 +13,65 @@
 
 namespace Toast {
 
+	static std::string SerializeSettings(const AssetEntry& entry)
+	{
+		std::stringstream out;
+
+		switch (entry.Metadata.Type)
+		{
+		case AssetType::Texture2D:
+		{
+			out << "sRGB=" << (entry.Texture2DSettings.ForceSRGB ? "1" : "0");
+
+			// Only written when non-zero
+			const auto& s = entry.Texture2DSettings;
+			if (s.SliceLeft || s.SliceTop || s.SliceRight || s.SliceBottom)
+				out << ",sl=" << s.SliceLeft << ",st=" << s.SliceTop << ",sr=" << s.SliceRight << ",sb=" << s.SliceBottom;
+
+			if (s.ContentWidth || s.ContentHeight)
+				out << ",cx=" << s.ContentX << ",cy=" << s.ContentY << ",cw=" << s.ContentWidth << ",ch=" << s.ContentHeight;
+
+			break;
+		}
+
+		default:
+			break;
+		}
+
+		return out.str();
+	}
+
+	static void ParseSettings(const std::string& settingsStr, AssetEntry& entry)
+	{
+		std::stringstream ss(settingsStr);
+		std::string pair;
+
+		while (std::getline(ss, pair, ','))
+		{
+			const size_t equals = pair.find('=');
+			if (equals == std::string::npos)
+				continue;
+
+			const std::string key = pair.substr(0, equals);
+			const std::string value = pair.substr(equals + 1);
+
+			if (entry.Metadata.Type != AssetType::Texture2D)
+				continue;
+
+			auto& s = entry.Texture2DSettings;
+
+			if (key == "sRGB")    s.ForceSRGB = (value != "0");
+			else if (key == "sl") s.SliceLeft = (uint32_t)std::stoul(value);
+			else if (key == "st") s.SliceTop = (uint32_t)std::stoul(value);
+			else if (key == "sr") s.SliceRight = (uint32_t)std::stoul(value);
+			else if (key == "sb") s.SliceBottom = (uint32_t)std::stoul(value);
+			else if (key == "cx") s.ContentX = (uint32_t)std::stoul(value);
+			else if (key == "cy") s.ContentY = (uint32_t)std::stoul(value);
+			else if (key == "cw") s.ContentWidth = (uint32_t)std::stoul(value);
+			else if (key == "ch") s.ContentHeight = (uint32_t)std::stoul(value);
+		}
+	}
+
 	AssetRegistry& AssetManager::GetActiveRegistry()
 	{
 		TOAST_CORE_ASSERT(sActiveProject, "No active project set in AssetManager!");
@@ -327,19 +386,7 @@ namespace Toast {
 			if (entry.Metadata.IsMemoryAsset)
 				continue;
 
-			out << (uint64_t)handle << "|" << AssetTypeToString(entry.Metadata.Type) << "|" << entry.Metadata.FilePath.string() << "|";
-
-			// Type-specific settings
-			switch (entry.Metadata.Type)
-			{
-			case AssetType::Texture2D:
-				out << "sRGB=" << (entry.Texture2DSettings.ForceSRGB ? "1" : "0");
-				break;
-			default:
-				break;
-			}
-				
-			out << "\n";
+			out << (uint64_t)handle << "|" << AssetTypeToString(entry.Metadata.Type) << "|" << entry.Metadata.FilePath.string() << "|" << SerializeSettings(entry) << "\n";
 		}
 
 		TOAST_CORE_INFO("AssetManager: Serialized %d assets to '%s'", registry.Count(), outputPath.string().c_str());
@@ -391,18 +438,7 @@ namespace Toast {
 			entry.Metadata.FilePath = pathStr;
 			entry.Metadata.IsMemoryAsset = false;
 
-			// Parse type-specific settings
-			switch (type)
-			{
-			case AssetType::Texture2D:
-				if (settingsStr.find("sRGB=0") != std::string::npos)
-					entry.Texture2DSettings.ForceSRGB = false;
-				else
-					entry.Texture2DSettings.ForceSRGB = true;  // default
-				break;
-			default:
-				break;
-			}
+			ParseSettings(settingsStr, entry);
 
 			count++;
 		}

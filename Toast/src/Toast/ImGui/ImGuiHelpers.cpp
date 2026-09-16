@@ -1,4 +1,4 @@
-#include "tpch.h"
+﻿#include "tpch.h"
 
 #include "ImGuiHelpers.h"
 
@@ -1198,6 +1198,377 @@ namespace Toast
 
 			ImGui::EndGroup();
 			ImGui::PopID();
+
+			return changed;
+		}
+
+		void NineSliceImage(ImTextureID texID, float texW, float texH, const ImVec4& borders, const ImVec4& content, const ImVec2& destMin, const ImVec2& destMax, const ImVec4& tint)
+		{
+			ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+			const float destWidth = destMax.x - destMin.x;
+			const float destHeight = destMax.y - destMin.y;
+
+			const float cx = content.x;
+			const float cy = content.y;
+			const float cw = (content.z > 0.0f) ? content.z : texW;
+			const float ch = (content.w > 0.0f) ? content.w : texH;
+
+			float l = borders.x;
+			float t = borders.y;
+			float r = borders.z;
+			float b = borders.w;
+
+			// If the destination is smaller then the insets combine, shrink instead overlapping
+			if (l + r > destWidth && (l + r) > 0.0f)
+			{
+				const float shrink = destWidth / (l + r);
+				l *= shrink;
+				r *= shrink;
+			}
+
+			if (t + b > destHeight && (t + b) > 0.0f)
+			{
+				const float shrink = destHeight / (t + b);
+				t *= shrink;
+				b *= shrink;
+			}
+
+			// Column and row boundaries, in source pixels and destination pixels.
+			const float sx[4] = { cx, cx + borders.x, cx + cw - borders.z, cx + cw };
+			const float sy[4] = { cy, cy + borders.y, cy + ch - borders.w, cy + ch };
+			const float dx[4] = { destMin.x, destMin.x + l, destMax.x - r, destMax.x };
+			const float dy[4] = { destMin.y, destMin.y + t, destMax.y - b, destMax.y };
+
+			const ImU32 col = ImGui::GetColorU32(tint);
+
+			for (int row = 0; row < 3; row++)
+			{
+				for (int col2 = 0; col2 < 3; col2++)
+				{
+					if (sx[col2 + 1] <= sx[col2] || sy[row + 1] <= sy[row])
+						continue;
+
+					if (dx[col2 + 1] <= dx[col2] || dy[row + 1] <= dy[row])
+						continue; 
+
+					const ImVec2 pMin(dx[col2], dy[row]);
+					const ImVec2 pMax(dx[col2 + 1], dy[row + 1]);
+					const ImVec2 uvMin(sx[col2] / texW, sy[row] / texH);
+					const ImVec2 uvMax(sx[col2 + 1] / texW, sy[row + 1] / texH);
+
+					drawList->AddImage(texID, pMin, pMax, uvMin, uvMax, col);
+				}
+			}
+		}
+
+		bool NinceSliceEditorPopup(const char* title, ImTextureID texID, uint32_t texWidth, uint32_t texHeight, uint32_t& left, uint32_t& top, uint32_t& right, uint32_t& bottom, uint32_t& contentX, uint32_t& contentY, uint32_t& contentWidth, uint32_t& contentHeight)
+		{
+			bool changed = false;
+
+			ImGui::SetNextWindowSize(ImVec2(720.0f, 560.0f), ImGuiCond_FirstUseEver);
+
+			if (!ImGui::BeginPopupModal(title, nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize))
+				return false;
+
+			if (ImGui::IsWindowAppearing())
+			{
+				if (contentWidth == 0)  contentWidth = texWidth;
+				if (contentHeight == 0) contentHeight = texHeight;
+			}
+
+			static int sEditMode = 0;   // 0 = insets, 1 = content rect
+
+			ImGui::RadioButton("Insets", &sEditMode, 0);
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("Where the 9-slice cuts fall, measured from the content rect's edges.");
+
+			ImGui::SameLine();
+			ImGui::RadioButton("Content Rect", &sEditMode, 1);
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("The region of the texture the artwork occupies.\nSet this first if the art doesn't fill the texture.");
+
+			const float texW = (float)texWidth;
+			const float texH = (float)texHeight;
+
+			static float sZoom = 1.0f;
+			static ImVec2 sPreviewSize = ImVec2(220.0f, 140.0f);
+
+			// Left: the texture with draggable guides
+			ImGui::BeginChild("##sliceview", ImVec2(430.0f, 0.0f), true);
+
+			ImVec2 avail = ImGui::GetContentRegionAvail();
+			float fitScale = std::min((avail.x - 20.0f) / texW, (avail.y - 40.0f) / texH);
+			fitScale = std::max(fitScale, 0.01f);
+			const float scale = fitScale * sZoom;
+
+			const ImVec2 imgSize(texW * scale, texH * scale);
+
+			const float indent = std::max((avail.x - imgSize.x) * 0.5f, 0.0f);
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + indent);
+
+			const ImVec2 imgMin = ImGui::GetCursorScreenPos();
+
+			// Dark backdrop so transparent regions of the texture are visible.
+			ImGui::GetWindowDrawList()->AddRectFilled(imgMin, ImVec2(imgMin.x + imgSize.x, imgMin.y + imgSize.y), IM_COL32(40, 40, 46, 255));
+
+			ImGui::Image(texID, imgSize);
+			const ImVec2 imgMax = ImVec2(imgMin.x + imgSize.x, imgMin.y + imgSize.y);
+
+			ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+			const float cxL = imgMin.x + contentX * scale;
+			const float cxR = imgMin.x + (contentX + contentWidth) * scale;
+			const float cyT = imgMin.y + contentY * scale;
+			const float cyB = imgMin.y + (contentY + contentHeight) * scale;
+
+			const ImU32 contentColor = IM_COL32(255, 180, 0, 220);
+			drawList->AddRect(ImVec2(cxL, cyT), ImVec2(cxR, cyB), contentColor);
+
+			// ⚠ Insets are measured from the CONTENT rect's edges, not the image's.
+			const float xL = cxL + left * scale;
+			const float xR = cxR - right * scale;
+			const float yT = cyT + top * scale;
+			const float yB = cyB - bottom * scale;
+
+			// Corner shading, also relative to the content rect.
+			const ImU32 shade = IM_COL32(80, 160, 255, 40);
+			drawList->AddRectFilled(ImVec2(cxL, cyT), ImVec2(xL, yT), shade);
+			drawList->AddRectFilled(ImVec2(xR, cyT), ImVec2(cxR, yT), shade);
+			drawList->AddRectFilled(ImVec2(cxL, yB), ImVec2(xL, cyB), shade);
+			drawList->AddRectFilled(ImVec2(xR, yB), ImVec2(cxR, cyB), shade);
+
+			const ImU32 lineColor = IM_COL32(80, 160, 255, 220);
+			drawList->AddLine(ImVec2(xL, cyT), ImVec2(xL, cyB), lineColor);
+			drawList->AddLine(ImVec2(xR, cyT), ImVec2(xR, cyB), lineColor);
+			drawList->AddLine(ImVec2(cxL, yT), ImVec2(cxR, yT), lineColor);
+			drawList->AddLine(ImVec2(cxL, yB), ImVec2(cxR, yB), lineColor);
+
+			const float grab = 9.0f;
+			const float cW = (float)contentWidth;
+			const float cH = (float)contentHeight;
+
+			if (sEditMode == 0)
+			{
+				// Inset guides. Clamped against the content size, since that's what
+				// they subdivide.
+				ImGui::SetCursorScreenPos(ImVec2(xL - grab * 0.5f, cyT));
+				ImGui::InvisibleButton("##guideL", ImVec2(grab, cyB - cyT));
+				if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+				if (ImGui::IsItemActive())
+				{
+					const float v = std::clamp((float)left + ImGui::GetIO().MouseDelta.x / scale, 0.0f, cW - (float)right - 1.0f);
+					if ((uint32_t)v != left) { left = (uint32_t)v; changed = true; }
+				}
+
+				ImGui::SetCursorScreenPos(ImVec2(xR - grab * 0.5f, cyT));
+				ImGui::InvisibleButton("##guideR", ImVec2(grab, cyB - cyT));
+				if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+				if (ImGui::IsItemActive())
+				{
+					const float v = std::clamp((float)right - ImGui::GetIO().MouseDelta.x / scale, 0.0f, cW - (float)left - 1.0f);
+					if ((uint32_t)v != right) { right = (uint32_t)v; changed = true; }
+				}
+
+				ImGui::SetCursorScreenPos(ImVec2(cxL, yT - grab * 0.5f));
+				ImGui::InvisibleButton("##guideT", ImVec2(cxR - cxL, grab));
+				if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+
+				if (ImGui::IsItemActive())
+				{
+					const float v = std::clamp((float)top + ImGui::GetIO().MouseDelta.y / scale, 0.0f, cH - (float)bottom - 1.0f);
+					if ((uint32_t)v != top) { top = (uint32_t)v; changed = true; }
+				}
+
+				ImGui::SetCursorScreenPos(ImVec2(cxL, yB - grab * 0.5f));
+				ImGui::InvisibleButton("##guideB", ImVec2(cxR - cxL, grab));
+				if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+
+				if (ImGui::IsItemActive())
+				{
+					const float v = std::clamp((float)bottom - ImGui::GetIO().MouseDelta.y / scale, 0.0f, cH - (float)top - 1.0f);
+					if ((uint32_t)v != bottom) { bottom = (uint32_t)v; changed = true; }
+				}
+			}
+			else
+			{
+				// Content rect edges. Near edges move the origin AND adjust the size,
+				// so the opposite edge stays put; far edges move only the size.
+				ImGui::SetCursorScreenPos(ImVec2(cxL - grab * 0.5f, imgMin.y));
+				ImGui::InvisibleButton("##contentL", ImVec2(grab, imgSize.y));
+				if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+				if (ImGui::IsItemActive())
+				{
+					const float v = std::clamp((float)contentX + ImGui::GetIO().MouseDelta.x / scale, 0.0f, (float)contentX + cW - 1.0f);
+					const uint32_t newX = (uint32_t)v;
+
+					if (newX != contentX)
+					{
+						contentWidth += contentX - newX;
+						contentX = newX;
+						changed = true;
+					}
+				}
+
+				ImGui::SetCursorScreenPos(ImVec2(cxR - grab * 0.5f, imgMin.y));
+				ImGui::InvisibleButton("##contentR", ImVec2(grab, imgSize.y));
+				if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+				if (ImGui::IsItemActive())
+				{
+					const float v = std::clamp(cW + ImGui::GetIO().MouseDelta.x / scale, 1.0f, texW - (float)contentX);
+					if ((uint32_t)v != contentWidth) { contentWidth = (uint32_t)v; changed = true; }
+				}
+
+				ImGui::SetCursorScreenPos(ImVec2(imgMin.x, cyT - grab * 0.5f));
+				ImGui::InvisibleButton("##contentT", ImVec2(imgSize.x, grab));
+				if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+
+				if (ImGui::IsItemActive())
+				{
+					const float v = std::clamp((float)contentY + ImGui::GetIO().MouseDelta.y / scale, 0.0f, (float)contentY + cH - 1.0f);
+					const uint32_t newY = (uint32_t)v;
+
+					if (newY != contentY)
+					{
+						contentHeight += contentY - newY;
+						contentY = newY;
+						changed = true;
+					}
+				}
+
+				ImGui::SetCursorScreenPos(ImVec2(imgMin.x, cyB - grab * 0.5f));
+				ImGui::InvisibleButton("##contentB", ImVec2(imgSize.x, grab));
+				if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+
+				if (ImGui::IsItemActive())
+				{
+					const float v = std::clamp(cH + ImGui::GetIO().MouseDelta.y / scale, 1.0f, texH - (float)contentY);
+					if ((uint32_t)v != contentHeight) { contentHeight = (uint32_t)v; changed = true; }
+				}
+			}
+
+			ImGui::SetCursorScreenPos(ImVec2(imgMin.x, imgMax.y + 8.0f));
+			ImGui::PushItemWidth(-1);
+			ImGui::SliderFloat("##zoom", &sZoom, 1.0f, 8.0f, "Zoom %.1fx");
+			ImGui::PopItemWidth();
+
+			ImGui::EndChild();
+
+			// Right: numeric entry and live preview
+			ImGui::SameLine();
+			ImGui::BeginChild("##slicecontrols", ImVec2(0.0f, 0.0f));
+
+			ImGui::Text("Source: %u x %u", texWidth, texHeight);
+			ImGui::Separator();
+
+			int borders[4] = { (int)left, (int)top, (int)right, (int)bottom };
+			ImGui::TextUnformatted("Insets (px)");
+			ImGui::PushItemWidth(-1);
+
+			if (ImGui::DragInt4("##insets", borders, 0.5f, 0, 8192, "%d"))
+			{
+				// Against the content size, not the texture's.
+				left = (uint32_t)std::clamp(borders[0], 0, (int)contentWidth - (int)right - 1);
+				top = (uint32_t)std::clamp(borders[1], 0, (int)contentHeight - (int)bottom - 1);
+				right = (uint32_t)std::clamp(borders[2], 0, (int)contentWidth - (int)left - 1);
+				bottom = (uint32_t)std::clamp(borders[3], 0, (int)contentHeight - (int)top - 1);
+				changed = true;
+			}
+
+			ImGui::PopItemWidth();
+			ImGui::TextDisabled("L, T, R, B");
+
+			ImGui::TextUnformatted("Content Rect (px)");
+			ImGui::PushItemWidth(-1);
+
+			int contentRect[4] = { (int)contentX, (int)contentY, (int)contentWidth, (int)contentHeight };
+			if (ImGui::DragInt4("##contentrect", contentRect, 0.5f, 0, 8192, "%d"))
+			{
+				contentX = (uint32_t)std::clamp(contentRect[0], 0, (int)texWidth - 1);
+				contentY = (uint32_t)std::clamp(contentRect[1], 0, (int)texHeight - 1);
+				contentWidth = (uint32_t)std::clamp(contentRect[2], 1, (int)texWidth - (int)contentX);
+				contentHeight = (uint32_t)std::clamp(contentRect[3], 1, (int)texHeight - (int)contentY);
+				changed = true;
+			}
+
+			ImGui::PopItemWidth();
+			ImGui::TextDisabled("X, Y, W, H");
+
+			if (ImGui::Button("Fit To Texture"))
+			{
+				contentX = contentY = 0;
+				contentWidth = texWidth;
+				contentHeight = texHeight;
+				changed = true;
+			}
+
+			if (contentWidth > 0 && contentHeight > 0)
+			{
+				left = std::min(left, contentWidth - 1);
+				right = std::min(right, contentWidth - left - 1);
+				top = std::min(top, contentHeight - 1);
+				bottom = std::min(bottom, contentHeight - top - 1);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Uniform from Left"))
+			{
+				top = right = bottom = left;
+				changed = true;
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Clear"))
+			{
+				left = top = right = bottom = 0;
+				changed = true;
+			}
+
+			ImGui::Separator();
+			ImGui::TextUnformatted("Preview");
+			ImGui::PushItemWidth(-1);
+			ImGui::SliderFloat("##pw", &sPreviewSize.x, 32.0f, 400.0f, "Width %.0f");
+			ImGui::SliderFloat("##ph", &sPreviewSize.y, 32.0f, 400.0f, "Height %.0f");
+			ImGui::PopItemWidth();
+
+			const ImVec2 pMin = ImGui::GetCursorScreenPos();
+			const ImVec2 pMax = ImVec2(pMin.x + sPreviewSize.x, pMin.y + sPreviewSize.y);
+
+			ImGui::GetWindowDrawList()->AddRectFilled(pMin, pMax, IM_COL32(40, 40, 46, 255));
+
+			NineSliceImage(texID, texW, texH, ImVec4((float)left, (float)top, (float)right, (float)bottom), ImVec4((float)contentX, (float)contentY, (float)contentWidth, (float)contentHeight), pMin, pMax);
+
+			ImGui::Dummy(sPreviewSize);
+
+			const float buttonHeight = ImGui::GetFrameHeight();
+			const float remaining = ImGui::GetContentRegionAvail().y - buttonHeight - ImGui::GetStyle().ItemSpacing.y;
+
+			if (remaining > 0.0f)
+				ImGui::Dummy(ImVec2(0.0f, remaining));
+
+			ImGui::Separator();
+
+			// Right-align: cursor to the far edge minus the button width.
+			const float buttonWidth = 120.0f;
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - buttonWidth);
+
+			if (ImGui::Button("Close", ImVec2(buttonWidth, 0.0f)))
+				ImGui::CloseCurrentPopup();
+
+			ImGui::EndChild();
+
+			ImGui::EndPopup();
 
 			return changed;
 		}

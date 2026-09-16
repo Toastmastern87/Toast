@@ -119,6 +119,86 @@ namespace Toast {
 		}
 	}
 
+	static void ApplyImageFit(ImageFit fit, const DirectX::XMFLOAT2& boxPos, const DirectX::XMFLOAT2& boxSize, float textureAspect, DirectX::XMFLOAT2& outQuadPos, DirectX::XMFLOAT2& outQuadSize, DirectX::XMFLOAT4& outUV)
+	{
+		outQuadPos = boxPos;
+		outQuadSize = boxSize;
+		outUV = { 0.0f, 0.0f, 1.0f, 1.0f };
+
+		if (boxSize.x <= 0.0f || boxSize.y <= 0.0f || textureAspect <= 0.0f)
+			return;
+
+		const float boxAspect = boxSize.x / boxSize.y;
+
+		switch (fit)
+		{
+		case ImageFit::Stretch:
+			break;
+
+		case ImageFit::Contain:
+			if (textureAspect > boxAspect)
+			{
+				outQuadSize.y = boxSize.x / textureAspect;
+				outQuadPos.y = boxPos.y + (boxSize.y - outQuadSize.y) * 0.5f;
+			}
+			else 
+			{
+				outQuadSize.x = boxSize.y * textureAspect;
+				outQuadPos.x = boxPos.x + (boxSize.x - outQuadSize.x) * 0.5f;
+			}
+			break;
+			
+		case ImageFit::Cover:
+			if (textureAspect > boxAspect)
+			{
+				const float visible = boxAspect / textureAspect;
+				outUV.x = (1.0f - visible) * 0.5f;
+				outUV.z = visible;
+			}
+			else
+			{
+				const float visible = textureAspect / boxAspect;
+				outUV.y = (1.0f - visible) * 0.5f;
+				outUV.w = visible;
+			}
+			break;
+
+		case ImageFit::None:
+			break;
+		}
+	}
+
+	static bool GetNineSliceData(AssetHandle handle, DirectX::XMFLOAT4& outInsets, DirectX::XMFLOAT4& outContent)
+	{
+		if (handle == AssetHandle(0))
+			return false;
+
+		const AssetEntry* entry = AssetManager::GetEntry(handle);
+		if (!entry)
+			return false;
+
+		if (entry->Metadata.Type != AssetType::Texture2D)
+			return false;
+
+		const auto& s = entry->Texture2DSettings;
+
+		const bool hasInsets = s.SliceLeft || s.SliceTop || s.SliceRight || s.SliceBottom;
+		const bool hasContent = s.ContentWidth || s.ContentHeight;
+
+		if (!hasInsets && !hasContent)
+			return false;
+
+		auto texture = AssetManager::GetAsset<Texture2D>(handle);
+		if (!texture)
+			return false;
+
+		outInsets = { (float)s.SliceLeft, (float)s.SliceTop, (float)s.SliceRight, (float)s.SliceBottom };
+
+		outContent = { (float)s.ContentX, (float)s.ContentY, s.ContentWidth ? (float)s.ContentWidth : (float)texture->GetWidth(), s.ContentHeight ? (float)s.ContentHeight : (float)texture->GetHeight() };
+
+		return true;
+	}
+
 	void Renderer2D::Init()
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -187,19 +267,44 @@ namespace Toast {
 
 		uint32_t width = loadedTextures[0]->GetWidth();
 		uint32_t height = loadedTextures[0]->GetHeight();
-		uint32_t arraySize = static_cast<uint32_t>(loadedTextures.size());
 		DXGI_FORMAT format = loadedTextures[0]->GetFormat();
 
 		std::vector<const void*> initialData;
 		std::vector<UINT> rowPitches;
-		for (auto& texture : loadedTextures)
+
+		std::vector<AssetHandle> validHandles;
+
+		for (size_t i = 0; i < loadedTextures.size(); i++)
 		{
+			const auto& texture = loadedTextures[i];
+
+			if (texture->GetWidth() != width || texture->GetHeight() != height)
+			{
+				TOAST_CORE_ERROR("Renderer2D::LoadUITextures: '%s' is %ux%u but the array is %ux%u. All UI textures must match. Skipping.", texture->GetFilePath().c_str(), texture->GetWidth(), texture->GetHeight(), width, height);
+				continue;
+			}
+
+			if (!texture->GetInitialData() || texture->GetRowPitch() == 0)
+			{
+				TOAST_CORE_ERROR("Renderer2D::LoadUITextures: '%s' has no initial data. Skipping.", texture->GetFilePath().c_str());
+				continue;
+			}
+
 			initialData.push_back(texture->GetInitialData());
 			rowPitches.push_back(texture->GetRowPitch());
+			validHandles.push_back(textureHandles[i]);
 		}
 
-		sRenderer2DData->UITextureArray = CreateRef<Texture2DArray>(format, width, height, arraySize, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 1, 0, initialData, rowPitches);
-		sRenderer2DData->UITextureArray->SetSliceMapping(textureHandles);
+		if (initialData.empty())
+		{
+			TOAST_CORE_ERROR("Renderer2D::LoadUITextures: no UI textures matched %ux%u, array not created.", width, height);
+			return;
+		}
+
+		sRenderer2DData->UITextureArray = CreateRef<Texture2DArray>(format, width, height, (uint32_t)initialData.size(), D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 1, 0, initialData, rowPitches);
+		sRenderer2DData->UITextureArray->SetSliceMapping(validHandles);
+
+		TOAST_CORE_INFO("Renderer2D::LoadUITextures: %zu of %zu UI textures loaded at %ux%u", initialData.size(), loadedTextures.size(), width, height);
 	}
 
 	void Renderer2D::BeginScene(Camera& camera)
@@ -214,6 +319,9 @@ namespace Toast {
 
 		sRenderer2DData->UIVertexBufferPtr = sRenderer2DData->UIVertexBufferBase;
 		sRenderer2DData->UIBufferOverflowed = false;
+
+		sRenderer2DData->UIImageDraws.clear();
+		sRenderer2DData->UIBatchQuadCount = 0;
 	}
 
 	void Renderer2D::EndScene()
@@ -236,7 +344,8 @@ namespace Toast {
 		uint32_t vertexCount = sRenderer2DData->UIVertexBufferPtr - sRenderer2DData->UIVertexBufferBase;
 		uint32_t vertexDataSize = vertexCount * sizeof(UIVertex);
 		uint32_t quadCount = vertexCount / 4; 
-		uint32_t indexCount = quadCount * 6;
+
+		const uint32_t batchQuads = sRenderer2DData->UIImageDraws.empty() ? quadCount : sRenderer2DData->UIBatchQuadCount;
 
 		auto shader = AssetManager::GetAsset<Shader>(sRendererData->UIShaderHandle);
 		if (shader)
@@ -250,7 +359,15 @@ namespace Toast {
 		sRenderer2DData->UIVertexBuffer->Bind();
 		sRenderer2DData->UIIndexBuffer->Bind();
 
-		RenderCommand::DrawIndexed(0, 0, indexCount);
+		if (batchQuads > 0)
+			RenderCommand::DrawIndexed(0, 0, batchQuads * 6);
+
+		// Images
+		for (const auto& imageDraw : sRenderer2DData->UIImageDraws)
+		{
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, imageDraw.Texture->GetSRV());
+			RenderCommand::DrawIndexed(0, imageDraw.FirstIndex, 6);
+		}
 		
 		RenderCommand::SetRenderTargets({ sRendererData->BackbufferRT->GetRTV().Get() }, nullptr);
 		RenderCommand::ClearRenderTargets(sRendererData->BackbufferRT->GetRTV().Get(), { 0.0f, 0.0f, 0.0f, 1.0f });
@@ -264,19 +381,26 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer2D::SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, uint32_t textureIndex, float borderWidth, const DirectX::XMFLOAT4& borderColor)
+	void Renderer2D::SubmitPanel(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, DirectX::XMFLOAT4& color, const int entityID, const bool textured, const bool targetable, uint32_t textureIndex, AssetHandle textureHandle, float borderWidth, const DirectX::XMFLOAT4& borderColor)
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		if (!HasRoomForQuad())
 			return;
 
-		DirectX::XMFLOAT4 UIVertexPositions[4];
+		DirectX::XMFLOAT4 insets, content;
+		const bool hasNineSlice = textured && GetNineSliceData(textureHandle, insets, content);
+
+		const DirectX::XMFLOAT4 params = hasNineSlice ? insets : DirectX::XMFLOAT4{ borderWidth, borderColor.x, borderColor.y, borderColor.z };
+		const DirectX::XMFLOAT4 params2 = hasNineSlice ? content : DirectX::XMFLOAT4{ 0.0f, 0.0f, 0.0f, 0.0f };
+
+		const DirectX::XMFLOAT4 sizeField = { size.x, size.y, size.z, hasNineSlice ? 1.0f : 0.0f};
 
 		float texturedF = textured == true ? 1.0f : 0.0f;
 
 		DirectX::XMFLOAT3 textureCoords[] = { DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f), DirectX::XMFLOAT3(1.0f, 0.0f, 1.0f), DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f), DirectX::XMFLOAT3(0.0f, 1.0f, 1.0f) };
 
+		DirectX::XMFLOAT4 UIVertexPositions[4];
 		UIVertexPositions[0] = { pos.x,          pos.y,          pos.z, texturedF };
 		UIVertexPositions[1] = { pos.x + size.x, pos.y,          pos.z, texturedF };
 		UIVertexPositions[2] = { pos.x + size.x, pos.y + size.y, pos.z, texturedF };
@@ -285,12 +409,13 @@ namespace Toast {
 		for (size_t i = 0; i < 4; i++)
 		{
 			sRenderer2DData->UIVertexBufferPtr->Position = UIVertexPositions[i];
-			sRenderer2DData->UIVertexBufferPtr->Size = size;
+			sRenderer2DData->UIVertexBufferPtr->Size = sizeField;
 			sRenderer2DData->UIVertexBufferPtr->Color = color;
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = textureCoords[i];
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
 			sRenderer2DData->UIVertexBufferPtr->TextureIndex = textureIndex;
-			sRenderer2DData->UIVertexBufferPtr->Params = { borderWidth, borderColor.x, borderColor.y, borderColor.z };
+			sRenderer2DData->UIVertexBufferPtr->Params = params;
+			sRenderer2DData->UIVertexBufferPtr->Params2 = params2;
 			sRenderer2DData->UIVertexBufferPtr++;
 		}
 	}
@@ -348,12 +473,20 @@ namespace Toast {
 		push(p3, tc);
 	}
 
-	void Renderer2D::SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, const DirectX::XMFLOAT4& color, const int entityID, const bool textured, uint32_t textureIndex, float borderWidth, const DirectX::XMFLOAT4& borderColor)
+	void Renderer2D::SubmitButton(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT4& size, const DirectX::XMFLOAT4& color, const int entityID, const bool textured, uint32_t textureIndex, AssetHandle textureHandle, float borderWidth, const DirectX::XMFLOAT4& borderColor)
 	{
 		TOAST_PROFILE_FUNCTION();
 
 		if (!HasRoomForQuad())
 			return;
+
+		DirectX::XMFLOAT4 insets, content;
+		const bool hasMapping = textured && GetNineSliceData(textureHandle, insets, content);
+
+		const DirectX::XMFLOAT4 params = hasMapping ? insets : DirectX::XMFLOAT4{ borderWidth, borderColor.x, borderColor.y, borderColor.z };
+		const DirectX::XMFLOAT4 params2 = hasMapping ? content : DirectX::XMFLOAT4{ 0.0f, 0.0f, 0.0f, 0.0f };
+
+		const DirectX::XMFLOAT4 sizeField = { size.x, size.y, size.z, hasMapping ? 1.0f : 0.0f };
 
 		DirectX::XMFLOAT4 UIVertexPositions[4];
 
@@ -369,12 +502,13 @@ namespace Toast {
 		for (size_t i = 0; i < 4; i++)
 		{
 			sRenderer2DData->UIVertexBufferPtr->Position = UIVertexPositions[i];
-			sRenderer2DData->UIVertexBufferPtr->Size = size;
+			sRenderer2DData->UIVertexBufferPtr->Size = sizeField;
 			sRenderer2DData->UIVertexBufferPtr->Color = color;
 			sRenderer2DData->UIVertexBufferPtr->Texcoord = textureCoords[i];
 			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
 			sRenderer2DData->UIVertexBufferPtr->TextureIndex = textureIndex;
-			sRenderer2DData->UIVertexBufferPtr->Params = { borderWidth, borderColor.x, borderColor.y, borderColor.z };
+			sRenderer2DData->UIVertexBufferPtr->Params = params;
+			sRenderer2DData->UIVertexBufferPtr->Params2 = params2;
 			sRenderer2DData->UIVertexBufferPtr++;
 		}
 	}
@@ -528,6 +662,73 @@ namespace Toast {
 			}
 
 			y += lineAdvance;
+		}
+	}
+
+	void Renderer2D::SubmitImage(const DirectX::XMFLOAT3& pos, const DirectX::XMFLOAT2& boxSize, const Ref<Texture2D>& texture, const DirectX::XMFLOAT4& sourceRect, const DirectX::XMFLOAT4& tint, float cornerRadius, ImageFit fit, bool flipX, bool flipY, int entityID)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		if (!HasRoomForQuad() || !texture)
+			return;
+
+		const float textureAspect = (float)texture->GetWidth() / (float)texture->GetHeight();
+
+		DirectX::XMFLOAT2 quadPos, quadSize;
+		DirectX::XMFLOAT4 fitUV;
+		ApplyImageFit(fit, { pos.x, pos.y }, boxSize, textureAspect, quadPos, quadSize, fitUV);
+
+		DirectX::XMFLOAT4 uv;
+		uv.x = fitUV.x + sourceRect.x * fitUV.z;
+		uv.y = fitUV.y + sourceRect.y * fitUV.w;
+		uv.z = sourceRect.z * fitUV.z;
+		uv.w = sourceRect.w * fitUV.w;
+
+		float u0 = uv.x;
+		float v0 = uv.y;
+		float u1 = uv.x + uv.z;
+		float v1 = uv.y + uv.w;
+
+		if (flipX)
+			std::swap(u0, u1);
+		if (flipY)
+			std::swap(v0, v1);
+
+		const uint32_t quadIndex = (uint32_t)(sRenderer2DData->UIVertexBufferPtr - sRenderer2DData->UIVertexBufferBase) / 4;
+
+		if (sRenderer2DData->UIImageDraws.empty())
+			sRenderer2DData->UIBatchQuadCount = quadIndex;
+
+		sRenderer2DData->UIImageDraws.push_back({ texture, quadIndex * 6 });
+
+		const DirectX::XMFLOAT4 sizeField = { quadSize.x, quadSize.y, cornerRadius, 0.0f };
+
+		const DirectX::XMFLOAT4 positions[4] =
+		{
+			{ quadPos.x, quadPos.y, pos.z, 1.0f },
+			{ quadPos.x + quadSize.x, quadPos.y, pos.z, 1.0f },
+			{ quadPos.x + quadSize.x, quadPos.y + quadSize.y, pos.z, 1.0f },
+			{ quadPos.x, quadPos.y + quadSize.y, pos.z, 1.0f },
+		};
+
+		// UI Type 5 = UI Image
+		const DirectX::XMFLOAT3 texCoords[4] =
+		{
+			{ u0, v0, 5.0f },
+			{ u1, v0, 5.0f },
+			{ u1, v1, 5.0f },
+			{ u0, v1, 5.0f },
+		};
+
+		for (size_t i = 0; i < 4; i++)
+		{
+			sRenderer2DData->UIVertexBufferPtr->Position = positions[i];
+			sRenderer2DData->UIVertexBufferPtr->Size = sizeField;
+			sRenderer2DData->UIVertexBufferPtr->Texcoord = texCoords[i];
+			sRenderer2DData->UIVertexBufferPtr->Color = tint;
+			sRenderer2DData->UIVertexBufferPtr->EntityID = entityID;
+			sRenderer2DData->UIVertexBufferPtr->TextureIndex = 0;
+			sRenderer2DData->UIVertexBufferPtr++;
 		}
 	}
 

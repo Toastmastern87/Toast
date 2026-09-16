@@ -41,5 +41,10 @@ namespace Toast
 		bool TextureSlotRow(const char* label, AssetHandle currentHandle, const std::filesystem::path& assetRoot, const std::filesystem::path& browseStartDirectory, std::string& outFilepath, float thumbnailSize = 64.0f);
 
 		bool AlignmentGrid(const char* id, TextAlignH& alignH, TextAlignV& alignV, float cellSize = 22.0f);
+
+		// Draws 'texture' into [destMin, destMax] using 9-slice scaling: corners keep
+		// their source pixel size, edges stretch along one axis, the center stretches along both.
+		void NineSliceImage(ImTextureID texID, float texW, float texH, const ImVec4& borders, const ImVec4& content, const ImVec2& destMin, const ImVec2& destMax, const ImVec4& tint = ImVec4(1, 1, 1, 1));
+		bool NinceSliceEditorPopup(const char* title, ImTextureID texID, uint32_t texWidth, uint32_t texHeight, uint32_t& left, uint32_t& top, uint32_t& right, uint32_t& bottom, uint32_t& contentX, uint32_t& contentY, uint32_t& contentWidth, uint32_t& contentHeight);
 	}
 }

@@ -55,6 +55,8 @@ namespace Toast {
 		std::function<void(const std::filesystem::path&)> mOpenFileCallback;
 
 		char mNewStyleSheetName[128] = {};
+
+		AssetHandle mNineSliceHandle = 0;
 	};
 
 }
