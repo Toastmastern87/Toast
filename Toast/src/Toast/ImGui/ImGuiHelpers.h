@@ -20,6 +20,8 @@ namespace Toast
 	{
 #define STYLE_MARKER_WIDTH 34.0f
 
+		using EntityFilterFn = std::function<bool(Entity)>;
+
 		bool ManualDragFloat(const char* label, float& value, WindowsWindow* window, std::string& activeDragArea, float speed = 0.1f, ImVec2 dragAreaSize = { 10.0f, 10.0f }, const char* displayFormat = "%.1f", float minVal = -DBL_MAX, float maxVal = FLT_MAX);
 		bool ManualDragFloat2(const std::string& label, DirectX::XMFLOAT2& values, float speed, float resetValue, WindowsWindow* window, std::string& activeDragArea, const char* displayFormat = "%.1f", bool colorValues = false, float overrideTotalWidth = 0.0f);
 		bool ManualDragFloat3(const std::string& label, DirectX::XMFLOAT3& values, float speed, float resetValue, WindowsWindow* window, std::string& activeDragArea, const char* displayFormat = "%.1f", bool colorValues = false, float overrideTotalWidth = 0.0f);
@@ -46,5 +48,7 @@ namespace Toast
 		// their source pixel size, edges stretch along one axis, the center stretches along both.
 		void NineSliceImage(ImTextureID texID, float texW, float texH, const ImVec4& borders, const ImVec4& content, const ImVec2& destMin, const ImVec2& destMax, const ImVec4& tint = ImVec4(1, 1, 1, 1));
 		bool NinceSliceEditorPopup(const char* title, ImTextureID texID, uint32_t texWidth, uint32_t texHeight, uint32_t& left, uint32_t& top, uint32_t& right, uint32_t& bottom, uint32_t& contentX, uint32_t& contentY, uint32_t& contentWidth, uint32_t& contentHeight);
+
+		bool DrawEntityPicker(const char* label, UUID& target, Scene* scene, const EntityFilterFn& filter = nullptr);
 	}
 }

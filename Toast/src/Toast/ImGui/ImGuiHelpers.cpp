@@ -1573,6 +1573,64 @@ namespace Toast
 			return changed;
 		}
 
+		bool DrawEntityPicker(const char* label, UUID& target, Scene* scene, const EntityFilterFn& filter)
+		{
+			if (!scene)
+				return false;
+
+			bool changed = false;
+
+			std::string preview = "(none)";
+
+			if (target != 0)
+			{
+				Entity current = scene->FindEntityByUUID(target);
+				preview = current ? current.GetComponent<TagComponent>().Tag : "(missing)";
+			}
+
+			if (ImGui::BeginCombo(label, preview.c_str()))
+			{
+				static ImGuiTextFilter textFilter;
+
+				if (ImGui::IsWindowAppearing())
+				{
+					textFilter.Clear();
+					ImGui::SetKeyboardFocusHere();
+				}
+
+				textFilter.Draw("##entityfilter");
+
+				auto view = scene->GetRegistry().view<IDComponent, TagComponent>();
+
+				for (auto e : view)
+				{
+					Entity entity = { e, scene };
+
+					if (filter && !filter(entity))
+						continue;
+
+					const std::string& tag = entity.GetComponent<TagComponent>().Tag;
+
+					if (!textFilter.PassFilter(tag.c_str()))
+						continue;
+
+					UUID id = entity.GetComponent<IDComponent>().ID;
+
+					std::string itemLabel = tag + "##" + std::to_string((uint64_t)id);
+
+					if (ImGui::Selectable(itemLabel.c_str(), id == target))
+					{
+						target = id;
+						changed = true;
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+
+			return changed;
+		}
+
 	}
 
 }

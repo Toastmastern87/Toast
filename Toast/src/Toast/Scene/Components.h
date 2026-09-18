@@ -6,6 +6,7 @@
 #include "Toast/Core/Math/Math.h"
 
 #include "Toast/Scene/SceneCamera.h"
+#include "Toast/Scene/UIButtonAction.h"
 
 #include "Toast/Renderer/Mesh.h"
 
@@ -407,6 +408,8 @@ namespace Toast {
 
 		UIStateStyle States[(size_t)UIState::Count];
 		UIState CurrentState = UIState::Normal;
+
+		std::vector<UIButtonAction> Actions;
 
 		UIButtonComponent() = default;
 		UIButtonComponent(const UIButtonComponent&) = default;

@@ -191,11 +191,17 @@ namespace Toast {
 
 	bool Scene::OnMouseButtonReleased(MouseButtonReleasedEvent& e)
 	{
-		auto buttonView = mRegistry.view<UIButtonComponent, IDComponent>();
-
 		if (mHoveredEntity != entt::null)
 		{
 			Entity entity = { mHoveredEntity, this };
+
+			if (entity.HasComponent<UIButtonComponent>())
+			{
+				auto& ubc = entity.GetComponent<UIButtonComponent>();
+
+				for (const auto& action : ubc.Actions)
+					action.Execute(this);
+			}
 
 			if (entity.HasComponent<ScriptComponent>() && entity.HasComponent<UIButtonComponent>())
 				ScriptEngine::OnEventEntity(entity);

@@ -1414,7 +1414,7 @@ namespace Toast {
 				}
 				ImGui::EndTable();
 			});
-
+	
 		DrawComponent<UIPanelComponent>(ICON_TOASTER_SQUARE_O" UI Panel", entity, mScene, activeDragArea, mWindow, mAssetRoot, [this](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
@@ -1707,7 +1707,7 @@ namespace Toast {
 				ImGui::TableSetColumnIndex(0);
 				ImGui::Text("Font ");
 				ImGui::TableSetColumnIndex(1);
-				ImGui::PushItemWidth(-1);
+				ImGui::PushItemWidth(-30.0f);
 				if (!component.Font->GetFilePath().empty())
 					ImGui::InputText("##fontfilepath", (char*)component.Font->GetFilePath().c_str(), 256, ImGuiInputTextFlags_ReadOnly);
 				else
@@ -1796,6 +1796,9 @@ namespace Toast {
 
 				ImGui::EndTable();
 			});
+
+			static UIButtonAction sEditBuffer;
+			static int sEditIndex;
 
 		DrawComponent<UIButtonComponent>(ICON_TOASTER_SQUARE_O" UI Button", entity, mScene, activeDragArea, mWindow, mAssetRoot, [this](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
 			{
@@ -1984,6 +1987,142 @@ namespace Toast {
 					UIStyleSystem::ResolveEntity(entity);
 
 				ImGui::EndTable();
+
+				ImGui::Separator();
+				ImGui::Text("Actions");
+
+				int actionToRemove = -1;
+				bool openModal = false;
+
+				for (size_t i = 0; i < component.Actions.size(); i++)
+				{
+					ImGui::PushID((int)i);
+
+					const UIButtonAction& action = component.Actions[i];
+					const char* label = action.Name.empty() ? "(unnamed)" : action.Name.c_str();
+
+					if (ImGui::Selectable(label, false, 0, ImVec2(ImGui::GetContentRegionAvail().x - 24.0f, 0.0f)))
+					{
+						sEditBuffer = action;
+						sEditIndex = (int)i;
+						openModal = true;
+					}
+
+					ImGui::SameLine();
+
+					if (ImGui::SmallButton("X"))
+						actionToRemove = (int)i;
+
+					ImGui::PopID();
+				}
+
+				if (actionToRemove >= 0)
+					component.Actions.erase(component.Actions.begin() + actionToRemove);
+
+				if (ImGui::Button("+ Add Action"))
+				{
+					sEditBuffer = UIButtonAction{};
+					sEditBuffer.Name = "New Action";
+					sEditIndex = -1;
+					openModal = true;
+				}
+
+				if (openModal)
+					ImGui::OpenPopup("Edit Action");
+
+				if (ImGui::BeginPopupModal("Edit Action", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+				{
+					char nameBuffer[128];
+					strncpy_s(nameBuffer, sEditBuffer.Name.c_str(), sizeof(nameBuffer) - 1);
+
+					if (ImGui::InputText("Name", nameBuffer, sizeof(nameBuffer)))
+						sEditBuffer.Name = nameBuffer;
+
+					const UIButtonActionType types[] =
+					{
+						UIButtonActionType::None,
+						UIButtonActionType::SetUIComponentVisible,
+						UIButtonActionType::PlayAnimation,
+						UIButtonActionType::StopAnimation,
+					};
+
+					if (ImGui::BeginCombo("Type", UIButtonActionTypeToString(sEditBuffer.Type)))
+					{
+						for (UIButtonActionType type : types)
+						{
+							const bool selected = (sEditBuffer.Type == type);
+
+							if (ImGui::Selectable(UIButtonActionTypeToString(type)))
+								sEditBuffer.Type = type;
+
+							if (selected)
+								ImGui::SetItemDefaultFocus();
+						}
+
+						ImGui::EndCombo();
+					}
+
+					ImGuiHelpers::DrawEntityPicker("Target", sEditBuffer.TargetEntity, mScene, [&](Entity e) { return EntityIsValidTargetFor(sEditBuffer.Type, e);  });
+
+					switch (sEditBuffer.Type)
+					{
+						case UIButtonActionType::SetUIComponentVisible:
+						{
+							ImGui::Checkbox("Visible", &sEditBuffer.BoolParam);
+							break;
+						}
+						case UIButtonActionType::PlayAnimation:
+						{
+							static char animBuffer[128];
+							strcpy_s(animBuffer, sizeof(animBuffer), sEditBuffer.StringParam.c_str());
+
+							if (ImGui::InputText("Animation Name", animBuffer, sizeof(animBuffer)))
+								sEditBuffer.StringParam = animBuffer;
+
+							ImGui::Checkbox("Play in reverse", &sEditBuffer.BoolParam);
+							break;
+						}
+						case UIButtonActionType::StopAnimation:
+						{
+							static char stopBuffer[128];
+							strcpy_s(stopBuffer, sizeof(stopBuffer), sEditBuffer.StringParam.c_str());
+
+							if (ImGui::InputText("Animation Name", stopBuffer, sizeof(stopBuffer)))
+								sEditBuffer.StringParam = stopBuffer;
+
+							ImGui::TextDisabled("Leave empty to stop all");
+							break;
+						}
+						default:
+						{
+							ImGui::TextDisabled("Select a type");
+							break;
+						}
+					}
+
+					ImGui::Separator();
+
+					if (ImGui::Button("OK"))
+					{
+						if (sEditIndex >= 0)
+							component.Actions[sEditIndex] = sEditBuffer;
+						else
+							component.Actions.push_back(sEditBuffer);
+
+						sEditIndex = -1;
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::SameLine();
+
+					if (ImGui::Button("Cancel"))
+					{
+						sEditIndex = -1;
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::EndPopup();
+				}
 			});
 
 			DrawComponent<UIImageComponent>(ICON_TOASTER_FILE_IMAGE_O" UI Image", entity, mScene, activeDragArea, mWindow, mAssetRoot, [this](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)

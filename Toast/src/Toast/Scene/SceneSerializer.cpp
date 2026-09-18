@@ -605,6 +605,25 @@ namespace Toast {
 			out << YAML::Key << "StyleSheet" << YAML::Value << (uint64_t)ubc.Style.Sheet;
 			out << YAML::Key << "StyleOverrides" << YAML::Value << ubc.Style.Overrides;
 
+			if (!ubc.Actions.empty())
+			{
+				out << YAML::Key << "Actions" << YAML::Value << YAML::BeginSeq;
+
+				for (const auto& action : ubc.Actions)
+				{
+					out << YAML::BeginMap; // Actions
+
+					out << YAML::Key << "Name" << YAML::Value << action.Name;
+					out << YAML::Key << "Type" << YAML::Value << UIButtonActionTypeToString(action.Type);
+					out << YAML::Key << "TargetEntity" << YAML::Value << action.TargetEntity;
+					out << YAML::Key << "StringParam" << YAML::Value << action.StringParam;
+					out << YAML::Key << "BoolParam" << YAML::Value << action.BoolParam;
+
+					out << YAML::EndMap;
+				}
+				out << YAML::EndSeq;
+			}
+
 			out << YAML::EndMap; // UIButtonComponent
 		}
 
@@ -1971,6 +1990,24 @@ namespace Toast {
 
 					ubc.Style.Sheet = AssetHandle(uiButtonComponent["StyleSheet"].as<uint64_t>(AssetHandle(0)));
 					ubc.Style.Overrides = uiButtonComponent["StyleOverrides"].as<uint32_t>(0);
+
+					if (auto actionsNode = uiButtonComponent["Actions"])
+					{
+						ubc.Actions.reserve(actionsNode.size());
+
+						for (auto actionNode : actionsNode)
+						{
+							UIButtonAction action;
+
+							action.Name = actionNode["Name"].as<std::string>("");
+							action.Type = UIButtonActionTypeFromString(actionNode["Type"].as<std::string>(""));
+							action.TargetEntity = actionNode["TargetEntity"].as<UUID>(0);
+							action.StringParam = actionNode["StringParam"].as<std::string>("");
+							action.BoolParam = actionNode["BoolParam"].as<bool>(false);
+
+							ubc.Actions.push_back(std::move(action));
+						}
+					}
 				}
 
 				auto uiTextComponent = entity["UITextComponent"];

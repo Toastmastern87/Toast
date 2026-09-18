@@ -1,6 +1,6 @@
 Scene: Mars
 EditorCamera:
-  Position: [142.654144, 43.2039566, 243.998962]
+  Position: [135.215439, 43.2250061, -21.7298126]
 Settings:
   Wireframe: 0
   Grid: false
@@ -450,10 +450,10 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [958.5, -543, 17]
+      Translation: [-0.5, -540, 17]
       Rotation: [0, 0, 0]
       RotationQuat: [0, 0, 0, 1]
-      Scale: [30, 30, 1]
+      Scale: [25, 25, 1]
     UIButtonComponent:
       UseColor: false
       Visible: true
@@ -463,6 +463,12 @@ Entities:
       StateTexture2: 13729727823654615973
       StyleSheet: 633437309794316970
       StyleOverrides: 1648
+      Actions:
+        - Name: CloseMarsMapPanel
+          Type: SetUIComponentVisible
+          TargetEntity: 1106007678368738867
+          StringParam: ""
+          BoolParam: false
   - Entity: 9104643952451060688
     TagComponent:
       Tag: MapTexture
@@ -474,7 +480,7 @@ Entities:
       Translation: [56, 81, 9]
       Rotation: [0, 0, 0]
       RotationQuat: [0, 0, 0, 1]
-      Scale: [2242, 875, 1]
+      Scale: [1273, 519, 1]
     UIImageComponent:
       TextureAssetHandle: 10751659488577007456
       SourceRect: [0, 0, 1, 1]
@@ -492,17 +498,17 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [-1313.5, -528, 0]
+      Translation: [-1280.5, -529, 0]
       Rotation: [0, 0, 0]
       RotationQuat: [0, 0, 0, 1]
       Scale: [1, 1, 1]
     UITextComponent:
-      AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
+      AssetPath: C:\dev\Toast\Toaster\assets\fonts\3_BarlowCondensed\BarlowCondensed-SemiBold.ttf
       Text: Map Overview
-      TextureIndex: 0
+      TextureIndex: 4
       Color: [1, 1, 1, 1]
       Visible: true
-      FontSize: 42
+      FontSize: 38.2999992
       AlignH: 0
       AlignV: 1
       StyleSheet: 4588022980432198518
@@ -520,7 +526,7 @@ Entities:
       Translation: [-1157, -488, 12]
       Rotation: [0, 0, 0]
       RotationQuat: [0, 0, 0, 1]
-      Scale: [2347, 1001, 1]
+      Scale: [1382, 648, 1]
     UIPanelComponent:
       TextureAssetHandle: 15183623319140184794
       UseColor: false
@@ -538,72 +544,6 @@ Entities:
       ConnectorOutlineColor: [0, 0, 0, 0]
       StyleSheet: 468910669279380901
       StyleOverrides: 1552
-  - Entity: 18272076506900039119
-    TagComponent:
-      Tag: TextTest
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [987, -228, 4]
-      Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [280, 230, 13]
-    UITextComponent:
-      AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
-      Text: Hello World! Testing and testing some more. This will be a text test for text box
-      TextureIndex: 0
-      Visible: true
-      FontSize: 29.2000008
-      WordWrap: true
-      LineHeight: 0.850000024
-      AlignH: 0
-      AlignV: 0
-      StyleSheet: 11684741636645183346
-      StyleOverrides: 492032
-  - Entity: 8736409579682172471
-    TagComponent:
-      Tag: ButtonTest
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [-1222, 134, 3]
-      Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [128, 27, 1]
-    UIButtonComponent:
-      LatchOnClick: true
-      StyleSheet: 10525460525044717147
-      StyleOverrides: 0
-  - Entity: 10555075357225642405
-    TagComponent:
-      Tag: PanelTest2
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [-1290.5, -349, 4]
-      Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [60, 97, 2]
-    UIPanelComponent:
-      ConnectToParent: false
-      ConnectorColor: [0, 0, 0, 0]
-      ConnectorThickness: 1
-      ConnectorChildOffset: [0, 0]
-      ConnectorParentOffset: [0, 0]
-      ConnectorClampToScreenEdge: false
-      ConnectorScreenEdgeMargin: 24
-      ConnectorStyle: 0
-      ConnectorCornerRadius: 8
-      ConnectorOutlineWidth: 0
-      ConnectorOutlineColor: [0, 0, 0, 0]
-      StyleSheet: 11684741636645183346
-      StyleOverrides: 0
   - Entity: 15758747276645440079
     TagComponent:
       Tag: DustKickup
@@ -1207,9 +1147,10 @@ Entities:
       ClassName: TheNextFrontier.LoadCargo
       ScriptHandle: 6900236357676364990
     UIButtonComponent:
+      Visible: true
       LatchOnClick: false
       StyleSheet: 10936026810773946683
-      StyleOverrides: 0
+      StyleOverrides: 512
   - Entity: 6571834013205168760
     TagComponent:
       Tag: FrontFlapLeft
@@ -1906,7 +1847,7 @@ Entities:
       Translation: [-1303.5, -553, 5]
       Rotation: [0, 0, 0]
       RotationQuat: [0, 0, 0, 1]
-      Scale: [75, 75, 8]
+      Scale: [65, 65, 8]
     UIButtonComponent:
       UseColor: false
       Visible: true
@@ -1916,6 +1857,12 @@ Entities:
       StateTexture2: 15619846374371284112
       StyleSheet: 17232253532638061034
       StyleOverrides: 1648
+      Actions:
+        - Name: OpenMarsMap
+          Type: SetUIComponentVisible
+          TargetEntity: 1106007678368738867
+          StringParam: ""
+          BoolParam: true
   - Entity: 3130812133437718439
     TagComponent:
       Tag: Money
@@ -1924,7 +1871,7 @@ Entities:
       Children:
         - Handle: 5004313190604184181
     TransformComponent:
-      Translation: [492.99707, -743.497559, 5]
+      Translation: [492.99707, -743.497559, 6]
       Rotation: [0, -0, 0]
       RotationQuat: [0, 0, 0, 1]
       Scale: [406, 273, 1]
@@ -1936,7 +1883,7 @@ Entities:
     UIPanelComponent:
       Color: [1, 1, 1, 1]
       CornerRadius: 0
-      TextureAssetHandle: 15018272637222093420
+      TextureAssetHandle: 17383264032130357581
       UseColor: false
       Visible: true
       BorderWidth: 0
@@ -1953,7 +1900,7 @@ Entities:
       ConnectorOutlineWidth: 0
       ConnectorOutlineColor: [0, 0, 0, 0]
       StyleSheet: 0
-      StyleOverrides: 0
+      StyleOverrides: 16
   - Entity: 6399342346770279097
     TagComponent:
       Tag: AllStarshipsPopup
@@ -2182,14 +2129,14 @@ Entities:
         - Handle: 11806276604423328658
         - Handle: 18384185750220347789
     TransformComponent:
-      Translation: [818, -681, 10]
+      Translation: [794, -681, 10]
       Rotation: [0, -0, 0]
       RotationQuat: [0, 0, 0, 1]
-      Scale: [536, 243, 1]
+      Scale: [610, 243, 1]
     UIPanelComponent:
       Color: [1, 1, 1, 1]
       CornerRadius: 0
-      TextureAssetHandle: 4857095533691141474
+      TextureAssetHandle: 17383264032130357581
       UseColor: false
       Visible: true
       BorderWidth: 0
@@ -2206,7 +2153,7 @@ Entities:
       ConnectorOutlineWidth: 0
       ConnectorOutlineColor: [0, 0, 0, 0]
       StyleSheet: 0
-      StyleOverrides: 0
+      StyleOverrides: 16
   - Entity: 7969327153423302118
     TagComponent:
       Tag: Sunlight
@@ -2365,14 +2312,19 @@ Entities:
       Children:
         []
     TransformComponent:
-      Translation: [-1290.5, -546, 6]
+      Translation: [-1229.5, -553, 6]
       Rotation: [0, 0, 0]
       RotationQuat: [0, 0, 0, 1]
-      Scale: [124, 118, 1]
+      Scale: [65, 65, 1]
     UIButtonComponent:
+      UseColor: false
+      Visible: true
       LatchOnClick: false
+      StateTexture0: 9964269343535436304
+      StateTexture1: 2586121666762830278
+      StateTexture2: 5496601903567527814
       StyleSheet: 2192245539014642861
-      StyleOverrides: 0
+      StyleOverrides: 1648
   - Entity: 13550521646691037742
     TagComponent:
       Tag: AllStarshipUI
@@ -2381,14 +2333,19 @@ Entities:
       Children:
         - Handle: 6399342346770279097
     TransformComponent:
-      Translation: [-1215.5, -546, 7]
+      Translation: [-1155.5, -553, 7]
       Rotation: [0, 0, 0]
       RotationQuat: [0, 0, 0, 1]
-      Scale: [64, 64, 1]
+      Scale: [65, 65, 1]
     UIButtonComponent:
+      UseColor: false
+      Visible: true
       LatchOnClick: false
+      StateTexture0: 15022368491008561672
+      StateTexture1: 6705773613347079140
+      StateTexture2: 12282193027925181577
       StyleSheet: 1398776538539369884
-      StyleOverrides: 0
+      StyleOverrides: 1648
   - Entity: 17683343706633406771
     TagComponent:
       Tag: InfoPopup
@@ -2411,7 +2368,7 @@ Entities:
       CornerRadius: 21.2999992
       TextureAssetHandle: 7770627433586345934
       UseColor: false
-      Visible: true
+      Visible: false
       BorderWidth: 0
       BorderColor: [0, 0, 0, 1]
       ConnectToParent: true
@@ -2426,7 +2383,7 @@ Entities:
       ConnectorOutlineWidth: 0
       ConnectorOutlineColor: [0, 0, 0, 0]
       StyleSheet: 0
-      StyleOverrides: 0
+      StyleOverrides: 512
   - Entity: 14654054629392417776
     TagComponent:
       Tag: CloseButton
@@ -2440,9 +2397,10 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [20, 20, 1]
     UIButtonComponent:
+      Visible: true
       LatchOnClick: false
       StyleSheet: 12590198991144957938
-      StyleOverrides: 0
+      StyleOverrides: 512
   - Entity: 449177564690845958
     TagComponent:
       Tag: VelocityText
@@ -2459,8 +2417,9 @@ Entities:
       AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
       Text: "Velocity: 20.0 m/s"
       TextureIndex: 0
+      Visible: true
       StyleSheet: 977887752121988633
-      StyleOverrides: 0
+      StyleOverrides: 512
   - Entity: 8935244486945498943
     TagComponent:
       Tag: AltitudeText
@@ -2477,8 +2436,9 @@ Entities:
       AssetPath: ..\Toaster\assets\fonts\1_Roboto Mono\RobotoMono-Regular.ttf
       Text: "Altitude: 5000 m"
       TextureIndex: 0
+      Visible: true
       StyleSheet: 247700841446208189
-      StyleOverrides: 0
+      StyleOverrides: 512
   - Entity: 6749678775089839145
     TagComponent:
       Tag: FollowButton
@@ -2492,9 +2452,10 @@ Entities:
       RotationQuat: [0, 0, 0, 1]
       Scale: [33, 409, 1]
     UIButtonComponent:
+      Visible: true
       LatchOnClick: false
       StyleSheet: 8708931816069793600
-      StyleOverrides: 0
+      StyleOverrides: 512
   - Entity: 13216893530266742497
     TagComponent:
       Tag: UnloadCargoButton
@@ -2530,9 +2491,10 @@ Entities:
           Type: Float
           Data: 0.100000001
     UIButtonComponent:
+      Visible: true
       LatchOnClick: false
       StyleSheet: 10274790416831569661
-      StyleOverrides: 0
+      StyleOverrides: 512
   - Entity: 9695718872219527677
     TagComponent:
       Tag: SelectionManager
@@ -2691,51 +2653,3 @@ Entities:
       Rotation: [0, 0, 0]
       RotationQuat: [-0, 0, -0, 1]
       Scale: [1, 1, 1]
-  - Entity: 7619911918154935944
-    TagComponent:
-      Tag: PanelTest
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [-663.5, -458.5, 4]
-      Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [500, 500, 1]
-    UIPanelComponent:
-      ConnectToParent: false
-      ConnectorColor: [0, 0, 0, 0]
-      ConnectorThickness: 1
-      ConnectorChildOffset: [0, 0]
-      ConnectorParentOffset: [0, 0]
-      ConnectorClampToScreenEdge: false
-      ConnectorScreenEdgeMargin: 24
-      ConnectorStyle: 0
-      ConnectorCornerRadius: 8
-      ConnectorOutlineWidth: 0
-      ConnectorOutlineColor: [0, 0, 0, 0]
-      StyleSheet: 7906087238920879412
-      StyleOverrides: 0
-  - Entity: 13684646636629028423
-    TagComponent:
-      Tag: ImageTest
-    RelationshipComponent:
-      ParentHandle: 0
-      Children:
-        []
-    TransformComponent:
-      Translation: [755, 653, 4]
-      Rotation: [0, 0, 0]
-      RotationQuat: [0, 0, 0, 1]
-      Scale: [681, 377, 1]
-    UIImageComponent:
-      TextureAssetHandle: 13381223142622168186
-      SourceRect: [0, 0, 1, 1]
-      FlipX: false
-      FlipY: false
-      Fit: 0
-      Tint: [1, 1, 1, 1]
-      Visible: true
-      StyleSheet: 14365522255860836687
-      StyleOverrides: 1573376
