@@ -342,9 +342,9 @@ namespace Toast
         #region UI Button Component
 
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern IntPtr UIButtonComponent_GetColor(ulong entityID, out Vector4 result);
+        internal static extern bool UIButtonComponent_GetToggled(ulong entityID);
         [MethodImpl(MethodImplOptions.InternalCall)]
-        internal static extern void UIButtonComponent_SetColor(ulong entityID, ref Vector4 inColor);
+        internal static extern void UIButtonComponent_SetToggled(ulong entityID, bool toggled);
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern bool UIButtonComponent_GetVisible(ulong entityID);
         [MethodImpl(MethodImplOptions.InternalCall)]
@@ -358,6 +358,17 @@ namespace Toast
         internal static extern string UITextComponent_GetText(ulong entityID);
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void UITextComponent_SetText(ulong entityID, string text);
+
+        #endregion
+
+        #region UI Image Component
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void UIImageComponent_GetSourceRect(ulong entityID, out Vector4 sourceRect);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void UIImageComponent_SetSourceRect(ulong entityID, ref Vector4 sourceRect);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void UIImageComponent_GetTextureSize(ulong entityID, out Vector2 size);
 
         #endregion
 

@@ -9,10 +9,12 @@
 
 namespace Toast {
 
-	// Forward declerations
+	// Forward declarations
 	enum class ConnectorStyle : uint8_t;
 	enum class TextAlignH : uint8_t;
 	enum class TextAlignV : uint8_t;
+
+	inline constexpr const char* UI_TEXTURE_DIRECTORY = "Textures/UI";
 
 	class Renderer2D : Renderer
 	{

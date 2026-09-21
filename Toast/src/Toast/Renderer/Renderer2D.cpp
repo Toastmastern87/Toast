@@ -236,7 +236,7 @@ namespace Toast {
 	void Renderer2D::LoadUITextures()
 	{
 		std::filesystem::path assetDir = AssetManager::GetAssetDirectory();
-		std::filesystem::path uiTextureDir = assetDir / "Textures" / "UI";
+		std::filesystem::path uiTextureDir = assetDir / UI_TEXTURE_DIRECTORY;
 
 		if (!std::filesystem::exists(uiTextureDir) || std::filesystem::is_empty(uiTextureDir))
 		{

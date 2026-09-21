@@ -3,6 +3,8 @@
 
 #include "Toast/Assets/AssetManager.h"
 
+#include "Toast/Renderer/Renderer2D.h"
+
 namespace Toast {
 
 	class StyleReader
@@ -275,8 +277,6 @@ namespace Toast {
 
 		return false;
 	}
-
-#define UI_TEXTURE_DIRECTORY "Texture/UI"
 	
 	static bool ResolveUITexture(const std::string& filename, AssetHandle& outHandle)
 	{
@@ -286,7 +286,7 @@ namespace Toast {
 
 		if (outHandle == AssetHandle(0))
 		{
-			TOAST_CORE_WARN("StyleSheet: '%s' not found in '%s'. Put the texture in that folder so it gets imported at startup.", filename.c_str(), UI_TEXTURE_DIRECTORY);
+			TOAST_CORE_WARN("StyleSheet: '%s' not found in '%s'. Put the texture in that folder so it gets imported at startup.", filename.c_str(), relativePath.string().c_str());
 			return false;
 		}
 

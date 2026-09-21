@@ -1,44 +1,44 @@
 # Toast Engine Asset Registry
 # handle|type|filepath
-1776683992415085741|Shader|Shaders\ToneMapping.hlsl|
-7706550061724850605|Material|Materials\Heatshield.tmtl|
-5222783482869039021|Texture2D|Textures\StarField16k.tif|sRGB=1
 341866119682474621|Shader|Shaders\HeightMapToCubeMap.hlsl|
 2502867941750724029|Texture2D|Textures\Mars_MOLA_8k_raw.tif|sRGB=0
 8975056036252789757|Texture2D|Textures\Starship_Heat_Shield_normal.png|sRGB=0
+1776683992415085741|Shader|Shaders\ToneMapping.hlsl|
+5222783482869039021|Texture2D|Textures\StarField16k.tif|sRGB=1
+7706550061724850605|Material|Materials\Heatshield.tmtl|
 7274978667343951183|Texture2D|Textures\MarsAlbedo.png|sRGB=0
 17463281943660964239|Texture2D|Textures\Rock_Cliff_roughness.tif|sRGB=0
 17756802592510560904|Texture2D|Textures\Starship_Heat_Shield_roughness.png|sRGB=0
-11447799839312842238|Texture2D|Textures\Starship_Heat_Shield_basecolor.png|sRGB=1
 6551670257254948990|Texture2D|Textures\Sand_basecolor.tif|sRGB=1
+11447799839312842238|Texture2D|Textures\Starship_Heat_Shield_basecolor.png|sRGB=1
 10378684347057509115|Texture2D|Textures\Stainless_Steel_Hull_basecolor.png|sRGB=1
-15255565320128171313|Shader|Shaders\BloomWideBlur.hlsl|
 11157927838621306737|Texture2D|Textures\StainlessSteelTest_normal.png|sRGB=0
-14218143209361644375|Texture2D|Textures\Rock_Cliff_normal.tif|sRGB=0
-7799747929118295767|Texture2D|Textures\Stainless_Steel_Hull_roughness.png|sRGB=0
+15255565320128171313|Shader|Shaders\BloomWideBlur.hlsl|
 7491719513954049815|Texture2D|Textures\Sand_ambientocclusion.tif|sRGB=0
+7799747929118295767|Texture2D|Textures\Stainless_Steel_Hull_roughness.png|sRGB=0
+14218143209361644375|Texture2D|Textures\Rock_Cliff_normal.tif|sRGB=0
 14291402269564755598|Texture2D|Textures\SmokeParticleTexture.png|sRGB=1
 12148118372154270050|Shader|Shaders\StarField.hlsl|
-10842310301822506940|Shader|Shaders\AlbedoMapToCube.hlsl|
-7505109320907132924|Texture2D|Textures\Sand_roughness.tif|sRGB=0
 17917160852115005052|Shader|Shaders\Atmosphere.hlsl|
-3557664620183791174|Shader|Shaders\Outline.hlsl|
+7505109320907132924|Texture2D|Textures\Sand_roughness.tif|sRGB=0
+10842310301822506940|Shader|Shaders\AlbedoMapToCube.hlsl|
 6127094384978684422|Texture2D|Textures\Gravel_normal.tif|sRGB=0
+3557664620183791174|Shader|Shaders\Outline.hlsl|
 16085979958172113343|Shader|Shaders\TransmittanceCS.hlsl|
 15728634057249731786|Shader|Shaders\ParticleFinalize.hlsl|
 65064595183873226|Shader|Shaders\HoverTint.hlsl|
-11443524182903148196|Shader|Shaders\GuidanceMarker.hlsl|
 2893740248355807652|Material|Materials\EngineCoating.tmtl|
 12981807038047081892|Shader|Shaders\GeometryPass.hlsl|
+11443524182903148196|Shader|Shaders\GuidanceMarker.hlsl|
 17250092519101036537|Shader|Shaders\APFarDynamic.hlsl|
 7483557531245785031|Texture2D|Textures\Gravel_basecolor.tif|sRGB=1
 14183408911462167836|Script|Scripts\StarshipLanding.cs|
 17376227674454415132|Texture2D|Textures\Gravel_roughness.tif|sRGB=0
-4369625943761558762|Shader|Shaders\LightningPass.hlsl|
 614263980951522346|Texture2D|Textures\Gravel_ambientOcclusion.tif|sRGB=0
-3129710856685191060|Shader|Shaders\BloomUpSample.hlsl|
+4369625943761558762|Shader|Shaders\LightningPass.hlsl|
 1901665953498542036|Texture2D|Textures\Sand_normal.tif|sRGB=0
 10909718994636214228|Texture2D|Textures\Gravel_height.tif|sRGB=0
+3129710856685191060|Shader|Shaders\BloomUpSample.hlsl|
 16971332722010952003|Texture2D|Textures\UI\02_CloseButton_Normal.png|sRGB=1,cx=23,cy=23,cw=126,ch=126
 9989732384820612931|Texture2D|Textures\Sand_height.tif|sRGB=0
 17675804788045622083|Texture2D|Textures\Rock_Cliff_ambientocclusion.tif|sRGB=0
@@ -46,14 +46,14 @@
 11328492128099863471|Texture2D|Textures\Rock_Cliff_height.tif|sRGB=0
 13381223142622168186|Texture2D|Textures\MoveToIcon.png|sRGB=1
 16086205673028206166|Shader|Shaders\ShadowPass.hlsl|
-14135778406731456670|Shader|Shaders\SSAOBlurPass.hlsl|
 5674426935893695454|Shader|Shaders\SSAOPass.hlsl|
+14135778406731456670|Shader|Shaders\SSAOBlurPass.hlsl|
 4793420471528504357|Shader|Shaders\Particles.hlsl|
-10954751560557060379|Shader|Shaders\AerialPerspectiveCS.hlsl|
-13908253296392741595|Shader|Shaders\HeightCubeToNormalCube.hlsl|
 6427185616484842331|Shader|Shaders\ObjectMask.hlsl|
-6216772434884315999|Shader|Shaders\SkyViewCS.hlsl|
+13908253296392741595|Shader|Shaders\HeightCubeToNormalCube.hlsl|
+10954751560557060379|Shader|Shaders\AerialPerspectiveCS.hlsl|
 14249270229944184863|Shader|Shaders\PlanetGeometryPass.hlsl|
+6216772434884315999|Shader|Shaders\SkyViewCS.hlsl|
 11277605604000193618|Shader|Shaders\PlanetIcosphereGeometryPass.hlsl|
 4527624835183777080|Shader|Shaders\MultiScatteringCS.hlsl|
 13104684313599794166|Shader|Shaders\GodRays.hlsl|
@@ -67,15 +67,15 @@
 13653909807134564088|Shader|Shaders\SPBRDF.hlsl|
 12006792707160046586|Shader|Shaders\Standard.hlsl|
 11663108200396272093|Shader|Shaders\Copy.hlsl|
+1604199258784991578|Texture2D|Textures\UI\18_SpeedButton_Pressed.png|sRGB=1,sl=8,st=8,sr=8,sb=8,cx=7,cy=7,cw=222,ch=91
 12364499799607337306|Material|Materials\Stone.tmtl|
-1604199258784991578|Texture2D|Textures\UI\18_SpeedButton_Pressed.png|sRGB=1
 7377203351078038993|Material|Materials\WhiteMetal.tmtl|
 5763718876031014953|Material|Materials\BlackMetal.tmtl|
 10939304927045935856|Material|Materials\Wheels.tmtl|
 11647090461311521163|Material|Materials\Stainless Steel.tmtl|
 1425564542544899623|Material|Materials\Stainless Steel Hull.tmtl|
-11828828926936490714|Material|Materials\White Steel.tmtl|
 15183623319140184794|Texture2D|Textures\UI\01_StarshipPopupPanel.png|sRGB=1,sl=129,st=114,sr=130,sb=102,cx=226,cy=20,cw=572,ch=969
+11828828926936490714|Material|Materials\White Steel.tmtl|
 2421967733741849262|Material|Materials\Stainless Steel Shiny.tmtl|
 253805843435517881|Material|Materials\HeatshieldSN3.tmtl|
 6204518153654210992|Material|Materials\StainlessSteelSN3.tmtl|
@@ -91,7 +91,6 @@
 17593228084679697780|Script|Scripts\CameraController.cs|
 11283913563491824149|Script|Scripts\AllStarshipsPopup.cs|
 7091776065297775666|Script|Scripts\CloseButtonAllStarships.cs|
-656474258116317958|Script|Scripts\GameSpeedButtons.cs|
 6900236357676364990|Script|Scripts\LoadCargo.cs|
 15397713549331558382|Script|Scripts\Money.cs|
 6730161605731363412|Script|Scripts\TimeText.cs|
@@ -102,8 +101,8 @@
 11684741636645183346|StyleSheet|Styles\PanelTest3.css|
 3781873726440409601|StyleSheet|Styles\ButtonTest.css|
 10525460525044717147|StyleSheet|Styles\ButtonTest2.css|
+6124964883766329184|Texture2D|Textures\UI\19_SpeedButton_Active.png|sRGB=1,sl=8,st=8,sr=8,sb=8,cx=7,cy=7,cw=222,ch=91
 10751659488577007456|Texture2D|Textures\MarsHeightMap.png|sRGB=1
-6124964883766329184|Texture2D|Textures\UI\19_SpeedButton_Active.png|sRGB=1
 14248503363920545450|Texture2D|Textures\UI\03_CloseButton_Hover.png|sRGB=1,cx=23,cy=23,cw=126,ch=126
 13729727823654615973|Texture2D|Textures\UI\04_CloseButton_Pressed.png|sRGB=1,cx=23,cy=23,cw=126,ch=126
 8507359393531678165|Texture2D|Textures\UI\ChatGPT Image Sep 15, 2026, 09_15_36 PM (1).png|sRGB=1
@@ -120,5 +119,6 @@
 17124504536725805349|Texture2D|Textures\UI\10_AddStarshipButton_Hover.png|sRGB=1
 12417610827862868006|Texture2D|Textures\UI\15_FollowStarshipClicked.png|sRGB=1
 17383264032130357581|Texture2D|Textures\UI\15_HUDPanel.png|sRGB=1,sl=53,st=43,sr=130,sb=51,cx=47,cy=433,cw=940,ch=189
-2899671144239845464|Texture2D|Textures\UI\16_SpeedButton_Normal.png|sRGB=1
-13917719979650638899|Texture2D|Textures\UI\17_SpeedButton_Hover.png|sRGB=1
+2899671144239845464|Texture2D|Textures\UI\16_SpeedButton_Normal.png|sRGB=1,sl=8,st=8,sr=8,sb=8,cx=7,cy=7,cw=222,ch=91
+13917719979650638899|Texture2D|Textures\UI\17_SpeedButton_Hover.png|sRGB=1,sl=8,st=8,sr=8,sb=8,cx=7,cy=7,cw=222,ch=91
+12594568433210692786|StyleSheet|Styles\TimeButtonStyle.css|

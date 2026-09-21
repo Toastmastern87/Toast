@@ -588,6 +588,7 @@ namespace Toast {
 				out << YAML::Key << "BorderColor" << YAML::Value << ubc.BorderColor;
 
 			out << YAML::Key << "LatchOnClick" << YAML::Value << ubc.LatchOnClick;
+			out << YAML::Key << "StartToggled" << YAML::Value << ubc.StartToggled;
 
 			const char* stateKeys[] = { "0", "1", "2", "3" };
 
@@ -618,6 +619,7 @@ namespace Toast {
 					out << YAML::Key << "TargetEntity" << YAML::Value << action.TargetEntity;
 					out << YAML::Key << "StringParam" << YAML::Value << action.StringParam;
 					out << YAML::Key << "BoolParam" << YAML::Value << action.BoolParam;
+					out << YAML::Key << "FloatParam" << YAML::Value << action.FloatParam;
 
 					out << YAML::EndMap;
 				}
@@ -1967,12 +1969,16 @@ namespace Toast {
 						ubc.Visible = uiButtonComponent["Visible"].as<bool>();
 					if (uiButtonComponent["LatchOnClick"])
 						ubc.LatchOnClick = uiButtonComponent["LatchOnClick"].as<bool>();
+					if (uiButtonComponent["StartToggled"])
+						ubc.StartToggled = uiButtonComponent["StartToggled"].as<bool>();
 					if (uiButtonComponent["TransitionSeconds"])
 						ubc.TransitionSeconds = uiButtonComponent["TransitionSeconds"].as<float>();
 					if (uiButtonComponent["BorderWidth"])
 						ubc.BorderWidth = uiButtonComponent["BorderWidth"].as<float>();
 					if (uiButtonComponent["BorderColor"])
 						ubc.BorderColor = uiButtonComponent["BorderColor"].as<DirectX::XMFLOAT4>();
+
+					ubc.Toggled = ubc.StartToggled;
 
 					const char* stateKeys[] = { "0", "1", "2", "3" };
 
@@ -2004,6 +2010,7 @@ namespace Toast {
 							action.TargetEntity = actionNode["TargetEntity"].as<UUID>(0);
 							action.StringParam = actionNode["StringParam"].as<std::string>("");
 							action.BoolParam = actionNode["BoolParam"].as<bool>(false);
+							action.FloatParam = actionNode["FloatParam"].as<float>(0.0f);
 
 							ubc.Actions.push_back(std::move(action));
 						}

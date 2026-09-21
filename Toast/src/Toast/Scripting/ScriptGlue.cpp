@@ -1080,23 +1080,23 @@ namespace Toast {
 
 #pragma region UI Button Component
 
-	//void UIButtonComponent_GetColor(uint64_t entityID, DirectX::XMFLOAT4* outColor)
-	//{
-	//	Scene* scene = ScriptEngine::GetSceneContext();
-	//	Entity entity = scene->FindEntityByUUID(entityID);
+	bool UIButtonComponent_GetToggled(uint64_t entityID) 
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& component = entity.GetComponent<UIButtonComponent>();
 
-	//	auto& component = entity.GetComponent<UIButtonComponent>();
-	//	*outColor = component.Color;
-	//}
+		return component.Toggled;
+	}
 
-	//void UIButtonComponent_SetColor(uint64_t entityID, DirectX::XMFLOAT4* inColor)
-	//{
-	//	Scene* scene = ScriptEngine::GetSceneContext();
-	//	Entity entity = scene->FindEntityByUUID(entityID);
+	void UIButtonComponent_SetToggled(uint64_t entityID, bool toggled)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& component = entity.GetComponent<UIButtonComponent>();
 
-	//	auto& component = entity.GetComponent<UIButtonComponent>();
-	//	component.Color = *inColor;
-	//}
+		component.Toggled = toggled;
+	}
 
 	bool UIButtonComponent_GetVisible(uint64_t entityID)
 	{
@@ -1141,6 +1141,52 @@ namespace Toast {
 
 		std::string& textStr = Utils::ConvertMonoStringToCppString(inText);
 		component.Text = textStr;
+	}
+
+#pragma endregion
+
+#pragma region UI Image Component
+
+	void UIImageComponent_GetSourceRect(uint64_t entityID, DirectX::XMFLOAT4* outSourceRect)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& component = entity.GetComponent<UIImageComponent>();
+
+		*outSourceRect = component.SourceRect;
+	}
+
+	void UIImageComponent_SetSourceRect(uint64_t entityID, DirectX::XMFLOAT4* sourceRect)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& component = entity.GetComponent<UIImageComponent>();
+
+		if (sourceRect->z <= 0.0f || sourceRect->w <= 0.0f)
+		{
+			TOAST_CORE_WARN("UIImageComponent_SetSourceRect: zero extent (%f, %f, %f, %f) ignored", sourceRect->x, sourceRect->y, sourceRect->z, sourceRect->w);
+			return;
+		}
+
+		component.SourceRect = *sourceRect;
+	}
+
+	void UIImageComponent_GetTextureSize(uint64_t entityID, DirectX::XMFLOAT2* outSize)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& component = entity.GetComponent<UIImageComponent>();
+
+		*outSize = { 0.0f, 0.0f };
+
+		auto texture = AssetManager::GetAsset<Texture2D>(component.TextureHandle);
+		if (!texture)
+			return;
+
+		*outSize = { (float)texture->GetWidth(), (float)texture->GetHeight() };
 	}
 
 #pragma endregion
@@ -1459,6 +1505,7 @@ namespace Toast {
 		RegisterComponent<UIPanelComponent>();
 		RegisterComponent<UIButtonComponent>();
 		RegisterComponent<UITextComponent>();
+		RegisterComponent<UIImageComponent>();
 		RegisterComponent<RigidBodyComponent>();
 		RegisterComponent<SphereColliderComponent>();
 		RegisterComponent<BoxColliderComponent>();
@@ -1576,13 +1623,17 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_GetVisible);
 		TOAST_ADD_INTERNAL_CALL(UIPanelComponent_SetVisible);
 
-		//TOAST_ADD_INTERNAL_CALL(UIButtonComponent_GetColor);
-		//TOAST_ADD_INTERNAL_CALL(UIButtonComponent_SetColor);
+		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_GetToggled);
+		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_SetToggled);
 		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_GetVisible);
 		TOAST_ADD_INTERNAL_CALL(UIButtonComponent_SetVisible);
 
 		TOAST_ADD_INTERNAL_CALL(UITextComponent_GetText);
 		TOAST_ADD_INTERNAL_CALL(UITextComponent_SetText);
+
+		TOAST_ADD_INTERNAL_CALL(UIImageComponent_GetSourceRect);
+		TOAST_ADD_INTERNAL_CALL(UIImageComponent_SetSourceRect);
+		TOAST_ADD_INTERNAL_CALL(UIImageComponent_GetTextureSize);
 		
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetAltitude);
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetLinearVelocity);

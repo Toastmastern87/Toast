@@ -322,7 +322,7 @@ PixelOutputType main(PixelInputType input) : SV_TARGET
         else
             fill = input.color;
         
-        float borderWidth = input.params.x;
+        float borderWidth = (input.ab.w > 0.5f) ? 0.0f : input.params.x;
         
         if (borderWidth > 0.0f)
         {

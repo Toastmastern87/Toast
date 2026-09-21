@@ -1939,6 +1939,13 @@ namespace Toast {
 
 				ImGui::TableNextRow();
 				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("Start Toggled");
+				ImGui::TableSetColumnIndex(1);
+				if (ImGui::Checkbox("##starttoggled", &component.StartToggled))
+					component.Toggled = component.StartToggled;
+
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
 				ImGui::TextWrapped("Transition");
 				ImGui::TableSetColumnIndex(1);
 				ImGui::PushItemWidth(-STYLE_MARKER_WIDTH);
@@ -2044,6 +2051,8 @@ namespace Toast {
 						UIButtonActionType::SetUIComponentVisible,
 						UIButtonActionType::PlayAnimation,
 						UIButtonActionType::StopAnimation,
+						UIButtonActionType::SetUIButtonToggled,
+						UIButtonActionType::SetTimeScale,
 					};
 
 					if (ImGui::BeginCombo("Type", UIButtonActionTypeToString(sEditBuffer.Type)))
@@ -2062,7 +2071,8 @@ namespace Toast {
 						ImGui::EndCombo();
 					}
 
-					ImGuiHelpers::DrawEntityPicker("Target", sEditBuffer.TargetEntity, mScene, [&](Entity e) { return EntityIsValidTargetFor(sEditBuffer.Type, e);  });
+					if(!(sEditBuffer.Type == UIButtonActionType::SetTimeScale))
+						ImGuiHelpers::DrawEntityPicker("Target", sEditBuffer.TargetEntity, mScene, [&](Entity e) { return EntityIsValidTargetFor(sEditBuffer.Type, e);  });
 
 					switch (sEditBuffer.Type)
 					{
@@ -2091,6 +2101,22 @@ namespace Toast {
 								sEditBuffer.StringParam = stopBuffer;
 
 							ImGui::TextDisabled("Leave empty to stop all");
+							break;
+						}
+						case UIButtonActionType::SetUIButtonToggled:
+						{
+							ImGui::Checkbox("Toggled", &sEditBuffer.BoolParam);
+							break;
+						}
+						case UIButtonActionType::SetTimeScale:
+						{
+							ImGui::TextDisabled("Affects the whole scene");
+
+							ImGui::DragFloat("Time Scale", &sEditBuffer.FloatParam, 0.05f, 0.0f, 10.0f, "%.2fx");
+
+							if (ImGui::IsItemHovered())
+								ImGui::SetTooltip("1.0 = normal speed, 0.0 = paused");
+
 							break;
 						}
 						default:

@@ -17,6 +17,10 @@ namespace Toast {
 			return "PlayAnimation";
 		case UIButtonActionType::StopAnimation:
 			return "StopAnimation";
+		case UIButtonActionType::SetUIButtonToggled:
+			return "SetUIButtonToggled";
+		case UIButtonActionType::SetTimeScale:
+			return "SetTimeScale";
 		}
 
 		return "None";
@@ -30,6 +34,10 @@ namespace Toast {
 			return UIButtonActionType::PlayAnimation;
 		if (str == "StopAnimation")
 			return UIButtonActionType::StopAnimation;
+		if (str == "SetUIButtonToggled")
+			return UIButtonActionType::SetUIButtonToggled;
+		if (str == "SetTimeScale")
+			return UIButtonActionType::SetTimeScale;
 
 		return UIButtonActionType::None;
 	}
@@ -43,6 +51,8 @@ namespace Toast {
 		case UIButtonActionType::PlayAnimation:
 		case UIButtonActionType::StopAnimation:
 			return entity.HasComponent<MeshComponent>();
+		case UIButtonActionType::SetUIButtonToggled:
+			return entity.HasComponent<UIButtonComponent>();
 		default:
 			return true;
 		}
@@ -60,6 +70,21 @@ namespace Toast {
 			entity.GetComponent<UIImageComponent>().Visible = visible;
 	}
 
+	Entity UIButtonAction::ResolveTarget(Scene* scene) const
+	{
+		if (TargetEntity == 0)
+		{
+			TOAST_CORE_WARN("UIButtonAction '%s': action type '%s' needs a target entity", Name.c_str(), UIButtonActionTypeToString(Type));
+			return {};
+		}
+
+		Entity target = scene->FindEntityByUUID(TargetEntity);
+		if (!target)
+			TOAST_CORE_WARN("UIButtonAction '%s': target entity '%llu' not found", Name.c_str(), TargetEntity);
+
+		return target;
+	}
+
 	void UIButtonAction::Execute(Scene* scene) const
 	{
 		if (!scene)
@@ -68,22 +93,23 @@ namespace Toast {
 		if (Type == UIButtonActionType::None)
 			return;
 
-		if (TargetEntity == 0)
-			return;
-
-		Entity target = scene->FindEntityByUUID(TargetEntity);
-		if (!target)
-			return;
-
 		switch (Type)
 		{
 			case UIButtonActionType::SetUIComponentVisible:
 			{
+				Entity target = ResolveTarget(scene);
+				if (!target)
+					break;
+
 				SetUIVisible(target, BoolParam);
 				break;
 			}
 			case UIButtonActionType::PlayAnimation:
 			{
+				Entity target = ResolveTarget(scene);
+				if (!target)
+					break;
+
 				if (StringParam.empty())
 					break;
 
@@ -111,6 +137,10 @@ namespace Toast {
 			}
 			case UIButtonActionType::StopAnimation:
 			{
+				Entity target = ResolveTarget(scene);
+				if (!target)
+					break;
+
 				if (!target.HasComponent<MeshComponent>())
 					break;
 
@@ -134,6 +164,22 @@ namespace Toast {
 					it->second.TimeElapsed = 0.0f;
 				}
 
+				break;
+			}
+			case UIButtonActionType::SetUIButtonToggled:
+			{
+				Entity target = ResolveTarget(scene);
+				if (!target)
+					break;
+
+				if (target.HasComponent<UIButtonComponent>())
+					target.GetComponent<UIButtonComponent>().Toggled = BoolParam;
+
+				break;
+			}
+			case UIButtonActionType::SetTimeScale:
+			{
+				scene->SetTimeScale(FloatParam);
 				break;
 			}
 			default:

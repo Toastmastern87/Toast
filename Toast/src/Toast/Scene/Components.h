@@ -397,6 +397,7 @@ namespace Toast {
 		bool UseColor = true;
 		bool LatchOnClick = false;
 		bool Toggled = false;
+		bool StartToggled = false;
 		float TransitionSeconds = 0.0f;
 
 		UIStateStyle BlendFrom;

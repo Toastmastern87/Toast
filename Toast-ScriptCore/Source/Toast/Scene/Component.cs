@@ -350,18 +350,10 @@ namespace Toast
 
     public class UIButtonComponent : Component
     {
-        public Vector4 Color
+        public bool Toggled
         {
-            get
-            {
-                InternalCalls.UIButtonComponent_GetColor(Entity.ID, out Vector4 result);
-                return result;
-            }
-
-            set
-            {
-                InternalCalls.UIButtonComponent_SetColor(Entity.ID, ref value);
-            }
+            get => InternalCalls.UIButtonComponent_GetToggled(Entity.ID);
+            set => InternalCalls.UIButtonComponent_SetToggled(Entity.ID, value);
         }
 
         public bool Visible
@@ -385,6 +377,32 @@ namespace Toast
             get => InternalCalls.UITextComponent_GetText(Entity.ID);
             set => InternalCalls.UITextComponent_SetText(Entity.ID, value);
         }
+    }
+
+    public class UIImageComponent : Component
+    {
+        public Vector4 SourceRect
+        {
+            get
+            {
+                InternalCalls.UIImageComponent_GetSourceRect(Entity.ID, out Vector4 rect);
+                return rect;
+            }
+            set
+            {
+                InternalCalls.UIImageComponent_SetSourceRect(Entity.ID, ref value);
+            }
+        }
+
+        public Vector2 TextureSize
+        {
+            get
+            {
+                InternalCalls.UIImageComponent_GetTextureSize(Entity.ID, out Vector2 size);
+                return size;
+            }
+        }
+
     }
 
     public class RigidBodyComponent : Component

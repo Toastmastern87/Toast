@@ -1,0 +1,11 @@
+background: #ffffffff;
+background-hover: #ffffffff;
+background-pressed: #ffffffff;
+background-active: #ffffffff;
+corner-radius: 0;
+visible: 1;
+use-color: 0;
+background-image: 16_SpeedButton_Normal.png;
+background-image-hover: 17_SpeedButton_Hover.png;
+background-image-pressed: 18_SpeedButton_Pressed.png;
+background-image-active: 19_SpeedButton_Active.png;

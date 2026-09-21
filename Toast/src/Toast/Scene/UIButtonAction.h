@@ -15,6 +15,8 @@ namespace Toast {
 		SetUIComponentVisible = 1,
 		PlayAnimation = 2,
 		StopAnimation = 3,
+		SetUIButtonToggled = 4,
+		SetTimeScale = 5,
 	};
 
 	struct UIButtonAction 
@@ -24,7 +26,9 @@ namespace Toast {
 		UUID TargetEntity = 0;
 		std::string StringParam;
 		bool BoolParam = false; // SetUIComponentVisible: visible state / PlayAnimation: play in reverse
+		float FloatParam = 0.0f;
 
+		Entity ResolveTarget(Scene* scene) const;
 		void Execute(Scene* scene) const;
 	};
 

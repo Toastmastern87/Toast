@@ -333,10 +333,20 @@ namespace Toast {
 
 		for (size_t i = 0; i < (size_t)UIState::Count; i++)
 		{
-			const auto& src = block->BackgroundState[i].Set ? block->BackgroundState[i] : block->BackgroundState[0];
+			const UIState state = (UIState)i;
 
-			if (src.Set && !(overrides & UIStyleProp_Background))
-				component.States[i].Color = src.Value;
+			const auto& colorSrc = block->BackgroundState[i].Set ? block->BackgroundState[i] : block->BackgroundState[(size_t)UIState::Normal];
+
+			if (colorSrc.Set && !(overrides & StatePropBit(UIStyleProp_Background, state)))
+				component.States[i].Color = colorSrc.Value;
+
+			const auto& imageSrc = block->BackgroundImageState[i].Set ? block->BackgroundImageState[i] : block->BackgroundImageState[(size_t)UIState::Normal];
+
+			if (imageSrc.Set && !(overrides & StatePropBit(UIStyleProp_BackgroundImage, state)))
+			{
+				component.States[i].TextureHandle = imageSrc.Value;
+				component.States[i].TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(component.States[i].TextureHandle);
+			}
 		}
 
 		if (block->CornerRadius.Set && !(overrides & UIStyleProp_CornerRadius))
