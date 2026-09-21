@@ -144,6 +144,9 @@ namespace Toast {
 
 	bool ScriptEditorPanel::Save()
 	{
+		if (!IsDirty())
+			return true;
+
 		if (mCurrentFile.empty())
 			return false;
 

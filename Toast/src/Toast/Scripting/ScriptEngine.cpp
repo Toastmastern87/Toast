@@ -228,6 +228,8 @@ namespace Toast {
 
 	bool ScriptEngine::LoadGameAssembly(const std::filesystem::path& projectRoot, const std::string& projectName)
 	{
+		TOAST_CORE_INFO("[ScriptEngine] LoadGameAssembly");
+
 		if (sData->AppDomain)
 		{
 			mono_domain_set(mono_get_root_domain(), false);
@@ -236,6 +238,7 @@ namespace Toast {
 		}
 
 		sData->AppAssembly = nullptr;
+		 
 		sData->AppAssemblyImage = nullptr;
 		sData->AppAssemblyFileWatcher = nullptr;
 
@@ -279,6 +282,8 @@ namespace Toast {
 
 	void ScriptEngine::ReloadAssembly()
 	{
+		TOAST_CORE_INFO("[ScriptEngine] ReloadAssembly from '%s'", sData->AppAssemblyFilepath.string().c_str());
+
 		mono_domain_set(mono_get_root_domain(), false);
 
 		mono_domain_unload(sData->AppDomain);
@@ -566,7 +571,7 @@ namespace {NAMESPACE}
         {
         }
 
-        bool OnEvent()
+        bool OnEvent(Event e)
         {
 			return false;
         }
@@ -730,8 +735,16 @@ namespace {NAMESPACE}
 		for (const auto& [className, relPath] : sData->ClassSourcePaths)
 		{
 			std::filesystem::path full = assetDir / relPath;
+			/*if (std::filesystem::exists(full) && std::filesystem::last_write_time(full) > dllTime)
+				return true;*/
 			if (std::filesystem::exists(full) && std::filesystem::last_write_time(full) > dllTime)
+			{
+				TOAST_CORE_WARN("[ScriptEngine] Stale: '%s' (%lld) newer than DLL (%lld)",
+					full.string().c_str(),
+					(long long)std::filesystem::last_write_time(full).time_since_epoch().count(),
+					(long long)dllTime.time_since_epoch().count());
 				return true;
+			}
 		}
 
 		return false;

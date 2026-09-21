@@ -312,6 +312,7 @@ namespace Toast {
 		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
 		bool OnMouseButtonReleased(MouseButtonReleasedEvent& e);
 		bool OnMouseMoved(MouseMovedEvent& e);
+		bool OnMouseScrolled(MouseScrolledEvent& e);
 
 		void OnUpdateRuntime(Timestep ts);
 		void OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera);
@@ -400,6 +401,8 @@ namespace Toast {
 
 		// Scripting helpers
 		void ResolveScriptClassNames(const std::string& projectNamespace);
+
+		DirectX::XMFLOAT2 GetViewportMousePosition() { return { mMouseX - mViewportBounds[0].x, mMouseY - mViewportBounds[0].y }; }
 
 		static Ref<Scene> CreateEmpty();
 	private:

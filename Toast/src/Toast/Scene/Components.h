@@ -443,6 +443,10 @@ namespace Toast {
 		bool FlipX = false;
 		bool FlipY = false;
 
+		// Runtime only!
+		DirectX::XMFLOAT2 LastScreenPos = { 0.0f, 0.0f };
+		DirectX::XMFLOAT2 LastScreenSize = { 0.0f, 0.0f };
+
 		UIImageComponent() = default;
 		UIImageComponent(const UIImageComponent&) = default;
 	};

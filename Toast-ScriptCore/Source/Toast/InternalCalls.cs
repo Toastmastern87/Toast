@@ -369,6 +369,8 @@ namespace Toast
         internal static extern void UIImageComponent_SetSourceRect(ulong entityID, ref Vector4 sourceRect);
         [MethodImpl(MethodImplOptions.InternalCall)]
         internal static extern void UIImageComponent_GetTextureSize(ulong entityID, out Vector2 size);
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool UIImageComponent_GetLocalCursorPos(ulong entityID, out Vector2 localPos);
 
         #endregion
 

@@ -403,6 +403,11 @@ namespace Toast
             }
         }
 
+        public bool GetLocalCursorPos(out Vector2 localPos)
+        {
+            return InternalCalls.UIImageComponent_GetLocalCursorPos(Entity.ID, out localPos);
+        }
+
     }
 
     public class RigidBodyComponent : Component

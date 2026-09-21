@@ -58,4 +58,14 @@ namespace Toast {
 		return se;
 	}
 
+	inline ScriptEvent MakeScriptEvent(const MouseScrolledEvent& e)
+	{
+		ScriptEvent se;
+		se.Type = EventType::MouseScrolled;
+
+		se.ScrollDelta = e.GetDelta();
+
+		return se;
+	}
+
 }

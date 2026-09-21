@@ -1151,7 +1151,6 @@ namespace Toast {
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		Entity entity = scene->FindEntityByUUID(entityID);
-
 		auto& component = entity.GetComponent<UIImageComponent>();
 
 		*outSourceRect = component.SourceRect;
@@ -1161,7 +1160,6 @@ namespace Toast {
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		Entity entity = scene->FindEntityByUUID(entityID);
-
 		auto& component = entity.GetComponent<UIImageComponent>();
 
 		if (sourceRect->z <= 0.0f || sourceRect->w <= 0.0f)
@@ -1177,7 +1175,6 @@ namespace Toast {
 	{
 		Scene* scene = ScriptEngine::GetSceneContext();
 		Entity entity = scene->FindEntityByUUID(entityID);
-
 		auto& component = entity.GetComponent<UIImageComponent>();
 
 		*outSize = { 0.0f, 0.0f };
@@ -1187,6 +1184,25 @@ namespace Toast {
 			return;
 
 		*outSize = { (float)texture->GetWidth(), (float)texture->GetHeight() };
+	}
+
+	bool UIImageComponent_GetLocalCursorPos(uint64_t entityID, DirectX::XMFLOAT2* outPos)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+		auto& component = entity.GetComponent<UIImageComponent>();
+
+		*outPos = { 0.0f, 0.0f };
+
+		if (component.LastScreenSize.x <= 0.0f || component.LastScreenSize.y <= 0.0f)
+			return false;
+
+		const DirectX::XMFLOAT2 mouse = scene->GetViewportMousePosition();
+
+		outPos->x = (mouse.x - component.LastScreenPos.x) / component.LastScreenSize.x;
+		outPos->y = (mouse.y - component.LastScreenPos.y) / component.LastScreenSize.y;
+
+		return outPos->x >= 0.0f && outPos->x <= 1.0f && outPos->y >= 0.0f && outPos->y <= 1.0f;
 	}
 
 #pragma endregion
@@ -1634,6 +1650,7 @@ namespace Toast {
 		TOAST_ADD_INTERNAL_CALL(UIImageComponent_GetSourceRect);
 		TOAST_ADD_INTERNAL_CALL(UIImageComponent_SetSourceRect);
 		TOAST_ADD_INTERNAL_CALL(UIImageComponent_GetTextureSize);
+		TOAST_ADD_INTERNAL_CALL(UIImageComponent_GetLocalCursorPos);
 		
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetAltitude);
 		TOAST_ADD_INTERNAL_CALL(RigidBodyComponent_GetLinearVelocity);

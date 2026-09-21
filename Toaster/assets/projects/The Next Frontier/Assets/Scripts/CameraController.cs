@@ -156,8 +156,17 @@ namespace TheNextFrontier
             mCursorPos = newCursorPos;
 
             ////////// CAMERA ZOOMING ////////////////
+			Entity hoveredEntity = Scene.GetHoveredEntity();
+			
+            bool blockZoom = false;
 
-            if (!mIsFollowing)
+            if (hoveredEntity != null)
+            {
+                if (hoveredEntity.HasComponent<TagComponent>())
+                    blockZoom = hoveredEntity.GetComponent<TagComponent>().Tag == "MapTexture";
+            }
+
+            if (!mIsFollowing && !blockZoom)
             {
                 float scrollDelta = Input.GetMouseWheelDelta();
 

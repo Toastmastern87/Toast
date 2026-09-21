@@ -161,6 +161,7 @@ namespace Toast {
 		{
 			dispatcher.Dispatch<MouseButtonPressedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseButtonPressed));
 			dispatcher.Dispatch<MouseButtonReleasedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseButtonReleased));
+			dispatcher.Dispatch<MouseScrolledEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseScrolled));
 			dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(Scene::OnKeyPressed));
 			dispatcher.Dispatch<KeyReleasedEvent>(TOAST_BIND_EVENT_FN(Scene::OnKeyReleased));
 		}
@@ -275,6 +276,21 @@ namespace Toast {
 		mMouseY = e.GetY();
 
 		return false;
+	}
+
+	bool Scene::OnMouseScrolled(MouseScrolledEvent& e)
+	{
+		bool handled = false;
+
+		if (mHoveredEntity == entt::null)
+			return handled;
+
+		Entity entity = { mHoveredEntity, this };
+
+		if (entity.HasComponent<ScriptComponent>() && ScriptEngine::IsGameDLLLoaded())
+			handled |= ScriptEngine::OnEventEntity(entity, MakeScriptEvent(e));
+
+		return handled;
 	}
 
 	void Scene::OnUpdateRuntime(Timestep ts)
@@ -1208,6 +1224,9 @@ namespace Toast {
 
 					if (mSettings.ShowUIBounds)
 						Renderer2D::SubmitUIBounds(uiPos, { tc.Scale.x, tc.Scale.y }, { 0.0f, 1.0f, 0.4f, 0.6f });
+
+					uiic.LastScreenPos = { uiPos.x, uiPos.y };
+					uiic.LastScreenSize = { tc.Scale.x, tc.Scale.y };
 
 					Renderer2D::SubmitImage(uiPos, { tc.Scale.x, tc.Scale.y }, texture, uiic.SourceRect, uiic.Tint, uiic.CornerRadius, uiic.Fit, uiic.FlipX, uiic.FlipY, (int)entity);
 				}
@@ -2607,13 +2626,12 @@ namespace Toast {
 
 		Ref<RenderTarget>& pickingRT = Renderer::GetGPassPickingRT();
 
-		float viewportX = mViewportBounds[0].x;
-		float viewportY = mViewportBounds[0].y;
 		float viewportWidth = mViewportBounds[1].x - mViewportBounds[0].x;
 		float viewportHeight = mViewportBounds[1].y - mViewportBounds[0].y;
 
-		float adjustedX = mMouseX - viewportX;
-		float adjustedY = mMouseY - viewportY;
+		const DirectX::XMFLOAT2 mouse = GetViewportMousePosition();
+		float adjustedX = mouse.x;
+		float adjustedY = mouse.y;
 
 		// Outside viewport — clear hover and skip
 		if (adjustedX < 0 || adjustedY < 0 ||
