@@ -5,6 +5,8 @@
 #include "Toast/Scene/Scene.h"
 #include "Toast/Scene/Entity.h"
 
+#include "Toast/Scripting/ScriptEvent.h"
+
 extern "C" {
 	typedef struct _MonoImage MonoImage;
 	typedef struct _MonoClass MonoClass;
@@ -97,7 +99,7 @@ namespace Toast {
 
 		void InvokeOnCreate();
 		void InvokeOnUpdate(float ts);
-		void InvokeOnEvent();
+		bool InvokeOnEvent(const ScriptEvent& scriptEvent);
 
 		Ref<ScriptClass> GetScriptClass() { return mScriptClass; }
 
@@ -161,7 +163,7 @@ namespace Toast {
 		static void OnCreateEntity(Entity entity);
 		static void OnCreateEntityWithClass(Entity entity, const std::string& className);
 		static void OnUpdateEntity(Entity entity, Timestep ts);
-		static void OnEventEntity(Entity entity);
+		static bool OnEventEntity(Entity entity, const ScriptEvent& scriptEvent);
 
 		static std::filesystem::path GetGameAssemblyPath(const std::filesystem::path& projectRoot, const std::string& projectNamespace);
 

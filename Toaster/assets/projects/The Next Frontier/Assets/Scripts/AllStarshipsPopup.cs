@@ -18,9 +18,11 @@ namespace TheNextFrontier
             mText = FindEntityByName("AllStarshipText").GetComponent<UITextComponent>(); 
         }
 
-        void OnEvent()
+        bool OnEvent(Event e)
         {         
             mPanel.Visible = true;
+
+            return false;
         }
 
         void OnUpdate(float ts)

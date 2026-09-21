@@ -22,8 +22,9 @@ namespace TheNextFrontier
             mText.Text = "00:00:00";
         }
         
-        void OnEvent()
+        bool OnEvent(Event e)
         {
+            return false;
         }
 
         void OnUpdate(float ts)

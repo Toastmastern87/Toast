@@ -49,14 +49,18 @@ namespace TheNextFrontier
             mCargoTwoMC = mCargoTwo.GetComponent<MoveableComponent>();
         }
 
-        void OnEvent()
+        bool OnEvent(Event e)
         {
             if (mLandingScriptResolved)
             {
                 mMesh.PlayAnimation("UnloadCargo");
                 mStarshipLandingInstance.SetCargoState(CargoState.UnloadingCargo);
                 mUnloadingSequence = UnloadingStep.AnimationPlaying;
+
+                return true;
             }
+
+            return false;
         }
 
         void OnUpdate(float ts)

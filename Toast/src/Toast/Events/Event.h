@@ -11,7 +11,7 @@ namespace Toast
 	// In the future this will be changed into a buffer system and handled during the event stage of the update 
 	// stage
 
-	enum class EventType 
+	enum class EventType : uint32_t
 	{
 		None = 0,
 		WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMoved,

@@ -3,6 +3,9 @@
 #include "Toast/Core/UUID.h"
 #include "Toast/Core/Timestep.h"
 
+#include "Toast/Events/KeyEvent.h"
+#include "Toast/Events/MouseEvent.h"
+
 #include "Toast/Renderer/RendererConstants.h"
 #include "Toast/Renderer/PlanetSystem.h"
 
@@ -304,6 +307,8 @@ namespace Toast {
 		void SetPaused(bool paused) { mIsPaused = paused; }
 
 		void OnEvent(Event& e);
+		bool OnKeyPressed(KeyPressedEvent& e);
+		bool OnKeyReleased(KeyReleasedEvent& e);
 		bool OnMouseButtonPressed(MouseButtonPressedEvent& e);
 		bool OnMouseButtonReleased(MouseButtonReleasedEvent& e);
 		bool OnMouseMoved(MouseMovedEvent& e);

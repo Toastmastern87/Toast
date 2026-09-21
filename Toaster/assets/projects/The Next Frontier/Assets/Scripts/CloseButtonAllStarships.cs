@@ -16,9 +16,11 @@ namespace TheNextFrontier
             mPanel = FindEntityByName("AllStarshipsPopup");
         }
 
-        void OnEvent()
+        bool OnEvent(Event e)
         {
             mPanel.GetComponent<UIPanelComponent>().Visible = false;
+
+            return false;
         }
 
         void OnUpdate(float ts)

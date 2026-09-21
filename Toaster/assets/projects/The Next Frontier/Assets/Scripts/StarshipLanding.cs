@@ -183,10 +183,15 @@ namespace TheNextFrontier
             mHeaderVent2 = FindChildEntityByName(this.Name, "HeaderVent2").GetComponent<ParticlesComponent>();
         }
 
-        void OnEvent()
+        bool OnEvent(Event e)
         {
-            if (Input.IsMouseButtonPressed(MouseCode.ButtonLeft))
-                mPanel.Visible = true;
+            if (e.IsMouseButtonPressed(MouseCode.ButtonLeft))
+            {           	
+            	mPanel.Visible = true;
+            	return false;
+            }
+                
+        	return false;
         }
 
         void OnUpdate(float ts)

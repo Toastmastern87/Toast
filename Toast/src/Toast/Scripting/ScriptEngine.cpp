@@ -356,16 +356,16 @@ namespace Toast {
 			TOAST_CORE_ERROR("Could not find ScriptInstance for entity instance %d", entityUUID);
 	}
 
-	void ScriptEngine::OnEventEntity(Entity entity)
+	bool ScriptEngine::OnEventEntity(Entity entity, const ScriptEvent& scriptEvent)
 	{
 		if (!sData->GameDLLLoaded) 
-			return;
+			return false;
 
 		UUID entityUUID = entity.GetUUID();
 		TOAST_CORE_ASSERT(sData->EntityInstances.find(entity.GetUUID()) != sData->EntityInstances.end(), "Entity Instance does not exist!");
 
 		Ref<ScriptInstance> instance = sData->EntityInstances[entityUUID];
-		instance->InvokeOnEvent();
+		instance->InvokeOnEvent(scriptEvent);
 	}
 
 	std::filesystem::path ScriptEngine::GetGameAssemblyPath(const std::filesystem::path& projectRoot, const std::string& projectNamespace)
@@ -566,8 +566,9 @@ namespace {NAMESPACE}
         {
         }
 
-        void OnEvent()
+        bool OnEvent()
         {
+			return false;
         }
 
         void OnUpdate(float ts)
@@ -767,7 +768,7 @@ namespace {NAMESPACE}
 		mConstructor = sData->EntityClass.GetMethod(".ctor", 1);
 		mOnCreateMethod = scriptClass->GetMethod("OnCreate", 0);
 		mOnUpdateMethod = scriptClass->GetMethod("OnUpdate", 1);
-		mOnEventMethod = scriptClass->GetMethod("OnEvent", 0);
+		mOnEventMethod = scriptClass->GetMethod("OnEvent", 1);
 
 		// Call Entity Constructor
 		{
@@ -792,10 +793,18 @@ namespace {NAMESPACE}
 		}
 	}
 
-	void ScriptInstance::InvokeOnEvent()
+	bool ScriptInstance::InvokeOnEvent(const ScriptEvent& scriptEvent)
 	{
-		if(mOnEventMethod)
-			mScriptClass->InvokeMethod(mInstance, mOnEventMethod);
+		if (!mOnEventMethod)
+			return false;
+
+		void* param = (void*)&scriptEvent;
+		MonoObject* result = mScriptClass->InvokeMethod(mInstance, mOnEventMethod, &param);
+
+		if (!result)
+			return false;
+
+		return *(bool*)mono_object_unbox(result);
 	}
 
 	MonoObject* ScriptInstance::GetManagedObject()

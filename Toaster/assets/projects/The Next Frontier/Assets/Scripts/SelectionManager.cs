@@ -13,7 +13,7 @@ namespace TheNextFrontier
         {
         }
 
-        void OnEvent()
+        bool OnEvent(Event e)
         {
             if (Input.IsMouseButtonPressed(MouseCode.ButtonLeft))
             {
@@ -22,6 +22,8 @@ namespace TheNextFrontier
                     hovered.SelectExclusive();
                 else
                     Selection.Clear();
+
+                return true;    
             }
 
             if (Input.IsMouseButtonPressed(MouseCode.ButtonRight))
@@ -29,10 +31,14 @@ namespace TheNextFrontier
                 Vector3 worldPos;
                 if (Scene.GetWorldPositionUnderCursor(out worldPos))
                 {
-                    foreach (Entity e in Selection.GetSelected())
-                        e.MoveTo(worldPos, 2.0f);
+                    foreach (Entity entity in Selection.GetSelected())
+                        entity.MoveTo(worldPos, 2.0f);
                 } 
+
+                return true;
             }
+
+            return false;
         }
 
         void OnUpdate(float ts)

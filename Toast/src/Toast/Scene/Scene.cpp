@@ -14,6 +14,7 @@
 #include "Toast/Renderer/PlanetSystem.h"
 
 #include "Toast/Scripting/ScriptEngine.h"
+#include "Toast/Scripting/ScriptEvent.h"
 
 #include "Toast/Physics/PhysicsEngine.h"
 
@@ -160,37 +161,90 @@ namespace Toast {
 		{
 			dispatcher.Dispatch<MouseButtonPressedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseButtonPressed));
 			dispatcher.Dispatch<MouseButtonReleasedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseButtonReleased));
+			dispatcher.Dispatch<KeyPressedEvent>(TOAST_BIND_EVENT_FN(Scene::OnKeyPressed));
+			dispatcher.Dispatch<KeyReleasedEvent>(TOAST_BIND_EVENT_FN(Scene::OnKeyReleased));
 		}
 
 		dispatcher.Dispatch<MouseMovedEvent>(TOAST_BIND_EVENT_FN(Scene::OnMouseMoved));
 	}
 
+	bool Scene::OnKeyPressed(KeyPressedEvent& e)
+	{
+		bool handled = false;
+
+		if (mSelectedEntity != entt::null)
+		{
+			Entity entity = { mSelectedEntity, this };
+
+			if (entity.HasComponent<ScriptComponent>() && ScriptEngine::IsGameDLLLoaded())
+				 handled |= ScriptEngine::OnEventEntity(entity, MakeScriptEvent(e));
+		}
+
+		auto view = mRegistry.view<SceneScriptComponent>();
+		for (auto entityID : view)
+		{
+			Entity entity = { entityID, this };
+			handled |= ScriptEngine::OnEventEntity(entity, MakeScriptEvent(e));
+		}
+
+		return handled;
+	}
+
+	bool Scene::OnKeyReleased(KeyReleasedEvent& e)
+	{
+		bool handled = false;
+
+		if (mSelectedEntity != entt::null)
+		{
+			Entity entity = { mSelectedEntity, this };
+
+			if (entity.HasComponent<ScriptComponent>() && ScriptEngine::IsGameDLLLoaded())
+				handled |= ScriptEngine::OnEventEntity(entity, MakeScriptEvent(e));
+		}
+
+		auto view = mRegistry.view<SceneScriptComponent>();
+		for (auto entityID : view)
+		{
+			Entity entity = { entityID, this };
+			handled |= ScriptEngine::OnEventEntity(entity, MakeScriptEvent(e));
+		}
+
+		return handled;
+	}
+
 	bool Scene::OnMouseButtonPressed(MouseButtonPressedEvent& e)
 	{	
+		bool handled = false;
+
 		// Check that a valid entity is being hovered over by the mouse
 		if (mHoveredEntity != entt::null)
 		{
 			Entity entity = { mHoveredEntity, this };
 
 			if (entity.HasComponent<ScriptComponent>() && !entity.HasComponent<UIButtonComponent>() && ScriptEngine::IsGameDLLLoaded())
-				ScriptEngine::OnEventEntity(entity);
+				handled |= ScriptEngine::OnEventEntity(entity, MakeScriptEvent(e));
 
 			if (entity.HasComponent<UIButtonComponent>())
+			{
 				mUIPressedEntity = mHoveredEntity;
+				handled = true;
+			}
 		}
 
 		auto view = mRegistry.view<SceneScriptComponent>();
-		for (auto entity : view)
+		for (auto entityID : view)
 		{
-			Entity e = { entity, this };
-			ScriptEngine::OnEventEntity(e);
+			Entity entity = { entityID, this };
+			handled |= ScriptEngine::OnEventEntity(entity, MakeScriptEvent(e));
 		}
 
-		return true;
+		return handled;
 	}
 
 	bool Scene::OnMouseButtonReleased(MouseButtonReleasedEvent& e)
 	{
+		bool handled = false;
+
 		if (mHoveredEntity != entt::null)
 		{
 			Entity entity = { mHoveredEntity, this };
@@ -204,13 +258,13 @@ namespace Toast {
 			}
 
 			if (entity.HasComponent<ScriptComponent>() && entity.HasComponent<UIButtonComponent>())
-				ScriptEngine::OnEventEntity(entity);
+				handled |= ScriptEngine::OnEventEntity(entity, MakeScriptEvent(e));
 		}
 
 		mUIReleaseOccurred = true;
 		mUIReleasedEntity = mHoveredEntity;
 
-		return true;
+		return handled;
 	}
 
 	bool Scene::OnMouseMoved(MouseMovedEvent& e)
@@ -2808,10 +2862,7 @@ namespace Toast {
 					auto& button = entity.GetComponent<UIButtonComponent>();
 
 					if (button.LatchOnClick)
-						button.Toggled = !button.Toggled;
-
-					if (entity.HasComponent<ScriptComponent>() && ScriptEngine::IsGameDLLLoaded())
-						ScriptEngine::OnEventEntity(entity);
+						button.Toggled = !button.Toggled; 
 				}
 			}
 

@@ -32,14 +32,18 @@ namespace TheNextFrontier
             mMesh = mStarship.GetComponent<MeshComponent>();
         }
 
-        void OnEvent()
+        bool OnEvent(Event e)
         {
             if (mLandingScriptResolved)
             {
                 mMesh.PlayReverseAnimation("UnloadCargo");
 
                 mStarshipLandingInstance.SetCargoState(CargoState.LoadingCargo);
+
+                return true;
             }
+
+            return false;
         }
 
         void OnUpdate(float ts)

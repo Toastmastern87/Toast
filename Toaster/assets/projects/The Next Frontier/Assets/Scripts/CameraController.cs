@@ -62,8 +62,9 @@ namespace TheNextFrontier
             mZoomTargetAltitude = Clamp(mZoomTargetAltitude, MinAltitude, MaxAltitude);
         }
 
-        void OnEvent()
+        bool OnEvent(Event e)
         {
+            return false;
         }
 
         void OnUpdate(float ts)

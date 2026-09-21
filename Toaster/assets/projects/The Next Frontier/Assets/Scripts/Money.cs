@@ -38,8 +38,9 @@ namespace TheNextFrontier
             mIsCountingDown = false;
         }
 
-        void OnEvent()
+        bool OnEvent(Event E)
         {
+            return false;
         }
 
         void OnUpdate(float ts)

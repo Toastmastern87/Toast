@@ -31,7 +31,7 @@ namespace TheNextFrontier
         {
         }
 
-        void OnEvent()
+        bool OnEvent(Event e)
         {
             mName = GetComponent<TagComponent>().Tag;
 
@@ -77,6 +77,8 @@ namespace TheNextFrontier
 
                 Scene.TimeScale = 32.0f;
             }
+
+            return false;
         }
     }
 }
