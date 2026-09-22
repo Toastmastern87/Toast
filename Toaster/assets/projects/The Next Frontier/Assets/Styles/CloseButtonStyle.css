@@ -1,0 +1,10 @@
+background: #ffffffff;
+background-hover: #ffffffff;
+background-pressed: #ffffffff;
+background-active: #ffffffff;
+corner-radius: 0;
+visible: 1;
+use-color: 0;
+background-image: 02_CloseButton_Normal.png;
+background-image-hover: 03_CloseButton_Hover.png;
+background-image-pressed: 04_CloseButton_Pressed.png;

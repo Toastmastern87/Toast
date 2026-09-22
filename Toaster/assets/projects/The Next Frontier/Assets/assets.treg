@@ -4,6 +4,7 @@
 7706550061724850605|Material|Materials\Heatshield.tmtl|
 5222783482869039021|Texture2D|Textures\StarField16k.tif|sRGB=1
 341866119682474621|Shader|Shaders\HeightMapToCubeMap.hlsl|
+18007375396288243133|Texture2D|Textures\UI\35_LoadCargo_Active.png|sRGB=1
 2502867941750724029|Texture2D|Textures\Mars_MOLA_8k_raw.tif|sRGB=0
 8975056036252789757|Texture2D|Textures\Starship_Heat_Shield_normal.png|sRGB=0
 7274978667343951183|Texture2D|Textures\MarsAlbedo.png|sRGB=0
@@ -12,6 +13,7 @@
 11447799839312842238|Texture2D|Textures\Starship_Heat_Shield_basecolor.png|sRGB=1
 6551670257254948990|Texture2D|Textures\Sand_basecolor.tif|sRGB=1
 10378684347057509115|Texture2D|Textures\Stainless_Steel_Hull_basecolor.png|sRGB=1
+15715477383293587249|Texture2D|Textures\UI\31_Follow_Active.png|sRGB=1,cx=0,cy=0,cw=1024,ch=1024
 15255565320128171313|Shader|Shaders\BloomWideBlur.hlsl|
 11157927838621306737|Texture2D|Textures\StainlessSteelTest_normal.png|sRGB=0
 14218143209361644375|Texture2D|Textures\Rock_Cliff_normal.tif|sRGB=0
@@ -68,6 +70,7 @@
 13653909807134564088|Shader|Shaders\SPBRDF.hlsl|
 12006792707160046586|Shader|Shaders\Standard.hlsl|
 11663108200396272093|Shader|Shaders\Copy.hlsl|
+8639147210395893594|Texture2D|Textures\UI\3_Follow_Active.png|sRGB=1
 12364499799607337306|Material|Materials\Stone.tmtl|
 1604199258784991578|Texture2D|Textures\UI\18_SpeedButton_Pressed.png|sRGB=1,sl=8,st=8,sr=8,sb=8,cx=7,cy=7,cw=222,ch=91
 7377203351078038993|Material|Materials\WhiteMetal.tmtl|
@@ -76,7 +79,7 @@
 11647090461311521163|Material|Materials\Stainless Steel.tmtl|
 1425564542544899623|Material|Materials\Stainless Steel Hull.tmtl|
 11828828926936490714|Material|Materials\White Steel.tmtl|
-15183623319140184794|Texture2D|Textures\UI\01_StarshipPopupPanel.png|sRGB=1,sl=129,st=114,sr=130,sb=102,cx=226,cy=20,cw=572,ch=969
+15183623319140184794|Texture2D|Textures\UI\01_StarshipPopupPanel.png|sRGB=1,sl=16,st=16,sr=16,sb=16,cx=129,cy=40,cw=766,ch=946,gx=0,gy=0,gw=766,gh=49
 2421967733741849262|Material|Materials\Stainless Steel Shiny.tmtl|
 253805843435517881|Material|Materials\HeatshieldSN3.tmtl|
 6204518153654210992|Material|Materials\StainlessSteelSN3.tmtl|
@@ -111,7 +114,7 @@
 15207535013661891102|Texture2D|Textures\UI\05_MapButton_Normal.png|sRGB=1,cx=24,cy=25,cw=223,ch=223
 7805165310876259368|Texture2D|Textures\UI\06_MapButton_Hover.png|sRGB=1,cx=24,cy=25,cw=223,ch=223
 15619846374371284112|Texture2D|Textures\UI\07_MapButton_Pressed.png|sRGB=1,cx=24,cy=25,cw=223,ch=223
-17436013977482335892|Texture2D|Textures\UI\08_SimplePopupPanel.png|sRGB=1
+17436013977482335892|Texture2D|Textures\UI\08_SimplePopupPanel.png|sRGB=1,cx=137,cy=23,cw=752,ch=977,gx=0,gy=0,gw=752,gh=71
 9964269343535436304|Texture2D|Textures\UI\09_AddStarshipButton_Normal.png|sRGB=1,cx=24,cy=25,cw=223,ch=223
 2586121666762830278|Texture2D|Textures\UI\10_AddStarshipButton_Hover.png|sRGB=1,cx=24,cy=25,cw=223,ch=223
 5496601903567527814|Texture2D|Textures\UI\11_AddStarshipButton_Pressed.png|sRGB=1,cx=24,cy=25,cw=223,ch=223
@@ -123,3 +126,22 @@
 2899671144239845464|Texture2D|Textures\UI\16_SpeedButton_Normal.png|sRGB=1,sl=8,st=8,sr=8,sb=8,cx=7,cy=7,cw=222,ch=91
 13917719979650638899|Texture2D|Textures\UI\17_SpeedButton_Hover.png|sRGB=1,sl=8,st=8,sr=8,sb=8,cx=7,cy=7,cw=222,ch=91
 12594568433210692786|StyleSheet|Styles\TimeButtonStyle.css|
+5830877197917391318|StyleSheet|Styles\CloseButtonStyle.css|
+8929313471686540467|Texture2D|Textures\UI\20_Liftoff_Normal.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+5393618233858431748|Texture2D|Textures\UI\22_Liftoff_Hover.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+4207445893651012294|Texture2D|Textures\UI\21_Liftoff_Pressed.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+7193356289455006280|Texture2D|Textures\UI\23_Liftoff_Active.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+5236519865318014802|Texture2D|Textures\UI\24_Landing_Normal.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+14261411410397802668|Texture2D|Textures\UI\25_Landing_Hover.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+5773130181747705496|Texture2D|Textures\UI\26_Landing_Pressed.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+10416482300393854431|Texture2D|Textures\UI\27_Landing_Active.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+6314214123442161318|Texture2D|Textures\UI\28_Follow_Normal.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+17426873938423670326|Texture2D|Textures\UI\29_Follow_Hover.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+14007651658327194399|Texture2D|Textures\UI\30_Follow_Pressed.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+13749960132895476779|Texture2D|Textures\UI\32_LoadCargo_Normal.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+3786918773277251082|Texture2D|Textures\UI\33_LoadCargo_Hover.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+16281283528014804353|Texture2D|Textures\UI\34_LoadCargo_Pressed.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+8797637120683495472|Texture2D|Textures\UI\36_UnloadCargo_Normal.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+4706860310929236180|Texture2D|Textures\UI\37_UnloadCargo_Hover.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+11416522832644805559|Texture2D|Textures\UI\38_UnloadCargo_Pressed.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+8250508639412788580|Texture2D|Textures\UI\39_UnloadCargo_Active.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203

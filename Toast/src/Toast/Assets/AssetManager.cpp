@@ -31,6 +31,9 @@ namespace Toast {
 			if (s.ContentWidth || s.ContentHeight)
 				out << ",cx=" << s.ContentX << ",cy=" << s.ContentY << ",cw=" << s.ContentWidth << ",ch=" << s.ContentHeight;
 
+			if (s.DragWidth || s.DragHeight)
+				out << ",gx=" << s.DragX << ",gy=" << s.DragY << ",gw=" << s.DragWidth << ",gh=" << s.DragHeight;
+
 			break;
 		}
 
@@ -69,6 +72,10 @@ namespace Toast {
 			else if (key == "cy") s.ContentY = (uint32_t)std::stoul(value);
 			else if (key == "cw") s.ContentWidth = (uint32_t)std::stoul(value);
 			else if (key == "ch") s.ContentHeight = (uint32_t)std::stoul(value);
+			else if (key == "gx") s.DragX = (uint32_t)std::stoul(value);
+			else if (key == "gy") s.DragY = (uint32_t)std::stoul(value);
+			else if (key == "gw") s.DragWidth = (uint32_t)std::stoul(value);
+			else if (key == "gh") s.DragHeight = (uint32_t)std::stoul(value);
 		}
 	}
 

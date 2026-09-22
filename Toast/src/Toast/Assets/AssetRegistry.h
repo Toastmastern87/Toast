@@ -33,6 +33,12 @@ namespace Toast {
 		uint32_t ContentY = 0;
 		uint32_t ContentWidth = 0;
 		uint32_t ContentHeight = 0;
+
+		// Drag variables, used for UIPanels
+		uint32_t DragX = 0;
+		uint32_t DragY = 0;
+		uint32_t DragWidth = 0;
+		uint32_t DragHeight = 0;
 	};
 
 	struct AssetEntry

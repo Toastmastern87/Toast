@@ -59,7 +59,7 @@ namespace TheNextFrontier
                 mCurrentMoney = (int)Math.Round(interpolatedValue);
             }
 
-            mMoneyText.Text = "$" + mCurrentMoney.ToString("N", mNFI);
+            mMoneyText.Text = "$ " + mCurrentMoney.ToString("N", mNFI);
         }
 
         public bool SetRetracttMoney(int retractMoney)

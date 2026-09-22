@@ -416,6 +416,7 @@ namespace Toast {
 		bool ProjectConnectorAnchor(DirectX::XMVECTOR worldPos, DirectX::XMMATRIX viewMatrix, DirectX::XMMATRIX projectionMatrix, bool clampToEdge, float margin, DirectX::XMFLOAT2& outScreenPos);
 
 		void UpdateUIButtons(float ts);
+		void UpdateUIPanelDrag();
 	private:
 		UUID mSceneID;
 		std::string mName;
@@ -476,6 +477,9 @@ namespace Toast {
 		entt::entity mUIPressedEntity = entt::null;
 		entt::entity mUIReleasedEntity = entt::null;
 		bool mUIReleaseOccurred = false;
+
+		entt::entity mUIDraggedEntity = entt::null;
+		DirectX::XMFLOAT2 mUIDragLastCursor = { 0.0f, 0.0f };
 
 		friend class Entity;
 		friend class Renderer;

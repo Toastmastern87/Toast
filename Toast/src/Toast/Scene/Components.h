@@ -347,6 +347,10 @@ namespace Toast {
 
 		UIConnector Connector;
 
+		// Runtime only
+		DirectX::XMFLOAT2 LastScreenPos = { 0.0f, 0.0f };
+		DirectX::XMFLOAT2 LastScreenSize = { 0.0f, 0.0f };
+
 		UIPanelComponent() = default;
 		UIPanelComponent(const UIPanelComponent&) = default;
 	};

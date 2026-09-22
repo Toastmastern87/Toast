@@ -1471,7 +1471,7 @@ namespace Toast {
 					{
 						auto texture = AssetManager::GetAsset<Texture2D>(mNineSliceHandle);
 						if (texture)
-							ImGuiHelpers::NinceSliceEditorPopup("Nine Slice Editor", texture->GetID(), texture->GetWidth(), texture->GetHeight(), entry->Texture2DSettings.SliceLeft, entry->Texture2DSettings.SliceTop, entry->Texture2DSettings.SliceRight, entry->Texture2DSettings.SliceBottom, entry->Texture2DSettings.ContentX, entry->Texture2DSettings.ContentY, entry->Texture2DSettings.ContentWidth,  entry->Texture2DSettings.ContentHeight);
+							ImGuiHelpers::NinceSliceEditorPopup("Nine Slice Editor", texture->GetID(), texture->GetWidth(), texture->GetHeight(), entry->Texture2DSettings, true);
 					}
 				}
 
@@ -1898,7 +1898,7 @@ namespace Toast {
 					{
 						auto texture = AssetManager::GetAsset<Texture2D>(mNineSliceHandle);
 						if (texture)
-							ImGuiHelpers::NinceSliceEditorPopup("Nine Slice Editor", texture->GetID(), texture->GetWidth(), texture->GetHeight(), entry->Texture2DSettings.SliceLeft, entry->Texture2DSettings.SliceTop, entry->Texture2DSettings.SliceRight, entry->Texture2DSettings.SliceBottom, entry->Texture2DSettings.ContentX, entry->Texture2DSettings.ContentY, entry->Texture2DSettings.ContentWidth, entry->Texture2DSettings.ContentHeight);
+							ImGuiHelpers::NinceSliceEditorPopup("Nine Slice Editor", texture->GetID(), texture->GetWidth(), texture->GetHeight(), entry->Texture2DSettings, false);
 					}
 				}
 

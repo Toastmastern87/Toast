@@ -1262,9 +1262,21 @@ namespace Toast
 			}
 		}
 
-		bool NinceSliceEditorPopup(const char* title, ImTextureID texID, uint32_t texWidth, uint32_t texHeight, uint32_t& left, uint32_t& top, uint32_t& right, uint32_t& bottom, uint32_t& contentX, uint32_t& contentY, uint32_t& contentWidth, uint32_t& contentHeight)
+		bool NinceSliceEditorPopup(const char* title, ImTextureID texID, uint32_t texWidth, uint32_t texHeight, Texture2DImportSettings& settings, bool allowDragArea)
 		{
 			bool changed = false;
+			uint32_t& left = settings.SliceLeft;
+			uint32_t& top = settings.SliceTop;
+			uint32_t& right = settings.SliceRight;
+			uint32_t& bottom = settings.SliceBottom;
+			uint32_t& contentX = settings.ContentX;
+			uint32_t& contentY = settings.ContentY;
+			uint32_t& contentWidth = settings.ContentWidth;
+			uint32_t& contentHeight = settings.ContentHeight;
+			uint32_t& dragX = settings.DragX;
+			uint32_t& dragY = settings.DragY;
+			uint32_t& dragWidth = settings.DragWidth;
+			uint32_t& dragHeight = settings.DragHeight;
 
 			ImGui::SetNextWindowSize(ImVec2(720.0f, 560.0f), ImGuiCond_FirstUseEver);
 
@@ -1287,6 +1299,14 @@ namespace Toast
 			ImGui::RadioButton("Content Rect", &sEditMode, 1);
 			if (ImGui::IsItemHovered())
 				ImGui::SetTooltip("The region of the texture the artwork occupies.\nSet this first if the art doesn't fill the texture.");
+
+			if (allowDragArea)
+			{
+				ImGui::SameLine();
+				ImGui::RadioButton("Drag Area", &sEditMode, 2);
+				if (ImGui::IsItemHovered())
+					ImGui::SetTooltip("The region of the panel texture that can be grabbed to drag it at runtime.\nLeave at zero for a fixed panel.");
+			}
 
 			const float texW = (float)texWidth;
 			const float texH = (float)texHeight;
@@ -1325,11 +1345,17 @@ namespace Toast
 			const ImU32 contentColor = IM_COL32(255, 180, 0, 220);
 			drawList->AddRect(ImVec2(cxL, cyT), ImVec2(cxR, cyB), contentColor);
 
-			// ⚠ Insets are measured from the CONTENT rect's edges, not the image's.
+			// Insets are measured from the CONTENT rect's edges, not the image's.
 			const float xL = cxL + left * scale;
 			const float xR = cxR - right * scale;
 			const float yT = cyT + top * scale;
 			const float yB = cyB - bottom * scale;
+
+			// Relative to the content rect, same as the insets
+			const float gxL = cxL + dragX * scale;
+			const float gxR = cxL + (dragX + dragWidth) * scale;
+			const float gyT = cyT + dragY * scale;
+			const float gyB = cyT + (dragY + dragHeight) * scale;
 
 			// Corner shading, also relative to the content rect.
 			const ImU32 shade = IM_COL32(80, 160, 255, 40);
@@ -1343,6 +1369,12 @@ namespace Toast
 			drawList->AddLine(ImVec2(xR, cyT), ImVec2(xR, cyB), lineColor);
 			drawList->AddLine(ImVec2(cxL, yT), ImVec2(cxR, yT), lineColor);
 			drawList->AddLine(ImVec2(cxL, yB), ImVec2(cxR, yB), lineColor);
+
+			if (dragWidth > 0 && dragHeight > 0)
+			{
+				drawList->AddRectFilled(ImVec2(gxL, gyT), ImVec2(gxR, gyB), IM_COL32(80, 220, 120, 50));
+				drawList->AddRect(ImVec2(gxL, gyT), ImVec2(gxR, gyB), IM_COL32(80, 220, 120, 220));
+			}
 
 			const float grab = 9.0f;
 			const float cW = (float)contentWidth;
@@ -1371,7 +1403,11 @@ namespace Toast
 				if (ImGui::IsItemActive())
 				{
 					const float v = std::clamp((float)right - ImGui::GetIO().MouseDelta.x / scale, 0.0f, cW - (float)left - 1.0f);
-					if ((uint32_t)v != right) { right = (uint32_t)v; changed = true; }
+					if ((uint32_t)v != right) 
+					{ 
+						right = (uint32_t)v; 
+						changed = true; 
+					}
 				}
 
 				ImGui::SetCursorScreenPos(ImVec2(cxL, yT - grab * 0.5f));
@@ -1382,7 +1418,11 @@ namespace Toast
 				if (ImGui::IsItemActive())
 				{
 					const float v = std::clamp((float)top + ImGui::GetIO().MouseDelta.y / scale, 0.0f, cH - (float)bottom - 1.0f);
-					if ((uint32_t)v != top) { top = (uint32_t)v; changed = true; }
+					if ((uint32_t)v != top) 
+					{ 
+						top = (uint32_t)v; 
+						changed = true; 
+					}
 				}
 
 				ImGui::SetCursorScreenPos(ImVec2(cxL, yB - grab * 0.5f));
@@ -1393,10 +1433,14 @@ namespace Toast
 				if (ImGui::IsItemActive())
 				{
 					const float v = std::clamp((float)bottom - ImGui::GetIO().MouseDelta.y / scale, 0.0f, cH - (float)top - 1.0f);
-					if ((uint32_t)v != bottom) { bottom = (uint32_t)v; changed = true; }
+					if ((uint32_t)v != bottom) 
+					{ 
+						bottom = (uint32_t)v; 
+						changed = true; 
+					}
 				}
 			}
-			else
+			else if(sEditMode == 1)
 			{
 				// Content rect edges. Near edges move the origin AND adjust the size,
 				// so the opposite edge stays put; far edges move only the size.
@@ -1426,7 +1470,11 @@ namespace Toast
 				if (ImGui::IsItemActive())
 				{
 					const float v = std::clamp(cW + ImGui::GetIO().MouseDelta.x / scale, 1.0f, texW - (float)contentX);
-					if ((uint32_t)v != contentWidth) { contentWidth = (uint32_t)v; changed = true; }
+					if ((uint32_t)v != contentWidth) 
+					{ 
+						contentWidth = (uint32_t)v; 
+						changed = true; 
+					}
 				}
 
 				ImGui::SetCursorScreenPos(ImVec2(imgMin.x, cyT - grab * 0.5f));
@@ -1455,7 +1503,85 @@ namespace Toast
 				if (ImGui::IsItemActive())
 				{
 					const float v = std::clamp(cH + ImGui::GetIO().MouseDelta.y / scale, 1.0f, texH - (float)contentY);
-					if ((uint32_t)v != contentHeight) { contentHeight = (uint32_t)v; changed = true; }
+					if ((uint32_t)v != contentHeight) 
+					{ 
+						contentHeight = (uint32_t)v; 
+						changed = true;
+					}
+				}
+			}
+			else if (sEditMode == 2)
+			{
+				// Right
+				ImGui::SetCursorScreenPos(ImVec2(gxR - grab * 0.5f, cyT));
+				ImGui::InvisibleButton("##dragR", ImVec2(grab, cyB - cyT));
+				if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+				if (ImGui::IsItemActive())
+				{
+					const int newW = std::clamp((int)((float)dragWidth + ImGui::GetIO().MouseDelta.x / scale), 0, (int)cW - (int)dragX);
+
+					if (newW != (int)dragWidth)
+					{
+						dragWidth = (uint32_t)newW;
+						changed = true;
+					}
+				}
+
+				// Bottom
+				ImGui::SetCursorScreenPos(ImVec2(cxL, gyB - grab * 0.5f));
+				ImGui::InvisibleButton("##dragB", ImVec2(cxR - cxL, grab));
+				if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+
+				if (ImGui::IsItemActive())
+				{
+					const int newH = std::clamp((int)((float)dragHeight + ImGui::GetIO().MouseDelta.y / scale), 0, (int)cH - (int)dragY);
+
+					if (newH != (int)dragHeight)
+					{
+						dragHeight = (uint32_t)newH;
+						changed = true;
+					}
+				}
+
+				// Left
+				ImGui::SetCursorScreenPos(ImVec2(gxL - grab * 0.5f, cyT));
+				ImGui::InvisibleButton("##dragL", ImVec2(grab, cyB - cyT));
+				if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+				if (ImGui::IsItemActive())
+				{
+					const int rightEdge = (int)dragX + (int)dragWidth;
+					const uint32_t newX = std::clamp((int)((float)dragX + ImGui::GetIO().MouseDelta.x / scale), 0, rightEdge);
+
+					if (newX != dragX)
+					{
+						dragWidth = (uint32_t)(rightEdge - newX);
+						dragX = (uint32_t)newX;
+						changed = true;
+					}
+				}
+
+				// Top
+				ImGui::SetCursorScreenPos(ImVec2(cxL, gyT - grab * 0.5f));
+				ImGui::InvisibleButton("##dragT", ImVec2(cxR - cxL, grab));
+				if (ImGui::IsItemHovered() || ImGui::IsItemActive())
+					ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+
+				if (ImGui::IsItemActive())
+				{
+					const int bottomEdge = (int)dragY + (int)dragHeight;
+					const int newY = std::clamp((int)((float)dragY + ImGui::GetIO().MouseDelta.y / scale), 0, bottomEdge);
+
+					if (newY != (int)dragY)
+					{
+						dragHeight = (uint32_t)(dragY - newY);
+						dragY = (uint32_t)newY;
+						changed = true;
+					}
 				}
 			}
 
@@ -1520,7 +1646,13 @@ namespace Toast
 				right = std::min(right, contentWidth - left - 1);
 				top = std::min(top, contentHeight - 1);
 				bottom = std::min(bottom, contentHeight - top - 1);
+
+				dragX = std::min(dragX, contentWidth - 1);
+				dragY = std::min(dragY, contentHeight - 1);
+				dragWidth = std::min(dragWidth, contentWidth - dragX);
+				dragHeight = std::min(dragHeight, contentHeight - dragY);
 			}
+
 			ImGui::SameLine();
 			if (ImGui::Button("Uniform from Left"))
 			{
@@ -1533,6 +1665,42 @@ namespace Toast
 			{
 				left = top = right = bottom = 0;
 				changed = true;
+			}
+
+			if (allowDragArea)
+			{
+				ImGui::Separator();
+				ImGui::TextUnformatted("Drag Area (px)");
+				ImGui::PushItemWidth(-1);
+
+				int dragRect[4] = { (int)dragX, (int)dragY, (int)dragWidth, (int)dragHeight };
+				if (ImGui::DragInt4("##dragrect", dragRect, 0.5f, 0, 8192, "%d"))
+				{
+					dragX = (uint32_t)std::clamp(dragRect[0], 0, (int)contentWidth - 1);
+					dragY = (uint32_t)std::clamp(dragRect[1], 0, (int)contentHeight - 1);
+					dragWidth = (uint32_t)std::clamp(dragRect[2], 0, (int)contentWidth - (int)dragX);
+					dragHeight = (uint32_t)std::clamp(dragRect[3], 0, (int)contentHeight - (int)dragY);
+					changed = true;
+				}
+
+				ImGui::PopItemWidth();
+				ImGui::TextDisabled("X, Y, W, H  (all 0 = fixed panel)");
+
+				if (ImGui::Button("Top Bar"))
+				{
+					dragX = 0;
+					dragY = 0;
+					dragWidth = contentWidth;
+					dragHeight = top;
+					changed = true;
+				}
+
+				ImGui::SameLine();
+				if (ImGui::Button("Clear Drag"))
+				{
+					dragX = dragY = dragWidth = dragHeight = 0;
+					changed = true;
+				}
 			}
 
 			ImGui::Separator();

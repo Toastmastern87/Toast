@@ -30,6 +30,63 @@ namespace Toast {
 		return out;
 	}
 
+	static float NineSliceAxisCPU(float coord, float elemSize, float texSize, float b0, float b1)
+	{
+		float total = b0 + b1;
+		if (total > elemSize && total > 0.0f)
+		{
+			float shrink = elemSize / total;
+			b0 *= shrink;
+			b1 *= shrink;
+		}
+
+		if (coord < b0)
+			return coord;
+
+		if (coord > elemSize - b1)
+			return texSize - (elemSize - coord);
+
+		float t = (coord - b0) / std::max(elemSize - b0 - b1, 1e-5f);
+
+		return b0 + t * (texSize - b0 - b1);
+	}
+
+	static bool IsInsidePanelDragArea(AssetHandle textureHandle, const DirectX::XMFLOAT2& elementSize, const DirectX::XMFLOAT2& localPos)
+	{
+		if (textureHandle == AssetHandle(0))
+			return false;
+
+		const AssetEntry* entry = AssetManager::GetEntry(textureHandle);
+		if (!entry || entry->Metadata.Type != AssetType::Texture2D)
+			return false;
+
+		const auto& s = entry->Texture2DSettings;
+
+		if (!s.DragWidth || !s.DragHeight)
+			return false;
+
+		float contentW = (float)s.ContentWidth;
+		float contentH = (float)s.ContentHeight;
+
+		if (contentW == 0.0f || contentH == 0.0f)
+		{
+			auto texture = AssetManager::GetAsset<Texture2D>(textureHandle);
+			if (!texture)
+				return false;
+
+			if (contentW == 0.0f)
+				contentW = (float)texture->GetWidth();
+			if (contentH == 0.0f)
+				contentH = (float)texture->GetHeight();
+		}
+
+
+		const float srcX = NineSliceAxisCPU(localPos.x, elementSize.x, contentW, (float)s.SliceLeft, (float)s.SliceRight);
+		const float srcY = NineSliceAxisCPU(localPos.y, elementSize.y, contentH, (float)s.SliceTop, (float)s.SliceBottom);
+
+		return srcX >= (float)s.DragX && srcX <= (float)(s.DragX + s.DragWidth) && srcY >= (float)s.DragY && srcY <= (float)(s.DragY + s.DragHeight);
+	}
+
 	struct SceneComponent
 	{
 		UUID SceneID;
@@ -222,6 +279,25 @@ namespace Toast {
 		{
 			Entity entity = { mHoveredEntity, this };
 
+			if (entity.HasComponent<UIPanelComponent>())
+			{
+				const auto& panel = entity.GetComponent<UIPanelComponent>();
+
+				if (panel.LastScreenSize.x > 0.0f && panel.LastScreenSize.y > 0.0f)
+				{
+					const DirectX::XMFLOAT2 mouse = GetViewportMousePosition();
+					const DirectX::XMFLOAT2 localPos = { mouse.x - panel.LastScreenPos.x, mouse.y - panel.LastScreenPos.y };
+
+					if (IsInsidePanelDragArea(panel.TextureHandle, panel.LastScreenSize, localPos))
+					{
+						mUIDraggedEntity = mHoveredEntity;
+						mUIDragLastCursor = mouse;
+
+						return true;
+					}
+				}
+			}
+
 			if (entity.HasComponent<ScriptComponent>() && !entity.HasComponent<UIButtonComponent>() && ScriptEngine::IsGameDLLLoaded())
 				handled |= ScriptEngine::OnEventEntity(entity, MakeScriptEvent(e));
 
@@ -231,6 +307,7 @@ namespace Toast {
 				handled = true;
 			}
 		}
+		 
 
 		auto view = mRegistry.view<SceneScriptComponent>();
 		for (auto entityID : view)
@@ -246,9 +323,17 @@ namespace Toast {
 	{
 		bool handled = false;
 
-		if (mHoveredEntity != entt::null)
+		const bool wasDragging = mUIDraggedEntity != entt::null;
+		mUIDraggedEntity = entt::null;
+
+		if (wasDragging)
+			return true;
+
+		const bool isClick = mUIPressedEntity != entt::null && mUIPressedEntity == mHoveredEntity;
+
+		if (isClick)
 		{
-			Entity entity = { mHoveredEntity, this };
+			Entity entity = { mUIPressedEntity, this };
 
 			if (entity.HasComponent<UIButtonComponent>())
 			{
@@ -809,6 +894,7 @@ namespace Toast {
 			// UI System
 			{
 				UpdateUIButtons(ts* mTimeScale);
+				UpdateUIPanelDrag();
 			}
 
 			// 3D Rendering
@@ -1031,6 +1117,9 @@ namespace Toast {
 					}
 
 					const float cornerRadius = hasNineSlice ? 0.0f : upc.CornerRadius;
+
+					upc.LastScreenPos = { uiPos.x, uiPos.y };
+					upc.LastScreenSize = { tc.Scale.x, tc.Scale.y };
 
 					Renderer2D::SubmitPanel(uiPos, { tc.Scale.x, tc.Scale.y, cornerRadius, 0.0f }, upc.Color, (int)entity, !upc.UseColor, false, upc.TextureIndex, upc.TextureHandle, upc.BorderWidth, upc.BorderColor);
 				}
@@ -2928,6 +3017,28 @@ namespace Toast {
 			button.Blended.TextureHandle = target.TextureHandle;
 			button.Blended.TextureIndex = target.TextureIndex;
 		}
+	}
+
+	void Scene::UpdateUIPanelDrag()
+	{
+		if (mUIDraggedEntity == entt::null)
+			return;
+
+		Entity entity = { mUIDraggedEntity, this };
+
+		if (!entity || !entity.HasComponent<UIPanelComponent>() || !entity.HasComponent<TransformComponent>())
+		{
+			mUIDraggedEntity = entt::null;
+			return;
+		}
+
+		const DirectX::XMFLOAT2 mouse = GetViewportMousePosition();
+
+		auto& tc = entity.GetComponent<TransformComponent>();
+		tc.Translation.x += mouse.x - mUIDragLastCursor.x;
+		tc.Translation.y += mouse.y - mUIDragLastCursor.y;
+
+		mUIDragLastCursor = mouse;
 	}
 
 	template<>
