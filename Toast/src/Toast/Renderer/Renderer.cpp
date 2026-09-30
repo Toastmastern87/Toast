@@ -386,6 +386,9 @@ namespace Toast {
 		sRendererData->FrameProfiler->SetStatisticInfo(statistics.DrawCalls, statistics.ConstantBuffersMaps, (uint32_t)sRendererData->MeshDrawList.size());
 #endif
 		RenderCommand::sRendererAPI->ResetStatistics();
+
+		ClearDrawList();
+
 		sRendererData->Wireframe = wireFrame;
 
 		// Updating the camera data in the buffer and mapping it to the GPU
@@ -531,8 +534,6 @@ namespace Toast {
 			RenderCommand::SetRenderTargets({ sRendererData->BackbufferRT->GetRTV().Get() }, nullptr);
 			RenderCommand::ClearRenderTargets(sRendererData->BackbufferRT->GetRTV().Get() , { 0.0f, 0.0f, 0.0f, 1.0f });
 		}
-
-		ClearDrawList();
 
 #if TOAST_PROFILE_ENABLED
 		sRendererData->FrameProfiler->EndFrame();
@@ -1245,7 +1246,7 @@ namespace Toast {
 				sRendererData->ModelBuffer.Write((uint8_t*)&isInstanced, 4, 76);
 				sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 
-				// Material data
+				//Material data
 				Ref<Material> material = AssetManager::GetAsset<Material>(submesh.MaterialHandle);
 				if (!material)
 				{
@@ -1278,7 +1279,7 @@ namespace Toast {
 				}
 
 				RenderCommand::DrawIndexed(0, submesh.BaseIndex, submesh.IndexCount);
-			}
+			}			 
 		}
 
 		std::vector<ID3D11RenderTargetView*> nullRTVs(6, nullptr);
@@ -3000,6 +3001,9 @@ namespace Toast {
 
 			RenderCommand::DrawIndexedInstancedIndirect(objectSystem->GetIndirectArgs(), objectSystem->GetArgsOffset(t));
 		}
+
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> nullSRV;
+		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, nullSRV);
 	}
 
 	static inline float Lerp(float a, float b, float t) { return a + (b - a) * t; }

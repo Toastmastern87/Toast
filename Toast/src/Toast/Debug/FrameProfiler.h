@@ -14,6 +14,8 @@ namespace Toast {
 #define TOAST_CONCAT_IMPL(a, b) a##b
 #define TOAST_CONCAT(a, b) TOAST_CONCAT_IMPL(a, b)
 
+#define TOAST_PROFILE_ENABLED 1
+
 #if TOAST_PROFILE_ENABLED
 #define TOAST_PROFILE(profiler, name)     FrameProfileScope TOAST_CONCAT(frameScope, __LINE__)(profiler, name, ProfileMode::CPUAndGPU)
 #define TOAST_PROFILE_GPU(profiler, name) FrameProfileScope TOAST_CONCAT(frameScope, __LINE__)(profiler, name, ProfileMode::GPUOnly)

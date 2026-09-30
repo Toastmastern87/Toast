@@ -1,5 +1,7 @@
 #include "FrameProfilerPanel.h"
 
+#include "Toast/Debug/Instrumentor.h"
+
 #include "../FontAwesome.h"
 
 #include <imgui/imgui.h>
@@ -183,6 +185,20 @@ namespace Toast {
 				ImGui::TableSetupColumn("v", ImGuiTableColumnFlags_WidthStretch);
 				return true;
 			};
+
+		bool tracing = Instrumentor::Get().IsSessionActive();
+		if (ImGui::Checkbox("Chrome Tracing", &tracing))
+		{
+			if (tracing)
+				Instrumentor::Get().BeginSession("Runtime", "ToastProfile-Runtime.json");
+			else
+				Instrumentor::Get().EndSession();
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Records every profiled function to ToastProfile-Runtime.json\n"
+				"(next to the executable). Open it in chrome://tracing\n"
+				"Slows the frame down noticeably while ticked.\n"
+				"Each recording overwrites the previous file.");
 
 		SectionHeader("Frame");
 		if (beginTable("##framestats"))

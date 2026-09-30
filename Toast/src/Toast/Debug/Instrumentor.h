@@ -9,6 +9,9 @@
 
 #include <mutex>
 #include <sstream>
+#include <atomic>
+
+#include "Toast/Debug/FrameProfiler.h"
 
 #include "Toast/Core/Log.h"
 
@@ -35,12 +38,15 @@ namespace Toast {
 		std::mutex mMutex;
 		InstrumentationSession* mCurrentSession;
 		std::ofstream mOutputStream;
+		std::atomic<bool> mSessionActive{ false };
 
 	public:
 		Instrumentor()
 			: mCurrentSession(nullptr)
 		{
 		}
+
+		bool IsSessionActive() const { return mSessionActive.load(std::memory_order_relaxed); }
 
 		void BeginSession(const std::string& name, const std::string& filepath = "results.json")
 		{
@@ -62,6 +68,7 @@ namespace Toast {
 			if (mOutputStream.is_open()) {
 				mCurrentSession = new InstrumentationSession({ name });
 				WriteHeader();
+				mSessionActive = true;
 			}
 			else {
 				if (Log::GetCoreLogger()) // Edge case: BeginSession() might be before Log::Init()
@@ -77,6 +84,10 @@ namespace Toast {
 
 		void WriteProfile(const ProfileResult& result)
 		{
+			std::lock_guard lock(mMutex);
+			if (!mCurrentSession)
+				return;
+
 			std::stringstream json;
 
 			std::string name = result.Name;
@@ -93,11 +104,8 @@ namespace Toast {
 			json << "\"ts\":" << result.Start.count();
 			json << "}";
 
-			std::lock_guard lock(mMutex);
-			if (mCurrentSession) {
-				mOutputStream << json.str();
-				mOutputStream.flush();
-			}
+			mOutputStream << json.str();
+			mOutputStream.flush();
 		}
 
 		static Instrumentor& Get()
@@ -123,6 +131,7 @@ namespace Toast {
 		{
 			if (mCurrentSession)
 			{
+				mSessionActive = false;
 				WriteFooter();
 				mOutputStream.close();
 				delete mCurrentSession;
@@ -135,9 +144,10 @@ namespace Toast {
 	{
 	public:
 		InstrumentationTimer(const char* name)
-			: mName(name), mStopped(false)
+			: mName(name), mStopped(false), mActive(Instrumentor::Get().IsSessionActive())
 		{
-			mStartTimepoint = std::chrono::steady_clock::now();
+			if(mActive)
+				mStartTimepoint = std::chrono::steady_clock::now();
 		}
 
 		~InstrumentationTimer()
@@ -148,26 +158,28 @@ namespace Toast {
 
 		void Stop()
 		{
+			mStopped = true;
+			if (!mActive)
+				return;
+
 			auto endTimepoint = std::chrono::steady_clock::now();
 			auto highResStart = FloatingPointMicroseconds{ mStartTimepoint.time_since_epoch() };
 			auto elapsedTime = std::chrono::time_point_cast<std::chrono::microseconds>(endTimepoint).time_since_epoch() - std::chrono::time_point_cast<std::chrono::microseconds>(mStartTimepoint).time_since_epoch();
 
 			Instrumentor::Get().WriteProfile({ mName, highResStart, elapsedTime, std::this_thread::get_id() });
-
-			mStopped = true;
 		}
 	private:
 		const char* mName;
 		std::chrono::time_point<std::chrono::steady_clock> mStartTimepoint;
 		bool mStopped;
+		bool mActive;
 	};
 }
 
-#define TOAST_PROFILE_ENABLED 1
 #if TOAST_PROFILE_ENABLED
 	#define TOAST_PROFILE_BEGIN_SESSION(name, filepath) ::Toast::Instrumentor::Get().BeginSession(name, filepath)
 	#define TOAST_PROFILE_END_SESSION() ::Toast::Instrumentor::Get().EndSession()
-	#define TOAST_PROFILE_SCOPE(name) ::Toast::InstrumentationTimer timer##__LINE__(name);
+	#define TOAST_PROFILE_SCOPE(name) ::Toast::InstrumentationTimer TOAST_CONCAT(timer, __LINE__)(name);
 	#define TOAST_PROFILE_FUNCTION() TOAST_PROFILE_SCOPE(__FUNCSIG__)
 #else
 	#define TOAST_PROFILE_BEGIN_SESSION(name, filepath)
