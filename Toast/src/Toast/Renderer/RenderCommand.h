@@ -137,6 +137,11 @@ namespace Toast {
 			sRendererAPI->CleanUp();
 		}
 
+		static void MapCBuffer(ID3D11Buffer* buffer, const void* data, uint32_t size)
+		{
+			sRendererAPI->MapCBuffer(buffer, data, size);
+		}
+
 	public:
 		static Scope<RendererAPI> sRendererAPI;
 	};

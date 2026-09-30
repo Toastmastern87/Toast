@@ -174,7 +174,6 @@ namespace Toast {
 				mTerrainObjDraft.Seed = (uint32_t)rng(); // add a Seed member if you want it shown like height details
 
 				// sensible defaults
-				mTerrainObjDraft.LODActivation = 1;
 				mTerrainObjDraft.ScatterRadiusMeters = 1000.0f;
 				mTerrainObjDraft.CandidateGridSize = 256;
 				mTerrainObjDraft.DensityProb = 0.05f;
@@ -348,11 +347,6 @@ namespace Toast {
 			ImGui::SetNextItemWidth(360.0f);
 			if (ImGui::InputText("##TerrainObjName", mTerrainObjNameBuf, sizeof(mTerrainObjNameBuf)))
 				CopyFromNameBuf(target.Name, mTerrainObjNameBuf);
-
-			// LODActivation
-			ImGui::Text("LOD Activation");
-			ImGui::SetNextItemWidth(180.0f);
-			ImGui::DragInt("##TerrainObjLOD", &target.LODActivation, 1.0f, 0, 25);
 
 			// Seed (read-only)
 			ImGui::Text("Seed");

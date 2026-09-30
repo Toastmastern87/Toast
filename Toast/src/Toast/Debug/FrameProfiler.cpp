@@ -35,10 +35,15 @@ namespace Toast {
 		}
 
 		mFrameIndex = 0;
+
+		if(!mGPUProfiler.Init())
+			TOAST_CORE_WARN("FrameProfiler: failed to initialize GPU utilization profiler - the panel will show n/a.");
 	}
 
 	void FrameProfiler::Shutdown() 
 	{
+		mGPUProfiler.Shutdown();
+
 		for (uint32_t f = 0; f < FRAMECOUNT; f++) 
 		{
 			FrameQueries& frame = mFrames[f];
@@ -61,6 +66,14 @@ namespace Toast {
 	{
 		if (!mEnabled)
 			return;
+		
+		auto now = std::chrono::steady_clock::now();
+		if (mLastFrameStart != std::chrono::steady_clock::time_point{})
+			mFramePeriodMS = std::chrono::duration<double, std::milli>(now - mLastFrameStart).count();
+		mLastFrameStart = now;
+
+		mFlushOverheadMS = mFlushAccumMS;
+		mFlushAccumMS = 0.0;
 
 		FrameQueries& frame = mFrames[mFrameIndex];
 
@@ -133,34 +146,29 @@ namespace Toast {
 		uint32_t index = mScopeStack[--mStackDepth];
 		ScopeRecord& scope = frame.Scopes[index];
 
+		if (scope.Mode != ProfileMode::GPUOnly)
+			scope.CPUEnd = std::chrono::steady_clock::now();
+
 		if (scope.Mode != ProfileMode::CPUOnly)
 		{
 			scope.EndQuery = frame.QueryCount++;
 			mContext->End(frame.Timestamps[scope.EndQuery]);
+
+			auto flushStart = std::chrono::steady_clock::now();
+			mContext->Flush();
+			mFlushAccumMS += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - flushStart).count();
 		}
 
-		if (scope.Mode != ProfileMode::GPUOnly)
-		{
-			scope.CPUEnd = std::chrono::steady_clock::now();
+		if (scope.Mode != ProfileMode::GPUOnly) 
 
-			// Tee the CPU slice into the existing chrome://tracing exporter —
-			// same measurement, second sink. Only touches disk while a capture
-			// session is open. Render sub-passes (and later physics scopes)
-			// nest in your chrome traces with no second timing path.
-			Instrumentor::Get().WriteProfile({
-				scope.Name,
-				FloatingPointMicroseconds{ scope.CPUStart.time_since_epoch() },
-				std::chrono::duration_cast<std::chrono::microseconds>(scope.CPUEnd - scope.CPUStart),
-				std::this_thread::get_id()
-				});
-		}
+			Instrumentor::Get().WriteProfile({ scope.Name, FloatingPointMicroseconds{ scope.CPUStart.time_since_epoch() }, std::chrono::duration_cast<std::chrono::microseconds>(scope.CPUEnd - scope.CPUStart), std::this_thread::get_id() });
 	}
 
 	void FrameProfiler::Resolve(FrameQueries& frame)
 	{
 		D3D11_QUERY_DATA_TIMESTAMP_DISJOINT dj = {};
 
-		if (mContext->GetData(frame.Disjoint, &dj, sizeof(dj), 0) != S_OK)
+		if (mContext->GetData(frame.Disjoint, &dj, sizeof(dj), D3D11_ASYNC_GETDATA_DONOTFLUSH) != S_OK)
 			return;
 
 		if (dj.Disjoint || dj.Frequency == 0)
@@ -177,8 +185,8 @@ namespace Toast {
 			if (scope.Mode != ProfileMode::CPUOnly)
 			{
 				UINT64 t0 = 0, t1 = 0;
-				mContext->GetData(frame.Timestamps[scope.BeginQuery], &t0, sizeof(t0), 0);
-				mContext->GetData(frame.Timestamps[scope.EndQuery], &t1, sizeof(t1), 0);
+				mContext->GetData(frame.Timestamps[scope.BeginQuery], &t0, sizeof(t0), D3D11_ASYNC_GETDATA_DONOTFLUSH);
+				mContext->GetData(frame.Timestamps[scope.EndQuery], &t1, sizeof(t1), D3D11_ASYNC_GETDATA_DONOTFLUSH);
 				gpuMs = double(t1 - t0) / double(dj.Frequency) * 1000.0;
 			}
 

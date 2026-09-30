@@ -86,15 +86,10 @@ namespace Toast {
 		mPlanetFrameBuffer.Allocate(mPlanetFrameCBuffer->GetSize());
 		mPlanetFrameBuffer.ZeroInitialize();
 
-		mRenderingSettingsCBuffer = ConstantBufferLibrary::Load("PlanetRenderingSettings", 160, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, (CBufferBindSlot)5), CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)5) });
+		mRenderingSettingsCBuffer = ConstantBufferLibrary::Load("PlanetRenderingSettings", 160, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, (CBufferBindSlot)5), CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)5), CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)11) });
 		mRenderingSettingsCBuffer->Bind();
 		mRenderingSettingsBuffer.Allocate(mRenderingSettingsCBuffer->GetSize());
 		mRenderingSettingsBuffer.ZeroInitialize();
-
-		mTerrainObjectCBuffer = ConstantBufferLibrary::Load("TerrainObject", 48, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_VERTEX_SHADER, (CBufferBindSlot)13) });
-		mTerrainObjectCBuffer->Bind();
-		mTerrainObjectBuffer.Allocate(mTerrainObjectCBuffer->GetSize());
-		mTerrainObjectBuffer.ZeroInitialize();
 
 		// Create texture for Starfield skybox
 		mStarFieldTextureCube = CreateRef<TextureCube>(DXGI_FORMAT_R16G16B16A16_UNORM, DXGI_FORMAT_UNKNOWN, 2048, 2048, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_RENDER_TARGET), 1, 0, 0);

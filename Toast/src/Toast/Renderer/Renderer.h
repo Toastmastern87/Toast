@@ -18,6 +18,7 @@ namespace Toast {
 
 	// Forward Decleration
 	class ParticleSystem;
+	class TerrainObjectSystem;
 
 	class Renderer 
 	{
@@ -238,6 +239,7 @@ namespace Toast {
 			AssetHandle UIShaderHandle = 0;
 
 			Ref<ParticleSystem> Particles;
+			Ref<TerrainObjectSystem> TerrainObjects;
 		};
 
 	protected:
@@ -340,19 +342,6 @@ namespace Toast {
 		static DirectX::XMMATRIX FitOrthoToCornersSnapped(DirectX::XMMATRIX lightView, const DirectX::XMVECTOR cornersWS[8], float border, float zPadNear, uint32_t shadowRes);
 		static void ComputeCSMLightViewProj(const Vector3 camPosWS, Camera* camera, const Quaternion& playerCamRot, float fovYRadians, float aspect, DirectX::XMVECTOR lightDirWS, float cameraNear, const float cascadeEnds[Toast::MaxCascades], uint32_t cascadeCount, float shadowDistance, DirectX::XMMATRIX outLightViewProj[Toast::MaxCascades]);
 
-		//Stats
-		struct Statistics
-		{
-			uint32_t DrawCalls = 0;
-			uint32_t QuadCount = 0;
-
-			uint32_t GetTotalVertexCount() { return QuadCount * 4; }
-			uint32_t GetTotalIndexCount() { return QuadCount * 6; }
-		};
-
-		static Statistics GetStats();
-		static void ResetStats();
-
 		static void GenerateSpecularBRDF();
 
 		static void GeneratePrefilteredEnvMap(Texture* sourceTexture, Ref<TextureCube> targetTexture, int faceIndex);
@@ -374,8 +363,8 @@ namespace Toast {
 		static Ref<ParticleSystem> GetParticleSystem();
 	private:
 		static void UploadCameraCBuffer(Camera& camera, const DirectX::XMFLOAT4 cameraPos);
-		static void BindPlanetTerrainResources(bool bindVertexSRVs, bool bindPixelSRVs);
+		static void BindPlanetTerrainResources(bool bindVertexSRVs, bool bindPixelSRVs, bool bindComputeSRVs);
 
-		static void DrawTerrainObjects(Planet* planet, Vector3 worldTranslation);
+		static void DrawTerrainObjects(Planet* planet);
 	};
 }

@@ -33,7 +33,3 @@ group ""
 group "Tools"
 	include "Toaster"
 group ""
-
-group "Misc"
-	include "Mars"
-group ""

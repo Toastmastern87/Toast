@@ -33,7 +33,7 @@ float SampleCubeBilinear(float3 dir, uint2 dims, uint mip)
 {
     CubeSample cs = DirectionToCube(dir);
     uint face = cs.face;
-    float2 uv = cs.uv;
+    float2 uv = cs.uv; 
 
     float2 p = uv * dims - 0.5f;
     float2 fxy = frac(p);

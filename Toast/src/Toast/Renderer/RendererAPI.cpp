@@ -98,21 +98,25 @@ namespace Toast {
 
 	void RendererAPI::DrawIndexed(const uint32_t baseVertex, const uint32_t baseIndex, const uint32_t indexCount)
 	{
+		++mStatistics.DrawCalls;
 		mDeviceContext->DrawIndexed(indexCount, baseIndex, baseVertex);
 	}
 
 	void RendererAPI::DrawIndexedInstanced(const uint32_t indexCountPerInstance, const uint32_t instanceCount, const uint32_t startIndexLocation, const uint32_t baseVertexLocation, const uint32_t startInstanceLocation)
 	{
+		++mStatistics.DrawCalls;
 		mDeviceContext->DrawIndexedInstanced(indexCountPerInstance, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
 	}
 
 	void RendererAPI::DrawIndexedInstancedIndirect(ID3D11Buffer* argsBuffer, uint32_t alignedByteOffset)
 	{
+		++mStatistics.DrawCalls;
 		mDeviceContext->DrawIndexedInstancedIndirect(argsBuffer, alignedByteOffset);
 	}
 
 	void RendererAPI::Draw(uint32_t count)
 	{
+		++mStatistics.DrawCalls;
 		mDeviceContext->Draw(count, 0);
 	}
 
@@ -130,10 +134,14 @@ namespace Toast {
 	{
 		TOAST_PROFILE_FUNCTION();
 
+		auto presentStart = std::chrono::steady_clock::now();
+
 		if (vSync)
 			mSwapChain->Present(1, 0);
 		else
 			mSwapChain->Present(0, 0);
+
+		mLastPresentMS = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - presentStart).count();
 	}
 
 	void RendererAPI::SetShaderResource(D3D11_SHADER_TYPE shaderType, uint32_t bindSlot, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv)
@@ -231,6 +239,18 @@ namespace Toast {
 		case D3D11_COMPUTE_SHADER:
 			mDeviceContext->CSSetSamplers(bindSlot, 1, &samplerState);
 		}
+	}
+
+	void RendererAPI::MapCBuffer(ID3D11Buffer* buffer, const void* data, uint32_t size)
+	{
+		++mStatistics.ConstantBuffersMaps;
+
+		D3D11_MAPPED_SUBRESOURCE ms;
+		if(FAILED(mDeviceContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms)))
+			return;
+
+		std::memcpy(ms.pData, data, size);
+		mDeviceContext->Unmap(buffer, 0);
 	}
 
 	void RendererAPI::CreateRasterizerStates()

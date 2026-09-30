@@ -132,7 +132,6 @@ namespace Toast {
 		Ref<Mesh> MeshObject;
 
 		uint32_t Seed;
-		int LODActivation = 0;
 
 		// Scatter region around the player
 		float ScatterRadiusMeters = 1000.0f;
@@ -334,6 +333,8 @@ namespace Toast {
 		void SetDistanceLUTDirty() { mDistanceLUTIsDirty = true; }
 
 		int16_t GetMaxSubdivisions() const { return mMaxSubdivisions; }
+
+		Vector3 GetCameraHiPS() { return mCamHiPS; }
 
 		friend class SceneSerializer;
 		friend class PlanetPanel;
@@ -561,8 +562,6 @@ namespace Toast {
 		bool mHeightDetailsDirty = true;
 		uint32_t mLastHeightDetailCount = 0;
 		std::vector<TerrainObject> mTerrainObjects;
-		Ref<ConstantBuffer> mTerrainObjectCBuffer;
-		Buffer mTerrainObjectBuffer;
 
 		// Materials
 		bool mMaterialsEnabled = true;
@@ -731,10 +730,6 @@ namespace Toast {
 		////void UploadHeightDetailsToGPU();
 
 		const std::vector<TerrainObject>& GetTerrainObjects() { return mTerrainObjects; }
-		Ref<ConstantBuffer> GetTerrainObjectCBuffer() { return mTerrainObjectCBuffer; }
-		Buffer& GetTerrainObjectBuffer() { return mTerrainObjectBuffer; }
-
-		uint32_t ObjectInstancesForLevelFromDensity(const TerrainObject& o, uint32_t cellSize, uint32_t gridSize);
 
 		void SetMeshMode(PlanetMeshMode mode) { mMeshMode = mode; }
 		PlanetMeshMode GetMeshMode() const { return mMeshMode; }

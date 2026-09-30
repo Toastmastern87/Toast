@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Toast/Debug/GPUUtilizationProfiler.h"
+
 #include <chrono>
 #include <cstdint>
 #include <string>
@@ -15,7 +17,7 @@ namespace Toast {
 #if TOAST_PROFILE_ENABLED
 #define TOAST_PROFILE(profiler, name)     FrameProfileScope TOAST_CONCAT(frameScope, __LINE__)(profiler, name, ProfileMode::CPUAndGPU)
 #define TOAST_PROFILE_GPU(profiler, name) FrameProfileScope TOAST_CONCAT(frameScope, __LINE__)(profiler, name, ProfileMode::GPUOnly)
-#define TOAST_PROFILE_CPU(profiler, name) FrameProfileScope TOAST_CONCAT(frameScope, __LINE__)(profiler, name, ProfileMode:
+#define TOAST_PROFILE_CPU(profiler, name) FrameProfileScope TOAST_CONCAT(frameScope, __LINE__)(profiler, name, ProfileMode::CPUOnly)
 #else
 #define TOAST_PROFILE(profiler, name)
 #define TOAST_PROFILE_GPU(profiler, name)
@@ -54,6 +56,22 @@ namespace Toast {
 		bool IsEnabled() { return mEnabled; }
 
 		const std::vector<FrameProfilerResult>& GetResults() const { return mResults; }
+
+		double GetFramePeriodMS() const { return mFramePeriodMS; }
+		void SetPresentMS(double ms) { mPresentMS = ms; }
+		double GetPresentMS() const { return mPresentMS; }
+		double GetFlushOverheadMS() const { return mFlushOverheadMS; }
+		double GetGPUUtilizationPercent() const { return mGPUProfiler.GetUtilizationPercent(); }
+
+		void SetStatisticInfo(uint32_t drawCalls, uint32_t constantBufferMaps, uint32_t  meshCommands)
+		{
+			mDrawCalls = drawCalls;
+			mConstantBufferMaps = constantBufferMaps;
+			mMeshCommands = meshCommands;
+		}
+		uint32_t GetDrawCalls() const { return mDrawCalls; }
+		uint32_t GetConstantBufferMaps() const { return mConstantBufferMaps; }
+		uint32_t GetMeshCommands() const { return mMeshCommands; }
 	private:
 		static constexpr uint32_t FRAMECOUNT = 3;
 		static constexpr uint32_t MAXSCOPES = 64;
@@ -90,8 +108,22 @@ namespace Toast {
 
 		bool mEnabled = true;
 
+		std::chrono::steady_clock::time_point mLastFrameStart{};
+		double mFramePeriodMS = 0.0;
+
+		double mPresentMS = 0.0;
+
+		double mFlushAccumMS = 0.0;
+		double mFlushOverheadMS = 0.0;
+
+		GPUUtilizationProfiler mGPUProfiler;
+
 		ID3D11Device* mDevice = nullptr;
 		ID3D11DeviceContext* mContext = nullptr;
+
+		uint32_t mDrawCalls;
+		uint32_t mConstantBufferMaps;
+		uint32_t mMeshCommands;
 
 		std::vector<FrameProfilerResult> mResults;
 	};

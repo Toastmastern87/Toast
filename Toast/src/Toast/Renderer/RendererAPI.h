@@ -9,8 +9,15 @@
 #include <d3d11_1.h>
 #include <dxgi1_6.h> 
 #include <wrl.h>
+#include <chrono>
 
 namespace Toast {
+
+	struct RendererStatistics 
+	{
+		uint32_t DrawCalls = 0;
+		uint32_t ConstantBuffersMaps = 0;
+	};
 
 	class RendererAPI
 	{
@@ -27,6 +34,12 @@ namespace Toast {
 		void DispatchCompute(uint32_t x, uint32_t y, uint32_t z);
 		void DispatchComputeIndirect(ID3D11Buffer* argsBuffer, uint32_t alignedByteOffset);
 		void SwapBuffers(bool vSync);
+
+		double GetLastPresentMS() const { return mLastPresentMS; }
+
+		const RendererStatistics& GetStatistics() const { return mStatistics; }
+		void ResetStatistics() { mStatistics = {}; }
+
 		void SetShaderResource(D3D11_SHADER_TYPE shaderType, uint32_t bindSlot, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
 		void ClearShaderResources();
 		void CopyResource(ID3D11Resource* dest, ID3D11Resource* src);
@@ -46,6 +59,8 @@ namespace Toast {
 		void SetBlendState(Microsoft::WRL::ComPtr<ID3D11BlendState> blendState, const DirectX::XMFLOAT4& blendFactor);
 		void BindSampler(D3D11_SHADER_TYPE shaderType, uint32_t bindSlot, ID3D11SamplerState* samplerState);
 
+		void MapCBuffer(ID3D11Buffer* buffer, const void* data, uint32_t size);
+
 		void GetAnnotation(Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation>& annotation);
 
 		ID3D11Device* GetDevice() { return mDevice.Get(); }
@@ -59,6 +74,10 @@ namespace Toast {
 	private:
 		HWND mWindowHandle;
 		UINT mHeight, mWidth;
+
+		double mLastPresentMS = 0.0;
+
+		RendererStatistics mStatistics;
 
 		Microsoft::WRL::ComPtr<ID3D11Device> mDevice;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> mDeviceContext;

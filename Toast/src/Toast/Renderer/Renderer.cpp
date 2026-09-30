@@ -7,19 +7,11 @@
 
 #include "Toast/Renderer/Renderer2D.h"
 #include "Toast/Renderer/RendererDebug.h"
-
 #include "Toast/Renderer/PlanetSystem.h"
-
 #include "Toast/Renderer/SamplerStates.h"
+#include "Toast/Renderer/TerrainObjectSystem.h"
 
 namespace Toast {
-
-	struct RendererStat
-	{
-		Renderer::Statistics Stats;
-	};
-
-	static RendererStat sData;
 
 	Scope<Renderer::RendererData> Renderer::sRendererData = CreateScope<Renderer::RendererData>();
 
@@ -36,6 +28,10 @@ namespace Toast {
 		sRendererData->Particles = CreateRef<ParticleSystem>();
 		if (!sRendererData->Particles->Init())
 			TOAST_CORE_ASSERT(false, "Failed to initialize the GPU particle system!");
+
+		sRendererData->TerrainObjects = CreateRef<TerrainObjectSystem>();
+		if (!sRendererData->TerrainObjects->Init())
+			TOAST_CORE_ASSERT(false, "Failed to initialize the terrain object scatter system!");
 
 #if TOAST_PROFILE_ENABLED
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
@@ -384,8 +380,12 @@ namespace Toast {
 
 #if TOAST_PROFILE_ENABLED
 		sRendererData->FrameProfiler->BeginFrame();
-#endif
+		sRendererData->FrameProfiler->SetPresentMS(RenderCommand::sRendererAPI->GetLastPresentMS());
 
+		const RendererStatistics& statistics = RenderCommand::sRendererAPI->GetStatistics();
+		sRendererData->FrameProfiler->SetStatisticInfo(statistics.DrawCalls, statistics.ConstantBuffersMaps, (uint32_t)sRendererData->MeshDrawList.size());
+#endif
+		RenderCommand::sRendererAPI->ResetStatistics();
 		sRendererData->Wireframe = wireFrame;
 
 		// Updating the camera data in the buffer and mapping it to the GPU
@@ -1093,7 +1093,7 @@ namespace Toast {
 				sRendererData->PlanetDraw.Planet->GetIcosphereMesh()->GetShaderInputLayout()->Bind();
 			}
 
- 			BindPlanetTerrainResources(true, true);
+ 			BindPlanetTerrainResources(true, true, false);
 
 			sRendererData->PlanetDraw.Planet->MapRenderingSettings();
 			sRendererData->PlanetDraw.Planet->GetPlanetRenderingSettingsCBuffer()->Bind();
@@ -1185,9 +1185,14 @@ namespace Toast {
 
 		RenderCommand::ClearShaderResources();
 
+		if (sRendererData->PlanetDraw.Planet && !sRendererData->PlanetDraw.Planet->GetTerrainObjects().empty())
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "TerrainScatter");
+			BindPlanetTerrainResources(false, false, true);
+			sRendererData->TerrainObjects->Scatter(sRendererData->PlanetDraw.Planet.get(), worldTranslation);
+		}
+
 		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::LinearWrap));
-		if(sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture())
-			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
 
 		auto shader = AssetManager::GetAsset<Shader>(sRendererData->GeometryPassShaderHandle);
 		if (shader)
@@ -1201,15 +1206,7 @@ namespace Toast {
 			{
 				TOAST_PROFILE(*sRendererData->FrameProfiler, "TerrainObjects");
 
-				BindPlanetTerrainResources(true, false);
-
-				auto& icosphereMesh = planet->GetIcosphereMesh();
-				icosphereMesh->GetPlanetMeshCBuffer()->Bind();
-				planet->GetPlanetFrameCBuffer()->Bind();
-
-				RenderCommand::BindSampler(D3D11_VERTEX_SHADER, 6, SamplerStates::Get(SamplerType::UWrapVClamp));
-
-				DrawTerrainObjects(planet, worldTranslation);
+				DrawTerrainObjects(planet);
 			}
 		}
 
@@ -2447,6 +2444,8 @@ namespace Toast {
 			"assets/shaders/Rendering/ParticleFinalize.hlsl",
 			"assets/shaders/Rendering/HoverTint.hlsl",
 			"assets/shaders/Rendering/GuidanceMarker.hlsl",
+			"assets/shaders/Rendering/TerrainScatterKickoff.hlsl",
+			"assets/shaders/Rendering/TerrainScatter.hlsl",
 			"assets/shaders/Debug/ObjectMask.hlsl",
 			"assets/shaders/Debug/Outline.hlsl",
 
@@ -2514,6 +2513,7 @@ namespace Toast {
 		sRendererData->ParticlesSimulateShaderHandle = AssetManager::GetEngineShaderHandle("ParticleSimulate");
 		sRendererData->ParticlesFinalizeShaderHandle = AssetManager::GetEngineShaderHandle("ParticleFinalize");
 		sRendererData->Particles->LoadShaders();
+		sRendererData->TerrainObjects->LoadShaders();
 		sRendererData->GodRaysShaderHandle = AssetManager::GetEngineShaderHandle("GodRays");
 		sRendererData->BloomShaderHandle = AssetManager::GetEngineShaderHandle("Bloom");
 		sRendererData->BloomDownSampleShaderHandle = AssetManager::GetEngineShaderHandle("BloomDownSample");
@@ -2529,11 +2529,6 @@ namespace Toast {
 		sRendererData->EnvironmentMipFilterShaderHandle = AssetManager::GetEngineShaderHandle("EnvironmentMipFilter");
 		sRendererData->EnvironmentIrradianceShaderHandle = AssetManager::GetEngineShaderHandle("EnvironmentIrradiance");
 		sRendererData->UIShaderHandle = AssetManager::GetEngineShaderHandle("UI");
-	}
-
-	void Renderer::ResetStats()
-	{
-		memset(&sData.Stats, 0, sizeof(Statistics));
 	}
 
 	void Renderer::GenerateSpecularBRDF()
@@ -2552,11 +2547,6 @@ namespace Toast {
 
 		RenderCommand::DispatchCompute(sRendererData->SpecularBRDFLUT->GetWidth() / 32, sRendererData->SpecularBRDFLUT->GetHeight() / 32, 1);
 		sRendererData->SpecularBRDFLUT->UnbindUAV();
-	}
-
-	Renderer::Statistics Renderer::GetStats()
-	{
-		return sData.Stats;
 	}
 
 	void Renderer::GeneratePrefilteredEnvMap(Texture* sourceTexture, Ref<TextureCube> targetTexture, int faceIndex)
@@ -2881,10 +2871,13 @@ namespace Toast {
 		sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 	}
 
-	void Renderer::BindPlanetTerrainResources(bool bindVertexSRVs, bool bindPixelSRVs)
+	void Renderer::BindPlanetTerrainResources(bool bindVertexSRVs, bool bindPixelSRVs, bool bindComputeSRVs)
 	{
 		if(sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture())
 			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
+
+		if(bindComputeSRVs && sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture())
+			RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, sRendererData->PlanetDraw.Planet->GetHeightMapCubeTexture()->GetSRV());
 
 		if (sRendererData->PlanetDraw.Planet->GetNumMaterials() > 0 && sRendererData->PlanetDraw.Planet->GetMaterialSB() && sRendererData->PlanetDraw.Planet->GetMaterialNoiseSB() && sRendererData->PlanetDraw.Planet->GetMaterialNoisePermSB())
 		{
@@ -2901,6 +2894,14 @@ namespace Toast {
 			{
 				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->PlanetDraw.Planet->GetMaterialSB()->GetSRV());
 				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->PlanetDraw.Planet->GetMaterialNoisePermSB()->GetSRV());
+			}
+
+			if (bindComputeSRVs)
+			{
+				RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 1, sRendererData->PlanetDraw.Planet->GetMaterialSB()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 2, sRendererData->PlanetDraw.Planet->GetMaterialNoiseSB()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 3, sRendererData->PlanetDraw.Planet->GetMaterialNoisePermSB()->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 4, sRendererData->PlanetDraw.Planet->GetAlbedoCubeTexture()->GetSRV());
 			}
 		}
 
@@ -2930,15 +2931,18 @@ namespace Toast {
 		sRendererData->PlanetDraw.Planet->GetPlanetFrameCBuffer()->Bind();
 	}
 
-	void Renderer::DrawTerrainObjects(Planet* planet, Vector3 worldTranslation)
+	void Renderer::DrawTerrainObjects(Planet* planet)
 	{
 		const auto& objects = planet->GetTerrainObjects();
 		if (objects.empty())
 			return;
 
-		Vector3 playerOffsetWS = -worldTranslation;
-		float playerTangentEast = (float)Vector3::Dot(playerOffsetWS, planet->GetBasisTanEast());
-		float playerTangentNorth = (float)Vector3::Dot(playerOffsetWS, planet->GetBasisTanNorth());
+		// Two different things with similar names:
+		//   objects      - the planet's TerrainObject config (WHAT to scatter),
+		//                  edited from the PlanetPanel.
+		//   objectSystem - the GPU side (WHERE this frame's instances are):
+		//                  per-type instance buffers + indirect args.
+		auto& objectSystem = sRendererData->TerrainObjects;
 
 		// ModelCB: force instanced branch in your generic GPass VS
 		{
@@ -2956,32 +2960,16 @@ namespace Toast {
 			sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
 		}
 
-		for (const TerrainObject& object : objects)
+		const uint32_t typeCount = std::min((uint32_t)objects.size(), (uint32_t)MAX_TERRAIN_OBJECT_TYPES);
+
+		for (uint32_t t = 0; t < typeCount; ++t)
 		{
-			if (!object.MeshObject)
+			const TerrainObject& object = objects[t];
+
+			if (!object.MeshObject || object.CandidateGridSize == 0)
 				continue;
 
-			// Fill per-layer CB (b13)
-			auto& buffer = planet->GetTerrainObjectBuffer();
-			buffer.Write((uint8_t*)&object.Seed, 4, 0);
-			buffer.Write((uint8_t*)&object.LODActivation, 4, 4);
-			buffer.Write((uint8_t*)&object.MinScale, 4, 8);
-			buffer.Write((uint8_t*)&object.MaxScale, 4, 12);
-
-			// Row 1 (16 bytes)
-			buffer.Write((uint8_t*)&object.ScatterRadiusMeters, 4, 16);
-			buffer.Write((uint8_t*)&object.CandidateGridSize, 4, 20);
-			buffer.Write((uint8_t*)&object.DensityProb, 4, 24);
-			buffer.Write((uint8_t*)&playerTangentEast, 4, 28);
-			// 4 bytes padding at offset 28
-
-			// Row 2 (16 bytes)
-			buffer.Write((uint8_t*)&playerTangentNorth, 4, 32);
-
-			planet->GetTerrainObjectCBuffer()->Map(buffer);
-			planet->GetTerrainObjectCBuffer()->Bind(); // b13
-
-			Ref<Material> material = AssetManager::GetAsset<Material>(object.MeshObject->GetSubmeshes(0)[0].MaterialHandle);
+			Ref <Material> material = AssetManager::GetAsset <Material>(object.MeshObject->GetSubmeshes(0)[0].MaterialHandle);
 			if (!material)
 			{
 				TOAST_CORE_WARN("Renderer: material handle %llu failed to resolve, skipping submesh", (uint64_t)object.MeshObject->GetSubmeshes(0)[0].MaterialHandle);
@@ -3006,15 +2994,11 @@ namespace Toast {
 			if (material->GetUseMetalRough())
 				RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, AssetManager::GetAsset<Texture2D>(material->GetMetalRoughAssetHandle())->GetSRV());
 
-			// Bind mesh + material like your normal path (important!)
-			// If your Mesh::Bind() does not bind material SRVs, do it here.
 			object.MeshObject->Bind(0);
 
-			uint32_t candidateCount = object.CandidateGridSize * object.CandidateGridSize;
+			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, objectSystem->GetInstanceBuffer(t)->GetSRV());
 
-			// Start with LOD0 group submesh 0 (same assumption you used previously)
-			const auto& sub = object.MeshObject->mLODGroups[0]->Submeshes[0];
-			RenderCommand::DrawIndexedInstanced(sub.IndexCount, candidateCount, sub.BaseIndex, 0, 0);
+			RenderCommand::DrawIndexedInstancedIndirect(objectSystem->GetIndirectArgs(), objectSystem->GetArgsOffset(t));
 		}
 	}
 

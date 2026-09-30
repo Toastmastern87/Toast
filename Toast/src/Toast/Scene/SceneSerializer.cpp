@@ -1082,8 +1082,6 @@ namespace Toast {
 			out << YAML::Key << "Name" << YAML::Value << obj.Name;
 			out << YAML::Key << "Seed" << YAML::Value << obj.Seed;
 
-			out << YAML::Key << "LODActivation" << YAML::Value << obj.LODActivation;
-
 			out << YAML::Key << "ScatterRadiusMeters" << YAML::Value << obj.ScatterRadiusMeters;
 			out << YAML::Key << "CandidateGridSize" << YAML::Value << obj.CandidateGridSize;
 			out << YAML::Key << "DensityProb" << YAML::Value << obj.DensityProb;
@@ -1516,8 +1514,6 @@ namespace Toast {
 
 				obj.Name = node["Name"].as<std::string>();
 				obj.Seed = node["Seed"].as<uint32_t>();
-
-				obj.LODActivation = node["LODActivation"].as<int>();
 
 				obj.ScatterRadiusMeters = node["ScatterRadiusMeters"].as<float>();
 				obj.CandidateGridSize = node["CandidateGridSize"].as<uint32_t>();

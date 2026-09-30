@@ -54,6 +54,7 @@ project "Toast"
 		"dxguid.lib",
 		"yaml-cpp",
 		"msdf-atlas-gen",
+		"%{Library.PDH}",
 		"%{Library.directxtex}",
 		"%{Library.mono}",
 		"%{Library.WinSock}",
