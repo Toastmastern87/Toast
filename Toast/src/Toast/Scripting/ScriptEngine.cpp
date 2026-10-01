@@ -6,6 +6,7 @@
 #include <mono/jit/jit.h>
 #include <mono/metadata/assembly.h>
 #include <mono/metadata/tabledefs.h>
+#include <mono/metadata/loader.h>
 
 #include "FileWatch.h"
 
@@ -38,6 +39,40 @@ namespace Toast {
 
 	namespace Utils 
 	{
+
+		static bool IsInvokableMethod(MonoMethod* method)
+		{
+			uint32_t flags = mono_method_get_flags(method, nullptr);
+
+			if ((flags & METHOD_ATTRIBUTE_MEMBER_ACCESS_MASK) != METHOD_ATTRIBUTE_PUBLIC)
+				return false;
+
+			if (flags & (METHOD_ATTRIBUTE_STATIC | METHOD_ATTRIBUTE_SPECIAL_NAME))
+				return false;
+
+			MonoMethodSignature* signature = mono_method_signature(method);
+			if (mono_signature_get_param_count(signature) != 0)
+				return false;
+
+			// OnUpdate and OnEvent is already excluded by parameter account, this checks OnCreate
+			return strcmp(mono_method_get_name(method), "OnCreate") != 0;
+		}
+
+		static void LogManagedException(MonoObject* exception, const std::string& className, MonoMethod* method)
+		{
+			MonoString* description = mono_object_to_string(exception, nullptr);
+			if (!description)
+			{
+				TOAST_CORE_ERROR("[Script]: %s.%s threw (description unavailable)", className.c_str(), mono_method_get_name(method));
+				return;
+			}
+
+			char* utf8 = mono_string_to_utf8(description);
+			TOAST_CORE_ERROR("[Script] %s.%s threw: %s", className.c_str(), mono_method_get_name(method), utf8);
+			mono_free(utf8);
+
+			return;
+		}
 
 		static MonoAssembly* LoadMonoAssembly(const std::filesystem::path& assemblyPath)
 		{
@@ -373,6 +408,27 @@ namespace Toast {
 		instance->InvokeOnEvent(scriptEvent);
 	}
 
+	bool ScriptEngine::InvokeEntityMethod(Entity entity, const std::string& methodName)
+	{
+		if (!sData->GameDLLLoaded)
+			return false;
+
+		Ref<ScriptInstance> instance = GetEntityScriptInstance(entity.GetUUID());
+		if (!instance)
+		{
+			TOAST_CORE_WARN("[ScriptEngine] Entity '%llu' has no script instance - cannot call '%s'", (uint64_t)entity.GetUUID(), methodName.c_str());
+			return false;
+		}
+
+		if (!instance->InvokeMethodByName(methodName))
+		{
+			TOAST_CORE_WARN("[ScriptEngine] No public no-argument method '%s', on entity '%llu'", methodName.c_str(), (uint64_t)entity.GetUUID());
+			return false;
+		}
+
+		return true;
+	}
+
 	std::filesystem::path ScriptEngine::GetGameAssemblyPath(const std::filesystem::path& projectRoot, const std::string& projectNamespace)
 	{
 		return projectRoot / "Binaries" / (projectNamespace + ".dll");
@@ -398,6 +454,14 @@ namespace Toast {
 			return nullptr;
 
 		return sData->EntityClasses.at(name);
+	}
+
+	Ref<ScriptClass> ScriptEngine::GetEntityScriptClass(Entity entity)
+	{
+		if (!entity.HasComponent<ScriptComponent>())
+			return nullptr;
+
+		return GetEntityClass(entity.GetComponent<ScriptComponent>().ClassName);
 	}
 
 	const std::unordered_map<std::string, Ref<ScriptClass>>& ScriptEngine::GetEntityClasses()
@@ -481,6 +545,18 @@ namespace Toast {
 
 					scriptClass->mFields[fieldName] = { fieldName, fieldType, field };
 				}
+			}
+
+			void* methodIterator = nullptr;
+			while (MonoMethod* method = mono_class_get_methods(monoClass, &methodIterator))
+			{
+				if (!Utils::IsInvokableMethod(method))
+					continue;
+
+				const char* methodName = mono_method_get_name(method);
+				scriptClass->mMethods[methodName] = method;
+
+				TOAST_CORE_WARN("	%s()", methodName);
 			}
 
 			//mono_field_get_value()
@@ -770,8 +846,15 @@ namespace {NAMESPACE}
 	{
 		MonoObject* monoObject = mono_gchandle_get_target(instance);
 		MonoObject* exception = nullptr;
-		return mono_runtime_invoke(method, monoObject, params, &exception);
+		MonoObject* result = mono_runtime_invoke(method, monoObject, params, &exception);
 
+		if (exception)
+		{
+			Utils::LogManagedException(exception, mClassName, method);
+			return nullptr;
+		}
+
+		return result;
 	}
 
 	ScriptInstance::ScriptInstance(Ref<ScriptClass> scriptClass, Entity entity)
@@ -818,6 +901,17 @@ namespace {NAMESPACE}
 			return false;
 
 		return *(bool*)mono_object_unbox(result);
+	}
+
+	bool ScriptInstance::InvokeMethodByName(const std::string& methodName)
+	{
+		const auto& methods = mScriptClass->GetMethods();
+		auto it = methods.find(methodName);
+		if (it == methods.end())
+			return false;
+
+		mScriptClass->InvokeMethod(mInstance, it->second);
+		return true;
 	}
 
 	MonoObject* ScriptInstance::GetManagedObject()

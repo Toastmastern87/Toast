@@ -81,11 +81,15 @@ namespace Toast {
 		MonoObject* InvokeMethod(uint32_t instance, MonoMethod* method, void** params = nullptr);
 
 		const std::unordered_map<std::string, ScriptField>& GetFields() const { return mFields; }
+
+		const std::map<std::string, MonoMethod*>& GetMethods() const { return mMethods; }
 	private:
 		std::string mClassNamespace;
 		std::string mClassName;
 
 		std::unordered_map<std::string, ScriptField> mFields;
+
+		std::map<std::string, MonoMethod*> mMethods;
 
 		MonoClass* mMonoClass = nullptr;
 
@@ -100,6 +104,7 @@ namespace Toast {
 		void InvokeOnCreate();
 		void InvokeOnUpdate(float ts);
 		bool InvokeOnEvent(const ScriptEvent& scriptEvent);
+		bool InvokeMethodByName(const std::string& methodName);
 
 		Ref<ScriptClass> GetScriptClass() { return mScriptClass; }
 
@@ -164,6 +169,7 @@ namespace Toast {
 		static void OnCreateEntityWithClass(Entity entity, const std::string& className);
 		static void OnUpdateEntity(Entity entity, Timestep ts);
 		static bool OnEventEntity(Entity entity, const ScriptEvent& scriptEvent);
+		static bool InvokeEntityMethod(Entity entity, const std::string& methodName);
 
 		static std::filesystem::path GetGameAssemblyPath(const std::filesystem::path& projectRoot, const std::string& projectNamespace);
 
@@ -171,6 +177,7 @@ namespace Toast {
 		static Ref<ScriptInstance> GetEntityScriptInstance(UUID entityID);
 
 		static Ref<ScriptClass> GetEntityClass(const std::string& name);
+		static Ref<ScriptClass> GetEntityScriptClass(Entity entity);
 		// Returns all entity classes found in the loaded app assembly.
 		static const std::unordered_map<std::string, Ref<ScriptClass>>& GetEntityClasses();
 		static ScriptFieldMap& GetScriptFieldMap(Entity entity);

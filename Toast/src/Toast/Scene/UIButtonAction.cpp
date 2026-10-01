@@ -3,6 +3,8 @@
 
 #include "Toast/Scene/Entity.h"
 
+#include "Toast/Scripting/ScriptEngine.h"
+
 namespace Toast {
 
 	const char* UIButtonActionTypeToString(UIButtonActionType type)
@@ -21,6 +23,8 @@ namespace Toast {
 			return "SetUIButtonToggled";
 		case UIButtonActionType::SetTimeScale:
 			return "SetTimeScale";
+		case UIButtonActionType::CallScriptMethod:
+			return "CallScriptMethod";
 		}
 
 		return "None";
@@ -38,6 +42,8 @@ namespace Toast {
 			return UIButtonActionType::SetUIButtonToggled;
 		if (str == "SetTimeScale")
 			return UIButtonActionType::SetTimeScale;
+		if (str == "CallScriptMethod")
+			return UIButtonActionType::CallScriptMethod;
 
 		return UIButtonActionType::None;
 	}
@@ -53,6 +59,8 @@ namespace Toast {
 			return entity.HasComponent<MeshComponent>();
 		case UIButtonActionType::SetUIButtonToggled:
 			return entity.HasComponent<UIButtonComponent>();
+		case UIButtonActionType::CallScriptMethod:
+			return entity.HasComponent<ScriptComponent>();
 		default:
 			return true;
 		}
@@ -182,11 +190,63 @@ namespace Toast {
 				scene->SetTimeScale(FloatParam);
 				break;
 			}
-			default:
+			case UIButtonActionType::CallScriptMethod:
 			{
-				TOAST_CORE_WARN("ExecuteUIButtonAction: unhandled action type '%s'", UIButtonActionTypeToString(Type));
+				Entity target = ResolveTarget(scene);
+				if (!target)
+					break;
+
+				if (StringParam.empty())
+				{
+					TOAST_CORE_WARN("UIButtonAction '%s': no method selected", StringParam.c_str());
+					break;
+				}
+
+				ScriptEngine::InvokeEntityMethod(target, StringParam);
 				break;
 			}
+			default:
+			{
+				TOAST_CORE_WARN("ExecuteUIButtonAction '%s': no method selected", Name.c_str());
+				break;
+			}
+		}
+	}
+
+	void UIButtonAction::Validate(Scene* scene) const
+	{
+		switch (Type)
+		{
+		case UIButtonActionType::CallScriptMethod:
+		{
+			Entity target = ResolveTarget(scene);
+			if (!target)
+				return;
+
+			if (StringParam.empty())
+			{
+				TOAST_CORE_WARN("UIButtonAction '%s': no method selected", StringParam.c_str());
+				break;
+			}
+
+			Ref<ScriptClass> scriptClass = ScriptEngine::GetEntityScriptClass(target);
+			if (!scriptClass)
+			{
+				TOAST_CORE_WARN("UIButtonAction '%s': target has no compiled script", StringParam.c_str());
+				break;
+			}
+
+			const auto& methods = scriptClass->GetMethods();
+			if (methods.find(StringParam) == methods.end())
+			{
+				const std::string& className = target.GetComponent<ScriptComponent>().ClassName;
+				TOAST_CORE_WARN("UIButtonAction '%s': method '%s' no longer exists on '%s'", Name.c_str(), StringParam.c_str(), className.c_str());
+			}
+
+			return;
+		}
+		default:
+			return;
 		}
 	}
 

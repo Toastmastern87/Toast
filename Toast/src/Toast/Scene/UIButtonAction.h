@@ -17,6 +17,7 @@ namespace Toast {
 		StopAnimation = 3,
 		SetUIButtonToggled = 4,
 		SetTimeScale = 5,
+		CallScriptMethod = 6,
 	};
 
 	struct UIButtonAction 
@@ -30,6 +31,8 @@ namespace Toast {
 
 		Entity ResolveTarget(Scene* scene) const;
 		void Execute(Scene* scene) const;
+
+		void Validate(Scene* scene) const;
 	};
 
 	const char* UIButtonActionTypeToString(UIButtonActionType type);

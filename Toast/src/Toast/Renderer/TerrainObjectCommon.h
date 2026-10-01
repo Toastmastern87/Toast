@@ -20,7 +20,8 @@ namespace Toast {
 	{
 		DirectX::XMFLOAT3 PositionCR;
 		float Scale;
-		DirectX::XMFLOAT3 RotationQuat;
+		DirectX::XMFLOAT4 RotationQuat;
 	};
+	static_assert(sizeof(TerrainInstanceGPU) == 32, "TerrainInstanceGPU must match the HLSL TerrainInstance (32 bytes)");
 
 }

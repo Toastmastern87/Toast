@@ -1,6 +1,6 @@
 Scene: Mars
 EditorCamera:
-  Position: [172.156647, 68.1332474, -344.48999]
+  Position: [109.590805, 64.1330872, -271.069397]
 Settings:
   Wireframe: 0
   Grid: false
@@ -320,7 +320,6 @@ Planet:
   TerrainObjects:
     - Name: Stones
       Seed: 1091646983
-      LODActivation: 3
       ScatterRadiusMeters: 1000
       CandidateGridSize: 256
       DensityProb: 0.0500000007
@@ -503,6 +502,13 @@ Entities:
       StateTexture3: 7193356289455006280
       StyleSheet: 10780919633036840019
       StyleOverrides: 1776
+      Actions:
+        - Name: RequestDeorbit
+          Type: CallScriptMethod
+          TargetEntity: 11328469722289647653
+          StringParam: RequestDeorbit
+          BoolParam: false
+          FloatParam: 0
   - Entity: 13015576713509517265
     TagComponent:
       Tag: LandButton

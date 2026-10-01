@@ -156,7 +156,7 @@ namespace Toast {
 	void Scene::OnRuntimeStart()
 	{
 		// Scripting
-		if(ScriptEngine::IsGameDLLLoaded())
+		if (ScriptEngine::IsGameDLLLoaded())
 		{
 			ScriptEngine::OnRuntimeStart(this);
 
@@ -167,6 +167,14 @@ namespace Toast {
 				Entity e = { entity, this };
 				const auto& sc = e.GetComponent<ScriptComponent>();
 				ScriptEngine::OnCreateEntityWithClass(e, sc.ClassName);
+			}
+
+			auto buttonView = mRegistry.view<UIButtonComponent>();
+			for (auto entity : buttonView)
+			{
+				const auto& button = buttonView.get<UIButtonComponent>(entity);
+				for (const UIButtonAction& action : button.Actions)
+					action.Validate(this);
 			}
 
 			// Instantiate all scene script entities

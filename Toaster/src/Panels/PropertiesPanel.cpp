@@ -1825,7 +1825,7 @@ namespace Toast {
 				for (uint32_t stateIndex = 0; stateIndex < (uint32_t)UIState::Count; stateIndex++)
 				{
 					auto& stateStyle = component.States[stateIndex];
-					const UIState state = (UIState)stateIndex;
+					const UIState state = (UIState)stateIndex; 
 
 					const uint32_t imageBit = StatePropBit(UIStyleProp_BackgroundImage, state);
 					const uint32_t colorBit = StatePropBit(UIStyleProp_Background, state);
@@ -2053,6 +2053,7 @@ namespace Toast {
 						UIButtonActionType::StopAnimation,
 						UIButtonActionType::SetUIButtonToggled,
 						UIButtonActionType::SetTimeScale,
+						UIButtonActionType::CallScriptMethod,
 					};
 
 					if (ImGui::BeginCombo("Type", UIButtonActionTypeToString(sEditBuffer.Type)))
@@ -2116,6 +2117,49 @@ namespace Toast {
 
 							if (ImGui::IsItemHovered())
 								ImGui::SetTooltip("1.0 = normal speed, 0.0 = paused");
+
+							break;
+						}
+						case UIButtonActionType::CallScriptMethod:
+						{
+							Entity target = sEditBuffer.TargetEntity != 0 ? mScene->FindEntityByUUID(sEditBuffer.TargetEntity) : Entity{};
+							Ref<ScriptClass> scriptClass = target ? ScriptEngine::GetEntityScriptClass(target) : nullptr;
+
+							if (!scriptClass)
+							{
+								ImGui::TextDisabled("Pick an entity with a compiled script");
+								break;
+							}
+
+							const auto& methods = scriptClass->GetMethods();
+							if (methods.empty())
+							{
+								ImGui::TextDisabled("Script has no public methods without parameter");
+								break;
+							}
+
+							const bool hasName = !sEditBuffer.StringParam.empty();
+							const bool missing = hasName && methods.find(sEditBuffer.StringParam) == methods.end();
+							const char* preview = hasName ? sEditBuffer.StringParam.c_str() : "(select method)";
+
+							if (ImGui::BeginCombo("Method", preview))
+							{
+								for (const auto& [methodName, method] : methods)
+								{
+									const bool selected = (sEditBuffer.StringParam == methodName);
+
+									if (ImGui::Selectable(methodName.c_str(), selected))
+										sEditBuffer.StringParam = methodName;
+
+									if (selected)
+										ImGui::SetItemDefaultFocus();
+								}
+
+								ImGui::EndCombo();
+							}
+
+							if (missing)
+								ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "'%s' not found on the script", sEditBuffer.StringParam.c_str());
 
 							break;
 						}

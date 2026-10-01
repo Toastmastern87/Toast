@@ -133,7 +133,7 @@ namespace TheNextFrontier
         private CargoState mCargoState = CargoState.None;
 
         void OnCreate()
-        {
+        {       	
             mStarship = this;
             mRS1 = FindChildEntityByName(this.Name, "RaptorSea1");
             mRS2 = FindChildEntityByName(this.Name, "RaptorSea2");
@@ -744,5 +744,10 @@ namespace TheNextFrontier
             mHeaderVent1.Emitting = headerVenting;
             mHeaderVent2.Emitting = headerVenting;
         }
+        
+         public void RequestDeorbit() 
+         { 
+         	Toast.Console.LogInfo("Deorbit requested!");
+         }
     }
 }
