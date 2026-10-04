@@ -51,57 +51,6 @@ cbuffer IcospherePlanet : register(b2)
     float3 planetCenterRelLoWS;
 };
 
-cbuffer PlanetRenderingSettings : register(b5)
-{
-    int MaterialCount;
-    uint MaterialsEnabled;
-    float PBRColorDominance;
-    float ColorNoiseFrequency;
-    
-    float ColorNoiseStrength;
-    int ColorNoiseOctaves;    
-    float WallEnhancementEnabled;
-    float WallStrength;
-    
-    float WallStepMeters;
-    float WallSlopeStart;
-    float WallSlopeEnd;
-    float WallSharpStart;
-    
-    float WallSharpEnd;
-    float WallMaxDelta;
-    float WallDebugEnabled;
-    float WallDebugMode;
-    
-    float TerrainNormalStepMeters;
-    float ErosionEnabled;
-    float ErosionStrength;
-    float ErosionStepMeters;
-    
-    float ErosionTilingMeters;
-    float ErosionSlopeStart;
-    float ErosionSlopeFull;
-    float ErosionSlopeEnd;
-    
-    float ErosionSlopeFadeOut;
-    int ErosionOctaves;
-    float ErosionLacunarity;
-    float ErosionPersistence;
-    
-    float ErosionDebugEnabled;
-    int ErosionDebugMode;
-    float ErosionGullyWeight;
-    float ErosionDetail;
-    
-    float ErosionCellScale; 
-    float ErosionNormalization;
-    float ErosionAssumedSlope;
-    float ErosionAssumedSlopeBlend;
-    
-    float ErosionMaxDistance;
-    float ErosionFadeStart;
-    float pad0, pad1;
-};
 
 struct VertexInputType
 {
@@ -117,6 +66,9 @@ struct VertexInputType
     float3 P1RelHi          : TEXCOORD2;
     
     float3 PatchOriginPS    : TEXCOORD4;
+    
+    uint vertexID           : SV_VertexID;
+    uint instanceID         : SV_InstanceID;
 };
 
 struct PixelInputType
@@ -134,110 +86,19 @@ struct PixelInputType
     float ErosionDeltaDebug     : TEXCOORD7;
 };
 
-struct MaterialData
+struct PlanetBakedVertex
 {
-    // 16 bytes
-    float SlopeMin;
-    float SlopeMax;
-    float BlendSharpness;
-    int NoiseLayerStart;
-
-    // 16 bytes
-    int NoiseLayerCount;
-    float UVTilingScale;
-    float ColorAvgMin;
-    float ColorAvgMax;
-
-    // 16 bytes
-    float UseAlbedo;
-    float3 DebugColor; 
+    float3 NormalPS;
+    float Height;
+    uint3 PackedDebug;
+    uint Pad;
 };
 
-struct NoiseLayerData
-{
-    // 16 bytes
-    int Type; // 0=Fractal, 1=Ridged, 2=Turbulence
-    int LODActivation;
-    int Octaves;
-    int PermBase;
-
-    // 16 bytes
-    float Frequency;
-    float Amplitude;
-    float Lacunarity;
-    float Persistence;
-
-    // 16 bytes
-    float BlendWeight;
-    float RadialFrequencyScale;
-    float RidgeSharpness;
-    float pad0;
-};
-
-Texture2DArray<float> HeightCubeArray           : register(t0);
-StructuredBuffer<MaterialData> Materials        : register(t1);
-StructuredBuffer<NoiseLayerData> NoiseLayers    : register(t2);
-StructuredBuffer<int4> PermTables               : register(t3);
-Texture2DArray<float4> AlbedoCubeArray          : register(t4);
-
-SamplerState HeightMapSampler                   : register(s5);
-
-#include "DirectionToCube.hlsli"
-#include "PerlinNoise.hlsli"
-#include "PlanetTerrainHelpers.hlsli"
-
-float SampleNormalHeight(float3 dir)
-{
-    float h = SampleHeightMetres(dir);
-
-    float wallMask = 0.0;
-    float wallBoost = ComputeWallSteepenBoost(dir, h, wallMask);
-    h += wallBoost;
-
-#if TERRAIN_NORMAL_INCLUDES_EROSION
-
-    float erosionMask = 0.0;
-    float erosionPattern = 0.0;
-
-    float erosionDelta = ComputeRuneStyleErosion(dir, h, erosionMask, erosionPattern);
-
-    h += erosionDelta;
-
-#endif
-
-    return h;
-}
-
-float3 ComputeTerrainNormalPS(float3 dir, int currentLOD, uint matCount, float slope, float colorAvg, float3 baseNormal)
-{
-    float3 tanU, tanV;
-    BuildSphereTangents(dir, tanU, tanV);
-
-    float normalStepMeters = max(TerrainNormalStepMeters, 10.0);
-    float angularStep = normalStepMeters / planetRadius;
-
-    float3 dirU = normalize(dir + tanU * angularStep);
-    float3 dirV = normalize(dir + tanV * angularStep);
-
-    float hC = SampleNormalHeight(dir);
-    float hU = SampleNormalHeight(dirU);
-    float hV = SampleNormalHeight(dirV);
-
-    float3 pC = dir * (planetRadius + hC);
-    float3 pU = dirU * (planetRadius + hU);
-    float3 pV = dirV * (planetRadius + hV);
-
-    float3 N = normalize(cross(pU - pC, pV - pC));
-
-    if (dot(N, dir) < 0.0)
-        N = -N;
-
-    return N;
-}
+StructuredBuffer<PlanetBakedVertex> BakedVertices   : register(t5);
 
 PixelInputType main(VertexInputType input)
 {
-    PixelInputType o;
+    PixelInputType output;
 
     // Triangular grid barycentrics
     uint N = 1u << (uint) patchLevels;
@@ -252,16 +113,9 @@ PixelInputType main(VertexInputType input)
     uint k = N - i - j;
 
     float invN = exp2(-(float) patchLevels);
-    float wi = (float) i * invN;
-    float wj = (float) j * invN;
-    float wk = (float) k * invN;
-
-    // IMPORTANT: map weights consistently to corners.
-    // You must ensure (i,j,k) correspond to (V1,V2,V0) or similar consistently.
-    // Pick ONE mapping and keep it everywhere.
-    float w0 = wk; // for V0
-    float w1 = wi; // for V1
-    float w2 = wj; // for V2
+    float w0 = (float) k * invN;
+    float w1 = (float) i * invN;
+    float w2 = (float) j * invN;
 
     float3 V0 = normalize(input.V0);
     float3 V1 = normalize(input.V1);
@@ -270,20 +124,12 @@ PixelInputType main(VertexInputType input)
     // Edge-consistent direction
     precise float3 dir = normalize(w0 * V0 + w1 * V1 + w2 * V2);
     
-    // Compute slope from base heightmap only (no noise)
-    float3 baseNormal = ComputeBaseNormalPS(dir);
-    float slope = 1.0 - saturate(dot(normalize(baseNormal), dir));
-    float colorAvg = SampleColorAvg(dir);
     
-    float3 normalPS = ComputeTerrainNormalPS(dir, input.level, materialCount, slope, colorAvg, baseNormal);
-
-    float3 worldPos = dir * planetRadius;
-
-    float wallDebug = 0.0;
-    float wallMaskDebug = 0.0;
-    float erosionMaskDebug = 0.0, erosionPatternDebug = 0.0, erosionDeltaDebug = 0.0;
-    
-    float h = SampleTerrainHeight(dir, worldPos, input.level, materialCount, slope, colorAvg, normalPS, wallDebug, wallMaskDebug, erosionMaskDebug, erosionPatternDebug, erosionDeltaDebug);
+    uint verticePerPatch = (N + 1u) * (N + 2u) / 2u;
+    PlanetBakedVertex bakedVertex = BakedVertices[input.instanceID * verticePerPatch + input.vertexID];
+     
+    float3 normalPS = bakedVertex.NormalPS;
+    float h = bakedVertex.Height;
 
     // High-precision relative position in planet space meters:
     precise float3 relPSHi = w0 * input.P0RelHi + w1 * input.P1RelHi + w2 * input.P2RelHi;
@@ -293,26 +139,27 @@ PixelInputType main(VertexInputType input)
     float3 relPS = relPSHi - camLoPS;
     
     float3 relPatchPS = relPSHi + camHiPS - input.PatchOriginPS;
-    o.TriplanarPos = relPatchPS;
+    output.TriplanarPos = relPatchPS;
     
     // World rotation only
     float3x3 R = (float3x3) worldMatrix;
     float3 relWS = mul(relPS, R);
     float3 nWS = normalize(mul(normalPS, R));
-    o.normalWS = nWS;
+    output.normalWS = nWS;
 
     float4 viewPos = mul(float4(relWS, 1.0f), viewMatrixPlanetRendering);
-    o.viewPosition = viewPos.xyz;
-    o.pixelPosition = mul(viewPos, projectionMatrix);
-    o.dirPS = dir;
-    o.worldPosPS = relPSHi;
-    o.WallDebug = wallDebug;
-    o.WallMaskDebug = wallMaskDebug;
-    o.ErosionMaskDebug = erosionMaskDebug;
-    o.ErosionPatternDebug = erosionPatternDebug;
-    o.ErosionDeltaDebug = erosionDeltaDebug;
+    output.viewPosition = viewPos.xyz;
+    output.pixelPosition = mul(viewPos, projectionMatrix);
+    output.dirPS = dir;
+    output.worldPosPS = relPSHi;
     
-    return o;
+    output.WallDebug = f16tof32(bakedVertex.PackedDebug.x);
+    output.WallMaskDebug = f16tof32(bakedVertex.PackedDebug.x >> 16);
+    output.ErosionMaskDebug = f16tof32(bakedVertex.PackedDebug.y);
+    output.ErosionPatternDebug = f16tof32(bakedVertex.PackedDebug.y >> 16);
+    output.ErosionDeltaDebug = f16tof32(bakedVertex.PackedDebug.z);
+    
+    return output;
 }
 
 #type pixel
@@ -495,12 +342,18 @@ struct HexSample
     float2 localUVs[3];
 };
 
+struct HexTaps
+{
+    float2 uvs[3];
+    float weights[3];
+};
+
 HexSample GetHexSample(float2 uv)
 {
     float2 s = float2(1.0, 1.73205080757);
     float2 p = uv;
 
-    float2 hC = floor(p / s) + 0.5; 
+    float2 hC = floor(p / s) + 0.5;
     float4 h = float4(hC, hC + 0.5);
     float4 a = float4(p - h.xy * s, p - (h.zw + 0.5) * s);
 
@@ -546,25 +399,35 @@ HexSample GetHexSample(float2 uv)
     return hs;
 }
 
-float4 SampleHexTiled(Texture2DArray<float4> tex, SamplerState samp, float2 uv, float slice)
+HexTaps BuildHexTaps(float2 uv)
 {
     HexSample hs = GetHexSample(uv);
-    float4 result = float4(0, 0, 0, 0);
-
+    HexTaps taps;
+    
     [unroll]
     for (int i = 0; i < 3; i++)
     {
         float4 hash = HashCell(hs.cellIds[i]);
         float rot = hash.x;
         float2 offset = hash.yz;
-
+        
         float cosR = cos(rot);
         float sinR = sin(rot);
         float2 rotatedUV = float2(hs.localUVs[i].x * cosR - hs.localUVs[i].y * sinR, hs.localUVs[i].x * sinR + hs.localUVs[i].y * cosR);
-
-        float2 sampleUV = rotatedUV + offset;
-        result += tex.Sample(samp, float3(sampleUV, slice)) * hs.weights[i];
+        
+        taps.uvs[i] = rotatedUV + offset;
+        taps.weights[i] = hs.weights[i];
     }
+    return taps;
+}
+
+float4 SampleHexTaps(Texture2DArray<float4> tex, SamplerState samp, HexTaps taps, float slice)
+{
+    float4 result = float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+    [unroll]
+    for (int i = 0; i < 3; i++)
+        result += tex.Sample(samp, float3(taps.uvs[i], slice)) * taps.weights[i];
 
     return result;
 }
@@ -577,23 +440,27 @@ PBRSample SamplePBRTriplanar(uint materialIndex, float3 worldPos, float3 normalP
 
     float3 p = worldPos * (1.0 / tilingScale);
     float slice = (float) materialIndex;
+    
+    HexTaps tapsX = BuildHexTaps(p.yz);
+    HexTaps tapsY = BuildHexTaps(p.xz);
+    HexTaps tapsZ = BuildHexTaps(p.xy);
 
     // Three planar projections, each hex-tiled
-    float4 cx = SampleHexTiled(PBRAlbedoArray, PBRSampler, p.yz, slice);
-    float4 cy = SampleHexTiled(PBRAlbedoArray, PBRSampler, p.xz, slice);
-    float4 cz = SampleHexTiled(PBRAlbedoArray, PBRSampler, p.xy, slice);
+    float4 cx = SampleHexTaps(PBRAlbedoArray, PBRSampler, tapsX, slice);
+    float4 cy = SampleHexTaps(PBRAlbedoArray, PBRSampler, tapsY, slice);
+    float4 cz = SampleHexTaps(PBRAlbedoArray, PBRSampler, tapsZ, slice);
 
-    float4 nx = SampleHexTiled(PBRNormalArray, PBRSampler, p.yz, slice);
-    float4 ny = SampleHexTiled(PBRNormalArray, PBRSampler, p.xz, slice);
-    float4 nz = SampleHexTiled(PBRNormalArray, PBRSampler, p.xy, slice);
+    float4 nx = SampleHexTaps(PBRNormalArray, PBRSampler, tapsX, slice);
+    float4 ny = SampleHexTaps(PBRNormalArray, PBRSampler, tapsY, slice);
+    float4 nz = SampleHexTaps(PBRNormalArray, PBRSampler, tapsZ, slice);
 
-    float rx = SampleHexTiled(PBRRoughnessArray, PBRSampler, p.yz, slice).r;
-    float ry = SampleHexTiled(PBRRoughnessArray, PBRSampler, p.xz, slice).r;
-    float rz = SampleHexTiled(PBRRoughnessArray, PBRSampler, p.xy, slice).r;
+    float rx = SampleHexTaps(PBRRoughnessArray, PBRSampler, tapsX, slice).r;
+    float ry = SampleHexTaps(PBRRoughnessArray, PBRSampler, tapsY, slice).r;
+    float rz = SampleHexTaps(PBRRoughnessArray, PBRSampler, tapsZ, slice).r;
 
-    float ax = SampleHexTiled(PBRAOArray, PBRSampler, p.yz, slice).r;
-    float ay = SampleHexTiled(PBRAOArray, PBRSampler, p.xz, slice).r;
-    float az = SampleHexTiled(PBRAOArray, PBRSampler, p.xy, slice).r;
+    float ax = SampleHexTaps(PBRAOArray, PBRSampler, tapsX, slice).r;
+    float ay = SampleHexTaps(PBRAOArray, PBRSampler, tapsY, slice).r;
+    float az = SampleHexTaps(PBRAOArray, PBRSampler, tapsZ, slice).r;
 
     PBRSample s;
     s.Albedo = cx.rgb * blendWeights.x + cy.rgb * blendWeights.y + cz.rgb * blendWeights.z;

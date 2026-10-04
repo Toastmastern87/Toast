@@ -17,6 +17,8 @@
 #ifdef TOAST_ENABLE_ASSERTS
 	#define TOAST_ASSERT(x, ...) { if(!(x)) { TOAST_ERROR("Assertion Failed: {0}", __VA_ARGS__); TOAST_DEBUGBREAK(); } } 
 	#define TOAST_CORE_ASSERT(x, ...) { if(!(x)) { TOAST_CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); TOAST_DEBUGBREAK(); } } 
+
+	#define TOAST_STATIC_ASSERT(cond, msg) static_assert(cond, msg);
 #else
 	#define TOAST_ASSERT(x, ...)
 	#define TOAST_CORE_ASSERT(x, ...)

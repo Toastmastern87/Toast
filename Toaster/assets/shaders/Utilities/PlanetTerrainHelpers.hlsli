@@ -569,3 +569,52 @@ float3 ComputeBaseNormalPS(float3 dir)
 
     return N;
 }
+
+float SampleNormalHeight(float3 dir)
+{
+    float h = SampleHeightMetres(dir);
+
+    float wallMask = 0.0;
+    float wallBoost = ComputeWallSteepenBoost(dir, h, wallMask);
+    h += wallBoost;
+
+#if TERRAIN_NORMAL_INCLUDES_EROSION
+
+    float erosionMask = 0.0;
+    float erosionPattern = 0.0;
+
+    float erosionDelta = ComputeRuneStyleErosion(dir, h, erosionMask, erosionPattern);
+
+    h += erosionDelta;
+
+#endif
+
+    return h;
+}
+
+float3 ComputeTerrainNormalPS(float3 dir, int currentLOD, uint matCount, float slope, float colorAvg, float3 baseNormal)
+{
+    float3 tanU, tanV;
+    BuildSphereTangents(dir, tanU, tanV);
+
+    float normalStepMeters = max(TerrainNormalStepMeters, 10.0);
+    float angularStep = normalStepMeters / planetRadius;
+
+    float3 dirU = normalize(dir + tanU * angularStep);
+    float3 dirV = normalize(dir + tanV * angularStep);
+
+    float hC = SampleNormalHeight(dir);
+    float hU = SampleNormalHeight(dirU);
+    float hV = SampleNormalHeight(dirV);
+
+    float3 pC = dir * (planetRadius + hC);
+    float3 pU = dirU * (planetRadius + hU);
+    float3 pV = dirV * (planetRadius + hV);
+
+    float3 N = normalize(cross(pU - pC, pV - pC));
+
+    if (dot(N, dir) < 0.0)
+        N = -N;
+
+    return N;
+}

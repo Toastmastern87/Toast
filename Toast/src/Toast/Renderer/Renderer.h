@@ -363,7 +363,7 @@ namespace Toast {
 		static Ref<ParticleSystem> GetParticleSystem();
 	private:
 		static void UploadCameraCBuffer(Camera& camera, const DirectX::XMFLOAT4 cameraPos);
-		static void BindPlanetTerrainResources(bool bindVertexSRVs, bool bindPixelSRVs, bool bindComputeSRVs);
+		static void BindPlanetTerrainResources(bool bindPixelSRVs, bool bindComputeSRVs);
 
 		static void DrawTerrainObjects(Planet* planet);
 	};

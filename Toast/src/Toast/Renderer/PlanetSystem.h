@@ -36,6 +36,7 @@
 namespace Toast {
 
 	class PhysicsEngine;
+	class PlanetMeshBaker;
 
 	struct Int4
 	{
@@ -268,6 +269,7 @@ namespace Toast {
 
 			DirectX::XMFLOAT3 PatchOriginPS;
 		};
+		TOAST_STATIC_ASSERT(sizeof(PlanetPatchGPU) == 88, "PlanetPatchGPU must match PlanetPatch in PlanetMeshBake.hlsl (88 bytes)");
 
 		struct PlanetVertexCPU
 		{
@@ -318,6 +320,8 @@ namespace Toast {
 
 		void BuildGPUData();
 		void BindGPUData();
+		void UnbindGPUData();
+		void Bake();
 
 		Ref<ConstantBuffer>& GetPlanetMeshCBuffer() { return mPlanetMeshCBuffer; }
 
@@ -394,6 +398,8 @@ namespace Toast {
 		// Settings
 		bool mBackfaceCulling;
 		bool mFrustumCulling;
+
+		Ref<PlanetMeshBaker> mMeshBaker;
 
 		AssetHandle mIcosphereGPassShaderHandle = 0;
 	};

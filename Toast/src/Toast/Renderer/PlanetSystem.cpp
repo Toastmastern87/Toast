@@ -10,6 +10,7 @@
 
 #include "Toast/Utils/FixedThreadPool.h"
 
+#include "Toast/Renderer/PlanetMeshBaker.h"
 #include "Toast/Renderer/TerrainSampler.h"
 #include "Toast/Renderer/SamplerStates.h"
 
@@ -925,6 +926,9 @@ namespace Toast {
 		mPlanetMeshCBuffer->Bind();
 		mPlanetMeshBuffer.Allocate(mPlanetMeshCBuffer->GetSize());
 		mPlanetMeshBuffer.ZeroInitialize();
+
+		mMeshBaker = CreateRef<PlanetMeshBaker>();
+		mMeshBaker->Init();
 	}
 
 	void PlanetMeshIcosphere::InitShaderLayout()
@@ -1176,6 +1180,9 @@ namespace Toast {
 			else
 				mInstanceVertexBuffer = nullptr;
 		}
+
+		mMeshBaker->EnsureCapacity((uint32_t)mPatchesGPU.size(), (uint32_t)mVertices.size());
+		mMeshBaker->Upload(mPatchesGPU, (int)mPatchLevels, materialCount, radiusF, camHi);
 
 		if (mPatchIsDirty)
 		{
@@ -1443,7 +1450,21 @@ namespace Toast {
 			deviceContext->IASetIndexBuffer(mIndexBuffer->GetBuffer(), DXGI_FORMAT_R32_UINT, 0);
 
 			mPlanetMeshCBuffer->Bind();
+
+			if (mMeshBaker->GetBakedVertices())
+				RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 5, mMeshBaker->GetBakedVertices()->GetSRV());
 		}
+	}
+
+	void PlanetMeshIcosphere::UnbindGPUData()
+	{
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> nullSRV = nullptr;
+		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 5, nullSRV);
+	}
+
+	void PlanetMeshIcosphere::Bake()
+	{
+		mMeshBaker->Bake();
 	}
 
 	uint32_t PlanetMeshIcosphere::GetMidpoint(uint32_t i1, uint32_t i2)
