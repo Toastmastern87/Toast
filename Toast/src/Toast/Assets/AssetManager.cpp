@@ -2,6 +2,8 @@
 
 #include "AssetManager.h"
 
+#include "Toast/Audio/AudioClip.h"
+
 #include "Toast/Assets/AssetSerializer.h"
 
 #include "Toast/Project/Project.h"
@@ -359,6 +361,9 @@ namespace Toast {
 			asset = sheet;
 			break;
 		}
+		case AssetType::AudioClip:
+			asset = CreateRef<AudioClip>(fullPath);
+			break;
 		default:
 			TOAST_CORE_ERROR("AssetManager: No loader for asset type %s", AssetTypeToString(entry->Metadata.Type));
 			return false;
@@ -566,6 +571,12 @@ namespace Toast {
 				success = AssetSerializer::SerializeStyleSheet(handle, sheet, fullOutputPath);
 				break;
 			}
+			case AssetType::AudioClip:
+			{
+				auto clip = std::static_pointer_cast<AudioClip>(entry.Resource);
+				success = AssetSerializer::SerializeAudioClip(handle, clip, fullOutputPath);
+				break;
+			}
 			default:
 				TOAST_CORE_WARN("AssetManager::Build: No baking support for asset type %s, skipping.", AssetTypeToString(entry.Metadata.Type));
 				continue;
@@ -605,6 +616,8 @@ namespace Toast {
 			return AssetType::Script;
 		if (ext == ".css")
 			return AssetType::StyleSheet;
+		if (ext == ".wav")
+			return AssetType::AudioClip;
 
 		return AssetType::None;
 	}

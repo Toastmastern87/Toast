@@ -44,7 +44,7 @@ namespace Toast {
 		template<typename T>
 		static void ResolveComponent(T& component)
 		{
-			if (component.Style.Sheet == AssetHandle(0))
+			if (component.Style.SheetHandle == AssetHandle(0))
 				return;
 
 			ResetUnoverridden(component);

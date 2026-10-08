@@ -42,6 +42,8 @@ namespace Toast
 
 		bool TextureSlotRow(const char* label, AssetHandle currentHandle, const std::filesystem::path& assetRoot, const std::filesystem::path& browseStartDirectory, std::string& outFilepath, float thumbnailSize = 64.0f);
 
+		bool SoundSettingsRows(SoundSettings& settings, SoundPlayback& playback, const std::filesystem::path& assetRoot, const std::filesystem::path& browseStartDirectory);
+
 		bool AlignmentGrid(const char* id, TextAlignH& alignH, TextAlignV& alignV, float cellSize = 22.0f);
 
 		// Draws 'texture' into [destMin, destMax] using 9-slice scaling: corners keep

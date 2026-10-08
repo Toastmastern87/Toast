@@ -292,7 +292,7 @@ namespace Toast {
 
 	void UIStyleSystem::ApplyStyle(UIPanelComponent& component)
 	{
-		const StyleBlock* block = GetBlock(component.Style.Sheet);
+		const StyleBlock* block = GetBlock(component.Style.SheetHandle);
 		if (!block)
 			return;
 
@@ -325,7 +325,7 @@ namespace Toast {
 
 	void UIStyleSystem::ApplyStyle(UIButtonComponent& component)
 	{
-		const StyleBlock* block = GetBlock(component.Style.Sheet);
+		const StyleBlock* block = GetBlock(component.Style.SheetHandle);
 		if (!block)
 			return;
 
@@ -374,7 +374,7 @@ namespace Toast {
 
 	void UIStyleSystem::ApplyStyle(UITextComponent& component)
 	{
-		const StyleBlock* block = GetBlock(component.Style.Sheet);
+		const StyleBlock* block = GetBlock(component.Style.SheetHandle);
 		if (!block)
 			return;
 
@@ -401,7 +401,7 @@ namespace Toast {
 
 	void UIStyleSystem::ApplyStyle(UIImageComponent& component)
 	{
-		const StyleBlock* block = GetBlock(component.Style.Sheet);
+		const StyleBlock* block = GetBlock(component.Style.SheetHandle);
 		if (!block)
 			return;
 

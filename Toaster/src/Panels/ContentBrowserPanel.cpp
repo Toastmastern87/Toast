@@ -5,6 +5,7 @@
 #include "Toast/Assets/AssetManager.h"
 
 #include "Toast/Renderer/Shader.h"
+#include "Toast/Audio/AudioClip.h"
 
 #include "../FontAwesome.h"
 
@@ -120,6 +121,7 @@ namespace Toast {
 			ImGui::PopStyleColor();
 			if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 			{
+				 
 				if (directoryEntry.is_directory())
 					mCurrentDirectory /= path.filename();
 				else 

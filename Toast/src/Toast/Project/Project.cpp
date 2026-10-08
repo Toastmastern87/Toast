@@ -75,6 +75,7 @@ namespace Toast {
 		std::filesystem::create_directories(assetsPath / "Materials");
 		std::filesystem::create_directories(assetsPath / "Prefabs");
 		std::filesystem::create_directories(assetsPath / "StyleSheets");
+		std::filesystem::create_directories(assetsPath / "AudioClips");
 
 		CreateDefaultScene();
 	}

@@ -1,6 +1,8 @@
 ﻿#include "tpch.h"
 #include "Scene.h"
 
+#include "Toast/Audio/AudioSystem.h"
+
 #include "Toast/Scene/Entity.h"
 #include "Toast/Scene/Components.h"
 #include "Toast/Scene/MovementSystem.h"
@@ -106,6 +108,7 @@ namespace Toast {
 
 		mSelectionSystem = CreateScope<SelectionSystem>(this);
 		mMovementSystem = CreateScope<MovementSystem>(this);
+		mAudioSystem = CreateScope<AudioSystem>(this);
 	}
 
 	Scene::~Scene()
@@ -196,6 +199,8 @@ namespace Toast {
 	void Scene::OnRuntimeStop()
 	{
 		mIsRunning = false;
+
+		mAudioSystem->StopAll();
 
 		ScriptEngine::OnRuntimeStop();
 
@@ -312,6 +317,7 @@ namespace Toast {
 			if (entity.HasComponent<UIButtonComponent>())
 			{
 				mUIPressedEntity = mHoveredEntity;
+				entity.GetComponent<UIButtonComponent>().ClickPlayback.PlayRequested = true;
 				handled = true;
 			}
 		}
@@ -1338,6 +1344,11 @@ namespace Toast {
 			UpdateHoveredEntity();
 			UpdatePickedWorldPosition();
 		}
+
+		// Audio
+		{
+			mAudioSystem->OnUpdate();
+		}
 	}
 
 	void Scene::OnUpdateEditor(Timestep ts, const Ref<EditorCamera> editorCamera)
@@ -2222,6 +2233,11 @@ namespace Toast {
 		// Mouse Picking
 		{
 			UpdateHoveredEntity();
+		}
+
+		// Audio
+		{
+			mAudioSystem->OnUpdate();
 		}
 	}
 

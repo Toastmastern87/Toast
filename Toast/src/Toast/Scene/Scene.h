@@ -27,6 +27,7 @@ namespace Toast {
 	class PhysicsEngine;
 	class SelectionSystem;
 	class MovementSystem;
+	class AudioSystem;
 
 	enum class RenderOverlay {
 		NONE = 0, 
@@ -463,6 +464,7 @@ namespace Toast {
 
 		Scope<SelectionSystem> mSelectionSystem;
 		Scope<MovementSystem> mMovementSystem;
+		Scope<AudioSystem> mAudioSystem;
 
 		bool mRuntimeBlocked = false;
 

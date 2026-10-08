@@ -187,6 +187,22 @@ namespace Toast {
 
 	}
 
+	static void SerializeSoundSettings(YAML::Emitter& out, const char* key, const SoundSettings& sound)
+	{
+		out << YAML::Key << key << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "ClipHandle" << YAML::Value << sound.ClipHandle;
+		out << YAML::Key << "Volume" << YAML::Value << sound.Volume;
+		out << YAML::Key << "Pitch" << YAML::Value << sound.Pitch;
+		out << YAML::EndMap;
+	}
+
+	static void DeserializeSoundSettings(const YAML::Node& node, SoundSettings& sound) 
+	{
+		sound.ClipHandle = node["ClipHandle"].as<AssetHandle>(0);
+		sound.Volume = node["Volume"].as<float>(1.0f);
+		sound.Pitch = node["Pitch"].as<float>(1.0f);
+	}
+
 	static void SerializeEntity(YAML::Emitter& out, Entity entity, bool mainCamera = false)
 	{
 		UUID uuid = entity.GetComponent<IDComponent>().ID;
@@ -518,7 +534,7 @@ namespace Toast {
 			out << YAML::BeginMap; // UIPanelComponent
 
 			auto& uipc = entity.GetComponent<UIPanelComponent>();
-			const bool unstyled = uipc.Style.Sheet == AssetHandle(0);
+			const bool unstyled = uipc.Style.SheetHandle == AssetHandle(0);
 			const uint32_t overrides = uipc.Style.Overrides;
 
 			if (unstyled || (overrides & UIStyleProp_Background))
@@ -554,7 +570,7 @@ namespace Toast {
 			out << YAML::Key << "ConnectorOutlineWidth" << YAML::Value << uipc.Connector.OutlineWidth;
 			out << YAML::Key << "ConnectorOutlineColor" << YAML::Value << uipc.Connector.OutlineColor;
 
-			out << YAML::Key << "StyleSheet" << YAML::Value << (uint64_t)uipc.Style.Sheet;
+			out << YAML::Key << "StyleSheet" << YAML::Value << uipc.Style.SheetHandle;
 			out << YAML::Key << "StyleOverrides" << YAML::Value << uipc.Style.Overrides;
 
 			out << YAML::EndMap; // UIPanelComponent
@@ -566,7 +582,7 @@ namespace Toast {
 			out << YAML::BeginMap; // UIButtonComponent
 
 			auto& ubc = entity.GetComponent<UIButtonComponent>();
-			const bool unstyled = ubc.Style.Sheet == AssetHandle(0);
+			const bool unstyled = ubc.Style.SheetHandle == AssetHandle(0);
 			const uint32_t overrides = ubc.Style.Overrides;
 
 			if (unstyled || (overrides & UIStyleProp_CornerRadius))
@@ -603,8 +619,11 @@ namespace Toast {
 					out << YAML::Key << (std::string("StateTexture") + stateKeys[i]) << YAML::Value << ubc.States[i].TextureHandle;
 			}
 
-			out << YAML::Key << "StyleSheet" << YAML::Value << (uint64_t)ubc.Style.Sheet;
+			out << YAML::Key << "StyleSheet" << YAML::Value << ubc.Style.SheetHandle;
 			out << YAML::Key << "StyleOverrides" << YAML::Value << ubc.Style.Overrides;
+
+			if (ubc.ClickSound.ClipHandle != AssetHandle(0))
+				SerializeSoundSettings(out, "ClickSound", ubc.ClickSound);
 
 			if (!ubc.Actions.empty())
 			{
@@ -635,7 +654,7 @@ namespace Toast {
 			out << YAML::BeginMap; // UITextComponent
 
 			auto& uitc = entity.GetComponent<UITextComponent>();
-			const bool unstyled = uitc.Style.Sheet == AssetHandle(0);
+			const bool unstyled = uitc.Style.SheetHandle == AssetHandle(0);
 			const uint32_t overrides = uitc.Style.Overrides;
 
 			out << YAML::Key << "AssetPath" << YAML::Value << uitc.Font->GetFilePath();
@@ -658,7 +677,7 @@ namespace Toast {
 				out << YAML::Key << "AlignV" << YAML::Value << (int)uitc.AlignV;
 			}
 
-			out << YAML::Key << "StyleSheet" << YAML::Value << (uint64_t)uitc.Style.Sheet;
+			out << YAML::Key << "StyleSheet" << YAML::Value << (uint64_t)uitc.Style.SheetHandle;
 			out << YAML::Key << "StyleOverrides" << YAML::Value << uitc.Style.Overrides;
 
 			out << YAML::EndMap; // UITextComponent
@@ -670,7 +689,7 @@ namespace Toast {
 			out << YAML::BeginMap;
 
 			auto& uiic = entity.GetComponent<UIImageComponent>();
-			const bool unstyled = uiic.Style.Sheet == AssetHandle(0);
+			const bool unstyled = uiic.Style.SheetHandle == AssetHandle(0);
 			const uint32_t overrides = uiic.Style.Overrides;
 
 			// Not style able, so always written.
@@ -691,7 +710,7 @@ namespace Toast {
 			if (unstyled || (overrides & UIStyleProp_Visible))
 				out << YAML::Key << "Visible" << YAML::Value << uiic.Visible;
 
-			out << YAML::Key << "StyleSheet" << YAML::Value << (uint64_t)uiic.Style.Sheet;
+			out << YAML::Key << "StyleSheet" << YAML::Value << (uint64_t)uiic.Style.SheetHandle;
 			out << YAML::Key << "StyleOverrides" << YAML::Value << uiic.Style.Overrides;
 
 			out << YAML::EndMap;
@@ -1631,14 +1650,14 @@ namespace Toast {
 				if (relationshipComponent) 
 				{
 					auto& rc = deserializedEntity.GetComponent<RelationshipComponent>();
-					rc.ParentHandle = relationshipComponent["ParentHandle"].as<uint64_t>();
+					rc.ParentHandle = relationshipComponent["ParentHandle"].as<UUID>();
 
 					auto children = relationshipComponent["Children"];
 					if (children)
 					{
 						for (auto child : children)
 						{
-							uint64_t childHandle = child["Handle"].as<uint64_t>();
+							uint64_t childHandle = child["Handle"].as<UUID>();
 							rc.Children.push_back(childHandle);
 						}
 					}
@@ -1682,7 +1701,7 @@ namespace Toast {
 					AssetHandle meshHandle;
 
 					if (meshComponent["MeshHandle"])
-						meshHandle = AssetHandle(meshComponent["MeshHandle"].as<uint64_t>());
+						meshHandle = AssetHandle(meshComponent["MeshHandle"].as<AssetHandle>());
 
 					auto& mc = deserializedEntity.AddComponent<MeshComponent>(meshHandle);
 
@@ -1758,7 +1777,7 @@ namespace Toast {
 					sc.ClassName = scriptComponent["ClassName"].as<std::string>();
 
 					if (scriptComponent["ScriptHandle"])
-						sc.ScriptHandle = AssetHandle(scriptComponent["ScriptHandle"].as<uint64_t>());
+						sc.ScriptHandle = AssetHandle(scriptComponent["ScriptHandle"].as<AssetHandle>());
 
 					auto scriptFields = scriptComponent["ScriptFields"];
 					if (scriptFields)
@@ -1816,7 +1835,7 @@ namespace Toast {
 					sc.ClassName = sceneScriptComponent["ClassName"].as<std::string>();
 
 					if (scriptComponent["ScriptHandle"])
-						sc.ScriptHandle = AssetHandle(scriptComponent["ScriptHandle"].as<uint64_t>());
+						sc.ScriptHandle = AssetHandle(scriptComponent["ScriptHandle"].as<AssetHandle>());
 
 					auto scriptFields = sceneScriptComponent["ScriptFields"];
 					if (scriptFields)
@@ -1948,7 +1967,7 @@ namespace Toast {
 						uipc.TextureIndex = Renderer2D::GetRendererData()->UITextureArray->GetSliceIndexForHandle(uipc.TextureHandle);
 					}
 
-					uipc.Style.Sheet = AssetHandle(uiPanelComponent["StyleSheet"].as<uint64_t>(AssetHandle(0)));
+					uipc.Style.SheetHandle = AssetHandle(uiPanelComponent["StyleSheet"].as<AssetHandle>(AssetHandle(0)));
 					uipc.Style.Overrides = uiPanelComponent["StyleOverrides"].as<uint32_t>(0);
 				}
 
@@ -1990,8 +2009,11 @@ namespace Toast {
 						}
 					}
 
-					ubc.Style.Sheet = AssetHandle(uiButtonComponent["StyleSheet"].as<uint64_t>(AssetHandle(0)));
+					ubc.Style.SheetHandle = AssetHandle(uiButtonComponent["StyleSheet"].as<AssetHandle>(AssetHandle(0)));
 					ubc.Style.Overrides = uiButtonComponent["StyleOverrides"].as<uint32_t>(0);
+
+					if (auto clickSound = uiButtonComponent["ClickSound"])
+						DeserializeSoundSettings(clickSound, ubc.ClickSound);
 
 					if (auto actionsNode = uiButtonComponent["Actions"])
 					{
@@ -2036,7 +2058,7 @@ namespace Toast {
 					if (uiTextComponent["LineHeight"])
 						uitc.LineHeight = uiTextComponent["LineHeight"].as<float>();
 
-					uitc.Style.Sheet = AssetHandle(uiTextComponent["StyleSheet"].as<uint64_t>(AssetHandle(0)));
+					uitc.Style.SheetHandle = AssetHandle(uiTextComponent["StyleSheet"].as<AssetHandle>(AssetHandle(0)));
 					uitc.Style.Overrides = uiTextComponent["StyleOverrides"].as<uint32_t>(0);
 				}
 
@@ -2069,7 +2091,7 @@ namespace Toast {
 					if (uiImageComponent["Visible"])
 						uiic.Visible = uiImageComponent["Visible"].as<bool>();
 
-					uiic.Style.Sheet = AssetHandle(uiImageComponent["StyleSheet"].as<uint64_t>(AssetHandle(0)));
+					uiic.Style.SheetHandle = AssetHandle(uiImageComponent["StyleSheet"].as<AssetHandle>(AssetHandle(0)));
 					uiic.Style.Overrides = uiImageComponent["StyleOverrides"].as<uint32_t>(0);
 				}
 

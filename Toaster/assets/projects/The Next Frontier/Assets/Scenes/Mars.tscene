@@ -1,6 +1,6 @@
 Scene: Mars
 EditorCamera:
-  Position: [109.590805, 64.1330872, -271.069397]
+  Position: [109.590805, 64.1330872, -359.320099]
 Settings:
   Wireframe: 0
   Grid: false
@@ -388,7 +388,7 @@ Entities:
         PerspectiveFOV: 45
         NearClip: 0.100000001
         FarClip: 2000000
-        OrthographicWidth: 2670
+        OrthographicWidth: 2674
         OrthographicHeight: 1122
       Primary: true
       FixedAspectRatio: false
@@ -1967,6 +1967,10 @@ Entities:
       StateTexture2: 15619846374371284112
       StyleSheet: 17232253532638061034
       StyleOverrides: 1648
+      ClickSound:
+        ClipHandle: 1147257904577158881
+        Volume: 1
+        Pitch: 1
       Actions:
         - Name: OpenMarsMap
           Type: SetUIComponentVisible

@@ -1420,7 +1420,7 @@ namespace Toast {
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-				const StyleBlock* styleBlock = UIStyleSystem::GetBlock(component.Style.Sheet);
+				const StyleBlock* styleBlock = UIStyleSystem::GetBlock(component.Style.SheetHandle);
 
 				ImGui::BeginTable("##panelTable", 2, flags);
 				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 75.0f);
@@ -1678,7 +1678,7 @@ namespace Toast {
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-				const StyleBlock* styleBlock = UIStyleSystem::GetBlock(component.Style.Sheet);
+				const StyleBlock* styleBlock = UIStyleSystem::GetBlock(component.Style.SheetHandle);
 
 				auto& text = component.Text;
 
@@ -1805,7 +1805,7 @@ namespace Toast {
 				ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 				ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-				const StyleBlock* styleBlock = UIStyleSystem::GetBlock(component.Style.Sheet);
+				const StyleBlock* styleBlock = UIStyleSystem::GetBlock(component.Style.SheetHandle);
 
 				ImGui::BeginTable("UIButtonComponent", 2, flags);
 				ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
@@ -1994,6 +1994,20 @@ namespace Toast {
 					UIStyleSystem::ResolveEntity(entity);
 
 				ImGui::EndTable();
+
+				// Click Sound
+				ImGui::Separator();
+				ImGui::Text("Click Sound");
+
+				if (ImGui::BeginTable("UIButtonClickSound", 2, flags))
+				{
+					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+
+					ImGuiHelpers::SoundSettingsRows(component.ClickSound, component.ClickPlayback, assetRoot, assetRoot/ "AudioClips");
+
+					ImGui::EndTable();
+				}
 
 				ImGui::Separator();
 				ImGui::Text("Actions");
@@ -2200,7 +2214,7 @@ namespace Toast {
 					ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
 					ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-					const StyleBlock* styleBlock = UIStyleSystem::GetBlock(component.Style.Sheet);
+					const StyleBlock* styleBlock = UIStyleSystem::GetBlock(component.Style.SheetHandle);
 
 					ImGui::BeginTable("UIImageComponent", 2, flags);
 					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);

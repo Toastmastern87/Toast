@@ -15,7 +15,8 @@ namespace Toast {
 		Material,
 		Mesh,
 		Script,
-		StyleSheet
+		StyleSheet,
+		AudioClip,
 	};
 
 	inline const char* AssetTypeToString(AssetType type)
@@ -29,6 +30,7 @@ namespace Toast {
 		case AssetType::Mesh: return "Mesh";
 		case AssetType::Script: return "Script";
 		case AssetType::StyleSheet: return "StyleSheet";
+		case AssetType::AudioClip: return "AudioClip";
 		default: return "Unknown";
 		}
 	}
@@ -41,6 +43,7 @@ namespace Toast {
 		if (strcmp(str, "Mesh") == 0) return AssetType::Mesh;
 		if (strcmp(str, "Script") == 0) return AssetType::Script;
 		if (strcmp(str, "StyleSheet") == 0) return AssetType::StyleSheet;
+		if (strcmp(str, "AudioClip") == 0) return AssetType::AudioClip;
 		return AssetType::None; // Default to None for unknown types
 	}
 

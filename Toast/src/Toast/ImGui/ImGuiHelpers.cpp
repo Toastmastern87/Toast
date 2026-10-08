@@ -2,6 +2,8 @@
 
 #include "ImGuiHelpers.h"
 
+#include "Toast/Audio/AudioSystem.h"
+
 #include "Toast/Renderer/UI/UIStyleSystem.h"
 
 #include "Toast/Utils/PlatformUtils.h"
@@ -916,7 +918,7 @@ namespace Toast
 
 		bool StyleOverrideMarker(UIStyleRef& style, uint32_t propBit, bool sheetSetsIt)
 		{
-			if (style.Sheet == AssetHandle(0))
+			if (style.SheetHandle == AssetHandle(0))
 				return false;
 
 			ImGui::PushID((int)propBit);
@@ -959,27 +961,27 @@ namespace Toast
 			ImGui::TableSetColumnIndex(1);
 
 			std::string sheetName = "None";
-			if (style.Sheet != AssetHandle(0))
+			if (style.SheetHandle != AssetHandle(0))
 			{
-				if (const AssetMetadata* metadata = AssetManager::GetMetadata(style.Sheet))
+				if (const AssetMetadata* metadata = AssetManager::GetMetadata(style.SheetHandle))
 					sheetName = metadata->FilePath.filename().string();
 				else
 					sheetName = "No Style attached!";
 			}
 
-			AssetHandle pickedSheet = style.Sheet;
+			AssetHandle pickedSheet = style.SheetHandle;
 
-			const bool hasSheet = style.Sheet != AssetHandle(0);
+			const bool hasSheet = style.SheetHandle != AssetHandle(0);
 
 			ImGui::PushItemWidth(hasSheet ? -125.0f : -70.0f);
 			if (ImGui::BeginCombo("##stylesheet", sheetName.c_str()))
 			{
-				if (ImGui::Selectable("None", style.Sheet == AssetHandle(0)))
+				if (ImGui::Selectable("None", style.SheetHandle == AssetHandle(0)))
 					pickedSheet = AssetHandle(0);
 
 				AssetManager::Each(AssetType::StyleSheet, [&pickedSheet, &style](AssetHandle handle, const AssetMetadata& metadata)
 					{
-						const bool selected = handle == style.Sheet;
+						const bool selected = handle == style.SheetHandle;
 
 						// Handles are unique; filenames may not be if two
 						// folders hold a Panel.css.
@@ -1001,9 +1003,9 @@ namespace Toast
 			}
 			ImGui::PopItemWidth();
 
-			if (pickedSheet != style.Sheet)
+			if (pickedSheet != style.SheetHandle)
 			{
-				style.Sheet = pickedSheet;
+				style.SheetHandle = pickedSheet;
 				style.Overrides = 0;
 
 				changed = true;
@@ -1022,7 +1024,7 @@ namespace Toast
 				ImGui::SameLine();
 				if (ImGui::Button("Edit"))
 				{
-					if (const AssetMetadata* metadata = AssetManager::GetMetadata(style.Sheet))
+					if (const AssetMetadata* metadata = AssetManager::GetMetadata(style.SheetHandle))
 					{
 						if (openFileCallback)
 							openFileCallback(AssetManager::GetAssetDirectory() / metadata->FilePath);
@@ -1063,7 +1065,7 @@ namespace Toast
 					AssetHandle handle = UIStyleSystem::CreateStyleSheetFromComponent(entity, relativePath);
 					if (handle != AssetHandle(0))
 					{
-						style.Sheet = handle;
+						style.SheetHandle = handle;
 						style.Overrides = 0;
 
 						changed = true;
@@ -1128,6 +1130,86 @@ namespace Toast
 			}
 
 			return picked;
+		}
+
+		bool SoundSettingsRows(SoundSettings& settings, SoundPlayback& playback, const std::filesystem::path& assetRoot, const std::filesystem::path& browseStartDirectory)
+		{
+			bool changed = false;
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::TextUnformatted("Sound");
+			ImGui::TableSetColumnIndex(1);
+
+			std::string clipName = "None";
+			if (settings.ClipHandle != AssetHandle(0))
+			{
+				const AssetMetadata* metadata = AssetManager::GetMetadata(settings.ClipHandle);
+				clipName = metadata ? metadata->FilePath.filename().string() : "Missing";
+			}
+
+			const float squareSize = ImGui::GetFrameHeight();
+			const float spacing = ImGui::GetStyle().ItemSpacing.x;
+			const float slotWidth = ImGui::GetContentRegionAvail().x - 2.0f * (squareSize + spacing);
+
+			if (ImGui::Button(clipName.c_str(), { slotWidth, 0.0f }))
+			{
+				if (auto filepath = FileDialogs::OpenFile("WAV Audio (*.wav)\0*.wav\0", browseStartDirectory.string().c_str()))
+				{
+					settings.ClipHandle = AssetManager::ImportExternalAsset(*filepath, "AudioClips");
+					changed = true;
+				}
+			}
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+				{
+					const std::filesystem::path relativePath = (const wchar_t*)payload->Data;
+
+					if (AssetManager::GetAssetTypeFromPath(relativePath) == AssetType::AudioClip)
+					{
+						settings.ClipHandle = AssetManager::ImportAsset(relativePath);
+						changed = true;
+					}
+					else
+						TOAST_CORE_WARN("Sound slot: '%s' is not a .wav file", relativePath.filename().string().c_str());
+				}
+
+				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::BeginDisabled(settings.ClipHandle == AssetHandle(0));
+
+			ImGui::SameLine();
+			if (ImGui::ArrowButton("##preview", ImGuiDir_Right))
+				playback.PlayRequested = true;
+
+			ImGui::SameLine();
+			if (ImGui::Button("X##clear", { squareSize, squareSize }))
+			{
+				settings.ClipHandle = AssetHandle(0);
+				changed = true;
+			}
+
+			ImGui::EndDisabled();
+
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::TextUnformatted("Volume");
+			ImGui::TableSetColumnIndex(1);
+			ImGui::PushItemWidth(-1);
+			changed |= ImGui::SliderFloat("##volume", &settings.Volume, 0.0f, 1.0f, "%.2f");
+			ImGui::PopItemWidth();
+
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::TextUnformatted("Pitch");
+			ImGui::TableSetColumnIndex(1);
+			ImGui::PushItemWidth(-1);
+			changed |= ImGui::SliderFloat("##pitch", &settings.Pitch, AudioSystem::MinPitch, AudioSystem::MaxPitch, "%.2f");
+			ImGui::PopItemWidth();
+
+			return changed;
 		}
 
 		bool AlignmentGrid(const char* id, TextAlignH& alignH, TextAlignV& alignV, float cellSize /*= 22.0f*/)

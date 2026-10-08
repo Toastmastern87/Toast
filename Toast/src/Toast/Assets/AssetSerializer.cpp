@@ -7,6 +7,8 @@
 #include "Toast/Renderer/Material.h" 
 #include "Toast/Renderer/UI/StyleSheet.h"
 
+#include "Toast/Audio/AudioClip.h"
+
 #include "Toast/Assets/AssetManager.h"  
 
 #include "Toast/Project/Project.h" 
@@ -22,7 +24,7 @@ namespace Toast {
 		uint32_t len = static_cast<uint32_t>(s.size());
 		out.write(reinterpret_cast<const char*>(&len), sizeof(len));
 
-		if (len < 0)
+		if (len > 0)
 			out.write(s.data(), len);
 	}
 
@@ -41,7 +43,7 @@ namespace Toast {
 	static void WriteBuffer(std::ofstream& out, const Buffer& b)
 	{
 		if (b.Size > 0 && b.Data)
-			out.write(reinterpret_cast<const char*>(&b.Data), b.Size);
+			out.write(reinterpret_cast<const char*>(b.Data), b.Size);
 	}
 
 	static void ReadBuffer(std::ifstream& in, Buffer& b, uint64_t size) 
@@ -404,7 +406,7 @@ namespace Toast {
 		std::ofstream out(outputPath, std::ios::binary);
 		if (!out.is_open())
 		{
-			TOAST_CORE_ERROR("AssetSerializer: Could not open '%s' for writing", outputPath);
+			TOAST_CORE_ERROR("AssetSerializer: Could not open '%s' for writing", outputPath.string().c_str());
 			return false;
 		}
 
@@ -420,6 +422,53 @@ namespace Toast {
 		out.write(reinterpret_cast<const char*>(&block), sizeof(StyleBlock));
 
 		TOAST_CORE_INFO("AssetSerializer: Baked StyleSheet (handle: %llu) -> '%s'", (uint64_t)handle, outputPath.string().c_str());
+
+		return true;
+	}
+
+	bool AssetSerializer::SerializeAudioClip(AssetHandle handle, const Ref<AudioClip>& clip, const std::filesystem::path& outputPath)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		if (!clip || clip->GetData().empty())
+		{
+			TOAST_CORE_ERROR("AssetSerializer: AudioClip has no sample data to serialize (handle: %llu)", (uint64_t)handle);
+			return false;
+		}
+
+		std::filesystem::create_directories(outputPath.parent_path());
+
+		std::ofstream out(outputPath, std::ios::binary);
+		if (!out.is_open())
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Could not open '%s' for writing", outputPath);
+			return false;
+		}
+
+		// Header
+		TAssetHeader header;
+		header.Magic = TASSET_MAGIC;
+		header.AssetType = static_cast<uint16_t>(AssetType::AudioClip);
+		header.Version = TASSET_VERSION;
+		header.Handle = static_cast<uint64_t>(handle);
+		out.write(reinterpret_cast<const char*>(&header), sizeof(header));
+
+		// Payload
+		const WAVEFORMATEX& format = clip->GetFormat();
+		const std::vector<uint8_t>& data = clip->GetData();
+
+		TAssetAudioClipPayload payload;
+		payload.FormatTag = format.wFormatTag;
+		payload.Channels = format.nChannels;
+		payload.SampleRate = format.nSamplesPerSec;
+		payload.BitsPerSample = format.wBitsPerSample;
+		payload.DataSize = data.size();
+		out.write(reinterpret_cast<const char*>(&payload), sizeof(payload));
+
+		// Samples
+		out.write(reinterpret_cast<const char*>(data.data()), data.size());
+
+		TOAST_CORE_INFO("AssetSerializer: Baked AudioClip (handle: %llu, %llu bytes) -> '%s'", (uint64_t)handle, payload.DataSize, outputPath.string().c_str());
 
 		return true;
 	}
@@ -470,8 +519,6 @@ namespace Toast {
 			TOAST_CORE_ERROR("AssetSerializer: Failed to read pixel data from '%s'", inputPath.string().c_str());
 			return nullptr;
 		}
-
-		in.close();
 
 		auto texture = CreateRef<Texture2D>(static_cast<DXGI_FORMAT>(payload.Format), static_cast<DXGI_FORMAT>(payload.SRVFormat), payload.Width, payload.Height, D3D11_USAGE_DEFAULT, static_cast<D3D11_BIND_FLAG>(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET), 1u, 0u, pixelData.data(), payload.RowPitch);
 
@@ -559,7 +606,6 @@ namespace Toast {
 			TOAST_CORE_ERROR("AssetSerializer: Failed reading shader data from '%s'", inputPath.string().c_str());
 			return nullptr;
 		}
-		in.close();
 
 		std::string name = inputPath.stem().string();
 		auto shader = CreateRef<Shader>(name, stages, elements);
@@ -607,7 +653,6 @@ namespace Toast {
 			TOAST_CORE_ERROR("AssetSerializer: Failed reading material payload from '%s'", inputPath.string().c_str());
 			return nullptr;
 		}
-		in.close();
 
 		std::string name = inputPath.stem().string();  // or read a baked name block if Step 4 added one
 
@@ -774,7 +819,6 @@ namespace Toast {
 			TOAST_CORE_ERROR("AssetSerializer: Failed reading mesh data from '%s'", inputPath.string().c_str());
 			return nullptr;
 		}
-		in.close();
 
 		auto mesh = CreateRef<Mesh>(std::move(lodGroups), std::move(parts), std::move(lodThresholds), static_cast<PrimitiveTopology>(payload.Topology), payload.HasLODs != 0, payload.IsAnimated != 0, payload.Instanced != 0, payload.MaxNrOfIntanceObjects, inputPath.string());
 
@@ -801,7 +845,7 @@ namespace Toast {
 			TOAST_CORE_ERROR("AssetSerializer: Invalid magic number in '%s'", inputPath.string().c_str());
 			return nullptr;
 		}
-		if (header.AssetType != static_cast<uint16_t>(AssetType::Shader))
+		if (header.AssetType != static_cast<uint16_t>(AssetType::StyleSheet))
 		{
 			TOAST_CORE_ERROR("AssetSerializer: Expected StyleSheet but got type %u in '%s'", header.AssetType, inputPath.string().c_str());
 			return nullptr;
@@ -820,7 +864,6 @@ namespace Toast {
 			TOAST_CORE_ERROR("AssetSerializer: Failed to read StyleBlock from '%s'", inputPath.string().c_str());
 			return nullptr;
 		}
-		in.close();
 
 		auto sheet = CreateRef<StyleSheet>();
 		sheet->SetBlock(block);
@@ -828,6 +871,55 @@ namespace Toast {
 		TOAST_CORE_INFO("AssetSerializer: Loaded StyleSheet from '%s'", inputPath.string().c_str());
 
 		return sheet;
+	}
+
+	Ref<AudioClip> AssetSerializer::DeserializeAudioClip(const std::filesystem::path& inputPath)
+	{
+		TOAST_PROFILE_FUNCTION();
+
+		std::ifstream in(inputPath, std::ios::binary);
+		if (!in.is_open())
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Could not open '%s' for reading", inputPath.string().c_str());
+			return nullptr;
+		}
+
+		TAssetHeader header;
+		in.read(reinterpret_cast<char*>(&header), sizeof(header));
+		if (header.Magic != TASSET_MAGIC)
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Invalid magic number in '%s'", inputPath.string().c_str());
+			return nullptr;
+		}
+		if (header.AssetType != static_cast<uint16_t>(AssetType::AudioClip))
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Expected AudioClip but got type %u in '%s'", header.AssetType, inputPath.string().c_str());
+			return nullptr;
+		}
+		if (header.Version > TASSET_VERSION)
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Unsupported version %u in '%s' (max %u)", header.Version, inputPath.string().c_str(), TASSET_VERSION);
+			return nullptr;
+		}
+
+		TAssetAudioClipPayload payload;
+		in.read(reinterpret_cast<char*>(&payload), sizeof(payload));
+
+		std::vector<uint8_t> data(payload.DataSize);
+		in.read(reinterpret_cast<char*>(data.data()), payload.DataSize);
+
+		if (!in.good())
+		{
+			TOAST_CORE_ERROR("AssetSerializer: Failed to read AudioClip samples from '%s'", inputPath.string().c_str());
+			return nullptr;
+		}
+
+		auto clip = CreateRef<AudioClip>();
+		clip->SetPCMData(payload.FormatTag, payload.Channels, payload.SampleRate, payload.BitsPerSample, std::move(data));
+
+		TOAST_CORE_INFO("AssetSerializer: Loaded AudioClip from '%s'", inputPath.string().c_str());
+
+		return clip;
 	}
 
 	bool AssetSerializer::ValidateFile(const std::filesystem::path& path, TAssetHeader& outHeader)

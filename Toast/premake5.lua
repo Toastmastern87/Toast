@@ -52,6 +52,7 @@ project "Toast"
 		"d3d11.lib",
 		"dxgi.lib",
 		"dxguid.lib",
+		"xaudio2.lib",
 		"yaml-cpp",
 		"msdf-atlas-gen",
 		"%{Library.PDH}",

@@ -2,6 +2,8 @@
 
 #include <DirectXMath.h>
 
+#include "Toast/Audio/Sound.h"
+
 #include "Toast/Core/UUID.h"
 #include "Toast/Core/Math/Math.h"
 
@@ -298,7 +300,7 @@ namespace Toast {
 
 	struct UIStyleRef 
 	{
-		AssetHandle Sheet;
+		AssetHandle SheetHandle;
 		uint32_t Overrides = 0;
 	};
 
@@ -416,9 +418,16 @@ namespace Toast {
 
 		std::vector<UIButtonAction> Actions;
 
+		SoundSettings ClickSound;
+		SoundPlayback ClickPlayback;
+
 		UIButtonComponent() = default;
 		UIButtonComponent(const UIButtonComponent&) = default;
+		UIButtonComponent(UIButtonComponent&&) = default;
+		UIButtonComponent& operator=(const UIButtonComponent&) = default;
+		UIButtonComponent& operator=(UIButtonComponent&&) = default;
 	};
+	TOAST_STATIC_ASSERT(std::is_nothrow_move_constructible_v<UIButtonComponent>, "UIButtonComponent must be nothrow-movable, or EnTT copies it when its storage grows and playing click sounds are cut off");
 
 	enum class ImageFit : uint8_t 
 	{

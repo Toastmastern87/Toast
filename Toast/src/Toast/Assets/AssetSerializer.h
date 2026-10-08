@@ -11,6 +11,7 @@ namespace Toast {
 	class Material;
 	class Mesh;
 	class StyleSheet;
+	class AudioClip;
 
 	// -----------------------------------------------------------------
 	// Binary .tasset format header — shared by serialize and deserialize.
@@ -135,6 +136,15 @@ namespace Toast {
 		uint32_t ScaleSize = 0;
 		uint32_t ScaleTimestampSize = 0;
 	};
+
+	struct TAssetAudioClipPayload 
+	{
+		uint16_t FormatTag = 0; // 1 = PCM, 3 = IEEE float
+		uint16_t Channels = 0;
+		uint32_t SampleRate = 0;
+		uint16_t BitsPerSample = 0;
+		uint64_t DataSize = 0; // Followed by DataSize bytes of sample data
+	};
 #pragma pack(pop)
 
 	class AssetSerializer
@@ -145,12 +155,14 @@ namespace Toast {
 		static bool SerializeMaterial(AssetHandle handle, const Ref<Material>& material, const std::filesystem::path& outputPath);
 		static bool SerializeMesh(AssetHandle handle, const Ref<Mesh>& mesh, const std::filesystem::path& outputPath);
 		static bool SerializeStyleSheet(AssetHandle handle, const Ref<StyleSheet>& sheet, const std::filesystem::path& outputPath);
+		static bool SerializeAudioClip(AssetHandle handle, const Ref<AudioClip>& clip, const std::filesystem::path& outputPath);
 
 		static Ref<Texture2D> DeserializeTexture2D(const std::filesystem::path& inputPath);
 		static Ref<Shader> DeserializeShader(const std::filesystem::path& inputPath);
 		static Ref<Material> DeserializeMaterial(const std::filesystem::path& inputPath);
 		static Ref<Mesh> DeserializeMesh(const std::filesystem::path& inputPath);
 		static Ref<StyleSheet> DeserializeStyleSheet(const std::filesystem::path& inputPath);
+		static Ref<AudioClip> DeserializeAudioClip(const std::filesystem::path& inputPath);
 
 		static bool ValidateFile(const std::filesystem::path& path, TAssetHeader& outHeader);
 	};

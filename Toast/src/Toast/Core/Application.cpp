@@ -5,6 +5,8 @@
 
 #include "Toast/Assets/AssetManager.h"
 
+#include "Toast/Audio/AudioEngine.h"
+
 #include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/UI/Font.h"
 #include "Toast/Renderer/UI/UIStyleSystem.h"
@@ -42,6 +44,8 @@ namespace Toast {
 
 		Renderer::Init(mWindow->GetWidth(), mWindow->GetHeight());
 
+		AudioEngine::Init();
+
 		ScriptEngine::Init();
 		UIStyleSystem::Init();
 		Font::StaticInit();
@@ -53,6 +57,8 @@ namespace Toast {
 	Application::~Application() 
 	{
 		TOAST_PROFILE_FUNCTION();
+
+		AudioEngine::Shutdown();
 
 		AssetManager::SerializeRegistry();
 
