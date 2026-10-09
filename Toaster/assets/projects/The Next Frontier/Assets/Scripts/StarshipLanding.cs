@@ -7,6 +7,14 @@ using Toast;
 
 namespace TheNextFrontier
 {
+	public enum CargoState
+    {
+        None,
+        UnloadingCargo,
+        UnloadedCargo,
+        LoadingCargo
+    }
+	
     public class StarshipLanding : Entity
     {   	
  		private enum LandingState
@@ -58,6 +66,14 @@ namespace TheNextFrontier
         public float DustOutwardNear = 0.0f;
         public float DustUpwardFar = 0.0f;
         public float DustUpwardNear = 0.0f;
+        
+        // Cargo Unloading tunables
+        public float RampApproachDistance = 3.0f;   // forward onto the ramp
+        public float SlopeDistance = 5.0f;   // down the slope
+        public float ClearDistance = 3.0f;   // forward off the ramp
+        public float SlopeAngle = 20.0f;  // degrees nose-down
+        public float CargoTranslationSpeed = 1.0f;
+        public float CargoRotationSpeed = 30.0f;
 
         // Vents settings
         public float CommonDomeVentPostLandingTime = 30.0f;   // keeps venting this long after touchdown
@@ -131,6 +147,15 @@ namespace TheNextFrontier
         private float mTotalTime;
 
         private CargoState mCargoState = CargoState.None;
+        private enum UnloadingStep { Idle, AnimationPlaying, ToRamp, RotateDown, DownSlope, RotateUp, Clear, Done }
+        private UnloadingStep mUnloadingSequence = UnloadingStep.Idle;
+        
+        private Entity mCargoOne;
+        private Entity mCargoTwo;
+        private TransformComponent mCargoOneTC;
+        private TransformComponent mCargoTwoTC;
+        private MoveableComponent mCargoOneMC;
+        private MoveableComponent mCargoTwoMC;
 
         void OnCreate()
         {       	
@@ -181,6 +206,14 @@ namespace TheNextFrontier
             mCommonDomeVent2 = FindChildEntityByName(this.Name, "CommonDomeVent2").GetComponent<ParticlesComponent>();
             mHeaderVent1 = FindChildEntityByName(this.Name, "HeaderVent1").GetComponent<ParticlesComponent>();
             mHeaderVent2 = FindChildEntityByName(this.Name, "HeaderVent2").GetComponent<ParticlesComponent>();
+            
+            // Set up cargo data
+            mCargoOne = this.FindDecententByName(mStarship.ID, "Rover1");
+            mCargoTwo = this.FindDecententByName(mStarship.ID, "Rover2");
+            mCargoOneTC = mCargoOne.GetComponent<TransformComponent>();
+            mCargoTwoTC = mCargoTwo.GetComponent<TransformComponent>();
+            mCargoOneMC = mCargoOne.GetComponent<MoveableComponent>();
+            mCargoTwoMC = mCargoTwo.GetComponent<MoveableComponent>();
         }
 
         bool OnEvent(Event e)
@@ -232,26 +265,13 @@ namespace TheNextFrontier
             UpdateEngineRamp();
             UpdateGroundDust(altitude);
             UpdateVents();
+            UpdateCargo();
 
             // Info Panel
             if (mPanel.Visible)
             {
-                if (landingState == LandingState.Landed && mCargoState == CargoState.None)
-                {
-                    mUnloadCargoButtonComponent.Visible = true;
-                    mLoadCargoButtonComponent.Visible = false;
-                }
-                else if (landingState == LandingState.Landed && mCargoState == CargoState.UnloadingCargo)
-                {
-                    mUnloadCargoButtonComponent.Visible = false;
-                    mLoadCargoButtonComponent.Visible = true;
-                }
-                else if (landingState == LandingState.Landed && mCargoState == CargoState.LoadingCargo)
-                {
-                    mUnloadCargoButtonComponent.Visible = true;
-                    mLoadCargoButtonComponent.Visible = false;
-                }
-
+            	UpdateCargoButtons();
+            	
                 if (mTotalTime > 0.15f)
                 {
                     float linearVelocity = Vector3.Length(mRigidBody.LinearVelocity);
@@ -265,11 +285,6 @@ namespace TheNextFrontier
 
                 mTotalTime += ts;
             }
-        }
-
-        public void SetCargoState(CargoState state)
-        {
-            mCargoState = state;
         }
 
         private void UpdateBellyFreeFall(float altitude, float descentSpeed, float pitch, float gravity)
@@ -745,9 +760,150 @@ namespace TheNextFrontier
             mHeaderVent2.Emitting = headerVenting;
         }
         
-         public void RequestDeorbit() 
-         { 
-         	Toast.Console.LogInfo("Deorbit requested!");
-         }
+        private void UpdateCargo()
+        {
+        	if(mCargoState == CargoState.LoadingCargo && mMesh.IsAnimationComplete("UnloadCargo"))
+        	{
+        		bool roversOutside = mUnloadingSequence == UnloadingStep.Done;
+        		mCargoState = roversOutside ? CargoState.UnloadedCargo : CargoState.None;
+        	}
+        	
+        	switch (mUnloadingSequence)
+            {
+                case UnloadingStep.AnimationPlaying:
+                    if (mMesh.IsAnimationComplete("UnloadCargo"))
+                    {
+                        mCargoOneTC.TranslationSpeed = CargoTranslationSpeed;
+                        mCargoTwoTC.TranslationSpeed = CargoTranslationSpeed;
+                        Vector3 forwardR1 = mCargoOneTC.WorldRight;
+                        Vector3 forwardR2 = mCargoTwoTC.WorldRight;
+                        Vector3 currentR1 = mCargoOneTC.Translation;
+                        Vector3 currentR2 = mCargoTwoTC.Translation;
+                        mCargoOneTC.SetTargetTranslation(currentR1 + forwardR1 * RampApproachDistance);
+                        mCargoTwoTC.SetTargetTranslation(currentR2 + forwardR2 * RampApproachDistance);
+                        mUnloadingSequence = UnloadingStep.ToRamp;
+                    }
+                    break;
+
+                case UnloadingStep.ToRamp:
+                    if (mCargoOneTC.HasReachedTargetTranslation() && mCargoTwoTC.HasReachedTargetTranslation())
+                    {
+                        mCargoOneTC.AngularSpeed = CargoRotationSpeed;
+                        mCargoTwoTC.AngularSpeed = CargoRotationSpeed;
+                        mCargoOneTC.SetTargetRotationDelta(0.0f, 0.0f, -SlopeAngle);
+                        mCargoTwoTC.SetTargetRotationDelta(0.0f, 0.0f, -SlopeAngle);
+                        mUnloadingSequence = UnloadingStep.RotateDown;
+                    }
+                    break;
+
+                case UnloadingStep.RotateDown:
+                    if (mCargoOneTC.HasReachedTargetRotation(0.01f) && mCargoTwoTC.HasReachedTargetRotation(0.01f))
+                    {
+                        Vector3 slopeDirR1 = mCargoOneTC.WorldRight;
+                        Vector3 slopeDirR2 = mCargoTwoTC.WorldRight;
+                        Vector3 currentR1 = mCargoOneTC.Translation;
+                        Vector3 currentR2 = mCargoTwoTC.Translation;
+                        mCargoOneTC.SetTargetTranslation(currentR1 + slopeDirR1 * SlopeDistance);
+                        mCargoTwoTC.SetTargetTranslation(currentR2 + slopeDirR2 * SlopeDistance);
+                        mUnloadingSequence = UnloadingStep.DownSlope;
+                    }
+                    break;
+
+                case UnloadingStep.DownSlope:
+                    if (mCargoOneTC.HasReachedTargetTranslation() && mCargoTwoTC.HasReachedTargetTranslation())
+                    {
+                        mCargoOneTC.SetTargetRotationDelta(0.0f, 0.0f, +SlopeAngle);
+                        mCargoTwoTC.SetTargetRotationDelta(0.0f, 0.0f, +SlopeAngle);
+                        mUnloadingSequence = UnloadingStep.RotateUp;
+                    }
+                    break;
+
+                case UnloadingStep.RotateUp:
+                    if (mCargoOneTC.HasReachedTargetRotation(0.01f) && mCargoTwoTC.HasReachedTargetRotation(0.01f))
+                    {
+                        Vector3 forwardR1 = mCargoOneTC.WorldRight;   // now level, forward is horizontal again
+                        Vector3 forwardR2 = mCargoTwoTC.WorldRight;
+                        Vector3 currentR1 = mCargoOneTC.Translation;
+                        Vector3 currentR2 = mCargoTwoTC.Translation;
+                        mCargoOneTC.SetTargetTranslation(currentR1 + forwardR1 * ClearDistance);
+                        mCargoTwoTC.SetTargetTranslation(currentR2 + forwardR2 * ClearDistance);
+                        mUnloadingSequence = UnloadingStep.Clear;
+                    }
+                    break;
+
+                case UnloadingStep.Clear:
+                    if (!mCargoOneTC.IsTranslating() && !mCargoTwoTC.IsTranslating())
+                    {
+                        mCargoOne.Unparent();
+                        mCargoTwo.Unparent();
+                        mCargoOneMC.IsActive = true;   // now accepts MoveTo
+                        mCargoTwoMC.IsActive = true;   // now accepts MoveTo
+                        mUnloadingSequence = UnloadingStep.Done;
+                        mCargoState = CargoState.UnloadedCargo;
+                    }
+                    break;
+            }
+        }
+        
+        private void UpdateCargoButtons()
+        {
+        	if(landingState != LandingState.Landed)
+        	{
+        		mUnloadCargoButtonComponent.Visible = false;
+        		mLoadCargoButtonComponent.Visible = false;
+        		
+        		return;
+        	}
+        	
+        	bool showUnload	= mCargoState == CargoState.None || mCargoState == CargoState.UnloadingCargo;
+        	
+        	mUnloadCargoButtonComponent.Visible = showUnload;
+        	mLoadCargoButtonComponent.Visible = !showUnload;
+        	
+        	mUnloadCargoButtonComponent.Toggled = mCargoState == CargoState.UnloadingCargo;
+        	mLoadCargoButtonComponent.Toggled = mCargoState == CargoState.LoadingCargo;
+        }
+        
+        public void RequestDeorbit() 
+        { 
+        	Toast.Console.LogInfo("Deorbit requested!");
+        }
+        
+        public void OnUnloadCargoPressed()
+        {
+        	if(mCargoState == CargoState.None)
+        	{
+				mMesh.PlayAnimation("UnloadCargo");
+				mCargoState = CargoState.UnloadingCargo;
+				mUnloadingSequence = UnloadingStep.AnimationPlaying; 
+				return;
+        	}
+        	
+			if(mCargoState == CargoState.UnloadingCargo && mUnloadingSequence == UnloadingStep.AnimationPlaying)
+			{
+				mMesh.PlayReverseAnimation("UnloadCargo");
+				mCargoState = CargoState.LoadingCargo;
+				mUnloadingSequence = UnloadingStep.Idle; 
+			}
+        }
+        
+        public void OnLoadCargoPressed()
+        {
+        	if(mCargoState == CargoState.UnloadedCargo)
+        	{
+				mMesh.PlayReverseAnimation("UnloadCargo");
+				mCargoState = CargoState.LoadingCargo;
+				return;
+			}
+			
+			bool rampStillMoving = !mMesh.IsAnimationComplete("UnloadCargo");
+			
+			if(mCargoState == CargoState.LoadingCargo && mUnloadingSequence ==  UnloadingStep.Idle && rampStillMoving)
+			{
+				mMesh.PlayAnimation("UnloadCargo");
+				mCargoState = CargoState.UnloadingCargo;
+				mUnloadingSequence = UnloadingStep.AnimationPlaying;   
+			}
+        }
     }
 }

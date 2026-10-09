@@ -4,7 +4,7 @@
 7706550061724850605|Material|Materials\Heatshield.tmtl|
 5222783482869039021|Texture2D|Textures\StarField16k.tif|sRGB=1
 341866119682474621|Shader|Shaders\HeightMapToCubeMap.hlsl|
-18007375396288243133|Texture2D|Textures\UI\35_LoadCargo_Active.png|sRGB=1
+18007375396288243133|Texture2D|Textures\UI\35_LoadCargo_Active.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
 2502867941750724029|Texture2D|Textures\Mars_MOLA_8k_raw.tif|sRGB=0
 8975056036252789757|Texture2D|Textures\Starship_Heat_Shield_normal.png|sRGB=0
 11201851527905594191|StyleSheet|Styles\Testing111.css|
@@ -96,11 +96,9 @@
 17593228084679697780|Script|Scripts\CameraController.cs|
 11283913563491824149|Script|Scripts\AllStarshipsPopup.cs|
 7091776065297775666|Script|Scripts\CloseButtonAllStarships.cs|
-6900236357676364990|Script|Scripts\LoadCargo.cs|
 2479478884454965950|Shader|Shaders\TerrainScatter.hlsl|
 15397713549331558382|Script|Scripts\Money.cs|
 6730161605731363412|Script|Scripts\TimeText.cs|
-14654075824146422813|Script|Scripts\UnloadCargo.cs|
 18122810247834729331|Script|Scripts\SelectionManager.cs|
 7697143326450197066|StyleSheet|Styles\PanelTestTest.css|
 7906087238920879412|StyleSheet|Styles\PanelTestTest2.css|
