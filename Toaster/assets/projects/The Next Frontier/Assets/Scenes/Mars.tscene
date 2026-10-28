@@ -1,6 +1,6 @@
 Scene: Mars
 EditorCamera:
-  Position: [108.82708, 63.6996994, -348.731262]
+  Position: [29.399765, 53.6039848, -516.591003]
 Settings:
   Wireframe: 0
   Grid: false
@@ -99,6 +99,7 @@ Planet:
   TurbulenceScale: 0.0500000007
   TurbulenceEpsilon: 0.200000003
   WindVelocity: [2, 0, 0]
+  SpeedOfSound: 240
   PlanetMesh:
     MaxSubdivisions: 23
     PatchLevels: 5
@@ -1187,6 +1188,15 @@ Entities:
       MarkerTextureHandle: 13381223142622168186
       MarkerSize: 2
       MarkerFadeOutDuration: 4.05000019
+    AudioComponent:
+      Sound:
+        ClipHandle: 0
+        Volume: 1
+        Pitch: 1
+      Loop: false
+      Spatial: false
+      MinDistance: 1
+      DopplerScale: 1
   - Entity: 1289859837286577453
     TagComponent:
       Tag: Rover1
@@ -1234,6 +1244,15 @@ Entities:
       MarkerTextureHandle: 13381223142622168186
       MarkerSize: 2
       MarkerFadeOutDuration: 4.05000019
+    AudioComponent:
+      Sound:
+        ClipHandle: 0
+        Volume: 1
+        Pitch: 1
+      Loop: false
+      Spatial: false
+      MinDistance: 1
+      DopplerScale: 1
   - Entity: 16380098558611301094
     TagComponent:
       Tag: LoadCargoButton
@@ -1257,10 +1276,6 @@ Entities:
       StateTexture3: 18007375396288243133
       StyleSheet: 10936026810773946683
       StyleOverrides: 1776
-      ClickSound:
-        ClipHandle: 1147257904577158881
-        Volume: 1
-        Pitch: 1
       Actions:
         - Name: OnLoadCargoStart
           Type: CallScriptMethod
@@ -1779,6 +1794,7 @@ Entities:
         - Handle: 12344255339784534406
         - Handle: 9250695941923551917
         - Handle: 15758747276645440079
+        - Handle: 11759265246340118256
     TransformComponent:
       Translation: [0, 50, 142]
       Rotation: [0, 90, 0]
@@ -1992,9 +2008,13 @@ Entities:
       StateTexture1: 7805165310876259368
       StateTexture2: 15619846374371284112
       StyleSheet: 17232253532638061034
-      StyleOverrides: 1648
-      ClickSound:
-        ClipHandle: 1147257904577158881
+      StyleOverrides: 18876016
+      PressSound:
+        ClipHandle: 9147919873387223950
+        Volume: 1
+        Pitch: 1
+      ReleaseSound:
+        ClipHandle: 17486096536339993026
         Volume: 1
         Pitch: 1
       Actions:
@@ -2775,10 +2795,6 @@ Entities:
       StateTexture3: 8250508639412788580
       StyleSheet: 10274790416831569661
       StyleOverrides: 1776
-      ClickSound:
-        ClipHandle: 1147257904577158881
-        Volume: 1
-        Pitch: 1
       Actions:
         - Name: StartUnloadCargo
           Type: CallScriptMethod
@@ -2848,6 +2864,15 @@ Entities:
       MarkerTextureHandle: 13381223142622168186
       MarkerSize: 2
       MarkerFadeOutDuration: 4.05000019
+    AudioComponent:
+      Sound:
+        ClipHandle: 0
+        Volume: 1
+        Pitch: 1
+      Loop: false
+      Spatial: false
+      MinDistance: 1
+      DopplerScale: 1
   - Entity: 14441562330410749307
     TagComponent:
       Tag: Chassi
@@ -3033,3 +3058,24 @@ Entities:
       Visible: true
       StyleSheet: 4818819617804330883
       StyleOverrides: 512
+  - Entity: 11759265246340118256
+    TagComponent:
+      Tag: RaptorAudio
+    RelationshipComponent:
+      ParentHandle: 11328469722289647653
+      Children:
+        []
+    TransformComponent:
+      Translation: [0, -26, 0]
+      Rotation: [0, 0, 0]
+      RotationQuat: [0, 0, 0, 1]
+      Scale: [1, 1, 1]
+    AudioComponent:
+      Sound:
+        ClipHandle: 2505803560815318702
+        Volume: 0
+        Pitch: 1
+      Loop: true
+      Spatial: true
+      MinDistance: 50
+      DopplerScale: 1

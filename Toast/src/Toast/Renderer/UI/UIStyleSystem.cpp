@@ -206,6 +206,20 @@ namespace Toast {
 			component.BorderWidth = defaults.BorderWidth;
 		if (!(overrides & UIStyleProp_BorderColor))
 			component.BorderColor = defaults.BorderColor;
+
+		if (!(overrides & UIStyleProp_PressSound))
+			component.PressSound.ClipHandle = defaults.PressSound.ClipHandle;
+		if (!(overrides & UIStyleProp_PressVolume))
+			component.PressSound.Volume = defaults.PressSound.Volume;
+		if (!(overrides & UIStyleProp_PressPitch))
+			component.PressSound.Pitch = defaults.PressSound.Pitch;
+
+		if (!(overrides & UIStyleProp_ReleaseSound))
+			component.ReleaseSound.ClipHandle = defaults.ReleaseSound.ClipHandle;
+		if (!(overrides & UIStyleProp_ReleaseVolume))
+			component.ReleaseSound.Volume = defaults.ReleaseSound.Volume;
+		if (!(overrides & UIStyleProp_ReleasePitch))
+			component.ReleaseSound.Pitch = defaults.ReleaseSound.Pitch;
 	}
 
 	void UIStyleSystem::ResetUnoverridden(UITextComponent& component)
@@ -367,6 +381,20 @@ namespace Toast {
 		if (block->BorderColor.Set && !(overrides & UIStyleProp_BorderColor))
 			component.BorderColor = block->BorderColor.Value;
 
+		if (block->PressSound.Set && !(overrides && UIStyleProp_PressSound))
+			component.PressSound.ClipHandle = block->PressSound.Value;
+		if (block->PressVolume.Set && !(overrides && UIStyleProp_PressVolume))
+			component.PressSound.Volume = block->PressVolume.Value;
+		if (block->PressPitch.Set && !(overrides && UIStyleProp_PressPitch))
+			component.PressSound.Pitch = block->PressPitch.Value;
+
+		if (block->ReleaseSound.Set && !(overrides && UIStyleProp_ReleaseSound))
+			component.ReleaseSound.ClipHandle = block->ReleaseSound.Value;
+		if (block->ReleaseVolume.Set && !(overrides && UIStyleProp_ReleaseVolume))
+			component.ReleaseSound.Volume = block->ReleaseVolume.Value;
+		if (block->ReleasePitch.Set && !(overrides && UIStyleProp_ReleasePitch))
+			component.ReleaseSound.Pitch = block->ReleasePitch.Value;
+
 		component.Blended = component.States[(size_t)component.CurrentState];
 		component.BlendFrom = component.Blended;
 		component.StateBlend = 1.0f;
@@ -465,6 +493,20 @@ namespace Toast {
 		{
 			block.BorderWidth.Assign(component.BorderWidth);
 			block.BorderColor.Assign(component.BorderColor);
+		}
+
+		if (component.PressSound.ClipHandle != AssetHandle(0))
+		{
+			block.PressSound.Assign(component.PressSound.ClipHandle);
+			block.PressVolume.Assign(component.PressSound.Volume);
+			block.PressPitch.Assign(component.PressSound.Pitch);
+		}
+
+		if (component.ReleaseSound.ClipHandle != AssetHandle(0))
+		{
+			block.ReleaseSound.Assign(component.ReleaseSound.ClipHandle);
+			block.ReleaseVolume.Assign(component.ReleaseSound.Volume);
+			block.ReleasePitch.Assign(component.ReleaseSound.Pitch);
 		}
 
 		return block;

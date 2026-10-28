@@ -418,7 +418,7 @@ namespace Toast {
 				}
 
 				// Color override
-				if (mColorOverride.z != 0.0)
+				if (mColorOverride.x != 0.0 || mColorOverride.y != 0.0 || mColorOverride.z != 0.0)
 				{
 					for (auto& vertex : mLODGroups[0]->Vertices)
 						vertex.Color = { (float)mColorOverride.x, (float)mColorOverride.y, (float)mColorOverride.z };
@@ -856,7 +856,7 @@ namespace Toast {
 				}
 
 				// Color override
-				if (mColorOverride.z != 0.0)
+				if (mColorOverride.x != 0.0 || mColorOverride.y != 0.0 || mColorOverride.z != 0.0)
 				{
 					for (auto& vertex : lodGroup->Vertices)
 						vertex.Color = { (float)mColorOverride.x, (float)mColorOverride.y, (float)mColorOverride.z };

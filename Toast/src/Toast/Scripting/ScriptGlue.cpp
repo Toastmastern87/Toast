@@ -1497,6 +1497,80 @@ namespace Toast {
 
 #pragma endregion
 
+#pragma region Audio Component
+
+	void AudioComponent_Play(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& ac = entity.GetComponent<AudioComponent>();
+		
+		ac.Playback.PlayRequested = true;
+	}
+
+	void AudioComponent_Stop(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& ac = entity.GetComponent<AudioComponent>();
+
+		ac.Playback.Stop();
+	}
+
+	bool AudioComponent_IsPlaying(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& ac = entity.GetComponent<AudioComponent>();
+
+		return ac.Playback.IsPlaying() || ac.Playback.PlayRequested;
+	}
+
+	float AudioComponent_GetVolume(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& ac = entity.GetComponent<AudioComponent>();
+
+		return ac.Sound.Volume;
+	}
+
+	void AudioComponent_SetVolume(uint64_t entityID, float value)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& ac = entity.GetComponent<AudioComponent>();
+
+		ac.Sound.Volume = value;
+	}
+
+	float AudioComponent_GetPitch(uint64_t entityID)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& ac = entity.GetComponent<AudioComponent>();
+
+		return ac.Sound.Pitch;
+	}
+
+	void AudioComponent_SetPitch(uint64_t entityID, float value)
+	{
+		Scene* scene = ScriptEngine::GetSceneContext();
+		Entity entity = scene->FindEntityByUUID(entityID);
+
+		auto& ac = entity.GetComponent<AudioComponent>();
+
+		ac.Sound.Pitch = value;
+	}
+
+#pragma endregion
+
 	template<typename Component>
 	static void RegisterComponent()
 	{
@@ -1528,6 +1602,7 @@ namespace Toast {
 		RegisterComponent<ParticlesComponent>();
 		RegisterComponent<ScriptComponent>();
 		RegisterComponent<MoveableComponent>();
+		RegisterComponent<AudioComponent>();
 	}
 
 	void ScriptGlue::RegisterFunctions()
@@ -1683,6 +1758,14 @@ namespace Toast {
 
 		TOAST_ADD_INTERNAL_CALL(MoveableComponent_GetIsActive);
 		TOAST_ADD_INTERNAL_CALL(MoveableComponent_SetIsActive);
+
+		TOAST_ADD_INTERNAL_CALL(AudioComponent_Play);
+		TOAST_ADD_INTERNAL_CALL(AudioComponent_Stop);
+		TOAST_ADD_INTERNAL_CALL(AudioComponent_IsPlaying);
+		TOAST_ADD_INTERNAL_CALL(AudioComponent_GetVolume);
+		TOAST_ADD_INTERNAL_CALL(AudioComponent_SetVolume);
+		TOAST_ADD_INTERNAL_CALL(AudioComponent_GetPitch);
+		TOAST_ADD_INTERNAL_CALL(AudioComponent_SetPitch);
 	}
 
 }

@@ -621,6 +621,8 @@ namespace Toast {
 		float mSurfaceAirDensity = 0.0f;      
 		float mPhysicsScaleHeight = 0.0f;   
 		float mAtmosphereCeiling = 0.0f; 
+		// Speed of sound in the surface air, in m/s. Drives audio doppler. Default is Earth settings!
+		float mSpeedOfSound = 343.5f; 
 		// Wind / turbulence (drives particle curl noise) 
 		float mTurbulenceScale = 0.0f;
 		// Finite-difference step for the curl
@@ -748,6 +750,7 @@ namespace Toast {
 		float GetPhysicsAtmosphereCeiling() { return mAtmosphereCeiling; }
 		float GetSurfaceAirDensity() { return mSurfaceAirDensity; }
 		float GetPhysicsScaleHeight() { return mPhysicsScaleHeight; }
+		float GetSpeedOfSound() const { return mSpeedOfSound; }
 
 		float GetWallEnhancementEnabled() const { return mWallEnhancementEnabled; }
 		float GetWallStrength() const { return mWallStrength; }

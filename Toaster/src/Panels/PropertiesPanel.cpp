@@ -3,6 +3,8 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
+#include "Toast/Audio/AudioClip.h"
+
 #include "Toast/Renderer/Renderer.h"
 #include "Toast/Renderer/Renderer2D.h"
 #include "Toast/Renderer/UI/UIStyleSystem.h"
@@ -459,6 +461,15 @@ namespace Toast {
 				if (ImGui::MenuItem("Moveable"))
 				{
 					mContext.AddComponent<MoveableComponent>();
+					ImGui::CloseCurrentPopup();
+				}
+			}
+
+			if (!mContext.HasComponent<AudioComponent>())
+			{
+				if (ImGui::MenuItem("Audio"))
+				{
+					mContext.AddComponent<AudioComponent>();
 					ImGui::CloseCurrentPopup();
 				}
 			}
@@ -1995,16 +2006,52 @@ namespace Toast {
 
 				ImGui::EndTable();
 
-				// Click Sound
+				// Press Sound
 				ImGui::Separator();
-				ImGui::Text("Click Sound");
+				ImGui::Text("Press Sound");
 
-				if (ImGui::BeginTable("UIButtonClickSound", 2, flags))
+				if (ImGui::BeginTable("UIButtonPressSound", 2, flags))
 				{
 					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
 					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
 
-					ImGuiHelpers::SoundSettingsRows(component.ClickSound, component.ClickPlayback, assetRoot, assetRoot/ "AudioClips");
+					ImGuiHelpers::SoundStyleBinding pressStyle;
+					pressStyle.Style = &component.Style;
+					pressStyle.ClipBit = UIStyleProp_PressSound;
+					pressStyle.VolumeBit = UIStyleProp_PressVolume;
+					pressStyle.PitchBit = UIStyleProp_PressPitch;
+					pressStyle.SheetSetsClip = styleBlock && styleBlock->PressSound.Set;
+					pressStyle.SheetSetsVolume = styleBlock && styleBlock->PressVolume.Set;
+					pressStyle.SheetSetsPitch = styleBlock && styleBlock->PressPitch.Set;
+
+					ImGui::PushID("PressSound");
+					ImGuiHelpers::SoundSettingsRows(component.PressSound, component.PressPlayback, assetRoot, assetRoot / AUDIO_CLIP_DIRECTORY, &pressStyle);
+					ImGui::PopID();
+
+					ImGui::EndTable();
+				}
+
+				// Release Sound
+				ImGui::Separator();
+				ImGui::Text("Release Sound");
+
+				if (ImGui::BeginTable("UIButtonReleaseSound", 2, flags))
+				{
+					ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+					ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+
+					ImGuiHelpers::SoundStyleBinding releaseStyle;
+					releaseStyle.Style = &component.Style;
+					releaseStyle.ClipBit = UIStyleProp_ReleaseSound;
+					releaseStyle.VolumeBit = UIStyleProp_ReleaseVolume;
+					releaseStyle.PitchBit = UIStyleProp_ReleasePitch;
+					releaseStyle.SheetSetsClip = styleBlock && styleBlock->ReleaseSound.Set;
+					releaseStyle.SheetSetsVolume = styleBlock && styleBlock->ReleaseVolume.Set;
+					releaseStyle.SheetSetsPitch = styleBlock && styleBlock->ReleasePitch.Set;
+
+					ImGui::PushID("ReleaseSound");
+					ImGuiHelpers::SoundSettingsRows(component.ReleaseSound, component.ReleasePlayback, assetRoot, assetRoot / AUDIO_CLIP_DIRECTORY, &releaseStyle);
+					ImGui::PopID();
 
 					ImGui::EndTable();
 				}
@@ -2565,6 +2612,72 @@ namespace Toast {
 
 					DrawFloatControl("Size", component.MarkerSize, window, activeDragArea, 90.0f, 0.1f, 50.0f, 0.05f, "%.2f");
 					DrawFloatControl("Fade Out Duration", component.MarkerFadeOutDuration, window, activeDragArea, 90.0f, 0.0f, 10.0f, 0.05f, "%.2f");
+				});
+
+			DrawComponent<AudioComponent>(ICON_TOASTER_VOLUME_UP" Audio", entity, mScene, activeDragArea, mWindow, mAssetRoot, [](auto& component, Entity entity, Scene* scene, WindowsWindow* window, std::string& activeDragArea, std::filesystem::path& assetRoot)
+				{
+					ImGuiTableFlags flags = ImGuiTableFlags_BordersInnerV;
+					ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+					if (ImGui::BeginTable("AudioComponent", 2, flags))
+					{
+						ImGui::TableSetupColumn("##col1", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+						ImGui::TableSetupColumn("##col2", ImGuiTableColumnFlags_WidthFixed, contentRegionAvailable.x * 0.7f);
+
+						ImGuiHelpers::SoundSettingsRows(component.Sound, component.Playback, assetRoot, assetRoot / "AudioClips");
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::TextUnformatted("Loop");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::Checkbox("##loop", &component.Loop);
+
+						// Spatial
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::TextDisabled("Spatial");
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::TextUnformatted("3D");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::Checkbox("##spatial", &component.Spatial);
+
+						if (component.Spatial && component.Sound.ClipHandle != AssetHandle(0))
+						{
+							Ref<AudioClip> clip = AssetManager::GetAsset<AudioClip>(component.Sound.ClipHandle);
+							if (clip && clip->GetFormat().nChannels != 1)
+							{
+								ImGui::TableNextRow();
+								ImGui::TableSetColumnIndex(0);
+								ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.75f, 0.2f, 1.0f));
+								ImGui::TextWrapped("Stereo clip: plays in 2D. 3D needs a mono clip.");
+								ImGui::PopStyleColor();
+							}
+						}
+
+						ImGui::BeginDisabled(!component.Spatial);
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::TextUnformatted("Min Distance");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::PushItemWidth(-1);
+						ImGui::DragFloat("##mindistance", &component.MinDistance, 100.0f, 0.1f, 100000.0f, "%.1f m", ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_AlwaysClamp);
+						ImGui::PopItemWidth();
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::TextUnformatted("Doppler");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::PushItemWidth(-1);
+						ImGui::SliderFloat("##dopplerscale", &component.DopplerScale, 0.0f, 5.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+						ImGui::PopItemWidth();
+
+						ImGui::EndDisabled();
+
+						ImGui::EndTable();
+					}
+
 				});
 	}
 

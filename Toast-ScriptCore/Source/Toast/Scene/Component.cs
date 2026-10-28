@@ -624,4 +624,27 @@ namespace Toast
             }
         }
     }
+
+    public class AudioComponent : Component 
+    {
+        public void Play() => InternalCalls.AudioComponent_Play(Entity.ID);
+
+        public void Stop() => InternalCalls.AudioComponent_Stop(Entity.ID);
+
+        public bool IsPlaying => InternalCalls.AudioComponent_IsPlaying(Entity.ID);
+
+        // 0 = silent, 1 = full.
+        public float Volume
+        {
+            get => InternalCalls.AudioComponent_GetVolume(Entity.ID);
+            set => InternalCalls.AudioComponent_SetVolume(Entity.ID, value);   
+        }
+
+        // 1 = original pitch, 0.5 = an octave down, 2 = an octave up
+        public float Pitch
+        {
+            get => InternalCalls.AudioComponent_GetPitch(Entity.ID);
+            set => InternalCalls.AudioComponent_SetPitch(Entity.ID, value);
+        }
+    }
 }

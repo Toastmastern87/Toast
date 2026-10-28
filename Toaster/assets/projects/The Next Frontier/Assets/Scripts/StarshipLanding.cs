@@ -58,6 +58,12 @@ namespace TheNextFrontier
         public float IgnitionIntensityStart = 0.5f; // dim glow before chamber pressure builds
         public float IgnitionSpawnDelayMult = 4.0f; // 4x delay = 1/4 the particle density
 
+		// Engine sound
+		public float RaptorSoundMinVolume = 0.4f;
+		public float RaptorSoundMinPitch = 0.9f;
+		public float RaptorSoundMaxPitch = 1.1f;
+		public float RaptorSoundResponse = 0.15f;
+
         // Dust kickup on terrain
         public float DustPlumeReachMargin = 1.4f;
         public float DustSpawnDelayFar = 0.0f;
@@ -90,6 +96,9 @@ namespace TheNextFrontier
         private float mFullSpawnDelay;
         private float mFullStartIntensity;
         private float mIgnitionTime = -1f;          // -1 = engines have never fired
+
+		private AudioComponent mRaptorSound;
+		private float mRaptorSoundLevel = 0f;
 
         private TransformComponent mShipTransform;
         private RigidBodyComponent mRigidBody;
@@ -207,6 +216,12 @@ namespace TheNextFrontier
             mHeaderVent1 = FindChildEntityByName(this.Name, "HeaderVent1").GetComponent<ParticlesComponent>();
             mHeaderVent2 = FindChildEntityByName(this.Name, "HeaderVent2").GetComponent<ParticlesComponent>();
             
+            Entity raptorSoundEntity = FindChildEntityByName(this.Name, "RaptorAudio");
+            if(raptorSoundEntity != null)
+           		mRaptorSound = raptorSoundEntity.GetComponent<AudioComponent>();
+           	else
+           		Toast.Console.LogWarning("[Landing] no 'RaptorSound' child entity, the raptor engines will be silent");
+            
             // Set up cargo data
             mCargoOne = this.FindDecententByName(mStarship.ID, "Rover1");
             mCargoTwo = this.FindDecententByName(mStarship.ID, "Rover2");
@@ -263,6 +278,7 @@ namespace TheNextFrontier
             // Apply thrust from all active engines every frame
             ApplyThrust(ts);
             UpdateEngineRamp();
+            UpdateRaptorSound(ts);
             UpdateGroundDust(altitude);
             UpdateVents();
             UpdateCargo();
@@ -664,6 +680,32 @@ namespace TheNextFrontier
             spawnDelay = Math.Max(spawnDelay, 0.00001f);
 
             ApplyPlumeSettings(lifeTime, spawnDelay, intensity);
+        }
+        
+        private void UpdateRaptorSound(float dt)
+        {
+        	if(mRaptorSound == null)
+        		return;
+        		
+        	float target = enginesActive ? Lerp(RaptorSoundMinVolume, 1.0f, currentThrottle) : 0.0f;
+        	
+        	float blend = 1.0f - (float)Math.Exp(-dt / Math.Max(RaptorSoundResponse, 0.001f));
+        	mRaptorSoundLevel += (target - mRaptorSoundLevel) * blend;
+        	
+        	if(enginesActive && !mRaptorSound.IsPlaying)
+        		mRaptorSound.Play();
+        		
+        	if(!enginesActive && mRaptorSoundLevel < 0.001f)
+        	{
+        		if(mRaptorSound.IsPlaying)
+        			mRaptorSound.Stop();
+        			
+        		mRaptorSoundLevel = 0.0f;
+        		return;
+        	}
+        	
+        	mRaptorSound.Volume = mRaptorSoundLevel;
+        	mRaptorSound.Pitch = Lerp(RaptorSoundMinPitch, RaptorSoundMaxPitch, currentThrottle);
         }
 
         private void ApplyPlumeSettings(float lifeTime, float spawnDelay, float intensity)

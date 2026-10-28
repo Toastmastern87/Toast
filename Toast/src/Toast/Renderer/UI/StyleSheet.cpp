@@ -3,6 +3,9 @@
 
 #include "Toast/Assets/AssetManager.h"
 
+#include "Toast/Audio/AudioClip.h"
+#include "Toast/Audio/AudioSystem.h"
+
 #include "Toast/Renderer/Renderer2D.h"
 
 namespace Toast {
@@ -293,6 +296,47 @@ namespace Toast {
 		return true;
 	}
 
+	static bool ResolveAudioClip(const std::string& filename, AssetHandle& outHandle)
+	{
+		const std::filesystem::path relativePath = (std::filesystem::path(AUDIO_CLIP_DIRECTORY) / filename).lexically_normal();
+
+		if (!std::filesystem::exists(AssetManager::GetAssetDirectory() / relativePath))
+		{
+			TOAST_CORE_WARN("StyleSheet: sound '%s' not found at '%s'.", filename.c_str(), relativePath.string().c_str());
+			return false;
+		}
+
+		// Registers the clip if no panel has used it yet, otherwise returns the existing handle
+		outHandle = AssetManager::ImportAsset(relativePath);
+		return outHandle != AssetHandle(0);
+	}
+
+	static bool ParseVolume(const std::string& text, float& out)
+	{
+		if (!ParseNumber(text, out))
+			return false;
+
+		const float clamped = std::clamp(out, 0.0f, 1.0f);
+		if(clamped != out)
+			TOAST_CORE_WARN("StyleSheet: volume %.2f is outside 0-1, using %.2f.", out, clamped);
+
+		out = clamped;
+		return true;
+	}
+
+	static bool ParsePitch(const std::string& text, float& out)
+	{
+		if (!ParseNumber(text, out))
+			return false;
+
+		const float clamped = std::clamp(out, AudioSystem::MinPitch, AudioSystem::MaxPitch);
+		if (clamped != out)
+			TOAST_CORE_WARN("StyleSheet: pitch %.2f is outside %.2f-%.2f, using %.2f.", out, AudioSystem::MinPitch, AudioSystem::MaxPitch, clamped);
+
+		out = clamped;
+		return true;
+	}
+
 	static bool MatchStateProperty(const std::string& property, const char* base, UIState& outState)
 	{
 		const size_t baseLength = strlen(base);
@@ -478,6 +522,36 @@ namespace Toast {
 			return true;
 		}
 
+		if (property == "press-sound" || property == "release-sound")
+		{
+			AssetHandle handle;
+			if (!ResolveAudioClip(value, handle))
+				return false;
+
+			(property == "press-sound" ? block.PressSound : block.ReleaseSound).Assign(handle);
+			return true;
+		}
+
+		if (property == "press-volume" || property == "release-volume")
+		{
+			float volume;
+			if (!ParseVolume(value, volume))
+				return false;
+
+			(property == "press-volume" ? block.PressVolume : block.ReleaseVolume).Assign(volume);
+			return true;
+		}
+
+		if (property == "press-pitch" || property == "release-pitch")
+		{
+			float pitch;
+			if (!ParsePitch(value, pitch))
+				return false;
+
+			(property == "press-pitch" ? block.PressPitch : block.ReleasePitch).Assign(pitch);
+			return true;
+		}
+
 		return false;
 	}
 
@@ -618,6 +692,23 @@ namespace Toast {
 			if (const AssetMetadata* metadata = AssetManager::GetMetadata(mBlock.BackgroundImageState[i].Value))
 				out << "background-image" << stateSuffixes[i] << ": " << metadata->FilePath.filename().string() << ";\n";
 		}
+
+		auto writeSound = [&out](const char* event, const StyleValue<AssetHandle>& clip, const StyleValue<float>& volume, const StyleValue<float>& pitch)
+			{
+				if (clip.Set)
+				{
+					if (const AssetMetadata* metadata = AssetManager::GetMetadata(clip.Value))
+						out << event << "-sound" << metadata->FilePath.lexically_relative(AUDIO_CLIP_DIRECTORY).generic_string() << ";\n";
+				}
+
+				if (volume.Set)
+					out << event << "-volume" << volume.Value << ";\n";
+				if (pitch.Set)
+					out << event << "-pitch" << pitch.Value << ";\n";
+			};
+
+		writeSound("press", mBlock.PressSound, mBlock.PressVolume, mBlock.PressPitch);
+		writeSound("release", mBlock.ReleaseSound, mBlock.ReleaseVolume, mBlock.ReleasePitch);
 
 		return true;
 	}

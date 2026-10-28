@@ -62,4 +62,10 @@ namespace Toast {
 		PlayingClip = nullptr;
 	}
 
+	void SoundPlayback::Stop()
+	{
+		PlayRequested = false;
+		Release();
+	}
+
 }

@@ -303,6 +303,8 @@ namespace Toast {
 		void OnRuntimeStart();
 		void OnRuntimeStop();
 
+		void StopAllSounds();
+
 		bool IsRunning() const { return mIsRunning; }
 		bool IsPaused() const { return mIsPaused; }
 		void SetPaused(bool paused) { mIsPaused = paused; }

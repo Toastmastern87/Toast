@@ -1128,6 +1128,8 @@ namespace Toast {
 	{
 		mSceneState = SceneState::Play;
 
+		mEditorScene->StopAllSounds();
+
 		mRuntimeScene = CreateRef<Scene>("Runtime");
 
 		mEditorScene->CopyTo(mRuntimeScene.get());

@@ -34,6 +34,10 @@ namespace Toast {
 
 		// Stops and the sound and returns the voice to the pool.
 		void Release();
+
+		void Stop();
+
+		bool IsPlaying() const { return  VoiceSlot != UINT32_MAX; }
 	};
 
 }

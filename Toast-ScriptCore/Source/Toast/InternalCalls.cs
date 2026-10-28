@@ -475,5 +475,30 @@ namespace Toast
         internal static extern void MoveableComponent_SetIsActive(ulong entityID, bool value);
 
         #endregion
+
+        #region Audio Component
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void AudioComponent_Play(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void AudioComponent_Stop(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern bool AudioComponent_IsPlaying(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float AudioComponent_GetVolume(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void AudioComponent_SetVolume(ulong entityID, float value);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern float AudioComponent_GetPitch(ulong entityID);
+
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        internal static extern void AudioComponent_SetPitch(ulong entityID, float value);
+
+        #endregion
     }
 }

@@ -3,7 +3,19 @@
 
 namespace Toast {
 
-	constexpr float MaxFrequencyRatio = 4.0f;
+	namespace {
+	
+		X3DAUDIO_VECTOR ToX3DVector(const DirectX::XMFLOAT3& v)
+		{
+			return{ v.x, v.y, v.z };
+		}
+
+		bool IsFinite(const DirectX::XMFLOAT3& v)
+		{
+			return std::isfinite(v.x) && std::isfinite(v.y) && std::isfinite(v.z);
+		}
+		
+	}
 
 	bool FormatsMatch(const WAVEFORMATEX& a, const WAVEFORMATEX& b)
 	{
@@ -52,9 +64,43 @@ namespace Toast {
 		XAUDIO2_VOICE_DETAILS details = {};
 		sAudioData.MasteringVoice->GetVoiceDetails(&details);
 
+		InitX3DAudio(details.InputChannels);
+
 		sAudioData.Initialized = true;
 
 		TOAST_CORE_INFO("AudioEngine: initialized, %d output channels at %d Hz", details.InputChannels, details.InputSampleRate);
+	}
+
+	void AudioEngine::InitX3DAudio(uint32_t outputChannels)
+	{
+		DWORD channelMask = 0;
+		HRESULT hr = sAudioData.MasteringVoice->GetChannelMask(&channelMask);
+		if (FAILED(hr) || channelMask == 0)
+		{
+			TOAST_CORE_WARN("AudioEngine: no speaker channel mask, 3D audio disabled");
+			return;
+		}
+
+		hr = X3DAudioInitialize(channelMask, X3DAUDIO_SPEED_OF_SOUND, sAudioData.X3DInstance);
+		if (FAILED(hr))
+		{
+			TOAST_CORE_WARN("AudioEngine: X3DAudioInitialize failed, 3D audio disabled");
+			return;
+		}
+
+		sAudioData.ChannelMask = channelMask;
+		sAudioData.SpeedOfSound = X3DAUDIO_SPEED_OF_SOUND;
+
+		sAudioData.OutputChannels = outputChannels;
+		sAudioData.MatrixCoefficients.assign(outputChannels, 0.0f);
+
+		sAudioData.Listener = {};
+		sAudioData.Listener.OrientFront = { 0.0f, 0.0f, 1.0f };
+		sAudioData.Listener.OrientTop = { 0.0f, 1.0f, 0.f };
+	
+		sAudioData.X3DInitialized = true;
+
+		TOAST_CORE_INFO("AudioEngine: X3DAudio initialized, speaker channel mask 0x%X", sAudioData.ChannelMask);
 	}
 
 	void AudioEngine::Shutdown()
@@ -76,6 +122,7 @@ namespace Toast {
 			}
 
 			slot.Format = {};
+			slot.Spatialized = false;
 			slot.InUse = false;
 		}
 
@@ -92,6 +139,12 @@ namespace Toast {
 			CoUninitialize();
 			sAudioData.ComInitializedByUs = false;
 		}
+
+		sAudioData.X3DInitialized = false;
+		sAudioData.MatrixCoefficients.clear();
+		sAudioData.OutputChannels = 0;
+		sAudioData.SpeedOfSound = 0.0f;
+		sAudioData.ChannelMask = 0;
 
 		sAudioData.Initialized = false;
 
@@ -162,6 +215,7 @@ namespace Toast {
 		}
 
 		slot.Format = format;
+		slot.Spatialized = false;
 		slot.InUse = true;
 
 		return target;
@@ -180,6 +234,7 @@ namespace Toast {
 			voiceSlot.Voice->FlushSourceBuffers();
 		}
 
+		Clear3D(slot);
 		voiceSlot.InUse = false;
 	}
 
@@ -189,6 +244,102 @@ namespace Toast {
 			return nullptr;
 
 		return sAudioData.VoicePool[slot].Voice;
+	}
+
+	void AudioEngine::SetSpeedOfSound(float speedOfSound)
+	{
+		if (!sAudioData.X3DInitialized || speedOfSound <= 0.0f || speedOfSound == sAudioData.SpeedOfSound)
+			return;
+
+		if (FAILED(X3DAudioInitialize(sAudioData.ChannelMask, speedOfSound, sAudioData.X3DInstance)))
+		{
+			TOAST_CORE_WARN("AudioEngine: could not set speed of sound to %.1f m/s", speedOfSound);
+			return;
+		}
+
+		sAudioData.SpeedOfSound = speedOfSound;
+	}
+
+	void AudioEngine::SetListener(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& forward, const DirectX::XMFLOAT3& up, const DirectX::XMFLOAT3& velocity)
+	{
+		if (!sAudioData.X3DInitialized)
+			return;
+
+		if (!IsFinite(position) || !IsFinite(forward) || !IsFinite(up) || !IsFinite(velocity))
+		{
+			TOAST_CORE_WARN("AudioEngine: listener has a non-finite value, keeping the previous listener");
+			return;
+		}
+
+		X3DAUDIO_LISTENER& listener = sAudioData.Listener;
+		listener.Position = ToX3DVector(position);
+		listener.Velocity = ToX3DVector(velocity);
+		listener.OrientFront = ToX3DVector(forward);
+		listener.OrientTop = ToX3DVector(up);
+	}
+
+	bool AudioEngine::Apply3D(uint32_t slot, const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& velocity, float minDistance, float dopplerScale, float& outDopplerFactor)
+	{
+		outDopplerFactor = 1.0f;
+
+		if (!sAudioData.X3DInitialized || slot >= VoicePoolSize)
+			return false;
+
+		VoiceSlot& voiceSlot = sAudioData.VoicePool[slot];
+		if (!voiceSlot.InUse || voiceSlot.Voice == nullptr)
+			return false;
+
+		// X3DAudio positions one point; a stereo clip has no single position
+		if (voiceSlot.Format.nChannels != 1)
+			return false;
+
+		if (!IsFinite(position) || !IsFinite(velocity) || !std::isfinite(minDistance) || !std::isfinite(dopplerScale))
+			return false;
+
+		X3DAUDIO_EMITTER emitter = {};
+		emitter.OrientFront = { 0.0f, 0.0f, 1.0f };
+		emitter.OrientTop = { 0.0f, 1.0f, 0.0f };
+		emitter.Position = ToX3DVector(position);
+		emitter.Velocity = ToX3DVector(velocity);
+		emitter.ChannelCount = 1;
+		emitter.CurveDistanceScaler = std::max(minDistance, FLT_MIN);
+		emitter.DopplerScaler = std::max(dopplerScale, 0.0f);
+
+		X3DAUDIO_DSP_SETTINGS dsp = {};
+		dsp.SrcChannelCount = 1;
+		dsp.DstChannelCount = sAudioData.OutputChannels;
+		dsp.pMatrixCoefficients = sAudioData.MatrixCoefficients.data();
+
+		X3DAudioCalculate(sAudioData.X3DInstance, &sAudioData.Listener, &emitter, X3DAUDIO_CALCULATE_MATRIX | X3DAUDIO_CALCULATE_DOPPLER, &dsp);
+
+		if (FAILED(voiceSlot.Voice->SetOutputMatrix(sAudioData.MasteringVoice, 1, sAudioData.OutputChannels, dsp.pMatrixCoefficients)))
+			return false;
+
+		voiceSlot.Spatialized = true;
+		outDopplerFactor = dsp.DopplerFactor;
+		return true;
+	}
+
+	void AudioEngine::Clear3D(uint32_t slot)
+	{
+		if (slot >= VoicePoolSize)
+			return;
+
+		VoiceSlot& voiceSlot = sAudioData.VoicePool[slot];
+		if (!voiceSlot.Spatialized || voiceSlot.Voice == nullptr)
+			return;
+
+		std::vector<float>& levels = sAudioData.MatrixCoefficients;
+		std::fill(levels.begin(), levels.end(), 0.0f);
+
+		constexpr uint32_t frontLeftRight = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
+		if ((sAudioData.ChannelMask & frontLeftRight) == frontLeftRight)
+			levels[0] = levels[1] = 1.0f;
+		else
+			levels[0] = 1.0f;
+
+		voiceSlot.Voice->SetOutputMatrix(sAudioData.MasteringVoice, 1, sAudioData.OutputChannels, levels.data());
+		voiceSlot.Spatialized = false;
 	}
 
 }

@@ -622,8 +622,11 @@ namespace Toast {
 			out << YAML::Key << "StyleSheet" << YAML::Value << ubc.Style.SheetHandle;
 			out << YAML::Key << "StyleOverrides" << YAML::Value << ubc.Style.Overrides;
 
-			if (ubc.ClickSound.ClipHandle != AssetHandle(0))
-				SerializeSoundSettings(out, "ClickSound", ubc.ClickSound);
+			if (ubc.PressSound.ClipHandle != AssetHandle(0))
+				SerializeSoundSettings(out, "PressSound", ubc.PressSound);
+
+			if (ubc.ReleaseSound.ClipHandle != AssetHandle(0))
+				SerializeSoundSettings(out, "ReleaseSound", ubc.ReleaseSound);
 
 			if (!ubc.Actions.empty())
 			{
@@ -767,6 +770,21 @@ namespace Toast {
 			out << YAML::Key << "MarkerSize" << YAML::Value << mc.MarkerSize;
 			out << YAML::Key << "MarkerFadeOutDuration" << YAML::Value << mc.MarkerFadeOutDuration; 
 			out << YAML::EndMap; // MoveableComponent
+		}
+
+		if (entity.HasComponent<AudioComponent>())
+		{
+			out << YAML::Key << "AudioComponent";
+			out << YAML::BeginMap; // AudioComponent
+
+			auto& ac = entity.GetComponent<AudioComponent>();
+			SerializeSoundSettings(out, "Sound", ac.Sound);
+			out << YAML::Key << "Loop" << YAML::Value << ac.Loop;
+			out << YAML::Key << "Spatial" << YAML::Value << ac.Spatial;
+			out << YAML::Key << "MinDistance" << YAML::Value << ac.MinDistance;
+			out << YAML::Key << "DopplerScale" << YAML::Value << ac.DopplerScale;
+
+			out << YAML::EndMap; // AudioComponent
 		}
 
 		out << YAML::EndMap; // Entity
@@ -988,6 +1006,7 @@ namespace Toast {
 		out << YAML::Key << "TurbulenceScale" << YAML::Value << scenePlanet->mTurbulenceScale;
 		out << YAML::Key << "TurbulenceEpsilon" << YAML::Value << scenePlanet->mTurbulenceEpsilon;
 		out << YAML::Key << "WindVelocity" << YAML::Value << scenePlanet->mWindVelocity;
+		out << YAML::Key << "SpeedOfSound" << YAML::Value << scenePlanet->mSpeedOfSound;
 
 		auto& planetMeshGeo = scenePlanet->mGeoClipmapMesh;
 		auto& planetMeshIco = scenePlanet->mIcosphereMesh;
@@ -1397,6 +1416,8 @@ namespace Toast {
 		scenePlanet->mSurfaceAirDensity = planet["SurfaceAirDensity"].as<float>();
 		scenePlanet->mPhysicsScaleHeight = planet["PhysicsScaleHeight"].as<float>();
 		scenePlanet->mAtmosphereCeiling = planet["AtmosphereCeiling"].as<float>();
+		if (planet["SpeedOfSound"])
+			scenePlanet->mSpeedOfSound = planet["SpeedOfSound"].as<float>();
 		if (planet["TurbulenceScale"])
 			scenePlanet->mTurbulenceScale = planet["TurbulenceScale"].as<float>();
 		if (planet["TurbulenceEpsilon"])
@@ -2012,8 +2033,11 @@ namespace Toast {
 					ubc.Style.SheetHandle = AssetHandle(uiButtonComponent["StyleSheet"].as<AssetHandle>(AssetHandle(0)));
 					ubc.Style.Overrides = uiButtonComponent["StyleOverrides"].as<uint32_t>(0);
 
-					if (auto clickSound = uiButtonComponent["ClickSound"])
-						DeserializeSoundSettings(clickSound, ubc.ClickSound);
+					if (auto pressSound = uiButtonComponent["PressSound"])
+						DeserializeSoundSettings(pressSound, ubc.PressSound);
+
+					if (auto releaseSound = uiButtonComponent["ReleaseSound"])
+						DeserializeSoundSettings(releaseSound, ubc.ReleaseSound);
 
 					if (auto actionsNode = uiButtonComponent["Actions"])
 					{
@@ -2159,6 +2183,19 @@ namespace Toast {
 					mc.MarkerTextureHandle = moveableComponent["MarkerTextureHandle"].as<AssetHandle>(mc.MarkerTextureHandle);
 					mc.MarkerSize = moveableComponent["MarkerSize"].as<float>(mc.MarkerSize);
 					mc.MarkerFadeOutDuration = moveableComponent["MarkerFadeOutDuration"].as<float>(mc.MarkerFadeOutDuration);
+				}
+
+				auto audioComponent = entity["AudioComponent"];
+				if (audioComponent)
+				{
+					auto& ac = deserializedEntity.AddComponent<AudioComponent>();
+					if (auto sound = audioComponent["Sound"])
+						DeserializeSoundSettings(sound, ac.Sound);
+
+					ac.Loop = audioComponent["Loop"].as<bool>(ac.Loop);
+					ac.Spatial = audioComponent["Spatial"].as<bool>(ac.Spatial);
+					ac.MinDistance = audioComponent["MinDistance"].as<float>(ac.MinDistance);
+					ac.DopplerScale = audioComponent["DopplerScale"].as<float>(ac.DopplerScale);
 				}
 			}
 		}

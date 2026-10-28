@@ -1266,6 +1266,14 @@ namespace Toast {
 						ImGui::TableNextRow();
 						ImGui::TableSetColumnIndex(0);
 						ImGui::AlignTextToFramePadding();
+						ImGui::TextWrapped("Speed of sound (m/s)");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGui::DragFloat("##SpeedOfSound", &mContext->mSpeedOfSound, 1.0f, 1.0f, 2000.0f, "%.1f");
+
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
 						ImGui::TextWrapped("Turbulence Scale");
 						ImGui::TableSetColumnIndex(1);
 						ImGui::SetNextItemWidth(fullW);

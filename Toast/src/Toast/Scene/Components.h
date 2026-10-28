@@ -294,6 +294,13 @@ namespace Toast {
 		UIStyleProp_LineHeight			= 1u << 18,
 		UIStyleProp_Tint				= 1u << 19,
 		UIStyleProp_ImageFit			= 1u << 20,
+
+		UIStyleProp_PressSound			= 1u << 21,
+		UIStyleProp_PressVolume			= 1u << 22,
+		UIStyleProp_PressPitch			= 1u << 23,
+		UIStyleProp_ReleaseSound		= 1u << 24,
+		UIStyleProp_ReleaseVolume		= 1u << 25,
+		UIStyleProp_ReleasePitch		= 1u << 26,
 	};
 
 	inline uint32_t StatePropBit(uint32_t baseBit, UIState state) { return baseBit << (uint32_t)state; }
@@ -418,8 +425,11 @@ namespace Toast {
 
 		std::vector<UIButtonAction> Actions;
 
-		SoundSettings ClickSound;
-		SoundPlayback ClickPlayback;
+		SoundSettings PressSound;
+		SoundPlayback PressPlayback;
+
+		SoundSettings ReleaseSound;
+		SoundPlayback ReleasePlayback;
 
 		UIButtonComponent() = default;
 		UIButtonComponent(const UIButtonComponent&) = default;
@@ -529,6 +539,30 @@ namespace Toast {
 		float MarkerSize = 1.0f;
 		float MarkerFadeOutDuration = 0.5f;
 	};
+
+	struct AudioComponent 
+	{
+		SoundSettings Sound;
+		bool Loop = false;
+
+		// 3D: played from the entity's position.
+		bool Spatial = false;
+		float MinDistance = 1.0f; // metres at full volume, then volume = MinDistance / distance
+		float DopplerScale = 1.0f; // 0 = no doppler, 1 = real-world, above 1 = exaggerated
+
+		// Runtime only, never serialized
+		SoundPlayback Playback;
+		DirectX::XMFLOAT3 LastPosition = { 0.0f, 0.0f, 0.0f }; // For doppler velocity
+		bool HasLastPosition = false;
+		Ref<Mesh> GuideMesh;
+
+		AudioComponent() = default;
+		AudioComponent(const AudioComponent&) = default;
+		AudioComponent(AudioComponent&&) = default;
+		AudioComponent& operator=(const AudioComponent&) = default;
+		AudioComponent& operator=(AudioComponent&&) = default;
+	};
+	TOAST_STATIC_ASSERT(std::is_nothrow_move_constructible_v<AudioComponent>, "AudioComponent must be nothrow-movable, or EnTT copies it when its storage grows and playing click sounds are cut off");
 
 	// Runtime-only — created by MoveTo(), never serialized
 	struct MoveCommandComponent 

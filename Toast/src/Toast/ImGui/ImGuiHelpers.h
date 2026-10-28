@@ -42,7 +42,20 @@ namespace Toast
 
 		bool TextureSlotRow(const char* label, AssetHandle currentHandle, const std::filesystem::path& assetRoot, const std::filesystem::path& browseStartDirectory, std::string& outFilepath, float thumbnailSize = 64.0f);
 
-		bool SoundSettingsRows(SoundSettings& settings, SoundPlayback& playback, const std::filesystem::path& assetRoot, const std::filesystem::path& browseStartDirectory);
+		struct SoundStyleBinding 
+		{
+			UIStyleRef* Style = nullptr;
+			uint32_t ClipBit = 0;
+			uint32_t VolumeBit = 0;
+			uint32_t PitchBit = 0;
+			bool SheetSetsClip = false;
+			bool SheetSetsVolume = false;
+			bool SheetSetsPitch = false;
+		};
+
+		bool SoundSettingsRows(SoundSettings& settings, SoundPlayback& playback, const std::filesystem::path& assetRoot, const std::filesystem::path& browseStartDirectory, const SoundStyleBinding* style = nullptr);
+
+		bool StopButton(const char* id);
 
 		bool AlignmentGrid(const char* id, TextAlignH& alignH, TextAlignV& alignV, float cellSize = 22.0f);
 

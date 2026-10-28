@@ -221,6 +221,11 @@ namespace Toast {
 		Renderer::GetParticleSystem()->Reset();
 	}
 
+	void Scene::StopAllSounds()
+	{
+		mAudioSystem->StopAll();
+	}
+
 	void Scene::OnEvent(Event& e)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -317,7 +322,7 @@ namespace Toast {
 			if (entity.HasComponent<UIButtonComponent>())
 			{
 				mUIPressedEntity = mHoveredEntity;
-				entity.GetComponent<UIButtonComponent>().ClickPlayback.PlayRequested = true;
+				entity.GetComponent<UIButtonComponent>().PressPlayback.PlayRequested = true;
 				handled = true;
 			}
 		}
@@ -352,6 +357,8 @@ namespace Toast {
 			if (entity.HasComponent<UIButtonComponent>())
 			{
 				auto& ubc = entity.GetComponent<UIButtonComponent>();
+
+				ubc.ReleasePlayback.PlayRequested = true;
 
 				for (const auto& action : ubc.Actions)
 					action.Execute(this);
@@ -1102,6 +1109,7 @@ namespace Toast {
 							DirectX::XMVECTOR worldOffset = DirectX::XMVector3TransformNormal(localOffset, parentM);
 
 							DirectX::XMVECTOR parentWorldPos = DirectX::XMVectorAdd(XMLoadFloat3(&parentTC.Translation), worldOffset);
+							parentWorldPos = DirectX::XMVectorAdd(parentWorldPos, DirectX::XMLoadFloat3(&mMainCamera->GetWorldTranslation()));
 
 							DirectX::XMFLOAT2 anchor;
 							if (ProjectConnectorAnchor(parentWorldPos, viewMatrix, projectionMatrix, connector.ClampToScreenEdge, connector.ScreenEdgeMargin, anchor))
@@ -1347,7 +1355,7 @@ namespace Toast {
 
 		// Audio
 		{
-			mAudioSystem->OnUpdate();
+			mAudioSystem->OnUpdate(ts, mMainCamera, Quaternion(cameraRot));
 		}
 	}
 
@@ -1624,7 +1632,7 @@ namespace Toast {
 
 			particleSystem->OnUpdate(ts, emitterParams, emitCounts);
 			//particleSystem->DebugLogCounters(60);
-		} // End particle system
+		}	// End particle system
 
 		// Updated Meshes to check which LOD Group it should use during the rendering.
 		{
@@ -1942,6 +1950,24 @@ namespace Toast {
 
 				RendererDebug::SubmitMesh(rbc.GuideMesh, transform, false);
 			}
+
+			if (mSelectedEntity != entt::null && mRegistry.valid(mSelectedEntity))
+			{
+				Entity e{ mSelectedEntity, this };
+
+				if (e.HasComponent<AudioComponent>())
+				{
+					auto& ac = e.GetComponent<AudioComponent>();
+
+					if (ac.Spatial && ac.GuideMesh)
+					{
+						DirectX::XMMATRIX world = ComposeWorldTransform(e);
+						DirectX::XMMATRIX transform = DirectX::XMMatrixScaling(ac.MinDistance, ac.MinDistance, ac.MinDistance) * DirectX::XMMatrixTranslationFromVector(world.r[3]);
+
+						RendererDebug::SubmitMesh(ac.GuideMesh, transform);
+					}
+				}
+			}
 		}
 
 		RendererDebug::EndScene(true, false, mSettings.RenderUI, mSettings.Grid);
@@ -2237,7 +2263,7 @@ namespace Toast {
 
 		// Audio
 		{
-			mAudioSystem->OnUpdate();
+			mAudioSystem->OnUpdate(ts, editorCamera.get(), Quaternion());
 		}
 	}
 
@@ -2725,12 +2751,13 @@ namespace Toast {
 		CopyComponent<UIImageComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<ParticlesComponent>(target->mRegistry, mRegistry, enttMap);
 		CopyComponent<MoveableComponent>(target->mRegistry, mRegistry, enttMap);
+		CopyComponent<AudioComponent>(target->mRegistry, mRegistry, enttMap);
 	}
 
 	template<typename T>
 	void Scene::OnComponentAdded(Entity entity, T& component) 
 	{
-		static_assert(false); 
+		TOAST_STATIC_ASSERT(false); 
 	}
 
 	void Scene::UpdateHoveredEntity()
@@ -3192,6 +3219,12 @@ namespace Toast {
 	template<>
 	void Scene::OnComponentAdded<MoveableComponent>(Entity entity, MoveableComponent& component)
 	{
+	}
+
+	template<>
+	void Scene::OnComponentAdded<AudioComponent>(Entity entity, AudioComponent& component)
+	{
+		component.GuideMesh = CreateRef<Mesh>("..\\Toaster\\assets\\meshes\\Sphere.gltf", Vector3(1.0, 0.3, 0.0));
 	}
 
 	template<>

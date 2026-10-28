@@ -2,6 +2,7 @@
 
 #include "ImGuiHelpers.h"
 
+#include "Toast/Audio/AudioClip.h"
 #include "Toast/Audio/AudioSystem.h"
 
 #include "Toast/Renderer/UI/UIStyleSystem.h"
@@ -1132,8 +1133,9 @@ namespace Toast
 			return picked;
 		}
 
-		bool SoundSettingsRows(SoundSettings& settings, SoundPlayback& playback, const std::filesystem::path& assetRoot, const std::filesystem::path& browseStartDirectory)
+		bool SoundSettingsRows(SoundSettings& settings, SoundPlayback& playback, const std::filesystem::path& assetRoot, const std::filesystem::path& browseStartDirectory, const SoundStyleBinding* style)
 		{
+			const AssetHandle previousClip = settings.ClipHandle;
 			bool changed = false;
 			ImGui::TableNextRow();
 			ImGui::TableSetColumnIndex(0);
@@ -1149,13 +1151,14 @@ namespace Toast
 
 			const float squareSize = ImGui::GetFrameHeight();
 			const float spacing = ImGui::GetStyle().ItemSpacing.x;
-			const float slotWidth = ImGui::GetContentRegionAvail().x - 2.0f * (squareSize + spacing);
+			const float markerWidth = style ? STYLE_MARKER_WIDTH : 0.0f;
+			const float slotWidth = ImGui::GetContentRegionAvail().x - 2.0f * (squareSize + spacing - markerWidth);
 
 			if (ImGui::Button(clipName.c_str(), { slotWidth, 0.0f }))
 			{
 				if (auto filepath = FileDialogs::OpenFile("WAV Audio (*.wav)\0*.wav\0", browseStartDirectory.string().c_str()))
 				{
-					settings.ClipHandle = AssetManager::ImportExternalAsset(*filepath, "AudioClips");
+					settings.ClipHandle = AssetManager::ImportExternalAsset(*filepath, AUDIO_CLIP_DIRECTORY);
 					changed = true;
 				}
 			}
@@ -1180,9 +1183,20 @@ namespace Toast
 
 			ImGui::BeginDisabled(settings.ClipHandle == AssetHandle(0));
 
+			if (style && StyleOverrideMarker(*style->Style, style->ClipBit, style->SheetSetsClip))
+				changed = true;
+
 			ImGui::SameLine();
-			if (ImGui::ArrowButton("##preview", ImGuiDir_Right))
-				playback.PlayRequested = true;
+			if (playback.IsPlaying())
+			{
+				if (StopButton("##stop"))
+					playback.Stop();
+			}
+			else
+			{
+				if (ImGui::ArrowButton("##preview", ImGuiDir_Right))
+					playback.PlayRequested = true;
+			}
 
 			ImGui::SameLine();
 			if (ImGui::Button("X##clear", { squareSize, squareSize }))
@@ -1197,19 +1211,56 @@ namespace Toast
 			ImGui::TableSetColumnIndex(0);
 			ImGui::TextUnformatted("Volume");
 			ImGui::TableSetColumnIndex(1);
-			ImGui::PushItemWidth(-1);
-			changed |= ImGui::SliderFloat("##volume", &settings.Volume, 0.0f, 1.0f, "%.2f");
+			ImGui::PushItemWidth(-markerWidth - 1.0f);
+			if (ImGui::SliderFloat("##volume", &settings.Volume, 0.0f, 1.0f, "%.2f"))
+			{
+				changed = true;
+				if (style)
+					style->Style->Overrides |= style->VolumeBit;
+			}
 			ImGui::PopItemWidth();
+
+			if (style && StyleOverrideMarker(*style->Style, style->VolumeBit, style->SheetSetsVolume))
+				changed = true;
 
 			ImGui::TableNextRow();
 			ImGui::TableSetColumnIndex(0);
 			ImGui::TextUnformatted("Pitch");
 			ImGui::TableSetColumnIndex(1);
-			ImGui::PushItemWidth(-1);
-			changed |= ImGui::SliderFloat("##pitch", &settings.Pitch, AudioSystem::MinPitch, AudioSystem::MaxPitch, "%.2f");
+			ImGui::PushItemWidth(-markerWidth - 1.0f);
+			if (ImGui::SliderFloat("##pitch", &settings.Pitch, AudioSystem::MinPitch, AudioSystem::MaxPitch, "%.2f")) 
+			{
+				changed = true;
+				if (style)
+					style->Style->Overrides |= style->PitchBit;
+			}
 			ImGui::PopItemWidth();
 
+			if (style && StyleOverrideMarker(*style->Style, style->PitchBit, style->SheetSetsPitch))
+				changed = true;
+
+			if (settings.ClipHandle != previousClip)
+			{
+				playback.Stop();
+				if (style)
+					style->Style->Overrides |= style->ClipBit;
+			}
+
 			return changed;
+		}
+
+		bool StopButton(const char* id)
+		{
+			const float size = ImGui::GetFrameHeight();
+			const bool pressed = ImGui::Button(id, { size, size });
+
+			const ImVec2 min = ImGui::GetItemRectMin();
+			const ImVec2 max = ImGui::GetItemRectMax();
+			const float inset = size * 0.3f;
+
+			ImGui::GetWindowDrawList()->AddRectFilled({ min.x + inset, min.y + inset}, { max.x - inset, max.y - inset }, ImGui::GetColorU32(ImGuiCol_Text));
+
+			return pressed;
 		}
 
 		bool AlignmentGrid(const char* id, TextAlignH& alignH, TextAlignV& alignV, float cellSize /*= 22.0f*/)

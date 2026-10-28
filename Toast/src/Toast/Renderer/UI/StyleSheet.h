@@ -35,6 +35,13 @@ namespace Toast {
 		StyleValue<DirectX::XMFLOAT4> Tint;
 		StyleValue<ImageFit> Fit;
 
+		StyleValue<AssetHandle> PressSound;
+		StyleValue<float> PressVolume;
+		StyleValue<float> PressPitch;
+		StyleValue<AssetHandle> ReleaseSound;
+		StyleValue<float> ReleaseVolume;
+		StyleValue<float> ReleasePitch;
+
 		StyleValue<DirectX::XMFLOAT4> BackgroundState[(size_t)UIState::Count];
 		StyleValue<AssetHandle> BackgroundImageState[(size_t)UIState::Count];
 	};

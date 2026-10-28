@@ -9,6 +9,8 @@
 
 namespace Toast {
 
+	inline constexpr const char* AUDIO_CLIP_DIRECTORY = "AudioClips";
+
 	class AudioClip : public Asset 
 	{
 	public:

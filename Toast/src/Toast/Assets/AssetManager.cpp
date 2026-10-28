@@ -38,7 +38,6 @@ namespace Toast {
 
 			break;
 		}
-
 		default:
 			break;
 		}
@@ -393,15 +392,25 @@ namespace Toast {
 		out << "# Toast Engine Asset Registry\n";
 		out << "# handle|type|filepath\n";
 
+		size_t written = 0;
+
 		for (const auto& [handle, entry] : registry)
 		{
 			if (entry.Metadata.IsMemoryAsset)
 				continue;
 
 			out << (uint64_t)handle << "|" << AssetTypeToString(entry.Metadata.Type) << "|" << entry.Metadata.FilePath.string() << "|" << SerializeSettings(entry) << "\n";
+
+			if (!out)
+			{
+				TOAST_CORE_ERROR("AssetManager: writing the registry failed at handle %llu ('%s'), the rest of the registry was not saved", (uint64_t)handle, entry.Metadata.FilePath.string().c_str());
+				break;
+			}
+
+			written++;
 		}
 
-		TOAST_CORE_INFO("AssetManager: Serialized %d assets to '%s'", registry.Count(), outputPath.string().c_str());
+		TOAST_CORE_INFO("AssetManager: Serialized %zu of %zu assets to '%s'", written, registry.Count(), outputPath.string().c_str());
 	}
 
 	void AssetManager::DeserializeRegistry()
