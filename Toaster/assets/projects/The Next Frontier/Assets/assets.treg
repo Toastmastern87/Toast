@@ -89,6 +89,7 @@
 14210489555676720937|Material|Materials\Material.tmtl|
 16986451805673895676|Shader|Shaders\ParticleEmit.hlsl|
 7618113645877186234|Shader|Shaders\ParticleSimKickoff.hlsl|
+2298394505096499386|Shader|Shaders\ExposureAdapt.hlsl|
 12005753143424441943|Shader|Shaders\ParticleSimulate.hlsl|
 6770022817839959989|Texture2D|Textures\DustKickupMask.png|sRGB=0
 4457589618145430005|Mesh|Meshes\Rover.gltf|
@@ -155,3 +156,4 @@
 290207628103364791|Shader|Shaders\PlanetMeshBake.hlsl|
 9147919873387223950|AudioClip|AudioClips\ButtonPress.wav|
 17486096536339993026|AudioClip|AudioClips\ButtonRelease.wav|
+2827934988270901040|Shader|Shaders\LuminanceHistogram.hlsl|

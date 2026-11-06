@@ -199,10 +199,6 @@ PixelOutputType main(PixelInputType input)
     params.Metalness = MetalRoughTexToggle > 0 ? MetalRoughTexture.Sample(defaultSampler, input.texCoord).r : Metalness;
     params.Roughness = MetalRoughTexToggle > 0 ? MetalRoughTexture.Sample(defaultSampler, input.texCoord).g : Roughness;
     params.Roughness = max(params.Roughness, 0.05f); // Minimum roughness of 0.05 to keep specular highlight
-    
-    // TODO MIGHT NEED TO BE FIXED AT A LATER STAGE TO GET CORRECT ALBEDO MAPPING
-    if (AlbedoTexToggle > 0)
-        params.Albedo = LinearToSRGB(params.Albedo);
           
     // Position
     output.position = float4(input.viewPosition, 1.0f);

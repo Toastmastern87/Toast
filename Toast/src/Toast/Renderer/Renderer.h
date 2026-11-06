@@ -179,6 +179,13 @@ namespace Toast {
 			Ref<ConstantBuffer> BloomCBuffer, DownSampleCBuffer, WideBlurCBuffer, UpSampleCBuffer;
 			Buffer BloomBuffer, DownSampleBuffer, WideBlurBuffer, UpSampleBuffer;
 	
+			// Auto Exposure
+			Ref<StructuredBuffer> LuminanceHistogramBuffer;
+			Ref<StructuredBuffer> ExposureEVBuffer;
+			Ref<ConstantBuffer> AutoExposureCBuffer;
+			Buffer AutoExposureBuffer;
+			bool AutoExposureReset = true;
+
 			// Tonemapping data
 			Ref<ConstantBuffer> TonemappingCBuffer;
 			Buffer TonemappingBuffer;
@@ -228,6 +235,8 @@ namespace Toast {
 			AssetHandle BloomWideBlurShaderHandle = 0;
 			AssetHandle BloomUpSampleShaderHandle = 0;
 			AssetHandle BloomCompositeShaderHandle = 0;
+			AssetHandle LuminanceHistogramShaderHandle = 0;
+			AssetHandle ExposureAdaptShaderHandle = 0;
 			AssetHandle ToneMappingShaderHandle = 0;
 			AssetHandle ObjectMaskShaderHandle = 0;
 			AssetHandle OutlineShaderHandle = 0;
@@ -293,8 +302,10 @@ namespace Toast {
 		static void StarFieldPass(Scene::Environment& environment, Ref<Planet>& planet, const float atmosphereHeight );
 		static void AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldOffsetWS, const bool dynamicIBL);
 		static void BloomPass(Scene::BloomParams& bloomParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, const float verticalFovDeg, DirectX::XMFLOAT3 worldOffsetWS);
+		static void LuminanceHistogramPass(const bool bloom, const Scene::ExposureParams& exposureParams);
+		static void ExposureAdaptPass(const float dt, const Scene::ExposureParams& exposureParams);
 		static void GodRayPass(Scene::GodRayParams params);
-		static void PostProcessPass(const bool bloom, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, DirectX::XMFLOAT3 worldOffsetWS);
+		static void PostProcessPass(const bool bloom, Scene::Environment& environment, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, DirectX::XMFLOAT3 worldOffsetWS);
 		static void OutlinePass(const Scene::OutlineSettings& outlineSettings, const DirectX::XMFLOAT4& hoverTint);
 		static void GuidancePass(Vector3 worldTranslation);
 
@@ -363,6 +374,7 @@ namespace Toast {
 		static Ref<ParticleSystem> GetParticleSystem();
 	private:
 		static void UploadCameraCBuffer(Camera& camera, const DirectX::XMFLOAT4 cameraPos);
+		static void UploadAtmosphereCBuffer(Planet* planet, float bakeIBL);
 		static void BindPlanetTerrainResources(bool bindPixelSRVs, bool bindComputeSRVs);
 
 		static void DrawTerrainObjects(Planet* planet);

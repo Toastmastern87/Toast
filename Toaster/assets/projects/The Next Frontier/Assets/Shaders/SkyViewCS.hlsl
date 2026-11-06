@@ -123,6 +123,9 @@ static const float MU_EPS = 8e-4;
 
 // Ozone (Bruneton)
 static const float3 O3_COEFF = float3(0.650e-6, 1.881e-6, 0.085e-6);
+//
+#include "TransmittanceLUT.hlsli"
+#include "SkyViewLUT.hlsli"
 
 struct Hit
 {
@@ -187,18 +190,6 @@ float MuHorizon(float r, float R)
     return -sqrt(max(1.0f - s * s, 0.0f));
 }
 
-// Per-frame μ window that actually produces sky
-// mu0 = lower bound (planet/ground horizon), mu1 = upper bound (TOA edge).
-// If camera is inside the atmosphere (r <= Rt), every upward μ intersects;
-// in that case, set mu1 = 1.
-//void GetMuWindow(float r, float RbVis, float Rt, out float mu0, out float mu1)
-//{
-//    float muG = MuHorizon(r, RbVis);
-//    float muT = MuHorizon(r, Rt); //(r <= Rt) ? 1.0f : 
-//    mu0 = muG + MU_EPS; // lift off horizon
-//    mu1 = max(mu0 + 1e-5f, muT); // keep span > 0
-//}
-
 void GetMuWindow(float r, float RbVis, float Rt, out float mu0, out float mu1)
 {
     float muG = MuHorizon(r, RbVis);
@@ -209,13 +200,6 @@ void GetMuWindow(float r, float RbVis, float Rt, out float mu0, out float mu1)
 
     // keep span > 0
     mu1 = max(mu0 + 1e-5f, mu1);
-}
-
-// Optional focus near the horizon (gives extra rows right where it matters).
-// Set k≈0.75..0.9. k=1 → linear.
-float FocusT(float t, float k)
-{
-    return pow(saturate(t), k);
 }
 
 float DensityRayleigh(float h)
@@ -238,20 +222,6 @@ float DensityOzone(float hMeters)
 float PhaseRayleigh(float mu)
 {
     return (3.0f * INV4PI) * 0.25f * (1.0f + mu * mu);
-}
-float PhaseMieHG(float mu, float g)
-{
-    float g2 = g * g;
-    float d = 1.0f + g2 - 2.0f * g * mu;
-    return INV4PI * (1.0f - g2) / max(pow(d, 1.5f), 1e-5f);
-}
-
-float2 TransUV(float r, float mu, float RbPhys, float Rt)
-{
-    float rNorm = (r - RbPhys) / max(Rt - RbPhys, 1e-6f);
-    float muMin = -sqrt(saturate(1.0f - (RbPhys * RbPhys) / (r * r)));
-    mu = clamp(mu, muMin + MU_EPS, 1.0f - MU_EPS); 
-    return float2((mu - muMin) / (1.0f - muMin), saturate(rNorm));
 }
 
 float3 T_to_TOA(float r, float mu, float RbPhys, float Rt)
@@ -281,10 +251,6 @@ float4 SamplePsiMS4(float r, float muS, float Rb, float Rt)
 
     return MultiScatterLUT.SampleLevel(ClampLinear, float2(u, v), 0);
 }
-float3 SamplePsiMS(float r, float muS, float Rg, float Rt)
-{
-    return SamplePsiMS4(r, muS, Rg, Rt).rgb;
-}
 
 float SunVisibilityAtR(float r, float muS, float RbVis)
 {
@@ -301,23 +267,12 @@ float SunVisibleRayTest(float3 p, float3 sToSun, float Rb)
     float c = dot(p, p) - Rb * Rb;
 
     // If closest approach is behind origin, ray points away from planet => visible
-    if (b < 0.0f)
+    if (b >= 0.0f)
         return 1.0f;
 
     float disc = b * b - c;
     // If ray intersects planet (disc > 0), sun is occluded
     return (disc > 1e-6f) ? 0.0f : 1.0f;
-}
-
-// MS anisotropy blend using LUT alpha as gBar
-float MSPhase(float mu, float gBar)
-{
-    float pIso = INV4PI;
-    float g = saturate(gBar);
-    float g2 = g * g;
-    float d = 1.0f + g2 - 2.0f * g * mu;
-    float pHG = INV4PI * (1.0f - g2) / max(pow(d, 1.5f), 1e-5f);
-    return lerp(pIso, pHG, g);
 }
 
 void BuildSkyBasisAnchored(float3 camWS, float3 basisEastWS, float3 basisNorthWS, float3 spinUpWS, out float3 up, out float3 east, out float3 north)
@@ -379,27 +334,6 @@ float PhaseMie_DiscAvg(float mu, float g)
     return PhaseMieHG_CS(muEff, g);
 }
 
-float2 OctEncodeHemi(float3 n)
-{
-    n = normalize(n);
-    n.z = max(n.z, 0.0);
-    n /= (abs(n.x) + abs(n.y) + n.z + 1e-8);
-    return n.xy * 0.5 + 0.5;
-}
-float3 OctDecodeHemi(float2 uv)
-{
-    float2 f = uv * 2.0 - 1.0;
-    float3 n = float3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
-    if (n.z < 0.0)
-    { // unfold fold onto the rim
-        float2 s = (f >= 0.0) ? 1.0.xx : -1.0.xx;
-        n.x = (1.0 - abs(n.y)) * s.x;
-        n.y = (1.0 - abs(n.x)) * s.y;
-        n.z = 0.0;
-    }
-    return normalize(n);
-}
-
 [numthreads(8, 8, 1)]
 void main(uint3 tid : SV_DispatchThreadID)
 {
@@ -426,38 +360,26 @@ void main(uint3 tid : SV_DispatchThreadID)
     float rWin = rCam;
     float3 camRelWin = camRel;
     
-    // Pixel in the LUT
-    float2 uvSky = (float2(tid.xy) + 0.5f) / float2(W, H);
-
     // Stable per-frame μ window
     float mu0, mu1; // mu1==1
     GetMuWindow(rWin, RbVis, Rt, mu0, mu1);
-
-    // local basis (unchanged)
+    
+    // local basis
     float3 up, east, north;
     BuildSkyBasisAnchored(camWS, normalize(BasisTanEast), normalize(BasisTanNorth), normalize(BasisSpinUp), up, east, north);
-
-    // 1) decode hemi-oct to temporary local vector m (z' in [0,1])
-    float3 m = OctDecodeHemi(uvSky);
-
-    // 2) recover azimuth and the *warped* cosine
-    float phi = atan2(m.y, m.x); // [-π, π]
-    float mu_p = saturate(m.z); // z'  in [0,1]
-
-    // 3) UN-warp μ: map z' back to physical cosine in [mu0, 1]
-    float mu = lerp(mu0, mu1, mu_p);
-
-    // 4) rebuild the true local direction from (mu, phi)
-    float sinTh = sqrt(saturate(1.0f - mu * mu));
-    float3 wView = normalize(mu * up + sinTh * (cos(phi) * east + sin(phi) * north));
-
+    
+    // LUT texel -> view direction (shared mapping, Utilities/SkyViewLUT.hlsli)
+    float3 fSun, sSun;
+    SkyViewSunFrame(up, wSun, east, fSun, sSun);
+    float3 wView = SkyViewDir(tid.xy, uint2(W, H), up, fSun, sSun, mu0, mu1);
+    
     Hit hatm = IntersectSphereGrazingSafe(camRelWin, wView, Rt);
     if (!hatm.ok)
     {
         OutSkyView[tid.xy] = float4(0, 0, 0, 1);
         return;
     }
-
+    //
     float tEnter = max(0.0f, hatm.t0);
     float tExit = max(0.0f, hatm.t1);
 
@@ -473,9 +395,8 @@ void main(uint3 tid : SV_DispatchThreadID)
     float3 upEntry = pEntry / rEntry;
     float muEntry = dot(wView, upEntry);
 
+    // Mie phase asymmetry per channel. Full Cornette-Shanks lobe, no forward-peak removal (Hillaire 2020).
     float3 g = saturate(MieAnisotropy);
-    float3 f = g * g;
-    float3 g_p = (g - f) / max(1.0.xxx - f, 1e-6.xxx);
 
     float3 Ls = 0.0.xxx;
     float3 Lms = 0.0.xxx;
@@ -548,67 +469,16 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 Tsun = T_to_TOA(rpLUT, muS, RbPhys, Rt) * Vsun; // keep using TLUT, just gate it smoothly
 
         float PR = PhaseRayleigh(muPhase);
-        float3 PMrgb = float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));
+        float3 PMrgb = float3(PhaseMie_DiscAvg(muPhase, g.r), PhaseMie_DiscAvg(muPhase, g.g), PhaseMie_DiscAvg(muPhase, g.b));          
 
-        // Remove delta peak for single scattering
-        float3 sigM_s_single = sigM_s * (1.0.xxx - f);       
-        
-        // --- use the *physical* horizon for all horizon/elevation logic -------------
-        float cH_phys = MuHorizon(rpTrue, RbPhys); // real horizon (PlanetRadius + MinHeight)
+        // single scattering: sunlight scattered once toward the camera (Rayleigh + Mie).
+        // SGain applied uniformly, the same as S1 in AerialPerspectiveCS.
+        Ls += Tmid * ((sigR_s * PR * Tsun) + (sigM_s * PMrgb * Tsun)) * dt;
 
-        // Sun elevation above the *physical* horizon: 0 at horizon, 1 at zenith
-        float elevS = saturate((muS - cH_phys) / (1.0 - cH_phys));
-
-        // Low-sun factor (broad ramp that peaks near the horizon)
-        float fLowSun = 1.0 - smoothstep(0.35, 0.85, elevS);
-
-        // View elevation above the *physical* horizon: 0 at horizon, 1 at zenith
-        float muView = dot(wView, upS);
-        muView = clamp(muView, -0.9995f, 0.9995f);
-        float elevV = saturate((muView - cH_phys) / (1.0 - cH_phys));
-
-        // Horizon band that *peaks above the rim* (≈6–25° up)
-        // Strong near elevV≈0.10..0.40, fades out as you look higher
-        float fBandUp = (1.0 - smoothstep(0.10, 0.40, elevV)); // tune 0.10..0.40
-
-        // Gentle sunward bias so the far anti-sun horizon doesn’t turn blue
-        float fSunward = smoothstep(0.20, 0.80, muPhase);
-
-        // Final weight: low sun × above-horizon band × mild sunward bias
-        float fBlue = saturate(fLowSun * fBandUp * fSunward);
-
-        // --- single-scatter tint/gain (unchanged otherwise) -------------------------
-        float3 Tint = float3(0.0f, 0.0f, 0.0f); //       lerp(1.0.xxx, SunsetTint, fBlue);
-        float LsGain = lerp(1.0, SGain, fBlue);
-
-        // single scattering
-        Ls += Tmid * ((sigR_s * PR * Tsun) + (sigM_s_single * PMrgb * Tsun)) * dt * Tint * LsGain;
-
-        // --- multiple scattering (near-isotropic w/ tiny bias, energy-preserving) ---
-        float4 Psi4 = SamplePsiMS4(rpLUT, muS, RbPhys, Rt);
-        float gBar = saturate(Psi4.a);
-        float alt01 = saturate((rpLUT - RbPhys) / max(Rt - RbPhys, 1e-6));
-        
-        // very low effective g for multi-scatter
-        float gEff = min(gBar, lerp(0.35, 0.45, alt01));
-        float pHG_e1 = 4.0f * PI * MSPhase(muPhase, gEff); // avg = 1
-        float wAniso = 0.20; // 20% of the lobe
-        float pMS_e1 = 1.0 + wAniso * (pHG_e1 - 1.0);
-        
-        // altitude equalizer (flatten vertical contrast; keep MSGain ≈ 1.0)
-        float baseBoost = 1.0 + 0.18 * saturate(1.0 - (MSGain - 1.0) / 0.3);
-        float gainAlt = lerp(baseBoost, 1.0, alt01 * alt01);
-        
-        float3 PsiMS_dir = (MSGain * gainAlt) * Psi4.rgb * pMS_e1;
-        
-        // optional: 20–30% pull toward per-altitude mean to avoid dark anti-sun
-       // float3 PsiMS_iso = (MSGain * gainAlt) * SamplePsiMS4(rp, 0.0, RbPhys, Rt).rgb;
-        float3 PsiMS_iso = (MSGain * gainAlt) * SamplePsiMS4(rpLUT, muS, RbPhys, Rt).rgb;
-        float even = 0.30f * Vsun; // no iso pull when sun is occluded
-        float3 PsiMS_rgb = lerp(PsiMS_dir, PsiMS_iso, even);
-
-        float3 w0M = sigM_s / max(sigM_s + sigM_a, 1e-6.xxx);
-        float3 sigS_ms = sigR_s + sigM_s * w0M;
+        // --- multiple scattering (Hillaire 2020: isotropic, sigma_s * Psi_ms; identical in AerialPerspectiveCS) ---
+        // Scattering coefficient for the multi-scattered light: MieScattering already excludes absorption.
+        float3 sigS_ms = sigR_s + sigM_s;
+        float3 PsiMS_rgb = SamplePsiMS4(rpLUT, muS, RbPhys, Rt).rgb;
 
         Lms += Tmid * (sigS_ms * PsiMS_rgb) * dt;
 

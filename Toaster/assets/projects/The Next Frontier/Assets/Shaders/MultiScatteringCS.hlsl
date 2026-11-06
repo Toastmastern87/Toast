@@ -83,10 +83,13 @@ RWTexture2D<float4> OutMultiScatter : register(u0);
 
 // --- helpers ---------------------------------------------------------------
 static const float PI = 3.14159265359f;
+static const float INV4PI = 0.25f / PI;
 static const float3 LUMA = float3(0.2126, 0.7152, 0.0722);
 static const float MU_EPS = 8e-4;
 
 #define MU_FROM_DIR(wi) ((wi).y)
+//
+#include "TransmittanceLUT.hlsli"
 
 float GroundBiasMeters(float Rg)
 {
@@ -126,14 +129,6 @@ void OpticalPropsAtHeight(float h, out float3 sigma_s, out float3 sigma_a, out f
     sigma_s = sigR_s + sigM_s;
     sigma_a = sigM_a;
     sigma_t = sigma_s + sigma_a;
-}
-
-float2 TransUV(float r, float mu, float RbPhys, float Rt)
-{
-    float rNorm = (r - RbPhys) / max(Rt - RbPhys, 1e-6f);
-    float muMin = -sqrt(saturate(1.0f - (RbPhys * RbPhys) / (r * r)));
-    mu = clamp(mu, muMin + MU_EPS, 1.0f - MU_EPS); 
-    return float2((mu - muMin) / (1.0f - muMin), saturate(rNorm));
 }
 
 float3 T_to_TOA(float r, float mu, float RbPhys, float Rt)
@@ -238,10 +233,10 @@ void main(uint3 dtid : SV_DispatchThreadID)
     float3 sigM_s = MieScattering * dM;
     float3 sigM_a = MieAbsorption * dM;
 
-    // TRUE single-scattering albedo (no (1-g) here)
+    // Single-scattering albedo per channel (Hillaire 2020 keeps the multi-scattering transfer per channel)
     float3 sigma_s_true = sigR_s + sigM_s; // full scattering
     float3 sigma_t_true = sigma_s_true + sigM_a; // + absorption
-    float rho_lum = dot(sigma_s_true, LUMA) / max(dot(sigma_t_true, LUMA), 1e-6f);
+    float rho_rgb = sigma_s_true / max(sigma_t_true, 1e-6f);
 
     const uint Ndirs = max(StepsMultiScattering, 2u);
     
@@ -252,7 +247,7 @@ void main(uint3 dtid : SV_DispatchThreadID)
 
     float3 L2_vol = 0.0f;
     float3 L2_gnd = 0.0f;
-    float fms = 0.0f;
+    float3 fms = 0.0f;
 
     [loop]
     for (uint i = 0; i < Ndirs; ++i)
@@ -264,25 +259,22 @@ void main(uint3 dtid : SV_DispatchThreadID)
         float d = isGround ? DistToBottom(r, mu, RbHit) : DistToTop(r, mu, Rt);
 
         float3 T_out_rgb = T_to_boundary(r, mu, d, isGround, RbVis, RbPhys, Rt);
-        float T_out = dot(T_out_rgb, LUMA);
 
-        fms += rho_lum * (1.0f - T_out);
+        fms += rho_rgb * (1.0f - T_out_rgb);
 
-        //if (isGround)
-        //    L2_gnd += (GroundAlbedo / PI) * T_out_rgb;
         if (isGround)
         {
-    // Point on the ground boundary along wi
+            // Point on the ground boundary along wi
             float3 x0 = float3(0.0f, r, 0.0f);
             float3 pG = x0 + wi * d;
-            float rG = length(pG);
-            float3 upG = pG / max(rG, 1e-6f);
+            float3 upG = pG / max(length(pG), 1e-6f);
 
-            float muSunG = dot(upG, wSun);
-            float VsunG = SunVisibleHard(rG, muSunG, RbVis);
-            float3 TsunG = T_to_TOA(rG, muSunG, RbPhys, Rt) * VsunG;
+            // Lambertian ground lit by the sun: albedo/pi * cos(sun zenith) * sun transmittance.
+            // NdotL is also the visibility test: 0 when the sun is below this patch's horizon.
+            float NdotL = saturate(dot(upG, wSun));
+            float3 TsunG = T_to_TOA(length(pG), dot(upG, wSun), RbPhys, Rt);
 
-            L2_gnd += (GroundAlbedo / PI) * T_out_rgb * TsunG;
+            L2_gnd += (GroundAlbedo / PI) * NdotL * T_out_rgb * TsunG;
         }
         
         uint stepsMin = MS_MIN_STEPS_DIR; // keep your floor (e.g. 6)
@@ -290,6 +282,7 @@ void main(uint3 dtid : SV_DispatchThreadID)
         uint stepsMax = max(stepsMin, stepsGeo);
 
         float t = 0.0f;
+        float3 Tacc = float3(1.0f, 1.0f, 1.0f);
         for (uint s = 0; s < stepsMax && t < d - 1e-6f; ++s)
         {
             // center of segment estimated after sizing dt
@@ -326,14 +319,12 @@ void main(uint3 dtid : SV_DispatchThreadID)
             
             float muSunP = dot(upP, wSun);
 
-// Visibility of the sun from this point (use RbVis so tangency is stable)
+            // Visibility of the sun from this point (use RbVis so tangency is stable)
             float VsunP = SunVisibleHard(rP, muSunP, RbVis);
-// If you prefer softened: float VsunP = SunVisibleSoft(rP, muSunP, RbVis, SunDiscRadius);
+            // If you prefer softened: float VsunP = SunVisibleSoft(rP, muSunP, RbVis, SunDiscRadius);
 
-// Sun transmittance from point to TOA along sun direction
+            // Sun transmittance from point to TOA along sun direction
             float3 TsunP = T_to_TOA(rP, muSunP, RbPhys, Rt) * VsunP;
-
-            float3 Tseg = T_along_ray(r, mu, ti, RbVis, RbPhys, Rt);
 
             float rd = sqrt(ti * ti + 2.0f * r * mu * ti + r * r);
             float hh = max(0.0f, rd - RbPhys);
@@ -344,10 +335,16 @@ void main(uint3 dtid : SV_DispatchThreadID)
             float3 sigM_s_step = MieScattering * dM_step;
             float3 sigM_a_step = MieAbsorption * dM_step;
 
-            float3 w0M_step = sigM_s_step / max(sigM_s_step + sigM_a_step, 1e-6.xxx);
-            float3 sigma_s_step = sigR_s_step + sigM_s_step * w0M_step;
+            // Scattering coefficient: MieScattering already excludes absorption, so it is used as is.
+            float3 sigma_s_step = sigR_s_step + sigM_s_step;
+            float3 sigma_t_step = sigR_s_step + sigM_s_step + sigM_a_step;
+            
+            float3 Tstep = exp(-sigma_t_step * dt);
 
-            L2_vol += sigma_s_step * (Tseg * TsunP) * dt;
+            float3 S = sigma_s_step * INV4PI * TsunP;
+            L2_vol += Tacc * (S - S * Tstep) / max(sigma_t_step, 1e-12f);
+            
+            Tacc *= Tstep;
 
             t += dt;
         }
@@ -359,12 +356,9 @@ void main(uint3 dtid : SV_DispatchThreadID)
     fms *= invN;
 
     // keep within a safe range
-// Soft-knee instead of hard cap (optional)
-    float soft = 0.5f; // knee position
-    fms = soft + (1 - soft) * (1 - exp(-(fms - soft) / max(1e-3f, (MS_FMS_MAX - soft))));
-    fms = clamp(fms, 0.0f, MS_FMS_MAX);
+    fms = min(fms, MS_FMS_MAX);
   
-    float Fms = 1.0f / (1.0f - fms);
+    float3 Fms = 1.0f / (1.0f - fms);
     float3 PsiMS = (L2_vol + L2_gnd) * Fms;
 
     // Anisotropy reduction with increasing scattering order (simple, robust):

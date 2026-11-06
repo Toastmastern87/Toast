@@ -23,14 +23,13 @@ PixelInputType main(uint vID : SV_VertexID)
 #type pixel
 #pragma pack_matrix(row_major)
 
-Texture2D sceneHDR              : register(t9); // scene + bloom, linear HDR
-Texture2D stars                 : register(t10); // StarsRT from step 1
-Texture2D SSAO                  : register(t11);
-Texture2D<float> SceneDepth     : register(t12);
-Texture2D NormalMap             : register(t13);
-Texture2D<float> SunDiscMask    : register(t14);
-Texture2D<float> SunHaloMask    : register(t15);
-Texture2D scenePreBloomHDR      : register(t16);
+Texture2D sceneHDR                  : register(t9); // scene + bloom, linear HDR
+Texture2D stars                     : register(t10); // StarsRT from step 1
+Texture2D<float> SceneDepth         : register(t12);
+Texture2D<float> SunDiscMask        : register(t14);
+Texture2D<float> SunHaloMask        : register(t15);
+Texture2D scenePreBloomHDR          : register(t16);
+StructuredBuffer<float> ExposureEV  : register(t17);
 
 SamplerState LinearClamp        : register(s0);
 SamplerState ClampPoint         : register(s1);
@@ -113,20 +112,12 @@ cbuffer StarsParams : register(b7)
     float TwilightEndDeg; // fully visible by (e.g. -6.0)
     float SpaceFadeStart; // altitude norm where space visibility starts (0..1), e.g. 0.85
     
-    float SpaceFadeEnd; // fully visible by (0..1), e.g. 0.98      
-    float3 NightAmbient;
+    float SpaceFadeEnd; // fully visible by (0..1), e.g. 0.98    
+    float3 _pad0;
 }
 
 cbuffer Tonemapping : register(b10)
-{
-    float EVSurfaceDay; // camera on/near surface, daylight
-    float EVSpaceDay; // camera in space, daylight
-    float EVSurfaceNight; // camera on/near surface, night
-    float EVSpaceNight; // camera in space, night
-
-    float2 AltFadeFrac; // x=start, y=end (0..1 over [RbPhys..Rt])
-    float2 SunFadeDeg; // x=end (night), y=start (day), in degrees (e.g. -6, +1)
-    
+{  
     float2 SunUV; // [0..1] screen UV of sun center
     float SpaceFactor; // 0=surface, 1=space (planet->GetSpaceFactor)
     float LensStrength; // overall multiplier (e.g. 1.0)
@@ -154,15 +145,10 @@ cbuffer Tonemapping : register(b10)
     float GhostSizeSurface; 
     float GhostSizeSpace; 
     float GhostAirSuppression; 
+    float _pad1;
 }
 
 static const float3 LUMA = float3(0.2126f, 0.7152f, 0.0722f);
-
-float sstep(float a, float b, float x)
-{
-    float t = saturate((x - a) / (b - a));
-    return t * t * (3.0 - 2.0 * t);
-}
 
 float IsSkyDepth(float d)  // reversed-Z: sky is ~0
 {
@@ -226,64 +212,6 @@ float SunAltDegEffectiveCamera(float3 camWS, float3 planetCenterWS, float planet
     float dip = HorizonDipDeg(r, planetRadius);
     // add ~0.83° refraction so disc remains “above” a touch at sunset
     return alt + dip + 0.83;
-}
-
-float3 ReconstructWorldPos(float2 uv, float depth01)
-{
-    // NDC: x,y in [-1,1], z stays in [0,1] for D3D
-    float2 ndcXY = float2(uv.x * 2.0f - 1.0f, 1.0f - uv.y * 2.0f);
-    float4 ndc = float4(ndcXY, depth01, 1.0f);
-
-    // View space (row_major => mul(vector, matrix))
-    float4 v = mul(ndc, inverseProjectionMatrix);
-    v /= max(v.w, 1e-6f);
-
-    // World space
-    float4 w = mul(float4(v.xyz, 1.0f), inverseViewMatrix);
-    return w.xyz;
-}
-
-// Ray-sphere test (origin at point on/above surface, direction to sun)
-bool RayHitsSphereBetween(float3 ro, float3 rd, float R, out float t0, out float t1)
-{
-    float b = dot(ro, rd);
-    float c = dot(ro, ro) - R * R;
-    float h = b * b - c;
-    if (h < 0.0)
-    {
-        t0 = t1 = 0.0;
-        return false;
-    }
-    float s = sqrt(h);
-    t0 = -b - s;
-    t1 = -b + s;
-    return true;
-}
-
-float MuHorizon(float r, float R)
-{
-    float s = saturate(R / max(r, R + 1e-6f));
-    return -sqrt(max(1.0f - s * s, 0.0f));
-}
-
-// Soft visibility of the sun from the camera (0=occluded, 1=visible)
-// widthDeg controls how "wide" the transition band is around the horizon.
-float SunVisibilitySoftAtCamera(float3 camWS, float3 planetCenterWS, float planetRadius, float3 lightDirFromLight, float widthDeg)
-{
-    float3 wSun = -normalize(lightDirFromLight); // TO sun
-    float3 rel = camWS - planetCenterWS;
-    float r = max(planetRadius, length(rel));
-    float3 up = rel / max(r, 1e-6f);
-
-    float muSun = dot(up, wSun);
-    float muH = MuHorizon(r, planetRadius);
-
-    // Convert an angular width to a cosine "mu" width.
-    // Near horizon, small-angle: Δmu ~ sin(Δθ). This is stable enough for gating.
-    float w = sin(radians(max(widthDeg, 0.01f)));
-
-    // visibility ramps from 0 to 1 as muSun crosses muH
-    return sstep(muH - w, muH + w, muSun);
 }
 
 float SoftKnee(float x, float x0, float k)
@@ -422,123 +350,22 @@ PSOut main(PSIn input)
     
     // Sample inputs
     float3 hdr = sceneHDR.Sample(LinearClamp, input.uv).rgb;
-    float depth = SceneDepth.Sample(ClampPoint, input.uv);
 
-    // ---------- EXPOSURE SELECTION (ONLY EV LERP CHANGES) --------------------
-    // Altitude fraction (0..1) using RbPhys as base
+// ---------- Camera altitude and sun altitude (lens effects only) ----------
     const float Rt = PlanetRadius + AtmosphereHeight;
     const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
     
     float rCam = length(cameraPosition.xyz - PlanetCenterWS);
     float altFrac = saturate((rCam - RbPhys) / max(1e-3f, Rt - RbPhys));
     
-    // 0=surface, 1=space
-    float a = sstep(AltFadeFrac.x, AltFadeFrac.y, altFrac);
-    
-    float3 camToCenter = normalize(PlanetCenterWS - cameraPosition.xyz);
-    float3 pDiscCenter = PlanetCenterWS - camToCenter * PlanetRadius;
-    
-    float sunAltCamEff = SunAltDegEffectiveCamera(cameraPosition.xyz, PlanetCenterWS, PlanetRadius, direction.xyz);
-    float sunAltDisc = SunAltitudeDegAt(pDiscCenter, PlanetCenterWS, direction.xyz);
+    float sunAltCam = SunAltDegEffectiveCamera(cameraPosition.xyz, PlanetCenterWS, PlanetRadius, direction.xyz);
     
     float edgeFade = OffscreenFade(SunUV, float2(160.0, 160.0)); // tweak 64..160 px
     float sunVis3 = SunVisibilityKernel(clamp(SunUV, 0.0.xx, 1.0.xx), 1); // 3x3
-    float sunVis7 = SunVisibilityKernel(clamp(SunUV, 0.0.xx, 1.0.xx), 3); // 7x7
     sunVis3 *= edgeFade;
-    sunVis7 *= edgeFade;
     
-    float3 viewDir = normalize(cameraPosition.xyz - PlanetCenterWS); // center -> camera
-    float3 sunDir = -normalize(direction.xyz); // center -> sun (TO sun)
-
-    float cosPhase = dot(viewDir, sunDir); // [-1..1]
-    float illumFrac = 0.5f * (1.0f + cosPhase); // [0..1] 0=new, 1=full
-    
-    // Suggested start values for space exposure transition:
-    const float IllumStart = 0.20; // start leaving night when 20% of disc is lit
-    const float IllumEnd = 0.60; // mostly day by 60% lit
-
-    float nSpace = 1.0f - sstep(IllumStart, IllumEnd, illumFrac); // 1=night, 0=day
-    
-    // Use the *effective* sun altitude for exposure (dip + refraction helps avoid early night flips)
-    float sunAltExposure = SunAltDegEffectiveCamera(cameraPosition.xyz, PlanetCenterWS, PlanetRadius, direction.xyz);
-
-    // Wider band at surface, tighter in space (you already use 'a' for altitude blend)
-    float occWidthDeg = lerp(6.0f, 0.8f, a);
-
-    // 0..1 visibility, then occlusion = 1-visibility
-    float sunVis = SunVisibilitySoftAtCamera(cameraPosition.xyz, PlanetCenterWS, PlanetRadius, direction.xyz, occWidthDeg);
-    float sunOcc = 1.0f - sunVis;
-
-    // Your existing night-by-altitude blend (keep it)
-    float nightByAlt = 1.0f - sstep(SunFadeDeg.x, SunFadeDeg.y, sunAltExposure);
-
-    // Final night weight at camera is now continuous
-    float nCam = nightByAlt * sunOcc;
-
-    // Keep your space logic as-is
-    float nExp = lerp(nCam, nSpace, a);
-
-    float EVDay = lerp(EVSurfaceDay, EVSpaceDay, a);
-    float EVNight = lerp(EVSurfaceNight, EVSpaceNight, a);
-    float EVCam = lerp(EVDay, EVNight, nExp);
-
-    // Geometry-only extras (unchanged)
-    if (depth > 1e-12f)
-    {
-        // ---------- Reconstruct per-pixel data ----------
-        float3 pWS = ReconstructWorldPos(input.uv, depth); // world pos
-        float3 up_px = normalize(pWS - PlanetCenterWS); // radial up
-        
-        const float3 wSun = -normalize(direction.xyz); // TO sun
-
-        // Night test: is planet between pixel and sun? (nightside terrain mask)
-        float t0, t1;
-        bool hit = RayHitsSphereBetween(pWS - PlanetCenterWS, wSun, PlanetRadius, t0, t1);
-        bool nightAtPx = hit && (t1 > 0.0);
-        
-        float mu = dot(up_px, wSun);
-        float theta = acos(saturate(mu)); // 0..π (radians)
-
-        const float Rt = PlanetRadius + AtmosphereHeight;
-        const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
-        
-        // Blend width: wide near ground, narrow above the air
-        float softDeg = lerp(6.0f, 0.8f, a); // tune: 6° band at ground → 0.8° in space
-
-        // Build a smooth 0→1 mask centered on the horizon
-        float start = radians(90.0f - 0.5f * softDeg);
-        float end = radians(90.0f + 0.5f * softDeg);
-        float nightMask = smoothstep(start, end, theta);      
-        
-        float wNight = nightMask * (nightAtPx ? 1.0f : 0.0f);
-        
-        // AO (assume 1=open, 0=occluded; invert if yours differs)
-        float ao = SSAO.Sample(LinearClamp, input.uv).r;
-        
-        // Normal (view->world). Your normal map appears to be view-space normals.
-        float3 normalVS = NormalMap.Sample(LinearClamp, input.uv).rgb;
-        normalVS = normalize(normalVS * 2.0f - 1.0f);
-        
-        float3 N_ws = normalize(mul(normalVS, (float3x3) inverseViewMatrix));
-
-        // Hemi ambient: more for upward-facing
-        float hemi01 = saturate(0.5f + 0.5f * dot(N_ws, up_px));
-        float hemi = lerp(0.5f, 1.0f, hemi01);
-        
-        const float HemiContrast = 0.6f;
-        hemi = lerp(1.0f, hemi, HemiContrast);
-
-        float3 amb_px = NightAmbient * hemi * ao;// * wNight;
-
-        float EyeRadiusMeters = lerp(12000.0f, 0.0f, a);
-        float EyeFadeMeters = lerp(70000.0f, 0.0f, a);
-
-        float d = distance(pWS, cameraPosition.xyz);
-        float tEye = saturate((d - EyeRadiusMeters) / max(EyeFadeMeters, 1.0f));
-        float wEye = (1.0f - tEye) * (1.0f - tEye);
-
-        hdr += amb_px * wEye * nightByAlt;
-    }
+    // ---------- Exposure: adapted EV from ExposureAdapt -------------
+    float EVCam = ExposureEV[0];
 
     // ---------- Apply exposure + tonemap -------------------------------------
     float3 colorLinear = max(hdr * exp2(-EVCam), 0.0.xxx);
@@ -563,7 +390,7 @@ PSOut main(PSIn input)
     // Sun altitude in degrees
     // -1° = fully hidden
     // +5° = fully visible
-    float LensArticaftsVis = smoothstep(-1.0f, 5.0f, sunAltExposure);
+    float LensArticaftsVis = smoothstep(-1.0f, 5.0f, sunAltCam);
 
     // Shape the growth
     LensArticaftsVis = pow(LensArticaftsVis, 1.8f);

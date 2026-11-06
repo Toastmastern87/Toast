@@ -939,12 +939,17 @@ namespace Toast {
 		out << YAML::Key << "GodRaysHaloPower" << YAML::Value << settings.GodRays.HaloPower;
 		out << YAML::Key << "GodRaysFogRangeMeters" << YAML::Value << settings.GodRays.FogRangeMeters;
 
-		out << YAML::Key << "EVSurfaceDay" << YAML::Value << settings.Exposure.EVSurfaceDay;
-		out << YAML::Key << "EVSpaceDay" << YAML::Value << settings.Exposure.EVSpaceDay;
-		out << YAML::Key << "EVSurfaceNight" << YAML::Value << settings.Exposure.EVSurfaceNight;
-		out << YAML::Key << "EVSpaceNight" << YAML::Value << settings.Exposure.EVSpaceNight;
-		out << YAML::Key << "AltFadeFrac" << YAML::Value << settings.Exposure.AltFadeFrac;
-		out << YAML::Key << "SunFadeDeg" << YAML::Value << settings.Exposure.SunFadeDeg;
+		out << YAML::Key << "LockEV" << YAML::Value << settings.Exposure.LockEV;
+		out << YAML::Key << "LockedEV" << YAML::Value << settings.Exposure.LockedEV;
+		out << YAML::Key << "AECompensation" << YAML::Value << settings.Exposure.Compensation;
+		out << YAML::Key << "AEMinEV" << YAML::Value << settings.Exposure.MinEV;
+		out << YAML::Key << "AEMaxEV" << YAML::Value << settings.Exposure.MaxEV;
+		out << YAML::Key << "AELowPercentile" << YAML::Value << settings.Exposure.LowPercentile;
+		out << YAML::Key << "AEHighPercentile" << YAML::Value << settings.Exposure.HighPercentile;
+		out << YAML::Key << "AESpeedToBright" << YAML::Value << settings.Exposure.SpeedToBright;
+		out << YAML::Key << "AESpeedToDark" << YAML::Value << settings.Exposure.SpeedToDark;
+		out << YAML::Key << "AEHistogramMinLog2" << YAML::Value << settings.Exposure.HistogramMinLog2;
+		out << YAML::Key << "AEHistogramRange" << YAML::Value << settings.Exposure.HistogramRange;
 
 		out << YAML::Key << "OutlineColor" << YAML::Value << settings.Outline.Color;
 		out << YAML::Key << "OutlineThickness" << YAML::Value << settings.Outline.Thickness;
@@ -1205,9 +1210,6 @@ namespace Toast {
 		out << YAML::Key << "SpaceFadeStart" << YAML::Value << environment.SpaceFadeStart;
 		out << YAML::Key << "SpaceFadeEnd" << YAML::Value << environment.SpaceFadeEnd;
 
-		// -------- Night Ambient --------
-		out << YAML::Key << "NightAmbient" << YAML::Value << environment.NightAmbient;
-
 		out << YAML::EndMap;
 
 		out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
@@ -1352,12 +1354,17 @@ namespace Toast {
 		settings.GodRays.KHalo = data["Settings"]["GodRaysKHalo"].as<float>();
 		settings.GodRays.HaloPower = data["Settings"]["GodRaysHaloPower"].as<float>();
 		settings.GodRays.FogRangeMeters = data["Settings"]["GodRaysFogRangeMeters"].as<float>();
-		settings.Exposure.EVSurfaceDay = data["Settings"]["EVSurfaceDay"].as<float>();
-		settings.Exposure.EVSpaceDay = data["Settings"]["EVSpaceDay"].as<float>();
-		settings.Exposure.EVSurfaceNight = data["Settings"]["EVSurfaceNight"].as<float>();
-		settings.Exposure.EVSpaceNight = data["Settings"]["EVSpaceNight"].as<float>();
-		settings.Exposure.AltFadeFrac = data["Settings"]["AltFadeFrac"].as<DirectX::XMFLOAT2>();
-		settings.Exposure.SunFadeDeg = data["Settings"]["SunFadeDeg"].as<DirectX::XMFLOAT2>();
+		settings.Exposure.LockEV = data["Settings"]["LockEV"].as<bool>(false);
+		settings.Exposure.LockedEV = data["Settings"]["LockedEV"].as<float>(0.0f);
+		settings.Exposure.Compensation = data["Settings"]["AECompensation"].as<float>(0.0f);
+		settings.Exposure.MinEV = data["Settings"]["AEMinEV"].as<float>(-14.0f);
+		settings.Exposure.MaxEV = data["Settings"]["AEMaxEV"].as<float>(6.0f);
+		settings.Exposure.LowPercentile = data["Settings"]["AELowPercentile"].as<float>(10.0f);
+		settings.Exposure.HighPercentile = data["Settings"]["AEHighPercentile"].as<float>(90.0f);
+		settings.Exposure.SpeedToBright = data["Settings"]["AESpeedToBright"].as<float>(1.0f);
+		settings.Exposure.SpeedToDark = data["Settings"]["AESpeedToDark"].as<float>(1.0f);
+		settings.Exposure.HistogramMinLog2 = data["Settings"]["AEHistogramMinLog2"].as<float>(-16.0f);
+		settings.Exposure.HistogramRange = data["Settings"]["AEHistogramRange"].as<float>(22.0f);
 		settings.HoverTintColor = data["Settings"]["HoverTintColor"].as<DirectX::XMFLOAT4>();
 
 		auto& outline = settings.Outline;
@@ -1588,7 +1595,6 @@ namespace Toast {
 		environment.TwilightEndDeg = env["TwilightEndDeg"].as<float>();
 		environment.SpaceFadeStart = env["SpaceFadeStart"].as<float>();
 		environment.SpaceFadeEnd = env["SpaceFadeEnd"].as<float>();
-		environment.NightAmbient = env["NightAmbient"].as<DirectX::XMFLOAT3>();
 
 		environment.SunWhite = env["SunWhite"].as<DirectX::XMFLOAT3>();
 		environment.SpaceDiscBrightnessScale = env["SpaceDiscBrightnessScale"].as<float>();

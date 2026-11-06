@@ -50,6 +50,8 @@ static const float3 O3_COEFF = float3(0.650e-6, 1.881e-6, 0.085e-6); // Bruneton
 static const float PI = 3.14159265358979323846f;
 static const float MU_EPS = 8e-4;
 
+#include "TransmittanceLUT.hlsli"
+
 // ---------- densities ----------
 float DensityRayleigh(float h)
 {
@@ -98,12 +100,11 @@ void main(uint3 id : SV_DispatchThreadID)
     const float RbVis = RbPhys + R_BIAS;
     const float RbHit = RbPhys + R_BIAS;
 
-    float u = (id.x + 0.5f) / float(W); // maps to μ in [μmin(r),1]
-    float v = (id.y + 0.5f) / float(H); // maps to r in [Rg,Rt]
+    float2 uv = float2((id.x + 0.5f) / float(W), (id.y + 0.5f) / float(H));
 
-    float r = RadiusFromV(v, RbPhys, Rt);
-    float mu = MuFromU(u, r, RbPhys);
-
+    float r, mu;
+    TransRMuFromUV(uv, RbPhys, Rt, r, mu);
+    //
     //// Ray (planet-centered), Up = +Z
     //float3 x = float3(0.0f, 0.0f, r);
     //float s = sqrt(saturate(1.0f - mu * mu));

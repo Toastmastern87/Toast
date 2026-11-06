@@ -722,10 +722,7 @@ PixelOutputType main(PixelInputType input)
     float3 colorVariation = 1.0f + float3(rVar, gVar, bVar) * ColorNoiseStrength;
     finalAlbedo *= colorVariation;
     
-    if (AlbedoTexToggle > 0)
-        finalAlbedo = LinearToSRGB(finalAlbedo);
-    
-    output.albedoMetallic = float4(finalAlbedo, 1.0f);
+    output.albedoMetallic = float4(finalAlbedo, 0.0f);
 
     /*--------------------------------------------------------------*/
     /* 4) roughness + ambient occlusion                             */

@@ -176,12 +176,6 @@ namespace Toast {
 		ImGui::Text("Space Fade End");
 		ImGui::DragFloat("##SpaceFadeEnd", &environment.SpaceFadeEnd, 0.01f, 0.0f, 1.0f, "%.2f");
 
-		// --------------- Night Ambient ---------------
-		ImGui::Separator();
-		ImGui::Text("Night Ambient");
-		ImGui::Text("Night Ambient Light (x0.01)");
-		ImGui::ColorEdit3("##NightAmbientLight", &environment.NightAmbient.x);
-
 		ImGui::End();
 	}
 

@@ -121,22 +121,6 @@ cbuffer SunDiscSettings : register(b6)
     float SunIrradiance;
 };
 
-cbuffer StarsParams : register(b7)
-{
-    float StarNits; // e.g. 600.0 (display-space peak for brightest texel)
-    float DayFadeStartDeg; // start hiding stars above horizon (e.g. +2.0)
-    float DayFadeEndDeg; // fully hidden by (e.g. 0.0 or -2.0)
-    float TwilightStartDeg; // start appearing (e.g. 0.0)
-    
-    float TwilightEndDeg; // fully visible by (e.g. -6.0)
-    float SpaceFadeStart; // altitude norm where space visibility starts (0..1), e.g. 0.85
-    float SpaceFadeEnd; // fully visible by (0..1), e.g. 0.98
-    float GlareInnerDeg; // sun glare inner angle (e.g. 5.0)
-    
-    float GlareOuterDeg; // sun glare outer angle (e.g. 12.0)
-    float3 NightAmbient;
-}
-
 cbuffer LightningBufferSettings : register(b8)
 {
     float DiffuseIBLGain;
@@ -177,6 +161,8 @@ SamplerState SPBRDFSampler              : register(s1);
 SamplerState PointSampler               : register(s2);
 SamplerState LinearSampler              : register(s3);
 SamplerComparisonState ShadowCmpSampler : register(s4);
+
+#include "TransmittanceLUT.hlsli"
 
 struct CubeSample
 {
@@ -365,24 +351,16 @@ uint queryRadianceTextureLevels()
     return levels;
 }
 
-float2 TransUV(float r, float mu, float RbPhys, float Rt)
-{
-    float rNorm = (r - RbPhys) / max(Rt - RbPhys, 1e-6f);
-    float muMin = -sqrt(saturate(1.0f - (RbPhys * RbPhys) / (r * r)));
-    mu = clamp(mu, muMin + MU_EPS, 1.0f - MU_EPS);
-    return float2((mu - muMin) / (1.0f - muMin), saturate(rNorm));
-}
-
 float SunVisibilityAtR(float r, float muS, float Rb)
 {
     float sinThetaH = Rb / r;
     float cosThetaH = -sqrt(saturate(1.0f - sinThetaH * sinThetaH));
     return smoothstep(-sinThetaH * SunDiscRadius, sinThetaH * SunDiscRadius, muS - cosThetaH);
 }
-
+//
 float3 T_to_TOA(float r, float mu, float Rb, float Rt)
 {
-    return TransmittanceLUT.SampleLevel(PointSampler, TransUV(r, mu, Rb, Rt), 0).rgb;
+    return TransmittanceLUT.SampleLevel(LinearSampler, TransUV(r, mu, Rb, Rt), 0).rgb;
 }
 
 float sstep(float a, float b, float x)

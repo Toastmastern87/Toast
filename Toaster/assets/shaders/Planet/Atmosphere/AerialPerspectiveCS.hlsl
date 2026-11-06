@@ -130,6 +130,8 @@ static const float MU_EPS = 2e-3;
 // Ozone (Bruneton)
 static const float3 O3_COEFF = float3(0.650e-6, 1.881e-6, 0.085e-6);
 
+#include "TransmittanceLUT.hlsli"
+
 #if AP_USE_FAST_EXP
 // exp(x) ~ exp2(x/ln(2))
 float3 fexp3(float3 x)
@@ -163,23 +165,8 @@ float DensityOzone(float hMeters)
 }
 
 float PhaseRayleigh(float mu)
-{
+{ //
     return (3.0f * INV4PI) * 0.25f * (1.0f + mu * mu);
-}
-float PhaseMieHG(float mu, float g)
-{
-    float g2 = g * g;
-    float d = 1.0f + g2 - 2.0f * g * mu;
-    return INV4PI * (1.0f - g2) / max(pow(d, 1.5f), 1e-5f);
-}
-
-// TLUT mapping (Bruneton/UE), identical to SkyView
-float2 TransUV(float r, float mu, float RbPhys, float Rt)
-{
-    float rNorm = (r - RbPhys) / max(Rt - RbPhys, 1e-6f);
-    float muMin = -sqrt(saturate(1.0f - (RbPhys * RbPhys) / (r * r)));
-    mu = clamp(mu, muMin + MU_EPS, 1.0f - MU_EPS);
-    return float2((mu - muMin) / (1.0f - muMin), saturate(rNorm));
 }
 
 float3 T_to_TOA(float r, float mu, float Rb, float Rt)
@@ -386,9 +373,8 @@ void main(uint3 tid : SV_DispatchThreadID)
     const float3 wSun = -normalize(direction.xyz);
     float3 Esun = radiance.rgb * SunIntensity;
     
+    // Mie phase asymmetry per channel. Full Cornette-Shanks lobe, no forward-peak removal (Hillaire 2020).
     float3 g = saturate(MieAnisotropy);
-    float3 f = g * g; // remove delta peak
-    float3 g_p = (g - f) / max(1.0.xxx - f, 1e-6.xxx);
     
     [loop]
     for (uint z = 0; z < D; ++z)
@@ -434,8 +420,6 @@ void main(uint3 tid : SV_DispatchThreadID)
         
         float3 sigmaExt = RayleighScattering * dR + (MieScattering + MieAbsorption) * dM + O3_COEFF * dO;
         
-        float3 sigM_s_single = sigM_s * (1.0.xxx - f);
-        
         float3 upS = (rMid > 0.0f) ? (p / rMid) : BasisSpinUp;
         float muS = dot(upS, wSun);
         float Vsun = SunVisibilityAtR(rMid, muS, RbVis);
@@ -444,7 +428,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         // Phase & disc-averaged Mie (per-channel), same as SkyView
         float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
         float PR = PhaseRayleigh(muPhase);
-        float3 PMrgb = float3(PhaseMie_DiscAvg(muPhase, g_p.r), PhaseMie_DiscAvg(muPhase, g_p.g), PhaseMie_DiscAvg(muPhase, g_p.b));
+        float3 PMrgb = float3(PhaseMie_DiscAvg(muPhase, g.r), PhaseMie_DiscAvg(muPhase, g.g), PhaseMie_DiscAvg(muPhase, g.b));
 
         // --- Horizon-aware tint/gain (same as SkyView) ------------------------------
         // Physical horizon at current altitude
@@ -455,47 +439,17 @@ void main(uint3 tid : SV_DispatchThreadID)
         float muV = clamp(dot(wView, upS), -0.9995f, 0.9995f);
         float elevV = saturate((muV - cH_phys) / (1.0 - cH_phys));
 
-        // --- SINGLE scattering (Rayleigh + Mie without delta-peak) ------------------
-        float3 S1 = ((sigR_s * PR) + (sigM_s_single * PMrgb)) * (Tsun * Esun);
-        S1 *= SGain;
+        // --- SINGLE scattering (Rayleigh + Mie, full Cornette-Shanks phase)
+        float3 S1 = ((sigR_s * PR) + (sigM_s * PMrgb)) * (Tsun * Esun);
 
-        // --- MULTI scattering (energy-preserving, mild anisotropy, altitude EQ) ----
-        // “Albedo” for Mie part (used to reduce MS by absorption)
-        float3 w0M = sigM_s / max(sigM_s + MieAbsorption * dM, 1e-6.xxx);
-        float3 sigS_ms = sigR_s + sigM_s * w0M;
+        // --- MULTI scattering (Hillaire 2020: isotropic, sigma_s * Psi_ms; identical in SkyViewCS) ---
+        // Scattering coefficient for the multi-scattered light: MieScattering already excludes absorption.
+        float3 sigS_ms = sigR_s + sigM_s;
+        float3 PsiMS_rgb = SamplePsiMS4(rMid, muS, RbPhys, Rt).rgb;
 
-        // MS LUT (rgb = strength, a = effective ḡ)
-        float4 Psi4 = SamplePsiMS4(rMid, muS, RbPhys, Rt);
-        float gBar = saturate(Psi4.a);
-
-        // very low effective g for MS that relaxes with altitude
-        float alt01 = saturate((rMid - RbPhys) / max(Rt - RbPhys, 1e-6));
-        float gEff = min(gBar, lerp(0.35, 0.45, alt01));
-        float pHG_e1 = 4.0f * PI * MSPhase(muPhase, gEff); // avg = 1
-        float wAniso = 0.20; // 20% bias
-        float pMS_e1 = 1.0 + wAniso * (pHG_e1 - 1.0);
-
-        // altitude equalizer (flattens vertical contrast)
-        float baseBoost = 1.0f;//        1.0 + 0.18 * saturate(1.0 - (MSGain - 1.0) / 0.3);
-        float gainAlt = lerp(baseBoost, 1.0, alt01 * alt01);
-
-        // directional + slight isotropic pull to avoid dark anti-sun
-        float3 PsiMS_dir = (MSGain * gainAlt) * Psi4.rgb * pMS_e1;
-        float3 PsiMS_iso = (MSGain * gainAlt) * SamplePsiMS4(rMid, 0.0, RbPhys, Rt).rgb;
-
-        // sunUp = 0 at horizon, 1 at zenith
-        float sunUp = smoothstep(0.05f, 0.60f, elevS);
-
-        // High isotropic near horizon, low isotropic at zenith
-        float MSEven = lerp(0.50f, 0.85f, sunUp);
-        float3 PsiMS_rgb = lerp(PsiMS_dir, PsiMS_iso, MSEven);
-
-        float muH = MuHorizon(rMid, RbPhys);
-        float Vterrain = smoothstep(muH, muH + 0.01, muS);
-        
+        // Multi-scattered light is not shadowed by the planet here: the multi-scattering LUT
+        // already includes the sun's visibility. Hillaire 2020 shadows single scattering only.
         float3 S_MS = sigS_ms * PsiMS_rgb * Esun;
-        S_MS *= Vterrain;
-        //float3 S_MS = sigS_ms * PsiMS_rgb * Esun;
         
         // Midpoint integral over this slice
         float3 dTau = sigmaExt * len;

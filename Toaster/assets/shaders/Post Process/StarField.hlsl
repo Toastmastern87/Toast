@@ -81,8 +81,9 @@ cbuffer StarsParams : register(b7)
     float TwilightStartDeg; // e.g. 0.0
     float TwilightEndDeg; // e.g. -6.0
     float SpaceFadeStart; // 0.85
+    
     float SpaceFadeEnd; // 0.98
-    float3 NightAmbient;
+    float3 _pad0;
 }
 
 struct PixelInputType
@@ -101,6 +102,8 @@ SamplerState PointSampler : register(s1);
 static const float PI = 3.14159265359f;
 static const float3 LUMA = float3(0.2126, 0.7152, 0.0722);
 static const float MU_EPS = 8e-4;
+
+#include "TransmittanceLUT.hlsli"
 
 float sstep(float a, float b, float x)
 {
@@ -176,15 +179,7 @@ bool AtmosRayInfo(float3 camRel, float3 rd, float Rg, float Rt, out float h_tan,
     L_shell = max(tExit - tEnter, 0.0);
     return (L_shell > 0.0);
 }
-
-float2 TransUV(float r, float mu, float RbPhys, float Rt)
-{
-    float rNorm = (r - RbPhys) / max(Rt - RbPhys, 1e-6f);
-    float muMin = -sqrt(saturate(1.0f - (RbPhys * RbPhys) / (r * r)));
-    mu = clamp(mu, muMin + MU_EPS, 1.0f - MU_EPS);
-    return float2((mu - muMin) / (1.0f - muMin), saturate(rNorm));
-}
-
+//
 float3 T_to_TOA(float r, float mu, float RbPhys, float Rt)
 {
     return TransmittanceLUT.SampleLevel(LinearSampler, TransUV(r, mu, RbPhys, Rt), 0).rgb;

@@ -552,10 +552,6 @@ PixelOutputType main(PixelInputType input)
     slope = saturate(slope * SlopeSensitivity - SlopeThreshold); // only steep slopes survive
     float heightTint = lerp(1.0f, SlopeDarkening, slope);
     params.Albedo *= heightTint;
-    
-    // TODO MIGHT NEED TO BE FIXED AT A LATER STAGE TO GET CORRECT ALBEDO MAPPING
-    if (AlbedoTexToggle > 0)
-        params.Albedo = LinearToSRGB(params.Albedo);
  
     output.albedoMetallic.rgb = params.Albedo;
     output.albedoMetallic.a = 1.0f;//    Metalness;

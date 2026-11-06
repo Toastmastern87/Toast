@@ -148,6 +148,8 @@ SamplerState ClampLinear            : register(s1);
 static const float3 LUMA = float3(0.2126f, 0.7152f, 0.0722f);
 static const float MU_EPS = 8e-4;
 
+#include "TransmittanceLUT.hlsli"
+
 float3 clampSaturation(float3 c, float clampAmt)
 {
     float y = dot(c, LUMA);
@@ -216,16 +218,7 @@ float MuHorizon(float r, float R)
     float s = saturate(R / r);
     return -sqrt(max(1.0f - s * s, 0.0f));
 }
-
-float2 TransUV(float r, float mu, float RbPhys, float Rt)
-{
-    float rNorm = (r - RbPhys) / max(Rt - RbPhys, 1e-6f);
-    float muMin = -sqrt(saturate(1.0f - (RbPhys * RbPhys) / (r * r)));
-    mu = clamp(mu, muMin + MU_EPS, 1.0f - MU_EPS);
-    return float2((mu - muMin) / (1.0f - muMin), saturate(rNorm));
-}
-
-
+//
 float3 T_to_TOA(float r, float mu, float RbPhys, float Rt)
 {
     return TransmittanceLUT.SampleLevel(ClampLinear, TransUV(r, mu, RbPhys, Rt), 0).rgb;

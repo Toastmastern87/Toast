@@ -269,27 +269,40 @@ namespace Toast {
 					if (ImGui::CollapsingHeader("Exposure"))
 					{
 						ImGui::Indent();
+						auto& exp = mContext->mSettings.Exposure;
 
-						// Daytime EVs (clear labels above each control)
-						ImGui::TextUnformatted("Surface Day");
-						ImGuiHelpers::ManualDragFloat("##EVSurfaceDay", mContext->mSettings.Exposure.EVSurfaceDay, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
-
-						ImGui::TextUnformatted("Space Day");
-						ImGuiHelpers::ManualDragFloat("##EVSpaceDay", mContext->mSettings.Exposure.EVSpaceDay, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
-
-						ImGui::TextUnformatted("Surface Night");
-						ImGuiHelpers::ManualDragFloat("##EVSurfaceNight", mContext->mSettings.Exposure.EVSurfaceNight, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
-
-						ImGui::TextUnformatted("Space Night");
-						ImGuiHelpers::ManualDragFloat("##EVSpaceNight", mContext->mSettings.Exposure.EVSpaceNight, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -10.0f, 10.0f);
+						ImGui::Checkbox("Lock EV", &mContext->mSettings.Exposure.LockEV);
+						if (mContext->mSettings.Exposure.LockEV)
+						{
+							ImGui::TextUnformatted("Locked EV");
+							ImGuiHelpers::ManualDragFloat("##LockedEV", mContext->mSettings.Exposure.LockedEV, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -16.0f, 8.0f);
+						}
 
 						ImGui::Separator();
 
-						ImGui::TextUnformatted("Altitude Blend (0..1)");
-						ImGuiHelpers::ManualDragFloat2("##AltFadeFrac", mContext->mSettings.Exposure.AltFadeFrac, 0.02f, 0.0f, mWindow, activeDragArea, "%.3f");
+						ImGui::TextUnformatted("Compensation (stops)");
+						ImGuiHelpers::ManualDragFloat("##AECompensation", exp.Compensation, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", -5.0f, 5.0f);
+						ImGui::TextUnformatted("Min EV");
+						ImGuiHelpers::ManualDragFloat("##AEMinEV", exp.MinEV, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", -16.0f, 8.0f);
+						ImGui::TextUnformatted("Max EV");
+						ImGuiHelpers::ManualDragFloat("##AEMaxEV", exp.MaxEV, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", -16.0f, 8.0f);
+						ImGui::TextUnformatted("Low Percentile (%)");
+						ImGuiHelpers::ManualDragFloat("##AELowPercentile", exp.LowPercentile, mWindow, activeDragArea, 0.5f, ImVec2{ 255,20 }, "%.1f", 0.0f, 98.0f);
+						ImGui::TextUnformatted("High Percentile (%)");
+						ImGuiHelpers::ManualDragFloat("##AEHighPercentile", exp.HighPercentile, mWindow, activeDragArea, 0.5f, ImVec2{ 255,20 }, "%.1f", 2.0f, 100.0f);
+						ImGui::TextUnformatted("Speed To Bright (1/s)");
+						ImGuiHelpers::ManualDragFloat("##AESpeedToBright", exp.SpeedToBright, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", 0.05f, 20.0f);
+						ImGui::TextUnformatted("Speed To Dark (1/s)");
+						ImGuiHelpers::ManualDragFloat("##AESpeedToDark", exp.SpeedToDark, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", 0.05f, 20.0f);
 
-						ImGui::TextUnformatted("Sun Fade (0..1)");
-						ImGuiHelpers::ManualDragFloat2("##SunFadeDeg", mContext->mSettings.Exposure.SunFadeDeg, 0.02f, 0.0f, mWindow, activeDragArea, "%.3f");
+						if (ImGui::TreeNode("Histogram Range"))
+						{
+							ImGui::TextUnformatted("Min (log2 luminance)");
+							ImGuiHelpers::ManualDragFloat("##AEHistogramMinLog2", exp.HistogramMinLog2, mWindow, activeDragArea, 0.1f, ImVec2{ 255,20 }, "%.1f", -24.0f, 0.0f);
+							ImGui::TextUnformatted("Range (stops)");
+							ImGuiHelpers::ManualDragFloat("##AEHistogramRange", exp.HistogramRange, mWindow, activeDragArea, 0.1f, ImVec2{ 255,20 }, "%.1f", 4.0f, 32.0f);
+							ImGui::TreePop();
+						}
 
 						ImGui::Unindent();
 					}

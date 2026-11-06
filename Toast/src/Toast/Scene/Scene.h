@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Toast/Core/UUID.h"
 #include "Toast/Core/Timestep.h"
@@ -127,12 +127,18 @@ namespace Toast {
 	public:
 		struct ExposureParams
 		{
-			float EVSurfaceDay = 0.0f;
-			float EVSpaceDay = 0.0f;
-			float EVSurfaceNight = 0.0f;
-			float EVSpaceNight = 0.0f;
-			DirectX::XMFLOAT2 AltFadeFrac = { 0.0f, 0.0f };
-			DirectX::XMFLOAT2 SunFadeDeg = { 0.0f, 0.0f };
+			bool LockEV = false;
+			float LockedEV = 0.0f;
+
+			float Compensation = -0.5f;       // stops; + brighter, − darker
+			float MinEV = -6.0f;            // limit for dark scenes (higher = darker dusk/night)
+			float MaxEV = 6.0f;              // limit for bright scenes
+			float LowPercentile = 45.0f;     // % of metered pixels ignored at the dark end
+			float HighPercentile = 90.0f;    // % point above which pixels are ignored (bright end)
+			float SpeedToBright = 0.5f;      // 1/s, camera opening up (scene got darker)
+			float SpeedToDark = 3.0f;        // 1/s, camera stopping down (scene got brighter); your Slice 2 value
+			float HistogramMinLog2 = -16.0f; // log2 luminance at the bottom of bin 1
+			float HistogramRange = 22.0f;    // stops covered by bins 1..255
 		};
 
 		struct CascadedShadowMapParams
@@ -234,8 +240,6 @@ namespace Toast {
 
 		struct Environment 
 		{
-			DirectX::XMFLOAT3 NightAmbient = { 0.0f, 0.0f, 0.0f };
-
 			SunUVResult SunUV;
 
 			// Lightning Gains
