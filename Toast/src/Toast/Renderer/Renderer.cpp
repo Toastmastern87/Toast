@@ -2250,7 +2250,6 @@ namespace Toast {
 		sRendererData->TonemappingBuffer.Write((uint8_t*)&environment.GhostSizeSurface, 4, 80);
 		sRendererData->TonemappingBuffer.Write((uint8_t*)&environment.GhostSizeSpace, 4, 84);
 		sRendererData->TonemappingBuffer.Write((uint8_t*)&environment.GhostAirSuppression, 4, 88);
-
 		sRendererData->TonemappingCBuffer->Map(sRendererData->TonemappingBuffer);
 		sRendererData->TonemappingCBuffer->Bind();
 
@@ -2906,6 +2905,8 @@ namespace Toast {
 		data.APFarDynamic = atmosphere.APFarDynamic;
 		data.SunsetTint = atmosphere.SunsetTint;
 		data.BakeIBL = bakeIBL;
+		data.MieLobeWeight = atmosphere.MieLobeWeight;
+		data.MieAnisotropyBroad = atmosphere.MieAnisotropyBroad;
 
 		sRendererData->AtmosphereBuffer.Write((uint8_t*)&data, sizeof(data), 0);
 		sRendererData->AtmosphereCBuffer->Map(sRendererData->AtmosphereBuffer);

@@ -149,6 +149,8 @@ cbuffer Tonemapping : register(b10)
 }
 
 static const float3 LUMA = float3(0.2126f, 0.7152f, 0.0722f);
+static const float AGX_LOOK_POWER = 1.15f;
+static const float AGX_LOOK_SATURATION = 1.1f;
 
 float IsSkyDepth(float d)  // reversed-Z: sky is ~0
 {
@@ -214,31 +216,50 @@ float SunAltDegEffectiveCamera(float3 camWS, float3 planetCenterWS, float planet
     return alt + dip + 0.83;
 }
 
-float SoftKnee(float x, float x0, float k)
+float3 AgXContrastApprox(float3 x)
 {
-    float t = saturate((x - x0) / max(k, 1e-6f));
-    return lerp(x, x0 + k * (1.0f - t) * (1.0f - t) * (1.0f - t), t);
+    // 6th-order polynomial fit of AgX's default sigmoid (mean error^2 3.67e-6)
+    float3 x2 = x * x;
+    float3 x4 = x2 * x2;
+    return 15.5f * x4 * x2
+         - 40.14f * x4 * x
+         + 31.96f * x4
+         - 6.868f * x2 * x
+         + 0.4298f * x2
+         + 0.1191f * x
+         - 0.00232f;
 }
 
-float3 ToneMap_HDR_scRGB_Soft(float3 c, float peakLin, float kneeStart, float kneeWidth)
+float3 AgXLook(float3 v, float power, float saturation)
 {
-    float Y = max(dot(c, LUMA), 1e-6);
-    float Yk = SoftKnee(Y, kneeStart, kneeWidth);
-    float over = max(Yk - 1.0, 0.0);
-    float k = max(peakLin - 1.0, 1e-6);
-    float Yt = min(Yk, 1.0) + over / (1.0 + over / k);
-    return c * (Yt / Y);
+    float luma = dot(v, LUMA);
+    v = pow(max(v, 0.0f), power);
+    return luma + saturation * (v - luma);
 }
 
-float3 ToneMapACESFitted(float3 x)
+float3 ToneMapAgX(float3 c)
 {
-    x = max(x, 0.0f);
-    const float a = 2.51f;
-    const float b = 0.03f;
-    const float c = 2.43f;
-    const float d = 0.59f;
-    const float e = 0.14f;
-    return saturate((x * (a * x + b)) / (x * (c * x + d) + e));
+    // "Inset": pulls the primaries slightly toward white, so saturated colours desaturate
+    // smoothly as they brighten instead of skewing hue (rows; mul(M, v)).
+    const float3x3 AgXInset = float3x3(
+        0.842479062253094f, 0.0784335999999992f, 0.0792237451477643f,
+        0.0423282422610123f, 0.878468636469772f, 0.0791661274605434f,
+        0.0423756549057051f, 0.0784336f, 0.879142973793104f);
+    // "Outset": the inverse, applied after the curve
+    const float3x3 AgXOutset = float3x3(
+        1.19687900512017f, -0.0980208811401368f, -0.0990297440797205f,
+        -0.0528968517574562f, 1.15190312990417f, -0.0989611768448433f,
+        -0.0529716355144438f, -0.0980434501171241f, 1.15107367264116f);
+    const float minEV = -12.47393f;
+    const float maxEV = 4.026069f;
+
+    float3 v = mul(AgXInset, max(c, 0.0f));
+    v = clamp(log2(max(v, 1e-10f)), minEV, maxEV); // log2 space, 16.5 stops
+    v = (v - minEV) / (maxEV - minEV);
+    v = AgXContrastApprox(v); // display-encoded (gamma 2.2)
+    v = AgXLook(v, AGX_LOOK_POWER, AGX_LOOK_SATURATION); 
+    v = mul(AgXOutset, v);
+    return pow(saturate(v), 2.2f);
 }
 
 float StarburstN(float angle, int spikes, float sharpness)
@@ -439,7 +460,7 @@ PSOut main(PSIn input)
     
     // Tone map to scRGB paper-white space
     const float peakLinear = 2000.0f / 200.0f; // assuming PW=200 nits
-    float3 colorHDR = ToneMap_HDR_scRGB_Soft(colorLinear, peakLinear, 0.85f, 0.35f);
+    float3 colorHDR = ToneMapAgX(colorLinear);
 
     // --- NEW: local tonemap bypass for sun (disc + halo)
     
@@ -459,7 +480,7 @@ PSOut main(PSIn input)
     output.hdr = float4(hdrOut, 1.0);
 
     // ------------- HDR output (your current path) -------------
-    float3 sdrDisp = ToneMapACESFitted(colorLinear);
+    float3 sdrDisp = colorHDR;
 
     float n = Bayer8x8((uint2) input.pos.xy);
     float amp = 0.25f; // ordered can run a bit higher, but start low

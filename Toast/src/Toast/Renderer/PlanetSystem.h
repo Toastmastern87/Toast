@@ -158,6 +158,8 @@ namespace Toast {
 		int MieAbsorptionExp10 = -6;
 		DirectX::XMFLOAT3 MieAbsorption = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 MieAnisotropy = { 0.0f, 0.0f, 0.0f };
+		DirectX::XMFLOAT3 MieLobeWeight = { 1.0f, 1.0f, 1.0f };
+		float MieAnisotropyBroad = 0.0f;
 		DirectX::XMFLOAT3 GroundAlbedo = { 0.0f, 0.0f, 0.0f };
 		DirectX::XMFLOAT3 SunsetTint = { 0.0f, 0.0f, 0.0f };
 		float OzoneStrength = 0.0f;

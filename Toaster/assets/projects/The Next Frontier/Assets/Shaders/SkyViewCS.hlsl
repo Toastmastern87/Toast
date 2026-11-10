@@ -80,6 +80,10 @@ cbuffer Atmosphere : register(b5)
     float APFarDynamic;
     
     float3 SunsetTint;
+    float BakeIBL; 
+    
+    float3 MieLobeWeight; 
+    float MieAnisotropyBroad;
 };
 
 cbuffer SunDiscSettings : register(b6)
@@ -202,13 +206,20 @@ void GetMuWindow(float r, float RbVis, float Rt, out float mu0, out float mu1)
     mu1 = max(mu0 + 1e-5f, mu1);
 }
 
+float DensityExpTapered(float h, float H)
+{
+    float hTop = AtmosphereHeight - min(0.0f, MinHeight);
+    H = max(H, 1e-3f);
+    return max(exp(-max(h, 0.0f) / H) - exp(-hTop / H), 0.0f);
+}
+
 float DensityRayleigh(float h)
 {
-    return exp(-max(h, 0.0f) / max(RayScaleHeight, 1e-3f));
+    return DensityExpTapered(h, RayScaleHeight);
 }
 float DensityMie(float h)
 {
-    return exp(-max(h, 0.0f) / max(MieScaleHeight, 1e-3f));
+    return DensityExpTapered(h, MieScaleHeight);
 }
 float DensityOzone(float hMeters)
 {
@@ -324,14 +335,21 @@ float PhaseMieHG_CS(float mu, float g) // Cornette–Shanks
     return INV4PI * cs;
 }
 
-// Small-angle disc average by inflating the scattering angle.
-float PhaseMie_DiscAvg(float mu, float g)
+float MuDiscAvg(float mu)
 {
-    // theta_eff ≈ sqrt(theta^2 + sunRad^2)
-    float theta = acos(clamp(mu, -0.9995, 0.9995));
+    float theta = acos(clamp(mu, -1.0f, 1.0f));
     float thetaEff = sqrt(theta * theta + SunDiscRadius * SunDiscRadius);
-    float muEff = cos(thetaEff);
-    return PhaseMieHG_CS(muEff, g);
+    return cos(thetaEff);
+}
+
+float3 PhaseMieTwoLobe(float mu)
+{
+    float muEff = MuDiscAvg(mu);
+    float3 gN = saturate(MieAnisotropy);
+    float3 w = saturate(MieLobeWeight);
+    float3 narrow = float3(PhaseMieHG_CS(muEff, gN.r), PhaseMieHG_CS(muEff, gN.g), PhaseMieHG_CS(muEff, gN.b));
+    float broad = PhaseMieHG_CS(muEff, MieAnisotropyBroad);
+    return w * narrow + (1.0f - w) * broad;
 }
 
 [numthreads(8, 8, 1)]
@@ -395,9 +413,6 @@ void main(uint3 tid : SV_DispatchThreadID)
     float3 upEntry = pEntry / rEntry;
     float muEntry = dot(wView, upEntry);
 
-    // Mie phase asymmetry per channel. Full Cornette-Shanks lobe, no forward-peak removal (Hillaire 2020).
-    float3 g = saturate(MieAnisotropy);
-
     float3 Ls = 0.0.xxx;
     float3 Lms = 0.0.xxx;
     float3 Tacc = 1.0.xxx;
@@ -459,7 +474,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 Tmid = Tacc * exp(-sigmaExt * (0.5.xxx * dt));
 
         // Prepare phase/lighting
-        float muPhase = clamp(dot(wSun, wView), -0.9995f, 0.9995f);
+        float muPhase = clamp(dot(wSun, wView), -1.0f, 1.0f);
 
         //float3 upS = (rp > 0.0f) ? (pRel / rp) : up;
         float muS = dot(upS, wSun);
@@ -469,7 +484,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         float3 Tsun = T_to_TOA(rpLUT, muS, RbPhys, Rt) * Vsun; // keep using TLUT, just gate it smoothly
 
         float PR = PhaseRayleigh(muPhase);
-        float3 PMrgb = float3(PhaseMie_DiscAvg(muPhase, g.r), PhaseMie_DiscAvg(muPhase, g.g), PhaseMie_DiscAvg(muPhase, g.b));          
+        float3 PMrgb = PhaseMieTwoLobe(muPhase);
 
         // single scattering: sunlight scattered once toward the camera (Rayleigh + Mie).
         // SGain applied uniformly, the same as S1 in AerialPerspectiveCS.

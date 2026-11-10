@@ -53,13 +53,20 @@ static const float MU_EPS = 8e-4;
 #include "TransmittanceLUT.hlsli"
 
 // ---------- densities ----------
+float DensityExpTapered(float h, float H)
+{
+    float hTop = AtmosphereHeight - min(0.0f, MinHeight);
+    H = max(H, 1e-3f);
+    return max(exp(-max(h, 0.0f) / H) - exp(-hTop / H), 0.0f);
+}
+
 float DensityRayleigh(float h)
 {
-    return exp(-max(h, 0.0f) / max(RayScaleHeight, 1e-3f));
+    return DensityExpTapered(h, RayScaleHeight);
 }
 float DensityMie(float h)
 {
-    return exp(-max(h, 0.0f) / max(MieScaleHeight, 1e-3f));
+    return DensityExpTapered(h, MieScaleHeight);
 }
 
 // Ozone: triangle 10–40 km peaking at 25 km. Normalized so that ∫density dh = OzoneStrength.

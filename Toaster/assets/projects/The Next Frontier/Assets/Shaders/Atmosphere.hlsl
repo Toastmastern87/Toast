@@ -67,7 +67,7 @@ cbuffer PlanetFrame : register(b4)
 
 cbuffer Atmosphere : register(b5)
 {
-    float AtmosphereHeight; // Rt - Rg
+    float AtmosphereHeight;
     float RayScaleHeight;
     float MieScaleHeight;
     float MSGain;
@@ -91,6 +91,9 @@ cbuffer Atmosphere : register(b5)
     
     float3 SunsetTint;
     float BakeIBL;
+    
+    float3 MieLobeWeight;
+    float MieAnisotropyBroad;
 };
 
 cbuffer SunDiscSettings : register(b6)
@@ -130,16 +133,26 @@ SamplerState ClampPoint     : register(s1);
 SamplerState SkyAniso       : register(s3);
 
 #ifndef AP_Z_GAMMA
-#define AP_Z_GAMMA 1.6f   // try 1.5–1.8; 1.6 is a good start
+#define AP_Z_GAMMA 1.6f  
+#endif
+
+#ifndef AP_XY_BSPLINE
+#define AP_XY_BSPLINE 1 // 1 = cubic B-spline in screen x/y, 0 = plain trilinear
 #endif
 
 // ===== Math helpers =========================================================
 static const float PI = 3.14159265358979323846f;
+static const float INV4PI = 0.25f / PI;
 static const float3 LUMA = float3(0.2126f, 0.7152f, 0.0722f);
 static const float MU_EPS = 8e-4;
 
 #include "TransmittanceLUT.hlsli"
 #include "SkyViewLUT.hlsli"
+
+static const float ORBIT_TAU_STEP = 0.03f; // target optical depth per step(same as SkyViewCS)
+static const uint ORBIT_NCAP = 64u; // soft step cap; hard cap is 4x (same scheme as SkyViewCS)
+static const float3 O3_COEFF_ORBIT = float3(0.650e-6f, 1.881e-6f, 0.085e-6f); // as TransmittanceCS (Bruneton)
+static const float ORBIT_BLEND_M = 20000.0f;
 
 // Rayleigh and Henyey–Greenstein phase functions (normalized)
 float PhaseRayleigh(float cosTheta)
@@ -151,6 +164,55 @@ float PhaseMie(float cosTheta, float g)
     float g2 = g * g;
     float denom = pow(max(1.0f + g2 - 2.0f * g * cosTheta, 1e-4f), 1.5f);
     return (1.0f / (4.0f * PI)) * ((1.0f - g2) / denom);
+}
+
+float DensityExpTaperedOrbit(float h, float H)
+{
+    float hTop = AtmosphereHeight - min(0.0f, MinHeight);
+    H = max(H, 1e-3f);
+    return max(exp(-max(h, 0.0f) / H) - exp(-hTop / H), 0.0f);
+}
+
+float DensityRayleighOrbit(float h)
+{
+    return DensityExpTaperedOrbit(h, RayScaleHeight);
+}
+float DensityMieOrbit(float h)
+{
+    return DensityExpTaperedOrbit(h, MieScaleHeight);
+}
+
+float DensityOzoneOrbit(float hMeters)
+{
+    float km = hMeters * 1e-3;
+    float tri = saturate(1.0f - abs((km - 25.0f) / 15.0f)); 
+    return tri * (OzoneStrength / 15000.0f);
+}
+
+float PhaseMieHG_CS(float mu, float g) // Cornette–Shanks
+{
+    g = saturate(g);
+    float g2 = g * g;
+    float denom = pow(1.0 + g2 - 2.0 * g * mu, 1.5);
+    float cs = (3.0 * (1.0 + mu * mu)) / (2.0 * (2.0 + g2)) * ((1.0 - g2) / max(denom, 1e-5));
+    return INV4PI * cs;
+}
+
+float MuDiscAvg(float mu)
+{
+    float theta = acos(clamp(mu, -1.0f, 1.0f));
+    float thetaEff = sqrt(theta * theta + SunDiscRadius * SunDiscRadius);
+    return cos(thetaEff);
+}
+
+float3 PhaseMieTwoLobe(float mu)
+{
+    float muEff = MuDiscAvg(mu);
+    float3 gN = saturate(MieAnisotropy);
+    float3 w = saturate(MieLobeWeight);
+    float3 narrow = float3(PhaseMieHG_CS(muEff, gN.r), PhaseMieHG_CS(muEff, gN.g), PhaseMieHG_CS(muEff, gN.b));
+    float broad = PhaseMieHG_CS(muEff, MieAnisotropyBroad);
+    return w * narrow + (1.0f - w) * broad;
 }
 
 void BuildSkyBasisAnchored(float3 camWS, float3 planetCenterWS, float3 basisEastWS, float3 basisNorthWS, float3 spinUpWS, out float3 up, out float3 east, out float3 north)
@@ -359,6 +421,73 @@ float SunVisibilityAtR(float r, float muS, float Rb, float sunRadius)
     return smoothstep(-sinThetaH * sunRadius, sinThetaH * sunRadius, muS - cosThetaH);
 }
 
+float3 SamplePsiMSOrbit(float r, float muS, float Rb, float Rt)
+{
+    float u = acos(clamp(muS, -1.0f, 1.0f)) / PI;
+    float v = 1.0f - saturate((r - Rb) / max(Rt - Rb, 1e-6f));
+    v = clamp(v, 1.0e-3f, 1.0f - 1.0e-3f);
+    return MultiScatterLUT.SampleLevel(ClampLinear, float2(u, v), 0).rgb;
+}
+
+struct OrbitMarch
+{
+    float3 L; // in-scattered radiance along the segment
+    float3 T; // RGB transmittance over the segment
+};
+
+OrbitMarch IntegrateOrbit(float3 ro, float3 rd, float tStart, float tEnd, float RbPhys, float RbVis, float Rt)
+{
+    OrbitMarch o;
+    o.L = 0.0f.xxx;
+    o.T = 1.0f.xxx;
+    if (tEnd <= tStart)
+        return o;
+
+    const float3 wSun = -normalize(direction.xyz);
+    const float3 Esun = radiance.rgb * SunIntensity;
+    const float muPhase = clamp(dot(wSun, rd), -1.0f, 1.0f);
+    const float PR = PhaseRayleigh(muPhase);
+    const float PM = PhaseMieTwoLobe(muPhase);
+    
+    float t = tStart;
+    uint iter = 0;   
+    [loop]
+    while (t < tEnd - 1e-3f && iter < 4u * ORBIT_NCAP)
+    {
+        float hE = max(0.0f, length(ro + rd * t) - RbPhys);
+        float3 sigE = RayleighScattering * DensityRayleighOrbit(hE) + (MieScattering + MieAbsorption) * DensityMieOrbit(hE);
+        float dtTau = ORBIT_TAU_STEP / max(dot(sigE, LUMA), 1e-9f);
+        float dtGeo = (tEnd - t) / (float) max(1u, ORBIT_NCAP - min(iter, ORBIT_NCAP - 1u));
+        float dt = clamp(min(dtTau, dtGeo), 1e-3f, tEnd - t);
+
+        float3 p = ro + rd * (t + 0.5f * dt);
+        float r = length(p);
+        float h = max(0.0f, r - RbPhys);
+        float dR = DensityRayleighOrbit(h);
+        float dM = DensityMieOrbit(h);
+        float3 sigR_s = RayleighScattering * dR;
+        float3 sigM_s = MieScattering * dM;
+        float3 sigmaExt = sigR_s + (MieScattering + MieAbsorption) * dM + O3_COEFF_ORBIT * DensityOzoneOrbit(h);
+
+        float3 upS = p / max(r, 1e-3f);
+        float muS = dot(upS, wSun);
+        float3 Tsun = T_to_TOA(r, muS, RbPhys, Rt) * SunVisibilityAtR(r, muS, RbVis, SunDiscRadius);
+
+        float3 S1 = (sigR_s * PR + sigM_s * PM) * Tsun * Esun;
+        float3 SMS = (sigR_s + sigM_s) * SamplePsiMSOrbit(r, muS, RbPhys, Rt) * Esun;
+
+        float3 stepT = exp(-sigmaExt * dt);
+        float3 wInt = (1.0f.xxx - stepT) / max(sigmaExt, 1e-12f.xxx);
+        o.L += o.T * (S1 + SMS) * wInt;
+        o.T *= stepT;
+        
+        t += dt;
+        iter++;
+    }
+    
+    return o;
+}
+
 // Optional: subtle limb darkening so the disc isn't a flat sticker.
 // Tweak the constant or lift it into your cbuffer later if you want.
 float LimbDarken(float rNorm) // rNorm = theta / SunDiscRadius, [0..∞)
@@ -477,7 +606,40 @@ float2 OctFoldHemiUV(float2 uv) // uv in [0,1]^2
     return f * 0.5 + 0.5; // back to [0,1]
 }
 
-// ===== PS ===================================================================
+// Cubic B-spline filtering of the AP volume in screen x/y, linear in depth.
+// Four hardware trilinear taps replace sixteen point taps (Sigg & Hadwiger, GPU Gems 2, ch. 20).
+// B-spline weights are never negative, so there's no overshoot: haze stays >= 0 and tau stays >= 0.
+float4 SampleAP_BSplineXY(float3 uvw)
+{
+    uint W, H, D;
+    AerialPerspective3D.GetDimensions(W, H, D);
+    float2 texSize = float2(W, H);
+    float2 invTexSize = 1.0f / texSize;
+    
+    float2 coord = uvw.xy * texSize - 0.5f;
+    float2 i = floor(coord);
+    float2 f = coord - i;
+    
+    float2 f2 = f * f;
+    float2 f3 = f2 * f;
+    float2 w0 = (1.0f / 6.0f) * (1.0f - 3.0f * f + 3.0f * f2 - f3);
+    float2 w1 = (1.0f / 6.0f) * (4.0f - 6.0f * f2 + 3.0f * f3);
+    float2 w2 = (1.0f / 6.0f) * (1.0f + 3.0f * f + 3.0f * f2 - 3.0f * f3);
+    float2 w3 = (1.0f / 6.0f) * f3;
+
+    float2 g0 = w0 + w1;
+    float2 g1 = w2 + w3;
+    float2 p0 = (i - 1.0f + w1 / g0 + 0.5f) * invTexSize;
+    float2 p1 = (i + 1.0f + w3 / g1 + 0.5f) * invTexSize;
+    
+    float4 s00 = AerialPerspective3D.SampleLevel(ClampLinear, float3(p0.x, p0.y, uvw.z), 0);
+    float4 s10 = AerialPerspective3D.SampleLevel(ClampLinear, float3(p1.x, p0.y, uvw.z), 0);
+    float4 s01 = AerialPerspective3D.SampleLevel(ClampLinear, float3(p0.x, p1.y, uvw.z), 0);
+    float4 s11 = AerialPerspective3D.SampleLevel(ClampLinear, float3(p1.x, p1.y, uvw.z), 0);
+    
+    return g0.y * (g0.x * s00 + g1.x * s10) + g1.y * (g0.x * s01 + g1.x * s11);
+}
+
 struct PSIn
 {
     float4 pos : SV_Position;
@@ -614,6 +776,16 @@ PSOut main(PSIn i)
         if (rCam > Rt && mu > mu1)
             sky = 0.0f.xxx;
         
+        float wOrbitSky = smoothstep(Rt - ORBIT_BLEND_M, Rt, rCam);
+        if (wOrbitSky > 0.0f)
+        {
+            Hit hA = IntersectSphereGrazingSafe(camRel, wView, Rt);
+            float3 skyMarch = 0.0f.xxx;
+            if (hA.ok && hA.t1 > 0.0f)
+                skyMarch = IntegrateOrbit(camRel, wView, max(0.0f, hA.t0), hA.t1, RbPhys, RbVis, Rt).L;
+            sky = lerp(sky, skyMarch, wOrbitSky);
+        }
+ 
         float3 sunColor = float3(0.0f, 0.0f, 0.0f);
         float discMask_out = 0.0f; // SV_Target1
         float haloMask_out = 0.0f; // SV_Target2
@@ -761,7 +933,11 @@ PSOut main(PSIn i)
         float wAP = (max(sliceF, 0.0f) + 0.5f) / DdF; // texel centre of the continuous slice index
         
         // final sample: TRILINEAR
+#if AP_XY_BSPLINE
+        float4 ap = SampleAP_BSplineXY(float3(uv, wAP));
+#else
         float4 ap = AerialPerspective3D.SampleLevel(ClampLinear, float3(uv, wAP), 0);
+#endif
         ap.rgb *= weight;
         float tau = max(ap.a, 0.0f) * weight;
         
@@ -773,7 +949,17 @@ PSOut main(PSIn i)
         float3 Trgb = pow(Tmean.xxx, k);
         
         float3 outRGB = colorPreAtmos * Trgb + ap.rgb;
-        output.color = float4(outRGB, max(Trgb.r, max(Trgb.g, Trgb.b)));
+        float alphaOut = max(Trgb.r, max(Trgb.g, Trgb.b));
+
+        float wOrbit = smoothstep(Rt - ORBIT_BLEND_M, Rt, rCam);
+        if (wOrbit > 0.0f && hitAtm.ok)
+        {
+            OrbitMarch m = IntegrateOrbit(camRel, wView, tEnter, min(tSurf, hitAtm.t1), RbPhys, RbVis, Rt);
+            outRGB = lerp(outRGB, colorPreAtmos * m.T + m.L, wOrbit);
+            alphaOut = lerp(alphaOut, max(m.T.r, max(Trgb.g, Trgb.b)), wOrbit);
+        }
+
+        output.color = float4(outRGB, alphaOut);
 
         output.disc = 0.0f; // no sun over geometry pass here
         output.halo = 0.0f; // no halo mask over geometry pixels

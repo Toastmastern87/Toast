@@ -319,6 +319,8 @@ Texture2DArray<float4> PBRDisplacementArray : register(t10);
 SamplerState defaultSampler                 : register(s0);
 SamplerState PBRSampler                     : register(s1);
 
+static const float TerrainAlbedoSaturation = 1.2f;
+
 #include "PerlinNoise.hlsli"
 #include "DirectionToCube.hlsli"
 
@@ -722,6 +724,10 @@ PixelOutputType main(PixelInputType input)
     float3 colorVariation = 1.0f + float3(rVar, gVar, bVar) * ColorNoiseStrength;
     finalAlbedo *= colorVariation;
     
+    // TEMPORARY UNTIL PLANET MATERIAL REBUILD
+    //float albedoLum = dot(finalAlbedo, float3(0.2126f, 0.7152f, 0.0722f));
+    //finalAlbedo = max(albedoLum + TerrainAlbedoSaturation * (finalAlbedo - albedoLum), 0.0f);
+       
     output.albedoMetallic = float4(finalAlbedo, 0.0f);
 
     /*--------------------------------------------------------------*/

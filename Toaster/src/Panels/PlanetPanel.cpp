@@ -2511,7 +2511,8 @@ namespace Toast {
 						float fullW = colW - padX * 2.0f;                  // leave padding on both sides
 						ImGui::SetNextItemWidth(fullW);
 
-						ImGui::DragFloat("##AtmosphereHeight", &mContext->mAtmosphere.AtmosphereHeight, 1.0f, 0.0f, FLT_MAX, "%.0f");
+						if (ImGui::DragFloat("##AtmosphereHeight", &mContext->mAtmosphere.AtmosphereHeight, 1.0f, 0.0f, FLT_MAX, "%.0f"))
+							mAtmosphereLUTsDirty = true;
 
 						// -------- Rayleigh Scale Height Row ----------
 						ImGui::TableNextRow();
@@ -2611,13 +2612,31 @@ namespace Toast {
 
 						ImGui::TableSetColumnIndex(0);
 						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Mie Anisotropy Red");
+						ImGui::Text("Mie Anisotropy (narrow lobe)");
 
 						ImGui::TableSetColumnIndex(1);
 
 						ImGui::SetNextItemWidth(fullW);
 
 						ImGuiHelpers::ManualDragFloat3("##MieAnisotropy", mContext->mAtmosphere.MieAnisotropy, 0.01f, 0.0f, mWindow, activeDragArea, "%.2f", true);
+
+						// -------- Mie Lobe Weight Row ----------
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Mie Narrow Lobe Weight");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGuiHelpers::ManualDragFloat3("##MieLobeWeight", mContext->mAtmosphere.MieLobeWeight, 0.01f, 0.0f, mWindow, activeDragArea, "%.2f", true);
+
+						// -------- Mie Broad Anisotropy Row ----------
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Mie Anisotropy (broad lobe)");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::SetNextItemWidth(fullW);
+						ImGuiHelpers::ManualDragFloat("##MieAnisotropyBroad", mContext->mAtmosphere.MieAnisotropyBroad, mWindow, activeDragArea, 0.01f, ImVec2{ fullW, 20.0f }, "%.3f", 0.0f, 0.99f);
 
 						// -------- Ozone Strength Row ----------
 						ImGui::TableNextRow();
@@ -2698,6 +2717,13 @@ namespace Toast {
 						}
 
 						ImGui::EndTable();
+
+						if (mAtmosphereLUTsDirty && !ImGui::IsAnyItemActive())
+						{
+							Renderer::GenerateTransmittanceLUT(mContext);
+							Renderer::GenerateMultiScatteringLUT(mContext);
+							mAtmosphereLUTsDirty = false;
+						}
 					}
 
 					ImGui::Unindent();

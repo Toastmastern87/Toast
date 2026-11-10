@@ -999,6 +999,8 @@ namespace Toast {
 		out << YAML::Key << "MieAbsorptionExp10" << YAML::Value << scenePlanet->mAtmosphere.MieAbsorptionExp10;
 		out << YAML::Key << "MieAbsorption" << YAML::Value << scenePlanet->mAtmosphere.MieAbsorption;
 		out << YAML::Key << "MieAnisotropy" << YAML::Value << scenePlanet->mAtmosphere.MieAnisotropy;
+		out << YAML::Key << "MieLobeWeight" << YAML::Value << scenePlanet->mAtmosphere.MieLobeWeight;
+		out << YAML::Key << "MieAnisotropyBroad" << YAML::Value << scenePlanet->mAtmosphere.MieAnisotropyBroad;
 		out << YAML::Key << "OzoneStrength" << YAML::Value << scenePlanet->mAtmosphere.OzoneStrength;
 		out << YAML::Key << "GroundAlbedo" << YAML::Value << scenePlanet->mAtmosphere.GroundAlbedo;
 		out << YAML::Key << "SunsetTint" << YAML::Value << scenePlanet->mAtmosphere.SunsetTint;
@@ -1414,6 +1416,9 @@ namespace Toast {
 		scenePlanet->mAtmosphere.MieAbsorptionExp10 = planet["MieAbsorptionExp10"].as<int>();
 		scenePlanet->mAtmosphere.MieAbsorption = planet["MieAbsorption"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mAtmosphere.MieAnisotropy = planet["MieAnisotropy"].as<DirectX::XMFLOAT3>();
+		if (planet["MieLobeWeight"])
+			scenePlanet->mAtmosphere.MieLobeWeight = planet["MieLobeWeight"].as<DirectX::XMFLOAT3>();
+		scenePlanet->mAtmosphere.MieAnisotropyBroad = planet["MieAnisotropyBroad"].as<float>(0.0f);
 		scenePlanet->mAtmosphere.OzoneStrength = planet["OzoneStrength"].as<float>();
 		scenePlanet->mAtmosphere.GroundAlbedo = planet["GroundAlbedo"].as<DirectX::XMFLOAT3>();
 		scenePlanet->mAtmosphere.SunsetTint = planet["SunsetTint"].as<DirectX::XMFLOAT3>();

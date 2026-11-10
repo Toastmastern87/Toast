@@ -38,9 +38,12 @@ namespace Toast {
 
 		DirectX::XMFLOAT3 SunsetTint;
 		float BakeIBL;
+
+		DirectX::XMFLOAT3 MieLobeWeight;
+		float MieAnisotropyBroad;
 	};
 
-	TOAST_STATIC_ASSERT(sizeof(AtmosphereCBufferGPU) == 128, "AtmosphereCBufferGPU must match the HLSL Atmosphere cbuffer (128 bytes)")
+	TOAST_STATIC_ASSERT(sizeof(AtmosphereCBufferGPU) == 144, "AtmosphereCBufferGPU must match the HLSL Atmosphere cbuffer (144 bytes)")
 	TOAST_STATIC_ASSERT(offsetof(AtmosphereCBufferGPU, RayleighScattering) == 16, "AtmosphereCBufferGPU::RayleighScattering must be at offset 16")
 	TOAST_STATIC_ASSERT(offsetof(AtmosphereCBufferGPU, MieScattering) == 32, "AtmosphereCBufferGPU::MieScattering must be at offset 32")
 	TOAST_STATIC_ASSERT(offsetof(AtmosphereCBufferGPU, MieAbsorption) == 48, "AtmosphereCBufferGPU::MieAbsorption must be at offset 48")
@@ -52,5 +55,7 @@ namespace Toast {
 	TOAST_STATIC_ASSERT(offsetof(AtmosphereCBufferGPU, APFarDynamic) == 104, "AtmosphereCBufferGPU::APFarDynamic must be at offset 104")
 	TOAST_STATIC_ASSERT(offsetof(AtmosphereCBufferGPU, SunsetTint) == 112, "AtmosphereCBufferGPU::SunsetTint must be at offset 112")
 	TOAST_STATIC_ASSERT(offsetof(AtmosphereCBufferGPU, BakeIBL) == 124, "AtmosphereCBufferGPU::BakeIBL must be at offset 124")
+	TOAST_STATIC_ASSERT(offsetof(AtmosphereCBufferGPU, MieLobeWeight) == 128, "AtmosphereCBufferGPU::MieLobeWeight must be at offset 128")
+	TOAST_STATIC_ASSERT(offsetof(AtmosphereCBufferGPU, MieAnisotropyBroad) == 140, "AtmosphereCBufferGPU::MieAnisotropyBroad must be at offset 140")
 
 }

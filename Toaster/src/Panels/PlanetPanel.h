@@ -37,6 +37,7 @@ namespace Toast {
 
 		// Terrain Height Details UI state 
 		bool mDetailPopupOpen = false;
+		bool mAtmosphereLUTsDirty = false;
 		bool mEditingDetail = false;
 		int mEditingDetailIndex = -1;
 		bool mRequestOpenTerrainDetailPopup = false;
