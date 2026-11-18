@@ -65,7 +65,7 @@ namespace Toast {
 
 				if (mContext)
 				{
-					const char* items[] = { "None", "G-Buffer Positions", "G-Buffer Normals", "G-Buffer Albedo/Metallic", "Roughness", "Lighting Pass Output", "Atmospheric Scattering Output", "SSAO", "SSAO Blur", "Bloom", "Bloom Half", "Bloom Quarter", "Bloom Final", "SkyViewLUT", "Planet Materials Debug"};
+					const char* items[] = { "None", "G-Buffer Positions", "G-Buffer Normals", "G-Buffer Albedo/Metallic", "Roughness", "Lighting Pass Output", "Atmospheric Scattering Output", "SSAO", "SSAO Blur", "Bloom", "Bloom Final", "SkyViewLUT", "Planet Materials Debug" };
 					int currentOverlay = static_cast<int>(mContext->mSettings.RenderOverlaySetting);
 
 					ImGui::Text("Render Overlay");
@@ -158,41 +158,13 @@ namespace Toast {
 					{
 						ImGui::Indent();
 
-						ImGui::Text("Sun from Surface Threshold");
-						ImGuiHelpers::ManualDragFloat("##SunSurfaceThreshold ", mContext->mSettings.Bloom.SunSurfaceThreshold, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 10.0f);
-						ImGui::Text("Sun from Surface Intensity");
-						ImGuiHelpers::ManualDragFloat("##sunsurfaceintensity", mContext->mSettings.Bloom.SunSurfaceIntensity, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 10.0f);
+						ImGui::Text("Intensity");
+						ImGuiHelpers::ManualDragFloat("##BloomIntensity", mContext->mSettings.Bloom.Intensity, mWindow, activeDragArea, 0.001f, ImVec2{ 255.0f, 20.0f }, "%.3f", 0.0f, 1.0f);
 
-						ImGui::Text("Sun from Space Threshold");
-						ImGuiHelpers::ManualDragFloat("##SunSpaceThreshold ", mContext->mSettings.Bloom.SunSpaceThreshold, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 10.0f);
-						ImGui::Text("Sun from Space Intensity");
-						ImGuiHelpers::ManualDragFloat("##sunSpaceintensity", mContext->mSettings.Bloom.SunSpaceIntensity, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 10.0f);
-
-						ImGui::Text("Sky from Surface Threshold");
-						ImGuiHelpers::ManualDragFloat("##SkySurfaceThreshold ", mContext->mSettings.Bloom.SkySurfaceThreshold, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 10.0f);
-						ImGui::Text("Sky from Surface Intensity");
-						ImGuiHelpers::ManualDragFloat("##Skynsurfaceintensity", mContext->mSettings.Bloom.SkySurfaceIntensity, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 10.0f);
-
-						ImGui::Text("Sky from Space Threshold");
-						ImGuiHelpers::ManualDragFloat("##SkySpaceThreshold ", mContext->mSettings.Bloom.SkySpaceThreshold, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 10.0f);
-						ImGui::Text("Sky from Space Intensity");
-						ImGuiHelpers::ManualDragFloat("##SkySpaceIntensity", mContext->mSettings.Bloom.SkySpaceIntensity, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 10.0f);
-
-						ImGui::Text("Geometry Threshold");
-						ImGuiHelpers::ManualDragFloat("##Geometrytreshold", mContext->mSettings.Bloom.GeometryThreshold, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 25.0f);
-						ImGui::Text("Geometry Intensity");
-						ImGuiHelpers::ManualDragFloat("##GeometryIntensity", mContext->mSettings.Bloom.GeometryIntensity, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 10.0f);
-
-						ImGui::Text("Sun Radius");
-						ImGuiHelpers::ManualDragFloat("##SunRadius", mContext->mSettings.Bloom.SunRadius, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
-						ImGui::Text("Sky Surface Radius");
-						ImGuiHelpers::ManualDragFloat("##SkySurfaceRadius", mContext->mSettings.Bloom.SkySurfaceRadius, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
-						ImGui::Text("Sky Space Radius");
-						ImGuiHelpers::ManualDragFloat("##SkySpaceRadius", mContext->mSettings.Bloom.SkySpaceRadius, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
-						ImGui::Text("Soft Knee");
-						ImGuiHelpers::ManualDragFloat("##SoftKnee", mContext->mSettings.Bloom.SoftKnee, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 1.0f);
-						ImGui::Text("Saturation Clamp");
-						ImGuiHelpers::ManualDragFloat("##SaturationClamp", mContext->mSettings.Bloom.SaturationClamp, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 1.0f);
+						ImGui::Text("Falloff");
+						ImGuiHelpers::ManualDragFloat("##BloomFalloff", mContext->mSettings.Bloom.Falloff, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.2f, 1.0f);
+						if (ImGui::IsItemHovered())
+							ImGui::SetTooltip("How fast the glow fades with distance.\n0.5 = camera lens, 1.0 = human eye (wider, softer).");
 
 						ImGui::Unindent();
 					}
@@ -286,10 +258,55 @@ namespace Toast {
 						ImGuiHelpers::ManualDragFloat("##AEMinEV", exp.MinEV, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", -16.0f, 8.0f);
 						ImGui::TextUnformatted("Max EV");
 						ImGuiHelpers::ManualDragFloat("##AEMaxEV", exp.MaxEV, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", -16.0f, 8.0f);
+						ImGui::TextUnformatted("Min EV (orbit)");
+						ImGuiHelpers::ManualDragFloat("##AEOrbitMinEV", exp.OrbitMinEV, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", -16.0f, 8.0f);
+						if (ImGui::IsItemHovered())
+							ImGui::SetTooltip("Min EV when the camera is above the atmosphere (blends in high up).\nHigher = the night side stays dark from orbit.\nEqual to Min EV = off.");
+
 						ImGui::TextUnformatted("Low Percentile (%)");
 						ImGuiHelpers::ManualDragFloat("##AELowPercentile", exp.LowPercentile, mWindow, activeDragArea, 0.5f, ImVec2{ 255,20 }, "%.1f", 0.0f, 98.0f);
 						ImGui::TextUnformatted("High Percentile (%)");
 						ImGuiHelpers::ManualDragFloat("##AEHighPercentile", exp.HighPercentile, mWindow, activeDragArea, 0.5f, ImVec2{ 255,20 }, "%.1f", 2.0f, 100.0f);
+						ImGui::TextUnformatted("Highlight Percentile (%)");
+						ImGuiHelpers::ManualDragFloat("##AEHighlightPercentile", exp.HighlightPercentile, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", 90.0f, 100.0f);
+						if (ImGui::IsItemHovered())
+							ImGui::SetTooltip("The brightest (100 - this) %% of the frame is protected from going white.\n99.5 = about the sun's glow within ~2 degrees.");
+
+						ImGui::TextUnformatted("Highlight Target");
+						ImGuiHelpers::ManualDragFloat("##AEHighlightTarget", exp.HighlightTarget, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", 0.1f, 16.0f);
+						if (ImGui::IsItemHovered())
+							ImGui::SetTooltip("How bright the protected highlights may get (before the tone curve).\n0.6 keeps a blue sunset blue; higher = brighter rest of frame, whiter highlights.\n16 = off.");
+
+						ImGui::TextUnformatted("Highlight Target (orbit)");
+						ImGuiHelpers::ManualDragFloat("##AEOrbitHighlightTarget", exp.OrbitHighlightTarget, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", 0.1f, 16.0f);
+						if (ImGui::IsItemHovered())
+							ImGui::SetTooltip("Highlight Target when the camera is above the atmosphere (blends in high up).\nLower = the lit limb and the sun's surroundings keep their gradient.");
+
+						ImGui::TextUnformatted("Adaptation Knee EV");
+						ImGuiHelpers::ManualDragFloat("##AEAdaptationKneeEV", exp.AdaptationKneeEV, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", -16.0f, 8.0f);
+						if (ImGui::IsItemHovered())
+							ImGui::SetTooltip("Down to this exposure the camera fully adapts (daylight).\nBelow it, Dim-Light Adaptation decides how much.");
+
+						ImGui::TextUnformatted("Dim-Light Adaptation");
+						ImGuiHelpers::ManualDragFloat("##AEDimLightAdaptation", exp.DimLightAdaptation, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", 0.0f, 1.0f);
+						if (ImGui::IsItemHovered())
+							ImGui::SetTooltip("Below the knee: how much of the drop in light the exposure follows.\n1 = fully (dusk looks like day), lower = dusk stays darker, like the eye.");
+
+						ImGui::TextUnformatted("Local Highlight Contrast");
+						ImGuiHelpers::ManualDragFloat("##AELocalHighlightContrast", exp.LocalHighlightContrast, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", 0.0f, 1.0f);
+						if (ImGui::IsItemHovered())
+							ImGui::SetTooltip("Local tone mapping: < 1 compresses bright areas (the glow around the sun, a sunset sky)\ntowards middle grey, keeping their detail. 1 = off.");
+
+						ImGui::TextUnformatted("Local Shadow Contrast");
+						ImGuiHelpers::ManualDragFloat("##AELocalShadowContrast", exp.LocalShadowContrast, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", 0.0f, 1.0f);
+						if (ImGui::IsItemHovered())
+							ImGui::SetTooltip("Local tone mapping: < 1 lifts dark areas towards middle grey. 1 = off.");
+
+						ImGui::TextUnformatted("Local Detail Strength");
+						ImGuiHelpers::ManualDragFloat("##AELocalDetailStrength", exp.LocalDetailStrength, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", 0.0f, 2.0f);
+						if (ImGui::IsItemHovered())
+							ImGui::SetTooltip("How much of each pixel's difference from its area is kept. 1 = all of it.");
+
 						ImGui::TextUnformatted("Speed To Bright (1/s)");
 						ImGuiHelpers::ManualDragFloat("##AESpeedToBright", exp.SpeedToBright, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", 0.05f, 20.0f);
 						ImGui::TextUnformatted("Speed To Dark (1/s)");

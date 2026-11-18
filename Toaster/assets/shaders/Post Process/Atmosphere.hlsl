@@ -103,7 +103,7 @@ cbuffer SunDiscSettings : register(b6)
     int SunDiscToggle; // 0=off, 1=on
     float SpaceDiscBrightnessScale; // unitless scale, e.g. 1.30
     
-    float3 SunDiscWhite;
+    float3 SunDiscPad0;
     float AirHaloIntensity; // 0..~0.6 (was HaloStrength_Ground, e.g. 0.28)
     
     float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)    
@@ -125,6 +125,7 @@ Texture2D<float4> SkyViewLUT            : register(t2);
 Texture3D<float4> AerialPerspective3D   : register(t3);
 Texture2D<float4> positionTexture       : register(t4);
 Texture2D<uint> APFarU32                : register(t5);
+Texture2D<float4> GroundIrradianceLUT   : register(t6);
 Texture2D<float> SceneDepth             : register(t9);
 Texture2D<float4> SceneColor            : register(t10);
 
@@ -148,11 +149,17 @@ static const float MU_EPS = 8e-4;
 
 #include "TransmittanceLUT.hlsli"
 #include "SkyViewLUT.hlsli"
+#include "GroundIrradianceLUT.hlsli"
+#include "AtmosphereRays.hlsli"
 
 static const float ORBIT_TAU_STEP = 0.03f; // target optical depth per step(same as SkyViewCS)
 static const uint ORBIT_NCAP = 64u; // soft step cap; hard cap is 4x (same scheme as SkyViewCS)
 static const float3 O3_COEFF_ORBIT = float3(0.650e-6f, 1.881e-6f, 0.085e-6f); // as TransmittanceCS (Bruneton)
 static const float ORBIT_BLEND_M = 20000.0f;
+
+// Linear limb-darkening law: I(mu) / I(centre) = 1 - u * (1 - mu). u ~ 0.55 in the visible.
+// Its average over the disc is 1 - u/3 (used by the disc in main to keep the total energy)
+static const float SUN_LIMB_U = 0.55f;
 
 // Rayleigh and Henyey–Greenstein phase functions (normalized)
 float PhaseRayleigh(float cosTheta)
@@ -309,73 +316,10 @@ float ViewDistanceFromDepth(float2 uv, float depth)
     float3 posVS = vpos.xyz / max(vpos.w, 1e-12f);
     return length(posVS); // meters
 }
-//
-float3 T_to_TOA(float r, float mu, float Rb, float Rt)
-{
-    return TransmittanceLUT.SampleLevel(ClampLinear, TransUV(r, mu, Rb, Rt), 0).rgb;
-}
 
 float GroundBiasMeters(float Rg)
 {
     return max(1.0f, 2e-6f * Rg);
-}
-
-// Ray-sphere intersection in a numerically stable way.
-// ro: ray origin (translated-space, meters, relative to planet center)
-// rd: ray direction (any length; normalized internally)
-// R : sphere radius in meters (e.g., Rt or RbHit; sign ignored)
-struct Hit
-{
-    bool ok;
-    float t0, t1;
-};
-
-Hit IntersectSphereGrazingSafe(float3 ro, float3 rd, float R)
-{
-    Hit H = (Hit) 0;
-
-    float Rabs = abs(R);
-    if (Rabs <= 0.0f)
-        return H;
-
-    // Normalize direction for stable quadratic
-    float a = dot(rd, rd);
-    if (a <= 0.0f)
-        return H;
-    float invDirLen = rsqrt(max(a, 1e-30));
-    float3 nrd = rd * invDirLen; // |nrd| = 1
-
-    // Scale origin into unit-sphere space: |roU + t*nrd|^2 = 1
-    float3 roU = ro / Rabs;
-
-    // Solve t^2 + 2 b t + c = 0, where:
-    float b = dot(roU, nrd);
-    float c = dot(roU, roU) - 1.0f;
-
-    // Discriminant (with tiny negative allowed for grazing)
-    float disc = b * b - c;
-    const float grazeTol = 2e-4; // allow slight negatives from FP error
-    if (disc < -grazeTol)
-        return H;
-    disc = max(disc, 0.0f);
-
-    float s = sqrt(disc);
-    float t0u = -b - s; // unit-sphere param
-    float t1u = -b + s;
-
-    if (t0u > t1u)
-    {
-        float tmp = t0u;
-        t0u = t1u;
-        t1u = tmp;
-    }
-
-    // Convert back to meters and original rd scale
-    H.ok = true;
-    H.t0 = t0u * Rabs * invDirLen;
-    H.t1 = t1u * Rabs * invDirLen;
-
-    return H;
 }
 
 // μ at horizon for a sphere of radius R as seen from r
@@ -488,13 +432,31 @@ OrbitMarch IntegrateOrbit(float3 ro, float3 rd, float tStart, float tEnd, float 
     return o;
 }
 
-// Optional: subtle limb darkening so the disc isn't a flat sticker.
-// Tweak the constant or lift it into your cbuffer later if you want.
+float3 GroundRadianceBake(float3 camRel, float3 wView, float tGround, float RbPhys, float RbVis, float Rt)
+{
+    const float3 wSun = -normalize(direction.xyz);
+    const float3 Esun = radiance.rgb * SunIntensity;
+    
+    float3 pG = camRel + wView * tGround;
+    float rG = length(pG);
+    float muSG = dot(pG / max(rG, 1e-3f), wSun);
+    
+    float3 Tsun = T_to_TOA(rG, muSG, RbPhys, Rt) * SunVisibilityAtR(rG, muSG, RbVis, SunDiscRadius);
+    float3 EsunOverPi = Tsun * max(muSG, 0.0f) * (1.0f / PI);
+    float3 EskyOverPi = GroundIrradianceLUT.SampleLevel(ClampLinear, GroundIrradianceUV(rG, muSG, RbPhys, Rt), 0).rgb;
+    float3 Lground = GroundAlbedo * (EsunOverPi + EskyOverPi) * Esun;
+    
+    Hit hA = IntersectSphereGrazingSafe(camRel, wView, Rt);
+    float tEnter = hA.ok ? max(0.0f, hA.t0) : tGround;
+    OrbitMarch m = IntegrateOrbit(camRel, wView, tEnter, tGround, RbPhys, RbVis, Rt);
+    
+    return Lground * m.T + m.L;
+}
+
 float LimbDarken(float rNorm) // rNorm = theta / SunDiscRadius, [0..∞)
 {
-    const float u = 0.55f; // 0 = none, ~0.5–0.7 looks nice
     float mu = sqrt(saturate(1.0f - saturate(rNorm) * saturate(rNorm)));
-    return 1.0f - u * (1.0f - mu);
+    return 1.0f - SUN_LIMB_U * (1.0f - mu);
 }
 
 // hash-based blue-ish noise in [0,1)
@@ -512,64 +474,6 @@ float hash21(uint2 p, uint frameIndex)
 float2 Rand2(uint2 p, uint s)
 {
     return float2(hash21(p, s), hash21(p.yx ^ uint2(0x4b1d2fu, 0xa7c5d1u), s));
-}
-
-// Transmittance of the *atmospheric segment* intersected by ray (ro,rd).
-// Uses your TLUT T_to_TOA(r, mu, Rb, Rt):
-// If the LUT encodes T(p->TOA) = exp(-tau), then T_segment(p->q) = T(p->TOA) / T(q->TOA)
-float3 TLUT_SegmentTransmittance(float3 ro, float3 rd, float RbVis, float Rt)
-{
-    Hit hit = IntersectSphereGrazingSafe(ro, rd, Rt);
-    if (!hit.ok || hit.t1 <= max(0.0, hit.t0))
-        return 1.0.xxx; // no atmosphere on ray
-
-    float tEnter = max(0.0, hit.t0);
-    float tExit = hit.t1;
-
-    float3 pEnter = ro + rd * tEnter;
-    float3 pExit = ro + rd * tExit;
-
-    float rEnter = length(pEnter);
-    float rExit = length(pExit);
-
-    float3 upEnter = pEnter / rEnter;
-    float3 upExit = pExit / rExit;
-
-    float muEnter = dot(rd, upEnter); // cos zenith at entry
-    float muExit = dot(rd, upExit); // ...at exit (same rd)
-
-    float3 Tenter = T_to_TOA(rEnter, muEnter, RbVis, Rt);
-    float3 Texit = T_to_TOA(rExit, muExit, RbVis, Rt);
-
-    // Avoid divide-by-near-zero (if Texit extremely small, clamp)
-    Texit = max(Texit, 1e-5.xxx);
-
-    return saturate(Tenter / Texit);
-}
-
-// Eye→Sun transmittance. 100% reusing your helpers.
-// camRel  : cameraPosition - PlanetCenterWS
-// vDir    : view ray (not used for T here, but keep for future variants)
-// wSun    : TO-sun direction (unit)
-// RbPhys  : physical ground radius you use elsewhere (PlanetRadius + min(0, MinHeight))
-// Rt      : top-of-atmosphere radius
-float3 SampleTransmittance_EyeToSun(float3 camRel, float3 vDir, float3 wSun, float RbPhys, float Rt)
-{
-    float r = length(camRel);
-    float3 up = camRel / max(r, 1e-6f);
-
-    // Inside atmosphere: TLUT gives T(point -> TOA) along ray direction (here: toward sun)
-    if (r <= Rt + 1e-3f)
-    {
-        // μ = cos(angle(ray, local up)) for the *ray you’re tracing to the sun*
-        float muRay = clamp(dot(wSun, up), -1.0f, 1.0f);
-        return T_to_TOA(r, muRay, RbPhys, Rt); // uses TransUV + TransmittanceLUT.SampleLevel(...)
-    }
-
-    // In space: only part of the eye→sun ray (if any) crosses the shell.
-    // Your TLUT_SegmentTransmittance computes T_segment = T(enter->TOA) / T(exit->TOA).
-    // If the ray never hits the shell, it returns 1.
-    return TLUT_SegmentTransmittance(camRel, wSun, RbPhys, Rt);
 }
 
 float2 OctEncodeHemi(float3 n)
@@ -680,6 +584,15 @@ PSOut main(PSIn i)
     if (bake)
     {
         wView = CubemapDirFromFaceUV(FaceIndex, uv); // unit
+        
+        Hit hG = IntersectSphereGrazingSafe(camRel, wView, RbHit);
+        if (hG.ok && hG.t0 > 0.0f)
+        {
+            output.color = float4(max(GroundRadianceBake(camRel, wView, hG.t0, RbPhys, RbVis, Rt), 0.0f), 1.0f);
+            output.disc = 0.0f;
+            output.halo = 0.0f;
+            return output;
+        }
         
         // Same μ window as writer (with the corrected GetMuWindow):
         float mu0, mu1;
@@ -810,7 +723,7 @@ PSOut main(PSIn i)
             float sunDiscRadiusDeg = degrees(rDiscRad);
 
             // Disc mask (AA in theta-space)
-            float discMask = 1.0f - smoothstep(rDiscRad, rDiscRad + wEdge, theta);
+            float discMask = 1.0f - smoothstep(rDiscRad - 0.5f * wEdge, rDiscRad + 0.5f * wEdge, theta);
 
             // ===============================
             // Visibility: share of the disc above the geometric horizon.
@@ -835,21 +748,19 @@ PSOut main(PSIn i)
             // Disc radiance: sunlight through the real atmosphere along the eye→sun ray
             // (from the ground or from space). Its colour comes only from T_eye_sun.
             // ===============================
-            float3 T_eye_sun = SampleTransmittance_EyeToSun(camRel, vDir, wSun, RbPhys, Rt);
-            float3 discRGB = SunIntensity * 10.0f * SunDiscWhite * T_eye_sun;
+            float3 T_eye_sun = SampleTransmittance_EyeToSun(camRel, vDir, RbPhys, Rt);
             
-            // Core boost for the HDR display (a display decision: revisited with exposure in 16c)
-            float thetaInner = 0.60f * rDiscRad;
-            float mInner = 1.0f - smoothstep(thetaInner, thetaInner + wEdge, theta);
+            float sinHalf = sin(0.5f * rDiscRad);
+            float omegaSun = 4.0f * PI * sinHalf * sinHalf; // sr, = 2π(1 - cos r)
+            float limb = LimbDarken(theta / rDiscRad) / (1.0f - SUN_LIMB_U / 3.0f); // average 1 over the disc
             
-            const float PW = 200.0f;
-            const float SunHDRBoostNits = 6000.0f;
-            float boostLin = SunHDRBoostNits / PW;
+            float3 discRGB = radiance.rgb * SunIntensity / omegaSun * limb * T_eye_sun;
             
-            float3 discRGBBoosted = discRGB + (boostLin * mInner).xxx;
-            float3 discRadiance = discRGBBoosted * discMask * discVis;
+            const float FP16_SAFE_MAX = 60000.0f;
+            float discPeak = max(discRGB.r, max(discRGB.b, discRGB.g));
+            discRGB *= min(1.0f, FP16_SAFE_MAX / max(discPeak, 1e-6f));
             
-            sunColor += discRadiance;
+            sunColor += discRGB * discMask * discVis;
                   
             // ===============================
             // Halo MASKS only: no light is added here any more. The aureole is the real one

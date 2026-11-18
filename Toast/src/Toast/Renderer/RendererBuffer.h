@@ -20,7 +20,6 @@ namespace Toast {
 		PlanetLevel = 7,
 		RenderSettings = 9,
 		SSAO = 10,
-		Bloom = 11,
 		Blur = 12,
 		GodRays = 13,
 	};

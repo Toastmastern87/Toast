@@ -2,11 +2,34 @@
 
 #include "../FontAwesome.h"
 
+#include "Toast/Assets/AssetManager.h"
+#include "Toast/ImGui/ImGuiHelpers.h"
+
 #include "Toast/Utils/PlatformUtils.h"
 
 #include "imgui/imgui.h"
 
 namespace Toast {
+
+	static AssetHandle ImportLinearTexture(const std::filesystem::path& path)
+	{
+		const auto relativePath = std::filesystem::relative(path, AssetManager::GetAssetDirectory());
+		const bool insideAssets = !relativePath.empty() && *relativePath.begin() != "..";
+
+		const AssetHandle handle = insideAssets ? AssetManager::ImportAsset(relativePath) : AssetManager::ImportExternalAsset(path, "Textures");
+		if (handle == AssetHandle(0))
+			return handle;
+
+		AssetEntry* entry = AssetManager::GetEntry(handle);
+		if (entry && entry->Texture2DSettings.ForceSRGB)
+		{
+			entry->Texture2DSettings.ForceSRGB = false;
+			if (AssetManager::IsAssetLoaded(handle))
+				AssetManager::ReloadAsset(handle);
+		}
+
+		return handle;
+	}
 
 	EnvironmentalPanel::EnvironmentalPanel(Scene* context)
 	{
@@ -37,6 +60,11 @@ namespace Toast {
 		ImGui::Text("Specular IBL Gain");
 		ImGui::DragFloat("##SpecularIBLGain", &environment.SpecularIBLGain, 0.1f, 0.0f, FLT_MAX, "%.1f");
 
+		ImGui::Text("Night Sky Light");
+		ImGui::DragFloat("##NightSkyLight", &environment.NightSkyLight, 0.0001f, 0.0f, 0.05f, "%.5f");
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Starlight on the ground at night (uniform sky radiance).\n0.0015 = ground dark but readable at Min EV -6.");
+
 		// ---------------- Sun ----------------
 		ImGui::Separator();
 		ImGui::Text("Sun");
@@ -52,9 +80,6 @@ namespace Toast {
 
 		ImGui::Text("Sun Edge Softness (rad)");
 		ImGui::DragFloat("##SunEdgeSoftness", &environment.SunEdgeSoftness, 0.0001f, 0.0f, FLT_MAX, "%.4f");
-
-		ImGui::Text("Sun White (RGB)");
-		ImGui::ColorEdit3("##SunWhite", &environment.SunWhite.x);
 
 		ImGui::Text("Warm Tint (RGB)");
 		ImGui::ColorEdit3("##WarmTint", &environment.WarmTint.x);
@@ -94,68 +119,57 @@ namespace Toast {
 		ImGui::Text("Space Halo Cutoff (deg)");
 		ImGui::DragFloat("##SpaceHaloCutoffDeg", &environment.SpaceHaloCutoffDeg, 0.1f, 0.0f, 30.0f, "%.1f");
 
-		// ------------- Diffraction Spikes -------------
+		// ------------- Starburst (FFT of a 6-blade aperture) -------------
 		ImGui::Separator();
-		ImGui::Text("Diffraction Spikes");
+		ImGui::Text("Starburst");
 
-		ImGui::Text("Number");
-		ImGui::SliderInt("##SunSpikes", &environment.SunSpikes, 1, 24);
+		if (ImGui::BeginTable("##StarburstTextureTable", 2))
+		{
+			ImGui::TableSetupColumn("##Label", ImGuiTableColumnFlags_WidthFixed, 85.0f);
+			ImGui::TableSetupColumn("##Value", ImGuiTableColumnFlags_WidthStretch);
 
-		ImGui::Text("Sharpness");
-		ImGui::DragFloat("##SunSpikeSharpness", &environment.SunSpikeSharpness, 0.1f, 0.0f, 50.0f, "%.1f");
+			const std::filesystem::path assetRoot = AssetManager::GetAssetDirectory();
+			std::string pickedPath;
+			if (ImGuiHelpers::TextureSlotRow("Texture", environment.StarburstTextureHandle, assetRoot, assetRoot / "Textures", pickedPath))
+			{
+				const AssetHandle picked = ImportLinearTexture(pickedPath);
+				if (picked != AssetHandle(0))
+					environment.StarburstTextureHandle = picked;
+			}
 
-		ImGui::Text("Radius Surface");
-		ImGui::DragFloat("##SunSpikeRadiusSurface", &environment.SunSpikeRadiusSurface, 0.001f, 0.0f, 5.0f, "%.3f");
-		ImGui::Text("Radius Space");
-		ImGui::DragFloat("##SunSpikeRadiusSpace", &environment.SunSpikeRadiusSpace, 0.001f, 0.0f, 5.0f, "%.3f");
+			if (environment.StarburstTextureHandle != AssetHandle(0))
+			{
+				ImGui::SameLine();
+				if (ImGui::Button("X##ClearStarburstTexture"))
+					environment.StarburstTextureHandle = AssetHandle(0);
+			}
 
-		ImGui::Text("Strength Surface");
-		ImGui::DragFloat("##SunSpikeStrengthSurface", &environment.SunSpikeStrengthSurface, 0.001f, 0.0f, 5.0f, "%.3f");
-		ImGui::Text("Strength Space");
-		ImGui::DragFloat("##SunSpikeStrengthSpace", &environment.SunSpikeStrengthSpace, 0.001f, 0.0f, 5.0f, "%.3f");
+			ImGui::EndTable();
+		}
 
-		ImGui::Text("Fall off");
-		ImGui::DragFloat("##SunSpikeFallOff", &environment.SunSpikeFallOff, 0.1f, 0.0f, 10.0f, "%.1f");
+		ImGui::Text("Size");
+		ImGui::DragFloat("##StarburstSize", &environment.StarburstSize, 0.01f, 0.05f, 3.0f, "%.2f");
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Sprite diameter as a fraction of the screen height. The rays end at its edge.");
 
-		// ------------- Glare Veil -------------
-		ImGui::Separator();
-		ImGui::Text("Glare Veil");
-
-		ImGui::Text("Strength Surface");
-		ImGui::DragFloat("##SunGlareStrengthSurface", &environment.SunGlareStrengthSurface, 0.001f, 0.0f, 5.0f, "%.3f");
-		ImGui::Text("Strength Space");
-		ImGui::DragFloat("##SunGlareStrengthSpace", &environment.SunGlareStrengthSpace, 0.001f, 0.0f, 5.0f, "%.3f");
-
-		ImGui::Text("Radius Surface");
-		ImGui::DragFloat("##SunGlareRadiusSurface", &environment.SunGlareRadiusSurface, 0.01f, 0.0f, 5.0f, "%.2f");
-		ImGui::Text("Radius Space");
-		ImGui::DragFloat("##SunGlareRadiusSpace", &environment.SunGlareRadiusSpace, 0.01f, 0.0f, 5.0f, "%.2f");
+		ImGui::Text("Intensity");
+		ImGui::DragFloat("##StarburstIntensity", &environment.StarburstIntensity, 10.0f, 0.0f, 100000.0f, "%.0f");
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Brightness of the rays. The sun's color and visibility (haze, limb, Starship) scale it further.");
 
 		// ------------- Lens Glare and Ghost -------------
 		ImGui::Separator();
-		ImGui::Text("Lens Glare and Ghost");
+		ImGui::Text("Lens Ghosts");
 
-		ImGui::Text("Lens Artifact Altitude Start");
-		ImGui::DragFloat("##LensAltStart", &environment.LensAltStart, 0.01f, 0.0f, 1.0f, "%.2f");
-		ImGui::Text("Lens Artifact Altitude End");
-		ImGui::DragFloat("##LensAltEnd", &environment.LensAltEnd, 0.01f, 0.0f, 1.0f, "%.2f");
+		ImGui::Text("Intensity");
+		ImGui::DragFloat("##GhostIntensity", &environment.GhostIntensity, 0.01f, 0.0f, 10.0f, "%.2f");
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Brightness of the ghosts. The sun's color and visibility (haze, limb, Starship, off screen) scale it further.");
 
-		ImGui::Text("Ghost Strength");
-		ImGui::DragFloat("##GhostStrength", &environment.GhostStrength, 0.01f, 0.0f, 10.0f, "%.2f");
-
-		ImGui::Text("Ghost Spacing");
-		ImGui::DragFloat("##GhostSpacing", &environment.GhostSpacing, 0.1f, 0.0f, 10.0f, "%.1f");
-
-		ImGui::Text("Ghost Falloff");
-		ImGui::DragFloat("##GhostFalloff", &environment.GhostFalloff, 0.01f, 0.0f, 1.0f, "%.2f");
-
-		ImGui::Text("Ghost Size Surface");
-		ImGui::DragFloat("##GhostSizeSurface", &environment.GhostSizeSurface, 0.0001f, 0.0f, 5.0f, "%.5f");
-		ImGui::Text("Ghost Size Space");
-		ImGui::DragFloat("##GhostSizeSpace", &environment.GhostSizeSpace, 0.00001f, 0.0f, 5.0f, "%.5f");
-
-		ImGui::Text("Ghost Air Suppression");
-		ImGui::DragFloat("##GhostAirSuppression", &environment.GhostAirSuppression, 0.01f, 0.0f, 1.0f, "%.2f");
+		ImGui::Text("Scale");
+		ImGui::DragFloat("##GhostScale", &environment.GhostScale, 0.01f, 0.1f, 5.0f, "%.2f");
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Size of the ghosts (1 = the default layout).");
 
 		// ---------------- Stars ----------------
 		ImGui::Separator();

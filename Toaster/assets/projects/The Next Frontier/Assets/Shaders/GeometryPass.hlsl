@@ -189,6 +189,12 @@ float3 LinearToSRGB(float3 x)
     return lerp(hi, lo, step(x, 0.0031308));
 }
 
+float3 SafeNormalize(float3 v, float3 fallback)
+{
+    float len2 = dot(v, v);
+    return (len2 > 1e-12f) ? v * rsqrt(len2) : fallback; // NaN fails the test too, so it also falls back
+}
+
 PixelOutputType main(PixelInputType input)
 {
     PixelOutputType output;
@@ -209,20 +215,13 @@ PixelOutputType main(PixelInputType input)
     else
         output.entityID = 0;
     
-    // Handle Normal Mapping
-    float3 N;
-    
+    float3 Nv = SafeNormalize(input.viewNormal, float3(0.0f, 0.0f, -1.0f)); // fallback: facing the camera
+    float3 N = Nv;
+
     if (NormalTexToggle > 0)
     {
-        // Sample the normal map
-        float3 sampledNormal = NormalTexture.Sample(defaultSampler, input.texCoord).rgb;
-        
-        // Decode the normal from [0,1] to [-1,1]
-        sampledNormal = sampledNormal * 2.0f - 1.0f;
-        sampledNormal = normalize(sampledNormal);
-        
-        // Transform the sampled normal to view space
-        N = normalize(mul(sampledNormal, input.TBN));
+        float3 sampledNormal = NormalTexture.Sample(defaultSampler, input.texCoord).rgb * 2.0f - 1.0f;
+        N = SafeNormalize(mul(sampledNormal, input.TBN), Nv);
     }
     else
     {

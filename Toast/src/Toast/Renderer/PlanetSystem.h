@@ -608,6 +608,7 @@ namespace Toast {
 		AtmosphericData mAtmosphere;
 		Ref<Texture2D> mTransmittanceLUT;
 		Ref<Texture2D> mMultiScatteringLUT;
+		Ref<Texture2D> mGroundIrradianceLUT;
 		Ref<Texture2D> mSkyViewLUT;
 		Ref<Texture3D> mAerielPerspectiveLUT;
 		Ref<Texture2D> mAPFar;
@@ -717,6 +718,7 @@ namespace Toast {
 		AtmosphericData& GetAtmosphere() { return mAtmosphere; }
 		Ref<Texture2D>& GetTransmittanceLUT() { return mTransmittanceLUT; }
 		Ref<Texture2D>& GetMultiScatteringLUT() { return mMultiScatteringLUT; }
+		Ref<Texture2D>& GetGroundIrradianceLUT() { return mGroundIrradianceLUT; }
 		Ref<Texture2D>& GetSkyViewLUT() { return mSkyViewLUT; }
 		Ref<Texture3D>& GetAerialPerspectiveLUT() { return mAerielPerspectiveLUT; }
 		Ref<Texture2D>& GetAPFar() { return mAPFar; }

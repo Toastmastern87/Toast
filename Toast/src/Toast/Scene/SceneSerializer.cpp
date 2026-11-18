@@ -914,21 +914,8 @@ namespace Toast {
 		out << YAML::Key << "SSAODebugging" << YAML::Value << settings.SSAODebugging;
 		out << YAML::Key << "SSAORadius" << YAML::Value << settings.SSAORadius;
 		out << YAML::Key << "SSAObias" << YAML::Value << settings.SSAObias;
-		out << YAML::Key << "SunSurfaceThreshold" << YAML::Value << settings.Bloom.SunSurfaceThreshold;
-		out << YAML::Key << "SunSurfaceIntensity" << YAML::Value << settings.Bloom.SunSurfaceIntensity;
-		out << YAML::Key << "SunSpaceThreshold" << YAML::Value << settings.Bloom.SunSpaceThreshold;
-		out << YAML::Key << "SunSpaceIntensity" << YAML::Value << settings.Bloom.SunSpaceIntensity;
-		out << YAML::Key << "SkySurfaceThreshold" << YAML::Value << settings.Bloom.SkySurfaceThreshold;
-		out << YAML::Key << "SkySurfaceIntensity" << YAML::Value << settings.Bloom.SkySurfaceIntensity;
-		out << YAML::Key << "SkySpaceThreshold" << YAML::Value << settings.Bloom.SkySpaceThreshold;
-		out << YAML::Key << "SkySpaceIntensity" << YAML::Value << settings.Bloom.SkySpaceIntensity;
-		out << YAML::Key << "GeometryThreshold" << YAML::Value << settings.Bloom.GeometryThreshold;
-		out << YAML::Key << "GeometryIntensity" << YAML::Value << settings.Bloom.GeometryIntensity;
-		out << YAML::Key << "SunRadius" << YAML::Value << settings.Bloom.SunRadius;
-		out << YAML::Key << "SkySurfaceRadius" << YAML::Value << settings.Bloom.SkySurfaceRadius;
-		out << YAML::Key << "SkySpaceRadius" << YAML::Value << settings.Bloom.SkySpaceRadius;
-		out << YAML::Key << "SoftKnee" << YAML::Value << settings.Bloom.SoftKnee;
-		out << YAML::Key << "SaturationClamp" << YAML::Value << settings.Bloom.SaturationClamp;
+		out << YAML::Key << "BloomIntensity" << YAML::Value << settings.Bloom.Intensity;
+		out << YAML::Key << "BloomFalloff" << YAML::Value << settings.Bloom.Falloff;
 		out << YAML::Key << "DynamicIBL" << YAML::Value << settings.DynamicIBL;
 		out << YAML::Key << "SunFrustumOrthoSize" << YAML::Value << settings.SunFrustumOrthoSize;
 		out << YAML::Key << "GodRaysExposure" << YAML::Value << settings.GodRays.Exposure;
@@ -944,8 +931,17 @@ namespace Toast {
 		out << YAML::Key << "AECompensation" << YAML::Value << settings.Exposure.Compensation;
 		out << YAML::Key << "AEMinEV" << YAML::Value << settings.Exposure.MinEV;
 		out << YAML::Key << "AEMaxEV" << YAML::Value << settings.Exposure.MaxEV;
+		out << YAML::Key << "AEOrbitMinEV" << YAML::Value << settings.Exposure.OrbitMinEV;
 		out << YAML::Key << "AELowPercentile" << YAML::Value << settings.Exposure.LowPercentile;
 		out << YAML::Key << "AEHighPercentile" << YAML::Value << settings.Exposure.HighPercentile;
+		out << YAML::Key << "AEHighlightPercentile" << YAML::Value << settings.Exposure.HighlightPercentile;
+		out << YAML::Key << "AEHighlightTarget" << YAML::Value << settings.Exposure.HighlightTarget;
+		out << YAML::Key << "AEOrbitHighlightTarget" << YAML::Value << settings.Exposure.OrbitHighlightTarget;
+		out << YAML::Key << "AEAdaptationKneeEV" << YAML::Value << settings.Exposure.AdaptationKneeEV;
+		out << YAML::Key << "AEDimLightAdaptation" << YAML::Value << settings.Exposure.DimLightAdaptation;
+		out << YAML::Key << "AELocalHighlightContrast" << YAML::Value << settings.Exposure.LocalHighlightContrast;
+		out << YAML::Key << "AELocalShadowContrast" << YAML::Value << settings.Exposure.LocalShadowContrast;
+		out << YAML::Key << "AELocalDetailStrength" << YAML::Value << settings.Exposure.LocalDetailStrength;
 		out << YAML::Key << "AESpeedToBright" << YAML::Value << settings.Exposure.SpeedToBright;
 		out << YAML::Key << "AESpeedToDark" << YAML::Value << settings.Exposure.SpeedToDark;
 		out << YAML::Key << "AEHistogramMinLog2" << YAML::Value << settings.Exposure.HistogramMinLog2;
@@ -1158,13 +1154,13 @@ namespace Toast {
 		// Lightning Pass Gains
 		out << YAML::Key << "DiffuseIBLGain" << YAML::Value << environment.DiffuseIBLGain;
 		out << YAML::Key << "SpecularIBLGain" << YAML::Value << environment.SpecularIBLGain;
+		out << YAML::Key << "NightSkyLight" << YAML::Value << environment.NightSkyLight;
 
 		// -------- Sun --------
 		out << YAML::Key << "SunDiscToggle" << YAML::Value << environment.SunDiscToggle;
 		out << YAML::Key << "SunIntensity" << YAML::Value << environment.SunIntensity;
 		out << YAML::Key << "SunDiscRadius" << YAML::Value << environment.SunDiscRadius;      // radians
 		out << YAML::Key << "SunEdgeSoftness" << YAML::Value << environment.SunEdgeSoftness;    // radians
-		out << YAML::Key << "SunWhite" << YAML::Value << environment.SunWhite;
 		out << YAML::Key << "WarmTint" << YAML::Value << environment.WarmTint;
 		out << YAML::Key << "SpaceDiscBrightnessScale" << YAML::Value << environment.SpaceDiscBrightnessScale;
 
@@ -1180,30 +1176,13 @@ namespace Toast {
 		out << YAML::Key << "SpaceHaloIntensity" << YAML::Value << environment.SpaceHaloIntensity;
 		out << YAML::Key << "SpaceHaloCutoffDeg" << YAML::Value << environment.SpaceHaloCutoffDeg;
 
-		// -------- Diffraction Spikes --------
-		out << YAML::Key << "SunSpikes" << YAML::Value << environment.SunSpikes;
-		out << YAML::Key << "SunSpikeSharpness" << YAML::Value << environment.SunSpikeSharpness;
-		out << YAML::Key << "SunSpikeRadiusSurface" << YAML::Value << environment.SunSpikeRadiusSurface;
-		out << YAML::Key << "SunSpikeRadiusSpace" << YAML::Value << environment.SunSpikeRadiusSpace;
-		out << YAML::Key << "SunSpikeFallOff" << YAML::Value << environment.SunSpikeFallOff;
-		out << YAML::Key << "SunSpikeStrengthSurface" << YAML::Value << environment.SunSpikeStrengthSurface;
-		out << YAML::Key << "SunSpikeStrengthSpace" << YAML::Value << environment.SunSpikeStrengthSpace;
-
-		// -------- Sun Glare Veil --------
-		out << YAML::Key << "SunGlareStrengthSurface" << YAML::Value << environment.SunGlareStrengthSurface;
-		out << YAML::Key << "SunGlareStrengthSpace" << YAML::Value << environment.SunGlareStrengthSpace;
-		out << YAML::Key << "SunGlareRadiusSurface" << YAML::Value << environment.SunGlareRadiusSurface;
-		out << YAML::Key << "SunGlareRadiusSpace" << YAML::Value << environment.SunGlareRadiusSpace;
+		out << YAML::Key << "StarburstTextureHandle" << YAML::Value << environment.StarburstTextureHandle;
+		out << YAML::Key << "StarburstSize" << YAML::Value << environment.StarburstSize;
+		out << YAML::Key << "StarburstIntensity" << YAML::Value << environment.StarburstIntensity;
 
 		// -------- General Lens and Ghost data --------
-		out << YAML::Key << "LensAltStart" << YAML::Value << environment.LensAltStart;
-		out << YAML::Key << "LensAltEnd" << YAML::Value << environment.LensAltEnd;
-		out << YAML::Key << "GhostStrength" << YAML::Value << environment.GhostStrength;
-		out << YAML::Key << "GhostSpacing" << YAML::Value << environment.GhostSpacing;
-		out << YAML::Key << "GhostFalloff" << YAML::Value << environment.GhostFalloff;
-		out << YAML::Key << "GhostSizeSurface" << YAML::Value << environment.GhostSizeSurface;
-		out << YAML::Key << "GhostSizeSpace" << YAML::Value << environment.GhostSizeSpace;
-		out << YAML::Key << "GhostAirSuppression" << YAML::Value << environment.GhostAirSuppression;
+		out << YAML::Key << "GhostIntensity" << YAML::Value << environment.GhostIntensity;
+		out << YAML::Key << "GhostScale" << YAML::Value << environment.GhostScale;
 
 		// -------- Stars --------
 		out << YAML::Key << "StarNits" << YAML::Value << environment.StarNits;
@@ -1332,21 +1311,8 @@ namespace Toast {
 		settings.SSAODebugging = data["Settings"]["SSAODebugging"].as<bool>();
 		settings.SSAORadius = data["Settings"]["SSAORadius"].as<float>();
 		settings.SSAObias = data["Settings"]["SSAObias"].as<float>();
-		settings.Bloom.SunSurfaceThreshold = data["Settings"]["SunSurfaceThreshold"].as<float>();
-		settings.Bloom.SunSurfaceIntensity = data["Settings"]["SunSurfaceIntensity"].as<float>();
-		settings.Bloom.SunSpaceThreshold = data["Settings"]["SunSpaceThreshold"].as<float>();
-		settings.Bloom.SunSpaceIntensity = data["Settings"]["SunSpaceIntensity"].as<float>();
-		settings.Bloom.SkySurfaceThreshold = data["Settings"]["SkySurfaceThreshold"].as<float>();
-		settings.Bloom.SkySurfaceIntensity = data["Settings"]["SkySurfaceIntensity"].as<float>();
-		settings.Bloom.SkySpaceThreshold = data["Settings"]["SkySpaceThreshold"].as<float>();
-		settings.Bloom.SkySpaceIntensity = data["Settings"]["SkySpaceIntensity"].as<float>();
-		settings.Bloom.GeometryThreshold = data["Settings"]["GeometryThreshold"].as<float>();
-		settings.Bloom.GeometryIntensity = data["Settings"]["GeometryIntensity"].as<float>();
-		settings.Bloom.SunRadius = data["Settings"]["SunRadius"].as<float>();
-		settings.Bloom.SkySurfaceRadius = data["Settings"]["SkySurfaceRadius"].as<float>();
-		settings.Bloom.SkySpaceRadius = data["Settings"]["SkySpaceRadius"].as<float>();
-		settings.Bloom.SoftKnee = data["Settings"]["SoftKnee"].as<float>();
-		settings.Bloom.SaturationClamp = data["Settings"]["SaturationClamp"].as<float>();
+		settings.Bloom.Intensity = data["Settings"]["BloomIntesity"].as<float>(0.04f);
+		settings.Bloom.Falloff = data["Settings"]["BloomFalloff"].as<float>(0.5f);
 		settings.DynamicIBL = data["Settings"]["DynamicIBL"].as<bool>();
 		settings.SunFrustumOrthoSize = data["Settings"]["SunFrustumOrthoSize"].as<float>();
 		settings.GodRays.Exposure = data["Settings"]["GodRaysExposure"].as<float>();
@@ -1361,8 +1327,17 @@ namespace Toast {
 		settings.Exposure.Compensation = data["Settings"]["AECompensation"].as<float>(0.0f);
 		settings.Exposure.MinEV = data["Settings"]["AEMinEV"].as<float>(-14.0f);
 		settings.Exposure.MaxEV = data["Settings"]["AEMaxEV"].as<float>(6.0f);
+		settings.Exposure.OrbitMinEV = data["Settings"]["AEOrbitMinEV"].as<float>(settings.Exposure.MinEV);
 		settings.Exposure.LowPercentile = data["Settings"]["AELowPercentile"].as<float>(10.0f);
 		settings.Exposure.HighPercentile = data["Settings"]["AEHighPercentile"].as<float>(90.0f);
+		settings.Exposure.HighlightPercentile = data["Settings"]["AEHighlightPercentile"].as<float>(99.5f);
+		settings.Exposure.HighlightTarget = data["Settings"]["AEHighlightTarget"].as<float>(0.6f);
+		settings.Exposure.OrbitHighlightTarget = data["Settings"]["AEOrbitHighlightTarget"].as<float>(settings.Exposure.HighlightTarget);
+		settings.Exposure.AdaptationKneeEV = data["Settings"]["AEAdaptationKneeEV"].as<float>(-1.8f);
+		settings.Exposure.DimLightAdaptation = data["Settings"]["AEDimLightAdaptation"].as<float>(0.4f);
+		settings.Exposure.LocalHighlightContrast = data["Settings"]["AELocalHighlightContrast"].as<float>(0.7f);
+		settings.Exposure.LocalShadowContrast = data["Settings"]["AELocalShadowContrast"].as<float>(1.0f);
+		settings.Exposure.LocalDetailStrength = data["Settings"]["AELocalDetailStrength"].as<float>(1.0f);
 		settings.Exposure.SpeedToBright = data["Settings"]["AESpeedToBright"].as<float>(1.0f);
 		settings.Exposure.SpeedToDark = data["Settings"]["AESpeedToDark"].as<float>(1.0f);
 		settings.Exposure.HistogramMinLog2 = data["Settings"]["AEHistogramMinLog2"].as<float>(-16.0f);
@@ -1553,8 +1528,6 @@ namespace Toast {
 			scenePlanet->mPBRTexturesDirty = true;
 		}
 
-		Renderer::ResetEnvMapsIBLDone();
-
 		scenePlanet->mTerrainObjects.clear();
 
 		YAML::Node terrainObjectsNode = planet["TerrainObjects"];
@@ -1591,6 +1564,7 @@ namespace Toast {
 		auto env = data["Environment"];
 		environment.DiffuseIBLGain = env["DiffuseIBLGain"].as<float>();
 		environment.SpecularIBLGain = env["SpecularIBLGain"].as<float>();
+		environment.NightSkyLight = env["NightSkyLight"].as<float>(0.0015f);
 		environment.SunDiscToggle = env["SunDiscToggle"].as<bool>();
 		environment.SunIntensity = env["SunIntensity"].as<float>();
 		environment.SunDiscRadius = env["SunDiscRadius"].as<float>();
@@ -1601,7 +1575,6 @@ namespace Toast {
 		environment.SpaceFadeStart = env["SpaceFadeStart"].as<float>();
 		environment.SpaceFadeEnd = env["SpaceFadeEnd"].as<float>();
 
-		environment.SunWhite = env["SunWhite"].as<DirectX::XMFLOAT3>();
 		environment.SpaceDiscBrightnessScale = env["SpaceDiscBrightnessScale"].as<float>();
 		environment.WarmTint = env["WarmTint"].as<DirectX::XMFLOAT3>();
 		environment.AirHaloIntensity = env["AirHaloIntensity"].as<float>();
@@ -1615,30 +1588,13 @@ namespace Toast {
 		environment.SpaceHaloIntensity = env["SpaceHaloIntensity"].as<float>();
 		environment.SpaceHaloCutoffDeg = env["SpaceHaloCutoffDeg"].as<float>();
 
-		// -------- Diffraction Spikes --------
-		environment.SunSpikes = env["SunSpikes"].as<int>(); 
-		environment.SunSpikeSharpness = env["SunSpikeSharpness"].as<float>();
-		environment.SunSpikeRadiusSurface = env["SunSpikeRadiusSurface"].as<float>();
-		environment.SunSpikeRadiusSpace = env["SunSpikeRadiusSpace"].as<float>();
-		environment.SunSpikeFallOff = env["SunSpikeFallOff"].as<float>();
-		environment.SunSpikeStrengthSurface = env["SunSpikeStrengthSurface"].as<float>();
-		environment.SunSpikeStrengthSpace = env["SunSpikeStrengthSpace"].as<float>();
-
-		// -------- Sun Glare Veil --------
-		environment.SunGlareStrengthSurface = env["SunGlareStrengthSurface"].as<float>();
-		environment.SunGlareStrengthSpace = env["SunGlareStrengthSpace"].as<float>();
-		environment.SunGlareRadiusSurface = env["SunGlareRadiusSurface"].as<float>();
-		environment.SunGlareRadiusSpace = env["SunGlareRadiusSpace"].as<float>();
+		environment.StarburstTextureHandle = env["StarburstTextureHandle"].as<AssetHandle>(0);
+		environment.StarburstSize = env["StarburstSize"].as<float>(0.9f);
+		environment.StarburstIntensity = env["StarburstIntensity"].as<float>(6000.0f);
 
 		// -------- General Lens and Ghost data --------
-		environment.LensAltStart = env["LensAltStart"].as<float>();
-		environment.LensAltEnd = env["LensAltEnd"].as<float>();
-		environment.GhostStrength = env["GhostStrength"].as<float>();
-		environment.GhostSpacing = env["GhostSpacing"].as<float>();
-		environment.GhostFalloff = env["GhostFalloff"].as<float>();
-		environment.GhostSizeSurface = env["GhostSizeSurface"].as<float>();
-		environment.GhostSizeSpace = env["GhostSizeSpace"].as<float>();
-		environment.GhostAirSuppression = env["GhostAirSuppression"].as<float>();
+		environment.GhostIntensity = env["GhostIntensity"].as<float>(1.0f);
+		environment.GhostScale = env["GhostScale"].as<float>(1.0f);
 
 		auto entities = data["Entities"];
 		if (entities) 
@@ -2246,6 +2202,7 @@ namespace Toast {
 
 		Renderer::GenerateTransmittanceLUT(scenePlanet);
 		Renderer::GenerateMultiScatteringLUT(scenePlanet);
+		Renderer::GenerateGroundIrradianceLUT(scenePlanet);
 
 		UIStyleSystem::ResolveAll(mScene);
 

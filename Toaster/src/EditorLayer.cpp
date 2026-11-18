@@ -465,16 +465,15 @@ namespace Toast {
 					textureID = (void*)Renderer::GetSSAOBlurRT()->GetSRV().Get();
 					break;
 				case RenderOverlay::BLOOM:
-					textureID = (void*)Renderer::GetSunBloomRT()->GetSRV().Get();
-					break;
-				case RenderOverlay::BLOOMHALF:
-					textureID = (void*)Renderer::GetSunBloomHalfRT()->GetSRV().Get();
-					break;
-				case RenderOverlay::BLOOMQUARTER:
-					textureID = (void*)Renderer::GetSunBloomQuarterRT()->GetSRV().Get();
+					textureID = (void*)Renderer::GetBloomRT()->GetSRV().Get();
 					break;
 				case RenderOverlay::BLOOMFINAL:
-					textureID = (void*)Renderer::GetFinalBloomRT()->GetSRV().Get();
+					// What the tone mapper reads: with bloom off that's the atmosphere pass output,
+					// so this view can't go stale .
+					if (mEditorScene->GetSettings().Bloom.Enabled)
+						textureID = (void*)Renderer::GetFinalBloomRT()->GetSRV().Get();
+					else
+						textureID = (void*)Renderer::GetAtmosphericScatteringRT()->GetSRV().Get();
 					break;
 				case RenderOverlay::SKYVIEWLUT:
 					textureID = (void*)mEditorScene->GetPlanet()->GetSkyViewLUT()->GetSRV().Get();
@@ -1142,6 +1141,8 @@ namespace Toast {
 		mRuntimeScene->OnRuntimeStart();
 		mSceneHierarchyPanel.SetContext(mRuntimeScene.get());
 
+		mSceneSettingsPanel.SetContext(mRuntimeScene.get(), mWindow);
+
 		UIStyleSystem::SetActiveScene(nullptr);
 	}
 
@@ -1167,6 +1168,7 @@ namespace Toast {
 		mSceneState = SceneState::Edit;
 
 		mSceneHierarchyPanel.SetContext(mEditorScene);
+		mSceneSettingsPanel.SetContext(mEditorScene, mWindow);
 		mEditorScene->InvalidateFrustum();
 
 		UIStyleSystem::SetActiveScene(mEditorScene);

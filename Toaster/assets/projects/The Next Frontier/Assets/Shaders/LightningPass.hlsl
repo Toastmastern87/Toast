@@ -105,7 +105,7 @@ cbuffer SunDiscSettings : register(b6)
     int SunDiscToggle; // 0=off, 1=on
     float SpaceDiscBrightnessScale; // unitless scale, e.g. 1.30
     
-    float3 SunDiscWhite;
+    float3 SunDiscPad0;
     float AirHaloIntensity; // 0..~0.6 (was HaloStrength_Ground, e.g. 0.28)
     
     float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)    
@@ -125,6 +125,8 @@ cbuffer LightningBufferSettings : register(b8)
 {
     float DiffuseIBLGain;
     float SpecularIBLGain;
+    float NightSkyLight;
+    float _Pad0;
 }
 
 // G-buffer Textures
@@ -134,15 +136,14 @@ Texture2D albedoMetallicTexture         : register(t2); // Albedo RGB and Metall
 Texture2D roughnessAOTexture            : register(t3); // Roughness R and AO A
 
 // IBL Textures
-TextureCube IrradianceTextureDay        : register(t4);
-TextureCube RadianceTextureDay          : register(t5);
-TextureCube IrradianceTextureNight      : register(t14);
-TextureCube RadianceTextureNight        : register(t15);
+TextureCube IrradianceTexture           : register(t4);
+TextureCube RadianceTexture             : register(t5);
 Texture2D SpecularBRDFLUT               : register(t6);
 
 // Atmospheric Scattering Textures
 Texture2D<float4> TransmittanceLUT      : register(t7);
 Texture2D<float4> MultiScatterLUT       : register(t8);
+Texture2D<float4> GroundIrradianceLUT   : register(t9);
 
 // SSAO Textures
 Texture2D SSAOTexture                   : register(t10);
@@ -163,6 +164,7 @@ SamplerState LinearSampler              : register(s3);
 SamplerComparisonState ShadowCmpSampler : register(s4);
 
 #include "TransmittanceLUT.hlsli"
+#include "GroundIrradianceLUT.hlsli"
 
 struct CubeSample
 {
@@ -336,7 +338,7 @@ float3 PrefilterEnvMap(float roughness, float3 R)
         float NoL = clamp(dot(N, L), 0.0f, 1.0f);
         if (NoL > 0)
         {
-            PrefilteredColor += IrradianceTextureDay.Sample(DefaultSampler, L).rgb * NoL;
+            PrefilteredColor += IrradianceTexture.Sample(DefaultSampler, L).rgb * NoL;
             TotalWeight += NoL;
         }
     }
@@ -347,7 +349,7 @@ float3 PrefilterEnvMap(float roughness, float3 R)
 uint queryRadianceTextureLevels()
 {
     uint width, height, levels;
-    RadianceTextureDay.GetDimensions(0, width, height, levels);
+    RadianceTexture.GetDimensions(0, width, height, levels);
     return levels;
 }
 
@@ -488,6 +490,16 @@ float TerrainHardShadowHorizonTrace(float3 posWS, float3 planetCenterWS, float3 
     return (sunAngle > horizon) ? 1.0f : 0.0f;
 }
 
+float3 TerrainSkyIrradiance(float r, float muS, float3 normalWorld, float3 up)
+{
+    const float Rb = PlanetRadius + min(0.0f, MinHeight);
+    const float Rt = PlanetRadius + AtmosphereHeight;
+    float3 E = GroundIrradianceLUT.SampleLevel(LinearSampler, GroundIrradianceUV(r, muS, Rb, Rt), 0).rgb;
+    float skyFraction = saturate(0.5f + 0.5f * dot(normalWorld, up));
+    
+    return E * (radiance.rgb * SunIntensity) * skyFraction;
+}
+
 float3 DirectionalLightning(float3 F0, float3 NormalWorldSpace, float3 View, float NdotV, float3 albedo, float roughness, float metalness, float3 worldPos, float3 sunDir, float r, float muS)
 {   
     float3 L = normalize(-sunDir);
@@ -524,24 +536,14 @@ float3 DirectionalLightning(float3 F0, float3 NormalWorldSpace, float3 View, flo
     return result;
 }
 
-float3 IBL(float3 F0, float3 Lr, float3 NormalWorldSpace, float3 albedo, float roughness, float metalness, float NdotV, float day)
+float3 IBL(float3 F0, float3 irradiance, float3 specularRadiance, float3 albedo, float roughness, float metalness, float NdotV)
 {
-    float3 irradiance = lerp(IrradianceTextureNight.Sample(SPBRDFSampler, NormalWorldSpace), IrradianceTextureDay.Sample(SPBRDFSampler, NormalWorldSpace), day).rgb;
-
-    // Correct Fresnel term using NdotV
     float3 F = fresnelSchlickRoughness(F0, NdotV, roughness);
-
-    // Correct kd calculation
     float3 kd = (1.0f - F) * (1.0f - metalness);
     float3 diffuseIBL = kd * albedo * irradiance;
 
-    uint specularTextureLevels = queryRadianceTextureLevels();
-    float mipLevel = roughness * (float) (specularTextureLevels - 1);
-    float3 specularIrradiance = lerp(RadianceTextureNight.SampleLevel(SPBRDFSampler, Lr, mipLevel), RadianceTextureDay.SampleLevel(SPBRDFSampler, Lr, mipLevel), day);
-
-    // Use NdotV in BRDF LUT sampling
     float2 specularBRDF = SpecularBRDFLUT.Sample(SPBRDFSampler, float2(NdotV, roughness)).rg;
-    float3 specularIBL = specularIrradiance * (F * specularBRDF.x + specularBRDF.y);
+    float3 specularIBL = specularRadiance * (F * specularBRDF.x + specularBRDF.y);
 
     return (specularIBL * SpecularIBLGain) + (diffuseIBL * DiffuseIBLGain);
 }
@@ -611,8 +613,28 @@ PixelOutputType main(PixelInputType input)
     // Initialize shadow factor
     float shadowFinal = 1.0f;
     float terrainShadow = 1.0f;
+    
+    bool isTerrain = (isObject < 0.5f && depth > 1e-12f);
 
-    if (isObject < 0.5f && depth > 1e-12f)
+    float3 Lr = normalize(reflect(-VWorld, normalWorld));
+    float3 skyIrradiance;
+    float3 skySpecular;
+    if (isTerrain)
+    {
+        skyIrradiance = TerrainSkyIrradiance(r_true, muS, normalWorld, up);
+        skySpecular = skyIrradiance; // terrain is rough: its reflection is the average sky
+    }
+    else
+    {
+        skyIrradiance = IrradianceTexture.Sample(SPBRDFSampler, normalWorld).rgb;
+        float mipLevel = roughness * (float) (queryRadianceTextureLevels() - 1);
+        skySpecular = RadianceTexture.SampleLevel(SPBRDFSampler, Lr, mipLevel).rgb;
+    }
+
+    skyIrradiance += NightSkyLight.xxx;
+    skySpecular += NightSkyLight.xxx;
+    
+    if (isTerrain)
     {
         uint width, height, layers, mipLevels;
         HeightCube.GetDimensions(0, width, height, layers, mipLevels);
@@ -655,9 +677,7 @@ PixelOutputType main(PixelInputType input)
     float3 directLight = DirectionalLightning(F0, normalWorld, VWorld, NdotV, albedo, roughness, metalness, posWS.xyz, direction.xyz, r_true, muS);
     
     // IBL Contribution
-    float3 Lr = normalize(reflect(-VWorld, normalWorld));
-    float day = smoothstep(-0.10, 0.035, muS);
-    float3 iblContribution = IBL(F0, Lr, normalWorld, albedo, roughness, metalness, NdotV, day);
+    float3 iblContribution = IBL(F0, skyIrradiance, skySpecular, albedo, roughness, metalness, NdotV);
     
     float3 direct = DirectionalLightGain * directLight * shadowFinal; // no AO
 

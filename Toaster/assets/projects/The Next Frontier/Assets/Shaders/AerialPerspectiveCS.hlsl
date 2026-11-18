@@ -99,7 +99,7 @@ cbuffer SunDiscSettings : register(b6)
     int SunDiscToggle; // 0=off, 1=on
     float SpaceDiscBrightnessScale; // unitless scale, e.g. 1.30
     
-    float3 SunDiscWhite;
+    float3 SunDiscPad0;
     float AirHaloIntensity; // 0..~0.6 (was HaloStrength_Ground, e.g. 0.28)
     
     float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)    

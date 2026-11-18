@@ -2439,8 +2439,6 @@ namespace Toast {
 											mContext->mStarFieldTexture2DHandle = handle;
 											auto tex = AssetManager::GetAsset<Texture2D>(handle);
 											mContext->mStarFieldTextureCube = Renderer::CreateStarFieldTexture(tex.get());
-
-											Renderer::ResetEnvMapsIBLDone();
 										});
 								}
 							}
@@ -2460,8 +2458,6 @@ namespace Toast {
 										mContext->mStarFieldTexture2DHandle = handle;
 										auto tex = AssetManager::GetAsset<Texture2D>(handle);
 										mContext->mStarFieldTextureCube = Renderer::CreateStarFieldTexture(tex.get());
-
-										Renderer::ResetEnvMapsIBLDone();
 									});
 							}
 						}
@@ -2618,7 +2614,8 @@ namespace Toast {
 
 						ImGui::SetNextItemWidth(fullW);
 
-						ImGuiHelpers::ManualDragFloat3("##MieAnisotropy", mContext->mAtmosphere.MieAnisotropy, 0.01f, 0.0f, mWindow, activeDragArea, "%.2f", true);
+						if (ImGuiHelpers::ManualDragFloat3("##MieAnisotropy", mContext->mAtmosphere.MieAnisotropy, 0.01f, 0.0f, mWindow, activeDragArea, "%.2f", true))
+							mAtmosphereLUTsDirty = true;
 
 						// -------- Mie Lobe Weight Row ----------
 						ImGui::TableNextRow();
@@ -2627,7 +2624,8 @@ namespace Toast {
 						ImGui::Text("Mie Narrow Lobe Weight");
 						ImGui::TableSetColumnIndex(1);
 						ImGui::SetNextItemWidth(fullW);
-						ImGuiHelpers::ManualDragFloat3("##MieLobeWeight", mContext->mAtmosphere.MieLobeWeight, 0.01f, 0.0f, mWindow, activeDragArea, "%.2f", true);
+						if(ImGuiHelpers::ManualDragFloat3("##MieLobeWeight", mContext->mAtmosphere.MieLobeWeight, 0.01f, 0.0f, mWindow, activeDragArea, "%.2f", true))
+							mAtmosphereLUTsDirty = true;
 
 						// -------- Mie Broad Anisotropy Row ----------
 						ImGui::TableNextRow();
@@ -2636,7 +2634,8 @@ namespace Toast {
 						ImGui::Text("Mie Anisotropy (broad lobe)");
 						ImGui::TableSetColumnIndex(1);
 						ImGui::SetNextItemWidth(fullW);
-						ImGuiHelpers::ManualDragFloat("##MieAnisotropyBroad", mContext->mAtmosphere.MieAnisotropyBroad, mWindow, activeDragArea, 0.01f, ImVec2{ fullW, 20.0f }, "%.3f", 0.0f, 0.99f);
+						if(ImGuiHelpers::ManualDragFloat("##MieAnisotropyBroad", mContext->mAtmosphere.MieAnisotropyBroad, mWindow, activeDragArea, 0.01f, ImVec2{ fullW, 20.0f }, "%.3f", 0.0f, 0.99f))
+							mAtmosphereLUTsDirty = true;
 
 						// -------- Ozone Strength Row ----------
 						ImGui::TableNextRow();
@@ -2714,6 +2713,7 @@ namespace Toast {
 						{
 							Renderer::GenerateTransmittanceLUT(mContext);
 							Renderer::GenerateMultiScatteringLUT(mContext);
+							Renderer::GenerateGroundIrradianceLUT(mContext);
 						}
 
 						ImGui::EndTable();
@@ -2722,6 +2722,7 @@ namespace Toast {
 						{
 							Renderer::GenerateTransmittanceLUT(mContext);
 							Renderer::GenerateMultiScatteringLUT(mContext);
+							Renderer::GenerateGroundIrradianceLUT(mContext);
 							mAtmosphereLUTsDirty = false;
 						}
 					}

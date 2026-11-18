@@ -14,8 +14,8 @@
 11447799839312842238|Texture2D|Textures\Starship_Heat_Shield_basecolor.png|sRGB=1
 6551670257254948990|Texture2D|Textures\Sand_basecolor.tif|sRGB=1
 10378684347057509115|Texture2D|Textures\Stainless_Steel_Hull_basecolor.png|sRGB=1
+4388568155570578737|Shader|Shaders\GroundIrradianceCS.hlsl|
 15715477383293587249|Texture2D|Textures\UI\31_Follow_Active.png|sRGB=1,cx=0,cy=0,cw=1024,ch=1024
-15255565320128171313|Shader|Shaders\BloomWideBlur.hlsl|
 11157927838621306737|Texture2D|Textures\StainlessSteelTest_normal.png|sRGB=0
 14218143209361644375|Texture2D|Textures\Rock_Cliff_normal.tif|sRGB=0
 7799747929118295767|Texture2D|Textures\Stainless_Steel_Hull_roughness.png|sRGB=0
@@ -40,7 +40,6 @@
 4369625943761558762|Shader|Shaders\LightningPass.hlsl|
 614263980951522346|Texture2D|Textures\Gravel_ambientOcclusion.tif|sRGB=0
 7625900319597172116|Script|Scripts\MapViewport.cs|
-3129710856685191060|Shader|Shaders\BloomUpSample.hlsl|
 1901665953498542036|Texture2D|Textures\Sand_normal.tif|sRGB=0
 10909718994636214228|Texture2D|Textures\Gravel_height.tif|sRGB=0
 16971332722010952003|Texture2D|Textures\UI\02_CloseButton_Normal.png|sRGB=1,cx=23,cy=23,cw=126,ch=126
@@ -59,16 +58,13 @@
 6216772434884315999|Shader|Shaders\SkyViewCS.hlsl|
 14249270229944184863|Shader|Shaders\PlanetGeometryPass.hlsl|
 11277605604000193618|Shader|Shaders\PlanetIcosphereGeometryPass.hlsl|
+13653909807134564088|Shader|Shaders\SPBRDF.hlsl|
 4527624835183777080|Shader|Shaders\MultiScatteringCS.hlsl|
 13104684313599794166|Shader|Shaders\GodRays.hlsl|
-8389397405065266531|Shader|Shaders\Bloom.hlsl|
-1298889079554700485|Shader|Shaders\BloomDownSample.hlsl|
-9791778681212445267|Shader|Shaders\BloomComposite.hlsl|
-12282193027925181577|Texture2D|Textures\UI\14_AllStarshipsButton_Pressed.png|sRGB=1,cx=24,cy=25,cw=223,ch=223
 5437487500712924297|Shader|Shaders\EnvironmentMipFilter.hlsl|
-4717808187761180364|Shader|Shaders\UI.hlsl|
+12282193027925181577|Texture2D|Textures\UI\14_AllStarshipsButton_Pressed.png|sRGB=1,cx=24,cy=25,cw=223,ch=223
 13118054213377969356|Shader|Shaders\EnvironmentIrradiance.hlsl|
-13653909807134564088|Shader|Shaders\SPBRDF.hlsl|
+4717808187761180364|Shader|Shaders\UI.hlsl|
 12006792707160046586|Shader|Shaders\Standard.hlsl|
 11663108200396272093|Shader|Shaders\Copy.hlsl|
 8639147210395893594|Texture2D|Textures\UI\3_Follow_Active.png|sRGB=1
@@ -94,6 +90,7 @@
 6770022817839959989|Texture2D|Textures\DustKickupMask.png|sRGB=0
 4457589618145430005|Mesh|Meshes\Rover.gltf|
 13560050879588577175|Mesh|Meshes\Starship_SN3.gltf|
+12741473001307537284|Shader|Shaders\SunVisibilityCS.hlsl|
 6093856971646758788|Mesh|Meshes\Starship Version 4.gltf|
 17593228084679697780|Script|Scripts\CameraController.cs|
 11283913563491824149|Script|Scripts\AllStarshipsPopup.cs|
@@ -141,6 +138,7 @@
 17426873938423670326|Texture2D|Textures\UI\29_Follow_Hover.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
 14007651658327194399|Texture2D|Textures\UI\30_Follow_Pressed.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
 13749960132895476779|Texture2D|Textures\UI\32_LoadCargo_Normal.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
+7342722083569158699|Texture2D|Textures\Starburst.png|sRGB=0
 3786918773277251082|Texture2D|Textures\UI\33_LoadCargo_Hover.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
 16281283528014804353|Texture2D|Textures\UI\34_LoadCargo_Pressed.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
 8797637120683495472|Texture2D|Textures\UI\36_UnloadCargo_Normal.png|sRGB=1,sl=17,st=17,sr=21,sb=21,cx=7,cy=7,cw=203,ch=203
@@ -157,3 +155,8 @@
 9147919873387223950|AudioClip|AudioClips\ButtonPress.wav|
 17486096536339993026|AudioClip|AudioClips\ButtonRelease.wav|
 2827934988270901040|Shader|Shaders\LuminanceHistogram.hlsl|
+792648146787892691|Shader|Shaders\BloomMipDown.hlsl|
+9657685702788189434|Shader|Shaders\BloomMipUp.hlsl|
+2714512879454243658|Shader|Shaders\BloomBlend.hlsl|
+10832486549329287668|Shader|Shaders\LocalExposureGrid.hlsl|
+2906927704812700433|Shader|Shaders\LocalExposureBlur.hlsl|

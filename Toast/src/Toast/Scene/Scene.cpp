@@ -2686,14 +2686,7 @@ namespace Toast {
 	void Scene::CopyTo(Scene* target)
 	{
 		// Settings
-		target->mSettings.SSAO = mSettings.SSAO;
-		target->mSettings.SSAObias = mSettings.SSAObias;
-		target->mSettings.SSAORadius = mSettings.SSAORadius;
-		target->mSettings.Bloom = mSettings.Bloom;
-		target->mSettings.Exposure = mSettings.Exposure;
-		target->mSettings.DirectionalLightningGain = mSettings.DirectionalLightningGain;
-		target->mSettings.Outline = mSettings.Outline;
-		target->mSettings.HoverTintColor = mSettings.HoverTintColor;
+		target->mSettings = mSettings;
 
 		// Physics Settings
 		auto& targetPhysics = target->GetPhysicsEngine();
@@ -2712,7 +2705,6 @@ namespace Toast {
 		target->mPlanet = mPlanet;
 
 		// Collider
-		target->mSettings.RenderColliders = mSettings.RenderColliders;
 		target->mCubeColliderMaterial = mCubeColliderMaterial;
 		target->mSphereColliderMaterial = mSphereColliderMaterial;
 

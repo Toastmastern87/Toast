@@ -132,9 +132,7 @@ namespace Toast {
 			Microsoft::WRL::ComPtr<ID3D11BlendState> GodRayPassBlendState;
 
 			// Environmental Textures
-			Ref<TextureCube> EnvMapFilteredDay, IrradianceCubeMapDay;
-			Ref<TextureCube> EnvMapFilteredNight, IrradianceCubeMapNight;
-			bool NightTimeIBLDone = false;
+			Ref<TextureCube> EnvMapFiltered, IrradianceCubeMap;
 
 			// Post Process
 			Ref<RenderTarget> FinalRT, FinalEditorRT;
@@ -150,7 +148,7 @@ namespace Toast {
 			Ref<ConstantBuffer> MarkerCBuffer;
 
 			// Viewports
-			D3D11_VIEWPORT Viewport, ShadowMapViewport, EditorViewport, AtmosphereCubeViewport, ViewportHalf, ViewportQuarter;
+			D3D11_VIEWPORT Viewport, ShadowMapViewport, EditorViewport, AtmosphereCubeViewport;
 
 			// Rasterization states
 			Microsoft::WRL::ComPtr<ID3D11RasterizerState> NormalRasterizerState, WireframeRasterizerState, ShadowMapRasterizerState;
@@ -170,21 +168,26 @@ namespace Toast {
 			std::vector<DirectX::XMFLOAT4> SSAONoiseCPU;
 			Scope<Texture2D> SSAONoiseTexture;
 
-			// Bloom data
-			Ref<RenderTarget> SunBloomRT, SkyBloomRT, GeometryBloomRT;
-			Ref<RenderTarget> SunBloomHalfRT, SunBloomQuarterRT, SunBloomQuarterBlurRT, SunBloomUpSampleRT;
-			Ref<RenderTarget> SkyBloomHalfRT, SkyBloomQuarterRT, SkyBloomQuarterBlurRT, SkyBloomUpSampleRT;
-			Ref<RenderTarget> GeometryBloomHalfRT, GeometryBloomQuarterRT, GeometryBloomQuarterBlurRT, GeometryBloomUpSampleRT;
+			// Bloom data		
 			Ref<RenderTarget> FinalBloomRT;
-			Ref<ConstantBuffer> BloomCBuffer, DownSampleCBuffer, WideBlurCBuffer, UpSampleCBuffer;
-			Buffer BloomBuffer, DownSampleBuffer, WideBlurBuffer, UpSampleBuffer;
+			static constexpr uint32_t BloomMipCount = 6;
+			std::array<Ref<RenderTarget>, BloomMipCount> BloomMips;
+			Ref<ConstantBuffer> BloomMipCBuffer, BloomBlendCBuffer;
+			Buffer BloomMipBuffer, BloomBlendBuffer;
+			Microsoft::WRL::ComPtr<ID3D11BlendState> BloomUpBlendState;
 	
 			// Auto Exposure
 			Ref<StructuredBuffer> LuminanceHistogramBuffer;
 			Ref<StructuredBuffer> ExposureEVBuffer;
+			Ref<Texture3D> LocalExposureGridRaw;
+			Ref<Texture3D> LocalExposureGrid;
 			Ref<ConstantBuffer> AutoExposureCBuffer;
 			Buffer AutoExposureBuffer;
 			bool AutoExposureReset = true;
+
+			Ref<StructuredBuffer> SunVisibilityBuffer;
+
+			Texture2D* StarburstTexture = nullptr;
 
 			// Tonemapping data
 			Ref<ConstantBuffer> TonemappingCBuffer;
@@ -212,10 +215,13 @@ namespace Toast {
 
 			AssetHandle TransmittanceCSShaderHandle = 0;
 			AssetHandle MultiScatteringCSShaderHandle = 0;
+			AssetHandle GroundIrradianceCSShaderHandle = 0;
 			AssetHandle PlanetIcosphereGeometryPassShaderHandle = 0;
 			AssetHandle PlanetGeometryPassShaderHandle = 0;
 			AssetHandle GeometryPassShaderHandle = 0;
 			AssetHandle ShadowPassShaderHandle = 0;
+			AssetHandle LocalExposureGridShaderHandle = 0;
+			AssetHandle LocalExposureBlurShaderHandle = 0;
 			AssetHandle SSAOPassShaderHandle = 0;
 			AssetHandle SSAOBlurPassShaderHandle = 0;
 			AssetHandle LightningPassShaderHandle = 0;
@@ -229,14 +235,13 @@ namespace Toast {
 			AssetHandle ParticlesSimKickoffShaderHandle = 0;
 			AssetHandle ParticlesSimulateShaderHandle = 0;
 			AssetHandle ParticlesFinalizeShaderHandle = 0;
-			AssetHandle GodRaysShaderHandle = 0;
-			AssetHandle BloomShaderHandle = 0;
-			AssetHandle BloomDownSampleShaderHandle = 0;
-			AssetHandle BloomWideBlurShaderHandle = 0;
-			AssetHandle BloomUpSampleShaderHandle = 0;
-			AssetHandle BloomCompositeShaderHandle = 0;
+			AssetHandle GodRaysShaderHandle = 0;		
+			AssetHandle BloomMipDownShaderHandle = 0;
+			AssetHandle BloomMipUpShaderHandle = 0;
+			AssetHandle BloomBlendShaderHandle = 0;
 			AssetHandle LuminanceHistogramShaderHandle = 0;
 			AssetHandle ExposureAdaptShaderHandle = 0;
+			AssetHandle SunVisibilityCSShaderHandle = 0;
 			AssetHandle ToneMappingShaderHandle = 0;
 			AssetHandle ObjectMaskShaderHandle = 0;
 			AssetHandle OutlineShaderHandle = 0;
@@ -301,11 +306,15 @@ namespace Toast {
 		// Post Processes
 		static void StarFieldPass(Scene::Environment& environment, Ref<Planet>& planet, const float atmosphereHeight );
 		static void AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldOffsetWS, const bool dynamicIBL);
-		static void BloomPass(Scene::BloomParams& bloomParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, const float verticalFovDeg, DirectX::XMFLOAT3 worldOffsetWS);
-		static void LuminanceHistogramPass(const bool bloom, const Scene::ExposureParams& exposureParams);
-		static void ExposureAdaptPass(const float dt, const Scene::ExposureParams& exposureParams);
+		static void BloomMipChainPass();
+		static void BloomUpSamplePass(float falloff);
+		static void BloomBlendPass(float intensity);
+		static void LuminanceHistogramPass(const Scene::ExposureParams& exposureParams);
+		static void ExposureAdaptPass(const float dt, const Scene::ExposureParams& exposureParams, const float spaceFactor, const Ref<Planet>& planet);
+		static void LocalExposureGridPass(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& sceneHDR);
+		static void SunVisibilityPass(Ref<Planet>& planet);
 		static void GodRayPass(Scene::GodRayParams params);
-		static void PostProcessPass(const bool bloom, Scene::Environment& environment, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, DirectX::XMFLOAT3 worldOffsetWS);
+		static void PostProcessPass(const bool bloom, Scene::Environment& environment, const Scene::ExposureParams& exposureParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, DirectX::XMFLOAT3 worldOffsetWS);
 		static void OutlinePass(const Scene::OutlineSettings& outlineSettings, const DirectX::XMFLOAT4& hoverTint);
 		static void GuidancePass(Vector3 worldTranslation);
 
@@ -323,15 +332,7 @@ namespace Toast {
 		static Ref<RenderTarget>& GetSSAORT() { return sRendererData->SSAORT; }
 		static Ref<RenderTarget>& GetSSAOBlurRT() { return sRendererData->SSAOBlurRT; }
 
-		static Ref<RenderTarget>& GetSunBloomRT() { return sRendererData->SunBloomRT; }
-		static Ref<RenderTarget>& GetSkyBloomRT() { return sRendererData->SkyBloomRT; }
-		static Ref<RenderTarget>& GetGeometryBloomRT() { return sRendererData->GeometryBloomRT; }
-		static Ref<RenderTarget>& GetSunBloomHalfRT() { return sRendererData->SunBloomHalfRT; }
-		static Ref<RenderTarget>& GetSunBloomQuarterRT() { return sRendererData->SunBloomQuarterRT; }
-		static Ref<RenderTarget>& GetSkyBloomHalfRT() { return sRendererData->SkyBloomHalfRT; }
-		static Ref<RenderTarget>& GetSkyBloomQuarterRT() { return sRendererData->SkyBloomQuarterRT; }
-		static Ref<RenderTarget>& GetGeometryBloomHalfRT() { return sRendererData->GeometryBloomHalfRT; }
-		static Ref<RenderTarget>& GetGeometryBloomQuarterRT() { return sRendererData->GeometryBloomQuarterRT; }
+		static Ref<RenderTarget>& GetBloomRT() { return sRendererData->BloomMips[0]; }
 		static Ref<RenderTarget>& GetFinalBloomRT() { return sRendererData->FinalBloomRT; }
 		static Ref<RenderTarget>& GetPlanetMaterialDebugRT() { return sRendererData->PlanetMaterialDebugRT; }
 
@@ -343,8 +344,6 @@ namespace Toast {
 		static void EnableAtmosphere(bool atmosphere) { sRendererData->PlanetData.Atmosphere = atmosphere; }
 
 		static void SetParticlesIndexBuffer(Microsoft::WRL::ComPtr<ID3D11Buffer>& indexBuffer) { sRendererData->ParticleIndexBuffer = indexBuffer; }
-
-		static void ResetEnvMapsIBLDone() { sRendererData->NightTimeIBLDone = false; }
 
 		static void ComputeCascadeEnds(float nearClip, float farClip, uint32_t cascadeCount, float lambda, float* outCascadeEnds);
 		static void ComputeFrustumSliceCornersWS(const Vector3& camPosWS, const Vector3& camRightWS, const Vector3& camUpWS, const Vector3& camForwardWS, float fovYRadians, float aspect, float sliceNear, float sliceFar, DirectX::XMVECTOR outCornersWS[8]);
@@ -361,6 +360,7 @@ namespace Toast {
 		// Atmospheric Scattering helpers
 		static void GenerateTransmittanceLUT(Planet* planet);
 		static void GenerateMultiScatteringLUT(Planet* planet);
+		static void GenerateGroundIrradianceLUT(Planet* planet);
 
 		// SSAO Stuff
 		static DirectX::XMFLOAT3 SampleSSAONoiseTexture(uint32_t x, uint32_t y);

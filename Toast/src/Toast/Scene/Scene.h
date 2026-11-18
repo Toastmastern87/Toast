@@ -40,11 +40,9 @@ namespace Toast {
 		SSAO = 7, 
 		SSAOBLUR = 8, 
 		BLOOM = 9, 
-		BLOOMHALF = 10,
-		BLOOMQUARTER = 11,
-		BLOOMFINAL = 12,
-		SKYVIEWLUT = 13,
-		PLANETMATERIALS = 14,
+		BLOOMFINAL = 10,
+		SKYVIEWLUT = 11,
+		PLANETMATERIALS = 12,
 	};
 
 	struct DirectionalLight
@@ -133,8 +131,17 @@ namespace Toast {
 			float Compensation = -0.5f;       // stops; + brighter, − darker
 			float MinEV = -6.0f;            // limit for dark scenes (higher = darker dusk/night)
 			float MaxEV = 6.0f;              // limit for bright scenes
+			float OrbitMinEV = -6.0f;			// Min EV above the atmosphere (blended in by the camera's space factor); higher = darker night side from orbit
 			float LowPercentile = 45.0f;     // % of metered pixels ignored at the dark end
 			float HighPercentile = 90.0f;    // % point above which pixels are ignored (bright end)
+			float HighlightPercentile = 99.5; // % point of the brightest pixels that must keep their color
+			float HighlightTarget = 0.6f; // max luminance (after exposure) for that point; AgX keeps color below ~0.6
+			float AdaptationKneeEV = -1.8f; // Down to this EV the exposure fully follows the light (daylight)
+			float DimLightAdaptation = 0.4f; // Below the knee, the fraction of the drop it follows (dusk stays dusk)
+			float LocalHighlightContrast = 0.7f; // < 1 compresses bright areas towards middle grey (sun glow, sunset sky)
+			float LocalShadowContrast = 1.0f; // < 1 lifts dark areas towards middle grey
+			float LocalDetailStrength = 1.0f; // 1 = keep the pixels' detail relative to their area
+			float OrbitHighlightTarget = 1.5f;
 			float SpeedToBright = 0.5f;      // 1/s, camera opening up (scene got darker)
 			float SpeedToDark = 3.0f;        // 1/s, camera stopping down (scene got brighter); your Slice 2 value
 			float HistogramMinLog2 = -16.0f; // log2 luminance at the bottom of bin 1
@@ -155,22 +162,8 @@ namespace Toast {
 		struct BloomParams
 		{
 			bool Enabled = true;
-			float SunSurfaceThreshold = 0.0f;
-			float SunSurfaceIntensity = 0.0f;
-			float SunSpaceThreshold = 0.0f;
-			float SunSpaceIntensity = 0.0f;
-			float SkySurfaceThreshold = 0.0f;
-			float SkySurfaceIntensity = 0.0f;
-			float SkySpaceThreshold = 0.0f;
-			float SkySpaceIntensity = 0.0f;
-			float GeometryThreshold = 0.0f;
-			float GeometryIntensity = 0.0f;
-
-			float SunRadius = 0.0f;            // kernel size scale for SUN layer
-			float SkySurfaceRadius = 0.0f;     // kernel size scale for sky near ground (wider haze)
-			float SkySpaceRadius = 0.0f;      // kernel size scale for sky in space (tighter limb)
-			float SoftKnee = 0.0f;           // 0..1 knee around threshold
-			float SaturationClamp = 0.0f;      // 0..1 desat of bloom to prevent color smear (e.g. 0.85)
+			float Intensity = 0.04f;
+			float Falloff = 0.5f;
 		};
 
 		struct GodRayParams 
@@ -245,13 +238,13 @@ namespace Toast {
 			// Lightning Gains
 			float DiffuseIBLGain = 1.0f;
 			float SpecularIBLGain = 1.0f;
+			float NightSkyLight = 0.0015f; // uniform night-sky radiance (starlight), E/pi units
 
 			// Sun
 			bool SunDiscToggle = false;
 			float SunIntensity = 20.0f;
 			float SunDiscRadius = 0.0f;
 			float SunEdgeSoftness = 0.0f;
-			DirectX::XMFLOAT3 SunWhite = { 1.0f, 1.0f, 1.0f };
 			float SpaceDiscBrightnessScale = 1.3f;
 			DirectX::XMFLOAT3 WarmTint = { 1.0f, 1.0f, 1.0f };
 			float AirHaloIntensity = 0.28f;
@@ -265,33 +258,17 @@ namespace Toast {
 			float SpaceHaloIntensity = 0.04f; 
 			float SpaceHaloCutoffDeg = 6.0f; 
 
-			int SunSpikes = 6; // number of diffraction spikes (4,6,8)
-			float SunSpikeSharpness = 24.0f; // higher=thinner (e.g. 24.0)
-			float SunSpikeRadiusSurface = 0.1f;
-			float SunSpikeRadiusSpace = 0.2f;
+			AssetHandle StarburstTextureHandle = 0;
 
-			float SunSpikeFallOff = 2.0f; // how quickly spikes fade with altitude
-			float SunSpikeStrengthSurface = 0.0f;
-			float SunSpikeStrengthSpace = 0.08f;
-			float SunGlareStrengthSurface = 0.005f;
-
-			float SunGlareStrengthSpace = 0.015f;
-			float SunGlareRadiusSurface = 0.10f;
-			float SunGlareRadiusSpace = 0.06f;
-			float LensAltStart = 0.60f; // altitude norm where lens effects start (0..1), e.g. 0.5
-
-			float LensAltEnd = 1.0f; // fully on by (0..1), e.g. 0.8
-			float GhostStrength = 0.10f;
-			float GhostSpacing = 1.0f;
-			float GhostFalloff = 0.85f;
-
-			float GhostSizeSurface = 0.0012f;
-			float GhostSizeSpace = 0.00045f;
-			float GhostAirSuppression = 0.1f;
+			float StarburstSize = 6; // sprite diameter as a fraction of the screen height; the rays end at its edge
+			float StarburstIntensity = 6000.0f; // brightness, before the sun's colour and visibility
+			float GhostIntensity = 1.0f;
+			float GhostScale = 1.0f;
 
 			// Stars
 			float StarNits = 600.0f; // brightness of 1 sun-like star in nits
 			float TwilightStartDeg = 0.0f; // start appearing (e.g. 0.0)
+
 			float TwilightEndDeg = -6.0f; // fully visible by (e.g. -6.0)
 			float SpaceFadeStart = 0.85f; // altitude norm where space visibility starts (0..1), e.g. 0.85
 			float SpaceFadeEnd = 0.98f; // fully visible by (0..1), e.g. 0.98
