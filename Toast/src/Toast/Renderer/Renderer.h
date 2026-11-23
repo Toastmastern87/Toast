@@ -100,8 +100,8 @@ namespace Toast {
 			std::vector<DrawCommand> DebugMeshDrawList;
 			DrawCommandPlanet PlanetDraw;
 
-			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, SunDiscSettingsCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer, SpecularMapFilterSettingsCBuffer, SSAOCBuffer, GodRaysCBuffer;
-			Buffer CameraBuffer, LightningBuffer, SunDiscSettingsBuffer, RenderSettingsBuffer, AtmosphereBuffer, ModelBuffer, MaterialBuffer, SpecularMapFilterSettingsBuffer, SSAOBuffer, GodRaysBuffer;
+			Ref<ConstantBuffer> CameraCBuffer, LightningCBuffer, SunDiscSettingsCBuffer, RenderSettingsCBuffer, AtmosphereCBuffer, ModelCBuffer, MaterialCBuffer, SpecularMapFilterSettingsCBuffer, SSAOCBuffer;
+			Buffer CameraBuffer, LightningBuffer, SunDiscSettingsBuffer, RenderSettingsBuffer, AtmosphereBuffer, ModelBuffer, MaterialBuffer, SpecularMapFilterSettingsBuffer, SSAOBuffer;
 
 			// Back buffer
 			Ref<RenderTarget> BackbufferRT;
@@ -127,9 +127,6 @@ namespace Toast {
 			// Atmosphere pass
 			Ref<RenderTarget> AtmospherePassRT;			
 			Ref<RenderTarget> AtmosphereCubeRT, Dummy1RT, Dummy2RT;
-
-			// God Rays Pass
-			Microsoft::WRL::ComPtr<ID3D11BlendState> GodRayPassBlendState;
 
 			// Environmental Textures
 			Ref<TextureCube> EnvMapFiltered, IrradianceCubeMap;
@@ -177,13 +174,23 @@ namespace Toast {
 			Microsoft::WRL::ComPtr<ID3D11BlendState> BloomUpBlendState;
 	
 			// Auto Exposure
-			Ref<StructuredBuffer> LuminanceHistogramBuffer;
 			Ref<StructuredBuffer> ExposureEVBuffer;
 			Ref<Texture3D> LocalExposureGridRaw;
 			Ref<Texture3D> LocalExposureGrid;
 			Ref<ConstantBuffer> AutoExposureCBuffer;
 			Buffer AutoExposureBuffer;
 			bool AutoExposureReset = true;
+			
+			Ref<Texture3D> APVisibility[2];
+			uint32_t APVisibilityCurrent = 0;
+			Ref<ConstantBuffer> APTemporalCBuffer;
+			Buffer APTemporalBuffer;
+			DirectX::XMFLOAT4X4 APViewProj = {}, APPrevViewProj = {};
+			DirectX::XMFLOAT4 APCameraPos = { 0.0f, 0.0f, 0.0f, 0.0f }, APPrevCameraPos = { 0.0f, 0.0f, 0.0f, 0.0f };
+			uint32_t APFrameIndex = 0;
+			bool APHistoryValid = false;
+			Ref<Texture2D> APSkyShadow;
+			Ref<Texture2D> ShadowHeightMap;
 
 			Ref<StructuredBuffer> SunVisibilityBuffer;
 
@@ -220,6 +227,8 @@ namespace Toast {
 			AssetHandle PlanetGeometryPassShaderHandle = 0;
 			AssetHandle GeometryPassShaderHandle = 0;
 			AssetHandle ShadowPassShaderHandle = 0;
+			AssetHandle PlanetShadowPassShaderHandle = 0;
+			AssetHandle TerrainObjectShadowPassShaderHandle = 0;
 			AssetHandle LocalExposureGridShaderHandle = 0;
 			AssetHandle LocalExposureBlurShaderHandle = 0;
 			AssetHandle SSAOPassShaderHandle = 0;
@@ -229,17 +238,16 @@ namespace Toast {
 			AssetHandle APFarDynamicShaderHandle = 0;
 			AssetHandle SkyViewCSShaderHandle = 0;
 			AssetHandle AerialPerspectiveCSShaderHandle = 0;
+			AssetHandle ShadowHeightMapCSShaderHandle = 0;
 			AssetHandle AtmosphereShaderHandle = 0;
 			AssetHandle ParticlesShaderHandle = 0;
 			AssetHandle ParticlesEmitShaderHandle = 0;
 			AssetHandle ParticlesSimKickoffShaderHandle = 0;
 			AssetHandle ParticlesSimulateShaderHandle = 0;
-			AssetHandle ParticlesFinalizeShaderHandle = 0;
-			AssetHandle GodRaysShaderHandle = 0;		
+			AssetHandle ParticlesFinalizeShaderHandle = 0;	
 			AssetHandle BloomMipDownShaderHandle = 0;
 			AssetHandle BloomMipUpShaderHandle = 0;
 			AssetHandle BloomBlendShaderHandle = 0;
-			AssetHandle LuminanceHistogramShaderHandle = 0;
 			AssetHandle ExposureAdaptShaderHandle = 0;
 			AssetHandle SunVisibilityCSShaderHandle = 0;
 			AssetHandle ToneMappingShaderHandle = 0;
@@ -267,7 +275,7 @@ namespace Toast {
 		static void OnViewportResize(uint32_t width, uint32_t height);
 
 		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos, Scene::Environment& environment, int wireFrame);
-		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, Scene::CascadedShadowMapParams& shadowParams, DirectX::XMFLOAT4& hoverTintColor, float dt, bool runtime);
+		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::CascadedShadowMapParams& shadowParams, DirectX::XMFLOAT4& hoverTintColor, float dt, bool runtime);
 
 		static void CreateDepthBuffer(uint32_t width, uint32_t height);
 		static void CreateDepthStencilView();
@@ -299,6 +307,8 @@ namespace Toast {
 		// Deffered Rendering
 		static void GeometryPass(Vector3 worldTranslation);
 		static void ShadowPass(Scene::CascadedShadowMapParams& shadowParams);
+		static void DrawPlanetShadowCaster();
+		static void DrawTerrainObjectShadowCasters();
 		static void LightningPass(Ref<Planet>& planet, Scene::Environment& environment);
 		static void ParticlesPass();
 		static void SSAOPass(float radius, float bias);
@@ -308,12 +318,10 @@ namespace Toast {
 		static void AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldOffsetWS, const bool dynamicIBL);
 		static void BloomMipChainPass();
 		static void BloomUpSamplePass(float falloff);
-		static void BloomBlendPass(float intensity);
-		static void LuminanceHistogramPass(const Scene::ExposureParams& exposureParams);
+		static void BloomBlendPass(float intensity, float falloff);
 		static void ExposureAdaptPass(const float dt, const Scene::ExposureParams& exposureParams, const float spaceFactor, const Ref<Planet>& planet);
 		static void LocalExposureGridPass(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& sceneHDR);
 		static void SunVisibilityPass(Ref<Planet>& planet);
-		static void GodRayPass(Scene::GodRayParams params);
 		static void PostProcessPass(const bool bloom, Scene::Environment& environment, const Scene::ExposureParams& exposureParams, Ref<Planet>& planet, const DirectX::XMFLOAT4& cameraPos, DirectX::XMFLOAT3 worldOffsetWS);
 		static void OutlinePass(const Scene::OutlineSettings& outlineSettings, const DirectX::XMFLOAT4& hoverTint);
 		static void GuidancePass(Vector3 worldTranslation);

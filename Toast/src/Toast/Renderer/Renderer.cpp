@@ -115,12 +115,6 @@ namespace Toast {
 		sRendererData->SSAOBuffer.Allocate(sRendererData->SSAOCBuffer->GetSize());
 		sRendererData->SSAOBuffer.ZeroInitialize();
 
-		// Setting up the constant buffer for God Rays
-		sRendererData->GodRaysCBuffer = ConstantBufferLibrary::Load("God Rays", 32, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::GodRays) });
-		sRendererData->GodRaysCBuffer->Bind();
-		sRendererData->GodRaysBuffer.Allocate(sRendererData->GodRaysCBuffer->GetSize());
-		sRendererData->GodRaysBuffer.ZeroInitialize();
-
 		// Setting up the constant buffer for hover tint
 		sRendererData->HoverTintCBuffer = CreateRef<ConstantBuffer>("Hovering", 16, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)8) });
 		sRendererData->HoverTintCBuffer->Bind();
@@ -136,16 +130,23 @@ namespace Toast {
 		sRendererData->BloomBlendBuffer.ZeroInitialize();
 
 		// Auto-exposure: luminance histogram + its parameters
-		sRendererData->LuminanceHistogramBuffer = CreateRef<StructuredBuffer>((uint32_t)sizeof(uint32_t), 256u, D3D11_USAGE_DEFAULT, true, false);
 		sRendererData->ExposureEVBuffer = CreateRef<StructuredBuffer>((uint32_t)sizeof(float), 2u, D3D11_USAGE_DEFAULT, true, false);
 		sRendererData->LocalExposureGridRaw = CreateRef<Texture3D>(DXGI_FORMAT_R32G32_FLOAT, DXGI_FORMAT_R32G32_FLOAT, 64, 32, 32);
 		sRendererData->LocalExposureGrid = CreateRef<Texture3D>(DXGI_FORMAT_R32G32_FLOAT, DXGI_FORMAT_R32G32_FLOAT, 64, 32, 32);
-		sRendererData->AutoExposureCBuffer = ConstantBufferLibrary::Load("AutoExposure", 96, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)8)});
+		sRendererData->AutoExposureCBuffer = ConstantBufferLibrary::Load("AutoExposure", 64, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)8)});
 		sRendererData->AutoExposureBuffer.Allocate(sRendererData->AutoExposureCBuffer->GetSize());
 		sRendererData->AutoExposureBuffer.ZeroInitialize();
 
 		// Sun Visibility
 		sRendererData->SunVisibilityBuffer = CreateRef<StructuredBuffer>((uint32_t)sizeof(DirectX::XMFLOAT4), 2u, D3D11_USAGE_DEFAULT, true, false);
+
+		for (auto& vis : sRendererData->APVisibility)
+			vis = CreateRef<Texture3D>(DXGI_FORMAT_R16_FLOAT, DXGI_FORMAT_R16_FLOAT, 192, 108, 128);
+		sRendererData->APTemporalCBuffer = ConstantBufferLibrary::Load("APTemporal", 96, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_COMPUTE_SHADER, (CBufferBindSlot)7) });
+		sRendererData->APTemporalBuffer.Allocate(sRendererData->APTemporalCBuffer->GetSize());
+		sRendererData->APTemporalBuffer.ZeroInitialize();
+		sRendererData->APSkyShadow = CreateRef<Texture2D>(DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT, 192, 108, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
+		sRendererData->ShadowHeightMap = CreateRef<Texture2D>(DXGI_FORMAT_R32G32_FLOAT, DXGI_FORMAT_R32G32_FLOAT, 512, 512, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
 
 		// Setting up the constant buffer for Tonemapping
 		sRendererData->TonemappingCBuffer = ConstantBufferLibrary::Load("Tonemapping", 32, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)10) });
@@ -342,6 +343,9 @@ namespace Toast {
 		// Updating the camera data in the buffer and mapping it to the GPU
 		UploadCameraCBuffer(camera, cameraPos);
 
+		DirectX::XMStoreFloat4x4(&sRendererData->APViewProj, DirectX::XMMatrixMultiply(DirectX::XMLoadFloat4x4(&camera.GetViewMatrix()), DirectX::XMLoadFloat4x4(&camera.GetProjection())));
+		sRendererData->APCameraPos = cameraPos;
+
 		DirectX::XMFLOAT4 cascadeEnds = {
 				scene->mLightEnvironment.DirectionalLights[0].CascadeEnds[0],
 				scene->mLightEnvironment.DirectionalLights[0].CascadeEnds[1],
@@ -373,7 +377,7 @@ namespace Toast {
 		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
 
-	void Renderer::EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::GodRayParams godRayParams, Scene::CascadedShadowMapParams& shadowParams, DirectX::XMFLOAT4& hoverTintColor, float dt, bool runtime)
+	void Renderer::EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::CascadedShadowMapParams& shadowParams, DirectX::XMFLOAT4& hoverTintColor, float dt, bool runtime)
 	{
 		sRendererData->ElapsedTime += (float)dt;
 
@@ -448,15 +452,6 @@ namespace Toast {
 			ParticlesPass();
 		}		
 
-		//if (sRendererData->PlanetDraw.Planet)
-		//{
-		//	if (sRendererData->PlanetDraw.Planet->AtmosphereActivated() && godRayParams.Exposure > 0.0f)
-		//	{
-		//		TOAST_PROFILE(*sRendererData->FrameProfiler, "God Ray Pass");
-		//		GodRayPass(godRayParams);
-		//	}
-		//}
-
 		if (bloomParams.Enabled)
 		{
 			{
@@ -471,13 +466,8 @@ namespace Toast {
 
 			{
 				TOAST_PROFILE(*sRendererData->FrameProfiler, "Bloom Blend");
-				BloomBlendPass(bloomParams.Intensity);
+				BloomBlendPass(bloomParams.Intensity, bloomParams.Falloff);
 			}
-		}
-
-		{
-			TOAST_PROFILE(*sRendererData->FrameProfiler, "Luminance Histogram");
-			LuminanceHistogramPass(exposureParams);
 		}
 
 		{
@@ -710,23 +700,6 @@ namespace Toast {
 			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create Particle Pass blend state");
 		}
 
-		// God Ray Pass Blend State
-		{
-			D3D11_BLEND_DESC blendDesc = {};
-			blendDesc.AlphaToCoverageEnable = FALSE;
-			blendDesc.IndependentBlendEnable = FALSE;
-			blendDesc.RenderTarget[0].BlendEnable = TRUE;
-			blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
-			blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
-			blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-			blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-			blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
-			blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-			blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-			result = device->CreateBlendState(&blendDesc, &sRendererData->GodRayPassBlendState);
-			TOAST_CORE_ASSERT(SUCCEEDED(result), "Failed to create God Ray Pass blend state");
-		}
-
 		// Particle Pass Alpha Blend State
 		{
 			D3D11_BLEND_DESC blendDesc = {};
@@ -832,7 +805,7 @@ namespace Toast {
 
 		rasterDesc.CullMode = D3D11_CULL_FRONT;
 		rasterDesc.FillMode = D3D11_FILL_SOLID;
-		rasterDesc.DepthClipEnable = true;
+		rasterDesc.DepthClipEnable = false;
 		rasterDesc.DepthBias = 2000;                    // start 500..5000
 		rasterDesc.SlopeScaledDepthBias = 2.0f;         // start 1..4
 		rasterDesc.DepthBiasClamp = 0.0f;               // often 0
@@ -1277,6 +1250,14 @@ namespace Toast {
 				sRendererData->LightningBuffer.Write((uint8_t*)&i, 4, 320);
 				sRendererData->LightningCBuffer->Map(sRendererData->LightningBuffer);
 
+				DrawPlanetShadowCaster();
+				DrawTerrainObjectShadowCasters();
+
+				if (shader)
+					shader->Bind();
+				RenderCommand::sRendererAPI.get()->GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);
+				sRendererData->CurrentMesh = nullptr;
+
 				for (const auto& meshCommand : sRendererData->MeshDrawList)
 				{
 					const Submesh& submesh = meshCommand.Mesh->mLODGroups[meshCommand.LODIndex]->Submeshes[meshCommand.SubmeshIndex];
@@ -1311,6 +1292,65 @@ namespace Toast {
 		if (annotation)
 			annotation->EndEvent();
 #endif
+	}
+
+	void Renderer::DrawPlanetShadowCaster()
+	{
+		Planet* planet = sRendererData->PlanetDraw.Planet.get();
+		if (!planet || planet->GetMeshMode() != PlanetMeshMode::Icosphere)
+			return;
+
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->PlanetShadowPassShaderHandle);
+		if (!shader)
+			return;
+		shader->Bind();
+		RenderCommand::sRendererAPI.get()->GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);
+
+		auto& planetMesh = planet->GetIcosphereMesh();
+		planetMesh->GetShaderInputLayout()->Bind();
+
+		auto& transform = planet->GetTransformNoScale();
+		sRendererData->ModelBuffer.Write((uint8_t*)&transform, 64, 0);
+		sRendererData->ModelCBuffer->Map(sRendererData->ModelBuffer);
+		sRendererData->ModelCBuffer->Bind();
+
+		planetMesh->BindGPUData();
+		RenderCommand::DrawIndexedInstanced(planetMesh->GetIndexCount(), planetMesh->GetPatchCount(), 0, 0, 0);
+		planetMesh->UnbindGPUData();
+	}
+
+	void Renderer::DrawTerrainObjectShadowCasters()
+	{
+		Planet* planet = sRendererData->PlanetDraw.Planet.get();
+		if (!planet)
+			return;
+
+		const auto& objects = planet->GetTerrainObjects();
+		if (objects.empty())
+			return;
+
+		auto shader = AssetManager::GetAsset<Shader>(sRendererData->TerrainObjectShadowPassShaderHandle);
+		if (!shader)
+			return;
+		shader->Bind();
+		RenderCommand::sRendererAPI.get()->GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);
+
+		auto& objectSystem = sRendererData->TerrainObjects;
+		const uint32_t typeCount = std::min((uint32_t)objects.size(), (uint32_t)MAX_TERRAIN_OBJECT_TYPES);
+
+		for (uint32_t t = 0; t < typeCount; ++t)
+		{
+			const TerrainObject& object = objects[t];
+			if (!object.MeshObject || object.CandidateGridSize == 0)
+				continue;
+
+			object.MeshObject->Bind(0);
+			RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, objectSystem->GetInstanceBuffer(t)->GetSRV());
+			RenderCommand::DrawIndexedInstancedIndirect(objectSystem->GetIndirectArgs(), objectSystem->GetArgsOffset(t));
+		}
+
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> nullSRV;
+		RenderCommand::SetShaderResource(D3D11_VERTEX_SHADER, 0, nullSRV);
 	}
 
 	void Renderer::SSAOPass(float radius, float bias)
@@ -1601,6 +1641,24 @@ namespace Toast {
 		}
 
 		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "Shadow Height Map");
+			auto heightCube = planet->GetHeightMapCubeTexture();
+			if (heightCube)
+			{
+				RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, heightCube->GetSRV());
+				RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 1, APFar->GetSRV());
+				sRendererData->ShadowHeightMap->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
+
+				shader = AssetManager::GetAsset<Shader>(sRendererData->ShadowHeightMapCSShaderHandle);
+				if (shader)
+					shader->Bind();
+
+				RenderCommand::DispatchCompute((512 + 7) / 8, (512 + 7) / 8, 1);
+				sRendererData->ShadowHeightMap->UnbindUAV(0, D3D11_COMPUTE_SHADER); // read by the AP at t6 right after
+			}
+		}
+
+		{
 			TOAST_PROFILE(*sRendererData->FrameProfiler, "SkyView LUT");
 			RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, planet->GetTransmittanceLUT()->GetSRV());
 			RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 1, planet->GetMultiScatteringLUT()->GetSRV());
@@ -1620,6 +1678,30 @@ namespace Toast {
 			TOAST_PROFILE(*sRendererData->FrameProfiler, "Aerial Perspective");
 			aerialPerspective->BindForReadWrite(0, D3D11_COMPUTE_SHADER);
 			RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 2, APFar->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 3, sRendererData->ShadowMapArray->GetSRV());
+
+			const uint32_t cur = sRendererData->APVisibilityCurrent;
+			const uint32_t prev = 1u - cur;
+			{
+				const DirectX::XMVECTOR moved = DirectX::XMVectorSubtract(DirectX::XMLoadFloat4(&sRendererData->APCameraPos), DirectX::XMLoadFloat4(&sRendererData->APPrevCameraPos));
+				const bool jumped = DirectX::XMVectorGetX(DirectX::XMVector3Length(moved)) > 1000.0f;
+				const uint32_t historyValid = (sRendererData->APHistoryValid && !jumped) ? 1u : 0u;
+				const float historyWeight = 0.1f;
+
+				// Offsets match cbuffer APTemporal (b7) in AerialPerspectiveCS.hlsl
+				sRendererData->APTemporalBuffer.Write((uint8_t*)&sRendererData->APPrevViewProj, 64, 0);
+				sRendererData->APTemporalBuffer.Write((uint8_t*)&sRendererData->APPrevCameraPos, 12, 64);
+				sRendererData->APTemporalBuffer.Write((uint8_t*)&sRendererData->APFrameIndex, 4, 76);
+				sRendererData->APTemporalBuffer.Write((uint8_t*)&historyWeight, 4, 80);
+				sRendererData->APTemporalBuffer.Write((uint8_t*)&historyValid, 4, 84);
+				sRendererData->APTemporalCBuffer->Map(sRendererData->APTemporalBuffer);
+				sRendererData->APTemporalCBuffer->Bind();
+			}
+			RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 4, sRendererData->APVisibility[prev]->GetSRV());
+			sRendererData->APVisibility[cur]->BindForReadWrite(1, D3D11_COMPUTE_SHADER);
+			sRendererData->APSkyShadow->BindForReadWrite(2, D3D11_COMPUTE_SHADER);
+			RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 5, sRendererData->DepthBuffer->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 6, sRendererData->ShadowHeightMap->GetSRV());
 
 			shader = AssetManager::GetAsset<Shader>(sRendererData->AerialPerspectiveCSShaderHandle);
 			if (shader)
@@ -1627,6 +1709,17 @@ namespace Toast {
 
 			RenderCommand::DispatchCompute((aerialPerspective->GetWidth() + 7) / 8, (aerialPerspective->GetHeight() + 7) / 8, 1);
 			aerialPerspective->UnbindUAV(0, D3D11_COMPUTE_SHADER);
+			sRendererData->APVisibility[cur]->UnbindUAV(1, D3D11_COMPUTE_SHADER);
+			sRendererData->APSkyShadow->UnbindUAV(2, D3D11_COMPUTE_SHADER);
+
+			Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> nullSRV;
+			RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 5, nullSRV);
+
+			sRendererData->APVisibilityCurrent = prev;
+			sRendererData->APPrevViewProj = sRendererData->APViewProj;
+			sRendererData->APPrevCameraPos = sRendererData->APCameraPos;
+			sRendererData->APHistoryValid = true;
+			sRendererData->APFrameIndex++;
 		}
 
 		{
@@ -1646,6 +1739,7 @@ namespace Toast {
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, aerialPerspective->GetSRV());
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->GPassPositionRT->GetSRV());
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, APFar->GetSRV());
+			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 7, sRendererData->APSkyShadow->GetSRV());
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 10, sRendererData->LPassRT->GetSRV());
 
@@ -1764,56 +1858,6 @@ namespace Toast {
 
 			RenderCommand::DrawIndexedInstancedIndirect(particleSystem->GetIndirectArgs(), ARGS_OFFSET_DRAW);
 		}
-
-		ID3D11RenderTargetView* nullRTV = nullptr;
-		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
-		RenderCommand::SetDepthStencilState(nullptr);
-		RenderCommand::SetBlendState(nullptr);
-		RenderCommand::ClearShaderResources();
-
-#ifdef TOAST_DEBUG
-		if (annotation)
-			annotation->EndEvent();
-#endif
-	}
-
-	void Renderer::GodRayPass(Scene::GodRayParams params)
-	{
-		TOAST_PROFILE_FUNCTION();
-
-#ifdef TOAST_DEBUG
-		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
-		RenderCommand::GetAnnotation(annotation);
-		if (annotation)
-			annotation->BeginEvent(L"God Ray Pass");
-#endif
-
-		RenderCommand::SetRenderTargets({ sRendererData->AtmospherePassRT->GetRTV().Get() }, nullptr);
-
-		auto shader = AssetManager::GetAsset<Shader>(sRendererData->GodRaysShaderHandle);
-		if (shader)
-			shader->Bind();
-
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->DepthBuffer->GetSRV()); 
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->SunDiscMaskRT->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SunHaloMaskRT->GetSRV());
-
-		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::LinearClamp));
-		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 1, SamplerStates::Get(SamplerType::PointClamp));
-
-		RenderCommand::SetBlendState(sRendererData->GodRayPassBlendState, { 0.0f, 0.0f, 0.0f, 0.0f });
-
-		sRendererData->GodRaysBuffer.Write((uint8_t*)&params.Exposure, 4, 0);
-		sRendererData->GodRaysBuffer.Write((uint8_t*)&params.Decay, 4, 4);
-		sRendererData->GodRaysBuffer.Write((uint8_t*)&params.Density, 4, 8);
-		sRendererData->GodRaysBuffer.Write((uint8_t*)&params.Weight, 4, 12);
-		sRendererData->GodRaysBuffer.Write((uint8_t*)&params.KHalo, 4, 16);
-		sRendererData->GodRaysBuffer.Write((uint8_t*)&params.HaloPower, 4, 20);
-		sRendererData->GodRaysBuffer.Write((uint8_t*)&params.FogRangeMeters, 4, 24);
-		sRendererData->GodRaysCBuffer->Map(sRendererData->GodRaysBuffer);
-		sRendererData->GodRaysCBuffer->Bind();
-
-		DrawFullscreenQuad();
 
 		ID3D11RenderTargetView* nullRTV = nullptr;
 		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
@@ -1947,7 +1991,7 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer::BloomBlendPass(float intensity)
+	void Renderer::BloomBlendPass(float intensity, float falloff)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -1963,7 +2007,7 @@ namespace Toast {
 			return;
 
 		auto [bloomW, bloomH] = sRendererData->BloomMips[0]->GetSize();
-		float params[4] = { 1.0f / float(bloomW), 1.0f / (float)bloomH, intensity, 0.0f };
+		float params[4] = { 1.0f / float(bloomW), 1.0f / (float)bloomH, intensity, falloff };
 		sRendererData->BloomBlendBuffer.Write((uint8_t*)params, sizeof(params), 0);
 		sRendererData->BloomBlendCBuffer->Map(sRendererData->BloomBlendBuffer);
 		sRendererData->BloomBlendCBuffer->Bind();
@@ -1976,6 +2020,7 @@ namespace Toast {
 		RenderCommand::SetRenderTargets({ sRendererData->FinalBloomRT->GetRTV().Get() }, nullptr);
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 0, sRendererData->AtmospherePassRT->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, sRendererData->BloomMips[0]->GetSRV());
+		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, sRendererData->SunVisibilityBuffer->GetSRV());
 		shader->Bind();
 
 		DrawFullscreenQuad();
@@ -1984,52 +2029,6 @@ namespace Toast {
 		RenderCommand::SetRenderTargets({ nullRTV }, nullptr);
 		RenderCommand::ClearShaderResources();
 		RenderCommand::SetDepthStencilState(nullptr);
-
-#ifdef TOAST_DEBUG
-		if (annotation)
-			annotation->EndEvent();
-#endif
-	}
-
-	void Renderer::LuminanceHistogramPass(const Scene::ExposureParams& exposureParams)
-	{
-		TOAST_PROFILE_FUNCTION();
-
-#ifdef TOAST_DEBUG
-		Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> annotation = nullptr;
-		RenderCommand::GetAnnotation(annotation);
-		if (annotation)
-			annotation->BeginEvent(L"Luminance Histogram Pass");
-#endif
-
-		Ref<RenderTarget>& sceneRT = sRendererData->AtmospherePassRT;
-		auto [width, height] = sceneRT->GetSize();
-
-		// HARDCODED FOR NOW
-		const float minLog2Lum = exposureParams.HistogramMinLog2;
-		const float invLog2LumRange = 1.0f / std::max(exposureParams.HistogramRange, 1.0f);
-		const uint32_t inputSize[2] = { width, height };
-
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)inputSize, 8, 0);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&minLog2Lum, 4, 8);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&invLog2LumRange, 4, 12);
-		sRendererData->AutoExposureCBuffer->Map(sRendererData->AutoExposureBuffer);
-		sRendererData->AutoExposureCBuffer->Bind();
-
-		UINT zero[4] = { 0, 0, 0, 0 };
-		RenderCommand::ClearUAV(sRendererData->LuminanceHistogramBuffer->GetUAV(), zero);
-
-		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, sceneRT->GetSRV());
-		sRendererData->LuminanceHistogramBuffer->BindUAV(0);
-
-		auto shader = AssetManager::GetAsset<Shader>(sRendererData->LuminanceHistogramShaderHandle);
-		if (shader)
-			shader->Bind();
-
-		RenderCommand::DispatchCompute((width + 15) / 16, (height + 15) / 16, 1);
-
-		sRendererData->LuminanceHistogramBuffer->UnbindUAV(0);
-		RenderCommand::ClearShaderResources();
 
 #ifdef TOAST_DEBUG
 		if (annotation)
@@ -2048,49 +2047,33 @@ namespace Toast {
 			annotation->BeginEvent(L"Exposure Adapt Pass");
 #endif
 
-		const float lowPercent = std::clamp(exposureParams.LowPercentile, 0.0f, 98.0f) * 0.01f;
-		const float highPercent = std::clamp(exposureParams.HighPercentile, exposureParams.LowPercentile + 1.0f, 100.0f) * 0.01f;
-		const float highlightPercent = std::clamp(exposureParams.HighlightPercentile, 50.0f, 100.0f) * 0.01f;
-		const float highlightBlend = std::clamp(spaceFactor, 0.0f, 1.0f);
-		const float insideTargetLog2 = std::log2(std::max(exposureParams.HighlightTarget, 0.01f));
-		const float orbitTargetLog2 = std::log2(std::max(exposureParams.OrbitHighlightTarget, 0.01f));
-		const float highlightTarget = std::exp2(insideTargetLog2 + (orbitTargetLog2 - insideTargetLog2) * highlightBlend);
 		const float compensation = exposureParams.Compensation;
-		constexpr float kMiddleGrey = 0.18f;
 		const float blendedMinEV = exposureParams.MinEV + (exposureParams.OrbitMinEV - exposureParams.MinEV) * std::clamp(spaceFactor, 0.0f, 1.0f);
 		const float minEV = std::min(blendedMinEV, exposureParams.MaxEV);
 		const float maxEV = exposureParams.MaxEV;
 		const float speedToBright = std::max(exposureParams.SpeedToBright, 0.01f);
 		const float speedToDark = std::max(exposureParams.SpeedToDark, 0.01f);
 		const uint32_t reset = sRendererData->AutoExposureReset ? 1u : 0u;
-
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&lowPercent, 4, 16);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&highPercent, 4, 20);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&compensation, 4, 24);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&kMiddleGrey, 4, 28);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&minEV, 4, 32);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&maxEV, 4, 36);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&speedToBright, 4, 40);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&speedToDark, 4, 44);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&dt, 4, 48);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&reset, 4, 52);
 		const uint32_t lockEV = exposureParams.LockEV ? 1u : 0u;
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&lockEV, 4, 56);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&exposureParams.LockedEV, 4, 60);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&highlightPercent, 4, 64);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&highlightTarget, 4, 68);
 		const bool incidentValid = planet && planet->AtmosphereActivated();
 		const uint32_t incidentValidU = incidentValid ? 1u : 0u;
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&incidentValidU, 4, 72);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&spaceFactor, 4, 76);      
 		const float dimLightAdaptation = std::clamp(exposureParams.DimLightAdaptation, 0.0f, 1.0f);
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&exposureParams.AdaptationKneeEV, 4, 80); 
-		sRendererData->AutoExposureBuffer.Write((uint8_t*)&dimLightAdaptation, 4, 84);
+
+		sRendererData->AutoExposureBuffer.Write((uint8_t*)&compensation, 4, 0);
+		sRendererData->AutoExposureBuffer.Write((uint8_t*)&minEV, 4, 4);
+		sRendererData->AutoExposureBuffer.Write((uint8_t*)&maxEV, 4, 8);
+		sRendererData->AutoExposureBuffer.Write((uint8_t*)&speedToBright, 4, 12);
+		sRendererData->AutoExposureBuffer.Write((uint8_t*)&speedToDark, 4, 16);
+		sRendererData->AutoExposureBuffer.Write((uint8_t*)&dt, 4, 20);
+		sRendererData->AutoExposureBuffer.Write((uint8_t*)&reset, 4, 24);
+		sRendererData->AutoExposureBuffer.Write((uint8_t*)&lockEV, 4, 28);
+		sRendererData->AutoExposureBuffer.Write((uint8_t*)&exposureParams.LockedEV, 4, 32);
+		sRendererData->AutoExposureBuffer.Write((uint8_t*)&incidentValidU, 4,36);
+		sRendererData->AutoExposureBuffer.Write((uint8_t*)&spaceFactor, 4, 40);      
+		sRendererData->AutoExposureBuffer.Write((uint8_t*)&exposureParams.AdaptationKneeEV, 4, 44); 
+		sRendererData->AutoExposureBuffer.Write((uint8_t*)&dimLightAdaptation, 4, 48);
 		sRendererData->AutoExposureCBuffer->Map(sRendererData->AutoExposureBuffer);
 		sRendererData->AutoExposureCBuffer->Bind();
-
-		auto histogramSRV = sRendererData->LuminanceHistogramBuffer->GetSRV();
-		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 0, histogramSRV);
 
 		if (incidentValid)
 		{
@@ -2460,6 +2443,7 @@ namespace Toast {
 			// Deferred Rendering
 			"assets/shaders/Rendering/GeometryPass.hlsl",
 			"assets/shaders/Rendering/ShadowPass.hlsl",
+			"assets/shaders/Rendering/TerrainObjectShadowPass.hlsl",
 			"assets/shaders/Rendering/SSAOPass.hlsl",
 			"assets/shaders/Rendering/SSAOBlurPass.hlsl",
 			"assets/shaders/Rendering/LightningPass.hlsl",
@@ -2478,8 +2462,10 @@ namespace Toast {
 			// Planet
 			"assets/shaders/Planet/PlanetGeometryPass.hlsl",
 			"assets/shaders/Planet/PlanetIcosphereGeometryPass.hlsl",
+			"assets/shaders/Planet/PlanetShadowPass.hlsl",
 			"assets/shaders/Planet/HeightMapToCubeMap.hlsl",
 			"assets/shaders/Planet/HeightCubeToNormalCube.hlsl",
+			"assets/shaders/Planet/HeightCubeMaxMip.hlsl",
 			"assets/shaders/Planet/AlbedoMapToCube.hlsl",
 			"assets/shaders/Planet/Atmosphere/TransmittanceCS.hlsl",
 			"assets/shaders/Planet/Atmosphere/MultiScatteringCS.hlsl",
@@ -2487,17 +2473,16 @@ namespace Toast {
 			"assets/shaders/Planet/Atmosphere/SkyViewCS.hlsl",
 			"assets/shaders/Planet/Atmosphere/AerialPerspectiveCS.hlsl",
 			"assets/shaders/Planet/Atmosphere/APFarDynamic.hlsl",
+			"assets/shaders/Planet/Atmosphere/ShadowHeightMapCS.hlsl",
 			"assets/shaders/Planet/PlanetMeshBake.hlsl",
 
 			// Post Processes
 			"assets/shaders/Post Process/StarField.hlsl",
 			"assets/shaders/Post Process/Atmosphere.hlsl",
-			"assets/shaders/Post Process/GodRays.hlsl",
 			"assets/shaders/Post Process/BloomMipDown.hlsl",
 			"assets/shaders/Post Process/BloomMipUp.hlsl",
 			"assets/shaders/Post Process/BloomBlend.hlsl",
 			"assets/shaders/Post Process/ToneMapping.hlsl",
-			"assets/shaders/Post Process/LuminanceHistogram.hlsl",
 			"assets/shaders/Post Process/ExposureAdapt.hlsl",
 			"assets/shaders/Post Process/LocalExposureGrid.hlsl",
 			"assets/shaders/Post Process/LocalExposureBlur.hlsl",
@@ -2528,6 +2513,8 @@ namespace Toast {
 		sRendererData->MultiScatteringCSShaderHandle = AssetManager::GetEngineShaderHandle("MultiScatteringCS");
 		sRendererData->GroundIrradianceCSShaderHandle = AssetManager::GetEngineShaderHandle("GroundIrradianceCS");
 		sRendererData->PlanetIcosphereGeometryPassShaderHandle = AssetManager::GetEngineShaderHandle("PlanetIcosphereGeometryPass");
+		sRendererData->PlanetShadowPassShaderHandle = AssetManager::GetEngineShaderHandle("PlanetShadowPass");
+		sRendererData->TerrainObjectShadowPassShaderHandle = AssetManager::GetEngineShaderHandle("TerrainObjectShadowPass");
 		sRendererData->PlanetGeometryPassShaderHandle = AssetManager::GetEngineShaderHandle("PlanetGeometryPass");
 		sRendererData->GeometryPassShaderHandle = AssetManager::GetEngineShaderHandle("GeometryPass");
 		sRendererData->ShadowPassShaderHandle = AssetManager::GetEngineShaderHandle("ShadowPass");
@@ -2538,6 +2525,7 @@ namespace Toast {
 		sRendererData->APFarDynamicShaderHandle = AssetManager::GetEngineShaderHandle("APFarDynamic");
 		sRendererData->SkyViewCSShaderHandle = AssetManager::GetEngineShaderHandle("SkyViewCS");
 		sRendererData->AerialPerspectiveCSShaderHandle = AssetManager::GetEngineShaderHandle("AerialPerspectiveCS");
+		sRendererData->ShadowHeightMapCSShaderHandle = AssetManager::GetEngineShaderHandle("ShadowHeightMapCS");
 		sRendererData->AtmosphereShaderHandle = AssetManager::GetEngineShaderHandle("Atmosphere");
 		sRendererData->ParticlesShaderHandle = AssetManager::GetEngineShaderHandle("Particles");
 		sRendererData->ParticlesEmitShaderHandle = AssetManager::GetEngineShaderHandle("ParticleEmit");
@@ -2546,11 +2534,9 @@ namespace Toast {
 		sRendererData->ParticlesFinalizeShaderHandle = AssetManager::GetEngineShaderHandle("ParticleFinalize");
 		sRendererData->Particles->LoadShaders();
 		sRendererData->TerrainObjects->LoadShaders();
-		sRendererData->GodRaysShaderHandle = AssetManager::GetEngineShaderHandle("GodRays");
 		sRendererData->BloomMipDownShaderHandle = AssetManager::GetEngineShaderHandle("BloomMipDown");
 		sRendererData->BloomMipUpShaderHandle = AssetManager::GetEngineShaderHandle("BloomMipUp");
 		sRendererData->BloomBlendShaderHandle = AssetManager::GetEngineShaderHandle("BloomBlend");
-		sRendererData->LuminanceHistogramShaderHandle = AssetManager::GetEngineShaderHandle("LuminanceHistogram");
 		sRendererData->ExposureAdaptShaderHandle = AssetManager::GetEngineShaderHandle("ExposureAdapt");
 		sRendererData->LocalExposureGridShaderHandle = AssetManager::GetEngineShaderHandle("LocalExposureGrid");
 		sRendererData->LocalExposureBlurShaderHandle = AssetManager::GetEngineShaderHandle("LocalExposureBlur");

@@ -210,34 +210,6 @@ namespace Toast {
 						ImGui::Unindent();
 					}
 
-					if (ImGui::CollapsingHeader("God Rays"))
-					{
-						ImGui::Indent();
-
-						ImGui::Text("Exposure");
-						ImGuiHelpers::ManualDragFloat("##godraysexposure", mContext->mSettings.GodRays.Exposure, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
-
-						ImGui::Text("Decay");
-						ImGuiHelpers::ManualDragFloat("##godraysdecay", mContext->mSettings.GodRays.Decay, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
-
-						ImGui::Text("Density");
-						ImGuiHelpers::ManualDragFloat("##godraysdensity", mContext->mSettings.GodRays.Density, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 50.0f);
-
-						ImGui::Text("Weight");
-						ImGuiHelpers::ManualDragFloat("##godraysweight", mContext->mSettings.GodRays.Weight, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 2.0f);
-
-						ImGui::Text("kHalo");
-						ImGuiHelpers::ManualDragFloat("##godraysKHalo", mContext->mSettings.GodRays.KHalo, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 1.0f);
-
-						ImGui::Text("Halo Power");
-						ImGuiHelpers::ManualDragFloat("##godrayshalopower", mContext->mSettings.GodRays.HaloPower, mWindow, activeDragArea, 0.01f, ImVec2{ 255.0f, 20.0f }, "%.2f", 0.0f, 5.0f);
-
-						ImGui::Text("Fog Range Meters");
-						ImGuiHelpers::ManualDragFloat("##godraysFogRangeMeters", mContext->mSettings.GodRays.FogRangeMeters, mWindow, activeDragArea, 100.0f, ImVec2{ 255.0f, 20.0f }, "%.0f", 0.0f, 200000.0f);
-
-						ImGui::Unindent();
-					}
-
 					if (ImGui::CollapsingHeader("Exposure"))
 					{
 						ImGui::Indent();
@@ -263,24 +235,6 @@ namespace Toast {
 						if (ImGui::IsItemHovered())
 							ImGui::SetTooltip("Min EV when the camera is above the atmosphere (blends in high up).\nHigher = the night side stays dark from orbit.\nEqual to Min EV = off.");
 
-						ImGui::TextUnformatted("Low Percentile (%)");
-						ImGuiHelpers::ManualDragFloat("##AELowPercentile", exp.LowPercentile, mWindow, activeDragArea, 0.5f, ImVec2{ 255,20 }, "%.1f", 0.0f, 98.0f);
-						ImGui::TextUnformatted("High Percentile (%)");
-						ImGuiHelpers::ManualDragFloat("##AEHighPercentile", exp.HighPercentile, mWindow, activeDragArea, 0.5f, ImVec2{ 255,20 }, "%.1f", 2.0f, 100.0f);
-						ImGui::TextUnformatted("Highlight Percentile (%)");
-						ImGuiHelpers::ManualDragFloat("##AEHighlightPercentile", exp.HighlightPercentile, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", 90.0f, 100.0f);
-						if (ImGui::IsItemHovered())
-							ImGui::SetTooltip("The brightest (100 - this) %% of the frame is protected from going white.\n99.5 = about the sun's glow within ~2 degrees.");
-
-						ImGui::TextUnformatted("Highlight Target");
-						ImGuiHelpers::ManualDragFloat("##AEHighlightTarget", exp.HighlightTarget, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", 0.1f, 16.0f);
-						if (ImGui::IsItemHovered())
-							ImGui::SetTooltip("How bright the protected highlights may get (before the tone curve).\n0.6 keeps a blue sunset blue; higher = brighter rest of frame, whiter highlights.\n16 = off.");
-
-						ImGui::TextUnformatted("Highlight Target (orbit)");
-						ImGuiHelpers::ManualDragFloat("##AEOrbitHighlightTarget", exp.OrbitHighlightTarget, mWindow, activeDragArea, 0.01f, ImVec2{ 255,20 }, "%.2f", 0.1f, 16.0f);
-						if (ImGui::IsItemHovered())
-							ImGui::SetTooltip("Highlight Target when the camera is above the atmosphere (blends in high up).\nLower = the lit limb and the sun's surroundings keep their gradient.");
 
 						ImGui::TextUnformatted("Adaptation Knee EV");
 						ImGuiHelpers::ManualDragFloat("##AEAdaptationKneeEV", exp.AdaptationKneeEV, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", -16.0f, 8.0f);
@@ -311,15 +265,6 @@ namespace Toast {
 						ImGuiHelpers::ManualDragFloat("##AESpeedToBright", exp.SpeedToBright, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", 0.05f, 20.0f);
 						ImGui::TextUnformatted("Speed To Dark (1/s)");
 						ImGuiHelpers::ManualDragFloat("##AESpeedToDark", exp.SpeedToDark, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", 0.05f, 20.0f);
-
-						if (ImGui::TreeNode("Histogram Range"))
-						{
-							ImGui::TextUnformatted("Min (log2 luminance)");
-							ImGuiHelpers::ManualDragFloat("##AEHistogramMinLog2", exp.HistogramMinLog2, mWindow, activeDragArea, 0.1f, ImVec2{ 255,20 }, "%.1f", -24.0f, 0.0f);
-							ImGui::TextUnformatted("Range (stops)");
-							ImGuiHelpers::ManualDragFloat("##AEHistogramRange", exp.HistogramRange, mWindow, activeDragArea, 0.1f, ImVec2{ 255,20 }, "%.1f", 4.0f, 32.0f);
-							ImGui::TreePop();
-						}
 
 						ImGui::Unindent();
 					}

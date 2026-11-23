@@ -47,33 +47,23 @@ cbuffer SunDiscSettings : register(b6)
 
 cbuffer AutoExposure : register(b8)
 {
-    uint2 InputSize; // 0
-    float MinLog2Lum; // 8
-    float InvLog2LumRange; // 12
+    float Compensation; // 0
+    float MinEV; // 4
+    float MaxEV; // 8
+    float SpeedToBright; // 12
     
-    float LowPercent; // 16
-    float HighPercent; // 20
-    float Compensation; // 24
-    float MiddleGrey; // 28
+    float SpeedToDark; // 16
+    float DeltaTime; // 20
+    uint ResetAdaptation; // 24
+    uint LockEV; // 28
     
-    float MinEV; // 32
-    float MaxEV; // 36
-    float SpeedToBright; // 40 
-    float SpeedToDark; // 44
+    float LockedEV; // 32
+    uint IncidentValid; // 36
+    float SpaceFactor; // 40
+    float AdaptationKneeEV; // 44 
     
-    float DeltaTime; // 48
-    uint ResetAdaptation; // 52
-    uint LockEV; // 56
-    float LockedEV; // 60
-    
-    float HighlightPercent; // 64
-    float HighlightTarget; // 68
-    uint IncidentValid; // 72
-    float SpaceFactor; // 76
-    
-    float AdaptationKneeEV; // 80 
-    float DimLightAdaptation; // 84  
-    float2 _pad0;
+    float DimLightAdaptation; // 48  
+    float3 _pad0;
 }
 
 StructuredBuffer<uint> Histogram        : register(t0);
@@ -88,21 +78,8 @@ RWStructuredBuffer<float> ExposureEV    : register(u0);
 #include "GroundIrradianceLUT.hlsli"
 #include "AtmosphereRays.hlsli"
 
-static const uint BIN_COUNT = 256;
-static const float MIN_METERED_SHARE = 0.001f;
 static const float PI = 3.14159265358979323846f;
 static const float3 LUMA = float3(0.2126f, 0.7152f, 0.0722f);
-
-groupshared float gsScan[BIN_COUNT];
-groupshared float gsUsed[BIN_COUNT];
-groupshared float gsWeighted[BIN_COUNT];
-groupshared float gsHighlightLog2;
-
-float BinCentreLog2(uint bin)
-{
-    float t = ((float) bin - 0.5f) / 254.0f;
-    return MinLog2Lum + t / InvLog2LumRange;
-}
 
 float SunVisibilityAtR(float r, float muS, float Rb)
 {
@@ -133,108 +110,47 @@ float IncidentEV()
     const float3 facingOverPi = Tsun * (1.0f / PI);
 
     const float3 cardOverPi = lerp(flatOverPi, facingOverPi, saturate(SpaceFactor));
-    const float cardLum = MiddleGrey * dot(cardOverPi * Esun, LUMA);
-    return log2(max(cardLum, 1e-10f)) - log2(MiddleGrey) - Compensation;
+    return log2(max(dot(cardOverPi * Esun, LUMA), 1e-10f)) - Compensation;
 }
 
-[numthreads(256, 1, 1)]
+[numthreads(1, 1, 1)]
 void main( uint gi : SV_GroupIndex )
-{
-    if (gi == 0)
-        gsHighlightLog2 = -1000.0f;
-    
-    float count = (gi == 0) ? 0.0f : (float) Histogram[gi];
-    gsScan[gi] = count;
-    GroupMemoryBarrierWithGroupSync();
-    
-    [unroll]
-    for (uint offset = 1; offset < BIN_COUNT; offset <<= 1)
+{   
+    // No planet with an atmosphere (menu-type scenes): a fixed, authored exposure.
+    if (IncidentValid == 0)
     {
-        float add = (gi >= offset) ? gsScan[gi - offset] : 0.0f;
-        GroupMemoryBarrierWithGroupSync();
-        gsScan[gi] += add;
-        GroupMemoryBarrierWithGroupSync();
+        ExposureEV[0] = LockedEV;
+        ExposureEV[1] = 0.0f;
+        return;
     }
 
-    float total = gsScan[BIN_COUNT - 1];
-    float low = LowPercent * total;
-    float high = HighPercent * total;
-    float binEnd = gsScan[gi];
-    float binStart = binEnd - count;
-    
-    float screenPixels = (float) InputSize.x * (float) InputSize.y;
-    float highlightRank = total - (1.0f - HighlightPercent) * screenPixels;
-    if (count > 0.0f && binStart < highlightRank && highlightRank <= binEnd)
-        gsHighlightLog2 = BinCentreLog2(gi);
-    
-    float used = max(0.0f, min(binEnd, high) - max(binStart, low));
-    
-    gsUsed[gi] = used;
-    gsWeighted[gi] = used * BinCentreLog2(gi);
-    GroupMemoryBarrierWithGroupSync();
+    const float incidentEV = IncidentEV();
+    ExposureEV[1] = incidentEV;
 
-    [unroll]
-    for (uint stride = BIN_COUNT / 2; stride > 0; stride >>= 1)
+    if (LockEV != 0)
     {
-        if (gi < stride)
-        {
-            gsUsed[gi] += gsUsed[gi + stride];
-            gsWeighted[gi] += gsWeighted[gi + stride];
-        }
-        GroupMemoryBarrierWithGroupSync();
+        ExposureEV[0] = LockedEV;
+        return;
     }
-    
-    if (gi == 0)
+
+    // Below the knee the exposure only follows part of the drop in light (dusk stays dusk).
+    float targetEV = incidentEV;
+    if (targetEV < AdaptationKneeEV)
+        targetEV = AdaptationKneeEV + DimLightAdaptation * (targetEV - AdaptationKneeEV);
+
+    targetEV = clamp(targetEV, MinEV, MaxEV);
+
+    const float previousEV = ExposureEV[0];
+
+    float ev;
+    if (ResetAdaptation != 0 || !(abs(previousEV) < 100.0f))
+        ev = targetEV;
+    else
     {
-        const float incidentEV = (IncidentValid != 0) ? IncidentEV() : 0.0f;
-        ExposureEV[1] = incidentEV;
-        
-        if (LockEV != 0)
-        {
-            ExposureEV[0] = LockedEV;
-            return;
-        }
-        
-        float previousEV = ExposureEV[0];
-        
-        const bool frameMeterable = (gsUsed[0] >= 1.0f) && (total >= MIN_METERED_SHARE * screenPixels);
-
-        float targetEV;
-        if (IncidentValid != 0)
-            targetEV = incidentEV;
-        
-        else if (frameMeterable)
-        {
-            float avgLog2 = gsWeighted[0] / gsUsed[0];
-            targetEV = avgLog2 - log2(MiddleGrey) - Compensation;
-        }
-        else
-        {
-            ExposureEV[0] = (ResetAdaptation != 0) ? 0.0f : previousEV;
-            return;
-        }
-        
-        if (targetEV < AdaptationKneeEV)
-            targetEV = AdaptationKneeEV + DimLightAdaptation * (targetEV - AdaptationKneeEV);
-        
-        if (frameMeterable && gsHighlightLog2 > -999.0f)
-        {
-            float highlightEV = gsHighlightLog2 - log2(HighlightTarget);
-            targetEV = max(targetEV, highlightEV);
-        }
-
-        targetEV = clamp(targetEV, MinEV, MaxEV);
-        
-        float ev;
-        if (ResetAdaptation != 0 || !(abs(previousEV) < 100.0f))
-            ev = targetEV;
-        else
-        {
-            float speed = (targetEV < previousEV) ? SpeedToBright : SpeedToDark;
-            float k = 1.0f - exp(-DeltaTime * speed);
-            ev = previousEV + (targetEV - previousEV) * k;
-        }
-        
-        ExposureEV[0] = ev;
+        float speed = (targetEV < previousEV) ? SpeedToBright : SpeedToDark;
+        float k = 1.0f - exp(-DeltaTime * speed);
+        ev = previousEV + (targetEV - previousEV) * k;
     }
+
+    ExposureEV[0] = ev;
 }

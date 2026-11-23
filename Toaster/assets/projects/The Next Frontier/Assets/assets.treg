@@ -160,3 +160,7 @@
 2714512879454243658|Shader|Shaders\BloomBlend.hlsl|
 10832486549329287668|Shader|Shaders\LocalExposureGrid.hlsl|
 2906927704812700433|Shader|Shaders\LocalExposureBlur.hlsl|
+11087906470898899939|Shader|Shaders\PlanetShadowPass.hlsl|
+14809994461756298809|Shader|Shaders\HeightCubeMaxMip.hlsl|
+870241536670088589|Shader|Shaders\TerrainObjectShadowPass.hlsl|
+4037851882637291197|Shader|Shaders\ShadowHeightMapCS.hlsl|

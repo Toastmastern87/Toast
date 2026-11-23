@@ -51,7 +51,6 @@ cbuffer IcospherePlanet : register(b2)
     float3 planetCenterRelLoWS;
 };
 
-
 struct VertexInputType
 {
     uint2 ij                : TEXCOORD0; // per-vertex

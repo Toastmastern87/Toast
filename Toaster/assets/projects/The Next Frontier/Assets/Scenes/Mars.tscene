@@ -1,6 +1,6 @@
 Scene: Mars
 EditorCamera:
-  Position: [21.5352612, 26.4394207, 15.9934978]
+  Position: [21.5635738, 26.4441643, 16.0541153]
 Settings:
   Wireframe: 0
   Grid: false
@@ -11,9 +11,9 @@ Settings:
   RenderColliders: false
   RenderUI: false
   Shadows: true
-  ShadowDistance: 10000
+  ShadowDistance: 20000
   CascadeCount: 4
-  Lambda: 0.369999826
+  Lambda: 1
   ConstantBias: 0.000800000387
   SlopeScaledBias: 0.0006999998
   SSAO: true
@@ -24,24 +24,12 @@ Settings:
   BloomFalloff: 0.5
   DynamicIBL: true
   SunFrustumOrthoSize: 500
-  GodRaysExposure: 0
-  GodRaysDecay: 0
-  GodRaysDensity: 0
-  GodRaysWeight: 0
-  GodRaysKHalo: 0
-  GodRaysHaloPower: 0
-  GodRaysFogRangeMeters: 0
   LockEV: false
   LockedEV: -2.849998
   AECompensation: -0.200000003
   AEMinEV: -5.0999999
   AEMaxEV: 6
-  AEOrbitMinEV: -4.30000257
-  AELowPercentile: 45
-  AEHighPercentile: 90
-  AEHighlightPercentile: 99.5
-  AEHighlightTarget: 16
-  AEOrbitHighlightTarget: 1.5
+  AEOrbitMinEV: -3.70000005
   AEAdaptationKneeEV: -1.79999995
   AEDimLightAdaptation: 0.349999994
   AELocalHighlightContrast: 0.600000083
@@ -49,8 +37,6 @@ Settings:
   AELocalDetailStrength: 1
   AESpeedToBright: 10
   AESpeedToDark: 10
-  AEHistogramMinLog2: -16
-  AEHistogramRange: 22
   OutlineColor: [1, 0.600000024, 0.100000001, 1]
   OutlineThickness: 2
   OutlineSoftness: 1

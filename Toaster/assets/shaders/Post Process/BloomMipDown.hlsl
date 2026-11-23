@@ -85,23 +85,19 @@ float4 main(float4 pos : SV_POSITION, float2 uv : TEXCOORD) : SV_TARGET
     for (int k = 0; k < 13; ++k)
     {
         float isDisc = (SunDiscMask.SampleLevel(LinearClamp, uv + TAP[k] * SrcTexelSize, 0) > 0.0f) ? 1.0f : 0.0f;
-        cDisc[k] = c[k] * isDisc;
         cRest[k] = c[k] * (1.0f - isDisc);
     }
-    
-    float3 discSum = 0.0f.xxx;
+
     float3 restSum = 0.0f.xxx;
     float restWeight = 0.0f;
     [unroll]
     for (int b = 0; b < 5; ++b)
     {
-        discSum += BOX_WEIGHT[b] * BoxAverage(cDisc, BOX[b]);
-        
         float3 boxRest = BoxAverage(cRest, BOX[b]);
         float w = BOX_WEIGHT[b] / (1.0f + dot(boxRest, LUMA));
         restSum += w * boxRest;
         restWeight += w;
     }
 
-    return float4(discSum + restSum / max(restWeight, 1e-6f), 1.0f);
+    return float4(restSum / max(restWeight, 1e-6f), 1.0f);
 }

@@ -110,6 +110,7 @@ static const float3 GHOST_COLOR[GHOST_COUNT] =
     float3(0.0132f, 0.0240f, 0.0144f) // green
 };
 static const float3 GHOST_CHROMA = float3(1.02f, 1.0f, 0.98f);
+static const float LENS_OFFSCREEN_FADE = 0.15f;
 
 float3 AgXContrastApprox(float3 x)
 {
@@ -184,6 +185,12 @@ float3 Starburst(float2 pixel, float2 sunPixel)
     return (enc * enc) * (enc * enc);
 }
 
+float LensOffscreenFade(float2 sunPixel, float2 viewport)
+{
+    const float2 outside = max(max(-sunPixel, sunPixel - viewport), 0.0f);
+    return 1.0f - smoothstep(0.0f, LENS_OFFSCREEN_FADE, length(outside) / viewport.y);
+}
+
 float HexagonSDF(float2 p, float R)
 {
     const float sector = PI / 3.0f;
@@ -256,6 +263,24 @@ float Bayer8x8(uint2 p)
     return (B[idx] + 0.5f) / 64.0f;
 }
 
+float3 LinearToSRGB(float3 c)
+{
+    return lerp(1.055f * pow(max(c, 0.0f), 1.0f / 2.4f) - 0.055f, 12.92f * c, step(c, 0.0031308f));
+}
+
+float3 SRGBToLinear(float3 c)
+{
+    return lerp(pow((max(c, 0.0f) + 0.055f) / 1.055f, 2.4f), c / 12.92f, step(c, 0.04045f));
+}
+
+float3 DitherSRGB8(float3 colorLinear, uint2 pixel)
+{
+    const float n1 = Bayer8x8(pixel);
+    const float n2 = frac(52.9829189f * frac(dot((float2) pixel, float2(0.06711056f, 0.00583715f))));
+    const float noise = (n1 + n2 - 1.0f) / 255.0f; // (-1, 1) codes, peaked at 0
+    return SRGBToLinear(saturate(LinearToSRGB(saturate(colorLinear)) + noise));
+}
+
 // ===== Pixel shader ==========================================================
 struct PSIn
 {
@@ -292,7 +317,7 @@ PSOut main(PSIn input)
         const float2 viewport = float2(viewportWidth, viewportHeight);
         const float2 pixel = input.uv * viewport;
         const float2 sunPixel = sunCenter.yz * viewport;
-        const float3 sunAtLens = radiance.rgb * sunLight.rgb * sunCenter.x;
+        const float3 sunAtLens = radiance.rgb * sunLight.rgb * LensOffscreenFade(sunPixel, viewport);
         lensAdd = sunAtLens * (Starburst(pixel, sunPixel) * StarburstIntensity + LensGhosts(pixel, sunPixel, 0.5f * viewport) * GhostIntensity);
     }
     
@@ -320,25 +345,10 @@ PSOut main(PSIn input)
     float3 hdrOut = colorHDR + starsHDR;
     output.hdr = float4(hdrOut, 1.0);
 
-    // ------------- HDR output (your current path) -------------
-    float3 sdrDisp = colorHDR;
-
-    float n = Bayer8x8((uint2) input.pos.xy);
-    float amp = 0.25f; // ordered can run a bit higher, but start low
-    float d = (n - 0.5f) * (2.0f * amp / 255.0f);
-
-    // Combine with luma-only rescale (best result)
-    float Y = max(dot(sdrDisp, LUMA), 1e-6f);
-    float Y2 = saturate(Y + d);
-    sdrDisp *= (Y2 / Y);
-
-    output.sdr = float4(saturate(sdrDisp), 1.0f);
-
     float starGainSDR = StarNits / max(100.0f, 1e-3);
     float3 starsSDR = starsPW * starGainSDR * (1.0 - occ);
 
-    sdrDisp += starsSDR;
-    output.sdr = float4(sdrDisp, 1.0);
+    output.sdr = float4(DitherSRGB8(colorHDR + starsSDR, (uint2) input.pos.xy), 1.0f);
 
     return output;
 }

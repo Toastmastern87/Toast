@@ -638,6 +638,7 @@ namespace Toast {
 		AssetHandle mGeoClipmapGPassShaderHandle = 0;
 		AssetHandle mHeightMapToCubeMapShaderHandle = 0;
 		AssetHandle mHeightCubeToNormalCubeShaderHandle = 0;
+		AssetHandle mHeightCubeMaxMipShaderHandle = 0;
 		AssetHandle mAlbedoMapToCubeShaderHandle = 0;
 
 		friend class SceneSerializer;
@@ -660,6 +661,7 @@ namespace Toast {
 		Quaternion GetInvRotation() { return mInvRotationQuat; }
 
 		Ref<TextureCube> CreateHeightMapCube(const Texture2D* heightMapTexture);
+		void BuildHeightMaxMips(const Ref<TextureCube>& heightCube);
 		Ref<TextureCube> CreateNormalMapCube(const TextureCube* heightCube);
 		Ref<TextureCube> CreateAlbedoCube(const Texture2D* albedoTexture);
 

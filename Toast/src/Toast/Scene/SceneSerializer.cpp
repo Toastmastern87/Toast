@@ -918,13 +918,6 @@ namespace Toast {
 		out << YAML::Key << "BloomFalloff" << YAML::Value << settings.Bloom.Falloff;
 		out << YAML::Key << "DynamicIBL" << YAML::Value << settings.DynamicIBL;
 		out << YAML::Key << "SunFrustumOrthoSize" << YAML::Value << settings.SunFrustumOrthoSize;
-		out << YAML::Key << "GodRaysExposure" << YAML::Value << settings.GodRays.Exposure;
-		out << YAML::Key << "GodRaysDecay" << YAML::Value << settings.GodRays.Decay;
-		out << YAML::Key << "GodRaysDensity" << YAML::Value << settings.GodRays.Density;
-		out << YAML::Key << "GodRaysWeight" << YAML::Value << settings.GodRays.Weight;
-		out << YAML::Key << "GodRaysKHalo" << YAML::Value << settings.GodRays.KHalo;
-		out << YAML::Key << "GodRaysHaloPower" << YAML::Value << settings.GodRays.HaloPower;
-		out << YAML::Key << "GodRaysFogRangeMeters" << YAML::Value << settings.GodRays.FogRangeMeters;
 
 		out << YAML::Key << "LockEV" << YAML::Value << settings.Exposure.LockEV;
 		out << YAML::Key << "LockedEV" << YAML::Value << settings.Exposure.LockedEV;
@@ -932,11 +925,6 @@ namespace Toast {
 		out << YAML::Key << "AEMinEV" << YAML::Value << settings.Exposure.MinEV;
 		out << YAML::Key << "AEMaxEV" << YAML::Value << settings.Exposure.MaxEV;
 		out << YAML::Key << "AEOrbitMinEV" << YAML::Value << settings.Exposure.OrbitMinEV;
-		out << YAML::Key << "AELowPercentile" << YAML::Value << settings.Exposure.LowPercentile;
-		out << YAML::Key << "AEHighPercentile" << YAML::Value << settings.Exposure.HighPercentile;
-		out << YAML::Key << "AEHighlightPercentile" << YAML::Value << settings.Exposure.HighlightPercentile;
-		out << YAML::Key << "AEHighlightTarget" << YAML::Value << settings.Exposure.HighlightTarget;
-		out << YAML::Key << "AEOrbitHighlightTarget" << YAML::Value << settings.Exposure.OrbitHighlightTarget;
 		out << YAML::Key << "AEAdaptationKneeEV" << YAML::Value << settings.Exposure.AdaptationKneeEV;
 		out << YAML::Key << "AEDimLightAdaptation" << YAML::Value << settings.Exposure.DimLightAdaptation;
 		out << YAML::Key << "AELocalHighlightContrast" << YAML::Value << settings.Exposure.LocalHighlightContrast;
@@ -944,8 +932,6 @@ namespace Toast {
 		out << YAML::Key << "AELocalDetailStrength" << YAML::Value << settings.Exposure.LocalDetailStrength;
 		out << YAML::Key << "AESpeedToBright" << YAML::Value << settings.Exposure.SpeedToBright;
 		out << YAML::Key << "AESpeedToDark" << YAML::Value << settings.Exposure.SpeedToDark;
-		out << YAML::Key << "AEHistogramMinLog2" << YAML::Value << settings.Exposure.HistogramMinLog2;
-		out << YAML::Key << "AEHistogramRange" << YAML::Value << settings.Exposure.HistogramRange;
 
 		out << YAML::Key << "OutlineColor" << YAML::Value << settings.Outline.Color;
 		out << YAML::Key << "OutlineThickness" << YAML::Value << settings.Outline.Thickness;
@@ -1315,24 +1301,12 @@ namespace Toast {
 		settings.Bloom.Falloff = data["Settings"]["BloomFalloff"].as<float>(0.5f);
 		settings.DynamicIBL = data["Settings"]["DynamicIBL"].as<bool>();
 		settings.SunFrustumOrthoSize = data["Settings"]["SunFrustumOrthoSize"].as<float>();
-		settings.GodRays.Exposure = data["Settings"]["GodRaysExposure"].as<float>();
-		settings.GodRays.Decay = data["Settings"]["GodRaysDecay"].as<float>();
-		settings.GodRays.Density = data["Settings"]["GodRaysDensity"].as<float>();
-		settings.GodRays.Weight = data["Settings"]["GodRaysWeight"].as<float>();
-		settings.GodRays.KHalo = data["Settings"]["GodRaysKHalo"].as<float>();
-		settings.GodRays.HaloPower = data["Settings"]["GodRaysHaloPower"].as<float>();
-		settings.GodRays.FogRangeMeters = data["Settings"]["GodRaysFogRangeMeters"].as<float>();
 		settings.Exposure.LockEV = data["Settings"]["LockEV"].as<bool>(false);
 		settings.Exposure.LockedEV = data["Settings"]["LockedEV"].as<float>(0.0f);
 		settings.Exposure.Compensation = data["Settings"]["AECompensation"].as<float>(0.0f);
 		settings.Exposure.MinEV = data["Settings"]["AEMinEV"].as<float>(-14.0f);
 		settings.Exposure.MaxEV = data["Settings"]["AEMaxEV"].as<float>(6.0f);
 		settings.Exposure.OrbitMinEV = data["Settings"]["AEOrbitMinEV"].as<float>(settings.Exposure.MinEV);
-		settings.Exposure.LowPercentile = data["Settings"]["AELowPercentile"].as<float>(10.0f);
-		settings.Exposure.HighPercentile = data["Settings"]["AEHighPercentile"].as<float>(90.0f);
-		settings.Exposure.HighlightPercentile = data["Settings"]["AEHighlightPercentile"].as<float>(99.5f);
-		settings.Exposure.HighlightTarget = data["Settings"]["AEHighlightTarget"].as<float>(0.6f);
-		settings.Exposure.OrbitHighlightTarget = data["Settings"]["AEOrbitHighlightTarget"].as<float>(settings.Exposure.HighlightTarget);
 		settings.Exposure.AdaptationKneeEV = data["Settings"]["AEAdaptationKneeEV"].as<float>(-1.8f);
 		settings.Exposure.DimLightAdaptation = data["Settings"]["AEDimLightAdaptation"].as<float>(0.4f);
 		settings.Exposure.LocalHighlightContrast = data["Settings"]["AELocalHighlightContrast"].as<float>(0.7f);
@@ -1340,8 +1314,6 @@ namespace Toast {
 		settings.Exposure.LocalDetailStrength = data["Settings"]["AELocalDetailStrength"].as<float>(1.0f);
 		settings.Exposure.SpeedToBright = data["Settings"]["AESpeedToBright"].as<float>(1.0f);
 		settings.Exposure.SpeedToDark = data["Settings"]["AESpeedToDark"].as<float>(1.0f);
-		settings.Exposure.HistogramMinLog2 = data["Settings"]["AEHistogramMinLog2"].as<float>(-16.0f);
-		settings.Exposure.HistogramRange = data["Settings"]["AEHistogramRange"].as<float>(22.0f);
 		settings.HoverTintColor = data["Settings"]["HoverTintColor"].as<DirectX::XMFLOAT4>();
 
 		auto& outline = settings.Outline;

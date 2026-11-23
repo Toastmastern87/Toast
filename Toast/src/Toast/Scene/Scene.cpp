@@ -1010,7 +1010,7 @@ namespace Toast {
 
 				OutlineSettings outline = ResolveOutlineSettings({});
 
-				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, mSettings.HoverTintColor, ts, true);
+				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.Shadows, mSettings.HoverTintColor, ts, true);
 			}
 
 			// Debug Rendering
@@ -1801,7 +1801,7 @@ namespace Toast {
 
 			OutlineSettings outline = ResolveOutlineSettings({});
 
-			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.GodRays, mSettings.Shadows, mSettings.HoverTintColor, ts, false);
+			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.Shadows, mSettings.HoverTintColor, ts, false);
 		}
 
 		// Debug Rendering

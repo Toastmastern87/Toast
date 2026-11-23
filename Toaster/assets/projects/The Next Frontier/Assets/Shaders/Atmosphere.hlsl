@@ -126,6 +126,7 @@ Texture3D<float4> AerialPerspective3D   : register(t3);
 Texture2D<float4> positionTexture       : register(t4);
 Texture2D<uint> APFarU32                : register(t5);
 Texture2D<float4> GroundIrradianceLUT   : register(t6);
+Texture2D<float4> SkyShadowRemoved      : register(t7);
 Texture2D<float> SceneDepth             : register(t9);
 Texture2D<float4> SceneColor            : register(t10);
 
@@ -683,6 +684,7 @@ PSOut main(PSIn i)
         SkyViewSunFrame(up, -normalize(direction.xyz), east, fSun, sSun);
         float2 uvSky = SkyViewUV(wView, up, fSun, sSun, mu0, mu1, float2(Wsv, Hsv));
         float3 sky = SkyViewLUT.SampleLevel(ClampLinear, uvSky, 0).rgb;
+        sky = max(sky - SkyShadowRemoved.SampleLevel(ClampLinear, uv, 0).rgb, 0.0f);
         
         // From space, directions above the top-of-atmosphere horizon miss the atmosphere:
         // no sky light (the paper's ray march adds nothing when there is no intersection).

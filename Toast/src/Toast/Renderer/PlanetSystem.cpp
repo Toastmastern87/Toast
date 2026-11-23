@@ -77,6 +77,7 @@ namespace Toast {
 
 		mHeightMapToCubeMapShaderHandle = AssetManager::GetEngineShaderHandle("HeightMapToCubeMap");
 		mHeightCubeToNormalCubeShaderHandle = AssetManager::GetEngineShaderHandle("HeightCubeToNormalCube");
+		mHeightCubeMaxMipShaderHandle = AssetManager::GetEngineShaderHandle("HeightCubeMaxMip");
 		mAlbedoMapToCubeShaderHandle = AssetManager::GetEngineShaderHandle("AlbedoMapToCube");
 
 		mShaderInputLayout = ShaderLayout(planetElements, vsBlob);
@@ -234,8 +235,9 @@ namespace Toast {
 		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
 		const uint32_t cubemapSize = 2048;
+		const uint32_t mipCount = 12;
 
-		Ref<TextureCube> heightMapCube = CreateRef<TextureCube>("HeightMapCube", DXGI_FORMAT_R32_FLOAT, cubemapSize, cubemapSize);
+		Ref<TextureCube> heightMapCube = CreateRef<TextureCube>("HeightMapCube", DXGI_FORMAT_R32_FLOAT, cubemapSize, cubemapSize, mipCount);
 		 
 		heightMapCube->CreateUAV(0);
 
@@ -260,7 +262,37 @@ namespace Toast {
 
 		heightMapCube->UnbindUAV();
 
+		BuildHeightMaxMips(heightMapCube);
+
 		return heightMapCube;
+	}
+
+	void Planet::BuildHeightMaxMips(const Ref<TextureCube>& heightCube)
+	{
+		auto shader = AssetManager::GetAsset<Shader>(mHeightCubeMaxMipShaderHandle);
+		if (!shader || !heightCube)
+			return;
+
+		shader->Bind();
+
+		const uint32_t mipCount = heightCube->GetMipLevelCount();
+		const uint32_t size0 = heightCube->GetWidth();
+
+		for (uint32_t mip = 1; mip < mipCount; ++mip)
+		{
+			const uint32_t size = std::max(size0 >> mip, 1u);
+			const uint32_t groups = (size + 7) / 8;
+
+			for (uint32_t face = 0; face < 6; ++face)
+			{
+				heightCube->BindForReadWriteUpdated(0, D3D11_COMPUTE_SHADER, mip - 1, face);
+				heightCube->BindForReadWriteUpdated(1, D3D11_COMPUTE_SHADER, mip, face);
+				RenderCommand::DispatchCompute(groups, groups, 1);
+			}
+		}
+
+		heightCube->UnbindUAVUpdated(0, D3D11_COMPUTE_SHADER);
+		heightCube->UnbindUAVUpdated(1, D3D11_COMPUTE_SHADER);
 	}
 
 	Ref<TextureCube> Planet::CreateNormalMapCube(const TextureCube* heightCube)

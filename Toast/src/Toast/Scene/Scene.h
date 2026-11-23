@@ -132,20 +132,13 @@ namespace Toast {
 			float MinEV = -6.0f;            // limit for dark scenes (higher = darker dusk/night)
 			float MaxEV = 6.0f;              // limit for bright scenes
 			float OrbitMinEV = -6.0f;			// Min EV above the atmosphere (blended in by the camera's space factor); higher = darker night side from orbit
-			float LowPercentile = 45.0f;     // % of metered pixels ignored at the dark end
-			float HighPercentile = 90.0f;    // % point above which pixels are ignored (bright end)
-			float HighlightPercentile = 99.5; // % point of the brightest pixels that must keep their color
-			float HighlightTarget = 0.6f; // max luminance (after exposure) for that point; AgX keeps color below ~0.6
 			float AdaptationKneeEV = -1.8f; // Down to this EV the exposure fully follows the light (daylight)
 			float DimLightAdaptation = 0.4f; // Below the knee, the fraction of the drop it follows (dusk stays dusk)
 			float LocalHighlightContrast = 0.7f; // < 1 compresses bright areas towards middle grey (sun glow, sunset sky)
 			float LocalShadowContrast = 1.0f; // < 1 lifts dark areas towards middle grey
 			float LocalDetailStrength = 1.0f; // 1 = keep the pixels' detail relative to their area
-			float OrbitHighlightTarget = 1.5f;
 			float SpeedToBright = 0.5f;      // 1/s, camera opening up (scene got darker)
 			float SpeedToDark = 3.0f;        // 1/s, camera stopping down (scene got brighter); your Slice 2 value
-			float HistogramMinLog2 = -16.0f; // log2 luminance at the bottom of bin 1
-			float HistogramRange = 22.0f;    // stops covered by bins 1..255
 		};
 
 		struct CascadedShadowMapParams
@@ -164,17 +157,6 @@ namespace Toast {
 			bool Enabled = true;
 			float Intensity = 0.04f;
 			float Falloff = 0.5f;
-		};
-
-		struct GodRayParams 
-		{
-			float Exposure = 0.21f;
-			float Decay = 0.94f;
-			float Density = 3.0f;
-			float Weight = 0.02f;
-			float KHalo = 0.6f;
-			float HaloPower = 2.0f;
-			float FogRangeMeters = 120000.0f;
 		};
 
 		struct OutlineSettings 
@@ -213,8 +195,6 @@ namespace Toast {
 			float SunFrustumOrthoSize = 500.0f;
 
 			DirectX::XMFLOAT4 HoverTintColor = { 1.0f, 1.0f, 1.0f, 1.0f }; // Hover Tint
-
-			GodRayParams GodRays;
 
 			ExposureParams Exposure;
 
