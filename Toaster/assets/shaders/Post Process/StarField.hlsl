@@ -51,30 +51,29 @@ cbuffer PlanetFrame : register(b4)
 
 cbuffer Atmosphere : register(b5)
 {
-    float AtmosphereHeight; // Rt - Rg
-    float RayScaleHeight;
-    float MieScaleHeight;
-    float MSGain;
-    
-    float3 RayleighScattering;
-    float SGain;
-    
-    float3 MieScattering;
-    
-    float3 MieAbsorption;
-    
-    float3 GroundAlbedo;
-    
-    float3 MieAnisotropy;
-    float OzoneStrength;
-    
-    uint StepsTransmittance;
-    uint StepsMultiScattering;
-    float APFarDynamic;
-    
-    float3 SunsetTint;
-};
+    float AtmosphereHeight; // 0: Rt - Rg (m)
+    float RayScaleHeight; // 4
+    float MieScaleHeight; // 8
+    float OzoneStrength; // 12
 
+    float3 RayleighScattering; // 16
+    float MieAnisotropyBroad; // 28
+
+    float3 MieScattering; // 32
+    float BakeIBL; // 44
+
+    float3 MieAbsorption; // 48
+    uint FaceIndex; // 60
+
+    float3 GroundAlbedo; // 64
+    uint StepsTransmittance; // 76
+
+    float3 MieAnisotropy; // 80
+    uint StepsMultiScattering; // 92
+
+    float3 MieLobeWeight; // 96
+    float _AtmospherePad0; // 108
+}
 cbuffer StarsParams : register(b7)
 {
     float StarNits; // keep if you premultiply here (we'll leave it as 1.0 in RT)
@@ -99,9 +98,7 @@ Texture2D<float> SceneDepth : register(t9); // reversed-Z depth
 SamplerState LinearSampler : register(s0);
 SamplerState PointSampler : register(s1);
 
-static const float PI = 3.14159265359f;
 static const float3 LUMA = float3(0.2126, 0.7152, 0.0722);
-static const float MU_EPS = 8e-4;
 
 #include "TransmittanceLUT.hlsli"
 
@@ -138,48 +135,6 @@ bool RaySphere(float3 ro, float3 rd, float R, out float t0, out float t1)
     return true;
 }
 
-// Returns whether the forward ray crosses the atmosphere shell [Rg, Rt],
-// along with the tangent altitude h_tan (meters) and forward segment length L_shell (meters).
-bool AtmosRayInfo(float3 camRel, float3 rd, float Rg, float Rt, out float h_tan, out float L_shell)
-{
-    // Closest approach to center (|rd| = 1): distance minus ground radius -> tangent altitude
-    float d_closest = length(cross(camRel, rd));
-    h_tan = d_closest - Rg;
-
-    // Intersections
-    float t0o, t1o;
-    bool hitOut = RaySphere(camRel, rd, Rt, t0o, t1o);
-    if (!hitOut || t1o <= 0.0)
-    {
-        L_shell = 0.0;
-        return false;
-    }
-
-    float t0i, t1i;
-    bool hitIn = RaySphere(camRel, rd, Rg, t0i, t1i);
-
-    // Forward segment length inside the shell
-    float r0 = length(camRel);
-    float tEnter, tExit;
-    if (r0 >= Rt - 1e-3)
-    {
-        tEnter = max(t0o, 0.0);
-        tExit = t1o;
-        if (hitIn && t1i > 0.0)
-            tExit = min(tExit, t0i);
-    }
-    else
-    {
-        tEnter = 0.0;
-        tExit = t1o;
-        if (hitIn && t1i > 0.0)
-            tExit = min(tExit, t0i);
-    }
-
-    L_shell = max(tExit - tEnter, 0.0);
-    return (L_shell > 0.0);
-}
-//
 float3 T_to_TOA(float r, float mu, float RbPhys, float Rt)
 {
     return TransmittanceLUT.SampleLevel(LinearSampler, TransUV(r, mu, RbPhys, Rt), 0).rgb;

@@ -1,16 +1,6 @@
 ﻿#type compute
 #pragma pack_matrix(row_major)
 
-// --- toggles ---------------------------------------------------------------
-// *** NEW: upper bound for f_ms to keep F_ms numerically tame ***
-#ifndef MS_FMS_MAX
-#define MS_FMS_MAX           0.8f 
-#endif
-#ifndef MS_MIN_STEPS_DIR
-#define MS_MIN_STEPS_DIR     6
-#endif
-
-// --- buffers ---------------------------------------------------------------
 cbuffer PlanetFrame : register(b4)
 {
     float3 PlanetCenterCR;
@@ -28,29 +18,29 @@ cbuffer PlanetFrame : register(b4)
 
 cbuffer Atmosphere : register(b5)
 {
-    float AtmosphereHeight; // Rt - Rg
-    float RayScaleHeight;
-    float MieScaleHeight;
-    float MSGain;
-    
-    float3 RayleighScattering;
-    float SGain;
-    
-    float3 MieScattering;
-    
-    float3 MieAbsorption;
-    
-    float3 GroundAlbedo;
-    
-    float3 MieAnisotropy;
-    float OzoneStrength;
-    
-    uint StepsTransmittance;
-    uint StepsMultiScattering;
-    float APFarDynamic;
-    
-    float3 SunsetTint;
-};
+    float AtmosphereHeight; // 0: Rt - Rg (m)
+    float RayScaleHeight; // 4
+    float MieScaleHeight; // 8
+    float OzoneStrength; // 12
+
+    float3 RayleighScattering; // 16
+    float MieAnisotropyBroad; // 28
+
+    float3 MieScattering; // 32
+    float BakeIBL; // 44
+
+    float3 MieAbsorption; // 48
+    uint FaceIndex; // 60
+
+    float3 GroundAlbedo; // 64
+    uint StepsTransmittance; // 76
+
+    float3 MieAnisotropy; // 80
+    uint StepsMultiScattering; // 92
+
+    float3 MieLobeWeight; // 96
+    float _AtmospherePad0; // 108
+}
 
 cbuffer SunDiscSettings : register(b6)
 {
@@ -86,9 +76,9 @@ static const float PI = 3.14159265359f;
 static const float INV4PI = 0.25f / PI;
 static const float3 LUMA = float3(0.2126, 0.7152, 0.0722);
 static const float MU_EPS = 8e-4;
+static const float MS_FMS_MAX = 0.8f;
+static const uint MS_MIN_STEPS_DIR = 6u;
 
-#define MU_FROM_DIR(wi) ((wi).y)
-//
 #include "TransmittanceLUT.hlsli"
 
 float GroundBiasMeters(float Rg)
@@ -124,18 +114,6 @@ float SunVisibleHard(float r, float muSun, float Rb)
 {
     float muH = MuHorizon(r, Rb);
     return (muSun > muH) ? 1.0f : 0.0f;
-}
-
-void OpticalPropsAtHeight(float h, out float3 sigma_s, out float3 sigma_a, out float3 sigma_t)
-{
-    float dR = DensityRayleigh(h);
-    float dM = DensityMie(h);
-    float3 sigR_s = RayleighScattering * dR;
-    float3 sigM_s = MieScattering * dM;
-    float3 sigM_a = MieAbsorption * dM;
-    sigma_s = sigR_s + sigM_s;
-    sigma_a = sigM_a;
-    sigma_t = sigma_s + sigma_a;
 }
 
 float3 T_to_TOA(float r, float mu, float RbPhys, float Rt)
@@ -228,10 +206,6 @@ void main(uint3 dtid : SV_DispatchThreadID)
     muS = clamp(muS, -1.0f + MU_EPS, 1.0f - MU_EPS);
     float r = lerp(RbPhys, Rt, uv.y);
     float h = max(0.0f, r - RbPhys); // meters  <-- add this
-
-    // local medium props at LUT cell (used for rho and gBar)
-    float3 sigma_s0, sigma_a0, sigma_t_phys;
-    OpticalPropsAtHeight(h, sigma_s0, sigma_a0, sigma_t_phys);
     
     // Build reduced versions for MS only
     float dR = DensityRayleigh(h);
@@ -243,24 +217,24 @@ void main(uint3 dtid : SV_DispatchThreadID)
     // Single-scattering albedo per channel (Hillaire 2020 keeps the multi-scattering transfer per channel)
     float3 sigma_s_true = sigR_s + sigM_s; // full scattering
     float3 sigma_t_true = sigma_s_true + sigM_a; // + absorption
-    float rho_rgb = sigma_s_true / max(sigma_t_true, 1e-6f);
+    float3 rho_rgb = sigma_s_true / max(sigma_t_true, 1e-6f);
 
     const uint Ndirs = max(StepsMultiScattering, 2u);
     
-    // In this MS LUT, +Y is Up (because MU_FROM_DIR(wi) uses wi.y)
+    // In this MS LUT, +Y is up: a direction's mu is its y.
     float sinThetaS = sqrt(saturate(1.0f - muS * muS));
-// Put the sun in the X–Y plane (Z=0). Any azimuth works due to symmetry.
+    // Put the sun in the X–Y plane (Z=0). Any azimuth works due to symmetry.
     float3 wSun = float3(sinThetaS, muS, 0.0f);
 
     float3 L2_vol = 0.0f;
-    float3 L2_gnd = 0.0f;
+    float3 L2_gnd = 0.0f;  
     float3 fms = 0.0f;
 
     [loop]
     for (uint i = 0; i < Ndirs; ++i)
     {
         float3 wi = SampleSphere(i, Ndirs);
-        float mu = MU_FROM_DIR(wi);
+        float mu = wi.y;
 
         bool isGround = HitsGround(r, mu, RbHit);
         float d = isGround ? DistToBottom(r, mu, RbHit) : DistToTop(r, mu, Rt);
@@ -328,7 +302,6 @@ void main(uint3 dtid : SV_DispatchThreadID)
 
             // Visibility of the sun from this point (use RbVis so tangency is stable)
             float VsunP = SunVisibleHard(rP, muSunP, RbVis);
-            // If you prefer softened: float VsunP = SunVisibleSoft(rP, muSunP, RbVis, SunDiscRadius);
 
             // Sun transmittance from point to TOA along sun direction
             float3 TsunP = T_to_TOA(rP, muSunP, RbPhys, Rt) * VsunP;
@@ -368,12 +341,6 @@ void main(uint3 dtid : SV_DispatchThreadID)
     float3 Fms = 1.0f / (1.0f - fms);
     float3 PsiMS = (L2_vol + L2_gnd) * Fms;
 
-    // Anisotropy reduction with increasing scattering order (simple, robust):
-    // g_eff ≈ g * (1 - k * fms), k∈[0.6..0.8] works well
-    float mieShare = dot(MieScattering * DensityMie(h), LUMA) / max(dot(sigma_s0, LUMA), 1e-6f);
-    float3 g_eff = saturate(MieAnisotropy) * (1.0f - 0.7f * fms);
-    float gBar = saturate(mieShare * dot(g_eff, LUMA));
-
-    OutMultiScatter[dtid.xy] = float4(max(PsiMS, 0.0f), gBar);
+    OutMultiScatter[dtid.xy] = float4(max(PsiMS, 0.0f), 0.0f);
 }
 

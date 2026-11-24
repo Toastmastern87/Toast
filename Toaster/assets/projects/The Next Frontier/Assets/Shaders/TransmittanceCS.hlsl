@@ -19,36 +19,34 @@ cbuffer PlanetFrame : register(b4)
 
 cbuffer Atmosphere : register(b5)
 {
-    float AtmosphereHeight; // Rt - Rg
-    float RayScaleHeight;
-    float MieScaleHeight;
-    float MSGain;
-    
-    float3 RayleighScattering;
-    float SGain;
-    
-    float3 MieScattering;
-    
-    float3 MieAbsorption;
-    
-    float3 GroundAlbedo;
-    
-    float3 MieAnisotropy;
-    float OzoneStrength;
-    
-    uint StepsTransmittance;
-    uint StepsMultiScattering;
-    float APFarDynamic;
-    
-    float3 SunsetTint;
-};
+    float AtmosphereHeight; // 0: Rt - Rg (m)
+    float RayScaleHeight; // 4
+    float MieScaleHeight; // 8
+    float OzoneStrength; // 12
+
+    float3 RayleighScattering; // 16
+    float MieAnisotropyBroad; // 28
+
+    float3 MieScattering; // 32
+    float BakeIBL; // 44
+
+    float3 MieAbsorption; // 48
+    uint FaceIndex; // 60
+
+    float3 GroundAlbedo; // 64
+    uint StepsTransmittance; // 76
+
+    float3 MieAnisotropy; // 80
+    uint StepsMultiScattering; // 92
+
+    float3 MieLobeWeight; // 96
+    float _AtmospherePad0; // 108
+}
 
 RWTexture2D<float4> OutTransmittance : register(u0);
 
 // ---------- constants ----------
 static const float3 O3_COEFF = float3(0.650e-6, 1.881e-6, 0.085e-6); // Bruneton
-static const float PI = 3.14159265358979323846f;
-static const float MU_EPS = 8e-4;
 
 #include "TransmittanceLUT.hlsli"
 
@@ -79,19 +77,6 @@ float DensityOzone(float hMeters)
     return tri * (OzoneStrength / 15000.0f);
 }
 
-// ---------- TLUT domain mapping ----------
-float RadiusFromV(float v, float RbPhys, float Rt)
-{
-    return lerp(RbPhys, Rt, saturate(v));
-}
-
-float MuFromU(float u, float r, float RbPhys)
-{
-    float muMin = -sqrt(saturate(1.0f - (RbPhys * RbPhys) / (r * r)));
-    float mu = muMin + saturate(u) * (1.0f - muMin);
-    return clamp(mu, muMin + MU_EPS, 1.0f - MU_EPS);
-}
-
 // ---------- main ----------
 [numthreads(8, 8, 1)]
 void main(uint3 id : SV_DispatchThreadID)
@@ -101,22 +86,14 @@ void main(uint3 id : SV_DispatchThreadID)
     if (id.x >= W || id.y >= H)
         return;
 
-    const float R_BIAS = max(1.0f, 2e-6f * PlanetRadius);
     const float Rt = PlanetRadius + AtmosphereHeight;
     const float RbPhys = PlanetRadius + min(0.0f, MinHeight);
-    const float RbVis = RbPhys + R_BIAS;
-    const float RbHit = RbPhys + R_BIAS;
 
     float2 uv = float2((id.x + 0.5f) / float(W), (id.y + 0.5f) / float(H));
 
     float r, mu;
     TransRMuFromUV(uv, RbPhys, Rt, r, mu);
-    //
-    //// Ray (planet-centered), Up = +Z
-    //float3 x = float3(0.0f, 0.0f, r);
-    //float s = sqrt(saturate(1.0f - mu * mu));
-    //float3 w = float3(s, 0.0f, mu);
-    // Ray (planet-centered), Up = +Y (engine convention)
+   
     float3 x = float3(0.0f, r, 0.0f);
     float s = sqrt(saturate(1.0f - mu * mu));
     // Put ray in X–Y plane; y is "up"

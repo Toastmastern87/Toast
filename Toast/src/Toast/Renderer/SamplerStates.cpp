@@ -79,18 +79,6 @@ namespace Toast {
 			CreateSampler(SamplerType::UWrapVClamp, desc);
 		}
 
-		// SkyTest: Anisotropic, Clamp, MipLODBias 0.5
-		{
-			D3D11_SAMPLER_DESC desc = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
-			desc.Filter = D3D11_FILTER_ANISOTROPIC;
-			desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-			desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-			desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-			desc.MaxAnisotropy = 16;
-			desc.MipLODBias = 0.5f;
-			CreateSampler(SamplerType::SkyTest, desc);
-		}
-
 		// ShadowCmp: Comparison sampler for shadow mapping
 		{
 			D3D11_SAMPLER_DESC desc = {};

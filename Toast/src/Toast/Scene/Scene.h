@@ -59,59 +59,6 @@ namespace Toast {
 		float SlopeBias;
 	};
 
-	struct SunUVResult
-	{
-		DirectX::XMFLOAT2 uv;     // [0..1] ideally (may go outside if off-screen)
-		bool valid;  // false if sun is behind camera / cannot project
-	};
-
-	inline SunUVResult ComputeSunUVFromDirection(const DirectX::XMFLOAT3& directionFromLight, const DirectX::XMMATRIX& view, const DirectX::XMMATRIX& proj)
-	{
-		SunUVResult out{};
-		out.uv = DirectX::XMFLOAT2(0.5f, 0.5f);
-		out.valid = false;
-
-		// TO sun (matches your shader: wSun = -normalize(direction.xyz))
-		DirectX::XMVECTOR wSun = DirectX::XMVectorSet(-directionFromLight.x,
-			-directionFromLight.y,
-			-directionFromLight.z,
-			0.0f);
-		wSun = DirectX::XMVector3Normalize(wSun);
-
-		// Transform direction to view space (w=0 for direction)
-		DirectX::XMVECTOR sunVS = DirectX::XMVector3TransformNormal(wSun, view);
-
-		// Extract components
-		DirectX::XMFLOAT3 sVS;
-		DirectX::XMStoreFloat3(&sVS, sunVS);
-
-		// In a conventional left-handed D3D view space, camera looks down +Z.
-		// The sun is "in front" if z > 0.
-		const float z = sVS.z;
-		if (z <= 1e-6f)
-		{
-			// Behind camera (or too close to perpendicular to project safely)
-			return out;
-		}
-
-		// We only need P00 and P11 from projection matrix.
-		// In DirectXMath, XMMATRIX is row-major in memory; indices m.r[row].m128_f32[col].
-		const float P00 = proj.r[0].m128_f32[0];
-		const float P11 = proj.r[1].m128_f32[1];
-
-		// NDC from direction (equivalent to projecting a point on the ray)
-		const float ndcX = (sVS.x / z) * P00;
-		const float ndcY = (sVS.y / z) * P11;
-
-		// NDC -> UV. Your shaders use ndcY = 1 - 2*uv.y, so invert here.
-		const float u = 0.5f * ndcX + 0.5f;
-		const float v = 0.5f - 0.5f * ndcY;
-
-		out.uv = DirectX::XMFLOAT2(u, v);
-		out.valid = true;
-		return out;
-	}
-
 	struct LightEnvironment
 	{
 		DirectionalLight DirectionalLights[1];
@@ -190,7 +137,6 @@ namespace Toast {
 			float SSAORadius = 0.5f;
 			float SSAObias = 0.025f;
 			BloomParams Bloom;
-			bool DynamicIBL = true;
 
 			float SunFrustumOrthoSize = 500.0f;
 
@@ -213,8 +159,6 @@ namespace Toast {
 
 		struct Environment 
 		{
-			SunUVResult SunUV;
-
 			// Lightning Gains
 			float DiffuseIBLGain = 1.0f;
 			float SpecularIBLGain = 1.0f;
@@ -223,20 +167,7 @@ namespace Toast {
 			// Sun
 			bool SunDiscToggle = false;
 			float SunIntensity = 20.0f;
-			float SunDiscRadius = 0.0f;
-			float SunEdgeSoftness = 0.0f;
-			float SpaceDiscBrightnessScale = 1.3f;
-			DirectX::XMFLOAT3 WarmTint = { 1.0f, 1.0f, 1.0f };
-			float AirHaloIntensity = 0.28f;
-
-			float AirHaloStartFrac = 0.15f;
-			float AirHaloFalloffPow = 1.10f; 
-			float HorizonRefractionDeg = 0.83f;
-			float TwilightBlendDeg = 1.5f;
-
-			float SpaceHaloWidthDeg = 0.8f; 
-			float SpaceHaloIntensity = 0.04f; 
-			float SpaceHaloCutoffDeg = 6.0f; 
+			float SunDiscRadius = 0.0f;	
 
 			AssetHandle StarburstTextureHandle = 0;
 

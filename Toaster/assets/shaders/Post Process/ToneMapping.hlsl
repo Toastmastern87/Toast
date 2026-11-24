@@ -33,7 +33,6 @@ Texture2D<float> SunHaloMask            : register(t15);
 StructuredBuffer<float> ExposureEV      : register(t17);
 
 SamplerState LinearClamp                : register(s0);
-SamplerState ClampPoint                 : register(s1);
 
 #include "LocalExposure.hlsli"
 
@@ -73,13 +72,7 @@ cbuffer DirectionalLight : register(b3)
 
 cbuffer StarsParams : register(b7)
 {
-    float StarNits; // e.g. 600.0 (display-space peak for brightest texel)
-    float TwilightStartDeg; // start appearing (e.g. 0.0)    
-    float TwilightEndDeg; // fully visible by (e.g. -6.0)
-    float SpaceFadeStart; // altitude norm where space visibility starts (0..1), e.g. 0.85
-    
-    float SpaceFadeEnd; // fully visible by (0..1), e.g. 0.98    
-    float3 _pad0;
+    float StarNits;
 }
 
 cbuffer Tonemapping : register(b10)
@@ -156,22 +149,6 @@ float3 ToneMapAgX(float3 c)
     v = AgXLook(v, AGX_LOOK_POWER, AGX_LOOK_SATURATION); 
     v = mul(AgXOutset, v);
     return pow(saturate(v), 2.2f);
-}
-
-float StarburstN(float angle, int spikes, float sharpness)
-{
-    // spikes=4 -> cos(2a); spikes=6 -> cos(3a); spikes=8 -> cos(4a)
-    float k = 0.5f * spikes;
-    float s = abs(cos(k * angle));
-    return pow(s, sharpness);
-}
-
-// Smooth radial falloff for lens effects (r in UV space)
-float RadialFalloff(float r, float r0, float power)
-{
-    // r0 = radius where it starts fading; power controls tail
-    float t = saturate(r / max(r0, 1e-6f));
-    return pow(1.0f - t, power);
 }
 
 float3 Starburst(float2 pixel, float2 sunPixel)
@@ -324,17 +301,13 @@ PSOut main(PSIn input)
     // Add to colorLinear BEFORE tonemap:
     colorLinear += lensAdd;
     
-    // Tone map to scRGB paper-white space
-    const float peakLinear = 2000.0f / 200.0f; // assuming PW=200 nits
     float3 colorHDR = ToneMapAgX(colorLinear);
-
-    // --- NEW: local tonemap bypass for sun (disc + halo)
     
+    // Stars are hidden over the sun's disc and its halo (masks written by the atmosphere pass).
     float discMask = saturate(SunDiscMask.Sample(LinearClamp, input.uv));
     float haloMask = saturate(SunHaloMask.Sample(LinearClamp, input.uv));
-    
-    // optional: tame the very faint halo from fully bypassing
     float haloTame = saturate(haloMask * 1.25f - 0.05f); // small threshold + gain
+    
     float occ = saturate(discMask * 1.0f + haloTame * 0.85f);
 
     // ---------- Stars (added in display space), fade by camera twilight ------

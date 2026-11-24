@@ -15,34 +15,29 @@ cbuffer PlanetFrame : register(b4)
 
 cbuffer Atmosphere : register(b5)
 {
-    float AtmosphereHeight;
-    float RayScaleHeight;
-    float MieScaleHeight;
-    float MSGain;
-    
-    float3 RayleighScattering;
-    float SGain;
-    
-    float3 MieScattering;
-    
-    float3 MieAbsorption;
-    
-    float3 GroundAlbedo;
-    uint FaceIndex;
-    
-    float3 MieAnisotropy;
-    float OzoneStrength;
-    
-    uint StepsTransmittance;
-    uint StepsMultiScattering;
-    float APFarDynamic;
-    
-    float3 SunsetTint;
-    float BakeIBL;
-    
-    float3 MieLobeWeight;
-    float MieAnisotropyBroad;
-};
+    float AtmosphereHeight; // 0: Rt - Rg (m)
+    float RayScaleHeight; // 4
+    float MieScaleHeight; // 8
+    float OzoneStrength; // 12
+
+    float3 RayleighScattering; // 16
+    float MieAnisotropyBroad; // 28
+
+    float3 MieScattering; // 32
+    float BakeIBL; // 44
+
+    float3 MieAbsorption; // 48
+    uint FaceIndex; // 60
+
+    float3 GroundAlbedo; // 64
+    uint StepsTransmittance; // 76
+
+    float3 MieAnisotropy; // 80
+    uint StepsMultiScattering; // 92
+
+    float3 MieLobeWeight; // 96
+    float _AtmospherePad0; // 108
+}
 
 Texture2D<float4> TransmittanceLUT : register(t0);
 Texture2D<float4> MultiScatterLUT : register(t1);

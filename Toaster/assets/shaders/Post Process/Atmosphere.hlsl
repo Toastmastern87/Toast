@@ -67,63 +67,41 @@ cbuffer PlanetFrame : register(b4)
 
 cbuffer Atmosphere : register(b5)
 {
-    float AtmosphereHeight;
-    float RayScaleHeight;
-    float MieScaleHeight;
-    float MSGain;
-    
-    float3 RayleighScattering;
-    float SGain;
-    
-    float3 MieScattering;
-    
-    float3 MieAbsorption;
-    
-    float3 GroundAlbedo;
-    uint FaceIndex;
-    
-    float3 MieAnisotropy;
-    float OzoneStrength;
-    
-    uint StepsTransmittance;
-    uint StepsMultiScattering;
-    float APFarDynamic;
-    
-    float3 SunsetTint;
-    float BakeIBL;
-    
-    float3 MieLobeWeight;
-    float MieAnisotropyBroad;
-};
+    float AtmosphereHeight; // 0: Rt - Rg (m)
+    float RayScaleHeight; // 4
+    float MieScaleHeight; // 8
+    float OzoneStrength; // 12
+
+    float3 RayleighScattering; // 16
+    float MieAnisotropyBroad; // 28
+
+    float3 MieScattering; // 32
+    float BakeIBL; // 44
+
+    float3 MieAbsorption; // 48
+    uint FaceIndex; // 60
+
+    float3 GroundAlbedo; // 64
+    uint StepsTransmittance; // 76
+
+    float3 MieAnisotropy; // 80
+    uint StepsMultiScattering; // 92
+
+    float3 MieLobeWeight; // 96
+    float _AtmospherePad0; // 108
+}
 
 cbuffer SunDiscSettings : register(b6)
 {
-    float SunDiscRadius; // rad  (e.g. radians(0.2666))
-    float SunEdgeSoftness; // rad  (soft rim width)
-    int SunDiscToggle; // 0=off, 1=on
-    float SpaceDiscBrightnessScale; // unitless scale, e.g. 1.30
-    
-    float3 SunDiscPad0;
-    float AirHaloIntensity; // 0..~0.6 (was HaloStrength_Ground, e.g. 0.28)
-    
-    float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)    
-    float AirHaloStartFrac; // 0..1   (was InAirStart, e.g. 0.15)
-    
-    float AirHaloFalloffPow; // curve (was InAirPow, e.g. 1.10)
-    float HorizonRefractionDeg; // deg (was RefracCenterDeg, e.g. 0.83)
-    float TwilightBlendDeg; // deg (was TwilightExtraDeg, e.g. 1.5)
-    float SpaceHaloWidthDeg; // deg (was SpaceHaloSigmaDeg, e.g. 0.8)
-    
-    float SpaceHaloIntensity; // 0.01..0.10 (was SpaceHaloGain, e.g. 0.04)
-    float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
+    float SunDiscRadius; // 0
+    int SunDiscToggle; // 4
+    float2 _SunDiscPad0; // 8
 };
 
-// ===== Textures / Samplers ==================================================
-Texture2D<float4> TransmittanceLUT      : register(t0); // (not used in composite)
-Texture2D<float4> MultiScatterLUT       : register(t1); // (not used in composite)
+Texture2D<float4> TransmittanceLUT      : register(t0); 
+Texture2D<float4> MultiScatterLUT       : register(t1); 
 Texture2D<float4> SkyViewLUT            : register(t2);
 Texture3D<float4> AerialPerspective3D   : register(t3);
-Texture2D<float4> positionTexture       : register(t4);
 Texture2D<uint> APFarU32                : register(t5);
 Texture2D<float4> GroundIrradianceLUT   : register(t6);
 Texture2D<float4> SkyShadowRemoved      : register(t7);
@@ -132,17 +110,7 @@ Texture2D<float4> SceneColor            : register(t10);
 
 SamplerState ClampLinear    : register(s0);
 SamplerState ClampPoint     : register(s1);
-SamplerState SkyAniso       : register(s3);
 
-#ifndef AP_Z_GAMMA
-#define AP_Z_GAMMA 1.6f  
-#endif
-
-#ifndef AP_XY_BSPLINE
-#define AP_XY_BSPLINE 1 // 1 = cubic B-spline in screen x/y, 0 = plain trilinear
-#endif
-
-// ===== Math helpers =========================================================
 static const float PI = 3.14159265358979323846f;
 static const float INV4PI = 0.25f / PI;
 static const float3 LUMA = float3(0.2126f, 0.7152f, 0.0722f);
@@ -152,6 +120,7 @@ static const float MU_EPS = 8e-4;
 #include "SkyViewLUT.hlsli"
 #include "GroundIrradianceLUT.hlsli"
 #include "AtmosphereRays.hlsli"
+#include "AerialPerspectiveCommon.hlsli"
 
 static const float ORBIT_TAU_STEP = 0.03f; // target optical depth per step(same as SkyViewCS)
 static const uint ORBIT_NCAP = 64u; // soft step cap; hard cap is 4x (same scheme as SkyViewCS)
@@ -334,13 +303,6 @@ float MuHorizon(float r, float R)
 // mu0 = lower bound (planet/ground horizon), mu1 = upper bound (TOA edge).
 // If camera is inside the atmosphere (r <= Rt), every upward μ intersects;
 // in that case, set mu1 = 1.
-//void GetMuWindow(float r, float RbVis, float Rt, out float mu0, out float mu1)
-//{
-//    float muG = MuHorizon(r, RbVis);
-//    float muT = MuHorizon(r, Rt); //(r <= Rt) ? 1.0f : 
-//    mu0 = muG + MU_EPS; // lift off horizon
-//    mu1 = max(mu0 + 1e-5f, muT); // keep span > 0
-//}
 void GetMuWindow(float r, float RbVis, float Rt, out float mu0, out float mu1)
 {
     float muG = MuHorizon(r, RbVis);
@@ -545,6 +507,36 @@ float4 SampleAP_BSplineXY(float3 uvw)
     return g0.y * (g0.x * s00 + g1.x * s10) + g1.y * (g0.x * s01 + g1.x * s11);
 }
 
+float3 SampleSkyShadowRemoved(float2 uv)
+{
+    uint w, h;
+    SkyShadowRemoved.GetDimensions(w, h);
+    const int2 maxIJ = int2(w, h) - 1;
+
+    const float2 p = uv * float2(w, h) - 0.5f;
+    const float2 f = frac(p);
+    const int2 i0 = clamp(int2(floor(p)), int2(0, 0), maxIJ);
+    const int2 i1 = min(i0 + 1, maxIJ);
+
+    const float4 s00 = SkyShadowRemoved.Load(int3(i0.x, i0.y, 0));
+    const float4 s10 = SkyShadowRemoved.Load(int3(i1.x, i0.y, 0));
+    const float4 s01 = SkyShadowRemoved.Load(int3(i0.x, i1.y, 0));
+    const float4 s11 = SkyShadowRemoved.Load(int3(i1.x, i1.y, 0));
+
+    // Bilinear weights, times each texel's sky flag (alpha).
+    const float w00 = (1.0f - f.x) * (1.0f - f.y) * s00.a;
+    const float w10 = f.x * (1.0f - f.y) * s10.a;
+    const float w01 = (1.0f - f.x) * f.y * s01.a;
+    const float w11 = f.x * f.y * s11.a;
+    const float wSum = w00 + w10 + w01 + w11;
+
+    if (wSum > 1e-4f)
+        return (s00.rgb * w00 + s10.rgb * w10 + s01.rgb * w01 + s11.rgb * w11) / wSum;
+
+    // No sky texel among the four (a sliver of sky between ground texels): the plain bilinear value.
+    return SkyShadowRemoved.SampleLevel(ClampLinear, uv, 0).rgb;
+}
+
 struct PSIn
 {
     float4 pos : SV_Position;
@@ -575,7 +567,6 @@ PSOut main(PSIn i)
     float3 camWS = cameraPosition.xyz;
     float3 camRel = camWS - PlanetCenterWS;
     float rCam = max(RbPhys, length(camRel));
-    float heightCam = rCam - RbPhys;
 
     bool bake = (BakeIBL > 0.5f);
 
@@ -664,8 +655,7 @@ PSOut main(PSIn i)
         uint Wsv, Hsv;
         SkyViewLUT.GetDimensions(Wsv, Hsv);
        
-        float3 upCam = camRel / rCam;
-        float rWin = rCam;     
+        float3 upCam = camRel / rCam;  
 
         GetMuWindow(rCam, RbVis, Rt, mu0, mu1);
         
@@ -684,7 +674,7 @@ PSOut main(PSIn i)
         SkyViewSunFrame(up, -normalize(direction.xyz), east, fSun, sSun);
         float2 uvSky = SkyViewUV(wView, up, fSun, sSun, mu0, mu1, float2(Wsv, Hsv));
         float3 sky = SkyViewLUT.SampleLevel(ClampLinear, uvSky, 0).rgb;
-        sky = max(sky - SkyShadowRemoved.SampleLevel(ClampLinear, uv, 0).rgb, 0.0f);
+        sky = max(sky - SampleSkyShadowRemoved(uv), 0.0f); 
         
         // From space, directions above the top-of-atmosphere horizon miss the atmosphere:
         // no sky light (the paper's ray march adds nothing when there is no intersection).
@@ -845,12 +835,8 @@ PSOut main(PSIn i)
         
         float wAP = (max(sliceF, 0.0f) + 0.5f) / DdF; // texel centre of the continuous slice index
         
-        // final sample: TRILINEAR
-#if AP_XY_BSPLINE
         float4 ap = SampleAP_BSplineXY(float3(uv, wAP));
-#else
-        float4 ap = AerialPerspective3D.SampleLevel(ClampLinear, float3(uv, wAP), 0);
-#endif
+
         ap.rgb *= weight;
         float tau = max(ap.a, 0.0f) * weight;
         

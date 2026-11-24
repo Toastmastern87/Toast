@@ -567,8 +567,6 @@ namespace Toast {
 						out.LightViewProj[i] = DirectX::XMMatrixIdentity();
 				}
 			}
-
-			mEnvironment.SunUV = ComputeSunUVFromDirection(DirectX::XMFLOAT3(direction.x, direction.y, direction.z), DirectX::XMLoadFloat4x4(&mMainCamera->GetViewMatrix()), DirectX::XMLoadFloat4x4(&mMainCamera->GetProjection()));
 		}
 
 		// Process Skeletal/Blender Animations
@@ -1010,7 +1008,7 @@ namespace Toast {
 
 				OutlineSettings outline = ResolveOutlineSettings({});
 
-				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.Shadows, mSettings.HoverTintColor, ts, true);
+				Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, *mMainCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.Shadows, mSettings.HoverTintColor, ts, true);
 			}
 
 			// Debug Rendering
@@ -1484,8 +1482,6 @@ namespace Toast {
 						out.LightViewProj[i] = DirectX::XMMatrixIdentity();
 				}
 			}
-
-			mEnvironment.SunUV = ComputeSunUVFromDirection(DirectX::XMFLOAT3(direction.x, direction.y, direction.z), DirectX::XMLoadFloat4x4(&editorCamera->GetViewMatrix()), DirectX::XMLoadFloat4x4(&editorCamera->GetProjection()));
 		}
 
 		// Process Particles
@@ -1801,7 +1797,7 @@ namespace Toast {
 
 			OutlineSettings outline = ResolveOutlineSettings({});
 
-			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, mSettings.DynamicIBL, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.Shadows, mSettings.HoverTintColor, ts, false);
+			Renderer::EndScene(mPlanet, mEnvironment, mSettings.Exposure, mSettings.Bloom, outline, true, mSettings.Shadows.Active, mSettings.SSAO, *editorCamera, cameraPosFloat, mSettings.SSAORadius, mSettings.SSAObias, mSettings.Shadows, mSettings.HoverTintColor, ts, false);
 		}
 
 		// Debug Rendering
@@ -1821,7 +1817,7 @@ namespace Toast {
 				float u = (centerX / (float)mViewportWidth) * NOISE_DIM;
 				float v = (centerY / (float)mViewportHeight) * NOISE_DIM;
 
-				int noiseX = static_cast<int>(floorf(u)) % NOISE_DIM;
+				int noiseX = static_cast<int>(floorf(u)) % NOISE_DIM; 
 				int noiseY = static_cast<int>(floorf(v)) % NOISE_DIM;
 
 				DirectX::XMFLOAT2 noiseScale = DirectX::XMFLOAT2(mViewportWidth / 16.0, mViewportHeight / 16.0);

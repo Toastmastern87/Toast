@@ -1,0 +1,6 @@
+#ifndef AERIAL_PERSPECTIVE_COMMON_HLSLI
+#define AERIAL_PERSPECTIVE_COMMON_HLSLI
+
+static const float AP_Z_GAMMA = 1.6f;
+
+#endif

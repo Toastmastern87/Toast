@@ -916,7 +916,6 @@ namespace Toast {
 		out << YAML::Key << "SSAObias" << YAML::Value << settings.SSAObias;
 		out << YAML::Key << "BloomIntensity" << YAML::Value << settings.Bloom.Intensity;
 		out << YAML::Key << "BloomFalloff" << YAML::Value << settings.Bloom.Falloff;
-		out << YAML::Key << "DynamicIBL" << YAML::Value << settings.DynamicIBL;
 		out << YAML::Key << "SunFrustumOrthoSize" << YAML::Value << settings.SunFrustumOrthoSize;
 
 		out << YAML::Key << "LockEV" << YAML::Value << settings.Exposure.LockEV;
@@ -968,7 +967,6 @@ namespace Toast {
 		out << YAML::Key << "Roughness" << YAML::Value << scenePlanet->mRoughness;
 		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet->mMetalness;
 		out << YAML::Key << "HeightMapAssetHandle" << YAML::Value << scenePlanet->mBaseHeightMapHandle;
-		out << YAML::Key << "Metalness" << YAML::Value << scenePlanet->mMetalness;
 		out << YAML::Key << "StarFieldAssetHandle" << YAML::Value << scenePlanet->mStarFieldTexture2DHandle;
 		out << YAML::Key << "AtmosphereActivated" << YAML::Value << scenePlanet->mAtmosphereActivated;
 		out << YAML::Key << "AtmosphereHeight" << YAML::Value << scenePlanet->mAtmosphere.AtmosphereHeight;
@@ -985,9 +983,6 @@ namespace Toast {
 		out << YAML::Key << "MieAnisotropyBroad" << YAML::Value << scenePlanet->mAtmosphere.MieAnisotropyBroad;
 		out << YAML::Key << "OzoneStrength" << YAML::Value << scenePlanet->mAtmosphere.OzoneStrength;
 		out << YAML::Key << "GroundAlbedo" << YAML::Value << scenePlanet->mAtmosphere.GroundAlbedo;
-		out << YAML::Key << "SunsetTint" << YAML::Value << scenePlanet->mAtmosphere.SunsetTint;
-		out << YAML::Key << "MSGain" << YAML::Value << scenePlanet->mAtmosphere.MSGain;
-		out << YAML::Key << "SGain" << YAML::Value << scenePlanet->mAtmosphere.SGain;
 		out << YAML::Key << "GravityConstant" << YAML::Value << scenePlanet->mGravityConstant;
 		out << YAML::Key << "SurfaceAirDensity" << YAML::Value << scenePlanet->mSurfaceAirDensity;
 		out << YAML::Key << "PhysicsScaleHeight" << YAML::Value << scenePlanet->mPhysicsScaleHeight;
@@ -1145,22 +1140,7 @@ namespace Toast {
 		// -------- Sun --------
 		out << YAML::Key << "SunDiscToggle" << YAML::Value << environment.SunDiscToggle;
 		out << YAML::Key << "SunIntensity" << YAML::Value << environment.SunIntensity;
-		out << YAML::Key << "SunDiscRadius" << YAML::Value << environment.SunDiscRadius;      // radians
-		out << YAML::Key << "SunEdgeSoftness" << YAML::Value << environment.SunEdgeSoftness;    // radians
-		out << YAML::Key << "WarmTint" << YAML::Value << environment.WarmTint;
-		out << YAML::Key << "SpaceDiscBrightnessScale" << YAML::Value << environment.SpaceDiscBrightnessScale;
-
-		// ---- Atmospheric Halo (in-air) ----
-		out << YAML::Key << "AirHaloIntensity" << YAML::Value << environment.AirHaloIntensity;
-		out << YAML::Key << "AirHaloStartFrac" << YAML::Value << environment.AirHaloStartFrac;
-		out << YAML::Key << "AirHaloFalloffPow" << YAML::Value << environment.AirHaloFalloffPow;
-		out << YAML::Key << "HorizonRefractionDeg" << YAML::Value << environment.HorizonRefractionDeg;
-		out << YAML::Key << "TwilightBlendDeg" << YAML::Value << environment.TwilightBlendDeg;
-
-		// -------- Space Halo --------
-		out << YAML::Key << "SpaceHaloWidthDeg" << YAML::Value << environment.SpaceHaloWidthDeg;
-		out << YAML::Key << "SpaceHaloIntensity" << YAML::Value << environment.SpaceHaloIntensity;
-		out << YAML::Key << "SpaceHaloCutoffDeg" << YAML::Value << environment.SpaceHaloCutoffDeg;
+		out << YAML::Key << "SunDiscRadius" << YAML::Value << environment.SunDiscRadius;
 
 		out << YAML::Key << "StarburstTextureHandle" << YAML::Value << environment.StarburstTextureHandle;
 		out << YAML::Key << "StarburstSize" << YAML::Value << environment.StarburstSize;
@@ -1297,9 +1277,8 @@ namespace Toast {
 		settings.SSAODebugging = data["Settings"]["SSAODebugging"].as<bool>();
 		settings.SSAORadius = data["Settings"]["SSAORadius"].as<float>();
 		settings.SSAObias = data["Settings"]["SSAObias"].as<float>();
-		settings.Bloom.Intensity = data["Settings"]["BloomIntesity"].as<float>(0.04f);
+		settings.Bloom.Intensity = data["Settings"]["BloomIntensity"].as<float>(0.04f);
 		settings.Bloom.Falloff = data["Settings"]["BloomFalloff"].as<float>(0.5f);
-		settings.DynamicIBL = data["Settings"]["DynamicIBL"].as<bool>();
 		settings.SunFrustumOrthoSize = data["Settings"]["SunFrustumOrthoSize"].as<float>();
 		settings.Exposure.LockEV = data["Settings"]["LockEV"].as<bool>(false);
 		settings.Exposure.LockedEV = data["Settings"]["LockedEV"].as<float>(0.0f);
@@ -1368,9 +1347,6 @@ namespace Toast {
 		scenePlanet->mAtmosphere.MieAnisotropyBroad = planet["MieAnisotropyBroad"].as<float>(0.0f);
 		scenePlanet->mAtmosphere.OzoneStrength = planet["OzoneStrength"].as<float>();
 		scenePlanet->mAtmosphere.GroundAlbedo = planet["GroundAlbedo"].as<DirectX::XMFLOAT3>();
-		scenePlanet->mAtmosphere.SunsetTint = planet["SunsetTint"].as<DirectX::XMFLOAT3>();
-		scenePlanet->mAtmosphere.MSGain = planet["MSGain"].as<float>();
-		scenePlanet->mAtmosphere.SGain = planet["SGain"].as<float>();
 		scenePlanet->mGravityConstant = planet["GravityConstant"].as<float>();
 		scenePlanet->mSurfaceAirDensity = planet["SurfaceAirDensity"].as<float>();
 		scenePlanet->mPhysicsScaleHeight = planet["PhysicsScaleHeight"].as<float>();
@@ -1540,25 +1516,11 @@ namespace Toast {
 		environment.SunDiscToggle = env["SunDiscToggle"].as<bool>();
 		environment.SunIntensity = env["SunIntensity"].as<float>();
 		environment.SunDiscRadius = env["SunDiscRadius"].as<float>();
-		environment.SunEdgeSoftness = env["SunEdgeSoftness"].as<float>();
 		environment.StarNits = env["StarNits"].as<float>();
 		environment.TwilightStartDeg = env["TwilightStartDeg"].as<float>();
 		environment.TwilightEndDeg = env["TwilightEndDeg"].as<float>();
 		environment.SpaceFadeStart = env["SpaceFadeStart"].as<float>();
 		environment.SpaceFadeEnd = env["SpaceFadeEnd"].as<float>();
-
-		environment.SpaceDiscBrightnessScale = env["SpaceDiscBrightnessScale"].as<float>();
-		environment.WarmTint = env["WarmTint"].as<DirectX::XMFLOAT3>();
-		environment.AirHaloIntensity = env["AirHaloIntensity"].as<float>();
-
-		environment.AirHaloStartFrac = env["AirHaloStartFrac"].as<float>();
-		environment.AirHaloFalloffPow = env["AirHaloFalloffPow"].as<float>();
-		environment.HorizonRefractionDeg = env["HorizonRefractionDeg"].as<float>();
-		environment.TwilightBlendDeg = env["TwilightBlendDeg"].as<float>();
-
-		environment.SpaceHaloWidthDeg = env["SpaceHaloWidthDeg"].as<float>();
-		environment.SpaceHaloIntensity = env["SpaceHaloIntensity"].as<float>();
-		environment.SpaceHaloCutoffDeg = env["SpaceHaloCutoffDeg"].as<float>();
 
 		environment.StarburstTextureHandle = env["StarburstTextureHandle"].as<AssetHandle>(0);
 		environment.StarburstSize = env["StarburstSize"].as<float>(0.9f);

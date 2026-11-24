@@ -78,46 +78,6 @@ namespace Toast {
 		ImGui::Text("Sun Disc Radius (rad)");
 		ImGui::DragFloat("##SunDiscRadius", &environment.SunDiscRadius, 0.000001f, 0.0f, FLT_MAX, "%.6f");
 
-		ImGui::Text("Sun Edge Softness (rad)");
-		ImGui::DragFloat("##SunEdgeSoftness", &environment.SunEdgeSoftness, 0.0001f, 0.0f, FLT_MAX, "%.4f");
-
-		ImGui::Text("Warm Tint (RGB)");
-		ImGui::ColorEdit3("##WarmTint", &environment.WarmTint.x);
-
-		ImGui::Text("Space Disc Brightness Scale");
-		ImGui::DragFloat("##SpaceDiscBrightnessScale", &environment.SpaceDiscBrightnessScale, 0.01f, 0.0f, 4.0f, "%.2f");
-
-		// ------------- Atmospheric Halo (in-air) -------------
-		ImGui::Separator();
-		ImGui::Text("Atmospheric Halo");
-
-		ImGui::Text("Air Halo Intensity");
-		ImGui::DragFloat("##AirHaloIntensity", &environment.AirHaloIntensity, 0.01f, 0.0f, 1.0f, "%.2f");
-
-		ImGui::Text("Air Halo Start (Frac)");
-		ImGui::DragFloat("##AirHaloStartFrac", &environment.AirHaloStartFrac, 0.01f, 0.0f, 1.0f, "%.2f");
-
-		ImGui::Text("Air Halo Falloff Pow");
-		ImGui::DragFloat("##AirHaloFalloffPow", &environment.AirHaloFalloffPow, 0.01f, 0.1f, 3.0f, "%.2f");
-
-		ImGui::Text("Horizon Refraction (deg)");
-		ImGui::DragFloat("##HorizonRefractionDeg", &environment.HorizonRefractionDeg, 0.01f, 0.0f, 2.0f, "%.2f");
-
-		ImGui::Text("Twilight Blend (deg)");
-		ImGui::DragFloat("##TwilightBlendDeg", &environment.TwilightBlendDeg, 0.01f, 0.0f, 5.0f, "%.2f");
-
-		// ---------------- Space Halo ----------------
-		ImGui::Separator(); 
-		ImGui::Text("Space Halo");
-
-		ImGui::Text("Space Halo Width (deg)");
-		ImGui::DragFloat("##SpaceHaloWidthDeg", &environment.SpaceHaloWidthDeg, 0.01f, 0.1f, 5.0f, "%.2f");
-
-		ImGui::Text("Space Halo Intensity");
-		ImGui::DragFloat("##SpaceHaloIntensity", &environment.SpaceHaloIntensity, 0.005f, 0.0f, 0.5f, "%.3f");
-
-		ImGui::Text("Space Halo Cutoff (deg)");
-		ImGui::DragFloat("##SpaceHaloCutoffDeg", &environment.SpaceHaloCutoffDeg, 0.1f, 0.0f, 30.0f, "%.1f");
 
 		// ------------- Starburst (FFT of a 6-blade aperture) -------------
 		ImGui::Separator();

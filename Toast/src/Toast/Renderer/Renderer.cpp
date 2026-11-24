@@ -80,7 +80,7 @@ namespace Toast {
 		sRendererData->LightningBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer and data buffer for environmental rendering
-		sRendererData->SunDiscSettingsCBuffer = ConstantBufferLibrary::Load("SunDiscSettings", 80, std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::SunDiscSettings), CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SunDiscSettings)  });
+		sRendererData->SunDiscSettingsCBuffer = ConstantBufferLibrary::Load("SunDiscSettings", sizeof(SunDiscCBufferGPU), std::vector<CBufferBindInfo>{ CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::SunDiscSettings), CBufferBindInfo(D3D11_COMPUTE_SHADER, CBufferBindSlot::SunDiscSettings)  });
 		sRendererData->SunDiscSettingsCBuffer->Bind();
 		sRendererData->SunDiscSettingsBuffer.Allocate(sRendererData->SunDiscSettingsCBuffer->GetSize());
 		sRendererData->SunDiscSettingsBuffer.ZeroInitialize();
@@ -122,10 +122,10 @@ namespace Toast {
 		sRendererData->HoverTintBuffer.ZeroInitialize();
 
 		// Setting up the constant buffer for bloom rendering
-		sRendererData->BloomMipCBuffer = ConstantBufferLibrary::Load("BloomMipParams", 16, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)13) });
+		sRendererData->BloomMipCBuffer = ConstantBufferLibrary::Load("BloomMipParams", 16, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Bloom) });
 		sRendererData->BloomMipBuffer.Allocate(sRendererData->BloomMipCBuffer->GetSize());
 		sRendererData->BloomMipBuffer.ZeroInitialize();
-		sRendererData->BloomBlendCBuffer = ConstantBufferLibrary::Load("BloomBlendParams", 16, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, (CBufferBindSlot)13) });
+		sRendererData->BloomBlendCBuffer = ConstantBufferLibrary::Load("BloomBlendParams", 16, std::vector<CBufferBindInfo>{  CBufferBindInfo(D3D11_PIXEL_SHADER, CBufferBindSlot::Bloom) });
 		sRendererData->BloomBlendBuffer.Allocate(sRendererData->BloomBlendCBuffer->GetSize());
 		sRendererData->BloomBlendBuffer.ZeroInitialize();
 
@@ -224,8 +224,9 @@ namespace Toast {
 		RenderCommand::ClearRenderTargets({ sRendererData->AtmosphereCubeRT->GetRTVFace(5).Get(), sRendererData->Dummy1RT->GetRTVFace(5).Get(), sRendererData->Dummy2RT->GetRTVFace(5).Get() }, { 0.0f, 0.0f, 0.0f, 0.0f });
 
 		// Setting up dynamic environmental maps 
-		sRendererData->EnvMapFiltered = CreateRef<TextureCube>("EnvMapFilteredDay", 256, 256, 9);
-		sRendererData->IrradianceCubeMap = CreateRef<TextureCube>("IrradianceCubemapDay", 256, 256, 1);
+		sRendererData->EnvMapSource = CreateRef<TextureCube>("EnvMapSource", 256, 256, 9, true);
+		sRendererData->EnvMapFiltered = CreateRef<TextureCube>("EnvMapFiltered", 256, 256, 9);
+		sRendererData->IrradianceCubeMap = CreateRef<TextureCube>("IrradianceCubemap", 32, 32, 1);
 
 		auto& atmospherCubeViewport = sRendererData->AtmosphereCubeViewport;
 		auto atmospherCubeSize = sRendererData->AtmosphereCubeRT->GetSize();
@@ -377,7 +378,7 @@ namespace Toast {
 		sRendererData->RenderSettingsCBuffer->Map(sRendererData->RenderSettingsBuffer);
 	}
 
-	void Renderer::EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::CascadedShadowMapParams& shadowParams, DirectX::XMFLOAT4& hoverTintColor, float dt, bool runtime)
+	void Renderer::EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::CascadedShadowMapParams& shadowParams, DirectX::XMFLOAT4& hoverTintColor, float dt, bool runtime)
 	{
 		sRendererData->ElapsedTime += (float)dt;
 
@@ -429,7 +430,7 @@ namespace Toast {
 
 			{
 				TOAST_PROFILE(*sRendererData->FrameProfiler, "Atmosphere Pass");
-				AtmospherePass(planet, environment, cameraPos, camera.GetWorldTranslation(), dynamicIBL);
+				AtmospherePass(planet, environment, cameraPos, camera.GetWorldTranslation());
 			}
 
 			UploadCameraCBuffer(camera, cameraPos);
@@ -1480,7 +1481,6 @@ namespace Toast {
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 6, sRendererData->SpecularBRDFLUT->GetSRV());
 
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 7, planet->GetTransmittanceLUT()->GetSRV());
-		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 8, planet->GetMultiScatteringLUT()->GetSRV());
 		RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, planet->GetGroundIrradianceLUT()->GetSRV());
 
 		RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::Default));
@@ -1563,7 +1563,7 @@ namespace Toast {
 #endif
 	}
 
-	void Renderer::AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldOffsetWS, const bool dynamicIBL)
+	void Renderer::AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldOffsetWS)
 	{
 		TOAST_PROFILE_FUNCTION();
 
@@ -1587,7 +1587,6 @@ namespace Toast {
 			RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 1, SamplerStates::Get(SamplerType::PointClamp));
 			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 0, SamplerStates::Get(SamplerType::LinearClamp));
 			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 1, SamplerStates::Get(SamplerType::PointClamp));
-			RenderCommand::BindSampler(D3D11_PIXEL_SHADER, 3, SamplerStates::Get(SamplerType::SkyTest));
 
 			// Updating the atmospheric data in the buffer and mapping it to the GPU
 			UploadAtmosphereCBuffer(planet.get(), bakeIBL);
@@ -1595,25 +1594,10 @@ namespace Toast {
 			{
 				auto& buf = sRendererData->SunDiscSettingsBuffer;
 
-				int sunDiscToggle = environment.SunDiscToggle ? 1 : 0;
+				int32_t sunDiscToggle = environment.SunDiscToggle ? 1 : 0;
 
-				buf.Write((uint8_t*)&environment.SunDiscRadius, 4, 0);
-				buf.Write((uint8_t*)&environment.SunEdgeSoftness, 4, 4);
-				buf.Write((uint8_t*)&sunDiscToggle, 4, 8);   // int32
-				buf.Write((uint8_t*)&environment.SpaceDiscBrightnessScale, 4, 12);
-
-				buf.Write((uint8_t*)&environment.AirHaloIntensity, 4, 28);
-
-				buf.Write((uint8_t*)&environment.WarmTint, 12, 32);   // float3
-				buf.Write((uint8_t*)&environment.AirHaloStartFrac, 4, 44);
-
-				buf.Write((uint8_t*)&environment.AirHaloFalloffPow, 4, 48);
-				buf.Write((uint8_t*)&environment.HorizonRefractionDeg, 4, 52);
-				buf.Write((uint8_t*)&environment.TwilightBlendDeg, 4, 56);
-				buf.Write((uint8_t*)&environment.SpaceHaloWidthDeg, 4, 60);
-
-				buf.Write((uint8_t*)&environment.SpaceHaloIntensity, 4, 64);
-				buf.Write((uint8_t*)&environment.SpaceHaloCutoffDeg, 4, 68);
+				buf.Write((uint8_t*)&environment.SunDiscRadius, 4, offsetof(SunDiscCBufferGPU, SunDiscRadius));
+				buf.Write((uint8_t*)&sunDiscToggle, 4, offsetof(SunDiscCBufferGPU, SunDiscToggle));
 
 				sRendererData->SunDiscSettingsCBuffer->Map(sRendererData->SunDiscSettingsBuffer);
 				sRendererData->SunDiscSettingsCBuffer->Bind();
@@ -1737,7 +1721,6 @@ namespace Toast {
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 1, planet->GetMultiScatteringLUT()->GetSRV());
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 2, skyview->GetSRV());
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 3, aerialPerspective->GetSRV());
-			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 4, sRendererData->GPassPositionRT->GetSRV());
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 5, APFar->GetSRV());
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 7, sRendererData->APSkyShadow->GetSRV());
 			RenderCommand::SetShaderResource(D3D11_PIXEL_SHADER, 9, sRendererData->DepthBuffer->GetSRV());
@@ -1761,7 +1744,7 @@ namespace Toast {
 			sRendererData->CameraCBuffer->Map(sRendererData->CameraBuffer);
 
 			int enableSun = 0;
-			sRendererData->SunDiscSettingsBuffer.Write((uint8_t*)&enableSun, 4, 8);
+			sRendererData->SunDiscSettingsBuffer.Write((uint8_t*)&enableSun, 4, offsetof(SunDiscCBufferGPU, SunDiscToggle));
 			sRendererData->SunDiscSettingsCBuffer->Map(sRendererData->SunDiscSettingsBuffer);
 
 			bakeIBL = 1.0f;
@@ -1785,10 +1768,14 @@ namespace Toast {
 		}
 
 		{
-			TOAST_PROFILE(*sRendererData->FrameProfiler, "IBL");
-			// Day time IBL generation
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "IBL Prefilter");
+			UpdateEnvMapSource(sRendererData->AtmosphereCubeRT->GetTextureOriginal(), sRendererData->EnvMapSource, currentFace);
 			GeneratePrefilteredEnvMap(sRendererData->AtmosphereCubeRT->GetTextureOriginal(), sRendererData->EnvMapFiltered, currentFace);
-			GenerateIrradianceCubemap(sRendererData->EnvMapFiltered, sRendererData->IrradianceCubeMap, currentFace);
+		}
+
+		{
+			TOAST_PROFILE(*sRendererData->FrameProfiler, "IBL Irradiance");
+			GenerateIrradianceCubemap(sRendererData->EnvMapSource, sRendererData->IrradianceCubeMap, currentFace);
 		}
 
 		currentFace = (currentFace + 1) % 6;
@@ -2570,6 +2557,19 @@ namespace Toast {
 		sRendererData->SpecularBRDFLUT->UnbindUAV();
 	}
 
+	void Renderer::UpdateEnvMapSource(Texture* atmosphereCube, Ref<TextureCube> envMapSource, int faceIndex)
+	{
+		RendererAPI* API = RenderCommand::sRendererAPI.get();
+		ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
+
+		const uint32_t srcSubresource = D3D11CalcSubresource(0, faceIndex, atmosphereCube->GetMipLevelCount());
+		const uint32_t dstSubresource = D3D11CalcSubresource(0, faceIndex, envMapSource->GetMipLevelCount());
+
+		deviceContext->CopySubresourceRegion(envMapSource->GetResource(), dstSubresource, 0, 0, 0, envMapSource->GetResource(), srcSubresource, nullptr);
+
+		envMapSource->GenerateMips();
+	}
+
 	void Renderer::GeneratePrefilteredEnvMap(Texture* sourceTexture, Ref<TextureCube> targetTexture, int faceIndex)
 	{
 		RendererAPI* API = RenderCommand::sRendererAPI.get();
@@ -2615,8 +2615,6 @@ namespace Toast {
 
 		// Pre-filter the rest of the mip chain for the current face
 		const float deltaRoughness = 1.0f / std::max(float(targetTexture->GetMipLevelCount() - 1.0f), 1.0f);
-		const uint32_t cubemapSize = targetTexture->GetWidth();
-		int size = cubemapSize / 2;
 		const uint32_t mipCount = targetTexture->GetMipLevelCount();
 
 		const int firstMip = canCopyMip0 ? 1 : 0;
@@ -2625,8 +2623,6 @@ namespace Toast {
 		{
 			uint32_t size = targetTexture->GetWidth() / (1u << mipLevel);
 			const int numGroups = std::max(1, int((size + 7) / 8));
-
-			targetTexture->CreateUAVUpdated(mipLevel, faceIndex);
 
 			const float roughness = float(mipLevel) * deltaRoughness;
 			sRendererData->SpecularMapFilterSettingsBuffer.Write((uint8_t*)&roughness, sizeof(float), 0);
@@ -2653,23 +2649,18 @@ namespace Toast {
 		if (shader)
 			shader->Bind();
 
+		sRendererData->SpecularMapFilterSettingsBuffer.Write((uint8_t*)&faceIndex, 4, 4);
+		sRendererData->SpecularMapFilterSettingsCBuffer->Map(sRendererData->SpecularMapFilterSettingsBuffer);
 		sRendererData->SpecularMapFilterSettingsCBuffer->Bind();
 
 		RenderCommand::SetShaderResource(D3D11_COMPUTE_SHADER, 15, sourceTexture->GetSRV());
-
-		targetTexture->CreateUAVUpdated(0, faceIndex);
+		RenderCommand::BindSampler(D3D11_COMPUTE_SHADER, 0, SamplerStates::Get(SamplerType::Default));
 
 		targetTexture->BindForReadWriteUpdated(0, D3D11_COMPUTE_SHADER, 0, faceIndex);
 
-		// Determine dispatch dimensions
-		uint32_t textureDepth;
-		uint32_t textureWidth = targetTexture->GetWidth();
-		uint32_t textureHeight = targetTexture->GetHeight();
-
-		uint32_t dispatchX = (textureWidth + 31) / 32;
-		uint32_t dispatchY = (textureHeight + 31) / 32;
-
-		RenderCommand::DispatchCompute(dispatchX, dispatchY, 1); 
+		const uint32_t groupsX = (targetTexture->GetWidth() + 7) / 8;
+		const uint32_t groupsY = (targetTexture->GetHeight() + 7) / 8;
+		RenderCommand::DispatchCompute(groupsX, groupsY, 1);
 
 		RenderCommand::ClearShaderResources();
 
@@ -2940,9 +2931,7 @@ namespace Toast {
 		data.AtmosphereHeight = atmosphere.AtmosphereHeight;
 		data.RayleighScaleHeight = atmosphere.RayleighScaleHeight;
 		data.MieScaleHeight = atmosphere.MieScaleHeight;
-		data.MSGain = atmosphere.MSGain;
 		data.RayleighScattering = atmosphere.RayleighScattering;
-		data.SGain = atmosphere.SGain;
 		data.MieScattering = atmosphere.MieScattering;
 		data.MieAbsorption = atmosphere.MieAbsorption;
 		data.GroundAlbedo = atmosphere.GroundAlbedo;
@@ -2951,8 +2940,6 @@ namespace Toast {
 		data.OzoneStrength = atmosphere.OzoneStrength;
 		data.StepsTransmittance = atmosphere.StepsTransmittance;
 		data.StepsMultiScattering = atmosphere.StepsMultiScattering;
-		data.APFarDynamic = atmosphere.APFarDynamic;
-		data.SunsetTint = atmosphere.SunsetTint;
 		data.BakeIBL = bakeIBL;
 		data.MieLobeWeight = atmosphere.MieLobeWeight;
 		data.MieAnisotropyBroad = atmosphere.MieAnisotropyBroad;

@@ -1,11 +1,6 @@
 ﻿#type compute
 #pragma pack_matrix(row_major)
 
-// ===== Debug / toggles ======================================================
-#ifndef SKY_STEPS
-#define SKY_STEPS             96
-#endif
-
 // ===== CBuffers =============================================================
 cbuffer Camera : register(b0)
 {
@@ -58,72 +53,51 @@ cbuffer PlanetFrame : register(b4)
 
 cbuffer Atmosphere : register(b5)
 {
-    float AtmosphereHeight; // Rt - Rg
-    float RayScaleHeight;
-    float MieScaleHeight;
-    float MSGain;
-    
-    float3 RayleighScattering;
-    float SGain;
-    
-    float3 MieScattering;
-    
-    float3 MieAbsorption;
-    
-    float3 GroundAlbedo;
-    
-    float3 MieAnisotropy;
-    float OzoneStrength;
-    
-    uint StepsTransmittance;
-    uint StepsMultiScattering;
-    float APFarDynamic;
-    
-    float3 SunsetTint;
-    float BakeIBL; 
-    
-    float3 MieLobeWeight; 
-    float MieAnisotropyBroad;
-};
+    float AtmosphereHeight; // 0: Rt - Rg (m)
+    float RayScaleHeight; // 4
+    float MieScaleHeight; // 8
+    float OzoneStrength; // 12
+
+    float3 RayleighScattering; // 16
+    float MieAnisotropyBroad; // 28
+
+    float3 MieScattering; // 32
+    float BakeIBL; // 44
+
+    float3 MieAbsorption; // 48
+    uint FaceIndex; // 60
+
+    float3 GroundAlbedo; // 64
+    uint StepsTransmittance; // 76
+
+    float3 MieAnisotropy; // 80
+    uint StepsMultiScattering; // 92
+
+    float3 MieLobeWeight; // 96
+    float _AtmospherePad0; // 108
+}
 
 cbuffer SunDiscSettings : register(b6)
 {
-    float SunDiscRadius;
-    float SunEdgeSoftness; // rad  (soft rim width)
-    int SunDiscToggle; // 0=off, 1=on
-    float SpaceDiscBrightnessScale; // unitless scale, e.g. 1.30
-    
-    float3 SunDiscPad0;
-    float AirHaloIntensity; // 0..~0.6 (was HaloStrength_Ground, e.g. 0.28)
-    
-    float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)    
-    float AirHaloStartFrac; // 0..1   (was InAirStart, e.g. 0.15)
-    
-    float AirHaloFalloffPow; // curve (was InAirPow, e.g. 1.10)
-    float HorizonRefractionDeg; // deg (was RefracCenterDeg, e.g. 0.83)
-    float TwilightBlendDeg; // deg (was TwilightExtraDeg, e.g. 1.5)
-    float SpaceHaloWidthDeg; // deg (was SpaceHaloSigmaDeg, e.g. 0.8)
-    
-    float SpaceHaloIntensity; // 0.01..0.10 (was SpaceHaloGain, e.g. 0.04)
-    float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
+    float SunDiscRadius; // 0
+    int SunDiscToggle; // 4
+    float2 _SunDiscPad0; // 8
 };
 
 // ===== LUTs =================================================================
 Texture2D<float4> TransmittanceLUT : register(t0);
 Texture2D<float4> MultiScatterLUT : register(t1);
-Texture1D<uint> HorizonMu : register(t2);
 
 SamplerState ClampLinear    : register(s0);
-SamplerState ClampPoint     : register(s1);
 
 RWTexture2D<float4> OutSkyView : register(u0);
 
 // ===== Constants / helpers ==================================================
 static const float PI = 3.14159265358979323846f;
-static const float TWO_PI = 6.283185307179586f;
 static const float INV4PI = 0.25f / PI;
 static const float3 LUMA = float3(0.2126, 0.7152, 0.0722);
 static const float MU_EPS = 8e-4;
+static const uint SKY_STEPS = 96u;
 
 // Ozone (Bruneton)
 static const float3 O3_COEFF = float3(0.650e-6, 1.881e-6, 0.085e-6);
@@ -250,17 +224,17 @@ float3 T_along_ray(float r, float mu, float t, float RbVis, float RbPhys, float 
     return saturate(num / max(den, float3(1e-6f, 1e-6f, 1e-6f))); // fix 1e-6.xxx
 }
 
-// MultiScatter LUT sampling: x=theta_s/π, y = 1 - linear altitude (top=TOA)
-float4 SamplePsiMS4(float r, float muS, float Rb, float Rt)
+// Multi-scattering LUT (Psi_ms): x = theta_s / pi, y = 1 - linear altitude (top = TOA).
+float3 SamplePsiMS(float r, float muS, float Rb, float Rt)
 {
     float thetaS = acos(clamp(muS, -1.0f, 1.0f));
     float u = thetaS / PI;
     float v = 1.0f - saturate((r - Rb) / max(Rt - Rb, 1e-6f));
 
-    // NEW: keep away from the very first/last row to prevent seams
+    // keep off the first and last rows to prevent seams
     v = clamp(v, 1.0e-3f, 1.0f - 1.0e-3f);
 
-    return MultiScatterLUT.SampleLevel(ClampLinear, float2(u, v), 0);
+    return MultiScatterLUT.SampleLevel(ClampLinear, float2(u, v), 0).rgb;
 }
 
 float SunVisibilityAtR(float r, float muS, float RbVis)
@@ -405,14 +379,6 @@ void main(uint3 tid : SV_DispatchThreadID)
     if (hg.ok && hg.t0 > 0.0f)
         tExit = min(tExit, hg.t0);
 
-    float L = max(tExit - tEnter, 1e-6f);
-
-    // Keep rEntry strictly inside [RbVis, Rt] for stable TLUT lookups (still used for Tsun)
-    float3 pEntry = camRelWin + wView * tEnter;
-    float rEntry = clamp(length(pEntry), RbVis + 5e-4f, Rt - 5e-4f);
-    float3 upEntry = pEntry / rEntry;
-    float muEntry = dot(wView, upEntry);
-
     float3 Ls = 0.0.xxx;
     float3 Lms = 0.0.xxx;
     float3 Tacc = 1.0.xxx;
@@ -450,9 +416,6 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         // Midpoint sample
         float ti = t + 0.5f * dt;
-        //float3 pRel = camRelWin + wView * ti;
-        //float rp = clamp(length(pRel), RbVis + 5e-4f, Rt - 5e-4f);
-        //float h = max(0.0f, rp - RbPhys);
         
         float3 pRel = camRelWin + wView * ti;
         float rpTrue = length(pRel);
@@ -476,10 +439,8 @@ void main(uint3 tid : SV_DispatchThreadID)
         // Prepare phase/lighting
         float muPhase = clamp(dot(wSun, wView), -1.0f, 1.0f);
 
-        //float3 upS = (rp > 0.0f) ? (pRel / rp) : up;
         float muS = dot(upS, wSun);
         
-        //float Vsun = SunVisibilityAtR(rp, muS, RbVis); // smooth visibility
         float Vsun = SunVisibleRayTest(pRel, wSun, RbPhys);
         float3 Tsun = T_to_TOA(rpLUT, muS, RbPhys, Rt) * Vsun; // keep using TLUT, just gate it smoothly
 
@@ -493,7 +454,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         // --- multiple scattering (Hillaire 2020: isotropic, sigma_s * Psi_ms; identical in AerialPerspectiveCS) ---
         // Scattering coefficient for the multi-scattered light: MieScattering already excludes absorption.
         float3 sigS_ms = sigR_s + sigM_s;
-        float3 PsiMS_rgb = SamplePsiMS4(rpLUT, muS, RbPhys, Rt).rgb;
+        float3 PsiMS_rgb = SamplePsiMS(rpLUT, muS, RbPhys, Rt);
 
         Lms += Tmid * (sigS_ms * PsiMS_rgb) * dt;
 

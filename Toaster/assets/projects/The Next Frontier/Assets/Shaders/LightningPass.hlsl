@@ -25,7 +25,6 @@ PixelInputType main(uint vID : SV_VertexID)
 static const float3 Fdielectric = float3(0.04f, 0.04f, 0.04f);
 static const float Epsilon = 0.00001f;
 static const float PI = 3.14159265359f;
-static const float MU_EPS = 8e-4;
 static const uint TRACE_STEPS = 24;
 static const float TRACE_MIN_PENUMBRA = 0.004f;
 static const float TRACE_HANDOFF_BAND = 0.2f;
@@ -84,51 +83,35 @@ cbuffer PlanetFrame : register(b4)
 
 cbuffer Atmosphere : register(b5)
 {
-    float AtmosphereHeight; // Rt - Rg
-    float RayScaleHeight;
-    float MieScaleHeight;
-    float MSGain;
-    
-    float3 RayleighScattering;
-    float SGain;
-    
-    float3 MieScattering;
-    
-    float3 MieAbsorption;
-    
-    float3 GroundAlbedo;
-    
-    float3 MieAnisotropy;
-    float OzoneStrength;
-    
-    uint StepsTransmittance;
-    uint StepsMultiScattering;
-    float APFarDynamic;
-    
-    float3 SunsetTint;
-};
+    float AtmosphereHeight; // 0: Rt - Rg (m)
+    float RayScaleHeight; // 4
+    float MieScaleHeight; // 8
+    float OzoneStrength; // 12
+
+    float3 RayleighScattering; // 16
+    float MieAnisotropyBroad; // 28
+
+    float3 MieScattering; // 32
+    float BakeIBL; // 44
+
+    float3 MieAbsorption; // 48
+    uint FaceIndex; // 60
+
+    float3 GroundAlbedo; // 64
+    uint StepsTransmittance; // 76
+
+    float3 MieAnisotropy; // 80
+    uint StepsMultiScattering; // 92
+
+    float3 MieLobeWeight; // 96
+    float _AtmospherePad0; // 108
+}
 
 cbuffer SunDiscSettings : register(b6)
 {
-    float SunDiscRadius;
-    float SunEdgeSoftness; // rad  (soft rim width)
-    int SunDiscToggle; // 0=off, 1=on
-    float SpaceDiscBrightnessScale; // unitless scale, e.g. 1.30
-    
-    float3 SunDiscPad0;
-    float AirHaloIntensity; // 0..~0.6 (was HaloStrength_Ground, e.g. 0.28)
-    
-    float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)    
-    float AirHaloStartFrac; // 0..1   (was InAirStart, e.g. 0.15)
-    
-    float AirHaloFalloffPow; // curve (was InAirPow, e.g. 1.10)
-    float HorizonRefractionDeg; // deg (was RefracCenterDeg, e.g. 0.83)
-    float TwilightBlendDeg; // deg (was TwilightExtraDeg, e.g. 1.5)
-    float SpaceHaloWidthDeg; // deg (was SpaceHaloSigmaDeg, e.g. 0.8)
-    
-    float SpaceHaloIntensity; // 0.01..0.10 (was SpaceHaloGain, e.g. 0.04)
-    float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
-    float SunIrradiance;
+    float SunDiscRadius; // 0
+    int SunDiscToggle; // 4
+    float2 _SunDiscPad0; // 8
 };
 
 cbuffer LightningBufferSettings : register(b8)
@@ -152,7 +135,6 @@ Texture2D SpecularBRDFLUT               : register(t6);
 
 // Atmospheric Scattering Textures
 Texture2D<float4> TransmittanceLUT      : register(t7);
-Texture2D<float4> MultiScatterLUT       : register(t8);
 Texture2D<float4> GroundIrradianceLUT   : register(t9);
 
 // SSAO Textures
@@ -202,28 +184,6 @@ float gaSchlickGGX(float cosLi, float NdotV, float roughness)
     return gaSchlickG1(cosLi, k) * gaSchlickG1(NdotV, k);
 }
 
-float GeometrySchlickGGX(float NdotV, float roughness)
-
-{
-    float r = (roughness + 1.0f);
-    float k = (r * r) / 8.0f;
-
-    float nom = NdotV;
-    float denom = NdotV * (1.0f - k) + k;
-
-    return nom / denom;
-}
-
-float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
-{
-    float NdotV = max(dot(N, V), 0.0f);
-    float NdotL = max(dot(N, L), 0.0f);
-    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
-
-    return ggx1 * ggx2;
-}
-
 // Shlick's approximation of the Fresnel factor.
 float3 fresnelSchlick(float3 F0, float cosTheta)
 {
@@ -233,64 +193,6 @@ float3 fresnelSchlick(float3 F0, float cosTheta)
 float3 fresnelSchlickRoughness(float3 F0, float cosTheta, float roughness)
 {
     return F0 + (max(float3(1.0f - roughness, 1.0f - roughness, 1.0f - roughness), F0) - F0) * pow(1.0f - cosTheta, 5.0f);
-}
-
-// ---------------------------------------------------------------------------------------------------
-// The following code (from Unreal Engine 4's paper) shows how to filter the environment map
-// for different roughnesses. This is mean to be computed offline and stored in cube map mips,
-// so turning this on online will cause poor performance
-float RadicalInverse_VdC(uint bits)
-{
-    bits = (bits << 16u) | (bits >> 16u);
-    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
-    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
-    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
-    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
-    return float(bits) * 2.3283064365386963e-10; // / 0x100000000
-}
-
-float2 Hammersley(uint i, uint N)
-{
-    return float2(float(i) / float(N), RadicalInverse_VdC(i));
-}
-
-float3 ImportanceSampleGGX(float2 Xi, float roughness, float3 N)
-{
-    float a = roughness * roughness;
-    float Phi = 2.0f * PI * Xi.x;
-    float CosTheta = sqrt((1.0f - Xi.y) / (1.0f + (a * a - 1.0f) * Xi.y));
-    float SinTheta = sqrt(1.0f - CosTheta * CosTheta);
-    float3 H;
-    H.x = SinTheta * cos(Phi);
-    H.y = SinTheta * sin(Phi);
-    H.z = CosTheta;
-    float3 UpVector = abs(N.z) < 0.999f ? float3(0.0f, 0.0f, 1.0f) : float3(1.0f, 0.0f, 0.0f);
-    float3 TangentX = normalize(cross(UpVector, N));
-    float3 TangentY = cross(N, TangentX);
-	// Tangent to world space
-    return TangentX * H.x + TangentY * H.y + N * H.z;
-}
-
-float3 PrefilterEnvMap(float roughness, float3 R)
-{
-    float TotalWeight = 0.0;
-    float3 N = R;
-    float3 V = R;
-    float3 PrefilteredColor = float3(0.0f, 0.0f, 0.0f);
-    int NumSamples = 1024;
-    for (int i = 0; i < NumSamples; i++)
-    {
-        float2 Xi = Hammersley(i, NumSamples);
-        float3 H = ImportanceSampleGGX(Xi, roughness, N);
-        float3 L = 2.0f * dot(V, H) * H - V;
-        float NoL = clamp(dot(N, L), 0.0f, 1.0f);
-        if (NoL > 0)
-        {
-            PrefilteredColor += IrradianceTexture.Sample(DefaultSampler, L).rgb * NoL;
-            TotalWeight += NoL;
-        }
-    }
-    return PrefilteredColor / TotalWeight;
 }
 
 // Returns number of mipmap levels for specular IBL environment map.
@@ -311,29 +213,6 @@ float SunVisibilityAtR(float r, float muS, float Rb)
 float3 T_to_TOA(float r, float mu, float Rb, float Rt)
 {
     return TransmittanceLUT.SampleLevel(LinearSampler, TransUV(r, mu, Rb, Rt), 0).rgb;
-}
-
-float sstep(float a, float b, float x)
-{
-    float t = saturate((x - a) / (b - a));
-    return t * t * (3.0 - 2.0 * t);
-}
-
-// Compute sun altitude in degrees
-float SunAltitudeDeg(float3 camPosWS, float3 planetCenterWS, float3 lightDirFromLight)
-{
-    float3 wSun = -normalize(lightDirFromLight); // TO sun
-    float3 up = normalize(camPosWS - planetCenterWS); // camera "up"
-    float mu = clamp(dot(up, wSun), -1.0, 1.0);
-    return degrees(asin(mu)); // +90 zenith, 0 horizon, negative at night
-}
-
-float4 SamplePsiMS4(float r, float muS, float Rg, float Rt)
-{
-    float thetaS = acos(clamp(muS, -1.0f, 1.0f));
-    float u = thetaS / PI;
-    float v = 1.0f - saturate((r - Rg) / max(Rt - Rg, 1e-6f)); // MS_FLIP_Y=1
-    return MultiScatterLUT.SampleLevel(LinearSampler, float2(u, v), 0);
 }
 
 uint SelectCascade(float viewDepth)
@@ -364,7 +243,7 @@ float SampleShadowPCF(uint ci, float2 uv, float depth01, float receiverBias)
     float2 texel = float2(1.0f / (float) width, 1.0f / (float) height); // (1.0f/4096.0f, 1.0f/4096.0f) passed in
 
     // 3x3 PCF
-    float sum = 0.0f;
+    float sum = 0.0f; // Stars are hidden over the sun's disc and its halo (masks written by the atmosphere pass).
     [unroll]
     for (int y = -1; y <= 1; ++y)
     {
@@ -552,8 +431,6 @@ PixelOutputType main(PixelInputType input)
 
     // Fresnel reflectance at normal incidence (for metals use albedo color).
     float3 F0 = lerp(Fdielectric, albedo, metalness);
-    float3 Fv = fresnelSchlick(F0, NdotV);
-    float3 kd = (1.0f - Fv) * (1.0f - metalness);
     
     int2 pix = int2(uv * float2(viewportWidth, viewportHeight));
     int isObject = ObjectMaskTexture.Load(int3(pix, 0));

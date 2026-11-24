@@ -740,7 +740,7 @@ namespace Toast {
 	//     TEXTURECUBE   ///////////////////////////////////////////////////////////////////  
 	//////////////////////////////////////////////////////////////////////////////////////// 
 
-	TextureCube::TextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels)
+	TextureCube::TextureCube(const std::string& filePath, uint32_t width, uint32_t height, uint32_t levels, bool generateMips)
 		: mFilePath(filePath), mWidth(width), mHeight(height), mMipLevels(levels)
 	{
 		TOAST_PROFILE_FUNCTION();
@@ -761,9 +761,17 @@ namespace Toast {
 		textureDesc.Usage = D3D11_USAGE_DEFAULT;
 		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
 		textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
-		if (levels == 0) {
+		if (levels == 0) 
+		{
 			textureDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
 			textureDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+		}
+
+		if (generateMips)
+		{
+			textureDesc.BindFlags |= D3D10_BIND_RENDER_TARGET;
+			textureDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+			textureDesc.CPUAccessFlags = 0;
 		}
 
 		HRESULT result = device->CreateTexture2D(&textureDesc, nullptr, &mTexture);

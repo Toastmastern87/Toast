@@ -15,7 +15,6 @@ namespace Toast {
 		PointClamp,		// Point, Clamp
 		BRDF,			// Linear, Clamp (Semantically distinct)
 		UWrapVClamp,	// Linear, U=Wrap V=Clamp
-		SkyTest,		// Anisotropic, Clamp, bias 0.5
 		ShadowCmp,		// Comparison Sampler
 		Count
 	};

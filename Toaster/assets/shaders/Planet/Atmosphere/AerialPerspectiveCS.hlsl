@@ -2,23 +2,6 @@
 #type compute
 #pragma pack_matrix(row_major)
 
-// ===== toggles ======================================================
-#ifndef AP_MAX_Z_SLICES
-#define AP_MAX_Z_SLICES       128u   // clamp work if OutAP has deeper Z
-#endif
-#ifndef AP_USE_FAST_EXP
-#define AP_USE_FAST_EXP       1      // exp2-based fast exp
-#endif
-#ifndef AP_Z_GAMMA
-#define AP_Z_GAMMA 1.6f   // try 1.5–1.8; 1.6 is a good start
-#endif
-#ifndef AP_VOLUMETRIC_SHADOWS
-#define AP_VOLUMETRIC_SHADOWS 1
-#endif
-#ifndef AP_SHADOW_TAPS
-#define AP_SHADOW_TAPS 4u
-#endif
-
 // ===== CBuffers =============================================================
 cbuffer Camera : register(b0)
 {
@@ -68,56 +51,38 @@ cbuffer PlanetFrame : register(b4)
     float3 BasisLonNorth;
     float3 BasisSpinUp;
 };
+
 cbuffer Atmosphere : register(b5)
 {
-    float AtmosphereHeight; // Rt - Rg
-    float RayScaleHeight;
-    float MieScaleHeight;
-    float MSGain;
-    
-    float3 RayleighScattering;
-    float SGain;
-    
-    float3 MieScattering;
-    
-    float3 MieAbsorption;
-    
-    float3 GroundAlbedo;
-    
-    float3 MieAnisotropy;
-    float OzoneStrength;
-    
-    uint StepsTransmittance;
-    uint StepsMultiScattering;
-    float APFarDynamic;
-    
-    float3 SunsetTint;
-    float BakeIBL;
-    
-    float3 MieLobeWeight;
-    float MieAnisotropyBroad;
-};
+    float AtmosphereHeight; // 0: Rt - Rg (m)
+    float RayScaleHeight; // 4
+    float MieScaleHeight; // 8
+    float OzoneStrength; // 12
+
+    float3 RayleighScattering; // 16
+    float MieAnisotropyBroad; // 28
+
+    float3 MieScattering; // 32
+    float BakeIBL; // 44
+
+    float3 MieAbsorption; // 48
+    uint FaceIndex; // 60
+
+    float3 GroundAlbedo; // 64
+    uint StepsTransmittance; // 76
+
+    float3 MieAnisotropy; // 80
+    uint StepsMultiScattering; // 92
+
+    float3 MieLobeWeight; // 96
+    float _AtmospherePad0; // 108
+}
 
 cbuffer SunDiscSettings : register(b6)
 {
-    float SunDiscRadius; // rad  (e.g. radians(0.2666))
-    float SunEdgeSoftness; // rad  (soft rim width)
-    int SunDiscToggle; // 0=off, 1=on
-    float SpaceDiscBrightnessScale; // unitless scale, e.g. 1.30
-    
-    float3 SunDiscPad0;
-    float AirHaloIntensity; // 0..~0.6 (was HaloStrength_Ground, e.g. 0.28)
-    
-    float3 WarmTint; // e.g. float3(1.00, 0.92, 0.78)    
-    float AirHaloStartFrac; // 0..1   (was InAirStart, e.g. 0.15)
-    
-    float AirHaloFalloffPow; // curve (was InAirPow, e.g. 1.10)
-    float HorizonRefractionDeg; // deg (was RefracCenterDeg, e.g. 0.83)
-    float TwilightBlendDeg; // deg (was TwilightExtraDeg, e.g. 1.5)
-    float SpaceHaloWidthDeg; // deg (was SpaceHaloSigmaDeg, e.g. 0.8)
-    
-    float SpaceHaloIntensity; // 0.01..0.10 (was SpaceHaloGain, e.g. 0.04)
-    float SpaceHaloCutoffDeg; // deg (was SpaceHaloCutoffDeg, e.g. 6.0)
+    float SunDiscRadius; // 0
+    int SunDiscToggle; // 4
+    float2 _SunDiscPad0; // 8
 };
 
 cbuffer APTemporal : register(b7)
@@ -132,7 +97,6 @@ cbuffer APTemporal : register(b7)
     float2 _pad0;
 }
 
-// ===== LUTs =================================================================
 Texture2D<float4> TransmittanceLUT          : register(t0);
 Texture2D<float4> MultiScatterLUT           : register(t1);
 Texture2D<uint> APFarU32                    : register(t2);
@@ -153,7 +117,9 @@ RWTexture2D<float4> OutSkyShadow : register(u2);
 // ===== Constants / helpers ==================================================
 static const float PI = 3.14159265358979323846f;
 static const float INV4PI = 0.25f / PI;
-static const float MU_EPS = 2e-3;
+static const uint AP_MAX_Z_SLICES = 128u;
+static const bool AP_VOLUMETRIC_SHADOWS = true;
+static const uint AP_SHADOW_TAPS = 4u;
 static const bool AP_TERRAIN_SHADOW_MAP = true;
 
 // Ozone (Bruneton)
@@ -161,21 +127,12 @@ static const float3 O3_COEFF = float3(0.650e-6, 1.881e-6, 0.085e-6);
 
 #include "TransmittanceLUT.hlsli"
 #include "ShadowHeightMap.hlsli"
+#include "AerialPerspectiveCommon.hlsli"
 
-#if AP_USE_FAST_EXP
-// exp(x) ~ exp2(x/ln(2))
 float3 fexp3(float3 x)
 {
     return exp2(x * 1.4426950408889634);
 }
-float fexp1(float x)
-{
-    return exp2(x * 1.4426950408889634);
-}
-#else
-float3 fexp3(float3 x) { return exp(x); }
-float  fexp1(float  x) { return exp(x); }
-#endif
 
 float DensityExpTapered(float h, float H)
 {
@@ -211,8 +168,8 @@ float3 T_to_TOA(float r, float mu, float Rb, float Rt)
     return TransmittanceLUT.SampleLevel(ClampLinear, TransUV(r, mu, Rb, Rt), 0).rgb;
 }
 
-// MultiScatter LUT sampling: x=theta_s/π, y = 1 - linear altitude (top=TOA)
-float4 SamplePsiMS4(float r, float muS, float Rb, float Rt)
+// Multi-scattering LUT (Psi_ms): x = theta_s / pi, y = 1 - linear altitude (top = TOA).
+float3 SamplePsiMS(float r, float muS, float Rb, float Rt)
 {
     float mu = clamp(muS, -1.0f + 1.0e-3f, 1.0f - 1.0e-3f);
     float thetaS = acos(mu);
@@ -220,18 +177,8 @@ float4 SamplePsiMS4(float r, float muS, float Rb, float Rt)
 
     float v = saturate((r - Rb) / max(Rt - Rb, 1.0e-6f));
     v = 1.0f - v;
-    v = clamp(v, 1.0e-3f, 1.0f - 1.0e-3f); // <- avoid top/bottom rows
-    return MultiScatterLUT.SampleLevel(ClampLinear, float2(u, v), 0);
-}
-// MS anisotropy blend using LUT alpha as effective ḡ
-float MSPhase(float mu, float gBar)
-{
-    float pIso = INV4PI;
-    float g = saturate(gBar);
-    float g2 = g * g;
-    float d = 1.0f + g2 - 2.0f * g * mu;
-    float pHG = INV4PI * (1.0f - g2) / max(pow(d, 1.5f), 1e-5f);
-    return lerp(pIso, pHG, g);
+    v = clamp(v, 1.0e-3f, 1.0f - 1.0e-3f); // keep off the first and last rows
+    return MultiScatterLUT.SampleLevel(ClampLinear, float2(u, v), 0).rgb;
 }
 
 float GroundBiasMeters(float Rg)
@@ -350,13 +297,6 @@ float3 PhaseMieTwoLobe(float mu)
     return w * narrow + (1.0f - w) * broad;
 }
 
-// μ at horizon for a sphere of radius R as seen from r
-float MuHorizon(float r, float R)
-{
-    float s = saturate(R / r);
-    return -sqrt(max(1.0f - s * s, 0.0f));
-}
-
 uint SelectCascade(float viewDepth)
 {
     // viewDepth should be positive forward distance in view space
@@ -451,12 +391,6 @@ float LitHistory(float3 posWS, float apFar)
     return VisHistory.SampleLevel(ClampLinear, float3(uv, w), 0);
 }
 
-static const float2 OFFS[4] =
-{
-    float2(0.25, 0.25), float2(0.75, 0.25),
-    float2(0.25, 0.75), float2(0.75, 0.75)
-};
-
 // ===== Main =================================================================
 [numthreads(8, 8, 1)]
 void main(uint3 tid : SV_DispatchThreadID)
@@ -468,7 +402,6 @@ void main(uint3 tid : SV_DispatchThreadID)
     uint D = min(Dfull, AP_MAX_Z_SLICES);
 
     float APFar = asfloat(APFarU32.Load(int3(0, 0, 0)));
-    float APNear = 0.0f;
     
     // Planet & radii
     const float Rg = PlanetRadius;
@@ -485,6 +418,7 @@ void main(uint3 tid : SV_DispatchThreadID)
     SceneDepth.GetDimensions(depthW, depthH);
     const float sceneDepth = SceneDepth.Load(int3(min(uint2(uvC * float2(depthW, depthH)), uint2(depthW - 1, depthH - 1)), 0));
     const float tScene = (sceneDepth > 1e-12f) ? ViewDistanceFromDepth(uvC, sceneDepth) : 1e30f;
+    const float skyColumn = (sceneDepth > 1e-12f) ? 0.0f : 1.0f;
     const ShadowHeightFrame shmFrame = BuildShadowHeightFrame(ro, BasisLonEast, BasisSpinUp, BasisLonNorth, APFar);
  
     Hit ha = IntersectSphereGrazingSafe(ro, wView, Rt);
@@ -495,11 +429,10 @@ void main(uint3 tid : SV_DispatchThreadID)
         for (uint z = 0; z < D; ++z)
         {
             OutAP[uint3(tid.x, tid.y, z)] = zero;
-#if AP_VOLUMETRIC_SHADOWS
             OutVis[uint3(tid.xy, z)] = 1.0f;
-#endif
         }
-        OutSkyShadow[tid.xy] = 0.0f;
+        
+        OutSkyShadow[tid.xy] = float4(0.0f, 0.0f, 0.0f, skyColumn);
         return;
     }
     
@@ -523,12 +456,10 @@ void main(uint3 tid : SV_DispatchThreadID)
         for (uint z = 0; z < D; ++z)
         {
             OutAP[uint3(tid.x, tid.y, z)] = zero;
-#if AP_VOLUMETRIC_SHADOWS
             OutVis[uint3(tid.xy, z)] = 1.0f;
-#endif
         }
         
-        OutSkyShadow[tid.xy] = 0.0f;
+        OutSkyShadow[tid.xy] = float4(0.0f, 0.0f, 0.0f, skyColumn);
         return;
     }
      
@@ -560,9 +491,8 @@ void main(uint3 tid : SV_DispatchThreadID)
             float Tmean = max((Tcum.r + Tcum.g + Tcum.b) * (1.0 / 3.0), 1e-6f);
             float tauMean = -log(Tmean);
             OutAP[uint3(tid.x, tid.y, z)] = float4(Lcum, tauMean);
-#if AP_VOLUMETRIC_SHADOWS
             OutVis[uint3(tid.xy, z)] = 1.0f;
-#endif
+            
             continue;
         }
 
@@ -583,44 +513,36 @@ void main(uint3 tid : SV_DispatchThreadID)
 
         float3 sigR_s = RayleighScattering * dR;
         float3 sigM_s = MieScattering * dM;
-        float3 sigM_a = MieAbsorption * dM;
         
         float3 sigmaExt = RayleighScattering * dR + (MieScattering + MieAbsorption) * dM + O3_COEFF * dO;
         
         float3 upS = (rMid > 0.0f) ? (p / rMid) : BasisSpinUp;
         float muS = dot(upS, wSun);
         float Vsun = SunVisibilityAtR(rMid, muS, RbVis);
-        float lit = 1.0f;
-#if AP_VOLUMETRIC_SHADOWS
-        const float jitter = InterleavedGradientNoise(float2(tid.xy), FrameIndex);
-        float litNow = 0.0f;
-        [unroll]
-        for (uint k = 0; k < AP_SHADOW_TAPS; ++k)
+        float lit = 1.0f;      
+        if (AP_VOLUMETRIC_SHADOWS)
         {
-            const float tk = tEnter + segA + len * (((float) k + jitter) / (float) AP_SHADOW_TAPS);
-            litNow += VolumetricLit(shmFrame, cameraPosition.xyz + wView * tk, ro + wView * tk);
-        }
-        litNow *= (1.0f / (float) AP_SHADOW_TAPS);
+            const float jitter = InterleavedGradientNoise(float2(tid.xy), FrameIndex);
+            float litNow = 0.0f;
+            [unroll]
+            for (uint k = 0; k < AP_SHADOW_TAPS; ++k)
+            {
+                const float tk = tEnter + segA + len * (((float) k + jitter) / (float) AP_SHADOW_TAPS);
+                litNow += VolumetricLit(shmFrame, cameraPosition.xyz + wView * tk, ro + wView * tk);
+            }
+            litNow *= (1.0f / (float) AP_SHADOW_TAPS);
         
-        const float litPrev = LitHistory(cameraPosition.xyz + wView * tMid, APFar);
-        lit = (litPrev >= 0.0f) ? lerp(litPrev, litNow, HistoryWeight) : litNow;
+            const float litPrev = LitHistory(cameraPosition.xyz + wView * tMid, APFar);
+            lit = (litPrev >= 0.0f) ? lerp(litPrev, litNow, HistoryWeight) : litNow;
+        }
         OutVis[uint3(tid.xy, z)] = lit;
-#endif
+        
         float3 Tsun = T_to_TOA(rMid, muS, RbPhys, Rt) * Vsun;        
         
         // Phase & disc-averaged Mie (per-channel), same as SkyView
         float muPhase = clamp(dot(wSun, wView), -1.0f, 1.0f);
         float PR = PhaseRayleigh(muPhase);
         float3 PMrgb = PhaseMieTwoLobe(muPhase);
-
-        // --- Horizon-aware tint/gain (same as SkyView) ------------------------------
-        // Physical horizon at current altitude
-        float cH_phys = MuHorizon(rMid, RbPhys);
-
-        // Sun/view elevations in [0..1] above *physical* horizon
-        float elevS = saturate((muS - cH_phys) / (1.0 - cH_phys));
-        float muV = clamp(dot(wView, upS), -0.9995f, 0.9995f);
-        float elevV = saturate((muV - cH_phys) / (1.0 - cH_phys));
 
         // --- SINGLE scattering (Rayleigh + Mie, full Cornette-Shanks phase)
         float3 S1Full = ((sigR_s * PR) + (sigM_s * PMrgb)) * (Tsun * Esun);
@@ -629,7 +551,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         // --- MULTI scattering (Hillaire 2020: isotropic, sigma_s * Psi_ms; identical in SkyViewCS) ---
         // Scattering coefficient for the multi-scattered light: MieScattering already excludes absorption.
         float3 sigS_ms = sigR_s + sigM_s;
-        float3 PsiMS_rgb = SamplePsiMS4(rMid, muS, RbPhys, Rt).rgb;
+        float3 PsiMS_rgb = SamplePsiMS(rMid, muS, RbPhys, Rt);
 
         // Multi-scattered light is not shadowed by the planet here: the multi-scattering LUT
         // already includes the sun's visibility. Hillaire 2020 shadows single scattering only.
@@ -652,7 +574,7 @@ void main(uint3 tid : SV_DispatchThreadID)
         OutAP[uint3(tid.x, tid.y, z)] = float4(Lcum, tauMean);
     }
 
-    OutSkyShadow[tid.xy] = float4(Lremoved, 0.0f);
+    OutSkyShadow[tid.xy] = float4(Lremoved, skyColumn);
     
     // replicate last to the tail if D < Dfull
     if (D < Dfull)

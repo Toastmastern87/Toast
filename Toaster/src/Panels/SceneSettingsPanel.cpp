@@ -170,7 +170,6 @@ namespace Toast {
 					}
 					ImGui::Spacing();
 					
-					ImGui::Checkbox("Dynamic IBL", &mContext->mSettings.DynamicIBL);
 					ImGui::Checkbox("Render Colliders", &mContext->mSettings.RenderColliders);
 					ImGui::Checkbox("Render UI", &mContext->mSettings.RenderUI);
 
@@ -261,9 +260,9 @@ namespace Toast {
 						if (ImGui::IsItemHovered())
 							ImGui::SetTooltip("How much of each pixel's difference from its area is kept. 1 = all of it.");
 
-						ImGui::TextUnformatted("Speed To Bright (1/s)");
+						ImGui::TextUnformatted("Adapt To Darker Scene (1/s)");
 						ImGuiHelpers::ManualDragFloat("##AESpeedToBright", exp.SpeedToBright, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", 0.05f, 20.0f);
-						ImGui::TextUnformatted("Speed To Dark (1/s)");
+						ImGui::TextUnformatted("Adapt To Brighter Scene (1/s)");
 						ImGuiHelpers::ManualDragFloat("##AESpeedToDark", exp.SpeedToDark, mWindow, activeDragArea, 0.05f, ImVec2{ 255,20 }, "%.2f", 0.05f, 20.0f);
 
 						ImGui::Unindent();

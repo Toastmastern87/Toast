@@ -129,6 +129,7 @@ namespace Toast {
 			Ref<RenderTarget> AtmosphereCubeRT, Dummy1RT, Dummy2RT;
 
 			// Environmental Textures
+			Ref<TextureCube> EnvMapSource;
 			Ref<TextureCube> EnvMapFiltered, IrradianceCubeMap;
 
 			// Post Process
@@ -275,7 +276,7 @@ namespace Toast {
 		static void OnViewportResize(uint32_t width, uint32_t height);
 
 		static void BeginScene(const Scene* scene, Camera& camera, const DirectX::XMFLOAT4 cameraPos, Scene::Environment& environment, int wireFrame);
-		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, const bool dynamicIBL, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::CascadedShadowMapParams& shadowParams, DirectX::XMFLOAT4& hoverTintColor, float dt, bool runtime);
+		static void EndScene(Ref<Planet>& planet, Scene::Environment& environment, Scene::ExposureParams& exposureParams, Scene::BloomParams& bloomParams, const Scene::OutlineSettings& outlineSettings, const bool debugActivated, const bool shadows, const bool SSAO, Camera& camera, const DirectX::XMFLOAT4 cameraPos, float SSAORadius, float SSAObias, Scene::CascadedShadowMapParams& shadowParams, DirectX::XMFLOAT4& hoverTintColor, float dt, bool runtime);
 
 		static void CreateDepthBuffer(uint32_t width, uint32_t height);
 		static void CreateDepthStencilView();
@@ -315,7 +316,7 @@ namespace Toast {
 
 		// Post Processes
 		static void StarFieldPass(Scene::Environment& environment, Ref<Planet>& planet, const float atmosphereHeight );
-		static void AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldOffsetWS, const bool dynamicIBL);
+		static void AtmospherePass(Ref<Planet>& planet, Scene::Environment& environment, DirectX::XMFLOAT4 camPosWS, DirectX::XMFLOAT3 worldOffsetWS);
 		static void BloomMipChainPass();
 		static void BloomUpSamplePass(float falloff);
 		static void BloomBlendPass(float intensity, float falloff);
@@ -362,6 +363,7 @@ namespace Toast {
 
 		static void GenerateSpecularBRDF();
 
+		static void UpdateEnvMapSource(Texture* atmosphereCube, Ref<TextureCube> envMapSource, int faceIndex);
 		static void GeneratePrefilteredEnvMap(Texture* sourceTexture, Ref<TextureCube> targetTexture, int faceIndex);
 		static void GenerateIrradianceCubemap(Ref<TextureCube> sourceTexture, Ref<TextureCube> targetTexture, int faceIndex);
 

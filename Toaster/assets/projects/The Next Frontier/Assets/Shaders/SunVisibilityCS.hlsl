@@ -48,9 +48,7 @@ Texture2D<float4> TransmittanceLUT          : register(t1);
 SamplerState ClampLinear                    : register(s0);
 
 RWStructuredBuffer<float4> SunVisibility    : register(u0);
- 
-static const float PI = 3.14159265358979323846f;
-static const float3 LUMA = float3(0.2126f, 0.7152f, 0.0722f);
+
 static const float SUN_LIMB_U = 0.55f;
 static const uint SAMPLE_COUNT = 64;
 static const float GOLDEN_ANGLE = 2.39996323f; // radians

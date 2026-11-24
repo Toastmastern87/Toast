@@ -149,10 +149,8 @@ namespace Toast {
 		float AtmosphereHeight = 0.0f;
 		float RayleighScaleHeight = 0.0f;
 		float MieScaleHeight = 0.0f;
-		float MSGain = 0.0f;
 		int RayleighExp10 = -10;
 		DirectX::XMFLOAT3 RayleighScattering = { 0.0f, 0.0f, 0.0f };
-		float SGain = 0.0f;
 		int MieScatteringExp10 = -5;
 		DirectX::XMFLOAT3 MieScattering = { 0.0f, 0.0f, 0.0f };
 		int MieAbsorptionExp10 = -6;
@@ -161,11 +159,9 @@ namespace Toast {
 		DirectX::XMFLOAT3 MieLobeWeight = { 1.0f, 1.0f, 1.0f };
 		float MieAnisotropyBroad = 0.0f;
 		DirectX::XMFLOAT3 GroundAlbedo = { 0.0f, 0.0f, 0.0f };
-		DirectX::XMFLOAT3 SunsetTint = { 0.0f, 0.0f, 0.0f };
 		float OzoneStrength = 0.0f;
 		uint32_t StepsTransmittance = 192;
 		uint32_t StepsMultiScattering = 128;
-		float APFarDynamic = 150000.0f;
 	};
 
 	struct PlanetProjectionResult

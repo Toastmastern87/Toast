@@ -66,7 +66,6 @@ cbuffer AutoExposure : register(b8)
     float3 _pad0;
 }
 
-StructuredBuffer<uint> Histogram        : register(t0);
 Texture2D<float4> TransmittanceLUT      : register(t1);
 Texture2D<float4> GroundIrradianceLUT   : register(t2);
 

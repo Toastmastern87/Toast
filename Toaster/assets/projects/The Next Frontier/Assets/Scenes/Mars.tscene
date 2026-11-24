@@ -1,6 +1,6 @@
 Scene: Mars
 EditorCamera:
-  Position: [21.5635738, 26.4441643, 16.0541153]
+  Position: [21.5585098, 26.4469624, 15.9814177]
 Settings:
   Wireframe: 0
   Grid: false
@@ -9,7 +9,7 @@ Settings:
   FrustumCullingMargin: 1
   DirectionalLightningGain: 1
   RenderColliders: false
-  RenderUI: false
+  RenderUI: true
   Shadows: true
   ShadowDistance: 20000
   CascadeCount: 4
@@ -22,7 +22,6 @@ Settings:
   SSAObias: 0.0250000004
   BloomIntensity: 0.0399999991
   BloomFalloff: 0.5
-  DynamicIBL: true
   SunFrustumOrthoSize: 500
   LockEV: false
   LockedEV: -2.849998
@@ -61,7 +60,6 @@ Planet:
   Roughness: 1
   Metalness: 0
   HeightMapAssetHandle: 2502867941750724029
-  Metalness: 0
   StarFieldAssetHandle: 5222783482869039021
   AtmosphereActivated: true
   AtmosphereHeight: 120000
@@ -78,9 +76,6 @@ Planet:
   MieAnisotropyBroad: 0.569999993
   OzoneStrength: 0
   GroundAlbedo: [0.219607845, 0.101960786, 0.0784313753]
-  SunsetTint: [2.5899992, 2.71000147, 6.8999958]
-  MSGain: 1
-  SGain: 1
   GravityConstant: 3.73000002
   SurfaceAirDensity: 0.0199999996
   PhysicsScaleHeight: 11100
@@ -323,17 +318,6 @@ Environment:
   SunDiscToggle: true
   SunIntensity: 1
   SunDiscRadius: 0.00307999994
-  SunEdgeSoftness: 0.000899999985
-  WarmTint: [1, 1, 1]
-  SpaceDiscBrightnessScale: 1.25
-  AirHaloIntensity: 0.00999999978
-  AirHaloStartFrac: 1
-  AirHaloFalloffPow: 3
-  HorizonRefractionDeg: 0.409999996
-  TwilightBlendDeg: 1.5
-  SpaceHaloWidthDeg: 0.769999981
-  SpaceHaloIntensity: 0.0199999996
-  SpaceHaloCutoffDeg: 21.8999996
   StarburstTextureHandle: 7342722083569158699
   StarburstSize: 0.899999976
   StarburstIntensity: 6000
@@ -354,7 +338,7 @@ Entities:
         []
     TransformComponent:
       Translation: [0, 0, 0]
-      Rotation: [0, 0, 0]
+      Rotation: [0, 180, 0]
       RotationQuat: [0, 0, 0, 1]
       Scale: [1, 1, 1]
     CameraComponent:
@@ -1770,7 +1754,7 @@ Entities:
         - Handle: 15758747276645440079
         - Handle: 11759265246340118256
     TransformComponent:
-      Translation: [-25, 24, 200]
+      Translation: [25, 24, -200]
       Rotation: [0, 90, 0]
       RotationQuat: [0, 0, 0, 1]
       Scale: [0.99999994, 1, 1]
@@ -1975,7 +1959,7 @@ Entities:
       Scale: [65, 65, 8]
     UIButtonComponent:
       UseColor: false
-      Visible: false
+      Visible: true
       LatchOnClick: false
       StartToggled: false
       StateTexture0: 15207535013661891102
@@ -2020,7 +2004,7 @@ Entities:
       CornerRadius: 0
       TextureAssetHandle: 17383264032130357581
       UseColor: false
-      Visible: false
+      Visible: true
       BorderWidth: 0
       BorderColor: [0, 0, 0, 1]
       ConnectToParent: false
@@ -2279,7 +2263,7 @@ Entities:
       CornerRadius: 0
       TextureAssetHandle: 17383264032130357581
       UseColor: false
-      Visible: false
+      Visible: true
       BorderWidth: 0
       BorderColor: [0, 0, 0, 1]
       ConnectToParent: false
@@ -2583,7 +2567,7 @@ Entities:
       Scale: [65, 65, 1]
     UIButtonComponent:
       UseColor: false
-      Visible: false
+      Visible: true
       LatchOnClick: false
       StartToggled: false
       StateTexture0: 9964269343535436304
@@ -2605,7 +2589,7 @@ Entities:
       Scale: [65, 65, 1]
     UIButtonComponent:
       UseColor: false
-      Visible: false
+      Visible: true
       LatchOnClick: false
       StartToggled: false
       StateTexture0: 15022368491008561672

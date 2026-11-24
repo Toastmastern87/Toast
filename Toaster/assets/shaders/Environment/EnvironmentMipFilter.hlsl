@@ -11,7 +11,7 @@ static const float PI = 3.141592;
 static const float TwoPI = 2 * PI;
 static const float Epsilon = 0.00001;
 
-static const uint NumSamples = 1024;
+static const uint NumSamples = 64;
 static const float InvNumSamples = 1.0 / float(NumSamples);
 
 cbuffer SpecularMapFilterSettings : register(b5)
@@ -76,7 +76,7 @@ float ndfGGX(float cosLh, float roughness)
 // this particular fragment in a cubemap.
 float3 getSamplingVector(uint2 coord, int faceIndex, float outputWidth, float outputHeight)
 {
-    float2 st = coord / float2(outputWidth, outputHeight);
+    float2 st = (coord + 0.5f) / float2(outputWidth, outputHeight);
     float2 uv = 2.0 * float2(st.x, 1.0 - st.y) - 1.0;
 
 	// Select vector based on cubemap face index.

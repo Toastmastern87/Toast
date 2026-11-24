@@ -2661,46 +2661,7 @@ namespace Toast {
 
 						ImGui::SetNextItemWidth(fullW);
 
-						ImGui::ColorEdit3("##GroundAlbedo", &mContext->mAtmosphere.GroundAlbedo.x);
-
-						// -------- Sunset Tint Color ----------
-						ImGui::TableNextRow();
-
-						ImGui::TableSetColumnIndex(0);
-						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Sunset Tint");
-
-						ImGui::TableSetColumnIndex(1);
-
-						ImGui::SetNextItemWidth(fullW);
-
-						ImGuiHelpers::ManualDragFloat3("##SunsetTint", mContext->mAtmosphere.SunsetTint, 0.01f, 0.0f, mWindow, activeDragArea, "%.2f", true);
-
-						// -------- MS Gain ----------
-						ImGui::TableNextRow();
-
-						ImGui::TableSetColumnIndex(0);
-						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Multi Scattering Gain");
-
-						ImGui::TableSetColumnIndex(1);
-
-						ImGui::SetNextItemWidth(fullW);
-
-						ImGui::DragFloat("##multiscatteringgain", &mContext->mAtmosphere.MSGain, 0.1f, 0.0f, FLT_MAX, "%.1f");
-
-						// -------- SS Gain ----------
-						ImGui::TableNextRow();
-
-						ImGui::TableSetColumnIndex(0);
-						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Single Scattering Gain");
-
-						ImGui::TableSetColumnIndex(1);
-
-						ImGui::SetNextItemWidth(fullW);
-
-						ImGui::DragFloat("##singelscatteringgain", &mContext->mAtmosphere.SGain, 0.1f, 0.0f, FLT_MAX, "%.1f");
+						ImGui::ColorEdit3("##GroundAlbedo", &mContext->mAtmosphere.GroundAlbedo.x);	
 
 						ImGui::TableNextRow();
 						ImGui::TableSetColumnIndex(1);
