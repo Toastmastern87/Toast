@@ -1,6 +1,6 @@
 Scene: Mars
 EditorCamera:
-  Position: [21.5585098, 26.4469624, 15.9814177]
+  Position: [19.2372952, 26.2386856, 6.69866371]
 Settings:
   Wireframe: 0
   Grid: false
@@ -53,7 +53,6 @@ Planet:
   Radius: 3389500
   MaxHeight: 21900
   MinHeight: -8200
-  MeshMode: 1
   AlbedoTextureHandle: 7274978667343951183
   UseAlbedoMap: 1
   AlbedoColor: [0.468354404, 0.26033029, 0.207498789]
@@ -91,8 +90,6 @@ Planet:
     FarDistance: 10000000
     BackfaceCulling: true
     FrustumCulling: true
-    GridSize: 257
-    MaxLevels: 28
   PBRColorDominance: 0.400000006
   ColorNoiseFrequency: 0.0046000001
   ColorNoiseStrength: 0.0599999987
@@ -1754,8 +1751,8 @@ Entities:
         - Handle: 15758747276645440079
         - Handle: 11759265246340118256
     TransformComponent:
-      Translation: [25, 24, -200]
-      Rotation: [0, 90, 0]
+      Translation: [25, 105, -200]
+      Rotation: [0, -90, 0]
       RotationQuat: [0, 0, 0, 1]
       Scale: [0.99999994, 1, 1]
     MeshComponent:

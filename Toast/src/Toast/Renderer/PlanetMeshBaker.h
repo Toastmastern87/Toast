@@ -17,7 +17,7 @@ namespace Toast {
 
 		void EnsureCapacity(uint32_t patchCount, uint32_t verticesPerPatch);
 
-		void Upload(const std::vector<PlanetMeshIcosphere::PlanetPatchGPU>& patches, int patchLevels, uint32_t materialCount, float planetRadius, const DirectX::XMFLOAT3& camHiPS);
+		void Upload(const std::vector<PlanetMesh::PlanetPatchGPU>& patches, int patchLevels, uint32_t materialCount, float planetRadius, const DirectX::XMFLOAT3& camHiPS);
 
 		void Bake();
 

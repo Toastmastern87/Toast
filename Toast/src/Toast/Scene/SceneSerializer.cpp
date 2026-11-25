@@ -960,7 +960,6 @@ namespace Toast {
 		out << YAML::Key << "Radius" << YAML::Value << scenePlanet->mRadius;
 		out << YAML::Key << "MaxHeight" << YAML::Value << scenePlanet->mMaxHeight;
 		out << YAML::Key << "MinHeight" << YAML::Value << scenePlanet->mMinHeight;
-		out << YAML::Key << "MeshMode" << YAML::Value << static_cast<uint32_t>(scenePlanet->mMeshMode);
 		out << YAML::Key << "AlbedoTextureHandle" << YAML::Value << scenePlanet->mAlbedoTextureHandle;
 		out << YAML::Key << "UseAlbedoMap" << YAML::Value << scenePlanet->mUseAlbedoMap;
 		out << YAML::Key << "AlbedoColor" << YAML::Value << scenePlanet->mAlbedoColor;
@@ -992,18 +991,15 @@ namespace Toast {
 		out << YAML::Key << "WindVelocity" << YAML::Value << scenePlanet->mWindVelocity;
 		out << YAML::Key << "SpeedOfSound" << YAML::Value << scenePlanet->mSpeedOfSound;
 
-		auto& planetMeshGeo = scenePlanet->mGeoClipmapMesh;
-		auto& planetMeshIco = scenePlanet->mIcosphereMesh;
+		auto& planetMesh = scenePlanet->mMesh;
 		out << YAML::Key << "PlanetMesh";
 		out << YAML::BeginMap;
-		out << YAML::Key << "MaxSubdivisions" << YAML::Value << planetMeshIco->mMaxSubdivisions;
-		out << YAML::Key << "PatchLevels" << YAML::Value << planetMeshIco->mPatchLevels;
-		out << YAML::Key << "NearDistance" << YAML::Value << planetMeshIco->mNearDistance;
-		out << YAML::Key << "FarDistance" << YAML::Value << planetMeshIco->mFarDistance;
-		out << YAML::Key << "BackfaceCulling" << YAML::Value << planetMeshIco->mBackfaceCulling;
-		out << YAML::Key << "FrustumCulling" << YAML::Value << planetMeshIco->mFrustumCulling;
-		out << YAML::Key << "GridSize" << YAML::Value << planetMeshGeo->mGridSize;
-		out << YAML::Key << "MaxLevels" << YAML::Value << planetMeshGeo->mNumLevels;
+		out << YAML::Key << "MaxSubdivisions" << YAML::Value << planetMesh->mMaxSubdivisions;
+		out << YAML::Key << "PatchLevels" << YAML::Value << planetMesh->mPatchLevels;
+		out << YAML::Key << "NearDistance" << YAML::Value << planetMesh->mNearDistance;
+		out << YAML::Key << "FarDistance" << YAML::Value << planetMesh->mFarDistance;
+		out << YAML::Key << "BackfaceCulling" << YAML::Value << planetMesh->mBackfaceCulling;
+		out << YAML::Key << "FrustumCulling" << YAML::Value << planetMesh->mFrustumCulling;
 		out << YAML::EndMap;
 
 		out << YAML::Key << "PBRColorDominance" << YAML::Value << scenePlanet->mPBRColorDominance;
@@ -1322,7 +1318,6 @@ namespace Toast {
 		scenePlanet->mRadius = planet["Radius"].as<double>();
 		scenePlanet->mMaxHeight = planet["MaxHeight"].as<double>();
 		scenePlanet->mMinHeight = planet["MinHeight"].as<double>();
-		scenePlanet->mMeshMode = static_cast<PlanetMeshMode>(planet["MeshMode"].as<uint32_t>());
 		scenePlanet->mAlbedoTextureHandle = planet["AlbedoTextureHandle"].as<AssetHandle>();
 		scenePlanet->mUseAlbedoMap = planet["UseAlbedoMap"].as<float>();
 		scenePlanet->mAlbedoColor = planet["AlbedoColor"].as<DirectX::XMFLOAT3>();
@@ -1395,24 +1390,17 @@ namespace Toast {
 		scenePlanet->mErosionMaxDistance = planet["ErosionMaxDistance"].as<float>();
 		scenePlanet->mErosionFadeStart = planet["ErosionFadeStart"].as<float>();
 
-		auto& planetMeshGeo = scenePlanet->mGeoClipmapMesh;
-		planetMeshGeo->mGridSize = planet["PlanetMesh"]["GridSize"].as<uint32_t>();
-		planetMeshGeo->mNumLevels = planet["PlanetMesh"]["MaxLevels"].as<uint32_t>();
-		planetMeshGeo->mGridIsDirty = true;
-		planetMeshGeo->mLODGridIsDirty = true;
-		planetMeshGeo->mRingGridIsDirty = true;
-
-		auto& planetMeshIco = scenePlanet->mIcosphereMesh;
-		planetMeshIco->mMaxSubdivisions = planet["PlanetMesh"]["MaxSubdivisions"].as<int>();
-		planetMeshIco->mPatchLevels = planet["PlanetMesh"]["PatchLevels"].as<int>();
-		planetMeshIco->mNearDistance = planet["PlanetMesh"]["NearDistance"].as<double>();
-		planetMeshIco->mFarDistance = planet["PlanetMesh"]["FarDistance"].as<double>();
-		planetMeshIco->mBackfaceCulling = planet["PlanetMesh"]["BackfaceCulling"].as<bool>();
-		planetMeshIco->mFrustumCulling = planet["PlanetMesh"]["FrustumCulling"].as<bool>();
-		planetMeshIco->mDistanceLUTIsDirty = true;
-		planetMeshIco->mFaceLevelDotLUTIsDirty = true;
-		planetMeshIco->mHeightMultLUTIsDirty = true;
-		planetMeshIco->mPatchIsDirty = true;
+		auto& planetMesh = scenePlanet->mMesh;
+		planetMesh->mMaxSubdivisions = planet["PlanetMesh"]["MaxSubdivisions"].as<int>();
+		planetMesh->mPatchLevels = planet["PlanetMesh"]["PatchLevels"].as<int>();
+		planetMesh->mNearDistance = planet["PlanetMesh"]["NearDistance"].as<double>();
+		planetMesh->mFarDistance = planet["PlanetMesh"]["FarDistance"].as<double>();
+		planetMesh->mBackfaceCulling = planet["PlanetMesh"]["BackfaceCulling"].as<bool>();
+		planetMesh->mFrustumCulling = planet["PlanetMesh"]["FrustumCulling"].as<bool>();
+		planetMesh->mDistanceLUTIsDirty = true;
+		planetMesh->mFaceLevelDotLUTIsDirty = true;
+		planetMesh->mHeightMultLUTIsDirty = true;
+		planetMesh->mPatchIsDirty = true;
 
 		scenePlanet->mNormalMapTextureCube = scenePlanet->CreateNormalMapCube(scenePlanet->mBaseHeightMapTextureCube.get());
 		if(scenePlanet->mUseAlbedoMap > 0.0f)
@@ -2101,9 +2089,6 @@ namespace Toast {
 			}
 		}
 
-		if (planetMeshGeo->mNumLevels != 0 && planetMeshGeo->mGridSize != 0)
-			planetMeshGeo->Init();
-
 		if (scenePlanet->mStarFieldTexture2DHandle != AssetHandle(0))
 		{
 			Ref<Texture2D> starFieldTexture =
@@ -2124,15 +2109,8 @@ namespace Toast {
 			scenePlanet->mStarFieldTextureCube->GenerateMips();
 		}
 
-		planetMeshGeo->mTempGridSize = planetMeshGeo->mGridSize;
-		planetMeshGeo->mTempNumLevels = planetMeshGeo->mNumLevels;
-
 		scenePlanet->mTerrainCubeData = Planet::LoadCubeData<float>(scenePlanet->mBaseHeightMapTextureCube);
 		scenePlanet->mAlbedoCubeData = Planet::LoadCubeData<uint32_t>(scenePlanet->mAlbedoMapTextureCube);
-
-		SceneCamera* camera = mScene->GetMainCamera();
-		if (camera)
-			planetMeshGeo->GenerateDistanceLUT(planetMeshGeo->mNumLevels, scenePlanet->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mScene->GetViewportSize()));
 
 		Renderer::GenerateTransmittanceLUT(scenePlanet);
 		Renderer::GenerateMultiScatteringLUT(scenePlanet);

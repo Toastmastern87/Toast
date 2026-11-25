@@ -14,9 +14,11 @@
 
 #include "Toast/Assets/Asset.h"
 
+#include "Toast/Renderer/CubeData.h"
 #include "Toast/Renderer/Frustum.h"
 #include "Toast/Renderer/Mesh.h"
 #include "Toast/Renderer/PlanetMaterial.h"
+#include "Toast/Renderer/PlanetMesh.h"
 #include "Toast/Renderer/RenderCommand.h"
 
 #include "Toast/Scene/Components.h"
@@ -35,9 +37,6 @@
 
 namespace Toast {
 
-	class PhysicsEngine;
-	class PlanetMeshBaker;
-
 	struct Int4
 	{
 		int32_t x, y, z, w;
@@ -45,37 +44,6 @@ namespace Toast {
 		Int4(int32_t _x, int32_t _y, int32_t _z, int32_t _w) : x(_x), y(_y), z(_z), w(_w) {}
 	};
 	static_assert(sizeof(Int4) == 16, "Int4 must be 16 bytes to match HLSL int4.");
-
-	enum class PlanetMeshMode
-	{
-		GeometryClipmapping = 0,
-		Icosphere = 1
-	};
-
-	struct ClipLevel
-	{
-		std::pair<int32_t, int32_t> Origin = { 0, 0 };
-		bool Dirty = true;
-		bool InFrustum = true;
-	};
-
-	struct LODDrawInfo
-	{
-		uint32_t first;   // finest level that is *kept*  (≥ 0)
-		uint32_t count;   // how many consecutive levels are drawn
-	};
-
-	struct PlanetLevelCB
-	{
-		int32_t OriginX;
-		int32_t OriginY;
-		uint32_t CellSize;
-		uint32_t GridSize;
-		uint32_t DrawMode;
-		float ScatterOriginMetersX;
-		float ScatterOriginMetersY;
-		float FinestCellSize;
-	};
 
 	struct PlanetFrameCB
 	{
@@ -173,318 +141,12 @@ namespace Toast {
 		double TangentDist;  // tangent-plane distance from camera (meters)
 	};
 
-	inline size_t Index2D(uint32_t x, uint32_t y, uint32_t width)
-	{
-		return static_cast<size_t>(y) * width + x;
-	}
-
-	template<typename T>
-	struct CubeData
-	{
-		uint32_t Width = 0;
-		uint32_t Height = 0;
-		std::array<std::vector<T>, 6> FaceData;
-	};
-
 	inline float smoothstep(float a, float b, float x)
 	{
 		if (a == b) return 0.0f; // avoid divide-by-zero
 		float t = std::clamp((x - a) / (b - a), 0.0f, 1.0f);
 		return t * t * (3.0f - 2.0f * t);
 	}
-
-	class PlanetMeshIcosphere
-	{
-	public:
-		struct MidpointHash
-		{
-			static constexpr uint32_t EMPTY = UINT32_MAX;
-			std::vector<uint64_t> keys;
-			std::vector<uint32_t> values;
-			uint32_t mask = 0;
-
-			void clear(uint32_t capacity)
-			{
-				// capacity must be power of 2
-				uint32_t cap = 1;
-				while (cap < capacity * 2) cap <<= 1;
-				mask = cap - 1;
-				keys.assign(cap, UINT64_MAX);
-				values.assign(cap, EMPTY);
-			}
-
-			uint32_t find(uint64_t key) const
-			{
-				uint32_t slot = (uint32_t)(key * 2654435761ull) & mask;
-				while (true)
-				{
-					if (keys[slot] == key) return values[slot];
-					if (keys[slot] == UINT64_MAX) return EMPTY;
-					slot = (slot + 1) & mask;
-				}
-			}
-
-			void insert(uint64_t key, uint32_t value)
-			{
-				uint32_t slot = (uint32_t)(key * 2654435761ull) & mask;
-				while (keys[slot] != UINT64_MAX)
-					slot = (slot + 1) & mask;
-				keys[slot] = key;
-				values[slot] = value;
-			}
-		};
-
-		enum class NextPlanetFace
-		{
-			CULL, LEAF, SPLIT, SPLITCULL
-		};
-
-		struct PlanetPatchCPU
-		{
-			int level;
-
-			uint32_t i0;
-			uint32_t i1;
-			uint32_t i2;
-
-			PlanetPatchCPU(int Level, const uint32_t I0, const uint32_t I1, const uint32_t I2)
-				: level(Level), i0(I0), i1(I1), i2(I2)
-			{
-			}
-		};
-
-		struct PlanetPatchGPU
-		{
-			int level;                 // 4
-
-			DirectX::XMFLOAT3 V0;      // 12  unit
-			DirectX::XMFLOAT3 V1;      // 12  unit
-			DirectX::XMFLOAT3 V2;      // 12  unit
-
-			DirectX::XMFLOAT3 P0_rel_hi; // 12  meters: (V0*R - camHi)
-			DirectX::XMFLOAT3 P1_rel_hi; // 12
-			DirectX::XMFLOAT3 P2_rel_hi; // 12
-
-			DirectX::XMFLOAT3 PatchOriginPS;
-		};
-		TOAST_STATIC_ASSERT(sizeof(PlanetPatchGPU) == 88, "PlanetPatchGPU must match PlanetPatch in PlanetMeshBake.hlsl (88 bytes)");
-
-		struct PlanetVertexCPU
-		{
-			uint16_t I;
-			uint16_t J;
-
-			PlanetVertexCPU(uint16_t i, uint16_t j)
-			{
-				I = i;
-				J = j;
-			}
-		};
-
-		struct PlanetVertexGPU
-		{
-			uint16_t I;
-			uint16_t J;
-
-			PlanetVertexGPU(uint16_t i, uint16_t j)
-			{
-				I = i;
-				J = j;
-			}
-		};
-
-		struct DeferredLeafPatch
-		{
-			uint32_t ia, ib, ic;
-			int16_t subdivision;
-		};
-	public:
-		PlanetMeshIcosphere() = default;
-
-		void Init();
-		void InitShaderLayout();
-		void GeneratePatchGeometry();
-
-		void OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, double radius, double maxHeight, const CubeData<float>* terrainData, uint32_t materialCount);
-		void RecursiveFace(Frustum* frustum, uint32_t ia, uint32_t ib, uint32_t ic, int16_t subdivision, Vector3& cameraPosPS, bool splitCull);
-		void EmitLeafPatchChecked(uint32_t ia, uint32_t ib, uint32_t ic, int16_t subdivision, Vector3& cameraPosPS);
-		NextPlanetFace CheckFaceSplit(Frustum* frustum, const  Vector3& a, const  Vector3& b, const  Vector3& c, int16_t subdivision, Vector3& cameraPosPS, bool frustumCheckNeeded, double hA, double hB, double hC);
-
-		Ref<ShaderLayout> GetShaderInputLayout() { return mShaderInputLayout; }
-
-		uint32_t GetIndexCount() { return static_cast<uint32_t>(mIndices.size()); }
-		uint16_t GetPatchLevels() { return mPatchLevels; }
-		uint32_t GetPatchCount() { return static_cast<uint32_t>(mPatches.size()); }
-
-		void BuildGPUData();
-		void BindGPUData();
-		void UnbindGPUData();
-		void Bake();
-
-		Ref<ConstantBuffer>& GetPlanetMeshCBuffer() { return mPlanetMeshCBuffer; }
-
-		uint32_t GetMidpoint(uint32_t i1, uint32_t i2);
-
-		void GenerateDistanceLUT();
-		void GenerateFaceDotLevelLUT();
-		void GenerateHeightMultLUT();
-
-		bool& GetBackfaceCulling() { return mBackfaceCulling; }
-		bool& GetFrustumCulling() { return mFrustumCulling; }
-
-		void SetDistanceLUTDirty() { mDistanceLUTIsDirty = true; }
-
-		int16_t GetMaxSubdivisions() const { return mMaxSubdivisions; }
-
-		Vector3 GetCameraHiPS() { return mCamHiPS; }
-
-		friend class SceneSerializer;
-		friend class PlanetPanel;
-	private:
-		double GetCachedHeight(uint32_t idx, int16_t subdivision);
-
-		bool HasMidpoint(uint32_t i1, uint32_t i2) const;
-	private:
-		double mRadius = 0.0;
-		double mMaxHeight = 0.0;
-
-		const int16_t HARDCAPSUBDIVISIONS = 25;
-		int16_t mMaxSubdivisions = 0;
-		int16_t mHighestSubdivision = 0;
-		int16_t mPatchLevels = 0;
-		bool mPatchIsDirty = true;
-		double mNearDistance = 1.0;
-		double mFarDistance = 10.0;
-		Vector3 mCamHiPS = { 0.0, 0.0, 0.0 };
-
-		const CubeData<float>* mTerrainCubeData;
-		const CubeData<uint32_t> mAlbedoCubeData;
-		
-		std::vector<double> mHeightCache;
-
-		std::vector<PlanetPatchCPU> mPatches;
-		std::vector<PlanetPatchGPU> mPatchesGPU;
-
-		std::vector<uint32_t> mStartIndices;
-		std::vector<Vector3> mBaseIcosahedronVerts;
-		std::vector<PlanetVertexCPU> mVertices;
-		std::vector<PlanetVertexGPU> mVerticesGPU;
-		std::vector<uint32_t> mIndices;
-		std::vector<Vector3> mSphereVertices;
-		MidpointHash mMidpointCache;
-		std::vector<DeferredLeafPatch> mDeferredLeafPatches;
-
-		Ref<VertexBuffer> mVertexBuffer;
-		Ref<VertexBuffer> mInstanceVertexBuffer;
-		uint32_t mInstanceBufferCapacity = 0;
-		Ref<IndexBuffer> mIndexBuffer;
-
-		Ref<ShaderLayout> mShaderInputLayout;
-
-		Ref<ConstantBuffer> mPlanetMeshCBuffer;
-		Buffer mPlanetMeshBuffer;
-
-		std::vector<double> mDistanceLUT;
-		bool mDistanceLUTIsDirty = true;
-		std::vector<double> mFaceLevelDotLUT;
-		bool mFaceLevelDotLUTIsDirty = true;
-		std::vector<double> mHeightMultLUT;
-		bool mHeightMultLUTIsDirty = true;
-
-		double mBackfaceSafeDistSq = 0.0;
-
-		// Settings
-		bool mBackfaceCulling;
-		bool mFrustumCulling;
-
-		Ref<PlanetMeshBaker> mMeshBaker;
-
-		AssetHandle mIcosphereGPassShaderHandle = 0;
-	};
-
-	class PlanetMeshGeoClipmap
-	{
-	public:
-		PlanetMeshGeoClipmap() = default;
-
-		void Init();
-		void InitShaderLayout();
-
-		void OnUpdate(PhysicsEngine* physicsEngine, double radius, double maxHeight, const Vector3& playerCamPosPS, const CubeData<float>* terrainData, const Vector3& camTangent, const double& shiftEast, const double& shiftNorth);
-
-		void BuildGPUData();
-		void BindGPUData();
-
-		void RebuildGrid();
-		void RebuildRingGridIndices();
-		void RebuildLODEdgeGrid();
-		LODDrawInfo DetermineActiveLODLevels(const Vector3& camPosPS, PhysicsEngine* physicsEngine);
-		Buffer& BuildLevelCB(uint32_t L);
-		uint32_t GetGridSize() { return mGridSize; }
-
-		LODDrawInfo GetLODDrawInfo() { return mActiveLevels; }
-		std::vector<ClipLevel>& GetLevels() { return mLevels; }
-
-		Ref<VertexBuffer>& GetGridVertexBuffer() { return mGridVertexBuffer; }
-		Ref<VertexBuffer>& GetLODGridVertexBuffer() { return mLODGridVertexBuffer; }
-		Ref<IndexBuffer>& GetCenterGridIndexBuffer() { return mCenterGridIndexBuffer; }
-		Ref<IndexBuffer>& GetRingGridIndexBuffer() { return mRingGridIndexBuffer; }
-		Ref<IndexBuffer>& GetLODGridIndexBuffer() { return mLODGridIndexBuffer; }
-		uint32_t GetGridIndexCount() { return mGridIndexCount; }
-		uint32_t GetRingGridIndexCount() { return mRingGridIndexCount; }
-		uint32_t GetLODGridIndexCount() { return mLODGridIndexCount; }
-
-		Ref<ConstantBuffer> GetPlanetLevelCBuffer() { return mPlanetLevelCBuffer; }
-
-		void GenerateDistanceLUT(uint32_t maxLevels, double planetRadius, float FoVY, uint32_t viewportWidth, double metersPerFirstCell = 1.0, float screenErrorPx = 2.0f, double spacingBias = 1.2);
-
-		bool IsPlanetMeshValid() const { return mValidMesh; }
-
-		friend class SceneSerializer;
-		friend class PlanetPanel;
-		friend class Planet;
-	private:
-		void UpdateLevelOrigins(const Vector3& camTangent);
-
-		bool IsTerrainReady() const;
-
-		double ComputeCurvatureBias(double desiredSwitchHeight, double radius, double patchWidth, double focalLenPx, double screenErrorPx);
-	private:
-		bool mValidMesh = false;
-		bool mRunOnce = false;
-
-		double mRadius = 0.0;
-		double mMaxHeight = 0.0;
-		double mShiftEastM;
-		double mShiftNorthM;
-
-		Ref<ConstantBuffer> mPlanetLevelCBuffer;
-		Buffer mPlanetLevelBuffer;
-
-		uint32_t mGridSize = 0;
-		uint32_t mTempGridSize = 0;
-		int32_t mNumLevels = 0;
-		int32_t mTempNumLevels = 0;
-		std::vector<ClipLevel> mLevels;
-		LODDrawInfo mActiveLevels;
-
-		Ref<VertexBuffer> mGridVertexBuffer;
-		Ref<VertexBuffer> mLODGridVertexBuffer;
-		Ref<IndexBuffer> mCenterGridIndexBuffer;
-		Ref<IndexBuffer> mRingGridIndexBuffer;
-		Ref<IndexBuffer> mLODGridIndexBuffer;
-		uint32_t mGridIndexCount = 0;
-		uint32_t mRingGridIndexCount = 0;
-		uint32_t mLODGridIndexCount = 0;
-
-		bool mGridIsDirty = false;
-		bool mRingGridIsDirty = false;
-		bool mLODGridIsDirty = false;
-
-		std::vector<double> mDistanceLUT;
-
-		const CubeData<float>* mTerrainCubeData;
-	};
 
 	class Planet
 	{
@@ -502,13 +164,10 @@ namespace Toast {
 		Vector3 mCameraPlanetSpace;
 
 		// Mesh Data
-		Ref<PlanetMeshIcosphere> mIcosphereMesh;
-		Ref<PlanetMeshGeoClipmap> mGeoClipmapMesh;
-		PlanetMeshMode mMeshMode = PlanetMeshMode::GeometryClipmapping;
+		Ref<PlanetMesh> mMesh;
 
 		Ref<ConstantBuffer> mPlanetFrameCBuffer, mRenderingSettingsCBuffer;
 		Buffer mPlanetFrameBuffer, mRenderingSettingsBuffer;
-		ShaderLayout mShaderInputLayout;
 
 		// Terrain Data
 		double mRadius = 0.0;
@@ -631,7 +290,6 @@ namespace Toast {
 		// pattern particles slide through.
 		DirectX::XMFLOAT3 mWindVelocity = { 0.0f, 0.0f, 0.0f };
 
-		AssetHandle mGeoClipmapGPassShaderHandle = 0;
 		AssetHandle mHeightMapToCubeMapShaderHandle = 0;
 		AssetHandle mHeightCubeToNormalCubeShaderHandle = 0;
 		AssetHandle mHeightCubeMaxMipShaderHandle = 0;
@@ -639,8 +297,7 @@ namespace Toast {
 
 		friend class SceneSerializer;
 		friend class PlanetPanel;
-		friend class PlanetMeshIcosphere;
-		friend class PlanetMeshGeoClipmap;
+		friend class PlanetMesh;
 	public:
 		Planet();
 
@@ -648,7 +305,7 @@ namespace Toast {
 
 		void Shutdown();
 
-		void OnUpdate(Camera* camera, const Quaternion& playerCamRot, const Vector3& playerCamPosWS, const Vector3& renderingCamPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix, PhysicsEngine* physicsEngine, Frustum* frustum, const DirectX::XMFLOAT4X4& renderingCameraViewMatrix, float frustumBias);
+		void OnUpdate(Camera* camera, const Quaternion& playerCamRot, const Vector3& playerCamPosWS, const Vector3& renderingCamPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix, Frustum* frustum, const DirectX::XMFLOAT4X4& renderingCameraViewMatrix, float frustumBias);
 
 		DirectX::XMMATRIX GetTransformRotation();
 		DirectX::XMMATRIX GetTransformNoScale();
@@ -680,7 +337,6 @@ namespace Toast {
 		Ref<ConstantBuffer> GetPlanetFrameCBuffer() { return mPlanetFrameCBuffer; }
 		Buffer& GetPlanetFrameBuffer() { return mPlanetFrameBuffer; }
 		Ref<ConstantBuffer> GetPlanetRenderingSettingsCBuffer() { return mRenderingSettingsCBuffer; }
-		ShaderLayout* GetShaderLayout() { return &mShaderInputLayout; }
 
 		// Terrain Materials
 		const std::vector<PlanetMaterial>& GetTerrainMaterials() const { return mMaterials; }
@@ -731,21 +387,9 @@ namespace Toast {
 
 		float GetGravityConstant() { return mGravityConstant; }
 
-		uint32_t GetLODForWorldPos(const Vector3& worldPosWS);
-
-		//size_t GetNumHeightDetails() { return mHeightDetails.size(); }
-		//const std::vector<HeightDetail>& GetHeightDetails() { return mHeightDetails; }
-		//Ref<StructuredBuffer> GetHeightDetailSettingsSB() { return mHeightDetailSettingsSB; }
-		//Ref<StructuredBuffer> GetHeightDetailPermSB() { return mHeightDetailPermSB; }
-		////void UploadHeightDetailsToGPU();
-
 		const std::vector<TerrainObject>& GetTerrainObjects() { return mTerrainObjects; }
 
-		void SetMeshMode(PlanetMeshMode mode) { mMeshMode = mode; }
-		PlanetMeshMode GetMeshMode() const { return mMeshMode; }
-
-		Ref<PlanetMeshIcosphere>& GetIcosphereMesh() { return mIcosphereMesh; }
-		Ref<PlanetMeshGeoClipmap>& GetGeoClipmapMesh() { return mGeoClipmapMesh; }
+		Ref<PlanetMesh>& GetMesh() { return mMesh; }
 
 		bool IsTerrainReady() const;
 

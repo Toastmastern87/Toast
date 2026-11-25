@@ -1,408 +1,476 @@
-﻿#inputlayout        // packed 16-bit grid coordinates: uint16 gx, uint16 gy
+﻿#inputlayout
 vertex
+instance
+instance
+instance
+instance
+instance
+instance
+instance
+instance
 
 #type vertex
 #pragma pack_matrix( row_major )
 
-static const float PI = 3.14159265358979323846f;
-static const float INV_TWO_PI = 1.0f / (2.0f * PI);
-static const float INV_PI = 1.0f / PI;
-static const uint EDGE_CELLS = 12; // number of cells in edge blending strip
+cbuffer Camera : register(b0)
+{
+	matrix worldTranslationMatrix;
+	matrix viewMatrix;
+	matrix projectionMatrix;
+	matrix inverseViewMatrix;
+	matrix inverseProjectionMatrix;
+	float4 cameraPosition;
+	float far;
+	float near;
+	float viewportWidth;
+	float viewportHeight;
+};
+
+cbuffer Model : register(b1)
+{
+    matrix worldMatrix; // planet rotation + translation (translation should already be floating-origin safe)
+    float clickable;
+    int entityID;
+    int noWorldTransform;
+    int isInstanced;
+};
+
+cbuffer PlanetMesh : register(b2)
+{
+    float planetRadius; 
+    float3 camHiPS;
+	
+    matrix viewMatrixPlanetRendering; // This includes floating origin translation for planet rendering
+	
+    int patchLevels;
+    float3 camLoPS;
+	
+    float3 planetCenterRelHiWS;
+    int materialCount;
+
+    float3 planetCenterRelLoWS;
+};
 
 struct VertexInputType
 {
-    uint2 grid : POSITION0; // gx,gy 0 … N-1
-};
+    uint2 ij                : TEXCOORD0; // per-vertex
+    int level               : TEXTUREID0; // per-instance
 
-cbuffer Camera : register(b0)
-{
-    matrix worldTranslationMatrix;
-    matrix viewMatrix;
-    matrix projectionMatrix;
-    matrix inverseViewMatrix;
-    matrix inverseProjectionMatrix;
-    float4 cameraPosition;
-    float far;
-    float near;
-    float viewportWidth;
-    float viewportHeight;
-};
+    float3 V0               : POSITION0;
+    float3 V1               : POSITION1;
+    float3 V2               : POSITION2;
 
-cbuffer PlanetFrame : register(b4)
-{
-    float3 PlanetCenterCR;
-    float PlanetRadius;
-    float3 BasisTanEast;
-    float MaxHeight;
-    float3 BasisTanNorth;
-    float MinHeight;
-    float3 BasisRadUp;
-    float Altitude;
-    float3 BasisLonEast;
-    int NumHeightDetails;
-    float3 BasisLonNorth;
-    float3 BasisSpinUp;
-};
-
-cbuffer PlanetLevel : register(b7) 
-{
-    int OriginX;
-    int OriginY;
-    int CellSize;
-    int GridSize;
+    float3 P2RelHi          : TEXCOORD3;
+    float3 P0RelHi          : TEXCOORD1;
+    float3 P1RelHi          : TEXCOORD2;
     
-    int DrawMode;
-    float ScatterOriginMetersX;
-    float ScatterOriginMetersY;
+    float3 PatchOriginPS    : TEXCOORD4;
+    
+    uint vertexID           : SV_VertexID;
+    uint instanceID         : SV_InstanceID;
 };
 
 struct PixelInputType
 {
-    float4 pixelPosition        : SV_POSITION;
-    float3 viewPosition         : VIEWPOS;
-    float3 viewNormal           : NORMAL0;
-    float2 uv                   : TEXCOORD0;
+	float4 pixelPosition	    : SV_POSITION;
+	float3 viewPosition		    : VIEWPOS;
+	float3 normalWS	            : NORMAL0;
+    float3 dirPS                : TEXCOORD0; // planet-space unit direction
+    float3 worldPosPS           : TEXCOORD1;
+    float3 TriplanarPos         : TEXCOORD2;
+    float WallDebug             : TEXCOORD3;
+    float WallMaskDebug         : TEXCOORD4;
+    float ErosionMaskDebug      : TEXCOORD5;
+    float ErosionPatternDebug   : TEXCOORD6;
+    float ErosionDeltaDebug     : TEXCOORD7;
 };
 
-struct PlanetPointVS
+struct PlanetBakedVertex
 {
-    float3 posVS; // for SV_POSITION
-    float3 nWS; // unit sphere normal in world-space
-    float2 uv;
+    float3 NormalPS;
+    float Height;
+    uint3 PackedDebug;
+    uint Pad;
 };
 
-struct DetailSettings
-{
-    int LODActivation;
-    int Octaves;
-    float Frequency;
-    float Amplitude;
-    int PermBase; // index into gPermTables (int4 units)
-    float pad0, pad1, pad2;
-};
-
-struct RelSample
-{
-    float3 pRelWS; // camera-relative world space position (what you render)
-    float3 nSphereWS; // radial direction used in the spherical branch (and for outward check)
-    float h; // height (optional, for debugging)
-};
-
-Texture2DArray<float> HeightCubeArray           : register(t0);
-    
-StructuredBuffer<DetailSettings> Details       : register(t8);
-StructuredBuffer<int4> PermTables              : register(t9);
-
-SamplerState HeightMapSampler                   : register(s5);
-
-#include "DirectionToCube.hlsli"
-#include "PerlinNoise.hlsli"    
-
-RelSample SampleRelSurface(float2 offMeters, float edgeW)
-{
-    RelSample s;
-
-    // Build reference-sphere direction (same as your current VS)
-    float3 pSphereLocal = BasisRadUp + BasisTanEast * (offMeters.x / PlanetRadius) + BasisTanNorth * (offMeters.y / PlanetRadius);
-
-    float3 nWS = normalize(pSphereLocal);
-    s.nSphereWS = nWS;
-
-    float3 vPlanet = float3(dot(nWS, BasisLonEast), dot(nWS, BasisSpinUp), dot(nWS, BasisLonNorth));
-
-    float3 pNoise = vPlanet * PlanetRadius;
-
-    float h = 0.0f;//SampleHeightFromDir(normalize(vPlanet));
-
-    int lodFine = 0;//LodFromCellSize(CellSize);
-    float detailFine = 0.0f;//AccumulateHeightDetails(pNoise, lodFine);
-    float detail = detailFine;
-
-    if (DrawMode == 1)
-    {
-        int lodCoarse = lodFine + 1;
-        float detailCoarse = 0.0f;//AccumulateHeightDetails(pNoise, lodCoarse);
-        detail = lerp(detailCoarse, detailFine, edgeW);
-    }
-
-    h += detail;
-    s.h = h;
-
-    // 3. Geometry model: compute both, then select/blend
-    float3 pPlaneWS = BasisTanEast * offMeters.x + BasisTanNorth * offMeters.y;
-    float3 pRelWS_plane = pPlaneWS + BasisRadUp * (h - Altitude);
-
-    float3 dN = nWS - BasisRadUp;
-    float3 pRelWS_sphere = dN * PlanetRadius + nWS * h - BasisRadUp * Altitude;
-
-    // Choose which model to use
-    float modelW = (CellSize <= 8) ? 1.0f : 0.0f;
-
-    // If last LOD with planar model blend towards spherical to avoid popping
-    if (DrawMode == 1 && CellSize == 8)
-        modelW = edgeW;
-
-    float3 pRelWS = lerp(pRelWS_sphere, pRelWS_plane, modelW);
-
-    s.pRelWS = pRelWS;
-    return s;
-}
-
-float GetCubemapTexelStepMeters()
-{
-    uint width, height, layers;
-    HeightCubeArray.GetDimensions(width, height, layers);
-
-    // One texel in face UV space [-1,1]
-    float du = 2.0f / (float) width;
-
-    // Convert small angular change to arc length
-    return du * PlanetRadius;
-}
-
-float3 ComputeVertexNormalWS(float2 offMeters, float edgeW)
-{
-    float step;
-    if (CellSize > 8)
-        step = GetCubemapTexelStepMeters();
-    else
-        step = (float) CellSize;
-    
-    RelSample c = SampleRelSurface(offMeters, edgeW);
-    RelSample xp = SampleRelSurface(offMeters + float2(step, 0), edgeW);
-    RelSample xm = SampleRelSurface(offMeters - float2(step, 0), edgeW);
-    RelSample yp = SampleRelSurface(offMeters + float2(0, step), edgeW);
-    RelSample ym = SampleRelSurface(offMeters - float2(0, step), edgeW);
-
-    float3 dPx = xp.pRelWS - xm.pRelWS;
-    float3 dPy = yp.pRelWS - ym.pRelWS;
-
-    float3 N = normalize(cross(dPy, dPx));
-
-    // Outward consistency check using the radial direction at center
-    if (dot(N, c.nSphereWS) < 0.0f)
-        N = -N;
-
-    return N;
-}
-
-float2 PlanetDirToEquirectUV(float3 dirPlanet)
-{
-    dirPlanet = normalize(dirPlanet);
-    float lon = atan2(dirPlanet.z, dirPlanet.x); // match the height bake
-    float lat = asin(clamp(dirPlanet.y, -1.0f, 1.0f));
-    float2 uv;
-    uv.x = lon * INV_TWO_PI + 0.5f;
-    uv.y = 0.5f - lat * INV_PI;
-    return uv;
-}
-
-PlanetPointVS CalulatePlanetPosVS(int2 gWorld)
-{
-    PlanetPointVS p;
-    
-    // 1. Local tangent-plane coordinates in meters
-    //    (gWorld is already small: around [-128,128] in your setup)
-    float2 off = (float2) gWorld * (float) CellSize;
-
-    // 2. Build a direction on the reference sphere (still using your old logic)
-    //    We keep this so height sampling behaves identically.
-    float3 pSphereLocal = BasisRadUp + BasisTanEast * (off.x / PlanetRadius) + BasisTanNorth * (off.y / PlanetRadius);
-
-    // Direction from planet center in world space
-    float3 nWS = normalize(pSphereLocal);
-
-    // Convert world-space normal to planet-local coordinates for cubemap sampling
-    float3 vPlanet;
-    vPlanet.x = dot(nWS, BasisLonEast); // "east" axis of planet
-    vPlanet.y = dot(nWS, BasisSpinUp); // spin axis
-    vPlanet.z = dot(nWS, BasisLonNorth); // "north" axis
-    
-    float3 pNoise = vPlanet * PlanetRadius;
-
-    float h = 0.0f;//SampleHeightFromDir(normalize(vPlanet)); // height in meters
-    
-    int lodFine = 0;//LodFromCellSize(CellSize);
-    int lodCoarse = lodFine + 1;
-    
-    float detailFine = 0.0f;// AccumulateHeightDetails(pNoise, lodFine);
-    float detailCoarse = 0.0f; //AccumulateHeightDetails(pNoise, lodCoarse);
-    
-    float detail = detailFine;
-    
-    float edgeW = 1.0f;
-    if (DrawMode == 1)
-    {
-        int2 gLocalI = int2(gWorld) - int2(OriginX, OriginY);
-        uint2 gLocal = (uint2) gLocalI;
-
-        edgeW = 1.0f;//EdgeBlendWeight(gLocal, GridSize - 1);
-        
-        // Outer edge (w=0): coarse. Inner edge (w=1): fine.
-        detail = lerp(detailCoarse, detailFine, edgeW);
-
-        // Optional: force the very outer border to be exactly coarse
-        // (helps if any numerical jitter exists)
-        if (false) 
-            detail = detailCoarse;
-    }
-    
-    h += detail;
-
-    // 3. Geometry model: compute both, then select/blend
-    float3 pPlaneWS = BasisTanEast * off.x + BasisTanNorth * off.y;
-    float3 pRelWS_plane = pPlaneWS + BasisRadUp * (h - Altitude);
-
-    float3 dN = nWS - BasisRadUp;
-    float3 pRelWS_sphere = dN * PlanetRadius + nWS * h - BasisRadUp * Altitude;
-
-    // Choose which model to use
-    float modelW = (CellSize <= 8) ? 1.0f : 0.0f;
-
-    // If last LOD with planar model blend towards spherical to avoid popping
-    if (DrawMode == 1 && CellSize == 8)
-        modelW = edgeW;
-
-    float3 pRelWS = lerp(pRelWS_sphere, pRelWS_plane, modelW);
-
-    // 4. View-space position
-    float3 posVS = mul(float4(pRelWS, 1.0f), viewMatrix).xyz;
-    
-    p.uv = float2(0.0f, 0.0f); //PlanetDirToEquirectUV(float3(-vPlanet.x, vPlanet.y, -vPlanet.z));
-    p.posVS = posVS;
-    p.nWS = ComputeVertexNormalWS(off, edgeW);
-    return p;
-}
+StructuredBuffer<PlanetBakedVertex> BakedVertices   : register(t5);
 
 PixelInputType main(VertexInputType input)
 {
     PixelInputType output;
-    
-    // unpack & scroll to **planet metres** on the tangent plane
-    int2 gWorld = int2(OriginX, OriginY) + int2(input.grid);
 
-    PlanetPointVS C = CalulatePlanetPosVS(gWorld);
-    
-    output.pixelPosition = mul(float4(C.posVS, 1.0f), projectionMatrix);
-    output.viewPosition = C.posVS;
-    output.viewNormal = normalize(mul(C.nWS, (float3x3) viewMatrix));
-    output.uv = C.uv;
+    // Triangular grid barycentrics
+    uint N = 1u << (uint) patchLevels;
 
+    uint i = input.ij.x;
+    uint j = input.ij.y;
+    if (i + j > N)
+    {
+        i = min(i, N);
+        j = N - i;
+    }
+    uint k = N - i - j;
+
+    float invN = exp2(-(float) patchLevels);
+    float w0 = (float) k * invN;
+    float w1 = (float) i * invN;
+    float w2 = (float) j * invN;
+
+    float3 V0 = normalize(input.V0);
+    float3 V1 = normalize(input.V1);
+    float3 V2 = normalize(input.V2);
+
+    // Edge-consistent direction
+    precise float3 dir = normalize(w0 * V0 + w1 * V1 + w2 * V2);
+    
+    
+    uint verticePerPatch = (N + 1u) * (N + 2u) / 2u;
+    PlanetBakedVertex bakedVertex = BakedVertices[input.instanceID * verticePerPatch + input.vertexID];
+     
+    float3 normalPS = bakedVertex.NormalPS;
+    float h = bakedVertex.Height;
+
+    // High-precision relative position in planet space meters:
+    precise float3 relPSHi = w0 * input.P0RelHi + w1 * input.P1RelHi + w2 * input.P2RelHi;
+    relPSHi += dir * h;
+    
+    // Final view-relative = (hi-relative) - camLo
+    float3 relPS = relPSHi - camLoPS;
+    
+    float3 relPatchPS = relPSHi + camHiPS - input.PatchOriginPS;
+    output.TriplanarPos = relPatchPS;
+    
+    // World rotation only
+    float3x3 R = (float3x3) worldMatrix;
+    float3 relWS = mul(relPS, R);
+    float3 nWS = normalize(mul(normalPS, R));
+    output.normalWS = nWS;
+
+    float4 viewPos = mul(float4(relWS, 1.0f), viewMatrixPlanetRendering);
+    output.viewPosition = viewPos.xyz;
+    output.pixelPosition = mul(viewPos, projectionMatrix);
+    output.dirPS = dir;
+    output.worldPosPS = relPSHi;
+    
+    output.WallDebug = f16tof32(bakedVertex.PackedDebug.x);
+    output.WallMaskDebug = f16tof32(bakedVertex.PackedDebug.x >> 16);
+    output.ErosionMaskDebug = f16tof32(bakedVertex.PackedDebug.y);
+    output.ErosionPatternDebug = f16tof32(bakedVertex.PackedDebug.y >> 16);
+    output.ErosionDeltaDebug = f16tof32(bakedVertex.PackedDebug.z);
+    
     return output;
 }
 
 #type pixel
 #pragma pack_matrix( row_major )
 
-static const float PI = 3.14159265358979323846f;
-static const float INV_TWO_PI = 1.0f / (2.0f * PI);
-static const float INV_PI = 1.0f / PI;
+#define MAX_MATERIALS 8
 
 struct PixelInputType
 {
-    float4 pixelPosition    : SV_POSITION;
-    float3 viewPosition     : VIEWPOS;
-    float3 viewNormal       : NORMAL0;
-    float2 uv               : TEXCOORD0;
+    float4 pixelPosition        : SV_POSITION;
+    float3 viewPosition         : VIEWPOS;
+    float3 normalWS             : NORMAL0;
+    float3 dirPS                : TEXCOORD0; // planet-space unit direction
+    float3 worldPosPS           : TEXCOORD1;
+    float3 TriplanarPos         : TEXCOORD2;
+    float WallDebug             : TEXCOORD3;
+    float WallMaskDebug         : TEXCOORD4;
+    float ErosionMaskDebug      : TEXCOORD5;
+    float ErosionPatternDebug   : TEXCOORD6;
+    float ErosionDeltaDebug     : TEXCOORD7;
 };
+
 
 struct PixelOutputType
 {
-    float4 position         : SV_Target0;
-    float4 normal           : SV_Target1;
-    float4 albedoMetallic   : SV_Target2;
-    float4 roughnessAO      : SV_Target3;
-    int entityID            : SV_Target4;
+	float4 position				: SV_Target0;
+	float4 normal				: SV_Target1;
+	float4 albedoMetallic		: SV_Target2;
+	float4 roughnessAO			: SV_Target3;
+	int entityID				: SV_Target4;
+    float4 planetMaterialDebug  : SV_Target5;
 };
 
 cbuffer Camera : register(b0)
 {
-    matrix worldTranslationMatrix;
-    matrix viewMatrix;
-    matrix projectionMatrix;
-    matrix inverseViewMatrix;
-    matrix inverseProjectionMatrix;
-    float4 cameraPosition;
-    float far;
-    float near;
-    float viewportWidth;
-    float viewportHeight;
+	matrix worldTranslationMatrix;
+	matrix viewMatrix;
+	matrix projectionMatrix;
+	matrix inverseViewMatrix;
+	matrix inverseProjectionMatrix;
+	float4 cameraPosition;
+	float far;
+	float near;
+	float viewportWidth;
+	float viewportHeight;
+};
+
+cbuffer Model : register(b1)
+{
+    matrix worldMatrix; // planet rotation + translation (translation should already be floating-origin safe)
+    float clickable;
+    int entityID;
+    int noWorldTransform;
+    int isInstanced;
 };
 
 cbuffer Material : register(b2)
 {
-    float4 Albedo;
-    float Emission;
-    float Metalness;
-    float Roughness;
-    int AlbedoTexToggle;
-    int NormalTexToggle;
-    int MetalRoughTexToggle;
-};
-
-cbuffer PlanetFrame : register(b4)
-{
-    float3 PlanetCenterCR;
-    float PlanetRadius;
-    
-    float3 BasisTanEast;
-    float MaxHeight;
-    
-    float3 BasisTanNorth;
-    float MinHeight;
-    
-    float3 BasisRadUp;
-    float Altitude;
-    
-    float3 BasisLonEast;
-    int NumHeightDetails;
-    
-    float3 BasisLonNorth;
-    
-    float3 BasisSpinUp;
+	float4 Albedo;
+	float Emission;
+	float Metalness;
+	float Roughness;
+	int AlbedoTexToggle;
+	int NormalTexToggle;
+	int MetalRoughTexToggle;
 };
 
 cbuffer PlanetRenderingSettings : register(b5)
 {
-    float SlopeSensitivity;
-    float SlopeThreshold;
-    float SlopeDarkening;
-}
-
-cbuffer PlanetLevel : register(b7)
-{
-    int OriginX;
-    int OriginY;
-    int CellSize;
-    int GridSize;
+    int MaterialCount;
+    uint MaterialsEnabled;
+    float PBRColorDominance;
+    float ColorNoiseFrequency;
     
-    int DrawMode;
-    float ScatterOriginMetersX;
-    float ScatterOriginMetersY;
+    float ColorNoiseStrength;
+    int ColorNoiseOctaves;
+    float WallEnhancementEnabled;
+    float WallStrength;
+    
+    float WallStepMeters;
+    float WallSlopeStart;
+    float WallSlopeEnd;
+    float WallSharpStart;
+    
+    float WallSharpEnd;
+    float WallMaxDelta;
+    float WallDebugEnabled;
+    float WallDebugMode;
+    
+    float TerrainNormalStepMeters;
+    float ErosionEnabled;
+    float ErosionStrength;
+    float ErosionStepMeters;
+    
+    float ErosionTilingMeters;
+    float ErosionSlopeStart;
+    float ErosionSlopeFull;
+    float ErosionSlopeEnd;
+    
+    float ErosionSlopeFadeOut;
+    int ErosionOctaves;
+    float ErosionLacunarity;
+    float ErosionPersistence;
+    
+    float ErosionDebugEnabled;
+    int ErosionDebugMode;
+    float ErosionGullyWeight;
+    float ErosionDetail;
+    
+    float ErosionCellScale;
+    float ErosionNormalization;
+    float ErosionAssumedSlope;
+    float ErosionAssumedSlopeBlend;
+    
+    float ErosionMaxDistance;
+    float ErosionFadeStart;
+    float pad0, pad1;
 };
 
-cbuffer HeightDetail : register(b8)
+struct MaterialData
 {
-    int Perm[256]; // 1024 bytes
-    
-    int LODActivation;
-    int Octaves;
-    float Frequency;
-    float Amplitude;
+    // 16 bytes
+    float SlopeMin;
+    float SlopeMax;
+    float BlendSharpness;
+    int NoiseLayerStart;
+
+    // 16 bytes
+    int NoiseLayerCount;
+    float UVTilingScale;
+    float ColorAvgMin;
+    float ColorAvgMax;
+
+    // 16 bytes
+    float UseAlbedo;
+    float3 DebugColor;
 };
 
-Texture2DArray<float4> NormalCubeArray  : register(t2);
-Texture2DArray<float4> AlbedoCubeArray  : register(t3);
-
-SamplerState defaultSampler     : register(s0);
-
-struct PBRParameters
+struct PBRSample
 {
     float3 Albedo;
-    float Metalness;
+    float3 Normal;
     float Roughness;
     float AO;
 };
+
+StructuredBuffer<MaterialData> Materials    : register(t1);
+Texture2DArray<float4> NormalCubeArray      : register(t2);
+Texture2DArray<float4> AlbedoCubeArray      : register(t3);
+StructuredBuffer<int4> PermTables           : register(t4);
+Texture2DArray<float4> PBRAlbedoArray       : register(t6);
+Texture2DArray<float4> PBRNormalArray       : register(t7);
+Texture2DArray<float4> PBRRoughnessArray    : register(t8);
+Texture2DArray<float4> PBRAOArray           : register(t9);
+Texture2DArray<float4> PBRDisplacementArray : register(t10);
+
+SamplerState defaultSampler                 : register(s0);
+SamplerState PBRSampler                     : register(s1);
+
+static const float TerrainAlbedoSaturation = 1.2f;
+
+#include "PerlinNoise.hlsli"
+#include "DirectionToCube.hlsli"
+
+float2 HashUV(float2 p)
+{
+    p = float2(dot(p, float2(127.1, 311.7)),
+               dot(p, float2(269.5, 183.3)));
+    return frac(sin(p) * 43758.5453);
+}
+
+float4 HashCell(float2 cellId)
+{
+    float2 h = HashUV(cellId);
+    return float4(h.x * 6.28318530, h.y, HashUV(cellId + 17.0).x, 0);
+}
+
+struct HexSample
+{
+    float2 cellIds[3];
+    float weights[3];
+    float2 localUVs[3];
+};
+
+struct HexTaps
+{
+    float2 uvs[3];
+    float weights[3];
+};
+
+HexSample GetHexSample(float2 uv)
+{
+    float2 s = float2(1.0, 1.73205080757);
+    float2 p = uv;
+
+    float2 hC = floor(p / s) + 0.5;
+    float4 h = float4(hC, hC + 0.5);
+    float4 a = float4(p - h.xy * s, p - (h.zw + 0.5) * s);
+
+    float4 closest = (dot(a.xy, a.xy) < dot(a.zw, a.zw))
+        ? float4(a.xy, h.xy)
+        : float4(a.zw, h.zw + 0.5);
+
+    HexSample hs;
+
+    float2 edge = closest.xy / float2(1.0, 0.86602540378);
+    float2 sign2 = sign(edge);
+    float2 absEdge = abs(edge);
+
+    float2 neighbor1, neighbor2;
+    if (absEdge.x > absEdge.y)
+    {
+        neighbor1 = float2(sign2.x, 0);
+        neighbor2 = float2(sign2.x, sign2.y);
+    }
+    else
+    {
+        neighbor1 = float2(0, sign2.y);
+        neighbor2 = float2(sign2.x, sign2.y);
+    }
+
+    hs.cellIds[0] = closest.zw;
+    hs.cellIds[1] = closest.zw + neighbor1;
+    hs.cellIds[2] = closest.zw + neighbor2;
+
+    hs.localUVs[0] = p - hs.cellIds[0] * s;
+    hs.localUVs[1] = p - hs.cellIds[1] * s;
+    hs.localUVs[2] = p - hs.cellIds[2] * s;
+
+    float3 dists = float3(length(hs.localUVs[0]), length(hs.localUVs[1]), length(hs.localUVs[2]));
+
+    float3 w = 1.0 - smoothstep(0.0, 1.0, dists);
+    w = w * w * w;
+    float totalW = w.x + w.y + w.z;
+    hs.weights[0] = w.x / totalW;
+    hs.weights[1] = w.y / totalW;
+    hs.weights[2] = w.z / totalW;
+
+    return hs;
+}
+
+HexTaps BuildHexTaps(float2 uv)
+{
+    HexSample hs = GetHexSample(uv);
+    HexTaps taps;
+    
+    [unroll]
+    for (int i = 0; i < 3; i++)
+    {
+        float4 hash = HashCell(hs.cellIds[i]);
+        float rot = hash.x;
+        float2 offset = hash.yz;
+        
+        float cosR = cos(rot);
+        float sinR = sin(rot);
+        float2 rotatedUV = float2(hs.localUVs[i].x * cosR - hs.localUVs[i].y * sinR, hs.localUVs[i].x * sinR + hs.localUVs[i].y * cosR);
+        
+        taps.uvs[i] = rotatedUV + offset;
+        taps.weights[i] = hs.weights[i];
+    }
+    return taps;
+}
+
+float4 SampleHexTaps(Texture2DArray<float4> tex, SamplerState samp, HexTaps taps, float slice)
+{
+    float4 result = float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+    [unroll]
+    for (int i = 0; i < 3; i++)
+        result += tex.Sample(samp, float3(taps.uvs[i], slice)) * taps.weights[i];
+
+    return result;
+}
+
+PBRSample SamplePBRTriplanar(uint materialIndex, float3 worldPos, float3 normalPS, float tilingScale)
+{
+    float3 blendWeights = abs(normalPS);
+    blendWeights = pow(blendWeights, 4.0);
+    blendWeights /= dot(blendWeights, 1.0.xxx);
+
+    float3 p = worldPos * (1.0 / tilingScale);
+    float slice = (float) materialIndex;
+    
+    HexTaps tapsX = BuildHexTaps(p.yz);
+    HexTaps tapsY = BuildHexTaps(p.xz);
+    HexTaps tapsZ = BuildHexTaps(p.xy);
+
+    // Three planar projections, each hex-tiled
+    float4 cx = SampleHexTaps(PBRAlbedoArray, PBRSampler, tapsX, slice);
+    float4 cy = SampleHexTaps(PBRAlbedoArray, PBRSampler, tapsY, slice);
+    float4 cz = SampleHexTaps(PBRAlbedoArray, PBRSampler, tapsZ, slice);
+
+    float4 nx = SampleHexTaps(PBRNormalArray, PBRSampler, tapsX, slice);
+    float4 ny = SampleHexTaps(PBRNormalArray, PBRSampler, tapsY, slice);
+    float4 nz = SampleHexTaps(PBRNormalArray, PBRSampler, tapsZ, slice);
+
+    float rx = SampleHexTaps(PBRRoughnessArray, PBRSampler, tapsX, slice).r;
+    float ry = SampleHexTaps(PBRRoughnessArray, PBRSampler, tapsY, slice).r;
+    float rz = SampleHexTaps(PBRRoughnessArray, PBRSampler, tapsZ, slice).r;
+
+    float ax = SampleHexTaps(PBRAOArray, PBRSampler, tapsX, slice).r;
+    float ay = SampleHexTaps(PBRAOArray, PBRSampler, tapsY, slice).r;
+    float az = SampleHexTaps(PBRAOArray, PBRSampler, tapsZ, slice).r;
+
+    PBRSample s;
+    s.Albedo = cx.rgb * blendWeights.x + cy.rgb * blendWeights.y + cz.rgb * blendWeights.z;
+    s.Normal = nx.rgb * blendWeights.x + ny.rgb * blendWeights.y + nz.rgb * blendWeights.z;
+    s.Normal = s.Normal * 2.0 - 1.0;
+    s.Roughness = rx * blendWeights.x + ry * blendWeights.y + rz * blendWeights.z;
+    s.AO = ax * blendWeights.x + ay * blendWeights.y + az * blendWeights.z;
+    return s;
+}
 
 float3 LinearToSRGB(float3 x)
 {
@@ -411,157 +479,279 @@ float3 LinearToSRGB(float3 x)
     return lerp(hi, lo, step(x, 0.0031308));
 }
 
-struct CubeSample
+float4 SampleCubeBilinearLoadFloat4(Texture2DArray<float4> tex, float3 dir)
 {
-    uint face;
-    float2 uv; // [0,1]
-};
+    CubeSample cs = DirectionToCube(dir);
+    uint face = cs.face;
+    float2 uv = cs.uv;
 
-float3 CubeFaceUVToDir(uint face, float2 uv)
-{
-    // Match the bake: flip Y
-    float2 p = 2.0 * float2(uv.x, 1.0 - uv.y) - 1.0;
-    float px = p.x;
-    float py = p.y;
+    uint W, H, L;
+    tex.GetDimensions(W, H, L);
+    uint2 dims = uint2(W, H);
 
-    switch (face)
-    {
-        case 0:
-            return normalize(float3(1.0, py, -px)); // +X
-        case 1:
-            return normalize(float3(-1.0, py, px)); // -X
-        case 2:
-            return normalize(float3(px, 1.0, -py)); // +Y
-        case 3:
-            return normalize(float3(px, -1.0, py)); // -Y
-        case 4:
-            return normalize(float3(px, py, 1.0)); // +Z
-        default:
-            return normalize(float3(-px, py, -1.0)); // -Z
-    }
+    float2 p = uv * dims - 0.5f;
+    float2 fxy = frac(p);
+    int2 i0 = int2(floor(p));
+    int2 i1 = i0 + 1;
+
+    float2 uv00 = (float2(i0) + 0.5f) / dims;
+    float2 uv10 = (float2(i1.x, i0.y) + 0.5f) / dims;
+    float2 uv01 = (float2(i0.x, i1.y) + 0.5f) / dims;
+    float2 uv11 = (float2(i1) + 0.5f) / dims;
+
+    CubeSample c00 = RemapFaceUV(face, uv00);
+    CubeSample c10 = RemapFaceUV(face, uv10);
+    CubeSample c01 = RemapFaceUV(face, uv01);
+    CubeSample c11 = RemapFaceUV(face, uv11);
+
+    int2 wh = int2(dims);
+
+    int2 ij00 = clamp(int2(c00.uv * wh), int2(0, 0), wh - 1);
+    int2 ij10 = clamp(int2(c10.uv * wh), int2(0, 0), wh - 1);
+    int2 ij01 = clamp(int2(c01.uv * wh), int2(0, 0), wh - 1);
+    int2 ij11 = clamp(int2(c11.uv * wh), int2(0, 0), wh - 1);
+
+    float4 v00 = tex.Load(int4(ij00, c00.face, 0));
+    float4 v10 = tex.Load(int4(ij10, c10.face, 0));
+    float4 v01 = tex.Load(int4(ij01, c01.face, 0));
+    float4 v11 = tex.Load(int4(ij11, c11.face, 0));
+
+    float4 vx0 = lerp(v00, v10, fxy.x);
+    float4 vx1 = lerp(v01, v11, fxy.x);
+    return lerp(vx0, vx1, fxy.y);
 }
 
-CubeSample DirectionToCube(float3 v)
+// ── Material weight computation (same as vertex shader) ──────────
+float ComputeMaterialWeight(MaterialData mat, float slope, float colorAvg)
 {
-    v = normalize(v);
+    float slopeScore = 1.0;
+    if (slope < mat.SlopeMin)
+        slopeScore = saturate(1.0 - (mat.SlopeMin - slope) * mat.BlendSharpness);
+    else if (slope > mat.SlopeMax)
+        slopeScore = saturate(1.0 - (slope - mat.SlopeMax) * mat.BlendSharpness);
 
-    float ax = abs(v.x);
-    float ay = abs(v.y);
-    float az = abs(v.z);
-
-    uint face;
-    float2 uvFace;
-
-    if (ax >= ay && ax >= az)
+    float colorScore = 1.0;
+    if (mat.UseAlbedo > 0.5)
     {
-        if (v.x > 0)
-        {
-            face = 0;
-            uvFace = float2(-v.z, v.y) / ax;
-        }
-        else
-        {
-            face = 1;
-            uvFace = float2(v.z, v.y) / ax;
-        }
-    }
-    else if (ay >= ax && ay >= az)
-    {
-        if (v.y > 0)
-        {
-            face = 2;
-            uvFace = float2(v.x, -v.z) / ay;
-        }
-        else
-        {
-            face = 3;
-            uvFace = float2(v.x, v.z) / ay;
-        }
-    }
-    else
-    {
-        if (v.z > 0)
-        {
-            face = 4;
-            uvFace = float2(v.x, v.y) / az;
-        }
-        else
-        {
-            face = 5;
-            uvFace = float2(-v.x, v.y) / az;
-        }
+        if (colorAvg < mat.ColorAvgMin)
+            colorScore = saturate(1.0 - (mat.ColorAvgMin - colorAvg) * mat.BlendSharpness);
+        else if (colorAvg > mat.ColorAvgMax)
+            colorScore = saturate(1.0 - (colorAvg - mat.ColorAvgMax) * mat.BlendSharpness);
     }
 
-    CubeSample cs;
-    cs.face = face;
-    cs.uv = uvFace * 0.5 + 0.5;
-    return cs;
+    return slopeScore * colorScore;
+}
+
+void ComputeAllMaterialWeights(float displacedSlope, float colorAvg, uint matCount, out float weights[MAX_MATERIALS])
+{
+    float totalWeight = 0.0;
+    for (uint m = 0; m < matCount; m++)
+    {
+        weights[m] = ComputeMaterialWeight(Materials[m], displacedSlope, colorAvg);
+        totalWeight += weights[m];
+    }
+    float invTotal = (totalWeight > 0.001) ? (1.0 / totalWeight) : 0.0;
+    for (uint m2 = 0; m2 < matCount; m2++)
+        weights[m2] *= invTotal;
 }
 
 PixelOutputType main(PixelInputType input)
 {
-    PixelOutputType output;
-    PBRParameters params;
-        
-    /*--------------------------------------------------------------*/
-    /* 1) position + normal                                         */
-    /*--------------------------------------------------------------*/ 
-    float3 posWS = mul(float4(input.viewPosition, 1.0f), inverseViewMatrix).xyz;
-    float camToSurface = length(cameraPosition.xyz - posWS);
-    float cubeNormalStrength = smoothstep(1000.0f, 5000.0f, camToSurface);
+	PixelOutputType output;
+	PBRSample params;
     
-    float3 N = normalize(input.viewNormal);
+    float3x3 R = (float3x3) worldMatrix;
     
-    // Direction from planet center in world space
-    float3 dirWS = normalize(posWS - PlanetCenterCR);
+    float camToSurface = length(input.viewPosition);
+    float cubeNormalStrength = smoothstep(20000.0f, 80000.0f, camToSurface);
+    float3 nWS = normalize(input.normalWS);
+    float3 normalPS = normalize(mul(nWS, transpose(R)));
+    float3 dirPS = normalize(input.dirPS);
     
-    // Convert to planet-local space (same basis as your height cubemap)
-    float3 vPlanet;
-    vPlanet.x = dot(dirWS, BasisLonEast);
-    vPlanet.y = dot(dirWS, BasisSpinUp);
-    vPlanet.z = dot(dirWS, BasisLonNorth);
-    
-    CubeSample cs = DirectionToCube(vPlanet);
-    
-    float3 cubeN = NormalCubeArray.SampleLevel(defaultSampler, float3(cs.uv, (float) cs.face), 0).rgb * 2.0f - 1.0f;
-    
-    if (cubeNormalStrength > 0.001f)
+    if (cubeNormalStrength > 0.001)
     {
-        // Sample the normal cubemap (stored as packed [0,1], unpack to [-1,1])
+        float3 cubeNPS = SampleCubeBilinearLoadFloat4(NormalCubeArray, dirPS).rgb * 2.0 - 1.0;
+        normalPS = normalize(lerp(normalPS, cubeNPS, cubeNormalStrength));
+        nWS = normalize(mul(normalPS, R));
+    }  
+    
+    /*--------------------------------------------------------------*/
+    /* 1) Get cubemap UVs from direction                            */
+    /*--------------------------------------------------------------*/       
+    CubeSample cs = DirectionToCube(dirPS);
+    float3 coord = float3(cs.uv, (float) cs.face);
+    
+    /*--------------------------------------------------------------*/
+    /* 2) Samling Albedo                                            */
+    /*--------------------------------------------------------------*/   
+    float3 albedoSample = AlbedoTexToggle > 0 ? SampleCubeBilinearLoadFloat4(AlbedoCubeArray, dirPS).rgb : Albedo.rgb;
+    
+    if (MaterialsEnabled == 0)
+    {
+        // Bypass the entire material system
+        float3 finalAlbedo = albedoSample;
 
-        
-        // cubeN is in planet space, convert to world space
-        float3 cubeNWS = cubeN.x * BasisLonEast + cubeN.y * BasisSpinUp + cubeN.z * BasisLonNorth;
-        
-        // Convert to view space
-        float3 cubeNVS = normalize(mul(cubeNWS, (float3x3) viewMatrix));
-        
-        // Blend: orbit uses cubemap, surface uses vertex normals
-        N = normalize(lerp(N, cubeNVS, cubeNormalStrength));
+        //if (AlbedoTexToggle > 0)
+        //    finalAlbedo = LinearToSRGB(finalAlbedo);
+
+        output.albedoMetallic = float4(finalAlbedo, Metalness);
+        output.roughnessAO = float4(Roughness, 0.0, 0.0, 1.0);
+        output.normal = float4(normalize(mul(nWS, (float3x3) viewMatrix)) * 0.5 + 0.5, 1.0);
+        output.position = float4(input.viewPosition, 1.0);
+        output.entityID = 0;
+        output.planetMaterialDebug = float4(0, 0, 0, 1);
+        return output;
     }
     
-    output.position = float4(input.viewPosition, 1.0f);
-    output.normal = float4(N * 0.5f + 0.5f, 1.0f);
+	output.position = float4(input.viewPosition, 1.0f);
+      
+    if (WallDebugEnabled > 0.5)
+    {
+        float debugValue = 0.0;
 
-    /*--------------------------------------------------------------*/
-    /* 2) albedo + metallic                                         */
-    /*--------------------------------------------------------------*/
-    params.Albedo = AlbedoTexToggle > 0 ? AlbedoCubeArray.SampleLevel(defaultSampler, float3(cs.uv, (float) cs.face), 0).rgb : Albedo.rgb;
+        // 0 = actual wall boost magnitude
+        // 1 = wall slope mask
+        // 2 = final normal slope
+        if (WallDebugMode < 0.5)
+        {
+            debugValue = input.WallDebug;
+            output.albedoMetallic = float4(debugValue, debugValue * 0.5, 0.0, 1.0);
+        }
+        else if (WallDebugMode < 1.5)
+        {
+            debugValue = input.WallMaskDebug;
+            output.albedoMetallic = float4(debugValue, 0.0, 0.0, 1.0);
+        }
+        else
+        {
+            float slopeDebug = 1.0 - saturate(dot(normalPS, dirPS));
+            output.albedoMetallic = float4(slopeDebug, slopeDebug, slopeDebug, 1.0);
+        }
+
+        output.position = float4(input.viewPosition, 1.0);
+        output.roughnessAO = float4(1.0, 1.0, 0.0, 1.0);
+        output.normal = float4(normalize(mul(nWS, (float3x3) viewMatrix)) * 0.5 + 0.5, 1.0);
+        output.entityID = 0;
+        output.planetMaterialDebug = output.albedoMetallic;
+
+        return output;
+    }
     
-    float slope = 1.0f - saturate(dot(cubeN, normalize(vPlanet)));
-    slope = saturate(slope * SlopeSensitivity - SlopeThreshold); // only steep slopes survive
-    float heightTint = lerp(1.0f, SlopeDarkening, slope);
-    params.Albedo *= heightTint;
- 
-    output.albedoMetallic.rgb = params.Albedo;
-    output.albedoMetallic.a = 1.0f;//    Metalness;
+    if (ErosionDebugEnabled > 0.5)
+    {
+        // 0 = erosion height delta magnitude
+        // 1 = erosion slope mask
+        // 2 = erosion raw pattern
+        // 3 = erosion affected pattern
+        if (ErosionDebugMode < 0.5)
+        {
+            float d = input.ErosionDeltaDebug;
+            output.albedoMetallic = float4(d, d * 0.5, 0.0, 1.0);
+        }
+        else if (ErosionDebugMode < 1.5)
+        {
+            float d = input.ErosionMaskDebug;
+            output.albedoMetallic = float4(d, 0.0, 0.0, 1.0);
+        }
+        else if (ErosionDebugMode < 2.5)
+        {
+            float d = input.ErosionPatternDebug;
+            output.albedoMetallic = float4(d, d, d, 1.0);
+        }
+        else
+        {
+            float d = saturate(input.ErosionMaskDebug * abs(input.ErosionPatternDebug * 2.0 - 1.0));
+            output.albedoMetallic = float4(d, d * 0.4, 0.0, 1.0);
+        }
+
+        output.position = float4(input.viewPosition, 1.0);
+        output.roughnessAO = float4(1.0, 1.0, 0.0, 1.0);
+        output.normal = float4(normalize(mul(nWS, (float3x3) viewMatrix)) * 0.5 + 0.5, 1.0);
+        output.entityID = 0;
+        output.planetMaterialDebug = output.albedoMetallic;
+
+        return output;
+    }
+    
+    // Compute materials
+    float colorAvg = (albedoSample.r + albedoSample.g + albedoSample.b) / 3.0;
+    float weights[MAX_MATERIALS];
+    float displacedSlope = 1.0 - saturate(dot(normalPS, dirPS)); // from final normal
+    ComputeAllMaterialWeights(displacedSlope, colorAvg, MaterialCount, weights);
+    
+    // Blend all PBR samples weighted by material contribution
+    float3 blendedAlbedo = float3(0, 0, 0);
+    float3 blendedNormal = float3(0, 0, 0);
+    float blendedRoughness = 0.0;
+    float blendedAO = 0.0;
+    
+    for (uint m = 0; m < MaterialCount; m++)
+    {
+        if (weights[m] < 0.001)
+            continue;
+
+        PBRSample pbr = SamplePBRTriplanar(m, input.TriplanarPos, normalPS, Materials[m].UVTilingScale);
+        blendedAlbedo += pbr.Albedo * weights[m];
+        blendedNormal += pbr.Normal * weights[m];
+        blendedRoughness += pbr.Roughness * weights[m];
+        blendedAO += pbr.AO * weights[m];
+    }
 
     /*--------------------------------------------------------------*/
-    /* 3) roughness + ambient occlusion                             */
+    /* 3) albedo + metallic                                         */
     /*--------------------------------------------------------------*/
-    output.roughnessAO = float4(Roughness, 0.0f, 0.0, 1.0);
+    
+    // Base albedo from cubemap carries the broad color zones.
+    // PBR albedo from tiled textures carries the high-frequency detail.
+    // Multiply them so both contributions are always visible at every distance.
+    // The 0.5 + pbrLum keeps mid-gray PBR textures from darkening the base:
+    //   - pbrLum = 0.5 (average brightness) -> multiplier = 1.0 (no change)
+    //   - pbrLum = 1.0 (bright details)     -> multiplier = 1.5 (brighten)
+    //   - pbrLum = 0.0 (dark details)       -> multiplier = 0.5 (darken)
+    float pbrLum = (blendedAlbedo.r + blendedAlbedo.g + blendedAlbedo.b) / 3.0;
+    float baseLum = dot(albedoSample, float3(0.299, 0.587, 0.114));
+    float3 baseBlend = albedoSample * (0.5 + pbrLum); // old style
+    float3 pbrBlend = blendedAlbedo * (0.6 + baseLum * 0.8); // new style
+    float3 finalAlbedo = lerp(baseBlend, pbrBlend, PBRColorDominance);
+    
+    float3 colorNoisePos = dirPS * 3389500.0f;
 
+    float rVar = FractalPerlin3D(0, colorNoisePos, ColorNoiseOctaves, ColorNoiseFrequency, 1.0, 2.0, 0.5);
+    float gVar = FractalPerlin3D(0, colorNoisePos + float3(1000, 0, 0), ColorNoiseOctaves, ColorNoiseFrequency, 1.0, 2.0, 0.5);
+    float bVar = FractalPerlin3D(0, colorNoisePos + float3(0, 1000, 0), ColorNoiseOctaves, ColorNoiseFrequency, 1.0, 2.0, 0.5);
+    
+    float3 colorVariation = 1.0f + float3(rVar, gVar, bVar) * ColorNoiseStrength;
+    finalAlbedo *= colorVariation;
+    
+    // TEMPORARY UNTIL PLANET MATERIAL REBUILD
+    //float albedoLum = dot(finalAlbedo, float3(0.2126f, 0.7152f, 0.0722f));
+    //finalAlbedo = max(albedoLum + TerrainAlbedoSaturation * (finalAlbedo - albedoLum), 0.0f);
+       
+    output.albedoMetallic = float4(finalAlbedo, 0.0f);
+
+    /*--------------------------------------------------------------*/
+    /* 4) roughness + ambient occlusion                             */
+    /*--------------------------------------------------------------*/
+    output.roughnessAO = float4(0.954f, blendedAO, 0.0, 1.0);
+    
+    /*--------------------------------------------------------------*/
+    /* 5) Normal                                                    */
+    /*--------------------------------------------------------------*/   
+    float3 perturbedNormalPS = normalize(normalPS + blendedNormal.xyz * 0.5);
+    float3 perturbedNormalWS = normalize(mul(perturbedNormalPS, R));
+    float3 perturbedNormalVS = normalize(mul(perturbedNormalWS, (float3x3) viewMatrix));
+    output.normal = float4(perturbedNormalVS * 0.5 + 0.5, 1.0);
+    
+    /*--------------------------------------------------------------*/
+    /* 6) Material debug visualization                              */
+    /*--------------------------------------------------------------*/
+    float3 debugColor = float3(0, 0, 0);
+    for (uint dm = 0; dm < MaterialCount; dm++)
+        debugColor += Materials[dm].DebugColor * weights[dm];
+
+    output.planetMaterialDebug = float4(debugColor, 1.0);
+    
     output.entityID = 0;
    
-    return output;
+	return output;
 }

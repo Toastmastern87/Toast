@@ -224,7 +224,6 @@ namespace Toast {
 			AssetHandle TransmittanceCSShaderHandle = 0;
 			AssetHandle MultiScatteringCSShaderHandle = 0;
 			AssetHandle GroundIrradianceCSShaderHandle = 0;
-			AssetHandle PlanetIcosphereGeometryPassShaderHandle = 0;
 			AssetHandle PlanetGeometryPassShaderHandle = 0;
 			AssetHandle GeometryPassShaderHandle = 0;
 			AssetHandle ShadowPassShaderHandle = 0;

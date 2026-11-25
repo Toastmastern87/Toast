@@ -17,7 +17,6 @@ namespace Toast {
 		PlanetFrame = 4,
 		SpecularLightEnvironmental = 5,
 		SunDiscSettings = 6,
-		PlanetLevel = 7,
 		RenderSettings = 9,
 		SSAO = 10,
 		Blur = 12,

@@ -446,7 +446,7 @@ namespace Toast {
 					return;
 
 				if(camera.IsDirty)
-					mPlanet->GetIcosphereMesh()->SetDistanceLUTDirty();
+					mPlanet->GetMesh()->SetDistanceLUTDirty();
 			}
 		}
 
@@ -906,7 +906,7 @@ namespace Toast {
 				{
 					InvalidateFrustum();
 
-					mPlanet->OnUpdate(mMainCamera, cameraRot, { cameraPos }, { cameraPos }, mMainCamera->GetWorldTranslation(), cameraTransform, mPhysicsEngine.get(), mFrustum.get(), mMainCamera->GetViewMatrix(), mSettings.FrustumCullingMargin);
+					mPlanet->OnUpdate(mMainCamera, cameraRot, { cameraPos }, { cameraPos }, mMainCamera->GetWorldTranslation(), cameraTransform, mFrustum.get(), mMainCamera->GetViewMatrix(), mSettings.FrustumCullingMargin);
 				}
 			}
 
@@ -1386,7 +1386,7 @@ namespace Toast {
 				}
 
 				if(mainCameraComponent->IsDirty)
-					mPlanet->GetIcosphereMesh()->SetDistanceLUTDirty();
+					mPlanet->GetMesh()->SetDistanceLUTDirty();
 			}
 		}
 
@@ -1675,7 +1675,7 @@ namespace Toast {
 
 				InvalidateFrustum();
 
-				mPlanet->OnUpdate(&mainCameraComponent->Camera, { cameraRot }, { cameraPos }, editorCamera->GetTranslation(), mainCameraComponent->Camera.GetWorldTranslation(), mainCameraTransform->GetTransform(), mPhysicsEngine.get(), mFrustum.get(), editorCamera->GetViewMatrix(), mSettings.FrustumCullingMargin);
+				mPlanet->OnUpdate(&mainCameraComponent->Camera, { cameraRot }, { cameraPos }, editorCamera->GetTranslation(), mainCameraComponent->Camera.GetWorldTranslation(), mainCameraTransform->GetTransform(), mFrustum.get(), editorCamera->GetViewMatrix(), mSettings.FrustumCullingMargin);
 			}
 		}
 
@@ -1687,37 +1687,8 @@ namespace Toast {
 			// Planet
 			Renderer::SubmitPlanet(mPlanet, static_cast<int>(mSettings.WireframeRendering));
 
-			if(mPlanet->GetMeshMode() == PlanetMeshMode::GeometryClipmapping)
 			{
-				auto& planetMesh = mPlanet->GetGeoClipmapMesh();
-
-				uint64_t v = 0;
-
-				auto& levels = planetMesh->GetLevels();
-				auto  info = planetMesh->GetLODDrawInfo();
-				uint32_t L0 = info.first;
-				uint32_t Ln = L0 + info.count;
-
-				if (levels.size() > 0)
-				{
-					for (uint32_t L = L0; L < Ln; ++L)
-					{
-						const auto& level = levels[L];
-						if (!level.Dirty && !level.InFrustum)
-							continue;
-
-						v += planetMesh->GetLODGridIndexCount(); // drawMode=1 draw
-
-						if (L == L0)  v += planetMesh->GetGridIndexCount();       // center
-						else          v += planetMesh->GetRingGridIndexCount();   // ring
-					}
-				}
-
-				mStats.VerticesCount += (uint32_t)std::min<uint64_t>(v, UINT32_MAX);
-			}
-			else if (mPlanet->GetMeshMode() == PlanetMeshMode::Icosphere)
-			{
-				auto& planetMesh = mPlanet->GetIcosphereMesh();
+				auto& planetMesh = mPlanet->GetMesh();
 
 				uint32_t N = 1u << planetMesh->GetPatchLevels(); // N = 2^L
 				uint32_t vertsPerPatch = (N + 1u) * (N + 2u) / 2u;

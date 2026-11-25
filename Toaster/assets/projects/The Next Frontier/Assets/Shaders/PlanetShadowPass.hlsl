@@ -38,7 +38,7 @@ cbuffer Model : register(b1)
     int isInstanced;
 };
 
-cbuffer IcospherePlanet : register(b2)
+cbuffer PlanetMesh : register(b2)
 {
     float planetRadius;
     float3 camHiPS;
@@ -148,8 +148,3 @@ PixelInputType main(VertexInputType input)
     output.position = mul(float4(posWS.xyz, 1.0f), lightViewProj[CascadeIndex]);
     return output;
 }
-
-//float4 main() : SV_TARGET
-//{
-//	return float4(1.0f, 1.0f, 1.0f, 1.0f);
-//}

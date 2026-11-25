@@ -1066,12 +1066,6 @@ namespace Toast {
 		ImGui::PopStyleVar(3);
 	}
 
-	static const char* meshModeLabels[] =
-	{
-		"Geometry Clipmapping",
-		"Icosphere"
-	};
-
 	void PlanetPanel::OnImGuiRender(bool* showPanel, std::string& activeDragArea)
 	{
 		if (!showPanel || !*showPanel)
@@ -1133,21 +1127,17 @@ namespace Toast {
 						ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.4f);
 						ImGui::TableSetupColumn("Control", ImGuiTableColumnFlags_WidthFixed, windowSize.x * 0.6f);
 
-						auto meshMode = mContext->GetMeshMode();
-						if (meshMode == PlanetMeshMode::Icosphere)
-						{
-							auto& mesh = mContext->GetIcosphereMesh();
+						auto& mesh = mContext->GetMesh();
 
-							auto maxSubdivisions = mesh->GetMaxSubdivisions();
+						auto maxSubdivisions = mesh->GetMaxSubdivisions();
 
-							ImGui::TableNextRow();
-							ImGui::TableSetColumnIndex(0);
-							ImGui::AlignTextToFramePadding();
-							ImGui::Text("Max Subdivision");
-							ImGui::TableSetColumnIndex(1);
-							ImGui::AlignTextToFramePadding();
-							ImGui::Text("%d", static_cast<int>(maxSubdivisions));
-						}
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Max Subdivision");
+						ImGui::TableSetColumnIndex(1);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("%d", static_cast<int>(maxSubdivisions));
 
 						ImGui::EndTable();
 					}
@@ -1320,183 +1310,96 @@ namespace Toast {
 
 						ImGui::TableNextRow();
 
+						auto& mesh = mContext->GetMesh();
+
 						ImGui::TableSetColumnIndex(0);
 						ImGui::AlignTextToFramePadding();
-						ImGui::Text("Mesh Type");
+						ImGui::Text("Backface Culling");
 
 						ImGui::TableSetColumnIndex(1);
 
 						float padX = ImGui::GetStyle().CellPadding.x;
-						float colW = ImGui::GetColumnWidth();             // total width of column 1
-						float fullW = colW - padX * 2.0f;                  // leave padding on both sides
+						float colW = ImGui::GetColumnWidth();
+						float fullW = colW - padX * 2.0f;
 						ImGui::SetNextItemWidth(fullW);
 
-						auto meshMode = mContext->GetMeshMode();
-						int currentIndex = static_cast<int>(meshMode);
-						if (ImGui::Combo("##Meshype", &currentIndex, meshModeLabels, IM_ARRAYSIZE(meshModeLabels)))
-							mContext->SetMeshMode(static_cast<PlanetMeshMode>(currentIndex));
+						ImGui::Checkbox("##BackfaceCulling", &mesh->mBackfaceCulling);
 
 						ImGui::TableNextRow();
 
-						if (meshMode == PlanetMeshMode::GeometryClipmapping)
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Frustum Culling");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						ImGui::Checkbox("##FrustumCulling", &mesh->mFrustumCulling);
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Max Subdivision Levels");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						if (ImGuiHelpers::DragInt16("##MaxSubdivisionLevels", &mesh->mMaxSubdivisions, 1.0f, 0, mesh->HARDCAPSUBDIVISIONS))
 						{
-							static int gridSizes[] = { 33, 65, 129, 257, 513 };
-							static int currentGridSize = 129;
-							static int currentLOD = 5;
-
-							auto& mesh = mContext->GetGeoClipmapMesh();
-
-							ImGui::TableSetColumnIndex(0);
-							ImGui::AlignTextToFramePadding();
-							ImGui::Text("Grid Size");
-
-							ImGui::TableSetColumnIndex(1);
-
-							ImGui::SetNextItemWidth(fullW);
-
-							std::string gridLabel = std::to_string(mesh->mTempGridSize);          // keep it alive
-							if (ImGui::BeginCombo("##GridSize", gridLabel.c_str()))
-							{
-								for (int i = 0; i < IM_ARRAYSIZE(gridSizes); ++i)
-								{ 
-									bool selected = (currentGridSize == gridSizes[i]);
-									if (ImGui::Selectable(std::to_string(gridSizes[i]).c_str(), selected))
-										mesh->mTempGridSize = gridSizes[i];
-									if (selected)
-										ImGui::SetItemDefaultFocus();
-								}
-								ImGui::EndCombo();
-							}
-
-							// === LOD Row ===
-							ImGui::TableNextRow();
-							ImGui::TableSetColumnIndex(0);
-							ImGui::AlignTextToFramePadding();
-							ImGui::Text("Levels of Detail");
-
-							ImGui::TableSetColumnIndex(1);
-							ImGui::SetNextItemWidth(fullW);
-							ImGui::SliderInt("##LOD", &mesh->mTempNumLevels, 1, 30);
-
-							ImGui::TableNextRow();
-							ImGui::TableSetColumnIndex(1);
-
-							const float btnW = 80.0f;
-							float indent = fullW - btnW;
-							ImGui::SetCursorPosX(ImGui::GetCursorPosX() + indent);
-
-							if (ImGui::Button("Apply", ImVec2(btnW, 0)))
-							{
-								if (mesh->mTempNumLevels != 0 && mesh->mTempGridSize != 0)
-								{
-									mesh->mRunOnce = false;
-
-									mesh->mGridSize = mesh->mTempGridSize;
-									mesh->mNumLevels = mesh->mTempNumLevels;
-
-									mesh->mGridIsDirty = true;
-									mesh->mLODGridIsDirty = true;
-									mesh->mRingGridIsDirty = true;
-
-									mesh->Init();
-
-									SceneCamera* camera = mSceneContext->GetMainCamera();
-									if (camera)
-										mesh->GenerateDistanceLUT(mesh->mNumLevels, mContext->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mSceneContext->GetViewportSize()));
-								}
-							}
+							mesh->mDistanceLUTIsDirty = true;
+							mesh->mFaceLevelDotLUTIsDirty = true;
+							mesh->mPatchIsDirty = true;
 						}
 
-						if (meshMode == PlanetMeshMode::Icosphere)
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::Text("Patch Levels");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						if (ImGuiHelpers::DragInt16("##patchLevels", &mesh->mPatchLevels, 1.0f, 0, 8))
+							mesh->mPatchIsDirty = true;
+
+						ImGui::TableNextRow();
+
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::TextWrapped("Near Distance(Highest LOD Distance)");
+
+						ImGui::TableSetColumnIndex(1);
+
+						ImGui::SetNextItemWidth(fullW);
+
+						float tempNear = mesh->mNearDistance;
+						if (ImGui::DragFloat("##NearDistance", &tempNear, 1.0f, 0.1f, (mesh->mFarDistance - 0.1), "%.0f"))
 						{
-							auto& mesh = mContext->GetIcosphereMesh();
+							mesh->mNearDistance = tempNear;
 
-							ImGui::TableSetColumnIndex(0);
-							ImGui::AlignTextToFramePadding();
-							ImGui::Text("Backface Culling");
+							mesh->mDistanceLUTIsDirty = true;
+						}
 
-							ImGui::TableSetColumnIndex(1);
+						ImGui::TableNextRow();
 
-							ImGui::SetNextItemWidth(fullW);
+						ImGui::TableSetColumnIndex(0);
+						ImGui::AlignTextToFramePadding();
+						ImGui::TextWrapped("Far Distance(Lowest LOD Distance)");
 
-							ImGui::Checkbox("##BackfaceCulling", &mesh->mBackfaceCulling);
+						ImGui::TableSetColumnIndex(1);
 
-							ImGui::TableNextRow();
+						ImGui::SetNextItemWidth(fullW);
 
-							ImGui::TableSetColumnIndex(0);
-							ImGui::AlignTextToFramePadding();
-							ImGui::Text("Frustum Culling");
-
-							ImGui::TableSetColumnIndex(1);
-
-							ImGui::SetNextItemWidth(fullW);
-
-							ImGui::Checkbox("##FrustumCulling", &mesh->mFrustumCulling);
-
-							ImGui::TableNextRow();
-
-							ImGui::TableSetColumnIndex(0);
-							ImGui::AlignTextToFramePadding();
-							ImGui::Text("Max Subdivision Levels");
-
-							ImGui::TableSetColumnIndex(1);
-
-							ImGui::SetNextItemWidth(fullW);
-
-							if (ImGuiHelpers::DragInt16("##MaxSubdivisionLevels", &mesh->mMaxSubdivisions, 1.0f, 0, mesh->HARDCAPSUBDIVISIONS))
-							{
-								mesh->mDistanceLUTIsDirty = true;
-								mesh->mFaceLevelDotLUTIsDirty = true;
-								mesh->mPatchIsDirty = true;
-							}
-
-							ImGui::TableNextRow();
-
-							ImGui::TableSetColumnIndex(0);
-							ImGui::AlignTextToFramePadding();
-							ImGui::Text("Patch Levels");
-
-							ImGui::TableSetColumnIndex(1);
-
-							ImGui::SetNextItemWidth(fullW);
-
-							if (ImGuiHelpers::DragInt16("##patchLevels", &mesh->mPatchLevels, 1.0f, 0, 8))
-								mesh->mPatchIsDirty = true;
-
-							ImGui::TableNextRow();
-
-							ImGui::TableSetColumnIndex(0);
-							ImGui::AlignTextToFramePadding();
-							ImGui::TextWrapped("Near Distance(Highest LOD Distance)");
-
-							ImGui::TableSetColumnIndex(1);
-
-							ImGui::SetNextItemWidth(fullW);
-
-							float tempNear = mesh->mNearDistance;
-							if (ImGui::DragFloat("##NearDistance", &tempNear, 1.0f, 0.1f, (mesh->mFarDistance-0.1), "%.0f"))
-							{
-								mesh->mNearDistance = tempNear;
-								 
-								mesh->mDistanceLUTIsDirty = true;
-							}
-
-							ImGui::TableNextRow();
-
-							ImGui::TableSetColumnIndex(0);
-							ImGui::AlignTextToFramePadding();
-							ImGui::TextWrapped("Far Distance(Lowest LOD Distance)");
-
-							ImGui::TableSetColumnIndex(1);
-
-							ImGui::SetNextItemWidth(fullW);
-
-							float tempFar = mesh->mFarDistance;
-							if (ImGui::DragFloat("##FarDistance", &tempFar, 10000.0f, 0.0f, 10000000.0f, "%.0f"))
-							{
-								mesh->mFarDistance = tempFar;
-								mesh->mDistanceLUTIsDirty = true;
-							}
+						float tempFar = mesh->mFarDistance;
+						if (ImGui::DragFloat("##FarDistance", &tempFar, 10000.0f, 0.0f, 10000000.0f, "%.0f"))
+						{
+							mesh->mFarDistance = tempFar;
+							mesh->mDistanceLUTIsDirty = true;
 						}
 
 						ImGui::EndTable();
@@ -1705,16 +1608,9 @@ namespace Toast {
 						{
 							mContext->mRadius = temp;
 
-							SceneCamera* camera = mSceneContext->GetMainCamera();
-							if (camera)
-								mContext->GetGeoClipmapMesh()->GenerateDistanceLUT(mContext->GetGeoClipmapMesh()->mNumLevels, mContext->mRadius, camera->GetPerspectiveVerticalFOV(), std::get<0>(mSceneContext->GetViewportSize()));
-
-							if (mContext->mMeshMode == PlanetMeshMode::Icosphere)
-							{
-								auto& mesh = mContext->GetIcosphereMesh();
-								mesh->mFaceLevelDotLUTIsDirty = true;
-								mesh->mHeightMultLUTIsDirty = true;
-							}
+							auto& mesh = mContext->GetMesh();
+							mesh->mFaceLevelDotLUTIsDirty = true;
+							mesh->mHeightMultLUTIsDirty = true;
 						}
 
 						ImGui::TableNextRow();
@@ -1736,12 +1632,9 @@ namespace Toast {
 						{
 							mContext->mMaxHeight = temp;
 
-							if (mContext->mMeshMode == PlanetMeshMode::Icosphere)
-							{
-								auto& mesh = mContext->GetIcosphereMesh();
-								mesh->mFaceLevelDotLUTIsDirty = true;
-								mesh->mHeightMultLUTIsDirty = true;
-							}
+							auto& mesh = mContext->GetMesh();
+							mesh->mFaceLevelDotLUTIsDirty = true;
+							mesh->mHeightMultLUTIsDirty = true;
 						}
 
 						ImGui::TableNextRow();

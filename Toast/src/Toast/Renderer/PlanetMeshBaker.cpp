@@ -1,6 +1,9 @@
 #include "tpch.h"
 #include "PlanetMeshBaker.h"
 
+#include "Toast/Assets/AssetManager.h"
+
+#include "Toast/Renderer/RenderCommand.h"
 #include "Toast/Renderer/RendererBuffer.h"
 
 namespace Toast {
@@ -29,20 +32,20 @@ namespace Toast {
 
 		const uint32_t capacityVertices = mCapacityPatches * mVerticesPerPatch;
 
-		mPatchData = CreateRef<StructuredBuffer>(sizeof(PlanetMeshIcosphere::PlanetPatchGPU), mCapacityPatches, D3D11_USAGE_DYNAMIC, false, false);
+		mPatchData = CreateRef<StructuredBuffer>(sizeof(PlanetMesh::PlanetPatchGPU), mCapacityPatches, D3D11_USAGE_DYNAMIC, false, false);
 
 		mBakedVertices = CreateRef<StructuredBuffer>(sizeof(PlanetBakedVertexGPU), capacityVertices, D3D11_USAGE_DEFAULT, true, false);
 
-		TOAST_CORE_INFO("PlanetMeshBaker: buffer grown to %u patches / %u vertices (%.1f MB)", mCapacityPatches, capacityVertices, (capacityVertices * sizeof(PlanetBakedVertexGPU) + mCapacityPatches * sizeof(PlanetMeshIcosphere::PlanetPatchGPU)) / (1024.0 * 1024.0));
+		TOAST_CORE_INFO("PlanetMeshBaker: buffer grown to %u patches / %u vertices (%.1f MB)", mCapacityPatches, capacityVertices, (capacityVertices * sizeof(PlanetBakedVertexGPU) + mCapacityPatches * sizeof(PlanetMesh::PlanetPatchGPU)) / (1024.0 * 1024.0));
 	}
 
-	void PlanetMeshBaker::Upload(const std::vector<PlanetMeshIcosphere::PlanetPatchGPU>& patches, int patchLevels, uint32_t materialCount, float planetRadius, const DirectX::XMFLOAT3& camHiPS)
+	void PlanetMeshBaker::Upload(const std::vector<PlanetMesh::PlanetPatchGPU>& patches, int patchLevels, uint32_t materialCount, float planetRadius, const DirectX::XMFLOAT3& camHiPS)
 	{
 		mPatchCount = (uint32_t)patches.size();
 		if (mPatchCount == 0 || !mPatchData)
 			return;
 
-		mPatchData->Update(patches.data(), patches.size() * sizeof(PlanetMeshIcosphere::PlanetPatchGPU));
+		mPatchData->Update(patches.data(), patches.size() * sizeof(PlanetMesh::PlanetPatchGPU));
 		mBakeBuffer.Write((uint8_t*)&mPatchCount, 4, 0);
 		mBakeBuffer.Write((uint8_t*)&mVerticesPerPatch, 4, 4);
 		mBakeBuffer.Write((uint8_t*)&patchLevels, 4, 8);

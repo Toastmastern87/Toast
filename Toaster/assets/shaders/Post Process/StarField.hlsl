@@ -74,6 +74,7 @@ cbuffer Atmosphere : register(b5)
     float3 MieLobeWeight; // 96
     float _AtmospherePad0; // 108
 }
+
 cbuffer StarsParams : register(b7)
 {
     float StarNits; // keep if you premultiply here (we'll leave it as 1.0 in RT)

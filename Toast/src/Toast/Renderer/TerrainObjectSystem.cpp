@@ -153,7 +153,7 @@ namespace Toast {
 			mScatterBuffer.Write((uint8_t*)&sub.BaseIndex, 4, 44);
 
 			float planetRadius = planet->GetRadius();
-			Vector3 camHiPSV3 = planet->GetIcosphereMesh()->GetCameraHiPS();
+			Vector3 camHiPSV3 = planet->GetMesh()->GetCameraHiPS();
 			DirectX::XMFLOAT3 camHiPS = { (float)camHiPSV3.x, (float)camHiPSV3.y, (float)camHiPSV3.z };
 			mScatterBuffer.Write((uint8_t*)&planetRadius, 4, 48);
 			mScatterBuffer.Write((uint8_t*)&camHiPS, 12, 52);

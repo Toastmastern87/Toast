@@ -1037,14 +1037,14 @@ namespace Toast {
 		RenderCommand::ClearRenderTargets({ sRendererData->GPassPositionRT->GetRTV().Get(), sRendererData->GPassNormalRT->GetRTV().Get(), sRendererData->GPassAlbedoMetallicRT->GetRTV().Get(), sRendererData->GPassRoughnessAORT->GetRTV().Get(), sRendererData->GPassPickingRT->GetRTV().Get(), sRendererData->PlanetMaterialDebugRT->GetRTV().Get() }, { 0.0f, 0.0f, 0.0f, 1.0f });
 		RenderCommand::SetPrimitiveTopology(Topology::TRIANGLELIST);
 
-		if (sRendererData->PlanetDraw.Planet && sRendererData->PlanetDraw.Planet->GetMeshMode() == PlanetMeshMode::Icosphere)
+		if (sRendererData->PlanetDraw.Planet)
 		{
 			TOAST_PROFILE(*sRendererData->FrameProfiler, "PlanetBake");
 
 			sRendererData->PlanetDraw.Planet->MapRenderingSettings();
 			BindPlanetTerrainResources(false, true);
 
-			sRendererData->PlanetDraw.Planet->GetIcosphereMesh()->Bake();
+			sRendererData->PlanetDraw.Planet->GetMesh()->Bake();
 
 			RenderCommand::ClearShaderResources();
 		}
@@ -1058,11 +1058,11 @@ namespace Toast {
 			else
 				RenderCommand::SetRasterizerState(sRendererData->NormalRasterizerState);
 
-			auto shader = AssetManager::GetAsset<Shader>(sRendererData->PlanetIcosphereGeometryPassShaderHandle);
+			auto shader = AssetManager::GetAsset<Shader>(sRendererData->PlanetGeometryPassShaderHandle);
 			if (shader)
 				shader->Bind();
 
-			auto& planetMesh = sRendererData->PlanetDraw.Planet->GetIcosphereMesh();
+			auto& planetMesh = sRendererData->PlanetDraw.Planet->GetMesh();
 
 			planetMesh->GetShaderInputLayout()->Bind();
 
@@ -1298,7 +1298,7 @@ namespace Toast {
 	void Renderer::DrawPlanetShadowCaster()
 	{
 		Planet* planet = sRendererData->PlanetDraw.Planet.get();
-		if (!planet || planet->GetMeshMode() != PlanetMeshMode::Icosphere)
+		if (!planet)
 			return;
 
 		auto shader = AssetManager::GetAsset<Shader>(sRendererData->PlanetShadowPassShaderHandle);
@@ -1307,7 +1307,7 @@ namespace Toast {
 		shader->Bind();
 		RenderCommand::sRendererAPI.get()->GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);
 
-		auto& planetMesh = planet->GetIcosphereMesh();
+		auto& planetMesh = planet->GetMesh();
 		planetMesh->GetShaderInputLayout()->Bind();
 
 		auto& transform = planet->GetTransformNoScale();
@@ -2448,7 +2448,6 @@ namespace Toast {
 
 			// Planet
 			"assets/shaders/Planet/PlanetGeometryPass.hlsl",
-			"assets/shaders/Planet/PlanetIcosphereGeometryPass.hlsl",
 			"assets/shaders/Planet/PlanetShadowPass.hlsl",
 			"assets/shaders/Planet/HeightMapToCubeMap.hlsl",
 			"assets/shaders/Planet/HeightCubeToNormalCube.hlsl",
@@ -2499,10 +2498,9 @@ namespace Toast {
 		sRendererData->TransmittanceCSShaderHandle = AssetManager::GetEngineShaderHandle("TransmittanceCS");
 		sRendererData->MultiScatteringCSShaderHandle = AssetManager::GetEngineShaderHandle("MultiScatteringCS");
 		sRendererData->GroundIrradianceCSShaderHandle = AssetManager::GetEngineShaderHandle("GroundIrradianceCS");
-		sRendererData->PlanetIcosphereGeometryPassShaderHandle = AssetManager::GetEngineShaderHandle("PlanetIcosphereGeometryPass");
+		sRendererData->PlanetGeometryPassShaderHandle = AssetManager::GetEngineShaderHandle("PlanetGeometryPass");
 		sRendererData->PlanetShadowPassShaderHandle = AssetManager::GetEngineShaderHandle("PlanetShadowPass");
 		sRendererData->TerrainObjectShadowPassShaderHandle = AssetManager::GetEngineShaderHandle("TerrainObjectShadowPass");
-		sRendererData->PlanetGeometryPassShaderHandle = AssetManager::GetEngineShaderHandle("PlanetGeometryPass");
 		sRendererData->GeometryPassShaderHandle = AssetManager::GetEngineShaderHandle("GeometryPass");
 		sRendererData->ShadowPassShaderHandle = AssetManager::GetEngineShaderHandle("ShadowPass");
 		sRendererData->SSAOPassShaderHandle = AssetManager::GetEngineShaderHandle("SSAOPass");
