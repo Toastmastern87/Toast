@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <DirectXMath.h>
 #include <initializer_list>
 
 #include "Toast/Core/Math/Quaternion.h"

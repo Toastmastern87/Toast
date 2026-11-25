@@ -6,16 +6,12 @@
 
 #include "Toast/Core/Math/Math.h"
 
-#include "Toast/Utils/FixedThreadPool.h"
-
 #include "Toast/Renderer/TerrainSampler.h"
 #include "Toast/Renderer/SamplerStates.h"
 
 #include "Toast/Renderer/PlanetHeightDetails.h"
 
-#include <chrono>
-
-#pragma message("PlanetSystem.cpp is being compiled!")
+#include <random>
 
 namespace Toast {
 
@@ -43,11 +39,6 @@ namespace Toast {
 
 	template<> size_t BytesPerPixel<float>() { return 4; }
 	template<> size_t BytesPerPixel<uint32_t >() { return 4; }
-
-	static inline uint32_t V(uint32_t x, uint32_t y, uint32_t N)
-	{
-		return y * N + x;       
-	}
 
 	Planet::Planet()
 	{
@@ -89,17 +80,12 @@ namespace Toast {
 		mAerielPerspectiveLUT = CreateRef<Texture3D>(DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_R16G16B16A16_FLOAT, 192, 108, 128, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 0);
 
 		mAPFar = CreateRef<Texture2D>(DXGI_FORMAT_R32_UINT, DXGI_FORMAT_R32_UINT, 1, 1, D3D11_USAGE_DEFAULT,	(D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
-
-		mAPNear = CreateRef<Texture2D>(DXGI_FORMAT_R32_UINT, DXGI_FORMAT_R32_UINT, 1, 1, D3D11_USAGE_DEFAULT, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS), 1, 0);
 	}
 
-	// During runtime playerCamPosWS and RendererCamPosWS will be the same, but they can differ in the editor when the player camera is detached from the rendering camera. The worldTranslation is used to shift the planet's position in world space, allowing for large world coordinates without precision issues. The viewMatrix is used for culling and LOD calculations, while the editorCameraViewMatrix is used for rendering the planet correctly in the editor viewport.
-	void Planet::OnUpdate(Camera* camera, const Quaternion& playerCamRot, const Vector3& playerCamPosWS, const Vector3& renderingCamPosWS, const Vector3& worldTranslation, DirectX::XMMATRIX viewMatrix, Frustum* frustum, const DirectX::XMFLOAT4X4& renderingCameraViewMatrix, float frustumBias)
+	// During runtime playerCamPosWS and RendererCamPosWS will be the same, but they can differ in the editor when the player camera is detached from the rendering camera. The worldTranslation is used to shift the planet's position in world space, allowing for large world coordinates without precision issues. The renderingCameraViewMatrix is used for rendering the planet correctly in the editor viewport
+	void Planet::OnUpdate(Camera* camera, const Quaternion& playerCamRot, const Vector3& playerCamPosWS, const Vector3& renderingCamPosWS, const Vector3& worldTranslation, Frustum* frustum, const DirectX::XMFLOAT4X4& renderingCameraViewMatrix, float frustumBias)
 	{
 		TOAST_PROFILE_FUNCTION();
-
-		Quaternion qCam = playerCamRot;
-		qCam = Quaternion::Normalize(qCam);
 
 		Vector3& playerCamForwardWS = camera->GetForwardVectorWS(playerCamRot);
 		Vector3& playerCamUpWS = camera->GetUpVectorWS(playerCamRot);
@@ -165,7 +151,6 @@ namespace Toast {
 		mBasisLonEast = cb.BasisLonEast;
 		mBasisLonNorth = cb.BasisLonNorth;
 		mBasisSpinUp = cb.BasisSpinUp;
-		mBasisRadUp = cb.BasisRadUp;
 		mBasisTanEast = cb.BasisTanEast;
 		mBasisTanNorth = cb.BasisTanNorth;
 
@@ -339,12 +324,6 @@ namespace Toast {
 		float materialNoise = ComputeMaterialNoiseCPU(*this, dirPlanet, slope, colorAvg, cameraPlanetSpace);
 
 		return (double)wallBoost + (double)erosionDelta + (double)materialNoise;
-	}
-
-	inline float HorizonDistance(float Rg, float h)
-	{
-		// d = sqrt( (Rg+h)^2 - Rg^2 ) = sqrt(h*h + 2*Rg*h )
-		return std::sqrt(std::max(0.0f, h * h + 2.0f * Rg * h));
 	}
 
 	static float Smoothstep(float a, float b, float x)
@@ -644,77 +623,6 @@ namespace Toast {
 
 		const float spaceFactor = 1.0f - Smoothstep(endAir, startAir, (float)airFrac);
 		return spaceFactor;
-	}
-
-	void Planet::Shutdown()
-	{
-	}
-
-	void Planet::GenerateFaceDotLevelLUT(std::vector<double>& faceLevelDotLUT, float planetRadius, float maxHeight)
-	{
-		//const int MAX_SUBDIVISION = 25;
-
-		//std::lock_guard<std::mutex> lock(planetDataMutex);
-
-		//// 1) the extra angle due to maxHeight above the sphere
-		//double cullingAngle = std::acos(planetRadius / (planetRadius + maxHeight));
-
-		//// 2) the “half-angle” of the base icosahedron face (for level 0)
-		////    an icosahedron triangle subtends acos(0.5) at the center
-		//double faceHalf0 = std::acos(0.5);
-
-		//faceLevelDotLUT.clear();
-		//faceLevelDotLUT.reserve(MAX_SUBDIVISION + 1);
-
-		//double angle = faceHalf0;
-		//for (int level = 0; level <= MAX_SUBDIVISION; ++level) {
-		//	// dot threshold = sin(faceHalfAngle + cullingAngle)
-		//	faceLevelDotLUT.push_back(std::sin(angle + cullingAngle));
-		//	// next level’s half-angle is half as big
-		//	angle *= 0.5;
-		//}
-
-		//for (auto level : faceLevelDotLUT)
-		//	TOAST_CORE_INFO("FacelevelDotLUT: %f", level);
-	}
-
-	void Planet::GenerateHeightMultLUT(std::vector<double>& heightMultLUT, double planetRadius, double maxHeight)
-	{
-		const int MAX_SUBDIVISION = 25;
-
-		heightMultLUT.clear();
-
-		double ratio = ((1.0 + sqrt(5.0)) / 2.0);
-
-		std::vector<Vector3> vertices = std::vector<Vector3>{
-			Vector3::Normalize({ -ratio, 0.0, -1.0 }) * planetRadius,
-			Vector3::Normalize({ -ratio, 0.0, 1.0 }) * planetRadius,
-			Vector3::Normalize({ -1.0, ratio, 0.0 }) * planetRadius,
-		};
-
-		Vector3 a = vertices[0];
-		Vector3 b = vertices[1];
-		Vector3 c = vertices[2];
-
-		Vector3 center = (a + b + c) / 3.0;
-
-		center *= planetRadius / (center.Length() + maxHeight);
-		heightMultLUT.push_back(1.0 / Vector3::Dot(Vector3::Normalize(a), Vector3::Normalize(center)) - 1.0);
-		double normMaxHeight = maxHeight / planetRadius;
-
-		for (int i = 1; i <= MAX_SUBDIVISION; i++)
-		{
-			Vector3 A = b + ((c - b) * 0.5);
-			Vector3 B = c + ((a - c) * 0.5);
-			c = a + ((b - a) * 0.5);
-			a = A * planetRadius / A.Length();
-			b = B * planetRadius / B.Length();
-			c *= planetRadius / c.Length();
-			heightMultLUT.push_back((1.0 / Vector3::Dot(Vector3::Normalize(a), Vector3::Normalize(center)) + normMaxHeight) - 1.0);
-		}
-
-		//for (auto level : heightMultLUT)
-		//	TOAST_CORE_INFO("heightMultLUT: %lf", level);
 	}
 
 	void Planet::BuildPermutationTable(uint32_t seed, int outPerm[256])

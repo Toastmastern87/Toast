@@ -12,7 +12,6 @@
 namespace Toast {
 
 	static constexpr uint32_t MINGUARANTEEDSUBDIVISION = 4;
-	static constexpr double HEIGHT_UNSAMPLED = std::numeric_limits<double>::max();
 
 	void PlanetMesh::Init()
 	{
@@ -167,7 +166,9 @@ namespace Toast {
 		}
 
 		mGPassShaderHandle = AssetManager::GetEngineShaderHandle("PlanetGeometryPass");
-		ID3D10Blob* vsBlob = AssetManager::GetAsset<Shader>(mGPassShaderHandle)->GetVSRaw();
+		auto shader = AssetManager::GetAsset<Shader>(mGPassShaderHandle);
+		TOAST_CORE_ASSERT(shader, "Planet geometry pass shader not loaded");
+		ID3D10Blob* vsBlob = shader->GetVSRaw();
 
 		mShaderInputLayout = CreateRef<ShaderLayout>(elements, vsBlob);
 	}
@@ -195,7 +196,7 @@ namespace Toast {
 			{
 				// Store integer barycentric grid coords (i,j)
 				// i = col, j = row
-				mVertices.emplace_back(PlanetVertexCPU((uint16_t)col, (uint16_t)row));
+				mVertices.emplace_back(PlanetVertex((uint16_t)col, (uint16_t)row));
 
 				if (row < mRC - 1 && col < numCols - 1)
 				{
@@ -216,16 +217,9 @@ namespace Toast {
 		}
 	}
 
-	static uint32_t sRecurseCalls;
-	static uint32_t sHeightSamples;
-	static uint32_t sFrustumChecks;
-	static uint32_t sMidpointLookups;
-
 	void PlanetMesh::OnUpdate(Frustum* frustum, DirectX::XMMATRIX viewMatrixPlanetRendering, Vector3& cameraPosPS, Vector3& renderingCameraPosPS, Vector3& planetCenterWS, double radius, double maxHeight, const CubeData<float>* terrainData, uint32_t materialCount)
 	{
 		TOAST_PROFILE_FUNCTION();
-
-		mHighestSubdivision = 0;
 
 		mRadius = radius;
 		mMaxHeight = maxHeight;
@@ -269,9 +263,6 @@ namespace Toast {
 		if (mFaceLevelDotLUTIsDirty)
 			GenerateFaceDotLevelLUT();
 
-		if (mHeightMultLUTIsDirty)
-			GenerateHeightMultLUT();
-
 		if (mPatchIsDirty)
 			GeneratePatchGeometry();
 
@@ -284,10 +275,8 @@ namespace Toast {
 
 		mPatches.clear();
 
-		//TOAST_CORE_INFO("Recurse: %d calls, %d height samples, %d frustum checks, %d midpoint lookups",	sRecurseCalls, sHeightSamples, sFrustumChecks, sMidpointLookups);
-		sRecurseCalls = 0; sHeightSamples = 0; sFrustumChecks = 0; sMidpointLookups = 0;
 		{
-			TOAST_PROFILE_SCOPE("Icosphere::Recursion");
+			TOAST_PROFILE_SCOPE("PlanetMesh::Recursion");
 			mPatches.clear();
 			mDeferredLeafPatches.clear();
 
@@ -299,12 +288,12 @@ namespace Toast {
 		}
 
 		{
-			TOAST_PROFILE_SCOPE("Icosphere::BuildGPUData");
+			TOAST_PROFILE_SCOPE("PlanetMesh::BuildGPUData");
 			BuildGPUData();
 		}
 
 		{
-			TOAST_PROFILE_SCOPE("Icosphere::UploadGPU");
+			TOAST_PROFILE_SCOPE("PlanetMesh::UploadGPU");
 			if (!mPatchesGPU.empty())
 			{
 				const uint32_t instBytes = (uint32_t)(mPatchesGPU.size() * sizeof(PlanetPatchGPU));
@@ -331,10 +320,10 @@ namespace Toast {
 
 		if (mPatchIsDirty)
 		{
-			if (!mVerticesGPU.empty())
+			if (!mVertices.empty())
 			{
-				const uint32_t vbBytes = (uint32_t)(mVerticesGPU.size() * sizeof(PlanetVertexGPU));
-				mVertexBuffer = CreateRef<VertexBuffer>(mVerticesGPU.data(), vbBytes, (uint32_t)mVerticesGPU.size(), 0);
+				const uint32_t vbBytes = (uint32_t)(mVertices.size() * sizeof(PlanetVertex));
+				mVertexBuffer = CreateRef<VertexBuffer>(mVertices.data(), vbBytes, (uint32_t)mVertices.size(), 0);
 			}
 			else
 				mVertexBuffer = nullptr;
@@ -349,13 +338,11 @@ namespace Toast {
 		mPatchIsDirty = false;
 		mDistanceLUTIsDirty = false;
 		mFaceLevelDotLUTIsDirty = false;
-		mHeightMultLUTIsDirty = false;
 	}
 
 	void PlanetMesh::RecursiveFace(Frustum* frustum, uint32_t ia, uint32_t ib, uint32_t ic, int16_t subdivision, Vector3& cameraPosPS, bool splitCull)
 	{
 		//TOAST_PROFILE_FUNCTION();
-		sRecurseCalls++;
 
 		const Vector3& va = mSphereVertices[ia];
 		const Vector3& vb = mSphereVertices[ib];
@@ -492,8 +479,6 @@ namespace Toast {
 			double minH = std::min({ hA, hB, hC });
 			double padding = mMaxHeight - minH;
 
-			sFrustumChecks++;
-
 			frustumResult = frustum->ContainsPatchSphere(aS, bS, cS, mRadius + padding, subdivision);
 
 			if (frustumResult == VolumeTri::OUTSIDE)
@@ -527,12 +512,6 @@ namespace Toast {
 	void PlanetMesh::BuildGPUData()
 	{
 		TOAST_PROFILE_FUNCTION();
-
-		// Patch-local vertices (shared)
-		mVerticesGPU.clear();
-		mVerticesGPU.reserve(mVertices.size());
-		for (const auto& v : mVertices)
-			mVerticesGPU.emplace_back(PlanetVertexGPU{ v.I, v.J });
 
 		// Patch instances (per-leaf)
 		mPatchesGPU.clear();
@@ -587,7 +566,7 @@ namespace Toast {
 			RendererAPI* API = RenderCommand::sRendererAPI.get();
 			ID3D11DeviceContext* deviceContext = API->GetDeviceContext();
 
-			UINT strides[2] = { sizeof(PlanetVertexGPU), sizeof(PlanetPatchGPU) };
+			UINT strides[2] = { sizeof(PlanetVertex), sizeof(PlanetPatchGPU) };
 			UINT offsets[2] = { 0, 0 };
 			ID3D11Buffer* bufs[2] = { mVertexBuffer->GetBuffer(), mInstanceVertexBuffer->GetBuffer() };
 
@@ -614,8 +593,6 @@ namespace Toast {
 
 	uint32_t PlanetMesh::GetMidpoint(uint32_t i1, uint32_t i2)
 	{
-		sMidpointLookups++;
-
 		uint64_t smaller = std::min(i1, i2);
 		uint64_t larger = std::max(i1, i2);
 		uint64_t key = (smaller << 32) | larger;
@@ -675,35 +652,6 @@ namespace Toast {
 		//	TOAST_CORE_INFO("mFaceLevelDotLUT: %lf", level);
 	}
 
-	void PlanetMesh::GenerateHeightMultLUT()
-	{
-		mHeightMultLUT.clear();
-		Vector3 a = mSphereVertices[1] * mRadius;
-		Vector3 b = mSphereVertices[3] * mRadius;
-		Vector3 c = mSphereVertices[8] * mRadius;
-
-		// Temporary before terrain is added!
-		double maxHeight = 0.0;
-
-		Vector3 center = (a + b + c) / 3.0;
-		center *= mRadius / Vector3::Length(center);//+maxHeight
-		mHeightMultLUT.push_back(1.0 / Vector3::Dot(a, Vector3::Normalize(center)));
-		double normMaxHeight = maxHeight / mRadius;
-		for (int i = 1; i <= mMaxSubdivisions; i++)
-		{
-			Vector3 A = b + ((c - b) * 0.5);
-			Vector3 B = c + ((a - c) * 0.5);
-			c = a + ((b - a) * 0.5f);
-			a = A * mRadius / Vector3::Length(A);
-			b = B * mRadius / Vector3::Length(B);
-			c *= mRadius / Vector3::Length(c);
-			mHeightMultLUT.push_back(1.0f / Vector3::Dot(Vector3::Normalize(a), Vector3::Normalize(center)) + normMaxHeight);
-		}
-
-		//for (auto level : mHeightMultLUT)
-		//	TOAST_CORE_INFO("mHeightMultLUT: %lf", level);
-	}
-
 	double PlanetMesh::GetCachedHeight(uint32_t idx, int16_t subdivision)
 	{
 		if (idx >= mHeightCache.size())
@@ -711,8 +659,6 @@ namespace Toast {
 
 		if (mHeightCache[idx] == DBL_MAX)
 		{
-			sHeightSamples++;
-
 			static constexpr int16_t BILINEAR_LEVEL = 15;
 
 			if (subdivision >= BILINEAR_LEVEL)

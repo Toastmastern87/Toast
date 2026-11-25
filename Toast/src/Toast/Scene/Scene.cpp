@@ -906,7 +906,7 @@ namespace Toast {
 				{
 					InvalidateFrustum();
 
-					mPlanet->OnUpdate(mMainCamera, cameraRot, { cameraPos }, { cameraPos }, mMainCamera->GetWorldTranslation(), cameraTransform, mFrustum.get(), mMainCamera->GetViewMatrix(), mSettings.FrustumCullingMargin);
+					mPlanet->OnUpdate(mMainCamera, cameraRot, { cameraPos }, { cameraPos }, mMainCamera->GetWorldTranslation(), mFrustum.get(), mMainCamera->GetViewMatrix(), mSettings.FrustumCullingMargin);
 				}
 			}
 
@@ -1675,7 +1675,7 @@ namespace Toast {
 
 				InvalidateFrustum();
 
-				mPlanet->OnUpdate(&mainCameraComponent->Camera, { cameraRot }, { cameraPos }, editorCamera->GetTranslation(), mainCameraComponent->Camera.GetWorldTranslation(), mainCameraTransform->GetTransform(), mFrustum.get(), editorCamera->GetViewMatrix(), mSettings.FrustumCullingMargin);
+				mPlanet->OnUpdate(&mainCameraComponent->Camera, { cameraRot }, { cameraPos }, editorCamera->GetTranslation(), mainCameraComponent->Camera.GetWorldTranslation(), mFrustum.get(), editorCamera->GetViewMatrix(), mSettings.FrustumCullingMargin);
 			}
 		}
 

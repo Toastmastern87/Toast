@@ -12,6 +12,8 @@
 #include "Toast/Renderer/SamplerStates.h"
 #include "Toast/Renderer/TerrainObjectSystem.h"
 
+#include "renderdoc_app.h"
+
 namespace Toast {
 
 	Scope<Renderer::RendererData> Renderer::sRendererData = CreateScope<Renderer::RendererData>();

@@ -1399,7 +1399,6 @@ namespace Toast {
 		planetMesh->mFrustumCulling = planet["PlanetMesh"]["FrustumCulling"].as<bool>();
 		planetMesh->mDistanceLUTIsDirty = true;
 		planetMesh->mFaceLevelDotLUTIsDirty = true;
-		planetMesh->mHeightMultLUTIsDirty = true;
 		planetMesh->mPatchIsDirty = true;
 
 		scenePlanet->mNormalMapTextureCube = scenePlanet->CreateNormalMapCube(scenePlanet->mBaseHeightMapTextureCube.get());

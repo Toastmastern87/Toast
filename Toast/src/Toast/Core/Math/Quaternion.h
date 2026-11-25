@@ -1,5 +1,7 @@
 #pragma once
 
+#include <DirectXMath.h>
+
 namespace Toast {
 
 	class Vector3;

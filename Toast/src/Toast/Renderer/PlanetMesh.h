@@ -94,29 +94,18 @@ namespace Toast {
 		};
 		TOAST_STATIC_ASSERT(sizeof(PlanetPatchGPU) == 88, "PlanetPatchGPU must match PlanetPatch in PlanetMeshBake.hlsl (88 bytes)");
 
-		struct PlanetVertexCPU
+		struct PlanetVertex
 		{
 			uint16_t I;
 			uint16_t J;
 
-			PlanetVertexCPU(uint16_t i, uint16_t j)
+			PlanetVertex(uint16_t i, uint16_t j)
 			{
 				I = i;
 				J = j;
 			}
 		};
-
-		struct PlanetVertexGPU
-		{
-			uint16_t I;
-			uint16_t J;
-
-			PlanetVertexGPU(uint16_t i, uint16_t j)
-			{
-				I = i;
-				J = j;
-			}
-		};
+		TOAST_STATIC_ASSERT(sizeof(PlanetVertex) == 4, "PlanetVertex must match the R16G16_UINT TEXCOORD0 input in InitShaderLayout (4 bytes)");
 
 		struct DeferredLeafPatch
 		{
@@ -146,16 +135,10 @@ namespace Toast {
 		void UnbindGPUData();
 		void Bake();
 
-		Ref<ConstantBuffer>& GetPlanetMeshCBuffer() { return mPlanetMeshCBuffer; }
-
 		uint32_t GetMidpoint(uint32_t i1, uint32_t i2);
 
 		void GenerateDistanceLUT();
 		void GenerateFaceDotLevelLUT();
-		void GenerateHeightMultLUT();
-
-		bool& GetBackfaceCulling() { return mBackfaceCulling; }
-		bool& GetFrustumCulling() { return mFrustumCulling; }
 
 		void SetDistanceLUTDirty() { mDistanceLUTIsDirty = true; }
 
@@ -175,7 +158,6 @@ namespace Toast {
 
 		const int16_t HARDCAPSUBDIVISIONS = 25;
 		int16_t mMaxSubdivisions = 0;
-		int16_t mHighestSubdivision = 0;
 		int16_t mPatchLevels = 0;
 		bool mPatchIsDirty = true;
 		double mNearDistance = 1.0;
@@ -183,7 +165,6 @@ namespace Toast {
 		Vector3 mCamHiPS = { 0.0, 0.0, 0.0 };
 
 		const CubeData<float>* mTerrainCubeData;
-		const CubeData<uint32_t> mAlbedoCubeData;
 
 		std::vector<double> mHeightCache;
 
@@ -192,8 +173,7 @@ namespace Toast {
 
 		std::vector<uint32_t> mStartIndices;
 		std::vector<Vector3> mBaseIcosahedronVerts;
-		std::vector<PlanetVertexCPU> mVertices;
-		std::vector<PlanetVertexGPU> mVerticesGPU;
+		std::vector<PlanetVertex> mVertices;
 		std::vector<uint32_t> mIndices;
 		std::vector<Vector3> mSphereVertices;
 		MidpointHash mMidpointCache;
@@ -213,14 +193,12 @@ namespace Toast {
 		bool mDistanceLUTIsDirty = true;
 		std::vector<double> mFaceLevelDotLUT;
 		bool mFaceLevelDotLUTIsDirty = true;
-		std::vector<double> mHeightMultLUT;
-		bool mHeightMultLUTIsDirty = true;
 
 		double mBackfaceSafeDistSq = 0.0;
 
 		// Settings
-		bool mBackfaceCulling;
-		bool mFrustumCulling;
+		bool mBackfaceCulling = true;
+		bool mFrustumCulling = true;
 
 		Ref<PlanetMeshBaker> mMeshBaker;
 

@@ -97,7 +97,6 @@ namespace Toast {
 	double PhysicsEngine::GetAltitudeAtWorldPos(const Vector3& worldPos, double& outRadialDist, Vector3& outGroundNormal)
 	{
 		Planet& planet = *mScene->GetPlanet();
-		TerrainData& terrain = planet.GetTerrainData();
 		Vector3 worldTranslation = mScene->GetMainCamera()->GetWorldTranslation();
 
 		// Planet center and true radial distance

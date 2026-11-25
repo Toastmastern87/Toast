@@ -1610,7 +1610,6 @@ namespace Toast {
 
 							auto& mesh = mContext->GetMesh();
 							mesh->mFaceLevelDotLUTIsDirty = true;
-							mesh->mHeightMultLUTIsDirty = true;
 						}
 
 						ImGui::TableNextRow();
@@ -1634,7 +1633,6 @@ namespace Toast {
 
 							auto& mesh = mContext->GetMesh();
 							mesh->mFaceLevelDotLUTIsDirty = true;
-							mesh->mHeightMultLUTIsDirty = true;
 						}
 
 						ImGui::TableNextRow();
