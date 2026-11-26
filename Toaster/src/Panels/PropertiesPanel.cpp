@@ -2195,12 +2195,13 @@ namespace Toast {
 							const auto& methods = scriptClass->GetMethods();
 							if (methods.empty())
 							{
-								ImGui::TextDisabled("Script has no public methods without parameter");
+								ImGui::TextDisabled("Script has no public methods a button can call");
 								break;
 							}
 
 							const bool hasName = !sEditBuffer.StringParam.empty();
-							const bool missing = hasName && methods.find(sEditBuffer.StringParam) == methods.end();
+							const auto selectedMethod = methods.find(sEditBuffer.StringParam);
+							const bool missing = hasName && selectedMethod == methods.end();
 							const char* preview = hasName ? sEditBuffer.StringParam.c_str() : "(select method)";
 
 							if (ImGui::BeginCombo("Method", preview))
@@ -2209,8 +2210,17 @@ namespace Toast {
 								{
 									const bool selected = (sEditBuffer.StringParam == methodName);
 
-									if (ImGui::Selectable(methodName.c_str(), selected))
+									std::string label = methodName;
+									if (method.ParameterType != ScriptFieldType::None)
+										label += std::string("(") + Utils::ScriptFieldTypeToString(method.ParameterType) + ")";
+
+									if (ImGui::Selectable(label.c_str(), selected))
+									{
 										sEditBuffer.StringParam = methodName;
+
+										if (method.ParameterType != ScriptFieldType::Entity)
+											sEditBuffer.EntityParam = 0;
+									}
 
 									if (selected)
 										ImGui::SetItemDefaultFocus();
@@ -2221,6 +2231,9 @@ namespace Toast {
 
 							if (missing)
 								ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.35f, 1.0f), "'%s' not found on the script", sEditBuffer.StringParam.c_str());
+
+							if (selectedMethod != methods.end() && selectedMethod->second.ParameterType == ScriptFieldType::Entity)
+								ImGuiHelpers::DrawEntityPicker("Argument", sEditBuffer.EntityParam, mScene);
 
 							break;
 						}

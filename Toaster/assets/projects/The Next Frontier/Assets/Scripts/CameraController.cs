@@ -29,6 +29,8 @@ namespace TheNextFrontier
         public float BaseMovementSpeed = 500.0f;
 
         private float mZoomTargetAltitude = -1.0f;
+        
+        public float FollowDistance = 100.0f;
 
         private TransformComponent mCameraTransformComponent;
         private CameraComponent mCameraComponent;
@@ -53,6 +55,8 @@ namespace TheNextFrontier
             return (value < min) ? min : (value > max) ? max : value;
         }
 
+		private static string Q(Quaternion q) { return string.Format("({0:F3}, {1:F3}, {2:F3}, {3:F3})", q.X, q.Y, q.Z, q.W); }
+
         void OnCreate()
         {
             mCameraTransformComponent = GetComponent<TransformComponent>();
@@ -74,6 +78,7 @@ namespace TheNextFrontier
                 mIsFollowing = false;
                 mCameraTransformComponent.Rotation = mStartRotation;
                 mCameraComponent.WorldTranslation = mStartTranslation;
+
             }
 
             Vector3 upWorld = Vector3.Normalize(-1.0f * (Planet.Translation + mCameraComponent.WorldTranslation));
@@ -316,17 +321,29 @@ namespace TheNextFrontier
             }
         }
 
-        public void StartFollowing(TransformComponent targetTransform)
+        public void StartFollowing(Entity target)
         {
+        	if(mIsFollowing)
+        		return;
+        		
+        	TransformComponent targetTransform = target.GetComponent<TransformComponent>();
+        	if(targetTransform == null)
+        		return;
+        	
             mIsFollowing = true;
-            mFollowTransform = targetTransform;
-
+            mFollowTransform = targetTransform;           
+			
             mPreviousTranslation = mFollowTransform.Translation;
             mStartRotation = mCameraTransformComponent.Rotation;
             mStartTranslation = mCameraComponent.WorldTranslation;
+            
+            Vector3 targetFromCamera = mFollowTransform.Translation + mCameraComponent.WorldTranslation;
+            Vector3 targetUp = Vector3.Normalize(mFollowTransform.Translation - Planet.Translation);
+            
+            Vector3 lookDirection = Vector3.LengthSquared(targetFromCamera) > 1e-6f ? Vector3.Normalize(targetFromCamera) : -targetUp;
 
-            mCameraComponent.WorldTranslation = -(mFollowTransform.Translation + new Vector3(0.0f, 0.0f, -100.0f));
-            mCameraTransformComponent.Rotation = Quaternion.Identity;
+            mCameraComponent.WorldTranslation = lookDirection * FollowDistance - mFollowTransform.Translation;
+            mCameraTransformComponent.Rotation = Quaternion.LookRotation(lookDirection, targetUp, mCameraWorldRightVector);
         }
     }
 }

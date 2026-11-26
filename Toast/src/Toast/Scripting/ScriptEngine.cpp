@@ -40,24 +40,6 @@ namespace Toast {
 	namespace Utils 
 	{
 
-		static bool IsInvokableMethod(MonoMethod* method)
-		{
-			uint32_t flags = mono_method_get_flags(method, nullptr);
-
-			if ((flags & METHOD_ATTRIBUTE_MEMBER_ACCESS_MASK) != METHOD_ATTRIBUTE_PUBLIC)
-				return false;
-
-			if (flags & (METHOD_ATTRIBUTE_STATIC | METHOD_ATTRIBUTE_SPECIAL_NAME))
-				return false;
-
-			MonoMethodSignature* signature = mono_method_signature(method);
-			if (mono_signature_get_param_count(signature) != 0)
-				return false;
-
-			// OnUpdate and OnEvent is already excluded by parameter account, this checks OnCreate
-			return strcmp(mono_method_get_name(method), "OnCreate") != 0;
-		}
-
 		static void LogManagedException(MonoObject* exception, const std::string& className, MonoMethod* method)
 		{
 			MonoString* description = mono_object_to_string(exception, nullptr);
@@ -126,6 +108,46 @@ namespace Toast {
 			return it->second;
 		}
 
+		static ScriptFieldType GetMethodParameterType(MonoMethod* method)
+		{
+			MonoMethodSignature* signature = mono_method_signature(method);
+			if (mono_signature_get_param_count(signature) != 1)
+				return ScriptFieldType::None;
+
+			void* paramIterator = nullptr;
+			MonoType* paramType = mono_signature_get_params(signature, &paramIterator);
+			if (!paramType || mono_type_is_byref(paramType))
+				return ScriptFieldType::None;
+
+			return MonoTypeToScriptFieldType(paramType);
+		}
+
+		static bool IsSupportedParameterType(ScriptFieldType type)
+		{
+			return type == ScriptFieldType::Entity;
+		}
+
+		static bool IsInvokableMethod(MonoMethod* method)
+		{
+			uint32_t flags = mono_method_get_flags(method, nullptr);
+
+			if ((flags & METHOD_ATTRIBUTE_MEMBER_ACCESS_MASK) != METHOD_ATTRIBUTE_PUBLIC)
+				return false;
+
+			if (flags & (METHOD_ATTRIBUTE_STATIC | METHOD_ATTRIBUTE_SPECIAL_NAME))
+				return false;
+
+			const uint32_t paramCount = mono_signature_get_param_count(mono_method_signature(method));
+			if (paramCount > 1)
+				return false;
+
+			if (paramCount == 1 && !IsSupportedParameterType(GetMethodParameterType(method)))
+				return false;
+
+			// OnUpdate(float) and OnEvent(Event) are excluded by their parameter type, this checks OnCreate
+			return strcmp(mono_method_get_name(method), "OnCreate") != 0;
+		}
+
 	}
 
 	struct ScriptEngineData
@@ -136,11 +158,11 @@ namespace Toast {
 		MonoAssembly* CoreAssembly = nullptr;
 		MonoImage* CoreAssemblyImage = nullptr;
 
-		MonoAssembly* AppAssembly = nullptr;
-		MonoImage* AppAssemblyImage = nullptr;
+		MonoAssembly* GameAssembly = nullptr;
+		MonoImage* GameAssemblyImage = nullptr;
 
 		std::filesystem::path CoreAssemblyFilepath;
-		std::filesystem::path AppAssemblyFilepath;
+		std::filesystem::path GameAssemblyFilepath;
 
 		ScriptClass EntityClass;
 
@@ -148,7 +170,7 @@ namespace Toast {
 		std::unordered_map<UUID, Ref<ScriptInstance>> EntityInstances;
 		std::unordered_map<UUID, ScriptFieldMap> EntityScriptFields;
 
-		Scope<filewatch::FileWatch<std::string>> AppAssemblyFileWatcher;
+		Scope<filewatch::FileWatch<std::string>> GameAssemblyFileWatcher;
 		bool AssemblyReloadPending = false;
 
 		std::unordered_map<std::string, std::filesystem::path> ClassSourcePaths;
@@ -173,7 +195,7 @@ namespace Toast {
 
 			Application::Get().SubmitToMainThread([]()
 				{
-					sData->AppAssemblyFileWatcher.reset();
+					sData->GameAssemblyFileWatcher.reset();
 					ScriptEngine::ReloadAssembly();
 				});
 		}
@@ -186,7 +208,7 @@ namespace Toast {
 		InitMono();
 		ScriptGlue::RegisterFunctions();
 
-		bool status = LoadAssembly("assets/scripts/Toast-ScriptCore.dll");
+		bool status = LoadCoreAssembly("assets/scripts/Toast-ScriptCore.dll");
 		if(!status)
 		{
 			TOAST_CORE_ERROR("[ScriptEngine] Could not load Toast-ScriptCore aseembly.");
@@ -229,7 +251,7 @@ namespace Toast {
 		sData->RootDomain = nullptr;
 	}
 
-	bool ScriptEngine::LoadAssembly(const std::filesystem::path& filepath)
+	bool ScriptEngine::LoadCoreAssembly(const std::filesystem::path& filepath)
 	{
 		sData->AppDomain = mono_domain_create_appdomain("ToastScriptRuntime", nullptr);
 		mono_domain_set(sData->AppDomain, true);
@@ -245,25 +267,25 @@ namespace Toast {
 		return true;
 	}
 
-	bool ScriptEngine::LoadAppAssembly(const std::filesystem::path& filepath)
+	bool ScriptEngine::LoadGameAssembly(const std::filesystem::path& filepath)
 	{
-		sData->AppAssemblyFilepath = filepath;
-		sData->AppAssembly = Utils::LoadMonoAssembly(filepath);
+		sData->GameAssemblyFilepath = filepath;
+		sData->GameAssembly = Utils::LoadMonoAssembly(filepath);
 
-		if (sData->AppAssembly == nullptr)
+		if (sData->GameAssembly == nullptr)
 			return false;
 
-		sData->AppAssemblyImage = mono_assembly_get_image(sData->AppAssembly);
+		sData->GameAssemblyImage = mono_assembly_get_image(sData->GameAssembly);
 
-		sData->AppAssemblyFileWatcher = CreateScope<filewatch::FileWatch<std::string>>(filepath.string(), OnAppAssemblyFileSystemEvent);
+		sData->GameAssemblyFileWatcher = CreateScope<filewatch::FileWatch<std::string>>(filepath.string(), OnAppAssemblyFileSystemEvent);
 		sData->AssemblyReloadPending = false;
 
 		return true;
 	}
 
-	bool ScriptEngine::LoadGameAssembly(const std::filesystem::path& projectRoot, const std::string& projectName)
+	bool ScriptEngine::LoadProjectAssemblies(const std::filesystem::path& projectRoot, const std::string& projectName)
 	{
-		TOAST_CORE_INFO("[ScriptEngine] LoadGameAssembly");
+		TOAST_CORE_INFO("[ScriptEngine] LoadProjectAssemblies");
 
 		if (sData->AppDomain)
 		{
@@ -272,10 +294,10 @@ namespace Toast {
 			sData->AppDomain = nullptr;
 		}
 
-		sData->AppAssembly = nullptr;
+		sData->GameAssembly = nullptr;
 		 
-		sData->AppAssemblyImage = nullptr;
-		sData->AppAssemblyFileWatcher = nullptr;
+		sData->GameAssemblyImage = nullptr;
+		sData->GameAssemblyFileWatcher = nullptr;
 
 		sData->EntityClasses.clear();
 		sData->EntityInstances.clear();
@@ -285,7 +307,7 @@ namespace Toast {
 		sData->ProjectRoot = projectRoot;
 		sData->ProjectNamespace = SanitizeNamespace(projectName);
 		
-		if (!LoadAssembly(sData->CoreAssemblyFilepath))
+		if (!LoadCoreAssembly(sData->CoreAssemblyFilepath))
 		{
 			TOAST_CORE_ERROR("[ScriptEngine] Failed to reload core assembly.");
 			return false;
@@ -302,7 +324,7 @@ namespace Toast {
 			return false;
 		}
 
-		if (!LoadAppAssembly(dllPath))
+		if (!LoadGameAssembly(dllPath))
 		{
 			TOAST_CORE_ERROR("[ScriptEngine] Failed to load game assembly '%s'", dllPath.string().c_str());
 			return false;
@@ -317,14 +339,14 @@ namespace Toast {
 
 	void ScriptEngine::ReloadAssembly()
 	{
-		TOAST_CORE_INFO("[ScriptEngine] ReloadAssembly from '%s'", sData->AppAssemblyFilepath.string().c_str());
+		TOAST_CORE_INFO("[ScriptEngine] ReloadAssembly from '%s'", sData->GameAssemblyFilepath.string().c_str());
 
 		mono_domain_set(mono_get_root_domain(), false);
 
 		mono_domain_unload(sData->AppDomain);
 
-		LoadAssembly(sData->CoreAssemblyFilepath);
-		LoadAppAssembly(sData->AppAssemblyFilepath);
+		LoadCoreAssembly(sData->CoreAssemblyFilepath);
+		LoadGameAssembly(sData->GameAssemblyFilepath);
 
 		LoadAssemblyClasses();
 
@@ -408,7 +430,17 @@ namespace Toast {
 		instance->InvokeOnEvent(scriptEvent);
 	}
 
-	bool ScriptEngine::InvokeEntityMethod(Entity entity, const std::string& methodName)
+	static uint32_t CreateManagedEntity(UUID entityID)
+	{
+		uint32_t handle = sData->EntityClass.Instantiate();
+
+		void* param = &entityID;
+		sData->EntityClass.InvokeMethod(handle, sData->EntityClass.GetMethod(".ctor", 1), &param);
+
+		return handle;
+	}
+
+	bool ScriptEngine::InvokeEntityMethod(Entity entity, const std::string& methodName, const ScriptArgument& argument)
 	{
 		if (!sData->GameDLLLoaded)
 			return false;
@@ -420,9 +452,42 @@ namespace Toast {
 			return false;
 		}
 
-		if (!instance->InvokeMethodByName(methodName))
+		uint32_t argumentHandle = 0;
+		void* argumentValue = nullptr;
+
+		switch (argument.Type)
 		{
-			TOAST_CORE_WARN("[ScriptEngine] No public no-argument method '%s', on entity '%llu'", methodName.c_str(), (uint64_t)entity.GetUUID());
+		case ScriptFieldType::None:
+			break;
+		case ScriptFieldType::Entity:
+		{
+			UUID argumentID = argument.GetValue<uint64_t>();
+			if (!sData->SceneContext || !sData->SceneContext->FindEntityByUUID(argumentID))
+			{
+				TOAST_CORE_WARN("[ScriptEngine] Argument entity '%llu' for '%s' not found", (uint64_t)argumentID, methodName.c_str());
+				return false;
+			}
+
+			argumentHandle = CreateManagedEntity(argumentID);
+			argumentValue = mono_gchandle_get_target(argumentHandle);
+			break;
+		}
+		default:
+		{
+			TOAST_CORE_WARN("[ScriptEngine] Argument type '%s' for '%s' is not supported", Utils::ScriptFieldTypeToString(argument.Type), methodName.c_str());
+			return false;
+		}
+		}
+
+		const bool invoked = instance->InvokeMethodByName(methodName, argument.Type, argumentValue);
+
+		if (argumentHandle)
+			mono_gchandle_free(argumentHandle);
+
+		if (!invoked)
+		{
+			const char* typeName = argument.Type == ScriptFieldType::None ? "" : Utils::ScriptFieldTypeToString(argument.Type);
+			TOAST_CORE_WARN("[ScriptEngine] No public method '%s(%s)' on entity '%llu'", methodName.c_str(), typeName, (uint64_t)entity.GetUUID());
 			return false;
 		}
 
@@ -491,7 +556,7 @@ namespace Toast {
 				sData->ClassSourceHandles[stem] = handle;
 			});
 
-		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(sData->AppAssemblyImage, MONO_TABLE_TYPEDEF);
+		const MonoTableInfo* typeDefinitionsTable = mono_image_get_table_info(sData->GameAssemblyImage, MONO_TABLE_TYPEDEF);
 		int32_t numTypes = mono_table_info_get_rows(typeDefinitionsTable);
 		MonoClass* entityClass = mono_class_from_name(sData->CoreAssemblyImage, "Toast", "Entity");
 
@@ -500,8 +565,8 @@ namespace Toast {
 			uint32_t cols[MONO_TYPEDEF_SIZE];
 			mono_metadata_decode_row(typeDefinitionsTable, i, cols, MONO_TYPEDEF_SIZE);
 
-			const char* nameSpace = mono_metadata_string_heap(sData->AppAssemblyImage, cols[MONO_TYPEDEF_NAMESPACE]);
-			const char* className = mono_metadata_string_heap(sData->AppAssemblyImage, cols[MONO_TYPEDEF_NAME]);
+			const char* nameSpace = mono_metadata_string_heap(sData->GameAssemblyImage, cols[MONO_TYPEDEF_NAMESPACE]);
+			const char* className = mono_metadata_string_heap(sData->GameAssemblyImage, cols[MONO_TYPEDEF_NAME]);
 			std::string fullName;
 			if (strlen(nameSpace) != 0)
 			{
@@ -512,7 +577,7 @@ namespace Toast {
 			else
 				fullName = className;
 
-			MonoClass* monoClass = mono_class_from_name(sData->AppAssemblyImage, nameSpace, className);
+			MonoClass* monoClass = mono_class_from_name(sData->GameAssemblyImage, nameSpace, className);
 			if (!monoClass)
 			{
 				TOAST_CORE_CRITICAL("Failed to resolve type: %s.%s", nameSpace, className);
@@ -554,7 +619,8 @@ namespace Toast {
 					continue;
 
 				const char* methodName = mono_method_get_name(method);
-				scriptClass->mMethods[methodName] = method;
+				const ScriptFieldType parameterType = Utils::GetMethodParameterType(method);
+				scriptClass->mMethods[methodName] = { method, parameterType };
 
 				TOAST_CORE_WARN("	%s()", methodName);
 			}
@@ -829,7 +895,7 @@ namespace {NAMESPACE}
 	ScriptClass::ScriptClass(const std::string& classNamespace, const std::string& className, bool isCore)
 		: mClassNamespace(classNamespace), mClassName(className)
 	{
-		mMonoClass = mono_class_from_name(isCore ? sData->CoreAssemblyImage : sData->AppAssemblyImage, classNamespace.c_str(), className.c_str());
+		mMonoClass = mono_class_from_name(isCore ? sData->CoreAssemblyImage : sData->GameAssemblyImage, classNamespace.c_str(), className.c_str());
 	}
 
 	uint32_t ScriptClass::Instantiate()
@@ -903,14 +969,18 @@ namespace {NAMESPACE}
 		return *(bool*)mono_object_unbox(result);
 	}
 
-	bool ScriptInstance::InvokeMethodByName(const std::string& methodName)
+	bool ScriptInstance::InvokeMethodByName(const std::string& methodName, ScriptFieldType argumentType, void* argument)
 	{
 		const auto& methods = mScriptClass->GetMethods();
 		auto it = methods.find(methodName);
 		if (it == methods.end())
 			return false;
 
-		mScriptClass->InvokeMethod(mInstance, it->second);
+		if (it->second.ParameterType != argumentType)
+			return false;
+
+		void* params[] = { argument };
+		mScriptClass->InvokeMethod(mInstance, it->second.Method, argumentType == ScriptFieldType::None ? nullptr : params);
 		return true;
 	}
 

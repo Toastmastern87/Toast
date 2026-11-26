@@ -8,6 +8,7 @@ namespace Toast {
 
 	class Scene;
 	class Entity;
+	struct ScriptArgument;
 
 	enum class UIButtonActionType : uint8_t
 	{
@@ -28,8 +29,11 @@ namespace Toast {
 		std::string StringParam;
 		bool BoolParam = false; // SetUIComponentVisible: visible state / PlayAnimation: play in reverse
 		float FloatParam = 0.0f;
+		UUID EntityParam = 0;
 
 		Entity ResolveTarget(Scene* scene) const;
+		Entity ResolveEntityParam(Scene* scene) const;
+		ScriptArgument BuildScriptArgument() const;
 		void Execute(Scene* scene) const;
 
 		void Validate(Scene* scene) const;

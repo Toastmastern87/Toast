@@ -595,6 +595,8 @@ namespace Toast {
 		Scene* scene = ScriptEngine::GetSceneContext();
 		Entity entity = scene->FindEntityByUUID(entityID);
 		auto& tc = entity.GetComponent<TransformComponent>();
+
+		tc.RotationEulerAngles = { 0.0f, 0.0f, 0.0f };
 		tc.RotationQuaternion = *rotation;
 		tc.IsDirty = true;
 	}

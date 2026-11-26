@@ -1091,7 +1091,7 @@ namespace Toast {
 		mPropertiesPanel.SetProjectPath(mProject->GetPath(), mProject->GetName());
 		mScriptEditorPanel.SetProjectPath(mProject->GetPath(), mProject->GetName());
 
-		ScriptEngine::LoadGameAssembly(mProject->GetPath(), mProject->GetName());
+		ScriptEngine::LoadProjectAssemblies(mProject->GetPath(), mProject->GetName());
 
 		Renderer2D::LoadUITextures();
 

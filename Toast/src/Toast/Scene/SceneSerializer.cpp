@@ -642,6 +642,7 @@ namespace Toast {
 					out << YAML::Key << "StringParam" << YAML::Value << action.StringParam;
 					out << YAML::Key << "BoolParam" << YAML::Value << action.BoolParam;
 					out << YAML::Key << "FloatParam" << YAML::Value << action.FloatParam;
+					out << YAML::Key << "EntityParam" << YAML::Value << action.EntityParam;
 
 					out << YAML::EndMap;
 				}
@@ -1941,6 +1942,8 @@ namespace Toast {
 							action.StringParam = actionNode["StringParam"].as<std::string>("");
 							action.BoolParam = actionNode["BoolParam"].as<bool>(false);
 							action.FloatParam = actionNode["FloatParam"].as<float>(0.0f);
+							if (actionNode["EntityParam"])
+								action.EntityParam = actionNode["EntityParam"].as<UUID>(0);
 
 							ubc.Actions.push_back(std::move(action));
 						}

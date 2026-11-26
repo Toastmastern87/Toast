@@ -1,6 +1,6 @@
 Scene: Mars
 EditorCamera:
-  Position: [19.2372952, 26.2386856, 6.69866371]
+  Position: [25.9039135, 62.7134323, -162.398361]
 Settings:
   Wireframe: 0
   Grid: false
@@ -521,6 +521,7 @@ Entities:
           StringParam: ""
           BoolParam: false
           FloatParam: 0
+          EntityParam: 0
   - Entity: 9104643952451060688
     TagComponent:
       Tag: MapTexture
@@ -1238,6 +1239,7 @@ Entities:
           StringParam: OnLoadCargoPressed
           BoolParam: false
           FloatParam: 0
+          EntityParam: 0
   - Entity: 6571834013205168760
     TagComponent:
       Tag: FrontFlapLeft
@@ -1979,6 +1981,7 @@ Entities:
           StringParam: ""
           BoolParam: true
           FloatParam: 0
+          EntityParam: 0
   - Entity: 3130812133437718439
     TagComponent:
       Tag: Money
@@ -2341,30 +2344,35 @@ Entities:
           StringParam: ""
           BoolParam: true
           FloatParam: 0
+          EntityParam: 0
         - Name: TimeScaleButton2Toggle
           Type: SetUIButtonToggled
           TargetEntity: 11806276604423328658
           StringParam: ""
           BoolParam: true
           FloatParam: 0
+          EntityParam: 0
         - Name: TimeScaleButton3Toggle
           Type: SetUIButtonToggled
           TargetEntity: 2709097365577216560
           StringParam: ""
           BoolParam: true
           FloatParam: 0
+          EntityParam: 0
         - Name: TimeScaleButton4Toggle
           Type: SetUIButtonToggled
           TargetEntity: 4566870064654448293
           StringParam: ""
           BoolParam: true
           FloatParam: 0
+          EntityParam: 0
         - Name: SetTimeScale8
           Type: SetTimeScale
           TargetEntity: 0
           StringParam: ""
           BoolParam: false
           FloatParam: 8
+          EntityParam: 0
   - Entity: 2709097365577216560
     TagComponent:
       Tag: TimeButtonScale3
@@ -2389,30 +2397,35 @@ Entities:
           StringParam: ""
           BoolParam: true
           FloatParam: 0
+          EntityParam: 0
         - Name: TimeScaleButton2Toggle
           Type: SetUIButtonToggled
           TargetEntity: 11806276604423328658
           StringParam: ""
           BoolParam: true
           FloatParam: 0
+          EntityParam: 0
         - Name: TimeScaleButton3Toggle
           Type: SetUIButtonToggled
           TargetEntity: 2709097365577216560
           StringParam: ""
           BoolParam: true
           FloatParam: 0
+          EntityParam: 0
         - Name: TimeScaleButton4Toggle
           Type: SetUIButtonToggled
           TargetEntity: 4566870064654448293
           StringParam: ""
           BoolParam: false
           FloatParam: 0
+          EntityParam: 0
         - Name: SetTimeScale3
           Type: SetTimeScale
           TargetEntity: 0
           StringParam: ""
           BoolParam: false
           FloatParam: 4
+          EntityParam: 0
   - Entity: 11806276604423328658
     TagComponent:
       Tag: TimeButtonScale2
@@ -2437,30 +2450,35 @@ Entities:
           StringParam: ""
           BoolParam: true
           FloatParam: 0
+          EntityParam: 0
         - Name: TimeScaleButton2Toggle
           Type: SetUIButtonToggled
           TargetEntity: 11806276604423328658
           StringParam: ""
           BoolParam: true
           FloatParam: 0
+          EntityParam: 0
         - Name: TimeScaleButton3Toggle
           Type: SetUIButtonToggled
           TargetEntity: 2709097365577216560
           StringParam: ""
           BoolParam: false
           FloatParam: 0
+          EntityParam: 0
         - Name: TimeScaleButton4Toggle
           Type: SetUIButtonToggled
           TargetEntity: 4566870064654448293
           StringParam: ""
           BoolParam: false
           FloatParam: 0
+          EntityParam: 0
         - Name: SetTimeScale2
           Type: SetTimeScale
           TargetEntity: 0
           StringParam: ""
           BoolParam: false
           FloatParam: 2
+          EntityParam: 0
   - Entity: 18384185750220347789
     TagComponent:
       Tag: TimeButtonScale1
@@ -2485,30 +2503,35 @@ Entities:
           StringParam: ""
           BoolParam: true
           FloatParam: 0
+          EntityParam: 0
         - Name: SetTimeScale1
           Type: SetTimeScale
           TargetEntity: 0
           StringParam: ""
           BoolParam: false
           FloatParam: 1
+          EntityParam: 0
         - Name: TimeScaleButton2Toggle
           Type: SetUIButtonToggled
           TargetEntity: 11806276604423328658
           StringParam: ""
           BoolParam: false
           FloatParam: 0
+          EntityParam: 0
         - Name: TimeScaleButton3Toggle
           Type: SetUIButtonToggled
           TargetEntity: 2709097365577216560
           StringParam: ""
           BoolParam: false
           FloatParam: 0
+          EntityParam: 0
         - Name: TimeScaleButton4Toggle
           Type: SetUIButtonToggled
           TargetEntity: 4566870064654448293
           StringParam: ""
           BoolParam: false
           FloatParam: 0
+          EntityParam: 0
   - Entity: 2812129723666465913
     TagComponent:
       Tag: SText
@@ -2665,6 +2688,7 @@ Entities:
           StringParam: ""
           BoolParam: false
           FloatParam: 0
+          EntityParam: 0
   - Entity: 449177564690845958
     TagComponent:
       Tag: VelocityValueText
@@ -2727,6 +2751,14 @@ Entities:
       StateTexture3: 15715477383293587249
       StyleSheet: 8708931816069793600
       StyleOverrides: 1776
+      Actions:
+        - Name: FollowStarship
+          Type: CallScriptMethod
+          TargetEntity: 3888910141822256182
+          StringParam: StartFollowing
+          BoolParam: false
+          FloatParam: 0
+          EntityParam: 11328469722289647653
   - Entity: 13216893530266742497
     TagComponent:
       Tag: UnloadCargoButton
@@ -2757,6 +2789,7 @@ Entities:
           StringParam: OnUnloadCargoPressed
           BoolParam: false
           FloatParam: 0
+          EntityParam: 0
   - Entity: 9695718872219527677
     TagComponent:
       Tag: SelectionManager
@@ -2975,6 +3008,7 @@ Entities:
           StringParam: RequestDeorbit
           BoolParam: false
           FloatParam: 0
+          EntityParam: 0
   - Entity: 3291353484460275922
     TagComponent:
       Tag: StateValueText

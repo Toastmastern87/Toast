@@ -93,6 +93,31 @@ namespace Toast {
 		return target;
 	}
 
+	Entity UIButtonAction::ResolveEntityParam(Scene* scene) const
+	{
+		if (EntityParam == 0)
+			return {};
+
+		Entity entity = scene->FindEntityByUUID(EntityParam);
+		if(!entity)
+			TOAST_CORE_WARN("UIButtonAction '%s': argument entity '%llu' not found", Name.c_str(), (uint64_t)EntityParam);
+
+		return entity;
+	}
+
+	ScriptArgument UIButtonAction::BuildScriptArgument() const
+	{
+		ScriptArgument argument;
+
+		if (EntityParam != 0)
+		{
+			argument.Type = ScriptFieldType::Entity;
+			argument.SetValue<uint64_t>(EntityParam);
+		}
+
+		return argument;
+	}
+
 	void UIButtonAction::Execute(Scene* scene) const
 	{
 		if (!scene)
@@ -202,7 +227,7 @@ namespace Toast {
 					break;
 				}
 
-				ScriptEngine::InvokeEntityMethod(target, StringParam);
+				ScriptEngine::InvokeEntityMethod(target, StringParam, BuildScriptArgument());
 				break;
 			}
 			default:
@@ -237,10 +262,23 @@ namespace Toast {
 			}
 
 			const auto& methods = scriptClass->GetMethods();
-			if (methods.find(StringParam) == methods.end())
+			auto it = methods.find(StringParam);
+			if(it == methods.end())
 			{
 				const std::string& className = target.GetComponent<ScriptComponent>().ClassName;
 				TOAST_CORE_WARN("UIButtonAction '%s': method '%s' no longer exists on '%s'", Name.c_str(), StringParam.c_str(), className.c_str());
+			}
+
+			const ScriptFieldType parameterType = it->second.ParameterType;
+			
+			if(parameterType == ScriptFieldType::None && EntityParam != 0)
+				TOAST_CORE_WARN("UIButtonAction '%s': method '%s' takes no argument but an argument entity is set", Name.c_str(), StringParam.c_str());
+			else if(parameterType == ScriptFieldType::Entity)
+			{	
+				if (EntityParam == 0)
+					TOAST_CORE_WARN("UIButtonAction '%s': method '%s' takes an Entity but no argument entity is picked", Name.c_str(), StringParam.c_str());
+				else
+					ResolveEntityParam(scene);
 			}
 
 			return;

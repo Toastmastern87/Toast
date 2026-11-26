@@ -70,6 +70,34 @@ namespace Toast {
 
 	using ScriptFieldMap = std::unordered_map<std::string, ScriptFieldInstance>;
 
+	struct ScriptMethod 
+	{
+		MonoMethod* Method = nullptr;
+		ScriptFieldType ParameterType = ScriptFieldType::None;
+	};
+
+	struct ScriptArgument
+	{
+		ScriptFieldType Type = ScriptFieldType::None; // None = no argument
+
+		template<typename T>
+		T GetValue() const
+		{
+			TOAST_STATIC_ASSERT(sizeof(T) <= 16, "Type too large!");
+			return *(const T*)mBuffer;
+		}
+
+		template<typename T>
+		void SetValue(T value)
+		{
+			TOAST_STATIC_ASSERT(sizeof(T) <= 16, "Type too large!");
+			memcpy(mBuffer, &value, sizeof(T));
+		}
+
+	private:
+		uint8_t mBuffer[16] = {};
+	};
+
 	class ScriptClass
 	{
 	public:
@@ -82,14 +110,14 @@ namespace Toast {
 
 		const std::unordered_map<std::string, ScriptField>& GetFields() const { return mFields; }
 
-		const std::map<std::string, MonoMethod*>& GetMethods() const { return mMethods; }
+		const std::map<std::string, ScriptMethod>& GetMethods() const { return mMethods; }
 	private:
 		std::string mClassNamespace;
 		std::string mClassName;
 
 		std::unordered_map<std::string, ScriptField> mFields;
 
-		std::map<std::string, MonoMethod*> mMethods;
+		std::map<std::string, ScriptMethod> mMethods;
 
 		MonoClass* mMonoClass = nullptr;
 
@@ -104,7 +132,7 @@ namespace Toast {
 		void InvokeOnCreate();
 		void InvokeOnUpdate(float ts);
 		bool InvokeOnEvent(const ScriptEvent& scriptEvent);
-		bool InvokeMethodByName(const std::string& methodName);
+		bool InvokeMethodByName(const std::string& methodName, ScriptFieldType argumentType = ScriptFieldType::None, void* argument = nullptr);
 
 		Ref<ScriptClass> GetScriptClass() { return mScriptClass; }
 
@@ -155,9 +183,9 @@ namespace Toast {
 		static void Init();
 		static void Shutdown();
 
-		static bool LoadAssembly(const std::filesystem::path& filepath);
-		static bool LoadAppAssembly(const std::filesystem::path& filepath);
-		static bool LoadGameAssembly(const std::filesystem::path& projectRoot, const std::string& projectName);
+		static bool LoadCoreAssembly(const std::filesystem::path& filepath);
+		static bool LoadGameAssembly(const std::filesystem::path& filepath);
+		static bool LoadProjectAssemblies(const std::filesystem::path& projectRoot, const std::string& projectName);
 
 		static void ReloadAssembly();
 
@@ -169,7 +197,7 @@ namespace Toast {
 		static void OnCreateEntityWithClass(Entity entity, const std::string& className);
 		static void OnUpdateEntity(Entity entity, Timestep ts);
 		static bool OnEventEntity(Entity entity, const ScriptEvent& scriptEvent);
-		static bool InvokeEntityMethod(Entity entity, const std::string& methodName);
+		static bool InvokeEntityMethod(Entity entity, const std::string& methodName, const ScriptArgument& argument = {});
 
 		static std::filesystem::path GetGameAssemblyPath(const std::filesystem::path& projectRoot, const std::string& projectNamespace);
 
